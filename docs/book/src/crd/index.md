@@ -22558,7 +22558,7 @@ Tags
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.Tags">Tags
 (<code>map[string]string</code> alias)</p></h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSClusterSpec">AWSClusterSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.BuildParams">BuildParams</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.SecurityGroup">SecurityGroup</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.SubnetSpec">SubnetSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.VPCSpec">VPCSpec</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1.AWSIAMRoleSpec">AWSIAMRoleSpec</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1.BootstrapUser">BootstrapUser</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1.AWSIAMRoleSpec">AWSIAMRoleSpec</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1.BootstrapUser">BootstrapUser</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.OIDCIdentityProviderConfig">OIDCIdentityProviderConfig</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.OIDCIdentityProviderConfig">OIDCIdentityProviderConfig</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSMachinePoolSpec">AWSMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSManagedMachinePoolSpec">AWSManagedMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AutoScalingGroup">AutoScalingGroup</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.FargateProfileSpec">FargateProfileSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachinePoolSpec">AWSMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedMachinePoolSpec">AWSManagedMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AutoScalingGroup">AutoScalingGroup</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.FargateProfileSpec">FargateProfileSpec</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSClusterSpec">AWSClusterSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.BuildParams">BuildParams</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.SecurityGroup">SecurityGroup</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.SubnetSpec">SubnetSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.VPCSpec">VPCSpec</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1.AWSIAMRoleSpec">AWSIAMRoleSpec</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1.BootstrapUser">BootstrapUser</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1.AWSIAMRoleSpec">AWSIAMRoleSpec</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1.BootstrapUser">BootstrapUser</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.OIDCIdentityProviderConfig">OIDCIdentityProviderConfig</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.OIDCIdentityProviderConfig">OIDCIdentityProviderConfig</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSMachinePoolSpec">AWSMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSManagedMachinePoolSpec">AWSManagedMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AutoScalingGroup">AutoScalingGroup</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.FargateProfileSpec">FargateProfileSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachinePoolSpec">AWSMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedMachinePoolSpec">AWSManagedMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AutoScalingGroup">AutoScalingGroup</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.FargateProfileSpec">FargateProfileSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolSpec">RosaMachinePoolSpec</a>)
 </p>
 <p>
 <p>Tags defines a map of tags.</p>
@@ -25938,6 +25938,20 @@ map[string]string
 </tr>
 <tr>
 <td>
+<code>additionalTags</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.Tags">
+Tags
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AdditionalTags are user-defined tags to be added on the underlying EC2 instances associated with this machine pool.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>autoRepair</code><br/>
 <em>
 bool
@@ -26011,6 +26025,24 @@ with all node instances of the machine pool.</p>
 <td>
 <em>(Optional)</em>
 <p>ProviderIDList contain a ProviderID for each machine instance that&rsquo;s currently managed by this machine pool.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>nodeDrainGracePeriod</code><br/>
+<em>
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>NodeDrainGracePeriod is grace period for how long Pod Disruption Budget-protected workloads will be
+respected during upgrades. After this grace period, any workloads protected by Pod Disruption
+Budgets that have not been successfully drained from a node will be forcibly evicted.</p>
+<p>Valid values are from 0 to 1 week(10080m|168h) .
+0 or empty value means that the MachinePool can be drained without any time limitation.</p>
 </td>
 </tr>
 </table>
@@ -26233,6 +26265,20 @@ map[string]string
 </tr>
 <tr>
 <td>
+<code>additionalTags</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.Tags">
+Tags
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AdditionalTags are user-defined tags to be added on the underlying EC2 instances associated with this machine pool.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>autoRepair</code><br/>
 <em>
 bool
@@ -26306,6 +26352,24 @@ with all node instances of the machine pool.</p>
 <td>
 <em>(Optional)</em>
 <p>ProviderIDList contain a ProviderID for each machine instance that&rsquo;s currently managed by this machine pool.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>nodeDrainGracePeriod</code><br/>
+<em>
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>NodeDrainGracePeriod is grace period for how long Pod Disruption Budget-protected workloads will be
+respected during upgrades. After this grace period, any workloads protected by Pod Disruption
+Budgets that have not been successfully drained from a node will be forcibly evicted.</p>
+<p>Valid values are from 0 to 1 week(10080m|168h) .
+0 or empty value means that the MachinePool can be drained without any time limitation.</p>
 </td>
 </tr>
 </tbody>

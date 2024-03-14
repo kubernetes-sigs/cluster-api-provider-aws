@@ -14,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
@@ -362,6 +363,7 @@ func (r *ROSAMachinePoolReconciler) updateNodePool(machinePoolScope *scope.RosaM
 	// zero-out fields that shouldn't be part of the update call.
 	desiredSpec.Version = ""
 	desiredSpec.AdditionalSecurityGroups = nil
+	desiredSpec.AdditionalTags = nil
 
 	npBuilder := nodePoolBuilder(*desiredSpec, machinePoolScope.MachinePool.Spec)
 	nodePoolSpec, err := npBuilder.Build()
@@ -399,18 +401,6 @@ func validateMachinePoolSpec(machinePoolScope *scope.RosaMachinePoolScope) (*str
 	if version.GT(*maxSupportedVersion) || version.LT(*minSupportedVersion) {
 		message := fmt.Sprintf("version %s is not supported, should be in the range: >= %s and <= %s", version, minSupportedVersion, maxSupportedVersion)
 		return &message, nil
-	}
-
-	if machinePoolScope.RosaMachinePool.Spec.NodeDrainGracePeriod != "" {
-		nodeDrainDuration, err := time.ParseDuration(machinePoolScope.RosaMachinePool.Spec.NodeDrainGracePeriod)
-		if err != nil {
-			return nil, err
-		}
-		// Check if node grace period duration is > 10080m (168h - 1 week)
-		if nodeDrainDuration.Minutes() > 10080 {
-			message := "Max supported NodeDrainGracePeriod duration is 10080m|168h (1 week)"
-			return &message, nil
-		}
 	}
 
 	// TODO: add more input validations
@@ -456,16 +446,17 @@ func nodePoolBuilder(rosaMachinePoolSpec expinfrav1.RosaMachinePoolSpec, machine
 	if rosaMachinePoolSpec.AdditionalSecurityGroups != nil {
 		awsNodePool = awsNodePool.AdditionalSecurityGroupIds(rosaMachinePoolSpec.AdditionalSecurityGroups...)
 	}
+	if rosaMachinePoolSpec.AdditionalTags != nil {
+		awsNodePool = awsNodePool.Tags(rosaMachinePoolSpec.AdditionalTags)
+	}
 	npBuilder.AWSNodePool(awsNodePool)
 
 	if rosaMachinePoolSpec.Version != "" {
 		npBuilder.Version(cmv1.NewVersion().ID(ocm.CreateVersionID(rosaMachinePoolSpec.Version, ocm.DefaultChannelGroup)))
 	}
 
-	if rosaMachinePoolSpec.NodeDrainGracePeriod != "" {
-		duration, _ := time.ParseDuration(rosaMachinePoolSpec.NodeDrainGracePeriod)
-		valueBuilder := cmv1.NewValue()
-		valueBuilder.Value(duration.Minutes()).Unit("minutes")
+	if rosaMachinePoolSpec.NodeDrainGracePeriod != nil {
+		valueBuilder := cmv1.NewValue().Value(rosaMachinePoolSpec.NodeDrainGracePeriod.Minutes()).Unit("minutes")
 		npBuilder.NodeDrainGracePeriod(valueBuilder)
 	}
 
@@ -479,6 +470,7 @@ func nodePoolToRosaMachinePoolSpec(nodePool *cmv1.NodePool) expinfrav1.RosaMachi
 		AvailabilityZone:         nodePool.AvailabilityZone(),
 		Subnet:                   nodePool.Subnet(),
 		Labels:                   nodePool.Labels(),
+		AdditionalTags:           nodePool.AWSNodePool().Tags(),
 		AutoRepair:               nodePool.AutoRepair(),
 		InstanceType:             nodePool.AWSNodePool().InstanceType(),
 		TuningConfigs:            nodePool.TuningConfigs(),
@@ -501,6 +493,11 @@ func nodePoolToRosaMachinePoolSpec(nodePool *cmv1.NodePool) expinfrav1.RosaMachi
 			})
 		}
 		spec.Taints = rosaTaints
+	}
+	if nodePool.NodeDrainGracePeriod() != nil {
+		spec.NodeDrainGracePeriod = &metav1.Duration{
+			Duration: time.Minute * time.Duration(nodePool.NodeDrainGracePeriod().Value()),
+		}
 	}
 
 	return spec
@@ -534,7 +531,7 @@ func (r *ROSAMachinePoolReconciler) reconcileProviderIDList(ctx context.Context,
 }
 
 func buildEC2FiltersFromTags(tags map[string]string) []*ec2.Filter {
-	filters := make([]*ec2.Filter, len(tags))
+	filters := make([]*ec2.Filter, len(tags)+1)
 	for key, value := range tags {
 		filters = append(filters, &ec2.Filter{
 			Name: ptr.To(fmt.Sprintf("tag:%s", key)),
@@ -543,6 +540,14 @@ func buildEC2FiltersFromTags(tags map[string]string) []*ec2.Filter {
 			}),
 		})
 	}
+
+	// only list instances that are running or just started
+	filters = append(filters, &ec2.Filter{
+		Name: ptr.To("instance-state-name"),
+		Values: aws.StringSlice([]string{
+			"running", "pending",
+		}),
+	})
 
 	return filters
 }
