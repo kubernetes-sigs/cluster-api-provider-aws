@@ -615,6 +615,12 @@ func buildOCMClusterSpec(controPlaneSpec rosacontrolplanev1.RosaControlPlaneSpec
 		ocmClusterSpec.MinReplicas = computeAutoscaling.MinReplicas
 	}
 
+	if controPlaneSpec.ProvisionShardID != "" {
+		ocmClusterSpec.CustomProperties = map[string]string{
+			"provision_shard_id": controPlaneSpec.ProvisionShardID,
+		}
+	}
+
 	return ocmClusterSpec, nil
 }
 

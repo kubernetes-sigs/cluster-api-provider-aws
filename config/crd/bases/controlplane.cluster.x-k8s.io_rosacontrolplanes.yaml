@@ -214,6 +214,13 @@ spec:
               oidcID:
                 description: The ID of the OpenID Connect Provider.
                 type: string
+              provisionShardID:
+                description: ProvisionShardID defines the shard where rosa control
+                  plane components will be hosted.
+                type: string
+                x-kubernetes-validations:
+                - message: provisionShardID is immutable
+                  rule: self == oldSelf
               region:
                 description: The AWS Region the cluster lives in.
                 type: string
