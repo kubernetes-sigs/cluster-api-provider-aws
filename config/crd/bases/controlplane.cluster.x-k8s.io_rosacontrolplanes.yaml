@@ -116,7 +116,8 @@ spec:
                 properties:
                   autoscaling:
                     description: Autoscaling specifies auto scaling behaviour for
-                      this MachinePool.
+                      the default MachinePool. Autoscaling min/max value must be equal
+                      or multiple of the availability zones count.
                     properties:
                       maxReplicas:
                         minimum: 1

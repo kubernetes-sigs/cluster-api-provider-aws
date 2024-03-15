@@ -611,9 +611,13 @@ func buildOCMClusterSpec(controPlaneSpec rosacontrolplanev1.RosaControlPlaneSpec
 	}
 
 	// Set cluster compute autoscaling replicas
+	// In case autoscaling is not defined and multiple zones defined, set the compute nodes equal to the zones count.
 	if computeAutoscaling := controPlaneSpec.DefaultMachinePoolSpec.Autoscaling; computeAutoscaling != nil {
+		ocmClusterSpec.Autoscaling = true
 		ocmClusterSpec.MaxReplicas = computeAutoscaling.MaxReplicas
 		ocmClusterSpec.MinReplicas = computeAutoscaling.MinReplicas
+	} else if computeAutoscaling == nil && len(controPlaneSpec.AvailabilityZones) > 1 {
+		ocmClusterSpec.ComputeNodes = len(controPlaneSpec.AvailabilityZones)
 	}
 
 	if controPlaneSpec.ProvisionShardID != "" {
