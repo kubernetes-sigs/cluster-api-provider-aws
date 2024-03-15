@@ -139,6 +139,12 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// +optional
 	AuditLogRoleARN string `json:"auditLogRoleARN,omitempty"`
 
+	// ProvisionShardID defines the shard where rosa control plane components will be hosted.
+	//
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="provisionShardID is immutable"
+	// +optional
+	ProvisionShardID string `json:"provisionShardID,omitempty"`
+
 	// CredentialsSecretRef references a secret with necessary credentials to connect to the OCM API.
 	// The secret should contain the following data keys:
 	// - ocmToken: eyJhbGciOiJIUzI1NiIsI....
