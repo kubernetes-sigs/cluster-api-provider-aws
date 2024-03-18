@@ -331,7 +331,7 @@ func (s *Service) CanStartASGInstanceRefresh(scope *scope.MachinePoolScope) (boo
 		return false, err
 	}
 	hasUnfinishedRefresh := false
-	if err == nil && len(refreshes.InstanceRefreshes) != 0 {
+	if len(refreshes.InstanceRefreshes) != 0 {
 		for i := range refreshes.InstanceRefreshes {
 			if *refreshes.InstanceRefreshes[i].Status == autoscaling.InstanceRefreshStatusInProgress ||
 				*refreshes.InstanceRefreshes[i].Status == autoscaling.InstanceRefreshStatusPending ||
