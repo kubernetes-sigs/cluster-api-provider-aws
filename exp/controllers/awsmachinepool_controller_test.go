@@ -169,7 +169,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			asgServiceFactory: func(cloud.ClusterScoper) services.ASGInterface {
 				return asgSvc
 			},
-			reconcileServiceFactory: func(scope.EC2Scope) services.MachinePoolReconcileInterface {
+			reconcileServiceFactory: func(services.EC2Interface, services.ASGInterface) services.MachinePoolReconcileInterface {
 				return reconSvc
 			},
 			Recorder: recorder,

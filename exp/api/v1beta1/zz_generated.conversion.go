@@ -559,6 +559,7 @@ func autoConvert_v1beta2_AWSMachinePoolSpec_To_v1beta1_AWSMachinePoolSpec(in *v1
 	}
 	out.CapacityRebalance = in.CapacityRebalance
 	// WARNING: in.SuspendProcesses requires manual conversion: does not exist in peer-type
+	// WARNING: in.AWSLifecycleHooks requires manual conversion: does not exist in peer-type
 	return nil
 }
 
@@ -735,6 +736,7 @@ func autoConvert_v1beta2_AWSManagedMachinePoolSpec_To_v1beta1_AWSManagedMachineP
 	} else {
 		out.AWSLaunchTemplate = nil
 	}
+	// WARNING: in.AWSLifecycleHooks requires manual conversion: does not exist in peer-type
 	return nil
 }
 

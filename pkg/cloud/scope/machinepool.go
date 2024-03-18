@@ -381,6 +381,10 @@ func (m *MachinePoolScope) GetLaunchTemplate() *expinfrav1.AWSLaunchTemplate {
 	return &m.AWSMachinePool.Spec.AWSLaunchTemplate
 }
 
+func (m *MachinePoolScope) GetLifecycleHooks() []expinfrav1.AWSLifecycleHook {
+	return m.AWSMachinePool.Spec.AWSLifecycleHooks
+}
+
 // GetMachinePool returns the machine pool object.
 func (m *MachinePoolScope) GetMachinePool() *expclusterv1.MachinePool {
 	return m.MachinePool
