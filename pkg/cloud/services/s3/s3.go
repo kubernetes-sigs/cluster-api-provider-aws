@@ -211,10 +211,9 @@ func (s *Service) Delete(m *scope.MachineScope) error {
 			case s3.ErrCodeNoSuchBucket:
 				s.scope.Debug("Bucket does not exist", "bucket", bucket)
 				return nil
-			default:
-				return errors.Wrap(aerr, "deleting S3 object")
 			}
 		}
+		return errors.Wrap(err, "deleting S3 object")
 	}
 
 	s.scope.Info("Deleting S3 object", "bucket", bucket, "key", key)
