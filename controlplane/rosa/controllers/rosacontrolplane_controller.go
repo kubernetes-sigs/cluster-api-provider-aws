@@ -547,6 +547,7 @@ func buildOCMClusterSpec(controPlaneSpec rosacontrolplanev1.RosaControlPlaneSpec
 	ocmClusterSpec := ocm.Spec{
 		DryRun:                    ptr.To(false),
 		Name:                      controPlaneSpec.RosaClusterName,
+		DomainPrefix:              controPlaneSpec.DomainPrefix,
 		Region:                    controPlaneSpec.Region,
 		MultiAZ:                   true,
 		Version:                   ocm.CreateVersionID(controPlaneSpec.Version, ocm.DefaultChannelGroup),
