@@ -205,6 +205,9 @@ func (s *Service) Delete(m *scope.MachineScope) error {
 				s.scope.Debug("Delete object call succeeded despite missing GetObject permission", "bucket", bucket, "key", key)
 
 				return nil
+			case "NotFound":
+				s.scope.Debug("Either bucket or object does not exist", "bucket", bucket, "key", key)
+				return nil
 			case s3.ErrCodeNoSuchKey:
 				s.scope.Debug("Object already deleted", "bucket", bucket, "key", key)
 				return nil
