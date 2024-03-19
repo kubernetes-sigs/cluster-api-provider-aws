@@ -19,9 +19,8 @@ package v1beta1
 import (
 	"testing"
 
-	. "github.com/onsi/gomega"
-
 	fuzz "github.com/google/gofuzz"
+	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	"k8s.io/apimachinery/pkg/runtime"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
@@ -38,7 +37,7 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 
 func AWSMachineFuzzer(obj *AWSMachine, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
-	
+
 	// AWSMachine.Spec.FailureDomain, AWSMachine.Spec.Subnet.ARN and AWSMachine.Spec.AdditionalSecurityGroups.ARN has been removed in v1beta2, so setting it to nil in order to avoid v1beta1 --> v1beta2 --> v1beta1 round trip errors.
 	if obj.Spec.Subnet != nil {
 		obj.Spec.Subnet.ARN = nil
@@ -54,7 +53,7 @@ func AWSMachineFuzzer(obj *AWSMachine, c fuzz.Continue) {
 
 func AWSMachineTemplateFuzzer(obj *AWSMachineTemplate, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
-	
+
 	// AWSMachineTemplate.Spec.Template.Spec.FailureDomain, AWSMachineTemplate.Spec.Template.Spec.Subnet.ARN and AWSMachineTemplate.Spec.Template.Spec.AdditionalSecurityGroups.ARN has been removed in v1beta2, so setting it to nil in order to avoid  v1beta1 --> v1beta2 --> v1beta round trip errors.
 	if obj.Spec.Template.Spec.Subnet != nil {
 		obj.Spec.Template.Spec.Subnet.ARN = nil
@@ -81,16 +80,16 @@ func TestFuzzyConversion(t *testing.T) {
 	}))
 
 	t.Run("for AWSMachine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &v1beta2.AWSMachine{},
-		Spoke:  &AWSMachine{},
+		Scheme:      scheme,
+		Hub:         &v1beta2.AWSMachine{},
+		Spoke:       &AWSMachine{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},
 	}))
 
 	t.Run("for AWSMachineTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &v1beta2.AWSMachineTemplate{},
-		Spoke:  &AWSMachineTemplate{},
+		Scheme:      scheme,
+		Hub:         &v1beta2.AWSMachineTemplate{},
+		Spoke:       &AWSMachineTemplate{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},
 	}))
 

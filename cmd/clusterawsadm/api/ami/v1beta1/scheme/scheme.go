@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package scheme provides a way to generate a Scheme and CodecFactory f
+// or the bootstrap.aws.infrastructure.cluster.x-k8s.io API group.
 package scheme
 
 import (

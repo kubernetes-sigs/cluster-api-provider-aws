@@ -27,6 +27,16 @@ const (
 	DefaultAPIServerPort = 6443
 	// DefaultAPIServerPortString defines the API server port as a string for convenience.
 	DefaultAPIServerPortString = "6443"
+	// DefaultAPIServerHealthCheckPath the API server health check path.
+	DefaultAPIServerHealthCheckPath = "/readyz"
+	// DefaultAPIServerHealthCheckIntervalSec the API server health check interval in seconds.
+	DefaultAPIServerHealthCheckIntervalSec = 10
+	// DefaultAPIServerHealthCheckTimeoutSec the API server health check timeout in seconds.
+	DefaultAPIServerHealthCheckTimeoutSec = 5
+	// DefaultAPIServerHealthThresholdCount the API server health check threshold count.
+	DefaultAPIServerHealthThresholdCount = 5
+	// DefaultAPIServerUnhealthThresholdCount the API server unhealthy check threshold count.
+	DefaultAPIServerUnhealthThresholdCount = 3
 )
 
 // NetworkStatus encapsulates AWS networking resources.
@@ -106,6 +116,7 @@ type TargetGroupHealthCheck struct {
 type TargetGroupAttribute string
 
 var (
+	// TargetGroupAttributeEnablePreserveClientIP defines the attribute key for enabling preserve client IP.
 	TargetGroupAttributeEnablePreserveClientIP = "preserve_client_ip.enabled"
 )
 
@@ -113,8 +124,11 @@ var (
 type LoadBalancerAttribute string
 
 var (
-	LoadBalancerAttributeEnableLoadBalancingCrossZone           = "load_balancing.cross_zone.enabled"
-	LoadBalancerAttributeIdleTimeTimeoutSeconds                 = "idle_timeout.timeout_seconds"
+	// LoadBalancerAttributeEnableLoadBalancingCrossZone defines the attribute key for enabling load balancing cross zone.
+	LoadBalancerAttributeEnableLoadBalancingCrossZone = "load_balancing.cross_zone.enabled"
+	// LoadBalancerAttributeIdleTimeTimeoutSeconds defines the attribute key for idle timeout.
+	LoadBalancerAttributeIdleTimeTimeoutSeconds = "idle_timeout.timeout_seconds"
+	// LoadBalancerAttributeIdleTimeDefaultTimeoutSecondsInSeconds defines the default idle timeout in seconds.
 	LoadBalancerAttributeIdleTimeDefaultTimeoutSecondsInSeconds = "60"
 )
 

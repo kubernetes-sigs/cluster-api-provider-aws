@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package list provides a way to list AMIs from the default AWS account where AMIs are stored.
 package list
 
 import (

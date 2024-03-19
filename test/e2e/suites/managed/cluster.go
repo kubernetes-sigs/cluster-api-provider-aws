@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package managed implements a test for creating a managed cluster using CAPA.
 package managed
 
 import (

@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package helpers provides a set of utilities for testing controllers.
 package helpers
 
 import (
@@ -83,7 +84,7 @@ func init() {
 	utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
 
 	// Get the root of the current file to use in CRD paths.
-	_, filename, _, _ := goruntime.Caller(0) //nolint
+	_, filename, _, _ := goruntime.Caller(0) //nolint:dogsled
 	root = path.Join(path.Dir(filename), "..", "..")
 }
 
@@ -237,7 +238,7 @@ func buildModifiedWebhook(tag string, relativeFilePath string) (admissionv1.Muta
 		if o.GetKind() == mutatingWebhookKind {
 			// update the name in metadata
 			if o.GetName() == defaultMutatingWebhookName {
-				o.SetName(strings.Join([]string{defaultMutatingWebhookName, "-", tag}, ""))
+				o.SetName(defaultMutatingWebhookName + "-" + tag)
 				if err := scheme.Scheme.Convert(&o, &mutatingWebhook, nil); err != nil {
 					klog.Fatalf("failed to convert MutatingWebhookConfiguration %s", o.GetName())
 				}
@@ -246,7 +247,7 @@ func buildModifiedWebhook(tag string, relativeFilePath string) (admissionv1.Muta
 		if o.GetKind() == validatingWebhookKind {
 			// update the name in metadata
 			if o.GetName() == defaultValidatingWebhookName {
-				o.SetName(strings.Join([]string{defaultValidatingWebhookName, "-", tag}, ""))
+				o.SetName(defaultValidatingWebhookName + "-" + tag)
 				if err := scheme.Scheme.Convert(&o, &validatingWebhook, nil); err != nil {
 					klog.Fatalf("failed to convert ValidatingWebhookConfiguration %s", o.GetName())
 				}

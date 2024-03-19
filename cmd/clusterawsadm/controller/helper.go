@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package controller contains the controller logic for the capa manager.
 package controller
 
 import (

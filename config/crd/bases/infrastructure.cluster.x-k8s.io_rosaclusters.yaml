@@ -35,6 +35,7 @@ spec:
     name: v1beta2
     schema:
       openAPIV3Schema:
+        description: ROSACluster is the Schema for the ROSAClusters API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -49,6 +50,7 @@ spec:
           metadata:
             type: object
           spec:
+            description: ROSAClusterSpec defines the desired state of ROSACluster.
             properties:
               controlPlaneEndpoint:
                 description: ControlPlaneEndpoint represents the endpoint used to
@@ -67,7 +69,7 @@ spec:
                 type: object
             type: object
           status:
-            description: ROSAClusterStatus defines the observed state of ROSACluster
+            description: ROSAClusterStatus defines the observed state of ROSACluster.
             properties:
               failureDomains:
                 additionalProperties:

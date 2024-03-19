@@ -89,7 +89,6 @@ func CopyAMICmd() *cobra.Command {
 
 			printer.Print(ami)
 
-			// klog.V(0).Infof("Completed copying %v\n", *image.ImageId)
 			return nil
 		},
 	}

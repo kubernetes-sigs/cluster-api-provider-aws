@@ -18,11 +18,9 @@ package main
 
 import (
 	"fmt"
-
-	"github.com/aws/aws-cdk-go/awscdk"
-
 	"os"
 
+	"github.com/aws/aws-cdk-go/awscdk"
 	"github.com/aws/aws-cdk-go/awscdk/awsecs"
 	"github.com/aws/aws-cdk-go/awscdk/awsecspatterns"
 	"github.com/aws/aws-cdk-go/awscdk/awselasticloadbalancingv2"

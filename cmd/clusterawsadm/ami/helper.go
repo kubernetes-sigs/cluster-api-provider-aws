@@ -241,16 +241,14 @@ func findAMI(imagesMap map[string][]*ec2.Image, baseOS, kubernetesVersion string
 	}
 	if val, ok := imagesMap[amiName]; ok && val != nil {
 		return latestAMI(val)
-	} else {
-		amiName, err = ec2service.GenerateAmiName(amiNameFormat, baseOS, strings.TrimPrefix(kubernetesVersion, "v"))
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to process ami format: %q", amiNameFormat)
-		}
-		if val, ok = imagesMap[amiName]; ok && val != nil {
-			return latestAMI(val)
-		}
 	}
-
+	amiName, err = ec2service.GenerateAmiName(amiNameFormat, baseOS, strings.TrimPrefix(kubernetesVersion, "v"))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to process ami format: %q", amiNameFormat)
+	}
+	if val, ok := imagesMap[amiName]; ok && val != nil {
+		return latestAMI(val)
+	}
 	return nil, nil
 }
 
