@@ -334,7 +334,7 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 					*subnet.SubnetId, *subnet.AvailabilityZone, *failureDomain)
 				continue
 			}
-			if scope.AWSMachine.Spec.PublicIP != nil && *scope.AWSMachine.Spec.PublicIP && !*subnet.MapPublicIpOnLaunch {
+			if scope.AWSMachine.Spec.PublicIP != nil && *scope.AWSMachine.Spec.PublicIP && !s.scope.Subnets().FindByID(*subnet.SubnetId).IsPublic {
 				errMessage += fmt.Sprintf(" subnet %q is a private subnet.", *subnet.SubnetId)
 				continue
 			}
