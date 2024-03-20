@@ -2130,6 +2130,19 @@ func TestCreateInstance(t *testing.T) {
 						}},
 					}, nil)
 				m.
+					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
+						Filters: []*ec2.Filter{
+							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"public-subnet-1"})},
+						},
+					}).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{{
+							SubnetId:            aws.String("public-subnet-1"),
+							AvailabilityZone:    aws.String("us-east-1b"),
+							MapPublicIpOnLaunch: aws.Bool(true),
+						}},
+					}, nil)
+				m.
 					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
 						InstanceTypes: []*string{
 							aws.String("m5.large"),
@@ -2377,7 +2390,19 @@ func TestCreateInstance(t *testing.T) {
 					}).
 					Return(&ec2.DescribeSubnetsOutput{
 						Subnets: []*ec2.Subnet{{
-							SubnetId:            aws.String("filtered-subnet-1"),
+							SubnetId:            aws.String("public-subnet-1"),
+							MapPublicIpOnLaunch: aws.Bool(true),
+						}},
+					}, nil)
+				m.
+					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
+						Filters: []*ec2.Filter{
+							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"public-subnet-1"})},
+						},
+					}).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{{
+							SubnetId:            aws.String("public-subnet-1"),
 							MapPublicIpOnLaunch: aws.Bool(true),
 						}},
 					}, nil)
@@ -2498,6 +2523,18 @@ func TestCreateInstance(t *testing.T) {
 								},
 							},
 						},
+					}, nil)
+				m.
+					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
+						Filters: []*ec2.Filter{
+							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"public-subnet-1"})},
+						},
+					}).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{{
+							SubnetId:            aws.String("public-subnet-1"),
+							MapPublicIpOnLaunch: aws.Bool(true),
+						}},
 					}, nil)
 				m.
 					RunInstancesWithContext(context.TODO(), gomock.Any()).
