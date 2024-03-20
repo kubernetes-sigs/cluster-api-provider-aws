@@ -24,6 +24,8 @@
   - [ROSA Support](./topics/rosa/index.md)
     - [Enabling ROSA Support](./topics/rosa/enabling.md)
     - [Creating a cluster](./topics/rosa/creating-a-cluster.md)
+    - [Creating MachinePools](./topics/rosa/creating-rosa-machinepools.md)
+    - [Upgrades](./topics/rosa/upgrades.md)
   - [Bring Your Own AWS Infrastructure](./topics/bring-your-own-aws-infrastructure.md)
   - [Specifying the IAM Role to use for Management Components](./topics/specify-management-iam-role.md)
   - [Using external cloud provider with EBS CSI driver](./topics/external-cloud-provider-with-ebs-csi-driver.md)
