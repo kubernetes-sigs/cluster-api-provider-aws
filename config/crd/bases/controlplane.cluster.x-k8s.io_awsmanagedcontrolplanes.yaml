@@ -1132,6 +1132,10 @@ spec:
                   privateIp:
                     description: The private IPv4 address assigned to the instance.
                     type: string
+                  publicIPOnLaunch:
+                    description: PublicIPOnLaunch is the option to associate a public
+                      IP on instance launch
+                    type: boolean
                   publicIp:
                     description: The public IPv4 address assigned to the instance,
                       if applicable.
@@ -2984,6 +2988,10 @@ spec:
                   privateIp:
                     description: The private IPv4 address assigned to the instance.
                     type: string
+                  publicIPOnLaunch:
+                    description: PublicIPOnLaunch is the option to associate a public
+                      IP on instance launch
+                    type: boolean
                   publicIp:
                     description: The public IPv4 address assigned to the instance,
                       if applicable.
