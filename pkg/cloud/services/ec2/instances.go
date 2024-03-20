@@ -181,6 +181,21 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 	}
 	input.SubnetID = subnetID
 
+	if ptr.Deref(scope.AWSMachine.Spec.PublicIP, false) {
+		subnets, err := s.getFilteredSubnets(&ec2.Filter{
+			Name:   aws.String("subnet-id"),
+			Values: aws.StringSlice([]string{subnetID}),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("could not query if subnet has MapPublicIpOnLaunch set: %w", err)
+		}
+		if len(subnets) == 0 {
+			return nil, fmt.Errorf("expected to find subnet %q", subnetID)
+		}
+		// If the subnet does not assign public IPs, set that option in the instance's network interface
+		input.PublicIPOnLaunch = ptr.To(!aws.BoolValue(subnets[0].MapPublicIpOnLaunch))
+	}
+
 	if !scope.IsControlPlaneExternallyManaged() && !scope.IsExternallyManaged() && !scope.IsEKSManaged() && s.scope.Network().APIServerELB.DNSName == "" {
 		record.Eventf(s.scope.InfraCluster(), "FailedCreateInstance", "Failed to run controlplane, APIServer ELB not available")
 		return nil, awserrors.NewFailedDependency("failed to run controlplane, APIServer ELB not available")
@@ -538,13 +553,25 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 				DeviceIndex:        aws.Int64(int64(index)),
 			})
 		}
+		netInterfaces[0].AssociatePublicIpAddress = i.PublicIPOnLaunch
 
 		input.NetworkInterfaces = netInterfaces
 	} else {
-		input.SubnetId = aws.String(i.SubnetID)
+		if ptr.Deref(i.PublicIPOnLaunch, false) {
+			input.NetworkInterfaces = []*ec2.InstanceNetworkInterfaceSpecification{
+				{
+					DeviceIndex:              aws.Int64(0),
+					SubnetId:                 aws.String(i.SubnetID),
+					Groups:                   aws.StringSlice(i.SecurityGroupIDs),
+					AssociatePublicIpAddress: i.PublicIPOnLaunch,
+				},
+			}
+		} else {
+			input.SubnetId = aws.String(i.SubnetID)
 
-		if len(i.SecurityGroupIDs) > 0 {
-			input.SecurityGroupIds = aws.StringSlice(i.SecurityGroupIDs)
+			if len(i.SecurityGroupIDs) > 0 {
+				input.SecurityGroupIds = aws.StringSlice(i.SecurityGroupIDs)
+			}
 		}
 	}
 
