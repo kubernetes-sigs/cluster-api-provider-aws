@@ -379,6 +379,27 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 			record.Eventf(scope.AWSMachine, "FailedCreate", errMessage)
 			return "", awserrors.NewFailedDependency(errMessage)
 		}
+
+		criteria := &ec2.Filter{
+			Name:   aws.String("subnet-id"),
+			Values: aws.StringSlice([]string{subnets[0].GetResourceID()}),
+		}
+		ec2Subnets, err := s.getFilteredSubnets(criteria)
+		if err != nil {
+			return "", errors.Wrapf(err, "failed to filter subnets for criteria %q", criteria)
+		}
+		if len(ec2Subnets) == 0 {
+			errMessage := fmt.Sprintf("failed to run machine %q, no subnets available matching criteria %q",
+				scope.Name(), criteria)
+			record.Warnf(scope.AWSMachine, "FailedCreate", errMessage)
+			return "", awserrors.NewFailedDependency(errMessage)
+		}
+		if !aws.BoolValue(ec2Subnets[0].MapPublicIpOnLaunch) {
+			errMessage := fmt.Sprintf("failed to run machine %q, public subnet %q not set to assign public IP on launch", scope.Name(), *ec2Subnets[0].SubnetId)
+			record.Warnf(scope.AWSMachine, "FailedCreate", errMessage)
+			return "", awserrors.NewFailedDependency(errMessage)
+		}
+
 		return subnets[0].GetResourceID(), nil
 
 		// TODO(vincepri): Define a tag that would allow to pick a preferred subnet in an AZ when working
