@@ -198,7 +198,8 @@ type DefaultMachinePoolSpec struct {
 	// +optional
 	InstanceType string `json:"instanceType,omitempty"`
 
-	// Autoscaling specifies auto scaling behaviour for this MachinePool.
+	// Autoscaling specifies auto scaling behaviour for the default MachinePool. Autoscaling min/max value
+	// must be equal or multiple of the availability zones count.
 	// +optional
 	Autoscaling *expinfrav1.RosaMachinePoolAutoScaling `json:"autoscaling,omitempty"`
 }
