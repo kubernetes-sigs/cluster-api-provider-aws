@@ -19,8 +19,8 @@ func splat(context Context, prefs traversePreferences) (Context, error) {
 	return traverseNodesWithArrayIndices(context, make([]*CandidateNode, 0), prefs)
 }
 
-func traversePathOperator(d *dataTreeNavigator, context Context, expressionNode *ExpressionNode) (Context, error) {
-	log.Debugf("-- traversePathOperator")
+func traversePathOperator(_ *dataTreeNavigator, context Context, expressionNode *ExpressionNode) (Context, error) {
+	log.Debugf("traversePathOperator")
 	var matches = list.New()
 
 	for el := context.MatchingNodes.Front(); el != nil; el = el.Next() {
@@ -269,7 +269,7 @@ func doTraverseMap(newMatches *orderedmap.OrderedMap, node *CandidateNode, wante
 		value := contents[index+1]
 
 		//skip the 'merge' tag, find a direct match first
-		if key.Tag == "!!merge" && !prefs.DontFollowAlias {
+		if key.Tag == "!!merge" && !prefs.DontFollowAlias && wantedKey != "<<" {
 			log.Debug("Merge anchor")
 			err := traverseMergeAnchor(newMatches, value, wantedKey, prefs, splat)
 			if err != nil {

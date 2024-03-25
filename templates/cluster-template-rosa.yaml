@@ -30,8 +30,6 @@ spec:
   rosaClusterName: ${CLUSTER_NAME:0:15}
   version: "${OPENSHIFT_VERSION}"
   region: "${AWS_REGION}"
-  accountID: "${AWS_ACCOUNT_ID}"
-  creatorARN: "${AWS_CREATOR_ARN}"
   network:
     machineCIDR: "10.0.0.0/16"
   rolesRef:

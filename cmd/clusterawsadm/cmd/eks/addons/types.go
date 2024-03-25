@@ -106,7 +106,7 @@ type installedAddon struct {
 type issue struct {
 	Code        string
 	Message     string
-	ResourceIds []string
+	ResourceIDs []string
 }
 
 type installedAddonsList struct {

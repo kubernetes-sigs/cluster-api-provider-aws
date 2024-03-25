@@ -9,28 +9,26 @@ import (
 	"strings"
 )
 
-func configureEncoder(format PrinterOutputFormat, indent int) Encoder {
+func configureEncoder(format *Format, indent int) Encoder {
+
 	switch format {
-	case JSONOutputFormat:
-		return NewJSONEncoder(indent, false, false)
-	case PropsOutputFormat:
-		return NewPropertiesEncoder(true)
-	case CSVOutputFormat:
-		return NewCsvEncoder(',')
-	case TSVOutputFormat:
-		return NewCsvEncoder('\t')
-	case YamlOutputFormat:
-		return NewYamlEncoder(indent, false, ConfiguredYamlPreferences)
-	case XMLOutputFormat:
-		return NewXMLEncoder(indent, ConfiguredXMLPreferences)
-	case Base64OutputFormat:
-		return NewBase64Encoder()
-	case UriOutputFormat:
-		return NewUriEncoder()
-	case ShOutputFormat:
-		return NewShEncoder()
+	case JSONFormat:
+		prefs := ConfiguredJSONPreferences.Copy()
+		prefs.Indent = indent
+		prefs.ColorsEnabled = false
+		prefs.UnwrapScalar = false
+		return NewJSONEncoder(prefs)
+	case YamlFormat:
+		var prefs = ConfiguredYamlPreferences.Copy()
+		prefs.Indent = indent
+		prefs.ColorsEnabled = false
+		return NewYamlEncoder(prefs)
+	case XMLFormat:
+		var xmlPrefs = ConfiguredXMLPreferences.Copy()
+		xmlPrefs.Indent = indent
+		return NewXMLEncoder(xmlPrefs)
 	}
-	panic("invalid encoder")
+	return format.EncoderFactory()
 }
 
 func encodeToString(candidate *CandidateNode, prefs encoderPreferences) (string, error) {
@@ -48,13 +46,13 @@ func encodeToString(candidate *CandidateNode, prefs encoderPreferences) (string,
 }
 
 type encoderPreferences struct {
-	format PrinterOutputFormat
+	format *Format
 	indent int
 }
 
 /* encodes object as yaml string */
 
-func encodeOperator(d *dataTreeNavigator, context Context, expressionNode *ExpressionNode) (Context, error) {
+func encodeOperator(_ *dataTreeNavigator, context Context, expressionNode *ExpressionNode) (Context, error) {
 	preferences := expressionNode.Operation.Preferences.(encoderPreferences)
 	var results = list.New()
 
@@ -83,9 +81,9 @@ func encodeOperator(d *dataTreeNavigator, context Context, expressionNode *Expre
 		}
 
 		// dont print a newline when printing json on a single line.
-		if (preferences.format == JSONOutputFormat && preferences.indent == 0) ||
-			preferences.format == CSVOutputFormat ||
-			preferences.format == TSVOutputFormat {
+		if (preferences.format == JSONFormat && preferences.indent == 0) ||
+			preferences.format == CSVFormat ||
+			preferences.format == TSVFormat {
 			stringValue = chomper.ReplaceAllString(stringValue, "")
 		}
 
@@ -95,38 +93,15 @@ func encodeOperator(d *dataTreeNavigator, context Context, expressionNode *Expre
 }
 
 type decoderPreferences struct {
-	format InputFormat
-}
-
-func createDecoder(format InputFormat) Decoder {
-	var decoder Decoder
-	switch format {
-	case JsonInputFormat:
-		decoder = NewJSONDecoder()
-	case YamlInputFormat:
-		decoder = NewYamlDecoder(ConfiguredYamlPreferences)
-	case XMLInputFormat:
-		decoder = NewXMLDecoder(ConfiguredXMLPreferences)
-	case Base64InputFormat:
-		decoder = NewBase64Decoder()
-	case PropertiesInputFormat:
-		decoder = NewPropertiesDecoder()
-	case CSVObjectInputFormat:
-		decoder = NewCSVObjectDecoder(',')
-	case TSVObjectInputFormat:
-		decoder = NewCSVObjectDecoder('\t')
-	case UriInputFormat:
-		decoder = NewUriDecoder()
-	}
-	return decoder
+	format *Format
 }
 
 /* takes a string and decodes it back into an object */
-func decodeOperator(d *dataTreeNavigator, context Context, expressionNode *ExpressionNode) (Context, error) {
+func decodeOperator(_ *dataTreeNavigator, context Context, expressionNode *ExpressionNode) (Context, error) {
 
 	preferences := expressionNode.Operation.Preferences.(decoderPreferences)
 
-	decoder := createDecoder(preferences.format)
+	decoder := preferences.format.DecoderFactory()
 	if decoder == nil {
 		return Context{}, errors.New("no support for input format")
 	}

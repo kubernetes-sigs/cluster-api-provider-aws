@@ -1,3 +1,29 @@
+4.42.1:
+  - Can execute yq expression files directly with shebang #1851
+  - Added --csv-separator flag #1950
+  - Added --properties-separator option - thanks  @learnitall #1864
+  - Added --properties-array-brackets flag for properties encoder #1933
+  - Shell completion improvements - thanks @scop #1911
+  - Bumped dependencies
+
+
+4.41.1:
+  - Can now comment in yq expressions! #1919
+  - Fixed Toml decoding when table array defined before parent #1922
+  - Added new CSV option to turn off auto-parsing #1947
+  - Fixing with_entries context #1925
+  - Can now retrieve the alias names of merge anchors #1942
+
+
+4.40.7:
+  - Bumped dependencies
+
+4.40.6:
+  - Fix: empty TOML table #1924 - Thanks @elibroftw 
+  - Fixed "all" error message #1845
+  - Fixed to_entries[]
+  - Bumped dependencies
+
 4.40.5:
   - Fixing seg fault on bad XML #1888
   - Fixed handling of --- #1890, #1896

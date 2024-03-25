@@ -801,8 +801,9 @@ github.com/openshift-online/ocm-common/pkg/aws/validations
 github.com/openshift-online/ocm-common/pkg/idp/utils
 github.com/openshift-online/ocm-common/pkg/ocm/consts
 github.com/openshift-online/ocm-common/pkg/ocm/validations
+github.com/openshift-online/ocm-common/pkg/resource/validations
 github.com/openshift-online/ocm-common/pkg/utils
-# github.com/openshift-online/ocm-sdk-go v0.1.404
+# github.com/openshift-online/ocm-sdk-go v0.1.409
 ## explicit; go 1.21
 github.com/openshift-online/ocm-sdk-go
 github.com/openshift-online/ocm-sdk-go/accountsmgmt
@@ -833,7 +834,7 @@ github.com/openshift-online/ocm-sdk-go/statusboard
 github.com/openshift-online/ocm-sdk-go/statusboard/v1
 github.com/openshift-online/ocm-sdk-go/webrca
 github.com/openshift-online/ocm-sdk-go/webrca/v1
-# github.com/openshift/rosa v1.2.35-rc1.0.20240229115423-42874686e22d
+# github.com/openshift/rosa v1.2.35-rc1.0.20240301152457-ad986cecd364
 ## explicit; go 1.21
 github.com/openshift/rosa/assets
 github.com/openshift/rosa/pkg/arguments

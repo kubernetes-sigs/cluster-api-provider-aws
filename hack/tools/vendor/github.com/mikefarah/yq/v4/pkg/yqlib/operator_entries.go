@@ -40,7 +40,7 @@ func toEntriesfromSeq(candidateNode *CandidateNode) *CandidateNode {
 	return sequence
 }
 
-func toEntriesOperator(d *dataTreeNavigator, context Context, expressionNode *ExpressionNode) (Context, error) {
+func toEntriesOperator(_ *dataTreeNavigator, context Context, _ *ExpressionNode) (Context, error) {
 	var results = list.New()
 	for el := context.MatchingNodes.Front(); el != nil; el = el.Next() {
 		candidate := el.Value.(*CandidateNode)
@@ -102,7 +102,7 @@ func fromEntries(candidateNode *CandidateNode) (*CandidateNode, error) {
 	return node, nil
 }
 
-func fromEntriesOperator(d *dataTreeNavigator, context Context, expressionNode *ExpressionNode) (Context, error) {
+func fromEntriesOperator(_ *dataTreeNavigator, context Context, _ *ExpressionNode) (Context, error) {
 	var results = list.New()
 	for el := context.MatchingNodes.Front(); el != nil; el = el.Next() {
 		candidate := el.Value.(*CandidateNode)
@@ -142,15 +142,18 @@ func withEntriesOperator(d *dataTreeNavigator, context Context, expressionNode *
 			return Context{}, err
 		}
 
-		result, err := d.GetMatchingNodes(splatted, expressionNode.RHS)
-		log.Debug("expressionNode.Rhs %v", expressionNode.RHS.Operation.OperationType)
-		log.Debug("result %v", result)
-		if err != nil {
-			return Context{}, err
+		newResults := list.New()
+
+		for itemEl := splatted.MatchingNodes.Front(); itemEl != nil; itemEl = itemEl.Next() {
+			result, err := d.GetMatchingNodes(splatted.SingleChildContext(itemEl.Value.(*CandidateNode)), expressionNode.RHS)
+			if err != nil {
+				return Context{}, err
+			}
+			newResults.PushBackList(result.MatchingNodes)
 		}
 
 		selfExpression := &ExpressionNode{Operation: &Operation{OperationType: selfReferenceOpType}}
-		collected, err := collectTogether(d, result, selfExpression)
+		collected, err := collectTogether(d, splatted.ChildContext(newResults), selfExpression)
 		if err != nil {
 			return Context{}, err
 		}
@@ -162,7 +165,7 @@ func withEntriesOperator(d *dataTreeNavigator, context Context, expressionNode *
 		collected.HeadComment = candidate.HeadComment
 		collected.FootComment = candidate.FootComment
 
-		log.Debugf("**** collected %v", collected.LeadingContent)
+		log.Debugf("collected %v", collected.LeadingContent)
 
 		fromEntries, err := fromEntriesOperator(d, context.SingleChildContext(collected), expressionNode)
 		if err != nil {

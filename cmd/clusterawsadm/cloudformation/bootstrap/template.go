@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package bootstrap provides a way to generate a CloudFormation template for IAM policies,
+// users and roles for use by Cluster API Provider AWS.
 package bootstrap
 
 import (

@@ -1,7 +1,7 @@
 package yqlib
 
 func alternativeOperator(d *dataTreeNavigator, context Context, expressionNode *ExpressionNode) (Context, error) {
-	log.Debugf("-- alternative")
+	log.Debugf("alternative")
 	prefs := crossFunctionPreferences{
 		CalcWhenEmpty: true,
 		Calculation:   alternativeFunc,
@@ -19,7 +19,7 @@ func alternativeOperator(d *dataTreeNavigator, context Context, expressionNode *
 	return crossFunctionWithPrefs(d, context, expressionNode, prefs)
 }
 
-func alternativeFunc(d *dataTreeNavigator, context Context, lhs *CandidateNode, rhs *CandidateNode) (*CandidateNode, error) {
+func alternativeFunc(_ *dataTreeNavigator, _ Context, lhs *CandidateNode, rhs *CandidateNode) (*CandidateNode, error) {
 	if lhs == nil {
 		return rhs, nil
 	}

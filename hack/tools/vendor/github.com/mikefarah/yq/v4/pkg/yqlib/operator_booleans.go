@@ -35,7 +35,7 @@ func getOwner(lhs *CandidateNode, rhs *CandidateNode) *CandidateNode {
 	return owner
 }
 
-func returnRhsTruthy(d *dataTreeNavigator, context Context, lhs *CandidateNode, rhs *CandidateNode) (*CandidateNode, error) {
+func returnRhsTruthy(_ *dataTreeNavigator, _ Context, lhs *CandidateNode, rhs *CandidateNode) (*CandidateNode, error) {
 	owner := getOwner(lhs, rhs)
 	rhsBool := isTruthyNode(rhs)
 
@@ -88,7 +88,7 @@ func allOperator(d *dataTreeNavigator, context Context, expressionNode *Expressi
 	for el := context.MatchingNodes.Front(); el != nil; el = el.Next() {
 		candidate := el.Value.(*CandidateNode)
 		if candidate.Kind != SequenceNode {
-			return Context{}, fmt.Errorf("any only supports arrays, was %v", candidate.Tag)
+			return Context{}, fmt.Errorf("all only supports arrays, was %v", candidate.Tag)
 		}
 		booleanResult, err := findBoolean(false, d, context, expressionNode.RHS, candidate)
 		if err != nil {
@@ -136,8 +136,8 @@ func andOperator(d *dataTreeNavigator, context Context, expressionNode *Expressi
 	return crossFunctionWithPrefs(d, context.ReadOnlyClone(), expressionNode, prefs)
 }
 
-func notOperator(d *dataTreeNavigator, context Context, expressionNode *ExpressionNode) (Context, error) {
-	log.Debugf("-- notOperation")
+func notOperator(_ *dataTreeNavigator, context Context, _ *ExpressionNode) (Context, error) {
+	log.Debugf("notOperation")
 	var results = list.New()
 
 	for el := context.MatchingNodes.Front(); el != nil; el = el.Next() {

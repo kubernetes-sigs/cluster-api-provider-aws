@@ -10,19 +10,19 @@ type csvEncoder struct {
 	separator rune
 }
 
-func NewCsvEncoder(separator rune) Encoder {
-	return &csvEncoder{separator: separator}
+func NewCsvEncoder(prefs CsvPreferences) Encoder {
+	return &csvEncoder{separator: prefs.Separator}
 }
 
 func (e *csvEncoder) CanHandleAliases() bool {
 	return false
 }
 
-func (e *csvEncoder) PrintDocumentSeparator(writer io.Writer) error {
+func (e *csvEncoder) PrintDocumentSeparator(_ io.Writer) error {
 	return nil
 }
 
-func (e *csvEncoder) PrintLeadingContent(writer io.Writer, content string) error {
+func (e *csvEncoder) PrintLeadingContent(_ io.Writer, _ string) error {
 	return nil
 }
 

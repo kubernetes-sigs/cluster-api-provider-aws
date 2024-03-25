@@ -29,8 +29,8 @@ require (
 	github.com/onsi/ginkgo/v2 v2.13.1
 	github.com/onsi/gomega v1.30.0
 	github.com/openshift-online/ocm-common v0.0.0-20240129111424-ff8c6c11d909
-	github.com/openshift-online/ocm-sdk-go v0.1.404
-	github.com/openshift/rosa v1.2.35-rc1.0.20240229115423-42874686e22d
+	github.com/openshift-online/ocm-sdk-go v0.1.409
+	github.com/openshift/rosa v1.2.35-rc1.0.20240301152457-ad986cecd364
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.18.0
 	github.com/sergi/go-diff v1.3.1

@@ -11,12 +11,12 @@ import (
 )
 
 type propertiesEncoder struct {
-	unwrapScalar bool
+	prefs PropertiesPreferences
 }
 
-func NewPropertiesEncoder(unwrapScalar bool) Encoder {
+func NewPropertiesEncoder(prefs PropertiesPreferences) Encoder {
 	return &propertiesEncoder{
-		unwrapScalar: unwrapScalar,
+		prefs: prefs,
 	}
 }
 
@@ -24,7 +24,7 @@ func (pe *propertiesEncoder) CanHandleAliases() bool {
 	return false
 }
 
-func (pe *propertiesEncoder) PrintDocumentSeparator(writer io.Writer) error {
+func (pe *propertiesEncoder) PrintDocumentSeparator(_ io.Writer) error {
 	return nil
 }
 
@@ -69,6 +69,7 @@ func (pe *propertiesEncoder) Encode(writer io.Writer, node *CandidateNode) error
 
 	mapKeysToStrings(node)
 	p := properties.NewProperties()
+	p.WriteSeparator = pe.prefs.KeyValueSeparator
 	err := pe.doEncode(p, node, "", nil)
 	if err != nil {
 		return err
@@ -92,7 +93,7 @@ func (pe *propertiesEncoder) doEncode(p *properties.Properties, node *CandidateN
 	switch node.Kind {
 	case ScalarNode:
 		var nodeValue string
-		if pe.unwrapScalar || !strings.Contains(node.Value, " ") {
+		if pe.prefs.UnwrapScalar || !strings.Contains(node.Value, " ") {
 			nodeValue = node.Value
 		} else {
 			nodeValue = fmt.Sprintf("%q", node.Value)
@@ -113,6 +114,13 @@ func (pe *propertiesEncoder) doEncode(p *properties.Properties, node *CandidateN
 func (pe *propertiesEncoder) appendPath(path string, key interface{}) string {
 	if path == "" {
 		return fmt.Sprintf("%v", key)
+	}
+	switch key.(type) {
+	case int:
+		if pe.prefs.UseArrayBrackets {
+			return fmt.Sprintf("%v[%v]", path, key)
+		}
+
 	}
 	return fmt.Sprintf("%v.%v", path, key)
 }

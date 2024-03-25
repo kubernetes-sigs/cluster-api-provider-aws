@@ -17,48 +17,6 @@ type Printer interface {
 	SetNulSepOutput(nulSepOutput bool)
 }
 
-type PrinterOutputFormat uint32
-
-const (
-	YamlOutputFormat = 1 << iota
-	JSONOutputFormat
-	PropsOutputFormat
-	CSVOutputFormat
-	TSVOutputFormat
-	XMLOutputFormat
-	Base64OutputFormat
-	UriOutputFormat
-	ShOutputFormat
-	TomlOutputFormat
-	ShellVariablesOutputFormat
-	LuaOutputFormat
-)
-
-func OutputFormatFromString(format string) (PrinterOutputFormat, error) {
-	switch format {
-	case "yaml", "y", "yml":
-		return YamlOutputFormat, nil
-	case "json", "j":
-		return JSONOutputFormat, nil
-	case "props", "p", "properties":
-		return PropsOutputFormat, nil
-	case "csv", "c":
-		return CSVOutputFormat, nil
-	case "tsv", "t":
-		return TSVOutputFormat, nil
-	case "xml", "x":
-		return XMLOutputFormat, nil
-	case "toml":
-		return TomlOutputFormat, nil
-	case "shell", "s", "sh":
-		return ShellVariablesOutputFormat, nil
-	case "lua", "l":
-		return LuaOutputFormat, nil
-	default:
-		return 0, fmt.Errorf("unknown format '%v' please use [yaml|json|props|csv|tsv|xml|toml|shell|lua]", format)
-	}
-}
-
 type resultsPrinter struct {
 	encoder           Encoder
 	printerWriter     PrinterWriter
@@ -139,7 +97,7 @@ func (p *resultsPrinter) PrintResults(matchingNodes *list.List) error {
 	for el := matchingNodes.Front(); el != nil; el = el.Next() {
 
 		mappedDoc := el.Value.(*CandidateNode)
-		log.Debug("-- print sep logic: p.firstTimePrinting: %v, previousDocIndex: %v", p.firstTimePrinting, p.previousDocIndex)
+		log.Debug("print sep logic: p.firstTimePrinting: %v, previousDocIndex: %v", p.firstTimePrinting, p.previousDocIndex)
 		log.Debug("%v", NodeToString(mappedDoc))
 		writer, errorWriting := p.printerWriter.GetWriter(mappedDoc)
 		if errorWriting != nil {

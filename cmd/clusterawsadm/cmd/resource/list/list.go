@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package list provides the list command for the resource package.
 package list
 
 import (
@@ -38,7 +39,7 @@ func ListAWSResourceCmd() *cobra.Command {
 		Short: "List all AWS resources created by CAPA",
 		Long: cmd.LongDesc(`
 			List AWS resources directly created by CAPA based on region and cluster-name. There are some indirect resources like Cloudwatch alarms, rules, etc
-			which are not directly created by CAPA, so those resources are not listed here. 
+			which are not directly created by CAPA, so those resources are not listed here.
 			If region and cluster-name are not set, then it will throw an error.
 		`),
 		Example: cmd.Examples(`

@@ -5,8 +5,8 @@ import (
 	"fmt"
 )
 
-func lengthOperator(d *dataTreeNavigator, context Context, expressionNode *ExpressionNode) (Context, error) {
-	log.Debugf("-- lengthOperation")
+func lengthOperator(_ *dataTreeNavigator, context Context, _ *ExpressionNode) (Context, error) {
+	log.Debugf("lengthOperation")
 	var results = list.New()
 
 	for el := context.MatchingNodes.Front(); el != nil; el = el.Next() {
