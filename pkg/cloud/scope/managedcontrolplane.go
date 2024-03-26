@@ -208,6 +208,11 @@ func (s *ManagedControlPlaneScope) SecondaryCidrBlock() *string {
 	return s.ControlPlane.Spec.SecondaryCidrBlock
 }
 
+// SecondaryCidrBlocks returns the additional CIDR blocks to be associated with the managed VPC.
+func (s *ManagedControlPlaneScope) SecondaryCidrBlocks() []infrav1.VpcCidrBlock {
+	return s.ControlPlane.Spec.NetworkSpec.VPC.SecondaryCidrBlocks
+}
+
 // SecurityGroupOverrides returns the security groups that are overrides in the ControlPlane spec.
 func (s *ManagedControlPlaneScope) SecurityGroupOverrides() map[infrav1.SecurityGroupRole]string {
 	return s.ControlPlane.Spec.NetworkSpec.SecurityGroupOverrides

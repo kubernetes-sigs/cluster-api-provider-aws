@@ -20,9 +20,9 @@ import (
 	"context"
 
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 )
 
@@ -30,8 +30,11 @@ func isVPCPresent(vpcs *ec2.DescribeVpcsOutput) bool {
 	return vpcs != nil && len(vpcs.Vpcs) > 0
 }
 
-func (s *Service) associateSecondaryCidr() error {
-	if s.scope.SecondaryCidrBlock() == nil {
+func (s *Service) associateSecondaryCidrs() error {
+	podSecondaryCidrBlock := s.scope.SecondaryCidrBlock()
+	secondaryCidrBlocks := s.scope.SecondaryCidrBlocks()
+
+	if podSecondaryCidrBlock == nil && len(secondaryCidrBlocks) == 0 {
 		return nil
 	}
 
@@ -46,30 +49,55 @@ func (s *Service) associateSecondaryCidr() error {
 		return errors.Errorf("failed to associateSecondaryCidr as there are no VPCs present")
 	}
 
+	// If only `AWSManagedControlPlane.spec.secondaryCidrBlock` is set, no additional checks are done to remain
+	// backward-compatible. The `VPCSpec.SecondaryCidrBlocks` field was added later - if that list is not empty, we
+	// require `AWSManagedControlPlane.spec.secondaryCidrBlock` to be listed in there as well (validation done in
+	// webhook).
+	if podSecondaryCidrBlock != nil && len(secondaryCidrBlocks) == 0 {
+		secondaryCidrBlocks = append(secondaryCidrBlocks, infrav1.VpcCidrBlock{
+			IPv4CidrBlock: *podSecondaryCidrBlock,
+		})
+	}
+
+	// We currently only *add* associations. Here, we do not reconcile exactly against the provided list
+	// (i.e. disassociate what isn't listed in the spec).
 	existingAssociations := vpcs.Vpcs[0].CidrBlockAssociationSet
-	for _, existing := range existingAssociations {
-		if *existing.CidrBlock == *s.scope.SecondaryCidrBlock() {
-			return nil
+	for _, desiredCidrBlock := range secondaryCidrBlocks {
+		desiredCidrBlock := desiredCidrBlock
+
+		found := false
+		for _, existing := range existingAssociations {
+			if *existing.CidrBlock == desiredCidrBlock.IPv4CidrBlock {
+				found = true
+				break
+			}
 		}
-	}
+		if found {
+			continue
+		}
 
-	out, err := s.EC2Client.AssociateVpcCidrBlockWithContext(context.TODO(), &ec2.AssociateVpcCidrBlockInput{
-		VpcId:     &s.scope.VPC().ID,
-		CidrBlock: s.scope.SecondaryCidrBlock(),
-	})
-	if err != nil {
-		record.Warnf(s.scope.InfraCluster(), "FailedAssociateSecondaryCidr", "Failed associating secondary CIDR with VPC %v", err)
-		return err
-	}
+		out, err := s.EC2Client.AssociateVpcCidrBlockWithContext(context.TODO(), &ec2.AssociateVpcCidrBlockInput{
+			VpcId:     &s.scope.VPC().ID,
+			CidrBlock: &desiredCidrBlock.IPv4CidrBlock,
+		})
+		if err != nil {
+			record.Warnf(s.scope.InfraCluster(), "FailedAssociateSecondaryCidr", "Failed associating secondary CIDR %q with VPC %v", desiredCidrBlock.IPv4CidrBlock, err)
+			return err
+		}
 
-	// once IPv6 is supported, we need to modify out.CidrBlockAssociation.AssociationId to out.Ipv6CidrBlockAssociation.AssociationId
-	record.Eventf(s.scope.InfraCluster(), "SuccessfulAssociateSecondaryCidr", "Associated secondary CIDR with VPC %q", *out.CidrBlockAssociation.AssociationId)
+		// Once IPv6 is supported, we need to consider both `out.CidrBlockAssociation.AssociationId` and
+		// `out.Ipv6CidrBlockAssociation.AssociationId`
+		record.Eventf(s.scope.InfraCluster(), "SuccessfulAssociateSecondaryCidr", "Associated secondary CIDR %q with VPC %q", desiredCidrBlock.IPv4CidrBlock, *out.CidrBlockAssociation.AssociationId)
+	}
 
 	return nil
 }
 
-func (s *Service) disassociateSecondaryCidr() error {
-	if s.scope.SecondaryCidrBlock() == nil {
+func (s *Service) disassociateSecondaryCidrs() error {
+	podSecondaryCidrBlock := s.scope.SecondaryCidrBlock()
+	secondaryCidrBlocks := s.scope.SecondaryCidrBlocks()
+
+	if podSecondaryCidrBlock == nil && len(secondaryCidrBlocks) == 0 {
 		return nil
 	}
 
@@ -81,17 +109,30 @@ func (s *Service) disassociateSecondaryCidr() error {
 	}
 
 	if !isVPCPresent(vpcs) {
-		return errors.Errorf("failed to associateSecondaryCidr as there are no VPCs present")
+		return errors.Errorf("failed to disassociateSecondaryCidr as there are no VPCs present")
+	}
+
+	// If only `AWSManagedControlPlane.spec.secondaryCidrBlock` is set, no additional checks are done to remain
+	// backward-compatible. The `VPCSpec.SecondaryCidrBlocks` field was added later - if that list is not empty, we
+	// require `AWSManagedControlPlane.spec.secondaryCidrBlock` to be listed in there as well (validation done in
+	// webhook).
+	if podSecondaryCidrBlock != nil && len(secondaryCidrBlocks) == 0 {
+		secondaryCidrBlocks = append(secondaryCidrBlocks, infrav1.VpcCidrBlock{
+			IPv4CidrBlock: *podSecondaryCidrBlock,
+		})
 	}
 
 	existingAssociations := vpcs.Vpcs[0].CidrBlockAssociationSet
-	for _, existing := range existingAssociations {
-		if cmp.Equal(existing.CidrBlock, s.scope.SecondaryCidrBlock()) {
-			if _, err := s.EC2Client.DisassociateVpcCidrBlockWithContext(context.TODO(), &ec2.DisassociateVpcCidrBlockInput{
-				AssociationId: existing.AssociationId,
-			}); err != nil {
-				record.Warnf(s.scope.InfraCluster(), "FailedDisassociateSecondaryCidr", "Failed disassociating secondary CIDR with VPC %v", err)
-				return err
+	for _, cidrBlockToDelete := range secondaryCidrBlocks {
+		for _, existing := range existingAssociations {
+			if *existing.CidrBlock == cidrBlockToDelete.IPv4CidrBlock {
+				if _, err := s.EC2Client.DisassociateVpcCidrBlockWithContext(context.TODO(), &ec2.DisassociateVpcCidrBlockInput{
+					AssociationId: existing.AssociationId,
+				}); err != nil {
+					record.Warnf(s.scope.InfraCluster(), "FailedDisassociateSecondaryCidr", "Failed disassociating secondary CIDR %q from VPC %v", cidrBlockToDelete.IPv4CidrBlock, err)
+					return err
+				}
+				break
 			}
 		}
 	}

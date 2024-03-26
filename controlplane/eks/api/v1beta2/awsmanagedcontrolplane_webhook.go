@@ -406,6 +406,26 @@ func (r *AWSManagedControlPlane) validatePrivateDNSHostnameTypeOnLaunch() field.
 func (r *AWSManagedControlPlane) validateNetwork() field.ErrorList {
 	var allErrs field.ErrorList
 
+	// If only `AWSManagedControlPlane.spec.secondaryCidrBlock` is set, no additional checks are done to remain
+	// backward-compatible. The `VPCSpec.SecondaryCidrBlocks` field was added later - if that list is not empty, we
+	// require `AWSManagedControlPlane.spec.secondaryCidrBlock` to be listed in there as well. This may allow merging
+	// the fields later on.
+	podSecondaryCidrBlock := r.Spec.SecondaryCidrBlock
+	secondaryCidrBlocks := r.Spec.NetworkSpec.VPC.SecondaryCidrBlocks
+	if podSecondaryCidrBlock != nil && len(secondaryCidrBlocks) > 0 {
+		found := false
+		for _, cidrBlock := range secondaryCidrBlocks {
+			if cidrBlock.IPv4CidrBlock == *podSecondaryCidrBlock {
+				found = true
+				break
+			}
+		}
+		if !found {
+			secondaryCidrBlocksField := field.NewPath("spec", "networkSpec", "vpc", "secondaryCidrBlocks")
+			allErrs = append(allErrs, field.Invalid(secondaryCidrBlocksField, secondaryCidrBlocks, fmt.Sprintf("AWSManagedControlPlane.spec.secondaryCidrBlock %v must be listed in spec.network.vpc.secondaryCidrBlocks (required if both fields are filled)", *podSecondaryCidrBlock)))
+		}
+	}
+
 	if r.Spec.NetworkSpec.VPC.IsIPv6Enabled() && r.Spec.NetworkSpec.VPC.IPv6.CidrBlock != "" && r.Spec.NetworkSpec.VPC.IPv6.PoolID == "" {
 		poolField := field.NewPath("spec", "networkSpec", "vpc", "ipv6", "poolId")
 		allErrs = append(allErrs, field.Invalid(poolField, r.Spec.NetworkSpec.VPC.IPv6.PoolID, "poolId cannot be empty if cidrBlock is set"))

@@ -101,6 +101,7 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 
 	dst.Spec.NetworkSpec.VPC.EmptyRoutesDefaultVPCSecurityGroup = restored.Spec.NetworkSpec.VPC.EmptyRoutesDefaultVPCSecurityGroup
 	dst.Spec.NetworkSpec.VPC.PrivateDNSHostnameTypeOnLaunch = restored.Spec.NetworkSpec.VPC.PrivateDNSHostnameTypeOnLaunch
+	dst.Spec.NetworkSpec.VPC.SecondaryCidrBlocks = restored.Spec.NetworkSpec.VPC.SecondaryCidrBlocks
 
 	// Restore SubnetSpec.ResourceID field, if any.
 	for _, subnet := range restored.Spec.NetworkSpec.Subnets {
