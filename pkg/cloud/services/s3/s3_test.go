@@ -694,10 +694,8 @@ func TestDeleteObject(t *testing.T) {
 		}
 	})
 
-	t.Run("succeeds_when_bucket_has_already_been_removed", func(t *testing.T) {
+	t.Run("succeeds_when", func(t *testing.T) {
 		t.Parallel()
-
-		svc, s3Mock := testService(t, &testServiceInput{Bucket: &infrav1.S3Bucket{}})
 
 		machineScope := &scope.MachineScope{
 			Machine: &clusterv1.Machine{},
@@ -708,11 +706,38 @@ func TestDeleteObject(t *testing.T) {
 			},
 		}
 
-		s3Mock.EXPECT().HeadObject(gomock.Any()).Return(nil, awserr.New(s3svc.ErrCodeNoSuchBucket, "", nil))
+		t.Run("bucket_has_already_been_removed", func(t *testing.T) {
+			t.Parallel()
 
-		if err := svc.Delete(machineScope); err != nil {
-			t.Fatalf("Unexpected error, got: %v", err)
-		}
+			svc, s3Mock := testService(t, &testServiceInput{Bucket: &infrav1.S3Bucket{}})
+			s3Mock.EXPECT().HeadObject(gomock.Any()).Return(nil, awserr.New(s3svc.ErrCodeNoSuchBucket, "", nil))
+
+			if err := svc.Delete(machineScope); err != nil {
+				t.Fatalf("Unexpected error, got: %v", err)
+			}
+		})
+
+		t.Run("object_has_already_been_removed", func(t *testing.T) {
+			t.Parallel()
+
+			svc, s3Mock := testService(t, &testServiceInput{Bucket: &infrav1.S3Bucket{}})
+			s3Mock.EXPECT().HeadObject(gomock.Any()).Return(nil, awserr.New(s3svc.ErrCodeNoSuchKey, "", nil))
+
+			if err := svc.Delete(machineScope); err != nil {
+				t.Fatalf("Unexpected error, got: %v", err)
+			}
+		})
+
+		t.Run("bucket_or_object_not_found", func(t *testing.T) {
+			t.Parallel()
+
+			svc, s3Mock := testService(t, &testServiceInput{Bucket: &infrav1.S3Bucket{}})
+			s3Mock.EXPECT().HeadObject(gomock.Any()).Return(nil, awserr.New("NotFound", "Not found", nil))
+
+			if err := svc.Delete(machineScope); err != nil {
+				t.Fatalf("Unexpected error, got: %v", err)
+			}
+		})
 	})
 
 	t.Run("returns_error_when", func(t *testing.T) {
