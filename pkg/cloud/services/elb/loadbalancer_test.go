@@ -48,9 +48,10 @@ var stubInfraV1TargetGroupSpecAPI = infrav1.TargetGroupSpec{
 	Port:     infrav1.DefaultAPIServerPort,
 	Protocol: "TCP",
 	HealthCheck: &infrav1.TargetGroupHealthCheck{
-		IntervalSeconds: aws.Int64(10),
-		TimeoutSeconds:  aws.Int64(5),
-		ThresholdCount:  aws.Int64(5),
+		IntervalSeconds:         aws.Int64(10),
+		TimeoutSeconds:          aws.Int64(5),
+		ThresholdCount:          aws.Int64(5),
+		UnhealthyThresholdCount: aws.Int64(3),
 	},
 }
 

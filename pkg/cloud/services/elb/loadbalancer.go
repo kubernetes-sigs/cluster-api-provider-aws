@@ -159,6 +159,62 @@ func (s *Service) reconcileV2LB(lbSpec *infrav1.AWSLoadBalancerSpec) error {
 	return nil
 }
 
+// getAPITargetGroupHealthCheck generates the target group health check for the Kube apiserver,
+// allowing customization only health check probe counters (skipping standarized fields: Protocol, Port or Path).
+func (s *Service) getAPITargetGroupHealthCheck(lbSpec *infrav1.AWSLoadBalancerSpec) *infrav1.TargetGroupHealthCheck {
+	apiHealthCheckProtocol := infrav1.ELBProtocolTCP.String()
+	if lbSpec != nil && lbSpec.HealthCheckProtocol != nil {
+		s.scope.Trace("Found API health check protocol override in the Load Balancer spec, applying it to the API Target Group", "api-server-elb", lbSpec.HealthCheck)
+		apiHealthCheckProtocol = lbSpec.HealthCheckProtocol.String()
+	}
+	apiHealthCheck := &infrav1.TargetGroupHealthCheck{
+		Protocol:                aws.String(apiHealthCheckProtocol),
+		Port:                    aws.String(infrav1.DefaultAPIServerPortString),
+		Path:                    nil,
+		IntervalSeconds:         aws.Int64(infrav1.DefaultAPIServerHealthCheckIntervalSec),
+		TimeoutSeconds:          aws.Int64(infrav1.DefaultAPIServerHealthCheckTimeoutSec),
+		ThresholdCount:          aws.Int64(infrav1.DefaultAPIServerHealthThresholdCount),
+		UnhealthyThresholdCount: aws.Int64(infrav1.DefaultAPIServerUnhealthThresholdCount),
+	}
+	if apiHealthCheckProtocol == infrav1.ELBProtocolHTTP.String() || apiHealthCheckProtocol == infrav1.ELBProtocolHTTPS.String() {
+		apiHealthCheck.Path = aws.String(infrav1.DefaultAPIServerHealthCheckPath)
+	}
+
+	// Customize only specific fields, when defined, for the kube apiserver target group.
+	// The fields like port, path and protocol are reserved.
+	// The Protocol field
+	if lbSpec != nil && lbSpec.HealthCheck != nil {
+		s.scope.Trace("Found API health check override in the Load Balancer spec, applying it to the API Target Group", "api-server-elb", lbSpec.HealthCheck)
+		if lbSpec.HealthCheck.Protocol != nil {
+			s.scope.Warn("HealthCheck.Protocol is reserved for the kube apiserver target group, use HealthCheckProtocol instead.", "api-server-elb")
+		}
+		if lbSpec.HealthCheck.IntervalSeconds != nil {
+			apiHealthCheck.IntervalSeconds = lbSpec.HealthCheck.IntervalSeconds
+		}
+		if lbSpec.HealthCheck.TimeoutSeconds != nil {
+			apiHealthCheck.TimeoutSeconds = lbSpec.HealthCheck.TimeoutSeconds
+		}
+		if lbSpec.HealthCheck.ThresholdCount != nil {
+			apiHealthCheck.ThresholdCount = lbSpec.HealthCheck.ThresholdCount
+		}
+		if lbSpec.HealthCheck.UnhealthyThresholdCount != nil {
+			apiHealthCheck.UnhealthyThresholdCount = lbSpec.HealthCheck.UnhealthyThresholdCount
+		}
+	}
+	return apiHealthCheck
+}
+
+// getAPIServerLBSpec generates the target group name based on LB Name, when defined, otherwise return the default creaed from the timestamp.
+func (s *Service) getTargetGroupName(lbSpec *infrav1.AWSLoadBalancerSpec, defaultPrefix string, port int64) string {
+	targetName := fmt.Sprintf("%s-%d", defaultPrefix, time.Now().Unix())
+
+	if lbSpec != nil && lbSpec.Name != nil {
+		targetName = fmt.Sprintf("%s-%d", *lbSpec.Name, port)
+	}
+
+	return targetName
+}
+
 func (s *Service) getAPIServerLBSpec(elbName string, lbSpec *infrav1.AWSLoadBalancerSpec) (*infrav1.LoadBalancer, error) {
 	var securityGroupIDs []string
 	if lbSpec != nil {
@@ -173,22 +229,8 @@ func (s *Service) getAPIServerLBSpec(elbName string, lbSpec *infrav1.AWSLoadBala
 	}
 
 	// The default API health check is TCP, allowing customization to HTTP or HTTPS when HealthCheckProtocol is set.
-	apiHealthCheckProtocol := infrav1.ELBProtocolTCP
-	if lbSpec != nil && lbSpec.HealthCheckProtocol != nil {
-		s.scope.Trace("Found API health check protocol override in the Load Balancer spec, applying it to the API Target Group", "api-server-elb", lbSpec.HealthCheckProtocol)
-		apiHealthCheckProtocol = *lbSpec.HealthCheckProtocol
-	}
-	apiHealthCheck := &infrav1.TargetGroupHealthCheck{
-		Protocol:        aws.String(apiHealthCheckProtocol.String()),
-		Port:            aws.String(infrav1.DefaultAPIServerPortString),
-		Path:            nil,
-		IntervalSeconds: aws.Int64(infrav1.DefaultAPIServerHealthCheckIntervalSec),
-		TimeoutSeconds:  aws.Int64(infrav1.DefaultAPIServerHealthCheckTimeoutSec),
-		ThresholdCount:  aws.Int64(infrav1.DefaultAPIServerHealthThresholdCount),
-	}
-	if apiHealthCheckProtocol == infrav1.ELBProtocolHTTP || apiHealthCheckProtocol == infrav1.ELBProtocolHTTPS {
-		apiHealthCheck.Path = aws.String(infrav1.DefaultAPIServerHealthCheckPath)
-	}
+	apiHealthCheck := s.getAPITargetGroupHealthCheck(lbSpec)
+	apiTargetGroupName := s.getTargetGroupName(lbSpec, "apiserver-target", infrav1.DefaultAPIServerPort)
 	res := &infrav1.LoadBalancer{
 		Name:          elbName,
 		Scheme:        scheme,
@@ -198,7 +240,7 @@ func (s *Service) getAPIServerLBSpec(elbName string, lbSpec *infrav1.AWSLoadBala
 				Protocol: infrav1.ELBProtocolTCP,
 				Port:     infrav1.DefaultAPIServerPort,
 				TargetGroup: infrav1.TargetGroupSpec{
-					Name:        fmt.Sprintf("apiserver-target-%d", time.Now().Unix()),
+					Name:        apiTargetGroupName,
 					Port:        infrav1.DefaultAPIServerPort,
 					Protocol:    infrav1.ELBProtocolTCP,
 					VpcID:       s.scope.VPC().ID,
@@ -210,19 +252,25 @@ func (s *Service) getAPIServerLBSpec(elbName string, lbSpec *infrav1.AWSLoadBala
 	}
 
 	if lbSpec != nil {
-		for _, additionalListeners := range lbSpec.AdditionalListeners {
+		for _, listener := range lbSpec.AdditionalListeners {
+			targetGroupName := s.getTargetGroupName(lbSpec, "additional-listener", listener.Port)
+			lnHealthCheck := &infrav1.TargetGroupHealthCheck{
+				Protocol: aws.String(string(listener.Protocol)),
+				Port:     aws.String(strconv.FormatInt(listener.Port, 10)),
+			}
+			if listener.HealthCheck != nil {
+				s.scope.Trace("Found health check override in the additional listener spec, applying it to the Target Group", listener.HealthCheck)
+				lnHealthCheck = listener.HealthCheck
+			}
 			res.ELBListeners = append(res.ELBListeners, infrav1.Listener{
-				Protocol: additionalListeners.Protocol,
-				Port:     additionalListeners.Port,
+				Protocol: listener.Protocol,
+				Port:     listener.Port,
 				TargetGroup: infrav1.TargetGroupSpec{
-					Name:     fmt.Sprintf("additional-listener-%d", time.Now().Unix()),
-					Port:     additionalListeners.Port,
-					Protocol: additionalListeners.Protocol,
-					VpcID:    s.scope.VPC().ID,
-					HealthCheck: &infrav1.TargetGroupHealthCheck{
-						Protocol: aws.String(string(additionalListeners.Protocol)),
-						Port:     aws.String(strconv.FormatInt(additionalListeners.Port, 10)),
-					},
+					Name:        targetGroupName,
+					Port:        listener.Port,
+					Protocol:    listener.Protocol,
+					VpcID:       s.scope.VPC().ID,
+					HealthCheck: lnHealthCheck,
 				},
 			})
 		}

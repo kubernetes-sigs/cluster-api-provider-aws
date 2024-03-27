@@ -974,6 +974,66 @@ spec:
                       description: AdditionalListenerSpec defines the desired state
                         of an additional listener on an AWS load balancer.
                       properties:
+                        healthCheck:
+                          description: HealthCheck sets custom health check configuration
+                            to the API target group. default value is ELBProtocolSSL
+                          properties:
+                            intervalSeconds:
+                              default: 10
+                              description: The approximate amount of time, in seconds,
+                                between health checks of an individual target. Defaults
+                                to 10.
+                              format: int64
+                              minimum: 10
+                              type: integer
+                            path:
+                              default: /readyz
+                              description: The destination for health checks on the
+                                targets when using the protocol HTTP or HTTPS, otherwise
+                                the path will be ignored. This field cannot be changed
+                                in Kube apiserver target. Defaults to "/readyz".
+                              type: string
+                            port:
+                              default: "6443"
+                              description: The port the load balancer uses when performing
+                                health checks on targets. Defaults to "6443".
+                              type: string
+                            protocol:
+                              default: TCP
+                              description: The protocol to use to health check connect
+                                with the target. This field cannot be changed in Kube
+                                apiserver target. Use HealthCheckProtocol instead.
+                                Defaults to TCP.
+                              enum:
+                              - TCP
+                              - HTTP
+                              - HTTPS
+                              type: string
+                            thresholdCount:
+                              default: 5
+                              description: The number of consecutive health check
+                                successes required before considering a target healthy.
+                                Defaults to 5.
+                              format: int64
+                              minimum: 2
+                              type: integer
+                            timeoutSeconds:
+                              default: 5
+                              description: The amount of time, in seconds, during
+                                which no response from a target means a failed health
+                                check. Defaults to 5.
+                              format: int64
+                              minimum: 5
+                              type: integer
+                            unhealthyThresholdCount:
+                              default: 3
+                              description: The number of consecutive health check
+                                failures required before considering a target unhealthy.
+                                Defaults to 3.
+                              format: int64
+                              minimum: 2
+                              type: integer
+                          type: object
                         port:
                           description: Port sets the port for the additional listener.
                           format: int64
@@ -1017,6 +1077,64 @@ spec:
                       solution that adds the NLB's address as 127.0.0.1 to the hosts
                       file of each instance. This is by default, false.
                     type: boolean
+                  healthCheck:
+                    description: HealthCheck sets custom health check configuration
+                      to the API target group.
+                    properties:
+                      intervalSeconds:
+                        default: 10
+                        description: The approximate amount of time, in seconds, between
+                          health checks of an individual target. Defaults to 10.
+                        format: int64
+                        minimum: 10
+                        type: integer
+                      path:
+                        default: /readyz
+                        description: The destination for health checks on the targets
+                          when using the protocol HTTP or HTTPS, otherwise the path
+                          will be ignored. This field cannot be changed in Kube apiserver
+                          target. Defaults to "/readyz".
+                        type: string
+                      port:
+                        default: "6443"
+                        description: The port the load balancer uses when performing
+                          health checks on targets. Defaults to "6443".
+                        type: string
+                      protocol:
+                        default: TCP
+                        description: The protocol to use to health check connect with
+                          the target. This field cannot be changed in Kube apiserver
+                          target. Use HealthCheckProtocol instead. Defaults to TCP.
+                        enum:
+                        - TCP
+                        - HTTP
+                        - HTTPS
+                        type: string
+                      thresholdCount:
+                        default: 5
+                        description: The number of consecutive health check successes
+                          required before considering a target healthy. Defaults to
+                          5.
+                        format: int64
+                        minimum: 2
+                        type: integer
+                      timeoutSeconds:
+                        default: 5
+                        description: The amount of time, in seconds, during which
+                          no response from a target means a failed health check. Defaults
+                          to 5.
+                        format: int64
+                        minimum: 5
+                        type: integer
+                      unhealthyThresholdCount:
+                        default: 3
+                        description: The number of consecutive health check failures
+                          required before considering a target unhealthy. Defaults
+                          to 3.
+                        format: int64
+                        minimum: 2
+                        type: integer
+                    type: object
                   healthCheckProtocol:
                     description: HealthCheckProtocol sets the protocol type for ELB
                       health check target default value is ELBProtocolSSL
@@ -1556,6 +1674,66 @@ spec:
                       description: AdditionalListenerSpec defines the desired state
                         of an additional listener on an AWS load balancer.
                       properties:
+                        healthCheck:
+                          description: HealthCheck sets custom health check configuration
+                            to the API target group. default value is ELBProtocolSSL
+                          properties:
+                            intervalSeconds:
+                              default: 10
+                              description: The approximate amount of time, in seconds,
+                                between health checks of an individual target. Defaults
+                                to 10.
+                              format: int64
+                              minimum: 10
+                              type: integer
+                            path:
+                              default: /readyz
+                              description: The destination for health checks on the
+                                targets when using the protocol HTTP or HTTPS, otherwise
+                                the path will be ignored. This field cannot be changed
+                                in Kube apiserver target. Defaults to "/readyz".
+                              type: string
+                            port:
+                              default: "6443"
+                              description: The port the load balancer uses when performing
+                                health checks on targets. Defaults to "6443".
+                              type: string
+                            protocol:
+                              default: TCP
+                              description: The protocol to use to health check connect
+                                with the target. This field cannot be changed in Kube
+                                apiserver target. Use HealthCheckProtocol instead.
+                                Defaults to TCP.
+                              enum:
+                              - TCP
+                              - HTTP
+                              - HTTPS
+                              type: string
+                            thresholdCount:
+                              default: 5
+                              description: The number of consecutive health check
+                                successes required before considering a target healthy.
+                                Defaults to 5.
+                              format: int64
+                              minimum: 2
+                              type: integer
+                            timeoutSeconds:
+                              default: 5
+                              description: The amount of time, in seconds, during
+                                which no response from a target means a failed health
+                                check. Defaults to 5.
+                              format: int64
+                              minimum: 5
+                              type: integer
+                            unhealthyThresholdCount:
+                              default: 3
+                              description: The number of consecutive health check
+                                failures required before considering a target unhealthy.
+                                Defaults to 3.
+                              format: int64
+                              minimum: 2
+                              type: integer
+                          type: object
                         port:
                           description: Port sets the port for the additional listener.
                           format: int64
@@ -1599,6 +1777,64 @@ spec:
                       solution that adds the NLB's address as 127.0.0.1 to the hosts
                       file of each instance. This is by default, false.
                     type: boolean
+                  healthCheck:
+                    description: HealthCheck sets custom health check configuration
+                      to the API target group.
+                    properties:
+                      intervalSeconds:
+                        default: 10
+                        description: The approximate amount of time, in seconds, between
+                          health checks of an individual target. Defaults to 10.
+                        format: int64
+                        minimum: 10
+                        type: integer
+                      path:
+                        default: /readyz
+                        description: The destination for health checks on the targets
+                          when using the protocol HTTP or HTTPS, otherwise the path
+                          will be ignored. This field cannot be changed in Kube apiserver
+                          target. Defaults to "/readyz".
+                        type: string
+                      port:
+                        default: "6443"
+                        description: The port the load balancer uses when performing
+                          health checks on targets. Defaults to "6443".
+                        type: string
+                      protocol:
+                        default: TCP
+                        description: The protocol to use to health check connect with
+                          the target. This field cannot be changed in Kube apiserver
+                          target. Use HealthCheckProtocol instead. Defaults to TCP.
+                        enum:
+                        - TCP
+                        - HTTP
+                        - HTTPS
+                        type: string
+                      thresholdCount:
+                        default: 5
+                        description: The number of consecutive health check successes
+                          required before considering a target healthy. Defaults to
+                          5.
+                        format: int64
+                        minimum: 2
+                        type: integer
+                      timeoutSeconds:
+                        default: 5
+                        description: The amount of time, in seconds, during which
+                          no response from a target means a failed health check. Defaults
+                          to 5.
+                        format: int64
+                        minimum: 5
+                        type: integer
+                      unhealthyThresholdCount:
+                        default: 3
+                        description: The number of consecutive health check failures
+                          required before considering a target unhealthy. Defaults
+                          to 3.
+                        format: int64
+                        minimum: 2
+                        type: integer
+                    type: object
                   healthCheckProtocol:
                     description: HealthCheckProtocol sets the protocol type for ELB
                       health check target default value is ELBProtocolSSL
@@ -2146,19 +2382,61 @@ spec:
                                     associated with the load balancer.
                                   properties:
                                     intervalSeconds:
+                                      default: 10
+                                      description: The approximate amount of time,
+                                        in seconds, between health checks of an individual
+                                        target. Defaults to 10.
                                       format: int64
+                                      minimum: 10
                                       type: integer
                                     path:
+                                      default: /readyz
+                                      description: The destination for health checks
+                                        on the targets when using the protocol HTTP
+                                        or HTTPS, otherwise the path will be ignored.
+                                        This field cannot be changed in Kube apiserver
+                                        target. Defaults to "/readyz".
                                       type: string
                                     port:
+                                      default: "6443"
+                                      description: The port the load balancer uses
+                                        when performing health checks on targets.
+                                        Defaults to "6443".
                                       type: string
                                     protocol:
+                                      default: TCP
+                                      description: The protocol to use to health check
+                                        connect with the target. This field cannot
+                                        be changed in Kube apiserver target. Use HealthCheckProtocol
+                                        instead. Defaults to TCP.
+                                      enum:
+                                      - TCP
+                                      - HTTP
+                                      - HTTPS
                                       type: string
                                     thresholdCount:
+                                      default: 5
+                                      description: The number of consecutive health
+                                        check successes required before considering
+                                        a target healthy. Defaults to 5.
                                       format: int64
+                                      minimum: 2
                                       type: integer
                                     timeoutSeconds:
+                                      default: 5
+                                      description: The amount of time, in seconds,
+                                        during which no response from a target means
+                                        a failed health check. Defaults to 5.
                                       format: int64
+                                      minimum: 5
+                                      type: integer
+                                    unhealthyThresholdCount:
+                                      default: 3
+                                      description: The number of consecutive health
+                                        check failures required before considering
+                                        a target unhealthy. Defaults to 3.
+                                      format: int64
+                                      minimum: 2
                                       type: integer
                                   type: object
                                 vpcId:
@@ -2361,19 +2639,61 @@ spec:
                                     associated with the load balancer.
                                   properties:
                                     intervalSeconds:
+                                      default: 10
+                                      description: The approximate amount of time,
+                                        in seconds, between health checks of an individual
+                                        target. Defaults to 10.
                                       format: int64
+                                      minimum: 10
                                       type: integer
                                     path:
+                                      default: /readyz
+                                      description: The destination for health checks
+                                        on the targets when using the protocol HTTP
+                                        or HTTPS, otherwise the path will be ignored.
+                                        This field cannot be changed in Kube apiserver
+                                        target. Defaults to "/readyz".
                                       type: string
                                     port:
+                                      default: "6443"
+                                      description: The port the load balancer uses
+                                        when performing health checks on targets.
+                                        Defaults to "6443".
                                       type: string
                                     protocol:
+                                      default: TCP
+                                      description: The protocol to use to health check
+                                        connect with the target. This field cannot
+                                        be changed in Kube apiserver target. Use HealthCheckProtocol
+                                        instead. Defaults to TCP.
+                                      enum:
+                                      - TCP
+                                      - HTTP
+                                      - HTTPS
                                       type: string
                                     thresholdCount:
+                                      default: 5
+                                      description: The number of consecutive health
+                                        check successes required before considering
+                                        a target healthy. Defaults to 5.
                                       format: int64
+                                      minimum: 2
                                       type: integer
                                     timeoutSeconds:
+                                      default: 5
+                                      description: The amount of time, in seconds,
+                                        during which no response from a target means
+                                        a failed health check. Defaults to 5.
                                       format: int64
+                                      minimum: 5
+                                      type: integer
+                                    unhealthyThresholdCount:
+                                      default: 3
+                                      description: The number of consecutive health
+                                        check failures required before considering
+                                        a target unhealthy. Defaults to 3.
+                                      format: int64
+                                      minimum: 2
                                       type: integer
                                   type: object
                                 vpcId:
