@@ -217,6 +217,40 @@ type AutoScalingGroup struct {
 	CurrentlySuspendProcesses []string           `json:"currentlySuspendProcesses,omitempty"`
 }
 
+// AWSLifecycleHook describes an AWS lifecycle hook
+type AWSLifecycleHook struct {
+	// The name of the lifecycle hook.
+	Name string `json:"name,omitempty"`
+
+	// The ARN of the notification target that Amazon EC2 Auto Scaling uses to
+	// notify you when an instance is in the transition state for the lifecycle hook.
+	// +optional
+	NotificationTargetARN *string `json:"notificationTargetARN,omitempty"`
+
+	// The ARN of the IAM role that allows the Auto Scaling group to publish to the
+	// specified notification target.
+	// +optional
+	RoleARN *string `json:"roleARN,omitempty"`
+
+	// The state of the EC2 instance to which to attach the lifecycle hook.
+	LifecycleTransition string `json:"lifecycleTransition"`
+
+	// The maximum time, in seconds, that an instance can remain in a Pending:Wait or
+	// Terminating:Wait state. The maximum is 172800 seconds (48 hours) or 100 times
+	// HeartbeatTimeout, whichever is smaller.
+	// +optional
+	HeartbeatTimeout *int64 `json:"heartbeatTimeout,omitempty"`
+
+	// The default result for the lifecycle hook. The possible values are CONTINUE and ABANDON.
+	// kubebuilder:validation:Enum=CONTINUE;ABANDON
+	// +optional
+	DefaultResult *string `json:"defaultResult,omitempty"`
+
+	// Contains additional metadata that will be passed to the notification target.
+	// +optional
+	NotificationMetadata *string `json:"notificationMetadata,omitempty"`
+}
+
 // ASGStatus is a status string returned by the autoscaling API.
 type ASGStatus string
 
