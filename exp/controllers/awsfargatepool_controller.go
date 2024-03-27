@@ -186,6 +186,7 @@ func managedControlPlaneToFargateProfileMapFunc(c client.Client, log logger.Wrap
 		awsControlPlane, ok := o.(*ekscontrolplanev1.AWSManagedControlPlane)
 		if !ok {
 			klog.Errorf("Expected a AWSManagedControlPlane but got a %T", o)
+			return nil
 		}
 
 		if !awsControlPlane.ObjectMeta.DeletionTimestamp.IsZero() {
