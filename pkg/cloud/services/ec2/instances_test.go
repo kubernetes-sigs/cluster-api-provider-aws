@@ -3205,6 +3205,249 @@ func TestCreateInstance(t *testing.T) {
 			},
 		},
 		{
+			name: "with custom placement group and partition number",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels:    map[string]string{"set": "node"},
+					Namespace: "default",
+					Name:      "machine-aws-test1",
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: ptr.To[string]("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AMIReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType:            "m5.large",
+				PlacementGroupName:      "placement-group1",
+				PlacementGroupPartition: 2,
+				UncompressedUserData:    &isUncompressedFalse,
+			},
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						Subnets: infrav1.Subnets{
+							infrav1.SubnetSpec{
+								ID:       "subnet-1",
+								IsPublic: false,
+							},
+							infrav1.SubnetSpec{
+								IsPublic: false,
+							},
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.LoadBalancer{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m. // TODO: Restore these parameters, but with the tags as well
+					RunInstancesWithContext(context.TODO(), gomock.Eq(&ec2.RunInstancesInput{
+						ImageId:      aws.String("abc"),
+						InstanceType: aws.String("m5.large"),
+						KeyName:      aws.String("default"),
+						MaxCount:     aws.Int64(1),
+						MinCount:     aws.Int64(1),
+						Placement: &ec2.Placement{
+							GroupName:       aws.String("placement-group1"),
+							PartitionNumber: aws.Int64(2),
+						},
+						SecurityGroupIds: []*string{aws.String("2"), aws.String("3")},
+						SubnetId:         aws.String("subnet-1"),
+						TagSpecifications: []*ec2.TagSpecification{
+							{
+								ResourceType: aws.String("instance"),
+								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("MachineName"),
+										Value: aws.String("default/machine-aws-test1"),
+									},
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("aws-test1"),
+									},
+									{
+										Key:   aws.String("kubernetes.io/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Value: aws.String("node"),
+									},
+								},
+							},
+						},
+						UserData: aws.String(base64.StdEncoding.EncodeToString(userDataCompressed)),
+					})).
+					Return(&ec2.Reservation{
+						Instances: []*ec2.Instance{
+							{
+								State: &ec2.InstanceState{
+									Name: aws.String(ec2.InstanceStateNamePending),
+								},
+								IamInstanceProfile: &ec2.IamInstanceProfile{
+									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+								},
+								InstanceId:     aws.String("two"),
+								InstanceType:   aws.String("m5.large"),
+								SubnetId:       aws.String("subnet-1"),
+								ImageId:        aws.String("ami-1"),
+								RootDeviceName: aws.String("device-1"),
+								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+									{
+										DeviceName: aws.String("device-1"),
+										Ebs: &ec2.EbsInstanceBlockDevice{
+											VolumeId: aws.String("volume-1"),
+										},
+									},
+								},
+								Placement: &ec2.Placement{
+									AvailabilityZone: &az,
+									GroupName:        aws.String("placement-group1"),
+									PartitionNumber:  aws.Int64(2),
+								},
+							},
+						},
+					}, nil)
+				m.
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []*string{
+							aws.String("m5.large"),
+						},
+					})).
+					Return(&ec2.DescribeInstanceTypesOutput{
+						InstanceTypes: []*ec2.InstanceTypeInfo{
+							{
+								ProcessorInfo: &ec2.ProcessorInfo{
+									SupportedArchitectures: []*string{
+										aws.String("x86_64"),
+									},
+								},
+							},
+						},
+					}, nil)
+				m.
+					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NextToken:         nil,
+					}, nil)
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+			},
+		},
+		{
+			name: "expect error when placementGroupPartition is set, but placementGroupName is empty",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels:    map[string]string{"set": "node"},
+					Namespace: "default",
+					Name:      "machine-aws-test1",
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: ptr.To[string]("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AMIReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType:            "m5.large",
+				PlacementGroupPartition: 2,
+				UncompressedUserData:    &isUncompressedFalse,
+			},
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						Subnets: infrav1.Subnets{
+							infrav1.SubnetSpec{
+								ID:       "subnet-1",
+								IsPublic: false,
+							},
+							infrav1.SubnetSpec{
+								IsPublic: false,
+							},
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.LoadBalancer{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []*string{
+							aws.String("m5.large"),
+						},
+					})).
+					Return(&ec2.DescribeInstanceTypesOutput{
+						InstanceTypes: []*ec2.InstanceTypeInfo{
+							{
+								ProcessorInfo: &ec2.ProcessorInfo{
+									SupportedArchitectures: []*string{
+										aws.String("x86_64"),
+									},
+								},
+							},
+						},
+					}, nil)
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				expectedErrMsg := "placementGroupPartition is set but placementGroupName is empty"
+				if err == nil {
+					t.Fatalf("Expected error, but got nil")
+				}
+				if !strings.Contains(err.Error(), expectedErrMsg) {
+					t.Fatalf("Expected error: %s\nInstead got: `%s", expectedErrMsg, err.Error())
+				}
+			},
+		},
+		{
 			name: "expect the default SSH key when none is provided",
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
