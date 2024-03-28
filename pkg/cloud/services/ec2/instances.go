@@ -236,6 +236,8 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 
 	input.PlacementGroupName = scope.AWSMachine.Spec.PlacementGroupName
 
+	input.PlacementGroupPartition = scope.AWSMachine.Spec.PlacementGroupPartition
+
 	input.PrivateDNSName = scope.AWSMachine.Spec.PrivateDNSName
 
 	s.scope.Debug("Running instance", "machine-role", scope.Role())
@@ -610,11 +612,18 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 		}
 	}
 
+	if i.PlacementGroupName == "" && i.PlacementGroupPartition != 0 {
+		return nil, errors.Errorf("placementGroupPartition is set but placementGroupName is empty")
+	}
+
 	if i.PlacementGroupName != "" {
 		if input.Placement == nil {
 			input.Placement = &ec2.Placement{}
 		}
 		input.Placement.GroupName = &i.PlacementGroupName
+		if i.PlacementGroupPartition != 0 {
+			input.Placement.PartitionNumber = &i.PlacementGroupPartition
+		}
 	}
 
 	out, err := s.EC2Client.RunInstancesWithContext(context.TODO(), input)
