@@ -52,6 +52,7 @@ archives:
   - goos: windows
     format: zip
   name_template: "clusterctl-aws_{{ .Tag }}_{{ .Os }}_{{ .Arch }}"
+  format: binary
 - id: clusterawsadm
   builds:
   - clusterawsadm
@@ -59,6 +60,15 @@ archives:
   - goos: windows
     format: zip
   name_template: "clusterawsadm_{{ .Tag }}_{{ .Os }}_{{ .Arch }}"
+  format: binary
 
 changelog:
   disable: true
+
+release:
+  discussion_category_name: General
+
+  extra_files:
+    - glob: ./templates/*.yaml
+
+  draft: true

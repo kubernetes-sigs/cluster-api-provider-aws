@@ -70,6 +70,7 @@ SSM_PLUGIN := $(TOOLS_BIN_DIR)/session-manager-plugin
 YQ := $(TOOLS_BIN_DIR)/yq
 KPROMO := $(TOOLS_BIN_DIR)/kpromo
 RELEASE_NOTES := $(TOOLS_BIN_DIR)/release-notes
+GORELEASER := $(TOOLS_BIN_DIR)/goreleaser
 
 CLUSTERAWSADM_SRCS := $(call rwildcard,.,cmd/clusterawsadm/*.*)
 
@@ -503,7 +504,7 @@ check-release-tag: ## Check if the release tag is set
 
 .PHONY: create-gh-release
 create-gh-release:$(GH) ## Create release on Github
-	$(GH) release create $(VERSION) --draft --notes-file $(RELEASE_DIR)/CHANGELOG.md --title $(VERSION) --repo $(GH_REPO)
+	$(GH) release create $(VERSION) --notes-file $(RELEASE_DIR)/CHANGELOG.md --title $(VERSION) --repo $(GH_REPO)
 
 .PHONY: compiled-manifest
 compiled-manifest: $(RELEASE_DIR) $(KUSTOMIZE) ## Compile the manifest files
@@ -602,6 +603,10 @@ release-changelog: $(RELEASE_NOTES) check-release-tag check-previous-release-tag
 .PHONY: promote-images
 promote-images: $(KPROMO) $(YQ)
 	$(KPROMO) pr --project cluster-api-aws --tag $(RELEASE_TAG) --reviewers "$(shell ./hack/get-project-maintainers.sh ${YQ})" --fork $(USER_FORK) --image cluster-api-aws-controller
+
+.PHONY: release-binaries
+release-binaries: $(GORELEASER) ## Builds only the binaries, not a release. Deprecated, but kept until prow job definitions can be updated.
+	$(GORELEASER) build --snapshot --clean
 
 .PHONY: release-staging
 release-staging: ## Builds and push container images and manifests to the staging bucket.
