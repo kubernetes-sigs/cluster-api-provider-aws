@@ -59,3 +59,6 @@ archives:
   - goos: windows
     format: zip
   name_template: "clusterawsadm_{{ .Tag }}_{{ .Os }}_{{ .Arch }}"
+
+changelog:
+  disable: true
