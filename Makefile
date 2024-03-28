@@ -502,10 +502,6 @@ check-release-tag: ## Check if the release tag is set
 	@if [ -z "${RELEASE_TAG}" ]; then echo "RELEASE_TAG is not set"; exit 1; fi
 	@if ! [ -z "$$(git status --porcelain)" ]; then echo "Your local git repository contains uncommitted changes, use git clean before proceeding."; exit 1; fi
 
-.PHONY: create-gh-release
-create-gh-release:$(GH) ## Create release on Github
-	$(GH) release create $(VERSION) --notes-file $(RELEASE_DIR)/CHANGELOG.md --title $(VERSION) --repo $(GH_REPO)
-
 .PHONY: compiled-manifest
 compiled-manifest: $(RELEASE_DIR) $(KUSTOMIZE) ## Compile the manifest files
 	$(MAKE) image-patch-source-manifest
