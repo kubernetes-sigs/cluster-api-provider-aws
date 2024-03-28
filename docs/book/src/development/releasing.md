@@ -20,7 +20,7 @@
     _**Note**_: you must have a gpg signing configured with git and registered with GitHub.
 
 1. Create a tag `git tag -s -m $VERSION $VERSION`. `-s` flag is for GNU Privacy Guard (GPG) signing.
-1. Make sure you have push permissions to the upstream CAPA repo. Push tag you've just created (`git push <upstream-repo-remote> $VERSION`).
+1. Make sure you have push permissions to the upstream CAPA repo. Push tag you've just created (`git push <upstream-repo-remote> $VERSION`). Pushing this tag will kick off a GitHub Action that will create the release and attach the binaries and YAML templates to it.
 1. A prow job will start running to push images to the staging repo, can be seen [here](https://testgrid.k8s.io/sig-cluster-lifecycle-image-pushes#post-cluster-api-provider-aws-push-images). The job is called "post-cluster-api-provider-aws-push-images," and is defined in <https://github.com/kubernetes/test-infra/blob/master/config/jobs/image-pushing/k8s-staging-cluster-api.yaml>.
 1. When the job is finished, wait for the images to be created: `docker pull gcr.io/k8s-staging-cluster-api-aws/cluster-api-aws-controller:$VERSION`. You can also wrap this with a command to retry periodically, until the job is complete, e.g. `watch --interval 30 --chgexit docker pull <...>`.
 
@@ -53,30 +53,34 @@ Promote the container images from the staging registry to the production registr
     docker pull registry.k8s.io/cluster-api-aws/cluster-api-aws-controller:${VERSION}
     ```
 
-## Create release artifacts, and a GitHub draft release
 
-1. Again, make sure your repo is clean by git standards.
-1. Export the current branch `export BRANCH=release-1.5` (`export BRANCH=main`)and run `make release`.
-1. Run `make create-gh-release` to create a draft release on Github, copying the generated release notes from `out/CHANGELOG.md` into the draft.
-1. Run `make upload-gh-artifacts` to upload artifacts from .out/ directory. You may run into API limit errors, so verify artifacts at next step.
+## Verify and Publish the draft release
+
 1. Verify that all the files below are attached to the drafted release:
     1. `clusterawsadm-darwin-amd64`
+    1. `clusterawsadm-darwin-arm64`
     1. `clusterawsadm-linux-amd64`
+    1. `clusterawsadm-linux-arm64`
+    1. `clusterawsadm-windows-amd64.exe`
+    1. `clusterawsadm-windows-arm64.exe`
     1. `infrastructure-components.yaml`
     1. `cluster-template.yaml`
     1. `cluster-template-machinepool.yaml`
     1. `cluster-template-eks.yaml`
+    1. `cluster-template-eks-ipv6.yaml`
+    1. `cluster-template-eks-fargate.yaml`
     1. `cluster-template-eks-managedmachinepool.yaml`
     1. `cluster-template-eks-managedmachinepool-vpccni.yaml`
     1. `cluster-template-eks-managedmachinepool-gpu.yaml`
-    1. `eks-controlplane-components.yaml`
-    1. `eks-bootstrap-components.yaml`
+    1. `cluster-template-external-cloud-provider.yaml`
+    1. `cluster-template-flatcar.yaml`
+    1. `cluster-template-machinepool.yaml`
+    1. `cluster-template-multitenancy-clusterclass.yaml`
+    1. `cluster-template-rosa-machinepool.yaml`
+    1. `cluster-template-rosa.yaml`
+    1. `cluster-template-simple-clusterclass.yaml`
     1. `metadata.yaml`
-1. Finalise the release notes by editing the draft release.
-    _**Note**_: ONLY do this _after_ you verified that the promotion succeeded [here](https://testgrid.k8s.io/sig-k8s-infra-k8sio#post-k8sio-image-promo).
-
-## Publish the draft release
-
+1. Update the release description to link to the promotion image.
 1. Publish release. Use the pre-release option for release candidate versions of Cluster API Provider AWS.
 1. Email `kubernetes-sig-cluster-lifecycle@googlegroups.com` to announce the release. You can use this template for the email:
 

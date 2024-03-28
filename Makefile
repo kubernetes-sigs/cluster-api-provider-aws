@@ -570,7 +570,6 @@ release: clean-release check-release-tag $(RELEASE_DIR)  ## Builds and push cont
 	git checkout "${RELEASE_TAG}"
 	$(MAKE) release-changelog
 	CORE_CONTROLLER_IMG=$(PROD_REGISTRY)/$(CORE_IMAGE_NAME) $(MAKE) release-manifests
-	$(MAKE) release-templates
 	$(MAKE) release-policies
 
 release-policies: $(RELEASE_POLICIES) ## Release policies
@@ -628,17 +627,9 @@ release-staging-nightly: ## Tags and push container images to the staging bucket
 release-alias-tag: # Adds the tag to the last build tag.
 	gcloud container images add-tag -q $(CORE_CONTROLLER_IMG):$(TAG) $(CORE_CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
 
-.PHONY: release-templates
-release-templates: $(RELEASE_DIR) ## Generate release templates
-	cp templates/cluster-template*.yaml $(RELEASE_DIR)/
-
 .PHONY: upload-staging-artifacts
 upload-staging-artifacts: ## Upload release artifacts to the staging bucket
 	gsutil cp $(RELEASE_DIR)/* gs://$(BUCKET)/components/$(RELEASE_ALIAS_TAG)
-
-.PHONY: upload-gh-artifacts
-upload-gh-artifacts: $(GH) ## Upload artifacts to Github release
-	$(GH) release upload $(VERSION) -R $(GH_REPO) --clobber  $(RELEASE_DIR)/*
 
 IMAGE_PATCH_DIR := $(ARTIFACTS)/image-patch
 
