@@ -70,7 +70,14 @@ func (s *Service) reconcileRouteTables() error {
 				routes = append(routes, s.getGatewayPublicIPv6Route())
 			}
 		} else {
-			natGatewayID, err := s.getNatGatewayForSubnet(sn)
+			var natGatewayID string
+			// NAT gateways in edge zones (Local Zones) are not globaly supported,
+			// private subnets in those locations uses Nat Gateways from the
+			// Parent Zone or, when not available, the first zone in the Region.
+			natGatewayID, err = s.getNatGatewayForSubnet(sn)
+			if sn.IsEdge() {
+				natGatewayID, err = s.findNatGatewayForEdgeSubnet(sn)
+			}
 			if err != nil {
 				return err
 			}

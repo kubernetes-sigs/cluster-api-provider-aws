@@ -971,6 +971,10 @@ spec:
                                     routes for private subnets in the same AZ as the
                                     public subnet.
                                   type: string
+                                parentZoneName:
+                                  description: ParentZoneName defines a parent zone
+                                    name of the zone that the subnet is created.
+                                  type: string
                                 resourceID:
                                   description: ResourceID is the subnet identifier
                                     from AWS, READ ONLY. This field is populated when
@@ -986,6 +990,20 @@ spec:
                                   description: Tags is a collection of tags describing
                                     the resource.
                                   type: object
+                                zoneType:
+                                  description: "ZoneType defines a zone type for this
+                                    subnet. \n The valid values are availability-zone,
+                                    local-zone, and wavelength-zone. \n Zone types
+                                    local-zone or wavelength-zone is not selected
+                                    to automatically create resources like: Nat Gateway,
+                                    Network Load Balancers, control plane or compute
+                                    nodes. \n When local-zone, the public subnets
+                                    will be associated to the public route table,
+                                    the private subnets uses the zone in the region
+                                    to create route tables re-using Nat Gateways (preferred
+                                    from parent zone, the zone type availability-zone
+                                    in the region, or first available)."
+                                  type: string
                               required:
                               - id
                               type: object

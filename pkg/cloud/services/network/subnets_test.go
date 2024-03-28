@@ -130,6 +130,16 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}),
 					gomock.Any()).Return(nil)
+
+				m.DescribeAvailabilityZonesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeAvailabilityZonesOutput{
+						AvailabilityZones: []*ec2.AvailabilityZone{
+							{
+								ZoneName: aws.String("us-east-1a"),
+								ZoneType: aws.String("availability-zone"),
+							},
+						},
+					}, nil)
 			},
 			tagUnmanagedNetworkResources: false,
 		},
@@ -244,6 +254,16 @@ func TestReconcileSubnets(t *testing.T) {
 					},
 				})).
 					Return(&ec2.CreateTagsOutput{}, nil)
+
+				m.DescribeAvailabilityZonesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeAvailabilityZonesOutput{
+						AvailabilityZones: []*ec2.AvailabilityZone{
+							{
+								ZoneName: aws.String("us-east-1a"),
+								ZoneType: aws.String("availability-zone"),
+							},
+						},
+					}, nil)
 			},
 			tagUnmanagedNetworkResources: true,
 		},
@@ -382,6 +402,16 @@ func TestReconcileSubnets(t *testing.T) {
 					},
 				})).
 					Return(&ec2.CreateTagsOutput{}, nil)
+
+				m.DescribeAvailabilityZonesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeAvailabilityZonesOutput{
+						AvailabilityZones: []*ec2.AvailabilityZone{
+							{
+								ZoneName: aws.String("us-east-1a"),
+								ZoneType: aws.String("availability-zone"),
+							},
+						},
+					}, nil)
 			},
 			tagUnmanagedNetworkResources: true,
 		},
@@ -480,6 +510,17 @@ func TestReconcileSubnets(t *testing.T) {
 					},
 				})).
 					Return(&ec2.CreateTagsOutput{}, nil)
+
+				m.DescribeAvailabilityZonesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeAvailabilityZonesOutput{
+						AvailabilityZones: []*ec2.AvailabilityZone{
+							{
+								ZoneName: aws.String("us-east-1a"),
+								ZoneType: aws.String("availability-zone"),
+							},
+						},
+					}, nil)
+
 			},
 			errorExpected:                false,
 			tagUnmanagedNetworkResources: true,
@@ -797,6 +838,16 @@ func TestReconcileSubnets(t *testing.T) {
 					},
 				})).
 					Return(&ec2.CreateTagsOutput{}, nil)
+
+				m.DescribeAvailabilityZonesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeAvailabilityZonesOutput{
+						AvailabilityZones: []*ec2.AvailabilityZone{
+							{
+								ZoneName: aws.String("us-east-1a"),
+								ZoneType: aws.String("availability-zone"),
+							},
+						},
+					}, nil)
 			},
 			errorExpected:                false,
 			tagUnmanagedNetworkResources: true,
@@ -956,6 +1007,20 @@ func TestReconcileSubnets(t *testing.T) {
 				}).
 					Return(&ec2.ModifySubnetAttributeOutput{}, nil).
 					After(secondSubnet)
+
+				m.DescribeAvailabilityZonesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeAvailabilityZonesOutput{
+						AvailabilityZones: []*ec2.AvailabilityZone{
+							{
+								ZoneName: aws.String("us-east-1a"),
+								ZoneType: aws.String("availability-zone"),
+							},
+							{
+								ZoneName: aws.String("us-east-1b"),
+								ZoneType: aws.String("availability-zone"),
+							},
+						},
+					}, nil)
 			},
 		},
 		{
@@ -1007,6 +1072,20 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}),
 					gomock.Any()).Return(nil)
+
+				m.DescribeAvailabilityZonesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeAvailabilityZonesOutput{
+						AvailabilityZones: []*ec2.AvailabilityZone{
+							{
+								ZoneName: aws.String("us-east-1a"),
+								ZoneType: aws.String("availability-zone"),
+							},
+							{
+								ZoneName: aws.String("us-east-1b"),
+								ZoneType: aws.String("availability-zone"),
+							},
+						},
+					}, nil)
 			},
 			errorExpected: true,
 		},
@@ -1023,15 +1102,6 @@ func TestReconcileSubnets(t *testing.T) {
 				Subnets: []infrav1.SubnetSpec{},
 			}),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeAvailabilityZonesWithContext(context.TODO(), gomock.Any()).
-					Return(&ec2.DescribeAvailabilityZonesOutput{
-						AvailabilityZones: []*ec2.AvailabilityZone{
-							{
-								ZoneName: aws.String("us-east-1c"),
-							},
-						},
-					}, nil)
-
 				describeCall := m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
@@ -1063,6 +1133,16 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}),
 					gomock.Any()).Return(nil)
+
+				m.DescribeAvailabilityZonesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeAvailabilityZonesOutput{
+						AvailabilityZones: []*ec2.AvailabilityZone{
+							{
+								ZoneName: aws.String("us-east-1c"),
+								ZoneType: aws.String("availability-zone"),
+							},
+						},
+					}, nil)
 
 				firstSubnet := m.CreateSubnetWithContext(context.TODO(), gomock.Eq(&ec2.CreateSubnetInput{
 					VpcId:            aws.String(subnetsVPCID),
@@ -1164,6 +1244,16 @@ func TestReconcileSubnets(t *testing.T) {
 
 				m.WaitUntilSubnetAvailableWithContext(context.TODO(), gomock.Any()).
 					After(secondSubnet)
+
+				m.DescribeAvailabilityZonesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeAvailabilityZonesOutput{
+						AvailabilityZones: []*ec2.AvailabilityZone{
+							{
+								ZoneName: aws.String("us-east-1c"),
+								ZoneType: aws.String("availability-zone"),
+							},
+						},
+					}, nil)
 			},
 		},
 		{
@@ -1183,15 +1273,6 @@ func TestReconcileSubnets(t *testing.T) {
 				Subnets: []infrav1.SubnetSpec{},
 			}),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeAvailabilityZonesWithContext(context.TODO(), gomock.Any()).
-					Return(&ec2.DescribeAvailabilityZonesOutput{
-						AvailabilityZones: []*ec2.AvailabilityZone{
-							{
-								ZoneName: aws.String("us-east-1c"),
-							},
-						},
-					}, nil)
-
 				describeCall := m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
@@ -1223,6 +1304,16 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}),
 					gomock.Any()).Return(nil)
+
+				m.DescribeAvailabilityZonesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeAvailabilityZonesOutput{
+						AvailabilityZones: []*ec2.AvailabilityZone{
+							{
+								ZoneName: aws.String("us-east-1c"),
+								ZoneType: aws.String("availability-zone"),
+							},
+						},
+					}, nil)
 
 				firstSubnet := m.CreateSubnetWithContext(context.TODO(), gomock.Eq(&ec2.CreateSubnetInput{
 					VpcId:            aws.String(subnetsVPCID),
@@ -1364,6 +1455,16 @@ func TestReconcileSubnets(t *testing.T) {
 
 				m.WaitUntilSubnetAvailableWithContext(context.TODO(), gomock.Any()).
 					After(secondSubnet)
+
+				m.DescribeAvailabilityZonesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeAvailabilityZonesOutput{
+						AvailabilityZones: []*ec2.AvailabilityZone{
+							{
+								ZoneName: aws.String("us-east-1c"),
+								ZoneType: aws.String("availability-zone"),
+							},
+						},
+					}, nil)
 			},
 		},
 		{
@@ -1379,18 +1480,6 @@ func TestReconcileSubnets(t *testing.T) {
 				Subnets: []infrav1.SubnetSpec{},
 			}),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeAvailabilityZonesWithContext(context.TODO(), gomock.Any()).
-					Return(&ec2.DescribeAvailabilityZonesOutput{
-						AvailabilityZones: []*ec2.AvailabilityZone{
-							{
-								ZoneName: aws.String("us-east-1b"),
-							},
-							{
-								ZoneName: aws.String("us-east-1c"),
-							},
-						},
-					}, nil)
-
 				describeCall := m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
 					Filters: []*ec2.Filter{
 						{
@@ -1422,6 +1511,20 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					}),
 					gomock.Any()).Return(nil)
+
+				m.DescribeAvailabilityZonesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeAvailabilityZonesOutput{
+						AvailabilityZones: []*ec2.AvailabilityZone{
+							{
+								ZoneName: aws.String("us-east-1b"),
+								ZoneType: aws.String("availability-zone"),
+							},
+							{
+								ZoneName: aws.String("us-east-1c"),
+								ZoneType: aws.String("availability-zone"),
+							},
+						},
+					}, nil)
 
 				zone1PublicSubnet := m.CreateSubnetWithContext(context.TODO(), gomock.Eq(&ec2.CreateSubnetInput{
 					VpcId:            aws.String(subnetsVPCID),
@@ -1626,6 +1729,20 @@ func TestReconcileSubnets(t *testing.T) {
 
 				m.WaitUntilSubnetAvailableWithContext(context.TODO(), gomock.Any()).
 					After(zone2PrivateSubnet)
+
+				m.DescribeAvailabilityZonesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeAvailabilityZonesOutput{
+						AvailabilityZones: []*ec2.AvailabilityZone{
+							{
+								ZoneName: aws.String("us-east-1b"),
+								ZoneType: aws.String("availability-zone"),
+							},
+							{
+								ZoneName: aws.String("us-east-1c"),
+								ZoneType: aws.String("availability-zone"),
+							},
+						},
+					}, nil)
 			},
 		},
 		{
@@ -1648,9 +1765,11 @@ func TestReconcileSubnets(t *testing.T) {
 						AvailabilityZones: []*ec2.AvailabilityZone{
 							{
 								ZoneName: aws.String("us-east-1b"),
+								ZoneType: aws.String("availability-zone"),
 							},
 							{
 								ZoneName: aws.String("us-east-1c"),
+								ZoneType: aws.String("availability-zone"),
 							},
 						},
 					}, nil)
@@ -1787,6 +1906,17 @@ func TestReconcileSubnets(t *testing.T) {
 
 				m.WaitUntilSubnetAvailableWithContext(context.TODO(), gomock.Any()).
 					After(zone1PrivateSubnet)
+
+				m.DescribeAvailabilityZonesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeAvailabilityZonesOutput{
+						AvailabilityZones: []*ec2.AvailabilityZone{
+							{
+								ZoneName: aws.String("us-east-1b"),
+								ZoneType: aws.String("availability-zone"),
+							},
+						},
+					}, nil)
+
 			},
 		},
 		{
@@ -1918,6 +2048,16 @@ func TestReconcileSubnets(t *testing.T) {
 				// Public subnet
 				m.CreateTagsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
 					Return(nil, nil)
+
+				m.DescribeAvailabilityZonesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeAvailabilityZonesOutput{
+						AvailabilityZones: []*ec2.AvailabilityZone{
+							{
+								ZoneName: aws.String("us-east-1a"),
+								ZoneType: aws.String("availability-zone"),
+							},
+						},
+					}, nil)
 			},
 		},
 		{
@@ -2050,6 +2190,16 @@ func TestReconcileSubnets(t *testing.T) {
 				// Public subnet
 				m.CreateTagsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
 					Return(nil, nil)
+
+				m.DescribeAvailabilityZonesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeAvailabilityZonesOutput{
+						AvailabilityZones: []*ec2.AvailabilityZone{
+							{
+								ZoneName: aws.String("us-east-1a"),
+								ZoneType: aws.String("availability-zone"),
+							},
+						},
+					}, nil)
 			},
 		},
 		{
@@ -2269,6 +2419,20 @@ func TestReconcileSubnets(t *testing.T) {
 					Return(&ec2.ModifySubnetAttributeOutput{}, nil).
 					After(zone2PublicSubnet)
 
+				m.DescribeAvailabilityZonesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeAvailabilityZonesOutput{
+						AvailabilityZones: []*ec2.AvailabilityZone{
+							{
+								ZoneName: aws.String("us-east-1b"),
+								ZoneType: aws.String("availability-zone"),
+							},
+							{
+								ZoneName: aws.String("us-east-1c"),
+								ZoneType: aws.String("availability-zone"),
+							},
+						},
+					}, nil)
+
 				zone2PrivateSubnet := m.CreateSubnetWithContext(context.TODO(), gomock.Eq(&ec2.CreateSubnetInput{
 					VpcId:            aws.String(subnetsVPCID),
 					CidrBlock:        aws.String("10.0.128.0/18"),
@@ -2364,12 +2528,14 @@ func TestDiscoverSubnets(t *testing.T) {
 						AvailabilityZone: "us-east-1a",
 						CidrBlock:        "10.0.10.0/24",
 						IsPublic:         true,
+						ZoneType:         aws.String("availability-zone"),
 					},
 					{
 						ID:               "subnet-2",
 						AvailabilityZone: "us-east-1a",
 						CidrBlock:        "10.0.11.0/24",
 						IsPublic:         false,
+						ZoneType:         aws.String("availability-zone"),
 					},
 				},
 			},
@@ -2411,6 +2577,16 @@ func TestDiscoverSubnets(t *testing.T) {
 										Value: aws.String("provided-subnet-private"),
 									},
 								},
+							},
+						},
+					}, nil)
+
+				m.DescribeAvailabilityZonesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeAvailabilityZonesOutput{
+						AvailabilityZones: []*ec2.AvailabilityZone{
+							{
+								ZoneName: aws.String("us-east-1a"),
+								ZoneType: aws.String("availability-zone"),
 							},
 						},
 					}, nil)
@@ -2482,6 +2658,7 @@ func TestDiscoverSubnets(t *testing.T) {
 					Tags: infrav1.Tags{
 						"Name": "provided-subnet-public",
 					},
+					ZoneType: aws.String("availability-zone"),
 				},
 				{
 					ID:               "subnet-2",
@@ -2493,6 +2670,7 @@ func TestDiscoverSubnets(t *testing.T) {
 					Tags: infrav1.Tags{
 						"Name": "provided-subnet-private",
 					},
+					ZoneType: aws.String("availability-zone"),
 				},
 			},
 		},

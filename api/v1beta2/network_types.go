@@ -37,6 +37,10 @@ const (
 	DefaultAPIServerHealthThresholdCount = 5
 	// DefaultAPIServerUnhealthThresholdCount the API server unhealthy check threshold count.
 	DefaultAPIServerUnhealthThresholdCount = 3
+	// ZoneTypeAvailabilityZone defines the regular AWS zones in the Region.
+	ZoneTypeAvailabilityZone = "availability-zone"
+	// ZoneTypeLocalZone defines the AWS zone type in Local Zone infrastructure.
+	ZoneTypeLocalZone = "local-zone"
 )
 
 // NetworkStatus encapsulates AWS networking resources.
@@ -430,6 +434,24 @@ type SubnetSpec struct {
 
 	// Tags is a collection of tags describing the resource.
 	Tags Tags `json:"tags,omitempty"`
+
+	// ZoneType defines a zone type for this subnet.
+	//
+	// The valid values are availability-zone, local-zone, and wavelength-zone.
+	//
+	// Zone types local-zone or wavelength-zone is not selected to automatically create
+	// resources like: Nat Gateway, Network Load Balancers, control plane or compute nodes.
+	//
+	// When local-zone, the public subnets will be associated to the public route table,
+	// the private subnets uses the zone in the region to create route tables re-using
+	// Nat Gateways (preferred from parent zone, the zone type availability-zone in the region,
+	// or first available).
+	// +optional
+	ZoneType *string `json:"zoneType,omitempty"`
+
+	// ParentZoneName defines a parent zone name of the zone that the subnet is created.
+	// +optional
+	ParentZoneName *string `json:"parentZoneName,omitempty"`
 }
 
 // GetResourceID returns the identifier for this subnet,
@@ -444,6 +466,15 @@ func (s *SubnetSpec) GetResourceID() string {
 // String returns a string representation of the subnet.
 func (s *SubnetSpec) String() string {
 	return fmt.Sprintf("id=%s/az=%s/public=%v", s.GetResourceID(), s.AvailabilityZone, s.IsPublic)
+}
+
+// IsEdge returns the true when the subnet is created in the edge zone,
+// Wavelength or Local Zones.
+func (s *SubnetSpec) IsEdge() bool {
+	if s.ZoneType == nil {
+		return false
+	}
+	return *s.ZoneType == ZoneTypeLocalZone
 }
 
 // Subnets is a slice of Subnet.
@@ -465,6 +496,13 @@ func (s Subnets) ToMap() map[string]*SubnetSpec {
 func (s Subnets) IDs() []string {
 	res := []string{}
 	for _, subnet := range s {
+		// Prevent returning edge zones (Local Zone) to regular Subnet IDs.
+		// Edge zones should not deploy control plane nodes, and does not support Nat Gateway and
+		// Network Load Balancers. Any resource for the core infrastructure should not consume edge
+		// zones.
+		if subnet.IsEdge() {
+			continue
+		}
 		res = append(res, subnet.GetResourceID())
 	}
 	return res
@@ -503,6 +541,10 @@ func (s Subnets) FindEqual(spec *SubnetSpec) *SubnetSpec {
 // FilterPrivate returns a slice containing all subnets marked as private.
 func (s Subnets) FilterPrivate() (res Subnets) {
 	for _, x := range s {
+		// Subnets in AWS Local Zones should not be used by core infrastructure.
+		if x.IsEdge() {
+			continue
+		}
 		if !x.IsPublic {
 			res = append(res, x)
 		}
@@ -513,6 +555,10 @@ func (s Subnets) FilterPrivate() (res Subnets) {
 // FilterPublic returns a slice containing all subnets marked as public.
 func (s Subnets) FilterPublic() (res Subnets) {
 	for _, x := range s {
+		// Subnets in AWS Local Zones should not be used by core infrastructure.
+		if x.IsEdge() {
+			continue
+		}
 		if x.IsPublic {
 			res = append(res, x)
 		}
