@@ -174,6 +174,15 @@ $(RELEASE_NOTES_BIN): $(RELEASE_NOTES)
 $(RELEASE_NOTES): ## Build release notes from tools folders.
 	GOBIN=$(abspath $(BIN_DIR)) go install $(RELEASE_NOTES_PKG)@$(RELEASE_NOTES_VERSION)
 
+GORELEASER_BIN := goreleaser
+GORELEASER := $(BIN_DIR)/$(GORELEASER_BIN)
+GORELEASER_PKG := github.com/goreleaser/goreleaser
+.PHONY: $(GORELEASER_BIN)
+$(GORELEASER_BIN): $(GORELEASER)
+
+$(GORELEASER):
+	GOBIN=$(abspath $(BIN_DIR)) go install $(GORELEASER_PKG)@$(GORELEASER_VERSION)
+
 
 ## ------------------------------------------------------------------------------------------------
 ## AWS Session Manager Plugin Installation. Currently support Linux and MacOS AMD64 architectures.

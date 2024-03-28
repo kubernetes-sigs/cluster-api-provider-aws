@@ -70,6 +70,7 @@ SSM_PLUGIN := $(TOOLS_BIN_DIR)/session-manager-plugin
 YQ := $(TOOLS_BIN_DIR)/yq
 KPROMO := $(TOOLS_BIN_DIR)/kpromo
 RELEASE_NOTES := $(TOOLS_BIN_DIR)/release-notes
+GORELEASER := $(TOOLS_BIN_DIR)/goreleaser
 
 CLUSTERAWSADM_SRCS := $(call rwildcard,.,cmd/clusterawsadm/*.*)
 
@@ -503,7 +504,7 @@ check-release-tag: ## Check if the release tag is set
 
 .PHONY: create-gh-release
 create-gh-release:$(GH) ## Create release on Github
-	$(GH) release create $(VERSION) -d -F $(RELEASE_DIR)/CHANGELOG.md -t $(VERSION) -R $(GH_REPO)
+	$(GH) release create $(VERSION) --notes-file $(RELEASE_DIR)/CHANGELOG.md --title $(VERSION) --repo $(GH_REPO)
 
 .PHONY: compiled-manifest
 compiled-manifest: $(RELEASE_DIR) $(KUSTOMIZE) ## Compile the manifest files
@@ -568,7 +569,6 @@ list-image: ## List images for RELEASE_TAG
 release: clean-release check-release-tag $(RELEASE_DIR)  ## Builds and push container images using the latest git tag for the commit.
 	git checkout "${RELEASE_TAG}"
 	$(MAKE) release-changelog
-	$(MAKE) release-binaries
 	CORE_CONTROLLER_IMG=$(PROD_REGISTRY)/$(CORE_IMAGE_NAME) $(MAKE) release-manifests
 	$(MAKE) release-templates
 	$(MAKE) release-policies
@@ -605,28 +605,8 @@ promote-images: $(KPROMO) $(YQ)
 	$(KPROMO) pr --project cluster-api-aws --tag $(RELEASE_TAG) --reviewers "$(shell ./hack/get-project-maintainers.sh ${YQ})" --fork $(USER_FORK) --image cluster-api-aws-controller
 
 .PHONY: release-binaries
-release-binaries: ## Builds the binaries to publish with a release
-	RELEASE_BINARY=./cmd/clusterawsadm GOOS=linux GOARCH=amd64 $(MAKE) release-binary
-	RELEASE_BINARY=./cmd/clusterawsadm GOOS=linux GOARCH=arm64 $(MAKE) release-binary
-	RELEASE_BINARY=./cmd/clusterawsadm GOOS=darwin GOARCH=amd64 $(MAKE) release-binary
-	RELEASE_BINARY=./cmd/clusterawsadm GOOS=darwin GOARCH=arm64 $(MAKE) release-binary
-	RELEASE_BINARY=./cmd/clusterawsadm GOOS=windows GOARCH=amd64 EXT=.exe $(MAKE) release-binary
-	RELEASE_BINARY=./cmd/clusterawsadm GOOS=windows GOARCH=arm64 EXT=.exe $(MAKE) release-binary
-
-.PHONY: release-binary
-release-binary: $(RELEASE_DIR) versions.mk ## Release binary
-	docker run \
-		--rm \
-		-e CGO_ENABLED=0 \
-		-e GOOS=$(GOOS) \
-		-e GOARCH=$(GOARCH) \
-		-e GOCACHE=/tmp/ \
-		--user $$(id -u):$$(id -g) \
-		-v "$$(pwd):/workspace$(DOCKER_VOL_OPTS)" \
-		-w /workspace \
-		$(GO_CONTAINER_IMAGE) \
-		go build -ldflags '$(LDFLAGS) -extldflags "-static"' \
-		-o $(RELEASE_DIR)/$(notdir $(RELEASE_BINARY))-$(GOOS)-$(GOARCH)$(EXT) $(RELEASE_BINARY)
+release-binaries: $(GORELEASER) ## Builds only the binaries, not a release. Deprecated, but kept until prow job definitions can be updated.
+	$(GORELEASER) build --snapshot --clean
 
 .PHONY: release-staging
 release-staging: ## Builds and push container images and manifests to the staging bucket.
