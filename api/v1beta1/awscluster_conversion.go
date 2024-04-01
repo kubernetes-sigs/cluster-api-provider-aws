@@ -152,6 +152,7 @@ func restoreIPAMPool(restored, dst *infrav2.IPAMPool) {
 func restoreControlPlaneLoadBalancer(restored, dst *infrav2.AWSLoadBalancerSpec) {
 	dst.Name = restored.Name
 	dst.HealthCheckProtocol = restored.HealthCheckProtocol
+	dst.HealthCheck = restored.HealthCheck
 	dst.LoadBalancerType = restored.LoadBalancerType
 	dst.DisableHostsRewrite = restored.DisableHostsRewrite
 	dst.PreserveClientIP = restored.PreserveClientIP

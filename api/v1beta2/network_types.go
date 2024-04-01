@@ -104,12 +104,90 @@ var (
 
 // TargetGroupHealthCheck defines health check settings for the target group.
 type TargetGroupHealthCheck struct {
-	Protocol        *string `json:"protocol,omitempty"`
-	Path            *string `json:"path,omitempty"`
-	Port            *string `json:"port,omitempty"`
-	IntervalSeconds *int64  `json:"intervalSeconds,omitempty"`
-	TimeoutSeconds  *int64  `json:"timeoutSeconds,omitempty"`
-	ThresholdCount  *int64  `json:"thresholdCount,omitempty"`
+	Protocol                *string `json:"protocol,omitempty"`
+	Path                    *string `json:"path,omitempty"`
+	Port                    *string `json:"port,omitempty"`
+	IntervalSeconds         *int64  `json:"intervalSeconds,omitempty"`
+	TimeoutSeconds          *int64  `json:"timeoutSeconds,omitempty"`
+	ThresholdCount          *int64  `json:"thresholdCount,omitempty"`
+	UnhealthyThresholdCount *int64  `json:"unhealthyThresholdCount,omitempty"`
+}
+
+// TargetGroupHealthCheckAPISpec defines the optional health check settings for the API target group.
+type TargetGroupHealthCheckAPISpec struct {
+	// The approximate amount of time, in seconds, between health checks of an individual
+	// target.
+	// +kubebuilder:validation:Minimum=5
+	// +kubebuilder:validation:Maximum=300
+	// +optional
+	IntervalSeconds *int64 `json:"intervalSeconds,omitempty"`
+
+	// The amount of time, in seconds, during which no response from a target means
+	// a failed health check.
+	// +kubebuilder:validation:Minimum=2
+	// +kubebuilder:validation:Maximum=120
+	// +optional
+	TimeoutSeconds *int64 `json:"timeoutSeconds,omitempty"`
+
+	// The number of consecutive health check successes required before considering
+	// a target healthy.
+	// +kubebuilder:validation:Minimum=2
+	// +kubebuilder:validation:Maximum=10
+	// +optional
+	ThresholdCount *int64 `json:"thresholdCount,omitempty"`
+
+	// The number of consecutive health check failures required before considering
+	// a target unhealthy.
+	// +kubebuilder:validation:Minimum=2
+	// +kubebuilder:validation:Maximum=10
+	// +optional
+	UnhealthyThresholdCount *int64 `json:"unhealthyThresholdCount,omitempty"`
+}
+
+// TargetGroupHealthCheckAdditionalSpec defines the optional health check settings for the additional target groups.
+type TargetGroupHealthCheckAdditionalSpec struct {
+	// The protocol to use to health check connect with the target. When not specified the Protocol
+	// will be the same of the listener.
+	// +kubebuilder:validation:Enum=TCP;HTTP;HTTPS
+	// +optional
+	Protocol *string `json:"protocol,omitempty"`
+
+	// The port the load balancer uses when performing health checks for additional target groups. When
+	// not specified this value will be set for the same of listener port.
+	// +optional
+	Port *string `json:"port,omitempty"`
+
+	// The destination for health checks on the targets when using the protocol HTTP or HTTPS,
+	// otherwise the path will be ignored.
+	// +optional
+	Path *string `json:"path,omitempty"`
+	// The approximate amount of time, in seconds, between health checks of an individual
+	// target.
+	// +kubebuilder:validation:Minimum=5
+	// +kubebuilder:validation:Maximum=300
+	// +optional
+	IntervalSeconds *int64 `json:"intervalSeconds,omitempty"`
+
+	// The amount of time, in seconds, during which no response from a target means
+	// a failed health check.
+	// +kubebuilder:validation:Minimum=2
+	// +kubebuilder:validation:Maximum=120
+	// +optional
+	TimeoutSeconds *int64 `json:"timeoutSeconds,omitempty"`
+
+	// The number of consecutive health check successes required before considering
+	// a target healthy.
+	// +kubebuilder:validation:Minimum=2
+	// +kubebuilder:validation:Maximum=10
+	// +optional
+	ThresholdCount *int64 `json:"thresholdCount,omitempty"`
+
+	// The number of consecutive health check failures required before considering
+	// a target unhealthy.
+	// +kubebuilder:validation:Minimum=2
+	// +kubebuilder:validation:Maximum=10
+	// +optional
+	UnhealthyThresholdCount *int64 `json:"unhealthyThresholdCount,omitempty"`
 }
 
 // TargetGroupAttribute defines attribute key values for V2 Load Balancer Attributes.

@@ -1462,6 +1462,9 @@ spec:
                                     timeoutSeconds:
                                       format: int64
                                       type: integer
+                                    unhealthyThresholdCount:
+                                      format: int64
+                                      type: integer
                                   type: object
                                 vpcId:
                                   type: string
@@ -1676,6 +1679,9 @@ spec:
                                       format: int64
                                       type: integer
                                     timeoutSeconds:
+                                      format: int64
+                                      type: integer
+                                    unhealthyThresholdCount:
                                       format: int64
                                       type: integer
                                   type: object
@@ -3364,6 +3370,9 @@ spec:
                                     timeoutSeconds:
                                       format: int64
                                       type: integer
+                                    unhealthyThresholdCount:
+                                      format: int64
+                                      type: integer
                                   type: object
                                 vpcId:
                                   type: string
@@ -3578,6 +3587,9 @@ spec:
                                       format: int64
                                       type: integer
                                     timeoutSeconds:
+                                      format: int64
+                                      type: integer
+                                    unhealthyThresholdCount:
                                       format: int64
                                       type: integer
                                   type: object
