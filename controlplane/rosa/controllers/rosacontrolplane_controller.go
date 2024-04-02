@@ -538,50 +538,51 @@ func validateControlPlaneSpec(ocmClient *ocm.Client, rosaScope *scope.ROSAContro
 	return "", nil
 }
 
-func buildOCMClusterSpec(controPlaneSpec rosacontrolplanev1.RosaControlPlaneSpec, creator *rosaaws.Creator) (ocm.Spec, error) {
-	billingAccount := controPlaneSpec.BillingAccount
+func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpec, creator *rosaaws.Creator) (ocm.Spec, error) {
+	billingAccount := controlPlaneSpec.BillingAccount
 	if billingAccount == "" {
 		billingAccount = creator.AccountID
 	}
 
 	ocmClusterSpec := ocm.Spec{
 		DryRun:                    ptr.To(false),
-		Name:                      controPlaneSpec.RosaClusterName,
-		DomainPrefix:              controPlaneSpec.DomainPrefix,
-		Region:                    controPlaneSpec.Region,
+		Name:                      controlPlaneSpec.RosaClusterName,
+		DomainPrefix:              controlPlaneSpec.DomainPrefix,
+		Region:                    controlPlaneSpec.Region,
 		MultiAZ:                   true,
-		Version:                   ocm.CreateVersionID(controPlaneSpec.Version, ocm.DefaultChannelGroup),
+		Version:                   ocm.CreateVersionID(controlPlaneSpec.Version, ocm.DefaultChannelGroup),
 		ChannelGroup:              ocm.DefaultChannelGroup,
 		DisableWorkloadMonitoring: ptr.To(true),
 		DefaultIngress:            ocm.NewDefaultIngressSpec(), // n.b. this is a no-op when it's set to the default value
-		ComputeMachineType:        controPlaneSpec.DefaultMachinePoolSpec.InstanceType,
-		AvailabilityZones:         controPlaneSpec.AvailabilityZones,
-		Tags:                      controPlaneSpec.AdditionalTags,
-		EtcdEncryption:            controPlaneSpec.EtcdEncryptionKMSARN != "",
-		EtcdEncryptionKMSArn:      controPlaneSpec.EtcdEncryptionKMSARN,
+		ComputeMachineType:        controlPlaneSpec.DefaultMachinePoolSpec.InstanceType,
+		AvailabilityZones:         controlPlaneSpec.AvailabilityZones,
+		Tags:                      controlPlaneSpec.AdditionalTags,
+		EtcdEncryption:            controlPlaneSpec.EtcdEncryptionKMSARN != "",
+		EtcdEncryptionKMSArn:      controlPlaneSpec.EtcdEncryptionKMSARN,
 
-		SubnetIds:        controPlaneSpec.Subnets,
+		SubnetIds:        controlPlaneSpec.Subnets,
 		IsSTS:            true,
-		RoleARN:          controPlaneSpec.InstallerRoleARN,
-		SupportRoleARN:   controPlaneSpec.SupportRoleARN,
-		WorkerRoleARN:    controPlaneSpec.WorkerRoleARN,
-		OperatorIAMRoles: operatorIAMRoles(controPlaneSpec.RolesRef),
-		OidcConfigId:     controPlaneSpec.OIDCID,
+		RoleARN:          controlPlaneSpec.InstallerRoleARN,
+		SupportRoleARN:   controlPlaneSpec.SupportRoleARN,
+		WorkerRoleARN:    controlPlaneSpec.WorkerRoleARN,
+		OperatorIAMRoles: operatorIAMRoles(controlPlaneSpec.RolesRef),
+		OidcConfigId:     controlPlaneSpec.OIDCID,
 		Mode:             "auto",
 		Hypershift: ocm.Hypershift{
 			Enabled: true,
 		},
-		BillingAccount:  billingAccount,
-		AWSCreator:      creator,
-		AuditLogRoleARN: ptr.To(controPlaneSpec.AuditLogRoleARN),
+		BillingAccount:               billingAccount,
+		AWSCreator:                   creator,
+		AuditLogRoleARN:              ptr.To(controlPlaneSpec.AuditLogRoleARN),
+		ExternalAuthProvidersEnabled: controlPlaneSpec.EnableExternalAuthProviders,
 	}
 
-	if controPlaneSpec.EndpointAccess == rosacontrolplanev1.Private {
+	if controlPlaneSpec.EndpointAccess == rosacontrolplanev1.Private {
 		ocmClusterSpec.Private = ptr.To(true)
 		ocmClusterSpec.PrivateLink = ptr.To(true)
 	}
 
-	if networkSpec := controPlaneSpec.Network; networkSpec != nil {
+	if networkSpec := controlPlaneSpec.Network; networkSpec != nil {
 		if networkSpec.MachineCIDR != "" {
 			_, machineCIDR, err := net.ParseCIDR(networkSpec.MachineCIDR)
 			if err != nil {
@@ -612,17 +613,17 @@ func buildOCMClusterSpec(controPlaneSpec rosacontrolplanev1.RosaControlPlaneSpec
 
 	// Set cluster compute autoscaling replicas
 	// In case autoscaling is not defined and multiple zones defined, set the compute nodes equal to the zones count.
-	if computeAutoscaling := controPlaneSpec.DefaultMachinePoolSpec.Autoscaling; computeAutoscaling != nil {
+	if computeAutoscaling := controlPlaneSpec.DefaultMachinePoolSpec.Autoscaling; computeAutoscaling != nil {
 		ocmClusterSpec.Autoscaling = true
 		ocmClusterSpec.MaxReplicas = computeAutoscaling.MaxReplicas
 		ocmClusterSpec.MinReplicas = computeAutoscaling.MinReplicas
-	} else if computeAutoscaling == nil && len(controPlaneSpec.AvailabilityZones) > 1 {
-		ocmClusterSpec.ComputeNodes = len(controPlaneSpec.AvailabilityZones)
+	} else if len(controlPlaneSpec.AvailabilityZones) > 1 {
+		ocmClusterSpec.ComputeNodes = len(controlPlaneSpec.AvailabilityZones)
 	}
 
-	if controPlaneSpec.ProvisionShardID != "" {
+	if controlPlaneSpec.ProvisionShardID != "" {
 		ocmClusterSpec.CustomProperties = map[string]string{
-			"provision_shard_id": controPlaneSpec.ProvisionShardID,
+			"provision_shard_id": controlPlaneSpec.ProvisionShardID,
 		}
 	}
 
