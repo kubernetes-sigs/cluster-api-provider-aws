@@ -106,7 +106,7 @@ func (r *ROSAMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, machinePool.ObjectMeta)
 	if err != nil {
 		log.Info("Failed to retrieve Cluster from MachinePool")
-		return reconcile.Result{}, nil
+		return ctrl.Result{}, nil
 	}
 
 	if annotations.IsPaused(cluster, rosaMachinePool) {
@@ -123,7 +123,7 @@ func (r *ROSAMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	controlPlane := &rosacontrolplanev1.ROSAControlPlane{}
 	if err := r.Client.Get(ctx, controlPlaneKey, controlPlane); err != nil {
 		log.Info("Failed to retrieve ControlPlane from MachinePool")
-		return reconcile.Result{}, nil
+		return ctrl.Result{}, err
 	}
 
 	machinePoolScope, err := scope.NewRosaMachinePoolScope(scope.RosaMachinePoolScopeParams{
@@ -137,7 +137,7 @@ func (r *ROSAMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		Endpoints:       r.Endpoints,
 	})
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to create scope")
+		return ctrl.Result{}, errors.Wrap(err, "failed to create rosaMachinePool scope")
 	}
 
 	rosaControlPlaneScope, err := scope.NewROSAControlPlaneScope(scope.ROSAControlPlaneScopeParams{
@@ -148,10 +148,10 @@ func (r *ROSAMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		Endpoints:      r.Endpoints,
 	})
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to create control plane scope")
+		return ctrl.Result{}, errors.Wrap(err, "failed to create rosaControlPlane scope")
 	}
 
-	if !controlPlane.Status.Ready {
+	if !controlPlane.Status.Ready && controlPlane.ObjectMeta.DeletionTimestamp.IsZero() {
 		log.Info("Control plane is not ready yet")
 		err := machinePoolScope.RosaMchinePoolReadyFalse(expinfrav1.WaitingForRosaControlPlaneReason, "")
 		return ctrl.Result{}, err
@@ -305,6 +305,7 @@ func (r *ROSAMachinePoolReconciler) reconcileDelete(
 		if err := ocmClient.DeleteNodePool(machinePoolScope.ControlPlane.Status.ID, nodePool.ID()); err != nil {
 			return err
 		}
+		machinePoolScope.Info("Successfully deleted NodePool %s", nodePool.ID())
 	}
 
 	controllerutil.RemoveFinalizer(machinePoolScope.RosaMachinePool, expinfrav1.RosaMachinePoolFinalizer)
