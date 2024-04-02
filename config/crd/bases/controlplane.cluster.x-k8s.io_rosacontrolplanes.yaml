@@ -144,6 +144,14 @@ spec:
                 x-kubernetes-validations:
                 - message: domainPrefix is immutable
                   rule: self == oldSelf
+              enableExternalAuthProviders:
+                default: false
+                description: EnableExternalAuthProviders enables external authentication
+                  configuration for the cluster.
+                type: boolean
+                x-kubernetes-validations:
+                - message: enableExternalAuthProviders is immutable
+                  rule: self == oldSelf
               endpointAccess:
                 default: Public
                 description: EndpointAccess specifies the publishing scope of cluster
@@ -213,8 +221,11 @@ spec:
                     type: string
                 type: object
               oidcID:
-                description: The ID of the OpenID Connect Provider.
+                description: The ID of the internal OpenID Connect Provider.
                 type: string
+                x-kubernetes-validations:
+                - message: oidcID is immutable
+                  rule: self == oldSelf
               provisionShardID:
                 description: ProvisionShardID defines the shard where rosa control
                   plane components will be hosted.

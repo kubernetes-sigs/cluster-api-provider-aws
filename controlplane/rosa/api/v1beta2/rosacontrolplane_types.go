@@ -80,8 +80,17 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// AWS IAM roles used to perform credential requests by the openshift operators.
 	RolesRef AWSRolesRef `json:"rolesRef"`
 
-	// The ID of the OpenID Connect Provider.
+	// The ID of the internal OpenID Connect Provider.
+	//
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="oidcID is immutable"
 	OIDCID string `json:"oidcID"`
+
+	// EnableExternalAuthProviders enables external authentication configuration for the cluster.
+	//
+	// +kubebuilder:default=false
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="enableExternalAuthProviders is immutable"
+	// +optional
+	EnableExternalAuthProviders bool `json:"enableExternalAuthProviders,omitempty"`
 
 	// InstallerRoleARN is an AWS IAM role that OpenShift Cluster Manager will assume to create the cluster..
 	InstallerRoleARN string `json:"installerRoleARN"`
