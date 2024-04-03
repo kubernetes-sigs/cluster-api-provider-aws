@@ -25,10 +25,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -753,4 +755,245 @@ func (r routeTableInputMatcher) String() string {
 
 func matchRouteTableInput(input *ec2.CreateRouteTableInput) gomock.Matcher {
 	return routeTableInputMatcher{routeTableInput: input}
+}
+
+func TestService_getRoutesForSubnet(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	defaultSubnets := infrav1.Subnets{
+		{
+			ResourceID:       "subnet-az-2z-private",
+			AvailabilityZone: "us-east-2z",
+			IsPublic:         false,
+		},
+		{
+			ResourceID:       "subnet-az-2z-public",
+			AvailabilityZone: "us-east-2z",
+			IsPublic:         true,
+			NatGatewayID:     ptr.To("nat-gw-fromZone-us-east-2z"),
+		},
+		{
+			ResourceID:       "subnet-az-1a-private",
+			AvailabilityZone: "us-east-1a",
+			IsPublic:         false,
+		},
+		{
+			ResourceID:       "subnet-az-1a-public",
+			AvailabilityZone: "us-east-1a",
+			IsPublic:         true,
+			NatGatewayID:     ptr.To("nat-gw-fromZone-us-east-1a"),
+		},
+	}
+
+	vpcName := "vpc-test-for-routes"
+	defaultNetwork := infrav1.NetworkSpec{
+		VPC: infrav1.VPCSpec{
+			ID:                vpcName,
+			InternetGatewayID: aws.String("vpc-igw"),
+			IPv6: &infrav1.IPv6{
+				CidrBlock:                   "2001:db8:1234:1::/64",
+				EgressOnlyInternetGatewayID: aws.String("vpc-eigw"),
+			},
+		},
+		Subnets: defaultSubnets,
+	}
+
+	tests := []struct {
+		name                string
+		specOverrideNet     *infrav1.NetworkSpec
+		specOverrideSubnets *infrav1.Subnets
+		inputSubnet         *infrav1.SubnetSpec
+		want                []*ec2.CreateRouteInput
+		wantErr             bool
+		wantErrMessage      string
+	}{
+		{
+			name:                "empty subnet should have empty routes",
+			specOverrideSubnets: &infrav1.Subnets{},
+			inputSubnet: &infrav1.SubnetSpec{
+				ID: "subnet-1-private",
+			},
+			want:           []*ec2.CreateRouteInput{},
+			wantErrMessage: `no nat gateways available in "" for private subnet "subnet-1-private", current state: map[]`,
+		},
+		{
+			name:           "empty subnet should have empty routes",
+			inputSubnet:    &infrav1.SubnetSpec{},
+			want:           []*ec2.CreateRouteInput{},
+			wantErrMessage: `no nat gateways available in "" for private subnet "", current state: map[us-east-1a:[nat-gw-fromZone-us-east-1a] us-east-2z:[nat-gw-fromZone-us-east-2z]]`,
+		},
+		// public subnets ipv4
+		{
+			name: "public ipv4 subnet, availability zone, must have ipv4 default route to igw",
+			inputSubnet: &infrav1.SubnetSpec{
+				ResourceID:       "subnet-az-1a-public",
+				AvailabilityZone: "us-east-1a",
+				IsIPv6:           false,
+				IsPublic:         true,
+			},
+			want: []*ec2.CreateRouteInput{
+				{
+					DestinationCidrBlock: aws.String("0.0.0.0/0"),
+					GatewayId:            aws.String("vpc-igw"),
+				},
+			},
+		},
+		{
+			name: "public ipv6 subnet, availability zone, must have ipv6 default route to igw",
+			inputSubnet: &infrav1.SubnetSpec{
+				ResourceID:       "subnet-az-1a-public",
+				AvailabilityZone: "us-east-1a",
+				IsPublic:         true,
+				IsIPv6:           true,
+			},
+			want: []*ec2.CreateRouteInput{
+				{
+					DestinationCidrBlock: aws.String("0.0.0.0/0"),
+					GatewayId:            aws.String("vpc-igw"),
+				},
+				{
+					DestinationIpv6CidrBlock: aws.String("::/0"),
+					GatewayId:                aws.String("vpc-igw"),
+				},
+			},
+		},
+		// public subnet ipv4, GW not found.
+		{
+			name: "public ipv4 subnet, availability zone, must return error when no internet gateway available",
+			specOverrideNet: func() *infrav1.NetworkSpec {
+				net := defaultNetwork.DeepCopy()
+				net.VPC.InternetGatewayID = nil
+				return net
+			}(),
+			inputSubnet: &infrav1.SubnetSpec{
+				ResourceID:       "subnet-az-1a-public",
+				AvailabilityZone: "us-east-1a",
+				IsPublic:         true,
+			},
+			wantErrMessage: `failed to create routing tables: internet gateway for "vpc-test-for-routes" is nil`,
+		},
+		// private subnets
+		{
+			name: "private ipv4 subnet, availability zone, must have ipv4 default route to nat gateway",
+			inputSubnet: &infrav1.SubnetSpec{
+				ResourceID:       "subnet-az-1a-private",
+				AvailabilityZone: "us-east-1a",
+				IsPublic:         false,
+			},
+			want: []*ec2.CreateRouteInput{
+				{
+					DestinationCidrBlock: aws.String("0.0.0.0/0"),
+					NatGatewayId:         aws.String("nat-gw-fromZone-us-east-1a"),
+				},
+			},
+		},
+		// egress-only subnet ipv6
+		{
+			name: "egress-only ipv6 subnet, availability zone, must have ipv6 default route to egress-only gateway",
+			inputSubnet: &infrav1.SubnetSpec{
+				ResourceID:       "subnet-az-1a-private",
+				AvailabilityZone: "us-east-1a",
+				IsIPv6:           true,
+				IsPublic:         false,
+			},
+			want: []*ec2.CreateRouteInput{
+				{
+					DestinationCidrBlock: aws.String("0.0.0.0/0"),
+					NatGatewayId:         aws.String("nat-gw-fromZone-us-east-1a"),
+				},
+				{
+					DestinationIpv6CidrBlock:    aws.String("::/0"),
+					EgressOnlyInternetGatewayId: aws.String("vpc-eigw"),
+				},
+			},
+		},
+		{
+			name: "private ipv6 subnet, availability zone, non-ipv6 block, must return error",
+			specOverrideNet: func() *infrav1.NetworkSpec {
+				net := defaultNetwork.DeepCopy()
+				net.VPC.IPv6 = nil
+				return net
+			}(),
+			inputSubnet: &infrav1.SubnetSpec{
+				ResourceID:       "subnet-az-1a-private",
+				AvailabilityZone: "us-east-1a",
+				IsIPv6:           true,
+				IsPublic:         false,
+			},
+			wantErrMessage: `ipv6 block missing for ipv6 enabled subnet, can't create route for egress only internet gateway`,
+		},
+		// private subnet, gateway not found
+		{
+			name: "private ipv4 subnet, availability zone, must return error when invalid gateway",
+			specOverrideNet: func() *infrav1.NetworkSpec {
+				net := defaultNetwork.DeepCopy()
+				for i := range net.Subnets {
+					if net.Subnets[i].AvailabilityZone == "us-east-1a" && net.Subnets[i].IsPublic {
+						net.Subnets[i].NatGatewayID = nil
+					}
+				}
+				return net
+			}(),
+			inputSubnet: &infrav1.SubnetSpec{
+				ResourceID:       "subnet-az-1a-private",
+				AvailabilityZone: "us-east-1a",
+				IsPublic:         false,
+			},
+			wantErrMessage: `no nat gateways available in "us-east-1a" for private subnet "subnet-az-1a-private", current state: map[us-east-2z:[nat-gw-fromZone-us-east-2z]]`,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			scheme := runtime.NewScheme()
+			_ = infrav1.AddToScheme(scheme)
+			client := fake.NewClientBuilder().WithScheme(scheme).Build()
+			cluster := scope.ClusterScopeParams{
+				Client: client,
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster-routes"},
+				},
+				AWSCluster: &infrav1.AWSCluster{
+					ObjectMeta: metav1.ObjectMeta{Name: "test"},
+					Spec:       infrav1.AWSClusterSpec{},
+				},
+			}
+			cluster.AWSCluster.Spec.NetworkSpec = defaultNetwork
+			if tc.specOverrideNet != nil {
+				cluster.AWSCluster.Spec.NetworkSpec = *tc.specOverrideNet
+			}
+			if tc.specOverrideSubnets != nil {
+				cluster.AWSCluster.Spec.NetworkSpec.Subnets = *tc.specOverrideSubnets
+			}
+
+			scope, err := scope.NewClusterScope(cluster)
+			if err != nil {
+				t.Errorf("Service.getRoutesForSubnet() error setting up the test case: %v", err)
+			}
+
+			s := NewService(scope)
+			got, err := s.getRoutesForSubnet(tc.inputSubnet)
+
+			wantErr := tc.wantErr
+			if len(tc.wantErrMessage) > 0 {
+				wantErr = true
+			}
+			if wantErr && err == nil {
+				t.Fatal("expected error but got no error")
+			}
+			if err != nil {
+				if !wantErr {
+					t.Fatalf("got an unexpected error: %v", err)
+				}
+				if wantErr && len(tc.wantErrMessage) > 0 && err.Error() != tc.wantErrMessage {
+					t.Fatalf("got an unexpected error message:\nwant: %v\n got: %v\n", tc.wantErrMessage, err)
+				}
+			}
+			if len(tc.want) > 0 {
+				if !cmp.Equal(got, tc.want) {
+					t.Errorf("got unexpect routes:\n%v", cmp.Diff(got, tc.want))
+				}
+			}
+		})
+	}
 }
