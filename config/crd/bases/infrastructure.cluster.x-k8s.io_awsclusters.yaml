@@ -1514,6 +1514,10 @@ spec:
                   (https://coreos.github.io/ignition/) for bootstrapping (requires
                   BootstrapFormatIgnition feature flag to be enabled).
                 properties:
+                  bestEffortDeleteObjects:
+                    description: BestEffortDeleteObjects defines whether access/permission
+                      errors during object deletion should be ignored.
+                    type: boolean
                   controlPlaneIAMInstanceProfile:
                     description: ControlPlaneIAMInstanceProfile is a name of the IAMInstanceProfile,
                       which will be allowed to read control-plane node bootstrap data
