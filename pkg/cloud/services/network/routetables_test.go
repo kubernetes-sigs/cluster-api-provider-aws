@@ -519,6 +519,44 @@ func TestReconcileRouteTables(t *testing.T) {
 					}, nil)
 			},
 		},
+		{
+			name: "failed to create route, delete route table and fail",
+			input: &infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					InternetGatewayID: aws.String("igw-01"),
+					ID:                "vpc-rtbs",
+					Tags: infrav1.Tags{
+						infrav1.ClusterTagKey("test-cluster"): "owned",
+					},
+				},
+				Subnets: infrav1.Subnets{
+					infrav1.SubnetSpec{
+						ID:               "subnet-rtbs-public",
+						IsPublic:         true,
+						NatGatewayID:     aws.String("nat-01"),
+						AvailabilityZone: "us-east-1a",
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeRouteTablesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+					Return(&ec2.DescribeRouteTablesOutput{}, nil)
+
+				m.CreateRouteTableWithContext(context.TODO(), matchRouteTableInput(&ec2.CreateRouteTableInput{VpcId: aws.String("vpc-rtbs")})).
+					Return(&ec2.CreateRouteTableOutput{RouteTable: &ec2.RouteTable{RouteTableId: aws.String("rt-1")}}, nil)
+
+				m.CreateRouteWithContext(context.TODO(), gomock.Eq(&ec2.CreateRouteInput{
+					GatewayId:            aws.String("igw-01"),
+					DestinationCidrBlock: aws.String("0.0.0.0/0"),
+					RouteTableId:         aws.String("rt-1"),
+				})).
+					Return(nil, awserrors.NewNotFound("MissingParameter"))
+
+				m.DeleteRouteTableWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DeleteRouteTableInput{})).
+					Return(&ec2.DeleteRouteTableOutput{}, nil)
+			},
+			err: errors.New(`failed to create route in route table "rt-1"`),
+		},
 	}
 
 	for _, tc := range testCases {
@@ -560,59 +598,65 @@ func TestReconcileRouteTables(t *testing.T) {
 	}
 }
 
+// Delete Route Table(s).
+var (
+	stubEc2RouteTablePrivate = &ec2.RouteTable{
+		RouteTableId: aws.String("route-table-private"),
+		Associations: []*ec2.RouteTableAssociation{
+			{
+				SubnetId: nil,
+			},
+		},
+		Routes: []*ec2.Route{
+			{
+				DestinationCidrBlock: aws.String("0.0.0.0/0"),
+				NatGatewayId:         aws.String("outdated-nat-01"),
+			},
+		},
+	}
+	stubEc2RouteTablePublicWithAssociations = &ec2.RouteTable{
+		RouteTableId: aws.String("route-table-public"),
+		Associations: []*ec2.RouteTableAssociation{
+			{
+				SubnetId:                aws.String("subnet-routetables-public"),
+				RouteTableAssociationId: aws.String("route-table-public"),
+			},
+		},
+		Routes: []*ec2.Route{
+			{
+				DestinationCidrBlock: aws.String("0.0.0.0/0"),
+				GatewayId:            aws.String("igw-01"),
+			},
+		},
+		Tags: []*ec2.Tag{
+			{
+				Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+				Value: aws.String("owned"),
+			},
+			{
+				Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+				Value: aws.String("common"),
+			},
+			{
+				Key:   aws.String("Name"),
+				Value: aws.String("test-cluster-rt-public-us-east-1a"),
+			},
+			{
+				Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+				Value: aws.String("owned"),
+			},
+		},
+	}
+)
+
 func TestDeleteRouteTables(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
 	describeRouteTableOutput := &ec2.DescribeRouteTablesOutput{
 		RouteTables: []*ec2.RouteTable{
-			{
-				RouteTableId: aws.String("route-table-private"),
-				Associations: []*ec2.RouteTableAssociation{
-					{
-						SubnetId: nil,
-					},
-				},
-				Routes: []*ec2.Route{
-					{
-						DestinationCidrBlock: aws.String("0.0.0.0/0"),
-						NatGatewayId:         aws.String("outdated-nat-01"),
-					},
-				},
-			},
-			{
-				RouteTableId: aws.String("route-table-public"),
-				Associations: []*ec2.RouteTableAssociation{
-					{
-						SubnetId:                aws.String("subnet-routetables-public"),
-						RouteTableAssociationId: aws.String("route-table-public"),
-					},
-				},
-				Routes: []*ec2.Route{
-					{
-						DestinationCidrBlock: aws.String("0.0.0.0/0"),
-						GatewayId:            aws.String("igw-01"),
-					},
-				},
-				Tags: []*ec2.Tag{
-					{
-						Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-						Value: aws.String("owned"),
-					},
-					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
-						Value: aws.String("common"),
-					},
-					{
-						Key:   aws.String("Name"),
-						Value: aws.String("test-cluster-rt-public-us-east-1a"),
-					},
-					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
-						Value: aws.String("owned"),
-					},
-				},
-			},
+			stubEc2RouteTablePrivate,
+			stubEc2RouteTablePublicWithAssociations,
 		},
 	}
 
@@ -721,6 +765,81 @@ func TestDeleteRouteTables(t *testing.T) {
 			s.EC2Client = ec2Mock
 
 			err = s.deleteRouteTables()
+			if tc.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).NotTo(HaveOccurred())
+		})
+	}
+}
+
+func TestDeleteRouteTable(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	testCases := []struct {
+		name    string
+		input   *ec2.RouteTable
+		expect  func(m *mocks.MockEC2APIMockRecorder)
+		wantErr bool
+	}{
+		{
+			name:  "Should delete route table successfully",
+			input: stubEc2RouteTablePrivate,
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DeleteRouteTableWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DeleteRouteTableInput{})).
+					Return(&ec2.DeleteRouteTableOutput{}, nil)
+			},
+		},
+		{
+			name:  "Should return error if delete route table fails",
+			input: stubEc2RouteTablePrivate,
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DeleteRouteTableWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DeleteRouteTableInput{})).
+					Return(nil, awserrors.NewNotFound("not found"))
+			},
+			wantErr: true,
+		},
+		{
+			name:  "Should return error if disassociate route table fails",
+			input: stubEc2RouteTablePublicWithAssociations,
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DisassociateRouteTableWithContext(context.TODO(), gomock.Eq(&ec2.DisassociateRouteTableInput{
+					AssociationId: aws.String("route-table-public"),
+				})).Return(nil, awserrors.NewNotFound("not found"))
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
+
+			scheme := runtime.NewScheme()
+			_ = infrav1.AddToScheme(scheme)
+			client := fake.NewClientBuilder().WithScheme(scheme).Build()
+			scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+				Client: client,
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
+				},
+				AWSCluster: &infrav1.AWSCluster{
+					ObjectMeta: metav1.ObjectMeta{Name: "test"},
+					Spec:       infrav1.AWSClusterSpec{},
+				},
+			})
+			g.Expect(err).NotTo(HaveOccurred())
+			if tc.expect != nil {
+				tc.expect(ec2Mock.EXPECT())
+			}
+
+			s := NewService(scope)
+			s.EC2Client = ec2Mock
+
+			err = s.deleteRouteTable(tc.input)
 			if tc.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
