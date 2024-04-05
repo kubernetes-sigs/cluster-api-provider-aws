@@ -23,10 +23,16 @@ jobs:
           go-version: '1.21'
       - name: Set version info
         run: |
-          echo "VERSION=$GITHUB_REF_NAME" >> $GITHUB_ENV
-          echo "PREVIOUS_VERSION=$(git tag --sort=-v:refname | head -n 2 | tail -n 1)" >> $GITHUB_ENV
-          echo "RELEASE_BRANCH=release-$(echo $GITHUB_REF_NAME | grep -o '\d\.\d*')" >> $GITHUB_ENV
+          echo "VERSION=${GITHUB_REF_NAME}" >> $GITHUB_ENV
+          echo "PREVIOUS_VERSION=$(git describe --abbrev=0 2> /dev/null)" >> $GITHUB_ENV
+          echo "RELEASE_BRANCH=release-$(echo ${GITHUB_REF_NAME} | grep -Eo '[0-9]\.[0-9]+')" >> $GITHUB_ENV
+          echo "RELEASE_TAG=${GITHUB_REF_NAME}" >> $GITHUB_ENV
       - name: Run release
-        run: make release
+        run: |
+          echo "Version is: $VERSION"
+          echo "Previous version is: $PREVIOUS_VERSION"
+          echo "Release branch is: $RELEASE_BRANCH"
+          echo "Release tag is: $RELEASE_TAG"
+          make release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

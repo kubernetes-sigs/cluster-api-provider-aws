@@ -56,9 +56,6 @@ archives:
   name_template: "clusterawsadm_{{ .Tag }}_{{ .Os }}_{{ .Arch }}"
   format: binary
 
-changelog:
-  disable: true
-
 release:
   discussion_category_name: General
   extra_files:
