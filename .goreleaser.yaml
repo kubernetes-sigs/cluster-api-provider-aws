@@ -48,17 +48,11 @@ archives:
 - id: clusterctl-aws
   builds:
   - clusterctl-aws
-  format_overrides:
-  - goos: windows
-    format: zip
   name_template: "clusterctl-aws_{{ .Tag }}_{{ .Os }}_{{ .Arch }}"
   format: binary
 - id: clusterawsadm
   builds:
   - clusterawsadm
-  format_overrides:
-  - goos: windows
-    format: zip
   name_template: "clusterawsadm_{{ .Tag }}_{{ .Os }}_{{ .Arch }}"
   format: binary
 
@@ -67,8 +61,7 @@ changelog:
 
 release:
   discussion_category_name: General
-
   extra_files:
     - glob: ./templates/*.yaml
-
+    - glob: ./out/*
   draft: true
