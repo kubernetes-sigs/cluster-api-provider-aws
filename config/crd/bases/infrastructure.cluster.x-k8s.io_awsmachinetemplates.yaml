@@ -813,6 +813,16 @@ spec:
                         description: PlacementGroupName specifies the name of the
                           placement group in which to launch the instance.
                         type: string
+                      placementGroupPartition:
+                        description: PlacementGroupPartition is the partition number
+                          within the placement group in which to launch the instance.
+                          This value is only valid if the placement group, referred
+                          in `PlacementGroupName`, was created with strategy set to
+                          partition.
+                        format: int64
+                        maximum: 7
+                        minimum: 1
+                        type: integer
                       privateDnsName:
                         description: PrivateDNSName is the options for the instance
                           hostname.
