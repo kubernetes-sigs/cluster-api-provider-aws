@@ -102,14 +102,12 @@ func (b *configMapBackend) MapUsers(mappings []ekscontrolplanev1.UserMapping) er
 
 	authConfig.UserMappings = []ekscontrolplanev1.UserMapping{}
 
-	for _, mapping := range mappings {
-		authConfig.UserMappings = append(authConfig.UserMappings, mapping)
-	}
+	authConfig.UserMappings = append(authConfig.UserMappings, mappings...)
 
 	return b.saveAuthConfig(authConfig)
 }
 
-func (b *configMapBackend) MapRoles(mappings []ekscontrolplanev1.RoleMappings) error {
+func (b *configMapBackend) MapRoles(mappings []ekscontrolplanev1.RoleMapping) error {
 	for _, mapping := range mappings {
 		if errs := mapping.Validate(); errs != nil {
 			return kerrors.NewAggregate(errs)
@@ -121,11 +119,9 @@ func (b *configMapBackend) MapRoles(mappings []ekscontrolplanev1.RoleMappings) e
 		return fmt.Errorf("getting auth config: %w", err)
 	}
 
-	authConfig.RoleMapping = []ekscontrolplanev1.RoleMapping{}
+	authConfig.RoleMappings = []ekscontrolplanev1.RoleMapping{}
 
-	for _, mapping := range mappings {
-		authConfig.RoleMapping = append(authConfig.RoleMapping, mapping)
-	}
+	authConfig.RoleMappings = append(authConfig.RoleMappings, mappings...)
 
 	return b.saveAuthConfig(authConfig)
 }

@@ -315,6 +315,170 @@ func TestAddUserMappingCM(t *testing.T) {
 	}
 }
 
+func TestAddUserMappingsCM(t *testing.T) {
+	testCases := []struct {
+		name                  string
+		existingAuthConfigMap *corev1.ConfigMap
+		usersToMap            []ekscontrolplanev1.UserMapping
+		expectError           bool
+	}{
+		{
+			name: "no existing user mappings, add user mapping",
+			usersToMap: []ekscontrolplanev1.UserMapping{
+				{
+					UserARN: "arn:aws:iam::000000000000:user/Alice",
+					KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+						UserName: "alice",
+						Groups:   []string{"system:masters"},
+					},
+				},
+				{
+					UserARN: "arn:aws:iam::000000000000:user/John",
+					KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+						UserName: "john",
+						Groups:   []string{"system:masters"},
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "invalid arn",
+			usersToMap: []ekscontrolplanev1.UserMapping{
+				{
+					UserARN: "a b c :: 123 --",
+					KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+						UserName: "sdfghjk",
+						Groups:   []string{"system:masters"},
+					},
+				},
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewGomegaWithT(t)
+
+			var client crclient.Client
+			if tc.existingAuthConfigMap == nil {
+				client = fake.NewClientBuilder().Build()
+			} else {
+				client = fake.NewClientBuilder().WithObjects(tc.existingAuthConfigMap).Build()
+			}
+			backend, err := NewBackend(BackendTypeConfigMap, client)
+			g.Expect(err).To(BeNil())
+
+			err = backend.MapUsers(tc.usersToMap)
+			if tc.expectError {
+				g.Expect(err).ToNot(BeNil())
+				return
+			}
+
+			g.Expect(err).To(BeNil())
+
+		})
+	}
+}
+
+func TestAddRoleMappingsCM(t *testing.T) {
+	testCases := []struct {
+		name                  string
+		existingAuthConfigMap *corev1.ConfigMap
+		rolesToMap            []ekscontrolplanev1.RoleMapping
+		expectedRoleMaps      []ekscontrolplanev1.RoleMapping
+		expectError           bool
+	}{
+		{
+			name: "no existing user mappings, add user mapping",
+			rolesToMap: []ekscontrolplanev1.RoleMapping{
+				{
+					RoleARN: "arn:aws:iam::000000000000:role/KubernetesNode",
+					KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+						UserName: "system:node:{{EC2PrivateDNSName}}",
+						Groups:   []string{"system:bootstrappers", "system:nodes"},
+					},
+				},
+			},
+			expectedRoleMaps: []ekscontrolplanev1.RoleMapping{
+				{
+					RoleARN: "arn:aws:iam::000000000000:role/KubernetesNode",
+					KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+						UserName: "system:node:{{EC2PrivateDNSName}}",
+						Groups:   []string{"system:bootstrappers", "system:nodes"},
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "invalid arn",
+			rolesToMap: []ekscontrolplanev1.RoleMapping{
+				{
+					RoleARN: "a b c :: 123 --",
+					KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+						UserName: "sdfghjk",
+						Groups:   []string{"system:masters"},
+					},
+				},
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewGomegaWithT(t)
+
+			var client crclient.Client
+			if tc.existingAuthConfigMap == nil {
+				client = fake.NewClientBuilder().Build()
+			} else {
+				client = fake.NewClientBuilder().WithObjects(tc.existingAuthConfigMap).Build()
+			}
+			backend, err := NewBackend(BackendTypeConfigMap, client)
+			g.Expect(err).To(BeNil())
+
+			err = backend.MapRoles(tc.rolesToMap)
+			if tc.expectError {
+				g.Expect(err).ToNot(BeNil())
+				return
+			}
+
+			g.Expect(err).To(BeNil())
+
+			key := types.NamespacedName{
+				Name:      "aws-auth",
+				Namespace: "kube-system",
+			}
+
+			cm := &corev1.ConfigMap{}
+
+			err = client.Get(context.TODO(), key, cm)
+			g.Expect(err).To(BeNil())
+
+			g.Expect(cm.Name).To(Equal("aws-auth"))
+			g.Expect(cm.Namespace).To(Equal("kube-system"))
+			g.Expect(cm.Data).ToNot(BeNil())
+
+			actualRoleMappings, roleMappingsFound := cm.Data["mapRoles"]
+			if len(tc.expectedRoleMaps) == 0 {
+				g.Expect(roleMappingsFound).To(BeFalse())
+			} else {
+				roles := []ekscontrolplanev1.RoleMapping{}
+				err := yaml.Unmarshal([]byte(actualRoleMappings), &roles)
+				g.Expect(err).To(BeNil())
+				g.Expect(len(roles)).To(Equal(len(tc.expectedRoleMaps)))
+				//TODO: we may need to do a better match
+				bothMatch := cmp.Equal(roles, tc.expectedRoleMaps)
+				g.Expect(bothMatch).To(BeTrue())
+			}
+
+		})
+	}
+}
+
 func createFakeConfigMap(roleMappings string, userMappings string) *corev1.ConfigMap {
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
