@@ -73,18 +73,13 @@ func (s *Service) ReconcileIAMAuthenticator(ctx context.Context) error {
 
 	s.scope.Debug("Mapping additional IAM roles and users")
 	iamCfg := s.scope.IAMAuthConfig()
-	for _, roleMapping := range iamCfg.RoleMappings {
-		s.scope.Debug("Mapping IAM role", "iam-role", roleMapping.RoleARN, "user", roleMapping.UserName)
-		if err := authBackend.MapRole(roleMapping); err != nil {
-			return fmt.Errorf("mapping iam role: %w", err)
-		}
+
+	if err := authBackend.MapRoles(iamCfg.RoleMappings); err != nil {
+		return fmt.Errorf("mapping iam role: %w", err)
 	}
 
-	for _, userMapping := range iamCfg.UserMappings {
-		s.scope.Debug("Mapping IAM user", "iam-user", userMapping.UserARN, "user", userMapping.UserName)
-		if err := authBackend.MapUser(userMapping); err != nil {
-			return fmt.Errorf("mapping iam user: %w", err)
-		}
+	if err := authBackend.MapUsers(iamCfg.UserMappings); err != nil {
+		return fmt.Errorf("mapping iam user: %w", err)
 	}
 
 	s.scope.Info("Reconciled aws-iam-authenticator configuration", "cluster", klog.KRef("", s.scope.Name()))

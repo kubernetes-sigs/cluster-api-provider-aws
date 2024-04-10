@@ -288,6 +288,170 @@ func TestAddUserMappingCRD(t *testing.T) {
 	}
 }
 
+func TestAddUserMappingsCRD(t *testing.T) {
+	testCases := []struct {
+		name          string
+		mappings      []ekscontrolplanev1.UserMapping
+		expectedError bool
+	}{
+		{
+			name: "add single valid user mapping",
+			mappings: []ekscontrolplanev1.UserMapping{
+				{
+					UserARN: "arn:aws:iam::000000000000:user/Alice",
+					KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+						UserName: "alice",
+						Groups:   []string{"system:masters"},
+					},
+				},
+			},
+			expectedError: false,
+		},
+		{
+			name: "add multiple valid user mappings",
+			mappings: []ekscontrolplanev1.UserMapping{
+				{
+					UserARN: "arn:aws:iam::000000000000:user/Alice",
+					KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+						UserName: "alice",
+						Groups:   []string{"system:masters"},
+					},
+				},
+				{
+					UserARN: "arn:aws:iam::000000000000:user/Bob",
+					KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+						UserName: "bob",
+						Groups:   []string{"system:admin"},
+					},
+				},
+			},
+			expectedError: false,
+		},
+		{
+			name: "add invalid user mapping in list",
+			mappings: []ekscontrolplanev1.UserMapping{
+				{
+					UserARN: "arn:aws:iam::000000000000:user/Alice",
+					KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+						UserName: "alice",
+						Groups:   []string{"system:masters"},
+					},
+				},
+				{
+					UserARN: "arn:aws:iam::000000000000:role/invalid", // Invalid role ARN
+					KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+						UserName: "system:node:{{EC2PrivateDNSName}}",
+						Groups:   []string{"system:masters"},
+					},
+				},
+			},
+			expectedError: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewGomegaWithT(t)
+			scheme := runtime.NewScheme()
+			iamauthv1.AddToScheme(scheme)
+
+			client := fake.NewClientBuilder().WithScheme(scheme).Build()
+			backend, err := NewBackend(BackendTypeCRD, client)
+			g.Expect(err).To(BeNil())
+
+			err = backend.MapUsers(tc.mappings)
+			if tc.expectedError {
+				g.Expect(err).ToNot(BeNil())
+				return
+			}
+
+			g.Expect(err).To(BeNil())
+		})
+	}
+}
+
+func TestAddRoleMappingsCRD(t *testing.T) {
+	testCases := []struct {
+		name          string
+		mappings      []ekscontrolplanev1.RoleMapping
+		expectedError bool
+	}{
+		{
+			name: "add single valid user mapping",
+			mappings: []ekscontrolplanev1.RoleMapping{
+				{
+					RoleARN: "arn:aws:iam::000000000000:role/KubernetesNode",
+					KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+						UserName: "system:node:{{EC2PrivateDNSName}}",
+						Groups:   []string{"system:bootstrappers", "system:nodes"},
+					},
+				},
+			},
+			expectedError: false,
+		},
+		{
+			name: "add multiple valid user mappings",
+			mappings: []ekscontrolplanev1.RoleMapping{
+				{
+					RoleARN: "arn:aws:iam::000000000000:role/KubernetesNode",
+					KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+						UserName: "system:node:{{EC2PrivateDNSName}}",
+						Groups:   []string{"system:bootstrappers", "system:nodes"},
+					},
+				},
+				{
+					RoleARN: "arn:aws:iam::000000000000:role/FakeNode",
+					KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+						UserName: "system:node:{{FakeNode}}",
+						Groups:   []string{"system:bootstrappers", "system:nodes"},
+					},
+				},
+			},
+			expectedError: false,
+		},
+		{
+			name: "add invalid user mapping in list",
+			mappings: []ekscontrolplanev1.RoleMapping{
+				{
+					RoleARN: "arn:aws:iam::000000000000:user/Alice",
+					KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+						UserName: "alice",
+						Groups:   []string{"system:masters"},
+					},
+				},
+				{
+					RoleARN: "arn:aws:iam::000000000000:role/invalid", // Invalid role ARN
+					KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+						UserName: "system:node:{{EC2PrivateDNSName}}",
+						Groups:   []string{"system:masters"},
+					},
+				},
+			},
+			expectedError: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewGomegaWithT(t)
+			scheme := runtime.NewScheme()
+			iamauthv1.AddToScheme(scheme)
+
+			client := fake.NewClientBuilder().WithScheme(scheme).Build()
+			backend, err := NewBackend(BackendTypeCRD, client)
+			g.Expect(err).To(BeNil())
+
+			err = backend.MapRoles(tc.mappings)
+			if tc.expectedError {
+				g.Expect(err).ToNot(BeNil())
+				return
+			}
+
+			g.Expect(err).To(BeNil())
+		})
+	}
+}
+
 func createIAMAuthMapping(arn string, username string, groups []string) *iamauthv1.IAMIdentityMapping {
 	return &iamauthv1.IAMIdentityMapping{
 		ObjectMeta: metav1.ObjectMeta{
