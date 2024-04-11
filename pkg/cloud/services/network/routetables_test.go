@@ -903,6 +903,34 @@ func TestService_getRoutesForSubnet(t *testing.T) {
 			IsPublic:         true,
 			NatGatewayID:     ptr.To("nat-gw-fromZone-us-east-1a"),
 		},
+		{
+			ResourceID:       "subnet-lz-invalid2z-private",
+			AvailabilityZone: "us-east-2-inv-1z",
+			IsPublic:         false,
+			ZoneType:         ptr.To(infrav1.ZoneType("local-zone")),
+			ParentZoneName:   ptr.To("us-east-2a"),
+		},
+		{
+			ResourceID:       "subnet-lz-invalid1a-public",
+			AvailabilityZone: "us-east-2-nyc-1z",
+			IsPublic:         true,
+			ZoneType:         ptr.To(infrav1.ZoneType("local-zone")),
+			ParentZoneName:   ptr.To("us-east-2z"),
+		},
+		{
+			ResourceID:       "subnet-lz-1a-private",
+			AvailabilityZone: "us-east-1-nyc-1a",
+			IsPublic:         false,
+			ZoneType:         ptr.To(infrav1.ZoneType("local-zone")),
+			ParentZoneName:   ptr.To("us-east-1a"),
+		},
+		{
+			ResourceID:       "subnet-lz-1a-public",
+			AvailabilityZone: "us-east-1-nyc-1a",
+			IsPublic:         true,
+			ZoneType:         ptr.To(infrav1.ZoneType("local-zone")),
+			ParentZoneName:   ptr.To("us-east-1a"),
+		},
 	}
 
 	vpcName := "vpc-test-for-routes"
@@ -934,13 +962,13 @@ func TestService_getRoutesForSubnet(t *testing.T) {
 				ID: "subnet-1-private",
 			},
 			want:           []*ec2.CreateRouteInput{},
-			wantErrMessage: `no nat gateways available in "" for private subnet "subnet-1-private", current state: map[]`,
+			wantErrMessage: `no nat gateways available in "" for private subnet "subnet-1-private"`,
 		},
 		{
 			name:           "empty subnet should have empty routes",
 			inputSubnet:    &infrav1.SubnetSpec{},
 			want:           []*ec2.CreateRouteInput{},
-			wantErrMessage: `no nat gateways available in "" for private subnet "", current state: map[us-east-1a:[nat-gw-fromZone-us-east-1a] us-east-2z:[nat-gw-fromZone-us-east-2z]]`,
+			wantErrMessage: `no nat gateways available in "" for private subnet ""`,
 		},
 		// public subnets ipv4
 		{
@@ -977,6 +1005,21 @@ func TestService_getRoutesForSubnet(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "public ipv4 subnet, local zone, must have ipv4 default route to igw",
+			inputSubnet: &infrav1.SubnetSpec{
+				ResourceID:       "subnet-lz-1a-public",
+				AvailabilityZone: "us-east-1-nyc-1a",
+				ZoneType:         ptr.To(infrav1.ZoneType("local-zone")),
+				IsPublic:         true,
+			},
+			want: []*ec2.CreateRouteInput{
+				{
+					DestinationCidrBlock: aws.String("0.0.0.0/0"),
+					GatewayId:            aws.String("vpc-igw"),
+				},
+			},
+		},
 		// public subnet ipv4, GW not found.
 		{
 			name: "public ipv4 subnet, availability zone, must return error when no internet gateway available",
@@ -990,7 +1033,36 @@ func TestService_getRoutesForSubnet(t *testing.T) {
 				AvailabilityZone: "us-east-1a",
 				IsPublic:         true,
 			},
-			wantErrMessage: `failed to create routing tables: internet gateway for "vpc-test-for-routes" is nil`,
+			wantErrMessage: `failed to create routing tables: internet gateway for VPC "vpc-test-for-routes" is not present`,
+		},
+		{
+			name: "public ipv4 subnet, local zone, must return error when no internet gateway available",
+			specOverrideNet: func() *infrav1.NetworkSpec {
+				net := defaultNetwork.DeepCopy()
+				net.VPC.InternetGatewayID = nil
+				return net
+			}(),
+			inputSubnet: &infrav1.SubnetSpec{
+				ResourceID:       "subnet-lz-1a-public",
+				AvailabilityZone: "us-east-1-nyc-1a",
+				IsPublic:         true,
+				ZoneType:         ptr.To(infrav1.ZoneType("local-zone")),
+				ParentZoneName:   aws.String("us-east-1a"),
+			},
+			wantErrMessage: `failed to create routing tables: internet gateway for VPC "vpc-test-for-routes" is not present`,
+		},
+		// public subnet ipv6, unsupported
+		{
+			name: "public ipv6 subnet, local zone, must return error for unsupported ip version",
+			inputSubnet: &infrav1.SubnetSpec{
+				ResourceID:       "subnet-lz-1a-public",
+				AvailabilityZone: "us-east-1-nyc-1a",
+				IsPublic:         true,
+				IsIPv6:           true,
+				ZoneType:         ptr.To(infrav1.ZoneType("local-zone")),
+				ParentZoneName:   aws.String("us-east-1a"),
+			},
+			wantErrMessage: `can't determine routes for unsupported ipv6 subnet in zone type "local-zone"`,
 		},
 		// private subnets
 		{
@@ -998,6 +1070,22 @@ func TestService_getRoutesForSubnet(t *testing.T) {
 			inputSubnet: &infrav1.SubnetSpec{
 				ResourceID:       "subnet-az-1a-private",
 				AvailabilityZone: "us-east-1a",
+				IsPublic:         false,
+			},
+			want: []*ec2.CreateRouteInput{
+				{
+					DestinationCidrBlock: aws.String("0.0.0.0/0"),
+					NatGatewayId:         aws.String("nat-gw-fromZone-us-east-1a"),
+				},
+			},
+		},
+		{
+			name: "private ipv4 subnet, local zone, must have ipv4 default route to nat gateway",
+			inputSubnet: &infrav1.SubnetSpec{
+				ResourceID:       "subnet-lz-1a-private",
+				AvailabilityZone: "us-east-1-nyc-1a",
+				ZoneType:         ptr.To(infrav1.ZoneType("local-zone")),
+				ParentZoneName:   aws.String("us-east-1a"),
 				IsPublic:         false,
 			},
 			want: []*ec2.CreateRouteInput{
@@ -1042,6 +1130,19 @@ func TestService_getRoutesForSubnet(t *testing.T) {
 			},
 			wantErrMessage: `ipv6 block missing for ipv6 enabled subnet, can't create route for egress only internet gateway`,
 		},
+		// private subnet ipv6, unsupported
+		{
+			name: "private ipv6 subnet, local zone, must return unsupported",
+			inputSubnet: &infrav1.SubnetSpec{
+				ResourceID:       "subnet-lz-1a-private",
+				AvailabilityZone: "us-east-1-nyc-a",
+				IsIPv6:           true,
+				IsPublic:         false,
+				ZoneType:         ptr.To(infrav1.ZoneType("local-zone")),
+				ParentZoneName:   aws.String("us-east-1a"),
+			},
+			wantErrMessage: `can't determine routes for unsupported ipv6 subnet in zone type "local-zone"`,
+		},
 		// private subnet, gateway not found
 		{
 			name: "private ipv4 subnet, availability zone, must return error when invalid gateway",
@@ -1059,7 +1160,28 @@ func TestService_getRoutesForSubnet(t *testing.T) {
 				AvailabilityZone: "us-east-1a",
 				IsPublic:         false,
 			},
-			wantErrMessage: `no nat gateways available in "us-east-1a" for private subnet "subnet-az-1a-private", current state: map[us-east-2z:[nat-gw-fromZone-us-east-2z]]`,
+			wantErrMessage: `no nat gateways available in "us-east-1a" for private subnet "subnet-az-1a-private"`,
+		},
+		{
+			name: "private ipv4 subnet, local zone, must return error when invalid gateway",
+			specOverrideNet: func() *infrav1.NetworkSpec {
+				net := defaultNetwork.DeepCopy()
+				for i := range net.Subnets {
+					if net.Subnets[i].AvailabilityZone == "us-east-1a" && net.Subnets[i].IsPublic {
+						net.Subnets[i].NatGatewayID = nil
+					}
+				}
+				return net
+			}(),
+			inputSubnet: &infrav1.SubnetSpec{
+				ResourceID:       "subnet-lz-1a-private",
+				AvailabilityZone: "us-east-1-nyc-1a",
+				IsIPv6:           true,
+				IsPublic:         false,
+				ZoneType:         ptr.To(infrav1.ZoneType("local-zone")),
+				ParentZoneName:   aws.String("us-east-1a"),
+			},
+			wantErrMessage: `can't determine routes for unsupported ipv6 subnet in zone type "local-zone"`,
 		},
 	}
 	for _, tc := range tests {
