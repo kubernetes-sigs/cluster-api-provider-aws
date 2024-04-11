@@ -47,7 +47,9 @@ func TestReconcileSubnets(t *testing.T) {
 		input                        ScopeBuilder
 		expect                       func(m *mocks.MockEC2APIMockRecorder)
 		errorExpected                bool
+		errorMessageExpected         string
 		tagUnmanagedNetworkResources bool
+		optionalExpectSubnets        infrav1.Subnets
 	}{
 		{
 			name: "Unmanaged VPC, disable TagUnmanagedNetworkResources, 2 existing subnets in vpc, 2 subnet in spec, subnets match, with routes, should succeed",
@@ -494,9 +496,6 @@ func TestReconcileSubnets(t *testing.T) {
 					{
 						ID: "subnet-1",
 					},
-					{
-						ID: "subnet-2",
-					},
 				},
 			}).WithTagUnmanagedNetworkResources(true),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
@@ -519,13 +518,6 @@ func TestReconcileSubnets(t *testing.T) {
 								SubnetId:            aws.String("subnet-1"),
 								AvailabilityZone:    aws.String("us-east-1a"),
 								CidrBlock:           aws.String("10.0.10.0/24"),
-								MapPublicIpOnLaunch: aws.Bool(false),
-							},
-							{
-								VpcId:               aws.String(subnetsVPCID),
-								SubnetId:            aws.String("subnet-2"),
-								AvailabilityZone:    aws.String("us-east-1a"),
-								CidrBlock:           aws.String("10.0.20.0/24"),
 								MapPublicIpOnLaunch: aws.Bool(false),
 							},
 						},
@@ -580,6 +572,233 @@ func TestReconcileSubnets(t *testing.T) {
 					},
 				})).
 					Return(&ec2.CreateTagsOutput{}, fmt.Errorf("tagging failed"))
+			},
+			tagUnmanagedNetworkResources: true,
+		},
+		{
+			name: "Unmanaged VPC, 2 existing matching subnets, subnet tagging fails with subnet update, should succeed",
+			input: NewClusterScope().WithNetwork(&infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					ID: subnetsVPCID,
+				},
+				Subnets: []infrav1.SubnetSpec{
+					{
+						ID: "subnet-1",
+					},
+				},
+			}).WithTagUnmanagedNetworkResources(true),
+			optionalExpectSubnets: infrav1.Subnets{
+				{
+					ID:               "subnet-1",
+					ResourceID:       "subnet-1",
+					AvailabilityZone: "us-east-1a",
+					CidrBlock:        "10.0.10.0/24",
+					IsPublic:         true,
+					Tags:             infrav1.Tags{},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String("state"),
+							Values: []*string{aws.String("pending"), aws.String("available")},
+						},
+						{
+							Name:   aws.String("vpc-id"),
+							Values: []*string{aws.String(subnetsVPCID)},
+						},
+					},
+				})).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{
+							{
+								VpcId:               aws.String(subnetsVPCID),
+								SubnetId:            aws.String("subnet-1"),
+								AvailabilityZone:    aws.String("us-east-1a"),
+								CidrBlock:           aws.String("10.0.10.0/24"),
+								MapPublicIpOnLaunch: aws.Bool(false),
+							},
+						},
+					}, nil)
+
+				m.DescribeRouteTablesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+					Return(&ec2.DescribeRouteTablesOutput{
+						RouteTables: []*ec2.RouteTable{
+							{
+								VpcId: aws.String(subnetsVPCID),
+								Associations: []*ec2.RouteTableAssociation{
+									{
+										SubnetId:     aws.String("subnet-1"),
+										RouteTableId: aws.String("rt-12345"),
+									},
+								},
+								Routes: []*ec2.Route{
+									{
+										GatewayId: aws.String("igw-12345"),
+									},
+								},
+							},
+						},
+					}, nil)
+
+				m.DescribeNatGatewaysPagesWithContext(context.TODO(),
+					gomock.Eq(&ec2.DescribeNatGatewaysInput{
+						Filter: []*ec2.Filter{
+							{
+								Name:   aws.String("vpc-id"),
+								Values: []*string{aws.String(subnetsVPCID)},
+							},
+							{
+								Name:   aws.String("state"),
+								Values: []*string{aws.String("pending"), aws.String("available")},
+							},
+						},
+					}),
+					gomock.Any()).Return(nil)
+
+				m.CreateTagsWithContext(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
+					Resources: aws.StringSlice([]string{"subnet-1"}),
+					Tags: []*ec2.Tag{
+						{
+							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+							Value: aws.String("shared"),
+						},
+						{
+							Key:   aws.String("kubernetes.io/role/elb"),
+							Value: aws.String("1"),
+						},
+					},
+				})).
+					Return(&ec2.CreateTagsOutput{}, fmt.Errorf("tagging failed"))
+			},
+			tagUnmanagedNetworkResources: true,
+		},
+		{
+			name: "Unmanaged VPC, 2 existing matching subnets, subnet tagging fails second call, should succeed",
+			input: NewClusterScope().WithNetwork(&infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					ID: subnetsVPCID,
+				},
+				Subnets: []infrav1.SubnetSpec{
+					{
+						ID: "subnet-1",
+					},
+					{
+						ID: "subnet-2",
+					},
+				},
+			}).WithTagUnmanagedNetworkResources(true),
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String("state"),
+							Values: []*string{aws.String("pending"), aws.String("available")},
+						},
+						{
+							Name:   aws.String("vpc-id"),
+							Values: []*string{aws.String(subnetsVPCID)},
+						},
+					},
+				})).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{
+							{
+								VpcId:               aws.String(subnetsVPCID),
+								SubnetId:            aws.String("subnet-1"),
+								AvailabilityZone:    aws.String("us-east-1a"),
+								CidrBlock:           aws.String("10.0.10.0/24"),
+								MapPublicIpOnLaunch: aws.Bool(false),
+							},
+							{
+								VpcId:               aws.String(subnetsVPCID),
+								SubnetId:            aws.String("subnet-2"),
+								AvailabilityZone:    aws.String("us-east-1b"),
+								CidrBlock:           aws.String("10.0.20.0/24"),
+								MapPublicIpOnLaunch: aws.Bool(false),
+							},
+						},
+					}, nil)
+
+				m.DescribeRouteTablesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+					Return(&ec2.DescribeRouteTablesOutput{
+						RouteTables: []*ec2.RouteTable{
+							{
+								VpcId: aws.String(subnetsVPCID),
+								Associations: []*ec2.RouteTableAssociation{
+									{
+										SubnetId:     aws.String("subnet-1"),
+										RouteTableId: aws.String("rt-12345"),
+									},
+								},
+								Routes: []*ec2.Route{
+									{
+										GatewayId: aws.String("igw-12345"),
+									},
+								},
+							},
+							{
+								VpcId: aws.String(subnetsVPCID),
+								Associations: []*ec2.RouteTableAssociation{
+									{
+										SubnetId:     aws.String("subnet-2"),
+										RouteTableId: aws.String("rt-22222"),
+									},
+								},
+								Routes: []*ec2.Route{
+									{
+										GatewayId: aws.String("igw-12345"),
+									},
+								},
+							},
+						},
+					}, nil)
+
+				m.DescribeNatGatewaysPagesWithContext(context.TODO(),
+					gomock.Eq(&ec2.DescribeNatGatewaysInput{
+						Filter: []*ec2.Filter{
+							{
+								Name:   aws.String("vpc-id"),
+								Values: []*string{aws.String(subnetsVPCID)},
+							},
+							{
+								Name:   aws.String("state"),
+								Values: []*string{aws.String("pending"), aws.String("available")},
+							},
+						},
+					}),
+					gomock.Any()).Return(nil)
+
+				secondSubnetTag := m.CreateTagsWithContext(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
+					Resources: aws.StringSlice([]string{"subnet-1"}),
+					Tags: []*ec2.Tag{
+						{
+							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+							Value: aws.String("shared"),
+						},
+						{
+							Key:   aws.String("kubernetes.io/role/elb"),
+							Value: aws.String("1"),
+						},
+					},
+				})).
+					Return(&ec2.CreateTagsOutput{}, nil)
+
+				m.CreateTagsWithContext(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
+					Resources: aws.StringSlice([]string{"subnet-2"}),
+					Tags: []*ec2.Tag{
+						{
+							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+							Value: aws.String("shared"),
+						},
+						{
+							Key:   aws.String("kubernetes.io/role/elb"),
+							Value: aws.String("1"),
+						},
+					},
+				})).
+					Return(&ec2.CreateTagsOutput{}, fmt.Errorf("tagging failed")).After(secondSubnetTag)
 			},
 			tagUnmanagedNetworkResources: true,
 		},
@@ -2340,6 +2559,16 @@ func TestReconcileSubnets(t *testing.T) {
 			}
 			if !tc.errorExpected && err != nil {
 				t.Fatalf("got an unexpected error: %v", err)
+			}
+			if tc.errorExpected && err != nil && len(tc.errorMessageExpected) > 0 {
+				if err.Error() != tc.errorMessageExpected {
+					t.Fatalf("got an unexpected error message: %v", err)
+				}
+			}
+			if len(tc.optionalExpectSubnets) > 0 {
+				if !cmp.Equal(s.scope.Subnets(), tc.optionalExpectSubnets) {
+					t.Errorf("got unexpect Subnets():\n%v", cmp.Diff(s.scope.Subnets(), tc.optionalExpectSubnets))
+				}
 			}
 		})
 	}
