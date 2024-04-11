@@ -14,8 +14,7 @@
 1. Update the release branch on the repository, e.g. `git push origin HEAD:release-1.5`. `origin` refers to the remote git reference to your fork.
 1. Update the release branch on the repository, e.g. `git push upstream HEAD:release-1.5`. `upstream` refers to the upstream git reference.
 1. Make sure your repo is clean by git standards.
-1. Set environment variable `GITHUB_TOKEN` to a GitHub personal access token. The token must have write access to the `kubernetes-sigs/cluster-api-provider-aws` repository.
-1. Set environment variables `PREVIOUS_VERSION` which is the last release tag and `VERSION` which is the current release version, e.g. `export PREVIOUS_VERSION=v1.4.0 VERSION=v1.5.0`, or `export PREVIOUS_VERSION=v1.5.0 VERSION=v1.5.1`).
+1. Set environment variables which is the last release tag and `VERSION` which is the current release version, e.g. `export VERSION=v1.5.0`, or `export VERSION=v1.5.1`).
     _**Note**_: the version MUST contain a `v` in front.
     _**Note**_: you must have a gpg signing configured with git and registered with GitHub.
 
