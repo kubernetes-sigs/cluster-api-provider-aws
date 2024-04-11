@@ -2263,6 +2263,8 @@ func autoConvert_v1beta2_SubnetSpec_To_v1beta1_SubnetSpec(in *v1beta2.SubnetSpec
 	out.RouteTableID = (*string)(unsafe.Pointer(in.RouteTableID))
 	out.NatGatewayID = (*string)(unsafe.Pointer(in.NatGatewayID))
 	out.Tags = *(*Tags)(unsafe.Pointer(&in.Tags))
+	// WARNING: in.ZoneType requires manual conversion: does not exist in peer-type
+	// WARNING: in.ParentZoneName requires manual conversion: does not exist in peer-type
 	return nil
 }
 

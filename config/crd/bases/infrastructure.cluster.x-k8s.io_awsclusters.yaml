@@ -1459,6 +1459,15 @@ spec:
                             NatGatewayID is the NAT gateway id associated with the subnet.
                             Ignored unless the subnet is managed by the provider, in which case this is set on the public subnet where the NAT gateway resides. It is then used to determine routes for private subnets in the same AZ as the public subnet.
                           type: string
+                        parentZoneName:
+                          description: |-
+                            ParentZoneName is the zone name where the current subnet's zone is tied when
+                            the zone is a Local Zone.
+
+
+                            The subnets in Local Zone locations consume the ParentZoneName to determine the correct
+                            private route table to egress traffic to the internet.
+                          type: string
                         resourceID:
                           description: |-
                             ResourceID is the subnet identifier from AWS, READ ONLY.
@@ -1474,6 +1483,37 @@ spec:
                           description: Tags is a collection of tags describing the
                             resource.
                           type: object
+                        zoneType:
+                          description: |-
+                            ZoneType defines the type of the zone where the subnet is created.
+
+
+                            The valid values are availability-zone, and local-zone.
+
+
+                            Subnet with zone type availability-zone (regular) is always selected to create cluster
+                            resources, like Load Balancers, NAT Gateways, Contol Plane nodes, etc.
+
+
+                            Subnet with zone type local-zone is not eligible to automatically create
+                            regular cluster resources.
+
+
+                            The public subnet in availability-zone or local-zone is associated with regular public
+                            route table with default route entry to a Internet Gateway.
+
+
+                            The private subnet in the availability-zone is associated with a private route table with
+                            the default route entry to a NAT Gateway created in that zone.
+
+
+                            The private subnet in the local-zone is associated with a private route table with
+                            the default route entry re-using the NAT Gateway in the Region (preferred from the
+                            parent zone, the zone type availability-zone in the region, or first table available).
+                          enum:
+                          - availability-zone
+                          - local-zone
+                          type: string
                       required:
                       - id
                       type: object
