@@ -728,3 +728,177 @@ var mockDescribeNatGatewaysOutput = func(ctx context.Context, _, y interface{}, 
 		SubnetId:     aws.String("subnet-1"),
 	}}}, true)
 }
+
+func TestGetdNatGatewayForEdgeSubnet(t *testing.T) {
+	subnetsSpec := infrav1.Subnets{
+		{
+			ID:               "subnet-az-1x-private",
+			AvailabilityZone: "us-east-1x",
+			IsPublic:         false,
+		},
+		{
+			ID:               "subnet-az-1x-public",
+			AvailabilityZone: "us-east-1x",
+			IsPublic:         true,
+			NatGatewayID:     aws.String("natgw-az-1b-last"),
+		},
+		{
+			ID:               "subnet-az-1a-private",
+			AvailabilityZone: "us-east-1a",
+			IsPublic:         false,
+		},
+		{
+			ID:               "subnet-az-1a-public",
+			AvailabilityZone: "us-east-1a",
+			IsPublic:         true,
+			NatGatewayID:     aws.String("natgw-az-1b-first"),
+		},
+		{
+			ID:               "subnet-az-1b-private",
+			AvailabilityZone: "us-east-1b",
+			IsPublic:         false,
+		},
+		{
+			ID:               "subnet-az-1b-public",
+			AvailabilityZone: "us-east-1b",
+			IsPublic:         true,
+			NatGatewayID:     aws.String("natgw-az-1b-second"),
+		},
+		{
+			ID:               "subnet-az-1p-private",
+			AvailabilityZone: "us-east-1p",
+			IsPublic:         false,
+		},
+	}
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	testCases := []struct {
+		name             string
+		spec             infrav1.Subnets
+		input            infrav1.SubnetSpec
+		expect           string
+		expectErr        bool
+		expectErrMessage string
+	}{
+		{
+			name: "zone availability-zone, valid nat gateway",
+			input: infrav1.SubnetSpec{
+				ID:               "subnet-az-1b-private",
+				AvailabilityZone: "us-east-1b",
+				IsPublic:         false,
+			},
+			expect: "natgw-az-1b-second",
+		},
+		{
+			name: "zone availability-zone, valid nat gateway",
+			input: infrav1.SubnetSpec{
+				ID:               "subnet-az-1a-private",
+				AvailabilityZone: "us-east-1a",
+				IsPublic:         false,
+			},
+			expect: "natgw-az-1b-first",
+		},
+		{
+			name: "zone availability-zone, valid nat gateway",
+			input: infrav1.SubnetSpec{
+				ID:               "subnet-az-1x-private",
+				AvailabilityZone: "us-east-1x",
+				IsPublic:         false,
+			},
+			expect: "natgw-az-1b-last",
+		},
+		// errors
+		{
+			name: "error if the subnet is public",
+			input: infrav1.SubnetSpec{
+				ID:               "subnet-az-1-public",
+				AvailabilityZone: "us-east-1a",
+				IsPublic:         true,
+			},
+			expectErr:        true,
+			expectErrMessage: `cannot get NAT gateway for a public subnet, got id "subnet-az-1-public"`,
+		},
+		{
+			name: "error if the subnet is public",
+			input: infrav1.SubnetSpec{
+				ID:               "subnet-lz-1-public",
+				AvailabilityZone: "us-east-1-nyc-1a",
+				IsPublic:         true,
+			},
+			expectErr:        true,
+			expectErrMessage: `cannot get NAT gateway for a public subnet, got id "subnet-lz-1-public"`,
+		},
+		{
+			name: "error if there are no nat gateways available in the subnets",
+			spec: infrav1.Subnets{},
+			input: infrav1.SubnetSpec{
+				ID:               "subnet-az-1-private",
+				AvailabilityZone: "us-east-1p",
+				IsPublic:         false,
+			},
+			expectErr:        true,
+			expectErrMessage: `no nat gateways available in "us-east-1p" for private subnet "subnet-az-1-private", current state: map[]`,
+		},
+	}
+
+	for idx, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			subnets := subnetsSpec
+			if tc.spec != nil {
+				subnets = tc.spec
+			}
+			scheme := runtime.NewScheme()
+			_ = infrav1.AddToScheme(scheme)
+			awsCluster := &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							ID: subnetsVPCID,
+							Tags: infrav1.Tags{
+								infrav1.ClusterTagKey("test-cluster"): "owned",
+							},
+						},
+						Subnets: subnets,
+					},
+				},
+			}
+
+			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(awsCluster).WithStatusSubresource(awsCluster).Build()
+
+			clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
+				},
+				AWSCluster: awsCluster,
+				Client:     client,
+			})
+			if err != nil {
+				t.Fatalf("Failed to create test context: %v", err)
+				return
+			}
+
+			s := NewService(clusterScope)
+
+			id, err := s.getNatGatewayForSubnet(&testCases[idx].input)
+
+			if tc.expectErr && err == nil {
+				t.Fatal("expected error but got no error")
+			}
+			if err != nil && len(tc.expectErrMessage) > 0 {
+				if err.Error() != tc.expectErrMessage {
+					t.Fatalf("got an unexpected error message:\nwant: %v\n got: %v\n", tc.expectErrMessage, err.Error())
+				}
+			}
+			if !tc.expectErr && err != nil {
+				t.Fatalf("got an unexpected error: %v", err)
+			}
+			if len(tc.expect) > 0 {
+				g.Expect(id).To(Equal(tc.expect))
+			}
+		})
+	}
+}
