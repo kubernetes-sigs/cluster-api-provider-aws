@@ -931,6 +931,34 @@ func TestService_getRoutesForSubnet(t *testing.T) {
 			ZoneType:         ptr.To(infrav1.ZoneType("local-zone")),
 			ParentZoneName:   ptr.To("us-east-1a"),
 		},
+		{
+			ResourceID:       "subnet-wl-invalid2z-private",
+			AvailabilityZone: "us-east-2-wl1-inv-wlz-1",
+			IsPublic:         false,
+			ZoneType:         ptr.To(infrav1.ZoneType("wavelength-zone")),
+			ParentZoneName:   ptr.To("us-east-2z"),
+		},
+		{
+			ResourceID:       "subnet-wl-invalid2z-public",
+			AvailabilityZone: "us-east-2-wl1-inv-wlz-1",
+			IsPublic:         true,
+			ZoneType:         ptr.To(infrav1.ZoneType("wavelength-zone")),
+			ParentZoneName:   ptr.To("us-east-2z"),
+		},
+		{
+			ResourceID:       "subnet-wl-1a-private",
+			AvailabilityZone: "us-east-1-wl1-nyc-wlz-1",
+			IsPublic:         false,
+			ZoneType:         ptr.To(infrav1.ZoneType("wavelength-zone")),
+			ParentZoneName:   ptr.To("us-east-1a"),
+		},
+		{
+			ResourceID:       "subnet-wl-1a-public",
+			AvailabilityZone: "us-east-1-wl1-nyc-wlz-1",
+			IsPublic:         true,
+			ZoneType:         ptr.To(infrav1.ZoneType("wavelength-zone")),
+			ParentZoneName:   ptr.To("us-east-1a"),
+		},
 	}
 
 	vpcName := "vpc-test-for-routes"
@@ -938,6 +966,7 @@ func TestService_getRoutesForSubnet(t *testing.T) {
 		VPC: infrav1.VPCSpec{
 			ID:                vpcName,
 			InternetGatewayID: aws.String("vpc-igw"),
+			CarrierGatewayID:  aws.String("vpc-cagw"),
 			IPv6: &infrav1.IPv6{
 				CidrBlock:                   "2001:db8:1234:1::/64",
 				EgressOnlyInternetGatewayID: aws.String("vpc-eigw"),
@@ -1020,6 +1049,21 @@ func TestService_getRoutesForSubnet(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "public ipv4 subnet, wavelength zone, must have ipv4 default route to carrier gateway",
+			inputSubnet: &infrav1.SubnetSpec{
+				ResourceID:       "subnet-wl-1a-public",
+				AvailabilityZone: "us-east-1-wl1-nyc-wlz-1",
+				ZoneType:         ptr.To(infrav1.ZoneType("wavelength-zone")),
+				IsPublic:         true,
+			},
+			want: []*ec2.CreateRouteInput{
+				{
+					DestinationCidrBlock: aws.String("0.0.0.0/0"),
+					CarrierGatewayId:     aws.String("vpc-cagw"),
+				},
+			},
+		},
 		// public subnet ipv4, GW not found.
 		{
 			name: "public ipv4 subnet, availability zone, must return error when no internet gateway available",
@@ -1051,6 +1095,22 @@ func TestService_getRoutesForSubnet(t *testing.T) {
 			},
 			wantErrMessage: `failed to create routing tables: internet gateway for VPC "vpc-test-for-routes" is not present`,
 		},
+		{
+			name: "public ipv4 subnet, wavelength zone, must return error when no Carrier Gateway found",
+			specOverrideNet: func() *infrav1.NetworkSpec {
+				net := defaultNetwork.DeepCopy()
+				net.VPC.CarrierGatewayID = nil
+				return net
+			}(),
+			inputSubnet: &infrav1.SubnetSpec{
+				ResourceID:       "subnet-wl-1a-public",
+				AvailabilityZone: "us-east-1-wl1-nyc-wlz-1",
+				IsPublic:         true,
+				ZoneType:         ptr.To(infrav1.ZoneType("wavelength-zone")),
+				ParentZoneName:   aws.String("us-east-1a"),
+			},
+			wantErrMessage: `failed to create carrier routing table: carrier gateway for VPC "vpc-test-for-routes" is not present`,
+		},
 		// public subnet ipv6, unsupported
 		{
 			name: "public ipv6 subnet, local zone, must return error for unsupported ip version",
@@ -1063,6 +1123,19 @@ func TestService_getRoutesForSubnet(t *testing.T) {
 				ParentZoneName:   aws.String("us-east-1a"),
 			},
 			wantErrMessage: `can't determine routes for unsupported ipv6 subnet in zone type "local-zone"`,
+		},
+		{
+			name: "public ipv6 subnet, wavelength zone, must return error for unsupported ip version",
+			inputSubnet: &infrav1.SubnetSpec{
+				ResourceID:       "subnet-wl-1a-public",
+				AvailabilityZone: "us-east-1-wl1-nyc-wlz-1",
+				IsPublic:         true,
+				IsIPv6:           true,
+				ZoneType:         ptr.To(infrav1.ZoneType("wavelength-zone")),
+				ParentZoneName:   aws.String("us-east-1a"),
+			},
+			wantErr:        true,
+			wantErrMessage: `can't determine routes for unsupported ipv6 subnet in zone type "wavelength-zone"`,
 		},
 		// private subnets
 		{
@@ -1085,6 +1158,22 @@ func TestService_getRoutesForSubnet(t *testing.T) {
 				ResourceID:       "subnet-lz-1a-private",
 				AvailabilityZone: "us-east-1-nyc-1a",
 				ZoneType:         ptr.To(infrav1.ZoneType("local-zone")),
+				ParentZoneName:   aws.String("us-east-1a"),
+				IsPublic:         false,
+			},
+			want: []*ec2.CreateRouteInput{
+				{
+					DestinationCidrBlock: aws.String("0.0.0.0/0"),
+					NatGatewayId:         aws.String("nat-gw-fromZone-us-east-1a"),
+				},
+			},
+		},
+		{
+			name: "private ipv4 subnet, wavelength zone, must have ipv4 default route to nat gateway",
+			inputSubnet: &infrav1.SubnetSpec{
+				ResourceID:       "subnet-wl-1a-private",
+				AvailabilityZone: "us-east-1-wl1-nyc-wlz-1",
+				ZoneType:         ptr.To(infrav1.ZoneType("wavelength-zone")),
 				ParentZoneName:   aws.String("us-east-1a"),
 				IsPublic:         false,
 			},
@@ -1143,6 +1232,18 @@ func TestService_getRoutesForSubnet(t *testing.T) {
 			},
 			wantErrMessage: `can't determine routes for unsupported ipv6 subnet in zone type "local-zone"`,
 		},
+		{
+			name: "private ipv6 subnet, wavelength zone, must return unsupported",
+			inputSubnet: &infrav1.SubnetSpec{
+				ResourceID:       "subnet-wl-1a-private",
+				AvailabilityZone: "us-east-1-wl1-nyc-wlz-1",
+				ZoneType:         ptr.To(infrav1.ZoneType("wavelength-zone")),
+				ParentZoneName:   aws.String("us-east-1a"),
+				IsIPv6:           true,
+				IsPublic:         false,
+			},
+			wantErrMessage: `can't determine routes for unsupported ipv6 subnet in zone type "wavelength-zone"`,
+		},
 		// private subnet, gateway not found
 		{
 			name: "private ipv4 subnet, availability zone, must return error when invalid gateway",
@@ -1182,6 +1283,24 @@ func TestService_getRoutesForSubnet(t *testing.T) {
 				ParentZoneName:   aws.String("us-east-1a"),
 			},
 			wantErrMessage: `can't determine routes for unsupported ipv6 subnet in zone type "local-zone"`,
+		},
+		{
+			name: "private ipv4 subnet, wavelength zone, must return error when invalid gateway",
+			specOverrideNet: func() *infrav1.NetworkSpec {
+				net := new(infrav1.NetworkSpec)
+				*net = defaultNetwork
+				net.VPC.CarrierGatewayID = nil
+				return net
+			}(),
+			inputSubnet: &infrav1.SubnetSpec{
+				ResourceID:       "subnet-wl-1a-private",
+				AvailabilityZone: "us-east-1-wl1-nyc-wlz-1",
+				IsIPv6:           true,
+				IsPublic:         false,
+				ZoneType:         ptr.To(infrav1.ZoneType("wavelength-zone")),
+				ParentZoneName:   aws.String("us-east-1a"),
+			},
+			wantErrMessage: `can't determine routes for unsupported ipv6 subnet in zone type "wavelength-zone"`,
 		},
 	}
 	for _, tc := range tests {
