@@ -873,6 +873,17 @@ func TestGetdNatGatewayForEdgeSubnet(t *testing.T) {
 			},
 			expect: "natgw-az-1b-second",
 		},
+		{
+			name: "wavelength zones without Nat GW support, public subnet and Nat Gateway for the parent zone, return parent's zone nat gateway",
+			input: infrav1.SubnetSpec{
+				ID:               "subnet-7",
+				CidrBlock:        "10.0.10.0/24",
+				AvailabilityZone: "us-east-1-wl1-nyc-wlz-1",
+				ZoneType:         ptr.To(infrav1.ZoneTypeWavelengthZone),
+				ParentZoneName:   aws.String("us-east-1x"),
+			},
+			expect: "natgw-az-1b-last",
+		},
 		// errors
 		{
 			name: "error if the subnet is public",
