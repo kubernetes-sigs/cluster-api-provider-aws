@@ -26,6 +26,7 @@ import (
 	_ "github.com/a8m/envsubst"
 	_ "github.com/ahmetb/gen-crd-api-reference-docs"
 	_ "github.com/golang/mock/mockgen"
+	_ "github.com/goreleaser/goreleaser"
 	_ "github.com/itchyny/gojq/cmd/gojq"
 	_ "github.com/joelanford/go-apidiff"
 	_ "github.com/mikefarah/yq/v4"
