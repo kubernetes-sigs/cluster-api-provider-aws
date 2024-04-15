@@ -1883,6 +1883,9 @@ spec:
                   privateIp:
                     description: The private IPv4 address assigned to the instance.
                     type: string
+                  publicIPOnLaunch:
+                    description: PublicIPOnLaunch is the option to associate a public IP on instance launch
+                    type: boolean
                   publicIp:
                     description: The public IPv4 address assigned to the instance, if applicable.
                     type: string
@@ -7122,6 +7125,9 @@ spec:
                   privateIp:
                     description: The private IPv4 address assigned to the instance.
                     type: string
+                  publicIPOnLaunch:
+                    description: PublicIPOnLaunch is the option to associate a public IP on instance launch
+                    type: boolean
                   publicIp:
                     description: The public IPv4 address assigned to the instance, if applicable.
                     type: string
@@ -8550,6 +8556,9 @@ spec:
                   privateIp:
                     description: The private IPv4 address assigned to the instance.
                     type: string
+                  publicIPOnLaunch:
+                    description: PublicIPOnLaunch is the option to associate a public IP on instance launch
+                    type: boolean
                   publicIp:
                     description: The public IPv4 address assigned to the instance, if applicable.
                     type: string
@@ -10915,7 +10924,7 @@ spec:
                 description: "DefaultMachinePoolSpec defines the configuration for the default machinepool(s) provisioned as part of the cluster creation. One MachinePool will be created with this configuration per AvailabilityZone. Those default machinepools are required for openshift cluster operators to work properly. As these machinepool not created using ROSAMachinePool CR, they will not be visible/managed by ROSA CAPI provider. `rosa list machinepools -c <rosaClusterName>` can be used to view those machinepools. \n This field will be removed in the future once the current limitation is resolved."
                 properties:
                   autoscaling:
-                    description: Autoscaling specifies auto scaling behaviour for this MachinePool.
+                    description: Autoscaling specifies auto scaling behaviour for the default MachinePool. Autoscaling min/max value must be equal or multiple of the availability zones count.
                     properties:
                       maxReplicas:
                         minimum: 1

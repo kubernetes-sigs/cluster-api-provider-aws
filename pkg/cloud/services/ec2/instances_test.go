@@ -28,6 +28,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
+	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -335,6 +336,9 @@ func TestCreateInstance(t *testing.T) {
 								IsPublic: false,
 							},
 						},
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-test",
+						},
 					},
 				},
 				Status: infrav1.AWSClusterStatus{
@@ -461,6 +465,9 @@ func TestCreateInstance(t *testing.T) {
 								AvailabilityZone: "us-east-1c",
 								IsPublic:         true,
 							},
+						},
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-test",
 						},
 					},
 				},
@@ -973,6 +980,9 @@ func TestCreateInstance(t *testing.T) {
 								IsPublic: false,
 							},
 						},
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-test",
+						},
 					},
 				},
 				Status: infrav1.AWSClusterStatus{
@@ -1121,6 +1131,9 @@ func TestCreateInstance(t *testing.T) {
 							infrav1.SubnetSpec{
 								IsPublic: false,
 							},
+						},
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-test",
 						},
 					},
 					ImageLookupOrg: "cluster-level-image-lookup-org",
@@ -1272,6 +1285,9 @@ func TestCreateInstance(t *testing.T) {
 							infrav1.SubnetSpec{
 								IsPublic: false,
 							},
+						},
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-test",
 						},
 					},
 					ImageLookupOrg: "cluster-level-image-lookup-org",
@@ -2114,6 +2130,19 @@ func TestCreateInstance(t *testing.T) {
 						}},
 					}, nil)
 				m.
+					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
+						Filters: []*ec2.Filter{
+							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"public-subnet-1"})},
+						},
+					}).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{{
+							SubnetId:            aws.String("public-subnet-1"),
+							AvailabilityZone:    aws.String("us-east-1b"),
+							MapPublicIpOnLaunch: aws.Bool(true),
+						}},
+					}, nil)
+				m.
 					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
 						InstanceTypes: []*string{
 							aws.String("m5.large"),
@@ -2132,6 +2161,162 @@ func TestCreateInstance(t *testing.T) {
 					}, nil)
 				m.
 					RunInstancesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.Reservation{
+						Instances: []*ec2.Instance{
+							{
+								State: &ec2.InstanceState{
+									Name: aws.String(ec2.InstanceStateNamePending),
+								},
+								IamInstanceProfile: &ec2.IamInstanceProfile{
+									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+								},
+								InstanceId:     aws.String("two"),
+								InstanceType:   aws.String("m5.large"),
+								SubnetId:       aws.String("public-subnet-1"),
+								ImageId:        aws.String("ami-1"),
+								RootDeviceName: aws.String("device-1"),
+								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+									{
+										DeviceName: aws.String("device-1"),
+										Ebs: &ec2.EbsInstanceBlockDevice{
+											VolumeId: aws.String("volume-1"),
+										},
+									},
+								},
+								Placement: &ec2.Placement{
+									AvailabilityZone: &az,
+								},
+							},
+						},
+					}, nil)
+				m.
+					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NextToken:         nil,
+					}, nil)
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+			},
+		},
+		{
+			name: "public IP true, public subnet ID given and MapPublicIpOnLaunch is false",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: ptr.To[string]("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AMIReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType: "m5.large",
+				Subnet: &infrav1.AWSResourceReference{
+					ID: aws.String("public-subnet-1"),
+				},
+				PublicIP: aws.Bool(true),
+			},
+			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-id",
+						},
+						Subnets: infrav1.Subnets{{
+							ID:       "public-subnet-1",
+							IsPublic: true,
+						}},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.LoadBalancer{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.
+					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
+						Filters: []*ec2.Filter{
+							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
+							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"public-subnet-1"})},
+						},
+					}).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{{
+							SubnetId:            aws.String("public-subnet-1"),
+							AvailabilityZone:    aws.String("us-east-1b"),
+							MapPublicIpOnLaunch: aws.Bool(false),
+						}},
+					}, nil)
+				m.
+					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
+						Filters: []*ec2.Filter{
+							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"public-subnet-1"})},
+						},
+					}).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{{
+							SubnetId:            aws.String("public-subnet-1"),
+							AvailabilityZone:    aws.String("us-east-1b"),
+							MapPublicIpOnLaunch: aws.Bool(false),
+						}},
+					}, nil)
+				m.
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []*string{
+							aws.String("m5.large"),
+						},
+					})).
+					Return(&ec2.DescribeInstanceTypesOutput{
+						InstanceTypes: []*ec2.InstanceTypeInfo{
+							{
+								ProcessorInfo: &ec2.ProcessorInfo{
+									SupportedArchitectures: []*string{
+										aws.String("x86_64"),
+									},
+								},
+							},
+						},
+					}, nil)
+				m.
+					RunInstancesWithContext(context.TODO(), gomock.Any()).
+					Do(func(_ context.Context, in *ec2.RunInstancesInput, _ ...request.Option) {
+						if len(in.NetworkInterfaces) == 0 {
+							t.Fatalf("expected a NetworkInterface to be defined")
+						}
+						if !aws.BoolValue(in.NetworkInterfaces[0].AssociatePublicIpAddress) {
+							t.Fatalf("expected AssociatePublicIpAddress to be set and true")
+						}
+						if subnet := aws.StringValue(in.NetworkInterfaces[0].SubnetId); subnet != "public-subnet-1" {
+							t.Fatalf("expected subnet ID to be \"public-subnet-1\", got %q", subnet)
+						}
+						if in.NetworkInterfaces[0].Groups == nil {
+							t.Fatalf("expected security groups to be set")
+						}
+					}).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
 							{
@@ -2361,12 +2546,187 @@ func TestCreateInstance(t *testing.T) {
 					}).
 					Return(&ec2.DescribeSubnetsOutput{
 						Subnets: []*ec2.Subnet{{
-							SubnetId:            aws.String("filtered-subnet-1"),
+							SubnetId:            aws.String("public-subnet-1"),
+							MapPublicIpOnLaunch: aws.Bool(true),
+						}},
+					}, nil)
+				m.
+					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
+						Filters: []*ec2.Filter{
+							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"public-subnet-1"})},
+						},
+					}).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{{
+							SubnetId:            aws.String("public-subnet-1"),
 							MapPublicIpOnLaunch: aws.Bool(true),
 						}},
 					}, nil)
 				m.
 					RunInstancesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.Reservation{
+						Instances: []*ec2.Instance{
+							{
+								State: &ec2.InstanceState{
+									Name: aws.String(ec2.InstanceStateNamePending),
+								},
+								IamInstanceProfile: &ec2.IamInstanceProfile{
+									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+								},
+								InstanceId:     aws.String("two"),
+								InstanceType:   aws.String("m5.large"),
+								SubnetId:       aws.String("public-subnet-1"),
+								ImageId:        aws.String("ami-1"),
+								RootDeviceName: aws.String("device-1"),
+								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+									{
+										DeviceName: aws.String("device-1"),
+										Ebs: &ec2.EbsInstanceBlockDevice{
+											VolumeId: aws.String("volume-1"),
+										},
+									},
+								},
+								Placement: &ec2.Placement{
+									AvailabilityZone: &az,
+								},
+							},
+						},
+					}, nil)
+				m.
+					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NextToken:         nil,
+					}, nil)
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+			},
+		},
+		{
+			name: "both public IP, subnet filter defined and MapPublicIpOnLaunch is false",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: ptr.To[string]("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AMIReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType: "m5.large",
+				Subnet: &infrav1.AWSResourceReference{
+					Filters: []infrav1.Filter{{
+						Name:   "tag:some-tag",
+						Values: []string{"some-value"},
+					}},
+				},
+				PublicIP: aws.Bool(true),
+			},
+			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-id",
+						},
+						Subnets: infrav1.Subnets{
+							infrav1.SubnetSpec{
+								ID:       "private-subnet-1",
+								IsPublic: false,
+							},
+							infrav1.SubnetSpec{
+								ID:       "public-subnet-1",
+								IsPublic: true,
+							},
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.LoadBalancer{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []*string{
+							aws.String("m5.large"),
+						},
+					})).
+					Return(&ec2.DescribeInstanceTypesOutput{
+						InstanceTypes: []*ec2.InstanceTypeInfo{
+							{
+								ProcessorInfo: &ec2.ProcessorInfo{
+									SupportedArchitectures: []*string{
+										aws.String("x86_64"),
+									},
+								},
+							},
+						},
+					}, nil)
+				m.
+					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
+						Filters: []*ec2.Filter{
+							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
+							{Name: aws.String("tag:some-tag"), Values: aws.StringSlice([]string{"some-value"})},
+						},
+					}).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{{
+							SubnetId:            aws.String("public-subnet-1"),
+							MapPublicIpOnLaunch: aws.Bool(false),
+						}},
+					}, nil)
+				m.
+					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
+						Filters: []*ec2.Filter{
+							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"public-subnet-1"})},
+						},
+					}).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{{
+							SubnetId:            aws.String("public-subnet-1"),
+							MapPublicIpOnLaunch: aws.Bool(false),
+						}},
+					}, nil)
+				m.
+					RunInstancesWithContext(context.TODO(), gomock.Any()).
+					Do(func(_ context.Context, in *ec2.RunInstancesInput, _ ...request.Option) {
+						if len(in.NetworkInterfaces) == 0 {
+							t.Fatalf("expected a NetworkInterface to be defined")
+						}
+						if !aws.BoolValue(in.NetworkInterfaces[0].AssociatePublicIpAddress) {
+							t.Fatalf("expected AssociatePublicIpAddress to be set and true")
+						}
+						if subnet := aws.StringValue(in.NetworkInterfaces[0].SubnetId); subnet != "public-subnet-1" {
+							t.Fatalf("expected subnet ID to be \"public-subnet-1\", got %q", subnet)
+						}
+						if in.NetworkInterfaces[0].Groups == nil {
+							t.Fatalf("expected security groups to be set")
+						}
+					}).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
 							{
@@ -2484,7 +2844,163 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
+					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
+						Filters: []*ec2.Filter{
+							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"public-subnet-1"})},
+						},
+					}).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{{
+							SubnetId:            aws.String("public-subnet-1"),
+							MapPublicIpOnLaunch: aws.Bool(true),
+						}},
+					}, nil)
+				m.
 					RunInstancesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.Reservation{
+						Instances: []*ec2.Instance{
+							{
+								State: &ec2.InstanceState{
+									Name: aws.String(ec2.InstanceStateNamePending),
+								},
+								IamInstanceProfile: &ec2.IamInstanceProfile{
+									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+								},
+								InstanceId:     aws.String("two"),
+								InstanceType:   aws.String("m5.large"),
+								SubnetId:       aws.String("public-subnet-1"),
+								ImageId:        aws.String("ami-1"),
+								RootDeviceName: aws.String("device-1"),
+								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+									{
+										DeviceName: aws.String("device-1"),
+										Ebs: &ec2.EbsInstanceBlockDevice{
+											VolumeId: aws.String("volume-1"),
+										},
+									},
+								},
+								Placement: &ec2.Placement{
+									AvailabilityZone: &az,
+								},
+							},
+						},
+					}, nil)
+				m.
+					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NextToken:         nil,
+					}, nil)
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+			},
+		},
+		{
+			name: "public IP true, public subnet exists and MapPublicIpOnLaunch is false",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: ptr.To[string]("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AMIReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType: "m5.large",
+				PublicIP:     aws.Bool(true),
+			},
+			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-id",
+						},
+						Subnets: infrav1.Subnets{
+							infrav1.SubnetSpec{
+								ID:       "private-subnet-1",
+								IsPublic: false,
+							},
+							infrav1.SubnetSpec{
+								ID:       "public-subnet-1",
+								IsPublic: true,
+							},
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.LoadBalancer{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []*string{
+							aws.String("m5.large"),
+						},
+					})).
+					Return(&ec2.DescribeInstanceTypesOutput{
+						InstanceTypes: []*ec2.InstanceTypeInfo{
+							{
+								ProcessorInfo: &ec2.ProcessorInfo{
+									SupportedArchitectures: []*string{
+										aws.String("x86_64"),
+									},
+								},
+							},
+						},
+					}, nil)
+				m.
+					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
+						Filters: []*ec2.Filter{
+							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"public-subnet-1"})},
+						},
+					}).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{{
+							SubnetId:            aws.String("public-subnet-1"),
+							MapPublicIpOnLaunch: aws.Bool(false),
+						}},
+					}, nil)
+				m.
+					RunInstancesWithContext(context.TODO(), gomock.Any()).
+					Do(func(_ context.Context, in *ec2.RunInstancesInput, _ ...request.Option) {
+						if len(in.NetworkInterfaces) == 0 {
+							t.Fatalf("expected a NetworkInterface to be defined")
+						}
+						if !aws.BoolValue(in.NetworkInterfaces[0].AssociatePublicIpAddress) {
+							t.Fatalf("expected AssociatePublicIpAddress to be set and true")
+						}
+						if subnet := aws.StringValue(in.NetworkInterfaces[0].SubnetId); subnet != "public-subnet-1" {
+							t.Fatalf("expected subnet ID to be \"public-subnet-1\", got %q", subnet)
+						}
+						if in.NetworkInterfaces[0].Groups == nil {
+							t.Fatalf("expected security groups to be set")
+						}
+					}).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
 							{
@@ -2644,6 +3160,9 @@ func TestCreateInstance(t *testing.T) {
 								IsPublic: false,
 							},
 						},
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-test",
+						},
 					},
 				},
 				Status: infrav1.AWSClusterStatus{
@@ -2765,6 +3284,9 @@ func TestCreateInstance(t *testing.T) {
 							infrav1.SubnetSpec{
 								IsPublic: false,
 							},
+						},
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-test",
 						},
 					},
 				},
@@ -2921,6 +3443,9 @@ func TestCreateInstance(t *testing.T) {
 							infrav1.SubnetSpec{
 								IsPublic: false,
 							},
+						},
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-test",
 						},
 					},
 				},
@@ -3081,6 +3606,9 @@ func TestCreateInstance(t *testing.T) {
 								IsPublic: false,
 							},
 						},
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-test",
+						},
 					},
 				},
 				Status: infrav1.AWSClusterStatus{
@@ -3233,6 +3761,9 @@ func TestCreateInstance(t *testing.T) {
 								IsPublic: false,
 							},
 						},
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-test",
+						},
 					},
 				},
 				Status: infrav1.AWSClusterStatus{
@@ -3361,6 +3892,9 @@ func TestCreateInstance(t *testing.T) {
 							infrav1.SubnetSpec{
 								IsPublic: false,
 							},
+						},
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-test",
 						},
 					},
 					SSHKeyName: aws.String("specific-cluster-key-name"),
@@ -3493,6 +4027,9 @@ func TestCreateInstance(t *testing.T) {
 								IsPublic: false,
 							},
 						},
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-test",
+						},
 					},
 					SSHKeyName: aws.String("specific-cluster-key-name"),
 				},
@@ -3624,6 +4161,9 @@ func TestCreateInstance(t *testing.T) {
 								IsPublic: false,
 							},
 						},
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-test",
+						},
 					},
 					SSHKeyName: aws.String(""),
 				},
@@ -3751,6 +4291,9 @@ func TestCreateInstance(t *testing.T) {
 							infrav1.SubnetSpec{
 								IsPublic: false,
 							},
+						},
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-test",
 						},
 					},
 					SSHKeyName: aws.String(""),
@@ -3880,6 +4423,9 @@ func TestCreateInstance(t *testing.T) {
 								IsPublic: false,
 							},
 						},
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-test",
+						},
 					},
 					SSHKeyName: nil,
 				},
@@ -3978,8 +4524,173 @@ func TestCreateInstance(t *testing.T) {
 				}
 			},
 		},
-	}
+		{
+			name: "expect instace PrivateDNSName to be different when DHCP Option has domain name is set in the VPC",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: ptr.To[string]("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AMIReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType: "m5.large",
+			},
+			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						Subnets: infrav1.Subnets{
+							infrav1.SubnetSpec{
+								ID:       "subnet-1",
+								IsPublic: false,
+							},
+							infrav1.SubnetSpec{
+								IsPublic: false,
+							},
+						},
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-exists",
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.LoadBalancer{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m. // TODO: Restore these parameters, but with the tags as well
+					RunInstancesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.Reservation{
+						Instances: []*ec2.Instance{
+							{
+								State: &ec2.InstanceState{
+									Name: aws.String(ec2.InstanceStateNamePending),
+								},
+								IamInstanceProfile: &ec2.IamInstanceProfile{
+									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+								},
+								InstanceId:     aws.String("two"),
+								InstanceType:   aws.String("m5.large"),
+								SubnetId:       aws.String("subnet-1"),
+								ImageId:        aws.String("ami-1"),
+								RootDeviceName: aws.String("device-1"),
+								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+									{
+										DeviceName: aws.String("device-1"),
+										Ebs: &ec2.EbsInstanceBlockDevice{
+											VolumeId: aws.String("volume-1"),
+										},
+									},
+								},
+								Placement: &ec2.Placement{
+									AvailabilityZone: &az,
+								},
+								NetworkInterfaces: []*ec2.InstanceNetworkInterface{
+									{
+										NetworkInterfaceId: aws.String("eni-1"),
+										PrivateIpAddress:   aws.String("192.168.1.10"),
+										PrivateDnsName:     aws.String("ip-192-168-1-10.ec2.internal"),
+									},
+								},
+								VpcId: aws.String("vpc-exists"),
+							},
+						},
+					}, nil)
+				m.
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []*string{
+							aws.String("m5.large"),
+						},
+					})).
+					Return(&ec2.DescribeInstanceTypesOutput{
+						InstanceTypes: []*ec2.InstanceTypeInfo{
+							{
+								ProcessorInfo: &ec2.ProcessorInfo{
+									SupportedArchitectures: []*string{
+										aws.String("x86_64"),
+									},
+								},
+							},
+						},
+					}, nil)
+				m.
+					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []*ec2.NetworkInterface{},
+					}, nil)
+				m.
+					DescribeVpcs(&ec2.DescribeVpcsInput{
+						VpcIds: []*string{aws.String("vpc-exists")},
+					}).Return(&ec2.DescribeVpcsOutput{
+					Vpcs: []*ec2.Vpc{
+						{
+							VpcId:         aws.String("vpc-exists"),
+							CidrBlock:     aws.String("192.168.1.0/24"),
+							IsDefault:     aws.Bool(false),
+							State:         aws.String("available"),
+							DhcpOptionsId: aws.String("dopt-12345678"),
+						},
+					},
+				}, nil)
+				m.
+					DescribeDhcpOptions(&ec2.DescribeDhcpOptionsInput{
+						DhcpOptionsIds: []*string{aws.String("dopt-12345678")},
+					}).Return(&ec2.DescribeDhcpOptionsOutput{
+					DhcpOptions: []*ec2.DhcpOptions{
+						{
+							DhcpConfigurations: []*ec2.DhcpConfiguration{
+								{
+									Key: aws.String("domain-name"),
+									Values: []*ec2.AttributeValue{
+										{
+											Value: aws.String("example.com"),
+										},
+									},
+								},
+							},
+						},
+					},
+				}, nil)
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				g := NewWithT(t)
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(len(instance.Addresses)).To(Equal(3))
 
+				for _, address := range instance.Addresses {
+					if address.Type == clusterv1.MachineInternalIP {
+						g.Expect(address.Address).To(Equal("192.168.1.10"))
+					}
+
+					if address.Type == clusterv1.MachineInternalDNS {
+						g.Expect(address.Address).To(Or(Equal("ip-192-168-1-10.ec2.internal"), Equal("ip-192-168-1-10.example.com")))
+					}
+				}
+			},
+		},
+	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
@@ -4294,4 +5005,149 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 			tc.check(ids, err)
 		})
 	}
+}
+
+func TestGetDHCPOptionSetDomainName(t *testing.T) {
+	testsCases := []struct {
+		name                   string
+		vpcID                  string
+		dhcpOpt                *ec2.DhcpOptions
+		expectedPrivateDNSName *string
+		mockCalls              func(m *mocks.MockEC2APIMockRecorder)
+	}{
+		{
+			name:  "dhcpOptions with domain-name",
+			vpcID: "vpc-exists",
+			dhcpOpt: &ec2.DhcpOptions{
+				DhcpConfigurations: []*ec2.DhcpConfiguration{
+					{
+						Key: aws.String("domain-name"),
+						Values: []*ec2.AttributeValue{
+							{
+								Value: aws.String("example.com"),
+							},
+						},
+					},
+				},
+			},
+			expectedPrivateDNSName: aws.String("example.com"),
+			mockCalls:              mockedGetPrivateDNSDomainNameFromDHCPOptionsCalls,
+		},
+		{
+			name:  "dhcpOptions without domain-name",
+			vpcID: "vpc-empty-domain-name",
+			dhcpOpt: &ec2.DhcpOptions{
+				DhcpConfigurations: []*ec2.DhcpConfiguration{
+					{
+						Key:    aws.String("domain-name"),
+						Values: []*ec2.AttributeValue{},
+					},
+				},
+			},
+			expectedPrivateDNSName: nil,
+			mockCalls:              mockedGetPrivateDNSDomainNameFromDHCPOptionsEmptyCalls,
+		},
+	}
+	for _, tc := range testsCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
+			scheme, err := setupScheme()
+			g.Expect(err).ToNot(HaveOccurred())
+			expect := func(m *mocks.MockEC2APIMockRecorder) {
+				tc.mockCalls(m)
+			}
+			expect(ec2Mock.EXPECT())
+
+			client := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+			cs, err := scope.NewClusterScope(
+				scope.ClusterScopeParams{
+					Client:  client,
+					Cluster: &clusterv1.Cluster{},
+					AWSCluster: &infrav1.AWSCluster{
+						ObjectMeta: metav1.ObjectMeta{Name: "test"},
+						Spec: infrav1.AWSClusterSpec{
+							NetworkSpec: infrav1.NetworkSpec{
+								VPC: infrav1.VPCSpec{
+									ID: tc.vpcID,
+								},
+							},
+						},
+					},
+				})
+			g.Expect(err).ToNot(HaveOccurred())
+
+			ec2Svc := NewService(cs)
+			ec2Svc.EC2Client = ec2Mock
+			dhcpOptsDomainName := ec2Svc.GetDHCPOptionSetDomainName(ec2Svc.EC2Client, &cs.VPC().ID)
+			g.Expect(dhcpOptsDomainName).To(Equal(tc.expectedPrivateDNSName))
+		})
+	}
+}
+
+func mockedGetPrivateDNSDomainNameFromDHCPOptionsCalls(m *mocks.MockEC2APIMockRecorder) {
+	m.DescribeVpcs(&ec2.DescribeVpcsInput{
+		VpcIds: []*string{aws.String("vpc-exists")},
+	}).Return(&ec2.DescribeVpcsOutput{
+		Vpcs: []*ec2.Vpc{
+			{
+				VpcId:         aws.String("vpc-exists"),
+				CidrBlock:     aws.String("10.0.0.0/16"),
+				IsDefault:     aws.Bool(false),
+				State:         aws.String("available"),
+				DhcpOptionsId: aws.String("dopt-12345678"),
+			},
+		},
+	}, nil)
+	m.DescribeDhcpOptions(&ec2.DescribeDhcpOptionsInput{
+		DhcpOptionsIds: []*string{aws.String("dopt-12345678")},
+	}).Return(&ec2.DescribeDhcpOptionsOutput{
+		DhcpOptions: []*ec2.DhcpOptions{
+			{
+				DhcpConfigurations: []*ec2.DhcpConfiguration{
+					{
+						Key: aws.String("domain-name"),
+						Values: []*ec2.AttributeValue{
+							{
+								Value: aws.String("example.com"),
+							},
+						},
+					},
+				},
+			},
+		},
+	}, nil)
+}
+
+func mockedGetPrivateDNSDomainNameFromDHCPOptionsEmptyCalls(m *mocks.MockEC2APIMockRecorder) {
+	m.DescribeVpcs(&ec2.DescribeVpcsInput{
+		VpcIds: []*string{aws.String("vpc-empty-domain-name")},
+	}).Return(&ec2.DescribeVpcsOutput{
+		Vpcs: []*ec2.Vpc{
+			{
+				VpcId:         aws.String("vpc-exists"),
+				CidrBlock:     aws.String("10.0.0.0/16"),
+				IsDefault:     aws.Bool(false),
+				State:         aws.String("available"),
+				DhcpOptionsId: aws.String("dopt-empty"),
+			},
+		},
+	}, nil)
+	m.DescribeDhcpOptions(&ec2.DescribeDhcpOptionsInput{
+		DhcpOptionsIds: []*string{aws.String("dopt-empty")},
+	}).Return(&ec2.DescribeDhcpOptionsOutput{
+		DhcpOptions: []*ec2.DhcpOptions{
+			{
+				DhcpConfigurations: []*ec2.DhcpConfiguration{
+					{
+						Key:    aws.String("domain-name"),
+						Values: []*ec2.AttributeValue{},
+					},
+				},
+			},
+		},
+	}, nil)
 }
