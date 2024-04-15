@@ -43,9 +43,9 @@ func TestSecurityGroupRolesForCluster(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			c := getAWSManagedControlPlane("test", "test")
-			c.Spec.Bastion.Enabled = tt.bastionEnabled
-			s, err := getManagedControlPlaneScope(c)
+			_, _, awsManagedControlPlane := getManagedClusterObjects("test", "test")
+			awsManagedControlPlane.Spec.Bastion.Enabled = tt.bastionEnabled
+			s, err := getManagedControlPlaneScope(awsManagedControlPlane)
 			g.Expect(err).To(BeNil(), "failed to create cluster scope for test")
 
 			got := securityGroupRolesForControlPlane(s)
