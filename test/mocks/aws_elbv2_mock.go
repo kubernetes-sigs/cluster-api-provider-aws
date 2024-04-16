@@ -152,6 +152,56 @@ func (mr *MockELBV2APIMockRecorder) AddTagsWithContext(arg0, arg1 interface{}, a
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddTagsWithContext", reflect.TypeOf((*MockELBV2API)(nil).AddTagsWithContext), varargs...)
 }
 
+// AddTrustStoreRevocations mocks base method.
+func (m *MockELBV2API) AddTrustStoreRevocations(arg0 *elbv2.AddTrustStoreRevocationsInput) (*elbv2.AddTrustStoreRevocationsOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddTrustStoreRevocations", arg0)
+	ret0, _ := ret[0].(*elbv2.AddTrustStoreRevocationsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AddTrustStoreRevocations indicates an expected call of AddTrustStoreRevocations.
+func (mr *MockELBV2APIMockRecorder) AddTrustStoreRevocations(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddTrustStoreRevocations", reflect.TypeOf((*MockELBV2API)(nil).AddTrustStoreRevocations), arg0)
+}
+
+// AddTrustStoreRevocationsRequest mocks base method.
+func (m *MockELBV2API) AddTrustStoreRevocationsRequest(arg0 *elbv2.AddTrustStoreRevocationsInput) (*request.Request, *elbv2.AddTrustStoreRevocationsOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddTrustStoreRevocationsRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*elbv2.AddTrustStoreRevocationsOutput)
+	return ret0, ret1
+}
+
+// AddTrustStoreRevocationsRequest indicates an expected call of AddTrustStoreRevocationsRequest.
+func (mr *MockELBV2APIMockRecorder) AddTrustStoreRevocationsRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddTrustStoreRevocationsRequest", reflect.TypeOf((*MockELBV2API)(nil).AddTrustStoreRevocationsRequest), arg0)
+}
+
+// AddTrustStoreRevocationsWithContext mocks base method.
+func (m *MockELBV2API) AddTrustStoreRevocationsWithContext(arg0 context.Context, arg1 *elbv2.AddTrustStoreRevocationsInput, arg2 ...request.Option) (*elbv2.AddTrustStoreRevocationsOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "AddTrustStoreRevocationsWithContext", varargs...)
+	ret0, _ := ret[0].(*elbv2.AddTrustStoreRevocationsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AddTrustStoreRevocationsWithContext indicates an expected call of AddTrustStoreRevocationsWithContext.
+func (mr *MockELBV2APIMockRecorder) AddTrustStoreRevocationsWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddTrustStoreRevocationsWithContext", reflect.TypeOf((*MockELBV2API)(nil).AddTrustStoreRevocationsWithContext), varargs...)
+}
+
 // CreateListener mocks base method.
 func (m *MockELBV2API) CreateListener(arg0 *elbv2.CreateListenerInput) (*elbv2.CreateListenerOutput, error) {
 	m.ctrl.T.Helper()
@@ -352,6 +402,56 @@ func (mr *MockELBV2APIMockRecorder) CreateTargetGroupWithContext(arg0, arg1 inte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTargetGroupWithContext", reflect.TypeOf((*MockELBV2API)(nil).CreateTargetGroupWithContext), varargs...)
 }
 
+// CreateTrustStore mocks base method.
+func (m *MockELBV2API) CreateTrustStore(arg0 *elbv2.CreateTrustStoreInput) (*elbv2.CreateTrustStoreOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateTrustStore", arg0)
+	ret0, _ := ret[0].(*elbv2.CreateTrustStoreOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateTrustStore indicates an expected call of CreateTrustStore.
+func (mr *MockELBV2APIMockRecorder) CreateTrustStore(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTrustStore", reflect.TypeOf((*MockELBV2API)(nil).CreateTrustStore), arg0)
+}
+
+// CreateTrustStoreRequest mocks base method.
+func (m *MockELBV2API) CreateTrustStoreRequest(arg0 *elbv2.CreateTrustStoreInput) (*request.Request, *elbv2.CreateTrustStoreOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateTrustStoreRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*elbv2.CreateTrustStoreOutput)
+	return ret0, ret1
+}
+
+// CreateTrustStoreRequest indicates an expected call of CreateTrustStoreRequest.
+func (mr *MockELBV2APIMockRecorder) CreateTrustStoreRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTrustStoreRequest", reflect.TypeOf((*MockELBV2API)(nil).CreateTrustStoreRequest), arg0)
+}
+
+// CreateTrustStoreWithContext mocks base method.
+func (m *MockELBV2API) CreateTrustStoreWithContext(arg0 context.Context, arg1 *elbv2.CreateTrustStoreInput, arg2 ...request.Option) (*elbv2.CreateTrustStoreOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "CreateTrustStoreWithContext", varargs...)
+	ret0, _ := ret[0].(*elbv2.CreateTrustStoreOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateTrustStoreWithContext indicates an expected call of CreateTrustStoreWithContext.
+func (mr *MockELBV2APIMockRecorder) CreateTrustStoreWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTrustStoreWithContext", reflect.TypeOf((*MockELBV2API)(nil).CreateTrustStoreWithContext), varargs...)
+}
+
 // DeleteListener mocks base method.
 func (m *MockELBV2API) DeleteListener(arg0 *elbv2.DeleteListenerInput) (*elbv2.DeleteListenerOutput, error) {
 	m.ctrl.T.Helper()
@@ -550,6 +650,56 @@ func (mr *MockELBV2APIMockRecorder) DeleteTargetGroupWithContext(arg0, arg1 inte
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTargetGroupWithContext", reflect.TypeOf((*MockELBV2API)(nil).DeleteTargetGroupWithContext), varargs...)
+}
+
+// DeleteTrustStore mocks base method.
+func (m *MockELBV2API) DeleteTrustStore(arg0 *elbv2.DeleteTrustStoreInput) (*elbv2.DeleteTrustStoreOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteTrustStore", arg0)
+	ret0, _ := ret[0].(*elbv2.DeleteTrustStoreOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteTrustStore indicates an expected call of DeleteTrustStore.
+func (mr *MockELBV2APIMockRecorder) DeleteTrustStore(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTrustStore", reflect.TypeOf((*MockELBV2API)(nil).DeleteTrustStore), arg0)
+}
+
+// DeleteTrustStoreRequest mocks base method.
+func (m *MockELBV2API) DeleteTrustStoreRequest(arg0 *elbv2.DeleteTrustStoreInput) (*request.Request, *elbv2.DeleteTrustStoreOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteTrustStoreRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*elbv2.DeleteTrustStoreOutput)
+	return ret0, ret1
+}
+
+// DeleteTrustStoreRequest indicates an expected call of DeleteTrustStoreRequest.
+func (mr *MockELBV2APIMockRecorder) DeleteTrustStoreRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTrustStoreRequest", reflect.TypeOf((*MockELBV2API)(nil).DeleteTrustStoreRequest), arg0)
+}
+
+// DeleteTrustStoreWithContext mocks base method.
+func (m *MockELBV2API) DeleteTrustStoreWithContext(arg0 context.Context, arg1 *elbv2.DeleteTrustStoreInput, arg2 ...request.Option) (*elbv2.DeleteTrustStoreOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteTrustStoreWithContext", varargs...)
+	ret0, _ := ret[0].(*elbv2.DeleteTrustStoreOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteTrustStoreWithContext indicates an expected call of DeleteTrustStoreWithContext.
+func (mr *MockELBV2APIMockRecorder) DeleteTrustStoreWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTrustStoreWithContext", reflect.TypeOf((*MockELBV2API)(nil).DeleteTrustStoreWithContext), varargs...)
 }
 
 // DeregisterTargets mocks base method.
@@ -1251,6 +1401,355 @@ func (mr *MockELBV2APIMockRecorder) DescribeTargetHealthWithContext(arg0, arg1 i
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTargetHealthWithContext", reflect.TypeOf((*MockELBV2API)(nil).DescribeTargetHealthWithContext), varargs...)
 }
 
+// DescribeTrustStoreAssociations mocks base method.
+func (m *MockELBV2API) DescribeTrustStoreAssociations(arg0 *elbv2.DescribeTrustStoreAssociationsInput) (*elbv2.DescribeTrustStoreAssociationsOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeTrustStoreAssociations", arg0)
+	ret0, _ := ret[0].(*elbv2.DescribeTrustStoreAssociationsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeTrustStoreAssociations indicates an expected call of DescribeTrustStoreAssociations.
+func (mr *MockELBV2APIMockRecorder) DescribeTrustStoreAssociations(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTrustStoreAssociations", reflect.TypeOf((*MockELBV2API)(nil).DescribeTrustStoreAssociations), arg0)
+}
+
+// DescribeTrustStoreAssociationsPages mocks base method.
+func (m *MockELBV2API) DescribeTrustStoreAssociationsPages(arg0 *elbv2.DescribeTrustStoreAssociationsInput, arg1 func(*elbv2.DescribeTrustStoreAssociationsOutput, bool) bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeTrustStoreAssociationsPages", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DescribeTrustStoreAssociationsPages indicates an expected call of DescribeTrustStoreAssociationsPages.
+func (mr *MockELBV2APIMockRecorder) DescribeTrustStoreAssociationsPages(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTrustStoreAssociationsPages", reflect.TypeOf((*MockELBV2API)(nil).DescribeTrustStoreAssociationsPages), arg0, arg1)
+}
+
+// DescribeTrustStoreAssociationsPagesWithContext mocks base method.
+func (m *MockELBV2API) DescribeTrustStoreAssociationsPagesWithContext(arg0 context.Context, arg1 *elbv2.DescribeTrustStoreAssociationsInput, arg2 func(*elbv2.DescribeTrustStoreAssociationsOutput, bool) bool, arg3 ...request.Option) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeTrustStoreAssociationsPagesWithContext", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DescribeTrustStoreAssociationsPagesWithContext indicates an expected call of DescribeTrustStoreAssociationsPagesWithContext.
+func (mr *MockELBV2APIMockRecorder) DescribeTrustStoreAssociationsPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTrustStoreAssociationsPagesWithContext", reflect.TypeOf((*MockELBV2API)(nil).DescribeTrustStoreAssociationsPagesWithContext), varargs...)
+}
+
+// DescribeTrustStoreAssociationsRequest mocks base method.
+func (m *MockELBV2API) DescribeTrustStoreAssociationsRequest(arg0 *elbv2.DescribeTrustStoreAssociationsInput) (*request.Request, *elbv2.DescribeTrustStoreAssociationsOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeTrustStoreAssociationsRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*elbv2.DescribeTrustStoreAssociationsOutput)
+	return ret0, ret1
+}
+
+// DescribeTrustStoreAssociationsRequest indicates an expected call of DescribeTrustStoreAssociationsRequest.
+func (mr *MockELBV2APIMockRecorder) DescribeTrustStoreAssociationsRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTrustStoreAssociationsRequest", reflect.TypeOf((*MockELBV2API)(nil).DescribeTrustStoreAssociationsRequest), arg0)
+}
+
+// DescribeTrustStoreAssociationsWithContext mocks base method.
+func (m *MockELBV2API) DescribeTrustStoreAssociationsWithContext(arg0 context.Context, arg1 *elbv2.DescribeTrustStoreAssociationsInput, arg2 ...request.Option) (*elbv2.DescribeTrustStoreAssociationsOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeTrustStoreAssociationsWithContext", varargs...)
+	ret0, _ := ret[0].(*elbv2.DescribeTrustStoreAssociationsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeTrustStoreAssociationsWithContext indicates an expected call of DescribeTrustStoreAssociationsWithContext.
+func (mr *MockELBV2APIMockRecorder) DescribeTrustStoreAssociationsWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTrustStoreAssociationsWithContext", reflect.TypeOf((*MockELBV2API)(nil).DescribeTrustStoreAssociationsWithContext), varargs...)
+}
+
+// DescribeTrustStoreRevocations mocks base method.
+func (m *MockELBV2API) DescribeTrustStoreRevocations(arg0 *elbv2.DescribeTrustStoreRevocationsInput) (*elbv2.DescribeTrustStoreRevocationsOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeTrustStoreRevocations", arg0)
+	ret0, _ := ret[0].(*elbv2.DescribeTrustStoreRevocationsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeTrustStoreRevocations indicates an expected call of DescribeTrustStoreRevocations.
+func (mr *MockELBV2APIMockRecorder) DescribeTrustStoreRevocations(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTrustStoreRevocations", reflect.TypeOf((*MockELBV2API)(nil).DescribeTrustStoreRevocations), arg0)
+}
+
+// DescribeTrustStoreRevocationsPages mocks base method.
+func (m *MockELBV2API) DescribeTrustStoreRevocationsPages(arg0 *elbv2.DescribeTrustStoreRevocationsInput, arg1 func(*elbv2.DescribeTrustStoreRevocationsOutput, bool) bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeTrustStoreRevocationsPages", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DescribeTrustStoreRevocationsPages indicates an expected call of DescribeTrustStoreRevocationsPages.
+func (mr *MockELBV2APIMockRecorder) DescribeTrustStoreRevocationsPages(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTrustStoreRevocationsPages", reflect.TypeOf((*MockELBV2API)(nil).DescribeTrustStoreRevocationsPages), arg0, arg1)
+}
+
+// DescribeTrustStoreRevocationsPagesWithContext mocks base method.
+func (m *MockELBV2API) DescribeTrustStoreRevocationsPagesWithContext(arg0 context.Context, arg1 *elbv2.DescribeTrustStoreRevocationsInput, arg2 func(*elbv2.DescribeTrustStoreRevocationsOutput, bool) bool, arg3 ...request.Option) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeTrustStoreRevocationsPagesWithContext", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DescribeTrustStoreRevocationsPagesWithContext indicates an expected call of DescribeTrustStoreRevocationsPagesWithContext.
+func (mr *MockELBV2APIMockRecorder) DescribeTrustStoreRevocationsPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTrustStoreRevocationsPagesWithContext", reflect.TypeOf((*MockELBV2API)(nil).DescribeTrustStoreRevocationsPagesWithContext), varargs...)
+}
+
+// DescribeTrustStoreRevocationsRequest mocks base method.
+func (m *MockELBV2API) DescribeTrustStoreRevocationsRequest(arg0 *elbv2.DescribeTrustStoreRevocationsInput) (*request.Request, *elbv2.DescribeTrustStoreRevocationsOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeTrustStoreRevocationsRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*elbv2.DescribeTrustStoreRevocationsOutput)
+	return ret0, ret1
+}
+
+// DescribeTrustStoreRevocationsRequest indicates an expected call of DescribeTrustStoreRevocationsRequest.
+func (mr *MockELBV2APIMockRecorder) DescribeTrustStoreRevocationsRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTrustStoreRevocationsRequest", reflect.TypeOf((*MockELBV2API)(nil).DescribeTrustStoreRevocationsRequest), arg0)
+}
+
+// DescribeTrustStoreRevocationsWithContext mocks base method.
+func (m *MockELBV2API) DescribeTrustStoreRevocationsWithContext(arg0 context.Context, arg1 *elbv2.DescribeTrustStoreRevocationsInput, arg2 ...request.Option) (*elbv2.DescribeTrustStoreRevocationsOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeTrustStoreRevocationsWithContext", varargs...)
+	ret0, _ := ret[0].(*elbv2.DescribeTrustStoreRevocationsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeTrustStoreRevocationsWithContext indicates an expected call of DescribeTrustStoreRevocationsWithContext.
+func (mr *MockELBV2APIMockRecorder) DescribeTrustStoreRevocationsWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTrustStoreRevocationsWithContext", reflect.TypeOf((*MockELBV2API)(nil).DescribeTrustStoreRevocationsWithContext), varargs...)
+}
+
+// DescribeTrustStores mocks base method.
+func (m *MockELBV2API) DescribeTrustStores(arg0 *elbv2.DescribeTrustStoresInput) (*elbv2.DescribeTrustStoresOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeTrustStores", arg0)
+	ret0, _ := ret[0].(*elbv2.DescribeTrustStoresOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeTrustStores indicates an expected call of DescribeTrustStores.
+func (mr *MockELBV2APIMockRecorder) DescribeTrustStores(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTrustStores", reflect.TypeOf((*MockELBV2API)(nil).DescribeTrustStores), arg0)
+}
+
+// DescribeTrustStoresPages mocks base method.
+func (m *MockELBV2API) DescribeTrustStoresPages(arg0 *elbv2.DescribeTrustStoresInput, arg1 func(*elbv2.DescribeTrustStoresOutput, bool) bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeTrustStoresPages", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DescribeTrustStoresPages indicates an expected call of DescribeTrustStoresPages.
+func (mr *MockELBV2APIMockRecorder) DescribeTrustStoresPages(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTrustStoresPages", reflect.TypeOf((*MockELBV2API)(nil).DescribeTrustStoresPages), arg0, arg1)
+}
+
+// DescribeTrustStoresPagesWithContext mocks base method.
+func (m *MockELBV2API) DescribeTrustStoresPagesWithContext(arg0 context.Context, arg1 *elbv2.DescribeTrustStoresInput, arg2 func(*elbv2.DescribeTrustStoresOutput, bool) bool, arg3 ...request.Option) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeTrustStoresPagesWithContext", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DescribeTrustStoresPagesWithContext indicates an expected call of DescribeTrustStoresPagesWithContext.
+func (mr *MockELBV2APIMockRecorder) DescribeTrustStoresPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTrustStoresPagesWithContext", reflect.TypeOf((*MockELBV2API)(nil).DescribeTrustStoresPagesWithContext), varargs...)
+}
+
+// DescribeTrustStoresRequest mocks base method.
+func (m *MockELBV2API) DescribeTrustStoresRequest(arg0 *elbv2.DescribeTrustStoresInput) (*request.Request, *elbv2.DescribeTrustStoresOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeTrustStoresRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*elbv2.DescribeTrustStoresOutput)
+	return ret0, ret1
+}
+
+// DescribeTrustStoresRequest indicates an expected call of DescribeTrustStoresRequest.
+func (mr *MockELBV2APIMockRecorder) DescribeTrustStoresRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTrustStoresRequest", reflect.TypeOf((*MockELBV2API)(nil).DescribeTrustStoresRequest), arg0)
+}
+
+// DescribeTrustStoresWithContext mocks base method.
+func (m *MockELBV2API) DescribeTrustStoresWithContext(arg0 context.Context, arg1 *elbv2.DescribeTrustStoresInput, arg2 ...request.Option) (*elbv2.DescribeTrustStoresOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeTrustStoresWithContext", varargs...)
+	ret0, _ := ret[0].(*elbv2.DescribeTrustStoresOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeTrustStoresWithContext indicates an expected call of DescribeTrustStoresWithContext.
+func (mr *MockELBV2APIMockRecorder) DescribeTrustStoresWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTrustStoresWithContext", reflect.TypeOf((*MockELBV2API)(nil).DescribeTrustStoresWithContext), varargs...)
+}
+
+// GetTrustStoreCaCertificatesBundle mocks base method.
+func (m *MockELBV2API) GetTrustStoreCaCertificatesBundle(arg0 *elbv2.GetTrustStoreCaCertificatesBundleInput) (*elbv2.GetTrustStoreCaCertificatesBundleOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTrustStoreCaCertificatesBundle", arg0)
+	ret0, _ := ret[0].(*elbv2.GetTrustStoreCaCertificatesBundleOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetTrustStoreCaCertificatesBundle indicates an expected call of GetTrustStoreCaCertificatesBundle.
+func (mr *MockELBV2APIMockRecorder) GetTrustStoreCaCertificatesBundle(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTrustStoreCaCertificatesBundle", reflect.TypeOf((*MockELBV2API)(nil).GetTrustStoreCaCertificatesBundle), arg0)
+}
+
+// GetTrustStoreCaCertificatesBundleRequest mocks base method.
+func (m *MockELBV2API) GetTrustStoreCaCertificatesBundleRequest(arg0 *elbv2.GetTrustStoreCaCertificatesBundleInput) (*request.Request, *elbv2.GetTrustStoreCaCertificatesBundleOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTrustStoreCaCertificatesBundleRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*elbv2.GetTrustStoreCaCertificatesBundleOutput)
+	return ret0, ret1
+}
+
+// GetTrustStoreCaCertificatesBundleRequest indicates an expected call of GetTrustStoreCaCertificatesBundleRequest.
+func (mr *MockELBV2APIMockRecorder) GetTrustStoreCaCertificatesBundleRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTrustStoreCaCertificatesBundleRequest", reflect.TypeOf((*MockELBV2API)(nil).GetTrustStoreCaCertificatesBundleRequest), arg0)
+}
+
+// GetTrustStoreCaCertificatesBundleWithContext mocks base method.
+func (m *MockELBV2API) GetTrustStoreCaCertificatesBundleWithContext(arg0 context.Context, arg1 *elbv2.GetTrustStoreCaCertificatesBundleInput, arg2 ...request.Option) (*elbv2.GetTrustStoreCaCertificatesBundleOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetTrustStoreCaCertificatesBundleWithContext", varargs...)
+	ret0, _ := ret[0].(*elbv2.GetTrustStoreCaCertificatesBundleOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetTrustStoreCaCertificatesBundleWithContext indicates an expected call of GetTrustStoreCaCertificatesBundleWithContext.
+func (mr *MockELBV2APIMockRecorder) GetTrustStoreCaCertificatesBundleWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTrustStoreCaCertificatesBundleWithContext", reflect.TypeOf((*MockELBV2API)(nil).GetTrustStoreCaCertificatesBundleWithContext), varargs...)
+}
+
+// GetTrustStoreRevocationContent mocks base method.
+func (m *MockELBV2API) GetTrustStoreRevocationContent(arg0 *elbv2.GetTrustStoreRevocationContentInput) (*elbv2.GetTrustStoreRevocationContentOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTrustStoreRevocationContent", arg0)
+	ret0, _ := ret[0].(*elbv2.GetTrustStoreRevocationContentOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetTrustStoreRevocationContent indicates an expected call of GetTrustStoreRevocationContent.
+func (mr *MockELBV2APIMockRecorder) GetTrustStoreRevocationContent(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTrustStoreRevocationContent", reflect.TypeOf((*MockELBV2API)(nil).GetTrustStoreRevocationContent), arg0)
+}
+
+// GetTrustStoreRevocationContentRequest mocks base method.
+func (m *MockELBV2API) GetTrustStoreRevocationContentRequest(arg0 *elbv2.GetTrustStoreRevocationContentInput) (*request.Request, *elbv2.GetTrustStoreRevocationContentOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTrustStoreRevocationContentRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*elbv2.GetTrustStoreRevocationContentOutput)
+	return ret0, ret1
+}
+
+// GetTrustStoreRevocationContentRequest indicates an expected call of GetTrustStoreRevocationContentRequest.
+func (mr *MockELBV2APIMockRecorder) GetTrustStoreRevocationContentRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTrustStoreRevocationContentRequest", reflect.TypeOf((*MockELBV2API)(nil).GetTrustStoreRevocationContentRequest), arg0)
+}
+
+// GetTrustStoreRevocationContentWithContext mocks base method.
+func (m *MockELBV2API) GetTrustStoreRevocationContentWithContext(arg0 context.Context, arg1 *elbv2.GetTrustStoreRevocationContentInput, arg2 ...request.Option) (*elbv2.GetTrustStoreRevocationContentOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetTrustStoreRevocationContentWithContext", varargs...)
+	ret0, _ := ret[0].(*elbv2.GetTrustStoreRevocationContentOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetTrustStoreRevocationContentWithContext indicates an expected call of GetTrustStoreRevocationContentWithContext.
+func (mr *MockELBV2APIMockRecorder) GetTrustStoreRevocationContentWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTrustStoreRevocationContentWithContext", reflect.TypeOf((*MockELBV2API)(nil).GetTrustStoreRevocationContentWithContext), varargs...)
+}
+
 // ModifyListener mocks base method.
 func (m *MockELBV2API) ModifyListener(arg0 *elbv2.ModifyListenerInput) (*elbv2.ModifyListenerOutput, error) {
 	m.ctrl.T.Helper()
@@ -1501,6 +2000,56 @@ func (mr *MockELBV2APIMockRecorder) ModifyTargetGroupWithContext(arg0, arg1 inte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyTargetGroupWithContext", reflect.TypeOf((*MockELBV2API)(nil).ModifyTargetGroupWithContext), varargs...)
 }
 
+// ModifyTrustStore mocks base method.
+func (m *MockELBV2API) ModifyTrustStore(arg0 *elbv2.ModifyTrustStoreInput) (*elbv2.ModifyTrustStoreOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ModifyTrustStore", arg0)
+	ret0, _ := ret[0].(*elbv2.ModifyTrustStoreOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ModifyTrustStore indicates an expected call of ModifyTrustStore.
+func (mr *MockELBV2APIMockRecorder) ModifyTrustStore(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyTrustStore", reflect.TypeOf((*MockELBV2API)(nil).ModifyTrustStore), arg0)
+}
+
+// ModifyTrustStoreRequest mocks base method.
+func (m *MockELBV2API) ModifyTrustStoreRequest(arg0 *elbv2.ModifyTrustStoreInput) (*request.Request, *elbv2.ModifyTrustStoreOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ModifyTrustStoreRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*elbv2.ModifyTrustStoreOutput)
+	return ret0, ret1
+}
+
+// ModifyTrustStoreRequest indicates an expected call of ModifyTrustStoreRequest.
+func (mr *MockELBV2APIMockRecorder) ModifyTrustStoreRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyTrustStoreRequest", reflect.TypeOf((*MockELBV2API)(nil).ModifyTrustStoreRequest), arg0)
+}
+
+// ModifyTrustStoreWithContext mocks base method.
+func (m *MockELBV2API) ModifyTrustStoreWithContext(arg0 context.Context, arg1 *elbv2.ModifyTrustStoreInput, arg2 ...request.Option) (*elbv2.ModifyTrustStoreOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ModifyTrustStoreWithContext", varargs...)
+	ret0, _ := ret[0].(*elbv2.ModifyTrustStoreOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ModifyTrustStoreWithContext indicates an expected call of ModifyTrustStoreWithContext.
+func (mr *MockELBV2APIMockRecorder) ModifyTrustStoreWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyTrustStoreWithContext", reflect.TypeOf((*MockELBV2API)(nil).ModifyTrustStoreWithContext), varargs...)
+}
+
 // RegisterTargets mocks base method.
 func (m *MockELBV2API) RegisterTargets(arg0 *elbv2.RegisterTargetsInput) (*elbv2.RegisterTargetsOutput, error) {
 	m.ctrl.T.Helper()
@@ -1649,6 +2198,56 @@ func (mr *MockELBV2APIMockRecorder) RemoveTagsWithContext(arg0, arg1 interface{}
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveTagsWithContext", reflect.TypeOf((*MockELBV2API)(nil).RemoveTagsWithContext), varargs...)
+}
+
+// RemoveTrustStoreRevocations mocks base method.
+func (m *MockELBV2API) RemoveTrustStoreRevocations(arg0 *elbv2.RemoveTrustStoreRevocationsInput) (*elbv2.RemoveTrustStoreRevocationsOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RemoveTrustStoreRevocations", arg0)
+	ret0, _ := ret[0].(*elbv2.RemoveTrustStoreRevocationsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RemoveTrustStoreRevocations indicates an expected call of RemoveTrustStoreRevocations.
+func (mr *MockELBV2APIMockRecorder) RemoveTrustStoreRevocations(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveTrustStoreRevocations", reflect.TypeOf((*MockELBV2API)(nil).RemoveTrustStoreRevocations), arg0)
+}
+
+// RemoveTrustStoreRevocationsRequest mocks base method.
+func (m *MockELBV2API) RemoveTrustStoreRevocationsRequest(arg0 *elbv2.RemoveTrustStoreRevocationsInput) (*request.Request, *elbv2.RemoveTrustStoreRevocationsOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RemoveTrustStoreRevocationsRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*elbv2.RemoveTrustStoreRevocationsOutput)
+	return ret0, ret1
+}
+
+// RemoveTrustStoreRevocationsRequest indicates an expected call of RemoveTrustStoreRevocationsRequest.
+func (mr *MockELBV2APIMockRecorder) RemoveTrustStoreRevocationsRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveTrustStoreRevocationsRequest", reflect.TypeOf((*MockELBV2API)(nil).RemoveTrustStoreRevocationsRequest), arg0)
+}
+
+// RemoveTrustStoreRevocationsWithContext mocks base method.
+func (m *MockELBV2API) RemoveTrustStoreRevocationsWithContext(arg0 context.Context, arg1 *elbv2.RemoveTrustStoreRevocationsInput, arg2 ...request.Option) (*elbv2.RemoveTrustStoreRevocationsOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "RemoveTrustStoreRevocationsWithContext", varargs...)
+	ret0, _ := ret[0].(*elbv2.RemoveTrustStoreRevocationsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RemoveTrustStoreRevocationsWithContext indicates an expected call of RemoveTrustStoreRevocationsWithContext.
+func (mr *MockELBV2APIMockRecorder) RemoveTrustStoreRevocationsWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveTrustStoreRevocationsWithContext", reflect.TypeOf((*MockELBV2API)(nil).RemoveTrustStoreRevocationsWithContext), varargs...)
 }
 
 // SetIpAddressType mocks base method.
