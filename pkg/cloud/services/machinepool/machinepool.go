@@ -35,6 +35,29 @@ func (s *Service) ReconcileLifecycleHooks(scope scope.LifecycleHookScope) error 
 			return err
 		}
 	}
+
+	// Get a list of lifecycle hooks that are registered with the ASG but not defined in the MachinePool and delete them.
+	hooks, err := s.ASGInterface.GetLifecycleHooks(scope)
+	if err != nil {
+		return err
+	}
+	for _, hook := range hooks {
+		found := false
+		for _, definedHook := range scope.GetLifecycleHooks() {
+			if hook.Name == definedHook.Name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			scope.Info("Deleting lifecycle hook", "hook", hook.Name)
+			if err := s.ASGInterface.DeleteLifecycleHook(scope, hook); err != nil {
+				conditions.MarkFalse(scope.GetMachinePool(), expinfrav1.LifecycleHookExistsCondition, expinfrav1.LifecycleHookDeletionFailedReason, clusterv1.ConditionSeverityError, err.Error())
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 

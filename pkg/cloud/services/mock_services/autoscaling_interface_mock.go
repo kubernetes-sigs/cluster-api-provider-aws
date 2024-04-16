@@ -124,6 +124,20 @@ func (mr *MockASGInterfaceMockRecorder) DeleteASGAndWait(arg0 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteASGAndWait", reflect.TypeOf((*MockASGInterface)(nil).DeleteASGAndWait), arg0)
 }
 
+// DeleteLifecycleHook mocks base method.
+func (m *MockASGInterface) DeleteLifecycleHook(arg0 scope.LifecycleHookScope, arg1 *v1beta2.AWSLifecycleHook) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteLifecycleHook", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteLifecycleHook indicates an expected call of DeleteLifecycleHook.
+func (mr *MockASGInterfaceMockRecorder) DeleteLifecycleHook(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLifecycleHook", reflect.TypeOf((*MockASGInterface)(nil).DeleteLifecycleHook), arg0, arg1)
+}
+
 // GetASGByName mocks base method.
 func (m *MockASGInterface) GetASGByName(arg0 *scope.MachinePoolScope) (*v1beta2.AutoScalingGroup, error) {
 	m.ctrl.T.Helper()
@@ -152,6 +166,21 @@ func (m *MockASGInterface) GetLifecycleHook(arg0 scope.LifecycleHookScope, arg1 
 func (mr *MockASGInterfaceMockRecorder) GetLifecycleHook(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLifecycleHook", reflect.TypeOf((*MockASGInterface)(nil).GetLifecycleHook), arg0, arg1)
+}
+
+// GetLifecycleHooks mocks base method.
+func (m *MockASGInterface) GetLifecycleHooks(arg0 scope.LifecycleHookScope) ([]*v1beta2.AWSLifecycleHook, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLifecycleHooks", arg0)
+	ret0, _ := ret[0].([]*v1beta2.AWSLifecycleHook)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLifecycleHooks indicates an expected call of GetLifecycleHooks.
+func (mr *MockASGInterfaceMockRecorder) GetLifecycleHooks(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLifecycleHooks", reflect.TypeOf((*MockASGInterface)(nil).GetLifecycleHooks), arg0)
 }
 
 // LifecycleHookNeedsUpdate mocks base method.

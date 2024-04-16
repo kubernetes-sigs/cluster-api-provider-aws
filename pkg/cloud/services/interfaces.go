@@ -50,9 +50,11 @@ type ASGInterface interface {
 	SuspendProcesses(name string, processes []string) error
 	ResumeProcesses(name string, processes []string) error
 	SubnetIDs(scope *scope.MachinePoolScope) ([]string, error)
+	GetLifecycleHooks(scope scope.LifecycleHookScope) ([]*expinfrav1.AWSLifecycleHook, error)
 	GetLifecycleHook(scope scope.LifecycleHookScope, hook *expinfrav1.AWSLifecycleHook) (*expinfrav1.AWSLifecycleHook, error)
 	CreateLifecycleHook(scope scope.LifecycleHookScope, hook *expinfrav1.AWSLifecycleHook) error
 	UpdateLifecycleHook(scope scope.LifecycleHookScope, hook *expinfrav1.AWSLifecycleHook) error
+	DeleteLifecycleHook(scope scope.LifecycleHookScope, hook *expinfrav1.AWSLifecycleHook) error
 	LifecycleHookNeedsUpdate(scope scope.LifecycleHookScope, incoming *expinfrav1.AWSLifecycleHook, existing *expinfrav1.AWSLifecycleHook) bool
 }
 

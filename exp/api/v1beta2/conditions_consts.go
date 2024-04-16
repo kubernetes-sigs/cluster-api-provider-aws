@@ -65,6 +65,8 @@ const (
 	LifecycleHookCreationFailedReason = "LifecycleHookCreationFailed"
 	// LifecycleHookUpdateFailedReason used for failures during lifecycle hook update.
 	LifecycleHookUpdateFailedReason = "LifecycleHookUpdateFailed"
+	// LifecycleHookDeletionFailedReason used for failures during lifecycle hook deletion.
+	LifecycleHookDeletionFailedReason = "LifecycleHookDeletionFailed"
 )
 
 const (

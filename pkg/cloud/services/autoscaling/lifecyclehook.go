@@ -21,7 +21,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
-	"github.com/aws/aws-sdk-go/service/autoscaling/autoscalingiface"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 
@@ -36,8 +35,27 @@ func (s *Service) LifecycleHookNeedsUpdate(scope scope.LifecycleHookScope, exist
 		existing.NotificationMetadata != expected.NotificationMetadata
 }
 
+func (s *Service) GetLifecycleHooks(scope scope.LifecycleHookScope) ([]*expinfrav1.AWSLifecycleHook, error) {
+	asgName := scope.GetASGName()
+	input := &autoscaling.DescribeLifecycleHooksInput{
+		AutoScalingGroupName: aws.String(asgName),
+	}
+
+	out, err := s.ASGClient.DescribeLifecycleHooksWithContext(context.TODO(), input)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to describe lifecycle hooks for AutoScalingGroup: %q", scope.GetASGName())
+	}
+
+	hooks := make([]*expinfrav1.AWSLifecycleHook, len(out.LifecycleHooks))
+	for i, hook := range out.LifecycleHooks {
+		hooks[i] = s.SDKToLifecycleHook(hook)
+	}
+
+	return hooks, nil
+}
+
 func (s *Service) GetLifecycleHook(scope scope.LifecycleHookScope, hook *expinfrav1.AWSLifecycleHook) (*expinfrav1.AWSLifecycleHook, error) {
-	asgName := scope.GetMachinePool().Name
+	asgName := scope.GetASGName()
 	input := &autoscaling.DescribeLifecycleHooksInput{
 		AutoScalingGroupName: aws.String(asgName),
 		LifecycleHookNames:   []*string{aws.String(hook.Name)},
@@ -45,7 +63,7 @@ func (s *Service) GetLifecycleHook(scope scope.LifecycleHookScope, hook *expinfr
 
 	out, err := s.ASGClient.DescribeLifecycleHooksWithContext(context.TODO(), input)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to describe lifecycle hook %q for AutoScalingGroup: %q", hook.Name, scope.GetMachinePool().Name)
+		return nil, errors.Wrapf(err, "failed to describe lifecycle hook %q for AutoScalingGroup: %q", hook.Name, scope.GetASGName())
 	}
 
 	if len(out.LifecycleHooks) == 0 {
@@ -56,7 +74,7 @@ func (s *Service) GetLifecycleHook(scope scope.LifecycleHookScope, hook *expinfr
 }
 
 func (s *Service) CreateLifecycleHook(scope scope.LifecycleHookScope, hook *expinfrav1.AWSLifecycleHook) error {
-	asgName := scope.GetMachinePool().Name
+	asgName := scope.GetASGName()
 
 	lifecycleHookName := hook.Name
 	if lifecycleHookName == "" {
@@ -96,14 +114,14 @@ func (s *Service) CreateLifecycleHook(scope scope.LifecycleHookScope, hook *expi
 	}
 
 	if _, err := s.ASGClient.PutLifecycleHookWithContext(context.TODO(), input); err != nil {
-		return errors.Wrapf(err, "failed to create lifecycle hook %q for AutoScalingGroup: %q", lifecycleHookName, scope.GetMachinePool().Name)
+		return errors.Wrapf(err, "failed to create lifecycle hook %q for AutoScalingGroup: %q", lifecycleHookName, scope.GetASGName())
 	}
 
 	return nil
 }
 
 func (s *Service) UpdateLifecycleHook(scope scope.LifecycleHookScope, hook *expinfrav1.AWSLifecycleHook) error {
-	asgName := scope.GetMachinePool().Name
+	asgName := scope.GetASGName()
 
 	lifecycleHookName := hook.Name
 	if lifecycleHookName == "" {
@@ -143,23 +161,22 @@ func (s *Service) UpdateLifecycleHook(scope scope.LifecycleHookScope, hook *expi
 	}
 
 	if _, err := s.ASGClient.PutLifecycleHookWithContext(context.TODO(), input); err != nil {
-		return errors.Wrapf(err, "failed to update lifecycle hook %q for AutoScalingGroup: %q", lifecycleHookName, scope.GetMachinePool().Name)
+		return errors.Wrapf(err, "failed to update lifecycle hook %q for AutoScalingGroup: %q", lifecycleHookName, scope.GetASGName())
 	}
 
 	return nil
 }
 
 func (s *Service) DeleteLifecycleHook(
-	scope *scope.MachinePoolScope,
-	asgClient autoscalingiface.AutoScalingAPI,
-	hook expinfrav1.AWSLifecycleHook) error {
+	scope scope.LifecycleHookScope,
+	hook *expinfrav1.AWSLifecycleHook) error {
 	input := &autoscaling.DeleteLifecycleHookInput{
-		AutoScalingGroupName: aws.String(scope.Name()),
+		AutoScalingGroupName: aws.String(scope.GetASGName()),
 		LifecycleHookName:    aws.String(hook.Name),
 	}
 
-	if _, err := asgClient.DeleteLifecycleHookWithContext(context.TODO(), input); err != nil {
-		return errors.Wrapf(err, "failed to delete lifecycle hook %q for AutoScalingGroup: %q", hook.Name, scope.Name())
+	if _, err := s.ASGClient.DeleteLifecycleHookWithContext(context.TODO(), input); err != nil {
+		return errors.Wrapf(err, "failed to delete lifecycle hook %q for AutoScalingGroup: %q", hook.Name, scope.GetASGName())
 	}
 
 	return nil

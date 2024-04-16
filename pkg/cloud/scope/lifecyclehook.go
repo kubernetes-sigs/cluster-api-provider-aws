@@ -17,29 +17,71 @@ limitations under the License.
 package scope
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/pkg/errors"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 // LaunchTemplateScope defines a scope defined around a launch template.
-type LifecycleHookScope interface {
-	GetMachinePool() *expclusterv1.MachinePool
-	GetLifecycleHooks() []expinfrav1.AWSLifecycleHook
-
-	IsEKSManaged() bool
-	AdditionalTags() infrav1.Tags
-
-	GetObjectMeta() *metav1.ObjectMeta
-	GetSetter() conditions.Setter
-	PatchObject() error
-	GetEC2Scope() EC2Scope
-
+type LifecycleHookScope struct {
 	client.Client
-	logger.Wrapper
+	logger.Logger
+
+	MachinePool    *expclusterv1.MachinePool
+	LifecycleHooks []expinfrav1.AWSLifecycleHook
+	AWSMachinePool *expinfrav1.AWSMachinePool
+}
+
+type LifecycleHookScopeParams struct {
+	Client client.Client
+	Logger *logger.Logger
+
+	MachinePool    *expclusterv1.MachinePool
+	LifecycleHooks []expinfrav1.AWSLifecycleHook
+	AWSMachinePool *expinfrav1.AWSMachinePool
+}
+
+// NewLifecycleHookScope creates a new LifecycleHookScope.
+func NewLifecycleHookScope(params LifecycleHookScopeParams) (*LifecycleHookScope, error) {
+	if params.Client == nil {
+		return nil, errors.New("client is required when creating a LifecycleHookScope")
+	}
+	if params.MachinePool == nil {
+		return nil, errors.New("machine pool is required when creating a LifecycleHookScope")
+	}
+	if params.LifecycleHooks == nil {
+		params.LifecycleHooks = make([]expinfrav1.AWSLifecycleHook, 0)
+	}
+	if params.AWSMachinePool == nil {
+		return nil, errors.New("aws machine pool is required when creating a LifecycleHookScope")
+	}
+
+	if params.Logger == nil {
+		log := klog.Background()
+		params.Logger = logger.NewLogger(log)
+	}
+
+	return &LifecycleHookScope{
+		Client:         params.Client,
+		Logger:         *params.Logger,
+		MachinePool:    params.MachinePool,
+		LifecycleHooks: params.LifecycleHooks,
+		AWSMachinePool: params.AWSMachinePool,
+	}, nil
+}
+
+func (s *LifecycleHookScope) GetASGName() string {
+	return s.AWSMachinePool.Name
+}
+
+func (s *LifecycleHookScope) GetLifecycleHooks() []expinfrav1.AWSLifecycleHook {
+	return s.LifecycleHooks
+}
+
+func (s *LifecycleHookScope) GetMachinePool() *expclusterv1.MachinePool {
+	return s.MachinePool
 }
