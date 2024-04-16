@@ -92,6 +92,16 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// +optional
 	EnableExternalAuthProviders bool `json:"enableExternalAuthProviders,omitempty"`
 
+	// ExternalAuthProviders are external OIDC identity providers that can issue tokens for this cluster.
+	// Can only be set if "enableExternalAuthProviders" is set to "True".
+	//
+	// At most one provider can be configured.
+	//
+	// +listType=map
+	// +listMapKey=name
+	// +kubebuilder:validation:MaxItems=1
+	ExternalAuthProviders []ExternalAuthProvider `json:"externalAuthProviders,omitempty"`
+
 	// InstallerRoleARN is an AWS IAM role that OpenShift Cluster Manager will assume to create the cluster..
 	InstallerRoleARN string `json:"installerRoleARN"`
 	// SupportRoleARN is an AWS IAM role used by Red Hat SREs to enable

@@ -8544,7 +8544,93 @@ RosaMachinePoolAutoScaling
 </td>
 <td>
 <em>(Optional)</em>
-<p>Autoscaling specifies auto scaling behaviour for this MachinePool.</p>
+<p>Autoscaling specifies auto scaling behaviour for the default MachinePool. Autoscaling min/max value
+must be equal or multiple of the availability zones count.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.ExternalAuthProvider">ExternalAuthProvider
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>)
+</p>
+<p>
+<p>ExternalAuthProvider is an external OIDC identity provider that can issue tokens for this cluster</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name of the OIDC provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>issuer</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.TokenIssuer">
+TokenIssuer
+</a>
+</em>
+</td>
+<td>
+<p>Issuer describes attributes of the OIDC token issuer</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>oidcClients</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.OIDCClientConfig">
+[]OIDCClientConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OIDCClients contains configuration for the platform&rsquo;s clients that
+need to request tokens from the issuer</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>claimMappings</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.TokenClaimMappings">
+TokenClaimMappings
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ClaimMappings describes rules on how to transform information from an
+ID token into a cluster identity</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>claimValidationRules</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.TokenClaimValidationRule">
+[]TokenClaimValidationRule
+</a>
+</em>
+</td>
+<td>
+<p>ClaimValidationRules are rules that are applied to validate token claims to authenticate users.</p>
 </td>
 </tr>
 </tbody>
@@ -8623,6 +8709,131 @@ string
 <td>
 <em>(Optional)</em>
 <p>The CNI network type default is OVNKubernetes.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.OIDCClientConfig">OIDCClientConfig
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.ExternalAuthProvider">ExternalAuthProvider</a>)
+</p>
+<p>
+<p>OIDCClientConfig contains configuration for the platform&rsquo;s client that
+need to request tokens from the issuer.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>componentName</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ComponentName is the name of the component that is supposed to consume this
+client configuration</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>componentNamespace</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ComponentNamespace is the namespace of the component that is supposed to consume this
+client configuration</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientID</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ClientID is the identifier of the OIDC client from the OIDC provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientSecret</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#secretreference-v1-core">
+Kubernetes core/v1.SecretReference
+</a>
+</em>
+</td>
+<td>
+<p>ClientSecret refers to a secret that
+contains the client secret in the <code>clientSecret</code> key of the <code>.data</code> field</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>extraScopes</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ExtraScopes is an optional set of scopes to request tokens with.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.PrefixedClaimMapping">PrefixedClaimMapping
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.TokenClaimMappings">TokenClaimMappings</a>)
+</p>
+<p>
+<p>PrefixedClaimMapping defines claims with a prefix.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>claim</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Claim is a JWT token claim to be used in the mapping</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>prefix</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Prefix is a string to prefix the value from the token in the result of the
+claim mapping.</p>
+<p>By default, no prefixing occurs.</p>
+<p>Example: if <code>prefix</code> is set to &ldquo;myoidc:&rdquo;&rdquo; and the <code>claim</code> in JWT contains
+an array of strings &ldquo;a&rdquo;, &ldquo;b&rdquo; and  &ldquo;c&rdquo;, the mapping will result in an
+array of string &ldquo;myoidc:a&rdquo;, &ldquo;myoidc:b&rdquo; and &ldquo;myoidc:c&rdquo;.</p>
 </td>
 </tr>
 </tbody>
@@ -8763,7 +8974,34 @@ string
 </em>
 </td>
 <td>
-<p>The ID of the OpenID Connect Provider.</p>
+<p>The ID of the internal OpenID Connect Provider.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>enableExternalAuthProviders</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>EnableExternalAuthProviders enables external authentication configuration for the cluster.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>externalAuthProviders</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.ExternalAuthProvider">
+[]ExternalAuthProvider
+</a>
+</em>
+</td>
+<td>
+<p>ExternalAuthProviders are external OIDC identity providers that can issue tokens for this cluster.
+Can only be set if &ldquo;enableExternalAuthProviders&rdquo; is set to &ldquo;True&rdquo;.</p>
+<p>At most one provider can be configured.</p>
 </td>
 </tr>
 <tr>
@@ -8900,6 +9138,18 @@ string
 <em>(Optional)</em>
 <p>AuditLogRoleARN defines the role that is used to forward audit logs to AWS CloudWatch.
 If not set, audit log forwarding is disabled.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>provisionShardID</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ProvisionShardID defines the shard where rosa control plane components will be hosted.</p>
 </td>
 </tr>
 <tr>
@@ -9077,7 +9327,34 @@ string
 </em>
 </td>
 <td>
-<p>The ID of the OpenID Connect Provider.</p>
+<p>The ID of the internal OpenID Connect Provider.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>enableExternalAuthProviders</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>EnableExternalAuthProviders enables external authentication configuration for the cluster.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>externalAuthProviders</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.ExternalAuthProvider">
+[]ExternalAuthProvider
+</a>
+</em>
+</td>
+<td>
+<p>ExternalAuthProviders are external OIDC identity providers that can issue tokens for this cluster.
+Can only be set if &ldquo;enableExternalAuthProviders&rdquo; is set to &ldquo;True&rdquo;.</p>
+<p>At most one provider can be configured.</p>
 </td>
 </tr>
 <tr>
@@ -9214,6 +9491,18 @@ string
 <em>(Optional)</em>
 <p>AuditLogRoleARN defines the role that is used to forward audit logs to AWS CloudWatch.
 If not set, audit log forwarding is disabled.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>provisionShardID</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ProvisionShardID defines the shard where rosa control plane components will be hosted.</p>
 </td>
 </tr>
 <tr>
@@ -9407,6 +9696,311 @@ private node communication with the control plane.</p>
 </td>
 </tr></tbody>
 </table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.TokenAudience">TokenAudience
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.TokenIssuer">TokenIssuer</a>)
+</p>
+<p>
+<pre><code>TokenAudience is the audience that the token was issued for.
+</code></pre>
+</p>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.TokenClaimMappings">TokenClaimMappings
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.ExternalAuthProvider">ExternalAuthProvider</a>)
+</p>
+<p>
+<p>TokenClaimMappings describes rules on how to transform information from an
+ID token into a cluster identity.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>username</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.UsernameClaimMapping">
+UsernameClaimMapping
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Username is a name of the claim that should be used to construct
+usernames for the cluster identity.</p>
+<p>Default value: &ldquo;sub&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>groups</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.PrefixedClaimMapping">
+PrefixedClaimMapping
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Groups is a name of the claim that should be used to construct
+groups for the cluster identity.
+The referenced claim must use array of strings values.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.TokenClaimValidationRule">TokenClaimValidationRule
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.ExternalAuthProvider">ExternalAuthProvider</a>)
+</p>
+<p>
+<p>TokenClaimValidationRule validates token claims to authenticate users.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>type</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.TokenValidationRuleType">
+TokenValidationRuleType
+</a>
+</em>
+</td>
+<td>
+<p>Type sets the type of the validation rule</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>requiredClaim</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.TokenRequiredClaim">
+TokenRequiredClaim
+</a>
+</em>
+</td>
+<td>
+<p>RequiredClaim allows configuring a required claim name and its expected value</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.TokenIssuer">TokenIssuer
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.ExternalAuthProvider">ExternalAuthProvider</a>)
+</p>
+<p>
+<p>TokenIssuer describes attributes of the OIDC token issuer</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>issuerURL</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>URL is the serving URL of the token issuer.
+Must use the https:// scheme.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>audiences</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.TokenAudience">
+[]TokenAudience
+</a>
+</em>
+</td>
+<td>
+<p>Audiences is an array of audiences that the token was issued for.
+Valid tokens must include at least one of these values in their
+&ldquo;aud&rdquo; claim.
+Must be set to exactly one value.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>issuerCertificateAuthority</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#localobjectreference-v1-core">
+Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<p>CertificateAuthority is a reference to a config map in the
+configuration namespace. The .data of the configMap must contain
+the &ldquo;ca-bundle.crt&rdquo; key.
+If unset, system trust is used instead.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.TokenRequiredClaim">TokenRequiredClaim
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.TokenClaimValidationRule">TokenClaimValidationRule</a>)
+</p>
+<p>
+<p>TokenRequiredClaim allows configuring a required claim name and its expected value.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>claim</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Claim is a name of a required claim. Only claims with string values are
+supported.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>requiredValue</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>RequiredValue is the required value for the claim.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.TokenValidationRuleType">TokenValidationRuleType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.TokenClaimValidationRule">TokenClaimValidationRule</a>)
+</p>
+<p>
+<p>TokenValidationRuleType defines the type of the validation rule.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;RequiredClaim&#34;</p></td>
+<td><p>TokenValidationRuleTypeRequiredClaim defines the type for RequiredClaim.</p>
+</td>
+</tr></tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.UsernameClaimMapping">UsernameClaimMapping
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.TokenClaimMappings">TokenClaimMappings</a>)
+</p>
+<p>
+<p>UsernameClaimMapping defines the claim that should be used to construct usernames for the cluster identity.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>claim</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Claim is a JWT token claim to be used in the mapping</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>prefixPolicy</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.UsernamePrefixPolicy">
+UsernamePrefixPolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PrefixPolicy specifies how a prefix should apply.</p>
+<p>By default, claims other than <code>email</code> will be prefixed with the issuer URL to
+prevent naming clashes with other plugins.</p>
+<p>Set to &ldquo;NoPrefix&rdquo; to disable prefixing.</p>
+<p>Example:
+(1) <code>prefix</code> is set to &ldquo;myoidc:&rdquo; and <code>claim</code> is set to &ldquo;username&rdquo;.
+If the JWT claim <code>username</code> contains value <code>userA</code>, the resulting
+mapped value will be &ldquo;myoidc:userA&rdquo;.
+(2) <code>prefix</code> is set to &ldquo;myoidc:&rdquo; and <code>claim</code> is set to &ldquo;email&rdquo;. If the
+JWT <code>email</code> claim contains value &ldquo;userA@myoidc.tld&rdquo;, the resulting
+mapped value will be &ldquo;myoidc:userA@myoidc.tld&rdquo;.
+(3) <code>prefix</code> is unset, <code>issuerURL</code> is set to <code>https://myoidc.tld</code>,
+the JWT claims include &ldquo;username&rdquo;:&ldquo;userA&rdquo; and &ldquo;email&rdquo;:&ldquo;userA@myoidc.tld&rdquo;,
+and <code>claim</code> is set to:
+(a) &ldquo;username&rdquo;: the mapped value will be &ldquo;<a href="https://myoidc.tld#userA&quot;">https://myoidc.tld#userA&rdquo;</a>
+(b) &ldquo;email&rdquo;: the mapped value will be &ldquo;userA@myoidc.tld&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>prefix</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Prefix is prepended to claim to prevent clashes with existing names.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.UsernamePrefixPolicy">UsernamePrefixPolicy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.UsernameClaimMapping">UsernameClaimMapping</a>)
+</p>
+<p>
+<p>UsernamePrefixPolicy specifies how a prefix should apply.</p>
+</p>
 <hr/>
 <h2 id="infrastructure.cluster.x-k8s.io/v1beta1">infrastructure.cluster.x-k8s.io/v1beta1</h2>
 <p>
@@ -18795,6 +19389,20 @@ string
 </tr>
 <tr>
 <td>
+<code>placementGroupPartition</code><br/>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PlacementGroupPartition is the partition number within the placement group in which to launch the instance.
+This value is only valid if the placement group, referred in <code>PlacementGroupName</code>, was created with
+strategy set to partition.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>tenancy</code><br/>
 <em>
 string
@@ -19171,6 +19779,20 @@ string
 <td>
 <em>(Optional)</em>
 <p>PlacementGroupName specifies the name of the placement group in which to launch the instance.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>placementGroupPartition</code><br/>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PlacementGroupPartition is the partition number within the placement group in which to launch the instance.
+This value is only valid if the placement group, referred in <code>PlacementGroupName</code>, was created with
+strategy set to partition.</p>
 </td>
 </tr>
 <tr>
@@ -19767,6 +20389,20 @@ string
 <td>
 <em>(Optional)</em>
 <p>PlacementGroupName specifies the name of the placement group in which to launch the instance.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>placementGroupPartition</code><br/>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PlacementGroupPartition is the partition number within the placement group in which to launch the instance.
+This value is only valid if the placement group, referred in <code>PlacementGroupName</code>, was created with
+strategy set to partition.</p>
 </td>
 </tr>
 <tr>
@@ -21560,6 +22196,20 @@ string
 </tr>
 <tr>
 <td>
+<code>placementGroupPartition</code><br/>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PlacementGroupPartition is the partition number within the placement group in which to launch the instance.
+This value is only valid if the placement group, referred in <code>PlacementGroupName</code>, was created with
+strategy set to partition.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>tenancy</code><br/>
 <em>
 string
@@ -21608,6 +22258,18 @@ PrivateDNSName
 <td>
 <em>(Optional)</em>
 <p>PrivateDNSName is the options for the instance hostname.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>publicIPOnLaunch</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PublicIPOnLaunch is the option to associate a public IP on instance launch</p>
 </td>
 </tr>
 </tbody>
