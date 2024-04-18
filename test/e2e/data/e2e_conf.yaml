@@ -20,11 +20,11 @@ images:
 ## PLEASE KEEP THESE UP TO DATE WITH THE COMPONENTS
 
   # Cluster API v1beta1 Preloads
-  - name: quay.io/jetstack/cert-manager-cainjector:v1.12.2
+  - name: quay.io/jetstack/cert-manager-cainjector:v1.14.4
     loadBehavior: tryLoad
-  - name: quay.io/jetstack/cert-manager-webhook:v1.12.2
+  - name: quay.io/jetstack/cert-manager-webhook:v1.14.4
     loadBehavior: tryLoad
-  - name: quay.io/jetstack/cert-manager-controller:v1.12.2
+  - name: quay.io/jetstack/cert-manager-controller:v1.14.4
     loadBehavior: tryLoad
   - name: registry.k8s.io/cluster-api/cluster-api-controller:v1.7.0
     loadBehavior: tryLoad
