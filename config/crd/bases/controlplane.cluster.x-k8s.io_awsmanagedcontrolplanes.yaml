@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.13.0
+    controller-gen.kubebuilder.io/version: v0.14.0
   name: awsmanagedcontrolplanes.controlplane.cluster.x-k8s.io
 spec:
   group: controlplane.cluster.x-k8s.io
@@ -47,14 +47,19 @@ spec:
           Control Plane API.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -65,9 +70,9 @@ spec:
               additionalTags:
                 additionalProperties:
                   type: string
-                description: AdditionalTags is an optional set of tags to add to AWS
-                  resources managed by the AWS provider, in addition to the ones added
-                  by default.
+                description: |-
+                  AdditionalTags is an optional set of tags to add to AWS resources managed by the AWS provider, in addition to the
+                  ones added by default.
                 type: object
               addons:
                 description: Addons defines the EKS addons to enable with the EKS
@@ -80,8 +85,9 @@ spec:
                       type: string
                     conflictResolution:
                       default: none
-                      description: ConflictResolution is used to declare what should
-                        happen if there are parameter conflicts. Defaults to none
+                      description: |-
+                        ConflictResolution is used to declare what should happen if there
+                        are parameter conflicts. Defaults to none
                       enum:
                       - overwrite
                       - none
@@ -104,38 +110,39 @@ spec:
                 type: array
               associateOIDCProvider:
                 default: false
-                description: AssociateOIDCProvider can be enabled to automatically
-                  create an identity provider for the controller for use with IAM
-                  roles for service accounts
+                description: |-
+                  AssociateOIDCProvider can be enabled to automatically create an identity
+                  provider for the controller for use with IAM roles for service accounts
                 type: boolean
               bastion:
                 description: Bastion contains options to configure the bastion host.
                 properties:
                   allowedCIDRBlocks:
-                    description: AllowedCIDRBlocks is a list of CIDR blocks allowed
-                      to access the bastion host. They are set as ingress rules for
-                      the Bastion host's Security Group (defaults to 0.0.0.0/0).
+                    description: |-
+                      AllowedCIDRBlocks is a list of CIDR blocks allowed to access the bastion host.
+                      They are set as ingress rules for the Bastion host's Security Group (defaults to 0.0.0.0/0).
                     items:
                       type: string
                     type: array
                   ami:
-                    description: AMI will use the specified AMI to boot the bastion.
-                      If not specified, the AMI will default to one picked out in
-                      public space.
+                    description: |-
+                      AMI will use the specified AMI to boot the bastion. If not specified,
+                      the AMI will default to one picked out in public space.
                     type: string
                   disableIngressRules:
-                    description: DisableIngressRules will ensure there are no Ingress
-                      rules in the bastion host's security group. Requires AllowedCIDRBlocks
-                      to be empty.
+                    description: |-
+                      DisableIngressRules will ensure there are no Ingress rules in the bastion host's security group.
+                      Requires AllowedCIDRBlocks to be empty.
                     type: boolean
                   enabled:
-                    description: Enabled allows this provider to create a bastion
-                      host instance with a public ip to access the VPC private network.
+                    description: |-
+                      Enabled allows this provider to create a bastion host instance
+                      with a public ip to access the VPC private network.
                     type: boolean
                   instanceType:
-                    description: InstanceType will use the specified instance type
-                      for the bastion. If not specified, Cluster API Provider AWS
-                      will use t3.micro for all regions except us-east-1, where t2.micro
+                    description: |-
+                      InstanceType will use the specified instance type for the bastion. If not specified,
+                      Cluster API Provider AWS will use t3.micro for all regions except us-east-1, where t2.micro
                       will be the default.
                     type: string
                 type: object
@@ -156,18 +163,18 @@ spec:
                 type: object
               disableVPCCNI:
                 default: false
-                description: DisableVPCCNI indicates that the Amazon VPC CNI should
-                  be disabled. With EKS clusters the Amazon VPC CNI is automatically
-                  installed into the cluster. For clusters where you want to use an
-                  alternate CNI this option provides a way to specify that the Amazon
-                  VPC CNI should be deleted. You cannot set this to true if you are
-                  using the Amazon VPC CNI addon.
+                description: |-
+                  DisableVPCCNI indicates that the Amazon VPC CNI should be disabled. With EKS clusters the
+                  Amazon VPC CNI is automatically installed into the cluster. For clusters where you want
+                  to use an alternate CNI this option provides a way to specify that the Amazon VPC CNI
+                  should be deleted. You cannot set this to true if you are using the
+                  Amazon VPC CNI addon.
                 type: boolean
               eksClusterName:
-                description: EKSClusterName allows you to specify the name of the
-                  EKS cluster in AWS. If you don't specify a name then a default name
-                  will be created based on the namespace and name of the managed control
-                  plane.
+                description: |-
+                  EKSClusterName allows you to specify the name of the EKS cluster in
+                  AWS. If you don't specify a name then a default name will be created
+                  based on the namespace and name of the managed control plane.
                 type: string
               encryptionConfig:
                 description: EncryptionConfig specifies the encryption configuration
@@ -203,10 +210,10 @@ spec:
                     type: array
                 type: object
               iamAuthenticatorConfig:
-                description: IAMAuthenticatorConfig allows the specification of any
-                  additional user or role mappings for use when generating the aws-iam-authenticator
-                  configuration. If this is nil the default configuration is still
-                  generated for the cluster.
+                description: |-
+                  IAMAuthenticatorConfig allows the specification of any additional user or role mappings
+                  for use when generating the aws-iam-authenticator configuration. If this is nil the
+                  default configuration is still generated for the cluster.
                 properties:
                   mapRoles:
                     description: RoleMappings is a list of role mappings
@@ -258,9 +265,9 @@ spec:
                     type: array
                 type: object
               identityRef:
-                description: IdentityRef is a reference to an identity to be used
-                  when reconciling the managed control plane. If no identity is specified,
-                  the default identity for this controller will be used.
+                description: |-
+                  IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
+                  If no identity is specified, the default identity for this controller will be used.
                 properties:
                   kind:
                     description: Kind of the identity.
@@ -278,30 +285,32 @@ spec:
                 - name
                 type: object
               imageLookupBaseOS:
-                description: ImageLookupBaseOS is the name of the base operating system
-                  used to look up machine images when a machine does not specify an
-                  AMI. When set, this will be used for all cluster machines unless
-                  a machine specifies a different ImageLookupBaseOS.
+                description: |-
+                  ImageLookupBaseOS is the name of the base operating system used to look
+                  up machine images when a machine does not specify an AMI. When set, this
+                  will be used for all cluster machines unless a machine specifies a
+                  different ImageLookupBaseOS.
                 type: string
               imageLookupFormat:
-                description: 'ImageLookupFormat is the AMI naming format to look up
-                  machine images when a machine does not specify an AMI. When set,
-                  this will be used for all cluster machines unless a machine specifies
-                  a different ImageLookupOrg. Supports substitutions for {{.BaseOS}}
-                  and {{.K8sVersion}} with the base OS and kubernetes version, respectively.
-                  The BaseOS will be the value in ImageLookupBaseOS or ubuntu (the
-                  default), and the kubernetes version as defined by the packages
-                  produced by kubernetes/release without v as a prefix: 1.13.0, 1.12.5-mybuild.1,
-                  or 1.17.3. For example, the default image format of capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*
-                  will end up searching for AMIs that match the pattern capa-ami-ubuntu-?1.18.0-*
-                  for a Machine that is targeting kubernetes v1.18.0 and the ubuntu
-                  base OS. See also: https://golang.org/pkg/text/template/'
+                description: |-
+                  ImageLookupFormat is the AMI naming format to look up machine images when
+                  a machine does not specify an AMI. When set, this will be used for all
+                  cluster machines unless a machine specifies a different ImageLookupOrg.
+                  Supports substitutions for {{.BaseOS}} and {{.K8sVersion}} with the base
+                  OS and kubernetes version, respectively. The BaseOS will be the value in
+                  ImageLookupBaseOS or ubuntu (the default), and the kubernetes version as
+                  defined by the packages produced by kubernetes/release without v as a
+                  prefix: 1.13.0, 1.12.5-mybuild.1, or 1.17.3. For example, the default
+                  image format of capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-* will end up
+                  searching for AMIs that match the pattern capa-ami-ubuntu-?1.18.0-* for a
+                  Machine that is targeting kubernetes v1.18.0 and the ubuntu base OS. See
+                  also: https://golang.org/pkg/text/template/
                 type: string
               imageLookupOrg:
-                description: ImageLookupOrg is the AWS Organization ID to look up
-                  machine images when a machine does not specify an AMI. When set,
-                  this will be used for all cluster machines unless a machine specifies
-                  a different ImageLookupOrg.
+                description: |-
+                  ImageLookupOrg is the AWS Organization ID to look up machine images when a
+                  machine does not specify an AMI. When set, this will be used for all
+                  cluster machines unless a machine specifies a different ImageLookupOrg.
                 type: string
               kubeProxy:
                 description: KubeProxy defines managed attributes of the kube-proxy
@@ -309,18 +318,18 @@ spec:
                 properties:
                   disable:
                     default: false
-                    description: Disable set to true indicates that kube-proxy should
-                      be disabled. With EKS clusters kube-proxy is automatically installed
-                      into the cluster. For clusters where you want to use kube-proxy
-                      functionality that is provided with an alternate CNI, this option
-                      provides a way to specify that the kube-proxy daemonset should
-                      be deleted. You cannot set this to true if you are using the
-                      Amazon kube-proxy addon.
+                    description: |-
+                      Disable set to true indicates that kube-proxy should be disabled. With EKS clusters
+                      kube-proxy is automatically installed into the cluster. For clusters where you want
+                      to use kube-proxy functionality that is provided with an alternate CNI, this option
+                      provides a way to specify that the kube-proxy daemonset should be deleted. You cannot
+                      set this to true if you are using the Amazon kube-proxy addon.
                     type: boolean
                 type: object
               logging:
-                description: Logging specifies which EKS Cluster logs should be enabled.
-                  Entries for each of the enabled logs will be sent to CloudWatch
+                description: |-
+                  Logging specifies which EKS Cluster logs should be enabled. Entries for
+                  each of the enabled logs will be sent to CloudWatch
                 properties:
                   apiServer:
                     default: false
@@ -404,9 +413,9 @@ spec:
                             type: string
                           type: array
                         sourceSecurityGroupRoles:
-                          description: The security group role to allow access from.
-                            Cannot be specified with CidrBlocks. The field will be
-                            combined with source security group IDs if specified.
+                          description: |-
+                            The security group role to allow access from. Cannot be specified with CidrBlocks.
+                            The field will be combined with source security group IDs if specified.
                           items:
                             description: SecurityGroupRole defines the unique role
                               of a security group.
@@ -434,10 +443,9 @@ spec:
                     description: CNI configuration
                     properties:
                       cniIngressRules:
-                        description: CNIIngressRules specify rules to apply to control
-                          plane and worker node security groups. The source for the
-                          rule will be set to control plane and worker security group
-                          IDs.
+                        description: |-
+                          CNIIngressRules specify rules to apply to control plane and worker node security groups.
+                          The source for the rule will be set to control plane and worker security group IDs.
                         items:
                           description: CNIIngressRule defines an AWS ingress rule
                             for CNI requirements.
@@ -465,9 +473,9 @@ spec:
                   securityGroupOverrides:
                     additionalProperties:
                       type: string
-                    description: SecurityGroupOverrides is an optional set of security
-                      groups to use for cluster instances This is optional - if not
-                      provided new security groups will be created for the cluster
+                    description: |-
+                      SecurityGroupOverrides is an optional set of security groups to use for cluster instances
+                      This is optional - if not provided new security groups will be created for the cluster
                     type: object
                   subnets:
                     description: Subnets configuration.
@@ -483,28 +491,27 @@ spec:
                             the provider creates a managed VPC.
                           type: string
                         id:
-                          description: "ID defines a unique identifier to reference
-                            this resource. If you're bringing your subnet, set the
-                            AWS subnet-id here, it must start with `subnet-`. \n When
-                            the VPC is managed by CAPA, and you'd like the provider
-                            to create a subnet for you, the id can be set to any placeholder
-                            value that does not start with `subnet-`; upon creation,
-                            the subnet AWS identifier will be populated in the `ResourceID`
-                            field and the `id` field is going to be used as the subnet
-                            name. If you specify a tag called `Name`, it takes precedence."
+                          description: |-
+                            ID defines a unique identifier to reference this resource.
+                            If you're bringing your subnet, set the AWS subnet-id here, it must start with `subnet-`.
+
+
+                            When the VPC is managed by CAPA, and you'd like the provider to create a subnet for you,
+                            the id can be set to any placeholder value that does not start with `subnet-`;
+                            upon creation, the subnet AWS identifier will be populated in the `ResourceID` field and
+                            the `id` field is going to be used as the subnet name. If you specify a tag
+                            called `Name`, it takes precedence.
                           type: string
                         ipv6CidrBlock:
-                          description: IPv6CidrBlock is the IPv6 CIDR block to be
-                            used when the provider creates a managed VPC. A subnet
-                            can have an IPv4 and an IPv6 address. IPv6 is only supported
-                            in managed clusters, this field cannot be set on AWSCluster
-                            object.
+                          description: |-
+                            IPv6CidrBlock is the IPv6 CIDR block to be used when the provider creates a managed VPC.
+                            A subnet can have an IPv4 and an IPv6 address.
+                            IPv6 is only supported in managed clusters, this field cannot be set on AWSCluster object.
                           type: string
                         isIpv6:
-                          description: IsIPv6 defines the subnet as an IPv6 subnet.
-                            A subnet is IPv6 when it is associated with a VPC that
-                            has IPv6 enabled. IPv6 is only supported in managed clusters,
-                            this field cannot be set on AWSCluster object.
+                          description: |-
+                            IsIPv6 defines the subnet as an IPv6 subnet. A subnet is IPv6 when it is associated with a VPC that has IPv6 enabled.
+                            IPv6 is only supported in managed clusters, this field cannot be set on AWSCluster object.
                           type: boolean
                         isPublic:
                           description: IsPublic defines the subnet as a public subnet.
@@ -512,17 +519,14 @@ spec:
                             table that has a route to an internet gateway.
                           type: boolean
                         natGatewayId:
-                          description: NatGatewayID is the NAT gateway id associated
-                            with the subnet. Ignored unless the subnet is managed
-                            by the provider, in which case this is set on the public
-                            subnet where the NAT gateway resides. It is then used
-                            to determine routes for private subnets in the same AZ
-                            as the public subnet.
+                          description: |-
+                            NatGatewayID is the NAT gateway id associated with the subnet.
+                            Ignored unless the subnet is managed by the provider, in which case this is set on the public subnet where the NAT gateway resides. It is then used to determine routes for private subnets in the same AZ as the public subnet.
                           type: string
                         resourceID:
-                          description: ResourceID is the subnet identifier from AWS,
-                            READ ONLY. This field is populated when the provider manages
-                            the subnet.
+                          description: |-
+                            ResourceID is the subnet identifier from AWS, READ ONLY.
+                            This field is populated when the provider manages the subnet.
                           type: string
                         routeTableId:
                           description: RouteTableID is the routing table id associated
@@ -546,40 +550,43 @@ spec:
                     properties:
                       availabilityZoneSelection:
                         default: Ordered
-                        description: 'AvailabilityZoneSelection specifies how AZs
-                          should be selected if there are more AZs in a region than
-                          specified by AvailabilityZoneUsageLimit. There are 2 selection
-                          schemes: Ordered - selects based on alphabetical order Random
-                          - selects AZs randomly in a region Defaults to Ordered'
+                        description: |-
+                          AvailabilityZoneSelection specifies how AZs should be selected if there are more AZs
+                          in a region than specified by AvailabilityZoneUsageLimit. There are 2 selection schemes:
+                          Ordered - selects based on alphabetical order
+                          Random - selects AZs randomly in a region
+                          Defaults to Ordered
                         enum:
                         - Ordered
                         - Random
                         type: string
                       availabilityZoneUsageLimit:
                         default: 3
-                        description: AvailabilityZoneUsageLimit specifies the maximum
-                          number of availability zones (AZ) that should be used in
-                          a region when automatically creating subnets. If a region
-                          has more than this number of AZs then this number of AZs
-                          will be picked randomly when creating default subnets. Defaults
-                          to 3
+                        description: |-
+                          AvailabilityZoneUsageLimit specifies the maximum number of availability zones (AZ) that
+                          should be used in a region when automatically creating subnets. If a region has more
+                          than this number of AZs then this number of AZs will be picked randomly when creating
+                          default subnets. Defaults to 3
                         minimum: 1
                         type: integer
                       cidrBlock:
-                        description: CidrBlock is the CIDR block to be used when the
-                          provider creates a managed VPC. Defaults to 10.0.0.0/16.
+                        description: |-
+                          CidrBlock is the CIDR block to be used when the provider creates a managed VPC.
+                          Defaults to 10.0.0.0/16.
                           Mutually exclusive with IPAMPool.
                         type: string
                       emptyRoutesDefaultVPCSecurityGroup:
-                        description: "EmptyRoutesDefaultVPCSecurityGroup specifies
-                          whether the default VPC security group ingress and egress
-                          rules should be removed. \n By default, when creating a
-                          VPC, AWS creates a security group called `default` with
-                          ingress and egress rules that allow traffic from anywhere.
-                          The group could be used as a potential surface attack and
-                          it's generally suggested that the group rules are removed
-                          or modified appropriately. \n NOTE: This only applies when
-                          the VPC is managed by the Cluster API AWS controller."
+                        description: |-
+                          EmptyRoutesDefaultVPCSecurityGroup specifies whether the default VPC security group ingress
+                          and egress rules should be removed.
+
+
+                          By default, when creating a VPC, AWS creates a security group called `default` with ingress and egress
+                          rules that allow traffic from anywhere. The group could be used as a potential surface attack and
+                          it's generally suggested that the group rules are removed or modified appropriately.
+
+
+                          NOTE: This only applies when the VPC is managed by the Cluster API AWS controller.
                         type: boolean
                       id:
                         description: ID is the vpc-id of the VPC this provider should
@@ -590,8 +597,9 @@ spec:
                           associated with the VPC.
                         type: string
                       ipamPool:
-                        description: IPAMPool defines the IPAMv4 pool to be used for
-                          VPC. Mutually exclusive with CidrBlock.
+                        description: |-
+                          IPAMPool defines the IPAMv4 pool to be used for VPC.
+                          Mutually exclusive with CidrBlock.
                         properties:
                           id:
                             description: ID is the ID of the IPAM pool this provider
@@ -602,20 +610,22 @@ spec:
                               should use to create VPC.
                             type: string
                           netmaskLength:
-                            description: The netmask length of the IPv4 CIDR you want
-                              to allocate to VPC from an Amazon VPC IP Address Manager
-                              (IPAM) pool. Defaults to /16 for IPv4 if not specified.
+                            description: |-
+                              The netmask length of the IPv4 CIDR you want to allocate to VPC from
+                              an Amazon VPC IP Address Manager (IPAM) pool.
+                              Defaults to /16 for IPv4 if not specified.
                             format: int64
                             type: integer
                         type: object
                       ipv6:
-                        description: IPv6 contains ipv6 specific settings for the
-                          network. Supported only in managed clusters. This field
-                          cannot be set on AWSCluster object.
+                        description: |-
+                          IPv6 contains ipv6 specific settings for the network. Supported only in managed clusters.
+                          This field cannot be set on AWSCluster object.
                         properties:
                           cidrBlock:
-                            description: CidrBlock is the CIDR block provided by Amazon
-                              when VPC has enabled IPv6. Mutually exclusive with IPAMPool.
+                            description: |-
+                              CidrBlock is the CIDR block provided by Amazon when VPC has enabled IPv6.
+                              Mutually exclusive with IPAMPool.
                             type: string
                           egressOnlyInternetGatewayId:
                             description: EgressOnlyInternetGatewayID is the id of
@@ -623,8 +633,9 @@ spec:
                               IPv6 enabled VPC.
                             type: string
                           ipamPool:
-                            description: IPAMPool defines the IPAMv6 pool to be used
-                              for VPC. Mutually exclusive with CidrBlock.
+                            description: |-
+                              IPAMPool defines the IPAMv6 pool to be used for VPC.
+                              Mutually exclusive with CidrBlock.
                             properties:
                               id:
                                 description: ID is the ID of the IPAM pool this provider
@@ -635,27 +646,25 @@ spec:
                                   provider should use to create VPC.
                                 type: string
                               netmaskLength:
-                                description: The netmask length of the IPv4 CIDR you
-                                  want to allocate to VPC from an Amazon VPC IP Address
-                                  Manager (IPAM) pool. Defaults to /16 for IPv4 if
-                                  not specified.
+                                description: |-
+                                  The netmask length of the IPv4 CIDR you want to allocate to VPC from
+                                  an Amazon VPC IP Address Manager (IPAM) pool.
+                                  Defaults to /16 for IPv4 if not specified.
                                 format: int64
                                 type: integer
                             type: object
                           poolId:
-                            description: PoolID is the IP pool which must be defined
-                              in case of BYO IP is defined. Must be specified if CidrBlock
-                              is set. Mutually exclusive with IPAMPool.
+                            description: |-
+                              PoolID is the IP pool which must be defined in case of BYO IP is defined.
+                              Must be specified if CidrBlock is set.
+                              Mutually exclusive with IPAMPool.
                             type: string
                         type: object
                       privateDnsHostnameTypeOnLaunch:
-                        description: PrivateDNSHostnameTypeOnLaunch is the type of
-                          hostname to assign to instances in the subnet at launch.
-                          For IPv4-only and dual-stack (IPv4 and IPv6) subnets, an
-                          instance DNS name can be based on the instance IPv4 address
-                          (ip-name) or the instance ID (resource-name). For IPv6 only
-                          subnets, an instance DNS name must be based on the instance
-                          ID (resource-name).
+                        description: |-
+                          PrivateDNSHostnameTypeOnLaunch is the type of hostname to assign to instances in the subnet at launch.
+                          For IPv4-only and dual-stack (IPv4 and IPv6) subnets, an instance DNS name can be based on the instance IPv4 address (ip-name)
+                          or the instance ID (resource-name). For IPv6 only subnets, an instance DNS name must be based on the instance ID (resource-name).
                         enum:
                         - ip-name
                         - resource-name
@@ -668,47 +677,50 @@ spec:
                     type: object
                 type: object
               oidcIdentityProviderConfig:
-                description: IdentityProviderconfig is used to specify the oidc provider
-                  config to be attached with this eks cluster
+                description: |-
+                  IdentityProviderconfig is used to specify the oidc provider config
+                  to be attached with this eks cluster
                 properties:
                   clientId:
-                    description: This is also known as audience. The ID for the client
-                      application that makes authentication requests to the OpenID
-                      identity provider.
+                    description: |-
+                      This is also known as audience. The ID for the client application that makes
+                      authentication requests to the OpenID identity provider.
                     type: string
                   groupsClaim:
                     description: The JWT claim that the provider uses to return your
                       groups.
                     type: string
                   groupsPrefix:
-                    description: 'The prefix that is prepended to group claims to
-                      prevent clashes with existing names (such as system: groups).
-                      For example, the valueoidc: will create group names like oidc:engineering
-                      and oidc:infra.'
+                    description: |-
+                      The prefix that is prepended to group claims to prevent clashes with existing
+                      names (such as system: groups). For example, the valueoidc: will create group
+                      names like oidc:engineering and oidc:infra.
                     type: string
                   identityProviderConfigName:
-                    description: "The name of the OIDC provider configuration. \n
-                      IdentityProviderConfigName is a required field"
+                    description: |-
+                      The name of the OIDC provider configuration.
+
+
+                      IdentityProviderConfigName is a required field
                     type: string
                   issuerUrl:
-                    description: The URL of the OpenID identity provider that allows
-                      the API server to discover public signing keys for verifying
-                      tokens. The URL must begin with https:// and should correspond
-                      to the iss claim in the provider's OIDC ID tokens. Per the OIDC
-                      standard, path components are allowed but query parameters are
+                    description: |-
+                      The URL of the OpenID identity provider that allows the API server to discover
+                      public signing keys for verifying tokens. The URL must begin with https://
+                      and should correspond to the iss claim in the provider's OIDC ID tokens.
+                      Per the OIDC standard, path components are allowed but query parameters are
                       not. Typically the URL consists of only a hostname, like https://server.example.org
-                      or https://example.com. This URL should point to the level below
-                      .well-known/openid-configuration and must be publicly accessible
-                      over the internet.
+                      or https://example.com. This URL should point to the level below .well-known/openid-configuration
+                      and must be publicly accessible over the internet.
                     type: string
                   requiredClaims:
                     additionalProperties:
                       type: string
-                    description: The key value pairs that describe required claims
-                      in the identity token. If set, each claim is verified to be
-                      present in the token with a matching value. For the maximum
-                      number of claims that you can require, see Amazon EKS service
-                      quotas (https://docs.aws.amazon.com/eks/latest/userguide/service-quotas.html)
+                    description: |-
+                      The key value pairs that describe required claims in the identity token.
+                      If set, each claim is verified to be present in the token with a matching
+                      value. For the maximum number of claims that you can require, see Amazon
+                      EKS service quotas (https://docs.aws.amazon.com/eks/latest/userguide/service-quotas.html)
                       in the Amazon EKS User Guide.
                     type: object
                   tags:
@@ -717,41 +729,45 @@ spec:
                     description: tags to apply to oidc identity provider association
                     type: object
                   usernameClaim:
-                    description: The JSON Web Token (JWT) claim to use as the username.
-                      The default is sub, which is expected to be a unique identifier
-                      of the end user. You can choose other claims, such as email
-                      or name, depending on the OpenID identity provider. Claims other
-                      than email are prefixed with the issuer URL to prevent naming
+                    description: |-
+                      The JSON Web Token (JWT) claim to use as the username. The default is sub,
+                      which is expected to be a unique identifier of the end user. You can choose
+                      other claims, such as email or name, depending on the OpenID identity provider.
+                      Claims other than email are prefixed with the issuer URL to prevent naming
                       clashes with other plug-ins.
                     type: string
                   usernamePrefix:
-                    description: The prefix that is prepended to username claims to
-                      prevent clashes with existing names. If you do not provide this
-                      field, and username is a value other than email, the prefix
-                      defaults to issuerurl#. You can use the value - to disable all
-                      prefixing.
+                    description: |-
+                      The prefix that is prepended to username claims to prevent clashes with existing
+                      names. If you do not provide this field, and username is a value other than
+                      email, the prefix defaults to issuerurl#. You can use the value - to disable
+                      all prefixing.
                     type: string
                 type: object
               region:
                 description: The AWS Region the cluster lives in.
                 type: string
               roleAdditionalPolicies:
-                description: RoleAdditionalPolicies allows you to attach additional
-                  polices to the control plane role. You must enable the EKSAllowAddRoles
+                description: |-
+                  RoleAdditionalPolicies allows you to attach additional polices to
+                  the control plane role. You must enable the EKSAllowAddRoles
                   feature flag to incorporate these into the created role.
                 items:
                   type: string
                 type: array
               roleName:
-                description: RoleName specifies the name of IAM role that gives EKS
-                  permission to make API calls. If the role is pre-existing we will
-                  treat it as unmanaged and not delete it on deletion. If the EKSEnableIAM
-                  feature flag is true and no name is supplied then a role is created.
+                description: |-
+                  RoleName specifies the name of IAM role that gives EKS
+                  permission to make API calls. If the role is pre-existing
+                  we will treat it as unmanaged and not delete it on
+                  deletion. If the EKSEnableIAM feature flag is true
+                  and no name is supplied then a role is created.
                 minLength: 2
                 type: string
               secondaryCidrBlock:
-                description: SecondaryCidrBlock is the additional CIDR range to use
-                  for pod IPs. Must be within the 100.64.0.0/10 or 198.19.0.0/16 range.
+                description: |-
+                  SecondaryCidrBlock is the additional CIDR range to use for pod IPs.
+                  Must be within the 100.64.0.0/10 or 198.19.0.0/16 range.
                 type: string
               sshKeyName:
                 description: SSHKeyName is the name of the ssh key to attach to the
@@ -760,18 +776,20 @@ spec:
                 type: string
               tokenMethod:
                 default: iam-authenticator
-                description: TokenMethod is used to specify the method for obtaining
-                  a client token for communicating with EKS iam-authenticator - obtains
-                  a client token using iam-authentictor aws-cli - obtains a client
-                  token using the AWS CLI Defaults to iam-authenticator
+                description: |-
+                  TokenMethod is used to specify the method for obtaining a client token for communicating with EKS
+                  iam-authenticator - obtains a client token using iam-authentictor
+                  aws-cli - obtains a client token using the AWS CLI
+                  Defaults to iam-authenticator
                 enum:
                 - iam-authenticator
                 - aws-cli
                 type: string
               version:
-                description: Version defines the desired Kubernetes version. If no
-                  version number is supplied then the latest version of Kubernetes
-                  that EKS supports will be used.
+                description: |-
+                  Version defines the desired Kubernetes version. If no version number
+                  is supplied then the latest version of Kubernetes that EKS supports
+                  will be used.
                 minLength: 2
                 pattern: ^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.?(\.0|[1-9][0-9]*)?$
                 type: string
@@ -791,15 +809,16 @@ spec:
                             C_IDENTIFIER.
                           type: string
                         value:
-                          description: 'Variable references $(VAR_NAME) are expanded
-                            using the previously defined environment variables in
-                            the container and any service environment variables. If
-                            a variable cannot be resolved, the reference in the input
-                            string will be unchanged. Double $$ are reduced to a single
-                            $, which allows for escaping the $(VAR_NAME) syntax: i.e.
+                          description: |-
+                            Variable references $(VAR_NAME) are expanded
+                            using the previously defined environment variables in the container and
+                            any service environment variables. If a variable cannot be resolved,
+                            the reference in the input string will be unchanged. Double $$ are reduced
+                            to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e.
                             "$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)".
-                            Escaped references will never be expanded, regardless
-                            of whether the variable exists or not. Defaults to "".'
+                            Escaped references will never be expanded, regardless of whether the variable
+                            exists or not.
+                            Defaults to "".
                           type: string
                         valueFrom:
                           description: Source for the environment variable's value.
@@ -812,9 +831,10 @@ spec:
                                   description: The key to select.
                                   type: string
                                 name:
-                                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                    TODO: Add other useful fields. apiVersion, kind,
-                                    uid?'
+                                  description: |-
+                                    Name of the referent.
+                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    TODO: Add other useful fields. apiVersion, kind, uid?
                                   type: string
                                 optional:
                                   description: Specify whether the ConfigMap or its
@@ -825,11 +845,9 @@ spec:
                               type: object
                               x-kubernetes-map-type: atomic
                             fieldRef:
-                              description: 'Selects a field of the pod: supports metadata.name,
-                                metadata.namespace, `metadata.labels[''<KEY>'']`,
-                                `metadata.annotations[''<KEY>'']`, spec.nodeName,
-                                spec.serviceAccountName, status.hostIP, status.podIP,
-                                status.podIPs.'
+                              description: |-
+                                Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+                                spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.
                               properties:
                                 apiVersion:
                                   description: Version of the schema the FieldPath
@@ -844,10 +862,9 @@ spec:
                               type: object
                               x-kubernetes-map-type: atomic
                             resourceFieldRef:
-                              description: 'Selects a resource of the container: only
-                                resources limits and requests (limits.cpu, limits.memory,
-                                limits.ephemeral-storage, requests.cpu, requests.memory
-                                and requests.ephemeral-storage) are currently supported.'
+                              description: |-
+                                Selects a resource of the container: only resources limits and requests
+                                (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
                               properties:
                                 containerName:
                                   description: 'Container name: required for volumes,
@@ -877,9 +894,10 @@ spec:
                                     be a valid secret key.
                                   type: string
                                 name:
-                                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                    TODO: Add other useful fields. apiVersion, kind,
-                                    uid?'
+                                  description: |-
+                                    Name of the referent.
+                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    TODO: Add other useful fields. apiVersion, kind, uid?
                                   type: string
                                 optional:
                                   description: Specify whether the Secret or its key
@@ -1005,48 +1023,64 @@ spec:
                     properties:
                       httpEndpoint:
                         default: enabled
-                        description: "Enables or disables the HTTP metadata endpoint
-                          on your instances. \n If you specify a value of disabled,
-                          you cannot access your instance metadata. \n Default: enabled"
+                        description: |-
+                          Enables or disables the HTTP metadata endpoint on your instances.
+
+
+                          If you specify a value of disabled, you cannot access your instance metadata.
+
+
+                          Default: enabled
                         enum:
                         - enabled
                         - disabled
                         type: string
                       httpPutResponseHopLimit:
                         default: 1
-                        description: "The desired HTTP PUT response hop limit for
-                          instance metadata requests. The larger the number, the further
-                          instance metadata requests can travel. \n Default: 1"
+                        description: |-
+                          The desired HTTP PUT response hop limit for instance metadata requests. The
+                          larger the number, the further instance metadata requests can travel.
+
+
+                          Default: 1
                         format: int64
                         maximum: 64
                         minimum: 1
                         type: integer
                       httpTokens:
                         default: optional
-                        description: "The state of token usage for your instance metadata
-                          requests. \n If the state is optional, you can choose to
-                          retrieve instance metadata with or without a session token
-                          on your request. If you retrieve the IAM role credentials
-                          without a token, the version 1.0 role credentials are returned.
-                          If you retrieve the IAM role credentials using a valid session
-                          token, the version 2.0 role credentials are returned. \n
-                          If the state is required, you must send a session token
-                          with any instance metadata retrieval requests. In this state,
-                          retrieving the IAM role credentials always returns the version
-                          2.0 credentials; the version 1.0 credentials are not available.
-                          \n Default: optional"
+                        description: |-
+                          The state of token usage for your instance metadata requests.
+
+
+                          If the state is optional, you can choose to retrieve instance metadata with
+                          or without a session token on your request. If you retrieve the IAM role
+                          credentials without a token, the version 1.0 role credentials are returned.
+                          If you retrieve the IAM role credentials using a valid session token, the
+                          version 2.0 role credentials are returned.
+
+
+                          If the state is required, you must send a session token with any instance
+                          metadata retrieval requests. In this state, retrieving the IAM role credentials
+                          always returns the version 2.0 credentials; the version 1.0 credentials are
+                          not available.
+
+
+                          Default: optional
                         enum:
                         - optional
                         - required
                         type: string
                       instanceMetadataTags:
                         default: disabled
-                        description: "Set to enabled to allow access to instance tags
-                          from the instance metadata. Set to disabled to turn off
-                          access to instance tags from the instance metadata. For
-                          more information, see Work with instance tags using the
-                          instance metadata (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html#work-with-tags-in-IMDS).
-                          \n Default: disabled"
+                        description: |-
+                          Set to enabled to allow access to instance tags from the instance metadata.
+                          Set to disabled to turn off access to instance tags from the instance metadata.
+                          For more information, see Work with instance tags using the instance metadata
+                          (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html#work-with-tags-in-IMDS).
+
+
+                          Default: disabled
                         enum:
                         - enabled
                         - disabled
@@ -1074,11 +1108,10 @@ spec:
                             or not.
                           type: boolean
                         encryptionKey:
-                          description: EncryptionKey is the KMS key to use to encrypt
-                            the volume. Can be either a KMS key ID or ARN. If Encrypted
-                            is set and this is omitted, the default AWS key will be
-                            used. The key must already exist and be accessible by
-                            the controller.
+                          description: |-
+                            EncryptionKey is the KMS key to use to encrypt the volume. Can be either a KMS key ID or ARN.
+                            If Encrypted is set and this is omitted, the default AWS key will be used.
+                            The key must already exist and be accessible by the controller.
                           type: string
                         iops:
                           description: IOPS is the number of IOPS requested for the
@@ -1086,9 +1119,9 @@ spec:
                           format: int64
                           type: integer
                         size:
-                          description: Size specifies size (in Gi) of the storage
-                            device. Must be greater than the image snapshot size or
-                            8 (whichever is greater).
+                          description: |-
+                            Size specifies size (in Gi) of the storage device.
+                            Must be greater than the image snapshot size or 8 (whichever is greater).
                           format: int64
                           minimum: 8
                           type: integer
@@ -1110,10 +1143,10 @@ spec:
                       group in which to launch the instance.
                     type: string
                   placementGroupPartition:
-                    description: PlacementGroupPartition is the partition number within
-                      the placement group in which to launch the instance. This value
-                      is only valid if the placement group, referred in `PlacementGroupName`,
-                      was created with strategy set to partition.
+                    description: |-
+                      PlacementGroupPartition is the partition number within the placement group in which to launch the instance.
+                      This value is only valid if the placement group, referred in `PlacementGroupName`, was created with
+                      strategy set to partition.
                     format: int64
                     maximum: 7
                     minimum: 1
@@ -1160,11 +1193,10 @@ spec:
                           or not.
                         type: boolean
                       encryptionKey:
-                        description: EncryptionKey is the KMS key to use to encrypt
-                          the volume. Can be either a KMS key ID or ARN. If Encrypted
-                          is set and this is omitted, the default AWS key will be
-                          used. The key must already exist and be accessible by the
-                          controller.
+                        description: |-
+                          EncryptionKey is the KMS key to use to encrypt the volume. Can be either a KMS key ID or ARN.
+                          If Encrypted is set and this is omitted, the default AWS key will be used.
+                          The key must already exist and be accessible by the controller.
                         type: string
                       iops:
                         description: IOPS is the number of IOPS requested for the
@@ -1172,9 +1204,9 @@ spec:
                         format: int64
                         type: integer
                       size:
-                        description: Size specifies size (in Gi) of the storage device.
-                          Must be greater than the image snapshot size or 8 (whichever
-                          is greater).
+                        description: |-
+                          Size specifies size (in Gi) of the storage device.
+                          Must be greater than the image snapshot size or 8 (whichever is greater).
                         format: int64
                         minimum: 8
                         type: integer
@@ -1224,9 +1256,9 @@ spec:
                     description: The instance type.
                     type: string
                   userData:
-                    description: UserData is the raw data script passed to the instance
-                      which is run upon bootstrap. This field must not be base64 encoded
-                      and should only be used when running a new instance.
+                    description: |-
+                      UserData is the raw data script passed to the instance which is run upon bootstrap.
+                      This field must not be base64 encoded and should only be used when running a new instance.
                     type: string
                   volumeIDs:
                     description: IDs of the instance's volumes
@@ -1244,37 +1276,37 @@ spec:
                     operational state.
                   properties:
                     lastTransitionTime:
-                      description: Last time the condition transitioned from one status
-                        to another. This should be when the underlying condition changed.
-                        If that is not known, then using the time when the API field
-                        changed is acceptable.
+                      description: |-
+                        Last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed. If that is not known, then using the time when
+                        the API field changed is acceptable.
                       format: date-time
                       type: string
                     message:
-                      description: A human readable message indicating details about
-                        the transition. This field may be empty.
+                      description: |-
+                        A human readable message indicating details about the transition.
+                        This field may be empty.
                       type: string
                     reason:
-                      description: The reason for the condition's last transition
-                        in CamelCase. The specific API may choose whether or not this
-                        field is considered a guaranteed API. This field may not be
-                        empty.
+                      description: |-
+                        The reason for the condition's last transition in CamelCase.
+                        The specific API may choose whether or not this field is considered a guaranteed API.
+                        This field may not be empty.
                       type: string
                     severity:
-                      description: Severity provides an explicit classification of
-                        Reason code, so the users or machines can immediately understand
-                        the current situation and act accordingly. The Severity field
-                        MUST be set only when Status=False.
+                      description: |-
+                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        understand the current situation and act accordingly.
+                        The Severity field MUST be set only when Status=False.
                       type: string
                     status:
                       description: Status of the condition, one of True, False, Unknown.
                       type: string
                     type:
-                      description: Type of condition in CamelCase or in foo.example.com/CamelCase.
-                        Many .condition.type values are consistent across resources
-                        like Available, but because arbitrary conditions can be useful
-                        (see .node.status.conditions), the ability to deconflict is
-                        important.
+                      description: |-
+                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
+                        can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
                   required:
                   - lastTransitionTime
@@ -1284,15 +1316,15 @@ spec:
                 type: array
               externalManagedControlPlane:
                 default: true
-                description: ExternalManagedControlPlane indicates to cluster-api
-                  that the control plane is managed by an external service such as
-                  AKS, EKS, GKE, etc.
+                description: |-
+                  ExternalManagedControlPlane indicates to cluster-api that the control plane
+                  is managed by an external service such as AKS, EKS, GKE, etc.
                 type: boolean
               failureDomains:
                 additionalProperties:
-                  description: FailureDomainSpec is the Schema for Cluster API failure
-                    domains. It allows controllers to understand how many failure
-                    domains a cluster can optionally span across.
+                  description: |-
+                    FailureDomainSpec is the Schema for Cluster API failure domains.
+                    It allows controllers to understand how many failure domains a cluster can optionally span across.
                   properties:
                     attributes:
                       additionalProperties:
@@ -1309,12 +1341,14 @@ spec:
                   zones that can be used
                 type: object
               failureMessage:
-                description: ErrorMessage indicates that there is a terminal problem
-                  reconciling the state, and will be set to a descriptive error message.
+                description: |-
+                  ErrorMessage indicates that there is a terminal problem reconciling the
+                  state, and will be set to a descriptive error message.
                 type: string
               identityProviderStatus:
-                description: IdentityProviderStatus holds the status for associated
-                  identity provider
+                description: |-
+                  IdentityProviderStatus holds the status for
+                  associated identity provider
                 properties:
                   arn:
                     description: ARN holds the ARN of associated identity provider
@@ -1325,8 +1359,9 @@ spec:
                     type: string
                 type: object
               initialized:
-                description: Initialized denotes whether or not the control plane
-                  has the uploaded kubernetes config-map.
+                description: |-
+                  Initialized denotes whether or not the control plane has the
+                  uploaded kubernetes config-map.
                 type: boolean
               networkStatus:
                 description: Networks holds details about the AWS networking resources
@@ -1336,8 +1371,9 @@ spec:
                     description: APIServerELB is the Kubernetes api server load balancer.
                     properties:
                       arn:
-                        description: ARN of the load balancer. Unlike the ClassicLB,
-                          ARN is used mostly to define and get it.
+                        description: |-
+                          ARN of the load balancer. Unlike the ClassicLB, ARN is used mostly
+                          to define and get it.
                         type: string
                       attributes:
                         description: ClassicElbAttributes defines extra attributes
@@ -1348,9 +1384,9 @@ spec:
                               load balancer load balancing.
                             type: boolean
                           idleTimeout:
-                            description: IdleTimeout is time that the connection is
-                              allowed to be idle (no data has been sent over the connection)
-                              before it is closed by the load balancer.
+                            description: |-
+                              IdleTimeout is time that the connection is allowed to be idle (no data
+                              has been sent over the connection) before it is closed by the load balancer.
                             format: int64
                             type: integer
                         type: object
@@ -1384,9 +1420,9 @@ spec:
                                 for a load balancer.
                               type: string
                             targetGroup:
-                              description: TargetGroupSpec specifies target group
-                                settings for a given listener. This is created first,
-                                and the ARN is then passed to the listener.
+                              description: |-
+                                TargetGroupSpec specifies target group settings for a given listener.
+                                This is created first, and the ARN is then passed to the listener.
                               properties:
                                 name:
                                   description: Name of the TargetGroup. Must be unique
@@ -1449,19 +1485,19 @@ spec:
                             format: int64
                             type: integer
                           interval:
-                            description: A Duration represents the elapsed time between
-                              two instants as an int64 nanosecond count. The representation
-                              limits the largest representable duration to approximately
-                              290 years.
+                            description: |-
+                              A Duration represents the elapsed time between two instants
+                              as an int64 nanosecond count. The representation limits the
+                              largest representable duration to approximately 290 years.
                             format: int64
                             type: integer
                           target:
                             type: string
                           timeout:
-                            description: A Duration represents the elapsed time between
-                              two instants as an int64 nanosecond count. The representation
-                              limits the largest representable duration to approximately
-                              290 years.
+                            description: |-
+                              A Duration represents the elapsed time between two instants
+                              as an int64 nanosecond count. The representation limits the
+                              largest representable duration to approximately 290 years.
                             format: int64
                             type: integer
                           unhealthyThreshold:
@@ -1513,9 +1549,9 @@ spec:
                         - nlb
                         type: string
                       name:
-                        description: The name of the load balancer. It must be unique
-                          within the set of load balancers defined in the region.
-                          It also serves as identifier.
+                        description: |-
+                          The name of the load balancer. It must be unique within the set of load balancers
+                          defined in the region. It also serves as identifier.
                         type: string
                       scheme:
                         description: Scheme is the load balancer scheme, either internet-facing
@@ -1551,8 +1587,9 @@ spec:
                       api server load balancer.
                     properties:
                       arn:
-                        description: ARN of the load balancer. Unlike the ClassicLB,
-                          ARN is used mostly to define and get it.
+                        description: |-
+                          ARN of the load balancer. Unlike the ClassicLB, ARN is used mostly
+                          to define and get it.
                         type: string
                       attributes:
                         description: ClassicElbAttributes defines extra attributes
@@ -1563,9 +1600,9 @@ spec:
                               load balancer load balancing.
                             type: boolean
                           idleTimeout:
-                            description: IdleTimeout is time that the connection is
-                              allowed to be idle (no data has been sent over the connection)
-                              before it is closed by the load balancer.
+                            description: |-
+                              IdleTimeout is time that the connection is allowed to be idle (no data
+                              has been sent over the connection) before it is closed by the load balancer.
                             format: int64
                             type: integer
                         type: object
@@ -1599,9 +1636,9 @@ spec:
                                 for a load balancer.
                               type: string
                             targetGroup:
-                              description: TargetGroupSpec specifies target group
-                                settings for a given listener. This is created first,
-                                and the ARN is then passed to the listener.
+                              description: |-
+                                TargetGroupSpec specifies target group settings for a given listener.
+                                This is created first, and the ARN is then passed to the listener.
                               properties:
                                 name:
                                   description: Name of the TargetGroup. Must be unique
@@ -1664,19 +1701,19 @@ spec:
                             format: int64
                             type: integer
                           interval:
-                            description: A Duration represents the elapsed time between
-                              two instants as an int64 nanosecond count. The representation
-                              limits the largest representable duration to approximately
-                              290 years.
+                            description: |-
+                              A Duration represents the elapsed time between two instants
+                              as an int64 nanosecond count. The representation limits the
+                              largest representable duration to approximately 290 years.
                             format: int64
                             type: integer
                           target:
                             type: string
                           timeout:
-                            description: A Duration represents the elapsed time between
-                              two instants as an int64 nanosecond count. The representation
-                              limits the largest representable duration to approximately
-                              290 years.
+                            description: |-
+                              A Duration represents the elapsed time between two instants
+                              as an int64 nanosecond count. The representation limits the
+                              largest representable duration to approximately 290 years.
                             format: int64
                             type: integer
                           unhealthyThreshold:
@@ -1728,9 +1765,9 @@ spec:
                         - nlb
                         type: string
                       name:
-                        description: The name of the load balancer. It must be unique
-                          within the set of load balancers defined in the region.
-                          It also serves as identifier.
+                        description: |-
+                          The name of the load balancer. It must be unique within the set of load balancers
+                          defined in the region. It also serves as identifier.
                         type: string
                       scheme:
                         description: Scheme is the load balancer scheme, either internet-facing
@@ -1810,10 +1847,9 @@ spec:
                                   type: string
                                 type: array
                               sourceSecurityGroupRoles:
-                                description: The security group role to allow access
-                                  from. Cannot be specified with CidrBlocks. The field
-                                  will be combined with source security group IDs
-                                  if specified.
+                                description: |-
+                                  The security group role to allow access from. Cannot be specified with CidrBlocks.
+                                  The field will be combined with source security group IDs if specified.
                                 items:
                                   description: SecurityGroupRole defines the unique
                                     role of a security group.
@@ -1868,8 +1904,9 @@ spec:
                 type: object
               ready:
                 default: false
-                description: Ready denotes that the AWSManagedControlPlane API Server
-                  is ready to receive requests and that the VPC infra is ready.
+                description: |-
+                  Ready denotes that the AWSManagedControlPlane API Server is ready to
+                  receive requests and that the VPC infra is ready.
                 type: boolean
             required:
             - ready
@@ -1908,14 +1945,19 @@ spec:
           Control Plane API.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -1926,9 +1968,9 @@ spec:
               additionalTags:
                 additionalProperties:
                   type: string
-                description: AdditionalTags is an optional set of tags to add to AWS
-                  resources managed by the AWS provider, in addition to the ones added
-                  by default.
+                description: |-
+                  AdditionalTags is an optional set of tags to add to AWS resources managed by the AWS provider, in addition to the
+                  ones added by default.
                 type: object
               addons:
                 description: Addons defines the EKS addons to enable with the EKS
@@ -1941,8 +1983,9 @@ spec:
                       type: string
                     conflictResolution:
                       default: overwrite
-                      description: ConflictResolution is used to declare what should
-                        happen if there are parameter conflicts. Defaults to none
+                      description: |-
+                        ConflictResolution is used to declare what should happen if there
+                        are parameter conflicts. Defaults to none
                       enum:
                       - overwrite
                       - none
@@ -1965,38 +2008,39 @@ spec:
                 type: array
               associateOIDCProvider:
                 default: false
-                description: AssociateOIDCProvider can be enabled to automatically
-                  create an identity provider for the controller for use with IAM
-                  roles for service accounts
+                description: |-
+                  AssociateOIDCProvider can be enabled to automatically create an identity
+                  provider for the controller for use with IAM roles for service accounts
                 type: boolean
               bastion:
                 description: Bastion contains options to configure the bastion host.
                 properties:
                   allowedCIDRBlocks:
-                    description: AllowedCIDRBlocks is a list of CIDR blocks allowed
-                      to access the bastion host. They are set as ingress rules for
-                      the Bastion host's Security Group (defaults to 0.0.0.0/0).
+                    description: |-
+                      AllowedCIDRBlocks is a list of CIDR blocks allowed to access the bastion host.
+                      They are set as ingress rules for the Bastion host's Security Group (defaults to 0.0.0.0/0).
                     items:
                       type: string
                     type: array
                   ami:
-                    description: AMI will use the specified AMI to boot the bastion.
-                      If not specified, the AMI will default to one picked out in
-                      public space.
+                    description: |-
+                      AMI will use the specified AMI to boot the bastion. If not specified,
+                      the AMI will default to one picked out in public space.
                     type: string
                   disableIngressRules:
-                    description: DisableIngressRules will ensure there are no Ingress
-                      rules in the bastion host's security group. Requires AllowedCIDRBlocks
-                      to be empty.
+                    description: |-
+                      DisableIngressRules will ensure there are no Ingress rules in the bastion host's security group.
+                      Requires AllowedCIDRBlocks to be empty.
                     type: boolean
                   enabled:
-                    description: Enabled allows this provider to create a bastion
-                      host instance with a public ip to access the VPC private network.
+                    description: |-
+                      Enabled allows this provider to create a bastion host instance
+                      with a public ip to access the VPC private network.
                     type: boolean
                   instanceType:
-                    description: InstanceType will use the specified instance type
-                      for the bastion. If not specified, Cluster API Provider AWS
-                      will use t3.micro for all regions except us-east-1, where t2.micro
+                    description: |-
+                      InstanceType will use the specified instance type for the bastion. If not specified,
+                      Cluster API Provider AWS will use t3.micro for all regions except us-east-1, where t2.micro
                       will be the default.
                     type: string
                 type: object
@@ -2016,10 +2060,10 @@ spec:
                 - port
                 type: object
               eksClusterName:
-                description: EKSClusterName allows you to specify the name of the
-                  EKS cluster in AWS. If you don't specify a name then a default name
-                  will be created based on the namespace and name of the managed control
-                  plane.
+                description: |-
+                  EKSClusterName allows you to specify the name of the EKS cluster in
+                  AWS. If you don't specify a name then a default name will be created
+                  based on the namespace and name of the managed control plane.
                 type: string
               encryptionConfig:
                 description: EncryptionConfig specifies the encryption configuration
@@ -2055,10 +2099,10 @@ spec:
                     type: array
                 type: object
               iamAuthenticatorConfig:
-                description: IAMAuthenticatorConfig allows the specification of any
-                  additional user or role mappings for use when generating the aws-iam-authenticator
-                  configuration. If this is nil the default configuration is still
-                  generated for the cluster.
+                description: |-
+                  IAMAuthenticatorConfig allows the specification of any additional user or role mappings
+                  for use when generating the aws-iam-authenticator configuration. If this is nil the
+                  default configuration is still generated for the cluster.
                 properties:
                   mapRoles:
                     description: RoleMappings is a list of role mappings
@@ -2110,9 +2154,9 @@ spec:
                     type: array
                 type: object
               identityRef:
-                description: IdentityRef is a reference to an identity to be used
-                  when reconciling the managed control plane. If no identity is specified,
-                  the default identity for this controller will be used.
+                description: |-
+                  IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
+                  If no identity is specified, the default identity for this controller will be used.
                 properties:
                   kind:
                     description: Kind of the identity.
@@ -2130,30 +2174,32 @@ spec:
                 - name
                 type: object
               imageLookupBaseOS:
-                description: ImageLookupBaseOS is the name of the base operating system
-                  used to look up machine images when a machine does not specify an
-                  AMI. When set, this will be used for all cluster machines unless
-                  a machine specifies a different ImageLookupBaseOS.
+                description: |-
+                  ImageLookupBaseOS is the name of the base operating system used to look
+                  up machine images when a machine does not specify an AMI. When set, this
+                  will be used for all cluster machines unless a machine specifies a
+                  different ImageLookupBaseOS.
                 type: string
               imageLookupFormat:
-                description: 'ImageLookupFormat is the AMI naming format to look up
-                  machine images when a machine does not specify an AMI. When set,
-                  this will be used for all cluster machines unless a machine specifies
-                  a different ImageLookupOrg. Supports substitutions for {{.BaseOS}}
-                  and {{.K8sVersion}} with the base OS and kubernetes version, respectively.
-                  The BaseOS will be the value in ImageLookupBaseOS or ubuntu (the
-                  default), and the kubernetes version as defined by the packages
-                  produced by kubernetes/release without v as a prefix: 1.13.0, 1.12.5-mybuild.1,
-                  or 1.17.3. For example, the default image format of capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*
-                  will end up searching for AMIs that match the pattern capa-ami-ubuntu-?1.18.0-*
-                  for a Machine that is targeting kubernetes v1.18.0 and the ubuntu
-                  base OS. See also: https://golang.org/pkg/text/template/'
+                description: |-
+                  ImageLookupFormat is the AMI naming format to look up machine images when
+                  a machine does not specify an AMI. When set, this will be used for all
+                  cluster machines unless a machine specifies a different ImageLookupOrg.
+                  Supports substitutions for {{.BaseOS}} and {{.K8sVersion}} with the base
+                  OS and kubernetes version, respectively. The BaseOS will be the value in
+                  ImageLookupBaseOS or ubuntu (the default), and the kubernetes version as
+                  defined by the packages produced by kubernetes/release without v as a
+                  prefix: 1.13.0, 1.12.5-mybuild.1, or 1.17.3. For example, the default
+                  image format of capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-* will end up
+                  searching for AMIs that match the pattern capa-ami-ubuntu-?1.18.0-* for a
+                  Machine that is targeting kubernetes v1.18.0 and the ubuntu base OS. See
+                  also: https://golang.org/pkg/text/template/
                 type: string
               imageLookupOrg:
-                description: ImageLookupOrg is the AWS Organization ID to look up
-                  machine images when a machine does not specify an AMI. When set,
-                  this will be used for all cluster machines unless a machine specifies
-                  a different ImageLookupOrg.
+                description: |-
+                  ImageLookupOrg is the AWS Organization ID to look up machine images when a
+                  machine does not specify an AMI. When set, this will be used for all
+                  cluster machines unless a machine specifies a different ImageLookupOrg.
                 type: string
               kubeProxy:
                 description: KubeProxy defines managed attributes of the kube-proxy
@@ -2161,18 +2207,18 @@ spec:
                 properties:
                   disable:
                     default: false
-                    description: Disable set to true indicates that kube-proxy should
-                      be disabled. With EKS clusters kube-proxy is automatically installed
-                      into the cluster. For clusters where you want to use kube-proxy
-                      functionality that is provided with an alternate CNI, this option
-                      provides a way to specify that the kube-proxy daemonset should
-                      be deleted. You cannot set this to true if you are using the
-                      Amazon kube-proxy addon.
+                    description: |-
+                      Disable set to true indicates that kube-proxy should be disabled. With EKS clusters
+                      kube-proxy is automatically installed into the cluster. For clusters where you want
+                      to use kube-proxy functionality that is provided with an alternate CNI, this option
+                      provides a way to specify that the kube-proxy daemonset should be deleted. You cannot
+                      set this to true if you are using the Amazon kube-proxy addon.
                     type: boolean
                 type: object
               logging:
-                description: Logging specifies which EKS Cluster logs should be enabled.
-                  Entries for each of the enabled logs will be sent to CloudWatch
+                description: |-
+                  Logging specifies which EKS Cluster logs should be enabled. Entries for
+                  each of the enabled logs will be sent to CloudWatch
                 properties:
                   apiServer:
                     default: false
@@ -2256,9 +2302,9 @@ spec:
                             type: string
                           type: array
                         sourceSecurityGroupRoles:
-                          description: The security group role to allow access from.
-                            Cannot be specified with CidrBlocks. The field will be
-                            combined with source security group IDs if specified.
+                          description: |-
+                            The security group role to allow access from. Cannot be specified with CidrBlocks.
+                            The field will be combined with source security group IDs if specified.
                           items:
                             description: SecurityGroupRole defines the unique role
                               of a security group.
@@ -2286,10 +2332,9 @@ spec:
                     description: CNI configuration
                     properties:
                       cniIngressRules:
-                        description: CNIIngressRules specify rules to apply to control
-                          plane and worker node security groups. The source for the
-                          rule will be set to control plane and worker security group
-                          IDs.
+                        description: |-
+                          CNIIngressRules specify rules to apply to control plane and worker node security groups.
+                          The source for the rule will be set to control plane and worker security group IDs.
                         items:
                           description: CNIIngressRule defines an AWS ingress rule
                             for CNI requirements.
@@ -2317,9 +2362,9 @@ spec:
                   securityGroupOverrides:
                     additionalProperties:
                       type: string
-                    description: SecurityGroupOverrides is an optional set of security
-                      groups to use for cluster instances This is optional - if not
-                      provided new security groups will be created for the cluster
+                    description: |-
+                      SecurityGroupOverrides is an optional set of security groups to use for cluster instances
+                      This is optional - if not provided new security groups will be created for the cluster
                     type: object
                   subnets:
                     description: Subnets configuration.
@@ -2335,28 +2380,27 @@ spec:
                             the provider creates a managed VPC.
                           type: string
                         id:
-                          description: "ID defines a unique identifier to reference
-                            this resource. If you're bringing your subnet, set the
-                            AWS subnet-id here, it must start with `subnet-`. \n When
-                            the VPC is managed by CAPA, and you'd like the provider
-                            to create a subnet for you, the id can be set to any placeholder
-                            value that does not start with `subnet-`; upon creation,
-                            the subnet AWS identifier will be populated in the `ResourceID`
-                            field and the `id` field is going to be used as the subnet
-                            name. If you specify a tag called `Name`, it takes precedence."
+                          description: |-
+                            ID defines a unique identifier to reference this resource.
+                            If you're bringing your subnet, set the AWS subnet-id here, it must start with `subnet-`.
+
+
+                            When the VPC is managed by CAPA, and you'd like the provider to create a subnet for you,
+                            the id can be set to any placeholder value that does not start with `subnet-`;
+                            upon creation, the subnet AWS identifier will be populated in the `ResourceID` field and
+                            the `id` field is going to be used as the subnet name. If you specify a tag
+                            called `Name`, it takes precedence.
                           type: string
                         ipv6CidrBlock:
-                          description: IPv6CidrBlock is the IPv6 CIDR block to be
-                            used when the provider creates a managed VPC. A subnet
-                            can have an IPv4 and an IPv6 address. IPv6 is only supported
-                            in managed clusters, this field cannot be set on AWSCluster
-                            object.
+                          description: |-
+                            IPv6CidrBlock is the IPv6 CIDR block to be used when the provider creates a managed VPC.
+                            A subnet can have an IPv4 and an IPv6 address.
+                            IPv6 is only supported in managed clusters, this field cannot be set on AWSCluster object.
                           type: string
                         isIpv6:
-                          description: IsIPv6 defines the subnet as an IPv6 subnet.
-                            A subnet is IPv6 when it is associated with a VPC that
-                            has IPv6 enabled. IPv6 is only supported in managed clusters,
-                            this field cannot be set on AWSCluster object.
+                          description: |-
+                            IsIPv6 defines the subnet as an IPv6 subnet. A subnet is IPv6 when it is associated with a VPC that has IPv6 enabled.
+                            IPv6 is only supported in managed clusters, this field cannot be set on AWSCluster object.
                           type: boolean
                         isPublic:
                           description: IsPublic defines the subnet as a public subnet.
@@ -2364,17 +2408,14 @@ spec:
                             table that has a route to an internet gateway.
                           type: boolean
                         natGatewayId:
-                          description: NatGatewayID is the NAT gateway id associated
-                            with the subnet. Ignored unless the subnet is managed
-                            by the provider, in which case this is set on the public
-                            subnet where the NAT gateway resides. It is then used
-                            to determine routes for private subnets in the same AZ
-                            as the public subnet.
+                          description: |-
+                            NatGatewayID is the NAT gateway id associated with the subnet.
+                            Ignored unless the subnet is managed by the provider, in which case this is set on the public subnet where the NAT gateway resides. It is then used to determine routes for private subnets in the same AZ as the public subnet.
                           type: string
                         resourceID:
-                          description: ResourceID is the subnet identifier from AWS,
-                            READ ONLY. This field is populated when the provider manages
-                            the subnet.
+                          description: |-
+                            ResourceID is the subnet identifier from AWS, READ ONLY.
+                            This field is populated when the provider manages the subnet.
                           type: string
                         routeTableId:
                           description: RouteTableID is the routing table id associated
@@ -2398,40 +2439,43 @@ spec:
                     properties:
                       availabilityZoneSelection:
                         default: Ordered
-                        description: 'AvailabilityZoneSelection specifies how AZs
-                          should be selected if there are more AZs in a region than
-                          specified by AvailabilityZoneUsageLimit. There are 2 selection
-                          schemes: Ordered - selects based on alphabetical order Random
-                          - selects AZs randomly in a region Defaults to Ordered'
+                        description: |-
+                          AvailabilityZoneSelection specifies how AZs should be selected if there are more AZs
+                          in a region than specified by AvailabilityZoneUsageLimit. There are 2 selection schemes:
+                          Ordered - selects based on alphabetical order
+                          Random - selects AZs randomly in a region
+                          Defaults to Ordered
                         enum:
                         - Ordered
                         - Random
                         type: string
                       availabilityZoneUsageLimit:
                         default: 3
-                        description: AvailabilityZoneUsageLimit specifies the maximum
-                          number of availability zones (AZ) that should be used in
-                          a region when automatically creating subnets. If a region
-                          has more than this number of AZs then this number of AZs
-                          will be picked randomly when creating default subnets. Defaults
-                          to 3
+                        description: |-
+                          AvailabilityZoneUsageLimit specifies the maximum number of availability zones (AZ) that
+                          should be used in a region when automatically creating subnets. If a region has more
+                          than this number of AZs then this number of AZs will be picked randomly when creating
+                          default subnets. Defaults to 3
                         minimum: 1
                         type: integer
                       cidrBlock:
-                        description: CidrBlock is the CIDR block to be used when the
-                          provider creates a managed VPC. Defaults to 10.0.0.0/16.
+                        description: |-
+                          CidrBlock is the CIDR block to be used when the provider creates a managed VPC.
+                          Defaults to 10.0.0.0/16.
                           Mutually exclusive with IPAMPool.
                         type: string
                       emptyRoutesDefaultVPCSecurityGroup:
-                        description: "EmptyRoutesDefaultVPCSecurityGroup specifies
-                          whether the default VPC security group ingress and egress
-                          rules should be removed. \n By default, when creating a
-                          VPC, AWS creates a security group called `default` with
-                          ingress and egress rules that allow traffic from anywhere.
-                          The group could be used as a potential surface attack and
-                          it's generally suggested that the group rules are removed
-                          or modified appropriately. \n NOTE: This only applies when
-                          the VPC is managed by the Cluster API AWS controller."
+                        description: |-
+                          EmptyRoutesDefaultVPCSecurityGroup specifies whether the default VPC security group ingress
+                          and egress rules should be removed.
+
+
+                          By default, when creating a VPC, AWS creates a security group called `default` with ingress and egress
+                          rules that allow traffic from anywhere. The group could be used as a potential surface attack and
+                          it's generally suggested that the group rules are removed or modified appropriately.
+
+
+                          NOTE: This only applies when the VPC is managed by the Cluster API AWS controller.
                         type: boolean
                       id:
                         description: ID is the vpc-id of the VPC this provider should
@@ -2442,8 +2486,9 @@ spec:
                           associated with the VPC.
                         type: string
                       ipamPool:
-                        description: IPAMPool defines the IPAMv4 pool to be used for
-                          VPC. Mutually exclusive with CidrBlock.
+                        description: |-
+                          IPAMPool defines the IPAMv4 pool to be used for VPC.
+                          Mutually exclusive with CidrBlock.
                         properties:
                           id:
                             description: ID is the ID of the IPAM pool this provider
@@ -2454,20 +2499,22 @@ spec:
                               should use to create VPC.
                             type: string
                           netmaskLength:
-                            description: The netmask length of the IPv4 CIDR you want
-                              to allocate to VPC from an Amazon VPC IP Address Manager
-                              (IPAM) pool. Defaults to /16 for IPv4 if not specified.
+                            description: |-
+                              The netmask length of the IPv4 CIDR you want to allocate to VPC from
+                              an Amazon VPC IP Address Manager (IPAM) pool.
+                              Defaults to /16 for IPv4 if not specified.
                             format: int64
                             type: integer
                         type: object
                       ipv6:
-                        description: IPv6 contains ipv6 specific settings for the
-                          network. Supported only in managed clusters. This field
-                          cannot be set on AWSCluster object.
+                        description: |-
+                          IPv6 contains ipv6 specific settings for the network. Supported only in managed clusters.
+                          This field cannot be set on AWSCluster object.
                         properties:
                           cidrBlock:
-                            description: CidrBlock is the CIDR block provided by Amazon
-                              when VPC has enabled IPv6. Mutually exclusive with IPAMPool.
+                            description: |-
+                              CidrBlock is the CIDR block provided by Amazon when VPC has enabled IPv6.
+                              Mutually exclusive with IPAMPool.
                             type: string
                           egressOnlyInternetGatewayId:
                             description: EgressOnlyInternetGatewayID is the id of
@@ -2475,8 +2522,9 @@ spec:
                               IPv6 enabled VPC.
                             type: string
                           ipamPool:
-                            description: IPAMPool defines the IPAMv6 pool to be used
-                              for VPC. Mutually exclusive with CidrBlock.
+                            description: |-
+                              IPAMPool defines the IPAMv6 pool to be used for VPC.
+                              Mutually exclusive with CidrBlock.
                             properties:
                               id:
                                 description: ID is the ID of the IPAM pool this provider
@@ -2487,27 +2535,25 @@ spec:
                                   provider should use to create VPC.
                                 type: string
                               netmaskLength:
-                                description: The netmask length of the IPv4 CIDR you
-                                  want to allocate to VPC from an Amazon VPC IP Address
-                                  Manager (IPAM) pool. Defaults to /16 for IPv4 if
-                                  not specified.
+                                description: |-
+                                  The netmask length of the IPv4 CIDR you want to allocate to VPC from
+                                  an Amazon VPC IP Address Manager (IPAM) pool.
+                                  Defaults to /16 for IPv4 if not specified.
                                 format: int64
                                 type: integer
                             type: object
                           poolId:
-                            description: PoolID is the IP pool which must be defined
-                              in case of BYO IP is defined. Must be specified if CidrBlock
-                              is set. Mutually exclusive with IPAMPool.
+                            description: |-
+                              PoolID is the IP pool which must be defined in case of BYO IP is defined.
+                              Must be specified if CidrBlock is set.
+                              Mutually exclusive with IPAMPool.
                             type: string
                         type: object
                       privateDnsHostnameTypeOnLaunch:
-                        description: PrivateDNSHostnameTypeOnLaunch is the type of
-                          hostname to assign to instances in the subnet at launch.
-                          For IPv4-only and dual-stack (IPv4 and IPv6) subnets, an
-                          instance DNS name can be based on the instance IPv4 address
-                          (ip-name) or the instance ID (resource-name). For IPv6 only
-                          subnets, an instance DNS name must be based on the instance
-                          ID (resource-name).
+                        description: |-
+                          PrivateDNSHostnameTypeOnLaunch is the type of hostname to assign to instances in the subnet at launch.
+                          For IPv4-only and dual-stack (IPv4 and IPv6) subnets, an instance DNS name can be based on the instance IPv4 address (ip-name)
+                          or the instance ID (resource-name). For IPv6 only subnets, an instance DNS name must be based on the instance ID (resource-name).
                         enum:
                         - ip-name
                         - resource-name
@@ -2520,47 +2566,50 @@ spec:
                     type: object
                 type: object
               oidcIdentityProviderConfig:
-                description: IdentityProviderconfig is used to specify the oidc provider
-                  config to be attached with this eks cluster
+                description: |-
+                  IdentityProviderconfig is used to specify the oidc provider config
+                  to be attached with this eks cluster
                 properties:
                   clientId:
-                    description: This is also known as audience. The ID for the client
-                      application that makes authentication requests to the OpenID
-                      identity provider.
+                    description: |-
+                      This is also known as audience. The ID for the client application that makes
+                      authentication requests to the OpenID identity provider.
                     type: string
                   groupsClaim:
                     description: The JWT claim that the provider uses to return your
                       groups.
                     type: string
                   groupsPrefix:
-                    description: 'The prefix that is prepended to group claims to
-                      prevent clashes with existing names (such as system: groups).
-                      For example, the valueoidc: will create group names like oidc:engineering
-                      and oidc:infra.'
+                    description: |-
+                      The prefix that is prepended to group claims to prevent clashes with existing
+                      names (such as system: groups). For example, the valueoidc: will create group
+                      names like oidc:engineering and oidc:infra.
                     type: string
                   identityProviderConfigName:
-                    description: "The name of the OIDC provider configuration. \n
-                      IdentityProviderConfigName is a required field"
+                    description: |-
+                      The name of the OIDC provider configuration.
+
+
+                      IdentityProviderConfigName is a required field
                     type: string
                   issuerUrl:
-                    description: The URL of the OpenID identity provider that allows
-                      the API server to discover public signing keys for verifying
-                      tokens. The URL must begin with https:// and should correspond
-                      to the iss claim in the provider's OIDC ID tokens. Per the OIDC
-                      standard, path components are allowed but query parameters are
+                    description: |-
+                      The URL of the OpenID identity provider that allows the API server to discover
+                      public signing keys for verifying tokens. The URL must begin with https://
+                      and should correspond to the iss claim in the provider's OIDC ID tokens.
+                      Per the OIDC standard, path components are allowed but query parameters are
                       not. Typically the URL consists of only a hostname, like https://server.example.org
-                      or https://example.com. This URL should point to the level below
-                      .well-known/openid-configuration and must be publicly accessible
-                      over the internet.
+                      or https://example.com. This URL should point to the level below .well-known/openid-configuration
+                      and must be publicly accessible over the internet.
                     type: string
                   requiredClaims:
                     additionalProperties:
                       type: string
-                    description: The key value pairs that describe required claims
-                      in the identity token. If set, each claim is verified to be
-                      present in the token with a matching value. For the maximum
-                      number of claims that you can require, see Amazon EKS service
-                      quotas (https://docs.aws.amazon.com/eks/latest/userguide/service-quotas.html)
+                    description: |-
+                      The key value pairs that describe required claims in the identity token.
+                      If set, each claim is verified to be present in the token with a matching
+                      value. For the maximum number of claims that you can require, see Amazon
+                      EKS service quotas (https://docs.aws.amazon.com/eks/latest/userguide/service-quotas.html)
                       in the Amazon EKS User Guide.
                     type: object
                   tags:
@@ -2569,19 +2618,19 @@ spec:
                     description: tags to apply to oidc identity provider association
                     type: object
                   usernameClaim:
-                    description: The JSON Web Token (JWT) claim to use as the username.
-                      The default is sub, which is expected to be a unique identifier
-                      of the end user. You can choose other claims, such as email
-                      or name, depending on the OpenID identity provider. Claims other
-                      than email are prefixed with the issuer URL to prevent naming
+                    description: |-
+                      The JSON Web Token (JWT) claim to use as the username. The default is sub,
+                      which is expected to be a unique identifier of the end user. You can choose
+                      other claims, such as email or name, depending on the OpenID identity provider.
+                      Claims other than email are prefixed with the issuer URL to prevent naming
                       clashes with other plug-ins.
                     type: string
                   usernamePrefix:
-                    description: The prefix that is prepended to username claims to
-                      prevent clashes with existing names. If you do not provide this
-                      field, and username is a value other than email, the prefix
-                      defaults to issuerurl#. You can use the value - to disable all
-                      prefixing.
+                    description: |-
+                      The prefix that is prepended to username claims to prevent clashes with existing
+                      names. If you do not provide this field, and username is a value other than
+                      email, the prefix defaults to issuerurl#. You can use the value - to disable
+                      all prefixing.
                     type: string
                 type: object
               partition:
@@ -2592,22 +2641,26 @@ spec:
                 description: The AWS Region the cluster lives in.
                 type: string
               roleAdditionalPolicies:
-                description: RoleAdditionalPolicies allows you to attach additional
-                  polices to the control plane role. You must enable the EKSAllowAddRoles
+                description: |-
+                  RoleAdditionalPolicies allows you to attach additional polices to
+                  the control plane role. You must enable the EKSAllowAddRoles
                   feature flag to incorporate these into the created role.
                 items:
                   type: string
                 type: array
               roleName:
-                description: RoleName specifies the name of IAM role that gives EKS
-                  permission to make API calls. If the role is pre-existing we will
-                  treat it as unmanaged and not delete it on deletion. If the EKSEnableIAM
-                  feature flag is true and no name is supplied then a role is created.
+                description: |-
+                  RoleName specifies the name of IAM role that gives EKS
+                  permission to make API calls. If the role is pre-existing
+                  we will treat it as unmanaged and not delete it on
+                  deletion. If the EKSEnableIAM feature flag is true
+                  and no name is supplied then a role is created.
                 minLength: 2
                 type: string
               secondaryCidrBlock:
-                description: SecondaryCidrBlock is the additional CIDR range to use
-                  for pod IPs. Must be within the 100.64.0.0/10 or 198.19.0.0/16 range.
+                description: |-
+                  SecondaryCidrBlock is the additional CIDR range to use for pod IPs.
+                  Must be within the 100.64.0.0/10 or 198.19.0.0/16 range.
                 type: string
               sshKeyName:
                 description: SSHKeyName is the name of the ssh key to attach to the
@@ -2616,18 +2669,20 @@ spec:
                 type: string
               tokenMethod:
                 default: iam-authenticator
-                description: TokenMethod is used to specify the method for obtaining
-                  a client token for communicating with EKS iam-authenticator - obtains
-                  a client token using iam-authentictor aws-cli - obtains a client
-                  token using the AWS CLI Defaults to iam-authenticator
+                description: |-
+                  TokenMethod is used to specify the method for obtaining a client token for communicating with EKS
+                  iam-authenticator - obtains a client token using iam-authentictor
+                  aws-cli - obtains a client token using the AWS CLI
+                  Defaults to iam-authenticator
                 enum:
                 - iam-authenticator
                 - aws-cli
                 type: string
               version:
-                description: Version defines the desired Kubernetes version. If no
-                  version number is supplied then the latest version of Kubernetes
-                  that EKS supports will be used.
+                description: |-
+                  Version defines the desired Kubernetes version. If no version number
+                  is supplied then the latest version of Kubernetes that EKS supports
+                  will be used.
                 minLength: 2
                 pattern: ^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.?(\.0|[1-9][0-9]*)?$
                 type: string
@@ -2637,12 +2692,12 @@ spec:
                 properties:
                   disable:
                     default: false
-                    description: Disable indicates that the Amazon VPC CNI should
-                      be disabled. With EKS clusters the Amazon VPC CNI is automatically
-                      installed into the cluster. For clusters where you want to use
-                      an alternate CNI this option provides a way to specify that
-                      the Amazon VPC CNI should be deleted. You cannot set this to
-                      true if you are using the Amazon VPC CNI addon.
+                    description: |-
+                      Disable indicates that the Amazon VPC CNI should be disabled. With EKS clusters the
+                      Amazon VPC CNI is automatically installed into the cluster. For clusters where you want
+                      to use an alternate CNI this option provides a way to specify that the Amazon VPC CNI
+                      should be deleted. You cannot set this to true if you are using the
+                      Amazon VPC CNI addon.
                     type: boolean
                   env:
                     description: Env defines a list of environment variables to apply
@@ -2656,15 +2711,16 @@ spec:
                             C_IDENTIFIER.
                           type: string
                         value:
-                          description: 'Variable references $(VAR_NAME) are expanded
-                            using the previously defined environment variables in
-                            the container and any service environment variables. If
-                            a variable cannot be resolved, the reference in the input
-                            string will be unchanged. Double $$ are reduced to a single
-                            $, which allows for escaping the $(VAR_NAME) syntax: i.e.
+                          description: |-
+                            Variable references $(VAR_NAME) are expanded
+                            using the previously defined environment variables in the container and
+                            any service environment variables. If a variable cannot be resolved,
+                            the reference in the input string will be unchanged. Double $$ are reduced
+                            to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e.
                             "$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)".
-                            Escaped references will never be expanded, regardless
-                            of whether the variable exists or not. Defaults to "".'
+                            Escaped references will never be expanded, regardless of whether the variable
+                            exists or not.
+                            Defaults to "".
                           type: string
                         valueFrom:
                           description: Source for the environment variable's value.
@@ -2677,9 +2733,10 @@ spec:
                                   description: The key to select.
                                   type: string
                                 name:
-                                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                    TODO: Add other useful fields. apiVersion, kind,
-                                    uid?'
+                                  description: |-
+                                    Name of the referent.
+                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    TODO: Add other useful fields. apiVersion, kind, uid?
                                   type: string
                                 optional:
                                   description: Specify whether the ConfigMap or its
@@ -2690,11 +2747,9 @@ spec:
                               type: object
                               x-kubernetes-map-type: atomic
                             fieldRef:
-                              description: 'Selects a field of the pod: supports metadata.name,
-                                metadata.namespace, `metadata.labels[''<KEY>'']`,
-                                `metadata.annotations[''<KEY>'']`, spec.nodeName,
-                                spec.serviceAccountName, status.hostIP, status.podIP,
-                                status.podIPs.'
+                              description: |-
+                                Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+                                spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.
                               properties:
                                 apiVersion:
                                   description: Version of the schema the FieldPath
@@ -2709,10 +2764,9 @@ spec:
                               type: object
                               x-kubernetes-map-type: atomic
                             resourceFieldRef:
-                              description: 'Selects a resource of the container: only
-                                resources limits and requests (limits.cpu, limits.memory,
-                                limits.ephemeral-storage, requests.cpu, requests.memory
-                                and requests.ephemeral-storage) are currently supported.'
+                              description: |-
+                                Selects a resource of the container: only resources limits and requests
+                                (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
                               properties:
                                 containerName:
                                   description: 'Container name: required for volumes,
@@ -2742,9 +2796,10 @@ spec:
                                     be a valid secret key.
                                   type: string
                                 name:
-                                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                    TODO: Add other useful fields. apiVersion, kind,
-                                    uid?'
+                                  description: |-
+                                    Name of the referent.
+                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    TODO: Add other useful fields. apiVersion, kind, uid?
                                   type: string
                                 optional:
                                   description: Specify whether the Secret or its key
@@ -2870,48 +2925,64 @@ spec:
                     properties:
                       httpEndpoint:
                         default: enabled
-                        description: "Enables or disables the HTTP metadata endpoint
-                          on your instances. \n If you specify a value of disabled,
-                          you cannot access your instance metadata. \n Default: enabled"
+                        description: |-
+                          Enables or disables the HTTP metadata endpoint on your instances.
+
+
+                          If you specify a value of disabled, you cannot access your instance metadata.
+
+
+                          Default: enabled
                         enum:
                         - enabled
                         - disabled
                         type: string
                       httpPutResponseHopLimit:
                         default: 1
-                        description: "The desired HTTP PUT response hop limit for
-                          instance metadata requests. The larger the number, the further
-                          instance metadata requests can travel. \n Default: 1"
+                        description: |-
+                          The desired HTTP PUT response hop limit for instance metadata requests. The
+                          larger the number, the further instance metadata requests can travel.
+
+
+                          Default: 1
                         format: int64
                         maximum: 64
                         minimum: 1
                         type: integer
                       httpTokens:
                         default: optional
-                        description: "The state of token usage for your instance metadata
-                          requests. \n If the state is optional, you can choose to
-                          retrieve instance metadata with or without a session token
-                          on your request. If you retrieve the IAM role credentials
-                          without a token, the version 1.0 role credentials are returned.
-                          If you retrieve the IAM role credentials using a valid session
-                          token, the version 2.0 role credentials are returned. \n
-                          If the state is required, you must send a session token
-                          with any instance metadata retrieval requests. In this state,
-                          retrieving the IAM role credentials always returns the version
-                          2.0 credentials; the version 1.0 credentials are not available.
-                          \n Default: optional"
+                        description: |-
+                          The state of token usage for your instance metadata requests.
+
+
+                          If the state is optional, you can choose to retrieve instance metadata with
+                          or without a session token on your request. If you retrieve the IAM role
+                          credentials without a token, the version 1.0 role credentials are returned.
+                          If you retrieve the IAM role credentials using a valid session token, the
+                          version 2.0 role credentials are returned.
+
+
+                          If the state is required, you must send a session token with any instance
+                          metadata retrieval requests. In this state, retrieving the IAM role credentials
+                          always returns the version 2.0 credentials; the version 1.0 credentials are
+                          not available.
+
+
+                          Default: optional
                         enum:
                         - optional
                         - required
                         type: string
                       instanceMetadataTags:
                         default: disabled
-                        description: "Set to enabled to allow access to instance tags
-                          from the instance metadata. Set to disabled to turn off
-                          access to instance tags from the instance metadata. For
-                          more information, see Work with instance tags using the
-                          instance metadata (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html#work-with-tags-in-IMDS).
-                          \n Default: disabled"
+                        description: |-
+                          Set to enabled to allow access to instance tags from the instance metadata.
+                          Set to disabled to turn off access to instance tags from the instance metadata.
+                          For more information, see Work with instance tags using the instance metadata
+                          (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html#work-with-tags-in-IMDS).
+
+
+                          Default: disabled
                         enum:
                         - enabled
                         - disabled
@@ -2939,11 +3010,10 @@ spec:
                             or not.
                           type: boolean
                         encryptionKey:
-                          description: EncryptionKey is the KMS key to use to encrypt
-                            the volume. Can be either a KMS key ID or ARN. If Encrypted
-                            is set and this is omitted, the default AWS key will be
-                            used. The key must already exist and be accessible by
-                            the controller.
+                          description: |-
+                            EncryptionKey is the KMS key to use to encrypt the volume. Can be either a KMS key ID or ARN.
+                            If Encrypted is set and this is omitted, the default AWS key will be used.
+                            The key must already exist and be accessible by the controller.
                           type: string
                         iops:
                           description: IOPS is the number of IOPS requested for the
@@ -2951,9 +3021,9 @@ spec:
                           format: int64
                           type: integer
                         size:
-                          description: Size specifies size (in Gi) of the storage
-                            device. Must be greater than the image snapshot size or
-                            8 (whichever is greater).
+                          description: |-
+                            Size specifies size (in Gi) of the storage device.
+                            Must be greater than the image snapshot size or 8 (whichever is greater).
                           format: int64
                           minimum: 8
                           type: integer
@@ -2975,10 +3045,10 @@ spec:
                       group in which to launch the instance.
                     type: string
                   placementGroupPartition:
-                    description: PlacementGroupPartition is the partition number within
-                      the placement group in which to launch the instance. This value
-                      is only valid if the placement group, referred in `PlacementGroupName`,
-                      was created with strategy set to partition.
+                    description: |-
+                      PlacementGroupPartition is the partition number within the placement group in which to launch the instance.
+                      This value is only valid if the placement group, referred in `PlacementGroupName`, was created with
+                      strategy set to partition.
                     format: int64
                     maximum: 7
                     minimum: 1
@@ -3025,11 +3095,10 @@ spec:
                           or not.
                         type: boolean
                       encryptionKey:
-                        description: EncryptionKey is the KMS key to use to encrypt
-                          the volume. Can be either a KMS key ID or ARN. If Encrypted
-                          is set and this is omitted, the default AWS key will be
-                          used. The key must already exist and be accessible by the
-                          controller.
+                        description: |-
+                          EncryptionKey is the KMS key to use to encrypt the volume. Can be either a KMS key ID or ARN.
+                          If Encrypted is set and this is omitted, the default AWS key will be used.
+                          The key must already exist and be accessible by the controller.
                         type: string
                       iops:
                         description: IOPS is the number of IOPS requested for the
@@ -3037,9 +3106,9 @@ spec:
                         format: int64
                         type: integer
                       size:
-                        description: Size specifies size (in Gi) of the storage device.
-                          Must be greater than the image snapshot size or 8 (whichever
-                          is greater).
+                        description: |-
+                          Size specifies size (in Gi) of the storage device.
+                          Must be greater than the image snapshot size or 8 (whichever is greater).
                         format: int64
                         minimum: 8
                         type: integer
@@ -3089,9 +3158,9 @@ spec:
                     description: The instance type.
                     type: string
                   userData:
-                    description: UserData is the raw data script passed to the instance
-                      which is run upon bootstrap. This field must not be base64 encoded
-                      and should only be used when running a new instance.
+                    description: |-
+                      UserData is the raw data script passed to the instance which is run upon bootstrap.
+                      This field must not be base64 encoded and should only be used when running a new instance.
                     type: string
                   volumeIDs:
                     description: IDs of the instance's volumes
@@ -3109,37 +3178,37 @@ spec:
                     operational state.
                   properties:
                     lastTransitionTime:
-                      description: Last time the condition transitioned from one status
-                        to another. This should be when the underlying condition changed.
-                        If that is not known, then using the time when the API field
-                        changed is acceptable.
+                      description: |-
+                        Last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed. If that is not known, then using the time when
+                        the API field changed is acceptable.
                       format: date-time
                       type: string
                     message:
-                      description: A human readable message indicating details about
-                        the transition. This field may be empty.
+                      description: |-
+                        A human readable message indicating details about the transition.
+                        This field may be empty.
                       type: string
                     reason:
-                      description: The reason for the condition's last transition
-                        in CamelCase. The specific API may choose whether or not this
-                        field is considered a guaranteed API. This field may not be
-                        empty.
+                      description: |-
+                        The reason for the condition's last transition in CamelCase.
+                        The specific API may choose whether or not this field is considered a guaranteed API.
+                        This field may not be empty.
                       type: string
                     severity:
-                      description: Severity provides an explicit classification of
-                        Reason code, so the users or machines can immediately understand
-                        the current situation and act accordingly. The Severity field
-                        MUST be set only when Status=False.
+                      description: |-
+                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        understand the current situation and act accordingly.
+                        The Severity field MUST be set only when Status=False.
                       type: string
                     status:
                       description: Status of the condition, one of True, False, Unknown.
                       type: string
                     type:
-                      description: Type of condition in CamelCase or in foo.example.com/CamelCase.
-                        Many .condition.type values are consistent across resources
-                        like Available, but because arbitrary conditions can be useful
-                        (see .node.status.conditions), the ability to deconflict is
-                        important.
+                      description: |-
+                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
+                        can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
                   required:
                   - lastTransitionTime
@@ -3149,15 +3218,15 @@ spec:
                 type: array
               externalManagedControlPlane:
                 default: true
-                description: ExternalManagedControlPlane indicates to cluster-api
-                  that the control plane is managed by an external service such as
-                  AKS, EKS, GKE, etc.
+                description: |-
+                  ExternalManagedControlPlane indicates to cluster-api that the control plane
+                  is managed by an external service such as AKS, EKS, GKE, etc.
                 type: boolean
               failureDomains:
                 additionalProperties:
-                  description: FailureDomainSpec is the Schema for Cluster API failure
-                    domains. It allows controllers to understand how many failure
-                    domains a cluster can optionally span across.
+                  description: |-
+                    FailureDomainSpec is the Schema for Cluster API failure domains.
+                    It allows controllers to understand how many failure domains a cluster can optionally span across.
                   properties:
                     attributes:
                       additionalProperties:
@@ -3174,12 +3243,14 @@ spec:
                   zones that can be used
                 type: object
               failureMessage:
-                description: ErrorMessage indicates that there is a terminal problem
-                  reconciling the state, and will be set to a descriptive error message.
+                description: |-
+                  ErrorMessage indicates that there is a terminal problem reconciling the
+                  state, and will be set to a descriptive error message.
                 type: string
               identityProviderStatus:
-                description: IdentityProviderStatus holds the status for associated
-                  identity provider
+                description: |-
+                  IdentityProviderStatus holds the status for
+                  associated identity provider
                 properties:
                   arn:
                     description: ARN holds the ARN of associated identity provider
@@ -3190,8 +3261,9 @@ spec:
                     type: string
                 type: object
               initialized:
-                description: Initialized denotes whether or not the control plane
-                  has the uploaded kubernetes config-map.
+                description: |-
+                  Initialized denotes whether or not the control plane has the
+                  uploaded kubernetes config-map.
                 type: boolean
               networkStatus:
                 description: Networks holds details about the AWS networking resources
@@ -3201,8 +3273,9 @@ spec:
                     description: APIServerELB is the Kubernetes api server load balancer.
                     properties:
                       arn:
-                        description: ARN of the load balancer. Unlike the ClassicLB,
-                          ARN is used mostly to define and get it.
+                        description: |-
+                          ARN of the load balancer. Unlike the ClassicLB, ARN is used mostly
+                          to define and get it.
                         type: string
                       attributes:
                         description: ClassicElbAttributes defines extra attributes
@@ -3213,9 +3286,9 @@ spec:
                               load balancer load balancing.
                             type: boolean
                           idleTimeout:
-                            description: IdleTimeout is time that the connection is
-                              allowed to be idle (no data has been sent over the connection)
-                              before it is closed by the load balancer.
+                            description: |-
+                              IdleTimeout is time that the connection is allowed to be idle (no data
+                              has been sent over the connection) before it is closed by the load balancer.
                             format: int64
                             type: integer
                         type: object
@@ -3249,9 +3322,9 @@ spec:
                                 for a load balancer.
                               type: string
                             targetGroup:
-                              description: TargetGroupSpec specifies target group
-                                settings for a given listener. This is created first,
-                                and the ARN is then passed to the listener.
+                              description: |-
+                                TargetGroupSpec specifies target group settings for a given listener.
+                                This is created first, and the ARN is then passed to the listener.
                               properties:
                                 name:
                                   description: Name of the TargetGroup. Must be unique
@@ -3314,19 +3387,19 @@ spec:
                             format: int64
                             type: integer
                           interval:
-                            description: A Duration represents the elapsed time between
-                              two instants as an int64 nanosecond count. The representation
-                              limits the largest representable duration to approximately
-                              290 years.
+                            description: |-
+                              A Duration represents the elapsed time between two instants
+                              as an int64 nanosecond count. The representation limits the
+                              largest representable duration to approximately 290 years.
                             format: int64
                             type: integer
                           target:
                             type: string
                           timeout:
-                            description: A Duration represents the elapsed time between
-                              two instants as an int64 nanosecond count. The representation
-                              limits the largest representable duration to approximately
-                              290 years.
+                            description: |-
+                              A Duration represents the elapsed time between two instants
+                              as an int64 nanosecond count. The representation limits the
+                              largest representable duration to approximately 290 years.
                             format: int64
                             type: integer
                           unhealthyThreshold:
@@ -3378,9 +3451,9 @@ spec:
                         - nlb
                         type: string
                       name:
-                        description: The name of the load balancer. It must be unique
-                          within the set of load balancers defined in the region.
-                          It also serves as identifier.
+                        description: |-
+                          The name of the load balancer. It must be unique within the set of load balancers
+                          defined in the region. It also serves as identifier.
                         type: string
                       scheme:
                         description: Scheme is the load balancer scheme, either internet-facing
@@ -3416,8 +3489,9 @@ spec:
                       api server load balancer.
                     properties:
                       arn:
-                        description: ARN of the load balancer. Unlike the ClassicLB,
-                          ARN is used mostly to define and get it.
+                        description: |-
+                          ARN of the load balancer. Unlike the ClassicLB, ARN is used mostly
+                          to define and get it.
                         type: string
                       attributes:
                         description: ClassicElbAttributes defines extra attributes
@@ -3428,9 +3502,9 @@ spec:
                               load balancer load balancing.
                             type: boolean
                           idleTimeout:
-                            description: IdleTimeout is time that the connection is
-                              allowed to be idle (no data has been sent over the connection)
-                              before it is closed by the load balancer.
+                            description: |-
+                              IdleTimeout is time that the connection is allowed to be idle (no data
+                              has been sent over the connection) before it is closed by the load balancer.
                             format: int64
                             type: integer
                         type: object
@@ -3464,9 +3538,9 @@ spec:
                                 for a load balancer.
                               type: string
                             targetGroup:
-                              description: TargetGroupSpec specifies target group
-                                settings for a given listener. This is created first,
-                                and the ARN is then passed to the listener.
+                              description: |-
+                                TargetGroupSpec specifies target group settings for a given listener.
+                                This is created first, and the ARN is then passed to the listener.
                               properties:
                                 name:
                                   description: Name of the TargetGroup. Must be unique
@@ -3529,19 +3603,19 @@ spec:
                             format: int64
                             type: integer
                           interval:
-                            description: A Duration represents the elapsed time between
-                              two instants as an int64 nanosecond count. The representation
-                              limits the largest representable duration to approximately
-                              290 years.
+                            description: |-
+                              A Duration represents the elapsed time between two instants
+                              as an int64 nanosecond count. The representation limits the
+                              largest representable duration to approximately 290 years.
                             format: int64
                             type: integer
                           target:
                             type: string
                           timeout:
-                            description: A Duration represents the elapsed time between
-                              two instants as an int64 nanosecond count. The representation
-                              limits the largest representable duration to approximately
-                              290 years.
+                            description: |-
+                              A Duration represents the elapsed time between two instants
+                              as an int64 nanosecond count. The representation limits the
+                              largest representable duration to approximately 290 years.
                             format: int64
                             type: integer
                           unhealthyThreshold:
@@ -3593,9 +3667,9 @@ spec:
                         - nlb
                         type: string
                       name:
-                        description: The name of the load balancer. It must be unique
-                          within the set of load balancers defined in the region.
-                          It also serves as identifier.
+                        description: |-
+                          The name of the load balancer. It must be unique within the set of load balancers
+                          defined in the region. It also serves as identifier.
                         type: string
                       scheme:
                         description: Scheme is the load balancer scheme, either internet-facing
@@ -3675,10 +3749,9 @@ spec:
                                   type: string
                                 type: array
                               sourceSecurityGroupRoles:
-                                description: The security group role to allow access
-                                  from. Cannot be specified with CidrBlocks. The field
-                                  will be combined with source security group IDs
-                                  if specified.
+                                description: |-
+                                  The security group role to allow access from. Cannot be specified with CidrBlocks.
+                                  The field will be combined with source security group IDs if specified.
                                 items:
                                   description: SecurityGroupRole defines the unique
                                     role of a security group.
@@ -3733,8 +3806,9 @@ spec:
                 type: object
               ready:
                 default: false
-                description: Ready denotes that the AWSManagedControlPlane API Server
-                  is ready to receive requests and that the VPC infra is ready.
+                description: |-
+                  Ready denotes that the AWSManagedControlPlane API Server is ready to
+                  receive requests and that the VPC infra is ready.
                 type: boolean
             required:
             - ready
