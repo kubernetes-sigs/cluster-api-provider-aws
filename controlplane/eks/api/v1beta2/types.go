@@ -79,12 +79,10 @@ var (
 	EKSTokenMethodAWSCli = EKSTokenMethod("aws-cli")
 )
 
-var (
-	// DefaultEKSControlPlaneRole is the name of the default IAM role to use for the EKS control plane
-	// if no other role is supplied in the spec and if iam role creation is not enabled. The default
-	// can be created using clusterawsadm or created manually.
-	DefaultEKSControlPlaneRole = fmt.Sprintf("eks-controlplane%s", iamv1.DefaultNameSuffix)
-)
+// DefaultEKSControlPlaneRole is the name of the default IAM role to use for the EKS control plane
+// if no other role is supplied in the spec and if iam role creation is not enabled. The default
+// can be created using clusterawsadm or created manually.
+var DefaultEKSControlPlaneRole = fmt.Sprintf("eks-controlplane%s", iamv1.DefaultNameSuffix)
 
 // IAMAuthenticatorConfig represents an aws-iam-authenticator configuration.
 type IAMAuthenticatorConfig struct {
@@ -278,4 +276,18 @@ type OIDCIdentityProviderConfig struct {
 	// tags to apply to oidc identity provider association
 	// +optional
 	Tags infrav1.Tags `json:"tags,omitempty"`
+}
+
+// PodIdentityAssociation represents an association between a Kubernetes Service Account in a namespace, and an AWS IAM role which allows the service principal `pods.eks.amazonaws.com` in its trust policy.
+type PodIdentityAssociation struct {
+	// ServiceAccountName is the name of the kubernetes Service Account within the namespace
+	// +kubebuilder:validation:Required
+	ServiceAccountName string `json:"serviceAccountName"`
+	// ServiceAccountNamespace is the kubernetes namespace, which the kubernetes Service Account resides in. Defaults to "default" namespace.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:default=default
+	ServiceAccountNamespace string `json:"serviceAccountNamespace"`
+	// RoleARN is the ARN of an IAM role which the Service Account can assume.
+	// +kubebuilder:validation:Required
+	RoleARN string `json:"serviceAccountRoleARN,omitempty"`
 }

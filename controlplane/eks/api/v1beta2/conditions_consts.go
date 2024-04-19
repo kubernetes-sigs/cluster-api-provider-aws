@@ -53,6 +53,13 @@ const (
 )
 
 const (
+	// EKSPodIdentityAssociationConfiguredCondition condition reports on the successful reconciliation of EKS pod identity associations.
+	EKSPodIdentityAssociationConfiguredCondition clusterv1.ConditionType = "EKSPodIdentityAssociationConfigured"
+	// EKSPodIdentityAssociationFailedReason is used to report failures while reconciling the EKS pod identity associations.
+	EKSPodIdentityAssociationFailedReason = "EKSPodIdentityAssociationConfigurationFailed"
+)
+
+const (
 	// EKSIdentityProviderConfiguredCondition condition reports on the successful association of identity provider config.
 	EKSIdentityProviderConfiguredCondition clusterv1.ConditionType = "EKSIdentityProviderConfigured"
 	// EKSIdentityProviderConfiguredFailedReason used to report failures while reconciling the identity provider config association.
