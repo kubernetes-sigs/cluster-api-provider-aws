@@ -32,9 +32,9 @@ spec:
   externalAuthProviders:
   - name: my-oidc-provider
     issuer:
-      issuerURL: https://login.microsoftonline.com/<tenant-id>/v2.0 # e.g. if using Micorsoft Entra ID
+      issuerURL: https://login.microsoftonline.com/<tenant-id>/v2.0 # e.g. if using Microsoft Entra ID
       audiences:  # audiences that will be trusted by the kube-apiserver
-      - "audience1" # usaully the client ID
+      - "audience1" # usually the client ID
     claimMappings:
       username:
         claim: email
@@ -50,9 +50,9 @@ Note: `oidcProviders` only accepts one entry at the moment.
 
 ### Setting up RBAC
 
-When `enableExternalAuthProviders` is set to `true`, ROSA provider will generate a temporarily admin kubeconfig secert in the same namespace named `<cluster-name>-bootstrap-kubeconfig`. This kubeonconfig can be used to access the cluster to setup RBAC for oidc users/groups.
+When `enableExternalAuthProviders` is set to `true`, ROSA provider will generate a temporary admin kubeconfig secret in the same namespace named `<cluster-name>-bootstrap-kubeconfig`. This kubeconfig can be used to access the cluster to setup RBAC for OIDC users/groups.
 
-For example, bind the `cluster-admin` to an oidc group, to give admin permissions to all users part of that group:
+The following example binds the `cluster-admin` role to an OIDC group, giving all users in that group admin permissions.
 ```shell
 kubectl get secret <cluster-name>-bootstrap-kubeconfig -o jsonpath='{.data.value}' | base64 -d > /tmp/capi-admin-kubeconfig
 export KUBECONFIG=/tmp/capi-admin-kubeconfig
@@ -69,7 +69,7 @@ The [kubelogin kubectl plugin](https://github.com/int128/kubelogin/tree/master) 
 ### Configuring OpenShift Console
 
 The OpenShift Console needs to be configured before it can be used to authenticate and login to the cluster. 
-1. Setup a new client in your OIDC provider with the following Redirect URL `<console-url>/auth/callback`. You can find the console URL in the status field of the `ROSAControlPlane` once the cluster is ready:
+1. Setup a new client in your OIDC provider with the following Redirect URL: `<console-url>/auth/callback`. You can find the console URL in the status field of the `ROSAControlPlane` once the cluster is ready:
     ```shell
     kubectl get rosacontrolplane <control-plane-name> -o jsonpath='{.status.consoleURL}'
     ```
@@ -91,7 +91,7 @@ The OpenShift Console needs to be configured before it can be used to authentica
       externalAuthProviders:
       - name: my-oidc-provider
         issuer:
-          issuerURL: https://login.microsoftonline.com/<tenant-id>/v2.0 # e.g. if using Micorsoft Entra ID
+          issuerURL: https://login.microsoftonline.com/<tenant-id>/v2.0 # e.g. if using Microsoft Entra ID
           audiences:  # audiences that will be trusted by the kube-apiserver
           - "audience1"
           - <console-client-id> # <----New
