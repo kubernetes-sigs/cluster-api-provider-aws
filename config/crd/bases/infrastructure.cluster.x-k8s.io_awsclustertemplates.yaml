@@ -577,6 +577,62 @@ spec:
                                 AdditionalListenerSpec defines the desired state of an
                                 additional listener on an AWS load balancer.
                               properties:
+                                healthCheck:
+                                  description: HealthCheck sets the optional custom
+                                    health check configuration to the API target group.
+                                  properties:
+                                    intervalSeconds:
+                                      description: |-
+                                        The approximate amount of time, in seconds, between health checks of an individual
+                                        target.
+                                      format: int64
+                                      maximum: 300
+                                      minimum: 5
+                                      type: integer
+                                    path:
+                                      description: |-
+                                        The destination for health checks on the targets when using the protocol HTTP or HTTPS,
+                                        otherwise the path will be ignored.
+                                      type: string
+                                    port:
+                                      description: |-
+                                        The port the load balancer uses when performing health checks for additional target groups. When
+                                        not specified this value will be set for the same of listener port.
+                                      type: string
+                                    protocol:
+                                      description: |-
+                                        The protocol to use to health check connect with the target. When not specified the Protocol
+                                        will be the same of the listener.
+                                      enum:
+                                      - TCP
+                                      - HTTP
+                                      - HTTPS
+                                      type: string
+                                    thresholdCount:
+                                      description: |-
+                                        The number of consecutive health check successes required before considering
+                                        a target healthy.
+                                      format: int64
+                                      maximum: 10
+                                      minimum: 2
+                                      type: integer
+                                    timeoutSeconds:
+                                      description: |-
+                                        The amount of time, in seconds, during which no response from a target means
+                                        a failed health check.
+                                      format: int64
+                                      maximum: 120
+                                      minimum: 2
+                                      type: integer
+                                    unhealthyThresholdCount:
+                                      description: |-
+                                        The number of consecutive health check failures required before considering
+                                        a target unhealthy.
+                                      format: int64
+                                      maximum: 10
+                                      minimum: 2
+                                      type: integer
+                                  type: object
                                 port:
                                   description: Port sets the port for the additional
                                     listener.
@@ -624,6 +680,43 @@ spec:
                               DisableHostsRewrite disabled the hair pinning issue solution that adds the NLB's address as 127.0.0.1 to the hosts
                               file of each instance. This is by default, false.
                             type: boolean
+                          healthCheck:
+                            description: HealthCheck sets custom health check configuration
+                              to the API target group.
+                            properties:
+                              intervalSeconds:
+                                description: |-
+                                  The approximate amount of time, in seconds, between health checks of an individual
+                                  target.
+                                format: int64
+                                maximum: 300
+                                minimum: 5
+                                type: integer
+                              thresholdCount:
+                                description: |-
+                                  The number of consecutive health check successes required before considering
+                                  a target healthy.
+                                format: int64
+                                maximum: 10
+                                minimum: 2
+                                type: integer
+                              timeoutSeconds:
+                                description: |-
+                                  The amount of time, in seconds, during which no response from a target means
+                                  a failed health check.
+                                format: int64
+                                maximum: 120
+                                minimum: 2
+                                type: integer
+                              unhealthyThresholdCount:
+                                description: |-
+                                  The number of consecutive health check failures required before considering
+                                  a target unhealthy.
+                                format: int64
+                                maximum: 10
+                                minimum: 2
+                                type: integer
+                            type: object
                           healthCheckProtocol:
                             description: |-
                               HealthCheckProtocol sets the protocol type for ELB health check target
@@ -1182,6 +1275,62 @@ spec:
                                 AdditionalListenerSpec defines the desired state of an
                                 additional listener on an AWS load balancer.
                               properties:
+                                healthCheck:
+                                  description: HealthCheck sets the optional custom
+                                    health check configuration to the API target group.
+                                  properties:
+                                    intervalSeconds:
+                                      description: |-
+                                        The approximate amount of time, in seconds, between health checks of an individual
+                                        target.
+                                      format: int64
+                                      maximum: 300
+                                      minimum: 5
+                                      type: integer
+                                    path:
+                                      description: |-
+                                        The destination for health checks on the targets when using the protocol HTTP or HTTPS,
+                                        otherwise the path will be ignored.
+                                      type: string
+                                    port:
+                                      description: |-
+                                        The port the load balancer uses when performing health checks for additional target groups. When
+                                        not specified this value will be set for the same of listener port.
+                                      type: string
+                                    protocol:
+                                      description: |-
+                                        The protocol to use to health check connect with the target. When not specified the Protocol
+                                        will be the same of the listener.
+                                      enum:
+                                      - TCP
+                                      - HTTP
+                                      - HTTPS
+                                      type: string
+                                    thresholdCount:
+                                      description: |-
+                                        The number of consecutive health check successes required before considering
+                                        a target healthy.
+                                      format: int64
+                                      maximum: 10
+                                      minimum: 2
+                                      type: integer
+                                    timeoutSeconds:
+                                      description: |-
+                                        The amount of time, in seconds, during which no response from a target means
+                                        a failed health check.
+                                      format: int64
+                                      maximum: 120
+                                      minimum: 2
+                                      type: integer
+                                    unhealthyThresholdCount:
+                                      description: |-
+                                        The number of consecutive health check failures required before considering
+                                        a target unhealthy.
+                                      format: int64
+                                      maximum: 10
+                                      minimum: 2
+                                      type: integer
+                                  type: object
                                 port:
                                   description: Port sets the port for the additional
                                     listener.
@@ -1229,6 +1378,43 @@ spec:
                               DisableHostsRewrite disabled the hair pinning issue solution that adds the NLB's address as 127.0.0.1 to the hosts
                               file of each instance. This is by default, false.
                             type: boolean
+                          healthCheck:
+                            description: HealthCheck sets custom health check configuration
+                              to the API target group.
+                            properties:
+                              intervalSeconds:
+                                description: |-
+                                  The approximate amount of time, in seconds, between health checks of an individual
+                                  target.
+                                format: int64
+                                maximum: 300
+                                minimum: 5
+                                type: integer
+                              thresholdCount:
+                                description: |-
+                                  The number of consecutive health check successes required before considering
+                                  a target healthy.
+                                format: int64
+                                maximum: 10
+                                minimum: 2
+                                type: integer
+                              timeoutSeconds:
+                                description: |-
+                                  The amount of time, in seconds, during which no response from a target means
+                                  a failed health check.
+                                format: int64
+                                maximum: 120
+                                minimum: 2
+                                type: integer
+                              unhealthyThresholdCount:
+                                description: |-
+                                  The number of consecutive health check failures required before considering
+                                  a target unhealthy.
+                                format: int64
+                                maximum: 10
+                                minimum: 2
+                                type: integer
+                            type: object
                           healthCheckProtocol:
                             description: |-
                               HealthCheckProtocol sets the protocol type for ELB health check target
