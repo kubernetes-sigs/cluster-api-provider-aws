@@ -54,6 +54,6 @@ func TestAWSControllerIdentityController(t *testing.T) {
 				return true
 			}
 			return false
-		}, 10*time.Second).Should(BeTrue())
+		}, 10*time.Second).Should(BeTrue(), "Eventually failed ensuring AWSClusterControllerIdentity instance is created")
 	})
 }
