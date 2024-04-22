@@ -703,7 +703,7 @@ func waitForStatefulSetRunning(info statefulSetInfo, k8sclient crclient.Client) 
 			}
 			return *statefulset.Spec.Replicas == statefulset.Status.ReadyReplicas, nil
 		}, 10*time.Minute, 30*time.Second,
-	).Should(BeTrue())
+	).Should(BeTrue(), fmt.Sprintf("Eventually failed waiting for StatefulSet %s to be running", info.name))
 }
 
 // LatestCIReleaseForVersion returns the latest ci release of a specific version.

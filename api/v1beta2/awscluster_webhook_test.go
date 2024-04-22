@@ -18,6 +18,7 @@ package v1beta2
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -597,7 +598,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 			g.Eventually(func() bool {
 				err := testEnv.Get(ctx, key, c)
 				return err == nil
-			}, 10*time.Second).Should(BeTrue())
+			}, 10*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed getting the newly created cluster %q", cluster.Name))
 
 			if tt.expect != nil {
 				tt.expect(g, c.Spec.ControlPlaneLoadBalancer)

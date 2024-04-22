@@ -58,7 +58,7 @@ func waitForMachineDeploymentDeleted(ctx context.Context, input waitForMachineDe
 		err := input.Getter.Get(ctx, key, mp)
 		notFound := apierrors.IsNotFound(err)
 		return notFound
-	}, intervals...).Should(BeTrue())
+	}, intervals...).Should(BeTrue(), fmt.Sprintf("Eventually failed waiting for MachineDeployment %q to be deleted", input.MachineDeployment.GetName()))
 }
 
 type waitForMachineDeletedInput struct {
@@ -77,5 +77,5 @@ func waitForMachineDeleted(ctx context.Context, input waitForMachineDeletedInput
 		err := input.Getter.Get(ctx, key, mp)
 		notFound := apierrors.IsNotFound(err)
 		return notFound
-	}, intervals...).Should(BeTrue())
+	}, intervals...).Should(BeTrue(), fmt.Sprintf("Eventually failed waiting for Machine %q to be deleted", input.Machine.GetName()))
 }

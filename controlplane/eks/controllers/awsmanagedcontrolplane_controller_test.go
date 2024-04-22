@@ -141,7 +141,7 @@ func TestAWSManagedControlPlaneReconcilerIntegrationTests(t *testing.T) {
 			}
 			err := testEnv.Get(ctx, key, controlPlane)
 			return err == nil
-		}, 10*time.Second).Should(BeTrue())
+		}, 10*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed getting the newly created AWSManagedControlPlane %q", awsManagedControlPlane.Name))
 
 		defer t.Cleanup(func() {
 			g.Expect(testEnv.Cleanup(ctx, &cluster, &awsManagedCluster, &awsManagedControlPlane, controllerIdentity, ns)).To(Succeed())

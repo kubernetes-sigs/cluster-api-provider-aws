@@ -65,7 +65,7 @@ func waitForEKSAddonToHaveStatus(input waitForEKSAddonToHaveStatusInput, interva
 		}
 
 		return false, nil
-	}, intervals...).Should(BeTrue())
+	}, intervals...).Should(BeTrue(), fmt.Sprintf("Eventually failed waiting for EKS addon %q to have status %q for EKS cluster %q", input.AddonName, input.AddonStatus, input.ControlPlane.Spec.EKSClusterName))
 }
 
 type checkEKSAddonConfigurationInput struct {
@@ -102,5 +102,5 @@ func checkEKSAddonConfiguration(input checkEKSAddonConfigurationInput, intervals
 		}
 
 		return false, nil
-	}, intervals...).Should(BeTrue())
+	}, intervals...).Should(BeTrue(), fmt.Sprintf("Eventually failed waiting for EKS addon %q to have config %q for EKS cluster %q", input.AddonName, input.AddonConfiguration, input.ControlPlane.Spec.EKSClusterName))
 }

@@ -215,7 +215,7 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 			}
 			err := testEnv.Get(ctx, key, cluster)
 			return err == nil
-		}, 10*time.Second).Should(BeTrue())
+		}, 10*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed getting the newly created cluster %q", awsCluster.Name))
 
 		defer teardown()
 		defer t.Cleanup(func() {
@@ -316,7 +316,7 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 			}
 			err := testEnv.Get(ctx, key, cluster)
 			return err == nil
-		}, 10*time.Second).Should(BeTrue())
+		}, 10*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed getting the newly created cluster %q", awsCluster.Name))
 
 		defer teardown()
 		defer t.Cleanup(func() {
@@ -424,7 +424,7 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 			}
 			err := testEnv.Get(ctx, key, cluster)
 			return err == nil
-		}, 10*time.Second).Should(BeTrue())
+		}, 10*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed getting the newly created cluster %q", awsCluster.Name))
 
 		defer teardown()
 		defer t.Cleanup(func() {
@@ -532,7 +532,8 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 			}
 			err := testEnv.Get(ctx, key, cluster)
 			return err == nil
-		}, 10*time.Second).Should(BeTrue())
+		}, 10*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed getting the newly created cluster %q", awsCluster.Name))
+
 		defer t.Cleanup(func() {
 			g.Expect(testEnv.Cleanup(ctx, &awsCluster, controllerIdentity, ns)).To(Succeed())
 		})
@@ -597,7 +598,7 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 			}
 			err := testEnv.Get(ctx, key, cluster)
 			return err == nil
-		}, 10*time.Second).Should(BeTrue())
+		}, 10*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed getting the newly created cluster %q", awsCluster.Name))
 
 		defer t.Cleanup(func() {
 			g.Expect(testEnv.Cleanup(ctx, &awsCluster, controllerIdentity, ns)).To(Succeed())
