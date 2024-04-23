@@ -369,10 +369,13 @@ func (s *Service) getRouteTableTagParams(id string, public bool, zone string) in
 func (s *Service) getRoutesToPublicSubnet(sn *infrav1.SubnetSpec) ([]*ec2.CreateRouteInput, error) {
 	var routes []*ec2.CreateRouteInput
 
-	if s.scope.VPC().InternetGatewayID == nil {
-		return routes, errors.Errorf("failed to create routing tables: internet gateway for %q is nil", s.scope.VPC().ID)
+	if sn.IsEdge() && sn.IsIPv6 {
+		return nil, errors.Errorf("can't determine routes for unsupported ipv6 subnet in zone type %q", sn.ZoneType)
 	}
 
+	if s.scope.VPC().InternetGatewayID == nil {
+		return routes, errors.Errorf("failed to create routing tables: internet gateway for VPC %q is not present", s.scope.VPC().ID)
+	}
 	routes = append(routes, s.getGatewayPublicRoute())
 	if sn.IsIPv6 {
 		routes = append(routes, s.getGatewayPublicIPv6Route())
@@ -382,7 +385,13 @@ func (s *Service) getRoutesToPublicSubnet(sn *infrav1.SubnetSpec) ([]*ec2.Create
 }
 
 func (s *Service) getRoutesToPrivateSubnet(sn *infrav1.SubnetSpec) (routes []*ec2.CreateRouteInput, err error) {
-	natGatewayID, err := s.getNatGatewayForSubnet(sn)
+	var natGatewayID string
+
+	if sn.IsEdge() && sn.IsIPv6 {
+		return nil, errors.Errorf("can't determine routes for unsupported ipv6 subnet in zone type %q", sn.ZoneType)
+	}
+
+	natGatewayID, err = s.getNatGatewayForSubnet(sn)
 	if err != nil {
 		return routes, err
 	}
