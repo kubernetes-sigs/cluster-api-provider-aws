@@ -239,18 +239,6 @@ func (s *Service) getAdditionalTargetGroupHealthCheck(ln infrav1.AdditionalListe
 	return healthCheck
 }
 
-// getTargetGroupName creates the target group name based on LB Name, when defined, otherwise return
-// the standard name created from the timestamp.
-func (s *Service) getTargetGroupName(lbSpec *infrav1.AWSLoadBalancerSpec, defaultPrefix string, port int64) string {
-	targetName := fmt.Sprintf("%s-%d", defaultPrefix, time.Now().Unix())
-
-	if lbSpec != nil && lbSpec.Name != nil {
-		targetName = fmt.Sprintf("%s-%d", *lbSpec.Name, port)
-	}
-
-	return targetName
-}
-
 func (s *Service) getAPIServerLBSpec(elbName string, lbSpec *infrav1.AWSLoadBalancerSpec) (*infrav1.LoadBalancer, error) {
 	var securityGroupIDs []string
 	if lbSpec != nil {
@@ -266,7 +254,6 @@ func (s *Service) getAPIServerLBSpec(elbName string, lbSpec *infrav1.AWSLoadBala
 
 	// The default API health check is TCP, allowing customization to HTTP or HTTPS when HealthCheckProtocol is set.
 	apiHealthCheck := s.getAPITargetGroupHealthCheck(lbSpec)
-	apiTargetGroupName := s.getTargetGroupName(lbSpec, "apiserver-target", infrav1.DefaultAPIServerPort)
 	res := &infrav1.LoadBalancer{
 		Name:          elbName,
 		Scheme:        scheme,
@@ -276,7 +263,7 @@ func (s *Service) getAPIServerLBSpec(elbName string, lbSpec *infrav1.AWSLoadBala
 				Protocol: infrav1.ELBProtocolTCP,
 				Port:     infrav1.DefaultAPIServerPort,
 				TargetGroup: infrav1.TargetGroupSpec{
-					Name:        apiTargetGroupName,
+					Name:        fmt.Sprintf("apiserver-target-%d", time.Now().Unix()),
 					Port:        infrav1.DefaultAPIServerPort,
 					Protocol:    infrav1.ELBProtocolTCP,
 					VpcID:       s.scope.VPC().ID,
@@ -289,7 +276,6 @@ func (s *Service) getAPIServerLBSpec(elbName string, lbSpec *infrav1.AWSLoadBala
 
 	if lbSpec != nil {
 		for _, listener := range lbSpec.AdditionalListeners {
-			targetGroupName := s.getTargetGroupName(lbSpec, "additional-listener", listener.Port)
 			lnHealthCheck := &infrav1.TargetGroupHealthCheck{
 				Protocol: aws.String(string(listener.Protocol)),
 				Port:     aws.String(strconv.FormatInt(listener.Port, 10)),
@@ -302,7 +288,7 @@ func (s *Service) getAPIServerLBSpec(elbName string, lbSpec *infrav1.AWSLoadBala
 				Protocol: listener.Protocol,
 				Port:     listener.Port,
 				TargetGroup: infrav1.TargetGroupSpec{
-					Name:        targetGroupName,
+					Name:        fmt.Sprintf("additional-listener-%d", time.Now().Unix()),
 					Port:        listener.Port,
 					Protocol:    listener.Protocol,
 					VpcID:       s.scope.VPC().ID,
