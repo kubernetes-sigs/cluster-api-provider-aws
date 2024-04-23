@@ -223,6 +223,7 @@ var (
 // This is created first, and the ARN is then passed to the listener.
 type TargetGroupSpec struct {
 	// Name of the TargetGroup. Must be unique over the same group of listeners.
+	// +kubebuilder:validation:MaxLength=32
 	Name string `json:"name"`
 	// Port is the exposed port
 	Port int64 `json:"port"`
