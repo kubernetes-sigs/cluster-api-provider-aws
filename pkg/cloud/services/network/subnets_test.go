@@ -59,9 +59,14 @@ func TestReconcileSubnets(t *testing.T) {
 		{ID: "subnet-private-us-east-1-nyc-1a", AvailabilityZone: "us-east-1-nyc-1a", CidrBlock: "10.0.5.0/24", IsPublic: false},
 		{ID: "subnet-public-us-east-1-nyc-1a", AvailabilityZone: "us-east-1-nyc-1a", CidrBlock: "10.0.6.0/24", IsPublic: true},
 	}
+	stubSubnetsWavelengthZone := []infrav1.SubnetSpec{
+		{ID: "subnet-private-us-east-1-wl1-nyc-wlz-1", AvailabilityZone: "us-east-1-wl1-nyc-wlz-1", CidrBlock: "10.0.7.0/24", IsPublic: false},
+		{ID: "subnet-public-us-east-1-wl1-nyc-wlz-1", AvailabilityZone: "us-east-1-wl1-nyc-wlz-1", CidrBlock: "10.0.8.0/24", IsPublic: true},
+	}
 	// TODO(mtulio): replace by slices.Concat(...) on go 1.22+
 	stubSubnetsAllZones := stubSubnetsAvailabilityZone
 	stubSubnetsAllZones = append(stubSubnetsAllZones, stubSubnetsLocalZone...)
+	stubSubnetsAllZones = append(stubSubnetsAllZones, stubSubnetsWavelengthZone...)
 
 	// NetworkSpec with subnets in zone type availability-zone
 	stubNetworkSpecWithSubnets := &infrav1.NetworkSpec{
@@ -655,7 +660,7 @@ func TestReconcileSubnets(t *testing.T) {
 			tagUnmanagedNetworkResources: true,
 		},
 		{
-			name: "Unmanaged VPC, 2 existing matching subnets, subnet tagging fails with subnet update, should succeed",
+			name: "Unmanaged VPC, one existing matching subnets, subnet tagging fails with subnet update, should succeed",
 			input: NewClusterScope().WithNetwork(&infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
 					ID: subnetsVPCID,
@@ -767,6 +772,9 @@ func TestReconcileSubnets(t *testing.T) {
 					{
 						ID: "subnet-1",
 					},
+					{
+						ID: "subnet-2",
+					},
 				},
 			}).WithTagUnmanagedNetworkResources(true),
 			optionalExpectSubnets: infrav1.Subnets{
@@ -775,6 +783,14 @@ func TestReconcileSubnets(t *testing.T) {
 					ResourceID:       "subnet-1",
 					AvailabilityZone: "us-east-1a",
 					CidrBlock:        "10.0.10.0/24",
+					IsPublic:         true,
+					Tags:             infrav1.Tags{},
+				},
+				{
+					ID:               "subnet-2",
+					ResourceID:       "subnet-2",
+					AvailabilityZone: "us-east-1b",
+					CidrBlock:        "10.0.11.0/24",
 					IsPublic:         true,
 					Tags:             infrav1.Tags{},
 				},
@@ -799,6 +815,13 @@ func TestReconcileSubnets(t *testing.T) {
 								SubnetId:            aws.String("subnet-1"),
 								AvailabilityZone:    aws.String("us-east-1a"),
 								CidrBlock:           aws.String("10.0.10.0/24"),
+								MapPublicIpOnLaunch: aws.Bool(true),
+							},
+							{
+								VpcId:               aws.String(subnetsVPCID),
+								SubnetId:            aws.String("subnet-2"),
+								AvailabilityZone:    aws.String("us-east-1b"),
+								CidrBlock:           aws.String("10.0.11.0/24"),
 								MapPublicIpOnLaunch: aws.Bool(false),
 							},
 						},
@@ -813,6 +836,20 @@ func TestReconcileSubnets(t *testing.T) {
 									{
 										SubnetId:     aws.String("subnet-1"),
 										RouteTableId: aws.String("rt-12345"),
+									},
+								},
+								Routes: []*ec2.Route{
+									{
+										GatewayId: aws.String("igw-12345"),
+									},
+								},
+							},
+							{
+								VpcId: aws.String(subnetsVPCID),
+								Associations: []*ec2.RouteTableAssociation{
+									{
+										SubnetId:     aws.String("subnet-2"),
+										RouteTableId: aws.String("rt-00000"),
 									},
 								},
 								Routes: []*ec2.Route{
@@ -840,10 +877,10 @@ func TestReconcileSubnets(t *testing.T) {
 					gomock.Any()).Return(nil)
 
 				stubMockDescribeAvailabilityZonesWithContextCustomZones(m, []*ec2.AvailabilityZone{
-					{ZoneName: aws.String("us-east-1a")},
+					{ZoneName: aws.String("us-east-1a")}, {ZoneName: aws.String("us-east-1b")},
 				}).AnyTimes()
 
-				m.CreateTagsWithContext(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
+				subnet1tag := m.CreateTagsWithContext(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
 					Resources: aws.StringSlice([]string{"subnet-1"}),
 					Tags: []*ec2.Tag{
 						{
@@ -857,6 +894,21 @@ func TestReconcileSubnets(t *testing.T) {
 					},
 				})).
 					Return(&ec2.CreateTagsOutput{}, fmt.Errorf("tagging failed"))
+
+				m.CreateTagsWithContext(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
+					Resources: aws.StringSlice([]string{"subnet-2"}),
+					Tags: []*ec2.Tag{
+						{
+							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+							Value: aws.String("shared"),
+						},
+						{
+							Key:   aws.String("kubernetes.io/role/elb"),
+							Value: aws.String("1"),
+						},
+					},
+				})).
+					Return(&ec2.CreateTagsOutput{}, fmt.Errorf("tagging failed")).After(subnet1tag)
 			},
 			tagUnmanagedNetworkResources: true,
 		},
@@ -974,6 +1026,11 @@ func TestReconcileSubnets(t *testing.T) {
 					},
 				})).
 					Return(&ec2.CreateTagsOutput{}, nil)
+
+				stubMockDescribeAvailabilityZonesWithContextCustomZones(m, []*ec2.AvailabilityZone{
+					{ZoneName: aws.String("us-east-1a"), ZoneType: aws.String("availability-zone")},
+					{ZoneName: aws.String("us-east-1b"), ZoneType: aws.String("availability-zone")},
+				}).AnyTimes()
 
 				m.CreateTagsWithContext(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
 					Resources: aws.StringSlice([]string{"subnet-2"}),
@@ -2873,6 +2930,7 @@ func TestReconcileSubnets(t *testing.T) {
 					{ZoneName: aws.String("us-east-1a"), ZoneType: aws.String("availability-zone")},
 					{ZoneName: aws.String("us-east-1b"), ZoneType: aws.String("availability-zone")},
 					{ZoneName: aws.String("us-east-1-nyc-1a"), ZoneType: aws.String("local-zone"), ParentZoneName: aws.String("us-east-1a")},
+					{ZoneName: aws.String("us-east-1-wl1-nyc-wlz-1"), ZoneType: aws.String("wavelength-zone"), ParentZoneName: aws.String("us-east-1a")},
 				}).AnyTimes()
 
 				m.WaitUntilSubnetAvailableWithContext(context.TODO(), gomock.Any()).AnyTimes()
@@ -2928,6 +2986,12 @@ func TestReconcileSubnets(t *testing.T) {
 
 				lz1Public := stubGenMockCreateSubnetWithContext(m, "test-cluster", "us-east-1-nyc-1a", "public", "10.0.6.0/24", true).After(lz1Private)
 				stubMockModifySubnetAttributeWithContext(m, "subnet-public-us-east-1-nyc-1a").After(lz1Public)
+
+				// Wavelength zone nyc-1.
+				wz1Private := stubGenMockCreateSubnetWithContext(m, "test-cluster", "us-east-1-wl1-nyc-wlz-1", "private", "10.0.7.0/24", true).
+					After(describeCall)
+
+				stubGenMockCreateSubnetWithContext(m, "test-cluster", "us-east-1-wl1-nyc-wlz-1", "public", "10.0.8.0/24", true).After(wz1Private)
 			},
 		},
 		{
@@ -2990,14 +3054,21 @@ func TestReconcileSubnets(t *testing.T) {
 					{ResourceID: "subnet-az-1a-public"},
 					{ResourceID: "subnet-lz-1a-private"},
 					{ResourceID: "subnet-lz-1a-public"},
+					{ResourceID: "subnet-wl-1a-private"},
+					{ResourceID: "subnet-wl-1a-public"},
 				}
 				return NewClusterScope().WithNetwork(net)
 			}(),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				stubMockDescribeSubnetsWithContextUnmanaged(m)
 				stubMockDescribeAvailabilityZonesWithContextAllZones(m)
-				stubMockDescribeRouteTablesWithContext(m)
+				stubMockDescribeRouteTablesWithContextWithWavelength(m,
+					[]string{"subnet-az-1a-private", "subnet-lz-1a-private", "subnet-wl-1a-private"},
+					[]string{"subnet-az-1a-public", "subnet-lz-1a-public"},
+					[]string{"subnet-wl-1a-public"})
+
 				stubMockDescribeNatGatewaysPagesWithContext(m)
+				stubMockCreateTagsWithContext(m, "test-cluster", "subnet-az-1a-private", "us-east-1a", "private", false).AnyTimes()
 			},
 		},
 	}
@@ -3602,6 +3673,41 @@ func TestService_retrieveZoneInfo(t *testing.T) {
 			},
 		},
 		{
+			name:           "get type wavelength zones",
+			inputZoneNames: []string{"us-east-1-wl1-nyc-wlz-1", "us-east-1-wl1-bos-wlz-1"},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeAvailabilityZonesWithContext(context.TODO(), &ec2.DescribeAvailabilityZonesInput{
+					ZoneNames: aws.StringSlice([]string{"us-east-1-wl1-nyc-wlz-1", "us-east-1-wl1-bos-wlz-1"}),
+				}).
+					Return(&ec2.DescribeAvailabilityZonesOutput{
+						AvailabilityZones: []*ec2.AvailabilityZone{
+							{
+								ZoneName:       aws.String("us-east-1-wl1-nyc-wlz-1"),
+								ZoneType:       aws.String("wavelength-zone"),
+								ParentZoneName: aws.String("us-east-1a"),
+							},
+							{
+								ZoneName:       aws.String("us-east-1-wl1-bos-wlz-1"),
+								ZoneType:       aws.String("wavelength-zone"),
+								ParentZoneName: aws.String("us-east-1b"),
+							},
+						},
+					}, nil)
+			},
+			want: []*ec2.AvailabilityZone{
+				{
+					ZoneName:       aws.String("us-east-1-wl1-nyc-wlz-1"),
+					ZoneType:       aws.String("wavelength-zone"),
+					ParentZoneName: aws.String("us-east-1a"),
+				},
+				{
+					ZoneName:       aws.String("us-east-1-wl1-bos-wlz-1"),
+					ZoneType:       aws.String("wavelength-zone"),
+					ParentZoneName: aws.String("us-east-1b"),
+				},
+			},
+		},
+		{
 			name:           "get all zone types",
 			inputZoneNames: []string{"us-east-1a", "us-east-1-nyc-1a", "us-east-1-wl1-nyc-wlz-1"},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
@@ -3620,6 +3726,11 @@ func TestService_retrieveZoneInfo(t *testing.T) {
 								ZoneType:       aws.String("local-zone"),
 								ParentZoneName: aws.String("us-east-1a"),
 							},
+							{
+								ZoneName:       aws.String("us-east-1-wl1-nyc-wlz-1"),
+								ZoneType:       aws.String("wavelength-zone"),
+								ParentZoneName: aws.String("us-east-1a"),
+							},
 						},
 					}, nil)
 			},
@@ -3632,6 +3743,11 @@ func TestService_retrieveZoneInfo(t *testing.T) {
 				{
 					ZoneName:       aws.String("us-east-1-nyc-1a"),
 					ZoneType:       aws.String("local-zone"),
+					ParentZoneName: aws.String("us-east-1a"),
+				},
+				{
+					ZoneName:       aws.String("us-east-1-wl1-nyc-wlz-1"),
+					ZoneType:       aws.String("wavelength-zone"),
 					ParentZoneName: aws.String("us-east-1a"),
 				},
 			},
@@ -3732,9 +3848,77 @@ func stubGenMockCreateSubnetWithContext(m *mocks.MockEC2APIMockRecorder, prefix,
 		}, nil)
 }
 
+func stubMockCreateTagsWithContext(m *mocks.MockEC2APIMockRecorder, prefix, name, zone, role string, isEdge bool) *gomock.Call {
+	return m.CreateTagsWithContext(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
+		Resources: aws.StringSlice([]string{name}),
+		Tags:      stubGetTags(prefix, role, zone, isEdge),
+	})).
+		Return(&ec2.CreateTagsOutput{}, nil)
+}
+
 func stubMockDescribeRouteTablesWithContext(m *mocks.MockEC2APIMockRecorder) {
 	m.DescribeRouteTablesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
 		Return(&ec2.DescribeRouteTablesOutput{}, nil)
+}
+
+func stubMockDescribeRouteTablesWithContextWithWavelength(m *mocks.MockEC2APIMockRecorder, privSubnets, pubSubnetsIGW, pubSubnetsCarrier []string) *gomock.Call {
+	routes := []*ec2.RouteTable{}
+
+	// create public route table
+	pubTable := &ec2.RouteTable{
+		Routes: []*ec2.Route{
+			{
+				DestinationCidrBlock: aws.String("0.0.0.0/0"),
+				GatewayId:            aws.String("igw-0"),
+			},
+		},
+		RouteTableId: aws.String("rtb-public"),
+	}
+	for _, sub := range pubSubnetsIGW {
+		pubTable.Associations = append(pubTable.Associations, &ec2.RouteTableAssociation{
+			SubnetId: aws.String(sub),
+		})
+	}
+	routes = append(routes, pubTable)
+
+	// create public carrier route table
+	pubCarrierTable := &ec2.RouteTable{
+		Routes: []*ec2.Route{
+			{
+				DestinationCidrBlock: aws.String("0.0.0.0/0"),
+				CarrierGatewayId:     aws.String("cagw-0"),
+			},
+		},
+		RouteTableId: aws.String("rtb-carrier"),
+	}
+	for _, sub := range pubSubnetsCarrier {
+		pubCarrierTable.Associations = append(pubCarrierTable.Associations, &ec2.RouteTableAssociation{
+			SubnetId: aws.String(sub),
+		})
+	}
+	routes = append(routes, pubCarrierTable)
+
+	// create private route table
+	privTable := &ec2.RouteTable{
+		Routes: []*ec2.Route{
+			{
+				DestinationCidrBlock: aws.String("10.0.11.0/24"),
+				GatewayId:            aws.String("vpc-natgw-1a"),
+			},
+		},
+		RouteTableId: aws.String("rtb-private"),
+	}
+	for _, sub := range privSubnets {
+		privTable.Associations = append(privTable.Associations, &ec2.RouteTableAssociation{
+			SubnetId: aws.String(sub),
+		})
+	}
+	routes = append(routes, privTable)
+
+	return m.DescribeRouteTablesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+		Return(&ec2.DescribeRouteTablesOutput{
+			RouteTables: routes,
+		}, nil)
 }
 
 func stubMockDescribeSubnetsWithContext(m *mocks.MockEC2APIMockRecorder, out *ec2.DescribeSubnetsOutput, filterKey, filterValue string) *gomock.Call {
@@ -3760,6 +3944,8 @@ func stubMockDescribeSubnetsWithContextUnmanaged(m *mocks.MockEC2APIMockRecorder
 			{SubnetId: aws.String("subnet-az-1a-public"), AvailabilityZone: aws.String("us-east-1a")},
 			{SubnetId: aws.String("subnet-lz-1a-private"), AvailabilityZone: aws.String("us-east-1-nyc-1a")},
 			{SubnetId: aws.String("subnet-lz-1a-public"), AvailabilityZone: aws.String("us-east-1-nyc-1a")},
+			{SubnetId: aws.String("subnet-wl-1a-private"), AvailabilityZone: aws.String("us-east-1-wl1-nyc-wlz-1")},
+			{SubnetId: aws.String("subnet-wl-1a-public"), AvailabilityZone: aws.String("us-east-1-wl1-nyc-wlz-1")},
 		},
 	}, "vpc-id", subnetsVPCID)
 }
@@ -3799,6 +3985,11 @@ func stubMockDescribeAvailabilityZonesWithContextAllZones(m *mocks.MockEC2APIMoc
 				{
 					ZoneName:       aws.String("us-east-1-nyc-1a"),
 					ZoneType:       aws.String("local-zone"),
+					ParentZoneName: aws.String("us-east-1a"),
+				},
+				{
+					ZoneName:       aws.String("us-east-1-wl1-nyc-wlz-1"),
+					ZoneType:       aws.String("wavelength-zone"),
 					ParentZoneName: aws.String("us-east-1a"),
 				},
 			},
