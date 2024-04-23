@@ -1427,6 +1427,7 @@ spec:
                                 name:
                                   description: Name of the TargetGroup. Must be unique
                                     over the same group of listeners.
+                                  maxLength: 32
                                   type: string
                                 port:
                                   description: Port is the exposed port
@@ -1646,6 +1647,7 @@ spec:
                                 name:
                                   description: Name of the TargetGroup. Must be unique
                                     over the same group of listeners.
+                                  maxLength: 32
                                   type: string
                                 port:
                                   description: Port is the exposed port
@@ -3335,6 +3337,7 @@ spec:
                                 name:
                                   description: Name of the TargetGroup. Must be unique
                                     over the same group of listeners.
+                                  maxLength: 32
                                   type: string
                                 port:
                                   description: Port is the exposed port
@@ -3554,6 +3557,7 @@ spec:
                                 name:
                                   description: Name of the TargetGroup. Must be unique
                                     over the same group of listeners.
+                                  maxLength: 32
                                   type: string
                                 port:
                                   description: Port is the exposed port
