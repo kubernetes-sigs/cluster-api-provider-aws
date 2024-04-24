@@ -309,6 +309,10 @@ type S3Bucket struct {
 	// +kubebuilder:validation:MaxLength:=63
 	// +kubebuilder:validation:Pattern=`^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$`
 	Name string `json:"name"`
+
+	// BestEffortDeleteObjects defines whether access/permission errors during object deletion should be ignored.
+	// +optional
+	BestEffortDeleteObjects *bool `json:"bestEffortDeleteObjects,omitempty"`
 }
 
 // +kubebuilder:object:root=true
