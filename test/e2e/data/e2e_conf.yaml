@@ -209,7 +209,6 @@ variables:
   INIT_WITH_KUBERNETES_VERSION: "v1.25.0"
   EXP_BOOTSTRAP_FORMAT_IGNITION: "true"
   EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"
-  EXP_EXTERNAL_RESOURCE_GC: "true"
   GC_WORKLOAD: "../../data/gcworkload.yaml"
 
 intervals:

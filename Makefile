@@ -468,9 +468,6 @@ compile-e2e: ## Test e2e compilation
 	go test -c -o /dev/null -tags=e2e ./test/e2e/suites/unmanaged
 	go test -c -o /dev/null -tags=e2e ./test/e2e/suites/conformance
 	go test -c -o /dev/null -tags=e2e ./test/e2e/suites/managed
-	go test -c -o /dev/null -tags=e2e ./test/e2e/suites/gc_managed
-	go test -c -o /dev/null -tags=e2e ./test/e2e/suites/gc_unmanaged
-
 
 .PHONY: docker-pull-e2e-preloads
 docker-pull-e2e-preloads: ## Preloads the docker images used for e2e testing and can speed it up
