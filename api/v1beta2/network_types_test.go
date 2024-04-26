@@ -138,6 +138,20 @@ var (
 			ZoneType:         ptr.To(ZoneTypeLocalZone),
 		},
 	}
+	stubNetworkTypeSubnetsWavelengthZone = []*SubnetSpec{
+		{
+			ID:               "subnet-id-us-east-1-wl1-nyc-wlz-1-private",
+			AvailabilityZone: "us-east-1-wl1-nyc-wlz-1",
+			IsPublic:         false,
+			ZoneType:         ptr.To(ZoneTypeWavelengthZone),
+		},
+		{
+			ID:               "subnet-id-us-east-1-wl1-nyc-wlz-1-public",
+			AvailabilityZone: "us-east-1-wl1-nyc-wlz-1",
+			IsPublic:         true,
+			ZoneType:         ptr.To(ZoneTypeWavelengthZone),
+		},
+	}
 
 	subnetsAllZones = Subnets{
 		{
@@ -183,10 +197,29 @@ var (
 			IsPublic:         true,
 			AvailabilityZone: "us-east-1-nyc-1a",
 		},
+		{
+			ResourceID:       "subnet-wl-1a",
+			ZoneType:         ptr.To(ZoneTypeWavelengthZone),
+			IsPublic:         false,
+			AvailabilityZone: "us-east-1-wl1-nyc-wlz-1",
+		},
+		{
+			ResourceID:       "subnet-wl-1b",
+			ZoneType:         ptr.To(ZoneTypeWavelengthZone),
+			IsPublic:         true,
+			AvailabilityZone: "us-east-1-wl1-nyc-wlz-1",
+		},
 	}
 )
 
 type testStubNetworkTypes struct{}
+
+func (ts *testStubNetworkTypes) deepCopyToSubnets(stub []*SubnetSpec) (subnets Subnets) {
+	for _, sn := range stub {
+		subnets = append(subnets, *sn.DeepCopy())
+	}
+	return subnets
+}
 
 func (ts *testStubNetworkTypes) deepCopySubnets(stub []*SubnetSpec) (subnets []*SubnetSpec) {
 	for _, s := range stub {
@@ -201,6 +234,19 @@ func (ts *testStubNetworkTypes) getSubnetsAvailabilityZones() (subnets []*Subnet
 
 func (ts *testStubNetworkTypes) getSubnetsLocalZones() (subnets []*SubnetSpec) {
 	return ts.deepCopySubnets(stubNetworkTypeSubnetsLocalZone)
+}
+
+func (ts *testStubNetworkTypes) getSubnetsWavelengthZones() (subnets []*SubnetSpec) {
+	return ts.deepCopySubnets(stubNetworkTypeSubnetsWavelengthZone)
+}
+
+func (ts *testStubNetworkTypes) getSubnets() (sns Subnets) {
+	subnets := []*SubnetSpec{}
+	subnets = append(subnets, ts.getSubnetsAvailabilityZones()...)
+	subnets = append(subnets, ts.getSubnetsLocalZones()...)
+	subnets = append(subnets, ts.getSubnetsWavelengthZones()...)
+	sns = ts.deepCopyToSubnets(subnets)
+	return sns
 }
 
 func TestSubnetSpec_IsEdge(t *testing.T) {
@@ -229,12 +275,59 @@ func TestSubnetSpec_IsEdge(t *testing.T) {
 			spec: stub.getSubnetsLocalZones()[0],
 			want: true,
 		},
+		{
+			name: "wavelength is edge",
+			spec: stub.getSubnetsWavelengthZones()[0],
+			want: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := tt.spec
 			if got := s.IsEdge(); got != tt.want {
 				t.Errorf("SubnetSpec.IsEdge() returned unexpected value = got: %v, want: %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSubnetSpec_IsEdgeWavelength(t *testing.T) {
+	stub := testStubNetworkTypes{}
+	tests := []struct {
+		name string
+		spec *SubnetSpec
+		want bool
+	}{
+		{
+			name: "az without type is not edge wavelength",
+			spec: func() *SubnetSpec {
+				s := stub.getSubnetsAvailabilityZones()[0]
+				s.ZoneType = nil
+				return s
+			}(),
+			want: false,
+		},
+		{
+			name: "az is not edge wavelength",
+			spec: stub.getSubnetsAvailabilityZones()[0],
+			want: false,
+		},
+		{
+			name: "localzone is not edge wavelength",
+			spec: stub.getSubnetsLocalZones()[0],
+			want: false,
+		},
+		{
+			name: "wavelength is edge wavelength",
+			spec: stub.getSubnetsWavelengthZones()[0],
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := tt.spec
+			if got := s.IsEdgeWavelength(); got != tt.want {
+				t.Errorf("SubnetSpec.IsEdgeWavelength() returned unexpected value = got: %v, want: %v", got, tt.want)
 			}
 		})
 	}
@@ -335,6 +428,34 @@ func TestSubnetSpec_SetZoneInfo(t *testing.T) {
 			},
 			want: stub.getSubnetsLocalZones()[0],
 		},
+		{
+			name: "set zone information to wavelength zone subnet",
+			spec: func() *SubnetSpec {
+				s := stub.getSubnetsWavelengthZones()[0]
+				s.ZoneType = nil
+				s.ParentZoneName = nil
+				return s
+			}(),
+			zones: []*ec2.AvailabilityZone{
+				{
+					ZoneName: ptr.To[string]("us-east-1b"),
+					ZoneType: ptr.To[string]("availability-zone"),
+				},
+				{
+					ZoneName: ptr.To[string]("us-east-1a"),
+					ZoneType: ptr.To[string]("availability-zone"),
+				},
+				{
+					ZoneName: ptr.To[string]("us-east-1-wl1-nyc-wlz-1"),
+					ZoneType: ptr.To[string]("wavelength-zone"),
+				},
+				{
+					ZoneName: ptr.To[string]("us-east-1-nyc-1a"),
+					ZoneType: ptr.To[string]("local-zone"),
+				},
+			},
+			want: stub.getSubnetsWavelengthZones()[0],
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -364,21 +485,20 @@ func TestSubnets_IDs(t *testing.T) {
 		want    []string
 	}{
 		{
-			name:    "invalid subnet IDs",
-			subnets: nil,
-			want:    []string{},
-		},
-		{
-			name:    "invalid subnet IDs",
+			name:    "no valid subnet IDs",
 			subnets: Subnets{},
 			want:    []string{},
 		},
 		{
-			name: "invalid subnet IDs",
+			name: "no valid subnet IDs",
 			subnets: Subnets{
 				{
 					ResourceID: "subnet-lz-1",
 					ZoneType:   ptr.To(ZoneTypeLocalZone),
+				},
+				{
+					ResourceID: "subnet-wl-1",
+					ZoneType:   ptr.To(ZoneTypeWavelengthZone),
 				},
 			},
 			want: []string{},
@@ -414,6 +534,10 @@ func TestSubnets_IDs(t *testing.T) {
 					ResourceID: "subnet-lz-1",
 					ZoneType:   ptr.To(ZoneTypeLocalZone),
 				},
+				{
+					ResourceID: "subnet-wl-1",
+					ZoneType:   ptr.To(ZoneTypeWavelengthZone),
+				},
 			},
 			want: []string{"subnet-az-1", "subnet-az-2"},
 		},
@@ -421,7 +545,7 @@ func TestSubnets_IDs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.subnets.IDs(); !cmp.Equal(got, tt.want) {
-				t.Errorf("Subnets.IDs() got unwanted value:\n %v", cmp.Diff(got, tt.want))
+				t.Errorf("Subnets.IDs() diff: %v", cmp.Diff(got, tt.want))
 			}
 		})
 	}
@@ -474,8 +598,12 @@ func TestSubnets_IDsWithEdge(t *testing.T) {
 					ResourceID: "subnet-lz-1",
 					ZoneType:   ptr.To(ZoneTypeLocalZone),
 				},
+				{
+					ResourceID: "subnet-wl-1",
+					ZoneType:   ptr.To(ZoneTypeWavelengthZone),
+				},
 			},
-			want: []string{"subnet-az-1", "subnet-az-2", "subnet-lz-1"},
+			want: []string{"subnet-az-1", "subnet-az-2", "subnet-lz-1", "subnet-wl-1"},
 		},
 	}
 	for _, tt := range tests {
@@ -659,6 +787,7 @@ func TestSubnets_GetUniqueZones(t *testing.T) {
 				"us-east-1b",
 				"us-east-1c",
 				"us-east-1-nyc-1a",
+				"us-east-1-wl1-nyc-wlz-1",
 			},
 		},
 	}
@@ -666,6 +795,55 @@ func TestSubnets_GetUniqueZones(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.subnets.GetUniqueZones(); !cmp.Equal(got, tt.want) {
 				t.Errorf("Subnets.GetUniqueZones() got unwanted value:\n %v", cmp.Diff(got, tt.want))
+			}
+		})
+	}
+}
+
+func TestSubnets_HasPublicSubnetWavelength(t *testing.T) {
+	stub := testStubNetworkTypes{}
+	tests := []struct {
+		name    string
+		subnets Subnets
+		want    bool
+	}{
+		{
+			name:    "no subnets",
+			subnets: Subnets{},
+			want:    false,
+		},
+		{
+			name:    "no wavelength",
+			subnets: stub.deepCopyToSubnets(stub.getSubnetsAvailabilityZones()),
+			want:    false,
+		},
+		{
+			name:    "no wavelength",
+			subnets: stub.deepCopyToSubnets(stub.getSubnetsLocalZones()),
+			want:    false,
+		},
+		{
+			name: "has only private subnets in wavelength zones",
+			subnets: Subnets{
+				{
+					ID:               "subnet-id-us-east-1-wl1-nyc-wlz-1-private",
+					AvailabilityZone: "us-east-1-wl1-nyc-wlz-1",
+					IsPublic:         false,
+					ZoneType:         ptr.To(ZoneTypeWavelengthZone),
+				},
+			},
+			want: false,
+		},
+		{
+			name:    "has public subnets in wavelength zones",
+			subnets: stub.getSubnets(),
+			want:    true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.subnets.HasPublicSubnetWavelength(); got != tt.want {
+				t.Errorf("Subnets.HasPublicSubnetWavelength() got unwanted value:\n %v", cmp.Diff(got, tt.want))
 			}
 		})
 	}
