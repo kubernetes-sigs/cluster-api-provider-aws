@@ -16440,6 +16440,12 @@ int64
 </tr><tr><td><p>&#34;AL2_x86_64_GPU&#34;</p></td>
 <td><p>Al2x86_64GPU is the x86-64 GPU AMI type.</p>
 </td>
+<tr><td><p>&#34;AL2023_ARM_64_STANDARD&#34;</p></td>
+<td><p>Al2023Arm64 is the AL2023 Arm AMI type.</p>
+</td>
+</tr><tr><td><p>&#34;AL2023_x86_64_STANDARD&#34;</p></td>
+<td><p>Al2023x86_64 is the AL2023 x86 AMI type.</p>
+</td>
 </tr></tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.ManagedMachinePoolCapacityType">ManagedMachinePoolCapacityType
