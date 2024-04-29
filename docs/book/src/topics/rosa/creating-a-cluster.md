@@ -5,7 +5,7 @@ CAPA controller requires an API token in order to be able to provision ROSA clus
 
 1. Visit [https://console.redhat.com/openshift/token](https://console.redhat.com/openshift/token) to retrieve your API authentication token
 
-1. Create a credentials secret with the token to be referenced later by `ROSAControlePlane`
+1. Create a credentials secret within the target namespace with the token to be referenced later by `ROSAControlePlane`
     ```shell
     kubectl create secret generic rosa-creds-secret \
       --from-literal=ocmToken='eyJhbGciOiJIUzI1NiIsI....' \
@@ -39,7 +39,7 @@ Once Step 3 is done, you will be ready to proceed with creating a ROSA cluster u
     export OPENSHIFT_VERSION="4.14.5"
     export AWS_REGION="us-west-2"
     export AWS_AVAILABILITY_ZONE="us-west-2a"
-    export AWS_ACCOUNT_ID="<account_id"
+    export AWS_ACCOUNT_ID="<account_id>"
     export AWS_CREATOR_ARN="<user_arn>" # can be retrieved e.g. using `aws sts get-caller-identity`
 
     export OIDC_CONFIG_ID="<oidc_id>" # OIDC config id creating previously with `rosa create oidc-config`
@@ -55,8 +55,9 @@ Once Step 3 is done, you will be ready to proceed with creating a ROSA cluster u
     ```shell
     clusterctl generate cluster <cluster-name> --from templates/cluster-template-rosa.yaml > rosa-capi-cluster.yaml
     ```
+  Note: The AWS role name must be no more than 64 characters in length. Otherwise an error will be returned. Truncate values exceeding 64 characters.
 
-1. If a credentials secret was created earlier, edit `ROSAControlPlane` to refernce it:
+1. If a credentials secret was created earlier, edit `ROSAControlPlane` to reference it:
     ```yaml
     apiVersion: controlplane.cluster.x-k8s.io/v1beta2
     kind: ROSAControlPlane
@@ -81,7 +82,7 @@ Once Step 3 is done, you will be ready to proceed with creating a ROSA cluster u
     ...
     ```
 
-    Otherwise, make sure the following `AWSClusterControllerIdentity` singleton exists in your managment cluster:
+    Otherwise, make sure the following `AWSClusterControllerIdentity` singleton exists in your management cluster:
     ```yaml
     apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
     kind: AWSClusterControllerIdentity
