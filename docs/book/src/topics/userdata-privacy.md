@@ -5,16 +5,21 @@ Because Kubernetes clusters are secured using TLS using multiple Certificate Aut
 Cluster API and injected into the user data. It is important to note that without the configuring of host firewalls, processes can
 retrieve instance userdata from http://169.254.169.254/latest/api/token
 
-## Requirements
+## How CAPA Secures TLS Secrets
 
-* An AMI that includes the AWS CLI
-* AMIs using CloudInit
-* A working `/bin/bash` shell
-* LFS directory layout (i.e. `/etc` exists and is readable by CloudInit)
+CAPA can securely pass secrets to machines that use either cloud-init or ignition as part of their boot sequence.
 
-[Listed AMIs](./images/built-amis.md) on 1.16 and up should include the AWS CLI.
+### Cloud-init
 
-## How Cluster API secures TLS secrets
+#### Requirements
+
+* Cloud-init is installed.
+  > **Note**: CAPA v2.5 and earlier requires cloud-init v23.2 or earlier. See [issue #4745](https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/4745) for details.
+* The AWS CLI is installed.
+* A working `/bin/bash` shell.
+* LFS directory layout (i.e. `/etc` exists and is readable by cloud-init).
+
+#### Overview
 
 Since v0.5.x, Cluster API Provider AWS has used [AWS Secrets Manager](https://aws.amazon.com/secrets-manager/)
 as a limited-time secret store, storing the userdata using KMS encryption at rest in AWS.
@@ -30,28 +35,30 @@ Cluster API Provider AWS will also attempt deletion of the secret if the AWSMach
 is terminated or failed.
 
 This method is only compatible with operating systems and distributions using
-[cloud-init](https://cloudinit.readthedocs.io/en/latest/topics/format.html#mime-multi-part-archive). If you are using a different bootstrap
-process, you will need to co-ordinate this externally and set the following in the specification of the AWSMachine types to disable the use
-of a cloud-init boothook:
+[cloud-init](https://cloudinit.readthedocs.io/en/latest/topics/format.html#mime-multi-part-archive). It can be disabled by modifying the AWSMachine specification:
 
 ``` yaml
 cloudInit:
   insecureSkipSecretsManager: true
 ```
 
-## Troubleshooting
+#### Troubleshooting
 
-### Script errors
+##### Script errors
 
 cloud-init does not print boothook script errors to the systemd journal. Logs for the script, if it errored can be found in
 `/var/log/cloud-init-output.log`
 
-### Warning messages
+##### Warning messages
 
 Because cloud-init will attempt to read the final file at start, cloud-init will always print a `/etc/secret-userdata.txt cannot be found`
 message. This can be safely ignored.
 
-### Secrets manager console
+##### Secrets manager console
 
 The AWS secrets manager console should show secrets being created and deleted, with a lifetime of around a minute. No plaintext secret
 data will appear in the console as Cluster API Provider AWS stores the userdata as fragments of a gzipped data stream.
+
+### Ignition
+
+Please see the [Ignition support doc](ignition-support.md) for details.
