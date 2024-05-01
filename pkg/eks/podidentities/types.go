@@ -30,7 +30,6 @@ type EKSPodIdentityAssociation struct {
 
 // IsEqual determines if 2 EKSPodIdentityAssociation are equal.
 func (e *EKSPodIdentityAssociation) IsEqual(other *EKSPodIdentityAssociation) bool {
-	// NOTE: we don't compare the ARN as thats only for existing addons
 	if e == other {
 		return true
 	}

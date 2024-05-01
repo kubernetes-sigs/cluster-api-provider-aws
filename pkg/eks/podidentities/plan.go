@@ -35,7 +35,7 @@ func NewPlan(clusterName string, desiredAssociations, currentAssociations []EKSP
 	}
 }
 
-// Plan is a plan that will manage EKS addons.
+// Plan is a plan that will manage EKS pod identities.
 type plan struct {
 	currentAssociations []EKSPodIdentityAssociation
 	desiredAssociations []EKSPodIdentityAssociation
@@ -61,17 +61,15 @@ func (a *plan) getDesiredAssociation(association EKSPodIdentityAssociation) bool
 	return false
 }
 
-// Create will create the plan (i.e. list of procedures) for managing EKS addons.
+// Create will create the plan (i.e. list of procedures) for managing EKS pod identities.
 func (a *plan) Create(_ context.Context) ([]planner.Procedure, error) {
 	procedures := []planner.Procedure{}
 
-	for _, d := range a.desiredAssociations {
-		desired := d
+	for _, desired := range a.desiredAssociations {
 		existsInCurrent := a.getCurrentAssociation(desired)
-		existsInDesired := a.getDesiredAssociation(desired)
 
 		// Create pod association if is doesnt already exist
-		if existsInDesired && !existsInCurrent {
+		if !existsInCurrent {
 			procedures = append(procedures,
 				&CreatePodIdentityAssociationProcedure{
 					eksClient:      a.eksClient,
@@ -83,10 +81,9 @@ func (a *plan) Create(_ context.Context) ([]planner.Procedure, error) {
 	}
 
 	for _, current := range a.currentAssociations {
-		existsInCurrent := a.getCurrentAssociation(current)
 		existsInDesired := a.getDesiredAssociation(current)
 
-		if !existsInDesired && existsInCurrent {
+		if !existsInDesired {
 			// Delete pod association if it exists
 			procedures = append(procedures,
 				&DeletePodIdentityAssociationProcedure{
