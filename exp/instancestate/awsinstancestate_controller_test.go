@@ -135,14 +135,14 @@ func TestAWSInstanceStateController(t *testing.T) {
 				exist = exist && ok
 			}
 			return exist
-		}, 10*time.Second).Should(BeTrue())
+		}, 10*time.Second).Should(BeTrue(), "Eventually failed ensuring queue URLs are up-to-date")
 
 		deleteAWSCluster(g, "aws-cluster-2")
 		t.Log("Ensuring we stop tracking deleted queue")
 		g.Eventually(func() bool {
 			_, ok := instanceStateReconciler.queueURLs.Load("aws-cluster-2")
 			return ok
-		}, 10*time.Second).Should(BeFalse())
+		}, 10*time.Second).Should(BeFalse(), "Eventually failed ensuring we stop tracking deleted queue")
 
 		persistObject(g, createAWSCluster("aws-cluster-3"))
 		t.Log("Ensuring newly created cluster is added to tracked clusters")
@@ -153,7 +153,7 @@ func TestAWSInstanceStateController(t *testing.T) {
 				exist = exist && ok
 			}
 			return exist
-		}, 10*time.Second).Should(BeTrue())
+		}, 10*time.Second).Should(BeTrue(), "Eventually failed ensuring newly created cluster is added to the tracked clusters")
 
 		t.Log("Ensuring machine is labelled with correct instance state")
 		g.Eventually(func() bool {
@@ -166,7 +166,7 @@ func TestAWSInstanceStateController(t *testing.T) {
 			labels := m.GetLabels()
 			val := labels[Ec2InstanceStateLabelKey]
 			return val == "shutting-down"
-		}, 10*time.Second).Should(BeTrue())
+		}, 10*time.Second).Should(BeTrue(), "Eventually failed ensuring machine is labelled with correct instance state")
 	})
 }
 

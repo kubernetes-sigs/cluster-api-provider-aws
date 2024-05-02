@@ -509,7 +509,7 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 			}
 			code, ok := awserrors.Code(err)
 			return err == nil || (ok && code == iam.ErrCodeNoSuchEntityException)
-		}, 5*time.Minute, 5*time.Second).Should(BeTrue())
+		}, 5*time.Minute, 5*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed deleting the following role: %q", role.RoleName))
 	}
 	for _, profile := range instanceProfiles {
 		By(fmt.Sprintf("cleanup for profile with name '%s'", profile.InstanceProfileName))
@@ -522,7 +522,7 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 			}
 			code, ok := awserrors.Code(err)
 			return err == nil || (ok && code == iam.ErrCodeNoSuchEntityException)
-		}, 5*time.Minute, 5*time.Second).Should(BeTrue())
+		}, 5*time.Minute, 5*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed cleaning up profile with name %q", profile.InstanceProfileName))
 	}
 	for _, group := range groups {
 		repeat := false
@@ -534,7 +534,7 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 			}
 			code, ok := awserrors.Code(err)
 			return err == nil || (ok && code == iam.ErrCodeNoSuchEntityException)
-		}, 5*time.Minute, 5*time.Second).Should(BeTrue())
+		}, 5*time.Minute, 5*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed deleting group %q", group.GroupName))
 	}
 	for _, policy := range policies {
 		policies, err := iamSvc.ListPolicies(&iam.ListPoliciesInput{})
@@ -554,7 +554,7 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 						}
 						code, ok := awserrors.Code(err)
 						return err == nil || (ok && code == iam.ErrCodeNoSuchEntityException)
-					}, 5*time.Minute, 5*time.Second).Should(BeTrue())
+					}, 5*time.Minute, 5*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed to delete policy %q", p.String()))
 					// TODO: why is there a break here? Don't we want to clean up everything?
 					break
 				}
@@ -1130,7 +1130,7 @@ func WaitForInstanceState(e2eCtx *E2EContext, clusterName string, state string) 
 			return true
 		}
 		return false
-	}, 5*time.Minute, 5*time.Second).Should(BeTrue())
+	}, 5*time.Minute, 5*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed waiting for all cluster's EC2 instance to be in %q state", state))
 
 	return false
 }
@@ -1547,7 +1547,7 @@ func WaitForNatGatewayState(e2eCtx *E2EContext, gatewayID string, state string) 
 		gw, _ := GetNatGateway(e2eCtx, gatewayID)
 		gwState := *gw.State
 		return gwState == state
-	}, 3*time.Minute, 5*time.Second).Should(BeTrue())
+	}, 3*time.Minute, 5*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed waiting for NAT Gateway to be in %q state", state))
 	return false
 }
 
