@@ -65,7 +65,8 @@ func (a *plan) getDesiredAssociation(association EKSPodIdentityAssociation) bool
 func (a *plan) Create(_ context.Context) ([]planner.Procedure, error) {
 	procedures := []planner.Procedure{}
 
-	for _, desired := range a.desiredAssociations {
+	for _, d := range a.desiredAssociations {
+		desired := d
 		existsInCurrent := a.getCurrentAssociation(desired)
 
 		// Create pod association if is doesnt already exist

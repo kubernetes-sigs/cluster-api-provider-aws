@@ -17,6 +17,8 @@ limitations under the License.
 package podidentities
 
 import (
+	"net/http"
+
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -42,6 +44,6 @@ func (e *EKSPodIdentityAssociation) IsEqual(other *EKSPodIdentityAssociation) bo
 	if !cmp.Equal(e.RoleARN, other.RoleARN) {
 		return false
 	}
-
+	x := http.DefaultClient
 	return true
 }
