@@ -502,7 +502,7 @@ func mockedCallsForMissingEverything(ec2Rec *mocks.MockEC2APIMockRecorder, subne
 			},
 			{
 				Name:   aws.String("tag:sigs.k8s.io/cluster-api-provider-aws/role"),
-				Values: aws.StringSlice([]string{"apiserver"}),
+				Values: aws.StringSlice([]string{"common"}),
 			},
 		},
 	})).Return(&ec2.DescribeAddressesOutput{
@@ -525,7 +525,7 @@ func mockedCallsForMissingEverything(ec2Rec *mocks.MockEC2APIMockRecorder, subne
 						Tags: []*ec2.Tag{
 							{
 								Key:   aws.String("Name"),
-								Value: aws.String("test-cluster-eip-apiserver"),
+								Value: aws.String("test-cluster-eip-common"),
 							},
 							{
 								Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
@@ -533,7 +533,7 @@ func mockedCallsForMissingEverything(ec2Rec *mocks.MockEC2APIMockRecorder, subne
 							},
 							{
 								Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
-								Value: aws.String("apiserver"),
+								Value: aws.String("common"),
 							},
 						},
 					},

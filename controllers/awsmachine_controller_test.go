@@ -154,6 +154,8 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 			return elbSvc
 		}
 
+		ec2Mock.EXPECT().AssociateAddressWithContext(context.TODO(), gomock.Any()).MaxTimes(1)
+
 		reconciler.secretsManagerServiceFactory = func(clusterScope cloud.ClusterScoper) services.SecretInterface {
 			return secretMock
 		}
@@ -329,6 +331,8 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		reconciler.secretsManagerServiceFactory = func(clusterScope cloud.ClusterScoper) services.SecretInterface {
 			return secretMock
 		}
+
+		ec2Mock.EXPECT().AssociateAddressWithContext(context.TODO(), gomock.Any()).MaxTimes(1)
 
 		_, err = reconciler.reconcileNormal(ctx, ms, cs, cs, cs, cs)
 		g.Expect(err).Should(HaveOccurred())
