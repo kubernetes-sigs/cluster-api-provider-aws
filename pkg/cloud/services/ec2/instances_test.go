@@ -2130,19 +2130,6 @@ func TestCreateInstance(t *testing.T) {
 						}},
 					}, nil)
 				m.
-					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
-						Filters: []*ec2.Filter{
-							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"public-subnet-1"})},
-						},
-					}).
-					Return(&ec2.DescribeSubnetsOutput{
-						Subnets: []*ec2.Subnet{{
-							SubnetId:            aws.String("public-subnet-1"),
-							AvailabilityZone:    aws.String("us-east-1b"),
-							MapPublicIpOnLaunch: aws.Bool(true),
-						}},
-					}, nil)
-				m.
 					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
 						InstanceTypes: []*string{
 							aws.String("m5.large"),
@@ -2261,19 +2248,6 @@ func TestCreateInstance(t *testing.T) {
 					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
 						Filters: []*ec2.Filter{
 							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
-							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"public-subnet-1"})},
-						},
-					}).
-					Return(&ec2.DescribeSubnetsOutput{
-						Subnets: []*ec2.Subnet{{
-							SubnetId:            aws.String("public-subnet-1"),
-							AvailabilityZone:    aws.String("us-east-1b"),
-							MapPublicIpOnLaunch: aws.Bool(false),
-						}},
-					}, nil)
-				m.
-					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
-						Filters: []*ec2.Filter{
 							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"public-subnet-1"})},
 						},
 					}).
@@ -2551,18 +2525,6 @@ func TestCreateInstance(t *testing.T) {
 						}},
 					}, nil)
 				m.
-					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
-						Filters: []*ec2.Filter{
-							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"public-subnet-1"})},
-						},
-					}).
-					Return(&ec2.DescribeSubnetsOutput{
-						Subnets: []*ec2.Subnet{{
-							SubnetId:            aws.String("public-subnet-1"),
-							MapPublicIpOnLaunch: aws.Bool(true),
-						}},
-					}, nil)
-				m.
 					RunInstancesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
@@ -2691,18 +2653,6 @@ func TestCreateInstance(t *testing.T) {
 						Filters: []*ec2.Filter{
 							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
 							{Name: aws.String("tag:some-tag"), Values: aws.StringSlice([]string{"some-value"})},
-						},
-					}).
-					Return(&ec2.DescribeSubnetsOutput{
-						Subnets: []*ec2.Subnet{{
-							SubnetId:            aws.String("public-subnet-1"),
-							MapPublicIpOnLaunch: aws.Bool(false),
-						}},
-					}, nil)
-				m.
-					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
-						Filters: []*ec2.Filter{
-							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"public-subnet-1"})},
 						},
 					}).
 					Return(&ec2.DescribeSubnetsOutput{
@@ -2844,18 +2794,6 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
-						Filters: []*ec2.Filter{
-							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"public-subnet-1"})},
-						},
-					}).
-					Return(&ec2.DescribeSubnetsOutput{
-						Subnets: []*ec2.Subnet{{
-							SubnetId:            aws.String("public-subnet-1"),
-							MapPublicIpOnLaunch: aws.Bool(true),
-						}},
-					}, nil)
-				m.
 					RunInstancesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
@@ -2972,18 +2910,6 @@ func TestCreateInstance(t *testing.T) {
 								},
 							},
 						},
-					}, nil)
-				m.
-					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
-						Filters: []*ec2.Filter{
-							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"public-subnet-1"})},
-						},
-					}).
-					Return(&ec2.DescribeSubnetsOutput{
-						Subnets: []*ec2.Subnet{{
-							SubnetId:            aws.String("public-subnet-1"),
-							MapPublicIpOnLaunch: aws.Bool(false),
-						}},
 					}, nil)
 				m.
 					RunInstancesWithContext(context.TODO(), gomock.Any()).
