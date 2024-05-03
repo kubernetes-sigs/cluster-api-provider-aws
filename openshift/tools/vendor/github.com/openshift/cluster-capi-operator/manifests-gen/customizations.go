@@ -234,6 +234,9 @@ func customizeDeployments(obj *unstructured.Unstructured) {
 		if container.Name == "kube-rbac-proxy" {
 			container.Image = "registry.ci.openshift.org/openshift:kube-rbac-proxy"
 		}
+
+		// This helps with debugging and is enforced in OCP, see https://issues.redhat.com/browse/OCPBUGS-33170.
+		container.TerminationMessagePolicy = corev1.TerminationMessageFallbackToLogsOnError
 	}
 
 	if err := scheme.Convert(deployment, obj, nil); err != nil {
