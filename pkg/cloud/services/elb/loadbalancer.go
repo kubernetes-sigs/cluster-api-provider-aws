@@ -386,6 +386,22 @@ func (s *Service) createLB(spec *infrav1.LoadBalancer, lbSpec *infrav1.AWSLoadBa
 		input.IpAddressType = aws.String("dualstack")
 	}
 
+	// Allocate custom addresses (Elastic IP) to internet-facing Load Balancers, when defined.
+	// Custom, or BYO, Public IPv4 Pool need to be created prior install, and the Pool ID must be
+	// set in the VpcSpec.ElasticIPPool.PublicIPv4Pool to allow Elastic IP be consumed from
+	// public ip address of user-provided CIDR blocks.
+	if spec.Scheme == infrav1.ELBSchemeInternetFacing {
+		if err := s.allocatePublicIpv4AddressFromByoIPPool(input); err != nil {
+			return nil, fmt.Errorf("failed to allocate addresses to load balancer: %w", err)
+		}
+	}
+
+	// Subnets and SubnetMappings are mutually exclusive. SubnetMappings is set by users or when
+	// BYO Public IPv4 Pool is set.
+	if len(input.SubnetMappings) == 0 {
+		input.Subnets = aws.StringSlice(spec.SubnetIDs)
+	}
+
 	out, err := s.ELBV2Client.CreateLoadBalancer(input)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create load balancer: %v", spec)

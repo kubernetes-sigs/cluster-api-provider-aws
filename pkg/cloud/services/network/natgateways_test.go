@@ -122,7 +122,7 @@ func TestReconcileNatGateways(t *testing.T) {
 							Tags: []*ec2.Tag{
 								{
 									Key:   aws.String("Name"),
-									Value: aws.String("test-cluster-eip-apiserver"),
+									Value: aws.String("test-cluster-eip-common"),
 								},
 								{
 									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
@@ -130,7 +130,7 @@ func TestReconcileNatGateways(t *testing.T) {
 								},
 								{
 									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
-									Value: aws.String("apiserver"),
+									Value: aws.String("common"),
 								},
 							},
 						},
@@ -229,7 +229,7 @@ func TestReconcileNatGateways(t *testing.T) {
 							Tags: []*ec2.Tag{
 								{
 									Key:   aws.String("Name"),
-									Value: aws.String("test-cluster-eip-apiserver"),
+									Value: aws.String("test-cluster-eip-common"),
 								},
 								{
 									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
@@ -237,7 +237,7 @@ func TestReconcileNatGateways(t *testing.T) {
 								},
 								{
 									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
-									Value: aws.String("apiserver"),
+									Value: aws.String("common"),
 								},
 							},
 						},
