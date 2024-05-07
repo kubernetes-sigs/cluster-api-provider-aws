@@ -2,7 +2,7 @@
 
 Nightly builds are regular automated builds of the CAPA source code that occur every night.
 
-These builds are generated directly from the latest version of the source code repository, the main branch.
+These builds are generated directly from the latest commit o source code on the main branch.
 
 Nightly builds serve several purposes:
 
