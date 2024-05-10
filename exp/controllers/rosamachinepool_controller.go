@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/blang/semver"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/openshift/rosa/pkg/ocm"
 	"github.com/pkg/errors"
@@ -220,6 +221,11 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 	}
 
 	if found {
+		if rosaMachinePool.Spec.AvailabilityZone == "" {
+			// reflect the current AvailabilityZone in the spec if not set.
+			rosaMachinePool.Spec.AvailabilityZone = nodePool.AvailabilityZone()
+		}
+
 		nodePool, err := r.updateNodePool(machinePoolScope, ocmClient, nodePool)
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to ensure rosaMachinePool: %w", err)
@@ -349,13 +355,23 @@ func (r *ROSAMachinePoolReconciler) reconcileMachinePoolVersion(machinePoolScope
 }
 
 func (r *ROSAMachinePoolReconciler) updateNodePool(machinePoolScope *scope.RosaMachinePoolScope, ocmClient *ocm.Client, nodePool *cmv1.NodePool) (*cmv1.NodePool, error) {
-	desiredSpec := machinePoolScope.RosaMachinePool.Spec.DeepCopy()
-
+	desiredSpec := *machinePoolScope.RosaMachinePool.Spec.DeepCopy()
 	currentSpec := nodePoolToRosaMachinePoolSpec(nodePool)
-	currentSpec.ProviderIDList = desiredSpec.ProviderIDList // providerIDList is set by the controller and shouldn't be compared here.
-	currentSpec.Version = desiredSpec.Version               // Version changes are reconciled separately and shouldn't be compared here.
 
-	if cmp.Equal(desiredSpec, currentSpec) {
+	if desiredSpec.NodeDrainGracePeriod == nil {
+		// currentSpec.NodeDrainGracePeriod is always non-nil.
+		// if desiredSpec.NodeDrainGracePeriod is nil, set to 0 so we update the nodePool, otherewise the current value will be preserved.
+		desiredSpec.NodeDrainGracePeriod = &metav1.Duration{}
+	}
+
+	ignoredFields := []string{
+		"ProviderIDList", // providerIDList is set by the controller.
+		"Version",        // Version changes are reconciled separately.
+		"AdditionalTags", // AdditionalTags day2 changes not supported.
+	}
+	if cmp.Equal(desiredSpec, currentSpec,
+		cmpopts.EquateEmpty(), // ensures empty non-nil slices and nil slices are considered equal.
+		cmpopts.IgnoreFields(currentSpec, ignoredFields...)) {
 		// no changes detected.
 		return nodePool, nil
 	}
@@ -365,7 +381,7 @@ func (r *ROSAMachinePoolReconciler) updateNodePool(machinePoolScope *scope.RosaM
 	desiredSpec.AdditionalSecurityGroups = nil
 	desiredSpec.AdditionalTags = nil
 
-	npBuilder := nodePoolBuilder(*desiredSpec, machinePoolScope.MachinePool.Spec)
+	npBuilder := nodePoolBuilder(desiredSpec, machinePoolScope.MachinePool.Spec)
 	nodePoolSpec, err := npBuilder.Build()
 	if err != nil {
 		return nil, fmt.Errorf("failed to build nodePool spec: %w", err)
@@ -470,11 +486,13 @@ func nodePoolToRosaMachinePoolSpec(nodePool *cmv1.NodePool) expinfrav1.RosaMachi
 		AvailabilityZone:         nodePool.AvailabilityZone(),
 		Subnet:                   nodePool.Subnet(),
 		Labels:                   nodePool.Labels(),
-		AdditionalTags:           nodePool.AWSNodePool().Tags(),
 		AutoRepair:               nodePool.AutoRepair(),
 		InstanceType:             nodePool.AWSNodePool().InstanceType(),
 		TuningConfigs:            nodePool.TuningConfigs(),
 		AdditionalSecurityGroups: nodePool.AWSNodePool().AdditionalSecurityGroupIds(),
+		// nodePool.AWSNodePool().Tags() returns all tags including "system" tags if "fetchUserTagsOnly" parameter is not specified.
+		// TODO: enable when AdditionalTags day2 changes is supported.
+		// AdditionalTags:           nodePool.AWSNodePool().Tags(),
 	}
 
 	if nodePool.Autoscaling() != nil {
