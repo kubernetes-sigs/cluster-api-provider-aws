@@ -182,6 +182,14 @@ func TestSubnetPlacement(t *testing.T) {
 					AvailabilityZone: "eu-west-1c",
 					IsPublic:         false,
 				},
+				infrav1.SubnetSpec{
+					ID:               "subnet-az6",
+					AvailabilityZone: "eu-west-1c",
+					IsPublic:         false,
+					Tags: infrav1.Tags{
+						infrav1.NameAWSSubnetAssociation: infrav1.SecondarySubnetTagValue,
+					},
+				},
 			},
 			logger:            logger.NewLogger(klog.Background()),
 			expectedSubnetIDs: []string{"subnet-az3"},
