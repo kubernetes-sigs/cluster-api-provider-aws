@@ -23,3 +23,4 @@ A new template is available in the templates folder for creating a managed ROSA 
 * [Creating MachinePools](creating-rosa-machinepools.md)
 * [Upgrades](upgrades.md)
 * [External Auth Providers](external-auth.md)
+* [Support](support.md)
