@@ -1099,7 +1099,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				defer teardown(t, g)
 				setNodeRef(t, g)
 
-				ms.AWSMachine.Status.FailureReason = capierrors.MachineStatusErrorPtr(capierrors.UpdateMachineError)
+				ms.AWSMachine.Status.FailureReason = ptr.To(capierrors.UpdateMachineError)
 				secretSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
 				ec2Svc.EXPECT().TerminateInstance(gomock.Any()).Return(nil).AnyTimes()
 				_, _ = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
@@ -1229,7 +1229,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				defer teardown(t, g)
 				setSSM(t, g)
 
-				ms.AWSMachine.Status.FailureReason = capierrors.MachineStatusErrorPtr(capierrors.UpdateMachineError)
+				ms.AWSMachine.Status.FailureReason = ptr.To(capierrors.UpdateMachineError)
 				secretSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
 				ec2Svc.EXPECT().TerminateInstance(gomock.Any()).Return(nil).AnyTimes()
 				_, _ = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
@@ -1446,7 +1446,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					useIgnitionWithClusterObjectStore(t, g)
 
 					// TODO: This seems to have no effect on the test result.
-					ms.AWSMachine.Status.FailureReason = capierrors.MachineStatusErrorPtr(capierrors.UpdateMachineError)
+					ms.AWSMachine.Status.FailureReason = ptr.To(capierrors.UpdateMachineError)
 
 					objectStoreSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
 					ec2Svc.EXPECT().TerminateInstance(gomock.Any()).Return(nil).AnyTimes()
@@ -1518,7 +1518,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					useIgnitionWithClusterObjectStore(t, g)
 
 					// TODO: This seems to have no effect on the test result.
-					ms.AWSMachine.Status.FailureReason = capierrors.MachineStatusErrorPtr(capierrors.UpdateMachineError)
+					ms.AWSMachine.Status.FailureReason = ptr.To(capierrors.UpdateMachineError)
 					objectStoreSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
 					ec2Svc.EXPECT().TerminateInstance(gomock.Any()).Return(nil).AnyTimes()
 					_, _ = reconciler.reconcileDelete(ms, cs, cs, cs, cs)

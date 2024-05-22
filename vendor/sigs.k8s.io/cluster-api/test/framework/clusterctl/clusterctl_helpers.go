@@ -144,6 +144,7 @@ type UpgradeManagementClusterAndWaitInput struct {
 	RuntimeExtensionProviders []string
 	AddonProviders            []string
 	LogFolder                 string
+	ClusterctlBinaryPath      string
 }
 
 // UpgradeManagementClusterAndWait upgrades provider a management cluster using clusterctl, and waits for the cluster to be ready.
@@ -165,7 +166,7 @@ func UpgradeManagementClusterAndWait(ctx context.Context, input UpgradeManagemen
 
 	Expect(os.MkdirAll(input.LogFolder, 0750)).To(Succeed(), "Invalid argument. input.LogFolder can't be created for UpgradeManagementClusterAndWait")
 
-	Upgrade(ctx, UpgradeInput{
+	upgradeInput := UpgradeInput{
 		ClusterctlConfigPath:      input.ClusterctlConfigPath,
 		ClusterctlVariables:       input.ClusterctlVariables,
 		ClusterName:               input.ClusterProxy.GetName(),
@@ -179,14 +180,24 @@ func UpgradeManagementClusterAndWait(ctx context.Context, input UpgradeManagemen
 		RuntimeExtensionProviders: input.RuntimeExtensionProviders,
 		AddonProviders:            input.AddonProviders,
 		LogFolder:                 input.LogFolder,
-	})
+	}
+
+	if input.ClusterctlBinaryPath != "" {
+		UpgradeWithBinary(ctx, input.ClusterctlBinaryPath, upgradeInput)
+	} else {
+		Upgrade(ctx, upgradeInput)
+	}
 
 	client := input.ClusterProxy.GetClient()
 
 	log.Logf("Waiting for provider controllers to be running")
 	controllersDeployments := framework.GetControllerDeployments(ctx, framework.GetControllerDeploymentsInput{
-		Lister:            client,
-		ExcludeNamespaces: []string{"capi-webhook-system"}, // this namespace has been dropped in v1alpha4; this ensures we are not waiting for deployments being deleted as part of the upgrade process
+		Lister: client,
+		// This namespace has been dropped in v0.4.x.
+		// We have to exclude this namespace here as after an upgrade from v0.3x there won't
+		// be a controller in this namespace anymore and if we wait for it to come up the test would fail.
+		// Note: We can drop this as soon as we don't have a test upgrading from v0.3.x anymore.
+		ExcludeNamespaces: []string{"capi-webhook-system"},
 	})
 	Expect(controllersDeployments).ToNot(BeEmpty(), "The list of controller deployments should not be empty")
 	for _, deployment := range controllersDeployments {

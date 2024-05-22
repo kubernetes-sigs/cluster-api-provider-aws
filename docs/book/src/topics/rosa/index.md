@@ -20,3 +20,6 @@ A new template is available in the templates folder for creating a managed ROSA 
 
 * [Enabling ROSA Support](enabling.md)
 * [Creating a cluster](creating-a-cluster.md)
+* [Creating MachinePools](creating-rosa-machinepools.md)
+* [Upgrades](upgrades.md)
+* [External Auth Providers](external-auth.md)

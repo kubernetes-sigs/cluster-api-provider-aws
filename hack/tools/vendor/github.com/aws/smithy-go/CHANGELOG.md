@@ -1,3 +1,22 @@
+# Release (2024-02-21)
+
+## Module Highlights
+* `github.com/aws/smithy-go`: v1.20.1
+  * **Bug Fix**: Remove runtime dependency on go-cmp.
+
+# Release (2024-02-13)
+
+## Module Highlights
+* `github.com/aws/smithy-go`: v1.20.0
+  * **Feature**: Add codegen definition for sigv4a trait.
+  * **Feature**: Bump minimum Go version to 1.20 per our language support policy.
+
+# Release (2023-12-07)
+
+## Module Highlights
+* `github.com/aws/smithy-go`: v1.19.0
+  * **Feature**: Support modeled request compression.
+
 # Release (2023-11-30)
 
 * No change notes available for this release.

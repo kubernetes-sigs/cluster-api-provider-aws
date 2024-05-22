@@ -1,4 +1,17 @@
 # Changelog
+## [v0.12.15](https://github.com/itchyny/gojq/compare/v0.12.14..v0.12.15) (2024-04-01)
+* implement `ltrim`, `rtrim`, and `trim` functions
+* implement `gojq.ParseError` for getting the offset and token of query parsing error
+* implement `gojq.HaltError` for detecting halt errors and stopping outer iteration
+* fix object construction with duplicate keys (`{x:0,y:1} | {a:.x,a:.y}`)
+* fix `halt` and `halt_error` functions to stop the command execution immediately
+* fix variable scope of binding syntax (`"a" as $v | def f: $v; "b" as $v | f`)
+* fix pre-defined variables to be available in initial modules (`$ARGS` in `~/.jq`)
+* fix `ltrimstr` and `rtrimstr` functions to emit error on non-string input
+* fix `nearbyint` and `rint` functions to round ties to even
+* improve parser to allow `reduce`, `foreach`, `if`, `try`-`catch` syntax as object values
+* remove `pow10` in favor of `exp10`, define `scalbn` and `scalbln` by `ldexp`
+
 ## [v0.12.14](https://github.com/itchyny/gojq/compare/v0.12.13..v0.12.14) (2023-12-01)
 * implement `abs`, `pick`, and `debug/1` functions
 * implement `--raw-output0` option, and remove `--nul-output` (`-0`) option
@@ -9,7 +22,7 @@
 * fix `stderr` function to output strings in raw format
 * fix `error` function to throw an error even for `null`
 * fix `walk` function on multiple outputs arguments
-* fix `--from-file` option to work with `--arg` and `--argjson` options
+* fix `--from-file` option to work with `--args` and `--jsonargs` options
 * fix the default module search path `../lib` relative to the executable
 * improve query parser to support comment continuation with backslash
 * improve `modulemeta` function to include defined function names in the module

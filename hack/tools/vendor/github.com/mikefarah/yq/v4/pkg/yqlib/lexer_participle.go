@@ -40,6 +40,7 @@ var participleYqRules = []*participleYqRule{
 	simpleOp("map", mapOpType),
 	simpleOp("filter", filterOpType),
 	simpleOp("pick", pickOpType),
+	simpleOp("omit", omitOpType),
 
 	{"FlattenWithDepth", `flatten\([0-9]+\)`, flattenWithDepth(), 0},
 	{"Flatten", `flatten`, opTokenWithPrefs(flattenOpType, nil, flattenPreferences{depth: -1}), 0},
@@ -87,15 +88,13 @@ var participleYqRules = []*participleYqRule{
 	{"Uri", `@uri`, encodeWithIndent(UriFormat, 0), 0},
 	{"SH", `@sh`, encodeWithIndent(ShFormat, 0), 0},
 
-	{"LoadXML", `load_?xml|xml_?load`, loadOp(NewXMLDecoder(ConfiguredXMLPreferences), false), 0},
+	{"LoadXML", `load_?xml|xml_?load`, loadOp(NewXMLDecoder(ConfiguredXMLPreferences)), 0},
 
-	{"LoadBase64", `load_?base64`, loadOp(NewBase64Decoder(), false), 0},
+	{"LoadBase64", `load_?base64`, loadOp(NewBase64Decoder()), 0},
 
-	{"LoadProperties", `load_?props`, loadOp(NewPropertiesDecoder(), false), 0},
-
-	{"LoadString", `load_?str|str_?load`, loadOp(nil, true), 0},
-
-	{"LoadYaml", `load`, loadOp(NewYamlDecoder(LoadYamlPreferences), false), 0},
+	{"LoadProperties", `load_?props`, loadOp(NewPropertiesDecoder()), 0},
+	simpleOp("load_?str|str_?load", loadStringOpType),
+	{"LoadYaml", `load`, loadOp(NewYamlDecoder(LoadYamlPreferences)), 0},
 
 	{"SplitDocument", `splitDoc|split_?doc`, opToken(splitDocumentOpType), 0},
 
@@ -130,7 +129,9 @@ var participleYqRules = []*participleYqRule{
 
 	simpleOp("contains", containsOpType),
 	simpleOp("split", splitStringOpType),
-	simpleOp("parent", getParentOpType),
+
+	{"ParentWithLevel", `parent\([0-9]+\)`, parentWithLevel(), 0},
+	{"ParentWithDefaultLevel", `parent`, parentWithDefaultLevel(), 0},
 
 	simpleOp("keys", keysOpType),
 	simpleOp("key", getKeyOpType),
@@ -168,6 +169,7 @@ var participleYqRules = []*participleYqRule{
 	{"Uppercase", `upcase|ascii_?upcase`, opTokenWithPrefs(changeCaseOpType, nil, changeCasePrefs{ToUpperCase: true}), 0},
 	{"Downcase", `downcase|ascii_?downcase`, opTokenWithPrefs(changeCaseOpType, nil, changeCasePrefs{ToUpperCase: false}), 0},
 	simpleOp("trim", trimOpType),
+	simpleOp("to_?string", toStringOpType),
 
 	{"HexValue", `0[xX][0-9A-Fa-f]+`, hexValue(), 0},
 	{"FloatValueScientific", `-?[1-9](\.\d+)?[Ee][-+]?\d+`, floatValue(), 0},
@@ -373,7 +375,11 @@ func stringValue() yqAction {
 		value = strings.ReplaceAll(value, "\\\"", "\"")
 		value = strings.ReplaceAll(value, "\\n", "\n")
 		log.Debug("replaced: %v", value)
-		return &token{TokenType: operationToken, Operation: createValueOperation(value, value)}, nil
+		return &token{TokenType: operationToken, Operation: &Operation{
+			OperationType: stringInterpolationOpType,
+			StringValue:   value,
+			Value:         value,
+		}}, nil
 	}
 }
 
@@ -496,6 +502,28 @@ func numberValue() yqAction {
 	}
 }
 
+func parentWithLevel() yqAction {
+	return func(rawToken lexer.Token) (*token, error) {
+		value := rawToken.Value
+		var level, errParsingInt = extractNumberParameter(value)
+		if errParsingInt != nil {
+			return nil, errParsingInt
+		}
+
+		prefs := parentOpPreferences{Level: level}
+		op := &Operation{OperationType: getParentOpType, Value: getParentOpType.Type, StringValue: value, Preferences: prefs}
+		return &token{TokenType: operationToken, Operation: op}, nil
+	}
+}
+
+func parentWithDefaultLevel() yqAction {
+	return func(rawToken lexer.Token) (*token, error) {
+		prefs := parentOpPreferences{Level: 1}
+		op := &Operation{OperationType: getParentOpType, Value: getParentOpType.Type, StringValue: getParentOpType.Type, Preferences: prefs}
+		return &token{TokenType: operationToken, Operation: op}, nil
+	}
+}
+
 func encodeParseIndent(outputFormat *Format) yqAction {
 	return func(rawToken lexer.Token) (*token, error) {
 		value := rawToken.Value
@@ -520,8 +548,8 @@ func decodeOp(format *Format) yqAction {
 	return opTokenWithPrefs(decodeOpType, nil, prefs)
 }
 
-func loadOp(decoder Decoder, loadAsString bool) yqAction {
-	prefs := loadPrefs{decoder: decoder, loadAsString: loadAsString}
+func loadOp(decoder Decoder) yqAction {
+	prefs := loadPrefs{decoder}
 	return opTokenWithPrefs(loadOpType, nil, prefs)
 }
 

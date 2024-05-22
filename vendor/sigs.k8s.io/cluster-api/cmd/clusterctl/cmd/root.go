@@ -59,7 +59,7 @@ var RootCmd = &cobra.Command{
 	Long: LongDesc(`
 		Get started with Cluster API using clusterctl to create a management cluster,
 		install providers, and create templates for your workload cluster.`),
-	PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
+	PersistentPostRunE: func(*cobra.Command, []string) error {
 		ctx := context.Background()
 
 		// Check if clusterctl needs an upgrade "AFTER" running each command
@@ -106,6 +106,8 @@ var RootCmd = &cobra.Command{
 
 // Execute executes the root command.
 func Execute() {
+	handlePlugins()
+
 	if err := RootCmd.Execute(); err != nil {
 		if verbosity != nil && *verbosity >= 5 {
 			if err, ok := err.(stackTracer); ok {
@@ -146,8 +148,6 @@ func init() {
 	RootCmd.SetCompletionCommandGroupID(groupOther)
 
 	cobra.OnInitialize(initConfig, registerCompletionFuncForCommonFlags)
-
-	handlePlugins()
 }
 
 func initConfig() {

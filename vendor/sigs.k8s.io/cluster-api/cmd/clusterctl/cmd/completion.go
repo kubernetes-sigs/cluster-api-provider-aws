@@ -49,7 +49,7 @@ const completionBoilerPlate = `# Copyright 2021 The Kubernetes Authors.
 
 var (
 	completionLong = LongDesc(`
-		Output shell completion code for the specified shell (bash or zsh).
+		Output shell completion code for the specified shell (bash, zsh or fish).
 		The shell code must be evaluated to provide interactive completion of
 		clusterctl commands. This can be done by sourcing it from the
 		.bash_profile.`)
@@ -77,15 +77,19 @@ var (
 		# To load completions for each session, execute once:
 		clusterctl completion zsh > "${fpath[1]}/_clusterctl"
 
+		Fish:
+		# To load completions in your current shell, execute the following command:
+		clusterctl completion fish | source
+
 		# You will need to start a new shell for this setup to take effect.`)
 
 	completionCmd = &cobra.Command{
-		Use:     "completion [bash|zsh]",
+		Use:     "completion [bash|zsh|fish]",
 		GroupID: groupOther,
-		Short:   "Output shell completion code for the specified shell (bash or zsh)",
+		Short:   "Output shell completion code for the specified shell (bash, zsh or fish)",
 		Long:    LongDesc(completionLong),
 		Example: completionExample,
-		Args: func(cmd *cobra.Command, args []string) error {
+		Args: func(_ *cobra.Command, args []string) error {
 			if len(args) != 1 {
 				return errors.New("please specify a shell")
 			}
@@ -100,6 +104,7 @@ var (
 	completionShells = map[string]func(out io.Writer, cmd *cobra.Command) error{
 		"bash": runCompletionBash,
 		"zsh":  runCompletionZsh,
+		"fish": runCompletionFish,
 	}
 )
 
@@ -131,6 +136,12 @@ func runCompletionBash(out io.Writer, cmd *cobra.Command) error {
 	return cmd.Root().GenBashCompletion(out)
 }
 
+func runCompletionFish(out io.Writer, cmd *cobra.Command) error {
+	fmt.Fprintf(out, "%s\n", completionBoilerPlate)
+
+	return cmd.Root().GenFishCompletion(out, true)
+}
+
 func runCompletionZsh(out io.Writer, cmd *cobra.Command) error {
 	var b bytes.Buffer
 
@@ -153,7 +164,7 @@ func runCompletionZsh(out io.Writer, cmd *cobra.Command) error {
 }
 
 func contextCompletionFunc(kubeconfigFlag *pflag.Flag) func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	return func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	return func(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		configClient, err := config.New(context.Background(), cfgFile)
 		if err != nil {
 			return completionError(err)
@@ -170,7 +181,7 @@ func contextCompletionFunc(kubeconfigFlag *pflag.Flag) func(cmd *cobra.Command, 
 }
 
 func resourceNameCompletionFunc(kubeconfigFlag, contextFlag, namespaceFlag *pflag.Flag, groupVersion, kind string) func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	return func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	return func(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		ctx := context.Background()
 
 		configClient, err := config.New(ctx, cfgFile)

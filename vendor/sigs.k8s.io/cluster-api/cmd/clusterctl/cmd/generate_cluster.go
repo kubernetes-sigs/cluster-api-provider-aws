@@ -92,7 +92,7 @@ var generateClusterClusterCmd = &cobra.Command{
 		# Prints the list of variables required by the yaml file for creating workload cluster.
 		clusterctl generate cluster my-cluster --list-variables`),
 
-	Args: func(cmd *cobra.Command, args []string) error {
+	Args: func(_ *cobra.Command, args []string) error {
 		if len(args) != 1 {
 			return errors.New("please specify a cluster name")
 		}
@@ -116,8 +116,9 @@ func init() {
 		"The Kubernetes version to use for the workload cluster. If unspecified, the value from OS environment variables or the $XDG_CONFIG_HOME/cluster-api/clusterctl.yaml config file will be used.")
 	generateClusterClusterCmd.Flags().Int64Var(&gc.controlPlaneMachineCount, "control-plane-machine-count", 1,
 		"The number of control plane machines for the workload cluster.")
+	// Remove default from hard coded text if the default is ever changed from 0 since cobra would then add it
 	generateClusterClusterCmd.Flags().Int64Var(&gc.workerMachineCount, "worker-machine-count", 0,
-		"The number of worker machines for the workload cluster.")
+		"The number of worker machines for the workload cluster. (default 0)")
 
 	// flags for the repository source
 	generateClusterClusterCmd.Flags().StringVarP(&gc.infrastructureProvider, "infrastructure", "i", "",

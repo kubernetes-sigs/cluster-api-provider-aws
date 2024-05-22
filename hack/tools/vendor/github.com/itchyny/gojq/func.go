@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/itchyny/timefmt-go"
@@ -70,6 +71,9 @@ func init() {
 		"endswith":       argFunc1(funcEndsWith),
 		"ltrimstr":       argFunc1(funcLtrimstr),
 		"rtrimstr":       argFunc1(funcRtrimstr),
+		"ltrim":          argFunc0(funcLtrim),
+		"rtrim":          argFunc0(funcRtrim),
+		"trim":           argFunc0(funcTrim),
 		"explode":        argFunc0(funcExplode),
 		"implode":        argFunc0(funcImplode),
 		"split":          {argcount1 | argcount2, false, funcSplit},
@@ -128,8 +132,8 @@ func init() {
 		"atanh":          mathFunc("atanh", math.Atanh),
 		"floor":          mathFunc("floor", math.Floor),
 		"round":          mathFunc("round", math.Round),
-		"nearbyint":      mathFunc("nearbyint", math.Round),
-		"rint":           mathFunc("rint", math.Round),
+		"nearbyint":      mathFunc("nearbyint", math.RoundToEven),
+		"rint":           mathFunc("rint", math.RoundToEven),
 		"ceil":           mathFunc("ceil", math.Ceil),
 		"trunc":          mathFunc("trunc", math.Trunc),
 		"significand":    mathFunc("significand", funcSignificand),
@@ -165,15 +169,14 @@ func init() {
 		"fmod":           mathFunc2("fmod", math.Mod),
 		"hypot":          mathFunc2("hypot", math.Hypot),
 		"jn":             mathFunc2("jn", funcJn),
-		"ldexp":          mathFunc2("ldexp", funcLdexp),
 		"nextafter":      mathFunc2("nextafter", math.Nextafter),
 		"nexttoward":     mathFunc2("nexttoward", math.Nextafter),
 		"remainder":      mathFunc2("remainder", math.Remainder),
-		"scalb":          mathFunc2("scalb", funcScalb),
-		"scalbln":        mathFunc2("scalbln", funcScalbln),
+		"ldexp":          mathFunc2("ldexp", funcLdexp),
+		"scalb":          mathFunc2("scalb", funcLdexp),
+		"scalbln":        mathFunc2("scalbln", funcLdexp),
 		"yn":             mathFunc2("yn", funcYn),
 		"pow":            mathFunc2("pow", math.Pow),
-		"pow10":          mathFunc("pow10", funcExp10),
 		"fma":            mathFunc3("fma", math.FMA),
 		"infinite":       argFunc0(funcInfinite),
 		"isfinite":       argFunc0(funcIsfinite),
@@ -682,11 +685,11 @@ func funcEndsWith(v, x any) any {
 func funcLtrimstr(v, x any) any {
 	s, ok := v.(string)
 	if !ok {
-		return v
+		return &func1TypeError{"ltrimstr", v, x}
 	}
 	t, ok := x.(string)
 	if !ok {
-		return v
+		return &func1TypeError{"ltrimstr", v, x}
 	}
 	return strings.TrimPrefix(s, t)
 }
@@ -694,13 +697,37 @@ func funcLtrimstr(v, x any) any {
 func funcRtrimstr(v, x any) any {
 	s, ok := v.(string)
 	if !ok {
-		return v
+		return &func1TypeError{"rtrimstr", v, x}
 	}
 	t, ok := x.(string)
 	if !ok {
-		return v
+		return &func1TypeError{"rtrimstr", v, x}
 	}
 	return strings.TrimSuffix(s, t)
+}
+
+func funcLtrim(v any) any {
+	s, ok := v.(string)
+	if !ok {
+		return &func0TypeError{"ltrim", v}
+	}
+	return strings.TrimLeftFunc(s, unicode.IsSpace)
+}
+
+func funcRtrim(v any) any {
+	s, ok := v.(string)
+	if !ok {
+		return &func0TypeError{"rtrim", v}
+	}
+	return strings.TrimRightFunc(s, unicode.IsSpace)
+}
+
+func funcTrim(v any) any {
+	s, ok := v.(string)
+	if !ok {
+		return &func0TypeError{"trim", v}
+	}
+	return strings.TrimSpace(s)
 }
 
 func funcExplode(v any) any {
@@ -1411,14 +1438,6 @@ func funcLdexp(l, r float64) float64 {
 	return math.Ldexp(l, int(r))
 }
 
-func funcScalb(l, r float64) float64 {
-	return l * math.Pow(2, r)
-}
-
-func funcScalbln(l, r float64) float64 {
-	return l * math.Pow(2, r)
-}
-
 func funcYn(l, r float64) float64 {
 	return math.Yn(int(l), r)
 }
@@ -2080,7 +2099,7 @@ func funcError(v any, args []any) any {
 }
 
 func funcHalt(any) any {
-	return &haltError{nil, 0}
+	return &HaltError{nil, 0}
 }
 
 func funcHaltError(v any, args []any) any {
@@ -2091,7 +2110,7 @@ func funcHaltError(v any, args []any) any {
 			return &func0TypeError{"halt_error", args[0]}
 		}
 	}
-	return &haltError{v, code}
+	return &HaltError{v, code}
 }
 
 func toInt(x any) (int, bool) {

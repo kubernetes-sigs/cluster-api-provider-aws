@@ -952,6 +952,56 @@ func (mr *MockSSMAPIMockRecorder) DeleteMaintenanceWindowWithContext(arg0, arg1 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteMaintenanceWindowWithContext", reflect.TypeOf((*MockSSMAPI)(nil).DeleteMaintenanceWindowWithContext), varargs...)
 }
 
+// DeleteOpsItem mocks base method.
+func (m *MockSSMAPI) DeleteOpsItem(arg0 *ssm.DeleteOpsItemInput) (*ssm.DeleteOpsItemOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteOpsItem", arg0)
+	ret0, _ := ret[0].(*ssm.DeleteOpsItemOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteOpsItem indicates an expected call of DeleteOpsItem.
+func (mr *MockSSMAPIMockRecorder) DeleteOpsItem(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteOpsItem", reflect.TypeOf((*MockSSMAPI)(nil).DeleteOpsItem), arg0)
+}
+
+// DeleteOpsItemRequest mocks base method.
+func (m *MockSSMAPI) DeleteOpsItemRequest(arg0 *ssm.DeleteOpsItemInput) (*request.Request, *ssm.DeleteOpsItemOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteOpsItemRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ssm.DeleteOpsItemOutput)
+	return ret0, ret1
+}
+
+// DeleteOpsItemRequest indicates an expected call of DeleteOpsItemRequest.
+func (mr *MockSSMAPIMockRecorder) DeleteOpsItemRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteOpsItemRequest", reflect.TypeOf((*MockSSMAPI)(nil).DeleteOpsItemRequest), arg0)
+}
+
+// DeleteOpsItemWithContext mocks base method.
+func (m *MockSSMAPI) DeleteOpsItemWithContext(arg0 context.Context, arg1 *ssm.DeleteOpsItemInput, arg2 ...request.Option) (*ssm.DeleteOpsItemOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteOpsItemWithContext", varargs...)
+	ret0, _ := ret[0].(*ssm.DeleteOpsItemOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteOpsItemWithContext indicates an expected call of DeleteOpsItemWithContext.
+func (mr *MockSSMAPIMockRecorder) DeleteOpsItemWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteOpsItemWithContext", reflect.TypeOf((*MockSSMAPI)(nil).DeleteOpsItemWithContext), varargs...)
+}
+
 // DeleteOpsMetadata mocks base method.
 func (m *MockSSMAPI) DeleteOpsMetadata(arg0 *ssm.DeleteOpsMetadataInput) (*ssm.DeleteOpsMetadataOutput, error) {
 	m.ctrl.T.Helper()

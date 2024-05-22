@@ -84,7 +84,7 @@ var topologyPlanCmd = &cobra.Command{
 		clusterctl alpha topology plan -f modified-template.yaml -o output/
 	`),
 	Args: cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(*cobra.Command, []string) error {
 		return runTopologyPlan()
 	},
 }
@@ -106,6 +106,8 @@ func init() {
 	if err := topologyPlanCmd.MarkFlagRequired("output-directory"); err != nil {
 		panic(err)
 	}
+
+	topologyPlanCmd.Deprecated = "it will be removed in one of the upcoming releases.\n"
 
 	topologyCmd.AddCommand(topologyPlanCmd)
 }
