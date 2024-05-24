@@ -34,6 +34,7 @@ import (
 	"github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/storage/names"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
@@ -263,7 +264,7 @@ func (s *Service) getAPIServerLBSpec(elbName string, lbSpec *infrav1.AWSLoadBala
 				Protocol: infrav1.ELBProtocolTCP,
 				Port:     infrav1.DefaultAPIServerPort,
 				TargetGroup: infrav1.TargetGroupSpec{
-					Name:        fmt.Sprintf("apiserver-target-%d", time.Now().Unix()),
+					Name:        names.SimpleNameGenerator.GenerateName("apiserver-target-"),
 					Port:        infrav1.DefaultAPIServerPort,
 					Protocol:    infrav1.ELBProtocolTCP,
 					VpcID:       s.scope.VPC().ID,
@@ -288,7 +289,7 @@ func (s *Service) getAPIServerLBSpec(elbName string, lbSpec *infrav1.AWSLoadBala
 				Protocol: listener.Protocol,
 				Port:     listener.Port,
 				TargetGroup: infrav1.TargetGroupSpec{
-					Name:        fmt.Sprintf("additional-listener-%d", time.Now().Unix()),
+					Name:        names.SimpleNameGenerator.GenerateName("additional-listener-"),
 					Port:        listener.Port,
 					Protocol:    listener.Protocol,
 					VpcID:       s.scope.VPC().ID,
