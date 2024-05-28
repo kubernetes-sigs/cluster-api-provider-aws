@@ -352,9 +352,17 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 					*subnet.SubnetId, *subnet.AvailabilityZone, *failureDomain)
 				continue
 			}
-			if scope.AWSMachine.Spec.PublicIP != nil && *scope.AWSMachine.Spec.PublicIP && !s.scope.Subnets().FindByID(*subnet.SubnetId).IsPublic {
-				errMessage += fmt.Sprintf(" subnet %q is a private subnet.", *subnet.SubnetId)
-				continue
+
+			if ptr.Deref(scope.AWSMachine.Spec.PublicIP, false) {
+				matchingSubnet := s.scope.Subnets().FindByID(*subnet.SubnetId)
+				if matchingSubnet == nil {
+					errMessage += fmt.Sprintf(" unable to find subnet %q among the AWSCluster subnets.", *subnet.SubnetId)
+					continue
+				}
+				if !matchingSubnet.IsPublic {
+					errMessage += fmt.Sprintf(" subnet %q is a private subnet.", *subnet.SubnetId)
+					continue
+				}
 			}
 			filtered = append(filtered, subnet)
 		}
