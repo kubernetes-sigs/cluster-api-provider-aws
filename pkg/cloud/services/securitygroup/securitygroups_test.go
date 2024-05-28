@@ -1069,7 +1069,7 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 					t.Fatalf("Expected to port %d, got %d", tc.expectedAdditionalIngressRule.ToPort, r.ToPort)
 				}
 
-				if !sets.New[string](tc.expectedAdditionalIngressRule.SourceSecurityGroupIDs...).Equal(sets.New[string](tc.expectedAdditionalIngressRule.SourceSecurityGroupIDs...)) {
+				if !sets.New(tc.expectedAdditionalIngressRule.SourceSecurityGroupIDs...).Equal(sets.New(r.SourceSecurityGroupIDs...)) {
 					t.Fatalf("Expected source security group IDs %v, got %v", tc.expectedAdditionalIngressRule.SourceSecurityGroupIDs, r.SourceSecurityGroupIDs)
 				}
 			}
