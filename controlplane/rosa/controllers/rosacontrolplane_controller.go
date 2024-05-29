@@ -39,6 +39,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apiserver/pkg/storage/names"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
@@ -609,7 +610,7 @@ func (r *ROSAControlPlaneReconciler) reconcileExternalAuthBootstrapKubeconfig(ct
 
 	// kubeconfig doesn't exist, generate a new one.
 	breakGlassConfig, err := cmv1.NewBreakGlassCredential().
-		Username("capi-admin").
+		Username(names.SimpleNameGenerator.GenerateName("capi-admin-")). // OCM requires unique usernames
 		ExpirationTimestamp(time.Now().Add(time.Hour * 24)).
 		Build()
 	if err != nil {
