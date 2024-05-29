@@ -65,8 +65,8 @@ type RosaMachinePoolSpec struct {
 	AdditionalTags infrav1.Tags `json:"additionalTags,omitempty"`
 
 	// AutoRepair specifies whether health checks should be enabled for machines
-	// in the NodePool. The default is false.
-	// +kubebuilder:default=false
+	// in the NodePool. The default is true.
+	// +kubebuilder:default=true
 	// +optional
 	AutoRepair bool `json:"autoRepair,omitempty"`
 
