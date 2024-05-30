@@ -21,7 +21,7 @@ require (
 	k8s.io/gengo v0.0.0-20230829151522-9cce18d56c01
 	k8s.io/klog/v2 v2.120.1
 	sigs.k8s.io/cluster-api/hack/tools v0.0.0-20221121093230-b1688621953c
-	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20211110210527-619e6b92dab9
+	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20240531134648-6636df17d67b
 	sigs.k8s.io/controller-tools v0.14.0
 	sigs.k8s.io/kind v0.22.0
 	sigs.k8s.io/kustomize/kustomize/v4 v4.5.7
@@ -181,7 +181,7 @@ require (
 	github.com/go-jose/go-jose/v4 v4.0.1 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/go-logr/zapr v1.2.0 // indirect
+	github.com/go-logr/zapr v1.3.0 // indirect
 	github.com/go-openapi/analysis v0.23.0 // indirect
 	github.com/go-openapi/errors v0.22.0 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
@@ -280,7 +280,7 @@ require (
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/oleiade/reflections v1.0.1 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
-	github.com/onsi/gomega v1.30.0 // indirect
+	github.com/onsi/gomega v1.32.0 // indirect
 	github.com/open-policy-agent/opa v0.63.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0 // indirect
