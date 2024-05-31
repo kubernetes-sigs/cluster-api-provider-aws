@@ -32,7 +32,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.17.1
 	github.com/onsi/gomega v1.32.0
 	github.com/openshift-online/ocm-common v0.0.0-20240129111424-ff8c6c11d909
-	github.com/openshift-online/ocm-sdk-go v0.1.414
+	github.com/openshift-online/ocm-sdk-go v0.1.422
 	github.com/openshift/rosa v1.2.35-rc1.0.20240301152457-ad986cecd364
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.19.0
