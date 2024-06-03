@@ -8635,6 +8635,35 @@ ID token into a cluster identity</p>
 </tr>
 </tbody>
 </table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.LocalObjectReference">LocalObjectReference
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.OIDCClientConfig">OIDCClientConfig</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.TokenIssuer">TokenIssuer</a>)
+</p>
+<p>
+<p>LocalObjectReference references an object in the same namespace.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name is the metadata.name of the referenced object.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="controlplane.cluster.x-k8s.io/v1beta2.NetworkSpec">NetworkSpec
 </h3>
 <p>
@@ -8769,8 +8798,8 @@ string
 <td>
 <code>clientSecret</code><br/>
 <em>
-<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#secretreference-v1-core">
-Kubernetes core/v1.SecretReference
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.LocalObjectReference">
+LocalObjectReference
 </a>
 </em>
 </td>
@@ -9702,8 +9731,7 @@ private node communication with the control plane.</p>
 (<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.TokenIssuer">TokenIssuer</a>)
 </p>
 <p>
-<pre><code>TokenAudience is the audience that the token was issued for.
-</code></pre>
+<p>TokenAudience is the audience that the token was issued for.</p>
 </p>
 <h3 id="controlplane.cluster.x-k8s.io/v1beta2.TokenClaimMappings">TokenClaimMappings
 </h3>
@@ -9848,8 +9876,8 @@ Must be set to exactly one value.</p>
 <td>
 <code>issuerCertificateAuthority</code><br/>
 <em>
-<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#localobjectreference-v1-core">
-Kubernetes core/v1.LocalObjectReference
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.LocalObjectReference">
+LocalObjectReference
 </a>
 </em>
 </td>
@@ -10001,6 +10029,25 @@ string
 <p>
 <p>UsernamePrefixPolicy specifies how a prefix should apply.</p>
 </p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;&#34;</p></td>
+<td><p>NoOpinion let&rsquo;s the cluster assign prefixes.  If the username claim is email, there is no prefix
+If the username claim is anything else, it is prefixed by the issuerURL</p>
+</td>
+</tr><tr><td><p>&#34;NoPrefix&#34;</p></td>
+<td><p>NoPrefix means the username claim value will not have any  prefix</p>
+</td>
+</tr><tr><td><p>&#34;Prefix&#34;</p></td>
+<td><p>Prefix means the prefix value must be specified.  It cannot be empty</p>
+</td>
+</tr></tbody>
+</table>
 <hr/>
 <h2 id="infrastructure.cluster.x-k8s.io/v1beta1">infrastructure.cluster.x-k8s.io/v1beta1</h2>
 <p>
@@ -17033,6 +17080,12 @@ int64
 </td>
 </tr><tr><td><p>&#34;AL2_x86_64_GPU&#34;</p></td>
 <td><p>Al2x86_64GPU is the x86-64 GPU AMI type.</p>
+</td>
+<tr><td><p>&#34;AL2023_ARM_64_STANDARD&#34;</p></td>
+<td><p>Al2023Arm64 is the AL2023 Arm AMI type.</p>
+</td>
+</tr><tr><td><p>&#34;AL2023_x86_64_STANDARD&#34;</p></td>
+<td><p>Al2023x86_64 is the AL2023 x86 AMI type.</p>
 </td>
 </tr></tbody>
 </table>

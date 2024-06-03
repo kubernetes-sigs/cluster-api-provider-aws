@@ -3341,63 +3341,6 @@ func stubGetBaseService(t *testing.T, clusterName string) *Service {
 	}
 }
 
-func TestService_getTargetGroupName(t *testing.T) {
-	type argWant struct {
-		value      string
-		prefixOnly bool
-	}
-	type args struct {
-		lbSpec        *infrav1.AWSLoadBalancerSpec
-		defaultPrefix string
-		port          int64
-	}
-	tests := []struct {
-		name string
-		args args
-		want argWant
-	}{
-		{
-			name: "default name",
-			args: args{
-				lbSpec:        &infrav1.AWSLoadBalancerSpec{},
-				defaultPrefix: "apiserver-target",
-				port:          6443,
-			},
-			want: argWant{
-				value:      "apiserver-target-",
-				prefixOnly: true,
-			},
-		},
-		{
-			name: "custom name",
-			args: args{
-				lbSpec: &infrav1.AWSLoadBalancerSpec{
-					Name: ptr.To("foo"),
-				},
-				defaultPrefix: "api",
-				port:          6443,
-			},
-			want: argWant{
-				value: "foo-6443",
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := stubGetBaseService(t, "foo")
-			if tt.want.prefixOnly {
-				if got := s.getTargetGroupName(tt.args.lbSpec, tt.args.defaultPrefix, tt.args.port); !strings.HasPrefix(got, tt.want.value) {
-					t.Errorf("Service.getTargetGroupName() = %v, wantPrefix %v", got, tt.want.value)
-				}
-				return
-			}
-			if got := s.getTargetGroupName(tt.args.lbSpec, tt.args.defaultPrefix, tt.args.port); got != tt.want.value {
-				t.Errorf("Service.getTargetGroupName() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestService_getAPITargetGroupHealthCheck(t *testing.T) {
 	tests := []struct {
 		name   string

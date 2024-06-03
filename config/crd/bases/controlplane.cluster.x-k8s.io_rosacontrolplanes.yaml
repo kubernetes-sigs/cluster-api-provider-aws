@@ -335,13 +335,12 @@ spec:
                             If unset, system trust is used instead.
                           properties:
                             name:
-                              description: |-
-                                Name of the referent.
-                                More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                TODO: Add other useful fields. apiVersion, kind, uid?
+                              description: Name is the metadata.name of the referenced
+                                object.
                               type: string
+                          required:
+                          - name
                           type: object
-                          x-kubernetes-map-type: atomic
                         issuerURL:
                           description: |-
                             URL is the serving URL of the token issuer.
@@ -376,15 +375,12 @@ spec:
                               contains the client secret in the `clientSecret` key of the `.data` field
                             properties:
                               name:
-                                description: name is unique within a namespace to
-                                  reference a secret resource.
+                                description: Name is the metadata.name of the referenced
+                                  object.
                                 type: string
-                              namespace:
-                                description: namespace defines the space within which
-                                  the secret name must be unique.
-                                type: string
+                            required:
+                            - name
                             type: object
-                            x-kubernetes-map-type: atomic
                           componentName:
                             description: |-
                               ComponentName is the name of the component that is supposed to consume this

@@ -26,6 +26,8 @@
     - [Creating a cluster](./topics/rosa/creating-a-cluster.md)
     - [Creating MachinePools](./topics/rosa/creating-rosa-machinepools.md)
     - [Upgrades](./topics/rosa/upgrades.md)
+    - [External Auth Providers](./topics/rosa/external-auth.md)
+    - [Support](./topics/rosa/support.md)
   - [Bring Your Own AWS Infrastructure](./topics/bring-your-own-aws-infrastructure.md)
   - [Specifying the IAM Role to use for Management Components](./topics/specify-management-iam-role.md)
   - [Using external cloud provider with EBS CSI driver](./topics/external-cloud-provider-with-ebs-csi-driver.md)
@@ -42,3 +44,4 @@
   - [Instance Metadata](./topics/instance-metadata.md)
   - [Network Load Balancers](./topics/network-load-balancer-with-awscluster.md)
   - [Secondary Control Plane Load Balancer](./topics/secondary-load-balancer.md)
+  - [Provision AWS Local Zone subnets](./topics/provision-edge-zones.md)

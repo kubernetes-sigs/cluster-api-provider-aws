@@ -141,7 +141,7 @@ func TestAWSManagedControlPlaneReconcilerIntegrationTests(t *testing.T) {
 			}
 			err := testEnv.Get(ctx, key, controlPlane)
 			return err == nil
-		}, 10*time.Second).Should(BeTrue())
+		}, 10*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed getting the newly created AWSManagedControlPlane %q", awsManagedControlPlane.Name))
 
 		defer t.Cleanup(func() {
 			g.Expect(testEnv.Cleanup(ctx, &cluster, &awsManagedCluster, &awsManagedControlPlane, controllerIdentity, ns)).To(Succeed())
@@ -309,6 +309,18 @@ func mockedCallsForMissingEverything(ec2Rec *mocks.MockEC2APIMockRecorder, subne
 		Subnets: []*ec2.Subnet{},
 	}, nil)
 
+	zones := []*ec2.AvailabilityZone{}
+	for _, subnet := range subnets {
+		zones = append(zones, &ec2.AvailabilityZone{
+			ZoneName: aws.String(subnet.AvailabilityZone),
+			ZoneType: aws.String("availability-zone"),
+		})
+	}
+	ec2Rec.DescribeAvailabilityZonesWithContext(context.TODO(), gomock.Any()).
+		Return(&ec2.DescribeAvailabilityZonesOutput{
+			AvailabilityZones: zones,
+		}, nil).MaxTimes(2)
+
 	for subnetIndex, subnet := range subnets {
 		subnetID := fmt.Sprintf("subnet-%d", subnetIndex+1)
 		var kubernetesRoleTagKey string
@@ -320,6 +332,17 @@ func mockedCallsForMissingEverything(ec2Rec *mocks.MockEC2APIMockRecorder, subne
 			kubernetesRoleTagKey = "kubernetes.io/role/internal-elb"
 			capaRoleTagValue = "private"
 		}
+		ec2Rec.DescribeAvailabilityZonesWithContext(context.TODO(), &ec2.DescribeAvailabilityZonesInput{
+			ZoneNames: aws.StringSlice([]string{subnet.AvailabilityZone}),
+		}).
+			Return(&ec2.DescribeAvailabilityZonesOutput{
+				AvailabilityZones: []*ec2.AvailabilityZone{
+					{
+						ZoneName: aws.String(subnet.AvailabilityZone),
+						ZoneType: aws.String("availability-zone"),
+					},
+				},
+			}, nil).MaxTimes(1)
 		ec2Rec.CreateSubnetWithContext(context.TODO(), gomock.Eq(&ec2.CreateSubnetInput{
 			VpcId:            aws.String("vpc-new"),
 			CidrBlock:        aws.String(subnet.CidrBlock),

@@ -91,7 +91,7 @@ endif
 # Release variables
 
 STAGING_REGISTRY ?= gcr.io/k8s-staging-cluster-api-aws
-STAGING_BUCKET ?= artifacts.k8s-staging-cluster-api-aws.appspot.com
+STAGING_BUCKET ?= k8s-staging-cluster-api-aws
 BUCKET ?= $(STAGING_BUCKET)
 PROD_REGISTRY := registry.k8s.io/cluster-api-aws
 REGISTRY ?= $(STAGING_REGISTRY)
@@ -503,6 +503,10 @@ check-release-tag: ## Check if the release tag is set
 	@if [ -z "${RELEASE_TAG}" ]; then echo "RELEASE_TAG is not set"; exit 1; fi
 	@if ! [ -z "$$(git status --porcelain)" ]; then echo "Your local git repository contains uncommitted changes, use git clean before proceeding."; exit 1; fi
 
+.PHONY: check-release-branch
+check-release-branch: ## Check if the release branch is set
+	@if [ -z "${RELEASE_BRANCH}" ]; then echo "RELEASE_BRANCH is not set"; exit 1; fi
+
 .PHONY: compiled-manifest
 compiled-manifest: $(RELEASE_DIR) $(KUSTOMIZE) ## Compile the manifest files
 	$(MAKE) image-patch-source-manifest
@@ -563,7 +567,7 @@ list-image: ## List images for RELEASE_TAG
 	gcloud container images list-tags $(STAGING_REGISTRY)/$(IMAGE) --filter="tags=('$(RELEASE_TAG)')" --format=json
 
 .PHONY: release
-release: clean-release check-release-tag $(RELEASE_DIR) $(GORELEASER)  ## Builds and push container images using the latest git tag for the commit.
+release: clean-release check-release-tag check-release-branch $(RELEASE_DIR) $(GORELEASER)  ## Builds and push container images using the latest git tag for the commit.
 	git checkout "${RELEASE_TAG}"
 	$(MAKE) release-changelog
 	CORE_CONTROLLER_IMG=$(PROD_REGISTRY)/$(CORE_IMAGE_NAME) $(MAKE) release-manifests
@@ -595,7 +599,7 @@ release-manifests: ## Release manifest files
 
 .PHONY: release-changelog
 release-changelog: $(RELEASE_NOTES) check-release-tag check-previous-release-tag check-github-token $(RELEASE_DIR)
-	$(RELEASE_NOTES) --debug --org $(GH_ORG_NAME) --repo $(GH_REPO_NAME) --start-sha $(shell git rev-list -n 1 ${PREVIOUS_VERSION}) --end-sha $(shell git rev-list -n 1 ${RELEASE_TAG}) --output $(RELEASE_DIR)/CHANGELOG.md --go-template go-template:$(REPO_ROOT)/hack/changelog.tpl --dependencies=false
+	$(RELEASE_NOTES) --debug --org $(GH_ORG_NAME) --repo $(GH_REPO_NAME) --start-sha $(shell git rev-list -n 1 ${PREVIOUS_VERSION}) --end-sha $(shell git rev-list -n 1 ${RELEASE_TAG}) --output $(RELEASE_DIR)/CHANGELOG.md --go-template go-template:$(REPO_ROOT)/hack/changelog.tpl --dependencies=false --branch=${RELEASE_BRANCH} --required-author=""
 
 .PHONY: promote-images
 promote-images: $(KPROMO) $(YQ)
@@ -627,6 +631,8 @@ release-alias-tag: # Adds the tag to the last build tag.
 
 .PHONY: upload-staging-artifacts
 upload-staging-artifacts: ## Upload release artifacts to the staging bucket
+	# Example manifest location: https://storage.googleapis.com/k8s-staging-cluster-api-aws/components/nightly_main_20240425/infrastructure-components.yaml
+	# Please note that these files are deleted after a certain period, at the time of this writing 60 days after file creation.
 	gsutil cp $(RELEASE_DIR)/* gs://$(BUCKET)/components/$(RELEASE_ALIAS_TAG)
 
 IMAGE_PATCH_DIR := $(ARTIFACTS)/image-patch

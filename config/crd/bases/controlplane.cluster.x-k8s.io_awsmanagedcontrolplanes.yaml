@@ -523,6 +523,15 @@ spec:
                             NatGatewayID is the NAT gateway id associated with the subnet.
                             Ignored unless the subnet is managed by the provider, in which case this is set on the public subnet where the NAT gateway resides. It is then used to determine routes for private subnets in the same AZ as the public subnet.
                           type: string
+                        parentZoneName:
+                          description: |-
+                            ParentZoneName is the zone name where the current subnet's zone is tied when
+                            the zone is a Local Zone.
+
+
+                            The subnets in Local Zone or Wavelength Zone locations consume the ParentZoneName
+                            to select the correct private route table to egress traffic to the internet.
+                          type: string
                         resourceID:
                           description: |-
                             ResourceID is the subnet identifier from AWS, READ ONLY.
@@ -538,6 +547,42 @@ spec:
                           description: Tags is a collection of tags describing the
                             resource.
                           type: object
+                        zoneType:
+                          description: |-
+                            ZoneType defines the type of the zone where the subnet is created.
+
+
+                            The valid values are availability-zone, local-zone, and wavelength-zone.
+
+
+                            Subnet with zone type availability-zone (regular) is always selected to create cluster
+                            resources, like Load Balancers, NAT Gateways, Contol Plane nodes, etc.
+
+
+                            Subnet with zone type local-zone or wavelength-zone is not eligible to automatically create
+                            regular cluster resources.
+
+
+                            The public subnet in availability-zone or local-zone is associated with regular public
+                            route table with default route entry to a Internet Gateway.
+
+
+                            The public subnet in wavelength-zone is associated with a carrier public
+                            route table with default route entry to a Carrier Gateway.
+
+
+                            The private subnet in the availability-zone is associated with a private route table with
+                            the default route entry to a NAT Gateway created in that zone.
+
+
+                            The private subnet in the local-zone or wavelength-zone is associated with a private route table with
+                            the default route entry re-using the NAT Gateway in the Region (preferred from the
+                            parent zone, the zone type availability-zone in the region, or first table available).
+                          enum:
+                          - availability-zone
+                          - local-zone
+                          - wavelength-zone
+                          type: string
                       required:
                       - id
                       type: object
@@ -569,6 +614,14 @@ spec:
                           default subnets. Defaults to 3
                         minimum: 1
                         type: integer
+                      carrierGatewayId:
+                        description: |-
+                          CarrierGatewayID is the id of the internet gateway associated with the VPC,
+                          for carrier network (Wavelength Zones).
+                        type: string
+                        x-kubernetes-validations:
+                        - message: Carrier Gateway ID must start with 'cagw-'
+                          rule: self.startsWith('cagw-')
                       cidrBlock:
                         description: |-
                           CidrBlock is the CIDR block to be used when the provider creates a managed VPC.
@@ -1427,6 +1480,7 @@ spec:
                                 name:
                                   description: Name of the TargetGroup. Must be unique
                                     over the same group of listeners.
+                                  maxLength: 32
                                   type: string
                                 port:
                                   description: Port is the exposed port
@@ -1646,6 +1700,7 @@ spec:
                                 name:
                                   description: Name of the TargetGroup. Must be unique
                                     over the same group of listeners.
+                                  maxLength: 32
                                   type: string
                                 port:
                                   description: Port is the exposed port
@@ -2418,6 +2473,15 @@ spec:
                             NatGatewayID is the NAT gateway id associated with the subnet.
                             Ignored unless the subnet is managed by the provider, in which case this is set on the public subnet where the NAT gateway resides. It is then used to determine routes for private subnets in the same AZ as the public subnet.
                           type: string
+                        parentZoneName:
+                          description: |-
+                            ParentZoneName is the zone name where the current subnet's zone is tied when
+                            the zone is a Local Zone.
+
+
+                            The subnets in Local Zone or Wavelength Zone locations consume the ParentZoneName
+                            to select the correct private route table to egress traffic to the internet.
+                          type: string
                         resourceID:
                           description: |-
                             ResourceID is the subnet identifier from AWS, READ ONLY.
@@ -2433,6 +2497,42 @@ spec:
                           description: Tags is a collection of tags describing the
                             resource.
                           type: object
+                        zoneType:
+                          description: |-
+                            ZoneType defines the type of the zone where the subnet is created.
+
+
+                            The valid values are availability-zone, local-zone, and wavelength-zone.
+
+
+                            Subnet with zone type availability-zone (regular) is always selected to create cluster
+                            resources, like Load Balancers, NAT Gateways, Contol Plane nodes, etc.
+
+
+                            Subnet with zone type local-zone or wavelength-zone is not eligible to automatically create
+                            regular cluster resources.
+
+
+                            The public subnet in availability-zone or local-zone is associated with regular public
+                            route table with default route entry to a Internet Gateway.
+
+
+                            The public subnet in wavelength-zone is associated with a carrier public
+                            route table with default route entry to a Carrier Gateway.
+
+
+                            The private subnet in the availability-zone is associated with a private route table with
+                            the default route entry to a NAT Gateway created in that zone.
+
+
+                            The private subnet in the local-zone or wavelength-zone is associated with a private route table with
+                            the default route entry re-using the NAT Gateway in the Region (preferred from the
+                            parent zone, the zone type availability-zone in the region, or first table available).
+                          enum:
+                          - availability-zone
+                          - local-zone
+                          - wavelength-zone
+                          type: string
                       required:
                       - id
                       type: object
@@ -2464,6 +2564,14 @@ spec:
                           default subnets. Defaults to 3
                         minimum: 1
                         type: integer
+                      carrierGatewayId:
+                        description: |-
+                          CarrierGatewayID is the id of the internet gateway associated with the VPC,
+                          for carrier network (Wavelength Zones).
+                        type: string
+                        x-kubernetes-validations:
+                        - message: Carrier Gateway ID must start with 'cagw-'
+                          rule: self.startsWith('cagw-')
                       cidrBlock:
                         description: |-
                           CidrBlock is the CIDR block to be used when the provider creates a managed VPC.
@@ -3335,6 +3443,7 @@ spec:
                                 name:
                                   description: Name of the TargetGroup. Must be unique
                                     over the same group of listeners.
+                                  maxLength: 32
                                   type: string
                                 port:
                                   description: Port is the exposed port
@@ -3554,6 +3663,7 @@ spec:
                                 name:
                                   description: Name of the TargetGroup. Must be unique
                                     over the same group of listeners.
+                                  maxLength: 32
                                   type: string
                                 port:
                                   description: Port is the exposed port

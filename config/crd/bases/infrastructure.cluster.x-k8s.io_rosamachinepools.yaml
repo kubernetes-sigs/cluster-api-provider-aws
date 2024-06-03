@@ -66,10 +66,10 @@ spec:
                   underlying EC2 instances associated with this machine pool.
                 type: object
               autoRepair:
-                default: false
+                default: true
                 description: |-
                   AutoRepair specifies whether health checks should be enabled for machines
-                  in the NodePool. The default is false.
+                  in the NodePool. The default is true.
                 type: boolean
               autoscaling:
                 description: |-

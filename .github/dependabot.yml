@@ -47,6 +47,9 @@ updates:
       # Bumping the kustomize API independently can break compatibility with client-go as they share k8s.io/kube-openapi as a dependency.
       - dependency-name: "sigs.k8s.io/kustomize/api"
         update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
+      # Ignore openshift ROSA pkgs as its upgraded manually.
+      - dependency-name: "github.com/openshift*"
+        update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
 
   - package-ecosystem: "docker"
     directory: "/"
