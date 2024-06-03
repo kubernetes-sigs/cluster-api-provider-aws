@@ -96,9 +96,9 @@ type AWSLaunchTemplate struct {
 	// +optional
 	RootVolume *infrav1.Volume `json:"rootVolume,omitempty"`
 
-    // Configuration options for the non root storage volumes.
-    // +optional
-    NonRootVolumes []infrav1.Volume `json:"nonRootVolumes,omitempty"`
+	// Configuration options for the non root storage volumes.
+	// +optional
+	NonRootVolumes []infrav1.Volume `json:"nonRootVolumes,omitempty"`
 
 	// SSHKeyName is the name of the ssh key to attach to the instance. Valid values are empty string
 	// (do not use SSH keys), a valid SSH key name, or omitted (use the default SSH key name)
