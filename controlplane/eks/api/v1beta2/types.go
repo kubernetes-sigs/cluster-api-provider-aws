@@ -289,5 +289,5 @@ type PodIdentityAssociation struct {
 	ServiceAccountNamespace string `json:"serviceAccountNamespace"`
 	// RoleARN is the ARN of an IAM role which the Service Account can assume.
 	// +kubebuilder:validation:Required
-	RoleARN string `json:"serviceAccountRoleARN,omitempty"`
+	RoleARN string `json:"roleARN,omitempty"`
 }
