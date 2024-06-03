@@ -27,21 +27,3 @@ type EKSPodIdentityAssociation struct {
 	RoleARN                 string
 	AssociationID           string
 }
-
-// IsEqual determines if 2 EKSPodIdentityAssociation are equal.
-func (e *EKSPodIdentityAssociation) IsEqual(other *EKSPodIdentityAssociation) bool {
-	if e == other {
-		return true
-	}
-	if !cmp.Equal(e.ServiceAccountName, other.ServiceAccountName) {
-		return false
-	}
-	if !cmp.Equal(e.ServiceAccountNamespace, other.ServiceAccountNamespace) {
-		return false
-	}
-	if !cmp.Equal(e.RoleARN, other.RoleARN) {
-		return false
-	}
-
-	return true
-}
