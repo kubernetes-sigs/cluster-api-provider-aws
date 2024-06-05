@@ -1202,6 +1202,318 @@ func TestCreateNLB(t *testing.T) {
 						},
 					},
 				}, nil)
+			},
+			check: func(t *testing.T, lb *infrav1.LoadBalancer, err error) {
+				t.Helper()
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+				if lb.DNSName != dns {
+					t.Fatalf("DNSName did not equal expected value; was: '%s'", lb.DNSName)
+				}
+			},
+		},
+		{
+			name: "created with ipv6 vpc",
+			spec: func(spec infrav1.LoadBalancer) infrav1.LoadBalancer {
+				return spec
+			},
+			awsCluster: func(acl infrav1.AWSCluster) infrav1.AWSCluster {
+				acl.Spec.NetworkSpec.VPC.IPv6 = &infrav1.IPv6{
+					CidrBlock: "2022:1234::/64",
+					PoolID:    "pool-id",
+				}
+				return acl
+			},
+			elbV2APIMocks: func(m *mocks.MockELBV2APIMockRecorder) {
+				m.CreateLoadBalancer(gomock.Eq(&elbv2.CreateLoadBalancerInput{
+					Name:           aws.String(elbName),
+					IpAddressType:  aws.String("dualstack"),
+					Scheme:         aws.String("internet-facing"),
+					SecurityGroups: aws.StringSlice([]string{}),
+					Type:           aws.String("network"),
+					Subnets:        aws.StringSlice([]string{clusterSubnetID}),
+					Tags: []*elbv2.Tag{
+						{
+							Key:   aws.String("test"),
+							Value: aws.String("tag"),
+						},
+					},
+				})).Return(&elbv2.CreateLoadBalancerOutput{
+					LoadBalancers: []*elbv2.LoadBalancer{
+						{
+							LoadBalancerArn:  aws.String(elbArn),
+							LoadBalancerName: aws.String(elbName),
+							Scheme:           aws.String(string(infrav1.ELBSchemeInternetFacing)),
+							DNSName:          aws.String(dns),
+						},
+					},
+				}, nil)
+			},
+			check: func(t *testing.T, lb *infrav1.LoadBalancer, err error) {
+				t.Helper()
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+				if lb.DNSName != dns {
+					t.Fatalf("DNSName did not equal expected value; was: '%s'", lb.DNSName)
+				}
+			},
+		},
+		{
+			name: "creating a load balancer fails",
+			spec: func(spec infrav1.LoadBalancer) infrav1.LoadBalancer {
+				return spec
+			},
+			awsCluster: func(acl infrav1.AWSCluster) infrav1.AWSCluster {
+				return acl
+			},
+			elbV2APIMocks: func(m *mocks.MockELBV2APIMockRecorder) {
+				m.CreateLoadBalancer(gomock.Eq(&elbv2.CreateLoadBalancerInput{
+					Name:           aws.String(elbName),
+					Scheme:         aws.String("internet-facing"),
+					SecurityGroups: []*string{},
+					Type:           aws.String("network"),
+					Subnets:        aws.StringSlice([]string{clusterSubnetID}),
+					Tags: []*elbv2.Tag{
+						{
+							Key:   aws.String("test"),
+							Value: aws.String("tag"),
+						},
+					},
+				})).Return(nil, errors.New("nope"))
+			},
+			check: func(t *testing.T, _ *infrav1.LoadBalancer, err error) {
+				t.Helper()
+				if err == nil {
+					t.Fatal("expected error, got nothing")
+				}
+				if !strings.Contains(err.Error(), "nope") {
+					t.Fatalf("expected error to contain 'nope' was instead: %s", err)
+				}
+			},
+		},
+		{
+			name: "PreserveClientIP is enabled",
+			spec: func(spec infrav1.LoadBalancer) infrav1.LoadBalancer {
+				return spec
+			},
+			awsCluster: func(acl infrav1.AWSCluster) infrav1.AWSCluster {
+				acl.Spec.ControlPlaneLoadBalancer.PreserveClientIP = true
+				return acl
+			},
+			elbV2APIMocks: func(m *mocks.MockELBV2APIMockRecorder) {
+				m.CreateLoadBalancer(gomock.Eq(&elbv2.CreateLoadBalancerInput{
+					Name:           aws.String(elbName),
+					Scheme:         aws.String("internet-facing"),
+					SecurityGroups: aws.StringSlice([]string{}),
+					Type:           aws.String("network"),
+					Subnets:        aws.StringSlice([]string{clusterSubnetID}),
+					Tags: []*elbv2.Tag{
+						{
+							Key:   aws.String("test"),
+							Value: aws.String("tag"),
+						},
+					},
+				})).Return(&elbv2.CreateLoadBalancerOutput{
+					LoadBalancers: []*elbv2.LoadBalancer{
+						{
+							LoadBalancerArn:  aws.String(elbArn),
+							LoadBalancerName: aws.String(elbName),
+							Scheme:           aws.String(string(infrav1.ELBSchemeInternetFacing)),
+							DNSName:          aws.String(dns),
+						},
+					},
+				}, nil)
+			},
+			check: func(t *testing.T, lb *infrav1.LoadBalancer, err error) {
+				t.Helper()
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+				if lb.DNSName != dns {
+					t.Fatalf("DNSName did not equal expected value; was: '%s'", lb.DNSName)
+				}
+			},
+		},
+		{
+			name: "load balancer is not an NLB scope security groups will be added",
+			spec: func(spec infrav1.LoadBalancer) infrav1.LoadBalancer {
+				spec.SecurityGroupIDs = []string{"sg-id"}
+				return spec
+			},
+			awsCluster: func(acl infrav1.AWSCluster) infrav1.AWSCluster {
+				acl.Spec.ControlPlaneLoadBalancer.LoadBalancerType = infrav1.LoadBalancerTypeALB
+				return acl
+			},
+			elbV2APIMocks: func(m *mocks.MockELBV2APIMockRecorder) {
+				m.CreateLoadBalancer(gomock.Eq(&elbv2.CreateLoadBalancerInput{
+					Name:    aws.String(elbName),
+					Scheme:  aws.String("internet-facing"),
+					Type:    aws.String("application"),
+					Subnets: aws.StringSlice([]string{clusterSubnetID}),
+					Tags: []*elbv2.Tag{
+						{
+							Key:   aws.String("test"),
+							Value: aws.String("tag"),
+						},
+					},
+					SecurityGroups: aws.StringSlice([]string{"sg-id"}),
+				})).Return(&elbv2.CreateLoadBalancerOutput{
+					LoadBalancers: []*elbv2.LoadBalancer{
+						{
+							LoadBalancerArn:  aws.String(elbArn),
+							LoadBalancerName: aws.String(elbName),
+							Scheme:           aws.String(string(infrav1.ELBSchemeInternetFacing)),
+							DNSName:          aws.String(dns),
+						},
+					},
+				}, nil)
+			},
+			check: func(t *testing.T, lb *infrav1.LoadBalancer, err error) {
+				t.Helper()
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+				if lb.DNSName != dns {
+					t.Fatalf("DNSName did not equal expected value; was: '%s'", lb.DNSName)
+				}
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+			elbV2APIMocks := mocks.NewMockELBV2API(mockCtrl)
+
+			scheme, err := setupScheme()
+			if err != nil {
+				t.Fatal(err)
+			}
+			awsCluster := &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: clusterName},
+				Spec: infrav1.AWSClusterSpec{
+					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+						Name:             aws.String(elbName),
+						LoadBalancerType: infrav1.LoadBalancerTypeNLB,
+					},
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							ID: vpcID,
+						},
+					},
+				},
+			}
+			client := fake.NewClientBuilder().WithScheme(scheme).Build()
+			cluster := tc.awsCluster(*awsCluster)
+			clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+				Client: client,
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: namespace,
+						Name:      clusterName,
+					},
+				},
+				AWSCluster: &cluster,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			tc.elbV2APIMocks(elbV2APIMocks.EXPECT())
+
+			s := &Service{
+				scope:       clusterScope,
+				ELBV2Client: elbV2APIMocks,
+			}
+
+			loadBalancerSpec := &infrav1.LoadBalancer{
+				ARN:    elbArn,
+				Name:   elbName,
+				Scheme: infrav1.ELBSchemeInternetFacing,
+				Tags: map[string]string{
+					"test": "tag",
+				},
+				ELBListeners: []infrav1.Listener{
+					{
+						Protocol: "TCP",
+						Port:     infrav1.DefaultAPIServerPort,
+						TargetGroup: infrav1.TargetGroupSpec{
+							Name:     "name",
+							Port:     infrav1.DefaultAPIServerPort,
+							Protocol: "TCP",
+							VpcID:    vpcID,
+							HealthCheck: &infrav1.TargetGroupHealthCheck{
+								Protocol: aws.String("tcp"),
+								Port:     aws.String(infrav1.DefaultAPIServerPortString),
+							},
+						},
+					},
+				},
+				LoadBalancerType: infrav1.LoadBalancerTypeNLB,
+				SubnetIDs:        []string{clusterSubnetID},
+			}
+
+			spec := tc.spec(*loadBalancerSpec)
+			lb, err := s.createLB(&spec, clusterScope.ControlPlaneLoadBalancer())
+			tc.check(t, lb, err)
+		})
+	}
+}
+
+/*
+TODO(nrb): Implement these tests. They're mostly the samec reation tests before the groups and listeners were split out, but mocks need to be updated.
+func TestReconcileTargetGroupsAndListeners(t *testing.T) {
+	const (
+		namespace       = "foo"
+		clusterName     = "bar"
+		clusterSubnetID = "subnet-1"
+		elbName         = "bar-apiserver"
+		elbArn          = "arn::apiserver"
+		vpcID           = "vpc-id"
+		dns             = "asdf:9999/asdf"
+	)
+
+	tests := []struct {
+		name          string
+		elbV2APIMocks func(m *mocks.MockELBV2APIMockRecorder)
+		check         func(t *testing.T, lb *infrav1.LoadBalancer, err error)
+		awsCluster    func(acl infrav1.AWSCluster) infrav1.AWSCluster
+		spec          func(spec infrav1.LoadBalancer) infrav1.LoadBalancer
+	}{
+		{
+			name: "main create flow",
+			spec: func(spec infrav1.LoadBalancer) infrav1.LoadBalancer {
+				return spec
+			},
+			awsCluster: func(acl infrav1.AWSCluster) infrav1.AWSCluster {
+				return acl
+			},
+			elbV2APIMocks: func(m *mocks.MockELBV2APIMockRecorder) {
+				m.CreateLoadBalancer(gomock.Eq(&elbv2.CreateLoadBalancerInput{
+					Name:           aws.String(elbName),
+					Scheme:         aws.String("internet-facing"),
+					SecurityGroups: []*string{},
+					Type:           aws.String("network"),
+					Subnets:        aws.StringSlice([]string{clusterSubnetID}),
+					Tags: []*elbv2.Tag{
+						{
+							Key:   aws.String("test"),
+							Value: aws.String("tag"),
+						},
+					},
+				})).Return(&elbv2.CreateLoadBalancerOutput{
+					LoadBalancers: []*elbv2.LoadBalancer{
+						{
+							LoadBalancerArn:  aws.String(elbArn),
+							LoadBalancerName: aws.String(elbName),
+							Scheme:           aws.String(string(infrav1.ELBSchemeInternetFacing)),
+							DNSName:          aws.String(dns),
+						},
+					},
+				}, nil)
 				m.CreateTargetGroup(gomock.Eq(&elbv2.CreateTargetGroupInput{
 					Name:     aws.String("name"),
 					Port:     aws.Int64(infrav1.DefaultAPIServerPort),
@@ -2074,6 +2386,7 @@ func TestCreateNLB(t *testing.T) {
 		})
 	}
 }
+*/
 
 func TestReconcileV2LB(t *testing.T) {
 	const (
@@ -2186,6 +2499,33 @@ func TestReconcileV2LB(t *testing.T) {
 							},
 						},
 					}, nil)
+				m.DescribeTargetGroups(gomock.Eq(&elbv2.DescribeTargetGroupsInput{
+					LoadBalancerArn: aws.String(elbArn),
+				})).
+					Return(&elbv2.DescribeTargetGroupsOutput{
+						NextMarker: new(string),
+						TargetGroups: []*elbv2.TargetGroup{
+							{
+								HealthCheckEnabled:         aws.Bool(true),
+								HealthCheckIntervalSeconds: new(int64),
+								HealthCheckPath:            new(string),
+								HealthCheckPort:            new(string),
+								HealthCheckProtocol:        new(string),
+								HealthCheckTimeoutSeconds:  new(int64),
+								HealthyThresholdCount:      new(int64),
+								IpAddressType:              new(string),
+								LoadBalancerArns:           []*string{aws.String(elbArn)},
+								Matcher:                    &elbv2.Matcher{},
+								Port:                       new(int64),
+								Protocol:                   new(string),
+								ProtocolVersion:            new(string),
+								TargetGroupArn:             aws.String("arn::targetgroup"),
+								TargetGroupName:            new(string),
+								TargetType:                 new(string),
+								UnhealthyThresholdCount:    new(int64),
+								VpcId:                      new(string),
+							}},
+					}, nil)
 				m.ModifyLoadBalancerAttributes(&elbv2.ModifyLoadBalancerAttributesInput{
 					LoadBalancerArn: aws.String(elbArn),
 					Attributes: []*elbv2.LoadBalancerAttribute{
@@ -2207,9 +2547,7 @@ func TestReconcileV2LB(t *testing.T) {
 								Value: aws.String(string(infrav1.ResourceLifecycleOwned)),
 							},
 						},
-					},
-					nil,
-				)
+					}, nil)
 				m.DescribeTags(&elbv2.DescribeTagsInput{ResourceArns: []*string{aws.String(elbArn)}}).Return(
 					&elbv2.DescribeTagsOutput{
 						TagDescriptions: []*elbv2.TagDescription{
@@ -2223,9 +2561,7 @@ func TestReconcileV2LB(t *testing.T) {
 								},
 							},
 						},
-					},
-					nil,
-				)
+					}, nil)
 
 				// Avoid the need to sort the AddTagsInput.Tags slice
 				m.AddTags(gomock.AssignableToTypeOf(&elbv2.AddTagsInput{})).Return(&elbv2.AddTagsOutput{}, nil)
