@@ -16,10 +16,6 @@ limitations under the License.
 
 package podidentities
 
-import (
-	"github.com/google/go-cmp/cmp"
-)
-
 // EKSPodIdentityAssociation represents an EKS pod identity association.
 type EKSPodIdentityAssociation struct {
 	ServiceAccountName      string
