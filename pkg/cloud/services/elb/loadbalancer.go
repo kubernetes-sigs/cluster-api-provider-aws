@@ -112,6 +112,12 @@ func (s *Service) reconcileV2LB(lbSpec *infrav1.AWSLoadBalancerSpec) error {
 	// set up the type for later processing
 	lb.LoadBalancerType = lbSpec.LoadBalancerType
 	if lb.IsManaged(s.scope.Name()) {
+		// Reconcile the target groups and listeners from the spec and the ones currently attached to the load balancer.
+		_, err := s.reconcileTargetGroupsAndListeners(lb, lbSpec)
+		if err != nil {
+			return errors.Wrapf(err, "failed to create target groups/listeners for load balancer %q", lb.Name)
+		}
+
 		if !cmp.Equal(spec.ELBAttributes, lb.ELBAttributes) {
 			if err := s.configureLBAttributes(lb.ARN, spec.ELBAttributes); err != nil {
 				return err
@@ -147,6 +153,7 @@ func (s *Service) reconcileV2LB(lbSpec *infrav1.AWSLoadBalancerSpec) error {
 				return errors.Wrapf(err, "failed to apply security groups to load balancer %q", lb.Name)
 			}
 		}
+
 	} else {
 		s.scope.Trace("Unmanaged control plane load balancer, skipping load balancer configuration", "api-server-elb", lb)
 	}
@@ -388,89 +395,7 @@ func (s *Service) createLB(spec *infrav1.LoadBalancer, lbSpec *infrav1.AWSLoadBa
 		return nil, errors.New("no new network load balancer was created; the returned list is empty")
 	}
 
-	// TODO(Skarlso): Add options to set up SSL.
-	// https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/3899
-	for _, ln := range spec.ELBListeners {
-		// create the target group first
-		targetGroupInput := &elbv2.CreateTargetGroupInput{
-			Name:                       aws.String(ln.TargetGroup.Name),
-			Port:                       aws.Int64(ln.TargetGroup.Port),
-			Protocol:                   aws.String(ln.TargetGroup.Protocol.String()),
-			VpcId:                      aws.String(ln.TargetGroup.VpcID),
-			Tags:                       input.Tags,
-			HealthCheckIntervalSeconds: aws.Int64(infrav1.DefaultAPIServerHealthCheckIntervalSec),
-			HealthCheckTimeoutSeconds:  aws.Int64(infrav1.DefaultAPIServerHealthCheckTimeoutSec),
-			HealthyThresholdCount:      aws.Int64(infrav1.DefaultAPIServerHealthThresholdCount),
-			UnhealthyThresholdCount:    aws.Int64(infrav1.DefaultAPIServerUnhealthThresholdCount),
-		}
-		if s.scope.VPC().IsIPv6Enabled() {
-			targetGroupInput.IpAddressType = aws.String("ipv6")
-		}
-		if ln.TargetGroup.HealthCheck != nil {
-			targetGroupInput.HealthCheckEnabled = aws.Bool(true)
-			targetGroupInput.HealthCheckProtocol = ln.TargetGroup.HealthCheck.Protocol
-			targetGroupInput.HealthCheckPort = ln.TargetGroup.HealthCheck.Port
-			if ln.TargetGroup.HealthCheck.Path != nil {
-				targetGroupInput.HealthCheckPath = ln.TargetGroup.HealthCheck.Path
-			}
-			if ln.TargetGroup.HealthCheck.IntervalSeconds != nil {
-				targetGroupInput.HealthCheckIntervalSeconds = ln.TargetGroup.HealthCheck.IntervalSeconds
-			}
-			if ln.TargetGroup.HealthCheck.TimeoutSeconds != nil {
-				targetGroupInput.HealthCheckTimeoutSeconds = ln.TargetGroup.HealthCheck.TimeoutSeconds
-			}
-			if ln.TargetGroup.HealthCheck.ThresholdCount != nil {
-				targetGroupInput.HealthyThresholdCount = ln.TargetGroup.HealthCheck.ThresholdCount
-			}
-			if ln.TargetGroup.HealthCheck.UnhealthyThresholdCount != nil {
-				targetGroupInput.UnhealthyThresholdCount = ln.TargetGroup.HealthCheck.UnhealthyThresholdCount
-			}
-		}
-		s.scope.Debug("creating target group", "group", targetGroupInput, "listener", ln)
-		group, err := s.ELBV2Client.CreateTargetGroup(targetGroupInput)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to create target group for load balancer")
-		}
-		if len(group.TargetGroups) == 0 {
-			return nil, errors.New("no target group was created; the returned list is empty")
-		}
-
-		if !lbSpec.PreserveClientIP {
-			targetGroupAttributeInput := &elbv2.ModifyTargetGroupAttributesInput{
-				TargetGroupArn: group.TargetGroups[0].TargetGroupArn,
-				Attributes: []*elbv2.TargetGroupAttribute{
-					{
-						Key:   aws.String(infrav1.TargetGroupAttributeEnablePreserveClientIP),
-						Value: aws.String("false"),
-					},
-				},
-			}
-			if _, err := s.ELBV2Client.ModifyTargetGroupAttributes(targetGroupAttributeInput); err != nil {
-				return nil, errors.Wrapf(err, "failed to modify target group attribute")
-			}
-		}
-
-		listenerInput := &elbv2.CreateListenerInput{
-			DefaultActions: []*elbv2.Action{
-				{
-					TargetGroupArn: group.TargetGroups[0].TargetGroupArn,
-					Type:           aws.String(elbv2.ActionTypeEnumForward),
-				},
-			},
-			LoadBalancerArn: out.LoadBalancers[0].LoadBalancerArn,
-			Port:            aws.Int64(ln.Port),
-			Protocol:        aws.String(string(ln.Protocol)),
-			Tags:            converters.MapToV2Tags(spec.Tags),
-		}
-		// Create ClassicELBListeners
-		listener, err := s.ELBV2Client.CreateListener(listenerInput)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to create listener")
-		}
-		if len(listener.Listeners) == 0 {
-			return nil, errors.New("no listener was created; the returned list is empty")
-		}
-	}
+	// Target Groups and listeners will be reconciled separately
 
 	s.scope.Info("Created network load balancer", "dns-name", *out.LoadBalancers[0].DNSName)
 
@@ -1602,6 +1527,113 @@ func (s *Service) reconcileV2LBTags(lb *infrav1.LoadBalancer, desiredTags map[st
 	}
 
 	return nil
+}
+
+func (s *Service) reconcileTargetGroupsAndListeners(spec *infrav1.LoadBalancer, lbSpec *infrav1.AWSLoadBalancerSpec) ([]*elbv2.TargetGroup, error) {
+
+	describeInput := &elbv2.DescribeTargetGroupsInput{
+		LoadBalancerArn: aws.String(spec.ARN),
+	}
+	targetGroups, err := s.ELBV2Client.DescribeTargetGroups(describeInput)
+	if err != nil {
+		s.scope.Error(err, "could not describe target groups for load balancer", "arn", spec.ARN)
+		return nil, err
+	}
+
+	// Target Groups already exist, no need to do additional work.
+	// TODO(nrb): This will need to match the infrav1.Listener type
+	if len(targetGroups.TargetGroups) > 0 {
+		return targetGroups.TargetGroups, nil
+	}
+
+	groups := make([]*elbv2.TargetGroup, len(spec.ELBListeners))
+
+	// TODO(Skarlso): Add options to set up SSL.
+	// https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/3899
+	for _, ln := range spec.ELBListeners {
+		// create the target group first
+		targetGroupInput := &elbv2.CreateTargetGroupInput{
+			Name:                       aws.String(ln.TargetGroup.Name),
+			Port:                       aws.Int64(ln.TargetGroup.Port),
+			Protocol:                   aws.String(ln.TargetGroup.Protocol.String()),
+			VpcId:                      aws.String(ln.TargetGroup.VpcID),
+			Tags:                       converters.MapToV2Tags(spec.Tags),
+			HealthCheckIntervalSeconds: aws.Int64(infrav1.DefaultAPIServerHealthCheckIntervalSec),
+			HealthCheckTimeoutSeconds:  aws.Int64(infrav1.DefaultAPIServerHealthCheckTimeoutSec),
+			HealthyThresholdCount:      aws.Int64(infrav1.DefaultAPIServerHealthThresholdCount),
+			UnhealthyThresholdCount:    aws.Int64(infrav1.DefaultAPIServerUnhealthThresholdCount),
+		}
+		if s.scope.VPC().IsIPv6Enabled() {
+			targetGroupInput.IpAddressType = aws.String("ipv6")
+		}
+		if ln.TargetGroup.HealthCheck != nil {
+			targetGroupInput.HealthCheckEnabled = aws.Bool(true)
+			targetGroupInput.HealthCheckProtocol = ln.TargetGroup.HealthCheck.Protocol
+			targetGroupInput.HealthCheckPort = ln.TargetGroup.HealthCheck.Port
+			if ln.TargetGroup.HealthCheck.Path != nil {
+				targetGroupInput.HealthCheckPath = ln.TargetGroup.HealthCheck.Path
+			}
+			if ln.TargetGroup.HealthCheck.IntervalSeconds != nil {
+				targetGroupInput.HealthCheckIntervalSeconds = ln.TargetGroup.HealthCheck.IntervalSeconds
+			}
+			if ln.TargetGroup.HealthCheck.TimeoutSeconds != nil {
+				targetGroupInput.HealthCheckTimeoutSeconds = ln.TargetGroup.HealthCheck.TimeoutSeconds
+			}
+			if ln.TargetGroup.HealthCheck.ThresholdCount != nil {
+				targetGroupInput.HealthyThresholdCount = ln.TargetGroup.HealthCheck.ThresholdCount
+			}
+			if ln.TargetGroup.HealthCheck.UnhealthyThresholdCount != nil {
+				targetGroupInput.UnhealthyThresholdCount = ln.TargetGroup.HealthCheck.UnhealthyThresholdCount
+			}
+		}
+		s.scope.Debug("creating target group", "group", targetGroupInput, "listener", ln)
+		group, err := s.ELBV2Client.CreateTargetGroup(targetGroupInput)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to create target group for load balancer")
+		}
+		if len(group.TargetGroups) == 0 {
+			return nil, errors.New("no target group was created; the returned list is empty")
+		}
+		groups = append(groups, group.TargetGroups...)
+
+		if !lbSpec.PreserveClientIP {
+			targetGroupAttributeInput := &elbv2.ModifyTargetGroupAttributesInput{
+				TargetGroupArn: group.TargetGroups[0].TargetGroupArn,
+				Attributes: []*elbv2.TargetGroupAttribute{
+					{
+						Key:   aws.String(infrav1.TargetGroupAttributeEnablePreserveClientIP),
+						Value: aws.String("false"),
+					},
+				},
+			}
+			if _, err := s.ELBV2Client.ModifyTargetGroupAttributes(targetGroupAttributeInput); err != nil {
+				return nil, errors.Wrapf(err, "failed to modify target group attribute")
+			}
+		}
+
+		listenerInput := &elbv2.CreateListenerInput{
+			DefaultActions: []*elbv2.Action{
+				{
+					TargetGroupArn: group.TargetGroups[0].TargetGroupArn,
+					Type:           aws.String(elbv2.ActionTypeEnumForward),
+				},
+			},
+			LoadBalancerArn: aws.String(spec.ARN),
+			Port:            aws.Int64(ln.Port),
+			Protocol:        aws.String(string(ln.Protocol)),
+			Tags:            converters.MapToV2Tags(spec.Tags),
+		}
+		// Create ClassicELBListeners
+		listener, err := s.ELBV2Client.CreateListener(listenerInput)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to create listener")
+		}
+		if len(listener.Listeners) == 0 {
+			return nil, errors.New("no listener was created; the returned list is empty")
+		}
+	}
+
+	return groups, nil
 }
 
 func (s *Service) getHealthCheckTarget() string {
