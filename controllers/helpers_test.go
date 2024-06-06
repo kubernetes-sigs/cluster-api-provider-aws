@@ -291,6 +291,52 @@ func mockedCreateLBV2Calls(t *testing.T, m *mocks.MockELBV2APIMockRecorder) {
 	})).MaxTimes(1)
 }
 
+func mockedDescribeTargetGroupsCall(t *testing.T, m *mocks.MockELBV2APIMockRecorder) {
+	t.Helper()
+	m.DescribeTargetGroups(gomock.Eq(&elbv2.DescribeTargetGroupsInput{
+		LoadBalancerArn: lbArn,
+	})).
+		Return(&elbv2.DescribeTargetGroupsOutput{
+			NextMarker: new(string),
+			TargetGroups: []*elbv2.TargetGroup{
+				{
+					HealthCheckEnabled:         aws.Bool(true),
+					HealthCheckIntervalSeconds: new(int64),
+					HealthCheckPath:            new(string),
+					HealthCheckPort:            new(string),
+					HealthCheckProtocol:        new(string),
+					HealthCheckTimeoutSeconds:  new(int64),
+					HealthyThresholdCount:      new(int64),
+					IpAddressType:              new(string),
+					LoadBalancerArns:           []*string{lbArn},
+					Matcher:                    &elbv2.Matcher{},
+					Port:                       new(int64),
+					Protocol:                   new(string),
+					ProtocolVersion:            new(string),
+					TargetGroupArn:             aws.String("arn::targetgroup"),
+					TargetGroupName:            new(string),
+					TargetType:                 new(string),
+					UnhealthyThresholdCount:    new(int64),
+					VpcId:                      new(string),
+				}},
+		}, nil)
+}
+
+func mockedDescribeListenersCall(t *testing.T, m *mocks.MockELBV2APIMockRecorder) {
+	m.DescribeListeners(gomock.Eq(&elbv2.DescribeListenersInput{
+		LoadBalancerArn: lbArn,
+	})).
+		Return(&elbv2.DescribeListenersOutput{
+			Listeners: []*elbv2.Listener{{
+				DefaultActions: []*elbv2.Action{{
+					TargetGroupArn: aws.String("arn::targetgroup"),
+				}},
+				ListenerArn:     aws.String("arn::listener"),
+				LoadBalancerArn: lbArn,
+			}},
+		}, nil)
+}
+
 func mockedDeleteLBCalls(expectV2Call bool, mv2 *mocks.MockELBV2APIMockRecorder, m *mocks.MockELBAPIMockRecorder) {
 	if expectV2Call {
 		mv2.DescribeLoadBalancers(gomock.Any()).Return(describeLBOutputV2, nil)

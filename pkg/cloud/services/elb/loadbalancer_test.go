@@ -2535,6 +2535,19 @@ func TestReconcileV2LB(t *testing.T) {
 						},
 					}}).
 					Return(&elbv2.ModifyLoadBalancerAttributesOutput{}, nil)
+
+				m.DescribeListeners(gomock.Eq(&elbv2.DescribeListenersInput{
+					LoadBalancerArn: aws.String(elbArn),
+				})).
+					Return(&elbv2.DescribeListenersOutput{
+						Listeners: []*elbv2.Listener{{
+							DefaultActions: []*elbv2.Action{{
+								TargetGroupArn: aws.String("arn::targetgroup"),
+							}},
+							ListenerArn:     aws.String("arn::listener"),
+							LoadBalancerArn: aws.String(elbArn),
+						}},
+					}, nil)
 				m.DescribeLoadBalancerAttributes(&elbv2.DescribeLoadBalancerAttributesInput{LoadBalancerArn: aws.String(elbArn)}).Return(
 					&elbv2.DescribeLoadBalancerAttributesOutput{
 						Attributes: []*elbv2.LoadBalancerAttribute{
