@@ -323,6 +323,7 @@ func mockedDescribeTargetGroupsCall(t *testing.T, m *mocks.MockELBV2APIMockRecor
 }
 
 func mockedDescribeListenersCall(t *testing.T, m *mocks.MockELBV2APIMockRecorder) {
+	t.Helper()
 	m.DescribeListeners(gomock.Eq(&elbv2.DescribeListenersInput{
 		LoadBalancerArn: lbArn,
 	})).

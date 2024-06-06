@@ -153,7 +153,6 @@ func (s *Service) reconcileV2LB(lbSpec *infrav1.AWSLoadBalancerSpec) error {
 				return errors.Wrapf(err, "failed to apply security groups to load balancer %q", lb.Name)
 			}
 		}
-
 	} else {
 		s.scope.Trace("Unmanaged control plane load balancer, skipping load balancer configuration", "api-server-elb", lb)
 	}
@@ -1591,7 +1590,7 @@ func (s *Service) reconcileTargetGroupsAndListeners(spec *infrav1.LoadBalancer, 
 
 		var listener *elbv2.Listener
 		for _, l := range existingListeners.Listeners {
-			if l.DefaultActions != nil && l.DefaultActions[0].TargetGroupArn == group.TargetGroupArn {
+			if l.DefaultActions != nil && len(l.DefaultActions) > 0 && l.DefaultActions[0].TargetGroupArn == group.TargetGroupArn {
 				listener = l
 			}
 		}
@@ -1609,7 +1608,7 @@ func (s *Service) reconcileTargetGroupsAndListeners(spec *infrav1.LoadBalancer, 
 	return createdTargetGroups, createdListeners, nil
 }
 
-// createListener creates a single Listener
+// createListener creates a single Listener.
 func (s *Service) createListener(ln infrav1.Listener, group *elbv2.TargetGroup, lbARN string, tags map[string]string) (*elbv2.Listener, error) {
 	listenerInput := &elbv2.CreateListenerInput{
 		DefaultActions: []*elbv2.Action{
@@ -1637,7 +1636,7 @@ func (s *Service) createListener(ln infrav1.Listener, group *elbv2.TargetGroup, 
 	return listener.Listeners[0], nil
 }
 
-// createTargetGroup creates a single Target Group
+// createTargetGroup creates a single Target Group.
 func (s *Service) createTargetGroup(ln infrav1.Listener, tags map[string]string) (*elbv2.TargetGroup, error) {
 	targetGroupInput := &elbv2.CreateTargetGroupInput{
 		Name:                       aws.String(ln.TargetGroup.Name),

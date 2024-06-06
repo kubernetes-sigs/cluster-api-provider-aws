@@ -2198,7 +2198,6 @@ func TestReconcileTargetGroupsAndListeners(t *testing.T) {
 			}
 
 			spec := tc.spec(*loadBalancerSpec)
-			//_, err := s.createLB(&spec, clusterScope.ControlPlaneLoadBalancer())
 			tgs, listeners, err := s.reconcileTargetGroupsAndListeners(&spec, clusterScope.ControlPlaneLoadBalancer())
 			tc.check(t, tgs, listeners, err)
 		})
