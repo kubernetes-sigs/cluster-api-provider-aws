@@ -907,7 +907,9 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 	testCases := []struct {
 		name                          string
 		networkSpec                   infrav1.NetworkSpec
+		networkStatus                 infrav1.NetworkStatus
 		expectedAdditionalIngressRule infrav1.IngressRule
+		wantErr                       bool
 	}{
 		{
 			name: "default control plane security group is used",
@@ -918,6 +920,16 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 						Protocol:    infrav1.SecurityGroupProtocolTCP,
 						FromPort:    9345,
 						ToPort:      9345,
+					},
+				},
+			},
+			networkStatus: infrav1.NetworkStatus{
+				SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+					infrav1.SecurityGroupControlPlane: {
+						ID: "cp-sg-id",
+					},
+					infrav1.SecurityGroupNode: {
+						ID: "node-sg-id",
 					},
 				},
 			},
@@ -942,6 +954,16 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 					},
 				},
 			},
+			networkStatus: infrav1.NetworkStatus{
+				SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+					infrav1.SecurityGroupControlPlane: {
+						ID: "cp-sg-id",
+					},
+					infrav1.SecurityGroupNode: {
+						ID: "node-sg-id",
+					},
+				},
+			},
 			expectedAdditionalIngressRule: infrav1.IngressRule{
 				Description:            "test",
 				Protocol:               infrav1.SecurityGroupProtocolTCP,
@@ -960,6 +982,16 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 						FromPort:                 9345,
 						ToPort:                   9345,
 						SourceSecurityGroupRoles: []infrav1.SecurityGroupRole{infrav1.SecurityGroupNode},
+					},
+				},
+			},
+			networkStatus: infrav1.NetworkStatus{
+				SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+					infrav1.SecurityGroupControlPlane: {
+						ID: "cp-sg-id",
+					},
+					infrav1.SecurityGroupNode: {
+						ID: "node-sg-id",
 					},
 				},
 			},
@@ -985,6 +1017,16 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 					},
 				},
 			},
+			networkStatus: infrav1.NetworkStatus{
+				SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+					infrav1.SecurityGroupControlPlane: {
+						ID: "cp-sg-id",
+					},
+					infrav1.SecurityGroupNode: {
+						ID: "node-sg-id",
+					},
+				},
+			},
 			expectedAdditionalIngressRule: infrav1.IngressRule{
 				Description:            "test",
 				Protocol:               infrav1.SecurityGroupProtocolTCP,
@@ -1006,12 +1048,69 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 					},
 				},
 			},
+			networkStatus: infrav1.NetworkStatus{
+				SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+					infrav1.SecurityGroupControlPlane: {
+						ID: "cp-sg-id",
+					},
+					infrav1.SecurityGroupNode: {
+						ID: "node-sg-id",
+					},
+				},
+			},
 			expectedAdditionalIngressRule: infrav1.IngressRule{
 				Description: "test",
 				Protocol:    infrav1.SecurityGroupProtocolTCP,
 				FromPort:    9345,
 				ToPort:      9345,
 			},
+		},
+		{
+			name: "set nat gateway IPs cidr as source if specified",
+			networkSpec: infrav1.NetworkSpec{
+				AdditionalControlPlaneIngressRules: []infrav1.IngressRule{
+					{
+						Description:          "test",
+						Protocol:             infrav1.SecurityGroupProtocolTCP,
+						FromPort:             9345,
+						ToPort:               9345,
+						NatGatewaysIPsSource: true,
+					},
+				},
+			},
+			networkStatus: infrav1.NetworkStatus{
+				SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+					infrav1.SecurityGroupControlPlane: {
+						ID: "cp-sg-id",
+					},
+					infrav1.SecurityGroupNode: {
+						ID: "node-sg-id",
+					},
+				},
+				NatGatewaysIPs: []string{"test-ip"},
+			},
+			expectedAdditionalIngressRule: infrav1.IngressRule{
+				Description: "test",
+				Protocol:    infrav1.SecurityGroupProtocolTCP,
+				CidrBlocks:  []string{"test-ip/32"},
+				FromPort:    9345,
+				ToPort:      9345,
+			},
+		},
+		{
+			name: "error if nat gateway IPs cidr as source are specified but not available",
+			networkSpec: infrav1.NetworkSpec{
+				AdditionalControlPlaneIngressRules: []infrav1.IngressRule{
+					{
+						Description:          "test",
+						Protocol:             infrav1.SecurityGroupProtocolTCP,
+						FromPort:             9345,
+						ToPort:               9345,
+						NatGatewaysIPsSource: true,
+					},
+				},
+			},
+			wantErr: true,
 		},
 	}
 
@@ -1027,16 +1126,7 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 						NetworkSpec: tc.networkSpec,
 					},
 					Status: infrav1.AWSClusterStatus{
-						Network: infrav1.NetworkStatus{
-							SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
-								infrav1.SecurityGroupControlPlane: {
-									ID: "cp-sg-id",
-								},
-								infrav1.SecurityGroupNode: {
-									ID: "node-sg-id",
-								},
-							},
-						},
+						Network: tc.networkStatus,
 					},
 				},
 			})
@@ -1047,7 +1137,10 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 			s := NewService(cs, testSecurityGroupRoles)
 			rules, err := s.getSecurityGroupIngressRules(infrav1.SecurityGroupControlPlane)
 			if err != nil {
-				t.Fatalf("Failed to lookup controlplane security group ingress rules: %v", err)
+				if tc.wantErr {
+					return
+				}
+				t.Fatalf("Failed to lookup controlplane security group ingress rules: %v, wantErr %v", err, tc.wantErr)
 			}
 
 			found := false
