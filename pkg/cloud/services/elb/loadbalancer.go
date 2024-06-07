@@ -87,7 +87,7 @@ func (s *Service) reconcileV2LB(lbSpec *infrav1.AWSLoadBalancerSpec) error {
 	}
 
 	// Get default api server spec.
-	spec, err := s.getAPIServerLBSpec(name, lbSpec)
+	desiredLB, err := s.getAPIServerLBSpec(name, lbSpec)
 	if err != nil {
 		return err
 	}
@@ -97,7 +97,7 @@ func (s *Service) reconcileV2LB(lbSpec *infrav1.AWSLoadBalancerSpec) error {
 		// if elb is not found and owner cluster ControlPlaneEndpoint is already populated, then we should not recreate the elb.
 		return errors.Wrapf(err, "no loadbalancer exists for the AWSCluster %s, the cluster has become unrecoverable and should be deleted manually", s.scope.InfraClusterName())
 	case IsNotFound(err):
-		lb, err = s.createLB(spec, lbSpec)
+		lb, err = s.createLB(desiredLB, lbSpec)
 		if err != nil {
 			s.scope.Error(err, "failed to create LB")
 			return err
@@ -113,41 +113,42 @@ func (s *Service) reconcileV2LB(lbSpec *infrav1.AWSLoadBalancerSpec) error {
 	lb.LoadBalancerType = lbSpec.LoadBalancerType
 	if lb.IsManaged(s.scope.Name()) {
 		// Reconcile the target groups and listeners from the spec and the ones currently attached to the load balancer.
-		_, _, err := s.reconcileTargetGroupsAndListeners(lb, lbSpec)
+		// Pass in the ARN that AWS gave us, as well as the rest of the desired specification.
+		_, _, err := s.reconcileTargetGroupsAndListeners(lb.ARN, desiredLB, lbSpec)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create target groups/listeners for load balancer %q", lb.Name)
 		}
 
-		if !cmp.Equal(spec.ELBAttributes, lb.ELBAttributes) {
-			if err := s.configureLBAttributes(lb.ARN, spec.ELBAttributes); err != nil {
+		if !cmp.Equal(desiredLB.ELBAttributes, lb.ELBAttributes) {
+			if err := s.configureLBAttributes(lb.ARN, desiredLB.ELBAttributes); err != nil {
 				return err
 			}
 		}
 
-		if err := s.reconcileV2LBTags(lb, spec.Tags); err != nil {
+		if err := s.reconcileV2LBTags(lb, desiredLB.Tags); err != nil {
 			return errors.Wrapf(err, "failed to reconcile tags for apiserver load balancer %q", lb.Name)
 		}
 
-		// Reconcile the subnets and availability zones from the spec
+		// Reconcile the subnets and availability zones from the desiredLB
 		// and the ones currently attached to the load balancer.
-		if len(lb.SubnetIDs) != len(spec.SubnetIDs) {
+		if len(lb.SubnetIDs) != len(desiredLB.SubnetIDs) {
 			_, err := s.ELBV2Client.SetSubnets(&elbv2.SetSubnetsInput{
 				LoadBalancerArn: &lb.ARN,
-				Subnets:         aws.StringSlice(spec.SubnetIDs),
+				Subnets:         aws.StringSlice(desiredLB.SubnetIDs),
 			})
 			if err != nil {
 				return errors.Wrapf(err, "failed to set subnets for apiserver load balancer '%s'", lb.Name)
 			}
 		}
-		if len(lb.AvailabilityZones) != len(spec.AvailabilityZones) {
-			lb.AvailabilityZones = spec.AvailabilityZones
+		if len(lb.AvailabilityZones) != len(desiredLB.AvailabilityZones) {
+			lb.AvailabilityZones = desiredLB.AvailabilityZones
 		}
 
-		// Reconcile the security groups from the spec and the ones currently attached to the load balancer
-		if shouldReconcileSGs(s.scope, lb, spec.SecurityGroupIDs) {
+		// Reconcile the security groups from the desiredLB and the ones currently attached to the load balancer
+		if shouldReconcileSGs(s.scope, lb, desiredLB.SecurityGroupIDs) {
 			_, err := s.ELBV2Client.SetSecurityGroups(&elbv2.SetSecurityGroupsInput{
 				LoadBalancerArn: &lb.ARN,
-				SecurityGroups:  aws.StringSlice(spec.SecurityGroupIDs),
+				SecurityGroups:  aws.StringSlice(desiredLB.SecurityGroupIDs),
 			})
 			if err != nil {
 				return errors.Wrapf(err, "failed to apply security groups to load balancer %q", lb.Name)
@@ -401,6 +402,7 @@ func (s *Service) createLB(spec *infrav1.LoadBalancer, lbSpec *infrav1.AWSLoadBa
 	res := spec.DeepCopy()
 	s.scope.Debug("applying load balancer DNS to result", "dns", *out.LoadBalancers[0].DNSName)
 	res.DNSName = *out.LoadBalancers[0].DNSName
+	res.ARN = *out.LoadBalancers[0].LoadBalancerArn
 	return res, nil
 }
 
@@ -1530,22 +1532,22 @@ func (s *Service) reconcileV2LBTags(lb *infrav1.LoadBalancer, desiredTags map[st
 
 // reconcileTargetGroupsAndListeners reconciles a Load Balancer's defined listeners with corresponding AWS Target Groups and Listeners.
 // These are combined into a single function since they are tightly integrated.
-func (s *Service) reconcileTargetGroupsAndListeners(spec *infrav1.LoadBalancer, lbSpec *infrav1.AWSLoadBalancerSpec) ([]*elbv2.TargetGroup, []*elbv2.Listener, error) {
+func (s *Service) reconcileTargetGroupsAndListeners(lbARN string, spec *infrav1.LoadBalancer, lbSpec *infrav1.AWSLoadBalancerSpec) ([]*elbv2.TargetGroup, []*elbv2.Listener, error) {
 	existingTargetGroups, err := s.ELBV2Client.DescribeTargetGroups(
 		&elbv2.DescribeTargetGroupsInput{
-			LoadBalancerArn: aws.String(spec.ARN),
+			LoadBalancerArn: aws.String(lbARN),
 		})
 	if err != nil {
-		s.scope.Error(err, "could not describe target groups for load balancer", "arn", spec.ARN)
+		s.scope.Error(err, "could not describe target groups for load balancer", "arn", lbARN)
 		return nil, nil, err
 	}
 
 	existingListeners, err := s.ELBV2Client.DescribeListeners(
 		&elbv2.DescribeListenersInput{
-			LoadBalancerArn: aws.String(spec.ARN),
+			LoadBalancerArn: aws.String(lbARN),
 		})
 	if err != nil {
-		s.scope.Error(err, "could not describe listeners for load balancer", "arn", spec.ARN)
+		s.scope.Error(err, "could not describe listeners for load balancer", "arn", lbARN)
 	}
 
 	if len(existingTargetGroups.TargetGroups) == len(existingListeners.Listeners) && len(existingListeners.Listeners) == len(spec.ELBListeners) {
@@ -1596,7 +1598,7 @@ func (s *Service) reconcileTargetGroupsAndListeners(spec *infrav1.LoadBalancer, 
 		}
 
 		if listener == nil {
-			listener, err = s.createListener(ln, group, spec.ARN, spec.Tags)
+			listener, err = s.createListener(ln, group, lbARN, spec.Tags)
 			if err != nil {
 				return nil, nil, err
 			}
