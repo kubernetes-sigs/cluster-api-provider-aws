@@ -17,6 +17,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -477,6 +478,21 @@ func nodePoolBuilder(rosaMachinePoolSpec expinfrav1.RosaMachinePoolSpec, machine
 		npBuilder.NodeDrainGracePeriod(valueBuilder)
 	}
 
+	if rosaMachinePoolSpec.UpdateConfig != nil {
+		configMgmtBuilder := cmv1.NewNodePoolManagementUpgrade()
+
+		if rosaMachinePoolSpec.UpdateConfig.RollingUpdate != nil {
+			if rosaMachinePoolSpec.UpdateConfig.RollingUpdate.MaxSurge != nil {
+				configMgmtBuilder = configMgmtBuilder.MaxSurge(rosaMachinePoolSpec.UpdateConfig.RollingUpdate.MaxSurge.String())
+			}
+			if rosaMachinePoolSpec.UpdateConfig.RollingUpdate.MaxUnavailable != nil {
+				configMgmtBuilder = configMgmtBuilder.MaxUnavailable(rosaMachinePoolSpec.UpdateConfig.RollingUpdate.MaxUnavailable.String())
+			}
+		}
+
+		npBuilder = npBuilder.ManagementUpgrade(configMgmtBuilder)
+	}
+
 	return npBuilder
 }
 
@@ -516,6 +532,17 @@ func nodePoolToRosaMachinePoolSpec(nodePool *cmv1.NodePool) expinfrav1.RosaMachi
 	if nodePool.NodeDrainGracePeriod() != nil {
 		spec.NodeDrainGracePeriod = &metav1.Duration{
 			Duration: time.Minute * time.Duration(nodePool.NodeDrainGracePeriod().Value()),
+		}
+	}
+	if nodePool.ManagementUpgrade() != nil {
+		spec.UpdateConfig = &expinfrav1.RosaUpdateConfig{
+			RollingUpdate: &expinfrav1.RollingUpdate{},
+		}
+		if nodePool.ManagementUpgrade().MaxSurge() != "" {
+			spec.UpdateConfig.RollingUpdate.MaxSurge = ptr.To(intstr.Parse(nodePool.ManagementUpgrade().MaxSurge()))
+		}
+		if nodePool.ManagementUpgrade().MaxUnavailable() != "" {
+			spec.UpdateConfig.RollingUpdate.MaxSurge = ptr.To(intstr.Parse(nodePool.ManagementUpgrade().MaxUnavailable()))
 		}
 	}
 
