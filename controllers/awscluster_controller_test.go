@@ -304,7 +304,10 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 			mockedDescribeInstanceCall(m)
 			mockedDescribeAvailabilityZones(m, []string{"us-east-1c", "us-east-1a"})
 			mockedDescribeTargetGroupsCall(t, e)
+			mockedCreateTargetGroupCall(t, e)
+			mockedModifyTargetGroupAttributes(t, e)
 			mockedDescribeListenersCall(t, e)
+			mockedCreateListenerCall(t, e)
 		}
 
 		expect(ec2Mock.EXPECT(), elbv2Mock.EXPECT())
