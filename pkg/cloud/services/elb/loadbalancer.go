@@ -1550,10 +1550,6 @@ func (s *Service) reconcileTargetGroupsAndListeners(lbARN string, spec *infrav1.
 		s.scope.Error(err, "could not describe listeners for load balancer", "arn", lbARN)
 	}
 
-	if len(existingTargetGroups.TargetGroups) == len(existingListeners.Listeners) && len(existingListeners.Listeners) == len(spec.ELBListeners) {
-		return existingTargetGroups.TargetGroups, existingListeners.Listeners, nil
-	}
-
 	createdTargetGroups := make([]*elbv2.TargetGroup, 0, len(spec.ELBListeners))
 	createdListeners := make([]*elbv2.Listener, 0, len(spec.ELBListeners))
 

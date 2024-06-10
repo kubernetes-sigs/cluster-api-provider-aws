@@ -40,6 +40,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/test/helpers"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -2211,6 +2212,7 @@ func TestReconcileV2LB(t *testing.T) {
 		clusterSubnetID = "subnet-1"
 		elbName         = "bar-apiserver"
 		elbArn          = "arn::apiserver"
+		tgArn           = "arn::target-group"
 		vpcID           = "vpc-id"
 		az              = "us-west-1a"
 	)
@@ -2322,24 +2324,11 @@ func TestReconcileV2LB(t *testing.T) {
 						NextMarker: new(string),
 						TargetGroups: []*elbv2.TargetGroup{
 							{
-								HealthCheckEnabled:         aws.Bool(true),
-								HealthCheckIntervalSeconds: new(int64),
-								HealthCheckPath:            new(string),
-								HealthCheckPort:            new(string),
-								HealthCheckProtocol:        new(string),
-								HealthCheckTimeoutSeconds:  new(int64),
-								HealthyThresholdCount:      new(int64),
-								IpAddressType:              new(string),
-								LoadBalancerArns:           []*string{aws.String(elbArn)},
-								Matcher:                    &elbv2.Matcher{},
-								Port:                       new(int64),
-								Protocol:                   new(string),
-								ProtocolVersion:            new(string),
-								TargetGroupArn:             aws.String("arn::targetgroup"),
-								TargetGroupName:            new(string),
-								TargetType:                 new(string),
-								UnhealthyThresholdCount:    new(int64),
-								VpcId:                      new(string),
+								HealthCheckEnabled: aws.Bool(true),
+								LoadBalancerArns:   []*string{aws.String(elbArn)},
+								Matcher:            &elbv2.Matcher{},
+								TargetGroupArn:     aws.String(tgArn),
+								TargetGroupName:    aws.String("targetGroup"),
 							}},
 					}, nil)
 				m.ModifyLoadBalancerAttributes(&elbv2.ModifyLoadBalancerAttributesInput{
@@ -2351,6 +2340,56 @@ func TestReconcileV2LB(t *testing.T) {
 						},
 					}}).
 					Return(&elbv2.ModifyLoadBalancerAttributesOutput{}, nil)
+
+				m.CreateTargetGroup(helpers.PartialMatchCreateTargetGroupInput(t, &elbv2.CreateTargetGroupInput{
+					HealthCheckEnabled:         aws.Bool(true),
+					HealthCheckIntervalSeconds: aws.Int64(infrav1.DefaultAPIServerHealthCheckIntervalSec),
+					HealthCheckPort:            aws.String(infrav1.DefaultAPIServerPortString),
+					HealthCheckProtocol:        aws.String("TCP"),
+					HealthCheckTimeoutSeconds:  aws.Int64(infrav1.DefaultAPIServerHealthCheckTimeoutSec),
+					HealthyThresholdCount:      aws.Int64(infrav1.DefaultAPIServerHealthThresholdCount),
+					// Note: this is treated as a prefix with the partial matcher.
+					Name:     aws.String("apiserver-target"),
+					Port:     aws.Int64(infrav1.DefaultAPIServerPort),
+					Protocol: aws.String("TCP"),
+					Tags: []*elbv2.Tag{
+						{
+							Key:   aws.String("Name"),
+							Value: aws.String("bar-apiserver"),
+						},
+						{
+							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/bar"),
+							Value: aws.String("owned"),
+						},
+						{
+							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+							Value: aws.String("apiserver"),
+						},
+					},
+					UnhealthyThresholdCount: aws.Int64(infrav1.DefaultAPIServerUnhealthThresholdCount),
+					VpcId:                   aws.String(vpcID),
+				})).Return(&elbv2.CreateTargetGroupOutput{
+					TargetGroups: []*elbv2.TargetGroup{
+						{
+							TargetGroupArn:             aws.String(tgArn),
+							VpcId:                      aws.String(vpcID),
+							HealthyThresholdCount:      aws.Int64(infrav1.DefaultAPIServerHealthThresholdCount),
+							UnhealthyThresholdCount:    aws.Int64(infrav1.DefaultAPIServerUnhealthThresholdCount),
+							HealthCheckIntervalSeconds: aws.Int64(infrav1.DefaultAPIServerHealthCheckIntervalSec),
+							HealthCheckTimeoutSeconds:  aws.Int64(infrav1.DefaultAPIServerHealthCheckTimeoutSec),
+						},
+					},
+				}, nil)
+
+				m.ModifyTargetGroupAttributes(gomock.Eq(&elbv2.ModifyTargetGroupAttributesInput{
+					TargetGroupArn: aws.String(tgArn),
+					Attributes: []*elbv2.TargetGroupAttribute{
+						{
+							Key:   aws.String(infrav1.TargetGroupAttributeEnablePreserveClientIP),
+							Value: aws.String("false"),
+						},
+					},
+				})).Return(nil, nil)
 
 				m.DescribeListeners(gomock.Eq(&elbv2.DescribeListenersInput{
 					LoadBalancerArn: aws.String(elbArn),
@@ -2364,6 +2403,44 @@ func TestReconcileV2LB(t *testing.T) {
 							LoadBalancerArn: aws.String(elbArn),
 						}},
 					}, nil)
+				m.CreateListener(gomock.Eq(&elbv2.CreateListenerInput{
+					DefaultActions: []*elbv2.Action{
+						{
+							TargetGroupArn: aws.String(tgArn),
+							Type:           aws.String(elbv2.ActionTypeEnumForward),
+						},
+					},
+					LoadBalancerArn: aws.String(elbArn),
+					Port:            aws.Int64(infrav1.DefaultAPIServerPort),
+					Protocol:        aws.String("TCP"),
+					Tags: []*elbv2.Tag{
+						{
+							Key:   aws.String("Name"),
+							Value: aws.String("bar-apiserver"),
+						},
+						{
+							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/bar"),
+							Value: aws.String("owned"),
+						},
+						{
+							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+							Value: aws.String("apiserver"),
+						},
+					},
+				})).Return(&elbv2.CreateListenerOutput{
+					Listeners: []*elbv2.Listener{
+						{
+							DefaultActions: []*elbv2.Action{
+								{
+									TargetGroupArn: aws.String(tgArn),
+									Type:           aws.String(elbv2.ActionTypeEnumForward),
+								},
+							},
+							ListenerArn: aws.String("listener::arn"),
+							Port:        aws.Int64(infrav1.DefaultAPIServerPort),
+							Protocol:    aws.String("TCP"),
+						},
+					}}, nil)
 				m.DescribeLoadBalancerAttributes(&elbv2.DescribeLoadBalancerAttributesInput{LoadBalancerArn: aws.String(elbArn)}).Return(
 					&elbv2.DescribeLoadBalancerAttributesOutput{
 						Attributes: []*elbv2.LoadBalancerAttribute{
