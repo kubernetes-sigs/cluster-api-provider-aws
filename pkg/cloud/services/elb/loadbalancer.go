@@ -1604,8 +1604,9 @@ func (s *Service) reconcileTargetGroupsAndListeners(lbARN string, spec *infrav1.
 
 		var listener *elbv2.Listener
 		for _, l := range existingListeners.Listeners {
-			if l.DefaultActions != nil && len(l.DefaultActions) > 0 && l.DefaultActions[0].TargetGroupArn == group.TargetGroupArn {
+			if l.DefaultActions != nil && len(l.DefaultActions) > 0 && *l.DefaultActions[0].TargetGroupArn == *group.TargetGroupArn {
 				listener = l
+				break
 			}
 		}
 
@@ -1614,9 +1615,8 @@ func (s *Service) reconcileTargetGroupsAndListeners(lbARN string, spec *infrav1.
 			if err != nil {
 				return nil, nil, err
 			}
+			createdListeners = append(createdListeners, listener)
 		}
-
-		createdListeners = append(createdListeners, listener)
 	}
 
 	return createdTargetGroups, createdListeners, nil
