@@ -1211,7 +1211,7 @@ func mockedCallsForMissingEverything(m *mocks.MockEC2APIMockRecorder, e *mocks.M
 			},
 			{
 				Name:   aws.String("tag:sigs.k8s.io/cluster-api-provider-aws/role"),
-				Values: aws.StringSlice([]string{"apiserver"}),
+				Values: aws.StringSlice([]string{"common"}),
 			},
 		},
 	})).Return(&ec2.DescribeAddressesOutput{
@@ -1226,7 +1226,7 @@ func mockedCallsForMissingEverything(m *mocks.MockEC2APIMockRecorder, e *mocks.M
 				Tags: []*ec2.Tag{
 					{
 						Key:   aws.String("Name"),
-						Value: aws.String("test-cluster-eip-apiserver"),
+						Value: aws.String("test-cluster-eip-common"),
 					},
 					{
 						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
@@ -1234,7 +1234,7 @@ func mockedCallsForMissingEverything(m *mocks.MockEC2APIMockRecorder, e *mocks.M
 					},
 					{
 						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
-						Value: aws.String("apiserver"),
+						Value: aws.String("common"),
 					},
 				},
 			},
@@ -1464,7 +1464,12 @@ func mockedDeleteVPCCallsForNonExistentVPC(m *mocks.MockEC2APIMockRecorder) {
 			{
 				Name:   aws.String("tag-key"),
 				Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"}),
-			}},
+			},
+			{
+				Name:   aws.String("tag:sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+				Values: aws.StringSlice([]string{"owned"}),
+			},
+		},
 	})).Return(nil, nil)
 	m.DeleteVpcWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DeleteVpcInput{
 		VpcId: aws.String("vpc-exists")})).Return(nil, nil)
@@ -1555,6 +1560,10 @@ func mockedDeleteVPCCalls(m *mocks.MockEC2APIMockRecorder) {
 			{
 				Name:   aws.String("tag-key"),
 				Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"}),
+			},
+			{
+				Name:   aws.String("tag:sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+				Values: aws.StringSlice([]string{"owned"}),
 			}},
 	})).Return(&ec2.DescribeAddressesOutput{
 		Addresses: []*ec2.Address{
