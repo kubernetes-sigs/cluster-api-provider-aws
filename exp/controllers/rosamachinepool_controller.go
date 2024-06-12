@@ -357,14 +357,12 @@ func (r *ROSAMachinePoolReconciler) reconcileMachinePoolVersion(machinePoolScope
 }
 
 func (r *ROSAMachinePoolReconciler) updateNodePool(machinePoolScope *scope.RosaMachinePoolScope, ocmClient *ocm.Client, nodePool *cmv1.NodePool) (*cmv1.NodePool, error) {
-	desiredSpec := *machinePoolScope.RosaMachinePool.Spec.DeepCopy()
-	currentSpec := nodePoolToRosaMachinePoolSpec(nodePool)
+	machinePool := machinePoolScope.RosaMachinePool.DeepCopy()
+	// default all fields before comparing, so that nil/unset fields don't cause an unnecessary update call.
+	machinePool.Default()
 
-	if desiredSpec.NodeDrainGracePeriod == nil {
-		// currentSpec.NodeDrainGracePeriod is always non-nil.
-		// if desiredSpec.NodeDrainGracePeriod is nil, set to 0 so we update the nodePool, otherewise the current value will be preserved.
-		desiredSpec.NodeDrainGracePeriod = &metav1.Duration{}
-	}
+	desiredSpec := machinePool.Spec
+	currentSpec := nodePoolToRosaMachinePoolSpec(nodePool)
 
 	ignoredFields := []string{
 		"ProviderIDList", // providerIDList is set by the controller.
@@ -481,12 +479,12 @@ func nodePoolBuilder(rosaMachinePoolSpec expinfrav1.RosaMachinePoolSpec, machine
 	if rosaMachinePoolSpec.UpdateConfig != nil {
 		configMgmtBuilder := cmv1.NewNodePoolManagementUpgrade()
 
-		if rosaMachinePoolSpec.UpdateConfig.RollingUpdate != nil {
-			if rosaMachinePoolSpec.UpdateConfig.RollingUpdate.MaxSurge != nil {
-				configMgmtBuilder = configMgmtBuilder.MaxSurge(rosaMachinePoolSpec.UpdateConfig.RollingUpdate.MaxSurge.String())
+		if rollingUpdate := rosaMachinePoolSpec.UpdateConfig.RollingUpdate; rollingUpdate != nil {
+			if rollingUpdate.MaxSurge != nil {
+				configMgmtBuilder = configMgmtBuilder.MaxSurge(rollingUpdate.MaxSurge.String())
 			}
-			if rosaMachinePoolSpec.UpdateConfig.RollingUpdate.MaxUnavailable != nil {
-				configMgmtBuilder = configMgmtBuilder.MaxUnavailable(rosaMachinePoolSpec.UpdateConfig.RollingUpdate.MaxUnavailable.String())
+			if rollingUpdate.MaxUnavailable != nil {
+				configMgmtBuilder = configMgmtBuilder.MaxUnavailable(rollingUpdate.MaxUnavailable.String())
 			}
 		}
 
@@ -542,7 +540,7 @@ func nodePoolToRosaMachinePoolSpec(nodePool *cmv1.NodePool) expinfrav1.RosaMachi
 			spec.UpdateConfig.RollingUpdate.MaxSurge = ptr.To(intstr.Parse(nodePool.ManagementUpgrade().MaxSurge()))
 		}
 		if nodePool.ManagementUpgrade().MaxUnavailable() != "" {
-			spec.UpdateConfig.RollingUpdate.MaxSurge = ptr.To(intstr.Parse(nodePool.ManagementUpgrade().MaxUnavailable()))
+			spec.UpdateConfig.RollingUpdate.MaxUnavailable = ptr.To(intstr.Parse(nodePool.ManagementUpgrade().MaxUnavailable()))
 		}
 	}
 
