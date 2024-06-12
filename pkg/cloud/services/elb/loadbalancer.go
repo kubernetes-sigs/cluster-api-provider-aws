@@ -35,6 +35,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/storage/names"
+	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
@@ -54,6 +55,14 @@ const elbResourceType = "elasticloadbalancing:loadbalancer"
 // maxELBsDescribeTagsRequest is the maximum number of loadbalancers for the DescribeTags API call
 // see: https://docs.aws.amazon.com/elasticloadbalancing/2012-06-01/APIReference/API_DescribeTags.html
 const maxELBsDescribeTagsRequest = 20
+
+// apiServerTargetGroupPrefix is the target group name prefix used when creating a target group for the API server
+// listener.
+const apiServerTargetGroupPrefix = "apiserver-target-"
+
+// additionalTargetGroupPrefix is the target group name prefix used when creating target groups for additional
+// listeners.
+const additionalTargetGroupPrefix = "additional-listener-"
 
 // ReconcileLoadbalancers reconciles the load balancers for the given cluster.
 func (s *Service) ReconcileLoadbalancers() error {
@@ -271,7 +280,7 @@ func (s *Service) getAPIServerLBSpec(elbName string, lbSpec *infrav1.AWSLoadBala
 				Protocol: infrav1.ELBProtocolTCP,
 				Port:     infrav1.DefaultAPIServerPort,
 				TargetGroup: infrav1.TargetGroupSpec{
-					Name:        names.SimpleNameGenerator.GenerateName("apiserver-target-"),
+					Name:        names.SimpleNameGenerator.GenerateName(apiServerTargetGroupPrefix),
 					Port:        infrav1.DefaultAPIServerPort,
 					Protocol:    infrav1.ELBProtocolTCP,
 					VpcID:       s.scope.VPC().ID,
@@ -296,7 +305,7 @@ func (s *Service) getAPIServerLBSpec(elbName string, lbSpec *infrav1.AWSLoadBala
 				Protocol: listener.Protocol,
 				Port:     listener.Port,
 				TargetGroup: infrav1.TargetGroupSpec{
-					Name:        names.SimpleNameGenerator.GenerateName("additional-listener-"),
+					Name:        names.SimpleNameGenerator.GenerateName(additionalTargetGroupPrefix),
 					Port:        listener.Port,
 					Protocol:    listener.Protocol,
 					VpcID:       s.scope.VPC().ID,
@@ -1573,9 +1582,11 @@ func (s *Service) reconcileTargetGroupsAndListeners(lbARN string, spec *infrav1.
 	// https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/3899
 	for _, ln := range spec.ELBListeners {
 		var group *elbv2.TargetGroup
+		tgSpec := ln.TargetGroup
 		for _, g := range existingTargetGroups.TargetGroups {
-			if *g.TargetGroupName == ln.TargetGroup.Name {
+			if isSDKTargetGroupEqualToTargetGroup(g, &tgSpec) {
 				group = g
+				break
 			}
 		}
 		// create the target group first
@@ -1784,4 +1795,24 @@ func shouldReconcileSGs(scope scope.ELBScope, lb *infrav1.LoadBalancer, specSGs 
 		return true
 	}
 	return true
+}
+
+// isSDKTargetGroupEqualToTargetGroup checks if a given AWS SDK target group matches a target group spec.
+func isSDKTargetGroupEqualToTargetGroup(elbTG *elbv2.TargetGroup, spec *infrav1.TargetGroupSpec) bool {
+	// We can't check only the target group's name because it's randomly generated every time we get a spec
+	// But CAPA-created target groups are guaranteed to have the "apiserver-target-" or "additional-listener-" prefix.
+	switch {
+	case strings.HasPrefix(*elbTG.TargetGroupName, apiServerTargetGroupPrefix):
+		if !strings.HasPrefix(spec.Name, apiServerTargetGroupPrefix) {
+			return false
+		}
+	case strings.HasPrefix(*elbTG.TargetGroupName, additionalTargetGroupPrefix):
+		if !strings.HasPrefix(spec.Name, additionalTargetGroupPrefix) {
+			return false
+		}
+	default:
+		// Not created by CAPA
+		return false
+	}
+	return ptr.Deref(elbTG.Port, 0) == spec.Port && strings.EqualFold(*elbTG.Protocol, spec.Protocol.String())
 }
