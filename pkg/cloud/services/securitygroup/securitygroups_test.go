@@ -1721,3 +1721,137 @@ var processSecurityGroupsPage = func(ctx context.Context, _, y interface{}, requ
 		},
 	}, true)
 }
+
+func TestExpandIngressRules(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    infrav1.IngressRules
+		expected infrav1.IngressRules
+	}{
+		{
+			name: "nothing to expand, nothing to do",
+			input: infrav1.IngressRules{
+				{
+					Description: "SSH",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    22,
+					ToPort:      22,
+				},
+			},
+			expected: infrav1.IngressRules{
+				{
+					Description: "SSH",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    22,
+					ToPort:      22,
+				},
+			},
+		},
+		{
+			name: "nothing to expand, security group roles is removed",
+			input: infrav1.IngressRules{
+				{
+					Description: "SSH",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    22,
+					ToPort:      22,
+					SourceSecurityGroupRoles: []infrav1.SecurityGroupRole{
+						infrav1.SecurityGroupControlPlane,
+					},
+				},
+			},
+			expected: infrav1.IngressRules{
+				{
+					Description: "SSH",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    22,
+					ToPort:      22,
+				},
+			},
+		},
+		{
+			name: "cidr blocks expand",
+			input: infrav1.IngressRules{
+				{
+					Description:    "SSH",
+					Protocol:       infrav1.SecurityGroupProtocolTCP,
+					FromPort:       22,
+					ToPort:         22,
+					CidrBlocks:     []string{"0.0.0.0/0", "1.1.1.1/0"},
+					IPv6CidrBlocks: []string{"::/0", "::/1"},
+				},
+			},
+			expected: infrav1.IngressRules{
+				{
+					Description: "SSH",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    22,
+					ToPort:      22,
+					CidrBlocks:  []string{"0.0.0.0/0"},
+				},
+				{
+					Description: "SSH",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    22,
+					ToPort:      22,
+					CidrBlocks:  []string{"1.1.1.1/0"},
+				},
+				{
+					Description:    "SSH",
+					Protocol:       infrav1.SecurityGroupProtocolTCP,
+					FromPort:       22,
+					ToPort:         22,
+					IPv6CidrBlocks: []string{"::/0"},
+				},
+				{
+					Description:    "SSH",
+					Protocol:       infrav1.SecurityGroupProtocolTCP,
+					FromPort:       22,
+					ToPort:         22,
+					IPv6CidrBlocks: []string{"::/1"},
+				},
+			},
+		},
+		{
+			name: "security group ids expand, security group roles removed",
+			input: infrav1.IngressRules{
+				{
+					Description:            "SSH",
+					Protocol:               infrav1.SecurityGroupProtocolTCP,
+					FromPort:               22,
+					ToPort:                 22,
+					SourceSecurityGroupIDs: []string{"sg-1", "sg-2"},
+					SourceSecurityGroupRoles: []infrav1.SecurityGroupRole{
+						infrav1.SecurityGroupControlPlane,
+						infrav1.SecurityGroupNode,
+					},
+				},
+			},
+			expected: infrav1.IngressRules{
+				{
+					Description:            "SSH",
+					Protocol:               infrav1.SecurityGroupProtocolTCP,
+					FromPort:               22,
+					ToPort:                 22,
+					SourceSecurityGroupIDs: []string{"sg-1"},
+				},
+				{
+					Description:            "SSH",
+					Protocol:               infrav1.SecurityGroupProtocolTCP,
+					FromPort:               22,
+					ToPort:                 22,
+					SourceSecurityGroupIDs: []string{"sg-2"},
+				},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewGomegaWithT(t)
+			output := expandIngressRules(tc.input)
+
+			g.Expect(output).To(Equal(tc.expected))
+		})
+	}
+}
