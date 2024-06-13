@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp/cmpopts"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -28,7 +29,8 @@ func TestNodePoolToRosaMachinePoolSpec(t *testing.T) {
 		},
 		UpdateConfig: &expinfrav1.RosaUpdateConfig{
 			RollingUpdate: &expinfrav1.RollingUpdate{
-				MaxSurge: &intstr.IntOrString{IntVal: 3},
+				MaxSurge:       ptr.To(intstr.FromInt32(3)),
+				MaxUnavailable: ptr.To(intstr.FromInt32(5)),
 			},
 		},
 	}
@@ -44,5 +46,5 @@ func TestNodePoolToRosaMachinePoolSpec(t *testing.T) {
 
 	expectedSpec := nodePoolToRosaMachinePoolSpec(nodePoolSpec)
 
-	g.Expect(expectedSpec).To(Equal(rosaMachinePoolSpec))
+	g.Expect(rosaMachinePoolSpec).To(BeComparableTo(expectedSpec, cmpopts.EquateEmpty()))
 }
