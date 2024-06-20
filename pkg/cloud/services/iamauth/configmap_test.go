@@ -427,7 +427,6 @@ func TestAddUserMappingsCM(t *testing.T) {
 				bothMatch := cmp.Equal(roles, tc.expectedUserMaps)
 				g.Expect(bothMatch).To(BeTrue())
 			}
-
 		})
 	}
 }
