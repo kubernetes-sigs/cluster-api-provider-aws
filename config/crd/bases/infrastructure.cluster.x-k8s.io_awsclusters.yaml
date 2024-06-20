@@ -1164,6 +1164,10 @@ spec:
                           items:
                             type: string
                           type: array
+                        natGatewaysIPsSource:
+                          description: NatGatewaysIPsSource use the NAT gateways IPs
+                            as the source for the ingress rule.
+                          type: boolean
                         protocol:
                           description: Protocol is the protocol for the ingress rule.
                             Accepted values are "-1" (all), "4" (IP in IP),"tcp",
@@ -1329,6 +1333,10 @@ spec:
                           items:
                             type: string
                           type: array
+                        natGatewaysIPsSource:
+                          description: NatGatewaysIPsSource use the NAT gateways IPs
+                            as the source for the ingress rule.
+                          type: boolean
                         protocol:
                           description: Protocol is the protocol for the ingress rule.
                             Accepted values are "-1" (all), "4" (IP in IP),"tcp",
@@ -1943,6 +1951,10 @@ spec:
                           items:
                             type: string
                           type: array
+                        natGatewaysIPsSource:
+                          description: NatGatewaysIPsSource use the NAT gateways IPs
+                            as the source for the ingress rule.
+                          type: boolean
                         protocol:
                           description: Protocol is the protocol for the ingress rule.
                             Accepted values are "-1" (all), "4" (IP in IP),"tcp",
@@ -2866,6 +2878,10 @@ spec:
                                 items:
                                   type: string
                                 type: array
+                              natGatewaysIPsSource:
+                                description: NatGatewaysIPsSource use the NAT gateways
+                                  IPs as the source for the ingress rule.
+                                type: boolean
                               protocol:
                                 description: Protocol is the protocol for the ingress
                                   rule. Accepted values are "-1" (all), "4" (IP in
