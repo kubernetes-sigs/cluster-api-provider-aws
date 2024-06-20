@@ -320,6 +320,7 @@ func TestAddUserMappingsCM(t *testing.T) {
 		name                  string
 		existingAuthConfigMap *corev1.ConfigMap
 		usersToMap            []ekscontrolplanev1.UserMapping
+		expectedUserMaps      []ekscontrolplanev1.UserMapping
 		expectError           bool
 	}{
 		{
@@ -355,6 +356,28 @@ func TestAddUserMappingsCM(t *testing.T) {
 			},
 			expectError: true,
 		},
+		{
+			name:                  "existing mappings, test removing of old arn",
+			existingAuthConfigMap: createFakeConfigMap("", existingUserMap),
+			usersToMap: []ekscontrolplanev1.UserMapping{
+				{
+					UserARN: "arn:aws:iam::000000000000:user/John",
+					KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+						UserName: "john",
+						Groups:   []string{"system:masters"},
+					},
+				},
+			},
+			expectedUserMaps: []ekscontrolplanev1.UserMapping{
+				{
+					UserARN: "arn:aws:iam::000000000000:user/John",
+					KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+						UserName: "john",
+						Groups:   []string{"system:masters"},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -377,6 +400,34 @@ func TestAddUserMappingsCM(t *testing.T) {
 			}
 
 			g.Expect(err).To(BeNil())
+
+			key := types.NamespacedName{
+				Name:      "aws-auth",
+				Namespace: "kube-system",
+			}
+
+			cm := &corev1.ConfigMap{}
+
+			err = client.Get(context.TODO(), key, cm)
+			g.Expect(err).To(BeNil())
+
+			g.Expect(cm.Name).To(Equal("aws-auth"))
+			g.Expect(cm.Namespace).To(Equal("kube-system"))
+			g.Expect(cm.Data).ToNot(BeNil())
+
+			actualUserMappings, userMappingsFound := cm.Data["mapUsers"]
+			if len(tc.expectedUserMaps) == 0 {
+				g.Expect(userMappingsFound).To(BeFalse())
+			} else {
+				roles := []ekscontrolplanev1.RoleMapping{}
+				err := yaml.Unmarshal([]byte(actualUserMappings), &roles)
+				g.Expect(err).To(BeNil())
+				g.Expect(len(roles)).To(Equal(len(tc.expectedUserMaps)))
+				//TODO: we may need to do a better match
+				bothMatch := cmp.Equal(roles, tc.expectedUserMaps)
+				g.Expect(bothMatch).To(BeTrue())
+			}
+
 		})
 	}
 }
