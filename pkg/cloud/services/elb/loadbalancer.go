@@ -34,6 +34,7 @@ import (
 	"github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
+	kwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/utils/ptr"
 
@@ -113,6 +114,16 @@ func (s *Service) reconcileV2LB(lbSpec *infrav1.AWSLoadBalancerSpec) error {
 		}
 
 		s.scope.Debug("Created new network load balancer for apiserver", "api-server-lb-name", lb.Name)
+
+		// Wait until the DNS name resolution is mostly likely to succeed
+		if lb.Name == *s.scope.ControlPlaneLoadBalancers()[0].Name {
+			_ = kwait.PollUntilContextTimeout(context.TODO(), 15*time.Second, 120*time.Second, true,
+				func(ctx context.Context) (done bool, err error) {
+					s.scope.Debug("Waiting for network load balancer dns name to propagate", "api-server-lb-name", lb.Name)
+					return false, nil
+				},
+			)
+		}
 	case err != nil:
 		// Failed to describe the classic ELB
 		return err
