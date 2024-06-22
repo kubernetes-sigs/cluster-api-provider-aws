@@ -69,22 +69,34 @@ const additionalTargetGroupPrefix = "additional-listener-"
 func (s *Service) ReconcileLoadbalancers() error {
 	s.scope.Debug("Reconciling load balancers")
 
-	var errs []error
+	c := make(chan error, len(s.scope.ControlPlaneLoadBalancers()))
 
 	for _, lbSpec := range s.scope.ControlPlaneLoadBalancers() {
 		if lbSpec == nil {
 			continue
 		}
-		switch lbSpec.LoadBalancerType {
-		case infrav1.LoadBalancerTypeClassic:
-			errs = append(errs, s.reconcileClassicLoadBalancer())
-		case infrav1.LoadBalancerTypeNLB, infrav1.LoadBalancerTypeALB, infrav1.LoadBalancerTypeELB:
-			errs = append(errs, s.reconcileV2LB(lbSpec))
-		default:
-			errs = append(errs, fmt.Errorf("unknown or unsupported load balancer type on primary load balancer: %s", lbSpec.LoadBalancerType))
-		}
+		go func(c chan error, lbSpec *infrav1.AWSLoadBalancerSpec) {
+			switch lbSpec.LoadBalancerType {
+			case infrav1.LoadBalancerTypeClassic:
+				c <- s.reconcileClassicLoadBalancer()
+			case infrav1.LoadBalancerTypeNLB, infrav1.LoadBalancerTypeALB, infrav1.LoadBalancerTypeELB:
+				c <- s.reconcileV2LB(lbSpec)
+			default:
+				c <- fmt.Errorf("unknown or unsupported load balancer type on primary load balancer: %s", lbSpec.LoadBalancerType)
+			}
+		}(c, lbSpec)
 	}
 
+	var errs []error
+	for _, lbSpec := range s.scope.ControlPlaneLoadBalancers() {
+		if lbSpec == nil {
+			continue
+		}
+		lbErr := <-c
+		if lbErr != nil {
+			errs = append(errs, lbErr)
+		}
+	}
 	return kerrors.NewAggregate(errs)
 }
 
