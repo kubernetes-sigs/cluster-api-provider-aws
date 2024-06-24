@@ -1,6 +1,6 @@
 # IAM Permissions
 
-## Required to use clusterawasadm to provision IAM roles via CloudFormation
+## Required to use clusterawsadm to provision IAM roles via CloudFormation
 
 If using `clusterawsadm` to automate deployment of IAM roles via CloudFormation,
 you must have IAM administrative access as `clusterawsadm` will provision IAM
