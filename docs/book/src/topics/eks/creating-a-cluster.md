@@ -34,4 +34,12 @@ kubectl --namespace=default get secret managed-test-user-kubeconfig \
 
 This kubeconfig is used internally by CAPI and shouldn't be used outside of the management server. It is used by CAPI to perform operations, such as draining a node. The name of the secret that contains the kubeconfig will be `[cluster-name]-kubeconfig` where you need to replace **[cluster-name]** with the name of your cluster. Note that there is NO `-user` in the name.
 
-The kubeconfig is regenerated every `sync-period` as the token that is embedded in the kubeconfig is only valid for a short period of time. When EKS support is enabled the maximum sync period is 10 minutes. If you try to set `--sync-period` to greater than 10 minutes then an error will be raised.
+There are three keys in the CAPI kubeconfig for eks clusters:
+
+| keys        | purpose                                                                                                                                                                            |
+|-------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| value       | contains a complete kubeconfig with the cluster admin user and token embedded                                                                                                      |
+| relative    | contains a kubeconfig with the cluster admin user, referencing the token file in a relative path - assumes you are mounting all the secret keys in the same dir                    |
+| single-file | contains the same token embedded in the complete kubeconfig, it is separated into a single file so that existing APIMachinery can reload the token file when the secret is updated |
+
+The secret contents are regenerated every `sync-period` as the token that is embedded in the kubeconfig and token file is only valid for a short period of time. When EKS support is enabled the maximum sync period is 10 minutes. If you try to set `--sync-period` to greater than 10 minutes then an error will be raised.
