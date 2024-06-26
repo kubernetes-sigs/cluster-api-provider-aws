@@ -164,6 +164,11 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// +optional
 	Addons *[]Addon `json:"addons,omitempty"`
 
+	// PodIdentityAssociations represent Kubernetes Service Accounts mapping to AWS IAM Roles without IRSA, using EKS Pod Identity.
+	// This requires using the AWS EKS Addon for Pod Identity.
+	// +optional
+	PodIdentityAssociations []PodIdentityAssociation `json:"podIdentityAssociations,omitempty"`
+
 	// IdentityProviderconfig is used to specify the oidc provider config
 	// to be attached with this eks cluster
 	// +optional

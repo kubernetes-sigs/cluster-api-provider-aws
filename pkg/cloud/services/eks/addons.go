@@ -38,7 +38,7 @@ func (s *Service) reconcileAddons(ctx context.Context) error {
 	// Get available addon names for the cluster
 	addonNames, err := s.listAddons(eksClusterName)
 	if err != nil {
-		s.Error(err, "failed listing addons")
+		s.scope.Error(err, "failed listing addons")
 		return fmt.Errorf("listing eks addons: %w", err)
 	}
 

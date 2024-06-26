@@ -19,6 +19,7 @@
     - [Creating a cluster](./topics/eks/creating-a-cluster.md)
     - [Using EKS Console](./topics/eks/eks-console.md)
     - [Using EKS Addons](./topics/eks/addons.md)
+    - [Using EKS Pod Identity Associations](./topics/eks/pod-identity-associations.md)
     - [Enabling Encryption](./topics/eks/encryption.md)
     - [Cluster Upgrades](./topics/eks/cluster-upgrades.md)
   - [ROSA Support](./topics/rosa/index.md)
