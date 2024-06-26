@@ -1062,6 +1062,7 @@ func TestAWSClusterDefaultCNIIngressRules(t *testing.T) {
 	defaultVPCSpec := VPCSpec{
 		AvailabilityZoneUsageLimit: &AZUsageLimit,
 		AvailabilityZoneSelection:  &AZSelectionSchemeOrdered,
+		SubnetSchema:               &SubnetSchemaPreferPrivate,
 	}
 	g := NewWithT(t)
 	tests := []struct {
