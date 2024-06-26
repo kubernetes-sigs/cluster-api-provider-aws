@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -34,12 +35,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/controllers"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
+	asg "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/autoscaling"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/eks"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/machinepool"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
@@ -189,13 +195,23 @@ func (r *AWSManagedMachinePoolReconciler) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, r.reconcileDelete(ctx, machinePoolScope, managedControlPlaneScope)
 	}
 
-	return ctrl.Result{}, r.reconcileNormal(ctx, machinePoolScope, managedControlPlaneScope)
+	infraCluster, err := r.getInfraCluster(ctx, log, cluster, machinePoolScope.ManagedMachinePool)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("getting infra provider cluster or control plane object: %w", err)
+	}
+	if infraCluster == nil {
+		log.Info("AWSCluster or AWSManagedControlPlane is not ready yet")
+		return ctrl.Result{}, nil
+	}
+
+	return ctrl.Result{}, r.reconcileNormal(ctx, machinePoolScope, managedControlPlaneScope, infraCluster)
 }
 
 func (r *AWSManagedMachinePoolReconciler) reconcileNormal(
 	ctx context.Context,
 	machinePoolScope *scope.ManagedMachinePoolScope,
 	ec2Scope scope.EC2Scope,
+	clusterScope cloud.ClusterScoper,
 ) error {
 	machinePoolScope.Info("Reconciling AWSManagedMachinePool")
 
@@ -207,7 +223,8 @@ func (r *AWSManagedMachinePoolReconciler) reconcileNormal(
 
 	ekssvc := eks.NewNodegroupService(machinePoolScope)
 	ec2svc := r.getEC2Service(ec2Scope)
-	reconSvc := r.getReconcileService(ec2Scope)
+	asgsvc := r.getASGService(clusterScope)
+	reconSvc := r.getReconcileService(ec2svc, asgsvc)
 
 	if machinePoolScope.ManagedMachinePool.Spec.AWSLaunchTemplate != nil {
 		canUpdateLaunchTemplate := func() (bool, error) {
@@ -349,6 +366,70 @@ func (r *AWSManagedMachinePoolReconciler) getEC2Service(scope scope.EC2Scope) se
 	return ec2.NewService(scope)
 }
 
-func (r *AWSManagedMachinePoolReconciler) getReconcileService(scope scope.EC2Scope) services.MachinePoolReconcileInterface {
-	return ec2.NewService(scope)
+func (r *AWSManagedMachinePoolReconciler) getReconcileService(EC2Interface services.EC2Interface, ASGInterface services.ASGInterface) services.MachinePoolReconcileInterface {
+	return machinepool.NewService(EC2Interface, ASGInterface)
+}
+
+func (r *AWSManagedMachinePoolReconciler) getASGService(scope cloud.ClusterScoper) services.ASGInterface {
+	return asg.NewService(scope)
+}
+
+func (r *AWSManagedMachinePoolReconciler) getInfraCluster(ctx context.Context, log *logger.Logger, cluster *clusterv1.Cluster, awsMachinePool *expinfrav1.AWSManagedMachinePool) (scope.EC2Scope, error) {
+	var clusterScope *scope.ClusterScope
+	var managedControlPlaneScope *scope.ManagedControlPlaneScope
+	var err error
+
+	if cluster.Spec.ControlPlaneRef != nil && cluster.Spec.ControlPlaneRef.Kind == controllers.AWSManagedControlPlaneRefKind {
+		controlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
+		controlPlaneName := client.ObjectKey{
+			Namespace: awsMachinePool.Namespace,
+			Name:      cluster.Spec.ControlPlaneRef.Name,
+		}
+
+		if err := r.Get(ctx, controlPlaneName, controlPlane); err != nil {
+			// AWSManagedControlPlane is not ready
+			return nil, nil //nolint:nilerr
+		}
+
+		managedControlPlaneScope, err = scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
+			Client:                       r.Client,
+			Logger:                       log,
+			Cluster:                      cluster,
+			ControlPlane:                 controlPlane,
+			ControllerName:               "awsManagedControlPlane",
+			TagUnmanagedNetworkResources: r.TagUnmanagedNetworkResources,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		return managedControlPlaneScope, nil
+	}
+
+	awsCluster := &infrav1.AWSCluster{}
+
+	infraClusterName := client.ObjectKey{
+		Namespace: awsMachinePool.Namespace,
+		Name:      cluster.Spec.InfrastructureRef.Name,
+	}
+
+	if err := r.Client.Get(ctx, infraClusterName, awsCluster); err != nil {
+		// AWSCluster is not ready
+		return nil, nil //nolint:nilerr
+	}
+
+	// Create the cluster scope
+	clusterScope, err = scope.NewClusterScope(scope.ClusterScopeParams{
+		Client:                       r.Client,
+		Logger:                       log,
+		Cluster:                      cluster,
+		AWSCluster:                   awsCluster,
+		ControllerName:               "awsmachine",
+		TagUnmanagedNetworkResources: r.TagUnmanagedNetworkResources,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return clusterScope, nil
 }

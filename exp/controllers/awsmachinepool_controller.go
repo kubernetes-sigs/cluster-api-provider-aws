@@ -46,6 +46,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
 	asg "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/autoscaling"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/ec2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/machinepool"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
@@ -62,7 +63,7 @@ type AWSMachinePoolReconciler struct {
 	WatchFilterValue             string
 	asgServiceFactory            func(cloud.ClusterScoper) services.ASGInterface
 	ec2ServiceFactory            func(scope.EC2Scope) services.EC2Interface
-	reconcileServiceFactory      func(scope.EC2Scope) services.MachinePoolReconcileInterface
+	reconcileServiceFactory      func(EC2Interface services.EC2Interface, ASGInterface services.ASGInterface) services.MachinePoolReconcileInterface
 	TagUnmanagedNetworkResources bool
 }
 
@@ -81,12 +82,12 @@ func (r *AWSMachinePoolReconciler) getEC2Service(scope scope.EC2Scope) services.
 	return ec2.NewService(scope)
 }
 
-func (r *AWSMachinePoolReconciler) getReconcileService(scope scope.EC2Scope) services.MachinePoolReconcileInterface {
+func (r *AWSMachinePoolReconciler) getReconcileService(EC2Interface services.EC2Interface, ASGInterface services.ASGInterface) services.MachinePoolReconcileInterface {
 	if r.reconcileServiceFactory != nil {
-		return r.reconcileServiceFactory(scope)
+		return r.reconcileServiceFactory(EC2Interface, ASGInterface)
 	}
 
-	return ec2.NewService(scope)
+	return machinepool.NewService(EC2Interface, ASGInterface)
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinepools,verbs=get;list;watch;update;patch;delete
@@ -237,7 +238,7 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 
 	ec2Svc := r.getEC2Service(ec2Scope)
 	asgsvc := r.getASGService(clusterScope)
-	reconSvc := r.getReconcileService(ec2Scope)
+	reconSvc := r.getReconcileService(ec2Svc, asgsvc)
 
 	// Find existing ASG
 	asg, err := r.findASG(machinePoolScope, asgsvc)
@@ -296,6 +297,22 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 			return err
 		}
 		return nil
+	}
+
+	lifecycleHookScope, err := scope.NewLifecycleHookScope(scope.LifecycleHookScopeParams{
+		Client:         r.Client,
+		Logger:         &machinePoolScope.Logger,
+		MachinePool:    machinePoolScope.MachinePool,
+		LifecycleHooks: machinePoolScope.AWSMachinePool.Spec.AWSLifecycleHooks,
+		AWSMachinePool: machinePoolScope.AWSMachinePool,
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to create lifecycle hook scope")
+	}
+
+	if err := reconSvc.ReconcileLifecycleHooks(*lifecycleHookScope); err != nil {
+		r.Recorder.Eventf(machinePoolScope.AWSMachinePool, corev1.EventTypeWarning, "FaileLifecycleHooksReconcile", "Failed to reconcile lifecycle hooks: %v", err)
+		return errors.Wrap(err, "failed to reconcile lifecycle hooks")
 	}
 
 	if annotations.ReplicasManagedByExternalAutoscaler(machinePoolScope.MachinePool) {
