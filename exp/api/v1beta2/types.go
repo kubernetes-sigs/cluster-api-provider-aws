@@ -22,6 +22,11 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 )
 
+const (
+	// KindMachinePool is a MachinePool resource Kind
+	KindMachinePool string = "MachinePool"
+)
+
 // EBS can be used to automatically set up EBS volumes when an instance is launched.
 type EBS struct {
 	// Encrypted is whether the volume should be encrypted or not.
