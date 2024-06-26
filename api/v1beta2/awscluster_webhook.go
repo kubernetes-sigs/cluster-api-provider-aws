@@ -283,6 +283,11 @@ func (r *AWSCluster) validateNetwork() field.ErrorList {
 		}
 	}
 
+	if r.Spec.NetworkSpec.VPC.AvailabilityZones != nil && (r.Spec.NetworkSpec.VPC.AvailabilityZoneSelection != nil || r.Spec.NetworkSpec.VPC.AvailabilityZoneUsageLimit != nil) {
+		availabilityZonesField := field.NewPath("spec", "networkSpec", "vpc", "availabilityZones")
+		allErrs = append(allErrs, field.Invalid(availabilityZonesField, r.Spec.NetworkSpec.VPC.AvailabilityZoneSelection, "availabilityZones cannot be set if availabilityZoneUsageLimit and availabilityZoneSelection are set"))
+	}
+
 	return allErrs
 }
 

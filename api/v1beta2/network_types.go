@@ -424,7 +424,6 @@ type VPCSpec struct {
 	// should be used in a region when automatically creating subnets. If a region has more
 	// than this number of AZs then this number of AZs will be picked randomly when creating
 	// default subnets. Defaults to 3
-	// +kubebuilder:default=3
 	// +kubebuilder:validation:Minimum=1
 	AvailabilityZoneUsageLimit *int `json:"availabilityZoneUsageLimit,omitempty"`
 
@@ -433,9 +432,13 @@ type VPCSpec struct {
 	// Ordered - selects based on alphabetical order
 	// Random - selects AZs randomly in a region
 	// Defaults to Ordered
-	// +kubebuilder:default=Ordered
 	// +kubebuilder:validation:Enum=Ordered;Random
 	AvailabilityZoneSelection *AZSelectionScheme `json:"availabilityZoneSelection,omitempty"`
+
+	// AvailabilityZones defines a list of Availability Zones in which to create network resources in.
+	// If defined, both AvailabilityZoneUsageLimit and AvailabilityZoneSelection are ignored.
+	// +optional
+	AvailabilityZones []string `json:"availabilityZones,omitempty"`
 
 	// EmptyRoutesDefaultVPCSecurityGroup specifies whether the default VPC security group ingress
 	// and egress rules should be removed.

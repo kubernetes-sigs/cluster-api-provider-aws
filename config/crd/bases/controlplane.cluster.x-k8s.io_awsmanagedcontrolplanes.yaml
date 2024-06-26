@@ -598,7 +598,6 @@ spec:
                     description: VPC configuration.
                     properties:
                       availabilityZoneSelection:
-                        default: Ordered
                         description: |-
                           AvailabilityZoneSelection specifies how AZs should be selected if there are more AZs
                           in a region than specified by AvailabilityZoneUsageLimit. There are 2 selection schemes:
@@ -610,7 +609,6 @@ spec:
                         - Random
                         type: string
                       availabilityZoneUsageLimit:
-                        default: 3
                         description: |-
                           AvailabilityZoneUsageLimit specifies the maximum number of availability zones (AZ) that
                           should be used in a region when automatically creating subnets. If a region has more
@@ -626,6 +624,13 @@ spec:
                         x-kubernetes-validations:
                         - message: Carrier Gateway ID must start with 'cagw-'
                           rule: self.startsWith('cagw-')
+                      availabilityZones:
+                        description: |-
+                          AvailabilityZones defines a list of Availability Zones in which to create network resources in.
+                          If defined, both AvailabilityZoneUsageLimit and AvailabilityZoneSelection are ignored.
+                        items:
+                          type: string
+                        type: array
                       cidrBlock:
                         description: |-
                           CidrBlock is the CIDR block to be used when the provider creates a managed VPC.
@@ -2589,7 +2594,6 @@ spec:
                     description: VPC configuration.
                     properties:
                       availabilityZoneSelection:
-                        default: Ordered
                         description: |-
                           AvailabilityZoneSelection specifies how AZs should be selected if there are more AZs
                           in a region than specified by AvailabilityZoneUsageLimit. There are 2 selection schemes:
@@ -2601,7 +2605,6 @@ spec:
                         - Random
                         type: string
                       availabilityZoneUsageLimit:
-                        default: 3
                         description: |-
                           AvailabilityZoneUsageLimit specifies the maximum number of availability zones (AZ) that
                           should be used in a region when automatically creating subnets. If a region has more
@@ -2617,6 +2620,13 @@ spec:
                         x-kubernetes-validations:
                         - message: Carrier Gateway ID must start with 'cagw-'
                           rule: self.startsWith('cagw-')
+                      availabilityZones:
+                        description: |-
+                          AvailabilityZones defines a list of Availability Zones in which to create network resources in.
+                          If defined, both AvailabilityZoneUsageLimit and AvailabilityZoneSelection are ignored.
+                        items:
+                          type: string
+                        type: array
                       cidrBlock:
                         description: |-
                           CidrBlock is the CIDR block to be used when the provider creates a managed VPC.
