@@ -130,7 +130,11 @@ func (s *Service) ReconcileLaunchTemplate(
 		return err
 	}
 
-	amiChanged := *imageID != *launchTemplate.AMI.ID
+	// its possible that launchTemplate is created without AMI
+	amiChanged := false
+	if imageID != nil && launchTemplate.AMI.ID != nil {
+		amiChanged = *imageID != *launchTemplate.AMI.ID
+	}
 
 	// `launchTemplateUserDataSecretKey` can be nil since it comes from a tag on the launch template
 	// which may not exist in older launch templates created by older CAPA versions.
@@ -522,12 +526,14 @@ func (s *Service) createLaunchTemplateData(scope scope.LaunchTemplateScope, imag
 
 	// Set up root volume
 	if lt.RootVolume != nil {
-		rootDeviceName, err := s.checkRootVolume(lt.RootVolume, *data.ImageId)
-		if err != nil {
-			return nil, err
-		}
+		if data.ImageId != nil {
+			rootDeviceName, err := s.checkRootVolume(lt.RootVolume, *data.ImageId)
+			if err != nil {
+				return nil, err
+			}
 
-		lt.RootVolume.DeviceName = aws.StringValue(rootDeviceName)
+			lt.RootVolume.DeviceName = aws.StringValue(rootDeviceName)
+		}
 
 		req := volumeToLaunchTemplateBlockDeviceMappingRequest(lt.RootVolume)
 		data.BlockDeviceMappings = []*ec2.LaunchTemplateBlockDeviceMappingRequest{
@@ -799,6 +805,11 @@ func (s *Service) DiscoverLaunchTemplateAMI(scope scope.LaunchTemplateScope) (*s
 		err := errors.New("Either AWSMachinePool's spec.awslaunchtemplate.ami.id or MachinePool's spec.template.spec.version must be defined")
 		s.scope.Error(err, "")
 		return nil, err
+	}
+
+	// launch template without image ID is possible if AMIType is defined in AWSManagedMachinepool
+	if scope.IsEKSManaged() {
+		return nil, nil
 	}
 
 	var lookupAMI string
