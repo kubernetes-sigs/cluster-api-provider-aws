@@ -534,6 +534,16 @@ func (s *Service) createLaunchTemplateData(scope scope.LaunchTemplateScope, imag
 			req,
 		}
 	}
+	for vi := range lt.NonRootVolumes {
+		nonRootVolume := lt.NonRootVolumes[vi]
+
+		if nonRootVolume.DeviceName == "" {
+			return nil, errors.Errorf("non root volume should have device name specified")
+		}
+
+		req := volumeToLaunchTemplateBlockDeviceMappingRequest(&nonRootVolume)
+		data.BlockDeviceMappings = append(data.BlockDeviceMappings, req)
+	}
 
 	data.TagSpecifications = s.buildLaunchTemplateTagSpecificationRequest(scope, userDataSecretKey)
 
