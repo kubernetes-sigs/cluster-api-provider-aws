@@ -672,11 +672,16 @@ func TestCreateInstance(t *testing.T) {
 				}, nil)
 				m.
 					RunInstancesWithContext(context.TODO(), &ec2.RunInstancesInput{
-						ImageId:          aws.String("abc"),
-						InstanceType:     aws.String("m5.2xlarge"),
-						KeyName:          aws.String("default"),
-						SecurityGroupIds: aws.StringSlice([]string{"2", "3"}),
-						SubnetId:         aws.String("subnet-3"),
+						ImageId:      aws.String("abc"),
+						InstanceType: aws.String("m5.2xlarge"),
+						KeyName:      aws.String("default"),
+						NetworkInterfaces: []*ec2.InstanceNetworkInterfaceSpecification{
+							{
+								DeviceIndex: aws.Int64(0),
+								SubnetId:    aws.String("subnet-3"),
+								Groups:      aws.StringSlice([]string{"2", "3"}),
+							},
+						},
 						TagSpecifications: []*ec2.TagSpecification{
 							{
 								ResourceType: aws.String("instance"),
@@ -870,11 +875,16 @@ func TestCreateInstance(t *testing.T) {
 				}, nil)
 				m.
 					RunInstancesWithContext(context.TODO(), &ec2.RunInstancesInput{
-						ImageId:          aws.String("abc"),
-						InstanceType:     aws.String("m5.2xlarge"),
-						KeyName:          aws.String("default"),
-						SecurityGroupIds: aws.StringSlice([]string{"4", "3"}),
-						SubnetId:         aws.String("subnet-5"),
+						ImageId:      aws.String("abc"),
+						InstanceType: aws.String("m5.2xlarge"),
+						KeyName:      aws.String("default"),
+						NetworkInterfaces: []*ec2.InstanceNetworkInterfaceSpecification{
+							{
+								DeviceIndex: aws.Int64(0),
+								SubnetId:    aws.String("subnet-5"),
+								Groups:      aws.StringSlice([]string{"4", "3"}),
+							},
+						},
 						TagSpecifications: []*ec2.TagSpecification{
 							{
 								ResourceType: aws.String("instance"),
@@ -3246,8 +3256,13 @@ func TestCreateInstance(t *testing.T) {
 						Placement: &ec2.Placement{
 							Tenancy: &tenancy,
 						},
-						SecurityGroupIds: []*string{aws.String("2"), aws.String("3")},
-						SubnetId:         aws.String("subnet-1"),
+						NetworkInterfaces: []*ec2.InstanceNetworkInterfaceSpecification{
+							{
+								DeviceIndex: aws.Int64(0),
+								SubnetId:    aws.String("subnet-1"),
+								Groups:      []*string{aws.String("2"), aws.String("3")},
+							},
+						},
 						TagSpecifications: []*ec2.TagSpecification{
 							{
 								ResourceType: aws.String("instance"),
@@ -3405,8 +3420,13 @@ func TestCreateInstance(t *testing.T) {
 						Placement: &ec2.Placement{
 							GroupName: aws.String("placement-group1"),
 						},
-						SecurityGroupIds: []*string{aws.String("2"), aws.String("3")},
-						SubnetId:         aws.String("subnet-1"),
+						NetworkInterfaces: []*ec2.InstanceNetworkInterfaceSpecification{
+							{
+								DeviceIndex: aws.Int64(0),
+								SubnetId:    aws.String("subnet-1"),
+								Groups:      []*string{aws.String("2"), aws.String("3")},
+							},
+						},
 						TagSpecifications: []*ec2.TagSpecification{
 							{
 								ResourceType: aws.String("instance"),
@@ -3585,8 +3605,13 @@ func TestCreateInstance(t *testing.T) {
 							Tenancy:   &tenancy,
 							GroupName: aws.String("placement-group1"),
 						},
-						SecurityGroupIds: []*string{aws.String("2"), aws.String("3")},
-						SubnetId:         aws.String("subnet-1"),
+						NetworkInterfaces: []*ec2.InstanceNetworkInterfaceSpecification{
+							{
+								DeviceIndex: aws.Int64(0),
+								SubnetId:    aws.String("subnet-1"),
+								Groups:      []*string{aws.String("2"), aws.String("3")},
+							},
+						},
 						TagSpecifications: []*ec2.TagSpecification{
 							{
 								ResourceType: aws.String("instance"),
@@ -3726,8 +3751,13 @@ func TestCreateInstance(t *testing.T) {
 							GroupName:       aws.String("placement-group1"),
 							PartitionNumber: aws.Int64(2),
 						},
-						SecurityGroupIds: []*string{aws.String("2"), aws.String("3")},
-						SubnetId:         aws.String("subnet-1"),
+						NetworkInterfaces: []*ec2.InstanceNetworkInterfaceSpecification{
+							{
+								DeviceIndex: aws.Int64(0),
+								SubnetId:    aws.String("subnet-1"),
+								Groups:      aws.StringSlice([]string{"2", "3"}),
+							},
+						},
 						TagSpecifications: []*ec2.TagSpecification{
 							{
 								ResourceType: aws.String("instance"),
