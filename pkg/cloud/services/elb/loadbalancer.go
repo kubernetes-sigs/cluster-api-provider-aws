@@ -1788,7 +1788,7 @@ func shouldReconcileSGs(scope scope.ELBScope, lb *infrav1.LoadBalancer, specSGs 
 	// Once created without a security group, the NLB can never have any added.
 	// (https://docs.aws.amazon.com/elasticloadbalancing/latest/network/load-balancer-security-groups.html)
 	if lb.LoadBalancerType == infrav1.LoadBalancerTypeNLB && len(lb.SecurityGroupIDs) == 0 {
-		scope.Info("Pre-existing NLB %s without security groups, cannot reconcile security groups.", lb.Name)
+		scope.Info("Pre-existing NLB without security groups, cannot reconcile security groups.", "elb-name", lb.Name)
 		return false
 	}
 	if !sets.NewString(lb.SecurityGroupIDs...).Equal(sets.NewString(specSGs...)) {
