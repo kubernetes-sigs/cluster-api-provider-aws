@@ -38,7 +38,13 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
+
+var IgnoreLifecycleHooks = map[string]bool{
+	"Launch-LC-Hook":    true,
+	"Terminate-LC-Hook": true,
+}
 
 func (s *NodegroupService) describeNodegroup() (*eks.Nodegroup, error) {
 	eksClusterName := s.scope.KubernetesClusterName()
@@ -150,7 +156,7 @@ func (s *NodegroupService) remoteAccess() (*eks.RemoteAccessConfig, error) {
 	// SourceSecurityGroups is validated to be empty if PublicAccess is true
 	// but just in case we use an empty list to take advantage of the documented
 	// API behavior
-	var sSGs = []string{}
+	sSGs := []string{}
 
 	if !pool.RemoteAccess.Public {
 		sSGs = pool.RemoteAccess.SourceSecurityGroups
@@ -571,6 +577,10 @@ func (s *NodegroupService) reconcileNodegroup(ctx context.Context) error {
 		return errors.Wrapf(err, "failed to reconcile asg tags")
 	}
 
+	if err := s.reconcileLifecycleHooks(ng); err != nil {
+		return errors.Wrapf(err, "failed to reconcile lifecyle hooks")
+	}
+
 	return nil
 }
 
@@ -644,4 +654,83 @@ func (s *NodegroupService) waitForNodegroupActive() (*eks.Nodegroup, error) {
 	}
 
 	return ng, nil
+}
+
+// ReconcileLifecycleHooks periodically reconciles a lifecycle hook for the ASG.
+func (s *NodegroupService) reconcileLifecycleHooks(ng *eks.Nodegroup) error {
+	asg, err := s.describeASGs(ng)
+	if err != nil {
+		return err
+	}
+
+	lifecyleHooks := s.scope.GetLifecycleHooks()
+	for i := range lifecyleHooks {
+		if err := s.reconcileLifecycleHook(*asg.AutoScalingGroupName, &lifecyleHooks[i]); err != nil {
+			return err
+		}
+	}
+
+	// Get a list of lifecycle hooks that are registered with the ASG but not defined in the MachinePool and delete them.
+	hooks, err := s.ASGService.DescribeLifecycleHooks(*asg.AutoScalingGroupName)
+	if err != nil {
+		return err
+	}
+	for _, hook := range hooks {
+		found := false
+		if IgnoreLifecycleHooks[hook.Name] {
+			continue
+		}
+		for _, definedHook := range lifecyleHooks {
+			if hook.Name == definedHook.Name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			s.scope.Info("Deleting extraneous lifecycle hook", "hook", hook.Name)
+			if err := s.ASGService.DeleteLifecycleHook(*asg.AutoScalingGroupName, hook); err != nil {
+				conditions.MarkFalse(s.scope.GetMachinePool(), expinfrav1.LifecycleHookReadyCondition, expinfrav1.LifecycleHookDeletionFailedReason, clusterv1.ConditionSeverityError, err.Error())
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (s *NodegroupService) reconcileLifecycleHook(asgName string, hook *expinfrav1.AWSLifecycleHook) error {
+	s.scope.Info("Checking for existing lifecycle hook")
+	// Ignore hooks that are not managed by the controller
+	if ignore, ok := IgnoreLifecycleHooks[hook.Name]; ok && ignore {
+		return nil
+	}
+
+	existingHook, err := s.ASGService.DescribeLifecycleHook(asgName, hook)
+	if err != nil {
+		conditions.MarkUnknown(s.scope.GetMachinePool(), expinfrav1.LifecycleHookReadyCondition, expinfrav1.LifecycleHookNotFoundReason, err.Error())
+		return err
+	}
+
+	if existingHook == nil {
+		s.scope.Info("Creating lifecycle hook")
+		if err := s.ASGService.CreateLifecycleHook(asgName, hook); err != nil {
+			conditions.MarkFalse(s.scope.GetMachinePool(), expinfrav1.LifecycleHookReadyCondition, expinfrav1.LifecycleHookCreationFailedReason, clusterv1.ConditionSeverityError, err.Error())
+			return err
+		}
+		return nil
+	}
+
+	// If the lifecycle hook exists, we need to check if it's up to date
+	needsUpdate := s.ASGService.LifecycleHookNeedsUpdate(existingHook, hook)
+
+	if needsUpdate {
+		s.scope.Info("Updating lifecycle hook")
+		if err := s.ASGService.UpdateLifecycleHook(asgName, hook); err != nil {
+			conditions.MarkFalse(s.scope.GetMachinePool(), expinfrav1.LifecycleHookReadyCondition, expinfrav1.LifecycleHookUpdateFailedReason, clusterv1.ConditionSeverityError, err.Error())
+			return err
+		}
+	}
+
+	conditions.MarkTrue(s.scope.GetMachinePool(), expinfrav1.LifecycleHookReadyCondition)
+	return nil
 }

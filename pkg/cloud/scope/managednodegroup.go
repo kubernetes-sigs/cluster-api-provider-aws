@@ -411,3 +411,7 @@ func (s *ManagedMachinePoolScope) LaunchTemplateName() string {
 func (s *ManagedMachinePoolScope) GetRuntimeObject() runtime.Object {
 	return s.ManagedMachinePool
 }
+
+func (m *ManagedMachinePoolScope) GetLifecycleHooks() []expinfrav1.AWSLifecycleHook {
+	return m.ManagedMachinePool.Spec.AWSLifecycleHooks
+}

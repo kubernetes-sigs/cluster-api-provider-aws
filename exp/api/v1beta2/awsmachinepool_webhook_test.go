@@ -19,6 +19,7 @@ package v1beta2
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	. "github.com/onsi/gomega"
@@ -169,6 +170,33 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 					RefreshPreferences: &RefreshPreferences{
 						MaxHealthyPercentage: aws.Int64(150),
 						MinHealthyPercentage: aws.Int64(25),
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Should fail if either roleARN or notifcationARN is set but not both",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AWSLifecycleHooks: []AWSLifecycleHook{
+						{
+							RoleARN: aws.String("role-arn"),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Should fail if the heartbeat timeout is less than 30 seconds",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AWSLifecycleHooks: []AWSLifecycleHook{
+						{
+							RoleARN:          aws.String("role-arn"),
+							HeartbeatTimeout: &metav1.Duration{Duration: 29 * time.Second},
+						},
 					},
 				},
 			},
