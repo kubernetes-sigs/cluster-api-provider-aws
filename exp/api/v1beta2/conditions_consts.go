@@ -54,6 +54,19 @@ const (
 	InstanceRefreshNotReadyReason = "InstanceRefreshNotReady"
 	// InstanceRefreshFailedReason used to report when there instance refresh is not initiated.
 	InstanceRefreshFailedReason = "InstanceRefreshFailed"
+
+	// LifecycleHookReadyCondition reports on the status of the lifecycle hook.
+	LifecycleHookReadyCondition clusterv1.ConditionType = "LifecycleHookReady"
+	// LifecycleHookNotFoundReason used when the lifecycle hook couldn't be retrieved.
+	LifecycleHookNotFoundReason = "LifecycleHookNotFound"
+	// LifecycleHookExistsCondition reports on the existence of the lifecycle hook.
+	LifecycleHookExistsCondition clusterv1.ConditionType = "LifecycleHookExists"
+	// LifecycleHookCreationFailedReason used for failures during lifecycle hook creation.
+	LifecycleHookCreationFailedReason = "LifecycleHookCreationFailed"
+	// LifecycleHookUpdateFailedReason used for failures during lifecycle hook update.
+	LifecycleHookUpdateFailedReason = "LifecycleHookUpdateFailed"
+	// LifecycleHookDeletionFailedReason used for failures during lifecycle hook deletion.
+	LifecycleHookDeletionFailedReason = "LifecycleHookDeletionFailed"
 )
 
 const (

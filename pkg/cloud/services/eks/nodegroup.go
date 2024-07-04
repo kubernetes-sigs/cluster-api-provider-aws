@@ -150,7 +150,7 @@ func (s *NodegroupService) remoteAccess() (*eks.RemoteAccessConfig, error) {
 	// SourceSecurityGroups is validated to be empty if PublicAccess is true
 	// but just in case we use an empty list to take advantage of the documented
 	// API behavior
-	var sSGs = []string{}
+	sSGs := []string{}
 
 	if !pool.RemoteAccess.Public {
 		sSGs = pool.RemoteAccess.SourceSecurityGroups
