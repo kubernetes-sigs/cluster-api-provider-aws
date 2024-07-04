@@ -890,6 +890,55 @@ spec:
                   type: string
                 description: Labels specifies labels for the Kubernetes node objects
                 type: object
+              lifecycleHooks:
+                description: AWSLifecycleHooks specifies lifecycle hooks for the managed
+                  node group.
+                items:
+                  description: AWSLifecycleHook describes an AWS lifecycle hook
+                  properties:
+                    defaultResult:
+                      description: The default result for the lifecycle hook. The
+                        possible values are CONTINUE and ABANDON.
+                      enum:
+                      - CONTINUE
+                      - ABANDON
+                      type: string
+                    heartbeatTimeout:
+                      description: |-
+                        The maximum time, in seconds, that an instance can remain in a Pending:Wait or
+                        Terminating:Wait state. The maximum is 172800 seconds (48 hours) or 100 times
+                        HeartbeatTimeout, whichever is smaller.
+                      format: duration
+                      type: string
+                    lifecycleTransition:
+                      description: The state of the EC2 instance to which to attach
+                        the lifecycle hook.
+                      enum:
+                      - autoscaling:EC2_INSTANCE_LAUNCHING
+                      - autoscaling:EC2_INSTANCE_TERMINATING
+                      type: string
+                    name:
+                      description: The name of the lifecycle hook.
+                      type: string
+                    notificationMetadata:
+                      description: Contains additional metadata that will be passed
+                        to the notification target.
+                      type: string
+                    notificationTargetARN:
+                      description: |-
+                        The ARN of the notification target that Amazon EC2 Auto Scaling uses to
+                        notify you when an instance is in the transition state for the lifecycle hook.
+                      type: string
+                    roleARN:
+                      description: |-
+                        The ARN of the IAM role that allows the Auto Scaling group to publish to the
+                        specified notification target.
+                      type: string
+                  required:
+                  - lifecycleTransition
+                  - name
+                  type: object
+                type: array
               providerIDList:
                 description: |-
                   ProviderIDList are the provider IDs of instances in the
