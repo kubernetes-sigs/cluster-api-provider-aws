@@ -827,6 +827,295 @@ func TestReconcileSecurityGroups(t *testing.T) {
 					Return(&ec2.AuthorizeSecurityGroupIngressOutput{}, nil).AnyTimes()
 			},
 		},
+		{
+			name: "authorized target ingress rules are not revoked",
+			awsCluster: func(acl infrav1.AWSCluster) infrav1.AWSCluster {
+				return acl
+			},
+			input: &infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					ID:                "vpc-securitygroups",
+					InternetGatewayID: aws.String("igw-01"),
+					Tags: infrav1.Tags{
+						infrav1.ClusterTagKey("test-cluster"): "owned",
+					},
+					EmptyRoutesDefaultVPCSecurityGroup: true,
+				},
+				Subnets: infrav1.Subnets{
+					infrav1.SubnetSpec{
+						ID:               "subnet-securitygroups-private",
+						IsPublic:         false,
+						AvailabilityZone: "us-east-1a",
+					},
+					infrav1.SubnetSpec{
+						ID:               "subnet-securitygroups-public",
+						IsPublic:         true,
+						NatGatewayID:     aws.String("nat-01"),
+						AvailabilityZone: "us-east-1a",
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeSecurityGroupsWithContext(context.TODO(), &ec2.DescribeSecurityGroupsInput{
+					Filters: []*ec2.Filter{
+						filter.EC2.VPC("vpc-securitygroups"),
+						filter.EC2.SecurityGroupName("default"),
+					},
+				}).
+					Return(&ec2.DescribeSecurityGroupsOutput{
+						SecurityGroups: []*ec2.SecurityGroup{
+							{
+								Description: aws.String("default VPC security group"),
+								GroupName:   aws.String("default"),
+								GroupId:     aws.String("sg-default"),
+							},
+						},
+					}, nil)
+
+				m.RevokeSecurityGroupIngressWithContext(context.TODO(), gomock.Eq(&ec2.RevokeSecurityGroupIngressInput{
+					GroupId: aws.String("sg-default"),
+					IpPermissions: []*ec2.IpPermission{
+						{
+							IpProtocol: aws.String("-1"),
+							UserIdGroupPairs: []*ec2.UserIdGroupPair{
+								{
+									GroupId: aws.String("sg-default"),
+								},
+							},
+						},
+					},
+				})).Times(1)
+
+				m.RevokeSecurityGroupEgressWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.RevokeSecurityGroupEgressInput{
+					GroupId: aws.String("sg-default"),
+				}))
+
+				securityGroupBastion := &ec2.SecurityGroup{
+					Description: aws.String("Kubernetes cluster test-cluster: bastion"),
+					GroupName:   aws.String("test-cluster-bastion"),
+					GroupId:     aws.String("sg-bastion"),
+					Tags: []*ec2.Tag{
+						{
+							Key:   aws.String("Name"),
+							Value: aws.String("test-cluster-bastion"),
+						}, {
+							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+							Value: aws.String("owned"),
+						}, {
+							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+							Value: aws.String("bastion"),
+						},
+					},
+				}
+
+				securityGroupLB := &ec2.SecurityGroup{
+					Description: aws.String("Kubernetes cluster test-cluster: lb"),
+					GroupName:   aws.String("test-cluster-lb"),
+					GroupId:     aws.String("sg-lb"),
+					Tags: []*ec2.Tag{
+						{
+							Key:   aws.String("Name"),
+							Value: aws.String("test-cluster-lb"),
+						}, {
+							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+							Value: aws.String("owned"),
+						}, {
+							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+							Value: aws.String("lb"),
+						}, {
+							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+							Value: aws.String("owned"),
+						},
+					},
+				}
+
+				securityGroupAPIServerLB := &ec2.SecurityGroup{
+					Description: aws.String("Kubernetes cluster test-cluster: apiserver-lb"),
+					GroupName:   aws.String("test-cluster-apiserver-lb"),
+					GroupId:     aws.String("sg-apiserver-lb"),
+					Tags: []*ec2.Tag{
+						{
+							Key:   aws.String("Name"),
+							Value: aws.String("test-cluster-apiserver-lb"),
+						}, {
+							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+							Value: aws.String("owned"),
+						}, {
+							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+							Value: aws.String("apiserver-lb"),
+						},
+					},
+					IpPermissions: []*ec2.IpPermission{
+						{
+							FromPort:   aws.Int64(6443),
+							IpProtocol: aws.String("tcp"),
+							IpRanges: []*ec2.IpRange{
+								{
+									CidrIp:      aws.String("0.0.0.0/0"),
+									Description: aws.String("Kubernetes API"),
+								},
+							},
+							ToPort: aws.Int64(6443),
+						},
+						// Extra rule to be revoked
+						{
+							FromPort:   aws.Int64(22),
+							IpProtocol: aws.String("tcp"),
+							ToPort:     aws.Int64(22),
+							IpRanges: []*ec2.IpRange{
+								{
+									CidrIp:      aws.String("0.0.0.0/0"),
+									Description: aws.String("SSH"),
+								},
+							},
+						},
+					},
+				}
+
+				securityGroupControl := &ec2.SecurityGroup{
+					Description: aws.String("Kubernetes cluster test-cluster: controlplane"),
+					GroupName:   aws.String("test-cluster-controlplane"),
+					GroupId:     aws.String("sg-control"),
+					Tags: []*ec2.Tag{
+						{
+							Key:   aws.String("Name"),
+							Value: aws.String("test-cluster-controlplane"),
+						}, {
+							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+							Value: aws.String("owned"),
+						}, {
+							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+							Value: aws.String("controlplane"),
+						},
+					},
+					IpPermissions: []*ec2.IpPermission{
+						{
+							FromPort:   aws.Int64(6443),
+							IpProtocol: aws.String("tcp"),
+							ToPort:     aws.Int64(6443),
+							UserIdGroupPairs: []*ec2.UserIdGroupPair{
+								{
+									Description: aws.String("Kubernetes API"),
+									GroupId:     aws.String("sg-apiserver-lb"),
+								}, {
+									Description: aws.String("Kubernetes API"),
+									GroupId:     aws.String("sg-control"),
+								}, {
+									Description: aws.String("Kubernetes API"),
+									GroupId:     aws.String("sg-node"),
+								},
+							},
+						},
+						{
+							FromPort:   aws.Int64(2379),
+							IpProtocol: aws.String("tcp"),
+							ToPort:     aws.Int64(2379),
+							UserIdGroupPairs: []*ec2.UserIdGroupPair{
+								{
+									Description: aws.String("etcd"),
+									GroupId:     aws.String("sg-control"),
+								},
+							},
+						},
+						{
+							FromPort:   aws.Int64(2380),
+							IpProtocol: aws.String("tcp"),
+							ToPort:     aws.Int64(2380),
+							UserIdGroupPairs: []*ec2.UserIdGroupPair{
+								{
+									Description: aws.String("etcd peer"),
+									GroupId:     aws.String("sg-control"),
+								},
+							},
+						},
+					},
+				}
+
+				securityGroupNode := &ec2.SecurityGroup{
+					Description: aws.String("Kubernetes cluster test-cluster: node"),
+					GroupName:   aws.String("test-cluster-node"),
+					GroupId:     aws.String("sg-node"),
+					Tags: []*ec2.Tag{
+						{
+							Key:   aws.String("Name"),
+							Value: aws.String("test-cluster-node"),
+						}, {
+							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+							Value: aws.String("owned"),
+						}, {
+							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+							Value: aws.String("node"),
+						},
+					},
+					IpPermissions: []*ec2.IpPermission{
+						{
+							FromPort:   aws.Int64(30000),
+							ToPort:     aws.Int64(32767),
+							IpProtocol: aws.String("tcp"),
+							IpRanges: []*ec2.IpRange{
+								{
+									CidrIp:      aws.String("0.0.0.0/0"),
+									Description: aws.String("Node Port Services"),
+								},
+							},
+						}, {
+							FromPort:   aws.Int64(10250),
+							IpProtocol: aws.String("tcp"),
+							ToPort:     aws.Int64(10250),
+							UserIdGroupPairs: []*ec2.UserIdGroupPair{
+								{
+									Description: aws.String("Kubelet API"),
+									GroupId:     aws.String("sg-control"),
+								}, {
+									Description: aws.String("Kubelet API"),
+									GroupId:     aws.String("sg-node"),
+								},
+							},
+						},
+					},
+				}
+
+				m.DescribeSecurityGroupsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{})).
+					Return(&ec2.DescribeSecurityGroupsOutput{
+						SecurityGroups: []*ec2.SecurityGroup{
+							securityGroupBastion,
+							securityGroupLB,
+							securityGroupAPIServerLB,
+							securityGroupControl,
+							securityGroupNode,
+						},
+					}, nil)
+
+				m.RevokeSecurityGroupIngressWithContext(context.TODO(), gomock.Eq(&ec2.RevokeSecurityGroupIngressInput{
+					GroupId: aws.String("sg-apiserver-lb"),
+					IpPermissions: []*ec2.IpPermission{
+						{
+							FromPort:   aws.Int64(22),
+							ToPort:     aws.Int64(22),
+							IpProtocol: aws.String("tcp"),
+							IpRanges: []*ec2.IpRange{
+								{
+									CidrIp:      aws.String("0.0.0.0/0"),
+									Description: aws.String("SSH"),
+								},
+							},
+						},
+					},
+				})).Times(1)
+
+				m.AuthorizeSecurityGroupIngressWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.AuthorizeSecurityGroupIngressInput{
+					GroupId: aws.String("sg-bastion"),
+					IpPermissions: []*ec2.IpPermission{
+						{
+							ToPort:     aws.Int64(22),
+							FromPort:   aws.Int64(22),
+							IpProtocol: aws.String("tcp"),
+						},
+					},
+				})).
+					Return(&ec2.AuthorizeSecurityGroupIngressOutput{}, nil).AnyTimes()
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -1813,4 +2102,138 @@ var processSecurityGroupsPage = func(ctx context.Context, _, y interface{}, requ
 			},
 		},
 	}, true)
+}
+
+func TestExpandIngressRules(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    infrav1.IngressRules
+		expected infrav1.IngressRules
+	}{
+		{
+			name: "nothing to expand, nothing to do",
+			input: infrav1.IngressRules{
+				{
+					Description: "SSH",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    22,
+					ToPort:      22,
+				},
+			},
+			expected: infrav1.IngressRules{
+				{
+					Description: "SSH",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    22,
+					ToPort:      22,
+				},
+			},
+		},
+		{
+			name: "nothing to expand, security group roles is removed",
+			input: infrav1.IngressRules{
+				{
+					Description: "SSH",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    22,
+					ToPort:      22,
+					SourceSecurityGroupRoles: []infrav1.SecurityGroupRole{
+						infrav1.SecurityGroupControlPlane,
+					},
+				},
+			},
+			expected: infrav1.IngressRules{
+				{
+					Description: "SSH",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    22,
+					ToPort:      22,
+				},
+			},
+		},
+		{
+			name: "cidr blocks expand",
+			input: infrav1.IngressRules{
+				{
+					Description:    "SSH",
+					Protocol:       infrav1.SecurityGroupProtocolTCP,
+					FromPort:       22,
+					ToPort:         22,
+					CidrBlocks:     []string{"0.0.0.0/0", "1.1.1.1/0"},
+					IPv6CidrBlocks: []string{"::/0", "::/1"},
+				},
+			},
+			expected: infrav1.IngressRules{
+				{
+					Description: "SSH",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    22,
+					ToPort:      22,
+					CidrBlocks:  []string{"0.0.0.0/0"},
+				},
+				{
+					Description: "SSH",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    22,
+					ToPort:      22,
+					CidrBlocks:  []string{"1.1.1.1/0"},
+				},
+				{
+					Description:    "SSH",
+					Protocol:       infrav1.SecurityGroupProtocolTCP,
+					FromPort:       22,
+					ToPort:         22,
+					IPv6CidrBlocks: []string{"::/0"},
+				},
+				{
+					Description:    "SSH",
+					Protocol:       infrav1.SecurityGroupProtocolTCP,
+					FromPort:       22,
+					ToPort:         22,
+					IPv6CidrBlocks: []string{"::/1"},
+				},
+			},
+		},
+		{
+			name: "security group ids expand, security group roles removed",
+			input: infrav1.IngressRules{
+				{
+					Description:            "SSH",
+					Protocol:               infrav1.SecurityGroupProtocolTCP,
+					FromPort:               22,
+					ToPort:                 22,
+					SourceSecurityGroupIDs: []string{"sg-1", "sg-2"},
+					SourceSecurityGroupRoles: []infrav1.SecurityGroupRole{
+						infrav1.SecurityGroupControlPlane,
+						infrav1.SecurityGroupNode,
+					},
+				},
+			},
+			expected: infrav1.IngressRules{
+				{
+					Description:            "SSH",
+					Protocol:               infrav1.SecurityGroupProtocolTCP,
+					FromPort:               22,
+					ToPort:                 22,
+					SourceSecurityGroupIDs: []string{"sg-1"},
+				},
+				{
+					Description:            "SSH",
+					Protocol:               infrav1.SecurityGroupProtocolTCP,
+					FromPort:               22,
+					ToPort:                 22,
+					SourceSecurityGroupIDs: []string{"sg-2"},
+				},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewGomegaWithT(t)
+			output := expandIngressRules(tc.input)
+
+			g.Expect(output).To(Equal(tc.expected))
+		})
+	}
 }
