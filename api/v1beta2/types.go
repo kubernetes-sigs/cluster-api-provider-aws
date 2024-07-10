@@ -249,6 +249,11 @@ type Instance struct {
 	// PublicIPOnLaunch is the option to associate a public IP on instance launch
 	// +optional
 	PublicIPOnLaunch *bool `json:"publicIPOnLaunch,omitempty"`
+
+	// CapacityReservationID specifies the instance that should be launched in the
+	// reserved compute capacity.
+	// +optional
+	CapacityReservationID string `json:"capacityReservationId,omitempty"`
 }
 
 // InstanceMetadataState describes the state of InstanceMetadataOptions.HttpEndpoint and InstanceMetadataOptions.InstanceMetadataTags

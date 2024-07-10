@@ -2075,6 +2075,11 @@ spec:
                   availabilityZone:
                     description: Availability zone of instance
                     type: string
+                  capacityReservationId:
+                    description: |-
+                      CapacityReservationID specifies the instance that should be launched in the
+                      reserved compute capacity.
+                    type: string
                   ebsOptimized:
                     description: Indicates whether the instance is optimized for Amazon
                       EBS I/O.
