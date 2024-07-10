@@ -193,6 +193,11 @@ type AWSMachineSpec struct {
 	// PrivateDNSName is the options for the instance hostname.
 	// +optional
 	PrivateDNSName *PrivateDNSName `json:"privateDnsName,omitempty"`
+
+	// CapacityReservationID specifies the instance that should be launched in the
+	// reserved compute capacity.
+	// +optional
+	CapacityReservationID string `json:"capacityReservationId,omitempty"`
 }
 
 // CloudInit defines options related to the bootstrapping systems where
