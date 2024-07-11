@@ -472,15 +472,15 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 		})
 
 		t.Run("ReconcileLaunchTemplate not mocked", func(t *testing.T) {
-			g := NewWithT(t)
-			setup(t, g)
-			reconciler.reconcileServiceFactory = nil // use real implementation, but keep EC2 calls mocked (`ec2ServiceFactory`)
-			reconSvc = nil                           // not used
-			defer teardown(t, g)
-
 			launchTemplateIDExisting := "lt-existing"
 
 			t.Run("nothing exists, so launch template and ASG must be created", func(t *testing.T) {
+				g := NewWithT(t)
+				setup(t, g)
+				reconciler.reconcileServiceFactory = nil // use real implementation, but keep EC2 calls mocked (`ec2ServiceFactory`)
+				reconSvc = nil                           // not used
+				defer teardown(t, g)
+
 				ec2Svc.EXPECT().GetLaunchTemplate(gomock.Eq("test")).Return(nil, "", nil, nil)
 				ec2Svc.EXPECT().DiscoverLaunchTemplateAMI(gomock.Any()).Return(ptr.To[string]("ami-abcdef123"), nil)
 				ec2Svc.EXPECT().CreateLaunchTemplate(gomock.Any(), gomock.Eq(ptr.To[string]("ami-abcdef123")), gomock.Eq(userDataSecretKey), gomock.Eq([]byte("shell-script"))).Return("lt-ghijkl456", nil)
@@ -497,6 +497,12 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			})
 
 			t.Run("launch template and ASG exist and need no update", func(t *testing.T) {
+				g := NewWithT(t)
+				setup(t, g)
+				reconciler.reconcileServiceFactory = nil // use real implementation, but keep EC2 calls mocked (`ec2ServiceFactory`)
+				reconSvc = nil                           // not used
+				defer teardown(t, g)
+
 				// Latest ID and version already stored, no need to retrieve it
 				ms.AWSMachinePool.Status.LaunchTemplateID = launchTemplateIDExisting
 				ms.AWSMachinePool.Status.LaunchTemplateVersion = ptr.To[string]("1")
@@ -538,6 +544,12 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			})
 
 			t.Run("launch template and ASG exist and only AMI ID changed", func(t *testing.T) {
+				g := NewWithT(t)
+				setup(t, g)
+				reconciler.reconcileServiceFactory = nil // use real implementation, but keep EC2 calls mocked (`ec2ServiceFactory`)
+				reconSvc = nil                           // not used
+				defer teardown(t, g)
+
 				// Latest ID and version already stored, no need to retrieve it
 				ms.AWSMachinePool.Status.LaunchTemplateID = launchTemplateIDExisting
 				ms.AWSMachinePool.Status.LaunchTemplateVersion = ptr.To[string]("1")
@@ -585,6 +597,12 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			})
 
 			t.Run("launch template and ASG exist and only bootstrap data secret name changed", func(t *testing.T) {
+				g := NewWithT(t)
+				setup(t, g)
+				reconciler.reconcileServiceFactory = nil // use real implementation, but keep EC2 calls mocked (`ec2ServiceFactory`)
+				reconSvc = nil                           // not used
+				defer teardown(t, g)
+
 				// Latest ID and version already stored, no need to retrieve it
 				ms.AWSMachinePool.Status.LaunchTemplateID = launchTemplateIDExisting
 				ms.AWSMachinePool.Status.LaunchTemplateVersion = ptr.To[string]("1")
@@ -635,6 +653,12 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			})
 
 			t.Run("launch template and ASG created from zero, then bootstrap config reference changes", func(t *testing.T) {
+				g := NewWithT(t)
+				setup(t, g)
+				reconciler.reconcileServiceFactory = nil // use real implementation, but keep EC2 calls mocked (`ec2ServiceFactory`)
+				reconSvc = nil                           // not used
+				defer teardown(t, g)
+
 				ec2Svc.EXPECT().GetLaunchTemplate(gomock.Eq("test")).Return(nil, "", nil, nil)
 				ec2Svc.EXPECT().DiscoverLaunchTemplateAMI(gomock.Any()).Return(ptr.To[string]("ami-abcdef123"), nil)
 				ec2Svc.EXPECT().CreateLaunchTemplate(gomock.Any(), gomock.Eq(ptr.To[string]("ami-abcdef123")), gomock.Eq(userDataSecretKey), gomock.Eq([]byte("shell-script"))).Return("lt-ghijkl456", nil)
@@ -650,7 +674,6 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				g.Expect(err).To(Succeed())
 
 				g.Expect(ms.AWSMachinePool.Status.LaunchTemplateID).ToNot(BeEmpty())
-				g.Expect(ptr.Deref[string](ms.AWSMachinePool.Status.LaunchTemplateVersion, "")).ToNot(BeEmpty())
 
 				// Data secret name changes
 				newBootstrapSecret := &corev1.Secret{
@@ -664,6 +687,10 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				}
 				g.Expect(testEnv.Create(ctx, newBootstrapSecret)).To(Succeed())
 				ms.MachinePool.Spec.Template.Spec.Bootstrap.DataSecretName = ptr.To[string](newBootstrapSecret.Name)
+
+				// Since `AWSMachinePool.status.launchTemplateVersion` isn't set yet,
+				// the controller will ask for the current version and then set the status.
+				ec2Svc.EXPECT().GetLaunchTemplateLatestVersion(gomock.Any()).Return("1", nil)
 
 				ec2Svc.EXPECT().GetLaunchTemplate(gomock.Eq("test")).Return(
 					&expinfrav1.AWSLaunchTemplate{
