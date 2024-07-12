@@ -1345,7 +1345,7 @@ func TestReconcileSubnets(t *testing.T) {
 								},
 								{
 									Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-									Value: aws.String("shared"),
+									Value: aws.String("owned"),
 								},
 								{
 									Key:   aws.String("kubernetes.io/role/internal-elb"),
@@ -1391,7 +1391,7 @@ func TestReconcileSubnets(t *testing.T) {
 								},
 								{
 									Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-									Value: aws.String("shared"),
+									Value: aws.String("owned"),
 								},
 								{
 									Key:   aws.String("kubernetes.io/role/elb"),
@@ -1584,7 +1584,7 @@ func TestReconcileSubnets(t *testing.T) {
 								},
 								{
 									Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-									Value: aws.String("shared"),
+									Value: aws.String("owned"),
 								},
 								{
 									Key:   aws.String("kubernetes.io/role/elb"),
@@ -1639,7 +1639,7 @@ func TestReconcileSubnets(t *testing.T) {
 								},
 								{
 									Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-									Value: aws.String("shared"),
+									Value: aws.String("owned"),
 								},
 								{
 									Key:   aws.String("kubernetes.io/role/internal-elb"),
@@ -1758,7 +1758,7 @@ func TestReconcileSubnets(t *testing.T) {
 								},
 								{
 									Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-									Value: aws.String("shared"),
+									Value: aws.String("owned"),
 								},
 								{
 									Key:   aws.String("kubernetes.io/role/elb"),
@@ -1842,7 +1842,7 @@ func TestReconcileSubnets(t *testing.T) {
 								},
 								{
 									Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-									Value: aws.String("shared"),
+									Value: aws.String("owned"),
 								},
 								{
 									Key:   aws.String("kubernetes.io/role/internal-elb"),
@@ -1981,7 +1981,7 @@ func TestReconcileSubnets(t *testing.T) {
 								},
 								{
 									Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-									Value: aws.String("shared"),
+									Value: aws.String("owned"),
 								},
 								{
 									Key:   aws.String("kubernetes.io/role/elb"),
@@ -2036,7 +2036,7 @@ func TestReconcileSubnets(t *testing.T) {
 								},
 								{
 									Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-									Value: aws.String("shared"),
+									Value: aws.String("owned"),
 								},
 								{
 									Key:   aws.String("kubernetes.io/role/internal-elb"),
@@ -2095,7 +2095,7 @@ func TestReconcileSubnets(t *testing.T) {
 								},
 								{
 									Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-									Value: aws.String("shared"),
+									Value: aws.String("owned"),
 								},
 								{
 									Key:   aws.String("kubernetes.io/role/elb"),
@@ -2150,7 +2150,7 @@ func TestReconcileSubnets(t *testing.T) {
 								},
 								{
 									Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-									Value: aws.String("shared"),
+									Value: aws.String("owned"),
 								},
 								{
 									Key:   aws.String("kubernetes.io/role/internal-elb"),
@@ -2254,7 +2254,7 @@ func TestReconcileSubnets(t *testing.T) {
 								},
 								{
 									Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-									Value: aws.String("shared"),
+									Value: aws.String("owned"),
 								},
 								{
 									Key:   aws.String("kubernetes.io/role/elb"),
@@ -2309,7 +2309,7 @@ func TestReconcileSubnets(t *testing.T) {
 								},
 								{
 									Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-									Value: aws.String("shared"),
+									Value: aws.String("owned"),
 								},
 								{
 									Key:   aws.String("kubernetes.io/role/internal-elb"),
@@ -2400,7 +2400,7 @@ func TestReconcileSubnets(t *testing.T) {
 									},
 									{
 										Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-										Value: aws.String("shared"),
+										Value: aws.String("owned"),
 									},
 								},
 							},
@@ -2439,7 +2439,7 @@ func TestReconcileSubnets(t *testing.T) {
 								},
 								{
 									Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-									Value: aws.String("shared"),
+									Value: aws.String("owned"),
 								},
 								{
 									Key:   aws.String("kubernetes.io/role/internal-elb"),
@@ -2542,7 +2542,7 @@ func TestReconcileSubnets(t *testing.T) {
 									},
 									{
 										Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-										Value: aws.String("shared"),
+										Value: aws.String("owned"),
 									},
 								},
 							},
@@ -2581,7 +2581,7 @@ func TestReconcileSubnets(t *testing.T) {
 								},
 								{
 									Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-									Value: aws.String("shared"),
+									Value: aws.String("owned"),
 								},
 								{
 									Key:   aws.String("kubernetes.io/role/internal-elb"),
@@ -2711,7 +2711,7 @@ func TestReconcileSubnets(t *testing.T) {
 								},
 								{
 									Key:   aws.String("kubernetes.io/cluster/test-eks-cluster"),
-									Value: aws.String("shared"),
+									Value: aws.String("owned"),
 								},
 								{
 									Key:   aws.String("kubernetes.io/role/elb"),
@@ -2766,7 +2766,7 @@ func TestReconcileSubnets(t *testing.T) {
 								},
 								{
 									Key:   aws.String("kubernetes.io/cluster/test-eks-cluster"),
-									Value: aws.String("shared"),
+									Value: aws.String("owned"),
 								},
 								{
 									Key:   aws.String("kubernetes.io/role/internal-elb"),
@@ -2813,7 +2813,7 @@ func TestReconcileSubnets(t *testing.T) {
 								},
 								{
 									Key:   aws.String("kubernetes.io/cluster/test-eks-cluster"),
-									Value: aws.String("shared"),
+									Value: aws.String("owned"),
 								},
 								{
 									Key:   aws.String("kubernetes.io/role/elb"),
@@ -2880,7 +2880,7 @@ func TestReconcileSubnets(t *testing.T) {
 								},
 								{
 									Key:   aws.String("kubernetes.io/cluster/test-eks-cluster"),
-									Value: aws.String("shared"),
+									Value: aws.String("owned"),
 								},
 								{
 									Key:   aws.String("kubernetes.io/role/internal-elb"),
@@ -3803,7 +3803,7 @@ func TestService_retrieveZoneInfo(t *testing.T) {
 func stubGetTags(prefix, role, zone string, isEdge bool) []*ec2.Tag {
 	tags := []*ec2.Tag{
 		{Key: aws.String("Name"), Value: aws.String(fmt.Sprintf("%s-subnet-%s-%s", prefix, role, zone))},
-		{Key: aws.String("kubernetes.io/cluster/test-cluster"), Value: aws.String("shared")},
+		{Key: aws.String("kubernetes.io/cluster/test-cluster"), Value: aws.String("owned")},
 	}
 	// tags are returned ordered, inserting LB subnets to prevent diffs...
 	if !isEdge {

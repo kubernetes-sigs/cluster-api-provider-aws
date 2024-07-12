@@ -1004,7 +1004,7 @@ func mockedCallsForMissingEverything(m *mocks.MockEC2APIMockRecorder, e *mocks.M
 					},
 					{
 						Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-						Value: aws.String("shared"),
+						Value: aws.String("owned"),
 					},
 					{
 						Key:   aws.String("kubernetes.io/role/internal-elb"),
@@ -1035,7 +1035,7 @@ func mockedCallsForMissingEverything(m *mocks.MockEC2APIMockRecorder, e *mocks.M
 				},
 				{
 					Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-					Value: aws.String("shared"),
+					Value: aws.String("owned"),
 				},
 				{
 					Key:   aws.String("kubernetes.io/role/internal-elb"),
@@ -1071,7 +1071,7 @@ func mockedCallsForMissingEverything(m *mocks.MockEC2APIMockRecorder, e *mocks.M
 					},
 					{
 						Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-						Value: aws.String("shared"),
+						Value: aws.String("owned"),
 					},
 					{
 						Key:   aws.String("kubernetes.io/role/elb"),
@@ -1102,7 +1102,7 @@ func mockedCallsForMissingEverything(m *mocks.MockEC2APIMockRecorder, e *mocks.M
 				},
 				{
 					Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-					Value: aws.String("shared"),
+					Value: aws.String("owned"),
 				},
 				{
 					Key:   aws.String("kubernetes.io/role/elb"),
