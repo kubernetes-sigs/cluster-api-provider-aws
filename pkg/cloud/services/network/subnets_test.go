@@ -4162,6 +4162,77 @@ func TestReconcileSubnets(t *testing.T) {
 					After(zone2PrivateSubnet)
 			},
 		},
+		{
+			name: "Managed VPC, no subnets exist, one az is explicitly defined, expect one private and one public from default",
+			input: NewClusterScope().WithNetwork(&infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					ID: subnetsVPCID,
+					Tags: infrav1.Tags{
+						infrav1.ClusterTagKey("test-cluster"): "owned",
+					},
+					CidrBlock:         defaultVPCCidr,
+					AvailabilityZones: []string{"us-east-1b"},
+				},
+				Subnets: []infrav1.SubnetSpec{},
+			}),
+
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				describeCall := m.DescribeSubnets(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
+					Filters: []types.Filter{
+						{
+							Name:   aws.String("state"),
+							Values: []string{"pending", "available"},
+						},
+						{
+							Name:   aws.String("vpc-id"),
+							Values: []string{subnetsVPCID},
+						},
+					},
+				})).Return(&ec2.DescribeSubnetsOutput{}, nil)
+
+				m.DescribeAvailabilityZones(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeAvailabilityZonesOutput{
+						AvailabilityZones: []types.AvailabilityZone{
+							{
+								ZoneName: aws.String("us-east-1a"),
+								ZoneType: aws.String("availability-zone"),
+							},
+							{
+								ZoneName: aws.String("us-east-1b"),
+								ZoneType: aws.String("availability-zone"),
+							},
+							{
+								ZoneName: aws.String("us-east-1c"),
+								ZoneType: aws.String("availability-zone"),
+							},
+						},
+					}, nil).Times(3) // called once by getAvailableZones, and twice by createSubnet (one private, one public)
+
+				m.DescribeRouteTables(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+					Return(&ec2.DescribeRouteTablesOutput{}, nil)
+
+				m.DescribeNatGateways(context.TODO(), gomock.Eq(&ec2.DescribeNatGatewaysInput{
+					Filter: []types.Filter{
+						{
+							Name:   aws.String("vpc-id"),
+							Values: []string{subnetsVPCID},
+						},
+						{
+							Name:   aws.String("state"),
+							Values: []string{"pending", "available"},
+						},
+					},
+				}),
+					gomock.Any()).Return(&ec2.DescribeNatGatewaysOutput{}, nil)
+
+				zone1PublicSubnet := stubGenMockCreateSubnet(m, "test-cluster", "us-east-1b", "public", "10.0.0.0/17", false).After(describeCall)
+
+				stubMockModifySubnetAttributeWithContext(m, "subnet-public-us-east-1b").
+					After(zone1PublicSubnet)
+
+				stubGenMockCreateSubnet(m, "test-cluster", "us-east-1b", "private", "10.0.128.0/17", false).After(zone1PublicSubnet)
+			},
+		},
 	}
 
 	for _, tc := range testCases {

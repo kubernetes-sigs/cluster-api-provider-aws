@@ -90,6 +90,7 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.NetworkSpec.AdditionalControlPlaneIngressRules = restored.Spec.NetworkSpec.AdditionalControlPlaneIngressRules
 	dst.Spec.NetworkSpec.AdditionalNodeIngressRules = restored.Spec.NetworkSpec.AdditionalNodeIngressRules
 	dst.Spec.NetworkSpec.NodePortIngressRuleCidrBlocks = restored.Spec.NetworkSpec.NodePortIngressRuleCidrBlocks
+	dst.Spec.NetworkSpec.VPC.AvailabilityZones = restored.Spec.NetworkSpec.VPC.AvailabilityZones
 
 	if restored.Spec.NetworkSpec.VPC.IPAMPool != nil {
 		if dst.Spec.NetworkSpec.VPC.IPAMPool == nil {
