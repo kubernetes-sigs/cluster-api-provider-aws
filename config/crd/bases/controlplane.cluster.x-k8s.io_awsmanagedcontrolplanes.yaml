@@ -2832,6 +2832,11 @@ spec:
               region:
                 description: The AWS Region the cluster lives in.
                 type: string
+              restrictPrivateSubnets:
+                default: false
+                description: RestrictPrivateSubnets indicates that the EKS control
+                  plane should only use private subnets.
+                type: boolean
               roleAdditionalPolicies:
                 description: |-
                   RoleAdditionalPolicies allows you to attach additional polices to
