@@ -5323,19 +5323,20 @@ func mockedGetPrivateDNSDomainNameFromDHCPOptionsEmptyCalls(m *mocks.MockEC2APIM
 
 func TestGetCapacityReservationSpecification(t *testing.T) {
 	mockCapacityReservationID := "cr-123"
+	mockCapacityReservationIDPtr := &mockCapacityReservationID
 	testCases := []struct {
 		name                  string
-		capacityReservationID string
+		capacityReservationID *string
 		expectedRequest       *ec2.CapacityReservationSpecification
 	}{
 		{
 			name:                  "with no CapacityReservationID options specified",
-			capacityReservationID: "",
+			capacityReservationID: nil,
 			expectedRequest:       nil,
 		},
 		{
-			name:                  "with an valid CapacityReservationID specified",
-			capacityReservationID: *aws.String(mockCapacityReservationID),
+			name:                  "with a valid CapacityReservationID specified",
+			capacityReservationID: mockCapacityReservationIDPtr,
 			expectedRequest: &ec2.CapacityReservationSpecification{
 				CapacityReservationTarget: &ec2.CapacityReservationTarget{
 					CapacityReservationId: aws.String(mockCapacityReservationID),

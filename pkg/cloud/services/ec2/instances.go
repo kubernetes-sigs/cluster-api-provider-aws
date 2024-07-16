@@ -1122,20 +1122,17 @@ func filterGroups(list []string, strToFilter string) (newList []string) {
 	return
 }
 
-func getCapacityReservationSpecification(capacityReservationID string) *ec2.CapacityReservationSpecification {
-	if capacityReservationID == "" {
-		// Instance is not a CapacityReservation instance
+func getCapacityReservationSpecification(capacityReservationID *string) *ec2.CapacityReservationSpecification {
+	if capacityReservationID == nil {
+		//  Not targeting any specific Capacity Reservation
 		return nil
 	}
 
-	// Set required values for CapacityReservation
-	capacityReservationTargetOptions := &ec2.CapacityReservationTarget{}
-	capacityReservationTargetOptions.SetCapacityReservationId(capacityReservationID)
-
-	capacityReservationSpecification := &ec2.CapacityReservationSpecification{}
-	capacityReservationSpecification.SetCapacityReservationTarget(capacityReservationTargetOptions)
-
-	return capacityReservationSpecification
+	return &ec2.CapacityReservationSpecification{
+		CapacityReservationTarget: &ec2.CapacityReservationTarget{
+			CapacityReservationId: capacityReservationID,
+		},
+	}
 }
 
 func getInstanceMarketOptionsRequest(spotMarketOptions *infrav1.SpotMarketOptions) *ec2.InstanceMarketOptionsRequest {
