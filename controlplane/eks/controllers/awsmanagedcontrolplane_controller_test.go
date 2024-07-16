@@ -358,7 +358,7 @@ func mockedCallsForMissingEverything(ec2Rec *mocks.MockEC2APIMockRecorder, subne
 						},
 						{
 							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-							Value: aws.String("shared"),
+							Value: aws.String("owned"),
 						},
 						{
 							Key:   aws.String(kubernetesRoleTagKey),
@@ -390,7 +390,7 @@ func mockedCallsForMissingEverything(ec2Rec *mocks.MockEC2APIMockRecorder, subne
 					},
 					{
 						Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-						Value: aws.String("shared"),
+						Value: aws.String("owned"),
 					},
 					{
 						Key:   aws.String("kubernetes.io/role/elb"),
