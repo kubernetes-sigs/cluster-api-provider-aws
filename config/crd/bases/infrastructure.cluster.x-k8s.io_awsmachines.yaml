@@ -625,9 +625,8 @@ spec:
                     type: string
                 type: object
               capacityReservationId:
-                description: |-
-                  CapacityReservationID specifies the instance that should be launched in the
-                  reserved compute capacity.
+                description: CapacityReservationID specifies the target Capacity Reservation
+                  into which the instance should be launched.
                 type: string
               cloudInit:
                 description: |-

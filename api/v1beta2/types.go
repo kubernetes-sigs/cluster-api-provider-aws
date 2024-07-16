@@ -250,10 +250,9 @@ type Instance struct {
 	// +optional
 	PublicIPOnLaunch *bool `json:"publicIPOnLaunch,omitempty"`
 
-	// CapacityReservationID specifies the instance that should be launched in the
-	// reserved compute capacity.
+	// CapacityReservationID specifies the target Capacity Reservation into which the instance should be launched.
 	// +optional
-	CapacityReservationID string `json:"capacityReservationId,omitempty"`
+	CapacityReservationID *string `json:"capacityReservationId,omitempty"`
 }
 
 // InstanceMetadataState describes the state of InstanceMetadataOptions.HttpEndpoint and InstanceMetadataOptions.InstanceMetadataTags
