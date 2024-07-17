@@ -107,16 +107,16 @@ func (r *ROSAControlPlaneReconciler) SetupWithManager(ctx context.Context, mgr c
 	}
 
 	if err = c.Watch(
-		source.Kind(mgr.GetCache(), &clusterv1.Cluster{}),
-		handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, rosaControlPlane.GroupVersionKind(), mgr.GetClient(), &expinfrav1.ROSACluster{})),
-		predicates.ClusterUnpausedAndInfrastructureReady(log.GetLogger()),
+		source.Kind[client.Object](mgr.GetCache(), &clusterv1.Cluster{},
+			handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, rosaControlPlane.GroupVersionKind(), mgr.GetClient(), &expinfrav1.ROSACluster{})),
+			predicates.ClusterUnpausedAndInfrastructureReady(log.GetLogger())),
 	); err != nil {
 		return fmt.Errorf("failed adding a watch for ready clusters: %w", err)
 	}
 
 	if err = c.Watch(
-		source.Kind(mgr.GetCache(), &expinfrav1.ROSACluster{}),
-		handler.EnqueueRequestsFromMapFunc(r.rosaClusterToROSAControlPlane(log)),
+		source.Kind[client.Object](mgr.GetCache(), &expinfrav1.ROSACluster{},
+			handler.EnqueueRequestsFromMapFunc(r.rosaClusterToROSAControlPlane(log))),
 	); err != nil {
 		return fmt.Errorf("failed adding a watch for ROSACluster")
 	}
