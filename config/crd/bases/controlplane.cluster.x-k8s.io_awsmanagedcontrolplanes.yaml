@@ -1378,6 +1378,12 @@ spec:
                         description: MaxPrice defines the maximum price the user is
                           willing to pay for Spot VM instances
                         type: string
+                      waitingTimeout:
+                        description: WaitingTimeout defines the maximum time the user
+                          is willing to wait for acquiring a Spot VM instance, after
+                          that it will fallback to a regular on-demand instance.
+                        format: int64
+                        type: integer
                     type: object
                   sshKeyName:
                     description: The name of the SSH key pair.
@@ -3439,6 +3445,12 @@ spec:
                         description: MaxPrice defines the maximum price the user is
                           willing to pay for Spot VM instances
                         type: string
+                      waitingTimeout:
+                        description: WaitingTimeout defines the maximum time the user
+                          is willing to wait for acquiring a Spot VM instance, after
+                          that it will fallback to a regular on-demand instance.
+                        format: int64
+                        type: integer
                     type: object
                   sshKeyName:
                     description: The name of the SSH key pair.
