@@ -25,6 +25,7 @@ spec:
       instanceType: ${AWS_NODE_MACHINE_TYPE}
       spotMarketOptions:
         maxPrice: ""
+        waitingTimeout: ""
       sshKeyName: ${AWS_SSH_KEY_NAME}
 ```
 Users may also add a `maxPrice` to the options to limit the maximum spend for the instance. It is however, recommended not to set a maxPrice as AWS will cap your spending at the on-demand price if this field is left empty, and you will experience fewer interruptions.
@@ -33,6 +34,14 @@ spec:
   template:
     spotMarketOptions:
       maxPrice: 0.02 # Price in USD per hour (up to 5 decimal places)
+```
+
+Users may also add a `waitingTimeout` to the options to limit waiting time for the Spot instance. After exceeding this timeout a regular ec2 instance will be acquired.
+```yaml
+spec:
+  template:
+    spotMarketOptions:
+      waitingTimeout: "10m" # Time in minutes
 ```
 
 ## Using Spot Instances with AWSManagedMachinePool
