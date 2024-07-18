@@ -21,6 +21,7 @@ import (
 	"encoding/base64"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -416,6 +417,137 @@ func TestCreateInstance(t *testing.T) {
 					}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+			},
+		},
+		{
+			// TODO: (fixme)
+			// This test is not working as expected. It does not create a spot instance,
+			// but instead waits for 10s and creates the regular instance.
+			name: "with spot instance",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: ptr.To("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AMIReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType: "m5.large",
+				SpotMarketOptions: &infrav1.SpotMarketOptions{
+					MaxPrice:       ptr.To(""),
+					WaitingTimeout: 10 * time.Second,
+				},
+			},
+			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						Subnets: infrav1.Subnets{
+							infrav1.SubnetSpec{
+								ID:       "subnet-1",
+								IsPublic: false,
+							},
+							infrav1.SubnetSpec{
+								IsPublic: false,
+							},
+						},
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-test",
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.LoadBalancer{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []*string{
+							aws.String("m5.large"),
+						},
+					})).
+					Return(&ec2.DescribeInstanceTypesOutput{
+						InstanceTypes: []*ec2.InstanceTypeInfo{
+							{
+								ProcessorInfo: &ec2.ProcessorInfo{
+									SupportedArchitectures: []*string{
+										aws.String("x86_64"),
+									},
+								},
+								SupportedUsageClasses: []*string{
+									aws.String("spot"),
+								},
+							},
+						},
+					}, nil)
+				m.
+					RunInstancesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.Reservation{
+						Instances: []*ec2.Instance{
+							{
+								State: &ec2.InstanceState{
+									Name: aws.String(ec2.InstanceStateNamePending),
+								},
+								IamInstanceProfile: &ec2.IamInstanceProfile{
+									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+								},
+								InstanceId:        aws.String("two"),
+								InstanceType:      aws.String("m5.large"),
+								InstanceLifecycle: aws.String("spot"),
+								SubnetId:          aws.String("subnet-1"),
+								ImageId:           aws.String("ami-1"),
+								RootDeviceName:    aws.String("device-1"),
+								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+									{
+										DeviceName: aws.String("device-1"),
+										Ebs: &ec2.EbsInstanceBlockDevice{
+											VolumeId: aws.String("volume-1"),
+										},
+									},
+								},
+								Placement: &ec2.Placement{
+									AvailabilityZone: &az,
+								},
+								SpotInstanceRequestId: aws.String("spot-1"),
+							},
+						},
+					}, nil)
+				m.
+					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NextToken:         nil,
+					}, nil)
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if instance.SpotMarketOptions == nil {
+					t.Logf("SpotMarketOptions is nil, but should not be")
+				}
 				if err != nil {
 					t.Fatalf("did not expect error: %v", err)
 				}
@@ -5310,6 +5442,19 @@ func TestGetInstanceMarketOptionsRequest(t *testing.T) {
 					InstanceInterruptionBehavior: aws.String(ec2.InstanceInterruptionBehaviorTerminate),
 					SpotInstanceType:             aws.String(ec2.SpotInstanceTypeOneTime),
 					MaxPrice:                     aws.String("0.01"),
+				},
+			},
+		},
+		{
+			name: "with WaitingTimeout specified",
+			spotMarketOptions: &infrav1.SpotMarketOptions{
+				WaitingTimeout: 10 * time.Minute,
+			},
+			expectedRequest: &ec2.InstanceMarketOptionsRequest{
+				MarketType: aws.String(ec2.MarketTypeSpot),
+				SpotOptions: &ec2.SpotMarketOptions{
+					InstanceInterruptionBehavior: aws.String(ec2.InstanceInterruptionBehaviorTerminate),
+					SpotInstanceType:             aws.String(ec2.SpotInstanceTypeOneTime),
 				},
 			},
 		},

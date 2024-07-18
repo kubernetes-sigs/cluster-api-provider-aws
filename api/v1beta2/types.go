@@ -17,11 +17,8 @@ limitations under the License.
 package v1beta2
 
 import (
-<<<<<<< HEAD
 	"strings"
-=======
 	"time"
->>>>>>> adad1bff1 (api: add WaitingTimeout in SpotMarketOptions)
 
 	"k8s.io/apimachinery/pkg/util/sets"
 
