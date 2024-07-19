@@ -628,17 +628,10 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 		resources := []string{ec2.ResourceTypeInstance, ec2.ResourceTypeVolume, ec2.ResourceTypeNetworkInterface}
 		for _, r := range resources {
 			spec := &ec2.TagSpecification{ResourceType: aws.String(r)}
-
-			// We need to sort keys for tests to work
-			keys := make([]string, 0, len(i.Tags))
-			for k := range i.Tags {
-				keys = append(keys, k)
-			}
-			sort.Strings(keys)
-			for _, key := range keys {
+			for tagKey, tagValue := range i.Tags {
 				spec.Tags = append(spec.Tags, &ec2.Tag{
-					Key:   aws.String(key),
-					Value: aws.String(i.Tags[key]),
+					Key:   aws.String(tagKey),
+					Value: aws.String(tagValue),
 				})
 			}
 

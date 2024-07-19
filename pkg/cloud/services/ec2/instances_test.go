@@ -19,6 +19,7 @@ package ec2
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -30,6 +31,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -44,6 +46,72 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
+
+type runInstancesInputMatcher struct {
+	runInstancesInput *ec2.RunInstancesInput
+}
+
+func (m runInstancesInputMatcher) Matches(arg interface{}) bool {
+	riiArg, ok := arg.(*ec2.RunInstancesInput)
+	if !ok {
+		return false
+	}
+
+	if *m.runInstancesInput.ImageId != *riiArg.ImageId {
+		return false
+	}
+	if *m.runInstancesInput.InstanceType != *riiArg.InstanceType {
+		return false
+	}
+	if *m.runInstancesInput.KeyName != *riiArg.KeyName {
+		return false
+	}
+	if *m.runInstancesInput.SubnetId != *riiArg.SubnetId {
+		return false
+	}
+	if *m.runInstancesInput.UserData != *riiArg.UserData {
+		return false
+	}
+	if *m.runInstancesInput.MaxCount != *riiArg.MaxCount {
+		return false
+	}
+	if *m.runInstancesInput.MinCount != *riiArg.MinCount {
+		return false
+	}
+
+	if !assert.ElementsMatch(nil, m.runInstancesInput.SecurityGroupIds, riiArg.SecurityGroupIds) {
+		return false
+	}
+
+	if len(m.runInstancesInput.TagSpecifications) != len(riiArg.TagSpecifications) {
+		return false
+	}
+
+	for _, instanceTagSpec := range m.runInstancesInput.TagSpecifications {
+		found := false
+		for _, argTagSpec := range riiArg.TagSpecifications {
+			if *instanceTagSpec.ResourceType == *argTagSpec.ResourceType {
+				found = true
+				if !assert.ElementsMatch(nil, instanceTagSpec.Tags, argTagSpec.Tags) {
+					return false
+				}
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (m runInstancesInputMatcher) String() string {
+	return fmt.Sprintf("has the same elements as %v", m.runInstancesInput)
+}
+
+func RunInstancesInputEq(runInstancesInput *ec2.RunInstancesInput) gomock.Matcher {
+	return runInstancesInputMatcher{runInstancesInput}
+}
 
 func TestInstanceIfExists(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
@@ -671,7 +739,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				}, nil)
 				m.
-					RunInstancesWithContext(context.TODO(), &ec2.RunInstancesInput{
+					RunInstancesWithContext(context.TODO(), RunInstancesInputEq(&ec2.RunInstancesInput{
 						ImageId:          aws.String("abc"),
 						InstanceType:     aws.String("m5.2xlarge"),
 						KeyName:          aws.String("default"),
@@ -757,7 +825,7 @@ func TestCreateInstance(t *testing.T) {
 						UserData: aws.String(base64.StdEncoding.EncodeToString(userDataCompressed)),
 						MaxCount: aws.Int64(1),
 						MinCount: aws.Int64(1),
-					}).Return(&ec2.Reservation{
+					})).Return(&ec2.Reservation{
 					Instances: []*ec2.Instance{
 						{
 							State: &ec2.InstanceState{
@@ -919,7 +987,7 @@ func TestCreateInstance(t *testing.T) {
 					},
 				}, nil)
 				m.
-					RunInstancesWithContext(context.TODO(), &ec2.RunInstancesInput{
+					RunInstancesWithContext(context.TODO(), RunInstancesInputEq(&ec2.RunInstancesInput{
 						ImageId:          aws.String("abc"),
 						InstanceType:     aws.String("m5.2xlarge"),
 						KeyName:          aws.String("default"),
@@ -1005,7 +1073,7 @@ func TestCreateInstance(t *testing.T) {
 						UserData: aws.String(base64.StdEncoding.EncodeToString(userDataCompressed)),
 						MaxCount: aws.Int64(1),
 						MinCount: aws.Int64(1),
-					}).Return(&ec2.Reservation{
+					})).Return(&ec2.Reservation{
 					Instances: []*ec2.Instance{
 						{
 							State: &ec2.InstanceState{
@@ -3337,7 +3405,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstancesWithContext(context.TODO(), gomock.Eq(&ec2.RunInstancesInput{
+					RunInstancesWithContext(context.TODO(), RunInstancesInputEq(&ec2.RunInstancesInput{
 						ImageId:      aws.String("abc"),
 						InstanceType: aws.String("m5.large"),
 						KeyName:      aws.String("default"),
@@ -3546,7 +3614,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstancesWithContext(context.TODO(), gomock.Eq(&ec2.RunInstancesInput{
+					RunInstancesWithContext(context.TODO(), RunInstancesInputEq(&ec2.RunInstancesInput{
 						ImageId:      aws.String("abc"),
 						InstanceType: aws.String("m5.large"),
 						KeyName:      aws.String("default"),
@@ -3775,7 +3843,7 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstancesWithContext(context.TODO(), gomock.Eq(&ec2.RunInstancesInput{
+					RunInstancesWithContext(context.TODO(), RunInstancesInputEq(&ec2.RunInstancesInput{
 						ImageId:      aws.String("abc"),
 						InstanceType: aws.String("m5.large"),
 						KeyName:      aws.String("default"),
@@ -3966,7 +4034,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstancesWithContext(context.TODO(), gomock.Eq(&ec2.RunInstancesInput{
+					RunInstancesWithContext(context.TODO(), RunInstancesInputEq(&ec2.RunInstancesInput{
 						ImageId:      aws.String("abc"),
 						InstanceType: aws.String("m5.large"),
 						KeyName:      aws.String("default"),
