@@ -31,6 +31,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -132,6 +133,10 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 			Annotations: map[string]string{
 				scope.KubeconfigReadyAnnotation: "true", // skip call to workload cluster to prove working control plane node
 			},
+		}		
+		cs.AWSCluster.Spec.NetworkSpec.VPC = infrav1.VPCSpec{
+			ID:        "vpc-exists",
+			CidrBlock: "10.0.0.0/16",
 		}
 		cs.AWSCluster.Status.Network.APIServerELB.DNSName = DNSName
 		cs.AWSCluster.Spec.ControlPlaneLoadBalancer = &infrav1.AWSLoadBalancerSpec{
@@ -168,6 +173,8 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		reconciler.elbServiceFactory = func(scope scope.ELBScope) services.ELBInterface {
 			return elbSvc
 		}
+
+		ec2Mock.EXPECT().AssociateAddressWithContext(context.TODO(), gomock.Any()).MaxTimes(1)
 
 		reconciler.secretsManagerServiceFactory = func(clusterScope cloud.ClusterScoper) services.SecretInterface {
 			return secretMock
@@ -302,6 +309,10 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		g.Expect(err).To(BeNil())
 		cs.Cluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"}}
 		cs.AWSCluster.Status.Network.APIServerELB.DNSName = DNSName
+		cs.AWSCluster.Spec.NetworkSpec.VPC = infrav1.VPCSpec{
+			ID:        "vpc-exists",
+			CidrBlock: "10.0.0.0/16",
+		}
 		cs.AWSCluster.Spec.ControlPlaneLoadBalancer = &infrav1.AWSLoadBalancerSpec{
 			LoadBalancerType: infrav1.LoadBalancerTypeClassic,
 		}
@@ -340,6 +351,8 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		reconciler.secretsManagerServiceFactory = func(clusterScope cloud.ClusterScoper) services.SecretInterface {
 			return secretMock
 		}
+
+		ec2Mock.EXPECT().AssociateAddressWithContext(context.TODO(), gomock.Any()).MaxTimes(1)
 
 		_, err = reconciler.reconcileNormal(ctx, ms, cs, cs, cs, cs)
 		g.Expect(err).Should(HaveOccurred())
@@ -462,7 +475,7 @@ func createAWSMachine(g *WithT, awsMachine *infrav1.AWSMachine) {
 			Namespace: awsMachine.Namespace,
 		}
 		return testEnv.Get(ctx, key, machine) == nil
-	}, 10*time.Second).Should(BeTrue())
+	}, 10*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed get the newly created machine %q", awsMachine.Name))
 }
 
 func getAWSMachine() *infrav1.AWSMachine {
@@ -550,10 +563,6 @@ func mockedCreateSecretCall(s *mock_services.MockSecretInterfaceMockRecorder) {
 func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 	m.DescribeInstancesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
-			{
-				Name:   aws.String("vpc-id"),
-				Values: aws.StringSlice([]string{""}),
-			},
 			{
 				Name:   aws.String("tag:sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 				Values: aws.StringSlice([]string{"owned"}),
@@ -661,10 +670,6 @@ func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 		{
 			Name:   aws.String("state"),
 			Values: aws.StringSlice([]string{"pending", "available"}),
-		},
-		{
-			Name:   aws.String("vpc-id"),
-			Values: aws.StringSlice([]string{""}),
 		},
 		{
 			Name:   aws.String("subnet-id"),

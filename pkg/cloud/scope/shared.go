@@ -17,14 +17,19 @@ limitations under the License.
 package scope
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/external"
 )
 
 var (
@@ -120,6 +125,7 @@ func (p *defaultSubnetPlacementStrategy) getSubnetsForAZs(azs []string, controlP
 				subnets = subnets.FilterPublic()
 			case expinfrav1.AZSubnetTypePrivate:
 				subnets = subnets.FilterPrivate()
+				subnets = subnets.FilterNonCni()
 			}
 		}
 		if len(subnets) == 0 {
@@ -129,4 +135,25 @@ func (p *defaultSubnetPlacementStrategy) getSubnetsForAZs(azs []string, controlP
 	}
 
 	return subnetIDs, nil
+}
+
+// getUnstructuredControlPlane returns the unstructured object for the control plane, if any.
+// When the reference is not set, it returns an empty object.
+func getUnstructuredControlPlane(ctx context.Context, client client.Client, cluster *clusterv1.Cluster) (*unstructured.Unstructured, error) {
+	if cluster.Spec.ControlPlaneRef == nil {
+		// If the control plane ref is not set, return an empty object.
+		// Not having a control plane ref is valid given API contracts.
+		return &unstructured.Unstructured{}, nil
+	}
+
+	namespace := cluster.Spec.ControlPlaneRef.Namespace
+	if namespace == "" {
+		namespace = cluster.Namespace
+	}
+
+	u, err := external.Get(ctx, client, cluster.Spec.ControlPlaneRef, namespace)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to retrieve control plane object %s/%s", cluster.Spec.ControlPlaneRef.Namespace, cluster.Spec.ControlPlaneRef.Name)
+	}
+	return u, nil
 }

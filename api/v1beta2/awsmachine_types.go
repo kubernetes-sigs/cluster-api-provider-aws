@@ -43,6 +43,17 @@ var (
 	SecretBackendSecretsManager = SecretBackend("secrets-manager")
 )
 
+// IgnitionStorageTypeOption defines the different storage types for Ignition.
+type IgnitionStorageTypeOption string
+
+const (
+	// IgnitionStorageTypeOptionClusterObjectStore means the chosen Ignition storage type is ClusterObjectStore.
+	IgnitionStorageTypeOptionClusterObjectStore = IgnitionStorageTypeOption("ClusterObjectStore")
+
+	// IgnitionStorageTypeOptionUnencryptedUserData means the chosen Ignition storage type is UnencryptedUserData.
+	IgnitionStorageTypeOptionUnencryptedUserData = IgnitionStorageTypeOption("UnencryptedUserData")
+)
+
 // AWSMachineSpec defines the desired state of an Amazon EC2 instance.
 type AWSMachineSpec struct {
 	// ProviderID is the unique identifier as specified by the cloud provider.
@@ -102,6 +113,11 @@ type AWSMachineSpec struct {
 	// +optional
 	PublicIP *bool `json:"publicIP,omitempty"`
 
+	// ElasticIPPool is the configuration to allocate Public IPv4 address (Elastic IP/EIP) from user-defined pool.
+	//
+	// +optional
+	ElasticIPPool *ElasticIPPool `json:"elasticIpPool,omitempty"`
+
 	// AdditionalSecurityGroups is an array of references to security groups that should be applied to the
 	// instance. These security groups would be set in addition to any security groups defined
 	// at the cluster level or in the actuator. It is possible to specify either IDs of Filters. Using Filters
@@ -113,6 +129,11 @@ type AWSMachineSpec struct {
 	// the cluster subnet will be used.
 	// +optional
 	Subnet *AWSResourceReference `json:"subnet,omitempty"`
+
+	// SecurityGroupOverrides is an optional set of security groups to use for the node.
+	// This is optional - if not provided security groups from the cluster will be used.
+	// +optional
+	SecurityGroupOverrides map[SecurityGroupRole]string `json:"securityGroupOverrides,omitempty"`
 
 	// SSHKeyName is the name of the ssh key to attach to the instance. Valid values are empty string (do not use SSH keys), a valid SSH key name, or omitted (use the default SSH key name)
 	// +optional
@@ -156,10 +177,22 @@ type AWSMachineSpec struct {
 	// +optional
 	PlacementGroupName string `json:"placementGroupName,omitempty"`
 
+	// PlacementGroupPartition is the partition number within the placement group in which to launch the instance.
+	// This value is only valid if the placement group, referred in `PlacementGroupName`, was created with
+	// strategy set to partition.
+	// +kubebuilder:validation:Minimum:=1
+	// +kubebuilder:validation:Maximum:=7
+	// +optional
+	PlacementGroupPartition int64 `json:"placementGroupPartition,omitempty"`
+
 	// Tenancy indicates if instance should run on shared or single-tenant hardware.
 	// +optional
 	// +kubebuilder:validation:Enum:=default;dedicated;host
 	Tenancy string `json:"tenancy,omitempty"`
+
+	// PrivateDNSName is the options for the instance hostname.
+	// +optional
+	PrivateDNSName *PrivateDNSName `json:"privateDnsName,omitempty"`
 }
 
 // CloudInit defines options related to the bootstrapping systems where
@@ -190,6 +223,7 @@ type CloudInit struct {
 }
 
 // Ignition defines options related to the bootstrapping systems where Ignition is used.
+// For more information on Ignition configuration, see https://coreos.github.io/butane/specs/
 type Ignition struct {
 	// Version defines which version of Ignition will be used to generate bootstrap data.
 	//
@@ -197,6 +231,86 @@ type Ignition struct {
 	// +kubebuilder:default="2.3"
 	// +kubebuilder:validation:Enum="2.3";"3.0";"3.1";"3.2";"3.3";"3.4"
 	Version string `json:"version,omitempty"`
+
+	// StorageType defines how to store the boostrap user data for Ignition.
+	// This can be used to instruct Ignition from where to fetch the user data to bootstrap an instance.
+	//
+	// When omitted, the storage option will default to ClusterObjectStore.
+	//
+	// When set to "ClusterObjectStore", if the capability is available and a Cluster ObjectStore configuration
+	// is correctly provided in the Cluster object (under .spec.s3Bucket),
+	// an object store will be used to store bootstrap user data.
+	//
+	// When set to "UnencryptedUserData", EC2 Instance User Data will be used to store the machine bootstrap user data, unencrypted.
+	// This option is considered less secure than others as user data may contain sensitive informations (keys, certificates, etc.)
+	// and users with ec2:DescribeInstances permission or users running pods
+	// that can access the ec2 metadata service have access to this sensitive information.
+	// So this is only to be used at ones own risk, and only when other more secure options are not viable.
+	//
+	// +optional
+	// +kubebuilder:default="ClusterObjectStore"
+	// +kubebuilder:validation:Enum:="ClusterObjectStore";"UnencryptedUserData"
+	StorageType IgnitionStorageTypeOption `json:"storageType,omitempty"`
+
+	// Proxy defines proxy settings for Ignition.
+	// Only valid for Ignition versions 3.1 and above.
+	// +optional
+	Proxy *IgnitionProxy `json:"proxy,omitempty"`
+
+	// TLS defines TLS settings for Ignition.
+	// Only valid for Ignition versions 3.1 and above.
+	// +optional
+	TLS *IgnitionTLS `json:"tls,omitempty"`
+}
+
+// IgnitionCASource defines the source of the certificate authority to use for Ignition.
+// +kubebuilder:validation:MaxLength:=65536
+type IgnitionCASource string
+
+// IgnitionTLS defines TLS settings for Ignition.
+type IgnitionTLS struct {
+	// CASources defines the list of certificate authorities to use for Ignition.
+	// The value is the certificate bundle (in PEM format). The bundle can contain multiple concatenated certificates.
+	// Supported schemes are http, https, tftp, s3, arn, gs, and `data` (RFC 2397) URL scheme.
+	//
+	// +optional
+	// +kubebuilder:validation:MaxItems=64
+	CASources []IgnitionCASource `json:"certificateAuthorities,omitempty"`
+}
+
+// IgnitionNoProxy defines the list of domains to not proxy for Ignition.
+// +kubebuilder:validation:MaxLength:=2048
+type IgnitionNoProxy string
+
+// IgnitionProxy defines proxy settings for Ignition.
+type IgnitionProxy struct {
+	// HTTPProxy is the HTTP proxy to use for Ignition.
+	// A single URL that specifies the proxy server to use for HTTP and HTTPS requests,
+	// unless overridden by the HTTPSProxy or NoProxy options.
+	// +optional
+	HTTPProxy *string `json:"httpProxy,omitempty"`
+
+	// HTTPSProxy is the HTTPS proxy to use for Ignition.
+	// A single URL that specifies the proxy server to use for HTTPS requests,
+	// unless overridden by the NoProxy option.
+	// +optional
+	HTTPSProxy *string `json:"httpsProxy,omitempty"`
+
+	// NoProxy is the list of domains to not proxy for Ignition.
+	// Specifies a list of strings to hosts that should be excluded from proxying.
+	//
+	// Each value is represented by:
+	// - An IP address prefix (1.2.3.4)
+	// - An IP address prefix in CIDR notation (1.2.3.4/8)
+	// - A domain name
+	//   - A domain name matches that name and all subdomains
+	//   - A domain name with a leading . matches subdomains only
+	// - A special DNS label (*), indicates that no proxying should be done
+	//
+	// An IP address prefix and domain name can also include a literal port number (1.2.3.4:80).
+	// +optional
+	// +kubebuilder:validation:MaxItems=64
+	NoProxy []IgnitionNoProxy `json:"noProxy,omitempty"`
 }
 
 // AWSMachineStatus defines the observed state of AWSMachine.

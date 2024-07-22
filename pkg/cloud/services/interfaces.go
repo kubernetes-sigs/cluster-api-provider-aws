@@ -14,10 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package services contains the interfaces for the AWS services.
 package services
 
 import (
 	"context"
+
+	apimachinerytypes "k8s.io/apimachinery/pkg/types"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
@@ -67,20 +70,30 @@ type EC2Interface interface {
 	TerminateInstanceAndWait(instanceID string) error
 	DetachSecurityGroupsFromNetworkInterface(groups []string, interfaceID string) error
 
-	ReconcileLaunchTemplate(scope scope.LaunchTemplateScope, canUpdateLaunchTemplate func() (bool, error), runPostLaunchTemplateUpdateOperation func() error) error
-	ReconcileTags(scope scope.LaunchTemplateScope, resourceServicesToUpdate []scope.ResourceServiceToUpdate) error
-
 	DiscoverLaunchTemplateAMI(scope scope.LaunchTemplateScope) (*string, error)
-	GetLaunchTemplate(id string) (lt *expinfrav1.AWSLaunchTemplate, userDataHash string, err error)
+	GetLaunchTemplate(id string) (lt *expinfrav1.AWSLaunchTemplate, userDataHash string, userDataSecretKey *apimachinerytypes.NamespacedName, err error)
 	GetLaunchTemplateID(id string) (string, error)
 	GetLaunchTemplateLatestVersion(id string) (string, error)
-	CreateLaunchTemplate(scope scope.LaunchTemplateScope, imageID *string, userData []byte) (string, error)
-	CreateLaunchTemplateVersion(id string, scope scope.LaunchTemplateScope, imageID *string, userData []byte) error
+	CreateLaunchTemplate(scope scope.LaunchTemplateScope, imageID *string, userDataSecretKey apimachinerytypes.NamespacedName, userData []byte) (string, error)
+	CreateLaunchTemplateVersion(id string, scope scope.LaunchTemplateScope, imageID *string, userDataSecretKey apimachinerytypes.NamespacedName, userData []byte) error
 	PruneLaunchTemplateVersions(id string) error
 	DeleteLaunchTemplate(id string) error
 	LaunchTemplateNeedsUpdate(scope scope.LaunchTemplateScope, incoming *expinfrav1.AWSLaunchTemplate, existing *expinfrav1.AWSLaunchTemplate) (bool, error)
 	DeleteBastion() error
 	ReconcileBastion() error
+	// ReconcileElasticIPFromPublicPool reconciles the elastic IP from a custom Public IPv4 Pool.
+	ReconcileElasticIPFromPublicPool(pool *infrav1.ElasticIPPool, instance *infrav1.Instance) error
+
+	// ReleaseElasticIP reconciles the elastic IP from a custom Public IPv4 Pool.
+	ReleaseElasticIP(instanceID string) error
+}
+
+// MachinePoolReconcileInterface encapsulates high-level reconciliation functions regarding EC2 reconciliation. It is
+// separate from EC2Interface so that we can mock AWS requests separately. For example, by not mocking the
+// ReconcileLaunchTemplate function, but mocking EC2Interface, we can test which EC2 API operations would have been called.
+type MachinePoolReconcileInterface interface {
+	ReconcileLaunchTemplate(scope scope.LaunchTemplateScope, ec2svc EC2Interface, canUpdateLaunchTemplate func() (bool, error), runPostLaunchTemplateUpdateOperation func() error) error
+	ReconcileTags(scope scope.LaunchTemplateScope, resourceServicesToUpdate []scope.ResourceServiceToUpdate) error
 }
 
 // SecretInterface encapsulated the methods exposed to the
@@ -97,11 +110,11 @@ type ELBInterface interface {
 	DeleteLoadbalancers() error
 	ReconcileLoadbalancers() error
 	IsInstanceRegisteredWithAPIServerELB(i *infrav1.Instance) (bool, error)
-	IsInstanceRegisteredWithAPIServerLB(i *infrav1.Instance) ([]string, bool, error)
+	IsInstanceRegisteredWithAPIServerLB(i *infrav1.Instance, lb *infrav1.AWSLoadBalancerSpec) ([]string, bool, error)
 	DeregisterInstanceFromAPIServerELB(i *infrav1.Instance) error
 	DeregisterInstanceFromAPIServerLB(targetGroupArn string, i *infrav1.Instance) error
 	RegisterInstanceWithAPIServerELB(i *infrav1.Instance) error
-	RegisterInstanceWithAPIServerLB(i *infrav1.Instance) error
+	RegisterInstanceWithAPIServerLB(i *infrav1.Instance, lb *infrav1.AWSLoadBalancerSpec) error
 }
 
 // NetworkInterface encapsulates the methods exposed to the cluster
@@ -130,4 +143,19 @@ type ObjectStoreInterface interface {
 	Delete(key string) error
 	Create(key string, data []byte) (objectURL string, err error)
 	CreatePublic(key string, data []byte) (objectURL string, err error)
+}
+
+// AWSNodeInterface installs the CNI for EKS clusters.
+type AWSNodeInterface interface {
+	ReconcileCNI(ctx context.Context) error
+}
+
+// IAMAuthenticatorInterface installs aws-iam-authenticator for EKS clusters.
+type IAMAuthenticatorInterface interface {
+	ReconcileIAMAuthenticator(ctx context.Context) error
+}
+
+// KubeProxyInterface installs kube-proxy for EKS clusters.
+type KubeProxyInterface interface {
+	ReconcileKubeProxy(ctx context.Context) error
 }

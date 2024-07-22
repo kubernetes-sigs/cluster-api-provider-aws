@@ -15,3 +15,4 @@
 | ExternalResourceGC            | EXP_EXTERNAL_RESOURCE_GC          | false |
 | AlternativeGCStrategy         | EXP_ALTERNATIVE_GC_STRATEGY       | false |
 | TagUnmanagedNetworkResources  | TAG_UNMANAGED_NETWORK_RESOURCES   | true  |
+| ROSA                          | EXP_ROSA                          | false |

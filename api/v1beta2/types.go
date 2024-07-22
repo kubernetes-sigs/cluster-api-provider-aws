@@ -80,6 +80,7 @@ const (
 	ExternalResourceGCTasksAnnotation = "aws.cluster.x-k8s.io/external-resource-tasks-gc"
 )
 
+// GCTask defines a task to be executed by the garbage collector.
 type GCTask string
 
 var (
@@ -221,6 +222,14 @@ type Instance struct {
 	// +optional
 	PlacementGroupName string `json:"placementGroupName,omitempty"`
 
+	// PlacementGroupPartition is the partition number within the placement group in which to launch the instance.
+	// This value is only valid if the placement group, referred in `PlacementGroupName`, was created with
+	// strategy set to partition.
+	// +kubebuilder:validation:Minimum:=1
+	// +kubebuilder:validation:Maximum:=7
+	// +optional
+	PlacementGroupPartition int64 `json:"placementGroupPartition,omitempty"`
+
 	// Tenancy indicates if instance should run on shared or single-tenant hardware.
 	// +optional
 	Tenancy string `json:"tenancy,omitempty"`
@@ -232,6 +241,14 @@ type Instance struct {
 	// InstanceMetadataOptions is the metadata options for the EC2 instance.
 	// +optional
 	InstanceMetadataOptions *InstanceMetadataOptions `json:"instanceMetadataOptions,omitempty"`
+
+	// PrivateDNSName is the options for the instance hostname.
+	// +optional
+	PrivateDNSName *PrivateDNSName `json:"privateDnsName,omitempty"`
+
+	// PublicIPOnLaunch is the option to associate a public IP on instance launch
+	// +optional
+	PublicIPOnLaunch *bool `json:"publicIPOnLaunch,omitempty"`
 }
 
 // InstanceMetadataState describes the state of InstanceMetadataOptions.HttpEndpoint and InstanceMetadataOptions.InstanceMetadataTags
@@ -309,6 +326,7 @@ type InstanceMetadataOptions struct {
 	InstanceMetadataTags InstanceMetadataState `json:"instanceMetadataTags,omitempty"`
 }
 
+// SetDefaults sets the default values for the InstanceMetadataOptions.
 func (obj *InstanceMetadataOptions) SetDefaults() {
 	if obj.HTTPEndpoint == "" {
 		obj.HTTPEndpoint = InstanceMetadataEndpointStateEnabled
@@ -407,6 +425,20 @@ const (
 	// AmazonLinuxGPU is the AmazonLinux GPU AMI type.
 	AmazonLinuxGPU EKSAMILookupType = "AmazonLinuxGPU"
 )
+
+// PrivateDNSName is the options for the instance hostname.
+type PrivateDNSName struct {
+	// EnableResourceNameDNSAAAARecord indicates whether to respond to DNS queries for instance hostnames with DNS AAAA records.
+	// +optional
+	EnableResourceNameDNSAAAARecord *bool `json:"enableResourceNameDnsAAAARecord,omitempty"`
+	// EnableResourceNameDNSARecord indicates whether to respond to DNS queries for instance hostnames with DNS A records.
+	// +optional
+	EnableResourceNameDNSARecord *bool `json:"enableResourceNameDnsARecord,omitempty"`
+	// The type of hostname to assign to an instance.
+	// +optional
+	// +kubebuilder:validation:Enum:=ip-name;resource-name
+	HostnameType *string `json:"hostnameType,omitempty"`
+}
 
 // OIDCProviderStatus holds the status of the AWS OIDC identity provider.
 type OIDCProviderStatus struct {

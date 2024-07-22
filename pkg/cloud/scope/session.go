@@ -104,7 +104,7 @@ func sessionForRegion(region string, endpoint []ServiceEndpoint) (*session.Sessi
 	return ns, sl, nil
 }
 
-func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.ClusterScoper, region string, endpoint []ServiceEndpoint, log logger.Wrapper) (*session.Session, throttle.ServiceLimiters, error) {
+func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.SessionMetadata, region string, endpoint []ServiceEndpoint, log logger.Wrapper) (*session.Session, throttle.ServiceLimiters, error) {
 	log = log.WithName("identity")
 	log.Trace("Creating an AWS Session")
 
@@ -120,7 +120,7 @@ func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.Cl
 		return endpoints.DefaultResolver().EndpointFor(service, region, optFns...)
 	}
 
-	providers, err := getProvidersForCluster(context.Background(), k8sClient, clusterScoper, log)
+	providers, err := getProvidersForCluster(context.Background(), k8sClient, clusterScoper, region, log)
 	if err != nil {
 		// could not get providers and retrieve the credentials
 		conditions.MarkFalse(clusterScoper.InfraCluster(), infrav1.PrincipalCredentialRetrievedCondition, infrav1.PrincipalCredentialRetrievalFailedReason, clusterv1.ConditionSeverityError, err.Error())
@@ -186,7 +186,7 @@ func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.Cl
 	return ns, sl, nil
 }
 
-func getSessionName(region string, clusterScoper cloud.ClusterScoper) string {
+func getSessionName(region string, clusterScoper cloud.SessionMetadata) string {
 	return fmt.Sprintf("%s-%s-%s", region, clusterScoper.InfraClusterName(), clusterScoper.Namespace())
 }
 
@@ -254,8 +254,9 @@ func buildProvidersForRef(
 	ctx context.Context,
 	providers []identity.AWSPrincipalTypeProvider,
 	k8sClient client.Client,
-	clusterScoper cloud.ClusterScoper,
+	clusterScoper cloud.SessionMetadata,
 	ref *infrav1.AWSIdentityReference,
+	region string,
 	log logger.Wrapper) ([]identity.AWSPrincipalTypeProvider, error) {
 	if ref == nil {
 		log.Trace("AWSCluster does not have a IdentityRef specified")
@@ -299,7 +300,7 @@ func buildProvidersForRef(
 		setPrincipalUsageAllowedCondition(clusterScoper)
 
 		if roleIdentity.Spec.SourceIdentityRef != nil {
-			providers, err = buildProvidersForRef(ctx, providers, k8sClient, clusterScoper, roleIdentity.Spec.SourceIdentityRef, log)
+			providers, err = buildProvidersForRef(ctx, providers, k8sClient, clusterScoper, roleIdentity.Spec.SourceIdentityRef, region, log)
 			if err != nil {
 				return providers, err
 			}
@@ -313,11 +314,7 @@ func buildProvidersForRef(
 			}
 		}
 
-		if sourceProvider != nil {
-			provider = identity.NewAWSRolePrincipalTypeProvider(roleIdentity, &sourceProvider, log)
-		} else {
-			provider = identity.NewAWSRolePrincipalTypeProvider(roleIdentity, nil, log)
-		}
+		provider = identity.NewAWSRolePrincipalTypeProvider(roleIdentity, sourceProvider, region, log)
 		providers = append(providers, provider)
 	default:
 		return providers, errors.Errorf("No such provider known: '%s'", ref.Kind)
@@ -326,11 +323,11 @@ func buildProvidersForRef(
 	return providers, nil
 }
 
-func setPrincipalUsageAllowedCondition(clusterScoper cloud.ClusterScoper) {
+func setPrincipalUsageAllowedCondition(clusterScoper cloud.SessionMetadata) {
 	conditions.MarkTrue(clusterScoper.InfraCluster(), infrav1.PrincipalUsageAllowedCondition)
 }
 
-func setPrincipalUsageNotAllowedCondition(kind infrav1.AWSIdentityKind, identityObjectKey client.ObjectKey, clusterScoper cloud.ClusterScoper) {
+func setPrincipalUsageNotAllowedCondition(kind infrav1.AWSIdentityKind, identityObjectKey client.ObjectKey, clusterScoper cloud.SessionMetadata) {
 	errMsg := fmt.Sprintf(notPermittedError, kind, identityObjectKey.Name)
 
 	if clusterScoper.IdentityRef().Name == identityObjectKey.Name {
@@ -340,7 +337,7 @@ func setPrincipalUsageNotAllowedCondition(kind infrav1.AWSIdentityKind, identity
 	}
 }
 
-func buildAWSClusterStaticIdentity(ctx context.Context, identityObjectKey client.ObjectKey, k8sClient client.Client, clusterScoper cloud.ClusterScoper) (*identity.AWSStaticPrincipalTypeProvider, error) {
+func buildAWSClusterStaticIdentity(ctx context.Context, identityObjectKey client.ObjectKey, k8sClient client.Client, clusterScoper cloud.SessionMetadata) (*identity.AWSStaticPrincipalTypeProvider, error) {
 	staticPrincipal := &infrav1.AWSClusterStaticIdentity{}
 	err := k8sClient.Get(ctx, identityObjectKey, staticPrincipal)
 	if err != nil {
@@ -382,7 +379,7 @@ func buildAWSClusterStaticIdentity(ctx context.Context, identityObjectKey client
 	return identity.NewAWSStaticPrincipalTypeProvider(staticPrincipal, secret), nil
 }
 
-func buildAWSClusterControllerIdentity(ctx context.Context, identityObjectKey client.ObjectKey, k8sClient client.Client, clusterScoper cloud.ClusterScoper) error {
+func buildAWSClusterControllerIdentity(ctx context.Context, identityObjectKey client.ObjectKey, k8sClient client.Client, clusterScoper cloud.SessionMetadata) error {
 	controllerIdentity := &infrav1.AWSClusterControllerIdentity{}
 	controllerIdentity.Kind = string(infrav1.ControllerIdentityKind)
 
@@ -408,9 +405,9 @@ func buildAWSClusterControllerIdentity(ctx context.Context, identityObjectKey cl
 	return nil
 }
 
-func getProvidersForCluster(ctx context.Context, k8sClient client.Client, clusterScoper cloud.ClusterScoper, log logger.Wrapper) ([]identity.AWSPrincipalTypeProvider, error) {
+func getProvidersForCluster(ctx context.Context, k8sClient client.Client, clusterScoper cloud.SessionMetadata, region string, log logger.Wrapper) ([]identity.AWSPrincipalTypeProvider, error) {
 	providers := make([]identity.AWSPrincipalTypeProvider, 0)
-	providers, err := buildProvidersForRef(ctx, providers, k8sClient, clusterScoper, clusterScoper.IdentityRef(), log)
+	providers, err := buildProvidersForRef(ctx, providers, k8sClient, clusterScoper, clusterScoper.IdentityRef(), region, log)
 	if err != nil {
 		return nil, err
 	}

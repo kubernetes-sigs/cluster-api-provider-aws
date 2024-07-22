@@ -17,6 +17,7 @@ limitations under the License.
 package bootstrap
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path"
@@ -24,7 +25,7 @@ import (
 
 	"github.com/awslabs/goformation/v4/cloudformation"
 	"github.com/sergi/go-diff/diffmatchpatch"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/yaml"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -73,7 +74,7 @@ func TestRenderCloudformation(t *testing.T) {
 			fixture: "customsuffix",
 			template: func() Template {
 				t := NewTemplate()
-				t.Spec.NameSuffix = pointer.String(".custom-suffix.com")
+				t.Spec.NameSuffix = ptr.To[string](".custom-suffix.com")
 				return t
 			},
 		},
@@ -201,7 +202,7 @@ func TestRenderCloudformation(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if string(tData) != string(data) {
+			if !bytes.Equal(tData, data) {
 				dmp := diffmatchpatch.New()
 				diffs := dmp.DiffMain(string(tData), string(data), false)
 				out := dmp.DiffPrettyText(diffs)

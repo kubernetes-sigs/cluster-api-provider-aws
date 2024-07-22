@@ -29,6 +29,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/helpers"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	kubeadmv1beta1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 )
 
 var (
@@ -45,6 +46,7 @@ func TestMain(m *testing.M) {
 func setup() {
 	utilruntime.Must(infrav1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(kubeadmv1beta1.AddToScheme(scheme.Scheme))
 	testEnvConfig := helpers.NewTestEnvironmentConfiguration([]string{
 		path.Join("config", "crd", "bases"),
 	},

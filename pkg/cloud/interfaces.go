@@ -14,10 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package cloud contains interfaces for working with AWS resources.
 package cloud
 
 import (
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -30,7 +32,7 @@ import (
 // Session represents an AWS session.
 type Session interface {
 	Session() awsclient.ConfigProvider
-	ServiceLimiter(string) *throttle.ServiceLimiter
+	ServiceLimiter(service string) *throttle.ServiceLimiter
 }
 
 // ScopeUsage is used to indicate which controller is using a scope.
@@ -67,6 +69,8 @@ type ClusterScoper interface {
 
 	// Cluster returns the cluster object.
 	ClusterObj() ClusterObject
+	// UnstructuredControlPlane returns the unstructured control plane object.
+	UnstructuredControlPlane() (*unstructured.Unstructured, error)
 
 	// IdentityRef returns the AWS infrastructure cluster identityRef.
 	IdentityRef() *infrav1.AWSIdentityReference
@@ -83,4 +87,16 @@ type ClusterScoper interface {
 	PatchObject() error
 	// Close closes the current scope persisting the cluster configuration and status.
 	Close() error
+}
+
+// SessionMetadata knows how to extract the information for managing AWS sessions for a resource.
+type SessionMetadata interface {
+	// Namespace returns the cluster namespace.
+	Namespace() string
+	// InfraClusterName returns the AWS infrastructure cluster name.
+	InfraClusterName() string
+	// InfraCluster returns the AWS infrastructure cluster object.
+	InfraCluster() ClusterObject
+	// IdentityRef returns the AWS infrastructure cluster identityRef.
+	IdentityRef() *infrav1.AWSIdentityReference
 }

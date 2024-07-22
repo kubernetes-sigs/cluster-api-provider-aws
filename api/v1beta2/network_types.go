@@ -20,6 +20,10 @@ import (
 	"fmt"
 	"sort"
 	"time"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
+	"k8s.io/utils/ptr"
 )
 
 const (
@@ -27,6 +31,23 @@ const (
 	DefaultAPIServerPort = 6443
 	// DefaultAPIServerPortString defines the API server port as a string for convenience.
 	DefaultAPIServerPortString = "6443"
+	// DefaultAPIServerHealthCheckPath the API server health check path.
+	DefaultAPIServerHealthCheckPath = "/readyz"
+	// DefaultAPIServerHealthCheckIntervalSec the API server health check interval in seconds.
+	DefaultAPIServerHealthCheckIntervalSec = 10
+	// DefaultAPIServerHealthCheckTimeoutSec the API server health check timeout in seconds.
+	DefaultAPIServerHealthCheckTimeoutSec = 5
+	// DefaultAPIServerHealthThresholdCount the API server health check threshold count.
+	DefaultAPIServerHealthThresholdCount = 5
+	// DefaultAPIServerUnhealthThresholdCount the API server unhealthy check threshold count.
+	DefaultAPIServerUnhealthThresholdCount = 3
+
+	// ZoneTypeAvailabilityZone defines the regular AWS zones in the Region.
+	ZoneTypeAvailabilityZone ZoneType = "availability-zone"
+	// ZoneTypeLocalZone defines the AWS zone type in Local Zone infrastructure.
+	ZoneTypeLocalZone ZoneType = "local-zone"
+	// ZoneTypeWavelengthZone defines the AWS zone type in Wavelength infrastructure.
+	ZoneTypeWavelengthZone ZoneType = "wavelength-zone"
 )
 
 // NetworkStatus encapsulates AWS networking resources.
@@ -36,6 +57,9 @@ type NetworkStatus struct {
 
 	// APIServerELB is the Kubernetes api server load balancer.
 	APIServerELB LoadBalancer `json:"apiServerElb,omitempty"`
+
+	// SecondaryAPIServerELB is the secondary Kubernetes api server load balancer.
+	SecondaryAPIServerELB LoadBalancer `json:"secondaryAPIServerELB,omitempty"`
 
 	// NatGatewaysIPs contains the public IPs of the NAT Gateways
 	NatGatewaysIPs []string `json:"natGatewaysIPs,omitempty"`
@@ -91,18 +115,97 @@ var (
 
 // TargetGroupHealthCheck defines health check settings for the target group.
 type TargetGroupHealthCheck struct {
-	Protocol        *string `json:"protocol,omitempty"`
-	Path            *string `json:"path,omitempty"`
-	Port            *string `json:"port,omitempty"`
-	IntervalSeconds *int64  `json:"intervalSeconds,omitempty"`
-	TimeoutSeconds  *int64  `json:"timeoutSeconds,omitempty"`
-	ThresholdCount  *int64  `json:"thresholdCount,omitempty"`
+	Protocol                *string `json:"protocol,omitempty"`
+	Path                    *string `json:"path,omitempty"`
+	Port                    *string `json:"port,omitempty"`
+	IntervalSeconds         *int64  `json:"intervalSeconds,omitempty"`
+	TimeoutSeconds          *int64  `json:"timeoutSeconds,omitempty"`
+	ThresholdCount          *int64  `json:"thresholdCount,omitempty"`
+	UnhealthyThresholdCount *int64  `json:"unhealthyThresholdCount,omitempty"`
+}
+
+// TargetGroupHealthCheckAPISpec defines the optional health check settings for the API target group.
+type TargetGroupHealthCheckAPISpec struct {
+	// The approximate amount of time, in seconds, between health checks of an individual
+	// target.
+	// +kubebuilder:validation:Minimum=5
+	// +kubebuilder:validation:Maximum=300
+	// +optional
+	IntervalSeconds *int64 `json:"intervalSeconds,omitempty"`
+
+	// The amount of time, in seconds, during which no response from a target means
+	// a failed health check.
+	// +kubebuilder:validation:Minimum=2
+	// +kubebuilder:validation:Maximum=120
+	// +optional
+	TimeoutSeconds *int64 `json:"timeoutSeconds,omitempty"`
+
+	// The number of consecutive health check successes required before considering
+	// a target healthy.
+	// +kubebuilder:validation:Minimum=2
+	// +kubebuilder:validation:Maximum=10
+	// +optional
+	ThresholdCount *int64 `json:"thresholdCount,omitempty"`
+
+	// The number of consecutive health check failures required before considering
+	// a target unhealthy.
+	// +kubebuilder:validation:Minimum=2
+	// +kubebuilder:validation:Maximum=10
+	// +optional
+	UnhealthyThresholdCount *int64 `json:"unhealthyThresholdCount,omitempty"`
+}
+
+// TargetGroupHealthCheckAdditionalSpec defines the optional health check settings for the additional target groups.
+type TargetGroupHealthCheckAdditionalSpec struct {
+	// The protocol to use to health check connect with the target. When not specified the Protocol
+	// will be the same of the listener.
+	// +kubebuilder:validation:Enum=TCP;HTTP;HTTPS
+	// +optional
+	Protocol *string `json:"protocol,omitempty"`
+
+	// The port the load balancer uses when performing health checks for additional target groups. When
+	// not specified this value will be set for the same of listener port.
+	// +optional
+	Port *string `json:"port,omitempty"`
+
+	// The destination for health checks on the targets when using the protocol HTTP or HTTPS,
+	// otherwise the path will be ignored.
+	// +optional
+	Path *string `json:"path,omitempty"`
+	// The approximate amount of time, in seconds, between health checks of an individual
+	// target.
+	// +kubebuilder:validation:Minimum=5
+	// +kubebuilder:validation:Maximum=300
+	// +optional
+	IntervalSeconds *int64 `json:"intervalSeconds,omitempty"`
+
+	// The amount of time, in seconds, during which no response from a target means
+	// a failed health check.
+	// +kubebuilder:validation:Minimum=2
+	// +kubebuilder:validation:Maximum=120
+	// +optional
+	TimeoutSeconds *int64 `json:"timeoutSeconds,omitempty"`
+
+	// The number of consecutive health check successes required before considering
+	// a target healthy.
+	// +kubebuilder:validation:Minimum=2
+	// +kubebuilder:validation:Maximum=10
+	// +optional
+	ThresholdCount *int64 `json:"thresholdCount,omitempty"`
+
+	// The number of consecutive health check failures required before considering
+	// a target unhealthy.
+	// +kubebuilder:validation:Minimum=2
+	// +kubebuilder:validation:Maximum=10
+	// +optional
+	UnhealthyThresholdCount *int64 `json:"unhealthyThresholdCount,omitempty"`
 }
 
 // TargetGroupAttribute defines attribute key values for V2 Load Balancer Attributes.
 type TargetGroupAttribute string
 
 var (
+	// TargetGroupAttributeEnablePreserveClientIP defines the attribute key for enabling preserve client IP.
 	TargetGroupAttributeEnablePreserveClientIP = "preserve_client_ip.enabled"
 )
 
@@ -110,8 +213,11 @@ var (
 type LoadBalancerAttribute string
 
 var (
-	LoadBalancerAttributeEnableLoadBalancingCrossZone           = "load_balancing.cross_zone.enabled"
-	LoadBalancerAttributeIdleTimeTimeoutSeconds                 = "idle_timeout.timeout_seconds"
+	// LoadBalancerAttributeEnableLoadBalancingCrossZone defines the attribute key for enabling load balancing cross zone.
+	LoadBalancerAttributeEnableLoadBalancingCrossZone = "load_balancing.cross_zone.enabled"
+	// LoadBalancerAttributeIdleTimeTimeoutSeconds defines the attribute key for idle timeout.
+	LoadBalancerAttributeIdleTimeTimeoutSeconds = "idle_timeout.timeout_seconds"
+	// LoadBalancerAttributeIdleTimeDefaultTimeoutSecondsInSeconds defines the default idle timeout in seconds.
 	LoadBalancerAttributeIdleTimeDefaultTimeoutSecondsInSeconds = "60"
 )
 
@@ -119,6 +225,7 @@ var (
 // This is created first, and the ARN is then passed to the listener.
 type TargetGroupSpec struct {
 	// Name of the TargetGroup. Must be unique over the same group of listeners.
+	// +kubebuilder:validation:MaxLength=32
 	Name string `json:"name"`
 	// Port is the exposed port
 	Port int64 `json:"port"`
@@ -304,6 +411,12 @@ type VPCSpec struct {
 	// +optional
 	InternetGatewayID *string `json:"internetGatewayId,omitempty"`
 
+	// CarrierGatewayID is the id of the internet gateway associated with the VPC,
+	// for carrier network (Wavelength Zones).
+	// +optional
+	// +kubebuilder:validation:XValidation:rule="self.startsWith('cagw-')",message="Carrier Gateway ID must start with 'cagw-'"
+	CarrierGatewayID *string `json:"carrierGatewayId,omitempty"`
+
 	// Tags is a collection of tags describing the resource.
 	Tags Tags `json:"tags,omitempty"`
 
@@ -323,6 +436,31 @@ type VPCSpec struct {
 	// +kubebuilder:default=Ordered
 	// +kubebuilder:validation:Enum=Ordered;Random
 	AvailabilityZoneSelection *AZSelectionScheme `json:"availabilityZoneSelection,omitempty"`
+
+	// EmptyRoutesDefaultVPCSecurityGroup specifies whether the default VPC security group ingress
+	// and egress rules should be removed.
+	//
+	// By default, when creating a VPC, AWS creates a security group called `default` with ingress and egress
+	// rules that allow traffic from anywhere. The group could be used as a potential surface attack and
+	// it's generally suggested that the group rules are removed or modified appropriately.
+	//
+	// NOTE: This only applies when the VPC is managed by the Cluster API AWS controller.
+	//
+	// +optional
+	EmptyRoutesDefaultVPCSecurityGroup bool `json:"emptyRoutesDefaultVPCSecurityGroup,omitempty"`
+
+	// PrivateDNSHostnameTypeOnLaunch is the type of hostname to assign to instances in the subnet at launch.
+	// For IPv4-only and dual-stack (IPv4 and IPv6) subnets, an instance DNS name can be based on the instance IPv4 address (ip-name)
+	// or the instance ID (resource-name). For IPv6 only subnets, an instance DNS name must be based on the instance ID (resource-name).
+	// +optional
+	// +kubebuilder:validation:Enum:=ip-name;resource-name
+	PrivateDNSHostnameTypeOnLaunch *string `json:"privateDnsHostnameTypeOnLaunch,omitempty"`
+
+	// ElasticIPPool contains specific configuration to allocate Public IPv4 address (Elastic IP) from user-defined pool
+	// brought to AWS for core infrastructure resources, like NAT Gateways and Public Network Load Balancers for
+	// the API Server.
+	// +optional
+	ElasticIPPool *ElasticIPPool `json:"elasticIpPool,omitempty"`
 }
 
 // String returns a string representation of the VPC.
@@ -343,6 +481,22 @@ func (v *VPCSpec) IsManaged(clusterName string) bool {
 // IsIPv6Enabled returns true if the IPv6 block is defined on the network spec.
 func (v *VPCSpec) IsIPv6Enabled() bool {
 	return v.IPv6 != nil
+}
+
+// GetElasticIPPool returns the custom Elastic IP Pool configuration when present.
+func (v *VPCSpec) GetElasticIPPool() *ElasticIPPool {
+	return v.ElasticIPPool
+}
+
+// GetPublicIpv4Pool returns the custom public IPv4 pool brought to AWS when present.
+func (v *VPCSpec) GetPublicIpv4Pool() *string {
+	if v.ElasticIPPool == nil {
+		return nil
+	}
+	if v.ElasticIPPool.PublicIpv4Pool != nil {
+		return v.ElasticIPPool.PublicIpv4Pool
+	}
+	return nil
 }
 
 // SubnetSpec configures an AWS Subnet.
@@ -394,6 +548,42 @@ type SubnetSpec struct {
 
 	// Tags is a collection of tags describing the resource.
 	Tags Tags `json:"tags,omitempty"`
+
+	// ZoneType defines the type of the zone where the subnet is created.
+	//
+	// The valid values are availability-zone, local-zone, and wavelength-zone.
+	//
+	// Subnet with zone type availability-zone (regular) is always selected to create cluster
+	// resources, like Load Balancers, NAT Gateways, Contol Plane nodes, etc.
+	//
+	// Subnet with zone type local-zone or wavelength-zone is not eligible to automatically create
+	// regular cluster resources.
+	//
+	// The public subnet in availability-zone or local-zone is associated with regular public
+	// route table with default route entry to a Internet Gateway.
+	//
+	// The public subnet in wavelength-zone is associated with a carrier public
+	// route table with default route entry to a Carrier Gateway.
+	//
+	// The private subnet in the availability-zone is associated with a private route table with
+	// the default route entry to a NAT Gateway created in that zone.
+	//
+	// The private subnet in the local-zone or wavelength-zone is associated with a private route table with
+	// the default route entry re-using the NAT Gateway in the Region (preferred from the
+	// parent zone, the zone type availability-zone in the region, or first table available).
+	//
+	// +kubebuilder:validation:Enum=availability-zone;local-zone;wavelength-zone
+	// +optional
+	ZoneType *ZoneType `json:"zoneType,omitempty"`
+
+	// ParentZoneName is the zone name where the current subnet's zone is tied when
+	// the zone is a Local Zone.
+	//
+	// The subnets in Local Zone or Wavelength Zone locations consume the ParentZoneName
+	// to select the correct private route table to egress traffic to the internet.
+	//
+	// +optional
+	ParentZoneName *string `json:"parentZoneName,omitempty"`
 }
 
 // GetResourceID returns the identifier for this subnet,
@@ -408,6 +598,59 @@ func (s *SubnetSpec) GetResourceID() string {
 // String returns a string representation of the subnet.
 func (s *SubnetSpec) String() string {
 	return fmt.Sprintf("id=%s/az=%s/public=%v", s.GetResourceID(), s.AvailabilityZone, s.IsPublic)
+}
+
+// IsEdge returns the true when the subnet is created in the edge zone,
+// Local Zones.
+func (s *SubnetSpec) IsEdge() bool {
+	if s.ZoneType == nil {
+		return false
+	}
+	if s.ZoneType.Equal(ZoneTypeLocalZone) {
+		return true
+	}
+	if s.ZoneType.Equal(ZoneTypeWavelengthZone) {
+		return true
+	}
+	return false
+}
+
+// IsEdgeWavelength returns true only when the subnet is created in Wavelength Zone.
+func (s *SubnetSpec) IsEdgeWavelength() bool {
+	if s.ZoneType == nil {
+		return false
+	}
+	if *s.ZoneType == ZoneTypeWavelengthZone {
+		return true
+	}
+	return false
+}
+
+// SetZoneInfo updates the subnets with zone information.
+func (s *SubnetSpec) SetZoneInfo(zones []*ec2.AvailabilityZone) error {
+	zoneInfo := func(zoneName string) *ec2.AvailabilityZone {
+		for _, zone := range zones {
+			if aws.StringValue(zone.ZoneName) == zoneName {
+				return zone
+			}
+		}
+		return nil
+	}
+
+	zone := zoneInfo(s.AvailabilityZone)
+	if zone == nil {
+		if len(s.AvailabilityZone) > 0 {
+			return fmt.Errorf("unable to update zone information for subnet '%v' and zone '%v'", s.ID, s.AvailabilityZone)
+		}
+		return fmt.Errorf("unable to update zone information for subnet '%v'", s.ID)
+	}
+	if zone.ZoneType != nil {
+		s.ZoneType = ptr.To(ZoneType(*zone.ZoneType))
+	}
+	if zone.ParentZoneName != nil {
+		s.ParentZoneName = zone.ParentZoneName
+	}
+	return nil
 }
 
 // Subnets is a slice of Subnet.
@@ -429,16 +672,35 @@ func (s Subnets) ToMap() map[string]*SubnetSpec {
 func (s Subnets) IDs() []string {
 	res := []string{}
 	for _, subnet := range s {
+		// Prevent returning edge zones (Local Zone) to regular Subnet IDs.
+		// Edge zones should not deploy control plane nodes, and does not support Nat Gateway and
+		// Network Load Balancers. Any resource for the core infrastructure should not consume edge
+		// zones.
+		if subnet.IsEdge() {
+			continue
+		}
+		res = append(res, subnet.GetResourceID())
+	}
+	return res
+}
+
+// IDsWithEdge returns a slice of the subnet ids.
+func (s Subnets) IDsWithEdge() []string {
+	res := []string{}
+	for _, subnet := range s {
 		res = append(res, subnet.GetResourceID())
 	}
 	return res
 }
 
 // FindByID returns a single subnet matching the given id or nil.
+//
+// The returned pointer can be used to write back into the original slice.
 func (s Subnets) FindByID(id string) *SubnetSpec {
-	for _, x := range s {
+	for i := range s {
+		x := &(s[i]) // pointer to original structure
 		if x.GetResourceID() == id {
-			return &x
+			return x
 		}
 	}
 	return nil
@@ -447,12 +709,15 @@ func (s Subnets) FindByID(id string) *SubnetSpec {
 // FindEqual returns a subnet spec that is equal to the one passed in.
 // Two subnets are defined equal to each other if their id is equal
 // or if they are in the same vpc and the cidr block is the same.
+//
+// The returned pointer can be used to write back into the original slice.
 func (s Subnets) FindEqual(spec *SubnetSpec) *SubnetSpec {
-	for _, x := range s {
+	for i := range s {
+		x := &(s[i]) // pointer to original structure
 		if (spec.GetResourceID() != "" && x.GetResourceID() == spec.GetResourceID()) ||
 			(spec.CidrBlock == x.CidrBlock) ||
 			(spec.IPv6CidrBlock != "" && spec.IPv6CidrBlock == x.IPv6CidrBlock) {
-			return &x
+			return x
 		}
 	}
 	return nil
@@ -461,7 +726,22 @@ func (s Subnets) FindEqual(spec *SubnetSpec) *SubnetSpec {
 // FilterPrivate returns a slice containing all subnets marked as private.
 func (s Subnets) FilterPrivate() (res Subnets) {
 	for _, x := range s {
+		// Subnets in AWS Local Zones or Wavelength should not be used by core infrastructure.
+		if x.IsEdge() {
+			continue
+		}
 		if !x.IsPublic {
+			res = append(res, x)
+		}
+	}
+	return
+}
+
+// FilterNonCni returns the subnets that are NOT intended for usage with the CNI pod network
+// (i.e. do NOT have the `sigs.k8s.io/cluster-api-provider-aws/association=secondary` tag).
+func (s Subnets) FilterNonCni() (res Subnets) {
+	for _, x := range s {
+		if x.Tags[NameAWSSubnetAssociation] != SecondarySubnetTagValue {
 			res = append(res, x)
 		}
 	}
@@ -471,6 +751,10 @@ func (s Subnets) FilterPrivate() (res Subnets) {
 // FilterPublic returns a slice containing all subnets marked as public.
 func (s Subnets) FilterPublic() (res Subnets) {
 	for _, x := range s {
+		// Subnets in AWS Local Zones or Wavelength should not be used by core infrastructure.
+		if x.IsEdge() {
+			continue
+		}
 		if x.IsPublic {
 			res = append(res, x)
 		}
@@ -493,12 +777,35 @@ func (s Subnets) GetUniqueZones() []string {
 	keys := make(map[string]bool)
 	zones := []string{}
 	for _, x := range s {
-		if _, value := keys[x.AvailabilityZone]; !value {
+		if _, value := keys[x.AvailabilityZone]; len(x.AvailabilityZone) > 0 && !value {
 			keys[x.AvailabilityZone] = true
 			zones = append(zones, x.AvailabilityZone)
 		}
 	}
 	return zones
+}
+
+// SetZoneInfo updates the subnets with zone information.
+func (s Subnets) SetZoneInfo(zones []*ec2.AvailabilityZone) error {
+	for i := range s {
+		if err := s[i].SetZoneInfo(zones); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// HasPublicSubnetWavelength returns true when there are subnets in Wavelength zone.
+func (s Subnets) HasPublicSubnetWavelength() bool {
+	for _, sub := range s {
+		if sub.ZoneType == nil {
+			return false
+		}
+		if sub.IsPublic && *sub.ZoneType == ZoneTypeWavelengthZone {
+			return true
+		}
+	}
+	return false
 }
 
 // CNISpec defines configuration for CNI.
@@ -623,6 +930,10 @@ type IngressRule struct {
 	// The field will be combined with source security group IDs if specified.
 	// +optional
 	SourceSecurityGroupRoles []SecurityGroupRole `json:"sourceSecurityGroupRoles,omitempty"`
+
+	// NatGatewaysIPsSource use the NAT gateways IPs as the source for the ingress rule.
+	// +optional
+	NatGatewaysIPsSource bool `json:"natGatewaysIPsSource,omitempty"`
 }
 
 // String returns a string representation of the ingress rule.
@@ -714,4 +1025,71 @@ func (i *IngressRule) Equals(o *IngressRule) bool {
 	}
 
 	return true
+}
+
+// ZoneType defines listener AWS Availability Zone type.
+type ZoneType string
+
+// String returns the string representation for the zone type.
+func (z ZoneType) String() string {
+	return string(z)
+}
+
+// Equal compares two zone types.
+func (z ZoneType) Equal(other ZoneType) bool {
+	return z == other
+}
+
+// ElasticIPPool allows configuring a Elastic IP pool for resources allocating
+// public IPv4 addresses on public subnets.
+type ElasticIPPool struct {
+	// PublicIpv4Pool sets a custom Public IPv4 Pool used to create Elastic IP address for resources
+	// created in public IPv4 subnets. Every IPv4 address, Elastic IP, will be allocated from the custom
+	// Public IPv4 pool that you brought to AWS, instead of Amazon-provided pool. The public IPv4 pool
+	// resource ID starts with 'ipv4pool-ec2'.
+	//
+	// +kubebuilder:validation:MaxLength=30
+	// +optional
+	PublicIpv4Pool *string `json:"publicIpv4Pool,omitempty"`
+
+	// PublicIpv4PoolFallBackOrder defines the fallback action when the Public IPv4 Pool has been exhausted,
+	// no more IPv4 address available in the pool.
+	//
+	// When set to 'amazon-pool', the controller check if the pool has available IPv4 address, when pool has reached the
+	// IPv4 limit, the address will be claimed from Amazon-pool (default).
+	//
+	// When set to 'none', the controller will fail the Elastic IP allocation when the publicIpv4Pool is exhausted.
+	//
+	// +kubebuilder:validation:Enum:=amazon-pool;none
+	// +optional
+	PublicIpv4PoolFallBackOrder *PublicIpv4PoolFallbackOrder `json:"publicIpv4PoolFallbackOrder,omitempty"`
+
+	// TODO(mtulio): add future support of user-defined Elastic IP to allow users to assign BYO Public IP from
+	// 'static'/preallocated amazon-provided IPsstrucute currently holds only 'BYO Public IP from Public IPv4 Pool' (user brought to AWS),
+	// although a dedicated structure would help to hold 'BYO Elastic IP' variants like:
+	// - AllocationIdPoolApiLoadBalancer: an user-defined (static) IP address to the Public API Load Balancer.
+	// - AllocationIdPoolNatGateways: an user-defined (static) IP address to allocate to NAT Gateways (egress traffic).
+}
+
+// PublicIpv4PoolFallbackOrder defines the list of available fallback action when the PublicIpv4Pool is exhausted.
+// 'none' let the controllers return failures when the PublicIpv4Pool is exhausted - no more IPv4 available.
+// 'amazon-pool' let the controllers to skip the PublicIpv4Pool and use the Amazon pool, the default.
+// +kubebuilder:validation:XValidation:rule="self in ['none','amazon-pool']",message="allowed values are 'none' and 'amazon-pool'"
+type PublicIpv4PoolFallbackOrder string
+
+const (
+	// PublicIpv4PoolFallbackOrderAmazonPool refers to use Amazon-pool Public IPv4 Pool as a fallback strategy.
+	PublicIpv4PoolFallbackOrderAmazonPool = PublicIpv4PoolFallbackOrder("amazon-pool")
+
+	// PublicIpv4PoolFallbackOrderNone refers to not use any fallback strategy.
+	PublicIpv4PoolFallbackOrderNone = PublicIpv4PoolFallbackOrder("none")
+)
+
+func (r PublicIpv4PoolFallbackOrder) String() string {
+	return string(r)
+}
+
+// Equal compares PublicIpv4PoolFallbackOrder types and return true if input param is equal.
+func (r PublicIpv4PoolFallbackOrder) Equal(e PublicIpv4PoolFallbackOrder) bool {
+	return r == e
 }

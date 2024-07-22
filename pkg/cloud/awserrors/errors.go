@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package awserrors provides a way to generate AWS errors.
 package awserrors
 
 import (
@@ -32,6 +33,7 @@ const (
 	GatewayNotFound                   = "InvalidGatewayID.NotFound"
 	GroupNotFound                     = "InvalidGroup.NotFound"
 	InternetGatewayNotFound           = "InvalidInternetGatewayID.NotFound"
+	InvalidCarrierGatewayNotFound     = "InvalidCarrierGatewayID.NotFound"
 	EgressOnlyInternetGatewayNotFound = "InvalidEgressOnlyInternetGatewayID.NotFound"
 	InUseIPAddress                    = "InvalidIPAddress.InUse"
 	InvalidAccessKeyID                = "InvalidAccessKeyId"
@@ -102,6 +104,7 @@ func NewConflict(msg string) error {
 	}
 }
 
+// IsBucketAlreadyOwnedByYou checks if the bucket is already owned.
 func IsBucketAlreadyOwnedByYou(err error) bool {
 	if code, ok := Code(err); ok {
 		return code == BucketAlreadyOwnedByYou
@@ -204,4 +207,17 @@ func IsIgnorableSecurityGroupError(err error) error {
 		}
 	}
 	return nil
+}
+
+// IsPermissionNotFoundError returns whether the error is InvalidPermission.NotFound.
+func IsPermissionNotFoundError(err error) bool {
+	if code, ok := Code(err); ok {
+		switch code {
+		case PermissionNotFound:
+			return true
+		default:
+			return false
+		}
+	}
+	return false
 }

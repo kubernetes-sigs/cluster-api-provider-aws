@@ -440,11 +440,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.Ignition)(nil), (*Ignition)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_Ignition_To_v1beta1_Ignition(a.(*v1beta2.Ignition), b.(*Ignition), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*IngressRule)(nil), (*v1beta2.IngressRule)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_IngressRule_To_v1beta2_IngressRule(a.(*IngressRule), b.(*v1beta2.IngressRule), scope)
 	}); err != nil {
@@ -557,6 +552,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta2.IPv6)(nil), (*IPv6)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_IPv6_To_v1beta1_IPv6(a.(*v1beta2.IPv6), b.(*IPv6), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.Ignition)(nil), (*Ignition)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_Ignition_To_v1beta1_Ignition(a.(*v1beta2.Ignition), b.(*Ignition), scope)
 	}); err != nil {
 		return err
 	}
@@ -932,6 +932,7 @@ func autoConvert_v1beta2_AWSClusterSpec_To_v1beta1_AWSClusterSpec(in *v1beta2.AW
 	} else {
 		out.ControlPlaneLoadBalancer = nil
 	}
+	// WARNING: in.SecondaryControlPlaneLoadBalancer requires manual conversion: does not exist in peer-type
 	out.ImageLookupFormat = in.ImageLookupFormat
 	out.ImageLookupOrg = in.ImageLookupOrg
 	out.ImageLookupBaseOS = in.ImageLookupBaseOS
@@ -1231,6 +1232,7 @@ func autoConvert_v1beta2_AWSLoadBalancerSpec_To_v1beta1_AWSLoadBalancerSpec(in *
 	out.CrossZoneLoadBalancing = in.CrossZoneLoadBalancing
 	out.Subnets = *(*[]string)(unsafe.Pointer(&in.Subnets))
 	out.HealthCheckProtocol = (*ClassicELBProtocol)(unsafe.Pointer(in.HealthCheckProtocol))
+	// WARNING: in.HealthCheck requires manual conversion: does not exist in peer-type
 	out.AdditionalSecurityGroups = *(*[]string)(unsafe.Pointer(&in.AdditionalSecurityGroups))
 	// WARNING: in.AdditionalListeners requires manual conversion: does not exist in peer-type
 	// WARNING: in.IngressRules requires manual conversion: does not exist in peer-type
@@ -1356,7 +1358,15 @@ func autoConvert_v1beta1_AWSMachineSpec_To_v1beta2_AWSMachineSpec(in *AWSMachine
 	if err := Convert_v1beta1_CloudInit_To_v1beta2_CloudInit(&in.CloudInit, &out.CloudInit, s); err != nil {
 		return err
 	}
-	out.Ignition = (*v1beta2.Ignition)(unsafe.Pointer(in.Ignition))
+	if in.Ignition != nil {
+		in, out := &in.Ignition, &out.Ignition
+		*out = new(v1beta2.Ignition)
+		if err := Convert_v1beta1_Ignition_To_v1beta2_Ignition(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Ignition = nil
+	}
 	out.SpotMarketOptions = (*v1beta2.SpotMarketOptions)(unsafe.Pointer(in.SpotMarketOptions))
 	out.Tenancy = in.Tenancy
 	return nil
@@ -1376,6 +1386,7 @@ func autoConvert_v1beta2_AWSMachineSpec_To_v1beta1_AWSMachineSpec(in *v1beta2.AW
 	out.AdditionalTags = *(*Tags)(unsafe.Pointer(&in.AdditionalTags))
 	out.IAMInstanceProfile = in.IAMInstanceProfile
 	out.PublicIP = (*bool)(unsafe.Pointer(in.PublicIP))
+	// WARNING: in.ElasticIPPool requires manual conversion: does not exist in peer-type
 	if in.AdditionalSecurityGroups != nil {
 		in, out := &in.AdditionalSecurityGroups, &out.AdditionalSecurityGroups
 		*out = make([]AWSResourceReference, len(*in))
@@ -1396,6 +1407,7 @@ func autoConvert_v1beta2_AWSMachineSpec_To_v1beta1_AWSMachineSpec(in *v1beta2.AW
 	} else {
 		out.Subnet = nil
 	}
+	// WARNING: in.SecurityGroupOverrides requires manual conversion: does not exist in peer-type
 	out.SSHKeyName = (*string)(unsafe.Pointer(in.SSHKeyName))
 	out.RootVolume = (*Volume)(unsafe.Pointer(in.RootVolume))
 	out.NonRootVolumes = *(*[]Volume)(unsafe.Pointer(&in.NonRootVolumes))
@@ -1404,10 +1416,20 @@ func autoConvert_v1beta2_AWSMachineSpec_To_v1beta1_AWSMachineSpec(in *v1beta2.AW
 	if err := Convert_v1beta2_CloudInit_To_v1beta1_CloudInit(&in.CloudInit, &out.CloudInit, s); err != nil {
 		return err
 	}
-	out.Ignition = (*Ignition)(unsafe.Pointer(in.Ignition))
+	if in.Ignition != nil {
+		in, out := &in.Ignition, &out.Ignition
+		*out = new(Ignition)
+		if err := Convert_v1beta2_Ignition_To_v1beta1_Ignition(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Ignition = nil
+	}
 	out.SpotMarketOptions = (*SpotMarketOptions)(unsafe.Pointer(in.SpotMarketOptions))
 	// WARNING: in.PlacementGroupName requires manual conversion: does not exist in peer-type
+	// WARNING: in.PlacementGroupPartition requires manual conversion: does not exist in peer-type
 	out.Tenancy = in.Tenancy
+	// WARNING: in.PrivateDNSName requires manual conversion: does not exist in peer-type
 	return nil
 }
 
@@ -1915,12 +1937,10 @@ func Convert_v1beta1_Ignition_To_v1beta2_Ignition(in *Ignition, out *v1beta2.Ign
 
 func autoConvert_v1beta2_Ignition_To_v1beta1_Ignition(in *v1beta2.Ignition, out *Ignition, s conversion.Scope) error {
 	out.Version = in.Version
+	// WARNING: in.StorageType requires manual conversion: does not exist in peer-type
+	// WARNING: in.Proxy requires manual conversion: does not exist in peer-type
+	// WARNING: in.TLS requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta2_Ignition_To_v1beta1_Ignition is an autogenerated conversion function.
-func Convert_v1beta2_Ignition_To_v1beta1_Ignition(in *v1beta2.Ignition, out *Ignition, s conversion.Scope) error {
-	return autoConvert_v1beta2_Ignition_To_v1beta1_Ignition(in, out, s)
 }
 
 func autoConvert_v1beta1_IngressRule_To_v1beta2_IngressRule(in *IngressRule, out *v1beta2.IngressRule, s conversion.Scope) error {
@@ -1948,6 +1968,7 @@ func autoConvert_v1beta2_IngressRule_To_v1beta1_IngressRule(in *v1beta2.IngressR
 	out.IPv6CidrBlocks = *(*[]string)(unsafe.Pointer(&in.IPv6CidrBlocks))
 	out.SourceSecurityGroupIDs = *(*[]string)(unsafe.Pointer(&in.SourceSecurityGroupIDs))
 	// WARNING: in.SourceSecurityGroupRoles requires manual conversion: does not exist in peer-type
+	// WARNING: in.NatGatewaysIPsSource requires manual conversion: does not exist in peer-type
 	return nil
 }
 
@@ -2004,9 +2025,12 @@ func autoConvert_v1beta2_Instance_To_v1beta1_Instance(in *v1beta2.Instance, out 
 	out.AvailabilityZone = in.AvailabilityZone
 	out.SpotMarketOptions = (*SpotMarketOptions)(unsafe.Pointer(in.SpotMarketOptions))
 	// WARNING: in.PlacementGroupName requires manual conversion: does not exist in peer-type
+	// WARNING: in.PlacementGroupPartition requires manual conversion: does not exist in peer-type
 	out.Tenancy = in.Tenancy
 	out.VolumeIDs = *(*[]string)(unsafe.Pointer(&in.VolumeIDs))
 	// WARNING: in.InstanceMetadataOptions requires manual conversion: does not exist in peer-type
+	// WARNING: in.PrivateDNSName requires manual conversion: does not exist in peer-type
+	// WARNING: in.PublicIPOnLaunch requires manual conversion: does not exist in peer-type
 	return nil
 }
 
@@ -2098,6 +2122,7 @@ func autoConvert_v1beta2_NetworkStatus_To_v1beta1_NetworkStatus(in *v1beta2.Netw
 	if err := Convert_v1beta2_LoadBalancer_To_v1beta1_ClassicELB(&in.APIServerELB, &out.APIServerELB, s); err != nil {
 		return err
 	}
+	// WARNING: in.SecondaryAPIServerELB requires manual conversion: does not exist in peer-type
 	// WARNING: in.NatGatewaysIPs requires manual conversion: does not exist in peer-type
 	return nil
 }
@@ -2139,6 +2164,7 @@ func autoConvert_v1beta2_S3Bucket_To_v1beta1_S3Bucket(in *v1beta2.S3Bucket, out 
 	out.NodesIAMInstanceProfiles = *(*[]string)(unsafe.Pointer(&in.NodesIAMInstanceProfiles))
 	// WARNING: in.PresignedURLDuration requires manual conversion: does not exist in peer-type
 	out.Name = in.Name
+	// WARNING: in.BestEffortDeleteObjects requires manual conversion: does not exist in peer-type
 	return nil
 }
 
@@ -2237,6 +2263,8 @@ func autoConvert_v1beta2_SubnetSpec_To_v1beta1_SubnetSpec(in *v1beta2.SubnetSpec
 	out.RouteTableID = (*string)(unsafe.Pointer(in.RouteTableID))
 	out.NatGatewayID = (*string)(unsafe.Pointer(in.NatGatewayID))
 	out.Tags = *(*Tags)(unsafe.Pointer(&in.Tags))
+	// WARNING: in.ZoneType requires manual conversion: does not exist in peer-type
+	// WARNING: in.ParentZoneName requires manual conversion: does not exist in peer-type
 	return nil
 }
 
@@ -2278,9 +2306,13 @@ func autoConvert_v1beta2_VPCSpec_To_v1beta1_VPCSpec(in *v1beta2.VPCSpec, out *VP
 		out.IPv6 = nil
 	}
 	out.InternetGatewayID = (*string)(unsafe.Pointer(in.InternetGatewayID))
+	// WARNING: in.CarrierGatewayID requires manual conversion: does not exist in peer-type
 	out.Tags = *(*Tags)(unsafe.Pointer(&in.Tags))
 	out.AvailabilityZoneUsageLimit = (*int)(unsafe.Pointer(in.AvailabilityZoneUsageLimit))
 	out.AvailabilityZoneSelection = (*AZSelectionScheme)(unsafe.Pointer(in.AvailabilityZoneSelection))
+	// WARNING: in.EmptyRoutesDefaultVPCSecurityGroup requires manual conversion: does not exist in peer-type
+	// WARNING: in.PrivateDNSHostnameTypeOnLaunch requires manual conversion: does not exist in peer-type
+	// WARNING: in.ElasticIPPool requires manual conversion: does not exist in peer-type
 	return nil
 }
 

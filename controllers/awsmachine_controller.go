@@ -32,10 +32,11 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -60,7 +61,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -146,6 +146,7 @@ func (r *AWSMachineReconciler) getObjectStoreService(scope scope.S3Scope) servic
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachines,verbs=get;list;watch;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachines/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=*,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=secrets;,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
@@ -322,7 +323,7 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 		// and AWSMachine
 		// 3. Issue a delete
 		// 4. Scale controller deployment to 1
-		machineScope.Debug("Unable to locate EC2 instance by ID or tags")
+		machineScope.Warn("Unable to locate EC2 instance by ID or tags")
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "NoInstanceFound", "Unable to find matching EC2 instance")
 		controllerutil.RemoveFinalizer(machineScope.AWSMachine, infrav1.MachineFinalizer)
 		return ctrl.Result{}, nil
@@ -333,7 +334,8 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 	if err := r.reconcileLBAttachment(machineScope, elbScope, instance); err != nil {
 		// We are tolerating AccessDenied error, so this won't block for users with older version of IAM;
 		// all the other errors are blocking.
-		if !elb.IsAccessDenied(err) && !elb.IsNotFound(err) {
+		// Because we are reconciling all load balancers, attempt to treat the error as a list of errors.
+		if err = kerrors.FilterOut(err, elb.IsAccessDenied, elb.IsNotFound); err != nil {
 			conditions.MarkFalse(machineScope.AWSMachine, infrav1.ELBAttachedCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
 			return ctrl.Result{}, errors.Errorf("failed to reconcile LB attachment: %+v", err)
 		}
@@ -408,6 +410,15 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 			conditions.MarkFalse(machineScope.AWSMachine, infrav1.SecurityGroupsReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
 		}
 
+		// Release an Elastic IP when the machine has public IP Address (EIP) with a cluster-wide config
+		// to consume from BYO IPv4 Pool.
+		if machineScope.GetElasticIPPool() != nil {
+			if err := ec2Service.ReleaseElasticIP(instance.ID); err != nil {
+				machineScope.Error(err, "failed to release elastic IP address")
+				return ctrl.Result{}, err
+			}
+		}
+
 		machineScope.Info("EC2 instance successfully terminated", "instance-id", instance.ID)
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeNormal, "SuccessfulTerminate", "Terminated instance %q", instance.ID)
 
@@ -419,22 +430,19 @@ func (r *AWSMachineReconciler) reconcileDelete(machineScope *scope.MachineScope,
 // findInstance queries the EC2 apis and retrieves the instance if it exists.
 // If providerID is empty, finds instance by tags and if it cannot be found, returns empty instance with nil error.
 // If providerID is set, either finds the instance by ID or returns error.
-func (r *AWSMachineReconciler) findInstance(scope *scope.MachineScope, ec2svc services.EC2Interface) (*infrav1.Instance, error) {
+func (r *AWSMachineReconciler) findInstance(machineScope *scope.MachineScope, ec2svc services.EC2Interface) (*infrav1.Instance, error) {
 	var instance *infrav1.Instance
 
 	// Parse the ProviderID.
-	//nolint:staticcheck
-	// Usage of noderefutil pkg would be removed in a future release.
-	pid, err := noderefutil.NewProviderID(scope.GetProviderID())
+	pid, err := scope.NewProviderID(machineScope.GetProviderID())
 	if err != nil {
 		//nolint:staticcheck
-		// Usage of noderefutil pkg would be removed in a future release.
-		if !errors.Is(err, noderefutil.ErrEmptyProviderID) {
+		if !errors.Is(err, scope.ErrEmptyProviderID) {
 			return nil, errors.Wrapf(err, "failed to parse Spec.ProviderID")
 		}
 		// If the ProviderID is empty, try to query the instance using tags.
 		// If an instance cannot be found, GetRunningInstanceByTags returns empty instance with nil error.
-		instance, err = ec2svc.GetRunningInstanceByTags(scope)
+		instance, err = ec2svc.GetRunningInstanceByTags(machineScope)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to query AWSMachine instance by tags")
 		}
@@ -442,7 +450,7 @@ func (r *AWSMachineReconciler) findInstance(scope *scope.MachineScope, ec2svc se
 		// If the ProviderID is populated, describe the instance using the ID.
 		// InstanceIfExists() returns error (ErrInstanceNotFoundByID or ErrDescribeInstance) if the instance could not be found.
 		//nolint:staticcheck
-		instance, err = ec2svc.InstanceIfExists(pointer.String(pid.ID()))
+		instance, err = ec2svc.InstanceIfExists(ptr.To[string](pid.ID()))
 		if err != nil {
 			return nil, err
 		}
@@ -505,7 +513,7 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 		// Avoid a flickering condition between InstanceProvisionStarted and InstanceProvisionFailed if there's a persistent failure with createInstance
 		if conditions.GetReason(machineScope.AWSMachine, infrav1.InstanceReadyCondition) != infrav1.InstanceProvisionFailedReason {
 			conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, infrav1.InstanceProvisionStartedReason, clusterv1.ConditionSeverityInfo, "")
-			if patchErr := machineScope.PatchObject(); err != nil {
+			if patchErr := machineScope.PatchObject(); patchErr != nil {
 				machineScope.Error(patchErr, "failed to patch conditions")
 				return ctrl.Result{}, patchErr
 			}
@@ -524,6 +532,21 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 			return ctrl.Result{}, err
 		}
 	}
+
+	// BYO Public IPv4 Pool feature: allocates and associates an EIP to machine when PublicIP and
+	// cluster-wide Public IPv4 Pool configuration are set. The EIP must be associated after the instance
+	// is created and transictioned from Pending state.
+	// In the regular flow, if the instance have already a public IPv4 address (EIP) associated it will
+	// be released when a new is assigned, the createInstance() prevents that behavior by enforcing
+	// to not launch an instance with EIP, allowing ReconcileElasticIPFromPublicPool assigning
+	// a BYOIP without duplication.
+	if pool := machineScope.GetElasticIPPool(); pool != nil {
+		if err := ec2svc.ReconcileElasticIPFromPublicPool(pool, instance); err != nil {
+			machineScope.Error(err, "failed to associate elastic IP address")
+			return ctrl.Result{}, err
+		}
+	}
+
 	if feature.Gates.Enabled(feature.EventBridgeInstanceState) {
 		instancestateSvc := instancestate.NewService(ec2Scope)
 		if err := instancestateSvc.AddInstanceToEventPattern(instance.ID); err != nil {
@@ -758,7 +781,21 @@ func (r *AWSMachineReconciler) resolveUserData(machineScope *scope.MachineScope,
 	}
 
 	if machineScope.UseIgnition(userDataFormat) {
-		userData, err = r.ignitionUserData(machineScope, objectStoreSvc, userData)
+		var ignitionStorageType infrav1.IgnitionStorageTypeOption
+		if machineScope.AWSMachine.Spec.Ignition == nil {
+			ignitionStorageType = infrav1.IgnitionStorageTypeOptionClusterObjectStore
+		} else {
+			ignitionStorageType = machineScope.AWSMachine.Spec.Ignition.StorageType
+		}
+
+		switch ignitionStorageType {
+		case infrav1.IgnitionStorageTypeOptionClusterObjectStore:
+			userData, err = r.generateIgnitionWithRemoteStorage(machineScope, objectStoreSvc, userData)
+		case infrav1.IgnitionStorageTypeOptionUnencryptedUserData:
+			// No further modifications to userdata are needed for plain storage in UnencryptedUserData.
+		default:
+			return nil, "", errors.Errorf("unsupported ignition storageType %q", ignitionStorageType)
+		}
 	}
 
 	return userData, userDataFormat, err
@@ -798,9 +835,12 @@ func (r *AWSMachineReconciler) cloudInitUserData(machineScope *scope.MachineScop
 	return encryptedCloudInit, nil
 }
 
-func (r *AWSMachineReconciler) ignitionUserData(scope *scope.MachineScope, objectStoreSvc services.ObjectStoreInterface, userData []byte) ([]byte, error) {
+// generateIgnitionWithRemoteStorage uses a remote object storage (S3 bucket) and stores user data in it,
+// then returns the config to instruct ignition on how to pull the user data from the bucket.
+func (r *AWSMachineReconciler) generateIgnitionWithRemoteStorage(scope *scope.MachineScope, objectStoreSvc services.ObjectStoreInterface, userData []byte) ([]byte, error) {
 	if objectStoreSvc == nil {
-		return nil, errors.New("object store service not available")
+		return nil, errors.New("using Ignition by default requires a cluster wide object storage configured at `AWSCluster.Spec.Ignition.S3Bucket`. " +
+			"You must configure one or instruct Ignition to use EC2 user data instead, by setting `AWSMachine.Spec.Ignition.StorageType` to `UnencryptedUserData`")
 	}
 
 	objectURL, err := objectStoreSvc.Create(scope.GetBootstrapDataKey(), userData)
@@ -842,6 +882,25 @@ func (r *AWSMachineReconciler) ignitionUserData(scope *scope.MachineScope, objec
 					},
 				},
 			},
+		}
+
+		if scope.AWSMachine.Spec.Ignition.Proxy != nil {
+			ignData.Ignition.Proxy = ignV3Types.Proxy{
+				HTTPProxy:  scope.AWSMachine.Spec.Ignition.Proxy.HTTPProxy,
+				HTTPSProxy: scope.AWSMachine.Spec.Ignition.Proxy.HTTPSProxy,
+			}
+			for _, noProxy := range scope.AWSMachine.Spec.Ignition.Proxy.NoProxy {
+				ignData.Ignition.Proxy.NoProxy = append(ignData.Ignition.Proxy.NoProxy, ignV3Types.NoProxyItem(noProxy))
+			}
+		}
+
+		if scope.AWSMachine.Spec.Ignition.TLS != nil {
+			for _, cert := range scope.AWSMachine.Spec.Ignition.TLS.CASources {
+				ignData.Ignition.Security.TLS.CertificateAuthorities = append(
+					ignData.Ignition.Security.TLS.CertificateAuthorities,
+					ignV3Types.Resource{Source: aws.String(string(cert))},
+				)
+			}
 		}
 
 		return json.Marshal(ignData)
@@ -899,7 +958,10 @@ func (r *AWSMachineReconciler) deleteIgnitionBootstrapDataFromS3(machineScope *s
 		return err
 	}
 
-	if !machineScope.UseIgnition(userDataFormat) {
+	// We only use an S3 bucket to store userdata if we use Ignition with StorageType ClusterObjectStore.
+	if !machineScope.UseIgnition(userDataFormat) ||
+		(machineScope.AWSMachine.Spec.Ignition != nil &&
+			machineScope.AWSMachine.Spec.Ignition.StorageType != infrav1.IgnitionStorageTypeOptionClusterObjectStore) {
 		return nil
 	}
 
@@ -912,6 +974,8 @@ func (r *AWSMachineReconciler) deleteIgnitionBootstrapDataFromS3(machineScope *s
 	return nil
 }
 
+// reconcileLBAttachment reconciles attachment to _all_ defined load balancers.
+// Callers are expected to filter out known-good errors out of the aggregate error list.
 func (r *AWSMachineReconciler) reconcileLBAttachment(machineScope *scope.MachineScope, elbScope scope.ELBScope, i *infrav1.Instance) error {
 	if !machineScope.IsControlPlane() {
 		return nil
@@ -919,34 +983,42 @@ func (r *AWSMachineReconciler) reconcileLBAttachment(machineScope *scope.Machine
 
 	elbsvc := r.getELBService(elbScope)
 
-	// In order to prevent sending request to a "not-ready" control plane machines, it is required to remove the machine
-	// from the ELB as soon as the machine gets deleted or when the machine is in a not running state.
-	if !machineScope.AWSMachine.DeletionTimestamp.IsZero() || !machineScope.InstanceIsRunning() {
-		if elbScope.ControlPlaneLoadBalancer().LoadBalancerType == infrav1.LoadBalancerTypeClassic {
-			machineScope.Debug("deregistering from classic load balancer")
-			return r.deregisterInstanceFromClassicLB(machineScope, elbsvc, i)
+	errs := []error{}
+	for _, lbSpec := range elbScope.ControlPlaneLoadBalancers() {
+		if lbSpec == nil {
+			continue
 		}
-		machineScope.Debug("deregistering from v2 load balancer")
-		return r.deregisterInstanceFromV2LB(machineScope, elbsvc, i)
+		// In order to prevent sending request to a "not-ready" control plane machines, it is required to remove the machine
+		// from the ELB as soon as the machine or infra machine gets deleted or when the machine is in a not running state.
+		if machineScope.AWSMachineIsDeleted() || machineScope.MachineIsDeleted() || !machineScope.InstanceIsRunning() {
+			if lbSpec.LoadBalancerType == infrav1.LoadBalancerTypeClassic {
+				machineScope.Debug("deregistering from classic load balancer")
+				return r.deregisterInstanceFromClassicLB(machineScope, elbsvc, i)
+			}
+			machineScope.Debug("deregistering from v2 load balancer")
+			errs = append(errs, r.deregisterInstanceFromV2LB(machineScope, elbsvc, i, lbSpec))
+			continue
+		}
+
+		if err := r.registerInstanceToLBs(machineScope, elbsvc, i, lbSpec); err != nil {
+			errs = append(errs, errors.Wrapf(err, "could not register machine to load balancer"))
+		}
 	}
 
-	switch elbScope.ControlPlaneLoadBalancer().LoadBalancerType {
-	case infrav1.LoadBalancerTypeClassic:
-		fallthrough
-	case "":
+	return kerrors.NewAggregate(errs)
+}
+
+func (r *AWSMachineReconciler) registerInstanceToLBs(machineScope *scope.MachineScope, elbsvc services.ELBInterface, i *infrav1.Instance, lb *infrav1.AWSLoadBalancerSpec) error {
+	switch lb.LoadBalancerType {
+	case infrav1.LoadBalancerTypeClassic, "":
 		machineScope.Debug("registering to classic load balancer")
 		return r.registerInstanceToClassicLB(machineScope, elbsvc, i)
-
-	case infrav1.LoadBalancerTypeELB:
-		fallthrough
-	case infrav1.LoadBalancerTypeALB:
-		fallthrough
-	case infrav1.LoadBalancerTypeNLB:
+	case infrav1.LoadBalancerTypeELB, infrav1.LoadBalancerTypeALB, infrav1.LoadBalancerTypeNLB:
 		machineScope.Debug("registering to v2 load balancer")
-		return r.registerInstanceToV2LB(machineScope, elbsvc, i)
+		return r.registerInstanceToV2LB(machineScope, elbsvc, i, lb)
 	}
 
-	return errors.Errorf("unknown load balancer type %q", elbScope.ControlPlaneLoadBalancer().LoadBalancerType)
+	return errors.Errorf("unknown load balancer type %q", lb.LoadBalancerType)
 }
 
 func (r *AWSMachineReconciler) registerInstanceToClassicLB(machineScope *scope.MachineScope, elbsvc services.ELBInterface, i *infrav1.Instance) error {
@@ -973,8 +1045,8 @@ func (r *AWSMachineReconciler) registerInstanceToClassicLB(machineScope *scope.M
 	return nil
 }
 
-func (r *AWSMachineReconciler) registerInstanceToV2LB(machineScope *scope.MachineScope, elbsvc services.ELBInterface, instance *infrav1.Instance) error {
-	_, registered, err := elbsvc.IsInstanceRegisteredWithAPIServerLB(instance)
+func (r *AWSMachineReconciler) registerInstanceToV2LB(machineScope *scope.MachineScope, elbsvc services.ELBInterface, instance *infrav1.Instance, lb *infrav1.AWSLoadBalancerSpec) error {
+	_, registered, err := elbsvc.IsInstanceRegisteredWithAPIServerLB(instance, lb)
 	if err != nil {
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedAttachControlPlaneELB",
 			"Failed to register control plane instance %q with load balancer: failed to determine registration status: %v", instance.ID, err)
@@ -985,7 +1057,7 @@ func (r *AWSMachineReconciler) registerInstanceToV2LB(machineScope *scope.Machin
 		return nil
 	}
 
-	if err := elbsvc.RegisterInstanceWithAPIServerLB(instance); err != nil {
+	if err := elbsvc.RegisterInstanceWithAPIServerLB(instance, lb); err != nil {
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedAttachControlPlaneELB",
 			"Failed to register control plane instance %q with load balancer: %v", instance.ID, err)
 		conditions.MarkFalse(machineScope.AWSMachine, infrav1.ELBAttachedCondition, infrav1.ELBAttachFailedReason, clusterv1.ConditionSeverityError, err.Error())
@@ -1021,8 +1093,8 @@ func (r *AWSMachineReconciler) deregisterInstanceFromClassicLB(machineScope *sco
 	return nil
 }
 
-func (r *AWSMachineReconciler) deregisterInstanceFromV2LB(machineScope *scope.MachineScope, elbsvc services.ELBInterface, i *infrav1.Instance) error {
-	targetGroupARNs, registered, err := elbsvc.IsInstanceRegisteredWithAPIServerLB(i)
+func (r *AWSMachineReconciler) deregisterInstanceFromV2LB(machineScope *scope.MachineScope, elbsvc services.ELBInterface, i *infrav1.Instance, lb *infrav1.AWSLoadBalancerSpec) error {
+	targetGroupARNs, registered, err := elbsvc.IsInstanceRegisteredWithAPIServerLB(i, lb)
 	if err != nil {
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedDetachControlPlaneELB",
 			"Failed to deregister control plane instance %q from load balancer: failed to determine registration status: %v", i.ID, err)

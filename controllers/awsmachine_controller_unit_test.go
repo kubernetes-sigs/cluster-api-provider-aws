@@ -36,7 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -52,6 +52,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	kubeadmv1beta1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 )
@@ -186,7 +187,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					Spec: clusterv1.MachineSpec{
 						ClusterName: "capi-test",
 						Bootstrap: clusterv1.Bootstrap{
-							DataSecretName: pointer.String("bootstrap-data"),
+							DataSecretName: ptr.To[string]("bootstrap-data"),
 						},
 					},
 				},
@@ -241,7 +242,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				runningInstance(t, g)
 				er := capierrors.CreateMachineError
 				ms.AWSMachine.Status.FailureReason = &er
-				ms.AWSMachine.Status.FailureMessage = pointer.String("Couldn't create machine")
+				ms.AWSMachine.Status.FailureMessage = ptr.To[string]("Couldn't create machine")
 
 				buf := new(bytes.Buffer)
 				klog.SetOutput(buf)
@@ -481,7 +482,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 					ms.AWSMachine.Spec.AdditionalSecurityGroups = []infrav1.AWSResourceReference{
 						{
-							ID: pointer.String("sg-2345"),
+							ID: ptr.To[string]("sg-2345"),
 						},
 					}
 					ec2Svc.EXPECT().UpdateInstanceSecurityGroups(instance.ID, []string{"sg-2345"})
@@ -727,13 +728,14 @@ func TestAWSMachineReconciler(t *testing.T) {
 				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.ELBAttachedCondition, corev1.ConditionTrue, "", ""}})
 				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
 			})
-			t.Run("Should store userdata using AWS Secrets Manager", func(t *testing.T) {
+			t.Run("should store userdata for CloudInit using AWS Secrets Manager only when not skipped", func(t *testing.T) {
 				g := NewWithT(t)
 				awsMachine := getAWSMachine()
 				setup(t, g, awsMachine)
 				defer teardown(t, g)
 				instanceCreate(t, g)
 
+				// Explicitly skip AWS Secrets Manager.
 				ms.AWSMachine.Spec.CloudInit.InsecureSkipSecretsManager = true
 				ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil).Times(1)
 				ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
@@ -1018,6 +1020,40 @@ func TestAWSMachineReconciler(t *testing.T) {
 				})
 			})
 		})
+		t.Run("when BYOIP is set", func(t *testing.T) {
+			var instance *infrav1.Instance
+			secretPrefix := "test/secret"
+
+			t.Run("should succeed", func(t *testing.T) {
+				g := NewWithT(t)
+				awsMachine := getAWSMachine()
+				setup(t, g, awsMachine)
+				defer teardown(t, g)
+
+				instance = &infrav1.Instance{
+					ID:    "myMachine",
+					State: infrav1.InstanceStatePending,
+				}
+
+				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, nil).AnyTimes()
+				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return(secretPrefix, int32(1), nil).Times(1)
+				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil).AnyTimes()
+				secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+				ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil).Times(1)
+				ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
+				ec2Svc.EXPECT().GetAdditionalSecurityGroupsIDs(gomock.Any()).Return(nil, nil).Times(1)
+
+				ms.AWSMachine.Spec.PublicIP = aws.Bool(false)
+				ms.AWSMachine.Spec.ElasticIPPool = &infrav1.ElasticIPPool{
+					PublicIpv4Pool:              aws.String("ipv4pool-ec2-0123456789abcdef0"),
+					PublicIpv4PoolFallBackOrder: ptr.To(infrav1.PublicIpv4PoolFallbackOrderAmazonPool),
+				}
+				ec2Svc.EXPECT().ReconcileElasticIPFromPublicPool(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
+				g.Expect(err).To(BeNil())
+			})
+		})
 	})
 
 	t.Run("Secrets management lifecycle", func(t *testing.T) {
@@ -1122,7 +1158,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				defer teardown(t, g)
 				setNodeRef(t, g)
 
-				ms.AWSMachine.Status.FailureReason = capierrors.MachineStatusErrorPtr(capierrors.UpdateMachineError)
+				ms.AWSMachine.Status.FailureReason = ptr.To(capierrors.UpdateMachineError)
 				secretSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
 				ec2Svc.EXPECT().TerminateInstance(gomock.Any()).Return(nil).AnyTimes()
 				_, _ = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
@@ -1141,7 +1177,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				_, _ = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 			})
-			t.Run("should delete the secret from the S3 bucket", func(t *testing.T) {
+			t.Run("should delete the secret from the S3 bucket if StorageType ClusterObjectStore is set for Ignition", func(t *testing.T) {
 				g := NewWithT(t)
 				awsMachine := getAWSMachine()
 				setup(t, g, awsMachine)
@@ -1150,7 +1186,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				ms.AWSMachine.Spec.CloudInit = infrav1.CloudInit{}
 				ms.AWSMachine.Spec.Ignition = &infrav1.Ignition{
-					Version: "2.3",
+					Version:     "2.3",
+					StorageType: infrav1.IgnitionStorageTypeOptionClusterObjectStore,
 				}
 
 				buf := new(bytes.Buffer)
@@ -1161,7 +1198,28 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				_, err := reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 				g.Expect(err).To(BeNil())
-				g.Expect(buf.String()).To(ContainSubstring("Deleting unneeded entry from AWS S3"))
+			})
+			t.Run("should not delete the secret from the S3 bucket if StorageType UnencryptedUserData is set for Ignition", func(t *testing.T) {
+				g := NewWithT(t)
+				awsMachine := getAWSMachine()
+				setup(t, g, awsMachine)
+				defer teardown(t, g)
+				setNodeRef(t, g)
+
+				ms.AWSMachine.Spec.CloudInit = infrav1.CloudInit{}
+				ms.AWSMachine.Spec.Ignition = &infrav1.Ignition{
+					Version:     "2.3",
+					StorageType: infrav1.IgnitionStorageTypeOptionUnencryptedUserData,
+				}
+
+				buf := new(bytes.Buffer)
+				klog.SetOutput(buf)
+
+				objectStoreSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(0)
+				ec2Svc.EXPECT().TerminateInstance(gomock.Any()).Return(nil).AnyTimes()
+
+				_, err := reconciler.reconcileDelete(ms, cs, cs, cs, cs)
+				g.Expect(err).To(BeNil())
 			})
 		})
 
@@ -1230,7 +1288,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				defer teardown(t, g)
 				setSSM(t, g)
 
-				ms.AWSMachine.Status.FailureReason = capierrors.MachineStatusErrorPtr(capierrors.UpdateMachineError)
+				ms.AWSMachine.Status.FailureReason = ptr.To(capierrors.UpdateMachineError)
 				secretSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
 				ec2Svc.EXPECT().TerminateInstance(gomock.Any()).Return(nil).AnyTimes()
 				_, _ = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
@@ -1287,274 +1345,309 @@ func TestAWSMachineReconciler(t *testing.T) {
 		})
 	})
 
-	t.Run("Object storage lifecycle", func(t *testing.T) {
-		t.Run("creating EC2 instances", func(t *testing.T) {
-			var instance *infrav1.Instance
-
-			getInstances := func(t *testing.T, g *WithT) {
+	t.Run("Object storage lifecycle for Ignition's userdata", func(t *testing.T) {
+		t.Run("when Ignition's StorageType is ClusterObjectStore", func(t *testing.T) {
+			useIgnitionWithClusterObjectStore := func(t *testing.T, g *WithT) {
 				t.Helper()
 
-				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, nil).AnyTimes()
-			}
-
-			useIgnition := func(t *testing.T, g *WithT) {
-				t.Helper()
-
-				ms.Machine.Spec.Bootstrap.DataSecretName = pointer.String("bootstrap-data-ignition")
+				ms.Machine.Spec.Bootstrap.DataSecretName = ptr.To[string]("bootstrap-data-ignition")
 				ms.AWSMachine.Spec.CloudInit.SecretCount = 0
 				ms.AWSMachine.Spec.CloudInit.SecretPrefix = ""
+				ms.AWSMachine.Spec.Ignition = &infrav1.Ignition{
+					Version:     "2.3",
+					StorageType: infrav1.IgnitionStorageTypeOptionClusterObjectStore,
+				}
 			}
 
-			t.Run("should leverage AWS S3", func(t *testing.T) {
-				g := NewWithT(t)
-				awsMachine := getAWSMachine()
-				setup(t, g, awsMachine)
-				defer teardown(t, g)
-				getInstances(t, g)
-				useIgnition(t, g)
+			t.Run("creating EC2 instances", func(t *testing.T) {
+				var instance *infrav1.Instance
 
-				instance = &infrav1.Instance{
-					ID:    "myMachine",
-					State: infrav1.InstanceStatePending,
-				}
-				fakeS3URL := "s3://foo"
+				getInstances := func(t *testing.T, g *WithT) {
+					t.Helper()
 
-				objectStoreSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return(fakeS3URL, nil).Times(1)
-				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil).AnyTimes()
-				ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil).Times(1)
-				ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
-				ec2Svc.EXPECT().GetAdditionalSecurityGroupsIDs(gomock.Any()).Return(nil, nil)
-
-				ms.AWSMachine.ObjectMeta.Labels = map[string]string{
-					clusterv1.MachineControlPlaneLabel: "",
+					ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, nil).AnyTimes()
 				}
 
-				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
-				g.Expect(err).To(BeNil())
+				t.Run("should leverage a Cluster Object Store", func(t *testing.T) {
+					g := NewWithT(t)
+					awsMachine := getAWSMachine()
+					setup(t, g, awsMachine)
+					defer teardown(t, g)
+					getInstances(t, g)
+					useIgnitionWithClusterObjectStore(t, g)
+
+					instance = &infrav1.Instance{
+						ID:    "myMachine",
+						State: infrav1.InstanceStatePending,
+					}
+					fakeS3URL := "s3://foo"
+
+					objectStoreSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return(fakeS3URL, nil).Times(1)
+					ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil).AnyTimes()
+					ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil).Times(1)
+					ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
+					ec2Svc.EXPECT().GetAdditionalSecurityGroupsIDs(gomock.Any()).Return(nil, nil)
+
+					ms.AWSMachine.ObjectMeta.Labels = map[string]string{
+						clusterv1.MachineControlPlaneLabel: "",
+					}
+
+					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
+					g.Expect(err).To(BeNil())
+				})
+
+				t.Run("should leverage a Cluster Object Store with presigned urls", func(t *testing.T) {
+					g := NewWithT(t)
+					awsMachine := getAWSMachine()
+					setup(t, g, awsMachine)
+					defer teardown(t, g)
+					getInstances(t, g)
+					useIgnitionWithClusterObjectStore(t, g)
+
+					if cs.AWSCluster.Spec.S3Bucket == nil {
+						cs.AWSCluster.Spec.S3Bucket = &infrav1.S3Bucket{}
+					}
+					cs.AWSCluster.Spec.S3Bucket.PresignedURLDuration = &metav1.Duration{Duration: 1 * time.Hour}
+
+					instance = &infrav1.Instance{
+						ID:    "myMachine",
+						State: infrav1.InstanceStatePending,
+					}
+
+					//nolint:gosec
+					presigned := "https://cluster-api-aws.s3.us-west-2.amazonaws.com/bootstrap-data.yaml?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA3SGQVQG7FGA6KKA6%2F20221104%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20221104T140227Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=b228dbec8c1008c80c162e1210e4503dceead1e4d4751b4d9787314fd6da4d55"
+
+					objectStoreSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return(presigned, nil).Times(1)
+					ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil).AnyTimes()
+					ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil).Times(1)
+					ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
+					ec2Svc.EXPECT().GetAdditionalSecurityGroupsIDs(gomock.Any()).Return(nil, nil)
+
+					ms.AWSMachine.ObjectMeta.Labels = map[string]string{
+						clusterv1.MachineControlPlaneLabel: "",
+					}
+
+					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
+					g.Expect(err).To(BeNil())
+				})
 			})
 
-			t.Run("should leverage AWS S3 with presigned urls", func(t *testing.T) {
-				g := NewWithT(t)
-				awsMachine := getAWSMachine()
-				setup(t, g, awsMachine)
-				defer teardown(t, g)
-				getInstances(t, g)
-				useIgnition(t, g)
+			t.Run("there's a node ref and a secret ARN", func(t *testing.T) {
+				var instance *infrav1.Instance
+				setNodeRef := func(t *testing.T, g *WithT) {
+					t.Helper()
 
-				if cs.AWSCluster.Spec.S3Bucket == nil {
-					cs.AWSCluster.Spec.S3Bucket = &infrav1.S3Bucket{}
-				}
-				cs.AWSCluster.Spec.S3Bucket.PresignedURLDuration = &metav1.Duration{Duration: 1 * time.Hour}
+					instance = &infrav1.Instance{
+						ID: "myMachine",
+					}
 
-				instance = &infrav1.Instance{
-					ID:    "myMachine",
-					State: infrav1.InstanceStatePending,
-				}
-				presigned := "https://cluster-api-aws.s3.us-west-2.amazonaws.com/bootstrap-data.yaml?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA3SGQVQG7FGA6KKA6%2F20221104%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20221104T140227Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=b228dbec8c1008c80c162e1210e4503dceead1e4d4751b4d9787314fd6da4d55"
+					ms.Machine.Status.NodeRef = &corev1.ObjectReference{
+						Kind:       "Node",
+						Name:       "myMachine",
+						APIVersion: "v1",
+					}
 
-				objectStoreSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return(presigned, nil).Times(1)
-				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil).AnyTimes()
-				ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil).Times(1)
-				ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
-				ec2Svc.EXPECT().GetAdditionalSecurityGroupsIDs(gomock.Any()).Return(nil, nil)
-
-				ms.AWSMachine.ObjectMeta.Labels = map[string]string{
-					clusterv1.MachineControlPlaneLabel: "",
+					ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(instance, nil).AnyTimes()
 				}
 
-				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
-				g.Expect(err).To(BeNil())
+				t.Run("should delete the object if the instance is running", func(t *testing.T) {
+					g := NewWithT(t)
+					awsMachine := getAWSMachine()
+					setup(t, g, awsMachine)
+					defer teardown(t, g)
+					setNodeRef(t, g)
+					useIgnitionWithClusterObjectStore(t, g)
+
+					instance.State = infrav1.InstanceStateRunning
+					ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil).Times(1)
+					objectStoreSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
+					ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
+					ec2Svc.EXPECT().GetAdditionalSecurityGroupsIDs(gomock.Any()).Return(nil, nil)
+
+					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
+				})
+
+				t.Run("should delete the object if the instance is terminated", func(t *testing.T) {
+					g := NewWithT(t)
+					awsMachine := getAWSMachine()
+					setup(t, g, awsMachine)
+					defer teardown(t, g)
+					setNodeRef(t, g)
+					useIgnitionWithClusterObjectStore(t, g)
+
+					instance.State = infrav1.InstanceStateTerminated
+					objectStoreSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
+
+					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
+				})
+
+				t.Run("should delete the object if the instance is deleted", func(t *testing.T) {
+					g := NewWithT(t)
+					awsMachine := getAWSMachine()
+					setup(t, g, awsMachine)
+					defer teardown(t, g)
+					setNodeRef(t, g)
+					useIgnitionWithClusterObjectStore(t, g)
+
+					instance.State = infrav1.InstanceStateRunning
+					objectStoreSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
+					ec2Svc.EXPECT().TerminateInstance(gomock.Any()).Return(nil).AnyTimes()
+
+					_, _ = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
+				})
+
+				t.Run("should delete the object if the AWSMachine is in a failure condition", func(t *testing.T) {
+					g := NewWithT(t)
+					awsMachine := getAWSMachine()
+					setup(t, g, awsMachine)
+					defer teardown(t, g)
+					setNodeRef(t, g)
+					useIgnitionWithClusterObjectStore(t, g)
+
+					// TODO: This seems to have no effect on the test result.
+					ms.AWSMachine.Status.FailureReason = ptr.To(capierrors.UpdateMachineError)
+
+					objectStoreSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
+					ec2Svc.EXPECT().TerminateInstance(gomock.Any()).Return(nil).AnyTimes()
+
+					_, _ = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
+				})
+			})
+
+			t.Run("there's only a secret ARN and no node ref", func(t *testing.T) {
+				var instance *infrav1.Instance
+
+				getInstances := func(t *testing.T, g *WithT) {
+					t.Helper()
+
+					instance = &infrav1.Instance{
+						ID: "myMachine",
+					}
+					ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(instance, nil).AnyTimes()
+				}
+
+				t.Run("should not delete the object if the instance is running", func(t *testing.T) {
+					g := NewWithT(t)
+					awsMachine := getAWSMachine()
+					setup(t, g, awsMachine)
+					defer teardown(t, g)
+					getInstances(t, g)
+
+					instance.State = infrav1.InstanceStateRunning
+					ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil).Times(1)
+					ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
+					ec2Svc.EXPECT().GetAdditionalSecurityGroupsIDs(gomock.Any()).Return(nil, nil)
+					objectStoreSvc.EXPECT().Delete(gomock.Any()).Return(nil).MaxTimes(0)
+					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
+				})
+
+				t.Run("should delete the object if the instance is terminated", func(t *testing.T) {
+					g := NewWithT(t)
+					awsMachine := getAWSMachine()
+					setup(t, g, awsMachine)
+					defer teardown(t, g)
+					getInstances(t, g)
+					useIgnitionWithClusterObjectStore(t, g)
+
+					instance.State = infrav1.InstanceStateTerminated
+					objectStoreSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
+					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
+				})
+
+				t.Run("should delete the object if the AWSMachine is deleted", func(t *testing.T) {
+					g := NewWithT(t)
+					awsMachine := getAWSMachine()
+					setup(t, g, awsMachine)
+					defer teardown(t, g)
+					getInstances(t, g)
+					useIgnitionWithClusterObjectStore(t, g)
+
+					instance.State = infrav1.InstanceStateRunning
+					objectStoreSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
+					ec2Svc.EXPECT().TerminateInstance(gomock.Any()).Return(nil).AnyTimes()
+					_, _ = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
+				})
+
+				t.Run("should delete the object if the AWSMachine is in a failure condition", func(t *testing.T) {
+					g := NewWithT(t)
+					awsMachine := getAWSMachine()
+					setup(t, g, awsMachine)
+					defer teardown(t, g)
+					getInstances(t, g)
+					useIgnitionWithClusterObjectStore(t, g)
+
+					// TODO: This seems to have no effect on the test result.
+					ms.AWSMachine.Status.FailureReason = ptr.To(capierrors.UpdateMachineError)
+					objectStoreSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
+					ec2Svc.EXPECT().TerminateInstance(gomock.Any()).Return(nil).AnyTimes()
+					_, _ = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
+				})
+			})
+
+			t.Run("there is an intermittent connection issue and no object could be created", func(t *testing.T) {
+				t.Run("should error if object could not be created", func(t *testing.T) {
+					g := NewWithT(t)
+					awsMachine := getAWSMachine()
+					setup(t, g, awsMachine)
+					defer teardown(t, g)
+					useIgnitionWithClusterObjectStore(t, g)
+
+					ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, nil).AnyTimes()
+					objectStoreSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return("", errors.New("connection error")).Times(1)
+					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
+					g.Expect(err).ToNot(BeNil())
+					g.Expect(err.Error()).To(ContainSubstring("connection error"))
+				})
 			})
 		})
 
-		t.Run("there's a node ref and a secret ARN", func(t *testing.T) {
-			var instance *infrav1.Instance
-			setNodeRef := func(t *testing.T, g *WithT) {
+		t.Run("when Ignition's StorageType is UnencryptedUserData", func(t *testing.T) {
+			useIgnitionAndUnencryptedUserData := func(t *testing.T, g *WithT) {
 				t.Helper()
 
-				instance = &infrav1.Instance{
-					ID: "myMachine",
-				}
-
-				ms.Machine.Status.NodeRef = &corev1.ObjectReference{
-					Kind:       "Node",
-					Name:       "myMachine",
-					APIVersion: "v1",
-				}
-
-				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(instance, nil).AnyTimes()
-			}
-			useIgnition := func(t *testing.T, g *WithT) {
-				t.Helper()
-
-				ms.Machine.Spec.Bootstrap.DataSecretName = pointer.String("bootstrap-data-ignition")
+				ms.Machine.Spec.Bootstrap.DataSecretName = ptr.To[string]("bootstrap-data-ignition")
 				ms.AWSMachine.Spec.CloudInit.SecretCount = 0
 				ms.AWSMachine.Spec.CloudInit.SecretPrefix = ""
-			}
-
-			t.Run("should delete the object if the instance is running", func(t *testing.T) {
-				g := NewWithT(t)
-				awsMachine := getAWSMachine()
-				setup(t, g, awsMachine)
-				defer teardown(t, g)
-				setNodeRef(t, g)
-				useIgnition(t, g)
-
-				instance.State = infrav1.InstanceStateRunning
-				ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil).Times(1)
-				objectStoreSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
-				ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
-				ec2Svc.EXPECT().GetAdditionalSecurityGroupsIDs(gomock.Any()).Return(nil, nil)
-
-				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
-			})
-
-			t.Run("should delete the object if the instance is terminated", func(t *testing.T) {
-				g := NewWithT(t)
-				awsMachine := getAWSMachine()
-				setup(t, g, awsMachine)
-				defer teardown(t, g)
-				setNodeRef(t, g)
-				useIgnition(t, g)
-
-				instance.State = infrav1.InstanceStateTerminated
-				objectStoreSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
-
-				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
-			})
-
-			t.Run("should delete the object if the instance is deleted", func(t *testing.T) {
-				g := NewWithT(t)
-				awsMachine := getAWSMachine()
-				setup(t, g, awsMachine)
-				defer teardown(t, g)
-				setNodeRef(t, g)
-				useIgnition(t, g)
-
-				instance.State = infrav1.InstanceStateRunning
-				objectStoreSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
-				ec2Svc.EXPECT().TerminateInstance(gomock.Any()).Return(nil).AnyTimes()
-
-				_, _ = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
-			})
-
-			t.Run("should delete the object if the AWSMachine is in a failure condition", func(t *testing.T) {
-				g := NewWithT(t)
-				awsMachine := getAWSMachine()
-				setup(t, g, awsMachine)
-				defer teardown(t, g)
-				setNodeRef(t, g)
-				useIgnition(t, g)
-
-				// TODO: This seems to have no effect on the test result.
-				ms.AWSMachine.Status.FailureReason = capierrors.MachineStatusErrorPtr(capierrors.UpdateMachineError)
-
-				objectStoreSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
-				ec2Svc.EXPECT().TerminateInstance(gomock.Any()).Return(nil).AnyTimes()
-
-				_, _ = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
-			})
-		})
-
-		t.Run("there's only a secret ARN and no node ref", func(t *testing.T) {
-			var instance *infrav1.Instance
-
-			getInstances := func(t *testing.T, g *WithT) {
-				t.Helper()
-
-				instance = &infrav1.Instance{
-					ID: "myMachine",
+				ms.AWSMachine.Spec.Ignition = &infrav1.Ignition{
+					Version:     "2.3",
+					StorageType: infrav1.IgnitionStorageTypeOptionUnencryptedUserData,
 				}
-				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(instance, nil).AnyTimes()
 			}
+			t.Run("creating EC2 instances", func(t *testing.T) {
+				var instance *infrav1.Instance
 
-			useIgnition := func(t *testing.T, g *WithT) {
-				t.Helper()
+				getInstances := func(t *testing.T, g *WithT) {
+					t.Helper()
+					ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, nil).AnyTimes()
+				}
+				t.Run("should NOT leverage a Cluster Object Store", func(t *testing.T) {
+					g := NewWithT(t)
+					awsMachine := getAWSMachine()
+					setup(t, g, awsMachine)
+					defer teardown(t, g)
+					getInstances(t, g)
+					useIgnitionAndUnencryptedUserData(t, g)
 
-				ms.Machine.Spec.Bootstrap.DataSecretName = pointer.String("bootstrap-data-ignition")
-				ms.AWSMachine.Spec.CloudInit.SecretCount = 0
-				ms.AWSMachine.Spec.CloudInit.SecretPrefix = ""
-			}
+					instance = &infrav1.Instance{
+						ID:    "myMachine",
+						State: infrav1.InstanceStatePending,
+					}
+					fakeS3URL := "s3://foo"
 
-			t.Run("should not delete the object if the instance is running", func(t *testing.T) {
-				g := NewWithT(t)
-				awsMachine := getAWSMachine()
-				setup(t, g, awsMachine)
-				defer teardown(t, g)
-				getInstances(t, g)
+					// Expect no Cluster Object Store to be created.
+					objectStoreSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return(fakeS3URL, nil).Times(0)
 
-				instance.State = infrav1.InstanceStateRunning
-				ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil).Times(1)
-				ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
-				ec2Svc.EXPECT().GetAdditionalSecurityGroupsIDs(gomock.Any()).Return(nil, nil)
-				objectStoreSvc.EXPECT().Delete(gomock.Any()).Return(nil).MaxTimes(0)
-				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
-			})
+					ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil).AnyTimes()
+					ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil).Times(1)
+					ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
+					ec2Svc.EXPECT().GetAdditionalSecurityGroupsIDs(gomock.Any()).Return(nil, nil)
 
-			t.Run("should delete the object if the instance is terminated", func(t *testing.T) {
-				g := NewWithT(t)
-				awsMachine := getAWSMachine()
-				setup(t, g, awsMachine)
-				defer teardown(t, g)
-				getInstances(t, g)
-				useIgnition(t, g)
-
-				instance.State = infrav1.InstanceStateTerminated
-				objectStoreSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
-				_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
-			})
-
-			t.Run("should delete the object if the AWSMachine is deleted", func(t *testing.T) {
-				g := NewWithT(t)
-				awsMachine := getAWSMachine()
-				setup(t, g, awsMachine)
-				defer teardown(t, g)
-				getInstances(t, g)
-				useIgnition(t, g)
-
-				instance.State = infrav1.InstanceStateRunning
-				objectStoreSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
-				ec2Svc.EXPECT().TerminateInstance(gomock.Any()).Return(nil).AnyTimes()
-				_, _ = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
-			})
-
-			t.Run("should delete the object if the AWSMachine is in a failure condition", func(t *testing.T) {
-				g := NewWithT(t)
-				awsMachine := getAWSMachine()
-				setup(t, g, awsMachine)
-				defer teardown(t, g)
-				getInstances(t, g)
-				useIgnition(t, g)
-
-				// TODO: This seems to have no effect on the test result.
-				ms.AWSMachine.Status.FailureReason = capierrors.MachineStatusErrorPtr(capierrors.UpdateMachineError)
-				objectStoreSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
-				ec2Svc.EXPECT().TerminateInstance(gomock.Any()).Return(nil).AnyTimes()
-				_, _ = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
-			})
-		})
-
-		t.Run("there is an intermittent connection issue and no object could be created", func(t *testing.T) {
-			useIgnition := func(t *testing.T, g *WithT) {
-				t.Helper()
-
-				ms.Machine.Spec.Bootstrap.DataSecretName = pointer.String("bootstrap-data-ignition")
-				ms.AWSMachine.Spec.CloudInit.SecretCount = 0
-				ms.AWSMachine.Spec.CloudInit.SecretPrefix = ""
-			}
-
-			t.Run("should error if object could not be created", func(t *testing.T) {
-				g := NewWithT(t)
-				awsMachine := getAWSMachine()
-				setup(t, g, awsMachine)
-				defer teardown(t, g)
-				useIgnition(t, g)
-
-				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, nil).AnyTimes()
-				objectStoreSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return("", errors.New("connection error")).Times(1)
-				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
-				g.Expect(err).ToNot(BeNil())
-				g.Expect(err.Error()).To(ContainSubstring("connection error"))
+					ms.AWSMachine.ObjectMeta.Labels = map[string]string{
+						clusterv1.MachineControlPlaneLabel: "",
+					}
+					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
+					g.Expect(err).To(BeNil())
+				})
 			})
 		})
 	})
@@ -2425,7 +2518,7 @@ func TestAWSMachineReconcilerReconcile(t *testing.T) {
 					}
 					err = testEnv.Get(ctx, key, machine)
 					return err == nil
-				}, 10*time.Second).Should(BeTrue())
+				}, 10*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed get the newly created machine %q", tc.awsMachine.Name))
 
 				result, err := reconciler.Reconcile(ctx, ctrl.Request{
 					NamespacedName: client.ObjectKey{
@@ -2464,6 +2557,10 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 
 	ns := "testns"
 
+	cp := &kubeadmv1beta1.KubeadmControlPlane{}
+	cp.SetName("capi-cp-test-1")
+	cp.SetNamespace(ns)
+
 	ownerCluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "capi-test-1",
@@ -2475,6 +2572,12 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 				Name:       "capi-test-1", // assuming same name
 				Namespace:  ns,
 				APIVersion: infrav1.GroupVersion.String(),
+			},
+			ControlPlaneRef: &corev1.ObjectReference{
+				Kind:       "KubeadmControlPlane",
+				Namespace:  cp.Namespace,
+				Name:       cp.Name,
+				APIVersion: kubeadmv1beta1.GroupVersion.String(),
 			},
 		},
 		Status: clusterv1.ClusterStatus{
@@ -2608,7 +2711,7 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 		},
 	}
 
-	fakeClient := fake.NewClientBuilder().WithObjects(ownerCluster, awsCluster, ownerMachine, awsMachine, controllerIdentity, secret, kubeconfig).WithStatusSubresource(awsCluster, awsMachine).Build()
+	fakeClient := fake.NewClientBuilder().WithObjects(ownerCluster, awsCluster, ownerMachine, awsMachine, controllerIdentity, secret, cp, kubeconfig).WithStatusSubresource(awsCluster, awsMachine).Build()
 
 	recorder := record.NewFakeRecorder(10)
 	reconciler := &AWSMachineReconciler{
@@ -2694,6 +2797,7 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 		Attribute:          aws.String("groupSet"),
 	})).Return(&ec2.DescribeNetworkInterfaceAttributeOutput{Groups: []*ec2.GroupIdentifier{{GroupId: aws.String("3")}}}, nil).MaxTimes(1)
 	ec2Mock.EXPECT().ModifyNetworkInterfaceAttributeWithContext(context.TODO(), gomock.Any()).AnyTimes()
+	ec2Mock.EXPECT().AssociateAddressWithContext(context.TODO(), gomock.Any()).MaxTimes(1)
 
 	_, err = reconciler.Reconcile(ctx, ctrl.Request{
 		NamespacedName: client.ObjectKey{

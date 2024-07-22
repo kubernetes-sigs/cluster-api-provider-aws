@@ -49,7 +49,7 @@ import (
 	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/yaml"
 
 	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cloudformation/bootstrap"
@@ -101,6 +101,7 @@ func (i *AWSInfrastructure) New(ais AWSInfrastructureSpec, e2eCtx *E2EContext) A
 func (i *AWSInfrastructure) CreateVPC() AWSInfrastructure {
 	cv, err := CreateVPC(i.Context, i.Spec.ClusterName+"-vpc", i.Spec.VpcCidr)
 	if err != nil {
+		i.State.VpcState = ptr.To[string](fmt.Sprintf("failed: %v", err))
 		return *i
 	}
 
@@ -110,6 +111,9 @@ func (i *AWSInfrastructure) CreateVPC() AWSInfrastructure {
 }
 
 func (i *AWSInfrastructure) RefreshVPCState() AWSInfrastructure {
+	if i.VPC == nil {
+		return *i
+	}
 	vpc, err := GetVPC(i.Context, *i.VPC.VpcId)
 	if err != nil {
 		return *i
@@ -124,7 +128,7 @@ func (i *AWSInfrastructure) RefreshVPCState() AWSInfrastructure {
 func (i *AWSInfrastructure) CreatePublicSubnet() AWSInfrastructure {
 	subnet, err := CreateSubnet(i.Context, i.Spec.ClusterName, i.Spec.PublicSubnetCidr, i.Spec.AvailabilityZone, *i.VPC.VpcId, "public")
 	if err != nil {
-		i.State.PublicSubnetState = pointer.String("failed")
+		i.State.PublicSubnetState = ptr.To[string]("failed")
 		return *i
 	}
 	i.State.PublicSubnetID = subnet.SubnetId
@@ -136,7 +140,7 @@ func (i *AWSInfrastructure) CreatePublicSubnet() AWSInfrastructure {
 func (i *AWSInfrastructure) CreatePrivateSubnet() AWSInfrastructure {
 	subnet, err := CreateSubnet(i.Context, i.Spec.ClusterName, i.Spec.PrivateSubnetCidr, i.Spec.AvailabilityZone, *i.VPC.VpcId, "private")
 	if err != nil {
-		i.State.PrivateSubnetState = pointer.String("failed")
+		i.State.PrivateSubnetState = ptr.To[string]("failed")
 		return *i
 	}
 	i.State.PrivateSubnetID = subnet.SubnetId
@@ -229,9 +233,9 @@ func (i *AWSInfrastructure) GetRouteTable(rtID string) AWSInfrastructure {
 // routes to their respective gateway.
 func (i *AWSInfrastructure) CreateInfrastructure() AWSInfrastructure {
 	i.CreateVPC()
-	Eventually(func(gomega Gomega) bool {
-		return *i.RefreshVPCState().State.VpcState == "available"
-	}, 2*time.Minute, 5*time.Second).Should(BeTrue())
+	Eventually(func() string {
+		return *i.RefreshVPCState().State.VpcState
+	}, 2*time.Minute, 5*time.Second).Should(Equal("available"), "Expected VPC state to eventually become 'available'")
 
 	By(fmt.Sprintf("Created VPC - %s", *i.VPC.VpcId))
 	if i.VPC != nil {
@@ -505,7 +509,7 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 			}
 			code, ok := awserrors.Code(err)
 			return err == nil || (ok && code == iam.ErrCodeNoSuchEntityException)
-		}, 5*time.Minute, 5*time.Second).Should(BeTrue())
+		}, 5*time.Minute, 5*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed deleting the following role: %q", role.RoleName))
 	}
 	for _, profile := range instanceProfiles {
 		By(fmt.Sprintf("cleanup for profile with name '%s'", profile.InstanceProfileName))
@@ -518,7 +522,7 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 			}
 			code, ok := awserrors.Code(err)
 			return err == nil || (ok && code == iam.ErrCodeNoSuchEntityException)
-		}, 5*time.Minute, 5*time.Second).Should(BeTrue())
+		}, 5*time.Minute, 5*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed cleaning up profile with name %q", profile.InstanceProfileName))
 	}
 	for _, group := range groups {
 		repeat := false
@@ -530,7 +534,7 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 			}
 			code, ok := awserrors.Code(err)
 			return err == nil || (ok && code == iam.ErrCodeNoSuchEntityException)
-		}, 5*time.Minute, 5*time.Second).Should(BeTrue())
+		}, 5*time.Minute, 5*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed deleting group %q", group.GroupName))
 	}
 	for _, policy := range policies {
 		policies, err := iamSvc.ListPolicies(&iam.ListPoliciesInput{})
@@ -550,7 +554,7 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 						}
 						code, ok := awserrors.Code(err)
 						return err == nil || (ok && code == iam.ErrCodeNoSuchEntityException)
-					}, 5*time.Minute, 5*time.Second).Should(BeTrue())
+					}, 5*time.Minute, 5*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed to delete policy %q", p.String()))
 					// TODO: why is there a break here? Don't we want to clean up everything?
 					break
 				}
@@ -949,7 +953,8 @@ func (s *ServiceQuota) updateServiceQuotaRequestStatus(serviceQuotasClient *serv
 	}
 }
 
-func DumpEKSClusters(ctx context.Context, e2eCtx *E2EContext) {
+// DumpEKSClusters dumps the EKS clusters in the environment.
+func DumpEKSClusters(_ context.Context, e2eCtx *E2EContext) {
 	name := "no-bootstrap-cluster"
 	if e2eCtx.Environment.BootstrapClusterProxy != nil {
 		name = e2eCtx.Environment.BootstrapClusterProxy.GetName()
@@ -1010,7 +1015,7 @@ func dumpEKSCluster(cluster *eks.Cluster, logPath string) {
 }
 
 // To calculate how much resources a test consumes, these helper functions below can be used.
-// ListVpcInternetGateways, ListNATGateways, ListRunningEC2, ListVPC
+// ListVpcInternetGateways, ListNATGateways, ListRunningEC2, ListVPC.
 
 func ListVpcInternetGateways(e2eCtx *E2EContext) ([]*ec2.InternetGateway, error) {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
@@ -1048,7 +1053,8 @@ func ListNATGateways(e2eCtx *E2EContext) (map[string]*ec2.NatGateway, error) {
 	return gateways, nil
 }
 
-func ListRunningEC2(e2eCtx *E2EContext) ([]instance, error) {
+// listRunningEC2 returns a list of running EC2 instances.
+func listRunningEC2(e2eCtx *E2EContext) ([]instance, error) { //nolint:unused
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 
 	resp, err := ec2Svc.DescribeInstancesWithContext(context.TODO(), &ec2.DescribeInstancesInput{
@@ -1124,7 +1130,7 @@ func WaitForInstanceState(e2eCtx *E2EContext, clusterName string, state string) 
 			return true
 		}
 		return false
-	}, 5*time.Minute, 5*time.Second).Should(BeTrue())
+	}, 5*time.Minute, 5*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed waiting for all cluster's EC2 instance to be in %q state", state))
 
 	return false
 }
@@ -1205,6 +1211,29 @@ func GetVPCByName(e2eCtx *E2EContext, vpcName string) (*ec2.Vpc, error) {
 		return nil, awserrors.NewNotFound("Vpc not found")
 	}
 	return result.Vpcs[0], nil
+}
+
+func GetVPCEndpointsByID(e2eCtx *E2EContext, vpcID string) ([]*ec2.VpcEndpoint, error) {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.DescribeVpcEndpointsInput{
+		Filters: []*ec2.Filter{
+			{
+				Name:   aws.String("vpc-id"),
+				Values: aws.StringSlice([]string{vpcID}),
+			},
+		},
+	}
+
+	res := []*ec2.VpcEndpoint{}
+	if err := ec2Svc.DescribeVpcEndpointsPages(input, func(dveo *ec2.DescribeVpcEndpointsOutput, lastPage bool) bool {
+		res = append(res, dveo.VpcEndpoints...)
+		return true
+	}); err != nil {
+		return nil, err
+	}
+
+	return res, nil
 }
 
 func CreateVPC(e2eCtx *E2EContext, vpcName string, cidrBlock string) (*ec2.Vpc, error) {
@@ -1518,7 +1547,7 @@ func WaitForNatGatewayState(e2eCtx *E2EContext, gatewayID string, state string) 
 		gw, _ := GetNatGateway(e2eCtx, gatewayID)
 		gwState := *gw.State
 		return gwState == state
-	}, 3*time.Minute, 5*time.Second).Should(BeTrue())
+	}, 3*time.Minute, 5*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed waiting for NAT Gateway to be in %q state", state))
 	return false
 }
 

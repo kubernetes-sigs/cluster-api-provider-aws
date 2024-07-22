@@ -29,7 +29,7 @@ import (
 	go_cfn "github.com/awslabs/goformation/v4/cloudformation"
 	"github.com/pkg/errors"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 )
@@ -59,8 +59,8 @@ func (s *Service) ReconcileBootstrapStack(stackName string, t go_cfn.Template, t
 	stackTags := []*cfn.Tag{}
 	for k, v := range tags {
 		stackTags = append(stackTags, &cfn.Tag{
-			Key:   pointer.String(k),
-			Value: pointer.String(v),
+			Key:   ptr.To[string](k),
+			Value: ptr.To[string](v),
 		})
 	}
 	//nolint:nestif
@@ -82,6 +82,7 @@ func (s *Service) ReconcileBootstrapStack(stackName string, t go_cfn.Template, t
 	return nil
 }
 
+// ReconcileBootstrapNoUpdate creates or updates bootstrap CloudFormation without updating the stack.
 func (s *Service) ReconcileBootstrapNoUpdate(stackName string, t go_cfn.Template, tags map[string]string) error {
 	yaml, err := t.YAML()
 	processedYaml := string(yaml)

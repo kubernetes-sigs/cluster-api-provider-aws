@@ -28,7 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/version"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -98,7 +98,9 @@ func TestParseEKSVersion(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
-			g.Expect(*parseEKSVersion(tc.input)).To(Equal(tc.expect))
+			v, err := parseEKSVersion(tc.input)
+			g.Expect(err).To(BeNil())
+			g.Expect(*v).To(Equal(tc.expect))
 		})
 	}
 }
@@ -524,10 +526,10 @@ func TestCreateCluster(t *testing.T) {
 					},
 				},
 			})
-			subnetIds := make([]*string, 0)
+			subnetIDs := make([]*string, 0)
 			for i := range tc.subnets {
 				subnet := tc.subnets[i]
-				subnetIds = append(subnetIds, &subnet.ID)
+				subnetIDs = append(subnetIDs, &subnet.ID)
 			}
 
 			if !tc.expectError {
@@ -537,7 +539,7 @@ func TestCreateCluster(t *testing.T) {
 					Name:             aws.String(clusterName),
 					EncryptionConfig: []*eks.EncryptionConfig{},
 					ResourcesVpcConfig: &eks.VpcConfigRequest{
-						SubnetIds: subnetIds,
+						SubnetIds: subnetIDs,
 					},
 					RoleArn: tc.role,
 					Tags:    tc.tags,
@@ -577,12 +579,12 @@ func TestReconcileEKSEncryptionConfig(t *testing.T) {
 		{
 			name: "no upgrade necessary - encryption config unchanged",
 			oldEncryptionConfig: &ekscontrolplanev1.EncryptionConfig{
-				Provider:  pointer.String("provider"),
-				Resources: []*string{pointer.String("foo"), pointer.String("bar")},
+				Provider:  ptr.To[string]("provider"),
+				Resources: []*string{ptr.To[string]("foo"), ptr.To[string]("bar")},
 			},
 			newEncryptionConfig: &ekscontrolplanev1.EncryptionConfig{
-				Provider:  pointer.String("provider"),
-				Resources: []*string{pointer.String("foo"), pointer.String("bar")},
+				Provider:  ptr.To[string]("provider"),
+				Resources: []*string{ptr.To[string]("foo"), ptr.To[string]("bar")},
 			},
 			expect:      func(m *mock_eksiface.MockEKSAPIMockRecorder) {},
 			expectError: false,
@@ -591,8 +593,8 @@ func TestReconcileEKSEncryptionConfig(t *testing.T) {
 			name:                "needs upgrade",
 			oldEncryptionConfig: nil,
 			newEncryptionConfig: &ekscontrolplanev1.EncryptionConfig{
-				Provider:  pointer.String("provider"),
-				Resources: []*string{pointer.String("foo"), pointer.String("bar")},
+				Provider:  ptr.To[string]("provider"),
+				Resources: []*string{ptr.To[string]("foo"), ptr.To[string]("bar")},
 			},
 			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
 				m.WaitUntilClusterUpdating(
@@ -605,8 +607,8 @@ func TestReconcileEKSEncryptionConfig(t *testing.T) {
 		{
 			name: "upgrade not allowed if encryption config updated as nil",
 			oldEncryptionConfig: &ekscontrolplanev1.EncryptionConfig{
-				Provider:  pointer.String("provider"),
-				Resources: []*string{pointer.String("foo"), pointer.String("bar")},
+				Provider:  ptr.To[string]("provider"),
+				Resources: []*string{ptr.To[string]("foo"), ptr.To[string]("bar")},
 			},
 			newEncryptionConfig: nil,
 			expect:              func(m *mock_eksiface.MockEKSAPIMockRecorder) {},
@@ -615,12 +617,12 @@ func TestReconcileEKSEncryptionConfig(t *testing.T) {
 		{
 			name: "upgrade not allowed if encryption config exists",
 			oldEncryptionConfig: &ekscontrolplanev1.EncryptionConfig{
-				Provider:  pointer.String("provider"),
-				Resources: []*string{pointer.String("foo"), pointer.String("bar")},
+				Provider:  ptr.To[string]("provider"),
+				Resources: []*string{ptr.To[string]("foo"), ptr.To[string]("bar")},
 			},
 			newEncryptionConfig: &ekscontrolplanev1.EncryptionConfig{
-				Provider:  pointer.String("new-provider"),
-				Resources: []*string{pointer.String("foo"), pointer.String("bar")},
+				Provider:  ptr.To[string]("new-provider"),
+				Resources: []*string{ptr.To[string]("foo"), ptr.To[string]("bar")},
 			},
 			expect:      func(m *mock_eksiface.MockEKSAPIMockRecorder) {},
 			expectError: true,
@@ -685,8 +687,8 @@ func TestCreateIPv6Cluster(t *testing.T) {
 	_ = ekscontrolplanev1.AddToScheme(scheme)
 	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 	encryptionConfig := &ekscontrolplanev1.EncryptionConfig{
-		Provider:  pointer.String("new-provider"),
-		Resources: []*string{pointer.String("foo"), pointer.String("bar")},
+		Provider:  ptr.To[string]("new-provider"),
+		Resources: []*string{ptr.To[string]("foo"), ptr.To[string]("bar")},
 	}
 	vpcSpec := infrav1.VPCSpec{
 		IPv6: &infrav1.IPv6{
@@ -703,7 +705,7 @@ func TestCreateIPv6Cluster(t *testing.T) {
 		},
 		ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
 			Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
-				RoleName: pointer.String("arn-role"),
+				RoleName: ptr.To[string]("arn-role"),
 				Version:  aws.String("1.22"),
 				NetworkSpec: infrav1.NetworkSpec{
 					Subnets: []infrav1.SubnetSpec{
@@ -744,20 +746,20 @@ func TestCreateIPv6Cluster(t *testing.T) {
 			},
 		},
 		ResourcesVpcConfig: &eks.VpcConfigRequest{
-			SubnetIds: []*string{pointer.String("sub-1"), pointer.String("sub-2")},
+			SubnetIds: []*string{ptr.To[string]("sub-1"), ptr.To[string]("sub-2")},
 		},
 		KubernetesNetworkConfig: &eks.KubernetesNetworkConfigRequest{
-			IpFamily: pointer.String("ipv6"),
+			IpFamily: ptr.To[string]("ipv6"),
 		},
 		Tags: map[string]*string{
-			"kubernetes.io/cluster/cluster-name": pointer.String("owned"),
+			"kubernetes.io/cluster/cluster-name": ptr.To[string]("owned"),
 		},
 	}).Return(&eks.CreateClusterOutput{}, nil)
 	iamMock.EXPECT().GetRole(&iam.GetRoleInput{
 		RoleName: aws.String("arn-role"),
 	}).Return(&iam.GetRoleOutput{
 		Role: &iam.Role{
-			RoleName: pointer.String("arn-role"),
+			RoleName: ptr.To[string]("arn-role"),
 		},
 	}, nil)
 

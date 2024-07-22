@@ -1333,6 +1333,39 @@ func (mr *MockAutoScalingAPIMockRecorder) DescribeInstanceRefreshes(arg0 interfa
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeInstanceRefreshes", reflect.TypeOf((*MockAutoScalingAPI)(nil).DescribeInstanceRefreshes), arg0)
 }
 
+// DescribeInstanceRefreshesPages mocks base method.
+func (m *MockAutoScalingAPI) DescribeInstanceRefreshesPages(arg0 *autoscaling.DescribeInstanceRefreshesInput, arg1 func(*autoscaling.DescribeInstanceRefreshesOutput, bool) bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeInstanceRefreshesPages", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DescribeInstanceRefreshesPages indicates an expected call of DescribeInstanceRefreshesPages.
+func (mr *MockAutoScalingAPIMockRecorder) DescribeInstanceRefreshesPages(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeInstanceRefreshesPages", reflect.TypeOf((*MockAutoScalingAPI)(nil).DescribeInstanceRefreshesPages), arg0, arg1)
+}
+
+// DescribeInstanceRefreshesPagesWithContext mocks base method.
+func (m *MockAutoScalingAPI) DescribeInstanceRefreshesPagesWithContext(arg0 context.Context, arg1 *autoscaling.DescribeInstanceRefreshesInput, arg2 func(*autoscaling.DescribeInstanceRefreshesOutput, bool) bool, arg3 ...request.Option) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeInstanceRefreshesPagesWithContext", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DescribeInstanceRefreshesPagesWithContext indicates an expected call of DescribeInstanceRefreshesPagesWithContext.
+func (mr *MockAutoScalingAPIMockRecorder) DescribeInstanceRefreshesPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeInstanceRefreshesPagesWithContext", reflect.TypeOf((*MockAutoScalingAPI)(nil).DescribeInstanceRefreshesPagesWithContext), varargs...)
+}
+
 // DescribeInstanceRefreshesRequest mocks base method.
 func (m *MockAutoScalingAPI) DescribeInstanceRefreshesRequest(arg0 *autoscaling.DescribeInstanceRefreshesInput) (*request.Request, *autoscaling.DescribeInstanceRefreshesOutput) {
 	m.ctrl.T.Helper()
@@ -1566,6 +1599,39 @@ func (mr *MockAutoScalingAPIMockRecorder) DescribeLoadBalancerTargetGroups(arg0 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeLoadBalancerTargetGroups", reflect.TypeOf((*MockAutoScalingAPI)(nil).DescribeLoadBalancerTargetGroups), arg0)
 }
 
+// DescribeLoadBalancerTargetGroupsPages mocks base method.
+func (m *MockAutoScalingAPI) DescribeLoadBalancerTargetGroupsPages(arg0 *autoscaling.DescribeLoadBalancerTargetGroupsInput, arg1 func(*autoscaling.DescribeLoadBalancerTargetGroupsOutput, bool) bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeLoadBalancerTargetGroupsPages", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DescribeLoadBalancerTargetGroupsPages indicates an expected call of DescribeLoadBalancerTargetGroupsPages.
+func (mr *MockAutoScalingAPIMockRecorder) DescribeLoadBalancerTargetGroupsPages(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeLoadBalancerTargetGroupsPages", reflect.TypeOf((*MockAutoScalingAPI)(nil).DescribeLoadBalancerTargetGroupsPages), arg0, arg1)
+}
+
+// DescribeLoadBalancerTargetGroupsPagesWithContext mocks base method.
+func (m *MockAutoScalingAPI) DescribeLoadBalancerTargetGroupsPagesWithContext(arg0 context.Context, arg1 *autoscaling.DescribeLoadBalancerTargetGroupsInput, arg2 func(*autoscaling.DescribeLoadBalancerTargetGroupsOutput, bool) bool, arg3 ...request.Option) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeLoadBalancerTargetGroupsPagesWithContext", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DescribeLoadBalancerTargetGroupsPagesWithContext indicates an expected call of DescribeLoadBalancerTargetGroupsPagesWithContext.
+func (mr *MockAutoScalingAPIMockRecorder) DescribeLoadBalancerTargetGroupsPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeLoadBalancerTargetGroupsPagesWithContext", reflect.TypeOf((*MockAutoScalingAPI)(nil).DescribeLoadBalancerTargetGroupsPagesWithContext), varargs...)
+}
+
 // DescribeLoadBalancerTargetGroupsRequest mocks base method.
 func (m *MockAutoScalingAPI) DescribeLoadBalancerTargetGroupsRequest(arg0 *autoscaling.DescribeLoadBalancerTargetGroupsInput) (*request.Request, *autoscaling.DescribeLoadBalancerTargetGroupsOutput) {
 	m.ctrl.T.Helper()
@@ -1614,6 +1680,39 @@ func (m *MockAutoScalingAPI) DescribeLoadBalancers(arg0 *autoscaling.DescribeLoa
 func (mr *MockAutoScalingAPIMockRecorder) DescribeLoadBalancers(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeLoadBalancers", reflect.TypeOf((*MockAutoScalingAPI)(nil).DescribeLoadBalancers), arg0)
+}
+
+// DescribeLoadBalancersPages mocks base method.
+func (m *MockAutoScalingAPI) DescribeLoadBalancersPages(arg0 *autoscaling.DescribeLoadBalancersInput, arg1 func(*autoscaling.DescribeLoadBalancersOutput, bool) bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeLoadBalancersPages", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DescribeLoadBalancersPages indicates an expected call of DescribeLoadBalancersPages.
+func (mr *MockAutoScalingAPIMockRecorder) DescribeLoadBalancersPages(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeLoadBalancersPages", reflect.TypeOf((*MockAutoScalingAPI)(nil).DescribeLoadBalancersPages), arg0, arg1)
+}
+
+// DescribeLoadBalancersPagesWithContext mocks base method.
+func (m *MockAutoScalingAPI) DescribeLoadBalancersPagesWithContext(arg0 context.Context, arg1 *autoscaling.DescribeLoadBalancersInput, arg2 func(*autoscaling.DescribeLoadBalancersOutput, bool) bool, arg3 ...request.Option) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeLoadBalancersPagesWithContext", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DescribeLoadBalancersPagesWithContext indicates an expected call of DescribeLoadBalancersPagesWithContext.
+func (mr *MockAutoScalingAPIMockRecorder) DescribeLoadBalancersPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeLoadBalancersPagesWithContext", reflect.TypeOf((*MockAutoScalingAPI)(nil).DescribeLoadBalancersPagesWithContext), varargs...)
 }
 
 // DescribeLoadBalancersRequest mocks base method.
@@ -2312,6 +2411,39 @@ func (m *MockAutoScalingAPI) DescribeWarmPool(arg0 *autoscaling.DescribeWarmPool
 func (mr *MockAutoScalingAPIMockRecorder) DescribeWarmPool(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeWarmPool", reflect.TypeOf((*MockAutoScalingAPI)(nil).DescribeWarmPool), arg0)
+}
+
+// DescribeWarmPoolPages mocks base method.
+func (m *MockAutoScalingAPI) DescribeWarmPoolPages(arg0 *autoscaling.DescribeWarmPoolInput, arg1 func(*autoscaling.DescribeWarmPoolOutput, bool) bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeWarmPoolPages", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DescribeWarmPoolPages indicates an expected call of DescribeWarmPoolPages.
+func (mr *MockAutoScalingAPIMockRecorder) DescribeWarmPoolPages(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeWarmPoolPages", reflect.TypeOf((*MockAutoScalingAPI)(nil).DescribeWarmPoolPages), arg0, arg1)
+}
+
+// DescribeWarmPoolPagesWithContext mocks base method.
+func (m *MockAutoScalingAPI) DescribeWarmPoolPagesWithContext(arg0 context.Context, arg1 *autoscaling.DescribeWarmPoolInput, arg2 func(*autoscaling.DescribeWarmPoolOutput, bool) bool, arg3 ...request.Option) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeWarmPoolPagesWithContext", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DescribeWarmPoolPagesWithContext indicates an expected call of DescribeWarmPoolPagesWithContext.
+func (mr *MockAutoScalingAPIMockRecorder) DescribeWarmPoolPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeWarmPoolPagesWithContext", reflect.TypeOf((*MockAutoScalingAPI)(nil).DescribeWarmPoolPagesWithContext), varargs...)
 }
 
 // DescribeWarmPoolRequest mocks base method.

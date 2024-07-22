@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package managed implements a test for creating a managed cluster using CAPA.
 package managed
 
 import (
@@ -29,7 +30,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
@@ -65,8 +66,8 @@ func ManagedClusterSpec(ctx context.Context, inputGetter func() ManagedClusterSp
 	ginkgo.By(fmt.Sprintf("creating an applying the %s template", input.Flavour))
 	configCluster := input.ConfigClusterFn(input.ClusterName, input.Namespace.Name)
 	configCluster.Flavor = input.Flavour
-	configCluster.ControlPlaneMachineCount = pointer.Int64(input.ControlPlaneMachineCount)
-	configCluster.WorkerMachineCount = pointer.Int64(input.WorkerMachineCount)
+	configCluster.ControlPlaneMachineCount = ptr.To[int64](input.ControlPlaneMachineCount)
+	configCluster.WorkerMachineCount = ptr.To[int64](input.WorkerMachineCount)
 	if input.KubernetesVersion != "" {
 		configCluster.KubernetesVersion = input.KubernetesVersion
 	}

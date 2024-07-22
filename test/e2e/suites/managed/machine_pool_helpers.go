@@ -58,5 +58,5 @@ func waitForMachinePoolDeleted(ctx context.Context, input waitForMachinePoolDele
 		err := input.Getter.Get(ctx, key, mp)
 		notFound := apierrors.IsNotFound(err)
 		return notFound
-	}, intervals...).Should(BeTrue())
+	}, intervals...).Should(BeTrue(), fmt.Sprintf("Eventually failed waiting for machine pool %q to be deleted", input.MachinePool.GetName()))
 }
