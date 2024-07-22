@@ -276,7 +276,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 					PublicIpv4PoolFallBackOrder: ptr.To(infrav1.PublicIpv4PoolFallbackOrderAmazonPool),
 				}
 				g.Expect(err).To(Not(HaveOccurred()))
-				_, err = reconciler.reconcileNormal(cs)
+				_, err = reconciler.reconcileNormal(ctx, cs)
 				g.Expect(err).To(Not(HaveOccurred()))
 			})
 		})

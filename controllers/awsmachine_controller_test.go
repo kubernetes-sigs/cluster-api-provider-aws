@@ -31,7 +31,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -133,7 +132,7 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 			Annotations: map[string]string{
 				scope.KubeconfigReadyAnnotation: "true", // skip call to workload cluster to prove working control plane node
 			},
-		}		
+		}
 		cs.AWSCluster.Spec.NetworkSpec.VPC = infrav1.VPCSpec{
 			ID:        "vpc-exists",
 			CidrBlock: "10.0.0.0/16",

@@ -146,7 +146,7 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 			},
 		})
 
-		_, err = reconciler.reconcileNormal(cs)
+		_, err = reconciler.reconcileNormal(ctx, cs)
 		g.Expect(err).To(BeNil())
 
 		cluster := &infrav1.AWSCluster{}
@@ -170,7 +170,7 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 		})).To(Succeed())
 		// Executing back a second reconciliation:
 		// the AWS Cluster should be ready with no LoadBalancer false condition.
-		_, err = reconciler.reconcileNormal(cs)
+		_, err = reconciler.reconcileNormal(ctx, cs)
 		g.Expect(err).To(BeNil())
 		g.Expect(cs.VPC().ID).To(Equal("vpc-exists"))
 		expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{
@@ -469,7 +469,7 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 		reconciler.elbServiceFactory = func(elbScope scope.ELBScope) services.ELBInterface {
 			return elbSvc
 		}
-		_, err = reconciler.reconcileNormal(cs)
+		_, err = reconciler.reconcileNormal(ctx, cs)
 		g.Expect(err).To(BeNil())
 		g.Expect(cs.VPC().ID).To(Equal("vpc-new"))
 		expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{
