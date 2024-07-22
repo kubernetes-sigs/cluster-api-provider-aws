@@ -29,6 +29,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/utils/ptr"
 
+	"k8s.io/apimachinery/pkg/util/wait"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
@@ -661,9 +662,28 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 		}
 	}
 
-	out, err := s.EC2Client.RunInstancesWithContext(context.TODO(), input)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to run instance")
+	var out *ec2.Reservation
+	var err error
+	if i.SpotMarketOptions != nil && i.SpotMarketOptions.WaitingTimeout > 0 {
+		pollError := wait.PollUntilContextCancel(context.TODO(), i.SpotMarketOptions.WaitingTimeout, false, func(ctx context.Context) (bool, error) {
+			out, err = s.EC2Client.RunInstancesWithContext(ctx, input)
+			if err != nil {
+				return false, errors.Wrap(err, "failed to run instance")
+			}
+			return true, nil
+		})
+		if pollError != nil {
+			input.InstanceMarketOptions = nil
+			out, err = s.EC2Client.RunInstancesWithContext(context.TODO(), input)
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to run instance")
+			}
+		}
+	} else {
+		out, err = s.EC2Client.RunInstancesWithContext(context.TODO(), input)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to run instance")
+		}
 	}
 
 	if len(out.Instances) == 0 {

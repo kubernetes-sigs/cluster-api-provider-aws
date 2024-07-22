@@ -21,6 +21,7 @@ import (
 	"encoding/base64"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -5280,6 +5281,19 @@ func TestGetInstanceMarketOptionsRequest(t *testing.T) {
 					InstanceInterruptionBehavior: aws.String(ec2.InstanceInterruptionBehaviorTerminate),
 					SpotInstanceType:             aws.String(ec2.SpotInstanceTypeOneTime),
 					MaxPrice:                     aws.String("0.01"),
+				},
+			},
+		},
+		{
+			name: "with WaitingTimeout specified",
+			spotMarketOptions: &infrav1.SpotMarketOptions{
+				WaitingTimeout: 10 * time.Minute,
+			},
+			expectedRequest: &ec2.InstanceMarketOptionsRequest{
+				MarketType: aws.String(ec2.MarketTypeSpot),
+				SpotOptions: &ec2.SpotMarketOptions{
+					InstanceInterruptionBehavior: aws.String(ec2.InstanceInterruptionBehaviorTerminate),
+					SpotInstanceType:             aws.String(ec2.SpotInstanceTypeOneTime),
 				},
 			},
 		},
