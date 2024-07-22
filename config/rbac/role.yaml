@@ -442,3 +442,30 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - issuers
+  verbs:
+  - get
+  - list
+  - create
+  - delete
+- apiGroups:
+    - cert-manager.io
+  resources:
+    - certificates
+  verbs:
+    - create
+    - get
+    - list
+    - delete
+- apiGroups:
+    - controlplane.cluster.x-k8s.io
+  resources:
+    - kubeadmcontrolplanes
+  verbs:
+    - get
+    - list
+    - patch
+    - update
