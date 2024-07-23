@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	stderr "errors"
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"path"
 	"strings"
 
@@ -287,7 +288,20 @@ func deleteOIDCProvider(arn string, iamClient iamiface.IAMAPI) error {
 
 	_, err := iamClient.DeleteOpenIDConnectProvider(&input)
 	if err != nil {
-		return errors.Wrap(err, "error deleting provider")
+
+		var aerr awserr.Error
+		ok := errors.As(err, &aerr)
+		if !ok {
+			return errors.Wrap(err, "deleting OIDC provider")
+		}
+
+		switch aerr.Code() {
+		case iam.ErrCodeNoSuchEntityException:
+			return nil
+		default:
+			return errors.Wrap(err, "deleting OIDC provider")
+		}
+
 	}
 	return nil
 }
