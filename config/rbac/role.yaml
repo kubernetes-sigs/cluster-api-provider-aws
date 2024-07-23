@@ -445,16 +445,8 @@ rules:
 - apiGroups:
   - cert-manager.io
   resources:
+  - certificates
   - issuers
-  verbs:
-  - get
-  - list
-  - create
-  - delete
-- apiGroups:
-    - cert-manager.io
-  resources:
-    - certificates
   verbs:
     - create
     - get
