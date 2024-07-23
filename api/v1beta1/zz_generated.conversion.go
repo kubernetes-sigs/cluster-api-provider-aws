@@ -2316,6 +2316,7 @@ func autoConvert_v1beta2_VPCSpec_To_v1beta1_VPCSpec(in *v1beta2.VPCSpec, out *VP
 	// WARNING: in.EmptyRoutesDefaultVPCSecurityGroup requires manual conversion: does not exist in peer-type
 	// WARNING: in.PrivateDNSHostnameTypeOnLaunch requires manual conversion: does not exist in peer-type
 	// WARNING: in.ElasticIPPool requires manual conversion: does not exist in peer-type
+	// WARNING: in.SubnetSchema requires manual conversion: does not exist in peer-type
 	return nil
 }
 
