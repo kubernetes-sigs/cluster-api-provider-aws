@@ -2853,6 +2853,35 @@ spec:
                 description: Partition is the AWS security partition being used. Defaults
                   to "aws"
                 type: string
+              podIdentityAssociations:
+                description: |-
+                  PodIdentityAssociations represent Kubernetes Service Accounts mapping to AWS IAM Roles without IRSA, using EKS Pod Identity.
+                  This requires using the AWS EKS Addon for Pod Identity.
+                items:
+                  description: PodIdentityAssociation represents an association between
+                    a Kubernetes Service Account in a namespace, and an AWS IAM role
+                    which allows the service principal `pods.eks.amazonaws.com` in
+                    its trust policy.
+                  properties:
+                    roleARN:
+                      description: RoleARN is the ARN of an IAM role which the Service
+                        Account can assume.
+                      type: string
+                    serviceAccountName:
+                      description: ServiceAccountName is the name of the kubernetes
+                        Service Account within the namespace
+                      type: string
+                    serviceAccountNamespace:
+                      default: default
+                      description: ServiceAccountNamespace is the kubernetes namespace,
+                        which the kubernetes Service Account resides in. Defaults
+                        to "default" namespace.
+                      type: string
+                  required:
+                  - serviceAccountName
+                  - serviceAccountNamespace
+                  type: object
+                type: array
               region:
                 description: The AWS Region the cluster lives in.
                 type: string

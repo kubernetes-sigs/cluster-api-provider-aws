@@ -40,6 +40,7 @@ func (r *AWSManagedControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	}
 	dst.Spec.VpcCni.Disable = r.Spec.DisableVPCCNI
 	dst.Spec.Partition = restored.Spec.Partition
+	dst.Spec.PodIdentityAssociations = restored.Spec.PodIdentityAssociations
 
 	return nil
 }
