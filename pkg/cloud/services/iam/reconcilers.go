@@ -19,6 +19,8 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
+const podIdentityNamespace = "kube-system"
+
 // reconcilePodIdentityWebhook generates certs and starts the webhook in the workload cluster
 // https://github.com/aws/amazon-eks-pod-identity-webhook
 // 1. generate webhook certs via cert-manager in the management cluster
@@ -29,8 +31,8 @@ func (s *Service) reconcilePodIdentityWebhook(ctx context.Context) error {
 	certSecret, err := certificateSecret(ctx,
 		certName, s.scope.Namespace(),
 		fmt.Sprintf(SelfsignedIssuerFormat, s.scope.Name()), []string{
-			fmt.Sprintf("%s.%s.svc", podIdentityWebhookName, s.scope.Namespace()),
-			fmt.Sprintf("%s.%s.svc.cluster.local", podIdentityWebhookName, s.scope.Namespace()),
+			fmt.Sprintf("%s.%s.svc", podIdentityWebhookName, podIdentityNamespace),
+			fmt.Sprintf("%s.%s.svc.cluster.local", podIdentityWebhookName, podIdentityNamespace),
 		}, s.scope.ManagementClient())
 
 	if err != nil {
@@ -47,7 +49,7 @@ func (s *Service) reconcilePodIdentityWebhook(ctx context.Context) error {
 		return err
 	}
 
-	if err := reconcilePodIdentityWebhookComponents(ctx, s.scope.Namespace(), certSecret, remoteClient); err != nil {
+	if err := reconcilePodIdentityWebhookComponents(ctx, podIdentityNamespace, certSecret, remoteClient); err != nil {
 		return err
 	}
 

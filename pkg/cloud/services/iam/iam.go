@@ -102,7 +102,7 @@ func (s *Service) ReconcileOIDCProvider(ctx context.Context) error {
 	if err := s.reconcileBucketContents(ctx); err != nil {
 		return err
 	}
-
+	log.Info("Creating PodIdentityWebhook addon")
 	if err := s.reconcilePodIdentityWebhook(ctx); err != nil {
 		return err
 	}

@@ -19,7 +19,7 @@ import (
 
 const (
 	podIdentityWebhookName  = "pod-identity-webhook"
-	podIdentityWebhookImage = "amazon/amazon-eks-pod-identity-webhook:v0.4.0"
+	podIdentityWebhookImage = "amazon/amazon-eks-pod-identity-webhook:v0.5.5"
 )
 
 func reconcileServiceAccount(ctx context.Context, ns string, remoteClient client.Client) error {
@@ -134,7 +134,7 @@ func reconcileService(ctx context.Context, ns string, remoteClient client.Client
 			Ports: []corev1.ServicePort{
 				{
 					Port:       443,
-					TargetPort: intstr.FromInt(443),
+					TargetPort: intstr.FromInt32(443),
 				},
 			},
 			Selector: map[string]string{
@@ -325,15 +325,20 @@ func reconcileCertificateSecret(ctx context.Context, cert *corev1.Secret, remote
 	certCheck := &corev1.Secret{}
 	if err := remoteClient.Get(ctx, types.NamespacedName{
 		Name:      cert.Name,
-		Namespace: cert.Namespace,
+		Namespace: podIdentityNamespace,
 	}, certCheck); err != nil && !apierrors.IsNotFound(err) {
 		// will return not found if waiting for cert-manager and will reconcile again later due to error
 		return err
 	}
 
 	if certCheck.UID == "" {
+		cert.Namespace = podIdentityNamespace
 		cert.ResourceVersion = ""
-		return remoteClient.Create(ctx, cert)
+		err := remoteClient.Create(ctx, cert)
+		if err != nil && apierrors.IsAlreadyExists(err) {
+			return nil
+		}
+		return err
 	}
 
 	return nil
