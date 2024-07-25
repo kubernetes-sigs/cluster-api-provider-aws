@@ -27,7 +27,7 @@ kind: ROSAControlPlane
 metadata:
   name: "${CLUSTER_NAME}-control-plane"
 spec:
-  rosaClusterName: ${CLUSTER_NAME:0:15}
+  rosaClusterName: ${CLUSTER_NAME:0:54}
   version: "${OPENSHIFT_VERSION}"
   region: "${AWS_REGION}"
   network:
@@ -43,7 +43,7 @@ spec:
     kmsProviderARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OPERATOR_ROLES_PREFIX}-kube-system-kms-provider"
   oidcID: "${OIDC_CONFIG_ID}"
   subnets:
-    - "${PUBLIC_SUBNET_ID}"
+    - "${PUBLIC_SUBNET_ID}" # remove if creating a private cluster
     - "${PRIVATE_SUBNET_ID}"
   availabilityZones:
     - "${AWS_AVAILABILITY_ZONE}"
@@ -77,5 +77,3 @@ spec:
   instanceType: "m5.xlarge"
   subnet: "${PRIVATE_SUBNET_ID}"
   version: "${OPENSHIFT_VERSION}"
-
-

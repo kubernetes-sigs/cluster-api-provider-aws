@@ -140,11 +140,12 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 			By(fmt.Sprintf("Trying to create CloudFormation stack... attempt %d", count))
 			success := true
 			if err := createCloudFormationStack(e2eCtx.AWSSession, bootstrapTemplate, bootstrapTags); err != nil {
+				By(fmt.Sprintf("Failed to create CloudFormation stack in attempt %d: %s", count, err.Error()))
 				deleteCloudFormationStack(e2eCtx.AWSSession, bootstrapTemplate)
 				success = false
 			}
 			return success
-		}, 10*time.Minute, 5*time.Second).Should(BeTrue())
+		}, 10*time.Minute, 5*time.Second).Should(BeTrue(), "Should've eventually succeeded creating an AWS CloudFormation stack")
 	}
 
 	ensureStackTags(e2eCtx.AWSSession, bootstrapTemplate.Spec.StackName, bootstrapTags)

@@ -368,6 +368,74 @@ func TestAWSMachineCreate(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "create with valid BYOIPv4",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "type",
+					PublicIP:     aws.Bool(true),
+					ElasticIPPool: &ElasticIPPool{
+						PublicIpv4Pool:              aws.String("ipv4pool-ec2-0123456789abcdef0"),
+						PublicIpv4PoolFallBackOrder: ptr.To(PublicIpv4PoolFallbackOrderAmazonPool),
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "error when BYOIPv4 without fallback",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "type",
+					PublicIP:     aws.Bool(true),
+					ElasticIPPool: &ElasticIPPool{
+						PublicIpv4Pool: aws.String("ipv4pool-ec2-0123456789abcdef0"),
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "error when BYOIPv4 without public ipv4 pool",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "type",
+					PublicIP:     aws.Bool(true),
+					ElasticIPPool: &ElasticIPPool{
+						PublicIpv4PoolFallBackOrder: ptr.To(PublicIpv4PoolFallbackOrderAmazonPool),
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "error when BYOIPv4 with non-public IP set",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "type",
+					PublicIP:     aws.Bool(false),
+					ElasticIPPool: &ElasticIPPool{
+						PublicIpv4Pool:              aws.String("ipv4pool-ec2-0123456789abcdef0"),
+						PublicIpv4PoolFallBackOrder: ptr.To(PublicIpv4PoolFallbackOrderAmazonPool),
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "error when BYOIPv4 with invalid pool name",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "type",
+					PublicIP:     aws.Bool(true),
+					ElasticIPPool: &ElasticIPPool{
+						PublicIpv4Pool:              aws.String("ipv4poolx-ec2-0123456789abcdef"),
+						PublicIpv4PoolFallBackOrder: ptr.To(PublicIpv4PoolFallbackOrderAmazonPool),
+					},
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

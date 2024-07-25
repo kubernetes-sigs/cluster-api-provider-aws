@@ -211,7 +211,7 @@ func createPVC(statefulsetinfo statefulSetInfo) corev1.PersistentVolumeClaim {
 		Spec: corev1.PersistentVolumeClaimSpec{
 			AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 			StorageClassName: &statefulsetinfo.storageClassName,
-			Resources: corev1.ResourceRequirements{
+			Resources: corev1.VolumeResourceRequirements{
 				Requests: corev1.ResourceList{
 					corev1.ResourceStorage: resource.MustParse("4Gi"),
 				},
@@ -703,7 +703,7 @@ func waitForStatefulSetRunning(info statefulSetInfo, k8sclient crclient.Client) 
 			}
 			return *statefulset.Spec.Replicas == statefulset.Status.ReadyReplicas, nil
 		}, 10*time.Minute, 30*time.Second,
-	).Should(BeTrue())
+	).Should(BeTrue(), fmt.Sprintf("Eventually failed waiting for StatefulSet %s to be running", info.name))
 }
 
 // LatestCIReleaseForVersion returns the latest ci release of a specific version.
@@ -835,7 +835,7 @@ func createPVCForEFS(storageClassName string, clusterClient crclient.Client) {
 				corev1.ReadWriteMany,
 			},
 			StorageClassName: &storageClassName,
-			Resources: corev1.ResourceRequirements{
+			Resources: corev1.VolumeResourceRequirements{
 				Requests: map[corev1.ResourceName]resource.Quantity{
 					corev1.ResourceStorage: *resource.NewQuantity(5*1024*1024*1024, resource.BinarySI),
 				},

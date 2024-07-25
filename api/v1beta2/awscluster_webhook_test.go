@@ -18,6 +18,7 @@ package v1beta2
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -408,6 +409,59 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "rejects ingress rules with cidr block, source security group id, role and nat gateway IP source",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						IngressRules: []IngressRule{
+							{
+								Protocol:                 SecurityGroupProtocolTCP,
+								IPv6CidrBlocks:           []string{"test"},
+								SourceSecurityGroupIDs:   []string{"test"},
+								SourceSecurityGroupRoles: []SecurityGroupRole{SecurityGroupBastion},
+								NatGatewaysIPsSource:     true,
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects ingress rules with source security role and nat gateway IP source",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						IngressRules: []IngressRule{
+							{
+								Protocol:                 SecurityGroupProtocolTCP,
+								SourceSecurityGroupRoles: []SecurityGroupRole{SecurityGroupBastion},
+								NatGatewaysIPsSource:     true,
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects ingress rules with cidr block and nat gateway IP source",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						IngressRules: []IngressRule{
+							{
+								Protocol:             SecurityGroupProtocolTCP,
+								IPv6CidrBlocks:       []string{"test"},
+								NatGatewaysIPsSource: true,
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name: "accepts ingress rules with cidr block",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
@@ -416,6 +470,22 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 							{
 								Protocol:   SecurityGroupProtocolTCP,
 								CidrBlocks: []string{"test"},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "accepts ingress rules with nat gateway IPs source",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						IngressRules: []IngressRule{
+							{
+								Protocol:             SecurityGroupProtocolTCP,
+								NatGatewaysIPsSource: true,
 							},
 						},
 					},
@@ -597,7 +667,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 			g.Eventually(func() bool {
 				err := testEnv.Get(ctx, key, c)
 				return err == nil
-			}, 10*time.Second).Should(BeTrue())
+			}, 10*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed getting the newly created cluster %q", cluster.Name))
 
 			if tt.expect != nil {
 				tt.expect(g, c.Spec.ControlPlaneLoadBalancer)
@@ -992,6 +1062,7 @@ func TestAWSClusterDefaultCNIIngressRules(t *testing.T) {
 	defaultVPCSpec := VPCSpec{
 		AvailabilityZoneUsageLimit: &AZUsageLimit,
 		AvailabilityZoneSelection:  &AZSelectionSchemeOrdered,
+		SubnetSchema:               &SubnetSchemaPreferPrivate,
 	}
 	g := NewWithT(t)
 	tests := []struct {

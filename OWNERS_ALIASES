@@ -7,10 +7,11 @@ aliases:
     - neolit123
     - vincepri
   cluster-api-admins:
-    - CecileRobertMichon
+    - fabriziopandini
+    - sbueringer
     - vincepri
   cluster-api-maintainers:
-    - CecileRobertMichon
+    - chrischdi
     - enxebre
     - fabriziopandini
     - killianmuldoon
@@ -22,12 +23,11 @@ aliases:
     - richardcase
     - Ankitasw
     - dlipovetsky
-    - vincepri
+    - nrb
+    - AndiDog
   cluster-api-aws-reviewers:
     - luthermonson
     - cnmcavoy
-    - nrb
     - faiq
     - fiunchinho
-    - AndiDog
     - damdo

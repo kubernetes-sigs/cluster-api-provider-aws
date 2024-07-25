@@ -2636,6 +2636,9 @@ string
 </table>
 <hr/>
 <h2 id="bootstrap.cluster.x-k8s.io/v1beta2">bootstrap.cluster.x-k8s.io/v1beta2</h2>
+<p>
+<p>Package v1beta2 contains API Schema definitions for the Amazon EKS Bootstrap v1beta2 API group.</p>
+</p>
 Resource Types:
 <ul></ul>
 <h3 id="bootstrap.cluster.x-k8s.io/v1beta2.DiskSetup">DiskSetup
@@ -5752,6 +5755,7 @@ bool
 (<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta1.AWSManagedControlPlaneStatus">AWSManagedControlPlaneStatus</a>)
 </p>
 <p>
+<p>IdentityProviderStatus holds the status for associated identity provider</p>
 </p>
 <table>
 <thead>
@@ -5864,6 +5868,7 @@ string
 (<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta1.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>)
 </p>
 <p>
+<p>OIDCIdentityProviderConfig defines the configuration for an OIDC identity provider.</p>
 </p>
 <table>
 <thead>
@@ -6168,7 +6173,7 @@ KubernetesMapping
 <hr/>
 <h2 id="controlplane.cluster.x-k8s.io/v1beta2">controlplane.cluster.x-k8s.io/v1beta2</h2>
 <p>
-<p>package v1beta2 contains API Schema definitions for the controlplane v1beta2 API group</p>
+<p>Package v1beta2 contains API Schema definitions for the controlplane v1beta2 API group</p>
 </p>
 Resource Types:
 <ul></ul>
@@ -7631,6 +7636,7 @@ bool
 (<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneStatus">AWSManagedControlPlaneStatus</a>)
 </p>
 <p>
+<p>IdentityProviderStatus holds the status for associated identity provider.</p>
 </p>
 <table>
 <thead>
@@ -7743,6 +7749,7 @@ string
 (<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>)
 </p>
 <p>
+<p>OIDCIdentityProviderConfig represents the configuration for an OIDC identity provider.</p>
 </p>
 <table>
 <thead>
@@ -8498,6 +8505,165 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.DefaultMachinePoolSpec">DefaultMachinePoolSpec
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>)
+</p>
+<p>
+<p>DefaultMachinePoolSpec defines the configuration for the required worker nodes provisioned as part of the cluster creation.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>instanceType</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The instance type to use, for example <code>r5.xlarge</code>. Instance type ref; <a href="https://aws.amazon.com/ec2/instance-types/">https://aws.amazon.com/ec2/instance-types/</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>autoscaling</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolAutoScaling">
+RosaMachinePoolAutoScaling
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Autoscaling specifies auto scaling behaviour for the default MachinePool. Autoscaling min/max value
+must be equal or multiple of the availability zones count.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.ExternalAuthProvider">ExternalAuthProvider
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>)
+</p>
+<p>
+<p>ExternalAuthProvider is an external OIDC identity provider that can issue tokens for this cluster</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name of the OIDC provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>issuer</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.TokenIssuer">
+TokenIssuer
+</a>
+</em>
+</td>
+<td>
+<p>Issuer describes attributes of the OIDC token issuer</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>oidcClients</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.OIDCClientConfig">
+[]OIDCClientConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OIDCClients contains configuration for the platform&rsquo;s clients that
+need to request tokens from the issuer</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>claimMappings</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.TokenClaimMappings">
+TokenClaimMappings
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ClaimMappings describes rules on how to transform information from an
+ID token into a cluster identity</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>claimValidationRules</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.TokenClaimValidationRule">
+[]TokenClaimValidationRule
+</a>
+</em>
+</td>
+<td>
+<p>ClaimValidationRules are rules that are applied to validate token claims to authenticate users.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.LocalObjectReference">LocalObjectReference
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.OIDCClientConfig">OIDCClientConfig</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.TokenIssuer">TokenIssuer</a>)
+</p>
+<p>
+<p>LocalObjectReference references an object in the same namespace.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name is the metadata.name of the referenced object.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="controlplane.cluster.x-k8s.io/v1beta2.NetworkSpec">NetworkSpec
 </h3>
 <p>
@@ -8576,9 +8742,135 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.OIDCClientConfig">OIDCClientConfig
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.ExternalAuthProvider">ExternalAuthProvider</a>)
+</p>
+<p>
+<p>OIDCClientConfig contains configuration for the platform&rsquo;s client that
+need to request tokens from the issuer.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>componentName</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ComponentName is the name of the component that is supposed to consume this
+client configuration</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>componentNamespace</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ComponentNamespace is the namespace of the component that is supposed to consume this
+client configuration</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientID</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ClientID is the identifier of the OIDC client from the OIDC provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientSecret</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.LocalObjectReference">
+LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<p>ClientSecret refers to a secret that
+contains the client secret in the <code>clientSecret</code> key of the <code>.data</code> field</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>extraScopes</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ExtraScopes is an optional set of scopes to request tokens with.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.PrefixedClaimMapping">PrefixedClaimMapping
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.TokenClaimMappings">TokenClaimMappings</a>)
+</p>
+<p>
+<p>PrefixedClaimMapping defines claims with a prefix.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>claim</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Claim is a JWT token claim to be used in the mapping</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>prefix</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Prefix is a string to prefix the value from the token in the result of the
+claim mapping.</p>
+<p>By default, no prefixing occurs.</p>
+<p>Example: if <code>prefix</code> is set to &ldquo;myoidc:&rdquo;&rdquo; and the <code>claim</code> in JWT contains
+an array of strings &ldquo;a&rdquo;, &ldquo;b&rdquo; and  &ldquo;c&rdquo;, the mapping will result in an
+array of string &ldquo;myoidc:a&rdquo;, &ldquo;myoidc:b&rdquo; and &ldquo;myoidc:c&rdquo;.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="controlplane.cluster.x-k8s.io/v1beta2.ROSAControlPlane">ROSAControlPlane
 </h3>
 <p>
+<p>ROSAControlPlane is the Schema for the ROSAControlPlanes API.</p>
 </p>
 <table>
 <thead>
@@ -8625,7 +8917,22 @@ string
 <td>
 <p>Cluster name must be valid DNS-1035 label, so it must consist of lower case alphanumeric
 characters or &lsquo;-&rsquo;, start with an alphabetic character, end with an alphanumeric character
-and have a max length of 15 characters.</p>
+and have a max length of 54 characters.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>domainPrefix</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DomainPrefix is an optional prefix added to the cluster&rsquo;s domain name. It will be used
+when generating a sub-domain for the cluster on openshiftapps domain. It must be valid DNS-1035 label
+consisting of lower case alphanumeric characters or &lsquo;-&rsquo;, start with an alphabetic character
+end with an alphanumeric character and have a max length of 15 characters.</p>
 </td>
 </tr>
 <tr>
@@ -8648,8 +8955,9 @@ SubnetIDs should come in pairs; two per availability zone, one private and one p
 </em>
 </td>
 <td>
-<p>AWS AvailabilityZones of the worker nodes
-should match the AvailabilityZones of the Subnets.</p>
+<p>AvailabilityZones describe AWS AvailabilityZones of the worker nodes.
+should match the AvailabilityZones of the provided Subnets.
+a machinepool will be created for each availabilityZone.</p>
 </td>
 </tr>
 <tr>
@@ -8695,7 +9003,34 @@ string
 </em>
 </td>
 <td>
-<p>The ID of the OpenID Connect Provider.</p>
+<p>The ID of the internal OpenID Connect Provider.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>enableExternalAuthProviders</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>EnableExternalAuthProviders enables external authentication configuration for the cluster.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>externalAuthProviders</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.ExternalAuthProvider">
+[]ExternalAuthProvider
+</a>
+</em>
+</td>
+<td>
+<p>ExternalAuthProviders are external OIDC identity providers that can issue tokens for this cluster.
+Can only be set if &ldquo;enableExternalAuthProviders&rdquo; is set to &ldquo;True&rdquo;.</p>
+<p>At most one provider can be configured.</p>
 </td>
 </tr>
 <tr>
@@ -8706,7 +9041,7 @@ string
 </em>
 </td>
 <td>
-<p>TODO: these are to satisfy ocm sdk. Explore how to drop them.</p>
+<p>InstallerRoleARN is an AWS IAM role that OpenShift Cluster Manager will assume to create the cluster..</p>
 </td>
 </tr>
 <tr>
@@ -8717,6 +9052,8 @@ string
 </em>
 </td>
 <td>
+<p>SupportRoleARN is an AWS IAM role used by Red Hat SREs to enable
+access to the cluster account in order to provide support.</p>
 </td>
 </tr>
 <tr>
@@ -8727,6 +9064,7 @@ string
 </em>
 </td>
 <td>
+<p>WorkerRoleARN is an AWS IAM role that will be attached to worker instances.</p>
 </td>
 </tr>
 <tr>
@@ -8745,34 +9083,21 @@ is running.</p>
 </tr>
 <tr>
 <td>
-<code>credentialsSecretRef</code><br/>
+<code>defaultMachinePoolSpec</code><br/>
 <em>
-<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#localobjectreference-v1-core">
-Kubernetes core/v1.LocalObjectReference
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.DefaultMachinePoolSpec">
+DefaultMachinePoolSpec
 </a>
 </em>
 </td>
 <td>
 <em>(Optional)</em>
-<p>CredentialsSecretRef references a secret with necessary credentials to connect to the OCM API.
-The secret should contain the following data keys:
-- ocmToken: eyJhbGciOiJIUzI1NiIsI&hellip;.
-- ocmApiUrl: Optional, defaults to &lsquo;<a href="https://api.openshift.com'">https://api.openshift.com&rsquo;</a></p>
-</td>
-</tr>
-<tr>
-<td>
-<code>identityRef</code><br/>
-<em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSIdentityReference">
-AWSIdentityReference
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
-If no identity is specified, the default identity for this controller will be used.</p>
+<p>DefaultMachinePoolSpec defines the configuration for the default machinepool(s) provisioned as part of the cluster creation.
+One MachinePool will be created with this configuration per AvailabilityZone. Those default machinepools are required for openshift cluster operators
+to work properly.
+As these machinepool not created using ROSAMachinePool CR, they will not be visible/managed by ROSA CAPI provider.
+<code>rosa list machinepools -c &lt;rosaClusterName&gt;</code> can be used to view those machinepools.</p>
+<p>This field will be removed in the future once the current limitation is resolved.</p>
 </td>
 </tr>
 <tr>
@@ -8806,32 +9131,6 @@ default is Public.</p>
 </tr>
 <tr>
 <td>
-<code>instanceType</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>The instance type to use, for example <code>r5.xlarge</code>. Instance type ref; <a href="https://aws.amazon.com/ec2/instance-types/">https://aws.amazon.com/ec2/instance-types/</a></p>
-</td>
-</tr>
-<tr>
-<td>
-<code>autoscaling</code><br/>
-<em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolAutoScaling">
-RosaMachinePoolAutoScaling
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Autoscaling specifies auto scaling behaviour for the MachinePools.</p>
-</td>
-</tr>
-<tr>
-<td>
 <code>additionalTags</code><br/>
 <em>
 <a href="#infrastructure.cluster.x-k8s.io/v1beta2.Tags">
@@ -8846,15 +9145,72 @@ Tags
 </tr>
 <tr>
 <td>
-<code>etcdEncryptionKMSArn</code><br/>
+<code>etcdEncryptionKMSARN</code><br/>
 <em>
 string
 </em>
 </td>
 <td>
 <em>(Optional)</em>
-<p>EtcdEncryptionKMSArn is the ARN of the KMS key used to encrypt etcd. The key itself needs to be
+<p>EtcdEncryptionKMSARN is the ARN of the KMS key used to encrypt etcd. The key itself needs to be
 created out-of-band by the user and tagged with <code>red-hat:true</code>.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auditLogRoleARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AuditLogRoleARN defines the role that is used to forward audit logs to AWS CloudWatch.
+If not set, audit log forwarding is disabled.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>provisionShardID</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ProvisionShardID defines the shard where rosa control plane components will be hosted.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>credentialsSecretRef</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#localobjectreference-v1-core">
+Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CredentialsSecretRef references a secret with necessary credentials to connect to the OCM API.
+The secret should contain the following data keys:
+- ocmToken: eyJhbGciOiJIUzI1NiIsI&hellip;.
+- ocmApiUrl: Optional, defaults to &lsquo;<a href="https://api.openshift.com'">https://api.openshift.com&rsquo;</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>identityRef</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSIdentityReference">
+AWSIdentityReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
+If no identity is specified, the default identity for this controller will be used.</p>
 </td>
 </tr>
 <tr>
@@ -8894,6 +9250,7 @@ RosaControlPlaneStatus
 (<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.ROSAControlPlane">ROSAControlPlane</a>)
 </p>
 <p>
+<p>RosaControlPlaneSpec defines the desired state of ROSAControlPlane.</p>
 </p>
 <table>
 <thead>
@@ -8913,7 +9270,22 @@ string
 <td>
 <p>Cluster name must be valid DNS-1035 label, so it must consist of lower case alphanumeric
 characters or &lsquo;-&rsquo;, start with an alphabetic character, end with an alphanumeric character
-and have a max length of 15 characters.</p>
+and have a max length of 54 characters.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>domainPrefix</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DomainPrefix is an optional prefix added to the cluster&rsquo;s domain name. It will be used
+when generating a sub-domain for the cluster on openshiftapps domain. It must be valid DNS-1035 label
+consisting of lower case alphanumeric characters or &lsquo;-&rsquo;, start with an alphabetic character
+end with an alphanumeric character and have a max length of 15 characters.</p>
 </td>
 </tr>
 <tr>
@@ -8936,8 +9308,9 @@ SubnetIDs should come in pairs; two per availability zone, one private and one p
 </em>
 </td>
 <td>
-<p>AWS AvailabilityZones of the worker nodes
-should match the AvailabilityZones of the Subnets.</p>
+<p>AvailabilityZones describe AWS AvailabilityZones of the worker nodes.
+should match the AvailabilityZones of the provided Subnets.
+a machinepool will be created for each availabilityZone.</p>
 </td>
 </tr>
 <tr>
@@ -8983,7 +9356,34 @@ string
 </em>
 </td>
 <td>
-<p>The ID of the OpenID Connect Provider.</p>
+<p>The ID of the internal OpenID Connect Provider.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>enableExternalAuthProviders</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>EnableExternalAuthProviders enables external authentication configuration for the cluster.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>externalAuthProviders</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.ExternalAuthProvider">
+[]ExternalAuthProvider
+</a>
+</em>
+</td>
+<td>
+<p>ExternalAuthProviders are external OIDC identity providers that can issue tokens for this cluster.
+Can only be set if &ldquo;enableExternalAuthProviders&rdquo; is set to &ldquo;True&rdquo;.</p>
+<p>At most one provider can be configured.</p>
 </td>
 </tr>
 <tr>
@@ -8994,7 +9394,7 @@ string
 </em>
 </td>
 <td>
-<p>TODO: these are to satisfy ocm sdk. Explore how to drop them.</p>
+<p>InstallerRoleARN is an AWS IAM role that OpenShift Cluster Manager will assume to create the cluster..</p>
 </td>
 </tr>
 <tr>
@@ -9005,6 +9405,8 @@ string
 </em>
 </td>
 <td>
+<p>SupportRoleARN is an AWS IAM role used by Red Hat SREs to enable
+access to the cluster account in order to provide support.</p>
 </td>
 </tr>
 <tr>
@@ -9015,6 +9417,7 @@ string
 </em>
 </td>
 <td>
+<p>WorkerRoleARN is an AWS IAM role that will be attached to worker instances.</p>
 </td>
 </tr>
 <tr>
@@ -9029,6 +9432,106 @@ string
 <p>BillingAccount is an optional AWS account to use for billing the subscription fees for ROSA clusters.
 The cost of running each ROSA cluster will be billed to the infrastructure account in which the cluster
 is running.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>defaultMachinePoolSpec</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.DefaultMachinePoolSpec">
+DefaultMachinePoolSpec
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DefaultMachinePoolSpec defines the configuration for the default machinepool(s) provisioned as part of the cluster creation.
+One MachinePool will be created with this configuration per AvailabilityZone. Those default machinepools are required for openshift cluster operators
+to work properly.
+As these machinepool not created using ROSAMachinePool CR, they will not be visible/managed by ROSA CAPI provider.
+<code>rosa list machinepools -c &lt;rosaClusterName&gt;</code> can be used to view those machinepools.</p>
+<p>This field will be removed in the future once the current limitation is resolved.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>network</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.NetworkSpec">
+NetworkSpec
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Network config for the ROSA HCP cluster.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>endpointAccess</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaEndpointAccessType">
+RosaEndpointAccessType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>EndpointAccess specifies the publishing scope of cluster endpoints. The
+default is Public.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>additionalTags</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.Tags">
+Tags
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AdditionalTags are user-defined tags to be added on the AWS resources associated with the control plane.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>etcdEncryptionKMSARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>EtcdEncryptionKMSARN is the ARN of the KMS key used to encrypt etcd. The key itself needs to be
+created out-of-band by the user and tagged with <code>red-hat:true</code>.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auditLogRoleARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AuditLogRoleARN defines the role that is used to forward audit logs to AWS CloudWatch.
+If not set, audit log forwarding is disabled.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>provisionShardID</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ProvisionShardID defines the shard where rosa control plane components will be hosted.</p>
 </td>
 </tr>
 <tr>
@@ -9065,88 +9568,6 @@ If no identity is specified, the default identity for this controller will be us
 </tr>
 <tr>
 <td>
-<code>network</code><br/>
-<em>
-<a href="#controlplane.cluster.x-k8s.io/v1beta2.NetworkSpec">
-NetworkSpec
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Network config for the ROSA HCP cluster.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>endpointAccess</code><br/>
-<em>
-<a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaEndpointAccessType">
-RosaEndpointAccessType
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>EndpointAccess specifies the publishing scope of cluster endpoints. The
-default is Public.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>instanceType</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>The instance type to use, for example <code>r5.xlarge</code>. Instance type ref; <a href="https://aws.amazon.com/ec2/instance-types/">https://aws.amazon.com/ec2/instance-types/</a></p>
-</td>
-</tr>
-<tr>
-<td>
-<code>autoscaling</code><br/>
-<em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolAutoScaling">
-RosaMachinePoolAutoScaling
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Autoscaling specifies auto scaling behaviour for the MachinePools.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>additionalTags</code><br/>
-<em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta2.Tags">
-Tags
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>AdditionalTags are user-defined tags to be added on the AWS resources associated with the control plane.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>etcdEncryptionKMSArn</code><br/>
-<em>
-string
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>EtcdEncryptionKMSArn is the ARN of the KMS key used to encrypt etcd. The key itself needs to be
-created out-of-band by the user and tagged with <code>red-hat:true</code>.</p>
-</td>
-</tr>
-<tr>
-<td>
 <code>controlPlaneEndpoint</code><br/>
 <em>
 <a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
@@ -9167,6 +9588,7 @@ Cluster API api/v1beta1.APIEndpoint
 (<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.ROSAControlPlane">ROSAControlPlane</a>)
 </p>
 <p>
+<p>RosaControlPlaneStatus defines the observed state of ROSAControlPlane.</p>
 </p>
 <table>
 <thead>
@@ -9300,6 +9722,329 @@ node communication with the control plane.</p>
 </tr><tr><td><p>&#34;Public&#34;</p></td>
 <td><p>Public endpoint access allows public API server access and
 private node communication with the control plane.</p>
+</td>
+</tr></tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.TokenAudience">TokenAudience
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.TokenIssuer">TokenIssuer</a>)
+</p>
+<p>
+<p>TokenAudience is the audience that the token was issued for.</p>
+</p>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.TokenClaimMappings">TokenClaimMappings
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.ExternalAuthProvider">ExternalAuthProvider</a>)
+</p>
+<p>
+<p>TokenClaimMappings describes rules on how to transform information from an
+ID token into a cluster identity.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>username</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.UsernameClaimMapping">
+UsernameClaimMapping
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Username is a name of the claim that should be used to construct
+usernames for the cluster identity.</p>
+<p>Default value: &ldquo;sub&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>groups</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.PrefixedClaimMapping">
+PrefixedClaimMapping
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Groups is a name of the claim that should be used to construct
+groups for the cluster identity.
+The referenced claim must use array of strings values.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.TokenClaimValidationRule">TokenClaimValidationRule
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.ExternalAuthProvider">ExternalAuthProvider</a>)
+</p>
+<p>
+<p>TokenClaimValidationRule validates token claims to authenticate users.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>type</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.TokenValidationRuleType">
+TokenValidationRuleType
+</a>
+</em>
+</td>
+<td>
+<p>Type sets the type of the validation rule</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>requiredClaim</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.TokenRequiredClaim">
+TokenRequiredClaim
+</a>
+</em>
+</td>
+<td>
+<p>RequiredClaim allows configuring a required claim name and its expected value</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.TokenIssuer">TokenIssuer
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.ExternalAuthProvider">ExternalAuthProvider</a>)
+</p>
+<p>
+<p>TokenIssuer describes attributes of the OIDC token issuer</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>issuerURL</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>URL is the serving URL of the token issuer.
+Must use the https:// scheme.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>audiences</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.TokenAudience">
+[]TokenAudience
+</a>
+</em>
+</td>
+<td>
+<p>Audiences is an array of audiences that the token was issued for.
+Valid tokens must include at least one of these values in their
+&ldquo;aud&rdquo; claim.
+Must be set to exactly one value.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>issuerCertificateAuthority</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.LocalObjectReference">
+LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<p>CertificateAuthority is a reference to a config map in the
+configuration namespace. The .data of the configMap must contain
+the &ldquo;ca-bundle.crt&rdquo; key.
+If unset, system trust is used instead.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.TokenRequiredClaim">TokenRequiredClaim
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.TokenClaimValidationRule">TokenClaimValidationRule</a>)
+</p>
+<p>
+<p>TokenRequiredClaim allows configuring a required claim name and its expected value.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>claim</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Claim is a name of a required claim. Only claims with string values are
+supported.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>requiredValue</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>RequiredValue is the required value for the claim.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.TokenValidationRuleType">TokenValidationRuleType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.TokenClaimValidationRule">TokenClaimValidationRule</a>)
+</p>
+<p>
+<p>TokenValidationRuleType defines the type of the validation rule.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;RequiredClaim&#34;</p></td>
+<td><p>TokenValidationRuleTypeRequiredClaim defines the type for RequiredClaim.</p>
+</td>
+</tr></tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.UsernameClaimMapping">UsernameClaimMapping
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.TokenClaimMappings">TokenClaimMappings</a>)
+</p>
+<p>
+<p>UsernameClaimMapping defines the claim that should be used to construct usernames for the cluster identity.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>claim</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Claim is a JWT token claim to be used in the mapping</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>prefixPolicy</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.UsernamePrefixPolicy">
+UsernamePrefixPolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PrefixPolicy specifies how a prefix should apply.</p>
+<p>By default, claims other than <code>email</code> will be prefixed with the issuer URL to
+prevent naming clashes with other plugins.</p>
+<p>Set to &ldquo;NoPrefix&rdquo; to disable prefixing.</p>
+<p>Example:
+(1) <code>prefix</code> is set to &ldquo;myoidc:&rdquo; and <code>claim</code> is set to &ldquo;username&rdquo;.
+If the JWT claim <code>username</code> contains value <code>userA</code>, the resulting
+mapped value will be &ldquo;myoidc:userA&rdquo;.
+(2) <code>prefix</code> is set to &ldquo;myoidc:&rdquo; and <code>claim</code> is set to &ldquo;email&rdquo;. If the
+JWT <code>email</code> claim contains value &ldquo;userA@myoidc.tld&rdquo;, the resulting
+mapped value will be &ldquo;myoidc:userA@myoidc.tld&rdquo;.
+(3) <code>prefix</code> is unset, <code>issuerURL</code> is set to <code>https://myoidc.tld</code>,
+the JWT claims include &ldquo;username&rdquo;:&ldquo;userA&rdquo; and &ldquo;email&rdquo;:&ldquo;userA@myoidc.tld&rdquo;,
+and <code>claim</code> is set to:
+(a) &ldquo;username&rdquo;: the mapped value will be &ldquo;<a href="https://myoidc.tld#userA&quot;">https://myoidc.tld#userA&rdquo;</a>
+(b) &ldquo;email&rdquo;: the mapped value will be &ldquo;userA@myoidc.tld&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>prefix</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Prefix is prepended to claim to prevent clashes with existing names.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.UsernamePrefixPolicy">UsernamePrefixPolicy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.UsernameClaimMapping">UsernameClaimMapping</a>)
+</p>
+<p>
+<p>UsernamePrefixPolicy specifies how a prefix should apply.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;&#34;</p></td>
+<td><p>NoOpinion let&rsquo;s the cluster assign prefixes.  If the username claim is email, there is no prefix
+If the username claim is anything else, it is prefixed by the issuerURL</p>
+</td>
+</tr><tr><td><p>&#34;NoPrefix&#34;</p></td>
+<td><p>NoPrefix means the username claim value will not have any  prefix</p>
+</td>
+</tr><tr><td><p>&#34;Prefix&#34;</p></td>
+<td><p>Prefix means the prefix value must be specified.  It cannot be empty</p>
 </td>
 </tr></tbody>
 </table>
@@ -10369,6 +11114,7 @@ AWSClusterTemplateResource
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterTemplateSpec">AWSClusterTemplateSpec</a>)
 </p>
 <p>
+<p>AWSClusterTemplateResource defines the desired state of AWSClusterTemplate.</p>
 </p>
 <table>
 <thead>
@@ -13617,6 +14363,7 @@ string
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSClusterSpec">AWSClusterSpec</a>)
 </p>
 <p>
+<p>S3Bucket defines a supporting S3 bucket for the cluster, currently can be optionally used for Ignition.</p>
 </p>
 <table>
 <thead>
@@ -16334,6 +17081,12 @@ int64
 </tr><tr><td><p>&#34;AL2_x86_64_GPU&#34;</p></td>
 <td><p>Al2x86_64GPU is the x86-64 GPU AMI type.</p>
 </td>
+<tr><td><p>&#34;AL2023_ARM_64_STANDARD&#34;</p></td>
+<td><p>Al2023Arm64 is the AL2023 Arm AMI type.</p>
+</td>
+</tr><tr><td><p>&#34;AL2023_x86_64_STANDARD&#34;</p></td>
+<td><p>Al2023x86_64 is the AL2023 x86 AMI type.</p>
+</td>
 </tr></tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta1.ManagedMachinePoolCapacityType">ManagedMachinePoolCapacityType
@@ -16714,7 +17467,7 @@ percentage of nodes will be updated in parallel, up to 100 nodes at once.</p>
 <hr/>
 <h2 id="infrastructure.cluster.x-k8s.io/v1beta2">infrastructure.cluster.x-k8s.io/v1beta2</h2>
 <p>
-<p>package v1beta2 contains the v1beta2 API implementation.</p>
+<p>Package v1beta2 contains the v1beta2 API implementation.</p>
 </p>
 Resource Types:
 <ul></ul>
@@ -17833,6 +18586,7 @@ AWSClusterTemplateResource
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSClusterTemplateSpec">AWSClusterTemplateSpec</a>)
 </p>
 <p>
+<p>AWSClusterTemplateResource defines the desired state of AWSClusterTemplateResource.</p>
 </p>
 <table>
 <thead>
@@ -18688,6 +19442,20 @@ string
 </tr>
 <tr>
 <td>
+<code>placementGroupPartition</code><br/>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PlacementGroupPartition is the partition number within the placement group in which to launch the instance.
+This value is only valid if the placement group, referred in <code>PlacementGroupName</code>, was created with
+strategy set to partition.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>tenancy</code><br/>
 <em>
 string
@@ -19064,6 +19832,20 @@ string
 <td>
 <em>(Optional)</em>
 <p>PlacementGroupName specifies the name of the placement group in which to launch the instance.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>placementGroupPartition</code><br/>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PlacementGroupPartition is the partition number within the placement group in which to launch the instance.
+This value is only valid if the placement group, referred in <code>PlacementGroupName</code>, was created with
+strategy set to partition.</p>
 </td>
 </tr>
 <tr>
@@ -19660,6 +20442,20 @@ string
 <td>
 <em>(Optional)</em>
 <p>PlacementGroupName specifies the name of the placement group in which to launch the instance.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>placementGroupPartition</code><br/>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PlacementGroupPartition is the partition number within the placement group in which to launch the instance.
+This value is only valid if the placement group, referred in <code>PlacementGroupName</code>, was created with
+strategy set to partition.</p>
 </td>
 </tr>
 <tr>
@@ -20721,6 +21517,7 @@ string
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.GCTask">GCTask
 (<code>string</code> alias)</p></h3>
 <p>
+<p>GCTask defines a task to be executed by the garbage collector.</p>
 </p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.HTTPTokensState">HTTPTokensState
 (<code>string</code> alias)</p></h3>
@@ -20861,7 +21658,8 @@ Mutually exclusive with CidrBlock.</p>
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachineSpec">AWSMachineSpec</a>)
 </p>
 <p>
-<p>Ignition defines options related to the bootstrapping systems where Ignition is used.</p>
+<p>Ignition defines options related to the bootstrapping systems where Ignition is used.
+For more information on Ignition configuration, see <a href="https://coreos.github.io/butane/specs/">https://coreos.github.io/butane/specs/</a></p>
 </p>
 <table>
 <thead>
@@ -20907,6 +21705,121 @@ that can access the ec2 metadata service have access to this sensitive informati
 So this is only to be used at ones own risk, and only when other more secure options are not viable.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>proxy</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.IgnitionProxy">
+IgnitionProxy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Proxy defines proxy settings for Ignition.
+Only valid for Ignition versions 3.1 and above.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tls</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.IgnitionTLS">
+IgnitionTLS
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>TLS defines TLS settings for Ignition.
+Only valid for Ignition versions 3.1 and above.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.IgnitionCASource">IgnitionCASource
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.IgnitionTLS">IgnitionTLS</a>)
+</p>
+<p>
+<p>IgnitionCASource defines the source of the certificate authority to use for Ignition.</p>
+</p>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.IgnitionNoProxy">IgnitionNoProxy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.IgnitionProxy">IgnitionProxy</a>)
+</p>
+<p>
+<p>IgnitionNoProxy defines the list of domains to not proxy for Ignition.</p>
+</p>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.IgnitionProxy">IgnitionProxy
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.Ignition">Ignition</a>)
+</p>
+<p>
+<p>IgnitionProxy defines proxy settings for Ignition.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>httpProxy</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>HTTPProxy is the HTTP proxy to use for Ignition.
+A single URL that specifies the proxy server to use for HTTP and HTTPS requests,
+unless overridden by the HTTPSProxy or NoProxy options.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>httpsProxy</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>HTTPSProxy is the HTTPS proxy to use for Ignition.
+A single URL that specifies the proxy server to use for HTTPS requests,
+unless overridden by the NoProxy option.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>noProxy</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.IgnitionNoProxy">
+[]IgnitionNoProxy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>NoProxy is the list of domains to not proxy for Ignition.
+Specifies a list of strings to hosts that should be excluded from proxying.</p>
+<p>Each value is represented by:
+- An IP address prefix (1.2.3.4)
+- An IP address prefix in CIDR notation (1.2.3.<sup>4</sup>&frasl;<sub>8</sub>)
+- A domain name
+- A domain name matches that name and all subdomains
+- A domain name with a leading . matches subdomains only
+- A special DNS label (*), indicates that no proxying should be done</p>
+<p>An IP address prefix and domain name can also include a literal port number (1.2.3.4:80).</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.IgnitionStorageTypeOption">IgnitionStorageTypeOption
@@ -20917,6 +21830,40 @@ So this is only to be used at ones own risk, and only when other more secure opt
 <p>
 <p>IgnitionStorageTypeOption defines the different storage types for Ignition.</p>
 </p>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.IgnitionTLS">IgnitionTLS
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.Ignition">Ignition</a>)
+</p>
+<p>
+<p>IgnitionTLS defines TLS settings for Ignition.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>certificateAuthorities</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.IgnitionCASource">
+[]IgnitionCASource
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CASources defines the list of certificate authorities to use for Ignition.
+The value is the certificate bundle (in PEM format). The bundle can contain multiple concatenated certificates.
+Supported schemes are http, https, tftp, s3, arn, gs, and <code>data</code> (RFC 2397) URL scheme.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.IngressRule">IngressRule
 </h3>
 <p>
@@ -21302,6 +22249,20 @@ string
 </tr>
 <tr>
 <td>
+<code>placementGroupPartition</code><br/>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PlacementGroupPartition is the partition number within the placement group in which to launch the instance.
+This value is only valid if the placement group, referred in <code>PlacementGroupName</code>, was created with
+strategy set to partition.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>tenancy</code><br/>
 <em>
 string
@@ -21350,6 +22311,18 @@ PrivateDNSName
 <td>
 <em>(Optional)</em>
 <p>PrivateDNSName is the options for the instance hostname.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>publicIPOnLaunch</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PublicIPOnLaunch is the option to associate a public IP on instance launch</p>
 </td>
 </tr>
 </tbody>
@@ -21706,6 +22679,7 @@ LoadBalancerType
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSLoadBalancerSpec">AWSLoadBalancerSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.LoadBalancer">LoadBalancer</a>)
 </p>
 <p>
+<p>LoadBalancerType defines the type of load balancer to use.</p>
 </p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.NetworkSpec">NetworkSpec
 </h3>
@@ -21955,6 +22929,7 @@ string
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSClusterSpec">AWSClusterSpec</a>)
 </p>
 <p>
+<p>S3Bucket defines a supporting S3 bucket for the cluster, currently can be optionally used for Ignition.</p>
 </p>
 <table>
 <thead>
@@ -22298,7 +23273,7 @@ Tags
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.Tags">Tags
 (<code>map[string]string</code> alias)</p></h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSClusterSpec">AWSClusterSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.BuildParams">BuildParams</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.SecurityGroup">SecurityGroup</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.SubnetSpec">SubnetSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.VPCSpec">VPCSpec</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1.AWSIAMRoleSpec">AWSIAMRoleSpec</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1.BootstrapUser">BootstrapUser</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1.AWSIAMRoleSpec">AWSIAMRoleSpec</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1.BootstrapUser">BootstrapUser</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.OIDCIdentityProviderConfig">OIDCIdentityProviderConfig</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.OIDCIdentityProviderConfig">OIDCIdentityProviderConfig</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSMachinePoolSpec">AWSMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSManagedMachinePoolSpec">AWSManagedMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AutoScalingGroup">AutoScalingGroup</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.FargateProfileSpec">FargateProfileSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachinePoolSpec">AWSMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedMachinePoolSpec">AWSManagedMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AutoScalingGroup">AutoScalingGroup</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.FargateProfileSpec">FargateProfileSpec</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSClusterSpec">AWSClusterSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.BuildParams">BuildParams</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.SecurityGroup">SecurityGroup</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.SubnetSpec">SubnetSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.VPCSpec">VPCSpec</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1.AWSIAMRoleSpec">AWSIAMRoleSpec</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1alpha1.BootstrapUser">BootstrapUser</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1.AWSIAMRoleSpec">AWSIAMRoleSpec</a>, <a href="#bootstrap.aws.infrastructure.cluster.x-k8s.io/v1beta1.BootstrapUser">BootstrapUser</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.OIDCIdentityProviderConfig">OIDCIdentityProviderConfig</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.OIDCIdentityProviderConfig">OIDCIdentityProviderConfig</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSMachinePoolSpec">AWSMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSManagedMachinePoolSpec">AWSManagedMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AutoScalingGroup">AutoScalingGroup</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.FargateProfileSpec">FargateProfileSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachinePoolSpec">AWSMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedMachinePoolSpec">AWSManagedMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AutoScalingGroup">AutoScalingGroup</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.FargateProfileSpec">FargateProfileSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolSpec">RosaMachinePoolSpec</a>)
 </p>
 <p>
 <p>Tags defines a map of tags.</p>
@@ -25417,6 +26392,7 @@ bool
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.ROSACluster">ROSACluster
 </h3>
 <p>
+<p>ROSACluster is the Schema for the ROSAClusters API.</p>
 </p>
 <table>
 <thead>
@@ -25490,6 +26466,7 @@ ROSAClusterStatus
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSACluster">ROSACluster</a>)
 </p>
 <p>
+<p>ROSAClusterSpec defines the desired state of ROSACluster.</p>
 </p>
 <table>
 <thead>
@@ -25521,7 +26498,7 @@ Cluster API api/v1beta1.APIEndpoint
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSACluster">ROSACluster</a>)
 </p>
 <p>
-<p>ROSAClusterStatus defines the observed state of ROSACluster</p>
+<p>ROSAClusterStatus defines the observed state of ROSACluster.</p>
 </p>
 <table>
 <thead>
@@ -25676,6 +26653,20 @@ map[string]string
 </tr>
 <tr>
 <td>
+<code>additionalTags</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.Tags">
+Tags
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AdditionalTags are user-defined tags to be added on the underlying EC2 instances associated with this machine pool.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>autoRepair</code><br/>
 <em>
 bool
@@ -25728,6 +26719,19 @@ Tuning configs must already exist.</p>
 </tr>
 <tr>
 <td>
+<code>additionalSecurityGroups</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AdditionalSecurityGroups is an optional set of security groups to associate
+with all node instances of the machine pool.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>providerIDList</code><br/>
 <em>
 []string
@@ -25736,6 +26740,24 @@ Tuning configs must already exist.</p>
 <td>
 <em>(Optional)</em>
 <p>ProviderIDList contain a ProviderID for each machine instance that&rsquo;s currently managed by this machine pool.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>nodeDrainGracePeriod</code><br/>
+<em>
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>NodeDrainGracePeriod is grace period for how long Pod Disruption Budget-protected workloads will be
+respected during upgrades. After this grace period, any workloads protected by Pod Disruption
+Budgets that have not been successfully drained from a node will be forcibly evicted.</p>
+<p>Valid values are from 0 to 1 week(10080m|168h) .
+0 or empty value means that the MachinePool can be drained without any time limitation.</p>
 </td>
 </tr>
 </table>
@@ -25830,7 +26852,7 @@ during an instance refresh. The default is 90.</p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolAutoScaling">RosaMachinePoolAutoScaling
 </h3>
 <p>
-(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolSpec">RosaMachinePoolSpec</a>)
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.DefaultMachinePoolSpec">DefaultMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolSpec">RosaMachinePoolSpec</a>)
 </p>
 <p>
 <p>RosaMachinePoolAutoScaling specifies scaling options.</p>
@@ -25958,6 +26980,20 @@ map[string]string
 </tr>
 <tr>
 <td>
+<code>additionalTags</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.Tags">
+Tags
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AdditionalTags are user-defined tags to be added on the underlying EC2 instances associated with this machine pool.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>autoRepair</code><br/>
 <em>
 bool
@@ -26010,6 +27046,19 @@ Tuning configs must already exist.</p>
 </tr>
 <tr>
 <td>
+<code>additionalSecurityGroups</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AdditionalSecurityGroups is an optional set of security groups to associate
+with all node instances of the machine pool.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>providerIDList</code><br/>
 <em>
 []string
@@ -26018,6 +27067,24 @@ Tuning configs must already exist.</p>
 <td>
 <em>(Optional)</em>
 <p>ProviderIDList contain a ProviderID for each machine instance that&rsquo;s currently managed by this machine pool.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>nodeDrainGracePeriod</code><br/>
+<em>
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>NodeDrainGracePeriod is grace period for how long Pod Disruption Budget-protected workloads will be
+respected during upgrades. After this grace period, any workloads protected by Pod Disruption
+Budgets that have not been successfully drained from a node will be forcibly evicted.</p>
+<p>Valid values are from 0 to 1 week(10080m|168h) .
+0 or empty value means that the MachinePool can be drained without any time limitation.</p>
 </td>
 </tr>
 </tbody>
@@ -26113,6 +27180,7 @@ string
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolSpec">RosaMachinePoolSpec</a>)
 </p>
 <p>
+<p>RosaTaint represents a taint to be applied to a node.</p>
 </p>
 <table>
 <thead>

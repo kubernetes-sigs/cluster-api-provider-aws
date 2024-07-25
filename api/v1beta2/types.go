@@ -17,6 +17,8 @@ limitations under the License.
 package v1beta2
 
 import (
+	"strings"
+
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -222,6 +224,14 @@ type Instance struct {
 	// +optional
 	PlacementGroupName string `json:"placementGroupName,omitempty"`
 
+	// PlacementGroupPartition is the partition number within the placement group in which to launch the instance.
+	// This value is only valid if the placement group, referred in `PlacementGroupName`, was created with
+	// strategy set to partition.
+	// +kubebuilder:validation:Minimum:=1
+	// +kubebuilder:validation:Maximum:=7
+	// +optional
+	PlacementGroupPartition int64 `json:"placementGroupPartition,omitempty"`
+
 	// Tenancy indicates if instance should run on shared or single-tenant hardware.
 	// +optional
 	Tenancy string `json:"tenancy,omitempty"`
@@ -237,6 +247,10 @@ type Instance struct {
 	// PrivateDNSName is the options for the instance hostname.
 	// +optional
 	PrivateDNSName *PrivateDNSName `json:"privateDnsName,omitempty"`
+
+	// PublicIPOnLaunch is the option to associate a public IP on instance launch
+	// +optional
+	PublicIPOnLaunch *bool `json:"publicIPOnLaunch,omitempty"`
 }
 
 // InstanceMetadataState describes the state of InstanceMetadataOptions.HttpEndpoint and InstanceMetadataOptions.InstanceMetadataTags
@@ -427,3 +441,19 @@ type PrivateDNSName struct {
 	// +kubebuilder:validation:Enum:=ip-name;resource-name
 	HostnameType *string `json:"hostnameType,omitempty"`
 }
+
+// SubnetSchemaType specifies how given network should be divided on subnets
+// in the VPC depending on the number of AZs.
+type SubnetSchemaType string
+
+// Name returns subnet schema type name without prefix.
+func (s *SubnetSchemaType) Name() string {
+	return strings.ToLower(strings.TrimPrefix(string(*s), "Prefer"))
+}
+
+var (
+	// SubnetSchemaPreferPrivate allocates more subnets in the VPC to private subnets.
+	SubnetSchemaPreferPrivate = SubnetSchemaType("PreferPrivate")
+	// SubnetSchemaPreferPublic allocates more subnets in the VPC to public subnets.
+	SubnetSchemaPreferPublic = SubnetSchemaType("PreferPublic")
+)

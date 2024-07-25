@@ -25,6 +25,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/pkg/errors"
 	"k8s.io/utils/ptr"
 
@@ -181,6 +182,16 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 	}
 	input.SubnetID = subnetID
 
+	// Preserve user-defined PublicIp option.
+	input.PublicIPOnLaunch = scope.AWSMachine.Spec.PublicIP
+
+	// Public address from BYO Public IPv4 Pools need to be associated after launch (main machine
+	// reconciliate loop) preventing duplicated public IP. The map on launch is explicitly
+	// disabled in instances with PublicIP defined to true.
+	if scope.AWSMachine.Spec.ElasticIPPool != nil && scope.AWSMachine.Spec.ElasticIPPool.PublicIpv4Pool != nil {
+		input.PublicIPOnLaunch = ptr.To(false)
+	}
+
 	if !scope.IsControlPlaneExternallyManaged() && !scope.IsExternallyManaged() && !scope.IsEKSManaged() && s.scope.Network().APIServerELB.DNSName == "" {
 		record.Eventf(s.scope.InfraCluster(), "FailedCreateInstance", "Failed to run controlplane, APIServer ELB not available")
 		return nil, awserrors.NewFailedDependency("failed to run controlplane, APIServer ELB not available")
@@ -235,6 +246,8 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 	input.Tenancy = scope.AWSMachine.Spec.Tenancy
 
 	input.PlacementGroupName = scope.AWSMachine.Spec.PlacementGroupName
+
+	input.PlacementGroupPartition = scope.AWSMachine.Spec.PlacementGroupPartition
 
 	input.PrivateDNSName = scope.AWSMachine.Spec.PrivateDNSName
 
@@ -334,9 +347,17 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 					*subnet.SubnetId, *subnet.AvailabilityZone, *failureDomain)
 				continue
 			}
-			if scope.AWSMachine.Spec.PublicIP != nil && *scope.AWSMachine.Spec.PublicIP && !*subnet.MapPublicIpOnLaunch {
-				errMessage += fmt.Sprintf(" subnet %q is a private subnet.", *subnet.SubnetId)
-				continue
+
+			if ptr.Deref(scope.AWSMachine.Spec.PublicIP, false) {
+				matchingSubnet := s.scope.Subnets().FindByID(*subnet.SubnetId)
+				if matchingSubnet == nil {
+					errMessage += fmt.Sprintf(" unable to find subnet %q among the AWSCluster subnets.", *subnet.SubnetId)
+					continue
+				}
+				if !matchingSubnet.IsPublic {
+					errMessage += fmt.Sprintf(" subnet %q is a private subnet.", *subnet.SubnetId)
+					continue
+				}
 			}
 			filtered = append(filtered, subnet)
 		}
@@ -538,13 +559,25 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 				DeviceIndex:        aws.Int64(int64(index)),
 			})
 		}
+		netInterfaces[0].AssociatePublicIpAddress = i.PublicIPOnLaunch
 
 		input.NetworkInterfaces = netInterfaces
 	} else {
-		input.SubnetId = aws.String(i.SubnetID)
+		if ptr.Deref(i.PublicIPOnLaunch, false) {
+			input.NetworkInterfaces = []*ec2.InstanceNetworkInterfaceSpecification{
+				{
+					DeviceIndex:              aws.Int64(0),
+					SubnetId:                 aws.String(i.SubnetID),
+					Groups:                   aws.StringSlice(i.SecurityGroupIDs),
+					AssociatePublicIpAddress: i.PublicIPOnLaunch,
+				},
+			}
+		} else {
+			input.SubnetId = aws.String(i.SubnetID)
 
-		if len(i.SecurityGroupIDs) > 0 {
-			input.SecurityGroupIds = aws.StringSlice(i.SecurityGroupIDs)
+			if len(i.SecurityGroupIDs) > 0 {
+				input.SecurityGroupIds = aws.StringSlice(i.SecurityGroupIDs)
+			}
 		}
 	}
 
@@ -583,21 +616,25 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 	}
 
 	if len(i.Tags) > 0 {
-		spec := &ec2.TagSpecification{ResourceType: aws.String(ec2.ResourceTypeInstance)}
-		// We need to sort keys for tests to work
-		keys := make([]string, 0, len(i.Tags))
-		for k := range i.Tags {
-			keys = append(keys, k)
-		}
-		sort.Strings(keys)
-		for _, key := range keys {
-			spec.Tags = append(spec.Tags, &ec2.Tag{
-				Key:   aws.String(key),
-				Value: aws.String(i.Tags[key]),
-			})
-		}
+		resources := []string{ec2.ResourceTypeInstance, ec2.ResourceTypeVolume, ec2.ResourceTypeNetworkInterface}
+		for _, r := range resources {
+			spec := &ec2.TagSpecification{ResourceType: aws.String(r)}
 
-		input.TagSpecifications = append(input.TagSpecifications, spec)
+			// We need to sort keys for tests to work
+			keys := make([]string, 0, len(i.Tags))
+			for k := range i.Tags {
+				keys = append(keys, k)
+			}
+			sort.Strings(keys)
+			for _, key := range keys {
+				spec.Tags = append(spec.Tags, &ec2.Tag{
+					Key:   aws.String(key),
+					Value: aws.String(i.Tags[key]),
+				})
+			}
+
+			input.TagSpecifications = append(input.TagSpecifications, spec)
+		}
 	}
 
 	input.InstanceMarketOptions = getInstanceMarketOptionsRequest(i.SpotMarketOptions)
@@ -610,11 +647,18 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 		}
 	}
 
+	if i.PlacementGroupName == "" && i.PlacementGroupPartition != 0 {
+		return nil, errors.Errorf("placementGroupPartition is set but placementGroupName is empty")
+	}
+
 	if i.PlacementGroupName != "" {
 		if input.Placement == nil {
 			input.Placement = &ec2.Placement{}
 		}
 		input.Placement.GroupName = &i.PlacementGroupName
+		if i.PlacementGroupPartition != 0 {
+			input.Placement.PartitionNumber = &i.PlacementGroupPartition
+		}
 	}
 
 	out, err := s.EC2Client.RunInstancesWithContext(context.TODO(), input)
@@ -886,6 +930,8 @@ func (s *Service) SDKToInstance(v *ec2.Instance) (*infrav1.Instance, error) {
 
 func (s *Service) getInstanceAddresses(instance *ec2.Instance) []clusterv1.MachineAddress {
 	addresses := []clusterv1.MachineAddress{}
+	// Check if the DHCP Option Set has domain name set
+	domainName := s.GetDHCPOptionSetDomainName(s.EC2Client, instance.VpcId)
 	for _, eni := range instance.NetworkInterfaces {
 		privateDNSAddress := clusterv1.MachineAddress{
 			Type:    clusterv1.MachineInternalDNS,
@@ -895,7 +941,17 @@ func (s *Service) getInstanceAddresses(instance *ec2.Instance) []clusterv1.Machi
 			Type:    clusterv1.MachineInternalIP,
 			Address: aws.StringValue(eni.PrivateIpAddress),
 		}
+
 		addresses = append(addresses, privateDNSAddress, privateIPAddress)
+
+		if domainName != nil {
+			// Add secondary private DNS Name with domain name set in DHCP Option Set
+			additionalPrivateDNSAddress := clusterv1.MachineAddress{
+				Type:    clusterv1.MachineInternalDNS,
+				Address: fmt.Sprintf("%s.%s", strings.Split(privateDNSAddress.Address, ".")[0], *domainName),
+			}
+			addresses = append(addresses, additionalPrivateDNSAddress)
+		}
 
 		// An elastic IP is attached if association is non nil pointer
 		if eni.Association != nil {
@@ -910,6 +966,7 @@ func (s *Service) getInstanceAddresses(instance *ec2.Instance) []clusterv1.Machi
 			addresses = append(addresses, publicDNSAddress, publicIPAddress)
 		}
 	}
+
 	return addresses
 }
 
@@ -1003,6 +1060,54 @@ func (s *Service) ModifyInstanceMetadataOptions(instanceID string, options *infr
 	s.scope.Info("Updating instance metadata options", "instance id", instanceID, "options", input)
 	if _, err := s.EC2Client.ModifyInstanceMetadataOptionsWithContext(context.TODO(), input); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// GetDHCPOptionSetDomainName returns the domain DNS name for the VPC from the DHCP Options.
+func (s *Service) GetDHCPOptionSetDomainName(ec2client ec2iface.EC2API, vpcID *string) *string {
+	log := s.scope.GetLogger()
+
+	if vpcID == nil {
+		log.Info("vpcID is nil, skipping DHCP Option Set discovery")
+		return nil
+	}
+
+	vpcInput := &ec2.DescribeVpcsInput{
+		VpcIds: []*string{vpcID},
+	}
+
+	vpcResult, err := ec2client.DescribeVpcs(vpcInput)
+	if err != nil {
+		log.Info("failed to describe VPC, skipping DHCP Option Set discovery", "vpcID", *vpcID, "Error", err.Error())
+		return nil
+	}
+
+	dhcpInput := &ec2.DescribeDhcpOptionsInput{
+		DhcpOptionsIds: []*string{vpcResult.Vpcs[0].DhcpOptionsId},
+	}
+
+	dhcpResult, err := ec2client.DescribeDhcpOptions(dhcpInput)
+	if err != nil {
+		log.Error(err, "failed to describe DHCP Options Set", "DhcpOptionsSet", *dhcpResult)
+		return nil
+	}
+
+	for _, dhcpConfig := range dhcpResult.DhcpOptions[0].DhcpConfigurations {
+		if *dhcpConfig.Key == "domain-name" {
+			if len(dhcpConfig.Values) == 0 {
+				return nil
+			}
+			domainName := dhcpConfig.Values[0].Value
+			// default domainName is 'ec2.internal' in us-east-1 and 'region.compute.internal' in the other regions.
+			if (s.scope.Region() == "us-east-1" && *domainName == "ec2.internal") ||
+				(s.scope.Region() != "us-east-1" && *domainName == fmt.Sprintf("%s.compute.internal", s.scope.Region())) {
+				return nil
+			}
+
+			return domainName
+		}
 	}
 
 	return nil

@@ -76,6 +76,8 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 			mockedVPCCallsForExistingVPCAndSubnets(m)
 			mockedCreateSGCalls(false, "vpc-exists", m)
 			mockedDescribeInstanceCall(m)
+			mockedDescribeAvailabilityZones(m, []string{"us-east-1c", "us-east-1a"})
+
 			// Second iteration: the AWS Cluster object has been patched,
 			// thus a valid Control Plane Endpoint has been provided
 			mockedVPCCallsForExistingVPCAndSubnets(m)
@@ -189,7 +191,9 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 			mockedCreateSGCalls(false, "vpc-exists", m)
 			mockedCreateLBCalls(t, e)
 			mockedDescribeInstanceCall(m)
+			mockedDescribeAvailabilityZones(m, []string{"us-east-1c", "us-east-1a"})
 		}
+
 		expect(ec2Mock.EXPECT(), elbMock.EXPECT())
 
 		setup(t)
@@ -211,7 +215,7 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 			}
 			err := testEnv.Get(ctx, key, cluster)
 			return err == nil
-		}, 10*time.Second).Should(BeTrue())
+		}, 10*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed getting the newly created cluster %q", awsCluster.Name))
 
 		defer teardown()
 		defer t.Cleanup(func() {
@@ -298,7 +302,14 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 			mockedCreateSGCalls(true, "vpc-exists", m)
 			mockedCreateLBV2Calls(t, e)
 			mockedDescribeInstanceCall(m)
+			mockedDescribeAvailabilityZones(m, []string{"us-east-1c", "us-east-1a"})
+			mockedDescribeTargetGroupsCall(t, e)
+			mockedCreateTargetGroupCall(t, e)
+			mockedModifyTargetGroupAttributes(t, e)
+			mockedDescribeListenersCall(t, e)
+			mockedCreateListenerCall(t, e)
 		}
+
 		expect(ec2Mock.EXPECT(), elbv2Mock.EXPECT())
 
 		g.Expect(testEnv.Create(ctx, &awsCluster)).To(Succeed())
@@ -310,7 +321,7 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 			}
 			err := testEnv.Get(ctx, key, cluster)
 			return err == nil
-		}, 10*time.Second).Should(BeTrue())
+		}, 10*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed getting the newly created cluster %q", awsCluster.Name))
 
 		defer teardown()
 		defer t.Cleanup(func() {
@@ -384,7 +395,9 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 			mockedCallsForMissingEverything(m, e, "my-managed-subnet-priv", "my-managed-subnet-pub")
 			mockedCreateSGCalls(false, "vpc-new", m)
 			mockedDescribeInstanceCall(m)
+			mockedDescribeAvailabilityZones(m, []string{"us-east-1a"})
 		}
+
 		expect(ec2Mock.EXPECT(), elbMock.EXPECT())
 
 		setup(t)
@@ -416,7 +429,7 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 			}
 			err := testEnv.Get(ctx, key, cluster)
 			return err == nil
-		}, 10*time.Second).Should(BeTrue())
+		}, 10*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed getting the newly created cluster %q", awsCluster.Name))
 
 		defer teardown()
 		defer t.Cleanup(func() {
@@ -524,7 +537,8 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 			}
 			err := testEnv.Get(ctx, key, cluster)
 			return err == nil
-		}, 10*time.Second).Should(BeTrue())
+		}, 10*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed getting the newly created cluster %q", awsCluster.Name))
+
 		defer t.Cleanup(func() {
 			g.Expect(testEnv.Cleanup(ctx, &awsCluster, controllerIdentity, ns)).To(Succeed())
 		})
@@ -589,7 +603,7 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 			}
 			err := testEnv.Get(ctx, key, cluster)
 			return err == nil
-		}, 10*time.Second).Should(BeTrue())
+		}, 10*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed getting the newly created cluster %q", awsCluster.Name))
 
 		defer t.Cleanup(func() {
 			g.Expect(testEnv.Cleanup(ctx, &awsCluster, controllerIdentity, ns)).To(Succeed())
@@ -649,6 +663,26 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 
 func mockedDeleteSGCalls(m *mocks.MockEC2APIMockRecorder) {
 	m.DescribeSecurityGroupsPagesWithContext(context.TODO(), gomock.Any(), gomock.Any()).Return(nil)
+}
+
+func mockedDescribeAvailabilityZones(m *mocks.MockEC2APIMockRecorder, zones []string) {
+	output := &ec2.DescribeAvailabilityZonesOutput{}
+	matcher := gomock.Any()
+
+	if len(zones) > 0 {
+		input := &ec2.DescribeAvailabilityZonesInput{}
+		for _, zone := range zones {
+			input.ZoneNames = append(input.ZoneNames, aws.String(zone))
+			output.AvailabilityZones = append(output.AvailabilityZones, &ec2.AvailabilityZone{
+				ZoneName: aws.String(zone),
+				ZoneType: aws.String("availability-zone"),
+			})
+		}
+
+		matcher = gomock.Eq(input)
+	}
+	m.DescribeAvailabilityZonesWithContext(context.TODO(), matcher).AnyTimes().
+		Return(output, nil)
 }
 
 func createControllerIdentity(g *WithT) *infrav1.AWSClusterControllerIdentity {
@@ -970,7 +1004,7 @@ func mockedCallsForMissingEverything(m *mocks.MockEC2APIMockRecorder, e *mocks.M
 					},
 					{
 						Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-						Value: aws.String("shared"),
+						Value: aws.String("owned"),
 					},
 					{
 						Key:   aws.String("kubernetes.io/role/internal-elb"),
@@ -1001,7 +1035,7 @@ func mockedCallsForMissingEverything(m *mocks.MockEC2APIMockRecorder, e *mocks.M
 				},
 				{
 					Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-					Value: aws.String("shared"),
+					Value: aws.String("owned"),
 				},
 				{
 					Key:   aws.String("kubernetes.io/role/internal-elb"),
@@ -1037,7 +1071,7 @@ func mockedCallsForMissingEverything(m *mocks.MockEC2APIMockRecorder, e *mocks.M
 					},
 					{
 						Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-						Value: aws.String("shared"),
+						Value: aws.String("owned"),
 					},
 					{
 						Key:   aws.String("kubernetes.io/role/elb"),
@@ -1068,7 +1102,7 @@ func mockedCallsForMissingEverything(m *mocks.MockEC2APIMockRecorder, e *mocks.M
 				},
 				{
 					Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-					Value: aws.String("shared"),
+					Value: aws.String("owned"),
 				},
 				{
 					Key:   aws.String("kubernetes.io/role/elb"),
@@ -1177,7 +1211,7 @@ func mockedCallsForMissingEverything(m *mocks.MockEC2APIMockRecorder, e *mocks.M
 			},
 			{
 				Name:   aws.String("tag:sigs.k8s.io/cluster-api-provider-aws/role"),
-				Values: aws.StringSlice([]string{"apiserver"}),
+				Values: aws.StringSlice([]string{"common"}),
 			},
 		},
 	})).Return(&ec2.DescribeAddressesOutput{
@@ -1192,7 +1226,7 @@ func mockedCallsForMissingEverything(m *mocks.MockEC2APIMockRecorder, e *mocks.M
 				Tags: []*ec2.Tag{
 					{
 						Key:   aws.String("Name"),
-						Value: aws.String("test-cluster-eip-apiserver"),
+						Value: aws.String("test-cluster-eip-common"),
 					},
 					{
 						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
@@ -1200,7 +1234,7 @@ func mockedCallsForMissingEverything(m *mocks.MockEC2APIMockRecorder, e *mocks.M
 					},
 					{
 						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
-						Value: aws.String("apiserver"),
+						Value: aws.String("common"),
 					},
 				},
 			},
@@ -1430,7 +1464,12 @@ func mockedDeleteVPCCallsForNonExistentVPC(m *mocks.MockEC2APIMockRecorder) {
 			{
 				Name:   aws.String("tag-key"),
 				Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"}),
-			}},
+			},
+			{
+				Name:   aws.String("tag:sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+				Values: aws.StringSlice([]string{"owned"}),
+			},
+		},
 	})).Return(nil, nil)
 	m.DeleteVpcWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DeleteVpcInput{
 		VpcId: aws.String("vpc-exists")})).Return(nil, nil)
@@ -1521,6 +1560,10 @@ func mockedDeleteVPCCalls(m *mocks.MockEC2APIMockRecorder) {
 			{
 				Name:   aws.String("tag-key"),
 				Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"}),
+			},
+			{
+				Name:   aws.String("tag:sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+				Values: aws.StringSlice([]string{"owned"}),
 			}},
 	})).Return(&ec2.DescribeAddressesOutput{
 		Addresses: []*ec2.Address{

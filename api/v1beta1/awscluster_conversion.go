@@ -56,7 +56,9 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 	if restored.Status.Bastion != nil {
 		dst.Status.Bastion.InstanceMetadataOptions = restored.Status.Bastion.InstanceMetadataOptions
 		dst.Status.Bastion.PlacementGroupName = restored.Status.Bastion.PlacementGroupName
+		dst.Status.Bastion.PlacementGroupPartition = restored.Status.Bastion.PlacementGroupPartition
 		dst.Status.Bastion.PrivateDNSName = restored.Status.Bastion.PrivateDNSName
+		dst.Status.Bastion.PublicIPOnLaunch = restored.Status.Bastion.PublicIPOnLaunch
 	}
 	dst.Spec.Partition = restored.Spec.Partition
 
@@ -101,15 +103,34 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 
 	dst.Spec.NetworkSpec.VPC.EmptyRoutesDefaultVPCSecurityGroup = restored.Spec.NetworkSpec.VPC.EmptyRoutesDefaultVPCSecurityGroup
 	dst.Spec.NetworkSpec.VPC.PrivateDNSHostnameTypeOnLaunch = restored.Spec.NetworkSpec.VPC.PrivateDNSHostnameTypeOnLaunch
+	dst.Spec.NetworkSpec.VPC.CarrierGatewayID = restored.Spec.NetworkSpec.VPC.CarrierGatewayID
+	dst.Spec.NetworkSpec.VPC.SubnetSchema = restored.Spec.NetworkSpec.VPC.SubnetSchema
 
-	// Restore SubnetSpec.ResourceID field, if any.
-	for _, subnet := range restored.Spec.NetworkSpec.Subnets {
-		if len(subnet.ResourceID) == 0 {
-			continue
+	if restored.Spec.NetworkSpec.VPC.ElasticIPPool != nil {
+		if dst.Spec.NetworkSpec.VPC.ElasticIPPool == nil {
+			dst.Spec.NetworkSpec.VPC.ElasticIPPool = &infrav2.ElasticIPPool{}
 		}
+		if restored.Spec.NetworkSpec.VPC.ElasticIPPool.PublicIpv4Pool != nil {
+			dst.Spec.NetworkSpec.VPC.ElasticIPPool.PublicIpv4Pool = restored.Spec.NetworkSpec.VPC.ElasticIPPool.PublicIpv4Pool
+		}
+		if restored.Spec.NetworkSpec.VPC.ElasticIPPool.PublicIpv4PoolFallBackOrder != nil {
+			dst.Spec.NetworkSpec.VPC.ElasticIPPool.PublicIpv4PoolFallBackOrder = restored.Spec.NetworkSpec.VPC.ElasticIPPool.PublicIpv4PoolFallBackOrder
+		}
+	}
+
+	// Restore SubnetSpec.ResourceID, SubnetSpec.ParentZoneName, and SubnetSpec.ZoneType fields, if any.
+	for _, subnet := range restored.Spec.NetworkSpec.Subnets {
 		for i, dstSubnet := range dst.Spec.NetworkSpec.Subnets {
 			if dstSubnet.ID == subnet.ID {
-				dstSubnet.ResourceID = subnet.ResourceID
+				if len(subnet.ResourceID) > 0 {
+					dstSubnet.ResourceID = subnet.ResourceID
+				}
+				if subnet.ParentZoneName != nil {
+					dstSubnet.ParentZoneName = subnet.ParentZoneName
+				}
+				if subnet.ZoneType != nil {
+					dstSubnet.ZoneType = subnet.ZoneType
+				}
 				dstSubnet.DeepCopyInto(&dst.Spec.NetworkSpec.Subnets[i])
 			}
 		}
@@ -150,6 +171,7 @@ func restoreIPAMPool(restored, dst *infrav2.IPAMPool) {
 func restoreControlPlaneLoadBalancer(restored, dst *infrav2.AWSLoadBalancerSpec) {
 	dst.Name = restored.Name
 	dst.HealthCheckProtocol = restored.HealthCheckProtocol
+	dst.HealthCheck = restored.HealthCheck
 	dst.LoadBalancerType = restored.LoadBalancerType
 	dst.DisableHostsRewrite = restored.DisableHostsRewrite
 	dst.PreserveClientIP = restored.PreserveClientIP

@@ -68,7 +68,7 @@ func waitForControlPlaneToBeUpgraded(input waitForControlPlaneToBeUpgradedInput,
 		default:
 			return false, nil
 		}
-	}, intervals...).Should(BeTrue())
+	}, intervals...).Should(BeTrue(), fmt.Sprintf("Eventually failed waiting for EKS control-plane to be upgraded to kubernetes version %q", input.UpgradeVersion))
 }
 
 type GetControlPlaneByNameInput struct {
@@ -89,7 +89,7 @@ func GetControlPlaneByName(ctx context.Context, input GetControlPlaneByNameInput
 			return err
 		}
 		return nil
-	}, 2*time.Minute, 5*time.Second).Should(Succeed())
+	}, 2*time.Minute, 5*time.Second).Should(Succeed(), fmt.Sprintf("Eventually failed to get AWSManagedControlPlane object '%s/%s'", input.Namespace, input.Name))
 	Expect(input.Getter.Get(ctx, key, cp)).To(Succeed(), "Failed to get AWSManagedControlPlane object %s/%s", input.Namespace, input.Name)
 	return cp
 }

@@ -46,6 +46,7 @@ E2E_CONF_PATH  ?= $(E2E_DATA_DIR)/e2e_conf.yaml
 E2E_EKS_CONF_PATH ?= $(E2E_DATA_DIR)/e2e_eks_conf.yaml
 KUBETEST_CONF_PATH ?= $(abspath $(E2E_DATA_DIR)/kubetest/conformance.yaml)
 EXP_DIR := exp
+GORELEASER_CONFIG := .goreleaser.yaml
 
 # Binaries.
 GO_INSTALL := ./scripts/go_install.sh
@@ -70,6 +71,7 @@ SSM_PLUGIN := $(TOOLS_BIN_DIR)/session-manager-plugin
 YQ := $(TOOLS_BIN_DIR)/yq
 KPROMO := $(TOOLS_BIN_DIR)/kpromo
 RELEASE_NOTES := $(TOOLS_BIN_DIR)/release-notes
+GORELEASER := $(TOOLS_BIN_DIR)/goreleaser
 
 CLUSTERAWSADM_SRCS := $(call rwildcard,.,cmd/clusterawsadm/*.*)
 
@@ -89,7 +91,7 @@ endif
 # Release variables
 
 STAGING_REGISTRY ?= gcr.io/k8s-staging-cluster-api-aws
-STAGING_BUCKET ?= artifacts.k8s-staging-cluster-api-aws.appspot.com
+STAGING_BUCKET ?= k8s-staging-cluster-api-aws
 BUCKET ?= $(STAGING_BUCKET)
 PROD_REGISTRY := registry.k8s.io/cluster-api-aws
 REGISTRY ?= $(STAGING_REGISTRY)
@@ -147,7 +149,7 @@ EKS_SOURCE_TEMPLATE ?= eks/cluster-template-eks-control-plane-only.yaml
 
 # set up `setup-envtest` to install kubebuilder dependency
 export KUBEBUILDER_ENVTEST_KUBERNETES_VERSION ?= 1.28.3
-SETUP_ENVTEST_VER := v0.0.0-20230131074648-f5014c077fc3
+SETUP_ENVTEST_VER := v0.0.0-20240531134648-6636df17d67b
 SETUP_ENVTEST_BIN := setup-envtest
 SETUP_ENVTEST := $(abspath $(TOOLS_BIN_DIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST_VER))
 SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
@@ -501,9 +503,9 @@ check-release-tag: ## Check if the release tag is set
 	@if [ -z "${RELEASE_TAG}" ]; then echo "RELEASE_TAG is not set"; exit 1; fi
 	@if ! [ -z "$$(git status --porcelain)" ]; then echo "Your local git repository contains uncommitted changes, use git clean before proceeding."; exit 1; fi
 
-.PHONY: create-gh-release
-create-gh-release:$(GH) ## Create release on Github
-	$(GH) release create $(VERSION) -d -F $(RELEASE_DIR)/CHANGELOG.md -t $(VERSION) -R $(GH_REPO)
+.PHONY: check-release-branch
+check-release-branch: ## Check if the release branch is set
+	@if [ -z "${RELEASE_BRANCH}" ]; then echo "RELEASE_BRANCH is not set"; exit 1; fi
 
 .PHONY: compiled-manifest
 compiled-manifest: $(RELEASE_DIR) $(KUSTOMIZE) ## Compile the manifest files
@@ -565,13 +567,12 @@ list-image: ## List images for RELEASE_TAG
 	gcloud container images list-tags $(STAGING_REGISTRY)/$(IMAGE) --filter="tags=('$(RELEASE_TAG)')" --format=json
 
 .PHONY: release
-release: clean-release check-release-tag $(RELEASE_DIR)  ## Builds and push container images using the latest git tag for the commit.
+release: clean-release check-release-tag check-release-branch $(RELEASE_DIR) $(GORELEASER)  ## Builds and push container images using the latest git tag for the commit.
 	git checkout "${RELEASE_TAG}"
 	$(MAKE) release-changelog
-	$(MAKE) release-binaries
 	CORE_CONTROLLER_IMG=$(PROD_REGISTRY)/$(CORE_IMAGE_NAME) $(MAKE) release-manifests
-	$(MAKE) release-templates
 	$(MAKE) release-policies
+	$(GORELEASER) release --config $(GORELEASER_CONFIG) --release-notes $(RELEASE_DIR)/CHANGELOG.md --clean
 
 release-policies: $(RELEASE_POLICIES) ## Release policies
 
@@ -598,35 +599,15 @@ release-manifests: ## Release manifest files
 
 .PHONY: release-changelog
 release-changelog: $(RELEASE_NOTES) check-release-tag check-previous-release-tag check-github-token $(RELEASE_DIR)
-	$(RELEASE_NOTES) --debug --org $(GH_ORG_NAME) --repo $(GH_REPO_NAME) --start-sha $(shell git rev-list -n 1 ${PREVIOUS_VERSION}) --end-sha $(shell git rev-list -n 1 ${RELEASE_TAG}) --output $(RELEASE_DIR)/CHANGELOG.md --go-template go-template:$(REPO_ROOT)/hack/changelog.tpl --dependencies=false
+	$(RELEASE_NOTES) --debug --org $(GH_ORG_NAME) --repo $(GH_REPO_NAME) --start-sha $(shell git rev-list -n 1 ${PREVIOUS_VERSION}) --end-sha $(shell git rev-list -n 1 ${RELEASE_TAG}) --output $(RELEASE_DIR)/CHANGELOG.md --go-template go-template:$(REPO_ROOT)/hack/changelog.tpl --dependencies=false --branch=${RELEASE_BRANCH} --required-author=""
 
 .PHONY: promote-images
 promote-images: $(KPROMO) $(YQ)
 	$(KPROMO) pr --project cluster-api-aws --tag $(RELEASE_TAG) --reviewers "$(shell ./hack/get-project-maintainers.sh ${YQ})" --fork $(USER_FORK) --image cluster-api-aws-controller
 
 .PHONY: release-binaries
-release-binaries: ## Builds the binaries to publish with a release
-	RELEASE_BINARY=./cmd/clusterawsadm GOOS=linux GOARCH=amd64 $(MAKE) release-binary
-	RELEASE_BINARY=./cmd/clusterawsadm GOOS=linux GOARCH=arm64 $(MAKE) release-binary
-	RELEASE_BINARY=./cmd/clusterawsadm GOOS=darwin GOARCH=amd64 $(MAKE) release-binary
-	RELEASE_BINARY=./cmd/clusterawsadm GOOS=darwin GOARCH=arm64 $(MAKE) release-binary
-	RELEASE_BINARY=./cmd/clusterawsadm GOOS=windows GOARCH=amd64 EXT=.exe $(MAKE) release-binary
-	RELEASE_BINARY=./cmd/clusterawsadm GOOS=windows GOARCH=arm64 EXT=.exe $(MAKE) release-binary
-
-.PHONY: release-binary
-release-binary: $(RELEASE_DIR) versions.mk ## Release binary
-	docker run \
-		--rm \
-		-e CGO_ENABLED=0 \
-		-e GOOS=$(GOOS) \
-		-e GOARCH=$(GOARCH) \
-		-e GOCACHE=/tmp/ \
-		--user $$(id -u):$$(id -g) \
-		-v "$$(pwd):/workspace$(DOCKER_VOL_OPTS)" \
-		-w /workspace \
-		$(GO_CONTAINER_IMAGE) \
-		go build -ldflags '$(LDFLAGS) -extldflags "-static"' \
-		-o $(RELEASE_DIR)/$(notdir $(RELEASE_BINARY))-$(GOOS)-$(GOARCH)$(EXT) $(RELEASE_BINARY)
+release-binaries: $(GORELEASER) ## Builds only the binaries, not a release.
+	$(GORELEASER) build --config $(GORELEASER_CONFIG) --snapshot --clean
 
 .PHONY: release-staging
 release-staging: ## Builds and push container images and manifests to the staging bucket.
@@ -648,17 +629,11 @@ release-staging-nightly: ## Tags and push container images to the staging bucket
 release-alias-tag: # Adds the tag to the last build tag.
 	gcloud container images add-tag -q $(CORE_CONTROLLER_IMG):$(TAG) $(CORE_CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
 
-.PHONY: release-templates
-release-templates: $(RELEASE_DIR) ## Generate release templates
-	cp templates/cluster-template*.yaml $(RELEASE_DIR)/
-
 .PHONY: upload-staging-artifacts
 upload-staging-artifacts: ## Upload release artifacts to the staging bucket
+	# Example manifest location: https://storage.googleapis.com/k8s-staging-cluster-api-aws/components/nightly_main_20240425/infrastructure-components.yaml
+	# Please note that these files are deleted after a certain period, at the time of this writing 60 days after file creation.
 	gsutil cp $(RELEASE_DIR)/* gs://$(BUCKET)/components/$(RELEASE_ALIAS_TAG)
-
-.PHONY: upload-gh-artifacts
-upload-gh-artifacts: $(GH) ## Upload artifacts to Github release
-	$(GH) release upload $(VERSION) -R $(GH_REPO) --clobber  $(RELEASE_DIR)/*
 
 IMAGE_PATCH_DIR := $(ARTIFACTS)/image-patch
 

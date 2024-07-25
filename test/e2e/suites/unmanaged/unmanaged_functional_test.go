@@ -566,7 +566,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				subnetError := "Failed to create instance: failed to run instance: InvalidSubnetID.NotFound: " +
 					"The subnet ID '%s' does not exist"
 				return isErrorEventExists(namespace.Name, md1Name, "FailedCreate", fmt.Sprintf(subnetError, "invalid-subnet"), eventList)
-			}, e2eCtx.E2EConfig.GetIntervals("", "wait-worker-nodes")...).Should(BeTrue())
+			}, e2eCtx.E2EConfig.GetIntervals("", "wait-worker-nodes")...).Should(BeTrue(), "Eventually failed waiting for 'invalid subnet ID' event to be reported")
 
 			ginkgo.By("Creating Machine Deployment in non-configured Availability Zone")
 			md2Name := clusterName + "-md-2"
@@ -584,7 +584,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				eventList := getEvents(namespace.Name)
 				azError := "Failed to create instance: no subnets available in availability zone \"%s\""
 				return isErrorEventExists(namespace.Name, md2Name, "FailedCreate", fmt.Sprintf(azError, *invalidAz), eventList)
-			}, e2eCtx.E2EConfig.GetIntervals("", "wait-worker-nodes")...).Should(BeTrue())
+			}, e2eCtx.E2EConfig.GetIntervals("", "wait-worker-nodes")...).Should(BeTrue(), "Eventually failed waiting for 'no subnet available in AZ' event to be reported")
 		})
 	})
 
@@ -705,7 +705,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 					machineList := getAWSMachinesForDeployment(ns2.Name, *md2[0])
 					labels := machineList.Items[0].GetLabels()
 					return labels[instancestate.Ec2InstanceStateLabelKey] == string(infrav1.InstanceStateTerminated)
-				}, e2eCtx.E2EConfig.GetIntervals("", "wait-machine-status")...).Should(BeTrue())
+				}, e2eCtx.E2EConfig.GetIntervals("", "wait-machine-status")...).Should(BeTrue(), "Eventually failed waiting for AWSMachine to be labelled as terminated")
 
 				ginkgo.By("Waiting for machine to reach Failed state")
 				statusChecks := []framework.MachineStatusCheck{framework.MachinePhaseCheck(string(clusterv1.MachinePhaseFailed))}
@@ -878,7 +878,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				}
 				wlClusterInfra.Peering = aPeering
 				return aPeering != nil
-			}, 60*time.Second).Should(BeTrue())
+			}, 60*time.Second).Should(BeTrue(), "Eventually failed waiting for peering to be accepted")
 
 			ginkgo.By("Creating security groups")
 			mgmtSG, _ := shared.CreateSecurityGroup(e2eCtx, mgmtClusterName+"-all", mgmtClusterName+"-all", *mgmtClusterInfra.VPC.VpcId)
@@ -1135,7 +1135,8 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				Expect(err).To(BeNil())
 				return conditions.IsFalse(awsCluster, infrav1.VpcEndpointsReadyCondition) &&
 					conditions.GetReason(awsCluster, infrav1.VpcEndpointsReadyCondition) == clusterv1.DeletedReason
-			}, e2eCtx.E2EConfig.GetIntervals("", "wait-delete-cluster")...).Should(BeTrue())
+			}, e2eCtx.E2EConfig.GetIntervals("", "wait-delete-cluster")...).Should(BeTrue(),
+				"Eventually failed waiting for AWSCluster to show VPC endpoint as deleted in conditions")
 		})
 	})
 })

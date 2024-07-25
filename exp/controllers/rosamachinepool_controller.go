@@ -9,12 +9,15 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/blang/semver"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/openshift/rosa/pkg/ocm"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -105,7 +108,7 @@ func (r *ROSAMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, machinePool.ObjectMeta)
 	if err != nil {
 		log.Info("Failed to retrieve Cluster from MachinePool")
-		return reconcile.Result{}, nil
+		return ctrl.Result{}, nil
 	}
 
 	if annotations.IsPaused(cluster, rosaMachinePool) {
@@ -122,7 +125,7 @@ func (r *ROSAMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	controlPlane := &rosacontrolplanev1.ROSAControlPlane{}
 	if err := r.Client.Get(ctx, controlPlaneKey, controlPlane); err != nil {
 		log.Info("Failed to retrieve ControlPlane from MachinePool")
-		return reconcile.Result{}, nil
+		return ctrl.Result{}, err
 	}
 
 	machinePoolScope, err := scope.NewRosaMachinePoolScope(scope.RosaMachinePoolScopeParams{
@@ -136,7 +139,7 @@ func (r *ROSAMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		Endpoints:       r.Endpoints,
 	})
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to create scope")
+		return ctrl.Result{}, errors.Wrap(err, "failed to create rosaMachinePool scope")
 	}
 
 	rosaControlPlaneScope, err := scope.NewROSAControlPlaneScope(scope.ROSAControlPlaneScopeParams{
@@ -147,10 +150,10 @@ func (r *ROSAMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		Endpoints:      r.Endpoints,
 	})
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to create control plane scope")
+		return ctrl.Result{}, errors.Wrap(err, "failed to create rosaControlPlane scope")
 	}
 
-	if !controlPlane.Status.Ready {
+	if !controlPlane.Status.Ready && controlPlane.ObjectMeta.DeletionTimestamp.IsZero() {
 		log.Info("Control plane is not ready yet")
 		err := machinePoolScope.RosaMchinePoolReadyFalse(expinfrav1.WaitingForRosaControlPlaneReason, "")
 		return ctrl.Result{}, err
@@ -219,6 +222,11 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 	}
 
 	if found {
+		if rosaMachinePool.Spec.AvailabilityZone == "" {
+			// reflect the current AvailabilityZone in the spec if not set.
+			rosaMachinePool.Spec.AvailabilityZone = nodePool.AvailabilityZone()
+		}
+
 		nodePool, err := r.updateNodePool(machinePoolScope, ocmClient, nodePool)
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to ensure rosaMachinePool: %w", err)
@@ -272,6 +280,11 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 
 	nodePool, err = ocmClient.CreateNodePool(machinePoolScope.ControlPlane.Status.ID, nodePoolSpec)
 	if err != nil {
+		conditions.MarkFalse(rosaMachinePool,
+			expinfrav1.RosaMachinePoolReadyCondition,
+			expinfrav1.RosaMachinePoolReconciliationFailedReason,
+			clusterv1.ConditionSeverityError,
+			"failed to create ROSAMachinePool: %s", err.Error())
 		return ctrl.Result{}, fmt.Errorf("failed to create nodepool: %w", err)
 	}
 
@@ -299,6 +312,7 @@ func (r *ROSAMachinePoolReconciler) reconcileDelete(
 		if err := ocmClient.DeleteNodePool(machinePoolScope.ControlPlane.Status.ID, nodePool.ID()); err != nil {
 			return err
 		}
+		machinePoolScope.Info("Successfully deleted NodePool %s", nodePool.ID())
 	}
 
 	controllerutil.RemoveFinalizer(machinePoolScope.RosaMachinePool, expinfrav1.RosaMachinePoolFinalizer)
@@ -308,11 +322,7 @@ func (r *ROSAMachinePoolReconciler) reconcileDelete(
 
 func (r *ROSAMachinePoolReconciler) reconcileMachinePoolVersion(machinePoolScope *scope.RosaMachinePoolScope, ocmClient *ocm.Client, nodePool *cmv1.NodePool) error {
 	version := machinePoolScope.RosaMachinePool.Spec.Version
-	if version == "" {
-		version = machinePoolScope.ControlPlane.Spec.Version
-	}
-
-	if version == rosa.RawVersionID(nodePool.Version()) {
+	if version == "" || version == rosa.RawVersionID(nodePool.Version()) {
 		conditions.MarkFalse(machinePoolScope.RosaMachinePool, expinfrav1.RosaMachinePoolUpgradingCondition, "upgraded", clusterv1.ConditionSeverityInfo, "")
 		return nil
 	}
@@ -347,13 +357,21 @@ func (r *ROSAMachinePoolReconciler) reconcileMachinePoolVersion(machinePoolScope
 }
 
 func (r *ROSAMachinePoolReconciler) updateNodePool(machinePoolScope *scope.RosaMachinePoolScope, ocmClient *ocm.Client, nodePool *cmv1.NodePool) (*cmv1.NodePool, error) {
-	desiredSpec := machinePoolScope.RosaMachinePool.Spec.DeepCopy()
+	machinePool := machinePoolScope.RosaMachinePool.DeepCopy()
+	// default all fields before comparing, so that nil/unset fields don't cause an unnecessary update call.
+	machinePool.Default()
 
+	desiredSpec := machinePool.Spec
 	currentSpec := nodePoolToRosaMachinePoolSpec(nodePool)
-	currentSpec.ProviderIDList = desiredSpec.ProviderIDList // providerIDList is set by the controller and shouldn't be compared here.
-	currentSpec.Version = desiredSpec.Version               // Version changes are reconciled separately and shouldn't be compared here.
 
-	if cmp.Equal(desiredSpec, currentSpec) {
+	ignoredFields := []string{
+		"ProviderIDList", // providerIDList is set by the controller.
+		"Version",        // Version changes are reconciled separately.
+		"AdditionalTags", // AdditionalTags day2 changes not supported.
+	}
+	if cmp.Equal(desiredSpec, currentSpec,
+		cmpopts.EquateEmpty(), // ensures empty non-nil slices and nil slices are considered equal.
+		cmpopts.IgnoreFields(currentSpec, ignoredFields...)) {
 		// no changes detected.
 		return nodePool, nil
 	}
@@ -361,8 +379,9 @@ func (r *ROSAMachinePoolReconciler) updateNodePool(machinePoolScope *scope.RosaM
 	// zero-out fields that shouldn't be part of the update call.
 	desiredSpec.Version = ""
 	desiredSpec.AdditionalSecurityGroups = nil
+	desiredSpec.AdditionalTags = nil
 
-	npBuilder := nodePoolBuilder(*desiredSpec, machinePoolScope.MachinePool.Spec)
+	npBuilder := nodePoolBuilder(desiredSpec, machinePoolScope.MachinePool.Spec)
 	nodePoolSpec, err := npBuilder.Build()
 	if err != nil {
 		return nil, fmt.Errorf("failed to build nodePool spec: %w", err)
@@ -370,6 +389,11 @@ func (r *ROSAMachinePoolReconciler) updateNodePool(machinePoolScope *scope.RosaM
 
 	updatedNodePool, err := ocmClient.UpdateNodePool(machinePoolScope.ControlPlane.Status.ID, nodePoolSpec)
 	if err != nil {
+		conditions.MarkFalse(machinePoolScope.RosaMachinePool,
+			expinfrav1.RosaMachinePoolReadyCondition,
+			expinfrav1.RosaMachinePoolReconciliationFailedReason,
+			clusterv1.ConditionSeverityError,
+			"failed to update ROSAMachinePool: %s", err.Error())
 		return nil, fmt.Errorf("failed to update nodePool: %w", err)
 	}
 
@@ -438,10 +462,33 @@ func nodePoolBuilder(rosaMachinePoolSpec expinfrav1.RosaMachinePoolSpec, machine
 	if rosaMachinePoolSpec.AdditionalSecurityGroups != nil {
 		awsNodePool = awsNodePool.AdditionalSecurityGroupIds(rosaMachinePoolSpec.AdditionalSecurityGroups...)
 	}
+	if rosaMachinePoolSpec.AdditionalTags != nil {
+		awsNodePool = awsNodePool.Tags(rosaMachinePoolSpec.AdditionalTags)
+	}
 	npBuilder.AWSNodePool(awsNodePool)
 
 	if rosaMachinePoolSpec.Version != "" {
 		npBuilder.Version(cmv1.NewVersion().ID(ocm.CreateVersionID(rosaMachinePoolSpec.Version, ocm.DefaultChannelGroup)))
+	}
+
+	if rosaMachinePoolSpec.NodeDrainGracePeriod != nil {
+		valueBuilder := cmv1.NewValue().Value(rosaMachinePoolSpec.NodeDrainGracePeriod.Minutes()).Unit("minutes")
+		npBuilder.NodeDrainGracePeriod(valueBuilder)
+	}
+
+	if rosaMachinePoolSpec.UpdateConfig != nil {
+		configMgmtBuilder := cmv1.NewNodePoolManagementUpgrade()
+
+		if rollingUpdate := rosaMachinePoolSpec.UpdateConfig.RollingUpdate; rollingUpdate != nil {
+			if rollingUpdate.MaxSurge != nil {
+				configMgmtBuilder = configMgmtBuilder.MaxSurge(rollingUpdate.MaxSurge.String())
+			}
+			if rollingUpdate.MaxUnavailable != nil {
+				configMgmtBuilder = configMgmtBuilder.MaxUnavailable(rollingUpdate.MaxUnavailable.String())
+			}
+		}
+
+		npBuilder = npBuilder.ManagementUpgrade(configMgmtBuilder)
 	}
 
 	return npBuilder
@@ -458,6 +505,9 @@ func nodePoolToRosaMachinePoolSpec(nodePool *cmv1.NodePool) expinfrav1.RosaMachi
 		InstanceType:             nodePool.AWSNodePool().InstanceType(),
 		TuningConfigs:            nodePool.TuningConfigs(),
 		AdditionalSecurityGroups: nodePool.AWSNodePool().AdditionalSecurityGroupIds(),
+		// nodePool.AWSNodePool().Tags() returns all tags including "system" tags if "fetchUserTagsOnly" parameter is not specified.
+		// TODO: enable when AdditionalTags day2 changes is supported.
+		// AdditionalTags:           nodePool.AWSNodePool().Tags(),
 	}
 
 	if nodePool.Autoscaling() != nil {
@@ -476,6 +526,22 @@ func nodePoolToRosaMachinePoolSpec(nodePool *cmv1.NodePool) expinfrav1.RosaMachi
 			})
 		}
 		spec.Taints = rosaTaints
+	}
+	if nodePool.NodeDrainGracePeriod() != nil {
+		spec.NodeDrainGracePeriod = &metav1.Duration{
+			Duration: time.Minute * time.Duration(nodePool.NodeDrainGracePeriod().Value()),
+		}
+	}
+	if nodePool.ManagementUpgrade() != nil {
+		spec.UpdateConfig = &expinfrav1.RosaUpdateConfig{
+			RollingUpdate: &expinfrav1.RollingUpdate{},
+		}
+		if nodePool.ManagementUpgrade().MaxSurge() != "" {
+			spec.UpdateConfig.RollingUpdate.MaxSurge = ptr.To(intstr.Parse(nodePool.ManagementUpgrade().MaxSurge()))
+		}
+		if nodePool.ManagementUpgrade().MaxUnavailable() != "" {
+			spec.UpdateConfig.RollingUpdate.MaxUnavailable = ptr.To(intstr.Parse(nodePool.ManagementUpgrade().MaxUnavailable()))
+		}
 	}
 
 	return spec
@@ -509,7 +575,7 @@ func (r *ROSAMachinePoolReconciler) reconcileProviderIDList(ctx context.Context,
 }
 
 func buildEC2FiltersFromTags(tags map[string]string) []*ec2.Filter {
-	filters := make([]*ec2.Filter, len(tags))
+	filters := make([]*ec2.Filter, len(tags)+1)
 	for key, value := range tags {
 		filters = append(filters, &ec2.Filter{
 			Name: ptr.To(fmt.Sprintf("tag:%s", key)),
@@ -518,6 +584,14 @@ func buildEC2FiltersFromTags(tags map[string]string) []*ec2.Filter {
 			}),
 		})
 	}
+
+	// only list instances that are running or just started
+	filters = append(filters, &ec2.Filter{
+		Name: ptr.To("instance-state-name"),
+		Values: aws.StringSlice([]string{
+			"running", "pending",
+		}),
+	})
 
 	return filters
 }

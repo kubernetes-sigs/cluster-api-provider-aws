@@ -114,6 +114,10 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		}}})
 		g.Expect(err).To(BeNil())
 		cs.Cluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"}}
+		cs.AWSCluster.Spec.NetworkSpec.VPC = infrav1.VPCSpec{
+			ID:        "vpc-exists",
+			CidrBlock: "10.0.0.0/16",
+		}
 		cs.AWSCluster.Status.Network.APIServerELB.DNSName = DNSName
 		cs.AWSCluster.Spec.ControlPlaneLoadBalancer = &infrav1.AWSLoadBalancerSpec{
 			LoadBalancerType: infrav1.LoadBalancerTypeClassic,
@@ -149,6 +153,8 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		reconciler.elbServiceFactory = func(scope scope.ELBScope) services.ELBInterface {
 			return elbSvc
 		}
+
+		ec2Mock.EXPECT().AssociateAddressWithContext(context.TODO(), gomock.Any()).MaxTimes(1)
 
 		reconciler.secretsManagerServiceFactory = func(clusterScope cloud.ClusterScoper) services.SecretInterface {
 			return secretMock
@@ -283,6 +289,10 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		g.Expect(err).To(BeNil())
 		cs.Cluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"}}
 		cs.AWSCluster.Status.Network.APIServerELB.DNSName = DNSName
+		cs.AWSCluster.Spec.NetworkSpec.VPC = infrav1.VPCSpec{
+			ID:        "vpc-exists",
+			CidrBlock: "10.0.0.0/16",
+		}
 		cs.AWSCluster.Spec.ControlPlaneLoadBalancer = &infrav1.AWSLoadBalancerSpec{
 			LoadBalancerType: infrav1.LoadBalancerTypeClassic,
 		}
@@ -321,6 +331,8 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		reconciler.secretsManagerServiceFactory = func(clusterScope cloud.ClusterScoper) services.SecretInterface {
 			return secretMock
 		}
+
+		ec2Mock.EXPECT().AssociateAddressWithContext(context.TODO(), gomock.Any()).MaxTimes(1)
 
 		_, err = reconciler.reconcileNormal(ctx, ms, cs, cs, cs, cs)
 		g.Expect(err).Should(HaveOccurred())
@@ -442,7 +454,7 @@ func createAWSMachine(g *WithT, awsMachine *infrav1.AWSMachine) {
 			Namespace: awsMachine.Namespace,
 		}
 		return testEnv.Get(ctx, key, machine) == nil
-	}, 10*time.Second).Should(BeTrue())
+	}, 10*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed get the newly created machine %q", awsMachine.Name))
 }
 
 func getAWSMachine() *infrav1.AWSMachine {

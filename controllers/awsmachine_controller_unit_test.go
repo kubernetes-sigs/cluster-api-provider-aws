@@ -995,6 +995,40 @@ func TestAWSMachineReconciler(t *testing.T) {
 				})
 			})
 		})
+		t.Run("when BYOIP is set", func(t *testing.T) {
+			var instance *infrav1.Instance
+			secretPrefix := "test/secret"
+
+			t.Run("should succeed", func(t *testing.T) {
+				g := NewWithT(t)
+				awsMachine := getAWSMachine()
+				setup(t, g, awsMachine)
+				defer teardown(t, g)
+
+				instance = &infrav1.Instance{
+					ID:    "myMachine",
+					State: infrav1.InstanceStatePending,
+				}
+
+				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, nil).AnyTimes()
+				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return(secretPrefix, int32(1), nil).Times(1)
+				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil).AnyTimes()
+				secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+				ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil).Times(1)
+				ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
+				ec2Svc.EXPECT().GetAdditionalSecurityGroupsIDs(gomock.Any()).Return(nil, nil).Times(1)
+
+				ms.AWSMachine.Spec.PublicIP = aws.Bool(false)
+				ms.AWSMachine.Spec.ElasticIPPool = &infrav1.ElasticIPPool{
+					PublicIpv4Pool:              aws.String("ipv4pool-ec2-0123456789abcdef0"),
+					PublicIpv4PoolFallBackOrder: ptr.To(infrav1.PublicIpv4PoolFallbackOrderAmazonPool),
+				}
+				ec2Svc.EXPECT().ReconcileElasticIPFromPublicPool(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
+				g.Expect(err).To(BeNil())
+			})
+		})
 	})
 
 	t.Run("Secrets management lifecycle", func(t *testing.T) {
@@ -1099,7 +1133,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				defer teardown(t, g)
 				setNodeRef(t, g)
 
-				ms.AWSMachine.Status.FailureReason = capierrors.MachineStatusErrorPtr(capierrors.UpdateMachineError)
+				ms.AWSMachine.Status.FailureReason = ptr.To(capierrors.UpdateMachineError)
 				secretSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
 				ec2Svc.EXPECT().TerminateInstance(gomock.Any()).Return(nil).AnyTimes()
 				_, _ = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
@@ -1229,7 +1263,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				defer teardown(t, g)
 				setSSM(t, g)
 
-				ms.AWSMachine.Status.FailureReason = capierrors.MachineStatusErrorPtr(capierrors.UpdateMachineError)
+				ms.AWSMachine.Status.FailureReason = ptr.To(capierrors.UpdateMachineError)
 				secretSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
 				ec2Svc.EXPECT().TerminateInstance(gomock.Any()).Return(nil).AnyTimes()
 				_, _ = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
@@ -1446,7 +1480,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					useIgnitionWithClusterObjectStore(t, g)
 
 					// TODO: This seems to have no effect on the test result.
-					ms.AWSMachine.Status.FailureReason = capierrors.MachineStatusErrorPtr(capierrors.UpdateMachineError)
+					ms.AWSMachine.Status.FailureReason = ptr.To(capierrors.UpdateMachineError)
 
 					objectStoreSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
 					ec2Svc.EXPECT().TerminateInstance(gomock.Any()).Return(nil).AnyTimes()
@@ -1518,7 +1552,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					useIgnitionWithClusterObjectStore(t, g)
 
 					// TODO: This seems to have no effect on the test result.
-					ms.AWSMachine.Status.FailureReason = capierrors.MachineStatusErrorPtr(capierrors.UpdateMachineError)
+					ms.AWSMachine.Status.FailureReason = ptr.To(capierrors.UpdateMachineError)
 					objectStoreSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
 					ec2Svc.EXPECT().TerminateInstance(gomock.Any()).Return(nil).AnyTimes()
 					_, _ = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
@@ -2459,7 +2493,7 @@ func TestAWSMachineReconcilerReconcile(t *testing.T) {
 					}
 					err = testEnv.Get(ctx, key, machine)
 					return err == nil
-				}, 10*time.Second).Should(BeTrue())
+				}, 10*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed get the newly created machine %q", tc.awsMachine.Name))
 
 				result, err := reconciler.Reconcile(ctx, ctrl.Request{
 					NamespacedName: client.ObjectKey{
@@ -2722,6 +2756,7 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 		Attribute:          aws.String("groupSet"),
 	})).Return(&ec2.DescribeNetworkInterfaceAttributeOutput{Groups: []*ec2.GroupIdentifier{{GroupId: aws.String("3")}}}, nil).MaxTimes(1)
 	ec2Mock.EXPECT().ModifyNetworkInterfaceAttributeWithContext(context.TODO(), gomock.Any()).AnyTimes()
+	ec2Mock.EXPECT().AssociateAddressWithContext(context.TODO(), gomock.Any()).MaxTimes(1)
 
 	_, err = reconciler.Reconcile(ctx, ctrl.Request{
 		NamespacedName: client.ObjectKey{

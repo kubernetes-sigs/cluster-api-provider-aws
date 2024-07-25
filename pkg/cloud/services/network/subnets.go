@@ -53,7 +53,6 @@ func (s *Service) reconcileSubnets() error {
 	defer func() {
 		s.scope.SetSubnets(subnets)
 	}()
-
 	var (
 		err      error
 		existing infrav1.Subnets
@@ -115,6 +114,7 @@ func (s *Service) reconcileSubnets() error {
 
 		for i, sub := range subnetCIDRs {
 			secondarySub := infrav1.SubnetSpec{
+				ID:               fmt.Sprintf("%s-subnet-%s-%s", s.scope.Name(), infrav1.SecondarySubnetTagValue, zones[i]),
 				CidrBlock:        sub.String(),
 				AvailabilityZone: zones[i],
 				IsPublic:         false,
@@ -133,10 +133,19 @@ func (s *Service) reconcileSubnets() error {
 		sub := &subnets[i]
 		existingSubnet := existing.FindEqual(sub)
 		if existingSubnet != nil {
-			subnetTags := sub.Tags
+			if len(sub.ID) > 0 {
+				// NOTE: Describing subnets assumes the subnet.ID is the same as the subnet's identifier (i.e. subnet-<xyz>),
+				// if we have a subnet ID specified in the spec, we need to restore it.
+				existingSubnet.ID = sub.ID
+			}
+
+			// Update subnet spec with the existing subnet details
+			existingSubnet.DeepCopyInto(sub)
+
 			// Make sure tags are up-to-date.
+			subnetTags := sub.Tags
 			if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-				buildParams := s.getSubnetTagParams(unmanagedVPC, existingSubnet.GetResourceID(), existingSubnet.IsPublic, existingSubnet.AvailabilityZone, subnetTags)
+				buildParams := s.getSubnetTagParams(unmanagedVPC, existingSubnet.GetResourceID(), existingSubnet.IsPublic, existingSubnet.AvailabilityZone, subnetTags, existingSubnet.IsEdge())
 				tagsBuilder := tags.New(&buildParams, tags.WithEC2(s.EC2Client))
 				if err := tagsBuilder.Ensure(existingSubnet.Tags); err != nil {
 					return false, err
@@ -149,21 +158,10 @@ func (s *Service) reconcileSubnets() error {
 				}
 
 				// We may not have a permission to tag unmanaged subnets.
-				// When tagging unmanaged subnet fails, record an event and proceed.
+				// When tagging unmanaged subnet fails, record an event and continue checking subnets.
 				record.Warnf(s.scope.InfraCluster(), "FailedTagSubnet", "Failed tagging unmanaged Subnet %q: %v", existingSubnet.GetResourceID(), err)
-				break
+				continue
 			}
-
-			// TODO(vincepri): check if subnet needs to be updated.
-
-			if len(sub.ID) > 0 {
-				// NOTE: Describing subnets assumes the subnet.ID is the same as the subnet's identifier (i.e. subnet-<xyz>),
-				// if we have a subnet ID specified in the spec, we need to restore it.
-				existingSubnet.ID = sub.ID
-			}
-
-			// Update subnet spec with the existing subnet details
-			existingSubnet.DeepCopyInto(sub)
 		} else if unmanagedVPC {
 			// If there is no existing subnet and we have an umanaged vpc report an error
 			record.Warnf(s.scope.InfraCluster(), "FailedMatchSubnet", "Using unmanaged VPC and failed to find existing subnet for specified subnet id %d, cidr %q", sub.GetResourceID(), sub.CidrBlock)
@@ -175,6 +173,14 @@ func (s *Service) reconcileSubnets() error {
 	if unmanagedVPC && len(subnets) < 1 {
 		record.Warnf(s.scope.InfraCluster(), "FailedNoSubnet", "Expected at least 1 subnet but got 0")
 		return errors.New("expected at least 1 subnet but got 0")
+	}
+
+	// Reconciling the zone information for the subnets. Subnets are grouped
+	// by regular zones (availability zones) or edge zones (local zones or wavelength zones)
+	// based in the zone-type attribute for zone.
+	if err := s.reconcileZoneInfo(subnets); err != nil {
+		record.Warnf(s.scope.InfraCluster(), "FailedNoZoneInfo", "Expected the zone attributes to be populated to subnet")
+		return errors.Wrapf(err, "expected the zone attributes to be populated to subnet")
 	}
 
 	// When the VPC is managed by CAPA, we need to create the subnets.
@@ -211,6 +217,35 @@ func (s *Service) reconcileSubnets() error {
 	return nil
 }
 
+func (s *Service) retrieveZoneInfo(zoneNames []string) ([]*ec2.AvailabilityZone, error) {
+	zones, err := s.EC2Client.DescribeAvailabilityZonesWithContext(context.TODO(), &ec2.DescribeAvailabilityZonesInput{
+		ZoneNames: aws.StringSlice(zoneNames),
+	})
+	if err != nil {
+		record.Eventf(s.scope.InfraCluster(), "FailedDescribeAvailableZones", "Failed getting available zones: %v", err)
+		return nil, errors.Wrap(err, "failed to describe availability zones")
+	}
+
+	return zones.AvailabilityZones, nil
+}
+
+// reconcileZoneInfo discover the zones for all subnets, and retrieve
+// persist the zone information from resource API, such as Type and
+// Parent Zone.
+func (s *Service) reconcileZoneInfo(subnets infrav1.Subnets) error {
+	if len(subnets) > 0 {
+		zones, err := s.retrieveZoneInfo(subnets.GetUniqueZones())
+		if err != nil {
+			return err
+		}
+		// Extract zone attributes from resource API for each subnet.
+		if err := subnets.SetZoneInfo(zones); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (s *Service) getDefaultSubnets() (infrav1.Subnets, error) {
 	zones, err := s.getAvailableZones()
 	if err != nil {
@@ -240,26 +275,38 @@ func (s *Service) getDefaultSubnets() (infrav1.Subnets, error) {
 		s.scope.Debug("zones selected", "region", s.scope.Region(), "zones", zones)
 	}
 
-	// 1 private subnet for each AZ plus 1 other subnet that will be further sub-divided for the public subnets
+	// 1 private subnet for each AZ plus 1 other subnet that will be further sub-divided for the public subnets or vice versa if
+	// the subnet schema is set to prefer public subnets.
 	// All subnets will have an ipv4 address for now as well. We aren't supporting ipv6-only yet.
 	numSubnets := len(zones) + 1
 	var (
-		subnetCIDRs            []*net.IPNet
-		publicSubnetCIDRs      []*net.IPNet
-		ipv6SubnetCIDRs        []*net.IPNet
-		publicIPv6SubnetCIDRs  []*net.IPNet
-		privateIPv6SubnetCIDRs []*net.IPNet
+		subnetCIDRs              []*net.IPNet
+		preferredSubnetCIDRs     []*net.IPNet
+		residualSubnetCIDRs      []*net.IPNet
+		ipv6SubnetCIDRs          []*net.IPNet
+		preferredIPv6SubnetCIDRs []*net.IPNet
+		residualIPv6SubnetCIDRs  []*net.IPNet
 	)
+	subnetScheme := infrav1.SubnetSchemaPreferPrivate
+	if s.scope.VPC().SubnetSchema != nil {
+		subnetScheme = *s.scope.VPC().SubnetSchema
+	}
+
+	residualSubnetsName := infrav1.SubnetSchemaPreferPublic.Name()
+	if subnetScheme == infrav1.SubnetSchemaPreferPublic {
+		residualSubnetsName = infrav1.SubnetSchemaPreferPrivate.Name()
+	}
+
 	subnetCIDRs, err = cidr.SplitIntoSubnetsIPv4(s.scope.VPC().CidrBlock, numSubnets)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed splitting VPC CIDR %q into subnets", s.scope.VPC().CidrBlock)
 	}
 
-	publicSubnetCIDRs, err = cidr.SplitIntoSubnetsIPv4(subnetCIDRs[0].String(), len(zones))
+	residualSubnetCIDRs, err = cidr.SplitIntoSubnetsIPv4(subnetCIDRs[0].String(), len(zones))
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed splitting CIDR %q into public subnets", subnetCIDRs[0].String())
+		return nil, errors.Wrapf(err, "failed splitting CIDR %q into %s subnets", subnetCIDRs[0].String(), residualSubnetsName)
 	}
-	privateSubnetCIDRs := append(subnetCIDRs[:0], subnetCIDRs[1:]...)
+	preferredSubnetCIDRs = append(subnetCIDRs[:0], subnetCIDRs[1:]...)
 
 	if s.scope.VPC().IsIPv6Enabled() {
 		ipv6SubnetCIDRs, err = cidr.SplitIntoSubnetsIPv6(s.scope.VPC().IPv6.CidrBlock, numSubnets)
@@ -268,12 +315,23 @@ func (s *Service) getDefaultSubnets() (infrav1.Subnets, error) {
 		}
 
 		// We need to take the last, so it doesn't conflict with the rest. The subnetID is increment each time by 1.
-		publicIPv6SubnetCIDRs, err = cidr.SplitIntoSubnetsIPv6(ipv6SubnetCIDRs[len(ipv6SubnetCIDRs)-1].String(), len(zones))
+		ipv6SubnetCIDRsStr := ipv6SubnetCIDRs[len(ipv6SubnetCIDRs)-1].String()
+		residualIPv6SubnetCIDRs, err = cidr.SplitIntoSubnetsIPv6(ipv6SubnetCIDRsStr, len(zones))
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed splitting IPv6 CIDR %q into public subnets", ipv6SubnetCIDRs[len(ipv6SubnetCIDRs)-1].String())
+			return nil, errors.Wrapf(err, "failed splitting IPv6 CIDR %q into %s subnets", ipv6SubnetCIDRsStr, residualSubnetsName)
 		}
 		// TODO: this might need to be the last instead of the first..
-		privateIPv6SubnetCIDRs = append(ipv6SubnetCIDRs[:0], ipv6SubnetCIDRs[1:]...)
+		preferredIPv6SubnetCIDRs = append(ipv6SubnetCIDRs[:0], ipv6SubnetCIDRs[1:]...)
+	}
+
+	// By default, the preferred subnets are the private subnets and the residual subnets are the public subnets.
+	privateSubnetCIDRs, publicSubnetCIDRs := preferredSubnetCIDRs, residualSubnetCIDRs
+	privateIPv6SubnetCIDRs, publicIPv6SubnetCIDRs := preferredIPv6SubnetCIDRs, residualIPv6SubnetCIDRs
+
+	// If the subnet schema is set to prefer public, we need to swap the private and public subnets.
+	if subnetScheme == infrav1.SubnetSchemaPreferPublic {
+		privateSubnetCIDRs, publicSubnetCIDRs = residualSubnetCIDRs, preferredSubnetCIDRs
+		privateIPv6SubnetCIDRs, publicIPv6SubnetCIDRs = residualIPv6SubnetCIDRs, preferredIPv6SubnetCIDRs
 	}
 
 	subnets := infrav1.Subnets{}
@@ -376,6 +434,9 @@ func (s *Service) describeVpcSubnets() (infrav1.Subnets, error) {
 				if route.GatewayId != nil && strings.HasPrefix(*route.GatewayId, "igw") {
 					spec.IsPublic = true
 				}
+				if route.CarrierGatewayId != nil && strings.HasPrefix(*route.CarrierGatewayId, "cagw-") {
+					spec.IsPublic = true
+				}
 			}
 		}
 
@@ -420,6 +481,28 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 		sn.Tags["Name"] = sn.ID
 	}
 
+	// Retrieve zone information used later to change the zone attributes.
+	if len(sn.AvailabilityZone) > 0 {
+		zones, err := s.retrieveZoneInfo([]string{sn.AvailabilityZone})
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to discover zone information for subnet's zone %q", sn.AvailabilityZone)
+		}
+		if err = sn.SetZoneInfo(zones); err != nil {
+			return nil, errors.Wrapf(err, "failed to update zone information for subnet's zone %q", sn.AvailabilityZone)
+		}
+	}
+
+	// IPv6 subnets are not generally supported by AWS Local Zones and Wavelength Zones.
+	// Local Zones have limited zone support for IPv6 subnets:
+	// https://docs.aws.amazon.com/local-zones/latest/ug/how-local-zones-work.html#considerations
+	// Wavelength Zones is currently not supporting IPv6 subnets.
+	// https://docs.aws.amazon.com/wavelength/latest/developerguide/wavelength-quotas.html#vpc-considerations
+	if sn.IsIPv6 && sn.IsEdge() {
+		err := fmt.Errorf("failed to create subnet: IPv6 is not supported with zone type %q", sn.ZoneType)
+		record.Warnf(s.scope.InfraCluster(), "FailedCreateSubnet", "Failed creating managed Subnet for edge zones: %v", err)
+		return nil, err
+	}
+
 	// Build the subnet creation request.
 	input := &ec2.CreateSubnetInput{
 		VpcId:            aws.String(s.scope.VPC().ID),
@@ -428,7 +511,7 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 		TagSpecifications: []*ec2.TagSpecification{
 			tags.BuildParamsToTagSpecification(
 				ec2.ResourceTypeSubnet,
-				s.getSubnetTagParams(false, services.TemporaryResourceID, sn.IsPublic, sn.AvailabilityZone, sn.Tags),
+				s.getSubnetTagParams(false, services.TemporaryResourceID, sn.IsPublic, sn.AvailabilityZone, sn.Tags, sn.IsEdge()),
 			),
 		},
 	}
@@ -472,7 +555,12 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 		record.Eventf(s.scope.InfraCluster(), "SuccessfulModifySubnetAttributes", "Modified managed Subnet %q attributes", *out.Subnet.SubnetId)
 	}
 
-	if sn.IsPublic {
+	// AWS Wavelength Zone's public subnets does not support to map Carrier IP address on launch, and
+	// MapPublicIpOnLaunch option[1] set to the subnet will fail, instead set the EC2 instance's network
+	// interface to associate Carrier IP Address on launch[2].
+	// [1] https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_ModifySubnetAttribute.html
+	// [2] https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_InstanceNetworkInterfaceSpecification.html
+	if sn.IsPublic && !sn.IsEdgeWavelength() {
 		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 			if _, err := s.EC2Client.ModifySubnetAttributeWithContext(context.TODO(), &ec2.ModifySubnetAttributeInput{
 				SubnetId: out.Subnet.SubnetId,
@@ -546,7 +634,7 @@ func (s *Service) deleteSubnet(id string) error {
 	return nil
 }
 
-func (s *Service) getSubnetTagParams(unmanagedVPC bool, id string, public bool, zone string, manualTags infrav1.Tags) infrav1.BuildParams {
+func (s *Service) getSubnetTagParams(unmanagedVPC bool, id string, public bool, zone string, manualTags infrav1.Tags, isEdge bool) infrav1.BuildParams {
 	var role string
 	additionalTags := make(map[string]string)
 
@@ -555,14 +643,22 @@ func (s *Service) getSubnetTagParams(unmanagedVPC bool, id string, public bool, 
 
 		if public {
 			role = infrav1.PublicRoleTagValue
-			additionalTags[externalLoadBalancerTag] = "1"
+			// Edge subnets should not have ELB tags to be selected by CCM to create load balancers.
+			if !isEdge {
+				additionalTags[externalLoadBalancerTag] = "1"
+			}
 		} else {
 			role = infrav1.PrivateRoleTagValue
-			additionalTags[internalLoadBalancerTag] = "1"
+			if !isEdge {
+				additionalTags[internalLoadBalancerTag] = "1"
+			}
 		}
-
 		// Add tag needed for Service type=LoadBalancer
-		additionalTags[infrav1.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName())] = string(infrav1.ResourceLifecycleShared)
+		if unmanagedVPC {
+			additionalTags[infrav1.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName())] = string(infrav1.ResourceLifecycleShared)
+		} else {
+			additionalTags[infrav1.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName())] = string(infrav1.ResourceLifecycleOwned)
+		}
 	}
 
 	if !unmanagedVPC {
