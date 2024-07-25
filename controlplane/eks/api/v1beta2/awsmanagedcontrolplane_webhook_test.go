@@ -45,6 +45,7 @@ func TestDefaultingWebhook(t *testing.T) {
 	defaultVPCSpec := infrav1.VPCSpec{
 		AvailabilityZoneUsageLimit: &AZUsageLimit,
 		AvailabilityZoneSelection:  &infrav1.AZSelectionSchemeOrdered,
+		SubnetSchema:               &infrav1.SubnetSchemaPreferPrivate,
 	}
 	defaultIdentityRef := &infrav1.AWSIdentityReference{
 		Kind: infrav1.ControllerIdentityKind,
