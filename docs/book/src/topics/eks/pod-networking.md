@@ -97,7 +97,7 @@ spec:
   disableVPCCNI: true
 ```
 
-If you are replacing Amazon VPC CNI with your own helm managed instance, you will need to set `AWSManagedControlPlane.spec.disableVPCCNI` to `true` and add `"prevent-deletion": "true"` label on the Daemonset. This label is needed so `aws-node` daemonset is not reaped during CNI reconciliation.
+If you are replacing Amazon VPC CNI with your own helm managed instance, you will need to set `AWSManagedControlPlane.spec.disableVPCCNI` to `true` and add `"aws.cluster.x-k8s.io/prevent-deletion": "true"` label on the Daemonset. This label is needed so `aws-node` daemonset is not reaped during CNI reconciliation.
 
 The following example shows how to label your aws-node Daemonset.
 
@@ -114,7 +114,7 @@ metadata:
     app.kubernetes.io/name: aws-node
     app.kubernetes.io/version: v1.15.1
     helm.sh/chart: aws-vpc-cni-1.15.1
-    prevent-deletion: true
+    aws.cluster.x-k8s.io/prevent-deletion: true
 ```
 
 > You cannot set **disableVPCCNI** to true if you are using the VPC CNI addon.
