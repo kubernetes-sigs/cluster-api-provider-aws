@@ -20,7 +20,7 @@ include $(ROOT_DIR_RELATIVE)/common.mk
 # https://suva.sh/posts/well-documented-makefiles
 
 # Go
-GO_VERSION ?=1.21.5
+GO_VERSION ?=1.22.5
 GO_CONTAINER_IMAGE ?= golang:$(GO_VERSION)
 
 # Directories.
@@ -148,7 +148,7 @@ E2E_SKIP_EKS_UPGRADE ?= "false"
 EKS_SOURCE_TEMPLATE ?= eks/cluster-template-eks-control-plane-only.yaml
 
 # set up `setup-envtest` to install kubebuilder dependency
-export KUBEBUILDER_ENVTEST_KUBERNETES_VERSION ?= 1.28.3
+export KUBEBUILDER_ENVTEST_KUBERNETES_VERSION ?= 1.30.2
 SETUP_ENVTEST_VER := v0.0.0-20240531134648-6636df17d67b
 SETUP_ENVTEST_BIN := setup-envtest
 SETUP_ENVTEST := $(abspath $(TOOLS_BIN_DIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST_VER))
