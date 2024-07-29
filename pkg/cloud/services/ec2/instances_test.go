@@ -5620,3 +5620,36 @@ func mockedGetPrivateDNSDomainNameFromDHCPOptionsEmptyCalls(m *mocks.MockEC2APIM
 		},
 	}, nil)
 }
+
+func TestGetCapacityReservationSpecification(t *testing.T) {
+	mockCapacityReservationID := "cr-123"
+	mockCapacityReservationIDPtr := &mockCapacityReservationID
+	testCases := []struct {
+		name                  string
+		capacityReservationID *string
+		expectedRequest       *ec2.CapacityReservationSpecification
+	}{
+		{
+			name:                  "with no CapacityReservationID options specified",
+			capacityReservationID: nil,
+			expectedRequest:       nil,
+		},
+		{
+			name:                  "with a valid CapacityReservationID specified",
+			capacityReservationID: mockCapacityReservationIDPtr,
+			expectedRequest: &ec2.CapacityReservationSpecification{
+				CapacityReservationTarget: &ec2.CapacityReservationTarget{
+					CapacityReservationId: aws.String(mockCapacityReservationID),
+				},
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			request := getCapacityReservationSpecification(tc.capacityReservationID)
+			if !cmp.Equal(request, tc.expectedRequest) {
+				t.Errorf("Case: %s. Got: %v, expected: %v", tc.name, request, tc.expectedRequest)
+			}
+		})
+	}
+}
