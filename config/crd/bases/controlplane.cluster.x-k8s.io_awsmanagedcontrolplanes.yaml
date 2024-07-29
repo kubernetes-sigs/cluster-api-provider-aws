@@ -1102,6 +1102,10 @@ spec:
                   availabilityZone:
                     description: Availability zone of instance
                     type: string
+                  capacityReservationId:
+                    description: CapacityReservationID specifies the target Capacity
+                      Reservation into which the instance should be launched.
+                    type: string
                   ebsOptimized:
                     description: Indicates whether the instance is optimized for Amazon
                       EBS I/O.
@@ -3117,6 +3121,10 @@ spec:
                     type: array
                   availabilityZone:
                     description: Availability zone of instance
+                    type: string
+                  capacityReservationId:
+                    description: CapacityReservationID specifies the target Capacity
+                      Reservation into which the instance should be launched.
                     type: string
                   ebsOptimized:
                     description: Indicates whether the instance is optimized for Amazon

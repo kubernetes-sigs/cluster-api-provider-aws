@@ -251,6 +251,8 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 
 	input.PrivateDNSName = scope.AWSMachine.Spec.PrivateDNSName
 
+	input.CapacityReservationID = scope.AWSMachine.Spec.CapacityReservationID
+
 	s.scope.Debug("Running instance", "machine-role", scope.Role())
 	s.scope.Debug("Running instance with instance metadata options", "metadata options", input.InstanceMetadataOptions)
 	out, err := s.runInstance(scope.Role(), input)
@@ -640,6 +642,7 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 	input.InstanceMarketOptions = getInstanceMarketOptionsRequest(i.SpotMarketOptions)
 	input.MetadataOptions = getInstanceMetadataOptionsRequest(i.InstanceMetadataOptions)
 	input.PrivateDnsNameOptions = getPrivateDNSNameOptionsRequest(i.PrivateDNSName)
+	input.CapacityReservationSpecification = getCapacityReservationSpecification(i.CapacityReservationID)
 
 	if i.Tenancy != "" {
 		input.Placement = &ec2.Placement{
@@ -1121,6 +1124,19 @@ func filterGroups(list []string, strToFilter string) (newList []string) {
 		}
 	}
 	return
+}
+
+func getCapacityReservationSpecification(capacityReservationID *string) *ec2.CapacityReservationSpecification {
+	if capacityReservationID == nil {
+		//  Not targeting any specific Capacity Reservation
+		return nil
+	}
+
+	return &ec2.CapacityReservationSpecification{
+		CapacityReservationTarget: &ec2.CapacityReservationTarget{
+			CapacityReservationId: capacityReservationID,
+		},
+	}
 }
 
 func getInstanceMarketOptionsRequest(spotMarketOptions *infrav1.SpotMarketOptions) *ec2.InstanceMarketOptionsRequest {
