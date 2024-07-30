@@ -273,12 +273,12 @@ func (s *Service) deleteResource(ctx context.Context, remoteClient client.Client
 		s.scope.Debug(fmt.Sprintf("resource %s was not found, no action", key))
 		return nil
 	}
-	// Don't delete if the `prevent-deletion` label exists. It could be there because CAPA added it (see below),
+	// Don't delete if the "PreventDeletionLabel" label exists. It could be there because CAPA added it (see below),
 	// or because it was added externally, for example if a custom version of AWS CNI was already installed.
 	// Either way, CAPA should not delete such a labelled CNI installation.
 	labels := obj.GetLabels()
-	if _, exists := labels["prevent-deletion"]; exists {
-		s.scope.Debug(fmt.Sprintf("resource %s has 'prevent-deletion' label, skipping deletion", key))
+	if _, exists := labels[infrav1.PreventDeletionLabel]; exists {
+		s.scope.Debug(fmt.Sprintf("resource %s has '%s' label, skipping deletion", key, infrav1.PreventDeletionLabel))
 		return nil
 	}
 	// Delete the resource
