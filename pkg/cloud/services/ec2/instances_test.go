@@ -703,6 +703,56 @@ func TestCreateInstance(t *testing.T) {
 									},
 								},
 							},
+							{
+								ResourceType: aws.String("volume"),
+								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("MachineName"),
+										Value: aws.String("/"),
+									},
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("aws-test1"),
+									},
+									{
+										Key:   aws.String("kubernetes.io/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Value: aws.String("node"),
+									},
+								},
+							},
+							{
+								ResourceType: aws.String("network-interface"),
+								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("MachineName"),
+										Value: aws.String("/"),
+									},
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("aws-test1"),
+									},
+									{
+										Key:   aws.String("kubernetes.io/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Value: aws.String("node"),
+									},
+								},
+							},
 						},
 						UserData: aws.String(base64.StdEncoding.EncodeToString(userDataCompressed)),
 						MaxCount: aws.Int64(1),
@@ -878,6 +928,56 @@ func TestCreateInstance(t *testing.T) {
 						TagSpecifications: []*ec2.TagSpecification{
 							{
 								ResourceType: aws.String("instance"),
+								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("MachineName"),
+										Value: aws.String("/"),
+									},
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("aws-test1"),
+									},
+									{
+										Key:   aws.String("kubernetes.io/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Value: aws.String("node"),
+									},
+								},
+							},
+							{
+								ResourceType: aws.String("volume"),
+								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("MachineName"),
+										Value: aws.String("/"),
+									},
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("aws-test1"),
+									},
+									{
+										Key:   aws.String("kubernetes.io/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Value: aws.String("node"),
+									},
+								},
+							},
+							{
+								ResourceType: aws.String("network-interface"),
 								Tags: []*ec2.Tag{
 									{
 										Key:   aws.String("MachineName"),
@@ -2130,19 +2230,6 @@ func TestCreateInstance(t *testing.T) {
 						}},
 					}, nil)
 				m.
-					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
-						Filters: []*ec2.Filter{
-							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"public-subnet-1"})},
-						},
-					}).
-					Return(&ec2.DescribeSubnetsOutput{
-						Subnets: []*ec2.Subnet{{
-							SubnetId:            aws.String("public-subnet-1"),
-							AvailabilityZone:    aws.String("us-east-1b"),
-							MapPublicIpOnLaunch: aws.Bool(true),
-						}},
-					}, nil)
-				m.
 					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
 						InstanceTypes: []*string{
 							aws.String("m5.large"),
@@ -2261,19 +2348,6 @@ func TestCreateInstance(t *testing.T) {
 					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
 						Filters: []*ec2.Filter{
 							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
-							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"public-subnet-1"})},
-						},
-					}).
-					Return(&ec2.DescribeSubnetsOutput{
-						Subnets: []*ec2.Subnet{{
-							SubnetId:            aws.String("public-subnet-1"),
-							AvailabilityZone:    aws.String("us-east-1b"),
-							MapPublicIpOnLaunch: aws.Bool(false),
-						}},
-					}, nil)
-				m.
-					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
-						Filters: []*ec2.Filter{
 							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"public-subnet-1"})},
 						},
 					}).
@@ -2551,18 +2625,6 @@ func TestCreateInstance(t *testing.T) {
 						}},
 					}, nil)
 				m.
-					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
-						Filters: []*ec2.Filter{
-							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"public-subnet-1"})},
-						},
-					}).
-					Return(&ec2.DescribeSubnetsOutput{
-						Subnets: []*ec2.Subnet{{
-							SubnetId:            aws.String("public-subnet-1"),
-							MapPublicIpOnLaunch: aws.Bool(true),
-						}},
-					}, nil)
-				m.
 					RunInstancesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
@@ -2691,18 +2753,6 @@ func TestCreateInstance(t *testing.T) {
 						Filters: []*ec2.Filter{
 							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
 							{Name: aws.String("tag:some-tag"), Values: aws.StringSlice([]string{"some-value"})},
-						},
-					}).
-					Return(&ec2.DescribeSubnetsOutput{
-						Subnets: []*ec2.Subnet{{
-							SubnetId:            aws.String("public-subnet-1"),
-							MapPublicIpOnLaunch: aws.Bool(false),
-						}},
-					}, nil)
-				m.
-					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
-						Filters: []*ec2.Filter{
-							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"public-subnet-1"})},
 						},
 					}).
 					Return(&ec2.DescribeSubnetsOutput{
@@ -2844,18 +2894,6 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
-						Filters: []*ec2.Filter{
-							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"public-subnet-1"})},
-						},
-					}).
-					Return(&ec2.DescribeSubnetsOutput{
-						Subnets: []*ec2.Subnet{{
-							SubnetId:            aws.String("public-subnet-1"),
-							MapPublicIpOnLaunch: aws.Bool(true),
-						}},
-					}, nil)
-				m.
 					RunInstancesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
@@ -2972,18 +3010,6 @@ func TestCreateInstance(t *testing.T) {
 								},
 							},
 						},
-					}, nil)
-				m.
-					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
-						Filters: []*ec2.Filter{
-							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"public-subnet-1"})},
-						},
-					}).
-					Return(&ec2.DescribeSubnetsOutput{
-						Subnets: []*ec2.Subnet{{
-							SubnetId:            aws.String("public-subnet-1"),
-							MapPublicIpOnLaunch: aws.Bool(false),
-						}},
 					}, nil)
 				m.
 					RunInstancesWithContext(context.TODO(), gomock.Any()).
@@ -3348,6 +3374,56 @@ func TestCreateInstance(t *testing.T) {
 									},
 								},
 							},
+							{
+								ResourceType: aws.String("volume"),
+								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("MachineName"),
+										Value: aws.String("default/machine-aws-test1"),
+									},
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("aws-test1"),
+									},
+									{
+										Key:   aws.String("kubernetes.io/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Value: aws.String("node"),
+									},
+								},
+							},
+							{
+								ResourceType: aws.String("network-interface"),
+								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("MachineName"),
+										Value: aws.String("default/machine-aws-test1"),
+									},
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("aws-test1"),
+									},
+									{
+										Key:   aws.String("kubernetes.io/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Value: aws.String("node"),
+									},
+								},
+							},
 						},
 						UserData: aws.String(base64.StdEncoding.EncodeToString(userDataCompressed)),
 					})).
@@ -3484,6 +3560,56 @@ func TestCreateInstance(t *testing.T) {
 						TagSpecifications: []*ec2.TagSpecification{
 							{
 								ResourceType: aws.String("instance"),
+								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("MachineName"),
+										Value: aws.String("default/machine-aws-test1"),
+									},
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("aws-test1"),
+									},
+									{
+										Key:   aws.String("kubernetes.io/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Value: aws.String("node"),
+									},
+								},
+							},
+							{
+								ResourceType: aws.String("volume"),
+								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("MachineName"),
+										Value: aws.String("default/machine-aws-test1"),
+									},
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("aws-test1"),
+									},
+									{
+										Key:   aws.String("kubernetes.io/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Value: aws.String("node"),
+									},
+								},
+							},
+							{
+								ResourceType: aws.String("network-interface"),
 								Tags: []*ec2.Tag{
 									{
 										Key:   aws.String("MachineName"),
@@ -3687,6 +3813,56 @@ func TestCreateInstance(t *testing.T) {
 									},
 								},
 							},
+							{
+								ResourceType: aws.String("volume"),
+								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("MachineName"),
+										Value: aws.String("default/machine-aws-test1"),
+									},
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("aws-test1"),
+									},
+									{
+										Key:   aws.String("kubernetes.io/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Value: aws.String("node"),
+									},
+								},
+							},
+							{
+								ResourceType: aws.String("network-interface"),
+								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("MachineName"),
+										Value: aws.String("default/machine-aws-test1"),
+									},
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("aws-test1"),
+									},
+									{
+										Key:   aws.String("kubernetes.io/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Value: aws.String("node"),
+									},
+								},
+							},
 						},
 						UserData: aws.String(base64.StdEncoding.EncodeToString(data)),
 					})).
@@ -3805,6 +3981,56 @@ func TestCreateInstance(t *testing.T) {
 						TagSpecifications: []*ec2.TagSpecification{
 							{
 								ResourceType: aws.String("instance"),
+								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("MachineName"),
+										Value: aws.String("default/machine-aws-test1"),
+									},
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("aws-test1"),
+									},
+									{
+										Key:   aws.String("kubernetes.io/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Value: aws.String("node"),
+									},
+								},
+							},
+							{
+								ResourceType: aws.String("volume"),
+								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("MachineName"),
+										Value: aws.String("default/machine-aws-test1"),
+									},
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("aws-test1"),
+									},
+									{
+										Key:   aws.String("kubernetes.io/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test1"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Value: aws.String("node"),
+									},
+								},
+							},
+							{
+								ResourceType: aws.String("network-interface"),
 								Tags: []*ec2.Tag{
 									{
 										Key:   aws.String("MachineName"),
@@ -5393,4 +5619,37 @@ func mockedGetPrivateDNSDomainNameFromDHCPOptionsEmptyCalls(m *mocks.MockEC2APIM
 			},
 		},
 	}, nil)
+}
+
+func TestGetCapacityReservationSpecification(t *testing.T) {
+	mockCapacityReservationID := "cr-123"
+	mockCapacityReservationIDPtr := &mockCapacityReservationID
+	testCases := []struct {
+		name                  string
+		capacityReservationID *string
+		expectedRequest       *ec2.CapacityReservationSpecification
+	}{
+		{
+			name:                  "with no CapacityReservationID options specified",
+			capacityReservationID: nil,
+			expectedRequest:       nil,
+		},
+		{
+			name:                  "with a valid CapacityReservationID specified",
+			capacityReservationID: mockCapacityReservationIDPtr,
+			expectedRequest: &ec2.CapacityReservationSpecification{
+				CapacityReservationTarget: &ec2.CapacityReservationTarget{
+					CapacityReservationId: aws.String(mockCapacityReservationID),
+				},
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			request := getCapacityReservationSpecification(tc.capacityReservationID)
+			if !cmp.Equal(request, tc.expectedRequest) {
+				t.Errorf("Case: %s. Got: %v, expected: %v", tc.name, request, tc.expectedRequest)
+			}
+		})
+	}
 }

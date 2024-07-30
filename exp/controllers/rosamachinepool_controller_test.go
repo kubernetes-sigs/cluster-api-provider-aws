@@ -4,11 +4,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp/cmpopts"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 )
@@ -26,8 +27,11 @@ func TestNodePoolToRosaMachinePoolSpec(t *testing.T) {
 		NodeDrainGracePeriod: &metav1.Duration{
 			Duration: time.Minute * 10,
 		},
-		AdditionalTags: infrav1.Tags{
-			"tag1": "value1",
+		UpdateConfig: &expinfrav1.RosaUpdateConfig{
+			RollingUpdate: &expinfrav1.RollingUpdate{
+				MaxSurge:       ptr.To(intstr.FromInt32(3)),
+				MaxUnavailable: ptr.To(intstr.FromInt32(5)),
+			},
 		},
 	}
 
@@ -42,5 +46,5 @@ func TestNodePoolToRosaMachinePoolSpec(t *testing.T) {
 
 	expectedSpec := nodePoolToRosaMachinePoolSpec(nodePoolSpec)
 
-	g.Expect(expectedSpec).To(Equal(rosaMachinePoolSpec))
+	g.Expect(rosaMachinePoolSpec).To(BeComparableTo(expectedSpec, cmpopts.EquateEmpty()))
 }

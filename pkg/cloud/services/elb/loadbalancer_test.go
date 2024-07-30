@@ -40,6 +40,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/test/helpers"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -780,6 +781,7 @@ func TestRegisterInstanceWithAPIServerNLB(t *testing.T) {
 		elbName         = "bar-apiserver"
 		elbArn          = "arn::apiserver"
 		elbSubnetID     = "elb-subnet"
+		tgArn           = "arn::target-group"
 		instanceID      = "test-instance"
 		az              = "us-west-1a"
 		differentAZ     = "us-east-2c"
@@ -861,14 +863,14 @@ func TestRegisterInstanceWithAPIServerNLB(t *testing.T) {
 							LoadBalancerArns:    aws.StringSlice([]string{elbArn}),
 							Port:                aws.Int64(infrav1.DefaultAPIServerPort),
 							Protocol:            aws.String("TCP"),
-							TargetGroupArn:      aws.String("target-group::arn"),
+							TargetGroupArn:      aws.String(tgArn),
 							TargetGroupName:     aws.String("something-generated"),
 							VpcId:               aws.String("vpc-id"),
 						},
 					},
 				}, nil)
 				m.RegisterTargets(gomock.Eq(&elbv2.RegisterTargetsInput{
-					TargetGroupArn: aws.String("target-group::arn"),
+					TargetGroupArn: aws.String(tgArn),
 					Targets: []*elbv2.TargetDescription{
 						{
 							Id:   aws.String(instanceID),
@@ -964,7 +966,7 @@ func TestRegisterInstanceWithAPIServerNLB(t *testing.T) {
 							LoadBalancerArns:    aws.StringSlice([]string{elbArn}),
 							Port:                aws.Int64(infrav1.DefaultAPIServerPort),
 							Protocol:            aws.String("TCP"),
-							TargetGroupArn:      aws.String("target-group::arn"),
+							TargetGroupArn:      aws.String(tgArn),
 							TargetGroupName:     aws.String("something-generated"),
 							VpcId:               aws.String("vpc-id"),
 						},
@@ -993,7 +995,7 @@ func TestRegisterInstanceWithAPIServerNLB(t *testing.T) {
 					},
 				}, nil)
 				m.RegisterTargets(gomock.Eq(&elbv2.RegisterTargetsInput{
-					TargetGroupArn: aws.String("target-group::arn"),
+					TargetGroupArn: aws.String(tgArn),
 					Targets: []*elbv2.TargetDescription{
 						{
 							Id:   aws.String(instanceID),
@@ -1202,69 +1204,6 @@ func TestCreateNLB(t *testing.T) {
 						},
 					},
 				}, nil)
-				m.CreateTargetGroup(gomock.Eq(&elbv2.CreateTargetGroupInput{
-					Name:     aws.String("name"),
-					Port:     aws.Int64(infrav1.DefaultAPIServerPort),
-					Protocol: aws.String("TCP"),
-					VpcId:    aws.String(vpcID),
-					Tags: []*elbv2.Tag{
-						{
-							Key:   aws.String("test"),
-							Value: aws.String("tag"),
-						},
-					},
-					HealthCheckEnabled:         aws.Bool(true),
-					HealthCheckPort:            aws.String(infrav1.DefaultAPIServerPortString),
-					HealthCheckProtocol:        aws.String("tcp"),
-					HealthyThresholdCount:      aws.Int64(infrav1.DefaultAPIServerHealthThresholdCount),
-					UnhealthyThresholdCount:    aws.Int64(infrav1.DefaultAPIServerUnhealthThresholdCount),
-					HealthCheckIntervalSeconds: aws.Int64(infrav1.DefaultAPIServerHealthCheckIntervalSec),
-					HealthCheckTimeoutSeconds:  aws.Int64(infrav1.DefaultAPIServerHealthCheckTimeoutSec),
-				})).Return(&elbv2.CreateTargetGroupOutput{
-					TargetGroups: []*elbv2.TargetGroup{
-						{
-							TargetGroupArn:             aws.String("target-group::arn"),
-							TargetGroupName:            aws.String("name"),
-							VpcId:                      aws.String(vpcID),
-							HealthyThresholdCount:      aws.Int64(infrav1.DefaultAPIServerHealthThresholdCount),
-							UnhealthyThresholdCount:    aws.Int64(infrav1.DefaultAPIServerUnhealthThresholdCount),
-							HealthCheckIntervalSeconds: aws.Int64(infrav1.DefaultAPIServerHealthCheckIntervalSec),
-							HealthCheckTimeoutSeconds:  aws.Int64(infrav1.DefaultAPIServerHealthCheckTimeoutSec),
-						},
-					},
-				}, nil)
-				m.ModifyTargetGroupAttributes(gomock.Eq(&elbv2.ModifyTargetGroupAttributesInput{
-					TargetGroupArn: aws.String("target-group::arn"),
-					Attributes: []*elbv2.TargetGroupAttribute{
-						{
-							Key:   aws.String(infrav1.TargetGroupAttributeEnablePreserveClientIP),
-							Value: aws.String("false"),
-						},
-					},
-				})).Return(nil, nil)
-				m.CreateListener(gomock.Eq(&elbv2.CreateListenerInput{
-					DefaultActions: []*elbv2.Action{
-						{
-							TargetGroupArn: aws.String("target-group::arn"),
-							Type:           aws.String(elbv2.ActionTypeEnumForward),
-						},
-					},
-					LoadBalancerArn: aws.String(elbArn),
-					Port:            aws.Int64(infrav1.DefaultAPIServerPort),
-					Protocol:        aws.String("TCP"),
-					Tags: []*elbv2.Tag{
-						{
-							Key:   aws.String("test"),
-							Value: aws.String("tag"),
-						},
-					},
-				})).Return(&elbv2.CreateListenerOutput{
-					Listeners: []*elbv2.Listener{
-						{
-							ListenerArn: aws.String("listener::arn"),
-						},
-					},
-				}, nil)
 			},
 			check: func(t *testing.T, lb *infrav1.LoadBalancer, err error) {
 				t.Helper()
@@ -1312,70 +1251,6 @@ func TestCreateNLB(t *testing.T) {
 						},
 					},
 				}, nil)
-				m.CreateTargetGroup(gomock.Eq(&elbv2.CreateTargetGroupInput{
-					Name:          aws.String("name"),
-					Port:          aws.Int64(infrav1.DefaultAPIServerPort),
-					Protocol:      aws.String("TCP"),
-					VpcId:         aws.String(vpcID),
-					IpAddressType: aws.String("ipv6"),
-					Tags: []*elbv2.Tag{
-						{
-							Key:   aws.String("test"),
-							Value: aws.String("tag"),
-						},
-					},
-					HealthCheckEnabled:         aws.Bool(true),
-					HealthCheckPort:            aws.String(infrav1.DefaultAPIServerPortString),
-					HealthCheckProtocol:        aws.String("tcp"),
-					HealthyThresholdCount:      aws.Int64(infrav1.DefaultAPIServerHealthThresholdCount),
-					UnhealthyThresholdCount:    aws.Int64(infrav1.DefaultAPIServerUnhealthThresholdCount),
-					HealthCheckIntervalSeconds: aws.Int64(infrav1.DefaultAPIServerHealthCheckIntervalSec),
-					HealthCheckTimeoutSeconds:  aws.Int64(infrav1.DefaultAPIServerHealthCheckTimeoutSec),
-				})).Return(&elbv2.CreateTargetGroupOutput{
-					TargetGroups: []*elbv2.TargetGroup{
-						{
-							TargetGroupArn:             aws.String("target-group::arn"),
-							TargetGroupName:            aws.String("name"),
-							VpcId:                      aws.String(vpcID),
-							HealthyThresholdCount:      aws.Int64(infrav1.DefaultAPIServerHealthThresholdCount),
-							UnhealthyThresholdCount:    aws.Int64(infrav1.DefaultAPIServerUnhealthThresholdCount),
-							HealthCheckIntervalSeconds: aws.Int64(infrav1.DefaultAPIServerHealthCheckIntervalSec),
-							HealthCheckTimeoutSeconds:  aws.Int64(infrav1.DefaultAPIServerHealthCheckTimeoutSec),
-						},
-					},
-				}, nil)
-				m.ModifyTargetGroupAttributes(gomock.Eq(&elbv2.ModifyTargetGroupAttributesInput{
-					TargetGroupArn: aws.String("target-group::arn"),
-					Attributes: []*elbv2.TargetGroupAttribute{
-						{
-							Key:   aws.String(infrav1.TargetGroupAttributeEnablePreserveClientIP),
-							Value: aws.String("false"),
-						},
-					},
-				})).Return(nil, nil)
-				m.CreateListener(gomock.Eq(&elbv2.CreateListenerInput{
-					DefaultActions: []*elbv2.Action{
-						{
-							TargetGroupArn: aws.String("target-group::arn"),
-							Type:           aws.String(elbv2.ActionTypeEnumForward),
-						},
-					},
-					LoadBalancerArn: aws.String(elbArn),
-					Port:            aws.Int64(infrav1.DefaultAPIServerPort),
-					Protocol:        aws.String("TCP"),
-					Tags: []*elbv2.Tag{
-						{
-							Key:   aws.String("test"),
-							Value: aws.String("tag"),
-						},
-					},
-				})).Return(&elbv2.CreateListenerOutput{
-					Listeners: []*elbv2.Listener{
-						{
-							ListenerArn: aws.String("listener::arn"),
-						},
-					},
-				}, nil)
 			},
 			check: func(t *testing.T, lb *infrav1.LoadBalancer, err error) {
 				t.Helper()
@@ -1410,127 +1285,13 @@ func TestCreateNLB(t *testing.T) {
 					},
 				})).Return(nil, errors.New("nope"))
 			},
-			check: func(t *testing.T, lb *infrav1.LoadBalancer, err error) {
+			check: func(t *testing.T, _ *infrav1.LoadBalancer, err error) {
 				t.Helper()
 				if err == nil {
 					t.Fatal("expected error, got nothing")
 				}
 				if !strings.Contains(err.Error(), "nope") {
 					t.Fatalf("expected error to contain 'nope' was instead: %s", err)
-				}
-			},
-		},
-		{
-			name: "no health check",
-			spec: func(spec infrav1.LoadBalancer) infrav1.LoadBalancer {
-				spec.ELBListeners = []infrav1.Listener{
-					{
-						Protocol: "TCP",
-						Port:     infrav1.DefaultAPIServerPort,
-						TargetGroup: infrav1.TargetGroupSpec{
-							Name:     "name",
-							Port:     infrav1.DefaultAPIServerPort,
-							Protocol: "TCP",
-							VpcID:    vpcID,
-						},
-					},
-				}
-				return spec
-			},
-			awsCluster: func(acl infrav1.AWSCluster) infrav1.AWSCluster {
-				return acl
-			},
-			elbV2APIMocks: func(m *mocks.MockELBV2APIMockRecorder) {
-				m.CreateLoadBalancer(gomock.Eq(&elbv2.CreateLoadBalancerInput{
-					Name:           aws.String(elbName),
-					Scheme:         aws.String("internet-facing"),
-					SecurityGroups: aws.StringSlice([]string{}),
-					Type:           aws.String("network"),
-					Subnets:        aws.StringSlice([]string{clusterSubnetID}),
-					Tags: []*elbv2.Tag{
-						{
-							Key:   aws.String("test"),
-							Value: aws.String("tag"),
-						},
-					},
-				})).Return(&elbv2.CreateLoadBalancerOutput{
-					LoadBalancers: []*elbv2.LoadBalancer{
-						{
-							LoadBalancerArn:  aws.String(elbArn),
-							LoadBalancerName: aws.String(elbName),
-							Scheme:           aws.String(string(infrav1.ELBSchemeInternetFacing)),
-							DNSName:          aws.String(dns),
-						},
-					},
-				}, nil)
-				m.CreateTargetGroup(gomock.Eq(&elbv2.CreateTargetGroupInput{
-					Name:     aws.String("name"),
-					Port:     aws.Int64(infrav1.DefaultAPIServerPort),
-					Protocol: aws.String("TCP"),
-					VpcId:    aws.String(vpcID),
-					Tags: []*elbv2.Tag{
-						{
-							Key:   aws.String("test"),
-							Value: aws.String("tag"),
-						},
-					},
-					HealthyThresholdCount:      aws.Int64(infrav1.DefaultAPIServerHealthThresholdCount),
-					UnhealthyThresholdCount:    aws.Int64(infrav1.DefaultAPIServerUnhealthThresholdCount),
-					HealthCheckIntervalSeconds: aws.Int64(infrav1.DefaultAPIServerHealthCheckIntervalSec),
-					HealthCheckTimeoutSeconds:  aws.Int64(infrav1.DefaultAPIServerHealthCheckTimeoutSec),
-				})).Return(&elbv2.CreateTargetGroupOutput{
-					TargetGroups: []*elbv2.TargetGroup{
-						{
-							TargetGroupArn:             aws.String("target-group::arn"),
-							TargetGroupName:            aws.String("name"),
-							VpcId:                      aws.String(vpcID),
-							HealthyThresholdCount:      aws.Int64(infrav1.DefaultAPIServerHealthThresholdCount),
-							UnhealthyThresholdCount:    aws.Int64(infrav1.DefaultAPIServerUnhealthThresholdCount),
-							HealthCheckIntervalSeconds: aws.Int64(infrav1.DefaultAPIServerHealthCheckIntervalSec),
-							HealthCheckTimeoutSeconds:  aws.Int64(infrav1.DefaultAPIServerHealthCheckTimeoutSec),
-						},
-					},
-				}, nil)
-				m.ModifyTargetGroupAttributes(gomock.Eq(&elbv2.ModifyTargetGroupAttributesInput{
-					TargetGroupArn: aws.String("target-group::arn"),
-					Attributes: []*elbv2.TargetGroupAttribute{
-						{
-							Key:   aws.String(infrav1.TargetGroupAttributeEnablePreserveClientIP),
-							Value: aws.String("false"),
-						},
-					},
-				})).Return(nil, nil)
-				m.CreateListener(gomock.Eq(&elbv2.CreateListenerInput{
-					DefaultActions: []*elbv2.Action{
-						{
-							TargetGroupArn: aws.String("target-group::arn"),
-							Type:           aws.String(elbv2.ActionTypeEnumForward),
-						},
-					},
-					LoadBalancerArn: aws.String(elbArn),
-					Port:            aws.Int64(infrav1.DefaultAPIServerPort),
-					Protocol:        aws.String("TCP"),
-					Tags: []*elbv2.Tag{
-						{
-							Key:   aws.String("test"),
-							Value: aws.String("tag"),
-						},
-					},
-				})).Return(&elbv2.CreateListenerOutput{
-					Listeners: []*elbv2.Listener{
-						{
-							ListenerArn: aws.String("listener::arn"),
-						},
-					},
-				}, nil)
-			},
-			check: func(t *testing.T, lb *infrav1.LoadBalancer, err error) {
-				t.Helper()
-				if err != nil {
-					t.Fatalf("did not expect error: %v", err)
-				}
-				if lb.DNSName != dns {
-					t.Fatalf("DNSName did not equal expected value; was: '%s'", lb.DNSName)
 				}
 			},
 		},
@@ -1563,60 +1324,6 @@ func TestCreateNLB(t *testing.T) {
 							LoadBalancerName: aws.String(elbName),
 							Scheme:           aws.String(string(infrav1.ELBSchemeInternetFacing)),
 							DNSName:          aws.String(dns),
-						},
-					},
-				}, nil)
-				m.CreateTargetGroup(gomock.Eq(&elbv2.CreateTargetGroupInput{
-					HealthCheckEnabled:  aws.Bool(true),
-					HealthCheckPort:     aws.String(infrav1.DefaultAPIServerPortString),
-					HealthCheckProtocol: aws.String("tcp"),
-					Name:                aws.String("name"),
-					Port:                aws.Int64(infrav1.DefaultAPIServerPort),
-					Protocol:            aws.String("TCP"),
-					VpcId:               aws.String(vpcID),
-					Tags: []*elbv2.Tag{
-						{
-							Key:   aws.String("test"),
-							Value: aws.String("tag"),
-						},
-					},
-					HealthyThresholdCount:      aws.Int64(infrav1.DefaultAPIServerHealthThresholdCount),
-					UnhealthyThresholdCount:    aws.Int64(infrav1.DefaultAPIServerUnhealthThresholdCount),
-					HealthCheckIntervalSeconds: aws.Int64(infrav1.DefaultAPIServerHealthCheckIntervalSec),
-					HealthCheckTimeoutSeconds:  aws.Int64(infrav1.DefaultAPIServerHealthCheckTimeoutSec),
-				})).Return(&elbv2.CreateTargetGroupOutput{
-					TargetGroups: []*elbv2.TargetGroup{
-						{
-							TargetGroupArn:             aws.String("target-group::arn"),
-							TargetGroupName:            aws.String("name"),
-							VpcId:                      aws.String(vpcID),
-							HealthyThresholdCount:      aws.Int64(infrav1.DefaultAPIServerHealthThresholdCount),
-							UnhealthyThresholdCount:    aws.Int64(infrav1.DefaultAPIServerUnhealthThresholdCount),
-							HealthCheckIntervalSeconds: aws.Int64(infrav1.DefaultAPIServerHealthCheckIntervalSec),
-							HealthCheckTimeoutSeconds:  aws.Int64(infrav1.DefaultAPIServerHealthCheckTimeoutSec),
-						},
-					},
-				}, nil)
-				m.CreateListener(gomock.Eq(&elbv2.CreateListenerInput{
-					DefaultActions: []*elbv2.Action{
-						{
-							TargetGroupArn: aws.String("target-group::arn"),
-							Type:           aws.String(elbv2.ActionTypeEnumForward),
-						},
-					},
-					LoadBalancerArn: aws.String(elbArn),
-					Port:            aws.Int64(infrav1.DefaultAPIServerPort),
-					Protocol:        aws.String("TCP"),
-					Tags: []*elbv2.Tag{
-						{
-							Key:   aws.String("test"),
-							Value: aws.String("tag"),
-						},
-					},
-				})).Return(&elbv2.CreateListenerOutput{
-					Listeners: []*elbv2.Listener{
-						{
-							ListenerArn: aws.String("listener::arn"),
 						},
 					},
 				}, nil)
@@ -1664,69 +1371,6 @@ func TestCreateNLB(t *testing.T) {
 						},
 					},
 				}, nil)
-				m.CreateTargetGroup(gomock.Eq(&elbv2.CreateTargetGroupInput{
-					HealthCheckEnabled:  aws.Bool(true),
-					HealthCheckPort:     aws.String(infrav1.DefaultAPIServerPortString),
-					HealthCheckProtocol: aws.String("tcp"),
-					Name:                aws.String("name"),
-					Port:                aws.Int64(infrav1.DefaultAPIServerPort),
-					Protocol:            aws.String("TCP"),
-					VpcId:               aws.String(vpcID),
-					Tags: []*elbv2.Tag{
-						{
-							Key:   aws.String("test"),
-							Value: aws.String("tag"),
-						},
-					},
-					HealthyThresholdCount:      aws.Int64(infrav1.DefaultAPIServerHealthThresholdCount),
-					UnhealthyThresholdCount:    aws.Int64(infrav1.DefaultAPIServerUnhealthThresholdCount),
-					HealthCheckIntervalSeconds: aws.Int64(infrav1.DefaultAPIServerHealthCheckIntervalSec),
-					HealthCheckTimeoutSeconds:  aws.Int64(infrav1.DefaultAPIServerHealthCheckTimeoutSec),
-				})).Return(&elbv2.CreateTargetGroupOutput{
-					TargetGroups: []*elbv2.TargetGroup{
-						{
-							TargetGroupArn:             aws.String("target-group::arn"),
-							TargetGroupName:            aws.String("name"),
-							VpcId:                      aws.String(vpcID),
-							HealthyThresholdCount:      aws.Int64(infrav1.DefaultAPIServerHealthThresholdCount),
-							UnhealthyThresholdCount:    aws.Int64(infrav1.DefaultAPIServerUnhealthThresholdCount),
-							HealthCheckIntervalSeconds: aws.Int64(infrav1.DefaultAPIServerHealthCheckIntervalSec),
-							HealthCheckTimeoutSeconds:  aws.Int64(infrav1.DefaultAPIServerHealthCheckTimeoutSec),
-						},
-					},
-				}, nil)
-				m.ModifyTargetGroupAttributes(gomock.Eq(&elbv2.ModifyTargetGroupAttributesInput{
-					TargetGroupArn: aws.String("target-group::arn"),
-					Attributes: []*elbv2.TargetGroupAttribute{
-						{
-							Key:   aws.String(infrav1.TargetGroupAttributeEnablePreserveClientIP),
-							Value: aws.String("false"),
-						},
-					},
-				})).Return(nil, nil)
-				m.CreateListener(gomock.Eq(&elbv2.CreateListenerInput{
-					DefaultActions: []*elbv2.Action{
-						{
-							TargetGroupArn: aws.String("target-group::arn"),
-							Type:           aws.String(elbv2.ActionTypeEnumForward),
-						},
-					},
-					LoadBalancerArn: aws.String(elbArn),
-					Port:            aws.Int64(infrav1.DefaultAPIServerPort),
-					Protocol:        aws.String("TCP"),
-					Tags: []*elbv2.Tag{
-						{
-							Key:   aws.String("test"),
-							Value: aws.String("tag"),
-						},
-					},
-				})).Return(&elbv2.CreateListenerOutput{
-					Listeners: []*elbv2.Listener{
-						{
-							ListenerArn: aws.String("listener::arn"),
-						},
-					},
-				}, nil)
 			},
 			check: func(t *testing.T, lb *infrav1.LoadBalancer, err error) {
 				t.Helper()
@@ -1735,260 +1379,6 @@ func TestCreateNLB(t *testing.T) {
 				}
 				if lb.DNSName != dns {
 					t.Fatalf("DNSName did not equal expected value; was: '%s'", lb.DNSName)
-				}
-			},
-		},
-		{
-			name: "NLB with HTTP health check",
-			awsCluster: func(acl infrav1.AWSCluster) infrav1.AWSCluster {
-				acl.Spec.ControlPlaneLoadBalancer.Scheme = &infrav1.ELBSchemeInternetFacing
-				acl.Spec.ControlPlaneLoadBalancer.LoadBalancerType = infrav1.LoadBalancerTypeNLB
-				acl.Spec.ControlPlaneLoadBalancer.HealthCheckProtocol = &infrav1.ELBProtocolHTTP
-				return acl
-			},
-			spec: func(spec infrav1.LoadBalancer) infrav1.LoadBalancer {
-				tg := stubInfraV1TargetGroupSpecAPI
-				tg.VpcID = vpcID
-				tg.HealthCheck.Protocol = aws.String("HTTP")
-				tg.HealthCheck.Port = aws.String(infrav1.DefaultAPIServerPortString)
-				tg.HealthCheck.Path = aws.String("/readyz")
-				spec.ELBListeners = []infrav1.Listener{
-					{
-						Protocol:    "TCP",
-						Port:        infrav1.DefaultAPIServerPort,
-						TargetGroup: tg,
-					},
-				}
-				return spec
-			},
-			elbV2APIMocks: func(m *mocks.MockELBV2APIMockRecorder) {
-				m.CreateLoadBalancer(gomock.Eq(&elbv2.CreateLoadBalancerInput{
-					Name:           aws.String(elbName),
-					Scheme:         aws.String("internet-facing"),
-					SecurityGroups: aws.StringSlice([]string{}),
-					Type:           aws.String("network"),
-					Subnets:        aws.StringSlice([]string{clusterSubnetID}),
-					Tags: []*elbv2.Tag{
-						{
-							Key:   aws.String("test"),
-							Value: aws.String("tag"),
-						},
-					},
-				})).Return(&elbv2.CreateLoadBalancerOutput{
-					LoadBalancers: []*elbv2.LoadBalancer{
-						{
-							LoadBalancerArn:  aws.String(elbArn),
-							LoadBalancerName: aws.String(elbName),
-							Scheme:           aws.String(string(infrav1.ELBSchemeInternetFacing)),
-							DNSName:          aws.String(dns),
-						},
-					},
-				}, nil)
-				m.CreateTargetGroup(gomock.Eq(&elbv2.CreateTargetGroupInput{
-					Name:                       aws.String("name"),
-					Port:                       aws.Int64(infrav1.DefaultAPIServerPort),
-					Protocol:                   aws.String("TCP"),
-					VpcId:                      aws.String(vpcID),
-					HealthCheckEnabled:         aws.Bool(true),
-					HealthCheckPort:            aws.String(infrav1.DefaultAPIServerPortString),
-					HealthCheckProtocol:        aws.String("HTTP"),
-					HealthCheckPath:            aws.String("/readyz"),
-					HealthCheckIntervalSeconds: aws.Int64(10),
-					HealthCheckTimeoutSeconds:  aws.Int64(5),
-					HealthyThresholdCount:      aws.Int64(5),
-					UnhealthyThresholdCount:    aws.Int64(3),
-					Tags: []*elbv2.Tag{
-						{
-							Key:   aws.String("test"),
-							Value: aws.String("tag"),
-						},
-					},
-				})).Return(&elbv2.CreateTargetGroupOutput{
-					TargetGroups: []*elbv2.TargetGroup{
-						{
-							TargetGroupArn:             aws.String("target-group::arn"),
-							TargetGroupName:            aws.String("name"),
-							VpcId:                      aws.String(vpcID),
-							HealthCheckEnabled:         aws.Bool(true),
-							HealthCheckPort:            aws.String(infrav1.DefaultAPIServerPortString),
-							HealthCheckProtocol:        aws.String("http"),
-							HealthCheckPath:            aws.String("/readyz"),
-							HealthCheckIntervalSeconds: aws.Int64(10),
-							HealthCheckTimeoutSeconds:  aws.Int64(5),
-							HealthyThresholdCount:      aws.Int64(5),
-							UnhealthyThresholdCount:    aws.Int64(3),
-						},
-					},
-				}, nil)
-				m.CreateListener(gomock.Eq(&elbv2.CreateListenerInput{
-					DefaultActions: []*elbv2.Action{
-						{
-							TargetGroupArn: aws.String("target-group::arn"),
-							Type:           aws.String(elbv2.ActionTypeEnumForward),
-						},
-					},
-					LoadBalancerArn: aws.String(elbArn),
-					Port:            aws.Int64(infrav1.DefaultAPIServerPort),
-					Protocol:        aws.String("TCP"),
-					Tags: []*elbv2.Tag{
-						{
-							Key:   aws.String("test"),
-							Value: aws.String("tag"),
-						},
-					},
-				})).Return(&elbv2.CreateListenerOutput{
-					Listeners: []*elbv2.Listener{
-						{
-							ListenerArn: aws.String("listener::arn"),
-						},
-					},
-				}, nil)
-				m.ModifyTargetGroupAttributes(gomock.Eq(&elbv2.ModifyTargetGroupAttributesInput{
-					TargetGroupArn: aws.String("target-group::arn"),
-					Attributes: []*elbv2.TargetGroupAttribute{
-						{
-							Key:   aws.String(infrav1.TargetGroupAttributeEnablePreserveClientIP),
-							Value: aws.String("false"),
-						},
-					},
-				})).Return(nil, nil)
-			},
-			check: func(t *testing.T, lb *infrav1.LoadBalancer, err error) {
-				t.Helper()
-				if err != nil {
-					t.Fatalf("did not expect error: %v", err)
-				}
-				got := *lb.ELBListeners[0].TargetGroup.HealthCheck.Protocol
-				want := "HTTP"
-				if got != want {
-					t.Fatalf("Health Check protocol for the API Target group did not equal expected value: %s; was: '%s'", want, got)
-				}
-			},
-		},
-		{
-			name: "NLB with HTTPS health check",
-			awsCluster: func(acl infrav1.AWSCluster) infrav1.AWSCluster {
-				acl.Spec.ControlPlaneLoadBalancer.Scheme = &infrav1.ELBSchemeInternetFacing
-				acl.Spec.ControlPlaneLoadBalancer.LoadBalancerType = infrav1.LoadBalancerTypeNLB
-				acl.Spec.ControlPlaneLoadBalancer.HealthCheckProtocol = &infrav1.ELBProtocolHTTPS
-				return acl
-			},
-			spec: func(spec infrav1.LoadBalancer) infrav1.LoadBalancer {
-				tg := stubInfraV1TargetGroupSpecAPI
-				tg.VpcID = vpcID
-				tg.HealthCheck.Protocol = aws.String("HTTPS")
-				tg.HealthCheck.Port = aws.String(infrav1.DefaultAPIServerPortString)
-				tg.HealthCheck.Path = aws.String("/readyz")
-				spec.ELBListeners = []infrav1.Listener{
-					{
-						Protocol:    "TCP",
-						Port:        infrav1.DefaultAPIServerPort,
-						TargetGroup: tg,
-					},
-				}
-				return spec
-			},
-			elbV2APIMocks: func(m *mocks.MockELBV2APIMockRecorder) {
-				m.CreateLoadBalancer(gomock.Eq(&elbv2.CreateLoadBalancerInput{
-					Name:           aws.String(elbName),
-					Scheme:         aws.String("internet-facing"),
-					SecurityGroups: aws.StringSlice([]string{}),
-					Type:           aws.String("network"),
-					Subnets:        aws.StringSlice([]string{clusterSubnetID}),
-					Tags: []*elbv2.Tag{
-						{
-							Key:   aws.String("test"),
-							Value: aws.String("tag"),
-						},
-					},
-				})).Return(&elbv2.CreateLoadBalancerOutput{
-					LoadBalancers: []*elbv2.LoadBalancer{
-						{
-							LoadBalancerArn:  aws.String(elbArn),
-							LoadBalancerName: aws.String(elbName),
-							Scheme:           aws.String(string(infrav1.ELBSchemeInternetFacing)),
-							DNSName:          aws.String(dns),
-						},
-					},
-				}, nil)
-				m.CreateTargetGroup(gomock.Eq(&elbv2.CreateTargetGroupInput{
-					Name:                       aws.String("name"),
-					Port:                       aws.Int64(infrav1.DefaultAPIServerPort),
-					Protocol:                   aws.String("TCP"),
-					VpcId:                      aws.String(vpcID),
-					HealthCheckEnabled:         aws.Bool(true),
-					HealthCheckPort:            aws.String(infrav1.DefaultAPIServerPortString),
-					HealthCheckProtocol:        aws.String("HTTPS"),
-					HealthCheckPath:            aws.String("/readyz"),
-					HealthCheckIntervalSeconds: aws.Int64(10),
-					HealthCheckTimeoutSeconds:  aws.Int64(5),
-					HealthyThresholdCount:      aws.Int64(5),
-					UnhealthyThresholdCount:    aws.Int64(3),
-					Tags: []*elbv2.Tag{
-						{
-							Key:   aws.String("test"),
-							Value: aws.String("tag"),
-						},
-					},
-				})).Return(&elbv2.CreateTargetGroupOutput{
-					TargetGroups: []*elbv2.TargetGroup{
-						{
-							TargetGroupArn:             aws.String("target-group::arn"),
-							TargetGroupName:            aws.String("name"),
-							VpcId:                      aws.String(vpcID),
-							HealthCheckEnabled:         aws.Bool(true),
-							HealthCheckPort:            aws.String(infrav1.DefaultAPIServerPortString),
-							HealthCheckProtocol:        aws.String("HTTPS"),
-							HealthCheckPath:            aws.String("/readyz"),
-							HealthCheckIntervalSeconds: aws.Int64(10),
-							HealthCheckTimeoutSeconds:  aws.Int64(5),
-							HealthyThresholdCount:      aws.Int64(5),
-							UnhealthyThresholdCount:    aws.Int64(3),
-						},
-					},
-				}, nil)
-				m.CreateListener(gomock.Eq(&elbv2.CreateListenerInput{
-					DefaultActions: []*elbv2.Action{
-						{
-							TargetGroupArn: aws.String("target-group::arn"),
-							Type:           aws.String(elbv2.ActionTypeEnumForward),
-						},
-					},
-					LoadBalancerArn: aws.String(elbArn),
-					Port:            aws.Int64(infrav1.DefaultAPIServerPort),
-					Protocol:        aws.String("TCP"),
-					Tags: []*elbv2.Tag{
-						{
-							Key:   aws.String("test"),
-							Value: aws.String("tag"),
-						},
-					},
-				})).Return(&elbv2.CreateListenerOutput{
-					Listeners: []*elbv2.Listener{
-						{
-							ListenerArn: aws.String("listener::arn"),
-						},
-					},
-				}, nil)
-				m.ModifyTargetGroupAttributes(gomock.Eq(&elbv2.ModifyTargetGroupAttributesInput{
-					TargetGroupArn: aws.String("target-group::arn"),
-					Attributes: []*elbv2.TargetGroupAttribute{
-						{
-							Key:   aws.String(infrav1.TargetGroupAttributeEnablePreserveClientIP),
-							Value: aws.String("false"),
-						},
-					},
-				})).Return(nil, nil)
-			},
-			check: func(t *testing.T, lb *infrav1.LoadBalancer, err error) {
-				t.Helper()
-				if err != nil {
-					t.Fatalf("did not expect error: %v", err)
-				}
-				got := *lb.ELBListeners[0].TargetGroup.HealthCheck.Protocol
-				want := "HTTPS"
-				if got != want {
-					t.Fatalf("Health Check protocol for the API Target group did not equal expected value: %s; was: '%s'", want, got)
 				}
 			},
 		},
@@ -2075,6 +1465,746 @@ func TestCreateNLB(t *testing.T) {
 	}
 }
 
+func TestReconcileTargetGroupsAndListeners(t *testing.T) {
+	const (
+		namespace       = "foo"
+		clusterName     = "bar"
+		clusterSubnetID = "subnet-1"
+		elbName         = "bar-apiserver"
+		elbArn          = "arn::apiserver"
+		tgArn           = "arn::target-group"
+		vpcID           = "vpc-id"
+		dns             = "asdf:9999/asdf"
+	)
+
+	tests := []struct {
+		name          string
+		elbV2APIMocks func(m *mocks.MockELBV2APIMockRecorder)
+		check         func(t *testing.T, tgs []*elbv2.TargetGroup, listeners []*elbv2.Listener, err error)
+		awsCluster    func(acl infrav1.AWSCluster) infrav1.AWSCluster
+		spec          func(spec infrav1.LoadBalancer) infrav1.LoadBalancer
+	}{
+		{
+			name: "main create flow",
+			spec: func(spec infrav1.LoadBalancer) infrav1.LoadBalancer {
+				return spec
+			},
+			awsCluster: func(acl infrav1.AWSCluster) infrav1.AWSCluster {
+				return acl
+			},
+			elbV2APIMocks: func(m *mocks.MockELBV2APIMockRecorder) {
+				m.DescribeTargetGroups(gomock.Eq(&elbv2.DescribeTargetGroupsInput{
+					LoadBalancerArn: aws.String(elbArn),
+				})).Return(&elbv2.DescribeTargetGroupsOutput{
+					TargetGroups: []*elbv2.TargetGroup{},
+				}, nil)
+				m.CreateTargetGroup(gomock.Eq(&elbv2.CreateTargetGroupInput{
+					Name:     aws.String("name"),
+					Port:     aws.Int64(infrav1.DefaultAPIServerPort),
+					Protocol: aws.String("TCP"),
+					VpcId:    aws.String(vpcID),
+					Tags: []*elbv2.Tag{
+						{
+							Key:   aws.String("test"),
+							Value: aws.String("tag"),
+						},
+					},
+					HealthCheckEnabled:         aws.Bool(true),
+					HealthCheckPort:            aws.String(infrav1.DefaultAPIServerPortString),
+					HealthCheckProtocol:        aws.String("tcp"),
+					HealthyThresholdCount:      aws.Int64(infrav1.DefaultAPIServerHealthThresholdCount),
+					UnhealthyThresholdCount:    aws.Int64(infrav1.DefaultAPIServerUnhealthThresholdCount),
+					HealthCheckIntervalSeconds: aws.Int64(infrav1.DefaultAPIServerHealthCheckIntervalSec),
+					HealthCheckTimeoutSeconds:  aws.Int64(infrav1.DefaultAPIServerHealthCheckTimeoutSec),
+				})).Return(&elbv2.CreateTargetGroupOutput{
+					TargetGroups: []*elbv2.TargetGroup{
+						{
+							TargetGroupArn:             aws.String(tgArn),
+							TargetGroupName:            aws.String("name"),
+							VpcId:                      aws.String(vpcID),
+							HealthyThresholdCount:      aws.Int64(infrav1.DefaultAPIServerHealthThresholdCount),
+							UnhealthyThresholdCount:    aws.Int64(infrav1.DefaultAPIServerUnhealthThresholdCount),
+							HealthCheckIntervalSeconds: aws.Int64(infrav1.DefaultAPIServerHealthCheckIntervalSec),
+							HealthCheckTimeoutSeconds:  aws.Int64(infrav1.DefaultAPIServerHealthCheckTimeoutSec),
+						},
+					},
+				}, nil)
+				m.ModifyTargetGroupAttributes(gomock.Eq(&elbv2.ModifyTargetGroupAttributesInput{
+					TargetGroupArn: aws.String(tgArn),
+					Attributes: []*elbv2.TargetGroupAttribute{
+						{
+							Key:   aws.String(infrav1.TargetGroupAttributeEnablePreserveClientIP),
+							Value: aws.String("false"),
+						},
+					},
+				})).Return(nil, nil)
+				m.DescribeListeners(gomock.Eq(&elbv2.DescribeListenersInput{
+					LoadBalancerArn: aws.String(elbArn),
+				})).Return(&elbv2.DescribeListenersOutput{
+					Listeners: []*elbv2.Listener{},
+				}, nil)
+				m.CreateListener(gomock.Eq(&elbv2.CreateListenerInput{
+					DefaultActions: []*elbv2.Action{
+						{
+							TargetGroupArn: aws.String(tgArn),
+							Type:           aws.String(elbv2.ActionTypeEnumForward),
+						},
+					},
+					LoadBalancerArn: aws.String(elbArn),
+					Port:            aws.Int64(infrav1.DefaultAPIServerPort),
+					Protocol:        aws.String("TCP"),
+					Tags: []*elbv2.Tag{
+						{
+							Key:   aws.String("test"),
+							Value: aws.String("tag"),
+						},
+					},
+				})).Return(&elbv2.CreateListenerOutput{
+					Listeners: []*elbv2.Listener{
+						{
+							DefaultActions: []*elbv2.Action{
+								{
+									TargetGroupArn: aws.String(tgArn),
+									Type:           aws.String(elbv2.ActionTypeEnumForward),
+								},
+							},
+							ListenerArn: aws.String("listener::arn"),
+							Port:        aws.Int64(infrav1.DefaultAPIServerPort),
+							Protocol:    aws.String("TCP"),
+						},
+					}}, nil)
+			},
+			check: func(t *testing.T, tgs []*elbv2.TargetGroup, listeners []*elbv2.Listener, err error) {
+				t.Helper()
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+				if len(tgs) != 1 {
+					t.Fatalf("no target groups created")
+				}
+				if len(listeners) != 1 {
+					t.Fatalf("no listeners created")
+				}
+
+				if len(listeners[0].DefaultActions) != 1 {
+					t.Fatalf("no default actions created")
+				}
+
+				if *tgs[0].TargetGroupArn != *listeners[0].DefaultActions[0].TargetGroupArn {
+					t.Fatalf("target group and listener did not have matching arns. target group ARN: %q. listener's target group ARN: %q", *tgs[0].TargetGroupArn, *listeners[0].DefaultActions[0].TargetGroupArn)
+				}
+			},
+		},
+		{
+			name: "created with ipv6 vpc",
+			spec: func(spec infrav1.LoadBalancer) infrav1.LoadBalancer {
+				return spec
+			},
+			awsCluster: func(acl infrav1.AWSCluster) infrav1.AWSCluster {
+				acl.Spec.NetworkSpec.VPC.IPv6 = &infrav1.IPv6{
+					CidrBlock: "2022:1234::/64",
+					PoolID:    "pool-id",
+				}
+				return acl
+			},
+			elbV2APIMocks: func(m *mocks.MockELBV2APIMockRecorder) {
+				m.DescribeTargetGroups(gomock.Eq(&elbv2.DescribeTargetGroupsInput{
+					LoadBalancerArn: aws.String(elbArn),
+				})).Return(&elbv2.DescribeTargetGroupsOutput{
+					TargetGroups: []*elbv2.TargetGroup{},
+				}, nil)
+				m.CreateTargetGroup(gomock.Eq(&elbv2.CreateTargetGroupInput{
+					Name:          aws.String("name"),
+					Port:          aws.Int64(infrav1.DefaultAPIServerPort),
+					Protocol:      aws.String("TCP"),
+					VpcId:         aws.String(vpcID),
+					IpAddressType: aws.String("ipv6"),
+					Tags: []*elbv2.Tag{
+						{
+							Key:   aws.String("test"),
+							Value: aws.String("tag"),
+						},
+					},
+					HealthCheckEnabled:         aws.Bool(true),
+					HealthCheckPort:            aws.String(infrav1.DefaultAPIServerPortString),
+					HealthCheckProtocol:        aws.String("tcp"),
+					HealthyThresholdCount:      aws.Int64(infrav1.DefaultAPIServerHealthThresholdCount),
+					UnhealthyThresholdCount:    aws.Int64(infrav1.DefaultAPIServerUnhealthThresholdCount),
+					HealthCheckIntervalSeconds: aws.Int64(infrav1.DefaultAPIServerHealthCheckIntervalSec),
+					HealthCheckTimeoutSeconds:  aws.Int64(infrav1.DefaultAPIServerHealthCheckTimeoutSec),
+				})).Return(&elbv2.CreateTargetGroupOutput{
+					TargetGroups: []*elbv2.TargetGroup{
+						{
+							TargetGroupArn:             aws.String(tgArn),
+							TargetGroupName:            aws.String("name"),
+							VpcId:                      aws.String(vpcID),
+							HealthyThresholdCount:      aws.Int64(infrav1.DefaultAPIServerHealthThresholdCount),
+							UnhealthyThresholdCount:    aws.Int64(infrav1.DefaultAPIServerUnhealthThresholdCount),
+							HealthCheckIntervalSeconds: aws.Int64(infrav1.DefaultAPIServerHealthCheckIntervalSec),
+							HealthCheckTimeoutSeconds:  aws.Int64(infrav1.DefaultAPIServerHealthCheckTimeoutSec),
+							IpAddressType:              aws.String("ipv6"),
+						},
+					},
+				}, nil)
+				m.ModifyTargetGroupAttributes(gomock.Eq(&elbv2.ModifyTargetGroupAttributesInput{
+					TargetGroupArn: aws.String(tgArn),
+					Attributes: []*elbv2.TargetGroupAttribute{
+						{
+							Key:   aws.String(infrav1.TargetGroupAttributeEnablePreserveClientIP),
+							Value: aws.String("false"),
+						},
+					},
+				})).Return(nil, nil)
+				m.DescribeListeners(gomock.Eq(&elbv2.DescribeListenersInput{
+					LoadBalancerArn: aws.String(elbArn),
+				})).Return(&elbv2.DescribeListenersOutput{
+					Listeners: []*elbv2.Listener{},
+				}, nil)
+				m.CreateListener(gomock.Eq(&elbv2.CreateListenerInput{
+					DefaultActions: []*elbv2.Action{
+						{
+							TargetGroupArn: aws.String(tgArn),
+							Type:           aws.String(elbv2.ActionTypeEnumForward),
+						},
+					},
+					LoadBalancerArn: aws.String(elbArn),
+					Port:            aws.Int64(infrav1.DefaultAPIServerPort),
+					Protocol:        aws.String("TCP"),
+					Tags: []*elbv2.Tag{
+						{
+							Key:   aws.String("test"),
+							Value: aws.String("tag"),
+						},
+					},
+				})).Return(&elbv2.CreateListenerOutput{
+					Listeners: []*elbv2.Listener{
+						{
+							ListenerArn: aws.String("listener::arn"),
+						},
+					},
+				}, nil)
+			},
+			check: func(t *testing.T, tgs []*elbv2.TargetGroup, _ []*elbv2.Listener, err error) {
+				t.Helper()
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+				tg := tgs[0]
+				got := *tg.IpAddressType
+				want := "ipv6"
+				if got != want {
+					t.Fatalf("did not set ip address type to ipv6")
+				}
+			},
+		},
+		{
+			name: "no health check",
+			spec: func(spec infrav1.LoadBalancer) infrav1.LoadBalancer {
+				spec.ELBListeners = []infrav1.Listener{
+					{
+						Protocol: "TCP",
+						Port:     infrav1.DefaultAPIServerPort,
+						TargetGroup: infrav1.TargetGroupSpec{
+							Name:     "name",
+							Port:     infrav1.DefaultAPIServerPort,
+							Protocol: "TCP",
+							VpcID:    vpcID,
+						},
+					},
+				}
+				return spec
+			},
+			awsCluster: func(acl infrav1.AWSCluster) infrav1.AWSCluster {
+				return acl
+			},
+			elbV2APIMocks: func(m *mocks.MockELBV2APIMockRecorder) {
+				m.DescribeTargetGroups(gomock.Eq(&elbv2.DescribeTargetGroupsInput{
+					LoadBalancerArn: aws.String(elbArn),
+				})).Return(&elbv2.DescribeTargetGroupsOutput{
+					TargetGroups: []*elbv2.TargetGroup{},
+				}, nil)
+				m.CreateTargetGroup(gomock.Eq(&elbv2.CreateTargetGroupInput{
+					Name:     aws.String("name"),
+					Port:     aws.Int64(infrav1.DefaultAPIServerPort),
+					Protocol: aws.String("TCP"),
+					VpcId:    aws.String(vpcID),
+					Tags: []*elbv2.Tag{
+						{
+							Key:   aws.String("test"),
+							Value: aws.String("tag"),
+						},
+					},
+					HealthyThresholdCount:      aws.Int64(infrav1.DefaultAPIServerHealthThresholdCount),
+					UnhealthyThresholdCount:    aws.Int64(infrav1.DefaultAPIServerUnhealthThresholdCount),
+					HealthCheckIntervalSeconds: aws.Int64(infrav1.DefaultAPIServerHealthCheckIntervalSec),
+					HealthCheckTimeoutSeconds:  aws.Int64(infrav1.DefaultAPIServerHealthCheckTimeoutSec),
+				})).Return(&elbv2.CreateTargetGroupOutput{
+					TargetGroups: []*elbv2.TargetGroup{
+						{
+							TargetGroupArn:             aws.String(tgArn),
+							TargetGroupName:            aws.String("name"),
+							VpcId:                      aws.String(vpcID),
+							HealthyThresholdCount:      aws.Int64(infrav1.DefaultAPIServerHealthThresholdCount),
+							UnhealthyThresholdCount:    aws.Int64(infrav1.DefaultAPIServerUnhealthThresholdCount),
+							HealthCheckIntervalSeconds: aws.Int64(infrav1.DefaultAPIServerHealthCheckIntervalSec),
+							HealthCheckTimeoutSeconds:  aws.Int64(infrav1.DefaultAPIServerHealthCheckTimeoutSec),
+							HealthCheckEnabled:         aws.Bool(false),
+						},
+					},
+				}, nil)
+				m.ModifyTargetGroupAttributes(gomock.Eq(&elbv2.ModifyTargetGroupAttributesInput{
+					TargetGroupArn: aws.String(tgArn),
+					Attributes: []*elbv2.TargetGroupAttribute{
+						{
+							Key:   aws.String(infrav1.TargetGroupAttributeEnablePreserveClientIP),
+							Value: aws.String("false"),
+						},
+					},
+				})).Return(nil, nil)
+				m.DescribeListeners(gomock.Eq(&elbv2.DescribeListenersInput{
+					LoadBalancerArn: aws.String(elbArn),
+				})).Return(&elbv2.DescribeListenersOutput{
+					Listeners: []*elbv2.Listener{},
+				}, nil)
+				m.CreateListener(gomock.Eq(&elbv2.CreateListenerInput{
+					DefaultActions: []*elbv2.Action{
+						{
+							TargetGroupArn: aws.String(tgArn),
+							Type:           aws.String(elbv2.ActionTypeEnumForward),
+						},
+					},
+					LoadBalancerArn: aws.String(elbArn),
+					Port:            aws.Int64(infrav1.DefaultAPIServerPort),
+					Protocol:        aws.String("TCP"),
+					Tags: []*elbv2.Tag{
+						{
+							Key:   aws.String("test"),
+							Value: aws.String("tag"),
+						},
+					},
+				})).Return(&elbv2.CreateListenerOutput{
+					Listeners: []*elbv2.Listener{
+						{
+							ListenerArn: aws.String("listener::arn"),
+						},
+					},
+				}, nil)
+			},
+			check: func(t *testing.T, tgs []*elbv2.TargetGroup, _ []*elbv2.Listener, err error) {
+				t.Helper()
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+				got := *tgs[0].HealthCheckEnabled
+				want := false
+				if got != want {
+					t.Fatalf("health check not disabled on target group")
+				}
+			},
+		},
+		{
+			name: "PreserveClientIP is enabled",
+			spec: func(spec infrav1.LoadBalancer) infrav1.LoadBalancer {
+				return spec
+			},
+			awsCluster: func(acl infrav1.AWSCluster) infrav1.AWSCluster {
+				acl.Spec.ControlPlaneLoadBalancer.PreserveClientIP = true
+				return acl
+			},
+			elbV2APIMocks: func(m *mocks.MockELBV2APIMockRecorder) {
+				m.DescribeTargetGroups(gomock.Eq(&elbv2.DescribeTargetGroupsInput{
+					LoadBalancerArn: aws.String(elbArn),
+				})).Return(&elbv2.DescribeTargetGroupsOutput{
+					TargetGroups: []*elbv2.TargetGroup{},
+				}, nil)
+				m.CreateTargetGroup(gomock.Eq(&elbv2.CreateTargetGroupInput{
+					HealthCheckEnabled:  aws.Bool(true),
+					HealthCheckPort:     aws.String(infrav1.DefaultAPIServerPortString),
+					HealthCheckProtocol: aws.String("tcp"),
+					Name:                aws.String("name"),
+					Port:                aws.Int64(infrav1.DefaultAPIServerPort),
+					Protocol:            aws.String("TCP"),
+					VpcId:               aws.String(vpcID),
+					Tags: []*elbv2.Tag{
+						{
+							Key:   aws.String("test"),
+							Value: aws.String("tag"),
+						},
+					},
+					HealthyThresholdCount:      aws.Int64(infrav1.DefaultAPIServerHealthThresholdCount),
+					UnhealthyThresholdCount:    aws.Int64(infrav1.DefaultAPIServerUnhealthThresholdCount),
+					HealthCheckIntervalSeconds: aws.Int64(infrav1.DefaultAPIServerHealthCheckIntervalSec),
+					HealthCheckTimeoutSeconds:  aws.Int64(infrav1.DefaultAPIServerHealthCheckTimeoutSec),
+				})).Return(&elbv2.CreateTargetGroupOutput{
+					TargetGroups: []*elbv2.TargetGroup{
+						{
+							TargetGroupArn:             aws.String(tgArn),
+							TargetGroupName:            aws.String("name"),
+							VpcId:                      aws.String(vpcID),
+							HealthyThresholdCount:      aws.Int64(infrav1.DefaultAPIServerHealthThresholdCount),
+							UnhealthyThresholdCount:    aws.Int64(infrav1.DefaultAPIServerUnhealthThresholdCount),
+							HealthCheckIntervalSeconds: aws.Int64(infrav1.DefaultAPIServerHealthCheckIntervalSec),
+							HealthCheckTimeoutSeconds:  aws.Int64(infrav1.DefaultAPIServerHealthCheckTimeoutSec),
+						},
+					},
+				}, nil)
+				m.DescribeListeners(gomock.Eq(&elbv2.DescribeListenersInput{
+					LoadBalancerArn: aws.String(elbArn),
+				})).Return(&elbv2.DescribeListenersOutput{
+					Listeners: []*elbv2.Listener{},
+				}, nil)
+				m.CreateListener(gomock.Eq(&elbv2.CreateListenerInput{
+					DefaultActions: []*elbv2.Action{
+						{
+							TargetGroupArn: aws.String(tgArn),
+							Type:           aws.String(elbv2.ActionTypeEnumForward),
+						},
+					},
+					LoadBalancerArn: aws.String(elbArn),
+					Port:            aws.Int64(infrav1.DefaultAPIServerPort),
+					Protocol:        aws.String("TCP"),
+					Tags: []*elbv2.Tag{
+						{
+							Key:   aws.String("test"),
+							Value: aws.String("tag"),
+						},
+					},
+				})).Return(&elbv2.CreateListenerOutput{
+					Listeners: []*elbv2.Listener{
+						{
+							ListenerArn: aws.String("listener::arn"),
+						},
+					},
+				}, nil)
+			},
+			check: func(t *testing.T, tgs []*elbv2.TargetGroup, listeners []*elbv2.Listener, err error) {
+				t.Helper()
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+
+				if len(tgs) != 1 {
+					t.Fatalf("did not create target groups")
+				}
+
+				if len(listeners) != 1 {
+					t.Fatalf("did not create any listeners")
+				}
+			},
+		},
+		{
+			name: "NLB with HTTP health check",
+			awsCluster: func(acl infrav1.AWSCluster) infrav1.AWSCluster {
+				acl.Spec.ControlPlaneLoadBalancer.Scheme = &infrav1.ELBSchemeInternetFacing
+				acl.Spec.ControlPlaneLoadBalancer.LoadBalancerType = infrav1.LoadBalancerTypeNLB
+				acl.Spec.ControlPlaneLoadBalancer.HealthCheckProtocol = &infrav1.ELBProtocolHTTP
+				return acl
+			},
+			spec: func(spec infrav1.LoadBalancer) infrav1.LoadBalancer {
+				tg := stubInfraV1TargetGroupSpecAPI
+				tg.VpcID = vpcID
+				tg.HealthCheck.Protocol = aws.String("HTTP")
+				tg.HealthCheck.Port = aws.String(infrav1.DefaultAPIServerPortString)
+				tg.HealthCheck.Path = aws.String("/readyz")
+				spec.ELBListeners = []infrav1.Listener{
+					{
+						Protocol:    "TCP",
+						Port:        infrav1.DefaultAPIServerPort,
+						TargetGroup: tg,
+					},
+				}
+				return spec
+			},
+			elbV2APIMocks: func(m *mocks.MockELBV2APIMockRecorder) {
+				m.DescribeTargetGroups(gomock.Eq(&elbv2.DescribeTargetGroupsInput{
+					LoadBalancerArn: aws.String(elbArn),
+				})).Return(&elbv2.DescribeTargetGroupsOutput{
+					TargetGroups: []*elbv2.TargetGroup{},
+				}, nil)
+				m.CreateTargetGroup(gomock.Eq(&elbv2.CreateTargetGroupInput{
+					Name:                       aws.String("name"),
+					Port:                       aws.Int64(infrav1.DefaultAPIServerPort),
+					Protocol:                   aws.String("TCP"),
+					VpcId:                      aws.String(vpcID),
+					HealthCheckEnabled:         aws.Bool(true),
+					HealthCheckPort:            aws.String(infrav1.DefaultAPIServerPortString),
+					HealthCheckProtocol:        aws.String("HTTP"),
+					HealthCheckPath:            aws.String("/readyz"),
+					HealthCheckIntervalSeconds: aws.Int64(10),
+					HealthCheckTimeoutSeconds:  aws.Int64(5),
+					HealthyThresholdCount:      aws.Int64(5),
+					UnhealthyThresholdCount:    aws.Int64(3),
+					Tags: []*elbv2.Tag{
+						{
+							Key:   aws.String("test"),
+							Value: aws.String("tag"),
+						},
+					},
+				})).Return(&elbv2.CreateTargetGroupOutput{
+					TargetGroups: []*elbv2.TargetGroup{
+						{
+							TargetGroupArn:             aws.String(tgArn),
+							TargetGroupName:            aws.String("name"),
+							VpcId:                      aws.String(vpcID),
+							HealthCheckEnabled:         aws.Bool(true),
+							HealthCheckPort:            aws.String(infrav1.DefaultAPIServerPortString),
+							HealthCheckProtocol:        aws.String("HTTP"),
+							HealthCheckPath:            aws.String("/readyz"),
+							HealthCheckIntervalSeconds: aws.Int64(10),
+							HealthCheckTimeoutSeconds:  aws.Int64(5),
+							HealthyThresholdCount:      aws.Int64(5),
+							UnhealthyThresholdCount:    aws.Int64(3),
+						},
+					},
+				}, nil)
+				m.DescribeListeners(gomock.Eq(&elbv2.DescribeListenersInput{
+					LoadBalancerArn: aws.String(elbArn),
+				})).Return(&elbv2.DescribeListenersOutput{
+					Listeners: []*elbv2.Listener{},
+				}, nil)
+				m.CreateListener(gomock.Eq(&elbv2.CreateListenerInput{
+					DefaultActions: []*elbv2.Action{
+						{
+							TargetGroupArn: aws.String(tgArn),
+							Type:           aws.String(elbv2.ActionTypeEnumForward),
+						},
+					},
+					LoadBalancerArn: aws.String(elbArn),
+					Port:            aws.Int64(infrav1.DefaultAPIServerPort),
+					Protocol:        aws.String("TCP"),
+					Tags: []*elbv2.Tag{
+						{
+							Key:   aws.String("test"),
+							Value: aws.String("tag"),
+						},
+					},
+				})).Return(&elbv2.CreateListenerOutput{
+					Listeners: []*elbv2.Listener{
+						{
+							ListenerArn: aws.String("listener::arn"),
+						},
+					},
+				}, nil)
+				m.ModifyTargetGroupAttributes(gomock.Eq(&elbv2.ModifyTargetGroupAttributesInput{
+					TargetGroupArn: aws.String(tgArn),
+					Attributes: []*elbv2.TargetGroupAttribute{
+						{
+							Key:   aws.String(infrav1.TargetGroupAttributeEnablePreserveClientIP),
+							Value: aws.String("false"),
+						},
+					},
+				})).Return(nil, nil)
+			},
+			check: func(t *testing.T, tgs []*elbv2.TargetGroup, _ []*elbv2.Listener, err error) {
+				t.Helper()
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+				got := *tgs[0].HealthCheckProtocol
+				want := "HTTP"
+				if got != want {
+					t.Fatalf("Health Check protocol for the API Target group did not equal expected value: %s; was: '%s'", want, got)
+				}
+			},
+		},
+		{
+			name: "NLB with HTTPS health check",
+			awsCluster: func(acl infrav1.AWSCluster) infrav1.AWSCluster {
+				acl.Spec.ControlPlaneLoadBalancer.Scheme = &infrav1.ELBSchemeInternetFacing
+				acl.Spec.ControlPlaneLoadBalancer.LoadBalancerType = infrav1.LoadBalancerTypeNLB
+				acl.Spec.ControlPlaneLoadBalancer.HealthCheckProtocol = &infrav1.ELBProtocolHTTPS
+				return acl
+			},
+			spec: func(spec infrav1.LoadBalancer) infrav1.LoadBalancer {
+				tg := stubInfraV1TargetGroupSpecAPI
+				tg.VpcID = vpcID
+				tg.HealthCheck.Protocol = aws.String("HTTPS")
+				tg.HealthCheck.Port = aws.String(infrav1.DefaultAPIServerPortString)
+				tg.HealthCheck.Path = aws.String("/readyz")
+				spec.ELBListeners = []infrav1.Listener{
+					{
+						Protocol:    "TCP",
+						Port:        infrav1.DefaultAPIServerPort,
+						TargetGroup: tg,
+					},
+				}
+				return spec
+			},
+			elbV2APIMocks: func(m *mocks.MockELBV2APIMockRecorder) {
+				m.DescribeTargetGroups(gomock.Eq(&elbv2.DescribeTargetGroupsInput{
+					LoadBalancerArn: aws.String(elbArn),
+				})).Return(&elbv2.DescribeTargetGroupsOutput{
+					TargetGroups: []*elbv2.TargetGroup{},
+				}, nil)
+				m.CreateTargetGroup(gomock.Eq(&elbv2.CreateTargetGroupInput{
+					Name:                       aws.String("name"),
+					Port:                       aws.Int64(infrav1.DefaultAPIServerPort),
+					Protocol:                   aws.String("TCP"),
+					VpcId:                      aws.String(vpcID),
+					HealthCheckEnabled:         aws.Bool(true),
+					HealthCheckPort:            aws.String(infrav1.DefaultAPIServerPortString),
+					HealthCheckProtocol:        aws.String("HTTPS"),
+					HealthCheckPath:            aws.String("/readyz"),
+					HealthCheckIntervalSeconds: aws.Int64(10),
+					HealthCheckTimeoutSeconds:  aws.Int64(5),
+					HealthyThresholdCount:      aws.Int64(5),
+					UnhealthyThresholdCount:    aws.Int64(3),
+					Tags: []*elbv2.Tag{
+						{
+							Key:   aws.String("test"),
+							Value: aws.String("tag"),
+						},
+					},
+				})).Return(&elbv2.CreateTargetGroupOutput{
+					TargetGroups: []*elbv2.TargetGroup{
+						{
+							TargetGroupArn:             aws.String(tgArn),
+							TargetGroupName:            aws.String("name"),
+							VpcId:                      aws.String(vpcID),
+							HealthCheckEnabled:         aws.Bool(true),
+							HealthCheckPort:            aws.String(infrav1.DefaultAPIServerPortString),
+							HealthCheckProtocol:        aws.String("HTTPS"),
+							HealthCheckPath:            aws.String("/readyz"),
+							HealthCheckIntervalSeconds: aws.Int64(10),
+							HealthCheckTimeoutSeconds:  aws.Int64(5),
+							HealthyThresholdCount:      aws.Int64(5),
+							UnhealthyThresholdCount:    aws.Int64(3),
+						},
+					},
+				}, nil)
+				m.DescribeListeners(gomock.Eq(&elbv2.DescribeListenersInput{
+					LoadBalancerArn: aws.String(elbArn),
+				})).Return(&elbv2.DescribeListenersOutput{
+					Listeners: []*elbv2.Listener{},
+				}, nil)
+				m.CreateListener(gomock.Eq(&elbv2.CreateListenerInput{
+					DefaultActions: []*elbv2.Action{
+						{
+							TargetGroupArn: aws.String(tgArn),
+							Type:           aws.String(elbv2.ActionTypeEnumForward),
+						},
+					},
+					LoadBalancerArn: aws.String(elbArn),
+					Port:            aws.Int64(infrav1.DefaultAPIServerPort),
+					Protocol:        aws.String("TCP"),
+					Tags: []*elbv2.Tag{
+						{
+							Key:   aws.String("test"),
+							Value: aws.String("tag"),
+						},
+					},
+				})).Return(&elbv2.CreateListenerOutput{
+					Listeners: []*elbv2.Listener{
+						{
+							ListenerArn: aws.String("listener::arn"),
+						},
+					},
+				}, nil)
+				m.ModifyTargetGroupAttributes(gomock.Eq(&elbv2.ModifyTargetGroupAttributesInput{
+					TargetGroupArn: aws.String(tgArn),
+					Attributes: []*elbv2.TargetGroupAttribute{
+						{
+							Key:   aws.String(infrav1.TargetGroupAttributeEnablePreserveClientIP),
+							Value: aws.String("false"),
+						},
+					},
+				})).Return(nil, nil)
+			},
+			check: func(t *testing.T, tgs []*elbv2.TargetGroup, _ []*elbv2.Listener, err error) {
+				t.Helper()
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+				got := *tgs[0].HealthCheckProtocol
+				want := "HTTPS"
+				if got != want {
+					t.Fatalf("Health Check protocol for the API Target group did not equal expected value: %s; was: '%s'", want, got)
+				}
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+			elbV2APIMocks := mocks.NewMockELBV2API(mockCtrl)
+
+			scheme, err := setupScheme()
+			if err != nil {
+				t.Fatal(err)
+			}
+			awsCluster := &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: clusterName},
+				Spec: infrav1.AWSClusterSpec{
+					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+						Name:             aws.String(elbName),
+						LoadBalancerType: infrav1.LoadBalancerTypeNLB,
+					},
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							ID: vpcID,
+						},
+					},
+				},
+			}
+			client := fake.NewClientBuilder().WithScheme(scheme).Build()
+			cluster := tc.awsCluster(*awsCluster)
+			clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+				Client: client,
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: namespace,
+						Name:      clusterName,
+					},
+				},
+				AWSCluster: &cluster,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			tc.elbV2APIMocks(elbV2APIMocks.EXPECT())
+
+			s := &Service{
+				scope:       clusterScope,
+				ELBV2Client: elbV2APIMocks,
+			}
+
+			loadBalancerSpec := &infrav1.LoadBalancer{
+				ARN:    elbArn,
+				Name:   elbName,
+				Scheme: infrav1.ELBSchemeInternetFacing,
+				Tags: map[string]string{
+					"test": "tag",
+				},
+				ELBListeners: []infrav1.Listener{
+					{
+						Protocol: "TCP",
+						Port:     infrav1.DefaultAPIServerPort,
+						TargetGroup: infrav1.TargetGroupSpec{
+							Name:     "name",
+							Port:     infrav1.DefaultAPIServerPort,
+							Protocol: "TCP",
+							VpcID:    vpcID,
+							HealthCheck: &infrav1.TargetGroupHealthCheck{
+								Protocol: aws.String("tcp"),
+								Port:     aws.String(infrav1.DefaultAPIServerPortString),
+							},
+						},
+					},
+				},
+				LoadBalancerType: infrav1.LoadBalancerTypeNLB,
+				SubnetIDs:        []string{clusterSubnetID},
+			}
+
+			spec := tc.spec(*loadBalancerSpec)
+			tgs, listeners, err := s.reconcileTargetGroupsAndListeners(spec.ARN, &spec, clusterScope.ControlPlaneLoadBalancer())
+			tc.check(t, tgs, listeners, err)
+		})
+	}
+}
+
 func TestReconcileV2LB(t *testing.T) {
 	const (
 		namespace       = "foo"
@@ -2082,6 +2212,7 @@ func TestReconcileV2LB(t *testing.T) {
 		clusterSubnetID = "subnet-1"
 		elbName         = "bar-apiserver"
 		elbArn          = "arn::apiserver"
+		tgArn           = "arn::target-group"
 		vpcID           = "vpc-id"
 		az              = "us-west-1a"
 	)
@@ -2186,6 +2317,20 @@ func TestReconcileV2LB(t *testing.T) {
 							},
 						},
 					}, nil)
+				m.DescribeTargetGroups(gomock.Eq(&elbv2.DescribeTargetGroupsInput{
+					LoadBalancerArn: aws.String(elbArn),
+				})).
+					Return(&elbv2.DescribeTargetGroupsOutput{
+						NextMarker: new(string),
+						TargetGroups: []*elbv2.TargetGroup{
+							{
+								HealthCheckEnabled: aws.Bool(true),
+								LoadBalancerArns:   []*string{aws.String(elbArn)},
+								Matcher:            &elbv2.Matcher{},
+								TargetGroupArn:     aws.String(tgArn),
+								TargetGroupName:    aws.String("targetGroup"),
+							}},
+					}, nil)
 				m.ModifyLoadBalancerAttributes(&elbv2.ModifyLoadBalancerAttributesInput{
 					LoadBalancerArn: aws.String(elbArn),
 					Attributes: []*elbv2.LoadBalancerAttribute{
@@ -2195,6 +2340,107 @@ func TestReconcileV2LB(t *testing.T) {
 						},
 					}}).
 					Return(&elbv2.ModifyLoadBalancerAttributesOutput{}, nil)
+
+				m.CreateTargetGroup(helpers.PartialMatchCreateTargetGroupInput(t, &elbv2.CreateTargetGroupInput{
+					HealthCheckEnabled:         aws.Bool(true),
+					HealthCheckIntervalSeconds: aws.Int64(infrav1.DefaultAPIServerHealthCheckIntervalSec),
+					HealthCheckPort:            aws.String(infrav1.DefaultAPIServerPortString),
+					HealthCheckProtocol:        aws.String("TCP"),
+					HealthCheckTimeoutSeconds:  aws.Int64(infrav1.DefaultAPIServerHealthCheckTimeoutSec),
+					HealthyThresholdCount:      aws.Int64(infrav1.DefaultAPIServerHealthThresholdCount),
+					// Note: this is treated as a prefix with the partial matcher.
+					Name:     aws.String("apiserver-target"),
+					Port:     aws.Int64(infrav1.DefaultAPIServerPort),
+					Protocol: aws.String("TCP"),
+					Tags: []*elbv2.Tag{
+						{
+							Key:   aws.String("Name"),
+							Value: aws.String("bar-apiserver"),
+						},
+						{
+							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/bar"),
+							Value: aws.String("owned"),
+						},
+						{
+							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+							Value: aws.String("apiserver"),
+						},
+					},
+					UnhealthyThresholdCount: aws.Int64(infrav1.DefaultAPIServerUnhealthThresholdCount),
+					VpcId:                   aws.String(vpcID),
+				})).Return(&elbv2.CreateTargetGroupOutput{
+					TargetGroups: []*elbv2.TargetGroup{
+						{
+							TargetGroupArn:             aws.String(tgArn),
+							VpcId:                      aws.String(vpcID),
+							HealthyThresholdCount:      aws.Int64(infrav1.DefaultAPIServerHealthThresholdCount),
+							UnhealthyThresholdCount:    aws.Int64(infrav1.DefaultAPIServerUnhealthThresholdCount),
+							HealthCheckIntervalSeconds: aws.Int64(infrav1.DefaultAPIServerHealthCheckIntervalSec),
+							HealthCheckTimeoutSeconds:  aws.Int64(infrav1.DefaultAPIServerHealthCheckTimeoutSec),
+						},
+					},
+				}, nil)
+
+				m.ModifyTargetGroupAttributes(gomock.Eq(&elbv2.ModifyTargetGroupAttributesInput{
+					TargetGroupArn: aws.String(tgArn),
+					Attributes: []*elbv2.TargetGroupAttribute{
+						{
+							Key:   aws.String(infrav1.TargetGroupAttributeEnablePreserveClientIP),
+							Value: aws.String("false"),
+						},
+					},
+				})).Return(nil, nil)
+
+				m.DescribeListeners(gomock.Eq(&elbv2.DescribeListenersInput{
+					LoadBalancerArn: aws.String(elbArn),
+				})).
+					Return(&elbv2.DescribeListenersOutput{
+						Listeners: []*elbv2.Listener{{
+							DefaultActions: []*elbv2.Action{{
+								TargetGroupArn: aws.String("arn::targetgroup"),
+							}},
+							ListenerArn:     aws.String("arn::listener"),
+							LoadBalancerArn: aws.String(elbArn),
+						}},
+					}, nil)
+				m.CreateListener(gomock.Eq(&elbv2.CreateListenerInput{
+					DefaultActions: []*elbv2.Action{
+						{
+							TargetGroupArn: aws.String(tgArn),
+							Type:           aws.String(elbv2.ActionTypeEnumForward),
+						},
+					},
+					LoadBalancerArn: aws.String(elbArn),
+					Port:            aws.Int64(infrav1.DefaultAPIServerPort),
+					Protocol:        aws.String("TCP"),
+					Tags: []*elbv2.Tag{
+						{
+							Key:   aws.String("Name"),
+							Value: aws.String("bar-apiserver"),
+						},
+						{
+							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/bar"),
+							Value: aws.String("owned"),
+						},
+						{
+							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+							Value: aws.String("apiserver"),
+						},
+					},
+				})).Return(&elbv2.CreateListenerOutput{
+					Listeners: []*elbv2.Listener{
+						{
+							DefaultActions: []*elbv2.Action{
+								{
+									TargetGroupArn: aws.String(tgArn),
+									Type:           aws.String(elbv2.ActionTypeEnumForward),
+								},
+							},
+							ListenerArn: aws.String("listener::arn"),
+							Port:        aws.Int64(infrav1.DefaultAPIServerPort),
+							Protocol:    aws.String("TCP"),
+						},
+					}}, nil)
 				m.DescribeLoadBalancerAttributes(&elbv2.DescribeLoadBalancerAttributesInput{LoadBalancerArn: aws.String(elbArn)}).Return(
 					&elbv2.DescribeLoadBalancerAttributesOutput{
 						Attributes: []*elbv2.LoadBalancerAttribute{
@@ -2207,9 +2453,7 @@ func TestReconcileV2LB(t *testing.T) {
 								Value: aws.String(string(infrav1.ResourceLifecycleOwned)),
 							},
 						},
-					},
-					nil,
-				)
+					}, nil)
 				m.DescribeTags(&elbv2.DescribeTagsInput{ResourceArns: []*string{aws.String(elbArn)}}).Return(
 					&elbv2.DescribeTagsOutput{
 						TagDescriptions: []*elbv2.TagDescription{
@@ -2223,9 +2467,7 @@ func TestReconcileV2LB(t *testing.T) {
 								},
 							},
 						},
-					},
-					nil,
-				)
+					}, nil)
 
 				// Avoid the need to sort the AddTagsInput.Tags slice
 				m.AddTags(gomock.AssignableToTypeOf(&elbv2.AddTagsInput{})).Return(&elbv2.AddTagsOutput{}, nil)
@@ -2685,6 +2927,7 @@ func TestDeleteNLB(t *testing.T) {
 	clusterName := "bar"
 	elbName := "bar-apiserver"
 	elbArn := "apiserver::arn"
+	tgArn := "arn::target-group"
 	tests := []struct {
 		name         string
 		elbv2ApiMock func(m *mocks.MockELBV2APIMockRecorder)
@@ -2794,11 +3037,11 @@ func TestDeleteNLB(t *testing.T) {
 				m.DescribeTargetGroups(&elbv2.DescribeTargetGroupsInput{LoadBalancerArn: aws.String(elbArn)}).Return(&elbv2.DescribeTargetGroupsOutput{
 					TargetGroups: []*elbv2.TargetGroup{
 						{
-							TargetGroupArn: aws.String("target-group::arn"),
+							TargetGroupArn: aws.String(tgArn),
 						},
 					},
 				}, nil)
-				m.DeleteTargetGroup(&elbv2.DeleteTargetGroupInput{TargetGroupArn: aws.String("target-group::arn")}).Return(&elbv2.DeleteTargetGroupOutput{}, nil)
+				m.DeleteTargetGroup(&elbv2.DeleteTargetGroupInput{TargetGroupArn: aws.String(tgArn)}).Return(&elbv2.DeleteTargetGroupOutput{}, nil)
 				// delete the load balancer
 
 				m.DeleteLoadBalancer(&elbv2.DeleteLoadBalancerInput{LoadBalancerArn: aws.String(elbArn)}).Return(

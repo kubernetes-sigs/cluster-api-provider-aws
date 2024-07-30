@@ -624,6 +624,10 @@ spec:
                     description: ID of resource
                     type: string
                 type: object
+              capacityReservationId:
+                description: CapacityReservationID specifies the target Capacity Reservation
+                  into which the instance should be launched.
+                type: string
               cloudInit:
                 description: |-
                   CloudInit defines options related to the bootstrapping systems where
@@ -656,6 +660,37 @@ spec:
                     - secrets-manager
                     - ssm-parameter-store
                     type: string
+                type: object
+              elasticIpPool:
+                description: ElasticIPPool is the configuration to allocate Public
+                  IPv4 address (Elastic IP/EIP) from user-defined pool.
+                properties:
+                  publicIpv4Pool:
+                    description: |-
+                      PublicIpv4Pool sets a custom Public IPv4 Pool used to create Elastic IP address for resources
+                      created in public IPv4 subnets. Every IPv4 address, Elastic IP, will be allocated from the custom
+                      Public IPv4 pool that you brought to AWS, instead of Amazon-provided pool. The public IPv4 pool
+                      resource ID starts with 'ipv4pool-ec2'.
+                    maxLength: 30
+                    type: string
+                  publicIpv4PoolFallbackOrder:
+                    description: |-
+                      PublicIpv4PoolFallBackOrder defines the fallback action when the Public IPv4 Pool has been exhausted,
+                      no more IPv4 address available in the pool.
+
+
+                      When set to 'amazon-pool', the controller check if the pool has available IPv4 address, when pool has reached the
+                      IPv4 limit, the address will be claimed from Amazon-pool (default).
+
+
+                      When set to 'none', the controller will fail the Elastic IP allocation when the publicIpv4Pool is exhausted.
+                    enum:
+                    - amazon-pool
+                    - none
+                    type: string
+                    x-kubernetes-validations:
+                    - message: allowed values are 'none' and 'amazon-pool'
+                      rule: self in ['none','amazon-pool']
                 type: object
               iamInstanceProfile:
                 description: IAMInstanceProfile is a name of an IAM instance profile

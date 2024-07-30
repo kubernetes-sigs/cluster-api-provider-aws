@@ -154,6 +154,8 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 			return elbSvc
 		}
 
+		ec2Mock.EXPECT().AssociateAddressWithContext(context.TODO(), gomock.Any()).MaxTimes(1)
+
 		reconciler.secretsManagerServiceFactory = func(clusterScope cloud.ClusterScoper) services.SecretInterface {
 			return secretMock
 		}
@@ -330,6 +332,8 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 			return secretMock
 		}
 
+		ec2Mock.EXPECT().AssociateAddressWithContext(context.TODO(), gomock.Any()).MaxTimes(1)
+
 		_, err = reconciler.reconcileNormal(ctx, ms, cs, cs, cs, cs)
 		g.Expect(err).Should(HaveOccurred())
 		expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionTrue, "", ""}})
@@ -450,7 +454,7 @@ func createAWSMachine(g *WithT, awsMachine *infrav1.AWSMachine) {
 			Namespace: awsMachine.Namespace,
 		}
 		return testEnv.Get(ctx, key, machine) == nil
-	}, 10*time.Second).Should(BeTrue())
+	}, 10*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed get the newly created machine %q", awsMachine.Name))
 }
 
 func getAWSMachine() *infrav1.AWSMachine {
