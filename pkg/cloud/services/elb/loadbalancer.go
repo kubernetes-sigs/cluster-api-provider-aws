@@ -349,10 +349,10 @@ func (s *Service) getAPIServerLBSpec(elbName string, lbSpec *infrav1.AWSLoadBala
 		}
 	} else {
 		// The load balancer APIs require us to only attach one subnet for each AZ.
-		subnets := s.scope.Subnets().FilterPrivate()
+		subnets := s.scope.Subnets().FilterPrivate().FilterNonCni()
 
 		if scheme == infrav1.ELBSchemeInternetFacing {
-			subnets = s.scope.Subnets().FilterPublic()
+			subnets = s.scope.Subnets().FilterPublic().FilterNonCni()
 		}
 
 	subnetLoop:
@@ -1102,10 +1102,10 @@ func (s *Service) getAPIServerClassicELBSpec(elbName string) (*infrav1.LoadBalan
 		}
 	} else {
 		// The load balancer APIs require us to only attach one subnet for each AZ.
-		subnets := s.scope.Subnets().FilterPrivate()
+		subnets := s.scope.Subnets().FilterPrivate().FilterNonCni()
 
 		if scheme == infrav1.ELBSchemeInternetFacing {
-			subnets = s.scope.Subnets().FilterPublic()
+			subnets = s.scope.Subnets().FilterPublic().FilterNonCni()
 		}
 
 	subnetLoop:
