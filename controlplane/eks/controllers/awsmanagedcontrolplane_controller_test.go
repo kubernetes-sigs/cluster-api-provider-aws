@@ -141,7 +141,7 @@ func TestAWSManagedControlPlaneReconcilerIntegrationTests(t *testing.T) {
 			}
 			err := testEnv.Get(ctx, key, controlPlane)
 			return err == nil
-		}, 10*time.Second).Should(BeTrue())
+		}, 10*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed getting the newly created AWSManagedControlPlane %q", awsManagedControlPlane.Name))
 
 		defer t.Cleanup(func() {
 			g.Expect(testEnv.Cleanup(ctx, &cluster, &awsManagedCluster, &awsManagedControlPlane, controllerIdentity, ns)).To(Succeed())
@@ -358,7 +358,7 @@ func mockedCallsForMissingEverything(ec2Rec *mocks.MockEC2APIMockRecorder, subne
 						},
 						{
 							Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-							Value: aws.String("shared"),
+							Value: aws.String("owned"),
 						},
 						{
 							Key:   aws.String(kubernetesRoleTagKey),
@@ -390,7 +390,7 @@ func mockedCallsForMissingEverything(ec2Rec *mocks.MockEC2APIMockRecorder, subne
 					},
 					{
 						Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-						Value: aws.String("shared"),
+						Value: aws.String("owned"),
 					},
 					{
 						Key:   aws.String("kubernetes.io/role/elb"),
@@ -502,7 +502,7 @@ func mockedCallsForMissingEverything(ec2Rec *mocks.MockEC2APIMockRecorder, subne
 			},
 			{
 				Name:   aws.String("tag:sigs.k8s.io/cluster-api-provider-aws/role"),
-				Values: aws.StringSlice([]string{"apiserver"}),
+				Values: aws.StringSlice([]string{"common"}),
 			},
 		},
 	})).Return(&ec2.DescribeAddressesOutput{
@@ -525,7 +525,7 @@ func mockedCallsForMissingEverything(ec2Rec *mocks.MockEC2APIMockRecorder, subne
 						Tags: []*ec2.Tag{
 							{
 								Key:   aws.String("Name"),
-								Value: aws.String("test-cluster-eip-apiserver"),
+								Value: aws.String("test-cluster-eip-common"),
 							},
 							{
 								Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
@@ -533,7 +533,7 @@ func mockedCallsForMissingEverything(ec2Rec *mocks.MockEC2APIMockRecorder, subne
 							},
 							{
 								Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
-								Value: aws.String("apiserver"),
+								Value: aws.String("common"),
 							},
 						},
 					},

@@ -215,7 +215,7 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 			}
 			err := testEnv.Get(ctx, key, cluster)
 			return err == nil
-		}, 10*time.Second).Should(BeTrue())
+		}, 10*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed getting the newly created cluster %q", awsCluster.Name))
 
 		defer teardown()
 		defer t.Cleanup(func() {
@@ -303,6 +303,11 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 			mockedCreateLBV2Calls(t, e)
 			mockedDescribeInstanceCall(m)
 			mockedDescribeAvailabilityZones(m, []string{"us-east-1c", "us-east-1a"})
+			mockedDescribeTargetGroupsCall(t, e)
+			mockedCreateTargetGroupCall(t, e)
+			mockedModifyTargetGroupAttributes(t, e)
+			mockedDescribeListenersCall(t, e)
+			mockedCreateListenerCall(t, e)
 		}
 
 		expect(ec2Mock.EXPECT(), elbv2Mock.EXPECT())
@@ -316,7 +321,7 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 			}
 			err := testEnv.Get(ctx, key, cluster)
 			return err == nil
-		}, 10*time.Second).Should(BeTrue())
+		}, 10*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed getting the newly created cluster %q", awsCluster.Name))
 
 		defer teardown()
 		defer t.Cleanup(func() {
@@ -424,7 +429,7 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 			}
 			err := testEnv.Get(ctx, key, cluster)
 			return err == nil
-		}, 10*time.Second).Should(BeTrue())
+		}, 10*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed getting the newly created cluster %q", awsCluster.Name))
 
 		defer teardown()
 		defer t.Cleanup(func() {
@@ -532,7 +537,8 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 			}
 			err := testEnv.Get(ctx, key, cluster)
 			return err == nil
-		}, 10*time.Second).Should(BeTrue())
+		}, 10*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed getting the newly created cluster %q", awsCluster.Name))
+
 		defer t.Cleanup(func() {
 			g.Expect(testEnv.Cleanup(ctx, &awsCluster, controllerIdentity, ns)).To(Succeed())
 		})
@@ -597,7 +603,7 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 			}
 			err := testEnv.Get(ctx, key, cluster)
 			return err == nil
-		}, 10*time.Second).Should(BeTrue())
+		}, 10*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed getting the newly created cluster %q", awsCluster.Name))
 
 		defer t.Cleanup(func() {
 			g.Expect(testEnv.Cleanup(ctx, &awsCluster, controllerIdentity, ns)).To(Succeed())
@@ -998,7 +1004,7 @@ func mockedCallsForMissingEverything(m *mocks.MockEC2APIMockRecorder, e *mocks.M
 					},
 					{
 						Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-						Value: aws.String("shared"),
+						Value: aws.String("owned"),
 					},
 					{
 						Key:   aws.String("kubernetes.io/role/internal-elb"),
@@ -1029,7 +1035,7 @@ func mockedCallsForMissingEverything(m *mocks.MockEC2APIMockRecorder, e *mocks.M
 				},
 				{
 					Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-					Value: aws.String("shared"),
+					Value: aws.String("owned"),
 				},
 				{
 					Key:   aws.String("kubernetes.io/role/internal-elb"),
@@ -1065,7 +1071,7 @@ func mockedCallsForMissingEverything(m *mocks.MockEC2APIMockRecorder, e *mocks.M
 					},
 					{
 						Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-						Value: aws.String("shared"),
+						Value: aws.String("owned"),
 					},
 					{
 						Key:   aws.String("kubernetes.io/role/elb"),
@@ -1096,7 +1102,7 @@ func mockedCallsForMissingEverything(m *mocks.MockEC2APIMockRecorder, e *mocks.M
 				},
 				{
 					Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-					Value: aws.String("shared"),
+					Value: aws.String("owned"),
 				},
 				{
 					Key:   aws.String("kubernetes.io/role/elb"),
@@ -1205,7 +1211,7 @@ func mockedCallsForMissingEverything(m *mocks.MockEC2APIMockRecorder, e *mocks.M
 			},
 			{
 				Name:   aws.String("tag:sigs.k8s.io/cluster-api-provider-aws/role"),
-				Values: aws.StringSlice([]string{"apiserver"}),
+				Values: aws.StringSlice([]string{"common"}),
 			},
 		},
 	})).Return(&ec2.DescribeAddressesOutput{
@@ -1220,7 +1226,7 @@ func mockedCallsForMissingEverything(m *mocks.MockEC2APIMockRecorder, e *mocks.M
 				Tags: []*ec2.Tag{
 					{
 						Key:   aws.String("Name"),
-						Value: aws.String("test-cluster-eip-apiserver"),
+						Value: aws.String("test-cluster-eip-common"),
 					},
 					{
 						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
@@ -1228,7 +1234,7 @@ func mockedCallsForMissingEverything(m *mocks.MockEC2APIMockRecorder, e *mocks.M
 					},
 					{
 						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
-						Value: aws.String("apiserver"),
+						Value: aws.String("common"),
 					},
 				},
 			},
@@ -1458,7 +1464,12 @@ func mockedDeleteVPCCallsForNonExistentVPC(m *mocks.MockEC2APIMockRecorder) {
 			{
 				Name:   aws.String("tag-key"),
 				Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"}),
-			}},
+			},
+			{
+				Name:   aws.String("tag:sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+				Values: aws.StringSlice([]string{"owned"}),
+			},
+		},
 	})).Return(nil, nil)
 	m.DeleteVpcWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DeleteVpcInput{
 		VpcId: aws.String("vpc-exists")})).Return(nil, nil)
@@ -1549,6 +1560,10 @@ func mockedDeleteVPCCalls(m *mocks.MockEC2APIMockRecorder) {
 			{
 				Name:   aws.String("tag-key"),
 				Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"}),
+			},
+			{
+				Name:   aws.String("tag:sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+				Values: aws.StringSlice([]string{"owned"}),
 			}},
 	})).Return(&ec2.DescribeAddressesOutput{
 		Addresses: []*ec2.Address{

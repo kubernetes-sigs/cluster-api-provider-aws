@@ -97,6 +97,26 @@ spec:
   disableVPCCNI: true
 ```
 
+If you are replacing Amazon VPC CNI with your own helm managed instance, you will need to set `AWSManagedControlPlane.spec.disableVPCCNI` to `true` and add `"aws.cluster.x-k8s.io/prevent-deletion": "true"` label on the Daemonset. This label is needed so `aws-node` daemonset is not reaped during CNI reconciliation.
+
+The following example shows how to label your aws-node Daemonset.
+
+```yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  annotations:
+    ...
+  generation: 1
+  labels:
+    app.kubernetes.io/instance: aws-vpc-cni
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: aws-node
+    app.kubernetes.io/version: v1.15.1
+    helm.sh/chart: aws-vpc-cni-1.15.1
+    aws.cluster.x-k8s.io/prevent-deletion: true
+```
+
 > You cannot set **disableVPCCNI** to true if you are using the VPC CNI addon.
 
 Some alternative CNIs provide for the replacement of kube-proxy, such as in [Calico](https://projectcalico.docs.tigera.io/maintenance/ebpf/enabling-ebpf#configure-kube-proxy) and [Cilium](https://docs.cilium.io/en/stable/gettingstarted/kubeproxy-free/). When enabling the kube-proxy alternative, the kube-proxy installed by EKS must be deleted. This can be done via the **disable** property of **kubeProxy** in **AWSManagedControlPlane**:

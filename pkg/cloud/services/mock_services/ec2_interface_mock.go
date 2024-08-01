@@ -333,6 +333,34 @@ func (mr *MockEC2InterfaceMockRecorder) ReconcileBastion() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReconcileBastion", reflect.TypeOf((*MockEC2Interface)(nil).ReconcileBastion))
 }
 
+// ReconcileElasticIPFromPublicPool mocks base method.
+func (m *MockEC2Interface) ReconcileElasticIPFromPublicPool(arg0 *v1beta2.ElasticIPPool, arg1 *v1beta2.Instance) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReconcileElasticIPFromPublicPool", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ReconcileElasticIPFromPublicPool indicates an expected call of ReconcileElasticIPFromPublicPool.
+func (mr *MockEC2InterfaceMockRecorder) ReconcileElasticIPFromPublicPool(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReconcileElasticIPFromPublicPool", reflect.TypeOf((*MockEC2Interface)(nil).ReconcileElasticIPFromPublicPool), arg0, arg1)
+}
+
+// ReleaseElasticIP mocks base method.
+func (m *MockEC2Interface) ReleaseElasticIP(arg0 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReleaseElasticIP", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ReleaseElasticIP indicates an expected call of ReleaseElasticIP.
+func (mr *MockEC2InterfaceMockRecorder) ReleaseElasticIP(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReleaseElasticIP", reflect.TypeOf((*MockEC2Interface)(nil).ReleaseElasticIP), arg0)
+}
+
 // TerminateInstance mocks base method.
 func (m *MockEC2Interface) TerminateInstance(arg0 string) error {
 	m.ctrl.T.Helper()

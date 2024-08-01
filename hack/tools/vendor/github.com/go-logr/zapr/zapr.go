@@ -31,14 +31,14 @@ limitations under the License.
 // Package zapr defines an implementation of the github.com/go-logr/logr
 // interfaces built on top of Zap (go.uber.org/zap).
 //
-// Usage
+// # Usage
 //
 // A new logr.Logger can be constructed from an existing zap.Logger using
 // the NewLogger function:
 //
-//  log := zapr.NewLogger(someZapLogger)
+//	log := zapr.NewLogger(someZapLogger)
 //
-// Implementation Details
+// # Implementation Details
 //
 // For the most part, concepts in Zap correspond directly with those in
 // logr.
@@ -54,6 +54,8 @@ limitations under the License.
 package zapr
 
 import (
+	"fmt"
+
 	"github.com/go-logr/logr"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -166,13 +168,14 @@ func (zl *zapLogger) handleFields(lvl int, args []interface{}, additional ...zap
 	return append(fields, additional...)
 }
 
-func zapIt(field string, val interface{}) zap.Field {
-	// Handle types that implement logr.Marshaler: log the replacement
-	// object instead of the original one.
-	if marshaler, ok := val.(logr.Marshaler); ok {
-		val = marshaler.MarshalLog()
-	}
-	return zap.Any(field, val)
+func invokeMarshaler(field string, m logr.Marshaler) (f string, ret interface{}) {
+	defer func() {
+		if r := recover(); r != nil {
+			ret = fmt.Sprintf("PANIC=%s", r)
+			f = field + "Error"
+		}
+	}()
+	return field, m.MarshalLog()
 }
 
 func (zl *zapLogger) Init(ri logr.RuntimeInfo) {

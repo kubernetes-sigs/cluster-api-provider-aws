@@ -756,6 +756,10 @@ spec:
                                   items:
                                     type: string
                                   type: array
+                                natGatewaysIPsSource:
+                                  description: NatGatewaysIPsSource use the NAT gateways
+                                    IPs as the source for the ingress rule.
+                                  type: boolean
                                 protocol:
                                   description: Protocol is the protocol for the ingress
                                     rule. Accepted values are "-1" (all), "4" (IP
@@ -925,6 +929,10 @@ spec:
                                   items:
                                     type: string
                                   type: array
+                                natGatewaysIPsSource:
+                                  description: NatGatewaysIPsSource use the NAT gateways
+                                    IPs as the source for the ingress rule.
+                                  type: boolean
                                 protocol:
                                   description: Protocol is the protocol for the ingress
                                     rule. Accepted values are "-1" (all), "4" (IP
@@ -1162,6 +1170,39 @@ spec:
                                   Defaults to 10.0.0.0/16.
                                   Mutually exclusive with IPAMPool.
                                 type: string
+                              elasticIpPool:
+                                description: |-
+                                  ElasticIPPool contains specific configuration to allocate Public IPv4 address (Elastic IP) from user-defined pool
+                                  brought to AWS for core infrastructure resources, like NAT Gateways and Public Network Load Balancers for
+                                  the API Server.
+                                properties:
+                                  publicIpv4Pool:
+                                    description: |-
+                                      PublicIpv4Pool sets a custom Public IPv4 Pool used to create Elastic IP address for resources
+                                      created in public IPv4 subnets. Every IPv4 address, Elastic IP, will be allocated from the custom
+                                      Public IPv4 pool that you brought to AWS, instead of Amazon-provided pool. The public IPv4 pool
+                                      resource ID starts with 'ipv4pool-ec2'.
+                                    maxLength: 30
+                                    type: string
+                                  publicIpv4PoolFallbackOrder:
+                                    description: |-
+                                      PublicIpv4PoolFallBackOrder defines the fallback action when the Public IPv4 Pool has been exhausted,
+                                      no more IPv4 address available in the pool.
+
+
+                                      When set to 'amazon-pool', the controller check if the pool has available IPv4 address, when pool has reached the
+                                      IPv4 limit, the address will be claimed from Amazon-pool (default).
+
+
+                                      When set to 'none', the controller will fail the Elastic IP allocation when the publicIpv4Pool is exhausted.
+                                    enum:
+                                    - amazon-pool
+                                    - none
+                                    type: string
+                                    x-kubernetes-validations:
+                                    - message: allowed values are 'none' and 'amazon-pool'
+                                      rule: self in ['none','amazon-pool']
+                                type: object
                               emptyRoutesDefaultVPCSecurityGroup:
                                 description: |-
                                   EmptyRoutesDefaultVPCSecurityGroup specifies whether the default VPC security group ingress
@@ -1256,6 +1297,18 @@ spec:
                                 enum:
                                 - ip-name
                                 - resource-name
+                                type: string
+                              subnetSchema:
+                                default: PreferPrivate
+                                description: |-
+                                  SubnetSchema specifies how CidrBlock should be divided on subnets in the VPC depending on the number of AZs.
+                                  PreferPrivate - one private subnet for each AZ plus one other subnet that will be further sub-divided for the public subnets.
+                                  PreferPublic - have the reverse logic of PreferPrivate, one public subnet for each AZ plus one other subnet
+                                  that will be further sub-divided for the private subnets.
+                                  Defaults to PreferPrivate
+                                enum:
+                                - PreferPrivate
+                                - PreferPublic
                                 type: string
                               tags:
                                 additionalProperties:
@@ -1511,6 +1564,10 @@ spec:
                                   items:
                                     type: string
                                   type: array
+                                natGatewaysIPsSource:
+                                  description: NatGatewaysIPsSource use the NAT gateways
+                                    IPs as the source for the ingress rule.
+                                  type: boolean
                                 protocol:
                                   description: Protocol is the protocol for the ingress
                                     rule. Accepted values are "-1" (all), "4" (IP

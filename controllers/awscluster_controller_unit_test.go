@@ -23,12 +23,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -246,6 +248,36 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 				g.Expect(err).To(BeNil())
 				expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{{infrav1.LoadBalancerReadyCondition, corev1.ConditionTrue, "", ""}})
 				g.Expect(awsCluster.GetFinalizers()).To(ContainElement(infrav1.ClusterFinalizer))
+			})
+
+			t.Run("when BYO IP is set", func(t *testing.T) {
+				g := NewWithT(t)
+				runningCluster := func() {
+					ec2Svc.EXPECT().ReconcileBastion().Return(nil)
+					elbSvc.EXPECT().ReconcileLoadbalancers().Return(nil)
+					networkSvc.EXPECT().ReconcileNetwork().Return(nil)
+					sgSvc.EXPECT().ReconcileSecurityGroups().Return(nil)
+				}
+
+				awsCluster := getAWSCluster("test", "test")
+				csClient := setup(t, &awsCluster)
+				defer teardown()
+				runningCluster()
+				cs, err := scope.NewClusterScope(
+					scope.ClusterScopeParams{
+						Client:     csClient,
+						Cluster:    &clusterv1.Cluster{},
+						AWSCluster: &awsCluster,
+					},
+				)
+				g.Expect(err).To(BeNil())
+				awsCluster.Spec.NetworkSpec.VPC.ElasticIPPool = &infrav1.ElasticIPPool{
+					PublicIpv4Pool:              aws.String("ipv4pool-ec2-0123456789abcdef0"),
+					PublicIpv4PoolFallBackOrder: ptr.To(infrav1.PublicIpv4PoolFallbackOrderAmazonPool),
+				}
+				g.Expect(err).To(Not(HaveOccurred()))
+				_, err = reconciler.reconcileNormal(cs)
+				g.Expect(err).To(Not(HaveOccurred()))
 			})
 		})
 		t.Run("Reconcile failure", func(t *testing.T) {
@@ -628,7 +660,7 @@ func createCluster(g *WithT, awsCluster *infrav1.AWSCluster, namespace string) {
 			}
 			err := testEnv.Get(ctx, key, cluster)
 			return err == nil
-		}, 10*time.Second).Should(BeTrue())
+		}, 10*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed getting the newly created cluster %q", awsCluster.Name))
 	}
 }
 
