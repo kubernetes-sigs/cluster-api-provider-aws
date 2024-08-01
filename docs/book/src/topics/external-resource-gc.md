@@ -1,6 +1,6 @@
 # External Resource Garbage Collection
 
-- **Feature status:** Experimental
+- **Feature status:** Stable
 - **Feature gate (required):** ExternalResourceGC=true
 
 ## Overview
@@ -21,16 +21,25 @@ We will look to support deleting EBS volumes in the future potentially.
 
 > Note: this feature will likely be superseded by an upstream CAPI feature in the future when [this issue](https://github.com/kubernetes-sigs/cluster-api/issues/3075) is resolved.
 
-## Enabling
+## Disabling
 
-To enable garbage collection, you must set the `ExternalResourceGC` feature gate to `true` on the controller manager. The easiest way to do this is via an environment variable:
+The garbage collection feature is enabled by default. It can be disabled by setting the `ExternalResourceGC` feature gate to `false` on the controller manager. The easiest way to do this is via an environment variable:
 
 ```bash
-export EXP_EXTERNAL_RESOURCE_GC=true
+export CAPA_EXTERNAL_RESOURCE_GC=false
 clusterctl init --infrastructure aws
 ```
 
-> Note: if you enable this feature **ALL** clusters will be marked as requiring garbage collection.
+## Enabling Alternative Strategy
+
+The default strategy is to use the AWS resource tagging API. This may not be suitable in all cases and so an alternative strategy can be enabled. The alternative strategy is usually needed in a airgapped environment where the resource tagging API is not available.
+
+To enable the alternative strategy you need to set the `AlternativeGCStrategy` feature gate to `true` on the controller manager. The easiest way to do this is via an environment variable:
+
+```bash
+export EXP_ALTERNATIVE_GC_STRATEGY=true
+clusterctl init --infrastructure aws
+```
 
 ## Operations
 
