@@ -1,5 +1,5 @@
 name: Add or remove maintainer
-description: To be used when making changes to project maintainers. See [contributing guide(https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/CONTRIBUTING.md)] for details of the projects ladder.
+description: To be used when making changes to project maintainers.
 labels: ["kind/support"]
 body:
   - type: markdown
