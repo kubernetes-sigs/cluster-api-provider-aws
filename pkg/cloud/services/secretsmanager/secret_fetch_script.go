@@ -46,7 +46,7 @@ if [ "{{.Endpoint}}" != "" ]; then
 fi
 SECRET_PREFIX="{{.SecretPrefix}}"
 CHUNKS="{{.Chunks}}"
-FILE="/etc/secret-userdata.txt"
+FILE="/etc/cloud/cloud.cfg.d/99_kubeadm_bootstrap.cfg"
 FINAL_INDEX=$((CHUNKS - 1))
 MAX_RETRIES=10
 RETRY_DELAY=10 # in seconds
