@@ -26,7 +26,7 @@ import (
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 )
 
-// LaunchTemplateScope defines a scope defined around a launch template.
+// LifecycleHookScope defines a scope defined around a machine pool and its lifecycle hooks.
 type LifecycleHookScope struct {
 	client.Client
 	logger.Logger
@@ -38,6 +38,7 @@ type LifecycleHookScope struct {
 	AWSManagedMachinePool *expinfrav1.AWSManagedMachinePool
 }
 
+// LifecycleHookScopeParams defines the input parameters used to create a new LifecycleHookScope.
 type LifecycleHookScopeParams struct {
 	Client client.Client
 	Logger *logger.Logger
@@ -89,14 +90,17 @@ func NewLifecycleHookScope(params LifecycleHookScopeParams) (*LifecycleHookScope
 	}, nil
 }
 
+// GetASGName returns the name of the AutoScalingGroup.
 func (s *LifecycleHookScope) GetASGName() string {
 	return s.PoolName
 }
 
+// GetLifecycleHooks returns the lifecycle hooks for the AutoScalingGroup.
 func (s *LifecycleHookScope) GetLifecycleHooks() []expinfrav1.AWSLifecycleHook {
 	return s.LifecycleHooks
 }
 
+// GetMachinePool returns the machine pool.
 func (s *LifecycleHookScope) GetMachinePool() *expclusterv1.MachinePool {
 	return s.MachinePool
 }

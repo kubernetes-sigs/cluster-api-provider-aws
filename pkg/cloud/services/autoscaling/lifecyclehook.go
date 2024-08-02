@@ -24,11 +24,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 )
 
+// LifecycleHookNeedsUpdate returns true if the supplied expected lifecycle hook differs from the existing lifecycle hook.
 func (s *Service) LifecycleHookNeedsUpdate(scope scope.LifecycleHookScope, existing *expinfrav1.AWSLifecycleHook, expected *expinfrav1.AWSLifecycleHook) bool {
 	return existing.DefaultResult != expected.DefaultResult ||
 		existing.HeartbeatTimeout != expected.HeartbeatTimeout ||
@@ -37,6 +38,7 @@ func (s *Service) LifecycleHookNeedsUpdate(scope scope.LifecycleHookScope, exist
 		existing.NotificationMetadata != expected.NotificationMetadata
 }
 
+// GetLifecycleHooks returns the lifecycle hooks for the given AutoScalingGroup after retrieving them from the AWS API.
 func (s *Service) GetLifecycleHooks(scope scope.LifecycleHookScope) ([]*expinfrav1.AWSLifecycleHook, error) {
 	asgName := scope.GetASGName()
 	input := &autoscaling.DescribeLifecycleHooksInput{
@@ -56,6 +58,7 @@ func (s *Service) GetLifecycleHooks(scope scope.LifecycleHookScope) ([]*expinfra
 	return hooks, nil
 }
 
+// GetLifecycleHook returns a specific lifecycle hook for the given AutoScalingGroup after retrieving it from the AWS API.
 func (s *Service) GetLifecycleHook(scope scope.LifecycleHookScope, hook *expinfrav1.AWSLifecycleHook) (*expinfrav1.AWSLifecycleHook, error) {
 	asgName := scope.GetASGName()
 	input := &autoscaling.DescribeLifecycleHooksInput{
@@ -75,6 +78,7 @@ func (s *Service) GetLifecycleHook(scope scope.LifecycleHookScope, hook *expinfr
 	return s.SDKToLifecycleHook(out.LifecycleHooks[0]), nil
 }
 
+// CreateLifecycleHook creates a lifecycle hook for the given AutoScalingGroup.
 func (s *Service) CreateLifecycleHook(scope scope.LifecycleHookScope, hook *expinfrav1.AWSLifecycleHook) error {
 	asgName := scope.GetASGName()
 	input := &autoscaling.PutLifecycleHookInput{
@@ -112,6 +116,7 @@ func (s *Service) CreateLifecycleHook(scope scope.LifecycleHookScope, hook *expi
 	return nil
 }
 
+// UpdateLifecycleHook updates a lifecycle hook for the given AutoScalingGroup.
 func (s *Service) UpdateLifecycleHook(scope scope.LifecycleHookScope, hook *expinfrav1.AWSLifecycleHook) error {
 	asgName := scope.GetASGName()
 	input := &autoscaling.PutLifecycleHookInput{
@@ -149,6 +154,7 @@ func (s *Service) UpdateLifecycleHook(scope scope.LifecycleHookScope, hook *expi
 	return nil
 }
 
+// DeleteLifecycleHook deletes a lifecycle hook for the given AutoScalingGroup.
 func (s *Service) DeleteLifecycleHook(
 	scope scope.LifecycleHookScope,
 	hook *expinfrav1.AWSLifecycleHook,
@@ -165,6 +171,7 @@ func (s *Service) DeleteLifecycleHook(
 	return nil
 }
 
+// SDKToLifecycleHook converts an AWS SDK LifecycleHook to the CAPA lifecycle hook type.
 func (s *Service) SDKToLifecycleHook(hook *autoscaling.LifecycleHook) *expinfrav1.AWSLifecycleHook {
 	timeoutDuration := time.Duration(*hook.HeartbeatTimeout) * time.Second
 	metav1Duration := metav1.Duration{Duration: timeoutDuration}

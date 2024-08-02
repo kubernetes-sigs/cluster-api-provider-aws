@@ -254,10 +254,13 @@ type AWSLifecycleHook struct {
 	NotificationMetadata *string `json:"notificationMetadata,omitempty"`
 }
 
+// LifecycleTransition is the state of the EC2 instance to which to attach the lifecycle hook.
 type LifecycleTransition string
 
 const (
-	LifecycleTransitionInstanceLaunch    LifecycleTransition = "autoscaling:EC2_INSTANCE_LAUNCHING"
+	// LifecycleTransitionInstanceLaunch is the launching state of the EC2 instance.
+	LifecycleTransitionInstanceLaunch LifecycleTransition = "autoscaling:EC2_INSTANCE_LAUNCHING"
+	// LifecycleTransitionInstanceTerminate is the terminating state of the EC2 instance.
 	LifecycleTransitionInstanceTerminate LifecycleTransition = "autoscaling:EC2_INSTANCE_TERMINATING"
 )
 
@@ -265,11 +268,14 @@ func (l *LifecycleTransition) String() string {
 	return string(*l)
 }
 
+// DefaultResult is the default result for the lifecycle hook.
 type DefaultResult string
 
 const (
+	// DefaultResultContinue is the default result for the lifecycle hook to continue.
 	DefaultResultContinue DefaultResult = "CONTINUE"
-	DefaultResultAbandon  DefaultResult = "ABANDON"
+	// DefaultResultAbandon is the default result for the lifecycle hook to abandon.
+	DefaultResultAbandon DefaultResult = "ABANDON"
 )
 
 func (d *DefaultResult) String() string {

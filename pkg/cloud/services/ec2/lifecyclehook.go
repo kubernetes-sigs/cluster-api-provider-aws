@@ -17,18 +17,18 @@ limitations under the License.
 package ec2
 
 import (
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
-
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 )
 
 // ReconcileLifecycleHooks periodically reconciles a lifecycle hook for the ASG.
 func (s *Service) ReconcileLifecycleHooks(scope scope.LifecycleHookScope, asgsvc services.ASGInterface) error {
-	for _, hook := range scope.GetLifecycleHooks() {
-		if err := s.reconcileLifecycleHook(scope, asgsvc, &hook); err != nil {
+	lifecyleHooks := scope.GetLifecycleHooks()
+	for i := range lifecyleHooks {
+		if err := s.reconcileLifecycleHook(scope, asgsvc, &lifecyleHooks[i]); err != nil {
 			return err
 		}
 	}
