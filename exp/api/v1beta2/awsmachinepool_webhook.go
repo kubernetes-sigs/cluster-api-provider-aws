@@ -42,8 +42,10 @@ func (r *AWSMachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-awsmachinepool,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsmachinepools,versions=v1beta2,name=validation.awsmachinepool.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta2-awsmachinepool,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsmachinepools,versions=v1beta2,name=default.awsmachinepool.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.Defaulter = &AWSMachinePool{}
-var _ webhook.Validator = &AWSMachinePool{}
+var (
+	_ webhook.Defaulter = &AWSMachinePool{}
+	_ webhook.Validator = &AWSMachinePool{}
+)
 
 func (r *AWSMachinePool) validateDefaultCoolDown() field.ErrorList {
 	var allErrs field.ErrorList
@@ -108,11 +110,43 @@ func (r *AWSMachinePool) validateAdditionalSecurityGroups() field.ErrorList {
 	}
 	return allErrs
 }
+
 func (r *AWSMachinePool) validateSpotInstances() field.ErrorList {
 	var allErrs field.ErrorList
 	if r.Spec.AWSLaunchTemplate.SpotMarketOptions != nil && r.Spec.MixedInstancesPolicy != nil {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.awsLaunchTemplate.spotMarketOptions"), "either spec.awsLaunchTemplate.spotMarketOptions or spec.mixedInstancesPolicy should be used"))
 	}
+	return allErrs
+}
+
+func (r *AWSMachinePool) validateLifecycleHooks() field.ErrorList {
+	return validateLifecycleHooks(r.Spec.AWSLifecycleHooks)
+}
+
+func validateLifecycleHooks(hooks []AWSLifecycleHook) field.ErrorList {
+	var allErrs field.ErrorList
+
+	for _, hook := range hooks {
+		if hook.Name == "" {
+			allErrs = append(allErrs, field.Required(field.NewPath("spec.lifecycleHooks.name"), "Name is required"))
+		}
+		if hook.NotificationTargetARN != nil && hook.RoleARN == nil {
+			allErrs = append(allErrs, field.Required(field.NewPath("spec.lifecycleHooks.roleARN"), "RoleARN is required if NotificationTargetARN is provided"))
+		}
+		if hook.RoleARN != nil && hook.NotificationTargetARN == nil {
+			allErrs = append(allErrs, field.Required(field.NewPath("spec.lifecycleHooks.notificationTargetARN"), "NotificationTargetARN is required if RoleARN is provided"))
+		}
+		if hook.LifecycleTransition != LifecycleTransitionInstanceLaunch && hook.LifecycleTransition != LifecycleTransitionInstanceTerminate {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec.lifecycleHooks.lifecycleTransition"), hook.LifecycleTransition, "LifecycleTransition must be either EC2_INSTANCE_LAUNCHING or EC2_INSTANCE_TERMINATING"))
+		}
+		if hook.DefaultResult != nil && (*hook.DefaultResult != DefaultResultContinue && *hook.DefaultResult != DefaultResultAbandon) {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec.lifecycleHooks.defaultResult"), *hook.DefaultResult, "DefaultResult must be either CONTINUE or ABANDON"))
+		}
+		if hook.HeartbeatTimeout != nil && (hook.HeartbeatTimeout.Seconds() < float64(30) || hook.HeartbeatTimeout.Seconds() > float64(172800)) {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec.lifecycleHooks.heartbeatTimeout"), *hook.HeartbeatTimeout, "HeartbeatTimeout must be between 30 and 172800 seconds"))
+		}
+	}
+
 	return allErrs
 }
 
@@ -128,6 +162,7 @@ func (r *AWSMachinePool) ValidateCreate() (admission.Warnings, error) {
 	allErrs = append(allErrs, r.validateSubnets()...)
 	allErrs = append(allErrs, r.validateAdditionalSecurityGroups()...)
 	allErrs = append(allErrs, r.validateSpotInstances()...)
+	allErrs = append(allErrs, r.validateLifecycleHooks()...)
 
 	if len(allErrs) == 0 {
 		return nil, nil
@@ -149,6 +184,7 @@ func (r *AWSMachinePool) ValidateUpdate(_ runtime.Object) (admission.Warnings, e
 	allErrs = append(allErrs, r.validateSubnets()...)
 	allErrs = append(allErrs, r.validateAdditionalSecurityGroups()...)
 	allErrs = append(allErrs, r.validateSpotInstances()...)
+	allErrs = append(allErrs, r.validateLifecycleHooks()...)
 
 	if len(allErrs) == 0 {
 		return nil, nil

@@ -50,6 +50,12 @@ type ASGInterface interface {
 	SuspendProcesses(name string, processes []string) error
 	ResumeProcesses(name string, processes []string) error
 	SubnetIDs(scope *scope.MachinePoolScope) ([]string, error)
+	GetLifecycleHooks(scope scope.LifecycleHookScope) ([]*expinfrav1.AWSLifecycleHook, error)
+	GetLifecycleHook(scope scope.LifecycleHookScope, hook *expinfrav1.AWSLifecycleHook) (*expinfrav1.AWSLifecycleHook, error)
+	CreateLifecycleHook(scope scope.LifecycleHookScope, hook *expinfrav1.AWSLifecycleHook) error
+	UpdateLifecycleHook(scope scope.LifecycleHookScope, hook *expinfrav1.AWSLifecycleHook) error
+	DeleteLifecycleHook(scope scope.LifecycleHookScope, hook *expinfrav1.AWSLifecycleHook) error
+	LifecycleHookNeedsUpdate(scope scope.LifecycleHookScope, incoming *expinfrav1.AWSLifecycleHook, existing *expinfrav1.AWSLifecycleHook) bool
 }
 
 // EC2Interface encapsulates the methods exposed to the machine
@@ -92,6 +98,7 @@ type EC2Interface interface {
 // separate from EC2Interface so that we can mock AWS requests separately. For example, by not mocking the
 // ReconcileLaunchTemplate function, but mocking EC2Interface, we can test which EC2 API operations would have been called.
 type MachinePoolReconcileInterface interface {
+	ReconcileLifecycleHooks(scope scope.LifecycleHookScope, asgsvc ASGInterface) error
 	ReconcileLaunchTemplate(scope scope.LaunchTemplateScope, ec2svc EC2Interface, canUpdateLaunchTemplate func() (bool, error), runPostLaunchTemplateUpdateOperation func() error) error
 	ReconcileTags(scope scope.LaunchTemplateScope, resourceServicesToUpdate []scope.ResourceServiceToUpdate) error
 }

@@ -125,7 +125,7 @@ func (s *Service) ReconcileLaunchTemplate(
 	}
 
 	// Check if the instance tags were changed. If they were, create a new LaunchTemplate.
-	tagsChanged, _, _, _ := tagsChanged(annotation, scope.AdditionalTags()) //nolint:dogsled
+	tagsChanged, _, _, _ := TagsChanged(annotation, scope.AdditionalTags()) //nolint:dogsled
 
 	needsUpdate, err := ec2svc.LaunchTemplateNeedsUpdate(scope, scope.GetLaunchTemplate(), launchTemplate)
 	if err != nil {
@@ -210,7 +210,7 @@ func (s *Service) ensureTags(scope scope.LaunchTemplateScope, resourceServicesTo
 	// It would be possible here to only send new/updated tags, but for the
 	// moment we send everything, even if only a single tag was created or
 	// upated.
-	changed, created, deleted, newAnnotation := tagsChanged(annotation, additionalTags)
+	changed, created, deleted, newAnnotation := TagsChanged(annotation, additionalTags)
 	if changed {
 		for _, resourceServiceToUpdate := range resourceServicesToUpdate {
 			err := resourceServiceToUpdate.ResourceService.UpdateResourceTags(resourceServiceToUpdate.ResourceID, created, deleted)
@@ -276,8 +276,8 @@ func updateMachinePoolAnnotation(lts scope.LaunchTemplateScope, annotation, cont
 	lts.GetObjectMeta().SetAnnotations(annotations)
 }
 
-// tagsChanged determines which tags to delete and which to add.
-func tagsChanged(annotation map[string]interface{}, src map[string]string) (bool, map[string]string, map[string]string, map[string]interface{}) {
+// TagsChanged determines which tags to delete and which to add.
+func TagsChanged(annotation map[string]interface{}, src map[string]string) (bool, map[string]string, map[string]string, map[string]interface{}) {
 	// Bool tracking if we found any changed state.
 	changed := false
 

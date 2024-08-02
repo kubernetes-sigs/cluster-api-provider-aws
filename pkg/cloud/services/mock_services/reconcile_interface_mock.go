@@ -65,6 +65,20 @@ func (mr *MockMachinePoolReconcileInterfaceMockRecorder) ReconcileLaunchTemplate
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReconcileLaunchTemplate", reflect.TypeOf((*MockMachinePoolReconcileInterface)(nil).ReconcileLaunchTemplate), arg0, arg1, arg2, arg3)
 }
 
+// ReconcileLifecycleHooks mocks base method.
+func (m *MockMachinePoolReconcileInterface) ReconcileLifecycleHooks(arg0 scope.LifecycleHookScope, arg1 services.ASGInterface) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReconcileLifecycleHooks", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ReconcileLifecycleHooks indicates an expected call of ReconcileLifecycleHooks.
+func (mr *MockMachinePoolReconcileInterfaceMockRecorder) ReconcileLifecycleHooks(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReconcileLifecycleHooks", reflect.TypeOf((*MockMachinePoolReconcileInterface)(nil).ReconcileLifecycleHooks), arg0, arg1)
+}
+
 // ReconcileTags mocks base method.
 func (m *MockMachinePoolReconcileInterface) ReconcileTags(arg0 scope.LaunchTemplateScope, arg1 []scope.ResourceServiceToUpdate) error {
 	m.ctrl.T.Helper()
