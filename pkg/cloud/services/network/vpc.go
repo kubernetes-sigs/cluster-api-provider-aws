@@ -27,10 +27,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/filter"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/tags"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
@@ -410,7 +410,7 @@ func (s *Service) getIPAMPoolID() (*string, error) {
 func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 	input := &ec2.CreateVpcInput{
 		TagSpecifications: []*ec2.TagSpecification{
-			tags.BuildParamsToTagSpecification(ec2.ResourceTypeVpc, s.getVPCTagParams(services.TemporaryResourceID)),
+			tags.BuildParamsToTagSpecification(ec2.ResourceTypeVpc, s.getVPCTagParams(cloud.TemporaryResourceID)),
 		},
 	}
 
@@ -606,7 +606,7 @@ func (s *Service) describeVPCByID() (*infrav1.VPCSpec, error) {
 // describeVPCByName finds the VPC by `Name` tag. Use this if the ID is not available yet, either because no
 // VPC was created until now or if storing the ID could have failed.
 func (s *Service) describeVPCByName() (*infrav1.VPCSpec, error) {
-	vpcName := *s.getVPCTagParams(services.TemporaryResourceID).Name
+	vpcName := *s.getVPCTagParams(cloud.TemporaryResourceID).Name
 
 	input := &ec2.DescribeVpcsInput{
 		Filters: []*ec2.Filter{

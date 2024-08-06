@@ -27,15 +27,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 )
 
-const (
-	// TemporaryResourceID is the name used temporarily when creating AWS resources.
-	TemporaryResourceID = "temporary-resource-id"
-	// AnyIPv4CidrBlock is the CIDR block to match all IPv4 addresses.
-	AnyIPv4CidrBlock = "0.0.0.0/0"
-	// AnyIPv6CidrBlock is the CIDR block to match all IPv6 addresses.
-	AnyIPv6CidrBlock = "::/0"
-)
-
 // ASGInterface encapsulates the methods exposed to the machinepool
 // actuator.
 type ASGInterface interface {

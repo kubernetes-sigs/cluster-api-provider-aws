@@ -204,10 +204,8 @@ type TargetGroupHealthCheckAdditionalSpec struct {
 // TargetGroupAttribute defines attribute key values for V2 Load Balancer Attributes.
 type TargetGroupAttribute string
 
-var (
-	// TargetGroupAttributeEnablePreserveClientIP defines the attribute key for enabling preserve client IP.
-	TargetGroupAttributeEnablePreserveClientIP = "preserve_client_ip.enabled"
-)
+// TargetGroupAttributeEnablePreserveClientIP defines the attribute key for enabling preserve client IP.
+var TargetGroupAttributeEnablePreserveClientIP = "preserve_client_ip.enabled"
 
 // LoadBalancerAttribute defines a set of attributes for a V2 load balancer.
 type LoadBalancerAttribute string
@@ -351,6 +349,11 @@ type NetworkSpec struct {
 	// AdditionalControlPlaneIngressRules is an optional set of ingress rules to add to the control plane
 	// +optional
 	AdditionalControlPlaneIngressRules []IngressRule `json:"additionalControlPlaneIngressRules,omitempty"`
+
+	// NodePortServicesAllowedCidrs is an optional way to restict the source IPs used in the node security group
+	// for the inbound rule applicable to node port services. If not supplied then a source of 0.0.0.0/0 will be used.
+	// +optional
+	NodePortServicesAllowedCidrs []string `json:"nodePortServicesAllowedCidrs,omitempty"`
 }
 
 // IPv6 contains ipv6 specific settings for the network.

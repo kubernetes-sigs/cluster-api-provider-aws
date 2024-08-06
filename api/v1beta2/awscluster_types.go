@@ -252,6 +252,12 @@ type AWSLoadBalancerSpec struct {
 	// PreserveClientIP lets the user control if preservation of client ips must be retained or not.
 	// If this is enabled 6443 will be opened to 0.0.0.0/0.
 	PreserveClientIP bool `json:"preserveClientIP,omitempty"`
+
+	// DefaultAllowedSourceCidrs is a list of allowed cidr blocks to allow as the source in the inbound rules for
+	// the api server security group. If not supplied then it defaults to 0.0.0.0/0 for an IPv4 vpc or ::/o for
+	// a IPv6 vpc. This is ignored if IngressRules are explicitly supplied.
+	// +optional
+	DefaultAllowedSourceCidrs []string `json:"defaultAllowedSourceCidrs,omitempty"`
 }
 
 // AdditionalListenerSpec defines the desired state of an
