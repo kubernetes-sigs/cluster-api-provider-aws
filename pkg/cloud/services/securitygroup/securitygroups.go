@@ -977,7 +977,7 @@ func (s *Service) getIngressRuleToAllowAnyIPInTheAPIServer() infrav1.IngressRule
 				Protocol:       infrav1.SecurityGroupProtocolTCP,
 				FromPort:       int64(s.scope.APIServerPort()),
 				ToPort:         int64(s.scope.APIServerPort()),
-				IPv6CidrBlocks: []string{cloud.AnyIPv6CidrBlock},
+				IPv6CidrBlocks: s.scope.DefaultAllowedAPIServerSources(true),
 			},
 		}
 	}
@@ -988,7 +988,7 @@ func (s *Service) getIngressRuleToAllowAnyIPInTheAPIServer() infrav1.IngressRule
 			Protocol:    infrav1.SecurityGroupProtocolTCP,
 			FromPort:    int64(s.scope.APIServerPort()),
 			ToPort:      int64(s.scope.APIServerPort()),
-			CidrBlocks:  []string{cloud.AnyIPv4CidrBlock},
+			CidrBlocks:  s.scope.DefaultAllowedAPIServerSources(false),
 		},
 	}
 }

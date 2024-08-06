@@ -243,6 +243,15 @@ func (s *ManagedControlPlaneScope) SecurityGroupOverrides() map[infrav1.Security
 // 	return []string{cloud.AnyIPv4CidrBlock}
 // }
 
+// DefaultAllowedAPIServerSources returns the cidr blocks to be used as the default allowed sources in the api server
+// security group inbound rule. Defaults to 0.0.0.0/0
+func (s *ManagedControlPlaneScope) DefaultAllowedAPIServerSources(ipv6 bool) []string {
+	if ipv6 {
+		return []string{cloud.AnyIPv6CidrBlock}
+	}
+	return []string{cloud.AnyIPv4CidrBlock}
+}
+
 // Name returns the CAPI cluster name.
 func (s *ManagedControlPlaneScope) Name() string {
 	return s.Cluster.Name

@@ -235,6 +235,20 @@ func (s *ClusterScope) ControlPlaneEndpoint() clusterv1.APIEndpoint {
 // 	return []string{cloud.AnyIPv4CidrBlock}
 // }
 
+// DefaultAllowedAPIServerSources returns the cidr blocks to be used as the default allowed sources in the api server
+// security group inbound rule. Defaults to 0.0.0.0/0 or ::/0
+func (s *ClusterScope) DefaultAllowedAPIServerSources(ipv6 bool) []string {
+	if s.AWSCluster.Spec.ControlPlaneLoadBalancer == nil || len(s.AWSCluster.Spec.ControlPlaneLoadBalancer.DefaultAllowedSourceCidrs) == 0 {
+		if ipv6 {
+			return []string{cloud.AnyIPv6CidrBlock}
+		} else {
+			return []string{cloud.AnyIPv4CidrBlock}
+		}
+	}
+
+	return s.AWSCluster.Spec.ControlPlaneLoadBalancer.DefaultAllowedSourceCidrs
+}
+
 // Bucket returns the cluster bucket configuration.
 func (s *ClusterScope) Bucket() *infrav1.S3Bucket {
 	return s.AWSCluster.Spec.S3Bucket

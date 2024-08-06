@@ -671,6 +671,14 @@ spec:
 
                               Defaults to false.
                             type: boolean
+                          defaultAllowedSourceCidrs:
+                            description: |-
+                              DefaultAllowedSourceCidrs is a list of allowed cidr blocks to allow as the source in the inbound rules for
+                              the api server security group. If not supplied then it defaults to 0.0.0.0/0 for an IPv4 vpc or ::/o for
+                              a IPv6 vpc. This is ignored if IngressRules are explicitly supplied.
+                            items:
+                              type: string
+                            type: array
                           disableHostsRewrite:
                             description: |-
                               DisableHostsRewrite disabled the hair pinning issue solution that adds the NLB's address as 127.0.0.1 to the hosts
@@ -1487,6 +1495,14 @@ spec:
 
                               Defaults to false.
                             type: boolean
+                          defaultAllowedSourceCidrs:
+                            description: |-
+                              DefaultAllowedSourceCidrs is a list of allowed cidr blocks to allow as the source in the inbound rules for
+                              the api server security group. If not supplied then it defaults to 0.0.0.0/0 for an IPv4 vpc or ::/o for
+                              a IPv6 vpc. This is ignored if IngressRules are explicitly supplied.
+                            items:
+                              type: string
+                            type: array
                           disableHostsRewrite:
                             description: |-
                               DisableHostsRewrite disabled the hair pinning issue solution that adds the NLB's address as 127.0.0.1 to the hosts
