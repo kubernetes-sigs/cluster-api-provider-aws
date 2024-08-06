@@ -298,6 +298,22 @@ func (r *AWSCluster) validateNetwork() field.ErrorList {
 		}
 	}
 
+	// if len(r.Spec.NetworkSpec.NodePortServicesAllowedCidrs) > 0 {
+	// 	sourceCidrsField := field.NewPath("spec", "network", "vpc", "nodePortServicesAllowedCidrs")
+	// 	_, ok := r.Spec.NetworkSpec.SecurityGroupOverrides[SecurityGroupNode]
+	// 	if ok {
+	// 		allErrs = append(allErrs, field.Invalid(sourceCidrsField, r.Spec.NetworkSpec.NodePortServicesAllowedCidrs, fmt.Sprintf("awscluster.spec.network.nodePortServicesAllowedCidrs cannot be supplied when using a %s security group override", SecurityGroupNode)))
+	// 	}
+
+	// 	for i, cidr := range r.Spec.NetworkSpec.NodePortServicesAllowedCidrs {
+	// 		if _, _, err := net.ParseCIDR(cidr); err != nil {
+	// 			allErrs = append(allErrs,
+	// 				field.Invalid(field.NewPath("spec", "network", "vpc", fmt.Sprintf("nodePortServicesAllowedCidrs[%d]", i)), cidr, "must be a valid CIDR block"),
+	// 			)
+	// 		}
+	// 	}
+	// }
+
 	return allErrs
 }
 

@@ -25,10 +25,10 @@ import (
 	"github.com/pkg/errors"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/filter"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/tags"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
@@ -120,7 +120,7 @@ func (s *Service) deleteEgressOnlyInternetGateways() error {
 func (s *Service) createEgressOnlyInternetGateway() (*ec2.EgressOnlyInternetGateway, error) {
 	ig, err := s.EC2Client.CreateEgressOnlyInternetGatewayWithContext(context.TODO(), &ec2.CreateEgressOnlyInternetGatewayInput{
 		TagSpecifications: []*ec2.TagSpecification{
-			tags.BuildParamsToTagSpecification(ec2.ResourceTypeEgressOnlyInternetGateway, s.getEgressOnlyGatewayTagParams(services.TemporaryResourceID)),
+			tags.BuildParamsToTagSpecification(ec2.ResourceTypeEgressOnlyInternetGateway, s.getEgressOnlyGatewayTagParams(cloud.TemporaryResourceID)),
 		},
 		VpcId: aws.String(s.scope.VPC().ID),
 	})

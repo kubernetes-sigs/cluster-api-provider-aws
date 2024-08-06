@@ -25,10 +25,10 @@ import (
 	"github.com/pkg/errors"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/filter"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/tags"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
@@ -264,7 +264,8 @@ func (s *Service) createRouteTableWithRoutes(routes []*ec2.CreateRouteInput, isP
 	out, err := s.EC2Client.CreateRouteTableWithContext(context.TODO(), &ec2.CreateRouteTableInput{
 		VpcId: aws.String(s.scope.VPC().ID),
 		TagSpecifications: []*ec2.TagSpecification{
-			tags.BuildParamsToTagSpecification(ec2.ResourceTypeRouteTable, s.getRouteTableTagParams(services.TemporaryResourceID, isPublic, zone))},
+			tags.BuildParamsToTagSpecification(ec2.ResourceTypeRouteTable, s.getRouteTableTagParams(cloud.TemporaryResourceID, isPublic, zone)),
+		},
 	})
 	if err != nil {
 		record.Warnf(s.scope.InfraCluster(), "FailedCreateRouteTable", "Failed to create managed RouteTable: %v", err)
@@ -315,34 +316,34 @@ func (s *Service) associateRouteTable(rt *infrav1.RouteTable, subnetID string) e
 func (s *Service) getNatGatewayPrivateRoute(natGatewayID string) *ec2.CreateRouteInput {
 	return &ec2.CreateRouteInput{
 		NatGatewayId:         aws.String(natGatewayID),
-		DestinationCidrBlock: aws.String(services.AnyIPv4CidrBlock),
+		DestinationCidrBlock: aws.String(cloud.AnyIPv4CidrBlock),
 	}
 }
 
 func (s *Service) getEgressOnlyInternetGateway() *ec2.CreateRouteInput {
 	return &ec2.CreateRouteInput{
-		DestinationIpv6CidrBlock:    aws.String(services.AnyIPv6CidrBlock),
+		DestinationIpv6CidrBlock:    aws.String(cloud.AnyIPv6CidrBlock),
 		EgressOnlyInternetGatewayId: s.scope.VPC().IPv6.EgressOnlyInternetGatewayID,
 	}
 }
 
 func (s *Service) getGatewayPublicRoute() *ec2.CreateRouteInput {
 	return &ec2.CreateRouteInput{
-		DestinationCidrBlock: aws.String(services.AnyIPv4CidrBlock),
+		DestinationCidrBlock: aws.String(cloud.AnyIPv4CidrBlock),
 		GatewayId:            aws.String(*s.scope.VPC().InternetGatewayID),
 	}
 }
 
 func (s *Service) getGatewayPublicIPv6Route() *ec2.CreateRouteInput {
 	return &ec2.CreateRouteInput{
-		DestinationIpv6CidrBlock: aws.String(services.AnyIPv6CidrBlock),
+		DestinationIpv6CidrBlock: aws.String(cloud.AnyIPv6CidrBlock),
 		GatewayId:                aws.String(*s.scope.VPC().InternetGatewayID),
 	}
 }
 
 func (s *Service) getCarrierGatewayPublicIPv4Route() *ec2.CreateRouteInput {
 	return &ec2.CreateRouteInput{
-		DestinationCidrBlock: aws.String(services.AnyIPv4CidrBlock),
+		DestinationCidrBlock: aws.String(cloud.AnyIPv4CidrBlock),
 		CarrierGatewayId:     aws.String(*s.scope.VPC().CarrierGatewayID),
 	}
 }

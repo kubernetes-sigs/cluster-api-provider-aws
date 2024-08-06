@@ -225,6 +225,16 @@ func (s *ClusterScope) ControlPlaneEndpoint() clusterv1.APIEndpoint {
 	return s.AWSCluster.Spec.ControlPlaneEndpoint
 }
 
+// // NodePortServicesAllowedCidrs returns the cidr blocks to be used as the allowed sources in the node port services
+// // security group rule. Defaults to 0.0.0.0/0.
+// func (s *ClusterScope) NodePortServicesAllowedCidrs() []string {
+// 	if len(s.AWSCluster.Spec.NetworkSpec.NodePortServicesAllowedCidrs) > 0 {
+// 		return s.AWSCluster.Spec.NetworkSpec.NodePortServicesAllowedCidrs
+// 	}
+
+// 	return []string{cloud.AnyIPv4CidrBlock}
+// }
+
 // Bucket returns the cluster bucket configuration.
 func (s *ClusterScope) Bucket() *infrav1.S3Bucket {
 	return s.AWSCluster.Spec.S3Bucket

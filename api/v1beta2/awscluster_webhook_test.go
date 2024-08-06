@@ -699,7 +699,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 }
 
 func TestAWSClusterValidateUpdate(t *testing.T) {
-	var tests = []struct {
+	tests := []struct {
 		name       string
 		oldCluster *AWSCluster
 		newCluster *AWSCluster

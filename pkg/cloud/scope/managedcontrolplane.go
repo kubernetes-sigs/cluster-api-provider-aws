@@ -43,9 +43,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
-var (
-	scheme = runtime.NewScheme()
-)
+var scheme = runtime.NewScheme()
 
 func init() {
 	_ = amazoncni.AddToScheme(scheme)
@@ -234,6 +232,16 @@ func (s *ManagedControlPlaneScope) AllSecondaryCidrBlocks() []infrav1.VpcCidrBlo
 func (s *ManagedControlPlaneScope) SecurityGroupOverrides() map[infrav1.SecurityGroupRole]string {
 	return s.ControlPlane.Spec.NetworkSpec.SecurityGroupOverrides
 }
+
+// // NodePortServicesAllowedCidrs returns the cidr blocks to be used as the allowed sources in the node port services
+// // security group rule. Defaults to 0.0.0.0/0.
+// func (s *ManagedControlPlaneScope) NodePortServicesAllowedCidrs() []string {
+// 	if len(s.ControlPlane.Spec.NetworkSpec.NodePortServicesAllowedCidrs) > 0 {
+// 		return s.ControlPlane.Spec.NetworkSpec.NodePortServicesAllowedCidrs
+// 	}
+
+// 	return []string{cloud.AnyIPv4CidrBlock}
+// }
 
 // Name returns the CAPI cluster name.
 func (s *ManagedControlPlaneScope) Name() string {

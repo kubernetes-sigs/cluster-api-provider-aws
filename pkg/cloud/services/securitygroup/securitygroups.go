@@ -28,11 +28,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/tags"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
@@ -449,7 +449,7 @@ func (s *Service) revokeIngressAndEgressRulesFromVPCDefaultSecurityGroup() error
 			Protocol:   infrav1.SecurityGroupProtocolAll,
 			FromPort:   -1,
 			ToPort:     -1,
-			CidrBlocks: []string{services.AnyIPv4CidrBlock},
+			CidrBlocks: []string{cloud.AnyIPv4CidrBlock},
 		},
 	}
 	err = s.revokeSecurityGroupEgressRules(defaultSecurityGroupID, egressRules)
@@ -469,7 +469,7 @@ func makeInfraSecurityGroup(ec2sg *ec2.SecurityGroup) infrav1.SecurityGroup {
 }
 
 func (s *Service) createSecurityGroup(role infrav1.SecurityGroupRole, input *ec2.SecurityGroup) error {
-	sgTags := s.getSecurityGroupTagParams(aws.StringValue(input.GroupName), services.TemporaryResourceID, role)
+	sgTags := s.getSecurityGroupTagParams(aws.StringValue(input.GroupName), cloud.TemporaryResourceID, role)
 	out, err := s.EC2Client.CreateSecurityGroupWithContext(context.TODO(), &ec2.CreateSecurityGroupInput{
 		VpcId:       input.VpcId,
 		GroupName:   input.GroupName,
@@ -644,7 +644,7 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 		return append(cniRules, rules...), nil
 
 	case infrav1.SecurityGroupNode:
-		cidrBlocks := []string{services.AnyIPv4CidrBlock}
+		cidrBlocks := []string{cloud.AnyIPv4CidrBlock}
 		if scopeCidrBlocks := s.scope.NodePortIngressRuleCidrBlocks(); len(scopeCidrBlocks) > 0 {
 			cidrBlocks = scopeCidrBlocks
 		}
@@ -677,7 +677,7 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 				Protocol:       infrav1.SecurityGroupProtocolTCP,
 				FromPort:       30000,
 				ToPort:         32767,
-				IPv6CidrBlocks: []string{services.AnyIPv6CidrBlock},
+				IPv6CidrBlocks: []string{cloud.AnyIPv6CidrBlock},
 			})
 		}
 		return append(cniRules, rules...), nil
@@ -715,9 +715,9 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 				ipv6CidrBlocks = []string{s.scope.VPC().IPv6.CidrBlock}
 			}
 			if lb.PreserveClientIP {
-				ipv4CidrBlocks = []string{services.AnyIPv4CidrBlock}
+				ipv4CidrBlocks = []string{cloud.AnyIPv4CidrBlock}
 				if s.scope.VPC().IsIPv6Enabled() {
-					ipv6CidrBlocks = []string{services.AnyIPv6CidrBlock}
+					ipv6CidrBlocks = []string{cloud.AnyIPv6CidrBlock}
 				}
 			}
 
@@ -977,7 +977,7 @@ func (s *Service) getIngressRuleToAllowAnyIPInTheAPIServer() infrav1.IngressRule
 				Protocol:       infrav1.SecurityGroupProtocolTCP,
 				FromPort:       int64(s.scope.APIServerPort()),
 				ToPort:         int64(s.scope.APIServerPort()),
-				IPv6CidrBlocks: []string{services.AnyIPv6CidrBlock},
+				IPv6CidrBlocks: []string{cloud.AnyIPv6CidrBlock},
 			},
 		}
 	}
@@ -988,7 +988,7 @@ func (s *Service) getIngressRuleToAllowAnyIPInTheAPIServer() infrav1.IngressRule
 			Protocol:    infrav1.SecurityGroupProtocolTCP,
 			FromPort:    int64(s.scope.APIServerPort()),
 			ToPort:      int64(s.scope.APIServerPort()),
-			CidrBlocks:  []string{services.AnyIPv4CidrBlock},
+			CidrBlocks:  []string{cloud.AnyIPv4CidrBlock},
 		},
 	}
 }
