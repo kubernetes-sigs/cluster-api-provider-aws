@@ -8,6 +8,7 @@ import (
 	stderr "errors"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"k8s.io/utils/ptr"
 	"path"
 	"strings"
 
@@ -38,7 +39,7 @@ const (
 	opendIDConfigurationKey = "/.well-known/openid-configuration"
 )
 
-func certificateSecret(ctx context.Context, name, namespace, issuer string, dnsNames []string, client client.Client) (*corev1.Secret, error) {
+func (s *Service) certificateSecret(ctx context.Context, name, namespace, issuer string, dnsNames []string, client client.Client) (*corev1.Secret, error) {
 	// check if the secret was already created
 	certSecret := &corev1.Secret{}
 	if err := client.Get(ctx, types.NamespacedName{
@@ -58,8 +59,9 @@ func certificateSecret(ctx context.Context, name, namespace, issuer string, dnsN
 			Labels: map[string]string{
 				clusterv1.ProviderNameLabel: "infrastructure-aws",
 			},
-			Name:      name,
-			Namespace: namespace,
+			Name:            name,
+			Namespace:       namespace,
+			OwnerReferences: s.ownerRef(),
 		},
 		Spec: v1certmanager.CertificateSpec{
 			SecretName: name,
@@ -389,4 +391,19 @@ func (s *Service) reconcileKubeAPIParameters(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (s *Service) ownerRef() []metav1.OwnerReference {
+	c := s.scope.ClusterObj()
+	c.GetObjectKind().GroupVersionKind().GroupVersion().String()
+	return []metav1.OwnerReference{
+		metav1.OwnerReference{
+			APIVersion:         c.GetObjectKind().GroupVersionKind().GroupVersion().String(),
+			Kind:               c.GetObjectKind().GroupVersionKind().Kind,
+			Name:               s.scope.Name(),
+			UID:                c.GetUID(),
+			Controller:         ptr.To(true),
+			BlockOwnerDeletion: ptr.To(true),
+		},
+	}
 }
