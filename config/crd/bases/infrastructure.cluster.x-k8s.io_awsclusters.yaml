@@ -1706,6 +1706,25 @@ spec:
                         - ip-name
                         - resource-name
                         type: string
+                      secondaryCidrBlocks:
+                        description: |-
+                          SecondaryCidrBlocks are additional CIDR blocks to be associated when the provider creates a managed VPC.
+                          Defaults to none. Mutually exclusive with IPAMPool. This makes sense to use if, for example, you want to use
+                          a separate IP range for pods (e.g. Cilium ENI mode).
+                        items:
+                          description: VpcCidrBlock defines the CIDR block and settings
+                            to associate with the managed VPC. Currently, only IPv4
+                            is supported.
+                          properties:
+                            ipv4CidrBlock:
+                              description: IPv4CidrBlock is the IPv4 CIDR block to
+                                associate with the managed VPC.
+                              minLength: 1
+                              type: string
+                          required:
+                          - ipv4CidrBlock
+                          type: object
+                        type: array
                       subnetSchema:
                         default: PreferPrivate
                         description: |-
@@ -2094,6 +2113,10 @@ spec:
                     type: array
                   availabilityZone:
                     description: Availability zone of instance
+                    type: string
+                  capacityReservationId:
+                    description: CapacityReservationID specifies the target Capacity
+                      Reservation into which the instance should be launched.
                     type: string
                   ebsOptimized:
                     description: Indicates whether the instance is optimized for Amazon

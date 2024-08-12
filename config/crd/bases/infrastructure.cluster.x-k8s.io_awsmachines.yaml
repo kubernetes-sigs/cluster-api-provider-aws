@@ -624,6 +624,10 @@ spec:
                     description: ID of resource
                     type: string
                 type: object
+              capacityReservationId:
+                description: CapacityReservationID specifies the target Capacity Reservation
+                  into which the instance should be launched.
+                type: string
               cloudInit:
                 description: |-
                   CloudInit defines options related to the bootstrapping systems where

@@ -24,6 +24,12 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
+const (
+	// PreventDeletionLabel can be used in situations where preventing delation is allowed. The docs
+	// and the CRD will call this out where its allowed.
+	PreventDeletionLabel = "aws.cluster.x-k8s.io/prevent-deletion"
+)
+
 // AWSResourceReference is a reference to a specific AWS resource by ID or filters.
 // Only one of ID or Filters may be specified. Specifying more than one will result in
 // a validation error.
@@ -251,6 +257,10 @@ type Instance struct {
 	// PublicIPOnLaunch is the option to associate a public IP on instance launch
 	// +optional
 	PublicIPOnLaunch *bool `json:"publicIPOnLaunch,omitempty"`
+
+	// CapacityReservationID specifies the target Capacity Reservation into which the instance should be launched.
+	// +optional
+	CapacityReservationID *string `json:"capacityReservationId,omitempty"`
 }
 
 // InstanceMetadataState describes the state of InstanceMetadataOptions.HttpEndpoint and InstanceMetadataOptions.InstanceMetadataTags

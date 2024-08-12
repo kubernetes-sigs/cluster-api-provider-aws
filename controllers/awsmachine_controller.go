@@ -32,8 +32,8 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/types"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -609,9 +609,25 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 
 	// tasks that can take place during all known instance states
 	if machineScope.InstanceIsInKnownState() {
-		machineScope.Debug("running known state tasks", "instance", instance)
-		if err := r.reconcileKnownStateTasks(ctx, machineScope, ec2svc, elbScope, instance); err != nil {
+		_, err = r.ensureTags(ec2svc, machineScope.AWSMachine, machineScope.GetInstanceID(), machineScope.AdditionalTags())
+		if err != nil {
+			machineScope.Error(err, "failed to ensure tags")
 			return ctrl.Result{}, err
+		}
+
+		if instance != nil {
+			r.ensureStorageTags(ec2svc, instance, machineScope.AWSMachine, machineScope.AdditionalTags())
+		}
+
+		if err := r.reconcileLBAttachment(machineScope, elbScope, instance); err != nil {
+			// We are tolerating InstanceNotRunning error, so we don't report it as an error condition.
+			// Because we are reconciling all load balancers, attempt to treat the error as a list of errors.
+			if err := kerrors.FilterOut(err, elb.IsInstanceNotRunning); err != nil {
+				machineScope.Error(err, "failed to reconcile LB attachment")
+				return ctrl.Result{}, err
+			}
+			// Cannot attach non-running instances to LB
+			shouldRequeue = true
 		}
 	}
 
@@ -628,25 +644,6 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 		return ctrl.Result{RequeueAfter: DefaultReconcilerRequeue}, nil
 	}
 	return ctrl.Result{}, nil
-}
-
-func (r *AWSMachineReconciler) reconcileKnownStateTasks(_ context.Context, machineScope *scope.MachineScope, ec2svc services.EC2Interface, elbScope scope.ELBScope, instance *infrav1.Instance) error {
-	_, err := r.ensureTags(ec2svc, machineScope.AWSMachine, machineScope.GetInstanceID(), machineScope.AdditionalTags())
-	if err != nil {
-		machineScope.Error(err, "failed to ensure tags")
-		return err
-	}
-
-	if instance != nil {
-		r.ensureStorageTags(ec2svc, instance, machineScope.AWSMachine, machineScope.AdditionalTags())
-	}
-
-	if err := r.reconcileLBAttachment(machineScope, elbScope, instance); err != nil {
-		machineScope.Error(err, "failed to reconcile LB attachment")
-		return err
-	}
-
-	return nil
 }
 
 func (r *AWSMachineReconciler) reconcileOperationalState(ctx context.Context, ec2svc services.EC2Interface, machineScope *scope.MachineScope, instance *infrav1.Instance) error {
@@ -1055,6 +1052,14 @@ func (r *AWSMachineReconciler) registerInstanceToV2LB(machineScope *scope.Machin
 	if registered {
 		machineScope.Logger.Debug("Instance is already registered.", "instance", instance.ID)
 		return nil
+	}
+
+	// See https://docs.aws.amazon.com/elasticloadbalancing/latest/application/target-group-register-targets.html#register-instances
+	if ptr.Deref(machineScope.GetInstanceState(), infrav1.InstanceStatePending) != infrav1.InstanceStateRunning {
+		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedAttachControlPlaneELB",
+			"Cannot register control plane instance %q with load balancer: instance is not running", instance.ID)
+		conditions.MarkFalse(machineScope.AWSMachine, infrav1.ELBAttachedCondition, infrav1.ELBAttachFailedReason, clusterv1.ConditionSeverityInfo, "instance not running")
+		return elb.NewInstanceNotRunning("instance is not running")
 	}
 
 	if err := elbsvc.RegisterInstanceWithAPIServerLB(instance, lb); err != nil {

@@ -60,6 +60,7 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Status.Bastion.PlacementGroupPartition = restored.Status.Bastion.PlacementGroupPartition
 		dst.Status.Bastion.PrivateDNSName = restored.Status.Bastion.PrivateDNSName
 		dst.Status.Bastion.PublicIPOnLaunch = restored.Status.Bastion.PublicIPOnLaunch
+		dst.Status.Bastion.CapacityReservationID = restored.Status.Bastion.CapacityReservationID
 	}
 	dst.Spec.Partition = restored.Spec.Partition
 	dst.Spec.AssociateOIDCProvider = restored.Spec.AssociateOIDCProvider
@@ -108,6 +109,7 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.NetworkSpec.VPC.PrivateDNSHostnameTypeOnLaunch = restored.Spec.NetworkSpec.VPC.PrivateDNSHostnameTypeOnLaunch
 	dst.Spec.NetworkSpec.VPC.CarrierGatewayID = restored.Spec.NetworkSpec.VPC.CarrierGatewayID
 	dst.Spec.NetworkSpec.VPC.SubnetSchema = restored.Spec.NetworkSpec.VPC.SubnetSchema
+	dst.Spec.NetworkSpec.VPC.SecondaryCidrBlocks = restored.Spec.NetworkSpec.VPC.SecondaryCidrBlocks
 
 	if restored.Spec.NetworkSpec.VPC.ElasticIPPool != nil {
 		if dst.Spec.NetworkSpec.VPC.ElasticIPPool == nil {
