@@ -210,6 +210,7 @@ variables:
   EXP_BOOTSTRAP_FORMAT_IGNITION: "true"
   EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"
   EXP_EXTERNAL_RESOURCE_GC: "true"
+  EXP_OIDC_PROVIDER_SUPPORT: "true"
   GC_WORKLOAD: "../../data/gcworkload.yaml"
 
 intervals:

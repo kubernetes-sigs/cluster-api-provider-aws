@@ -269,7 +269,7 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 				IsPublic:         false,
 			},
 		})
-		_, err = reconciler.reconcileNormal(context.TODO(), cs)
+		_, err = reconciler.reconcileNormal(ctx, cs)
 		g.Expect(err).To(BeNil())
 		g.Expect(cs.VPC().ID).To(Equal("vpc-exists"))
 		expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{
@@ -376,7 +376,7 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 				IsPublic:         false,
 			},
 		})
-		_, err = reconciler.reconcileNormal(context.TODO(), cs)
+		_, err = reconciler.reconcileNormal(ctx, cs)
 		g.Expect(err).To(BeNil())
 		g.Expect(cs.VPC().ID).To(Equal("vpc-exists"))
 		expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{
@@ -565,7 +565,7 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 			return ec2Svc
 		}
 
-		_, err = reconciler.reconcileNormal(context.TODO(), cs)
+		_, err = reconciler.reconcileNormal(ctx, cs)
 		g.Expect(err.Error()).To(ContainSubstring("The maximum number of VPCs has been reached"))
 
 		err = reconciler.reconcileDelete(ctx, cs)

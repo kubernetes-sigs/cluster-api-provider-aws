@@ -7,87 +7,14 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
-	v1certmanager "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/converters"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
-
-const podIdentityNamespace = "kube-system"
-
-// reconcilePodIdentityWebhook generates certs and starts the webhook in the workload cluster
-// https://github.com/aws/amazon-eks-pod-identity-webhook
-// 1. generate webhook certs via cert-manager in the management cluster
-// 2. push cert secret down to the workload cluster
-// 3. deploy pod identity webhook components with mounted certs (rbac,deployment,mwh,service).
-func (s *Service) reconcilePodIdentityWebhook(ctx context.Context) error {
-	certName := fmt.Sprintf(PodIdentityWebhookCertificateFormat, s.scope.Name())
-	certSecret, err := certificateSecret(ctx,
-		certName, s.scope.Namespace(),
-		fmt.Sprintf(SelfsignedIssuerFormat, s.scope.Name()), []string{
-			fmt.Sprintf("%s.%s.svc", podIdentityWebhookName, podIdentityNamespace),
-			fmt.Sprintf("%s.%s.svc.cluster.local", podIdentityWebhookName, podIdentityNamespace),
-		}, s.scope.ManagementClient())
-
-	if err != nil {
-		return err
-	}
-
-	remoteClient, err := s.scope.RemoteClient()
-	if err != nil {
-		return err
-	}
-
-	// switch it to kube-system and move it to the remote cluster
-	if err := reconcileCertificateSecret(ctx, certSecret, remoteClient); err != nil {
-		return err
-	}
-
-	if err := reconcilePodIdentityWebhookComponents(ctx, podIdentityNamespace, certSecret, remoteClient); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// reconcileSelfsignedIssuer create a selfsigned issuer at the cluster level.
-func (s *Service) reconcileSelfsignedIssuer(ctx context.Context) error {
-	mgmtClient := s.scope.ManagementClient()
-	issuerName := fmt.Sprintf(SelfsignedIssuerFormat, s.scope.Name())
-	issuer := &v1certmanager.Issuer{
-		ObjectMeta: metav1.ObjectMeta{
-			Labels: map[string]string{
-				clusterv1.ProviderNameLabel: "infrastructure-aws",
-			},
-			Name:      issuerName,
-			Namespace: s.scope.Namespace(),
-		},
-		Spec: v1certmanager.IssuerSpec{
-			IssuerConfig: v1certmanager.IssuerConfig{
-				SelfSigned: &v1certmanager.SelfSignedIssuer{},
-			},
-		},
-	}
-
-	if err := mgmtClient.Get(ctx, types.NamespacedName{
-		Name:      issuerName,
-		Namespace: s.scope.Namespace(),
-	}, issuer); err != nil && !apierrors.IsNotFound(err) {
-		return err
-	}
-
-	if issuer.UID != "" {
-		return nil
-	}
-
-	return mgmtClient.Create(ctx, issuer)
-}
 
 // CreateOIDCProvider will create an OIDC provider in IAM and store the arn/trustpolicy on the cluster status.
 func (s *Service) reconcileIdentityProvider(_ context.Context) error {

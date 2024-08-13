@@ -27,7 +27,6 @@ import (
 	"os"
 	"time"
 
-	v1certmanager "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime"
 	cgscheme "k8s.io/client-go/kubernetes/scheme"
@@ -67,8 +66,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/version"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	bootstrapv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
-	controlplanev1beta1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/flags"
 )
@@ -91,9 +88,6 @@ func init() {
 	_ = infrav1beta1.AddToScheme(scheme)
 	_ = expinfrav1beta1.AddToScheme(scheme)
 	_ = expinfrav1.AddToScheme(scheme)
-	_ = v1certmanager.AddToScheme(scheme)
-	_ = controlplanev1beta1.AddToScheme(scheme)
-	_ = bootstrapv1beta1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 

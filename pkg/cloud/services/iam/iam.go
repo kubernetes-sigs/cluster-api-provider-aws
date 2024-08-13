@@ -34,12 +34,6 @@ const (
 	// TrustPolicyJSON is the data key for the configmap containing the oidc trust policy.
 	TrustPolicyJSON = "trust-policy.json"
 
-	// PodIdentityWebhookCertificateFormat the format for the cert name used for the pod-identity-webhook.
-	PodIdentityWebhookCertificateFormat = "%s-pod-id-wh"
-
-	// SelfsignedIssuerFormat format for the self signed issuer used for the cluster to make the pod-identity-webhook cert.
-	SelfsignedIssuerFormat = "%s-selfsigned-issuer"
-
 	// S3HostFormat format for the host format for s3 for the oidc provider.
 	S3HostFormat = "s3.%s.amazonaws.com"
 
@@ -57,16 +51,13 @@ var (
 	WhitespaceRegex = regexp.MustCompile(`(?m)[\t\n]`)
 )
 
-// ReconcileOIDCProvider replicates functionality already built into managed clusters by auto-deploying the
-// modifying kube-apiserver args, deploying the pod identity webhook and setting/configuring an oidc provider
-// for more details see: https://github.com/aws/amazon-eks-pod-identity-webhook/blob/master/SELF_HOSTED_SETUP.md
-// 1. create a self-signed issuer for the mutating webhook
-// 2. add create a json patch for kube-apiserver and use capi config to add to the kubeadm.yml
-// 3. create an oidc provider in aws which points to the s3 bucket
-// 4. pause until kubeconfig and cluster access is ready
-// 5. move openid config and JWKs to the s3 bucket
-// 6. add the pod identity webhook to the workload cluster
-// 7. add the configmap to the workload cluster.
+// ReconcileOIDCProvider replicates functionality already built into managed clusters by auto-deploying an oidc provider
+// that trusts the clusters Service Account issuer.
+// For more details see: https://github.com/aws/amazon-eks-pod-identity-webhook/blob/master/SELF_HOSTED_SETUP.md
+// 1. create an oidc provider in aws which points to the s3 bucket
+// 2. pause until kubeconfig and cluster access is ready
+// 3. build openid discovery config and upload to S3 bucket
+// 4. copy Service Account public signing JWKs to the s3 bucket
 func (s *Service) ReconcileOIDCProvider(ctx context.Context) error {
 	if !s.scope.AssociateOIDCProvider() {
 		return nil
@@ -77,14 +68,6 @@ func (s *Service) ReconcileOIDCProvider(ctx context.Context) error {
 
 	if s.scope.Bucket() == nil {
 		return errors.New("s3 bucket configuration required to associate oidc provider")
-	}
-
-	if err := s.reconcileSelfsignedIssuer(ctx); err != nil {
-		return err
-	}
-
-	if err := s.reconcileKubeAPIParameters(ctx); err != nil {
-		return err
 	}
 
 	if err := s.reconcileIdentityProvider(ctx); err != nil {
@@ -102,10 +85,6 @@ func (s *Service) ReconcileOIDCProvider(ctx context.Context) error {
 	if err := s.reconcileBucketContents(ctx); err != nil {
 		return err
 	}
-	log.Info("Creating PodIdentityWebhook addon")
-	if err := s.reconcilePodIdentityWebhook(ctx); err != nil {
-		return err
-	}
 
 	if err := s.reconcileTrustPolicyConfigMap(ctx); err != nil {
 		return fmt.Errorf("failed to reconcile trust policy config map: %w", err)
@@ -116,10 +95,7 @@ func (s *Service) ReconcileOIDCProvider(ctx context.Context) error {
 	return nil
 }
 
-// DeleteOIDCProvider will delete the iam resources note that the bucket is cleaned up in the s3 service
-// 1. delete oidc provider
-// 2. delete mwh certificate
-// 3. delete cert-manager issuer.
+// DeleteOIDCProvider will delete the IAM OIDC provider. Note: that the bucket is cleaned up in the s3 service
 func (s *Service) DeleteOIDCProvider(ctx context.Context) error {
 	if !s.scope.AssociateOIDCProvider() {
 		return nil
@@ -132,10 +108,6 @@ func (s *Service) DeleteOIDCProvider(ctx context.Context) error {
 		if err := s.deleteBucketContents(s3.NewService(s.scope)); err != nil {
 			return err
 		}
-	}
-
-	if err := deleteCertificatesAndIssuer(ctx, s.scope.Name(), s.scope.Namespace(), s.scope.ManagementClient()); err != nil {
-		return err
 	}
 
 	return deleteOIDCProvider(s.scope.OIDCProviderStatus().ARN, s.IAMClient)

@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"k8s.io/utils/ptr"
 	"testing"
 	"time"
 
@@ -455,7 +456,7 @@ func getMachineScope(cs *scope.ClusterScope, awsMachine *infrav1.AWSMachine) (*s
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: aws.String("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 				},
 			},

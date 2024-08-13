@@ -136,7 +136,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					Spec: clusterv1.MachineSpec{
 						ClusterName: "capi-test",
 						Bootstrap: clusterv1.Bootstrap{
-							DataSecretName: aws.String("bootstrap-data"),
+							DataSecretName: ptr.To[string]("bootstrap-data"),
 						},
 					},
 				},

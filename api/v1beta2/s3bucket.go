@@ -38,9 +38,9 @@ func (b *S3Bucket) Validate() []*field.Error {
 	}
 
 	// Feature gate is not enabled but ignition is enabled then send a forbidden error.
-	if !feature.Gates.Enabled(feature.BootstrapFormatIgnition) {
+	if !feature.Gates.Enabled(feature.BootstrapFormatIgnition) && !feature.Gates.Enabled(feature.OIDCProviderSupport) {
 		errs = append(errs, field.Forbidden(field.NewPath("spec", "s3Bucket"),
-			"can be set only if the BootstrapFormatIgnition feature gate is enabled"))
+			"can be set only if the BootstrapFormatIgnition or OIDCProviderSupport feature gate is enabled"))
 	}
 
 	if b.PresignedURLDuration == nil {

@@ -385,26 +385,6 @@ func (r *AWSClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 		return reconcile.Result{RequeueAfter: 15 * time.Second}, nil
 	}
 
-	if awsCluster.Status.Network.APIServerELB.DNSName == "" {
-		conditions.MarkFalse(awsCluster, infrav1.LoadBalancerReadyCondition, infrav1.WaitForDNSNameReason, clusterv1.ConditionSeverityInfo, "")
-		clusterScope.Info("Waiting on API server ELB DNS name")
-		return reconcile.Result{RequeueAfter: 15 * time.Second}, nil
-	}
-
-	clusterScope.Debug("looking up IP address for DNS", "dns", awsCluster.Status.Network.APIServerELB.DNSName)
-	if _, err := net.LookupIP(awsCluster.Status.Network.APIServerELB.DNSName); err != nil {
-		clusterScope.Error(err, "failed to get IP address for dns name", "dns", awsCluster.Status.Network.APIServerELB.DNSName)
-		conditions.MarkFalse(awsCluster, infrav1.LoadBalancerReadyCondition, infrav1.WaitForDNSNameResolveReason, clusterv1.ConditionSeverityInfo, "")
-		clusterScope.Info("Waiting on API server ELB DNS name to resolve")
-		return reconcile.Result{RequeueAfter: 15 * time.Second}, nil
-	}
-	conditions.MarkTrue(awsCluster, infrav1.LoadBalancerReadyCondition)
-
-	awsCluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{
-		Host: awsCluster.Status.Network.APIServerELB.DNSName,
-		Port: clusterScope.APIServerPort(),
-	}
-
 	for _, subnet := range clusterScope.Subnets().FilterPrivate() {
 		found := false
 		for _, az := range awsCluster.Status.Network.APIServerELB.AvailabilityZones {

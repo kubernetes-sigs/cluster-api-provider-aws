@@ -404,7 +404,7 @@ func (s *ClusterScope) S3Bucket() *infrav1.S3Bucket {
 	return s.AWSCluster.Spec.S3Bucket
 }
 
-// AssociateOIDCProvider returns if the cluster should have an OIDC Provider Associated.
+// AssociateOIDCProvider returns true if the cluster should have an OIDC Provider Associated.
 func (s *ClusterScope) AssociateOIDCProvider() bool {
 	return s.AWSCluster.Spec.AssociateOIDCProvider
 }

@@ -5,33 +5,24 @@ import (
 	"context"
 	"crypto/sha1"
 	"crypto/tls"
+	"encoding/json"
 	stderr "errors"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"k8s.io/utils/ptr"
 	"path"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
-	v1certmanager "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
-	v1certmanagermeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/s3"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	v1beta12 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	v1beta13 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 )
 
 const (
@@ -39,64 +30,27 @@ const (
 	opendIDConfigurationKey = "/.well-known/openid-configuration"
 )
 
-func (s *Service) certificateSecret(ctx context.Context, name, namespace, issuer string, dnsNames []string, client client.Client) (*corev1.Secret, error) {
-	// check if the secret was already created
-	certSecret := &corev1.Secret{}
-	if err := client.Get(ctx, types.NamespacedName{
-		Name:      name,
-		Namespace: namespace,
-	}, certSecret); err != nil && !apierrors.IsNotFound(err) {
-		return nil, err
-	}
+type oidcDiscovery struct {
+	Issuer                string   `json:"issuer"`
+	JWKSURI               string   `json:"jwks_uri"`
+	AuthorizationEndpoint string   `json:"authorization_endpoint"`
+	ResponseTypes         []string `json:"response_types_supported"`
+	SubjectTypes          []string `json:"subject_types_supported"`
+	SigningAlgs           []string `json:"id_token_signing_alg_values_supported"`
+	ClaimsSupported       []string `json:"claims_supported"`
+}
 
-	if certSecret.UID != "" {
-		return certSecret, nil
+func buildDiscoveryJSON(issuerURL string) ([]byte, error) {
+	d := oidcDiscovery{
+		Issuer:                issuerURL,
+		JWKSURI:               fmt.Sprintf("%v/openid/v1/jwks", issuerURL),
+		AuthorizationEndpoint: "urn:kubernetes:programmatic_authorization",
+		ResponseTypes:         []string{"id_token"},
+		SubjectTypes:          []string{"public"},
+		SigningAlgs:           []string{"RS256"},
+		ClaimsSupported:       []string{"sub", "iss"},
 	}
-
-	// cert does not exist, create the request
-	cert := &v1certmanager.Certificate{
-		ObjectMeta: metav1.ObjectMeta{
-			Labels: map[string]string{
-				clusterv1.ProviderNameLabel: "infrastructure-aws",
-			},
-			Name:            name,
-			Namespace:       namespace,
-			OwnerReferences: s.ownerRef(),
-		},
-		Spec: v1certmanager.CertificateSpec{
-			SecretName: name,
-			IsCA:       true,
-			PrivateKey: &v1certmanager.CertificatePrivateKey{
-				Algorithm: v1certmanager.RSAKeyAlgorithm,
-				Size:      2048,
-			},
-			IssuerRef: v1certmanagermeta.ObjectReference{
-				Kind: "Issuer",
-				Name: issuer,
-			},
-			DNSNames: dnsNames,
-		},
-	}
-
-	// check if cert already exists
-	if err := client.Get(ctx, types.NamespacedName{
-		Name:      name,
-		Namespace: namespace,
-	}, cert); err != nil && !apierrors.IsNotFound(err) {
-		return nil, err
-	}
-
-	if cert.UID == "" {
-		if err := client.Create(ctx, cert); err != nil {
-			return nil, err
-		}
-	}
-
-	// check if the secret was created by cert-manager, return all errors until cert manager is done
-	return certSecret, client.Get(ctx, types.NamespacedName{
-		Name:      name,
-		Namespace: namespace,
-	}, certSecret)
+	return json.MarshalIndent(d, "", "")
 }
 
 func (s *Service) deleteBucketContents(s3 *s3.Service) error {
@@ -107,33 +61,9 @@ func (s *Service) deleteBucketContents(s3 *s3.Service) error {
 	return s3.Delete("/" + path.Join(s.scope.Name(), opendIDConfigurationKey))
 }
 
-func deleteCertificatesAndIssuer(ctx context.Context, name, namespace string, client client.Client) error {
-	certs := []string{
-		fmt.Sprintf(PodIdentityWebhookCertificateFormat, name),
-	}
-
-	for _, c := range certs {
-		cert := &v1certmanager.Certificate{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      c,
-				Namespace: namespace,
-			},
-		}
-		if err := client.Delete(ctx, cert); err != nil && !apierrors.IsNotFound(err) {
-			return err
-		}
-	}
-
-	if err := client.Delete(ctx, &v1certmanager.Issuer{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf(SelfsignedIssuerFormat, name),
-			Namespace: namespace,
-		},
-	}); err != nil && !apierrors.IsNotFound(err) {
-		return err
-	}
-
-	return nil
+func (s *Service) buildIssuerURL() string {
+	// e.g. s3-us-west-2.amazonaws.com/<bucketname>/<clustername>
+	return fmt.Sprintf("https://s3.%s.amazonaws.com/%s/%s", s.scope.Region(), s.scope.Bucket().Name, s.scope.Name())
 }
 
 func (s *Service) reconcileBucketContents(ctx context.Context) error {
@@ -155,16 +85,19 @@ func (s *Service) reconcileBucketContents(ctx context.Context) error {
 		return err
 	}
 
-	s3scope := s3.NewService(s.scope)
-	conf, err := get(ctx, clientSet, opendIDConfigurationKey)
+	// create the OpenID Connect discovery document
+	openIDConfig, err := buildDiscoveryJSON(s.buildIssuerURL())
 	if err != nil {
 		return err
 	}
 
-	if _, err := s3scope.CreatePublic("/"+path.Join(s.scope.Name(), opendIDConfigurationKey), []byte(conf)); err != nil {
+	s3scope := s3.NewService(s.scope)
+
+	if _, err := s3scope.CreatePublic("/"+path.Join(s.scope.Name(), opendIDConfigurationKey), openIDConfig); err != nil {
 		return err
 	}
 
+	// retrieve Service Account Issuer signing keys from workload cluster API
 	jwks, err := get(ctx, clientSet, jwksKey)
 	if err != nil {
 		return err
@@ -306,104 +239,4 @@ func deleteOIDCProvider(arn string, iamClient iamiface.IAMAPI) error {
 
 	}
 	return nil
-}
-
-// reconcileKubeAPIParameters
-// 1. find kubeadmcontrolplane
-// 2. use name/namespace to pull kubeadmconfig
-// 3. update files/params.
-func (s *Service) reconcileKubeAPIParameters(ctx context.Context) error {
-	managementClient := s.scope.ManagementClient()
-	name := s.scope.Name()
-	namespace := s.scope.Namespace()
-
-	s3Host := fmt.Sprintf(S3HostFormat, s.scope.Region())
-	accountIssuer := "https://" + path.Join(s3Host, s.scope.Bucket().Name, s.scope.Name())
-
-	listOptions := []client.ListOption{
-		client.InNamespace(namespace),
-		client.MatchingLabels(map[string]string{clusterv1.ClusterNameLabel: name}),
-	}
-
-	controlPlanes := &v1beta13.KubeadmControlPlaneList{}
-	if err := managementClient.List(ctx, controlPlanes, listOptions...); err != nil {
-		return fmt.Errorf("failed to list kubeadm control planes for cluster %s/%s: %w", namespace, name, err)
-	}
-
-	patchContent := `[
-		{
-			"op": "add",
-			"path": "/spec/containers/0/command/1",
-			"value": "--api-audiences=https://kubernetes.default.svc.cluster.local"
-		},
-		{
-			"op": "add",
-			"path": "/spec/containers/0/command/1",
-			"value": "--api-audiences=` + STSAWSAudience + `"
-		},
-		{
-			"op": "add",
-			"path": "/spec/containers/0/command/1",
-			"value": "--service-account-issuer=` + accountIssuer + `"
-		},
-		{
-			"op": "add",
-			"path": "/spec/containers/0/command/1",
-			"value": "--service-account-jwks-uri=` + accountIssuer + jwksKey + `"
-		}
-	]`
-
-	for i := range controlPlanes.Items {
-		// files have to be unique so rebuild and toss the ones we're going to add
-		var files []v1beta12.File
-		for _, file := range controlPlanes.Items[i].Spec.KubeadmConfigSpec.Files {
-			if file.Path != "/etc/kubernetes/patches/kube-apiserver0+json.json" {
-				files = append(files, file)
-			} else if file.Content == patchContent {
-				return nil // nothing to reconcile
-			}
-		}
-
-		controlPlanes.Items[i].Spec.KubeadmConfigSpec.Files = append(files,
-			// command starts with 0 == kube-apiserver, json patch add will insert at the position and shift the array
-			v1beta12.File{
-				Path:    "/etc/kubernetes/patches/kube-apiserver0+json.json",
-				Content: patchContent,
-			})
-
-		// panic checks to be safe
-		if controlPlanes.Items[i].Spec.KubeadmConfigSpec.InitConfiguration == nil {
-			controlPlanes.Items[i].Spec.KubeadmConfigSpec.InitConfiguration = &v1beta12.InitConfiguration{
-				Patches: &v1beta12.Patches{},
-			}
-		}
-
-		if controlPlanes.Items[i].Spec.KubeadmConfigSpec.InitConfiguration.Patches == nil {
-			controlPlanes.Items[i].Spec.KubeadmConfigSpec.InitConfiguration.Patches = &v1beta12.Patches{}
-		}
-
-		// set the patch directory for kubeadmn init to apply before booting apiserver
-		controlPlanes.Items[i].Spec.KubeadmConfigSpec.InitConfiguration.Patches.Directory = "/etc/kubernetes/patches"
-
-		if err := managementClient.Update(ctx, &controlPlanes.Items[i]); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (s *Service) ownerRef() []metav1.OwnerReference {
-	c := s.scope.ClusterObj()
-	c.GetObjectKind().GroupVersionKind().GroupVersion().String()
-	return []metav1.OwnerReference{
-		metav1.OwnerReference{
-			APIVersion:         c.GetObjectKind().GroupVersionKind().GroupVersion().String(),
-			Kind:               c.GetObjectKind().GroupVersionKind().Kind,
-			Name:               s.scope.Name(),
-			UID:                c.GetUID(),
-			Controller:         ptr.To(true),
-			BlockOwnerDeletion: ptr.To(true),
-		},
-	}
 }
