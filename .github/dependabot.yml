@@ -49,7 +49,7 @@ updates:
         update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
       # Ignore openshift ROSA pkgs as its upgraded manually.
       - dependency-name: "github.com/openshift*"
-        update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
+        update-types: [ "version-update:semver-major", "version-update:semver-minor", "version-update:semver-patch" ]
 
   - package-ecosystem: "docker"
     directory: "/"
