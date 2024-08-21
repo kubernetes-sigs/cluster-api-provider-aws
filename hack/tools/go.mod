@@ -1,8 +1,8 @@
 module sigs.k8s.io/cluster-api-provider-aws/hack/tools
 
-go 1.21
+go 1.22
 
-toolchain go1.21.5
+toolchain go1.22.6
 
 // kube-openapi should match the version imported by kustomize.
 replace k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20230501164219-8b0f38b5fd1f
@@ -155,7 +155,7 @@ require (
 	github.com/distribution/reference v0.5.0 // indirect
 	github.com/docker/cli v25.0.4+incompatible // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
-	github.com/docker/docker v26.1.4+incompatible // indirect
+	github.com/docker/docker v26.1.5+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.8.0 // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
