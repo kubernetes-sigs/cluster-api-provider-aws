@@ -13,6 +13,10 @@ on:
           description: 'Run code generation manually from GH CLI'
           required: true
           default: 'Make Generate'
+
+permissions:
+  contents: write # Allow actions to update dependabot PRs
+
 jobs:
   build:
     name: Build
