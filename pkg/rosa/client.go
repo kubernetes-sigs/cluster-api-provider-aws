@@ -13,11 +13,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/version"
 )
 
 const (
-	ocmTokenKey  = "ocmToken"
-	ocmAPIURLKey = "ocmApiUrl"
+	ocmTokenKey      = "ocmToken"
+	ocmAPIURLKey     = "ocmApiUrl"
+	defaultUserAgent = "ROSACAPA"
 )
 
 // NewOCMClient creates a new OCM client.
@@ -29,6 +31,8 @@ func NewOCMClient(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (
 	return ocm.NewClient().Logger(logrus.New()).Config(&ocmcfg.Config{
 		AccessToken: token,
 		URL:         url,
+		UserAgent:   defaultUserAgent,
+		Version:     version.Get().String(),
 	}).Build()
 }
 
