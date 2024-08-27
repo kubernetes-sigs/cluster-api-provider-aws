@@ -41,10 +41,11 @@ COPY ./ ./
 ARG package=.
 ARG ARCH
 ARG LDFLAGS
+ARG GCFLAGS
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.local/share/golang \
-    CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags "${LDFLAGS} -extldflags '-static'"  -o manager ${package}
+    CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -gcflags "${GCFLAGS}" -ldflags "${LDFLAGS} -extldflags '-static'"  -o manager ${package}
 ENTRYPOINT [ "/start.sh", "/workspace/manager" ]
 
 # Copy the controller-manager into a thin image

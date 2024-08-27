@@ -121,6 +121,10 @@ func (s *Service) reconcileCluster(ctx context.Context) error {
 		return errors.Wrap(err, "failed reconciling cluster config")
 	}
 
+	if err := s.reconcileAccessConfig(cluster.AccessConfig); err != nil {
+		return errors.Wrap(err, "failed reconciling access config")
+	}
+
 	if err := s.reconcileLogging(ctx, cluster.Logging); err != nil {
 		return errors.Wrap(err, "failed reconciling logging")
 	}
@@ -422,6 +426,13 @@ func (s *Service) createCluster(ctx context.Context, eksClusterName string) (*ek
 		return nil, errors.Wrap(err, "couldn't create vpc config for cluster")
 	}
 
+	var accessConfig *ekstypes.CreateAccessConfigRequest
+	if s.scope.ControlPlane.Spec.AccessConfig != nil && s.scope.ControlPlane.Spec.AccessConfig.AuthenticationMode != "" {
+		accessConfig = &ekstypes.CreateAccessConfigRequest{
+			AuthenticationMode: string(s.scope.ControlPlane.Spec.AccessConfig.AuthenticationMode),
+		}
+	}
+
 	var netConfig *ekstypes.KubernetesNetworkConfigRequest
 	if s.scope.VPC().IsIPv6Enabled() {
 		netConfig = &ekstypes.KubernetesNetworkConfigRequest{
@@ -465,12 +476,17 @@ func (s *Service) createCluster(ctx context.Context, eksClusterName string) (*ek
 		Name:                       aws.String(eksClusterName),
 		Version:                    eksVersion,
 		Logging:                    logging,
+		AccessConfig:               accessConfig,
 		EncryptionConfig:           encryptionConfigs,
 		ResourcesVpcConfig:         vpcConfig,
 		RoleArn:                    role.Arn,
 		Tags:                       tags,
 		KubernetesNetworkConfig:    netConfig,
 		BootstrapSelfManagedAddons: bootstrapAddon,
+	}
+
+	if err := input.Validate(); err != nil {
+		return nil, errors.Wrap(err, "created invalid CreateClusterInput")
 	}
 
 	var out *eks.CreateClusterOutput
@@ -539,6 +555,56 @@ func (s *Service) reconcileClusterConfig(ctx context.Context, cluster *ekstypes.
 			return errors.Wrapf(err, "failed to update EKS cluster")
 		}
 	}
+	return nil
+}
+
+func (s *Service) reconcileAccessConfig(accessConfig *ekstypes.AccessConfigResponse) error {
+	input := &eks.UpdateClusterConfigInput{Name: aws.String(s.scope.KubernetesClusterName())}
+
+	if s.scope.ControlPlane.Spec.AccessConfig == nil || s.scope.ControlPlane.Spec.AccessConfig.AuthenticationMode == "" {
+		return nil
+	}
+
+	expectedAuthenticationMode := string(s.scope.ControlPlane.Spec.AccessConfig.AuthenticationMode)
+	s.scope.Debug("Reconciling EKS Access Config for cluster", "cluster-name", s.scope.KubernetesClusterName(), "expected", expectedAuthenticationMode, "current", accessConfig.AuthenticationMode)
+	if expectedAuthenticationMode != accessConfig.AuthenticationMode {
+		input.AccessConfig = &eks.UpdateAccessConfigRequest{
+			AuthenticationMode: aws.String(expectedAuthenticationMode),
+		}
+	}
+
+	if input.AccessConfig != nil {
+		if err := input.Validate(); err != nil {
+			return errors.Wrap(err, "created invalid UpdateClusterConfigInput")
+		}
+
+		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+			if _, err := s.EKSClient.UpdateClusterConfig(input); err != nil {
+				if aerr, ok := err.(awserr.Error); ok {
+					return false, aerr
+				}
+				return false, err
+			}
+
+			// Wait until status transitions to UPDATING because there's a short
+			// window after UpdateClusterVersion returns where the cluster
+			// status is ACTIVE and the update would be tried again
+			if err := s.EKSClient.WaitUntilClusterUpdating(
+				&eks.DescribeClusterInput{Name: aws.String(s.scope.KubernetesClusterName())},
+				request.WithWaiterLogger(&awslog{s.GetLogger()}),
+			); err != nil {
+				return false, err
+			}
+
+			conditions.MarkTrue(s.scope.ControlPlane, ekscontrolplanev1.EKSControlPlaneUpdatingCondition)
+			record.Eventf(s.scope.ControlPlane, "InitiatedUpdateEKSControlPlane", "Initiated auth config update for EKS control plane %s", s.scope.KubernetesClusterName())
+			return true, nil
+		}); err != nil {
+			record.Warnf(s.scope.ControlPlane, "FailedUpdateEKSControlPlane", "Failed to update EKS control plane auth config: %v", err)
+			return errors.Wrapf(err, "failed to update EKS cluster")
+		}
+	}
+
 	return nil
 }
 

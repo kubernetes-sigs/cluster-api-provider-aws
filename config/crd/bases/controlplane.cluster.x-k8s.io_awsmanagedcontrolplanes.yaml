@@ -67,6 +67,21 @@ spec:
             description: AWSManagedControlPlaneSpec defines the desired state of an
               Amazon EKS Cluster.
             properties:
+              accessConfig:
+                description: AccessConfig specifies the access configuration information
+                  for the cluster
+                properties:
+                  authenticationMode:
+                    default: CONFIG_MAP
+                    description: |-
+                      AuthenticationMode specifies the desired authentication mode for the cluster
+                      Defaults to CONFIG_MAP
+                    enum:
+                    - CONFIG_MAP
+                    - API
+                    - API_AND_CONFIG_MAP
+                    type: string
+                type: object
               additionalTags:
                 additionalProperties:
                   type: string
@@ -2245,6 +2260,21 @@ spec:
             description: AWSManagedControlPlaneSpec defines the desired state of an
               Amazon EKS Cluster.
             properties:
+              accessConfig:
+                description: AccessConfig specifies the access configuration information
+                  for the cluster
+                properties:
+                  authenticationMode:
+                    default: CONFIG_MAP
+                    description: |-
+                      AuthenticationMode specifies the desired authentication mode for the cluster
+                      Defaults to CONFIG_MAP
+                    enum:
+                    - CONFIG_MAP
+                    - API
+                    - API_AND_CONFIG_MAP
+                    type: string
+                type: object
               additionalTags:
                 additionalProperties:
                   type: string
@@ -3053,7 +3083,7 @@ spec:
                 type: object
               oidcIdentityProviderConfig:
                 description: |-
-                  IdentityProviderconfig is used to specify the oidc provider config
+                  OIDCIdentityProviderConfig is used to specify the oidc provider config
                   to be attached with this eks cluster
                 properties:
                   clientId:
