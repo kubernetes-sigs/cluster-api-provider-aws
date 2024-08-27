@@ -2245,14 +2245,14 @@ spec:
                   for the cluster
                 properties:
                   authenticationMode:
-                    default: config_map
+                    default: CONFIG_MAP
                     description: |-
                       AuthenticationMode specifies the desired authentication mode for the cluster
-                      Defaults to config_map
+                      Defaults to CONFIG_MAP
                     enum:
-                    - config_map
-                    - api
-                    - api_and_config_map
+                    - CONFIG_MAP
+                    - API
+                    - API_AND_CONFIG_MAP
                     type: string
                   bootstrapClusterCreatorAdminPermissions:
                     default: true
@@ -3065,7 +3065,7 @@ spec:
                 type: object
               oidcIdentityProviderConfig:
                 description: |-
-                  IdentityProviderconfig is used to specify the oidc provider config
+                  OIDCIdentityProviderConfig is used to specify the oidc provider config
                   to be attached with this eks cluster
                 properties:
                   clientId:

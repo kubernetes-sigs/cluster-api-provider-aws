@@ -187,7 +187,7 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// +optional
 	Addons *[]Addon `json:"addons,omitempty"`
 
-	// IdentityProviderconfig is used to specify the oidc provider config
+	// OIDCIdentityProviderConfig is used to specify the oidc provider config
 	// to be attached with this eks cluster
 	// +optional
 	OIDCIdentityProviderConfig *OIDCIdentityProviderConfig `json:"oidcIdentityProviderConfig,omitempty"`
@@ -255,9 +255,9 @@ type EndpointAccess struct {
 // AccessConfig represents the access configuration information for the cluster
 type AccessConfig struct {
 	// AuthenticationMode specifies the desired authentication mode for the cluster
-	// Defaults to config_map
-	// +kubebuilder:default=config_map
-	// +kubebuilder:validation:Enum=config_map;api;api_and_config_map
+	// Defaults to CONFIG_MAP
+	// +kubebuilder:default=CONFIG_MAP
+	// +kubebuilder:validation:Enum=CONFIG_MAP;API;API_AND_CONFIG_MAP
 	AuthenticationMode EKSAuthenticationMode `json:"authenticationMode,omitempty"`
 
 	// BootstrapClusterCreatorAdminPermissions grants cluster admin permissions
@@ -266,7 +266,6 @@ type AccessConfig struct {
 	// +kubebuilder:default=true
 	BootstrapClusterCreatorAdminPermissions *bool `json:"bootstrapClusterCreatorAdminPermissions,omitempty"`
 }
-
 // EncryptionConfig specifies the encryption configuration for the EKS clsuter.
 type EncryptionConfig struct {
 	// Provider specifies the ARN or alias of the CMK (in AWS KMS)

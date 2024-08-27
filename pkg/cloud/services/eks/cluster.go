@@ -492,6 +492,10 @@ func (s *Service) createCluster(ctx context.Context, eksClusterName string) (*ek
 		BootstrapSelfManagedAddons: bootstrapAddon,
 	}
 
+	if err := input.Validate(); err != nil {
+		return nil, errors.Wrap(err, "created invalid CreateClusterInput")
+	}
+
 	var out *eks.CreateClusterOutput
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 		if out, err = s.EKSClient.CreateCluster(ctx, input); err != nil {
@@ -561,6 +565,7 @@ func (s *Service) reconcileClusterConfig(ctx context.Context, cluster *ekstypes.
 	return nil
 }
 
+<<<<<<< HEAD
 func (s *Service) reconcileAccessConfig(ctx context.Context, accessConfig *ekstypes.AccessConfigResponse) error {
 	input := &eks.UpdateClusterConfigInput{Name: aws.String(s.scope.KubernetesClusterName())}
 
