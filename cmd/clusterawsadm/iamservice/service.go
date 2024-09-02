@@ -258,12 +258,12 @@ func attachPoliciesToRole(rolename *string, awsManagedPolicies []string, client 
 		// klog.Warningf("no policies defined to attach to the IAM role \"%s\"", *rolename) // TODO
 		return nil
 	}
-	for _, policyArn := range awsManagedPolicies {
+	for _, policy := range awsManagedPolicies {
 		// making a copy of policyArn to avoid implicit memory aliasing
-		policy := policyArn
+		policyArn := policy
 		_, err := client.AttachRolePolicy(&iam.AttachRolePolicyInput{
 			RoleName:  rolename,
-			PolicyArn: &policy,
+			PolicyArn: &policyArn,
 		})
 		if err != nil {
 			if aerr, ok := err.(awserr.Error); ok {
@@ -272,7 +272,7 @@ func attachPoliciesToRole(rolename *string, awsManagedPolicies []string, client 
 					klog.Warningf("IAM role \"%s\" is already attached to policy", *rolename) // TODO should we output the policy arn? how safe is it
 					continue
 				default:
-					return errors.Wrapf(err, "failed to attach IAM role \"%s\" to policy", *rolename) // TODO should we output the policy arn? how safe is it
+					return errors.Wrapf(err, "failed to attach IAM role \"%s\" to policy \"%v\"", *rolename, policyArn) // TODO should we output the policy arn? how safe is it
 				}
 			}
 		}
@@ -396,7 +396,7 @@ func DeleteRole(resource go_cfn.Resource, client *iam.IAM) error {
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
 			case iam.ErrCodeNoSuchEntityException:
-				klog.Warningf("\"%s\" IAM role does not exist", res.RoleName)
+				klog.Warningf("IAM role \"%s\" does not exist", res.RoleName)
 				return nil
 			default:
 				return errors.Wrapf(err, "failed to get \"%s\" IAM role", res.RoleName)
@@ -428,7 +428,7 @@ func DeleteRole(resource go_cfn.Resource, client *iam.IAM) error {
 			switch aerr.Code() {
 			case iam.ErrCodeNoSuchEntityException:
 			default:
-				klog.Warningf("\"%s\" IAM role does not exist", res.RoleName)
+				klog.Warningf("IAM role \"%s\" does not exist", res.RoleName)
 				return errors.Wrapf(err, "failed to delete \"%s\" IAM role", res.RoleName)
 			}
 		}
@@ -447,7 +447,7 @@ func DeleteInstanceProfile(resource go_cfn.Resource, client *iam.IAM) error {
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
 			case iam.ErrCodeNoSuchEntityException:
-				klog.Warningf("\"%s\" instance profile does not exist", res.InstanceProfileName)
+				klog.Warningf("instance profile \"%s\" does not exist", res.InstanceProfileName)
 				return nil
 			default:
 				return errors.Wrapf(err, "failed to get \"%s\" instance profile", res.InstanceProfileName)
@@ -468,7 +468,7 @@ func DeleteInstanceProfile(resource go_cfn.Resource, client *iam.IAM) error {
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
 			case iam.ErrCodeNoSuchEntityException:
-				klog.Warningf("\"%s\" instance profile does not exist", res.InstanceProfileName)
+				klog.Warningf("instance profile \"%s\" does not exist", res.InstanceProfileName)
 				return nil
 			default:
 				return errors.Wrapf(err, "failed to delete \"%s\" instance profile", res.InstanceProfileName)
@@ -488,7 +488,7 @@ func DeletePolicy(policy *iam.Policy, client *iam.IAM) error {
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
 			case iam.ErrCodeNoSuchEntityException:
-				klog.Warningf("\"%s\" IAM policy does not exist", *policy.Arn)
+				klog.Warningf("IAM policy \"%s\" does not exist", *policy.Arn)
 				return nil
 			default:
 				return errors.Wrapf(err, "failed to delete \"%s\" IAM policy", *policy.PolicyName)
