@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
 	"path"
 	"strings"
 
+	"github.com/klauspost/compress/zstd"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -24,6 +26,9 @@ const (
 	coreCAPIProvider        = "cluster-api"
 	metadataFilePath        = "./metadata.yaml"
 	kustomizeComponentsPath = "./config/default"
+	// customizedComponentsFilename is a name for file containing customized infrastructure components.
+	// This file helps with code review as it is always uncompressed unlike the components configMap.
+	customizedComponentsFilename = "infrastructure-components-openshift.yaml"
 )
 
 type provider struct {
@@ -102,17 +107,29 @@ func (p *provider) writeProviderComponentsToManifest(fileName string, objs []uns
 	return os.WriteFile(path.Join(*manifestsPath, fileName), ensureNewLine(combined), 0600)
 }
 
-// writeProviderComponentsConfigmap allows to write provider components to the provider (transport) ConfigMap.
-func (p *provider) writeProviderComponentsConfigmap(fileName string, objs []unstructured.Unstructured) error {
-	combined, err := utilyaml.FromUnstructured(objs)
+// writeProviderCustomizedComponents writes the customized infrastructure components to allow for code review
+func (p *provider) writeProviderCustomizedComponents(resourceMap map[resourceKey][]unstructured.Unstructured) error {
+	crds, err := utilyaml.FromUnstructured(resourceMap[crdKey])
 	if err != nil {
-		return fmt.Errorf("error converting unstructure object to YAML: %w", err)
+		return fmt.Errorf("error converting unstructured object to YAML: %w", err)
 	}
 
+	other, err := utilyaml.FromUnstructured(resourceMap[otherKey])
+	if err != nil {
+		return fmt.Errorf("error converting unstructured object to YAML: %w", err)
+	}
+
+	combined := utilyaml.JoinYaml(crds, other)
+
+	return os.WriteFile(path.Join(*basePath, "openshift", customizedComponentsFilename), ensureNewLine(combined), 0600)
+}
+
+// writeProviderComponentsConfigmap allows to write provider components to the provider (transport) ConfigMap.
+func (p *provider) writeProviderComponentsConfigmap(fileName string, objs []unstructured.Unstructured) error {
 	annotations := openshiftAnnotations
 	annotations[featureSetAnnotationKey] = featureSetAnnotationValue
 
-	cm := &corev1.ConfigMap{
+	cm := corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
 			APIVersion: "v1",
@@ -128,9 +145,13 @@ func (p *provider) writeProviderComponentsConfigmap(fileName string, objs []unst
 			Annotations: annotations,
 		},
 		Data: map[string]string{
-			"metadata":   string(p.metadata),
-			"components": string(combined),
+			"metadata": string(p.metadata),
 		},
+	}
+
+	cm, err := addComponentsToConfigMap(cm, objs)
+	if err != nil {
+		return fmt.Errorf("failed to inject components into configmap: %w", err)
 	}
 
 	cmYaml, err := yaml.Marshal(cm)
@@ -139,6 +160,53 @@ func (p *provider) writeProviderComponentsConfigmap(fileName string, objs []unst
 	}
 
 	return os.WriteFile(path.Join(*manifestsPath, fileName), ensureNewLine(cmYaml), 0600)
+}
+
+// addComponentsToConfigMap adds the components to configMap. The components are compressed if their size would be over 950KB.
+func addComponentsToConfigMap(cm corev1.ConfigMap, objs []unstructured.Unstructured) (corev1.ConfigMap, error) {
+	combined, err := utilyaml.FromUnstructured(objs)
+	if err != nil {
+		return corev1.ConfigMap{}, fmt.Errorf("error converting unstructured object to YAML: %w", err)
+	}
+
+	compressionRequired := len(combined) > 950_000 // 98KB under the configMap 1MiB limit to leave space for rest of the configMap
+	if compressionRequired {
+		compressed, err := compressToZstd(combined)
+		if err != nil {
+			return corev1.ConfigMap{}, fmt.Errorf("failed to compress components: %w", err)
+		}
+
+		cm.BinaryData = map[string][]byte{
+			"components-zstd": compressed.Bytes(),
+		}
+	} else {
+		cm.Data["components"] = string(combined)
+	}
+
+	return cm, nil
+}
+
+// compressToZstd compressses bytes using zstd
+func compressToZstd(data []byte) (bytes.Buffer, error) {
+	var compressed bytes.Buffer
+
+	writer, err := zstd.NewWriter(&compressed, zstd.WithEncoderLevel(zstd.SpeedBestCompression))
+	if err != nil {
+		return bytes.Buffer{}, fmt.Errorf("failed to initialize zstd writer: %w", err)
+	}
+	defer writer.Close()
+
+	_, err = writer.Write(data)
+	if err != nil {
+		return bytes.Buffer{}, fmt.Errorf("failed to encode using zstd: %w", err)
+	}
+
+	err = writer.Close()
+	if err != nil {
+		return bytes.Buffer{}, fmt.Errorf("failed to close zstd writer: %w", err)
+	}
+
+	return compressed, nil
 }
 
 func importProvider(p provider) error {
@@ -172,6 +240,11 @@ func importProvider(p provider) error {
 	// Write RBAC components to manifests, they will be managed by CVO
 	if p.Name == powerVSProvider {
 		p.Name = ibmCloudProvider
+	}
+
+	// Write modified infrastructure components to allow for code review.
+	if err := p.writeProviderCustomizedComponents(resourceMap); err != nil {
+		return fmt.Errorf("error writing %v file: %w", customizedComponentsFilename, err)
 	}
 
 	// Store provider components in the provider ConfigMap.
