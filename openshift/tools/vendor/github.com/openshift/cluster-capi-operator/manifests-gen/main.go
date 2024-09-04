@@ -6,7 +6,7 @@ import (
 	"os"
 	"path"
 
-	certmangerv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	certmangerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	admissionregistration "k8s.io/api/admissionregistration/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
