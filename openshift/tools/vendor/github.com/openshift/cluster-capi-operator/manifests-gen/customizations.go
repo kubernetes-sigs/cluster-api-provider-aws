@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"strings"
 
-	certmangerv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	certmangerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	admissionregistration "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -19,8 +19,9 @@ import (
 type resourceKey string
 
 const (
-	crdKey   resourceKey = "crds"
-	otherKey resourceKey = "other"
+	crdKey                                                            resourceKey = "crds"
+	otherKey                                                          resourceKey = "other"
+	managedByAnnotationValueClusterCAPIOperatorInfraClusterController             = "cluster-capi-operator-infracluster-controller"
 )
 
 var (
@@ -48,6 +49,8 @@ func processObjects(objs []unstructured.Unstructured, providerName string) map[r
 	resourceMap := map[resourceKey][]unstructured.Unstructured{}
 	providerConfigMapObjs := []unstructured.Unstructured{}
 	crdObjs := []unstructured.Unstructured{}
+
+	objs = addInfraClusterProtectionPolicy(objs, providerName)
 
 	serviceSecretNames := findWebhookServiceSecretName(objs)
 
@@ -98,6 +101,10 @@ func processObjects(objs []unstructured.Unstructured, providerName string) map[r
 				setOpenShiftAnnotations(obj, false)
 				setNoUpgradeAnnotations(obj)
 			}
+			providerConfigMapObjs = append(providerConfigMapObjs, obj)
+		case "ValidatingAdmissionPolicy":
+			providerConfigMapObjs = append(providerConfigMapObjs, obj)
+		case "ValidatingAdmissionPolicyBinding":
 			providerConfigMapObjs = append(providerConfigMapObjs, obj)
 		case "Certificate", "Issuer", "Namespace", "Secret": // skip
 		}
@@ -325,4 +332,68 @@ func mergeMaps[K comparable, V any](maps ...map[K]V) map[K]V {
 		}
 	}
 	return result
+}
+
+// addInfraClusterProtectionPolicy adds a Validating Admission Policy and Binding for protecting
+// InfraClusters created by the cluster-capi-operator from deletion and editing.
+func addInfraClusterProtectionPolicy(objs []unstructured.Unstructured, providerName string) []unstructured.Unstructured {
+	policy := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "admissionregistration.k8s.io/v1beta1",
+			"kind":       "ValidatingAdmissionPolicy",
+			"metadata": map[string]interface{}{
+				"name": "openshift-cluster-api-protect-" + providerName + "cluster",
+			},
+			"spec": map[string]interface{}{
+				"failurePolicy": "Fail",
+				"paramKind": map[string]interface{}{
+					"apiVersion": "config.openshift.io/v1",
+					"kind":       "Infrastructure",
+				},
+				"matchConstraints": map[string]interface{}{
+					"resourceRules": []interface{}{
+						map[string]interface{}{
+							"apiGroups":   []interface{}{"infrastructure.cluster.x-k8s.io"},
+							"apiVersions": []interface{}{"*"},
+							"operations":  []interface{}{"DELETE"},
+							"resources":   []interface{}{providerName + "clusters"},
+						},
+					},
+				},
+				"validations": []interface{}{
+					map[string]interface{}{
+						"expression": "!(oldObject.metadata.name == params.status.infrastructureName)",
+						"message":    "InfraCluster resources with metadata.name corresponding to the cluster infrastructureName cannot be deleted.",
+					},
+				},
+			},
+		},
+	}
+
+	binding := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "admissionregistration.k8s.io/v1beta1",
+			"kind":       "ValidatingAdmissionPolicyBinding",
+			"metadata": map[string]interface{}{
+				"name": "openshift-cluster-api-protect-" + providerName + "cluster",
+			},
+			"spec": map[string]interface{}{
+				"paramRef": map[string]interface{}{
+					"name":                    "cluster",
+					"parameterNotFoundAction": "Deny",
+				},
+				"policyName":        "openshift-cluster-api-protect-" + providerName + "cluster",
+				"validationActions": []interface{}{"Deny"},
+				"matchResources": map[string]interface{}{
+					"namespaceSelector": map[string]interface{}{
+						"matchLabels": map[string]interface{}{
+							"kubernetes.io/metadata.name": "openshift-cluster-api",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	return append(objs, *policy, *binding)
 }
