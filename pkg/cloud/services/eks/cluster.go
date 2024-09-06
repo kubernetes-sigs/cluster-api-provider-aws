@@ -525,6 +525,7 @@ func (s *Service) reconcileAccessConfig(accessConfig *eks.AccessConfigResponse) 
 	}
 
 	expectedAuthenticationMode := string(s.scope.ControlPlane.Spec.AccessConfig.AuthenticationMode)
+	s.scope.Debug("Reconciling EKS Access Config for cluster", "cluster-name", s.scope.KubernetesClusterName(), "expected", expectedAuthenticationMode, "current", accessConfig.AuthenticationMode)
 	if expectedAuthenticationMode != aws.StringValue(accessConfig.AuthenticationMode) {
 		input.AccessConfig = &eks.UpdateAccessConfigRequest{
 			AuthenticationMode: aws.String(expectedAuthenticationMode),
