@@ -134,6 +134,9 @@ RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
 # Allow overriding the imagePullPolicy
 PULL_POLICY ?= Always
 
+# Allow overriding the GCFLAGS
+GCFLAGS ?=
+
 # Set build time variables including version details
 LDFLAGS := $(shell source ./hack/version.sh; version::ldflags)
 
@@ -371,12 +374,12 @@ binaries: managers clusterawsadm ## Builds and installs all binaries
 
 .PHONY: clusterawsadm
 clusterawsadm: ## Build clusterawsadm binary
-	go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/clusterawsadm ./cmd/clusterawsadm
+	go build -gcflags "$(GCFLAGS)" -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/clusterawsadm ./cmd/clusterawsadm
 
 
 .PHONY: docker-build
 docker-build: docker-pull-prerequisites ## Build the docker image for controller-manager
-	docker build --build-arg ARCH=$(ARCH) --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg LDFLAGS="$(LDFLAGS)" . -t $(CORE_CONTROLLER_IMG)-$(ARCH):$(TAG)
+	docker build --build-arg ARCH=$(ARCH) --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg GCFLAGS="$(GCFLAGS)" --build-arg LDFLAGS="$(LDFLAGS)" . -t $(CORE_CONTROLLER_IMG)-$(ARCH):$(TAG)
 
 .PHONY: docker-build-all ## Build all the architecture docker images
 docker-build-all: $(addprefix docker-build-,$(ALL_ARCH))
@@ -395,7 +398,7 @@ managers: ## Alias for manager-aws-infrastructure
 
 .PHONY: manager-aws-infrastructure
 manager-aws-infrastructure: ## Build manager binary
-	CGO_ENABLED=0 GOARCH=${ARCH} go build -ldflags "${LDFLAGS} -extldflags '-static'" -o $(BIN_DIR)/manager .
+	CGO_ENABLED=0 GOARCH=${ARCH} go build -gcflags "${GCFLAGS}" -ldflags "${LDFLAGS} -extldflags '-static'" -o $(BIN_DIR)/manager .
 
 ##@ test:
 
