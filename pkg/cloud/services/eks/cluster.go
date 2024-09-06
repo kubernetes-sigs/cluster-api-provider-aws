@@ -565,7 +565,6 @@ func (s *Service) reconcileClusterConfig(ctx context.Context, cluster *ekstypes.
 	return nil
 }
 
-<<<<<<< HEAD
 func (s *Service) reconcileAccessConfig(ctx context.Context, accessConfig *ekstypes.AccessConfigResponse) error {
 	input := &eks.UpdateClusterConfigInput{Name: aws.String(s.scope.KubernetesClusterName())}
 
