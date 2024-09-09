@@ -179,7 +179,7 @@ variables:
   KUBERNETES_VERSION_MANAGEMENT: "v1.29.0"
   KUBERNETES_VERSION: "v1.26.6"
   KUBERNETES_VERSION_UPGRADE_TO: "v1.26.6"
-  KUBERNETES_VERSION_UPGRADE_FROM: "v1.25.3"
+  KUBERNETES_VERSION_UPGRADE_FROM: "v1.25.12"
   # Pre and post 1.23 Kubernetes versions are being used for CSI upgrade tests
   PRE_1_23_KUBERNETES_VERSION: "v1.22.17"
   POST_1_23_KUBERNETES_VERSION: "v1.23.15"
@@ -206,7 +206,7 @@ variables:
   INIT_WITH_BINARY_V1BETA1: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.0/clusterctl-{OS}-{ARCH}"
   # INIT_WITH_KUBERNETES_VERSION are only used by the clusterctl upgrade test to initialize
   # the management cluster to be upgraded.
-  INIT_WITH_KUBERNETES_VERSION: "v1.25.0"
+  INIT_WITH_KUBERNETES_VERSION: "v1.25.12"
   EXP_BOOTSTRAP_FORMAT_IGNITION: "true"
   EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"
   EXP_EXTERNAL_RESOURCE_GC: "true"
