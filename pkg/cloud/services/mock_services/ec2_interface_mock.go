@@ -334,11 +334,12 @@ func (mr *MockEC2InterfaceMockRecorder) ReconcileBastion() *gomock.Call {
 }
 
 // ReconcileElasticIPFromPublicPool mocks base method.
-func (m *MockEC2Interface) ReconcileElasticIPFromPublicPool(arg0 *v1beta2.ElasticIPPool, arg1 *v1beta2.Instance) error {
+func (m *MockEC2Interface) ReconcileElasticIPFromPublicPool(arg0 *v1beta2.ElasticIPPool, arg1 *v1beta2.Instance) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ReconcileElasticIPFromPublicPool", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // ReconcileElasticIPFromPublicPool indicates an expected call of ReconcileElasticIPFromPublicPool.

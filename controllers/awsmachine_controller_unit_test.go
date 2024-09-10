@@ -1023,7 +1023,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					PublicIpv4Pool:              aws.String("ipv4pool-ec2-0123456789abcdef0"),
 					PublicIpv4PoolFallBackOrder: ptr.To(infrav1.PublicIpv4PoolFallbackOrderAmazonPool),
 				}
-				ec2Svc.EXPECT().ReconcileElasticIPFromPublicPool(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+				ec2Svc.EXPECT().ReconcileElasticIPFromPublicPool(gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
 
 				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 				g.Expect(err).To(BeNil())
