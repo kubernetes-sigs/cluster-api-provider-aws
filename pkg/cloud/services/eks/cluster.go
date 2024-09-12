@@ -544,6 +544,17 @@ func (s *Service) reconcileAccessConfig(accessConfig *eks.AccessConfigResponse) 
 				}
 				return false, err
 			}
+
+			// Wait until status transitions to UPDATING because there's a short
+			// window after UpdateClusterVersion returns where the cluster
+			// status is ACTIVE and the update would be tried again
+			if err := s.EKSClient.WaitUntilClusterUpdating(
+				&eks.DescribeClusterInput{Name: aws.String(s.scope.KubernetesClusterName())},
+				request.WithWaiterLogger(&awslog{s.GetLogger()}),
+			); err != nil {
+				return false, err
+			}
+
 			conditions.MarkTrue(s.scope.ControlPlane, ekscontrolplanev1.EKSControlPlaneUpdatingCondition)
 			record.Eventf(s.scope.ControlPlane, "InitiatedUpdateEKSControlPlane", "Initiated auth config update for EKS control plane %s", s.scope.KubernetesClusterName())
 			return true, nil
