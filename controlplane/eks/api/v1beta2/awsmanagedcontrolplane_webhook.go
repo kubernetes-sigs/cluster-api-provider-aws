@@ -123,6 +123,7 @@ func (r *AWSManagedControlPlane) ValidateUpdate(old runtime.Object) (admission.W
 	allErrs = append(allErrs, r.validateEKSClusterNameSame(oldAWSManagedControlplane)...)
 	allErrs = append(allErrs, r.validateEKSVersion(oldAWSManagedControlplane)...)
 	allErrs = append(allErrs, r.Spec.Bastion.Validate()...)
+	allErrs = append(allErrs, r.validateAccessConfig(oldAWSManagedControlplane)...)
 	allErrs = append(allErrs, r.validateIAMAuthConfig()...)
 	allErrs = append(allErrs, r.validateSecondaryCIDR()...)
 	allErrs = append(allErrs, r.validateEKSAddons()...)
@@ -284,6 +285,28 @@ func (r *AWSManagedControlPlane) validateEKSAddons() field.ErrorList {
 				}
 			}
 		}
+	}
+
+	return allErrs
+}
+
+func (r *AWSManagedControlPlane) validateAccessConfig(old *AWSManagedControlPlane) field.ErrorList {
+	var allErrs field.ErrorList
+
+	// If accessConfig is already set, do not allow removal of it.
+	if old.Spec.AccessConfig != nil && r.Spec.AccessConfig == nil {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec", "accessConfig"), r.Spec.AccessConfig, "removing AccessConfig is not allowed after it has been enabled"),
+		)
+	}
+
+	// AuthenticationMode is ratcheting - do not allow downgrades
+	if old.Spec.AccessConfig != nil && old.Spec.AccessConfig.AuthenticationMode != r.Spec.AccessConfig.AuthenticationMode &&
+		((old.Spec.AccessConfig.AuthenticationMode == EKSAuthenticationModeApiAndConfigMap && r.Spec.AccessConfig.AuthenticationMode == EKSAuthenticationModeConfigMap) ||
+			old.Spec.AccessConfig.AuthenticationMode == EKSAuthenticationModeApi) {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec", "accessConfig", "authenticationMode"), r.Spec.AccessConfig.AuthenticationMode, "downgrading authentication mode is not allowed after it has been enabled"),
+		)
 	}
 
 	return allErrs
