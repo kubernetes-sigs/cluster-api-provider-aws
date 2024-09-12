@@ -141,7 +141,7 @@ func (*awsManagedControlPlaneWebhook) ValidateUpdate(ctx context.Context, oldObj
 	allErrs = append(allErrs, r.validateEKSClusterNameSame(oldAWSManagedControlplane)...)
 	allErrs = append(allErrs, r.validateEKSVersion(oldAWSManagedControlplane)...)
 	allErrs = append(allErrs, r.Spec.Bastion.Validate()...)
-	allErrs = append(allErrs, r.validateAccessConfigUpdate(oldAWSManagedControlplane)...)
+	allErrs = append(allErrs, r.validateAccessConfig(oldAWSManagedControlplane)...)
 	allErrs = append(allErrs, r.validateIAMAuthConfig()...)
 	allErrs = append(allErrs, r.validateSecondaryCIDR()...)
 	allErrs = append(allErrs, r.validateEKSAddons()...)
@@ -320,7 +320,7 @@ func validateEKSAddons(eksVersion *string, networkSpec infrav1.NetworkSpec, addo
 	return allErrs
 }
 
-func (r *AWSManagedControlPlane) validateAccessConfigUpdate(old *AWSManagedControlPlane) field.ErrorList {
+func (r *AWSManagedControlPlane) validateAccessConfig(old *AWSManagedControlPlane) field.ErrorList {
 	var allErrs field.ErrorList
 
 	// If accessConfig is already set, do not allow removal of it.
@@ -347,6 +347,10 @@ func (r *AWSManagedControlPlane) validateAccessConfigUpdate(old *AWSManagedContr
 	}
 
 	return allErrs
+}
+
+func (r *AWSManagedControlPlane) validateIAMAuthConfig() field.ErrorList {
+	return validateIAMAuthConfig(r.Spec.IAMAuthenticatorConfig, field.NewPath("spec.iamAuthenticatorConfig"))
 }
 
 func (r *AWSManagedControlPlane) validateAccessConfigCreate() field.ErrorList {

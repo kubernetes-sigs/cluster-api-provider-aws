@@ -22,13 +22,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go/aws"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
-	utildefaulting "sigs.k8s.io/cluster-api-provider-aws/v2/util/defaulting"
+	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
 
 var (
@@ -85,118 +85,52 @@ func TestDefaultingWebhook(t *testing.T) {
 			resourceName: "cluster1",
 			resourceNS:   "default",
 			expectHash:   false,
-			expectSpec: AWSManagedControlPlaneSpec{
-				EKSClusterName:             "default_cluster1",
-				IdentityRef:                defaultIdentityRef,
-				Bastion:                    defaultTestBastion,
-				NetworkSpec:                defaultNetworkSpec,
-				TokenMethod:                &EKSTokenMethodIAMAuthenticator,
-				BootstrapSelfManagedAddons: true,
-			},
+			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1", IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec, TokenMethod: &EKSTokenMethodIAMAuthenticator},
 		},
 		{
 			name:         "less than 100 chars, dot in name",
 			resourceName: "team1.cluster1",
 			resourceNS:   "default",
 			expectHash:   false,
-			expectSpec: AWSManagedControlPlaneSpec{
-				EKSClusterName:             "default_team1_cluster1",
-				IdentityRef:                defaultIdentityRef,
-				Bastion:                    defaultTestBastion,
-				NetworkSpec:                defaultNetworkSpec,
-				TokenMethod:                &EKSTokenMethodIAMAuthenticator,
-				BootstrapSelfManagedAddons: true,
-			},
+			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "default_team1_cluster1", IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec, TokenMethod: &EKSTokenMethodIAMAuthenticator},
 		},
 		{
 			name:         "more than 100 chars",
 			resourceName: "abcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcde",
 			resourceNS:   "default",
 			expectHash:   true,
-			expectSpec: AWSManagedControlPlaneSpec{
-				EKSClusterName:             "capi_",
-				IdentityRef:                defaultIdentityRef,
-				Bastion:                    defaultTestBastion,
-				NetworkSpec:                defaultNetworkSpec,
-				TokenMethod:                &EKSTokenMethodIAMAuthenticator,
-				BootstrapSelfManagedAddons: true,
-			},
+			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "capi_", IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec, TokenMethod: &EKSTokenMethodIAMAuthenticator},
 		},
 		{
 			name:         "with patch",
 			resourceName: "cluster1",
 			resourceNS:   "default",
 			expectHash:   false,
-			spec: AWSManagedControlPlaneSpec{
-				Version: &vV1_17_1,
-			},
-			expectSpec: AWSManagedControlPlaneSpec{
-				EKSClusterName:             "default_cluster1",
-				Version:                    &vV1_17_1,
-				IdentityRef:                defaultIdentityRef,
-				Bastion:                    defaultTestBastion,
-				NetworkSpec:                defaultNetworkSpec,
-				TokenMethod:                &EKSTokenMethodIAMAuthenticator,
-				BootstrapSelfManagedAddons: true,
-			},
+			spec:         AWSManagedControlPlaneSpec{Version: &vV1_17_1},
+			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1", Version: &vV1_17_1, IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec, TokenMethod: &EKSTokenMethodIAMAuthenticator},
 		},
 		{
 			name:         "with allowed ip on bastion",
 			resourceName: "cluster1",
 			resourceNS:   "default",
 			expectHash:   false,
-			spec: AWSManagedControlPlaneSpec{
-				Bastion: infrav1.Bastion{
-					AllowedCIDRBlocks: []string{"100.100.100.100/0"},
-				},
-			},
-			expectSpec: AWSManagedControlPlaneSpec{
-				EKSClusterName: "default_cluster1",
-				IdentityRef:    defaultIdentityRef,
-				Bastion: infrav1.Bastion{
-					AllowedCIDRBlocks: []string{"100.100.100.100/0"},
-				},
-				NetworkSpec:                defaultNetworkSpec,
-				TokenMethod:                &EKSTokenMethodIAMAuthenticator,
-				BootstrapSelfManagedAddons: true,
-			},
+			spec:         AWSManagedControlPlaneSpec{Bastion: infrav1.Bastion{AllowedCIDRBlocks: []string{"100.100.100.100/0"}}},
+			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1", IdentityRef: defaultIdentityRef, Bastion: infrav1.Bastion{AllowedCIDRBlocks: []string{"100.100.100.100/0"}}, NetworkSpec: defaultNetworkSpec, TokenMethod: &EKSTokenMethodIAMAuthenticator},
 		},
 		{
 			name:         "with CNI on network",
 			resourceName: "cluster1",
 			resourceNS:   "default",
 			expectHash:   false,
-			spec: AWSManagedControlPlaneSpec{
-				NetworkSpec: infrav1.NetworkSpec{
-					CNI: &infrav1.CNISpec{},
-				},
-			},
-			expectSpec: AWSManagedControlPlaneSpec{
-				EKSClusterName: "default_cluster1",
-				IdentityRef:    defaultIdentityRef,
-				Bastion:        defaultTestBastion,
-				NetworkSpec: infrav1.NetworkSpec{
-					CNI: &infrav1.CNISpec{},
-					VPC: defaultVPCSpec,
-				},
-				TokenMethod:                &EKSTokenMethodIAMAuthenticator,
-				BootstrapSelfManagedAddons: true,
-			},
+			spec:         AWSManagedControlPlaneSpec{NetworkSpec: infrav1.NetworkSpec{CNI: &infrav1.CNISpec{}}},
+			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1", IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: infrav1.NetworkSpec{CNI: &infrav1.CNISpec{}, VPC: defaultVPCSpec}, TokenMethod: &EKSTokenMethodIAMAuthenticator},
 		},
 		{
 			name:         "secondary CIDR",
 			resourceName: "cluster1",
 			resourceNS:   "default",
 			expectHash:   false,
-			expectSpec: AWSManagedControlPlaneSpec{
-				EKSClusterName:             "default_cluster1",
-				IdentityRef:                defaultIdentityRef,
-				Bastion:                    defaultTestBastion,
-				NetworkSpec:                defaultNetworkSpec,
-				SecondaryCidrBlock:         nil,
-				TokenMethod:                &EKSTokenMethodIAMAuthenticator,
-				BootstrapSelfManagedAddons: true,
-			},
+			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1", IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec, SecondaryCidrBlock: nil, TokenMethod: &EKSTokenMethodIAMAuthenticator},
 		},
 	}
 
@@ -211,7 +145,7 @@ func TestDefaultingWebhook(t *testing.T) {
 					Namespace: tc.resourceNS,
 				},
 			}
-			t.Run("for AWSManagedMachinePool", utildefaulting.DefaultValidateTest(context.Background(), mcp, &awsManagedControlPlaneWebhook{}))
+			t.Run("for AWSManagedMachinePool", utildefaulting.DefaultValidateTest(mcp))
 			mcp.Spec = tc.spec
 
 			g.Expect(testEnv.Create(ctx, mcp)).To(Succeed())
@@ -245,7 +179,6 @@ func TestWebhookCreate(t *testing.T) {
 		secondaryCidr        *string
 		secondaryCidrBlocks  []infrav1.VpcCidrBlock
 		kubeProxy            KubeProxy
-		accessConfig         *AccessConfig
 	}{
 		{
 			name:           "ekscluster specified",
@@ -389,47 +322,6 @@ func TestWebhookCreate(t *testing.T) {
 				Disable: true,
 			},
 		},
-		{
-			name:           "BootstrapClusterCreatorAdminPermissions true with EKSAuthenticationModeConfigMap",
-			eksClusterName: "default_cluster1",
-			eksVersion:     "v1.19",
-			expectError:    false,
-			accessConfig: &AccessConfig{
-				AuthenticationMode:                      EKSAuthenticationModeConfigMap,
-				BootstrapClusterCreatorAdminPermissions: ptr.To(true),
-			},
-		},
-		{
-			name:                 "BootstrapClusterCreatorAdminPermissions false with EKSAuthenticationModeConfigMap",
-			eksClusterName:       "default_cluster1",
-			eksVersion:           "v1.19",
-			expectError:          true,
-			expectErrorToContain: "bootstrapClusterCreatorAdminPermissions must be true if cluster authentication mode is set to CONFIG_MAP",
-			accessConfig: &AccessConfig{
-				AuthenticationMode:                      EKSAuthenticationModeConfigMap,
-				BootstrapClusterCreatorAdminPermissions: ptr.To(false),
-			},
-		},
-		{
-			name:           "BootstrapClusterCreatorAdminPermissions false with EKSAuthenticationModeAPIAndConfigMap",
-			eksClusterName: "default_cluster1",
-			eksVersion:     "v1.19",
-			expectError:    false,
-			accessConfig: &AccessConfig{
-				AuthenticationMode:                      EKSAuthenticationModeAPIAndConfigMap,
-				BootstrapClusterCreatorAdminPermissions: ptr.To(false),
-			},
-		},
-		{
-			name:           "BootstrapClusterCreatorAdminPermissions false with EKSAuthenticationModeAPI",
-			eksClusterName: "default_cluster1",
-			eksVersion:     "v1.19",
-			expectError:    false,
-			accessConfig: &AccessConfig{
-				AuthenticationMode:                      EKSAuthenticationModeAPI,
-				BootstrapClusterCreatorAdminPermissions: ptr.To(false),
-			},
-		},
 	}
 
 	for _, tc := range tests {
@@ -472,9 +364,6 @@ func TestWebhookCreate(t *testing.T) {
 			}
 			if tc.secondaryCidr != nil {
 				mcp.Spec.SecondaryCidrBlock = tc.secondaryCidr
-			}
-			if tc.accessConfig != nil {
-				mcp.Spec.AccessConfig = tc.accessConfig
 			}
 
 			err := testEnv.Create(ctx, mcp)
@@ -805,22 +694,6 @@ func TestWebhookUpdate(t *testing.T) {
 			expectError: true,
 		},
 		{
-			name: "change in access config bootstrap admin permissions is ignored",
-			oldClusterSpec: AWSManagedControlPlaneSpec{
-				EKSClusterName: "default_cluster1",
-				AccessConfig: &AccessConfig{
-					BootstrapClusterCreatorAdminPermissions: ptr.To(true),
-				},
-			},
-			newClusterSpec: AWSManagedControlPlaneSpec{
-				EKSClusterName: "default_cluster1",
-				AccessConfig: &AccessConfig{
-					BootstrapClusterCreatorAdminPermissions: ptr.To(false),
-				},
-			},
-			expectError: false,
-		},
-		{
 			name: "change in encryption config to nil",
 			oldClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
@@ -1024,8 +897,7 @@ func TestValidatingWebhookCreateSecondaryCidr(t *testing.T) {
 			if tc.cidrRange != "" {
 				mcp.Spec.SecondaryCidrBlock = aws.String(tc.cidrRange)
 			}
-
-			warn, err := (&awsManagedControlPlaneWebhook{}).ValidateCreate(context.Background(), mcp)
+			warn, err := mcp.ValidateCreate()
 
 			if tc.expectError {
 				g.Expect(err).ToNot(BeNil())
@@ -1098,7 +970,7 @@ func TestValidatingWebhookUpdateSecondaryCidr(t *testing.T) {
 				},
 			}
 
-			warn, err := (&awsManagedControlPlaneWebhook{}).ValidateUpdate(context.Background(), oldMCP, newMCP)
+			warn, err := newMCP.ValidateUpdate(oldMCP)
 
 			if tc.expectError {
 				g.Expect(err).ToNot(BeNil())
