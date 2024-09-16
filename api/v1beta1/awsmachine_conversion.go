@@ -42,6 +42,8 @@ func (src *AWSMachine) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.PrivateDNSName = restored.Spec.PrivateDNSName
 	dst.Spec.SecurityGroupOverrides = restored.Spec.SecurityGroupOverrides
 	dst.Spec.CapacityReservationID = restored.Spec.CapacityReservationID
+	dst.Spec.HostPlacement = restored.Spec.HostPlacement
+
 	if restored.Spec.ElasticIPPool != nil {
 		if dst.Spec.ElasticIPPool == nil {
 			dst.Spec.ElasticIPPool = &infrav1.ElasticIPPool{}
@@ -104,6 +106,8 @@ func (r *AWSMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.Template.Spec.PrivateDNSName = restored.Spec.Template.Spec.PrivateDNSName
 	dst.Spec.Template.Spec.SecurityGroupOverrides = restored.Spec.Template.Spec.SecurityGroupOverrides
 	dst.Spec.Template.Spec.CapacityReservationID = restored.Spec.Template.Spec.CapacityReservationID
+	dst.Spec.Template.Spec.HostPlacement = restored.Spec.Template.Spec.HostPlacement
+
 	if restored.Spec.Template.Spec.ElasticIPPool != nil {
 		if dst.Spec.Template.Spec.ElasticIPPool == nil {
 			dst.Spec.Template.Spec.ElasticIPPool = &infrav1.ElasticIPPool{}

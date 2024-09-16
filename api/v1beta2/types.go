@@ -239,8 +239,18 @@ type Instance struct {
 	PlacementGroupPartition int64 `json:"placementGroupPartition,omitempty"`
 
 	// Tenancy indicates if instance should run on shared or single-tenant hardware.
+	// If host tenancy is used:
+	// - if there are no Dedicated Hosts with auto-placement enabled that match the instance type configuration, then it is required to set '.spec.hostPlacment.hostID' or no host would be picked.
+	// - if '.spec.hostPlacment.hostID' is set, the instance will be launched into the specified Host, disregarding any auto-placement settings.
+	// see https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/dedicated-hosts-understanding.html#dedicated-hosts-auto-placement
+	//
 	// +optional
-	Tenancy string `json:"tenancy,omitempty"`
+	// +kubebuilder:validation:Enum:=default;dedicated;host
+	Tenancy Tenancy `json:"tenancy,omitempty"`
+
+	// HostPlacement denotes the placement settings for the instance when tenancy=host.
+	// +optional
+	HostPlacement *HostPlacement `json:"hostPlacment,omitempty"`
 
 	// IDs of the instance's volumes
 	// +optional

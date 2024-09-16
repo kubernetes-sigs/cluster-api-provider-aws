@@ -244,6 +244,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 	input.InstanceMetadataOptions = scope.AWSMachine.Spec.InstanceMetadataOptions
 
 	input.Tenancy = scope.AWSMachine.Spec.Tenancy
+	input.HostPlacement = scope.AWSMachine.Spec.HostPlacement
 
 	input.PlacementGroupName = scope.AWSMachine.Spec.PlacementGroupName
 
@@ -653,7 +654,12 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 
 	if i.Tenancy != "" {
 		input.Placement = &ec2.Placement{
-			Tenancy: &i.Tenancy,
+			Tenancy: ptr.To(string(i.Tenancy)),
+		}
+
+		if i.Tenancy == infrav1.TenancyHost && i.HostPlacement != nil {
+			input.Placement.Affinity = i.HostPlacement.Affinity
+			input.Placement.HostId = i.HostPlacement.HostID
 		}
 	}
 
