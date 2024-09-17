@@ -853,6 +853,7 @@ func TestCreateIPv6Cluster(t *testing.T) {
 	eksMock.EXPECT().CreateCluster(&eks.CreateClusterInput{
 		Name:    aws.String("cluster-name"),
 		Version: aws.String("1.22"),
+		RoleArn: aws.String("arn:role"),
 		EncryptionConfig: []*eks.EncryptionConfig{
 			{
 				Provider: &eks.Provider{
@@ -875,6 +876,7 @@ func TestCreateIPv6Cluster(t *testing.T) {
 		RoleName: aws.String("arn-role"),
 	}).Return(&iam.GetRoleOutput{
 		Role: &iam.Role{
+			Arn:      aws.String("arn:role"),
 			RoleName: ptr.To[string]("arn-role"),
 		},
 	}, nil)
