@@ -302,8 +302,8 @@ func (r *AWSManagedControlPlane) validateAccessConfig(old *AWSManagedControlPlan
 
 	// AuthenticationMode is ratcheting - do not allow downgrades
 	if old.Spec.AccessConfig != nil && old.Spec.AccessConfig.AuthenticationMode != r.Spec.AccessConfig.AuthenticationMode &&
-		((old.Spec.AccessConfig.AuthenticationMode == EKSAuthenticationModeApiAndConfigMap && r.Spec.AccessConfig.AuthenticationMode == EKSAuthenticationModeConfigMap) ||
-			old.Spec.AccessConfig.AuthenticationMode == EKSAuthenticationModeApi) {
+		((old.Spec.AccessConfig.AuthenticationMode == EKSAuthenticationModeAPIAndConfigMap && r.Spec.AccessConfig.AuthenticationMode == EKSAuthenticationModeConfigMap) ||
+			old.Spec.AccessConfig.AuthenticationMode == EKSAuthenticationModeAPI) {
 		allErrs = append(allErrs,
 			field.Invalid(field.NewPath("spec", "accessConfig", "authenticationMode"), r.Spec.AccessConfig.AuthenticationMode, "downgrading authentication mode is not allowed after it has been enabled"),
 		)

@@ -650,13 +650,13 @@ func TestWebhookUpdate(t *testing.T) {
 			oldClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
 				AccessConfig: &AccessConfig{
-					AuthenticationMode: EKSAuthenticationModeApiAndConfigMap,
+					AuthenticationMode: EKSAuthenticationModeAPIAndConfigMap,
 				},
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
 				AccessConfig: &AccessConfig{
-					AuthenticationMode: EKSAuthenticationModeApi,
+					AuthenticationMode: EKSAuthenticationModeAPI,
 				},
 			},
 			expectError: false,
@@ -666,7 +666,7 @@ func TestWebhookUpdate(t *testing.T) {
 			oldClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
 				AccessConfig: &AccessConfig{
-					AuthenticationMode: EKSAuthenticationModeApi,
+					AuthenticationMode: EKSAuthenticationModeAPI,
 				},
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
@@ -682,7 +682,7 @@ func TestWebhookUpdate(t *testing.T) {
 			oldClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
 				AccessConfig: &AccessConfig{
-					AuthenticationMode: EKSAuthenticationModeApiAndConfigMap,
+					AuthenticationMode: EKSAuthenticationModeAPIAndConfigMap,
 				},
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{

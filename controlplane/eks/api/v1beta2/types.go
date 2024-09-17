@@ -86,12 +86,12 @@ var (
 	// EKSAuthenticationModeConfigMap indicates that only `aws-auth` ConfigMap will be used for authentication
 	EKSAuthenticationModeConfigMap = EKSAuthenticationMode("CONFIG_MAP")
 
-	// EKSAuthenticationModeApi indicates that only AWS Access Entries will be used for authentication
-	EKSAuthenticationModeApi = EKSAuthenticationMode("API")
+	// EKSAuthenticationModeAPI indicates that only AWS Access Entries will be used for authentication
+	EKSAuthenticationModeAPI = EKSAuthenticationMode("API")
 
-	// EKSAuthenticationModeApiAndConfigMap indicates that both `aws-auth` ConfigMap and AWS Access Entries will
+	// EKSAuthenticationModeAPIAndConfigMap indicates that both `aws-auth` ConfigMap and AWS Access Entries will
 	// be used for authentication
-	EKSAuthenticationModeApiAndConfigMap = EKSAuthenticationMode("API_AND_CONFIG_MAP")
+	EKSAuthenticationModeAPIAndConfigMap = EKSAuthenticationMode("API_AND_CONFIG_MAP")
 )
 
 var (
