@@ -40,8 +40,8 @@ func CopyAMICmd() *cobra.Command {
 		`),
 		Example: cmd.Examples(`
 		# Copy AMI from the default AWS account where AMIs are stored.
-		# Available os options: centos-7, ubuntu-18.04, ubuntu-20.04, amazon-2, flatcar-stable
-		clusterawsadm ami copy --kubernetes-version=v1.18.12 --os=ubuntu-20.04  --region=us-west-2
+		# Available os options: centos-7, ubuntu-24.04, ubuntu-22.04, amazon-2, flatcar-stable
+		clusterawsadm ami copy --kubernetes-version=v1.30.1 --os=ubuntu-22.04  --region=us-west-2
 
 		# owner-id and dry-run flags are optional. region can be set via flag or env
 		clusterawsadm ami copy --os centos-7 --kubernetes-version=v1.19.4 --owner-id=111111111111 --dry-run
@@ -81,7 +81,6 @@ func CopyAMICmd() *cobra.Command {
 				SourceRegion:      sourceRegion,
 			},
 			)
-
 			if err != nil {
 				fmt.Print(err)
 				return err
