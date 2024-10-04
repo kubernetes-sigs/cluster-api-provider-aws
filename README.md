@@ -46,7 +46,7 @@ cluster on AWS.
 
 - Native Kubernetes manifests and API
 - Manages the bootstrapping of VPCs, gateways, security groups and instances.
-- Choice of Linux distribution among Amazon Linux 2, CentOS 7, Ubuntu(18.04, 20.04) and Flatcar
+- Choice of Linux distribution among Amazon Linux 2, CentOS 7, Ubuntu and Flatcar
   using [pre-baked AMIs][published_amis].
 - Deploys Kubernetes control planes into private subnets with a separate
   bastion server.

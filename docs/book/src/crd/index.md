@@ -6576,6 +6576,17 @@ VpcCni
 </tr>
 <tr>
 <td>
+<code>restrictPrivateSubnets</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>RestrictPrivateSubnets indicates that the EKS control plane should only use private subnets.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>kubeProxy</code><br/>
 <em>
 <a href="#controlplane.cluster.x-k8s.io/v1beta2.KubeProxy">
@@ -6975,6 +6986,17 @@ VpcCni
 <td>
 <em>(Optional)</em>
 <p>VpcCni is used to set configuration options for the VPC CNI plugin</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>restrictPrivateSubnets</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>RestrictPrivateSubnets indicates that the EKS control plane should only use private subnets.</p>
 </td>
 </tr>
 <tr>
@@ -17072,7 +17094,13 @@ int64
 <th>Description</th>
 </tr>
 </thead>
-<tbody><tr><td><p>&#34;AL2_ARM_64&#34;</p></td>
+<tbody><tr><td><p>&#34;AL2023_ARM_64_STANDARD&#34;</p></td>
+<td><p>Al2023Arm64 is the AL2023 Arm AMI type.</p>
+</td>
+</tr><tr><td><p>&#34;AL2023_x86_64_STANDARD&#34;</p></td>
+<td><p>Al2023x86_64 is the AL2023 x86-64 AMI type.</p>
+</td>
+</tr><tr><td><p>&#34;AL2_ARM_64&#34;</p></td>
 <td><p>Al2Arm64 is the Arm AMI type.</p>
 </td>
 </tr><tr><td><p>&#34;AL2_x86_64&#34;</p></td>
@@ -17080,12 +17108,6 @@ int64
 </td>
 </tr><tr><td><p>&#34;AL2_x86_64_GPU&#34;</p></td>
 <td><p>Al2x86_64GPU is the x86-64 GPU AMI type.</p>
-</td>
-<tr><td><p>&#34;AL2023_ARM_64_STANDARD&#34;</p></td>
-<td><p>Al2023Arm64 is the AL2023 Arm AMI type.</p>
-</td>
-</tr><tr><td><p>&#34;AL2023_x86_64_STANDARD&#34;</p></td>
-<td><p>Al2023x86_64 is the AL2023 x86 AMI type.</p>
 </td>
 </tr></tbody>
 </table>
@@ -19005,6 +19027,20 @@ default value is ELBProtocolSSL</p>
 </tr>
 <tr>
 <td>
+<code>healthCheck</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.TargetGroupHealthCheckAPISpec">
+TargetGroupHealthCheckAPISpec
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>HealthCheck sets custom health check configuration to the API target group.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>additionalSecurityGroups</code><br/>
 <em>
 []string
@@ -19275,6 +19311,20 @@ Precedence for this setting is as follows:
 </tr>
 <tr>
 <td>
+<code>elasticIpPool</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.ElasticIPPool">
+ElasticIPPool
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ElasticIPPool is the configuration to allocate Public IPv4 address (Elastic IP/EIP) from user-defined pool.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>additionalSecurityGroups</code><br/>
 <em>
 <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSResourceReference">
@@ -19478,6 +19528,18 @@ PrivateDNSName
 <td>
 <em>(Optional)</em>
 <p>PrivateDNSName is the options for the instance hostname.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>capacityReservationId</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CapacityReservationID specifies the target Capacity Reservation into which the instance should be launched.</p>
 </td>
 </tr>
 </table>
@@ -19669,6 +19731,20 @@ Precedence for this setting is as follows:
 </tr>
 <tr>
 <td>
+<code>elasticIpPool</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.ElasticIPPool">
+ElasticIPPool
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ElasticIPPool is the configuration to allocate Public IPv4 address (Elastic IP/EIP) from user-defined pool.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>additionalSecurityGroups</code><br/>
 <em>
 <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSResourceReference">
@@ -19872,6 +19948,18 @@ PrivateDNSName
 <td>
 <em>(Optional)</em>
 <p>PrivateDNSName is the options for the instance hostname.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>capacityReservationId</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CapacityReservationID specifies the target Capacity Reservation into which the instance should be launched.</p>
 </td>
 </tr>
 </tbody>
@@ -20279,6 +20367,20 @@ Precedence for this setting is as follows:
 </tr>
 <tr>
 <td>
+<code>elasticIpPool</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.ElasticIPPool">
+ElasticIPPool
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ElasticIPPool is the configuration to allocate Public IPv4 address (Elastic IP/EIP) from user-defined pool.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>additionalSecurityGroups</code><br/>
 <em>
 <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSResourceReference">
@@ -20482,6 +20584,18 @@ PrivateDNSName
 <td>
 <em>(Optional)</em>
 <p>PrivateDNSName is the options for the instance hostname.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>capacityReservationId</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CapacityReservationID specifies the target Capacity Reservation into which the instance should be launched.</p>
 </td>
 </tr>
 </table>
@@ -20877,6 +20991,20 @@ ELBProtocol
 <td>
 <p>Protocol sets the protocol for the additional listener.
 Currently only TCP is supported.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>healthCheck</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.TargetGroupHealthCheckAdditionalSpec">
+TargetGroupHealthCheckAdditionalSpec
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>HealthCheck sets the optional custom health check configuration to the API target group.</p>
 </td>
 </tr>
 </tbody>
@@ -21474,6 +21602,58 @@ will use AWS Secrets Manager instead.</p>
 <p>
 <p>ELBScheme defines the scheme of a load balancer.</p>
 </p>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.ElasticIPPool">ElasticIPPool
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.VPCSpec">VPCSpec</a>)
+</p>
+<p>
+<p>ElasticIPPool allows configuring a Elastic IP pool for resources allocating
+public IPv4 addresses on public subnets.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>publicIpv4Pool</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PublicIpv4Pool sets a custom Public IPv4 Pool used to create Elastic IP address for resources
+created in public IPv4 subnets. Every IPv4 address, Elastic IP, will be allocated from the custom
+Public IPv4 pool that you brought to AWS, instead of Amazon-provided pool. The public IPv4 pool
+resource ID starts with &lsquo;ipv4pool-ec2&rsquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>publicIpv4PoolFallbackOrder</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.PublicIpv4PoolFallbackOrder">
+PublicIpv4PoolFallbackOrder
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PublicIpv4PoolFallBackOrder defines the fallback action when the Public IPv4 Pool has been exhausted,
+no more IPv4 address available in the pool.</p>
+<p>When set to &lsquo;amazon-pool&rsquo;, the controller check if the pool has available IPv4 address, when pool has reached the
+IPv4 limit, the address will be claimed from Amazon-pool (default).</p>
+<p>When set to &lsquo;none&rsquo;, the controller will fail the Elastic IP allocation when the publicIpv4Pool is exhausted.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.Filter">Filter
 </h3>
 <p>
@@ -21977,6 +22157,18 @@ int64
 The field will be combined with source security group IDs if specified.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>natGatewaysIPsSource</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>NatGatewaysIPsSource use the NAT gateways IPs as the source for the ingress rule.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.IngressRules">IngressRules
@@ -22323,6 +22515,18 @@ bool
 <td>
 <em>(Optional)</em>
 <p>PublicIPOnLaunch is the option to associate a public IP on instance launch</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>capacityReservationId</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CapacityReservationID specifies the target Capacity Reservation into which the instance should be launched.</p>
 </td>
 </tr>
 </tbody>
@@ -22890,6 +23094,16 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.PublicIpv4PoolFallbackOrder">PublicIpv4PoolFallbackOrder
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.ElasticIPPool">ElasticIPPool</a>)
+</p>
+<p>
+<p>PublicIpv4PoolFallbackOrder defines the list of available fallback action when the PublicIpv4Pool is exhausted.
+&lsquo;none&rsquo; let the controllers return failures when the PublicIpv4Pool is exhausted - no more IPv4 available.
+&lsquo;amazon-pool&rsquo; let the controllers to skip the PublicIpv4Pool and use the Amazon pool, the default.</p>
+</p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.ResourceLifecycle">ResourceLifecycle
 (<code>string</code> alias)</p></h3>
 <p>
@@ -22991,6 +23205,18 @@ string
 </td>
 <td>
 <p>Name defines name of S3 Bucket to be created.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>bestEffortDeleteObjects</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>BestEffortDeleteObjects defines whether access/permission errors during object deletion should be ignored.</p>
 </td>
 </tr>
 </tbody>
@@ -23118,6 +23344,15 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.SubnetSchemaType">SubnetSchemaType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.VPCSpec">VPCSpec</a>)
+</p>
+<p>
+<p>SubnetSchemaType specifies how given network should be divided on subnets
+in the VPC depending on the number of AZs.</p>
+</p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.SubnetSpec">SubnetSpec
 </h3>
 <p>
@@ -23260,6 +23495,49 @@ Tags
 <p>Tags is a collection of tags describing the resource.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>zoneType</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.ZoneType">
+ZoneType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ZoneType defines the type of the zone where the subnet is created.</p>
+<p>The valid values are availability-zone, local-zone, and wavelength-zone.</p>
+<p>Subnet with zone type availability-zone (regular) is always selected to create cluster
+resources, like Load Balancers, NAT Gateways, Contol Plane nodes, etc.</p>
+<p>Subnet with zone type local-zone or wavelength-zone is not eligible to automatically create
+regular cluster resources.</p>
+<p>The public subnet in availability-zone or local-zone is associated with regular public
+route table with default route entry to a Internet Gateway.</p>
+<p>The public subnet in wavelength-zone is associated with a carrier public
+route table with default route entry to a Carrier Gateway.</p>
+<p>The private subnet in the availability-zone is associated with a private route table with
+the default route entry to a NAT Gateway created in that zone.</p>
+<p>The private subnet in the local-zone or wavelength-zone is associated with a private route table with
+the default route entry re-using the NAT Gateway in the Region (preferred from the
+parent zone, the zone type availability-zone in the region, or first table available).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>parentZoneName</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ParentZoneName is the zone name where the current subnet&rsquo;s zone is tied when
+the zone is a Local Zone.</p>
+<p>The subnets in Local Zone or Wavelength Zone locations consume the ParentZoneName
+to select the correct private route table to egress traffic to the internet.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.Subnets">Subnets
@@ -23357,6 +23635,195 @@ int64
 </em>
 </td>
 <td>
+</td>
+</tr>
+<tr>
+<td>
+<code>unhealthyThresholdCount</code><br/>
+<em>
+int64
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.TargetGroupHealthCheckAPISpec">TargetGroupHealthCheckAPISpec
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSLoadBalancerSpec">AWSLoadBalancerSpec</a>)
+</p>
+<p>
+<p>TargetGroupHealthCheckAPISpec defines the optional health check settings for the API target group.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>intervalSeconds</code><br/>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The approximate amount of time, in seconds, between health checks of an individual
+target.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>timeoutSeconds</code><br/>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The amount of time, in seconds, during which no response from a target means
+a failed health check.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>thresholdCount</code><br/>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The number of consecutive health check successes required before considering
+a target healthy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>unhealthyThresholdCount</code><br/>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The number of consecutive health check failures required before considering
+a target unhealthy.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.TargetGroupHealthCheckAdditionalSpec">TargetGroupHealthCheckAdditionalSpec
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AdditionalListenerSpec">AdditionalListenerSpec</a>)
+</p>
+<p>
+<p>TargetGroupHealthCheckAdditionalSpec defines the optional health check settings for the additional target groups.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>protocol</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The protocol to use to health check connect with the target. When not specified the Protocol
+will be the same of the listener.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>port</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The port the load balancer uses when performing health checks for additional target groups. When
+not specified this value will be set for the same of listener port.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>path</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The destination for health checks on the targets when using the protocol HTTP or HTTPS,
+otherwise the path will be ignored.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>intervalSeconds</code><br/>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The approximate amount of time, in seconds, between health checks of an individual
+target.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>timeoutSeconds</code><br/>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The amount of time, in seconds, during which no response from a target means
+a failed health check.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>thresholdCount</code><br/>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The number of consecutive health check successes required before considering
+a target healthy.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>unhealthyThresholdCount</code><br/>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The number of consecutive health check failures required before considering
+a target unhealthy.</p>
 </td>
 </tr>
 </tbody>
@@ -23479,6 +23946,22 @@ Mutually exclusive with IPAMPool.</p>
 </tr>
 <tr>
 <td>
+<code>secondaryCidrBlocks</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.VpcCidrBlock">
+[]VpcCidrBlock
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecondaryCidrBlocks are additional CIDR blocks to be associated when the provider creates a managed VPC.
+Defaults to none. Mutually exclusive with IPAMPool. This makes sense to use if, for example, you want to use
+a separate IP range for pods (e.g. Cilium ENI mode).</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>ipamPool</code><br/>
 <em>
 <a href="#infrastructure.cluster.x-k8s.io/v1beta2.IPAMPool">
@@ -23516,6 +23999,19 @@ string
 <td>
 <em>(Optional)</em>
 <p>InternetGatewayID is the id of the internet gateway associated with the VPC.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>carrierGatewayId</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CarrierGatewayID is the id of the internet gateway associated with the VPC,
+for carrier network (Wavelength Zones).</p>
 </td>
 </tr>
 <tr>
@@ -23591,6 +24087,40 @@ string
 <p>PrivateDNSHostnameTypeOnLaunch is the type of hostname to assign to instances in the subnet at launch.
 For IPv4-only and dual-stack (IPv4 and IPv6) subnets, an instance DNS name can be based on the instance IPv4 address (ip-name)
 or the instance ID (resource-name). For IPv6 only subnets, an instance DNS name must be based on the instance ID (resource-name).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>elasticIpPool</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.ElasticIPPool">
+ElasticIPPool
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ElasticIPPool contains specific configuration to allocate Public IPv4 address (Elastic IP) from user-defined pool
+brought to AWS for core infrastructure resources, like NAT Gateways and Public Network Load Balancers for
+the API Server.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>subnetSchema</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.SubnetSchemaType">
+SubnetSchemaType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SubnetSchema specifies how CidrBlock should be divided on subnets in the VPC depending on the number of AZs.
+PreferPrivate - one private subnet for each AZ plus one other subnet that will be further sub-divided for the public subnets.
+PreferPublic - have the reverse logic of PreferPrivate, one public subnet for each AZ plus one other subnet
+that will be further sub-divided for the private subnets.
+Defaults to PreferPrivate</p>
 </td>
 </tr>
 </tbody>
@@ -23709,6 +24239,43 @@ The key must already exist and be accessible by the controller.</p>
 <p>
 <p>VolumeType describes the EBS volume type.
 See: <a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-volume-types.html">https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ebs-volume-types.html</a></p>
+</p>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.VpcCidrBlock">VpcCidrBlock
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.VPCSpec">VPCSpec</a>)
+</p>
+<p>
+<p>VpcCidrBlock defines the CIDR block and settings to associate with the managed VPC. Currently, only IPv4 is supported.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>ipv4CidrBlock</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>IPv4CidrBlock is the IPv4 CIDR block to associate with the managed VPC.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.ZoneType">ZoneType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.SubnetSpec">SubnetSpec</a>)
+</p>
+<p>
+<p>ZoneType defines listener AWS Availability Zone type.</p>
 </p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.ASGStatus">ASGStatus
 (<code>string</code> alias)</p></h3>
@@ -23975,6 +24542,20 @@ Volume
 <td>
 <em>(Optional)</em>
 <p>RootVolume encapsulates the configuration options for the root volume</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>nonRootVolumes</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.Volume">
+[]Volume
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Configuration options for the non root storage volumes.</p>
 </td>
 </tr>
 <tr>
@@ -26078,7 +26659,13 @@ int64
 <th>Description</th>
 </tr>
 </thead>
-<tbody><tr><td><p>&#34;AL2_ARM_64&#34;</p></td>
+<tbody><tr><td><p>&#34;AL2023_ARM_64_STANDARD&#34;</p></td>
+<td><p>Al2023Arm64 is the AL2023 Arm AMI type.</p>
+</td>
+</tr><tr><td><p>&#34;AL2023_x86_64_STANDARD&#34;</p></td>
+<td><p>Al2023x86_64 is the AL2023 x86-64 AMI type.</p>
+</td>
+</tr><tr><td><p>&#34;AL2_ARM_64&#34;</p></td>
 <td><p>Al2Arm64 is the Arm AMI type.</p>
 </td>
 </tr><tr><td><p>&#34;AL2_x86_64&#34;</p></td>
@@ -26675,7 +27262,7 @@ bool
 <td>
 <em>(Optional)</em>
 <p>AutoRepair specifies whether health checks should be enabled for machines
-in the NodePool. The default is false.</p>
+in the NodePool. The default is true.</p>
 </td>
 </tr>
 <tr>
@@ -26758,6 +27345,20 @@ respected during upgrades. After this grace period, any workloads protected by P
 Budgets that have not been successfully drained from a node will be forcibly evicted.</p>
 <p>Valid values are from 0 to 1 week(10080m|168h) .
 0 or empty value means that the MachinePool can be drained without any time limitation.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>updateConfig</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaUpdateConfig">
+RosaUpdateConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>UpdateConfig specifies update configurations.</p>
 </td>
 </tr>
 </table>
@@ -26845,6 +27446,66 @@ int64
 <em>(Optional)</em>
 <p>The amount of capacity as a percentage in ASG that must remain healthy
 during an instance refresh. The default is 90.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.RollingUpdate">RollingUpdate
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaUpdateConfig">RosaUpdateConfig</a>)
+</p>
+<p>
+<p>RollingUpdate specifies MaxUnavailable &amp; MaxSurge number of nodes during update.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>maxUnavailable</code><br/>
+<em>
+k8s.io/apimachinery/pkg/util/intstr.IntOrString
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>MaxUnavailable is the maximum number of nodes that can be unavailable during the update.
+Value can be an absolute number (ex: 5) or a percentage of desired nodes (ex: 10%).
+Absolute number is calculated from percentage by rounding down.</p>
+<p>MaxUnavailable can not be 0 if MaxSurge is 0, default is 0.
+Both MaxUnavailable &amp; MaxSurge must use the same units (absolute value or percentage).</p>
+<p>Example: when MaxUnavailable is set to 30%, old nodes can be deleted down to 70% of
+desired nodes immediately when the rolling update starts. Once new nodes
+are ready, more old nodes be deleted, followed by provisioning new nodes,
+ensuring that the total number of nodes available at all times during the
+update is at least 70% of desired nodes.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>maxSurge</code><br/>
+<em>
+k8s.io/apimachinery/pkg/util/intstr.IntOrString
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>MaxSurge is the maximum number of nodes that can be provisioned above the desired number of nodes.
+Value can be an absolute number (ex: 5) or a percentage of desired nodes (ex: 10%).
+Absolute number is calculated from percentage by rounding up.</p>
+<p>MaxSurge can not be 0 if MaxUnavailable is 0, default is 1.
+Both MaxSurge &amp; MaxUnavailable must use the same units (absolute value or percentage).</p>
+<p>Example: when MaxSurge is set to 30%, new nodes can be provisioned immediately
+when the rolling update starts, such that the total number of old and new
+nodes do not exceed 130% of desired nodes. Once old nodes have been
+deleted, new nodes can be provisioned, ensuring that total number of nodes
+running at any time during the update is at most 130% of desired nodes.</p>
 </td>
 </tr>
 </tbody>
@@ -27002,7 +27663,7 @@ bool
 <td>
 <em>(Optional)</em>
 <p>AutoRepair specifies whether health checks should be enabled for machines
-in the NodePool. The default is false.</p>
+in the NodePool. The default is true.</p>
 </td>
 </tr>
 <tr>
@@ -27085,6 +27746,20 @@ respected during upgrades. After this grace period, any workloads protected by P
 Budgets that have not been successfully drained from a node will be forcibly evicted.</p>
 <p>Valid values are from 0 to 1 week(10080m|168h) .
 0 or empty value means that the MachinePool can be drained without any time limitation.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>updateConfig</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaUpdateConfig">
+RosaUpdateConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>UpdateConfig specifies update configurations.</p>
 </td>
 </tr>
 </tbody>
@@ -27225,6 +27900,38 @@ Kubernetes core/v1.TaintEffect
 <td>
 <p>The effect of the taint on pods that do not tolerate the taint.
 Valid effects are NoSchedule, PreferNoSchedule and NoExecute.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.RosaUpdateConfig">RosaUpdateConfig
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolSpec">RosaMachinePoolSpec</a>)
+</p>
+<p>
+<p>RosaUpdateConfig specifies update configuration</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>rollingUpdate</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.RollingUpdate">
+RollingUpdate
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RollingUpdate specifies MaxUnavailable &amp; MaxSurge number of nodes during update.</p>
 </td>
 </tr>
 </tbody>
