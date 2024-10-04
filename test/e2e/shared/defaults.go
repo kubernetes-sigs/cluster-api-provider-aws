@@ -36,8 +36,8 @@ import (
 // Constants.
 const (
 	DefaultSSHKeyPairName                = "cluster-api-provider-aws-sigs-k8s-io"
-	AMIPrefix                            = "capa-ami-ubuntu-18.04-"
-	DefaultImageLookupOrg                = "258751437250"
+	AMIPrefix                            = "capa-ami-ubuntu-24.04-"
+	DefaultImageLookupOrg                = "819546954734"
 	KubernetesVersion                    = "KUBERNETES_VERSION"
 	KubernetesVersionManagement          = "KUBERNETES_VERSION_MANAGEMENT"
 	CNIPath                              = "CNI"
