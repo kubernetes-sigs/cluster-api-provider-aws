@@ -51,8 +51,8 @@ func (t Template) controllersPolicyRoleAttachments() []string {
 	return attachments
 }
 
-func (t Template) controllersTrustPolicy() *iamv1.PolicyDocument {
-	policyDocument := ec2AssumeRolePolicy()
+func (t Template) controllersTrustPolicy(eksEnabled bool) *iamv1.PolicyDocument {
+	policyDocument := ec2AssumeRolePolicy(eksEnabled)
 	policyDocument.Statement = append(policyDocument.Statement, t.Spec.ClusterAPIControllers.TrustStatements...)
 	return policyDocument
 }

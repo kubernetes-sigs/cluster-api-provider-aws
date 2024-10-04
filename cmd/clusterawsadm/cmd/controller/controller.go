@@ -44,6 +44,7 @@ func RootCmd() *cobra.Command {
 	newCmd.AddCommand(credentials.UpdateCredentialsCmd())
 	newCmd.AddCommand(credentials.PrintCredentialsCmd())
 	newCmd.AddCommand(rollout.RolloutControllersCmd())
+	newCmd.AddCommand(credentials.UseEKSPodIdentityCmd())
 
 	return newCmd
 }
