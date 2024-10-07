@@ -27,15 +27,15 @@ For clusters that will use external CCM, `cloud-provider: external` flag needs t
 
 
 External CCM and EBS CSI driver can be installed manually or using ClusterResourceSets (CRS) onto the CAPA workload cluster.
-To install them with CRS, create a CRS resource on the management cluster with labels, for example `csi: external` and `ccm: external` labels. 
+To install them with CRS, create a CRS resource on the management cluster with labels, for example `csi: external` and `ccm: external` labels.
 Then, when creating `Cluster` objects for workload clusters that should have this CSR applied, create them with matching labels `csi: external` and `ccm: external` for CSI and CCM, respectively.
 
-Manifests for installing the AWS CCM and the AWS EBS CSI driver are available from their respective 
-GitHub repositories (see [here for the AWS CCM](https://github.com/kubernetes/cloud-provider-aws) and 
+Manifests for installing the AWS CCM and the AWS EBS CSI driver are available from their respective
+GitHub repositories (see [here for the AWS CCM](https://github.com/kubernetes/cloud-provider-aws) and
 [here for the AWS EBS CSI driver](https://github.com/kubernetes-sigs/aws-ebs-csi-driver)).
 
-An example of a workload cluster manifest with labels assigned for matching to a CRS can be found 
-[here](https://github.com/kubernetes-sigs/cluster-api-provider-aws/tree/main/templates/cluster-template-external-cloud-provider.yaml).
+An example of a workload cluster manifest with labels assigned for matching to a CRS can be found
+[here](https://github.com/kubernetes-sigs/cluster-api-provider-aws/tree/main/templates/cluster-template.yaml).
 
 ### Verifying dynamically provisioned volumes with CSI driver
 Once you have the cluster with external CCM and CSI controller running successfully, you can test the CSI driver functioning with following steps after switching to workload cluster:
@@ -113,14 +113,14 @@ spec:
 3. Once you apply the above manifest, the EBS volumes will be created and attached to the worker nodes.
 
 >**IMPORTANT WARNING:** The CRDs from the AWS EBS CSI driver and AWS external cloud provider gives issue while installing the respective controllers on the AWS Cluster, it doesn't allow statefulsets to create the volume on existing EC2 instance.
-> We need the CSI controller deployment and CCM pinned to the control plane which has right permissions to create, attach 
+> We need the CSI controller deployment and CCM pinned to the control plane which has right permissions to create, attach
 > and mount the volumes to EC2 instances. To achieve this, you should add the node affinity rules to the CSI driver controller deployment and CCM DaemonSet manifests.
 > ```yaml
 > tolerations:
 > - key: node-role.kubernetes.io/master
 >   effect: NoSchedule
 > - effect: NoSchedule
->   key: node-role.kubernetes.io/control-plane 
+>   key: node-role.kubernetes.io/control-plane
 > affinity:
 >   nodeAffinity:
 >   requiredDuringSchedulingIgnoredDuringExecution:
@@ -132,14 +132,14 @@ spec:
 >           - key: node-role.kubernetes.io/master
 >             operator: Exists
 >```
- 
+
 
 ## Validated upgrade paths for existing clusters
 
 From Kubernetes 1.23 onwards, `CSIMigrationAWS` flag is enabled by default, which requires the installation of [external CSI driver](https://github.com/kubernetes-sigs/aws-ebs-csi-driver), unless `CSIMigrationAWS` is disabled by the user.
 For installing external CSI/CCM in the upgraded cluster, CRS can be used, see the section above for details.
 
-CCM and CSI do not need to be migrated to use external plugins at the same time, 
+CCM and CSI do not need to be migrated to use external plugins at the same time,
 external CSI drivers works with in-tree CCM (Warning: using in-tree CSI with external CCM does not work).
 
 **Following 3 upgrade paths are validated:**
