@@ -263,6 +263,9 @@ data:
       - serviceaccounts
       verbs:
       - create
+      - get
+      - list
+      - watch
     - apiGroups:
       - ""
       resources:
