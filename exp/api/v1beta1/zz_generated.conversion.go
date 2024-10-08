@@ -1066,6 +1066,7 @@ func autoConvert_v1beta2_RefreshPreferences_To_v1beta1_RefreshPreferences(in *v1
 	out.Strategy = (*string)(unsafe.Pointer(in.Strategy))
 	out.InstanceWarmup = (*int64)(unsafe.Pointer(in.InstanceWarmup))
 	out.MinHealthyPercentage = (*int64)(unsafe.Pointer(in.MinHealthyPercentage))
+	// WARNING: in.MaxHealthyPercentage requires manual conversion: does not exist in peer-type
 	return nil
 }
 
