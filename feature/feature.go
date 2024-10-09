@@ -69,7 +69,7 @@ const (
 
 	// ExternalResourceGC is used to enable the garbage collection of external resources like NLB/ALB on deletion
 	// owner: @richardcase
-	// alpha: v1.5
+	// beta: v2.5.0
 	ExternalResourceGC featuregate.Feature = "ExternalResourceGC"
 
 	// AlternativeGCStrategy is used to enable garbage collection of external resources to be performed without resource group tagging API. It is usually needed in airgap env when tagging API is not available.
@@ -104,7 +104,7 @@ var defaultCAPAFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	MachinePool:                   {Default: true, PreRelease: featuregate.Beta},
 	AutoControllerIdentityCreator: {Default: true, PreRelease: featuregate.Alpha},
 	BootstrapFormatIgnition:       {Default: false, PreRelease: featuregate.Alpha},
-	ExternalResourceGC:            {Default: false, PreRelease: featuregate.Alpha},
+	ExternalResourceGC:            {Default: true, PreRelease: featuregate.Beta},
 	AlternativeGCStrategy:         {Default: false, PreRelease: featuregate.Alpha},
 	TagUnmanagedNetworkResources:  {Default: true, PreRelease: featuregate.Alpha},
 	ROSA:                          {Default: false, PreRelease: featuregate.Alpha},
