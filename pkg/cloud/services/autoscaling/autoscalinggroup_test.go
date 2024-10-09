@@ -1203,6 +1203,7 @@ func TestServiceStartASGInstanceRefresh(t *testing.T) {
 					Preferences: &autoscaling.RefreshPreferences{
 						InstanceWarmup:       aws.Int64(100),
 						MinHealthyPercentage: aws.Int64(80),
+						MaxHealthyPercentage: aws.Int64(100),
 					},
 				})).
 					Return(nil, awserrors.NewNotFound("not found"))
@@ -1218,6 +1219,7 @@ func TestServiceStartASGInstanceRefresh(t *testing.T) {
 					Preferences: &autoscaling.RefreshPreferences{
 						InstanceWarmup:       aws.Int64(100),
 						MinHealthyPercentage: aws.Int64(80),
+						MaxHealthyPercentage: aws.Int64(100),
 					},
 				})).
 					Return(&autoscaling.StartInstanceRefreshOutput{}, nil)
@@ -1312,6 +1314,7 @@ func getMachinePoolScope(client client.Client, clusterScope *scope.ClusterScope)
 				Strategy:             aws.String("Rolling"),
 				InstanceWarmup:       aws.Int64(100),
 				MinHealthyPercentage: aws.Int64(80),
+				MaxHealthyPercentage: aws.Int64(100),
 			},
 			MixedInstancesPolicy: &expinfrav1.MixedInstancesPolicy{
 				InstancesDistribution: &expinfrav1.InstancesDistribution{
