@@ -202,7 +202,7 @@ func getBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 func ApplyTemplate(ctx context.Context, configCluster clusterctl.ConfigClusterInput, clusterProxy framework.ClusterProxy) error {
 	workloadClusterTemplate := GetTemplate(ctx, configCluster)
 	By(fmt.Sprintf("Applying the %s cluster template yaml to the cluster", configCluster.Flavor))
-	return clusterProxy.Apply(ctx, workloadClusterTemplate)
+	return clusterProxy.CreateOrUpdate(ctx, workloadClusterTemplate)
 }
 
 // GetTemplate will render a cluster template.
