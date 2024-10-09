@@ -675,6 +675,14 @@ spec:
 
                               Defaults to false.
                             type: boolean
+                          defaultAllowedSourceCidrs:
+                            description: |-
+                              DefaultAllowedSourceCidrs is a list of allowed cidr blocks to allow as the source in the inbound rules for
+                              the api server security group. If not supplied then it defaults to 0.0.0.0/0 for an IPv4 vpc or ::/o for
+                              a IPv6 vpc. This is ignored if IngressRules are explicitly supplied.
+                            items:
+                              type: string
+                            type: array
                           disableHostsRewrite:
                             description: |-
                               DisableHostsRewrite disabled the hair pinning issue solution that adds the NLB's address as 127.0.0.1 to the hosts
@@ -1011,6 +1019,13 @@ spec:
                                   type: object
                                 type: array
                             type: object
+                          nodePortServicesAllowedCidrs:
+                            description: |-
+                              NodePortServicesAllowedCidrs is an optional way to restict the source IPs used in the node security group
+                              for the inbound rule applicable to node port services. If not supplied then a source of 0.0.0.0/0 will be used.
+                            items:
+                              type: string
+                            type: array
                           securityGroupOverrides:
                             additionalProperties:
                               type: string
@@ -1502,6 +1517,14 @@ spec:
 
                               Defaults to false.
                             type: boolean
+                          defaultAllowedSourceCidrs:
+                            description: |-
+                              DefaultAllowedSourceCidrs is a list of allowed cidr blocks to allow as the source in the inbound rules for
+                              the api server security group. If not supplied then it defaults to 0.0.0.0/0 for an IPv4 vpc or ::/o for
+                              a IPv6 vpc. This is ignored if IngressRules are explicitly supplied.
+                            items:
+                              type: string
+                            type: array
                           disableHostsRewrite:
                             description: |-
                               DisableHostsRewrite disabled the hair pinning issue solution that adds the NLB's address as 127.0.0.1 to the hosts

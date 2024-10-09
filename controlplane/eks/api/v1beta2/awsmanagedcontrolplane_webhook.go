@@ -63,8 +63,10 @@ func (r *AWSManagedControlPlane) SetupWebhookWithManager(mgr ctrl.Manager) error
 // +kubebuilder:webhook:verbs=create;update,path=/validate-controlplane-cluster-x-k8s-io-v1beta2-awsmanagedcontrolplane,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=controlplane.cluster.x-k8s.io,resources=awsmanagedcontrolplanes,versions=v1beta2,name=validation.awsmanagedcontrolplanes.controlplane.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-controlplane-cluster-x-k8s-io-v1beta2-awsmanagedcontrolplane,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=controlplane.cluster.x-k8s.io,resources=awsmanagedcontrolplanes,versions=v1beta2,name=default.awsmanagedcontrolplanes.controlplane.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.Defaulter = &AWSManagedControlPlane{}
-var _ webhook.Validator = &AWSManagedControlPlane{}
+var (
+	_ webhook.Defaulter = &AWSManagedControlPlane{}
+	_ webhook.Validator = &AWSManagedControlPlane{}
+)
 
 func parseEKSVersion(raw string) (*version.Version, error) {
 	v, err := version.ParseGeneric(raw)
@@ -472,6 +474,22 @@ func (r *AWSManagedControlPlane) validateNetwork() field.ErrorList {
 	if r.Spec.NetworkSpec.VPC.IsIPv6Enabled() && r.Spec.NetworkSpec.VPC.IPv6.IPAMPool != nil && r.Spec.NetworkSpec.VPC.IPv6.IPAMPool.ID == "" && r.Spec.NetworkSpec.VPC.IPv6.IPAMPool.Name == "" {
 		ipamPoolField := field.NewPath("spec", "network", "vpc", "ipv6", "ipamPool")
 		allErrs = append(allErrs, field.Invalid(ipamPoolField, r.Spec.NetworkSpec.VPC.IPv6.IPAMPool, "ipamPool must have either id or name"))
+	}
+
+	if len(r.Spec.NetworkSpec.NodePortServicesAllowedCidrs) > 0 {
+		sourceCidrsField := field.NewPath("spec", "network", "vpc", "nodePortServicesAllowedCidrs")
+		_, ok := r.Spec.NetworkSpec.SecurityGroupOverrides[infrav1.SecurityGroupNode]
+		if ok {
+			allErrs = append(allErrs, field.Invalid(sourceCidrsField, r.Spec.NetworkSpec.NodePortServicesAllowedCidrs, fmt.Sprintf("awscluster.spec.network.nodePortServicesAllowedCidrs cannot be supplied when using a %s security group override", infrav1.SecurityGroupNode)))
+		}
+
+		for i, cidr := range r.Spec.NetworkSpec.NodePortServicesAllowedCidrs {
+			if _, _, err := net.ParseCIDR(cidr); err != nil {
+				allErrs = append(allErrs,
+					field.Invalid(field.NewPath("spec", "network", "vpc", fmt.Sprintf("nodePortServicesAllowedCidrs[%d]", i)), cidr, "must be a valid CIDR block"),
+				)
+			}
+		}
 	}
 
 	return allErrs

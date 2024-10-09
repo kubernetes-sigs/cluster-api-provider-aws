@@ -638,6 +638,42 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "accepts node port services allowed cidrs",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						NodePortServicesAllowedCidrs: []string{"192.168.1.0/24", "192.168.100.0/24"},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "rejects node port services allowed cidrs with invalid cidr",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						NodePortServicesAllowedCidrs: []string{"thiswillfail"},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects node port services allowed cidrs when node security group override",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						NodePortServicesAllowedCidrs: []string{"192.168.1.0/24"},
+						SecurityGroupOverrides: map[SecurityGroupRole]string{
+							SecurityGroupNode: "sg-123456789",
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -677,7 +713,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 }
 
 func TestAWSClusterValidateUpdate(t *testing.T) {
-	var tests = []struct {
+	tests := []struct {
 		name       string
 		oldCluster *AWSCluster
 		newCluster *AWSCluster

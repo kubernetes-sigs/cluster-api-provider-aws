@@ -474,6 +474,13 @@ spec:
                           type: object
                         type: array
                     type: object
+                  nodePortServicesAllowedCidrs:
+                    description: |-
+                      NodePortServicesAllowedCidrs is an optional way to restict the source IPs used in the node security group
+                      for the inbound rule applicable to node port services. If not supplied then a source of 0.0.0.0/0 will be used.
+                    items:
+                      type: string
+                    type: array
                   securityGroupOverrides:
                     additionalProperties:
                       type: string
@@ -2500,6 +2507,13 @@ spec:
                           type: object
                         type: array
                     type: object
+                  nodePortServicesAllowedCidrs:
+                    description: |-
+                      NodePortServicesAllowedCidrs is an optional way to restict the source IPs used in the node security group
+                      for the inbound rule applicable to node port services. If not supplied then a source of 0.0.0.0/0 will be used.
+                    items:
+                      type: string
+                    type: array
                   securityGroupOverrides:
                     additionalProperties:
                       type: string

@@ -34,23 +34,21 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-var (
-	testSecurityGroupRoles = []infrav1.SecurityGroupRole{
-		infrav1.SecurityGroupBastion,
-		infrav1.SecurityGroupAPIServerLB,
-		infrav1.SecurityGroupLB,
-		infrav1.SecurityGroupControlPlane,
-		infrav1.SecurityGroupNode,
-	}
-)
+var testSecurityGroupRoles = []infrav1.SecurityGroupRole{
+	infrav1.SecurityGroupBastion,
+	infrav1.SecurityGroupAPIServerLB,
+	infrav1.SecurityGroupLB,
+	infrav1.SecurityGroupControlPlane,
+	infrav1.SecurityGroupNode,
+}
 
 func TestReconcileSecurityGroups(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
@@ -1181,7 +1179,7 @@ func TestControlPlaneSecurityGroupNotOpenToAnyCIDR(t *testing.T) {
 	}
 
 	for _, r := range rules {
-		if sets.NewString(r.CidrBlocks...).Has(services.AnyIPv4CidrBlock) {
+		if sets.NewString(r.CidrBlocks...).Has(cloud.AnyIPv4CidrBlock) {
 			t.Fatal("Ingress rule allows any CIDR block")
 		}
 	}
@@ -1489,7 +1487,7 @@ func TestControlPlaneLoadBalancerIngressRules(t *testing.T) {
 					Protocol:    infrav1.SecurityGroupProtocolTCP,
 					FromPort:    6443,
 					ToPort:      6443,
-					CidrBlocks:  []string{services.AnyIPv4CidrBlock},
+					CidrBlocks:  []string{cloud.AnyIPv4CidrBlock},
 				},
 			},
 		},
@@ -1513,7 +1511,7 @@ func TestControlPlaneLoadBalancerIngressRules(t *testing.T) {
 					Protocol:       infrav1.SecurityGroupProtocolTCP,
 					FromPort:       6443,
 					ToPort:         6443,
-					IPv6CidrBlocks: []string{services.AnyIPv6CidrBlock},
+					IPv6CidrBlocks: []string{cloud.AnyIPv6CidrBlock},
 				},
 			},
 		},
@@ -1547,7 +1545,7 @@ func TestControlPlaneLoadBalancerIngressRules(t *testing.T) {
 					Protocol:    infrav1.SecurityGroupProtocolTCP,
 					FromPort:    6443,
 					ToPort:      6443,
-					CidrBlocks:  []string{services.AnyIPv4CidrBlock},
+					CidrBlocks:  []string{cloud.AnyIPv4CidrBlock},
 				},
 			},
 		},
@@ -1622,7 +1620,7 @@ func TestControlPlaneLoadBalancerIngressRules(t *testing.T) {
 					Protocol:    infrav1.SecurityGroupProtocolTCP,
 					FromPort:    6443,
 					ToPort:      6443,
-					CidrBlocks:  []string{services.AnyIPv4CidrBlock},
+					CidrBlocks:  []string{cloud.AnyIPv4CidrBlock},
 				},
 			},
 		},
@@ -1655,7 +1653,7 @@ func TestControlPlaneLoadBalancerIngressRules(t *testing.T) {
 					Protocol:       infrav1.SecurityGroupProtocolTCP,
 					FromPort:       6443,
 					ToPort:         6443,
-					IPv6CidrBlocks: []string{services.AnyIPv6CidrBlock},
+					IPv6CidrBlocks: []string{cloud.AnyIPv6CidrBlock},
 				},
 			},
 		},
