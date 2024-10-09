@@ -109,10 +109,14 @@ func TaintsFromSDK(taints []*eks.Taint) (expinfrav1.Taints, error) {
 		if err != nil {
 			return nil, fmt.Errorf("converting taint effect %s: %w", *taint.Effect, err)
 		}
+		taintValue := ""
+		if taint.Value != nil {
+			taintValue = *taint.Value
+		}
 		converted = append(converted, expinfrav1.Taint{
 			Effect: convertedEffect,
 			Key:    *taint.Key,
-			Value:  *taint.Value,
+			Value:  taintValue,
 		})
 	}
 
