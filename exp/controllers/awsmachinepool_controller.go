@@ -298,6 +298,21 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 		return nil
 	}
 
+	lifecycleHookScope, err := scope.NewLifecycleHookScope(scope.LifecycleHookScopeParams{
+		Client:         r.Client,
+		Logger:         &machinePoolScope.Logger,
+		MachinePool:    machinePoolScope.MachinePool,
+		AWSMachinePool: machinePoolScope.AWSMachinePool,
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to create lifecycle hook scope")
+	}
+
+	if err := reconSvc.ReconcileLifecycleHooks(*lifecycleHookScope, asgsvc); err != nil {
+		r.Recorder.Eventf(machinePoolScope.AWSMachinePool, corev1.EventTypeWarning, "FaileLifecycleHooksReconcile", "Failed to reconcile lifecycle hooks: %v", err)
+		return errors.Wrap(err, "failed to reconcile lifecycle hooks")
+	}
+
 	if annotations.ReplicasManagedByExternalAutoscaler(machinePoolScope.MachinePool) {
 		// Set MachinePool replicas to the ASG DesiredCapacity
 		if *machinePoolScope.MachinePool.Spec.Replicas != *asg.DesiredCapacity {
