@@ -244,6 +244,7 @@ rules:
   resources:
   - awsclusters
   verbs:
+  - create
   - delete
   - get
   - list

@@ -516,6 +516,13 @@ spec:
                           AdditionalTags is an optional set of tags to add to AWS resources managed by the AWS provider, in addition to the
                           ones added by default.
                         type: object
+                      associateOIDCProvider:
+                        default: false
+                        description: |-
+                          AssociateOIDCProvider can be enabled to automatically publish the clusters Service Account issuer OIDC discovery
+                          documents to S3, create an AWS IAM OIDC identity provider and configure it to trust the cluster issuer.
+                          This will only work if the S3Bucket is configured properly.
+                        type: boolean
                       bastion:
                         description: Bastion contains options to configure the bastion
                           host.
@@ -1347,9 +1354,9 @@ spec:
                       s3Bucket:
                         description: |-
                           S3Bucket contains options to configure a supporting S3 bucket for this
-                          cluster - currently used for nodes requiring Ignition
-                          (https://coreos.github.io/ignition/) for bootstrapping (requires
-                          BootstrapFormatIgnition feature flag to be enabled).
+                          cluster - Used for nodes requiring Ignition (https://coreos.github.io/ignition/) for bootstrapping (requires
+                          BootstrapFormatIgnition feature flag to be enabled) and/or for storing OIDC endpoint certificates for use
+                          with IRSA (requires OIDCProviderSupport feature flag to be enabled).
                         properties:
                           bestEffortDeleteObjects:
                             description: BestEffortDeleteObjects defines whether access/permission

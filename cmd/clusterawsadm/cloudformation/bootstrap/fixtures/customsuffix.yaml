@@ -243,6 +243,11 @@ Resources:
           - ec2:DeleteLaunchTemplateVersions
           - ec2:DescribeKeyPairs
           - ec2:ModifyInstanceMetadataOptions
+          - iam:CreateOpenIDConnectProvider
+          - iam:DeleteOpenIDConnectProvider
+          - iam:ListOpenIDConnectProviders
+          - iam:GetOpenIDConnectProvider
+          - iam:TagOpenIDConnectProvider
           Effect: Allow
           Resource:
           - '*'

@@ -2034,6 +2034,9 @@ spec:
                   arn:
                     description: ARN holds the ARN of the provider
                     type: string
+                  issuerUrl:
+                    description: IssuerURL holds the OIDC Issuer URL of the cluster.
+                    type: string
                   trustPolicy:
                     description: TrustPolicy contains the boilerplate IAM trust policy
                       to use for IRSA
@@ -4077,6 +4080,9 @@ spec:
                 properties:
                   arn:
                     description: ARN holds the ARN of the provider
+                    type: string
+                  issuerUrl:
+                    description: IssuerURL holds the OIDC Issuer URL of the cluster.
                     type: string
                   trustPolicy:
                     description: TrustPolicy contains the boilerplate IAM trust policy

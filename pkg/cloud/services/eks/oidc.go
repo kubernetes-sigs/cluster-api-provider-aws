@@ -19,29 +19,21 @@ package eks
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/service/eks"
-	"github.com/aws/aws-sdk-go/service/iam"
+	awsiam "github.com/aws/aws-sdk-go/service/iam"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/converters"
 	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
 	tagConverter "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/iam"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-)
-
-var (
-	trustPolicyConfigMapName      = "boilerplate-oidc-trust-policy"
-	trustPolicyConfigMapNamespace = metav1.NamespaceDefault
-
-	whitespaceRe = regexp.MustCompile(`(?m)[\t\n]`)
 )
 
 func (s *Service) reconcileOIDCProvider(cluster *eks.Cluster) error {
@@ -67,17 +59,18 @@ func (s *Service) reconcileOIDCProvider(cluster *eks.Cluster) error {
 	}
 
 	s.scope.ControlPlane.Status.OIDCProvider.ARN = oidcProvider
+	s.scope.ControlPlane.Status.OIDCProvider.IssuerURL = *cluster.Identity.Oidc.Issuer
 
 	policy, err := converters.IAMPolicyDocumentToJSON(s.buildOIDCTrustPolicy())
 	if err != nil {
 		return errors.Wrap(err, "failed to parse IAM policy")
 	}
-	s.scope.ControlPlane.Status.OIDCProvider.TrustPolicy = whitespaceRe.ReplaceAllString(policy, "")
+	s.scope.ControlPlane.Status.OIDCProvider.TrustPolicy = iam.WhitespaceRegex.ReplaceAllString(policy, "")
 	if err := s.scope.PatchObject(); err != nil {
 		return errors.Wrap(err, "failed to update control plane with OIDC provider ARN")
 	}
 	// tagging the OIDC provider with the same tags of cluster
-	inputForTags := iam.TagOpenIDConnectProviderInput{
+	inputForTags := awsiam.TagOpenIDConnectProviderInput{
 		OpenIDConnectProviderArn: &s.scope.ControlPlane.Status.OIDCProvider.ARN,
 		Tags:                     tagConverter.MapToIAMTags(tagConverter.MapPtrToMap(cluster.Tags)),
 	}
@@ -111,15 +104,15 @@ func (s *Service) reconcileTrustPolicy() error {
 	}
 
 	configMapRef := types.NamespacedName{
-		Name:      trustPolicyConfigMapName,
-		Namespace: trustPolicyConfigMapNamespace,
+		Name:      iam.TrustPolicyConfigMapName,
+		Namespace: iam.TrustPolicyConfigMapNamespace,
 	}
 
 	trustPolicyConfigMap := &corev1.ConfigMap{}
 
 	err = remoteClient.Get(ctx, configMapRef, trustPolicyConfigMap)
 	if err != nil && !apierrors.IsNotFound(err) {
-		return fmt.Errorf("getting %s/%s config map: %w", trustPolicyConfigMapNamespace, trustPolicyConfigMapName, err)
+		return fmt.Errorf("getting %s/%s config map: %w", iam.TrustPolicyConfigMapNamespace, iam.TrustPolicyConfigMapName, err)
 	}
 
 	policy, err := converters.IAMPolicyDocumentToJSON(s.buildOIDCTrustPolicy())
@@ -128,17 +121,17 @@ func (s *Service) reconcileTrustPolicy() error {
 	}
 
 	trustPolicyConfigMap.Data = map[string]string{
-		"trust-policy.json": policy,
+		iam.TrustPolicyJSON: policy,
 	}
 
 	if trustPolicyConfigMap.UID == "" {
-		trustPolicyConfigMap.Name = trustPolicyConfigMapName
-		trustPolicyConfigMap.Namespace = trustPolicyConfigMapNamespace
-		s.Debug("Creating new Trust Policy ConfigMap", "cluster", s.scope.Name(), "configmap", trustPolicyConfigMapName)
+		trustPolicyConfigMap.Name = iam.TrustPolicyConfigMapName
+		trustPolicyConfigMap.Namespace = iam.TrustPolicyConfigMapNamespace
+		s.Debug("Creating new Trust Policy ConfigMap", "cluster", s.scope.Name(), "configmap", iam.TrustPolicyConfigMapName)
 		return remoteClient.Create(ctx, trustPolicyConfigMap)
 	}
 
-	s.Debug("Updating existing Trust Policy ConfigMap", "cluster", s.scope.Name(), "configmap", trustPolicyConfigMapName)
+	s.Debug("Updating existing Trust Policy ConfigMap", "cluster", s.scope.Name(), "configmap", iam.TrustPolicyConfigMapName)
 	return remoteClient.Update(ctx, trustPolicyConfigMap)
 }
 

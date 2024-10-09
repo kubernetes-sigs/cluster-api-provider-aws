@@ -18,6 +18,7 @@ package v1beta1
 
 import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	infrav2 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
@@ -62,6 +63,8 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Status.Bastion.CapacityReservationID = restored.Status.Bastion.CapacityReservationID
 	}
 	dst.Spec.Partition = restored.Spec.Partition
+	dst.Spec.AssociateOIDCProvider = restored.Spec.AssociateOIDCProvider
+	dst.Status.OIDCProvider = restored.Status.OIDCProvider
 
 	for role, sg := range restored.Status.Network.SecurityGroups {
 		dst.Status.Network.SecurityGroups[role] = sg
@@ -217,4 +220,8 @@ func (r *AWSClusterList) ConvertFrom(srcRaw conversion.Hub) error {
 
 func Convert_v1beta2_SubnetSpec_To_v1beta1_SubnetSpec(in *infrav2.SubnetSpec, out *SubnetSpec, s apiconversion.Scope) error {
 	return autoConvert_v1beta2_SubnetSpec_To_v1beta1_SubnetSpec(in, out, s)
+}
+
+func Convert_v1beta2_AWSClusterStatus_To_v1beta1_AWSClusterStatus(in *v1beta2.AWSClusterStatus, out *AWSClusterStatus, scope apiconversion.Scope) error {
+	return autoConvert_v1beta2_AWSClusterStatus_To_v1beta1_AWSClusterStatus(in, out, scope)
 }
