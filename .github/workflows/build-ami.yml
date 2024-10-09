@@ -35,9 +35,6 @@ permissions:
 
 jobs:
   buildandpublish:
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: false
     strategy:
         matrix:
             target: ['ubuntu-2204', 'ubuntu-2404', 'flatcar', 'rhel-8']
