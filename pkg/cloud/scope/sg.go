@@ -59,4 +59,7 @@ type SGScope interface {
 	// ControlPlaneLoadBalancers returns both the ControlPlaneLoadBalancer and SecondaryControlPlaneLoadBalancer AWSLoadBalancerSpecs.
 	// The control plane load balancers should always be returned in the above order.
 	ControlPlaneLoadBalancers() []*infrav1.AWSLoadBalancerSpec
+
+	//
+	NodePortIngressRuleCidrBlocks() []string
 }

@@ -2237,3 +2237,97 @@ func TestExpandIngressRules(t *testing.T) {
 		})
 	}
 }
+
+func TestNodePortServicesIngressRules(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = infrav1.AddToScheme(scheme)
+
+	testCases := []struct {
+		name                string
+		cidrBlocks          []string
+		expectedIngresRules infrav1.IngressRules
+	}{
+		{
+			name:       "default node ports services ingress rules, no node port cidr block provided",
+			cidrBlocks: nil,
+			expectedIngresRules: infrav1.IngressRules{
+				{
+					Description: "Node Port Services",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    30000,
+					ToPort:      32767,
+					CidrBlocks:  []string{services.AnyIPv4CidrBlock},
+				},
+				{
+					Description:            "Kubelet API",
+					Protocol:               infrav1.SecurityGroupProtocolTCP,
+					FromPort:               10250,
+					ToPort:                 10250,
+					SourceSecurityGroupIDs: []string{"Id1", "Id2"},
+				},
+			},
+		},
+		{
+			name:       "node port cidr block provided, no default cidr block used for node port services ingress rule",
+			cidrBlocks: []string{"10.0.0.0/16"},
+			expectedIngresRules: infrav1.IngressRules{
+				{
+					Description: "Node Port Services",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    30000,
+					ToPort:      32767,
+					CidrBlocks:  []string{"10.0.0.0/16"},
+				},
+				{
+					Description:            "Kubelet API",
+					Protocol:               infrav1.SecurityGroupProtocolTCP,
+					FromPort:               10250,
+					ToPort:                 10250,
+					SourceSecurityGroupIDs: []string{"Id1", "Id2"},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cs, err := scope.NewClusterScope(scope.ClusterScopeParams{
+				Client: fake.NewClientBuilder().WithScheme(scheme).Build(),
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
+				},
+				AWSCluster: &infrav1.AWSCluster{
+					Spec: infrav1.AWSClusterSpec{
+						ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{},
+						NetworkSpec: infrav1.NetworkSpec{
+							VPC: infrav1.VPCSpec{
+								CidrBlock: "10.0.0.0/16",
+							},
+							NodePortIngressRuleCidrBlocks: tc.cidrBlocks,
+						},
+					},
+					Status: infrav1.AWSClusterStatus{
+						Network: infrav1.NetworkStatus{
+							SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+								infrav1.SecurityGroupControlPlane: {ID: "Id1"},
+								infrav1.SecurityGroupNode:         {ID: "Id2"},
+							},
+						},
+					},
+				},
+			})
+			if err != nil {
+				t.Fatalf("Failed to create test context: %v", err)
+			}
+
+			s := NewService(cs, testSecurityGroupRoles)
+			rules, err := s.getSecurityGroupIngressRules(infrav1.SecurityGroupNode)
+			if err != nil {
+				t.Fatalf("Failed to lookup node security group ingress rules: %v", err)
+			}
+
+			g := NewGomegaWithT(t)
+			g.Expect(rules).To(Equal(tc.expectedIngresRules))
+		})
+	}
+}

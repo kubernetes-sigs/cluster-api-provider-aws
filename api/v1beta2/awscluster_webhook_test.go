@@ -638,6 +638,28 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "accepts cidrBlock for default node port ingress rule",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						NodePortIngressRuleCidrBlocks: []string{"10.0.0.0/16"},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "reject invalid cidrBlock for default node port ingress rule",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						NodePortIngressRuleCidrBlocks: []string{"10.0.0.0"},
+					},
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
