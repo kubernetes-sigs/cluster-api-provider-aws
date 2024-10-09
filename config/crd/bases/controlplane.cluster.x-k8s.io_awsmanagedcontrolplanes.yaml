@@ -1133,6 +1133,23 @@ spec:
                     description: Specifies whether enhanced networking with ENA is
                       enabled.
                     type: boolean
+                  hostPlacment:
+                    description: HostPlacement denotes the placement settings for
+                      the instance when tenancy=host.
+                    properties:
+                      affinity:
+                        description: |-
+                          Affinity indicates the affinity setting between the instance and a Dedicated Host.
+                          When affinity is set to host, an instance launched onto a specific host always restarts on the same host if stopped. This applies to both targeted and untargeted launches.
+                        enum:
+                        - default
+                        - host
+                        type: string
+                      hostID:
+                        description: HostID pins the instance to a sepcific Dedicated
+                          Host.
+                        type: string
+                    type: object
                   iamProfile:
                     description: The name of the IAM instance profile associated with
                       the instance, if applicable.
@@ -1374,8 +1391,16 @@ spec:
                     description: The tags associated with the instance.
                     type: object
                   tenancy:
-                    description: Tenancy indicates if instance should run on shared
-                      or single-tenant hardware.
+                    description: |-
+                      Tenancy indicates if instance should run on shared or single-tenant hardware.
+                      If host tenancy is used:
+                      - if there are no Dedicated Hosts with auto-placement enabled that match the instance type configuration, then it is required to set '.spec.hostPlacment.hostID' or no host would be picked.
+                      - if '.spec.hostPlacment.hostID' is set, the instance will be launched into the specified Host, disregarding any auto-placement settings.
+                      see https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/dedicated-hosts-understanding.html#dedicated-hosts-auto-placement
+                    enum:
+                    - default
+                    - dedicated
+                    - host
                     type: string
                   type:
                     description: The instance type.
@@ -3177,6 +3202,23 @@ spec:
                     description: Specifies whether enhanced networking with ENA is
                       enabled.
                     type: boolean
+                  hostPlacment:
+                    description: HostPlacement denotes the placement settings for
+                      the instance when tenancy=host.
+                    properties:
+                      affinity:
+                        description: |-
+                          Affinity indicates the affinity setting between the instance and a Dedicated Host.
+                          When affinity is set to host, an instance launched onto a specific host always restarts on the same host if stopped. This applies to both targeted and untargeted launches.
+                        enum:
+                        - default
+                        - host
+                        type: string
+                      hostID:
+                        description: HostID pins the instance to a sepcific Dedicated
+                          Host.
+                        type: string
+                    type: object
                   iamProfile:
                     description: The name of the IAM instance profile associated with
                       the instance, if applicable.
@@ -3418,8 +3460,16 @@ spec:
                     description: The tags associated with the instance.
                     type: object
                   tenancy:
-                    description: Tenancy indicates if instance should run on shared
-                      or single-tenant hardware.
+                    description: |-
+                      Tenancy indicates if instance should run on shared or single-tenant hardware.
+                      If host tenancy is used:
+                      - if there are no Dedicated Hosts with auto-placement enabled that match the instance type configuration, then it is required to set '.spec.hostPlacment.hostID' or no host would be picked.
+                      - if '.spec.hostPlacment.hostID' is set, the instance will be launched into the specified Host, disregarding any auto-placement settings.
+                      see https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/dedicated-hosts-understanding.html#dedicated-hosts-auto-placement
+                    enum:
+                    - default
+                    - dedicated
+                    - host
                     type: string
                   type:
                     description: The instance type.

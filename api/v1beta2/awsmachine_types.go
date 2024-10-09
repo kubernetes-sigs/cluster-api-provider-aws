@@ -54,6 +54,18 @@ const (
 	IgnitionStorageTypeOptionUnencryptedUserData = IgnitionStorageTypeOption("UnencryptedUserData")
 )
 
+// Tenancy defines the different tenancy options for EC2 instance.
+type Tenancy string
+
+const (
+	// TenancyDefault means that the EC2 instance will be launched into a shared host.
+	TenancyDefault = Tenancy("default")
+	// TenancyDedicated means that AWS will create and allocate a physical host for the EC2 instance (1 instance per host).
+	TenancyDedicated = Tenancy("dedicated")
+	// TenancyHost means that the EC2 instance will be launched into one of the user's pre-allocated physical hosts (multiple instances per host).
+	TenancyHost = Tenancy("host")
+)
+
 // AWSMachineSpec defines the desired state of an Amazon EC2 instance.
 type AWSMachineSpec struct {
 	// ProviderID is the unique identifier as specified by the cloud provider.
@@ -186,9 +198,18 @@ type AWSMachineSpec struct {
 	PlacementGroupPartition int64 `json:"placementGroupPartition,omitempty"`
 
 	// Tenancy indicates if instance should run on shared or single-tenant hardware.
+	// If host tenancy is used:
+	// - if there are no Dedicated Hosts with auto-placement enabled that match the instance type configuration, then it is required to set '.spec.hostPlacment.hostID' or no host would be picked.
+	// - if '.spec.hostPlacment.hostID' is set, the instance will be launched into the specified Host, disregarding any auto-placement settings.
+	// see https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/dedicated-hosts-understanding.html#dedicated-hosts-auto-placement
+	//
 	// +optional
 	// +kubebuilder:validation:Enum:=default;dedicated;host
-	Tenancy string `json:"tenancy,omitempty"`
+	Tenancy Tenancy `json:"tenancy,omitempty"`
+
+	// HostPlacement denotes the placement settings for the instance when tenancy=host.
+	// +optional
+	HostPlacement *HostPlacement `json:"hostPlacment,omitempty"`
 
 	// PrivateDNSName is the options for the instance hostname.
 	// +optional
@@ -197,6 +218,19 @@ type AWSMachineSpec struct {
 	// CapacityReservationID specifies the target Capacity Reservation into which the instance should be launched.
 	// +optional
 	CapacityReservationID *string `json:"capacityReservationId,omitempty"`
+}
+
+// HostPlacement denotes the placement settings for the instance when tenancy=host.
+type HostPlacement struct {
+	// HostID pins the instance to a sepcific Dedicated Host.
+	// +optional
+	HostID *string `json:"hostID,omitempty"`
+
+	// Affinity indicates the affinity setting between the instance and a Dedicated Host.
+	// When affinity is set to host, an instance launched onto a specific host always restarts on the same host if stopped. This applies to both targeted and untargeted launches.
+	// +optional
+	// +kubebuilder:validation:Enum:=default;host
+	Affinity *string `json:"affinity,omitempty"`
 }
 
 // CloudInit defines options related to the bootstrapping systems where
