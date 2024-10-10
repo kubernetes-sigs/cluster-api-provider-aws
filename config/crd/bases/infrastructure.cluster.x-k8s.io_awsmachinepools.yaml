@@ -883,6 +883,106 @@ spec:
                   after it enters the InService state.
                   If no value is supplied by user a default value of 300 seconds is set
                 type: string
+              ignition:
+                description: Ignition defined options related to the bootstrapping
+                  systems where Ignition is used.
+                properties:
+                  proxy:
+                    description: |-
+                      Proxy defines proxy settings for Ignition.
+                      Only valid for Ignition versions 3.1 and above.
+                    properties:
+                      httpProxy:
+                        description: |-
+                          HTTPProxy is the HTTP proxy to use for Ignition.
+                          A single URL that specifies the proxy server to use for HTTP and HTTPS requests,
+                          unless overridden by the HTTPSProxy or NoProxy options.
+                        type: string
+                      httpsProxy:
+                        description: |-
+                          HTTPSProxy is the HTTPS proxy to use for Ignition.
+                          A single URL that specifies the proxy server to use for HTTPS requests,
+                          unless overridden by the NoProxy option.
+                        type: string
+                      noProxy:
+                        description: |-
+                          NoProxy is the list of domains to not proxy for Ignition.
+                          Specifies a list of strings to hosts that should be excluded from proxying.
+
+
+                          Each value is represented by:
+                          - An IP address prefix (1.2.3.4)
+                          - An IP address prefix in CIDR notation (1.2.3.4/8)
+                          - A domain name
+                            - A domain name matches that name and all subdomains
+                            - A domain name with a leading . matches subdomains only
+                          - A special DNS label (*), indicates that no proxying should be done
+
+
+                          An IP address prefix and domain name can also include a literal port number (1.2.3.4:80).
+                        items:
+                          description: IgnitionNoProxy defines the list of domains
+                            to not proxy for Ignition.
+                          maxLength: 2048
+                          type: string
+                        maxItems: 64
+                        type: array
+                    type: object
+                  storageType:
+                    default: ClusterObjectStore
+                    description: |-
+                      StorageType defines how to store the boostrap user data for Ignition.
+                      This can be used to instruct Ignition from where to fetch the user data to bootstrap an instance.
+
+
+                      When omitted, the storage option will default to ClusterObjectStore.
+
+
+                      When set to "ClusterObjectStore", if the capability is available and a Cluster ObjectStore configuration
+                      is correctly provided in the Cluster object (under .spec.s3Bucket),
+                      an object store will be used to store bootstrap user data.
+
+
+                      When set to "UnencryptedUserData", EC2 Instance User Data will be used to store the machine bootstrap user data, unencrypted.
+                      This option is considered less secure than others as user data may contain sensitive informations (keys, certificates, etc.)
+                      and users with ec2:DescribeInstances permission or users running pods
+                      that can access the ec2 metadata service have access to this sensitive information.
+                      So this is only to be used at ones own risk, and only when other more secure options are not viable.
+                    enum:
+                    - ClusterObjectStore
+                    - UnencryptedUserData
+                    type: string
+                  tls:
+                    description: |-
+                      TLS defines TLS settings for Ignition.
+                      Only valid for Ignition versions 3.1 and above.
+                    properties:
+                      certificateAuthorities:
+                        description: |-
+                          CASources defines the list of certificate authorities to use for Ignition.
+                          The value is the certificate bundle (in PEM format). The bundle can contain multiple concatenated certificates.
+                          Supported schemes are http, https, tftp, s3, arn, gs, and `data` (RFC 2397) URL scheme.
+                        items:
+                          description: IgnitionCASource defines the source of the
+                            certificate authority to use for Ignition.
+                          maxLength: 65536
+                          type: string
+                        maxItems: 64
+                        type: array
+                    type: object
+                  version:
+                    default: "2.3"
+                    description: Version defines which version of Ignition will be
+                      used to generate bootstrap data.
+                    enum:
+                    - "2.3"
+                    - "3.0"
+                    - "3.1"
+                    - "3.2"
+                    - "3.3"
+                    - "3.4"
+                    type: string
+                type: object
               maxSize:
                 default: 1
                 description: MaxSize defines the maximum size of the group.

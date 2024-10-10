@@ -28,6 +28,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
 )
 
 var log = ctrl.Log.WithName("awsmachinepool-resource")
@@ -62,12 +64,12 @@ func (r *AWSMachinePool) validateRootVolume() field.ErrorList {
 		return allErrs
 	}
 
-	if v1beta2.VolumeTypesProvisioned.Has(string(r.Spec.AWSLaunchTemplate.RootVolume.Type)) && r.Spec.AWSLaunchTemplate.RootVolume.IOPS == 0 {
+	if infrav1.VolumeTypesProvisioned.Has(string(r.Spec.AWSLaunchTemplate.RootVolume.Type)) && r.Spec.AWSLaunchTemplate.RootVolume.IOPS == 0 {
 		allErrs = append(allErrs, field.Required(field.NewPath("spec.awsLaunchTemplate.rootVolume.iops"), "iops required if type is 'io1' or 'io2'"))
 	}
 
 	if r.Spec.AWSLaunchTemplate.RootVolume.Throughput != nil {
-		if r.Spec.AWSLaunchTemplate.RootVolume.Type != v1beta2.VolumeTypeGP3 {
+		if r.Spec.AWSLaunchTemplate.RootVolume.Type != infrav1.VolumeTypeGP3 {
 			allErrs = append(allErrs, field.Required(field.NewPath("spec.awsLaunchTemplate.rootVolume.throughput"), "throughput is valid only for type 'gp3'"))
 		}
 		if *r.Spec.AWSLaunchTemplate.RootVolume.Throughput < 0 {
@@ -86,7 +88,7 @@ func (r *AWSMachinePool) validateNonRootVolumes() field.ErrorList {
 	var allErrs field.ErrorList
 
 	for _, volume := range r.Spec.AWSLaunchTemplate.NonRootVolumes {
-		if v1beta2.VolumeTypesProvisioned.Has(string(volume.Type)) && volume.IOPS == 0 {
+		if infrav1.VolumeTypesProvisioned.Has(string(volume.Type)) && volume.IOPS == 0 {
 			allErrs = append(allErrs, field.Required(field.NewPath("spec.template.spec.nonRootVolumes.iops"), "iops required if type is 'io1' or 'io2'"))
 		}
 
@@ -141,6 +143,22 @@ func (r *AWSMachinePool) validateSpotInstances() field.ErrorList {
 	return allErrs
 }
 
+func (r *AWSMachinePool) ignitionEnabled() bool {
+	return r.Spec.Ignition != nil
+}
+
+func (r *AWSMachinePool) validateIgnition() field.ErrorList {
+	var allErrs field.ErrorList
+
+	// Feature gate is not enabled but ignition is enabled then send a forbidden error.
+	if !feature.Gates.Enabled(feature.BootstrapFormatIgnition) && r.ignitionEnabled() {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "ignition"),
+			"can be set only if the BootstrapFormatIgnition feature gate is enabled"))
+	}
+
+	return allErrs
+}
+
 // ValidateCreate will do any extra validation when creating a AWSMachinePool.
 func (r *AWSMachinePool) ValidateCreate() (admission.Warnings, error) {
 	log.Info("AWSMachinePool validate create", "machine-pool", klog.KObj(r))
@@ -154,6 +172,7 @@ func (r *AWSMachinePool) ValidateCreate() (admission.Warnings, error) {
 	allErrs = append(allErrs, r.validateSubnets()...)
 	allErrs = append(allErrs, r.validateAdditionalSecurityGroups()...)
 	allErrs = append(allErrs, r.validateSpotInstances()...)
+	allErrs = append(allErrs, r.validateIgnition()...)
 
 	if len(allErrs) == 0 {
 		return nil, nil
@@ -202,5 +221,12 @@ func (r *AWSMachinePool) Default() {
 	if int(r.Spec.DefaultInstanceWarmup.Duration.Seconds()) == 0 {
 		log.Info("DefaultInstanceWarmup is zero, setting 300 seconds as default")
 		r.Spec.DefaultInstanceWarmup.Duration = 300 * time.Second
+	}
+
+	if r.ignitionEnabled() && r.Spec.Ignition.Version == "" {
+		r.Spec.Ignition.Version = infrav1.DefaultIgnitionVersion
+	}
+	if r.ignitionEnabled() && r.Spec.Ignition.StorageType == "" {
+		r.Spec.Ignition.StorageType = infrav1.DefaultIgnitionStorageType
 	}
 }
