@@ -474,6 +474,12 @@ spec:
                           type: object
                         type: array
                     type: object
+                  nodePortIngressRuleCidrBlocks:
+                    description: NodePortIngressRuleCidrBlocks is an optional set
+                      of CIDR blocks to allow traffic to nodes NodePort services.
+                    items:
+                      type: string
+                    type: array
                   securityGroupOverrides:
                     additionalProperties:
                       type: string
@@ -2500,6 +2506,12 @@ spec:
                           type: object
                         type: array
                     type: object
+                  nodePortIngressRuleCidrBlocks:
+                    description: NodePortIngressRuleCidrBlocks is an optional set
+                      of CIDR blocks to allow traffic to nodes NodePort services.
+                    items:
+                      type: string
+                    type: array
                   securityGroupOverrides:
                     additionalProperties:
                       type: string

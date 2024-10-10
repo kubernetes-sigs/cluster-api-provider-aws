@@ -18,6 +18,7 @@ package v1beta2
 
 import (
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/google/go-cmp/cmp"
@@ -265,6 +266,12 @@ func (r *AWSCluster) validateNetwork() field.ErrorList {
 
 	for _, rule := range r.Spec.NetworkSpec.AdditionalControlPlaneIngressRules {
 		allErrs = append(allErrs, r.validateIngressRule(rule)...)
+	}
+
+	for _, cidrBlock := range r.Spec.NetworkSpec.NodePortIngressRuleCidrBlocks {
+		if _, _, err := net.ParseCIDR(cidrBlock); err != nil {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("nodePortIngressRuleCidrBlocks"), r.Spec.NetworkSpec.NodePortIngressRuleCidrBlocks, "CIDR block is invalid"))
+		}
 	}
 
 	if r.Spec.NetworkSpec.VPC.ElasticIPPool != nil {
