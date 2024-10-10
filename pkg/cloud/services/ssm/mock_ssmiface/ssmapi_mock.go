@@ -2731,6 +2731,89 @@ func (mr *MockSSMAPIMockRecorder) DescribeInstancePatchesWithContext(arg0, arg1 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeInstancePatchesWithContext", reflect.TypeOf((*MockSSMAPI)(nil).DescribeInstancePatchesWithContext), varargs...)
 }
 
+// DescribeInstanceProperties mocks base method.
+func (m *MockSSMAPI) DescribeInstanceProperties(arg0 *ssm.DescribeInstancePropertiesInput) (*ssm.DescribeInstancePropertiesOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeInstanceProperties", arg0)
+	ret0, _ := ret[0].(*ssm.DescribeInstancePropertiesOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeInstanceProperties indicates an expected call of DescribeInstanceProperties.
+func (mr *MockSSMAPIMockRecorder) DescribeInstanceProperties(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeInstanceProperties", reflect.TypeOf((*MockSSMAPI)(nil).DescribeInstanceProperties), arg0)
+}
+
+// DescribeInstancePropertiesPages mocks base method.
+func (m *MockSSMAPI) DescribeInstancePropertiesPages(arg0 *ssm.DescribeInstancePropertiesInput, arg1 func(*ssm.DescribeInstancePropertiesOutput, bool) bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeInstancePropertiesPages", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DescribeInstancePropertiesPages indicates an expected call of DescribeInstancePropertiesPages.
+func (mr *MockSSMAPIMockRecorder) DescribeInstancePropertiesPages(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeInstancePropertiesPages", reflect.TypeOf((*MockSSMAPI)(nil).DescribeInstancePropertiesPages), arg0, arg1)
+}
+
+// DescribeInstancePropertiesPagesWithContext mocks base method.
+func (m *MockSSMAPI) DescribeInstancePropertiesPagesWithContext(arg0 context.Context, arg1 *ssm.DescribeInstancePropertiesInput, arg2 func(*ssm.DescribeInstancePropertiesOutput, bool) bool, arg3 ...request.Option) error {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeInstancePropertiesPagesWithContext", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DescribeInstancePropertiesPagesWithContext indicates an expected call of DescribeInstancePropertiesPagesWithContext.
+func (mr *MockSSMAPIMockRecorder) DescribeInstancePropertiesPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeInstancePropertiesPagesWithContext", reflect.TypeOf((*MockSSMAPI)(nil).DescribeInstancePropertiesPagesWithContext), varargs...)
+}
+
+// DescribeInstancePropertiesRequest mocks base method.
+func (m *MockSSMAPI) DescribeInstancePropertiesRequest(arg0 *ssm.DescribeInstancePropertiesInput) (*request.Request, *ssm.DescribeInstancePropertiesOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeInstancePropertiesRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*ssm.DescribeInstancePropertiesOutput)
+	return ret0, ret1
+}
+
+// DescribeInstancePropertiesRequest indicates an expected call of DescribeInstancePropertiesRequest.
+func (mr *MockSSMAPIMockRecorder) DescribeInstancePropertiesRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeInstancePropertiesRequest", reflect.TypeOf((*MockSSMAPI)(nil).DescribeInstancePropertiesRequest), arg0)
+}
+
+// DescribeInstancePropertiesWithContext mocks base method.
+func (m *MockSSMAPI) DescribeInstancePropertiesWithContext(arg0 context.Context, arg1 *ssm.DescribeInstancePropertiesInput, arg2 ...request.Option) (*ssm.DescribeInstancePropertiesOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeInstancePropertiesWithContext", varargs...)
+	ret0, _ := ret[0].(*ssm.DescribeInstancePropertiesOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeInstancePropertiesWithContext indicates an expected call of DescribeInstancePropertiesWithContext.
+func (mr *MockSSMAPIMockRecorder) DescribeInstancePropertiesWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeInstancePropertiesWithContext", reflect.TypeOf((*MockSSMAPI)(nil).DescribeInstancePropertiesWithContext), varargs...)
+}
+
 // DescribeInventoryDeletions mocks base method.
 func (m *MockSSMAPI) DescribeInventoryDeletions(arg0 *ssm.DescribeInventoryDeletionsInput) (*ssm.DescribeInventoryDeletionsOutput, error) {
 	m.ctrl.T.Helper()
