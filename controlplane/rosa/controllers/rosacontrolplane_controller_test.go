@@ -36,7 +36,7 @@ func TestUpdateOCMClusterSpec(t *testing.T) {
 			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
 				AuditLogRoleARN: "arn:aws:iam::123456789012:role/AuditLogRole",
 				ClusterRegistryConfig: &rosacontrolplanev1.RegistryConfig{
-					AdditionalTrustedCa: map[string]string{"trusted-ca": "-----BEGIN CERTIFICATE----- testcert -----END CERTIFICATE-----"},
+					AdditionalTrustedCAs: map[string]string{"trusted-ca": "-----BEGIN CERTIFICATE----- testcert -----END CERTIFICATE-----"},
 					AllowedRegistriesForImport: []rosacontrolplanev1.RegistryLocation{
 						{DomainName: "registry1.com", Insecure: false},
 					},
@@ -91,7 +91,7 @@ func TestUpdateOCMClusterSpec(t *testing.T) {
 		rosaControlPlane := &rosacontrolplanev1.ROSAControlPlane{
 			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
 				ClusterRegistryConfig: &rosacontrolplanev1.RegistryConfig{
-					AdditionalTrustedCa: map[string]string{"trusted-ca": "-----BEGIN CERTIFICATE----- testcert -----END CERTIFICATE-----"},
+					AdditionalTrustedCAs: map[string]string{"trusted-ca": "-----BEGIN CERTIFICATE----- testcert -----END CERTIFICATE-----"},
 					AllowedRegistriesForImport: []rosacontrolplanev1.RegistryLocation{
 						{DomainName: "new-registry.com", Insecure: true},
 					},
@@ -111,7 +111,7 @@ func TestUpdateOCMClusterSpec(t *testing.T) {
 			Build()
 
 		expectedOCMSpec := ocm.Spec{
-			AdditionalTrustedCa:        rosaControlPlane.Spec.ClusterRegistryConfig.AdditionalTrustedCa,
+			AdditionalTrustedCa:        rosaControlPlane.Spec.ClusterRegistryConfig.AdditionalTrustedCAs,
 			AllowedRegistriesForImport: "new-registry.com:true",
 			AllowedRegistries:          rosaControlPlane.Spec.ClusterRegistryConfig.RegistrySources.AllowedRegistries,
 		}

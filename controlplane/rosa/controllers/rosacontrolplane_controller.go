@@ -476,7 +476,7 @@ func (r *ROSAControlPlaneReconciler) updateOCMClusterSpec(rosaControlPlane *rosa
 		RegistrySources: &rosacontrolplanev1.RegistrySources{},
 	}
 	if rosaControlPlane.Spec.ClusterRegistryConfig != nil {
-		regConfig.AdditionalTrustedCa = rosaControlPlane.Spec.ClusterRegistryConfig.AdditionalTrustedCa
+		regConfig.AdditionalTrustedCAs = rosaControlPlane.Spec.ClusterRegistryConfig.AdditionalTrustedCAs
 		regConfig.AllowedRegistriesForImport = rosaControlPlane.Spec.ClusterRegistryConfig.AllowedRegistriesForImport
 
 		if rosaControlPlane.Spec.ClusterRegistryConfig.RegistrySources != nil {
@@ -485,8 +485,8 @@ func (r *ROSAControlPlaneReconciler) updateOCMClusterSpec(rosaControlPlane *rosa
 			regConfig.RegistrySources.InsecureRegistries = rosaControlPlane.Spec.ClusterRegistryConfig.RegistrySources.InsecureRegistries
 		}
 	}
-	if !reflect.DeepEqual(regConfig.AdditionalTrustedCa, cluster.RegistryConfig().AdditionalTrustedCa()) {
-		ocmClusterSpec.AdditionalTrustedCa = regConfig.AdditionalTrustedCa
+	if !reflect.DeepEqual(regConfig.AdditionalTrustedCAs, cluster.RegistryConfig().AdditionalTrustedCa()) {
+		ocmClusterSpec.AdditionalTrustedCa = regConfig.AdditionalTrustedCAs
 		updated = true
 	}
 	if !reflect.DeepEqual(regConfig.RegistrySources.AllowedRegistries, cluster.RegistryConfig().RegistrySources().AllowedRegistries()) {
@@ -502,21 +502,21 @@ func (r *ROSAControlPlaneReconciler) updateOCMClusterSpec(rosaControlPlane *rosa
 		updated = true
 	}
 
-	var newAllowedRegisters, oldAllowedRegisters []string
+	var newAllowedRegistries, oldAllowedRegistries []string
 	if len(regConfig.AllowedRegistriesForImport) > 0 {
 		for id := range regConfig.AllowedRegistriesForImport {
-			newAllowedRegisters = append(newAllowedRegisters, regConfig.AllowedRegistriesForImport[id].DomainName+":"+
+			newAllowedRegistries = append(newAllowedRegistries, regConfig.AllowedRegistriesForImport[id].DomainName+":"+
 				strconv.FormatBool(regConfig.AllowedRegistriesForImport[id].Insecure))
 		}
 	}
 	if len(cluster.RegistryConfig().AllowedRegistriesForImport()) > 0 {
 		for id := range cluster.RegistryConfig().AllowedRegistriesForImport() {
-			oldAllowedRegisters = append(oldAllowedRegisters, cluster.RegistryConfig().AllowedRegistriesForImport()[id].DomainName()+":"+
+			oldAllowedRegistries = append(oldAllowedRegistries, cluster.RegistryConfig().AllowedRegistriesForImport()[id].DomainName()+":"+
 				strconv.FormatBool(cluster.RegistryConfig().AllowedRegistriesForImport()[id].Insecure()))
 		}
 	}
-	if !reflect.DeepEqual(newAllowedRegisters, oldAllowedRegisters) {
-		ocmClusterSpec.AllowedRegistriesForImport = strings.Join(newAllowedRegisters, ",")
+	if !reflect.DeepEqual(newAllowedRegistries, oldAllowedRegistries) {
+		ocmClusterSpec.AllowedRegistriesForImport = strings.Join(newAllowedRegistries, ",")
 		updated = true
 	}
 
@@ -955,8 +955,8 @@ func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpe
 
 	// Set the cluster registry config.
 	if controlPlaneSpec.ClusterRegistryConfig != nil {
-		if len(controlPlaneSpec.ClusterRegistryConfig.AdditionalTrustedCa) > 0 {
-			ocmClusterSpec.AdditionalTrustedCa = controlPlaneSpec.ClusterRegistryConfig.AdditionalTrustedCa
+		if len(controlPlaneSpec.ClusterRegistryConfig.AdditionalTrustedCAs) > 0 {
+			ocmClusterSpec.AdditionalTrustedCa = controlPlaneSpec.ClusterRegistryConfig.AdditionalTrustedCAs
 		}
 
 		if len(controlPlaneSpec.ClusterRegistryConfig.AllowedRegistriesForImport) > 0 {

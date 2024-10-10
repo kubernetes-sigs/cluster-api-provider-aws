@@ -86,11 +86,11 @@ spec:
                 description: ClusterRegistryConfig represents registry config used
                   with the cluster.
                 properties:
-                  additionalTrustedCa:
+                  additionalTrustedCAs:
                     additionalProperties:
                       type: string
                     description: |-
-                      AdditionalTrustedCa containing the registry hostname as the key, and the PEM-encoded certificate as the value,
+                      AdditionalTrustedCAs containing the registry hostname as the key, and the PEM-encoded certificate as the value,
                       for each additional registry CA to trust.
                     type: object
                   allowedRegistriesForImport:
@@ -122,28 +122,30 @@ spec:
                     properties:
                       allowedRegistries:
                         description: |-
-                          AllowedRegistries: registries for which image pull and push actions are allowed.
-                          To specify all subdomains, add the asterisk (*) wildcard character as a prefix to the domain name.
-                          For example, *.example.com. You can specify an individual repository within a registry.
-                          For example: reg1.io/myrepo/myapp:latest. All other registries are blocked.
+                          AllowedRegistries are the registries for which image pull and push actions are allowed.
+                          To specify all subdomains, add the asterisk (*) wildcard character as a prefix to the domain name,
+                          For example, *.example.com.
+                          You can specify an individual repository within a registry, For example: reg1.io/myrepo/myapp:latest.
+                          All other registries are blocked.
                         items:
                           type: string
                         type: array
                       blockedRegistries:
                         description: |-
-                          BlockedRegistries: registries for which image pull and push actions are denied.
-                          To specify all subdomains, add the asterisk (*) wildcard character as a prefix to the domain name.
-                          For example, *.example.com. You can specify an individual repository within a registry.
-                          For example: reg1.io/myrepo/myapp:latest. All other registries are allowed.
+                          BlockedRegistries are the registries for which image pull and push actions are denied.
+                          To specify all subdomains, add the asterisk (*) wildcard character as a prefix to the domain name,
+                          For example, *.example.com.
+                          You can specify an individual repository within a registry, For example: reg1.io/myrepo/myapp:latest.
+                          All other registries are allowed.
                         items:
                           type: string
                         type: array
                       insecureRegistries:
                         description: |-
                           InsecureRegistries are registries which do not have a valid TLS certificate or only support HTTP connections.
-                          To specify all subdomains, add the asterisk (*) wildcard character as a prefix to the domain name.
-                          For example, *.example.com. You can specify an individual repository within a registry.
-                          For example: reg1.io/myrepo/myapp:latest.
+                          To specify all subdomains, add the asterisk (*) wildcard character as a prefix to the domain name,
+                          For example, *.example.com.
+                          You can specify an individual repository within a registry, For example: reg1.io/myrepo/myapp:latest.
                         items:
                           type: string
                         type: array

@@ -188,10 +188,10 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 
 // RegistryConfig for ROSA-HCP cluster
 type RegistryConfig struct {
-	// AdditionalTrustedCa containing the registry hostname as the key, and the PEM-encoded certificate as the value,
+	// AdditionalTrustedCAs containing the registry hostname as the key, and the PEM-encoded certificate as the value,
 	// for each additional registry CA to trust.
 	// +optional
-	AdditionalTrustedCa map[string]string `json:"additionalTrustedCa,omitempty"`
+	AdditionalTrustedCAs map[string]string `json:"additionalTrustedCAs,omitempty"`
 
 	// AllowedRegistriesForImport limits the container image registries that normal users may import
 	// images from. Set this list to the registries that you trust to contain valid Docker
@@ -221,24 +221,26 @@ type RegistryLocation struct {
 
 // RegistrySources contains registries configuration.
 type RegistrySources struct {
-	// AllowedRegistries: registries for which image pull and push actions are allowed.
-	// To specify all subdomains, add the asterisk (*) wildcard character as a prefix to the domain name.
-	// For example, *.example.com. You can specify an individual repository within a registry.
-	// For example: reg1.io/myrepo/myapp:latest. All other registries are blocked.
+	// AllowedRegistries are the registries for which image pull and push actions are allowed.
+	// To specify all subdomains, add the asterisk (*) wildcard character as a prefix to the domain name,
+	// For example, *.example.com.
+	// You can specify an individual repository within a registry, For example: reg1.io/myrepo/myapp:latest.
+	// All other registries are blocked.
 	// +optional
 	AllowedRegistries []string `json:"allowedRegistries,omitempty"`
 
-	// BlockedRegistries: registries for which image pull and push actions are denied.
-	// To specify all subdomains, add the asterisk (*) wildcard character as a prefix to the domain name.
-	// For example, *.example.com. You can specify an individual repository within a registry.
-	// For example: reg1.io/myrepo/myapp:latest. All other registries are allowed.
+	// BlockedRegistries are the registries for which image pull and push actions are denied.
+	// To specify all subdomains, add the asterisk (*) wildcard character as a prefix to the domain name,
+	// For example, *.example.com.
+	// You can specify an individual repository within a registry, For example: reg1.io/myrepo/myapp:latest.
+	// All other registries are allowed.
 	// +optional
 	BlockedRegistries []string `json:"blockedRegistries,omitempty"`
 
 	// InsecureRegistries are registries which do not have a valid TLS certificate or only support HTTP connections.
-	// To specify all subdomains, add the asterisk (*) wildcard character as a prefix to the domain name.
-	// For example, *.example.com. You can specify an individual repository within a registry.
-	// For example: reg1.io/myrepo/myapp:latest.
+	// To specify all subdomains, add the asterisk (*) wildcard character as a prefix to the domain name,
+	// For example, *.example.com.
+	// You can specify an individual repository within a registry, For example: reg1.io/myrepo/myapp:latest.
 	// +optional
 	InsecureRegistries []string `json:"insecureRegistries,omitempty"`
 }
