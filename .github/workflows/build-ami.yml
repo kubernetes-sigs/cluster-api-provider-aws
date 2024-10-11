@@ -37,7 +37,7 @@ jobs:
   buildandpublish:
     strategy:
       matrix:
-        target: ['ubuntu-2204', 'ubuntu-2404', 'flatcar', 'rhel-8']
+        target: ['ubuntu-2204', 'ubuntu-2404', 'flatcar']
       max-parallel: 1
       fail-fast: false
     name: Build and publish CAPA AMIs
