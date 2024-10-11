@@ -51,8 +51,10 @@ func (r *AWSManagedMachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-awsmanagedmachinepool,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsmanagedmachinepools,versions=v1beta2,name=validation.awsmanagedmachinepool.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta2-awsmanagedmachinepool,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsmanagedmachinepools,versions=v1beta2,name=default.awsmanagedmachinepool.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.Defaulter = &AWSManagedMachinePool{}
-var _ webhook.Validator = &AWSManagedMachinePool{}
+var (
+	_ webhook.Defaulter = &AWSManagedMachinePool{}
+	_ webhook.Validator = &AWSManagedMachinePool{}
+)
 
 func (r *AWSManagedMachinePool) validateScaling() field.ErrorList {
 	var allErrs field.ErrorList
@@ -138,6 +140,10 @@ func (r *AWSManagedMachinePool) validateLaunchTemplate() field.ErrorList {
 	return allErrs
 }
 
+func (r *AWSManagedMachinePool) validateLifecycleHooks() field.ErrorList {
+	return validateLifecycleHooks(r.Spec.AWSLifecycleHooks)
+}
+
 // ValidateCreate will do any extra validation when creating a AWSManagedMachinePool.
 func (r *AWSManagedMachinePool) ValidateCreate() (admission.Warnings, error) {
 	mmpLog.Info("AWSManagedMachinePool validate create", "managed-machine-pool", klog.KObj(r))
@@ -157,6 +163,9 @@ func (r *AWSManagedMachinePool) ValidateCreate() (admission.Warnings, error) {
 		allErrs = append(allErrs, errs...)
 	}
 	if errs := r.validateLaunchTemplate(); len(errs) > 0 {
+		allErrs = append(allErrs, errs...)
+	}
+	if errs := r.validateLifecycleHooks(); len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
 	}
 
@@ -194,6 +203,9 @@ func (r *AWSManagedMachinePool) ValidateUpdate(old runtime.Object) (admission.Wa
 		allErrs = append(allErrs, errs...)
 	}
 	if errs := r.validateLaunchTemplate(); len(errs) > 0 {
+		allErrs = append(allErrs, errs...)
+	}
+	if errs := r.validateLifecycleHooks(); len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
 	}
 
