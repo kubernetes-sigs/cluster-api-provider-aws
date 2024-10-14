@@ -153,6 +153,27 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "Should fail if MaxHealthyPercentage is set, but MinHealthyPercentage is not set",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					RefreshPreferences: &RefreshPreferences{MaxHealthyPercentage: aws.Int64(100)},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Should fail if the difference between MaxHealthyPercentage and MinHealthyPercentage is greater than 100",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					RefreshPreferences: &RefreshPreferences{
+						MaxHealthyPercentage: aws.Int64(150),
+						MinHealthyPercentage: aws.Int64(25),
+					},
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -282,6 +303,27 @@ func TestAWSMachinePoolValidateUpdate(t *testing.T) {
 					},
 					AWSLaunchTemplate: AWSLaunchTemplate{
 						SpotMarketOptions: &infrav1.SpotMarketOptions{MaxPrice: ptr.To[string]("0.1")},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Should fail if MaxHealthyPercentage is set, but MinHealthyPercentage is not set",
+			new: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					RefreshPreferences: &RefreshPreferences{MaxHealthyPercentage: aws.Int64(100)},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Should fail if the difference between MaxHealthyPercentage and MinHealthyPercentage is greater than 100",
+			new: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					RefreshPreferences: &RefreshPreferences{
+						MaxHealthyPercentage: aws.Int64(150),
+						MinHealthyPercentage: aws.Int64(25),
 					},
 				},
 			},
