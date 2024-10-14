@@ -18,6 +18,7 @@ package v1beta2
 
 import (
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/google/go-cmp/cmp"
@@ -288,6 +289,22 @@ func (r *AWSCluster) validateNetwork() field.ErrorList {
 	for _, cidrBlock := range secondaryCidrBlocks {
 		if r.Spec.NetworkSpec.VPC.CidrBlock != "" && r.Spec.NetworkSpec.VPC.CidrBlock == cidrBlock.IPv4CidrBlock {
 			allErrs = append(allErrs, field.Invalid(secondaryCidrBlocksField, secondaryCidrBlocks, fmt.Sprintf("AWSCluster.spec.network.vpc.secondaryCidrBlocks must not contain the primary AWSCluster.spec.network.vpc.cidrBlock %v", r.Spec.NetworkSpec.VPC.CidrBlock)))
+		}
+	}
+
+	if len(r.Spec.NetworkSpec.NodePortServicesAllowedCidrs) > 0 {
+		sourceCidrsField := field.NewPath("spec", "network", "vpc", "nodePortServicesAllowedCidrs")
+		_, ok := r.Spec.NetworkSpec.SecurityGroupOverrides[SecurityGroupNode]
+		if ok {
+			allErrs = append(allErrs, field.Invalid(sourceCidrsField, r.Spec.NetworkSpec.NodePortServicesAllowedCidrs, fmt.Sprintf("awscluster.spec.network.nodePortServicesAllowedCidrs cannot be supplied when using a %s security group override", SecurityGroupNode)))
+		}
+
+		for i, cidr := range r.Spec.NetworkSpec.NodePortServicesAllowedCidrs {
+			if _, _, err := net.ParseCIDR(cidr); err != nil {
+				allErrs = append(allErrs,
+					field.Invalid(field.NewPath("spec", "network", "vpc", fmt.Sprintf("nodePortServicesAllowedCidrs[%d]", i)), cidr, "must be a valid CIDR block"),
+				)
+			}
 		}
 	}
 

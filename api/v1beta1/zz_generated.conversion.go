@@ -1242,6 +1242,7 @@ func autoConvert_v1beta2_AWSLoadBalancerSpec_To_v1beta1_AWSLoadBalancerSpec(in *
 	// WARNING: in.LoadBalancerType requires manual conversion: does not exist in peer-type
 	// WARNING: in.DisableHostsRewrite requires manual conversion: does not exist in peer-type
 	// WARNING: in.PreserveClientIP requires manual conversion: does not exist in peer-type
+	// WARNING: in.DefaultAllowedSourceCidrs requires manual conversion: does not exist in peer-type
 	return nil
 }
 
@@ -2082,6 +2083,7 @@ func autoConvert_v1beta2_NetworkSpec_To_v1beta1_NetworkSpec(in *v1beta2.NetworkS
 	out.CNI = (*CNISpec)(unsafe.Pointer(in.CNI))
 	out.SecurityGroupOverrides = *(*map[SecurityGroupRole]string)(unsafe.Pointer(&in.SecurityGroupOverrides))
 	// WARNING: in.AdditionalControlPlaneIngressRules requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodePortServicesAllowedCidrs requires manual conversion: does not exist in peer-type
 	return nil
 }
 

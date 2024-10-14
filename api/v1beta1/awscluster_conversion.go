@@ -120,6 +120,10 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 		}
 	}
 
+	if len(restored.Spec.NetworkSpec.NodePortServicesAllowedCidrs) > 0 {
+		dst.Spec.NetworkSpec.NodePortServicesAllowedCidrs = restored.Spec.NetworkSpec.NodePortServicesAllowedCidrs
+	}
+
 	// Restore SubnetSpec.ResourceID, SubnetSpec.ParentZoneName, and SubnetSpec.ZoneType fields, if any.
 	for _, subnet := range restored.Spec.NetworkSpec.Subnets {
 		for i, dstSubnet := range dst.Spec.NetworkSpec.Subnets {
