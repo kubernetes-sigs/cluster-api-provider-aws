@@ -12,7 +12,7 @@
 | EventBridgeInstanceState      | EVENT_BRIDGE_INSTANCE_STATE       | flase |
 | AutoControllerIdentityCreator | AUTO_CONTROLLER_IDENTITY_CREATOR  | true  |
 | BootstrapFormatIgnition       | EXP_BOOTSTRAP_FORMAT_IGNITION     | false |
-| ExternalResourceGC            | EXP_EXTERNAL_RESOURCE_GC          | false |
+| ExternalResourceGC            | CAPA_EXTERNAL_RESOURCE_GC         | true  |
 | AlternativeGCStrategy         | EXP_ALTERNATIVE_GC_STRATEGY       | false |
 | TagUnmanagedNetworkResources  | TAG_UNMANAGED_NETWORK_RESOURCES   | true  |
 | ROSA                          | EXP_ROSA                          | false |
