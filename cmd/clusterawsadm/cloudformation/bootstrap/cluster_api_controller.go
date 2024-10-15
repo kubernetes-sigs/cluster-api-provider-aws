@@ -161,6 +161,7 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"elasticloadbalancing:DescribeLoadBalancerAttributes",
 				"elasticloadbalancing:DescribeTargetGroups",
 				"elasticloadbalancing:ApplySecurityGroupsToLoadBalancer",
+				"elasticloadbalancing:SetSecurityGroups",
 				"elasticloadbalancing:DescribeTags",
 				"elasticloadbalancing:ModifyLoadBalancerAttributes",
 				"elasticloadbalancing:RegisterInstancesWithLoadBalancer",
@@ -415,7 +416,8 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 				"arn:*:iam::*:role/*",
 			},
 			Effect: iamv1.EffectAllow,
-		}, {
+		},
+		{
 			Action: iamv1.Actions{
 				"iam:GetPolicy",
 			},
@@ -423,7 +425,8 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 				t.generateAWSManagedPolicyARN(eksClusterPolicyName),
 			},
 			Effect: iamv1.EffectAllow,
-		}, {
+		},
+		{
 			Action: iamv1.Actions{
 				"eks:DescribeCluster",
 				"eks:ListClusters",
@@ -449,7 +452,8 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 				"arn:*:eks:*:*:nodegroup/*/*/*",
 			},
 			Effect: iamv1.EffectAllow,
-		}, {
+		},
+		{
 			Action: iamv1.Actions{
 				"ec2:AssociateVpcCidrBlock",
 				"ec2:DisassociateVpcCidrBlock",
@@ -468,7 +472,8 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 				"*",
 			},
 			Effect: iamv1.EffectAllow,
-		}, {
+		},
+		{
 			Action: iamv1.Actions{
 				"iam:PassRole",
 			},

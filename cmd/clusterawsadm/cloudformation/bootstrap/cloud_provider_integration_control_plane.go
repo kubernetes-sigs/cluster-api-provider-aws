@@ -67,6 +67,7 @@ func (t Template) cloudProviderControlPlaneAwsPolicy() *iamv1.PolicyDocument {
 					"elasticloadbalancing:AddTags",
 					"elasticloadbalancing:AttachLoadBalancerToSubnets",
 					"elasticloadbalancing:ApplySecurityGroupsToLoadBalancer",
+					"elasticloadbalancing:SetSecurityGroups",
 					"elasticloadbalancing:CreateLoadBalancer",
 					"elasticloadbalancing:CreateLoadBalancerPolicy",
 					"elasticloadbalancing:CreateLoadBalancerListeners",
