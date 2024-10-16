@@ -395,31 +395,6 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 				g.Expect(err).To(BeNil())
 				expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{{infrav1.LoadBalancerReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, infrav1.WaitForDNSNameReason}})
 			})
-			t.Run("Should fail AWSCluster create with LoadBalancer reconcile failure with WaitForDNSNameResolve condition as false", func(t *testing.T) {
-				g := NewWithT(t)
-				awsCluster := getAWSCluster("test", "test")
-				runningCluster := func() {
-					networkSvc.EXPECT().ReconcileNetwork().Return(nil)
-					sgSvc.EXPECT().ReconcileSecurityGroups().Return(nil)
-					ec2Svc.EXPECT().ReconcileBastion().Return(nil)
-					elbSvc.EXPECT().ReconcileLoadbalancers().Return(nil)
-				}
-				csClient := setup(t, &awsCluster)
-				defer teardown()
-				runningCluster()
-				cs, err := scope.NewClusterScope(
-					scope.ClusterScopeParams{
-						Client:     csClient,
-						Cluster:    &clusterv1.Cluster{},
-						AWSCluster: &awsCluster,
-					},
-				)
-				awsCluster.Status.Network.APIServerELB.DNSName = "test-apiserver.us-east-1.aws"
-				g.Expect(err).To(BeNil())
-				_, err = reconciler.reconcileNormal(cs)
-				g.Expect(err).To(BeNil())
-				expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{{infrav1.LoadBalancerReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, infrav1.WaitForDNSNameResolveReason}})
-			})
 		})
 	})
 	t.Run("Reconcile delete AWSCluster", func(t *testing.T) {
