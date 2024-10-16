@@ -44,18 +44,18 @@ require (
 	golang.org/x/crypto v0.25.0
 	golang.org/x/text v0.16.0
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.30.3
-	k8s.io/apiextensions-apiserver v0.30.3
-	k8s.io/apimachinery v0.30.3
-	k8s.io/apiserver v0.30.3
-	k8s.io/cli-runtime v0.30.3
-	k8s.io/client-go v0.30.3
-	k8s.io/component-base v0.30.3
+	k8s.io/api v0.30.5
+	k8s.io/apiextensions-apiserver v0.30.5
+	k8s.io/apimachinery v0.30.5
+	k8s.io/apiserver v0.30.5
+	k8s.io/cli-runtime v0.30.5
+	k8s.io/client-go v0.30.5
+	k8s.io/component-base v0.30.5
 	k8s.io/klog/v2 v2.120.1
 	k8s.io/utils v0.0.0-20240102154912-e7106e64919e
 	sigs.k8s.io/aws-iam-authenticator v0.6.13
-	sigs.k8s.io/cluster-api v1.8.3
-	sigs.k8s.io/cluster-api/test v1.8.3
+	sigs.k8s.io/cluster-api v1.8.4
+	sigs.k8s.io/cluster-api/test v1.8.4
 	sigs.k8s.io/controller-runtime v0.18.5
 	sigs.k8s.io/yaml v1.4.0
 )
