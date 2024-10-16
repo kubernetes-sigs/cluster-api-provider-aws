@@ -602,6 +602,56 @@ func (mr *MockELBV2APIMockRecorder) DeleteRuleWithContext(arg0, arg1 interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteRuleWithContext", reflect.TypeOf((*MockELBV2API)(nil).DeleteRuleWithContext), varargs...)
 }
 
+// DeleteSharedTrustStoreAssociation mocks base method.
+func (m *MockELBV2API) DeleteSharedTrustStoreAssociation(arg0 *elbv2.DeleteSharedTrustStoreAssociationInput) (*elbv2.DeleteSharedTrustStoreAssociationOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteSharedTrustStoreAssociation", arg0)
+	ret0, _ := ret[0].(*elbv2.DeleteSharedTrustStoreAssociationOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteSharedTrustStoreAssociation indicates an expected call of DeleteSharedTrustStoreAssociation.
+func (mr *MockELBV2APIMockRecorder) DeleteSharedTrustStoreAssociation(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSharedTrustStoreAssociation", reflect.TypeOf((*MockELBV2API)(nil).DeleteSharedTrustStoreAssociation), arg0)
+}
+
+// DeleteSharedTrustStoreAssociationRequest mocks base method.
+func (m *MockELBV2API) DeleteSharedTrustStoreAssociationRequest(arg0 *elbv2.DeleteSharedTrustStoreAssociationInput) (*request.Request, *elbv2.DeleteSharedTrustStoreAssociationOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteSharedTrustStoreAssociationRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*elbv2.DeleteSharedTrustStoreAssociationOutput)
+	return ret0, ret1
+}
+
+// DeleteSharedTrustStoreAssociationRequest indicates an expected call of DeleteSharedTrustStoreAssociationRequest.
+func (mr *MockELBV2APIMockRecorder) DeleteSharedTrustStoreAssociationRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSharedTrustStoreAssociationRequest", reflect.TypeOf((*MockELBV2API)(nil).DeleteSharedTrustStoreAssociationRequest), arg0)
+}
+
+// DeleteSharedTrustStoreAssociationWithContext mocks base method.
+func (m *MockELBV2API) DeleteSharedTrustStoreAssociationWithContext(arg0 context.Context, arg1 *elbv2.DeleteSharedTrustStoreAssociationInput, arg2 ...request.Option) (*elbv2.DeleteSharedTrustStoreAssociationOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteSharedTrustStoreAssociationWithContext", varargs...)
+	ret0, _ := ret[0].(*elbv2.DeleteSharedTrustStoreAssociationOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteSharedTrustStoreAssociationWithContext indicates an expected call of DeleteSharedTrustStoreAssociationWithContext.
+func (mr *MockELBV2APIMockRecorder) DeleteSharedTrustStoreAssociationWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSharedTrustStoreAssociationWithContext", reflect.TypeOf((*MockELBV2API)(nil).DeleteSharedTrustStoreAssociationWithContext), varargs...)
+}
+
 // DeleteTargetGroup mocks base method.
 func (m *MockELBV2API) DeleteTargetGroup(arg0 *elbv2.DeleteTargetGroupInput) (*elbv2.DeleteTargetGroupOutput, error) {
 	m.ctrl.T.Helper()
@@ -1648,6 +1698,56 @@ func (mr *MockELBV2APIMockRecorder) DescribeTrustStoresWithContext(arg0, arg1 in
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeTrustStoresWithContext", reflect.TypeOf((*MockELBV2API)(nil).DescribeTrustStoresWithContext), varargs...)
+}
+
+// GetResourcePolicy mocks base method.
+func (m *MockELBV2API) GetResourcePolicy(arg0 *elbv2.GetResourcePolicyInput) (*elbv2.GetResourcePolicyOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetResourcePolicy", arg0)
+	ret0, _ := ret[0].(*elbv2.GetResourcePolicyOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetResourcePolicy indicates an expected call of GetResourcePolicy.
+func (mr *MockELBV2APIMockRecorder) GetResourcePolicy(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResourcePolicy", reflect.TypeOf((*MockELBV2API)(nil).GetResourcePolicy), arg0)
+}
+
+// GetResourcePolicyRequest mocks base method.
+func (m *MockELBV2API) GetResourcePolicyRequest(arg0 *elbv2.GetResourcePolicyInput) (*request.Request, *elbv2.GetResourcePolicyOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetResourcePolicyRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*elbv2.GetResourcePolicyOutput)
+	return ret0, ret1
+}
+
+// GetResourcePolicyRequest indicates an expected call of GetResourcePolicyRequest.
+func (mr *MockELBV2APIMockRecorder) GetResourcePolicyRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResourcePolicyRequest", reflect.TypeOf((*MockELBV2API)(nil).GetResourcePolicyRequest), arg0)
+}
+
+// GetResourcePolicyWithContext mocks base method.
+func (m *MockELBV2API) GetResourcePolicyWithContext(arg0 context.Context, arg1 *elbv2.GetResourcePolicyInput, arg2 ...request.Option) (*elbv2.GetResourcePolicyOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetResourcePolicyWithContext", varargs...)
+	ret0, _ := ret[0].(*elbv2.GetResourcePolicyOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetResourcePolicyWithContext indicates an expected call of GetResourcePolicyWithContext.
+func (mr *MockELBV2APIMockRecorder) GetResourcePolicyWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResourcePolicyWithContext", reflect.TypeOf((*MockELBV2API)(nil).GetResourcePolicyWithContext), varargs...)
 }
 
 // GetTrustStoreCaCertificatesBundle mocks base method.

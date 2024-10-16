@@ -2851,3 +2851,53 @@ func (mr *MockEventBridgeAPIMockRecorder) UpdateEndpointWithContext(arg0, arg1 i
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateEndpointWithContext", reflect.TypeOf((*MockEventBridgeAPI)(nil).UpdateEndpointWithContext), varargs...)
 }
+
+// UpdateEventBus mocks base method.
+func (m *MockEventBridgeAPI) UpdateEventBus(arg0 *eventbridge.UpdateEventBusInput) (*eventbridge.UpdateEventBusOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateEventBus", arg0)
+	ret0, _ := ret[0].(*eventbridge.UpdateEventBusOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateEventBus indicates an expected call of UpdateEventBus.
+func (mr *MockEventBridgeAPIMockRecorder) UpdateEventBus(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateEventBus", reflect.TypeOf((*MockEventBridgeAPI)(nil).UpdateEventBus), arg0)
+}
+
+// UpdateEventBusRequest mocks base method.
+func (m *MockEventBridgeAPI) UpdateEventBusRequest(arg0 *eventbridge.UpdateEventBusInput) (*request.Request, *eventbridge.UpdateEventBusOutput) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateEventBusRequest", arg0)
+	ret0, _ := ret[0].(*request.Request)
+	ret1, _ := ret[1].(*eventbridge.UpdateEventBusOutput)
+	return ret0, ret1
+}
+
+// UpdateEventBusRequest indicates an expected call of UpdateEventBusRequest.
+func (mr *MockEventBridgeAPIMockRecorder) UpdateEventBusRequest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateEventBusRequest", reflect.TypeOf((*MockEventBridgeAPI)(nil).UpdateEventBusRequest), arg0)
+}
+
+// UpdateEventBusWithContext mocks base method.
+func (m *MockEventBridgeAPI) UpdateEventBusWithContext(arg0 context.Context, arg1 *eventbridge.UpdateEventBusInput, arg2 ...request.Option) (*eventbridge.UpdateEventBusOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "UpdateEventBusWithContext", varargs...)
+	ret0, _ := ret[0].(*eventbridge.UpdateEventBusOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateEventBusWithContext indicates an expected call of UpdateEventBusWithContext.
+func (mr *MockEventBridgeAPIMockRecorder) UpdateEventBusWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateEventBusWithContext", reflect.TypeOf((*MockEventBridgeAPI)(nil).UpdateEventBusWithContext), varargs...)
+}
