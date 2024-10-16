@@ -370,10 +370,10 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 
 			filtered = append(filtered, subnet)
 		}
-		// prefer a subnet in the cluster VPC if multiple match
+		// keep AWS returned orderz stable, but prefer a subnet in the cluster VPC
 		clusterVPC := s.scope.VPC().ID
 		sort.SliceStable(filtered, func(i, j int) bool {
-			return strings.Compare(*filtered[i].VpcId, clusterVPC) > strings.Compare(*filtered[j].VpcId, clusterVPC)
+			return *filtered[i].VpcId == clusterVPC
 		})
 		if len(filtered) == 0 {
 			errMessage = fmt.Sprintf("failed to run machine %q, found %d subnets matching criteria but post-filtering failed.",
