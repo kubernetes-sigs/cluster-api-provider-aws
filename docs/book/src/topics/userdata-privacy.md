@@ -46,11 +46,6 @@ cloudInit:
 cloud-init does not print boothook script errors to the systemd journal. Logs for the script, if it errored can be found in
 `/var/log/cloud-init-output.log`
 
-### Warning messages
-
-Because cloud-init will attempt to read the final file at start, cloud-init will always print a `/etc/secret-userdata.txt cannot be found`
-message. This can be safely ignored.
-
 ### Secrets manager console
 
 The AWS secrets manager console should show secrets being created and deleted, with a lifetime of around a minute. No plaintext secret
