@@ -17,25 +17,25 @@ images:
     loadBehavior: mustLoad
 
 ## PLEASE KEEP THESE UP TO DATE WITH THE COMPONENTS
-  - name: quay.io/jetstack/cert-manager-cainjector:v1.14.4
+  - name: quay.io/jetstack/cert-manager-cainjector:v1.15.1
     loadBehavior: tryLoad
-  - name: quay.io/jetstack/cert-manager-webhook:v1.14.4
+  - name: quay.io/jetstack/cert-manager-webhook:v1.15.1
     loadBehavior: tryLoad
-  - name: quay.io/jetstack/cert-manager-controller:v1.14.4
+  - name: quay.io/jetstack/cert-manager-controller:v1.15.1
     loadBehavior: tryLoad
-  - name: registry.k8s.io/cluster-api/cluster-api-controller:v1.7.1
+  - name: registry.k8s.io/cluster-api/cluster-api-controller:v1.8.4
     loadBehavior: tryLoad
-  - name: registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:v1.7.1
+  - name: registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:v1.8.4
     loadBehavior: tryLoad
-  - name: registry.k8s.io/cluster-api/kubeadm-control-plane-controller:v1.7.1
+  - name: registry.k8s.io/cluster-api/kubeadm-control-plane-controller:v1.8.4
     loadBehavior: tryLoad
 
 providers:
   - name: cluster-api
     type: CoreProvider
     versions:
-      - name: v1.7.1
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.7.1/core-components.yaml"
+      - name: v1.8.4
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.8.4/core-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -50,8 +50,8 @@ providers:
     files:
       - sourcePath: "./shared/v1beta1/metadata.yaml"
     versions:
-      - name: v1.7.1
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.7.1/bootstrap-components.yaml"
+      - name: v1.8.4
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.8.4/bootstrap-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -66,8 +66,8 @@ providers:
     files:
       - sourcePath: "./shared/v1beta1/metadata.yaml"
     versions:
-      - name: v1.7.1
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.7.1/control-plane-components.yaml"
+      - name: v1.8.4
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.8.4/control-plane-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -116,8 +116,8 @@ providers:
         targetName: "cluster-template-eks-control-plane-only-legacy.yaml"
 
 variables:
-  KUBERNETES_VERSION: "v1.29.1"
-  KUBERNETES_VERSION_MANAGEMENT: "v1.29.0" # Kind bootstrap
+  KUBERNETES_VERSION: "v1.30.2"
+  KUBERNETES_VERSION_MANAGEMENT: "v1.30.0" # Kind bootstrap
   EXP_MACHINE_POOL: "true"
   EXP_CLUSTER_RESOURCE_SET: "true"
   EVENT_BRIDGE_INSTANCE_STATE: "true"
