@@ -327,7 +327,7 @@ func deleteCluster(ctx context.Context, cluster *clusterv1.Cluster) {
 	})
 
 	framework.WaitForClusterDeleted(ctx, framework.WaitForClusterDeletedInput{
-		Getter:  e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+		Client:  e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 		Cluster: cluster,
 	}, e2eCtx.E2EConfig.GetIntervals("", "wait-delete-cluster")...)
 }
