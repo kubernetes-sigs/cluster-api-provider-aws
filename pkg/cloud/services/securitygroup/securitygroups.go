@@ -682,12 +682,12 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 		}
 		return append(cniRules, rules...), nil
 	case infrav1.SecurityGroupEKSNodeAdditional:
+		rules := infrav1.IngressRules{}
 		if s.scope.Bastion().Enabled {
-			return infrav1.IngressRules{
-				s.defaultSSHIngressRule(s.scope.SecurityGroups()[infrav1.SecurityGroupBastion].ID),
-			}, nil
+			rules = append(rules, s.defaultSSHIngressRule(s.scope.SecurityGroups()[infrav1.SecurityGroupBastion].ID))
 		}
-		return infrav1.IngressRules{}, nil
+		ingressRules := s.scope.AdditionalControlPlaneIngressRules()
+		return append(rules, ingressRules...), nil
 	case infrav1.SecurityGroupAPIServerLB:
 		kubeletRules := s.getIngressRulesToAllowKubeletToAccessTheControlPlaneLB()
 		customIngressRules, err := s.processIngressRulesSGs(s.getControlPlaneLBIngressRules())
