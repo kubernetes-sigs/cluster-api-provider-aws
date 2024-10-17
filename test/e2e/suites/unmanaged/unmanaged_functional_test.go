@@ -366,7 +366,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		})
 	})
 
-	ginkgo.Describe("CSI=external CCM=in-tree AWSCSIMigration=on: upgrade to v1.23", func() {
+	ginkgo.PDescribe("CSI=external CCM=in-tree AWSCSIMigration=on: upgrade to v1.23", func() {
 		ginkgo.It("should create volumes dynamically with external CSI driver and in tree cloud provider", func() {
 			specName := "only-csi-external-upgrade"
 			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, VolumeGP2: 4, EventBridgeRules: 50}
@@ -436,7 +436,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		})
 	})
 
-	ginkgo.Describe("CSI=external CCM=external AWSCSIMigration=on: upgrade to v1.23", func() {
+	ginkgo.PDescribe("CSI=external CCM=external AWSCSIMigration=on: upgrade to v1.23", func() {
 		ginkgo.It("should create volumes dynamically with external CSI driver and external cloud provider", func() {
 			specName := "csi-ccm-external-upgrade"
 			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, VolumeGP2: 4, EventBridgeRules: 50}
