@@ -22,6 +22,8 @@
 
 Kubernetes-native declarative infrastructure for AWS.
 
+TESTING E2E Do not Merge
+
 ## What is the Cluster API Provider AWS
 
 The [Cluster API][cluster_api] brings
