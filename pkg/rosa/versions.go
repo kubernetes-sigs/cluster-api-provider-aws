@@ -41,10 +41,23 @@ func ScheduleControlPlaneUpgrade(client *ocm.Client, cluster *cmv1.Cluster, vers
 		ScheduleType(cmv1.ScheduleTypeManual).
 		Version(version).
 		NextRun(nextRun).
+		EnableMinorVersionUpgrades(true).
 		Build()
 	if err != nil {
 		return nil, err
 	}
+
+	versionGates, err := client.GetMissingGateAgreementsHypershift(cluster.ID(), upgradePolicy)
+	if err != nil {
+		return nil, err
+	}
+
+	for id := range versionGates {
+		if err = client.AckVersionGate(cluster.ID(), versionGates[id].ID()); err != nil {
+			return nil, err
+		}
+	}
+
 	return client.ScheduleHypershiftControlPlaneUpgrade(cluster.ID(), upgradePolicy)
 }
 
@@ -64,6 +77,7 @@ func ScheduleNodePoolUpgrade(client *ocm.Client, clusterID string, nodePool *cmv
 		ScheduleType(cmv1.ScheduleTypeManual).
 		Version(version).
 		NextRun(nextRun).
+		EnableMinorVersionUpgrades(true).
 		Build()
 	if err != nil {
 		return nil, err
