@@ -529,7 +529,7 @@ func makeJoinBootstrapConfigTemplate(namespace, name string) *bootstrapv1.Kubead
 					JoinConfiguration: &bootstrapv1.JoinConfiguration{
 						NodeRegistration: bootstrapv1.NodeRegistrationOptions{
 							Name:             "{{ ds.meta_data.local_hostname }}",
-							KubeletExtraArgs: map[string]string{"cloud-provider": "aws"},
+							KubeletExtraArgs: map[string]string{"cloud-provider": "external"},
 						},
 					},
 				},
