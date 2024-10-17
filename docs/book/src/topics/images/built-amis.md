@@ -9,7 +9,7 @@ New AMIs are built on a best effort basis when a new Kubernetes version is relea
 - When there is a new k8s release series then any AMIs no longer covered by the previous point will be deleted. For example, when v1.31.0 is published then any AMIs for the v1.28 release series will be deleted.
 - Existing AMIs are not updated for security fixes and it is recommended to always use the latest patch version for the Kubernetes version you want to run.
 
-> NOTE: As the old community images where located in an AWS account that the project no longer has access to and because those AMIs have been automatically deleted we have started publishing images again from v1.29.9
+> NOTE: As the old community images were located in an AWS account that the project no longer has access to and because those AMIs have been automatically deleted, we have started publishing images again starting from Kubernetes v1.29.9.
 
 ## Finding AMIs
 
@@ -21,7 +21,7 @@ If you are using a version of clusterawsadm prior to v2.6.2 then you will need t
 - Ubuntu (ubuntu-22.04, ubuntu-24.04)
 - Flatcar (flatcar-stable)
 
-> Note: Centos (centos-7) and Amazon Linux 2 (amazon-2) where supported but there are some issues with the AMI build that need fixing.
+> Note: Centos (centos-7) and Amazon Linux 2 (amazon-2) where supported but there are some issues with the AMI build that need fixing. See this [issue](https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/5142) for details.
 
 ## Supported AWS Regions
 - ap-northeast-1
