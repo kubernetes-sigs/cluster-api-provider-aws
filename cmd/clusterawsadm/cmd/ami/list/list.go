@@ -51,7 +51,7 @@ func ListAMICmd() *cobra.Command {
 		`),
 		Example: cmd.Examples(`
 		# List AMIs from the default AWS account where AMIs are stored.
-		# Available os options: centos-7, ubuntu-18.04, ubuntu-20.04, amazon-2, flatcar-stable
+		# Available os options: centos-7, ubuntu-24.04, ubuntu-22.04, amazon-2, flatcar-stable
 		clusterawsadm ami list --kubernetes-version=v1.18.12 --os=ubuntu-20.04  --region=us-west-2
 		# To list all supported AMIs in all supported Kubernetes versions, regions, and linux distributions:
 		clusterawsadm ami list
