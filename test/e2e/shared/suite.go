@@ -37,9 +37,9 @@ import (
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/yaml"
 
+	"sigs.k8s.io/cluster-api-provider-aws/v2/test/helpers/kubernetesversions"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
-	"sigs.k8s.io/cluster-api/test/framework/kubernetesversions"
 )
 
 type synchronizedBeforeTestSuiteConfig struct {
