@@ -104,7 +104,7 @@ $(KIND): $(BIN_DIR) go.mod go.sum
 
 KUSTOMIZE := $(BIN_DIR)/kustomize
 $(KUSTOMIZE): $(BIN_DIR) go.mod go.sum # Build kustomize from tools folder.
-	CGO_ENABLED=0 go build -tags=tools -o $@ sigs.k8s.io/kustomize/kustomize/v4
+	CGO_ENABLED=0 go build -tags=tools -o $@ sigs.k8s.io/kustomize/kustomize/v5
 
 MDBOOK_SHARE := $(SHARE_DIR)/mdbook$(MDBOOK_ARCHIVE_EXT)
 $(MDBOOK_SHARE): ../../versions.mk $(SHARE_DIR)
