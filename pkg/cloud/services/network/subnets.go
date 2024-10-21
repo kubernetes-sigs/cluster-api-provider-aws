@@ -58,26 +58,16 @@ func (s *Service) reconcileSubnets() error {
 		existing infrav1.Subnets
 	)
 
-	// Describing the VPC Subnets tags the resources.
-	if s.scope.TagUnmanagedNetworkResources() {
-		// Describe subnets in the vpc.
-		if existing, err = s.describeVpcSubnets(); err != nil {
-			return err
-		}
-	}
-
 	unmanagedVPC := s.scope.VPC().IsUnmanaged(s.scope.Name())
 
-	if len(subnets) == 0 {
-		if unmanagedVPC {
-			// If we have a unmanaged VPC then subnets must be specified
-			errMsg := "no subnets specified, you must specify the subnets when using an umanaged vpc"
-			record.Warnf(s.scope.InfraCluster(), "FailedNoSubnets", errMsg)
-			return errors.New(errMsg)
-		}
-
-		// If we a managed VPC and have no subnets then create subnets. There will be 1 public and 1 private subnet
-		// for each az in a region up to a maximum of 3 azs
+	// If we have a unmanaged VPC then subnets must be specified
+	if unmanagedVPC && len(subnets) == 0 {
+		errMsg := "no subnets specified, you must specify the subnets when using an umanaged vpc"
+		record.Warnf(s.scope.InfraCluster(), "FailedNoSubnets", errMsg)
+		return errors.New(errMsg)
+	} else if len(subnets) == 0 {
+		// If we have a managed VPC and have no subnets then create some default subnets.
+		// There will be 1 public and 1 private subnet for each az in a region up to a maximum of 3 azs.
 		s.scope.Info("no subnets specified, setting defaults")
 
 		subnets, err = s.getDefaultSubnets()
@@ -93,12 +83,9 @@ func (s *Service) reconcileSubnets() error {
 		}
 	}
 
-	// Describing the VPC Subnets tags the resources.
-	if !s.scope.TagUnmanagedNetworkResources() {
-		// Describe subnets in the vpc.
-		if existing, err = s.describeVpcSubnets(); err != nil {
-			return err
-		}
+	// Describe subnets in the vpc.
+	if existing, err = s.describeVpcSubnets(); err != nil {
+		return err
 	}
 
 	if s.scope.SecondaryCidrBlock() != nil {
@@ -133,13 +120,10 @@ func (s *Service) reconcileSubnets() error {
 		sub := &subnets[i]
 		existingSubnet := existing.FindEqual(sub)
 		if existingSubnet != nil {
-			if len(sub.ID) > 0 {
-				// NOTE: Describing subnets assumes the subnet.ID is the same as the subnet's identifier (i.e. subnet-<xyz>),
-				// if we have a subnet ID specified in the spec, we need to restore it.
-				existingSubnet.ID = sub.ID
-			}
-
-			// Update subnet spec with the existing subnet details
+			// Update subnet spec with the existing subnet details, but we want to keep the subnet ID and tags defined in the spec.
+			// We don't want to mess with tags that exist only on AWS.
+			existingSubnet.ID = sub.ID
+			existingSubnet.Tags = sub.Tags
 			existingSubnet.DeepCopyInto(sub)
 
 			// Make sure tags are up-to-date.
@@ -167,12 +151,6 @@ func (s *Service) reconcileSubnets() error {
 			record.Warnf(s.scope.InfraCluster(), "FailedMatchSubnet", "Using unmanaged VPC and failed to find existing subnet for specified subnet id %d, cidr %q", sub.GetResourceID(), sub.CidrBlock)
 			return errors.New(fmt.Errorf("using unmanaged vpc and subnet %s (cidr %s) specified but it doesn't exist in vpc %s", sub.GetResourceID(), sub.CidrBlock, s.scope.VPC().ID).Error())
 		}
-	}
-
-	// If we have an unmanaged VPC, require that the user has specified at least 1 subnet.
-	if unmanagedVPC && len(subnets) < 1 {
-		record.Warnf(s.scope.InfraCluster(), "FailedNoSubnet", "Expected at least 1 subnet but got 0")
-		return errors.New("expected at least 1 subnet but got 0")
 	}
 
 	// Reconciling the zone information for the subnets. Subnets are grouped

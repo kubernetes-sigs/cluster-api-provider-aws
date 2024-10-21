@@ -18,9 +18,9 @@ package network
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"reflect"
+	"slices"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -63,10 +63,7 @@ func TestReconcileSubnets(t *testing.T) {
 		{ID: "subnet-private-us-east-1-wl1-nyc-wlz-1", AvailabilityZone: "us-east-1-wl1-nyc-wlz-1", CidrBlock: "10.0.7.0/24", IsPublic: false},
 		{ID: "subnet-public-us-east-1-wl1-nyc-wlz-1", AvailabilityZone: "us-east-1-wl1-nyc-wlz-1", CidrBlock: "10.0.8.0/24", IsPublic: true},
 	}
-	// TODO(mtulio): replace by slices.Concat(...) on go 1.22+
-	stubSubnetsAllZones := stubSubnetsAvailabilityZone
-	stubSubnetsAllZones = append(stubSubnetsAllZones, stubSubnetsLocalZone...)
-	stubSubnetsAllZones = append(stubSubnetsAllZones, stubSubnetsWavelengthZone...)
+	stubSubnetsAllZones := slices.Concat(stubSubnetsAvailabilityZone, stubSubnetsLocalZone, stubSubnetsWavelengthZone)
 
 	// NetworkSpec with subnets in zone type availability-zone
 	stubNetworkSpecWithSubnets := &infrav1.NetworkSpec{
@@ -678,7 +675,6 @@ func TestReconcileSubnets(t *testing.T) {
 					AvailabilityZone: "us-east-1a",
 					CidrBlock:        "10.0.10.0/24",
 					IsPublic:         true,
-					Tags:             infrav1.Tags{},
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
@@ -702,6 +698,12 @@ func TestReconcileSubnets(t *testing.T) {
 								AvailabilityZone:    aws.String("us-east-1a"),
 								CidrBlock:           aws.String("10.0.10.0/24"),
 								MapPublicIpOnLaunch: aws.Bool(false),
+								Tags: []*ec2.Tag{
+									{
+										Key:   aws.String("company-policy"),
+										Value: aws.String("enabled"),
+									},
+								},
 							},
 						},
 					}, nil)
@@ -784,7 +786,6 @@ func TestReconcileSubnets(t *testing.T) {
 					AvailabilityZone: "us-east-1a",
 					CidrBlock:        "10.0.10.0/24",
 					IsPublic:         true,
-					Tags:             infrav1.Tags{},
 				},
 				{
 					ID:               "subnet-2",
@@ -792,7 +793,6 @@ func TestReconcileSubnets(t *testing.T) {
 					AvailabilityZone: "us-east-1b",
 					CidrBlock:        "10.0.11.0/24",
 					IsPublic:         true,
-					Tags:             infrav1.Tags{},
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
@@ -1057,55 +1057,7 @@ func TestReconcileSubnets(t *testing.T) {
 				},
 				Subnets: []infrav1.SubnetSpec{},
 			}).WithTagUnmanagedNetworkResources(true),
-			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
-					Filters: []*ec2.Filter{
-						{
-							Name:   aws.String("state"),
-							Values: []*string{aws.String("pending"), aws.String("available")},
-						},
-						{
-							Name:   aws.String("vpc-id"),
-							Values: []*string{aws.String(subnetsVPCID)},
-						},
-					},
-				})).
-					Return(&ec2.DescribeSubnetsOutput{
-						Subnets: []*ec2.Subnet{
-							{
-								VpcId:               aws.String(subnetsVPCID),
-								SubnetId:            aws.String("subnet-1"),
-								AvailabilityZone:    aws.String("us-east-1a"),
-								CidrBlock:           aws.String("10.0.10.0/24"),
-								MapPublicIpOnLaunch: aws.Bool(false),
-							},
-							{
-								VpcId:               aws.String(subnetsVPCID),
-								SubnetId:            aws.String("subnet-2"),
-								AvailabilityZone:    aws.String("us-east-1a"),
-								CidrBlock:           aws.String("10.0.20.0/24"),
-								MapPublicIpOnLaunch: aws.Bool(false),
-							},
-						},
-					}, nil)
-				m.DescribeRouteTablesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
-					Return(&ec2.DescribeRouteTablesOutput{}, nil)
-
-				m.DescribeNatGatewaysPagesWithContext(context.TODO(),
-					gomock.Eq(&ec2.DescribeNatGatewaysInput{
-						Filter: []*ec2.Filter{
-							{
-								Name:   aws.String("vpc-id"),
-								Values: []*string{aws.String(subnetsVPCID)},
-							},
-							{
-								Name:   aws.String("state"),
-								Values: []*string{aws.String("pending"), aws.String("available")},
-							},
-						},
-					}),
-					gomock.Any()).Return(nil)
-			},
+			expect:                       func(m *mocks.MockEC2APIMockRecorder) {},
 			errorExpected:                true,
 			tagUnmanagedNetworkResources: true,
 		},
@@ -4017,10 +3969,7 @@ func TestDiscoverSubnets(t *testing.T) {
 					CidrBlock:        "10.0.10.0/24",
 					IsPublic:         true,
 					RouteTableID:     aws.String("rtb-1"),
-					Tags: infrav1.Tags{
-						"Name": "provided-subnet-public",
-					},
-					ZoneType: ptr.To[infrav1.ZoneType]("availability-zone"),
+					ZoneType:         ptr.To[infrav1.ZoneType]("availability-zone"),
 				},
 				{
 					ID:               "subnet-2",
@@ -4029,10 +3978,7 @@ func TestDiscoverSubnets(t *testing.T) {
 					CidrBlock:        "10.0.11.0/24",
 					IsPublic:         false,
 					RouteTableID:     aws.String("rtb-2"),
-					Tags: infrav1.Tags{
-						"Name": "provided-subnet-private",
-					},
-					ZoneType: ptr.To[infrav1.ZoneType]("availability-zone"),
+					ZoneType:         ptr.To[infrav1.ZoneType]("availability-zone"),
 				},
 			},
 		},
@@ -4084,15 +4030,7 @@ func TestDiscoverSubnets(t *testing.T) {
 				}
 
 				if !cmp.Equal(sn, exp) {
-					expected, err := json.MarshalIndent(exp, "", "\t")
-					if err != nil {
-						t.Fatalf("got an unexpected error: %v", err)
-					}
-					actual, err := json.MarshalIndent(sn, "", "\t")
-					if err != nil {
-						t.Fatalf("got an unexpected error: %v", err)
-					}
-					t.Errorf("Expected %s, got %s", string(expected), string(actual))
+					t.Errorf("Expected subnets to be equal. Diff %s", cmp.Diff(sn, exp))
 				}
 				delete(out, exp.ID)
 			}
