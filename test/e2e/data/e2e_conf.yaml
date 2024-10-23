@@ -176,10 +176,10 @@ variables:
   # allowing the same e2e config file to be re-used in different Prow jobs e.g. each one with a K8s version permutation.
   # The following Kubernetes versions should be the latest versions with already published kindest/node images.
   # This avoids building node images in the default case which improves the test duration significantly.
-  KUBERNETES_VERSION_MANAGEMENT: "v1.30.2"
-  KUBERNETES_VERSION: "v1.26.6"
-  KUBERNETES_VERSION_UPGRADE_TO: "v1.26.6"
-  KUBERNETES_VERSION_UPGRADE_FROM: "v1.25.12"
+  KUBERNETES_VERSION_MANAGEMENT: "v1.29.8"
+  KUBERNETES_VERSION: "v1.29.9"
+  KUBERNETES_VERSION_UPGRADE_TO: "v1.29.9"
+  KUBERNETES_VERSION_UPGRADE_FROM: "v1.29.8"
   # Pre and post 1.23 Kubernetes versions are being used for CSI upgrade tests
   PRE_1_23_KUBERNETES_VERSION: "v1.22.17"
   POST_1_23_KUBERNETES_VERSION: "v1.23.15"
@@ -190,11 +190,11 @@ variables:
   AWS_NODE_MACHINE_TYPE: t3.large
   AWS_MACHINE_TYPE_VCPU_USAGE: 2
   AWS_SSH_KEY_NAME: "cluster-api-provider-aws-sigs-k8s-io"
-  CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "v1.29.1"
+  CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "v1.29.9"
   CONFORMANCE_WORKER_MACHINE_COUNT: "5"
   CONFORMANCE_CONTROL_PLANE_MACHINE_COUNT: "3"
   ETCD_VERSION_UPGRADE_TO: "3.5.11-0"
-  COREDNS_VERSION_UPGRADE_TO: "v1.9.4"
+  COREDNS_VERSION_UPGRADE_TO: "v1.11.1"
   MULTI_TENANCY_ROLE_NAME: "multi-tenancy-role"
   MULTI_TENANCY_NESTED_ROLE_NAME: "multi-tenancy-nested-role"
   IP_FAMILY: "IPv4"
@@ -206,7 +206,7 @@ variables:
   INIT_WITH_BINARY_V1BETA1: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.0/clusterctl-{OS}-{ARCH}"
   # INIT_WITH_KUBERNETES_VERSION are only used by the clusterctl upgrade test to initialize
   # the management cluster to be upgraded.
-  INIT_WITH_KUBERNETES_VERSION: "v1.25.12"
+  INIT_WITH_KUBERNETES_VERSION: "v1.29.8"
   EXP_BOOTSTRAP_FORMAT_IGNITION: "true"
   EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"
   EXP_EXTERNAL_RESOURCE_GC: "true"
