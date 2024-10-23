@@ -45,7 +45,7 @@ func EncryptedCopyAMICmd() *cobra.Command {
 		`),
 		Example: cmd.Examples(`
 		# Create an encrypted AMI:
-		# Available os options: centos-7, ubuntu-18.04, ubuntu-20.04, amazon-2, flatcar-stable
+		# Available os options: centos-7, ubuntu-24.04, ubuntu-22.04, amazon-2, flatcar-stable
 		clusterawsadm ami encrypted-copy --kubernetes-version=v1.18.12 --os=ubuntu-20.04  --region=us-west-2
 
 		# owner-id and dry-run flags are optional. region can be set via flag or env
