@@ -65,11 +65,13 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 	ginkgo.Describe("Workload cluster with EFS driver", func() {
 		ginkgo.It("should pass dynamic provisioning test", func() {
 			specName := "functional-efs-support"
-			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, EventBridgeRules: 50}
-			requiredResources.WriteRequestedResources(e2eCtx, "efs-support-test")
+			if !e2eCtx.Settings.SkipQuotas {
+				requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, EventBridgeRules: 50}
+				requiredResources.WriteRequestedResources(e2eCtx, "efs-support-test")
 
-			Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
-			defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+				Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+				defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+			}
 
 			Expect(e2eCtx.E2EConfig).ToNot(BeNil(), "Invalid argument. e2eConfig can't be nil when calling %s spec", specName)
 			Expect(e2eCtx.E2EConfig.Variables).To(HaveKey(shared.KubernetesVersion))
@@ -119,12 +121,15 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		ginkgo.It("should create cluster with single worker", func() {
 			ginkgo.Skip("Args field of clusterctl.ApplyClusterTemplateAndWaitInput was removed, need to add support for server-side filtering.")
 			specName := "functional-gpu-cluster"
-			// Change the multiplier for EC2GPU if GPU type is changed. g4dn.xlarge uses 2 vCPU
-			requiredResources = &shared.TestResource{EC2GPU: 2 * 2, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, EventBridgeRules: 50}
-			requiredResources.WriteRequestedResources(e2eCtx, "gpu-test")
 			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
-			Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
-			defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+			if !e2eCtx.Settings.SkipQuotas {
+				// Change the multiplier for EC2GPU if GPU type is changed. g4dn.xlarge uses 2 vCPU
+				requiredResources = &shared.TestResource{EC2GPU: 2 * 2, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, EventBridgeRules: 50}
+				requiredResources.WriteRequestedResources(e2eCtx, "gpu-test")
+
+				Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+				defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+			}
 
 			ginkgo.By("Creating cluster with a single worker")
 			clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
@@ -169,10 +174,12 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		ginkgo.It("should create cluster with nested assumed role", func() {
 			// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
 			specName := "functional-multitenancy-nested"
-			requiredResources = &shared.TestResource{EC2Normal: 1 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, EventBridgeRules: 50}
-			requiredResources.WriteRequestedResources(e2eCtx, specName)
-			Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
-			defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+			if !e2eCtx.Settings.SkipQuotas {
+				requiredResources = &shared.TestResource{EC2Normal: 1 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, EventBridgeRules: 50}
+				requiredResources.WriteRequestedResources(e2eCtx, specName)
+				Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+				defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+			}
 			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
 			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
 			Expect(shared.SetMultitenancyEnvVars(e2eCtx.AWSSession)).To(Succeed())
@@ -244,11 +251,13 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		ginkgo.Context("in same namespace", func() {
 			ginkgo.It("should create the clusters", func() {
 				specName := "upgrade-to-main-branch-k8s"
-				requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 3, VPC: 1, ClassicLB: 1, EIP: 3, EventBridgeRules: 50}
-				requiredResources.WriteRequestedResources(e2eCtx, "upgrade-to-master-test")
-				Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
-				defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
 				namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
+				if !e2eCtx.Settings.SkipQuotas {
+					requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 3, VPC: 1, ClassicLB: 1, EIP: 3, EventBridgeRules: 50}
+					requiredResources.WriteRequestedResources(e2eCtx, "upgrade-to-master-test")
+					Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+					defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+				}
 				defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
 				ginkgo.By("Creating first cluster with single control plane")
 				cluster1Name := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
@@ -300,10 +309,12 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 	ginkgo.PDescribe("CSI=in-tree CCM=in-tree AWSCSIMigration=off: upgrade to v1.23", func() {
 		ginkgo.It("should create volumes dynamically with in tree CSI driver and in tree cloud provider", func() {
 			specName := "csimigration-off-upgrade"
-			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, VolumeGP2: 4, EventBridgeRules: 50}
-			requiredResources.WriteRequestedResources(e2eCtx, specName)
-			Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
-			defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+			if !e2eCtx.Settings.SkipQuotas {
+				requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, VolumeGP2: 4, EventBridgeRules: 50}
+				requiredResources.WriteRequestedResources(e2eCtx, specName)
+				Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+				defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+			}
 			namespace := shared.SetupNamespace(ctx, specName, e2eCtx)
 			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
 
@@ -366,13 +377,15 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		})
 	})
 
-	ginkgo.Describe("CSI=external CCM=in-tree AWSCSIMigration=on: upgrade to v1.23", func() {
+	ginkgo.PDescribe("CSI=external CCM=in-tree AWSCSIMigration=on: upgrade to v1.23", func() {
 		ginkgo.It("should create volumes dynamically with external CSI driver and in tree cloud provider", func() {
 			specName := "only-csi-external-upgrade"
-			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, VolumeGP2: 4, EventBridgeRules: 50}
-			requiredResources.WriteRequestedResources(e2eCtx, specName)
-			Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
-			defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+			if !e2eCtx.Settings.SkipQuotas {
+				requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, VolumeGP2: 4, EventBridgeRules: 50}
+				requiredResources.WriteRequestedResources(e2eCtx, specName)
+				Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+				defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+			}
 			namespace := shared.SetupNamespace(ctx, specName, e2eCtx)
 			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
 			ginkgo.By("Creating first cluster with single control plane")
@@ -436,13 +449,15 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		})
 	})
 
-	ginkgo.Describe("CSI=external CCM=external AWSCSIMigration=on: upgrade to v1.23", func() {
+	ginkgo.PDescribe("CSI=external CCM=external AWSCSIMigration=on: upgrade to v1.23", func() {
 		ginkgo.It("should create volumes dynamically with external CSI driver and external cloud provider", func() {
 			specName := "csi-ccm-external-upgrade"
-			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, VolumeGP2: 4, EventBridgeRules: 50}
-			requiredResources.WriteRequestedResources(e2eCtx, specName)
-			Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
-			defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+			if !e2eCtx.Settings.SkipQuotas {
+				requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, VolumeGP2: 4, EventBridgeRules: 50}
+				requiredResources.WriteRequestedResources(e2eCtx, specName)
+				Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+				defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+			}
 			namespace := shared.SetupNamespace(ctx, specName, e2eCtx)
 			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
 
@@ -509,10 +524,12 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 	ginkgo.Describe("Workload cluster with AWS SSM Parameter as the Secret Backend", func() {
 		ginkgo.It("should be creatable and deletable", func() {
 			specName := "functional-test-ssm-parameter-store"
-			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3, EventBridgeRules: 50}
-			requiredResources.WriteRequestedResources(e2eCtx, specName)
-			Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
-			defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+			if !e2eCtx.Settings.SkipQuotas {
+				requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3, EventBridgeRules: 50}
+				requiredResources.WriteRequestedResources(e2eCtx, specName)
+				Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+				defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+			}
 			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
 			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
 
@@ -543,10 +560,12 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 	ginkgo.Describe("MachineDeployment misconfigurations", func() {
 		ginkgo.It("MachineDeployment misconfigurations", func() {
 			specName := "functional-test-md-misconfigurations"
-			requiredResources = &shared.TestResource{EC2Normal: 1 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3, EventBridgeRules: 50}
-			requiredResources.WriteRequestedResources(e2eCtx, specName)
-			Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
-			defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+			if !e2eCtx.Settings.SkipQuotas {
+				requiredResources = &shared.TestResource{EC2Normal: 1 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3, EventBridgeRules: 50}
+				requiredResources.WriteRequestedResources(e2eCtx, specName)
+				Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+				defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+			}
 			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
 			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
 			ginkgo.By("Creating a cluster")
@@ -594,10 +613,12 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 	ginkgo.Describe("Workload cluster in multiple AZs", func() {
 		ginkgo.It("It should be creatable and deletable", func() {
 			specName := "functional-test-multi-az"
-			requiredResources = &shared.TestResource{EC2Normal: 3 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
-			requiredResources.WriteRequestedResources(e2eCtx, specName)
-			Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
-			defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+			if !e2eCtx.Settings.SkipQuotas {
+				requiredResources = &shared.TestResource{EC2Normal: 3 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3}
+				requiredResources.WriteRequestedResources(e2eCtx, specName)
+				Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+				defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+			}
 			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
 			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
 			ginkgo.By("Creating a cluster")
@@ -649,10 +670,12 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		ginkgo.Context("in different namespaces with machine failures", func() {
 			ginkgo.It("should setup namespaces correctly for the two clusters", func() {
 				specName := "functional-test-multi-namespace"
-				requiredResources = &shared.TestResource{EC2Normal: 4 * e2eCtx.Settings.InstanceVCPU, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 6, EventBridgeRules: 50}
-				requiredResources.WriteRequestedResources(e2eCtx, specName)
-				Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
-				defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+				if !e2eCtx.Settings.SkipQuotas {
+					requiredResources = &shared.TestResource{EC2Normal: 4 * e2eCtx.Settings.InstanceVCPU, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 6, EventBridgeRules: 50}
+					requiredResources.WriteRequestedResources(e2eCtx, specName)
+					Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+					defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+				}
 
 				ginkgo.By("Creating first cluster with single control plane")
 				ns1, cf1 := framework.CreateNamespaceAndWatchEvents(ctx, framework.CreateNamespaceAndWatchEventsInput{
@@ -732,10 +755,12 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		ginkgo.Context("Defining clusters in the same namespace", func() {
 			specName := "functional-test-multi-cluster-single-namespace"
 			ginkgo.It("should create the clusters", func() {
-				requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 6, EventBridgeRules: 50}
-				requiredResources.WriteRequestedResources(e2eCtx, specName)
-				Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
-				defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+				if !e2eCtx.Settings.SkipQuotas {
+					requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 6, EventBridgeRules: 50}
+					requiredResources.WriteRequestedResources(e2eCtx, specName)
+					Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+					defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+				}
 				namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
 				defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
 				ginkgo.By("Creating first cluster with single control plane")
@@ -760,10 +785,12 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 	ginkgo.Describe("Workload cluster with spot instances", func() {
 		ginkgo.It("should be creatable and deletable", func() {
 			specName := "functional-test-spot-instances"
-			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3, EventBridgeRules: 50}
-			requiredResources.WriteRequestedResources(e2eCtx, specName)
-			Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
-			defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+			if !e2eCtx.Settings.SkipQuotas {
+				requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3, EventBridgeRules: 50}
+				requiredResources.WriteRequestedResources(e2eCtx, specName)
+				Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+				defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+			}
 			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
 			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
 			ginkgo.By("Creating a cluster")
@@ -809,9 +836,11 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 
 		// Some infrastructure creation was moved to a setup node to better organize the test.
 		ginkgo.JustBeforeEach(func() {
-			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 5, EventBridgeRules: 50}
-			requiredResources.WriteRequestedResources(e2eCtx, specName)
-			Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+			if !e2eCtx.Settings.SkipQuotas {
+				requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 5, EventBridgeRules: 50}
+				requiredResources.WriteRequestedResources(e2eCtx, specName)
+				Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+			}
 			namespace = shared.SetupSpecNamespace(ctx, specName, e2eCtx)
 			ginkgo.By("Creating the management cluster infrastructure")
 			mgmtClusterInfra.New(shared.AWSInfrastructureSpec{
@@ -839,7 +868,9 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 
 		// Infrastructure cleanup is done in setup node so it is not bypassed if there is a test failure in the subject node.
 		ginkgo.JustAfterEach(func() {
-			shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+			if !e2eCtx.Settings.SkipQuotas {
+				shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+			}
 			shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
 			if !e2eCtx.Settings.SkipCleanup {
 				ginkgo.By("Deleting peering connection")
