@@ -38,6 +38,20 @@ const (
 	Private RosaEndpointAccessType = "Private"
 )
 
+// VersionGateAckType specifies the version gate acknowledgement.
+type VersionGateAckType string
+
+const (
+	// Acknowledge if acknowledgment is required and proceed with the upgrade.
+	Acknowledge VersionGateAckType = "Acknowledge"
+
+	// WaitForAcknowledge if acknowledgment is required, wait not to proceed with the upgrade.
+	WaitForAcknowledge VersionGateAckType = "WaitForAcknowledge"
+
+	// AlwaysAcknowledge always acknowledg if required and proceed with the upgrade.
+	AlwaysAcknowledge VersionGateAckType = "AlwaysAcknowledge"
+)
+
 // RosaControlPlaneSpec defines the desired state of ROSAControlPlane.
 type RosaControlPlaneSpec struct { //nolint: maligned
 	// Cluster name must be valid DNS-1035 label, so it must consist of lower case alphanumeric
@@ -76,6 +90,16 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 
 	// OpenShift semantic version, for example "4.14.5".
 	Version string `json:"version"`
+
+	// VersionGate requires acknowledgment when upgrading ROSA-HCP y-stream versions (e.g., from 4.15 to 4.16).
+	// Default is WaitForAcknowledge.
+	// WaitForAcknowledge: If acknowledgment is required, the upgrade will not proceed until VersionGate is set to Acknowledge or AlwaysAcknowledge.
+	// Acknowledge: If acknowledgment is required, apply it for the upgrade. After upgrade is done set the version gate to WaitForAcknowledge.
+	// AlwaysAcknowledge: If acknowledgment is required, apply it and proceed with the upgrade.
+	//
+	// +kubebuilder:validation:Enum=Acknowledge;WaitForAcknowledge;AlwaysAcknowledge
+	// +kubebuilder:default=WaitForAcknowledge
+	VersionGate VersionGateAckType `json:"versionGate"`
 
 	// AWS IAM roles used to perform credential requests by the openshift operators.
 	RolesRef AWSRolesRef `json:"rolesRef"`
@@ -697,6 +721,9 @@ type RosaControlPlaneStatus struct {
 	ConsoleURL string `json:"consoleURL,omitempty"`
 	// OIDCEndpointURL is the endpoint url for the managed OIDC provider.
 	OIDCEndpointURL string `json:"oidcEndpointURL,omitempty"`
+
+	// Available upgrades for the ROSA hosted control plane.
+	AvailableUpgrades []string `json:"availableUpgrades,omitempty"`
 }
 
 // +kubebuilder:object:root=true
