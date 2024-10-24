@@ -18,7 +18,7 @@
 <img src="https://bestpractices.coreinfrastructure.org/projects/5688/badge"></a>
 </p>
 
-------
+-------
 
 Kubernetes-native declarative infrastructure for AWS.
 
