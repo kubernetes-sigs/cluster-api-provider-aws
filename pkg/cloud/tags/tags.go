@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -99,7 +100,10 @@ func WithEC2(ec2client ec2iface.EC2API) BuilderOption {
 			// For testing, we need sorted keys
 			sortedKeys := make([]string, 0, len(tags))
 			for k := range tags {
-				sortedKeys = append(sortedKeys, k)
+				// We want to filter out the tag keys that start with `aws:` as they are reserved for internal AWS use.
+				if !strings.HasPrefix(k, "aws:") {
+					sortedKeys = append(sortedKeys, k)
+				}
 			}
 			sort.Strings(sortedKeys)
 
@@ -127,10 +131,12 @@ func WithEKS(eksclient eksiface.EKSAPI) BuilderOption {
 	return func(b *Builder) {
 		b.applyFunc = func(params *infrav1.BuildParams) error {
 			tags := infrav1.Build(*params)
-
 			eksTags := make(map[string]*string, len(tags))
 			for k, v := range tags {
-				eksTags[k] = aws.String(v)
+				// We want to filter out the tag keys that start with `aws:` as they are reserved for internal AWS use.
+				if !strings.HasPrefix(k, "aws:") {
+					eksTags[k] = aws.String(v)
+				}
 			}
 
 			tagResourcesInput := &eks.TagResourceInput{
