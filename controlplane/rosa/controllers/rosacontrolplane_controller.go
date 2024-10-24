@@ -410,6 +410,17 @@ func (r *ROSAControlPlaneReconciler) reconcileClusterVersion(rosaScope *scope.RO
 	version := rosaScope.ControlPlane.Spec.Version
 	if version == rosa.RawVersionID(cluster.Version()) {
 		conditions.MarkFalse(rosaScope.ControlPlane, rosacontrolplanev1.ROSAControlPlaneUpgradingCondition, "upgraded", clusterv1.ConditionSeverityInfo, "")
+
+		if cluster.Version() != nil {
+			rosaScope.ControlPlane.Status.AvailableUpgrades = cluster.Version().AvailableUpgrades()
+		}
+
+		// Set the version gate to WaitForAcknowledge as the previous upgrade is applied.
+		if rosaScope.ControlPlane.Spec.VersionGate == rosacontrolplanev1.Acknowledge {
+			rosaScope.ControlPlane.Spec.VersionGate = rosacontrolplanev1.WaitForAcknowledge
+		}
+
+		// return as there is no upgrade to schedule.
 		return nil
 	}
 
@@ -419,9 +430,18 @@ func (r *ROSAControlPlaneReconciler) reconcileClusterVersion(rosaScope *scope.RO
 	}
 
 	if scheduledUpgrade == nil {
-		scheduledUpgrade, err = rosa.ScheduleControlPlaneUpgrade(ocmClient, cluster, version, time.Now())
+		ack := (rosaScope.ControlPlane.Spec.VersionGate == rosacontrolplanev1.Acknowledge || rosaScope.ControlPlane.Spec.VersionGate == rosacontrolplanev1.AlwaysAcknowledge)
+		scheduledUpgrade, err = rosa.ScheduleControlPlaneUpgrade(ocmClient, cluster, version, time.Now(), ack)
 		if err != nil {
-			return fmt.Errorf("failed to schedule control plane upgrade to version %s: %w", version, err)
+			condition := &clusterv1.Condition{
+				Type:    rosacontrolplanev1.ROSAControlPlaneUpgradingCondition,
+				Status:  corev1.ConditionFalse,
+				Reason:  "failed",
+				Message: fmt.Sprintf("failed to schedule upgrade to version %s: %v", version, err),
+			}
+			conditions.Set(rosaScope.ControlPlane, condition)
+
+			return err
 		}
 	}
 
