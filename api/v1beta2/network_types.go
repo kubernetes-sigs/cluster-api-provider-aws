@@ -23,6 +23,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 )
 
@@ -442,7 +443,7 @@ type VPCSpec struct {
 	// should be used in a region when automatically creating subnets. If a region has more
 	// than this number of AZs then this number of AZs will be picked randomly when creating
 	// default subnets. Defaults to 3
-	// +kubebuilder:default=3
+	// +optional
 	// +kubebuilder:validation:Minimum=1
 	AvailabilityZoneUsageLimit *int `json:"availabilityZoneUsageLimit,omitempty"`
 
@@ -451,9 +452,15 @@ type VPCSpec struct {
 	// Ordered - selects based on alphabetical order
 	// Random - selects AZs randomly in a region
 	// Defaults to Ordered
-	// +kubebuilder:default=Ordered
+	// +optional
 	// +kubebuilder:validation:Enum=Ordered;Random
 	AvailabilityZoneSelection *AZSelectionScheme `json:"availabilityZoneSelection,omitempty"`
+
+	// AvailabilityZones defines a list of Availability Zones in which to create network resources in.
+	// Cannot be defined at the same time as AvailabilityZoneSelection and AvailabilityZoneUsageLimit.
+	// +optional
+	// +kubebuilder:validation:MinItems=1
+	AvailabilityZones []string `json:"availabilityZones,omitempty"`
 
 	// EmptyRoutesDefaultVPCSecurityGroup specifies whether the default VPC security group ingress
 	// and egress rules should be removed.
@@ -523,6 +530,15 @@ func (v *VPCSpec) GetPublicIpv4Pool() *string {
 	}
 	if v.ElasticIPPool.PublicIpv4Pool != nil {
 		return v.ElasticIPPool.PublicIpv4Pool
+	}
+	return nil
+}
+
+// ValidateAvailabilityZones returns an error if the availability zones field combination is invalid.
+func (v *VPCSpec) ValidateAvailabilityZones() *field.Error {
+	if len(v.AvailabilityZones) > 0 && (v.AvailabilityZoneSelection != nil || v.AvailabilityZoneUsageLimit != nil) {
+		availabilityZonesField := field.NewPath("spec", "network", "vpc", "availabilityZones")
+		return field.Invalid(availabilityZonesField, v.AvailabilityZoneSelection, "availabilityZones cannot be set if availabilityZoneUsageLimit and availabilityZoneSelection are set")
 	}
 	return nil
 }
