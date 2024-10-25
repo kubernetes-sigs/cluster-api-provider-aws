@@ -71,7 +71,7 @@ var _ = ginkgo.Describe("[managed] [general] [ipv6] EKS cluster tests", func() {
 				Namespace:                namespace,
 				ClusterName:              clusterName,
 				Flavour:                  EKSIPv6ClusterFlavor,
-				ControlPlaneMachineCount: 1, //NOTE: this cannot be zero as clusterctl returns an error
+				ControlPlaneMachineCount: 1, // NOTE: this cannot be zero as clusterctl returns an error
 				WorkerMachineCount:       0,
 			}
 		})
@@ -85,8 +85,11 @@ var _ = ginkgo.Describe("[managed] [general] [ipv6] EKS cluster tests", func() {
 				AWSSession:            e2eCtx.BootstrapUserAWSSession,
 				Namespace:             namespace,
 				ClusterName:           clusterName,
+				IncludeScaling:        false,
+				Cleanup:               false,
 				ManagedMachinePool:    true,
-				Flavor:                EKSIPv6ClusterFlavor,
+				Flavor:                EKSManagedMachinePoolOnlyFlavor,
+				UsesLaunchTemplate:    false,
 			}
 		})
 
