@@ -18,6 +18,7 @@ package securitygroup
 
 import (
 	"context"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -34,6 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
@@ -1192,11 +1194,11 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 	_ = infrav1.AddToScheme(scheme)
 
 	testCases := []struct {
-		name                         string
-		networkSpec                  infrav1.NetworkSpec
-		networkStatus                infrav1.NetworkStatus
-		expectedAdditionalIngresRule infrav1.IngressRule
-		wantErr                      bool
+		name                          string
+		networkSpec                   infrav1.NetworkSpec
+		networkStatus                 infrav1.NetworkStatus
+		expectedAdditionalIngressRule infrav1.IngressRule
+		wantErr                       bool
 	}{
 		{
 			name: "default control plane security group is used",
@@ -1220,7 +1222,7 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 					},
 				},
 			},
-			expectedAdditionalIngresRule: infrav1.IngressRule{
+			expectedAdditionalIngressRule: infrav1.IngressRule{
 				Description:            "test",
 				Protocol:               infrav1.SecurityGroupProtocolTCP,
 				FromPort:               9345,
@@ -1251,7 +1253,7 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 					},
 				},
 			},
-			expectedAdditionalIngresRule: infrav1.IngressRule{
+			expectedAdditionalIngressRule: infrav1.IngressRule{
 				Description:            "test",
 				Protocol:               infrav1.SecurityGroupProtocolTCP,
 				FromPort:               9345,
@@ -1282,7 +1284,7 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 					},
 				},
 			},
-			expectedAdditionalIngresRule: infrav1.IngressRule{
+			expectedAdditionalIngressRule: infrav1.IngressRule{
 				Description:            "test",
 				Protocol:               infrav1.SecurityGroupProtocolTCP,
 				FromPort:               9345,
@@ -1314,7 +1316,7 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 					},
 				},
 			},
-			expectedAdditionalIngresRule: infrav1.IngressRule{
+			expectedAdditionalIngressRule: infrav1.IngressRule{
 				Description:            "test",
 				Protocol:               infrav1.SecurityGroupProtocolTCP,
 				FromPort:               9345,
@@ -1345,7 +1347,7 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 					},
 				},
 			},
-			expectedAdditionalIngresRule: infrav1.IngressRule{
+			expectedAdditionalIngressRule: infrav1.IngressRule{
 				Description: "test",
 				Protocol:    infrav1.SecurityGroupProtocolTCP,
 				FromPort:    9345,
@@ -1376,7 +1378,7 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 				},
 				NatGatewaysIPs: []string{"test-ip"},
 			},
-			expectedAdditionalIngresRule: infrav1.IngressRule{
+			expectedAdditionalIngressRule: infrav1.IngressRule{
 				Description: "test",
 				Protocol:    infrav1.SecurityGroupProtocolTCP,
 				CidrBlocks:  []string{"test-ip/32"},
@@ -1437,20 +1439,125 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 				}
 				found = true
 
-				if r.Protocol != tc.expectedAdditionalIngresRule.Protocol {
-					t.Fatalf("Expected protocol %s, got %s", tc.expectedAdditionalIngresRule.Protocol, r.Protocol)
+				if r.Protocol != tc.expectedAdditionalIngressRule.Protocol {
+					t.Fatalf("Expected protocol %s, got %s", tc.expectedAdditionalIngressRule.Protocol, r.Protocol)
 				}
 
-				if r.FromPort != tc.expectedAdditionalIngresRule.FromPort {
-					t.Fatalf("Expected from port %d, got %d", tc.expectedAdditionalIngresRule.FromPort, r.FromPort)
+				if r.FromPort != tc.expectedAdditionalIngressRule.FromPort {
+					t.Fatalf("Expected from port %d, got %d", tc.expectedAdditionalIngressRule.FromPort, r.FromPort)
 				}
 
-				if r.ToPort != tc.expectedAdditionalIngresRule.ToPort {
-					t.Fatalf("Expected to port %d, got %d", tc.expectedAdditionalIngresRule.ToPort, r.ToPort)
+				if r.ToPort != tc.expectedAdditionalIngressRule.ToPort {
+					t.Fatalf("Expected to port %d, got %d", tc.expectedAdditionalIngressRule.ToPort, r.ToPort)
 				}
 
-				if !sets.New(tc.expectedAdditionalIngresRule.SourceSecurityGroupIDs...).Equal(sets.New(r.SourceSecurityGroupIDs...)) {
-					t.Fatalf("Expected source security group IDs %v, got %v", tc.expectedAdditionalIngresRule.SourceSecurityGroupIDs, r.SourceSecurityGroupIDs)
+				if !sets.New[string](tc.expectedAdditionalIngressRule.SourceSecurityGroupIDs...).Equal(sets.New[string](tc.expectedAdditionalIngressRule.SourceSecurityGroupIDs...)) {
+					t.Fatalf("Expected source security group IDs %v, got %v", tc.expectedAdditionalIngressRule.SourceSecurityGroupIDs, r.SourceSecurityGroupIDs)
+				}
+			}
+
+			if !found {
+				t.Fatal("Additional ingress rule was not found")
+			}
+		})
+	}
+}
+
+func TestAdditionalManagedControlPlaneSecurityGroup(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = ekscontrolplanev1.AddToScheme(scheme)
+
+	testCases := []struct {
+		name                          string
+		networkSpec                   infrav1.NetworkSpec
+		expectedAdditionalIngressRule infrav1.IngressRule
+	}{
+		{
+			name: "default control plane security group is used",
+			networkSpec: infrav1.NetworkSpec{
+				AdditionalControlPlaneIngressRules: []infrav1.IngressRule{
+					{
+						Description: "test",
+						Protocol:    infrav1.SecurityGroupProtocolTCP,
+						FromPort:    9345,
+						ToPort:      9345,
+					},
+				},
+			},
+			expectedAdditionalIngressRule: infrav1.IngressRule{
+				Description:            "test",
+				Protocol:               infrav1.SecurityGroupProtocolTCP,
+				FromPort:               9345,
+				ToPort:                 9345,
+				SourceSecurityGroupIDs: []string{"cp-sg-id"},
+			},
+		},
+		{
+			name: "don't set source security groups if cidr blocks are set",
+			networkSpec: infrav1.NetworkSpec{
+				AdditionalControlPlaneIngressRules: []infrav1.IngressRule{
+					{
+						Description: "test",
+						Protocol:    infrav1.SecurityGroupProtocolTCP,
+						FromPort:    9345,
+						ToPort:      9345,
+						CidrBlocks:  []string{"test-cidr-block"},
+					},
+				},
+			},
+			expectedAdditionalIngressRule: infrav1.IngressRule{
+				Description: "test",
+				Protocol:    infrav1.SecurityGroupProtocolTCP,
+				FromPort:    9345,
+				ToPort:      9345,
+				CidrBlocks:  []string{"test-cidr-block"},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cs, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
+				Client: fake.NewClientBuilder().WithScheme(scheme).Build(),
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
+				},
+				ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
+					Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+						NetworkSpec: tc.networkSpec,
+					},
+					Status: ekscontrolplanev1.AWSManagedControlPlaneStatus{
+						Network: infrav1.NetworkStatus{
+							SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+								infrav1.SecurityGroupControlPlane: {
+									ID: "cp-sg-id",
+								},
+								infrav1.SecurityGroupNode: {
+									ID: "node-sg-id",
+								},
+							},
+						},
+					},
+				},
+			})
+			if err != nil {
+				t.Fatalf("Failed to create test context: %v", err)
+			}
+
+			s := NewService(cs, testSecurityGroupRoles)
+			rules, err := s.getSecurityGroupIngressRules(infrav1.SecurityGroupControlPlane)
+			if err != nil {
+				t.Fatalf("Failed to lookup controlplane security group ingress rules: %v", err)
+			}
+
+			found := false
+			for _, r := range rules {
+				if r.Description == "test" {
+					found = true
+
+					if !reflect.DeepEqual(r, tc.expectedAdditionalIngressRule) {
+						t.Fatalf("Expected ingress rule %#v, got %#v", tc.expectedAdditionalIngressRule, r)
+					}
 				}
 			}
 
