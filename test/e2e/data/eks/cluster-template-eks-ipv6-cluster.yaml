@@ -54,26 +54,3 @@ spec:
   identityRef:
     kind: AWSClusterStaticIdentity
     name: e2e-account
----
-apiVersion: cluster.x-k8s.io/v1beta1
-kind: MachinePool
-metadata:
-  name: "${CLUSTER_NAME}-pool-0"
-spec:
-  clusterName: "${CLUSTER_NAME}"
-  replicas: ${WORKER_MACHINE_COUNT}
-  template:
-    spec:
-      clusterName: "${CLUSTER_NAME}"
-      bootstrap:
-        dataSecretName: ""
-      infrastructureRef:
-        name: "${CLUSTER_NAME}-pool-0"
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-        kind: AWSManagedMachinePool
----
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-kind: AWSManagedMachinePool
-metadata:
-  name: "${CLUSTER_NAME}-pool-0"
-spec: {}
