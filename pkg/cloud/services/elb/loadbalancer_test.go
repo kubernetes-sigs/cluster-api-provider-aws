@@ -2275,6 +2275,9 @@ func TestReconcileV2LB(t *testing.T) {
 					},
 					nil,
 				)
+				m.WaitUntilLoadBalancerAvailableWithContext(gomock.Any(), gomock.Eq(&elbv2.DescribeLoadBalancersInput{
+					LoadBalancerArns: aws.StringSlice([]string{elbArn}),
+				})).Return(nil)
 			},
 			check: func(t *testing.T, lb *infrav1.LoadBalancer, err error) {
 				t.Helper()
@@ -2476,6 +2479,10 @@ func TestReconcileV2LB(t *testing.T) {
 					LoadBalancerArn: aws.String(elbArn),
 					Subnets:         []*string{},
 				}).Return(&elbv2.SetSubnetsOutput{}, nil)
+
+				m.WaitUntilLoadBalancerAvailableWithContext(gomock.Any(), gomock.Eq(&elbv2.DescribeLoadBalancersInput{
+					LoadBalancerArns: aws.StringSlice([]string{elbArn}),
+				})).Return(nil)
 			},
 			check: func(t *testing.T, lb *infrav1.LoadBalancer, err error) {
 				t.Helper()
@@ -2658,6 +2665,12 @@ func TestReconcileLoadbalancers(t *testing.T) {
 					},
 					nil,
 				)
+				m.WaitUntilLoadBalancerAvailableWithContext(gomock.Any(), gomock.Eq(&elbv2.DescribeLoadBalancersInput{
+					LoadBalancerArns: aws.StringSlice([]string{elbArn}),
+				})).Return(nil)
+				m.WaitUntilLoadBalancerAvailableWithContext(gomock.Any(), gomock.Eq(&elbv2.DescribeLoadBalancersInput{
+					LoadBalancerArns: aws.StringSlice([]string{secondElbArn}),
+				})).Return(nil)
 			},
 			check: func(t *testing.T, firstLB *infrav1.LoadBalancer, secondLB *infrav1.LoadBalancer, err error) {
 				t.Helper()
