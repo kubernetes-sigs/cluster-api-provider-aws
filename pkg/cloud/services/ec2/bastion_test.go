@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
@@ -336,6 +337,8 @@ func TestServiceReconcileBastion(t *testing.T) {
 					},
 				}}, nil)
 				m.RunInstancesWithContext(context.TODO(), gomock.Any()).
+					Return(nil, awserr.New("DryRunOperation", "", nil))
+				m.RunInstancesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
 							{
@@ -567,6 +570,8 @@ func TestServiceReconcileBastionUSGOV(t *testing.T) {
 						CreationDate: aws.String("2014-02-08T17:02:31.000Z"),
 					},
 				}}, nil)
+				m.RunInstancesWithContext(context.TODO(), gomock.Any()).
+					Return(nil, awserr.New("DryRunOperation", "", nil))
 				m.RunInstancesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
