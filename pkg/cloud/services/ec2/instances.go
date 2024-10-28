@@ -664,6 +664,15 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 		}
 	}
 
+	// Test if we succeed via DryRun, otherwise remove NetworkInterface tags and try again. We may still fail
+	// for other issues even after removing NetworkInterface tags, which is captured in the later error handling below.
+	ok, err := s.runInstancesForInputAllowed(context.TODO(), input)
+	if !ok && err != nil {
+		return nil, errors.Wrap(err, "failed to run instance")
+	} else if !ok && err == nil {
+		input.TagSpecifications = dropNetworkInterfaceTags(input)
+	}
+
 	out, err := s.EC2Client.RunInstancesWithContext(context.TODO(), input)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to run instance")
