@@ -97,6 +97,13 @@ func (in *AWSLaunchTemplate) DeepCopyInto(out *AWSLaunchTemplate) {
 		*out = new(apiv1beta2.Volume)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.NonRootVolumes != nil {
+		in, out := &in.NonRootVolumes, &out.NonRootVolumes
+		*out = make([]apiv1beta2.Volume, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	if in.SSHKeyName != nil {
 		in, out := &in.SSHKeyName, &out.SSHKeyName
 		*out = new(string)
@@ -1052,6 +1059,11 @@ func (in *RefreshPreferences) DeepCopyInto(out *RefreshPreferences) {
 	}
 	if in.MinHealthyPercentage != nil {
 		in, out := &in.MinHealthyPercentage, &out.MinHealthyPercentage
+		*out = new(int64)
+		**out = **in
+	}
+	if in.MaxHealthyPercentage != nil {
+		in, out := &in.MaxHealthyPercentage, &out.MaxHealthyPercentage
 		*out = new(int64)
 		**out = **in
 	}

@@ -1,0 +1,95 @@
+name: build-and-publish-ami
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_builder_version:
+        description: "Image builder version"
+        required: true
+        default: 'v0.1.38'
+      regions:
+        description: 'Publication regions'
+        required: true
+        default: 'ap-south-1,eu-west-3,eu-west-2,eu-west-1,ap-northeast-2,ap-northeast-1,sa-east-1,ca-central-1,ap-southeast-1,ap-southeast-2,eu-central-1,us-east-1,us-east-2,us-west-1,us-west-2'
+      k8s_semver:
+        description: 'K8s Semver'
+        required: true
+      k8s_series:
+        description: 'K8s Release Series (major.minor version)'
+        required: true
+      k8s_rpm_version:
+        description: 'K8s rpm package version'
+        required: true
+      k8s_deb_version:
+        description: 'K8s deb package version'
+        required: true
+      cni_semver:
+        description: 'CNI Semver'
+        required: true
+      cni_deb_version:
+        description: 'CNI deb package version'
+        required: true
+      crictl_version:
+        description: 'Crictl version'
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  buildandpublish:
+    strategy:
+      matrix:
+        target: ['ubuntu-2204', 'ubuntu-2404', 'flatcar']
+      max-parallel: 1
+      fail-fast: false
+    name: Build and publish CAPA AMIs
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4
+        with:
+          repository: kubernetes-sigs/image-builder
+          ref: ${{ inputs.image_builder_version }}
+          fetch-depth: 0
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-2
+          role-to-assume: arn:aws:iam::819546954734:role/gh-image-builder
+      - name: Install deps
+        run: make deps-ami
+        working-directory: ./images/capi
+      - name: Install Amazon EBS Plugin
+        working-directory: ./images/capi
+        run: ./.local/bin/packer plugins install github.com/hashicorp/amazon
+      - name: Create Packer Args
+        env:
+          K8S_RPM_VERSION: ${{ inputs.k8s_rpm_version }}
+          K8S_SEMVER: ${{ inputs.k8s_semver }}
+          K8S_SERIES: ${{ inputs.k8s_series }}
+          K8S_DEB_VERSION: ${{ inputs.k8s_deb_version }}
+          CNI_SEMVER: ${{ inputs.cni_semver }}
+          CNI_DEB_VERSION: ${{ inputs.cni_deb_version }}
+          CRICTL_VERSION: ${{ inputs.crictl_version }}
+          AMI_REGIONS: ${{ inputs.regions }}
+        run: |
+          cat > ./images/capi/vars.json << EOF
+          {
+            "kubernetes_rpm_version": "$K8S_RPM_VERSION",
+            "kubernetes_semver": "$K8S_SEMVER",
+            "kubernetes_series": "$K8S_SERIES",
+            "kubernetes_deb_version": "$K8S_DEB_VERSION",
+            "kubernetes_cni_semver": "$CNI_SEMVER",
+            "kubernetes_cni_deb_version": "$CNI_DEB_VERSION",
+            "crictl_version": "$CRICTL_VERSION",
+            "ami_regions": "$AMI_REGIONS"
+          }
+          EOF
+      - name: Show vars
+        run: cat ./images/capi/vars.json
+      - name: Build AMI
+        working-directory: ./images/capi
+        run: PACKER_VAR_FILES=vars.json make build-ami-${{ matrix.target }}
+

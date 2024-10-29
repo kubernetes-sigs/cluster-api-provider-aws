@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/golang/mock/gomock"
@@ -107,11 +106,13 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 			g.Expect(testEnv.Cleanup(ctx, awsMachine, ns, secret)).To(Succeed())
 		})
 
-		cs, err := getClusterScope(infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Spec: infrav1.AWSClusterSpec{NetworkSpec: infrav1.NetworkSpec{Subnets: []infrav1.SubnetSpec{
-			{
-				ID:               "subnet-1",
-				AvailabilityZone: "us-east-1a",
-			}},
+		cs, err := getClusterScope(infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Spec: infrav1.AWSClusterSpec{NetworkSpec: infrav1.NetworkSpec{
+			Subnets: []infrav1.SubnetSpec{
+				{
+					ID:               "subnet-1",
+					AvailabilityZone: "us-east-1a",
+				},
+			},
 		}}})
 		g.Expect(err).To(BeNil())
 		cs.Cluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"}}
@@ -132,7 +133,8 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 			},
 			infrav1.SecurityGroupControlPlane: {
 				ID: "3",
-			}}
+			},
+		}
 		ms, err := getMachineScope(cs, awsMachine)
 		g.Expect(err).To(BeNil())
 
@@ -163,9 +165,11 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 
 		_, err = reconciler.reconcileNormal(ctx, ms, cs, cs, cs, cs)
 		g.Expect(err).To(BeNil())
-		expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.SecurityGroupsReadyCondition, corev1.ConditionTrue, "", ""},
+		expectConditions(g, ms.AWSMachine, []conditionAssertion{
+			{infrav1.SecurityGroupsReadyCondition, corev1.ConditionTrue, "", ""},
 			{infrav1.InstanceReadyCondition, corev1.ConditionTrue, "", ""},
-			{infrav1.ELBAttachedCondition, corev1.ConditionTrue, "", ""}})
+			{infrav1.ELBAttachedCondition, corev1.ConditionTrue, "", ""},
+		})
 		g.Expect(ms.AWSMachine.Finalizers).Should(ContainElement(infrav1.MachineFinalizer))
 	})
 	t.Run("Should successfully reconcile control plane machine deletion", func(t *testing.T) {
@@ -237,7 +241,8 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		g.Expect(err).To(BeNil())
 		expectConditions(g, ms.AWSMachine, []conditionAssertion{
 			{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
-			{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason}})
+			{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
+		})
 		g.Expect(ms.AWSMachine.Finalizers).ShouldNot(ContainElement(infrav1.MachineFinalizer))
 	})
 	t.Run("Should fail reconciling control-plane machine creation while attaching load balancer", func(t *testing.T) {
@@ -281,11 +286,13 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 			g.Expect(testEnv.Cleanup(ctx, awsMachine, ns, secret)).To(Succeed())
 		})
 
-		cs, err := getClusterScope(infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Spec: infrav1.AWSClusterSpec{NetworkSpec: infrav1.NetworkSpec{Subnets: []infrav1.SubnetSpec{
-			{
-				ID:               "subnet-1",
-				AvailabilityZone: "us-east-1a",
-			}},
+		cs, err := getClusterScope(infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Spec: infrav1.AWSClusterSpec{NetworkSpec: infrav1.NetworkSpec{
+			Subnets: []infrav1.SubnetSpec{
+				{
+					ID:               "subnet-1",
+					AvailabilityZone: "us-east-1a",
+				},
+			},
 		}}})
 		g.Expect(err).To(BeNil())
 		cs.Cluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"}}
@@ -306,7 +313,8 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 			},
 			infrav1.SecurityGroupControlPlane: {
 				ID: "3",
-			}}
+			},
+		}
 		ms, err := getMachineScope(cs, awsMachine)
 		g.Expect(err).To(BeNil())
 
@@ -412,8 +420,10 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 
 		_, err = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 		g.Expect(err).Should(HaveOccurred())
-		expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, "DeletingFailed"},
-			{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason}})
+		expectConditions(g, ms.AWSMachine, []conditionAssertion{
+			{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, "DeletingFailed"},
+			{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
+		})
 		g.Expect(ms.AWSMachine.Finalizers).ShouldNot(ContainElement(infrav1.MachineFinalizer))
 	})
 }
@@ -573,11 +583,11 @@ func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 		Filters: []*ec2.Filter{
 			{
 				Name:   aws.String("owner-id"),
-				Values: aws.StringSlice([]string{"258751437250"}),
+				Values: aws.StringSlice([]string{"819546954734"}),
 			},
 			{
 				Name:   aws.String("name"),
-				Values: aws.StringSlice([]string{"capa-ami-ubuntu-18.04-?test-*"}),
+				Values: aws.StringSlice([]string{"capa-ami-ubuntu-24.04-?test-*"}),
 			},
 			{
 				Name:   aws.String("architecture"),
@@ -591,13 +601,13 @@ func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 				Name:   aws.String("virtualization-type"),
 				Values: aws.StringSlice([]string{"hvm"}),
 			},
-		}})).Return(&ec2.DescribeImagesOutput{Images: []*ec2.Image{
+		},
+	})).Return(&ec2.DescribeImagesOutput{Images: []*ec2.Image{
 		{
 			ImageId:      aws.String("latest"),
 			CreationDate: aws.String("2019-02-08T17:02:31.000Z"),
 		},
 	}}, nil)
-	m.RunInstancesWithContext(context.TODO(), gomock.Any()).Return(nil, awserr.New("DryRunOperation", "", nil))
 	m.RunInstancesWithContext(context.TODO(), gomock.Any()).Return(&ec2.Reservation{
 		Instances: []*ec2.Instance{
 			{
@@ -641,7 +651,8 @@ func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 					},
 				},
 			},
-		}}, nil).MaxTimes(3)
+		},
+	}, nil).MaxTimes(3)
 	m.DescribeNetworkInterfaceAttributeWithContext(context.TODO(), gomock.Eq(&ec2.DescribeNetworkInterfaceAttributeInput{
 		NetworkInterfaceId: aws.String("eni-1"),
 		Attribute:          aws.String("groupSet"),

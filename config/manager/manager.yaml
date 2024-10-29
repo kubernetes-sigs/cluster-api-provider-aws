@@ -48,6 +48,7 @@ spec:
             - ALL
           runAsUser: 65532
           runAsGroup: 65532
+        terminationMessagePolicy: FallbackToLogsOnError
       securityContext:
         runAsNonRoot: true
         seccompProfile:

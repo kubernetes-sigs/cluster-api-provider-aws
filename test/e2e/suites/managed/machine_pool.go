@@ -87,7 +87,7 @@ func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolSpecInpu
 	}
 	ginkgo.By(string(workloadClusterTemplate))
 	ginkgo.By(fmt.Sprintf("Applying the %s cluster template yaml to the cluster", configCluster.Flavor))
-	err := input.BootstrapClusterProxy.Apply(ctx, workloadClusterTemplate)
+	err := input.BootstrapClusterProxy.CreateOrUpdate(ctx, workloadClusterTemplate)
 	Expect(err).ShouldNot(HaveOccurred())
 
 	ginkgo.By("Waiting for the machine pool to be running")

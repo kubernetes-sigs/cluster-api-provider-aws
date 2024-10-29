@@ -1011,6 +1011,13 @@ spec:
                                   type: object
                                 type: array
                             type: object
+                          nodePortIngressRuleCidrBlocks:
+                            description: |-
+                              NodePortIngressRuleCidrBlocks is an optional set of CIDR blocks to allow traffic to nodes' NodePort services.
+                              If none are specified here, all IPs are allowed to connect.
+                            items:
+                              type: string
+                            type: array
                           securityGroupOverrides:
                             additionalProperties:
                               type: string
@@ -1298,6 +1305,25 @@ spec:
                                 - ip-name
                                 - resource-name
                                 type: string
+                              secondaryCidrBlocks:
+                                description: |-
+                                  SecondaryCidrBlocks are additional CIDR blocks to be associated when the provider creates a managed VPC.
+                                  Defaults to none. Mutually exclusive with IPAMPool. This makes sense to use if, for example, you want to use
+                                  a separate IP range for pods (e.g. Cilium ENI mode).
+                                items:
+                                  description: VpcCidrBlock defines the CIDR block
+                                    and settings to associate with the managed VPC.
+                                    Currently, only IPv4 is supported.
+                                  properties:
+                                    ipv4CidrBlock:
+                                      description: IPv4CidrBlock is the IPv4 CIDR
+                                        block to associate with the managed VPC.
+                                      minLength: 1
+                                      type: string
+                                  required:
+                                  - ipv4CidrBlock
+                                  type: object
+                                type: array
                               subnetSchema:
                                 default: PreferPrivate
                                 description: |-

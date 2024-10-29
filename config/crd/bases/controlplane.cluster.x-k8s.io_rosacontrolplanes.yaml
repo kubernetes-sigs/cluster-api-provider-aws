@@ -82,6 +82,75 @@ spec:
                   rule: self == oldSelf
                 - message: billingAccount must be a valid AWS account ID
                   rule: self.matches('^[0-9]{12}$')
+              clusterRegistryConfig:
+                description: ClusterRegistryConfig represents registry config used
+                  with the cluster.
+                properties:
+                  additionalTrustedCAs:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      AdditionalTrustedCAs containing the registry hostname as the key, and the PEM-encoded certificate as the value,
+                      for each additional registry CA to trust.
+                    type: object
+                  allowedRegistriesForImport:
+                    description: |-
+                      AllowedRegistriesForImport limits the container image registries that normal users may import
+                      images from. Set this list to the registries that you trust to contain valid Docker
+                      images and that you want applications to be able to import from.
+                    items:
+                      description: RegistryLocation contains a location of the registry
+                        specified by the registry domain name.
+                      properties:
+                        domainName:
+                          description: |-
+                            domainName specifies a domain name for the registry. The domain name might include wildcards, like '*' or '??'.
+                            In case the registry use non-standard (80 or 443) port, the port should be included in the domain name as well.
+                          type: string
+                        insecure:
+                          default: false
+                          description: insecure indicates whether the registry is
+                            secure (https) or insecure (http), default is secured.
+                          type: boolean
+                      type: object
+                    type: array
+                  registrySources:
+                    description: |-
+                      RegistrySources contains configuration that determines how the container runtime
+                      should treat individual registries when accessing images. It does not contain configuration
+                      for the internal cluster registry. AllowedRegistries, BlockedRegistries are mutually exclusive.
+                    properties:
+                      allowedRegistries:
+                        description: |-
+                          AllowedRegistries are the registries for which image pull and push actions are allowed.
+                          To specify all subdomains, add the asterisk (*) wildcard character as a prefix to the domain name,
+                          For example, *.example.com.
+                          You can specify an individual repository within a registry, For example: reg1.io/myrepo/myapp:latest.
+                          All other registries are blocked.
+                        items:
+                          type: string
+                        type: array
+                      blockedRegistries:
+                        description: |-
+                          BlockedRegistries are the registries for which image pull and push actions are denied.
+                          To specify all subdomains, add the asterisk (*) wildcard character as a prefix to the domain name,
+                          For example, *.example.com.
+                          You can specify an individual repository within a registry, For example: reg1.io/myrepo/myapp:latest.
+                          All other registries are allowed.
+                        items:
+                          type: string
+                        type: array
+                      insecureRegistries:
+                        description: |-
+                          InsecureRegistries are registries which do not have a valid TLS certificate or only support HTTP connections.
+                          To specify all subdomains, add the asterisk (*) wildcard character as a prefix to the domain name,
+                          For example, *.example.com.
+                          You can specify an individual repository within a registry, For example: reg1.io/myrepo/myapp:latest.
+                        items:
+                          type: string
+                        type: array
+                    type: object
+                type: object
               controlPlaneEndpoint:
                 description: ControlPlaneEndpoint represents the endpoint used to
                   communicate with the control plane.
@@ -105,10 +174,15 @@ spec:
                   - ocmApiUrl: Optional, defaults to 'https://api.openshift.com'
                 properties:
                   name:
+                    default: ""
                     description: |-
                       Name of the referent.
-                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
                       TODO: Add other useful fields. apiVersion, kind, uid?
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                      TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                     type: string
                 type: object
                 x-kubernetes-map-type: atomic
@@ -713,6 +787,19 @@ spec:
               version:
                 description: OpenShift semantic version, for example "4.14.5".
                 type: string
+              versionGate:
+                default: WaitForAcknowledge
+                description: |-
+                  VersionGate requires acknowledgment when upgrading ROSA-HCP y-stream versions (e.g., from 4.15 to 4.16).
+                  Default is WaitForAcknowledge.
+                  WaitForAcknowledge: If acknowledgment is required, the upgrade will not proceed until VersionGate is set to Acknowledge or AlwaysAcknowledge.
+                  Acknowledge: If acknowledgment is required, apply it for the upgrade. After upgrade is done set the version gate to WaitForAcknowledge.
+                  AlwaysAcknowledge: If acknowledgment is required, apply it and proceed with the upgrade.
+                enum:
+                - Acknowledge
+                - WaitForAcknowledge
+                - AlwaysAcknowledge
+                type: string
               workerRoleARN:
                 description: WorkerRoleARN is an AWS IAM role that will be attached
                   to worker instances.
@@ -727,11 +814,17 @@ spec:
             - subnets
             - supportRoleARN
             - version
+            - versionGate
             - workerRoleARN
             type: object
           status:
             description: RosaControlPlaneStatus defines the observed state of ROSAControlPlane.
             properties:
+              availableUpgrades:
+                description: Available upgrades for the ROSA hosted control plane.
+                items:
+                  type: string
+                type: array
               conditions:
                 description: Conditions specifies the conditions for the managed control
                   plane
