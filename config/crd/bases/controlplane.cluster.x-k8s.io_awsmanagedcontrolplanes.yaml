@@ -474,6 +474,13 @@ spec:
                           type: object
                         type: array
                     type: object
+                  nodePortIngressRuleCidrBlocks:
+                    description: |-
+                      NodePortIngressRuleCidrBlocks is an optional set of CIDR blocks to allow traffic to nodes' NodePort services.
+                      If none are specified here, all IPs are allowed to connect.
+                    items:
+                      type: string
+                    type: array
                   securityGroupOverrides:
                     additionalProperties:
                       type: string
@@ -759,6 +766,25 @@ spec:
                         - ip-name
                         - resource-name
                         type: string
+                      secondaryCidrBlocks:
+                        description: |-
+                          SecondaryCidrBlocks are additional CIDR blocks to be associated when the provider creates a managed VPC.
+                          Defaults to none. Mutually exclusive with IPAMPool. This makes sense to use if, for example, you want to use
+                          a separate IP range for pods (e.g. Cilium ENI mode).
+                        items:
+                          description: VpcCidrBlock defines the CIDR block and settings
+                            to associate with the managed VPC. Currently, only IPv4
+                            is supported.
+                          properties:
+                            ipv4CidrBlock:
+                              description: IPv4CidrBlock is the IPv4 CIDR block to
+                                associate with the managed VPC.
+                              minLength: 1
+                              type: string
+                          required:
+                          - ipv4CidrBlock
+                          type: object
+                        type: array
                       subnetSchema:
                         default: PreferPrivate
                         description: |-
@@ -933,10 +959,15 @@ spec:
                                   description: The key to select.
                                   type: string
                                 name:
+                                  default: ""
                                   description: |-
                                     Name of the referent.
-                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    This field is effectively required, but due to backwards compatibility is
+                                    allowed to be empty. Instances of this type with an empty value here are
+                                    almost certainly wrong.
                                     TODO: Add other useful fields. apiVersion, kind, uid?
+                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                   type: string
                                 optional:
                                   description: Specify whether the ConfigMap or its
@@ -996,10 +1027,15 @@ spec:
                                     be a valid secret key.
                                   type: string
                                 name:
+                                  default: ""
                                   description: |-
                                     Name of the referent.
-                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    This field is effectively required, but due to backwards compatibility is
+                                    allowed to be empty. Instances of this type with an empty value here are
+                                    almost certainly wrong.
                                     TODO: Add other useful fields. apiVersion, kind, uid?
+                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                   type: string
                                 optional:
                                   description: Specify whether the Secret or its key
@@ -2481,6 +2517,13 @@ spec:
                           type: object
                         type: array
                     type: object
+                  nodePortIngressRuleCidrBlocks:
+                    description: |-
+                      NodePortIngressRuleCidrBlocks is an optional set of CIDR blocks to allow traffic to nodes' NodePort services.
+                      If none are specified here, all IPs are allowed to connect.
+                    items:
+                      type: string
+                    type: array
                   securityGroupOverrides:
                     additionalProperties:
                       type: string
@@ -2766,6 +2809,25 @@ spec:
                         - ip-name
                         - resource-name
                         type: string
+                      secondaryCidrBlocks:
+                        description: |-
+                          SecondaryCidrBlocks are additional CIDR blocks to be associated when the provider creates a managed VPC.
+                          Defaults to none. Mutually exclusive with IPAMPool. This makes sense to use if, for example, you want to use
+                          a separate IP range for pods (e.g. Cilium ENI mode).
+                        items:
+                          description: VpcCidrBlock defines the CIDR block and settings
+                            to associate with the managed VPC. Currently, only IPv4
+                            is supported.
+                          properties:
+                            ipv4CidrBlock:
+                              description: IPv4CidrBlock is the IPv4 CIDR block to
+                                associate with the managed VPC.
+                              minLength: 1
+                              type: string
+                          required:
+                          - ipv4CidrBlock
+                          type: object
+                        type: array
                       subnetSchema:
                         default: PreferPrivate
                         description: |-
@@ -2958,10 +3020,15 @@ spec:
                                   description: The key to select.
                                   type: string
                                 name:
+                                  default: ""
                                   description: |-
                                     Name of the referent.
-                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    This field is effectively required, but due to backwards compatibility is
+                                    allowed to be empty. Instances of this type with an empty value here are
+                                    almost certainly wrong.
                                     TODO: Add other useful fields. apiVersion, kind, uid?
+                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                   type: string
                                 optional:
                                   description: Specify whether the ConfigMap or its
@@ -3021,10 +3088,15 @@ spec:
                                     be a valid secret key.
                                   type: string
                                 name:
+                                  default: ""
                                   description: |-
                                     Name of the referent.
-                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    This field is effectively required, but due to backwards compatibility is
+                                    allowed to be empty. Instances of this type with an empty value here are
+                                    almost certainly wrong.
                                     TODO: Add other useful fields. apiVersion, kind, uid?
+                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                   type: string
                                 optional:
                                   description: Specify whether the Secret or its key

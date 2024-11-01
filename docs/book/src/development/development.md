@@ -5,7 +5,7 @@
 ### Install prerequisites
 
 1. Install [go][go]
-    - Get the latest patch version for go v1.21.
+    - Get the latest patch version for go v1.22.
 2. Install [jq][jq]
     - `brew install jq` on macOS.
     - `chocolatey install jq` on Windows.

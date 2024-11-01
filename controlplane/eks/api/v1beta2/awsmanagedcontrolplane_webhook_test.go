@@ -168,15 +168,17 @@ func TestDefaultingWebhook(t *testing.T) {
 
 func TestWebhookCreate(t *testing.T) {
 	tests := []struct { //nolint:maligned
-		name           string
-		eksClusterName string
-		expectError    bool
-		eksVersion     string
-		hasAddons      bool
-		vpcCNI         VpcCni
-		additionalTags infrav1.Tags
-		secondaryCidr  *string
-		kubeProxy      KubeProxy
+		name                 string
+		eksClusterName       string
+		expectError          bool
+		expectErrorToContain string // if non-empty, the error message must contain this substring
+		eksVersion           string
+		hasAddons            bool
+		vpcCNI               VpcCni
+		additionalTags       infrav1.Tags
+		secondaryCidr        *string
+		secondaryCidrBlocks  []infrav1.VpcCidrBlock
+		kubeProxy            KubeProxy
 	}{
 		{
 			name:           "ekscluster specified",
@@ -255,6 +257,15 @@ func TestWebhookCreate(t *testing.T) {
 			secondaryCidr:  aws.String("100.64.0.0/10"),
 		},
 		{
+			name:                 "secondary CIDR block not listed in NetworkSpec.VPC.SecondaryCidrBlocks",
+			eksClusterName:       "default_cluster1",
+			eksVersion:           "v1.19",
+			expectError:          true,
+			expectErrorToContain: "100.64.0.0/16 must be listed in AWSManagedControlPlane.spec.network.vpc.secondaryCidrBlocks",
+			secondaryCidr:        aws.String("100.64.0.0/16"),
+			secondaryCidrBlocks:  []infrav1.VpcCidrBlock{{IPv4CidrBlock: "123.456.0.0/16"}},
+		},
+		{
 			name:           "invalid tags not allowed",
 			eksClusterName: "default_cluster1",
 			expectError:    true,
@@ -328,6 +339,11 @@ func TestWebhookCreate(t *testing.T) {
 					KubeProxy:      tc.kubeProxy,
 					AdditionalTags: tc.additionalTags,
 					VpcCni:         tc.vpcCNI,
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							SecondaryCidrBlocks: tc.secondaryCidrBlocks,
+						},
+					},
 				},
 			}
 			if tc.eksVersion != "" {
@@ -354,7 +370,16 @@ func TestWebhookCreate(t *testing.T) {
 
 			if tc.expectError {
 				g.Expect(err).ToNot(BeNil())
+
+				if tc.expectErrorToContain != "" && err != nil {
+					g.Expect(err.Error()).To(ContainSubstring(tc.expectErrorToContain))
+				}
 			} else {
+				if tc.expectErrorToContain != "" {
+					t.Error("Logic error: expectError=false means that expectErrorToContain must be empty")
+					t.FailNow()
+				}
+
 				g.Expect(err).To(BeNil())
 			}
 		})

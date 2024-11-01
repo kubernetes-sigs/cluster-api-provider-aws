@@ -90,6 +90,7 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"ec2:AssignPrivateIpAddresses",
 				"ec2:UnassignPrivateIpAddresses",
 				"ec2:AssociateRouteTable",
+				"ec2:AssociateVpcCidrBlock",
 				"ec2:AttachInternetGateway",
 				"ec2:AuthorizeSecurityGroupIngress",
 				"ec2:CreateCarrierGateway",
@@ -104,6 +105,7 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"ec2:CreateTags",
 				"ec2:CreateVpc",
 				"ec2:CreateVpcEndpoint",
+				"ec2:DisassociateVpcCidrBlock",
 				"ec2:ModifyVpcAttribute",
 				"ec2:ModifyVpcEndpoint",
 				"ec2:DeleteCarrierGateway",
@@ -159,6 +161,7 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"elasticloadbalancing:DescribeLoadBalancerAttributes",
 				"elasticloadbalancing:DescribeTargetGroups",
 				"elasticloadbalancing:ApplySecurityGroupsToLoadBalancer",
+				"elasticloadbalancing:SetSecurityGroups",
 				"elasticloadbalancing:DescribeTags",
 				"elasticloadbalancing:ModifyLoadBalancerAttributes",
 				"elasticloadbalancing:RegisterInstancesWithLoadBalancer",
@@ -413,7 +416,8 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 				"arn:*:iam::*:role/*",
 			},
 			Effect: iamv1.EffectAllow,
-		}, {
+		},
+		{
 			Action: iamv1.Actions{
 				"iam:GetPolicy",
 			},
@@ -421,7 +425,8 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 				t.generateAWSManagedPolicyARN(eksClusterPolicyName),
 			},
 			Effect: iamv1.EffectAllow,
-		}, {
+		},
+		{
 			Action: iamv1.Actions{
 				"eks:DescribeCluster",
 				"eks:ListClusters",
@@ -447,7 +452,8 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 				"arn:*:eks:*:*:nodegroup/*/*/*",
 			},
 			Effect: iamv1.EffectAllow,
-		}, {
+		},
+		{
 			Action: iamv1.Actions{
 				"ec2:AssociateVpcCidrBlock",
 				"ec2:DisassociateVpcCidrBlock",
@@ -466,7 +472,8 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 				"*",
 			},
 			Effect: iamv1.EffectAllow,
-		}, {
+		},
+		{
 			Action: iamv1.Actions{
 				"iam:PassRole",
 			},

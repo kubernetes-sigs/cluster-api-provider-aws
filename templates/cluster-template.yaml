@@ -4,7 +4,7 @@ metadata:
   labels:
     ccm: external
     csi: external
-  name: ${CLUSTER_NAME}
+  name: "${CLUSTER_NAME}"
 spec:
   clusterNetwork:
     pods:
@@ -13,24 +13,24 @@ spec:
   controlPlaneRef:
     apiVersion: controlplane.cluster.x-k8s.io/v1beta1
     kind: KubeadmControlPlane
-    name: ${CLUSTER_NAME}-control-plane
+    name: "${CLUSTER_NAME}-control-plane"
   infrastructureRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
     kind: AWSCluster
-    name: ${CLUSTER_NAME}
+    name: "${CLUSTER_NAME}"
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSCluster
 metadata:
-  name: ${CLUSTER_NAME}
+  name: "${CLUSTER_NAME}"
 spec:
-  region: ${AWS_REGION}
-  sshKeyName: ${AWS_SSH_KEY_NAME}
+  region: "${AWS_REGION}"
+  sshKeyName: "${AWS_SSH_KEY_NAME}"
 ---
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 kind: KubeadmControlPlane
 metadata:
-  name: ${CLUSTER_NAME}-control-plane
+  name: "${CLUSTER_NAME}-control-plane"
 spec:
   kubeadmConfigSpec:
     clusterConfiguration:
@@ -54,27 +54,27 @@ spec:
     infrastructureRef:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
       kind: AWSMachineTemplate
-      name: ${CLUSTER_NAME}-control-plane
+      name: "${CLUSTER_NAME}-control-plane"
   replicas: ${CONTROL_PLANE_MACHINE_COUNT}
-  version: ${KUBERNETES_VERSION}
+  version: "${KUBERNETES_VERSION}"
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSMachineTemplate
 metadata:
-  name: ${CLUSTER_NAME}-control-plane
+  name: "${CLUSTER_NAME}-control-plane"
 spec:
   template:
     spec:
-      iamInstanceProfile: control-plane.cluster-api-provider-aws.sigs.k8s.io
-      instanceType: ${AWS_CONTROL_PLANE_MACHINE_TYPE}
-      sshKeyName: ${AWS_SSH_KEY_NAME}
+      iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
+      instanceType: "${AWS_CONTROL_PLANE_MACHINE_TYPE}"
+      sshKeyName: "${AWS_SSH_KEY_NAME}"
 ---
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachineDeployment
 metadata:
-  name: ${CLUSTER_NAME}-md-0
+  name: "${CLUSTER_NAME}-md-0"
 spec:
-  clusterName: ${CLUSTER_NAME}
+  clusterName: "${CLUSTER_NAME}"
   replicas: ${WORKER_MACHINE_COUNT}
   selector:
     matchLabels: null
@@ -84,29 +84,29 @@ spec:
         configRef:
           apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
           kind: KubeadmConfigTemplate
-          name: ${CLUSTER_NAME}-md-0
+          name: "${CLUSTER_NAME}-md-0"
       clusterName: ${CLUSTER_NAME}
       infrastructureRef:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         kind: AWSMachineTemplate
-        name: ${CLUSTER_NAME}-md-0
+        name: "${CLUSTER_NAME}-md-0"
       version: ${KUBERNETES_VERSION}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSMachineTemplate
 metadata:
-  name: ${CLUSTER_NAME}-md-0
+  name: "${CLUSTER_NAME}-md-0"
 spec:
   template:
     spec:
       iamInstanceProfile: nodes.cluster-api-provider-aws.sigs.k8s.io
-      instanceType: ${AWS_NODE_MACHINE_TYPE}
-      sshKeyName: ${AWS_SSH_KEY_NAME}
+      instanceType: "${AWS_NODE_MACHINE_TYPE}"
+      sshKeyName: "${AWS_SSH_KEY_NAME}"
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate
 metadata:
-  name: ${CLUSTER_NAME}-md-0
+  name: "${CLUSTER_NAME}-md-0"
 spec:
   template:
     spec:
@@ -278,6 +278,13 @@ data:
     - apiGroups:
       - ""
       resources:
+      - configmaps
+      verbs:
+      - list
+      - watch
+    - apiGroups:
+      - ""
+      resources:
       - endpoints
       verbs:
       - create
@@ -400,6 +407,27 @@ data:
           - volumeattachments/status
         verbs:
           - patch
+    ---
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      labels:
+        app.kubernetes.io/name: aws-ebs-csi-driver
+      name: ebs-csi-node
+    rules:
+    - apiGroups:
+      - ""
+      resources:
+      - pods
+      verbs:
+      - get
+      - patch
+    - apiGroups:
+      - ""
+      resources:
+      - nodes
+      verbs:
+      - get
     ---
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
@@ -664,6 +692,21 @@ data:
         name: ebs-csi-controller-sa
         namespace: kube-system
     ---
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      labels:
+        app.kubernetes.io/name: aws-ebs-csi-driver
+      name: ebs-csi-node-binding
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: ebs-csi-node
+    subjects:
+    - kind: ServiceAccount
+      name: ebs-csi-node-sa
+      namespace: kube-system
+    ---
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -818,7 +861,7 @@ data:
             - emptyDir: {}
               name: socket-dir
     ---
-    apiVersion: policy/v1beta1
+    apiVersion: policy/v1
     kind: PodDisruptionBudget
     metadata:
       labels:

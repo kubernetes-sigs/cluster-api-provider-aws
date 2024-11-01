@@ -18,10 +18,10 @@ package bootstrap
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 
+	"github.com/blang/semver/v4"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	kindv1 "sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
+	kindmapper "sigs.k8s.io/cluster-api/test/infrastructure/kind"
 )
 
 // CreateKindBootstrapClusterAndLoadImagesInput is the input for CreateKindBootstrapClusterAndLoadImages.
@@ -67,7 +68,14 @@ func CreateKindBootstrapClusterAndLoadImages(ctx context.Context, input CreateKi
 
 	options := []KindClusterOption{}
 	if input.KubernetesVersion != "" {
-		options = append(options, WithNodeImage(fmt.Sprintf("%s:%s", DefaultNodeImageRepository, input.KubernetesVersion)))
+		semVer, err := semver.ParseTolerant(input.KubernetesVersion)
+		if err != nil {
+			Expect(err).ToNot(HaveOccurred(), "could not parse KubernetesVersion version")
+		}
+
+		kindMapping := kindmapper.GetMapping(semVer, "")
+
+		options = append(options, WithNodeImage(kindMapping.Image))
 	}
 	if input.RequiresDockerSock {
 		options = append(options, WithDockerSockMount())

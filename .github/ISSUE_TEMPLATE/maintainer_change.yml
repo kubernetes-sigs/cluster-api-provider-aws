@@ -1,0 +1,57 @@
+name: Add or remove maintainer
+description: To be used when making changes to project maintainers.
+labels: ["kind/support"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form to make changes to the maintainers of CAPA
+  - type: input
+    id: github_handle
+    attributes:
+      label: GitHub handle
+      description: The GitHub handle of the maintainer that changes will be made to.
+    validations:
+      required: true
+  - type: dropdown
+    id: action
+    attributes:
+      label: Action
+      description: What action is being performed to the maintainers
+      options:
+        - Add
+        - Remove
+    validations:
+      required: true
+  - type: input
+    id: merge_date
+    attributes:
+      label: Merge date
+      description: Enter the date when the changes can merge. The date should be 7 days or after the next CAPA office hours (whichever is longer)
+    validations:
+      required: true
+  - type: textarea
+    id: reason
+    attributes:
+      label: Reason for change
+      description: What is the reason this change is being made
+    validations:
+      required: true
+  - type: textarea
+    id: tasks
+    attributes:
+      label: 🖱️Tasks
+      value: |
+        ```[tasklist]
+        ## Tasks to be done
+        - [ ] Update **cluster-api-aws-maintainers** section in [OWNER_ALIASES](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/OWNERS_ALIASES) in CAPA repo
+        - [ ] Create a PR with the change and add `/hold`
+        - [ ] Announce the change in the CAPA slack channel
+        - [ ] Add PSA in the notes doc for the next CAPA office hours
+        - [ ] After the lazy consensus review period remove the hold
+        - [ ] Update **cluster-api-provider-aws-maintainers** team in [this file](https://github.com/kubernetes/org/blob/main/config/kubernetes-sigs/sig-cluster-lifecycle/teams.yaml)
+        - [ ] Update **approvers** for CAPA jobs [here](https://github.com/kubernetes/test-infra/blob/master/config/jobs/kubernetes-sigs/cluster-api-provider-aws/OWNERS)
+        - [ ] Update **approvers** from CAPA image promotion [here](https://github.com/kubernetes/k8s.io/blob/main/registry.k8s.io/images/k8s-staging-cluster-api-aws/OWNERS)
+        - [ ] Update **k8s-infra-staging-cluster-api-aws@kubernetes.io** [here](https://github.com/kubernetes/k8s.io/blob/main/groups/sig-cluster-lifecycle/groups.yaml)
+        - [ ] Update **sig-cluster-lifecycle-cluster-api-aws-alerts@kubernetes.io** [here](https://github.com/kubernetes/k8s.io/blob/main/groups/sig-cluster-lifecycle/groups.yaml)
+        ```

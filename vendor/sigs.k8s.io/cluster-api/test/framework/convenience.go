@@ -19,6 +19,7 @@ package framework
 import (
 	"reflect"
 
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	coordinationv1 "k8s.io/api/coordination/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -33,6 +34,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 )
 
@@ -67,9 +69,15 @@ func TryAddDefaultSchemes(scheme *runtime.Scheme) {
 	// Add the kubeadm controlplane scheme.
 	_ = controlplanev1.AddToScheme(scheme)
 
+	// Add the IPAM scheme.
+	_ = ipamv1.AddToScheme(scheme)
+
 	// Add the api extensions (CRD) to the scheme.
 	_ = apiextensionsv1beta.AddToScheme(scheme)
 	_ = apiextensionsv1.AddToScheme(scheme)
+
+	// Add the admission registration scheme (Mutating-, ValidatingWebhookConfiguration).
+	_ = admissionregistrationv1.AddToScheme(scheme)
 
 	// Add RuntimeSDK to the scheme.
 	_ = runtimev1.AddToScheme(scheme)

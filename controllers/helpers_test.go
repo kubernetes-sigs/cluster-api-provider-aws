@@ -291,6 +291,9 @@ func mockedCreateLBV2Calls(t *testing.T, m *mocks.MockELBV2APIMockRecorder) {
 		LoadBalancerArn: lbArn,
 		SecurityGroups:  aws.StringSlice([]string{"sg-apiserver-lb"}),
 	})).MaxTimes(1)
+	m.WaitUntilLoadBalancerAvailableWithContext(gomock.Any(), gomock.Eq(&elbv2.DescribeLoadBalancersInput{
+		LoadBalancerArns: []*string{lbArn},
+	})).MaxTimes(1)
 }
 
 func mockedDescribeTargetGroupsCall(t *testing.T, m *mocks.MockELBV2APIMockRecorder) {

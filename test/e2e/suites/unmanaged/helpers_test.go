@@ -327,7 +327,7 @@ func deleteCluster(ctx context.Context, cluster *clusterv1.Cluster) {
 	})
 
 	framework.WaitForClusterDeleted(ctx, framework.WaitForClusterDeletedInput{
-		Getter:  e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+		Client:  e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 		Cluster: cluster,
 	}, e2eCtx.E2EConfig.GetIntervals("", "wait-delete-cluster")...)
 }
@@ -529,7 +529,7 @@ func makeJoinBootstrapConfigTemplate(namespace, name string) *bootstrapv1.Kubead
 					JoinConfiguration: &bootstrapv1.JoinConfiguration{
 						NodeRegistration: bootstrapv1.NodeRegistrationOptions{
 							Name:             "{{ ds.meta_data.local_hostname }}",
-							KubeletExtraArgs: map[string]string{"cloud-provider": "aws"},
+							KubeletExtraArgs: map[string]string{"cloud-provider": "external"},
 						},
 					},
 				},

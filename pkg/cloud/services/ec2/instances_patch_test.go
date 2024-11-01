@@ -172,11 +172,16 @@ func TestCreateInstance_Patch(t *testing.T) {
 				m.
 					// Second call to create the instance without trying to include NetworkInterface tags
 					RunInstancesWithContext(context.TODO(), &ec2.RunInstancesInput{
-						ImageId:          aws.String("abc"),
-						InstanceType:     aws.String("m5.2xlarge"),
-						KeyName:          aws.String("default"),
-						SecurityGroupIds: aws.StringSlice([]string{"2", "3"}),
-						SubnetId:         aws.String("subnet-3"),
+						ImageId:      aws.String("abc"),
+						InstanceType: aws.String("m5.2xlarge"),
+						KeyName:      aws.String("default"),
+						NetworkInterfaces: []*ec2.InstanceNetworkInterfaceSpecification{
+							{
+								DeviceIndex: aws.Int64(0),
+								SubnetId:    aws.String("subnet-3"),
+								Groups:      aws.StringSlice([]string{"2", "3"}),
+							},
+						},
 						TagSpecifications: []*ec2.TagSpecification{
 							{
 								ResourceType: aws.String("instance"),

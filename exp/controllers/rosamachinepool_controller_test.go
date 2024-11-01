@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp/cmpopts"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
@@ -33,6 +33,21 @@ func TestNodePoolToRosaMachinePoolSpec(t *testing.T) {
 				MaxUnavailable: ptr.To(intstr.FromInt32(5)),
 			},
 		},
+		AdditionalSecurityGroups: []string{
+			"id-1",
+			"id-2",
+		},
+		Labels: map[string]string{
+			"label1": "value1",
+			"label2": "value2",
+		},
+		Taints: []expinfrav1.RosaTaint{
+			{
+				Key:    "myKey",
+				Value:  "myValue",
+				Effect: corev1.TaintEffectNoExecute,
+			},
+		},
 	}
 
 	machinePoolSpec := expclusterv1.MachinePoolSpec{
@@ -40,11 +55,8 @@ func TestNodePoolToRosaMachinePoolSpec(t *testing.T) {
 	}
 
 	nodePoolBuilder := nodePoolBuilder(rosaMachinePoolSpec, machinePoolSpec)
-
 	nodePoolSpec, err := nodePoolBuilder.Build()
 	g.Expect(err).ToNot(HaveOccurred())
 
-	expectedSpec := nodePoolToRosaMachinePoolSpec(nodePoolSpec)
-
-	g.Expect(rosaMachinePoolSpec).To(BeComparableTo(expectedSpec, cmpopts.EquateEmpty()))
+	g.Expect(computeSpecDiff(rosaMachinePoolSpec, nodePoolSpec)).To(BeEmpty())
 }

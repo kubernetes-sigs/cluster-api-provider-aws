@@ -1,2 +1,0 @@
-nfpm: statically-linked-binary
-nfpm: changelog-file-missing-in-native-package

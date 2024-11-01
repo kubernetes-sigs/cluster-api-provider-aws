@@ -53,6 +53,7 @@ Resources:
           - elasticloadbalancing:AddTags
           - elasticloadbalancing:AttachLoadBalancerToSubnets
           - elasticloadbalancing:ApplySecurityGroupsToLoadBalancer
+          - elasticloadbalancing:SetSecurityGroups
           - elasticloadbalancing:CreateLoadBalancer
           - elasticloadbalancing:CreateLoadBalancerPolicy
           - elasticloadbalancing:CreateLoadBalancerListeners
@@ -149,6 +150,7 @@ Resources:
           - ec2:AssignPrivateIpAddresses
           - ec2:UnassignPrivateIpAddresses
           - ec2:AssociateRouteTable
+          - ec2:AssociateVpcCidrBlock
           - ec2:AttachInternetGateway
           - ec2:AuthorizeSecurityGroupIngress
           - ec2:CreateCarrierGateway
@@ -163,6 +165,7 @@ Resources:
           - ec2:CreateTags
           - ec2:CreateVpc
           - ec2:CreateVpcEndpoint
+          - ec2:DisassociateVpcCidrBlock
           - ec2:ModifyVpcAttribute
           - ec2:ModifyVpcEndpoint
           - ec2:DeleteCarrierGateway
@@ -218,6 +221,7 @@ Resources:
           - elasticloadbalancing:DescribeLoadBalancerAttributes
           - elasticloadbalancing:DescribeTargetGroups
           - elasticloadbalancing:ApplySecurityGroupsToLoadBalancer
+          - elasticloadbalancing:SetSecurityGroups
           - elasticloadbalancing:DescribeTags
           - elasticloadbalancing:ModifyLoadBalancerAttributes
           - elasticloadbalancing:RegisterInstancesWithLoadBalancer
