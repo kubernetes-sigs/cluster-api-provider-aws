@@ -776,6 +776,17 @@ func mockedDeleteInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 }
 
 func mockedVPCCallsForExistingVPCAndSubnets(m *mocks.MockEC2APIMockRecorder) {
+	m.DescribeNatGatewaysPagesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeNatGatewaysInput{
+		Filter: []*ec2.Filter{
+			{
+				Name:   aws.String("vpc-id"),
+				Values: []*string{aws.String("vpc-exists")},
+			},
+			{
+				Name:   aws.String("state"),
+				Values: aws.StringSlice([]string{ec2.VpcStatePending, ec2.VpcStateAvailable}),
+			},
+		}}), gomock.Any()).Return(nil)
 	m.CreateTagsWithContext(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
 		Resources: aws.StringSlice([]string{"subnet-1"}),
 		Tags: []*ec2.Tag{
