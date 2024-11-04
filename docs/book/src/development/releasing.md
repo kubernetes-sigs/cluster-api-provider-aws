@@ -94,3 +94,13 @@ Promote the container images from the staging registry to the production registr
     ```
 
 1. Update the Title and Description of the Slack channel to point to the new version.
+
+## Post Release Steps
+
+### Create new Prow jobs
+
+If the release is for a new MAJOR.MINOR version (i.e. not a patch release) then you will need to create a new set of prow jobs for the release branch.
+
+This is done by updating the [test-infra](https://github.com/kubernetes/test-infra) repo. For an example of PR see [this](https://github.com/kubernetes/test-infra/pull/33751) for the v2.7 release series.
+
+Consider removing jobs from an old release as well. We should only keep jobs for 4 release branches.
