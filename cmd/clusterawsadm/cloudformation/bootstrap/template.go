@@ -244,7 +244,7 @@ func AssumeRolePolicy(identityType iamv1.PrincipalType, principalIDs []string) *
 			{
 				Effect:    iamv1.EffectAllow,
 				Principal: iamv1.Principals{identityType: principalIDs},
-				Action:    iamv1.Actions{"sts:AssumeRole"},
+				Action:    iamv1.Actions{"sts:AssumeRole", "sts:TagSession"},
 			},
 		},
 	}
