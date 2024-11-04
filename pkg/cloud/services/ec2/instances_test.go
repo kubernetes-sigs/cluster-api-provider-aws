@@ -656,17 +656,25 @@ func TestCreateInstance(t *testing.T) {
 					}})).Return(&ec2.DescribeSubnetsOutput{
 					Subnets: []*ec2.Subnet{
 						{
-							VpcId:               aws.String("vpc-bar"),
+							VpcId:               aws.String("vpc-incorrect-1"),
+							SubnetId:            aws.String("subnet-5"),
+							AvailabilityZone:    aws.String("us-east-1c"),
+							CidrBlock:           aws.String("10.0.12.0/24"),
+							MapPublicIpOnLaunch: aws.Bool(false),
+						},
+						{
+							VpcId:               aws.String("vpc-incorrect-2"),
 							SubnetId:            aws.String("subnet-4"),
 							AvailabilityZone:    aws.String("us-east-1c"),
 							CidrBlock:           aws.String("10.0.10.0/24"),
 							MapPublicIpOnLaunch: aws.Bool(false),
 						},
 						{
-							VpcId:            aws.String("vpc-foo"),
-							SubnetId:         aws.String("subnet-3"),
-							AvailabilityZone: aws.String("us-east-1c"),
-							CidrBlock:        aws.String("10.0.11.0/24"),
+							VpcId:               aws.String("vpc-foo"),
+							SubnetId:            aws.String("subnet-3"),
+							AvailabilityZone:    aws.String("us-east-1c"),
+							CidrBlock:           aws.String("10.0.11.0/24"),
+							MapPublicIpOnLaunch: aws.Bool(false),
 						},
 					},
 				}, nil)
