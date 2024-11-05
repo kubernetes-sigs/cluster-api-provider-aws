@@ -626,6 +626,7 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 		resources := []string{ec2.ResourceTypeInstance, ec2.ResourceTypeVolume, ec2.ResourceTypeNetworkInterface}
 		for _, r := range resources {
 			spec := &ec2.TagSpecification{ResourceType: aws.String(r)}
+			volumeSpec := &ec2.TagSpecification{ResourceType: aws.String(ec2.ResourceTypeVolume)}
 
 			// We need to sort keys for tests to work
 			keys := make([]string, 0, len(i.Tags))
@@ -638,9 +639,14 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 					Key:   aws.String(key),
 					Value: aws.String(i.Tags[key]),
 				})
+				volumeSpec.Tags = append(volumeSpec.Tags, &ec2.Tag{
+					Key:   aws.String(key),
+					Value: aws.String(i.Tags[key]),
+				})
 			}
 
 			input.TagSpecifications = append(input.TagSpecifications, spec)
+			input.TagSpecifications = append(input.TagSpecifications, volumeSpec)
 		}
 	}
 	marketOptions, err := getInstanceMarketOptionsRequest(i)
