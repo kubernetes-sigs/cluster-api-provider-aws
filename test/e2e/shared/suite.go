@@ -145,7 +145,7 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 				success = false
 			}
 			return success
-		}, 10*time.Minute, 5*time.Second).Should(BeTrue(), "Should've eventually succeeded creating an AWS CloudFormation stack")
+		}, 45*time.Minute, 30*time.Second).Should(BeTrue(), "Should've eventually succeeded creating an AWS CloudFormation stack")
 	}
 
 	ensureStackTags(e2eCtx.AWSSession, bootstrapTemplate.Spec.StackName, bootstrapTags)
