@@ -294,7 +294,7 @@ func (r *EKSConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Man
 	b := ctrl.NewControllerManagedBy(mgr).
 		For(&eksbootstrapv1.EKSConfig{}).
 		WithOptions(option).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(logger.FromContext(ctx).GetLogger(), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), logger.FromContext(ctx).GetLogger(), r.WatchFilterValue)).
 		Watches(
 			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(r.MachineToBootstrapMapFunc),
@@ -315,7 +315,7 @@ func (r *EKSConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Man
 	err = c.Watch(
 		source.Kind[client.Object](mgr.GetCache(), &clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc((r.ClusterToEKSConfigs)),
-			predicates.ClusterUnpausedAndInfrastructureReady(logger.FromContext(ctx).GetLogger())),
+			predicates.ClusterPausedTransitionsOrInfrastructureReady(mgr.GetScheme(), logger.FromContext(ctx).GetLogger())),
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed adding watch for Clusters to controller manager")
