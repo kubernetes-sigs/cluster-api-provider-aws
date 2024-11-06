@@ -30,7 +30,6 @@ import (
 	apiv1beta2 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	v1beta2 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	clusterapiapiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	errors "sigs.k8s.io/cluster-api/errors"
 )
 
 func init() {
@@ -577,7 +576,7 @@ func autoConvert_v1beta1_AWSMachinePoolStatus_To_v1beta2_AWSMachinePoolStatus(in
 	out.Instances = *(*[]v1beta2.AWSMachinePoolInstanceStatus)(unsafe.Pointer(&in.Instances))
 	out.LaunchTemplateID = in.LaunchTemplateID
 	out.LaunchTemplateVersion = (*string)(unsafe.Pointer(in.LaunchTemplateVersion))
-	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))
+	out.FailureReason = (*string)(unsafe.Pointer(in.FailureReason))
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
 	out.ASGStatus = (*v1beta2.ASGStatus)(unsafe.Pointer(in.ASGStatus))
 	return nil
@@ -595,7 +594,7 @@ func autoConvert_v1beta2_AWSMachinePoolStatus_To_v1beta1_AWSMachinePoolStatus(in
 	out.Instances = *(*[]AWSMachinePoolInstanceStatus)(unsafe.Pointer(&in.Instances))
 	out.LaunchTemplateID = in.LaunchTemplateID
 	out.LaunchTemplateVersion = (*string)(unsafe.Pointer(in.LaunchTemplateVersion))
-	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))
+	out.FailureReason = (*string)(unsafe.Pointer(in.FailureReason))
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
 	out.ASGStatus = (*ASGStatus)(unsafe.Pointer(in.ASGStatus))
 	return nil
@@ -751,7 +750,7 @@ func autoConvert_v1beta1_AWSManagedMachinePoolStatus_To_v1beta2_AWSManagedMachin
 	out.Replicas = in.Replicas
 	out.LaunchTemplateID = (*string)(unsafe.Pointer(in.LaunchTemplateID))
 	out.LaunchTemplateVersion = (*string)(unsafe.Pointer(in.LaunchTemplateVersion))
-	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))
+	out.FailureReason = (*string)(unsafe.Pointer(in.FailureReason))
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
 	out.Conditions = *(*clusterapiapiv1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
 	return nil
@@ -767,7 +766,7 @@ func autoConvert_v1beta2_AWSManagedMachinePoolStatus_To_v1beta1_AWSManagedMachin
 	out.Replicas = in.Replicas
 	out.LaunchTemplateID = (*string)(unsafe.Pointer(in.LaunchTemplateID))
 	out.LaunchTemplateVersion = (*string)(unsafe.Pointer(in.LaunchTemplateVersion))
-	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))
+	out.FailureReason = (*string)(unsafe.Pointer(in.FailureReason))
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
 	out.Conditions = *(*clusterapiapiv1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
 	return nil
@@ -896,7 +895,7 @@ func Convert_v1beta2_FargateProfileSpec_To_v1beta1_FargateProfileSpec(in *v1beta
 
 func autoConvert_v1beta1_FargateProfileStatus_To_v1beta2_FargateProfileStatus(in *FargateProfileStatus, out *v1beta2.FargateProfileStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
-	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))
+	out.FailureReason = (*string)(unsafe.Pointer(in.FailureReason))
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
 	out.Conditions = *(*clusterapiapiv1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
 	return nil
@@ -909,7 +908,7 @@ func Convert_v1beta1_FargateProfileStatus_To_v1beta2_FargateProfileStatus(in *Fa
 
 func autoConvert_v1beta2_FargateProfileStatus_To_v1beta1_FargateProfileStatus(in *v1beta2.FargateProfileStatus, out *FargateProfileStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
-	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))
+	out.FailureReason = (*string)(unsafe.Pointer(in.FailureReason))
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
 	out.Conditions = *(*clusterapiapiv1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
 	return nil

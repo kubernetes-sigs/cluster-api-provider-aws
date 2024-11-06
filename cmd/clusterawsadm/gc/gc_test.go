@@ -105,7 +105,7 @@ func TestEnableGC(t *testing.T) {
 			cluster := tc.existingObjs[0].(*clusterv1.Cluster)
 			ref := cluster.Spec.InfrastructureRef
 
-			obj, err := external.Get(ctx, fake, ref, "default")
+			obj, err := external.Get(ctx, fake, ref)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(obj).NotTo(BeNil())
 
@@ -176,7 +176,7 @@ func TestDisableGC(t *testing.T) {
 			cluster := tc.existingObjs[0].(*clusterv1.Cluster)
 			ref := cluster.Spec.InfrastructureRef
 
-			obj, err := external.Get(ctx, fake, ref, "default")
+			obj, err := external.Get(ctx, fake, ref)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(obj).NotTo(BeNil())
 
@@ -271,7 +271,7 @@ func TestConfigureGC(t *testing.T) {
 			cluster := tc.existingObjs[0].(*clusterv1.Cluster)
 			ref := cluster.Spec.InfrastructureRef
 
-			obj, err := external.Get(ctx, fake, ref, "default")
+			obj, err := external.Get(ctx, fake, ref)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(obj).NotTo(BeNil())
 

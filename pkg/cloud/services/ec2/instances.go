@@ -37,7 +37,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	capierrors "sigs.k8s.io/cluster-api/errors"
 )
 
 // GetRunningInstanceByTags returns the existing instance or nothing if it doesn't exist.
@@ -144,7 +143,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 	} else {
 		if scope.Machine.Spec.Version == nil {
 			err := errors.New("Either AWSMachine's spec.ami.id or Machine's spec.version must be defined")
-			scope.SetFailureReason(capierrors.CreateMachineError)
+			scope.SetFailureReason("CreateError")
 			scope.SetFailureMessage(err)
 			return nil, err
 		}

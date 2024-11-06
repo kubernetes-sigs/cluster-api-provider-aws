@@ -22,11 +22,11 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"k8s.io/kubectl/pkg/util/templates"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/ami"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/flags"
 	cmdout "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/printers"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 
 var (
@@ -41,7 +41,7 @@ func ListAMICmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List AMIs from the default AWS account where AMIs are stored",
-		Long: cmd.LongDesc(`
+		Long: templates.LongDesc(`
 			List AMIs based on Kubernetes version, OS, region. If no arguments are provided,
 			it will print all AMIs in all regions, OS types for the supported Kubernetes versions.
             Supported Kubernetes versions start from the latest stable version and goes 2 release back:
@@ -49,7 +49,7 @@ func ListAMICmd() *cobra.Command {
 			Note: First release of each version will be skipped, e.g., v1.21.0
 			To list AMIs of unsupported Kubernetes versions, --kubernetes-version flag needs to be provided.
 		`),
-		Example: cmd.Examples(`
+		Example: templates.Examples(`
 		# List AMIs from the default AWS account where AMIs are stored.
 		# Available os options: centos-7, ubuntu-24.04, ubuntu-22.04, amazon-2, flatcar-stable
 		clusterawsadm ami list --kubernetes-version=v1.18.12 --os=ubuntu-20.04  --region=us-west-2
