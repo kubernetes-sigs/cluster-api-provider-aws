@@ -18,10 +18,10 @@ package credentials
 
 import (
 	"github.com/spf13/cobra"
+	"k8s.io/kubectl/pkg/util/templates"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/util"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/controller/credentials"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 
 // UpdateCredentialsCmd is a CLI command that will update credentials the controller is using.
@@ -29,10 +29,10 @@ func UpdateCredentialsCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "update-credentials",
 		Short: "update credentials the controller is using (i.e., update controller bootstrap secret)",
-		Long: cmd.LongDesc(`
+		Long: templates.LongDesc(`
 			Update credentials the controller is started with
 		`),
-		Example: cmd.Examples(`
+		Example: templates.Examples(`
 		# update credentials: AWS_B64ENCODED_CREDENTIALS environment variable must be set and be used to update the bootstrap secret
 		# Kubeconfig file will be searched in default locations
 		clusterawsadm controller update-credentials --namespace=capa-system

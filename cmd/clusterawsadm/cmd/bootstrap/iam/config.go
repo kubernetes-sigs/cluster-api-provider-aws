@@ -20,20 +20,20 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"k8s.io/kubectl/pkg/util/templates"
 	"sigs.k8s.io/yaml"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/api/bootstrap/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cloudformation/bootstrap"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/configreader"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 
 func printConfigCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "print-config",
 		Short: "Print configuration",
-		Long:  cmd.LongDesc("Print configuration"),
-		Example: cmd.Examples(`
+		Long:  templates.LongDesc("Print configuration"),
+		Example: templates.Examples(`
 		# Print the default configuration.
 		clusterawsadm bootstrap iam print-config
 
@@ -83,7 +83,7 @@ func getBootstrapTemplate(cmd *cobra.Command) (*bootstrap.Template, error) {
 }
 
 func addConfigFlag(c *cobra.Command) {
-	c.Flags().String("config", "", cmd.LongDesc(`
+	c.Flags().String("config", "", templates.LongDesc(`
 		clusterawsadm will load a bootstrap configuration from this file. The path may be
 		absolute or relative; relative paths start at the current working directory.
 

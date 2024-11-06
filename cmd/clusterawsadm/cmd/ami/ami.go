@@ -19,10 +19,10 @@ package ami
 
 import (
 	"github.com/spf13/cobra"
+	"k8s.io/kubectl/pkg/util/templates"
 
 	cm "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/ami/common"
 	ls "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/ami/list"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 
 // RootCmd is the root of the `ami command`.
@@ -31,7 +31,7 @@ func RootCmd() *cobra.Command {
 		Use:   "ami [command]",
 		Short: "AMI commands",
 		Args:  cobra.NoArgs,
-		Long: cmd.LongDesc(`
+		Long: templates.LongDesc(`
 			All AMI related actions such as:
 			# Copy AMIs based on Kubernetes version, OS etc from an AWS account where AMIs are stored
             to the current AWS account (use case: air-gapped deployments)

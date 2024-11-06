@@ -21,12 +21,12 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"k8s.io/kubectl/pkg/util/templates"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/ami"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/flags"
 	cmdout "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/printers"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 
 var (
@@ -38,12 +38,12 @@ func EncryptedCopyAMICmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "encrypted-copy",
 		Short: "Encrypt and copy AMI snapshot, then create an AMI with that snapshot",
-		Long: cmd.LongDesc(`
+		Long: templates.LongDesc(`
 			Find the AMI based on Kubernetes version, OS, region in the AWS account where AMIs are stored.
 			Encrypt and copy the snapshot of the AMI to the current AWS account.
 			Create an AMI with that snapshot.
 		`),
-		Example: cmd.Examples(`
+		Example: templates.Examples(`
 		# Create an encrypted AMI:
 		# Available os options: centos-7, ubuntu-24.04, ubuntu-22.04, amazon-2, flatcar-stable
 		clusterawsadm ami encrypted-copy --kubernetes-version=v1.18.12 --os=ubuntu-20.04  --region=us-west-2
