@@ -253,6 +253,8 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 
 	input.CapacityReservationID = scope.AWSMachine.Spec.CapacityReservationID
 
+	input.UseCapacityBlock = scope.AWSMachine.Spec.UseCapacityBlock
+
 	s.scope.Debug("Running instance", "machine-role", scope.Role())
 	s.scope.Debug("Running instance with instance metadata options", "metadata options", input.InstanceMetadataOptions)
 	out, err := s.runInstance(scope.Role(), input)
@@ -637,8 +639,13 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 			input.TagSpecifications = append(input.TagSpecifications, spec)
 		}
 	}
-
-	input.InstanceMarketOptions = getInstanceMarketOptionsRequest(i.SpotMarketOptions)
+	marketOptions, err := getInstanceMarketOptionsRequest(i)
+	if err != nil {
+		return nil, err
+	}
+	if marketOptions != nil {
+		input.InstanceMarketOptions = marketOptions
+	}
 	input.MetadataOptions = getInstanceMetadataOptionsRequest(i.InstanceMetadataOptions)
 	input.PrivateDnsNameOptions = getPrivateDNSNameOptionsRequest(i.PrivateDNSName)
 	input.CapacityReservationSpecification = getCapacityReservationSpecification(i.CapacityReservationID)
@@ -1138,34 +1145,48 @@ func getCapacityReservationSpecification(capacityReservationID *string) *ec2.Cap
 	}
 }
 
-func getInstanceMarketOptionsRequest(spotMarketOptions *infrav1.SpotMarketOptions) *ec2.InstanceMarketOptionsRequest {
-	if spotMarketOptions == nil {
+func getInstanceMarketOptionsRequest(i *infrav1.Instance) (*ec2.InstanceMarketOptionsRequest, error) {
+	if i.UseCapacityBlock != nil && i.SpotMarketOptions != nil {
+		return nil, errors.New("can't create spot capacity-blocks, remove spot market request")
+	}
+
+	// Handle Capacity Block case.
+	if ptr.Deref(i.UseCapacityBlock, false) {
+		if i.CapacityReservationID == nil {
+			return nil, errors.Errorf("capacityReservationID is required when CapacityBlock is enabled")
+		}
+		return &ec2.InstanceMarketOptionsRequest{
+			MarketType: aws.String(ec2.MarketTypeCapacityBlock),
+		}, nil
+	}
+
+	// Handle Spot instance case.
+	if i.SpotMarketOptions == nil {
 		// Instance is not a Spot instance
-		return nil
+		return nil, nil
 	}
 
 	// Set required values for Spot instances
-	spotOptions := &ec2.SpotMarketOptions{}
-
-	// The following two options ensure that:
-	// - If an instance is interrupted, it is terminated rather than hibernating or stopping
-	// - No replacement instance will be created if the instance is interrupted
-	// - If the spot request cannot immediately be fulfilled, it will not be created
-	// This behaviour should satisfy the 1:1 mapping of Machines to Instances as
-	// assumed by the Cluster API.
-	spotOptions.SetInstanceInterruptionBehavior(ec2.InstanceInterruptionBehaviorTerminate)
-	spotOptions.SetSpotInstanceType(ec2.SpotInstanceTypeOneTime)
-
-	maxPrice := spotMarketOptions.MaxPrice
-	if maxPrice != nil && *maxPrice != "" {
-		spotOptions.SetMaxPrice(*maxPrice)
+	spotOpts := &ec2.SpotMarketOptions{
+		// The following two options ensure that:
+		// - If an instance is interrupted, it is terminated rather than hibernating or stopping
+		// - No replacement instance will be created if the instance is interrupted
+		// - If the spot request cannot immediately be fulfilled, it will not be created
+		// This behaviour should satisfy the 1:1 mapping of Machines to Instances as
+		// assumed by the Cluster API.
+		InstanceInterruptionBehavior: aws.String(ec2.InstanceInterruptionBehaviorTerminate),
+		SpotInstanceType:             aws.String(ec2.SpotInstanceTypeOneTime),
 	}
 
-	instanceMarketOptionsRequest := &ec2.InstanceMarketOptionsRequest{}
-	instanceMarketOptionsRequest.SetMarketType(ec2.MarketTypeSpot)
-	instanceMarketOptionsRequest.SetSpotOptions(spotOptions)
+	maxPrice := ptr.Deref(i.SpotMarketOptions.MaxPrice, "")
+	if maxPrice != "" {
+		spotOpts.MaxPrice = aws.String(maxPrice)
+	}
 
-	return instanceMarketOptionsRequest
+	return &ec2.InstanceMarketOptionsRequest{
+		MarketType:  aws.String(ec2.MarketTypeSpot),
+		SpotOptions: spotOpts,
+	}, nil
 }
 
 func getInstanceMetadataOptionsRequest(metadataOptions *infrav1.InstanceMetadataOptions) *ec2.InstanceMetadataOptionsRequest {

@@ -218,6 +218,27 @@ func TestAWSMachineCreate(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "invalid useCapacityBlock and spotMarketOptions are specified",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					UseCapacityBlock:  aws.Bool(true),
+					SpotMarketOptions: &SpotMarketOptions{},
+					InstanceType:      "test",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid useCapacityBlock is specified",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					UseCapacityBlock: aws.Bool(true),
+					InstanceType:     "test",
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name: "empty instance type not allowed",
 			machine: &AWSMachine{
 				Spec: AWSMachineSpec{

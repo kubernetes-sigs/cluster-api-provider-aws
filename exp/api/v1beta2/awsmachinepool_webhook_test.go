@@ -174,6 +174,29 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "invalid useCapacityBlock and spotMarketOptions are specified",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AWSLaunchTemplate: AWSLaunchTemplate{
+						UseCapacityBlock:  aws.Bool(true),
+						SpotMarketOptions: &infrav1.SpotMarketOptions{},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid useCapacityBlock is specified",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AWSLaunchTemplate: AWSLaunchTemplate{
+						UseCapacityBlock: aws.Bool(true),
+					},
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
