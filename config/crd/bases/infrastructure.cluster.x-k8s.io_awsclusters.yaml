@@ -2372,6 +2372,11 @@ spec:
                   type:
                     description: The instance type.
                     type: string
+                  useCapacityBlock:
+                    description: |-
+                      UseCapacityBlock enables usage of pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
+                      If enabled, CapacityReservationID must be specified to identify the target reservation.
+                    type: boolean
                   userData:
                     description: |-
                       UserData is the raw data script passed to the instance which is run upon bootstrap.
