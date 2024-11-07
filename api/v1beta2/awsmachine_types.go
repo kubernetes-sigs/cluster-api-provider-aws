@@ -194,9 +194,18 @@ type AWSMachineSpec struct {
 	// +optional
 	PrivateDNSName *PrivateDNSName `json:"privateDnsName,omitempty"`
 
-	// CapacityReservationID specifies the target Capacity Reservation into which the instance should be launched.
+	// capacityReservationID specifies the target Capacity Reservation into which the instance should be launched.
 	// +optional
 	CapacityReservationID *string `json:"capacityReservationId,omitempty"`
+
+	// marketType specifies the type of market for the EC2 instance. Valid values include:
+	// "OnDemand" (default): The instance runs as a standard OnDemand instance.
+	// "Spot": The instance runs as a Spot instance. When spotMarketOptions is provided, the marketType defaults to "Spot".
+	// "CapacityBlock": The instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
+	//  If this value is selected, CapacityReservationID must be specified to identify the target reservation.
+	// If marketType is not specified and spotMarketOptions is provided, the marketType defaults to "Spot".
+	// +optional
+	MarketType MarketType `json:"marketType,omitempty"`
 }
 
 // CloudInit defines options related to the bootstrapping systems where
