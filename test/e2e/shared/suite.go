@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package shared provides common utilities, setup and teardown for the e2e tests.
 package shared
 
 import (
@@ -36,9 +37,9 @@ import (
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/yaml"
 
+	"sigs.k8s.io/cluster-api-provider-aws/v2/test/helpers/kubernetesversions"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
-	"sigs.k8s.io/cluster-api/test/framework/kubernetesversions"
 )
 
 type synchronizedBeforeTestSuiteConfig struct {
@@ -118,8 +119,11 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 			if prov.Name != "aws" {
 				continue
 			}
-			e2eCtx.E2EConfig.Providers[i].Files = append(e2eCtx.E2EConfig.Providers[i].Files, clusterctlCITemplate)
-			e2eCtx.E2EConfig.Providers[i].Files = append(e2eCtx.E2EConfig.Providers[i].Files, clusterctlCITemplateForUpgrade)
+			e2eCtx.E2EConfig.Providers[i].Files = append(
+				e2eCtx.E2EConfig.Providers[i].Files,
+				clusterctlCITemplate,
+				clusterctlCITemplateForUpgrade,
+			)
 		}
 	}
 
@@ -130,12 +134,18 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	e2eCtx.CloudFormationTemplate = renderCustomCloudFormation(bootstrapTemplate)
 
 	if !e2eCtx.Settings.SkipCloudFormationCreation {
-		err = createCloudFormationStack(e2eCtx.AWSSession, bootstrapTemplate, bootstrapTags)
-		if err != nil {
-			deleteCloudFormationStack(e2eCtx.AWSSession, bootstrapTemplate)
-			err = createCloudFormationStack(e2eCtx.AWSSession, bootstrapTemplate, bootstrapTags)
-			Expect(err).NotTo(HaveOccurred())
-		}
+		count := 0
+		Eventually(func(gomega Gomega) bool {
+			count++
+			By(fmt.Sprintf("Trying to create CloudFormation stack... attempt %d", count))
+			success := true
+			if err := createCloudFormationStack(e2eCtx.AWSSession, bootstrapTemplate, bootstrapTags); err != nil {
+				By(fmt.Sprintf("Failed to create CloudFormation stack in attempt %d: %s", count, err.Error()))
+				deleteCloudFormationStack(e2eCtx.AWSSession, bootstrapTemplate)
+				success = false
+			}
+			return success
+		}, 10*time.Minute, 5*time.Second).Should(BeTrue(), "Should've eventually succeeded creating an AWS CloudFormation stack")
 	}
 
 	ensureStackTags(e2eCtx.AWSSession, bootstrapTemplate.Spec.StackName, bootstrapTags)

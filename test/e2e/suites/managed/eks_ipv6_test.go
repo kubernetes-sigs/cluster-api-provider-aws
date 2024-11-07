@@ -71,8 +71,8 @@ var _ = ginkgo.Describe("[managed] [general] [ipv6] EKS cluster tests", func() {
 				Namespace:                namespace,
 				ClusterName:              clusterName,
 				Flavour:                  EKSIPv6ClusterFlavor,
-				ControlPlaneMachineCount: 1, //NOTE: this cannot be zero as clusterctl returns an error
-				WorkerMachineCount:       1,
+				ControlPlaneMachineCount: 1, // NOTE: this cannot be zero as clusterctl returns an error
+				WorkerMachineCount:       0,
 			}
 		})
 
@@ -85,8 +85,11 @@ var _ = ginkgo.Describe("[managed] [general] [ipv6] EKS cluster tests", func() {
 				AWSSession:            e2eCtx.BootstrapUserAWSSession,
 				Namespace:             namespace,
 				ClusterName:           clusterName,
+				IncludeScaling:        false,
+				Cleanup:               false,
 				ManagedMachinePool:    true,
-				Flavor:                EKSIPv6ClusterFlavor,
+				Flavor:                EKSManagedMachinePoolOnlyFlavor,
+				UsesLaunchTemplate:    false,
 			}
 		})
 
@@ -129,7 +132,7 @@ var _ = ginkgo.Describe("[managed] [general] [ipv6] EKS cluster tests", func() {
 			Cluster: cluster,
 		})
 		framework.WaitForClusterDeleted(ctx, framework.WaitForClusterDeletedInput{
-			Getter:  e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+			Client:  e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 			Cluster: cluster,
 		}, e2eCtx.E2EConfig.GetIntervals("", "wait-delete-cluster")...)
 	})

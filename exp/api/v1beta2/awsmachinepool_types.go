@@ -52,6 +52,11 @@ type AWSMachinePoolSpec struct {
 	// AvailabilityZones is an array of availability zones instances can run in
 	AvailabilityZones []string `json:"availabilityZones,omitempty"`
 
+	// AvailabilityZoneSubnetType specifies which type of subnets to use when an availability zone is specified.
+	// +kubebuilder:validation:Enum:=public;private;all
+	// +optional
+	AvailabilityZoneSubnetType *AZSubnetType `json:"availabilityZoneSubnetType,omitempty"`
+
 	// Subnets is an array of subnet configurations
 	// +optional
 	Subnets []infrav1.AWSResourceReference `json:"subnets,omitempty"`
@@ -77,6 +82,13 @@ type AWSMachinePoolSpec struct {
 	// If no value is supplied by user a default value of 300 seconds is set
 	// +optional
 	DefaultCoolDown metav1.Duration `json:"defaultCoolDown,omitempty"`
+
+	// The amount of time, in seconds, until a new instance is considered to
+	// have finished initializing and resource consumption to become stable
+	// after it enters the InService state.
+	// If no value is supplied by user a default value of 300 seconds is set
+	// +optional
+	DefaultInstanceWarmup metav1.Duration `json:"defaultInstanceWarmup,omitempty"`
 
 	// RefreshPreferences describes set of preferences associated with the instance refresh request.
 	// +optional
@@ -160,6 +172,17 @@ type RefreshPreferences struct {
 	// during an instance refresh. The default is 90.
 	// +optional
 	MinHealthyPercentage *int64 `json:"minHealthyPercentage,omitempty"`
+
+	// The amount of capacity as a percentage in ASG that can be in service and healthy, or pending,
+	// to support your workload when replacing instances.
+	// The value is expressed as a percentage of the desired capacity of the ASG. Value range is 100 to 200.
+	// If you specify MaxHealthyPercentage , you must also specify MinHealthyPercentage , and the difference between
+	// them cannot be greater than 100.
+	// A larger range increases the number of instances that can be replaced at the same time.
+	// +optional
+	// +kubebuilder:validation:Minimum=100
+	// +kubebuilder:validation:Maximum=200
+	MaxHealthyPercentage *int64 `json:"maxHealthyPercentage,omitempty"`
 }
 
 // AWSMachinePoolStatus defines the observed state of AWSMachinePool.

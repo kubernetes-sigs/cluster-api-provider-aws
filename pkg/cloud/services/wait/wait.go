@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package wait provides a set of utilities for polling and waiting.
 package wait
 
 import (
@@ -85,7 +86,7 @@ func WaitForWithRetryable(backoff wait.Backoff, condition wait.ConditionFunc, re
 	})
 
 	// If the waitError is not a timeout error (nil or a non-retryable error), return it
-	if !errors.Is(waitErr, wait.ErrWaitTimeout) {
+	if !errors.Is(waitErr, wait.ErrorInterrupted(waitErr)) {
 		return waitErr
 	}
 

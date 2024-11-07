@@ -25,6 +25,7 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 )
@@ -81,6 +82,31 @@ func (r *AWSMachinePool) validateRootVolume() field.ErrorList {
 	return allErrs
 }
 
+func (r *AWSMachinePool) validateNonRootVolumes() field.ErrorList {
+	var allErrs field.ErrorList
+
+	for _, volume := range r.Spec.AWSLaunchTemplate.NonRootVolumes {
+		if v1beta2.VolumeTypesProvisioned.Has(string(volume.Type)) && volume.IOPS == 0 {
+			allErrs = append(allErrs, field.Required(field.NewPath("spec.template.spec.nonRootVolumes.iops"), "iops required if type is 'io1' or 'io2'"))
+		}
+
+		if volume.Throughput != nil {
+			if volume.Type != v1beta2.VolumeTypeGP3 {
+				allErrs = append(allErrs, field.Required(field.NewPath("spec.template.spec.nonRootVolumes.throughput"), "throughput is valid only for type 'gp3'"))
+			}
+			if *volume.Throughput < 0 {
+				allErrs = append(allErrs, field.Required(field.NewPath("spec.template.spec.nonRootVolumes.throughput"), "throughput must be nonnegative"))
+			}
+		}
+
+		if volume.DeviceName == "" {
+			allErrs = append(allErrs, field.Required(field.NewPath("spec.template.spec.nonRootVolumes.deviceName"), "non root volume should have device name"))
+		}
+	}
+
+	return allErrs
+}
+
 func (r *AWSMachinePool) validateSubnets() field.ErrorList {
 	var allErrs field.ErrorList
 
@@ -108,23 +134,54 @@ func (r *AWSMachinePool) validateAdditionalSecurityGroups() field.ErrorList {
 	return allErrs
 }
 
+func (r *AWSMachinePool) validateSpotInstances() field.ErrorList {
+	var allErrs field.ErrorList
+	if r.Spec.AWSLaunchTemplate.SpotMarketOptions != nil && r.Spec.MixedInstancesPolicy != nil {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.awsLaunchTemplate.spotMarketOptions"), "either spec.awsLaunchTemplate.spotMarketOptions or spec.mixedInstancesPolicy should be used"))
+	}
+	return allErrs
+}
+
+func (r *AWSMachinePool) validateRefreshPreferences() field.ErrorList {
+	var allErrs field.ErrorList
+
+	if r.Spec.RefreshPreferences == nil {
+		return allErrs
+	}
+
+	if r.Spec.RefreshPreferences.MaxHealthyPercentage != nil && r.Spec.RefreshPreferences.MinHealthyPercentage == nil {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.refreshPreferences.maxHealthyPercentage"), "If you specify spec.refreshPreferences.maxHealthyPercentage, you must also specify spec.refreshPreferences.minHealthyPercentage"))
+	}
+
+	if r.Spec.RefreshPreferences.MaxHealthyPercentage != nil && r.Spec.RefreshPreferences.MinHealthyPercentage != nil {
+		if *r.Spec.RefreshPreferences.MaxHealthyPercentage-*r.Spec.RefreshPreferences.MinHealthyPercentage > 100 {
+			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.refreshPreferences.maxHealthyPercentage"), "the difference between spec.refreshPreferences.maxHealthyPercentage and spec.refreshPreferences.minHealthyPercentage cannot be greater than 100"))
+		}
+	}
+
+	return allErrs
+}
+
 // ValidateCreate will do any extra validation when creating a AWSMachinePool.
-func (r *AWSMachinePool) ValidateCreate() error {
+func (r *AWSMachinePool) ValidateCreate() (admission.Warnings, error) {
 	log.Info("AWSMachinePool validate create", "machine-pool", klog.KObj(r))
 
 	var allErrs field.ErrorList
 
 	allErrs = append(allErrs, r.validateDefaultCoolDown()...)
 	allErrs = append(allErrs, r.validateRootVolume()...)
+	allErrs = append(allErrs, r.validateNonRootVolumes()...)
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 	allErrs = append(allErrs, r.validateSubnets()...)
 	allErrs = append(allErrs, r.validateAdditionalSecurityGroups()...)
+	allErrs = append(allErrs, r.validateSpotInstances()...)
+	allErrs = append(allErrs, r.validateRefreshPreferences()...)
 
 	if len(allErrs) == 0 {
-		return nil
+		return nil, nil
 	}
 
-	return apierrors.NewInvalid(
+	return nil, apierrors.NewInvalid(
 		r.GroupVersionKind().GroupKind(),
 		r.Name,
 		allErrs,
@@ -132,19 +189,21 @@ func (r *AWSMachinePool) ValidateCreate() error {
 }
 
 // ValidateUpdate will do any extra validation when updating a AWSMachinePool.
-func (r *AWSMachinePool) ValidateUpdate(old runtime.Object) error {
+func (r *AWSMachinePool) ValidateUpdate(_ runtime.Object) (admission.Warnings, error) {
 	var allErrs field.ErrorList
 
 	allErrs = append(allErrs, r.validateDefaultCoolDown()...)
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 	allErrs = append(allErrs, r.validateSubnets()...)
 	allErrs = append(allErrs, r.validateAdditionalSecurityGroups()...)
+	allErrs = append(allErrs, r.validateSpotInstances()...)
+	allErrs = append(allErrs, r.validateRefreshPreferences()...)
 
 	if len(allErrs) == 0 {
-		return nil
+		return nil, nil
 	}
 
-	return apierrors.NewInvalid(
+	return nil, apierrors.NewInvalid(
 		r.GroupVersionKind().GroupKind(),
 		r.Name,
 		allErrs,
@@ -152,8 +211,8 @@ func (r *AWSMachinePool) ValidateUpdate(old runtime.Object) error {
 }
 
 // ValidateDelete allows you to add any extra validation when deleting.
-func (r *AWSMachinePool) ValidateDelete() error {
-	return nil
+func (r *AWSMachinePool) ValidateDelete() (admission.Warnings, error) {
+	return nil, nil
 }
 
 // Default will set default values for the AWSMachinePool.
@@ -161,5 +220,10 @@ func (r *AWSMachinePool) Default() {
 	if int(r.Spec.DefaultCoolDown.Duration.Seconds()) == 0 {
 		log.Info("DefaultCoolDown is zero, setting 300 seconds as default")
 		r.Spec.DefaultCoolDown.Duration = 300 * time.Second
+	}
+
+	if int(r.Spec.DefaultInstanceWarmup.Duration.Seconds()) == 0 {
+		log.Info("DefaultInstanceWarmup is zero, setting 300 seconds as default")
+		r.Spec.DefaultInstanceWarmup.Duration = 300 * time.Second
 	}
 }

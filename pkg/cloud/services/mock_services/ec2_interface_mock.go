@@ -24,6 +24,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	types "k8s.io/apimachinery/pkg/types"
 	v1beta2 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	v1beta20 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	scope "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
@@ -68,32 +69,32 @@ func (mr *MockEC2InterfaceMockRecorder) CreateInstance(arg0, arg1, arg2 interfac
 }
 
 // CreateLaunchTemplate mocks base method.
-func (m *MockEC2Interface) CreateLaunchTemplate(arg0 scope.LaunchTemplateScope, arg1 *string, arg2 []byte) (string, error) {
+func (m *MockEC2Interface) CreateLaunchTemplate(arg0 scope.LaunchTemplateScope, arg1 *string, arg2 types.NamespacedName, arg3 []byte) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateLaunchTemplate", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "CreateLaunchTemplate", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateLaunchTemplate indicates an expected call of CreateLaunchTemplate.
-func (mr *MockEC2InterfaceMockRecorder) CreateLaunchTemplate(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockEC2InterfaceMockRecorder) CreateLaunchTemplate(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLaunchTemplate", reflect.TypeOf((*MockEC2Interface)(nil).CreateLaunchTemplate), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLaunchTemplate", reflect.TypeOf((*MockEC2Interface)(nil).CreateLaunchTemplate), arg0, arg1, arg2, arg3)
 }
 
 // CreateLaunchTemplateVersion mocks base method.
-func (m *MockEC2Interface) CreateLaunchTemplateVersion(arg0 string, arg1 scope.LaunchTemplateScope, arg2 *string, arg3 []byte) error {
+func (m *MockEC2Interface) CreateLaunchTemplateVersion(arg0 string, arg1 scope.LaunchTemplateScope, arg2 *string, arg3 types.NamespacedName, arg4 []byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateLaunchTemplateVersion", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "CreateLaunchTemplateVersion", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // CreateLaunchTemplateVersion indicates an expected call of CreateLaunchTemplateVersion.
-func (mr *MockEC2InterfaceMockRecorder) CreateLaunchTemplateVersion(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+func (mr *MockEC2InterfaceMockRecorder) CreateLaunchTemplateVersion(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLaunchTemplateVersion", reflect.TypeOf((*MockEC2Interface)(nil).CreateLaunchTemplateVersion), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLaunchTemplateVersion", reflect.TypeOf((*MockEC2Interface)(nil).CreateLaunchTemplateVersion), arg0, arg1, arg2, arg3, arg4)
 }
 
 // DeleteBastion mocks base method.
@@ -199,13 +200,14 @@ func (mr *MockEC2InterfaceMockRecorder) GetInstanceSecurityGroups(arg0 interface
 }
 
 // GetLaunchTemplate mocks base method.
-func (m *MockEC2Interface) GetLaunchTemplate(arg0 string) (*v1beta20.AWSLaunchTemplate, string, error) {
+func (m *MockEC2Interface) GetLaunchTemplate(arg0 string) (*v1beta20.AWSLaunchTemplate, string, *types.NamespacedName, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetLaunchTemplate", arg0)
 	ret0, _ := ret[0].(*v1beta20.AWSLaunchTemplate)
 	ret1, _ := ret[1].(string)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret2, _ := ret[2].(*types.NamespacedName)
+	ret3, _ := ret[3].(error)
+	return ret0, ret1, ret2, ret3
 }
 
 // GetLaunchTemplate indicates an expected call of GetLaunchTemplate.
@@ -289,6 +291,20 @@ func (mr *MockEC2InterfaceMockRecorder) LaunchTemplateNeedsUpdate(arg0, arg1, ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LaunchTemplateNeedsUpdate", reflect.TypeOf((*MockEC2Interface)(nil).LaunchTemplateNeedsUpdate), arg0, arg1, arg2)
 }
 
+// ModifyInstanceMetadataOptions mocks base method.
+func (m *MockEC2Interface) ModifyInstanceMetadataOptions(arg0 string, arg1 *v1beta2.InstanceMetadataOptions) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ModifyInstanceMetadataOptions", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ModifyInstanceMetadataOptions indicates an expected call of ModifyInstanceMetadataOptions.
+func (mr *MockEC2InterfaceMockRecorder) ModifyInstanceMetadataOptions(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyInstanceMetadataOptions", reflect.TypeOf((*MockEC2Interface)(nil).ModifyInstanceMetadataOptions), arg0, arg1)
+}
+
 // PruneLaunchTemplateVersions mocks base method.
 func (m *MockEC2Interface) PruneLaunchTemplateVersions(arg0 string) error {
 	m.ctrl.T.Helper()
@@ -317,32 +333,33 @@ func (mr *MockEC2InterfaceMockRecorder) ReconcileBastion() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReconcileBastion", reflect.TypeOf((*MockEC2Interface)(nil).ReconcileBastion))
 }
 
-// ReconcileLaunchTemplate mocks base method.
-func (m *MockEC2Interface) ReconcileLaunchTemplate(arg0 scope.LaunchTemplateScope, arg1 func() (bool, error), arg2 func() error) error {
+// ReconcileElasticIPFromPublicPool mocks base method.
+func (m *MockEC2Interface) ReconcileElasticIPFromPublicPool(arg0 *v1beta2.ElasticIPPool, arg1 *v1beta2.Instance) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ReconcileLaunchTemplate", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "ReconcileElasticIPFromPublicPool", arg0, arg1)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReconcileElasticIPFromPublicPool indicates an expected call of ReconcileElasticIPFromPublicPool.
+func (mr *MockEC2InterfaceMockRecorder) ReconcileElasticIPFromPublicPool(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReconcileElasticIPFromPublicPool", reflect.TypeOf((*MockEC2Interface)(nil).ReconcileElasticIPFromPublicPool), arg0, arg1)
+}
+
+// ReleaseElasticIP mocks base method.
+func (m *MockEC2Interface) ReleaseElasticIP(arg0 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReleaseElasticIP", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// ReconcileLaunchTemplate indicates an expected call of ReconcileLaunchTemplate.
-func (mr *MockEC2InterfaceMockRecorder) ReconcileLaunchTemplate(arg0, arg1, arg2 interface{}) *gomock.Call {
+// ReleaseElasticIP indicates an expected call of ReleaseElasticIP.
+func (mr *MockEC2InterfaceMockRecorder) ReleaseElasticIP(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReconcileLaunchTemplate", reflect.TypeOf((*MockEC2Interface)(nil).ReconcileLaunchTemplate), arg0, arg1, arg2)
-}
-
-// ReconcileTags mocks base method.
-func (m *MockEC2Interface) ReconcileTags(arg0 scope.LaunchTemplateScope, arg1 []scope.ResourceServiceToUpdate) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ReconcileTags", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ReconcileTags indicates an expected call of ReconcileTags.
-func (mr *MockEC2InterfaceMockRecorder) ReconcileTags(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReconcileTags", reflect.TypeOf((*MockEC2Interface)(nil).ReconcileTags), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReleaseElasticIP", reflect.TypeOf((*MockEC2Interface)(nil).ReleaseElasticIP), arg0)
 }
 
 // TerminateInstance mocks base method.

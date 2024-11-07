@@ -133,6 +133,7 @@ func newBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 				"elasticfilesystem:DescribeAccessPoints",
 				"elasticfilesystem:DescribeFileSystems",
 				"elasticfilesystem:CreateAccessPoint",
+				"elasticfilesystem:TagResource",
 				"ec2:DescribeAvailabilityZones",
 			},
 		},
@@ -153,7 +154,7 @@ func renderCustomCloudFormation(t *cfn_bootstrap.Template) *cloudformation.Templ
 	return cloudformationTemplate
 }
 
-func appendMultiTenancyRoles(t *cfn_bootstrap.Template, cfnt *cloudformation.Template) {
+func appendMultiTenancyRoles(_ *cfn_bootstrap.Template, cfnt *cloudformation.Template) {
 	controllersPolicy := cfnt.Resources[string(cfn_bootstrap.ControllersPolicy)].(*cfn_iam.ManagedPolicy)
 	controllersPolicy.Roles = append(
 		controllersPolicy.Roles,
@@ -201,7 +202,7 @@ func getBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 func ApplyTemplate(ctx context.Context, configCluster clusterctl.ConfigClusterInput, clusterProxy framework.ClusterProxy) error {
 	workloadClusterTemplate := GetTemplate(ctx, configCluster)
 	By(fmt.Sprintf("Applying the %s cluster template yaml to the cluster", configCluster.Flavor))
-	return clusterProxy.Apply(ctx, workloadClusterTemplate)
+	return clusterProxy.CreateOrUpdate(ctx, workloadClusterTemplate)
 }
 
 // GetTemplate will render a cluster template.

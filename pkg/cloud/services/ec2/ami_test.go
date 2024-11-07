@@ -17,6 +17,7 @@ limitations under the License.
 package ec2
 
 import (
+	"context"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -39,6 +40,7 @@ func TestDefaultAMILookup(t *testing.T) {
 	type args struct {
 		ownerID           string
 		baseOS            string
+		architecture      string
 		kubernetesVersion string
 		amiNameFormat     string
 	}
@@ -54,11 +56,12 @@ func TestDefaultAMILookup(t *testing.T) {
 			args: args{
 				ownerID:           "ownerID",
 				baseOS:            "baseOS",
+				architecture:      "x86_64",
 				kubernetesVersion: "v1.0.0",
 				amiNameFormat:     "ami-name",
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeImages(gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+				m.DescribeImagesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(&ec2.DescribeImagesOutput{
 						Images: []*ec2.Image{
 							{
@@ -84,7 +87,7 @@ func TestDefaultAMILookup(t *testing.T) {
 		{
 			name: "Should return with error if AWS DescribeImages call failed with some error",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeImages(gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+				m.DescribeImagesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(nil, awserrors.NewFailedDependency("dependency failure"))
 			},
 			check: func(g *WithT, img *ec2.Image, err error) {
@@ -95,7 +98,7 @@ func TestDefaultAMILookup(t *testing.T) {
 		{
 			name: "Should return with error if empty list of images returned from AWS ",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeImages(gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+				m.DescribeImagesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(&ec2.DescribeImagesOutput{}, nil)
 			},
 			check: func(g *WithT, img *ec2.Image, err error) {
@@ -112,12 +115,99 @@ func TestDefaultAMILookup(t *testing.T) {
 			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 			tc.expect(ec2Mock.EXPECT())
 
-			img, err := DefaultAMILookup(ec2Mock, tc.args.ownerID, tc.args.baseOS, tc.args.kubernetesVersion, tc.args.amiNameFormat)
+			img, err := DefaultAMILookup(ec2Mock, tc.args.ownerID, tc.args.baseOS, tc.args.kubernetesVersion, tc.args.architecture, tc.args.amiNameFormat)
 			tc.check(g, img, err)
 		})
 	}
 }
 
+func TestDefaultAMILookupArm64(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	type args struct {
+		ownerID           string
+		baseOS            string
+		architecture      string
+		kubernetesVersion string
+		amiNameFormat     string
+	}
+
+	testCases := []struct {
+		name   string
+		args   args
+		expect func(m *mocks.MockEC2APIMockRecorder)
+		check  func(g *WithT, img *ec2.Image, err error)
+	}{
+		{
+			name: "Should return latest AMI in case of valid inputs",
+			args: args{
+				ownerID:           "ownerID",
+				baseOS:            "baseOS",
+				architecture:      "arm64",
+				kubernetesVersion: "v1.0.0",
+				amiNameFormat:     "ami-name",
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeImagesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+					Return(&ec2.DescribeImagesOutput{
+						Images: []*ec2.Image{
+							{
+								ImageId:      aws.String("ancient"),
+								CreationDate: aws.String("2011-02-08T17:02:31.000Z"),
+							},
+							{
+								ImageId:      aws.String("latest"),
+								CreationDate: aws.String("2019-02-08T17:02:31.000Z"),
+							},
+							{
+								ImageId:      aws.String("oldest"),
+								CreationDate: aws.String("2014-02-08T17:02:31.000Z"),
+							},
+						},
+					}, nil)
+			},
+			check: func(g *WithT, img *ec2.Image, err error) {
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(*img.ImageId).Should(ContainSubstring("latest"))
+			},
+		},
+		{
+			name: "Should return with error if AWS DescribeImages call failed with some error",
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeImagesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+					Return(nil, awserrors.NewFailedDependency("dependency failure"))
+			},
+			check: func(g *WithT, img *ec2.Image, err error) {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(img).To(BeNil())
+			},
+		},
+		{
+			name: "Should return with error if empty list of images returned from AWS ",
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeImagesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+					Return(&ec2.DescribeImagesOutput{}, nil)
+			},
+			check: func(g *WithT, img *ec2.Image, err error) {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(img).To(BeNil())
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
+			tc.expect(ec2Mock.EXPECT())
+
+			img, err := DefaultAMILookup(ec2Mock, tc.args.ownerID, tc.args.baseOS, tc.args.kubernetesVersion, tc.args.architecture, tc.args.amiNameFormat)
+			tc.check(g, img, err)
+		})
+	}
+}
 func TestAMIs(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -130,7 +220,7 @@ func TestAMIs(t *testing.T) {
 		{
 			name: "Should return latest AMI in case of valid inputs",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeImages(gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+				m.DescribeImagesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(&ec2.DescribeImagesOutput{
 						Images: []*ec2.Image{
 							{
@@ -156,7 +246,7 @@ func TestAMIs(t *testing.T) {
 		{
 			name: "Should return error if invalid creation date passed",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeImages(gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+				m.DescribeImagesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(&ec2.DescribeImagesOutput{
 						Images: []*ec2.Image{
 							{
@@ -198,7 +288,7 @@ func TestAMIs(t *testing.T) {
 			s := NewService(clusterScope)
 			s.EC2Client = ec2Mock
 
-			id, err := s.defaultAMIIDLookup("", "", "base os-baseos version", "v1.11.1")
+			id, err := s.defaultAMIIDLookup("", "", "base os-baseos version", "x86_64", "v1.11.1")
 			tc.check(g, id, err)
 		})
 	}
@@ -393,6 +483,7 @@ func TestEKSAMILookUp(t *testing.T) {
 	tests := []struct {
 		name       string
 		k8sVersion string
+		arch       string
 		amiType    *infrav1.EKSAMILookupType
 		expect     func(m *mock_ssmiface.MockSSMAPIMockRecorder)
 		want       string
@@ -401,6 +492,7 @@ func TestEKSAMILookUp(t *testing.T) {
 		{
 			name:       "Should return an id corresponding to GPU if GPU based AMI type passed",
 			k8sVersion: "v1.23.3",
+			arch:       "x86_64",
 			amiType:    &gpuAMI,
 			expect: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
 				m.GetParameter(gomock.Eq(&ssm.GetParameterInput{
@@ -417,6 +509,7 @@ func TestEKSAMILookUp(t *testing.T) {
 		{
 			name:       "Should return an id not corresponding to GPU if AMI type is default",
 			k8sVersion: "v1.23.3",
+			arch:       "x86_64",
 			expect: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
 				m.GetParameter(gomock.Eq(&ssm.GetParameterInput{
 					Name: aws.String("/aws/service/eks/optimized-ami/1.23/amazon-linux-2/recommended/image_id"),
@@ -432,6 +525,7 @@ func TestEKSAMILookUp(t *testing.T) {
 		{
 			name:       "Should return an error if GetParameter call fails with some AWS error",
 			k8sVersion: "v1.23.3",
+			arch:       "x86_64",
 			expect: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
 				m.GetParameter(gomock.Eq(&ssm.GetParameterInput{
 					Name: aws.String("/aws/service/eks/optimized-ami/1.23/amazon-linux-2/recommended/image_id"),
@@ -442,11 +536,13 @@ func TestEKSAMILookUp(t *testing.T) {
 		{
 			name:       "Should return an error if invalid Kubernetes version passed",
 			k8sVersion: "__$__",
+			arch:       "x86_64",
 			wantErr:    true,
 		},
 		{
 			name:       "Should return an error if no SSM parameter found",
 			k8sVersion: "v1.23.3",
+			arch:       "x86_64",
 			expect: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
 				m.GetParameter(gomock.Eq(&ssm.GetParameterInput{
 					Name: aws.String("/aws/service/eks/optimized-ami/1.23/amazon-linux-2/recommended/image_id"),
@@ -474,7 +570,7 @@ func TestEKSAMILookUp(t *testing.T) {
 			s := NewService(clusterScope)
 			s.SSMClient = ssmMock
 
-			got, err := s.eksAMILookup(tt.k8sVersion, tt.amiType)
+			got, err := s.eksAMILookup(tt.k8sVersion, tt.arch, tt.amiType)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

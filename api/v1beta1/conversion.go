@@ -43,6 +43,14 @@ func Convert_v1beta2_NetworkStatus_To_v1beta1_NetworkStatus(in *v1beta2.NetworkS
 	return autoConvert_v1beta2_NetworkStatus_To_v1beta1_NetworkStatus(in, out, s)
 }
 
+func Convert_v1beta2_AWSMachineSpec_To_v1beta1_AWSMachineSpec(in *v1beta2.AWSMachineSpec, out *AWSMachineSpec, s conversion.Scope) error {
+	return autoConvert_v1beta2_AWSMachineSpec_To_v1beta1_AWSMachineSpec(in, out, s)
+}
+
+func Convert_v1beta2_Instance_To_v1beta1_Instance(in *v1beta2.Instance, out *Instance, s conversion.Scope) error {
+	return autoConvert_v1beta2_Instance_To_v1beta1_Instance(in, out, s)
+}
+
 func Convert_v1beta1_ClassicELB_To_v1beta2_LoadBalancer(in *ClassicELB, out *v1beta2.LoadBalancer, s conversion.Scope) error {
 	out.Name = in.Name
 	out.DNSName = in.DNSName
@@ -69,4 +77,28 @@ func Convert_v1beta2_LoadBalancer_To_v1beta1_ClassicELB(in *v1beta2.LoadBalancer
 	out.Tags = in.Tags
 	out.SubnetIDs = in.SubnetIDs
 	return nil
+}
+
+func Convert_v1beta2_IngressRule_To_v1beta1_IngressRule(in *v1beta2.IngressRule, out *IngressRule, s conversion.Scope) error {
+	return autoConvert_v1beta2_IngressRule_To_v1beta1_IngressRule(in, out, s)
+}
+
+func Convert_v1beta2_VPCSpec_To_v1beta1_VPCSpec(in *v1beta2.VPCSpec, out *VPCSpec, s conversion.Scope) error {
+	return autoConvert_v1beta2_VPCSpec_To_v1beta1_VPCSpec(in, out, s)
+}
+
+func Convert_v1beta2_IPv6_To_v1beta1_IPv6(in *v1beta2.IPv6, out *IPv6, s conversion.Scope) error {
+	return autoConvert_v1beta2_IPv6_To_v1beta1_IPv6(in, out, s)
+}
+
+func Convert_v1beta2_NetworkSpec_To_v1beta1_NetworkSpec(in *v1beta2.NetworkSpec, out *NetworkSpec, s conversion.Scope) error {
+	return autoConvert_v1beta2_NetworkSpec_To_v1beta1_NetworkSpec(in, out, s)
+}
+
+func Convert_v1beta2_S3Bucket_To_v1beta1_S3Bucket(in *v1beta2.S3Bucket, out *S3Bucket, s conversion.Scope) error {
+	return autoConvert_v1beta2_S3Bucket_To_v1beta1_S3Bucket(in, out, s)
+}
+
+func Convert_v1beta2_Ignition_To_v1beta1_Ignition(in *v1beta2.Ignition, out *Ignition, s conversion.Scope) error {
+	return autoConvert_v1beta2_Ignition_To_v1beta1_Ignition(in, out, s)
 }

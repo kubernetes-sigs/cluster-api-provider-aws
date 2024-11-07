@@ -14,11 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package tags provides a way to tag cloud resources.
 package tags
 
 import (
+	"context"
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -28,6 +31,10 @@ import (
 	"github.com/pkg/errors"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+)
+
+const (
+	AwsInternalTagPrefix = "aws:" // AwsInternalTagPrefix is the prefix for AWS internal tags, which are reserved for internal AWS use.
 )
 
 var (
@@ -97,7 +104,10 @@ func WithEC2(ec2client ec2iface.EC2API) BuilderOption {
 			// For testing, we need sorted keys
 			sortedKeys := make([]string, 0, len(tags))
 			for k := range tags {
-				sortedKeys = append(sortedKeys, k)
+				// We want to filter out the tag keys that start with `aws:` as they are reserved for internal AWS use.
+				if !strings.HasPrefix(k, AwsInternalTagPrefix) {
+					sortedKeys = append(sortedKeys, k)
+				}
 			}
 			sort.Strings(sortedKeys)
 
@@ -114,7 +124,7 @@ func WithEC2(ec2client ec2iface.EC2API) BuilderOption {
 				Tags:      awsTags,
 			}
 
-			_, err := ec2client.CreateTags(createTagsInput)
+			_, err := ec2client.CreateTagsWithContext(context.TODO(), createTagsInput)
 			return errors.Wrapf(err, "failed to tag resource %q in cluster %q", params.ResourceID, params.ClusterName)
 		}
 	}
@@ -125,10 +135,12 @@ func WithEKS(eksclient eksiface.EKSAPI) BuilderOption {
 	return func(b *Builder) {
 		b.applyFunc = func(params *infrav1.BuildParams) error {
 			tags := infrav1.Build(*params)
-
 			eksTags := make(map[string]*string, len(tags))
 			for k, v := range tags {
-				eksTags[k] = aws.String(v)
+				// We want to filter out the tag keys that start with `aws:` as they are reserved for internal AWS use.
+				if !strings.HasPrefix(k, AwsInternalTagPrefix) {
+					eksTags[k] = aws.String(v)
+				}
 			}
 
 			tagResourcesInput := &eks.TagResourceInput{

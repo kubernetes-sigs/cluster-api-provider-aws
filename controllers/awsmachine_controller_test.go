@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -30,7 +31,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -105,14 +106,20 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 			g.Expect(testEnv.Cleanup(ctx, awsMachine, ns, secret)).To(Succeed())
 		})
 
-		cs, err := getClusterScope(infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Spec: infrav1.AWSClusterSpec{NetworkSpec: infrav1.NetworkSpec{Subnets: []infrav1.SubnetSpec{
-			{
-				ID:               "subnet-1",
-				AvailabilityZone: "us-east-1a",
-			}},
+		cs, err := getClusterScope(infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Spec: infrav1.AWSClusterSpec{NetworkSpec: infrav1.NetworkSpec{
+			Subnets: []infrav1.SubnetSpec{
+				{
+					ID:               "subnet-1",
+					AvailabilityZone: "us-east-1a",
+				},
+			},
 		}}})
 		g.Expect(err).To(BeNil())
 		cs.Cluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"}}
+		cs.AWSCluster.Spec.NetworkSpec.VPC = infrav1.VPCSpec{
+			ID:        "vpc-exists",
+			CidrBlock: "10.0.0.0/16",
+		}
 		cs.AWSCluster.Status.Network.APIServerELB.DNSName = DNSName
 		cs.AWSCluster.Spec.ControlPlaneLoadBalancer = &infrav1.AWSLoadBalancerSpec{
 			LoadBalancerType: infrav1.LoadBalancerTypeClassic,
@@ -126,7 +133,8 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 			},
 			infrav1.SecurityGroupControlPlane: {
 				ID: "3",
-			}}
+			},
+		}
 		ms, err := getMachineScope(cs, awsMachine)
 		g.Expect(err).To(BeNil())
 
@@ -134,7 +142,7 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		ms.Machine.Spec.Version = aws.String("test")
 		ms.AWSMachine.Spec.Subnet = &infrav1.AWSResourceReference{ID: aws.String("subnet-1")}
 		ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateRunning
-		ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
+		ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabel: ""}
 
 		ec2Svc := ec2Service.NewService(cs)
 		ec2Svc.EC2Client = ec2Mock
@@ -149,15 +157,19 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 			return elbSvc
 		}
 
+		ec2Mock.EXPECT().AssociateAddressWithContext(context.TODO(), gomock.Any()).MaxTimes(1)
+
 		reconciler.secretsManagerServiceFactory = func(clusterScope cloud.ClusterScoper) services.SecretInterface {
 			return secretMock
 		}
 
 		_, err = reconciler.reconcileNormal(ctx, ms, cs, cs, cs, cs)
 		g.Expect(err).To(BeNil())
-		expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.SecurityGroupsReadyCondition, corev1.ConditionTrue, "", ""},
+		expectConditions(g, ms.AWSMachine, []conditionAssertion{
+			{infrav1.SecurityGroupsReadyCondition, corev1.ConditionTrue, "", ""},
 			{infrav1.InstanceReadyCondition, corev1.ConditionTrue, "", ""},
-			{infrav1.ELBAttachedCondition, corev1.ConditionTrue, "", ""}})
+			{infrav1.ELBAttachedCondition, corev1.ConditionTrue, "", ""},
+		})
 		g.Expect(ms.AWSMachine.Finalizers).Should(ContainElement(infrav1.MachineFinalizer))
 	})
 	t.Run("Should successfully reconcile control plane machine deletion", func(t *testing.T) {
@@ -176,6 +188,17 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 
 		ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("integ-test-%s", util.RandomString(5)))
 		g.Expect(err).To(BeNil())
+
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "bootstrap-data",
+				Namespace: ns.Name,
+			},
+			Data: map[string][]byte{
+				"value": []byte("shell-script"),
+			},
+		}
+		g.Expect(testEnv.Create(ctx, secret)).To(Succeed())
 
 		setup(t, g)
 		awsMachine := getAWSMachine()
@@ -197,7 +220,7 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		g.Expect(err).To(BeNil())
 
 		ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateRunning
-		ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
+		ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabel: ""}
 		ms.AWSMachine.Spec.ProviderID = aws.String("aws:////myMachine")
 
 		ec2Svc := ec2Service.NewService(cs)
@@ -218,7 +241,8 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		g.Expect(err).To(BeNil())
 		expectConditions(g, ms.AWSMachine, []conditionAssertion{
 			{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
-			{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason}})
+			{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
+		})
 		g.Expect(ms.AWSMachine.Finalizers).ShouldNot(ContainElement(infrav1.MachineFinalizer))
 	})
 	t.Run("Should fail reconciling control-plane machine creation while attaching load balancer", func(t *testing.T) {
@@ -262,15 +286,21 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 			g.Expect(testEnv.Cleanup(ctx, awsMachine, ns, secret)).To(Succeed())
 		})
 
-		cs, err := getClusterScope(infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Spec: infrav1.AWSClusterSpec{NetworkSpec: infrav1.NetworkSpec{Subnets: []infrav1.SubnetSpec{
-			{
-				ID:               "subnet-1",
-				AvailabilityZone: "us-east-1a",
-			}},
+		cs, err := getClusterScope(infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Spec: infrav1.AWSClusterSpec{NetworkSpec: infrav1.NetworkSpec{
+			Subnets: []infrav1.SubnetSpec{
+				{
+					ID:               "subnet-1",
+					AvailabilityZone: "us-east-1a",
+				},
+			},
 		}}})
 		g.Expect(err).To(BeNil())
 		cs.Cluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"}}
 		cs.AWSCluster.Status.Network.APIServerELB.DNSName = DNSName
+		cs.AWSCluster.Spec.NetworkSpec.VPC = infrav1.VPCSpec{
+			ID:        "vpc-exists",
+			CidrBlock: "10.0.0.0/16",
+		}
 		cs.AWSCluster.Spec.ControlPlaneLoadBalancer = &infrav1.AWSLoadBalancerSpec{
 			LoadBalancerType: infrav1.LoadBalancerTypeClassic,
 		}
@@ -283,7 +313,8 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 			},
 			infrav1.SecurityGroupControlPlane: {
 				ID: "3",
-			}}
+			},
+		}
 		ms, err := getMachineScope(cs, awsMachine)
 		g.Expect(err).To(BeNil())
 
@@ -291,7 +322,7 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		ms.Machine.Spec.Version = aws.String("test")
 		ms.AWSMachine.Spec.Subnet = &infrav1.AWSResourceReference{ID: aws.String("subnet-1")}
 		ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateRunning
-		ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
+		ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabel: ""}
 
 		ec2Svc := ec2Service.NewService(cs)
 		ec2Svc.EC2Client = ec2Mock
@@ -310,6 +341,8 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 			return secretMock
 		}
 
+		ec2Mock.EXPECT().AssociateAddressWithContext(context.TODO(), gomock.Any()).MaxTimes(1)
+
 		_, err = reconciler.reconcileNormal(ctx, ms, cs, cs, cs, cs)
 		g.Expect(err).Should(HaveOccurred())
 		expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionTrue, "", ""}})
@@ -325,7 +358,7 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		expect := func(m *mocks.MockEC2APIMockRecorder, ev2 *mocks.MockELBV2APIMockRecorder, e *mocks.MockELBAPIMockRecorder) {
 			mockedDescribeInstanceCalls(m)
 			mockedDeleteLBCalls(false, ev2, e)
-			m.TerminateInstances(
+			m.TerminateInstancesWithContext(context.TODO(),
 				gomock.Eq(&ec2.TerminateInstancesInput{
 					InstanceIds: aws.StringSlice([]string{"id-1"}),
 				}),
@@ -336,6 +369,17 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 
 		ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("integ-test-%s", util.RandomString(5)))
 		g.Expect(err).To(BeNil())
+
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "bootstrap-data",
+				Namespace: ns.Name,
+			},
+			Data: map[string][]byte{
+				"value": []byte("shell-script"),
+			},
+		}
+		g.Expect(testEnv.Create(ctx, secret)).To(Succeed())
 
 		setup(t, g)
 		awsMachine := getAWSMachine()
@@ -357,7 +401,7 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		g.Expect(err).To(BeNil())
 
 		ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateRunning
-		ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
+		ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabel: ""}
 		ms.AWSMachine.Spec.ProviderID = aws.String("aws:////myMachine")
 
 		ec2Svc := ec2Service.NewService(cs)
@@ -376,8 +420,10 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 
 		_, err = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
 		g.Expect(err).Should(HaveOccurred())
-		expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, "DeletingFailed"},
-			{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason}})
+		expectConditions(g, ms.AWSMachine, []conditionAssertion{
+			{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, "DeletingFailed"},
+			{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
+		})
 		g.Expect(ms.AWSMachine.Finalizers).ShouldNot(ContainElement(infrav1.MachineFinalizer))
 	})
 }
@@ -400,7 +446,7 @@ func getMachineScope(cs *scope.ClusterScope, awsMachine *infrav1.AWSMachine) (*s
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.StringPtr("bootstrap-data"),
+						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
 				},
 			},
@@ -419,7 +465,7 @@ func createAWSMachine(g *WithT, awsMachine *infrav1.AWSMachine) {
 			Namespace: awsMachine.Namespace,
 		}
 		return testEnv.Get(ctx, key, machine) == nil
-	}, 10*time.Second).Should(Equal(true))
+	}, 10*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed get the newly created machine %q", awsMachine.Name))
 }
 
 func getAWSMachine() *infrav1.AWSMachine {
@@ -505,12 +551,8 @@ func mockedCreateSecretCall(s *mock_services.MockSecretInterfaceMockRecorder) {
 }
 
 func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
-	m.DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
+	m.DescribeInstancesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
-			{
-				Name:   aws.String("vpc-id"),
-				Values: aws.StringSlice([]string{""}),
-			},
 			{
 				Name:   aws.String("tag:sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 				Values: aws.StringSlice([]string{"owned"}),
@@ -525,15 +567,27 @@ func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 			},
 		},
 	})).Return(&ec2.DescribeInstancesOutput{}, nil)
-	m.DescribeImages(gomock.Eq(&ec2.DescribeImagesInput{
+	m.DescribeInstanceTypesWithContext(context.TODO(), gomock.Any()).
+		Return(&ec2.DescribeInstanceTypesOutput{
+			InstanceTypes: []*ec2.InstanceTypeInfo{
+				{
+					ProcessorInfo: &ec2.ProcessorInfo{
+						SupportedArchitectures: []*string{
+							aws.String("x86_64"),
+						},
+					},
+				},
+			},
+		}, nil)
+	m.DescribeImagesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeImagesInput{
 		Filters: []*ec2.Filter{
 			{
 				Name:   aws.String("owner-id"),
-				Values: aws.StringSlice([]string{"258751437250"}),
+				Values: aws.StringSlice([]string{"819546954734"}),
 			},
 			{
 				Name:   aws.String("name"),
-				Values: aws.StringSlice([]string{"capa-ami-ubuntu-18.04-?test-*"}),
+				Values: aws.StringSlice([]string{"capa-ami-ubuntu-24.04-?test-*"}),
 			},
 			{
 				Name:   aws.String("architecture"),
@@ -547,13 +601,14 @@ func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 				Name:   aws.String("virtualization-type"),
 				Values: aws.StringSlice([]string{"hvm"}),
 			},
-		}})).Return(&ec2.DescribeImagesOutput{Images: []*ec2.Image{
+		},
+	})).Return(&ec2.DescribeImagesOutput{Images: []*ec2.Image{
 		{
 			ImageId:      aws.String("latest"),
 			CreationDate: aws.String("2019-02-08T17:02:31.000Z"),
 		},
 	}}, nil)
-	m.RunInstances(gomock.Any()).Return(&ec2.Reservation{
+	m.RunInstancesWithContext(context.TODO(), gomock.Any()).Return(&ec2.Reservation{
 		Instances: []*ec2.Instance{
 			{
 				State: &ec2.InstanceState{
@@ -581,9 +636,7 @@ func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 			},
 		},
 	}, nil)
-	m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
-		Return(nil)
-	m.DescribeNetworkInterfaces(gomock.Eq(&ec2.DescribeNetworkInterfacesInput{Filters: []*ec2.Filter{
+	m.DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeNetworkInterfacesInput{Filters: []*ec2.Filter{
 		{
 			Name:   aws.String("attachment.instance-id"),
 			Values: aws.StringSlice([]string{"two"}),
@@ -598,20 +651,17 @@ func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 					},
 				},
 			},
-		}}, nil).MaxTimes(3)
-	m.DescribeNetworkInterfaceAttribute(gomock.Eq(&ec2.DescribeNetworkInterfaceAttributeInput{
+		},
+	}, nil).MaxTimes(3)
+	m.DescribeNetworkInterfaceAttributeWithContext(context.TODO(), gomock.Eq(&ec2.DescribeNetworkInterfaceAttributeInput{
 		NetworkInterfaceId: aws.String("eni-1"),
 		Attribute:          aws.String("groupSet"),
 	})).Return(&ec2.DescribeNetworkInterfaceAttributeOutput{Groups: []*ec2.GroupIdentifier{{GroupId: aws.String("3")}}}, nil).MaxTimes(1)
-	m.ModifyNetworkInterfaceAttribute(gomock.Any()).AnyTimes()
-	m.DescribeSubnets(gomock.Eq(&ec2.DescribeSubnetsInput{Filters: []*ec2.Filter{
+	m.ModifyNetworkInterfaceAttributeWithContext(context.TODO(), gomock.Any()).AnyTimes()
+	m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{Filters: []*ec2.Filter{
 		{
 			Name:   aws.String("state"),
 			Values: aws.StringSlice([]string{"pending", "available"}),
-		},
-		{
-			Name:   aws.String("vpc-id"),
-			Values: aws.StringSlice([]string{""}),
 		},
 		{
 			Name:   aws.String("subnet-id"),
@@ -625,7 +675,7 @@ func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 }
 
 func mockedDescribeInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
-	m.DescribeInstances(gomock.Eq(&ec2.DescribeInstancesInput{
+	m.DescribeInstancesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstancesInput{
 		InstanceIds: aws.StringSlice([]string{"myMachine"}),
 	})).Return(&ec2.DescribeInstancesOutput{
 		Reservations: []*ec2.Reservation{{Instances: []*ec2.Instance{{Placement: &ec2.Placement{AvailabilityZone: aws.String("us-east-1a")}, InstanceId: aws.String("id-1"), State: &ec2.InstanceState{Name: aws.String("id-1"), Code: aws.Int64(16)}}}}},

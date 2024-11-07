@@ -37,6 +37,10 @@ const (
 	Al2x86_64GPU ManagedMachineAMIType = "AL2_x86_64_GPU"
 	// Al2Arm64 is the Arm AMI type.
 	Al2Arm64 ManagedMachineAMIType = "AL2_ARM_64"
+	// Al2023x86_64 is the AL2023 x86-64 AMI type.
+	Al2023x86_64 ManagedMachineAMIType = "AL2023_x86_64_STANDARD"
+	// Al2023Arm64 is the AL2023 Arm AMI type.
+	Al2023Arm64 ManagedMachineAMIType = "AL2023_ARM_64_STANDARD"
 )
 
 // ManagedMachinePoolCapacityType specifies the capacity type to be used for the managed MachinePool.
@@ -67,6 +71,11 @@ type AWSManagedMachinePoolSpec struct {
 
 	// AvailabilityZones is an array of availability zones instances can run in
 	AvailabilityZones []string `json:"availabilityZones,omitempty"`
+
+	// AvailabilityZoneSubnetType specifies which type of subnets to use when an availability zone is specified.
+	// +kubebuilder:validation:Enum:=public;private;all
+	// +optional
+	AvailabilityZoneSubnetType *AZSubnetType `json:"availabilityZoneSubnetType,omitempty"`
 
 	// SubnetIDs specifies which subnets are used for the
 	// auto scaling group of this nodegroup
@@ -99,7 +108,7 @@ type AWSManagedMachinePoolSpec struct {
 	AMIVersion *string `json:"amiVersion,omitempty"`
 
 	// AMIType defines the AMI type
-	// +kubebuilder:validation:Enum:=AL2_x86_64;AL2_x86_64_GPU;AL2_ARM_64;CUSTOM
+	// +kubebuilder:validation:Enum:=AL2_x86_64;AL2_x86_64_GPU;AL2_ARM_64;AL2023_x86_64_STANDARD;AL2023_ARM_64_STANDARD;CUSTOM
 	// +kubebuilder:default:=AL2_x86_64
 	// +optional
 	AMIType *ManagedMachineAMIType `json:"amiType,omitempty"`

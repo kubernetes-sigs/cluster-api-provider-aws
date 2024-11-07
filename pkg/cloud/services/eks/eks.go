@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package eks provides a service to reconcile EKS control plane and nodegroups.
 package eks
 
 import (
@@ -90,7 +91,7 @@ func (s *Service) DeleteControlPlane() (err error) {
 }
 
 // ReconcilePool is the entrypoint for ManagedMachinePool reconciliation.
-func (s *NodegroupService) ReconcilePool() error {
+func (s *NodegroupService) ReconcilePool(ctx context.Context) error {
 	s.scope.Debug("Reconciling EKS nodegroup")
 
 	if err := s.reconcileNodegroupIAMRole(); err != nil {
@@ -105,7 +106,7 @@ func (s *NodegroupService) ReconcilePool() error {
 	}
 	conditions.MarkTrue(s.scope.ManagedMachinePool, expinfrav1.IAMNodegroupRolesReadyCondition)
 
-	if err := s.reconcileNodegroup(); err != nil {
+	if err := s.reconcileNodegroup(ctx); err != nil {
 		conditions.MarkFalse(
 			s.scope.ManagedMachinePool,
 			expinfrav1.EKSNodegroupReadyCondition,

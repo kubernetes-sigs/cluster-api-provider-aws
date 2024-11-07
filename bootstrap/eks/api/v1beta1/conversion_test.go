@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	v1beta2 "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"

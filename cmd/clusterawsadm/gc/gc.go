@@ -14,22 +14,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package gc provides a way to handle AWS garbage collection on deletion.
 package gc
 
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/exec"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/exec" // import all auth plugins
+	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc" // import all oidc plugins
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/annotations"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -105,7 +106,7 @@ func New(input GCInput, opts ...CmdProcessorOption) (*CmdProcessor, error) {
 
 // Enable is used to enable external resource garbage collection for a cluster.
 func (c *CmdProcessor) Enable(ctx context.Context) error {
-	if err := c.setAnnotationAndPatch(ctx, "true"); err != nil {
+	if err := c.setAnnotationAndPatch(ctx, infrav1.ExternalResourceGCAnnotation, "true"); err != nil {
 		return fmt.Errorf("setting gc annotation to true: %w", err)
 	}
 
@@ -114,14 +115,42 @@ func (c *CmdProcessor) Enable(ctx context.Context) error {
 
 // Disable is used to disable external resource garbage collection for a cluster.
 func (c *CmdProcessor) Disable(ctx context.Context) error {
-	if err := c.setAnnotationAndPatch(ctx, "false"); err != nil {
+	if err := c.setAnnotationAndPatch(ctx, infrav1.ExternalResourceGCAnnotation, "false"); err != nil {
 		return fmt.Errorf("setting gc annotation to false: %w", err)
 	}
 
 	return nil
 }
 
-func (c *CmdProcessor) setAnnotationAndPatch(ctx context.Context, annotationValue string) error {
+// Configure is used to configure external resource garbage collection for a cluster.
+func (c *CmdProcessor) Configure(ctx context.Context, gcTasks []string) error {
+	supportedGCTasks := []infrav1.GCTask{infrav1.GCTaskLoadBalancer, infrav1.GCTaskTargetGroup, infrav1.GCTaskSecurityGroup}
+
+	for _, gcTask := range gcTasks {
+		found := false
+
+		for _, supportedGCTask := range supportedGCTasks {
+			if gcTask == string(supportedGCTask) {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			return fmt.Errorf("unsupported gc task: %s", gcTask)
+		}
+	}
+
+	annotationValue := strings.Join(gcTasks, ",")
+
+	if err := c.setAnnotationAndPatch(ctx, infrav1.ExternalResourceGCTasksAnnotation, annotationValue); err != nil {
+		return fmt.Errorf("setting gc tasks annotation to %s: %w", annotationValue, err)
+	}
+
+	return nil
+}
+
+func (c *CmdProcessor) setAnnotationAndPatch(ctx context.Context, annotationName, annotationValue string) error {
 	infraObj, err := c.getInfraCluster(ctx)
 	if err != nil {
 		return err
@@ -132,7 +161,11 @@ func (c *CmdProcessor) setAnnotationAndPatch(ctx context.Context, annotationValu
 		return fmt.Errorf("creating patch helper: %w", err)
 	}
 
-	annotations.Set(infraObj, expinfrav1.ExternalResourceGCAnnotation, annotationValue)
+	if annotationValue != "" {
+		annotations.Set(infraObj, annotationName, annotationValue)
+	} else {
+		annotations.Delete(infraObj, annotationName)
+	}
 
 	if err := patchHelper.Patch(ctx, infraObj); err != nil {
 		return fmt.Errorf("patching infra cluster with gc annotation: %w", err)

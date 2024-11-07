@@ -18,12 +18,14 @@ package eks
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/pkg/errors"
 
+	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/api/bootstrap/v1beta1"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	eksiam "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/eks/iam"
@@ -49,6 +51,22 @@ func NodegroupRolePolicies() []string {
 func FargateRolePolicies() []string {
 	return []string{
 		"arn:aws:iam::aws:policy/AmazonEKSFargatePodExecutionRolePolicy",
+	}
+}
+
+// NodegroupRolePoliciesUSGov gives the policies required for a nodegroup role.
+func NodegroupRolePoliciesUSGov() []string {
+	return []string{
+		"arn:aws-us-gov:iam::aws:policy/AmazonEKSWorkerNodePolicy",
+		"arn:aws-us-gov:iam::aws:policy/AmazonEKS_CNI_Policy", //TODO: Can remove when CAPA supports provisioning of OIDC web identity federation with service account token volume projection
+		"arn:aws-us-gov:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
+	}
+}
+
+// FargateRolePoliciesUSGov gives the policies required for a fargate role.
+func FargateRolePoliciesUSGov() []string {
+	return []string{
+		"arn:aws-us-gov:iam::aws:policy/AmazonEKSFargatePodExecutionRolePolicy",
 	}
 }
 
@@ -87,15 +105,16 @@ func (s *Service) reconcileControlPlaneIAMRole() error {
 	}
 
 	if s.IsUnmanaged(role, s.scope.Name()) {
-		s.scope.Debug("Skipping, EKS control plane role policy assignment as role is unamanged")
+		s.scope.Debug("Skipping, EKS control plane role policy assignment as role is unmanaged")
 		return nil
 	}
 
 	//TODO: check tags and trust relationship to see if they need updating
 
 	policies := []*string{
-		aws.String("arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"),
+		aws.String(fmt.Sprintf("arn:%s:iam::aws:policy/AmazonEKSClusterPolicy", s.scope.Partition())),
 	}
+
 	if s.scope.ControlPlane.Spec.RoleAdditionalPolicies != nil {
 		if !s.scope.AllowAdditionalRoles() && len(*s.scope.ControlPlane.Spec.RoleAdditionalPolicies) > 0 {
 			return ErrCannotUseAdditionalRoles
@@ -137,7 +156,7 @@ func (s *Service) deleteControlPlaneIAMRole() error {
 	}
 
 	if s.IsUnmanaged(role, s.scope.Name()) {
-		s.Debug("Skipping, EKS control plane iam role deletion as role is unamanged")
+		s.Debug("Skipping, EKS control plane iam role deletion as role is unmanaged")
 		return nil
 	}
 
@@ -163,8 +182,8 @@ func (s *NodegroupService) reconcileNodegroupIAMRole() error {
 		} else {
 			s.scope.Info("no EKS nodegroup role specified, using role based on nodegroup name")
 			roleName, err = eks.GenerateEKSName(
+				"nodegroup-iam-service-role",
 				fmt.Sprintf("%s-%s", s.scope.KubernetesClusterName(), s.scope.NodegroupName()),
-				"-nodegroup-iam-service-role",
 				maxIAMRoleNameLength,
 			)
 			if err != nil {
@@ -194,7 +213,7 @@ func (s *NodegroupService) reconcileNodegroupIAMRole() error {
 	}
 
 	if s.IsUnmanaged(role, s.scope.ClusterName()) {
-		s.scope.Debug("Skipping, EKS nodegroup role policy assignment as role is unamanged")
+		s.scope.Debug("Skipping, EKS nodegroup role policy assignment as role is unmanaged")
 		return nil
 	}
 
@@ -204,6 +223,10 @@ func (s *NodegroupService) reconcileNodegroupIAMRole() error {
 	}
 
 	policies := NodegroupRolePolicies()
+	if strings.Contains(s.scope.Partition(), v1beta1.PartitionNameUSGov) {
+		policies = NodegroupRolePoliciesUSGov()
+	}
+
 	if len(s.scope.ManagedMachinePool.Spec.RoleAdditionalPolicies) > 0 {
 		if !s.scope.AllowAdditionalRoles() {
 			return ErrCannotUseAdditionalRoles
@@ -255,7 +278,7 @@ func (s *NodegroupService) deleteNodegroupIAMRole() (reterr error) {
 	}
 
 	if s.IsUnmanaged(role, s.scope.ClusterName()) {
-		s.Debug("Skipping, EKS Nodegroup iam role deletion as role is unamanged")
+		s.Debug("Skipping, EKS Nodegroup iam role deletion as role is unmanaged")
 		return nil
 	}
 
@@ -281,7 +304,7 @@ func (s *FargateService) reconcileFargateIAMRole() (requeue bool, err error) {
 			s.scope.Info("no EKS fargate role specified, using role based on fargate profile name")
 			roleName, err = eks.GenerateEKSName(
 				"fargate",
-				fmt.Sprintf("%s-%s", s.scope.KubernetesClusterName(), s.scope.FargateProfile.Spec.ProfileName),
+				fmt.Sprintf("%s-%s", s.scope.ClusterName(), s.scope.FargateProfile.Spec.ProfileName),
 				maxIAMRoleNameLength,
 			)
 			if err != nil {
@@ -320,6 +343,10 @@ func (s *FargateService) reconcileFargateIAMRole() (requeue bool, err error) {
 	}
 
 	policies := FargateRolePolicies()
+	if strings.Contains(s.scope.Partition(), v1beta1.PartitionNameUSGov) {
+		policies = FargateRolePoliciesUSGov()
+	}
+
 	updatedPolicies, err := s.EnsurePoliciesAttached(role, aws.StringSlice(policies))
 	if err != nil {
 		return updatedRole, errors.Wrapf(err, "error ensuring policies are attached: %v", policies)

@@ -23,10 +23,21 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
+)
+
+var (
+	oldDiskSize                   = int32(50)
+	newDiskSize                   = int32(100)
+	oldAmiType                    = Al2x86_64
+	newAmiType                    = Al2x86_64GPU
+	oldCapacityType               = ManagedMachinePoolCapacityTypeOnDemand
+	newCapacityType               = ManagedMachinePoolCapacityTypeSpot
+	oldAvailabilityZoneSubnetType = AZSubnetTypePublic
+	newAvailabilityZoneSubnetType = AZSubnetTypePrivate
 )
 
 func TestAWSManagedMachinePoolDefault(t *testing.T) {
@@ -133,7 +144,7 @@ func TestAWSManagedMachinePoolValidateCreate(t *testing.T) {
 				Spec: AWSManagedMachinePoolSpec{
 					EKSNodegroupName: "eks-node-group-3",
 					Scaling: &ManagedMachinePoolScaling{
-						MinSize: pointer.Int32(0),
+						MinSize: ptr.To[int32](0),
 					},
 				},
 			},
@@ -142,12 +153,14 @@ func TestAWSManagedMachinePoolValidateCreate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.pool.ValidateCreate()
+			warn, err := tt.pool.ValidateCreate()
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).To(Succeed())
 			}
+			// Nothing emits warnings yet
+			g.Expect(warn).To(BeEmpty())
 		})
 	}
 }
@@ -253,15 +266,439 @@ func TestAWSManagedMachinePoolValidateUpdate(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "adding subnet id is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					SubnetIDs:        []string{"subnet-1"},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "removing subnet id is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					SubnetIDs:        []string{"subnet-1"},
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "changing subnet id is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					SubnetIDs:        []string{"subnet-1"},
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					SubnetIDs:        []string{"subnet-2"},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "removing role name is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					RoleName:         "role-1",
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "changing role name is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					RoleName:         "role-1",
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					RoleName:         "role-2",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "adding disk size is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					DiskSize:         &newDiskSize,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "removing disk size is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					DiskSize:         &oldDiskSize,
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "changing disk size is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					DiskSize:         &oldDiskSize,
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					DiskSize:         &newDiskSize,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "adding ami type is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					AMIType:          &newAmiType,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "removing ami type is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					AMIType:          &oldAmiType,
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "changing ami type is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					AMIType:          &oldAmiType,
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					AMIType:          &newAmiType,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "adding remote access is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					RemoteAccess: &ManagedRemoteAccess{
+						Public: false,
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "removing remote access is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					RemoteAccess: &ManagedRemoteAccess{
+						Public: false,
+					},
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "changing remote access is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					RemoteAccess: &ManagedRemoteAccess{
+						Public: false,
+					},
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					RemoteAccess: &ManagedRemoteAccess{
+						Public: true,
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "removing capacity type is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					CapacityType:     &oldCapacityType,
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "changing capacity type is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					CapacityType:     &oldCapacityType,
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					CapacityType:     &newCapacityType,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "adding availability zones is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName:  "eks-node-group-1",
+					AvailabilityZones: []string{"us-east-1a"},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "removing availability zones is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName:  "eks-node-group-1",
+					AvailabilityZones: []string{"us-east-1a"},
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "changing availability zones is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName:  "eks-node-group-1",
+					AvailabilityZones: []string{"us-east-1a"},
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName:  "eks-node-group-1",
+					AvailabilityZones: []string{"us-east-1a", "us-east-1b"},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "adding availability zone subnet type is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName:           "eks-node-group-1",
+					AvailabilityZoneSubnetType: &newAvailabilityZoneSubnetType,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "removing availability zone subnet type is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName:           "eks-node-group-1",
+					AvailabilityZoneSubnetType: &oldAvailabilityZoneSubnetType,
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "changing availability zone subnet type is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName:           "eks-node-group-1",
+					AvailabilityZoneSubnetType: &oldAvailabilityZoneSubnetType,
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName:           "eks-node-group-1",
+					AvailabilityZoneSubnetType: &newAvailabilityZoneSubnetType,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "adding launch template is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					AWSLaunchTemplate: &AWSLaunchTemplate{
+						Name: "test",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "removing launch template is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					AWSLaunchTemplate: &AWSLaunchTemplate{
+						Name: "test",
+					},
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "changing launch template name is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					AWSLaunchTemplate: &AWSLaunchTemplate{
+						Name: "test",
+					},
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					AWSLaunchTemplate: &AWSLaunchTemplate{
+						Name: "test2",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "changing launch template fields other than name is accepted",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					AWSLaunchTemplate: &AWSLaunchTemplate{
+						Name:              "test",
+						ImageLookupFormat: "test",
+					},
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					AWSLaunchTemplate: &AWSLaunchTemplate{
+						Name:              "test",
+						ImageLookupFormat: "test2",
+					},
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.new.ValidateUpdate(tt.old.DeepCopy())
+			warn, err := tt.new.ValidateUpdate(tt.old.DeepCopy())
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).To(Succeed())
 			}
+			// Nothing emits warnings yet
+			g.Expect(warn).To(BeEmpty())
 		})
 	}
 }

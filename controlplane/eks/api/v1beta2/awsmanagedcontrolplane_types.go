@@ -40,8 +40,10 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// +optional
 	EKSClusterName string `json:"eksClusterName,omitempty"`
 
-	// IdentityRef is a reference to a identity to be used when reconciling the managed control plane.
 	// +optional
+
+	// IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
+	// If no identity is specified, the default identity for this controller will be used.
 	IdentityRef *infrav1.AWSIdentityReference `json:"identityRef,omitempty"`
 
 	// NetworkSpec encapsulates all things related to AWS network.
@@ -54,6 +56,10 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 
 	// The AWS Region the cluster lives in.
 	Region string `json:"region,omitempty"`
+
+	// Partition is the AWS security partition being used. Defaults to "aws"
+	// +optional
+	Partition string `json:"partition,omitempty"`
 
 	// SSHKeyName is the name of the ssh key to attach to the bastion host. Valid values are empty string (do not use SSH keys), a valid SSH key name, or omitted (use the default SSH key name)
 	// +optional
@@ -167,6 +173,10 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// +optional
 	VpcCni VpcCni `json:"vpcCni,omitempty"`
 
+	// RestrictPrivateSubnets indicates that the EKS control plane should only use private subnets.
+	// +kubebuilder:default=false
+	RestrictPrivateSubnets bool `json:"restrictPrivateSubnets,omitempty"`
+
 	// KubeProxy defines managed attributes of the kube-proxy daemonset
 	KubeProxy KubeProxy `json:"kubeProxy,omitempty"`
 }
@@ -225,6 +235,7 @@ type OIDCProviderStatus struct {
 	TrustPolicy string `json:"trustPolicy,omitempty"`
 }
 
+// IdentityProviderStatus holds the status for associated identity provider.
 type IdentityProviderStatus struct {
 	// ARN holds the ARN of associated identity provider
 	ARN string `json:"arn,omitempty"`

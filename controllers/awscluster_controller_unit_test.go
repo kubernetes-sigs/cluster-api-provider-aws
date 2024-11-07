@@ -23,12 +23,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -157,7 +159,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 				"SessionToken":    []byte("session-token"),
 			},
 		}
-		csClient := fake.NewClientBuilder().WithObjects(awsCluster, secret).Build()
+		csClient := fake.NewClientBuilder().WithObjects(awsCluster, secret).WithStatusSubresource(awsCluster).Build()
 
 		mockCtrl = gomock.NewController(t)
 		ec2Svc = mock_services.NewMockEC2Interface(mockCtrl)
@@ -246,6 +248,36 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 				g.Expect(err).To(BeNil())
 				expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{{infrav1.LoadBalancerReadyCondition, corev1.ConditionTrue, "", ""}})
 				g.Expect(awsCluster.GetFinalizers()).To(ContainElement(infrav1.ClusterFinalizer))
+			})
+
+			t.Run("when BYO IP is set", func(t *testing.T) {
+				g := NewWithT(t)
+				runningCluster := func() {
+					ec2Svc.EXPECT().ReconcileBastion().Return(nil)
+					elbSvc.EXPECT().ReconcileLoadbalancers().Return(nil)
+					networkSvc.EXPECT().ReconcileNetwork().Return(nil)
+					sgSvc.EXPECT().ReconcileSecurityGroups().Return(nil)
+				}
+
+				awsCluster := getAWSCluster("test", "test")
+				csClient := setup(t, &awsCluster)
+				defer teardown()
+				runningCluster()
+				cs, err := scope.NewClusterScope(
+					scope.ClusterScopeParams{
+						Client:     csClient,
+						Cluster:    &clusterv1.Cluster{},
+						AWSCluster: &awsCluster,
+					},
+				)
+				g.Expect(err).To(BeNil())
+				awsCluster.Spec.NetworkSpec.VPC.ElasticIPPool = &infrav1.ElasticIPPool{
+					PublicIpv4Pool:              aws.String("ipv4pool-ec2-0123456789abcdef0"),
+					PublicIpv4PoolFallBackOrder: ptr.To(infrav1.PublicIpv4PoolFallbackOrderAmazonPool),
+				}
+				g.Expect(err).To(Not(HaveOccurred()))
+				_, err = reconciler.reconcileNormal(cs)
+				g.Expect(err).To(Not(HaveOccurred()))
 			})
 		})
 		t.Run("Reconcile failure", func(t *testing.T) {
@@ -363,31 +395,6 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 				g.Expect(err).To(BeNil())
 				expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{{infrav1.LoadBalancerReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, infrav1.WaitForDNSNameReason}})
 			})
-			t.Run("Should fail AWSCluster create with LoadBalancer reconcile failure with WaitForDNSNameResolve condition as false", func(t *testing.T) {
-				g := NewWithT(t)
-				awsCluster := getAWSCluster("test", "test")
-				runningCluster := func() {
-					networkSvc.EXPECT().ReconcileNetwork().Return(nil)
-					sgSvc.EXPECT().ReconcileSecurityGroups().Return(nil)
-					ec2Svc.EXPECT().ReconcileBastion().Return(nil)
-					elbSvc.EXPECT().ReconcileLoadbalancers().Return(nil)
-				}
-				csClient := setup(t, &awsCluster)
-				defer teardown()
-				runningCluster()
-				cs, err := scope.NewClusterScope(
-					scope.ClusterScopeParams{
-						Client:     csClient,
-						Cluster:    &clusterv1.Cluster{},
-						AWSCluster: &awsCluster,
-					},
-				)
-				awsCluster.Status.Network.APIServerELB.DNSName = "test-apiserver.us-east-1.aws"
-				g.Expect(err).To(BeNil())
-				_, err = reconciler.reconcileNormal(cs)
-				g.Expect(err).To(BeNil())
-				expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{{infrav1.LoadBalancerReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, infrav1.WaitForDNSNameResolveReason}})
-			})
 		})
 	})
 	t.Run("Reconcile delete AWSCluster", func(t *testing.T) {
@@ -401,6 +408,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 			t.Run("Should successfully delete AWSCluster with Cluster Finalizer removed", func(t *testing.T) {
 				g := NewWithT(t)
 				awsCluster := getAWSCluster("test", "test")
+				awsCluster.Finalizers = []string{infrav1.ClusterFinalizer}
 				csClient := setup(t, &awsCluster)
 				defer teardown()
 				deleteCluster()
@@ -412,7 +420,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 					},
 				)
 				g.Expect(err).To(BeNil())
-				_, err = reconciler.reconcileDelete(ctx, cs)
+				err = reconciler.reconcileDelete(ctx, cs)
 				g.Expect(err).To(BeNil())
 				g.Expect(awsCluster.GetFinalizers()).ToNot(ContainElement(infrav1.ClusterFinalizer))
 			})
@@ -424,6 +432,9 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 				deleteCluster := func() {
 					t.Helper()
 					elbSvc.EXPECT().DeleteLoadbalancers().Return(expectedErr)
+					ec2Svc.EXPECT().DeleteBastion().Return(nil)
+					networkSvc.EXPECT().DeleteNetwork().Return(nil)
+					sgSvc.EXPECT().DeleteSecurityGroups().Return(nil)
 				}
 				awsCluster := getAWSCluster("test", "test")
 				awsCluster.Finalizers = []string{infrav1.ClusterFinalizer}
@@ -438,7 +449,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 					},
 				)
 				g.Expect(err).To(BeNil())
-				_, err = reconciler.reconcileDelete(ctx, cs)
+				err = reconciler.reconcileDelete(ctx, cs)
 				g.Expect(err).ToNot(BeNil())
 				g.Expect(awsCluster.GetFinalizers()).To(ContainElement(infrav1.ClusterFinalizer))
 			})
@@ -447,6 +458,8 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 				deleteCluster := func() {
 					ec2Svc.EXPECT().DeleteBastion().Return(expectedErr)
 					elbSvc.EXPECT().DeleteLoadbalancers().Return(nil)
+					networkSvc.EXPECT().DeleteNetwork().Return(nil)
+					sgSvc.EXPECT().DeleteSecurityGroups().Return(nil)
 				}
 				awsCluster := getAWSCluster("test", "test")
 				awsCluster.Finalizers = []string{infrav1.ClusterFinalizer}
@@ -461,7 +474,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 					},
 				)
 				g.Expect(err).To(BeNil())
-				_, err = reconciler.reconcileDelete(ctx, cs)
+				err = reconciler.reconcileDelete(ctx, cs)
 				g.Expect(err).ToNot(BeNil())
 				g.Expect(awsCluster.GetFinalizers()).To(ContainElement(infrav1.ClusterFinalizer))
 			})
@@ -471,6 +484,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 					ec2Svc.EXPECT().DeleteBastion().Return(nil)
 					elbSvc.EXPECT().DeleteLoadbalancers().Return(nil)
 					sgSvc.EXPECT().DeleteSecurityGroups().Return(expectedErr)
+					networkSvc.EXPECT().DeleteNetwork().Return(nil)
 				}
 				awsCluster := getAWSCluster("test", "test")
 				awsCluster.Finalizers = []string{infrav1.ClusterFinalizer}
@@ -485,7 +499,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 					},
 				)
 				g.Expect(err).To(BeNil())
-				_, err = reconciler.reconcileDelete(ctx, cs)
+				err = reconciler.reconcileDelete(ctx, cs)
 				g.Expect(err).ToNot(BeNil())
 				g.Expect(awsCluster.GetFinalizers()).To(ContainElement(infrav1.ClusterFinalizer))
 			})
@@ -510,7 +524,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 					},
 				)
 				g.Expect(err).To(BeNil())
-				_, err = reconciler.reconcileDelete(ctx, cs)
+				err = reconciler.reconcileDelete(ctx, cs)
 				g.Expect(err).ToNot(BeNil())
 				g.Expect(awsCluster.GetFinalizers()).To(ContainElement(infrav1.ClusterFinalizer))
 			})
@@ -594,7 +608,7 @@ func TestAWSClusterReconcilerRequeueAWSClusterForUnpausedCluster(t *testing.T) {
 				tc.ownerCluster.Namespace = ns.Name
 			}
 			handlerFunc := reconciler.requeueAWSClusterForUnpausedCluster(ctx, log)
-			result := handlerFunc(tc.ownerCluster)
+			result := handlerFunc(ctx, tc.ownerCluster)
 			if tc.requeue {
 				g.Expect(result).To(ContainElement(reconcile.Request{
 					NamespacedName: types.NamespacedName{
@@ -621,7 +635,7 @@ func createCluster(g *WithT, awsCluster *infrav1.AWSCluster, namespace string) {
 			}
 			err := testEnv.Get(ctx, key, cluster)
 			return err == nil
-		}, 10*time.Second).Should(Equal(true))
+		}, 10*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed getting the newly created cluster %q", awsCluster.Name))
 	}
 }
 

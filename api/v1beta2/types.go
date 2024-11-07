@@ -17,9 +17,17 @@ limitations under the License.
 package v1beta2
 
 import (
+	"strings"
+
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+)
+
+const (
+	// PreventDeletionLabel can be used in situations where preventing delation is allowed. The docs
+	// and the CRD will call this out where its allowed.
+	PreventDeletionLabel = "aws.cluster.x-k8s.io/prevent-deletion"
 )
 
 // AWSResourceReference is a reference to a specific AWS resource by ID or filters.
@@ -68,6 +76,30 @@ const (
 	// MachineCreated indicates whether the machine has been created or not. If not,
 	// it should include a reason and message for the failure.
 	MachineCreated AWSMachineProviderConditionType = "MachineCreated"
+)
+
+const (
+	// ExternalResourceGCAnnotation is the name of an annotation that indicates if
+	// external resources should be garbage collected for the cluster.
+	ExternalResourceGCAnnotation = "aws.cluster.x-k8s.io/external-resource-gc"
+
+	// ExternalResourceGCTasksAnnotation is the name of an annotation that indicates what
+	// external resources tasks should be executed by garbage collector for the cluster.
+	ExternalResourceGCTasksAnnotation = "aws.cluster.x-k8s.io/external-resource-tasks-gc"
+)
+
+// GCTask defines a task to be executed by the garbage collector.
+type GCTask string
+
+var (
+	// GCTaskLoadBalancer defines a task to cleaning up resources for AWS load balancers.
+	GCTaskLoadBalancer = GCTask("load-balancer")
+
+	// GCTaskTargetGroup defines a task to cleaning up resources for AWS target groups.
+	GCTaskTargetGroup = GCTask("target-group")
+
+	// GCTaskSecurityGroup defines a task to cleaning up resources for AWS security groups.
+	GCTaskSecurityGroup = GCTask("security-group")
 )
 
 // AZSelectionScheme defines the scheme of selecting AZs.
@@ -194,6 +226,18 @@ type Instance struct {
 	// SpotMarketOptions option for configuring instances to be run using AWS Spot instances.
 	SpotMarketOptions *SpotMarketOptions `json:"spotMarketOptions,omitempty"`
 
+	// PlacementGroupName specifies the name of the placement group in which to launch the instance.
+	// +optional
+	PlacementGroupName string `json:"placementGroupName,omitempty"`
+
+	// PlacementGroupPartition is the partition number within the placement group in which to launch the instance.
+	// This value is only valid if the placement group, referred in `PlacementGroupName`, was created with
+	// strategy set to partition.
+	// +kubebuilder:validation:Minimum:=1
+	// +kubebuilder:validation:Maximum:=7
+	// +optional
+	PlacementGroupPartition int64 `json:"placementGroupPartition,omitempty"`
+
 	// Tenancy indicates if instance should run on shared or single-tenant hardware.
 	// +optional
 	Tenancy string `json:"tenancy,omitempty"`
@@ -201,6 +245,113 @@ type Instance struct {
 	// IDs of the instance's volumes
 	// +optional
 	VolumeIDs []string `json:"volumeIDs,omitempty"`
+
+	// InstanceMetadataOptions is the metadata options for the EC2 instance.
+	// +optional
+	InstanceMetadataOptions *InstanceMetadataOptions `json:"instanceMetadataOptions,omitempty"`
+
+	// PrivateDNSName is the options for the instance hostname.
+	// +optional
+	PrivateDNSName *PrivateDNSName `json:"privateDnsName,omitempty"`
+
+	// PublicIPOnLaunch is the option to associate a public IP on instance launch
+	// +optional
+	PublicIPOnLaunch *bool `json:"publicIPOnLaunch,omitempty"`
+
+	// CapacityReservationID specifies the target Capacity Reservation into which the instance should be launched.
+	// +optional
+	CapacityReservationID *string `json:"capacityReservationId,omitempty"`
+}
+
+// InstanceMetadataState describes the state of InstanceMetadataOptions.HttpEndpoint and InstanceMetadataOptions.InstanceMetadataTags
+type InstanceMetadataState string
+
+const (
+	// InstanceMetadataEndpointStateDisabled represents the disabled state
+	InstanceMetadataEndpointStateDisabled = InstanceMetadataState("disabled")
+
+	// InstanceMetadataEndpointStateEnabled represents the enabled state
+	InstanceMetadataEndpointStateEnabled = InstanceMetadataState("enabled")
+)
+
+// HTTPTokensState describes the state of InstanceMetadataOptions.HTTPTokensState
+type HTTPTokensState string
+
+const (
+	// HTTPTokensStateOptional represents the optional state
+	HTTPTokensStateOptional = HTTPTokensState("optional")
+
+	// HTTPTokensStateRequired represents the required state (IMDSv2)
+	HTTPTokensStateRequired = HTTPTokensState("required")
+)
+
+// InstanceMetadataOptions describes metadata options for the EC2 instance.
+type InstanceMetadataOptions struct {
+	// Enables or disables the HTTP metadata endpoint on your instances.
+	//
+	// If you specify a value of disabled, you cannot access your instance metadata.
+	//
+	// Default: enabled
+	//
+	// +kubebuilder:validation:Enum:=enabled;disabled
+	// +kubebuilder:default=enabled
+	HTTPEndpoint InstanceMetadataState `json:"httpEndpoint,omitempty"`
+
+	// The desired HTTP PUT response hop limit for instance metadata requests. The
+	// larger the number, the further instance metadata requests can travel.
+	//
+	// Default: 1
+	//
+	// +kubebuilder:validation:Minimum:=1
+	// +kubebuilder:validation:Maximum:=64
+	// +kubebuilder:default=1
+	HTTPPutResponseHopLimit int64 `json:"httpPutResponseHopLimit,omitempty"`
+
+	// The state of token usage for your instance metadata requests.
+	//
+	// If the state is optional, you can choose to retrieve instance metadata with
+	// or without a session token on your request. If you retrieve the IAM role
+	// credentials without a token, the version 1.0 role credentials are returned.
+	// If you retrieve the IAM role credentials using a valid session token, the
+	// version 2.0 role credentials are returned.
+	//
+	// If the state is required, you must send a session token with any instance
+	// metadata retrieval requests. In this state, retrieving the IAM role credentials
+	// always returns the version 2.0 credentials; the version 1.0 credentials are
+	// not available.
+	//
+	// Default: optional
+	//
+	// +kubebuilder:validation:Enum:=optional;required
+	// +kubebuilder:default=optional
+	HTTPTokens HTTPTokensState `json:"httpTokens,omitempty"`
+
+	// Set to enabled to allow access to instance tags from the instance metadata.
+	// Set to disabled to turn off access to instance tags from the instance metadata.
+	// For more information, see Work with instance tags using the instance metadata
+	// (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html#work-with-tags-in-IMDS).
+	//
+	// Default: disabled
+	//
+	// +kubebuilder:validation:Enum:=enabled;disabled
+	// +kubebuilder:default=disabled
+	InstanceMetadataTags InstanceMetadataState `json:"instanceMetadataTags,omitempty"`
+}
+
+// SetDefaults sets the default values for the InstanceMetadataOptions.
+func (obj *InstanceMetadataOptions) SetDefaults() {
+	if obj.HTTPEndpoint == "" {
+		obj.HTTPEndpoint = InstanceMetadataEndpointStateEnabled
+	}
+	if obj.HTTPPutResponseHopLimit == 0 {
+		obj.HTTPPutResponseHopLimit = 1
+	}
+	if obj.HTTPTokens == "" {
+		obj.HTTPTokens = HTTPTokensStateOptional // Defaults to IMDSv1
+	}
+	if obj.InstanceMetadataTags == "" {
+		obj.InstanceMetadataTags = InstanceMetadataEndpointStateDisabled
+	}
 }
 
 // Volume encapsulates the configuration options for the storage device.
@@ -285,4 +436,34 @@ const (
 	AmazonLinux EKSAMILookupType = "AmazonLinux"
 	// AmazonLinuxGPU is the AmazonLinux GPU AMI type.
 	AmazonLinuxGPU EKSAMILookupType = "AmazonLinuxGPU"
+)
+
+// PrivateDNSName is the options for the instance hostname.
+type PrivateDNSName struct {
+	// EnableResourceNameDNSAAAARecord indicates whether to respond to DNS queries for instance hostnames with DNS AAAA records.
+	// +optional
+	EnableResourceNameDNSAAAARecord *bool `json:"enableResourceNameDnsAAAARecord,omitempty"`
+	// EnableResourceNameDNSARecord indicates whether to respond to DNS queries for instance hostnames with DNS A records.
+	// +optional
+	EnableResourceNameDNSARecord *bool `json:"enableResourceNameDnsARecord,omitempty"`
+	// The type of hostname to assign to an instance.
+	// +optional
+	// +kubebuilder:validation:Enum:=ip-name;resource-name
+	HostnameType *string `json:"hostnameType,omitempty"`
+}
+
+// SubnetSchemaType specifies how given network should be divided on subnets
+// in the VPC depending on the number of AZs.
+type SubnetSchemaType string
+
+// Name returns subnet schema type name without prefix.
+func (s *SubnetSchemaType) Name() string {
+	return strings.ToLower(strings.TrimPrefix(string(*s), "Prefer"))
+}
+
+var (
+	// SubnetSchemaPreferPrivate allocates more subnets in the VPC to private subnets.
+	SubnetSchemaPreferPrivate = SubnetSchemaType("PreferPrivate")
+	// SubnetSchemaPreferPublic allocates more subnets in the VPC to public subnets.
+	SubnetSchemaPreferPublic = SubnetSchemaType("PreferPublic")
 )

@@ -81,6 +81,8 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 			Effect:   iamv1.EffectAllow,
 			Resource: iamv1.Resources{iamv1.Any},
 			Action: iamv1.Actions{
+				"ec2:DescribeIpamPools",
+				"ec2:AllocateIpamPoolCidr",
 				"ec2:AttachNetworkInterface",
 				"ec2:DetachNetworkInterface",
 				"ec2:AllocateAddress",
@@ -88,8 +90,10 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"ec2:AssignPrivateIpAddresses",
 				"ec2:UnassignPrivateIpAddresses",
 				"ec2:AssociateRouteTable",
+				"ec2:AssociateVpcCidrBlock",
 				"ec2:AttachInternetGateway",
 				"ec2:AuthorizeSecurityGroupIngress",
+				"ec2:CreateCarrierGateway",
 				"ec2:CreateInternetGateway",
 				"ec2:CreateEgressOnlyInternetGateway",
 				"ec2:CreateNatGateway",
@@ -100,7 +104,11 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"ec2:CreateSubnet",
 				"ec2:CreateTags",
 				"ec2:CreateVpc",
+				"ec2:CreateVpcEndpoint",
+				"ec2:DisassociateVpcCidrBlock",
 				"ec2:ModifyVpcAttribute",
+				"ec2:ModifyVpcEndpoint",
+				"ec2:DeleteCarrierGateway",
 				"ec2:DeleteInternetGateway",
 				"ec2:DeleteEgressOnlyInternetGateway",
 				"ec2:DeleteNatGateway",
@@ -110,10 +118,13 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"ec2:DeleteSubnet",
 				"ec2:DeleteTags",
 				"ec2:DeleteVpc",
+				"ec2:DeleteVpcEndpoints",
 				"ec2:DescribeAccountAttributes",
 				"ec2:DescribeAddresses",
 				"ec2:DescribeAvailabilityZones",
+				"ec2:DescribeCarrierGateways",
 				"ec2:DescribeInstances",
+				"ec2:DescribeInstanceTypes",
 				"ec2:DescribeInternetGateways",
 				"ec2:DescribeEgressOnlyInternetGateways",
 				"ec2:DescribeInstanceTypes",
@@ -125,7 +136,9 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"ec2:DescribeSecurityGroups",
 				"ec2:DescribeSubnets",
 				"ec2:DescribeVpcs",
+				"ec2:DescribeDhcpOptions",
 				"ec2:DescribeVpcAttribute",
+				"ec2:DescribeVpcEndpoints",
 				"ec2:DescribeVolumes",
 				"ec2:DescribeTags",
 				"ec2:DetachInternetGateway",
@@ -146,12 +159,22 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"elasticloadbalancing:DeleteTargetGroup",
 				"elasticloadbalancing:DescribeLoadBalancers",
 				"elasticloadbalancing:DescribeLoadBalancerAttributes",
+				"elasticloadbalancing:DescribeTargetGroups",
 				"elasticloadbalancing:ApplySecurityGroupsToLoadBalancer",
+				"elasticloadbalancing:SetSecurityGroups",
 				"elasticloadbalancing:DescribeTags",
 				"elasticloadbalancing:ModifyLoadBalancerAttributes",
 				"elasticloadbalancing:RegisterInstancesWithLoadBalancer",
 				"elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
 				"elasticloadbalancing:RemoveTags",
+				"elasticloadbalancing:SetSubnets",
+				"elasticloadbalancing:ModifyTargetGroupAttributes",
+				"elasticloadbalancing:CreateTargetGroup",
+				"elasticloadbalancing:DescribeListeners",
+				"elasticloadbalancing:CreateListener",
+				"elasticloadbalancing:DescribeTargetHealth",
+				"elasticloadbalancing:RegisterTargets",
+				"elasticloadbalancing:DeleteListener",
 				"autoscaling:DescribeAutoScalingGroups",
 				"autoscaling:DescribeInstanceRefreshes",
 				"ec2:CreateLaunchTemplate",
@@ -161,6 +184,7 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"ec2:DeleteLaunchTemplate",
 				"ec2:DeleteLaunchTemplateVersions",
 				"ec2:DescribeKeyPairs",
+				"ec2:ModifyInstanceMetadataOptions",
 			},
 		},
 		{
@@ -249,6 +273,15 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 			})
 		}
 	}
+	if t.Spec.AllowAssumeRole {
+		statement = append(statement, iamv1.StatementEntry{
+			Effect:   iamv1.EffectAllow,
+			Resource: t.allowedEC2InstanceProfiles(),
+			Action: iamv1.Actions{
+				"sts:AssumeRole",
+			},
+		})
+	}
 	if t.Spec.S3Buckets.Enable {
 		statement = append(statement, iamv1.StatementEntry{
 			Effect: iamv1.EffectAllow,
@@ -258,9 +291,11 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 			Action: iamv1.Actions{
 				"s3:CreateBucket",
 				"s3:DeleteBucket",
+				"s3:GetObject",
 				"s3:PutObject",
 				"s3:DeleteObject",
 				"s3:PutBucketPolicy",
+				"s3:PutBucketTagging",
 			},
 		})
 	}
@@ -294,60 +329,59 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 
 // ControllersPolicyEKS creates a policy from a template for AWS Controllers.
 func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
-	statement := []iamv1.StatementEntry{}
+	statements := []iamv1.StatementEntry{}
 
 	allowedIAMActions := iamv1.Actions{
 		"iam:GetRole",
 		"iam:ListAttachedRolePolicies",
 	}
-	statement = append(statement, iamv1.StatementEntry{
-		Effect: iamv1.EffectAllow,
-		Resource: iamv1.Resources{
-			"arn:*:ssm:*:*:parameter/aws/service/eks/optimized-ami/*",
+	statements = append(statements,
+		iamv1.StatementEntry{
+			Effect: iamv1.EffectAllow,
+			Resource: iamv1.Resources{
+				"arn:*:ssm:*:*:parameter/aws/service/eks/optimized-ami/*",
+			},
+			Action: iamv1.Actions{
+				"ssm:GetParameter",
+			},
 		},
-		Action: iamv1.Actions{
-			"ssm:GetParameter",
+		iamv1.StatementEntry{
+			Effect: iamv1.EffectAllow,
+			Action: iamv1.Actions{
+				"iam:CreateServiceLinkedRole",
+			},
+			Resource: iamv1.Resources{
+				"arn:*:iam::*:role/aws-service-role/eks.amazonaws.com/AWSServiceRoleForAmazonEKS",
+			},
+			Condition: iamv1.Conditions{
+				iamv1.StringLike: map[string]string{"iam:AWSServiceName": "eks.amazonaws.com"},
+			},
 		},
-	})
-
-	statement = append(statement, iamv1.StatementEntry{
-		Effect: iamv1.EffectAllow,
-		Action: iamv1.Actions{
-			"iam:CreateServiceLinkedRole",
+		iamv1.StatementEntry{
+			Effect: iamv1.EffectAllow,
+			Action: iamv1.Actions{
+				"iam:CreateServiceLinkedRole",
+			},
+			Resource: iamv1.Resources{
+				"arn:*:iam::*:role/aws-service-role/eks-nodegroup.amazonaws.com/AWSServiceRoleForAmazonEKSNodegroup",
+			},
+			Condition: iamv1.Conditions{
+				iamv1.StringLike: map[string]string{"iam:AWSServiceName": "eks-nodegroup.amazonaws.com"},
+			},
 		},
-		Resource: iamv1.Resources{
-			"arn:*:iam::*:role/aws-service-role/eks.amazonaws.com/AWSServiceRoleForAmazonEKS",
+		iamv1.StatementEntry{
+			Effect: iamv1.EffectAllow,
+			Action: iamv1.Actions{
+				"iam:CreateServiceLinkedRole",
+			},
+			Resource: iamv1.Resources{
+				"arn:" + t.Spec.Partition + ":iam::*:role/aws-service-role/eks-fargate-pods.amazonaws.com/AWSServiceRoleForAmazonEKSForFargate",
+			},
+			Condition: iamv1.Conditions{
+				iamv1.StringLike: map[string]string{"iam:AWSServiceName": "eks-fargate.amazonaws.com"},
+			},
 		},
-		Condition: iamv1.Conditions{
-			iamv1.StringLike: map[string]string{"iam:AWSServiceName": "eks.amazonaws.com"},
-		},
-	})
-
-	statement = append(statement, iamv1.StatementEntry{
-		Effect: iamv1.EffectAllow,
-		Action: iamv1.Actions{
-			"iam:CreateServiceLinkedRole",
-		},
-		Resource: iamv1.Resources{
-			"arn:*:iam::*:role/aws-service-role/eks-nodegroup.amazonaws.com/AWSServiceRoleForAmazonEKSNodegroup",
-		},
-		Condition: iamv1.Conditions{
-			iamv1.StringLike: map[string]string{"iam:AWSServiceName": "eks-nodegroup.amazonaws.com"},
-		},
-	})
-
-	statement = append(statement, iamv1.StatementEntry{
-		Effect: iamv1.EffectAllow,
-		Action: iamv1.Actions{
-			"iam:CreateServiceLinkedRole",
-		},
-		Resource: iamv1.Resources{
-			"arn:" + t.Spec.Partition + ":iam::*:role/aws-service-role/eks-fargate-pods.amazonaws.com/AWSServiceRoleForAmazonEKSForFargate",
-		},
-		Condition: iamv1.Conditions{
-			iamv1.StringLike: map[string]string{"iam:AWSServiceName": "eks-fargate.amazonaws.com"},
-		},
-	})
+	)
 
 	if t.Spec.EKS.AllowIAMRoleCreation {
 		allowedIAMActions = append(allowedIAMActions, iamv1.Actions{
@@ -358,7 +392,7 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 			"iam:AttachRolePolicy",
 		}...)
 
-		statement = append(statement, iamv1.StatementEntry{
+		statements = append(statements, iamv1.StatementEntry{
 			Action: iamv1.Actions{
 				"iam:ListOpenIDConnectProviders",
 				"iam:GetOpenIDConnectProvider",
@@ -374,14 +408,16 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 			Effect: iamv1.EffectAllow,
 		})
 	}
-	statement = append(statement, []iamv1.StatementEntry{
+
+	statements = append(statements, []iamv1.StatementEntry{
 		{
 			Action: allowedIAMActions,
 			Resource: iamv1.Resources{
 				"arn:*:iam::*:role/*",
 			},
 			Effect: iamv1.EffectAllow,
-		}, {
+		},
+		{
 			Action: iamv1.Actions{
 				"iam:GetPolicy",
 			},
@@ -389,7 +425,8 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 				t.generateAWSManagedPolicyARN(eksClusterPolicyName),
 			},
 			Effect: iamv1.EffectAllow,
-		}, {
+		},
+		{
 			Action: iamv1.Actions{
 				"eks:DescribeCluster",
 				"eks:ListClusters",
@@ -415,7 +452,8 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 				"arn:*:eks:*:*:nodegroup/*/*/*",
 			},
 			Effect: iamv1.EffectAllow,
-		}, {
+		},
+		{
 			Action: iamv1.Actions{
 				"ec2:AssociateVpcCidrBlock",
 				"ec2:DisassociateVpcCidrBlock",
@@ -434,7 +472,8 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 				"*",
 			},
 			Effect: iamv1.EffectAllow,
-		}, {
+		},
+		{
 			Action: iamv1.Actions{
 				"iam:PassRole",
 			},
@@ -467,7 +506,7 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 
 	return &iamv1.PolicyDocument{
 		Version:   iamv1.CurrentVersion,
-		Statement: statement,
+		Statement: statements,
 	}
 }
 

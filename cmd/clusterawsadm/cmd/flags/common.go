@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package flags provides a way to add flags to the cli.
 package flags
 
 import (

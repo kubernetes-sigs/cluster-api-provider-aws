@@ -24,7 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -176,7 +176,7 @@ func newMachinePool() *v1beta1.MachinePool {
 		Spec: v1beta1.MachinePoolSpec{
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
-					Version: pointer.StringPtr("v1.23.3"),
+					Version: ptr.To[string]("v1.23.3"),
 				},
 			},
 		},

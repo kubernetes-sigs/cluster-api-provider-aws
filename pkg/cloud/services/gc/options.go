@@ -53,3 +53,15 @@ func withEC2Client(client ec2iface.EC2API) ServiceOption {
 		s.ec2Client = client
 	}
 }
+
+// WithGCStrategy is an option for specifying using the alternative GC strategy.
+func WithGCStrategy(alternativeGCStrategy bool) ServiceOption {
+	if alternativeGCStrategy {
+		return func(s *Service) {
+			addAlternativeCollectFuncs(s)
+		}
+	}
+	return func(s *Service) {
+		addDefaultCollectFuncs(s)
+	}
+}

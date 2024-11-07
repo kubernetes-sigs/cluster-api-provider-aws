@@ -44,9 +44,10 @@ Cluster API itself does tag AWS resources it creates. The `sigs.k8s.io/cluster-a
 When consuming existing AWS infrastructure, the Cluster API AWS provider does not require any tags to be present. The absence of the tags on an AWS resource indicates to Cluster API that it should not modify the resource or attempt to manage the lifecycle of the resource.
 
 However, the built-in Kubernetes AWS cloud provider _does_ require certain tags in order to function properly. Specifically, all subnets where Kubernetes nodes reside should have the `kubernetes.io/cluster/<cluster-name>` tag present. Private subnets should also have the `kubernetes.io/role/internal-elb` tag with a value of 1, and public subnets should have the `kubernetes.io/role/elb` tag with a value of 1. These latter two tags help the cloud provider understand which subnets to use when creating load balancers.
-> **Note**: The subnet tagging above is taken care by the CAPA controllers but additionalTags provided by users won't be propagated to the unmanaged VPC subnets.
 
 Finally, if the controller manager isn't started with the `--configure-cloud-routes: "false"` parameter, the route table(s) will also need the `kubernetes.io/cluster/<cluster-name>` tag. (This parameter can be added by customizing the `KubeadmConfigSpec` object of the `KubeadmControlPlane` object.)
+
+> **Note**: All the tagging of resources should be the responsibility of the users and are not managed by CAPA controllers.
 
 ### Configuring the AWSCluster Specification
 
@@ -119,6 +120,30 @@ spec:
 
 Users may either specify `failureDomain` on the Machine or MachineDeployment objects, _or_ users may explicitly specify subnet IDs on the AWSMachine or AWSMachineTemplate objects. If both are specified, the subnet ID is used and the `failureDomain` is ignored.
 
+### Placing EC2 Instances in Specific External VPCs
+
+CAPA clusters are deployed within a single VPC, but it's possible to place machines that live in external VPCs. For this kind of configuration, we assume that all the VPCs have the ability to communicate, either through external peering, a transit gateway, or some other mechanism already established outside of CAPA. CAPA will not create a tunnel or manage the network configuration for any secondary VPCs.
+
+The AWSMachineTemplate `subnet` field allows specifying filters or specific subnet ids for worker machine placement. If the filters or subnet id is specified in a secondary VPC, CAPA will place the machine in that VPC and subnet.
+
+```yaml
+spec:
+  template:
+    spec:
+      subnet:
+        filters:
+          name: "vpc-id"
+          values:
+            - "secondary-vpc-id"
+      securityGroupOverrides:
+        node: sg-04e870a3507a5ad2c5c8c2
+        node-eks-additional: sg-04e870a3507a5ad2c5c8c1
+```
+
+#### Caveats/Notes
+
+CAPA helpfully creates security groups for various roles in the cluster and automatically attaches them to workers. However, security groups are tied to a specific VPC, so workers placed in a VPC outside of the cluster will need to have these security groups created by some external process first and set in the `securityGroupOverrides` field, otherwise the ec2 creation will fail.
+
 ### Security Groups
 
 To use existing security groups for instances for a cluster, add this to the AWSCluster specification:
@@ -141,9 +166,18 @@ To specify additional security groups for the control plane load balancer for a 
 ```yaml
 spec:
   controlPlaneLoadBalancer:
-    AdditionalsecurityGroups:
+    additionalSecurityGroups:
     - sg-0200a3507a5ad2c5c8c3
     - ...
+```
+
+It's also possible to override the cluster security groups for an individual AWSMachine or AWSMachineTemplate:
+
+```yaml
+spec:
+  SecurityGroupOverrides:
+    node: sg-04e870a3507a5ad2c5c8c2
+    node-eks-additional: sg-04e870a3507a5ad2c5c8c1
 ```
 
 ### Control Plane Load Balancer
@@ -158,10 +192,35 @@ spec:
 
 As control plane instances are added or removed, Cluster API will register and deregister them, respectively, with the Classic ELB.
 
+It's also possible to specify custom ingress rules for the control plane load balancer. To do so, add this to the AWSCluster specification:
+
+```yaml
+spec:
+  controlPlaneLoadBalancer:
+    ingressRules:
+      - description: "example ingress rule"
+        protocol: "-1" # all
+        fromPort: 7777
+        toPort: 7777
+```
+
 > **WARNING:** Using an existing Classic ELB is an advanced feature. **If you use an existing Classic ELB, you must correctly configure it, and attach subnets to it.**
 > 
 >An incorrectly configured Classic ELB can easily lead to a non-functional cluster. We strongly recommend you let Cluster API create the Classic ELB.
 
+### Control Plane ingress rules
+
+It's possible to specify custom ingress rules for the control plane itself. To do so, add this to the AWSCluster specification:
+
+```yaml
+spec:
+  network:
+    additionalControlPlaneIngressRules:
+    - description: "example ingress rule"
+      protocol: "-1" # all
+      fromPort: 7777
+      toPort: 7777
+```
 ### Caveats/Notes
 
 * When both public and private subnets are available in an AZ, CAPI will choose the private subnet in the AZ over the public subnet for placing EC2 instances.
@@ -215,3 +274,69 @@ The external system must provide all required fields within the spec of the AWSC
 Once the user has created externally managed AWSCluster, it is not allowed to convert it to CAPA managed cluster. However, converting from managed to externally managed is allowed.
 
 User should only use this feature if their cluster infrastructure lifecycle management has constraints that the reference implementation does not support. See [user stories](https://github.com/kubernetes-sigs/cluster-api/blob/10d89ceca938e4d3d94a1d1c2b60515bcdf39829/docs/proposals/20210203-externally-managed-cluster-infrastructure.md#user-stories) for more details.
+
+
+## Bring your own (BYO) Public IPv4 addresses
+
+Cluster API also provides a mechanism to allocate Elastic IP from the existing Public IPv4 Pool that you brought to AWS[1].
+
+Bringing your own Public IPv4 Pool (BYOIPv4) can be used as an alternative to buying Public IPs from AWS, also considering the changes in charging for this since February 2024[2].
+
+Supported resources to BYO Public IPv4 Pool (`BYO Public IPv4`):
+- NAT Gateways
+- Network Load Balancer for API server
+- Machines
+
+Use `BYO Public IPv4` when you have brought to AWS custom IPv4 CIDR blocks and want the cluster to automatically use IPs from the custom pool instead of Amazon-provided pools.
+
+### Prerequisites and limitations for BYO Public IPv4 Pool
+
+- BYOIPv4 is limited to AWS to selected regions. See more in [AWS Documentation for Regional availability](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-byoip.html#byoip-reg-avail)
+- The IPv4 address must be provisioned and advertised to the AWS account before the cluster is installed
+- The public IPv4 addresses is limited to the network border group that the CIDR block have been advertised[3][4], and the `NetworkSpec.ElasticIpPool.PublicIpv4Pool` must be the same of the cluster will be installed.
+- Only NAT Gateways and the Network Load Balancer for API server will consume from the IPv4 pool defined in the network scope.
+- The public IPv4 pool must be assigned to each machine to consume public IPv4 from a custom IPv4 pool.
+
+### Steps to set BYO Public IPv4 Pool to core infrastructure
+
+Currently, CAPA supports BYO Public IPv4 to core components NAT Gateways and Network Load Balancer for the internet-facing API server.
+
+To specify a Public IPv4 Pool for core components you must set the `spec.elasticIpPool` as follows:
+
+```yaml
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: AWSCluster
+metadata:
+  name: aws-cluster-localzone
+spec:
+  region: us-east-1
+  networkSpec:
+    vpc:
+      elasticIpPool:
+        publicIpv4Pool: ipv4pool-ec2-0123456789abcdef0
+        publicIpv4PoolFallbackOrder: amazon-pool
+```
+
+Then all the Elastic IPs will be created by consuming from the pool `ipv4pool-ec2-0123456789abcdef0`.
+
+### Steps to BYO Public IPv4 Pool to machines
+
+To create a machine consuming from a custom Public IPv4 Pool you must set the pool ID to the AWSMachine spec, then set the `PublicIP` to `true`:
+
+```yaml
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: AWSMachine
+metadata:
+  name: byoip-s55p4-bootstrap
+spec:
+  # placeholder for AWSMachine spec
+  elasticIpPool:
+    publicIpv4Pool: ipv4pool-ec2-0123456789abcdef0
+    publicIpv4PoolFallbackOrder: amazon-pool
+  publicIP: true
+```
+
+[1] https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-byoip.html
+[2] https://aws.amazon.com/blogs/aws/new-aws-public-ipv4-address-charge-public-ip-insights/
+[3] https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-byoip.html#byoip-onboard
+[4] https://docs.aws.amazon.com/cli/latest/reference/ec2/advertise-byoip-cidr.html

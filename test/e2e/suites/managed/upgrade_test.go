@@ -70,7 +70,7 @@ var _ = ginkgo.Describe("EKS Cluster upgrade test", func() {
 				ClusterName:              clusterName,
 				Flavour:                  EKSControlPlaneOnlyFlavor, // TODO (richardcase) - change in the future when upgrades to machinepools work
 				ControlPlaneMachineCount: 1,                         // NOTE: this cannot be zero as clusterctl returns an error
-				WorkerMachineCount:       1,
+				WorkerMachineCount:       0,
 				KubernetesVersion:        initialVersion,
 			}
 		})
@@ -112,7 +112,7 @@ var _ = ginkgo.Describe("EKS Cluster upgrade test", func() {
 			Cluster: cluster,
 		})
 		framework.WaitForClusterDeleted(ctx, framework.WaitForClusterDeletedInput{
-			Getter:  e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+			Client:  e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 			Cluster: cluster,
 		}, e2eCtx.E2EConfig.GetIntervals("", "wait-delete-cluster")...)
 	})

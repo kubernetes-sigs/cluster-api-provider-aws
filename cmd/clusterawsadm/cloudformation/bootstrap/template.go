@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package bootstrap provides a way to generate a CloudFormation template for IAM policies,
+// users and roles for use by Cluster API Provider AWS.
 package bootstrap
 
 import (
@@ -200,7 +202,7 @@ func (t Template) RenderCloudFormation() *cloudformation.Template {
 		template.Resources[AWSIAMRoleEKSFargate] = &cfn_iam.Role{
 			RoleName:                 expinfrav1.DefaultEKSFargateRole,
 			AssumeRolePolicyDocument: AssumeRolePolicy(iamv1.PrincipalService, []string{eksiam.EKSFargateService}),
-			ManagedPolicyArns:        fargateProfilePolicies(t.Spec.EKS.Fargate),
+			ManagedPolicyArns:        t.fargateProfilePolicies(t.Spec.EKS.Fargate),
 			Tags:                     converters.MapToCloudFormationTags(t.Spec.EKS.Fargate.Tags),
 		}
 	}

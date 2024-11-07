@@ -28,7 +28,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts/mock_stsiface"
@@ -45,7 +45,7 @@ func TestAWSStaticPrincipalTypeProvider(t *testing.T) {
 		},
 	}
 
-	var staticProvider AWSPrincipalTypeProvider = NewAWSStaticPrincipalTypeProvider(&infrav1.AWSClusterStaticIdentity{}, secret)
+	staticProvider := NewAWSStaticPrincipalTypeProvider(&infrav1.AWSClusterStaticIdentity{}, secret)
 
 	stsMock := mock_stsiface.NewMockSTSAPI(mockCtrl)
 	roleIdentity := &infrav1.AWSClusterRoleIdentity{
@@ -58,10 +58,11 @@ func TestAWSStaticPrincipalTypeProvider(t *testing.T) {
 		},
 	}
 
-	var roleProvider AWSPrincipalTypeProvider = &AWSRolePrincipalTypeProvider{
+	roleProvider := &AWSRolePrincipalTypeProvider{
 		credentials:    nil,
 		Principal:      roleIdentity,
-		sourceProvider: &staticProvider,
+		region:         "us-west-2",
+		sourceProvider: staticProvider,
 		stsClient:      stsMock,
 	}
 
@@ -75,10 +76,11 @@ func TestAWSStaticPrincipalTypeProvider(t *testing.T) {
 		},
 	}
 
-	var roleProvider2 AWSPrincipalTypeProvider = &AWSRolePrincipalTypeProvider{
+	roleProvider2 := &AWSRolePrincipalTypeProvider{
 		credentials:    nil,
 		Principal:      roleIdentity2,
-		sourceProvider: &roleProvider,
+		region:         "us-west-2",
+		sourceProvider: roleProvider,
 		stsClient:      stsMock,
 	}
 
@@ -107,7 +109,7 @@ func TestAWSStaticPrincipalTypeProvider(t *testing.T) {
 				m.AssumeRoleWithContext(gomock.Any(), &sts.AssumeRoleInput{
 					RoleArn:         aws.String(roleIdentity.Spec.RoleArn),
 					RoleSessionName: aws.String(roleIdentity.Spec.SessionName),
-					DurationSeconds: pointer.Int64Ptr(int64(roleIdentity.Spec.DurationSeconds)),
+					DurationSeconds: ptr.To[int64](int64(roleIdentity.Spec.DurationSeconds)),
 				}).Return(&sts.AssumeRoleOutput{
 					Credentials: &sts.Credentials{
 						AccessKeyId:     aws.String("assumedAccessKeyId"),
@@ -132,7 +134,7 @@ func TestAWSStaticPrincipalTypeProvider(t *testing.T) {
 				m.AssumeRoleWithContext(gomock.Any(), &sts.AssumeRoleInput{
 					RoleArn:         aws.String(roleIdentity.Spec.RoleArn),
 					RoleSessionName: aws.String(roleIdentity.Spec.SessionName),
-					DurationSeconds: pointer.Int64Ptr(int64(roleIdentity.Spec.DurationSeconds)),
+					DurationSeconds: ptr.To[int64](int64(roleIdentity.Spec.DurationSeconds)),
 				}).Return(&sts.AssumeRoleOutput{
 					Credentials: &sts.Credentials{
 						AccessKeyId:     aws.String("assumedAccessKeyId"),
@@ -145,7 +147,7 @@ func TestAWSStaticPrincipalTypeProvider(t *testing.T) {
 				m.AssumeRoleWithContext(gomock.Any(), &sts.AssumeRoleInput{
 					RoleArn:         aws.String(roleIdentity2.Spec.RoleArn),
 					RoleSessionName: aws.String(roleIdentity2.Spec.SessionName),
-					DurationSeconds: pointer.Int64Ptr(int64(roleIdentity2.Spec.DurationSeconds)),
+					DurationSeconds: ptr.To[int64](int64(roleIdentity2.Spec.DurationSeconds)),
 				}).Return(&sts.AssumeRoleOutput{
 					Credentials: &sts.Credentials{
 						AccessKeyId:     aws.String("assumedAccessKeyId2"),
@@ -167,13 +169,13 @@ func TestAWSStaticPrincipalTypeProvider(t *testing.T) {
 			name:     "Role provider with role provider source fails to retrieve when the source's source cannot assume source",
 			provider: roleProvider2,
 			expect: func(m *mock_stsiface.MockSTSAPIMockRecorder) {
-				roleProvider.(*AWSRolePrincipalTypeProvider).credentials.Expire()
-				roleProvider2.(*AWSRolePrincipalTypeProvider).credentials.Expire()
+				roleProvider.credentials.Expire()
+				roleProvider2.credentials.Expire()
 				// AssumeRoleWithContext() call is not needed for roleIdentity as it has unexpired credentials
 				m.AssumeRoleWithContext(gomock.Any(), &sts.AssumeRoleInput{
 					RoleArn:         aws.String(roleIdentity.Spec.RoleArn),
 					RoleSessionName: aws.String(roleIdentity.Spec.SessionName),
-					DurationSeconds: pointer.Int64Ptr(int64(roleIdentity.Spec.DurationSeconds)),
+					DurationSeconds: ptr.To[int64](int64(roleIdentity.Spec.DurationSeconds)),
 				}).Return(&sts.AssumeRoleOutput{}, errors.New("Not authorized to assume role"))
 			},
 			expectErr: true,

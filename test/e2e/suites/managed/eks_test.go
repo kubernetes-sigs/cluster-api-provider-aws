@@ -109,6 +109,7 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 				ClusterName:           clusterName,
 				AddonName:             corednsAddonName,
 				AddonVersion:          e2eCtx.E2EConfig.GetVariable(shared.CorednsAddonVersion),
+				AddonConfiguration:    e2eCtx.E2EConfig.GetVariable(shared.CorednsAddonConfiguration),
 			}
 		})
 
@@ -189,7 +190,7 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 			Cluster: cluster,
 		})
 		framework.WaitForClusterDeleted(ctx, framework.WaitForClusterDeletedInput{
-			Getter:  e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+			Client:  e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 			Cluster: cluster,
 		}, e2eCtx.E2EConfig.GetIntervals("", "wait-delete-cluster")...)
 	})

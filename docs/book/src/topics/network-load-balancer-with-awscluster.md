@@ -50,17 +50,10 @@ spec:
 
 ## Security
 
-NLBs cannot use Security Groups. Therefore, the following steps have been taken to increase security for nodes
-communication. NLBs need access to the node in order to send traffic its way. A port has to be opened using an ip
-address range instead of a security group as a _source_. There are two scenarios and CIDRs that can be enabled.
+NLBs can use security groups, but only if one is associated at the time of creation.
+CAPA will associate the default control plane security groups with a new NLB by default.
 
-First, if client IP preservation is _disabled_ we only add the VPC's private CIDR range as allowed source for the API
-server's port (usually 6443). This will work because then the NLB will use its dynamically allocated internal IP
-address as source.
-
-Second, if client IP preservation is _enabled_ we MUST set `0.0.0.0/0` as communication source because then the
-incoming IP address will be that of the client's that might not be in the current VPC. This shouldn't be too much of a
-problem, but user's need to be aware of this restriction.
+For more information, see AWS's [Network Load Balancer and Security Groups](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/load-balancer-security-groups.html) documentation.
 
 ## Extension of the code
 

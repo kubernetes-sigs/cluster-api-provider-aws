@@ -26,9 +26,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/eks"
 )
@@ -138,7 +139,7 @@ func (r *AWSManagedMachinePool) validateLaunchTemplate() field.ErrorList {
 }
 
 // ValidateCreate will do any extra validation when creating a AWSManagedMachinePool.
-func (r *AWSManagedMachinePool) ValidateCreate() error {
+func (r *AWSManagedMachinePool) ValidateCreate() (admission.Warnings, error) {
 	mmpLog.Info("AWSManagedMachinePool validate create", "managed-machine-pool", klog.KObj(r))
 
 	var allErrs field.ErrorList
@@ -162,10 +163,10 @@ func (r *AWSManagedMachinePool) ValidateCreate() error {
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 
 	if len(allErrs) == 0 {
-		return nil
+		return nil, nil
 	}
 
-	return apierrors.NewInvalid(
+	return nil, apierrors.NewInvalid(
 		r.GroupVersionKind().GroupKind(),
 		r.Name,
 		allErrs,
@@ -173,11 +174,11 @@ func (r *AWSManagedMachinePool) ValidateCreate() error {
 }
 
 // ValidateUpdate will do any extra validation when updating a AWSManagedMachinePool.
-func (r *AWSManagedMachinePool) ValidateUpdate(old runtime.Object) error {
+func (r *AWSManagedMachinePool) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	mmpLog.Info("AWSManagedMachinePool validate update", "managed-machine-pool", klog.KObj(r))
 	oldPool, ok := old.(*AWSManagedMachinePool)
 	if !ok {
-		return apierrors.NewInvalid(GroupVersion.WithKind("AWSManagedMachinePool").GroupKind(), r.Name, field.ErrorList{
+		return nil, apierrors.NewInvalid(GroupVersion.WithKind("AWSManagedMachinePool").GroupKind(), r.Name, field.ErrorList{
 			field.InternalError(nil, errors.New("failed to convert old AWSManagedMachinePool to object")),
 		})
 	}
@@ -197,10 +198,10 @@ func (r *AWSManagedMachinePool) ValidateUpdate(old runtime.Object) error {
 	}
 
 	if len(allErrs) == 0 {
-		return nil
+		return nil, nil
 	}
 
-	return apierrors.NewInvalid(
+	return nil, apierrors.NewInvalid(
 		r.GroupVersionKind().GroupKind(),
 		r.Name,
 		allErrs,
@@ -208,10 +209,10 @@ func (r *AWSManagedMachinePool) ValidateUpdate(old runtime.Object) error {
 }
 
 // ValidateDelete allows you to add any extra validation when deleting.
-func (r *AWSManagedMachinePool) ValidateDelete() error {
+func (r *AWSManagedMachinePool) ValidateDelete() (admission.Warnings, error) {
 	mmpLog.Info("AWSManagedMachinePool validate delete", "managed-machine-pool", klog.KObj(r))
 
-	return nil
+	return nil, nil
 }
 
 func (r *AWSManagedMachinePool) validateImmutable(old *AWSManagedMachinePool) field.ErrorList {
@@ -243,6 +244,8 @@ func (r *AWSManagedMachinePool) validateImmutable(old *AWSManagedMachinePool) fi
 	appendErrorIfMutated(old.Spec.AMIType, r.Spec.AMIType, "amiType")
 	appendErrorIfMutated(old.Spec.RemoteAccess, r.Spec.RemoteAccess, "remoteAccess")
 	appendErrorIfSetAndMutated(old.Spec.CapacityType, r.Spec.CapacityType, "capacityType")
+	appendErrorIfMutated(old.Spec.AvailabilityZones, r.Spec.AvailabilityZones, "availabilityZones")
+	appendErrorIfMutated(old.Spec.AvailabilityZoneSubnetType, r.Spec.AvailabilityZoneSubnetType, "availabilityZoneSubnetType")
 	if (old.Spec.AWSLaunchTemplate != nil && r.Spec.AWSLaunchTemplate == nil) ||
 		(old.Spec.AWSLaunchTemplate == nil && r.Spec.AWSLaunchTemplate != nil) {
 		allErrs = append(
@@ -275,7 +278,7 @@ func (r *AWSManagedMachinePool) Default() {
 
 	if r.Spec.UpdateConfig == nil {
 		r.Spec.UpdateConfig = &UpdateConfig{
-			MaxUnavailable: pointer.Int(1),
+			MaxUnavailable: ptr.To[int](1),
 		}
 	}
 }

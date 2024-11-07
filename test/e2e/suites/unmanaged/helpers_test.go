@@ -21,6 +21,7 @@ package unmanaged
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
@@ -45,7 +46,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/uuid"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -118,8 +119,8 @@ func defaultConfigCluster(clusterName, namespace string) clusterctl.ConfigCluste
 		Namespace:                namespace,
 		ClusterName:              clusterName,
 		KubernetesVersion:        e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion),
-		ControlPlaneMachineCount: pointer.Int64Ptr(1),
-		WorkerMachineCount:       pointer.Int64Ptr(0),
+		ControlPlaneMachineCount: ptr.To[int64](1),
+		WorkerMachineCount:       ptr.To[int64](0),
 	}
 }
 
@@ -210,7 +211,7 @@ func createPVC(statefulsetinfo statefulSetInfo) corev1.PersistentVolumeClaim {
 		Spec: corev1.PersistentVolumeClaimSpec{
 			AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
 			StorageClassName: &statefulsetinfo.storageClassName,
-			Resources: corev1.ResourceRequirements{
+			Resources: corev1.VolumeResourceRequirements{
 				Requests: corev1.ResourceList{
 					corev1.ResourceStorage: resource.MustParse("4Gi"),
 				},
@@ -326,7 +327,7 @@ func deleteCluster(ctx context.Context, cluster *clusterv1.Cluster) {
 	})
 
 	framework.WaitForClusterDeleted(ctx, framework.WaitForClusterDeletedInput{
-		Getter:  e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+		Client:  e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 		Cluster: cluster,
 	}, e2eCtx.E2EConfig.GetIntervals("", "wait-delete-cluster")...)
 }
@@ -388,7 +389,36 @@ func getEvents(namespace string) *corev1.EventList {
 	return eventsList
 }
 
-func getVolumeIds(info statefulSetInfo, k8sclient crclient.Client) []*string {
+func getSubnetID(filterKey, filterValue, clusterName string) *string {
+	var subnetOutput *ec2.DescribeSubnetsOutput
+	var err error
+
+	ec2Client := ec2.New(e2eCtx.AWSSession)
+	subnetInput := &ec2.DescribeSubnetsInput{
+		Filters: []*ec2.Filter{
+			{
+				Name: aws.String(filterKey),
+				Values: []*string{
+					aws.String(filterValue),
+				},
+			},
+			{
+				Name:   aws.String("tag-key"),
+				Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/cluster/" + clusterName}),
+			},
+		},
+	}
+
+	Eventually(func() int {
+		subnetOutput, err = ec2Client.DescribeSubnets(subnetInput)
+		Expect(err).NotTo(HaveOccurred())
+		return len(subnetOutput.Subnets)
+	}, e2eCtx.E2EConfig.GetIntervals("", "wait-infra-subnets")...).Should(Equal(1))
+
+	return subnetOutput.Subnets[0].SubnetId
+}
+
+func getVolumeIDs(info statefulSetInfo, k8sclient crclient.Client) []*string {
 	ginkgo.By("Retrieving IDs of dynamically provisioned volumes.")
 	statefulset := &appsv1.StatefulSet{}
 	err := k8sclient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: info.namespace, Name: info.name}, statefulset)
@@ -471,7 +501,7 @@ func makeAWSMachineTemplate(namespace, name, instanceType string, subnetID *stri
 				Spec: infrav1.AWSMachineSpec{
 					InstanceType:       instanceType,
 					IAMInstanceProfile: "nodes.cluster-api-provider-aws.sigs.k8s.io",
-					SSHKeyName:         pointer.StringPtr(os.Getenv("AWS_SSH_KEY_NAME")),
+					SSHKeyName:         ptr.To[string](os.Getenv("AWS_SSH_KEY_NAME")),
 				},
 			},
 		},
@@ -499,7 +529,7 @@ func makeJoinBootstrapConfigTemplate(namespace, name string) *bootstrapv1.Kubead
 					JoinConfiguration: &bootstrapv1.JoinConfiguration{
 						NodeRegistration: bootstrapv1.NodeRegistrationOptions{
 							Name:             "{{ ds.meta_data.local_hostname }}",
-							KubeletExtraArgs: map[string]string{"cloud-provider": "aws"},
+							KubeletExtraArgs: map[string]string{"cloud-provider": "external"},
 						},
 					},
 				},
@@ -550,7 +580,7 @@ func makeMachineDeployment(namespace, mdName, clusterName string, az *string, re
 						Name:       mdName,
 						Namespace:  namespace,
 					},
-					Version: pointer.StringPtr(e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion)),
+					Version: ptr.To[string](e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion)),
 				},
 			},
 		},
@@ -575,6 +605,45 @@ func assertSpotInstanceType(instanceID string) {
 	Expect(err).To(BeNil())
 	Expect(len(result.Reservations)).To(Equal(1))
 	Expect(len(result.Reservations[0].Instances)).To(Equal(1))
+}
+
+func assertInstanceMetadataOptions(instanceID string, expected infrav1.InstanceMetadataOptions) {
+	ginkgo.By(fmt.Sprintf("Finding EC2 instance with ID: %s", instanceID))
+	ec2Client := ec2.New(e2eCtx.AWSSession)
+	input := &ec2.DescribeInstancesInput{
+		InstanceIds: []*string{
+			aws.String(instanceID[strings.LastIndex(instanceID, "/")+1:]),
+		},
+	}
+
+	result, err := ec2Client.DescribeInstances(input)
+	Expect(err).To(BeNil())
+	Expect(len(result.Reservations)).To(Equal(1))
+	Expect(len(result.Reservations[0].Instances)).To(Equal(1))
+
+	metadataOptions := result.Reservations[0].Instances[0].MetadataOptions
+	Expect(metadataOptions).ToNot(BeNil())
+
+	Expect(metadataOptions.HttpTokens).To(HaveValue(Equal(string(expected.HTTPTokens))))
+	Expect(metadataOptions.HttpEndpoint).To(HaveValue(Equal(string(expected.HTTPEndpoint))))
+	Expect(metadataOptions.InstanceMetadataTags).To(HaveValue(Equal(string(expected.InstanceMetadataTags))))
+	Expect(metadataOptions.HttpPutResponseHopLimit).To(HaveValue(Equal(expected.HTTPPutResponseHopLimit)))
+}
+
+func assertUnencryptedUserDataIgnition(instanceID string, expected string) {
+	ginkgo.By(fmt.Sprintf("Finding EC2 instance with ID: %s", instanceID))
+	ec2Client := ec2.New(e2eCtx.AWSSession)
+	input := &ec2.DescribeInstanceAttributeInput{
+		Attribute:  aws.String(ec2.InstanceAttributeNameUserData),
+		InstanceId: aws.String(instanceID[strings.LastIndex(instanceID, "/")+1:]),
+	}
+
+	result, err := ec2Client.DescribeInstanceAttribute(input)
+	Expect(err).ToNot(HaveOccurred(), "expected DescribeInstanceAttribute call to succeed")
+
+	userData, err := base64.StdEncoding.DecodeString(*result.UserData.Value)
+	Expect(err).ToNot(HaveOccurred(), "expected ec2 instance user data to be base64 decodable")
+	Expect(string(userData)).To(HaveValue(MatchJSON(expected)), "expected userdata to match")
 }
 
 func terminateInstance(instanceID string) {
@@ -614,11 +683,11 @@ func verifyElbExists(elbName string, exists bool) {
 	}
 }
 
-func verifyVolumesExists(awsVolumeIds []*string) {
+func verifyVolumesExists(awsVolumeIDs []*string) {
 	ginkgo.By("Ensuring dynamically provisioned volumes exists")
 	ec2Client := ec2.New(e2eCtx.AWSSession)
 	input := &ec2.DescribeVolumesInput{
-		VolumeIds: awsVolumeIds,
+		VolumeIds: awsVolumeIDs,
 	}
 	_, err := ec2Client.DescribeVolumes(input)
 	Expect(err).NotTo(HaveOccurred())
@@ -634,7 +703,7 @@ func waitForStatefulSetRunning(info statefulSetInfo, k8sclient crclient.Client) 
 			}
 			return *statefulset.Spec.Replicas == statefulset.Status.ReadyReplicas, nil
 		}, 10*time.Minute, 30*time.Second,
-	).Should(BeTrue())
+	).Should(BeTrue(), fmt.Sprintf("Eventually failed waiting for StatefulSet %s to be running", info.name))
 }
 
 // LatestCIReleaseForVersion returns the latest ci release of a specific version.
@@ -766,7 +835,7 @@ func createPVCForEFS(storageClassName string, clusterClient crclient.Client) {
 				corev1.ReadWriteMany,
 			},
 			StorageClassName: &storageClassName,
-			Resources: corev1.ResourceRequirements{
+			Resources: corev1.VolumeResourceRequirements{
 				Requests: map[corev1.ResourceName]resource.Quantity{
 					corev1.ResourceStorage: *resource.NewQuantity(5*1024*1024*1024, resource.BinarySI),
 				},
@@ -815,4 +884,23 @@ func createPodWithEFSMount(clusterClient crclient.Client) {
 		},
 	}
 	Expect(clusterClient.Create(context.TODO(), pod)).NotTo(HaveOccurred())
+}
+
+func getRawBootstrapDataWithFormat(c crclient.Client, m clusterv1.Machine) ([]byte, string, error) {
+	if m.Spec.Bootstrap.DataSecretName == nil {
+		return nil, "", fmt.Errorf("error retrieving bootstrap data: linked Machine's bootstrap.dataSecretName is nil")
+	}
+
+	secret := &corev1.Secret{}
+	key := apimachinerytypes.NamespacedName{Namespace: m.Namespace, Name: *m.Spec.Bootstrap.DataSecretName}
+	if err := c.Get(context.TODO(), key, secret); err != nil {
+		return nil, "", fmt.Errorf("failed to retrieve bootstrap data secret for AWSMachine %s/%s: %v", m.Namespace, m.Name, err)
+	}
+
+	value, ok := secret.Data["value"]
+	if !ok {
+		return nil, "", fmt.Errorf("error retrieving bootstrap data: secret value key is missing")
+	}
+
+	return value, string(secret.Data["format"]), nil
 }

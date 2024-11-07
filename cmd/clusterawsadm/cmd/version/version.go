@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package version provides the version information of clusterawsadm.
 package version
 
 import (
@@ -32,6 +33,9 @@ import (
 type Version struct {
 	ClientVersion *version.Info `json:"awsProviderVersion"`
 }
+
+// CLIName defaults to clusterawsadm.
+var CLIName = "clusterawsadm"
 
 // Cmd provides the version information clusterawsadm.
 func Cmd(out io.Writer) *cobra.Command {
@@ -63,7 +67,7 @@ func RunVersion(out io.Writer, cmd *cobra.Command) error {
 
 	switch of {
 	case "":
-		fmt.Fprintf(out, "clusterawsadm version: %#v\n", v.ClientVersion)
+		fmt.Fprintf(out, "%s version: %#v\n", CLIName, v.ClientVersion)
 	case "short":
 		fmt.Fprintf(out, "%s\n", v.ClientVersion.GitVersion)
 	case "yaml":

@@ -17,18 +17,21 @@ limitations under the License.
 package ec2
 
 import (
+	"context"
 	"encoding/base64"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -75,9 +78,17 @@ users:
 `
 )
 
-var (
-	testUserDataHash = userdata.ComputeHash([]byte(testUserData))
-)
+var testUserDataHash = userdata.ComputeHash([]byte(testUserData))
+
+func defaultEC2AndUserDataSecretKeyTags(name string, clusterName string, userDataSecretKey types.NamespacedName) []*ec2.Tag {
+	tags := defaultEC2Tags(name, clusterName)
+	tags = append(tags, &ec2.Tag{
+		Key:   aws.String(infrav1.LaunchTemplateBootstrapDataSecret),
+		Value: aws.String(userDataSecretKey.String()),
+	})
+	sortTags(tags)
+	return tags
+}
 
 func TestGetLaunchTemplate(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
@@ -101,7 +112,7 @@ func TestGetLaunchTemplate(t *testing.T) {
 			name:               "Should not return error if no launch template exist with given name",
 			launchTemplateName: "foo",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeLaunchTemplateVersions(gomock.Eq(&ec2.DescribeLaunchTemplateVersionsInput{
+				m.DescribeLaunchTemplateVersionsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeLaunchTemplateVersionsInput{
 					LaunchTemplateName: aws.String("foo"),
 					Versions:           []*string{aws.String("$Latest")},
 				})).
@@ -121,7 +132,7 @@ func TestGetLaunchTemplate(t *testing.T) {
 			name:               "Should return error if AWS failed during launch template fetching",
 			launchTemplateName: "foo",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeLaunchTemplateVersions(gomock.Eq(&ec2.DescribeLaunchTemplateVersionsInput{
+				m.DescribeLaunchTemplateVersionsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeLaunchTemplateVersionsInput{
 					LaunchTemplateName: aws.String("foo"),
 					Versions:           []*string{aws.String("$Latest")},
 				})).Return(nil, awserrors.NewFailedDependency("dependency failure"))
@@ -136,7 +147,7 @@ func TestGetLaunchTemplate(t *testing.T) {
 			name:               "Should not return with error if no launch template versions received from AWS",
 			launchTemplateName: "foo",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeLaunchTemplateVersions(gomock.Eq(&ec2.DescribeLaunchTemplateVersionsInput{
+				m.DescribeLaunchTemplateVersionsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeLaunchTemplateVersionsInput{
 					LaunchTemplateName: aws.String("foo"),
 					Versions:           []*string{aws.String("$Latest")},
 				})).Return(nil, nil)
@@ -151,7 +162,7 @@ func TestGetLaunchTemplate(t *testing.T) {
 			name:               "Should successfully return launch template if exist with given name",
 			launchTemplateName: "foo",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeLaunchTemplateVersions(gomock.Eq(&ec2.DescribeLaunchTemplateVersionsInput{
+				m.DescribeLaunchTemplateVersionsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeLaunchTemplateVersionsInput{
 					LaunchTemplateName: aws.String("foo"),
 					Versions:           []*string{aws.String("$Latest")},
 				})).Return(&ec2.DescribeLaunchTemplateVersionsOutput{
@@ -210,7 +221,7 @@ func TestGetLaunchTemplate(t *testing.T) {
 			name:               "Should return computed userData if AWS returns empty userData",
 			launchTemplateName: "foo",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeLaunchTemplateVersions(gomock.Eq(&ec2.DescribeLaunchTemplateVersionsInput{
+				m.DescribeLaunchTemplateVersionsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeLaunchTemplateVersionsInput{
 					LaunchTemplateName: aws.String("foo"),
 					Versions:           []*string{aws.String("$Latest")},
 				})).Return(&ec2.DescribeLaunchTemplateVersionsOutput{
@@ -284,7 +295,7 @@ func TestGetLaunchTemplate(t *testing.T) {
 				tc.expect(mockEC2Client.EXPECT())
 			}
 
-			launchTemplate, userData, err := s.GetLaunchTemplate(tc.launchTemplateName)
+			launchTemplate, userData, _, err := s.GetLaunchTemplate(tc.launchTemplateName)
 			tc.check(g, launchTemplate, userData, err)
 		})
 	}
@@ -292,11 +303,12 @@ func TestGetLaunchTemplate(t *testing.T) {
 
 func TestServiceSDKToLaunchTemplate(t *testing.T) {
 	tests := []struct {
-		name     string
-		input    *ec2.LaunchTemplateVersion
-		wantLT   *expinfrav1.AWSLaunchTemplate
-		wantHash string
-		wantErr  bool
+		name              string
+		input             *ec2.LaunchTemplateVersion
+		wantLT            *expinfrav1.AWSLaunchTemplate
+		wantHash          string
+		wantDataSecretKey *types.NamespacedName
+		wantErr           bool
 	}{
 		{
 			name: "lots of input",
@@ -338,13 +350,68 @@ func TestServiceSDKToLaunchTemplate(t *testing.T) {
 				SSHKeyName:         aws.String("foo-keyname"),
 				VersionNumber:      aws.Int64(1),
 			},
-			wantHash: testUserDataHash,
+			wantHash:          testUserDataHash,
+			wantDataSecretKey: nil, // respective tag is not given
+		},
+		{
+			name: "tag of bootstrap secret",
+			input: &ec2.LaunchTemplateVersion{
+				LaunchTemplateId:   aws.String("lt-12345"),
+				LaunchTemplateName: aws.String("foo"),
+				LaunchTemplateData: &ec2.ResponseLaunchTemplateData{
+					ImageId: aws.String("foo-image"),
+					IamInstanceProfile: &ec2.LaunchTemplateIamInstanceProfileSpecification{
+						Arn: aws.String("instance-profile/foo-profile"),
+					},
+					KeyName: aws.String("foo-keyname"),
+					BlockDeviceMappings: []*ec2.LaunchTemplateBlockDeviceMapping{
+						{
+							DeviceName: aws.String("foo-device"),
+							Ebs: &ec2.LaunchTemplateEbsBlockDevice{
+								Encrypted:  aws.Bool(true),
+								VolumeSize: aws.Int64(16),
+								VolumeType: aws.String("cool"),
+							},
+						},
+					},
+					NetworkInterfaces: []*ec2.LaunchTemplateInstanceNetworkInterfaceSpecification{
+						{
+							DeviceIndex: aws.Int64(1),
+							Groups:      []*string{aws.String("foo-group")},
+						},
+					},
+					TagSpecifications: []*ec2.LaunchTemplateTagSpecification{
+						{
+							ResourceType: aws.String(ec2.ResourceTypeInstance),
+							Tags: []*ec2.Tag{
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/bootstrap-data-secret"),
+									Value: aws.String("bootstrap-secret-ns/bootstrap-secret"),
+								},
+							},
+						},
+					},
+					UserData: aws.String(base64.StdEncoding.EncodeToString([]byte(testUserData))),
+				},
+				VersionNumber: aws.Int64(1),
+			},
+			wantLT: &expinfrav1.AWSLaunchTemplate{
+				Name: "foo",
+				AMI: infrav1.AMIReference{
+					ID: aws.String("foo-image"),
+				},
+				IamInstanceProfile: "foo-profile",
+				SSHKeyName:         aws.String("foo-keyname"),
+				VersionNumber:      aws.Int64(1),
+			},
+			wantHash:          testUserDataHash,
+			wantDataSecretKey: &types.NamespacedName{Namespace: "bootstrap-secret-ns", Name: "bootstrap-secret"},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &Service{}
-			gotLT, gotHash, err := s.SDKToLaunchTemplate(tt.input)
+			gotLT, gotHash, gotDataSecretKey, err := s.SDKToLaunchTemplate(tt.input)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("error mismatch: got %v, wantErr %v", err, tt.wantErr)
 			}
@@ -353,6 +420,9 @@ func TestServiceSDKToLaunchTemplate(t *testing.T) {
 			}
 			if !cmp.Equal(gotHash, tt.wantHash) {
 				t.Fatalf("userDataHash mismatch: got %v, want %v", gotHash, tt.wantHash)
+			}
+			if !cmp.Equal(gotDataSecretKey, tt.wantDataSecretKey) {
+				t.Fatalf("userDataSecretKey mismatch: got %v, want %v", gotDataSecretKey, tt.wantDataSecretKey)
 			}
 		})
 	}
@@ -454,10 +524,34 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSecurityGroups(gomock.Eq(&ec2.DescribeSecurityGroupsInput{Filters: []*ec2.Filter{{Name: aws.String("sg-1"), Values: aws.StringSlice([]string{"test-1"})}}})).
+				m.DescribeSecurityGroupsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSecurityGroupsInput{Filters: []*ec2.Filter{{Name: aws.String("sg-1"), Values: aws.StringSlice([]string{"test-1"})}}})).
 					Return(&ec2.DescribeSecurityGroupsOutput{SecurityGroups: []*ec2.SecurityGroup{{GroupId: aws.String("sg-1")}}}, nil)
-				m.DescribeSecurityGroups(gomock.Eq(&ec2.DescribeSecurityGroupsInput{Filters: []*ec2.Filter{{Name: aws.String("sg-2"), Values: aws.StringSlice([]string{"test-2"})}}})).
+				m.DescribeSecurityGroupsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSecurityGroupsInput{Filters: []*ec2.Filter{{Name: aws.String("sg-2"), Values: aws.StringSlice([]string{"test-2"})}}})).
 					Return(&ec2.DescribeSecurityGroupsOutput{SecurityGroups: []*ec2.SecurityGroup{{GroupId: aws.String("sg-2")}}}, nil)
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "new launch template instance metadata options, requiring IMDSv2",
+			incoming: &expinfrav1.AWSLaunchTemplate{
+				InstanceMetadataOptions: &infrav1.InstanceMetadataOptions{
+					HTTPPutResponseHopLimit: 1,
+					HTTPTokens:              infrav1.HTTPTokensStateRequired,
+				},
+			},
+			existing: &expinfrav1.AWSLaunchTemplate{},
+			want:     true,
+			wantErr:  false,
+		},
+		{
+			name:     "new launch template instance metadata options, removing IMDSv2 requirement",
+			incoming: &expinfrav1.AWSLaunchTemplate{},
+			existing: &expinfrav1.AWSLaunchTemplate{
+				InstanceMetadataOptions: &infrav1.InstanceMetadataOptions{
+					HTTPPutResponseHopLimit: 1,
+					HTTPTokens:              infrav1.HTTPTokensStateRequired,
+				},
 			},
 			want:    true,
 			wantErr: false,
@@ -531,7 +625,7 @@ func TestGetLaunchTemplateID(t *testing.T) {
 			name:               "Should not return error if launch template does not exist",
 			launchTemplateName: "foo",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeLaunchTemplateVersions(gomock.Eq(&ec2.DescribeLaunchTemplateVersionsInput{
+				m.DescribeLaunchTemplateVersionsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeLaunchTemplateVersionsInput{
 					LaunchTemplateName: aws.String("foo"),
 					Versions:           []*string{aws.String("$Latest")},
 				})).Return(nil, awserr.New(
@@ -549,7 +643,7 @@ func TestGetLaunchTemplateID(t *testing.T) {
 			name:               "Should return with error if AWS failed to fetch launch template",
 			launchTemplateName: "foo",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeLaunchTemplateVersions(gomock.Eq(&ec2.DescribeLaunchTemplateVersionsInput{
+				m.DescribeLaunchTemplateVersionsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeLaunchTemplateVersionsInput{
 					LaunchTemplateName: aws.String("foo"),
 					Versions:           []*string{aws.String("$Latest")},
 				})).Return(nil, awserrors.NewFailedDependency("Dependency issue from AWS"))
@@ -563,7 +657,7 @@ func TestGetLaunchTemplateID(t *testing.T) {
 			name:               "Should not return error if AWS returns no launch template versions info in output",
 			launchTemplateName: "foo",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeLaunchTemplateVersions(gomock.Eq(&ec2.DescribeLaunchTemplateVersionsInput{
+				m.DescribeLaunchTemplateVersionsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeLaunchTemplateVersionsInput{
 					LaunchTemplateName: aws.String("foo"),
 					Versions:           []*string{aws.String("$Latest")},
 				})).Return(nil, nil)
@@ -577,7 +671,7 @@ func TestGetLaunchTemplateID(t *testing.T) {
 			name:               "Should successfully return launch template ID for given name if exists",
 			launchTemplateName: "foo",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeLaunchTemplateVersions(gomock.Eq(&ec2.DescribeLaunchTemplateVersionsInput{
+				m.DescribeLaunchTemplateVersionsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeLaunchTemplateVersionsInput{
 					LaunchTemplateName: aws.String("foo"),
 					Versions:           []*string{aws.String("$Latest")},
 				})).Return(&ec2.DescribeLaunchTemplateVersionsOutput{
@@ -659,7 +753,7 @@ func TestDeleteLaunchTemplate(t *testing.T) {
 			name:      "Should not return error if successfully deletes given launch template ID",
 			versionID: "1",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DeleteLaunchTemplate(gomock.Eq(&ec2.DeleteLaunchTemplateInput{
+				m.DeleteLaunchTemplateWithContext(context.TODO(), gomock.Eq(&ec2.DeleteLaunchTemplateInput{
 					LaunchTemplateId: aws.String("1"),
 				})).Return(&ec2.DeleteLaunchTemplateOutput{}, nil)
 			},
@@ -668,7 +762,7 @@ func TestDeleteLaunchTemplate(t *testing.T) {
 			name:      "Should return error if failed to delete given launch template ID",
 			versionID: "1",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DeleteLaunchTemplate(gomock.Eq(&ec2.DeleteLaunchTemplateInput{
+				m.DeleteLaunchTemplateWithContext(context.TODO(), gomock.Eq(&ec2.DeleteLaunchTemplateInput{
 					LaunchTemplateId: aws.String("1"),
 				})).Return(nil, awserrors.NewFailedDependency("dependency failure"))
 			},
@@ -705,7 +799,7 @@ func TestCreateLaunchTemplate(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	var formatTagsInput = func(arg *ec2.CreateLaunchTemplateInput) {
+	formatTagsInput := func(arg *ec2.CreateLaunchTemplateInput) {
 		sortTags(arg.TagSpecifications[0].Tags)
 
 		for index := range arg.LaunchTemplateData.TagSpecifications {
@@ -713,7 +807,11 @@ func TestCreateLaunchTemplate(t *testing.T) {
 		}
 	}
 
-	var userData = []byte{1, 0, 0}
+	userDataSecretKey := types.NamespacedName{
+		Namespace: "bootstrap-secret-ns",
+		Name:      "bootstrap-secret",
+	}
+	userData := []byte{1, 0, 0}
 	testCases := []struct {
 		name                 string
 		awsResourceReference []infrav1.AWSResourceReference
@@ -728,14 +826,14 @@ func TestCreateLaunchTemplate(t *testing.T) {
 				sgMap[infrav1.SecurityGroupNode] = infrav1.SecurityGroup{ID: "1"}
 				sgMap[infrav1.SecurityGroupLB] = infrav1.SecurityGroup{ID: "2"}
 
-				var expectedInput = &ec2.CreateLaunchTemplateInput{
+				expectedInput := &ec2.CreateLaunchTemplateInput{
 					LaunchTemplateData: &ec2.RequestLaunchTemplateData{
 						InstanceType: aws.String("t3.large"),
 						IamInstanceProfile: &ec2.LaunchTemplateIamInstanceProfileSpecificationRequest{
 							Name: aws.String("instance-profile"),
 						},
 						KeyName:          aws.String("default"),
-						UserData:         pointer.StringPtr(base64.StdEncoding.EncodeToString(userData)),
+						UserData:         ptr.To[string](base64.StdEncoding.EncodeToString(userData)),
 						SecurityGroupIds: aws.StringSlice([]string{"nodeSG", "lbSG", "1"}),
 						ImageId:          aws.String("imageID"),
 						InstanceMarketOptions: &ec2.LaunchTemplateInstanceMarketOptionsRequest{
@@ -747,7 +845,7 @@ func TestCreateLaunchTemplate(t *testing.T) {
 						TagSpecifications: []*ec2.LaunchTemplateTagSpecificationRequest{
 							{
 								ResourceType: aws.String(ec2.ResourceTypeInstance),
-								Tags:         defaultEC2Tags("aws-mp-name", "cluster-name"),
+								Tags:         defaultEC2AndUserDataSecretKeyTags("aws-mp-name", "cluster-name", userDataSecretKey),
 							},
 							{
 								ResourceType: aws.String(ec2.ResourceTypeVolume),
@@ -763,15 +861,15 @@ func TestCreateLaunchTemplate(t *testing.T) {
 						},
 					},
 				}
-				m.CreateLaunchTemplate(gomock.AssignableToTypeOf(expectedInput)).Return(&ec2.CreateLaunchTemplateOutput{
+				m.CreateLaunchTemplateWithContext(context.TODO(), gomock.AssignableToTypeOf(expectedInput)).Return(&ec2.CreateLaunchTemplateOutput{
 					LaunchTemplate: &ec2.LaunchTemplate{
 						LaunchTemplateId: aws.String("launch-template-id"),
 					},
-				}, nil).Do(func(arg *ec2.CreateLaunchTemplateInput) {
+				}, nil).Do(func(ctx context.Context, arg *ec2.CreateLaunchTemplateInput, requestOptions ...request.Option) {
 					// formatting added to match arrays during cmp.Equal
 					formatTagsInput(arg)
 					if !cmp.Equal(expectedInput, arg) {
-						t.Fatalf("mismatch in input expected: %+v, got: %+v", expectedInput, arg)
+						t.Fatalf("mismatch in input expected: %+v, got: %+v, diff: %s", expectedInput, arg, cmp.Diff(expectedInput, arg))
 					}
 				})
 			},
@@ -788,14 +886,14 @@ func TestCreateLaunchTemplate(t *testing.T) {
 				sgMap[infrav1.SecurityGroupNode] = infrav1.SecurityGroup{ID: "1"}
 				sgMap[infrav1.SecurityGroupLB] = infrav1.SecurityGroup{ID: "2"}
 
-				var expectedInput = &ec2.CreateLaunchTemplateInput{
+				expectedInput := &ec2.CreateLaunchTemplateInput{
 					LaunchTemplateData: &ec2.RequestLaunchTemplateData{
 						InstanceType: aws.String("t3.large"),
 						IamInstanceProfile: &ec2.LaunchTemplateIamInstanceProfileSpecificationRequest{
 							Name: aws.String("instance-profile"),
 						},
 						KeyName:          aws.String("default"),
-						UserData:         pointer.StringPtr(base64.StdEncoding.EncodeToString(userData)),
+						UserData:         ptr.To[string](base64.StdEncoding.EncodeToString(userData)),
 						SecurityGroupIds: aws.StringSlice([]string{"nodeSG", "lbSG", "sg-1"}),
 						ImageId:          aws.String("imageID"),
 						InstanceMarketOptions: &ec2.LaunchTemplateInstanceMarketOptionsRequest{
@@ -807,7 +905,7 @@ func TestCreateLaunchTemplate(t *testing.T) {
 						TagSpecifications: []*ec2.LaunchTemplateTagSpecificationRequest{
 							{
 								ResourceType: aws.String(ec2.ResourceTypeInstance),
-								Tags:         defaultEC2Tags("aws-mp-name", "cluster-name"),
+								Tags:         defaultEC2AndUserDataSecretKeyTags("aws-mp-name", "cluster-name", userDataSecretKey),
 							},
 							{
 								ResourceType: aws.String(ec2.ResourceTypeVolume),
@@ -823,18 +921,18 @@ func TestCreateLaunchTemplate(t *testing.T) {
 						},
 					},
 				}
-				m.CreateLaunchTemplate(gomock.AssignableToTypeOf(expectedInput)).Return(&ec2.CreateLaunchTemplateOutput{
+				m.CreateLaunchTemplateWithContext(context.TODO(), gomock.AssignableToTypeOf(expectedInput)).Return(&ec2.CreateLaunchTemplateOutput{
 					LaunchTemplate: &ec2.LaunchTemplate{
 						LaunchTemplateId: aws.String("launch-template-id"),
 					},
-				}, nil).Do(func(arg *ec2.CreateLaunchTemplateInput) {
+				}, nil).Do(func(ctx context.Context, arg *ec2.CreateLaunchTemplateInput, requestOptions ...request.Option) {
 					// formatting added to match arrays during reflect.DeepEqual
 					formatTagsInput(arg)
 					if !cmp.Equal(expectedInput, arg) {
 						t.Fatalf("mismatch in input expected: %+v, got: %+v", expectedInput, arg)
 					}
 				})
-				m.DescribeSecurityGroups(gomock.Eq(&ec2.DescribeSecurityGroupsInput{Filters: []*ec2.Filter{{Name: aws.String("sg-1"), Values: aws.StringSlice([]string{"test"})}}})).
+				m.DescribeSecurityGroupsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSecurityGroupsInput{Filters: []*ec2.Filter{{Name: aws.String("sg-1"), Values: aws.StringSlice([]string{"test"})}}})).
 					Return(&ec2.DescribeSecurityGroupsOutput{SecurityGroups: []*ec2.SecurityGroup{{GroupId: aws.String("sg-1")}}}, nil)
 			},
 			check: func(g *WithT, id string, err error) {
@@ -850,14 +948,14 @@ func TestCreateLaunchTemplate(t *testing.T) {
 				sgMap[infrav1.SecurityGroupNode] = infrav1.SecurityGroup{ID: "1"}
 				sgMap[infrav1.SecurityGroupLB] = infrav1.SecurityGroup{ID: "2"}
 
-				var expectedInput = &ec2.CreateLaunchTemplateInput{
+				expectedInput := &ec2.CreateLaunchTemplateInput{
 					LaunchTemplateData: &ec2.RequestLaunchTemplateData{
 						InstanceType: aws.String("t3.large"),
 						IamInstanceProfile: &ec2.LaunchTemplateIamInstanceProfileSpecificationRequest{
 							Name: aws.String("instance-profile"),
 						},
 						KeyName:          aws.String("default"),
-						UserData:         pointer.StringPtr(base64.StdEncoding.EncodeToString(userData)),
+						UserData:         ptr.To[string](base64.StdEncoding.EncodeToString(userData)),
 						SecurityGroupIds: aws.StringSlice([]string{"nodeSG", "lbSG", "1"}),
 						ImageId:          aws.String("imageID"),
 						InstanceMarketOptions: &ec2.LaunchTemplateInstanceMarketOptionsRequest{
@@ -869,7 +967,7 @@ func TestCreateLaunchTemplate(t *testing.T) {
 						TagSpecifications: []*ec2.LaunchTemplateTagSpecificationRequest{
 							{
 								ResourceType: aws.String(ec2.ResourceTypeInstance),
-								Tags:         defaultEC2Tags("aws-mp-name", "cluster-name"),
+								Tags:         defaultEC2AndUserDataSecretKeyTags("aws-mp-name", "cluster-name", userDataSecretKey),
 							},
 							{
 								ResourceType: aws.String(ec2.ResourceTypeVolume),
@@ -885,8 +983,8 @@ func TestCreateLaunchTemplate(t *testing.T) {
 						},
 					},
 				}
-				m.CreateLaunchTemplate(gomock.AssignableToTypeOf(expectedInput)).Return(nil,
-					awserrors.NewFailedDependency("dependency failure")).Do(func(arg *ec2.CreateLaunchTemplateInput) {
+				m.CreateLaunchTemplateWithContext(context.TODO(), gomock.AssignableToTypeOf(expectedInput)).Return(nil,
+					awserrors.NewFailedDependency("dependency failure")).Do(func(ctx context.Context, arg *ec2.CreateLaunchTemplateInput, requestOptions ...request.Option) {
 					// formatting added to match arrays during cmp.Equal
 					formatTagsInput(arg)
 					if !cmp.Equal(expectedInput, arg) {
@@ -924,7 +1022,7 @@ func TestCreateLaunchTemplate(t *testing.T) {
 				tc.expect(g, mockEC2Client.EXPECT())
 			}
 
-			launchTemplate, err := s.CreateLaunchTemplate(ms, aws.String("imageID"), userData)
+			launchTemplate, err := s.CreateLaunchTemplate(ms, aws.String("imageID"), userDataSecretKey, userData)
 			tc.check(g, launchTemplate, err)
 		})
 	}
@@ -948,7 +1046,11 @@ func TestLaunchTemplateDataCreation(t *testing.T) {
 
 		s := NewService(cs)
 
-		launchTemplate, err := s.CreateLaunchTemplate(ms, aws.String("imageID"), nil)
+		userDataSecretKey := types.NamespacedName{
+			Namespace: "bootstrap-secret-ns",
+			Name:      "bootstrap-secret",
+		}
+		launchTemplate, err := s.CreateLaunchTemplate(ms, aws.String("imageID"), userDataSecretKey, nil)
 		g.Expect(err).To(HaveOccurred())
 		g.Expect(launchTemplate).Should(BeEmpty())
 	})
@@ -958,12 +1060,16 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	var formatTagsInput = func(arg *ec2.CreateLaunchTemplateVersionInput) {
+	formatTagsInput := func(arg *ec2.CreateLaunchTemplateVersionInput) {
 		for index := range arg.LaunchTemplateData.TagSpecifications {
 			sortTags(arg.LaunchTemplateData.TagSpecifications[index].Tags)
 		}
 	}
-	var userData = []byte{1, 0, 0}
+	userDataSecretKey := types.NamespacedName{
+		Namespace: "bootstrap-secret-ns",
+		Name:      "bootstrap-secret",
+	}
+	userData := []byte{1, 0, 0}
 	testCases := []struct {
 		name                 string
 		imageID              *string
@@ -979,14 +1085,14 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 				sgMap[infrav1.SecurityGroupNode] = infrav1.SecurityGroup{ID: "1"}
 				sgMap[infrav1.SecurityGroupLB] = infrav1.SecurityGroup{ID: "2"}
 
-				var expectedInput = &ec2.CreateLaunchTemplateVersionInput{
+				expectedInput := &ec2.CreateLaunchTemplateVersionInput{
 					LaunchTemplateData: &ec2.RequestLaunchTemplateData{
 						InstanceType: aws.String("t3.large"),
 						IamInstanceProfile: &ec2.LaunchTemplateIamInstanceProfileSpecificationRequest{
 							Name: aws.String("instance-profile"),
 						},
 						KeyName:          aws.String("default"),
-						UserData:         pointer.StringPtr(base64.StdEncoding.EncodeToString(userData)),
+						UserData:         ptr.To[string](base64.StdEncoding.EncodeToString(userData)),
 						SecurityGroupIds: aws.StringSlice([]string{"nodeSG", "lbSG", "1"}),
 						ImageId:          aws.String("imageID"),
 						InstanceMarketOptions: &ec2.LaunchTemplateInstanceMarketOptionsRequest{
@@ -998,7 +1104,7 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 						TagSpecifications: []*ec2.LaunchTemplateTagSpecificationRequest{
 							{
 								ResourceType: aws.String(ec2.ResourceTypeInstance),
-								Tags:         defaultEC2Tags("aws-mp-name", "cluster-name"),
+								Tags:         defaultEC2AndUserDataSecretKeyTags("aws-mp-name", "cluster-name", userDataSecretKey),
 							},
 							{
 								ResourceType: aws.String(ec2.ResourceTypeVolume),
@@ -1008,16 +1114,16 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 					},
 					LaunchTemplateId: aws.String("launch-template-id"),
 				}
-				m.CreateLaunchTemplateVersion(gomock.AssignableToTypeOf(expectedInput)).Return(&ec2.CreateLaunchTemplateVersionOutput{
+				m.CreateLaunchTemplateVersionWithContext(context.TODO(), gomock.AssignableToTypeOf(expectedInput)).Return(&ec2.CreateLaunchTemplateVersionOutput{
 					LaunchTemplateVersion: &ec2.LaunchTemplateVersion{
 						LaunchTemplateId: aws.String("launch-template-id"),
 					},
 				}, nil).Do(
-					func(arg *ec2.CreateLaunchTemplateVersionInput) {
+					func(ctx context.Context, arg *ec2.CreateLaunchTemplateVersionInput, requestOptions ...request.Option) {
 						// formatting added to match tags slice during cmp.Equal()
 						formatTagsInput(arg)
 						if !cmp.Equal(expectedInput, arg) {
-							t.Fatalf("mismatch in input expected: %+v, but got %+v", expectedInput, arg)
+							t.Fatalf("mismatch in input expected: %+v, but got %+v, diff: %s", expectedInput, arg, cmp.Diff(expectedInput, arg))
 						}
 					})
 			},
@@ -1030,14 +1136,14 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 				sgMap[infrav1.SecurityGroupNode] = infrav1.SecurityGroup{ID: "1"}
 				sgMap[infrav1.SecurityGroupLB] = infrav1.SecurityGroup{ID: "2"}
 
-				var expectedInput = &ec2.CreateLaunchTemplateVersionInput{
+				expectedInput := &ec2.CreateLaunchTemplateVersionInput{
 					LaunchTemplateData: &ec2.RequestLaunchTemplateData{
 						InstanceType: aws.String("t3.large"),
 						IamInstanceProfile: &ec2.LaunchTemplateIamInstanceProfileSpecificationRequest{
 							Name: aws.String("instance-profile"),
 						},
 						KeyName:          aws.String("default"),
-						UserData:         pointer.StringPtr(base64.StdEncoding.EncodeToString(userData)),
+						UserData:         ptr.To[string](base64.StdEncoding.EncodeToString(userData)),
 						SecurityGroupIds: aws.StringSlice([]string{"nodeSG", "lbSG", "1"}),
 						ImageId:          aws.String("imageID"),
 						InstanceMarketOptions: &ec2.LaunchTemplateInstanceMarketOptionsRequest{
@@ -1049,7 +1155,7 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 						TagSpecifications: []*ec2.LaunchTemplateTagSpecificationRequest{
 							{
 								ResourceType: aws.String(ec2.ResourceTypeInstance),
-								Tags:         defaultEC2Tags("aws-mp-name", "cluster-name"),
+								Tags:         defaultEC2AndUserDataSecretKeyTags("aws-mp-name", "cluster-name", userDataSecretKey),
 							},
 							{
 								ResourceType: aws.String(ec2.ResourceTypeVolume),
@@ -1059,9 +1165,9 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 					},
 					LaunchTemplateId: aws.String("launch-template-id"),
 				}
-				m.CreateLaunchTemplateVersion(gomock.AssignableToTypeOf(expectedInput)).Return(nil,
+				m.CreateLaunchTemplateVersionWithContext(context.TODO(), gomock.AssignableToTypeOf(expectedInput)).Return(nil,
 					awserrors.NewFailedDependency("dependency failure")).Do(
-					func(arg *ec2.CreateLaunchTemplateVersionInput) {
+					func(ctx context.Context, arg *ec2.CreateLaunchTemplateVersionInput, requestOptions ...request.Option) {
 						// formatting added to match tags slice during cmp.Equal()
 						formatTagsInput(arg)
 						if !cmp.Equal(expectedInput, arg) {
@@ -1096,10 +1202,10 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 				tc.expect(mockEC2Client.EXPECT())
 			}
 			if tc.wantErr {
-				g.Expect(s.CreateLaunchTemplateVersion("launch-template-id", ms, aws.String("imageID"), userData)).To(HaveOccurred())
+				g.Expect(s.CreateLaunchTemplateVersion("launch-template-id", ms, aws.String("imageID"), userDataSecretKey, userData)).To(HaveOccurred())
 				return
 			}
-			g.Expect(s.CreateLaunchTemplateVersion("launch-template-id", ms, aws.String("imageID"), userData)).NotTo(HaveOccurred())
+			g.Expect(s.CreateLaunchTemplateVersion("launch-template-id", ms, aws.String("imageID"), userDataSecretKey, userData)).NotTo(HaveOccurred())
 		})
 	}
 }
@@ -1108,6 +1214,10 @@ func TestBuildLaunchTemplateTagSpecificationRequest(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
+	userDataSecretKey := types.NamespacedName{
+		Namespace: "bootstrap-secret-ns",
+		Name:      "bootstrap-secret",
+	}
 	testCases := []struct {
 		name  string
 		check func(g *WithT, m []*ec2.LaunchTemplateTagSpecificationRequest)
@@ -1118,7 +1228,7 @@ func TestBuildLaunchTemplateTagSpecificationRequest(t *testing.T) {
 				expected := []*ec2.LaunchTemplateTagSpecificationRequest{
 					{
 						ResourceType: aws.String(ec2.ResourceTypeInstance),
-						Tags:         defaultEC2Tags("aws-mp-name", "cluster-name"),
+						Tags:         defaultEC2AndUserDataSecretKeyTags("aws-mp-name", "cluster-name", userDataSecretKey),
 					},
 					{
 						ResourceType: aws.String(ec2.ResourceTypeVolume),
@@ -1148,7 +1258,7 @@ func TestBuildLaunchTemplateTagSpecificationRequest(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 
 			s := NewService(cs)
-			tc.check(g, s.buildLaunchTemplateTagSpecificationRequest(ms))
+			tc.check(g, s.buildLaunchTemplateTagSpecificationRequest(ms, userDataSecretKey))
 		})
 	}
 }
@@ -1171,6 +1281,7 @@ func TestDiscoverLaunchTemplateAMI(t *testing.T) {
 				ImageLookupFormat: "ilf",
 				ImageLookupOrg:    "ilo",
 				ImageLookupBaseOS: "ilbo",
+				InstanceType:      "m5.large",
 			},
 			machineTemplate: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
@@ -1178,7 +1289,7 @@ func TestDiscoverLaunchTemplateAMI(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeImages(gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+				m.DescribeImagesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(&ec2.DescribeImagesOutput{
 						Images: []*ec2.Image{
 							{
@@ -1195,6 +1306,22 @@ func TestDiscoverLaunchTemplateAMI(t *testing.T) {
 							},
 						},
 					}, nil)
+				m.DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					InstanceTypes: []*string{
+						aws.String("m5.large"),
+					},
+				})).
+					Return(&ec2.DescribeInstanceTypesOutput{
+						InstanceTypes: []*ec2.InstanceTypeInfo{
+							{
+								ProcessorInfo: &ec2.ProcessorInfo{
+									SupportedArchitectures: []*string{
+										aws.String("x86_64"),
+									},
+								},
+							},
+						},
+					}, nil)
 			},
 			check: func(g *WithT, res *string, err error) {
 				g.Expect(res).Should(Equal(aws.String("latest")))
@@ -1204,7 +1331,8 @@ func TestDiscoverLaunchTemplateAMI(t *testing.T) {
 		{
 			name: "Should return AMI and use infra cluster image details, if not passed in aws launchtemplate",
 			awsLaunchTemplate: expinfrav1.AWSLaunchTemplate{
-				Name: "aws-launch-tmpl",
+				Name:         "aws-launch-tmpl",
+				InstanceType: "m5.large",
 			},
 			machineTemplate: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
@@ -1212,7 +1340,7 @@ func TestDiscoverLaunchTemplateAMI(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeImages(gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+				m.DescribeImagesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(&ec2.DescribeImagesOutput{
 						Images: []*ec2.Image{
 							{
@@ -1226,6 +1354,73 @@ func TestDiscoverLaunchTemplateAMI(t *testing.T) {
 							{
 								ImageId:      aws.String("oldest"),
 								CreationDate: aws.String("2014-02-08T17:02:31.000Z"),
+							},
+						},
+					}, nil)
+				m.DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					InstanceTypes: []*string{
+						aws.String("m5.large"),
+					},
+				})).
+					Return(&ec2.DescribeInstanceTypesOutput{
+						InstanceTypes: []*ec2.InstanceTypeInfo{
+							{
+								ProcessorInfo: &ec2.ProcessorInfo{
+									SupportedArchitectures: []*string{
+										aws.String("x86_64"),
+									},
+								},
+							},
+						},
+					}, nil)
+			},
+			check: func(g *WithT, res *string, err error) {
+				g.Expect(res).Should(Equal(aws.String("latest")))
+				g.Expect(err).NotTo(HaveOccurred())
+			},
+		},
+		{
+			name: "Should return arm64 AMI and use infra cluster image details, if not passed in aws launchtemplate",
+			awsLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+				Name:         "aws-launch-tmpl",
+				InstanceType: "t4g.large",
+			},
+			machineTemplate: clusterv1.MachineTemplateSpec{
+				Spec: clusterv1.MachineSpec{
+					Version: aws.String(DefaultAmiNameFormat),
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeImagesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+					Return(&ec2.DescribeImagesOutput{
+						Images: []*ec2.Image{
+							{
+								ImageId:      aws.String("ancient"),
+								CreationDate: aws.String("2011-02-08T17:02:31.000Z"),
+							},
+							{
+								ImageId:      aws.String("latest"),
+								CreationDate: aws.String("2019-02-08T17:02:31.000Z"),
+							},
+							{
+								ImageId:      aws.String("oldest"),
+								CreationDate: aws.String("2014-02-08T17:02:31.000Z"),
+							},
+						},
+					}, nil)
+				m.DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					InstanceTypes: []*string{
+						aws.String("t4g.large"),
+					},
+				})).
+					Return(&ec2.DescribeInstanceTypesOutput{
+						InstanceTypes: []*ec2.InstanceTypeInfo{
+							{
+								ProcessorInfo: &ec2.ProcessorInfo{
+									SupportedArchitectures: []*string{
+										aws.String("arm64"),
+									},
+								},
 							},
 						},
 					}, nil)
@@ -1259,7 +1454,8 @@ func TestDiscoverLaunchTemplateAMI(t *testing.T) {
 		{
 			name: "Should return error if AWS failed while describing images",
 			awsLaunchTemplate: expinfrav1.AWSLaunchTemplate{
-				Name: "aws-launch-tmpl",
+				Name:         "aws-launch-tmpl",
+				InstanceType: "m5.large",
 			},
 			machineTemplate: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
@@ -1267,8 +1463,24 @@ func TestDiscoverLaunchTemplateAMI(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeImages(gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+				m.DescribeImagesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(nil, awserrors.NewFailedDependency("dependency-failure"))
+				m.DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					InstanceTypes: []*string{
+						aws.String("m5.large"),
+					},
+				})).
+					Return(&ec2.DescribeInstanceTypesOutput{
+						InstanceTypes: []*ec2.InstanceTypeInfo{
+							{
+								ProcessorInfo: &ec2.ProcessorInfo{
+									SupportedArchitectures: []*string{
+										aws.String("x86_64"),
+									},
+								},
+							},
+						},
+					}, nil)
 			},
 			check: func(g *WithT, res *string, err error) {
 				g.Expect(res).To(BeNil())
@@ -1316,12 +1528,27 @@ func TestDiscoverLaunchTemplateAMIForEKS(t *testing.T) {
 		name              string
 		awsLaunchTemplate expinfrav1.AWSLaunchTemplate
 		machineTemplate   clusterv1.MachineTemplateSpec
-		expect            func(m *mock_ssmiface.MockSSMAPIMockRecorder)
+		expectEC2         func(m *mocks.MockEC2APIMockRecorder)
+		expectSSM         func(m *mock_ssmiface.MockSSMAPIMockRecorder)
 		check             func(*WithT, *string, error)
 	}{
 		{
 			name: "Should return AMI and use EKS infra cluster image details, if not passed in aws launch template",
-			expect: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
+			expectEC2: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeInstanceTypesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeInstanceTypesOutput{
+						InstanceTypes: []*ec2.InstanceTypeInfo{
+							{
+								ProcessorInfo: &ec2.ProcessorInfo{
+									SupportedArchitectures: []*string{
+										aws.String("x86_64"),
+									},
+								},
+							},
+						},
+					}, nil)
+			},
+			expectSSM: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
 				m.GetParameter(gomock.AssignableToTypeOf(&ssm.GetParameterInput{})).
 					Return(&ssm.GetParameterOutput{
 						Parameter: &ssm.Parameter{
@@ -1340,6 +1567,7 @@ func TestDiscoverLaunchTemplateAMIForEKS(t *testing.T) {
 			g := NewWithT(t)
 
 			ssmMock := mock_ssmiface.NewMockSSMAPI(mockCtrl)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 
 			scheme, err := setupScheme()
 			g.Expect(err).NotTo(HaveOccurred())
@@ -1351,11 +1579,16 @@ func TestDiscoverLaunchTemplateAMIForEKS(t *testing.T) {
 			ms, err := setupMachinePoolScope(client, mcps)
 			g.Expect(err).NotTo(HaveOccurred())
 
-			if tc.expect != nil {
-				tc.expect(ssmMock.EXPECT())
+			if tc.expectEC2 != nil {
+				tc.expectEC2(ec2Mock.EXPECT())
+			}
+
+			if tc.expectSSM != nil {
+				tc.expectSSM(ssmMock.EXPECT())
 			}
 
 			s := NewService(mcps)
+			s.EC2Client = ec2Mock
 			s.SSMClient = ssmMock
 
 			id, err := s.DiscoverLaunchTemplateAMI(ms)
@@ -1389,7 +1622,7 @@ func TestDeleteLaunchTemplateVersion(t *testing.T) {
 				version: aws.Int64(12),
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DeleteLaunchTemplateVersions(gomock.Eq(
+				m.DeleteLaunchTemplateVersionsWithContext(context.TODO(), gomock.Eq(
 					&ec2.DeleteLaunchTemplateVersionsInput{
 						LaunchTemplateId: aws.String("id"),
 						Versions:         aws.StringSlice([]string{"12"}),
@@ -1405,7 +1638,7 @@ func TestDeleteLaunchTemplateVersion(t *testing.T) {
 				version: aws.Int64(12),
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DeleteLaunchTemplateVersions(gomock.Eq(
+				m.DeleteLaunchTemplateVersionsWithContext(context.TODO(), gomock.Eq(
 					&ec2.DeleteLaunchTemplateVersionsInput{
 						LaunchTemplateId: aws.String("id"),
 						Versions:         aws.StringSlice([]string{"12"}),

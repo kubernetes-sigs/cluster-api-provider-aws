@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -34,7 +33,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
@@ -54,11 +52,12 @@ import (
 // AWSManagedMachinePoolReconciler reconciles a AWSManagedMachinePool object.
 type AWSManagedMachinePoolReconciler struct {
 	client.Client
-	Recorder             record.EventRecorder
-	Endpoints            []scope.ServiceEndpoint
-	EnableIAM            bool
-	AllowAdditionalRoles bool
-	WatchFilterValue     string
+	Recorder                     record.EventRecorder
+	Endpoints                    []scope.ServiceEndpoint
+	EnableIAM                    bool
+	AllowAdditionalRoles         bool
+	WatchFilterValue             string
+	TagUnmanagedNetworkResources bool
 }
 
 // SetupWithManager is used to setup the controller.
@@ -75,17 +74,17 @@ func (r *AWSManagedMachinePoolReconciler) SetupWithManager(ctx context.Context, 
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(log.GetLogger(), r.WatchFilterValue)).
 		Watches(
-			&source.Kind{Type: &expclusterv1.MachinePool{}},
+			&expclusterv1.MachinePool{},
 			handler.EnqueueRequestsFromMapFunc(machinePoolToInfrastructureMapFunc(gvk)),
 		).
 		Watches(
-			&source.Kind{Type: &ekscontrolplanev1.AWSManagedControlPlane{}},
+			&ekscontrolplanev1.AWSManagedControlPlane{},
 			handler.EnqueueRequestsFromMapFunc(managedControlPlaneToManagedMachinePoolMap),
 		).
 		Complete(r)
 }
 
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinepools;machinepools/status,verbs=get;list;watch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinepools;machinepools/status,verbs=get;list;watch;patch
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=awsmanagedcontrolplanes;awsmanagedcontrolplanes/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmanagedmachinepools,verbs=get;list;watch;update;patch;delete
@@ -139,11 +138,12 @@ func (r *AWSManagedMachinePoolReconciler) Reconcile(ctx context.Context, req ctr
 	}
 
 	managedControlPlaneScope, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
-		Client:         r.Client,
-		Logger:         log,
-		Cluster:        cluster,
-		ControlPlane:   controlPlane,
-		ControllerName: "awsManagedControlPlane",
+		Client:                       r.Client,
+		Logger:                       log,
+		Cluster:                      cluster,
+		ControlPlane:                 controlPlane,
+		ControllerName:               "awsManagedControlPlane",
+		TagUnmanagedNetworkResources: r.TagUnmanagedNetworkResources,
 	})
 	if err != nil {
 		return ctrl.Result{}, errors.New("error getting managed control plane scope")
@@ -186,26 +186,28 @@ func (r *AWSManagedMachinePoolReconciler) Reconcile(ctx context.Context, req ctr
 	}()
 
 	if !awsPool.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, machinePoolScope, managedControlPlaneScope)
+		return ctrl.Result{}, r.reconcileDelete(ctx, machinePoolScope, managedControlPlaneScope)
 	}
 
-	return r.reconcileNormal(ctx, machinePoolScope, managedControlPlaneScope)
+	return ctrl.Result{}, r.reconcileNormal(ctx, machinePoolScope, managedControlPlaneScope)
 }
 
 func (r *AWSManagedMachinePoolReconciler) reconcileNormal(
-	_ context.Context,
+	ctx context.Context,
 	machinePoolScope *scope.ManagedMachinePoolScope,
 	ec2Scope scope.EC2Scope,
-) (ctrl.Result, error) {
+) error {
 	machinePoolScope.Info("Reconciling AWSManagedMachinePool")
 
-	controllerutil.AddFinalizer(machinePoolScope.ManagedMachinePool, expinfrav1.ManagedMachinePoolFinalizer)
-	if err := machinePoolScope.PatchObject(); err != nil {
-		return ctrl.Result{}, err
+	if controllerutil.AddFinalizer(machinePoolScope.ManagedMachinePool, expinfrav1.ManagedMachinePoolFinalizer) {
+		if err := machinePoolScope.PatchObject(); err != nil {
+			return err
+		}
 	}
 
 	ekssvc := eks.NewNodegroupService(machinePoolScope)
 	ec2svc := r.getEC2Service(ec2Scope)
+	reconSvc := r.getReconcileService(ec2Scope)
 
 	if machinePoolScope.ManagedMachinePool.Spec.AWSLaunchTemplate != nil {
 		canUpdateLaunchTemplate := func() (bool, error) {
@@ -214,11 +216,11 @@ func (r *AWSManagedMachinePoolReconciler) reconcileNormal(
 		runPostLaunchTemplateUpdateOperation := func() error {
 			return nil
 		}
-		if err := ec2svc.ReconcileLaunchTemplate(machinePoolScope, canUpdateLaunchTemplate, runPostLaunchTemplateUpdateOperation); err != nil {
+		if err := reconSvc.ReconcileLaunchTemplate(machinePoolScope, ec2svc, canUpdateLaunchTemplate, runPostLaunchTemplateUpdateOperation); err != nil {
 			r.Recorder.Eventf(machinePoolScope.ManagedMachinePool, corev1.EventTypeWarning, "FailedLaunchTemplateReconcile", "Failed to reconcile launch template: %v", err)
 			machinePoolScope.Error(err, "failed to reconcile launch template")
 			conditions.MarkFalse(machinePoolScope.ManagedMachinePool, expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateReconcileFailedReason, clusterv1.ConditionSeverityError, "")
-			return ctrl.Result{}, err
+			return err
 		}
 
 		launchTemplateID := machinePoolScope.GetLaunchTemplateIDStatus()
@@ -226,53 +228,53 @@ func (r *AWSManagedMachinePoolReconciler) reconcileNormal(
 			ResourceID:      &launchTemplateID,
 			ResourceService: ec2svc,
 		}}
-		if err := ec2svc.ReconcileTags(machinePoolScope, resourceServiceToUpdate); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "error updating tags")
+		if err := reconSvc.ReconcileTags(machinePoolScope, resourceServiceToUpdate); err != nil {
+			return errors.Wrap(err, "error updating tags")
 		}
 
 		// set the LaunchTemplateReady condition
 		conditions.MarkTrue(machinePoolScope.ManagedMachinePool, expinfrav1.LaunchTemplateReadyCondition)
 	}
 
-	if err := ekssvc.ReconcilePool(); err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile machine pool for AWSManagedMachinePool %s/%s", machinePoolScope.ManagedMachinePool.Namespace, machinePoolScope.ManagedMachinePool.Name)
+	if err := ekssvc.ReconcilePool(ctx); err != nil {
+		return errors.Wrapf(err, "failed to reconcile machine pool for AWSManagedMachinePool %s/%s", machinePoolScope.ManagedMachinePool.Namespace, machinePoolScope.ManagedMachinePool.Name)
 	}
 
-	return ctrl.Result{}, nil
+	return nil
 }
 
 func (r *AWSManagedMachinePoolReconciler) reconcileDelete(
 	_ context.Context,
 	machinePoolScope *scope.ManagedMachinePoolScope,
 	ec2Scope scope.EC2Scope,
-) (ctrl.Result, error) {
+) error {
 	machinePoolScope.Info("Reconciling deletion of AWSManagedMachinePool")
 
 	ekssvc := eks.NewNodegroupService(machinePoolScope)
 	ec2Svc := ec2.NewService(ec2Scope)
 
 	if err := ekssvc.ReconcilePoolDelete(); err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile machine pool deletion for AWSManagedMachinePool %s/%s", machinePoolScope.ManagedMachinePool.Namespace, machinePoolScope.ManagedMachinePool.Name)
+		return errors.Wrapf(err, "failed to reconcile machine pool deletion for AWSManagedMachinePool %s/%s", machinePoolScope.ManagedMachinePool.Namespace, machinePoolScope.ManagedMachinePool.Name)
 	}
 
 	if machinePoolScope.ManagedMachinePool.Spec.AWSLaunchTemplate != nil {
 		launchTemplateID := machinePoolScope.ManagedMachinePool.Status.LaunchTemplateID
-		launchTemplate, _, err := ec2Svc.GetLaunchTemplate(machinePoolScope.LaunchTemplateName())
+		launchTemplate, _, _, err := ec2Svc.GetLaunchTemplate(machinePoolScope.LaunchTemplateName())
 		if err != nil {
-			return ctrl.Result{}, err
+			return err
 		}
 
 		if launchTemplate == nil {
 			machinePoolScope.Debug("Unable to find matching launch template")
 			r.Recorder.Eventf(machinePoolScope.ManagedMachinePool, corev1.EventTypeNormal, "NoLaunchTemplateFound", "Unable to find matching launch template")
 			controllerutil.RemoveFinalizer(machinePoolScope.ManagedMachinePool, expinfrav1.ManagedMachinePoolFinalizer)
-			return ctrl.Result{}, nil
+			return nil
 		}
 
 		machinePoolScope.Info("deleting launch template", "name", launchTemplate.Name)
 		if err := ec2Svc.DeleteLaunchTemplate(*launchTemplateID); err != nil {
 			r.Recorder.Eventf(machinePoolScope.ManagedMachinePool, corev1.EventTypeWarning, "FailedDelete", "Failed to delete launch template %q: %v", launchTemplate.Name, err)
-			return ctrl.Result{}, errors.Wrap(err, "failed to delete launch template")
+			return errors.Wrap(err, "failed to delete launch template")
 		}
 
 		machinePoolScope.Info("successfully deleted launch template")
@@ -280,7 +282,7 @@ func (r *AWSManagedMachinePoolReconciler) reconcileDelete(
 
 	controllerutil.RemoveFinalizer(machinePoolScope.ManagedMachinePool, expinfrav1.ManagedMachinePoolFinalizer)
 
-	return reconcile.Result{}, nil
+	return nil
 }
 
 // GetOwnerClusterKey returns only the Cluster name and namespace.
@@ -304,11 +306,10 @@ func GetOwnerClusterKey(obj metav1.ObjectMeta) (*client.ObjectKey, error) {
 }
 
 func managedControlPlaneToManagedMachinePoolMapFunc(c client.Client, gvk schema.GroupVersionKind, log logger.Wrapper) handler.MapFunc {
-	return func(o client.Object) []reconcile.Request {
-		ctx := context.Background()
+	return func(ctx context.Context, o client.Object) []reconcile.Request {
 		awsControlPlane, ok := o.(*ekscontrolplanev1.AWSManagedControlPlane)
 		if !ok {
-			panic(fmt.Sprintf("Expected a AWSManagedControlPlane but got a %T", o))
+			klog.Errorf("Expected a AWSManagedControlPlane but got a %T", o)
 		}
 
 		if !awsControlPlane.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -326,7 +327,7 @@ func managedControlPlaneToManagedMachinePoolMapFunc(c client.Client, gvk schema.
 
 		managedPoolForClusterList := expclusterv1.MachinePoolList{}
 		if err := c.List(
-			ctx, &managedPoolForClusterList, client.InNamespace(clusterKey.Namespace), client.MatchingLabels{clusterv1.ClusterLabelName: clusterKey.Name},
+			ctx, &managedPoolForClusterList, client.InNamespace(clusterKey.Namespace), client.MatchingLabels{clusterv1.ClusterNameLabel: clusterKey.Name},
 		); err != nil {
 			log.Error(err, "couldn't list pools for cluster")
 			return nil
@@ -336,7 +337,7 @@ func managedControlPlaneToManagedMachinePoolMapFunc(c client.Client, gvk schema.
 
 		var results []ctrl.Request
 		for i := range managedPoolForClusterList.Items {
-			managedPool := mapFunc(&managedPoolForClusterList.Items[i])
+			managedPool := mapFunc(ctx, &managedPoolForClusterList.Items[i])
 			results = append(results, managedPool...)
 		}
 
@@ -345,5 +346,9 @@ func managedControlPlaneToManagedMachinePoolMapFunc(c client.Client, gvk schema.
 }
 
 func (r *AWSManagedMachinePoolReconciler) getEC2Service(scope scope.EC2Scope) services.EC2Interface {
+	return ec2.NewService(scope)
+}
+
+func (r *AWSManagedMachinePoolReconciler) getReconcileService(scope scope.EC2Scope) services.MachinePoolReconcileInterface {
 	return ec2.NewService(scope)
 }

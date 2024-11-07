@@ -17,6 +17,7 @@ limitations under the License.
 package eks
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -36,6 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/annotations"
 )
 
 func (s *NodegroupService) describeNodegroup() (*eks.Nodegroup, error) {
@@ -79,7 +81,7 @@ func (s *NodegroupService) describeASGs(ng *eks.Nodegroup) (*autoscaling.Group, 
 		},
 	}
 
-	out, err := s.AutoscalingClient.DescribeAutoScalingGroups(input)
+	out, err := s.AutoscalingClient.DescribeAutoScalingGroupsWithContext(context.TODO(), input)
 	switch {
 	case awserrors.IsNotFound(err):
 		return nil, nil
@@ -255,7 +257,7 @@ func (s *NodegroupService) createNodegroup() (*eks.Nodegroup, error) {
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
-			// TODO
+			// TODO: handle other errors
 			case eks.ErrCodeResourceNotFoundException:
 				return nil, nil
 			default:
@@ -299,7 +301,7 @@ func (s *NodegroupService) deleteNodegroupAndWait() (reterr error) {
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
-			// TODO
+			// TODO handle other errors
 			case eks.ErrCodeResourceNotFoundException:
 				return nil
 			default:
@@ -325,7 +327,11 @@ func (s *NodegroupService) deleteNodegroupAndWait() (reterr error) {
 func (s *NodegroupService) reconcileNodegroupVersion(ng *eks.Nodegroup) error {
 	var specVersion *version.Version
 	if s.scope.Version() != nil {
-		specVersion = parseEKSVersion(*s.scope.Version())
+		var err error
+		specVersion, err = parseEKSVersion(*s.scope.Version())
+		if err != nil {
+			return fmt.Errorf("parsing EKS version from spec: %w", err)
+		}
 	}
 	ngVersion := version.MustParseGeneric(*ng.Version)
 	specAMI := s.scope.ManagedMachinePool.Spec.AMIVersion
@@ -346,6 +352,12 @@ func (s *NodegroupService) reconcileNodegroupVersion(ng *eks.Nodegroup) error {
 		var updateMsg string
 		// Either update k8s version or AMI version
 		switch {
+		case statusLaunchTemplateVersion != nil && *statusLaunchTemplateVersion != *ngLaunchTemplateVersion:
+			input.LaunchTemplate = &eks.LaunchTemplateSpecification{
+				Id:      s.scope.ManagedMachinePool.Status.LaunchTemplateID,
+				Version: statusLaunchTemplateVersion,
+			}
+			updateMsg = fmt.Sprintf("to launch template version %s", *statusLaunchTemplateVersion)
 		case specVersion != nil && ngVersion.LessThan(specVersion):
 			// NOTE: you can only upgrade increments of minor versions. If you want to upgrade 1.14 to 1.16 we
 			// need to go 1.14-> 1.15 and then 1.15 -> 1.16.
@@ -354,12 +366,6 @@ func (s *NodegroupService) reconcileNodegroupVersion(ng *eks.Nodegroup) error {
 		case specAMI != nil && *specAMI != ngAMI:
 			input.ReleaseVersion = specAMI
 			updateMsg = fmt.Sprintf("to AMI version %s", *input.ReleaseVersion)
-		case statusLaunchTemplateVersion != nil && *statusLaunchTemplateVersion != *ngLaunchTemplateVersion:
-			input.LaunchTemplate = &eks.LaunchTemplateSpecification{
-				Id:      s.scope.ManagedMachinePool.Status.LaunchTemplateID,
-				Version: statusLaunchTemplateVersion,
-			}
-			updateMsg = fmt.Sprintf("to launch template version %s", *statusLaunchTemplateVersion)
 		}
 
 		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
@@ -499,7 +505,7 @@ func (s *NodegroupService) reconcileNodegroupConfig(ng *eks.Nodegroup) error {
 	return nil
 }
 
-func (s *NodegroupService) reconcileNodegroup() error {
+func (s *NodegroupService) reconcileNodegroup(ctx context.Context) error {
 	ng, err := s.describeNodegroup()
 	if err != nil {
 		return errors.Wrap(err, "failed to describe nodegroup")
@@ -529,6 +535,20 @@ func (s *NodegroupService) reconcileNodegroup() error {
 		ng, err = s.waitForNodegroupActive()
 	default:
 		break
+	}
+
+	if annotations.ReplicasManagedByExternalAutoscaler(s.scope.MachinePool) {
+		// Set MachinePool replicas to the node group DesiredCapacity
+		ngDesiredCapacity := int32(aws.Int64Value(ng.ScalingConfig.DesiredSize))
+		if *s.scope.MachinePool.Spec.Replicas != ngDesiredCapacity {
+			s.scope.Info("Setting MachinePool replicas to node group DesiredCapacity",
+				"local", *s.scope.MachinePool.Spec.Replicas,
+				"external", ngDesiredCapacity)
+			s.scope.MachinePool.Spec.Replicas = &ngDesiredCapacity
+			if err := s.scope.PatchCAPIMachinePoolObject(ctx); err != nil {
+				return err
+			}
+		}
 	}
 
 	if err != nil {
@@ -580,7 +600,7 @@ func (s *NodegroupService) setStatus(ng *eks.Nodegroup) error {
 		for _, asg := range ng.Resources.AutoScalingGroups {
 			req.AutoScalingGroupNames = append(req.AutoScalingGroupNames, asg.Name)
 		}
-		groups, err := s.AutoscalingClient.DescribeAutoScalingGroups(&req)
+		groups, err := s.AutoscalingClient.DescribeAutoScalingGroupsWithContext(context.TODO(), &req)
 		if err != nil {
 			return errors.Wrap(err, "failed to describe AutoScalingGroup for nodegroup")
 		}

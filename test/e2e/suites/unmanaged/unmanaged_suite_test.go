@@ -25,6 +25,8 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
 )
@@ -41,6 +43,7 @@ func init() {
 }
 
 func TestE2E(t *testing.T) {
+	ctrl.SetLogger(klog.Background())
 	RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "capa-e2e")
 }

@@ -18,6 +18,7 @@ package ec2
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"sort"
 	"strings"
@@ -32,29 +33,43 @@ import (
 	"github.com/pkg/errors"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/api/bootstrap/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/util/system"
 )
 
 const (
-	// DefaultMachineAMIOwnerID is a heptio/VMware owned account. Please see:
-	// https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/487
-	DefaultMachineAMIOwnerID = "258751437250"
+	// DefaultArchitectureTag is the default architecture used when the architcture can't be determined from instance type.
+	DefaultArchitectureTag = Amd64ArchitectureTag
+
+	// Amd64ArchitectureTag is the reference AWS uses for amd64 architecture images.
+	Amd64ArchitectureTag = "x86_64"
+
+	// Arm64ArchitectureTag is the reference AWS uses for arm64 architecture images.
+	Arm64ArchitectureTag = "arm64"
+
+	// DefaultMachineAMIOwnerID is a CNCF owned account. This was previously a VMWare owned account
+	// but the project lost access to it. See the k8s.io repo for the infra definition.
+	DefaultMachineAMIOwnerID = "819546954734"
 
 	// ubuntuOwnerID is Ubuntu owned account. Please see:
 	// https://ubuntu.com/server/docs/cloud-images/amazon-ec2
 	ubuntuOwnerID = "099720109477"
 
+	ubuntuOwnerIDUsGov = "513442679011"
+
 	// Description regex for fetching Ubuntu AMIs for bastion host.
-	ubuntuImageDescription = "Canonical??Ubuntu??20.04?LTS??amd64?focal?image*"
+	ubuntuImageDescription = "Canonical??Ubuntu??24.04?LTS??amd64?noble?image*"
 
 	// defaultMachineAMILookupBaseOS is the default base operating system to use
 	// when looking up machine AMIs.
-	defaultMachineAMILookupBaseOS = "ubuntu-18.04"
+	defaultMachineAMILookupBaseOS = "ubuntu-24.04"
 
 	// DefaultAmiNameFormat is defined in the build/ directory of this project.
 	// The pattern is:
 	// 1. the string value `capa-ami-`
-	// 2. the baseOS of the AMI, for example: ubuntu-18.04, centos-7, amazon-2
+	// 2. the baseOS of the AMI, for example: ubuntu-24.04, centos-7, amazon-2
 	// 3. the kubernetes version as defined by the packages produced by kubernetes/release with or without v as a prefix, for example: 1.13.0, 1.12.5-mybuild.1, v1.17.3
 	// 4. a `-` followed by any additional characters.
 	DefaultAmiNameFormat = "capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*"
@@ -64,6 +79,9 @@ const (
 
 	// EKS AMI ID SSM Parameter name.
 	eksAmiSSMParameterFormat = "/aws/service/eks/optimized-ami/%s/amazon-linux-2/recommended/image_id"
+
+	// EKS ARM64 AMI ID SSM Parameter name.
+	eksARM64AmiSSMParameterFormat = "/aws/service/eks/optimized-ami/%s/amazon-linux-2-arm64/recommended/image_id"
 
 	// EKS GPU AMI ID SSM Parameter name.
 	eksGPUAmiSSMParameterFormat = "/aws/service/eks/optimized-ami/%s/amazon-linux-2-gpu/recommended/image_id"
@@ -94,8 +112,56 @@ func GenerateAmiName(amiNameFormat, baseOS, kubernetesVersion string) (string, e
 	return templateBytes.String(), nil
 }
 
+// Determine architecture based on instance type.
+func (s *Service) pickArchitectureForInstanceType(instanceType string) (string, error) {
+	descInstanceTypeInput := &ec2.DescribeInstanceTypesInput{
+		InstanceTypes: []*string{&instanceType},
+	}
+	describeInstanceTypeResult, err := s.EC2Client.DescribeInstanceTypesWithContext(context.TODO(), descInstanceTypeInput)
+	if err != nil {
+		// if call to DescribeInstanceTypes fails due to permissions error, log a warning and return the default architecture.
+		if awserrors.IsPermissionsError(err) {
+			record.Warnf(s.scope.InfraCluster(), "FailedDescribeInstanceTypes", "insufficient permissions to describe instance types for instance type %q, falling back to the default architecture of %q: %v", instanceType, DefaultArchitectureTag, err)
+
+			return DefaultArchitectureTag, nil
+		}
+		return "", errors.Wrapf(err, "failed to describe instance types for instance type %q", instanceType)
+	}
+
+	if len(describeInstanceTypeResult.InstanceTypes) == 0 {
+		return "", fmt.Errorf("instance type result empty for type %q", instanceType)
+	}
+
+	supportedArchs := describeInstanceTypeResult.InstanceTypes[0].ProcessorInfo.SupportedArchitectures
+
+	logger := s.scope.GetLogger().WithValues("instance type", instanceType, "supported architectures", supportedArchs)
+	logger.Info("Obtained a list of supported architectures for instance type")
+
+	// Loop over every supported architecture for the instance type
+	architecture := ""
+archCheck:
+	for _, a := range supportedArchs {
+		switch *a {
+		case Amd64ArchitectureTag:
+			architecture = *a
+			break archCheck
+		case Arm64ArchitectureTag:
+			architecture = *a
+			break archCheck
+		}
+	}
+
+	if architecture == "" {
+		return "", fmt.Errorf("unable to find preferred architecture for instance type %q", instanceType)
+	}
+
+	logger.Info("Chosen architecture", "architecture", architecture)
+
+	return architecture, nil
+}
+
 // DefaultAMILookup will do a default AMI lookup.
-func DefaultAMILookup(ec2Client ec2iface.EC2API, ownerID, baseOS, kubernetesVersion, amiNameFormat string) (*ec2.Image, error) {
+func DefaultAMILookup(ec2Client ec2iface.EC2API, ownerID, baseOS, kubernetesVersion, architecture, amiNameFormat string) (*ec2.Image, error) {
 	if amiNameFormat == "" {
 		amiNameFormat = DefaultAmiNameFormat
 	}
@@ -122,7 +188,7 @@ func DefaultAMILookup(ec2Client ec2iface.EC2API, ownerID, baseOS, kubernetesVers
 			},
 			{
 				Name:   aws.String("architecture"),
-				Values: []*string{aws.String("x86_64")},
+				Values: []*string{aws.String(architecture)},
 			},
 			{
 				Name:   aws.String("state"),
@@ -135,7 +201,7 @@ func DefaultAMILookup(ec2Client ec2iface.EC2API, ownerID, baseOS, kubernetesVers
 		},
 	}
 
-	out, err := ec2Client.DescribeImages(describeImageInput)
+	out, err := ec2Client.DescribeImagesWithContext(context.TODO(), describeImageInput)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to find ami: %q", amiName)
 	}
@@ -151,10 +217,10 @@ func DefaultAMILookup(ec2Client ec2iface.EC2API, ownerID, baseOS, kubernetesVers
 }
 
 // defaultAMIIDLookup returns the default AMI based on region.
-func (s *Service) defaultAMIIDLookup(amiNameFormat, ownerID, baseOS, kubernetesVersion string) (string, error) {
-	latestImage, err := DefaultAMILookup(s.EC2Client, ownerID, baseOS, kubernetesVersion, amiNameFormat)
+func (s *Service) defaultAMIIDLookup(amiNameFormat, ownerID, baseOS, architecture, kubernetesVersion string) (string, error) {
+	latestImage, err := DefaultAMILookup(s.EC2Client, ownerID, baseOS, kubernetesVersion, architecture, amiNameFormat)
 	if err != nil {
-		record.Eventf(s.scope.InfraCluster(), "FailedDescribeImages", "Failed to find ami for OS=%s and Kubernetes-version=%s: %v", baseOS, kubernetesVersion, err)
+		record.Eventf(s.scope.InfraCluster(), "FailedDescribeImages", "Failed to find ami for OS=%s, Architecture=%s and Kubernetes-version=%s: %v", baseOS, architecture, kubernetesVersion, err)
 		return "", errors.Wrapf(err, "failed to find ami")
 	}
 
@@ -199,10 +265,6 @@ func (s *Service) defaultBastionAMILookup() (string, error) {
 	describeImageInput := &ec2.DescribeImagesInput{
 		Filters: []*ec2.Filter{
 			{
-				Name:   aws.String("owner-id"),
-				Values: []*string{aws.String(ubuntuOwnerID)},
-			},
-			{
 				Name:   aws.String("architecture"),
 				Values: []*string{aws.String("x86_64")},
 			},
@@ -220,7 +282,20 @@ func (s *Service) defaultBastionAMILookup() (string, error) {
 			},
 		},
 	}
-	out, err := s.EC2Client.DescribeImages(describeImageInput)
+
+	ownerID := ubuntuOwnerID
+	partition := system.GetPartitionFromRegion(s.scope.Region())
+	if strings.Contains(partition, v1beta1.PartitionNameUSGov) {
+		ownerID = ubuntuOwnerIDUsGov
+	}
+
+	filter := &ec2.Filter{
+		Name:   aws.String("owner-id"),
+		Values: []*string{aws.String(ownerID)},
+	}
+	describeImageInput.Filters = append(describeImageInput.Filters, filter)
+
+	out, err := s.EC2Client.DescribeImagesWithContext(context.TODO(), describeImageInput)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to describe images within region: %q", s.scope.Region())
 	}
@@ -234,7 +309,7 @@ func (s *Service) defaultBastionAMILookup() (string, error) {
 	return *latestImage.ImageId, nil
 }
 
-func (s *Service) eksAMILookup(kubernetesVersion string, amiType *infrav1.EKSAMILookupType) (string, error) {
+func (s *Service) eksAMILookup(kubernetesVersion string, architecture string, amiType *infrav1.EKSAMILookupType) (string, error) {
 	// format ssm parameter path properly
 	formattedVersion, err := formatVersionForEKS(kubernetesVersion)
 	if err != nil {
@@ -251,7 +326,14 @@ func (s *Service) eksAMILookup(kubernetesVersion string, amiType *infrav1.EKSAMI
 	case infrav1.AmazonLinuxGPU:
 		paramName = fmt.Sprintf(eksGPUAmiSSMParameterFormat, formattedVersion)
 	default:
-		paramName = fmt.Sprintf(eksAmiSSMParameterFormat, formattedVersion)
+		switch architecture {
+		case Arm64ArchitectureTag:
+			paramName = fmt.Sprintf(eksARM64AmiSSMParameterFormat, formattedVersion)
+		case Amd64ArchitectureTag:
+			paramName = fmt.Sprintf(eksAmiSSMParameterFormat, formattedVersion)
+		default:
+			return "", fmt.Errorf("cannot look up eks-optimized image for architecture %q", architecture)
+		}
 	}
 
 	input := &ssm.GetParameterInput{

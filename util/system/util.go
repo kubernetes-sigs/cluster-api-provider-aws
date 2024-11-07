@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package system contains utiilities for the system namespace.
 package system
 
 import (
@@ -21,6 +22,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/pkg/errors"
 )
 
@@ -67,4 +69,20 @@ func GetNamespaceFromFile(nsFilePath string) (string, error) {
 		return "", fmt.Errorf("error reading namespace file: %w", err)
 	}
 	return string(namespace), nil
+}
+
+// GetPartitionFromRegion returns the cluster partition.
+func GetPartitionFromRegion(region string) string {
+	switch region {
+	case endpoints.UsGovEast1RegionID, endpoints.UsGovWest1RegionID:
+		return endpoints.AwsUsGovPartitionID
+	case endpoints.CnNorth1RegionID, endpoints.CnNorthwest1RegionID:
+		return endpoints.AwsCnPartitionID
+	case endpoints.UsIsoEast1RegionID, endpoints.UsIsoWest1RegionID:
+		return endpoints.AwsIsoPartitionID
+	case endpoints.UsIsobEast1RegionID:
+		return endpoints.AwsIsoBPartitionID
+	default:
+		return endpoints.AwsPartitionID
+	}
 }

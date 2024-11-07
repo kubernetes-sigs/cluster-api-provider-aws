@@ -23,7 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
@@ -99,7 +99,7 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 					},
 					Subnets: []infrav1.AWSResourceReference{
 						{
-							ID:      pointer.StringPtr("subnet-id"),
+							ID:      ptr.To[string]("subnet-id"),
 							Filters: []infrav1.Filter{{Name: "filter_name", Values: []string{"filter_value"}}},
 						},
 					},
@@ -117,7 +117,7 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 					},
 					Subnets: []infrav1.AWSResourceReference{
 						{
-							ID: pointer.StringPtr("subnet-id"),
+							ID: ptr.To[string]("subnet-id"),
 						},
 					},
 				},
@@ -139,15 +139,52 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "Should fail if both spot market options or mixed instances policy are set",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					MixedInstancesPolicy: &MixedInstancesPolicy{
+						Overrides: []Overrides{{InstanceType: "t3.medium"}},
+					},
+					AWSLaunchTemplate: AWSLaunchTemplate{
+						SpotMarketOptions: &infrav1.SpotMarketOptions{MaxPrice: aws.String("0.1")},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Should fail if MaxHealthyPercentage is set, but MinHealthyPercentage is not set",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					RefreshPreferences: &RefreshPreferences{MaxHealthyPercentage: aws.Int64(100)},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Should fail if the difference between MaxHealthyPercentage and MinHealthyPercentage is greater than 100",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					RefreshPreferences: &RefreshPreferences{
+						MaxHealthyPercentage: aws.Int64(150),
+						MinHealthyPercentage: aws.Int64(25),
+					},
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.pool.ValidateCreate()
+			warn, err := tt.pool.ValidateCreate()
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).To(Succeed())
 			}
+			// Nothing emits warnings yet
+			g.Expect(warn).To(BeEmpty())
 		})
 	}
 }
@@ -218,7 +255,7 @@ func TestAWSMachinePoolValidateUpdate(t *testing.T) {
 					},
 					Subnets: []infrav1.AWSResourceReference{
 						{
-							ID:      pointer.StringPtr("subnet-id"),
+							ID:      ptr.To[string]("subnet-id"),
 							Filters: []infrav1.Filter{{Name: "filter_name", Values: []string{"filter_value"}}},
 						},
 					},
@@ -243,22 +280,66 @@ func TestAWSMachinePoolValidateUpdate(t *testing.T) {
 					},
 					Subnets: []infrav1.AWSResourceReference{
 						{
-							ID: pointer.StringPtr("subnet-id"),
+							ID: ptr.To[string]("subnet-id"),
 						},
 					},
 				},
 			},
 			wantErr: false,
 		},
+		{
+			name: "Should fail update if both spec.awsLaunchTemplate.SpotMarketOptions and spec.MixedInstancesPolicy are passed in AWSMachinePool spec",
+			old: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					MixedInstancesPolicy: &MixedInstancesPolicy{
+						Overrides: []Overrides{{InstanceType: "t3.medium"}},
+					},
+				},
+			},
+			new: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					MixedInstancesPolicy: &MixedInstancesPolicy{
+						Overrides: []Overrides{{InstanceType: "t3.medium"}},
+					},
+					AWSLaunchTemplate: AWSLaunchTemplate{
+						SpotMarketOptions: &infrav1.SpotMarketOptions{MaxPrice: ptr.To[string]("0.1")},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Should fail if MaxHealthyPercentage is set, but MinHealthyPercentage is not set",
+			new: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					RefreshPreferences: &RefreshPreferences{MaxHealthyPercentage: aws.Int64(100)},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Should fail if the difference between MaxHealthyPercentage and MinHealthyPercentage is greater than 100",
+			new: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					RefreshPreferences: &RefreshPreferences{
+						MaxHealthyPercentage: aws.Int64(150),
+						MinHealthyPercentage: aws.Int64(25),
+					},
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.new.ValidateUpdate(tt.old.DeepCopy())
+			warn, err := tt.new.ValidateUpdate(tt.old.DeepCopy())
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).To(Succeed())
 			}
+			// Nothing emits warnings yet
+			g.Expect(warn).To(BeEmpty())
 		})
 	}
 }

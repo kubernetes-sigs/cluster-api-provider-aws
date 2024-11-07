@@ -29,7 +29,7 @@ import (
 	go_cfn "github.com/awslabs/goformation/v4/cloudformation"
 	"github.com/pkg/errors"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 )
@@ -49,7 +49,7 @@ func NewService(i cloudformationiface.CloudFormationAPI) *Service {
 }
 
 // ReconcileBootstrapStack creates or updates bootstrap CloudFormation.
-func (s *Service) ReconcileBootstrapStack(stackName string, t go_cfn.Template, tags map[string]string, deleteOnFailure bool) error {
+func (s *Service) ReconcileBootstrapStack(stackName string, t go_cfn.Template, tags map[string]string) error {
 	yaml, err := t.YAML()
 	processedYaml := string(yaml)
 	if err != nil {
@@ -59,12 +59,12 @@ func (s *Service) ReconcileBootstrapStack(stackName string, t go_cfn.Template, t
 	stackTags := []*cfn.Tag{}
 	for k, v := range tags {
 		stackTags = append(stackTags, &cfn.Tag{
-			Key:   pointer.StringPtr(k),
-			Value: pointer.StringPtr(v),
+			Key:   ptr.To[string](k),
+			Value: ptr.To[string](v),
 		})
 	}
 	//nolint:nestif
-	if err := s.createStack(stackName, processedYaml, stackTags, deleteOnFailure); err != nil {
+	if err := s.createStack(stackName, processedYaml, stackTags); err != nil {
 		if code, _ := awserrors.Code(errors.Cause(err)); code == "AlreadyExistsException" {
 			klog.Infof("AWS Cloudformation stack %q already exists, updating", klog.KRef("", stackName))
 			updateErr := s.updateStack(stackName, processedYaml, stackTags)
@@ -82,15 +82,41 @@ func (s *Service) ReconcileBootstrapStack(stackName string, t go_cfn.Template, t
 	return nil
 }
 
-func (s *Service) createStack(stackName, yaml string, tags []*cfn.Tag, deleteOnFailure bool) error {
+// ReconcileBootstrapNoUpdate creates or updates bootstrap CloudFormation without updating the stack.
+func (s *Service) ReconcileBootstrapNoUpdate(stackName string, t go_cfn.Template, tags map[string]string) error {
+	yaml, err := t.YAML()
+	processedYaml := string(yaml)
+	if err != nil {
+		return errors.Wrap(err, "failed to generate AWS CloudFormation YAML")
+	}
+
+	stackTags := []*cfn.Tag{}
+	for k, v := range tags {
+		stackTags = append(stackTags, &cfn.Tag{
+			Key:   aws.String(k),
+			Value: aws.String(v),
+		})
+	}
+	//nolint:nestif
+	if err := s.createStack(stackName, processedYaml, stackTags); err != nil {
+		if code, _ := awserrors.Code(errors.Cause(err)); code == "AlreadyExistsException" {
+			desInput := &cfn.DescribeStacksInput{StackName: aws.String(stackName)}
+			if err := s.CFN.WaitUntilStackCreateComplete(desInput); err != nil {
+				return errors.Wrap(err, "failed to wait for AWS CloudFormation stack to be CreateComplete")
+			}
+			return nil
+		}
+		return fmt.Errorf("failed to create CF stack: %w", err)
+	}
+	return nil
+}
+
+func (s *Service) createStack(stackName, yaml string, tags []*cfn.Tag) error {
 	input := &cfn.CreateStackInput{
 		Capabilities: aws.StringSlice([]string{cfn.CapabilityCapabilityIam, cfn.CapabilityCapabilityNamedIam}),
 		TemplateBody: aws.String(yaml),
 		StackName:    aws.String(stackName),
 		Tags:         tags,
-	}
-	if deleteOnFailure {
-		input.OnFailure = aws.String(cfn.OnFailureDelete)
 	}
 	klog.V(2).Infof("creating AWS CloudFormation stack %q", stackName)
 	if _, err := s.CFN.CreateStack(input); err != nil {
@@ -100,7 +126,7 @@ func (s *Service) createStack(stackName, yaml string, tags []*cfn.Tag, deleteOnF
 	desInput := &cfn.DescribeStacksInput{StackName: aws.String(stackName)}
 	klog.V(2).Infof("waiting for stack %q to create", stackName)
 	if err := s.CFN.WaitUntilStackCreateComplete(desInput); err != nil {
-		return errors.Wrap(err, "failed to create AWS CloudFormation stack")
+		return errors.Wrap(err, "failed to wait for AWS CloudFormation stack to be CreateComplete")
 	}
 
 	klog.V(2).Infof("stack %q created", stackName)

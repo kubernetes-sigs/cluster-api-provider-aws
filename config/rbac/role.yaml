@@ -2,9 +2,20 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  creationTimestamp: null
   name: manager-role
 rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - ""
   resources:
@@ -36,6 +47,18 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
 - apiGroups:
   - bootstrap.cluster.x-k8s.io
   resources:
@@ -111,6 +134,14 @@ rules:
 - apiGroups:
   - controlplane.cluster.x-k8s.io
   resources:
+  - '*'
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - controlplane.cluster.x-k8s.io
+  resources:
   - awsmanagedcontrolplanes
   verbs:
   - delete
@@ -132,6 +163,40 @@ rules:
   - controlplane.cluster.x-k8s.io
   resources:
   - awsmanagedcontrolplanes/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - controlplane.cluster.x-k8s.io
+  resources:
+  - rosacontrolplanes
+  verbs:
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - controlplane.cluster.x-k8s.io
+  resources:
+  - rosacontrolplanes
+  - rosacontrolplanes/status
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - controlplane.cluster.x-k8s.io
+  resources:
+  - rosacontrolplanes/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - controlplane.cluster.x-k8s.io
+  resources:
+  - rosacontrolplanes/status
   verbs:
   - get
   - patch
@@ -328,6 +393,50 @@ rules:
   - infrastructure.cluster.x-k8s.io
   resources:
   - awsmanagedmachinepools/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - rosaclusters
+  verbs:
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - rosaclusters/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - rosamachinepools
+  verbs:
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - rosamachinepools/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - rosamachinepools/status
   verbs:
   - get
   - patch

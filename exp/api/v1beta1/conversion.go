@@ -18,11 +18,12 @@ package v1beta1
 
 import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
+
 	infrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	infrav1exp "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
-	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
 // ConvertTo converts the v1beta1 AWSMachinePool receiver to a v1beta2 AWSMachinePool.
@@ -41,9 +42,23 @@ func (src *AWSMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	if restored.Spec.SuspendProcesses != nil {
 		dst.Spec.SuspendProcesses = restored.Spec.SuspendProcesses
 	}
-	if dst.Spec.RefreshPreferences != nil && restored.Spec.RefreshPreferences != nil {
+	if restored.Spec.RefreshPreferences != nil {
 		dst.Spec.RefreshPreferences.Disable = restored.Spec.RefreshPreferences.Disable
+		dst.Spec.RefreshPreferences.MaxHealthyPercentage = restored.Spec.RefreshPreferences.MaxHealthyPercentage
 	}
+	if restored.Spec.AWSLaunchTemplate.InstanceMetadataOptions != nil {
+		dst.Spec.AWSLaunchTemplate.InstanceMetadataOptions = restored.Spec.AWSLaunchTemplate.InstanceMetadataOptions
+	}
+	if restored.Spec.AvailabilityZoneSubnetType != nil {
+		dst.Spec.AvailabilityZoneSubnetType = restored.Spec.AvailabilityZoneSubnetType
+	}
+
+	if restored.Spec.AWSLaunchTemplate.PrivateDNSName != nil {
+		dst.Spec.AWSLaunchTemplate.PrivateDNSName = restored.Spec.AWSLaunchTemplate.PrivateDNSName
+	}
+
+	dst.Spec.DefaultInstanceWarmup = restored.Spec.DefaultInstanceWarmup
+	dst.Spec.AWSLaunchTemplate.NonRootVolumes = restored.Spec.AWSLaunchTemplate.NonRootVolumes
 
 	return nil
 }
@@ -78,6 +93,26 @@ func (src *AWSManagedMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	if err := Convert_v1beta1_AWSManagedMachinePool_To_v1beta2_AWSManagedMachinePool(src, dst, nil); err != nil {
 		return err
 	}
+	// Manually restore data.
+	restored := &infrav1exp.AWSManagedMachinePool{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+
+	if restored.Spec.AWSLaunchTemplate != nil {
+		if dst.Spec.AWSLaunchTemplate == nil {
+			dst.Spec.AWSLaunchTemplate = restored.Spec.AWSLaunchTemplate
+		}
+		dst.Spec.AWSLaunchTemplate.InstanceMetadataOptions = restored.Spec.AWSLaunchTemplate.InstanceMetadataOptions
+		dst.Spec.AWSLaunchTemplate.NonRootVolumes = restored.Spec.AWSLaunchTemplate.NonRootVolumes
+
+		if restored.Spec.AWSLaunchTemplate.PrivateDNSName != nil {
+			dst.Spec.AWSLaunchTemplate.PrivateDNSName = restored.Spec.AWSLaunchTemplate.PrivateDNSName
+		}
+	}
+	if restored.Spec.AvailabilityZoneSubnetType != nil {
+		dst.Spec.AvailabilityZoneSubnetType = restored.Spec.AvailabilityZoneSubnetType
+	}
 
 	return nil
 }
@@ -90,7 +125,7 @@ func (r *AWSManagedMachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
-	return nil
+	return utilconversion.MarshalData(src, r)
 }
 
 // Convert_v1beta2_AWSManagedMachinePoolSpec_To_v1beta1_AWSManagedMachinePoolSpec is a conversion function.

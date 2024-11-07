@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package iam provides a service for managing IAM roles and policies.
 package iam
 
 import (
@@ -23,6 +24,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
+	"sort"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/eks"
@@ -174,6 +177,10 @@ func RoleTags(key string, additionalTags infrav1.Tags) []*iam.Tag {
 			Value: aws.String(v),
 		})
 	}
+
+	// Sort so that unit tests can expect a stable order
+	sort.Slice(tags, func(i, j int) bool { return *tags[i].Key < *tags[j].Key })
+
 	return tags
 }
 
@@ -461,7 +468,7 @@ func (s *IAMService) FindAndVerifyOIDCProvider(cluster *eks.Cluster) (string, er
 			return "", errors.Wrap(err, "error getting provider")
 		}
 		// URL should always contain `https`.
-		if *provider.Url != issuerURL.String() {
+		if *provider.Url != issuerURL.String() && *provider.Url != strings.Replace(issuerURL.String(), "https://", "", 1) {
 			continue
 		}
 		if len(provider.ThumbprintList) != 1 || *provider.ThumbprintList[0] != thumbprint {
@@ -477,7 +484,7 @@ func (s *IAMService) FindAndVerifyOIDCProvider(cluster *eks.Cluster) (string, er
 
 func fetchRootCAThumbprint(issuerURL string, client *http.Client) (string, error) {
 	// needed to appease noctx.
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, issuerURL, nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, issuerURL, http.NoBody)
 	if err != nil {
 		return "", err
 	}

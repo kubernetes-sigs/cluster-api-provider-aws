@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package addons provides EKS addons commands.
 package addons
 
 import "github.com/spf13/cobra"

@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package controlleridentitycreator provides a way to reconcile AWSClusterControllerIdentity instance.
 package controlleridentitycreator
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -30,7 +30,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
@@ -140,7 +139,7 @@ func (r *AWSControllerIdentityReconciler) SetupWithManager(ctx context.Context, 
 
 	if feature.Gates.Enabled(feature.EKS) {
 		controller.Watches(
-			&source.Kind{Type: &ekscontrolplanev1.AWSManagedControlPlane{}},
+			&ekscontrolplanev1.AWSManagedControlPlane{},
 			handler.EnqueueRequestsFromMapFunc(r.managedControlPlaneMap),
 		)
 	}
@@ -148,10 +147,10 @@ func (r *AWSControllerIdentityReconciler) SetupWithManager(ctx context.Context, 
 	return controller.Complete(r)
 }
 
-func (r *AWSControllerIdentityReconciler) managedControlPlaneMap(o client.Object) []ctrl.Request {
+func (r *AWSControllerIdentityReconciler) managedControlPlaneMap(_ context.Context, o client.Object) []ctrl.Request {
 	managedControlPlane, ok := o.(*ekscontrolplanev1.AWSManagedControlPlane)
 	if !ok {
-		panic(fmt.Sprintf("Expected a managedControlPlane but got a %T", o))
+		klog.Errorf("Expected a managedControlPlane but got a %T", o)
 	}
 
 	return []ctrl.Request{

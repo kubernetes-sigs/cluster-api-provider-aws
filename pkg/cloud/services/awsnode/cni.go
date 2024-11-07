@@ -31,7 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/kustomize/api/konfig"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
@@ -80,13 +79,16 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 		}
 	}
 
-	if s.scope.SecondaryCidrBlock() == nil {
+	secondarySubnets := s.secondarySubnets()
+	if len(secondarySubnets) == 0 {
 		if needsUpdate {
 			s.scope.Info("adding environment properties to vpc-cni", "cluster", klog.KRef(s.scope.Namespace(), s.scope.Name()))
 			if err = remoteClient.Update(ctx, &ds, &client.UpdateOptions{}); err != nil {
 				return err
 			}
 		}
+
+		// with no secondary subnets there is no need for eni configs
 		return nil
 	}
 
@@ -101,7 +103,7 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 	}
 
 	s.scope.Info("for each subnet", "cluster", klog.KRef(s.scope.Namespace(), s.scope.Name()))
-	for _, subnet := range s.secondarySubnets() {
+	for _, subnet := range secondarySubnets {
 		var eniConfig amazoncni.ENIConfig
 		if err := remoteClient.Get(ctx, types.NamespacedName{Namespace: metav1.NamespaceSystem, Name: subnet.AvailabilityZone}, &eniConfig); err != nil {
 			if !apierrors.IsNotFound(err) {
@@ -115,7 +117,7 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 					Labels:    metaLabels,
 				},
 				Spec: amazoncni.ENIConfigSpec{
-					Subnet:         subnet.ID,
+					Subnet:         subnet.GetResourceID(),
 					SecurityGroups: sgs,
 				},
 			}
@@ -127,7 +129,7 @@ func (s *Service) ReconcileCNI(ctx context.Context) error {
 
 		s.scope.Info("Updating ENIConfig", "cluster", klog.KRef(s.scope.Namespace(), s.scope.Name()), "subnet", subnet.ID, "availability-zone", subnet.AvailabilityZone)
 		eniConfig.Spec = amazoncni.ENIConfigSpec{
-			Subnet:         subnet.ID,
+			Subnet:         subnet.GetResourceID(),
 			SecurityGroups: sgs,
 		}
 
@@ -269,22 +271,25 @@ func (s *Service) deleteResource(ctx context.Context, remoteClient client.Client
 			return fmt.Errorf("deleting resource %s: %w", key, err)
 		}
 		s.scope.Debug(fmt.Sprintf("resource %s was not found, no action", key))
-	} else {
-		// resource found, delete if no label or not managed by helm
-		if val, ok := obj.GetLabels()[konfig.ManagedbyLabelKey]; !ok || val != "Helm" {
-			if err := remoteClient.Delete(ctx, obj, &client.DeleteOptions{}); err != nil {
-				if !apierrors.IsNotFound(err) {
-					return fmt.Errorf("deleting %s: %w", key, err)
-				}
-				s.scope.Debug(fmt.Sprintf(
-					"resource %s was not found, not deleted", key))
-			} else {
-				s.scope.Debug(fmt.Sprintf("resource %s was deleted", key))
-			}
-		} else {
-			s.scope.Debug(fmt.Sprintf("resource %s is managed by helm, not deleted", key))
-		}
+		return nil
 	}
-
+	// Don't delete if the "PreventDeletionLabel" label exists. It could be there because CAPA added it (see below),
+	// or because it was added externally, for example if a custom version of AWS CNI was already installed.
+	// Either way, CAPA should not delete such a labelled CNI installation.
+	labels := obj.GetLabels()
+	if _, exists := labels[infrav1.PreventDeletionLabel]; exists {
+		s.scope.Debug(fmt.Sprintf("resource %s has '%s' label, skipping deletion", key, infrav1.PreventDeletionLabel))
+		return nil
+	}
+	// Delete the resource
+	if err := remoteClient.Delete(ctx, obj, &client.DeleteOptions{}); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return fmt.Errorf("failed to delete %s: %w", key, err)
+		}
+		s.scope.Debug(fmt.Sprintf(
+			"resource %s was not found, not deleted", key))
+	} else {
+		s.scope.Debug(fmt.Sprintf("resource %s was deleted", key))
+	}
 	return nil
 }

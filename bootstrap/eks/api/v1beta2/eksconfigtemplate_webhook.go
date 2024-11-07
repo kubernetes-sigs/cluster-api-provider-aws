@@ -20,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // SetupWebhookWithManager will setup the webhooks for the EKSConfigTemplate.
@@ -36,18 +37,18 @@ var _ webhook.Defaulter = &EKSConfigTemplate{}
 var _ webhook.Validator = &EKSConfigTemplate{}
 
 // ValidateCreate will do any extra validation when creating a EKSConfigTemplate.
-func (r *EKSConfigTemplate) ValidateCreate() error {
-	return nil
+func (r *EKSConfigTemplate) ValidateCreate() (admission.Warnings, error) {
+	return nil, nil
 }
 
 // ValidateUpdate will do any extra validation when updating a EKSConfigTemplate.
-func (r *EKSConfigTemplate) ValidateUpdate(old runtime.Object) error {
-	return nil
+func (r *EKSConfigTemplate) ValidateUpdate(_ runtime.Object) (admission.Warnings, error) {
+	return nil, nil
 }
 
 // ValidateDelete allows you to add any extra validation when deleting.
-func (r *EKSConfigTemplate) ValidateDelete() error {
-	return nil
+func (r *EKSConfigTemplate) ValidateDelete() (admission.Warnings, error) {
+	return nil, nil
 }
 
 // Default will set default values for the EKSConfigTemplate.

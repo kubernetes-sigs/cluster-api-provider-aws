@@ -29,6 +29,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/test/helpers"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -39,6 +40,7 @@ const DNSName = "www.google.com"
 var (
 	lbName          = aws.String("test-cluster-apiserver")
 	lbArn           = aws.String("loadbalancer::arn")
+	tgArn           = aws.String("arn::target-group")
 	describeLBInput = &elb.DescribeLoadBalancersInput{
 		LoadBalancerNames: aws.StringSlice([]string{"test-cluster-apiserver"}),
 	}
@@ -130,6 +132,10 @@ func expectAWSClusterConditions(g *WithT, m *infrav1.AWSCluster, expected []cond
 
 func getAWSCluster(name, namespace string) infrav1.AWSCluster {
 	return infrav1.AWSCluster{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "AWSCluster",
+			APIVersion: infrav1.GroupVersion.Identifier(),
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
@@ -174,7 +180,8 @@ func getClusterScope(awsCluster infrav1.AWSCluster) (*scope.ClusterScope, error)
 					Name: "test-cluster",
 				},
 			},
-			AWSCluster: &awsCluster,
+			AWSCluster:                   &awsCluster,
+			TagUnmanagedNetworkResources: true,
 		},
 	)
 }
@@ -280,6 +287,164 @@ func mockedCreateLBV2Calls(t *testing.T, m *mocks.MockELBV2APIMockRecorder) {
 		ResourceArns: []*string{lbArn},
 		TagKeys:      []*string{aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster-apiserver")},
 	})).MaxTimes(1)
+	m.SetSecurityGroups(gomock.Eq(&elbv2.SetSecurityGroupsInput{
+		LoadBalancerArn: lbArn,
+		SecurityGroups:  aws.StringSlice([]string{"sg-apiserver-lb"}),
+	})).MaxTimes(1)
+	m.WaitUntilLoadBalancerAvailableWithContext(gomock.Any(), gomock.Eq(&elbv2.DescribeLoadBalancersInput{
+		LoadBalancerArns: []*string{lbArn},
+	})).MaxTimes(1)
+}
+
+func mockedDescribeTargetGroupsCall(t *testing.T, m *mocks.MockELBV2APIMockRecorder) {
+	t.Helper()
+	m.DescribeTargetGroups(gomock.Eq(&elbv2.DescribeTargetGroupsInput{
+		LoadBalancerArn: lbArn,
+	})).
+		Return(&elbv2.DescribeTargetGroupsOutput{
+			NextMarker: new(string),
+			TargetGroups: []*elbv2.TargetGroup{
+				{
+					HealthCheckEnabled:         aws.Bool(true),
+					HealthCheckIntervalSeconds: new(int64),
+					HealthCheckPath:            new(string),
+					HealthCheckPort:            new(string),
+					HealthCheckProtocol:        new(string),
+					HealthCheckTimeoutSeconds:  new(int64),
+					HealthyThresholdCount:      new(int64),
+					IpAddressType:              new(string),
+					LoadBalancerArns:           []*string{lbArn},
+					Matcher:                    &elbv2.Matcher{},
+					Port:                       new(int64),
+					Protocol:                   new(string),
+					ProtocolVersion:            new(string),
+					TargetGroupArn:             tgArn,
+					TargetGroupName:            new(string),
+					TargetType:                 new(string),
+					UnhealthyThresholdCount:    new(int64),
+					VpcId:                      new(string),
+				}},
+		}, nil)
+}
+
+func mockedCreateTargetGroupCall(t *testing.T, m *mocks.MockELBV2APIMockRecorder) {
+	t.Helper()
+	m.CreateTargetGroup(helpers.PartialMatchCreateTargetGroupInput(t, &elbv2.CreateTargetGroupInput{
+		HealthCheckEnabled:         aws.Bool(true),
+		HealthCheckIntervalSeconds: aws.Int64(infrav1.DefaultAPIServerHealthCheckIntervalSec),
+		HealthCheckPort:            aws.String(infrav1.DefaultAPIServerPortString),
+		HealthCheckProtocol:        aws.String("TCP"),
+		HealthCheckTimeoutSeconds:  aws.Int64(infrav1.DefaultAPIServerHealthCheckTimeoutSec),
+		HealthyThresholdCount:      aws.Int64(infrav1.DefaultAPIServerHealthThresholdCount),
+		// Note: this is treated as a prefix with the partial matcher.
+		Name:     aws.String("apiserver-target"),
+		Port:     aws.Int64(infrav1.DefaultAPIServerPort),
+		Protocol: aws.String("TCP"),
+		Tags: []*elbv2.Tag{
+			{
+				Key:   aws.String("Name"),
+				Value: aws.String("bar-apiserver"),
+			},
+			{
+				Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+				Value: aws.String("owned"),
+			},
+			{
+				Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+				Value: aws.String("apiserver"),
+			},
+		},
+		UnhealthyThresholdCount: aws.Int64(infrav1.DefaultAPIServerUnhealthThresholdCount),
+		VpcId:                   aws.String("vpc-exists"),
+	})).Return(&elbv2.CreateTargetGroupOutput{
+		TargetGroups: []*elbv2.TargetGroup{{
+			HealthCheckEnabled:         aws.Bool(true),
+			HealthCheckIntervalSeconds: aws.Int64(infrav1.DefaultAPIServerHealthCheckIntervalSec),
+			HealthCheckPort:            aws.String(infrav1.DefaultAPIServerPortString),
+			HealthCheckProtocol:        aws.String("TCP"),
+			HealthCheckTimeoutSeconds:  aws.Int64(infrav1.DefaultAPIServerHealthCheckTimeoutSec),
+			HealthyThresholdCount:      aws.Int64(infrav1.DefaultAPIServerHealthThresholdCount),
+			LoadBalancerArns:           []*string{lbArn},
+			Matcher:                    &elbv2.Matcher{},
+			Port:                       aws.Int64(infrav1.DefaultAPIServerPort),
+			Protocol:                   aws.String("TCP"),
+			TargetGroupArn:             tgArn,
+			TargetGroupName:            aws.String("apiserver-target"),
+			UnhealthyThresholdCount:    aws.Int64(infrav1.DefaultAPIServerUnhealthThresholdCount),
+			VpcId:                      aws.String("vpc-exists"),
+		}},
+	}, nil)
+}
+
+func mockedModifyTargetGroupAttributes(t *testing.T, m *mocks.MockELBV2APIMockRecorder) {
+	t.Helper()
+	m.ModifyTargetGroupAttributes(gomock.Eq(&elbv2.ModifyTargetGroupAttributesInput{
+		TargetGroupArn: tgArn,
+		Attributes: []*elbv2.TargetGroupAttribute{
+			{
+				Key:   aws.String(infrav1.TargetGroupAttributeEnablePreserveClientIP),
+				Value: aws.String("false"),
+			},
+		},
+	})).Return(nil, nil)
+}
+
+func mockedDescribeListenersCall(t *testing.T, m *mocks.MockELBV2APIMockRecorder) {
+	t.Helper()
+	m.DescribeListeners(gomock.Eq(&elbv2.DescribeListenersInput{
+		LoadBalancerArn: lbArn,
+	})).
+		Return(&elbv2.DescribeListenersOutput{
+			Listeners: []*elbv2.Listener{{
+				DefaultActions: []*elbv2.Action{{
+					TargetGroupArn: aws.String("arn::targetgroup-not-found"),
+				}},
+				ListenerArn:     aws.String("arn::listener"),
+				LoadBalancerArn: lbArn,
+			}},
+		}, nil)
+}
+
+func mockedCreateListenerCall(t *testing.T, m *mocks.MockELBV2APIMockRecorder) {
+	t.Helper()
+	m.CreateListener(gomock.Eq(&elbv2.CreateListenerInput{
+		DefaultActions: []*elbv2.Action{
+			{
+				TargetGroupArn: tgArn,
+				Type:           aws.String(elbv2.ActionTypeEnumForward),
+			},
+		},
+		LoadBalancerArn: lbArn,
+		Port:            aws.Int64(infrav1.DefaultAPIServerPort),
+		Protocol:        aws.String("TCP"),
+		Tags: []*elbv2.Tag{
+			{
+				Key:   aws.String("Name"),
+				Value: aws.String("test-cluster-apiserver"),
+			},
+			{
+				Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+				Value: aws.String("owned"),
+			},
+			{
+				Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+				Value: aws.String("apiserver"),
+			},
+		},
+	})).Return(&elbv2.CreateListenerOutput{
+		Listeners: []*elbv2.Listener{
+			{
+				DefaultActions: []*elbv2.Action{
+					{
+						TargetGroupArn: tgArn,
+						Type:           aws.String(elbv2.ActionTypeEnumForward),
+					},
+				},
+				ListenerArn: aws.String("listener::arn"),
+				Port:        aws.Int64(infrav1.DefaultAPIServerPort),
+				Protocol:    aws.String("TCP"),
+			},
+		}}, nil)
 }
 
 func mockedDeleteLBCalls(expectV2Call bool, mv2 *mocks.MockELBV2APIMockRecorder, m *mocks.MockELBAPIMockRecorder) {

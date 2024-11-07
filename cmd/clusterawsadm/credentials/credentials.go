@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package credentials contains utilities for working with AWS credentials.
 package credentials
 
 import (

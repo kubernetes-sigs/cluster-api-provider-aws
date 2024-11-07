@@ -22,7 +22,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 func TestAWSMachineTemplateValidateCreate(t *testing.T) {
@@ -38,7 +38,7 @@ func TestAWSMachineTemplateValidateCreate(t *testing.T) {
 				Spec: AWSMachineTemplateSpec{
 					Template: AWSMachineTemplateResource{
 						Spec: AWSMachineSpec{
-							ProviderID: pointer.StringPtr("something"),
+							ProviderID: ptr.To[string]("something"),
 						},
 					},
 				},
@@ -103,33 +103,34 @@ func TestAWSMachineTemplateValidateUpdate(t *testing.T) {
 		wantError        bool
 	}{
 		{
-			name: "don't allow ssm parameter store",
+			name: "don't allow updates",
 			modifiedTemplate: &AWSMachineTemplate{
 				ObjectMeta: metav1.ObjectMeta{},
 				Spec: AWSMachineTemplateSpec{
 					Template: AWSMachineTemplateResource{
 						Spec: AWSMachineSpec{
-							CloudInit: CloudInit{
-								SecureSecretsBackend: SecretBackendSSMParameterStore,
-							},
-							InstanceType: "test",
+							InstanceType: "test2",
 						},
 					},
 				},
 			},
-			wantError: false,
+			wantError: true,
 		},
 		{
-			name: "allow secrets manager",
+			name: "allow defaulted values to update",
 			modifiedTemplate: &AWSMachineTemplate{
 				ObjectMeta: metav1.ObjectMeta{},
 				Spec: AWSMachineTemplateSpec{
 					Template: AWSMachineTemplateResource{
 						Spec: AWSMachineSpec{
-							CloudInit: CloudInit{
-								SecureSecretsBackend: SecretBackendSecretsManager,
-							},
+							CloudInit:    CloudInit{},
 							InstanceType: "test",
+							InstanceMetadataOptions: &InstanceMetadataOptions{
+								HTTPEndpoint:            InstanceMetadataEndpointStateEnabled,
+								HTTPPutResponseHopLimit: 1,
+								HTTPTokens:              HTTPTokensStateOptional,
+								InstanceMetadataTags:    InstanceMetadataEndpointStateDisabled,
+							},
 						},
 					},
 				},

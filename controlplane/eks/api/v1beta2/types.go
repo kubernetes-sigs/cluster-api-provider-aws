@@ -130,6 +130,9 @@ type Addon struct {
 	Name string `json:"name"`
 	// Version is the version of the addon to use
 	Version string `json:"version"`
+	// Configuration of the EKS addon
+	// +optional
+	Configuration string `json:"configuration,omitempty"`
 	// ConflictResolution is used to declare what should happen if there
 	// are parameter conflicts. Defaults to none
 	// +kubebuilder:default=overwrite
@@ -215,8 +218,8 @@ const (
 	SecurityGroupCluster = infrav1.SecurityGroupRole("cluster")
 )
 
+// OIDCIdentityProviderConfig represents the configuration for an OIDC identity provider.
 type OIDCIdentityProviderConfig struct {
-
 	// This is also known as audience. The ID for the client application that makes
 	// authentication requests to the OpenID identity provider.
 	// +kubebuilder:validation:Required

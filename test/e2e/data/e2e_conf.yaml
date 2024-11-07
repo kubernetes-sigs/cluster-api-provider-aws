@@ -20,25 +20,36 @@ images:
 ## PLEASE KEEP THESE UP TO DATE WITH THE COMPONENTS
 
   # Cluster API v1beta1 Preloads
-  - name: quay.io/jetstack/cert-manager-cainjector:v1.11.0
+  - name: quay.io/jetstack/cert-manager-cainjector:v1.15.1
     loadBehavior: tryLoad
-  - name: quay.io/jetstack/cert-manager-webhook:v1.11.0
+  - name: quay.io/jetstack/cert-manager-webhook:v1.15.1
     loadBehavior: tryLoad
-  - name: quay.io/jetstack/cert-manager-controller:v1.11.0
+  - name: quay.io/jetstack/cert-manager-controller:v1.15.1
     loadBehavior: tryLoad
-  - name: registry.k8s.io/cluster-api/cluster-api-controller:v1.3.3
+  - name: registry.k8s.io/cluster-api/cluster-api-controller:v1.8.4
     loadBehavior: tryLoad
-  - name: registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:v1.3.3
+  - name: registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:v1.8.4
     loadBehavior: tryLoad
-  - name: registry.k8s.io/cluster-api/kubeadm-control-plane-controller:v1.3.3
+  - name: registry.k8s.io/cluster-api/kubeadm-control-plane-controller:v1.8.4
     loadBehavior: tryLoad
 
 providers:
   - name: cluster-api
     type: CoreProvider
     versions:
-      - name: v1.3.3 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.3.3/core-components.yaml"
+      - name: v1.2.0 # earliest published release in the v1beta1 series; this is used for v1beta1 old --> v1beta1 latest clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.0/core-components.yaml"
+        type: "url"
+        contract: v1beta1
+        files:
+          - sourcePath: "./shared/v1beta1/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
+      - name: v1.8.4 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.8.4/core-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -53,8 +64,19 @@ providers:
     files:
       - sourcePath: "./shared/v1beta1/metadata.yaml"
     versions:
-      - name: v1.3.3 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.3.3/bootstrap-components.yaml"
+      - name: v1.2.0 # earliest published release in the v1beta1 series; this is used for v1beta1 old --> v1beta1 latest clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.0/bootstrap-components.yaml"
+        type: "url"
+        contract: v1beta1
+        files:
+          - sourcePath: "./shared/v1beta1/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
+      - name: v1.8.4 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.8.4/bootstrap-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -69,8 +91,19 @@ providers:
     files:
       - sourcePath: "./shared/v1beta1/metadata.yaml"
     versions:
-      - name: v1.3.3 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.3.3/control-plane-components.yaml"
+      - name: v1.2.0 # earliest published release in the v1beta1 series; this is used for v1beta1 old --> main clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.0/control-plane-components.yaml"
+        type: "url"
+        contract: v1beta1
+        files:
+          - sourcePath: "./shared/v1beta1/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
+      - name: v1.8.4 # latest published release in the v1beta1 series; this is used for v1beta1 --> v1beta1 latest clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.8.4/control-plane-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -104,6 +137,7 @@ providers:
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-limit-az.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-machine-pool.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-md-remediation.yaml"
+          - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-multi-az.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-nested-multitenancy.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-remote-management-cluster.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-simple-multitenancy.yaml"
@@ -142,10 +176,10 @@ variables:
   # allowing the same e2e config file to be re-used in different Prow jobs e.g. each one with a K8s version permutation.
   # The following Kubernetes versions should be the latest versions with already published kindest/node images.
   # This avoids building node images in the default case which improves the test duration significantly.
-  KUBERNETES_VERSION_MANAGEMENT: "v1.26.0"
-  KUBERNETES_VERSION: "v1.26.0"
-  KUBERNETES_VERSION_UPGRADE_TO: "v1.26.0"
-  KUBERNETES_VERSION_UPGRADE_FROM: "v1.25.3"
+  KUBERNETES_VERSION_MANAGEMENT: "v1.29.8"
+  KUBERNETES_VERSION: "v1.29.9"
+  KUBERNETES_VERSION_UPGRADE_TO: "v1.29.9"
+  KUBERNETES_VERSION_UPGRADE_FROM: "v1.29.8"
   # Pre and post 1.23 Kubernetes versions are being used for CSI upgrade tests
   PRE_1_23_KUBERNETES_VERSION: "v1.22.17"
   POST_1_23_KUBERNETES_VERSION: "v1.23.15"
@@ -156,11 +190,11 @@ variables:
   AWS_NODE_MACHINE_TYPE: t3.large
   AWS_MACHINE_TYPE_VCPU_USAGE: 2
   AWS_SSH_KEY_NAME: "cluster-api-provider-aws-sigs-k8s-io"
-  CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "v1.26.0"
+  CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "v1.29.9"
   CONFORMANCE_WORKER_MACHINE_COUNT: "5"
   CONFORMANCE_CONTROL_PLANE_MACHINE_COUNT: "3"
-  ETCD_VERSION_UPGRADE_TO: "3.5.6-0"
-  COREDNS_VERSION_UPGRADE_TO: "v1.9.3"
+  ETCD_VERSION_UPGRADE_TO: "3.5.11-0"
+  COREDNS_VERSION_UPGRADE_TO: "v1.11.1"
   MULTI_TENANCY_ROLE_NAME: "multi-tenancy-role"
   MULTI_TENANCY_NESTED_ROLE_NAME: "multi-tenancy-nested-role"
   IP_FAMILY: "IPv4"
@@ -172,7 +206,7 @@ variables:
   INIT_WITH_BINARY_V1BETA1: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.0/clusterctl-{OS}-{ARCH}"
   # INIT_WITH_KUBERNETES_VERSION are only used by the clusterctl upgrade test to initialize
   # the management cluster to be upgraded.
-  INIT_WITH_KUBERNETES_VERSION: "v1.25.0"
+  INIT_WITH_KUBERNETES_VERSION: "v1.29.8"
   EXP_BOOTSTRAP_FORMAT_IGNITION: "true"
   EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"
   EXP_EXTERNAL_RESOURCE_GC: "true"
@@ -188,7 +222,7 @@ intervals:
   default/wait-delete-cluster: ["20m", "10s"]
   default/wait-machine-upgrade: ["35m", "10s"]
   default/wait-contolplane-upgrade: ["40m", "10s"]
-  default/wait-machine-status: ["20m", "10s"]
+  default/wait-machine-status: ["25m", "10s"]
   default/wait-failed-machine-status: ["2m", "10s"]
   default/wait-infra-subnets: ["5m", "30s"]
   default/wait-machine-pool-nodes: ["40m", "10s"]

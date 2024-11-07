@@ -17,6 +17,7 @@ limitations under the License.
 package network
 
 import (
+	"context"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -52,37 +53,21 @@ func (s *Service) reconcileRouteTables() error {
 	}
 
 	subnets := s.scope.Subnets()
+	defer func() {
+		s.scope.SetSubnets(subnets)
+	}()
+
 	for i := range subnets {
-		sn := subnets[i]
+		sn := &subnets[i]
 		// We need to compile the minimum routes for this subnet first, so we can compare it or create them.
-		var routes []*ec2.Route
-		if sn.IsPublic {
-			if s.scope.VPC().InternetGatewayID == nil {
-				return errors.Errorf("failed to create routing tables: internet gateway for %q is nil", s.scope.VPC().ID)
-			}
-			routes = append(routes, s.getGatewayPublicRoute())
-			if sn.IsIPv6 {
-				routes = append(routes, s.getGatewayPublicIPv6Route())
-			}
-		} else {
-			natGatewayID, err := s.getNatGatewayForSubnet(&sn)
-			if err != nil {
-				return err
-			}
-			routes = append(routes, s.getNatGatewayPrivateRoute(natGatewayID))
-			if sn.IsIPv6 {
-				if !s.scope.VPC().IsIPv6Enabled() {
-					// Safety net because EgressOnlyInternetGateway needs the ID from the ipv6 block.
-					// if, for whatever reason by this point that is not available, we don't want to
-					// panic because of a nil pointer access. This should never occur. Famous last words though.
-					return errors.Errorf("ipv6 block missing for ipv6 enabled subnet, can't create egress only internet gateway")
-				}
-				routes = append(routes, s.getEgressOnlyInternetGateway())
-			}
+		routes, err := s.getRoutesForSubnet(sn)
+		if err != nil {
+			record.Warnf(s.scope.InfraCluster(), "FailedRouteTableRoutes", "Failed to get routes for managed RouteTable for subnet %s: %v", sn.ID, err)
+			return errors.Wrapf(err, "failed to discover routes on route table %s", sn.ID)
 		}
 
-		if rt, ok := subnetRouteMap[sn.ID]; ok {
-			s.scope.Debug("Subnet is already associated with route table", "subnet-id", sn.ID, "route-table-id", *rt.RouteTableId)
+		if rt, ok := subnetRouteMap[sn.GetResourceID()]; ok {
+			s.scope.Debug("Subnet is already associated with route table", "subnet-id", sn.GetResourceID(), "route-table-id", *rt.RouteTableId)
 			// TODO(vincepri): check that everything is in order, e.g. routes match the subnet type.
 
 			// For managed environments we need to reconcile the routes of our tables if there is a mistmatch.
@@ -114,6 +99,7 @@ func (s *Service) reconcileRouteTables() error {
 			// Not recording "SuccessfulTagRouteTable" here as we don't know if this was a no-op or an actual change
 			continue
 		}
+		s.scope.Debug("Subnet isn't associated with route table", "subnet-id", sn.GetResourceID())
 
 		// For each subnet that doesn't have a routing table associated with it,
 		// create a new table with the appropriate default routes and associate it to the subnet.
@@ -123,8 +109,8 @@ func (s *Service) reconcileRouteTables() error {
 		}
 
 		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-			if err := s.associateRouteTable(rt, sn.ID); err != nil {
-				s.scope.Error(err, "trying to associate route table", "subnet_id", sn.ID)
+			if err := s.associateRouteTable(rt, sn.GetResourceID()); err != nil {
+				s.scope.Error(err, "trying to associate route table", "subnet_id", sn.GetResourceID())
 				return false, err
 			}
 			return true, nil
@@ -132,14 +118,14 @@ func (s *Service) reconcileRouteTables() error {
 			return err
 		}
 
-		s.scope.Debug("Subnet has been associated with route table", "subnet-id", sn.ID, "route-table-id", rt.ID)
+		s.scope.Debug("Subnet has been associated with route table", "subnet-id", sn.GetResourceID(), "route-table-id", rt.ID)
 		sn.RouteTableID = aws.String(rt.ID)
 	}
 	conditions.MarkTrue(s.scope.InfraCluster(), infrav1.RouteTablesReadyCondition)
 	return nil
 }
 
-func (s *Service) fixMismatchedRouting(specRoute *ec2.Route, currentRoute *ec2.Route, rt *ec2.RouteTable) error {
+func (s *Service) fixMismatchedRouting(specRoute *ec2.CreateRouteInput, currentRoute *ec2.Route, rt *ec2.RouteTable) error {
 	var input *ec2.ReplaceRouteInput
 	if specRoute.DestinationCidrBlock != nil {
 		if (currentRoute.DestinationCidrBlock != nil &&
@@ -171,7 +157,7 @@ func (s *Service) fixMismatchedRouting(specRoute *ec2.Route, currentRoute *ec2.R
 	}
 	if input != nil {
 		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-			if _, err := s.EC2Client.ReplaceRoute(input); err != nil {
+			if _, err := s.EC2Client.ReplaceRouteWithContext(context.TODO(), input); err != nil {
 				return false, err
 			}
 			return true, nil
@@ -208,6 +194,32 @@ func (s *Service) describeVpcRouteTablesBySubnet() (map[string]*ec2.RouteTable, 
 	return res, nil
 }
 
+func (s *Service) deleteRouteTable(rt *ec2.RouteTable) error {
+	for _, as := range rt.Associations {
+		if as.SubnetId == nil {
+			continue
+		}
+
+		if _, err := s.EC2Client.DisassociateRouteTableWithContext(context.TODO(), &ec2.DisassociateRouteTableInput{AssociationId: as.RouteTableAssociationId}); err != nil {
+			record.Warnf(s.scope.InfraCluster(), "FailedDisassociateRouteTable", "Failed to disassociate managed RouteTable %q from Subnet %q: %v", *rt.RouteTableId, *as.SubnetId, err)
+			return errors.Wrapf(err, "failed to disassociate route table %q from subnet %q", *rt.RouteTableId, *as.SubnetId)
+		}
+
+		record.Eventf(s.scope.InfraCluster(), "SuccessfulDisassociateRouteTable", "Disassociated managed RouteTable %q from subnet %q", *rt.RouteTableId, *as.SubnetId)
+		s.scope.Debug("Deleted association between route table and subnet", "route-table-id", *rt.RouteTableId, "subnet-id", *as.SubnetId)
+	}
+
+	if _, err := s.EC2Client.DeleteRouteTableWithContext(context.TODO(), &ec2.DeleteRouteTableInput{RouteTableId: rt.RouteTableId}); err != nil {
+		record.Warnf(s.scope.InfraCluster(), "FailedDeleteRouteTable", "Failed to delete managed RouteTable %q: %v", *rt.RouteTableId, err)
+		return errors.Wrapf(err, "failed to delete route table %q", *rt.RouteTableId)
+	}
+
+	record.Eventf(s.scope.InfraCluster(), "SuccessfulDeleteRouteTable", "Deleted managed RouteTable %q", *rt.RouteTableId)
+	s.scope.Info("Deleted route table", "route-table-id", *rt.RouteTableId)
+
+	return nil
+}
+
 func (s *Service) deleteRouteTables() error {
 	if s.scope.VPC().IsUnmanaged(s.scope.Name()) {
 		s.scope.Trace("Skipping routing tables deletion in unmanaged mode")
@@ -220,27 +232,10 @@ func (s *Service) deleteRouteTables() error {
 	}
 
 	for _, rt := range rts {
-		for _, as := range rt.Associations {
-			if as.SubnetId == nil {
-				continue
-			}
-
-			if _, err := s.EC2Client.DisassociateRouteTable(&ec2.DisassociateRouteTableInput{AssociationId: as.RouteTableAssociationId}); err != nil {
-				record.Warnf(s.scope.InfraCluster(), "FailedDisassociateRouteTable", "Failed to disassociate managed RouteTable %q from Subnet %q: %v", *rt.RouteTableId, *as.SubnetId, err)
-				return errors.Wrapf(err, "failed to disassociate route table %q from subnet %q", *rt.RouteTableId, *as.SubnetId)
-			}
-
-			record.Eventf(s.scope.InfraCluster(), "SuccessfulDisassociateRouteTable", "Disassociated managed RouteTable %q from subnet %q", *rt.RouteTableId, *as.SubnetId)
-			s.scope.Debug("Deleted association between route table and subnet", "route-table-id", *rt.RouteTableId, "subnet-id", *as.SubnetId)
+		err := s.deleteRouteTable(rt)
+		if err != nil {
+			return err
 		}
-
-		if _, err := s.EC2Client.DeleteRouteTable(&ec2.DeleteRouteTableInput{RouteTableId: rt.RouteTableId}); err != nil {
-			record.Warnf(s.scope.InfraCluster(), "FailedDeleteRouteTable", "Failed to delete managed RouteTable %q: %v", *rt.RouteTableId, err)
-			return errors.Wrapf(err, "failed to delete route table %q", *rt.RouteTableId)
-		}
-
-		record.Eventf(s.scope.InfraCluster(), "SuccessfulDeleteRouteTable", "Deleted managed RouteTable %q", *rt.RouteTableId)
-		s.scope.Info("Deleted route table", "route-table-id", *rt.RouteTableId)
 	}
 	return nil
 }
@@ -254,7 +249,7 @@ func (s *Service) describeVpcRouteTables() ([]*ec2.RouteTable, error) {
 		filters = append(filters, filter.EC2.Cluster(s.scope.Name()))
 	}
 
-	out, err := s.EC2Client.DescribeRouteTables(&ec2.DescribeRouteTablesInput{
+	out, err := s.EC2Client.DescribeRouteTablesWithContext(context.TODO(), &ec2.DescribeRouteTablesInput{
 		Filters: filters,
 	})
 	if err != nil {
@@ -265,8 +260,8 @@ func (s *Service) describeVpcRouteTables() ([]*ec2.RouteTable, error) {
 	return out.RouteTables, nil
 }
 
-func (s *Service) createRouteTableWithRoutes(routes []*ec2.Route, isPublic bool, zone string) (*infrav1.RouteTable, error) {
-	out, err := s.EC2Client.CreateRouteTable(&ec2.CreateRouteTableInput{
+func (s *Service) createRouteTableWithRoutes(routes []*ec2.CreateRouteInput, isPublic bool, zone string) (*infrav1.RouteTable, error) {
+	out, err := s.EC2Client.CreateRouteTableWithContext(context.TODO(), &ec2.CreateRouteTableInput{
 		VpcId: aws.String(s.scope.VPC().ID),
 		TagSpecifications: []*ec2.TagSpecification{
 			tags.BuildParamsToTagSpecification(ec2.ResourceTypeRouteTable, s.getRouteTableTagParams(services.TemporaryResourceID, isPublic, zone))},
@@ -281,23 +276,17 @@ func (s *Service) createRouteTableWithRoutes(routes []*ec2.Route, isPublic bool,
 	for i := range routes {
 		route := routes[i]
 		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-			if _, err := s.EC2Client.CreateRoute(&ec2.CreateRouteInput{
-				RouteTableId:                out.RouteTable.RouteTableId,
-				DestinationCidrBlock:        route.DestinationCidrBlock,
-				DestinationIpv6CidrBlock:    route.DestinationIpv6CidrBlock,
-				EgressOnlyInternetGatewayId: route.EgressOnlyInternetGatewayId,
-				GatewayId:                   route.GatewayId,
-				InstanceId:                  route.InstanceId,
-				NatGatewayId:                route.NatGatewayId,
-				NetworkInterfaceId:          route.NetworkInterfaceId,
-				VpcPeeringConnectionId:      route.VpcPeeringConnectionId,
-			}); err != nil {
+			route.RouteTableId = out.RouteTable.RouteTableId
+			if _, err := s.EC2Client.CreateRouteWithContext(context.TODO(), route); err != nil {
 				return false, err
 			}
 			return true, nil
 		}, awserrors.RouteTableNotFound, awserrors.NATGatewayNotFound, awserrors.GatewayNotFound); err != nil {
-			// TODO(vincepri): cleanup the route table if this fails.
 			record.Warnf(s.scope.InfraCluster(), "FailedCreateRoute", "Failed to create route %s for RouteTable %q: %v", route.GoString(), *out.RouteTable.RouteTableId, err)
+			errDel := s.deleteRouteTable(out.RouteTable)
+			if errDel != nil {
+				record.Warnf(s.scope.InfraCluster(), "FailedDeleteRouteTable", "Failed to delete managed RouteTable %q: %v", *out.RouteTable.RouteTableId, errDel)
+			}
 			return nil, errors.Wrapf(err, "failed to create route in route table %q: %s", *out.RouteTable.RouteTableId, route.GoString())
 		}
 		record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateRoute", "Created route %s for RouteTable %q", route.GoString(), *out.RouteTable.RouteTableId)
@@ -309,7 +298,7 @@ func (s *Service) createRouteTableWithRoutes(routes []*ec2.Route, isPublic bool,
 }
 
 func (s *Service) associateRouteTable(rt *infrav1.RouteTable, subnetID string) error {
-	_, err := s.EC2Client.AssociateRouteTable(&ec2.AssociateRouteTableInput{
+	_, err := s.EC2Client.AssociateRouteTableWithContext(context.TODO(), &ec2.AssociateRouteTableInput{
 		RouteTableId: aws.String(rt.ID),
 		SubnetId:     aws.String(subnetID),
 	})
@@ -323,31 +312,38 @@ func (s *Service) associateRouteTable(rt *infrav1.RouteTable, subnetID string) e
 	return nil
 }
 
-func (s *Service) getNatGatewayPrivateRoute(natGatewayID string) *ec2.Route {
-	return &ec2.Route{
+func (s *Service) getNatGatewayPrivateRoute(natGatewayID string) *ec2.CreateRouteInput {
+	return &ec2.CreateRouteInput{
 		NatGatewayId:         aws.String(natGatewayID),
 		DestinationCidrBlock: aws.String(services.AnyIPv4CidrBlock),
 	}
 }
 
-func (s *Service) getEgressOnlyInternetGateway() *ec2.Route {
-	return &ec2.Route{
+func (s *Service) getEgressOnlyInternetGateway() *ec2.CreateRouteInput {
+	return &ec2.CreateRouteInput{
 		DestinationIpv6CidrBlock:    aws.String(services.AnyIPv6CidrBlock),
 		EgressOnlyInternetGatewayId: s.scope.VPC().IPv6.EgressOnlyInternetGatewayID,
 	}
 }
 
-func (s *Service) getGatewayPublicRoute() *ec2.Route {
-	return &ec2.Route{
+func (s *Service) getGatewayPublicRoute() *ec2.CreateRouteInput {
+	return &ec2.CreateRouteInput{
 		DestinationCidrBlock: aws.String(services.AnyIPv4CidrBlock),
 		GatewayId:            aws.String(*s.scope.VPC().InternetGatewayID),
 	}
 }
 
-func (s *Service) getGatewayPublicIPv6Route() *ec2.Route {
-	return &ec2.Route{
+func (s *Service) getGatewayPublicIPv6Route() *ec2.CreateRouteInput {
+	return &ec2.CreateRouteInput{
 		DestinationIpv6CidrBlock: aws.String(services.AnyIPv6CidrBlock),
 		GatewayId:                aws.String(*s.scope.VPC().InternetGatewayID),
+	}
+}
+
+func (s *Service) getCarrierGatewayPublicIPv4Route() *ec2.CreateRouteInput {
+	return &ec2.CreateRouteInput{
+		DestinationCidrBlock: aws.String(services.AnyIPv4CidrBlock),
+		CarrierGatewayId:     aws.String(*s.scope.VPC().CarrierGatewayID),
 	}
 }
 
@@ -375,4 +371,63 @@ func (s *Service) getRouteTableTagParams(id string, public bool, zone string) in
 		Role:        aws.String(infrav1.CommonRoleTagValue),
 		Additional:  additionalTags,
 	}
+}
+
+func (s *Service) getRoutesToPublicSubnet(sn *infrav1.SubnetSpec) ([]*ec2.CreateRouteInput, error) {
+	var routes []*ec2.CreateRouteInput
+
+	if sn.IsEdge() && sn.IsIPv6 {
+		return nil, errors.Errorf("can't determine routes for unsupported ipv6 subnet in zone type %q", sn.ZoneType)
+	}
+
+	if sn.IsEdgeWavelength() {
+		if s.scope.VPC().CarrierGatewayID == nil {
+			return routes, errors.Errorf("failed to create carrier routing table: carrier gateway for VPC %q is not present", s.scope.VPC().ID)
+		}
+		routes = append(routes, s.getCarrierGatewayPublicIPv4Route())
+		return routes, nil
+	}
+
+	if s.scope.VPC().InternetGatewayID == nil {
+		return routes, errors.Errorf("failed to create routing tables: internet gateway for VPC %q is not present", s.scope.VPC().ID)
+	}
+	routes = append(routes, s.getGatewayPublicRoute())
+	if sn.IsIPv6 {
+		routes = append(routes, s.getGatewayPublicIPv6Route())
+	}
+
+	return routes, nil
+}
+
+func (s *Service) getRoutesToPrivateSubnet(sn *infrav1.SubnetSpec) (routes []*ec2.CreateRouteInput, err error) {
+	var natGatewayID string
+
+	if sn.IsEdge() && sn.IsIPv6 {
+		return nil, errors.Errorf("can't determine routes for unsupported ipv6 subnet in zone type %q", sn.ZoneType)
+	}
+
+	natGatewayID, err = s.getNatGatewayForSubnet(sn)
+	if err != nil {
+		return routes, err
+	}
+
+	routes = append(routes, s.getNatGatewayPrivateRoute(natGatewayID))
+	if sn.IsIPv6 {
+		if !s.scope.VPC().IsIPv6Enabled() {
+			// Safety net because EgressOnlyInternetGateway needs the ID from the ipv6 block.
+			// if, for whatever reason by this point that is not available, we don't want to
+			// panic because of a nil pointer access. This should never occur. Famous last words though.
+			return routes, errors.Errorf("ipv6 block missing for ipv6 enabled subnet, can't create route for egress only internet gateway")
+		}
+		routes = append(routes, s.getEgressOnlyInternetGateway())
+	}
+
+	return routes, nil
+}
+
+func (s *Service) getRoutesForSubnet(sn *infrav1.SubnetSpec) ([]*ec2.CreateRouteInput, error) {
+	if sn.IsPublic {
+		return s.getRoutesToPublicSubnet(sn)
+	}
+	return s.getRoutesToPrivateSubnet(sn)
 }

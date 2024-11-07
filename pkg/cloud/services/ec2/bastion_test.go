@@ -80,7 +80,7 @@ func TestServiceDeleteBastion(t *testing.T) {
 			name: "instance not found",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstances(gomock.Eq(describeInput)).
+					DescribeInstancesWithContext(context.TODO(), gomock.Eq(describeInput)).
 					Return(&ec2.DescribeInstancesOutput{}, nil)
 			},
 			expectError: false,
@@ -89,7 +89,7 @@ func TestServiceDeleteBastion(t *testing.T) {
 			name: "describe error",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstances(gomock.Eq(describeInput)).
+					DescribeInstancesWithContext(context.TODO(), gomock.Eq(describeInput)).
 					Return(nil, errors.New("some error"))
 			},
 			expectError: true,
@@ -98,10 +98,10 @@ func TestServiceDeleteBastion(t *testing.T) {
 			name: "terminate fails",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstances(gomock.Eq(describeInput)).
+					DescribeInstancesWithContext(context.TODO(), gomock.Eq(describeInput)).
 					Return(foundOutput, nil)
 				m.
-					TerminateInstances(
+					TerminateInstancesWithContext(context.TODO(),
 						gomock.Eq(&ec2.TerminateInstancesInput{
 							InstanceIds: aws.StringSlice([]string{"id123"}),
 						}),
@@ -114,17 +114,17 @@ func TestServiceDeleteBastion(t *testing.T) {
 			name: "wait after terminate fails",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstances(gomock.Eq(describeInput)).
+					DescribeInstancesWithContext(context.TODO(), gomock.Eq(describeInput)).
 					Return(foundOutput, nil)
 				m.
-					TerminateInstances(
+					TerminateInstancesWithContext(context.TODO(),
 						gomock.Eq(&ec2.TerminateInstancesInput{
 							InstanceIds: aws.StringSlice([]string{"id123"}),
 						}),
 					).
 					Return(nil, nil)
 				m.
-					WaitUntilInstanceTerminated(
+					WaitUntilInstanceTerminatedWithContext(context.TODO(),
 						gomock.Eq(&ec2.DescribeInstancesInput{
 							InstanceIds: aws.StringSlice([]string{"id123"}),
 						}),
@@ -137,17 +137,17 @@ func TestServiceDeleteBastion(t *testing.T) {
 			name: "success",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstances(gomock.Eq(describeInput)).
+					DescribeInstancesWithContext(context.TODO(), gomock.Eq(describeInput)).
 					Return(foundOutput, nil)
 				m.
-					TerminateInstances(
+					TerminateInstancesWithContext(context.TODO(),
 						gomock.Eq(&ec2.TerminateInstancesInput{
 							InstanceIds: aws.StringSlice([]string{"id123"}),
 						}),
 					).
 					Return(nil, nil)
 				m.
-					WaitUntilInstanceTerminated(
+					WaitUntilInstanceTerminatedWithContext(context.TODO(),
 						gomock.Eq(&ec2.DescribeInstancesInput{
 							InstanceIds: aws.StringSlice([]string{"id123"}),
 						}),
@@ -186,9 +186,7 @@ func TestServiceDeleteBastion(t *testing.T) {
 					},
 				}
 
-				client := fake.NewClientBuilder().WithScheme(scheme).Build()
-				ctx := context.TODO()
-				client.Create(ctx, awsCluster)
+				client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(awsCluster).WithStatusSubresource(awsCluster).Build()
 
 				scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 					Cluster: &clusterv1.Cluster{
@@ -271,7 +269,7 @@ func TestServiceReconcileBastion(t *testing.T) {
 			name: "Should ignore reconciliation if instance not found",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstances(gomock.Eq(describeInput)).
+					DescribeInstancesWithContext(context.TODO(), gomock.Eq(describeInput)).
 					Return(&ec2.DescribeInstancesOutput{}, nil)
 			},
 			expectError: false,
@@ -280,7 +278,7 @@ func TestServiceReconcileBastion(t *testing.T) {
 			name: "Should fail reconcile if describe instance fails",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstances(gomock.Eq(describeInput)).
+					DescribeInstancesWithContext(context.TODO(), gomock.Eq(describeInput)).
 					Return(nil, errors.New("some error"))
 			},
 			expectError: true,
@@ -289,10 +287,10 @@ func TestServiceReconcileBastion(t *testing.T) {
 			name: "Should fail reconcile if terminate instance fails",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstances(gomock.Eq(describeInput)).
+					DescribeInstancesWithContext(context.TODO(), gomock.Eq(describeInput)).
 					Return(foundOutput, nil).MinTimes(1)
 				m.
-					TerminateInstances(
+					TerminateInstancesWithContext(context.TODO(),
 						gomock.Eq(&ec2.TerminateInstancesInput{
 							InstanceIds: aws.StringSlice([]string{"id123"}),
 						}),
@@ -304,13 +302,9 @@ func TestServiceReconcileBastion(t *testing.T) {
 		{
 			name: "Should create bastion successfully",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeInstances(gomock.Eq(describeInput)).
+				m.DescribeInstancesWithContext(context.TODO(), gomock.Eq(describeInput)).
 					Return(&ec2.DescribeInstancesOutput{}, nil).MinTimes(1)
-				m.DescribeImages(gomock.Eq(&ec2.DescribeImagesInput{Filters: []*ec2.Filter{
-					{
-						Name:   aws.String("owner-id"),
-						Values: aws.StringSlice([]string{ubuntuOwnerID}),
-					},
+				m.DescribeImagesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeImagesInput{Filters: []*ec2.Filter{
 					{
 						Name:   aws.String("architecture"),
 						Values: aws.StringSlice([]string{"x86_64"}),
@@ -327,6 +321,10 @@ func TestServiceReconcileBastion(t *testing.T) {
 						Name:   aws.String("description"),
 						Values: aws.StringSlice([]string{ubuntuImageDescription}),
 					},
+					{
+						Name:   aws.String("owner-id"),
+						Values: aws.StringSlice([]string{ubuntuOwnerID}),
+					},
 				}})).Return(&ec2.DescribeImagesOutput{Images: images{
 					{
 						ImageId:      aws.String("ubuntu-ami-id-latest"),
@@ -337,7 +335,7 @@ func TestServiceReconcileBastion(t *testing.T) {
 						CreationDate: aws.String("2014-02-08T17:02:31.000Z"),
 					},
 				}}, nil)
-				m.RunInstances(gomock.Any()).
+				m.RunInstancesWithContext(context.TODO(), gomock.Any()).
 					Return(&ec2.Reservation{
 						Instances: []*ec2.Instance{
 							{
@@ -366,8 +364,6 @@ func TestServiceReconcileBastion(t *testing.T) {
 							},
 						},
 					}, nil)
-				m.WaitUntilInstanceRunningWithContext(gomock.Any(), gomock.Any(), gomock.Any()).
-					Return(nil)
 			},
 			bastionEnabled: true,
 			expectError:    false,
@@ -422,9 +418,240 @@ func TestServiceReconcileBastion(t *testing.T) {
 					},
 				}
 
-				client := fake.NewClientBuilder().WithScheme(scheme).Build()
-				ctx := context.TODO()
-				client.Create(ctx, awsCluster)
+				client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(awsCluster).WithStatusSubresource(awsCluster).Build()
+
+				scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+					Cluster: &clusterv1.Cluster{
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: "ns",
+							Name:      clusterName,
+						},
+					},
+					AWSCluster: awsCluster,
+					Client:     client,
+				})
+				g.Expect(err).To(BeNil())
+
+				if managed {
+					scope.AWSCluster.Spec.NetworkSpec.VPC.Tags = infrav1.Tags{
+						infrav1.ClusterTagKey(clusterName): string(infrav1.ResourceLifecycleOwned),
+					}
+				}
+
+				tc.expect(ec2Mock.EXPECT())
+				s := NewService(scope)
+				s.EC2Client = ec2Mock
+
+				err = s.ReconcileBastion()
+				if tc.expectError {
+					g.Expect(err).NotTo(BeNil())
+					return
+				}
+
+				g.Expect(err).To(BeNil())
+
+				g.Expect(scope.AWSCluster.Status.Bastion).To(BeEquivalentTo(tc.bastionStatus))
+			})
+		}
+	}
+}
+
+func TestServiceReconcileBastionUSGOV(t *testing.T) {
+	clusterName := "cluster-us-gov"
+
+	describeInput := &ec2.DescribeInstancesInput{
+		Filters: []*ec2.Filter{
+			filter.EC2.ProviderRole(infrav1.BastionRoleTagValue),
+			filter.EC2.Cluster(clusterName),
+			filter.EC2.InstanceStates(
+				ec2.InstanceStateNamePending,
+				ec2.InstanceStateNameRunning,
+				ec2.InstanceStateNameStopping,
+				ec2.InstanceStateNameStopped,
+			),
+		},
+	}
+
+	foundOutput := &ec2.DescribeInstancesOutput{
+		Reservations: []*ec2.Reservation{
+			{
+				Instances: []*ec2.Instance{
+					{
+						InstanceId: aws.String("id123"),
+						State: &ec2.InstanceState{
+							Name: aws.String(ec2.InstanceStateNameRunning),
+						},
+						Placement: &ec2.Placement{
+							AvailabilityZone: aws.String("us-gov-east-1"),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		name           string
+		bastionEnabled bool
+		expect         func(m *mocks.MockEC2APIMockRecorder)
+		expectError    bool
+		bastionStatus  *infrav1.Instance
+	}{
+		{
+			name: "Should ignore reconciliation if instance not found",
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.
+					DescribeInstancesWithContext(context.TODO(), gomock.Eq(describeInput)).
+					Return(&ec2.DescribeInstancesOutput{}, nil)
+			},
+			expectError: false,
+		},
+		{
+			name: "Should fail reconcile if describe instance fails",
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.
+					DescribeInstancesWithContext(context.TODO(), gomock.Eq(describeInput)).
+					Return(nil, errors.New("some error"))
+			},
+			expectError: true,
+		},
+		{
+			name: "Should fail reconcile if terminate instance fails",
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.
+					DescribeInstancesWithContext(context.TODO(), gomock.Eq(describeInput)).
+					Return(foundOutput, nil).MinTimes(1)
+				m.
+					TerminateInstancesWithContext(context.TODO(),
+						gomock.Eq(&ec2.TerminateInstancesInput{
+							InstanceIds: aws.StringSlice([]string{"id123"}),
+						}),
+					).
+					Return(nil, errors.New("some error"))
+			},
+			expectError: true,
+		},
+		{
+			name: "Should create bastion successfully",
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeInstancesWithContext(context.TODO(), gomock.Eq(describeInput)).
+					Return(&ec2.DescribeInstancesOutput{}, nil).MinTimes(1)
+				m.DescribeImagesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeImagesInput{Filters: []*ec2.Filter{
+					{
+						Name:   aws.String("architecture"),
+						Values: aws.StringSlice([]string{"x86_64"}),
+					},
+					{
+						Name:   aws.String("state"),
+						Values: aws.StringSlice([]string{"available"}),
+					},
+					{
+						Name:   aws.String("virtualization-type"),
+						Values: aws.StringSlice([]string{"hvm"}),
+					},
+					{
+						Name:   aws.String("description"),
+						Values: aws.StringSlice([]string{ubuntuImageDescription}),
+					},
+					{
+						Name:   aws.String("owner-id"),
+						Values: aws.StringSlice([]string{ubuntuOwnerIDUsGov}),
+					},
+				}})).Return(&ec2.DescribeImagesOutput{Images: images{
+					{
+						ImageId:      aws.String("ubuntu-ami-id-latest"),
+						CreationDate: aws.String("2019-02-08T17:02:31.000Z"),
+					},
+					{
+						ImageId:      aws.String("ubuntu-ami-id-old"),
+						CreationDate: aws.String("2014-02-08T17:02:31.000Z"),
+					},
+				}}, nil)
+				m.RunInstancesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.Reservation{
+						Instances: []*ec2.Instance{
+							{
+								State: &ec2.InstanceState{
+									Name: aws.String(ec2.InstanceStateNameRunning),
+								},
+								IamInstanceProfile: &ec2.IamInstanceProfile{
+									Arn: aws.String("arn:aws-us-gov:iam::123456789012:instance-profile/foo"),
+								},
+								InstanceId:     aws.String("id123"),
+								InstanceType:   aws.String("t3.micro"),
+								SubnetId:       aws.String("subnet-1"),
+								ImageId:        aws.String("ubuntu-ami-id-latest"),
+								RootDeviceName: aws.String("device-1"),
+								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+									{
+										DeviceName: aws.String("device-1"),
+										Ebs: &ec2.EbsInstanceBlockDevice{
+											VolumeId: aws.String("volume-1"),
+										},
+									},
+								},
+								Placement: &ec2.Placement{
+									AvailabilityZone: aws.String("us-gov-east-1"),
+								},
+							},
+						},
+					}, nil)
+			},
+			bastionEnabled: true,
+			expectError:    false,
+			bastionStatus: &infrav1.Instance{
+				ID:               "id123",
+				State:            "running",
+				Type:             "t3.micro",
+				SubnetID:         "subnet-1",
+				ImageID:          "ubuntu-ami-id-latest",
+				IAMProfile:       "foo",
+				Addresses:        []clusterv1.MachineAddress{},
+				AvailabilityZone: "us-gov-east-1",
+				VolumeIDs:        []string{"volume-1"},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		managedValues := []bool{false, true}
+		for i := range managedValues {
+			managed := managedValues[i]
+
+			t.Run(fmt.Sprintf("managed=%t %s", managed, tc.name), func(t *testing.T) {
+				g := NewWithT(t)
+
+				mockControl := gomock.NewController(t)
+				defer mockControl.Finish()
+
+				ec2Mock := mocks.NewMockEC2API(mockControl)
+
+				scheme, err := setupScheme()
+				g.Expect(err).To(BeNil())
+
+				awsCluster := &infrav1.AWSCluster{
+					ObjectMeta: metav1.ObjectMeta{Name: "test"},
+					Spec: infrav1.AWSClusterSpec{
+						NetworkSpec: infrav1.NetworkSpec{
+							VPC: infrav1.VPCSpec{
+								ID: "vpcID",
+							},
+							Subnets: infrav1.Subnets{
+								{
+									ID: "subnet-1",
+								},
+								{
+									ID:       "subnet-2",
+									IsPublic: true,
+								},
+							},
+						},
+						Bastion: infrav1.Bastion{Enabled: tc.bastionEnabled},
+						Region:  "us-gov-east-1",
+					},
+				}
+
+				client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(awsCluster).WithStatusSubresource(awsCluster).Build()
 
 				scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 					Cluster: &clusterv1.Cluster{

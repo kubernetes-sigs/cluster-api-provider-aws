@@ -25,7 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
@@ -45,6 +45,7 @@ func TestDefaultingWebhook(t *testing.T) {
 	defaultVPCSpec := infrav1.VPCSpec{
 		AvailabilityZoneUsageLimit: &AZUsageLimit,
 		AvailabilityZoneSelection:  &infrav1.AZSelectionSchemeOrdered,
+		SubnetSchema:               &infrav1.SubnetSchemaPreferPrivate,
 	}
 	defaultIdentityRef := &infrav1.AWSIdentityReference{
 		Kind: infrav1.ControllerIdentityKind,
@@ -167,15 +168,17 @@ func TestDefaultingWebhook(t *testing.T) {
 
 func TestWebhookCreate(t *testing.T) {
 	tests := []struct { //nolint:maligned
-		name           string
-		eksClusterName string
-		expectError    bool
-		eksVersion     string
-		hasAddons      bool
-		vpcCNI         VpcCni
-		additionalTags infrav1.Tags
-		secondaryCidr  *string
-		kubeProxy      KubeProxy
+		name                 string
+		eksClusterName       string
+		expectError          bool
+		expectErrorToContain string // if non-empty, the error message must contain this substring
+		eksVersion           string
+		hasAddons            bool
+		vpcCNI               VpcCni
+		additionalTags       infrav1.Tags
+		secondaryCidr        *string
+		secondaryCidrBlocks  []infrav1.VpcCidrBlock
+		kubeProxy            KubeProxy
 	}{
 		{
 			name:           "ekscluster specified",
@@ -254,6 +257,15 @@ func TestWebhookCreate(t *testing.T) {
 			secondaryCidr:  aws.String("100.64.0.0/10"),
 		},
 		{
+			name:                 "secondary CIDR block not listed in NetworkSpec.VPC.SecondaryCidrBlocks",
+			eksClusterName:       "default_cluster1",
+			eksVersion:           "v1.19",
+			expectError:          true,
+			expectErrorToContain: "100.64.0.0/16 must be listed in AWSManagedControlPlane.spec.network.vpc.secondaryCidrBlocks",
+			secondaryCidr:        aws.String("100.64.0.0/16"),
+			secondaryCidrBlocks:  []infrav1.VpcCidrBlock{{IPv4CidrBlock: "123.456.0.0/16"}},
+		},
+		{
 			name:           "invalid tags not allowed",
 			eksClusterName: "default_cluster1",
 			expectError:    true,
@@ -327,10 +339,15 @@ func TestWebhookCreate(t *testing.T) {
 					KubeProxy:      tc.kubeProxy,
 					AdditionalTags: tc.additionalTags,
 					VpcCni:         tc.vpcCNI,
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							SecondaryCidrBlocks: tc.secondaryCidrBlocks,
+						},
+					},
 				},
 			}
 			if tc.eksVersion != "" {
-				mcp.Spec.Version = &tc.eksVersion
+				mcp.Spec.Version = aws.String(tc.eksVersion)
 			}
 			if tc.hasAddons {
 				testAddons := []Addon{
@@ -353,7 +370,16 @@ func TestWebhookCreate(t *testing.T) {
 
 			if tc.expectError {
 				g.Expect(err).ToNot(BeNil())
+
+				if tc.expectErrorToContain != "" && err != nil {
+					g.Expect(err.Error()).To(ContainSubstring(tc.expectErrorToContain))
+				}
 			} else {
+				if tc.expectErrorToContain != "" {
+					t.Error("Logic error: expectError=false means that expectErrorToContain must be empty")
+					t.FailNow()
+				}
+
 				g.Expect(err).To(BeNil())
 			}
 		})
@@ -363,7 +389,7 @@ func TestWebhookCreate(t *testing.T) {
 func TestWebhookCreateIPv6Details(t *testing.T) {
 	tests := []struct {
 		name        string
-		addons      []Addon
+		addons      *[]Addon
 		kubeVersion string
 		networkSpec infrav1.NetworkSpec
 		err         string
@@ -391,7 +417,7 @@ func TestWebhookCreateIPv6Details(t *testing.T) {
 		{
 			name:        "ipv6 with addons but cni version is lower than supported version",
 			kubeVersion: "v1.22",
-			addons: []Addon{
+			addons: &[]Addon{
 				{
 					Name:    vpcCniAddon,
 					Version: "1.9.3",
@@ -407,7 +433,7 @@ func TestWebhookCreateIPv6Details(t *testing.T) {
 		{
 			name:        "ipv6 with addons and correct cni and cluster version",
 			kubeVersion: "v1.22",
-			addons: []Addon{
+			addons: &[]Addon{
 				{
 					Name:    vpcCniAddon,
 					Version: "1.11.0",
@@ -432,6 +458,44 @@ func TestWebhookCreateIPv6Details(t *testing.T) {
 			},
 			err: "poolId cannot be empty if cidrBlock is set",
 		},
+		{
+			name:        "both ipv6 poolId and ipamPool are set",
+			kubeVersion: "v1.22",
+			networkSpec: infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					IPv6: &infrav1.IPv6{
+						PoolID:   "not-empty",
+						IPAMPool: &infrav1.IPAMPool{},
+					},
+				},
+			},
+			err: "poolId and ipamPool cannot be used together",
+		},
+		{
+			name:        "both ipv6 cidrBlock and ipamPool are set",
+			kubeVersion: "v1.22",
+			networkSpec: infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					IPv6: &infrav1.IPv6{
+						CidrBlock: "not-empty",
+						IPAMPool:  &infrav1.IPAMPool{},
+					},
+				},
+			},
+			err: "cidrBlock and ipamPool cannot be used together",
+		},
+		{
+			name:        "Id or name are not set for IPAMPool",
+			kubeVersion: "v1.22",
+			networkSpec: infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					IPv6: &infrav1.IPv6{
+						IPAMPool: &infrav1.IPAMPool{},
+					},
+				},
+			},
+			err: "ipamPool must have either id or name",
+		},
 	}
 
 	for _, tc := range tests {
@@ -446,9 +510,9 @@ func TestWebhookCreateIPv6Details(t *testing.T) {
 				},
 				Spec: AWSManagedControlPlaneSpec{
 					EKSClusterName: "test-cluster",
-					Addons:         &tc.addons,
+					Addons:         tc.addons,
 					NetworkSpec:    tc.networkSpec,
-					Version:        &tc.kubeVersion,
+					Version:        aws.String(tc.kubeVersion),
 				},
 			}
 			err := testEnv.Create(ctx, mcp)
@@ -544,8 +608,8 @@ func TestWebhookUpdate(t *testing.T) {
 			oldClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
 				EncryptionConfig: &EncryptionConfig{
-					Provider:  pointer.String("provider"),
-					Resources: []*string{pointer.String("foo"), pointer.String("bar")},
+					Provider:  ptr.To[string]("provider"),
+					Resources: []*string{ptr.To[string]("foo"), ptr.To[string]("bar")},
 				},
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
@@ -561,8 +625,8 @@ func TestWebhookUpdate(t *testing.T) {
 			newClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
 				EncryptionConfig: &EncryptionConfig{
-					Provider:  pointer.String("provider"),
-					Resources: []*string{pointer.String("foo"), pointer.String("bar")},
+					Provider:  ptr.To[string]("provider"),
+					Resources: []*string{ptr.To[string]("foo"), ptr.To[string]("bar")},
 				},
 			},
 			expectError: false,
@@ -572,15 +636,15 @@ func TestWebhookUpdate(t *testing.T) {
 			oldClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
 				EncryptionConfig: &EncryptionConfig{
-					Provider:  pointer.String("provider"),
-					Resources: []*string{pointer.String("foo"), pointer.String("bar")},
+					Provider:  ptr.To[string]("provider"),
+					Resources: []*string{ptr.To[string]("foo"), ptr.To[string]("bar")},
 				},
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
 				EncryptionConfig: &EncryptionConfig{
-					Provider:  pointer.String("new-provider"),
-					Resources: []*string{pointer.String("foo"), pointer.String("bar")},
+					Provider:  ptr.To[string]("new-provider"),
+					Resources: []*string{ptr.To[string]("foo"), ptr.To[string]("bar")},
 				},
 			},
 			expectError: true,
@@ -590,13 +654,13 @@ func TestWebhookUpdate(t *testing.T) {
 			oldClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
 				EncryptionConfig: &EncryptionConfig{
-					Provider: pointer.String("provider"),
+					Provider: ptr.To[string]("provider"),
 				},
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
 				EncryptionConfig: &EncryptionConfig{
-					Provider: pointer.String("provider"),
+					Provider: ptr.To[string]("provider"),
 				},
 			},
 			expectError: false,
@@ -624,7 +688,7 @@ func TestWebhookUpdate(t *testing.T) {
 				NetworkSpec: infrav1.NetworkSpec{
 					VPC: infrav1.VPCSpec{},
 				},
-				Version: pointer.String("1.22"),
+				Version: ptr.To[string]("1.22"),
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
@@ -651,14 +715,14 @@ func TestWebhookUpdate(t *testing.T) {
 						Version: "1.11.0",
 					},
 				},
-				Version: pointer.String("v1.22.0"),
+				Version: ptr.To[string]("v1.22.0"),
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
 				NetworkSpec: infrav1.NetworkSpec{
 					VPC: infrav1.VPCSpec{},
 				},
-				Version: pointer.String("v1.22.0"),
+				Version: ptr.To[string]("v1.22.0"),
 			},
 			expectError: true,
 		},
@@ -741,15 +805,17 @@ func TestValidatingWebhookCreateSecondaryCidr(t *testing.T) {
 				},
 			}
 			if tc.cidrRange != "" {
-				mcp.Spec.SecondaryCidrBlock = &tc.cidrRange
+				mcp.Spec.SecondaryCidrBlock = aws.String(tc.cidrRange)
 			}
-			err := mcp.ValidateCreate()
+			warn, err := mcp.ValidateCreate()
 
 			if tc.expectError {
 				g.Expect(err).ToNot(BeNil())
 			} else {
 				g.Expect(err).To(BeNil())
 			}
+			// Nothing emits warnings yet
+			g.Expect(warn).To(BeEmpty())
 		})
 	}
 }
@@ -804,7 +870,7 @@ func TestValidatingWebhookUpdateSecondaryCidr(t *testing.T) {
 			newMCP := &AWSManagedControlPlane{
 				Spec: AWSManagedControlPlaneSpec{
 					EKSClusterName:     "default_cluster1",
-					SecondaryCidrBlock: &tc.cidrRange,
+					SecondaryCidrBlock: aws.String(tc.cidrRange),
 				},
 			}
 			oldMCP := &AWSManagedControlPlane{
@@ -814,13 +880,15 @@ func TestValidatingWebhookUpdateSecondaryCidr(t *testing.T) {
 				},
 			}
 
-			err := newMCP.ValidateUpdate(oldMCP)
+			warn, err := newMCP.ValidateUpdate(oldMCP)
 
 			if tc.expectError {
 				g.Expect(err).ToNot(BeNil())
 			} else {
 				g.Expect(err).To(BeNil())
 			}
+			// Nothing emits warnings yet
+			g.Expect(warn).To(BeEmpty())
 		})
 	}
 }
