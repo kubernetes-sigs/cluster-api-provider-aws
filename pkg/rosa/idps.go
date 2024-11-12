@@ -88,7 +88,7 @@ func CreateUserIfNotExist(client *ocm.Client, clusterID string, group, username 
 	return client.CreateUser(clusterID, group, userCfg)
 }
 
-func findExistingClusterAdminIDP(client *ocm.Client, clusterID string) (
+func findExistingClusterAdminIDP(client OCMClient, clusterID string) (
 	htpasswdIDP *cmv1.IdentityProvider, userList *cmv1.HTPasswdUserList, reterr error) {
 	idps, err := client.GetIdentityProviders(clusterID)
 	if err != nil {
