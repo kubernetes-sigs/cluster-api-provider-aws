@@ -7,30 +7,10 @@ import (
 	"os"
 
 	sdk "github.com/openshift-online/ocm-sdk-go"
-	ocmcfg "github.com/openshift/rosa/pkg/config"
-	"github.com/openshift/rosa/pkg/ocm"
-	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 )
-
-const (
-	ocmTokenKey  = "ocmToken"
-	ocmAPIURLKey = "ocmApiUrl"
-)
-
-// NewOCMClient creates a new OCM client.
-func NewOCMClient(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (*ocm.Client, error) {
-	token, url, err := ocmCredentials(ctx, rosaScope)
-	if err != nil {
-		return nil, err
-	}
-	return ocm.NewClient().Logger(logrus.New()).Config(&ocmcfg.Config{
-		AccessToken: token,
-		URL:         url,
-	}).Build()
-}
 
 func newOCMRawConnection(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (*sdk.Connection, error) {
 	logger, err := sdk.NewGoLoggerBuilder().

@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 	"github.com/blang/semver"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -16,6 +17,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/record"
@@ -31,6 +33,7 @@ import (
 
 	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/rosa"
@@ -48,11 +51,15 @@ type ROSAMachinePoolReconciler struct {
 	Recorder         record.EventRecorder
 	WatchFilterValue string
 	Endpoints        []scope.ServiceEndpoint
+	NewStsClient     func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsiface.STSAPI
+	NewOCMClient     func(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (rosa.OCMClient, error)
 }
 
 // SetupWithManager is used to setup the controller.
 func (r *ROSAMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	log := logger.FromContext(ctx)
+	r.NewOCMClient = rosa.NewOCMClient
+	r.NewStsClient = scope.NewSTSClient
 
 	gvk, err := apiutil.GVKForObject(new(expinfrav1.ROSAMachinePool), mgr.GetScheme())
 	if err != nil {
@@ -148,6 +155,7 @@ func (r *ROSAMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		ControlPlane:   controlPlane,
 		ControllerName: "rosaControlPlane",
 		Endpoints:      r.Endpoints,
+		NewStsClient:   r.NewStsClient,
 	})
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to create rosaControlPlane scope")
@@ -186,8 +194,8 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 		}
 	}
 
-	ocmClient, err := rosa.NewOCMClient(ctx, rosaControlPlaneScope)
-	if err != nil {
+	ocmClient, err := r.NewOCMClient(ctx, rosaControlPlaneScope)
+	if err != nil || ocmClient == nil {
 		// TODO: need to expose in status, as likely the credentials are invalid
 		return ctrl.Result{}, fmt.Errorf("failed to create OCM client: %w", err)
 	}
@@ -298,8 +306,8 @@ func (r *ROSAMachinePoolReconciler) reconcileDelete(
 ) error {
 	machinePoolScope.Info("Reconciling deletion of RosaMachinePool")
 
-	ocmClient, err := rosa.NewOCMClient(ctx, rosaControlPlaneScope)
-	if err != nil {
+	ocmClient, err := r.NewOCMClient(ctx, rosaControlPlaneScope)
+	if err != nil || ocmClient == nil {
 		// TODO: need to expose in status, as likely the credentials are invalid
 		return fmt.Errorf("failed to create OCM client: %w", err)
 	}
@@ -320,7 +328,7 @@ func (r *ROSAMachinePoolReconciler) reconcileDelete(
 	return nil
 }
 
-func (r *ROSAMachinePoolReconciler) reconcileMachinePoolVersion(machinePoolScope *scope.RosaMachinePoolScope, ocmClient *ocm.Client, nodePool *cmv1.NodePool) error {
+func (r *ROSAMachinePoolReconciler) reconcileMachinePoolVersion(machinePoolScope *scope.RosaMachinePoolScope, ocmClient rosa.OCMClient, nodePool *cmv1.NodePool) error {
 	version := machinePoolScope.RosaMachinePool.Spec.Version
 	if version == "" || version == rosa.RawVersionID(nodePool.Version()) {
 		conditions.MarkFalse(machinePoolScope.RosaMachinePool, expinfrav1.RosaMachinePoolUpgradingCondition, "upgraded", clusterv1.ConditionSeverityInfo, "")
@@ -356,7 +364,7 @@ func (r *ROSAMachinePoolReconciler) reconcileMachinePoolVersion(machinePoolScope
 	return nil
 }
 
-func (r *ROSAMachinePoolReconciler) updateNodePool(machinePoolScope *scope.RosaMachinePoolScope, ocmClient *ocm.Client, nodePool *cmv1.NodePool) (*cmv1.NodePool, error) {
+func (r *ROSAMachinePoolReconciler) updateNodePool(machinePoolScope *scope.RosaMachinePoolScope, ocmClient rosa.OCMClient, nodePool *cmv1.NodePool) (*cmv1.NodePool, error) {
 	machinePool := machinePoolScope.RosaMachinePool.DeepCopy()
 	// default all fields before comparing, so that nil/unset fields don't cause an unnecessary update call.
 	machinePool.Default()
