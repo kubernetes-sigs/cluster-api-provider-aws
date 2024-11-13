@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.5
   name: awsmanagedcontrolplanes.controlplane.cluster.x-k8s.io
 spec:
   group: controlplane.cluster.x-k8s.io
@@ -506,7 +506,6 @@ spec:
                             ID defines a unique identifier to reference this resource.
                             If you're bringing your subnet, set the AWS subnet-id here, it must start with `subnet-`.
 
-
                             When the VPC is managed by CAPA, and you'd like the provider to create a subnet for you,
                             the id can be set to any placeholder value that does not start with `subnet-`;
                             upon creation, the subnet AWS identifier will be populated in the `ResourceID` field and
@@ -539,7 +538,6 @@ spec:
                             ParentZoneName is the zone name where the current subnet's zone is tied when
                             the zone is a Local Zone.
 
-
                             The subnets in Local Zone or Wavelength Zone locations consume the ParentZoneName
                             to select the correct private route table to egress traffic to the internet.
                           type: string
@@ -562,29 +560,22 @@ spec:
                           description: |-
                             ZoneType defines the type of the zone where the subnet is created.
 
-
                             The valid values are availability-zone, local-zone, and wavelength-zone.
-
 
                             Subnet with zone type availability-zone (regular) is always selected to create cluster
                             resources, like Load Balancers, NAT Gateways, Contol Plane nodes, etc.
 
-
                             Subnet with zone type local-zone or wavelength-zone is not eligible to automatically create
                             regular cluster resources.
-
 
                             The public subnet in availability-zone or local-zone is associated with regular public
                             route table with default route entry to a Internet Gateway.
 
-
                             The public subnet in wavelength-zone is associated with a carrier public
                             route table with default route entry to a Carrier Gateway.
 
-
                             The private subnet in the availability-zone is associated with a private route table with
                             the default route entry to a NAT Gateway created in that zone.
-
 
                             The private subnet in the local-zone or wavelength-zone is associated with a private route table with
                             the default route entry re-using the NAT Gateway in the Region (preferred from the
@@ -658,10 +649,8 @@ spec:
                               PublicIpv4PoolFallBackOrder defines the fallback action when the Public IPv4 Pool has been exhausted,
                               no more IPv4 address available in the pool.
 
-
                               When set to 'amazon-pool', the controller check if the pool has available IPv4 address, when pool has reached the
                               IPv4 limit, the address will be claimed from Amazon-pool (default).
-
 
                               When set to 'none', the controller will fail the Elastic IP allocation when the publicIpv4Pool is exhausted.
                             enum:
@@ -677,11 +666,9 @@ spec:
                           EmptyRoutesDefaultVPCSecurityGroup specifies whether the default VPC security group ingress
                           and egress rules should be removed.
 
-
                           By default, when creating a VPC, AWS creates a security group called `default` with ingress and egress
                           rules that allow traffic from anywhere. The group could be used as a potential surface attack and
                           it's generally suggested that the group rules are removed or modified appropriately.
-
 
                           NOTE: This only applies when the VPC is managed by the Cluster API AWS controller.
                         type: boolean
@@ -828,7 +815,6 @@ spec:
                     description: |-
                       The name of the OIDC provider configuration.
 
-
                       IdentityProviderConfigName is a required field
                     type: string
                   issuerUrl:
@@ -871,6 +857,10 @@ spec:
                       email, the prefix defaults to issuerurl#. You can use the value - to disable
                       all prefixing.
                     type: string
+                required:
+                - clientId
+                - identityProviderConfigName
+                - issuerUrl
                 type: object
               region:
                 description: The AWS Region the cluster lives in.
@@ -965,9 +955,7 @@ spec:
                                     This field is effectively required, but due to backwards compatibility is
                                     allowed to be empty. Instances of this type with an empty value here are
                                     almost certainly wrong.
-                                    TODO: Add other useful fields. apiVersion, kind, uid?
                                     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                    TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                   type: string
                                 optional:
                                   description: Specify whether the ConfigMap or its
@@ -1033,9 +1021,7 @@ spec:
                                     This field is effectively required, but due to backwards compatibility is
                                     allowed to be empty. Instances of this type with an empty value here are
                                     almost certainly wrong.
-                                    TODO: Add other useful fields. apiVersion, kind, uid?
                                     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                    TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                   type: string
                                 optional:
                                   description: Specify whether the Secret or its key
@@ -1168,9 +1154,7 @@ spec:
                         description: |-
                           Enables or disables the HTTP metadata endpoint on your instances.
 
-
                           If you specify a value of disabled, you cannot access your instance metadata.
-
 
                           Default: enabled
                         enum:
@@ -1183,7 +1167,6 @@ spec:
                           The desired HTTP PUT response hop limit for instance metadata requests. The
                           larger the number, the further instance metadata requests can travel.
 
-
                           Default: 1
                         format: int64
                         maximum: 64
@@ -1194,19 +1177,16 @@ spec:
                         description: |-
                           The state of token usage for your instance metadata requests.
 
-
                           If the state is optional, you can choose to retrieve instance metadata with
                           or without a session token on your request. If you retrieve the IAM role
                           credentials without a token, the version 1.0 role credentials are returned.
                           If you retrieve the IAM role credentials using a valid session token, the
                           version 2.0 role credentials are returned.
 
-
                           If the state is required, you must send a session token with any instance
                           metadata retrieval requests. In this state, retrieving the IAM role credentials
                           always returns the version 2.0 credentials; the version 1.0 credentials are
                           not available.
-
 
                           Default: optional
                         enum:
@@ -1220,7 +1200,6 @@ spec:
                           Set to disabled to turn off access to instance tags from the instance metadata.
                           For more information, see Work with instance tags using the instance metadata
                           (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html#work-with-tags-in-IMDS).
-
 
                           Default: disabled
                         enum:
@@ -2549,7 +2528,6 @@ spec:
                             ID defines a unique identifier to reference this resource.
                             If you're bringing your subnet, set the AWS subnet-id here, it must start with `subnet-`.
 
-
                             When the VPC is managed by CAPA, and you'd like the provider to create a subnet for you,
                             the id can be set to any placeholder value that does not start with `subnet-`;
                             upon creation, the subnet AWS identifier will be populated in the `ResourceID` field and
@@ -2582,7 +2560,6 @@ spec:
                             ParentZoneName is the zone name where the current subnet's zone is tied when
                             the zone is a Local Zone.
 
-
                             The subnets in Local Zone or Wavelength Zone locations consume the ParentZoneName
                             to select the correct private route table to egress traffic to the internet.
                           type: string
@@ -2605,29 +2582,22 @@ spec:
                           description: |-
                             ZoneType defines the type of the zone where the subnet is created.
 
-
                             The valid values are availability-zone, local-zone, and wavelength-zone.
-
 
                             Subnet with zone type availability-zone (regular) is always selected to create cluster
                             resources, like Load Balancers, NAT Gateways, Contol Plane nodes, etc.
 
-
                             Subnet with zone type local-zone or wavelength-zone is not eligible to automatically create
                             regular cluster resources.
-
 
                             The public subnet in availability-zone or local-zone is associated with regular public
                             route table with default route entry to a Internet Gateway.
 
-
                             The public subnet in wavelength-zone is associated with a carrier public
                             route table with default route entry to a Carrier Gateway.
 
-
                             The private subnet in the availability-zone is associated with a private route table with
                             the default route entry to a NAT Gateway created in that zone.
-
 
                             The private subnet in the local-zone or wavelength-zone is associated with a private route table with
                             the default route entry re-using the NAT Gateway in the Region (preferred from the
@@ -2701,10 +2671,8 @@ spec:
                               PublicIpv4PoolFallBackOrder defines the fallback action when the Public IPv4 Pool has been exhausted,
                               no more IPv4 address available in the pool.
 
-
                               When set to 'amazon-pool', the controller check if the pool has available IPv4 address, when pool has reached the
                               IPv4 limit, the address will be claimed from Amazon-pool (default).
-
 
                               When set to 'none', the controller will fail the Elastic IP allocation when the publicIpv4Pool is exhausted.
                             enum:
@@ -2720,11 +2688,9 @@ spec:
                           EmptyRoutesDefaultVPCSecurityGroup specifies whether the default VPC security group ingress
                           and egress rules should be removed.
 
-
                           By default, when creating a VPC, AWS creates a security group called `default` with ingress and egress
                           rules that allow traffic from anywhere. The group could be used as a potential surface attack and
                           it's generally suggested that the group rules are removed or modified appropriately.
-
 
                           NOTE: This only applies when the VPC is managed by the Cluster API AWS controller.
                         type: boolean
@@ -2871,7 +2837,6 @@ spec:
                     description: |-
                       The name of the OIDC provider configuration.
 
-
                       IdentityProviderConfigName is a required field
                     type: string
                   issuerUrl:
@@ -2914,6 +2879,10 @@ spec:
                       email, the prefix defaults to issuerurl#. You can use the value - to disable
                       all prefixing.
                     type: string
+                required:
+                - clientId
+                - identityProviderConfigName
+                - issuerUrl
                 type: object
               partition:
                 description: Partition is the AWS security partition being used. Defaults
@@ -3026,9 +2995,7 @@ spec:
                                     This field is effectively required, but due to backwards compatibility is
                                     allowed to be empty. Instances of this type with an empty value here are
                                     almost certainly wrong.
-                                    TODO: Add other useful fields. apiVersion, kind, uid?
                                     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                    TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                   type: string
                                 optional:
                                   description: Specify whether the ConfigMap or its
@@ -3094,9 +3061,7 @@ spec:
                                     This field is effectively required, but due to backwards compatibility is
                                     allowed to be empty. Instances of this type with an empty value here are
                                     almost certainly wrong.
-                                    TODO: Add other useful fields. apiVersion, kind, uid?
                                     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                    TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                   type: string
                                 optional:
                                   description: Specify whether the Secret or its key
@@ -3229,9 +3194,7 @@ spec:
                         description: |-
                           Enables or disables the HTTP metadata endpoint on your instances.
 
-
                           If you specify a value of disabled, you cannot access your instance metadata.
-
 
                           Default: enabled
                         enum:
@@ -3244,7 +3207,6 @@ spec:
                           The desired HTTP PUT response hop limit for instance metadata requests. The
                           larger the number, the further instance metadata requests can travel.
 
-
                           Default: 1
                         format: int64
                         maximum: 64
@@ -3255,19 +3217,16 @@ spec:
                         description: |-
                           The state of token usage for your instance metadata requests.
 
-
                           If the state is optional, you can choose to retrieve instance metadata with
                           or without a session token on your request. If you retrieve the IAM role
                           credentials without a token, the version 1.0 role credentials are returned.
                           If you retrieve the IAM role credentials using a valid session token, the
                           version 2.0 role credentials are returned.
 
-
                           If the state is required, you must send a session token with any instance
                           metadata retrieval requests. In this state, retrieving the IAM role credentials
                           always returns the version 2.0 credentials; the version 1.0 credentials are
                           not available.
-
 
                           Default: optional
                         enum:
@@ -3281,7 +3240,6 @@ spec:
                           Set to disabled to turn off access to instance tags from the instance metadata.
                           For more information, see Work with instance tags using the instance metadata
                           (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html#work-with-tags-in-IMDS).
-
 
                           Default: disabled
                         enum:
