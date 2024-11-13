@@ -62,8 +62,9 @@ func CheckAddonExistsSpec(ctx context.Context, inputGetter func() CheckAddonExis
 
 	By(fmt.Sprintf("Getting control plane: %s", controlPlaneName))
 	controlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
-	err := mgmtClient.Get(ctx, crclient.ObjectKey{Namespace: input.Namespace.Name, Name: controlPlaneName}, controlPlane)
-	Expect(err).ToNot(HaveOccurred())
+	Eventually(func() error {
+		return mgmtClient.Get(ctx, crclient.ObjectKey{Namespace: input.Namespace.Name, Name: controlPlaneName}, controlPlane)
+	}, input.E2EConfig.GetIntervals("", "wait-client-request")...).Should(Succeed(), "eventually failed trying to get the AWSManagedControlPlane")
 
 	By(fmt.Sprintf("Checking EKS addon %s is installed on cluster %s and is active", input.AddonName, input.ClusterName))
 	waitForEKSAddonToHaveStatus(waitForEKSAddonToHaveStatusInput{
