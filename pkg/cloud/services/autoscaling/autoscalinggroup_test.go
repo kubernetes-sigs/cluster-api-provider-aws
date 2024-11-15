@@ -1111,10 +1111,11 @@ func TestServiceCanStartASGInstanceRefresh(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	tests := []struct {
-		name     string
-		wantErr  bool
-		canStart bool
-		expect   func(m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder)
+		name                        string
+		wantErr                     bool
+		wantUnfinishedRefreshStatus *string
+		canStart                    bool
+		expect                      func(m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder)
 	}{
 		{
 			name:     "should return error if describe instance refresh failed",
@@ -1139,9 +1140,10 @@ func TestServiceCanStartASGInstanceRefresh(t *testing.T) {
 			},
 		},
 		{
-			name:     "should return false if some instances have unfinished refresh",
-			wantErr:  false,
-			canStart: false,
+			name:                        "should return false if some instances have unfinished refresh",
+			wantErr:                     false,
+			wantUnfinishedRefreshStatus: aws.String(autoscaling.InstanceRefreshStatusInProgress),
+			canStart:                    false,
 			expect: func(m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder) {
 				m.DescribeInstanceRefreshesWithContext(context.TODO(), gomock.Eq(&autoscaling.DescribeInstanceRefreshesInput{
 					AutoScalingGroupName: aws.String("machinePoolName"),
@@ -1173,11 +1175,13 @@ func TestServiceCanStartASGInstanceRefresh(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 			mps.AWSMachinePool.Name = "machinePoolName"
 
-			out, err := s.CanStartASGInstanceRefresh(mps)
+			out, unfinishedRefreshStatus, err := s.CanStartASGInstanceRefresh(mps)
 			checkErr(tt.wantErr, err, g)
 			if tt.canStart {
 				g.Expect(out).To(BeTrue())
 				return
+			} else {
+				g.Expect(unfinishedRefreshStatus).To(Equal(tt.wantUnfinishedRefreshStatus))
 			}
 			g.Expect(out).To(BeFalse())
 		})

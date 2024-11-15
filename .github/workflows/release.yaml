@@ -1,38 +1,60 @@
+# As opposed to https://github.com/kubernetes-sigs/cluster-api (CAPI), the CAPA upstream project does not offer
+# a GitHub action to automatically create releases from tags (as of 2023-08-21). Therefore, this is a Giant Swarm
+# fork-specific addition. We require a GitHub release containing the YAML manifests which we use in
+# cluster-api-provider-aws-app. Since doing this manually is very error-prone (see
+# `docs/book/src/development/releasing.md`), we run the needed commands here.
+
 name: release
 
 on:
   push:
     tags:
-    - 'v*'
+      - 'v*'
 
 permissions:
-  contents: write # required to write to github release.
+  contents: write # allow creating a release
 
 jobs:
-  release:
+  build:
     name: Create draft release
     runs-on: ubuntu-latest
+    env:
+      GH_ORG_NAME: giantswarm
     steps:
+      - name: Set env
+        run: |
+          if echo "${GITHUB_REF}" | grep -qF "vX.Y"; then
+            >&2 echo "ERROR: Oops, you copy-pasted verbatim from the README.md - please ensure to replace 'vX.Y.Z' with an actual tag"
+            exit 1
+          fi
+
+          echo "RELEASE_TAG=${GITHUB_REF:10}" >> $GITHUB_ENV # strip off `refs/tags/` prefix
+
       - name: checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.22'
-      - name: Set version info
-        run: |
-          echo "VERSION=${GITHUB_REF_NAME}" >> $GITHUB_ENV
-          echo "PREVIOUS_VERSION=$(git describe --abbrev=0 2> /dev/null)" >> $GITHUB_ENV
-          echo "RELEASE_BRANCH=release-$(echo ${GITHUB_REF_NAME} | grep -Eo '[0-9]\.[0-9]+')" >> $GITHUB_ENV
-          echo "RELEASE_TAG=${GITHUB_REF_NAME}" >> $GITHUB_ENV
-      - name: Run release
-        run: |
-          echo "Version is: $VERSION"
-          echo "Previous version is: $PREVIOUS_VERSION"
-          echo "Release branch is: $RELEASE_BRANCH"
-          echo "Release tag is: $RELEASE_TAG"
-          make release
+          cache-dependency-path: |
+            ./go.sum
+            ./hack/tools/go.sum
+
+      - name: Generate release artifacts
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: "unused" # since we create the release without using CAPA's Makefile target
+        run: |
+          make REGISTRY="registry.k8s.io/cluster-api-aws" RELEASE_TAG="${RELEASE_TAG}" release-manifests
+
+      # Instead of `make VERSION="${RELEASE_TAG}" create-gh-release upload-gh-artifacts`, which requires GitHub CLI
+      # authentication, use an action which does the same.
+      - name: Release
+        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # tag=v1
+        with:
+          draft: true
+          files: out/*
+          body: "This fork does not provide release changelogs."
+          # `name` not needed since this takes the tag by default (which we also use above as ${RELEASE_TAG})

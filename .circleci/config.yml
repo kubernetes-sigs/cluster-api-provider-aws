@@ -1,0 +1,106 @@
+version: 2.1
+orbs:
+  go: circleci/go@1.11.0
+
+jobs:
+  test:
+    resource_class: large
+    executor:
+      name: go/default
+      tag: "1.22.3"
+    steps:
+      - checkout
+      - go/load-cache
+      - go/mod-download
+      - run:
+          command: make setup-envtest
+      - go/save-cache
+      - run:
+          command: make test
+
+  build:
+    machine:
+      image: "ubuntu-2204:2024.05.1"
+    environment:
+      ALL_ARCH: "amd64 arm64"
+      REGISTRY_AZURE: gsoci.azurecr.io/giantswarm
+      REGISTRY_QUAY: quay.io/giantswarm
+      REGISTRY_CHINA: giantswarm-registry.cn-shanghai.cr.aliyuncs.com/giantswarm
+    steps:
+      - checkout
+
+      - run:
+          name: Ensure 'make generate' matches commit
+          command: |
+            make generate
+            git diff --exit-code || { echo "There are differences in generated files. Please run and commit 'make generate'. Else we can run into CRDs mismatching the code."; exit 1; }
+
+      - run:
+          name: Build the CAPA docker images
+          command: |
+            for registry in $REGISTRY_AZURE $REGISTRY_QUAY $REGISTRY_CHINA; do
+              make docker-build-all ALL_ARCH="$ALL_ARCH" TAG=$CIRCLE_SHA1 REGISTRY=$registry
+
+              if [ -n "$CIRCLE_TAG" ]; then
+                echo "Building tag $CIRCLE_TAG"
+                make docker-build-all ALL_ARCH="$ALL_ARCH" TAG="$CIRCLE_TAG" REGISTRY=$registry
+              fi
+            done
+
+      - run:
+          name: Push to Azure
+          command: |
+            docker login --username $ACR_GSOCI_USERNAME --password $ACR_GSOCI_PASSWORD "${REGISTRY_AZURE%/*}"
+
+            make docker-push-all ALL_ARCH="$ALL_ARCH" TAG=$CIRCLE_SHA1 REGISTRY=$REGISTRY_AZURE
+
+            if [ -n "$CIRCLE_TAG" ]; then
+              echo "Pushing tag $CIRCLE_TAG"
+              make docker-push-all ALL_ARCH="$ALL_ARCH" TAG="$CIRCLE_TAG" REGISTRY=$REGISTRY_AZURE
+            fi
+
+      - run:
+          name: Push to quay
+          command: |
+            docker login --username $QUAY_USERNAME --password $QUAY_PASSWORD quay.io
+
+            make docker-push-all ALL_ARCH="$ALL_ARCH" TAG=$CIRCLE_SHA1 REGISTRY=$REGISTRY_QUAY
+
+            if [ -n "$CIRCLE_TAG" ]; then
+              echo "Pushing tag $CIRCLE_TAG"
+              make docker-push-all ALL_ARCH="$ALL_ARCH" TAG="$CIRCLE_TAG" REGISTRY=$REGISTRY_QUAY
+            fi
+
+      - run:
+          name: Push to aliyun
+          command: |
+            for n in $(seq 1 5); do
+              (
+                set -eu
+                docker login --username $ALIYUN_USERNAME --password $ALIYUN_PASSWORD giantswarm-registry.cn-shanghai.cr.aliyuncs.com
+
+                make docker-push-all ALL_ARCH="$ALL_ARCH" TAG=$CIRCLE_SHA1 REGISTRY=$REGISTRY_CHINA
+
+                if [ -n "${CIRCLE_TAG:-}" ]; then
+                  echo "Pushing tag $CIRCLE_TAG"
+                  make docker-push-all ALL_ARCH="$ALL_ARCH" TAG="$CIRCLE_TAG" REGISTRY=$REGISTRY_CHINA
+                fi
+              ) || { echo "Failed attempt ${n}"; sleep 30; continue; }
+
+              echo "Succeeded in attempt ${n}"
+              exit 0
+            done
+
+            exit 1
+
+workflows:
+  version: 2
+  build_and_update:
+    jobs:
+      - build:
+          context:
+            - architect
+          filters:
+            tags:
+              only: /^v.*/
+      - test
