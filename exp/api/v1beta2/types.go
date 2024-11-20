@@ -251,7 +251,7 @@ type AWSLifecycleHook struct {
 	// +optional
 	// +kubebuilder:validation:Enum=CONTINUE;ABANDON
 	// +kubebuilder:validation:default:=none
-	DefaultResult *DefaultResult `json:"defaultResult,omitempty"`
+	DefaultResult *LifecycleHookDefaultResult `json:"defaultResult,omitempty"`
 
 	// Contains additional metadata that will be passed to the notification target.
 	// +optional
@@ -262,27 +262,27 @@ type AWSLifecycleHook struct {
 type LifecycleTransition string
 
 const (
-	// LifecycleTransitionInstanceLaunch is the launching state of the EC2 instance.
-	LifecycleTransitionInstanceLaunch LifecycleTransition = "autoscaling:EC2_INSTANCE_LAUNCHING"
-	// LifecycleTransitionInstanceTerminate is the terminating state of the EC2 instance.
-	LifecycleTransitionInstanceTerminate LifecycleTransition = "autoscaling:EC2_INSTANCE_TERMINATING"
+	// LifecycleHookTransitionInstanceLaunching is the launching state of the EC2 instance.
+	LifecycleHookTransitionInstanceLaunching LifecycleTransition = "autoscaling:EC2_INSTANCE_LAUNCHING"
+	// LifecycleHookTransitionInstanceTerminating is the terminating state of the EC2 instance.
+	LifecycleHookTransitionInstanceTerminating LifecycleTransition = "autoscaling:EC2_INSTANCE_TERMINATING"
 )
 
 func (l *LifecycleTransition) String() string {
 	return string(*l)
 }
 
-// DefaultResult is the default result for the lifecycle hook.
-type DefaultResult string
+// LifecycleHookDefaultResult is the default result for the lifecycle hook.
+type LifecycleHookDefaultResult string
 
 const (
-	// DefaultResultContinue is the default result for the lifecycle hook to continue.
-	DefaultResultContinue DefaultResult = "CONTINUE"
-	// DefaultResultAbandon is the default result for the lifecycle hook to abandon.
-	DefaultResultAbandon DefaultResult = "ABANDON"
+	// LifecycleHookDefaultResultContinue is the default result for the lifecycle hook to continue.
+	LifecycleHookDefaultResultContinue LifecycleHookDefaultResult = "CONTINUE"
+	// LifecycleHookDefaultResultAbandon is the default result for the lifecycle hook to abandon.
+	LifecycleHookDefaultResultAbandon LifecycleHookDefaultResult = "ABANDON"
 )
 
-func (d *DefaultResult) String() string {
+func (d *LifecycleHookDefaultResult) String() string {
 	return string(*d)
 }
 

@@ -17,7 +17,6 @@ limitations under the License.
 package v1beta2
 
 import (
-	"fmt"
 	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -164,33 +163,6 @@ func (r *AWSMachinePool) validateRefreshPreferences() field.ErrorList {
 
 func (r *AWSMachinePool) validateLifecycleHooks() field.ErrorList {
 	return validateLifecycleHooks(r.Spec.AWSLifecycleHooks)
-}
-
-func validateLifecycleHooks(hooks []AWSLifecycleHook) field.ErrorList {
-	var allErrs field.ErrorList
-
-	for _, hook := range hooks {
-		if hook.Name == "" {
-			allErrs = append(allErrs, field.Required(field.NewPath("spec.lifecycleHooks.name"), "Name is required"))
-		}
-		if hook.NotificationTargetARN != nil && hook.RoleARN == nil {
-			allErrs = append(allErrs, field.Required(field.NewPath("spec.lifecycleHooks.roleARN"), "RoleARN is required if NotificationTargetARN is provided"))
-		}
-		if hook.RoleARN != nil && hook.NotificationTargetARN == nil {
-			allErrs = append(allErrs, field.Required(field.NewPath("spec.lifecycleHooks.notificationTargetARN"), "NotificationTargetARN is required if RoleARN is provided"))
-		}
-		if hook.LifecycleTransition != LifecycleTransitionInstanceLaunch && hook.LifecycleTransition != LifecycleTransitionInstanceTerminate {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec.lifecycleHooks.lifecycleTransition"), hook.LifecycleTransition, fmt.Sprintf("LifecycleTransition must be either %q or %q", LifecycleTransitionInstanceLaunch, LifecycleTransitionInstanceTerminate)))
-		}
-		if hook.DefaultResult != nil && (*hook.DefaultResult != DefaultResultContinue && *hook.DefaultResult != DefaultResultAbandon) {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec.lifecycleHooks.defaultResult"), *hook.DefaultResult, "DefaultResult must be either CONTINUE or ABANDON"))
-		}
-		if hook.HeartbeatTimeout != nil && (hook.HeartbeatTimeout.Seconds() < float64(30) || hook.HeartbeatTimeout.Seconds() > float64(172800)) {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec.lifecycleHooks.heartbeatTimeout"), *hook.HeartbeatTimeout, "HeartbeatTimeout must be between 30 and 172800 seconds"))
-		}
-	}
-
-	return allErrs
 }
 
 // ValidateCreate will do any extra validation when creating a AWSMachinePool.

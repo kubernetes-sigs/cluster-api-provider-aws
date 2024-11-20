@@ -34,14 +34,15 @@ import (
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
+	asg "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/autoscaling"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/annotations"
-	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
-var IgnoreLifecycleHooks = map[string]bool{
+// Built-in EKS lifecycle hooks should not be changed
+var IgnoredEKSLifecycleHooks = map[string]bool{
 	"Launch-LC-Hook":    true,
 	"Terminate-LC-Hook": true,
 }
@@ -656,81 +657,11 @@ func (s *NodegroupService) waitForNodegroupActive() (*eks.Nodegroup, error) {
 	return ng, nil
 }
 
-// ReconcileLifecycleHooks periodically reconciles a lifecycle hook for the ASG.
+// reconcileLifecycleHooks periodically reconciles a lifecycle hook for the ASG.
 func (s *NodegroupService) reconcileLifecycleHooks(ng *eks.Nodegroup) error {
-	asg, err := s.describeASGs(ng)
-	if err != nil {
-		return err
+	if len(ng.Resources.AutoScalingGroups) == 0 {
+		return errors.New("no ASG defined for node group")
 	}
 
-	lifecyleHooks := s.scope.GetLifecycleHooks()
-	for i := range lifecyleHooks {
-		if err := s.reconcileLifecycleHook(*asg.AutoScalingGroupName, &lifecyleHooks[i]); err != nil {
-			return err
-		}
-	}
-
-	// Get a list of lifecycle hooks that are registered with the ASG but not defined in the MachinePool and delete them.
-	hooks, err := s.ASGService.DescribeLifecycleHooks(*asg.AutoScalingGroupName)
-	if err != nil {
-		return err
-	}
-	for _, hook := range hooks {
-		found := false
-		if IgnoreLifecycleHooks[hook.Name] {
-			continue
-		}
-		for _, definedHook := range lifecyleHooks {
-			if hook.Name == definedHook.Name {
-				found = true
-				break
-			}
-		}
-		if !found {
-			s.scope.Info("Deleting extraneous lifecycle hook", "hook", hook.Name)
-			if err := s.ASGService.DeleteLifecycleHook(*asg.AutoScalingGroupName, hook); err != nil {
-				conditions.MarkFalse(s.scope.GetMachinePool(), expinfrav1.LifecycleHookReadyCondition, expinfrav1.LifecycleHookDeletionFailedReason, clusterv1.ConditionSeverityError, err.Error())
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-func (s *NodegroupService) reconcileLifecycleHook(asgName string, hook *expinfrav1.AWSLifecycleHook) error {
-	s.scope.Info("Checking for existing lifecycle hook")
-	// Ignore hooks that are not managed by the controller
-	if ignore, ok := IgnoreLifecycleHooks[hook.Name]; ok && ignore {
-		return nil
-	}
-
-	existingHook, err := s.ASGService.DescribeLifecycleHook(asgName, hook)
-	if err != nil {
-		conditions.MarkUnknown(s.scope.GetMachinePool(), expinfrav1.LifecycleHookReadyCondition, expinfrav1.LifecycleHookNotFoundReason, err.Error())
-		return err
-	}
-
-	if existingHook == nil {
-		s.scope.Info("Creating lifecycle hook")
-		if err := s.ASGService.CreateLifecycleHook(asgName, hook); err != nil {
-			conditions.MarkFalse(s.scope.GetMachinePool(), expinfrav1.LifecycleHookReadyCondition, expinfrav1.LifecycleHookCreationFailedReason, clusterv1.ConditionSeverityError, err.Error())
-			return err
-		}
-		return nil
-	}
-
-	// If the lifecycle hook exists, we need to check if it's up to date
-	needsUpdate := s.ASGService.LifecycleHookNeedsUpdate(existingHook, hook)
-
-	if needsUpdate {
-		s.scope.Info("Updating lifecycle hook")
-		if err := s.ASGService.UpdateLifecycleHook(asgName, hook); err != nil {
-			conditions.MarkFalse(s.scope.GetMachinePool(), expinfrav1.LifecycleHookReadyCondition, expinfrav1.LifecycleHookUpdateFailedReason, clusterv1.ConditionSeverityError, err.Error())
-			return err
-		}
-	}
-
-	conditions.MarkTrue(s.scope.GetMachinePool(), expinfrav1.LifecycleHookReadyCondition)
-	return nil
+	return asg.ReconcileLifecycleHooks(s.ASGService, *ng.Resources.AutoScalingGroups[0].Name, s.scope.GetLifecycleHooks(), IgnoredEKSLifecycleHooks, s.scope.GetMachinePool(), s.scope)
 }

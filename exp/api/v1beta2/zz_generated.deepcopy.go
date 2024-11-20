@@ -168,7 +168,7 @@ func (in *AWSLifecycleHook) DeepCopyInto(out *AWSLifecycleHook) {
 	}
 	if in.DefaultResult != nil {
 		in, out := &in.DefaultResult, &out.DefaultResult
-		*out = new(DefaultResult)
+		*out = new(LifecycleHookDefaultResult)
 		**out = **in
 	}
 	if in.NotificationMetadata != nil {
