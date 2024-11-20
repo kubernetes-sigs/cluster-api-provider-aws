@@ -396,6 +396,7 @@ func (m *MachinePoolScope) GetRuntimeObject() runtime.Object {
 	return m.AWSMachinePool
 }
 
+// GetLifecycleHooks returns the desired lifecycle hooks for the ASG.
 func (m *MachinePoolScope) GetLifecycleHooks() []expinfrav1.AWSLifecycleHook {
 	return m.AWSMachinePool.Spec.AWSLifecycleHooks
 }

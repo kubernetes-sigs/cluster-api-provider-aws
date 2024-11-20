@@ -412,6 +412,7 @@ func (s *ManagedMachinePoolScope) GetRuntimeObject() runtime.Object {
 	return s.ManagedMachinePool
 }
 
-func (m *ManagedMachinePoolScope) GetLifecycleHooks() []expinfrav1.AWSLifecycleHook {
-	return m.ManagedMachinePool.Spec.AWSLifecycleHooks
+// GetLifecycleHooks returns the desired lifecycle hooks for the ASG.
+func (s *ManagedMachinePoolScope) GetLifecycleHooks() []expinfrav1.AWSLifecycleHook {
+	return s.ManagedMachinePool.Spec.AWSLifecycleHooks
 }

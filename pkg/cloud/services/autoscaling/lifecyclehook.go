@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
-// GetLifecycleHooks returns the lifecycle hooks for the given AutoScalingGroup after retrieving them from the AWS API.
+// DescribeLifecycleHooks returns the lifecycle hooks for the given AutoScalingGroup after retrieving them from the AWS API.
 func (s *Service) DescribeLifecycleHooks(asgName string) ([]*expinfrav1.AWSLifecycleHook, error) {
 	input := &autoscaling.DescribeLifecycleHooksInput{
 		AutoScalingGroupName: aws.String(asgName),

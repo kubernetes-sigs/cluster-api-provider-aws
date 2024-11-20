@@ -41,7 +41,8 @@ import (
 	"sigs.k8s.io/cluster-api/util/annotations"
 )
 
-// Built-in EKS lifecycle hooks should not be changed
+// IgnoredEKSLifecycleHooks lists built-in EKS lifecycle hooks
+// that should not be changed or deleted.
 var IgnoredEKSLifecycleHooks = map[string]bool{
 	"Launch-LC-Hook":    true,
 	"Terminate-LC-Hook": true,
