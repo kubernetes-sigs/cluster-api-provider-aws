@@ -57,8 +57,6 @@ const (
 
 	// LifecycleHookReadyCondition reports on the status of the lifecycle hook.
 	LifecycleHookReadyCondition clusterv1.ConditionType = "LifecycleHookReady"
-	// LifecycleHookNotFoundReason used when the lifecycle hook couldn't be retrieved.
-	LifecycleHookNotFoundReason = "LifecycleHookNotFound"
 	// LifecycleHookCreationFailedReason used for failures during lifecycle hook creation.
 	LifecycleHookCreationFailedReason = "LifecycleHookCreationFailed"
 	// LifecycleHookUpdateFailedReason used for failures during lifecycle hook update.

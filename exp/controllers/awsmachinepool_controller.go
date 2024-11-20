@@ -298,8 +298,8 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 		return nil
 	}
 
-	if err := r.ReconcileLifecycleHooks(*machinePoolScope, asgsvc); err != nil {
-		r.Recorder.Eventf(machinePoolScope.AWSMachinePool, corev1.EventTypeWarning, "FaileLifecycleHooksReconcile", "Failed to reconcile lifecycle hooks: %v", err)
+	if err := r.reconcileLifecycleHooks(machinePoolScope, asgsvc); err != nil {
+		r.Recorder.Eventf(machinePoolScope.AWSMachinePool, corev1.EventTypeWarning, "FailedLifecycleHooksReconcile", "Failed to reconcile lifecycle hooks: %v", err)
 		return errors.Wrap(err, "failed to reconcile lifecycle hooks")
 	}
 
@@ -612,70 +612,11 @@ func machinePoolToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.Map
 	}
 }
 
-// ReconcileLifecycleHooks periodically reconciles a lifecycle hook for the ASG.
-func (r *AWSMachinePoolReconciler) ReconcileLifecycleHooks(scope scope.MachinePoolScope, asgsvc services.ASGInterface) error {
-	lifecyleHooks := scope.GetLifecycleHooks()
-	for i := range lifecyleHooks {
-		if err := r.reconcileLifecycleHook(scope, &lifecyleHooks[i], asgsvc); err != nil {
-			return err
-		}
-	}
+// reconcileLifecycleHooks periodically reconciles a lifecycle hook for the ASG.
+func (r *AWSMachinePoolReconciler) reconcileLifecycleHooks(machinePoolScope *scope.MachinePoolScope, asgsvc services.ASGInterface) error {
+	asgName := machinePoolScope.Name()
 
-	// Get a list of lifecycle hooks that are registered with the ASG but not defined in the MachinePool and delete them.
-	hooks, err := asgsvc.DescribeLifecycleHooks(scope.Name())
-	if err != nil {
-		return err
-	}
-	for _, hook := range hooks {
-		found := false
-		for _, definedHook := range scope.GetLifecycleHooks() {
-			if hook.Name == definedHook.Name {
-				found = true
-				break
-			}
-		}
-		if !found {
-			scope.Info("Deleting lifecycle hook", "hook", hook.Name)
-			if err := asgsvc.DeleteLifecycleHook(scope.Name(), hook); err != nil {
-				conditions.MarkFalse(scope.GetMachinePool(), expinfrav1.LifecycleHookReadyCondition, expinfrav1.LifecycleHookDeletionFailedReason, clusterv1.ConditionSeverityError, err.Error())
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-func (r *AWSMachinePoolReconciler) reconcileLifecycleHook(scope scope.MachinePoolScope, hook *expinfrav1.AWSLifecycleHook, asgsvc services.ASGInterface) error {
-	scope.Info("Checking for existing lifecycle hook")
-	existingHook, err := asgsvc.DescribeLifecycleHook(scope.Name(), hook)
-	if err != nil {
-		conditions.MarkUnknown(scope.GetMachinePool(), expinfrav1.LifecycleHookReadyCondition, expinfrav1.LifecycleHookNotFoundReason, err.Error())
-		return err
-	}
-
-	if existingHook == nil {
-		scope.Info("Creating lifecycle hook")
-		if err := asgsvc.CreateLifecycleHook(scope.Name(), hook); err != nil {
-			conditions.MarkFalse(scope.GetMachinePool(), expinfrav1.LifecycleHookReadyCondition, expinfrav1.LifecycleHookCreationFailedReason, clusterv1.ConditionSeverityError, err.Error())
-			return err
-		}
-		return nil
-	}
-
-	// If the lifecycle hook exists, we need to check if it's up to date
-	needsUpdate := asgsvc.LifecycleHookNeedsUpdate(existingHook, hook)
-
-	if needsUpdate {
-		scope.Info("Updating lifecycle hook")
-		if err := asgsvc.UpdateLifecycleHook(scope.Name(), hook); err != nil {
-			conditions.MarkFalse(scope.GetMachinePool(), expinfrav1.LifecycleHookReadyCondition, expinfrav1.LifecycleHookUpdateFailedReason, clusterv1.ConditionSeverityError, err.Error())
-			return err
-		}
-	}
-
-	conditions.MarkTrue(scope.GetMachinePool(), expinfrav1.LifecycleHookReadyCondition)
-	return nil
+	return asg.ReconcileLifecycleHooks(asgsvc, asgName, machinePoolScope.GetLifecycleHooks(), map[string]bool{}, machinePoolScope.GetMachinePool(), machinePoolScope)
 }
 
 func (r *AWSMachinePoolReconciler) getInfraCluster(ctx context.Context, log *logger.Logger, cluster *clusterv1.Cluster, awsMachinePool *expinfrav1.AWSMachinePool) (scope.EC2Scope, error) {

@@ -545,7 +545,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 						MixedInstancesPolicy: awsMachinePool.Spec.MixedInstancesPolicy.DeepCopy(),
 					}, nil
 				})
-				asgSvc.EXPECT().DescribeLifecycleHooks(gomock.Any()).Return(nil, nil).AnyTimes()
+				asgSvc.EXPECT().DescribeLifecycleHooks(gomock.Any()).Return(nil, nil)
 				asgSvc.EXPECT().SubnetIDs(gomock.Any()).Return([]string{"subnet-1"}, nil) // no change
 				// No changes, so there must not be an ASG update!
 				asgSvc.EXPECT().UpdateASG(gomock.Any()).Times(0)
@@ -825,8 +825,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			ms.AWSMachinePool.Spec.AWSLifecycleHooks = append(ms.AWSMachinePool.Spec.AWSLifecycleHooks, newLifecycleHook)
 
 			reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-			asgSvc.EXPECT().DescribeLifecycleHooks(ms.Name()).Return(nil, nil)
-			asgSvc.EXPECT().DescribeLifecycleHook(ms.Name(), &newLifecycleHook).Return(nil, nil)
+			asgSvc.EXPECT().DescribeLifecycleHooks(gomock.Eq(ms.Name())).Return(nil, nil)
 			asgSvc.EXPECT().CreateLifecycleHook(ms.Name(), &newLifecycleHook).Return(nil)
 			reconSvc.EXPECT().ReconcileTags(gomock.Any(), gomock.Any()).Return(nil)
 			asgSvc.EXPECT().GetASGByName(gomock.Any()).DoAndReturn(func(scope *scope.MachinePoolScope) (*expinfrav1.AutoScalingGroup, error) {
@@ -843,7 +842,6 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 					MixedInstancesPolicy: awsMachinePool.Spec.MixedInstancesPolicy.DeepCopy(),
 				}, nil
 			})
-			asgSvc.EXPECT().DescribeLifecycleHooks(gomock.Any()).Return(nil, nil).AnyTimes()
 			asgSvc.EXPECT().SubnetIDs(gomock.Any()).Return([]string{"subnet-1"}, nil) // no change
 			// No changes, so there must not be an ASG update!
 			asgSvc.EXPECT().UpdateASG(gomock.Any()).Times(0)
@@ -857,7 +855,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			defer teardown(t, g)
 
 			reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-			asgSvc.EXPECT().DescribeLifecycleHooks(ms.Name()).Return([]*expinfrav1.AWSLifecycleHook{
+			asgSvc.EXPECT().DescribeLifecycleHooks(gomock.Eq(ms.Name())).Return([]*expinfrav1.AWSLifecycleHook{
 				{
 					Name:                "hook-to-remove",
 					LifecycleTransition: "autoscaling:EC2_INSTANCE_LAUNCHING",
@@ -882,7 +880,6 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 					MixedInstancesPolicy: awsMachinePool.Spec.MixedInstancesPolicy.DeepCopy(),
 				}, nil
 			})
-			asgSvc.EXPECT().DescribeLifecycleHooks(gomock.Any()).Return(nil, nil).AnyTimes()
 			asgSvc.EXPECT().SubnetIDs(gomock.Any()).Return([]string{"subnet-1"}, nil) // no change
 			// No changes, so there must not be an ASG update!
 			asgSvc.EXPECT().UpdateASG(gomock.Any()).Times(0)
@@ -901,18 +898,13 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			ms.AWSMachinePool.Spec.AWSLifecycleHooks = append(ms.AWSMachinePool.Spec.AWSLifecycleHooks, newLifecycleHook)
 
 			reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-			asgSvc.EXPECT().DescribeLifecycleHook(ms.Name(), &newLifecycleHook).Return(nil, nil)
-			asgSvc.EXPECT().CreateLifecycleHook(ms.Name(), &newLifecycleHook).Return(nil)
-			asgSvc.EXPECT().DescribeLifecycleHooks(ms.Name()).Return([]*expinfrav1.AWSLifecycleHook{
-				{
-					Name:                "new-hook",
-					LifecycleTransition: "autoscaling:EC2_INSTANCE_LAUNCHING",
-				},
+			asgSvc.EXPECT().DescribeLifecycleHooks(gomock.Eq(ms.Name())).Return([]*expinfrav1.AWSLifecycleHook{
 				{
 					Name:                "hook-to-remove",
 					LifecycleTransition: "autoscaling:EC2_INSTANCE_LAUNCHING",
 				},
 			}, nil)
+			asgSvc.EXPECT().CreateLifecycleHook(ms.Name(), &newLifecycleHook).Return(nil)
 			asgSvc.EXPECT().DeleteLifecycleHook(ms.Name(), &expinfrav1.AWSLifecycleHook{
 				Name:                "hook-to-remove",
 				LifecycleTransition: "autoscaling:EC2_INSTANCE_LAUNCHING",
@@ -932,7 +924,6 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 					MixedInstancesPolicy: awsMachinePool.Spec.MixedInstancesPolicy.DeepCopy(),
 				}, nil
 			})
-			asgSvc.EXPECT().DescribeLifecycleHooks(gomock.Any()).Return(nil, nil).AnyTimes()
 			asgSvc.EXPECT().SubnetIDs(gomock.Any()).Return([]string{"subnet-1"}, nil) // no change
 			// No changes, so there must not be an ASG update!
 			asgSvc.EXPECT().UpdateASG(gomock.Any()).Times(0)
@@ -951,21 +942,13 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			ms.AWSMachinePool.Spec.AWSLifecycleHooks = append(ms.AWSMachinePool.Spec.AWSLifecycleHooks, updateLifecycleHook)
 
 			reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-			asgSvc.EXPECT().DescribeLifecycleHook(ms.Name(), &updateLifecycleHook).Return(&expinfrav1.AWSLifecycleHook{
-				Name:                "hook-to-update",
-				LifecycleTransition: "autoscaling:EC2_INSTANCE_LAUNCHING",
-			}, nil)
-			asgSvc.EXPECT().LifecycleHookNeedsUpdate(&expinfrav1.AWSLifecycleHook{
-				Name:                "hook-to-update",
-				LifecycleTransition: "autoscaling:EC2_INSTANCE_LAUNCHING",
-			}, &updateLifecycleHook).Return(true)
-			asgSvc.EXPECT().UpdateLifecycleHook(ms.Name(), &updateLifecycleHook).Return(nil)
-			asgSvc.EXPECT().DescribeLifecycleHooks(ms.Name()).Return([]*expinfrav1.AWSLifecycleHook{
+			asgSvc.EXPECT().DescribeLifecycleHooks(gomock.Eq(ms.Name())).Return([]*expinfrav1.AWSLifecycleHook{
 				{
 					Name:                "hook-to-update",
 					LifecycleTransition: "autoscaling:EC2_INSTANCE_LAUNCHING",
 				},
 			}, nil)
+			asgSvc.EXPECT().UpdateLifecycleHook(ms.Name(), &updateLifecycleHook).Return(nil)
 			reconSvc.EXPECT().ReconcileTags(gomock.Any(), gomock.Any()).Return(nil)
 			asgSvc.EXPECT().GetASGByName(gomock.Any()).DoAndReturn(func(scope *scope.MachinePoolScope) (*expinfrav1.AutoScalingGroup, error) {
 				g.Expect(scope.Name()).To(Equal("test"))
@@ -981,7 +964,6 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 					MixedInstancesPolicy: awsMachinePool.Spec.MixedInstancesPolicy.DeepCopy(),
 				}, nil
 			})
-			asgSvc.EXPECT().DescribeLifecycleHooks(gomock.Any()).Return(nil, nil).AnyTimes()
 			asgSvc.EXPECT().SubnetIDs(gomock.Any()).Return([]string{"subnet-1"}, nil) // no change
 			// No changes, so there must not be an ASG update!
 			asgSvc.EXPECT().UpdateASG(gomock.Any()).Times(0)
@@ -992,7 +974,6 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 	})
 }
 
-// TODO: This was taken from awsmachine_controller_test, i think it should be moved to elsewhere in both locations like test/helpers.
 type conditionAssertion struct {
 	conditionType clusterv1.ConditionType
 	status        corev1.ConditionStatus
