@@ -1,0 +1,69 @@
+# Use the latest stable Go Dev Container base image
+FROM mcr.microsoft.com/devcontainers/go:latest
+
+# Setup Docker
+# [Option] Install zsh
+ARG INSTALL_ZSH="false"
+# [Option] Upgrade OS packages to their latest versions
+ARG UPGRADE_PACKAGES="false"
+# [Option] Enable non-root Docker access in container
+ARG ENABLE_NONROOT_DOCKER="true"
+# [Option] Use the OSS Moby Engine instead of the licensed Docker Engine
+ARG USE_MOBY="true"
+# [Option] Engine/CLI Version
+ARG DOCKER_VERSION="latest"
+
+# Enable new "BUILDKIT" mode for Docker CLI
+ENV DOCKER_BUILDKIT=1
+
+# Install needed packages and setup non-root user. Use a separate RUN statement to add your
+# own dependencies. A user of "automatic" attempts to reuse an user ID if one already exists.
+ARG USERNAME=automatic
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
+COPY *.sh /tmp/
+RUN apt-get update \
+    && /tmp/common-debian.sh "${INSTALL_ZSH}" "${USERNAME}" "${USER_UID}" "${USER_GID}" "${UPGRADE_PACKAGES}" "true" "true" \
+    # Use Docker script from script library to set things up
+    && /tmp/docker-in-docker-debian.sh "${ENABLE_NONROOT_DOCKER}" "${USERNAME}" "${USE_MOBY}" "${DOCKER_VERSION}" \
+    # Clean up
+    && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/* /tmp/library-scripts/
+VOLUME [ "/var/lib/docker" ]
+ENTRYPOINT [ "/usr/local/share/docker-init.sh" ]
+CMD [ "sleep", "infinity" ]
+
+# Install KIND
+ARG KIND_VERSION="v0.25.0"
+RUN curl -Lo ./kind https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64 && \
+    chmod +x ./kind && mv ./kind /usr/local/bin/kind
+
+# Install kubectl
+ARG KUBE_VERSION="v1.31.0"
+RUN curl -LO "https://dl.k8s.io/release/${KUBE_VERSION}/bin/linux/amd64/kubectl" && \
+    chmod +x ./kubectl && mv ./kubectl /usr/local/bin/kubectl
+
+# Install clusterctl
+ARG CLUSTERCTL_VERSION="v1.8.5"
+RUN curl -L https://github.com/kubernetes-sigs/cluster-api/releases/download/${CLUSTERCTL_VERSION}/clusterctl-linux-amd64 -o clusterctl && \
+    install -o root -g root -m 0755 clusterctl /usr/local/bin/clusterctl && \
+    rm clusterctl
+
+# Install tilt
+RUN curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
+
+# Install aws cli
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
+    unzip -q awscliv2.zip && \
+    ./aws/install && \
+    rm -rf awscliv2.zip aws/
+
+# Install direnv, gh
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get -y install --no-install-recommends direnv gh
+
+# Install k9s
+ARG K9S_VERSION="v0.32.7"
+RUN curl -Lo k9s.tar.gz https://github.com/derailed/k9s/releases/download/${K9S_VERSION}/k9s_Linux_amd64.tar.gz && \
+    tar -xzf k9s.tar.gz && \
+    mv k9s /usr/local/bin/k9s && \
+    rm -f k9s.tar.gz
