@@ -304,7 +304,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				asgSvc.EXPECT().CreateASG(gomock.Any()).Return(&expinfrav1.AutoScalingGroup{
 					Name: "name",
 				}, nil)
-				asgSvc.EXPECT().SuspendProcesses("name", []string{"Launch", "Terminate"}).Return(nil).AnyTimes().Times(0)
+				asgSvc.EXPECT().SuspendProcesses("name", []string{"Launch", "Terminate"}).Return(nil).Times(0)
 
 				err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
 				g.Expect(err).To(Succeed())
@@ -341,7 +341,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 					"InstanceRefresh",
 					"HealthCheck",
 					"ReplaceUnhealthy",
-				})).Return(nil).AnyTimes().Times(1)
+				})).Return(nil).Times(1)
 
 				err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
 				g.Expect(err).To(Succeed())
@@ -373,8 +373,8 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				}, nil)
 				asgSvc.EXPECT().SubnetIDs(gomock.Any()).Return([]string{}, nil).Times(1)
 				asgSvc.EXPECT().UpdateASG(gomock.Any()).Return(nil).AnyTimes()
-				asgSvc.EXPECT().SuspendProcesses("name", []string{"Terminate"}).Return(nil).AnyTimes().Times(1)
-				asgSvc.EXPECT().ResumeProcesses("name", []string{"process3"}).Return(nil).AnyTimes().Times(1)
+				asgSvc.EXPECT().SuspendProcesses("name", []string{"Terminate"}).Return(nil).Times(1)
+				asgSvc.EXPECT().ResumeProcesses("name", []string{"process3"}).Return(nil).Times(1)
 
 				err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
 				g.Expect(err).To(Succeed())
@@ -813,6 +813,32 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 		})
 	})
 	t.Run("Lifecycle Hooks", func(t *testing.T) {
+		t.Run("ASG created with lifecycle hooks", func(t *testing.T) {
+			g := NewWithT(t)
+			setup(t, g)
+			defer teardown(t, g)
+
+			newLifecycleHook := expinfrav1.AWSLifecycleHook{
+				Name:                "new-hook",
+				LifecycleTransition: "autoscaling:EC2_INSTANCE_LAUNCHING",
+			}
+			ms.AWSMachinePool.Spec.AWSLifecycleHooks = append(ms.AWSMachinePool.Spec.AWSLifecycleHooks, newLifecycleHook)
+
+			reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+
+			// New ASG must be created with lifecycle hooks (single AWS SDK call is enough)
+			//
+			// TODO: Since GetASGByName and CreateASG are both in the same interface, we can't inspect the actual
+			//       `CreateAutoScalingGroupWithContext` requests parameters here. Make this better testable down to
+			//       AWS SDK level and check `CreateAutoScalingGroupInput.LifecycleHookSpecificationList`.
+			asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(nil, nil)
+			asgSvc.EXPECT().CreateASG(gomock.Any()).Return(&expinfrav1.AutoScalingGroup{
+				Name: "name",
+			}, nil)
+
+			err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
+			g.Expect(err).To(Succeed())
+		})
 		t.Run("New lifecycle hook is added", func(t *testing.T) {
 			g := NewWithT(t)
 			setup(t, g)
