@@ -51,35 +51,34 @@ func (s *Service) DescribeLifecycleHooks(asgName string) ([]*expinfrav1.AWSLifec
 	return hooks, nil
 }
 
-// CreateLifecycleHook creates a lifecycle hook for the given AutoScalingGroup.
-func (s *Service) CreateLifecycleHook(asgName string, hook *expinfrav1.AWSLifecycleHook) error {
-	input := &autoscaling.PutLifecycleHookInput{
+func getPutLifecycleHookInput(asgName string, hook *expinfrav1.AWSLifecycleHook) (ret *autoscaling.PutLifecycleHookInput) {
+	ret = &autoscaling.PutLifecycleHookInput{
 		AutoScalingGroupName: aws.String(asgName),
 		LifecycleHookName:    aws.String(hook.Name),
 		LifecycleTransition:  aws.String(hook.LifecycleTransition.String()),
+
+		// Optional
+		RoleARN:               hook.RoleARN,
+		NotificationTargetARN: hook.NotificationTargetARN,
+		NotificationMetadata:  hook.NotificationMetadata,
 	}
 
 	// Optional parameters
 	if hook.DefaultResult != nil {
-		input.DefaultResult = aws.String(hook.DefaultResult.String())
+		ret.DefaultResult = aws.String(hook.DefaultResult.String())
 	}
 
 	if hook.HeartbeatTimeout != nil {
 		timeoutSeconds := hook.HeartbeatTimeout.Duration.Seconds()
-		input.HeartbeatTimeout = aws.Int64(int64(timeoutSeconds))
+		ret.HeartbeatTimeout = aws.Int64(int64(timeoutSeconds))
 	}
 
-	if hook.NotificationTargetARN != nil {
-		input.NotificationTargetARN = hook.NotificationTargetARN
-	}
+	return
+}
 
-	if hook.RoleARN != nil {
-		input.RoleARN = hook.RoleARN
-	}
-
-	if hook.NotificationMetadata != nil {
-		input.NotificationMetadata = hook.NotificationMetadata
-	}
+// CreateLifecycleHook creates a lifecycle hook for the given AutoScalingGroup.
+func (s *Service) CreateLifecycleHook(asgName string, hook *expinfrav1.AWSLifecycleHook) error {
+	input := getPutLifecycleHookInput(asgName, hook)
 
 	if _, err := s.ASGClient.PutLifecycleHookWithContext(context.TODO(), input); err != nil {
 		return errors.Wrapf(err, "failed to create lifecycle hook %q for AutoScalingGroup: %q", hook.Name, asgName)
@@ -90,33 +89,7 @@ func (s *Service) CreateLifecycleHook(asgName string, hook *expinfrav1.AWSLifecy
 
 // UpdateLifecycleHook updates a lifecycle hook for the given AutoScalingGroup.
 func (s *Service) UpdateLifecycleHook(asgName string, hook *expinfrav1.AWSLifecycleHook) error {
-	input := &autoscaling.PutLifecycleHookInput{
-		AutoScalingGroupName: aws.String(asgName),
-		LifecycleHookName:    aws.String(hook.Name),
-		LifecycleTransition:  aws.String(hook.LifecycleTransition.String()),
-	}
-
-	// Optional parameters
-	if hook.DefaultResult != nil {
-		input.DefaultResult = aws.String(hook.DefaultResult.String())
-	}
-
-	if hook.HeartbeatTimeout != nil {
-		timeoutSeconds := hook.HeartbeatTimeout.Duration.Seconds()
-		input.HeartbeatTimeout = aws.Int64(int64(timeoutSeconds))
-	}
-
-	if hook.NotificationTargetARN != nil {
-		input.NotificationTargetARN = hook.NotificationTargetARN
-	}
-
-	if hook.RoleARN != nil {
-		input.RoleARN = hook.RoleARN
-	}
-
-	if hook.NotificationMetadata != nil {
-		input.NotificationMetadata = hook.NotificationMetadata
-	}
+	input := getPutLifecycleHookInput(asgName, hook)
 
 	if _, err := s.ASGClient.PutLifecycleHookWithContext(context.TODO(), input); err != nil {
 		return errors.Wrapf(err, "failed to update lifecycle hook %q for AutoScalingGroup: %q", hook.Name, asgName)
@@ -158,6 +131,32 @@ func (s *Service) SDKToLifecycleHook(hook *autoscaling.LifecycleHook) *expinfrav
 		RoleARN:               hook.RoleARN,
 		NotificationMetadata:  hook.NotificationMetadata,
 	}
+}
+
+func getLifecycleHookSpecificationList(lifecycleHooks []expinfrav1.AWSLifecycleHook) (ret []*autoscaling.LifecycleHookSpecification) {
+	for _, hook := range lifecycleHooks {
+		spec := &autoscaling.LifecycleHookSpecification{
+			LifecycleHookName:   aws.String(hook.Name),
+			LifecycleTransition: aws.String(hook.LifecycleTransition.String()),
+
+			// Optional
+			RoleARN:               hook.RoleARN,
+			NotificationTargetARN: hook.NotificationTargetARN,
+			NotificationMetadata:  hook.NotificationMetadata,
+		}
+
+		// Optional parameters
+		if hook.DefaultResult != nil {
+			spec.DefaultResult = aws.String(hook.DefaultResult.String())
+		}
+
+		if hook.HeartbeatTimeout != nil {
+			timeoutSeconds := hook.HeartbeatTimeout.Duration.Seconds()
+			spec.HeartbeatTimeout = aws.Int64(int64(timeoutSeconds))
+		}
+	}
+
+	return
 }
 
 // ReconcileLifecycleHooks reconciles lifecycle hooks for an ASG
