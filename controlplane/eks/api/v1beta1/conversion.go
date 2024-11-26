@@ -117,3 +117,17 @@ func Convert_v1beta2_VpcCni_To_v1beta1_VpcCni(in *ekscontrolplanev1.VpcCni, out 
 func Convert_v1beta2_AWSManagedControlPlaneSpec_To_v1beta1_AWSManagedControlPlaneSpec(in *ekscontrolplanev1.AWSManagedControlPlaneSpec, out *AWSManagedControlPlaneSpec, scope apiconversion.Scope) error {
 	return autoConvert_v1beta2_AWSManagedControlPlaneSpec_To_v1beta1_AWSManagedControlPlaneSpec(in, out, scope)
 }
+
+func Convert_v1beta1_OIDCProviderStatus_To_v1beta2_OIDCProviderStatus(in *OIDCProviderStatus, out *infrav1beta2.OIDCProviderStatus, _ apiconversion.Scope) error {
+	out.ARN = in.ARN
+	out.IssuerURL = in.IssuerURL
+	out.TrustPolicy = in.TrustPolicy
+	return nil
+}
+
+func Convert_v1beta2_OIDCProviderStatus_To_v1beta1_OIDCProviderStatus(in *infrav1beta2.OIDCProviderStatus, out *OIDCProviderStatus, scope apiconversion.Scope) error {
+	out.ARN = in.ARN
+	out.IssuerURL = in.IssuerURL
+	out.TrustPolicy = in.TrustPolicy
+	return nil
+}

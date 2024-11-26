@@ -65,6 +65,36 @@ func (mr *MockObjectStoreInterfaceMockRecorder) Create(arg0, arg1 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockObjectStoreInterface)(nil).Create), arg0, arg1)
 }
 
+// CreatePrivateKey mocks base method.
+func (m *MockObjectStoreInterface) CreatePrivateKey(arg0 string, arg1 []byte) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreatePrivateKey", arg0, arg1)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreatePrivateKey indicates an expected call of CreatePrivateKey.
+func (mr *MockObjectStoreInterfaceMockRecorder) CreatePrivateKey(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreatePrivateKey", reflect.TypeOf((*MockObjectStoreInterface)(nil).CreatePrivateKey), arg0, arg1)
+}
+
+// CreatePublicKey mocks base method.
+func (m *MockObjectStoreInterface) CreatePublicKey(arg0 string, arg1 []byte) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreatePublicKey", arg0, arg1)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreatePublicKey indicates an expected call of CreatePublicKey.
+func (mr *MockObjectStoreInterfaceMockRecorder) CreatePublicKey(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreatePublicKey", reflect.TypeOf((*MockObjectStoreInterface)(nil).CreatePublicKey), arg0, arg1)
+}
+
 // Delete mocks base method.
 func (m *MockObjectStoreInterface) Delete(arg0 *scope.MachineScope) error {
 	m.ctrl.T.Helper()
@@ -91,6 +121,20 @@ func (m *MockObjectStoreInterface) DeleteBucket() error {
 func (mr *MockObjectStoreInterfaceMockRecorder) DeleteBucket() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteBucket", reflect.TypeOf((*MockObjectStoreInterface)(nil).DeleteBucket))
+}
+
+// DeleteKey mocks base method.
+func (m *MockObjectStoreInterface) DeleteKey(arg0 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteKey", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteKey indicates an expected call of DeleteKey.
+func (mr *MockObjectStoreInterfaceMockRecorder) DeleteKey(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteKey", reflect.TypeOf((*MockObjectStoreInterface)(nil).DeleteKey), arg0)
 }
 
 // ReconcileBucket mocks base method.

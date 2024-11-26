@@ -17,6 +17,8 @@ limitations under the License.
 package scope
 
 import (
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 )
@@ -24,6 +26,12 @@ import (
 // EC2Scope is the interface for the scope to be used with the ec2 service.
 type EC2Scope interface {
 	cloud.ClusterScoper
+
+	// RemoteClient returns the Kubernetes Client for connecting to the workload cluster.
+	RemoteClient() (client.Client, error)
+
+	// ManagementClient returns the Kubernetes Client for the management cluster.
+	ManagementClient() client.Client
 
 	// VPC returns the cluster VPC.
 	VPC() *infrav1.VPCSpec
@@ -39,6 +47,15 @@ type EC2Scope interface {
 
 	// Bastion returns the bastion details for the cluster.
 	Bastion() *infrav1.Bastion
+
+	// Bucket returns the s3 bucket details for the cluster.
+	Bucket() *infrav1.S3Bucket
+
+	// AssociateOIDCProvider returns if the cluster should have an OIDC Provider Associated.
+	AssociateOIDCProvider() bool
+
+	// OIDCProviderStatus returns the status of the OIDC provider associated to the cluster for IRSA
+	OIDCProviderStatus() *infrav1.OIDCProviderStatus
 
 	// SetBastionInstance sets the bastion instance in the status of the cluster.
 	SetBastionInstance(instance *infrav1.Instance)
