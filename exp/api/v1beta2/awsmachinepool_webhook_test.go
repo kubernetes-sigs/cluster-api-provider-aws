@@ -42,9 +42,9 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 	g := NewWithT(t)
 
 	tests := []struct {
-		name    string
-		pool    *AWSMachinePool
-		wantErr bool
+		name             string
+		pool             *AWSMachinePool
+		wantErrToContain *string
 	}{
 		{
 			name: "pool with valid tags is accepted",
@@ -56,8 +56,7 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 					},
 				},
 			},
-
-			wantErr: false,
+			wantErrToContain: nil,
 		},
 		{
 			name: "invalid tags are rejected",
@@ -71,7 +70,7 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErrToContain: ptr.To[string]("additionalTags"),
 		},
 		{
 			name: "Should fail if additional security groups are provided with both ID and Filters",
@@ -88,7 +87,7 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 					}}},
 				},
 			},
-			wantErr: true,
+			wantErrToContain: ptr.To[string]("filter"),
 		},
 		{
 			name: "Should fail if both subnet ID and filters passed in AWSMachinePool spec",
@@ -106,7 +105,7 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErrToContain: ptr.To[string]("filter"),
 		},
 		{
 			name: "Should pass if either subnet ID or filters passed in AWSMachinePool spec",
@@ -123,7 +122,7 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: false,
+			wantErrToContain: nil,
 		},
 		{
 			name: "Ensure root volume with device name works (for clusterctl move)",
@@ -138,7 +137,7 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: false,
+			wantErrToContain: nil,
 		},
 		{
 			name: "Should fail if both spot market options or mixed instances policy are set",
@@ -152,7 +151,7 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErrToContain: ptr.To[string]("spotMarketOptions"),
 		},
 		{
 			name: "Should fail if MaxHealthyPercentage is set, but MinHealthyPercentage is not set",
@@ -161,7 +160,7 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 					RefreshPreferences: &RefreshPreferences{MaxHealthyPercentage: aws.Int64(100)},
 				},
 			},
-			wantErr: true,
+			wantErrToContain: ptr.To[string]("minHealthyPercentage"),
 		},
 		{
 			name: "Should fail if the difference between MaxHealthyPercentage and MinHealthyPercentage is greater than 100",
@@ -173,41 +172,98 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErrToContain: ptr.To[string]("minHealthyPercentage"),
 		},
 		{
-			name: "Should fail if either roleARN or notifcationARN is set but not both",
+			name: "Should fail if lifecycle hook only has roleARN, but not notificationTargetARN",
 			pool: &AWSMachinePool{
 				Spec: AWSMachinePoolSpec{
 					AWSLifecycleHooks: []AWSLifecycleHook{
 						{
-							RoleARN: aws.String("role-arn"),
+							Name:                "the-hook",
+							LifecycleTransition: LifecycleHookTransitionInstanceTerminating,
+							RoleARN:             aws.String("role-arn"),
 						},
 					},
 				},
 			},
-			wantErr: true,
+			wantErrToContain: ptr.To[string]("notificationTargetARN"),
 		},
 		{
-			name: "Should fail if the heartbeat timeout is less than 30 seconds",
+			name: "Should fail if lifecycle hook only has notificationTargetARN, but not roleARN",
 			pool: &AWSMachinePool{
 				Spec: AWSMachinePoolSpec{
 					AWSLifecycleHooks: []AWSLifecycleHook{
 						{
-							RoleARN:          aws.String("role-arn"),
-							HeartbeatTimeout: &metav1.Duration{Duration: 29 * time.Second},
+							Name:                  "the-hook",
+							LifecycleTransition:   LifecycleHookTransitionInstanceTerminating,
+							NotificationTargetARN: aws.String("notification-target-arn"),
 						},
 					},
 				},
 			},
-			wantErr: true,
+			wantErrToContain: ptr.To[string]("roleARN"),
+		},
+		{
+			name: "Should fail if the lifecycle hook heartbeat timeout is less than 30 seconds",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AWSLifecycleHooks: []AWSLifecycleHook{
+						{
+							Name:                  "the-hook",
+							LifecycleTransition:   LifecycleHookTransitionInstanceTerminating,
+							NotificationTargetARN: aws.String("notification-target-arn"),
+							RoleARN:               aws.String("role-arn"),
+							HeartbeatTimeout:      &metav1.Duration{Duration: 29 * time.Second},
+						},
+					},
+				},
+			},
+			wantErrToContain: ptr.To[string]("heartbeatTimeout"),
+		},
+		{
+			name: "Should fail if the lifecycle hook heartbeat timeout is more than 172800 seconds",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AWSLifecycleHooks: []AWSLifecycleHook{
+						{
+							Name:                  "the-hook",
+							LifecycleTransition:   LifecycleHookTransitionInstanceTerminating,
+							NotificationTargetARN: aws.String("notification-target-arn"),
+							RoleARN:               aws.String("role-arn"),
+							HeartbeatTimeout:      &metav1.Duration{Duration: 172801 * time.Second},
+						},
+					},
+				},
+			},
+			wantErrToContain: ptr.To[string]("heartbeatTimeout"),
+		},
+		{
+			name: "Should succeed on correct lifecycle hook",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AWSLifecycleHooks: []AWSLifecycleHook{
+						{
+							Name:                  "the-hook",
+							LifecycleTransition:   LifecycleHookTransitionInstanceTerminating,
+							NotificationTargetARN: aws.String("notification-target-arn"),
+							RoleARN:               aws.String("role-arn"),
+							HeartbeatTimeout:      &metav1.Duration{Duration: 180 * time.Second},
+						},
+					},
+				},
+			},
+			wantErrToContain: nil,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			warn, err := tt.pool.ValidateCreate()
-			if tt.wantErr {
-				g.Expect(err).To(HaveOccurred())
+			if tt.wantErrToContain != nil {
+				g.Expect(err).ToNot(BeNil())
+				if err != nil {
+					g.Expect(err.Error()).To(ContainSubstring(*tt.wantErrToContain))
+				}
 			} else {
 				g.Expect(err).To(Succeed())
 			}
@@ -221,10 +277,10 @@ func TestAWSMachinePoolValidateUpdate(t *testing.T) {
 	g := NewWithT(t)
 
 	tests := []struct {
-		name    string
-		new     *AWSMachinePool
-		old     *AWSMachinePool
-		wantErr bool
+		name             string
+		new              *AWSMachinePool
+		old              *AWSMachinePool
+		wantErrToContain *string
 	}{
 		{
 			name: "adding tags is accepted",
@@ -243,7 +299,7 @@ func TestAWSMachinePoolValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: false,
+			wantErrToContain: nil,
 		},
 		{
 			name: "adding invalid tags is rejected",
@@ -264,7 +320,7 @@ func TestAWSMachinePoolValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErrToContain: ptr.To[string]("additionalTags"),
 		},
 		{
 			name: "Should fail update if both subnetID and filters passed in AWSMachinePool spec",
@@ -289,7 +345,7 @@ func TestAWSMachinePoolValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErrToContain: ptr.To[string]("filter"),
 		},
 		{
 			name: "Should pass update if either subnetID or filters passed in AWSMachinePool spec",
@@ -313,7 +369,7 @@ func TestAWSMachinePoolValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: false,
+			wantErrToContain: nil,
 		},
 		{
 			name: "Should fail update if both spec.awsLaunchTemplate.SpotMarketOptions and spec.MixedInstancesPolicy are passed in AWSMachinePool spec",
@@ -334,7 +390,7 @@ func TestAWSMachinePoolValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErrToContain: ptr.To[string]("spotMarketOptions"),
 		},
 		{
 			name: "Should fail if MaxHealthyPercentage is set, but MinHealthyPercentage is not set",
@@ -343,7 +399,7 @@ func TestAWSMachinePoolValidateUpdate(t *testing.T) {
 					RefreshPreferences: &RefreshPreferences{MaxHealthyPercentage: aws.Int64(100)},
 				},
 			},
-			wantErr: true,
+			wantErrToContain: ptr.To[string]("minHealthyPercentage"),
 		},
 		{
 			name: "Should fail if the difference between MaxHealthyPercentage and MinHealthyPercentage is greater than 100",
@@ -355,14 +411,17 @@ func TestAWSMachinePoolValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErrToContain: ptr.To[string]("minHealthyPercentage"),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			warn, err := tt.new.ValidateUpdate(tt.old.DeepCopy())
-			if tt.wantErr {
-				g.Expect(err).To(HaveOccurred())
+			if tt.wantErrToContain != nil {
+				g.Expect(err).ToNot(BeNil())
+				if err != nil {
+					g.Expect(err.Error()).To(ContainSubstring(*tt.wantErrToContain))
+				}
 			} else {
 				g.Expect(err).To(Succeed())
 			}
