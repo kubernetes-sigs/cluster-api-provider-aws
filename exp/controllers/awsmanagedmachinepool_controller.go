@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -36,8 +37,10 @@ import (
 
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
+	asgsvc "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/autoscaling"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/eks"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
@@ -46,6 +49,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -137,6 +141,16 @@ func (r *AWSManagedMachinePoolReconciler) Reconcile(ctx context.Context, req ctr
 		return reconcile.Result{}, nil
 	}
 
+	ampHelper, err := patch.NewHelper(awsPool, r.Client)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to init AWSMachinePool patch helper")
+	}
+	awsPool.Status.InfrastructureMachineKind = "AWSMachine"
+	// Patch now so that the status and selectors are available.
+	if err := ampHelper.Patch(ctx, awsPool); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	managedControlPlaneScope, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
 		Client:                       r.Client,
 		Logger:                       log,
@@ -206,8 +220,15 @@ func (r *AWSManagedMachinePoolReconciler) reconcileNormal(
 	}
 
 	ekssvc := eks.NewNodegroupService(machinePoolScope)
+	asgsvc := r.getASGService(ec2Scope)
 	ec2svc := r.getEC2Service(ec2Scope)
 	reconSvc := r.getReconcileService(ec2Scope)
+
+	asgName := machinePoolScope.Name()
+	asg, err := asgsvc.ASGIfExists(&asgName)
+	if err != nil {
+		return fmt.Errorf("failed to query asg for %s: %w", asgName, err)
+	}
 
 	if machinePoolScope.ManagedMachinePool.Spec.AWSLaunchTemplate != nil {
 		canUpdateLaunchTemplate := func() (bool, error) {
@@ -236,6 +257,23 @@ func (r *AWSManagedMachinePoolReconciler) reconcileNormal(
 		conditions.MarkTrue(machinePoolScope.ManagedMachinePool, expinfrav1.LaunchTemplateReadyCondition)
 	}
 
+	awsMachineList, err := getAWSMachines(ctx, machinePoolScope.MachinePool, r.Client)
+	if err != nil {
+		return err
+	}
+
+	if err := createAWSMachinesIfNotExists(ctx, awsMachineList, machinePoolScope.MachinePool, &machinePoolScope.ManagedMachinePool.ObjectMeta, &machinePoolScope.ManagedMachinePool.TypeMeta, asg, machinePoolScope.GetLogger(), r.Client, ec2svc); err != nil {
+		machinePoolScope.ManagedMachinePool.Status.Ready = false
+		conditions.MarkFalse(machinePoolScope.ManagedMachinePool, clusterv1.ReadyCondition, expinfrav1.AWSMachineCreationFailed, clusterv1.ConditionSeverityWarning, "%s", err.Error())
+		return fmt.Errorf("failed to create missing awsmachines: %w", err)
+	}
+
+	if err := deleteOrphanedAWSMachines(ctx, awsMachineList, asg, machinePoolScope.GetLogger(), r.Client); err != nil {
+		machinePoolScope.ManagedMachinePool.Status.Ready = false
+		conditions.MarkFalse(machinePoolScope.ManagedMachinePool, clusterv1.ReadyCondition, expinfrav1.AWSMachineDeletionFailed, clusterv1.ConditionSeverityWarning, "%s", err.Error())
+		return fmt.Errorf("failed to clean up dangling awsmachines: %w", err)
+	}
+
 	if err := ekssvc.ReconcilePool(ctx); err != nil {
 		return errors.Wrapf(err, "failed to reconcile machine pool for AWSManagedMachinePool %s/%s", machinePoolScope.ManagedMachinePool.Namespace, machinePoolScope.ManagedMachinePool.Name)
 	}
@@ -244,11 +282,15 @@ func (r *AWSManagedMachinePoolReconciler) reconcileNormal(
 }
 
 func (r *AWSManagedMachinePoolReconciler) reconcileDelete(
-	_ context.Context,
+	ctx context.Context,
 	machinePoolScope *scope.ManagedMachinePoolScope,
 	ec2Scope scope.EC2Scope,
 ) error {
 	machinePoolScope.Info("Reconciling deletion of AWSManagedMachinePool")
+
+	if err := reconcileDeleteAWSMachines(ctx, machinePoolScope.MachinePool, r.Client, machinePoolScope.GetLogger()); err != nil {
+		return err
+	}
 
 	ekssvc := eks.NewNodegroupService(machinePoolScope)
 	ec2Svc := ec2.NewService(ec2Scope)
@@ -343,6 +385,10 @@ func managedControlPlaneToManagedMachinePoolMapFunc(c client.Client, gvk schema.
 
 		return results
 	}
+}
+
+func (r *AWSManagedMachinePoolReconciler) getASGService(scope cloud.ClusterScoper) services.ASGInterface {
+	return asgsvc.NewService(scope)
 }
 
 func (r *AWSManagedMachinePoolReconciler) getEC2Service(scope scope.EC2Scope) services.EC2Interface {

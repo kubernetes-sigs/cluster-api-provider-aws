@@ -1087,6 +1087,10 @@ spec:
                   can be added as events to the MachinePool object and/or logged in the
                   controller's output.
                 type: string
+              infrastructureMachineKind:
+                description: InfrastructureMachineKind is the kind of the infrastructure
+                  resources behind MachinePool Machines.
+                type: string
               launchTemplateID:
                 description: The ID of the launch template
                 type: string
