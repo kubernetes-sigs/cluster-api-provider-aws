@@ -133,6 +133,7 @@ func (r *AWSMachinePool) validateAdditionalSecurityGroups() field.ErrorList {
 	}
 	return allErrs
 }
+
 func (r *AWSMachinePool) validateSpotInstances() field.ErrorList {
 	var allErrs field.ErrorList
 	if r.Spec.AWSLaunchTemplate.SpotMarketOptions != nil && r.Spec.MixedInstancesPolicy != nil {
