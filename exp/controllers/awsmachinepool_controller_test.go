@@ -852,7 +852,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 
 			reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			asgSvc.EXPECT().DescribeLifecycleHooks(gomock.Eq(ms.Name())).Return(nil, nil)
-			asgSvc.EXPECT().CreateLifecycleHook(ms.Name(), &newLifecycleHook).Return(nil)
+			asgSvc.EXPECT().CreateLifecycleHook(gomock.Any(), ms.Name(), &newLifecycleHook).Return(nil)
 			reconSvc.EXPECT().ReconcileTags(gomock.Any(), gomock.Any()).Return(nil)
 			asgSvc.EXPECT().GetASGByName(gomock.Any()).DoAndReturn(func(scope *scope.MachinePoolScope) (*expinfrav1.AutoScalingGroup, error) {
 				g.Expect(scope.Name()).To(Equal("test"))
@@ -887,7 +887,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 					LifecycleTransition: "autoscaling:EC2_INSTANCE_LAUNCHING",
 				},
 			}, nil)
-			asgSvc.EXPECT().DeleteLifecycleHook(ms.Name(), &expinfrav1.AWSLifecycleHook{
+			asgSvc.EXPECT().DeleteLifecycleHook(gomock.Any(), ms.Name(), &expinfrav1.AWSLifecycleHook{
 				Name:                "hook-to-remove",
 				LifecycleTransition: "autoscaling:EC2_INSTANCE_LAUNCHING",
 			}).Return(nil)
@@ -930,8 +930,8 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 					LifecycleTransition: "autoscaling:EC2_INSTANCE_LAUNCHING",
 				},
 			}, nil)
-			asgSvc.EXPECT().CreateLifecycleHook(ms.Name(), &newLifecycleHook).Return(nil)
-			asgSvc.EXPECT().DeleteLifecycleHook(ms.Name(), &expinfrav1.AWSLifecycleHook{
+			asgSvc.EXPECT().CreateLifecycleHook(gomock.Any(), ms.Name(), &newLifecycleHook).Return(nil)
+			asgSvc.EXPECT().DeleteLifecycleHook(gomock.Any(), ms.Name(), &expinfrav1.AWSLifecycleHook{
 				Name:                "hook-to-remove",
 				LifecycleTransition: "autoscaling:EC2_INSTANCE_LAUNCHING",
 			}).Return(nil)
@@ -974,7 +974,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 					LifecycleTransition: "autoscaling:EC2_INSTANCE_LAUNCHING",
 				},
 			}, nil)
-			asgSvc.EXPECT().UpdateLifecycleHook(ms.Name(), &updateLifecycleHook).Return(nil)
+			asgSvc.EXPECT().UpdateLifecycleHook(gomock.Any(), ms.Name(), &updateLifecycleHook).Return(nil)
 			reconSvc.EXPECT().ReconcileTags(gomock.Any(), gomock.Any()).Return(nil)
 			asgSvc.EXPECT().GetASGByName(gomock.Any()).DoAndReturn(func(scope *scope.MachinePoolScope) (*expinfrav1.AutoScalingGroup, error) {
 				g.Expect(scope.Name()).To(Equal("test"))

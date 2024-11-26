@@ -77,10 +77,10 @@ func getPutLifecycleHookInput(asgName string, hook *expinfrav1.AWSLifecycleHook)
 }
 
 // CreateLifecycleHook creates a lifecycle hook for the given AutoScalingGroup.
-func (s *Service) CreateLifecycleHook(asgName string, hook *expinfrav1.AWSLifecycleHook) error {
+func (s *Service) CreateLifecycleHook(ctx context.Context, asgName string, hook *expinfrav1.AWSLifecycleHook) error {
 	input := getPutLifecycleHookInput(asgName, hook)
 
-	if _, err := s.ASGClient.PutLifecycleHookWithContext(context.TODO(), input); err != nil {
+	if _, err := s.ASGClient.PutLifecycleHookWithContext(ctx, input); err != nil {
 		return errors.Wrapf(err, "failed to create lifecycle hook %q for AutoScalingGroup: %q", hook.Name, asgName)
 	}
 
@@ -88,10 +88,10 @@ func (s *Service) CreateLifecycleHook(asgName string, hook *expinfrav1.AWSLifecy
 }
 
 // UpdateLifecycleHook updates a lifecycle hook for the given AutoScalingGroup.
-func (s *Service) UpdateLifecycleHook(asgName string, hook *expinfrav1.AWSLifecycleHook) error {
+func (s *Service) UpdateLifecycleHook(ctx context.Context, asgName string, hook *expinfrav1.AWSLifecycleHook) error {
 	input := getPutLifecycleHookInput(asgName, hook)
 
-	if _, err := s.ASGClient.PutLifecycleHookWithContext(context.TODO(), input); err != nil {
+	if _, err := s.ASGClient.PutLifecycleHookWithContext(ctx, input); err != nil {
 		return errors.Wrapf(err, "failed to update lifecycle hook %q for AutoScalingGroup: %q", hook.Name, asgName)
 	}
 
@@ -99,16 +99,13 @@ func (s *Service) UpdateLifecycleHook(asgName string, hook *expinfrav1.AWSLifecy
 }
 
 // DeleteLifecycleHook deletes a lifecycle hook for the given AutoScalingGroup.
-func (s *Service) DeleteLifecycleHook(
-	asgName string,
-	hook *expinfrav1.AWSLifecycleHook,
-) error {
+func (s *Service) DeleteLifecycleHook(ctx context.Context, asgName string, hook *expinfrav1.AWSLifecycleHook) error {
 	input := &autoscaling.DeleteLifecycleHookInput{
 		AutoScalingGroupName: aws.String(asgName),
 		LifecycleHookName:    aws.String(hook.Name),
 	}
 
-	if _, err := s.ASGClient.DeleteLifecycleHookWithContext(context.TODO(), input); err != nil {
+	if _, err := s.ASGClient.DeleteLifecycleHookWithContext(ctx, input); err != nil {
 		return errors.Wrapf(err, "failed to delete lifecycle hook %q for AutoScalingGroup: %q", hook.Name, asgName)
 	}
 
@@ -163,7 +160,7 @@ func getLifecycleHookSpecificationList(lifecycleHooks []expinfrav1.AWSLifecycleH
 // by creating missing hooks, updating mismatching hooks and
 // deleting extraneous hooks (except those specified in
 // ignoreLifecycleHooks).
-func ReconcileLifecycleHooks(asgService services.ASGInterface, asgName string, wantedLifecycleHooks []expinfrav1.AWSLifecycleHook, ignoreLifecycleHooks map[string]bool, storeConditionsOnObject conditions.Setter, log logger.Wrapper) error {
+func ReconcileLifecycleHooks(ctx context.Context, asgService services.ASGInterface, asgName string, wantedLifecycleHooks []expinfrav1.AWSLifecycleHook, ignoreLifecycleHooks map[string]bool, storeConditionsOnObject conditions.Setter, log logger.Wrapper) error {
 	existingHooks, err := asgService.DescribeLifecycleHooks(asgName)
 	if err != nil {
 		return err
@@ -175,7 +172,7 @@ func ReconcileLifecycleHooks(asgService services.ASGInterface, asgName string, w
 			continue
 		}
 
-		if err := reconcileLifecycleHook(asgService, asgName, &wantedLifecycleHooks[i], existingHooks, storeConditionsOnObject, log); err != nil {
+		if err := reconcileLifecycleHook(ctx, asgService, asgName, &wantedLifecycleHooks[i], existingHooks, storeConditionsOnObject, log); err != nil {
 			return err
 		}
 	}
@@ -193,7 +190,7 @@ func ReconcileLifecycleHooks(asgService services.ASGInterface, asgName string, w
 		}
 		if !found {
 			log.Info("Deleting extraneous lifecycle hook", "hook", existingHook.Name)
-			if err := asgService.DeleteLifecycleHook(asgName, existingHook); err != nil {
+			if err := asgService.DeleteLifecycleHook(ctx, asgName, existingHook); err != nil {
 				conditions.MarkFalse(storeConditionsOnObject, expinfrav1.LifecycleHookReadyCondition, expinfrav1.LifecycleHookDeletionFailedReason, clusterv1.ConditionSeverityError, err.Error())
 				return err
 			}
@@ -211,7 +208,7 @@ func lifecycleHookNeedsUpdate(existing *expinfrav1.AWSLifecycleHook, expected *e
 		existing.NotificationMetadata != expected.NotificationMetadata
 }
 
-func reconcileLifecycleHook(asgService services.ASGInterface, asgName string, wantedHook *expinfrav1.AWSLifecycleHook, existingHooks []*expinfrav1.AWSLifecycleHook, storeConditionsOnObject conditions.Setter, log logger.Wrapper) error {
+func reconcileLifecycleHook(ctx context.Context, asgService services.ASGInterface, asgName string, wantedHook *expinfrav1.AWSLifecycleHook, existingHooks []*expinfrav1.AWSLifecycleHook, storeConditionsOnObject conditions.Setter, log logger.Wrapper) error {
 	log = log.WithValues("hook", wantedHook.Name)
 
 	log.Info("Checking for existing lifecycle hook")
@@ -225,7 +222,7 @@ func reconcileLifecycleHook(asgService services.ASGInterface, asgName string, wa
 
 	if existingHook == nil {
 		log.Info("Creating lifecycle hook")
-		if err := asgService.CreateLifecycleHook(asgName, wantedHook); err != nil {
+		if err := asgService.CreateLifecycleHook(ctx, asgName, wantedHook); err != nil {
 			conditions.MarkFalse(storeConditionsOnObject, expinfrav1.LifecycleHookReadyCondition, expinfrav1.LifecycleHookCreationFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return err
 		}
@@ -234,7 +231,7 @@ func reconcileLifecycleHook(asgService services.ASGInterface, asgName string, wa
 
 	if lifecycleHookNeedsUpdate(existingHook, wantedHook) {
 		log.Info("Updating lifecycle hook")
-		if err := asgService.UpdateLifecycleHook(asgName, wantedHook); err != nil {
+		if err := asgService.UpdateLifecycleHook(ctx, asgName, wantedHook); err != nil {
 			conditions.MarkFalse(storeConditionsOnObject, expinfrav1.LifecycleHookReadyCondition, expinfrav1.LifecycleHookUpdateFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return err
 		}
