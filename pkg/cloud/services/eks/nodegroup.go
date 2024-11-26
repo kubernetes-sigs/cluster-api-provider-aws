@@ -579,7 +579,7 @@ func (s *NodegroupService) reconcileNodegroup(ctx context.Context) error {
 		return errors.Wrapf(err, "failed to reconcile asg tags")
 	}
 
-	if err := s.reconcileLifecycleHooks(ng); err != nil {
+	if err := s.reconcileLifecycleHooks(ctx, ng); err != nil {
 		return errors.Wrapf(err, "failed to reconcile lifecyle hooks")
 	}
 
@@ -659,10 +659,10 @@ func (s *NodegroupService) waitForNodegroupActive() (*eks.Nodegroup, error) {
 }
 
 // reconcileLifecycleHooks periodically reconciles a lifecycle hook for the ASG.
-func (s *NodegroupService) reconcileLifecycleHooks(ng *eks.Nodegroup) error {
+func (s *NodegroupService) reconcileLifecycleHooks(ctx context.Context, ng *eks.Nodegroup) error {
 	if len(ng.Resources.AutoScalingGroups) == 0 {
 		return errors.New("no ASG defined for node group")
 	}
 
-	return asg.ReconcileLifecycleHooks(s.ASGService, *ng.Resources.AutoScalingGroups[0].Name, s.scope.GetLifecycleHooks(), IgnoredEKSLifecycleHooks, s.scope.GetMachinePool(), s.scope)
+	return asg.ReconcileLifecycleHooks(ctx, s.ASGService, *ng.Resources.AutoScalingGroups[0].Name, s.scope.GetLifecycleHooks(), IgnoredEKSLifecycleHooks, s.scope.GetMachinePool(), s.scope)
 }
