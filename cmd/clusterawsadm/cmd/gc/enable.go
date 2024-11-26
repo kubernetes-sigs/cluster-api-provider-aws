@@ -22,9 +22,9 @@ import (
 
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/util/homedir"
+	"k8s.io/kubectl/pkg/util/templates"
 
 	gcproc "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/gc"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 
 func newEnableCmd() *cobra.Command {
@@ -42,13 +42,13 @@ func newEnableCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "enable",
 		Short: "Mark a cluster as requiring external resource garbage collection",
-		Long: cmd.LongDesc(`
+		Long: templates.LongDesc(`
 			This command will mark the given cluster as requiring external
 			resource garbage collection (i.e. deleting) when the cluster is
 			requested to be deleted. This works by adding an annotation to the
 			infra cluster.
 		`),
-		Example: cmd.Examples(`
+		Example: templates.Examples(`
 			# Enable GC for a cluster using existing k8s context
 			clusterawsadm gc enable --cluster-name=test-cluster
 
