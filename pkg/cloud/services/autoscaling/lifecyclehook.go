@@ -151,6 +151,8 @@ func getLifecycleHookSpecificationList(lifecycleHooks []expinfrav1.AWSLifecycleH
 			timeoutSeconds := hook.HeartbeatTimeout.Duration.Seconds()
 			spec.HeartbeatTimeout = aws.Int64(int64(timeoutSeconds))
 		}
+
+		ret = append(ret, spec)
 	}
 
 	return
