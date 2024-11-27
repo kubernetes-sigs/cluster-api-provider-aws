@@ -1,6 +1,7 @@
 module sigs.k8s.io/cluster-api-provider-aws/hack/tools
 
-go 1.22.0
+go 1.22.7
+
 toolchain go1.22.9
 
 require (
