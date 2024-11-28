@@ -36,7 +36,7 @@ import (
 // DescribeLifecycleHooks returns the lifecycle hooks for the given AutoScalingGroup after retrieving them from the AWS API.
 func (s *Service) DescribeLifecycleHooks(asgName string) ([]*expinfrav1.AWSLifecycleHook, error) {
 	input := &autoscaling.DescribeLifecycleHooksInput{
-		AutoScalingGroupName: aws.String(asgName),
+		AutoScalingGroupName: ptr.To(asgName),
 	}
 
 	out, err := s.ASGClient.DescribeLifecycleHooksWithContext(context.TODO(), input)
@@ -54,9 +54,9 @@ func (s *Service) DescribeLifecycleHooks(asgName string) ([]*expinfrav1.AWSLifec
 
 func getPutLifecycleHookInput(asgName string, hook *expinfrav1.AWSLifecycleHook) (ret *autoscaling.PutLifecycleHookInput) {
 	ret = &autoscaling.PutLifecycleHookInput{
-		AutoScalingGroupName: aws.String(asgName),
-		LifecycleHookName:    aws.String(hook.Name),
-		LifecycleTransition:  aws.String(hook.LifecycleTransition.String()),
+		AutoScalingGroupName: ptr.To(asgName),
+		LifecycleHookName:    ptr.To(hook.Name),
+		LifecycleTransition:  ptr.To(hook.LifecycleTransition.String()),
 
 		// Optional
 		RoleARN:               hook.RoleARN,
@@ -64,15 +64,11 @@ func getPutLifecycleHookInput(asgName string, hook *expinfrav1.AWSLifecycleHook)
 		NotificationMetadata:  hook.NotificationMetadata,
 	}
 
-	// Optional parameters
-	if hook.DefaultResult != nil {
-		ret.DefaultResult = aws.String(hook.DefaultResult.String())
-	}
-
-	if hook.HeartbeatTimeout != nil {
-		timeoutSeconds := hook.HeartbeatTimeout.Duration.Seconds()
-		ret.HeartbeatTimeout = aws.Int64(int64(timeoutSeconds))
-	}
+	// For optional fields in the manifest, still fill in the AWS request parameters so any drifted lifecycle hook
+	// settings are reconciled to the desired state on update. Using AWS default values here.
+	ret.DefaultResult = ptr.To(ptr.Deref(hook.DefaultResult, expinfrav1.LifecycleHookDefaultResultAbandon).String())
+	timeoutSeconds := ptr.Deref(hook.HeartbeatTimeout, metav1.Duration{Duration: 3600 * time.Second}).Duration.Seconds()
+	ret.HeartbeatTimeout = aws.Int64(int64(timeoutSeconds))
 
 	return
 }
@@ -102,8 +98,8 @@ func (s *Service) UpdateLifecycleHook(ctx context.Context, asgName string, hook 
 // DeleteLifecycleHook deletes a lifecycle hook for the given AutoScalingGroup.
 func (s *Service) DeleteLifecycleHook(ctx context.Context, asgName string, hook *expinfrav1.AWSLifecycleHook) error {
 	input := &autoscaling.DeleteLifecycleHookInput{
-		AutoScalingGroupName: aws.String(asgName),
-		LifecycleHookName:    aws.String(hook.Name),
+		AutoScalingGroupName: ptr.To(asgName),
+		LifecycleHookName:    ptr.To(hook.Name),
 	}
 
 	if _, err := s.ASGClient.DeleteLifecycleHookWithContext(ctx, input); err != nil {
@@ -134,8 +130,8 @@ func (s *Service) SDKToLifecycleHook(hook *autoscaling.LifecycleHook) *expinfrav
 func getLifecycleHookSpecificationList(lifecycleHooks []expinfrav1.AWSLifecycleHook) (ret []*autoscaling.LifecycleHookSpecification) {
 	for _, hook := range lifecycleHooks {
 		spec := &autoscaling.LifecycleHookSpecification{
-			LifecycleHookName:   aws.String(hook.Name),
-			LifecycleTransition: aws.String(hook.LifecycleTransition.String()),
+			LifecycleHookName:   ptr.To(hook.Name),
+			LifecycleTransition: ptr.To(hook.LifecycleTransition.String()),
 
 			// Optional
 			RoleARN:               hook.RoleARN,
@@ -145,7 +141,7 @@ func getLifecycleHookSpecificationList(lifecycleHooks []expinfrav1.AWSLifecycleH
 
 		// Optional parameters
 		if hook.DefaultResult != nil {
-			spec.DefaultResult = aws.String(hook.DefaultResult.String())
+			spec.DefaultResult = ptr.To(hook.DefaultResult.String())
 		}
 
 		if hook.HeartbeatTimeout != nil {

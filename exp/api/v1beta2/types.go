@@ -268,8 +268,8 @@ const (
 	LifecycleHookTransitionInstanceTerminating LifecycleTransition = "autoscaling:EC2_INSTANCE_TERMINATING"
 )
 
-func (l *LifecycleTransition) String() string {
-	return string(*l)
+func (l LifecycleTransition) String() string {
+	return string(l)
 }
 
 // LifecycleHookDefaultResult is the default result for the lifecycle hook.
@@ -282,8 +282,8 @@ const (
 	LifecycleHookDefaultResultAbandon LifecycleHookDefaultResult = "ABANDON"
 )
 
-func (d *LifecycleHookDefaultResult) String() string {
-	return string(*d)
+func (d LifecycleHookDefaultResult) String() string {
+	return string(d)
 }
 
 // ASGStatus is a status string returned by the autoscaling API.
