@@ -135,6 +135,7 @@ func (r *ROSAMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, err
 	}
 
+	fmt.Println("CLIENT:", &r.Client)
 	machinePoolScope, err := scope.NewRosaMachinePoolScope(scope.RosaMachinePoolScopeParams{
 		Client:          r.Client,
 		ControllerName:  "rosamachinepool",
@@ -168,11 +169,36 @@ func (r *ROSAMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	defer func() {
+		fmt.Println("DEFER")
 		conditions.SetSummary(machinePoolScope.RosaMachinePool, conditions.WithConditions(expinfrav1.RosaMachinePoolReadyCondition), conditions.WithStepCounter())
+		fmt.Println("DEFER")
 
-		if err := machinePoolScope.Close(); err != nil && reterr == nil {
-			reterr = err
+		// patchHelper, err := patch.NewHelper(machinePoolScope.RosaMachinePool, r.Client)
+		// if err != nil {
+		// 	fmt.Println("ERROR when creatin helper")
+		// }
+
+		failureMessage := "fail blabla"
+		machinePoolScope.RosaMachinePool.Status.FailureMessage = &failureMessage
+		// err = patchHelper.Patch(
+		// 	ctx,
+		// 	// context.TODO(),
+		// 	machinePoolScope.RosaMachinePool,
+		// 	patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+		// 		expinfrav1.RosaMachinePoolReadyCondition,
+		// 	}})
+		// r.Client.Ge
+
+		err = r.Client.Status().Patch(ctx, machinePoolScope.RosaMachinePool, client.MergeFrom(machinePoolScope.RosaMachinePool))
+		if err != nil {
+			fmt.Println("ERR WHEN PATCHING", err)
 		}
+
+		// if err := machinePoolScope.Close(); err != nil && reterr == nil {
+		// 	fmt.Println("DEFER", err)
+
+		// 	reterr = err
+		// }
 	}()
 
 	if !rosaMachinePool.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -201,14 +227,34 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 	}
 
 	failureMessage, err := validateMachinePoolSpec(machinePoolScope)
+	fmt.Println("VALIDATION", failureMessage, err)
+
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to validate ROSAMachinePool.spec: %w", err)
 	}
 	if failureMessage != nil {
-		machinePoolScope.RosaMachinePool.Status.FailureMessage = failureMessage
+		fmt.Println("FAIL", machinePoolScope.RosaMachinePool.Name)
+
+		// machinePoolScope.RosaMachinePool.Status.FailureMessage = failureMessage
+		// conditions.MarkFalse(machinePoolScope.RosaMachinePool,
+		// 	expinfrav1.RosaMachinePoolReadyCondition,
+		// 	expinfrav1.RosaMachinePoolReconciliationFailedReason,
+		// 	clusterv1.ConditionSeverityError,
+		// 	"failed to create ROSAMachinePool: %s", *failureMessage)
+		// machinePoolScope.Close()
+		// annotations.AddAnnotations(machinePoolScope.RosaMachinePool, map[string]string{
+		// 	clusterv1.ReplicasManagedByAnnotation: "rosa",
+		// })
+		// if err := machinePoolScope.PatchRosaMachinePoolObject(ctx); err != nil {
+		// 	fmt.Println("ERRRRR PatchRosaMachinePoolObject", err.Error())
+		// 	return ctrl.Result{}, err
+		// }
+		// machinePoolScope.Patch(ctx, machinePoolScope.RosaMachinePool)
+		// r.Status().Update(ctx, machinePoolScope.RosaMachinePool)
 		// dont' requeue because input is invalid and manual intervention is needed.
 		return ctrl.Result{}, nil
 	}
+	fmt.Println("CCCCC")
 	machinePoolScope.RosaMachinePool.Status.FailureMessage = nil
 
 	rosaMachinePool := machinePoolScope.RosaMachinePool
@@ -225,11 +271,14 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 	}
 
 	nodePool, found, err := ocmClient.GetNodePool(machinePoolScope.ControlPlane.Status.ID, rosaMachinePool.Spec.NodePoolName)
+	fmt.Println("DDDDD", nodePool, found, err)
+
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
 	if found {
+		fmt.Println("FOUND")
 		if rosaMachinePool.Spec.AvailabilityZone == "" {
 			// reflect the current AvailabilityZone in the spec if not set.
 			rosaMachinePool.Spec.AvailabilityZone = nodePool.AvailabilityZone()
@@ -280,6 +329,8 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 		return ctrl.Result{RequeueAfter: time.Second * 60}, nil
 	}
 
+	fmt.Println("EEEEEE	")
+
 	npBuilder := nodePoolBuilder(rosaMachinePool.Spec, machinePool.Spec)
 	nodePoolSpec, err := npBuilder.Build()
 	if err != nil {
@@ -297,6 +348,7 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 	}
 
 	machinePoolScope.RosaMachinePool.Status.ID = nodePool.ID()
+	fmt.Println("BBBB")
 	return ctrl.Result{}, nil
 }
 

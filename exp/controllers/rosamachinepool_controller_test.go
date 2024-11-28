@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -31,6 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 func TestNodePoolToRosaMachinePoolSpec(t *testing.T) {
@@ -104,6 +106,7 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 		recorder = record.NewFakeRecorder(10)
 		ctx = context.TODO()
 		scheme = runtime.NewScheme()
+		// scheme = testEnv.Scheme()
 		ns, err = testEnv.CreateNamespace(ctx, "test-namespace")
 		g.Expect(err).To(BeNil())
 
@@ -174,12 +177,18 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "rosa-machinepool",
 				Namespace: ns.Name,
+				UID:       "rosa-machinepool-1",
 			},
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "ROSAMachinePool",
 				APIVersion: expinfrav1.GroupVersion.String(),
 			},
-			Spec: expinfrav1.RosaMachinePoolSpec{},
+			Spec: expinfrav1.RosaMachinePoolSpec{
+				NodePoolName: "test-nodepool",
+				Version:      "4.14.5",
+				Subnet:       "subnet-id",
+				InstanceType: "m5.large",
+			},
 		}
 
 		ownerMachinePool = &expclusterv1.MachinePool{
@@ -220,7 +229,7 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 			},
 		}
 
-		objects = []client.Object{secret, ownerCluster, ownerMachinePool}
+		objects = []client.Object{secret, ownerCluster, ownerMachinePool, rosaMachinePool}
 
 		for _, obj := range objects {
 			createObject(g, obj, ns.Name)
@@ -235,6 +244,7 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 	}
 
 	t.Run("Reconcile create node pool", func(t *testing.T) {
+		fmt.Println("START test")
 		setup(t)
 		defer teardown()
 		ocmMock = mocks.NewMockOCMClient(mockCtrl)
@@ -243,12 +253,40 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 				return nil, false, nil
 			}).Times(1)
 			m.CreateNodePool(gomock.Any(), gomock.Any()).DoAndReturn(func(clusterId string, nodePool *cmv1.NodePool) (*cmv1.NodePool, error) {
+				fmt.Println("NODE POOL", nodePool.ID())
 				return nodePool, nil
 			}).Times(1)
 		}
 		expect(ocmMock.EXPECT())
 
+		fmt.Println("REC", scheme.Recognizes(rosaMachinePool.GroupVersionKind()))
+		fmt.Println("REC", scheme.Recognizes(ownerCluster.GroupVersionKind()))
+
 		c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(rosaMachinePool, ownerCluster, ownerMachinePool, rosaControlPlane, secret).Build()
+
+		// failureMessage := "fail blabla"
+		// rosaMachinePool.Status.FailureMessage = &failureMessage
+
+		// err = c.Status().Patch(ctx, rosaMachinePool, client.MergeFrom(rosaMachinePool))
+		// err = c.Status().Patch(ctx, ownerMachinePool, client.MergeFrom(ownerMachinePool))
+		g.Expect(err).NotTo(HaveOccurred())
+		mpPh, err := patch.NewHelper(rosaMachinePool, testEnv)
+
+		rosaMachinePool.Status.Ready = true
+		l := map[string]string{"key": "value"}
+		rosaMachinePool.SetLabels(l)
+
+		err = mpPh.Patch(ctx, rosaMachinePool, patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			expinfrav1.RosaMachinePoolReadyCondition,
+		}})
+
+		m := &expinfrav1.ROSAMachinePool{}
+		key := client.ObjectKey{Name: rosaMachinePool.Name, Namespace: ns.Name}
+		c.Get(ctx, key, m)
+		fmt.Println("ROSAMACHINEPOOL:", m.Name, m.Status, m.Namespace, m.Labels)
+
+		g.Expect(err).NotTo(HaveOccurred())
+
 		stsMock := mock_stsiface.NewMockSTSAPI(mockCtrl)
 		stsMock.EXPECT().GetCallerIdentity(gomock.Any()).Times(1)
 
@@ -266,10 +304,15 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 		req := ctrl.Request{}
 		req.NamespacedName = types.NamespacedName{Name: "rosa-machinepool", Namespace: ns.Name}
 
-		result, err := r.Reconcile(ctx, req)
+		g.Expect(r.Endpoints).To(Equal("a"))
+		// result, err := r.Reconcile(ctx, req)
+		// key := client.ObjectKey{Name: ownerMachinePool.Name, Namespace: ns.Name}
+
+		g.Expect(m.Status).To(Equal(map[string]string{"cluster.x-k8s.io/replicas-managed-by": "rosa"}))
 
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(result).To(Equal(ctrl.Result{}))
+
+		// g.Expect(result).To(Equal(ctrl.Result{}))
 	})
 
 	// t.Run("Reconcile delete", func(t *testing.T) {

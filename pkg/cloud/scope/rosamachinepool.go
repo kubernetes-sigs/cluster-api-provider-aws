@@ -18,6 +18,7 @@ package scope
 
 import (
 	"context"
+	"fmt"
 
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/pkg/errors"
@@ -66,6 +67,8 @@ func NewRosaMachinePoolScope(params RosaMachinePoolScopeParams) (*RosaMachinePoo
 		params.Logger = logger.NewLogger(log)
 	}
 
+	fmt.Println("CLIENT:", &params.Client)
+
 	ammpHelper, err := patch.NewHelper(params.RosaMachinePool, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init RosaMachinePool patch helper")
@@ -76,8 +79,9 @@ func NewRosaMachinePoolScope(params RosaMachinePoolScopeParams) (*RosaMachinePoo
 	}
 
 	scope := &RosaMachinePoolScope{
-		Logger:                     *params.Logger,
-		Client:                     params.Client,
+		Logger: *params.Logger,
+		Client: params.Client,
+		// issue here for tests?
 		patchHelper:                ammpHelper,
 		capiMachinePoolPatchHelper: mpHelper,
 
@@ -224,6 +228,13 @@ func (s *RosaMachinePoolScope) PatchCAPIMachinePoolObject(ctx context.Context) e
 	return s.capiMachinePoolPatchHelper.Patch(
 		ctx,
 		s.MachinePool,
+	)
+}
+
+func (s *RosaMachinePoolScope) PatchRosaMachinePoolObject(ctx context.Context) error {
+	return s.patchHelper.Patch(
+		ctx,
+		s.RosaMachinePool,
 	)
 }
 
