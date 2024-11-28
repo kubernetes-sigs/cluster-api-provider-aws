@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright 2024 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
@@ -203,8 +204,8 @@ func ReconcileLifecycleHooks(ctx context.Context, asgService services.ASGInterfa
 }
 
 func lifecycleHookNeedsUpdate(existing *expinfrav1.AWSLifecycleHook, expected *expinfrav1.AWSLifecycleHook) bool {
-	return existing.DefaultResult != expected.DefaultResult ||
-		existing.HeartbeatTimeout != expected.HeartbeatTimeout ||
+	return ptr.Deref(existing.DefaultResult, expinfrav1.LifecycleHookDefaultResultAbandon) != ptr.Deref(expected.DefaultResult, expinfrav1.LifecycleHookDefaultResultAbandon) ||
+		ptr.Deref(existing.HeartbeatTimeout, metav1.Duration{Duration: 3600 * time.Second}) != ptr.Deref(expected.HeartbeatTimeout, metav1.Duration{Duration: 3600 * time.Second}) ||
 		existing.LifecycleTransition != expected.LifecycleTransition ||
 		existing.NotificationTargetARN != expected.NotificationTargetARN ||
 		existing.NotificationMetadata != expected.NotificationMetadata
