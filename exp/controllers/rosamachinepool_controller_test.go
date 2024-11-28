@@ -18,19 +18,19 @@ import (
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts/mock_stsiface"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/s3/mock_stsiface"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/rosa"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 func TestNodePoolToRosaMachinePoolSpec(t *testing.T) {
@@ -81,13 +81,13 @@ func TestNodePoolToRosaMachinePoolSpec(t *testing.T) {
 }
 
 func TestRosaMachinePoolReconcile(t *testing.T) {
-	g := NewWithT(t)
 	var (
 		recorder         *record.FakeRecorder
 		mockCtrl         *gomock.Controller
 		ctx              context.Context
 		scheme           *runtime.Scheme
 		ns               *corev1.Namespace
+		identity         *infrav1.AWSClusterControllerIdentity
 		secret           *corev1.Secret
 		rosaControlPlane *rosacontrolplanev1.ROSAControlPlane
 		ownerCluster     *clusterv1.Cluster
@@ -98,7 +98,7 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 		err              error
 	)
 
-	setup := func(t *testing.T) {
+	setup := func(t *testing.T, g *WithT) {
 		t.Helper()
 		mockCtrl = gomock.NewController(t)
 		recorder = record.NewFakeRecorder(10)
@@ -123,6 +123,17 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 				"ocmToken": []byte("secret-ocm-token-string"),
 			},
 		}
+		identity = &infrav1.AWSClusterControllerIdentity{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "default",
+			},
+			Spec: infrav1.AWSClusterControllerIdentitySpec{
+				AWSClusterIdentitySpec: infrav1.AWSClusterIdentitySpec{
+					AllowedNamespaces: &infrav1.AllowedNamespaces{},
+				},
+			},
+		}
+		identity.SetGroupVersionKind(infrav1.GroupVersion.WithKind("AWSClusterStaticIdentity"))
 
 		rosaControlPlane = &rosacontrolplanev1.ROSAControlPlane{
 			ObjectMeta: metav1.ObjectMeta{Name: "rosa-control-plane", Namespace: ns.Name},
@@ -149,9 +160,14 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 				CredentialsSecretRef: &corev1.LocalObjectReference{
 					Name: secret.Name,
 				},
+				VersionGate: "Acknowledge",
+				IdentityRef: &infrav1.AWSIdentityReference{
+					Name: identity.Name,
+					Kind: infrav1.ControllerIdentityKind,
+				},
 			},
 			Status: rosacontrolplanev1.RosaControlPlaneStatus{
-				Ready: true,
+				Ready: false,
 				ID:    "rosa-control-plane1",
 			},
 		}
@@ -174,12 +190,20 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "rosa-machinepool",
 				Namespace: ns.Name,
+				UID:       "rosa-machinepool-1",
 			},
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "ROSAMachinePool",
 				APIVersion: expinfrav1.GroupVersion.String(),
 			},
-			Spec: expinfrav1.RosaMachinePoolSpec{},
+			Spec: expinfrav1.RosaMachinePoolSpec{
+				NodePoolName: "test-nodepool",
+				Version:      "4.14.5",
+				// Version: "4.99.5",
+
+				Subnet:       "subnet-id",
+				InstanceType: "m5.large",
+			},
 		}
 
 		ownerMachinePool = &expclusterv1.MachinePool{
@@ -220,14 +244,16 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 			},
 		}
 
-		objects = []client.Object{secret, ownerCluster, ownerMachinePool}
+		objects = []client.Object{secret, ownerCluster, ownerMachinePool, rosaMachinePool, rosaControlPlane, identity}
 
 		for _, obj := range objects {
 			createObject(g, obj, ns.Name)
 		}
 	}
 
-	teardown := func() {
+	teardown := func(t *testing.T, g *WithT) {
+		t.Helper()
+		err = nil
 		mockCtrl.Finish()
 		for _, obj := range objects {
 			cleanupObject(g, obj)
@@ -235,8 +261,9 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 	}
 
 	t.Run("Reconcile create node pool", func(t *testing.T) {
-		setup(t)
-		defer teardown()
+		g := NewWithT(t)
+		setup(t, g)
+		defer teardown(t, g)
 		ocmMock = mocks.NewMockOCMClient(mockCtrl)
 		expect := func(m *mocks.MockOCMClientMockRecorder) {
 			m.GetNodePool(gomock.Any(), gomock.Any()).DoAndReturn(func(clusterId string, nodePoolID string) (*cmv1.NodePool, bool, error) {
@@ -248,7 +275,8 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 		}
 		expect(ocmMock.EXPECT())
 
-		c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(rosaMachinePool, ownerCluster, ownerMachinePool, rosaControlPlane, secret).Build()
+		g.Expect(err).NotTo(HaveOccurred())
+
 		stsMock := mock_stsiface.NewMockSTSAPI(mockCtrl)
 		stsMock.EXPECT().GetCallerIdentity(gomock.Any()).Times(1)
 
@@ -256,7 +284,7 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 			Recorder:         recorder,
 			WatchFilterValue: "",
 			Endpoints:        []scope.ServiceEndpoint{},
-			Client:           c,
+			Client:           testEnv,
 			NewStsClient:     func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsiface.STSAPI { return stsMock },
 			NewOCMClient: func(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (rosa.OCMClient, error) {
 				return ocmMock, nil
@@ -266,56 +294,231 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 		req := ctrl.Request{}
 		req.NamespacedName = types.NamespacedName{Name: "rosa-machinepool", Namespace: ns.Name}
 
-		result, err := r.Reconcile(ctx, req)
+		m := &expinfrav1.ROSAMachinePool{}
 
-		g.Expect(err).ToNot(HaveOccurred())
+		mpPh, err := patch.NewHelper(rosaControlPlane, testEnv)
+		rosaControlPlane.Status.Ready = true
+		g.Expect(mpPh.Patch(ctx, rosaControlPlane)).To(Succeed())
+		g.Expect(err).ShouldNot(HaveOccurred())
+
+		result, err2 := r.Reconcile(ctx, req)
+		g.Expect(err2).ToNot(HaveOccurred())
 		g.Expect(result).To(Equal(ctrl.Result{}))
+
+		time.Sleep(100 * time.Millisecond)
+
+		key := client.ObjectKey{Name: rosaMachinePool.Name, Namespace: ns.Name}
+		err3 := testEnv.Get(ctx, key, m)
+		g.Expect(err3).To(HaveOccurred())
+		g.Expect(m.Status.ID).To(Equal(rosaMachinePool.Spec.NodePoolName))
 	})
 
-	// t.Run("Reconcile delete", func(t *testing.T) {
-	// 	setup(t)
-	// 	defer teardown()
+	t.Run("Nodepool exist, but is not ready", func(t *testing.T) {
+		g := NewWithT(t)
+		setup(t, g)
+		defer teardown(t, g)
+		ocmMock = mocks.NewMockOCMClient(mockCtrl)
+		expect := func(m *mocks.MockOCMClientMockRecorder) {
+			m.GetNodePool(gomock.Any(), gomock.Any()).DoAndReturn(func(clusterId string, nodePoolID string) (*cmv1.NodePool, bool, error) {
+				nodePoolBuilder := nodePoolBuilder(rosaMachinePool.Spec, ownerMachinePool.Spec)
+				nodePool, err := nodePoolBuilder.ID("node-pool-1").Build()
+				g.Expect(err).To(BeNil())
+				return nodePool, true, nil
+			}).Times(1)
+			m.UpdateNodePool(gomock.Any(), gomock.Any()).DoAndReturn(func(clusterID string, nodePool *cmv1.NodePool) (*cmv1.NodePool, error) {
+				return nodePool, nil
+			}).Times(1)
+			m.CreateNodePool(gomock.Any(), gomock.Any()).DoAndReturn(func(clusterId string, nodePool *cmv1.NodePool) (*cmv1.NodePool, error) {
+				return nodePool, nil
+			}).Times(0)
+		}
+		expect(ocmMock.EXPECT())
 
-	// 	deleteTime := metav1.NewTime(time.Now().Add(5 * time.Second))
-	// 	rosaMachinePool.ObjectMeta.Finalizers = []string{"finalizer-rosa"}
-	// 	rosaMachinePool.ObjectMeta.DeletionTimestamp = &deleteTime
+		g.Expect(err).NotTo(HaveOccurred())
 
-	// 	ocmMock := mocks.NewMockOCMClient(mockCtrl)
-	// 	expect := func(m *mocks.MockOCMClientMockRecorder) {
-	// 		m.GetNodePool(gomock.Any(), gomock.Any()).DoAndReturn(func(clusterId string, nodePoolID string) (*cmv1.NodePool, bool, error) {
-	// 			nodePoolBuilder := nodePoolBuilder(rosaMachinePool.Spec, ownerMachinePool.Spec)
-	// 			nodePool, err := nodePoolBuilder.ID("node-pool-1").Build()
-	// 			g.Expect(err).To(BeNil())
-	// 			return nodePool, true, nil
-	// 		}).Times(1)
-	// 		m.DeleteNodePool("rosa-control-plane1", "node-pool-1").DoAndReturn(func(clusterId string, nodePoolID string) error {
-	// 			return nil
-	// 		}).Times(1)
-	// 	}
-	// 	expect(ocmMock.EXPECT())
+		stsMock := mock_stsiface.NewMockSTSAPI(mockCtrl)
+		stsMock.EXPECT().GetCallerIdentity(gomock.Any()).Times(1)
 
-	// 	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(rosaMachinePool, ownerCluster, ownerMachinePool, rosaControlPlane, secret).Build()
-	// 	stsMock := mock_stsiface.NewMockSTSAPI(mockCtrl)
-	// 	stsMock.EXPECT().GetCallerIdentity(gomock.Any()).Times(1)
+		r := ROSAMachinePoolReconciler{
+			Recorder:         recorder,
+			WatchFilterValue: "",
+			Endpoints:        []scope.ServiceEndpoint{},
+			Client:           testEnv,
+			NewStsClient:     func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsiface.STSAPI { return stsMock },
+			NewOCMClient: func(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (rosa.OCMClient, error) {
+				return ocmMock, nil
+			},
+		}
 
-	// 	r := ROSAMachinePoolReconciler{
-	// 		Recorder:         recorder,
-	// 		WatchFilterValue: "",
-	// 		Endpoints:        []scope.ServiceEndpoint{},
-	// 		Client:           client,
-	// 		NewStsClient:     func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsiface.STSAPI { return stsMock },
-	// 		NewOCMClient: func(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (rosa.OCMClient, error) {
-	// 			return ocmMock, nil
-	// 		},
-	// 	}
+		req := ctrl.Request{}
+		req.NamespacedName = types.NamespacedName{Name: "rosa-machinepool", Namespace: ns.Name}
 
-	// 	req := ctrl.Request{}
-	// 	req.NamespacedName = types.NamespacedName{Name: "rosa-machinepool", Namespace: ns.Name}
+		m := &expinfrav1.ROSAMachinePool{}
 
-	// 	result, err := r.Reconcile(ctx, req)
-	// 	g.Expect(err).ToNot(HaveOccurred())
-	// 	g.Expect(result).To(Equal(ctrl.Result{}))
-	// })
+		mpPh, err := patch.NewHelper(rosaControlPlane, testEnv)
+		rosaControlPlane.Status.Ready = true
+		g.Expect(mpPh.Patch(ctx, rosaControlPlane)).To(Succeed())
+		g.Expect(err).ShouldNot(HaveOccurred())
+
+		result, err2 := r.Reconcile(ctx, req)
+		g.Expect(err2).ToNot(HaveOccurred())
+		g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: time.Second * 60}))
+
+		time.Sleep(100 * time.Millisecond)
+
+		key := client.ObjectKey{Name: rosaMachinePool.Name, Namespace: ns.Name}
+		err3 := testEnv.Get(ctx, key, m)
+		g.Expect(err3).ToNot(HaveOccurred())
+		g.Expect(m.Status.Ready).To(BeTrue())
+		g.Expect(m.Status.Replicas).To(Equal(int32(0)))
+	})
+
+	t.Run("Nodepool is ready", func(t *testing.T) {
+		g := NewWithT(t)
+		setup(t, g)
+		defer teardown(t, g)
+		ocmMock = mocks.NewMockOCMClient(mockCtrl)
+		expect := func(m *mocks.MockOCMClientMockRecorder) {
+			m.GetNodePool(gomock.Any(), gomock.Any()).DoAndReturn(func(clusterId string, nodePoolID string) (*cmv1.NodePool, bool, error) {
+				nodePoolBuilder := nodePoolBuilder(rosaMachinePool.Spec, ownerMachinePool.Spec)
+				statusBuilder := (&cmv1.NodePoolStatusBuilder{}).CurrentReplicas(1)
+				autoscalingBuilder := (&cmv1.NodePoolAutoscalingBuilder{}).MinReplica(1).MaxReplica(1)
+				nodePool, err := nodePoolBuilder.ID("node-pool-1").Autoscaling(autoscalingBuilder).Replicas(1).Status(statusBuilder).Build()
+				g.Expect(err).NotTo(HaveOccurred())
+
+				return nodePool, true, nil
+			}).Times(1)
+			m.UpdateNodePool(gomock.Any(), gomock.Any()).DoAndReturn(func(clusterID string, nodePool *cmv1.NodePool) (*cmv1.NodePool, error) {
+				statusBuilder := (&cmv1.NodePoolStatusBuilder{}).CurrentReplicas(1)
+				version := (&cmv1.VersionBuilder{}).RawID("4.14.5")
+				npBuilder := cmv1.NodePoolBuilder{}
+				updatedNodePool, err := npBuilder.Copy(nodePool).Status(statusBuilder).Version(version).Build()
+				g.Expect(err).NotTo(HaveOccurred())
+
+				return updatedNodePool, nil
+			}).Times(1)
+			m.CreateNodePool(gomock.Any(), gomock.Any()).DoAndReturn(func(clusterId string, nodePool *cmv1.NodePool) (*cmv1.NodePool, error) {
+				return nodePool, nil
+			}).Times(0)
+		}
+		expect(ocmMock.EXPECT())
+
+		g.Expect(err).NotTo(HaveOccurred())
+
+		stsMock := mock_stsiface.NewMockSTSAPI(mockCtrl)
+		stsMock.EXPECT().GetCallerIdentity(gomock.Any()).Times(1)
+
+		r := ROSAMachinePoolReconciler{
+			Recorder:         recorder,
+			WatchFilterValue: "",
+			Endpoints:        []scope.ServiceEndpoint{},
+			Client:           testEnv,
+			NewStsClient:     func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsiface.STSAPI { return stsMock },
+			NewOCMClient: func(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (rosa.OCMClient, error) {
+				return ocmMock, nil
+			},
+		}
+
+		req := ctrl.Request{}
+		req.NamespacedName = types.NamespacedName{Name: "rosa-machinepool", Namespace: ns.Name}
+
+		m := &expinfrav1.ROSAMachinePool{}
+
+		mpPh, err := patch.NewHelper(rosaControlPlane, testEnv)
+		rosaControlPlane.Status.Ready = true
+		g.Expect(mpPh.Patch(ctx, rosaControlPlane)).To(Succeed())
+		g.Expect(err).ShouldNot(HaveOccurred())
+
+		result, err2 := r.Reconcile(ctx, req)
+		g.Expect(err2).ToNot(HaveOccurred())
+		g.Expect(result).To(Equal(ctrl.Result{}))
+
+		time.Sleep(100 * time.Millisecond)
+
+		key := client.ObjectKey{Name: rosaMachinePool.Name, Namespace: ns.Name}
+		err3 := testEnv.Get(ctx, key, m)
+		g.Expect(err3).ToNot(HaveOccurred())
+		g.Expect(m.Status.Ready).To(BeTrue())
+
+		g.Expect(m.Status.Replicas).To(Equal(int32(1)))
+	})
+
+	t.Run("Reconcile delete", func(t *testing.T) {
+		g := NewWithT(t)
+		setup(t, g)
+		defer teardown(t, g)
+
+		mpPh, errPatch := patch.NewHelper(rosaMachinePool, testEnv)
+		g.Expect(errPatch).ShouldNot(HaveOccurred())
+		rosaMachinePool.ObjectMeta.Finalizers = []string{expinfrav1.RosaMachinePoolFinalizer}
+		g.Expect(mpPh.Patch(ctx, rosaMachinePool)).To(Succeed())
+
+		ocmMock = mocks.NewMockOCMClient(mockCtrl)
+		expect := func(m *mocks.MockOCMClientMockRecorder) {
+			m.GetNodePool(gomock.Any(), gomock.Any()).DoAndReturn(func(clusterId string, nodePoolID string) (*cmv1.NodePool, bool, error) {
+				nodePoolBuilder := nodePoolBuilder(rosaMachinePool.Spec, ownerMachinePool.Spec)
+				nodePool, err := nodePoolBuilder.ID("node-pool-1").Build()
+				g.Expect(err).NotTo(HaveOccurred())
+				return nodePool, true, nil
+			}).Times(1)
+			m.DeleteNodePool("rosa-control-plane-status1", "node-pool-1").DoAndReturn(func(clusterId string, nodePoolID string) error {
+				return nil
+			}).Times(1)
+		}
+		expect(ocmMock.EXPECT())
+
+		stsMock := mock_stsiface.NewMockSTSAPI(mockCtrl)
+		stsMock.EXPECT().GetCallerIdentity(gomock.Any()).Times(1)
+
+		r := ROSAMachinePoolReconciler{
+			Recorder:         recorder,
+			WatchFilterValue: "",
+			Endpoints:        []scope.ServiceEndpoint{},
+			Client:           testEnv,
+			NewStsClient:     func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsiface.STSAPI { return stsMock },
+			NewOCMClient: func(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (rosa.OCMClient, error) {
+				return ocmMock, nil
+			},
+		}
+
+		// For some reason status gets deleted on creation, needs to set it again
+		rosaControlPlane.Status = rosacontrolplanev1.RosaControlPlaneStatus{
+			Ready: true,
+			ID:    "rosa-control-plane-status1",
+		}
+		log := logger.FromContext(ctx)
+		machinePoolScope, err1 := scope.NewRosaMachinePoolScope(scope.RosaMachinePoolScopeParams{
+			Client:          r.Client,
+			ControllerName:  "rosamachinepool",
+			Cluster:         ownerCluster,
+			ControlPlane:    rosaControlPlane,
+			MachinePool:     ownerMachinePool,
+			RosaMachinePool: rosaMachinePool,
+			Logger:          log,
+			Endpoints:       r.Endpoints,
+		})
+		g.Expect(err1).ToNot(HaveOccurred())
+
+		rosaControlPlaneScope, err2 := scope.NewROSAControlPlaneScope(scope.ROSAControlPlaneScopeParams{
+			Client:         r.Client,
+			Cluster:        ownerCluster,
+			ControlPlane:   rosaControlPlane,
+			ControllerName: "rosaControlPlane",
+			Endpoints:      r.Endpoints,
+			NewStsClient:   r.NewStsClient,
+		})
+		g.Expect(err2).ToNot(HaveOccurred())
+
+		err3 := r.reconcileDelete(ctx, machinePoolScope, rosaControlPlaneScope)
+		g.Expect(err3).ToNot(HaveOccurred())
+
+		machinePoolScope.Close()
+		m := &expinfrav1.ROSAMachinePool{}
+		key := client.ObjectKey{Name: rosaMachinePool.Name, Namespace: ns.Name}
+		err4 := testEnv.Get(ctx, key, m)
+		g.Expect(err4).ToNot(HaveOccurred())
+		g.Expect(m.Finalizers).To(BeNil())
+	})
 }
 
 func createObject(g *WithT, obj client.Object, namespace string) {

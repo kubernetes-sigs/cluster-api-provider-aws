@@ -164,6 +164,7 @@ func (r *ROSAMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	if !controlPlane.Status.Ready && controlPlane.ObjectMeta.DeletionTimestamp.IsZero() {
 		log.Info("Control plane is not ready yet")
 		err := machinePoolScope.RosaMchinePoolReadyFalse(expinfrav1.WaitingForRosaControlPlaneReason, "")
+
 		return ctrl.Result{}, err
 	}
 
@@ -201,11 +202,12 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 	}
 
 	failureMessage, err := validateMachinePoolSpec(machinePoolScope)
+
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to validate ROSAMachinePool.spec: %w", err)
 	}
+
 	if failureMessage != nil {
-		machinePoolScope.RosaMachinePool.Status.FailureMessage = failureMessage
 		// dont' requeue because input is invalid and manual intervention is needed.
 		return ctrl.Result{}, nil
 	}
@@ -225,6 +227,7 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 	}
 
 	nodePool, found, err := ocmClient.GetNodePool(machinePoolScope.ControlPlane.Status.ID, rosaMachinePool.Spec.NodePoolName)
+
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -297,6 +300,7 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 	}
 
 	machinePoolScope.RosaMachinePool.Status.ID = nodePool.ID()
+
 	return ctrl.Result{}, nil
 }
 
