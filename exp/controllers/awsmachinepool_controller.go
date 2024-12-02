@@ -322,6 +322,11 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 		return ctrl.Result{}, nil
 	}
 
+	if err := r.reconcileLifecycleHooks(ctx, machinePoolScope, asgsvc); err != nil {
+		r.Recorder.Eventf(machinePoolScope.AWSMachinePool, corev1.EventTypeWarning, "FailedLifecycleHooksReconcile", "Failed to reconcile lifecycle hooks: %v", err)
+		return ctrl.Result{}, errors.Wrap(err, "failed to reconcile lifecycle hooks")
+	}
+
 	if annotations.ReplicasManagedByExternalAutoscaler(machinePoolScope.MachinePool) {
 		// Set MachinePool replicas to the ASG DesiredCapacity
 		if *machinePoolScope.MachinePool.Spec.Replicas != *asg.DesiredCapacity {
@@ -629,6 +634,13 @@ func machinePoolToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.Map
 			},
 		}
 	}
+}
+
+// reconcileLifecycleHooks periodically reconciles a lifecycle hook for the ASG.
+func (r *AWSMachinePoolReconciler) reconcileLifecycleHooks(ctx context.Context, machinePoolScope *scope.MachinePoolScope, asgsvc services.ASGInterface) error {
+	asgName := machinePoolScope.Name()
+
+	return asg.ReconcileLifecycleHooks(ctx, asgsvc, asgName, machinePoolScope.GetLifecycleHooks(), map[string]bool{}, machinePoolScope.GetMachinePool(), machinePoolScope)
 }
 
 func (r *AWSMachinePoolReconciler) getInfraCluster(ctx context.Context, log *logger.Logger, cluster *clusterv1.Cluster, awsMachinePool *expinfrav1.AWSMachinePool) (scope.EC2Scope, scope.S3Scope, error) {

@@ -105,6 +105,10 @@ type AWSMachinePoolSpec struct {
 	// Ignition defined options related to the bootstrapping systems where Ignition is used.
 	// +optional
 	Ignition *infrav1.Ignition `json:"ignition,omitempty"`
+
+	// AWSLifecycleHooks specifies lifecycle hooks for the autoscaling group.
+	// +optional
+	AWSLifecycleHooks []AWSLifecycleHook `json:"lifecycleHooks,omitempty"`
 }
 
 // SuspendProcessesTypes contains user friendly auto-completable values for suspended process names.

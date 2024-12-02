@@ -53,6 +53,10 @@ type ASGInterface interface {
 	SuspendProcesses(name string, processes []string) error
 	ResumeProcesses(name string, processes []string) error
 	SubnetIDs(scope *scope.MachinePoolScope) ([]string, error)
+	DescribeLifecycleHooks(asgName string) ([]*expinfrav1.AWSLifecycleHook, error)
+	CreateLifecycleHook(ctx context.Context, asgName string, hook *expinfrav1.AWSLifecycleHook) error
+	UpdateLifecycleHook(ctx context.Context, asgName string, hook *expinfrav1.AWSLifecycleHook) error
+	DeleteLifecycleHook(ctx context.Context, asgName string, hook *expinfrav1.AWSLifecycleHook) error
 }
 
 // EC2Interface encapsulates the methods exposed to the machine
