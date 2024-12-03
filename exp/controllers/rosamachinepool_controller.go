@@ -332,6 +332,7 @@ func (r *ROSAMachinePoolReconciler) reconcileDelete(
 func (r *ROSAMachinePoolReconciler) reconcileMachinePoolVersion(machinePoolScope *scope.RosaMachinePoolScope, ocmClient rosa.OCMClient, nodePool *cmv1.NodePool) error {
 	version := machinePoolScope.RosaMachinePool.Spec.Version
 	if version == "" || version == rosa.RawVersionID(nodePool.Version()) {
+		machinePoolScope.RosaMachinePool.Status.AvailableUpgrades = nodePool.Version().AvailableUpgrades()
 		conditions.MarkFalse(machinePoolScope.RosaMachinePool, expinfrav1.RosaMachinePoolUpgradingCondition, "upgraded", clusterv1.ConditionSeverityInfo, "")
 		return nil
 	}
