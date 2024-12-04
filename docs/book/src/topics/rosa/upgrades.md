@@ -8,7 +8,7 @@ The Upgrade state can be checked in the conditions under `ROSAControlPlane.statu
 
 ## MachinePool Upgrade
 
-Upgrading the OpenShift version of the MachinePools is supported by the provider and can be performed independetly from the Control Plane upgrades. To perform an upgrade you need to update the `version` in the spec of the `ROSAMachinePool`. Once the version has changed the provider will handle the upgrade for you.
+Upgrading the OpenShift version of the MachinePools is supported by the provider and can be performed independently from the Control Plane upgrades. To perform an upgrade you need to update the `version` in the spec of the `ROSAMachinePool`. Once the version has changed the provider will handle the upgrade for you.
 
 The Upgrade state can be checked in the conditions under `ROSAMachinePool.status`.
 
