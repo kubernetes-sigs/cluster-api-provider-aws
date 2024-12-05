@@ -20,23 +20,22 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/ptr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"github.com/aws/aws-sdk-go/service/ec2"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
-
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/eks/mock_eksiface"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/iamauth/mock_iamauth"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 func TestDesiredTags(t *testing.T) {
@@ -220,5 +219,4 @@ func TestUpdateTagsForEKSManagedSecurityGroup(t *testing.T) {
 	for key, value := range desiredTags {
 		g.Expect(converters.TagsToMap(describeOutput.SecurityGroups[0].Tags)).To(HaveKeyWithValue(key, value))
 	}
-
 }

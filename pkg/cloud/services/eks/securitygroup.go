@@ -98,7 +98,7 @@ func (s *Service) reconcileSecurityGroups(cluster *eks.Cluster) error {
 	return nil
 }
 
-// desiredTags will return the default tags of EKS cluster with the spec.additionalTags from AWSManagedControlPlane
+// desiredTags will return the default tags of EKS cluster with the spec.additionalTags from AWSManagedControlPlane.
 func desiredTags(existingTags, additionalTags infrav1.Tags) infrav1.Tags {
 	merged := make(infrav1.Tags)
 
@@ -117,7 +117,7 @@ func desiredTags(existingTags, additionalTags infrav1.Tags) infrav1.Tags {
 	return merged
 }
 
-// updateTagsForEKSManagedSecurityGroup will update the tags in the EKS security group with the desired tags via create/update/delete operations
+// updateTagsForEKSManagedSecurityGroup will update the tags in the EKS security group with the desired tags via create/update/delete operations.
 func (s *Service) updateTagsForEKSManagedSecurityGroup(securityGroupID *string, existingTags, desiredTags infrav1.Tags) error {
 	tagsToDelete, newTags := getTagUpdates(existingTags, desiredTags)
 
