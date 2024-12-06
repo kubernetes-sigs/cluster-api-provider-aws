@@ -1,30 +1,18 @@
 # Creating a ROSA cluster
 
 ## Permissions
-CAPA controller requires an API token in order to be able to provision ROSA clusters:
+CAPA controller requires service account credentials to be able to provision ROSA clusters:
+1. Visit [https://console.redhat.com/iam/service-accounts](https://console.redhat.com/iam/service-accounts) and create a new service account.
 
-1. Visit [https://console.redhat.com/openshift/token](https://console.redhat.com/openshift/token) to retrieve your API authentication token
-
-1. Create a credentials secret within the target namespace with the token to be referenced later by `ROSAControlePlane`
+1. Create a new kubernetes secret with the service account credentials to be referenced later by `ROSAControlPlane`
     ```shell
     kubectl create secret generic rosa-creds-secret \
-      --from-literal=ocmToken='eyJhbGciOiJIUzI1NiIsI....' \
+      --from-literal=ocmClientId='....' \
+      --from-literal=ocmClientSecret='eyJhbGciOiJIUzI1NiIsI....' \
       --from-literal=ocmApiUrl='https://api.openshift.com' 
     ```
 
-    Alternatively, you can edit CAPA controller deployment to provide the credentials:
-    ```shell
-    kubectl edit deployment -n capa-system capa-controller-manager
-    ```
-
-    and add the following environment variables to the manager container:
-    ```yaml
-      env:
-      - name: OCM_TOKEN
-        value: "<token>"
-      - name: OCM_API_URL
-        value: "https://api.openshift.com" # or https://api.stage.openshift.com
-    ```
+    Note: to consume the secret without the need to reference it from your `ROSAControlPlane`, name your secret as `default-rosa-creds-secret`.
 
 ## Prerequisites
 
