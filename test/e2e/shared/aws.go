@@ -474,6 +474,7 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 	iamSvc := iam.New(prov)
 	temp := *renderCustomCloudFormation(t)
 	var (
+		iamUsers         []*cfn_iam.User
 		iamRoles         []*cfn_iam.Role
 		instanceProfiles []*cfn_iam.InstanceProfile
 		policies         []*cfn_iam.ManagedPolicy
@@ -484,6 +485,9 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 	// temp.Resources is a map. Traversing that directly results in undetermined order.
 	for _, val := range temp.Resources {
 		switch val.AWSCloudFormationType() {
+		case configservice.ResourceTypeAwsIamUser:
+			user := val.(*cfn_iam.User)
+			iamUsers = append(iamUsers, user)
 		case configservice.ResourceTypeAwsIamRole:
 			role := val.(*cfn_iam.Role)
 			iamRoles = append(iamRoles, role)
@@ -497,6 +501,19 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 			group := val.(*cfn_iam.Group)
 			groups = append(groups, group)
 		}
+	}
+	for _, user := range iamUsers {
+		By(fmt.Sprintf("deleting the following user: %q", user.UserName))
+		repeat := false
+		Eventually(func(gomega Gomega) bool {
+			err := DeleteUser(prov, user.UserName)
+			if err != nil && !repeat {
+				By(fmt.Sprintf("failed to delete user '%q'; reason: %+v", user.UserName, err))
+				repeat = true
+			}
+			code, ok := awserrors.Code(err)
+			return err == nil || (ok && code == iam.ErrCodeNoSuchEntityException)
+		}, 5*time.Minute, 5*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed deleting the user: %q", user.UserName))
 	}
 	for _, role := range iamRoles {
 		By(fmt.Sprintf("deleting the following role: %s", role.RoleName))
@@ -595,6 +612,24 @@ func detachAllPoliciesForRole(prov client.ConfigProvider, name string) error {
 			return errors.New("failed detaching policy from a role")
 		}
 	}
+	return nil
+}
+
+// DeleteUser deletes an IAM user in a best effort manner.
+func DeleteUser(prov client.ConfigProvider, name string) error {
+	iamSvc := iam.New(prov)
+
+	// if role does not exist, return.
+	_, err := iamSvc.GetUser(&iam.GetUserInput{UserName: aws.String(name)})
+	if err != nil {
+		return err
+	}
+
+	_, err = iamSvc.DeleteUser(&iam.DeleteUserInput{UserName: aws.String(name)})
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
