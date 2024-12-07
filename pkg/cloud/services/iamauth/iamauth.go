@@ -38,6 +38,10 @@ type AuthenticatorBackend interface {
 	MapRole(mapping ekscontrolplanev1.RoleMapping) error
 	// MapUser is used to map a user ARN to a user and set of groups
 	MapUser(mapping ekscontrolplanev1.UserMapping) error
+	// MapUsers is used to set multiple user ARN to a users and groups
+	MapUsers(mapping []ekscontrolplanev1.UserMapping) error
+	// MapRoles is used to set multiple role ARN to a users and groups
+	MapRoles(mapping []ekscontrolplanev1.RoleMapping) error
 }
 
 // BackendType is a type that represents the different aws-iam-authenticator backends.
