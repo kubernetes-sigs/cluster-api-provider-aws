@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"slices"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -63,10 +64,7 @@ func TestReconcileSubnets(t *testing.T) {
 		{ID: "subnet-private-us-east-1-wl1-nyc-wlz-1", AvailabilityZone: "us-east-1-wl1-nyc-wlz-1", CidrBlock: "10.0.7.0/24", IsPublic: false},
 		{ID: "subnet-public-us-east-1-wl1-nyc-wlz-1", AvailabilityZone: "us-east-1-wl1-nyc-wlz-1", CidrBlock: "10.0.8.0/24", IsPublic: true},
 	}
-	// TODO(mtulio): replace by slices.Concat(...) on go 1.22+
-	stubSubnetsAllZones := stubSubnetsAvailabilityZone
-	stubSubnetsAllZones = append(stubSubnetsAllZones, stubSubnetsLocalZone...)
-	stubSubnetsAllZones = append(stubSubnetsAllZones, stubSubnetsWavelengthZone...)
+	stubSubnetsAllZones := slices.Concat(stubSubnetsAvailabilityZone, stubSubnetsLocalZone, stubSubnetsWavelengthZone)
 
 	// NetworkSpec with subnets in zone type availability-zone
 	stubNetworkSpecWithSubnets := &infrav1.NetworkSpec{
@@ -1057,55 +1055,7 @@ func TestReconcileSubnets(t *testing.T) {
 				},
 				Subnets: []infrav1.SubnetSpec{},
 			}).WithTagUnmanagedNetworkResources(true),
-			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
-					Filters: []*ec2.Filter{
-						{
-							Name:   aws.String("state"),
-							Values: []*string{aws.String("pending"), aws.String("available")},
-						},
-						{
-							Name:   aws.String("vpc-id"),
-							Values: []*string{aws.String(subnetsVPCID)},
-						},
-					},
-				})).
-					Return(&ec2.DescribeSubnetsOutput{
-						Subnets: []*ec2.Subnet{
-							{
-								VpcId:               aws.String(subnetsVPCID),
-								SubnetId:            aws.String("subnet-1"),
-								AvailabilityZone:    aws.String("us-east-1a"),
-								CidrBlock:           aws.String("10.0.10.0/24"),
-								MapPublicIpOnLaunch: aws.Bool(false),
-							},
-							{
-								VpcId:               aws.String(subnetsVPCID),
-								SubnetId:            aws.String("subnet-2"),
-								AvailabilityZone:    aws.String("us-east-1a"),
-								CidrBlock:           aws.String("10.0.20.0/24"),
-								MapPublicIpOnLaunch: aws.Bool(false),
-							},
-						},
-					}, nil)
-				m.DescribeRouteTablesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
-					Return(&ec2.DescribeRouteTablesOutput{}, nil)
-
-				m.DescribeNatGatewaysPagesWithContext(context.TODO(),
-					gomock.Eq(&ec2.DescribeNatGatewaysInput{
-						Filter: []*ec2.Filter{
-							{
-								Name:   aws.String("vpc-id"),
-								Values: []*string{aws.String(subnetsVPCID)},
-							},
-							{
-								Name:   aws.String("state"),
-								Values: []*string{aws.String("pending"), aws.String("available")},
-							},
-						},
-					}),
-					gomock.Any()).Return(nil)
-			},
+			expect:                       func(m *mocks.MockEC2APIMockRecorder) {},
 			errorExpected:                true,
 			tagUnmanagedNetworkResources: true,
 		},
@@ -2612,6 +2562,183 @@ func TestReconcileSubnets(t *testing.T) {
 
 				// Public subnet
 				m.CreateTagsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
+					Return(nil, nil)
+
+				m.DescribeAvailabilityZonesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeAvailabilityZonesOutput{
+						AvailabilityZones: []*ec2.AvailabilityZone{
+							{
+								ZoneName: aws.String("us-east-1a"),
+								ZoneType: aws.String("availability-zone"),
+							},
+						},
+					}, nil).AnyTimes()
+			},
+		},
+		{
+			name: "Managed VPC, existing public and private subnets, 2 subnets in spec, custom tags in spec should be created",
+			input: NewClusterScope().WithNetwork(&infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					ID: subnetsVPCID,
+					Tags: infrav1.Tags{
+						infrav1.ClusterTagKey("test-cluster"): "owned",
+					},
+				},
+				Subnets: []infrav1.SubnetSpec{
+					{
+						ID:               "subnet-1",
+						AvailabilityZone: "us-east-1a",
+						IsPublic:         true,
+						Tags:             map[string]string{"this-tag-is-in-the-spec": "but-its-not-on-aws"},
+					},
+					{
+						ID:               "subnet-2",
+						AvailabilityZone: "us-east-1a",
+						IsPublic:         false,
+						Tags:             map[string]string{"subnet-2-this-tag-is-in-the-spec": "subnet-2-but-its-not-on-aws"},
+					},
+				},
+			}),
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				tagsOnSubnet1 := []*ec2.Tag{
+					{
+						Key:   aws.String("Name"),
+						Value: aws.String("test-cluster-subnet-public"),
+					},
+					{
+						Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+						Value: aws.String("owned"),
+					},
+					{
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+						Value: aws.String("public"),
+					},
+				}
+				tagsOnSubnet2 := []*ec2.Tag{
+					{
+						Key:   aws.String("Name"),
+						Value: aws.String("test-cluster-subnet-private"),
+					},
+					{
+						Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+						Value: aws.String("owned"),
+					},
+					{
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+						Value: aws.String("private"),
+					},
+				}
+				m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
+					Filters: []*ec2.Filter{
+						{
+							Name:   aws.String("state"),
+							Values: []*string{aws.String("pending"), aws.String("available")},
+						},
+						{
+							Name:   aws.String("vpc-id"),
+							Values: []*string{aws.String(subnetsVPCID)},
+						},
+					},
+				})).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []*ec2.Subnet{
+							{
+								VpcId:            aws.String(subnetsVPCID),
+								SubnetId:         aws.String("subnet-1"),
+								AvailabilityZone: aws.String("us-east-1a"),
+								CidrBlock:        aws.String("10.0.0.0/17"),
+								Tags:             tagsOnSubnet1,
+							},
+							{
+								VpcId:            aws.String(subnetsVPCID),
+								SubnetId:         aws.String("subnet-2"),
+								AvailabilityZone: aws.String("us-east-1a"),
+								CidrBlock:        aws.String("10.0.128.0/17"),
+								Tags:             tagsOnSubnet2,
+							},
+						},
+					}, nil)
+
+				m.DescribeRouteTablesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+					Return(&ec2.DescribeRouteTablesOutput{}, nil)
+
+				m.DescribeNatGatewaysPagesWithContext(context.TODO(),
+					gomock.Eq(&ec2.DescribeNatGatewaysInput{
+						Filter: []*ec2.Filter{
+							{
+								Name:   aws.String("vpc-id"),
+								Values: []*string{aws.String(subnetsVPCID)},
+							},
+							{
+								Name:   aws.String("state"),
+								Values: []*string{aws.String("pending"), aws.String("available")},
+							},
+						},
+					}),
+					gomock.Any()).Return(nil)
+
+				// Public subnet
+				expectedAppliedAwsTagsForSubnet1 := []*ec2.Tag{
+					{
+						Key:   aws.String("Name"),
+						Value: aws.String("test-cluster-subnet-public-us-east-1a"),
+					},
+					{
+						Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+						Value: aws.String("owned"),
+					},
+					{
+						Key:   aws.String("kubernetes.io/role/elb"),
+						Value: aws.String("1"),
+					},
+					{
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+						Value: aws.String("owned"),
+					},
+					{
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+						Value: aws.String("public"),
+					},
+					{
+						Key:   aws.String("this-tag-is-in-the-spec"),
+						Value: aws.String("but-its-not-on-aws"),
+					}}
+				m.CreateTagsWithContext(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
+					Resources: aws.StringSlice([]string{"subnet-1"}),
+					Tags:      expectedAppliedAwsTagsForSubnet1,
+				})).
+					Return(nil, nil)
+
+				// Private subnet
+				expectedAppliedAwsTagsForSubnet2 := []*ec2.Tag{
+					{
+						Key:   aws.String("Name"),
+						Value: aws.String("test-cluster-subnet-private-us-east-1a"),
+					},
+					{
+						Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+						Value: aws.String("owned"),
+					},
+					{
+						Key:   aws.String("kubernetes.io/role/internal-elb"),
+						Value: aws.String("1"),
+					},
+					{
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+						Value: aws.String("owned"),
+					},
+					{
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+						Value: aws.String("private"),
+					},
+					{
+						Key:   aws.String("subnet-2-this-tag-is-in-the-spec"),
+						Value: aws.String("subnet-2-but-its-not-on-aws"),
+					}}
+				m.CreateTagsWithContext(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
+					Resources: aws.StringSlice([]string{"subnet-2"}),
+					Tags:      expectedAppliedAwsTagsForSubnet2,
+				})).
 					Return(nil, nil)
 
 				m.DescribeAvailabilityZonesWithContext(context.TODO(), gomock.Any()).
