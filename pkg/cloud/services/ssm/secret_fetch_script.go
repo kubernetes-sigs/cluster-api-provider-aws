@@ -196,6 +196,7 @@ if [ ${GUNZIP_RETURN} -ne 0 ]; then
 fi
 
 log::info "restarting cloud-init"
-systemctl restart cloud-init
+rm -rf /var/lib/cloud/instances
+cloud-init clean --reboot
 log::success_exit
 `
