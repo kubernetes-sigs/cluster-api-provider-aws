@@ -27,6 +27,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
+	asg "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/autoscaling"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/eks/iam"
 )
 
@@ -90,6 +92,7 @@ func NewService(controlPlaneScope *scope.ManagedControlPlaneScope, opts ...Servi
 // One alternative is to have a large list of functions from the ec2 client.
 type NodegroupService struct {
 	scope             *scope.ManagedMachinePoolScope
+	ASGService        services.ASGInterface
 	AutoscalingClient autoscalingiface.AutoScalingAPI
 	EKSClient         eksiface.EKSAPI
 	iam.IAMService
@@ -100,6 +103,7 @@ type NodegroupService struct {
 func NewNodegroupService(machinePoolScope *scope.ManagedMachinePoolScope) *NodegroupService {
 	return &NodegroupService{
 		scope:             machinePoolScope,
+		ASGService:        asg.NewService(machinePoolScope.EC2Scope),
 		AutoscalingClient: scope.NewASGClient(machinePoolScope, machinePoolScope, machinePoolScope, machinePoolScope.ManagedMachinePool),
 		EKSClient:         scope.NewEKSClient(machinePoolScope, machinePoolScope, machinePoolScope, machinePoolScope.ManagedMachinePool),
 		IAMService: iam.IAMService{
