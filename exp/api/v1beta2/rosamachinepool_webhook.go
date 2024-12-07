@@ -1,6 +1,8 @@
 package v1beta2
 
 import (
+	"fmt"
+
 	"github.com/blang/semver"
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
@@ -31,6 +33,7 @@ var _ webhook.Validator = &ROSAMachinePool{}
 // ValidateCreate implements admission.Validator.
 func (r *ROSAMachinePool) ValidateCreate() (warnings admission.Warnings, err error) {
 	var allErrs field.ErrorList
+	fmt.Println("VALIDTAE CREATE")
 
 	if err := r.validateVersion(); err != nil {
 		allErrs = append(allErrs, err)
@@ -43,6 +46,8 @@ func (r *ROSAMachinePool) ValidateCreate() (warnings admission.Warnings, err err
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 
 	if len(allErrs) == 0 {
+		fmt.Println("VALIDTAE CREATE FINE")
+
 		return nil, nil
 	}
 
@@ -55,6 +60,7 @@ func (r *ROSAMachinePool) ValidateCreate() (warnings admission.Warnings, err err
 
 // ValidateUpdate implements admission.Validator.
 func (r *ROSAMachinePool) ValidateUpdate(old runtime.Object) (warnings admission.Warnings, err error) {
+	fmt.Println("VALIDTAE UPDATE")
 	oldPool, ok := old.(*ROSAMachinePool)
 	if !ok {
 		return nil, apierrors.NewInvalid(GroupVersion.WithKind("ROSAMachinePool").GroupKind(), r.Name, field.ErrorList{
