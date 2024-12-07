@@ -128,6 +128,15 @@ type AWSLaunchTemplate struct {
 	// PrivateDNSName is the options for the instance hostname.
 	// +optional
 	PrivateDNSName *infrav1.PrivateDNSName `json:"privateDnsName,omitempty"`
+
+	// CapacityReservationID specifies the target Capacity Reservation into which the instance should be launched.
+	// +optional
+	CapacityReservationID *string `json:"capacityReservationId,omitempty"`
+
+	// UseCapacityBlock enables usage of pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
+	// If enabled, CapacityReservationID must be specified to identify the target reservation.
+	// +optional
+	UseCapacityBlock *bool `json:"useCapacityBlock,omitempty"`
 }
 
 // Overrides are used to override the instance type specified by the launch template with multiple
