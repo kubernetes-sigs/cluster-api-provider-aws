@@ -221,6 +221,11 @@ spec:
           status:
             description: RosaMachinePoolStatus defines the observed state of RosaMachinePool.
             properties:
+              availableUpgrades:
+                description: Available upgrades for the ROSA MachinePool.
+                items:
+                  type: string
+                type: array
               conditions:
                 description: Conditions defines current service state of the managed
                   machine pool

@@ -215,6 +215,9 @@ type RosaMachinePoolStatus struct {
 
 	// ID is the ID given by ROSA.
 	ID string `json:"id,omitempty"`
+
+	// Available upgrades for the ROSA MachinePool.
+	AvailableUpgrades []string `json:"availableUpgrades,omitempty"`
 }
 
 // +kubebuilder:object:root=true
