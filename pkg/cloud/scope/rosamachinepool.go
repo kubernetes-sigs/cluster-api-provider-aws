@@ -76,8 +76,9 @@ func NewRosaMachinePoolScope(params RosaMachinePoolScopeParams) (*RosaMachinePoo
 	}
 
 	scope := &RosaMachinePoolScope{
-		Logger:                     *params.Logger,
-		Client:                     params.Client,
+		Logger: *params.Logger,
+		Client: params.Client,
+		// issue here for tests?
 		patchHelper:                ammpHelper,
 		capiMachinePoolPatchHelper: mpHelper,
 

@@ -406,6 +406,7 @@ func buildAWSClusterControllerIdentity(ctx context.Context, identityObjectKey cl
 }
 
 func getProvidersForCluster(ctx context.Context, k8sClient client.Client, clusterScoper cloud.SessionMetadata, region string, log logger.Wrapper) ([]identity.AWSPrincipalTypeProvider, error) {
+	fmt.Println("clusterScoper", clusterScoper.Namespace(), clusterScoper.InfraClusterName(), clusterScoper.IdentityRef())
 	providers := make([]identity.AWSPrincipalTypeProvider, 0)
 	providers, err := buildProvidersForRef(ctx, providers, k8sClient, clusterScoper, clusterScoper.IdentityRef(), region, log)
 	if err != nil {
