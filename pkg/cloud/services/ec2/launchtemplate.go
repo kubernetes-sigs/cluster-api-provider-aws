@@ -519,7 +519,11 @@ func (s *Service) createLaunchTemplateData(scope scope.LaunchTemplateScope, imag
 	// set the AMI ID
 	data.ImageId = imageID
 
-	data.InstanceMarketOptions = getLaunchTemplateInstanceMarketOptionsRequest(scope.GetLaunchTemplate().SpotMarketOptions)
+	instanceMarketOptions, err := getLaunchTemplateInstanceMarketOptionsRequest(scope.GetLaunchTemplate())
+	if err != nil {
+		return nil, err
+	}
+	data.InstanceMarketOptions = instanceMarketOptions
 	data.PrivateDnsNameOptions = getLaunchTemplatePrivateDNSNameOptionsRequest(scope.GetLaunchTemplate().PrivateDNSName)
 
 	blockDeviceMappings := []*ec2.LaunchTemplateBlockDeviceMappingRequest{}
@@ -962,10 +966,24 @@ func (s *Service) getFilteredSecurityGroupIDs(securityGroup infrav1.AWSResourceR
 	return ids, nil
 }
 
-func getLaunchTemplateInstanceMarketOptionsRequest(spotMarketOptions *infrav1.SpotMarketOptions) *ec2.LaunchTemplateInstanceMarketOptionsRequest {
-	if spotMarketOptions == nil {
+func getLaunchTemplateInstanceMarketOptionsRequest(i *expinfrav1.AWSLaunchTemplate) (*ec2.LaunchTemplateInstanceMarketOptionsRequest, error) {
+	if i.UseCapacityBlock != nil && i.SpotMarketOptions != nil {
+		return nil, errors.New("can't create spot capacity-blocks, remove spot market request")
+	}
+
+	// Handle Capacity Block case.
+	if ptr.Deref(i.UseCapacityBlock, false) {
+		if i.CapacityReservationID == nil {
+			return nil, errors.Errorf("capacityReservationID is required when CapacityBlock is enabled")
+		}
+		return &ec2.LaunchTemplateInstanceMarketOptionsRequest{
+			MarketType: aws.String(ec2.MarketTypeCapacityBlock),
+		}, nil
+	}
+
+	if i.SpotMarketOptions == nil {
 		// Instance is not a Spot instance
-		return nil
+		return nil, nil
 	}
 
 	// Set required values for Spot instances
@@ -974,7 +992,7 @@ func getLaunchTemplateInstanceMarketOptionsRequest(spotMarketOptions *infrav1.Sp
 	// Persistent option is not available for EC2 autoscaling, EC2 makes a one-time request by default and setting request type should not be allowed.
 	// For one-time requests, only terminate option is available as interruption behavior, and default for spotOptions.SetInstanceInterruptionBehavior() is terminate, so it is not set here explicitly.
 
-	if maxPrice := aws.StringValue(spotMarketOptions.MaxPrice); maxPrice != "" {
+	if maxPrice := aws.StringValue(i.SpotMarketOptions.MaxPrice); maxPrice != "" {
 		spotOptions.SetMaxPrice(maxPrice)
 	}
 
@@ -982,7 +1000,7 @@ func getLaunchTemplateInstanceMarketOptionsRequest(spotMarketOptions *infrav1.Sp
 	launchTemplateInstanceMarketOptionsRequest.SetMarketType(ec2.MarketTypeSpot)
 	launchTemplateInstanceMarketOptionsRequest.SetSpotOptions(spotOptions)
 
-	return launchTemplateInstanceMarketOptionsRequest
+	return launchTemplateInstanceMarketOptionsRequest, nil
 }
 
 func getLaunchTemplatePrivateDNSNameOptionsRequest(privateDNSName *infrav1.PrivateDNSName) *ec2.LaunchTemplatePrivateDnsNameOptionsRequest {
