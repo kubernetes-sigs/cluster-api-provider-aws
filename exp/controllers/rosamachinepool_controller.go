@@ -163,7 +163,7 @@ func (r *ROSAMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	if !controlPlane.Status.Ready && controlPlane.ObjectMeta.DeletionTimestamp.IsZero() {
 		log.Info("Control plane is not ready yet")
-		err := machinePoolScope.RosaMchinePoolReadyFalse(expinfrav1.WaitingForRosaControlPlaneReason, "")
+		err := machinePoolScope.RosaMachinePoolReadyFalse(expinfrav1.WaitingForRosaControlPlaneReason, "")
 		return ctrl.Result{}, err
 	}
 
