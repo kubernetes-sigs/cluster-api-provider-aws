@@ -985,6 +985,20 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "Should pass if old secondary lb is absent",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					SecondaryControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						Name: ptr.To("test-lb"),
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name: "Should pass if controlPlaneLoadBalancer healthcheckprotocol is same after update",
 			oldCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
