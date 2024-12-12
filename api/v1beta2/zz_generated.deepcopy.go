@@ -772,9 +772,9 @@ func (in *AWSMachineSpec) DeepCopyInto(out *AWSMachineSpec) {
 		*out = new(string)
 		**out = **in
 	}
-	if in.UseCapacityBlock != nil {
-		in, out := &in.UseCapacityBlock, &out.UseCapacityBlock
-		*out = new(bool)
+	if in.MarketType != nil {
+		in, out := &in.MarketType, &out.MarketType
+		*out = new(MarketType)
 		**out = **in
 	}
 }
@@ -1609,9 +1609,9 @@ func (in *Instance) DeepCopyInto(out *Instance) {
 		*out = new(string)
 		**out = **in
 	}
-	if in.UseCapacityBlock != nil {
-		in, out := &in.UseCapacityBlock, &out.UseCapacityBlock
-		*out = new(bool)
+	if in.MarketType != nil {
+		in, out := &in.MarketType, &out.MarketType
+		*out = new(MarketType)
 		**out = **in
 	}
 }

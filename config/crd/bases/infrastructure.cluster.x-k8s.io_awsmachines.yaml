@@ -878,6 +878,14 @@ spec:
                   m4.xlarge'
                 minLength: 2
                 type: string
+              marketType:
+                description: |-
+                  MarketType specifies the type of market for the EC2 instance. Valid values include:
+                  "spot": The instance runs as a Spot instance. When SpotMarketOptions is provided, the MarketType defaults to "spot".
+                  "capacity-block": The instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
+                   If this value is selected, CapacityReservationID must be specified to identify the target reservation.
+                  If MarketType is not specified and SpotMarketOptions is provided, the MarketType defaults to "spot".
+                type: string
               networkInterfaces:
                 description: |-
                   NetworkInterfaces is a list of ENIs to associate with the instance.
@@ -1079,11 +1087,6 @@ spec:
                   UncompressedUserData specify whether the user data is gzip-compressed before it is sent to ec2 instance.
                   cloud-init has built-in support for gzip-compressed user data
                   user data stored in aws secret manager is always gzip-compressed.
-                type: boolean
-              useCapacityBlock:
-                description: |-
-                  UseCapacityBlock enables usage of pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
-                  If enabled, CapacityReservationID must be specified to identify the target reservation.
                 type: boolean
             required:
             - instanceType

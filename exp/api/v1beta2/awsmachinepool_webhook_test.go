@@ -175,11 +175,11 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "invalid useCapacityBlock and spotMarketOptions are specified",
+			name: "invalid, MarketType set to MarketTypeCapacityBlock and spotMarketOptions are specified",
 			pool: &AWSMachinePool{
 				Spec: AWSMachinePoolSpec{
 					AWSLaunchTemplate: AWSLaunchTemplate{
-						UseCapacityBlock:  aws.Bool(true),
+						MarketType:        ptr.To(infrav1.MarketTypeCapacityBlock),
 						SpotMarketOptions: &infrav1.SpotMarketOptions{},
 					},
 				},
@@ -187,11 +187,11 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "valid useCapacityBlock is specified",
+			name: "valid MarketType set to MarketTypeCapacityBlock is specified",
 			pool: &AWSMachinePool{
 				Spec: AWSMachinePoolSpec{
 					AWSLaunchTemplate: AWSLaunchTemplate{
-						UseCapacityBlock: aws.Bool(true),
+						MarketType: ptr.To(infrav1.MarketTypeCapacityBlock),
 					},
 				},
 			},

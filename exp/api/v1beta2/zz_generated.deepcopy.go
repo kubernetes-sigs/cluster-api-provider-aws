@@ -141,9 +141,9 @@ func (in *AWSLaunchTemplate) DeepCopyInto(out *AWSLaunchTemplate) {
 		*out = new(string)
 		**out = **in
 	}
-	if in.UseCapacityBlock != nil {
-		in, out := &in.UseCapacityBlock, &out.UseCapacityBlock
-		*out = new(bool)
+	if in.MarketType != nil {
+		in, out := &in.MarketType, &out.MarketType
+		*out = new(apiv1beta2.MarketType)
 		**out = **in
 	}
 }

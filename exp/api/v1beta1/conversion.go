@@ -61,8 +61,8 @@ func (src *AWSMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.AWSLaunchTemplate.CapacityReservationID = restored.Spec.AWSLaunchTemplate.CapacityReservationID
 	}
 
-	if restored.Spec.AWSLaunchTemplate.UseCapacityBlock != nil {
-		dst.Spec.AWSLaunchTemplate.UseCapacityBlock = restored.Spec.AWSLaunchTemplate.UseCapacityBlock
+	if restored.Spec.AWSLaunchTemplate.MarketType != nil {
+		dst.Spec.AWSLaunchTemplate.MarketType = restored.Spec.AWSLaunchTemplate.MarketType
 	}
 
 	dst.Spec.DefaultInstanceWarmup = restored.Spec.DefaultInstanceWarmup
@@ -121,8 +121,8 @@ func (src *AWSManagedMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 			dst.Spec.AWSLaunchTemplate.CapacityReservationID = restored.Spec.AWSLaunchTemplate.CapacityReservationID
 		}
 
-		if restored.Spec.AWSLaunchTemplate.UseCapacityBlock != nil {
-			dst.Spec.AWSLaunchTemplate.UseCapacityBlock = restored.Spec.AWSLaunchTemplate.UseCapacityBlock
+		if restored.Spec.AWSLaunchTemplate.MarketType != nil {
+			dst.Spec.AWSLaunchTemplate.MarketType = restored.Spec.AWSLaunchTemplate.MarketType
 		}
 
 	}

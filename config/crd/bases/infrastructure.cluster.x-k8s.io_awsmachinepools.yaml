@@ -728,6 +728,14 @@ spec:
                     description: 'InstanceType is the type of instance to create.
                       Example: m4.xlarge'
                     type: string
+                  marketType:
+                    description: |-
+                      MarketType specifies the type of market for the EC2 instance. Valid values include:
+                      "spot": The instance runs as a Spot instance. When SpotMarketOptions is provided, the MarketType defaults to "spot".
+                      "capacity-block": The instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
+                       If this value is selected, CapacityReservationID must be specified to identify the target reservation.
+                      If MarketType is not specified and SpotMarketOptions is provided, the MarketType defaults to "spot".
+                    type: string
                   name:
                     description: The name of the launch template.
                     type: string
@@ -850,11 +858,6 @@ spec:
                       SSHKeyName is the name of the ssh key to attach to the instance. Valid values are empty string
                       (do not use SSH keys), a valid SSH key name, or omitted (use the default SSH key name)
                     type: string
-                  useCapacityBlock:
-                    description: |-
-                      UseCapacityBlock enables usage of pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
-                      If enabled, CapacityReservationID must be specified to identify the target reservation.
-                    type: boolean
                   versionNumber:
                     description: |-
                       VersionNumber is the version of the launch template that is applied.

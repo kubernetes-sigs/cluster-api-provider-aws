@@ -262,11 +262,29 @@ type Instance struct {
 	// +optional
 	CapacityReservationID *string `json:"capacityReservationId,omitempty"`
 
-	// UseCapacityBlock enables usage of pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
-	// If enabled, CapacityReservationID must be specified to identify the target reservation.
+	// MarketType specifies the type of market for the EC2 instance. Valid values include:
+	// "on-demand" (default): The instance runs as a standard On-Demand instance.
+	// "spot": The instance runs as a Spot instance. When SpotMarketOptions is provided, the MarketType defaults to "spot".
+	// "capacity-block": The instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
+	//  If this value is selected, CapacityReservationID must be specified to identify the target reservation.
+	// If MarketType is not specified and SpotMarketOptions is provided, the MarketType defaults to "spot".
 	// +optional
-	UseCapacityBlock *bool `json:"useCapacityBlock,omitempty"`
+	MarketType *MarketType `json:"marketType,omitempty"`
 }
+
+// MarketType describes the market type of an Instance
+type MarketType string
+
+const (
+	// MarketTypeOnDemand is a MarketType enum value
+	MarketTypeOnDemand MarketType = "on-demand"
+
+	// MarketTypeSpot is a MarketType enum value
+	MarketTypeSpot MarketType = "spot"
+
+	// MarketTypeCapacityBlock is a MarketType enum value
+	MarketTypeCapacityBlock MarketType = "capacity-block"
+)
 
 // InstanceMetadataState describes the state of InstanceMetadataOptions.HttpEndpoint and InstanceMetadataOptions.InstanceMetadataTags
 type InstanceMetadataState string

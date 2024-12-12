@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -191,8 +192,8 @@ func (r *AWSMachinePool) ValidateCreate() (admission.Warnings, error) {
 
 func (r *AWSMachinePool) validateInstanceMarketType() field.ErrorList {
 	var allErrs field.ErrorList
-	if r.Spec.AWSLaunchTemplate.UseCapacityBlock != nil && r.Spec.AWSLaunchTemplate.SpotMarketOptions != nil {
-		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "useCapacityBlock"), "useCapacityBlock and spotMarketOptions cannot be used together"))
+	if ptr.Deref(r.Spec.AWSLaunchTemplate.MarketType, "") == v1beta2.MarketTypeCapacityBlock && r.Spec.AWSLaunchTemplate.SpotMarketOptions != nil {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "MarketType"), "setting MarketType to MarketTypeCapacityBlock and spotMarketOptions cannot be used together"))
 	}
 	return allErrs
 }

@@ -253,7 +253,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 
 	input.CapacityReservationID = scope.AWSMachine.Spec.CapacityReservationID
 
-	input.UseCapacityBlock = scope.AWSMachine.Spec.UseCapacityBlock
+	input.MarketType = scope.AWSMachine.Spec.MarketType
 
 	s.scope.Debug("Running instance", "machine-role", scope.Role())
 	s.scope.Debug("Running instance with instance metadata options", "metadata options", input.InstanceMetadataOptions)
@@ -1146,47 +1146,53 @@ func getCapacityReservationSpecification(capacityReservationID *string) *ec2.Cap
 }
 
 func getInstanceMarketOptionsRequest(i *infrav1.Instance) (*ec2.InstanceMarketOptionsRequest, error) {
-	if i.UseCapacityBlock != nil && i.SpotMarketOptions != nil {
+	marketType := ptr.Deref(i.MarketType, "")
+	if marketType != "" && marketType == ec2.MarketTypeCapacityBlock && i.SpotMarketOptions != nil {
 		return nil, errors.New("can't create spot capacity-blocks, remove spot market request")
 	}
 
-	// Handle Capacity Block case.
-	if ptr.Deref(i.UseCapacityBlock, false) {
+	// Infer MarketType if not explicitly set
+	if i.SpotMarketOptions != nil && marketType == "" {
+		marketType = infrav1.MarketTypeSpot
+	}
+
+	switch marketType {
+	case infrav1.MarketTypeCapacityBlock:
 		if i.CapacityReservationID == nil {
 			return nil, errors.Errorf("capacityReservationID is required when CapacityBlock is enabled")
 		}
 		return &ec2.InstanceMarketOptionsRequest{
 			MarketType: aws.String(ec2.MarketTypeCapacityBlock),
 		}, nil
-	}
 
-	// Handle Spot instance case.
-	if i.SpotMarketOptions == nil {
-		// Instance is not a Spot instance
+	case infrav1.MarketTypeSpot:
+		// Set required values for Spot instances
+		spotOpts := &ec2.SpotMarketOptions{
+			// The following two options ensure that:
+			// - If an instance is interrupted, it is terminated rather than hibernating or stopping
+			// - No replacement instance will be created if the instance is interrupted
+			// - If the spot request cannot immediately be fulfilled, it will not be created
+			// This behaviour should satisfy the 1:1 mapping of Machines to Instances as
+			// assumed by the Cluster API.
+			InstanceInterruptionBehavior: aws.String(ec2.InstanceInterruptionBehaviorTerminate),
+			SpotInstanceType:             aws.String(ec2.SpotInstanceTypeOneTime),
+		}
+
+		if maxPrice := aws.StringValue(i.SpotMarketOptions.MaxPrice); maxPrice != "" {
+			spotOpts.MaxPrice = aws.String(maxPrice)
+		}
+
+		return &ec2.InstanceMarketOptionsRequest{
+			MarketType:  aws.String(ec2.MarketTypeSpot),
+			SpotOptions: spotOpts,
+		}, nil
+	case infrav1.MarketTypeOnDemand, "":
+		// Instance is on-demand or empty
 		return nil, nil
+	default:
+		// Invalid MarketType provided
+		return nil, errors.Errorf("invalid MarketType %s, must be spot/capacity-block or empty", marketType)
 	}
-
-	// Set required values for Spot instances
-	spotOpts := &ec2.SpotMarketOptions{
-		// The following two options ensure that:
-		// - If an instance is interrupted, it is terminated rather than hibernating or stopping
-		// - No replacement instance will be created if the instance is interrupted
-		// - If the spot request cannot immediately be fulfilled, it will not be created
-		// This behaviour should satisfy the 1:1 mapping of Machines to Instances as
-		// assumed by the Cluster API.
-		InstanceInterruptionBehavior: aws.String(ec2.InstanceInterruptionBehaviorTerminate),
-		SpotInstanceType:             aws.String(ec2.SpotInstanceTypeOneTime),
-	}
-
-	maxPrice := ptr.Deref(i.SpotMarketOptions.MaxPrice, "")
-	if maxPrice != "" {
-		spotOpts.MaxPrice = aws.String(maxPrice)
-	}
-
-	return &ec2.InstanceMarketOptionsRequest{
-		MarketType:  aws.String(ec2.MarketTypeSpot),
-		SpotOptions: spotOpts,
-	}, nil
 }
 
 func getInstanceMetadataOptionsRequest(metadataOptions *infrav1.InstanceMetadataOptions) *ec2.InstanceMetadataOptionsRequest {

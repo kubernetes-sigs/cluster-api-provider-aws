@@ -364,8 +364,8 @@ func (r *AWSMachine) validateNetworkElasticIPPool() field.ErrorList {
 
 func (r *AWSMachine) validateInstanceMarketType() field.ErrorList {
 	var allErrs field.ErrorList
-	if r.Spec.UseCapacityBlock != nil && r.Spec.SpotMarketOptions != nil {
-		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "useCapacityBlock"), "useCapacityBlock and spotMarketOptions cannot be used together"))
+	if ptr.Deref(r.Spec.MarketType, "") == MarketTypeCapacityBlock && r.Spec.SpotMarketOptions != nil {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "MarketType"), "MarketType set to capacity-block and spotMarketOptions cannot be used together"))
 	}
 	return allErrs
 }

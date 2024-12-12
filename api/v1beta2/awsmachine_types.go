@@ -198,10 +198,13 @@ type AWSMachineSpec struct {
 	// +optional
 	CapacityReservationID *string `json:"capacityReservationId,omitempty"`
 
-	// UseCapacityBlock enables usage of pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
-	// If enabled, CapacityReservationID must be specified to identify the target reservation.
+	// MarketType specifies the type of market for the EC2 instance. Valid values include:
+	// "spot": The instance runs as a Spot instance. When SpotMarketOptions is provided, the MarketType defaults to "spot".
+	// "capacity-block": The instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
+	//  If this value is selected, CapacityReservationID must be specified to identify the target reservation.
+	// If MarketType is not specified and SpotMarketOptions is provided, the MarketType defaults to "spot".
 	// +optional
-	UseCapacityBlock *bool `json:"useCapacityBlock,omitempty"`
+	MarketType *MarketType `json:"marketType,omitempty"`
 }
 
 // CloudInit defines options related to the bootstrapping systems where

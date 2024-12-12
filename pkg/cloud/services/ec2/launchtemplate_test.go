@@ -1076,7 +1076,7 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 		awsResourceReference []infrav1.AWSResourceReference
 		expect               func(m *mocks.MockEC2APIMockRecorder)
 		wantErr              bool
-		useCapacityBlocks    bool
+		MarketType           *string
 	}{
 		{
 			name:                 "Should successfully creates launch template version",
@@ -1132,7 +1132,7 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 		{
 			name:                 "Should successfully create launch template version with capacity-block",
 			awsResourceReference: []infrav1.AWSResourceReference{{ID: aws.String("1")}},
-			useCapacityBlocks:    true,
+			MarketType:           aws.String(ec2.MarketTypeCapacityBlock),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				sgMap := make(map[infrav1.SecurityGroupRole]infrav1.SecurityGroup)
 				sgMap[infrav1.SecurityGroupNode] = infrav1.SecurityGroup{ID: "1"}
@@ -1239,7 +1239,7 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 
 			var ms *scope.MachinePoolScope
-			if tc.useCapacityBlocks {
+			if aws.StringValue(tc.MarketType) == ec2.MarketTypeCapacityBlock {
 				ms, err = setupCapacityBlocksMachinePoolScope(client, cs)
 			} else {
 				ms, err = setupMachinePoolScope(client, cs)

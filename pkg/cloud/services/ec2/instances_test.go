@@ -5198,7 +5198,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 		},
 		{
-			name: "Simple, setting CapacityBlock and providing CapacityReservationID",
+			name: "Simple, setting MarketType to MarketTypeCapacityBlock and providing CapacityReservationID",
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
@@ -5214,7 +5214,7 @@ func TestCreateInstance(t *testing.T) {
 					ID: aws.String("abc"),
 				},
 				InstanceType:          "m5.large",
-				UseCapacityBlock:      aws.Bool(true),
+				MarketType:            ptr.To(infrav1.MarketTypeCapacityBlock),
 				CapacityReservationID: aws.String("cr-12345678901234567"),
 			},
 			awsCluster: &infrav1.AWSCluster{
@@ -5319,7 +5319,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 		},
 		{
-			name: "expect error when CapacityBlock set but not providing CapacityReservationID",
+			name: "expect error when MarketType to MarketTypeCapacityBlock set but not providing CapacityReservationID",
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels:    map[string]string{"set": "node"},
@@ -5336,7 +5336,7 @@ func TestCreateInstance(t *testing.T) {
 				AMI: infrav1.AMIReference{
 					ID: aws.String("abc"),
 				},
-				UseCapacityBlock:        aws.Bool(true),
+				MarketType:              ptr.To(infrav1.MarketTypeCapacityBlock),
 				InstanceType:            "m5.large",
 				PlacementGroupPartition: 2,
 				UncompressedUserData:    &isUncompressedFalse,
@@ -5404,7 +5404,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 		},
 		{
-			name: "Simple, setting CapacityBlock to false and proving CapacityReservationID",
+			name: "Simple, setting not setting MarketType and proving CapacityReservationID",
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"set": "node"},
@@ -5420,7 +5420,6 @@ func TestCreateInstance(t *testing.T) {
 					ID: aws.String("abc"),
 				},
 				InstanceType:          "m5.large",
-				UseCapacityBlock:      aws.Bool(false),
 				CapacityReservationID: aws.String("cr-12345678901234567"),
 			},
 			awsCluster: &infrav1.AWSCluster{
@@ -5506,7 +5505,8 @@ func TestCreateInstance(t *testing.T) {
 								Placement: &ec2.Placement{
 									AvailabilityZone: &az,
 								},
-								InstanceLifecycle: aws.String("scheduled"),
+								CapacityReservationId: aws.String("cr-12345678901234567"),
+								InstanceLifecycle:     aws.String("scheduled"),
 							},
 						},
 					}, nil)
@@ -5615,6 +5615,20 @@ func TestGetInstanceMarketOptionsRequest(t *testing.T) {
 			expectedError: nil,
 		},
 		{
+			name:            "with no MarketType",
+			expectedRequest: nil,
+			instance:        &infrav1.Instance{},
+			expectedError:   nil,
+		},
+		{
+			name:            "invalid MarketType specified",
+			expectedRequest: nil,
+			instance: &infrav1.Instance{
+				MarketType: ptr.To(infrav1.MarketType("inValid")),
+			},
+			expectedError: errors.New("invalid MarketType inValid, must be spot/capacity-block or empty"),
+		},
+		{
 			name: "with an empty Spot options specified",
 			instance: &infrav1.Instance{
 				SpotMarketOptions: &infrav1.SpotMarketOptions{},
@@ -5668,18 +5682,18 @@ func TestGetInstanceMarketOptionsRequest(t *testing.T) {
 			expectedError:   nil,
 		},
 		{
-			name: "with a CapacityBlock specified with capacityReservationID set to nil",
+			name: "with a MarketType to MarketTypeCapacityBlock specified with capacityReservationID set to nil",
 			instance: &infrav1.Instance{
-				UseCapacityBlock:      aws.Bool(true),
+				MarketType:            ptr.To(infrav1.MarketTypeCapacityBlock),
 				CapacityReservationID: nil,
 			},
 			expectedRequest: nil,
 			expectedError:   errors.Errorf("capacityReservationID is required when CapacityBlock is enabled"),
 		},
 		{
-			name: "with a CapacityBlock set to false with capacityReservationID set to nil",
+			name: "with a MarketType to MarketTypeCapacityBlock with capacityReservationID set to nil",
 			instance: &infrav1.Instance{
-				UseCapacityBlock:      aws.Bool(true),
+				MarketType:            ptr.To(infrav1.MarketTypeCapacityBlock),
 				CapacityReservationID: mockCapacityReservationID,
 			},
 			expectedRequest: &ec2.InstanceMarketOptionsRequest{
@@ -5688,9 +5702,9 @@ func TestGetInstanceMarketOptionsRequest(t *testing.T) {
 			expectedError: nil,
 		},
 		{
-			name: "with a CapacityBlock set to false with capacityReservationID set and empty Spot options specified",
+			name: "with a MarketType to MarketTypeCapacityBlock set with capacityReservationID set and empty Spot options specified",
 			instance: &infrav1.Instance{
-				UseCapacityBlock:      aws.Bool(true),
+				MarketType:            ptr.To(infrav1.MarketTypeCapacityBlock),
 				SpotMarketOptions:     &infrav1.SpotMarketOptions{},
 				CapacityReservationID: mockCapacityReservationID,
 			},

@@ -90,7 +90,7 @@ func newAWSCapacityBlockMachinePool() *expinfrav1.AWSMachinePool {
 				AMI:                   infrav1.AMIReference{},
 				InstanceType:          "t3.large",
 				SSHKeyName:            aws.String("default"),
-				UseCapacityBlock:      aws.Bool(true),
+				MarketType:            ptr.To(infrav1.MarketTypeCapacityBlock),
 				CapacityReservationID: aws.String("cr-12345678901234567"),
 			},
 		},

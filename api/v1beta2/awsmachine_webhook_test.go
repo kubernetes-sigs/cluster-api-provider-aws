@@ -218,10 +218,10 @@ func TestAWSMachineCreate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "invalid useCapacityBlock and spotMarketOptions are specified",
+			name: "invalid case, MarketType set to MarketTypeCapacityBlock and spotMarketOptions are specified",
 			machine: &AWSMachine{
 				Spec: AWSMachineSpec{
-					UseCapacityBlock:  aws.Bool(true),
+					MarketType:        ptr.To(MarketTypeCapacityBlock),
 					SpotMarketOptions: &SpotMarketOptions{},
 					InstanceType:      "test",
 				},
@@ -229,11 +229,11 @@ func TestAWSMachineCreate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "valid useCapacityBlock is specified",
+			name: "valid MarketType set to MarketTypeCapacityBlock is specified",
 			machine: &AWSMachine{
 				Spec: AWSMachineSpec{
-					UseCapacityBlock: aws.Bool(true),
-					InstanceType:     "test",
+					MarketType:   ptr.To(MarketTypeCapacityBlock),
+					InstanceType: "test",
 				},
 			},
 			wantErr: false,
