@@ -2222,6 +2222,7 @@ func Convert_v1beta2_SecurityGroup_To_v1beta1_SecurityGroup(in *v1beta2.Security
 
 func autoConvert_v1beta1_SpotMarketOptions_To_v1beta2_SpotMarketOptions(in *SpotMarketOptions, out *v1beta2.SpotMarketOptions, s conversion.Scope) error {
 	out.MaxPrice = (*string)(unsafe.Pointer(in.MaxPrice))
+	out.WaitingTimeout = time.Duration(in.WaitingTimeout)
 	return nil
 }
 
@@ -2232,6 +2233,7 @@ func Convert_v1beta1_SpotMarketOptions_To_v1beta2_SpotMarketOptions(in *SpotMark
 
 func autoConvert_v1beta2_SpotMarketOptions_To_v1beta1_SpotMarketOptions(in *v1beta2.SpotMarketOptions, out *SpotMarketOptions, s conversion.Scope) error {
 	out.MaxPrice = (*string)(unsafe.Pointer(in.MaxPrice))
+	out.WaitingTimeout = time.Duration(in.WaitingTimeout)
 	return nil
 }
 
