@@ -129,6 +129,9 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 
 	Expect(err).NotTo(HaveOccurred())
 	e2eCtx.AWSSession = NewAWSSession()
+
+	logAccountDetails(e2eCtx.AWSSession)
+
 	bootstrapTemplate := getBootstrapTemplate(e2eCtx)
 	bootstrapTags := map[string]string{"capa-e2e-test": "true"}
 	e2eCtx.CloudFormationTemplate = renderCustomCloudFormation(bootstrapTemplate)
