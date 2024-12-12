@@ -46,6 +46,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/servicequotas"
+	"github.com/aws/aws-sdk-go/service/sts"
 	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -635,6 +636,19 @@ func GetPolicyArn(prov client.ConfigProvider, name string) string {
 	return ""
 }
 
+func logAccountDetails(prov client.ConfigProvider) {
+	By("Getting AWS account details")
+	stsSvc := sts.New(prov)
+
+	output, err := stsSvc.GetCallerIdentity(&sts.GetCallerIdentityInput{})
+	if err != nil {
+		fmt.Fprintf(GinkgoWriter, "couldn't get sts caller identity: err=%s", err)
+		return
+	}
+
+	fmt.Fprintf(GinkgoWriter, "Using AWS account: %s", *output.Account)
+}
+
 // deleteCloudFormationStack removes the provisioned clusterawsadm stack.
 func deleteCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Template) {
 	By(fmt.Sprintf("Deleting %s CloudFormation stack", t.Spec.StackName))
@@ -837,7 +851,7 @@ func DumpCloudTrailEvents(e2eCtx *E2EContext) {
 	if err != nil {
 		fmt.Fprintf(GinkgoWriter, "Failed to marshal AWS CloudTrail events: err=%v", err)
 	}
-	if err := os.WriteFile(logPath, dat, 0600); err != nil {
+	if err := os.WriteFile(logPath, dat, 0o600); err != nil {
 		fmt.Fprintf(GinkgoWriter, "couldn't write cloudtrail events to file: file=%s err=%s", logPath, err)
 		return
 	}
@@ -1008,7 +1022,7 @@ func dumpEKSCluster(cluster *eks.Cluster, logPath string) {
 	}
 	defer f.Close()
 
-	if err := os.WriteFile(f.Name(), clusterYAML, 0600); err != nil {
+	if err := os.WriteFile(f.Name(), clusterYAML, 0o600); err != nil {
 		fmt.Fprintf(GinkgoWriter, "couldn't write cluster yaml to file: name=%s file=%s err=%s", *cluster.Name, f.Name(), err)
 		return
 	}
