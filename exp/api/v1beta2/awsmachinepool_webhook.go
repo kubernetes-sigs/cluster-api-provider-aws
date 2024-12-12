@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -176,6 +177,7 @@ func (r *AWSMachinePool) ValidateCreate() (admission.Warnings, error) {
 	allErrs = append(allErrs, r.validateAdditionalSecurityGroups()...)
 	allErrs = append(allErrs, r.validateSpotInstances()...)
 	allErrs = append(allErrs, r.validateRefreshPreferences()...)
+	allErrs = append(allErrs, r.validateInstanceMarketType()...)
 
 	if len(allErrs) == 0 {
 		return nil, nil
@@ -186,6 +188,14 @@ func (r *AWSMachinePool) ValidateCreate() (admission.Warnings, error) {
 		r.Name,
 		allErrs,
 	)
+}
+
+func (r *AWSMachinePool) validateInstanceMarketType() field.ErrorList {
+	var allErrs field.ErrorList
+	if ptr.Deref(r.Spec.AWSLaunchTemplate.MarketType, "") == v1beta2.MarketTypeCapacityBlock && r.Spec.AWSLaunchTemplate.SpotMarketOptions != nil {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "MarketType"), "setting MarketType to MarketTypeCapacityBlock and spotMarketOptions cannot be used together"))
+	}
+	return allErrs
 }
 
 // ValidateUpdate will do any extra validation when updating a AWSMachinePool.
