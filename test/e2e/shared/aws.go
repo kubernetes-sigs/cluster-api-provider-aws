@@ -696,6 +696,7 @@ func ensureTestImageUploaded(e2eCtx *E2EContext) error {
 	}
 
 	imageSha := strings.ReplaceAll(strings.TrimSuffix(stdOut.String(), "\n"), "'", "")
+	fmt.Fprint(GinkgoWriter, "got container SHA")
 
 	ecrImageName := repoName + ":e2e"
 	cmd = exec.Command("docker", "tag", imageSha, ecrImageName) //nolint:gosec
@@ -703,6 +704,7 @@ func ensureTestImageUploaded(e2eCtx *E2EContext) error {
 	if err != nil {
 		return err
 	}
+	fmt.Fprint(GinkgoWriter, "tagged ECR image")
 
 	outToken, err := ecrSvc.GetAuthorizationToken(&ecrpublic.GetAuthorizationTokenInput{})
 	if err != nil {
@@ -722,12 +724,15 @@ func ensureTestImageUploaded(e2eCtx *E2EContext) error {
 	if err != nil {
 		return err
 	}
+	fmt.Fprint(GinkgoWriter, "logged in to public.ecr.aws")
 
 	cmd = exec.Command("docker", "push", ecrImageName)
 	err = cmd.Run()
 	if err != nil {
 		return err
 	}
+	fmt.Fprintf(GinkgoWriter, "pushed e2e image %q\n", ecrImageName)
+
 	e2eCtx.E2EConfig.Variables["CAPI_IMAGES_REGISTRY"] = repoName
 	e2eCtx.E2EConfig.Variables["E2E_IMAGE_TAG"] = "e2e"
 	return nil
