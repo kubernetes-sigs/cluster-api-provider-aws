@@ -105,7 +105,7 @@ const (
 
 const (
 	// RosaMachinePoolReadyCondition condition reports on the successful reconciliation of rosa machinepool.
-	RosaMachinePoolReadyCondition clusterv1.ConditionType = "RosaMchinePoolReady"
+	RosaMachinePoolReadyCondition clusterv1.ConditionType = "RosaMachinePoolReady"
 	// RosaMachinePoolUpgradingCondition condition reports whether ROSAMachinePool is upgrading or not.
 	RosaMachinePoolUpgradingCondition clusterv1.ConditionType = "RosaMchinePoolUpgrading"
 
