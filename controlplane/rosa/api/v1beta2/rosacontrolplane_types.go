@@ -38,7 +38,7 @@ const (
 	Private RosaEndpointAccessType = "Private"
 )
 
-// VersionGateAckType specifies the version gate acknowledgement.
+// VersionGateAckType specifies the version gate acknowledgment.
 type VersionGateAckType string
 
 const (
