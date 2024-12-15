@@ -122,8 +122,10 @@ func TestLifecycleHookNeedsUpdate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			existing := tt.existing
+			expected := tt.expected
 			g := NewWithT(t)
-			g.Expect(lifecycleHookNeedsUpdate(&tt.existing, &tt.expected)).To(Equal(tt.wantUpdate))
+			g.Expect(lifecycleHookNeedsUpdate(&existing, &expected)).To(Equal(tt.wantUpdate))
 		})
 	}
 }
