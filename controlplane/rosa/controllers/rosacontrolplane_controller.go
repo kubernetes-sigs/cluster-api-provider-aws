@@ -99,7 +99,7 @@ type ROSAControlPlaneReconciler struct {
 // SetupWithManager is used to setup the controller.
 func (r *ROSAControlPlaneReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	log := logger.FromContext(ctx)
-	r.NewOCMClient = rosa.NewOCMClient
+	r.NewOCMClient = rosa.NewOCMClient2
 	r.NewStsClient = scope.NewSTSClient
 
 	rosaControlPlane := &rosacontrolplanev1.ROSAControlPlane{}
@@ -209,6 +209,9 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		if err := rosaScope.PatchObject(); err != nil {
 			return ctrl.Result{}, err
 		}
+	}
+	if r.NewOCMClient == nil {
+		return ctrl.Result{}, fmt.Errorf("failed to create OCM client: NewOCMClient is nil")
 	}
 
 	ocmClient, err := r.NewOCMClient(ctx, rosaScope)
@@ -432,14 +435,15 @@ func (r *ROSAControlPlaneReconciler) reconcileClusterVersion(rosaScope *scope.RO
 		return nil
 	}
 
-	scheduledUpgrade, err := rosa.CheckExistingScheduledUpgrade(ocmClient, cluster)
+	rosaOCMClient := ocmClient.(*ocm.Client)
+	scheduledUpgrade, err := rosa.CheckExistingScheduledUpgrade(rosaOCMClient, cluster)
 	if err != nil {
 		return fmt.Errorf("failed to get existing scheduled upgrades: %w", err)
 	}
 
 	if scheduledUpgrade == nil {
 		ack := (rosaScope.ControlPlane.Spec.VersionGate == rosacontrolplanev1.Acknowledge || rosaScope.ControlPlane.Spec.VersionGate == rosacontrolplanev1.AlwaysAcknowledge)
-		scheduledUpgrade, err = rosa.ScheduleControlPlaneUpgrade(ocmClient, cluster, version, time.Now(), ack)
+		scheduledUpgrade, err = rosa.ScheduleControlPlaneUpgrade(rosaOCMClient, cluster, version, time.Now(), ack)
 		if err != nil {
 			condition := &clusterv1.Condition{
 				Type:    rosacontrolplanev1.ROSAControlPlaneUpgradingCondition,
@@ -787,8 +791,9 @@ func (r *ROSAControlPlaneReconciler) reconcileKubeconfig(ctx context.Context, ro
 	userName := fmt.Sprintf("%s-capi-admin", clusterName)
 	apiServerURL := cluster.API().URL()
 
+	c := ocmClient.(*ocm.Client)
 	// create new user with admin privileges in the ROSA cluster if 'userName' doesn't already exist.
-	err = rosa.CreateAdminUserIfNotExist(ocmClient, cluster.ID(), userName, password)
+	err = rosa.CreateAdminUserIfNotExist(c, cluster.ID(), userName, password)
 	if err != nil {
 		return err
 	}

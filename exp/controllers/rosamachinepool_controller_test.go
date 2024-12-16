@@ -422,11 +422,12 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 		mockCtrl := gomock.NewController(t)
 		recorder := record.NewFakeRecorder(10)
 		ctx := context.TODO()
+		controlPlaneName := "rosa-control-plane-9"
 		mp := &expinfrav1.ROSAMachinePool{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:       "rosa-machinepool-9",
+				Name:       controlPlaneName,
 				Namespace:  ns.Name,
-				UID:        "rosa-machinepool-9",
+				UID:        types.UID(controlPlaneName),
 				Finalizers: []string{expinfrav1.RosaMachinePoolFinalizer},
 			},
 			TypeMeta: metav1.TypeMeta{
@@ -452,19 +453,21 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 
 		cpPh, err := patch.NewHelper(cp, testEnv)
 		cp.Status.Ready = true
-		cp.Status.ID = "rosa-control-plane-9"
+		cp.Status.ID = controlPlaneName
 		g.Expect(cpPh.Patch(ctx, cp)).To(Succeed())
 		g.Expect(err).ShouldNot(HaveOccurred())
 
 		ocmMock := mocks.NewMockOCMClient(mockCtrl)
+		nodePoolName := "node-pool-1"
 		expect := func(m *mocks.MockOCMClientMockRecorder) {
 			m.GetNodePool(gomock.Any(), gomock.Any()).DoAndReturn(func(clusterId string, nodePoolID string) (*cmv1.NodePool, bool, error) {
 				nodePoolBuilder := nodePoolBuilder(mp.Spec, omp.Spec)
-				nodePool, err := nodePoolBuilder.ID("node-pool-1").Build()
+				nodePool, err := nodePoolBuilder.ID(nodePoolName).Build()
 				g.Expect(err).NotTo(HaveOccurred())
 				return nodePool, true, nil
 			}).Times(1)
-			m.DeleteNodePool("rosa-control-plane-9", "node-pool-1").DoAndReturn(func(clusterId string, nodePoolID string) error {
+			m.DeleteNodePool(controlPlaneName, nodePoolName).DoAndReturn(func(clusterId string, nodePoolID string) error {
+				testEnv.Delete(ctx, mp)
 				return nil
 			}).Times(1)
 		}
@@ -512,11 +515,11 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 
 		machinePoolScope.Close()
 		time.Sleep(50 * time.Millisecond)
-		m := &expinfrav1.ROSAMachinePool{}
+		rosaMachinePool := &expinfrav1.ROSAMachinePool{}
 		key := client.ObjectKey{Name: mp.Name, Namespace: ns.Name}
-		err4 := testEnv.Get(ctx, key, m)
-		g.Expect(err4).ToNot(HaveOccurred())
-		g.Expect(m.Finalizers).To(BeNil())
+		err4 := testEnv.Get(ctx, key, rosaMachinePool)
+		g.Expect(err4).To(HaveOccurred())
+		g.Expect(rosaMachinePool.Finalizers).To(BeNil())
 
 		for _, obj := range objects {
 			cleanupObject(g, obj)

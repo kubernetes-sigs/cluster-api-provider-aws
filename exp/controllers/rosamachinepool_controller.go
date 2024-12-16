@@ -58,7 +58,7 @@ type ROSAMachinePoolReconciler struct {
 // SetupWithManager is used to setup the controller.
 func (r *ROSAMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	log := logger.FromContext(ctx)
-	r.NewOCMClient = rosa.NewOCMClient
+	r.NewOCMClient = rosa.NewOCMClient2
 	r.NewStsClient = scope.NewSTSClient
 
 	gvk, err := apiutil.GVKForObject(new(expinfrav1.ROSAMachinePool), mgr.GetScheme())
@@ -192,6 +192,9 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 		if err := machinePoolScope.PatchObject(); err != nil {
 			return ctrl.Result{}, err
 		}
+	}
+	if r.NewOCMClient == nil {
+		return ctrl.Result{}, fmt.Errorf("failed to create OCM client: NewOCMClient is nil")
 	}
 
 	ocmClient, err := r.NewOCMClient(ctx, rosaControlPlaneScope)
@@ -340,7 +343,8 @@ func (r *ROSAMachinePoolReconciler) reconcileMachinePoolVersion(machinePoolScope
 	}
 
 	if scheduledUpgrade == nil {
-		scheduledUpgrade, err = rosa.ScheduleNodePoolUpgrade(ocmClient, clusterID, nodePool, version, time.Now())
+		rosaOCMClient := ocmClient.(*ocm.Client)
+		scheduledUpgrade, err = rosa.ScheduleNodePoolUpgrade(rosaOCMClient, clusterID, nodePool, version, time.Now())
 		if err != nil {
 			return fmt.Errorf("failed to schedule nodePool upgrade to version %s: %w", version, err)
 		}
