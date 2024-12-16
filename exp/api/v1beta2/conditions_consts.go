@@ -54,6 +54,11 @@ const (
 	InstanceRefreshNotReadyReason = "InstanceRefreshNotReady"
 	// InstanceRefreshFailedReason used to report when there instance refresh is not initiated.
 	InstanceRefreshFailedReason = "InstanceRefreshFailed"
+
+	// AWSMachineCreationFailed reports if creating AWSMachines to represent ASG (machine pool) machines failed.
+	AWSMachineCreationFailed = "AWSMachineCreationFailed"
+	// AWSMachineDeletionFailed reports if deleting AWSMachines failed.
+	AWSMachineDeletionFailed = "AWSMachineDeletionFailed"
 )
 
 const (
