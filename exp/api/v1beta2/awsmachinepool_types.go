@@ -210,6 +210,10 @@ type AWSMachinePoolStatus struct {
 	// +optional
 	LaunchTemplateVersion *string `json:"launchTemplateVersion,omitempty"`
 
+	// InfrastructureMachineKind is the kind of the infrastructure resources behind MachinePool Machines.
+	// +optional
+	InfrastructureMachineKind string `json:"infrastructureMachineKind,omitempty"`
+
 	// FailureReason will be set in the event that there is a terminal problem
 	// reconciling the Machine and will contain a succinct value suitable
 	// for machine interpretation.

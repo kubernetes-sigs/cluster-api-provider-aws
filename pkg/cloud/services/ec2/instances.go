@@ -1072,7 +1072,7 @@ func (s *Service) GetDHCPOptionSetDomainName(ec2client ec2iface.EC2API, vpcID *s
 	log := s.scope.GetLogger()
 
 	if vpcID == nil {
-		log.Info("vpcID is nil, skipping DHCP Option Set discovery")
+		log.V(4).Info("vpcID is nil, skipping DHCP Option Set discovery")
 		return nil
 	}
 
