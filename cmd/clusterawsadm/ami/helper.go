@@ -67,6 +67,7 @@ func LatestPatchRelease(searchVersion string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	//#nosec G115
 	resp, err := http.Get(fmt.Sprintf(latestStableReleaseURL, "-"+strconv.Itoa(int(searchSemVer.Major))+"."+strconv.Itoa(int(searchSemVer.Minor))))
 	if err != nil {
 		return "", err
