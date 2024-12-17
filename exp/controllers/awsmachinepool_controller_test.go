@@ -844,9 +844,9 @@ func TestDiffASG(t *testing.T) {
 		existingASG      *expinfrav1.AutoScalingGroup
 	}
 	tests := []struct {
-		name string
-		args args
-		want bool
+		name           string
+		args           args
+		wantDifference bool
 	}{
 		{
 			name: "replicas != asg.desiredCapacity",
@@ -862,7 +862,7 @@ func TestDiffASG(t *testing.T) {
 					DesiredCapacity: ptr.To[int32](1),
 				},
 			},
-			want: true,
+			wantDifference: true,
 		},
 		{
 			name: "replicas (nil) != asg.desiredCapacity",
@@ -878,7 +878,7 @@ func TestDiffASG(t *testing.T) {
 					DesiredCapacity: ptr.To[int32](1),
 				},
 			},
-			want: true,
+			wantDifference: true,
 		},
 		{
 			name: "replicas != asg.desiredCapacity (nil)",
@@ -894,7 +894,7 @@ func TestDiffASG(t *testing.T) {
 					DesiredCapacity: nil,
 				},
 			},
-			want: true,
+			wantDifference: true,
 		},
 		{
 			name: "maxSize != asg.maxSize",
@@ -916,7 +916,7 @@ func TestDiffASG(t *testing.T) {
 					MaxSize:         2,
 				},
 			},
-			want: true,
+			wantDifference: true,
 		},
 		{
 			name: "minSize != asg.minSize",
@@ -940,7 +940,7 @@ func TestDiffASG(t *testing.T) {
 					MinSize:         1,
 				},
 			},
-			want: true,
+			wantDifference: true,
 		},
 		{
 			name: "capacityRebalance != asg.capacityRebalance",
@@ -966,7 +966,7 @@ func TestDiffASG(t *testing.T) {
 					CapacityRebalance: false,
 				},
 			},
-			want: true,
+			wantDifference: true,
 		},
 		{
 			name: "MixedInstancesPolicy != asg.MixedInstancesPolicy",
@@ -1000,7 +1000,7 @@ func TestDiffASG(t *testing.T) {
 					MixedInstancesPolicy: &expinfrav1.MixedInstancesPolicy{},
 				},
 			},
-			want: true,
+			wantDifference: true,
 		},
 		{
 			name: "MixedInstancesPolicy.InstancesDistribution != asg.MixedInstancesPolicy.InstancesDistribution",
@@ -1053,7 +1053,7 @@ func TestDiffASG(t *testing.T) {
 					},
 				},
 			},
-			want: true,
+			wantDifference: true,
 		},
 		{
 			name: "MixedInstancesPolicy.InstancesDistribution unset",
@@ -1100,7 +1100,7 @@ func TestDiffASG(t *testing.T) {
 					},
 				},
 			},
-			want: false,
+			wantDifference: false,
 		},
 		{
 			name: "SuspendProcesses != asg.SuspendProcesses",
@@ -1141,7 +1141,7 @@ func TestDiffASG(t *testing.T) {
 					CurrentlySuspendProcesses: []string{"Launch", "Terminate"},
 				},
 			},
-			want: true,
+			wantDifference: true,
 		},
 		{
 			name: "all matches",
@@ -1179,7 +1179,7 @@ func TestDiffASG(t *testing.T) {
 					},
 				},
 			},
-			want: false,
+			wantDifference: false,
 		},
 		{
 			name: "externally managed annotation ignores difference between desiredCapacity and replicas",
@@ -1203,7 +1203,7 @@ func TestDiffASG(t *testing.T) {
 					DesiredCapacity: ptr.To[int32](1),
 				},
 			},
-			want: false,
+			wantDifference: false,
 		},
 		{
 			name: "without externally managed annotation ignores difference between desiredCapacity and replicas",
@@ -1222,13 +1222,17 @@ func TestDiffASG(t *testing.T) {
 					DesiredCapacity: ptr.To[int32](1),
 				},
 			},
-			want: true,
+			wantDifference: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			g.Expect(diffASG(tt.args.machinePoolScope, tt.args.existingASG) != "").To(Equal(tt.want))
+			if tt.wantDifference {
+				g.Expect(diffASG(tt.args.machinePoolScope, tt.args.existingASG)).ToNot(BeEmpty())
+			} else {
+				g.Expect(diffASG(tt.args.machinePoolScope, tt.args.existingASG)).To(BeEmpty())
+			}
 		})
 	}
 }

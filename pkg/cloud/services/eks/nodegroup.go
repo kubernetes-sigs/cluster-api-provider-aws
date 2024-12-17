@@ -539,7 +539,7 @@ func (s *NodegroupService) reconcileNodegroup(ctx context.Context) error {
 
 	if annotations.ReplicasManagedByExternalAutoscaler(s.scope.MachinePool) {
 		// Set MachinePool replicas to the node group DesiredCapacity
-		ngDesiredCapacity := int32(aws.Int64Value(ng.ScalingConfig.DesiredSize))
+		ngDesiredCapacity := int32(aws.Int64Value(ng.ScalingConfig.DesiredSize)) //#nosec G115
 		if *s.scope.MachinePool.Spec.Replicas != ngDesiredCapacity {
 			s.scope.Info("Setting MachinePool replicas to node group DesiredCapacity",
 				"local", *s.scope.MachinePool.Spec.Replicas,
@@ -608,7 +608,7 @@ func (s *NodegroupService) setStatus(ng *eks.Nodegroup) error {
 		var replicas int32
 		var providerIDList []string
 		for _, group := range groups.AutoScalingGroups {
-			replicas += int32(len(group.Instances))
+			replicas += int32(len(group.Instances)) //#nosec G115
 			for _, instance := range group.Instances {
 				providerIDList = append(providerIDList, fmt.Sprintf("aws:///%s/%s", *instance.AvailabilityZone, *instance.InstanceId))
 			}

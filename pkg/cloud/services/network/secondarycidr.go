@@ -50,8 +50,6 @@ func (s *Service) associateSecondaryCidrs() error {
 	// (i.e. disassociate what isn't listed in the spec).
 	existingAssociations := vpcs.Vpcs[0].CidrBlockAssociationSet
 	for _, desiredCidrBlock := range secondaryCidrBlocks {
-		desiredCidrBlock := desiredCidrBlock
-
 		found := false
 		for _, existing := range existingAssociations {
 			if *existing.CidrBlock == desiredCidrBlock.IPv4CidrBlock {

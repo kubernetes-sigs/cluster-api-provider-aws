@@ -18,7 +18,6 @@ package bootstrap
 
 import (
 	"bytes"
-	"fmt"
 	"os"
 	"path"
 	"testing"
@@ -206,7 +205,7 @@ func TestRenderCloudformation(t *testing.T) {
 				dmp := diffmatchpatch.New()
 				diffs := dmp.DiffMain(string(tData), string(data), false)
 				out := dmp.DiffPrettyText(diffs)
-				t.Fatalf(fmt.Sprintf("Differing output (%s):\n%s", c.fixture, out))
+				t.Fatalf("Differing output (%s):\n%s", c.fixture, out)
 			}
 		})
 	}
