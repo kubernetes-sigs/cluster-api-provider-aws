@@ -66,6 +66,7 @@ func (r *AWSMachine) ValidateCreate() (admission.Warnings, error) {
 	allErrs = append(allErrs, r.validateAdditionalSecurityGroups()...)
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 	allErrs = append(allErrs, r.validateNetworkElasticIPPool()...)
+	allErrs = append(allErrs, r.validateInstanceMarketType()...)
 
 	return nil, aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
@@ -358,6 +359,14 @@ func (r *AWSMachine) validateNetworkElasticIPPool() field.ErrorList {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec.elasticIpPool.publicIpv4PoolFallbackOrder"), r.Spec.ElasticIPPool, "publicIpv4Pool must be set when publicIpv4PoolFallbackOrder is defined."))
 	}
 
+	return allErrs
+}
+
+func (r *AWSMachine) validateInstanceMarketType() field.ErrorList {
+	var allErrs field.ErrorList
+	if ptr.Deref(r.Spec.MarketType, "") == MarketTypeCapacityBlock && r.Spec.SpotMarketOptions != nil {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "MarketType"), "MarketType set to capacity-block and spotMarketOptions cannot be used together"))
+	}
 	return allErrs
 }
 

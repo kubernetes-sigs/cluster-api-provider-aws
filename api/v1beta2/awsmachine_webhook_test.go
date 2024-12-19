@@ -218,6 +218,27 @@ func TestAWSMachineCreate(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "invalid case, MarketType set to MarketTypeCapacityBlock and spotMarketOptions are specified",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					MarketType:        ptr.To(MarketTypeCapacityBlock),
+					SpotMarketOptions: &SpotMarketOptions{},
+					InstanceType:      "test",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid MarketType set to MarketTypeCapacityBlock is specified",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					MarketType:   ptr.To(MarketTypeCapacityBlock),
+					InstanceType: "test",
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name: "empty instance type not allowed",
 			machine: &AWSMachine{
 				Spec: AWSMachineSpec{
