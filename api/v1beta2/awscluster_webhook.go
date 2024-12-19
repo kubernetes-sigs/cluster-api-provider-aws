@@ -180,16 +180,16 @@ func (r *AWSCluster) validateControlPlaneLoadBalancerUpdate(oldlb, newlb *AWSLoa
 					newlb.Name, "field is immutable"),
 			)
 		}
-	}
 
-	// Block the update for Protocol :
-	// - if it was not set in old spec but added in new spec
-	// - if it was set in old spec but changed in new spec
-	if !cmp.Equal(newlb.HealthCheckProtocol, oldlb.HealthCheckProtocol) {
-		allErrs = append(allErrs,
-			field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer", "healthCheckProtocol"),
-				newlb.HealthCheckProtocol, "field is immutable once set"),
-		)
+		// Block the update for Protocol :
+		// - if it was not set in old spec but added in new spec
+		// - if it was set in old spec but changed in new spec
+		if !cmp.Equal(newlb.HealthCheckProtocol, oldlb.HealthCheckProtocol) {
+			allErrs = append(allErrs,
+				field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer", "healthCheckProtocol"),
+					newlb.HealthCheckProtocol, "field is immutable once set"),
+			)
+		}
 	}
 
 	return allErrs
