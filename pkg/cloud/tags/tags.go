@@ -34,7 +34,8 @@ import (
 )
 
 const (
-	AwsInternalTagPrefix = "aws:" // AwsInternalTagPrefix is the prefix for AWS internal tags, which are reserved for internal AWS use.
+	// AwsInternalTagPrefix is the prefix for AWS internal tags, which are reserved for internal AWS use.
+	AwsInternalTagPrefix = "aws:"
 )
 
 var (

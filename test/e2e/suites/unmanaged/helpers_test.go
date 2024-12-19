@@ -789,7 +789,7 @@ func deleteMountTarget(mountTarget *efs.MountTargetDescription) {
 	Expect(err).NotTo(HaveOccurred())
 	Eventually(func(g Gomega) {
 		_, err = shared.GetMountTarget(e2eCtx, *mountTarget.MountTargetId)
-		g.Expect(err).ShouldNot(Equal(nil))
+		g.Expect(err).ShouldNot(BeNil())
 		aerr, ok := err.(awserr.Error)
 		g.Expect(ok).To(BeTrue())
 		g.Expect(aerr.Code()).To(Equal(efs.ErrCodeMountTargetNotFound))
