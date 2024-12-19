@@ -30,6 +30,9 @@ const (
 
 	// DefaultIgnitionVersion represents default Ignition version generated for machine userdata.
 	DefaultIgnitionVersion = "2.3"
+
+	// DefaultIgnitionStorageType represents the default storage type of Ignition userdata
+	DefaultIgnitionStorageType = IgnitionStorageTypeOptionClusterObjectStore
 )
 
 // SecretBackend defines variants for backend secret storage.
