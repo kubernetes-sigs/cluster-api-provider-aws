@@ -35,8 +35,10 @@ import (
 	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
 	iam "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/util/system"
 )
 
@@ -84,6 +86,10 @@ func (s *Service) ReconcileBucket() error {
 		return errors.Wrap(err, "ensuring bucket policy")
 	}
 
+	if err := s.ensureBucketLifecycleConfiguration(bucketName); err != nil {
+		return errors.Wrap(err, "ensuring bucket lifecycle configuration")
+	}
+
 	return nil
 }
 
@@ -98,6 +104,50 @@ func (s *Service) DeleteBucket() error {
 	log := s.scope.WithValues("name", bucketName)
 
 	log.Info("Deleting S3 Bucket")
+
+	if feature.Gates.Enabled(feature.MachinePool) {
+		// Delete machine pool user data files that did not get deleted
+		// yet by the lifecycle policy
+		for {
+			log.Info("Listing S3 objects of machine pools")
+
+			// TODO Switch to aws-sdk-go-v2 which has NewListObjectsV2Paginator (as part of https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/2225)
+			out, err := s.S3Client.ListObjectsV2(&s3.ListObjectsV2Input{
+				Bucket: aws.String(bucketName),
+				Prefix: aws.String("machine-pool/"),
+			})
+			if err != nil {
+				aerr, ok := err.(awserr.Error)
+				if !ok {
+					return errors.Wrap(err, "listing S3 bucket")
+				}
+
+				switch aerr.Code() {
+				case s3.ErrCodeNoSuchBucket:
+					log.Info("Bucket already removed")
+					return nil
+				default:
+					return errors.Wrap(aerr, "listing S3 bucket")
+				}
+			}
+
+			// Stop on last page of results
+			if len(out.Contents) == 0 {
+				break
+			}
+
+			log.Info("Deleting S3 objects of machine pools", "count", len(out.Contents))
+			for _, obj := range out.Contents {
+				_, err := s.S3Client.DeleteObject(&s3.DeleteObjectInput{
+					Bucket: aws.String(bucketName),
+					Key:    obj.Key,
+				})
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
 
 	_, err := s.S3Client.DeleteBucket(&s3.DeleteBucketInput{
 		Bucket: aws.String(bucketName),
@@ -149,6 +199,52 @@ func (s *Service) Create(m *scope.MachineScope, data []byte) (string, error) {
 		ServerSideEncryption: aws.String("aws:kms"),
 	}); err != nil {
 		return "", errors.Wrap(err, "putting object")
+	}
+
+	if exp := s.scope.Bucket().PresignedURLDuration; exp != nil {
+		s.scope.Info("Generating presigned URL", "bucket_name", bucket, "key", key)
+		req, _ := s.S3Client.GetObjectRequest(&s3.GetObjectInput{
+			Bucket: aws.String(bucket),
+			Key:    aws.String(key),
+		})
+		return req.Presign(exp.Duration)
+	}
+
+	objectURL := &url.URL{
+		Scheme: "s3",
+		Host:   bucket,
+		Path:   key,
+	}
+
+	return objectURL.String(), nil
+}
+
+// CreateForMachinePool creates an object for machine pool related bootstrap data in the S3 bucket.
+func (s *Service) CreateForMachinePool(scope scope.LaunchTemplateScope, data []byte) (string, error) {
+	if !s.bucketManagementEnabled() {
+		return "", errors.New("requested object creation but bucket management is not enabled")
+	}
+
+	if scope.LaunchTemplateName() == "" {
+		return "", errors.New("launch template name can't be empty")
+	}
+
+	if len(data) == 0 {
+		return "", errors.New("got empty data")
+	}
+
+	bucket := s.bucketName()
+	key := s.bootstrapDataKeyForMachinePool(scope, userdata.ComputeHash(data))
+
+	s.scope.Info("Creating object for machine pool", "bucket_name", bucket, "key", key)
+
+	if _, err := s.S3Client.PutObject(&s3.PutObjectInput{
+		Body:                 aws.ReadSeekCloser(bytes.NewReader(data)),
+		Bucket:               aws.String(bucket),
+		Key:                  aws.String(key),
+		ServerSideEncryption: aws.String("aws:kms"),
+	}); err != nil {
+		return "", errors.Wrap(err, "putting object for machine pool")
 	}
 
 	if exp := s.scope.Bucket().PresignedURLDuration; exp != nil {
@@ -241,6 +337,43 @@ func (s *Service) deleteObject(bucket, key string) error {
 	return nil
 }
 
+// DeleteForMachinePool deletes the object for machine pool related bootstrap data from the S3 bucket.
+func (s *Service) DeleteForMachinePool(scope scope.LaunchTemplateScope, bootstrapDataHash string) error {
+	if !s.bucketManagementEnabled() {
+		return errors.New("requested object deletion but bucket management is not enabled")
+	}
+
+	if scope.LaunchTemplateName() == "" {
+		return errors.New("launch template name can't be empty")
+	}
+
+	bucket := s.bucketName()
+	key := s.bootstrapDataKeyForMachinePool(scope, bootstrapDataHash)
+
+	s.scope.Info("Deleting object for machine pool", "bucket_name", bucket, "key", key)
+
+	_, err := s.S3Client.DeleteObject(&s3.DeleteObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	if err == nil {
+		return nil
+	}
+
+	aerr, ok := err.(awserr.Error)
+	if !ok {
+		return errors.Wrap(err, "deleting S3 object for machine pool")
+	}
+
+	switch aerr.Code() {
+	case s3.ErrCodeNoSuchBucket:
+	default:
+		return errors.Wrap(aerr, "deleting S3 object for machine pool")
+	}
+
+	return nil
+}
+
 func (s *Service) createBucketIfNotExist(bucketName string) error {
 	input := &s3.CreateBucketInput{Bucket: aws.String(bucketName)}
 
@@ -290,6 +423,43 @@ func (s *Service) ensureBucketPolicy(bucketName string) error {
 	}
 
 	s.scope.Trace("Updated bucket policy", "bucket_name", bucketName)
+
+	return nil
+}
+
+func (s *Service) ensureBucketLifecycleConfiguration(bucketName string) error {
+	if !feature.Gates.Enabled(feature.MachinePool) {
+		return nil
+	}
+
+	input := &s3.PutBucketLifecycleConfigurationInput{
+		Bucket: aws.String(bucketName),
+		LifecycleConfiguration: &s3.BucketLifecycleConfiguration{
+			Rules: []*s3.LifecycleRule{
+				{
+					ID: aws.String("machine-pool"),
+					Expiration: &s3.LifecycleExpiration{
+						// The bootstrap token for new nodes to join the cluster is normally rotated regularly,
+						// such as in CAPI's `KubeadmConfig` reconciler. Therefore, the launch template user data
+						// stored in the S3 bucket only needs to live longer than the token TTL.
+						// This lifecycle policy is here as backup. Normally, CAPA should delete outdated S3 objects
+						// (see function `DeleteForMachinePool`).
+						Days: aws.Int64(1),
+					},
+					Filter: &s3.LifecycleRuleFilter{
+						Prefix: aws.String("machine-pool/"),
+					},
+					Status: aws.String(s3.ExpirationStatusEnabled),
+				},
+			},
+		},
+	}
+
+	if _, err := s.S3Client.PutBucketLifecycleConfiguration(input); err != nil {
+		return errors.Wrap(err, "creating S3 bucket lifecycle configuration")
+	}
+
+	s.scope.Trace("Updated bucket lifecycle configuration", "bucket_name", bucketName)
 
 	return nil
 }
@@ -371,15 +541,26 @@ func (s *Service) bucketPolicy(bucketName string) (string, error) {
 		}
 
 		for _, iamInstanceProfile := range bucket.NodesIAMInstanceProfiles {
-			statements = append(statements, iam.StatementEntry{
-				Sid:    iamInstanceProfile,
-				Effect: iam.EffectAllow,
-				Principal: map[iam.PrincipalType]iam.PrincipalID{
-					iam.PrincipalAWS: []string{fmt.Sprintf("arn:%s:iam::%s:role/%s", partition, *accountID.Account, iamInstanceProfile)},
+			statements = append(
+				statements,
+				iam.StatementEntry{
+					Sid:    iamInstanceProfile,
+					Effect: iam.EffectAllow,
+					Principal: map[iam.PrincipalType]iam.PrincipalID{
+						iam.PrincipalAWS: []string{fmt.Sprintf("arn:%s:iam::%s:role/%s", partition, *accountID.Account, iamInstanceProfile)},
+					},
+					Action:   []string{"s3:GetObject"},
+					Resource: []string{fmt.Sprintf("arn:%s:s3:::%s/node/*", partition, bucketName)},
 				},
-				Action:   []string{"s3:GetObject"},
-				Resource: []string{fmt.Sprintf("arn:%s:s3:::%s/node/*", partition, bucketName)},
-			})
+				iam.StatementEntry{
+					Sid:    iamInstanceProfile,
+					Effect: iam.EffectAllow,
+					Principal: map[iam.PrincipalType]iam.PrincipalID{
+						iam.PrincipalAWS: []string{fmt.Sprintf("arn:%s:iam::%s:role/%s", partition, *accountID.Account, iamInstanceProfile)},
+					},
+					Action:   []string{"s3:GetObject"},
+					Resource: []string{fmt.Sprintf("arn:%s:s3:::%s/machine-pool/*", partition, bucketName)},
+				})
 		}
 	}
 
@@ -407,4 +588,8 @@ func (s *Service) bucketName() string {
 func (s *Service) bootstrapDataKey(m *scope.MachineScope) string {
 	// Use machine name as object key.
 	return path.Join(m.Role(), m.Name())
+}
+
+func (s *Service) bootstrapDataKeyForMachinePool(scope scope.LaunchTemplateScope, dataHash string) string {
+	return path.Join("machine-pool", scope.LaunchTemplateName(), dataHash)
 }

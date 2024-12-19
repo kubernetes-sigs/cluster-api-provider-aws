@@ -305,6 +305,11 @@ func (s *ManagedMachinePoolScope) ControllerName() string {
 	return s.controllerName
 }
 
+// Ignition gets the ignition config.
+func (s *ManagedMachinePoolScope) Ignition() *infrav1.Ignition {
+	return nil
+}
+
 // KubernetesClusterName is the name of the EKS cluster name.
 func (s *ManagedMachinePoolScope) KubernetesClusterName() string {
 	return s.ControlPlane.Spec.EKSClusterName
@@ -326,24 +331,24 @@ func (s *ManagedMachinePoolScope) Namespace() string {
 }
 
 // GetRawBootstrapData returns the raw bootstrap data from the linked Machine's bootstrap.dataSecretName.
-func (s *ManagedMachinePoolScope) GetRawBootstrapData() ([]byte, *types.NamespacedName, error) {
+func (s *ManagedMachinePoolScope) GetRawBootstrapData() ([]byte, string, *types.NamespacedName, error) {
 	if s.MachinePool.Spec.Template.Spec.Bootstrap.DataSecretName == nil {
-		return nil, nil, errors.New("error retrieving bootstrap data: linked Machine's bootstrap.dataSecretName is nil")
+		return nil, "", nil, errors.New("error retrieving bootstrap data: linked Machine's bootstrap.dataSecretName is nil")
 	}
 
 	secret := &corev1.Secret{}
 	key := types.NamespacedName{Namespace: s.Namespace(), Name: *s.MachinePool.Spec.Template.Spec.Bootstrap.DataSecretName}
 
 	if err := s.Client.Get(context.TODO(), key, secret); err != nil {
-		return nil, nil, errors.Wrapf(err, "failed to retrieve bootstrap data secret for AWSManagedMachinePool %s/%s", s.Namespace(), s.Name())
+		return nil, "", nil, errors.Wrapf(err, "failed to retrieve bootstrap data secret for AWSManagedMachinePool %s/%s", s.Namespace(), s.Name())
 	}
 
 	value, ok := secret.Data["value"]
 	if !ok {
-		return nil, nil, errors.New("error retrieving bootstrap data: secret value key is missing")
+		return nil, "", nil, errors.New("error retrieving bootstrap data: secret value key is missing")
 	}
 
-	return value, &key, nil
+	return value, string(secret.Data["format"]), &key, nil
 }
 
 // GetObjectMeta returns the ObjectMeta for the AWSManagedMachinePool.
