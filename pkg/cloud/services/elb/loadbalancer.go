@@ -618,7 +618,7 @@ func (s *Service) deleteAPIServerELB() error {
 
 	s.scope.Debug("deleting load balancer", "name", elbName)
 	if err := s.deleteClassicELB(elbName); err != nil {
-		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.LoadBalancerReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
+		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.LoadBalancerReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, "%s", err.Error())
 		return err
 	}
 
@@ -724,7 +724,7 @@ func (s *Service) deleteExistingNLB(lbSpec *infrav1.AWSLoadBalancerSpec) error {
 	}
 	s.scope.Debug("deleting load balancer", "name", name)
 	if err := s.deleteLB(lb.ARN); err != nil {
-		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.LoadBalancerReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
+		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.LoadBalancerReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, "%s", err.Error())
 		return err
 	}
 
@@ -1634,7 +1634,7 @@ func (s *Service) reconcileTargetGroupsAndListeners(lbARN string, spec *infrav1.
 
 		var listener *elbv2.Listener
 		for _, l := range existingListeners.Listeners {
-			if l.DefaultActions != nil && len(l.DefaultActions) > 0 && *l.DefaultActions[0].TargetGroupArn == *group.TargetGroupArn {
+			if len(l.DefaultActions) > 0 && *l.DefaultActions[0].TargetGroupArn == *group.TargetGroupArn {
 				listener = l
 				break
 			}
