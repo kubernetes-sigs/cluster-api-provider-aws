@@ -4,13 +4,8 @@ go 1.22.7
 
 toolchain go1.22.10
 
-replace (
-	// TODO: remove when component-base updates its prometheus deps (https://github.com/prometheus/client_golang/releases/tag/v1.19.0)
-	github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.18.0
-	github.com/prometheus/common => github.com/prometheus/common v0.46.0
-	// kube-openapi should match the version imported by CAPI.
-	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340
-)
+// kube-openapi should match the version imported by CAPI.
+replace k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340
 
 require (
 	github.com/alessio/shellescape v1.4.2
@@ -169,6 +164,8 @@ require (
 	github.com/jonboulle/clockwork v0.2.2 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/klauspost/compress v1.17.9 // indirect
+	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de // indirect
 	github.com/lithammer/dedent v1.1.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
