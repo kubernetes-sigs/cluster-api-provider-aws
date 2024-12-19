@@ -72,7 +72,6 @@ rules:
   - clusters
   - clusters/status
   - machinedeployments
-  - machines
   - machines/status
   verbs:
   - get
@@ -87,6 +86,15 @@ rules:
   - get
   - list
   - patch
+  - watch
+- apiGroups:
+  - cluster.x-k8s.io
+  resources:
+  - machines
+  verbs:
+  - delete
+  - get
+  - list
   - watch
 - apiGroups:
   - controlplane.cluster.x-k8s.io
@@ -150,7 +158,6 @@ rules:
   - awsclusters
   - awsfargateprofiles
   - awsmachinepools
-  - awsmachines
   - awsmanagedclusters
   - awsmanagedmachinepools
   - rosaclusters
@@ -181,6 +188,18 @@ rules:
   - awsmanagedclusters/status
   - awsmanagedmachinepools/status
   verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - awsmachines
+  verbs:
+  - create
+  - delete
   - get
   - list
   - patch
