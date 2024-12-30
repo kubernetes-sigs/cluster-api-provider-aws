@@ -28,7 +28,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	"sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
 )
 
 var log = ctrl.Log.WithName("awsmachinepool-resource")
@@ -63,12 +64,12 @@ func (r *AWSMachinePool) validateRootVolume() field.ErrorList {
 		return allErrs
 	}
 
-	if v1beta2.VolumeTypesProvisioned.Has(string(r.Spec.AWSLaunchTemplate.RootVolume.Type)) && r.Spec.AWSLaunchTemplate.RootVolume.IOPS == 0 {
+	if infrav1.VolumeTypesProvisioned.Has(string(r.Spec.AWSLaunchTemplate.RootVolume.Type)) && r.Spec.AWSLaunchTemplate.RootVolume.IOPS == 0 {
 		allErrs = append(allErrs, field.Required(field.NewPath("spec.awsLaunchTemplate.rootVolume.iops"), "iops required if type is 'io1' or 'io2'"))
 	}
 
 	if r.Spec.AWSLaunchTemplate.RootVolume.Throughput != nil {
-		if r.Spec.AWSLaunchTemplate.RootVolume.Type != v1beta2.VolumeTypeGP3 {
+		if r.Spec.AWSLaunchTemplate.RootVolume.Type != infrav1.VolumeTypeGP3 {
 			allErrs = append(allErrs, field.Required(field.NewPath("spec.awsLaunchTemplate.rootVolume.throughput"), "throughput is valid only for type 'gp3'"))
 		}
 		if *r.Spec.AWSLaunchTemplate.RootVolume.Throughput < 0 {
@@ -87,12 +88,12 @@ func (r *AWSMachinePool) validateNonRootVolumes() field.ErrorList {
 	var allErrs field.ErrorList
 
 	for _, volume := range r.Spec.AWSLaunchTemplate.NonRootVolumes {
-		if v1beta2.VolumeTypesProvisioned.Has(string(volume.Type)) && volume.IOPS == 0 {
+		if infrav1.VolumeTypesProvisioned.Has(string(volume.Type)) && volume.IOPS == 0 {
 			allErrs = append(allErrs, field.Required(field.NewPath("spec.template.spec.nonRootVolumes.iops"), "iops required if type is 'io1' or 'io2'"))
 		}
 
 		if volume.Throughput != nil {
-			if volume.Type != v1beta2.VolumeTypeGP3 {
+			if volume.Type != infrav1.VolumeTypeGP3 {
 				allErrs = append(allErrs, field.Required(field.NewPath("spec.template.spec.nonRootVolumes.throughput"), "throughput is valid only for type 'gp3'"))
 			}
 			if *volume.Throughput < 0 {
@@ -167,6 +168,22 @@ func (r *AWSMachinePool) validateLifecycleHooks() field.ErrorList {
 	return validateLifecycleHooks(r.Spec.AWSLifecycleHooks)
 }
 
+func (r *AWSMachinePool) ignitionEnabled() bool {
+	return r.Spec.Ignition != nil
+}
+
+func (r *AWSMachinePool) validateIgnition() field.ErrorList {
+	var allErrs field.ErrorList
+
+	// Feature gate is not enabled but ignition is enabled then send a forbidden error.
+	if !feature.Gates.Enabled(feature.BootstrapFormatIgnition) && r.ignitionEnabled() {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "ignition"),
+			"can be set only if the BootstrapFormatIgnition feature gate is enabled"))
+	}
+
+	return allErrs
+}
+
 // ValidateCreate will do any extra validation when creating a AWSMachinePool.
 func (r *AWSMachinePool) ValidateCreate() (admission.Warnings, error) {
 	log.Info("AWSMachinePool validate create", "machine-pool", klog.KObj(r))
@@ -183,6 +200,7 @@ func (r *AWSMachinePool) ValidateCreate() (admission.Warnings, error) {
 	allErrs = append(allErrs, r.validateRefreshPreferences()...)
 	allErrs = append(allErrs, r.validateInstanceMarketType()...)
 	allErrs = append(allErrs, r.validateLifecycleHooks()...)
+	allErrs = append(allErrs, r.validateIgnition()...)
 
 	if len(allErrs) == 0 {
 		return nil, nil
@@ -197,22 +215,22 @@ func (r *AWSMachinePool) ValidateCreate() (admission.Warnings, error) {
 
 func (r *AWSMachinePool) validateInstanceMarketType() field.ErrorList {
 	var allErrs field.ErrorList
-	if r.Spec.AWSLaunchTemplate.MarketType == v1beta2.MarketTypeCapacityBlock && r.Spec.AWSLaunchTemplate.SpotMarketOptions != nil {
+	if r.Spec.AWSLaunchTemplate.MarketType == infrav1.MarketTypeCapacityBlock && r.Spec.AWSLaunchTemplate.SpotMarketOptions != nil {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.awsLaunchTemplate.marketType"), "setting marketType to CapacityBlock and spotMarketOptions cannot be used together"))
 	}
-	if r.Spec.AWSLaunchTemplate.MarketType == v1beta2.MarketTypeOnDemand && r.Spec.AWSLaunchTemplate.SpotMarketOptions != nil {
+	if r.Spec.AWSLaunchTemplate.MarketType == infrav1.MarketTypeOnDemand && r.Spec.AWSLaunchTemplate.SpotMarketOptions != nil {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.awsLaunchTemplate.marketType"), "setting marketType to OnDemand and spotMarketOptions cannot be used together"))
 	}
 
-	if r.Spec.AWSLaunchTemplate.MarketType == v1beta2.MarketTypeCapacityBlock && r.Spec.AWSLaunchTemplate.CapacityReservationID == nil {
+	if r.Spec.AWSLaunchTemplate.MarketType == infrav1.MarketTypeCapacityBlock && r.Spec.AWSLaunchTemplate.CapacityReservationID == nil {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.awsLaunchTemplate.capacityReservationID"), "is required when CapacityBlock is provided"))
 	}
 	switch r.Spec.AWSLaunchTemplate.MarketType {
-	case "", v1beta2.MarketTypeOnDemand, v1beta2.MarketTypeSpot, v1beta2.MarketTypeCapacityBlock:
+	case "", infrav1.MarketTypeOnDemand, infrav1.MarketTypeSpot, infrav1.MarketTypeCapacityBlock:
 	default:
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec.awsLaunchTemplate.marketType"), r.Spec.AWSLaunchTemplate.MarketType, fmt.Sprintf("Valid values are: %s, %s, %s and omitted", v1beta2.MarketTypeOnDemand, v1beta2.MarketTypeSpot, v1beta2.MarketTypeCapacityBlock)))
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec.awsLaunchTemplate.marketType"), r.Spec.AWSLaunchTemplate.MarketType, fmt.Sprintf("Valid values are: %s, %s, %s and omitted", infrav1.MarketTypeOnDemand, infrav1.MarketTypeSpot, infrav1.MarketTypeCapacityBlock)))
 	}
-	if r.Spec.AWSLaunchTemplate.MarketType == v1beta2.MarketTypeSpot && r.Spec.AWSLaunchTemplate.CapacityReservationID != nil {
+	if r.Spec.AWSLaunchTemplate.MarketType == infrav1.MarketTypeSpot && r.Spec.AWSLaunchTemplate.CapacityReservationID != nil {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.awsLaunchTemplate.marketType"), "cannot be set to 'Spot' when CapacityReservationID is specified"))
 	}
 
@@ -261,5 +279,12 @@ func (r *AWSMachinePool) Default() {
 	if int(r.Spec.DefaultInstanceWarmup.Duration.Seconds()) == 0 {
 		log.Info("DefaultInstanceWarmup is zero, setting 300 seconds as default")
 		r.Spec.DefaultInstanceWarmup.Duration = 300 * time.Second
+	}
+
+	if r.ignitionEnabled() && r.Spec.Ignition.Version == "" {
+		r.Spec.Ignition.Version = infrav1.DefaultIgnitionVersion
+	}
+	if r.ignitionEnabled() && r.Spec.Ignition.StorageType == "" {
+		r.Spec.Ignition.StorageType = infrav1.DefaultMachinePoolIgnitionStorageType
 	}
 }
