@@ -101,6 +101,10 @@ type AWSMachinePoolSpec struct {
 	// If a process is removed from this list it will automatically be resumed.
 	SuspendProcesses *SuspendProcessesTypes `json:"suspendProcesses,omitempty"`
 
+	// Ignition defined options related to the bootstrapping systems where Ignition is used.
+	// +optional
+	Ignition *infrav1.Ignition `json:"ignition,omitempty"`
+
 	// AWSLifecycleHooks specifies lifecycle hooks for the autoscaling group.
 	// +optional
 	AWSLifecycleHooks []AWSLifecycleHook `json:"lifecycleHooks,omitempty"`
