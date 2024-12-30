@@ -565,6 +565,7 @@ func autoConvert_v1beta2_AWSMachinePoolSpec_To_v1beta1_AWSMachinePoolSpec(in *v1
 	}
 	out.CapacityRebalance = in.CapacityRebalance
 	// WARNING: in.SuspendProcesses requires manual conversion: does not exist in peer-type
+	// WARNING: in.Ignition requires manual conversion: does not exist in peer-type
 	return nil
 }
 

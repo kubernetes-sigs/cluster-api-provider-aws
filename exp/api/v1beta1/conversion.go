@@ -52,6 +52,9 @@ func (src *AWSMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	if restored.Spec.AvailabilityZoneSubnetType != nil {
 		dst.Spec.AvailabilityZoneSubnetType = restored.Spec.AvailabilityZoneSubnetType
 	}
+	if restored.Spec.Ignition != nil {
+		dst.Spec.Ignition = restored.Spec.Ignition
+	}
 
 	if restored.Spec.AWSLaunchTemplate.PrivateDNSName != nil {
 		dst.Spec.AWSLaunchTemplate.PrivateDNSName = restored.Spec.AWSLaunchTemplate.PrivateDNSName
