@@ -157,6 +157,7 @@ func (r *AWSManagedMachinePoolReconciler) Reconcile(ctx context.Context, req ctr
 	}
 
 	machinePoolScope, err := scope.NewManagedMachinePoolScope(scope.ManagedMachinePoolScopeParams{
+		Logger:                    log,
 		Client:                    r.Client,
 		ControllerName:            "awsmanagedmachinepool",
 		Cluster:                   cluster,
@@ -191,13 +192,14 @@ func (r *AWSManagedMachinePoolReconciler) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, r.reconcileDelete(ctx, machinePoolScope, managedControlPlaneScope)
 	}
 
-	return ctrl.Result{}, r.reconcileNormal(ctx, machinePoolScope, managedControlPlaneScope)
+	return ctrl.Result{}, r.reconcileNormal(ctx, machinePoolScope, managedControlPlaneScope, managedControlPlaneScope)
 }
 
 func (r *AWSManagedMachinePoolReconciler) reconcileNormal(
 	ctx context.Context,
 	machinePoolScope *scope.ManagedMachinePoolScope,
 	ec2Scope scope.EC2Scope,
+	s3Scope scope.S3Scope,
 ) error {
 	machinePoolScope.Info("Reconciling AWSManagedMachinePool")
 
@@ -218,7 +220,8 @@ func (r *AWSManagedMachinePoolReconciler) reconcileNormal(
 		runPostLaunchTemplateUpdateOperation := func() error {
 			return nil
 		}
-		if err := reconSvc.ReconcileLaunchTemplate(machinePoolScope, ec2svc, canUpdateLaunchTemplate, runPostLaunchTemplateUpdateOperation); err != nil {
+		var objectStoreSvc services.ObjectStoreInterface // nil because no S3 bucket support for `AWSManagedControlPlane` yet
+		if err := reconSvc.ReconcileLaunchTemplate(ctx, machinePoolScope, machinePoolScope, s3Scope, ec2svc, objectStoreSvc, canUpdateLaunchTemplate, runPostLaunchTemplateUpdateOperation); err != nil {
 			r.Recorder.Eventf(machinePoolScope.ManagedMachinePool, corev1.EventTypeWarning, "FailedLaunchTemplateReconcile", "Failed to reconcile launch template: %v", err)
 			machinePoolScope.Error(err, "failed to reconcile launch template")
 			conditions.MarkFalse(machinePoolScope.ManagedMachinePool, expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateReconcileFailedReason, clusterv1.ConditionSeverityError, "")
@@ -261,7 +264,7 @@ func (r *AWSManagedMachinePoolReconciler) reconcileDelete(
 
 	if machinePoolScope.ManagedMachinePool.Spec.AWSLaunchTemplate != nil {
 		launchTemplateID := machinePoolScope.ManagedMachinePool.Status.LaunchTemplateID
-		launchTemplate, _, _, err := ec2Svc.GetLaunchTemplate(machinePoolScope.LaunchTemplateName())
+		launchTemplate, _, _, _, err := ec2Svc.GetLaunchTemplate(machinePoolScope.LaunchTemplateName())
 		if err != nil {
 			return err
 		}
