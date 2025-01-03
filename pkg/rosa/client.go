@@ -32,6 +32,23 @@ func NewOCMClient(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (
 	}).Build()
 }
 
+// NewOCMClient2 creates a new OCM client.
+func NewOCMClient2(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (OCMClient, error) {
+	token, url, err := ocmCredentials(ctx, rosaScope)
+	if err != nil {
+		return nil, err
+	}
+	ocmClient, err := ocm.NewClient().Logger(logrus.New()).Config(&ocmcfg.Config{
+		AccessToken: token,
+		URL:         url,
+	}).Build()
+
+	c := ocmclient{
+		ocmClient: ocmClient,
+	}
+	return &c, err
+}
+
 func newOCMRawConnection(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (*sdk.Connection, error) {
 	logger, err := sdk.NewGoLoggerBuilder().
 		Debug(false).
