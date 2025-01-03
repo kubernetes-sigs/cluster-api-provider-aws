@@ -1,0 +1,21 @@
+{
+    "name": "Cluster API / AWS / KIND Codespace",
+    "build": {
+      "dockerfile": "Containerfile"
+    },
+    "runArgs": ["--init", "--privileged"],
+    "mounts": ["source=dind-var-lib-docker,target=/var/lib/docker,type=volume"],
+    "overrideCommand": false,
+    "customizations": {
+      "vscode": {
+        "extensions": [
+          "ms-kubernetes-tools.vscode-kubernetes-tools",
+          "ms-azuretools.vscode-docker"
+        ]
+      }
+    },
+    "postCreateCommand": ".devcontainer/postCreateCommand.sh",
+    "forwardPorts": [22, 6443, 8080],
+    "remoteUser": "vscode"
+  }
+  
