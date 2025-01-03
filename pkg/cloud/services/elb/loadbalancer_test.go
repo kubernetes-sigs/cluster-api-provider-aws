@@ -3442,8 +3442,8 @@ func TestDescribeV2Loadbalancers(t *testing.T) {
 
 func TestChunkELBs(t *testing.T) {
 	base := "loadbalancer"
-	var names []string
-	for i := 0; i < 25; i++ {
+	names := make([]string, 0, 25)
+	for i := range 25 {
 		names = append(names, fmt.Sprintf("%s+%d", base, i))
 	}
 	tests := []struct {

@@ -173,7 +173,7 @@ func (s *Service) deleteNatGateways() error {
 		}(c, ngID)
 	}
 
-	for i := 0; i < len(ngIDs); i++ {
+	for range ngIDs {
 		ngwErr := <-c
 		if ngwErr != nil {
 			errs = append(errs, ngwErr)
@@ -239,7 +239,7 @@ func (s *Service) createNatGateways(subnetIDs []string) (natgateways []*ec2.NatG
 		}(c, sn, eips[i])
 	}
 
-	for i := 0; i < len(subnetIDs); i++ {
+	for range subnetIDs {
 		ngwResult := <-c
 		if ngwResult.error != nil {
 			return nil, err

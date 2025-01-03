@@ -201,6 +201,7 @@ func (s *RosaMachinePoolScope) RosaMachinePoolReadyFalse(reason string, err stri
 		expinfrav1.RosaMachinePoolReadyCondition,
 		reason,
 		severity,
+		"%s",
 		err,
 	)
 	if err := s.PatchObject(); err != nil {
