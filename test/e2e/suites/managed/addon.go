@@ -22,6 +22,7 @@ package managed
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/eks"
@@ -62,8 +63,9 @@ func CheckAddonExistsSpec(ctx context.Context, inputGetter func() CheckAddonExis
 
 	By(fmt.Sprintf("Getting control plane: %s", controlPlaneName))
 	controlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
-	err := mgmtClient.Get(ctx, crclient.ObjectKey{Namespace: input.Namespace.Name, Name: controlPlaneName}, controlPlane)
-	Expect(err).ToNot(HaveOccurred())
+	Eventually(func() error {
+		return mgmtClient.Get(ctx, crclient.ObjectKey{Namespace: input.Namespace.Name, Name: controlPlaneName}, controlPlane)
+	}, 20*time.Minute, 5*time.Second).Should(Succeed(), "eventually failed trying to get the AWSManagedControlPlane")
 
 	By(fmt.Sprintf("Checking EKS addon %s is installed on cluster %s and is active", input.AddonName, input.ClusterName))
 	waitForEKSAddonToHaveStatus(waitForEKSAddonToHaveStatusInput{
