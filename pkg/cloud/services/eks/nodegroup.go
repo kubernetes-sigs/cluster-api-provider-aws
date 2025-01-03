@@ -333,6 +333,11 @@ func (s *NodegroupService) reconcileNodegroupVersion(ng *eks.Nodegroup) error {
 			return fmt.Errorf("parsing EKS version from spec: %w", err)
 		}
 	}
+
+	// Check for nil pointers before dereferencing
+	if ng.Version == nil {
+		return fmt.Errorf("nodegroup version is nil")
+	}
 	ngVersion := version.MustParseGeneric(*ng.Version)
 	specAMI := s.scope.ManagedMachinePool.Spec.AMIVersion
 	ngAMI := *ng.ReleaseVersion
