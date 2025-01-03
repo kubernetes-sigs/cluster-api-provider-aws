@@ -174,6 +174,41 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "invalid, MarketType set to MarketTypeCapacityBlock and spotMarketOptions are specified",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AWSLaunchTemplate: AWSLaunchTemplate{
+						MarketType:        infrav1.MarketTypeCapacityBlock,
+						SpotMarketOptions: &infrav1.SpotMarketOptions{},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid, MarketType set to MarketTypeOnDemand and spotMarketOptions are specified",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AWSLaunchTemplate: AWSLaunchTemplate{
+						MarketType:        infrav1.MarketTypeOnDemand,
+						SpotMarketOptions: &infrav1.SpotMarketOptions{},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid MarketType set to MarketTypeCapacityBlock is specified",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AWSLaunchTemplate: AWSLaunchTemplate{
+						MarketType: infrav1.MarketTypeCapacityBlock,
+					},
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
