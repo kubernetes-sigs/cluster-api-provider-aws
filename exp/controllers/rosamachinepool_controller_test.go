@@ -24,6 +24,7 @@ func TestNodePoolToRosaMachinePoolSpec(t *testing.T) {
 		AutoRepair:    true,
 		InstanceType:  "m5.large",
 		TuningConfigs: []string{"config1"},
+		VolumeSize:    199,
 		NodeDrainGracePeriod: &metav1.Duration{
 			Duration: time.Minute * 10,
 		},
