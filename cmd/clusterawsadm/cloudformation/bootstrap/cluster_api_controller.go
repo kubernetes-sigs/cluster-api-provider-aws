@@ -28,6 +28,7 @@ import (
 
 const (
 	eksClusterPolicyName = "AmazonEKSClusterPolicy"
+	eksFargatePolicyName = "AmazonEKSFargatePodExecutionRolePolicy"
 )
 
 func (t Template) controllersPolicyGroups() []string {
@@ -409,6 +410,14 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 		})
 	}
 
+	allowedGetPolicies := append(iamv1.Resources{
+		t.generateAWSManagedPolicyARN(eksClusterPolicyName),
+	}, t.nodeManagedPolicies()...)
+
+	if !t.Spec.EKS.Fargate.Disable {
+		allowedGetPolicies = append(allowedGetPolicies, t.generateAWSManagedPolicyARN(eksFargatePolicyName))
+	}
+
 	statements = append(statements, []iamv1.StatementEntry{
 		{
 			Action: allowedIAMActions,
@@ -421,10 +430,8 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 			Action: iamv1.Actions{
 				"iam:GetPolicy",
 			},
-			Resource: iamv1.Resources{
-				t.generateAWSManagedPolicyARN(eksClusterPolicyName),
-			},
-			Effect: iamv1.EffectAllow,
+			Resource: allowedGetPolicies,
+			Effect:   iamv1.EffectAllow,
 		},
 		{
 			Action: iamv1.Actions{
