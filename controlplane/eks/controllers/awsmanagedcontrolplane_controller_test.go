@@ -791,25 +791,16 @@ func mockedEKSControlPlaneIAMRole(g *WithT, iamRec *mock_iamauth.MockIAMAPIMockR
 		}, nil
 	})
 
-	iamRec.ListAttachedRolePolicies(&iam.ListAttachedRolePoliciesInput{
+	listAttachedPoliciesCall := iamRec.ListAttachedRolePolicies(&iam.ListAttachedRolePoliciesInput{
 		RoleName: aws.String("test-cluster-iam-service-role"),
 	}).After(createRoleCall).Return(&iam.ListAttachedRolePoliciesOutput{
 		AttachedPolicies: []*iam.AttachedPolicy{},
 	}, nil)
 
-	getPolicyCall := iamRec.GetPolicy(&iam.GetPolicyInput{
-		PolicyArn: aws.String("arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"),
-	}).Return(&iam.GetPolicyOutput{
-		// This policy is predefined by AWS
-		Policy: &iam.Policy{
-			// Fields are not used. Our code only checks for existence of the policy.
-		},
-	}, nil)
-
 	iamRec.AttachRolePolicy(&iam.AttachRolePolicyInput{
 		PolicyArn: aws.String("arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"),
 		RoleName:  aws.String("test-cluster-iam-service-role"),
-	}).After(getPolicyCall).Return(&iam.AttachRolePolicyOutput{}, nil)
+	}).After(listAttachedPoliciesCall).Return(&iam.AttachRolePolicyOutput{}, nil)
 }
 
 func mockedEKSCluster(g *WithT, eksRec *mock_eksiface.MockEKSAPIMockRecorder, iamRec *mock_iamauth.MockIAMAPIMockRecorder, ec2Rec *mocks.MockEC2APIMockRecorder, stsRec *mock_stsiface.MockSTSAPIMockRecorder, awsNodeRec *mock_services.MockAWSNodeInterfaceMockRecorder, kubeProxyRec *mock_services.MockKubeProxyInterfaceMockRecorder, iamAuthenticatorRec *mock_services.MockIAMAuthenticatorInterfaceMockRecorder) {

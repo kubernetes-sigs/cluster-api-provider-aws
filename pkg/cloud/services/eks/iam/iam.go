@@ -66,19 +66,6 @@ func (s *IAMService) GetIAMRole(name string) (*iam.Role, error) {
 	return out.Role, nil
 }
 
-func (s *IAMService) getIAMPolicy(policyArn string) (*iam.Policy, error) {
-	input := &iam.GetPolicyInput{
-		PolicyArn: &policyArn,
-	}
-
-	out, err := s.IAMClient.GetPolicy(input)
-	if err != nil {
-		return nil, err
-	}
-
-	return out.Policy, nil
-}
-
 func (s *IAMService) getIAMRolePolicies(roleName string) ([]*string, error) {
 	input := &iam.ListAttachedRolePoliciesInput{
 		RoleName: &roleName,
@@ -149,12 +136,6 @@ func (s *IAMService) EnsurePoliciesAttached(role *iam.Role, policies []*string) 
 	for _, policy := range policies {
 		found := findStringInSlice(existingPolices, *policy)
 		if !found {
-			// Make sure policy exists before attaching
-			_, err := s.getIAMPolicy(*policy)
-			if err != nil {
-				return false, errors.Wrapf(err, "error getting policy %s", *policy)
-			}
-
 			updatedPolicies = true
 			err = s.attachIAMRolePolicy(*role.RoleName, *policy)
 			if err != nil {
