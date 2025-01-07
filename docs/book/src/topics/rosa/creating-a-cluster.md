@@ -1,30 +1,83 @@
 # Creating a ROSA cluster
 
 ## Permissions
-CAPA controller requires an API token in order to be able to provision ROSA clusters:
+### Authentication using service account credentials
+CAPA controller requires service account credentials to be able to provision ROSA clusters:
+1. Visit [https://console.redhat.com/iam/service-accounts](https://console.redhat.com/iam/service-accounts) and create a new service account.
 
-1. Visit [https://console.redhat.com/openshift/token](https://console.redhat.com/openshift/token) to retrieve your API authentication token
-
-1. Create a credentials secret within the target namespace with the token to be referenced later by `ROSAControlePlane`
+1. Create a new kubernetes secret with the service account credentials to be referenced later by `ROSAControlPlane`
     ```shell
     kubectl create secret generic rosa-creds-secret \
-      --from-literal=ocmToken='eyJhbGciOiJIUzI1NiIsI....' \
-      --from-literal=ocmApiUrl='https://api.openshift.com' 
+      --from-literal=ocmClientID='....' \
+      --from-literal=ocmClientSecret='eyJhbGciOiJIUzI1NiIsI....' \
+      --from-literal=ocmApiUrl='https://api.openshift.com'
     ```
 
-    Alternatively, you can edit CAPA controller deployment to provide the credentials:
+    Note: to consume the secret without the need to reference it from your `ROSAControlPlane`, name your secret as `rosa-creds-secret` and create it in the CAPA manager namespace (usually `capa-system`)
     ```shell
-    kubectl edit deployment -n capa-system capa-controller-manager
+    kubectl -n capa-system create secret generic rosa-creds-secret \
+      --from-literal=ocmClientID='....' \
+      --from-literal=ocmClientSecret='eyJhbGciOiJIUzI1NiIsI....' \
+      --from-literal=ocmApiUrl='https://api.openshift.com'
     ```
 
-    and add the following environment variables to the manager container:
-    ```yaml
-      env:
+
+### Authentication using SSO offline token (DEPRECATED)
+The SSO offline token is being deprecated and it is recommended to use service account credentials instead, as described above.
+
+1. Visit https://console.redhat.com/openshift/token to retrieve your SSO offline authentication token
+
+1. Create a credentials secret within the target namespace with the token to be referenced later by `ROSAControlePlane`
+```shell
+    kubectl create secret generic rosa-creds-secret \
+        --from-literal=ocmToken='eyJhbGciOiJIUzI1NiIsI....' \
+    --from-literal=ocmApiUrl='https://api.openshift.com'
+    ```
+
+Alternatively, you can edit CAPA controller deployment to provide the credentials
+```shell
+    kubectl edit deployment -n capa-system capa-controller-manager
+```
+and add the following environment variables to the manager container
+```yaml
+    env:
       - name: OCM_TOKEN
         value: "<token>"
       - name: OCM_API_URL
         value: "https://api.openshift.com" # or https://api.stage.openshift.com
-    ```
+```
+
+### Migration from offline token to service account authentication
+
+1. Visit [https://console.redhat.com/iam/service-accounts](https://console.redhat.com/iam/service-accounts) and create a new service account.
+
+1. If you previously used kubernetes secret to specify the OCM credentials secret, edit the secret:
+```shell
+    kubectl edit secret rosa-creds-secret
+```
+where you will remove the `ocmToken` credentials and add base64 encoded `ocmClientID` and `ocmClientSecret` credentials like so:
+```yaml
+apiVersion: v1
+ data:
+   ocmApiUrl: aHR0cHM6Ly9hcGkub3BlbnNoaWZ0LmNvbQ==
+   ocmClientID: Y2xpZW50X2lk...
+   ocmClientSecret: Y2xpZW50X3NlY3JldA==...
+ kind: Secret
+ type: Opaque
+```
+
+1. If you previously used capa manager deployment to specify the OCM offline token as environment variable, edit the manager deployment:
+```shell
+    kubectl -n capa-system edit deployment capa-controller-manager
+```
+and remove the `OCM_TOKEN` and `OCM_API_URL` variables, followed by `kubectl -n capa-system rollout restart deploy capa-controller-manager`. Then create the new default
+secret in the `capa-system` namespace with:
+```shell
+    kubectl -n capa-system create secret generic rosa-creds-secret \
+      --from-literal=ocmClientID='....' \
+      --from-literal=ocmClientSecret='eyJhbGciOiJIUzI1NiIsI....' \
+      --from-literal=ocmApiUrl='https://api.openshift.com'
+```
 
 ## Prerequisites
 
