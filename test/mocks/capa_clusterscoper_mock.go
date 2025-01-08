@@ -24,6 +24,7 @@ import (
 	reflect "reflect"
 
 	client "github.com/aws/aws-sdk-go/aws/client"
+	logging "github.com/aws/smithy-go/logging"
 	logr "github.com/go-logr/logr"
 	gomock "github.com/golang/mock/gomock"
 	unstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -160,6 +161,20 @@ func (mr *MockClusterScoperMockRecorder) Error(arg0, arg1 interface{}, arg2 ...i
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Error", reflect.TypeOf((*MockClusterScoper)(nil).Error), varargs...)
+}
+
+// GetAWSLogger mocks base method.
+func (m *MockClusterScoper) GetAWSLogger() logging.Logger {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAWSLogger")
+	ret0, _ := ret[0].(logging.Logger)
+	return ret0
+}
+
+// GetAWSLogger indicates an expected call of GetAWSLogger.
+func (mr *MockClusterScoperMockRecorder) GetAWSLogger() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAWSLogger", reflect.TypeOf((*MockClusterScoper)(nil).GetAWSLogger))
 }
 
 // GetLogger mocks base method.
