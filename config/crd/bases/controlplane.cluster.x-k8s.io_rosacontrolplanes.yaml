@@ -73,8 +73,8 @@ spec:
                 type: array
               billingAccount:
                 description: |-
-                  BillingAccount is an optional AWS account to use for billing the subscription fees for ROSA clusters.
-                  The cost of running each ROSA cluster will be billed to the infrastructure account in which the cluster
+                  BillingAccount is an optional AWS account to use for billing the subscription fees for ROSA HCP clusters.
+                  The cost of running each ROSA HCP cluster will be billed to the infrastructure account in which the cluster
                   is running.
                 type: string
                 x-kubernetes-validations:
@@ -563,8 +563,8 @@ spec:
                 - message: oidcID is immutable
                   rule: self == oldSelf
               provisionShardID:
-                description: ProvisionShardID defines the shard where rosa control
-                  plane components will be hosted.
+                description: ProvisionShardID defines the shard where ROSA hosted
+                  control plane components will be hosted.
                 type: string
                 x-kubernetes-validations:
                 - message: provisionShardID is immutable
