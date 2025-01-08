@@ -18,6 +18,8 @@ limitations under the License.
 package logs
 
 import (
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/go-logr/logr"
 )
@@ -38,6 +40,19 @@ func GetAWSLogLevel(logger logr.Logger) aws.LogLevelType {
 	}
 
 	return aws.LogOff
+}
+
+// GetAWSLogLevelV2 will return the log level of an AWS Logger.
+func GetAWSLogLevelV2(logger logr.Logger) config.LoadOptionsFunc {
+	if logger.V(logWithHTTPBody).Enabled() {
+		return config.WithClientLogMode(awsv2.LogRequestWithBody | awsv2.LogResponseWithBody)
+	}
+
+	if logger.V(logWithHTTPHeader).Enabled() {
+		return config.WithClientLogMode(awsv2.LogRequest | awsv2.LogResponse)
+	}
+
+	return nil
 }
 
 // NewWrapLogr will create an AWS Logger wrapper.
