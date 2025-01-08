@@ -4,4 +4,6 @@ filters:
   "^.*rosa.*\\.yaml$":
     approvers:
       - muraee
-      - stevekuznetsov
+      - serngawy
+    reviewers:
+      - serngawy
