@@ -217,6 +217,9 @@ type Instance struct {
 	// Specifies ENIs attached to instance
 	NetworkInterfaces []string `json:"networkInterfaces,omitempty"`
 
+	// NetworkInterfaceType is the interface type of the primary network Interface.
+	NetworkInterfaceType NetworkInterfaceType `json:"networkInterfaceType,omitempty"`
+
 	// The tags associated with the instance.
 	Tags map[string]string `json:"tags,omitempty"`
 

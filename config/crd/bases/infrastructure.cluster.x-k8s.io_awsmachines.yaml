@@ -891,6 +891,14 @@ spec:
                 - Spot
                 - CapacityBlock
                 type: string
+              networkInterfaceType:
+                description: |-
+                  NetworkInterfaceType is the interface type of the primary network Interface.
+                  If not specified, AWS applies a default value.
+                enum:
+                - interface
+                - efa
+                type: string
               networkInterfaces:
                 description: |-
                   NetworkInterfaces is a list of ENIs to associate with the instance.
