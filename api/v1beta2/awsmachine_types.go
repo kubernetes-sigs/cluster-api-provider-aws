@@ -54,6 +54,16 @@ const (
 	IgnitionStorageTypeOptionUnencryptedUserData = IgnitionStorageTypeOption("UnencryptedUserData")
 )
 
+// NetworkInterfaceType is the type of network interface.
+type NetworkInterfaceType string
+
+const (
+	// NetworkInterfaceTypeENI means the network interface type is Elastic Network Interface.
+	NetworkInterfaceTypeENI NetworkInterfaceType = NetworkInterfaceType("interface")
+	// NetworkInterfaceTypeEFAWithENAInterface means the network interface type is Elastic Fabric Adapter with Elastic Network Adapter.
+	NetworkInterfaceTypeEFAWithENAInterface NetworkInterfaceType = NetworkInterfaceType("efa")
+)
+
 // AWSMachineSpec defines the desired state of an Amazon EC2 instance.
 type AWSMachineSpec struct {
 	// ProviderID is the unique identifier as specified by the cloud provider.
@@ -152,6 +162,12 @@ type AWSMachineSpec struct {
 	// +optional
 	// +kubebuilder:validation:MaxItems=2
 	NetworkInterfaces []string `json:"networkInterfaces,omitempty"`
+
+	// NetworkInterfaceType is the interface type of the primary network Interface.
+	// If not specified, AWS applies a default value.
+	// +kubebuilder:validation:Enum=interface;efa
+	// +optional
+	NetworkInterfaceType NetworkInterfaceType `json:"networkInterfaceType,omitempty"`
 
 	// UncompressedUserData specify whether the user data is gzip-compressed before it is sent to ec2 instance.
 	// cloud-init has built-in support for gzip-compressed user data
