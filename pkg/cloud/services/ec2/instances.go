@@ -113,11 +113,12 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 	s.scope.Debug("Creating an instance for a machine")
 
 	input := &infrav1.Instance{
-		Type:              scope.AWSMachine.Spec.InstanceType,
-		IAMProfile:        scope.AWSMachine.Spec.IAMInstanceProfile,
-		RootVolume:        scope.AWSMachine.Spec.RootVolume.DeepCopy(),
-		NonRootVolumes:    scope.AWSMachine.Spec.NonRootVolumes,
-		NetworkInterfaces: scope.AWSMachine.Spec.NetworkInterfaces,
+		Type:                 scope.AWSMachine.Spec.InstanceType,
+		IAMProfile:           scope.AWSMachine.Spec.IAMInstanceProfile,
+		RootVolume:           scope.AWSMachine.Spec.RootVolume.DeepCopy(),
+		NonRootVolumes:       scope.AWSMachine.Spec.NonRootVolumes,
+		NetworkInterfaces:    scope.AWSMachine.Spec.NetworkInterfaces,
+		NetworkInterfaceType: scope.AWSMachine.Spec.NetworkInterfaceType,
 	}
 
 	// Make sure to use the MachineScope here to get the merger of AWSCluster and AWSMachine tags
@@ -569,6 +570,7 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 			})
 		}
 		netInterfaces[0].AssociatePublicIpAddress = i.PublicIPOnLaunch
+		netInterfaces[0].InterfaceType = (*string)(i.NetworkInterfaceType)
 
 		input.NetworkInterfaces = netInterfaces
 	} else {
@@ -578,6 +580,7 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 				SubnetId:                 aws.String(i.SubnetID),
 				Groups:                   aws.StringSlice(i.SecurityGroupIDs),
 				AssociatePublicIpAddress: i.PublicIPOnLaunch,
+				InterfaceType:            (*string)(i.NetworkInterfaceType),
 			},
 		}
 	}

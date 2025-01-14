@@ -1415,6 +1415,7 @@ func autoConvert_v1beta2_AWSMachineSpec_To_v1beta1_AWSMachineSpec(in *v1beta2.AW
 	out.RootVolume = (*Volume)(unsafe.Pointer(in.RootVolume))
 	out.NonRootVolumes = *(*[]Volume)(unsafe.Pointer(&in.NonRootVolumes))
 	out.NetworkInterfaces = *(*[]string)(unsafe.Pointer(&in.NetworkInterfaces))
+	// WARNING: in.NetworkInterfaceType requires manual conversion: does not exist in peer-type
 	out.UncompressedUserData = (*bool)(unsafe.Pointer(in.UncompressedUserData))
 	if err := Convert_v1beta2_CloudInit_To_v1beta1_CloudInit(&in.CloudInit, &out.CloudInit, s); err != nil {
 		return err
@@ -2025,6 +2026,7 @@ func autoConvert_v1beta2_Instance_To_v1beta1_Instance(in *v1beta2.Instance, out 
 	out.RootVolume = (*Volume)(unsafe.Pointer(in.RootVolume))
 	out.NonRootVolumes = *(*[]Volume)(unsafe.Pointer(&in.NonRootVolumes))
 	out.NetworkInterfaces = *(*[]string)(unsafe.Pointer(&in.NetworkInterfaces))
+	// WARNING: in.NetworkInterfaceType requires manual conversion: does not exist in peer-type
 	out.Tags = *(*map[string]string)(unsafe.Pointer(&in.Tags))
 	out.AvailabilityZone = in.AvailabilityZone
 	out.SpotMarketOptions = (*SpotMarketOptions)(unsafe.Pointer(in.SpotMarketOptions))

@@ -746,6 +746,11 @@ func (in *AWSMachineSpec) DeepCopyInto(out *AWSMachineSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.NetworkInterfaceType != nil {
+		in, out := &in.NetworkInterfaceType, &out.NetworkInterfaceType
+		*out = new(NetworkInterfaceType)
+		**out = **in
+	}
 	if in.UncompressedUserData != nil {
 		in, out := &in.UncompressedUserData, &out.UncompressedUserData
 		*out = new(bool)
@@ -1566,6 +1571,11 @@ func (in *Instance) DeepCopyInto(out *Instance) {
 		in, out := &in.NetworkInterfaces, &out.NetworkInterfaces
 		*out = make([]string, len(*in))
 		copy(*out, *in)
+	}
+	if in.NetworkInterfaceType != nil {
+		in, out := &in.NetworkInterfaceType, &out.NetworkInterfaceType
+		*out = new(NetworkInterfaceType)
+		**out = **in
 	}
 	if in.Tags != nil {
 		in, out := &in.Tags, &out.Tags

@@ -878,6 +878,13 @@ spec:
                   m4.xlarge'
                 minLength: 2
                 type: string
+              networkInterfaceType:
+                description: NetworkInterfaceType is the interface type of the primary
+                  network Interface.
+                enum:
+                - interface
+                - efa
+                type: string
               networkInterfaces:
                 description: |-
                   NetworkInterfaces is a list of ENIs to associate with the instance.
