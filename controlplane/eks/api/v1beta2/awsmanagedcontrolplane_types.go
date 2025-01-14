@@ -164,10 +164,14 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// +optional
 	Addons *[]Addon `json:"addons,omitempty"`
 
-	// IdentityProviderconfig is used to specify the oidc provider config
+	// OIDCIdentityProviderConfig is used to specify the oidc provider config
 	// to be attached with this eks cluster
 	// +optional
 	OIDCIdentityProviderConfig *OIDCIdentityProviderConfig `json:"oidcIdentityProviderConfig,omitempty"`
+
+	// AccessConfig specifies the access configuration information for the cluster
+	// +optional
+	AccessConfig *AccessConfig `json:"accessConfig,omitempty"`
 
 	// VpcCni is used to set configuration options for the VPC CNI plugin
 	// +optional
@@ -217,6 +221,15 @@ type EndpointAccess struct {
 	// Private points VPC-internal control plane access to the private endpoint
 	// +optional
 	Private *bool `json:"private,omitempty"`
+}
+
+// AccessConfig represents the access configuration information for the cluster
+type AccessConfig struct {
+	// AuthenticationMode specifies the desired authentication mode for the cluster
+	// Defaults to CONFIG_MAP
+	// +kubebuilder:default=CONFIG_MAP
+	// +kubebuilder:validation:Enum=CONFIG_MAP;API;API_AND_CONFIG_MAP
+	AuthenticationMode EKSAuthenticationMode `json:"authenticationMode,omitempty"`
 }
 
 // EncryptionConfig specifies the encryption configuration for the EKS clsuter.
