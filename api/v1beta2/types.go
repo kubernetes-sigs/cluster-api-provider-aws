@@ -18,6 +18,7 @@ package v1beta2
 
 import (
 	"strings"
+	"time"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 
@@ -426,6 +427,9 @@ type SpotMarketOptions struct {
 	// +optional
 	// +kubebuilder:validation:pattern="^[0-9]+(\.[0-9]+)?$"
 	MaxPrice *string `json:"maxPrice,omitempty"`
+	// WaitingTimeout defines the maximum time the user is willing to wait for acquiring a Spot VM instance, after that it will fallback to a regular on-demand instance.
+	// +optional
+	WaitingTimeout time.Duration `json:"waitingTimeout,omitempty"`
 }
 
 // EKSAMILookupType specifies which AWS AMI to use for a AWSMachine and AWSMachinePool.
