@@ -308,6 +308,13 @@ type DefaultMachinePoolSpec struct {
 	// must be equal or multiple of the availability zones count.
 	// +optional
 	Autoscaling *expinfrav1.RosaMachinePoolAutoScaling `json:"autoscaling,omitempty"`
+
+	// VolumeSize set the disk volume size for the default workers machine pool in Gib. The default is 300 GiB.
+	// +kubebuilder:validation:Minimum=75
+	// +kubebuilder:validation:Maximum=16384
+	// +immutable
+	// +optional
+	VolumeSize int `json:"volumeSize,omitempty"`
 }
 
 // AWSRolesRef contains references to various AWS IAM roles required for operators to make calls against the AWS API.
