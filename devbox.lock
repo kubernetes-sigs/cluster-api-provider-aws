@@ -1,0 +1,49 @@
+{
+  "lockfile_version": "1",
+  "packages": {
+    "awscli": {
+      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#awscli",
+      "source": "nixpkg"
+    },
+    "docker": {
+      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#docker",
+      "source": "nixpkg"
+    },
+    "git": {
+      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#git",
+      "source": "nixpkg"
+    },
+    "go": {
+      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#go",
+      "source": "nixpkg"
+    },
+    "helm": {
+      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#helm",
+      "source": "nixpkg"
+    },
+    "jq": {
+      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#jq",
+      "source": "nixpkg"
+    },
+    "k9s": {
+      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#k9s",
+      "source": "nixpkg"
+    },
+    "kind": {
+      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#kind",
+      "source": "nixpkg"
+    },
+    "kubectl": {
+      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#kubectl",
+      "source": "nixpkg"
+    },
+    "tilt": {
+      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#tilt",
+      "source": "nixpkg"
+    },
+    "yq": {
+      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#yq",
+      "source": "nixpkg"
+    }
+  }
+}
