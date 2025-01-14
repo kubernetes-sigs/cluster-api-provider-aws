@@ -1076,6 +1076,7 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 		awsResourceReference []infrav1.AWSResourceReference
 		expect               func(m *mocks.MockEC2APIMockRecorder)
 		wantErr              bool
+		marketType           *string
 	}{
 		{
 			name:                 "Should successfully creates launch template version",
@@ -1100,6 +1101,55 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 							SpotOptions: &ec2.LaunchTemplateSpotMarketOptionsRequest{
 								MaxPrice: aws.String("0.9"),
 							},
+						},
+						TagSpecifications: []*ec2.LaunchTemplateTagSpecificationRequest{
+							{
+								ResourceType: aws.String(ec2.ResourceTypeInstance),
+								Tags:         defaultEC2AndUserDataSecretKeyTags("aws-mp-name", "cluster-name", userDataSecretKey),
+							},
+							{
+								ResourceType: aws.String(ec2.ResourceTypeVolume),
+								Tags:         defaultEC2Tags("aws-mp-name", "cluster-name"),
+							},
+						},
+					},
+					LaunchTemplateId: aws.String("launch-template-id"),
+				}
+				m.CreateLaunchTemplateVersionWithContext(context.TODO(), gomock.AssignableToTypeOf(expectedInput)).Return(&ec2.CreateLaunchTemplateVersionOutput{
+					LaunchTemplateVersion: &ec2.LaunchTemplateVersion{
+						LaunchTemplateId: aws.String("launch-template-id"),
+					},
+				}, nil).Do(
+					func(ctx context.Context, arg *ec2.CreateLaunchTemplateVersionInput, requestOptions ...request.Option) {
+						// formatting added to match tags slice during cmp.Equal()
+						formatTagsInput(arg)
+						if !cmp.Equal(expectedInput, arg) {
+							t.Fatalf("mismatch in input expected: %+v, but got %+v, diff: %s", expectedInput, arg, cmp.Diff(expectedInput, arg))
+						}
+					})
+			},
+		},
+		{
+			name:                 "Should successfully create launch template version with capacity-block",
+			awsResourceReference: []infrav1.AWSResourceReference{{ID: aws.String("1")}},
+			marketType:           aws.String(ec2.MarketTypeCapacityBlock),
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				sgMap := make(map[infrav1.SecurityGroupRole]infrav1.SecurityGroup)
+				sgMap[infrav1.SecurityGroupNode] = infrav1.SecurityGroup{ID: "1"}
+				sgMap[infrav1.SecurityGroupLB] = infrav1.SecurityGroup{ID: "2"}
+
+				expectedInput := &ec2.CreateLaunchTemplateVersionInput{
+					LaunchTemplateData: &ec2.RequestLaunchTemplateData{
+						InstanceType: aws.String("t3.large"),
+						IamInstanceProfile: &ec2.LaunchTemplateIamInstanceProfileSpecificationRequest{
+							Name: aws.String("instance-profile"),
+						},
+						KeyName:          aws.String("default"),
+						UserData:         ptr.To[string](base64.StdEncoding.EncodeToString(userData)),
+						SecurityGroupIds: aws.StringSlice([]string{"nodeSG", "lbSG", "1"}),
+						ImageId:          aws.String("imageID"),
+						InstanceMarketOptions: &ec2.LaunchTemplateInstanceMarketOptionsRequest{
+							MarketType: aws.String(ec2.MarketTypeCapacityBlock),
 						},
 						TagSpecifications: []*ec2.LaunchTemplateTagSpecificationRequest{
 							{
@@ -1181,7 +1231,6 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
-
 			scheme, err := setupScheme()
 			g.Expect(err).NotTo(HaveOccurred())
 			client := fake.NewClientBuilder().WithScheme(scheme).Build()
@@ -1189,7 +1238,12 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 			cs, err := setupClusterScope(client)
 			g.Expect(err).NotTo(HaveOccurred())
 
-			ms, err := setupMachinePoolScope(client, cs)
+			var ms *scope.MachinePoolScope
+			if aws.StringValue(tc.marketType) == ec2.MarketTypeCapacityBlock {
+				ms, err = setupCapacityBlocksMachinePoolScope(client, cs)
+			} else {
+				ms, err = setupMachinePoolScope(client, cs)
+			}
 			g.Expect(err).NotTo(HaveOccurred())
 
 			ms.AWSMachinePool.Spec.AWSLaunchTemplate.AdditionalSecurityGroups = tc.awsResourceReference
