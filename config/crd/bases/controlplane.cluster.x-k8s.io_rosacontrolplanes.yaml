@@ -82,6 +82,14 @@ spec:
                   rule: self == oldSelf
                 - message: billingAccount must be a valid AWS account ID
                   rule: self.matches('^[0-9]{12}$')
+              channelGroup:
+                default: stable
+                description: OpenShift version channel group, default is stable.
+                enum:
+                - stable
+                - candidate
+                - nightly
+                type: string
               clusterRegistryConfig:
                 description: ClusterRegistryConfig represents registry config used
                   with the cluster.
@@ -812,6 +820,7 @@ spec:
                 type: string
             required:
             - availabilityZones
+            - channelGroup
             - installerRoleARN
             - oidcID
             - region
