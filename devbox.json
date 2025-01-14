@@ -1,24 +1,23 @@
 {
     "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.13.7/.schema/devbox.schema.json",
     "packages": [
-      "go",
-      "kubectl",
-      "kind",
-      "docker",
-      "helm",
-      "jq",
-      "yq",
-      "git",
-      "k9s",
-      "tilt",
-      "awscli"
+        "go",
+        "kubectl",
+        "kind",
+        "docker",
+        "helm",
+        "jq",
+        "yq",
+        "git",
+        "k9s",
+        "tilt",
+        "awscli"
     ],
     "shell": {
-      "scripts": {
-        "test": [
-          "echo \"Error: no test specified\" && exit 1"
-        ]
-      }
+        "scripts": {
+            "test": [
+                "echo \"Error: no test specified\" && exit 1"
+            ]
+        }
     }
-  }
-  
+}
