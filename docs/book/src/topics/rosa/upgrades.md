@@ -11,6 +11,8 @@ When the versionGate is set to 'Acknowledge', it will revert to 'WaitForAcknowle
 
 The available upgrades versions for the `ROSAControlPlane` will be listed under `ROSAControlPlane.status.availableUpgrades`
 
+The version channel group `ROSAControlPlane.spec.channelGroup` default to stable. However, it can be set to candidate or nightly. Changing the version channel group will change the `ROSAControlPlane.status.availableUpgrades` accordingly. 
+
 The Upgrade state can be checked in the conditions under `ROSAControlPlane.status`.
 
 ## MachinePool Upgrade
