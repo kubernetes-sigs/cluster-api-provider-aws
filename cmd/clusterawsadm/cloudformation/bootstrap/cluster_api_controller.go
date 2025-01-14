@@ -419,15 +419,6 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 		},
 		{
 			Action: iamv1.Actions{
-				"iam:GetPolicy",
-			},
-			Resource: iamv1.Resources{
-				t.generateAWSManagedPolicyARN(eksClusterPolicyName),
-			},
-			Effect: iamv1.EffectAllow,
-		},
-		{
-			Action: iamv1.Actions{
 				"eks:DescribeCluster",
 				"eks:ListClusters",
 				"eks:CreateCluster",
