@@ -47,6 +47,17 @@ func NewOCMClient(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (
 	return ocm.NewClient().Logger(logrus.New()).Config(&ocmConfig).Build()
 }
 
+// NewWrappedOCMClient creates a new OCM client wrapped in ocmclient struct that implements OCMClient interface.
+// This is needed to be able to mock OCM in tests. NewOCMClient is left unchanged so we don't change public interface.
+func NewWrappedOCMClient(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (OCMClient, error) {
+	ocmClient, err := NewOCMClient(ctx, rosaScope)
+	c := ocmclient{
+		ocmClient: ocmClient,
+	}
+
+	return &c, err
+}
+
 func newOCMRawConnection(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (*sdk.Connection, error) {
 	ocmSdkLogger, err := sdk.NewGoLoggerBuilder().
 		Debug(false).
