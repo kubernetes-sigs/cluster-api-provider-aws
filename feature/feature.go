@@ -86,6 +86,16 @@ const (
 	// owner: @enxebre
 	// alpha: v2.2
 	ROSA featuregate.Feature = "ROSA"
+
+	// AWSMachine is used to control AWSMachine reconciler
+	// owner: @mzazrivec
+	// beta: v2.7
+	AWSMachine featuregate.Feature = "AWSMachine"
+
+	// AWSCluster is used to control AWSCluster reconciler
+	// owner: @mzazrivec
+	// beta: v2.7
+	AWSCluster featuregate.Feature = "AWSCluster"
 )
 
 func init() {
@@ -108,4 +118,6 @@ var defaultCAPAFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	AlternativeGCStrategy:         {Default: false, PreRelease: featuregate.Alpha},
 	TagUnmanagedNetworkResources:  {Default: true, PreRelease: featuregate.Alpha},
 	ROSA:                          {Default: false, PreRelease: featuregate.Alpha},
+	AWSMachine:                    {Default: true, PreRelease: featuregate.Beta},
+	AWSCluster:                    {Default: true, PreRelease: featuregate.Beta},
 }
