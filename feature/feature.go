@@ -86,6 +86,14 @@ const (
 	// owner: @enxebre
 	// alpha: v2.2
 	ROSA featuregate.Feature = "ROSA"
+
+	// owner: @mzazrivec
+	// alpha: v2.7
+	AWSMachine featuregate.Feature = "AWSMachine"
+
+	// owner: @mzazrivec
+	// alpha: v2.7
+	AWSCluster featuregate.Feature = "AWSCluster"
 )
 
 func init() {
@@ -108,4 +116,6 @@ var defaultCAPAFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	AlternativeGCStrategy:         {Default: false, PreRelease: featuregate.Alpha},
 	TagUnmanagedNetworkResources:  {Default: true, PreRelease: featuregate.Alpha},
 	ROSA:                          {Default: false, PreRelease: featuregate.Alpha},
+	AWSMachine:                    {Default: true, PreRelease: featuregate.Alpha},
+	AWSCluster:                    {Default: true, PreRelease: featuregate.Alpha},
 }
