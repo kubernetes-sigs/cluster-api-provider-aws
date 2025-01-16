@@ -124,6 +124,16 @@ func (in *AWSManagedControlPlaneSpec) DeepCopyInto(out *AWSManagedControlPlaneSp
 			copy(*out, *in)
 		}
 	}
+	if in.RolePath != nil {
+		in, out := &in.RolePath, &out.RolePath
+		*out = new(string)
+		**out = **in
+	}
+	if in.RolePermissionsBoundary != nil {
+		in, out := &in.RolePermissionsBoundary, &out.RolePermissionsBoundary
+		*out = new(string)
+		**out = **in
+	}
 	if in.Logging != nil {
 		in, out := &in.Logging, &out.Logging
 		*out = new(ControlPlaneLoggingSpec)

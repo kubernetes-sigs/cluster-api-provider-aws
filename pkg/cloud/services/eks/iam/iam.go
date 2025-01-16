@@ -190,6 +190,8 @@ func (s *IAMService) CreateRole(
 	key string,
 	trustRelationship *iamv1.PolicyDocument,
 	additionalTags infrav1.Tags,
+	path string,
+	permissionsBoundary string,
 ) (*iam.Role, error) {
 	tags := RoleTags(key, additionalTags)
 
@@ -202,6 +204,8 @@ func (s *IAMService) CreateRole(
 		RoleName:                 aws.String(roleName),
 		Tags:                     tags,
 		AssumeRolePolicyDocument: aws.String(trustRelationshipJSON),
+		Path:                     aws.String(path),
+		PermissionsBoundary:      aws.String(permissionsBoundary),
 	}
 
 	out, err := s.IAMClient.CreateRole(input)
