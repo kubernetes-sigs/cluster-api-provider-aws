@@ -38,13 +38,13 @@ const (
 	AWSIAMInstanceProfileControllers             = "AWSIAMInstanceProfileControllers"
 	AWSIAMInstanceProfileControlPlane            = "AWSIAMInstanceProfileControlPlane"
 	AWSIAMInstanceProfileNodes                   = "AWSIAMInstanceProfileNodes"
+	AWSIAMUserBootstrapper                       = "AWSIAMUserBootstrapper"
 	AWSIAMRoleControllers                        = "AWSIAMRoleControllers"
 	AWSIAMRoleControlPlane                       = "AWSIAMRoleControlPlane"
 	AWSIAMRoleNodes                              = "AWSIAMRoleNodes"
 	AWSIAMRoleEKSControlPlane                    = "AWSIAMRoleEKSControlPlane"
 	AWSIAMRoleEKSNodegroup                       = "AWSIAMRoleEKSNodegroup"
 	AWSIAMRoleEKSFargate                         = "AWSIAMRoleEKSFargate"
-	AWSIAMUserBootstrapper                       = "AWSIAMUserBootstrapper"
 	ControllersPolicy                 PolicyName = "AWSIAMManagedPolicyControllers"
 	ControllersPolicyEKS              PolicyName = "AWSIAMManagedPolicyControllersEKS"
 	ControlPlanePolicy                PolicyName = "AWSIAMManagedPolicyCloudProviderControlPlane"
@@ -73,18 +73,26 @@ func (t Template) NewManagedName(name string) string {
 	return fmt.Sprintf("%s%s%s", t.Spec.NamePrefix, name, *t.Spec.NameSuffix)
 }
 
+func (t Template) NewEKSManagedName(name string) string {
+	return fmt.Sprintf("%s%s", t.Spec.NamePrefix, name)
+}
+
 // RenderCloudFormation will render and return a cloudformation Template.
-func (t Template) RenderCloudFormation() *cloudformation.Template {
+func (t Template) RenderCloudFormation(permissionsBoundary *string) *cloudformation.Template {
 	template := cloudformation.NewTemplate()
 
 	if t.Spec.BootstrapUser.Enable {
-		template.Resources[AWSIAMUserBootstrapper] = &cfn_iam.User{
+		user := &cfn_iam.User{
 			UserName:          t.Spec.BootstrapUser.UserName,
 			Groups:            t.bootstrapUserGroups(),
 			ManagedPolicyArns: t.Spec.ControlPlane.ExtraPolicyAttachments,
 			Policies:          t.bootstrapUserPolicy(),
 			Tags:              converters.MapToCloudFormationTags(t.Spec.BootstrapUser.Tags),
 		}
+		if permissionsBoundary != nil && len(*permissionsBoundary) > 0 {
+			user.PermissionsBoundary = *permissionsBoundary
+		}
+		template.Resources[AWSIAMUserBootstrapper] = user
 
 		template.Resources[AWSIAMGroupBootstrapper] = &cfn_iam.Group{
 			GroupName: t.Spec.BootstrapUser.GroupName,
@@ -136,28 +144,40 @@ func (t Template) RenderCloudFormation() *cloudformation.Template {
 		}
 	}
 
-	template.Resources[AWSIAMRoleControlPlane] = &cfn_iam.Role{
+	cpRole := &cfn_iam.Role{
 		RoleName:                 t.NewManagedName("control-plane"),
 		AssumeRolePolicyDocument: t.controlPlaneTrustPolicy(),
 		ManagedPolicyArns:        t.Spec.ControlPlane.ExtraPolicyAttachments,
 		Policies:                 t.controlPlanePolicies(),
 		Tags:                     converters.MapToCloudFormationTags(t.Spec.ControlPlane.Tags),
 	}
+	if permissionsBoundary != nil && len(*permissionsBoundary) > 0 {
+		cpRole.PermissionsBoundary = *permissionsBoundary
+	}
+	template.Resources[AWSIAMRoleControlPlane] = cpRole
 
-	template.Resources[AWSIAMRoleControllers] = &cfn_iam.Role{
+	ctrRole := &cfn_iam.Role{
 		RoleName:                 t.NewManagedName("controllers"),
 		AssumeRolePolicyDocument: t.controllersTrustPolicy(),
 		Policies:                 t.controllersRolePolicy(),
 		Tags:                     converters.MapToCloudFormationTags(t.Spec.ClusterAPIControllers.Tags),
 	}
+	if permissionsBoundary != nil && len(*permissionsBoundary) > 0 {
+		ctrRole.PermissionsBoundary = *permissionsBoundary
+	}
+	template.Resources[AWSIAMRoleControllers] = ctrRole
 
-	template.Resources[AWSIAMRoleNodes] = &cfn_iam.Role{
+	nodeRole := &cfn_iam.Role{
 		RoleName:                 t.NewManagedName("nodes"),
 		AssumeRolePolicyDocument: t.nodeTrustPolicy(),
 		ManagedPolicyArns:        t.nodeManagedPolicies(),
 		Policies:                 t.nodePolicies(),
 		Tags:                     converters.MapToCloudFormationTags(t.Spec.Nodes.Tags),
 	}
+	if permissionsBoundary != nil && len(*permissionsBoundary) > 0 {
+		nodeRole.PermissionsBoundary = *permissionsBoundary
+	}
+	template.Resources[AWSIAMRoleNodes] = nodeRole
 
 	template.Resources[AWSIAMInstanceProfileControlPlane] = &cfn_iam.InstanceProfile{
 		InstanceProfileName: t.NewManagedName("control-plane"),
@@ -181,30 +201,42 @@ func (t Template) RenderCloudFormation() *cloudformation.Template {
 	}
 
 	if !t.Spec.EKS.DefaultControlPlaneRole.Disable && !t.Spec.EKS.Disable {
-		template.Resources[AWSIAMRoleEKSControlPlane] = &cfn_iam.Role{
-			RoleName:                 ekscontrolplanev1.DefaultEKSControlPlaneRole,
+		eksCPRole := &cfn_iam.Role{
+			RoleName:                 t.NewEKSManagedName(ekscontrolplanev1.DefaultEKSControlPlaneRole),
 			AssumeRolePolicyDocument: AssumeRolePolicy(iamv1.PrincipalService, []string{"eks.amazonaws.com"}),
 			ManagedPolicyArns:        t.eksControlPlanePolicies(),
 			Tags:                     converters.MapToCloudFormationTags(t.Spec.EKS.DefaultControlPlaneRole.Tags),
 		}
+		if permissionsBoundary != nil && len(*permissionsBoundary) > 0 {
+			eksCPRole.PermissionsBoundary = *permissionsBoundary
+		}
+		template.Resources[AWSIAMRoleEKSControlPlane] = eksCPRole
 	}
 
 	if !t.Spec.EKS.ManagedMachinePool.Disable && !t.Spec.EKS.Disable {
-		template.Resources[AWSIAMRoleEKSNodegroup] = &cfn_iam.Role{
-			RoleName:                 expinfrav1.DefaultEKSNodegroupRole,
+		eksNGRole := &cfn_iam.Role{
+			RoleName:                 t.NewEKSManagedName(expinfrav1.DefaultEKSNodegroupRole),
 			AssumeRolePolicyDocument: AssumeRolePolicy(iamv1.PrincipalService, []string{"ec2.amazonaws.com", "eks.amazonaws.com"}),
 			ManagedPolicyArns:        t.eksMachinePoolPolicies(),
 			Tags:                     converters.MapToCloudFormationTags(t.Spec.EKS.ManagedMachinePool.Tags),
 		}
+		if permissionsBoundary != nil && len(*permissionsBoundary) > 0 {
+			eksNGRole.PermissionsBoundary = *permissionsBoundary
+		}
+		template.Resources[AWSIAMRoleEKSNodegroup] = eksNGRole
 	}
 
 	if !t.Spec.EKS.Fargate.Disable && !t.Spec.EKS.Disable {
-		template.Resources[AWSIAMRoleEKSFargate] = &cfn_iam.Role{
-			RoleName:                 expinfrav1.DefaultEKSFargateRole,
+		eksFGRole := &cfn_iam.Role{
+			RoleName:                 t.NewEKSManagedName(expinfrav1.DefaultEKSFargateRole),
 			AssumeRolePolicyDocument: AssumeRolePolicy(iamv1.PrincipalService, []string{eksiam.EKSFargateService}),
 			ManagedPolicyArns:        t.fargateProfilePolicies(t.Spec.EKS.Fargate),
 			Tags:                     converters.MapToCloudFormationTags(t.Spec.EKS.Fargate.Tags),
 		}
+		if permissionsBoundary != nil && len(*permissionsBoundary) > 0 {
+			eksFGRole.PermissionsBoundary = *permissionsBoundary
+		}
+		template.Resources[AWSIAMRoleEKSFargate] = eksFGRole
 	}
 
 	if t.Spec.EKS.EnableUserEKSConsolePolicy && !t.Spec.EKS.Disable {

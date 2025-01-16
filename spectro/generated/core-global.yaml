@@ -12086,7 +12086,6 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.7.1-0.20211110210727-ab52f76cc7d1
-  creationTimestamp: null
   labels:
     cluster.x-k8s.io/provider: infrastructure-aws
     cluster.x-k8s.io/v1alpha3: v1alpha3
@@ -13483,6 +13482,143 @@ status:
     plural: ""
   conditions: []
   storedVersions: []
+---
+apiVersion: v1
+data:
+  credentials: ${AWS_B64ENCODED_CABUNDLE}
+kind: Secret
+metadata:
+  labels:
+    cluster.x-k8s.io/provider: infrastructure-aws
+  name: capa-manager-bootstrap-ca-bundle
+  namespace: capi-webhook-system
+type: Opaque
+---
+apiVersion: v1
+data:
+  credentials: ${AWS_B64ENCODED_CREDENTIALS}
+kind: Secret
+metadata:
+  labels:
+    cluster.x-k8s.io/provider: infrastructure-aws
+  name: capa-manager-bootstrap-credentials
+  namespace: capi-webhook-system
+type: Opaque
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    cluster.x-k8s.io/provider: infrastructure-aws
+  name: capa-webhook-service
+  namespace: capi-webhook-system
+spec:
+  ports:
+  - port: 443
+    targetPort: webhook-server
+  selector:
+    cluster.x-k8s.io/provider: infrastructure-aws
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    cluster.x-k8s.io/provider: infrastructure-aws
+    control-plane: capa-controller-manager
+  name: capa-controller-manager
+  namespace: capi-webhook-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/provider: infrastructure-aws
+      control-plane: capa-controller-manager
+  template:
+    metadata:
+      labels:
+        cluster.x-k8s.io/provider: infrastructure-aws
+        control-plane: capa-controller-manager
+    spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - preference:
+              matchExpressions:
+              - key: ${K8S_CP_LABEL:=node-role.kubernetes.io/control-plane}
+                operator: Exists
+            weight: 10
+          - preference:
+              matchExpressions:
+              - key: node-role.kubernetes.io/master
+                operator: Exists
+            weight: 10
+      containers:
+      - args:
+        - --leader-elect
+        - --feature-gates=EKS=${CAPA_EKS:=true},EKSEnableIAM=${CAPA_EKS_IAM:=false},EKSAllowAddRoles=${CAPA_EKS_ADD_ROLES:=false},EKSFargate=${EXP_EKS_FARGATE:=false},MachinePool=${EXP_MACHINE_POOL:=false},EventBridgeInstanceState=${EVENT_BRIDGE_INSTANCE_STATE:=false},AutoControllerIdentityCreator=${AUTO_CONTROLLER_IDENTITY_CREATOR:=true},BootstrapFormatIgnition=${EXP_BOOTSTRAP_FORMAT_IGNITION:=false},ExternalResourceGC=${EXP_EXTERNAL_RESOURCE_GC:=false}
+        - --v=${CAPA_LOGLEVEL:=0}
+        - --metrics-bind-addr=127.0.0.1:8080
+        image: gcr.io/k8s-staging-cluster-api-aws/cluster-api-aws-controller:latest
+        imagePullPolicy: Always
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: healthz
+        name: manager
+        ports:
+        - containerPort: 9443
+          name: webhook-server
+          protocol: TCP
+        - containerPort: 9440
+          name: healthz
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: healthz
+        volumeMounts:
+        - mountPath: /tmp/k8s-webhook-server/serving-certs
+          name: cert
+          readOnly: true
+      securityContext:
+        fsGroup: 1000
+      terminationGracePeriodSeconds: 10
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/control-plane
+      volumes:
+      - name: cert
+        secret:
+          defaultMode: 420
+          secretName: capa-webhook-service-cert
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  labels:
+    cluster.x-k8s.io/provider: infrastructure-aws
+  name: capa-serving-cert
+  namespace: capi-webhook-system
+spec:
+  dnsNames:
+  - capa-webhook-service.capi-webhook-system.svc
+  - capa-webhook-service.capi-webhook-system.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: capa-selfsigned-issuer
+  secretName: capa-webhook-service-cert
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  labels:
+    cluster.x-k8s.io/provider: infrastructure-aws
+  name: capa-selfsigned-issuer
+  namespace: capi-webhook-system
+spec:
+  selfSigned: {}
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration

@@ -54,7 +54,7 @@ func printCloudFormationTemplateCmd() *cobra.Command {
 				return err
 			}
 
-			cfnTemplate := t.RenderCloudFormation()
+			cfnTemplate := t.RenderCloudFormation(nil)
 			yml, err := cfnTemplate.YAML()
 			if err != nil {
 				return err
@@ -109,7 +109,7 @@ func createCloudFormationStackCmd() *cobra.Command {
 
 			cfnSvc := cloudformation.NewService(cfn.New(sess))
 
-			err = cfnSvc.ReconcileBootstrapStack(t.Spec.StackName, *t.RenderCloudFormation(), t.Spec.StackTags)
+			err = cfnSvc.ReconcileBootstrapStack(t.Spec.StackName, *t.RenderCloudFormation(nil), t.Spec.StackTags)
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
 				return err

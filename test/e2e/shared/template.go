@@ -149,7 +149,7 @@ func newBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 }
 
 func renderCustomCloudFormation(t *cfn_bootstrap.Template) *cloudformation.Template {
-	cloudformationTemplate := t.RenderCloudFormation()
+	cloudformationTemplate := t.RenderCloudFormation(nil)
 	appendMultiTenancyRoles(t, cloudformationTemplate)
 	return cloudformationTemplate
 }

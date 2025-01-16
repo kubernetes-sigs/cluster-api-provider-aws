@@ -196,7 +196,7 @@ func TestRenderCloudformation(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			tData, err := c.template().RenderCloudFormation().YAML()
+			tData, err := c.template().RenderCloudFormation(nil).YAML()
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -1,10 +1,19 @@
 package utils
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"k8s.io/klog/v2/klogr"
-	"os"
 )
+
+func init() {
+	isEnabled := os.Getenv("AWS_USE_FIPS_ENDPOINT")
+	if isEnabled == "true" {
+		isFIPSEndpointEnabled = true
+	}
+}
 
 var isFIPSEndpointEnabled bool
 
@@ -12,6 +21,7 @@ func CustomEndpointResolverForAWS() endpoints.ResolverFunc {
 
 	log := klogr.New()
 	resolver := func(service, region string, optFns ...func(*endpoints.Options)) (endpoints.ResolvedEndpoint, error) {
+		optFns = append(optFns, disableFipsEndpointForSC2S(region))
 
 		resolve, err := endpoints.DefaultResolver().EndpointFor(service, region, optFns...)
 		if err != nil {
@@ -146,4 +156,41 @@ func init() {
 	if isEnabled == "true" {
 		isFIPSEndpointEnabled = true
 	}
+}
+
+func CustomEndpointResolverForAWSIRSA(s3region string) endpoints.ResolverFunc {
+
+	log := klogr.New()
+	resolver := func(service, region string, optFns ...func(*endpoints.Options)) (endpoints.ResolvedEndpoint, error) {
+
+		resolve, err := endpoints.DefaultResolver().EndpointFor(service, s3region, optFns...)
+		if err != nil {
+			return resolve, err
+		}
+
+		log.V(1).Info("CustomEndpointResolverForAWSIRSA", "resolve: ", resolve)
+		return resolve, nil
+	}
+
+	return resolver
+}
+
+func disableFipsEndpointForSC2S(region string) func(*endpoints.Options) {
+	return func(ep *endpoints.Options) {
+		if region == endpoints.UsIsoEast1RegionID || region == endpoints.UsIsoWest1RegionID || region == endpoints.UsIsobEast1RegionID {
+			ep.UseFIPSEndpoint = endpoints.FIPSEndpointStateDisabled
+		}
+	}
+}
+
+func PartitionForRegion(region string) (string, error) {
+	resolver := endpoints.DefaultResolver()
+
+	// Resolve the endpoint for the given region and a generic service
+	endpoint, err := resolver.EndpointFor("ec2", region, func(opt *endpoints.Options) {})
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve partition for region %s: %w", region, err)
+	}
+
+	return endpoint.PartitionID, nil
 }

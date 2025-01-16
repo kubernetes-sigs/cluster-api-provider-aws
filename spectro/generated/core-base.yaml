@@ -388,6 +388,17 @@ subjects:
 ---
 apiVersion: v1
 data:
+  credentials: ${AWS_B64ENCODED_CABUNDLE}
+kind: Secret
+metadata:
+  labels:
+    cluster.x-k8s.io/provider: infrastructure-aws
+  name: capa-manager-bootstrap-ca-bundle
+  namespace: capa-system
+type: Opaque
+---
+apiVersion: v1
+data:
   credentials: ${AWS_B64ENCODED_CREDENTIALS}
 kind: Secret
 metadata:
@@ -439,12 +450,18 @@ spec:
         env:
         - name: AWS_SHARED_CREDENTIALS_FILE
           value: /home/.aws/credentials
+        - name: AWS_CONFIG_FILE
+          value: /home/.aws/config
+        - name: AWS_SDK_LOAD_CONFIG
+          value: "true"
         image: gcr.io/k8s-staging-cluster-api-aws/cluster-api-aws-controller:latest
         imagePullPolicy: Always
         name: manager
         volumeMounts:
         - mountPath: /home/.aws
           name: credentials
+        - mountPath: /home/.aws/ca-bundle
+          name: ca-bundle
       securityContext:
         fsGroup: 1000
       terminationGracePeriodSeconds: 10
@@ -457,3 +474,6 @@ spec:
       - name: credentials
         secret:
           secretName: capa-manager-bootstrap-credentials
+      - name: ca-bundle
+        secret:
+          secretName: capa-manager-bootstrap-ca-bundle
