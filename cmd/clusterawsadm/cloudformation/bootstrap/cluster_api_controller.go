@@ -409,6 +409,20 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 		})
 	}
 
+	if !t.Spec.EKS.ManagedMachinePools.Disabled {
+		statements = append(statements, iamv1.StatementEntry{
+			Action: iamv1.Actions{
+				"iam:GetPolicy",
+			},
+			Resources: iamv1.Resources{
+				"arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
+			        "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
+				"arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
+			}
+			Effect: iamv1.EffectAllow
+		})
+	}
+
 	statements = append(statements, []iamv1.StatementEntry{
 		{
 			Action: allowedIAMActions,
