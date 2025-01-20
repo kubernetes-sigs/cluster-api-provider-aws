@@ -93,6 +93,13 @@ type RosaMachinePoolSpec struct {
 	// +optional
 	AdditionalSecurityGroups []string `json:"additionalSecurityGroups,omitempty"`
 
+	// VolumeSize set the disk volume size for the machine pool, in Gib. The default is 300 GiB.
+	// +kubebuilder:validation:Minimum=75
+	// +kubebuilder:validation:Maximum=16384
+	// +immutable
+	// +optional
+	VolumeSize int `json:"volumeSize,omitempty"`
+
 	// ProviderIDList contain a ProviderID for each machine instance that's currently managed by this machine pool.
 	// +optional
 	ProviderIDList []string `json:"providerIDList,omitempty"`

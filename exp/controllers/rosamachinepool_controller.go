@@ -474,6 +474,9 @@ func nodePoolBuilder(rosaMachinePoolSpec expinfrav1.RosaMachinePoolSpec, machine
 	if rosaMachinePoolSpec.AdditionalTags != nil {
 		awsNodePool = awsNodePool.Tags(rosaMachinePoolSpec.AdditionalTags)
 	}
+	if rosaMachinePoolSpec.VolumeSize > 75 {
+		awsNodePool = awsNodePool.RootVolume(cmv1.NewAWSVolume().Size(rosaMachinePoolSpec.VolumeSize))
+	}
 	npBuilder.AWSNodePool(awsNodePool)
 
 	if rosaMachinePoolSpec.Version != "" {
@@ -514,6 +517,7 @@ func nodePoolToRosaMachinePoolSpec(nodePool *cmv1.NodePool) expinfrav1.RosaMachi
 		InstanceType:             nodePool.AWSNodePool().InstanceType(),
 		TuningConfigs:            nodePool.TuningConfigs(),
 		AdditionalSecurityGroups: nodePool.AWSNodePool().AdditionalSecurityGroupIds(),
+		VolumeSize:               nodePool.AWSNodePool().RootVolume().Size(),
 		// nodePool.AWSNodePool().Tags() returns all tags including "system" tags if "fetchUserTagsOnly" parameter is not specified.
 		// TODO: enable when AdditionalTags day2 changes is supported.
 		// AdditionalTags:           nodePool.AWSNodePool().Tags(),
