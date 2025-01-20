@@ -2,3 +2,4 @@ resources:
   - ../limit-az
 patchesStrategicMerge:
   - patches/image-injection.yaml
+  - patches/root-volume-size.yaml
