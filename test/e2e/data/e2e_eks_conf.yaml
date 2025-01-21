@@ -16,7 +16,7 @@ images:
   - name: gcr.io/k8s-staging-cluster-api/capa-manager:e2e
     loadBehavior: mustLoad
 
-## PLEASE KEEP THESE UP TO DATE WITH THE COMPONENTS
+  ## PLEASE KEEP THESE UP TO DATE WITH THE COMPONENTS
   - name: quay.io/jetstack/cert-manager-cainjector:v1.15.1
     loadBehavior: tryLoad
   - name: quay.io/jetstack/cert-manager-webhook:v1.15.1
@@ -118,6 +118,8 @@ providers:
 variables:
   KUBERNETES_VERSION: "v1.30.2"
   KUBERNETES_VERSION_MANAGEMENT: "v1.30.0" # Kind bootstrap
+  UPGRADE_FROM_VERSION: "v1.30.0"
+  UPGRADE_TO_VERSION: "v1.31.0"
   EXP_MACHINE_POOL: "true"
   EXP_CLUSTER_RESOURCE_SET: "true"
   EVENT_BRIDGE_INSTANCE_STATE: "true"
@@ -127,8 +129,6 @@ variables:
   EXP_EKS_IAM: "false"
   EXP_EKS_ADD_ROLES: "false"
   VPC_ADDON_VERSION: "v1.18.1-eksbuild.3"
-  COREDNS_ADDON_VERSION: "v1.11.1-eksbuild.8"
-  COREDNS_ADDON_CONFIGURATION: '{"replicaCount":3}'
   KUBE_PROXY_ADDON_VERSION: "v1.30.0-eksbuild.3"
   CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "1.30.2"
   IP_FAMILY: "IPv4"
