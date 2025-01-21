@@ -91,6 +91,12 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// OpenShift semantic version, for example "4.14.5".
 	Version string `json:"version"`
 
+	// OpenShift version channel group, default is stable.
+	//
+	// +kubebuilder:validation:Enum=stable;candidate;nightly
+	// +kubebuilder:default=stable
+	ChannelGroup string `json:"channelGroup"`
+
 	// VersionGate requires acknowledgment when upgrading ROSA-HCP y-stream versions (e.g., from 4.15 to 4.16).
 	// Default is WaitForAcknowledge.
 	// WaitForAcknowledge: If acknowledgment is required, the upgrade will not proceed until VersionGate is set to Acknowledge or AlwaysAcknowledge.
