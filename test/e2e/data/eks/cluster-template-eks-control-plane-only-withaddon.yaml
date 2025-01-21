@@ -40,10 +40,6 @@ spec:
     - name: "vpc-cni"
       version: "${VPC_ADDON_VERSION}"
       conflictResolution: "overwrite"
-    - name: "coredns"
-      version: "${COREDNS_ADDON_VERSION}"
-      conflictResolution: "overwrite"
-      configuration: '${COREDNS_ADDON_CONFIGURATION}'
   identityRef:
     kind: AWSClusterStaticIdentity
     name: e2e-account

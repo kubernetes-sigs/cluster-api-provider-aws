@@ -35,26 +35,28 @@ import (
 
 // EKS cluster upgrade tests.
 var _ = ginkgo.Describe("EKS Cluster upgrade test", func() {
-	const (
-		initialVersion   = "v1.23.6"
-		upgradeToVersion = "v1.24.4"
-	)
 	var (
-		namespace   *corev1.Namespace
-		ctx         context.Context
-		specName    = "eks-upgrade"
-		clusterName string
+		namespace        *corev1.Namespace
+		ctx              context.Context
+		specName         = "eks-upgrade"
+		clusterName      string
+		initialVersion   string
+		upgradeToVersion string
 	)
 
 	shared.ConditionalIt(runUpgradeTests, "[managed] [upgrade] should create a cluster and upgrade the kubernetes version", func() {
 		ginkgo.By("should have a valid test configuration")
 		Expect(e2eCtx.Environment.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. BootstrapClusterProxy can't be nil")
 		Expect(e2eCtx.E2EConfig).ToNot(BeNil(), "Invalid argument. e2eConfig can't be nil when calling %s spec", specName)
-		Expect(e2eCtx.E2EConfig.Variables).To(HaveKey(shared.KubernetesVersion))
+		Expect(e2eCtx.E2EConfig.Variables).To(HaveKey(shared.EksUpgradeFromVersion))
+		Expect(e2eCtx.E2EConfig.Variables).To(HaveKey(shared.EksUpgradeToVersion))
 
 		ctx = context.TODO()
 		namespace = shared.SetupSpecNamespace(ctx, specName, e2eCtx)
 		clusterName = fmt.Sprintf("%s-%s", specName, util.RandomString(6))
+
+		initialVersion = e2eCtx.E2EConfig.GetVariable(shared.EksUpgradeFromVersion)
+		upgradeToVersion = e2eCtx.E2EConfig.GetVariable(shared.EksUpgradeToVersion)
 
 		ginkgo.By("default iam role should exist")
 		VerifyRoleExistsAndOwned(ekscontrolplanev1.DefaultEKSControlPlaneRole, clusterName, false, e2eCtx.BootstrapUserAWSSession)
