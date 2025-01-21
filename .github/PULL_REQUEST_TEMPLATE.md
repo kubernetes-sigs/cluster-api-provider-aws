@@ -28,11 +28,14 @@ Fixes #
 **Special notes for your reviewer**:
 
 **Checklist**:
-<!-- Put an "X" character inside the brackets of each completed task. Some may be optional depending on the PR in which case these can be deleted -->
+<!-- Put an "X" character inside the brackets of each completed task. Some may be optional depending on the PR in which case these can be deleted 
+
+ Please add an icon to the title of this PR, the icon will be either ⚠️ (:warning:, major or breaking changes), ✨ (:sparkles:, feature additions), 🐛 (:bug:, patch and bugfixes), 📖 (:book:, documentation or proposals), or 🌱 (:seedling:, minor or other) 
+-->
 
 - [ ] squashed commits
 - [ ] includes documentation
-- [ ] includes [emojis](https://github.com/kubernetes-sigs/kubebuilder-release-tools?tab=readme-ov-file#kubebuilder-project-versioning)
+- [ ] includes emoji in title 
 - [ ] adds unit tests
 - [ ] adds or updates e2e tests
 
