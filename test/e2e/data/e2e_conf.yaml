@@ -180,9 +180,6 @@ variables:
   KUBERNETES_VERSION: "v1.26.6"
   KUBERNETES_VERSION_UPGRADE_TO: "v1.26.6"
   KUBERNETES_VERSION_UPGRADE_FROM: "v1.25.3"
-  # Pre and post 1.23 Kubernetes versions are being used for CSI upgrade tests
-  PRE_1_23_KUBERNETES_VERSION: "v1.22.17"
-  POST_1_23_KUBERNETES_VERSION: "v1.23.15"
   CNI: "../../data/cni/calico.yaml"
   KUBETEST_CONFIGURATION: "../../data/kubetest/conformance.yaml"
   EVENT_BRIDGE_INSTANCE_STATE: "true"
