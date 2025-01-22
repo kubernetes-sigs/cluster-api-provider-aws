@@ -42,6 +42,7 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 		specName     = "cluster"
 		clusterName  string
 		cniAddonName = "vpc-cni"
+		// TODO: remove
 	)
 
 	shared.ConditionalIt(runGeneralTests, "should create a cluster and add nodes", func() {
