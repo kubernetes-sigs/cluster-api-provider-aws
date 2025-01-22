@@ -134,6 +134,7 @@ func (r *AWSControllerIdentityReconciler) Reconcile(ctx context.Context, req ctr
 func (r *AWSControllerIdentityReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	controller := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.AWSCluster{}).
+		Named("awscontrolleridentity").
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(logger.FromContext(ctx).GetLogger(), r.WatchFilterValue))
 
