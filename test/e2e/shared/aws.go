@@ -716,6 +716,9 @@ func ensureTestImageUploaded(e2eCtx *E2EContext) error {
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 		output, err := ecrSvc.CreateRepository(&ecrpublic.CreateRepositoryInput{
 			RepositoryName: aws.String("capa/update"),
+			CatalogData: &ecrpublic.RepositoryCatalogDataInput{
+				AboutText: aws.String("Created by cluster-api-provider-aws/test/e2e/shared/aws.go for E2E tests"),
+			},
 		})
 
 		if err != nil {
