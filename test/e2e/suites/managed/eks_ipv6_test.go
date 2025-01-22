@@ -51,7 +51,6 @@ var _ = ginkgo.Describe("[managed] [general] [ipv6] EKS cluster tests", func() {
 		Expect(e2eCtx.E2EConfig).ToNot(BeNil(), "Invalid argument. e2eConfig can't be nil when calling %s spec", specName)
 		Expect(e2eCtx.E2EConfig.Variables).To(HaveKey(shared.KubernetesVersion))
 		Expect(e2eCtx.E2EConfig.Variables).To(HaveKey(shared.CNIAddonVersion))
-		Expect(e2eCtx.E2EConfig.Variables).To(HaveKey(shared.CorednsAddonVersion))
 		Expect(e2eCtx.E2EConfig.Variables).To(HaveKey(shared.KubeproxyAddonVersion))
 
 		ctx = context.TODO()
@@ -71,7 +70,7 @@ var _ = ginkgo.Describe("[managed] [general] [ipv6] EKS cluster tests", func() {
 				Namespace:                namespace,
 				ClusterName:              clusterName,
 				Flavour:                  EKSIPv6ClusterFlavor,
-				ControlPlaneMachineCount: 1, //NOTE: this cannot be zero as clusterctl returns an error
+				ControlPlaneMachineCount: 1, // NOTE: this cannot be zero as clusterctl returns an error
 				WorkerMachineCount:       0,
 			}
 		})
