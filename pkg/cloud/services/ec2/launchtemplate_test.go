@@ -85,14 +85,16 @@ var testBootstrapDataHash = userdata.ComputeHash(testBootstrapData)
 
 func defaultEC2AndDataTags(name string, clusterName string, userDataSecretKey types.NamespacedName, bootstrapDataHash string) []*ec2.Tag {
 	tags := defaultEC2Tags(name, clusterName)
-	tags = append(tags, &ec2.Tag{
-		Key:   aws.String(infrav1.LaunchTemplateBootstrapDataSecret),
-		Value: aws.String(userDataSecretKey.String()),
-	})
-	tags = append(tags, &ec2.Tag{
-		Key:   aws.String(infrav1.LaunchTemplateBootstrapDataHash),
-		Value: aws.String(bootstrapDataHash),
-	})
+	tags = append(
+		tags,
+		&ec2.Tag{
+			Key:   aws.String(infrav1.LaunchTemplateBootstrapDataSecret),
+			Value: aws.String(userDataSecretKey.String()),
+		},
+		&ec2.Tag{
+			Key:   aws.String(infrav1.LaunchTemplateBootstrapDataHash),
+			Value: aws.String(bootstrapDataHash),
+		})
 	sortTags(tags)
 	return tags
 }

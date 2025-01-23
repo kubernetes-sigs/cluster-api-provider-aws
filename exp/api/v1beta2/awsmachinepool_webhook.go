@@ -254,4 +254,7 @@ func (r *AWSMachinePool) Default() {
 	if r.ignitionEnabled() && r.Spec.Ignition.Version == "" {
 		r.Spec.Ignition.Version = infrav1.DefaultIgnitionVersion
 	}
+	if r.ignitionEnabled() && r.Spec.Ignition.StorageType == "" {
+		r.Spec.Ignition.StorageType = infrav1.DefaultMachinePoolIgnitionStorageType
+	}
 }

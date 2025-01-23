@@ -37,12 +37,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
+	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
@@ -772,6 +774,8 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			})
 
 			t.Run("launch template and ASG exist, bootstrap data secret name changed, Ignition bootstrap data stored in S3", func(t *testing.T) {
+				defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)()
+
 				g := NewWithT(t)
 				setup(t, g)
 				reconciler.reconcileServiceFactory = nil // use real implementation, but keep EC2 calls mocked (`ec2ServiceFactory`)
@@ -787,7 +791,9 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 
 				// Enable Ignition S3 storage
 				cs.AWSCluster.Spec.S3Bucket = &infrav1.S3Bucket{}
-				ms.AWSMachinePool.Spec.Ignition = &infrav1.Ignition{}
+				ms.AWSMachinePool.Spec.Ignition = &infrav1.Ignition{
+					StorageType: infrav1.IgnitionStorageTypeOptionClusterObjectStore,
+				}
 				ms.AWSMachinePool.Default() // simulate webhook that sets default ignition version
 
 				asgSvc.EXPECT().GetASGByName(gomock.Any()).DoAndReturn(func(scope *scope.MachinePoolScope) (*expinfrav1.AutoScalingGroup, error) {

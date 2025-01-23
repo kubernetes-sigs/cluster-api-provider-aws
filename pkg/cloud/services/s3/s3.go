@@ -219,6 +219,7 @@ func (s *Service) Create(m *scope.MachineScope, data []byte) (string, error) {
 	return objectURL.String(), nil
 }
 
+// CreateForMachinePool creates an object for machine pool related bootstrap data in the S3 bucket.
 func (s *Service) CreateForMachinePool(scope scope.LaunchTemplateScope, data []byte) (string, error) {
 	if !s.bucketManagementEnabled() {
 		return "", errors.New("requested object creation but bucket management is not enabled")
@@ -336,6 +337,7 @@ func (s *Service) deleteObject(bucket, key string) error {
 	return nil
 }
 
+// DeleteForMachinePool deletes the object for machine pool related bootstrap data from the S3 bucket.
 func (s *Service) DeleteForMachinePool(scope scope.LaunchTemplateScope, bootstrapDataHash string) error {
 	if !s.bucketManagementEnabled() {
 		return errors.New("requested object deletion but bucket management is not enabled")
@@ -440,6 +442,8 @@ func (s *Service) ensureBucketLifecycleConfiguration(bucketName string) error {
 						// The bootstrap token for new nodes to join the cluster is normally rotated regularly,
 						// such as in CAPI's `KubeadmConfig` reconciler. Therefore, the launch template user data
 						// stored in the S3 bucket only needs to live longer than the token TTL.
+						// This lifecycle policy is here as backup. Normally, CAPA should delete outdated S3 objects
+						// (see function `DeleteForMachinePool`).
 						Days: aws.Int64(1),
 					},
 					Filter: &s3.LifecycleRuleFilter{
@@ -537,24 +541,26 @@ func (s *Service) bucketPolicy(bucketName string) (string, error) {
 		}
 
 		for _, iamInstanceProfile := range bucket.NodesIAMInstanceProfiles {
-			statements = append(statements, iam.StatementEntry{
-				Sid:    iamInstanceProfile,
-				Effect: iam.EffectAllow,
-				Principal: map[iam.PrincipalType]iam.PrincipalID{
-					iam.PrincipalAWS: []string{fmt.Sprintf("arn:%s:iam::%s:role/%s", partition, *accountID.Account, iamInstanceProfile)},
+			statements = append(
+				statements,
+				iam.StatementEntry{
+					Sid:    iamInstanceProfile,
+					Effect: iam.EffectAllow,
+					Principal: map[iam.PrincipalType]iam.PrincipalID{
+						iam.PrincipalAWS: []string{fmt.Sprintf("arn:%s:iam::%s:role/%s", partition, *accountID.Account, iamInstanceProfile)},
+					},
+					Action:   []string{"s3:GetObject"},
+					Resource: []string{fmt.Sprintf("arn:%s:s3:::%s/node/*", partition, bucketName)},
 				},
-				Action:   []string{"s3:GetObject"},
-				Resource: []string{fmt.Sprintf("arn:%s:s3:::%s/node/*", partition, bucketName)},
-			})
-			statements = append(statements, iam.StatementEntry{
-				Sid:    iamInstanceProfile,
-				Effect: iam.EffectAllow,
-				Principal: map[iam.PrincipalType]iam.PrincipalID{
-					iam.PrincipalAWS: []string{fmt.Sprintf("arn:%s:iam::%s:role/%s", partition, *accountID.Account, iamInstanceProfile)},
-				},
-				Action:   []string{"s3:GetObject"},
-				Resource: []string{fmt.Sprintf("arn:%s:s3:::%s/machine-pool/*", partition, bucketName)},
-			})
+				iam.StatementEntry{
+					Sid:    iamInstanceProfile,
+					Effect: iam.EffectAllow,
+					Principal: map[iam.PrincipalType]iam.PrincipalID{
+						iam.PrincipalAWS: []string{fmt.Sprintf("arn:%s:iam::%s:role/%s", partition, *accountID.Account, iamInstanceProfile)},
+					},
+					Action:   []string{"s3:GetObject"},
+					Resource: []string{fmt.Sprintf("arn:%s:s3:::%s/machine-pool/*", partition, bucketName)},
+				})
 		}
 	}
 

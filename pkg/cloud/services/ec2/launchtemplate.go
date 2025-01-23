@@ -92,8 +92,20 @@ func (s *Service) ReconcileLaunchTemplate(
 		return nil, err
 	}
 
+	var ignitionStorageType = infrav1.DefaultMachinePoolIgnitionStorageType
+	var ignitionVersion = infrav1.DefaultIgnitionVersion
+	if ignition := ignitionScope.Ignition(); ignition != nil {
+		ignitionStorageType = ignition.StorageType
+		ignitionVersion = ignition.Version
+	}
+
 	var userDataForLaunchTemplate []byte
-	if s3Scope.Bucket() != nil && bootstrapDataFormat == "ignition" && ignitionScope.Ignition() != nil {
+	if bootstrapDataFormat == "ignition" && ignitionStorageType == infrav1.IgnitionStorageTypeOptionClusterObjectStore {
+		if s3Scope.Bucket() == nil {
+			return nil, errors.New("using Ignition with `AWSMachinePool.spec.ignition.storageType=ClusterObjectStore` " +
+				"requires a cluster wide object storage configured at `AWSCluster.spec.s3Bucket`")
+		}
+
 		scope.Info("Using S3 bucket storage for Ignition format")
 
 		// S3 bucket storage enabled and Ignition format is used. Ignition supports reading large user data from S3,
@@ -108,10 +120,9 @@ func (s *Service) ReconcileLaunchTemplate(
 			return nil, err
 		}
 
-		ignVersion := ignitionScope.Ignition().Version
-		semver, err := semver.ParseTolerant(ignVersion)
+		semver, err := semver.ParseTolerant(ignitionVersion)
 		if err != nil {
-			err = errors.Wrapf(err, "failed to parse ignition version %q", ignVersion)
+			err = errors.Wrapf(err, "failed to parse ignition version %q", ignitionVersion)
 			conditions.MarkFalse(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateReconcileFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return nil, err
 		}
@@ -159,7 +170,7 @@ func (s *Service) ReconcileLaunchTemplate(
 				return nil, err
 			}
 		default:
-			err = errors.Errorf("unsupported ignition version %q", ignVersion)
+			err = errors.Errorf("unsupported ignition version %q", ignitionVersion)
 			conditions.MarkFalse(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateReconcileFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return nil, err
 		}
@@ -279,7 +290,8 @@ func (s *Service) ReconcileLaunchTemplate(
 			if err != nil {
 				return nil, err
 			}
-			if deletedLaunchTemplateVersionBootstrapDataHash != nil && s3Scope.Bucket() != nil && bootstrapDataFormat == "ignition" && ignitionScope.Ignition() != nil {
+
+			if deletedLaunchTemplateVersionBootstrapDataHash != nil && s3Scope.Bucket() != nil && bootstrapDataFormat == "ignition" && ignitionStorageType == infrav1.IgnitionStorageTypeOptionClusterObjectStore {
 				scope.Info("Deleting S3 object for deleted launch template version", "version", *deletedLaunchTemplateVersion.VersionNumber)
 
 				err = objectStoreSvc.DeleteForMachinePool(scope, *deletedLaunchTemplateVersionBootstrapDataHash)
