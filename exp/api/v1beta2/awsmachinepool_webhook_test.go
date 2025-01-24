@@ -174,6 +174,53 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "invalid, MarketType set to MarketTypeCapacityBlock and spotMarketOptions are specified",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AWSLaunchTemplate: AWSLaunchTemplate{
+						MarketType:        infrav1.MarketTypeCapacityBlock,
+						SpotMarketOptions: &infrav1.SpotMarketOptions{},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid, MarketType set to MarketTypeOnDemand and spotMarketOptions are specified",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AWSLaunchTemplate: AWSLaunchTemplate{
+						MarketType:        infrav1.MarketTypeOnDemand,
+						SpotMarketOptions: &infrav1.SpotMarketOptions{},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid MarketType set to MarketTypeCapacityBlock is specified and CapacityReservationId is not provided",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AWSLaunchTemplate: AWSLaunchTemplate{
+						MarketType: infrav1.MarketTypeCapacityBlock,
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid MarketType set to MarketTypeCapacityBlock and CapacityReservationId are specified",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AWSLaunchTemplate: AWSLaunchTemplate{
+						MarketType:            infrav1.MarketTypeCapacityBlock,
+						CapacityReservationID: aws.String("cr-12345678901234567"),
+					},
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

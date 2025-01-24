@@ -61,6 +61,45 @@ func setupMachinePoolScope(cl client.Client, ec2Scope scope.EC2Scope) (*scope.Ma
 	})
 }
 
+func setupCapacityBlocksMachinePoolScope(cl client.Client, ec2Scope scope.EC2Scope) (*scope.MachinePoolScope, error) {
+	return scope.NewMachinePoolScope(scope.MachinePoolScopeParams{
+		Client:         cl,
+		InfraCluster:   ec2Scope,
+		Cluster:        newCluster(),
+		MachinePool:    newMachinePool(),
+		AWSMachinePool: newAWSCapacityBlockMachinePool(),
+	})
+}
+
+func newAWSCapacityBlockMachinePool() *expinfrav1.AWSMachinePool {
+	return &expinfrav1.AWSMachinePool{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "AWSMachinePool",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "aws-mp-name",
+			Namespace: "aws-mp-ns",
+		},
+		Spec: expinfrav1.AWSMachinePoolSpec{
+			AvailabilityZones: []string{"us-east-1"},
+			AdditionalTags:    infrav1.Tags{},
+			AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+				Name:                  "aws-launch-template",
+				IamInstanceProfile:    "instance-profile",
+				AMI:                   infrav1.AMIReference{},
+				InstanceType:          "t3.large",
+				SSHKeyName:            aws.String("default"),
+				MarketType:            infrav1.MarketTypeCapacityBlock,
+				CapacityReservationID: aws.String("cr-12345678901234567"),
+			},
+		},
+		Status: expinfrav1.AWSMachinePoolStatus{
+			LaunchTemplateID: "launch-template-id",
+		},
+	}
+}
+
 func defaultEC2Tags(name, clusterName string) []*ec2.Tag {
 	return []*ec2.Tag{
 		{
