@@ -187,7 +187,7 @@ func (c *CmdProcessor) getInfraCluster(ctx context.Context) (*unstructured.Unstr
 	}
 
 	ref := cluster.Spec.InfrastructureRef
-	obj, err := external.Get(ctx, c.client, ref, cluster.Namespace)
+	obj, err := external.Get(ctx, c.client, ref)
 	if err != nil {
 		return nil, fmt.Errorf("getting infra cluster %s/%s: %w", ref.Namespace, ref.Name, err)
 	}
