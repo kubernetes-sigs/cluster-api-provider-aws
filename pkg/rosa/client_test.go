@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	sdk "github.com/openshift-online/ocm-sdk-go"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
@@ -15,6 +16,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/util/system"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/version"
 )
 
 func createROSAControlPlaneScopeWithSecrets(cp *rosacontrolplanev1.ROSAControlPlane, secrets ...*corev1.Secret) *scope.ROSAControlPlaneScope {
@@ -51,26 +53,36 @@ func createSecret(name, namespace, token, url, clientID, clientSecret string) *c
 	}
 }
 
-func createCP(namespace string) *rosacontrolplanev1.ROSAControlPlane {
+func createCP(name string, namespace string, credSecretName string) *rosacontrolplanev1.ROSAControlPlane {
 	return &rosacontrolplanev1.ROSAControlPlane{
 		Spec: rosacontrolplanev1.RosaControlPlaneSpec{
 			CredentialsSecretRef: &corev1.LocalObjectReference{
-				Name: "rosa-creds-secret",
+				Name: credSecretName,
 			},
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
+			Name:      name,
 		},
 	}
 }
 
+func TestNewOCMRawConnection(t *testing.T) {
+	g := NewWithT(t)
+	wlSecret := createSecret("rosa-hcp-creds-secret", "default", "fake-token", "https://api.stage.openshift.com", "", "")
+	cp := createCP("rosa-hcp-cp", "default", "rosa-hcp-creds-secret")
+	rcpScope := createROSAControlPlaneScopeWithSecrets(cp, wlSecret)
+
+	conn, _ := newOCMRawConnection(context.Background(), rcpScope)
+	g.Expect(conn.Agent()).To(Equal(capaAgentName + "/" + version.Get().GitVersion + " " + sdk.DefaultAgent))
+}
 func TestOcmCredentials(t *testing.T) {
 	g := NewWithT(t)
 
 	wlSecret := createSecret("rosa-creds-secret", "default", "", "url", "client-id", "client-secret")
 	mgrSecret := createSecret("rosa-creds-secret", system.GetManagerNamespace(), "", "url", "global-client-id", "global-client-secret")
 
-	cp := createCP("default")
+	cp := createCP("rosa-cp", "default", "rosa-creds-secret")
 
 	// Test that ocmCredentials() prefers workload secret to global and environment secrets
 	os.Setenv("OCM_API_URL", "env-url")

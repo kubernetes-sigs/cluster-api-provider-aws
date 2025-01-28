@@ -17,6 +17,7 @@ import (
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/util/system"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/version"
 )
 
 const (
@@ -24,6 +25,7 @@ const (
 	ocmAPIURLKey       = "ocmApiUrl"
 	ocmClientIDKey     = "ocmClientID"
 	ocmClientSecretKey = "ocmClientSecret"
+	capaAgentName      = "CAPA"
 )
 
 // NewOCMClient creates a new OCM client.
@@ -34,7 +36,9 @@ func NewOCMClient(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (
 	}
 
 	ocmConfig := ocmcfg.Config{
-		URL: url,
+		URL:       url,
+		UserAgent: capaAgentName,
+		Version:   version.Get().GitVersion,
 	}
 
 	if clientID != "" && clientSecret != "" {
@@ -62,7 +66,8 @@ func newOCMRawConnection(ctx context.Context, rosaScope *scope.ROSAControlPlaneS
 
 	connBuilder := sdk.NewConnectionBuilder().
 		Logger(ocmSdkLogger).
-		URL(url)
+		URL(url).
+		Agent(capaAgentName + "/" + version.Get().GitVersion + " " + sdk.DefaultAgent)
 
 	if clientID != "" && clientSecret != "" {
 		connBuilder.Client(clientID, clientSecret)
