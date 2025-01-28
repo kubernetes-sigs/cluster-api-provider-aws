@@ -32,7 +32,7 @@ The SSO offline token is being deprecated and it is recommended to use service a
             --from-literal=ocmToken='eyJhbGciOiJIUzI1NiIsI....' \
         --from-literal=ocmApiUrl='https://api.openshift.com'
     ```
-    Alternatively, you can edit CAPA controller deployment to provide the credentials
+    Alternatively, you can edit the CAPA controller deployment to provide the credentials
     ```shell
         kubectl edit deployment -n capa-system capa-controller-manager
     ```
