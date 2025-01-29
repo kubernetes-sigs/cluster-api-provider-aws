@@ -2996,6 +2996,285 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 	g.Expect(err).To(BeNil())
 }
 
+func TestAWSMachineReconcilerReconcileDoesntAddSecurityGroupsToNonManagedNetworkInterfaces(t *testing.T) {
+	g := NewWithT(t)
+
+	ns := "testns"
+
+	cp := &kubeadmv1beta1.KubeadmControlPlane{}
+	cp.SetName("capi-cp-test-1")
+	cp.SetNamespace(ns)
+
+	ownerCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1", Namespace: ns},
+		Spec: clusterv1.ClusterSpec{
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				Kind:     "AWSCluster",
+				Name:     "capi-test-1", // assuming same name
+				APIGroup: infrav1.GroupVersion.Group,
+			},
+			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+				Kind:     "KubeadmControlPlane",
+				Name:     cp.Name,
+				APIGroup: kubeadmv1beta1.GroupVersion.Group,
+			},
+		},
+		Status: clusterv1.ClusterStatus{
+			Initialization: clusterv1.ClusterInitializationStatus{
+				InfrastructureProvisioned: ptr.To(true),
+			},
+		},
+	}
+
+	awsCluster := &infrav1.AWSCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "capi-test-1",
+			Namespace: ns,
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: clusterv1.GroupVersion.String(),
+					Kind:       "Cluster",
+					Name:       ownerCluster.Name,
+					UID:        "1",
+				},
+			},
+		},
+		Spec: infrav1.AWSClusterSpec{
+			ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+				Scheme: &infrav1.ELBSchemeInternetFacing,
+				// `LoadBalancerType` not set (i.e. empty string; must default to attaching instance to classic LB)
+			},
+			NetworkSpec: infrav1.NetworkSpec{
+				Subnets: infrav1.Subnets{
+					infrav1.SubnetSpec{
+						ID:       "subnet-1",
+						IsPublic: false,
+					},
+					infrav1.SubnetSpec{
+						IsPublic: false,
+					},
+				},
+			},
+		},
+		Status: infrav1.AWSClusterStatus{
+			Ready: true,
+			Network: infrav1.NetworkStatus{
+				SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+					infrav1.SecurityGroupControlPlane: {
+						ID: "1",
+					},
+					infrav1.SecurityGroupNode: {
+						ID: "2",
+					},
+					infrav1.SecurityGroupLB: {
+						ID: "3",
+					},
+				},
+			},
+		},
+	}
+
+	ownerMachine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel:         "capi-test-1",
+				clusterv1.MachineControlPlaneLabel: "", // control plane node so that controller tries to register it with LB
+			},
+			Name:      "capi-test-machine",
+			Namespace: ns,
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName: "capi-test",
+			Bootstrap: clusterv1.Bootstrap{
+				DataSecretName: aws.String("bootstrap-data"),
+			},
+		},
+	}
+
+	awsMachine := &infrav1.AWSMachine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "aws-test-7",
+			Namespace: ns,
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: clusterv1.GroupVersion.String(),
+					Kind:       "Machine",
+					Name:       "capi-test-machine",
+					UID:        "1",
+				},
+			},
+		},
+		Spec: infrav1.AWSMachineSpec{
+			InstanceType: "test",
+			ProviderID:   aws.String("aws://the-zone/two"),
+			CloudInit: infrav1.CloudInit{
+				SecureSecretsBackend: infrav1.SecretBackendSecretsManager,
+				SecretPrefix:         "prefix",
+				SecretCount:          1000,
+			},
+		},
+		Status: infrav1.AWSMachineStatus{
+			Conditions: clusterv1beta1.Conditions{
+				{
+					Type:   "Paused",
+					Status: corev1.ConditionFalse,
+					Reason: "NotPaused",
+				},
+			},
+		},
+	}
+
+	controllerIdentity := &infrav1.AWSClusterControllerIdentity{
+		TypeMeta: metav1.TypeMeta{
+			Kind: string(infrav1.ControllerIdentityKind),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "default",
+		},
+		Spec: infrav1.AWSClusterControllerIdentitySpec{
+			AWSClusterIdentitySpec: infrav1.AWSClusterIdentitySpec{
+				AllowedNamespaces: &infrav1.AllowedNamespaces{},
+			},
+		},
+	}
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "bootstrap-data",
+			Namespace: ns,
+		},
+		Data: map[string][]byte{
+			"value": []byte("shell-script"),
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().WithObjects(ownerCluster, awsCluster, ownerMachine, awsMachine, controllerIdentity, secret, cp).WithStatusSubresource(awsCluster, awsMachine).Build()
+
+	recorder := record.NewFakeRecorder(10)
+	reconciler := &AWSMachineReconciler{
+		Client:   fakeClient,
+		Recorder: recorder,
+	}
+
+	mockCtrl := gomock.NewController(t)
+	ec2Mock := mocks.NewMockEC2API(mockCtrl)
+	elbMock := mocks.NewMockELBAPI(mockCtrl)
+	secretMock := mock_services.NewMockSecretInterface(mockCtrl)
+
+	cs, err := getClusterScope(*awsCluster)
+	g.Expect(err).To(BeNil())
+
+	ec2Svc := ec2Service.NewService(cs)
+	ec2Svc.EC2Client = ec2Mock
+	reconciler.ec2ServiceFactory = func(scope scope.EC2Scope) services.EC2Interface {
+		return ec2Svc
+	}
+
+	elbSvc := elbService.NewService(cs)
+	elbSvc.EC2Client = ec2Mock
+	elbSvc.ELBClient = elbMock
+	reconciler.elbServiceFactory = func(scope scope.ELBScope) services.ELBInterface {
+		return elbSvc
+	}
+
+	reconciler.secretsManagerServiceFactory = func(clusterScope cloud.ClusterScoper) services.SecretInterface {
+		return secretMock
+	}
+
+	ec2Mock.EXPECT().DescribeInstances(context.TODO(), gomock.Eq(&ec2.DescribeInstancesInput{
+		InstanceIds: []string{"two"},
+	})).Return(&ec2.DescribeInstancesOutput{
+		Reservations: []ec2types.Reservation{
+			{
+				Instances: []ec2types.Instance{
+					{
+						InstanceId:   aws.String("two"),
+						InstanceType: ec2types.InstanceTypeM5Large,
+						SubnetId:     aws.String("subnet-1"),
+						ImageId:      aws.String("ami-1"),
+						State: &ec2types.InstanceState{
+							Name: ec2types.InstanceStateNameRunning,
+						},
+						Placement: &ec2types.Placement{
+							AvailabilityZone: aws.String("thezone"),
+						},
+						MetadataOptions: &ec2types.InstanceMetadataOptionsResponse{
+							HttpEndpoint:            ec2types.InstanceMetadataEndpointState(string(infrav1.InstanceMetadataEndpointStateEnabled)),
+							HttpPutResponseHopLimit: aws.Int32(1),
+							HttpTokens:              ec2types.HttpTokensState(string(infrav1.HTTPTokensStateOptional)),
+							InstanceMetadataTags:    ec2types.InstanceMetadataTagsState(string(infrav1.InstanceMetadataEndpointStateDisabled)),
+						},
+					},
+				},
+			},
+		},
+	}, nil)
+
+	// Must attach to a classic LB, not another type. Only these mock calls are therefore expected.
+	mockedCreateLBCalls(t, elbMock.EXPECT(), false)
+
+	ec2Mock.EXPECT().DescribeNetworkInterfaces(context.TODO(), gomock.Eq(&ec2.DescribeNetworkInterfacesInput{Filters: []ec2types.Filter{
+		{
+			Name:   aws.String("attachment.instance-id"),
+			Values: []string{"two"},
+		},
+	}})).Return(&ec2.DescribeNetworkInterfacesOutput{
+		NetworkInterfaces: []ec2types.NetworkInterface{
+			{
+				NetworkInterfaceId: aws.String("eni-1"),
+				Groups: []ec2types.GroupIdentifier{
+					{
+						GroupId: aws.String("2"),
+					},
+					{
+						GroupId: aws.String("3"),
+					},
+					{
+						GroupId: aws.String("1"),
+					},
+				},
+				TagSet: []ec2types.Tag{
+					{
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+						Value: aws.String("owned"),
+					},
+				},
+			},
+			{
+				NetworkInterfaceId: aws.String("eni-cilium"),
+				Groups: []ec2types.GroupIdentifier{
+					{
+						GroupId: aws.String("3"),
+					},
+				},
+				TagSet: []ec2types.Tag{
+					{
+						Key:   aws.String("cilium-managed"),
+						Value: aws.String("true"),
+					},
+				},
+			},
+		}}, nil).MaxTimes(3)
+	ec2Mock.EXPECT().DescribeNetworkInterfaceAttribute(context.TODO(), gomock.Eq(&ec2.DescribeNetworkInterfaceAttributeInput{
+		NetworkInterfaceId: aws.String("eni-1"),
+		Attribute:          ec2types.NetworkInterfaceAttributeGroupSet,
+	})).Return(&ec2.DescribeNetworkInterfaceAttributeOutput{Groups: []ec2types.GroupIdentifier{{GroupId: aws.String("3")}}}, nil).MaxTimes(1)
+	ec2Mock.EXPECT().DescribeNetworkInterfaceAttribute(context.TODO(), gomock.Eq(&ec2.DescribeNetworkInterfaceAttributeInput{
+		NetworkInterfaceId: aws.String("eni-cilium"),
+		Attribute:          ec2types.NetworkInterfaceAttributeGroupSet,
+	})).Return(&ec2.DescribeNetworkInterfaceAttributeOutput{Groups: []ec2types.GroupIdentifier{{GroupId: aws.String("3")}}}, nil).MaxTimes(1)
+	ec2Mock.EXPECT().ModifyNetworkInterfaceAttribute(context.TODO(), gomock.Any()).Times(1)
+
+	_, err = reconciler.Reconcile(ctx, ctrl.Request{
+		NamespacedName: client.ObjectKey{
+			Namespace: awsMachine.Namespace,
+			Name:      awsMachine.Name,
+		},
+	})
+
+	g.Expect(err).To(BeNil())
+}
+
 func createObject(g *WithT, obj client.Object, namespace string) {
 	if obj.DeepCopyObject() != nil {
 		obj.SetNamespace(namespace)
