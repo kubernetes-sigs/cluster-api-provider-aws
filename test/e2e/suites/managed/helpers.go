@@ -32,6 +32,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -49,6 +50,11 @@ const (
 	EKSMachinePoolOnlyFlavor                          = "eks-machinepool-only"
 	EKSIPv6ClusterFlavor                              = "eks-ipv6-cluster"
 	EKSControlPlaneOnlyLegacyFlavor                   = "eks-control-plane-only-legacy"
+)
+
+const (
+	clientRequestTimeout       = 2 * time.Minute
+	clientRequestCheckInterval = 5 * time.Second
 )
 
 type DefaultConfigClusterFn func(clusterName, namespace string) clusterctl.ConfigClusterInput
@@ -74,14 +80,19 @@ func getASGName(clusterName string) string {
 }
 
 func verifyClusterActiveAndOwned(eksClusterName string, sess client.ConfigProvider) {
-	cluster, err := getEKSCluster(eksClusterName, sess)
-	Expect(err).NotTo(HaveOccurred())
+	var (
+		cluster *eks.Cluster
+		err     error
+	)
+	Eventually(func() error {
+		cluster, err = getEKSCluster(eksClusterName, sess)
+		return err
+	}, clientRequestTimeout, clientRequestCheckInterval).Should(Succeed(), fmt.Sprintf("eventually failed trying to get EKS Cluster %q", eksClusterName))
 
 	tagName := infrav1.ClusterTagKey(eksClusterName)
 	tagValue, ok := cluster.Tags[tagName]
 	Expect(ok).To(BeTrue(), "expecting the cluster owned tag to exist")
 	Expect(*tagValue).To(BeEquivalentTo(string(infrav1.ResourceLifecycleOwned)))
-
 	Expect(*cluster.Status).To(BeEquivalentTo(eks.ClusterStatusActive))
 }
 
@@ -102,6 +113,7 @@ func getEKSClusterAddon(eksClusterName, addonName string, sess client.ConfigProv
 		AddonName:   &addonName,
 		ClusterName: &eksClusterName,
 	}
+
 	describeOutput, err := eksClient.DescribeAddon(describeInput)
 	if err != nil {
 		return nil, fmt.Errorf("describing eks addon %s: %w", addonName, err)
@@ -112,16 +124,16 @@ func getEKSClusterAddon(eksClusterName, addonName string, sess client.ConfigProv
 
 func verifySecretExists(ctx context.Context, secretName, namespace string, k8sclient crclient.Client) {
 	secret := &corev1.Secret{}
-	err := k8sclient.Get(ctx, apimachinerytypes.NamespacedName{Name: secretName, Namespace: namespace}, secret)
-
-	Expect(err).ShouldNot(HaveOccurred())
+	Eventually(func() error {
+		return k8sclient.Get(ctx, apimachinerytypes.NamespacedName{Name: secretName, Namespace: namespace}, secret)
+	}, clientRequestTimeout, clientRequestCheckInterval).Should(Succeed(), fmt.Sprintf("eventually failed trying to verify Secret %q exists", secretName))
 }
 
 func verifyConfigMapExists(ctx context.Context, name, namespace string, k8sclient crclient.Client) {
 	cm := &corev1.ConfigMap{}
 	Eventually(func() error {
 		return k8sclient.Get(ctx, apimachinerytypes.NamespacedName{Name: name, Namespace: namespace}, cm)
-	}, 2*time.Minute, 5*time.Second).Should(Succeed())
+	}, clientRequestTimeout, clientRequestCheckInterval).Should(Succeed(), fmt.Sprintf("eventually failed trying to verify ConfigMap %q exists", name))
 }
 
 func VerifyRoleExistsAndOwned(roleName string, eksClusterName string, checkOwned bool, sess client.ConfigProvider) {
@@ -130,8 +142,15 @@ func VerifyRoleExistsAndOwned(roleName string, eksClusterName string, checkOwned
 		RoleName: aws.String(roleName),
 	}
 
-	output, err := iamClient.GetRole(input)
-	Expect(err).ShouldNot(HaveOccurred())
+	var (
+		output *iam.GetRoleOutput
+		err    error
+	)
+
+	Eventually(func() error {
+		output, err = iamClient.GetRole(input)
+		return err
+	}, clientRequestTimeout, clientRequestCheckInterval).Should(Succeed(), fmt.Sprintf("eventually failed trying to get IAM Role %q", roleName))
 
 	if checkOwned {
 		found := false
@@ -152,9 +171,24 @@ func verifyManagedNodeGroup(eksClusterName, nodeGroupName string, checkOwned boo
 		ClusterName:   aws.String(eksClusterName),
 		NodegroupName: aws.String(nodeGroupName),
 	}
-	result, err := eksClient.DescribeNodegroup(input)
-	Expect(err).NotTo(HaveOccurred())
-	Expect(*result.Nodegroup.Status).To(BeEquivalentTo(eks.NodegroupStatusActive))
+	var (
+		result *eks.DescribeNodegroupOutput
+		err    error
+	)
+
+	Eventually(func() error {
+		result, err = eksClient.DescribeNodegroup(input)
+		if err != nil {
+			return fmt.Errorf("error describing nodegroup: %w", err)
+		}
+
+		nodeGroupStatus := ptr.Deref(result.Nodegroup.Status, "")
+		if nodeGroupStatus != eks.NodegroupStatusActive {
+			return fmt.Errorf("expected nodegroup.Status to be %q, was %q instead", eks.NodegroupStatusActive, nodeGroupStatus)
+		}
+
+		return nil
+	}, clientRequestTimeout, clientRequestCheckInterval).Should(Succeed(), "eventually failed trying to describe EKS Node group")
 
 	if checkOwned {
 		tagName := infrav1.ClusterAWSCloudProviderTagKey(eksClusterName)
@@ -172,8 +206,16 @@ func verifyASG(eksClusterName, asgName string, checkOwned bool, sess client.Conf
 		},
 	}
 
-	result, err := asgClient.DescribeAutoScalingGroups(input)
-	Expect(err).NotTo(HaveOccurred())
+	var (
+		result *autoscaling.DescribeAutoScalingGroupsOutput
+		err    error
+	)
+
+	Eventually(func() error {
+		result, err = asgClient.DescribeAutoScalingGroups(input)
+		return err
+	}, clientRequestTimeout, clientRequestCheckInterval).Should(Succeed())
+
 	for _, instance := range result.AutoScalingGroups[0].Instances {
 		Expect(*instance.LifecycleState).To(Equal("InService"), "expecting the instance in service")
 	}
