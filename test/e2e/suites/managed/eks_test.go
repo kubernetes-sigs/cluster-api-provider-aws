@@ -22,7 +22,6 @@ package managed
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -75,22 +74,15 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 		})
 
 		ginkgo.By("should set environment variables on the aws-node daemonset")
-		Eventually(func() error {
-			defer ginkgo.GinkgoRecover()
-			CheckAwsNodeEnvVarsSet(ctx, func() UpdateAwsNodeVersionSpecInput {
-				return UpdateAwsNodeVersionSpecInput{
-					E2EConfig:             e2eCtx.E2EConfig,
-					BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
-					AWSSession:            e2eCtx.BootstrapUserAWSSession,
-					Namespace:             namespace,
-					ClusterName:           clusterName,
-				}
-			})
-			return nil
-		}).WithTimeout(5*time.Minute).WithPolling(10*time.Second).WithContext(ctx).Should(
-			Succeed(),
-			"Failed to verify AWS Node environment variables after 5 minutes of retries",
-		)
+		CheckAwsNodeEnvVarsSet(ctx, func() UpdateAwsNodeVersionSpecInput {
+			return UpdateAwsNodeVersionSpecInput{
+				E2EConfig:             e2eCtx.E2EConfig,
+				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
+				AWSSession:            e2eCtx.BootstrapUserAWSSession,
+				Namespace:             namespace,
+				ClusterName:           clusterName,
+			}
+		})
 
 		ginkgo.By("should have the VPC CNI installed")
 		CheckAddonExistsSpec(ctx, func() CheckAddonExistsSpecInput {
