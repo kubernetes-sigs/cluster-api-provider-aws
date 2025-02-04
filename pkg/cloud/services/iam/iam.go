@@ -60,33 +60,26 @@ var (
 // that trusts the clusters Service Account issuer.
 // For more details see: https://github.com/aws/amazon-eks-pod-identity-webhook/blob/master/SELF_HOSTED_SETUP.md
 // 1. create an oidc provider in aws which points to the s3 bucket
-// 2. pause until kubeconfig and cluster access is ready
-// 3. build openid discovery config and upload to S3 bucket
-// 4. copy Service Account public signing JWKs to the s3 bucket.
+// 2. build openid discovery config and upload to S3 bucket
+// 3. build JWKs document based on SA signer public key and upload to the s3 bucket.
+// 4. add trust Policy config to awscluster status.
 func (s *Service) ReconcileOIDCProvider(ctx context.Context) error {
+	log := s.scope.GetLogger()
 	if !s.scope.AssociateOIDCProvider() {
+		log.V(4).Info("OIDC provider association is disabled, skipping reconciliation")
 		return nil
 	}
 
-	log := s.scope.GetLogger()
-	log.Info("Associating OIDC Provider")
+	log.Info("Reconciling OIDC Provider")
 
 	if s.scope.Bucket() == nil {
-		return errors.New("s3 bucket configuration required to associate oidc provider")
+		return errors.New("s3 bucket configuration required to associate OIDC provider")
 	}
 
 	if err := s.reconcileIdentityProvider(ctx); err != nil {
 		return err
 	}
 
-	// the following can only run with a working workload cluster, return nil until then
-	_, ok := s.scope.InfraCluster().GetAnnotations()[scope.KubeconfigReadyAnnotation]
-	if !ok {
-		log.Info("Associating OIDC Provider paused, kubeconfig and workload cluster API access is not ready")
-		return nil
-	}
-
-	log.Info("Associating OIDC Provider continuing, kubeconfig for the workload cluster is available")
 	if err := s.reconcileBucketContents(ctx); err != nil {
 		return err
 	}
@@ -115,5 +108,9 @@ func (s *Service) DeleteOIDCProvider(_ context.Context) error {
 		}
 	}
 
-	return deleteOIDCProvider(s.scope.OIDCProviderStatus().ARN, s.IAMClient)
+	if s.scope.OIDCProviderStatus() != nil {
+		return deleteOIDCProvider(s.scope.OIDCProviderStatus().ARN, s.IAMClient)
+	}
+
+	return nil
 }

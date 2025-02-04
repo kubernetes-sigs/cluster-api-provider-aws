@@ -54,8 +54,11 @@ type EC2Scope interface {
 	// AssociateOIDCProvider returns if the cluster should have an OIDC Provider Associated.
 	AssociateOIDCProvider() bool
 
-	// OIDCProviderStatus returns the status of the OIDC provider associated to the cluster for IRSA
+	// OIDCProviderStatus returns the status of the OIDC provider associated with the cluster for IRSA
 	OIDCProviderStatus() *infrav1.OIDCProviderStatus
+
+	// SetOIDCProviderStatus sets the status of the AWS identity provider.
+	SetOIDCProviderStatus(status *infrav1.OIDCProviderStatus)
 
 	// SetBastionInstance sets the bastion instance in the status of the cluster.
 	SetBastionInstance(instance *infrav1.Instance)

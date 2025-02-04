@@ -105,17 +105,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 			},
 		}
 
-		kubeconfig := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-cluster-kubeconfig",
-				Namespace: "namespace",
-			},
-			Data: map[string][]byte{
-				"value": []byte(fakeKubeconfig),
-			},
-		}
-
-		client := fake.NewClientBuilder().WithObjects(awsMachine, secret, secretIgnition, kubeconfig).WithStatusSubresource(awsMachine).Build()
+		client := fake.NewClientBuilder().WithObjects(awsMachine, secret, secretIgnition).WithStatusSubresource(awsMachine).Build()
 		ms, err = scope.NewMachineScope(
 			scope.MachineScopeParams{
 				Client: client,
@@ -147,7 +137,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 		cs, err = scope.NewClusterScope(
 			scope.ClusterScopeParams{
-				Client: fake.NewClientBuilder().WithObjects(awsMachine, secret, kubeconfig).WithStatusSubresource(awsMachine).Build(),
+				Client: fake.NewClientBuilder().WithObjects(awsMachine, secret).WithStatusSubresource(awsMachine).Build(),
 				Cluster: &clusterv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-cluster",
@@ -159,11 +149,6 @@ func TestAWSMachineReconciler(t *testing.T) {
 		)
 		g.Expect(err).To(BeNil())
 		cs.AWSCluster = &infrav1.AWSCluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Annotations: map[string]string{
-					scope.KubeconfigReadyAnnotation: "true", // skip call to workload cluster to prove working control plane node
-				},
-			},
 			Spec: infrav1.AWSClusterSpec{
 				ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
 					LoadBalancerType: infrav1.LoadBalancerTypeClassic,
@@ -2590,9 +2575,6 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "capi-test-1",
 			Namespace: ns,
-			Annotations: map[string]string{
-				scope.KubeconfigReadyAnnotation: "true", // skip call to workload cluster to prove working control plane node
-			},
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					APIVersion: clusterv1.GroupVersion.String(),
@@ -2711,17 +2693,7 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 		},
 	}
 
-	kubeconfig := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "capi-test-1-kubeconfig",
-			Namespace: ns,
-		},
-		Data: map[string][]byte{
-			"value": []byte(fakeKubeconfig),
-		},
-	}
-
-	fakeClient := fake.NewClientBuilder().WithObjects(ownerCluster, awsCluster, ownerMachine, awsMachine, controllerIdentity, secret, cp, kubeconfig).WithStatusSubresource(awsCluster, awsMachine).Build()
+	fakeClient := fake.NewClientBuilder().WithObjects(ownerCluster, awsCluster, ownerMachine, awsMachine, controllerIdentity, secret, cp).WithStatusSubresource(awsCluster, awsMachine).Build()
 
 	recorder := record.NewFakeRecorder(10)
 	reconciler := &AWSMachineReconciler{

@@ -294,6 +294,33 @@ Resources:
           Effect: Allow
           Resource:
           - arn:*:secretsmanager:*:*:secret:aws.cluster.x-k8s.io/*
+        - Action:
+          - s3:CreateBucket
+          - s3:DeleteBucket
+          - s3:GetObject
+          - s3:PutObject
+          - s3:DeleteObject
+          - s3:PutBucketPolicy
+          - s3:PutBucketTagging
+          Effect: Allow
+          Resource:
+          - arn:*:s3:::cluster-api-provider-aws-*
+        - Action:
+          - s3:PutBucketOwnershipControls
+          - s3:PutObjectAcl
+          - s3:PutBucketPublicAccessBlock
+          Effect: Allow
+          Resource:
+          - arn:*:s3:::cluster-api-provider-aws-*
+        - Action:
+          - iam:CreateOpenIDConnectProvider
+          - iam:DeleteOpenIDConnectProvider
+          - iam:ListOpenIDConnectProviders
+          - iam:GetOpenIDConnectProvider
+          - iam:TagOpenIDConnectProvider
+          Effect: Allow
+          Resource:
+          - '*'
         Version: 2012-10-17
       Roles:
       - Ref: AWSIAMRoleControllers
@@ -397,7 +424,7 @@ Resources:
           - kms:DescribeKey
           Condition:
             ForAnyValue:StringLike:
-              kms:ResourceAliases: alias/custom-prefix-*
+              kms:ResourceAliases: alias/cluster-api-provider-aws-*
           Effect: Allow
           Resource:
           - '*'
@@ -461,6 +488,5 @@ Resources:
       ManagedPolicyArns:
       - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
       - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
-      - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
       RoleName: nodes.cluster-api-provider-aws.sigs.k8s.io
     Type: AWS::IAM::Role

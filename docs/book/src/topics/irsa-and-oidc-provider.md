@@ -16,7 +16,7 @@ Managed clusters.
 ### 1 - Enable Experiment feature flag
 
 * The creation of S3 buckets and association of OIDC provider is not allowed unless the following experimental feature flags is enabled:
-    * `OIDCProviderSupport` (`EXP_OIDC_PROVIDER_SUPPORT`)
+    * `OIDCProviderUnmanagedClusters` (`EXP_OIDC_PROVIDER_UNMANAGED_CLUSTERS`)
 
 ### 2 - Set S3 Bucket configuration
 

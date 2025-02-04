@@ -37,10 +37,11 @@ func (b *S3Bucket) Validate() []*field.Error {
 		errs = append(errs, field.Required(field.NewPath("spec", "s3Bucket", "name"), "can't be empty"))
 	}
 
-	// Feature gate is not enabled but ignition is enabled then send a forbidden error.
-	if !feature.Gates.Enabled(feature.BootstrapFormatIgnition) && !feature.Gates.Enabled(feature.OIDCProviderSupport) {
+	// Either the BootstrapFormatIgnition or OIDCProviderUnmanagedClusters feature gate must be enabled.
+	// Otherwise send a forbidden error.
+	if !feature.Gates.Enabled(feature.BootstrapFormatIgnition) && !feature.Gates.Enabled(feature.OIDCProviderUnmanagedClusters) {
 		errs = append(errs, field.Forbidden(field.NewPath("spec", "s3Bucket"),
-			"can be set only if the BootstrapFormatIgnition or OIDCProviderSupport feature gate is enabled"))
+			"can be set only if the BootstrapFormatIgnition or OIDCProviderUnmanagedClusters feature gate is enabled"))
 	}
 
 	if b.PresignedURLDuration == nil {

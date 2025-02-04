@@ -281,8 +281,10 @@ func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope
 		allErrs = append(allErrs, errors.Wrap(err, "error deleting network"))
 	}
 
-	if err := iamService.DeleteOIDCProvider(ctx); err != nil {
-		allErrs = append(allErrs, errors.Wrapf(err, "error deleting OIDC Provider"))
+	if feature.Gates.Enabled(feature.OIDCProviderUnmanagedClusters) {
+		if err := iamService.DeleteOIDCProvider(ctx); err != nil {
+			allErrs = append(allErrs, errors.Wrapf(err, "error deleting OIDC Provider"))
+		}
 	}
 
 	if err := s3Service.DeleteBucket(); err != nil {
@@ -386,12 +388,6 @@ func (r *AWSClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope)
 	}
 	conditions.MarkTrue(awsCluster, infrav1.S3BucketReadyCondition)
 
-	if err := iamService.ReconcileOIDCProvider(context.TODO()); err != nil {
-		conditions.MarkFalse(awsCluster, infrav1.OIDCProviderReadyCondition, infrav1.OIDCProviderReconciliationFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
-		clusterScope.Error(err, "failed to reconcile OIDC provider")
-		return reconcile.Result{RequeueAfter: 15 * time.Second}, nil
-	}
-
 	for _, subnet := range clusterScope.Subnets().FilterPrivate() {
 		found := false
 		for _, az := range awsCluster.Status.Network.APIServerELB.AvailabilityZones {
@@ -407,6 +403,14 @@ func (r *AWSClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope)
 	}
 
 	awsCluster.Status.Ready = true
+
+	if feature.Gates.Enabled(feature.OIDCProviderUnmanagedClusters) {
+		if err := iamService.ReconcileOIDCProvider(context.TODO()); err != nil {
+			conditions.MarkFalse(awsCluster, infrav1.OIDCProviderReadyCondition, infrav1.OIDCProviderReconciliationFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
+			clusterScope.Error(err, "failed to reconcile OIDC provider")
+		}
+	}
+
 	return reconcile.Result{}, nil
 }
 

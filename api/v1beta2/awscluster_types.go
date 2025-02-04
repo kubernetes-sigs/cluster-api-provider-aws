@@ -108,7 +108,7 @@ type AWSClusterSpec struct {
 	// S3Bucket contains options to configure a supporting S3 bucket for this
 	// cluster - Used for nodes requiring Ignition (https://coreos.github.io/ignition/) for bootstrapping (requires
 	// BootstrapFormatIgnition feature flag to be enabled) and/or for storing OIDC endpoint certificates for use
-	// with IRSA (requires OIDCProviderSupport feature flag to be enabled).
+	// with IRSA (requires OIDCProviderUnmanagedClusters feature flag to be enabled).
 	// +optional
 	S3Bucket *S3Bucket `json:"s3Bucket,omitempty"`
 
@@ -290,7 +290,7 @@ type AWSClusterStatus struct {
 
 	// OIDCProvider holds the status of the identity provider for this cluster
 	// +optional
-	OIDCProvider OIDCProviderStatus `json:"oidcProvider,omitempty"`
+	OIDCProvider *OIDCProviderStatus `json:"oidcProvider,omitempty"`
 }
 
 // S3Bucket defines a supporting S3 bucket for the cluster, currently can be optionally used for Ignition.
