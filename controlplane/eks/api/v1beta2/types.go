@@ -134,9 +134,9 @@ type Addon struct {
 	// +optional
 	Configuration string `json:"configuration,omitempty"`
 	// ConflictResolution is used to declare what should happen if there
-	// are parameter conflicts. Defaults to none
+	// are parameter conflicts. Defaults to overwrite
 	// +kubebuilder:default=overwrite
-	// +kubebuilder:validation:Enum=overwrite;none
+	// +kubebuilder:validation:Enum=overwrite;none;preserve
 	ConflictResolution *AddonResolution `json:"conflictResolution,omitempty"`
 	// ServiceAccountRoleArn is the ARN of an IAM role to bind to the addons service account
 	// +optional
@@ -154,6 +154,10 @@ var (
 	// AddonResolutionNone indicates that if there are parameter conflicts then
 	// resolution will not be done and an error will be reported.
 	AddonResolutionNone = AddonResolution("none")
+
+	// AddonResolutionPreserve indicates that if there are parameter conflicts then
+	// resolution will result in preserving the existing value
+	AddonResolutionPreserve = AddonResolution("preserve")
 )
 
 // AddonStatus defines the status for an addon.
