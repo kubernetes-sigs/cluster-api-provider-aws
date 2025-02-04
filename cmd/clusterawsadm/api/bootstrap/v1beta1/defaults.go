@@ -106,6 +106,11 @@ func SetDefaults_AWSIAMConfigurationSpec(obj *AWSIAMConfigurationSpec) { //nolin
 	if obj.S3Buckets.NamePrefix == "" {
 		obj.S3Buckets.NamePrefix = DefaultS3BucketPrefix
 	}
+	if obj.IAMIdentityProviders == nil {
+		obj.IAMIdentityProviders = &IAMIdentityProviders{
+			Enable: false,
+		}
+	}
 }
 
 // SetDefaults_AWSIAMConfiguration is used by defaulter-gen.

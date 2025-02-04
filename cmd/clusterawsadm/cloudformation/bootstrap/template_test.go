@@ -182,6 +182,15 @@ func TestRenderCloudformation(t *testing.T) {
 				return t
 			},
 		},
+		{
+			fixture: "with_iam_identity_providers",
+			template: func() Template {
+				t := NewTemplate()
+				t.Spec.IAMIdentityProviders.Enable = true
+				t.Spec.S3Buckets.Enable = true
+				return t
+			},
+		},
 	}
 
 	for _, c := range cases {

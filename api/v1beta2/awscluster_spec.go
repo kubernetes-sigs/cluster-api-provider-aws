@@ -11,10 +11,10 @@ func (s *AWSClusterSpec) Validate() []*field.Error {
 	var errs field.ErrorList
 
 	// Check the feature gate is enabled for OIDC Provider.
-	if s.AssociateOIDCProvider && !feature.Gates.Enabled(feature.OIDCProviderSupport) {
+	if s.AssociateOIDCProvider && !feature.Gates.Enabled(feature.OIDCProviderUnmanagedClusters) {
 		errs = append(errs,
 			field.Forbidden(field.NewPath("spec", "associateOIDCProvider"),
-				"can be enabled only if the OIDCProviderSupport feature gate is enabled"),
+				"can be enabled only if the OIDCProviderUnmanagedClusters feature gate is enabled"),
 		)
 		return errs
 	}

@@ -74,8 +74,8 @@ func TestReconcileBucket(t *testing.T) {
 		})
 
 		input := &s3svc.CreateBucketInput{
-			Bucket: aws.String(expectedBucketName),
-			ObjectOwnership: aws.String(s3svc.ObjectOwnershipBucketOwnerPreferred),
+			Bucket:          aws.String(expectedBucketName),
+			ObjectOwnership: types.ObjectOwnershipBucketOwnerPreferred,
 			CreateBucketConfiguration: &types.CreateBucketConfiguration{
 				LocationConstraint: types.BucketLocationConstraintUsWest2,
 			},
@@ -234,7 +234,7 @@ func TestReconcileBucket(t *testing.T) {
 		s3Mock.EXPECT().CreateBucket(gomock.Any(), gomock.Any()).Return(nil, nil).Times(2)
 		s3Mock.EXPECT().PutBucketTagging(gomock.Any(), gomock.Any()).Return(nil, nil).Times(2)
 		s3Mock.EXPECT().PutBucketPolicy(gomock.Any(), gomock.Any()).Return(nil, nil).Times(2)
-		s3Mock.EXPECT().PutPublicAccessBlock(gomock.Any()).Return(nil, nil).Times(2)
+		s3Mock.EXPECT().PutPublicAccessBlock(gomock.Any(), gomock.Any()).Return(nil, nil).Times(2)
 
 		if err := svc.ReconcileBucket(context.TODO()); err != nil {
 			t.Fatalf("Unexpected error: %v", err)
@@ -255,7 +255,7 @@ func TestReconcileBucket(t *testing.T) {
 		s3Mock.EXPECT().CreateBucket(gomock.Any(), gomock.Any()).Return(nil, err).Times(1)
 		s3Mock.EXPECT().PutBucketTagging(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 		s3Mock.EXPECT().PutBucketPolicy(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
-		s3Mock.EXPECT().PutPublicAccessBlock(gomock.Any()).Return(nil, nil).Times(1)
+		s3Mock.EXPECT().PutPublicAccessBlock(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 
 		if err := svc.ReconcileBucket(context.TODO()); err != nil {
 			t.Fatalf("Unexpected error, got: %v", err)
@@ -303,7 +303,7 @@ func TestReconcileBucket(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			stsMock := mock_stsiface.NewMockSTSAPI(mockCtrl)
 			stsMock.EXPECT().GetCallerIdentity(gomock.Any()).Return(nil, errors.New(t.Name())).AnyTimes()
-			s3Mock.EXPECT().PutPublicAccessBlock(gomock.Any()).Return(nil, errors.New("error")).Times(1)
+			s3Mock.EXPECT().PutPublicAccessBlock(gomock.Any(), gomock.Any()).Return(nil, errors.New("error")).Times(1)
 			svc.STSClient = stsMock
 
 			if err := svc.ReconcileBucket(context.TODO()); err == nil {
@@ -318,8 +318,7 @@ func TestReconcileBucket(t *testing.T) {
 
 			s3Mock.EXPECT().CreateBucket(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 			s3Mock.EXPECT().PutBucketTagging(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
-			// s3Mock.EXPECT().PutBucketPolicy(gomock.Any(), gomock.Any()).Return(nil, errors.New("error")).Times(1)
-			s3Mock.EXPECT().PutPublicAccessBlock(gomock.Any()).Return(nil, errors.New("error")).Times(1)
+			s3Mock.EXPECT().PutPublicAccessBlock(gomock.Any(), gomock.Any()).Return(nil, errors.New("error")).Times(1)
 
 			if err := svc.ReconcileBucket(context.TODO()); err == nil {
 				t.Fatalf("Expected error")
@@ -336,13 +335,13 @@ func TestReconcileBucket(t *testing.T) {
 			})
 			input := &s3svc.CreateBucketInput{
 				Bucket:          aws.String(bucketName),
-				ObjectOwnership: aws.String(s3svc.ObjectOwnershipBucketOwnerPreferred),
+				ObjectOwnership: types.ObjectOwnershipBucketOwnerPreferred,
 			}
 
 			s3Mock.EXPECT().CreateBucket(gomock.Any(), gomock.Eq(input)).Return(nil, nil).Times(1)
 			s3Mock.EXPECT().PutBucketTagging(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 			s3Mock.EXPECT().PutBucketPolicy(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
-			s3Mock.EXPECT().PutPublicAccessBlock(gomock.Any()).Return(nil, nil).Times(1)
+			s3Mock.EXPECT().PutPublicAccessBlock(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 
 			if err := svc.ReconcileBucket(context.TODO()); err != nil {
 				t.Fatalf("Unexpected error: %v", err)
@@ -644,7 +643,7 @@ func TestCreateObject(t *testing.T) {
 				},
 			}
 
-			bootstrapDataURL, err := svc.Create(machineScope, []byte("foo"))
+			bootstrapDataURL, err := svc.Create(context.TODO(), machineScope, []byte("foo"))
 			if !s3.IsBucketNameUndefinedError(err) {
 				t.Fatalf("Unexpected error: %v", err)
 			}

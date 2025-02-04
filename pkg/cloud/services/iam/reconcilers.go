@@ -31,6 +31,10 @@ func (s *Service) reconcileIdentityProvider(_ context.Context) error {
 		return err
 	}
 
+	if s.scope.OIDCProviderStatus() == nil {
+		s.scope.SetOIDCProviderStatus(&v1beta2.OIDCProviderStatus{})
+	}
+
 	// find and verify confirms it's in IAM but if the status is not set we still want update
 	providerStatus := s.scope.OIDCProviderStatus()
 	if providerStatus.ARN != "" && providerStatus.ARN == arn {
@@ -87,24 +91,27 @@ func (s *Service) reconcileTrustPolicyConfigMap(ctx context.Context) error {
 		return fmt.Errorf("getting %s/%s config map: %w", TrustPolicyConfigMapNamespace, TrustPolicyConfigMapName, err)
 	}
 
-	policy, err := converters.IAMPolicyDocumentToJSON(buildOIDCTrustPolicy(s.scope.OIDCProviderStatus().ARN))
-	if err != nil {
-		return errors.Wrap(err, "failed to parse IAM policy")
-	}
+	if s.scope.OIDCProviderStatus() != nil {
+		policy, err := converters.IAMPolicyDocumentToJSON(buildOIDCTrustPolicy(s.scope.OIDCProviderStatus().ARN))
+		if err != nil {
+			return errors.Wrap(err, "failed to parse IAM policy")
+		}
 
-	if tp, ok := trustPolicyConfigMap.Data[TrustPolicyJSON]; ok && tp == policy {
-		return nil // trust policy in the kube is the same as generated, don't update
-	}
+		if tp, ok := trustPolicyConfigMap.Data[TrustPolicyJSON]; ok && tp == policy {
+			return nil // trust policy in the kube is the same as generated, don't update
+		}
 
-	trustPolicyConfigMap.Data = map[string]string{
-		TrustPolicyJSON: policy,
-	}
+		trustPolicyConfigMap.Data = map[string]string{
+			TrustPolicyJSON: policy,
+		}
 
-	if trustPolicyConfigMap.UID == "" {
-		trustPolicyConfigMap.Name = TrustPolicyConfigMapName
-		trustPolicyConfigMap.Namespace = TrustPolicyConfigMapNamespace
-		return remoteClient.Create(ctx, trustPolicyConfigMap)
-	}
+		if trustPolicyConfigMap.UID == "" {
+			trustPolicyConfigMap.Name = TrustPolicyConfigMapName
+			trustPolicyConfigMap.Namespace = TrustPolicyConfigMapNamespace
+			return remoteClient.Create(ctx, trustPolicyConfigMap)
+		}
 
-	return remoteClient.Update(ctx, trustPolicyConfigMap)
+		return remoteClient.Update(ctx, trustPolicyConfigMap)
+	}
+	return nil
 }

@@ -475,6 +475,11 @@ func (s *ManagedControlPlaneScope) OIDCProviderStatus() *infrav1.OIDCProviderSta
 	return &s.ControlPlane.Status.OIDCProvider
 }
 
+// SetOIDCProviderStatus sets the status of the AWS identity provider.
+func (s *ManagedControlPlaneScope) SetOIDCProviderStatus(status *infrav1.OIDCProviderStatus) {
+	s.ControlPlane.Status.OIDCProvider = *status
+}
+
 // ServiceCidrs returns the CIDR blocks used for services.
 func (s *ManagedControlPlaneScope) ServiceCidrs() *clusterv1.NetworkRanges {
 	if s.Cluster.Spec.ClusterNetwork != nil {

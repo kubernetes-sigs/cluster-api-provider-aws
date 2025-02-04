@@ -3,9 +3,13 @@ package iam
 import (
 	"bytes"
 	"context"
+	"crypto"
 	"crypto/sha1"
 	"crypto/tls"
+	"crypto/x509"
+	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	stderr "errors"
 	"fmt"
 	"path"
@@ -15,14 +19,13 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
+	"github.com/go-jose/go-jose/v4"
 	"github.com/pkg/errors"
-	"k8s.io/client-go/kubernetes"
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/s3"
-	"sigs.k8s.io/cluster-api/controllers/remote"
 )
 
 const (
@@ -40,6 +43,10 @@ type oidcDiscovery struct {
 	ClaimsSupported       []string `json:"claims_supported"`
 }
 
+type jwksDocument struct {
+	Keys []jose.JSONWebKey `json:"keys"`
+}
+
 func buildDiscoveryJSON(issuerURL string) ([]byte, error) {
 	d := oidcDiscovery{
 		Issuer:                issuerURL,
@@ -53,12 +60,12 @@ func buildDiscoveryJSON(issuerURL string) ([]byte, error) {
 	return json.MarshalIndent(d, "", "")
 }
 
-func (s *Service) deleteBucketContents(s3 *s3.Service) error {
-	if err := s3.DeleteKey("/" + path.Join(s.scope.Name(), jwksKey)); err != nil {
+func (s *Service) deleteBucketContents(ctx context.Context, s3 *s3.Service) error {
+	if err := s3.DeleteKey(ctx, "/"+path.Join(s.scope.Name(), jwksKey)); err != nil {
 		return err
 	}
 
-	return s3.DeleteKey("/" + path.Join(s.scope.Name(), opendIDConfigurationKey))
+	return s3.DeleteKey(ctx, "/"+path.Join(s.scope.Name(), opendIDConfigurationKey))
 }
 
 func (s *Service) buildIssuerURL() string {
@@ -67,24 +74,6 @@ func (s *Service) buildIssuerURL() string {
 }
 
 func (s *Service) reconcileBucketContents(ctx context.Context) error {
-	clusterKey := client.ObjectKey{
-		Name:      s.scope.Name(),
-		Namespace: s.scope.Namespace(),
-	}
-
-	// get remote config from management cluster
-	remoteRestConfig, err := remote.RESTConfig(context.Background(), s.scope.Name(), s.scope.ManagementClient(), clusterKey)
-	if err != nil {
-		return fmt.Errorf("getting remote rest config for %s/%s: %w", s.scope.Namespace(), s.scope.Name(), err)
-	}
-	remoteRestConfig.Timeout = scope.DefaultKubeClientTimeout
-
-	// make a client set for the workload cluster
-	clientSet, err := kubernetes.NewForConfig(remoteRestConfig)
-	if err != nil {
-		return err
-	}
-
 	// create the OpenID Connect discovery document
 	openIDConfig, err := buildDiscoveryJSON(s.buildIssuerURL())
 	if err != nil {
@@ -93,45 +82,35 @@ func (s *Service) reconcileBucketContents(ctx context.Context) error {
 
 	s3scope := s3.NewService(s.scope)
 
-	if _, err := s3scope.CreatePublicKey("/"+path.Join(s.scope.Name(), opendIDConfigurationKey), openIDConfig); err != nil {
+	if _, err := s3scope.CreatePublicKey(ctx, path.Join(s.scope.Name(), opendIDConfigurationKey), openIDConfig); err != nil {
 		return err
 	}
 
-	// retrieve Service Account Issuer signing keys from workload cluster API
-	jwks, err := get(ctx, clientSet, jwksKey)
+	// Read the <cluster>-sa secret that contains Service Account signing key
+	secret := &corev1.Secret{}
+	if err := s.scope.ManagementClient().Get(ctx, client.ObjectKey{
+		Name:      s.scope.Name() + "-sa",
+		Namespace: s.scope.Namespace(),
+	}, secret); err != nil {
+		return fmt.Errorf("failed to get service account signing secret: %w", err)
+	}
+
+	// Create jwks document that will be published to S3
+	key, err := createJwksKey(secret.Data["tls.key"])
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create jwks key: %w", err)
+	}
+	jwksDocument := jwksDocument{Keys: []jose.JSONWebKey{*key}}
+	jwksBytes, err := json.MarshalIndent(jwksDocument, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal jwks payload to json: %w", err)
 	}
 
-	if _, err := s3scope.CreatePublicKey("/"+path.Join(s.scope.Name(), jwksKey), []byte(jwks)); err != nil {
+	if _, err := s3scope.CreatePublicKey(ctx, path.Join(s.scope.Name(), jwksKey), jwksBytes); err != nil {
 		return err
 	}
 
 	return nil
-}
-
-func get(ctx context.Context, clientSet *kubernetes.Clientset, uri string) (ret string, err error) {
-	request := clientSet.RESTClient().Get().RequestURI(uri)
-	stream, err := request.Stream(ctx)
-	if err != nil {
-		return
-	}
-	defer func() {
-		err = stream.Close()
-	}()
-
-	buf := new(bytes.Buffer)
-	_, err = buf.ReadFrom(stream)
-	if err != nil {
-		return
-	}
-
-	if err = stream.Close(); err != nil {
-		return
-	}
-
-	ret = buf.String()
-	return
 }
 
 func buildOIDCTrustPolicy(arn string) iamv1.PolicyDocument {
@@ -237,4 +216,47 @@ func deleteOIDCProvider(arn string, iamClient iamiface.IAMAPI) error {
 		}
 	}
 	return nil
+}
+
+// createJwksKey generates a JSON Web Key (JWK) from the given private key bytes (in PEM format).
+// It returns a pointer to the JSONWebKey or an error if the operation fails.
+func createJwksKey(privKeyBytes []byte) (*jose.JSONWebKey, error) {
+	keyBlock, _ := pem.Decode(privKeyBytes)
+	if keyBlock == nil {
+		return nil, fmt.Errorf("failed to decode PEM block for private key")
+	}
+
+	cert, err := x509.ParsePKCS1PrivateKey(keyBlock.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse private key: %w", err)
+	}
+
+	keyID, err := keyIDFromPublicKey(&cert.PublicKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to derive key ID from public key: %w", err)
+	}
+
+	return &jose.JSONWebKey{
+		Key:       &cert.PublicKey,
+		KeyID:     keyID,
+		Algorithm: string(jose.RS256),
+		Use:       "sig",
+	}, nil
+}
+
+// keyIDFromPublicKey derives a key ID non-reversibly from a public key.
+// taken from: https://github.com/kubernetes/kubernetes/blob/master/pkg/serviceaccount/jwt.go
+func keyIDFromPublicKey(publicKey interface{}) (string, error) {
+	publicKeyDERBytes, err := x509.MarshalPKIXPublicKey(publicKey)
+	if err != nil {
+		return "", fmt.Errorf("failed to serialize public key to DER format: %v", err)
+	}
+
+	hasher := crypto.SHA256.New()
+	hasher.Write(publicKeyDERBytes)
+	publicKeyDERHash := hasher.Sum(nil)
+
+	keyID := base64.RawURLEncoding.EncodeToString(publicKeyDERHash)
+
+	return keyID, nil
 }

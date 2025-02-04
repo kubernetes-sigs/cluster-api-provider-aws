@@ -67,33 +67,33 @@ func (mr *MockObjectStoreInterfaceMockRecorder) Create(arg0, arg1, arg2 interfac
 }
 
 // CreatePrivateKey mocks base method.
-func (m *MockObjectStoreInterface) CreatePrivateKey(arg0 string, arg1 []byte) (string, error) {
+func (m *MockObjectStoreInterface) CreatePrivateKey(arg0 context.Context, arg1 string, arg2 []byte) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreatePrivateKey", arg0, arg1)
+	ret := m.ctrl.Call(m, "CreatePrivateKey", arg0, arg1, arg2)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreatePrivateKey indicates an expected call of CreatePrivateKey.
-func (mr *MockObjectStoreInterfaceMockRecorder) CreatePrivateKey(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockObjectStoreInterfaceMockRecorder) CreatePrivateKey(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreatePrivateKey", reflect.TypeOf((*MockObjectStoreInterface)(nil).CreatePrivateKey), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreatePrivateKey", reflect.TypeOf((*MockObjectStoreInterface)(nil).CreatePrivateKey), arg0, arg1, arg2)
 }
 
 // CreatePublicKey mocks base method.
-func (m *MockObjectStoreInterface) CreatePublicKey(arg0 string, arg1 []byte) (string, error) {
+func (m *MockObjectStoreInterface) CreatePublicKey(arg0 context.Context, arg1 string, arg2 []byte) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreatePublicKey", arg0, arg1)
+	ret := m.ctrl.Call(m, "CreatePublicKey", arg0, arg1, arg2)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreatePublicKey indicates an expected call of CreatePublicKey.
-func (mr *MockObjectStoreInterfaceMockRecorder) CreatePublicKey(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockObjectStoreInterfaceMockRecorder) CreatePublicKey(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreatePublicKey", reflect.TypeOf((*MockObjectStoreInterface)(nil).CreatePublicKey), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreatePublicKey", reflect.TypeOf((*MockObjectStoreInterface)(nil).CreatePublicKey), arg0, arg1, arg2)
 }
 
 // Delete mocks base method.
@@ -125,17 +125,17 @@ func (mr *MockObjectStoreInterfaceMockRecorder) DeleteBucket(arg0 interface{}) *
 }
 
 // DeleteKey mocks base method.
-func (m *MockObjectStoreInterface) DeleteKey(arg0 string) error {
+func (m *MockObjectStoreInterface) DeleteKey(arg0 context.Context, arg1 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteKey", arg0)
+	ret := m.ctrl.Call(m, "DeleteKey", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteKey indicates an expected call of DeleteKey.
-func (mr *MockObjectStoreInterfaceMockRecorder) DeleteKey(arg0 interface{}) *gomock.Call {
+func (mr *MockObjectStoreInterfaceMockRecorder) DeleteKey(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteKey", reflect.TypeOf((*MockObjectStoreInterface)(nil).DeleteKey), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteKey", reflect.TypeOf((*MockObjectStoreInterface)(nil).DeleteKey), arg0, arg1)
 }
 
 // ReconcileBucket mocks base method.

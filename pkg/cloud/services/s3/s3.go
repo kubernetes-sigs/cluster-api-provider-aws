@@ -66,6 +66,7 @@ type S3API interface {
 	PutBucketPolicy(ctx context.Context, params *s3.PutBucketPolicyInput, optFns ...func(*s3.Options)) (*s3.PutBucketPolicyOutput, error)
 	PutBucketTagging(ctx context.Context, params *s3.PutBucketTaggingInput, optFns ...func(*s3.Options)) (*s3.PutBucketTaggingOutput, error)
 	PutObject(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error)
+	PutPublicAccessBlock(ctx context.Context, params *s3.PutPublicAccessBlockInput, optFns ...func(*s3.Options)) (*s3.PutPublicAccessBlockOutput, error)
 }
 
 var errS3ManagementDisabled = errors.New("s3 management disabled")
@@ -166,13 +167,13 @@ func (s *Service) DeleteBucket(ctx context.Context) error {
 // Create creates an object in the S3 bucket.
 func (s *Service) Create(ctx context.Context, m *scope.MachineScope, data []byte) (string, error) {
 	if !s.bucketManagementEnabled() {
-		return "", errors.New("requested object creation but bucket management is not enabled")
+		return "", errS3ManagementDisabled
 	}
 
 	if m == nil {
 		return "", errors.New("machine scope can't be nil")
 	}
-	return s.CreatePrivateKey(s.bootstrapDataKey(m), data)
+	return s.CreatePrivateKey(ctx, s.bootstrapDataKey(m), data)
 }
 
 // CreatePrivateKey will add file to the S3 bucket which is private and server side encrypted.
@@ -209,7 +210,7 @@ func (s *Service) CreatePublicKey(ctx context.Context, key string, data []byte) 
 		Body:   aws.ReadSeekCloser(bytes.NewReader(data)),
 		Bucket: aws.String(s.scope.Bucket().Name),
 		Key:    aws.String(key),
-		ACL:    aws.String("public-read"),
+		ACL:    types.ObjectCannedACLPublicRead,
 	})
 }
 
@@ -229,10 +230,10 @@ func (s *Service) create(ctx context.Context, putInput *s3.PutObjectInput) (stri
 	}
 
 	if exp := s.scope.Bucket().PresignedURLDuration; exp != nil {
-		s.scope.Info("Generating presigned URL", "bucket_name", bucket, "key", key)
+		s.scope.Info("Generating presigned URL", "bucket_name", s.scope.Bucket().Name, "key", putInput.Key)
 		req, err := s.S3PresignClient.PresignGetObject(ctx, &s3.GetObjectInput{
-			Bucket: aws.String(bucket),
-			Key:    aws.String(key),
+			Bucket: aws.String(s.scope.Bucket().Name),
+			Key:    putInput.Key,
 		}, func(opts *s3.PresignOptions) {
 			opts.Expires = exp.Duration
 		})
@@ -260,11 +261,11 @@ func (s *Service) Delete(ctx context.Context, m *scope.MachineScope) error {
 	if m == nil {
 		return errors.New("machine scope can't be nil")
 	}
-	return s.DeleteKey(s.bootstrapDataKey(m))
+	return s.DeleteKey(ctx, s.bootstrapDataKey(m))
 }
 
 // DeleteKey takes a key which is a s3 path to an object e.g. /path/file.ext.
-func (s *Service) DeleteKey(key string) error {
+func (s *Service) DeleteKey(ctx context.Context, key string) error {
 	if !s.bucketManagementEnabled() {
 		return errS3ManagementDisabled
 	}
@@ -338,11 +339,11 @@ func (s *Service) deleteObject(ctx context.Context, bucket, key string) error {
 func (s *Service) createBucketIfNotExist(ctx context.Context, bucketName string) error {
 	input := &s3.CreateBucketInput{
 		Bucket:          aws.String(bucketName),
-		ObjectOwnership: aws.String(s3.ObjectOwnershipBucketOwnerPreferred),
+		ObjectOwnership: types.ObjectOwnershipBucketOwnerPreferred,
 	}
 
 	// See https://docs.aws.amazon.com/AmazonS3/latest/API/API_CreateBucket.html#AmazonS3-CreateBucket-request-LocationConstraint.
-	if s.scope.Region() != AWSDefaultRegion {
+	if s.scope.Region() != "us-east-1" {
 		input.CreateBucketConfiguration = &types.CreateBucketConfiguration{
 			LocationConstraint: types.BucketLocationConstraint(s.scope.Region()),
 		}
@@ -370,7 +371,7 @@ func (s *Service) createBucketIfNotExist(ctx context.Context, bucketName string)
 func (s *Service) ensureBucketAccess(ctx context.Context, bucketName string) error {
 	input := &s3.PutPublicAccessBlockInput{
 		Bucket: aws.String(bucketName),
-		PublicAccessBlockConfiguration: &s3.PublicAccessBlockConfiguration{
+		PublicAccessBlockConfiguration: &types.PublicAccessBlockConfiguration{
 			BlockPublicAcls: aws.Bool(false),
 		},
 	}

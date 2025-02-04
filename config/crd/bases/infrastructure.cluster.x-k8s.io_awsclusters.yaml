@@ -1823,7 +1823,7 @@ spec:
                   S3Bucket contains options to configure a supporting S3 bucket for this
                   cluster - Used for nodes requiring Ignition (https://coreos.github.io/ignition/) for bootstrapping (requires
                   BootstrapFormatIgnition feature flag to be enabled) and/or for storing OIDC endpoint certificates for use
-                  with IRSA (requires OIDCProviderSupport feature flag to be enabled).
+                  with IRSA (requires OIDCProviderUnmanagedClusters feature flag to be enabled).
                 properties:
                   bestEffortDeleteObjects:
                     description: BestEffortDeleteObjects defines whether access/permission

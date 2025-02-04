@@ -73,9 +73,6 @@ const (
 	// BootstrapFormatIgnition will allow an user to enable alternate machine bootstrap format, viz. Ignition.
 	BootstrapFormatIgnition featuregate.Feature = "BootstrapFormatIgnition"
 
-	// OIDCProviderSupport will allow a user to enable OIDC provider support for kubeadm clusters.
-	OIDCProviderSupport featuregate.Feature = "OIDCProviderSupport"
-
 	// ExternalResourceGC is used to enable the garbage collection of external resources like NLB/ALB on deletion
 	// owner: @richardcase
 	// alpha: v1.5
@@ -95,6 +92,11 @@ const (
 	// owner: @enxebre
 	// alpha: v2.2
 	ROSA featuregate.Feature = "ROSA"
+
+	// OIDCProviderUnmanagedClusters will allow a user to enable OIDC provider support for unmanaged (e.g. kubeadm) clusters.
+	// owner: @sl1pm4t
+	// alpha: v2.9
+	OIDCProviderUnmanagedClusters featuregate.Feature = "OIDCProviderUnmanagedClusters"
 )
 
 func init() {
@@ -114,9 +116,9 @@ var defaultCAPAFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	MachinePoolMachines:           {Default: false, PreRelease: featuregate.Alpha},
 	AutoControllerIdentityCreator: {Default: true, PreRelease: featuregate.Alpha},
 	BootstrapFormatIgnition:       {Default: false, PreRelease: featuregate.Alpha},
+	OIDCProviderUnmanagedClusters: {Default: false, PreRelease: featuregate.Alpha},
 	ExternalResourceGC:            {Default: true, PreRelease: featuregate.Beta},
 	AlternativeGCStrategy:         {Default: false, PreRelease: featuregate.Beta},
-	OIDCProviderSupport:           {Default: false, PreRelease: featuregate.Alpha},
 	TagUnmanagedNetworkResources:  {Default: true, PreRelease: featuregate.Alpha},
 	ROSA:                          {Default: false, PreRelease: featuregate.Alpha},
 }

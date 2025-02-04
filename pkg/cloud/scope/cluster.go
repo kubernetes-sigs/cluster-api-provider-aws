@@ -427,7 +427,12 @@ func (s *ClusterScope) AssociateOIDCProvider() bool {
 
 // OIDCProviderStatus returns the status of AWS identity provider.
 func (s *ClusterScope) OIDCProviderStatus() *infrav1.OIDCProviderStatus {
-	return &s.AWSCluster.Status.OIDCProvider
+	return s.AWSCluster.Status.OIDCProvider
+}
+
+// SetOIDCProviderStatus sets the status of the AWS identity provider.
+func (s *ClusterScope) SetOIDCProviderStatus(status *infrav1.OIDCProviderStatus) {
+	s.AWSCluster.Status.OIDCProvider = status
 }
 
 // SetBastionInstance sets the bastion instance in the status of the cluster.

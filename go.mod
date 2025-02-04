@@ -21,6 +21,7 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/coreos/ignition v0.35.0
 	github.com/coreos/ignition/v2 v2.16.2
+	github.com/go-jose/go-jose/v4 v4.0.2
 	github.com/go-logr/logr v1.4.2
 	github.com/gofrs/flock v0.8.1
 	github.com/golang/mock v1.6.0
