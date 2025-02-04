@@ -885,7 +885,7 @@ func (r *ROSAControlPlaneReconciler) reconcileClusterAdminPassword(ctx context.C
 
 func validateControlPlaneSpec(ocmClient rosa.OCMClient, rosaScope *scope.ROSAControlPlaneScope) (string, error) {
 	version := rosaScope.ControlPlane.Spec.Version
-	channelGroup := rosaScope.ControlPlane.Spec.ChannelGroup
+	channelGroup := string(rosaScope.ControlPlane.Spec.ChannelGroup)
 	valid, err := ocmClient.ValidateHypershiftVersion(version, channelGroup)
 	if err != nil {
 		return "", fmt.Errorf("failed to check if version is valid: %w", err)
@@ -910,8 +910,8 @@ func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpe
 		DomainPrefix:              controlPlaneSpec.DomainPrefix,
 		Region:                    controlPlaneSpec.Region,
 		MultiAZ:                   true,
-		Version:                   ocm.CreateVersionID(controlPlaneSpec.Version, controlPlaneSpec.ChannelGroup),
-		ChannelGroup:              controlPlaneSpec.ChannelGroup,
+		Version:                   ocm.CreateVersionID(controlPlaneSpec.Version, string(controlPlaneSpec.ChannelGroup)),
+		ChannelGroup:              string(controlPlaneSpec.ChannelGroup),
 		DisableWorkloadMonitoring: ptr.To(true),
 		DefaultIngress:            ocm.NewDefaultIngressSpec(), // n.b. this is a no-op when it's set to the default value
 		ComputeMachineType:        controlPlaneSpec.DefaultMachinePoolSpec.InstanceType,

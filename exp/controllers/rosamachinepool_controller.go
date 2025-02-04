@@ -281,7 +281,7 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 		return ctrl.Result{RequeueAfter: time.Second * 60}, nil
 	}
 
-	npBuilder := nodePoolBuilder(rosaMachinePool.Spec, machinePool.Spec)
+	npBuilder := nodePoolBuilder(rosaMachinePool.Spec, machinePool.Spec, machinePoolScope.ControlPlane.Spec.ChannelGroup)
 	nodePoolSpec, err := npBuilder.Build()
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to build rosa nodepool: %w", err)
@@ -385,7 +385,7 @@ func (r *ROSAMachinePoolReconciler) updateNodePool(machinePoolScope *scope.RosaM
 	desiredSpec.AdditionalSecurityGroups = nil
 	desiredSpec.AdditionalTags = nil
 
-	npBuilder := nodePoolBuilder(desiredSpec, machinePoolScope.MachinePool.Spec)
+	npBuilder := nodePoolBuilder(desiredSpec, machinePoolScope.MachinePool.Spec, machinePoolScope.ControlPlane.Spec.ChannelGroup)
 	nodePoolSpec, err := npBuilder.Build()
 	if err != nil {
 		return nil, fmt.Errorf("failed to build nodePool spec: %w", err)
@@ -442,7 +442,7 @@ func validateMachinePoolSpec(machinePoolScope *scope.RosaMachinePoolScope) (*str
 	return nil, nil
 }
 
-func nodePoolBuilder(rosaMachinePoolSpec expinfrav1.RosaMachinePoolSpec, machinePoolSpec expclusterv1.MachinePoolSpec) *cmv1.NodePoolBuilder {
+func nodePoolBuilder(rosaMachinePoolSpec expinfrav1.RosaMachinePoolSpec, machinePoolSpec expclusterv1.MachinePoolSpec, controlPlaneChannelGroup rosacontrolplanev1.ChannelGroupType) *cmv1.NodePoolBuilder {
 	npBuilder := cmv1.NewNodePool().ID(rosaMachinePoolSpec.NodePoolName).
 		Labels(rosaMachinePoolSpec.Labels).
 		AutoRepair(rosaMachinePoolSpec.AutoRepair)
@@ -490,7 +490,7 @@ func nodePoolBuilder(rosaMachinePoolSpec expinfrav1.RosaMachinePoolSpec, machine
 	npBuilder.AWSNodePool(awsNodePool)
 
 	if rosaMachinePoolSpec.Version != "" {
-		npBuilder.Version(cmv1.NewVersion().ID(ocm.CreateVersionID(rosaMachinePoolSpec.Version, ocm.DefaultChannelGroup)))
+		npBuilder.Version(cmv1.NewVersion().ID(ocm.CreateVersionID(rosaMachinePoolSpec.Version, string(controlPlaneChannelGroup))))
 	}
 
 	if rosaMachinePoolSpec.NodeDrainGracePeriod != nil {
