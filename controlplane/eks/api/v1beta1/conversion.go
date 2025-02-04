@@ -43,7 +43,7 @@ func (r *AWSManagedControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.Partition = restored.Spec.Partition
 	dst.Spec.RestrictPrivateSubnets = restored.Spec.RestrictPrivateSubnets
 	dst.Status.Version = restored.Status.Version
-
+	dst.Spec.BootstrapSelfManagedAddons = restored.Spec.BootstrapSelfManagedAddons
 	return nil
 }
 
