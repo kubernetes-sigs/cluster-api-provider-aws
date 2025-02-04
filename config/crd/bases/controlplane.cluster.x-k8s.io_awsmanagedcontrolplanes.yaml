@@ -2194,6 +2194,13 @@ spec:
                       will be the default.
                     type: string
                 type: object
+              bootstrapSelfManagedAddons:
+                default: true
+                description: |-
+                  BootstrapSelfManagedAddons is used to set configuration options for
+                  bare EKS cluster without EKS default networking addons
+                  If you set this value to false when creating a cluster, the default networking add-ons will not be installed
+                type: boolean
               controlPlaneEndpoint:
                 description: ControlPlaneEndpoint represents the endpoint used to
                   communicate with the control plane.
