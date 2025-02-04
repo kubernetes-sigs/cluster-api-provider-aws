@@ -26,11 +26,11 @@ images:
     loadBehavior: tryLoad
   - name: quay.io/jetstack/cert-manager-controller:v1.15.1
     loadBehavior: tryLoad
-  - name: registry.k8s.io/cluster-api/cluster-api-controller:v1.8.4
+  - name: registry.k8s.io/cluster-api/cluster-api-controller:v1.8.6
     loadBehavior: tryLoad
-  - name: registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:v1.8.4
+  - name: registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:v1.8.6
     loadBehavior: tryLoad
-  - name: registry.k8s.io/cluster-api/kubeadm-control-plane-controller:v1.8.4
+  - name: registry.k8s.io/cluster-api/kubeadm-control-plane-controller:v1.8.6
     loadBehavior: tryLoad
 
 providers:
@@ -48,8 +48,8 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.8.4 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.8.4/core-components.yaml"
+      - name: v1.8.6 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.8.6/core-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -75,8 +75,8 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.8.4 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.8.4/bootstrap-components.yaml"
+      - name: v1.8.6 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.8.6/bootstrap-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -102,8 +102,8 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.8.4 # latest published release in the v1beta1 series; this is used for v1beta1 --> v1beta1 latest clusterctl upgrades test only.
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.8.4/control-plane-components.yaml"
+      - name: v1.8.6 # latest published release in the v1beta1 series; this is used for v1beta1 --> v1beta1 latest clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.8.6/control-plane-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -180,9 +180,6 @@ variables:
   KUBERNETES_VERSION: "v1.29.9"
   KUBERNETES_VERSION_UPGRADE_TO: "v1.29.9"
   KUBERNETES_VERSION_UPGRADE_FROM: "v1.29.8"
-  # Pre and post 1.23 Kubernetes versions are being used for CSI upgrade tests
-  PRE_1_23_KUBERNETES_VERSION: "v1.22.17"
-  POST_1_23_KUBERNETES_VERSION: "v1.23.15"
   CNI: "../../data/cni/calico.yaml"
   KUBETEST_CONFIGURATION: "../../data/kubetest/conformance.yaml"
   EVENT_BRIDGE_INSTANCE_STATE: "true"
@@ -215,7 +212,7 @@ variables:
 intervals:
   default/wait-cluster: ["35m", "10s"]
   default/wait-control-plane: ["35m", "10s"]
-  default/wait-worker-nodes: ["20m", "10s"]
+  default/wait-worker-nodes: ["30m", "10s"]
   conformance/wait-control-plane: ["35m", "10s"]
   conformance/wait-worker-nodes: ["35m", "10s"]
   default/wait-controllers: ["5m", "10s"]

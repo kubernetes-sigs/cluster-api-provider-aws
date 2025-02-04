@@ -34,14 +34,11 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/efs"
-	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/blang/semver"
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
@@ -58,24 +55,6 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
-
-type statefulSetInfo struct {
-	name                      string
-	namespace                 string
-	replicas                  int32
-	selector                  map[string]string
-	storageClassName          string
-	volumeName                string
-	svcName                   string
-	svcPort                   int32
-	svcPortName               string
-	containerName             string
-	containerImage            string
-	containerPort             int32
-	podTerminationGracePeriod int64
-	volMountPath              string
-	isInTreeCSI               bool
-}
 
 // GetClusterByName returns a Cluster object given his name.
 func GetAWSClusterByName(ctx context.Context, namespace, name string) (*infrav1.AWSCluster, error) {
@@ -124,202 +103,6 @@ func defaultConfigCluster(clusterName, namespace string) clusterctl.ConfigCluste
 	}
 }
 
-func createLBService(svcNamespace string, svcName string, k8sclient crclient.Client) string {
-	ginkgo.By(fmt.Sprintf("Creating service of type Load Balancer with name: %s under namespace: %s", svcName, svcNamespace))
-	svcSpec := corev1.ServiceSpec{
-		Type: corev1.ServiceTypeLoadBalancer,
-		Ports: []corev1.ServicePort{
-			{
-				Port:     80,
-				Protocol: corev1.ProtocolTCP,
-			},
-		},
-		Selector: map[string]string{
-			"app": "nginx",
-		},
-	}
-	createService(svcName, svcNamespace, nil, svcSpec, k8sclient)
-	// this sleep is required for the service to get updated with ingress details
-	time.Sleep(15 * time.Second)
-	svcCreated := &corev1.Service{}
-	err := k8sclient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: svcNamespace, Name: svcName}, svcCreated)
-	Expect(err).NotTo(HaveOccurred())
-	elbName := ""
-	if lbs := len(svcCreated.Status.LoadBalancer.Ingress); lbs > 0 {
-		ingressHostname := svcCreated.Status.LoadBalancer.Ingress[0].Hostname
-		elbName = strings.Split(ingressHostname, "-")[0]
-	}
-	ginkgo.By(fmt.Sprintf("Created Load Balancer service and ELB name is: %s", elbName))
-
-	return elbName
-}
-
-func deleteLBService(svcNamespace string, svcName string, k8sclient crclient.Client) {
-	svcSpec := corev1.ServiceSpec{
-		Type: corev1.ServiceTypeLoadBalancer,
-		Ports: []corev1.ServicePort{
-			{
-				Port:     80,
-				Protocol: corev1.ProtocolTCP,
-			},
-		},
-		Selector: map[string]string{
-			"app": "nginx",
-		},
-	}
-	deleteService(svcName, svcNamespace, nil, svcSpec, k8sclient)
-}
-
-func createPodTemplateSpec(statefulsetinfo statefulSetInfo) corev1.PodTemplateSpec {
-	ginkgo.By("Creating PodTemplateSpec config object")
-	podTemplateSpec := corev1.PodTemplateSpec{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   statefulsetinfo.name,
-			Labels: statefulsetinfo.selector,
-		},
-		Spec: corev1.PodSpec{
-			TerminationGracePeriodSeconds: &statefulsetinfo.podTerminationGracePeriod,
-			Containers: []corev1.Container{
-				{
-					Name:  statefulsetinfo.containerName,
-					Image: statefulsetinfo.containerImage,
-					Ports: []corev1.ContainerPort{{Name: statefulsetinfo.svcPortName, ContainerPort: statefulsetinfo.containerPort}},
-					VolumeMounts: []corev1.VolumeMount{
-						{Name: statefulsetinfo.volumeName, MountPath: statefulsetinfo.volMountPath},
-					},
-				},
-			},
-			Volumes: []corev1.Volume{
-				{
-					Name: statefulsetinfo.volumeName,
-					VolumeSource: corev1.VolumeSource{
-						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: statefulsetinfo.volumeName},
-					},
-				},
-			},
-		},
-	}
-	return podTemplateSpec
-}
-
-func createPVC(statefulsetinfo statefulSetInfo) corev1.PersistentVolumeClaim {
-	ginkgo.By("Creating PersistentVolumeClaim config object")
-	volClaimTemplate := corev1.PersistentVolumeClaim{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: statefulsetinfo.volumeName,
-		},
-		Spec: corev1.PersistentVolumeClaimSpec{
-			AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-			StorageClassName: &statefulsetinfo.storageClassName,
-			Resources: corev1.VolumeResourceRequirements{
-				Requests: corev1.ResourceList{
-					corev1.ResourceStorage: resource.MustParse("4Gi"),
-				},
-			},
-		},
-	}
-	return volClaimTemplate
-}
-
-func createService(svcName string, svcNamespace string, labels map[string]string, serviceSpec corev1.ServiceSpec, k8sClient crclient.Client) {
-	svcToCreate := corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: svcNamespace,
-			Name:      svcName,
-		},
-		Spec: serviceSpec,
-	}
-	if len(labels) > 0 {
-		svcToCreate.ObjectMeta.Labels = labels
-	}
-	Expect(k8sClient.Create(context.TODO(), &svcToCreate)).NotTo(HaveOccurred())
-}
-
-func deleteService(svcName string, svcNamespace string, labels map[string]string, serviceSpec corev1.ServiceSpec, k8sClient crclient.Client) {
-	svcToDelete := corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: svcNamespace,
-			Name:      svcName,
-		},
-		Spec: serviceSpec,
-	}
-	if len(labels) > 0 {
-		svcToDelete.ObjectMeta.Labels = labels
-	}
-	Expect(k8sClient.Delete(context.TODO(), &svcToDelete)).NotTo(HaveOccurred())
-}
-
-func createStatefulSet(statefulsetinfo statefulSetInfo, k8sclient crclient.Client) {
-	ginkgo.By("Creating statefulset")
-	svcSpec := corev1.ServiceSpec{
-		ClusterIP: "None",
-		Ports: []corev1.ServicePort{
-			{
-				Port: statefulsetinfo.svcPort,
-				Name: statefulsetinfo.svcPortName,
-			},
-		},
-		Selector: statefulsetinfo.selector,
-	}
-	createService(statefulsetinfo.svcName, statefulsetinfo.namespace, statefulsetinfo.selector, svcSpec, k8sclient)
-	createStorageClass(statefulsetinfo.isInTreeCSI, statefulsetinfo.storageClassName, k8sclient)
-	podTemplateSpec := createPodTemplateSpec(statefulsetinfo)
-	volClaimTemplate := createPVC(statefulsetinfo)
-	deployStatefulSet(statefulsetinfo, volClaimTemplate, podTemplateSpec, k8sclient)
-	waitForStatefulSetRunning(statefulsetinfo, k8sclient)
-}
-
-func createStorageClass(isIntree bool, storageClassName string, k8sclient crclient.Client) {
-	ginkgo.By(fmt.Sprintf("Creating StorageClass object with name: %s", storageClassName))
-	volExpansion := true
-	bindingMode := storagev1.VolumeBindingWaitForFirstConsumer
-	azs := shared.GetAvailabilityZones(e2eCtx.AWSSession)
-
-	provisioner := "ebs.csi.aws.com"
-	params := map[string]string{
-		"csi.storage.k8s.io/fstype": "xfs",
-		"type":                      "io1",
-		"iopsPerGB":                 "100",
-	}
-	allowedTopo := []corev1.TopologySelectorTerm{{
-		MatchLabelExpressions: []corev1.TopologySelectorLabelRequirement{{
-			Key:    shared.StorageClassOutTreeZoneLabel,
-			Values: []string{*azs[0].ZoneName},
-		}},
-	}}
-	if isIntree {
-		provisioner = "kubernetes.io/aws-ebs"
-		params = map[string]string{
-			"type": "gp2",
-		}
-
-		allowedTopo = nil
-	}
-	storageClass := &storagev1.StorageClass{}
-	if err := k8sclient.Get(context.TODO(), crclient.ObjectKey{
-		Name:      storageClassName,
-		Namespace: metav1.NamespaceDefault,
-	}, storageClass); err != nil {
-		if apierrors.IsNotFound(err) {
-			storageClass = &storagev1.StorageClass{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: "storage.k8s.io/v1",
-					Kind:       "StorageClass",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: storageClassName,
-				},
-				Parameters:           params,
-				Provisioner:          provisioner,
-				AllowVolumeExpansion: &volExpansion,
-				VolumeBindingMode:    &bindingMode,
-				AllowedTopologies:    allowedTopo,
-			}
-			Expect(k8sclient.Create(context.TODO(), storageClass)).NotTo(HaveOccurred())
-		}
-	}
-}
-
 func deleteCluster(ctx context.Context, cluster *clusterv1.Cluster) {
 	framework.DeleteCluster(ctx, framework.DeleteClusterInput{
 		Deleter: e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
@@ -349,35 +132,6 @@ func deleteMachine(namespace *corev1.Namespace, md *clusterv1.MachineDeployment)
 		},
 	}
 	Expect(bootstrapClient.Delete(context.TODO(), machine)).To(Succeed())
-}
-
-func deleteRetainedVolumes(awsVolIDs []*string) {
-	ginkgo.By("Deleting dynamically provisioned volumes")
-	ec2Client := ec2.New(e2eCtx.AWSSession)
-	for _, volumeID := range awsVolIDs {
-		input := &ec2.DeleteVolumeInput{
-			VolumeId: aws.String(*volumeID),
-		}
-		_, err := ec2Client.DeleteVolume(input)
-		Expect(err).NotTo(HaveOccurred())
-		ginkgo.By(fmt.Sprintf("Deleted dynamically provisioned volume with ID: %s", *volumeID))
-	}
-}
-
-func deployStatefulSet(statefulsetinfo statefulSetInfo, volClaimTemp corev1.PersistentVolumeClaim, podTemplate corev1.PodTemplateSpec, k8sclient crclient.Client) {
-	ginkgo.By(fmt.Sprintf("Deploying Statefulset with name: %s under namespace: %s", statefulsetinfo.name, statefulsetinfo.namespace))
-	statefulset := appsv1.StatefulSet{
-		ObjectMeta: metav1.ObjectMeta{Name: statefulsetinfo.name, Namespace: statefulsetinfo.namespace},
-		Spec: appsv1.StatefulSetSpec{
-			ServiceName:          statefulsetinfo.svcName,
-			Replicas:             &statefulsetinfo.replicas,
-			Selector:             &metav1.LabelSelector{MatchLabels: statefulsetinfo.selector},
-			Template:             podTemplate,
-			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{volClaimTemp},
-		},
-	}
-	err := k8sclient.Create(context.TODO(), &statefulset)
-	Expect(err).NotTo(HaveOccurred())
 }
 
 func getEvents(namespace string) *corev1.EventList {
@@ -416,37 +170,6 @@ func getSubnetID(filterKey, filterValue, clusterName string) *string {
 	}, e2eCtx.E2EConfig.GetIntervals("", "wait-infra-subnets")...).Should(Equal(1))
 
 	return subnetOutput.Subnets[0].SubnetId
-}
-
-func getVolumeIDs(info statefulSetInfo, k8sclient crclient.Client) []*string {
-	ginkgo.By("Retrieving IDs of dynamically provisioned volumes.")
-	statefulset := &appsv1.StatefulSet{}
-	err := k8sclient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: info.namespace, Name: info.name}, statefulset)
-	Expect(err).NotTo(HaveOccurred())
-	podSelector, err := metav1.LabelSelectorAsMap(statefulset.Spec.Selector)
-	Expect(err).NotTo(HaveOccurred())
-	pvcList := &corev1.PersistentVolumeClaimList{}
-	err = k8sclient.List(context.TODO(), pvcList, crclient.InNamespace(info.namespace), crclient.MatchingLabels(podSelector))
-	Expect(err).NotTo(HaveOccurred())
-	volIDs := make([]*string, len(pvcList.Items))
-	for i, pvc := range pvcList.Items {
-		volName := pvc.Spec.VolumeName
-		volDescription := &corev1.PersistentVolume{}
-		err = k8sclient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: info.namespace, Name: volName}, volDescription)
-		Expect(err).NotTo(HaveOccurred())
-
-		url := ""
-		// Out-of-tree ebs CSI use .Spec.PersistentVolumeSource.CSI path
-		// In-tree ebs CSI use .Spec.PersistentVolumeSource.AWSElasticBlockStore path
-		if volDescription.Spec.PersistentVolumeSource.CSI != nil {
-			url = volDescription.Spec.PersistentVolumeSource.CSI.VolumeHandle
-		} else if volDescription.Spec.PersistentVolumeSource.AWSElasticBlockStore != nil {
-			str := strings.Split(volDescription.Spec.PersistentVolumeSource.AWSElasticBlockStore.VolumeID, "vol-")
-			url = "vol-" + str[1]
-		}
-		volIDs[i] = &url
-	}
-	return volIDs
 }
 
 func isErrorEventExists(namespace, machineDeploymentName, eventReason, errorMsg string, eList *corev1.EventList) bool {
@@ -662,50 +385,6 @@ func terminateInstance(instanceID string) {
 	Expect(*result.TerminatingInstances[0].CurrentState.Code).To(Equal(termCode))
 }
 
-func verifyElbExists(elbName string, exists bool) {
-	ginkgo.By(fmt.Sprintf("Verifying ELB with name %s present", elbName))
-	elbClient := elb.New(e2eCtx.AWSSession)
-	input := &elb.DescribeLoadBalancersInput{
-		LoadBalancerNames: []*string{
-			aws.String(elbName),
-		},
-	}
-	elbsOutput, err := elbClient.DescribeLoadBalancers(input)
-	if exists {
-		Expect(err).NotTo(HaveOccurred())
-		Expect(len(elbsOutput.LoadBalancerDescriptions)).To(Equal(1))
-		ginkgo.By(fmt.Sprintf("ELB with name %s exists", elbName))
-	} else {
-		aerr, ok := err.(awserr.Error)
-		Expect(ok).To(BeTrue())
-		Expect(aerr.Code()).To(Equal(elb.ErrCodeAccessPointNotFoundException))
-		ginkgo.By(fmt.Sprintf("ELB with name %s doesn't exists", elbName))
-	}
-}
-
-func verifyVolumesExists(awsVolumeIDs []*string) {
-	ginkgo.By("Ensuring dynamically provisioned volumes exists")
-	ec2Client := ec2.New(e2eCtx.AWSSession)
-	input := &ec2.DescribeVolumesInput{
-		VolumeIds: awsVolumeIDs,
-	}
-	_, err := ec2Client.DescribeVolumes(input)
-	Expect(err).NotTo(HaveOccurred())
-}
-
-func waitForStatefulSetRunning(info statefulSetInfo, k8sclient crclient.Client) {
-	ginkgo.By(fmt.Sprintf("Ensuring Statefulset(%s) is running", info.name))
-	statefulset := &appsv1.StatefulSet{}
-	Eventually(
-		func() (bool, error) {
-			if err := k8sclient.Get(context.TODO(), apimachinerytypes.NamespacedName{Namespace: info.namespace, Name: info.name}, statefulset); err != nil {
-				return false, err
-			}
-			return *statefulset.Spec.Replicas == statefulset.Status.ReadyReplicas, nil
-		}, 10*time.Minute, 30*time.Second,
-	).Should(BeTrue(), fmt.Sprintf("Eventually failed waiting for StatefulSet %s to be running", info.name))
-}
-
 // LatestCIReleaseForVersion returns the latest ci release of a specific version.
 func LatestCIReleaseForVersion(searchVersion string) (string, error) {
 	ciVersionURL := "https://dl.k8s.io/ci/latest-%d.%d.txt"
@@ -789,7 +468,7 @@ func deleteMountTarget(mountTarget *efs.MountTargetDescription) {
 	Expect(err).NotTo(HaveOccurred())
 	Eventually(func(g Gomega) {
 		_, err = shared.GetMountTarget(e2eCtx, *mountTarget.MountTargetId)
-		g.Expect(err).ShouldNot(Equal(nil))
+		g.Expect(err).ShouldNot(BeNil())
 		aerr, ok := err.(awserr.Error)
 		g.Expect(ok).To(BeTrue())
 		g.Expect(aerr.Code()).To(Equal(efs.ErrCodeMountTargetNotFound))

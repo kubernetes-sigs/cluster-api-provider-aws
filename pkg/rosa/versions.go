@@ -53,7 +53,7 @@ func ScheduleControlPlaneUpgrade(client *ocm.Client, cluster *cmv1.Cluster, vers
 	}
 
 	if !ack && len(versionGates) > 0 {
-		errMess := "version gate acknowledgement required"
+		errMess := "version gate acknowledgment required"
 		for id := range versionGates {
 			errMess = fmt.Sprintf(errMess+"\nid:%s\n %s\n %s\n %s\n", versionGates[id].ID(), versionGates[id].Description(), versionGates[id].DocumentationURL(), versionGates[id].WarningMessage())
 		}

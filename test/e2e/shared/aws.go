@@ -46,6 +46,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/servicequotas"
+	"github.com/aws/aws-sdk-go/service/sts"
 	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -474,6 +475,7 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 	iamSvc := iam.New(prov)
 	temp := *renderCustomCloudFormation(t)
 	var (
+		iamUsers         []*cfn_iam.User
 		iamRoles         []*cfn_iam.Role
 		instanceProfiles []*cfn_iam.InstanceProfile
 		policies         []*cfn_iam.ManagedPolicy
@@ -484,6 +486,9 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 	// temp.Resources is a map. Traversing that directly results in undetermined order.
 	for _, val := range temp.Resources {
 		switch val.AWSCloudFormationType() {
+		case configservice.ResourceTypeAwsIamUser:
+			user := val.(*cfn_iam.User)
+			iamUsers = append(iamUsers, user)
 		case configservice.ResourceTypeAwsIamRole:
 			role := val.(*cfn_iam.Role)
 			iamRoles = append(iamRoles, role)
@@ -497,6 +502,19 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 			group := val.(*cfn_iam.Group)
 			groups = append(groups, group)
 		}
+	}
+	for _, user := range iamUsers {
+		By(fmt.Sprintf("deleting the following user: %q", user.UserName))
+		repeat := false
+		Eventually(func(gomega Gomega) bool {
+			err := DeleteUser(prov, user.UserName)
+			if err != nil && !repeat {
+				By(fmt.Sprintf("failed to delete user '%q'; reason: %+v", user.UserName, err))
+				repeat = true
+			}
+			code, ok := awserrors.Code(err)
+			return err == nil || (ok && code == iam.ErrCodeNoSuchEntityException)
+		}, 5*time.Minute, 5*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed deleting the user: %q", user.UserName))
 	}
 	for _, role := range iamRoles {
 		By(fmt.Sprintf("deleting the following role: %s", role.RoleName))
@@ -598,6 +616,24 @@ func detachAllPoliciesForRole(prov client.ConfigProvider, name string) error {
 	return nil
 }
 
+// DeleteUser deletes an IAM user in a best effort manner.
+func DeleteUser(prov client.ConfigProvider, name string) error {
+	iamSvc := iam.New(prov)
+
+	// if role does not exist, return.
+	_, err := iamSvc.GetUser(&iam.GetUserInput{UserName: aws.String(name)})
+	if err != nil {
+		return err
+	}
+
+	_, err = iamSvc.DeleteUser(&iam.DeleteUserInput{UserName: aws.String(name)})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // DeleteRole deletes roles in a best effort manner.
 func DeleteRole(prov client.ConfigProvider, name string) error {
 	iamSvc := iam.New(prov)
@@ -635,6 +671,19 @@ func GetPolicyArn(prov client.ConfigProvider, name string) string {
 	return ""
 }
 
+func logAccountDetails(prov client.ConfigProvider) {
+	By("Getting AWS account details")
+	stsSvc := sts.New(prov)
+
+	output, err := stsSvc.GetCallerIdentity(&sts.GetCallerIdentityInput{})
+	if err != nil {
+		fmt.Fprintf(GinkgoWriter, "couldn't get sts caller identity: err=%s", err)
+		return
+	}
+
+	fmt.Fprintf(GinkgoWriter, "Using AWS account: %s", *output.Account)
+}
+
 // deleteCloudFormationStack removes the provisioned clusterawsadm stack.
 func deleteCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Template) {
 	By(fmt.Sprintf("Deleting %s CloudFormation stack", t.Spec.StackName))
@@ -667,6 +716,9 @@ func ensureTestImageUploaded(e2eCtx *E2EContext) error {
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 		output, err := ecrSvc.CreateRepository(&ecrpublic.CreateRepositoryInput{
 			RepositoryName: aws.String("capa/update"),
+			CatalogData: &ecrpublic.RepositoryCatalogDataInput{
+				AboutText: aws.String("Created by cluster-api-provider-aws/test/e2e/shared/aws.go for E2E tests"),
+			},
 		})
 
 		if err != nil {
@@ -837,7 +889,7 @@ func DumpCloudTrailEvents(e2eCtx *E2EContext) {
 	if err != nil {
 		fmt.Fprintf(GinkgoWriter, "Failed to marshal AWS CloudTrail events: err=%v", err)
 	}
-	if err := os.WriteFile(logPath, dat, 0600); err != nil {
+	if err := os.WriteFile(logPath, dat, 0o600); err != nil {
 		fmt.Fprintf(GinkgoWriter, "couldn't write cloudtrail events to file: file=%s err=%s", logPath, err)
 		return
 	}
@@ -1008,7 +1060,7 @@ func dumpEKSCluster(cluster *eks.Cluster, logPath string) {
 	}
 	defer f.Close()
 
-	if err := os.WriteFile(f.Name(), clusterYAML, 0600); err != nil {
+	if err := os.WriteFile(f.Name(), clusterYAML, 0o600); err != nil {
 		fmt.Fprintf(GinkgoWriter, "couldn't write cluster yaml to file: name=%s file=%s err=%s", *cluster.Name, f.Name(), err)
 		return
 	}
@@ -1207,7 +1259,7 @@ func GetVPCByName(e2eCtx *E2EContext, vpcName string) (*ec2.Vpc, error) {
 	if err != nil {
 		return nil, err
 	}
-	if result.Vpcs == nil || len(result.Vpcs) == 0 {
+	if len(result.Vpcs) == 0 {
 		return nil, awserrors.NewNotFound("Vpc not found")
 	}
 	return result.Vpcs[0], nil
@@ -2291,7 +2343,7 @@ func GetMountTarget(e2eCtx *E2EContext, mountTargetID string) (*efs.MountTargetD
 	if err != nil {
 		return nil, err
 	}
-	if result.MountTargets == nil || len(result.MountTargets) == 0 {
+	if len(result.MountTargets) == 0 {
 		return nil, &efs.MountTargetNotFound{
 			ErrorCode: aws.String(efs.ErrCodeMountTargetNotFound),
 		}

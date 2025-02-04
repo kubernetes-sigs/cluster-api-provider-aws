@@ -134,7 +134,7 @@ func (s *SuspendProcessesTypes) ConvertSetValuesToStringSlice() []string {
 
 	e := reflect.ValueOf(s.Processes).Elem()
 	var result []string
-	for i := 0; i < e.NumField(); i++ {
+	for i := range e.NumField() {
 		if s.All {
 			if !e.Field(i).IsNil() && !*e.Field(i).Interface().(*bool) {
 				// don't enable if explicitly set to false.

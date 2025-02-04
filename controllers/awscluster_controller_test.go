@@ -776,6 +776,17 @@ func mockedDeleteInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 }
 
 func mockedVPCCallsForExistingVPCAndSubnets(m *mocks.MockEC2APIMockRecorder) {
+	m.DescribeNatGatewaysPagesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeNatGatewaysInput{
+		Filter: []*ec2.Filter{
+			{
+				Name:   aws.String("vpc-id"),
+				Values: []*string{aws.String("vpc-exists")},
+			},
+			{
+				Name:   aws.String("state"),
+				Values: aws.StringSlice([]string{ec2.VpcStatePending, ec2.VpcStateAvailable}),
+			},
+		}}), gomock.Any()).Return(nil)
 	m.CreateTagsWithContext(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
 		Resources: aws.StringSlice([]string{"subnet-1"}),
 		Tags: []*ec2.Tag{
@@ -1476,6 +1487,18 @@ func mockedDeleteVPCCallsForNonExistentVPC(m *mocks.MockEC2APIMockRecorder) {
 }
 
 func mockedDeleteVPCCalls(m *mocks.MockEC2APIMockRecorder) {
+	m.DescribeVpcEndpointsPages(gomock.Eq(&ec2.DescribeVpcEndpointsInput{
+		Filters: []*ec2.Filter{
+			{
+				Name:   aws.String("tag:sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+				Values: []*string{aws.String("owned")},
+			},
+			{
+				Name:   aws.String("vpc-id"),
+				Values: []*string{aws.String("vpc-exists")},
+			},
+		},
+	}), gomock.Any()).Return(nil).AnyTimes()
 	m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
 		Filters: []*ec2.Filter{
 			{
