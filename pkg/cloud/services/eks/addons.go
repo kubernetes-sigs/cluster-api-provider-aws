@@ -194,12 +194,16 @@ func (s *Service) translateAPIToAddon(addons []ekscontrolplanev1.Addon) []*eksad
 
 	for i := range addons {
 		addon := addons[i]
+		conflict, err := convertConflictResolution(*addon.ConflictResolution)
+		if err != nil {
+			s.scope.Error(err, err.Error())
+		}
 		convertedAddon := &eksaddons.EKSAddon{
 			Name:                  &addon.Name,
 			Version:               &addon.Version,
 			Configuration:         &addon.Configuration,
 			Tags:                  ngTags(s.scope.Cluster.Name, s.scope.AdditionalTags()),
-			ResolveConflict:       convertConflictResolution(*addon.ConflictResolution),
+			ResolveConflict:       conflict,
 			ServiceAccountRoleARN: addon.ServiceAccountRoleArn,
 		}
 
@@ -209,9 +213,19 @@ func (s *Service) translateAPIToAddon(addons []ekscontrolplanev1.Addon) []*eksad
 	return converted
 }
 
-func convertConflictResolution(conflict ekscontrolplanev1.AddonResolution) *string {
-	if conflict == ekscontrolplanev1.AddonResolutionNone {
-		return aws.String(eks.ResolveConflictsNone)
+func convertConflictResolution(conflict ekscontrolplanev1.AddonResolution) (*string, error) {
+	switch conflict {
+	case ekscontrolplanev1.AddonResolutionNone:
+		return aws.String(eks.ResolveConflictsNone), nil
+
+	case ekscontrolplanev1.AddonResolutionOverwrite:
+		return aws.String(eks.ResolveConflictsOverwrite), nil
+
+	case ekscontrolplanev1.AddonResolutionPreserve:
+		return aws.String(eks.ResolveConflictsPreserve), nil
+
+	default:
+		return aws.String(eks.ResolveConflictsNone), fmt.Errorf("failed to determine adddonResolution; defaulting to None")
+
 	}
-	return aws.String(eks.ResolveConflictsOverwrite)
 }
