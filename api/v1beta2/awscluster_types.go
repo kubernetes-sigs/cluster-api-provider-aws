@@ -290,7 +290,7 @@ type AWSClusterStatus struct {
 
 	// OIDCProvider holds the status of the identity provider for this cluster
 	// +optional
-	OIDCProvider OIDCProviderStatus `json:"oidcProvider,omitempty"`
+	OIDCProvider *OIDCProviderStatus `json:"oidcProvider,omitempty"`
 }
 
 // S3Bucket defines a supporting S3 bucket for the cluster, currently can be optionally used for Ignition.
