@@ -76,7 +76,7 @@ func TestNodePoolToRosaMachinePoolSpec(t *testing.T) {
 		Replicas: ptr.To[int32](2),
 	}
 
-	nodePoolBuilder := nodePoolBuilder(rosaMachinePoolSpec, machinePoolSpec)
+	nodePoolBuilder := nodePoolBuilder(rosaMachinePoolSpec, machinePoolSpec, rosacontrolplanev1.Stable)
 	nodePoolSpec, err := nodePoolBuilder.Build()
 	g.Expect(err).ToNot(HaveOccurred())
 
@@ -285,7 +285,7 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 			result: ctrl.Result{RequeueAfter: time.Second * 60},
 			expect: func(m *mocks.MockOCMClientMockRecorder) {
 				m.GetNodePool(gomock.Any(), gomock.Any()).DoAndReturn(func(clusterId string, nodePoolID string) (*cmv1.NodePool, bool, error) {
-					nodePoolBuilder := nodePoolBuilder(rosaMachinePool(1).Spec, ownerMachinePool(1).Spec)
+					nodePoolBuilder := nodePoolBuilder(rosaMachinePool(1).Spec, ownerMachinePool(1).Spec, rosacontrolplanev1.Stable)
 					nodePool, err := nodePoolBuilder.ID("node-pool-1").Build()
 					g.Expect(err).To(BeNil())
 					return nodePool, true, nil
@@ -323,7 +323,7 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 			result: ctrl.Result{},
 			expect: func(m *mocks.MockOCMClientMockRecorder) {
 				m.GetNodePool(gomock.Any(), gomock.Any()).DoAndReturn(func(clusterId string, nodePoolID string) (*cmv1.NodePool, bool, error) {
-					nodePoolBuilder := nodePoolBuilder(rosaMachinePool(2).Spec, ownerMachinePool(2).Spec)
+					nodePoolBuilder := nodePoolBuilder(rosaMachinePool(2).Spec, ownerMachinePool(2).Spec, rosacontrolplanev1.Stable)
 					statusBuilder := (&cmv1.NodePoolStatusBuilder{}).CurrentReplicas(1)
 					autoscalingBuilder := (&cmv1.NodePoolAutoscalingBuilder{}).MinReplica(1).MaxReplica(1)
 					nodePool, err := nodePoolBuilder.ID("node-pool-1").Autoscaling(autoscalingBuilder).Replicas(1).Status(statusBuilder).Build()
@@ -463,7 +463,7 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 		nodePoolName := "node-pool-1"
 		expect := func(m *mocks.MockOCMClientMockRecorder) {
 			m.GetNodePool(gomock.Any(), gomock.Any()).DoAndReturn(func(clusterId string, nodePoolID string) (*cmv1.NodePool, bool, error) {
-				nodePoolBuilder := nodePoolBuilder(mp.Spec, omp.Spec)
+				nodePoolBuilder := nodePoolBuilder(mp.Spec, omp.Spec, rosacontrolplanev1.Stable)
 				nodePool, err := nodePoolBuilder.ID(nodePoolName).Build()
 				g.Expect(err).NotTo(HaveOccurred())
 				return nodePool, true, nil
