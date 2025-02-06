@@ -344,8 +344,7 @@ func (r *ROSAMachinePoolReconciler) reconcileMachinePoolVersion(machinePoolScope
 	}
 
 	if scheduledUpgrade == nil {
-		rosaOCMClient := ocmClient.(*ocm.Client)
-		scheduledUpgrade, err = rosa.ScheduleNodePoolUpgrade(rosaOCMClient, clusterID, nodePool, version, time.Now())
+		scheduledUpgrade, err = rosa.ScheduleNodePoolUpgrade(ocmClient, clusterID, nodePool, version, time.Now())
 		if err != nil {
 			return fmt.Errorf("failed to schedule nodePool upgrade to version %s: %w", version, err)
 		}

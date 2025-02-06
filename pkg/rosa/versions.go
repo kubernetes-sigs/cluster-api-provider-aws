@@ -13,7 +13,7 @@ import (
 var MinSupportedVersion = semver.MustParse("4.14.0")
 
 // CheckExistingScheduledUpgrade checks and returns the current upgrade schedule if any.
-func CheckExistingScheduledUpgrade(client *ocm.Client, cluster *cmv1.Cluster) (*cmv1.ControlPlaneUpgradePolicy, error) {
+func CheckExistingScheduledUpgrade(client OCMClient, cluster *cmv1.Cluster) (*cmv1.ControlPlaneUpgradePolicy, error) {
 	upgradePolicies, err := client.GetControlPlaneUpgradePolicies(cluster.ID())
 	if err != nil {
 		return nil, err
@@ -27,7 +27,7 @@ func CheckExistingScheduledUpgrade(client *ocm.Client, cluster *cmv1.Cluster) (*
 }
 
 // ScheduleControlPlaneUpgrade schedules a new control plane upgrade to the specified version at the specified time.
-func ScheduleControlPlaneUpgrade(client *ocm.Client, cluster *cmv1.Cluster, version string, nextRun time.Time, ack bool) (*cmv1.ControlPlaneUpgradePolicy, error) {
+func ScheduleControlPlaneUpgrade(client OCMClient, cluster *cmv1.Cluster, version string, nextRun time.Time, ack bool) (*cmv1.ControlPlaneUpgradePolicy, error) {
 	// earliestNextRun is set to at least 5 min from now by the OCM API.
 	// Set our next run request to something slightly longer than 5min to make sure we account for the latency between when we send this
 	// request and when the server processes it.
@@ -71,7 +71,7 @@ func ScheduleControlPlaneUpgrade(client *ocm.Client, cluster *cmv1.Cluster, vers
 }
 
 // ScheduleNodePoolUpgrade schedules a new nodePool upgrade to the specified version at the specified time.
-func ScheduleNodePoolUpgrade(client *ocm.Client, clusterID string, nodePool *cmv1.NodePool, version string, nextRun time.Time) (*cmv1.NodePoolUpgradePolicy, error) {
+func ScheduleNodePoolUpgrade(client OCMClient, clusterID string, nodePool *cmv1.NodePool, version string, nextRun time.Time) (*cmv1.NodePoolUpgradePolicy, error) {
 	// earliestNextRun is set to at least 5 min from now by the OCM API.
 	// Set our next run request to something slightly longer than 5min to make sure we account for the latency between when we send this
 	// request and when the server processes it.
