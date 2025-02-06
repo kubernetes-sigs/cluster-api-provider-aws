@@ -874,10 +874,10 @@ func validateControlPlaneSpec(ocmClient *ocm.Client, rosaScope *scope.ROSAContro
 	version := rosaScope.ControlPlane.Spec.Version
 	valid, err := ocmClient.ValidateHypershiftVersion(version, ocm.DefaultChannelGroup)
 	if err != nil {
-		return "", fmt.Errorf("failed to check if version is valid: %w", err)
+		return "", fmt.Errorf("Error validating version in this ChannelGroup : %w", err)
 	}
 	if !valid {
-		return fmt.Sprintf("version %s is not supported", version), nil
+		return fmt.Sprintf("This version %s is not supported in this ChannelGroup", version), nil
 	}
 
 	// TODO: add more input validations
