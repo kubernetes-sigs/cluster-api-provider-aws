@@ -19,6 +19,7 @@ package scope
 import (
 	"context"
 
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/pkg/errors"
 	"k8s.io/klog/v2"
@@ -93,7 +94,13 @@ func NewRosaMachinePoolScope(params RosaMachinePoolScopeParams) (*RosaMachinePoo
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
 
+	sessionv2, _, err := sessionForClusterWithRegionV2(params.Client, scope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
+	if err != nil {
+		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
+	}
+
 	scope.session = session
+	scope.sessionV2 = *sessionv2
 	scope.serviceLimiters = serviceLimiters
 
 	return scope, nil
@@ -115,6 +122,7 @@ type RosaMachinePoolScope struct {
 	MachinePool     *expclusterv1.MachinePool
 
 	session         awsclient.ConfigProvider
+	sessionV2       awsv2.Config
 	serviceLimiters throttle.ServiceLimiters
 
 	controllerName string
@@ -172,6 +180,11 @@ func (s *RosaMachinePoolScope) ServiceLimiter(service string) *throttle.ServiceL
 // Session implements cloud.Session.
 func (s *RosaMachinePoolScope) Session() awsclient.ConfigProvider {
 	return s.session
+}
+
+// SessionV2 implements cloud.Session for AWS SDK V2
+func (s *RosaMachinePoolScope) SessionV2() awsv2.Config {
+	return s.sessionV2
 }
 
 // IdentityRef implements cloud.SessionMetadata.

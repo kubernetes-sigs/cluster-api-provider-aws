@@ -18,6 +18,7 @@ limitations under the License.
 package scope
 
 import (
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/pkg/errors"
 
@@ -36,8 +37,14 @@ func NewGlobalScope(params GlobalScopeParams) (*GlobalScope, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create aws session")
 	}
+
+	ns2, _, err := sessionForRegionV2(params.Region, params.Endpoints)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create aws V2 session")
+	}
 	return &GlobalScope{
 		session:         ns,
+		sessionV2:       *ns2,
 		serviceLimiters: limiters,
 		controllerName:  params.ControllerName,
 	}, nil
@@ -53,6 +60,7 @@ type GlobalScopeParams struct {
 // GlobalScope defines the specs for the GlobalScope.
 type GlobalScope struct {
 	session         awsclient.ConfigProvider
+	sessionV2       awsv2.Config
 	serviceLimiters throttle.ServiceLimiters
 	controllerName  string
 }
@@ -60,6 +68,11 @@ type GlobalScope struct {
 // Session returns the AWS SDK session. Used for creating clients.
 func (s *GlobalScope) Session() awsclient.ConfigProvider {
 	return s.session
+}
+
+// SessionV2 returns the AWS SDK V2 config. Used for creating clients.
+func (s *GlobalScope) SessionV2() awsv2.Config {
+	return s.sessionV2
 }
 
 // ServiceLimiter returns the AWS SDK session. Used for creating clients.
@@ -75,3 +88,13 @@ func (s *GlobalScope) ServiceLimiter(service string) *throttle.ServiceLimiter {
 func (s *GlobalScope) ControllerName() string {
 	return s.controllerName
 }
+
+// // Endpoint returns service endpoint for a given service.
+// func (s *GlobalScope) Endpoint(serviceID string) (*ServiceEndpoint, error) {
+// 	for _, s := range s.endpoints {
+// 		if serviceID == s.ServiceID {
+// 			return &s, nil
+// 		}
+// 	}
+// 	return nil, errors.Errorf("no endpoint found for service %s", serviceID)
+// }
