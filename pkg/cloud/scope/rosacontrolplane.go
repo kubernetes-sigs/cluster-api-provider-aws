@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
@@ -77,6 +78,11 @@ func NewROSAControlPlaneScope(params ROSAControlPlaneScopeParams) (*ROSAControlP
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
 
+	sessionv2, _, err := sessionForClusterWithRegionV2(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
+	if err != nil {
+		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
+	}
+
 	helper, err := patch.NewHelper(params.ControlPlane, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init patch helper")
@@ -84,6 +90,7 @@ func NewROSAControlPlaneScope(params ROSAControlPlaneScopeParams) (*ROSAControlP
 
 	managedScope.patchHelper = helper
 	managedScope.session = session
+	managedScope.sessionV2 = *sessionv2
 	managedScope.serviceLimiters = serviceLimiters
 
 	stsClient := params.NewStsClient(managedScope, managedScope, managedScope, managedScope.ControlPlane)
@@ -106,6 +113,7 @@ type ROSAControlPlaneScope struct {
 	ControlPlane *rosacontrolplanev1.ROSAControlPlane
 
 	session         awsclient.ConfigProvider
+	sessionV2       awsv2.Config
 	serviceLimiters throttle.ServiceLimiters
 	controllerName  string
 	Identity        *sts.GetCallerIdentityOutput
@@ -124,6 +132,11 @@ func (s *ROSAControlPlaneScope) IdentityRef() *infrav1.AWSIdentityReference {
 // Session returns the AWS SDK session. Used for creating clients.
 func (s *ROSAControlPlaneScope) Session() awsclient.ConfigProvider {
 	return s.session
+}
+
+// Session returns the AWS SDK V2 Config. Used for creating clients.
+func (s *ROSAControlPlaneScope) SessionV2() awsv2.Config {
+	return s.sessionV2
 }
 
 // ServiceLimiter returns the AWS SDK session. Used for creating clients.
