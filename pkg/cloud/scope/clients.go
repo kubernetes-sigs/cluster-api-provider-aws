@@ -22,7 +22,6 @@ import (
 	"fmt"
 
 	awsv2middleware "github.com/aws/aws-sdk-go-v2/aws/middleware"
-	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -209,31 +208,30 @@ func NewSSMClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logg
 
 // NewS3Client creates a new S3 API client for a given session.
 func NewS3Client(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) *s3.Client {
-	// TODO: Incorporate session into loading config
-	optFns := []func(*config.LoadOptions) error{config.WithLogger(logger.GetAWSLogger())}
-	if awslogs.GetAWSLogLevelV2(logger.GetLogger()) != nil {
-		optFns = append(optFns, awslogs.GetAWSLogLevelV2(logger.GetLogger()))
-	}
-	cfg, err := config.LoadDefaultConfig(context.TODO(), optFns...)
-	if err != nil {
-		panic(err)
-	}
-
-	cfg.APIOptions = append(
-		cfg.APIOptions,
-		func(stack *middleware.Stack) error {
-			return stack.Build.Add(getUserAgentHandlerV2(), middleware.Before)
+	// TODO: Implement EndpointResolverV2 for Service Endpoints
+	cfg := session.SessionV2()
+	s3Opts := []func(*s3.Options){
+		func(o *s3.Options) {
+			o.Logger = logger.GetAWSLogger()
 		},
-		func(stack *middleware.Stack) error {
-			return stack.Deserialize.Add(recordAWSPermissionsIssueV2(target), middleware.After)
+		func(o *s3.Options) {
+			o.ClientLogMode = awslogs.GetAWSLogLevelV2(logger.GetLogger())
 		},
-	)
+		s3.WithAPIOptions(
+			func(stack *middleware.Stack) error {
+				return stack.Build.Add(getUserAgentHandlerV2(), middleware.Before)
+			},
+			func(stack *middleware.Stack) error {
+				return stack.Deserialize.Add(recordAWSPermissionsIssueV2(target), middleware.After)
+			},
+		),
+	}
 	// TODO: https://docs.aws.amazon.com/sdk-for-go/v2/developer-guide/sdk-timing.html
 	// cfg.APIOptions = append(cfg.APIOptions, func(stack *middleware.Stack) error {
-	//	return stack.Deserialize.Add(awsmetrics.CaptureRequestMetricsV2(scopeUser.ControllerName()), middleware.Before)
+	// 	return stack.Deserialize.Add(awsmetrics.CaptureRequestMetricsV2(scopeUser.ControllerName()), middleware.Before)
 	// })
 
-	return s3.NewFromConfig(cfg)
+	return s3.NewFromConfig(cfg, s3Opts...)
 }
 
 func recordAWSPermissionsIssue(target runtime.Object) func(r *request.Request) {
