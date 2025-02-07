@@ -243,6 +243,7 @@ func TestServiceDiassociateSecondaryCidr(t *testing.T) {
 	tests := []struct {
 		name                                    string
 		fillAWSManagedControlPlaneSecondaryCIDR bool
+		unmanagedVPC                            bool
 		networkSecondaryCIDRBlocks              []infrav1.VpcCidrBlock
 		expect                                  func(m *mocks.MockEC2APIMockRecorder)
 		wantErr                                 bool
@@ -289,7 +290,7 @@ func TestServiceDiassociateSecondaryCidr(t *testing.T) {
 			},
 		},
 		{
-			name:                                    "Should return error if failed to diassociate secondary cidr block",
+			name:                                    "Should return error if failed to disassociate secondary cidr block",
 			fillAWSManagedControlPlaneSecondaryCIDR: true,
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeVpcsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcsInput{})).Return(&ec2.DescribeVpcsOutput{
@@ -316,6 +317,17 @@ func TestServiceDiassociateSecondaryCidr(t *testing.T) {
 					}}, nil)
 
 				// No calls expected
+				m.DisassociateVpcCidrBlockWithContext(context.TODO(), gomock.Any()).Times(0)
+			},
+			wantErr: false,
+		},
+		{
+			name:                                    "Should successfully return from disassociating secondary CIDR blocks if VPC is in unmanaged mode",
+			fillAWSManagedControlPlaneSecondaryCIDR: true,
+			unmanagedVPC:                            true,
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				// No calls expected
+				m.DescribeVpcsWithContext(context.TODO(), gomock.Any()).Times(0)
 				m.DisassociateVpcCidrBlockWithContext(context.TODO(), gomock.Any()).Times(0)
 			},
 			wantErr: false,
@@ -381,6 +393,18 @@ func TestServiceDiassociateSecondaryCidr(t *testing.T) {
 			if !tt.fillAWSManagedControlPlaneSecondaryCIDR {
 				mcpScope.ControlPlane.Spec.SecondaryCidrBlock = nil
 			}
+
+			if !tt.unmanagedVPC {
+				mcpScope.ControlPlane.Spec.NetworkSpec.VPC = infrav1.VPCSpec{
+					ID: subnetsVPCID,
+					Tags: infrav1.Tags{
+						infrav1.ClusterTagKey("test-cluster"): "owned",
+					},
+				}
+
+				mcpScope.Cluster.Name = "test-cluster"
+			}
+
 			mcpScope.ControlPlane.Spec.NetworkSpec.VPC.SecondaryCidrBlocks = tt.networkSecondaryCIDRBlocks
 
 			s := NewService(mcpScope)

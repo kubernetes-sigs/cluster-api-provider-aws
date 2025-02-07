@@ -79,6 +79,11 @@ func (s *Service) associateSecondaryCidrs() error {
 }
 
 func (s *Service) disassociateSecondaryCidrs() error {
+	// If the VPC is unmanaged or not yet populated, return early.
+	if s.scope.VPC().IsUnmanaged(s.scope.Name()) || s.scope.VPC().ID == "" {
+		return nil
+	}
+
 	secondaryCidrBlocks := s.scope.AllSecondaryCidrBlocks()
 	if len(secondaryCidrBlocks) == 0 {
 		return nil
