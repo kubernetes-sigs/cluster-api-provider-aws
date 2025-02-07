@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -45,6 +46,7 @@ type ClusterScopeParams struct {
 	ControllerName               string
 	Endpoints                    []ServiceEndpoint
 	Session                      awsclient.ConfigProvider
+	SessionV2                    awsv2.Config
 	TagUnmanagedNetworkResources bool
 }
 
@@ -77,6 +79,11 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
 
+	sessionv2, _, err := sessionForClusterWithRegionV2(params.Client, clusterScope, params.AWSCluster.Spec.Region, params.Endpoints, params.Logger)
+	if err != nil {
+		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
+	}
+
 	helper, err := patch.NewHelper(params.AWSCluster, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init patch helper")
@@ -84,6 +91,7 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 
 	clusterScope.patchHelper = helper
 	clusterScope.session = session
+	clusterScope.sessionV2 = *sessionv2
 	clusterScope.serviceLimiters = serviceLimiters
 
 	return clusterScope, nil
@@ -99,6 +107,7 @@ type ClusterScope struct {
 	AWSCluster *infrav1.AWSCluster
 
 	session         awsclient.ConfigProvider
+	sessionV2       awsv2.Config
 	serviceLimiters throttle.ServiceLimiters
 	controllerName  string
 
@@ -349,6 +358,11 @@ func (s *ClusterScope) ClusterObj() cloud.ClusterObject {
 // Session returns the AWS SDK session. Used for creating clients.
 func (s *ClusterScope) Session() awsclient.ConfigProvider {
 	return s.session
+}
+
+// Session returns the AWS SDK V2 session. Used for creating clients.
+func (s *ClusterScope) SessionV2() awsv2.Config {
+	return s.sessionV2
 }
 
 // ServiceLimiter returns the AWS SDK session. Used for creating clients.

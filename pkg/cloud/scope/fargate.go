@@ -19,6 +19,7 @@ package scope
 import (
 	"context"
 
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/pkg/errors"
 	"k8s.io/klog/v2"
@@ -74,6 +75,11 @@ func NewFargateProfileScope(params FargateProfileScopeParams) (*FargateProfileSc
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
 
+	sessionv2, _, err := sessionForClusterWithRegionV2(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
+	if err != nil {
+		return nil, errors.Errorf("failed to create aws v2 session: %v", err)
+	}
+
 	helper, err := patch.NewHelper(params.FargateProfile, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init patch helper")
@@ -87,6 +93,7 @@ func NewFargateProfileScope(params FargateProfileScopeParams) (*FargateProfileSc
 		FargateProfile:  params.FargateProfile,
 		patchHelper:     helper,
 		session:         session,
+		sessionV2:       *sessionv2,
 		serviceLimiters: serviceLimiters,
 		controllerName:  params.ControllerName,
 		enableIAM:       params.EnableIAM,
@@ -104,6 +111,7 @@ type FargateProfileScope struct {
 	FargateProfile *expinfrav1.AWSFargateProfile
 
 	session         awsclient.ConfigProvider
+	sessionV2       awsv2.Config
 	serviceLimiters throttle.ServiceLimiters
 	controllerName  string
 
@@ -218,6 +226,11 @@ func (s *FargateProfileScope) ClusterObj() cloud.ClusterObject {
 // Session returns the AWS SDK session. Used for creating clients.
 func (s *FargateProfileScope) Session() awsclient.ConfigProvider {
 	return s.session
+}
+
+// Session returns the AWS SDK session. Used for creating clients.
+func (s *FargateProfileScope) SessionV2() awsv2.Config {
+	return s.sessionV2
 }
 
 // ControllerName returns the name of the controller that
