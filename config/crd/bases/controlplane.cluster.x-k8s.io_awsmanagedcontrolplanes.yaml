@@ -1223,6 +1223,10 @@ spec:
                     - Spot
                     - CapacityBlock
                     type: string
+                  networkInterfaceType:
+                    description: NetworkInterfaceType is the interface type of the
+                      primary network Interface.
+                    type: string
                   networkInterfaces:
                     description: Specifies ENIs attached to instance
                     items:
@@ -3275,6 +3279,10 @@ spec:
                     - OnDemand
                     - Spot
                     - CapacityBlock
+                    type: string
+                  networkInterfaceType:
+                    description: NetworkInterfaceType is the interface type of the
+                      primary network Interface.
                     type: string
                   networkInterfaces:
                     description: Specifies ENIs attached to instance
