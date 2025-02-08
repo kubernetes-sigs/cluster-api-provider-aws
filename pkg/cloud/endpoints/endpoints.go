@@ -24,6 +24,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpointsv2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 )
 
@@ -104,6 +105,8 @@ func ParseFlag(serviceEndpoints string) ([]scope.ServiceEndpoint, error) {
 			})
 		}
 	}
+	// For Go SDK V2 migration
+	saveToServiceEndpointV2Map(endpoints)
 
 	return endpoints, nil
 }
@@ -116,4 +119,16 @@ func containsString(slice []string, s string) bool {
 	}
 
 	return false
+}
+
+// TODO: punkwalker - remove this after Go SDK V2 migration
+func saveToServiceEndpointV2Map(src []scope.ServiceEndpoint) {
+	for _, svc := range src {
+		endpoint := endpointsv2.ServiceEndpoint{
+			ServiceID:     svc.ServiceID,
+			URL:           svc.URL,
+			SigningRegion: svc.SigningRegion,
+		}
+		endpointsv2.ServiceEndpointsMap[svc.ServiceID] = endpoint
+	}
 }
