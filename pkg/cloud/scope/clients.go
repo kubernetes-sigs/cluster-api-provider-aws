@@ -18,7 +18,6 @@ package scope
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	awsv2middleware "github.com/aws/aws-sdk-go-v2/aws/middleware"
@@ -53,9 +52,11 @@ import (
 	"github.com/aws/smithy-go"
 	"github.com/aws/smithy-go/middleware"
 	smithyhttp "github.com/aws/smithy-go/transport/http"
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpointsv2"
 	awslogs "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/logs"
 	awsmetrics "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/metrics"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
@@ -208,14 +209,16 @@ func NewSSMClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logg
 
 // NewS3Client creates a new S3 API client for a given session.
 func NewS3Client(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) *s3.Client {
-	// TODO: Implement EndpointResolverV2 for Service Endpoints
 	cfg := session.SessionV2()
+	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
+	s3EndpointResolver := &endpointsv2.S3EndpointResolver{
+		MultiServiceEndpointResolver: multiSvcEndpointResolver,
+	}
 	s3Opts := []func(*s3.Options){
 		func(o *s3.Options) {
 			o.Logger = logger.GetAWSLogger()
-		},
-		func(o *s3.Options) {
 			o.ClientLogMode = awslogs.GetAWSLogLevelV2(logger.GetLogger())
+			o.EndpointResolverV2 = s3EndpointResolver
 		},
 		s3.WithAPIOptions(
 			func(stack *middleware.Stack) error {
