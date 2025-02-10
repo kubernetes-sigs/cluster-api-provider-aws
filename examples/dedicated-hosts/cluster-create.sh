@@ -11,7 +11,7 @@ kubectl cluster-info
 # Check AWS Authentication and Account Preparation
 aws sts get-caller-identity
 
-export AWS_SSH_KEY_NAME=${AWS_SSH_KEY_NAME:-"capa-quickstart"}
+export AWS_SSH_KEY_NAME=${AWS_SSH_KEY_NAME:-"capa-dedicated-hosts"}
 if aws ec2 describe-key-pairs --key-names $AWS_SSH_KEY_NAME 2>/dev/null; then
     echo "Key pair [$AWS_SSH_KEY_NAME] already exists."
 else
@@ -38,26 +38,53 @@ mkdir -p $CLUSTER_DIR
 export AWS_CONTROL_PLANE_MACHINE_TYPE=t3.large
 export AWS_NODE_MACHINE_TYPE=t3.large
 
+export AWS_HOST_AZ="us-east-1a"
+export AWS_HOST_FAMILY="t3"
+
+# Allocate dedicated host
+aws ec2 allocate-hosts \
+    --availability-zone "$AWS_HOST_AZ" \
+    --auto-placement "off" \
+    --host-recovery "off" \
+    --host-maintenance "on" \
+    --quantity 1 \
+    --instance-family "$AWS_HOST_FAMILY" | tee "$CLUSTER_DIR/host.json"
+
+export AWS_HOST_ID=$(jq -r '.HostIds[0]' "$CLUSTER_DIR/host.json")
+export AWS_HOST_AFFINITY="Default"
+echo $AWS_HOST_ID
+
 export KUBERNETES_VERSION_DEFAULT=$(clusterawsadm ami list -o json | jq -r '.items[0].spec.kubernetesVersion')
 export KUBERNETES_VERSION=${KUBERNETES_VERSION:-$KUBERNETES_VERSION_DEFAULT}
 echo $KUBERNETES_VERSION
 
-export CLUSTER_NAME=${CLUSTER_NAME:-"capa-quickstart"}
+export CLUSTER_NAME=${CLUSTER_NAME:-"capa-dedicated-hosts"}
 
+export AWS_HOST_AZ="us-east-1a"
+export AWS_HOST_FAMILY="t3"
+
+# Allocate dedicated host
+aws ec2 allocate-hosts \
+    --availability-zone "$AWS_HOST_AZ" \
+    --auto-placement "off" \
+    --host-recovery "off" \
+    --host-maintenance "on" \
+    --quantity 1 \
+    --instance-family "$AWS_HOST_FAMILY" | tee "$CLUSTER_DIR/host.json"
 
 clusterctl generate cluster $CLUSTER_NAME \
     --from - \
     --kubernetes-version $KUBERNETES_VERSION \
     --control-plane-machine-count=3 \
     --worker-machine-count=3 \
-    < templates/cluster-template-quickstart.yaml \
-    > "$CLUSTER_DIR/capa-quickstart.yaml"
+    < templates/cluster-template-dedicated-hosts.yaml \
+    > "$CLUSTER_DIR/capa-dedicated-hosts.yaml"
 
-kubectl apply -f "$CLUSTER_DIR/capa-quickstart.yaml"
+kubectl apply -f "$CLUSTER_DIR/capa-dedicated-hosts.yaml"
 
 kubectl get cluster
 
-watch -n 15 clusterctl describe cluster capa-quickstart
+watch -n 15 clusterctl describe cluster capa-dedicated-hosts
 
 kubectl get kubeadmcontrolplane
 
@@ -78,8 +105,8 @@ while true; do
 done
 
 echo "Fetching workload cluster kubeconfig"
-WORKLOAD_KUBECONFIG="$CLUSTER_DIR/capa-quickstart.kubeconfig"
-clusterctl get kubeconfig capa-quickstart > "$WORKLOAD_KUBECONFIG"
+WORKLOAD_KUBECONFIG="$CLUSTER_DIR/capa-dedicated-hosts.kubeconfig"
+clusterctl get kubeconfig capa-dedicated-hosts > "$WORKLOAD_KUBECONFIG"
 
 # Authenticate on docker hub
 kubectl create secret docker-registry docker-creds \
