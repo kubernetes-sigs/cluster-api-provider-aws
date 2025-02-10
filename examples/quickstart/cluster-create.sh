@@ -15,7 +15,7 @@ export AWS_KEYPAIR_NAME=${AWS_KEYPAIR_NAME:-"capa-quickstart"}
 if aws ec2 describe-key-pairs --key-names $AWS_KEYPAIR_NAME 2>/dev/null; then
     echo "Key pair [$AWS_KEYPAIR_NAME] already exists."
 else
-    KEYPAIR_FILE= "$CLUSTER_DIR/${AWS_KEYPAIR_NAME}.pem"
+    KEYPAIR_FILE="$CLUSTER_DIR/${AWS_KEYPAIR_NAME}.pem"
     aws ec2 create-key-pair --key-name $AWS_KEYPAIR_NAME --query 'KeyMaterial' --output text > $KEYPAIR_FILE
     chmod 400 $KEYPAIR_FILE
     ls -l $KEYPAIR_FILE
@@ -57,7 +57,7 @@ kubectl apply -f "$CLUSTER_DIR/capa-quickstart.yaml"
 
 kubectl get cluster
 
-clusterctl describe cluster capa-quickstart
+watch -n 15 clusterctl describe cluster capa-quickstart
 
 kubectl get kubeadmcontrolplane
 
