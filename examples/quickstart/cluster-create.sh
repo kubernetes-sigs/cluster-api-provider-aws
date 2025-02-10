@@ -94,10 +94,16 @@ helm repo add projectcalico https://docs.tigera.io/calico/charts --kubeconfig=$W
 
 helm install calico projectcalico/tigera-operator --kubeconfig=$WORKLOAD_KUBECONFIG -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-azure/main/templates/addons/calico/values.yaml --namespace tigera-operator --create-namespace
 
+
 # Patch Calico to use Docker Hub credentials
 kubectl --kubeconfig=$WORKLOAD_KUBECONFIG patch daemonset \
     -n kube-system calico-node \
     -p '{"spec":{"template":{"spec":{"imagePullSecrets":[{"name":"docker-creds"}]}}}}'
 
 
-kubectl --kubeconfig="$WORKLOAD_KUBECONFIG" cluster-info
+# Verify that the workload cluster is up and running
+
+kubectl --kubeconfig=$WORKLOAD_KUBECONFIG cluster-info
+kubectl --kubeconfig=$WORKLOAD_KUBECONFIG get nodes
+kubectl --kubeconfig=$WORKLOAD_KUBECONFIG get pods -n kube-system
+
