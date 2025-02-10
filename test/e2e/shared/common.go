@@ -163,7 +163,7 @@ func DumpMachine(ctx context.Context, e2eCtx *E2EContext, machine infrav1.AWSMac
 	machineLogBase := path.Join(logPath, "instances", machine.Namespace, machine.Name)
 	metaLog := path.Join(machineLogBase, "instance.log")
 	if err := os.MkdirAll(filepath.Dir(metaLog), 0750); err != nil {
-		fmt.Fprintf(GinkgoWriter, "couldn't create directory for file: path=%s, err=%s", metaLog, err)
+		fmt.Fprintf(GinkgoWriter, "Couldn't create directory for file: path=%q, err=%s\n", metaLog, err)
 	}
 	f, err := os.OpenFile(metaLog, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644) //nolint:gosec
 	if err != nil {
