@@ -17,10 +17,6 @@ limitations under the License.
 package scope
 
 import (
-	"context"
-	"fmt"
-
-	awsv2middleware "github.com/aws/aws-sdk-go-v2/aws/middleware"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -49,16 +45,13 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
-	"github.com/aws/smithy-go"
-	"github.com/aws/smithy-go/middleware"
-	smithyhttp "github.com/aws/smithy-go/transport/http"
-	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpointsv2"
 	awslogs "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/logs"
 	awsmetrics "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/metrics"
+	awsmetricsv2 "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/metricsv2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/version"
@@ -220,20 +213,8 @@ func NewS3Client(scopeUser cloud.ScopeUsage, session cloud.Session, logger logge
 			o.ClientLogMode = awslogs.GetAWSLogLevelV2(logger.GetLogger())
 			o.EndpointResolverV2 = s3EndpointResolver
 		},
-		s3.WithAPIOptions(
-			func(stack *middleware.Stack) error {
-				return stack.Build.Add(getUserAgentHandlerV2(), middleware.Before)
-			},
-			func(stack *middleware.Stack) error {
-				return stack.Deserialize.Add(recordAWSPermissionsIssueV2(target), middleware.After)
-			},
-		),
+		s3.WithAPIOptions(awsmetricsv2.WithMiddlewares(scopeUser.ControllerName(), target)),
 	}
-	// TODO: https://docs.aws.amazon.com/sdk-for-go/v2/developer-guide/sdk-timing.html
-	// cfg.APIOptions = append(cfg.APIOptions, func(stack *middleware.Stack) error {
-	// 	return stack.Deserialize.Add(awsmetrics.CaptureRequestMetricsV2(scopeUser.ControllerName()), middleware.Before)
-	// })
-
 	return s3.NewFromConfig(cfg, s3Opts...)
 }
 
@@ -248,50 +229,10 @@ func recordAWSPermissionsIssue(target runtime.Object) func(r *request.Request) {
 	}
 }
 
-func recordAWSPermissionsIssueV2(target runtime.Object) middleware.DeserializeMiddleware {
-	return middleware.DeserializeMiddlewareFunc("capa/aws-permission-issue", func(ctx context.Context, input middleware.DeserializeInput, handler middleware.DeserializeHandler) (middleware.DeserializeOutput, middleware.Metadata, error) {
-		r, ok := input.Request.(*smithyhttp.ResponseError)
-		if !ok {
-			return middleware.DeserializeOutput{}, middleware.Metadata{}, fmt.Errorf("unknown transport type %T", input.Request)
-		}
-
-		var ae smithy.APIError
-		if errors.As(r.Err, &ae) {
-			switch ae.ErrorCode() {
-			case "AuthFailure", "UnauthorizedOperation", "NoCredentialProviders":
-				record.Warnf(target, ae.ErrorCode(), "Operation %s failed with a credentials or permission issue", awsv2middleware.GetOperationName(ctx))
-			}
-		}
-		return handler.HandleDeserialize(ctx, input)
-	})
-}
-
 func getUserAgentHandler() request.NamedHandler {
 	return request.NamedHandler{
 		Name: "capa/user-agent",
 		Fn:   request.MakeAddToUserAgentHandler("aws.cluster.x-k8s.io", version.Get().String()),
-	}
-}
-
-func getUserAgentHandlerV2() middleware.BuildMiddleware {
-	capaUserAgent := fmt.Sprintf("aws.cluster.x-k8s.io/%s", version.Get().String())
-	return middleware.BuildMiddlewareFunc("capa/user-agent", makeAddToUserAgentHandler(capaUserAgent))
-}
-
-// aws-sdk-go-v2 version of https://pkg.go.dev/github.com/aws/aws-sdk-go/aws/request@v1.55.5#AddToUserAgent
-func makeAddToUserAgentHandler(s string) func(context.Context, middleware.BuildInput, middleware.BuildHandler) (middleware.BuildOutput, middleware.Metadata, error) {
-	return func(ctx context.Context, input middleware.BuildInput, handler middleware.BuildHandler) (middleware.BuildOutput, middleware.Metadata, error) {
-		r, ok := input.Request.(*smithyhttp.Request)
-		if !ok {
-			return middleware.BuildOutput{}, middleware.Metadata{}, fmt.Errorf("unknown transport type %T", input.Request)
-		}
-
-		if curUA := r.Header.Get("User-Agent"); curUA != "" {
-			s = curUA + " " + s
-		}
-		r.Header.Set("User-Agent", s)
-
-		return handler.HandleBuild(ctx, input)
 	}
 }
 
