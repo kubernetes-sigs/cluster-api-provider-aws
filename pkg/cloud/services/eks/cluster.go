@@ -422,6 +422,11 @@ func (s *Service) createCluster(eksClusterName string) (*eks.Cluster, error) {
 		Tags:                    tags,
 		KubernetesNetworkConfig: netConfig,
 	}
+	// Outside of input since we want to set it only when BootstrapSelfManagedAddons set to false.
+	// Default is true.
+	if !s.scope.ControlPlane.Spec.BootstrapSelfManagedAddons {
+		input.BootstrapSelfManagedAddons = &s.scope.ControlPlane.Spec.BootstrapSelfManagedAddons
+	}
 
 	var out *eks.CreateClusterOutput
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
