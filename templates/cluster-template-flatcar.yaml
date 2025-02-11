@@ -26,6 +26,9 @@ metadata:
 spec:
   region: "${AWS_REGION}"
   sshKeyName: "${AWS_SSH_KEY_NAME}"
+  controlPlaneLoadBalancer:
+    loadBalancerType: nlb
+    healthCheckProtocol: HTTPS
   s3Bucket:
     controlPlaneIAMInstanceProfile: control-plane.cluster-api-provider-aws.sigs.k8s.io
     name: "${AWS_S3_BUCKET_NAME}"

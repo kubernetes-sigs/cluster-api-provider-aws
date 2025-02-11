@@ -24,6 +24,9 @@ kind: AWSCluster
 metadata:
   name: "${CLUSTER_NAME}"
 spec:
+  controlPlaneLoadBalancer:
+    loadBalancerType: nlb
+    healthCheckProtocol: HTTPS
   region: "${AWS_REGION}"
   sshKeyName: "${AWS_SSH_KEY_NAME}"
 ---
