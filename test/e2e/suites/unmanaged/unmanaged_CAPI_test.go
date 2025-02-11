@@ -221,4 +221,36 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 			shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
 		})
 	})
+
+	ginkgo.It("Feature Flags - AWSMachine and AWSCluster are enabled by default", func() {
+		deployment, getErr := shared.GetDeployment(ctx, shared.GetDeploymentInput{
+			Getter:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+			Name:      "capa-controller-manager",
+			Namespace: "capa-system",
+		})
+		Expect(getErr).To(BeNil())
+		Expect(shared.ValidateAWSClusterEnabled(deployment)).To(BeNil())
+		Expect(shared.ValidateAWSMachineEnabled(deployment)).To(BeNil())
+	})
+
+	ginkgo.It("Feature Flags - AWSCluster disabled", func() {
+		shared.ReconfigureDeployment(ctx, shared.ReconfigureDeploymentInput{
+			Getter:       e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+			ClientSet:    e2eCtx.Environment.BootstrapClusterProxy.GetClientSet(),
+			Name:         "capa-controller-manager",
+			Namespace:    "capa-system",
+			WaitInterval: e2eCtx.E2EConfig.GetIntervals("", "wait-deployment-ready"),
+		}, shared.DisableAWSCluster, shared.ValidateAWSClusterDisabled)
+	})
+
+	ginkgo.It("Feature Flags - AWSMachine disabled", func() {
+		shared.ReconfigureDeployment(ctx, shared.ReconfigureDeploymentInput{
+			Getter:       e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+			ClientSet:    e2eCtx.Environment.BootstrapClusterProxy.GetClientSet(),
+			Name:         "capa-controller-manager",
+			Namespace:    "capa-system",
+			WaitInterval: e2eCtx.E2EConfig.GetIntervals("", "wait-deployment-ready"),
+		}, shared.DisableAWSMachine, shared.ValidateAWSMachineDisabled)
+	})
+
 })
