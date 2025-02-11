@@ -57,13 +57,13 @@ import (
 )
 
 // GetClusterByName returns a Cluster object given his name.
-func GetAWSClusterByName(ctx context.Context, namespace, name string) (*infrav1.AWSCluster, error) {
+func GetAWSClusterByName(ctx context.Context, clusterProxy framework.ClusterProxy, namespace, name string) (*infrav1.AWSCluster, error) {
 	cluster := &clusterv1.Cluster{}
 	key := crclient.ObjectKey{
 		Namespace: namespace,
 		Name:      name,
 	}
-	if err := e2eCtx.Environment.BootstrapClusterProxy.GetClient().Get(ctx, key, cluster); err != nil {
+	if err := clusterProxy.GetClient().Get(ctx, key, cluster); err != nil {
 		return nil, err
 	}
 
@@ -72,7 +72,7 @@ func GetAWSClusterByName(ctx context.Context, namespace, name string) (*infrav1.
 		Namespace: namespace,
 		Name:      cluster.Spec.InfrastructureRef.Name,
 	}
-	err := e2eCtx.Environment.BootstrapClusterProxy.GetClient().Get(ctx, awsClusterKey, awsCluster)
+	err := clusterProxy.GetClient().Get(ctx, awsClusterKey, awsCluster)
 	return awsCluster, err
 }
 

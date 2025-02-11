@@ -2733,7 +2733,7 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 	}, nil)
 
 	// Must attach to a classic LB, not another type. Only these mock calls are therefore expected.
-	mockedCreateLBCalls(t, elbMock.EXPECT())
+	mockedCreateLBCalls(t, elbMock.EXPECT(), false)
 
 	ec2Mock.EXPECT().DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeNetworkInterfacesInput{Filters: []*ec2.Filter{
 		{
@@ -2750,7 +2750,8 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 					},
 				},
 			},
-		}}, nil).MaxTimes(3)
+		},
+	}, nil).MaxTimes(3)
 	ec2Mock.EXPECT().DescribeNetworkInterfaceAttributeWithContext(context.TODO(), gomock.Eq(&ec2.DescribeNetworkInterfaceAttributeInput{
 		NetworkInterfaceId: aws.String("eni-1"),
 		Attribute:          aws.String("groupSet"),
