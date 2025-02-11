@@ -192,3 +192,11 @@ const (
 	// S3BucketFailedReason is used when any errors occur during reconciliation of an S3 bucket.
 	S3BucketFailedReason = "S3BucketCreationFailed"
 )
+
+const (
+	// OIDCProviderReadyCondition indicates that the OIDC provider has been created successfully.
+	OIDCProviderReadyCondition = "OIDCProviderCreated"
+
+	// OIDCProviderReconciliationFailedReason is used if we can't reconcile the OIDC provider.
+	OIDCProviderReconciliationFailedReason = "OIDCProviderReconciliationFailed"
+)
