@@ -27,6 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go/service/elb"
 	rgapi "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -163,4 +164,41 @@ func DescribeResourcesByTags(input DescribeResourcesByTagsInput) (*DescribeResou
 	}
 
 	return output, nil
+}
+
+type CheckClassicElbHealthCheckInput struct {
+	AWSSession       client.ConfigProvider
+	LoadBalancerName string
+	ExpectedTarget   string
+}
+
+func CheckClassicElbHealthCheck(input CheckClassicElbHealthCheckInput, intervals ...interface{}) {
+	Byf("Checking the health check for the classic load balancer %s", input.LoadBalancerName)
+
+	elbSvc := elb.New(input.AWSSession)
+
+	Eventually(func() error {
+		out, err := elbSvc.DescribeLoadBalancers(&elb.DescribeLoadBalancersInput{
+			LoadBalancerNames: []*string{
+				aws.String(input.LoadBalancerName),
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to get list of load balancers: %w", err)
+		}
+		if len(out.LoadBalancerDescriptions) == 0 {
+			return fmt.Errorf("no load balancers found")
+		}
+
+		lb := out.LoadBalancerDescriptions[0]
+		if lb.HealthCheck.Target == nil {
+			return fmt.Errorf("health check target is nil")
+		}
+
+		if *lb.HealthCheck.Target != input.ExpectedTarget {
+			return fmt.Errorf("health check target does not match expected target")
+		}
+
+		return nil
+	}, intervals...).Should(Succeed(), "eventually failed trying to check the health check for the classic load balancer")
 }
