@@ -237,7 +237,7 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 			return elbSvc
 		}
 
-		_, err = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
+		_, err = reconciler.reconcileDelete(context.TODO(), ms, cs, cs, cs, cs)
 		g.Expect(err).To(BeNil())
 		expectConditions(g, ms.AWSMachine, []conditionAssertion{
 			{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
@@ -418,7 +418,7 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 			return elbSvc
 		}
 
-		_, err = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
+		_, err = reconciler.reconcileDelete(context.TODO(), ms, cs, cs, cs, cs)
 		g.Expect(err).Should(HaveOccurred())
 		expectConditions(g, ms.AWSMachine, []conditionAssertion{
 			{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, "DeletingFailed"},
