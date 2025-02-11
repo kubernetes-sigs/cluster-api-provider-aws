@@ -256,6 +256,10 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 
 	input.MarketType = scope.AWSMachine.Spec.MarketType
 
+	input.HostID = scope.AWSMachine.Spec.HostID
+
+	input.HostAffinity = scope.AWSMachine.Spec.HostAffinity
+
 	s.scope.Debug("Running instance", "machine-role", scope.Role())
 	s.scope.Debug("Running instance with instance metadata options", "metadata options", input.InstanceMetadataOptions)
 	out, err := s.runInstance(scope.Role(), input)
@@ -672,6 +676,19 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 		input.Placement.GroupName = &i.PlacementGroupName
 		if i.PlacementGroupPartition != 0 {
 			input.Placement.PartitionNumber = &i.PlacementGroupPartition
+		}
+	}
+
+	if i.HostID != nil {
+		if i.HostAffinity == nil {
+			i.HostAffinity = aws.String("Default")
+		}
+		s.scope.Debug("Setting dedicated host to instance", "hostId", i.HostID, "affinity", i.HostAffinity)
+
+		input.Placement = &ec2.Placement{
+			Tenancy:  aws.String("host"),
+			Affinity: i.HostAffinity,
+			HostId:   i.HostID,
 		}
 	}
 
