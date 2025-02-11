@@ -221,4 +221,18 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 			shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
 		})
 	})
+
+	ginkgo.Describe("Feature Flags", func() {
+		ginkgo.It("AWSMachine and AWSCluster are enabled by default", func() {
+			deployment, getErr := shared.GetDeployment(ctx, shared.GetDeploymentInput{
+				Getter:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+				Name:      "capa-controller-manager",
+				Namespace: "capa-system",
+			})
+
+			Expect(getErr).To(BeNil())
+			Expect(shared.ValidateAWSClusterEnabled(deployment)).To(BeNil())
+			Expect(shared.ValidateAWSMachineEnabled(deployment)).To(BeNil())
+		})
+	})
 })

@@ -187,3 +187,23 @@ func ValidateAlternativeGCStrategyDisabled(dep *appsv1.Deployment) error {
 	}
 	return fmt.Errorf("fail to validate AlternativeGCStrategy set to false")
 }
+
+// ValidateAWSClusterEnabled validates AWSCluster in CAPA controller manager args field is set to true.
+func ValidateAWSClusterEnabled(dep *appsv1.Deployment) error {
+	for _, arg := range dep.Spec.Template.Spec.Containers[0].Args {
+		if strings.Contains(arg, "feature-gates") && strings.Contains(arg, "AWSCluster=true") {
+			return nil
+		}
+	}
+	return fmt.Errorf("fail to validate AWSCluster set to true")
+}
+
+// ValidateAWSMachineEnabled validates AWSMachine in CAPA controller manager args field is set to true.
+func ValidateAWSMachineEnabled(dep *appsv1.Deployment) error {
+	for _, arg := range dep.Spec.Template.Spec.Containers[0].Args {
+		if strings.Contains(arg, "feature-gates") && strings.Contains(arg, "AWSMachine=true") {
+			return nil
+		}
+	}
+	return fmt.Errorf("fail to validate AWSMachine set to true")
+}
