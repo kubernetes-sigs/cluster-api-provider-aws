@@ -63,3 +63,7 @@ dist
 _artifacts
 awsiamconfiguration.yaml
 cloudformation.yaml
+
+# temporary data
+tmp
+.tmp
