@@ -91,6 +91,7 @@ spec:
                       enum:
                       - overwrite
                       - none
+                      - preserve
                       type: string
                     name:
                       description: Name is the name of the addon
