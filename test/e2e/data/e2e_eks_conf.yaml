@@ -133,7 +133,6 @@ variables:
   CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "v1.31.5"
   IP_FAMILY: "IPv4"
   CAPA_LOGLEVEL: "4"
-  EXP_EXTERNAL_RESOURCE_GC: "true"
   GC_WORKLOAD: "../../data/gcworkload.yaml"
 
 intervals:
