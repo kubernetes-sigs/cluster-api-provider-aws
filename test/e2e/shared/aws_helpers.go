@@ -54,7 +54,7 @@ func WaitForLoadBalancerToExistForService(input WaitForLoadBalancerToExistForSer
 			Type:             input.Type,
 		})
 		if err != nil {
-			fmt.Fprintf(GinkgoWriter, "error getting loadbalancer arns: %v\n", err)
+			fmt.Fprintf(GinkgoWriter, "Error getting loadbalancer arns: %v\n", err)
 
 			return false
 		}
@@ -89,7 +89,7 @@ func GetLoadBalancerARNs(input GetLoadBalancerARNsInput) ([]string, error) {
 
 	descOutput, err := DescribeResourcesByTags(*descInput)
 	if err != nil {
-		fmt.Fprintf(GinkgoWriter, "error querying resources by tags: %v\n", err)
+		fmt.Fprintf(GinkgoWriter, "Error querying resources by tags: %v\n", err)
 		return nil, fmt.Errorf("describing resource tags: %w", err)
 	}
 
@@ -97,8 +97,8 @@ func GetLoadBalancerARNs(input GetLoadBalancerARNsInput) ([]string, error) {
 	for _, resARN := range descOutput.ARNs {
 		parsedArn, err := arn.Parse(resARN)
 		if err != nil {
-			fmt.Fprintf(GinkgoWriter, "error parsing arn %s: %v\n", resARN, err)
-			return nil, fmt.Errorf("parsing resource arn %s: %w", resARN, err)
+			fmt.Fprintf(GinkgoWriter, "Error parsing arn %q: %v\n", resARN, err)
+			return nil, fmt.Errorf("parsing resource arn %q: %w", resARN, err)
 		}
 
 		if parsedArn.Service != "elasticloadbalancing" {

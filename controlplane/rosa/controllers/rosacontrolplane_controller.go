@@ -439,15 +439,14 @@ func (r *ROSAControlPlaneReconciler) reconcileClusterVersion(rosaScope *scope.RO
 		return nil
 	}
 
-	rosaOCMClient := ocmClient.(*ocm.Client)
-	scheduledUpgrade, err := rosa.CheckExistingScheduledUpgrade(rosaOCMClient, cluster)
+	scheduledUpgrade, err := rosa.CheckExistingScheduledUpgrade(ocmClient, cluster)
 	if err != nil {
 		return fmt.Errorf("failed to get existing scheduled upgrades: %w", err)
 	}
 
 	if scheduledUpgrade == nil {
 		ack := (rosaScope.ControlPlane.Spec.VersionGate == rosacontrolplanev1.Acknowledge || rosaScope.ControlPlane.Spec.VersionGate == rosacontrolplanev1.AlwaysAcknowledge)
-		scheduledUpgrade, err = rosa.ScheduleControlPlaneUpgrade(rosaOCMClient, cluster, version, time.Now(), ack)
+		scheduledUpgrade, err = rosa.ScheduleControlPlaneUpgrade(ocmClient, cluster, version, time.Now(), ack)
 		if err != nil {
 			condition := &clusterv1.Condition{
 				Type:    rosacontrolplanev1.ROSAControlPlaneUpgradingCondition,
@@ -797,9 +796,8 @@ func (r *ROSAControlPlaneReconciler) reconcileKubeconfig(ctx context.Context, ro
 	userName := fmt.Sprintf("%s-capi-admin", clusterName)
 	apiServerURL := cluster.API().URL()
 
-	c := ocmClient.(*ocm.Client)
 	// create new user with admin privileges in the ROSA cluster if 'userName' doesn't already exist.
-	err = rosa.CreateAdminUserIfNotExist(c, cluster.ID(), userName, password)
+	err = rosa.CreateAdminUserIfNotExist(ocmClient, cluster.ID(), userName, password)
 	if err != nil {
 		return err
 	}
@@ -891,7 +889,7 @@ func (r *ROSAControlPlaneReconciler) reconcileClusterAdminPassword(ctx context.C
 
 func validateControlPlaneSpec(ocmClient rosa.OCMClient, rosaScope *scope.ROSAControlPlaneScope) (string, error) {
 	version := rosaScope.ControlPlane.Spec.Version
-	channelGroup := rosaScope.ControlPlane.Spec.ChannelGroup
+	channelGroup := string(rosaScope.ControlPlane.Spec.ChannelGroup)
 	valid, err := ocmClient.ValidateHypershiftVersion(version, channelGroup)
 	if err != nil {
 		return "", fmt.Errorf("failed to check if version is valid: %w", err)
@@ -916,8 +914,8 @@ func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpe
 		DomainPrefix:              controlPlaneSpec.DomainPrefix,
 		Region:                    controlPlaneSpec.Region,
 		MultiAZ:                   true,
-		Version:                   ocm.CreateVersionID(controlPlaneSpec.Version, controlPlaneSpec.ChannelGroup),
-		ChannelGroup:              controlPlaneSpec.ChannelGroup,
+		Version:                   ocm.CreateVersionID(controlPlaneSpec.Version, string(controlPlaneSpec.ChannelGroup)),
+		ChannelGroup:              string(controlPlaneSpec.ChannelGroup),
 		DisableWorkloadMonitoring: ptr.To(true),
 		DefaultIngress:            ocm.NewDefaultIngressSpec(), // n.b. this is a no-op when it's set to the default value
 		ComputeMachineType:        controlPlaneSpec.DefaultMachinePoolSpec.InstanceType,

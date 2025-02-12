@@ -677,11 +677,11 @@ func logAccountDetails(prov client.ConfigProvider) {
 
 	output, err := stsSvc.GetCallerIdentity(&sts.GetCallerIdentityInput{})
 	if err != nil {
-		fmt.Fprintf(GinkgoWriter, "couldn't get sts caller identity: err=%s", err)
+		fmt.Fprintf(GinkgoWriter, "Couldn't get sts caller identity: err=%s\n", err)
 		return
 	}
 
-	fmt.Fprintf(GinkgoWriter, "Using AWS account: %s", *output.Account)
+	fmt.Fprintf(GinkgoWriter, "Using AWS account: %s\n", *output.Account)
 }
 
 // deleteCloudFormationStack removes the provisioned clusterawsadm stack.
@@ -869,6 +869,11 @@ func newUserAccessKey(prov client.ConfigProvider, userName string) *iam.AccessKe
 }
 
 func DumpCloudTrailEvents(e2eCtx *E2EContext) {
+	if e2eCtx.BootstrapUserAWSSession == nil {
+		Fail("Couldn't dump cloudtrail events: no AWS client was set up (please look at previous errors)")
+		return
+	}
+
 	client := cloudtrail.New(e2eCtx.BootstrapUserAWSSession)
 	events := []*cloudtrail.Event{}
 	err := client.LookupEventsPages(
@@ -882,15 +887,15 @@ func DumpCloudTrailEvents(e2eCtx *E2EContext) {
 		},
 	)
 	if err != nil {
-		fmt.Fprintf(GinkgoWriter, "couldn't get AWS CloudTrail events: err=%v", err)
+		fmt.Fprintf(GinkgoWriter, "Couldn't get AWS CloudTrail events: err=%v\n", err)
 	}
 	logPath := filepath.Join(e2eCtx.Settings.ArtifactFolder, "cloudtrail-events.yaml")
 	dat, err := yaml.Marshal(events)
 	if err != nil {
-		fmt.Fprintf(GinkgoWriter, "Failed to marshal AWS CloudTrail events: err=%v", err)
+		fmt.Fprintf(GinkgoWriter, "Failed to marshal AWS CloudTrail events: err=%v\n", err)
 	}
 	if err := os.WriteFile(logPath, dat, 0o600); err != nil {
-		fmt.Fprintf(GinkgoWriter, "couldn't write cloudtrail events to file: file=%s err=%s", logPath, err)
+		fmt.Fprintf(GinkgoWriter, "Couldn't write cloudtrail events to file: file=%q err=%s\n", logPath, err)
 		return
 	}
 }
@@ -1013,21 +1018,24 @@ func DumpEKSClusters(_ context.Context, e2eCtx *E2EContext) {
 	}
 	logPath := filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", name, "aws-resources")
 	if err := os.MkdirAll(logPath, os.ModePerm); err != nil {
-		fmt.Fprintf(GinkgoWriter, "couldn't create directory: path=%s, err=%s", logPath, err)
+		fmt.Fprintf(GinkgoWriter, "Couldn't create directory: path=%q, err=%s\n", logPath, err)
 	}
-	fmt.Fprintf(GinkgoWriter, "folder created for eks clusters: %s\n", logPath)
+	fmt.Fprintf(GinkgoWriter, "Folder created for eks clusters: %q\n", logPath)
 
 	input := &eks.ListClustersInput{}
 	var eksClient *eks.EKS
-	if e2eCtx.BootstrapUserAWSSession == nil {
+	if e2eCtx.BootstrapUserAWSSession == nil && e2eCtx.AWSSession != nil {
 		eksClient = eks.New(e2eCtx.AWSSession)
-	} else {
+	} else if e2eCtx.BootstrapUserAWSSession != nil {
 		eksClient = eks.New(e2eCtx.BootstrapUserAWSSession)
+	} else {
+		Fail("Couldn't list EKS clusters: no AWS client was set up (please look at previous errors)")
+		return
 	}
 
 	output, err := eksClient.ListClusters(input)
 	if err != nil {
-		fmt.Fprintf(GinkgoWriter, "couldn't list EKS clusters: err=%s", err)
+		fmt.Fprintf(GinkgoWriter, "Couldn't list EKS clusters: err=%s\n", err)
 		return
 	}
 
@@ -1037,7 +1045,7 @@ func DumpEKSClusters(_ context.Context, e2eCtx *E2EContext) {
 		}
 		describeOutput, err := eksClient.DescribeCluster(describeInput)
 		if err != nil {
-			fmt.Fprintf(GinkgoWriter, "couldn't describe EKS clusters: name=%s err=%s", *clusterName, err)
+			fmt.Fprintf(GinkgoWriter, "Couldn't describe EKS clusters: name=%q err=%s\n", *clusterName, err)
 			continue
 		}
 		dumpEKSCluster(describeOutput.Cluster, logPath)
@@ -1047,7 +1055,7 @@ func DumpEKSClusters(_ context.Context, e2eCtx *E2EContext) {
 func dumpEKSCluster(cluster *eks.Cluster, logPath string) {
 	clusterYAML, err := yaml.Marshal(cluster)
 	if err != nil {
-		fmt.Fprintf(GinkgoWriter, "couldn't marshal cluster to yaml: name=%s err=%s", *cluster.Name, err)
+		fmt.Fprintf(GinkgoWriter, "Couldn't marshal cluster to yaml: name=%q err=%s\n", *cluster.Name, err)
 		return
 	}
 
@@ -1055,13 +1063,13 @@ func dumpEKSCluster(cluster *eks.Cluster, logPath string) {
 	clusterLog := path.Join(logPath, fileName)
 	f, err := os.OpenFile(clusterLog, os.O_APPEND|os.O_CREATE|os.O_WRONLY, os.ModePerm) //nolint:gosec
 	if err != nil {
-		fmt.Fprintf(GinkgoWriter, "couldn't open log file: name=%s err=%s", clusterLog, err)
+		fmt.Fprintf(GinkgoWriter, "Couldn't open log file: name=%q err=%s\n", clusterLog, err)
 		return
 	}
 	defer f.Close()
 
 	if err := os.WriteFile(f.Name(), clusterYAML, 0o600); err != nil {
-		fmt.Fprintf(GinkgoWriter, "couldn't write cluster yaml to file: name=%s file=%s err=%s", *cluster.Name, f.Name(), err)
+		fmt.Fprintf(GinkgoWriter, "Couldn't write cluster yaml to file: name=%q file=%q err=%s\n", *cluster.Name, f.Name(), err)
 		return
 	}
 }

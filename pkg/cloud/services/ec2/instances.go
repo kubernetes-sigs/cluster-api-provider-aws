@@ -113,11 +113,12 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 	s.scope.Debug("Creating an instance for a machine")
 
 	input := &infrav1.Instance{
-		Type:              scope.AWSMachine.Spec.InstanceType,
-		IAMProfile:        scope.AWSMachine.Spec.IAMInstanceProfile,
-		RootVolume:        scope.AWSMachine.Spec.RootVolume.DeepCopy(),
-		NonRootVolumes:    scope.AWSMachine.Spec.NonRootVolumes,
-		NetworkInterfaces: scope.AWSMachine.Spec.NetworkInterfaces,
+		Type:                 scope.AWSMachine.Spec.InstanceType,
+		IAMProfile:           scope.AWSMachine.Spec.IAMInstanceProfile,
+		RootVolume:           scope.AWSMachine.Spec.RootVolume.DeepCopy(),
+		NonRootVolumes:       scope.AWSMachine.Spec.NonRootVolumes,
+		NetworkInterfaces:    scope.AWSMachine.Spec.NetworkInterfaces,
+		NetworkInterfaceType: scope.AWSMachine.Spec.NetworkInterfaceType,
 	}
 
 	// Make sure to use the MachineScope here to get the merger of AWSCluster and AWSMachine tags
@@ -582,6 +583,10 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 				AssociatePublicIpAddress: i.PublicIPOnLaunch,
 			},
 		}
+	}
+
+	if i.NetworkInterfaceType != "" {
+		input.NetworkInterfaces[0].InterfaceType = aws.String(string(i.NetworkInterfaceType))
 	}
 
 	if i.IAMProfile != "" {
