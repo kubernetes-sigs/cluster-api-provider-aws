@@ -272,7 +272,10 @@ metadata:
   name: ci-default
 spec:
   template:
-    spec: {}
+    spec:
+      controlPlaneLoadBalancer:
+        loadBalancerType: nlb
+        healthCheckProtocol: HTTPS
 ---
 kind: KubeadmControlPlaneTemplate
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1
