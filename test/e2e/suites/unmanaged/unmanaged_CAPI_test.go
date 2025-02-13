@@ -221,4 +221,25 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 			shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
 		})
 	})
+
+	ginkgo.It("Feature Flags - AWSCluster disabled", func() {
+		shared.ReconfigureDeployment(ctx, shared.ReconfigureDeploymentInput{
+			Getter:       e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+			ClientSet:    e2eCtx.Environment.BootstrapClusterProxy.GetClientSet(),
+			Name:         "capa-controller-manager",
+			Namespace:    "capa-system",
+			WaitInterval: e2eCtx.E2EConfig.GetIntervals("", "wait-deployment-ready"),
+		}, shared.DisableAWSCluster, shared.ValidateAWSClusterDisabled)
+	})
+
+	ginkgo.It("Feature Flags - AWSMachine disabled", func() {
+		shared.ReconfigureDeployment(ctx, shared.ReconfigureDeploymentInput{
+			Getter:       e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+			ClientSet:    e2eCtx.Environment.BootstrapClusterProxy.GetClientSet(),
+			Name:         "capa-controller-manager",
+			Namespace:    "capa-system",
+			WaitInterval: e2eCtx.E2EConfig.GetIntervals("", "wait-deployment-ready"),
+		}, shared.DisableAWSMachine, shared.ValidateAWSMachineDisabled)
+	})
+
 })

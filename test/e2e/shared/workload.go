@@ -168,6 +168,28 @@ func DisableAlternativeGCStrategy(dep *appsv1.Deployment) (*appsv1.Deployment, e
 	return nil, fmt.Errorf("fail to find AlternativeGCStrategy to disable")
 }
 
+// DisableAWSCluster disables AWSCluster in CAPA controller manager args field.
+func DisableAWSCluster(dep *appsv1.Deployment) (*appsv1.Deployment, error) {
+	for i, arg := range dep.Spec.Template.Spec.Containers[0].Args {
+		if strings.Contains(arg, "feature-gates") && strings.Contains(arg, "AWSCluster") {
+			dep.Spec.Template.Spec.Containers[0].Args[i] = strings.Replace(arg, "AWSCluster=true", "AWSCluster=false", 1)
+			return dep, nil
+		}
+	}
+	return nil, fmt.Errorf("fail to find AWSCluster to disable")
+}
+
+// DisableAWSMachine disables AWSMachine in CAPA controller manager args field.
+func DisableAWSMachine(dep *appsv1.Deployment) (*appsv1.Deployment, error) {
+	for i, arg := range dep.Spec.Template.Spec.Containers[0].Args {
+		if strings.Contains(arg, "feature-gates") && strings.Contains(arg, "AWSMachine") {
+			dep.Spec.Template.Spec.Containers[0].Args[i] = strings.Replace(arg, "AWSMachine=true", "AWSMachine=false", 1)
+			return dep, nil
+		}
+	}
+	return nil, fmt.Errorf("fail to find AWSMachine to disable")
+}
+
 // ValidateAlternativeGCStrategyEnabled validates AlternativeGCStrategy in CAPA controller manager args field is set to true.
 func ValidateAlternativeGCStrategyEnabled(dep *appsv1.Deployment) error {
 	for _, arg := range dep.Spec.Template.Spec.Containers[0].Args {
@@ -186,4 +208,24 @@ func ValidateAlternativeGCStrategyDisabled(dep *appsv1.Deployment) error {
 		}
 	}
 	return fmt.Errorf("fail to validate AlternativeGCStrategy set to false")
+}
+
+// ValidateAWSClusterDisabled validates AWSCluster in CAPA controller manager args field is set to false.
+func ValidateAWSClusterDisabled(dep *appsv1.Deployment) error {
+	for _, arg := range dep.Spec.Template.Spec.Containers[0].Args {
+		if strings.Contains(arg, "feature-gates") && strings.Contains(arg, "AWSCluster=false") {
+			return nil
+		}
+	}
+	return fmt.Errorf("fail to validate AWSCluster set to false")
+}
+
+// ValidateAWSMachineDisabled validates AWSMachine in CAPA controller manager args field is set to false.
+func ValidateAWSMachineDisabled(dep *appsv1.Deployment) error {
+	for _, arg := range dep.Spec.Template.Spec.Containers[0].Args {
+		if strings.Contains(arg, "feature-gates") && strings.Contains(arg, "AWSMachine=false") {
+			return nil
+		}
+	}
+	return fmt.Errorf("fail to validate AWSMachine set to false")
 }
