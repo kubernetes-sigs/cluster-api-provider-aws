@@ -1,0 +1,3 @@
+b918c3636f5dcc030bbbc5191e757e37df87c682:config/crd/bases/controlplane.cluster.x-k8s.io_rosacontrolplanes.yaml:generic-api-key:104
+b918c3636f5dcc030bbbc5191e757e37df87c682:config/crd/bases/infrastructure.cluster.x-k8s.io_awsclusterstaticidentities.yaml:aws-access-token:115
+d5f676271e87421c7d50e4024c37982e184523fb:controlplane/rosa/api/v1beta2/rosacontrolplane_types.go:generic-api-key:139
