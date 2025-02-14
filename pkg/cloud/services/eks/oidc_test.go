@@ -17,6 +17,11 @@ limitations under the License.
 package eks
 
 import (
+	"crypto/sha1"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/hex"
+	"encoding/pem"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -35,10 +40,13 @@ import (
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/iamauth/mock_iamauth"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/internal/testcert"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 func TestOIDCReconcile(t *testing.T) {
+	testCertThumbprint := getTestcertTumbprint(t)
+
 	tests := []struct {
 		name    string
 		expect  func(m *mock_iamauth.MockIAMAPIMockRecorder, url string)
@@ -64,7 +72,7 @@ func TestOIDCReconcile(t *testing.T) {
 				}, nil)
 				m.CreateOpenIDConnectProvider(&iam.CreateOpenIDConnectProviderInput{
 					ClientIDList:   aws.StringSlice([]string{"sts.amazonaws.com"}),
-					ThumbprintList: aws.StringSlice([]string{"15dbd260c7465ecca6de2c0b2181187f66ee0d1a"}),
+					ThumbprintList: aws.StringSlice([]string{testCertThumbprint}),
 					Url:            &url,
 				}).Return(&iam.CreateOpenIDConnectProviderOutput{
 					OpenIDConnectProviderArn: aws.String("arn::oidc"),
@@ -102,7 +110,7 @@ func TestOIDCReconcile(t *testing.T) {
 					OpenIDConnectProviderArn: aws.String("arn::oidc"),
 				}).Return(&iam.GetOpenIDConnectProviderOutput{
 					ClientIDList:   aws.StringSlice([]string{"sts.amazonaws.com"}),
-					ThumbprintList: aws.StringSlice([]string{"15dbd260c7465ecca6de2c0b2181187f66ee0d1a"}),
+					ThumbprintList: aws.StringSlice([]string{testCertThumbprint}),
 					Url:            &url,
 				}, nil)
 				m.TagOpenIDConnectProvider(&iam.TagOpenIDConnectProviderInput{
@@ -125,11 +133,7 @@ func TestOIDCReconcile(t *testing.T) {
 			_ = ekscontrolplanev1.AddToScheme(scheme)
 			_ = corev1.AddToScheme(scheme)
 
-			ts := httptest.NewTLSServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-				// Send response to be tested
-				rw.WriteHeader(http.StatusOK)
-				rw.Write([]byte(`OK`))
-			}))
+			ts := createTestServer(g)
 			defer ts.Close()
 
 			controlPlane := &ekscontrolplanev1.AWSManagedControlPlane{
@@ -176,6 +180,41 @@ func TestOIDCReconcile(t *testing.T) {
 			g.Expect(err).To(MatchError(ContainSubstring("dial tcp: lookup test-cluster-api.nodomain.example.com")))
 		})
 	}
+}
+
+func getTestcertTumbprint(t *testing.T) string {
+	t.Helper()
+	g := NewWithT(t)
+
+	block, _ := pem.Decode(testcert.LocalhostCert)
+	g.Expect(block).ToNot(BeNil(), "failed to parse certificate PEM")
+
+	x509Cert, err := x509.ParseCertificate(block.Bytes)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	hash := sha1.Sum(x509Cert.Raw) //nolint:gosec
+	return hex.EncodeToString(hash[:])
+}
+
+func createTestServer(g *GomegaWithT) *httptest.Server {
+	// Create a certificate and private key
+	cert, err := tls.X509KeyPair(testcert.LocalhostCert, testcert.LocalhostKey)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	// Create custom TLS config
+	tlsConfig := &tls.Config{ //nolint:gosec
+		Certificates: []tls.Certificate{cert},
+	}
+
+	// Create test server with custom TLS config
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`OK`))
+	}))
+	server.TLS = tlsConfig
+	server.StartTLS()
+
+	return server
 }
 
 var kubeConfig = []byte(`apiVersion: v1
