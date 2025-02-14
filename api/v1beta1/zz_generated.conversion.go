@@ -30,7 +30,6 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	v1beta2 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	apiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	errors "sigs.k8s.io/cluster-api/errors"
 )
 
 func init() {
@@ -1444,7 +1443,7 @@ func autoConvert_v1beta1_AWSMachineStatus_To_v1beta2_AWSMachineStatus(in *AWSMac
 	out.Interruptible = in.Interruptible
 	out.Addresses = *(*[]apiv1beta1.MachineAddress)(unsafe.Pointer(&in.Addresses))
 	out.InstanceState = (*v1beta2.InstanceState)(unsafe.Pointer(in.InstanceState))
-	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))
+	out.FailureReason = (*string)(unsafe.Pointer(in.FailureReason))
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
 	out.Conditions = *(*apiv1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
 	return nil
@@ -1460,7 +1459,7 @@ func autoConvert_v1beta2_AWSMachineStatus_To_v1beta1_AWSMachineStatus(in *v1beta
 	out.Interruptible = in.Interruptible
 	out.Addresses = *(*[]apiv1beta1.MachineAddress)(unsafe.Pointer(&in.Addresses))
 	out.InstanceState = (*InstanceState)(unsafe.Pointer(in.InstanceState))
-	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))
+	out.FailureReason = (*string)(unsafe.Pointer(in.FailureReason))
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
 	out.Conditions = *(*apiv1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
 	return nil

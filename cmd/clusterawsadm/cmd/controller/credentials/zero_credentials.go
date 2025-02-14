@@ -18,9 +18,9 @@ package credentials
 
 import (
 	"github.com/spf13/cobra"
+	"k8s.io/kubectl/pkg/util/templates"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/controller/credentials"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 
 // ZeroCredentialsCmd is a CLI command that will zero credentials the controller is started with.
@@ -28,10 +28,10 @@ func ZeroCredentialsCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "zero-credentials",
 		Short: "zero credentials the controller is started with",
-		Long: cmd.LongDesc(`
+		Long: templates.LongDesc(`
 			Zero credentials the controller is started with
 		`),
-		Example: cmd.Examples(`
+		Example: templates.Examples(`
 		# zero credentials
 		# Kubeconfig file will be searched in default locations
 		clusterawsadm controller zero-credentials --namespace=capa-system
