@@ -226,6 +226,5 @@ func convertConflictResolution(conflict ekscontrolplanev1.AddonResolution) (*str
 
 	default:
 		return aws.String(eks.ResolveConflictsNone), fmt.Errorf("failed to determine adddonResolution; defaulting to None")
-
 	}
 }
