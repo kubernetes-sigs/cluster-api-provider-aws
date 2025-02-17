@@ -4115,6 +4115,11 @@ spec:
                   Ready denotes that the AWSManagedControlPlane API Server is ready to
                   receive requests and that the VPC infra is ready.
                 type: boolean
+              version:
+                description: |-
+                  Version represents the minimum Kubernetes version for the control plane machines
+                  in the cluster.
+                type: string
             required:
             - ready
             type: object
