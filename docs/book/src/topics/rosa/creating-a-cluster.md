@@ -3,7 +3,16 @@
 ## Permissions
 ### Authentication using service account credentials
 CAPA controller requires service account credentials to be able to provision ROSA clusters:
-1. Visit [https://console.redhat.com/iam/service-accounts](https://console.redhat.com/iam/service-accounts) and create a new service account.
+1. Visit [https://console.redhat.com/iam/service-accounts](https://console.redhat.com/iam/service-accounts) and create a service account. If you already have a service account, you can skip this step.
+
+   For every newly created service account, make sure to activate the account using the [ROSA command line tool](https://github.com/openshift/rosa). First, log in using your newly created service account
+   ```shell
+   rosa login --client-id ... --client-secret ...
+   ```
+   Then activate your service account
+   ```shell
+   rosa whoami
+   ```
 
 1. Create a new kubernetes secret with the service account credentials to be referenced later by `ROSAControlPlane`
     ```shell
