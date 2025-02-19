@@ -8,6 +8,9 @@ aws sts get-caller-identity
 make generate
 make clusterawsadm
 
+# ? change to $HOME/.local/bin ?
+sudo ln -s $PWD/bin/clusterawsadm /usr/local/bin/clusterawsadm
+
 clusterawsadm bootstrap iam create-cloudformation-stack
 
 export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm bootstrap credentials encode-as-profile)
@@ -16,8 +19,14 @@ kind create cluster --name=capi-test
 
 
 cd "$(go env GOPATH)"/src
-mkdir sigs.k8s.io
+mkdir -p sigs.k8s.io
 cd sigs.k8s.io/
 git clone git@github.com:kubernetes-sigs/cluster-api.git
 cd cluster-api
-git fetch upstream
+# git fetch upstream
+
+# TODO: create tilt-settings.json from template
+
+# setup tilt
+go install github.com/tilt-dev/ctlptl/cmd/ctlptl@latest
+curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash

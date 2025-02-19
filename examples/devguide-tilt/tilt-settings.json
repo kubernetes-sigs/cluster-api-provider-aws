@@ -1,0 +1,24 @@
+{
+  "enable_providers": [
+    "kubeadm-bootstrap",
+    "kubeadm-control-plane",
+    "aws"
+  ],
+  "default_registry": "gcr.io/your-project-name-here",
+  "provider_repos": [
+    "/workspaces/cluster-api-provider-aws/"
+  ],
+  "kustomize_substitutions": {
+    "EXP_CLUSTER_RESOURCE_SET": "true",
+    "EXP_MACHINE_POOL": "true",
+    "EVENT_BRIDGE_INSTANCE_STATE": "true",
+    "AWS_B64ENCODED_CREDENTIALS": "W2RlZmF1bHRdCmF3c19hY2Nlc3Nfa2V5X2lkID0gQUtJQVQ1VEs0Wk9ORUcyT1FJMkQKYXdzX3NlY3JldF9hY2Nlc3Nfa2V5ID0gWVQ2andoRHBBUnBlckloMWw1ZGxNamlMeWtrUGVvKzJhcm5rS3ZaLwpyZWdpb24gPSB1cy1lYXN0LTEKCg==",
+    "EXP_EKS_FARGATE": "false",
+    "CAPA_EKS_IAM": "false",
+    "CAPA_EKS_ADD_ROLES": "false",
+    "EXP_BOOTSTRAP_FORMAT_IGNITION": "true"
+  },
+  "extra_args": {
+    "aws": ["--v=2"]
+  }
+}
