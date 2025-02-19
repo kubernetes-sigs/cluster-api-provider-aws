@@ -924,6 +924,8 @@ func mockedEKSCluster(g *WithT, eksRec *mock_eksiface.MockEKSAPIMockRecorder, ia
 		ClusterName: aws.String("test-cluster"),
 	}).Return(&eks.ListAddonsOutput{}, nil)
 
+	eksRec.DescribeAddonVersions(&eks.DescribeAddonVersionsInput{}).Return(&eks.DescribeAddonVersionsOutput{}, nil)
+
 	awsNodeRec.ReconcileCNI(gomock.Any()).Return(nil)
 	kubeProxyRec.ReconcileKubeProxy(gomock.Any()).Return(nil)
 	iamAuthenticatorRec.ReconcileIAMAuthenticator(gomock.Any()).Return(nil)
