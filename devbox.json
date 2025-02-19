@@ -1,13 +1,9 @@
 {
   "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.13.7/.schema/devbox.schema.json",
   "packages": [
-    "kubectl",
-    "kind",
-    "helm",
     "jq",
     "yq",
     "git",
-    "k9s",
     "awscli"
   ],
   "shell": {
