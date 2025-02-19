@@ -11,7 +11,9 @@
       "version": "latest",
       "helm": "latest",
       "minikube": "none"
-    }
+    },
+    "ghcr.io/devcontainers/features/aws-cli:1": {},
+    "ghcr.io/dhoeric/features/google-cloud-cli:1": {}
   },
   "postCreateCommand": "devbox install",
   "customizations": {

@@ -14,6 +14,7 @@ sudo ln -s $PWD/bin/clusterawsadm /usr/local/bin/clusterawsadm
 clusterawsadm bootstrap iam create-cloudformation-stack
 
 export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm bootstrap credentials encode-as-profile)
+# echo  $AWS_B64ENCODED_CREDENTIALS | base64 -d
 
 kind create cluster --name=capi-test
 
@@ -30,3 +31,5 @@ cd cluster-api
 # setup tilt
 go install github.com/tilt-dev/ctlptl/cmd/ctlptl@latest
 curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
+
+tilt up
