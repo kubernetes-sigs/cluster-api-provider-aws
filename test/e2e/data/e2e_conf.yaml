@@ -17,7 +17,7 @@ images:
   - name: gcr.io/k8s-staging-cluster-api/capa-manager:e2e
     loadBehavior: mustLoad
 
-## PLEASE KEEP THESE UP TO DATE WITH THE COMPONENTS
+  ## PLEASE KEEP THESE UP TO DATE WITH THE COMPONENTS
 
   # Cluster API v1beta1 Preloads
   - name: quay.io/jetstack/cert-manager-cainjector:v1.15.1
@@ -206,7 +206,6 @@ variables:
   INIT_WITH_KUBERNETES_VERSION: "v1.29.8"
   EXP_BOOTSTRAP_FORMAT_IGNITION: "true"
   EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"
-  EXP_EXTERNAL_RESOURCE_GC: "true"
   GC_WORKLOAD: "../../data/gcworkload.yaml"
 
 intervals:
@@ -223,7 +222,7 @@ intervals:
   default/wait-failed-machine-status: ["2m", "10s"]
   default/wait-infra-subnets: ["5m", "30s"]
   default/wait-machine-pool-nodes: ["40m", "10s"]
-  default/wait-machine-pool-upgrade: [ "50m", "10s" ]
+  default/wait-machine-pool-upgrade: ["50m", "10s"]
   default/wait-create-identity: ["1m", "10s"]
   default/wait-job: ["10m", "10s"]
   default/wait-deployment-ready: ["5m", "10s"]
