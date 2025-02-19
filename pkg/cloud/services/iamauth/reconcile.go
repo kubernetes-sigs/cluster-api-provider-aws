@@ -19,6 +19,7 @@ package iamauth
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
@@ -124,7 +125,9 @@ func (s *Service) getRolesForMachineDeployments(ctx context.Context, allRoles ma
 	}
 	err := s.client.List(ctx, deploymentList, selectors...)
 	if err != nil {
-		return fmt.Errorf("failed to list machine deployments for cluster %s/%s: %w", s.scope.Namespace(), s.scope.Name(), err)
+		if !containsTimeoutSyncError(err) {
+			return fmt.Errorf("failed to list machine deployments for cluster %s/%s: %w", s.scope.Namespace(), s.scope.Name(), err)
+		}
 	}
 
 	for _, deployment := range deploymentList.Items {
@@ -207,4 +210,20 @@ func (s *Service) getRolesForAWSManagedMachinePool(ctx context.Context, ref core
 		allRoles[instanceProfile] = struct{}{}
 	}
 	return nil
+}
+
+// Check if a specific Timeout sync error message is in the error chain.
+func containsTimeoutSyncError(err error) bool {
+	for {
+		if err == nil {
+			return false
+		}
+		// Check if the current error message contains the target message
+		if strings.Contains(err.Error(), "Timeout: failed waiting for *v1beta1.MachineDeployment Informer to sync") {
+			return true
+		}
+
+		// Unwrap to check the next error in the chain
+		err = errors.Unwrap(err)
+	}
 }
