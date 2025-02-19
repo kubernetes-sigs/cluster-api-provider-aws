@@ -10,7 +10,6 @@
     "yq",
     "git",
     "k9s",
-    "tilt",
     "awscli"
   ],
   "shell": {
