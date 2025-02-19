@@ -5,6 +5,7 @@
 aws sts get-caller-identity
 
 # Build clusterawsadm
+make generate
 make clusterawsadm
 
 clusterawsadm bootstrap iam create-cloudformation-stack

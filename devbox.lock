@@ -13,9 +13,6 @@
       "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#git",
       "source": "nixpkg"
     },
-    "github:NixOS/nixpkgs/nixpkgs-unstable": {
-      "resolved": "github:NixOS/nixpkgs/632f04521e847173c54fa72973ec6c39a371211c?lastModified=1739863612&narHash=sha256-UbtgxplOhFcyjBcNbTVO8%2BHUHAl%2FWXFDOb6LvqShiZo%3D"
-    },
     "go@1.22": {
       "last_modified": "2024-12-23T21:10:33Z",
       "resolved": "github:NixOS/nixpkgs/de1864217bfa9b5845f465e771e0ecb48b30e02d#go_1_22",

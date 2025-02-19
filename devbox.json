@@ -4,7 +4,6 @@
     "go@1.22",
     "kubectl",
     "kind",
-    "docker",
     "helm",
     "jq",
     "yq",
