@@ -605,6 +605,14 @@ spec:
                   AWS provider. If both the AWSCluster and the AWSMachine specify the same tag name with different values, the
                   AWSMachine's value takes precedence.
                 type: object
+              affinity:
+                description: |-
+                  Affinity specifies the dedicated host affinity setting for the instance.
+                  When affinity is set to Host, an instance launched onto a specific host always restarts on the same host if stopped.
+                enum:
+                - Defailt
+                - Host
+                type: string
               ami:
                 description: AMI is the reference to the AMI from which to create
                   the machine instance.
@@ -686,6 +694,10 @@ spec:
                     - message: allowed values are 'none' and 'amazon-pool'
                       rule: self in ['none','amazon-pool']
                 type: object
+              hostId:
+                description: HostId specifies the ID of the Dedicated Host on which
+                  the instance should be launched.
+                type: string
               iamInstanceProfile:
                 description: IAMInstanceProfile is a name of an IAM instance profile
                   to assign to the instance

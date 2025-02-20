@@ -1,6 +1,6 @@
 {
   "name": "CAPA Devcontainer+Devbox",
-  "image": "mcr.microsoft.com/devcontainers/go",
+  "image": "mcr.microsoft.com/devcontainers/go:1.22",
   "features": {
     "ghcr.io/dlouwers/devcontainer-features/devbox:1": {},
     "ghcr.io/devcontainers/features/docker-in-docker:2.12.0": {},
@@ -11,7 +11,9 @@
       "version": "latest",
       "helm": "latest",
       "minikube": "none"
-    }
+    },
+    "ghcr.io/devcontainers/features/aws-cli:1": {},
+    "ghcr.io/dhoeric/features/google-cloud-cli:1": {}
   },
   "postCreateCommand": "devbox install",
   "customizations": {
