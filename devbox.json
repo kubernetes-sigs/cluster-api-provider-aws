@@ -3,7 +3,8 @@
   "packages": [
     "jq",
     "yq",
-    "git"
+    "git",
+    "awscli2@latest"
   ],
   "shell": {
     "scripts": {

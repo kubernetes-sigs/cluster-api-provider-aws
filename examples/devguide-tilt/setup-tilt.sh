@@ -1,7 +1,12 @@
 #!/bin/bash
+
+# Reference example for setting up a development environment
+#   for cluster-api-provider-aws with tilt
 # https://cluster-api-aws.sigs.k8s.io/development/development
 
-# Check AWS auth
+
+
+# Check AWS authentication and account information
 aws sts get-caller-identity
 
 # Build clusterawsadm
@@ -9,13 +14,16 @@ make generate
 make clusterawsadm
 
 # ? change to $HOME/.local/bin ?
-sudo ln -s $PWD/bin/clusterawsadm /usr/local/bin/clusterawsadm
+# sudo ln -sf $PWD/bin/clusterawsadm /usr/local/bin/clusterawsadm
+ln -s 
 
+export AWS_REGION="us-east-1"
 clusterawsadm bootstrap iam create-cloudformation-stack
 
 export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm bootstrap credentials encode-as-profile)
 # echo  $AWS_B64ENCODED_CREDENTIALS | base64 -d
 
+# TODO: add instruction to checkout the capi version as stated in go.mod
 kind create cluster --name=capi-test
 
 

@@ -1,6 +1,70 @@
 {
   "lockfile_version": "1",
   "packages": {
+    "awscli2@latest": {
+      "last_modified": "2025-02-07T11:26:36Z",
+      "resolved": "github:NixOS/nixpkgs/d98abf5cf5914e5e4e9d57205e3af55ca90ffc1d#awscli2",
+      "source": "devbox-search",
+      "version": "2.23.11",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/xgc375fqnx7i91psclrxmazgxb328n0v-awscli2-2.23.11",
+              "default": true
+            },
+            {
+              "name": "dist",
+              "path": "/nix/store/qzbmzsdc3rf35m8qwmi5gh9gw5f30haa-awscli2-2.23.11-dist"
+            }
+          ],
+          "store_path": "/nix/store/xgc375fqnx7i91psclrxmazgxb328n0v-awscli2-2.23.11"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/lvzxygzya67f3xnnkb99qqjhvhizqmn8-awscli2-2.23.11",
+              "default": true
+            },
+            {
+              "name": "dist",
+              "path": "/nix/store/rp6zsiw7ajssnnxm8gb5vrqz89k9wy96-awscli2-2.23.11-dist"
+            }
+          ],
+          "store_path": "/nix/store/lvzxygzya67f3xnnkb99qqjhvhizqmn8-awscli2-2.23.11"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/5mg2kvwga04jghvngskhmwmwrk1f8i5z-awscli2-2.23.11",
+              "default": true
+            },
+            {
+              "name": "dist",
+              "path": "/nix/store/n3na3vqiavqcd7r6g4g1vnhq5hic7xiq-awscli2-2.23.11-dist"
+            }
+          ],
+          "store_path": "/nix/store/5mg2kvwga04jghvngskhmwmwrk1f8i5z-awscli2-2.23.11"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/29xal5qblw03j0kfs7jxsh3zxw35626d-awscli2-2.23.11",
+              "default": true
+            },
+            {
+              "name": "dist",
+              "path": "/nix/store/3a2a50la3rzsxkl14hia26zrsal4hq6m-awscli2-2.23.11-dist"
+            }
+          ],
+          "store_path": "/nix/store/29xal5qblw03j0kfs7jxsh3zxw35626d-awscli2-2.23.11"
+        }
+      }
+    },
     "git": {
       "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#git",
       "source": "nixpkg"
