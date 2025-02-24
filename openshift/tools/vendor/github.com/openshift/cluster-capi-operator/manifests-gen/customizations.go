@@ -106,6 +106,8 @@ func processObjects(objs []unstructured.Unstructured, providerName string) map[r
 			providerConfigMapObjs = append(providerConfigMapObjs, obj)
 		case "ValidatingAdmissionPolicyBinding":
 			providerConfigMapObjs = append(providerConfigMapObjs, obj)
+		case "ConfigMap":
+			providerConfigMapObjs = append(providerConfigMapObjs, obj)
 		case "Certificate", "Issuer", "Namespace", "Secret": // skip
 		}
 	}
