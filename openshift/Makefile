@@ -12,6 +12,10 @@ ifndef PROVIDER_VERSION
 	$(error PROVIDER_VERSION is undefined)
 endif
 
+.PHONY: update-manifests-gen
+update-manifests-gen:
+	cd tools && go get github.com/openshift/cluster-capi-operator/manifests-gen && go mod tidy && go mod vendor
+
 .PHONY: ocp-manifests
 ocp-manifests: $(RELEASE_DIR) check-env ## Builds openshift specific manifests
 	# Generate provider manifests.
