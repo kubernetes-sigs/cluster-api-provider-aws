@@ -19,6 +19,7 @@ import (
 var (
 	basePath        = flag.String("base-path", "", "path to the root of the provider's repository")
 	manifestsPath   = flag.String("manifests-path", "", "path to the desired directory where to output the generated manifests")
+	kustomizeDir    = flag.String("kustomize-dir", defaultKustomizeComponentsPath, "directory to search for kustomization.yaml file, relative to the base-path")
 	providerName    = flag.String("provider-name", "", "name of the provider")
 	providerType    = flag.String("provider-type", "", "type of the provider")
 	providerVersion = flag.String("provider-version", "", "version of the provider")
