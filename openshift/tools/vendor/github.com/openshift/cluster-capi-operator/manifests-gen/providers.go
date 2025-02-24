@@ -21,11 +21,11 @@ import (
 )
 
 const (
-	powerVSProvider         = "powervs"
-	ibmCloudProvider        = "ibmcloud"
-	coreCAPIProvider        = "cluster-api"
-	metadataFilePath        = "./metadata.yaml"
-	kustomizeComponentsPath = "./config/default"
+	powerVSProvider                = "powervs"
+	ibmCloudProvider               = "ibmcloud"
+	coreCAPIProvider               = "cluster-api"
+	metadataFilePath               = "./metadata.yaml"
+	defaultKustomizeComponentsPath = "./config/default"
 	// customizedComponentsFilename is a name for file containing customized infrastructure components.
 	// This file helps with code review as it is always uncompressed unlike the components configMap.
 	customizedComponentsFilename = "infrastructure-components-openshift.yaml"
@@ -60,7 +60,9 @@ func (p *provider) loadComponents() error {
 	}
 
 	// Compile assets using kustomize.
-	rawComponents, err := fetchAndCompileComponents(path.Join(projDir, kustomizeComponentsPath))
+	kustomizeComponentsPath := path.Join(projDir, *kustomizeDir)
+	fmt.Printf("> Generating OpenShift manifests based on kustomize.yaml from %q\n", kustomizeComponentsPath)
+	rawComponents, err := fetchAndCompileComponents(kustomizeComponentsPath)
 	if err != nil {
 		return fmt.Errorf("error fetching and compiling assets using kustomize: %w", err)
 	}
