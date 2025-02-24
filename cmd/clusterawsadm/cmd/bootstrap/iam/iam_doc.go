@@ -20,10 +20,10 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"k8s.io/kubectl/pkg/util/templates"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cloudformation/bootstrap"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/converters"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 
 var errInvalidDocumentName = fmt.Errorf("invalid document name, use one of: %+v", bootstrap.ManagedIAMPolicyNames)
@@ -32,11 +32,11 @@ func printPolicyCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "print-policy",
 		Short: "Generate and show an IAM policy",
-		Long: cmd.LongDesc(`
+		Long: templates.LongDesc(`
 			Generate and show an AWS Identity and Access Management (IAM) policy for
 			Kubernetes Cluster API Provider AWS.
 		`),
-		Example: cmd.Examples(`
+		Example: templates.Examples(`
 		# Print out all the IAM policies for the Kubernetes CLuster API Provider AWS.
 		clusterawsadm bootstrap iam print-policy
 

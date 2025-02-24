@@ -60,7 +60,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -254,7 +253,7 @@ func (r *AWSMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 			&infrav1.AWSCluster{},
 			handler.EnqueueRequestsFromMapFunc(AWSClusterToAWSMachines),
 		).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(log.GetLogger(), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), log.GetLogger(), r.WatchFilterValue)).
 		WithEventFilter(
 			predicate.Funcs{
 				// Avoid reconciling if the event triggering the reconciliation is related to incremental status updates
@@ -294,7 +293,7 @@ func (r *AWSMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 	return controller.Watch(
 		source.Kind[client.Object](mgr.GetCache(), &clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(requeueAWSMachinesForUnpausedCluster),
-			predicates.ClusterUnpausedAndInfrastructureReady(log.GetLogger())),
+			predicates.ClusterPausedTransitionsOrInfrastructureReady(mgr.GetScheme(), log.GetLogger())),
 	)
 }
 
@@ -593,7 +592,7 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 		machineScope.SetNotReady()
 		machineScope.Info("EC2 instance state is undefined", "state", instance.State, "instance-id", *machineScope.GetInstanceID())
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "InstanceUnhandledState", "EC2 instance state is undefined")
-		machineScope.SetFailureReason(capierrors.UpdateMachineError)
+		machineScope.SetFailureReason("UpdateError")
 		machineScope.SetFailureMessage(errors.Errorf("EC2 instance state %q is undefined", instance.State))
 		conditions.MarkUnknown(machineScope.AWSMachine, infrav1.InstanceReadyCondition, "", "")
 	}
@@ -605,7 +604,7 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 	}
 
 	if instance.State == infrav1.InstanceStateTerminated {
-		machineScope.SetFailureReason(capierrors.UpdateMachineError)
+		machineScope.SetFailureReason("UpdateError")
 		machineScope.SetFailureMessage(errors.Errorf("EC2 instance state %q is unexpected", instance.State))
 	}
 

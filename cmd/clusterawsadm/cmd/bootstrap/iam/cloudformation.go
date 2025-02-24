@@ -23,24 +23,24 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/spf13/cobra"
+	"k8s.io/kubectl/pkg/util/templates"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cloudformation/bootstrap"
 	cloudformation "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cloudformation/service"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/bootstrap/credentials"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/flags"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 
 func printCloudFormationTemplateCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "print-cloudformation-template",
 		Short: "Print cloudformation template",
-		Long: cmd.LongDesc(`
+		Long: templates.LongDesc(`
 			Generate and print out a CloudFormation template that can be used to
 			provision AWS Identity and Access Management (IAM) policies and roles for use
 			with Kubernetes Cluster API Provider AWS.
 		`),
-		Example: cmd.Examples(`
+		Example: templates.Examples(`
 		# Print out the default CloudFormation template.
 		clusterawsadm bootstrap iam print-cloudformation-template
 
@@ -75,12 +75,12 @@ func createCloudFormationStackCmd() *cobra.Command {
 		Aliases: []string{"update-cloudformation-stack"},
 		Short:   "Create or update an AWS CloudFormation stack",
 		Args:    cobra.NoArgs,
-		Long: cmd.LongDesc(`
+		Long: templates.LongDesc(`
 	Create or update an AWS CloudFormation stack for bootstrapping Kubernetes Cluster
 	API and Kubernetes AWS Identity and Access Management (IAM) permissions. To use this
 	command, there must be AWS credentials loaded in this environment.
 		` + credentials.CredentialHelp),
-		Example: cmd.Examples(`
+		Example: templates.Examples(`
 		# Create or update IAM roles and policies for Kubernetes using a AWS CloudFormation stack.
 		clusterawsadm bootstrap iam create-cloudformation-stack
 
@@ -128,7 +128,7 @@ func deleteCloudFormationStackCmd() *cobra.Command {
 		Use:   "delete-cloudformation-stack",
 		Short: "Delete an AWS CloudFormation stack",
 		Args:  cobra.NoArgs,
-		Long: cmd.LongDesc(`
+		Long: templates.LongDesc(`
 			Delete the AWS CloudFormation stack that created AWS Identity and Access
 			Management (IAM) resources for use with Kubernetes Cluster API Provider
 			AWS.
