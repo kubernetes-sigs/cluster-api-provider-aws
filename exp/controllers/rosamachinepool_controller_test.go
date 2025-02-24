@@ -218,16 +218,18 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 	}
 
 	tests := []struct {
-		name   string
-		new    *expinfrav1.ROSAMachinePool
-		old    *expinfrav1.ROSAMachinePool
-		expect func(m *mocks.MockOCMClientMockRecorder)
-		result reconcile.Result
+		name               string
+		newROSAMachinePool *expinfrav1.ROSAMachinePool
+		oldROSAMachinePool *expinfrav1.ROSAMachinePool
+		machinePool        *expclusterv1.MachinePool
+		expect             func(m *mocks.MockOCMClientMockRecorder)
+		result             reconcile.Result
 	}{
 		{
-			name: "create node pool, nodepool doesn't exist",
-			old:  rosaMachinePool(0),
-			new: &expinfrav1.ROSAMachinePool{
+			name:               "create node pool, nodepool doesn't exist",
+			machinePool:        ownerMachinePool(0),
+			oldROSAMachinePool: rosaMachinePool(0),
+			newROSAMachinePool: &expinfrav1.ROSAMachinePool{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rosa-machinepool",
 					Namespace: ns.Name,
@@ -259,9 +261,10 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 			},
 		},
 		{
-			name: "Nodepool exist, but is not ready",
-			old:  rosaMachinePool(1),
-			new: &expinfrav1.ROSAMachinePool{
+			name:               "Nodepool exist, but is not ready",
+			machinePool:        ownerMachinePool(1),
+			oldROSAMachinePool: rosaMachinePool(1),
+			newROSAMachinePool: &expinfrav1.ROSAMachinePool{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rosa-machinepool",
 					Namespace: ns.Name,
@@ -297,9 +300,10 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 			},
 		},
 		{
-			name: "Nodepool is ready",
-			old:  rosaMachinePool(2),
-			new: &expinfrav1.ROSAMachinePool{
+			name:               "Nodepool is ready",
+			machinePool:        ownerMachinePool(2),
+			oldROSAMachinePool: rosaMachinePool(2),
+			newROSAMachinePool: &expinfrav1.ROSAMachinePool{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rosa-machinepool",
 					Namespace: ns.Name,
@@ -343,6 +347,151 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 				m.CreateNodePool(gomock.Any(), gomock.Any()).Times(0)
 			},
 		},
+		{
+			name: "Create nodepool, replicas are set in MachinePool",
+			machinePool: &expclusterv1.MachinePool{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ownerMachinePool(3).Name,
+					Namespace: ns.Name,
+					Labels:    map[string]string{clusterv1.ClusterNameLabel: ownerCluster(3).Name},
+					UID:       types.UID("owner-mp-uid--3"),
+				},
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "MachinePool",
+					APIVersion: clusterv1.GroupVersion.String(),
+				},
+				Spec: expclusterv1.MachinePoolSpec{
+					ClusterName: ownerCluster(3).Name,
+					Replicas:    ptr.To[int32](2),
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							ClusterName: ownerCluster(3).Name,
+							InfrastructureRef: corev1.ObjectReference{
+								UID:        rosaMachinePool(3).UID,
+								Name:       rosaMachinePool(3).Name,
+								Namespace:  ns.Namespace,
+								Kind:       "ROSAMachinePool",
+								APIVersion: expclusterv1.GroupVersion.String(),
+							},
+						},
+					},
+				},
+			},
+			oldROSAMachinePool: rosaMachinePool(3),
+			newROSAMachinePool: &expinfrav1.ROSAMachinePool{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rosa-machinepool",
+					Namespace: ns.Name,
+					UID:       "rosa-machinepool",
+				},
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "ROSAMachinePool",
+					APIVersion: expinfrav1.GroupVersion.String(),
+				},
+				Spec: expinfrav1.RosaMachinePoolSpec{
+					NodePoolName: "test-nodepool",
+					Version:      "4.14.5",
+					Subnet:       "subnet-id",
+					InstanceType: "m5.large",
+				},
+				Status: expinfrav1.RosaMachinePoolStatus{
+					Ready: false,
+					ID:    rosaMachinePool(3).Spec.NodePoolName,
+				},
+			},
+			result: ctrl.Result{},
+			expect: func(m *mocks.MockOCMClientMockRecorder) {
+				m.GetNodePool(gomock.Any(), gomock.Any()).DoAndReturn(func(clusterId string, nodePoolID string) (*cmv1.NodePool, bool, error) {
+					return nil, false, nil
+				}).Times(1)
+				m.CreateNodePool(gomock.Any(), matchesReplicas(2)).DoAndReturn(func(clusterId string, nodePool *cmv1.NodePool) (*cmv1.NodePool, error) {
+					return nodePool, nil
+				}).Times(1)
+			},
+		},
+		{
+			name: "Update nodepool, replicas are updated from MachinePool",
+			machinePool: &expclusterv1.MachinePool{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ownerMachinePool(4).Name,
+					Namespace: ns.Name,
+					Labels:    map[string]string{clusterv1.ClusterNameLabel: ownerCluster(4).Name},
+					UID:       types.UID("owner-mp-uid--4"),
+				},
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "MachinePool",
+					APIVersion: clusterv1.GroupVersion.String(),
+				},
+				Spec: expclusterv1.MachinePoolSpec{
+					ClusterName: ownerCluster(4).Name,
+					Replicas:    ptr.To[int32](2),
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							ClusterName: ownerCluster(4).Name,
+							InfrastructureRef: corev1.ObjectReference{
+								UID:        rosaMachinePool(4).UID,
+								Name:       rosaMachinePool(4).Name,
+								Namespace:  ns.Namespace,
+								Kind:       "ROSAMachinePool",
+								APIVersion: expclusterv1.GroupVersion.String(),
+							},
+						},
+					},
+				},
+			},
+			oldROSAMachinePool: rosaMachinePool(4),
+			newROSAMachinePool: &expinfrav1.ROSAMachinePool{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "rosa-machinepool",
+					Namespace: ns.Name,
+					UID:       "rosa-machinepool",
+				},
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "ROSAMachinePool",
+					APIVersion: expinfrav1.GroupVersion.String(),
+				},
+				Spec: expinfrav1.RosaMachinePoolSpec{
+					NodePoolName: "test-nodepool",
+					Version:      "4.14.5",
+					Subnet:       "subnet-id",
+					InstanceType: "m5.large",
+				},
+				Status: expinfrav1.RosaMachinePoolStatus{
+					// Ready:    false,
+					Ready:    true,
+					Replicas: 2,
+				},
+			},
+			result: ctrl.Result{},
+			expect: func(m *mocks.MockOCMClientMockRecorder) {
+				m.GetNodePool(gomock.Any(), gomock.Any()).DoAndReturn(func(clusterId string, nodePoolID string) (*cmv1.NodePool, bool, error) {
+					rosaSpec := rosaMachinePool(4).Spec
+					rosaSpec.UpdateConfig = &expinfrav1.RosaUpdateConfig{
+						RollingUpdate: &expinfrav1.RollingUpdate{
+							MaxSurge:       ptr.To(intstr.FromInt32(1)),
+							MaxUnavailable: ptr.To(intstr.FromInt32(0)),
+						},
+					}
+					nodePoolBuilder := nodePoolBuilder(rosaSpec, ownerMachinePool(4).Spec, rosacontrolplanev1.Stable)
+					statusBuilder := (&cmv1.NodePoolStatusBuilder{}).CurrentReplicas(1)
+					nodeGrace := (&cmv1.ValueBuilder{}).Unit("s").Value(0)
+					nodePool, err := nodePoolBuilder.ID("test-nodepool").Replicas(1).Status(statusBuilder).AutoRepair(true).NodeDrainGracePeriod(nodeGrace).Build()
+					g.Expect(err).NotTo(HaveOccurred())
+
+					return nodePool, true, nil
+				}).Times(1)
+				m.UpdateNodePool(gomock.Any(), matchesReplicas(2)).DoAndReturn(func(clusterID string, nodePool *cmv1.NodePool) (*cmv1.NodePool, error) {
+					statusBuilder := (&cmv1.NodePoolStatusBuilder{}).CurrentReplicas(2)
+					version := (&cmv1.VersionBuilder{}).RawID("4.14.5")
+					npBuilder := cmv1.NodePoolBuilder{}
+					updatedNodePool, err := npBuilder.Copy(nodePool).Status(statusBuilder).Version(version).Build()
+					g.Expect(err).NotTo(HaveOccurred())
+
+					return updatedNodePool, nil
+				}).Times(1)
+				m.CreateNodePool(gomock.Any(), gomock.Any()).Times(0)
+			},
+		},
 	}
 
 	createObject(g, secret, ns.Name)
@@ -353,7 +502,7 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 	for i, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			// This is set by CAPI MachinePool reconcile
-			test.old.OwnerReferences = []metav1.OwnerReference{
+			test.oldROSAMachinePool.OwnerReferences = []metav1.OwnerReference{
 				{
 					Name:       ownerMachinePool(i).Name,
 					UID:        ownerMachinePool(i).UID,
@@ -362,7 +511,7 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 				},
 			}
 			cp := rosaControlPlane(i)
-			objects := []client.Object{ownerCluster(i), ownerMachinePool(i), cp, test.old}
+			objects := []client.Object{ownerCluster(i), test.machinePool, cp, test.oldROSAMachinePool}
 
 			for _, obj := range objects {
 				createObject(g, obj, ns.Name)
@@ -374,8 +523,8 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 			g.Expect(err).ShouldNot(HaveOccurred())
 
 			// patch status conditions
-			rmpPh, err := patch.NewHelper(test.old, testEnv)
-			test.old.Status.Conditions = clusterv1.Conditions{
+			rmpPh, err := patch.NewHelper(test.oldROSAMachinePool, testEnv)
+			test.oldROSAMachinePool.Status.Conditions = clusterv1.Conditions{
 				{
 					Type:   "Paused",
 					Status: corev1.ConditionFalse,
@@ -383,7 +532,7 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 				},
 			}
 
-			g.Expect(rmpPh.Patch(ctx, test.old)).To(Succeed())
+			g.Expect(rmpPh.Patch(ctx, test.oldROSAMachinePool)).To(Succeed())
 			g.Expect(err).ShouldNot(HaveOccurred())
 
 			// patching is not reliably synchronous
@@ -410,7 +559,7 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 			}
 
 			req := ctrl.Request{}
-			req.NamespacedName = types.NamespacedName{Name: test.old.Name, Namespace: ns.Name}
+			req.NamespacedName = types.NamespacedName{Name: test.oldROSAMachinePool.Name, Namespace: ns.Name}
 
 			result, errReconcile := r.Reconcile(ctx, req)
 			g.Expect(errReconcile).ToNot(HaveOccurred())
@@ -418,12 +567,12 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 			time.Sleep(50 * time.Millisecond)
 
 			m := &expinfrav1.ROSAMachinePool{}
-			key := client.ObjectKey{Name: test.old.Name, Namespace: ns.Name}
+			key := client.ObjectKey{Name: test.oldROSAMachinePool.Name, Namespace: ns.Name}
 			errGet := testEnv.Get(ctx, key, m)
 			g.Expect(errGet).NotTo(HaveOccurred())
-			g.Expect(m.Status.Ready).To(Equal(test.new.Status.Ready))
-			g.Expect(m.Status.Replicas).To(Equal(test.new.Status.Replicas))
-			g.Expect(m.Status.ID).To(Equal(test.new.Status.ID))
+			g.Expect(m.Status.Ready).To(Equal(test.newROSAMachinePool.Status.Ready))
+			g.Expect(m.Status.Replicas).To(Equal(test.newROSAMachinePool.Status.Replicas))
+			g.Expect(m.Status.ID).To(Equal(test.newROSAMachinePool.Status.ID))
 
 			// cleanup
 			for _, obj := range objects {
@@ -555,4 +704,25 @@ func cleanupObject(g *WithT, obj client.Object) {
 	if obj.DeepCopyObject() != nil {
 		g.Expect(testEnv.Cleanup(ctx, obj)).To(Succeed())
 	}
+}
+
+type replicasMatcher struct {
+	replicas int
+}
+
+func (m replicasMatcher) Matches(arg interface{}) bool {
+	sarg := arg.(*cmv1.NodePool)
+	if sarg != nil && sarg.Replicas() == m.replicas {
+		return true
+	}
+	return false
+}
+
+// Not used here, but satisfies the Matcher interface.
+func (m replicasMatcher) String() string {
+	return fmt.Sprintf("Replicas %v", m.replicas)
+}
+
+func matchesReplicas(replicas int) gomock.Matcher {
+	return replicasMatcher{replicas: replicas}
 }
