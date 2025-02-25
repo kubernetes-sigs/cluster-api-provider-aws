@@ -2,18 +2,18 @@
   "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.13.7/.schema/devbox.schema.json",
   "packages": [
     "go@1.22",
-    "kubectl",
-    "kind",
-    "docker",
-    "helm",
-    "jq",
-    "yq",
-    "git",
-    "k9s",
-    "tilt",
-    "awscli"
+    "git@latest",
+    "jq@latest",
+    "yq@latest",
+    "awscli2@latest",
+    "kind@latest",
+    "helm@latest",
+    "kubectl@latest"
   ],
   "shell": {
+    "init_hook": [
+      "source ./scripts/devbox-init-hook.sh"
+    ],
     "scripts": {
       "build": [
         "make clusterawsadm"
