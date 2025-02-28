@@ -22,9 +22,9 @@ import (
 
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/util/homedir"
+	"k8s.io/kubectl/pkg/util/templates"
 
 	gcproc "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/gc"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 
 func newDisableCmd() *cobra.Command {
@@ -42,12 +42,12 @@ func newDisableCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "disable",
 		Short: "Mark a cluster as NOT requiring external resource garbage collection",
-		Long: cmd.LongDesc(`
+		Long: templates.LongDesc(`
 			This command will mark the given cluster as not requiring external
 			resource garbage collection (i.e. deleting) when the cluster is
 			requested to be deleted.
 		`),
-		Example: cmd.Examples(`
+		Example: templates.Examples(`
 			# Disable GC for a cluster using existing k8s context
 			clusterawsadm gc disable --cluster-name=test-cluster
 

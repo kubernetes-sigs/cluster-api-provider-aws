@@ -31,7 +31,6 @@ import (
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -176,7 +175,7 @@ func (m *MachineScope) SetFailureMessage(v error) {
 }
 
 // SetFailureReason sets the AWSMachine status failure reason.
-func (m *MachineScope) SetFailureReason(v capierrors.MachineStatusError) {
+func (m *MachineScope) SetFailureReason(v string) {
 	m.AWSMachine.Status.FailureReason = &v
 }
 
