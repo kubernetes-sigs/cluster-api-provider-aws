@@ -22,9 +22,9 @@ import (
 
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/util/homedir"
+	"k8s.io/kubectl/pkg/util/templates"
 
 	gcproc "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/gc"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 
 func newConfigureCmd() *cobra.Command {
@@ -43,12 +43,12 @@ func newConfigureCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "configure",
 		Short: "Specify what cleanup tasks will be executed on a given cluster",
-		Long: cmd.LongDesc(`
+		Long: templates.LongDesc(`
 			This command will set what cleanup tasks to execute on the given cluster
 			during garbage collection (i.e. deleting) when the cluster is
 			requested to be deleted. Supported values: load-balancer, security-group, target-group.
 		`),
-		Example: cmd.Examples(`
+		Example: templates.Examples(`
 			# Configure GC for a cluster to delete only load balancers and security groups using existing k8s context
 			clusterawsadm gc configure --cluster-name=test-cluster --gc-task load-balancer --gc-task security-group
 

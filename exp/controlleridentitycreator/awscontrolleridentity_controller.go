@@ -136,7 +136,7 @@ func (r *AWSControllerIdentityReconciler) SetupWithManager(ctx context.Context, 
 		For(&infrav1.AWSCluster{}).
 		Named("awscontrolleridentity").
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(logger.FromContext(ctx).GetLogger(), r.WatchFilterValue))
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), logger.FromContext(ctx).GetLogger(), r.WatchFilterValue))
 
 	if feature.Gates.Enabled(feature.EKS) {
 		controller.Watches(
