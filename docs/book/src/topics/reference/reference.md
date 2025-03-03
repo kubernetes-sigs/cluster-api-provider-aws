@@ -16,3 +16,5 @@
 | AlternativeGCStrategy         | EXP_ALTERNATIVE_GC_STRATEGY       | false   |
 | TagUnmanagedNetworkResources  | TAG_UNMANAGED_NETWORK_RESOURCES   | true    |
 | ROSA                          | EXP_ROSA                          | false   |
+| AWSMachine                    | CAPA_AWS_MACHINE                  | true    |
+| AWSCluster                    | CAPA_AWS_CLUSTER                  | true    |
