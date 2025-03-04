@@ -1,8 +1,8 @@
-# Creating a ROSA cluster
+# Creating a ROSA HCP cluster
 
 ## Permissions
 ### Authentication using service account credentials
-CAPA controller requires service account credentials to be able to provision ROSA clusters:
+CAPA controller requires service account credentials to be able to provision ROSA HCP clusters:
 1. Visit [https://console.redhat.com/iam/service-accounts](https://console.redhat.com/iam/service-accounts) and create a new service account.
 
 1. Create a new kubernetes secret with the service account credentials to be referenced later by `ROSAControlPlane`
@@ -80,7 +80,7 @@ The SSO offline token is being deprecated and it is recommended to use service a
 
 Follow the guide [here](https://docs.aws.amazon.com/ROSA/latest/userguide/getting-started-hcp.html) up until [Step 3](https://docs.aws.amazon.com/ROSA/latest/userguide/getting-started-hcp.html#getting-started-hcp-step-3) 
 to install the required tools and setup the prerequisite infrastructure.
-Once Step 3 is done, you will be ready to proceed with creating a ROSA cluster using cluster-api.
+Once Step 3 is done, you will be ready to proceed with creating a ROSA HCP cluster using cluster-api.
 
 ## Creating the cluster
 
@@ -101,7 +101,7 @@ Once Step 3 is done, you will be ready to proceed with creating a ROSA cluster u
     export PRIVATE_SUBNET_ID="subnet-05e72222222222222"
     ```
 
-1. Render the cluster manifest using the ROSA cluster template:
+1. Render the cluster manifest using the ROSA HCP cluster template:
     ```shell
     clusterctl generate cluster <cluster-name> --from templates/cluster-template-rosa.yaml > rosa-capi-cluster.yaml
     ```

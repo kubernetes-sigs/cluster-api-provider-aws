@@ -1,6 +1,6 @@
 # External Auth Providers (BYOI)
 
-ROSA allows you to Bring Your Own Identity (BYOI) to manage and authenticate cluster users.
+ROSA HCP allows you to Bring Your Own Identity (BYOI) to manage and authenticate cluster users.
 
 ## Enabling
 
@@ -16,7 +16,7 @@ spec:
   ....
 ```
 
-Note: This feauture requires OpenShift version `4.15.5` or newer.
+Note: This feature requires OpenShift version `4.15.5` or newer.
 
 ## Usage
 
