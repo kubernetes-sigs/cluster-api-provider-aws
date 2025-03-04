@@ -545,6 +545,14 @@ func (s *Service) reconcileClassicLoadBalancer() error {
 			}
 		}
 
+		if !cmp.Equal(spec.HealthCheck, apiELB.HealthCheck) {
+			s.scope.Debug("Reconciling health check for apiserver load balancer", "health-check", spec.HealthCheck)
+			err := s.configureHealthCheck(apiELB.Name, spec.HealthCheck)
+			if err != nil {
+				return err
+			}
+		}
+
 		if err := s.reconcileELBTags(apiELB, spec.Tags); err != nil {
 			return errors.Wrapf(err, "failed to reconcile tags for apiserver load balancer %q", apiELB.Name)
 		}
@@ -584,6 +592,22 @@ func (s *Service) reconcileClassicLoadBalancer() error {
 	s.scope.Trace("Control plane load balancer", "api-server-elb", apiELB)
 
 	s.scope.Debug("Reconcile load balancers completed successfully")
+	return nil
+}
+
+func (s *Service) configureHealthCheck(name string, healthCheck *infrav1.ClassicELBHealthCheck) error {
+	if _, err := s.ELBClient.ConfigureHealthCheck(&elb.ConfigureHealthCheckInput{
+		LoadBalancerName: aws.String(name),
+		HealthCheck: &elb.HealthCheck{
+			Target:             aws.String(healthCheck.Target),
+			Interval:           aws.Int64(int64(healthCheck.Interval.Seconds())),
+			Timeout:            aws.Int64(int64(healthCheck.Timeout.Seconds())),
+			HealthyThreshold:   aws.Int64(healthCheck.HealthyThreshold),
+			UnhealthyThreshold: aws.Int64(healthCheck.UnhealthyThreshold),
+		},
+	}); err != nil {
+		return errors.Wrapf(err, "failed to configure health check for classic load balancer: %s", name)
+	}
 	return nil
 }
 
@@ -1732,7 +1756,7 @@ func (s *Service) createTargetGroup(ln infrav1.Listener, tags map[string]string)
 
 func (s *Service) getHealthCheckTarget() string {
 	controlPlaneELB := s.scope.ControlPlaneLoadBalancer()
-	protocol := &infrav1.ELBProtocolSSL
+	protocol := &infrav1.ELBProtocolTCP
 	if controlPlaneELB != nil && controlPlaneELB.HealthCheckProtocol != nil {
 		protocol = controlPlaneELB.HealthCheckProtocol
 		if protocol.String() == infrav1.ELBProtocolHTTP.String() || protocol.String() == infrav1.ELBProtocolHTTPS.String() {
