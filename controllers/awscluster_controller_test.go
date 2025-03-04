@@ -189,7 +189,7 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 		expect := func(m *mocks.MockEC2APIMockRecorder, e *mocks.MockELBAPIMockRecorder) {
 			mockedVPCCallsForExistingVPCAndSubnets(m)
 			mockedCreateSGCalls(false, "vpc-exists", m)
-			mockedCreateLBCalls(t, e)
+			mockedCreateLBCalls(t, e, true)
 			mockedDescribeInstanceCall(m)
 			mockedDescribeAvailabilityZones(m, []string{"us-east-1c", "us-east-1a"})
 		}
@@ -648,7 +648,8 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 
 		err = reconciler.reconcileDelete(ctx, cs)
 		g.Expect(err).To(BeNil())
-		expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{{infrav1.LoadBalancerReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
+		expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{
+			{infrav1.LoadBalancerReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
 			{infrav1.BastionHostReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
 			{infrav1.SecondaryCidrsReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletingReason},
 			{infrav1.RouteTablesReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
@@ -786,7 +787,8 @@ func mockedVPCCallsForExistingVPCAndSubnets(m *mocks.MockEC2APIMockRecorder) {
 				Name:   aws.String("state"),
 				Values: aws.StringSlice([]string{ec2.VpcStatePending, ec2.VpcStateAvailable}),
 			},
-		}}), gomock.Any()).Return(nil)
+		},
+	}), gomock.Any()).Return(nil)
 	m.CreateTagsWithContext(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
 		Resources: aws.StringSlice([]string{"subnet-1"}),
 		Tags: []*ec2.Tag{
@@ -823,7 +825,8 @@ func mockedVPCCallsForExistingVPCAndSubnets(m *mocks.MockEC2APIMockRecorder) {
 				Name:   aws.String("vpc-id"),
 				Values: aws.StringSlice([]string{"vpc-exists"}),
 			},
-		}})).Return(&ec2.DescribeSubnetsOutput{
+		},
+	})).Return(&ec2.DescribeSubnetsOutput{
 		Subnets: []*ec2.Subnet{
 			{
 				VpcId:               aws.String("vpc-exists"),
@@ -865,7 +868,8 @@ func mockedVPCCallsForExistingVPCAndSubnets(m *mocks.MockEC2APIMockRecorder) {
 				Name:   aws.String("vpc-id"),
 				Values: aws.StringSlice([]string{"vpc-exists"}),
 			},
-		}})).Return(&ec2.DescribeRouteTablesOutput{
+		},
+	})).Return(&ec2.DescribeRouteTablesOutput{
 		RouteTables: []*ec2.RouteTable{
 			{
 				Routes: []*ec2.Route{
@@ -886,7 +890,8 @@ func mockedVPCCallsForExistingVPCAndSubnets(m *mocks.MockEC2APIMockRecorder) {
 				Name:   aws.String("state"),
 				Values: aws.StringSlice([]string{ec2.VpcStatePending, ec2.VpcStateAvailable}),
 			},
-		}}), gomock.Any()).Return(nil)
+		},
+	}), gomock.Any()).Return(nil)
 	m.DescribeVpcsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeVpcsInput{
 		VpcIds: []*string{
 			aws.String("vpc-exists"),
@@ -997,7 +1002,8 @@ func mockedCallsForMissingEverything(m *mocks.MockEC2APIMockRecorder, e *mocks.M
 				Name:   aws.String("vpc-id"),
 				Values: aws.StringSlice([]string{"vpc-new"}),
 			},
-		}})).Return(&ec2.DescribeSubnetsOutput{
+		},
+	})).Return(&ec2.DescribeSubnetsOutput{
 		Subnets: []*ec2.Subnet{},
 	}, nil)
 
@@ -1152,7 +1158,8 @@ func mockedCallsForMissingEverything(m *mocks.MockEC2APIMockRecorder, e *mocks.M
 				Name:   aws.String("tag-key"),
 				Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"}),
 			},
-		}})).Return(&ec2.DescribeRouteTablesOutput{
+		},
+	})).Return(&ec2.DescribeRouteTablesOutput{
 		RouteTables: []*ec2.RouteTable{
 			{
 				Routes: []*ec2.Route{
@@ -1212,7 +1219,8 @@ func mockedCallsForMissingEverything(m *mocks.MockEC2APIMockRecorder, e *mocks.M
 				Name:   aws.String("state"),
 				Values: aws.StringSlice([]string{ec2.VpcStatePending, ec2.VpcStateAvailable}),
 			},
-		}}), gomock.Any()).Return(nil).MinTimes(1).MaxTimes(2)
+		},
+	}), gomock.Any()).Return(nil).MinTimes(1).MaxTimes(2)
 
 	m.DescribeAddressesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeAddressesInput{
 		Filters: []*ec2.Filter{
@@ -1411,7 +1419,7 @@ func mockedCallsForMissingEverything(m *mocks.MockEC2APIMockRecorder, e *mocks.M
 	e.ConfigureHealthCheck(gomock.Eq(&elb.ConfigureHealthCheckInput{
 		LoadBalancerName: aws.String("test-cluster-apiserver"),
 		HealthCheck: &elb.HealthCheck{
-			Target:             aws.String("SSL:6443"),
+			Target:             aws.String("TCP:6443"),
 			Interval:           aws.Int64(10),
 			Timeout:            aws.Int64(5),
 			HealthyThreshold:   aws.Int64(5),
@@ -1438,20 +1446,24 @@ func mockedDeleteVPCCallsForNonExistentVPC(m *mocks.MockEC2APIMockRecorder) {
 				Name:   aws.String("tag-key"),
 				Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"}),
 			},
-		}})).Return(&ec2.DescribeSubnetsOutput{
+		},
+	})).Return(&ec2.DescribeSubnetsOutput{
 		Subnets: []*ec2.Subnet{},
 	}, nil).AnyTimes()
 	m.DescribeRouteTablesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeRouteTablesInput{
-		Filters: []*ec2.Filter{{
-			Name:   aws.String("vpc-id"),
-			Values: aws.StringSlice([]string{""}),
-		},
+		Filters: []*ec2.Filter{
+			{
+				Name:   aws.String("vpc-id"),
+				Values: aws.StringSlice([]string{""}),
+			},
 			{
 				Name:   aws.String("tag-key"),
 				Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"}),
 			},
-		}})).Return(&ec2.DescribeRouteTablesOutput{
-		RouteTables: []*ec2.RouteTable{}}, nil).AnyTimes()
+		},
+	})).Return(&ec2.DescribeRouteTablesOutput{
+		RouteTables: []*ec2.RouteTable{},
+	}, nil).AnyTimes()
 	m.DescribeInternetGatewaysWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInternetGatewaysInput{
 		Filters: []*ec2.Filter{
 			{
@@ -1483,7 +1495,8 @@ func mockedDeleteVPCCallsForNonExistentVPC(m *mocks.MockEC2APIMockRecorder) {
 		},
 	})).Return(nil, nil)
 	m.DeleteVpcWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DeleteVpcInput{
-		VpcId: aws.String("vpc-exists")})).Return(nil, nil)
+		VpcId: aws.String("vpc-exists"),
+	})).Return(nil, nil)
 }
 
 func mockedDeleteVPCCalls(m *mocks.MockEC2APIMockRecorder) {
@@ -1509,7 +1522,8 @@ func mockedDeleteVPCCalls(m *mocks.MockEC2APIMockRecorder) {
 				Name:   aws.String("vpc-id"),
 				Values: aws.StringSlice([]string{"vpc-exists"}),
 			},
-		}})).Return(&ec2.DescribeSubnetsOutput{
+		},
+	})).Return(&ec2.DescribeSubnetsOutput{
 		Subnets: []*ec2.Subnet{
 			{
 				VpcId:               aws.String("vpc-exists"),
@@ -1530,7 +1544,8 @@ func mockedDeleteVPCCalls(m *mocks.MockEC2APIMockRecorder) {
 				Name:   aws.String("tag-key"),
 				Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"}),
 			},
-		}})).Return(&ec2.DescribeRouteTablesOutput{
+		},
+	})).Return(&ec2.DescribeRouteTablesOutput{
 		RouteTables: []*ec2.RouteTable{
 			{
 				Routes: []*ec2.Route{
@@ -1577,7 +1592,8 @@ func mockedDeleteVPCCalls(m *mocks.MockEC2APIMockRecorder) {
 				Name:   aws.String("state"),
 				Values: aws.StringSlice([]string{ec2.VpcStatePending, ec2.VpcStateAvailable}),
 			},
-		}}), gomock.Any()).Return(nil).AnyTimes()
+		},
+	}), gomock.Any()).Return(nil).AnyTimes()
 	m.DescribeAddressesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeAddressesInput{
 		Filters: []*ec2.Filter{
 			{
@@ -1587,7 +1603,8 @@ func mockedDeleteVPCCalls(m *mocks.MockEC2APIMockRecorder) {
 			{
 				Name:   aws.String("tag:sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 				Values: aws.StringSlice([]string{"owned"}),
-			}},
+			},
+		},
 	})).Return(&ec2.DescribeAddressesOutput{
 		Addresses: []*ec2.Address{
 			{

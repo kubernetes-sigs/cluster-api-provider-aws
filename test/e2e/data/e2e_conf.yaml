@@ -17,7 +17,7 @@ images:
   - name: gcr.io/k8s-staging-cluster-api/capa-manager:e2e
     loadBehavior: mustLoad
 
-## PLEASE KEEP THESE UP TO DATE WITH THE COMPONENTS
+  ## PLEASE KEEP THESE UP TO DATE WITH THE COMPONENTS
 
   # Cluster API v1beta1 Preloads
   - name: quay.io/jetstack/cert-manager-cainjector:v1.16.1
@@ -123,7 +123,17 @@ providers:
         files:
           - sourcePath: "./shared/v1beta1_provider/metadata.yaml"
           - sourcePath: "./infrastructure-aws/capi-upgrades/v1beta1/cluster-template.yaml"
-      - name: v2.0.99
+      - name: "v2.7.1"
+        value: "https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases/download/v2.7.1/infrastructure-components.yaml"
+        type: "url"
+        contract: v1beta2
+        replacements:
+          - old: --metrics-addr=127.0.0.1:8080
+            new: --metrics-addr=:8080
+        files:
+          - sourcePath: "./shared/v1beta2_provider/v2.7/metadata.yaml"
+          - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-classicelb-upgrade.yaml"
+      - name: v9.9.99
         # Use manifest from source files
         value: ../../../config/default
         # Do not add contract field for v1beta1 --> v1beta2 clusterctl upgrades test to work.
@@ -208,6 +218,8 @@ variables:
   EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"
   EXP_EXTERNAL_RESOURCE_GC: "true"
   GC_WORKLOAD: "../../data/gcworkload.yaml"
+  CLASSICELB_TEST_KUBERNETES_VERSION_FROM: "v1.29.9"
+  CLASSICELB_TEST_KUBERNETES_VERSION_TO: "v1.30.8"
 
 intervals:
   default/wait-cluster: ["35m", "10s"]
@@ -223,8 +235,10 @@ intervals:
   default/wait-failed-machine-status: ["2m", "10s"]
   default/wait-infra-subnets: ["5m", "30s"]
   default/wait-machine-pool-nodes: ["40m", "10s"]
-  default/wait-machine-pool-upgrade: [ "50m", "10s" ]
+  default/wait-machine-pool-upgrade: ["50m", "10s"]
   default/wait-create-identity: ["1m", "10s"]
   default/wait-job: ["10m", "10s"]
   default/wait-deployment-ready: ["5m", "10s"]
   default/wait-loadbalancer-ready: ["5m", "30s"]
+  default/wait-classic-elb-health-check-short: ["1m", "10s"]
+  default/wait-classic-elb-health-check-long: ["10m", "10s"]

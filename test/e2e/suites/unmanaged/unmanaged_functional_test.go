@@ -204,7 +204,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			}, result)
 
 			// Check if bastion host is up and running
-			awsCluster, err := GetAWSClusterByName(ctx, namespace.Name, clusterName)
+			awsCluster, err := GetAWSClusterByName(ctx, e2eCtx.Environment.BootstrapClusterProxy, namespace.Name, clusterName)
 			Expect(err).To(BeNil())
 			Expect(awsCluster.Status.Bastion.State).To(Equal(infrav1.InstanceStateRunning))
 			expectAWSClusterConditions(awsCluster, []conditionAssertion{{infrav1.BastionHostReadyCondition, corev1.ConditionTrue, "", ""}})
@@ -413,7 +413,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			cluster, _, _ := createCluster(ctx, configCluster, result)
 
 			ginkgo.By("Validating that the subnet were created")
-			awsCluster, err := GetAWSClusterByName(ctx, namespace.Name, clusterName)
+			awsCluster, err := GetAWSClusterByName(ctx, e2eCtx.Environment.BootstrapClusterProxy, namespace.Name, clusterName)
 			Expect(err).To(BeNil())
 			for _, subnet := range awsCluster.Spec.NetworkSpec.Subnets {
 				Expect(subnet.GetResourceID()).To(HavePrefix("subnet-"))
@@ -885,7 +885,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			Expect(len(workerMachines)).To(Equal(1))
 			Expect(len(controlPlaneMachines)).To(Equal(1))
 
-			awsCluster, err := GetAWSClusterByName(ctx, namespace.Name, clusterName)
+			awsCluster, err := GetAWSClusterByName(ctx, e2eCtx.Environment.BootstrapClusterProxy, namespace.Name, clusterName)
 			Expect(err).To(BeNil())
 
 			ginkgo.By("Creating a MachineDeployment bootstrapped via Ignition with StorageType UnencryptedUserData")
@@ -945,7 +945,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 
 			ginkgo.By("Waiting for AWSCluster to show the VPC endpoint as deleted in conditions")
 			Eventually(func() bool {
-				awsCluster, err := GetAWSClusterByName(ctx, namespace.Name, clusterName)
+				awsCluster, err := GetAWSClusterByName(ctx, e2eCtx.Environment.BootstrapClusterProxy, namespace.Name, clusterName)
 				// If the cluster was already deleted, we can ignore the error.
 				if apierrors.IsNotFound(err) {
 					return true
