@@ -103,10 +103,10 @@ func (s *Service) reconcileAdditionalKubeconfigs(ctx context.Context, cluster *e
 			&clusterRef,
 		)
 		if createErr != nil {
-			return err
+			return fmt.Errorf("creating kubeconfig secret: %w", createErr)
 		}
 	} else if updateErr := s.updateUserKubeconfigSecret(ctx, configSecret, cluster); updateErr != nil {
-		return fmt.Errorf("updating kubeconfig secret: %w", err)
+		return fmt.Errorf("updating kubeconfig secret: %w", updateErr)
 	}
 
 	return nil
