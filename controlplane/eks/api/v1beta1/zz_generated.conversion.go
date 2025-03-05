@@ -384,6 +384,8 @@ func autoConvert_v1beta2_AWSManagedControlPlaneSpec_To_v1beta1_AWSManagedControl
 	out.Version = (*string)(unsafe.Pointer(in.Version))
 	out.RoleName = (*string)(unsafe.Pointer(in.RoleName))
 	out.RoleAdditionalPolicies = (*[]string)(unsafe.Pointer(in.RoleAdditionalPolicies))
+	// WARNING: in.RolePath requires manual conversion: does not exist in peer-type
+	// WARNING: in.RolePermissionsBoundary requires manual conversion: does not exist in peer-type
 	out.Logging = (*ControlPlaneLoggingSpec)(unsafe.Pointer(in.Logging))
 	out.EncryptionConfig = (*EncryptionConfig)(unsafe.Pointer(in.EncryptionConfig))
 	out.AdditionalTags = *(*apiv1beta2.Tags)(unsafe.Pointer(&in.AdditionalTags))

@@ -25,3 +25,7 @@ import (
 func Convert_v1beta1_AWSIAMConfigurationSpec_To_v1alpha1_AWSIAMConfigurationSpec(in *v1beta1.AWSIAMConfigurationSpec, out *AWSIAMConfigurationSpec, s conversion.Scope) error {
 	return autoConvert_v1beta1_AWSIAMConfigurationSpec_To_v1alpha1_AWSIAMConfigurationSpec(in, out, s)
 }
+
+func Convert_v1beta1_AWSIAMRoleSpec_To_v1alpha1_AWSIAMRoleSpec(in *v1beta1.AWSIAMRoleSpec, out *AWSIAMRoleSpec, s conversion.Scope) error {
+	return autoConvert_v1beta1_AWSIAMRoleSpec_To_v1alpha1_AWSIAMRoleSpec(in, out, s)
+}
