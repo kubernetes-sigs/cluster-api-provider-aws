@@ -221,4 +221,49 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 			shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
 		})
 	})
+
+	ginkgo.Describe("Feature Flags", func() {
+		ginkgo.BeforeEach(func() {
+			// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
+			requiredResources = &shared.TestResource{EC2Normal: 4 * e2eCtx.Settings.InstanceVCPU, IGW: 2, NGW: 2, VPC: 2, ClassicLB: 2, EIP: 2, EventBridgeRules: 50}
+			requiredResources.WriteRequestedResources(e2eCtx, "capi-ha-aws-feature-flags-enabled-test")
+			Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+		})
+
+		ginkgo.It("AWSMachine and AWSCluster are enabled by default", func() {
+			deployment, getErr := shared.GetDeployment(ctx, shared.GetDeploymentInput{
+				Getter:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+				Name:      "capa-controller-manager",
+				Namespace: "capa-system",
+			})
+
+			Expect(getErr).To(BeNil())
+			Expect(shared.ValidateAWSClusterEnabled(deployment)).To(BeNil())
+			Expect(shared.ValidateAWSMachineEnabled(deployment)).To(BeNil())
+		})
+
+		ginkgo.It("Disabling AWSCluster feature flag works correctly", func() {
+			shared.ReconfigureDeployment(ctx, shared.ReconfigureDeploymentInput{
+				Getter:       e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+				ClientSet:    e2eCtx.Environment.BootstrapClusterProxy.GetClientSet(),
+				Name:         "capa-controller-manager",
+				Namespace:    "capa-system",
+				WaitInterval: e2eCtx.E2EConfig.GetIntervals("", "wait-deployment-ready"),
+			}, shared.DisableAWSCluster, shared.ValidateAWSClusterDisabled)
+		})
+
+		ginkgo.It("Disabling AWSMachine feature flag works correctly", func() {
+			shared.ReconfigureDeployment(ctx, shared.ReconfigureDeploymentInput{
+				Getter:       e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+				ClientSet:    e2eCtx.Environment.BootstrapClusterProxy.GetClientSet(),
+				Name:         "capa-controller-manager",
+				Namespace:    "capa-system",
+				WaitInterval: e2eCtx.E2EConfig.GetIntervals("", "wait-deployment-ready"),
+			}, shared.DisableAWSMachine, shared.ValidateAWSMachineDisabled)
+		})
+
+		ginkgo.AfterEach(func() {
+			shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+		})
+	})
 })
