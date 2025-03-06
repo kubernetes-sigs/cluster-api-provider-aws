@@ -568,7 +568,7 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 		_, err = reconciler.reconcileNormal(cs)
 		g.Expect(err.Error()).To(ContainSubstring("The maximum number of VPCs has been reached"))
 
-		err = reconciler.reconcileDelete(ctx, cs)
+		_, err = reconciler.reconcileDelete(ctx, cs)
 		g.Expect(err).To(BeNil())
 	})
 	t.Run("Should successfully delete AWSCluster with managed VPC", func(t *testing.T) {
@@ -646,7 +646,7 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 			return sgSvc
 		}
 
-		err = reconciler.reconcileDelete(ctx, cs)
+		_, err = reconciler.reconcileDelete(ctx, cs)
 		g.Expect(err).To(BeNil())
 		expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{
 			{infrav1.LoadBalancerReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
