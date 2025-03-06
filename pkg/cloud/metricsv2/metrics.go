@@ -172,19 +172,20 @@ func getAttemptContextMiddleware() middleware.FinalizeMiddleware {
 }
 func getRecordAWSPermissionsIssueMiddleware(target runtime.Object) middleware.DeserializeMiddleware {
 	return middleware.DeserializeMiddlewareFunc("capa/RecordAWSPermissionsIssueMiddleware", func(ctx context.Context, input middleware.DeserializeInput, handler middleware.DeserializeHandler) (middleware.DeserializeOutput, middleware.Metadata, error) {
-		r, ok := input.Request.(*smithyhttp.ResponseError)
-		if !ok {
-			return middleware.DeserializeOutput{}, middleware.Metadata{}, fmt.Errorf("unknown transport type %T", input.Request)
-		}
-
-		var ae smithy.APIError
-		if errors.As(r.Err, &ae) {
-			switch ae.ErrorCode() {
-			case "AuthFailure", "UnauthorizedOperation", "NoCredentialProviders":
-				record.Warnf(target, ae.ErrorCode(), "Operation %s failed with a credentials or permission issue", awsmiddleware.GetOperationName(ctx))
+		output, metadata, err := handler.HandleDeserialize(ctx, input)
+		if err != nil {
+			var re *smithyhttp.ResponseError
+			if errors.As(err, &re) {
+				var ae smithy.APIError
+				if errors.As(re.Err, &ae) {
+					switch ae.ErrorCode() {
+					case "AuthFailure", "UnauthorizedOperation", "NoCredentialProviders":
+						record.Warnf(target, ae.ErrorCode(), "Operation %s failed with a credentials or permission issue", awsmiddleware.GetOperationName(ctx))
+					}
+				}
 			}
 		}
-		return handler.HandleDeserialize(ctx, input)
+		return output, metadata, err
 	})
 }
 
