@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package endpoints contains aws endpoint related utilities.
+// Package endpointsv2 contains aws endpoint related utilities.
 package endpointsv2
 
 import (
@@ -32,8 +32,8 @@ var (
 	errServiceEndpointSigningRegion      = errors.New("must be formatted as ${SigningRegion}:${ServiceID1}=${URL1},${ServiceID2}=${URL2...}")
 	errServiceEndpointURL                = errors.New("must use a valid URL as a service-endpoint")
 	errServiceEndpointDuplicateServiceID = errors.New("same serviceID defined twice for signing region")
-	// ServiceEndpointsMap Can be made private after Go SDK V2 migration
-	ServiceEndpointsMap map[string]ServiceEndpoint
+	// ServiceEndpointsMap Can be made private after Go SDK V2 migration.
+	ServiceEndpointsMap = map[string]ServiceEndpoint{}
 )
 
 // ServiceEndpoint contains AWS Service resolution information for SDK V2.
@@ -82,26 +82,26 @@ func ParseFlag(serviceEndpoints string) error {
 	return nil
 }
 
-// Custom EndpointResolverV2 ResolveEndpoint handlers
+// Custom EndpointResolverV2 ResolveEndpoint handlers.
 
-// MultiServiceEndpointResolver implements EndpointResolverV2 interface for services
+// MultiServiceEndpointResolver implements EndpointResolverV2 interface for services.
 type MultiServiceEndpointResolver struct {
 	endpoints map[string]ServiceEndpoint
 }
 
-// NewMultiServiceEndpointResolver returns new MultiServiceEndpointResolver
+// NewMultiServiceEndpointResolver returns new MultiServiceEndpointResolver.
 func NewMultiServiceEndpointResolver() *MultiServiceEndpointResolver {
 	return &MultiServiceEndpointResolver{
 		endpoints: ServiceEndpointsMap,
 	}
 }
 
-// S3EndpointResolver implements EndpointResolverV2 interface for S3
+// S3EndpointResolver implements EndpointResolverV2 interface for S3.
 type S3EndpointResolver struct {
 	*MultiServiceEndpointResolver
 }
 
-// ResolveEndpoint for S3
+// ResolveEndpoint for S3.
 func (s *S3EndpointResolver) ResolveEndpoint(ctx context.Context, params s3.EndpointParameters) (smithyendpoints.Endpoint, error) {
 	// If custom endpoint not found, return default endpoint for the service
 	if _, ok := s.endpoints[s3.ServiceID]; !ok {

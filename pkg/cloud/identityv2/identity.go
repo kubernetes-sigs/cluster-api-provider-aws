@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package identity provides the AWSPrincipalTypeProvider interface and its implementations.
+// Package identityv2 provides the AWSPrincipalTypeProvider interface and its implementations.
 package identityv2
 
 import (
@@ -158,7 +158,6 @@ func (p *AWSRolePrincipalTypeProvider) Name() string {
 
 // Retrieve returns the credential values for the AWSRolePrincipalTypeProvider.
 func (p *AWSRolePrincipalTypeProvider) Retrieve(ctx context.Context) (aws.Credentials, error) {
-
 	if p.credentials == nil {
 		optFns := []func(*config.LoadOptions) error{config.WithRegion(p.region)}
 		if p.sourceProvider != nil {

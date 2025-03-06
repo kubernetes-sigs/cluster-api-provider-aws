@@ -90,7 +90,7 @@ func NewManagedMachinePoolScope(params ManagedMachinePoolScopeParams) (*ManagedM
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
 
-	sessionv2, _, err := sessionForClusterWithRegionV2(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
+	sessionv2, serviceLimitersv2, err := sessionForClusterWithRegionV2(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
 	}
@@ -118,6 +118,7 @@ func NewManagedMachinePoolScope(params ManagedMachinePoolScopeParams) (*ManagedM
 		session:              session,
 		sessionV2:            *sessionv2,
 		serviceLimiters:      serviceLimiters,
+		serviceLimitersV2:    serviceLimitersv2,
 		controllerName:       params.ControllerName,
 		enableIAM:            params.EnableIAM,
 		allowAdditionalRoles: params.AllowAdditionalRoles,
@@ -137,10 +138,11 @@ type ManagedMachinePoolScope struct {
 	MachinePool        *expclusterv1.MachinePool
 	EC2Scope           EC2Scope
 
-	session         awsclient.ConfigProvider
-	sessionV2       awsv2.Config
-	serviceLimiters throttle.ServiceLimiters
-	controllerName  string
+	session           awsclient.ConfigProvider
+	sessionV2         awsv2.Config
+	serviceLimiters   throttle.ServiceLimiters
+	serviceLimitersV2 throttle.ServiceLimiters
+	controllerName    string
 
 	enableIAM            bool
 	allowAdditionalRoles bool
@@ -309,7 +311,7 @@ func (s *ManagedMachinePoolScope) Session() awsclient.ConfigProvider {
 	return s.session
 }
 
-// Session returns the AWS SDK V2 config. Used for creating clients.
+// SessionV2 returns the AWS SDK V2 config. Used for creating clients.
 func (s *ManagedMachinePoolScope) SessionV2() awsv2.Config {
 	return s.sessionV2
 }

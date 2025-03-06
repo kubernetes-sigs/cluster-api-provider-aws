@@ -23,6 +23,7 @@ package mocks
 import (
 	reflect "reflect"
 
+	aws "github.com/aws/aws-sdk-go-v2/aws"
 	client "github.com/aws/aws-sdk-go/aws/client"
 	logging "github.com/aws/smithy-go/logging"
 	logr "github.com/go-logr/logr"
@@ -360,6 +361,20 @@ func (m *MockClusterScoper) Session() client.ConfigProvider {
 func (mr *MockClusterScoperMockRecorder) Session() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Session", reflect.TypeOf((*MockClusterScoper)(nil).Session))
+}
+
+// SessionV2 mocks base method.
+func (m *MockClusterScoper) SessionV2() aws.Config {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SessionV2")
+	ret0, _ := ret[0].(aws.Config)
+	return ret0
+}
+
+// SessionV2 indicates an expected call of SessionV2.
+func (mr *MockClusterScoperMockRecorder) SessionV2() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SessionV2", reflect.TypeOf((*MockClusterScoper)(nil).SessionV2))
 }
 
 // SetFailureDomain mocks base method.
