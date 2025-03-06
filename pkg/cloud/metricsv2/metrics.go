@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package metrics provides a way to capture request metrics.
+// Package metricsv2 provides a way to capture request metrics.
 package metricsv2
 
 import (
@@ -85,6 +85,7 @@ func init() {
 
 type requestContextKey struct{}
 
+// RequestData holds information related to request metrics.
 type RequestData struct {
 	RequestStartTime time.Time
 	RequestEndTime   time.Time
@@ -100,7 +101,8 @@ type RequestData struct {
 	Attempts         int
 }
 
-// Inspired by https://github.com/jonathan-innis/aws-sdk-go-prometheus/v2
+// WithMiddlewares adds instrumentation middleware stacks to AWS GO SDK V2 service clients.
+// Inspired by https://github.com/jonathan-innis/aws-sdk-go-prometheus/v2.
 func WithMiddlewares(controller string, target runtime.Object) func(stack *middleware.Stack) error {
 	return func(stack *middleware.Stack) error {
 		if err := stack.Initialize.Add(getMetricCollectionMiddleware(controller, target), middleware.Before); err != nil {
@@ -115,10 +117,7 @@ func WithMiddlewares(controller string, target runtime.Object) func(stack *middl
 		if err := stack.Finalize.Insert(getAttemptContextMiddleware(), "Retry", middleware.After); err != nil {
 			return err
 		}
-		if err := stack.Deserialize.Add(getRecordAWSPermissionsIssueMiddleware(target), middleware.After); err != nil {
-			return err
-		}
-		return nil
+		return stack.Deserialize.Add(getRecordAWSPermissionsIssueMiddleware(target), middleware.After)
 	}
 }
 
@@ -148,13 +147,17 @@ func getRequestMetricContextMiddleware() middleware.FinalizeMiddleware {
 	})
 }
 
-// For capturing retry count and status codes
+// For capturing retry count and status codes.
 func getAttemptContextMiddleware() middleware.FinalizeMiddleware {
 	return middleware.FinalizeMiddlewareFunc("capa/AttemptMetricContextMiddleware", func(ctx context.Context, input middleware.FinalizeInput, handler middleware.FinalizeHandler) (middleware.FinalizeOutput, middleware.Metadata, error) {
 		request := getContext(ctx)
 		request.Attempts++
 		out, metadata, err := handler.HandleFinalize(ctx, input)
 		response := getRawResponse(metadata)
+
+		if response.Body != nil {
+			defer response.Body.Close()
+		}
 
 		// This will record only last attempts status code.
 		// Can be further extended to capture status codes of all attempts
@@ -167,7 +170,6 @@ func getAttemptContextMiddleware() middleware.FinalizeMiddleware {
 		return out, metadata, err
 	})
 }
-
 func getRecordAWSPermissionsIssueMiddleware(target runtime.Object) middleware.DeserializeMiddleware {
 	return middleware.DeserializeMiddlewareFunc("capa/RecordAWSPermissionsIssueMiddleware", func(ctx context.Context, input middleware.DeserializeInput, handler middleware.DeserializeHandler) (middleware.DeserializeOutput, middleware.Metadata, error) {
 		r, ok := input.Request.(*smithyhttp.ResponseError)

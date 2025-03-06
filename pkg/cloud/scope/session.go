@@ -78,7 +78,7 @@ var SessionInterface interface {
 }
 
 // ChainCredentialsProvider defines custom CredentialsProvider chain
-// NewChainCredentialsProvider can be used to initialize this struct
+// NewChainCredentialsProvider can be used to initialize this struct.
 type ChainCredentialsProvider struct {
 	providers []awsv2.CredentialsProvider
 }
@@ -122,18 +122,6 @@ func sessionForRegionV2(region string, _ []ServiceEndpoint) (*awsv2.Config, thro
 		entry := s.(*sessionCacheEntry)
 		return entry.sessionV2, entry.serviceLimiters, nil
 	}
-
-	// resolver := func(service, region string, optFns ...func(*endpoints.Options)) (endpoints.ResolvedEndpoint, error) {
-	// 	for _, s := range endpoint {
-	// 		if service == s.ServiceID {
-	// 			return endpoints.ResolvedEndpoint{
-	// 				URL:           s.URL,
-	// 				SigningRegion: s.SigningRegion,
-	// 			}, nil
-	// 		}
-	// 	}
-	// 	return endpoints.DefaultResolver().EndpointFor(service, region, optFns...)
-	// }
 
 	optFns := []func(*config.LoadOptions) error{
 		config.WithRegion(region),
@@ -240,19 +228,6 @@ func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.Se
 func sessionForClusterWithRegionV2(k8sClient client.Client, clusterScoper cloud.SessionMetadata, region string, _ []ServiceEndpoint, log logger.Wrapper) (*awsv2.Config, throttle.ServiceLimiters, error) {
 	log = log.WithName("identity")
 	log.Trace("Creating an AWS Session")
-
-	// Note: EndpointResoler now moved to service specific module pass endpoint list in the scope
-	// resolver := func(service, region string, optFns ...func(*endpoints.Options)) (endpoints.ResolvedEndpoint, error) {
-	// 	for _, s := range endpoint {
-	// 		if service == s.ServiceID {
-	// 			return endpoints.ResolvedEndpoint{
-	// 				URL:           s.URL,
-	// 				SigningRegion: s.SigningRegion,
-	// 			}, nil
-	// 		}
-	// 	}
-	// 	return endpoints.DefaultResolver().EndpointFor(service, region, optFns...)
-	// }
 
 	providers, err := getProvidersForClusterV2(context.Background(), k8sClient, clusterScoper, region, log)
 	if err != nil {
@@ -718,7 +693,7 @@ func isClusterPermittedToUsePrincipal(k8sClient client.Client, allowedNs *infrav
 	return false, nil
 }
 
-// NewChainCredentialsProvider initalizes a new ChainCredentialsProvider
+// NewChainCredentialsProvider initializes a new ChainCredentialsProvider.
 func NewChainCredentialsProvider(providers []awsv2.CredentialsProvider) *ChainCredentialsProvider {
 	return &ChainCredentialsProvider{
 		providers: providers,
