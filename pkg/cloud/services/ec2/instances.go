@@ -1163,6 +1163,10 @@ func getInstanceMarketOptionsRequest(i *infrav1.Instance) (*ec2.InstanceMarketOp
 		i.MarketType = infrav1.MarketTypeOnDemand
 	}
 
+	if i.MarketType == infrav1.MarketTypeSpot && i.SpotMarketOptions == nil {
+		i.SpotMarketOptions = &infrav1.SpotMarketOptions{}
+	}
+
 	switch i.MarketType {
 	case infrav1.MarketTypeCapacityBlock:
 		if i.CapacityReservationID == nil {

@@ -5771,6 +5771,19 @@ func TestGetInstanceMarketOptionsRequest(t *testing.T) {
 			expectedError: nil,
 		},
 		{
+			name: "with an marketType Spot options specified",
+			instance: &infrav1.Instance{
+				MarketType: infrav1.MarketTypeSpot,
+			},
+			expectedRequest: &ec2.InstanceMarketOptionsRequest{
+				MarketType: aws.String(ec2.MarketTypeSpot),
+				SpotOptions: &ec2.SpotMarketOptions{
+					InstanceInterruptionBehavior: aws.String(ec2.InstanceInterruptionBehaviorTerminate),
+					SpotInstanceType:             aws.String(ec2.SpotInstanceTypeOneTime),
+				},
+			},
+		},
+		{
 			name: "with an empty MaxPrice specified",
 			instance: &infrav1.Instance{
 				SpotMarketOptions: &infrav1.SpotMarketOptions{
