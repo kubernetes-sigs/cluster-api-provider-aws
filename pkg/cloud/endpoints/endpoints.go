@@ -121,7 +121,7 @@ func containsString(slice []string, s string) bool {
 	return false
 }
 
-// TODO: punkwalker - remove this after Go SDK V2 migration
+// TODO: punkwalker - remove this after Go SDK V2 migration.
 func saveToServiceEndpointV2Map(src []scope.ServiceEndpoint) {
 	for _, svc := range src {
 		endpoint := endpointsv2.ServiceEndpoint{

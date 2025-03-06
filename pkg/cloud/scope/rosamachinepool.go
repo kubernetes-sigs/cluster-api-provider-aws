@@ -94,7 +94,7 @@ func NewRosaMachinePoolScope(params RosaMachinePoolScopeParams) (*RosaMachinePoo
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
 
-	sessionv2, _, err := sessionForClusterWithRegionV2(params.Client, scope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
+	sessionv2, serviceLimitersv2, err := sessionForClusterWithRegionV2(params.Client, scope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
 	}
@@ -102,6 +102,7 @@ func NewRosaMachinePoolScope(params RosaMachinePoolScopeParams) (*RosaMachinePoo
 	scope.session = session
 	scope.sessionV2 = *sessionv2
 	scope.serviceLimiters = serviceLimiters
+	scope.serviceLimitersV2 = serviceLimitersv2
 
 	return scope, nil
 }
@@ -121,9 +122,10 @@ type RosaMachinePoolScope struct {
 	RosaMachinePool *expinfrav1.ROSAMachinePool
 	MachinePool     *expclusterv1.MachinePool
 
-	session         awsclient.ConfigProvider
-	sessionV2       awsv2.Config
-	serviceLimiters throttle.ServiceLimiters
+	session           awsclient.ConfigProvider
+	sessionV2         awsv2.Config
+	serviceLimiters   throttle.ServiceLimiters
+	serviceLimitersV2 throttle.ServiceLimiters
 
 	controllerName string
 }
@@ -182,7 +184,7 @@ func (s *RosaMachinePoolScope) Session() awsclient.ConfigProvider {
 	return s.session
 }
 
-// SessionV2 implements cloud.Session for AWS SDK V2
+// SessionV2 implements cloud.Session for AWS SDK V2.
 func (s *RosaMachinePoolScope) SessionV2() awsv2.Config {
 	return s.sessionV2
 }

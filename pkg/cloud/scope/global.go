@@ -88,13 +88,3 @@ func (s *GlobalScope) ServiceLimiter(service string) *throttle.ServiceLimiter {
 func (s *GlobalScope) ControllerName() string {
 	return s.controllerName
 }
-
-// // Endpoint returns service endpoint for a given service.
-// func (s *GlobalScope) Endpoint(serviceID string) (*ServiceEndpoint, error) {
-// 	for _, s := range s.endpoints {
-// 		if serviceID == s.ServiceID {
-// 			return &s, nil
-// 		}
-// 	}
-// 	return nil, errors.Errorf("no endpoint found for service %s", serviceID)
-// }
