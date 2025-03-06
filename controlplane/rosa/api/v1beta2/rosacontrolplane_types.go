@@ -154,8 +154,8 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// WorkerRoleARN is an AWS IAM role that will be attached to worker instances.
 	WorkerRoleARN string `json:"workerRoleARN"`
 
-	// BillingAccount is an optional AWS account to use for billing the subscription fees for ROSA clusters.
-	// The cost of running each ROSA cluster will be billed to the infrastructure account in which the cluster
+	// BillingAccount is an optional AWS account to use for billing the subscription fees for ROSA HCP clusters.
+	// The cost of running each ROSA HCP cluster will be billed to the infrastructure account in which the cluster
 	// is running.
 	//
 	// +kubebuilder:validation:Optional
@@ -202,7 +202,7 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// +optional
 	AuditLogRoleARN string `json:"auditLogRoleARN,omitempty"`
 
-	// ProvisionShardID defines the shard where rosa control plane components will be hosted.
+	// ProvisionShardID defines the shard where ROSA hosted control plane components will be hosted.
 	//
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="provisionShardID is immutable"
 	// +optional
