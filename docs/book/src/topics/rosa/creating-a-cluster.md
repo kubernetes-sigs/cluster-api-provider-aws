@@ -87,9 +87,7 @@ The SSO offline token is being deprecated and it is recommended to use service a
 
 ## Prerequisites
 
-Follow the guide [here](https://docs.aws.amazon.com/ROSA/latest/userguide/getting-started-hcp.html) up until [Step 3](https://docs.aws.amazon.com/ROSA/latest/userguide/getting-started-hcp.html#getting-started-hcp-step-3)
-to install the required tools and setup the prerequisite infrastructure.
-Once Step 3 is done, you will be ready to proceed with creating a ROSA HCP cluster using cluster-api.
+Follow the guide [here](https://docs.aws.amazon.com/ROSA/latest/userguide/getting-started-hcp.html) up until ["Create a ROSA with HCP Cluster"](https://docs.aws.amazon.com/ROSA/latest/userguide/getting-started-hcp.html#create-hcp-cluster-cli) to install the required tools and setup the prerequisite infrastructure. Once Step 3 is done, you will be ready to proceed with creating a ROSA HCP cluster using cluster-api.
 
 ## Creating the cluster
 
