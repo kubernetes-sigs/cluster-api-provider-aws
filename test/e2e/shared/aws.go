@@ -1207,7 +1207,7 @@ func GetVPCByName(e2eCtx *E2EContext, vpcName string) (*ec2.Vpc, error) {
 	if err != nil {
 		return nil, err
 	}
-	if result.Vpcs == nil || len(result.Vpcs) == 0 {
+	if len(result.Vpcs) == 0 {
 		return nil, awserrors.NewNotFound("Vpc not found")
 	}
 	return result.Vpcs[0], nil
@@ -2291,7 +2291,7 @@ func GetMountTarget(e2eCtx *E2EContext, mountTargetID string) (*efs.MountTargetD
 	if err != nil {
 		return nil, err
 	}
-	if result.MountTargets == nil || len(result.MountTargets) == 0 {
+	if len(result.MountTargets) == 0 {
 		return nil, &efs.MountTargetNotFound{
 			ErrorCode: aws.String(efs.ErrCodeMountTargetNotFound),
 		}
