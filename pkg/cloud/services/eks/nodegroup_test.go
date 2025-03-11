@@ -3,8 +3,8 @@ package eks
 import (
 	"github.com/aws/aws-sdk-go/service/eks"
 	. "github.com/onsi/gomega"
-	"sigs.k8s.io/cluster-api-provider-aws/exp/api/v1beta1"
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"testing"
 )
@@ -18,8 +18,8 @@ func TestSetStatus(t *testing.T) {
 
 	s := &NodegroupService{
 		scope: &scope.ManagedMachinePoolScope{
-			ManagedMachinePool: &v1beta1.AWSManagedMachinePool{
-				Status: v1beta1.AWSManagedMachinePoolStatus{
+			ManagedMachinePool: &v1beta2.AWSManagedMachinePool{
+				Status: v1beta2.AWSManagedMachinePoolStatus{
 					Ready: false,
 				},
 			},

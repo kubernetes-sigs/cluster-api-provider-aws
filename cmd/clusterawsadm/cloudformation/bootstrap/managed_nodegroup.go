@@ -17,7 +17,7 @@ limitations under the License.
 package bootstrap
 
 import (
-	"sigs.k8s.io/cluster-api-provider-aws/pkg/cloud/services/eks"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/eks"
 )
 
 func (t Template) eksMachinePoolPolicies() []string {
