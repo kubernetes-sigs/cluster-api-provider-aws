@@ -1,6 +1,6 @@
 # Enabling ROSA Support
 
-To enable support for ROSA clusters, the ROSA feature flag must be set to true. This can be done using the **EXP_ROSA** environment variable.
+To enable support for ROSA HCP clusters, the ROSA feature flag must be set to true. This can be done using the **EXP_ROSA** environment variable.
 
 Make sure to set up your AWS environment first as described [here](https://cluster-api.sigs.k8s.io/user/quick-start.html).
 ```shell
