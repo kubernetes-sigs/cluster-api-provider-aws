@@ -59,11 +59,23 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  creationTimestamp: null
   labels:
     cluster.x-k8s.io/provider: infrastructure-aws
   name: capa-manager-role
 rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - secrets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - ""
   resources:
@@ -84,24 +96,22 @@ rules:
   - list
   - watch
 - apiGroups:
-  - ""
+  - authentication.k8s.io
   resources:
-  - secrets
+  - tokenreviews
   verbs:
   - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
 - apiGroups:
   - bootstrap.cluster.x-k8s.io
   resources:
   - eksconfigs
   verbs:
-  - create
-  - delete
   - get
   - list
   - patch
@@ -120,24 +130,9 @@ rules:
   resources:
   - clusters
   - clusters/status
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - cluster.x-k8s.io
-  resources:
-  - clusters
-  - machinepools
+  - machinedeployments
   - machines
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - cluster.x-k8s.io
-  resources:
-  - machinepools
+  - machines/status
   verbs:
   - get
   - list
@@ -150,12 +145,12 @@ rules:
   verbs:
   - get
   - list
+  - patch
   - watch
 - apiGroups:
-  - cluster.x-k8s.io
+  - controlplane.cluster.x-k8s.io
   resources:
-  - machines
-  - machines/status
+  - '*'
   verbs:
   - get
   - list
@@ -164,8 +159,8 @@ rules:
   - controlplane.cluster.x-k8s.io
   resources:
   - awsmanagedcontrolplanes
+  - rosacontrolplanes
   verbs:
-  - create
   - delete
   - get
   - list
@@ -175,31 +170,21 @@ rules:
 - apiGroups:
   - controlplane.cluster.x-k8s.io
   resources:
-  - awsmanagedcontrolplanes
   - awsmanagedcontrolplanes/status
+  - rosacontrolplanes/status
   verbs:
   - get
   - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - controlplane.cluster.x-k8s.io
   resources:
-  - awsmanagedcontrolplanes/status
+  - rosacontrolplanes/finalizers
   verbs:
-  - get
-  - patch
   - update
 - apiGroups:
-  - ""
-  resources:
-  - events
-  verbs:
-  - create
-  - get
-  - list
-  - patch
-  - watch
-- apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
   - awsclustercontrolleridentities
@@ -211,18 +196,9 @@ rules:
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
-  - awsclustercontrolleridentities
   - awsclusterroleidentities
   - awsclusterstaticidentities
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - awsclusterroleidentities
-  - awsclusterstaticidentities
+  - awsmachinetemplates
   verbs:
   - get
   - list
@@ -231,8 +207,14 @@ rules:
   - infrastructure.cluster.x-k8s.io
   resources:
   - awsclusters
+  - awsfargateprofiles
+  - awsmachinepools
+  - awsmachines
+  - awsmanagedclusters
+  - awsmanagedmachinepools
+  - rosaclusters
+  - rosamachinepools
   verbs:
-  - create
   - delete
   - get
   - list
@@ -243,116 +225,31 @@ rules:
   - infrastructure.cluster.x-k8s.io
   resources:
   - awsclusters/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - awsfargateprofiles
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
   - awsfargateprofiles/status
+  - rosaclusters/status
+  - rosamachinepools/status
   verbs:
   - get
   - patch
   - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - awsmachinepools
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - awsmachinepools
-  - awsmachinepools/status
-  verbs:
-  - get
-  - list
-  - watch
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
   - awsmachinepools/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - awsmachines
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - awsmachines
   - awsmachines/status
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - awsmachines/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - awsmanagedmachinepools
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - awsmanagedmachinepools
+  - awsmanagedclusters/status
   - awsmanagedmachinepools/status
   verbs:
   - get
   - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
-  - awsmanagedmachinepools/status
+  - rosamachinepools/finalizers
   verbs:
-  - get
-  - patch
   - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -444,9 +341,10 @@ spec:
       containers:
       - args:
         - --leader-elect
-        - --feature-gates=EKS=${CAPA_EKS:=true},EKSEnableIAM=${CAPA_EKS_IAM:=false},EKSAllowAddRoles=${CAPA_EKS_ADD_ROLES:=false},EKSFargate=${EXP_EKS_FARGATE:=false},MachinePool=${EXP_MACHINE_POOL:=false},EventBridgeInstanceState=${EVENT_BRIDGE_INSTANCE_STATE:=false},AutoControllerIdentityCreator=${AUTO_CONTROLLER_IDENTITY_CREATOR:=true},BootstrapFormatIgnition=${EXP_BOOTSTRAP_FORMAT_IGNITION:=false}
+        - --feature-gates=EKS=${CAPA_EKS:=true},EKSEnableIAM=${CAPA_EKS_IAM:=false},EKSAllowAddRoles=${CAPA_EKS_ADD_ROLES:=false},EKSFargate=${EXP_EKS_FARGATE:=false},MachinePool=${EXP_MACHINE_POOL:=false},EventBridgeInstanceState=${EVENT_BRIDGE_INSTANCE_STATE:=false},AutoControllerIdentityCreator=${AUTO_CONTROLLER_IDENTITY_CREATOR:=true},BootstrapFormatIgnition=${EXP_BOOTSTRAP_FORMAT_IGNITION:=false},ExternalResourceGC=${EXP_EXTERNAL_RESOURCE_GC:=false},AlternativeGCStrategy=${EXP_ALTERNATIVE_GC_STRATEGY:=false},TagUnmanagedNetworkResources=${TAG_UNMANAGED_NETWORK_RESOURCES:=true},ROSA=${EXP_ROSA:=false}
         - --v=${CAPA_LOGLEVEL:=0}
-        - --metrics-bind-addr=127.0.0.1:8080
+        - --diagnostics-address=${CAPA_DIAGNOSTICS_ADDRESS:=:8443}
+        - --insecure-diagnostics=${CAPA_INSECURE_DIAGNOSTICS:=false}
         env:
         - name: AWS_SHARED_CREDENTIALS_FILE
           value: /home/.aws/credentials
@@ -457,6 +355,14 @@ spec:
         image: gcr.io/k8s-staging-cluster-api-aws/cluster-api-aws-controller:latest
         imagePullPolicy: Always
         name: manager
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsGroup: 65532
+          runAsUser: 65532
+        terminationMessagePolicy: FallbackToLogsOnError
         volumeMounts:
         - mountPath: /home/.aws
           name: credentials
@@ -464,6 +370,9 @@ spec:
           name: ca-bundle
       securityContext:
         fsGroup: 1000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       terminationGracePeriodSeconds: 10
       tolerations:
       - effect: NoSchedule
