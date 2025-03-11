@@ -2356,8 +2356,10 @@ func TestAWSMachineReconcilerReconcile(t *testing.T) {
 					ClusterName: "capi-test",
 				},
 			},
-			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1"}},
-			expectError:  false,
+			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1"}, Spec: clusterv1.ClusterSpec{
+				InfrastructureRef: &corev1.ObjectReference{Name: "foo"},
+			}},
+			expectError: false,
 		},
 		{
 			name: "Should not Reconcile if AWSManagedControlPlane is not ready",
@@ -2641,6 +2643,15 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 				SecureSecretsBackend: infrav1.SecretBackendSecretsManager,
 				SecretPrefix:         "prefix",
 				SecretCount:          1000,
+			},
+		},
+		Status: infrav1.AWSMachineStatus{
+			Conditions: clusterv1.Conditions{
+				{
+					Type:   "Paused",
+					Status: corev1.ConditionFalse,
+					Reason: "NotPaused",
+				},
 			},
 		},
 	}
