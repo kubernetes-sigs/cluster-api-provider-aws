@@ -33,7 +33,11 @@ A reliable and secure Kubernetes cluster should be used for production use cases
 
 In this guide, we´ll use [kind] (v0.25.0 or more recent) to provision a management cluster.
 
+<<<<<<< HEAD
 **Help with common issues can be found in the [Troubleshooting Guide](./troubleshooting.md).**
+=======
+**Help with common issues can be found in the [Troubleshooting Guide](https://cluster-api.sigs.k8s.io/troubleshooting).**
+>>>>>>> e61bb5ebe (Reviewed getting started guide)
 
 <aside class="note warning">
 
