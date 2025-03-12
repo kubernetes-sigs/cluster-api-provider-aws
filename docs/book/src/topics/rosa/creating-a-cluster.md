@@ -1,8 +1,8 @@
-# Creating a ROSA cluster
+# Creating a ROSA HCP cluster
 
 ## Permissions
 ### Authentication using service account credentials
-CAPA controller requires service account credentials to be able to provision ROSA clusters:
+CAPA controller requires service account credentials to be able to provision ROSA HCP clusters:
 1. Visit [https://console.redhat.com/iam/service-accounts](https://console.redhat.com/iam/service-accounts) and create a service account. If you already have a service account, you can skip this step.
 
    For every newly created service account, make sure to activate the account using the [ROSA command line tool](https://github.com/openshift/rosa). First, log in using your newly created service account
@@ -87,9 +87,9 @@ The SSO offline token is being deprecated and it is recommended to use service a
 
 ## Prerequisites
 
-Follow the guide [here](https://docs.aws.amazon.com/ROSA/latest/userguide/getting-started-hcp.html) up until [Step 3](https://docs.aws.amazon.com/ROSA/latest/userguide/getting-started-hcp.html#getting-started-hcp-step-3) 
+Follow the guide [here](https://docs.aws.amazon.com/ROSA/latest/userguide/getting-started-hcp.html) up until [Step 3](https://docs.aws.amazon.com/ROSA/latest/userguide/getting-started-hcp.html#getting-started-hcp-step-3)
 to install the required tools and setup the prerequisite infrastructure.
-Once Step 3 is done, you will be ready to proceed with creating a ROSA cluster using cluster-api.
+Once Step 3 is done, you will be ready to proceed with creating a ROSA HCP cluster using cluster-api.
 
 ## Creating the cluster
 
@@ -106,11 +106,11 @@ Once Step 3 is done, you will be ready to proceed with creating a ROSA cluster u
     export OPERATOR_ROLES_PREFIX="capi-rosa-quickstart"  # prefix used to create operator roles with `rosa create operator-roles --prefix <PREFIX_NAME>`
 
     # subnet IDs created earlier
-    export PUBLIC_SUBNET_ID="subnet-0b54a1111111111111"   
+    export PUBLIC_SUBNET_ID="subnet-0b54a1111111111111"
     export PRIVATE_SUBNET_ID="subnet-05e72222222222222"
     ```
 
-1. Render the cluster manifest using the ROSA cluster template:
+1. Render the cluster manifest using the ROSA HCP cluster template:
     ```shell
     clusterctl generate cluster <cluster-name> --from templates/cluster-template-rosa.yaml > rosa-capi-cluster.yaml
     ```
@@ -128,7 +128,7 @@ Once Step 3 is done, you will be ready to proceed with creating a ROSA cluster u
     ...
     ```
 
-1. Provide an AWS identity reference  
+1. Provide an AWS identity reference
     ```yaml
     apiVersion: controlplane.cluster.x-k8s.io/v1beta2
     kind: ROSAControlPlane
