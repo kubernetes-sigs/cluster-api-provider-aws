@@ -1552,7 +1552,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 					// TODO: This seems to have no effect on the test result.
 					ms.AWSMachine.Status.FailureReason = ptr.To("UpdateError")
-					objectStoreSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
+					objectStoreSvc.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 					ec2Svc.EXPECT().TerminateInstance(gomock.Any()).Return(nil).AnyTimes()
 					_, _ = reconciler.reconcileDelete(context.TODO(), ms, cs, cs, cs, cs)
 				})
