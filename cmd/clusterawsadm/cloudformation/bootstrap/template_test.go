@@ -114,6 +114,15 @@ func TestRenderCloudformation(t *testing.T) {
 			},
 		},
 		{
+			fixture: "with_eks_iam_role_creation",
+			template: func() Template {
+				t := NewTemplate()
+				t.Spec.Nodes.EC2ContainerRegistryReadOnly = true
+				t.Spec.EKS.AllowIAMRoleCreation = true
+				return t
+			},
+		},
+		{
 			fixture: "with_eks_kms_prefix",
 			template: func() Template {
 				t := NewTemplate()
