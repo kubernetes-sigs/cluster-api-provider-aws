@@ -175,10 +175,9 @@ func (s *Service) reconcileSubnets() error {
 
 	// When the VPC is managed by CAPA, we need to create the subnets.
 	if !unmanagedVPC {
-		// Check that we need at least 1 private and 1 public subnet after we have updated the metadata
+		// Check that we need at least 1 public subnet after we have updated the metadata
 		if len(subnets.FilterPrivate()) < 1 {
-			record.Warnf(s.scope.InfraCluster(), "FailedNoPrivateSubnet", "Expected at least 1 private subnet but got 0")
-			return errors.New("expected at least 1 private subnet but got 0")
+			record.Eventf(s.scope.InfraCluster(), "NoPrivateSubnet", "No private subnet found, this is a public-only setup")
 		}
 		if len(subnets.FilterPublic()) < 1 {
 			record.Warnf(s.scope.InfraCluster(), "FailedNoPublicSubnet", "Expected at least 1 public subnet but got 0")
