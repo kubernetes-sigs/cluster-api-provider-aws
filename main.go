@@ -25,6 +25,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/pflag"
@@ -109,6 +110,7 @@ var (
 	webhookCertDir              string
 	healthAddr                  string
 	serviceEndpoints            string
+	disabledControllers         []string
 
 	// maxEKSSyncPeriod is the maximum allowed duration for the sync-period flag when using EKS. It is set to 10 minutes
 	// because during resync it will create a new AWS auth token which can a maximum life of 15 minutes and this ensures
@@ -129,6 +131,11 @@ func main() {
 	initFlags(pflag.CommandLine)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
+
+	if err := controllers.ValidateNamesAndDisable(disabledControllers); err != nil {
+		setupLog.Error(err, "unable to validate disabled controller names")
+		os.Exit(1)
+	}
 
 	if err := v1.ValidateAndApply(logOptions, nil); err != nil {
 		setupLog.Error(err, "unable to validate and apply log options")
@@ -298,29 +305,37 @@ func main() {
 func setupReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsServiceEndpoints []scope.ServiceEndpoint,
 	externalResourceGC, alternativeGCStrategy bool,
 ) {
-	if err := (&controllers.AWSMachineReconciler{
-		Client:                       mgr.GetClient(),
-		Log:                          ctrl.Log.WithName("controllers").WithName("AWSMachine"),
-		Recorder:                     mgr.GetEventRecorderFor("awsmachine-controller"),
-		Endpoints:                    awsServiceEndpoints,
-		WatchFilterValue:             watchFilterValue,
-		TagUnmanagedNetworkResources: feature.Gates.Enabled(feature.TagUnmanagedNetworkResources),
-	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsMachineConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "AWSMachine")
-		os.Exit(1)
+	if !controllers.IsDisabled(controllers.AWSMachineName) {
+		if err := (&controllers.AWSMachineReconciler{
+			Client:                       mgr.GetClient(),
+			Log:                          ctrl.Log.WithName("controllers").WithName("AWSMachine"),
+			Recorder:                     mgr.GetEventRecorderFor("awsmachine-controller"),
+			Endpoints:                    awsServiceEndpoints,
+			WatchFilterValue:             watchFilterValue,
+			TagUnmanagedNetworkResources: feature.Gates.Enabled(feature.TagUnmanagedNetworkResources),
+		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsMachineConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", controllers.AWSMachineName)
+			os.Exit(1)
+		}
+	} else {
+		setupLog.Info("controller disabled", "controller", controllers.AWSMachineName)
 	}
 
-	if err := (&controllers.AWSClusterReconciler{
-		Client:                       mgr.GetClient(),
-		Recorder:                     mgr.GetEventRecorderFor("awscluster-controller"),
-		Endpoints:                    awsServiceEndpoints,
-		WatchFilterValue:             watchFilterValue,
-		ExternalResourceGC:           externalResourceGC,
-		AlternativeGCStrategy:        alternativeGCStrategy,
-		TagUnmanagedNetworkResources: feature.Gates.Enabled(feature.TagUnmanagedNetworkResources),
-	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "AWSCluster")
-		os.Exit(1)
+	if !controllers.IsDisabled(controllers.AWSClusterName) {
+		if err := (&controllers.AWSClusterReconciler{
+			Client:                       mgr.GetClient(),
+			Recorder:                     mgr.GetEventRecorderFor("awscluster-controller"),
+			Endpoints:                    awsServiceEndpoints,
+			WatchFilterValue:             watchFilterValue,
+			ExternalResourceGC:           externalResourceGC,
+			AlternativeGCStrategy:        alternativeGCStrategy,
+			TagUnmanagedNetworkResources: feature.Gates.Enabled(feature.TagUnmanagedNetworkResources),
+		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", controllers.AWSClusterName)
+			os.Exit(1)
+		}
+	} else {
+		setupLog.Info("controller disabled", "controller", controllers.AWSClusterName)
 	}
 
 	if feature.Gates.Enabled(feature.MachinePool) {
@@ -602,6 +617,13 @@ func initFlags(fs *pflag.FlagSet) {
 		"watch-filter",
 		"",
 		fmt.Sprintf("Label value that the controller watches to reconcile cluster-api objects. Label key is always %s. If unspecified, the controller watches for all cluster-api objects.", clusterv1.WatchLabel),
+	)
+
+	fs.StringSliceVar(
+		&disabledControllers,
+		"disable-controllers",
+		nil,
+		fmt.Sprintf("Controllers that should be disabled for this instance of the controller manager. Options are: %q", strings.Join(controllers.GetValidNames(), ",")),
 	)
 
 	logs.AddFlags(fs, logs.SkipLoggingConfigurationFlags())
