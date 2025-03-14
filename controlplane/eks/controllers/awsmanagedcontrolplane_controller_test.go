@@ -34,6 +34,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -53,7 +54,9 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/s3/mock_stsiface"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/securitygroup"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 func TestAWSManagedControlPlaneReconcilerIntegrationTests(t *testing.T) {
@@ -146,6 +149,19 @@ func TestAWSManagedControlPlaneReconcilerIntegrationTests(t *testing.T) {
 		defer t.Cleanup(func() {
 			g.Expect(testEnv.Cleanup(ctx, &cluster, &awsManagedCluster, &awsManagedControlPlane, controllerIdentity, ns)).To(Succeed())
 		})
+
+		// patch the paused condition
+		awsManagedControlPlanePatcher, err := patch.NewHelper(&awsManagedControlPlane, testEnv)
+		awsManagedControlPlane.Status.Conditions = clusterv1.Conditions{
+			{
+				Type:   "Paused",
+				Status: corev1.ConditionFalse,
+				Reason: "NotPaused",
+			},
+		}
+
+		g.Expect(awsManagedControlPlanePatcher.Patch(ctx, &awsManagedControlPlane)).To(Succeed())
+		g.Expect(err).ShouldNot(HaveOccurred())
 
 		managedScope := getAWSManagedControlPlaneScope(&cluster, &awsManagedControlPlane)
 
