@@ -51,6 +51,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/securitygroup"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	infrautilconditions "sigs.k8s.io/cluster-api-provider-aws/v2/util/conditions"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/util/paused"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	capiannotations "sigs.k8s.io/cluster-api/util/annotations"
@@ -167,9 +168,8 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	log = log.WithValues("cluster", klog.KObj(cluster))
 
-	if capiannotations.IsPaused(cluster, awsCluster) {
-		log.Info("AWSCluster or linked Cluster is marked as paused. Won't reconcile")
-		return reconcile.Result{}, nil
+	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, cluster); err != nil || isPaused || conditionChanged {
+		return ctrl.Result{}, err
 	}
 
 	// Create the scope.
@@ -392,7 +392,7 @@ func (r *AWSClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
 		For(&infrav1.AWSCluster{}).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), log.GetLogger(), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), log.GetLogger(), r.WatchFilterValue)).
 		WithEventFilter(
 			predicate.Funcs{
 				// Avoid reconciling if the event triggering the reconciliation is related to incremental status updates
