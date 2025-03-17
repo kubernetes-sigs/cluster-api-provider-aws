@@ -372,6 +372,20 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 			cp.Status.Ready = true
 			g.Expect(mpPh.Patch(ctx, cp)).To(Succeed())
 			g.Expect(err).ShouldNot(HaveOccurred())
+
+			// patch status conditions
+			rmpPh, err := patch.NewHelper(test.old, testEnv)
+			test.old.Status.Conditions = clusterv1.Conditions{
+				{
+					Type:   "Paused",
+					Status: corev1.ConditionFalse,
+					Reason: "NotPaused",
+				},
+			}
+
+			g.Expect(rmpPh.Patch(ctx, test.old)).To(Succeed())
+			g.Expect(err).ShouldNot(HaveOccurred())
+
 			// patching is not reliably synchronous
 			time.Sleep(50 * time.Millisecond)
 
