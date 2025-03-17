@@ -825,6 +825,11 @@ spec:
                         - Spot
                         - CapacityBlock
                         type: string
+                        x-kubernetes-validations:
+                        - message: capacityReservationID may not be set when marketType
+                            is Spot
+                          rule: '!has(self.capacityReservationID) || !has(self.marketType)
+                            || self.marketType != ''Spot'''
                       networkInterfaceType:
                         description: |-
                           NetworkInterfaceType is the interface type of the primary network Interface.
