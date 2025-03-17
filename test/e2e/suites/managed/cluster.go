@@ -51,6 +51,7 @@ type ManagedClusterSpecInput struct {
 	WorkerMachineCount       int64
 	KubernetesVersion        string
 	CluserSpecificRoles      bool
+	ClusterClass             bool
 }
 
 // ManagedClusterSpec implements a test for creating a managed cluster using CAPA.
@@ -86,7 +87,7 @@ func ManagedClusterSpec(ctx context.Context, inputGetter func() ManagedClusterSp
 	Expect(cluster).NotTo(BeNil())
 
 	ginkgo.By("Checking EKS cluster is active")
-	eksClusterName := getEKSClusterName(input.Namespace.Name, input.ClusterName)
+	eksClusterName := getEKSClusterName(input.Namespace.Name, input.ClusterName, input.ClusterClass)
 	verifyClusterActiveAndOwned(eksClusterName, input.AWSSession)
 
 	if input.CluserSpecificRoles {

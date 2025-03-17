@@ -55,7 +55,7 @@ var _ = ginkgo.Describe("[managed] [legacy] EKS cluster tests - single kind", fu
 		ctx = context.TODO()
 		namespace = shared.SetupSpecNamespace(ctx, specName, e2eCtx)
 		clusterName = fmt.Sprintf("%s-%s", specName, util.RandomString(6))
-		eksClusterName := getEKSClusterName(namespace.Name, clusterName)
+		eksClusterName := getEKSClusterName(namespace.Name, clusterName, false)
 
 		ginkgo.By("default iam role should exist")
 		VerifyRoleExistsAndOwned(ekscontrolplanev1.DefaultEKSControlPlaneRole, eksClusterName, false, e2eCtx.BootstrapUserAWSSession)
