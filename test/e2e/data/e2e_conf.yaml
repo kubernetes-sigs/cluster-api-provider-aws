@@ -165,6 +165,7 @@ providers:
           - sourcePath: "./infrastructure-aws/withclusterclass/kustomize_sources/nested-multitenancy-clusterclass/clusterclass-multi-tenancy.yaml"
           - sourcePath: "./infrastructure-aws/withclusterclass/generated/cluster-template-self-hosted-clusterclass.yaml"
           - sourcePath: "./infrastructure-aws/withclusterclass/generated/cluster-template-external-vpc-clusterclass.yaml"
+          - sourcePath: "./infrastructure-aws/withclusterclass/kustomize_sources/eks-clusterclass/eks-clusterclass-ci.yaml"
           - sourcePath: "./shared/v1beta2_provider/metadata.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-ignition.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-upgrade-to-external-cloud-provider.yaml"
