@@ -281,7 +281,6 @@ type Instance struct {
 	// Affinity specifies the dedicated host affinity setting for the instance.
 	// +optional
 	HostAffinity *string `json:"hostAffinity,omitempty"`
-
 }
 
 // MarketType describes the market type of an Instance
