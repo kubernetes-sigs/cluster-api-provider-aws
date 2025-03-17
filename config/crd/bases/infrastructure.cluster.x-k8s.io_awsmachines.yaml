@@ -891,11 +891,6 @@ spec:
                 - Spot
                 - CapacityBlock
                 type: string
-                x-kubernetes-validations:
-                - message: capacityReservationID may not be set when marketType is
-                    Spot
-                  rule: '!has(self.capacityReservationID) || !has(self.marketType)
-                    || self.marketType != ''Spot'''
               networkInterfaceType:
                 description: |-
                   NetworkInterfaceType is the interface type of the primary network Interface.
@@ -1109,6 +1104,10 @@ spec:
             required:
             - instanceType
             type: object
+            x-kubernetes-validations:
+            - message: capacityReservationId may not be set when marketType is Spot
+              rule: '!has(self.capacityReservationId) || !has(self.marketType) ||
+                self.marketType != ''Spot'''
           status:
             description: AWSMachineStatus defines the observed state of AWSMachine.
             properties:

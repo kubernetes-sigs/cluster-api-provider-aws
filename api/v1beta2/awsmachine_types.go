@@ -64,6 +64,7 @@ const (
 )
 
 // AWSMachineSpec defines the desired state of an Amazon EC2 instance.
+// +kubebuilder:validation:XValidation:rule="!has(self.capacityReservationId) || !has(self.marketType) || self.marketType != 'Spot'",message="capacityReservationId may not be set when marketType is Spot"
 type AWSMachineSpec struct {
 	// ProviderID is the unique identifier as specified by the cloud provider.
 	ProviderID *string `json:"providerID,omitempty"`
@@ -220,7 +221,6 @@ type AWSMachineSpec struct {
 	//  If this value is selected, CapacityReservationID must be specified to identify the target reservation.
 	// If marketType is not specified and spotMarketOptions is provided, the marketType defaults to "Spot".
 	// +optional
-	// +kubebuilder:validation:XValidation:rule="!has(self.capacityReservationID) || !has(self.marketType) || self.marketType != 'Spot'",message="capacityReservationID may not be set when marketType is Spot"
 	MarketType MarketType `json:"marketType,omitempty"`
 }
 
