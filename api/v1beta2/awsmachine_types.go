@@ -231,7 +231,6 @@ type AWSMachineSpec struct {
 	// +optional
 	// +kubebuilder:validation:Enum:=Defailt;Host
 	HostAffinity *string `json:"hostAffinity,omitempty"`
-
 }
 
 // CloudInit defines options related to the bootstrapping systems where
