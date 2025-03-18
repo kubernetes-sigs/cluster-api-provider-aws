@@ -355,7 +355,7 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 
 	if err := r.reconcileLifecycleHooks(ctx, machinePoolScope, asgsvc); err != nil {
 		r.Recorder.Eventf(machinePoolScope.AWSMachinePool, corev1.EventTypeWarning, "FailedLifecycleHooksReconcile", "Failed to reconcile lifecycle hooks: %v", err)
-		return errors.Wrap(err, "failed to reconcile lifecycle hooks")
+		return ctrl.Result{}, errors.Wrap(err, "failed to reconcile lifecycle hooks")
 	}
 
 	if annotations.ReplicasManagedByExternalAutoscaler(machinePoolScope.MachinePool) {

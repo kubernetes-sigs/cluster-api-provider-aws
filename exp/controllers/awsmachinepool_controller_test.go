@@ -189,7 +189,6 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				return reconSvc
 			},
 			Recorder: recorder,
-			Client:   testEnv.Client,
 		}
 	}
 
@@ -1030,7 +1029,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				Name: "name",
 			}, nil)
 
-			err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
+			_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
 			g.Expect(err).To(Succeed())
 		})
 		t.Run("New lifecycle hook is added", func(t *testing.T) {
@@ -1066,7 +1065,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			// No changes, so there must not be an ASG update!
 			asgSvc.EXPECT().UpdateASG(gomock.Any()).Times(0)
 
-			err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
+			_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
 			g.Expect(err).To(Succeed())
 		})
 		t.Run("Lifecycle hook to remove", func(t *testing.T) {
@@ -1104,7 +1103,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			// No changes, so there must not be an ASG update!
 			asgSvc.EXPECT().UpdateASG(gomock.Any()).Times(0)
 
-			err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
+			_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
 			g.Expect(err).To(Succeed())
 		})
 		t.Run("One to add, one to remove", func(t *testing.T) {
@@ -1148,7 +1147,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			// No changes, so there must not be an ASG update!
 			asgSvc.EXPECT().UpdateASG(gomock.Any()).Times(0)
 
-			err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
+			_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
 			g.Expect(err).To(Succeed())
 		})
 		t.Run("Update hook", func(t *testing.T) {
@@ -1188,7 +1187,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			// No changes, so there must not be an ASG update!
 			asgSvc.EXPECT().UpdateASG(gomock.Any()).Times(0)
 
-			err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
+			_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
 			g.Expect(err).To(Succeed())
 		})
 	})
