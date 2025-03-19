@@ -71,21 +71,21 @@ rules:
   resources:
   - clusters
   - clusters/status
-  - machinedeployments
-  - machines/status
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - cluster.x-k8s.io
-  resources:
   - machinepools
   - machinepools/status
   verbs:
   - get
   - list
   - patch
+  - watch
+- apiGroups:
+  - cluster.x-k8s.io
+  resources:
+  - machinedeployments
+  - machines/status
+  verbs:
+  - get
+  - list
   - watch
 - apiGroups:
   - cluster.x-k8s.io
