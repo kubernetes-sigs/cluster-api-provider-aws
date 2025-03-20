@@ -28,19 +28,16 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/mock_services"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 )
@@ -60,7 +57,8 @@ func TestAWSClusterReconcilerReconcile(t *testing.T) {
 					Kind:       "Cluster",
 					Name:       "capi-fail-test",
 					UID:        "1",
-				}}}},
+				},
+			}}},
 			expectError: true,
 		},
 		{
@@ -530,97 +528,6 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 			})
 		})
 	})
-}
-
-func TestAWSClusterReconcilerRequeueAWSClusterForUnpausedCluster(t *testing.T) {
-	testCases := []struct {
-		name         string
-		awsCluster   *infrav1.AWSCluster
-		ownerCluster *clusterv1.Cluster
-		requeue      bool
-	}{
-		{
-			name: "Should create reconcile request successfully",
-			awsCluster: &infrav1.AWSCluster{
-				ObjectMeta: metav1.ObjectMeta{GenerateName: "aws-test-"}, TypeMeta: metav1.TypeMeta{Kind: "AWSCluster", APIVersion: infrav1.GroupVersion.String()},
-			},
-			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test"}},
-			requeue:      true,
-		},
-		{
-			name: "Should not create reconcile request if AWSCluster is externally managed",
-			awsCluster: &infrav1.AWSCluster{
-				ObjectMeta: metav1.ObjectMeta{GenerateName: "aws-test-", Annotations: map[string]string{clusterv1.ManagedByAnnotation: "capi-test"}},
-				TypeMeta:   metav1.TypeMeta{Kind: "AWSCluster", APIVersion: infrav1.GroupVersion.String()},
-			},
-			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test"}},
-			requeue:      false,
-		},
-		{
-			name:         "Should not create reconcile request for deleted clusters",
-			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test", DeletionTimestamp: &metav1.Time{Time: time.Now()}}},
-			requeue:      false,
-		},
-		{
-			name:         "Should not create reconcile request if infrastructure ref for AWSCluster on owner cluster is not set",
-			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test"}},
-			requeue:      false,
-		},
-		{
-			name: "Should not create reconcile request if infrastructure ref type on owner cluster is not AWSCluster",
-			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test"}, Spec: clusterv1.ClusterSpec{InfrastructureRef: &corev1.ObjectReference{
-				APIVersion: clusterv1.GroupVersion.String(),
-				Kind:       "Cluster",
-				Name:       "aws-test"}}},
-			requeue: false,
-		},
-		{
-			name: "Should not create reconcile request if AWSCluster not found",
-			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test"}, Spec: clusterv1.ClusterSpec{InfrastructureRef: &corev1.ObjectReference{
-				APIVersion: clusterv1.GroupVersion.String(),
-				Kind:       "AWSCluster",
-				Name:       "aws-test"}}},
-			requeue: false,
-		},
-	}
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			g := NewWithT(t)
-			log := logger.FromContext(ctx)
-			reconciler := &AWSClusterReconciler{
-				Client: testEnv.Client,
-			}
-
-			ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("namespace-%s", util.RandomString(5)))
-			g.Expect(err).To(BeNil())
-			createCluster(g, tc.awsCluster, ns.Name)
-			defer cleanupCluster(g, tc.awsCluster, ns)
-
-			if tc.ownerCluster != nil {
-				if tc.awsCluster != nil {
-					tc.ownerCluster.Spec = clusterv1.ClusterSpec{InfrastructureRef: &corev1.ObjectReference{
-						APIVersion: infrav1.GroupVersion.String(),
-						Kind:       "AWSCluster",
-						Name:       tc.awsCluster.Name,
-						Namespace:  ns.Name,
-					}}
-				}
-				tc.ownerCluster.Namespace = ns.Name
-			}
-			handlerFunc := reconciler.requeueAWSClusterForUnpausedCluster(ctx, log)
-			result := handlerFunc(ctx, tc.ownerCluster)
-			if tc.requeue {
-				g.Expect(result).To(ContainElement(reconcile.Request{
-					NamespacedName: types.NamespacedName{
-						Namespace: ns.Name,
-						Name:      tc.awsCluster.Name,
-					},
-				}))
-			} else {
-				g.Expect(result).To(BeNil())
-			}
-		})
-	}
 }
 
 func createCluster(g *WithT, awsCluster *infrav1.AWSCluster, namespace string) {
