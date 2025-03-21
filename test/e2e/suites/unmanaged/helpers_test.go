@@ -539,7 +539,7 @@ func createPodWithEFSMount(clusterClient crclient.Client) {
 			Containers: []corev1.Container{
 				{
 					Name:    "app",
-					Image:   "centos",
+					Image:   "ubuntu",
 					Command: []string{"/bin/sh"},
 					Args:    []string{"-c", "while true; do echo $(date -u) >> /data/out; sleep 5; done"},
 					VolumeMounts: []corev1.VolumeMount{
