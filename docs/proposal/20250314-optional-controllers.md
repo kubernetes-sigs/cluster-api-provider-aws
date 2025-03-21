@@ -4,7 +4,7 @@ EKS and ROSA are implemented in (relatively) standalone sets of controllers. The
 
 However, the feature gate mechanism has no specifier for GA, meaning that both implementations have stayed in beta.
 
-This proposal supercedes `docs/proposal/20250314-optional-controllers.md`.
+This proposal supersedes `docs/proposal/20250107-aws-self-managed-feature-gates.md`.
 
 # Background
 
@@ -66,7 +66,7 @@ These checks can be updated to instead use `IsDisabled` and entries within the `
 
 ## Core controllers and alternatives
 
-The proposal `2025-01-07-aws-self-managed-feature-gates.md` was merged and planned to add `AWSMachine` and `AWSCluster` feature gates.
+The proposal `20250107-aws-self-managed-feature-gates.md` was merged and planned to add `AWSMachine` and `AWSCluster` feature gates.
 This merged with lazy concensus and the implementation was proposed in [PR #5284](https://github.com/kubernetes-sigs/cluster-api-provider-aws/pull/5284).
 
 However, maintainers were opposed to moving these core controllers into feature gates, which would have put them into a permanent pre-GA phase.
