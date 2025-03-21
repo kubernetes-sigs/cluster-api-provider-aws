@@ -52,7 +52,7 @@ type AWSManagedClusterReconciler struct {
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmanagedclusters,verbs=get;list;watch;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmanagedclusters/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=awsmanagedcontrolplanes;awsmanagedcontrolplanes/status,verbs=get;list;watch
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch;patch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 
 func (r *AWSManagedClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
@@ -126,7 +126,6 @@ func (r *AWSManagedClusterReconciler) SetupWithManager(ctx context.Context, mgr 
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		WithEventFilter(predicates.ResourceIsNotExternallyManaged(mgr.GetScheme(), log.GetLogger())).
 		Build(r)
-
 	if err != nil {
 		return fmt.Errorf("error creating controller: %w", err)
 	}

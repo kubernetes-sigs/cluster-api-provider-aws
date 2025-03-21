@@ -171,7 +171,6 @@ func (r *AWSManagedControlPlaneReconciler) SetupWithManager(ctx context.Context,
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), log.GetLogger(), r.WatchFilterValue)).
 		Build(r)
-
 	if err != nil {
 		return fmt.Errorf("failed setting up the AWSManagedControlPlane controller manager: %w", err)
 	}
@@ -197,7 +196,7 @@ func (r *AWSManagedControlPlaneReconciler) SetupWithManager(ctx context.Context,
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;delete;patch
 // +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch;patch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedeployments,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinepools,verbs=get;list;watch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachines;awsmachines/status,verbs=get;list;watch
