@@ -11,7 +11,8 @@ git-repository-url = "https://sigs.k8s.io/cluster-api-provider-aws"
 no-section-label = true
 
 [output.html.redirect]
-"/agenda.html" = "/agenda/2024.html"
+"/agenda.html" = "/agenda/2025.html"
+"/agenda/2025.html" = "https://docs.google.com/document/d/1DmGw8zcdbzIImkYvYoVIKdMi0Jlejlj7vDrjxy-boPw"
 "/agenda/2024.html" = "https://docs.google.com/document/u/0/d/1PS1QccumCH8CnGpx5Yj7oQD8H8wMIloXqjh1gLaV0sU"
 "/agenda/2023.html" = "https://docs.google.com/document/u/0/d/1hwgA0h5OmlLbbamvdH_KgyM2GPad-CK2CQQNMr-c0W8"
 "/agenda/2021.html" = "https://docs.google.com/document/d/1iW-kqcX-IhzVGFrRKTSPGBPOc-0aUvygOVoJ5ETfEZU"

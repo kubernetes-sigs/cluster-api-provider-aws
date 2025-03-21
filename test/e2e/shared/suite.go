@@ -129,6 +129,9 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 
 	Expect(err).NotTo(HaveOccurred())
 	e2eCtx.AWSSession = NewAWSSession()
+
+	logAccountDetails(e2eCtx.AWSSession)
+
 	bootstrapTemplate := getBootstrapTemplate(e2eCtx)
 	bootstrapTags := map[string]string{"capa-e2e-test": "true"}
 	e2eCtx.CloudFormationTemplate = renderCustomCloudFormation(bootstrapTemplate)
@@ -145,7 +148,7 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 				success = false
 			}
 			return success
-		}, 10*time.Minute, 5*time.Second).Should(BeTrue(), "Should've eventually succeeded creating an AWS CloudFormation stack")
+		}, 45*time.Minute, 30*time.Second).Should(BeTrue(), "Should've eventually succeeded creating an AWS CloudFormation stack")
 	}
 
 	ensureStackTags(e2eCtx.AWSSession, bootstrapTemplate.Spec.StackName, bootstrapTags)

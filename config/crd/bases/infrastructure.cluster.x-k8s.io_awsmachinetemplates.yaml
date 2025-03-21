@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.5
   name: awsmachinetemplates.infrastructure.cluster.x-k8s.io
 spec:
   group: infrastructure.cluster.x-k8s.io
@@ -57,7 +57,7 @@ spec:
                         additionalProperties:
                           type: string
                         description: |-
-                          Annotations is an unstructured key value map stored with a resource that may be
+                          annotations is an unstructured key value map stored with a resource that may be
                           set by external tools to store and retrieve arbitrary metadata. They are not
                           queryable and should be preserved when modifying objects.
                           More info: http://kubernetes.io/docs/user-guide/annotations
@@ -471,7 +471,7 @@ spec:
                         additionalProperties:
                           type: string
                         description: |-
-                          Annotations is an unstructured key value map stored with a resource that may be
+                          annotations is an unstructured key value map stored with a resource that may be
                           set by external tools to store and retrieve arbitrary metadata. They are not
                           queryable and should be preserved when modifying objects.
                           More info: http://kubernetes.io/docs/user-guide/annotations
@@ -608,10 +608,8 @@ spec:
                               PublicIpv4PoolFallBackOrder defines the fallback action when the Public IPv4 Pool has been exhausted,
                               no more IPv4 address available in the pool.
 
-
                               When set to 'amazon-pool', the controller check if the pool has available IPv4 address, when pool has reached the
                               IPv4 limit, the address will be claimed from Amazon-pool (default).
-
 
                               When set to 'none', the controller will fail the Elastic IP allocation when the publicIpv4Pool is exhausted.
                             enum:
@@ -652,7 +650,6 @@ spec:
                                   NoProxy is the list of domains to not proxy for Ignition.
                                   Specifies a list of strings to hosts that should be excluded from proxying.
 
-
                                   Each value is represented by:
                                   - An IP address prefix (1.2.3.4)
                                   - An IP address prefix in CIDR notation (1.2.3.4/8)
@@ -660,7 +657,6 @@ spec:
                                     - A domain name matches that name and all subdomains
                                     - A domain name with a leading . matches subdomains only
                                   - A special DNS label (*), indicates that no proxying should be done
-
 
                                   An IP address prefix and domain name can also include a literal port number (1.2.3.4:80).
                                 items:
@@ -677,14 +673,11 @@ spec:
                               StorageType defines how to store the boostrap user data for Ignition.
                               This can be used to instruct Ignition from where to fetch the user data to bootstrap an instance.
 
-
                               When omitted, the storage option will default to ClusterObjectStore.
-
 
                               When set to "ClusterObjectStore", if the capability is available and a Cluster ObjectStore configuration
                               is correctly provided in the Cluster object (under .spec.s3Bucket),
                               an object store will be used to store bootstrap user data.
-
 
                               When set to "UnencryptedUserData", EC2 Instance User Data will be used to store the machine bootstrap user data, unencrypted.
                               This option is considered less secure than others as user data may contain sensitive informations (keys, certificates, etc.)
@@ -761,9 +754,7 @@ spec:
                             description: |-
                               Enables or disables the HTTP metadata endpoint on your instances.
 
-
                               If you specify a value of disabled, you cannot access your instance metadata.
-
 
                               Default: enabled
                             enum:
@@ -776,7 +767,6 @@ spec:
                               The desired HTTP PUT response hop limit for instance metadata requests. The
                               larger the number, the further instance metadata requests can travel.
 
-
                               Default: 1
                             format: int64
                             maximum: 64
@@ -787,19 +777,16 @@ spec:
                             description: |-
                               The state of token usage for your instance metadata requests.
 
-
                               If the state is optional, you can choose to retrieve instance metadata with
                               or without a session token on your request. If you retrieve the IAM role
                               credentials without a token, the version 1.0 role credentials are returned.
                               If you retrieve the IAM role credentials using a valid session token, the
                               version 2.0 role credentials are returned.
 
-
                               If the state is required, you must send a session token with any instance
                               metadata retrieval requests. In this state, retrieving the IAM role credentials
                               always returns the version 2.0 credentials; the version 1.0 credentials are
                               not available.
-
 
                               Default: optional
                             enum:
@@ -814,7 +801,6 @@ spec:
                               For more information, see Work with instance tags using the instance metadata
                               (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html#work-with-tags-in-IMDS).
 
-
                               Default: disabled
                             enum:
                             - enabled
@@ -825,6 +811,27 @@ spec:
                         description: 'InstanceType is the type of instance to create.
                           Example: m4.xlarge'
                         minLength: 2
+                        type: string
+                      marketType:
+                        description: |-
+                          MarketType specifies the type of market for the EC2 instance. Valid values include:
+                          "OnDemand" (default): The instance runs as a standard OnDemand instance.
+                          "Spot": The instance runs as a Spot instance. When SpotMarketOptions is provided, the marketType defaults to "Spot".
+                          "CapacityBlock": The instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
+                           If this value is selected, CapacityReservationID must be specified to identify the target reservation.
+                          If marketType is not specified and spotMarketOptions is provided, the marketType defaults to "Spot".
+                        enum:
+                        - OnDemand
+                        - Spot
+                        - CapacityBlock
+                        type: string
+                      networkInterfaceType:
+                        description: |-
+                          NetworkInterfaceType is the interface type of the primary network Interface.
+                          If not specified, AWS applies a default value.
+                        enum:
+                        - interface
+                        - efa
                         type: string
                       networkInterfaces:
                         description: |-

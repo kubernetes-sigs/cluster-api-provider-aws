@@ -119,7 +119,7 @@ func commandsForMachine(ctx context.Context, e2eCtx *E2EContext, f *os.File, ins
 			return
 		}
 		result, _, err := e.Expect(shellStart, 20*time.Second)
-		if err := os.WriteFile(logFile, []byte(result), os.ModePerm); err != nil {
+		if err := os.WriteFile(logFile, []byte(result), 0600); err != nil {
 			fmt.Fprintf(f, "error writing log file: err=%s", err)
 			return
 		}

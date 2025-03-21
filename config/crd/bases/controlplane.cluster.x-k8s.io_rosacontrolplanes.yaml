@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.5
   name: rosacontrolplanes.controlplane.cluster.x-k8s.io
 spec:
   group: controlplane.cluster.x-k8s.io
@@ -73,8 +73,8 @@ spec:
                 type: array
               billingAccount:
                 description: |-
-                  BillingAccount is an optional AWS account to use for billing the subscription fees for ROSA clusters.
-                  The cost of running each ROSA cluster will be billed to the infrastructure account in which the cluster
+                  BillingAccount is an optional AWS account to use for billing the subscription fees for ROSA HCP clusters.
+                  The cost of running each ROSA HCP cluster will be billed to the infrastructure account in which the cluster
                   is running.
                 type: string
                 x-kubernetes-validations:
@@ -82,6 +82,14 @@ spec:
                   rule: self == oldSelf
                 - message: billingAccount must be a valid AWS account ID
                   rule: self.matches('^[0-9]{12}$')
+              channelGroup:
+                default: stable
+                description: OpenShift version channel group, default is stable.
+                enum:
+                - stable
+                - candidate
+                - nightly
+                type: string
               clusterRegistryConfig:
                 description: ClusterRegistryConfig represents registry config used
                   with the cluster.
@@ -180,9 +188,7 @@ spec:
                       This field is effectively required, but due to backwards compatibility is
                       allowed to be empty. Instances of this type with an empty value here are
                       almost certainly wrong.
-                      TODO: Add other useful fields. apiVersion, kind, uid?
                       More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                      TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                     type: string
                 type: object
                 x-kubernetes-map-type: atomic
@@ -193,7 +199,6 @@ spec:
                   to work properly.
                   As these machinepool not created using ROSAMachinePool CR, they will not be visible/managed by ROSA CAPI provider.
                   `rosa list machinepools -c <rosaClusterName>` can be used to view those machinepools.
-
 
                   This field will be removed in the future once the current limitation is resolved.
                 properties:
@@ -213,6 +218,12 @@ spec:
                     description: The instance type to use, for example `r5.xlarge`.
                       Instance type ref; https://aws.amazon.com/ec2/instance-types/
                     type: string
+                  volumeSize:
+                    description: VolumeSize set the disk volume size for the default
+                      workers machine pool in Gib. The default is 300 GiB.
+                    maximum: 16384
+                    minimum: 75
+                    type: integer
                 type: object
               domainPrefix:
                 description: |-
@@ -253,7 +264,6 @@ spec:
                   ExternalAuthProviders are external OIDC identity providers that can issue tokens for this cluster.
                   Can only be set if "enableExternalAuthProviders" is set to "True".
 
-
                   At most one provider can be configured.
                 items:
                   description: ExternalAuthProvider is an external OIDC identity provider
@@ -279,9 +289,7 @@ spec:
                                 Prefix is a string to prefix the value from the token in the result of the
                                 claim mapping.
 
-
                                 By default, no prefixing occurs.
-
 
                                 Example: if `prefix` is set to "myoidc:"" and the `claim` in JWT contains
                                 an array of strings "a", "b" and  "c", the mapping will result in an
@@ -294,7 +302,6 @@ spec:
                           description: |-
                             Username is a name of the claim that should be used to construct
                             usernames for the cluster identity.
-
 
                             Default value: "sub"
                           properties:
@@ -311,13 +318,10 @@ spec:
                               description: |-
                                 PrefixPolicy specifies how a prefix should apply.
 
-
                                 By default, claims other than `email` will be prefixed with the issuer URL to
                                 prevent naming clashes with other plugins.
 
-
                                 Set to "NoPrefix" to disable prefixing.
-
 
                                 Example:
                                     (1) `prefix` is set to "myoidc:" and `claim` is set to "username".
@@ -559,8 +563,8 @@ spec:
                 - message: oidcID is immutable
                   rule: self == oldSelf
               provisionShardID:
-                description: ProvisionShardID defines the shard where rosa control
-                  plane components will be hosted.
+                description: ProvisionShardID defines the shard where ROSA hosted
+                  control plane components will be hosted.
                 type: string
                 x-kubernetes-validations:
                 - message: provisionShardID is immutable
@@ -574,8 +578,8 @@ spec:
                 properties:
                   controlPlaneOperatorARN:
                     description: "ControlPlaneOperatorARN  is an ARN value referencing
-                      a role appropriate for the Control Plane Operator.\n\n\nThe
-                      following is an example of a valid policy document:\n\n\n{\n\t\"Version\":
+                      a role appropriate for the Control Plane Operator.\n\nThe following
+                      is an example of a valid policy document:\n\n{\n\t\"Version\":
                       \"2012-10-17\",\n\t\"Statement\": [\n\t\t{\n\t\t\t\"Effect\":
                       \"Allow\",\n\t\t\t\"Action\": [\n\t\t\t\t\"ec2:CreateVpcEndpoint\",\n\t\t\t\t\"ec2:DescribeVpcEndpoints\",\n\t\t\t\t\"ec2:ModifyVpcEndpoint\",\n\t\t\t\t\"ec2:DeleteVpcEndpoints\",\n\t\t\t\t\"ec2:CreateTags\",\n\t\t\t\t\"route53:ListHostedZones\",\n\t\t\t\t\"ec2:CreateSecurityGroup\",\n\t\t\t\t\"ec2:AuthorizeSecurityGroupIngress\",\n\t\t\t\t\"ec2:AuthorizeSecurityGroupEgress\",\n\t\t\t\t\"ec2:DeleteSecurityGroup\",\n\t\t\t\t\"ec2:RevokeSecurityGroupIngress\",\n\t\t\t\t\"ec2:RevokeSecurityGroupEgress\",\n\t\t\t\t\"ec2:DescribeSecurityGroups\",\n\t\t\t\t\"ec2:DescribeVpcs\",\n\t\t\t],\n\t\t\t\"Resource\":
                       \"*\"\n\t\t},\n\t\t{\n\t\t\t\"Effect\": \"Allow\",\n\t\t\t\"Action\":
@@ -584,8 +588,8 @@ spec:
                     type: string
                   imageRegistryARN:
                     description: "ImageRegistryARN is an ARN value referencing a role
-                      appropriate for the Image Registry Operator.\n\n\nThe following
-                      is an example of a valid policy document:\n\n\n{\n\t\"Version\":
+                      appropriate for the Image Registry Operator.\n\nThe following
+                      is an example of a valid policy document:\n\n{\n\t\"Version\":
                       \"2012-10-17\",\n\t\"Statement\": [\n\t\t{\n\t\t\t\"Effect\":
                       \"Allow\",\n\t\t\t\"Action\": [\n\t\t\t\t\"s3:CreateBucket\",\n\t\t\t\t\"s3:DeleteBucket\",\n\t\t\t\t\"s3:PutBucketTagging\",\n\t\t\t\t\"s3:GetBucketTagging\",\n\t\t\t\t\"s3:PutBucketPublicAccessBlock\",\n\t\t\t\t\"s3:GetBucketPublicAccessBlock\",\n\t\t\t\t\"s3:PutEncryptionConfiguration\",\n\t\t\t\t\"s3:GetEncryptionConfiguration\",\n\t\t\t\t\"s3:PutLifecycleConfiguration\",\n\t\t\t\t\"s3:GetLifecycleConfiguration\",\n\t\t\t\t\"s3:GetBucketLocation\",\n\t\t\t\t\"s3:ListBucket\",\n\t\t\t\t\"s3:GetObject\",\n\t\t\t\t\"s3:PutObject\",\n\t\t\t\t\"s3:DeleteObject\",\n\t\t\t\t\"s3:ListBucketMultipartUploads\",\n\t\t\t\t\"s3:AbortMultipartUpload\",\n\t\t\t\t\"s3:ListMultipartUploadParts\"\n\t\t\t],\n\t\t\t\"Resource\":
                       \"*\"\n\t\t}\n\t]\n}"
@@ -597,11 +601,11 @@ spec:
                       \"Allow\",\n\t\t\t\t\"Principal\": {\n\t\t\t\t\t\"Federated\":
                       \"{{ .ProviderARN }}\"\n\t\t\t\t},\n\t\t\t\t\t\"Action\": \"sts:AssumeRoleWithWebIdentity\",\n\t\t\t\t\"Condition\":
                       {\n\t\t\t\t\t\"StringEquals\": {\n\t\t\t\t\t\t\"{{ .ProviderName
-                      }}:sub\": {{ .ServiceAccounts }}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t]\n\t}\n\n\nIngressARN
+                      }}:sub\": {{ .ServiceAccounts }}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t]\n\t}\n\nIngressARN
                       is an ARN value referencing a role appropriate for the Ingress
-                      Operator.\n\n\nThe following is an example of a valid policy
-                      document:\n\n\n{\n\t\"Version\": \"2012-10-17\",\n\t\"Statement\":
-                      [\n\t\t{\n\t\t\t\"Effect\": \"Allow\",\n\t\t\t\"Action\": [\n\t\t\t\t\"elasticloadbalancing:DescribeLoadBalancers\",\n\t\t\t\t\"tag:GetResources\",\n\t\t\t\t\"route53:ListHostedZones\"\n\t\t\t],\n\t\t\t\"Resource\":
+                      Operator.\n\nThe following is an example of a valid policy document:\n\n{\n\t\"Version\":
+                      \"2012-10-17\",\n\t\"Statement\": [\n\t\t{\n\t\t\t\"Effect\":
+                      \"Allow\",\n\t\t\t\"Action\": [\n\t\t\t\t\"elasticloadbalancing:DescribeLoadBalancers\",\n\t\t\t\t\"tag:GetResources\",\n\t\t\t\t\"route53:ListHostedZones\"\n\t\t\t],\n\t\t\t\"Resource\":
                       \"*\"\n\t\t},\n\t\t{\n\t\t\t\"Effect\": \"Allow\",\n\t\t\t\"Action\":
                       [\n\t\t\t\t\"route53:ChangeResourceRecordSets\"\n\t\t\t],\n\t\t\t\"Resource\":
                       [\n\t\t\t\t\"arn:aws:route53:::PUBLIC_ZONE_ID\",\n\t\t\t\t\"arn:aws:route53:::PRIVATE_ZONE_ID\"\n\t\t\t]\n\t\t}\n\t]\n}"
@@ -613,9 +617,7 @@ spec:
                       KubeCloudControllerARN is an ARN value referencing a role appropriate for the KCM/KCC.
                       Source: https://cloud-provider-aws.sigs.k8s.io/prerequisites/#iam-policies
 
-
                       The following is an example of a valid policy document:
-
 
                        {
                        "Version": "2012-10-17",
@@ -690,8 +692,8 @@ spec:
                     type: string
                   networkARN:
                     description: "NetworkARN is an ARN value referencing a role appropriate
-                      for the Network Operator.\n\n\nThe following is an example of
-                      a valid policy document:\n\n\n{\n\t\"Version\": \"2012-10-17\",\n\t\"Statement\":
+                      for the Network Operator.\n\nThe following is an example of
+                      a valid policy document:\n\n{\n\t\"Version\": \"2012-10-17\",\n\t\"Statement\":
                       [\n\t\t{\n\t\t\t\"Effect\": \"Allow\",\n\t\t\t\"Action\": [\n\t\t\t\t\"ec2:DescribeInstances\",\n
                       \      \"ec2:DescribeInstanceStatus\",\n       \"ec2:DescribeInstanceTypes\",\n
                       \      \"ec2:UnassignPrivateIpAddresses\",\n       \"ec2:AssignPrivateIpAddresses\",\n
@@ -701,8 +703,8 @@ spec:
                     type: string
                   nodePoolManagementARN:
                     description: "NodePoolManagementARN is an ARN value referencing
-                      a role appropriate for the CAPI Controller.\n\n\nThe following
-                      is an example of a valid policy document:\n\n\n{\n  \"Version\":
+                      a role appropriate for the CAPI Controller.\n\nThe following
+                      is an example of a valid policy document:\n\n{\n  \"Version\":
                       \"2012-10-17\",\n \"Statement\": [\n   {\n     \"Action\": [\n
                       \      \"ec2:AssociateRouteTable\",\n       \"ec2:AttachInternetGateway\",\n
                       \      \"ec2:AuthorizeSecurityGroupIngress\",\n       \"ec2:CreateInternetGateway\",\n
@@ -746,8 +748,8 @@ spec:
                     type: string
                   storageARN:
                     description: "StorageARN is an ARN value referencing a role appropriate
-                      for the Storage Operator.\n\n\nThe following is an example of
-                      a valid policy document:\n\n\n{\n\t\"Version\": \"2012-10-17\",\n\t\"Statement\":
+                      for the Storage Operator.\n\nThe following is an example of
+                      a valid policy document:\n\n{\n\t\"Version\": \"2012-10-17\",\n\t\"Statement\":
                       [\n\t\t{\n\t\t\t\"Effect\": \"Allow\",\n\t\t\t\"Action\": [\n\t\t\t\t\"ec2:AttachVolume\",\n\t\t\t\t\"ec2:CreateSnapshot\",\n\t\t\t\t\"ec2:CreateTags\",\n\t\t\t\t\"ec2:CreateVolume\",\n\t\t\t\t\"ec2:DeleteSnapshot\",\n\t\t\t\t\"ec2:DeleteTags\",\n\t\t\t\t\"ec2:DeleteVolume\",\n\t\t\t\t\"ec2:DescribeInstances\",\n\t\t\t\t\"ec2:DescribeSnapshots\",\n\t\t\t\t\"ec2:DescribeTags\",\n\t\t\t\t\"ec2:DescribeVolumes\",\n\t\t\t\t\"ec2:DescribeVolumesModifications\",\n\t\t\t\t\"ec2:DetachVolume\",\n\t\t\t\t\"ec2:ModifyVolume\"\n\t\t\t],\n\t\t\t\"Resource\":
                       \"*\"\n\t\t}\n\t]\n}"
                     type: string
@@ -806,6 +808,7 @@ spec:
                 type: string
             required:
             - availabilityZones
+            - channelGroup
             - installerRoleARN
             - oidcID
             - region
@@ -848,20 +851,20 @@ spec:
                       description: |-
                         The reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
-                        This field may not be empty.
+                        This field may be empty.
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -884,7 +887,6 @@ spec:
                 description: |-
                   FailureMessage will be set in the event that there is a terminal problem
                   reconciling the state and will be set to a descriptive error message.
-
 
                   This field should not be set for transitive errors that a controller
                   faces that are expected to be fixed automatically over

@@ -32,12 +32,12 @@ import (
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
+	"sigs.k8s.io/cluster-api/util/defaulting"
 )
 
 func TestAWSClusterDefault(t *testing.T) {
 	cluster := &AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
-	t.Run("for AWSCluster", utildefaulting.DefaultValidateTest(cluster))
+	t.Run("for AWSCluster", defaultValidateTest(cluster, true))
 	cluster.Default()
 	g := NewWithT(t)
 	g.Expect(cluster.Spec.IdentityRef).NotTo(BeNil())
@@ -663,7 +663,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.BootstrapFormatIgnition, true)()
+			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.BootstrapFormatIgnition, true)
 
 			cluster := tt.cluster.DeepCopy()
 			cluster.ObjectMeta = metav1.ObjectMeta{
@@ -699,7 +699,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 }
 
 func TestAWSClusterValidateUpdate(t *testing.T) {
-	var tests = []struct {
+	tests := []struct {
 		name       string
 		oldCluster *AWSCluster
 		newCluster *AWSCluster
@@ -967,10 +967,11 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Should fail if controlPlaneLoadBalancer healthcheckprotocol is updated",
+			name: "Should fail if controlPlaneLoadBalancer healthcheckprotocol is updated and not classic elb",
 			oldCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:    LoadBalancerTypeNLB,
 						HealthCheckProtocol: &ELBProtocolTCP,
 					},
 				},
@@ -978,11 +979,46 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 			newCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:    LoadBalancerTypeNLB,
 						HealthCheckProtocol: &ELBProtocolSSL,
 					},
 				},
 			},
 			wantErr: true,
+		},
+		{
+			name: "Should pass if controlPlaneLoadBalancer healthcheckprotocol is updated and a classic elb",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:    LoadBalancerTypeClassic,
+						HealthCheckProtocol: &ELBProtocolSSL,
+					},
+				},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:    LoadBalancerTypeClassic,
+						HealthCheckProtocol: &ELBProtocolTCP,
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Should pass if old secondary lb is absent",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					SecondaryControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						Name: ptr.To("test-lb"),
+					},
+				},
+			},
+			wantErr: false,
 		},
 		{
 			name: "Should pass if controlPlaneLoadBalancer healthcheckprotocol is same after update",
@@ -1003,18 +1039,42 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Should fail if controlPlaneLoadBalancer healthcheckprotocol is changed to non-default if it was not set before update",
+			name: "Should fail if controlPlaneLoadBalancer healthcheckprotocol is changed to non-default if it was not set before update for non-classic elb",
 			oldCluster: &AWSCluster{
-				Spec: AWSClusterSpec{},
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType: LoadBalancerTypeNLB,
+					},
+				},
 			},
 			newCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:    LoadBalancerTypeNLB,
 						HealthCheckProtocol: &ELBProtocolTCP,
 					},
 				},
 			},
 			wantErr: true,
+		},
+		{
+			name: "Should pass if controlPlaneLoadBalancer healthcheckprotocol is changed to non-default if it was not set before update for classic elb",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType: LoadBalancerTypeClassic,
+					},
+				},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:    LoadBalancerTypeNLB,
+						HealthCheckProtocol: &ELBProtocolTCP,
+					},
+				},
+			},
+			wantErr: false,
 		},
 		{
 			name: "correct GC tasks annotation",
@@ -1339,6 +1399,51 @@ func TestAWSClusterDefaultAllowedCIDRBlocks(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(cluster.Spec.Bastion).To(Equal(tt.afterCluster.Spec.Bastion))
+			}
+		})
+	}
+}
+
+// defaultValidateTest returns a new testing function to be used in tests to
+// make sure defaulting webhooks also pass validation tests on create,
+// update and delete.
+// NOTE: This is a copy of the DefaultValidateTest function in the cluster-api
+// package, but it has been modified to allow warnings to be returned.
+func defaultValidateTest(object defaulting.DefaultingValidator, allowWarnings bool) func(*testing.T) {
+	return func(t *testing.T) {
+		t.Helper()
+
+		createCopy := object.DeepCopyObject().(defaulting.DefaultingValidator)
+		updateCopy := object.DeepCopyObject().(defaulting.DefaultingValidator)
+		deleteCopy := object.DeepCopyObject().(defaulting.DefaultingValidator)
+		defaultingUpdateCopy := updateCopy.DeepCopyObject().(defaulting.DefaultingValidator)
+
+		t.Run("validate-on-create", func(t *testing.T) {
+			g := NewWithT(t)
+			createCopy.Default()
+			warnings, err := createCopy.ValidateCreate()
+			g.Expect(err).ToNot(HaveOccurred())
+			if !allowWarnings {
+				g.Expect(warnings).To(BeEmpty())
+			}
+		})
+		t.Run("validate-on-update", func(t *testing.T) {
+			g := NewWithT(t)
+			defaultingUpdateCopy.Default()
+			updateCopy.Default()
+			warnings, err := defaultingUpdateCopy.ValidateUpdate(updateCopy)
+			g.Expect(err).ToNot(HaveOccurred())
+			if !allowWarnings {
+				g.Expect(warnings).To(BeEmpty())
+			}
+		})
+		t.Run("validate-on-delete", func(t *testing.T) {
+			g := NewWithT(t)
+			deleteCopy.Default()
+			warnings, err := deleteCopy.ValidateDelete()
+			g.Expect(err).ToNot(HaveOccurred())
+			if !allowWarnings {
+				g.Expect(warnings).To(BeEmpty())
 			}
 		})
 	}

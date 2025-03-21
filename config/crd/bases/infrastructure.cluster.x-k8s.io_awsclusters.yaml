@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.5
   name: awsclusters.infrastructure.cluster.x-k8s.io
 spec:
   group: infrastructure.cluster.x-k8s.io
@@ -136,12 +136,10 @@ spec:
                     description: |-
                       CrossZoneLoadBalancing enables the classic ELB cross availability zone balancing.
 
-
                       With cross-zone load balancing, each load balancer node for your Classic Load Balancer
                       distributes requests evenly across the registered instances in all enabled Availability Zones.
                       If cross-zone load balancing is disabled, each load balancer node distributes requests evenly across
                       the registered instances in its Availability Zone only.
-
 
                       Defaults to false.
                     type: boolean
@@ -628,20 +626,20 @@ spec:
                       description: |-
                         The reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
-                        This field may not be empty.
+                        This field may be empty.
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -660,11 +658,11 @@ spec:
                     attributes:
                       additionalProperties:
                         type: string
-                      description: Attributes is a free form map of attributes an
+                      description: attributes is a free form map of attributes an
                         infrastructure provider might use or require.
                       type: object
                     controlPlane:
-                      description: ControlPlane determines if this failure domain
+                      description: controlPlane determines if this failure domain
                         is suitable for use by control plane machines.
                       type: boolean
                   type: object
@@ -1074,12 +1072,10 @@ spec:
                     description: |-
                       CrossZoneLoadBalancing enables the classic ELB cross availability zone balancing.
 
-
                       With cross-zone load balancing, each load balancer node for your Classic Load Balancer
                       distributes requests evenly across the registered instances in all enabled Availability Zones.
                       If cross-zone load balancing is disabled, each load balancer node distributes requests evenly across
                       the registered instances in its Availability Zone only.
-
 
                       Defaults to false.
                     type: boolean
@@ -1446,7 +1442,6 @@ spec:
                             ID defines a unique identifier to reference this resource.
                             If you're bringing your subnet, set the AWS subnet-id here, it must start with `subnet-`.
 
-
                             When the VPC is managed by CAPA, and you'd like the provider to create a subnet for you,
                             the id can be set to any placeholder value that does not start with `subnet-`;
                             upon creation, the subnet AWS identifier will be populated in the `ResourceID` field and
@@ -1479,7 +1474,6 @@ spec:
                             ParentZoneName is the zone name where the current subnet's zone is tied when
                             the zone is a Local Zone.
 
-
                             The subnets in Local Zone or Wavelength Zone locations consume the ParentZoneName
                             to select the correct private route table to egress traffic to the internet.
                           type: string
@@ -1502,29 +1496,22 @@ spec:
                           description: |-
                             ZoneType defines the type of the zone where the subnet is created.
 
-
                             The valid values are availability-zone, local-zone, and wavelength-zone.
-
 
                             Subnet with zone type availability-zone (regular) is always selected to create cluster
                             resources, like Load Balancers, NAT Gateways, Contol Plane nodes, etc.
 
-
                             Subnet with zone type local-zone or wavelength-zone is not eligible to automatically create
                             regular cluster resources.
-
 
                             The public subnet in availability-zone or local-zone is associated with regular public
                             route table with default route entry to a Internet Gateway.
 
-
                             The public subnet in wavelength-zone is associated with a carrier public
                             route table with default route entry to a Carrier Gateway.
 
-
                             The private subnet in the availability-zone is associated with a private route table with
                             the default route entry to a NAT Gateway created in that zone.
-
 
                             The private subnet in the local-zone or wavelength-zone is associated with a private route table with
                             the default route entry re-using the NAT Gateway in the Region (preferred from the
@@ -1598,10 +1585,8 @@ spec:
                               PublicIpv4PoolFallBackOrder defines the fallback action when the Public IPv4 Pool has been exhausted,
                               no more IPv4 address available in the pool.
 
-
                               When set to 'amazon-pool', the controller check if the pool has available IPv4 address, when pool has reached the
                               IPv4 limit, the address will be claimed from Amazon-pool (default).
-
 
                               When set to 'none', the controller will fail the Elastic IP allocation when the publicIpv4Pool is exhausted.
                             enum:
@@ -1617,11 +1602,9 @@ spec:
                           EmptyRoutesDefaultVPCSecurityGroup specifies whether the default VPC security group ingress
                           and egress rules should be removed.
 
-
                           By default, when creating a VPC, AWS creates a security group called `default` with ingress and egress
                           rules that allow traffic from anywhere. The group could be used as a potential surface attack and
                           it's generally suggested that the group rules are removed or modified appropriately.
-
 
                           NOTE: This only applies when the VPC is managed by the Cluster API AWS controller.
                         type: boolean
@@ -1784,10 +1767,8 @@ spec:
                     description: |-
                       PresignedURLDuration defines the duration for which presigned URLs are valid.
 
-
                       This is used to generate presigned URLs for S3 Bucket objects, which are used by
                       control-plane and worker nodes to fetch bootstrap data.
-
 
                       When enabled, the IAM instance profiles specified are not used.
                     type: string
@@ -1797,7 +1778,6 @@ spec:
               secondaryControlPlaneLoadBalancer:
                 description: |-
                   SecondaryControlPlaneLoadBalancer is an additional load balancer that can be used for the control plane.
-
 
                   An example use case is to have a separate internal load balancer for internal traffic,
                   and a separate external load balancer for external traffic.
@@ -1899,12 +1879,10 @@ spec:
                     description: |-
                       CrossZoneLoadBalancing enables the classic ELB cross availability zone balancing.
 
-
                       With cross-zone load balancing, each load balancer node for your Classic Load Balancer
                       distributes requests evenly across the registered instances in all enabled Availability Zones.
                       If cross-zone load balancing is disabled, each load balancer node distributes requests evenly across
                       the registered instances in its Availability Zone only.
-
 
                       Defaults to false.
                     type: boolean
@@ -2143,9 +2121,7 @@ spec:
                         description: |-
                           Enables or disables the HTTP metadata endpoint on your instances.
 
-
                           If you specify a value of disabled, you cannot access your instance metadata.
-
 
                           Default: enabled
                         enum:
@@ -2158,7 +2134,6 @@ spec:
                           The desired HTTP PUT response hop limit for instance metadata requests. The
                           larger the number, the further instance metadata requests can travel.
 
-
                           Default: 1
                         format: int64
                         maximum: 64
@@ -2169,19 +2144,16 @@ spec:
                         description: |-
                           The state of token usage for your instance metadata requests.
 
-
                           If the state is optional, you can choose to retrieve instance metadata with
                           or without a session token on your request. If you retrieve the IAM role
                           credentials without a token, the version 1.0 role credentials are returned.
                           If you retrieve the IAM role credentials using a valid session token, the
                           version 2.0 role credentials are returned.
 
-
                           If the state is required, you must send a session token with any instance
                           metadata retrieval requests. In this state, retrieving the IAM role credentials
                           always returns the version 2.0 credentials; the version 1.0 credentials are
                           not available.
-
 
                           Default: optional
                         enum:
@@ -2196,7 +2168,6 @@ spec:
                           For more information, see Work with instance tags using the instance metadata
                           (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html#work-with-tags-in-IMDS).
 
-
                           Default: disabled
                         enum:
                         - enabled
@@ -2205,6 +2176,23 @@ spec:
                     type: object
                   instanceState:
                     description: The current state of the instance.
+                    type: string
+                  marketType:
+                    description: |-
+                      MarketType specifies the type of market for the EC2 instance. Valid values include:
+                      "OnDemand" (default): The instance runs as a standard OnDemand instance.
+                      "Spot": The instance runs as a Spot instance. When SpotMarketOptions is provided, the marketType defaults to "Spot".
+                      "CapacityBlock": The instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
+                       If this value is selected, CapacityReservationID must be specified to identify the target reservation.
+                      If marketType is not specified and spotMarketOptions is provided, the marketType defaults to "Spot".
+                    enum:
+                    - OnDemand
+                    - Spot
+                    - CapacityBlock
+                    type: string
+                  networkInterfaceType:
+                    description: NetworkInterfaceType is the interface type of the
+                      primary network Interface.
                     type: string
                   networkInterfaces:
                     description: Specifies ENIs attached to instance
@@ -2408,20 +2396,20 @@ spec:
                       description: |-
                         The reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
-                        This field may not be empty.
+                        This field may be empty.
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -2440,11 +2428,11 @@ spec:
                     attributes:
                       additionalProperties:
                         type: string
-                      description: Attributes is a free form map of attributes an
+                      description: attributes is a free form map of attributes an
                         infrastructure provider might use or require.
                       type: object
                     controlPlane:
-                      description: ControlPlane determines if this failure domain
+                      description: controlPlane determines if this failure domain
                         is suitable for use by control plane machines.
                       type: boolean
                   type: object

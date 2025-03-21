@@ -88,6 +88,10 @@ func CleanupStaticCredentials(ctx context.Context, e2eCtx *E2EContext) {
 	}
 
 	By(fmt.Sprintf("Deleting AWSClusterStaticIdentity %s", idName))
+	if e2eCtx.Environment.BootstrapClusterProxy == nil {
+		Fail("Couldn't clean up static credentials: no bootstrap cluster proxy was set up (please look at previous errors; likely no bootstrap cluster could be created)")
+		return
+	}
 	client := e2eCtx.Environment.BootstrapClusterProxy.GetClient()
 	Eventually(func() error {
 		return client.Delete(ctx, id)
