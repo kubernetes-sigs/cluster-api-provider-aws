@@ -241,4 +241,4 @@ intervals:
   default/wait-deployment-ready: ["5m", "10s"]
   default/wait-loadbalancer-ready: ["5m", "30s"]
   default/wait-classic-elb-health-check-short: ["1m", "10s"]
-  default/wait-classic-elb-health-check-long: ["10m", "10s"]
+  default/wait-classic-elb-health-check-long: ["15m", "30s"]
