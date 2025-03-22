@@ -26,7 +26,7 @@ jobs:
         with:
           go-version: ${{ steps.vars.outputs.go_version }}
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@2e788936b09dd82dc280e845628a40d2ba6b204c # tag=v6.3.1
+        uses: golangci/golangci-lint-action@55c2c1448f86e01eaae002a5a3a9624417608d84 # tag=v6.5.2
         with:
           version: v1.62.2
           args: --out-format=colored-line-number
