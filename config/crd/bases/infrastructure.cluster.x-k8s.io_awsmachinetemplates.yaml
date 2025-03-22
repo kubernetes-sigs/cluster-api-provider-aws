@@ -1045,6 +1045,11 @@ spec:
                     required:
                     - instanceType
                     type: object
+                    x-kubernetes-validations:
+                    - message: capacityReservationId may not be set when marketType
+                        is Spot
+                      rule: '!has(self.capacityReservationId) || !has(self.marketType)
+                        || self.marketType != ''Spot'''
                 required:
                 - spec
                 type: object
