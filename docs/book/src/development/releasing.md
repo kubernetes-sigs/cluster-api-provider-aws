@@ -2,25 +2,27 @@
 
 **Important:** Before you start, make sure all [periodic tests](https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api-provider-aws) are passing on the most recent commit that will be included in the release. Check for consistency by scrolling to the right to view older test runs.
     Examples:
-    - <https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api-provider-aws-1.5#periodic-e2e-release-1-5>
-    - <https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api-provider-aws-1.5#periodic-eks-e2e-release-1-5>
+    - <https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api-provider-aws#periodic-e2e-release-2-7>
+    - <https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api-provider-aws#periodic-eks-e2e-release-2-7>
+
+This includes the nightly image push jobs, which can be found at https://testgrid.k8s.io/sig-cluster-lifecycle-image-pushes#post-cluster-api-provider-aws-push-images
 
 ## Create tag, and build staging container images
 
 1. Please fork <https://github.com/kubernetes-sigs/cluster-api-provider-aws> and clone your own repository with e.g. `git clone git@github.com:YourGitHubUsername/cluster-api-provider-aws.git`. `kpromo` uses the fork to build images from.
 1. Add a git remote to the upstream project. `git remote add upstream git@github.com:kubernetes-sigs/cluster-api-provider-aws.git`
-1. If this is a major or minor release, create a new release branch and push to GitHub, otherwise switch to it, e.g. `git checkout release-1.5`.
+1. If this is a major or minor release, create a new release branch and push to GitHub, otherwise switch to it, e.g. `git checkout release-2.7`.
 1. If this is a major or minor release, update `metadata.yaml` by adding a new section with the version, and make a commit.
-1. Update the release branch on the repository, e.g. `git push origin HEAD:release-1.5`. `origin` refers to the remote git reference to your fork.
-1. Update the release branch on the repository, e.g. `git push upstream HEAD:release-1.5`. `upstream` refers to the upstream git reference.
+1. Update the release branch on the repository, e.g. `git push origin HEAD:release-2.7`. `origin` refers to the remote git reference to your fork.
+1. Update the release branch on the repository, e.g. `git push upstream HEAD:release-2.7`. `upstream` refers to the upstream git reference.
 1. Make sure your repo is clean by git standards.
-1. Set environment variables which is the last release tag and `VERSION` which is the current release version, e.g. `export VERSION=v1.5.0`, or `export VERSION=v1.5.1`).
+1. Set the environment variable `VERSION` which is the current release that you are making, e.g. `export VERSION=v2.7.0`, or `export VERSION=v2.7.1`).
     _**Note**_: the version MUST contain a `v` in front.
     _**Note**_: you must have a gpg signing configured with git and registered with GitHub.
 
 1. Create a tag `git tag -s -m $VERSION $VERSION`. `-s` flag is for GNU Privacy Guard (GPG) signing.
 1. Make sure you have push permissions to the upstream CAPA repo. Push tag you've just created (`git push <upstream-repo-remote> $VERSION`). Pushing this tag will kick off a GitHub Action that will create the release and attach the binaries and YAML templates to it.
-1. A prow job will start running to push images to the staging repo, can be seen [here](https://testgrid.k8s.io/sig-cluster-lifecycle-image-pushes#post-cluster-api-provider-aws-push-images). The job is called "post-cluster-api-provider-aws-push-images," and is defined in <https://github.com/kubernetes/test-infra/blob/master/config/jobs/image-pushing/k8s-staging-cluster-api.yaml>.
+1. A prow job will start running to push images to the staging repo, can be seen [here](https://testgrid.k8s.io/sig-cluster-lifecycle-image-pushes#post-cluster-api-provider-aws-push-images). The job is called "post-cluster-api-provider-aws-push-images," and is defined in <https://github.com/kubernetes/test-infra/blob/master/config/jobs/image-pushing/k8s-staging-cluster-api.yaml>. If this job fails due to Go versions being out of date, you may need to update the Google Cloud Builder (GCB) image used in [`cloudbuild.yaml`](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/cloudbuild.yaml) and [`cloudbuild-nightly.yaml`](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/cloudbuild-nightly.yaml).
 1. When the job is finished, wait for the images to be created: `docker pull gcr.io/k8s-staging-cluster-api-aws/cluster-api-aws-controller:$VERSION`. You can also wrap this with a command to retry periodically, until the job is complete, e.g. `watch --interval 30 --chgexit docker pull <...>`.
 
 ## Promote container images from staging to production
@@ -103,4 +105,4 @@ If the release is for a new MAJOR.MINOR version (i.e. not a patch release) then 
 
 This is done by updating the [test-infra](https://github.com/kubernetes/test-infra) repo. For an example of PR see [this](https://github.com/kubernetes/test-infra/pull/33751) for the v2.7 release series.
 
-Consider removing jobs from an old release as well. We should only keep jobs for 4 release branches.
+Consider removing jobs from an old release as well. We should only keep jobs for 2 release branches.
