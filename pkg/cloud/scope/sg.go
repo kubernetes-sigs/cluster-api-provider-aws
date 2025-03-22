@@ -62,4 +62,8 @@ type SGScope interface {
 
 	// NodePortIngressRuleCidrBlocks returns the CIDR blocks for the node NodePort ingress rules.
 	NodePortIngressRuleCidrBlocks() []string
+
+	// DefaultAllowedAPIServerSources returns the cidr blocks to be used as the default allowed sources in the api server
+	// security group inbound rule. Defaults to 0.0.0.0/0 for IPv4 and the equivalent for IPV6.
+	DefaultAllowedAPIServerSources(ipv6 bool) []string
 }
