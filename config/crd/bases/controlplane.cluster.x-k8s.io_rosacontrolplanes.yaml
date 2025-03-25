@@ -916,7 +916,6 @@ spec:
                 type: string
             required:
             - ready
-            - version
             type: object
         type: object
     served: true
