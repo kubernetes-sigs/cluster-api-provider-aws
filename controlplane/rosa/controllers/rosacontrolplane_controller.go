@@ -252,6 +252,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		rosaScope.ControlPlane.Status.ConsoleURL = cluster.Console().URL()
 		rosaScope.ControlPlane.Status.OIDCEndpointURL = cluster.AWS().STS().OIDCEndpointURL()
 		rosaScope.ControlPlane.Status.Ready = false
+		rosaScope.ControlPlane.Status.Version = rosa.RawVersionID(cluster.Version())
 
 		switch cluster.Status().State() {
 		case cmv1.ClusterStateReady:
