@@ -353,7 +353,9 @@ func makeVpcConfig(subnets infrav1.Subnets, endpointAccess ekscontrolplanev1.End
 		SubnetIds:             subnetIDs,
 	}
 
-	if len(cidrs) > 0 {
+	isPrivateOnlyEndPoint := !aws.BoolValue(vpcConfig.EndpointPublicAccess) && aws.BoolValue(vpcConfig.EndpointPrivateAccess)
+
+	if len(cidrs) > 0 || isPrivateOnlyEndPoint {
 		vpcConfig.PublicAccessCidrs = cidrs
 	}
 	sg, ok := securityGroups[infrav1.SecurityGroupEKSNodeAdditional]
