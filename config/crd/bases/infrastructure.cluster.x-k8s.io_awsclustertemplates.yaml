@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.5
   name: awsclustertemplates.infrastructure.cluster.x-k8s.io
 spec:
   group: infrastructure.cluster.x-k8s.io
@@ -62,7 +62,7 @@ spec:
                         additionalProperties:
                           type: string
                         description: |-
-                          Annotations is an unstructured key value map stored with a resource that may be
+                          annotations is an unstructured key value map stored with a resource that may be
                           set by external tools to store and retrieve arbitrary metadata. They are not
                           queryable and should be preserved when modifying objects.
                           More info: http://kubernetes.io/docs/user-guide/annotations
@@ -151,12 +151,10 @@ spec:
                             description: |-
                               CrossZoneLoadBalancing enables the classic ELB cross availability zone balancing.
 
-
                               With cross-zone load balancing, each load balancer node for your Classic Load Balancer
                               distributes requests evenly across the registered instances in all enabled Availability Zones.
                               If cross-zone load balancing is disabled, each load balancer node distributes requests evenly across
                               the registered instances in its Availability Zone only.
-
 
                               Defaults to false.
                             type: boolean
@@ -490,7 +488,7 @@ spec:
                         additionalProperties:
                           type: string
                         description: |-
-                          Annotations is an unstructured key value map stored with a resource that may be
+                          annotations is an unstructured key value map stored with a resource that may be
                           set by external tools to store and retrieve arbitrary metadata. They are not
                           queryable and should be preserved when modifying objects.
                           More info: http://kubernetes.io/docs/user-guide/annotations
@@ -666,12 +664,10 @@ spec:
                             description: |-
                               CrossZoneLoadBalancing enables the classic ELB cross availability zone balancing.
 
-
                               With cross-zone load balancing, each load balancer node for your Classic Load Balancer
                               distributes requests evenly across the registered instances in all enabled Availability Zones.
                               If cross-zone load balancing is disabled, each load balancer node distributes requests evenly across
                               the registered instances in its Availability Zone only.
-
 
                               Defaults to false.
                             type: boolean
@@ -1043,7 +1039,6 @@ spec:
                                     ID defines a unique identifier to reference this resource.
                                     If you're bringing your subnet, set the AWS subnet-id here, it must start with `subnet-`.
 
-
                                     When the VPC is managed by CAPA, and you'd like the provider to create a subnet for you,
                                     the id can be set to any placeholder value that does not start with `subnet-`;
                                     upon creation, the subnet AWS identifier will be populated in the `ResourceID` field and
@@ -1077,7 +1072,6 @@ spec:
                                     ParentZoneName is the zone name where the current subnet's zone is tied when
                                     the zone is a Local Zone.
 
-
                                     The subnets in Local Zone or Wavelength Zone locations consume the ParentZoneName
                                     to select the correct private route table to egress traffic to the internet.
                                   type: string
@@ -1100,29 +1094,22 @@ spec:
                                   description: |-
                                     ZoneType defines the type of the zone where the subnet is created.
 
-
                                     The valid values are availability-zone, local-zone, and wavelength-zone.
-
 
                                     Subnet with zone type availability-zone (regular) is always selected to create cluster
                                     resources, like Load Balancers, NAT Gateways, Contol Plane nodes, etc.
 
-
                                     Subnet with zone type local-zone or wavelength-zone is not eligible to automatically create
                                     regular cluster resources.
-
 
                                     The public subnet in availability-zone or local-zone is associated with regular public
                                     route table with default route entry to a Internet Gateway.
 
-
                                     The public subnet in wavelength-zone is associated with a carrier public
                                     route table with default route entry to a Carrier Gateway.
 
-
                                     The private subnet in the availability-zone is associated with a private route table with
                                     the default route entry to a NAT Gateway created in that zone.
-
 
                                     The private subnet in the local-zone or wavelength-zone is associated with a private route table with
                                     the default route entry re-using the NAT Gateway in the Region (preferred from the
@@ -1196,10 +1183,8 @@ spec:
                                       PublicIpv4PoolFallBackOrder defines the fallback action when the Public IPv4 Pool has been exhausted,
                                       no more IPv4 address available in the pool.
 
-
                                       When set to 'amazon-pool', the controller check if the pool has available IPv4 address, when pool has reached the
                                       IPv4 limit, the address will be claimed from Amazon-pool (default).
-
 
                                       When set to 'none', the controller will fail the Elastic IP allocation when the publicIpv4Pool is exhausted.
                                     enum:
@@ -1215,11 +1200,9 @@ spec:
                                   EmptyRoutesDefaultVPCSecurityGroup specifies whether the default VPC security group ingress
                                   and egress rules should be removed.
 
-
                                   By default, when creating a VPC, AWS creates a security group called `default` with ingress and egress
                                   rules that allow traffic from anywhere. The group could be used as a potential surface attack and
                                   it's generally suggested that the group rules are removed or modified appropriately.
-
 
                                   NOTE: This only applies when the VPC is managed by the Cluster API AWS controller.
                                 type: boolean
@@ -1384,10 +1367,8 @@ spec:
                             description: |-
                               PresignedURLDuration defines the duration for which presigned URLs are valid.
 
-
                               This is used to generate presigned URLs for S3 Bucket objects, which are used by
                               control-plane and worker nodes to fetch bootstrap data.
-
 
                               When enabled, the IAM instance profiles specified are not used.
                             type: string
@@ -1397,7 +1378,6 @@ spec:
                       secondaryControlPlaneLoadBalancer:
                         description: |-
                           SecondaryControlPlaneLoadBalancer is an additional load balancer that can be used for the control plane.
-
 
                           An example use case is to have a separate internal load balancer for internal traffic,
                           and a separate external load balancer for external traffic.
@@ -1500,12 +1480,10 @@ spec:
                             description: |-
                               CrossZoneLoadBalancing enables the classic ELB cross availability zone balancing.
 
-
                               With cross-zone load balancing, each load balancer node for your Classic Load Balancer
                               distributes requests evenly across the registered instances in all enabled Availability Zones.
                               If cross-zone load balancing is disabled, each load balancer node distributes requests evenly across
                               the registered instances in its Availability Zone only.
-
 
                               Defaults to false.
                             type: boolean

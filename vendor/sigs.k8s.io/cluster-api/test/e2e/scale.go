@@ -60,8 +60,8 @@ const (
 	scaleClusterNamespacePlaceholder = "scale-cluster-namespace-placeholder"
 )
 
-// scaleSpecInput is the input for scaleSpec.
-type scaleSpecInput struct {
+// ScaleSpecInput is the input for ScaleSpec.
+type ScaleSpecInput struct {
 	E2EConfig             *clusterctl.E2EConfig
 	ClusterctlConfigPath  string
 	BootstrapClusterProxy framework.ClusterProxy
@@ -119,6 +119,16 @@ type scaleSpecInput struct {
 	// If not specified, this is a no-op.
 	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
 
+	// Allows to inject a function to be run after test workload cluster name and namespace are generated and
+	// before applying the clusterclass and the cluster template.
+	// If not specified, this is a no-op.
+	PostScaleClusterNamespaceCreated func(
+		clusterProxy framework.ClusterProxy,
+		clusterNamespace string,
+		clusterName string,
+		clusterClassYAML []byte,
+		clusterTemplateYAML []byte) ([]byte, []byte)
+
 	// FailFast if set to true will return immediately after the first cluster operation fails.
 	// If set to false, the test suite will not exit immediately after the first cluster operation fails.
 	// Example: When creating clusters from c1 to c20 consider c6 fails creation. If FailFast is set to true
@@ -141,11 +151,11 @@ type scaleSpecInput struct {
 	SkipWaitForCreation bool
 }
 
-// scaleSpec implements a scale test for clusters with MachineDeployments.
-func scaleSpec(ctx context.Context, inputGetter func() scaleSpecInput) {
+// ScaleSpec implements a scale test for clusters with MachineDeployments.
+func ScaleSpec(ctx context.Context, inputGetter func() ScaleSpecInput) {
 	var (
 		specName      = "scale"
-		input         scaleSpecInput
+		input         ScaleSpecInput
 		namespace     *corev1.Namespace
 		cancelWatches context.CancelFunc
 	)
@@ -331,7 +341,7 @@ func scaleSpec(ctx context.Context, inputGetter func() scaleSpecInput) {
 			Concurrency:  concurrency,
 			FailFast:     input.FailFast,
 			WorkerFunc: func(ctx context.Context, inputChan chan string, resultChan chan workResult, wg *sync.WaitGroup) {
-				createClusterWorker(ctx, input.BootstrapClusterProxy, inputChan, resultChan, wg, namespace.Name, input.DeployClusterInSeparateNamespaces, baseClusterClassYAML, baseClusterTemplateYAML, creator)
+				createClusterWorker(ctx, input.BootstrapClusterProxy, inputChan, resultChan, wg, namespace.Name, input.DeployClusterInSeparateNamespaces, baseClusterClassYAML, baseClusterTemplateYAML, creator, input.PostScaleClusterNamespaceCreated)
 			},
 		})
 		if err != nil {
@@ -405,7 +415,16 @@ func scaleSpec(ctx context.Context, inputGetter func() scaleSpecInput) {
 			Concurrency:  concurrency,
 			FailFast:     input.FailFast,
 			WorkerFunc: func(ctx context.Context, inputChan chan string, resultChan chan workResult, wg *sync.WaitGroup) {
-				deleteClusterAndWaitWorker(ctx, inputChan, resultChan, wg, input.BootstrapClusterProxy.GetClient(), namespace.Name, input.DeployClusterInSeparateNamespaces)
+				deleteClusterAndWaitWorker(
+					ctx,
+					inputChan,
+					resultChan,
+					wg,
+					input.BootstrapClusterProxy.GetClient(),
+					namespace.Name,
+					input.DeployClusterInSeparateNamespaces,
+					input.E2EConfig.GetIntervals(specName, "wait-delete-cluster")...,
+				)
 			},
 		})
 		if err != nil {
@@ -568,7 +587,9 @@ func getClusterCreateFn(clusterProxy framework.ClusterProxy) clusterCreator {
 	}
 }
 
-func createClusterWorker(ctx context.Context, clusterProxy framework.ClusterProxy, inputChan <-chan string, resultChan chan<- workResult, wg *sync.WaitGroup, defaultNamespace string, deployClusterInSeparateNamespaces bool, baseClusterClassYAML, baseClusterTemplateYAML []byte, create clusterCreator) {
+type PostScaleClusterNamespaceCreated func(clusterProxy framework.ClusterProxy, clusterNamespace string, clusterName string, clusterClassYAML []byte, clusterTemplateYAML []byte) ([]byte, []byte)
+
+func createClusterWorker(ctx context.Context, clusterProxy framework.ClusterProxy, inputChan <-chan string, resultChan chan<- workResult, wg *sync.WaitGroup, defaultNamespace string, deployClusterInSeparateNamespaces bool, baseClusterClassYAML, baseClusterTemplateYAML []byte, create clusterCreator, postScaleClusterNamespaceCreated PostScaleClusterNamespaceCreated) {
 	defer wg.Done()
 
 	for {
@@ -604,7 +625,6 @@ func createClusterWorker(ctx context.Context, clusterProxy framework.ClusterProx
 				// If every cluster should be deployed in a separate namespace:
 				// * Adjust namespace in ClusterClass YAML.
 				// * Create new namespace.
-				// * Deploy ClusterClass in new namespace.
 				if deployClusterInSeparateNamespaces {
 					log.Logf("Create namespace %", namespaceName)
 					_ = framework.CreateNamespace(ctx, framework.CreateNamespaceInput{
@@ -612,16 +632,29 @@ func createClusterWorker(ctx context.Context, clusterProxy framework.ClusterProx
 						Name:                namespaceName,
 						IgnoreAlreadyExists: true,
 					}, "40s", "10s")
+				}
 
-					log.Logf("Apply ClusterClass in namespace %", namespaceName)
-					clusterClassYAML := bytes.Replace(baseClusterClassYAML, []byte(scaleClusterNamespacePlaceholder), []byte(namespaceName), -1)
+				// Call postScaleClusterNamespaceCreated hook to apply custom requirements based on the cluster name and namespace
+				// User might need to apply additional custom resource in the cluster namespace or customize the templates
+				customizedClusterTemplateYAML := baseClusterTemplateYAML
+				customizedClusterClassYAML := baseClusterClassYAML
+				if postScaleClusterNamespaceCreated != nil {
+					log.Logf("Calling postScaleClusterNamespaceCreated for cluster %s in namespace %s", clusterName, namespaceName)
+					customizedClusterClassYAML, customizedClusterTemplateYAML = postScaleClusterNamespaceCreated(clusterProxy, namespaceName, clusterName, baseClusterClassYAML, baseClusterTemplateYAML)
+				}
+
+				// If every cluster should be deployed in a separate namespace:
+				// * Deploy ClusterClass in new namespace.
+				if deployClusterInSeparateNamespaces {
+					log.Logf("Apply ClusterClass in namespace %s", namespaceName)
+					clusterClassYAML := bytes.Replace(customizedClusterClassYAML, []byte(scaleClusterNamespacePlaceholder), []byte(namespaceName), -1)
 					Eventually(func() error {
 						return clusterProxy.CreateOrUpdate(ctx, clusterClassYAML)
 					}, 1*time.Minute).Should(Succeed())
 				}
 
 				// Adjust namespace and name in Cluster YAML
-				clusterTemplateYAML := bytes.Replace(baseClusterTemplateYAML, []byte(scaleClusterNamespacePlaceholder), []byte(namespaceName), -1)
+				clusterTemplateYAML := bytes.Replace(customizedClusterTemplateYAML, []byte(scaleClusterNamespacePlaceholder), []byte(namespaceName), -1)
 				clusterTemplateYAML = bytes.Replace(clusterTemplateYAML, []byte(scaleClusterNamePlaceholder), []byte(clusterName), -1)
 
 				// Deploy Cluster.
@@ -635,7 +668,7 @@ func createClusterWorker(ctx context.Context, clusterProxy framework.ClusterProx
 	}
 }
 
-func deleteClusterAndWaitWorker(ctx context.Context, inputChan <-chan string, resultChan chan<- workResult, wg *sync.WaitGroup, c client.Client, defaultNamespace string, deployClusterInSeparateNamespaces bool) {
+func deleteClusterAndWaitWorker(ctx context.Context, inputChan <-chan string, resultChan chan<- workResult, wg *sync.WaitGroup, c client.Client, defaultNamespace string, deployClusterInSeparateNamespaces bool, intervals ...interface{}) {
 	defer wg.Done()
 
 	for {
@@ -681,7 +714,7 @@ func deleteClusterAndWaitWorker(ctx context.Context, inputChan <-chan string, re
 				framework.WaitForClusterDeleted(ctx, framework.WaitForClusterDeletedInput{
 					Client:  c,
 					Cluster: cluster,
-				})
+				}, intervals...)
 
 				// Note: We only delete the namespace in this case because in the case where all clusters are deployed
 				// to the same namespace deleting the Namespace will lead to deleting all clusters.

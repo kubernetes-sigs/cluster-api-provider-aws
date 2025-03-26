@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.5
   name: rosamachinepools.infrastructure.cluster.x-k8s.io
 spec:
   group: infrastructure.cluster.x-k8s.io
@@ -102,7 +102,6 @@ spec:
                   respected during upgrades. After this grace period, any workloads protected by Pod Disruption
                   Budgets that have not been successfully drained from a node will be forcibly evicted.
 
-
                   Valid values are from 0 to 1 week(10080m|168h) .
                   0 or empty value means that the MachinePool can be drained without any time limitation.
                 type: string
@@ -178,10 +177,8 @@ spec:
                           Value can be an absolute number (ex: 5) or a percentage of desired nodes (ex: 10%).
                           Absolute number is calculated from percentage by rounding up.
 
-
                           MaxSurge can not be 0 if MaxUnavailable is 0, default is 1.
                           Both MaxSurge & MaxUnavailable must use the same units (absolute value or percentage).
-
 
                           Example: when MaxSurge is set to 30%, new nodes can be provisioned immediately
                           when the rolling update starts, such that the total number of old and new
@@ -200,10 +197,8 @@ spec:
                           Value can be an absolute number (ex: 5) or a percentage of desired nodes (ex: 10%).
                           Absolute number is calculated from percentage by rounding down.
 
-
                           MaxUnavailable can not be 0 if MaxSurge is 0, default is 0.
                           Both MaxUnavailable & MaxSurge must use the same units (absolute value or percentage).
-
 
                           Example: when MaxUnavailable is set to 30%, old nodes can be deleted down to 70% of
                           desired nodes immediately when the rolling update starts. Once new nodes
@@ -219,6 +214,12 @@ spec:
                   Version specifies the OpenShift version of the nodes associated with this machinepool.
                   ROSAControlPlane version is used if not set.
                 type: string
+              volumeSize:
+                description: VolumeSize set the disk volume size for the machine pool,
+                  in Gib. The default is 300 GiB.
+                maximum: 16384
+                minimum: 75
+                type: integer
             required:
             - instanceType
             - nodePoolName
@@ -226,6 +227,11 @@ spec:
           status:
             description: RosaMachinePoolStatus defines the observed state of RosaMachinePool.
             properties:
+              availableUpgrades:
+                description: Available upgrades for the ROSA MachinePool.
+                items:
+                  type: string
+                type: array
               conditions:
                 description: Conditions defines current service state of the managed
                   machine pool
@@ -249,20 +255,20 @@ spec:
                       description: |-
                         The reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
-                        This field may not be empty.
+                        This field may be empty.
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -276,7 +282,6 @@ spec:
                 description: |-
                   FailureMessage will be set in the event that there is a terminal problem
                   reconciling the state and will be set to a descriptive error message.
-
 
                   This field should not be set for transitive errors that a controller
                   faces that are expected to be fixed automatically over

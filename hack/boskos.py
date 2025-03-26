@@ -23,9 +23,13 @@ import time
 
 BOSKOS_HOST = os.environ.get("BOSKOS_HOST", "boskos")
 BOSKOS_RESOURCE_NAME = os.environ.get('BOSKOS_RESOURCE_NAME')
+# Retry up to 3 times, with 10 seconds between tries. This is the same as defaults
+# on https://github.com/kubernetes-sigs/boskos/
+MAX_RETRIES = 3
+RETRY_WAIT = 10
 
 
-def checkout_account(resource_type, user, input_state="free"):
+def checkout_account(resource_type, user, input_state="free", tries=1):
     url = f'http://{BOSKOS_HOST}/acquire?type={resource_type}&state={input_state}&dest=busy&owner={user}'
 
     r = requests.post(url)
@@ -37,7 +41,15 @@ def checkout_account(resource_type, user, input_state="free"):
         print(f"export BOSKOS_RESOURCE_NAME={result['name']}")
         print(f"export AWS_ACCESS_KEY_ID={result['userdata']['access-key-id']}")
         print(f"export AWS_SECRET_ACCESS_KEY={result['userdata']['secret-access-key']}")
-
+    # The http API has two possible meanings of 404s - the named resource type cannot be found or there no available resources of the type.
+    # For our purposes, we don't need to differentiate.
+    elif r.status_code == 404:
+        print(f"could not find available host, retrying in {RETRY_WAIT}s")
+        if tries > MAX_RETRIES:
+            raise Exception(f"could not allocate host after {MAX_RETRIES} tries")
+        tries = tries + 1
+        time.sleep(RETRY_WAIT)
+        return checkout_account(resource_type, user, input_state, tries)
     else:
         raise Exception(f"Got invalid response {r.status_code}: {r.reason}")
 

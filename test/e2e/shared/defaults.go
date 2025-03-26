@@ -43,8 +43,6 @@ const (
 	CNIPath                              = "CNI"
 	CNIResources                         = "CNI_RESOURCES"
 	CNIAddonVersion                      = "VPC_ADDON_VERSION"
-	CorednsAddonVersion                  = "COREDNS_ADDON_VERSION"
-	CorednsAddonConfiguration            = "COREDNS_ADDON_CONFIGURATION"
 	GcWorkloadPath                       = "GC_WORKLOAD"
 	KubeproxyAddonVersion                = "KUBE_PROXY_ADDON_VERSION"
 	AwsNodeMachineType                   = "AWS_NODE_MACHINE_TYPE"
@@ -66,11 +64,14 @@ const (
 	StorageClassOutTreeZoneLabel         = "topology.ebs.csi.aws.com/zone"
 	GPUFlavor                            = "gpu"
 	InstanceVcpu                         = "AWS_MACHINE_TYPE_VCPU_USAGE"
-	PreCSIKubernetesVer                  = "PRE_1_23_KUBERNETES_VERSION"
-	PostCSIKubernetesVer                 = "POST_1_23_KUBERNETES_VERSION"
 	EFSSupport                           = "efs-support"
 	IntreeCloudProvider                  = "intree-cloud-provider"
 	MultiTenancy                         = "MULTI_TENANCY_"
+	EksUpgradeFromVersion                = "UPGRADE_FROM_VERSION"
+	EksUpgradeToVersion                  = "UPGRADE_TO_VERSION"
+
+	ClassicElbTestKubernetesFrom = "CLASSICELB_TEST_KUBERNETES_VERSION_FROM"
+	ClassicElbTestKubernetesTo   = "CLASSICELB_TEST_KUBERNETES_VERSION_TO"
 )
 
 // ResourceQuotaFilePath is the path to the file that contains the resource usage.

@@ -38,6 +38,7 @@ rules:
   - ""
   resources:
   - configmaps
+  - secrets
   verbs:
   - create
   - delete
@@ -64,18 +65,6 @@ rules:
   verbs:
   - get
   - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - secrets
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - authentication.k8s.io
@@ -112,32 +101,8 @@ rules:
   resources:
   - clusters
   - clusters/status
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - cluster.x-k8s.io
-  resources:
-  - clusters
-  - machinepools
-  - machines
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - cluster.x-k8s.io
-  resources:
   - machinedeployments
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - cluster.x-k8s.io
-  resources:
-  - machinepools
+  - machines/status
   verbs:
   - get
   - list
@@ -156,8 +121,8 @@ rules:
   - cluster.x-k8s.io
   resources:
   - machines
-  - machines/status
   verbs:
+  - delete
   - get
   - list
   - watch
@@ -173,33 +138,6 @@ rules:
   - controlplane.cluster.x-k8s.io
   resources:
   - awsmanagedcontrolplanes
-  verbs:
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - controlplane.cluster.x-k8s.io
-  resources:
-  - awsmanagedcontrolplanes
-  - awsmanagedcontrolplanes/status
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - controlplane.cluster.x-k8s.io
-  resources:
-  - awsmanagedcontrolplanes/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - controlplane.cluster.x-k8s.io
-  resources:
   - rosacontrolplanes
   verbs:
   - delete
@@ -211,11 +149,13 @@ rules:
 - apiGroups:
   - controlplane.cluster.x-k8s.io
   resources:
-  - rosacontrolplanes
+  - awsmanagedcontrolplanes/status
   - rosacontrolplanes/status
   verbs:
   - get
   - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - controlplane.cluster.x-k8s.io
@@ -224,24 +164,6 @@ rules:
   verbs:
   - update
 - apiGroups:
-  - controlplane.cluster.x-k8s.io
-  resources:
-  - rosacontrolplanes/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - ""
-  resources:
-  - events
-  verbs:
-  - create
-  - get
-  - list
-  - patch
-  - watch
-- apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
   - awsclustercontrolleridentities
@@ -253,119 +175,8 @@ rules:
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
-  - awsclustercontrolleridentities
   - awsclusterroleidentities
   - awsclusterstaticidentities
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - awsclusterroleidentities
-  - awsclusterstaticidentities
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - awsclusters
-  verbs:
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - awsclusters/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - awsfargateprofiles
-  verbs:
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - awsfargateprofiles/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - awsmachinepools
-  verbs:
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - awsmachinepools
-  - awsmachinepools/status
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - awsmachinepools/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - awsmachines
-  verbs:
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - awsmachines
-  - awsmachines/status
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - awsmachines/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
   - awsmachinetemplates
   verbs:
   - get
@@ -374,81 +185,12 @@ rules:
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
+  - awsclusters
+  - awsfargateprofiles
+  - awsmachinepools
   - awsmanagedclusters
-  verbs:
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - awsmanagedclusters
-  - awsmanagedclusters/status
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - awsmanagedclusters/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
   - awsmanagedmachinepools
-  verbs:
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - awsmanagedmachinepools
-  - awsmanagedmachinepools/status
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - awsmanagedmachinepools/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
   - rosaclusters
-  verbs:
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - rosaclusters/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
   - rosamachinepools
   verbs:
   - delete
@@ -460,16 +202,44 @@ rules:
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
-  - rosamachinepools/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
+  - awsclusters/status
+  - awsfargateprofiles/status
+  - rosaclusters/status
   - rosamachinepools/status
   verbs:
   - get
   - patch
+  - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - awsmachinepools/status
+  - awsmachines/status
+  - awsmanagedclusters/status
+  - awsmanagedmachinepools/status
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - awsmachines
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - rosamachinepools/finalizers
+  verbs:
   - update
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -703,7 +473,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.5
     exclude.release.openshift.io/internal-openshift-hosted: "true"
     include.release.openshift.io/self-managed-high-availability: "true"
     include.release.openshift.io/single-node-developer: "true"
@@ -1144,20 +914,20 @@ spec:
                       description: |-
                         The reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
-                        This field may not be empty.
+                        This field may be empty.
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -1173,7 +943,6 @@ spec:
                   reconciling the Machine and will contain a more verbose string suitable
                   for logging and human consumption.
 
-
                   This field should not be set for transitive errors that a controller
                   faces that are expected to be fixed automatically over
                   time (like service outages), but instead indicate that something is
@@ -1182,7 +951,6 @@ spec:
                   of terminal errors would be invalid combinations of settings in the
                   spec, values that are unsupported by the controller, or the
                   responsible controller itself being critically misconfigured.
-
 
                   Any transient errors that occur during the reconciliation of Machines
                   can be added as events to the Machine object and/or logged in the
@@ -1194,7 +962,6 @@ spec:
                   reconciling the Machine and will contain a succinct value suitable
                   for machine interpretation.
 
-
                   This field should not be set for transitive errors that a controller
                   faces that are expected to be fixed automatically over
                   time (like service outages), but instead indicate that something is
@@ -1203,7 +970,6 @@ spec:
                   of terminal errors would be invalid combinations of settings in the
                   spec, values that are unsupported by the controller, or the
                   responsible controller itself being critically misconfigured.
-
 
                   Any transient errors that occur during the reconciliation of Machines
                   can be added as events to the Machine object and/or logged in the
@@ -1390,10 +1156,8 @@ spec:
                       PublicIpv4PoolFallBackOrder defines the fallback action when the Public IPv4 Pool has been exhausted,
                       no more IPv4 address available in the pool.
 
-
                       When set to 'amazon-pool', the controller check if the pool has available IPv4 address, when pool has reached the
                       IPv4 limit, the address will be claimed from Amazon-pool (default).
-
 
                       When set to 'none', the controller will fail the Elastic IP allocation when the publicIpv4Pool is exhausted.
                     enum:
@@ -1434,7 +1198,6 @@ spec:
                           NoProxy is the list of domains to not proxy for Ignition.
                           Specifies a list of strings to hosts that should be excluded from proxying.
 
-
                           Each value is represented by:
                           - An IP address prefix (1.2.3.4)
                           - An IP address prefix in CIDR notation (1.2.3.4/8)
@@ -1442,7 +1205,6 @@ spec:
                             - A domain name matches that name and all subdomains
                             - A domain name with a leading . matches subdomains only
                           - A special DNS label (*), indicates that no proxying should be done
-
 
                           An IP address prefix and domain name can also include a literal port number (1.2.3.4:80).
                         items:
@@ -1459,14 +1221,11 @@ spec:
                       StorageType defines how to store the boostrap user data for Ignition.
                       This can be used to instruct Ignition from where to fetch the user data to bootstrap an instance.
 
-
                       When omitted, the storage option will default to ClusterObjectStore.
-
 
                       When set to "ClusterObjectStore", if the capability is available and a Cluster ObjectStore configuration
                       is correctly provided in the Cluster object (under .spec.s3Bucket),
                       an object store will be used to store bootstrap user data.
-
 
                       When set to "UnencryptedUserData", EC2 Instance User Data will be used to store the machine bootstrap user data, unencrypted.
                       This option is considered less secure than others as user data may contain sensitive informations (keys, certificates, etc.)
@@ -1543,9 +1302,7 @@ spec:
                     description: |-
                       Enables or disables the HTTP metadata endpoint on your instances.
 
-
                       If you specify a value of disabled, you cannot access your instance metadata.
-
 
                       Default: enabled
                     enum:
@@ -1558,7 +1315,6 @@ spec:
                       The desired HTTP PUT response hop limit for instance metadata requests. The
                       larger the number, the further instance metadata requests can travel.
 
-
                       Default: 1
                     format: int64
                     maximum: 64
@@ -1569,19 +1325,16 @@ spec:
                     description: |-
                       The state of token usage for your instance metadata requests.
 
-
                       If the state is optional, you can choose to retrieve instance metadata with
                       or without a session token on your request. If you retrieve the IAM role
                       credentials without a token, the version 1.0 role credentials are returned.
                       If you retrieve the IAM role credentials using a valid session token, the
                       version 2.0 role credentials are returned.
 
-
                       If the state is required, you must send a session token with any instance
                       metadata retrieval requests. In this state, retrieving the IAM role credentials
                       always returns the version 2.0 credentials; the version 1.0 credentials are
                       not available.
-
 
                       Default: optional
                     enum:
@@ -1596,7 +1349,6 @@ spec:
                       For more information, see Work with instance tags using the instance metadata
                       (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html#work-with-tags-in-IMDS).
 
-
                       Default: disabled
                     enum:
                     - enabled
@@ -1607,6 +1359,27 @@ spec:
                 description: 'InstanceType is the type of instance to create. Example:
                   m4.xlarge'
                 minLength: 2
+                type: string
+              marketType:
+                description: |-
+                  MarketType specifies the type of market for the EC2 instance. Valid values include:
+                  "OnDemand" (default): The instance runs as a standard OnDemand instance.
+                  "Spot": The instance runs as a Spot instance. When SpotMarketOptions is provided, the marketType defaults to "Spot".
+                  "CapacityBlock": The instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
+                   If this value is selected, CapacityReservationID must be specified to identify the target reservation.
+                  If marketType is not specified and spotMarketOptions is provided, the marketType defaults to "Spot".
+                enum:
+                - OnDemand
+                - Spot
+                - CapacityBlock
+                type: string
+              networkInterfaceType:
+                description: |-
+                  NetworkInterfaceType is the interface type of the primary network Interface.
+                  If not specified, AWS applies a default value.
+                enum:
+                - interface
+                - efa
                 type: string
               networkInterfaces:
                 description: |-
@@ -1856,20 +1629,20 @@ spec:
                       description: |-
                         The reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
-                        This field may not be empty.
+                        This field may be empty.
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -1885,7 +1658,6 @@ spec:
                   reconciling the Machine and will contain a more verbose string suitable
                   for logging and human consumption.
 
-
                   This field should not be set for transitive errors that a controller
                   faces that are expected to be fixed automatically over
                   time (like service outages), but instead indicate that something is
@@ -1894,7 +1666,6 @@ spec:
                   of terminal errors would be invalid combinations of settings in the
                   spec, values that are unsupported by the controller, or the
                   responsible controller itself being critically misconfigured.
-
 
                   Any transient errors that occur during the reconciliation of Machines
                   can be added as events to the Machine object and/or logged in the
@@ -1906,7 +1677,6 @@ spec:
                   reconciling the Machine and will contain a succinct value suitable
                   for machine interpretation.
 
-
                   This field should not be set for transitive errors that a controller
                   faces that are expected to be fixed automatically over
                   time (like service outages), but instead indicate that something is
@@ -1915,7 +1685,6 @@ spec:
                   of terminal errors would be invalid combinations of settings in the
                   spec, values that are unsupported by the controller, or the
                   responsible controller itself being critically misconfigured.
-
 
                   Any transient errors that occur during the reconciliation of Machines
                   can be added as events to the Machine object and/or logged in the
@@ -1950,7 +1719,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.5
     exclude.release.openshift.io/internal-openshift-hosted: "true"
     include.release.openshift.io/self-managed-high-availability: "true"
     include.release.openshift.io/single-node-developer: "true"
@@ -2095,12 +1864,10 @@ spec:
                     description: |-
                       CrossZoneLoadBalancing enables the classic ELB cross availability zone balancing.
 
-
                       With cross-zone load balancing, each load balancer node for your Classic Load Balancer
                       distributes requests evenly across the registered instances in all enabled Availability Zones.
                       If cross-zone load balancing is disabled, each load balancer node distributes requests evenly across
                       the registered instances in its Availability Zone only.
-
 
                       Defaults to false.
                     type: boolean
@@ -2587,20 +2354,20 @@ spec:
                       description: |-
                         The reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
-                        This field may not be empty.
+                        This field may be empty.
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -2619,11 +2386,11 @@ spec:
                     attributes:
                       additionalProperties:
                         type: string
-                      description: Attributes is a free form map of attributes an
+                      description: attributes is a free form map of attributes an
                         infrastructure provider might use or require.
                       type: object
                     controlPlane:
-                      description: ControlPlane determines if this failure domain
+                      description: controlPlane determines if this failure domain
                         is suitable for use by control plane machines.
                       type: boolean
                   type: object
@@ -3033,12 +2800,10 @@ spec:
                     description: |-
                       CrossZoneLoadBalancing enables the classic ELB cross availability zone balancing.
 
-
                       With cross-zone load balancing, each load balancer node for your Classic Load Balancer
                       distributes requests evenly across the registered instances in all enabled Availability Zones.
                       If cross-zone load balancing is disabled, each load balancer node distributes requests evenly across
                       the registered instances in its Availability Zone only.
-
 
                       Defaults to false.
                     type: boolean
@@ -3405,7 +3170,6 @@ spec:
                             ID defines a unique identifier to reference this resource.
                             If you're bringing your subnet, set the AWS subnet-id here, it must start with `subnet-`.
 
-
                             When the VPC is managed by CAPA, and you'd like the provider to create a subnet for you,
                             the id can be set to any placeholder value that does not start with `subnet-`;
                             upon creation, the subnet AWS identifier will be populated in the `ResourceID` field and
@@ -3438,7 +3202,6 @@ spec:
                             ParentZoneName is the zone name where the current subnet's zone is tied when
                             the zone is a Local Zone.
 
-
                             The subnets in Local Zone or Wavelength Zone locations consume the ParentZoneName
                             to select the correct private route table to egress traffic to the internet.
                           type: string
@@ -3461,29 +3224,22 @@ spec:
                           description: |-
                             ZoneType defines the type of the zone where the subnet is created.
 
-
                             The valid values are availability-zone, local-zone, and wavelength-zone.
-
 
                             Subnet with zone type availability-zone (regular) is always selected to create cluster
                             resources, like Load Balancers, NAT Gateways, Contol Plane nodes, etc.
 
-
                             Subnet with zone type local-zone or wavelength-zone is not eligible to automatically create
                             regular cluster resources.
-
 
                             The public subnet in availability-zone or local-zone is associated with regular public
                             route table with default route entry to a Internet Gateway.
 
-
                             The public subnet in wavelength-zone is associated with a carrier public
                             route table with default route entry to a Carrier Gateway.
 
-
                             The private subnet in the availability-zone is associated with a private route table with
                             the default route entry to a NAT Gateway created in that zone.
-
 
                             The private subnet in the local-zone or wavelength-zone is associated with a private route table with
                             the default route entry re-using the NAT Gateway in the Region (preferred from the
@@ -3557,10 +3313,8 @@ spec:
                               PublicIpv4PoolFallBackOrder defines the fallback action when the Public IPv4 Pool has been exhausted,
                               no more IPv4 address available in the pool.
 
-
                               When set to 'amazon-pool', the controller check if the pool has available IPv4 address, when pool has reached the
                               IPv4 limit, the address will be claimed from Amazon-pool (default).
-
 
                               When set to 'none', the controller will fail the Elastic IP allocation when the publicIpv4Pool is exhausted.
                             enum:
@@ -3576,11 +3330,9 @@ spec:
                           EmptyRoutesDefaultVPCSecurityGroup specifies whether the default VPC security group ingress
                           and egress rules should be removed.
 
-
                           By default, when creating a VPC, AWS creates a security group called `default` with ingress and egress
                           rules that allow traffic from anywhere. The group could be used as a potential surface attack and
                           it's generally suggested that the group rules are removed or modified appropriately.
-
 
                           NOTE: This only applies when the VPC is managed by the Cluster API AWS controller.
                         type: boolean
@@ -3743,10 +3495,8 @@ spec:
                     description: |-
                       PresignedURLDuration defines the duration for which presigned URLs are valid.
 
-
                       This is used to generate presigned URLs for S3 Bucket objects, which are used by
                       control-plane and worker nodes to fetch bootstrap data.
-
 
                       When enabled, the IAM instance profiles specified are not used.
                     type: string
@@ -3756,7 +3506,6 @@ spec:
               secondaryControlPlaneLoadBalancer:
                 description: |-
                   SecondaryControlPlaneLoadBalancer is an additional load balancer that can be used for the control plane.
-
 
                   An example use case is to have a separate internal load balancer for internal traffic,
                   and a separate external load balancer for external traffic.
@@ -3858,12 +3607,10 @@ spec:
                     description: |-
                       CrossZoneLoadBalancing enables the classic ELB cross availability zone balancing.
 
-
                       With cross-zone load balancing, each load balancer node for your Classic Load Balancer
                       distributes requests evenly across the registered instances in all enabled Availability Zones.
                       If cross-zone load balancing is disabled, each load balancer node distributes requests evenly across
                       the registered instances in its Availability Zone only.
-
 
                       Defaults to false.
                     type: boolean
@@ -4102,9 +3849,7 @@ spec:
                         description: |-
                           Enables or disables the HTTP metadata endpoint on your instances.
 
-
                           If you specify a value of disabled, you cannot access your instance metadata.
-
 
                           Default: enabled
                         enum:
@@ -4117,7 +3862,6 @@ spec:
                           The desired HTTP PUT response hop limit for instance metadata requests. The
                           larger the number, the further instance metadata requests can travel.
 
-
                           Default: 1
                         format: int64
                         maximum: 64
@@ -4128,19 +3872,16 @@ spec:
                         description: |-
                           The state of token usage for your instance metadata requests.
 
-
                           If the state is optional, you can choose to retrieve instance metadata with
                           or without a session token on your request. If you retrieve the IAM role
                           credentials without a token, the version 1.0 role credentials are returned.
                           If you retrieve the IAM role credentials using a valid session token, the
                           version 2.0 role credentials are returned.
 
-
                           If the state is required, you must send a session token with any instance
                           metadata retrieval requests. In this state, retrieving the IAM role credentials
                           always returns the version 2.0 credentials; the version 1.0 credentials are
                           not available.
-
 
                           Default: optional
                         enum:
@@ -4155,7 +3896,6 @@ spec:
                           For more information, see Work with instance tags using the instance metadata
                           (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html#work-with-tags-in-IMDS).
 
-
                           Default: disabled
                         enum:
                         - enabled
@@ -4164,6 +3904,23 @@ spec:
                     type: object
                   instanceState:
                     description: The current state of the instance.
+                    type: string
+                  marketType:
+                    description: |-
+                      MarketType specifies the type of market for the EC2 instance. Valid values include:
+                      "OnDemand" (default): The instance runs as a standard OnDemand instance.
+                      "Spot": The instance runs as a Spot instance. When SpotMarketOptions is provided, the marketType defaults to "Spot".
+                      "CapacityBlock": The instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
+                       If this value is selected, CapacityReservationID must be specified to identify the target reservation.
+                      If marketType is not specified and spotMarketOptions is provided, the marketType defaults to "Spot".
+                    enum:
+                    - OnDemand
+                    - Spot
+                    - CapacityBlock
+                    type: string
+                  networkInterfaceType:
+                    description: NetworkInterfaceType is the interface type of the
+                      primary network Interface.
                     type: string
                   networkInterfaces:
                     description: Specifies ENIs attached to instance
@@ -4367,20 +4124,20 @@ spec:
                       description: |-
                         The reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
-                        This field may not be empty.
+                        This field may be empty.
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -4399,11 +4156,11 @@ spec:
                     attributes:
                       additionalProperties:
                         type: string
-                      description: Attributes is a free form map of attributes an
+                      description: attributes is a free form map of attributes an
                         infrastructure provider might use or require.
                       type: object
                     controlPlane:
-                      description: ControlPlane determines if this failure domain
+                      description: controlPlane determines if this failure domain
                         is suitable for use by control plane machines.
                       type: boolean
                   type: object
@@ -4969,7 +4726,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.5
     exclude.release.openshift.io/internal-openshift-hosted: "true"
     include.release.openshift.io/self-managed-high-availability: "true"
     include.release.openshift.io/single-node-developer: "true"
@@ -5108,20 +4865,20 @@ spec:
                       description: |-
                         The reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
-                        This field may not be empty.
+                        This field may be empty.
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -5137,7 +4894,6 @@ spec:
                   reconciling the FargateProfile and will contain a more verbose string suitable
                   for logging and human consumption.
 
-
                   This field should not be set for transitive errors that a controller
                   faces that are expected to be fixed automatically over
                   time (like service outages), but instead indicate that something is
@@ -5146,7 +4902,6 @@ spec:
                   of terminal errors would be invalid combinations of settings in the
                   spec, values that are unsupported by the controller, or the
                   responsible controller itself being critically misconfigured.
-
 
                   Any transient errors that occur during the reconciliation of
                   FargateProfiles can be added as events to the FargateProfile
@@ -5158,7 +4913,6 @@ spec:
                   reconciling the FargateProfile and will contain a succinct value suitable
                   for machine interpretation.
 
-
                   This field should not be set for transitive errors that a controller
                   faces that are expected to be fixed automatically over
                   time (like service outages), but instead indicate that something is
@@ -5167,7 +4921,6 @@ spec:
                   of terminal errors would be invalid combinations of settings in the
                   spec, values that are unsupported by the controller, or the
                   responsible controller itself being critically misconfigured.
-
 
                   Any transient errors that occur during the reconciliation of
                   FargateProfiles can be added as events to the FargateProfile object
@@ -5298,20 +5051,20 @@ spec:
                       description: |-
                         The reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
-                        This field may not be empty.
+                        This field may be empty.
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -5327,7 +5080,6 @@ spec:
                   reconciling the FargateProfile and will contain a more verbose string suitable
                   for logging and human consumption.
 
-
                   This field should not be set for transitive errors that a controller
                   faces that are expected to be fixed automatically over
                   time (like service outages), but instead indicate that something is
@@ -5336,7 +5088,6 @@ spec:
                   of terminal errors would be invalid combinations of settings in the
                   spec, values that are unsupported by the controller, or the
                   responsible controller itself being critically misconfigured.
-
 
                   Any transient errors that occur during the reconciliation of
                   FargateProfiles can be added as events to the FargateProfile
@@ -5348,7 +5099,6 @@ spec:
                   reconciling the FargateProfile and will contain a succinct value suitable
                   for machine interpretation.
 
-
                   This field should not be set for transitive errors that a controller
                   faces that are expected to be fixed automatically over
                   time (like service outages), but instead indicate that something is
@@ -5357,7 +5107,6 @@ spec:
                   of terminal errors would be invalid combinations of settings in the
                   spec, values that are unsupported by the controller, or the
                   responsible controller itself being critically misconfigured.
-
 
                   Any transient errors that occur during the reconciliation of
                   FargateProfiles can be added as events to the FargateProfile object
@@ -5386,7 +5135,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.5
     exclude.release.openshift.io/internal-openshift-hosted: "true"
     include.release.openshift.io/self-managed-high-availability: "true"
     include.release.openshift.io/single-node-developer: "true"
@@ -5452,7 +5201,7 @@ spec:
                         additionalProperties:
                           type: string
                         description: |-
-                          Annotations is an unstructured key value map stored with a resource that may be
+                          annotations is an unstructured key value map stored with a resource that may be
                           set by external tools to store and retrieve arbitrary metadata. They are not
                           queryable and should be preserved when modifying objects.
                           More info: http://kubernetes.io/docs/user-guide/annotations
@@ -5866,7 +5615,7 @@ spec:
                         additionalProperties:
                           type: string
                         description: |-
-                          Annotations is an unstructured key value map stored with a resource that may be
+                          annotations is an unstructured key value map stored with a resource that may be
                           set by external tools to store and retrieve arbitrary metadata. They are not
                           queryable and should be preserved when modifying objects.
                           More info: http://kubernetes.io/docs/user-guide/annotations
@@ -6003,10 +5752,8 @@ spec:
                               PublicIpv4PoolFallBackOrder defines the fallback action when the Public IPv4 Pool has been exhausted,
                               no more IPv4 address available in the pool.
 
-
                               When set to 'amazon-pool', the controller check if the pool has available IPv4 address, when pool has reached the
                               IPv4 limit, the address will be claimed from Amazon-pool (default).
-
 
                               When set to 'none', the controller will fail the Elastic IP allocation when the publicIpv4Pool is exhausted.
                             enum:
@@ -6047,7 +5794,6 @@ spec:
                                   NoProxy is the list of domains to not proxy for Ignition.
                                   Specifies a list of strings to hosts that should be excluded from proxying.
 
-
                                   Each value is represented by:
                                   - An IP address prefix (1.2.3.4)
                                   - An IP address prefix in CIDR notation (1.2.3.4/8)
@@ -6055,7 +5801,6 @@ spec:
                                     - A domain name matches that name and all subdomains
                                     - A domain name with a leading . matches subdomains only
                                   - A special DNS label (*), indicates that no proxying should be done
-
 
                                   An IP address prefix and domain name can also include a literal port number (1.2.3.4:80).
                                 items:
@@ -6072,14 +5817,11 @@ spec:
                               StorageType defines how to store the boostrap user data for Ignition.
                               This can be used to instruct Ignition from where to fetch the user data to bootstrap an instance.
 
-
                               When omitted, the storage option will default to ClusterObjectStore.
-
 
                               When set to "ClusterObjectStore", if the capability is available and a Cluster ObjectStore configuration
                               is correctly provided in the Cluster object (under .spec.s3Bucket),
                               an object store will be used to store bootstrap user data.
-
 
                               When set to "UnencryptedUserData", EC2 Instance User Data will be used to store the machine bootstrap user data, unencrypted.
                               This option is considered less secure than others as user data may contain sensitive informations (keys, certificates, etc.)
@@ -6156,9 +5898,7 @@ spec:
                             description: |-
                               Enables or disables the HTTP metadata endpoint on your instances.
 
-
                               If you specify a value of disabled, you cannot access your instance metadata.
-
 
                               Default: enabled
                             enum:
@@ -6171,7 +5911,6 @@ spec:
                               The desired HTTP PUT response hop limit for instance metadata requests. The
                               larger the number, the further instance metadata requests can travel.
 
-
                               Default: 1
                             format: int64
                             maximum: 64
@@ -6182,19 +5921,16 @@ spec:
                             description: |-
                               The state of token usage for your instance metadata requests.
 
-
                               If the state is optional, you can choose to retrieve instance metadata with
                               or without a session token on your request. If you retrieve the IAM role
                               credentials without a token, the version 1.0 role credentials are returned.
                               If you retrieve the IAM role credentials using a valid session token, the
                               version 2.0 role credentials are returned.
 
-
                               If the state is required, you must send a session token with any instance
                               metadata retrieval requests. In this state, retrieving the IAM role credentials
                               always returns the version 2.0 credentials; the version 1.0 credentials are
                               not available.
-
 
                               Default: optional
                             enum:
@@ -6209,7 +5945,6 @@ spec:
                               For more information, see Work with instance tags using the instance metadata
                               (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html#work-with-tags-in-IMDS).
 
-
                               Default: disabled
                             enum:
                             - enabled
@@ -6220,6 +5955,27 @@ spec:
                         description: 'InstanceType is the type of instance to create.
                           Example: m4.xlarge'
                         minLength: 2
+                        type: string
+                      marketType:
+                        description: |-
+                          MarketType specifies the type of market for the EC2 instance. Valid values include:
+                          "OnDemand" (default): The instance runs as a standard OnDemand instance.
+                          "Spot": The instance runs as a Spot instance. When SpotMarketOptions is provided, the marketType defaults to "Spot".
+                          "CapacityBlock": The instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
+                           If this value is selected, CapacityReservationID must be specified to identify the target reservation.
+                          If marketType is not specified and spotMarketOptions is provided, the marketType defaults to "Spot".
+                        enum:
+                        - OnDemand
+                        - Spot
+                        - CapacityBlock
+                        type: string
+                      networkInterfaceType:
+                        description: |-
+                          NetworkInterfaceType is the interface type of the primary network Interface.
+                          If not specified, AWS applies a default value.
+                        enum:
+                        - interface
+                        - efa
                         type: string
                       networkInterfaces:
                         description: |-
@@ -6469,7 +6225,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.5
     exclude.release.openshift.io/internal-openshift-hosted: "true"
     include.release.openshift.io/self-managed-high-availability: "true"
     include.release.openshift.io/single-node-developer: "true"
@@ -6883,20 +6639,20 @@ spec:
                       description: |-
                         The reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
-                        This field may not be empty.
+                        This field may be empty.
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -6912,7 +6668,6 @@ spec:
                   reconciling the Machine and will contain a more verbose string suitable
                   for logging and human consumption.
 
-
                   This field should not be set for transitive errors that a controller
                   faces that are expected to be fixed automatically over
                   time (like service outages), but instead indicate that something is
@@ -6921,7 +6676,6 @@ spec:
                   of terminal errors would be invalid combinations of settings in the
                   spec, values that are unsupported by the controller, or the
                   responsible controller itself being critically misconfigured.
-
 
                   Any transient errors that occur during the reconciliation of Machines
                   can be added as events to the Machine object and/or logged in the
@@ -6933,7 +6687,6 @@ spec:
                   reconciling the Machine and will contain a succinct value suitable
                   for machine interpretation.
 
-
                   This field should not be set for transitive errors that a controller
                   faces that are expected to be fixed automatically over
                   time (like service outages), but instead indicate that something is
@@ -6942,7 +6695,6 @@ spec:
                   of terminal errors would be invalid combinations of settings in the
                   spec, values that are unsupported by the controller, or the
                   responsible controller itself being critically misconfigured.
-
 
                   Any transient errors that occur during the reconciliation of Machines
                   can be added as events to the Machine object and/or logged in the
@@ -7110,6 +6862,10 @@ spec:
                         description: ID of resource
                         type: string
                     type: object
+                  capacityReservationId:
+                    description: CapacityReservationID specifies the target Capacity
+                      Reservation into which the instance should be launched.
+                    type: string
                   iamInstanceProfile:
                     description: |-
                       The name or the Amazon Resource Name (ARN) of the instance profile associated
@@ -7148,9 +6904,7 @@ spec:
                         description: |-
                           Enables or disables the HTTP metadata endpoint on your instances.
 
-
                           If you specify a value of disabled, you cannot access your instance metadata.
-
 
                           Default: enabled
                         enum:
@@ -7163,7 +6917,6 @@ spec:
                           The desired HTTP PUT response hop limit for instance metadata requests. The
                           larger the number, the further instance metadata requests can travel.
 
-
                           Default: 1
                         format: int64
                         maximum: 64
@@ -7174,19 +6927,16 @@ spec:
                         description: |-
                           The state of token usage for your instance metadata requests.
 
-
                           If the state is optional, you can choose to retrieve instance metadata with
                           or without a session token on your request. If you retrieve the IAM role
                           credentials without a token, the version 1.0 role credentials are returned.
                           If you retrieve the IAM role credentials using a valid session token, the
                           version 2.0 role credentials are returned.
 
-
                           If the state is required, you must send a session token with any instance
                           metadata retrieval requests. In this state, retrieving the IAM role credentials
                           always returns the version 2.0 credentials; the version 1.0 credentials are
                           not available.
-
 
                           Default: optional
                         enum:
@@ -7201,7 +6951,6 @@ spec:
                           For more information, see Work with instance tags using the instance metadata
                           (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html#work-with-tags-in-IMDS).
 
-
                           Default: disabled
                         enum:
                         - enabled
@@ -7211,6 +6960,19 @@ spec:
                   instanceType:
                     description: 'InstanceType is the type of instance to create.
                       Example: m4.xlarge'
+                    type: string
+                  marketType:
+                    description: |-
+                      MarketType specifies the type of market for the EC2 instance. Valid values include:
+                      "OnDemand" (default): The instance runs as a standard OnDemand instance.
+                      "Spot": The instance runs as a Spot instance. When SpotMarketOptions is provided, the marketType defaults to "Spot".
+                      "CapacityBlock": The instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
+                       If this value is selected, CapacityReservationID must be specified to identify the target reservation.
+                      If marketType is not specified and spotMarketOptions is provided, the marketType defaults to "Spot".
+                    enum:
+                    - OnDemand
+                    - Spot
+                    - CapacityBlock
                     type: string
                   name:
                     description: The name of the launch template.
@@ -7571,20 +7333,20 @@ spec:
                       description: |-
                         The reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
-                        This field may not be empty.
+                        This field may be empty.
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -7600,7 +7362,6 @@ spec:
                   reconciling the Machine and will contain a more verbose string suitable
                   for logging and human consumption.
 
-
                   This field should not be set for transitive errors that a controller
                   faces that are expected to be fixed automatically over
                   time (like service outages), but instead indicate that something is
@@ -7609,7 +7370,6 @@ spec:
                   of terminal errors would be invalid combinations of settings in the
                   spec, values that are unsupported by the controller, or the
                   responsible controller itself being critically misconfigured.
-
 
                   Any transient errors that occur during the reconciliation of Machines
                   can be added as events to the Machine object and/or logged in the
@@ -7621,7 +7381,6 @@ spec:
                   reconciling the Machine and will contain a succinct value suitable
                   for machine interpretation.
 
-
                   This field should not be set for transitive errors that a controller
                   faces that are expected to be fixed automatically over
                   time (like service outages), but instead indicate that something is
@@ -7631,10 +7390,13 @@ spec:
                   spec, values that are unsupported by the controller, or the
                   responsible controller itself being critically misconfigured.
 
-
                   Any transient errors that occur during the reconciliation of Machines
                   can be added as events to the Machine object and/or logged in the
                   controller's output.
+                type: string
+              infrastructureMachineKind:
+                description: InfrastructureMachineKind is the kind of the infrastructure
+                  resources behind MachinePool Machines.
                 type: string
               instances:
                 description: Instances contains the status for each instance in the
@@ -7683,7 +7445,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.5
     exclude.release.openshift.io/internal-openshift-hosted: "true"
     include.release.openshift.io/self-managed-high-availability: "true"
     include.release.openshift.io/single-node-developer: "true"
@@ -8096,20 +7858,20 @@ spec:
                       description: |-
                         The reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
-                        This field may not be empty.
+                        This field may be empty.
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -8125,7 +7887,6 @@ spec:
                   reconciling the MachinePool and will contain a more verbose string suitable
                   for logging and human consumption.
 
-
                   This field should not be set for transitive errors that a controller
                   faces that are expected to be fixed automatically over
                   time (like service outages), but instead indicate that something is
@@ -8134,7 +7895,6 @@ spec:
                   of terminal errors would be invalid combinations of settings in the
                   spec, values that are unsupported by the controller, or the
                   responsible controller itself being critically misconfigured.
-
 
                   Any transient errors that occur during the reconciliation of MachinePools
                   can be added as events to the MachinePool object and/or logged in the
@@ -8146,7 +7906,6 @@ spec:
                   reconciling the MachinePool and will contain a succinct value suitable
                   for machine interpretation.
 
-
                   This field should not be set for transitive errors that a controller
                   faces that are expected to be fixed automatically over
                   time (like service outages), but instead indicate that something is
@@ -8155,7 +7914,6 @@ spec:
                   of terminal errors would be invalid combinations of settings in the
                   spec, values that are unsupported by the controller, or the
                   responsible controller itself being critically misconfigured.
-
 
                   Any transient errors that occur during the reconciliation of MachinePools
                   can be added as events to the MachinePool object and/or logged in the
@@ -8320,6 +8078,10 @@ spec:
                         description: ID of resource
                         type: string
                     type: object
+                  capacityReservationId:
+                    description: CapacityReservationID specifies the target Capacity
+                      Reservation into which the instance should be launched.
+                    type: string
                   iamInstanceProfile:
                     description: |-
                       The name or the Amazon Resource Name (ARN) of the instance profile associated
@@ -8358,9 +8120,7 @@ spec:
                         description: |-
                           Enables or disables the HTTP metadata endpoint on your instances.
 
-
                           If you specify a value of disabled, you cannot access your instance metadata.
-
 
                           Default: enabled
                         enum:
@@ -8373,7 +8133,6 @@ spec:
                           The desired HTTP PUT response hop limit for instance metadata requests. The
                           larger the number, the further instance metadata requests can travel.
 
-
                           Default: 1
                         format: int64
                         maximum: 64
@@ -8384,19 +8143,16 @@ spec:
                         description: |-
                           The state of token usage for your instance metadata requests.
 
-
                           If the state is optional, you can choose to retrieve instance metadata with
                           or without a session token on your request. If you retrieve the IAM role
                           credentials without a token, the version 1.0 role credentials are returned.
                           If you retrieve the IAM role credentials using a valid session token, the
                           version 2.0 role credentials are returned.
 
-
                           If the state is required, you must send a session token with any instance
                           metadata retrieval requests. In this state, retrieving the IAM role credentials
                           always returns the version 2.0 credentials; the version 1.0 credentials are
                           not available.
-
 
                           Default: optional
                         enum:
@@ -8411,7 +8167,6 @@ spec:
                           For more information, see Work with instance tags using the instance metadata
                           (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html#work-with-tags-in-IMDS).
 
-
                           Default: disabled
                         enum:
                         - enabled
@@ -8421,6 +8176,19 @@ spec:
                   instanceType:
                     description: 'InstanceType is the type of instance to create.
                       Example: m4.xlarge'
+                    type: string
+                  marketType:
+                    description: |-
+                      MarketType specifies the type of market for the EC2 instance. Valid values include:
+                      "OnDemand" (default): The instance runs as a standard OnDemand instance.
+                      "Spot": The instance runs as a Spot instance. When SpotMarketOptions is provided, the marketType defaults to "Spot".
+                      "CapacityBlock": The instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
+                       If this value is selected, CapacityReservationID must be specified to identify the target reservation.
+                      If marketType is not specified and spotMarketOptions is provided, the marketType defaults to "Spot".
+                    enum:
+                    - OnDemand
+                    - Spot
+                    - CapacityBlock
                     type: string
                   name:
                     description: The name of the launch template.
@@ -8713,20 +8481,20 @@ spec:
                       description: |-
                         The reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
-                        This field may not be empty.
+                        This field may be empty.
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -8742,7 +8510,6 @@ spec:
                   reconciling the MachinePool and will contain a more verbose string suitable
                   for logging and human consumption.
 
-
                   This field should not be set for transitive errors that a controller
                   faces that are expected to be fixed automatically over
                   time (like service outages), but instead indicate that something is
@@ -8751,7 +8518,6 @@ spec:
                   of terminal errors would be invalid combinations of settings in the
                   spec, values that are unsupported by the controller, or the
                   responsible controller itself being critically misconfigured.
-
 
                   Any transient errors that occur during the reconciliation of MachinePools
                   can be added as events to the MachinePool object and/or logged in the
@@ -8763,7 +8529,6 @@ spec:
                   reconciling the MachinePool and will contain a succinct value suitable
                   for machine interpretation.
 
-
                   This field should not be set for transitive errors that a controller
                   faces that are expected to be fixed automatically over
                   time (like service outages), but instead indicate that something is
@@ -8772,7 +8537,6 @@ spec:
                   of terminal errors would be invalid combinations of settings in the
                   spec, values that are unsupported by the controller, or the
                   responsible controller itself being critically misconfigured.
-
 
                   Any transient errors that occur during the reconciliation of MachinePools
                   can be added as events to the MachinePool object and/or logged in the
@@ -8813,7 +8577,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.5
     exclude.release.openshift.io/internal-openshift-hosted: "true"
     include.release.openshift.io/self-managed-high-availability: "true"
     include.release.openshift.io/single-node-developer: "true"
@@ -9162,7 +8926,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.5
     exclude.release.openshift.io/internal-openshift-hosted: "true"
     include.release.openshift.io/self-managed-high-availability: "true"
     include.release.openshift.io/single-node-developer: "true"
@@ -9412,7 +9176,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.5
     exclude.release.openshift.io/internal-openshift-hosted: "true"
     include.release.openshift.io/self-managed-high-availability: "true"
     include.release.openshift.io/single-node-developer: "true"
@@ -9643,7 +9407,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.5
     exclude.release.openshift.io/internal-openshift-hosted: "true"
     include.release.openshift.io/self-managed-high-availability: "true"
     include.release.openshift.io/single-node-developer: "true"
@@ -9714,7 +9478,7 @@ spec:
                         additionalProperties:
                           type: string
                         description: |-
-                          Annotations is an unstructured key value map stored with a resource that may be
+                          annotations is an unstructured key value map stored with a resource that may be
                           set by external tools to store and retrieve arbitrary metadata. They are not
                           queryable and should be preserved when modifying objects.
                           More info: http://kubernetes.io/docs/user-guide/annotations
@@ -9803,12 +9567,10 @@ spec:
                             description: |-
                               CrossZoneLoadBalancing enables the classic ELB cross availability zone balancing.
 
-
                               With cross-zone load balancing, each load balancer node for your Classic Load Balancer
                               distributes requests evenly across the registered instances in all enabled Availability Zones.
                               If cross-zone load balancing is disabled, each load balancer node distributes requests evenly across
                               the registered instances in its Availability Zone only.
-
 
                               Defaults to false.
                             type: boolean
@@ -10142,7 +9904,7 @@ spec:
                         additionalProperties:
                           type: string
                         description: |-
-                          Annotations is an unstructured key value map stored with a resource that may be
+                          annotations is an unstructured key value map stored with a resource that may be
                           set by external tools to store and retrieve arbitrary metadata. They are not
                           queryable and should be preserved when modifying objects.
                           More info: http://kubernetes.io/docs/user-guide/annotations
@@ -10318,12 +10080,10 @@ spec:
                             description: |-
                               CrossZoneLoadBalancing enables the classic ELB cross availability zone balancing.
 
-
                               With cross-zone load balancing, each load balancer node for your Classic Load Balancer
                               distributes requests evenly across the registered instances in all enabled Availability Zones.
                               If cross-zone load balancing is disabled, each load balancer node distributes requests evenly across
                               the registered instances in its Availability Zone only.
-
 
                               Defaults to false.
                             type: boolean
@@ -10695,7 +10455,6 @@ spec:
                                     ID defines a unique identifier to reference this resource.
                                     If you're bringing your subnet, set the AWS subnet-id here, it must start with `subnet-`.
 
-
                                     When the VPC is managed by CAPA, and you'd like the provider to create a subnet for you,
                                     the id can be set to any placeholder value that does not start with `subnet-`;
                                     upon creation, the subnet AWS identifier will be populated in the `ResourceID` field and
@@ -10729,7 +10488,6 @@ spec:
                                     ParentZoneName is the zone name where the current subnet's zone is tied when
                                     the zone is a Local Zone.
 
-
                                     The subnets in Local Zone or Wavelength Zone locations consume the ParentZoneName
                                     to select the correct private route table to egress traffic to the internet.
                                   type: string
@@ -10752,29 +10510,22 @@ spec:
                                   description: |-
                                     ZoneType defines the type of the zone where the subnet is created.
 
-
                                     The valid values are availability-zone, local-zone, and wavelength-zone.
-
 
                                     Subnet with zone type availability-zone (regular) is always selected to create cluster
                                     resources, like Load Balancers, NAT Gateways, Contol Plane nodes, etc.
 
-
                                     Subnet with zone type local-zone or wavelength-zone is not eligible to automatically create
                                     regular cluster resources.
-
 
                                     The public subnet in availability-zone or local-zone is associated with regular public
                                     route table with default route entry to a Internet Gateway.
 
-
                                     The public subnet in wavelength-zone is associated with a carrier public
                                     route table with default route entry to a Carrier Gateway.
 
-
                                     The private subnet in the availability-zone is associated with a private route table with
                                     the default route entry to a NAT Gateway created in that zone.
-
 
                                     The private subnet in the local-zone or wavelength-zone is associated with a private route table with
                                     the default route entry re-using the NAT Gateway in the Region (preferred from the
@@ -10848,10 +10599,8 @@ spec:
                                       PublicIpv4PoolFallBackOrder defines the fallback action when the Public IPv4 Pool has been exhausted,
                                       no more IPv4 address available in the pool.
 
-
                                       When set to 'amazon-pool', the controller check if the pool has available IPv4 address, when pool has reached the
                                       IPv4 limit, the address will be claimed from Amazon-pool (default).
-
 
                                       When set to 'none', the controller will fail the Elastic IP allocation when the publicIpv4Pool is exhausted.
                                     enum:
@@ -10867,11 +10616,9 @@ spec:
                                   EmptyRoutesDefaultVPCSecurityGroup specifies whether the default VPC security group ingress
                                   and egress rules should be removed.
 
-
                                   By default, when creating a VPC, AWS creates a security group called `default` with ingress and egress
                                   rules that allow traffic from anywhere. The group could be used as a potential surface attack and
                                   it's generally suggested that the group rules are removed or modified appropriately.
-
 
                                   NOTE: This only applies when the VPC is managed by the Cluster API AWS controller.
                                 type: boolean
@@ -11036,10 +10783,8 @@ spec:
                             description: |-
                               PresignedURLDuration defines the duration for which presigned URLs are valid.
 
-
                               This is used to generate presigned URLs for S3 Bucket objects, which are used by
                               control-plane and worker nodes to fetch bootstrap data.
-
 
                               When enabled, the IAM instance profiles specified are not used.
                             type: string
@@ -11049,7 +10794,6 @@ spec:
                       secondaryControlPlaneLoadBalancer:
                         description: |-
                           SecondaryControlPlaneLoadBalancer is an additional load balancer that can be used for the control plane.
-
 
                           An example use case is to have a separate internal load balancer for internal traffic,
                           and a separate external load balancer for external traffic.
@@ -11152,12 +10896,10 @@ spec:
                             description: |-
                               CrossZoneLoadBalancing enables the classic ELB cross availability zone balancing.
 
-
                               With cross-zone load balancing, each load balancer node for your Classic Load Balancer
                               distributes requests evenly across the registered instances in all enabled Availability Zones.
                               If cross-zone load balancing is disabled, each load balancer node distributes requests evenly across
                               the registered instances in its Availability Zone only.
-
 
                               Defaults to false.
                             type: boolean
@@ -11363,7 +11105,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.5
     exclude.release.openshift.io/internal-openshift-hosted: "true"
     include.release.openshift.io/self-managed-high-availability: "true"
     include.release.openshift.io/single-node-developer: "true"
@@ -11878,7 +11620,6 @@ spec:
                             ID defines a unique identifier to reference this resource.
                             If you're bringing your subnet, set the AWS subnet-id here, it must start with `subnet-`.
 
-
                             When the VPC is managed by CAPA, and you'd like the provider to create a subnet for you,
                             the id can be set to any placeholder value that does not start with `subnet-`;
                             upon creation, the subnet AWS identifier will be populated in the `ResourceID` field and
@@ -11911,7 +11652,6 @@ spec:
                             ParentZoneName is the zone name where the current subnet's zone is tied when
                             the zone is a Local Zone.
 
-
                             The subnets in Local Zone or Wavelength Zone locations consume the ParentZoneName
                             to select the correct private route table to egress traffic to the internet.
                           type: string
@@ -11934,29 +11674,22 @@ spec:
                           description: |-
                             ZoneType defines the type of the zone where the subnet is created.
 
-
                             The valid values are availability-zone, local-zone, and wavelength-zone.
-
 
                             Subnet with zone type availability-zone (regular) is always selected to create cluster
                             resources, like Load Balancers, NAT Gateways, Contol Plane nodes, etc.
 
-
                             Subnet with zone type local-zone or wavelength-zone is not eligible to automatically create
                             regular cluster resources.
-
 
                             The public subnet in availability-zone or local-zone is associated with regular public
                             route table with default route entry to a Internet Gateway.
 
-
                             The public subnet in wavelength-zone is associated with a carrier public
                             route table with default route entry to a Carrier Gateway.
 
-
                             The private subnet in the availability-zone is associated with a private route table with
                             the default route entry to a NAT Gateway created in that zone.
-
 
                             The private subnet in the local-zone or wavelength-zone is associated with a private route table with
                             the default route entry re-using the NAT Gateway in the Region (preferred from the
@@ -12030,10 +11763,8 @@ spec:
                               PublicIpv4PoolFallBackOrder defines the fallback action when the Public IPv4 Pool has been exhausted,
                               no more IPv4 address available in the pool.
 
-
                               When set to 'amazon-pool', the controller check if the pool has available IPv4 address, when pool has reached the
                               IPv4 limit, the address will be claimed from Amazon-pool (default).
-
 
                               When set to 'none', the controller will fail the Elastic IP allocation when the publicIpv4Pool is exhausted.
                             enum:
@@ -12049,11 +11780,9 @@ spec:
                           EmptyRoutesDefaultVPCSecurityGroup specifies whether the default VPC security group ingress
                           and egress rules should be removed.
 
-
                           By default, when creating a VPC, AWS creates a security group called `default` with ingress and egress
                           rules that allow traffic from anywhere. The group could be used as a potential surface attack and
                           it's generally suggested that the group rules are removed or modified appropriately.
-
 
                           NOTE: This only applies when the VPC is managed by the Cluster API AWS controller.
                         type: boolean
@@ -12200,7 +11929,6 @@ spec:
                     description: |-
                       The name of the OIDC provider configuration.
 
-
                       IdentityProviderConfigName is a required field
                     type: string
                   issuerUrl:
@@ -12243,6 +11971,10 @@ spec:
                       email, the prefix defaults to issuerurl#. You can use the value - to disable
                       all prefixing.
                     type: string
+                required:
+                - clientId
+                - identityProviderConfigName
+                - issuerUrl
                 type: object
               region:
                 description: The AWS Region the cluster lives in.
@@ -12337,9 +12069,7 @@ spec:
                                     This field is effectively required, but due to backwards compatibility is
                                     allowed to be empty. Instances of this type with an empty value here are
                                     almost certainly wrong.
-                                    TODO: Add other useful fields. apiVersion, kind, uid?
                                     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                    TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                   type: string
                                 optional:
                                   description: Specify whether the ConfigMap or its
@@ -12405,9 +12135,7 @@ spec:
                                     This field is effectively required, but due to backwards compatibility is
                                     allowed to be empty. Instances of this type with an empty value here are
                                     almost certainly wrong.
-                                    TODO: Add other useful fields. apiVersion, kind, uid?
                                     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                    TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                   type: string
                                 optional:
                                   description: Specify whether the Secret or its key
@@ -12540,9 +12268,7 @@ spec:
                         description: |-
                           Enables or disables the HTTP metadata endpoint on your instances.
 
-
                           If you specify a value of disabled, you cannot access your instance metadata.
-
 
                           Default: enabled
                         enum:
@@ -12555,7 +12281,6 @@ spec:
                           The desired HTTP PUT response hop limit for instance metadata requests. The
                           larger the number, the further instance metadata requests can travel.
 
-
                           Default: 1
                         format: int64
                         maximum: 64
@@ -12566,19 +12291,16 @@ spec:
                         description: |-
                           The state of token usage for your instance metadata requests.
 
-
                           If the state is optional, you can choose to retrieve instance metadata with
                           or without a session token on your request. If you retrieve the IAM role
                           credentials without a token, the version 1.0 role credentials are returned.
                           If you retrieve the IAM role credentials using a valid session token, the
                           version 2.0 role credentials are returned.
 
-
                           If the state is required, you must send a session token with any instance
                           metadata retrieval requests. In this state, retrieving the IAM role credentials
                           always returns the version 2.0 credentials; the version 1.0 credentials are
                           not available.
-
 
                           Default: optional
                         enum:
@@ -12593,7 +12315,6 @@ spec:
                           For more information, see Work with instance tags using the instance metadata
                           (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html#work-with-tags-in-IMDS).
 
-
                           Default: disabled
                         enum:
                         - enabled
@@ -12602,6 +12323,23 @@ spec:
                     type: object
                   instanceState:
                     description: The current state of the instance.
+                    type: string
+                  marketType:
+                    description: |-
+                      MarketType specifies the type of market for the EC2 instance. Valid values include:
+                      "OnDemand" (default): The instance runs as a standard OnDemand instance.
+                      "Spot": The instance runs as a Spot instance. When SpotMarketOptions is provided, the marketType defaults to "Spot".
+                      "CapacityBlock": The instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
+                       If this value is selected, CapacityReservationID must be specified to identify the target reservation.
+                      If marketType is not specified and spotMarketOptions is provided, the marketType defaults to "Spot".
+                    enum:
+                    - OnDemand
+                    - Spot
+                    - CapacityBlock
+                    type: string
+                  networkInterfaceType:
+                    description: NetworkInterfaceType is the interface type of the
+                      primary network Interface.
                     type: string
                   networkInterfaces:
                     description: Specifies ENIs attached to instance
@@ -12805,20 +12543,20 @@ spec:
                       description: |-
                         The reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
-                        This field may not be empty.
+                        This field may be empty.
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -12843,11 +12581,11 @@ spec:
                     attributes:
                       additionalProperties:
                         type: string
-                      description: Attributes is a free form map of attributes an
+                      description: attributes is a free form map of attributes an
                         infrastructure provider might use or require.
                       type: object
                     controlPlane:
-                      description: ControlPlane determines if this failure domain
+                      description: controlPlane determines if this failure domain
                         is suitable for use by control plane machines.
                       type: boolean
                   type: object
@@ -13570,6 +13308,13 @@ spec:
                       will be the default.
                     type: string
                 type: object
+              bootstrapSelfManagedAddons:
+                default: true
+                description: |-
+                  BootstrapSelfManagedAddons is used to set configuration options for
+                  bare EKS cluster without EKS default networking addons
+                  If you set this value to false when creating a cluster, the default networking add-ons will not be installed
+                type: boolean
               controlPlaneEndpoint:
                 description: ControlPlaneEndpoint represents the endpoint used to
                   communicate with the control plane.
@@ -13921,7 +13666,6 @@ spec:
                             ID defines a unique identifier to reference this resource.
                             If you're bringing your subnet, set the AWS subnet-id here, it must start with `subnet-`.
 
-
                             When the VPC is managed by CAPA, and you'd like the provider to create a subnet for you,
                             the id can be set to any placeholder value that does not start with `subnet-`;
                             upon creation, the subnet AWS identifier will be populated in the `ResourceID` field and
@@ -13954,7 +13698,6 @@ spec:
                             ParentZoneName is the zone name where the current subnet's zone is tied when
                             the zone is a Local Zone.
 
-
                             The subnets in Local Zone or Wavelength Zone locations consume the ParentZoneName
                             to select the correct private route table to egress traffic to the internet.
                           type: string
@@ -13977,29 +13720,22 @@ spec:
                           description: |-
                             ZoneType defines the type of the zone where the subnet is created.
 
-
                             The valid values are availability-zone, local-zone, and wavelength-zone.
-
 
                             Subnet with zone type availability-zone (regular) is always selected to create cluster
                             resources, like Load Balancers, NAT Gateways, Contol Plane nodes, etc.
 
-
                             Subnet with zone type local-zone or wavelength-zone is not eligible to automatically create
                             regular cluster resources.
-
 
                             The public subnet in availability-zone or local-zone is associated with regular public
                             route table with default route entry to a Internet Gateway.
 
-
                             The public subnet in wavelength-zone is associated with a carrier public
                             route table with default route entry to a Carrier Gateway.
 
-
                             The private subnet in the availability-zone is associated with a private route table with
                             the default route entry to a NAT Gateway created in that zone.
-
 
                             The private subnet in the local-zone or wavelength-zone is associated with a private route table with
                             the default route entry re-using the NAT Gateway in the Region (preferred from the
@@ -14073,10 +13809,8 @@ spec:
                               PublicIpv4PoolFallBackOrder defines the fallback action when the Public IPv4 Pool has been exhausted,
                               no more IPv4 address available in the pool.
 
-
                               When set to 'amazon-pool', the controller check if the pool has available IPv4 address, when pool has reached the
                               IPv4 limit, the address will be claimed from Amazon-pool (default).
-
 
                               When set to 'none', the controller will fail the Elastic IP allocation when the publicIpv4Pool is exhausted.
                             enum:
@@ -14092,11 +13826,9 @@ spec:
                           EmptyRoutesDefaultVPCSecurityGroup specifies whether the default VPC security group ingress
                           and egress rules should be removed.
 
-
                           By default, when creating a VPC, AWS creates a security group called `default` with ingress and egress
                           rules that allow traffic from anywhere. The group could be used as a potential surface attack and
                           it's generally suggested that the group rules are removed or modified appropriately.
-
 
                           NOTE: This only applies when the VPC is managed by the Cluster API AWS controller.
                         type: boolean
@@ -14243,7 +13975,6 @@ spec:
                     description: |-
                       The name of the OIDC provider configuration.
 
-
                       IdentityProviderConfigName is a required field
                     type: string
                   issuerUrl:
@@ -14286,6 +14017,10 @@ spec:
                       email, the prefix defaults to issuerurl#. You can use the value - to disable
                       all prefixing.
                     type: string
+                required:
+                - clientId
+                - identityProviderConfigName
+                - issuerUrl
                 type: object
               partition:
                 description: Partition is the AWS security partition being used. Defaults
@@ -14398,9 +14133,7 @@ spec:
                                     This field is effectively required, but due to backwards compatibility is
                                     allowed to be empty. Instances of this type with an empty value here are
                                     almost certainly wrong.
-                                    TODO: Add other useful fields. apiVersion, kind, uid?
                                     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                    TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                   type: string
                                 optional:
                                   description: Specify whether the ConfigMap or its
@@ -14466,9 +14199,7 @@ spec:
                                     This field is effectively required, but due to backwards compatibility is
                                     allowed to be empty. Instances of this type with an empty value here are
                                     almost certainly wrong.
-                                    TODO: Add other useful fields. apiVersion, kind, uid?
                                     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                    TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                   type: string
                                 optional:
                                   description: Specify whether the Secret or its key
@@ -14601,9 +14332,7 @@ spec:
                         description: |-
                           Enables or disables the HTTP metadata endpoint on your instances.
 
-
                           If you specify a value of disabled, you cannot access your instance metadata.
-
 
                           Default: enabled
                         enum:
@@ -14616,7 +14345,6 @@ spec:
                           The desired HTTP PUT response hop limit for instance metadata requests. The
                           larger the number, the further instance metadata requests can travel.
 
-
                           Default: 1
                         format: int64
                         maximum: 64
@@ -14627,19 +14355,16 @@ spec:
                         description: |-
                           The state of token usage for your instance metadata requests.
 
-
                           If the state is optional, you can choose to retrieve instance metadata with
                           or without a session token on your request. If you retrieve the IAM role
                           credentials without a token, the version 1.0 role credentials are returned.
                           If you retrieve the IAM role credentials using a valid session token, the
                           version 2.0 role credentials are returned.
 
-
                           If the state is required, you must send a session token with any instance
                           metadata retrieval requests. In this state, retrieving the IAM role credentials
                           always returns the version 2.0 credentials; the version 1.0 credentials are
                           not available.
-
 
                           Default: optional
                         enum:
@@ -14654,7 +14379,6 @@ spec:
                           For more information, see Work with instance tags using the instance metadata
                           (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html#work-with-tags-in-IMDS).
 
-
                           Default: disabled
                         enum:
                         - enabled
@@ -14663,6 +14387,23 @@ spec:
                     type: object
                   instanceState:
                     description: The current state of the instance.
+                    type: string
+                  marketType:
+                    description: |-
+                      MarketType specifies the type of market for the EC2 instance. Valid values include:
+                      "OnDemand" (default): The instance runs as a standard OnDemand instance.
+                      "Spot": The instance runs as a Spot instance. When SpotMarketOptions is provided, the marketType defaults to "Spot".
+                      "CapacityBlock": The instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
+                       If this value is selected, CapacityReservationID must be specified to identify the target reservation.
+                      If marketType is not specified and spotMarketOptions is provided, the marketType defaults to "Spot".
+                    enum:
+                    - OnDemand
+                    - Spot
+                    - CapacityBlock
+                    type: string
+                  networkInterfaceType:
+                    description: NetworkInterfaceType is the interface type of the
+                      primary network Interface.
                     type: string
                   networkInterfaces:
                     description: Specifies ENIs attached to instance
@@ -14866,20 +14607,20 @@ spec:
                       description: |-
                         The reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
-                        This field may not be empty.
+                        This field may be empty.
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -14904,11 +14645,11 @@ spec:
                     attributes:
                       additionalProperties:
                         type: string
-                      description: Attributes is a free form map of attributes an
+                      description: attributes is a free form map of attributes an
                         infrastructure provider might use or require.
                       type: object
                     controlPlane:
-                      description: ControlPlane determines if this failure domain
+                      description: controlPlane determines if this failure domain
                         is suitable for use by control plane machines.
                       type: boolean
                   type: object
@@ -15495,6 +15236,11 @@ spec:
                   Ready denotes that the AWSManagedControlPlane API Server is ready to
                   receive requests and that the VPC infra is ready.
                 type: boolean
+              version:
+                description: |-
+                  Version represents the minimum Kubernetes version for the control plane machines
+                  in the cluster.
+                type: string
             required:
             - ready
             type: object
@@ -15514,7 +15260,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.5
     exclude.release.openshift.io/internal-openshift-hosted: "true"
     include.release.openshift.io/self-managed-high-availability: "true"
     include.release.openshift.io/single-node-developer: "true"
@@ -15599,6 +15345,51 @@ spec:
           status:
             description: AWSManagedClusterStatus defines the observed state of AWSManagedCluster
             properties:
+              conditions:
+                description: Conditions defines current service state of the AWSManagedCluster.
+                items:
+                  description: Condition defines an observation of a Cluster API resource
+                    operational state.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        Last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed. If that is not known, then using the time when
+                        the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        A human readable message indicating details about the transition.
+                        This field may be empty.
+                      type: string
+                    reason:
+                      description: |-
+                        The reason for the condition's last transition in CamelCase.
+                        The specific API may choose whether or not this field is considered a guaranteed API.
+                        This field may be empty.
+                      type: string
+                    severity:
+                      description: |-
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        understand the current situation and act accordingly.
+                        The Severity field MUST be set only when Status=False.
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: |-
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
+                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
+                        can be useful (see .node.status.conditions), the ability to deconflict is important.
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - status
+                  - type
+                  type: object
+                type: array
               failureDomains:
                 additionalProperties:
                   description: |-
@@ -15608,11 +15399,11 @@ spec:
                     attributes:
                       additionalProperties:
                         type: string
-                      description: Attributes is a free form map of attributes an
+                      description: attributes is a free form map of attributes an
                         infrastructure provider might use or require.
                       type: object
                     controlPlane:
-                      description: ControlPlane determines if this failure domain
+                      description: controlPlane determines if this failure domain
                         is suitable for use by control plane machines.
                       type: boolean
                   type: object
@@ -15640,7 +15431,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.5
     exclude.release.openshift.io/internal-openshift-hosted: "true"
     include.release.openshift.io/self-managed-high-availability: "true"
     include.release.openshift.io/single-node-developer: "true"
@@ -15776,20 +15567,20 @@ spec:
                       description: |-
                         The reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
-                        This field may not be empty.
+                        This field may be empty.
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -16176,20 +15967,20 @@ spec:
                       description: |-
                         The reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
-                        This field may not be empty.
+                        This field may be empty.
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -16235,7 +16026,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.5
     exclude.release.openshift.io/internal-openshift-hosted: "true"
     include.release.openshift.io/self-managed-high-availability: "true"
     include.release.openshift.io/single-node-developer: "true"
@@ -16706,7 +16497,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.5
     exclude.release.openshift.io/internal-openshift-hosted: "true"
     include.release.openshift.io/self-managed-high-availability: "true"
     include.release.openshift.io/single-node-developer: "true"
@@ -16787,8 +16578,8 @@ spec:
                 type: array
               billingAccount:
                 description: |-
-                  BillingAccount is an optional AWS account to use for billing the subscription fees for ROSA clusters.
-                  The cost of running each ROSA cluster will be billed to the infrastructure account in which the cluster
+                  BillingAccount is an optional AWS account to use for billing the subscription fees for ROSA HCP clusters.
+                  The cost of running each ROSA HCP cluster will be billed to the infrastructure account in which the cluster
                   is running.
                 type: string
                 x-kubernetes-validations:
@@ -16796,6 +16587,14 @@ spec:
                   rule: self == oldSelf
                 - message: billingAccount must be a valid AWS account ID
                   rule: self.matches('^[0-9]{12}$')
+              channelGroup:
+                default: stable
+                description: OpenShift version channel group, default is stable.
+                enum:
+                - stable
+                - candidate
+                - nightly
+                type: string
               clusterRegistryConfig:
                 description: ClusterRegistryConfig represents registry config used
                   with the cluster.
@@ -16894,9 +16693,7 @@ spec:
                       This field is effectively required, but due to backwards compatibility is
                       allowed to be empty. Instances of this type with an empty value here are
                       almost certainly wrong.
-                      TODO: Add other useful fields. apiVersion, kind, uid?
                       More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                      TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                     type: string
                 type: object
                 x-kubernetes-map-type: atomic
@@ -16907,7 +16704,6 @@ spec:
                   to work properly.
                   As these machinepool not created using ROSAMachinePool CR, they will not be visible/managed by ROSA CAPI provider.
                   `rosa list machinepools -c <rosaClusterName>` can be used to view those machinepools.
-
 
                   This field will be removed in the future once the current limitation is resolved.
                 properties:
@@ -16927,6 +16723,12 @@ spec:
                     description: The instance type to use, for example `r5.xlarge`.
                       Instance type ref; https://aws.amazon.com/ec2/instance-types/
                     type: string
+                  volumeSize:
+                    description: VolumeSize set the disk volume size for the default
+                      workers machine pool in Gib. The default is 300 GiB.
+                    maximum: 16384
+                    minimum: 75
+                    type: integer
                 type: object
               domainPrefix:
                 description: |-
@@ -16967,7 +16769,6 @@ spec:
                   ExternalAuthProviders are external OIDC identity providers that can issue tokens for this cluster.
                   Can only be set if "enableExternalAuthProviders" is set to "True".
 
-
                   At most one provider can be configured.
                 items:
                   description: ExternalAuthProvider is an external OIDC identity provider
@@ -16993,9 +16794,7 @@ spec:
                                 Prefix is a string to prefix the value from the token in the result of the
                                 claim mapping.
 
-
                                 By default, no prefixing occurs.
-
 
                                 Example: if `prefix` is set to "myoidc:"" and the `claim` in JWT contains
                                 an array of strings "a", "b" and  "c", the mapping will result in an
@@ -17008,7 +16807,6 @@ spec:
                           description: |-
                             Username is a name of the claim that should be used to construct
                             usernames for the cluster identity.
-
 
                             Default value: "sub"
                           properties:
@@ -17025,13 +16823,10 @@ spec:
                               description: |-
                                 PrefixPolicy specifies how a prefix should apply.
 
-
                                 By default, claims other than `email` will be prefixed with the issuer URL to
                                 prevent naming clashes with other plugins.
 
-
                                 Set to "NoPrefix" to disable prefixing.
-
 
                                 Example:
                                     (1) `prefix` is set to "myoidc:" and `claim` is set to "username".
@@ -17273,8 +17068,8 @@ spec:
                 - message: oidcID is immutable
                   rule: self == oldSelf
               provisionShardID:
-                description: ProvisionShardID defines the shard where rosa control
-                  plane components will be hosted.
+                description: ProvisionShardID defines the shard where ROSA hosted
+                  control plane components will be hosted.
                 type: string
                 x-kubernetes-validations:
                 - message: provisionShardID is immutable
@@ -17288,8 +17083,8 @@ spec:
                 properties:
                   controlPlaneOperatorARN:
                     description: "ControlPlaneOperatorARN  is an ARN value referencing
-                      a role appropriate for the Control Plane Operator.\n\n\nThe
-                      following is an example of a valid policy document:\n\n\n{\n\t\"Version\":
+                      a role appropriate for the Control Plane Operator.\n\nThe following
+                      is an example of a valid policy document:\n\n{\n\t\"Version\":
                       \"2012-10-17\",\n\t\"Statement\": [\n\t\t{\n\t\t\t\"Effect\":
                       \"Allow\",\n\t\t\t\"Action\": [\n\t\t\t\t\"ec2:CreateVpcEndpoint\",\n\t\t\t\t\"ec2:DescribeVpcEndpoints\",\n\t\t\t\t\"ec2:ModifyVpcEndpoint\",\n\t\t\t\t\"ec2:DeleteVpcEndpoints\",\n\t\t\t\t\"ec2:CreateTags\",\n\t\t\t\t\"route53:ListHostedZones\",\n\t\t\t\t\"ec2:CreateSecurityGroup\",\n\t\t\t\t\"ec2:AuthorizeSecurityGroupIngress\",\n\t\t\t\t\"ec2:AuthorizeSecurityGroupEgress\",\n\t\t\t\t\"ec2:DeleteSecurityGroup\",\n\t\t\t\t\"ec2:RevokeSecurityGroupIngress\",\n\t\t\t\t\"ec2:RevokeSecurityGroupEgress\",\n\t\t\t\t\"ec2:DescribeSecurityGroups\",\n\t\t\t\t\"ec2:DescribeVpcs\",\n\t\t\t],\n\t\t\t\"Resource\":
                       \"*\"\n\t\t},\n\t\t{\n\t\t\t\"Effect\": \"Allow\",\n\t\t\t\"Action\":
@@ -17298,8 +17093,8 @@ spec:
                     type: string
                   imageRegistryARN:
                     description: "ImageRegistryARN is an ARN value referencing a role
-                      appropriate for the Image Registry Operator.\n\n\nThe following
-                      is an example of a valid policy document:\n\n\n{\n\t\"Version\":
+                      appropriate for the Image Registry Operator.\n\nThe following
+                      is an example of a valid policy document:\n\n{\n\t\"Version\":
                       \"2012-10-17\",\n\t\"Statement\": [\n\t\t{\n\t\t\t\"Effect\":
                       \"Allow\",\n\t\t\t\"Action\": [\n\t\t\t\t\"s3:CreateBucket\",\n\t\t\t\t\"s3:DeleteBucket\",\n\t\t\t\t\"s3:PutBucketTagging\",\n\t\t\t\t\"s3:GetBucketTagging\",\n\t\t\t\t\"s3:PutBucketPublicAccessBlock\",\n\t\t\t\t\"s3:GetBucketPublicAccessBlock\",\n\t\t\t\t\"s3:PutEncryptionConfiguration\",\n\t\t\t\t\"s3:GetEncryptionConfiguration\",\n\t\t\t\t\"s3:PutLifecycleConfiguration\",\n\t\t\t\t\"s3:GetLifecycleConfiguration\",\n\t\t\t\t\"s3:GetBucketLocation\",\n\t\t\t\t\"s3:ListBucket\",\n\t\t\t\t\"s3:GetObject\",\n\t\t\t\t\"s3:PutObject\",\n\t\t\t\t\"s3:DeleteObject\",\n\t\t\t\t\"s3:ListBucketMultipartUploads\",\n\t\t\t\t\"s3:AbortMultipartUpload\",\n\t\t\t\t\"s3:ListMultipartUploadParts\"\n\t\t\t],\n\t\t\t\"Resource\":
                       \"*\"\n\t\t}\n\t]\n}"
@@ -17311,11 +17106,11 @@ spec:
                       \"Allow\",\n\t\t\t\t\"Principal\": {\n\t\t\t\t\t\"Federated\":
                       \"{{ .ProviderARN }}\"\n\t\t\t\t},\n\t\t\t\t\t\"Action\": \"sts:AssumeRoleWithWebIdentity\",\n\t\t\t\t\"Condition\":
                       {\n\t\t\t\t\t\"StringEquals\": {\n\t\t\t\t\t\t\"{{ .ProviderName
-                      }}:sub\": {{ .ServiceAccounts }}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t]\n\t}\n\n\nIngressARN
+                      }}:sub\": {{ .ServiceAccounts }}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t]\n\t}\n\nIngressARN
                       is an ARN value referencing a role appropriate for the Ingress
-                      Operator.\n\n\nThe following is an example of a valid policy
-                      document:\n\n\n{\n\t\"Version\": \"2012-10-17\",\n\t\"Statement\":
-                      [\n\t\t{\n\t\t\t\"Effect\": \"Allow\",\n\t\t\t\"Action\": [\n\t\t\t\t\"elasticloadbalancing:DescribeLoadBalancers\",\n\t\t\t\t\"tag:GetResources\",\n\t\t\t\t\"route53:ListHostedZones\"\n\t\t\t],\n\t\t\t\"Resource\":
+                      Operator.\n\nThe following is an example of a valid policy document:\n\n{\n\t\"Version\":
+                      \"2012-10-17\",\n\t\"Statement\": [\n\t\t{\n\t\t\t\"Effect\":
+                      \"Allow\",\n\t\t\t\"Action\": [\n\t\t\t\t\"elasticloadbalancing:DescribeLoadBalancers\",\n\t\t\t\t\"tag:GetResources\",\n\t\t\t\t\"route53:ListHostedZones\"\n\t\t\t],\n\t\t\t\"Resource\":
                       \"*\"\n\t\t},\n\t\t{\n\t\t\t\"Effect\": \"Allow\",\n\t\t\t\"Action\":
                       [\n\t\t\t\t\"route53:ChangeResourceRecordSets\"\n\t\t\t],\n\t\t\t\"Resource\":
                       [\n\t\t\t\t\"arn:aws:route53:::PUBLIC_ZONE_ID\",\n\t\t\t\t\"arn:aws:route53:::PRIVATE_ZONE_ID\"\n\t\t\t]\n\t\t}\n\t]\n}"
@@ -17327,9 +17122,7 @@ spec:
                       KubeCloudControllerARN is an ARN value referencing a role appropriate for the KCM/KCC.
                       Source: https://cloud-provider-aws.sigs.k8s.io/prerequisites/#iam-policies
 
-
                       The following is an example of a valid policy document:
-
 
                        {
                        "Version": "2012-10-17",
@@ -17404,8 +17197,8 @@ spec:
                     type: string
                   networkARN:
                     description: "NetworkARN is an ARN value referencing a role appropriate
-                      for the Network Operator.\n\n\nThe following is an example of
-                      a valid policy document:\n\n\n{\n\t\"Version\": \"2012-10-17\",\n\t\"Statement\":
+                      for the Network Operator.\n\nThe following is an example of
+                      a valid policy document:\n\n{\n\t\"Version\": \"2012-10-17\",\n\t\"Statement\":
                       [\n\t\t{\n\t\t\t\"Effect\": \"Allow\",\n\t\t\t\"Action\": [\n\t\t\t\t\"ec2:DescribeInstances\",\n
                       \      \"ec2:DescribeInstanceStatus\",\n       \"ec2:DescribeInstanceTypes\",\n
                       \      \"ec2:UnassignPrivateIpAddresses\",\n       \"ec2:AssignPrivateIpAddresses\",\n
@@ -17415,8 +17208,8 @@ spec:
                     type: string
                   nodePoolManagementARN:
                     description: "NodePoolManagementARN is an ARN value referencing
-                      a role appropriate for the CAPI Controller.\n\n\nThe following
-                      is an example of a valid policy document:\n\n\n{\n  \"Version\":
+                      a role appropriate for the CAPI Controller.\n\nThe following
+                      is an example of a valid policy document:\n\n{\n  \"Version\":
                       \"2012-10-17\",\n \"Statement\": [\n   {\n     \"Action\": [\n
                       \      \"ec2:AssociateRouteTable\",\n       \"ec2:AttachInternetGateway\",\n
                       \      \"ec2:AuthorizeSecurityGroupIngress\",\n       \"ec2:CreateInternetGateway\",\n
@@ -17460,8 +17253,8 @@ spec:
                     type: string
                   storageARN:
                     description: "StorageARN is an ARN value referencing a role appropriate
-                      for the Storage Operator.\n\n\nThe following is an example of
-                      a valid policy document:\n\n\n{\n\t\"Version\": \"2012-10-17\",\n\t\"Statement\":
+                      for the Storage Operator.\n\nThe following is an example of
+                      a valid policy document:\n\n{\n\t\"Version\": \"2012-10-17\",\n\t\"Statement\":
                       [\n\t\t{\n\t\t\t\"Effect\": \"Allow\",\n\t\t\t\"Action\": [\n\t\t\t\t\"ec2:AttachVolume\",\n\t\t\t\t\"ec2:CreateSnapshot\",\n\t\t\t\t\"ec2:CreateTags\",\n\t\t\t\t\"ec2:CreateVolume\",\n\t\t\t\t\"ec2:DeleteSnapshot\",\n\t\t\t\t\"ec2:DeleteTags\",\n\t\t\t\t\"ec2:DeleteVolume\",\n\t\t\t\t\"ec2:DescribeInstances\",\n\t\t\t\t\"ec2:DescribeSnapshots\",\n\t\t\t\t\"ec2:DescribeTags\",\n\t\t\t\t\"ec2:DescribeVolumes\",\n\t\t\t\t\"ec2:DescribeVolumesModifications\",\n\t\t\t\t\"ec2:DetachVolume\",\n\t\t\t\t\"ec2:ModifyVolume\"\n\t\t\t],\n\t\t\t\"Resource\":
                       \"*\"\n\t\t}\n\t]\n}"
                     type: string
@@ -17520,6 +17313,7 @@ spec:
                 type: string
             required:
             - availabilityZones
+            - channelGroup
             - installerRoleARN
             - oidcID
             - region
@@ -17562,20 +17356,20 @@ spec:
                       description: |-
                         The reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
-                        This field may not be empty.
+                        This field may be empty.
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -17598,7 +17392,6 @@ spec:
                 description: |-
                   FailureMessage will be set in the event that there is a terminal problem
                   reconciling the state and will be set to a descriptive error message.
-
 
                   This field should not be set for transitive errors that a controller
                   faces that are expected to be fixed automatically over
@@ -17642,7 +17435,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.5
     exclude.release.openshift.io/internal-openshift-hosted: "true"
     include.release.openshift.io/self-managed-high-availability: "true"
     include.release.openshift.io/single-node-developer: "true"
@@ -17726,6 +17519,51 @@ spec:
           status:
             description: ROSAClusterStatus defines the observed state of ROSACluster.
             properties:
+              conditions:
+                description: Conditions defines current service state of the ROSACluster.
+                items:
+                  description: Condition defines an observation of a Cluster API resource
+                    operational state.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        Last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed. If that is not known, then using the time when
+                        the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        A human readable message indicating details about the transition.
+                        This field may be empty.
+                      type: string
+                    reason:
+                      description: |-
+                        The reason for the condition's last transition in CamelCase.
+                        The specific API may choose whether or not this field is considered a guaranteed API.
+                        This field may be empty.
+                      type: string
+                    severity:
+                      description: |-
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        understand the current situation and act accordingly.
+                        The Severity field MUST be set only when Status=False.
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: |-
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
+                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
+                        can be useful (see .node.status.conditions), the ability to deconflict is important.
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - status
+                  - type
+                  type: object
+                type: array
               failureDomains:
                 additionalProperties:
                   description: |-
@@ -17735,11 +17573,11 @@ spec:
                     attributes:
                       additionalProperties:
                         type: string
-                      description: Attributes is a free form map of attributes an
+                      description: attributes is a free form map of attributes an
                         infrastructure provider might use or require.
                       type: object
                     controlPlane:
-                      description: ControlPlane determines if this failure domain
+                      description: controlPlane determines if this failure domain
                         is suitable for use by control plane machines.
                       type: boolean
                   type: object
@@ -17766,7 +17604,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.5
     exclude.release.openshift.io/internal-openshift-hosted: "true"
     include.release.openshift.io/self-managed-high-availability: "true"
     include.release.openshift.io/single-node-developer: "true"
@@ -17876,7 +17714,6 @@ spec:
                   respected during upgrades. After this grace period, any workloads protected by Pod Disruption
                   Budgets that have not been successfully drained from a node will be forcibly evicted.
 
-
                   Valid values are from 0 to 1 week(10080m|168h) .
                   0 or empty value means that the MachinePool can be drained without any time limitation.
                 type: string
@@ -17952,10 +17789,8 @@ spec:
                           Value can be an absolute number (ex: 5) or a percentage of desired nodes (ex: 10%).
                           Absolute number is calculated from percentage by rounding up.
 
-
                           MaxSurge can not be 0 if MaxUnavailable is 0, default is 1.
                           Both MaxSurge & MaxUnavailable must use the same units (absolute value or percentage).
-
 
                           Example: when MaxSurge is set to 30%, new nodes can be provisioned immediately
                           when the rolling update starts, such that the total number of old and new
@@ -17974,10 +17809,8 @@ spec:
                           Value can be an absolute number (ex: 5) or a percentage of desired nodes (ex: 10%).
                           Absolute number is calculated from percentage by rounding down.
 
-
                           MaxUnavailable can not be 0 if MaxSurge is 0, default is 0.
                           Both MaxUnavailable & MaxSurge must use the same units (absolute value or percentage).
-
 
                           Example: when MaxUnavailable is set to 30%, old nodes can be deleted down to 70% of
                           desired nodes immediately when the rolling update starts. Once new nodes
@@ -17993,6 +17826,12 @@ spec:
                   Version specifies the OpenShift version of the nodes associated with this machinepool.
                   ROSAControlPlane version is used if not set.
                 type: string
+              volumeSize:
+                description: VolumeSize set the disk volume size for the machine pool,
+                  in Gib. The default is 300 GiB.
+                maximum: 16384
+                minimum: 75
+                type: integer
             required:
             - instanceType
             - nodePoolName
@@ -18000,6 +17839,11 @@ spec:
           status:
             description: RosaMachinePoolStatus defines the observed state of RosaMachinePool.
             properties:
+              availableUpgrades:
+                description: Available upgrades for the ROSA MachinePool.
+                items:
+                  type: string
+                type: array
               conditions:
                 description: Conditions defines current service state of the managed
                   machine pool
@@ -18023,20 +17867,20 @@ spec:
                       description: |-
                         The reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
-                        This field may not be empty.
+                        This field may be empty.
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -18050,7 +17894,6 @@ spec:
                 description: |-
                   FailureMessage will be set in the event that there is a terminal problem
                   reconciling the state and will be set to a descriptive error message.
-
 
                   This field should not be set for transitive errors that a controller
                   faces that are expected to be fixed automatically over

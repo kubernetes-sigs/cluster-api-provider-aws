@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.5
   name: awsmanagedmachinepools.infrastructure.cluster.x-k8s.io
 spec:
   group: infrastructure.cluster.x-k8s.io
@@ -405,20 +405,20 @@ spec:
                       description: |-
                         The reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
-                        This field may not be empty.
+                        This field may be empty.
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -434,7 +434,6 @@ spec:
                   reconciling the MachinePool and will contain a more verbose string suitable
                   for logging and human consumption.
 
-
                   This field should not be set for transitive errors that a controller
                   faces that are expected to be fixed automatically over
                   time (like service outages), but instead indicate that something is
@@ -443,7 +442,6 @@ spec:
                   of terminal errors would be invalid combinations of settings in the
                   spec, values that are unsupported by the controller, or the
                   responsible controller itself being critically misconfigured.
-
 
                   Any transient errors that occur during the reconciliation of MachinePools
                   can be added as events to the MachinePool object and/or logged in the
@@ -455,7 +453,6 @@ spec:
                   reconciling the MachinePool and will contain a succinct value suitable
                   for machine interpretation.
 
-
                   This field should not be set for transitive errors that a controller
                   faces that are expected to be fixed automatically over
                   time (like service outages), but instead indicate that something is
@@ -464,7 +461,6 @@ spec:
                   of terminal errors would be invalid combinations of settings in the
                   spec, values that are unsupported by the controller, or the
                   responsible controller itself being critically misconfigured.
-
 
                   Any transient errors that occur during the reconciliation of MachinePools
                   can be added as events to the MachinePool object and/or logged in the
@@ -629,6 +625,10 @@ spec:
                         description: ID of resource
                         type: string
                     type: object
+                  capacityReservationId:
+                    description: CapacityReservationID specifies the target Capacity
+                      Reservation into which the instance should be launched.
+                    type: string
                   iamInstanceProfile:
                     description: |-
                       The name or the Amazon Resource Name (ARN) of the instance profile associated
@@ -667,9 +667,7 @@ spec:
                         description: |-
                           Enables or disables the HTTP metadata endpoint on your instances.
 
-
                           If you specify a value of disabled, you cannot access your instance metadata.
-
 
                           Default: enabled
                         enum:
@@ -682,7 +680,6 @@ spec:
                           The desired HTTP PUT response hop limit for instance metadata requests. The
                           larger the number, the further instance metadata requests can travel.
 
-
                           Default: 1
                         format: int64
                         maximum: 64
@@ -693,19 +690,16 @@ spec:
                         description: |-
                           The state of token usage for your instance metadata requests.
 
-
                           If the state is optional, you can choose to retrieve instance metadata with
                           or without a session token on your request. If you retrieve the IAM role
                           credentials without a token, the version 1.0 role credentials are returned.
                           If you retrieve the IAM role credentials using a valid session token, the
                           version 2.0 role credentials are returned.
 
-
                           If the state is required, you must send a session token with any instance
                           metadata retrieval requests. In this state, retrieving the IAM role credentials
                           always returns the version 2.0 credentials; the version 1.0 credentials are
                           not available.
-
 
                           Default: optional
                         enum:
@@ -720,7 +714,6 @@ spec:
                           For more information, see Work with instance tags using the instance metadata
                           (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html#work-with-tags-in-IMDS).
 
-
                           Default: disabled
                         enum:
                         - enabled
@@ -730,6 +723,19 @@ spec:
                   instanceType:
                     description: 'InstanceType is the type of instance to create.
                       Example: m4.xlarge'
+                    type: string
+                  marketType:
+                    description: |-
+                      MarketType specifies the type of market for the EC2 instance. Valid values include:
+                      "OnDemand" (default): The instance runs as a standard OnDemand instance.
+                      "Spot": The instance runs as a Spot instance. When SpotMarketOptions is provided, the marketType defaults to "Spot".
+                      "CapacityBlock": The instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
+                       If this value is selected, CapacityReservationID must be specified to identify the target reservation.
+                      If marketType is not specified and spotMarketOptions is provided, the marketType defaults to "Spot".
+                    enum:
+                    - OnDemand
+                    - Spot
+                    - CapacityBlock
                     type: string
                   name:
                     description: The name of the launch template.
@@ -1022,20 +1028,20 @@ spec:
                       description: |-
                         The reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
-                        This field may not be empty.
+                        This field may be empty.
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -1051,7 +1057,6 @@ spec:
                   reconciling the MachinePool and will contain a more verbose string suitable
                   for logging and human consumption.
 
-
                   This field should not be set for transitive errors that a controller
                   faces that are expected to be fixed automatically over
                   time (like service outages), but instead indicate that something is
@@ -1060,7 +1065,6 @@ spec:
                   of terminal errors would be invalid combinations of settings in the
                   spec, values that are unsupported by the controller, or the
                   responsible controller itself being critically misconfigured.
-
 
                   Any transient errors that occur during the reconciliation of MachinePools
                   can be added as events to the MachinePool object and/or logged in the
@@ -1072,7 +1076,6 @@ spec:
                   reconciling the MachinePool and will contain a succinct value suitable
                   for machine interpretation.
 
-
                   This field should not be set for transitive errors that a controller
                   faces that are expected to be fixed automatically over
                   time (like service outages), but instead indicate that something is
@@ -1081,7 +1084,6 @@ spec:
                   of terminal errors would be invalid combinations of settings in the
                   spec, values that are unsupported by the controller, or the
                   responsible controller itself being critically misconfigured.
-
 
                   Any transient errors that occur during the reconciliation of MachinePools
                   can be added as events to the MachinePool object and/or logged in the

@@ -53,7 +53,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
-	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -215,7 +214,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				setup(t, g, awsMachine)
 				defer teardown(t, g)
 				runningInstance(t, g)
-				er := capierrors.CreateMachineError
+				er := "CreateError"
 				ms.AWSMachine.Status.FailureReason = &er
 				ms.AWSMachine.Status.FailureMessage = ptr.To[string]("Couldn't create machine")
 
@@ -832,7 +831,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				setup(t, g, awsMachine)
 				defer teardown(t, g)
 				ms.SetSecretPrefix("test")
-				ms.AWSMachine.Status.FailureReason = (*capierrors.MachineStatusError)(aws.String("error in AWSMachine"))
+				ms.AWSMachine.Status.FailureReason = aws.String("error in AWSMachine")
 				ms.SetSecretCount(0)
 
 				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
@@ -1133,7 +1132,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				defer teardown(t, g)
 				setNodeRef(t, g)
 
-				ms.AWSMachine.Status.FailureReason = ptr.To(capierrors.UpdateMachineError)
+				ms.AWSMachine.Status.FailureReason = ptr.To("UpdateError")
 				secretSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
 				ec2Svc.EXPECT().TerminateInstance(gomock.Any()).Return(nil).AnyTimes()
 				_, _ = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
@@ -1263,7 +1262,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				defer teardown(t, g)
 				setSSM(t, g)
 
-				ms.AWSMachine.Status.FailureReason = ptr.To(capierrors.UpdateMachineError)
+				ms.AWSMachine.Status.FailureReason = ptr.To("UpdateError")
 				secretSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
 				ec2Svc.EXPECT().TerminateInstance(gomock.Any()).Return(nil).AnyTimes()
 				_, _ = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
@@ -1480,7 +1479,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					useIgnitionWithClusterObjectStore(t, g)
 
 					// TODO: This seems to have no effect on the test result.
-					ms.AWSMachine.Status.FailureReason = ptr.To(capierrors.UpdateMachineError)
+					ms.AWSMachine.Status.FailureReason = ptr.To("UpdateError")
 
 					objectStoreSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
 					ec2Svc.EXPECT().TerminateInstance(gomock.Any()).Return(nil).AnyTimes()
@@ -1552,7 +1551,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					useIgnitionWithClusterObjectStore(t, g)
 
 					// TODO: This seems to have no effect on the test result.
-					ms.AWSMachine.Status.FailureReason = ptr.To(capierrors.UpdateMachineError)
+					ms.AWSMachine.Status.FailureReason = ptr.To("UpdateError")
 					objectStoreSvc.EXPECT().Delete(gomock.Any()).Return(nil).Times(1)
 					ec2Svc.EXPECT().TerminateInstance(gomock.Any()).Return(nil).AnyTimes()
 					_, _ = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
@@ -2357,8 +2356,10 @@ func TestAWSMachineReconcilerReconcile(t *testing.T) {
 					ClusterName: "capi-test",
 				},
 			},
-			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1"}},
-			expectError:  false,
+			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1"}, Spec: clusterv1.ClusterSpec{
+				InfrastructureRef: &corev1.ObjectReference{Name: "foo"},
+			}},
+			expectError: false,
 		},
 		{
 			name: "Should not Reconcile if AWSManagedControlPlane is not ready",
@@ -2644,6 +2645,15 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 				SecretCount:          1000,
 			},
 		},
+		Status: infrav1.AWSMachineStatus{
+			Conditions: clusterv1.Conditions{
+				{
+					Type:   "Paused",
+					Status: corev1.ConditionFalse,
+					Reason: "NotPaused",
+				},
+			},
+		},
 	}
 
 	controllerIdentity := &infrav1.AWSClusterControllerIdentity{
@@ -2733,7 +2743,7 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 	}, nil)
 
 	// Must attach to a classic LB, not another type. Only these mock calls are therefore expected.
-	mockedCreateLBCalls(t, elbMock.EXPECT())
+	mockedCreateLBCalls(t, elbMock.EXPECT(), false)
 
 	ec2Mock.EXPECT().DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeNetworkInterfacesInput{Filters: []*ec2.Filter{
 		{
@@ -2750,7 +2760,8 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 					},
 				},
 			},
-		}}, nil).MaxTimes(3)
+		},
+	}, nil).MaxTimes(3)
 	ec2Mock.EXPECT().DescribeNetworkInterfaceAttributeWithContext(context.TODO(), gomock.Eq(&ec2.DescribeNetworkInterfaceAttributeInput{
 		NetworkInterfaceId: aws.String("eni-1"),
 		Attribute:          aws.String("groupSet"),

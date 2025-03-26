@@ -79,7 +79,7 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		expect := func(m *mocks.MockEC2APIMockRecorder, s *mock_services.MockSecretInterfaceMockRecorder, e *mocks.MockELBAPIMockRecorder) {
 			mockedCreateInstanceCalls(m)
 			mockedCreateSecretCall(s)
-			mockedCreateLBCalls(t, e)
+			mockedCreateLBCalls(t, e, false)
 		}
 		expect(ec2Mock.EXPECT(), secretMock.EXPECT(), elbMock.EXPECT())
 

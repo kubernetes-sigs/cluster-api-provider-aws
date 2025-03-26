@@ -1,6 +1,6 @@
 # Create issue for ROSA
 
-When creating issue for ROSA-HCP cluster, include the logs for the capa-controller-manager and capi-controller-manager deployment pods. The logs can be saved to text file using the commands below. Also include the yaml files for all the resources used to create the ROSA cluster:
+When creating issue for ROSA HCP cluster, include the logs for the capa-controller-manager and capi-controller-manager deployment pods. The logs can be saved to text file using the commands below. Also include the yaml files for all the resources used to create the ROSA HCP cluster:
 - `Cluster`
 - `ROSAControlPlane`
 - `MachinePool`
