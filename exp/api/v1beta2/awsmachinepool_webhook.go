@@ -17,6 +17,8 @@ limitations under the License.
 package v1beta2
 
 import (
+	"context"
+	"fmt"
 	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -42,8 +44,10 @@ func (r *AWSMachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-awsmachinepool,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsmachinepools,versions=v1beta2,name=validation.awsmachinepool.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta2-awsmachinepool,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsmachinepools,versions=v1beta2,name=default.awsmachinepool.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.Defaulter = &AWSMachinePool{}
-var _ webhook.Validator = &AWSMachinePool{}
+type awsMachinePoolWebhook struct{}
+
+var _ webhook.CustomDefaulter = &awsMachinePoolWebhook{}
+var _ webhook.CustomValidator = &awsMachinePoolWebhook{}
 
 func (r *AWSMachinePool) validateDefaultCoolDown() field.ErrorList {
 	var allErrs field.ErrorList
@@ -163,7 +167,12 @@ func (r *AWSMachinePool) validateRefreshPreferences() field.ErrorList {
 }
 
 // ValidateCreate will do any extra validation when creating a AWSMachinePool.
-func (r *AWSMachinePool) ValidateCreate() (admission.Warnings, error) {
+func (_ *awsMachinePoolWebhook) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+	r, ok := obj.(*AWSMachinePool)
+	if !ok {
+		return nil, fmt.Errorf("expected an AWSMachinePool object but got %T", r)
+	}
+
 	log.Info("AWSMachinePool validate create", "machine-pool", klog.KObj(r))
 
 	var allErrs field.ErrorList
@@ -206,7 +215,12 @@ func (r *AWSMachinePool) validateInstanceMarketType() field.ErrorList {
 }
 
 // ValidateUpdate will do any extra validation when updating a AWSMachinePool.
-func (r *AWSMachinePool) ValidateUpdate(_ runtime.Object) (admission.Warnings, error) {
+func (_ *awsMachinePoolWebhook) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+	r, ok := newObj.(*AWSMachinePool)
+	if !ok {
+		return nil, fmt.Errorf("expected an AWSMachinePool object but got %T", r)
+	}
+
 	var allErrs field.ErrorList
 
 	allErrs = append(allErrs, r.validateDefaultCoolDown()...)
@@ -228,12 +242,17 @@ func (r *AWSMachinePool) ValidateUpdate(_ runtime.Object) (admission.Warnings, e
 }
 
 // ValidateDelete allows you to add any extra validation when deleting.
-func (r *AWSMachinePool) ValidateDelete() (admission.Warnings, error) {
+func (_ *awsMachinePoolWebhook) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
 
 // Default will set default values for the AWSMachinePool.
-func (r *AWSMachinePool) Default() {
+func (_ *awsMachinePoolWebhook) Default(ctx context.Context, obj runtime.Object) error {
+	r, ok := obj.(*AWSMachinePool)
+	if !ok {
+		return fmt.Errorf("expected an AWSMachinePool object but got %T", r)
+	}
+
 	if int(r.Spec.DefaultCoolDown.Duration.Seconds()) == 0 {
 		log.Info("DefaultCoolDown is zero, setting 300 seconds as default")
 		r.Spec.DefaultCoolDown.Duration = 300 * time.Second
@@ -243,4 +262,5 @@ func (r *AWSMachinePool) Default() {
 		log.Info("DefaultInstanceWarmup is zero, setting 300 seconds as default")
 		r.Spec.DefaultInstanceWarmup.Duration = 300 * time.Second
 	}
+	return nil
 }
