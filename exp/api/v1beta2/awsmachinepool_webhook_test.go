@@ -197,7 +197,7 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "with MarketType Spot and  CapacityReservationID value provided",
+			name: "with MarketType Spot and CapacityReservationID value provided",
 			pool: &AWSMachinePool{
 				Spec: AWSMachinePoolSpec{
 					AWSLaunchTemplate: AWSLaunchTemplate{

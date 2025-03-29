@@ -5771,7 +5771,7 @@ func TestGetInstanceMarketOptionsRequest(t *testing.T) {
 			expectedError: nil,
 		},
 		{
-			name: "with an marketType Spot options specified",
+			name: "with marketType Spot specified",
 			instance: &infrav1.Instance{
 				MarketType: infrav1.MarketTypeSpot,
 			},
@@ -5784,20 +5784,20 @@ func TestGetInstanceMarketOptionsRequest(t *testing.T) {
 			},
 		},
 		{
-			name: "with an marketType Spot and CapacityRerservationID specified",
+			name: "with marketType Spot and capacityRerservationID specified",
 			instance: &infrav1.Instance{
 				MarketType:            infrav1.MarketTypeSpot,
 				CapacityReservationID: mockCapacityReservationID,
 			},
-			expectedError: errors.Errorf("can't create spot capacity-blocks, remove capacityReservationID or remove spot requests"),
+			expectedError: errors.Errorf("unable to generate marketOptions for spot instance, capacityReservationID is incompatible with marketType spot and spotMarketOptions"),
 		},
 		{
-			name: "with an spotMarketOptions and CapacityRerservationID specified",
+			name: "with spotMarketOptions and capacityRerservationID specified",
 			instance: &infrav1.Instance{
 				SpotMarketOptions:     &infrav1.SpotMarketOptions{},
 				CapacityReservationID: mockCapacityReservationID,
 			},
-			expectedError: errors.Errorf("can't create spot capacity-blocks, remove capacityReservationID or remove spot requests"),
+			expectedError: errors.Errorf("unable to generate marketOptions for spot instance, capacityReservationID is incompatible with marketType spot and spotMarketOptions"),
 		},
 		{
 			name: "with an empty MaxPrice specified",
