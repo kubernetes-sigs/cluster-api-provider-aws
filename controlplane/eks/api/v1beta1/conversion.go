@@ -42,6 +42,8 @@ func (r *AWSManagedControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.VpcCni.Disable = r.Spec.DisableVPCCNI
 	dst.Spec.Partition = restored.Spec.Partition
 	dst.Spec.RestrictPrivateSubnets = restored.Spec.RestrictPrivateSubnets
+	dst.Spec.RolePath = restored.Spec.RolePath
+	dst.Spec.RolePermissionsBoundary = restored.Spec.RolePermissionsBoundary
 	dst.Status.Version = restored.Status.Version
 	dst.Spec.BootstrapSelfManagedAddons = restored.Spec.BootstrapSelfManagedAddons
 	return nil
