@@ -14,7 +14,7 @@ CAPA controller requires service account credentials to be able to provision ROS
    rosa whoami
    ```
 
-1. Create a new kubernetes secret with the service account credentials to be referenced later by `ROSAControlPlane`
+1. Create a new kubernetes secret with the service account credentials within the target namespace to be referenced later by `ROSAControlPlane`
     ```shell
     kubectl create secret generic rosa-creds-secret \
       --from-literal=ocmClientID='....' \
@@ -28,14 +28,16 @@ CAPA controller requires service account credentials to be able to provision ROS
       --from-literal=ocmClientSecret='eyJhbGciOiJIUzI1NiIsI....' \
       --from-literal=ocmApiUrl='https://api.openshift.com'
     ```
-
+   
+   If the secret is referenced in the `ROSAControlPlane`, CAPA will look for the secret ONLY in the target namespace.
+   
 
 ### Authentication using SSO offline token (DEPRECATED)
 The SSO offline token is being deprecated and it is recommended to use service account credentials instead, as described above.
 
 1. Visit https://console.redhat.com/openshift/token to retrieve your SSO offline authentication token
 
-1. Create a credentials secret within the target namespace with the token to be referenced later by `ROSAControlePlane`
+1. Create a credentials secret within the target namespace with the token to be referenced later by `ROSAControlPlane`
     ```shell
         kubectl create secret generic rosa-creds-secret \
             --from-literal=ocmToken='eyJhbGciOiJIUzI1NiIsI....' \
