@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -89,6 +90,11 @@ func NewManagedMachinePoolScope(params ManagedMachinePoolScopeParams) (*ManagedM
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
 
+	sessionv2, serviceLimitersv2, err := sessionForClusterWithRegionV2(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
+	if err != nil {
+		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
+	}
+
 	ammpHelper, err := patch.NewHelper(params.ManagedMachinePool, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init AWSManagedMachinePool patch helper")
@@ -110,7 +116,9 @@ func NewManagedMachinePoolScope(params ManagedMachinePoolScopeParams) (*ManagedM
 		MachinePool:          params.MachinePool,
 		EC2Scope:             params.InfraCluster,
 		session:              session,
+		sessionV2:            *sessionv2,
 		serviceLimiters:      serviceLimiters,
+		serviceLimitersV2:    serviceLimitersv2,
 		controllerName:       params.ControllerName,
 		enableIAM:            params.EnableIAM,
 		allowAdditionalRoles: params.AllowAdditionalRoles,
@@ -130,9 +138,11 @@ type ManagedMachinePoolScope struct {
 	MachinePool        *expclusterv1.MachinePool
 	EC2Scope           EC2Scope
 
-	session         awsclient.ConfigProvider
-	serviceLimiters throttle.ServiceLimiters
-	controllerName  string
+	session           awsclient.ConfigProvider
+	sessionV2         awsv2.Config
+	serviceLimiters   throttle.ServiceLimiters
+	serviceLimitersV2 throttle.ServiceLimiters
+	controllerName    string
 
 	enableIAM            bool
 	allowAdditionalRoles bool
@@ -299,6 +309,11 @@ func (s *ManagedMachinePoolScope) ClusterObj() cloud.ClusterObject {
 // Session returns the AWS SDK session. Used for creating clients.
 func (s *ManagedMachinePoolScope) Session() awsclient.ConfigProvider {
 	return s.session
+}
+
+// SessionV2 returns the AWS SDK V2 config. Used for creating clients.
+func (s *ManagedMachinePoolScope) SessionV2() awsv2.Config {
+	return s.sessionV2
 }
 
 // ControllerName returns the name of the controller that
