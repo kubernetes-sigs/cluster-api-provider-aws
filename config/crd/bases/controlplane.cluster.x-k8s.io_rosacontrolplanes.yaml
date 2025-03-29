@@ -911,8 +911,12 @@ spec:
                 description: Ready denotes that the ROSAControlPlane API Server is
                   ready to receive requests.
                 type: boolean
+              version:
+                description: OpenShift semantic version, for example "4.14.5".
+                type: string
             required:
             - ready
+            - version
             type: object
         type: object
     served: true
