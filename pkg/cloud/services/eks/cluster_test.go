@@ -264,6 +264,94 @@ func TestMakeVPCConfig(t *testing.T) {
 				PublicAccessCidrs: []*string{aws.String("10.0.0.0/24")},
 			},
 		},
+		{
+			name: "private only endpoint access",
+			input: input{
+				subnets: []infrav1.SubnetSpec{
+					{
+						ID:               idOne,
+						CidrBlock:        "10.0.10.0/24",
+						AvailabilityZone: "us-west-2a",
+						IsPublic:         false,
+					},
+					{
+						ID:               idTwo,
+						CidrBlock:        "10.0.10.1/24",
+						AvailabilityZone: "us-west-2b",
+						IsPublic:         false,
+					},
+				},
+				endpointAccess: ekscontrolplanev1.EndpointAccess{
+					Private:     aws.Bool(true),
+					PublicCIDRs: []*string{},
+				},
+			},
+			expect: &eks.VpcConfigRequest{
+				SubnetIds:             []*string{&idOne, &idTwo},
+				PublicAccessCidrs:     []*string{},
+				EndpointPrivateAccess: aws.Bool(true),
+			},
+		},
+		{
+			name: "public and private endpoint access",
+			input: input{
+				subnets: []infrav1.SubnetSpec{
+					{
+						ID:               idOne,
+						CidrBlock:        "10.0.10.0/24",
+						AvailabilityZone: "us-west-2a",
+						IsPublic:         false,
+					},
+					{
+						ID:               idTwo,
+						CidrBlock:        "10.0.10.1/24",
+						AvailabilityZone: "us-west-2b",
+						IsPublic:         false,
+					},
+				},
+				endpointAccess: ekscontrolplanev1.EndpointAccess{
+					Private:     aws.Bool(true),
+					Public:      aws.Bool(true),
+					PublicCIDRs: []*string{},
+				},
+			},
+			expect: &eks.VpcConfigRequest{
+				SubnetIds:             []*string{&idOne, &idTwo},
+				PublicAccessCidrs:     nil,
+				EndpointPrivateAccess: aws.Bool(true),
+				EndpointPublicAccess:  aws.Bool(true),
+			},
+		},
+		{
+			name: "public only endpoint access",
+			input: input{
+				subnets: []infrav1.SubnetSpec{
+					{
+						ID:               idOne,
+						CidrBlock:        "10.0.10.0/24",
+						AvailabilityZone: "us-west-2a",
+						IsPublic:         false,
+					},
+					{
+						ID:               idTwo,
+						CidrBlock:        "10.0.10.1/24",
+						AvailabilityZone: "us-west-2b",
+						IsPublic:         false,
+					},
+				},
+				endpointAccess: ekscontrolplanev1.EndpointAccess{
+					Private:     aws.Bool(false),
+					Public:      aws.Bool(true),
+					PublicCIDRs: []*string{},
+				},
+			},
+			expect: &eks.VpcConfigRequest{
+				SubnetIds:             []*string{&idOne, &idTwo},
+				PublicAccessCidrs:     nil,
+				EndpointPrivateAccess: aws.Bool(false),
+				EndpointPublicAccess:  aws.Bool(true),
+			},
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
