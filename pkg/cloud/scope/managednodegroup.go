@@ -413,3 +413,8 @@ func (s *ManagedMachinePoolScope) LaunchTemplateName() string {
 func (s *ManagedMachinePoolScope) GetRuntimeObject() runtime.Object {
 	return s.ManagedMachinePool
 }
+
+// GetLifecycleHooks returns the desired lifecycle hooks for the ASG.
+func (s *ManagedMachinePoolScope) GetLifecycleHooks() []expinfrav1.AWSLifecycleHook {
+	return s.ManagedMachinePool.Spec.AWSLifecycleHooks
+}

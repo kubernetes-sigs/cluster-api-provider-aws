@@ -100,6 +100,10 @@ type AWSMachinePoolSpec struct {
 	// SuspendProcesses defines a list of processes to suspend for the given ASG. This is constantly reconciled.
 	// If a process is removed from this list it will automatically be resumed.
 	SuspendProcesses *SuspendProcessesTypes `json:"suspendProcesses,omitempty"`
+
+	// AWSLifecycleHooks specifies lifecycle hooks for the autoscaling group.
+	// +optional
+	AWSLifecycleHooks []AWSLifecycleHook `json:"lifecycleHooks,omitempty"`
 }
 
 // SuspendProcessesTypes contains user friendly auto-completable values for suspended process names.

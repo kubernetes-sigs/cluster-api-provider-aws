@@ -138,6 +138,10 @@ func (r *AWSManagedMachinePool) validateLaunchTemplate() field.ErrorList {
 	return allErrs
 }
 
+func (r *AWSManagedMachinePool) validateLifecycleHooks() field.ErrorList {
+	return validateLifecycleHooks(r.Spec.AWSLifecycleHooks)
+}
+
 // ValidateCreate will do any extra validation when creating a AWSManagedMachinePool.
 func (r *AWSManagedMachinePool) ValidateCreate() (admission.Warnings, error) {
 	mmpLog.Info("AWSManagedMachinePool validate create", "managed-machine-pool", klog.KObj(r))
@@ -157,6 +161,9 @@ func (r *AWSManagedMachinePool) ValidateCreate() (admission.Warnings, error) {
 		allErrs = append(allErrs, errs...)
 	}
 	if errs := r.validateLaunchTemplate(); len(errs) > 0 {
+		allErrs = append(allErrs, errs...)
+	}
+	if errs := r.validateLifecycleHooks(); len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
 	}
 
@@ -194,6 +201,9 @@ func (r *AWSManagedMachinePool) ValidateUpdate(old runtime.Object) (admission.Wa
 		allErrs = append(allErrs, errs...)
 	}
 	if errs := r.validateLaunchTemplate(); len(errs) > 0 {
+		allErrs = append(allErrs, errs...)
+	}
+	if errs := r.validateLifecycleHooks(); len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
 	}
 
