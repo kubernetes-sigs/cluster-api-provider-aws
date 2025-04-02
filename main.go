@@ -274,6 +274,16 @@ func main() {
 			os.Exit(1)
 		}
 
+		setupLog.Debug("enabling ROSA network controller")
+		if err = (&expcontrollers.RosaNetworkReconciler{
+			Client: mgr.GetClient(),
+			Log:    ctrl.Log.WithName("controllers").WithName("RosaNetwork"),
+			Scheme: mgr.GetScheme(),
+		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "RosaNetwork")
+			os.Exit(1)
+		}
+
 		if err := (&rosacontrolplanev1.ROSAControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "ROSAControlPlane")
 			os.Exit(1)
