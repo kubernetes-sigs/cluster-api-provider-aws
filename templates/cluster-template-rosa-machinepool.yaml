@@ -57,7 +57,7 @@ metadata:
   name: "${CLUSTER_NAME}-pool-0"
 spec:
   clusterName: "${CLUSTER_NAME}"
-  replicas: 1
+  replicas: 3
   template:
     spec:
       clusterName: "${CLUSTER_NAME}"
