@@ -284,6 +284,16 @@ func main() {
 		}
 	}
 
+	// TODO: feature gates?
+	if err = (&expcontrollers.RosaNetworkReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("RosaNetwork"),
+		Scheme: mgr.GetScheme(),
+	//}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
+		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "RosaNetwork")
+		os.Exit(1)
+	}
 	// +kubebuilder:scaffold:builder
 
 	if err := mgr.AddReadyzCheck("webhook", mgr.GetWebhookServer().StartedChecker()); err != nil {
