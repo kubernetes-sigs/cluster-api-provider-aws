@@ -110,7 +110,7 @@ func (r *ROSAControlPlaneReconciler) SetupWithManager(ctx context.Context, mgr c
 		Build(r)
 
 	if err != nil {
-		return fmt.Errorf("failed setting up the AWSManagedControlPlane controller manager: %w", err)
+		return fmt.Errorf("failed setting up the ROSAControlPlane controller manager: %w", err)
 	}
 
 	if err = c.Watch(
