@@ -154,10 +154,6 @@ var (
 	// AddonResolutionNone indicates that if there are parameter conflicts then
 	// resolution will not be done and an error will be reported.
 	AddonResolutionNone = AddonResolution("none")
-
-	// AddonResolutionPreserve indicates that if there are parameter conflicts then
-	// resolution will result in preserving the existing value
-	AddonResolutionPreserve = AddonResolution("preserve")
 )
 
 // AddonStatus defines the status for an addon.
