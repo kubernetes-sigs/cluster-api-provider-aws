@@ -178,7 +178,7 @@ linters-settings:
         alias: yamlserializer
       - pkg: "sigs.k8s.io/cluster-api/api/v1beta1"
         alias: clusterv1
-      - pkg: "sigs.k8s.io/cluster-api/util/defaulting"
+      - pkg: "sigs.k8s.io/cluster-api-provider-aws/v2/util/defaulting"
         alias: utildefaulting
       - pkg: sigs.k8s.io/controller-runtime
         alias: ctrl
