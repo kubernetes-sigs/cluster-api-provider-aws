@@ -24,6 +24,12 @@ bin
 envfile
 .envrc
 
+# For Konflux
+!vendor/github.com/sagikazarmark/locafero/.envrc
+!vendor/github.com/sagikazarmark/slog-shim/.envrc
+!vendor/github.com/spf13/viper/.envrc
+!vendor/github.com/subosito/gotenv/.env
+
 # kubeconfigs
 kind.kubeconfig
 minikube.kubeconfig
