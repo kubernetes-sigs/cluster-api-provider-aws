@@ -15,6 +15,7 @@
   ],
   "shell": {
     "init_hook": [
+      "export PATH=$PWD/bin:$PATH",
       "./scripts/devbox-init-hook.sh"
     ],
     "scripts": {
