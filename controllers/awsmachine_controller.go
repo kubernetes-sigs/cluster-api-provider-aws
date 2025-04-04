@@ -59,9 +59,9 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/ssm"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/util/paused"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
@@ -142,10 +142,11 @@ func (r *AWSMachineReconciler) getObjectStoreService(scope scope.S3Scope) servic
 	return s3.NewService(scope)
 }
 
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachines,verbs=get;list;watch;update;patch;delete
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachines/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=*,verbs=get;list;watch
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachines,verbs=create;get;list;watch;update;patch;delete
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachines/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines,verbs=get;list;watch;delete
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=secrets;,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
@@ -182,11 +183,6 @@ func (r *AWSMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, nil
 	}
 
-	if annotations.IsPaused(cluster, awsMachine) {
-		log.Info("AWSMachine or linked Cluster is marked as paused. Won't reconcile")
-		return ctrl.Result{}, nil
-	}
-
 	log = log.WithValues("cluster", klog.KObj(cluster))
 
 	infraCluster, err := r.getInfraCluster(ctx, log, cluster, awsMachine)
@@ -199,6 +195,10 @@ func (r *AWSMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	infrav1.SetDefaults_AWSMachineSpec(&awsMachine.Spec)
+
+	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, awsMachine); err != nil || isPaused || conditionChanged {
+		return ctrl.Result{}, err
+	}
 
 	// Create the machine scope
 	machineScope, err := scope.NewMachineScope(scope.MachineScopeParams{
@@ -253,7 +253,7 @@ func (r *AWSMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 			&infrav1.AWSCluster{},
 			handler.EnqueueRequestsFromMapFunc(AWSClusterToAWSMachines),
 		).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), log.GetLogger(), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), log.GetLogger(), r.WatchFilterValue)).
 		WithEventFilter(
 			predicate.Funcs{
 				// Avoid reconciling if the event triggering the reconciliation is related to incremental status updates
@@ -458,6 +458,7 @@ func (r *AWSMachineReconciler) findInstance(machineScope *scope.MachineScope, ec
 	return instance, nil
 }
 
+//nolint:gocyclo
 func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper, ec2Scope scope.EC2Scope, elbScope scope.ELBScope, objectStoreScope scope.S3Scope) (ctrl.Result, error) {
 	machineScope.Trace("Reconciling AWSMachine")
 
@@ -481,7 +482,7 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 	}
 
 	// Make sure bootstrap data is available and populated.
-	if machineScope.Machine.Spec.Bootstrap.DataSecretName == nil {
+	if !machineScope.IsMachinePoolMachine() && machineScope.Machine.Spec.Bootstrap.DataSecretName == nil {
 		machineScope.Info("Bootstrap data secret reference is not yet available")
 		conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, infrav1.WaitingForBootstrapDataReason, clusterv1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
@@ -492,6 +493,12 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 	// Find existing instance
 	instance, err := r.findInstance(machineScope, ec2svc)
 	if err != nil {
+		machineScope.Error(err, "unable to find instance")
+		conditions.MarkUnknown(machineScope.AWSMachine, infrav1.InstanceReadyCondition, infrav1.InstanceNotFoundReason, "%s", err.Error())
+		return ctrl.Result{}, err
+	}
+	if instance == nil && machineScope.IsMachinePoolMachine() {
+		err = errors.New("no instance found for machine pool")
 		machineScope.Error(err, "unable to find instance")
 		conditions.MarkUnknown(machineScope.AWSMachine, infrav1.InstanceReadyCondition, infrav1.InstanceNotFoundReason, "%s", err.Error())
 		return ctrl.Result{}, err
@@ -585,9 +592,18 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 		conditions.MarkTrue(machineScope.AWSMachine, infrav1.InstanceReadyCondition)
 	case infrav1.InstanceStateShuttingDown, infrav1.InstanceStateTerminated:
 		machineScope.SetNotReady()
-		machineScope.Info("Unexpected EC2 instance termination", "state", instance.State, "instance-id", *machineScope.GetInstanceID())
-		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "InstanceUnexpectedTermination", "Unexpected EC2 instance termination")
-		conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, infrav1.InstanceTerminatedReason, clusterv1.ConditionSeverityError, "")
+
+		if machineScope.IsMachinePoolMachine() {
+			// In an auto-scaling group, instance termination is perfectly normal on scale-down
+			// and therefore should not be reported as error.
+			machineScope.Info("EC2 instance of machine pool was terminated", "state", instance.State, "instance-id", *machineScope.GetInstanceID())
+			r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeNormal, infrav1.InstanceTerminatedReason, "EC2 instance termination")
+			conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, infrav1.InstanceTerminatedReason, clusterv1.ConditionSeverityInfo, "")
+		} else {
+			machineScope.Info("Unexpected EC2 instance termination", "state", instance.State, "instance-id", *machineScope.GetInstanceID())
+			r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "InstanceUnexpectedTermination", "Unexpected EC2 instance termination")
+			conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, infrav1.InstanceTerminatedReason, clusterv1.ConditionSeverityError, "")
+		}
 	default:
 		machineScope.SetNotReady()
 		machineScope.Info("EC2 instance state is undefined", "state", instance.State, "instance-id", *machineScope.GetInstanceID())
@@ -598,14 +614,18 @@ func (r *AWSMachineReconciler) reconcileNormal(_ context.Context, machineScope *
 	}
 
 	// reconcile the deletion of the bootstrap data secret now that we have updated instance state
-	if deleteSecretErr := r.deleteBootstrapData(machineScope, clusterScope, objectStoreScope); deleteSecretErr != nil {
-		r.Log.Error(deleteSecretErr, "unable to delete secrets")
-		return ctrl.Result{}, deleteSecretErr
-	}
+	if !machineScope.IsMachinePoolMachine() {
+		if deleteSecretErr := r.deleteBootstrapData(machineScope, clusterScope, objectStoreScope); deleteSecretErr != nil {
+			r.Log.Error(deleteSecretErr, "unable to delete secrets")
+			return ctrl.Result{}, deleteSecretErr
+		}
 
-	if instance.State == infrav1.InstanceStateTerminated {
-		machineScope.SetFailureReason("UpdateError")
-		machineScope.SetFailureMessage(errors.Errorf("EC2 instance state %q is unexpected", instance.State))
+		// For machine pool machines, it is expected that the ASG terminates instances at any time,
+		// so no error is logged for those.
+		if instance.State == infrav1.InstanceStateTerminated {
+			machineScope.SetFailureReason("UpdateError")
+			machineScope.SetFailureMessage(errors.Errorf("EC2 instance state %q is unexpected", instance.State))
+		}
 	}
 
 	// tasks that can take place during all known instance states
@@ -875,9 +895,13 @@ func getIgnitionVersion(scope *scope.MachineScope) string {
 }
 
 func (r *AWSMachineReconciler) deleteBootstrapData(machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper, objectStoreScope scope.S3Scope) error {
-	_, userDataFormat, err := machineScope.GetRawBootstrapDataWithFormat()
-	if client.IgnoreNotFound(err) != nil {
-		return errors.Wrap(err, "failed to get raw userdata")
+	var userDataFormat string
+	var err error
+	if machineScope.Machine.Spec.Bootstrap.DataSecretName != nil {
+		_, userDataFormat, err = machineScope.GetRawBootstrapDataWithFormat()
+		if client.IgnoreNotFound(err) != nil {
+			return errors.Wrap(err, "failed to get raw userdata")
+		}
 	}
 
 	if machineScope.UseSecretsManager(userDataFormat) {

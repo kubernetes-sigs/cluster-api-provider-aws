@@ -37,6 +37,8 @@ Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/referen
 
 ## Summary
 
+This proposal is superseded by `docs/proposal/20250314-optional-controllers.md`.
+
 Feature gates are a mechanism that CAPA uses to enable or disable particular features components of CAPA. This document proposes to implement two new feature gates, one for AWSMachine controller, another one for AWSCluster controller.
 
 ## Motivation

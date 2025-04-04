@@ -196,7 +196,7 @@ func CheckClassicElbHealthCheck(input CheckClassicElbHealthCheckInput, intervals
 		}
 
 		if *lb.HealthCheck.Target != input.ExpectedTarget {
-			return fmt.Errorf("health check target does not match expected target")
+			return fmt.Errorf("health check target %q does not match expected target %q", *lb.HealthCheck.Target, input.ExpectedTarget)
 		}
 
 		return nil
