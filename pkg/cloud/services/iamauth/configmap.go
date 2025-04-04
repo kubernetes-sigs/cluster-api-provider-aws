@@ -88,6 +88,44 @@ func (b *configMapBackend) MapUser(mapping ekscontrolplanev1.UserMapping) error 
 	return b.saveAuthConfig(authConfig)
 }
 
+func (b *configMapBackend) MapUsers(mappings []ekscontrolplanev1.UserMapping) error {
+	for _, mapping := range mappings {
+		if errs := mapping.Validate(); errs != nil {
+			return kerrors.NewAggregate(errs)
+		}
+	}
+
+	authConfig, err := b.getAuthConfig()
+	if err != nil {
+		return fmt.Errorf("getting auth config: %w", err)
+	}
+
+	authConfig.UserMappings = []ekscontrolplanev1.UserMapping{}
+
+	authConfig.UserMappings = append(authConfig.UserMappings, mappings...)
+
+	return b.saveAuthConfig(authConfig)
+}
+
+func (b *configMapBackend) MapRoles(mappings []ekscontrolplanev1.RoleMapping) error {
+	for _, mapping := range mappings {
+		if errs := mapping.Validate(); errs != nil {
+			return kerrors.NewAggregate(errs)
+		}
+	}
+
+	authConfig, err := b.getAuthConfig()
+	if err != nil {
+		return fmt.Errorf("getting auth config: %w", err)
+	}
+
+	authConfig.RoleMappings = []ekscontrolplanev1.RoleMapping{}
+
+	authConfig.RoleMappings = append(authConfig.RoleMappings, mappings...)
+
+	return b.saveAuthConfig(authConfig)
+}
+
 func (b *configMapBackend) getAuthConfig() (*ekscontrolplanev1.IAMAuthenticatorConfig, error) {
 	ctx := context.Background()
 
