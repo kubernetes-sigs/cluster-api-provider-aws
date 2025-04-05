@@ -1163,6 +1163,10 @@ func getInstanceMarketOptionsRequest(i *infrav1.Instance) (*ec2.InstanceMarketOp
 		return nil, errors.New("can't create spot capacity-blocks, remove spot market request")
 	}
 
+	if (i.MarketType == infrav1.MarketTypeSpot || i.SpotMarketOptions != nil) && i.CapacityReservationID != nil {
+		return nil, errors.New("unable to generate marketOptions for spot instance, capacityReservationID is incompatible with marketType spot and spotMarketOptions")
+	}
+
 	// Infer MarketType if not explicitly set
 	if i.SpotMarketOptions != nil && i.MarketType == "" {
 		i.MarketType = infrav1.MarketTypeSpot
@@ -1170,6 +1174,10 @@ func getInstanceMarketOptionsRequest(i *infrav1.Instance) (*ec2.InstanceMarketOp
 
 	if i.MarketType == "" {
 		i.MarketType = infrav1.MarketTypeOnDemand
+	}
+
+	if i.MarketType == infrav1.MarketTypeSpot && i.SpotMarketOptions == nil {
+		i.SpotMarketOptions = &infrav1.SpotMarketOptions{}
 	}
 
 	switch i.MarketType {
