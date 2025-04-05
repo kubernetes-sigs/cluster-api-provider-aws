@@ -1104,6 +1104,13 @@ spec:
             required:
             - instanceType
             type: object
+            x-kubernetes-validations:
+            - message: capacityReservationId may not be set when marketType is Spot
+              rule: '!has(self.capacityReservationId) || !has(self.marketType) ||
+                self.marketType != ''Spot'''
+            - message: capacityReservationId cannot be set when spotMarketOptions
+                is specified
+              rule: '!has(self.capacityReservationId) || !has(self.spotMarketOptions)'
           status:
             description: AWSMachineStatus defines the observed state of AWSMachine.
             properties:
