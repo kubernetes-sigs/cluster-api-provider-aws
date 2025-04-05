@@ -18,13 +18,37 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
 	"testing"
+	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	sts "github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go/service/sts/stsiface"
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
-	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	rosaaws "github.com/openshift/rosa/pkg/aws"
 	"github.com/openshift/rosa/pkg/ocm"
 
+	v1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/s3/mock_stsiface"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/rosa"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/patch"
+
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func TestUpdateOCMClusterSpec(t *testing.T) {
@@ -45,12 +69,12 @@ func TestUpdateOCMClusterSpec(t *testing.T) {
 		}
 
 		// Mock Cluster input
-		mockCluster, _ := cmv1.NewCluster().
-			AWS(cmv1.NewAWS().
-				AuditLog(cmv1.NewAuditLog().RoleArn("arn:aws:iam::123456789012:role/AuditLogRole"))).
-			RegistryConfig(cmv1.NewClusterRegistryConfig().
+		mockCluster, _ := v1.NewCluster().
+			AWS(v1.NewAWS().
+				AuditLog(v1.NewAuditLog().RoleArn("arn:aws:iam::123456789012:role/AuditLogRole"))).
+			RegistryConfig(v1.NewClusterRegistryConfig().
 				AdditionalTrustedCa(map[string]string{"trusted-ca": "-----BEGIN CERTIFICATE----- testcert -----END CERTIFICATE-----"}).
-				AllowedRegistriesForImport(cmv1.NewRegistryLocation().
+				AllowedRegistriesForImport(v1.NewRegistryLocation().
 					DomainName("registry1.com").
 					Insecure(false))).Build()
 
@@ -71,9 +95,9 @@ func TestUpdateOCMClusterSpec(t *testing.T) {
 			},
 		}
 
-		mockCluster, _ := cmv1.NewCluster().
-			AWS(cmv1.NewAWS().
-				AuditLog(cmv1.NewAuditLog().RoleArn("arn:aws:iam::123456789012:role/OldAuditLogRole"))).Build()
+		mockCluster, _ := v1.NewCluster().
+			AWS(v1.NewAWS().
+				AuditLog(v1.NewAuditLog().RoleArn("arn:aws:iam::123456789012:role/OldAuditLogRole"))).Build()
 
 		expectedOCMSpec := ocm.Spec{
 			AuditLogRoleARN: &rosaControlPlane.Spec.AuditLogRoleARN,
@@ -102,12 +126,12 @@ func TestUpdateOCMClusterSpec(t *testing.T) {
 			},
 		}
 
-		mockCluster, _ := cmv1.NewCluster().
-			RegistryConfig(cmv1.NewClusterRegistryConfig().
+		mockCluster, _ := v1.NewCluster().
+			RegistryConfig(v1.NewClusterRegistryConfig().
 				AdditionalTrustedCa(map[string]string{"old-trusted-ca": "-----BEGIN CERTIFICATE----- testcert -----END CERTIFICATE-----"}).
-				AllowedRegistriesForImport(cmv1.NewRegistryLocation().
+				AllowedRegistriesForImport(v1.NewRegistryLocation().
 					DomainName("old-registry.com").
-					Insecure(false)).RegistrySources(cmv1.NewRegistrySources().BlockedRegistries([]string{"blocked.io", "blocked.org"}...))).
+					Insecure(false)).RegistrySources(v1.NewRegistrySources().BlockedRegistries([]string{"blocked.io", "blocked.org"}...))).
 			Build()
 
 		expectedOCMSpec := ocm.Spec{
@@ -132,9 +156,9 @@ func TestUpdateOCMClusterSpec(t *testing.T) {
 			},
 		}
 
-		mockCluster, _ := cmv1.NewCluster().
-			RegistryConfig(cmv1.NewClusterRegistryConfig().
-				AllowedRegistriesForImport(cmv1.NewRegistryLocation().
+		mockCluster, _ := v1.NewCluster().
+			RegistryConfig(v1.NewClusterRegistryConfig().
+				AllowedRegistriesForImport(v1.NewRegistryLocation().
 					DomainName("old-registry.com").
 					Insecure(false))).
 			Build()
@@ -149,4 +173,205 @@ func TestUpdateOCMClusterSpec(t *testing.T) {
 		g.Expect(updated).To(BeTrue())
 		g.Expect(ocmSpec).To(Equal(expectedOCMSpec))
 	})
+}
+
+func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
+	g := NewWithT(t)
+	ns, err := testEnv.CreateNamespace(ctx, "test-namespace")
+	g.Expect(err).ToNot(HaveOccurred())
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "rosa-secret",
+			Namespace: ns.Name,
+		},
+		Data: map[string][]byte{
+			"ocmToken": []byte("secret-ocm-token-string"),
+		},
+	}
+	identity := &infrav1.AWSClusterControllerIdentity{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "default",
+		},
+		Spec: infrav1.AWSClusterControllerIdentitySpec{
+			AWSClusterIdentitySpec: infrav1.AWSClusterIdentitySpec{
+				AllowedNamespaces: &infrav1.AllowedNamespaces{},
+			},
+		},
+	}
+	identity.SetGroupVersionKind(infrav1.GroupVersion.WithKind("AWSClusterStaticIdentity"))
+
+	rosaControlPlane := &rosacontrolplanev1.ROSAControlPlane{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "rosa-control-plane-1",
+			Namespace: ns.Name,
+			UID:       types.UID("rosa-control-plane-1")},
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ROSAControlPlane",
+			APIVersion: rosacontrolplanev1.GroupVersion.String(),
+		},
+		Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+			RosaClusterName:   "rosa-control-plane-1",
+			Subnets:           []string{"subnet-0ac99a6230b408813", "subnet-1ac99a6230b408811"},
+			AvailabilityZones: []string{"az-1", "az-2"},
+			Network: &rosacontrolplanev1.NetworkSpec{
+				MachineCIDR: "10.0.0.0/16",
+				PodCIDR:     "10.128.0.0/14",
+				ServiceCIDR: "172.30.0.0/16",
+			},
+			Region:           "us-east-1",
+			Version:          "4.15.20",
+			ChannelGroup:     "stable",
+			RolesRef:         rosacontrolplanev1.AWSRolesRef{},
+			OIDCID:           "iodcid1",
+			InstallerRoleARN: "arn1",
+			WorkerRoleARN:    "arn2",
+			SupportRoleARN:   "arn3",
+			CredentialsSecretRef: &corev1.LocalObjectReference{
+				Name: secret.Name,
+			},
+			VersionGate: "Acknowledge",
+			IdentityRef: &infrav1.AWSIdentityReference{
+				Name: identity.Name,
+				Kind: infrav1.ControllerIdentityKind,
+			},
+		},
+		Status: rosacontrolplanev1.RosaControlPlaneStatus{
+			Ready: true,
+			ID:    "rosa-control-plane-1",
+			// Version: "4.15.20",
+			Conditions: clusterv1.Conditions{clusterv1.Condition{
+				Type:     "Paused",
+				Status:   "False",
+				Severity: "",
+				Reason:   "NotPaused",
+				Message:  "",
+			}},
+		},
+	}
+
+	ownerCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "owner-cluster-1",
+			Namespace: ns.Name,
+			UID:       types.UID("owner-cluster-1"),
+		},
+		Spec: clusterv1.ClusterSpec{
+			ControlPlaneRef: &corev1.ObjectReference{
+				Name:       rosaControlPlane.Name,
+				Kind:       "ROSAControlPlane",
+				APIVersion: rosacontrolplanev1.GroupVersion.String(),
+			},
+		},
+	}
+
+	rosaControlPlane.OwnerReferences = []metav1.OwnerReference{
+		{
+			Name:       ownerCluster.Name,
+			UID:        ownerCluster.UID,
+			Kind:       "Cluster",
+			APIVersion: clusterv1.GroupVersion.String(),
+		},
+	}
+
+	mockCtrl := gomock.NewController(t)
+	ctx := context.TODO()
+	ocmMock := mocks.NewMockOCMClient(mockCtrl)
+	stsMock := mock_stsiface.NewMockSTSAPI(mockCtrl)
+
+	getCallerIdentityResult := &sts.GetCallerIdentityOutput{Account: aws.String("foo"), Arn: aws.String("arn:aws:iam::123456789012:rosa/foo")}
+	stsMock.EXPECT().GetCallerIdentity(gomock.Any()).Return(getCallerIdentityResult, nil).Times(1)
+
+	expect := func(m *mocks.MockOCMClientMockRecorder) {
+		m.ValidateHypershiftVersion(gomock.Any(), gomock.Any()).DoAndReturn(func(clusterId string, nodePoolID string) (bool, error) {
+			return true, nil
+		}).Times(1)
+		m.GetCluster(gomock.Any(), gomock.Any()).DoAndReturn(func(clusterKey string, creator *rosaaws.Creator) (*v1.Cluster, error) {
+			sts := (&v1.STSBuilder{}).OIDCEndpointURL("oidc.com/oidc1")
+			aws := v1.NewAWS().AuditLog(v1.NewAuditLog().RoleArn("arn:aws:iam::123456789012:role/AuditLogRole")).STS(sts)
+			console := (&v1.ClusterConsoleBuilder{}).URL("console.redhat.com/cluster-123")
+			status := (&v1.ClusterStatusBuilder{}).State(v1.ClusterStateError)
+			version := (&v1.VersionBuilder{}).RawID(rosaControlPlane.Spec.Version)
+			mockCluster, _ := v1.NewCluster().AWS(aws).ID("cluster-1").Version(version).Status(status).Console(console).
+				RegistryConfig(v1.NewClusterRegistryConfig().
+					AdditionalTrustedCa(map[string]string{"trusted-ca": "-----BEGIN CERTIFICATE----- testcert -----END CERTIFICATE-----"}).
+					AllowedRegistriesForImport(v1.NewRegistryLocation().
+						DomainName("registry1.com").
+						Insecure(false))).
+				Build()
+			return mockCluster, nil
+		}).Times(1)
+	}
+
+	expect(ocmMock.EXPECT())
+
+	objects := []client.Object{ownerCluster, rosaControlPlane, secret, identity}
+	for _, obj := range objects {
+		createObject(g, obj, ns.Name)
+	}
+
+	// make Control Plane ready, can't do this duirng creation
+	cpPh, err := patch.NewHelper(rosaControlPlane, testEnv)
+	g.Expect(err).ShouldNot(HaveOccurred())
+	rosaControlPlane.Status = rosacontrolplanev1.RosaControlPlaneStatus{
+		Ready: true,
+		ID:    "rosa-control-plane-1",
+		// Version: rosaControlPlane.Spec.Version,
+		Conditions: clusterv1.Conditions{clusterv1.Condition{
+			Type:     "Paused",
+			Status:   "False",
+			Severity: "",
+			Reason:   "NotPaused",
+			Message:  "",
+		}},
+	}
+
+	g.Expect(cpPh.Patch(ctx, rosaControlPlane)).To(Succeed())
+
+	time.Sleep(50 * time.Millisecond)
+
+	cp := &rosacontrolplanev1.ROSAControlPlane{}
+	key := client.ObjectKey{Name: rosaControlPlane.Name, Namespace: rosaControlPlane.Namespace}
+	errGet := testEnv.Get(ctx, key, cp)
+	g.Expect(errGet).NotTo(HaveOccurred())
+	oldCondition := conditions.Get(cp, clusterv1.PausedV1Beta2Condition)
+	g.Expect(oldCondition).NotTo(BeNil())
+
+	r := ROSAControlPlaneReconciler{
+		WatchFilterValue: "",
+		Endpoints:        []scope.ServiceEndpoint{},
+		Client:           testEnv,
+		NewStsClient:     func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsiface.STSAPI { return stsMock },
+		NewOCMClient: func(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (rosa.OCMClient, error) {
+			return ocmMock, nil
+		},
+	}
+
+	req := ctrl.Request{}
+	req.NamespacedName = types.NamespacedName{Name: rosaControlPlane.Name, Namespace: rosaControlPlane.Namespace}
+	_, errReconcile := r.Reconcile(ctx, req)
+	g.Expect(errReconcile).ToNot(HaveOccurred())
+	time.Sleep(50 * time.Millisecond)
+
+	errGet2 := testEnv.Get(ctx, key, cp)
+	g.Expect(errGet2).NotTo(HaveOccurred())
+	g.Expect(cp.Status.Version).To(Equal("4.15.20"))
+
+	// cleanup
+	for _, obj := range objects {
+		cleanupObject(g, obj)
+	}
+}
+
+func createObject(g *WithT, obj client.Object, namespace string) {
+	if obj.DeepCopyObject() != nil {
+		obj.SetNamespace(namespace)
+		g.Expect(testEnv.Create(ctx, obj)).To(Succeed())
+	}
+}
+
+func cleanupObject(g *WithT, obj client.Object) {
+	if obj.DeepCopyObject() != nil {
+		g.Expect(testEnv.Cleanup(ctx, obj)).To(Succeed())
+	}
 }
