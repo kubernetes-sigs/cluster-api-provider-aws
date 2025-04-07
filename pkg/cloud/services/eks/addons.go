@@ -197,7 +197,7 @@ func (s *Service) translateAPIToAddon(addons []ekscontrolplanev1.Addon) []*eksad
 		convertedAddon := &eksaddons.EKSAddon{
 			Name:                  &addon.Name,
 			Version:               &addon.Version,
-			Configuration:         &addon.Configuration,
+			Configuration:         convertConfiguration(addon.Configuration),
 			Tags:                  ngTags(s.scope.Cluster.Name, s.scope.AdditionalTags()),
 			ResolveConflict:       convertConflictResolution(*addon.ConflictResolution),
 			ServiceAccountRoleARN: addon.ServiceAccountRoleArn,
@@ -214,4 +214,11 @@ func convertConflictResolution(conflict ekscontrolplanev1.AddonResolution) *stri
 		return aws.String(eks.ResolveConflictsNone)
 	}
 	return aws.String(eks.ResolveConflictsOverwrite)
+}
+
+func convertConfiguration(configuration string) *string {
+	if configuration == "" {
+		return nil
+	}
+	return &configuration
 }
