@@ -204,6 +204,7 @@ func (r *AWSMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	machineScope, err := scope.NewMachineScope(scope.MachineScopeParams{
 		Client:       r.Client,
 		Cluster:      cluster,
+		Logger:       log,
 		Machine:      machine,
 		InfraCluster: infraCluster,
 		AWSMachine:   awsMachine,
