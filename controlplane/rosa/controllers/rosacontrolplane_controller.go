@@ -94,6 +94,8 @@ type ROSAControlPlaneReconciler struct {
 	Endpoints        []scope.ServiceEndpoint
 	NewStsClient     func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsiface.STSAPI
 	NewOCMClient     func(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (rosa.OCMClient, error)
+	// Exposing the restClientConfig for integration test. No need to initialize.
+	restClientConfig *restclient.Config
 }
 
 // SetupWithManager is used to setup the controller.
@@ -252,6 +254,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		rosaScope.ControlPlane.Status.ConsoleURL = cluster.Console().URL()
 		rosaScope.ControlPlane.Status.OIDCEndpointURL = cluster.AWS().STS().OIDCEndpointURL()
 		rosaScope.ControlPlane.Status.Ready = false
+		rosaScope.ControlPlane.Status.Version = rosa.RawVersionID(cluster.Version())
 
 		switch cluster.Status().State() {
 		case cmv1.ClusterStateReady:
@@ -801,13 +804,16 @@ func (r *ROSAControlPlaneReconciler) reconcileKubeconfig(ctx context.Context, ro
 		return err
 	}
 
-	clientConfig := &restclient.Config{
-		Host:     apiServerURL,
-		Username: userName,
+	if r.restClientConfig == nil {
+		r.restClientConfig = &restclient.Config{
+			Host:     apiServerURL,
+			Username: userName,
+		}
 	}
+
 	// request an acccess token using the credentials of the cluster admin user created earlier.
 	// this token is used in the kubeconfig to authenticate with the API server.
-	token, err := rosa.RequestToken(ctx, apiServerURL, userName, password, clientConfig)
+	token, err := rosa.RequestToken(ctx, apiServerURL, userName, password, r.restClientConfig)
 	if err != nil {
 		return fmt.Errorf("failed to request token: %w", err)
 	}
