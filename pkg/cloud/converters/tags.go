@@ -18,6 +18,7 @@ package converters
 
 import (
 	"sort"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
@@ -58,12 +59,14 @@ func MapToTags(src infrav1.Tags) []*ec2.Tag {
 	tags := make([]*ec2.Tag, 0, len(src))
 
 	for k, v := range src {
-		tag := &ec2.Tag{
-			Key:   aws.String(k),
-			Value: aws.String(v),
-		}
+		if !strings.HasPrefix(k, "aws:") {
+			tag := &ec2.Tag{
+				Key:   aws.String(k),
+				Value: aws.String(v),
+			}
 
-		tags = append(tags, tag)
+			tags = append(tags, tag)
+		}
 	}
 
 	// Sort so that unit tests can expect a stable order
