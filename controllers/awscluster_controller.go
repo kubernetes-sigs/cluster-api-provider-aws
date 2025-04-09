@@ -196,7 +196,7 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// Handle non-deleted clusters
-	return r.reconcileNormal(clusterScope)
+	return r.reconcileNormal(ctx, clusterScope)
 }
 
 func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope *scope.ClusterScope) (ctrl.Result, error) {
@@ -243,7 +243,7 @@ func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope
 	// when external controllers might be using them.
 	allErrs := []error{}
 
-	if err := s3Service.DeleteBucket(); err != nil {
+	if err := s3Service.DeleteBucket(ctx); err != nil {
 		allErrs = append(allErrs, errors.Wrapf(err, "error deleting S3 Bucket"))
 	}
 
@@ -311,7 +311,7 @@ func (r *AWSClusterReconciler) reconcileLoadBalancer(clusterScope *scope.Cluster
 	return nil, nil
 }
 
-func (r *AWSClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error) {
+func (r *AWSClusterReconciler) reconcileNormal(ctx context.Context, clusterScope *scope.ClusterScope) (reconcile.Result, error) {
 	clusterScope.Info("Reconciling AWSCluster")
 
 	awsCluster := clusterScope.AWSCluster
@@ -360,7 +360,7 @@ func (r *AWSClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope)
 		return reconcile.Result{RequeueAfter: *requeueAfter}, err
 	}
 
-	if err := s3Service.ReconcileBucket(); err != nil {
+	if err := s3Service.ReconcileBucket(ctx); err != nil {
 		conditions.MarkFalse(awsCluster, infrav1.S3BucketReadyCondition, infrav1.S3BucketFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile S3 Bucket for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
 	}
