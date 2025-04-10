@@ -111,8 +111,8 @@ func TaintsFromSDK(taints []*eks.Taint) (expinfrav1.Taints, error) {
 		}
 		converted = append(converted, expinfrav1.Taint{
 			Effect: convertedEffect,
-			Key:    *taint.Key,
-			Value:  *taint.Value,
+			Key:    aws.StringValue(taint.Key),
+			Value:  aws.StringValue(taint.Value),
 		})
 	}
 
