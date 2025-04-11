@@ -116,6 +116,8 @@ providers:
         targetName: "cluster-template-eks-control-plane-only-legacy.yaml"
       - sourcePath: "./eks/cluster-template-eks-control-plane-bare-eks.yaml"
         targetName: "cluster-template-eks-control-plane-bare-eks.yaml"
+      - sourcePath: "./infrastructure-aws/withclusterclass/kustomize_sources/eks-clusterclass/eks-clusterclass-ci.yaml"
+        targetName: "eks-clusterclass-ci.yaml"
 
 variables:
   KUBERNETES_VERSION: "v1.31.0"
