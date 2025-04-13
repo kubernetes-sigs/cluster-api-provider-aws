@@ -138,24 +138,30 @@ func (t Template) RenderCloudFormation() *cloudformation.Template {
 
 	template.Resources[AWSIAMRoleControlPlane] = &cfn_iam.Role{
 		RoleName:                 t.NewManagedName("control-plane"),
+		Path:                     t.Spec.ControlPlane.Path,
 		AssumeRolePolicyDocument: t.controlPlaneTrustPolicy(),
 		ManagedPolicyArns:        t.Spec.ControlPlane.ExtraPolicyAttachments,
 		Policies:                 t.controlPlanePolicies(),
+		PermissionsBoundary:      t.Spec.ControlPlane.PermissionsBoundary,
 		Tags:                     converters.MapToCloudFormationTags(t.Spec.ControlPlane.Tags),
 	}
 
 	template.Resources[AWSIAMRoleControllers] = &cfn_iam.Role{
 		RoleName:                 t.NewManagedName("controllers"),
+		Path:                     t.Spec.ControlPlane.Path,
 		AssumeRolePolicyDocument: t.controllersTrustPolicy(),
 		Policies:                 t.controllersRolePolicy(),
+		PermissionsBoundary:      t.Spec.ControlPlane.PermissionsBoundary,
 		Tags:                     converters.MapToCloudFormationTags(t.Spec.ClusterAPIControllers.Tags),
 	}
 
 	template.Resources[AWSIAMRoleNodes] = &cfn_iam.Role{
 		RoleName:                 t.NewManagedName("nodes"),
+		Path:                     t.Spec.ControlPlane.Path,
 		AssumeRolePolicyDocument: t.nodeTrustPolicy(),
 		ManagedPolicyArns:        t.nodeManagedPolicies(),
 		Policies:                 t.nodePolicies(),
+		PermissionsBoundary:      t.Spec.ControlPlane.PermissionsBoundary,
 		Tags:                     converters.MapToCloudFormationTags(t.Spec.Nodes.Tags),
 	}
 
