@@ -319,7 +319,7 @@ func setupReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsServi
 			setupLog.Error(err, "unable to create controller", "controller", "AWSMachine")
 			os.Exit(1)
 		}
-		setupLog.Info("controller disabled", "controller", "AWSMachine", "congrollerGroup", controllers.Unmanaged)
+		setupLog.Info("controller disabled", "controller", "AWSMachine", "controller-group", controllers.Unmanaged)
 
 		if err := (&controllers.AWSClusterReconciler{
 			Client:                       mgr.GetClient(),
@@ -334,7 +334,7 @@ func setupReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsServi
 			os.Exit(1)
 		}
 	} else {
-		setupLog.Info("controller disabled", "controller", "AWSMachine", "congrollerGroup", controllers.Unmanaged)
+		setupLog.Info("controller disabled", "controller", "AWSMachine", "controller-group", controllers.Unmanaged)
 		setupLog.Info("controller disabled", "controller", "AWSCluster", "controller-group", controllers.Unmanaged)
 	}
 
