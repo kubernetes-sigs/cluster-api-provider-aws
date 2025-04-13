@@ -32,3 +32,41 @@ In e2e tests, this manifest can be used by setting the flavor to `custom` (clust
 				},
 			}, result)
 ```
+
+## ClusterClass Notes
+
+If you want to add a new ClusterClass based flavour for a test you will need to do the following:
+
+1. Create a new folder under `./test/e2e/data/infrastructure-aww/withclusterclass/kustomize_sources`
+2. Create a file called `cluster-template.yaml` with contains:
+	- A single **Cluster** resource
+	- Uses a topology
+	- The class name used by the topology is important. We'll use `eks-e2e` as an example.
+3. Create a new file for your clusterclass (including templates). It must be named `clusterclass-[CLASSNAME].yaml`. So in our example it would be name clusterclass-eks-e2e.yaml.
+4. Create a file called `kustomization.yaml` with the following contents as a minumim:
+
+```yaml
+resources:
+  - cluster-template.yaml
+generatorOptions:
+  disableNameSuffixHash: true
+  labels:
+    type: generated
+  annotations:
+    note: generated
+```
+
+5. Update the e2e test config file (`./test/e2e/data/e2e_conf.yaml` or `./test/e2e/data/e2e_eks_conf.yaml`) to include the files, specifically for **v9.9.99** of the **aws**c provider.. For example:
+
+```yaml
+      - sourcePath: "./infrastructure-aws/withclusterclass/kustomize_sources/eks-clusterclass/clusterclass-eks-e2e.yaml"
+      - sourcePath: "./infrastructure-aws/withclusterclass/generated/cluster-template-eks-clusterclass.yaml"
+```
+
+You will now be able to use the flavour in tests.
+
+### Troubleshooting
+
+Run `make generate-test-flavors` and check that the cluster template has been created in `test/e2e/data/infrastructure-aws/withclusterclass/generated`.
+
+Check the artifacts of the Prow job if it fails. Navigate to `artifacts/repository/infrastructure-aws/v9.9.99/` and check that the clusterclass and cluster template files are there.
