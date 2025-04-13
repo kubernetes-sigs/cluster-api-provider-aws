@@ -145,8 +145,9 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 				},
 			},
 			Status: rosacontrolplanev1.RosaControlPlaneStatus{
-				Ready: true,
-				ID:    fmt.Sprintf("rosa-control-plane-%v", i),
+				Ready:   true,
+				ID:      fmt.Sprintf("rosa-control-plane-%v", i),
+				Version: "4.15.20",
 			},
 		}
 	}
@@ -519,6 +520,7 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 			// make Control Plane ready, can't do this duirng creation
 			mpPh, err := patch.NewHelper(cp, testEnv)
 			cp.Status.Ready = true
+			cp.Status.Version = cp.Spec.Version
 			g.Expect(mpPh.Patch(ctx, cp)).To(Succeed())
 			g.Expect(err).ShouldNot(HaveOccurred())
 
@@ -619,6 +621,7 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 		cpPh, err := patch.NewHelper(cp, testEnv)
 		cp.Status.Ready = true
 		cp.Status.ID = controlPlaneName
+		cp.Status.Version = cp.Spec.Version
 		g.Expect(cpPh.Patch(ctx, cp)).To(Succeed())
 		g.Expect(err).ShouldNot(HaveOccurred())
 
