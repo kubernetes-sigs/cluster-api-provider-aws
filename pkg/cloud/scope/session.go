@@ -67,10 +67,6 @@ type sessionCacheEntry struct {
 	serviceLimiters throttle.ServiceLimiters
 }
 
-// SessionInterface is the interface for AWSCluster and ManagedCluster to be used to get session using identityRef.
-var SessionInterface interface {
-}
-
 func sessionForRegion(region string, endpoint []ServiceEndpoint) (*session.Session, throttle.ServiceLimiters, error) {
 	if s, ok := sessionCache.Load(region); ok {
 		entry := s.(*sessionCacheEntry)
