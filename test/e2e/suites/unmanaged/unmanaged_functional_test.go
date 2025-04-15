@@ -144,7 +144,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 					Flavor:                   shared.GPUFlavor,
 					Namespace:                namespace.Name,
 					ClusterName:              clusterName,
-					KubernetesVersion:        e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion),
+					KubernetesVersion:        e2eCtx.E2EConfig.MustGetVariable(shared.KubernetesVersion),
 					ControlPlaneMachineCount: ptr.To[int64](1),
 					WorkerMachineCount:       ptr.To[int64](1),
 				},
@@ -195,7 +195,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 					Flavor:                   shared.NestedMultitenancyFlavor,
 					Namespace:                namespace.Name,
 					ClusterName:              clusterName,
-					KubernetesVersion:        e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion),
+					KubernetesVersion:        e2eCtx.E2EConfig.MustGetVariable(shared.KubernetesVersion),
 					ControlPlaneMachineCount: ptr.To[int64](1),
 					WorkerMachineCount:       ptr.To[int64](0),
 				},
@@ -224,7 +224,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			}, 15*time.Minute, 30*time.Second).Should(BeTrue(), "Should've eventually succeeded creating bastion host")
 
 			mdName := clusterName + "-md01"
-			machineTempalte := makeAWSMachineTemplate(namespace.Name, mdName, e2eCtx.E2EConfig.GetVariable(shared.AwsNodeMachineType), nil)
+			machineTempalte := makeAWSMachineTemplate(namespace.Name, mdName, e2eCtx.E2EConfig.MustGetVariable(shared.AwsNodeMachineType), nil)
 			// A test to set IMDSv2 explicitly
 			machineTempalte.Spec.Template.Spec.InstanceMetadataOptions = &infrav1.InstanceMetadataOptions{
 				HTTPEndpoint:            infrav1.InstanceMetadataEndpointStateEnabled,
@@ -277,7 +277,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				cluster1Name := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 				shared.SetEnvVar("USE_CI_ARTIFACTS", "true", false)
 				tagPrefix := "v"
-				searchSemVer, err := semver.Make(strings.TrimPrefix(e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion), tagPrefix))
+				searchSemVer, err := semver.Make(strings.TrimPrefix(e2eCtx.E2EConfig.MustGetVariable(shared.KubernetesVersion), tagPrefix))
 				Expect(err).NotTo(HaveOccurred())
 
 				shared.SetEnvVar(shared.KubernetesVersion, "v"+searchSemVer.String(), false)
@@ -294,7 +294,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				cluster2, md, kcp := createCluster(ctx, configCluster, result)
 
 				ginkgo.By(fmt.Sprintf("Waiting for Kubernetes versions of machines in MachineDeployment %s/%s to be upgraded from %s to %s",
-					md[0].Namespace, md[0].Name, e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion), kubernetesUgradeVersion))
+					md[0].Namespace, md[0].Name, e2eCtx.E2EConfig.MustGetVariable(shared.KubernetesVersion), kubernetesUgradeVersion))
 
 				framework.WaitForMachineDeploymentMachinesToBeUpgraded(ctx, framework.WaitForMachineDeploymentMachinesToBeUpgradedInput{
 					Lister:                   e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
@@ -377,7 +377,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				Creator:                 e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 				MachineDeployment:       makeMachineDeployment(namespace.Name, md1Name, clusterName, nil, 1),
 				BootstrapConfigTemplate: makeJoinBootstrapConfigTemplate(namespace.Name, md1Name),
-				InfraMachineTemplate:    makeAWSMachineTemplate(namespace.Name, md1Name, e2eCtx.E2EConfig.GetVariable(shared.AwsNodeMachineType), ptr.To[string]("invalid-subnet")),
+				InfraMachineTemplate:    makeAWSMachineTemplate(namespace.Name, md1Name, e2eCtx.E2EConfig.MustGetVariable(shared.AwsNodeMachineType), ptr.To[string]("invalid-subnet")),
 			})
 
 			ginkgo.By("Looking for failure event to be reported")
@@ -396,7 +396,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				Creator:                 e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 				MachineDeployment:       makeMachineDeployment(namespace.Name, md2Name, clusterName, invalidAz, 1),
 				BootstrapConfigTemplate: makeJoinBootstrapConfigTemplate(namespace.Name, md2Name),
-				InfraMachineTemplate:    makeAWSMachineTemplate(namespace.Name, md2Name, e2eCtx.E2EConfig.GetVariable(shared.AwsNodeMachineType), nil),
+				InfraMachineTemplate:    makeAWSMachineTemplate(namespace.Name, md2Name, e2eCtx.E2EConfig.MustGetVariable(shared.AwsNodeMachineType), nil),
 			})
 
 			ginkgo.By("Looking for failure event to be reported")
@@ -447,13 +447,13 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				Creator:                 e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 				MachineDeployment:       md1,
 				BootstrapConfigTemplate: makeJoinBootstrapConfigTemplate(namespace.Name, mdName1),
-				InfraMachineTemplate:    makeAWSMachineTemplate(namespace.Name, mdName1, e2eCtx.E2EConfig.GetVariable(shared.AwsNodeMachineType), getSubnetID("cidr-block", "10.0.0.0/24", clusterName)),
+				InfraMachineTemplate:    makeAWSMachineTemplate(namespace.Name, mdName1, e2eCtx.E2EConfig.MustGetVariable(shared.AwsNodeMachineType), getSubnetID("cidr-block", "10.0.0.0/24", clusterName)),
 			})
 			framework.CreateMachineDeployment(ctx, framework.CreateMachineDeploymentInput{
 				Creator:                 e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 				MachineDeployment:       md2,
 				BootstrapConfigTemplate: makeJoinBootstrapConfigTemplate(namespace.Name, mdName2),
-				InfraMachineTemplate:    makeAWSMachineTemplate(namespace.Name, mdName2, e2eCtx.E2EConfig.GetVariable(shared.AwsNodeMachineType), getSubnetID("cidr-block", "10.0.2.0/24", clusterName)),
+				InfraMachineTemplate:    makeAWSMachineTemplate(namespace.Name, mdName2, e2eCtx.E2EConfig.MustGetVariable(shared.AwsNodeMachineType), getSubnetID("cidr-block", "10.0.2.0/24", clusterName)),
 			})
 
 			ginkgo.By("Waiting for new worker nodes to become ready")
@@ -841,8 +841,10 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				})
 
 				framework.WaitForClusterDeleted(ctx, framework.WaitForClusterDeletedInput{
-					Client:  mgmtClusterProxy.GetClient(),
-					Cluster: wlResult.Cluster,
+					ClusterProxy:         mgmtClusterProxy,
+					Cluster:              wlResult.Cluster,
+					ClusterctlConfigPath: e2eCtx.Environment.ClusterctlConfigPath,
+					ArtifactFolder:       e2eCtx.Settings.ArtifactFolder,
 				}, e2eCtx.E2EConfig.GetIntervals("", "wait-delete-cluster")...)
 
 				ginkgo.By("Moving the management cluster back to bootstrap")
@@ -904,7 +906,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 
 			ginkgo.By("Creating a MachineDeployment bootstrapped via Ignition with StorageType UnencryptedUserData")
 			unencryptedMDName := clusterName + "-md-unencrypted-userdata"
-			unencryptedUDMachineTemplate := makeAWSMachineTemplate(namespace.Name, unencryptedMDName, e2eCtx.E2EConfig.GetVariable(shared.AwsNodeMachineType), nil)
+			unencryptedUDMachineTemplate := makeAWSMachineTemplate(namespace.Name, unencryptedMDName, e2eCtx.E2EConfig.MustGetVariable(shared.AwsNodeMachineType), nil)
 			unencryptedUDMachineTemplate.Spec.Template.Spec.ImageLookupBaseOS = "flatcar-stable"
 			unencryptedUDMachineTemplate.Spec.Template.Spec.Ignition = &infrav1.Ignition{
 				StorageType: infrav1.IgnitionStorageTypeOptionUnencryptedUserData,

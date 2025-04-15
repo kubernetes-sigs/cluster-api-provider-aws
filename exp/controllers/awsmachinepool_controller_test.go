@@ -986,7 +986,8 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				ms.AWSMachinePool.Spec.Ignition = &infrav1.Ignition{
 					StorageType: infrav1.IgnitionStorageTypeOptionClusterObjectStore,
 				}
-				ms.AWSMachinePool.Default() // simulate webhook that sets default ignition version
+				// simulate webhook that sets default ignition version
+				g.Expect((&expinfrav1.AWSMachinePoolWebhook{}).Default(context.TODO(), ms.AWSMachinePool)).To(BeNil())
 
 				asgSvc.EXPECT().GetASGByName(gomock.Any()).DoAndReturn(func(scope *scope.MachinePoolScope) (*expinfrav1.AutoScalingGroup, error) {
 					g.Expect(scope.Name()).To(Equal("test"))
