@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta2
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"strings"
@@ -42,21 +43,31 @@ const (
 var _ = ctrl.Log.WithName("awscluster-resource")
 
 func (r *AWSCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	w := new(awsClusterWebhook)
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
+		WithValidator(w).
+		WithDefaulter(w).
 		Complete()
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-awscluster,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsclusters,versions=v1beta2,name=validation.awscluster.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta2-awscluster,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsclusters,versions=v1beta2,name=default.awscluster.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
+type awsClusterWebhook struct{}
+
 var (
-	_ webhook.Validator = &AWSCluster{}
-	_ webhook.Defaulter = &AWSCluster{}
+	_ webhook.CustomValidator = &awsClusterWebhook{}
+	_ webhook.CustomDefaulter = &awsClusterWebhook{}
 )
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (r *AWSCluster) ValidateCreate() (admission.Warnings, error) {
+func (*awsClusterWebhook) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+	r, ok := obj.(*AWSCluster)
+	if !ok {
+		return nil, fmt.Errorf("expected an AWSCluster object but got %T", r)
+	}
+
 	var allErrs field.ErrorList
 	var allWarnings admission.Warnings
 
@@ -78,20 +89,25 @@ func (r *AWSCluster) ValidateCreate() (admission.Warnings, error) {
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (r *AWSCluster) ValidateDelete() (admission.Warnings, error) {
+func (*awsClusterWebhook) ValidateDelete(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (r *AWSCluster) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+func (*awsClusterWebhook) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+	r, ok := newObj.(*AWSCluster)
+	if !ok {
+		return nil, fmt.Errorf("expected an AWSCluster object but got %T", r)
+	}
+
 	var allErrs field.ErrorList
 	var allWarnings admission.Warnings
 
 	allErrs = append(allErrs, r.validateGCTasksAnnotation()...)
 
-	oldC, ok := old.(*AWSCluster)
+	oldC, ok := oldObj.(*AWSCluster)
 	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected an AWSCluster but got a %T", old))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected an AWSCluster but got a %T", oldObj))
 	}
 
 	if r.Spec.Region != oldC.Spec.Region {
@@ -225,6 +241,17 @@ func (r *AWSCluster) validateControlPlaneLoadBalancerUpdate(oldlb, newlb *AWSLoa
 	}
 
 	return allErrs
+}
+
+// Default satisfies the defaulting webhook interface.
+func (*awsClusterWebhook) Default(_ context.Context, obj runtime.Object) error {
+	r, ok := obj.(*AWSCluster)
+	if !ok {
+		return fmt.Errorf("expected an AWSCluster object but got %T", r)
+	}
+
+	r.Default()
+	return nil
 }
 
 // Default satisfies the defaulting webhook interface.

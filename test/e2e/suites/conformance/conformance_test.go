@@ -66,7 +66,7 @@ var _ = ginkgo.Describe("[unmanaged] [conformance] tests", func() {
 		ginkgo.AddReportEntry(experiment.Name, experiment)
 		experiment.Sample(func(idx int) {
 			shared.SetEnvVar("USE_CI_ARTIFACTS", "true", false)
-			kubernetesVersion := e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion)
+			kubernetesVersion := e2eCtx.E2EConfig.MustGetVariable(shared.KubernetesVersion)
 			flavor := clusterctl.DefaultFlavor
 			if e2eCtx.Settings.UseCIArtifacts {
 				flavor = "conformance-ci-artifacts"
@@ -74,9 +74,9 @@ var _ = ginkgo.Describe("[unmanaged] [conformance] tests", func() {
 				kubernetesVersion, err = kubernetesversions.LatestCIRelease()
 				Expect(err).NotTo(HaveOccurred())
 			}
-			workerMachineCount, err := strconv.ParseInt(e2eCtx.E2EConfig.GetVariable("CONFORMANCE_WORKER_MACHINE_COUNT"), 10, 64)
+			workerMachineCount, err := strconv.ParseInt(e2eCtx.E2EConfig.MustGetVariable("CONFORMANCE_WORKER_MACHINE_COUNT"), 10, 64)
 			Expect(err).NotTo(HaveOccurred())
-			controlPlaneMachineCount, err := strconv.ParseInt(e2eCtx.E2EConfig.GetVariable("CONFORMANCE_CONTROL_PLANE_MACHINE_COUNT"), 10, 64)
+			controlPlaneMachineCount, err := strconv.ParseInt(e2eCtx.E2EConfig.MustGetVariable("CONFORMANCE_CONTROL_PLANE_MACHINE_COUNT"), 10, 64)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Starting with Kubernetes v1.25, the kubetest config file needs to be compatible with Ginkgo V2.
