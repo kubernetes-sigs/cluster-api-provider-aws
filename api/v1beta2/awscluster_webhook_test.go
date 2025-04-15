@@ -32,7 +32,7 @@ import (
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util/defaulting"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/util/defaulting"
 )
 
 func TestAWSClusterDefault(t *testing.T) {

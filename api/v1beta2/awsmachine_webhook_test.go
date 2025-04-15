@@ -28,7 +28,7 @@ import (
 	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
-	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
+	utildefaulting "sigs.k8s.io/cluster-api-provider-aws/v2/util/defaulting"
 )
 
 func TestMachineDefault(t *testing.T) {

@@ -26,7 +26,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/eks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
+	utildefaulting "sigs.k8s.io/cluster-api-provider-aws/v2/util/defaulting"
 )
 
 func TestAWSFargateProfileDefault(t *testing.T) {
