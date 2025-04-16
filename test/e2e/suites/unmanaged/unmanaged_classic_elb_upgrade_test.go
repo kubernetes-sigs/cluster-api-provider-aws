@@ -69,9 +69,9 @@ var _ = ginkgo.Context("[unmanaged] [upgrade]", func() {
 		ctx = context.TODO()
 		managementClusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 
-		kubernetesVersionFrom = e2eCtx.E2EConfig.GetVariable(shared.ClassicElbTestKubernetesFrom)
+		kubernetesVersionFrom = e2eCtx.E2EConfig.MustGetVariable(shared.ClassicElbTestKubernetesFrom)
 		Expect(kubernetesVersionFrom).ToNot(BeEmpty(), "kubernetesVersionFrom is not set")
-		kubernetesVersionTo = e2eCtx.E2EConfig.GetVariable(shared.ClassicElbTestKubernetesTo)
+		kubernetesVersionTo = e2eCtx.E2EConfig.MustGetVariable(shared.ClassicElbTestKubernetesTo)
 		Expect(kubernetesVersionTo).ToNot(BeEmpty(), "kubernetesVersionTo is not set")
 	})
 
@@ -116,7 +116,7 @@ var _ = ginkgo.Context("[unmanaged] [upgrade]", func() {
 		ginkgo.It("Should create a management cluster and upgrade the workload cluster to v1.30+", func() {
 			managementClusterName = fmt.Sprintf("%s-management-%s", specName, util.RandomString(6))
 			managementClusterLogFolder := filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", managementClusterName)
-			managemntClusterVersion := e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersionManagement)
+			managemntClusterVersion := e2eCtx.E2EConfig.MustGetVariable(shared.KubernetesVersionManagement)
 
 			ginkgo.By("Creating a kind cluster to be used as a new management cluster")
 

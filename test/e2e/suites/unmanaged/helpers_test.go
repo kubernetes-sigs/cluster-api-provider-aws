@@ -97,7 +97,7 @@ func defaultConfigCluster(clusterName, namespace string) clusterctl.ConfigCluste
 		Flavor:                   clusterctl.DefaultFlavor,
 		Namespace:                namespace,
 		ClusterName:              clusterName,
-		KubernetesVersion:        e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion),
+		KubernetesVersion:        e2eCtx.E2EConfig.MustGetVariable(shared.KubernetesVersion),
 		ControlPlaneMachineCount: ptr.To[int64](1),
 		WorkerMachineCount:       ptr.To[int64](0),
 	}
@@ -303,7 +303,7 @@ func makeMachineDeployment(namespace, mdName, clusterName string, az *string, re
 						Name:       mdName,
 						Namespace:  namespace,
 					},
-					Version: ptr.To[string](e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion)),
+					Version: ptr.To[string](e2eCtx.E2EConfig.MustGetVariable(shared.KubernetesVersion)),
 				},
 			},
 		},
