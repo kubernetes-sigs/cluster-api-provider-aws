@@ -135,8 +135,8 @@ func getManualConversionFunctions(context *generator.Context, pkg *types.Package
 	}
 	klog.V(3).Infof("Scanning for conversion functions in %v", pkg.Path)
 
-	scopeName := types.Ref(conversionPackagePath, "Scope").Name
-	errorName := types.Ref("", "error").Name
+	scopeName := types.Ref(conversionPackagePath, "Scope").Name.String()
+	errorName := types.Ref("", "error").Name.String()
 	buffer := &bytes.Buffer{}
 	sw := generator.NewSnippetWriter(buffer, context, "$", "$")
 
@@ -168,17 +168,17 @@ func getManualConversionFunctions(context *generator.Context, pkg *types.Package
 		}
 		inType := signature.Parameters[0]
 		outType := signature.Parameters[1]
-		if inType.Kind != types.Pointer || outType.Kind != types.Pointer {
+		if inType.Type.Kind != types.Pointer || outType.Type.Kind != types.Pointer {
 			klog.V(6).Infof("%s has wrong parameter types", f.Name)
 			continue
 		}
 		// Now check if the name satisfies the convention.
 		// TODO: This should call the Namer directly.
-		args := argsFromType(inType.Elem, outType.Elem)
+		args := argsFromType(inType.Type.Elem, outType.Type.Elem)
 		sw.Do("Convert_$.inType|public$_To_$.outType|public$", args)
 		if f.Name.Name == buffer.String() {
 			klog.V(2).Infof("Found conversion function %s", f.Name)
-			key := conversionPair{inType.Elem, outType.Elem}
+			key := conversionPair{inType.Type.Elem, outType.Type.Elem}
 			// We might scan the same package twice, and that's OK.
 			// @randomvariable: Temporarily disable duplicate static conversion detection.
 			// @nrb: This is done because both the stable and experimental APIs have types of the same version (v1beta2) & type converting to v1beta1 equivalents.
