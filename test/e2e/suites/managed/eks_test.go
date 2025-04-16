@@ -93,7 +93,7 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 				Namespace:             namespace,
 				ClusterName:           clusterName,
 				AddonName:             cniAddonName,
-				AddonVersion:          e2eCtx.E2EConfig.GetVariable(shared.CNIAddonVersion),
+				AddonVersion:          e2eCtx.E2EConfig.MustGetVariable(shared.CNIAddonVersion),
 			}
 		})
 

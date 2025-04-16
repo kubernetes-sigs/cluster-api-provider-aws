@@ -76,7 +76,7 @@ var _ = ginkgo.Context("[unmanaged] [gc]", func() {
 		Expect(cluster).NotTo(BeNil(), "couldn't find cluster")
 
 		workloadClusterProxy := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name)
-		workloadYamlPath := e2eCtx.E2EConfig.GetVariable(shared.GcWorkloadPath)
+		workloadYamlPath := e2eCtx.E2EConfig.MustGetVariable(shared.GcWorkloadPath)
 		ginkgo.By(fmt.Sprintf("Installing sample workload with load balancer services: %s", workloadYamlPath))
 		workloadYaml, err := os.ReadFile(workloadYamlPath) //nolint:gosec
 		Expect(err).ShouldNot(HaveOccurred())
@@ -180,7 +180,7 @@ var _ = ginkgo.Context("[unmanaged] [gc]", func() {
 		Expect(cluster).NotTo(BeNil(), "couldn't find cluster")
 
 		workloadClusterProxy := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name)
-		workloadYamlPath := e2eCtx.E2EConfig.GetVariable(shared.GcWorkloadPath)
+		workloadYamlPath := e2eCtx.E2EConfig.MustGetVariable(shared.GcWorkloadPath)
 		ginkgo.By(fmt.Sprintf("Installing sample workload with load balancer services: %s", workloadYamlPath))
 		workloadYaml, err := os.ReadFile(workloadYamlPath) //nolint:gosec
 		Expect(err).ShouldNot(HaveOccurred())
