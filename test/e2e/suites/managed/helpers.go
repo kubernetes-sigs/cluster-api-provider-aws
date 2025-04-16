@@ -50,6 +50,7 @@ const (
 	EKSMachinePoolOnlyFlavor                          = "eks-machinepool-only"
 	EKSIPv6ClusterFlavor                              = "eks-ipv6-cluster"
 	EKSControlPlaneOnlyLegacyFlavor                   = "eks-control-plane-only-legacy"
+	EKSClusterClassFlavor                             = "eks-clusterclass"
 )
 
 const (
@@ -59,7 +60,10 @@ const (
 
 type DefaultConfigClusterFn func(clusterName, namespace string) clusterctl.ConfigClusterInput
 
-func getEKSClusterName(namespace, clusterName string) string {
+func getEKSClusterName(namespace, clusterName string, isClusterClass bool) string {
+	if isClusterClass {
+		return fmt.Sprintf("%s_%s", namespace, clusterName)
+	}
 	return fmt.Sprintf("%s_%s-control-plane", namespace, clusterName)
 }
 

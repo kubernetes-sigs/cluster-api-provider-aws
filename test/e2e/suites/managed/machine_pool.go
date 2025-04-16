@@ -49,6 +49,7 @@ type MachinePoolSpecInput struct {
 	ManagedMachinePool    bool
 	Flavor                string
 	UsesLaunchTemplate    bool
+	ClusterClass          bool
 }
 
 // MachinePoolSpec implements a test for creating a machine pool.
@@ -80,7 +81,7 @@ func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolSpecInpu
 /etc/eks/bootstrap.sh %s \
   --container-runtime containerd
 `
-		eksClusterName := getEKSClusterName(input.Namespace.Name, input.ClusterName)
+		eksClusterName := getEKSClusterName(input.Namespace.Name, input.ClusterName, input.ClusterClass)
 		userData := fmt.Sprintf(userDataTemplate, eksClusterName)
 		userDataEncoded := base64.StdEncoding.EncodeToString([]byte(userData))
 		workloadClusterTemplate = []byte(strings.ReplaceAll(string(workloadClusterTemplate), "USER_DATA", userDataEncoded))
@@ -99,7 +100,7 @@ func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolSpecInpu
 	Expect(len(mp)).To(Equal(1))
 
 	ginkgo.By("Check the status of the node group")
-	eksClusterName := getEKSClusterName(input.Namespace.Name, input.ClusterName)
+	eksClusterName := getEKSClusterName(input.Namespace.Name, input.ClusterName, input.ClusterClass)
 	if input.ManagedMachinePool {
 		var nodeGroupName string
 		if input.UsesLaunchTemplate {
