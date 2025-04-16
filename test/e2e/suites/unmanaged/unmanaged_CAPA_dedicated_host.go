@@ -2,7 +2,7 @@
 // +build e2e
 
 /*
-Copyright 2020 The Kubernetes Authors.
+Copyright 2025 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -31,6 +31,51 @@ import (
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 )
 
+// setupNamespace initializes the namespace for the test.
+func setupNamespace(ctx context.Context, e2eCtx *shared.E2EContext) *corev1.Namespace {
+	Expect(e2eCtx.Environment.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. BootstrapClusterProxy can't be nil")
+	return shared.SetupSpecNamespace(ctx, "capa-dedicate-host", e2eCtx)
+}
+
+// setupRequiredResources allocates the required resources for the test.
+func setupRequiredResources(e2eCtx *shared.E2EContext) *shared.TestResource {
+	requiredResources := &shared.TestResource{
+		EC2Normal:        2 * e2eCtx.Settings.InstanceVCPU,
+		IGW:              1,
+		NGW:              1,
+		VPC:              1,
+		ClassicLB:        1,  
+		EIP:              3,
+		EventBridgeRules: 50,
+	}
+	requiredResources.WriteRequestedResources(e2eCtx, "capa-dedicated-hosts-test")
+	Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+	return requiredResources
+}
+
+// releaseResources releases the resources allocated for the test.
+func releaseResources(requiredResources *shared.TestResource, e2eCtx *shared.E2EContext) {
+	shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+}
+
+// runQuickStartSpec executes the QuickStartSpec test.
+func runQuickStartSpec(e2eCtx *shared.E2EContext) {
+	capi_e2e.QuickStartSpec(context.TODO(), func() capi_e2e.QuickStartSpecInput {
+		return capi_e2e.QuickStartSpecInput{
+			E2EConfig:             e2eCtx.E2EConfig,
+			ClusterctlConfigPath:  e2eCtx.Environment.ClusterctlConfigPath,
+			BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
+			ArtifactFolder:        e2eCtx.Settings.ArtifactFolder,
+			SkipCleanup:           e2eCtx.Settings.SkipCleanup,
+		}
+	})
+}
+
+// cleanupNamespace cleans up the namespace and dumps resources.
+func cleanupNamespace(ctx context.Context, namespace *corev1.Namespace, e2eCtx *shared.E2EContext) {
+	shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
+}
+
 var _ = ginkgo.Context("[unmanaged] [dedicated-host]", func() {
 	var (
 		namespace         *corev1.Namespace
@@ -39,34 +84,25 @@ var _ = ginkgo.Context("[unmanaged] [dedicated-host]", func() {
 	)
 
 	ginkgo.BeforeEach(func() {
-		Expect(e2eCtx.Environment.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. BootstrapClusterProxy can't be nil")
 		ctx = context.TODO()
-		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
-		namespace = shared.SetupSpecNamespace(ctx, "capa-dedicate-host", e2eCtx)
+		namespace = setupNamespace(ctx, e2eCtx)
 	})
 
 	ginkgo.Describe("Running the dedicated-hosts spec", func() {
 		ginkgo.BeforeEach(func() {
-			// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
-			requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3, EventBridgeRules: 50}
-			requiredResources.WriteRequestedResources(e2eCtx, "capa-dedicated-hosts-test")
-			Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+			requiredResources = setupRequiredResources(e2eCtx)
 		})
-		capi_e2e.QuickStartSpec(context.TODO(), func() capi_e2e.QuickStartSpecInput {
-			return capi_e2e.QuickStartSpecInput{
-				E2EConfig:             e2eCtx.E2EConfig,
-				ClusterctlConfigPath:  e2eCtx.Environment.ClusterctlConfigPath,
-				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
-				ArtifactFolder:        e2eCtx.Settings.ArtifactFolder,
-				SkipCleanup:           e2eCtx.Settings.SkipCleanup,
-			}
+
+		ginkgo.It("should run the QuickStartSpec", func() {
+			runQuickStartSpec(e2eCtx)
 		})
+
 		ginkgo.AfterEach(func() {
-			shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+			releaseResources(requiredResources, e2eCtx)
 		})
 	})
+
 	ginkgo.AfterEach(func() {
-		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
-		shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
+		cleanupNamespace(ctx, namespace, e2eCtx)
 	})
 })
