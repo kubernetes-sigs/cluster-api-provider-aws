@@ -139,6 +139,10 @@ func (s *Service) reconcileCluster(ctx context.Context) error {
 		return errors.Wrap(err, "failed reconciling OIDC provider for cluster")
 	}
 
+	if err := s.reconcileClusterUpgradePolicy(cluster); err != nil {
+		return errors.Wrap(err, "failed reconciling cluster upgrade policy")
+	}
+
 	return nil
 }
 
@@ -463,6 +467,15 @@ func (s *Service) createCluster(eksClusterName string) (*eks.Cluster, error) {
 		v := versionToEKS(specVersion)
 		eksVersion = &v
 	}
+
+	var upgradePolicy *eks.UpgradePolicyRequest
+
+	if s.scope.ControlPlane.Spec.UpgradePolicy != nil {
+		upgradePolicy = &eks.UpgradePolicyRequest{
+			SupportType: s.scope.ControlPlane.Spec.UpgradePolicy,
+		}
+	}
+
 	input := &eks.CreateClusterInput{
 		Name:                    aws.String(eksClusterName),
 		Version:                 eksVersion,
@@ -472,6 +485,7 @@ func (s *Service) createCluster(eksClusterName string) (*eks.Cluster, error) {
 		RoleArn:                 role.Arn,
 		Tags:                    tags,
 		KubernetesNetworkConfig: netConfig,
+		UpgradePolicy:           upgradePolicy,
 	}
 	// Only set BootstrapSelfManagedAddons if it's explicitly set to false in the spec
 	// Default is true, so we don't need to set it in that case
@@ -722,6 +736,63 @@ func (s *Service) reconcileClusterVersion(cluster *eks.Cluster) error {
 			return errors.Wrapf(err, "failed to update EKS cluster")
 		}
 	}
+	return nil
+}
+
+func (s *Service) reconcileClusterUpgradePolicy(cluster *eks.Cluster) error {
+	s.Info("reconciling upgrade policy")
+
+	clusterUpgradePolicy := cluster.UpgradePolicy.SupportType
+
+	if s.scope.ControlPlane.Spec.UpgradePolicy == nil {
+		s.Debug("upgrade policy not given, no action")
+		return nil
+	}
+
+	if clusterUpgradePolicy == nil {
+		s.Debug("cannot get cluster upgrade policy, no action")
+		return nil
+	}
+
+	if *clusterUpgradePolicy == *s.scope.ControlPlane.Spec.UpgradePolicy {
+		s.Debug("upgrade policy unchanged, no action")
+		return nil
+	}
+
+	input := &eks.UpdateClusterConfigInput{
+		Name: aws.String(s.scope.KubernetesClusterName()),
+		UpgradePolicy: &eks.UpgradePolicyRequest{
+			SupportType: s.scope.ControlPlane.Spec.UpgradePolicy,
+		},
+	}
+
+	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+		if _, err := s.EKSClient.UpdateClusterConfig(input); err != nil {
+			if aerr, ok := err.(awserr.Error); ok {
+				return false, aerr
+			}
+			return false, err
+		}
+
+		// Wait until status transitions to UPDATING because there's a short
+		// window after UpdateClusterConfig returns where the cluster
+		// status is ACTIVE and the update would be tried again
+		if err := s.EKSClient.WaitUntilClusterUpdating(
+			&eks.DescribeClusterInput{Name: aws.String(s.scope.KubernetesClusterName())},
+			request.WithWaiterLogger(&awslog{s.GetLogger()}),
+		); err != nil {
+			return false, err
+		}
+
+		conditions.MarkTrue(s.scope.ControlPlane, ekscontrolplanev1.EKSControlPlaneUpdatingCondition)
+		record.Eventf(s.scope.ControlPlane, "InitiatedUpdateEKSControlPlane", "Initiated update of EKS control plane %s to upgrade policy %s", s.scope.KubernetesClusterName(), s.scope.ControlPlane.Spec.UpgradePolicy)
+
+		return true, nil
+	}); err != nil {
+		record.Warnf(s.scope.ControlPlane, "FailedUpdateEKSControlPlane", "failed to update the EKS control plane: %v", err)
+		return errors.Wrapf(err, "failed to update EKS cluster")
+	}
+
 	return nil
 }
 
