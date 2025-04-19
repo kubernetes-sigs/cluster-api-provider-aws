@@ -40,6 +40,22 @@ const (
 	Al2023x86_64 ManagedMachineAMIType = "AL2023_x86_64_STANDARD"
 	// Al2023Arm64 is the AL2023 Arm AMI type.
 	Al2023Arm64 ManagedMachineAMIType = "AL2023_ARM_64_STANDARD"
+	// Al2023 x86 Neuron GPU type
+	Al2023x86_64Neuron ManagedMachineAMIType = "AL2023_x86_64_NEURON"
+	// Al2023 x86 Nvidia GPU type
+	Al2023x86_64Nvidia ManagedMachineAMIType = "AL2023_x86_64_NVIDIA"
+	// BottleRocket ARM64 AMI type
+	BottleRocketArm64 ManagedMachineAMIType = "BOTTLEROCKET_ARM_64"
+	// BottleRocket x86 AMI type
+	BottleRocketx86_6 ManagedMachineAMIType = "BOTTLEROCKET_x86_64"
+	// BottleRocket Arm64 Fips AMI type
+	BottleRocketArm64Fips ManagedMachineAMIType = "BOTTLEROCKET_ARM_64_FIPS"
+	// BottleRocket x86 Fips AMI type
+	BottleRocketx86_64Fips ManagedMachineAMIType = "BOTTLEROCKET_x86_64_FIPS"
+	// BottleRocket Arm Nvidia AMI type
+	BottleRocketArm64Nvidia ManagedMachineAMIType = "BOTTLEROCKET_ARM_64_NVIDIA"
+	// BottleRocket x86 Nvidia AMI type
+	BottleRocketx86_64Nvidia ManagedMachineAMIType = "BOTTLEROCKET_x86_64_NVIDIA"
 )
 
 // ManagedMachinePoolCapacityType specifies the capacity type to be used for the managed MachinePool.
@@ -129,7 +145,7 @@ type AWSManagedMachinePoolSpec struct {
 	AMIVersion *string `json:"amiVersion,omitempty"`
 
 	// AMIType defines the AMI type
-	// +kubebuilder:validation:Enum:=AL2_x86_64;AL2_x86_64_GPU;AL2_ARM_64;AL2023_x86_64_STANDARD;AL2023_ARM_64_STANDARD;CUSTOM
+	// +kubebuilder:validation:Enum:=AL2_x86_64;AL2_x86_64_GPU;AL2_ARM_64;BOTTLEROCKET_ARM_64;BOTTLEROCKET_x86_64;BOTTLEROCKET_ARM_64_FIPS;BOTTLEROCKET_x86_64_FIPS;BOTTLEROCKET_ARM_64_NVIDIA;BOTTLEROCKET_x86_64_NVIDIA;AL2023_x86_64_STANDARD;AL2023_ARM_64_STANDARD;AL2023_x86_64_NEURON;AL2023_x86_64_NVIDIA
 	// +kubebuilder:default:=AL2_x86_64
 	// +optional
 	AMIType *ManagedMachineAMIType `json:"amiType,omitempty"`
