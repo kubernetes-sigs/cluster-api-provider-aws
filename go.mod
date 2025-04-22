@@ -29,9 +29,10 @@ require (
 	github.com/google/gofuzz v1.2.0
 	github.com/onsi/ginkgo/v2 v2.23.3
 	github.com/onsi/gomega v1.36.3
-	github.com/openshift-online/ocm-common v0.0.12
-	github.com/openshift-online/ocm-sdk-go v0.1.447
-	github.com/openshift/rosa v1.2.48-rc1
+	github.com/openshift-online/ocm-api-model/clientapi v0.0.0-20250619114224-37dc3401307a
+	github.com/openshift-online/ocm-common v0.0.21
+	github.com/openshift-online/ocm-sdk-go v0.1.469
+	github.com/openshift/rosa v1.2.52
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.19.1
 	github.com/sergi/go-diff v1.3.1
@@ -176,6 +177,7 @@ require (
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0-rc5 // indirect
+	github.com/openshift-online/ocm-api-model/model v0.0.0-20250619114224-37dc3401307a // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect

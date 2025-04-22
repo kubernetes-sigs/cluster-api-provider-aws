@@ -30,10 +30,11 @@ type OCMClient interface {
 	GetCluster(clusterKey string, creator *aws.Creator) (*v1.Cluster, error)
 	GetControlPlaneUpgradePolicies(clusterID string) (controlPlaneUpgradePolicies []*v1.ControlPlaneUpgradePolicy, err error)
 	GetHTPasswdUserList(clusterID string, htpasswdIDPId string) (*v1.HTPasswdUserList, error)
+	GetHypershiftNodePoolUpgrade(clusterID string, clusterKey string, nodePoolID string) (*v1.NodePool, *v1.NodePoolUpgradePolicy, error)
 	GetIdentityProviders(clusterID string) ([]*v1.IdentityProvider, error)
 	GetMissingGateAgreementsHypershift(clusterID string, upgradePolicy *v1.ControlPlaneUpgradePolicy) ([]*v1.VersionGate, error)
 	GetNodePool(clusterID string, nodePoolID string) (*v1.NodePool, bool, error)
-	GetHypershiftNodePoolUpgrade(clusterID string, clusterKey string, nodePoolID string) (*v1.NodePool, *v1.NodePoolUpgradePolicy, error)
+	GetPolicies(policyType string) (map[string]*v1.AWSSTSPolicy, error)
 	GetUser(clusterID string, group string, username string) (*v1.User, error)
 	ScheduleHypershiftControlPlaneUpgrade(clusterID string, upgradePolicy *v1.ControlPlaneUpgradePolicy) (*v1.ControlPlaneUpgradePolicy, error)
 	ScheduleNodePoolUpgrade(clusterID string, nodePoolID string, upgradePolicy *v1.NodePoolUpgradePolicy) (*v1.NodePoolUpgradePolicy, error)
@@ -101,6 +102,10 @@ func (c *ocmclient) GetHypershiftNodePoolUpgrade(clusterID string, clusterKey st
 
 func (c *ocmclient) GetCluster(clusterKey string, creator *aws.Creator) (*v1.Cluster, error) {
 	return c.ocmClient.GetCluster(clusterKey, creator)
+}
+
+func (c *ocmclient) GetPolicies(policyType string) (map[string]*v1.AWSSTSPolicy, error) {
+	return c.ocmClient.GetPolicies(policyType)
 }
 
 func (c *ocmclient) GetUser(clusterID string, group string, username string) (*v1.User, error) {

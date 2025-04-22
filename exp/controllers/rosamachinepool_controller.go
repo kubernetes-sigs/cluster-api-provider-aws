@@ -542,7 +542,7 @@ func nodePoolToRosaMachinePoolSpec(nodePool *cmv1.NodePool) expinfrav1.RosaMachi
 	}
 
 	if nodePool.Autoscaling() != nil {
-		spec.Autoscaling = &expinfrav1.RosaMachinePoolAutoScaling{
+		spec.Autoscaling = &rosacontrolplanev1.AutoScaling{
 			MinReplicas: nodePool.Autoscaling().MinReplica(),
 			MaxReplicas: nodePool.Autoscaling().MaxReplica(),
 		}
