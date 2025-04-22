@@ -230,6 +230,28 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta2-rosaroleconfig
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: default.rosaroleconfig.infrastructure.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1beta2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - rosaroleconfigs
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /mutate-bootstrap-cluster-x-k8s-io-v1beta2-eksconfig
   failurePolicy: Fail
   matchPolicy: Equivalent
@@ -580,6 +602,28 @@ webhooks:
     - UPDATE
     resources:
     - rosamachinepools
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-infrastructure-cluster-x-k8s-io-v1beta2-rosaroleconfig
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.rosaroleconfig.infrastructure.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1beta2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - rosaroleconfigs
   sideEffects: None
 - admissionReviewVersions:
   - v1
