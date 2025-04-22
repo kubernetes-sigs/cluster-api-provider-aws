@@ -15,6 +15,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
+// log is for logging in this package.
+var rosacpLog = ctrl.Log.WithName("rosacontrolplane-resource")
+
 // SetupWebhookWithManager will setup the webhooks for the ROSAControlPlane.
 func (r *ROSAControlPlane) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	w := new(rosaControlPlaneWebhook)
@@ -55,6 +58,10 @@ func (*rosaControlPlaneWebhook) ValidateCreate(_ context.Context, obj runtime.Ob
 	}
 
 	if err := r.validateClusterRegistryConfig(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+
+	if err := r.validateRosaRoleConfig(); err != nil {
 		allErrs = append(allErrs, err)
 	}
 
@@ -176,6 +183,58 @@ func (r *ROSAControlPlane) validateExternalAuthProviders() *field.Error {
 			"can only be set if spec.EnableExternalAuthProviders is set to 'True'")
 	}
 
+	return nil
+}
+
+func (r *ROSAControlPlane) validateRosaRoleConfig() *field.Error {
+	hasAnyDirectRoleFields := r.Spec.OIDCID != "" || r.Spec.InstallerRoleARN != "" || r.Spec.SupportRoleARN != "" || r.Spec.WorkerRoleARN != "" ||
+		r.Spec.RolesRef.IngressARN != "" || r.Spec.RolesRef.ImageRegistryARN != "" || r.Spec.RolesRef.StorageARN != "" ||
+		r.Spec.RolesRef.NetworkARN != "" || r.Spec.RolesRef.KubeCloudControllerARN != "" || r.Spec.RolesRef.NodePoolManagementARN != "" ||
+		r.Spec.RolesRef.ControlPlaneOperatorARN != "" || r.Spec.RolesRef.KMSProviderARN != ""
+
+	if r.Spec.RosaRoleConfigRef != nil {
+		if hasAnyDirectRoleFields {
+			rosacpLog.Info("rosaRoleConfigRef and direct role fields (oidcID, installerRoleARN, supportRoleARN, workerRoleARN, rolesRef) are mutually exclusive")
+		}
+		return nil
+	}
+
+	if r.Spec.OIDCID == "" {
+		return field.Invalid(field.NewPath("spec.oidcID"), r.Spec.OIDCID, "must be specified")
+	}
+	if r.Spec.InstallerRoleARN == "" {
+		return field.Invalid(field.NewPath("spec.installerRoleARN"), r.Spec.InstallerRoleARN, "must be specified")
+	}
+	if r.Spec.SupportRoleARN == "" {
+		return field.Invalid(field.NewPath("spec.supportRoleARN"), r.Spec.SupportRoleARN, "must be specified")
+	}
+	if r.Spec.WorkerRoleARN == "" {
+		return field.Invalid(field.NewPath("spec.workerRoleARN"), r.Spec.WorkerRoleARN, "must be specified")
+	}
+	if r.Spec.RolesRef.IngressARN == "" {
+		return field.Invalid(field.NewPath("spec.rolesRef.ingressARN"), r.Spec.RolesRef.IngressARN, "must be specified")
+	}
+	if r.Spec.RolesRef.ImageRegistryARN == "" {
+		return field.Invalid(field.NewPath("spec.rolesRef.imageRegistryARN"), r.Spec.RolesRef.ImageRegistryARN, "must be specified")
+	}
+	if r.Spec.RolesRef.StorageARN == "" {
+		return field.Invalid(field.NewPath("spec.rolesRef.storageARN"), r.Spec.RolesRef.StorageARN, "must be specified")
+	}
+	if r.Spec.RolesRef.NetworkARN == "" {
+		return field.Invalid(field.NewPath("spec.rolesRef.networkARN"), r.Spec.RolesRef.NetworkARN, "must be specified")
+	}
+	if r.Spec.RolesRef.KubeCloudControllerARN == "" {
+		return field.Invalid(field.NewPath("spec.rolesRef.kubeCloudControllerARN"), r.Spec.RolesRef.KubeCloudControllerARN, "must be specified")
+	}
+	if r.Spec.RolesRef.NodePoolManagementARN == "" {
+		return field.Invalid(field.NewPath("spec.rolesRef.nodePoolManagementARN"), r.Spec.RolesRef.NodePoolManagementARN, "must be specified")
+	}
+	if r.Spec.RolesRef.ControlPlaneOperatorARN == "" {
+		return field.Invalid(field.NewPath("spec.rolesRef.controlPlaneOperatorARN"), r.Spec.RolesRef.ControlPlaneOperatorARN, "must be specified")
+	}
+	if r.Spec.RolesRef.KMSProviderARN == "" {
+		return field.Invalid(field.NewPath("spec.rolesRef.kmsProviderARN"), r.Spec.RolesRef.KMSProviderARN, "must be specified")
+	}
 	return nil
 }
 
