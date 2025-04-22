@@ -3,6 +3,7 @@ package rosa
 
 import (
 	"context"
+	"fmt"
 
 	v1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/openshift/rosa/pkg/aws"
@@ -30,10 +31,11 @@ type OCMClient interface {
 	GetCluster(clusterKey string, creator *aws.Creator) (*v1.Cluster, error)
 	GetControlPlaneUpgradePolicies(clusterID string) (controlPlaneUpgradePolicies []*v1.ControlPlaneUpgradePolicy, err error)
 	GetHTPasswdUserList(clusterID string, htpasswdIDPId string) (*v1.HTPasswdUserList, error)
+	GetHypershiftNodePoolUpgrade(clusterID string, clusterKey string, nodePoolID string) (*v1.NodePool, *v1.NodePoolUpgradePolicy, error)
 	GetIdentityProviders(clusterID string) ([]*v1.IdentityProvider, error)
 	GetMissingGateAgreementsHypershift(clusterID string, upgradePolicy *v1.ControlPlaneUpgradePolicy) ([]*v1.VersionGate, error)
 	GetNodePool(clusterID string, nodePoolID string) (*v1.NodePool, bool, error)
-	GetHypershiftNodePoolUpgrade(clusterID string, clusterKey string, nodePoolID string) (*v1.NodePool, *v1.NodePoolUpgradePolicy, error)
+	GetPolicies(policyType string) (map[string]*v1.AWSSTSPolicy, error)
 	GetUser(clusterID string, group string, username string) (*v1.User, error)
 	ScheduleHypershiftControlPlaneUpgrade(clusterID string, upgradePolicy *v1.ControlPlaneUpgradePolicy) (*v1.ControlPlaneUpgradePolicy, error)
 	ScheduleNodePoolUpgrade(clusterID string, nodePoolID string, upgradePolicy *v1.NodePoolUpgradePolicy) (*v1.NodePoolUpgradePolicy, error)
@@ -103,6 +105,10 @@ func (c *ocmclient) GetCluster(clusterKey string, creator *aws.Creator) (*v1.Clu
 	return c.ocmClient.GetCluster(clusterKey, creator)
 }
 
+func (c *ocmclient) GetPolicies(policyType string) (map[string]*v1.AWSSTSPolicy, error) {
+	return c.ocmClient.GetPolicies(policyType)
+}
+
 func (c *ocmclient) GetUser(clusterID string, group string, username string) (*v1.User, error) {
 	return c.ocmClient.GetUser(clusterID, group, username)
 }
@@ -130,4 +136,13 @@ func (c *ocmclient) ValidateHypershiftVersion(versionRawID string, channelGroup 
 // NewMockOCMClient creates a new empty ocm.Client without any real connection.
 func NewMockOCMClient(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (OCMClient, error) {
 	return &ocmclient{ocmClient: &ocm.Client{}}, nil
+}
+
+// ConvertToRosaOcmClient convert OCMClient to *ocm.Client that is needed by rosa-cli lib.
+func ConvertToRosaOcmClient(i OCMClient) (*ocm.Client, error) {
+	c, ok := i.(*ocmclient)
+	if !ok {
+		return nil, fmt.Errorf("failed to conver to Rosa OCM Client")
+	}
+	return c.ocmClient, nil
 }
