@@ -136,6 +136,12 @@ rules:
   - update
   - watch
 - apiGroups:
+  - controlplane.cluster.x-k8s.io
+  resources:
+  - rosacontrolplanes/finalizers
+  verbs:
+  - update
+- apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
   - awsclustercontrolleridentities
@@ -163,6 +169,7 @@ rules:
   - awsmanagedclusters
   - awsmanagedmachinepools
   - rosaclusters
+  - rosamachinepools
   verbs:
   - delete
   - get
@@ -176,6 +183,8 @@ rules:
   - awsclusters/status
   - awsfargateprofiles/status
   - rosaclusters/status
+  - rosamachinepools/status
+  - rosaroleconfigs/status
   verbs:
   - get
   - patch
@@ -210,16 +219,6 @@ rules:
   - infrastructure.cluster.x-k8s.io
   resources:
   - rosamachinepools/finalizers
+  - rosaroleconfigs/finalizers
   verbs:
   - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - rosamachinepools/status
-  verbs:
-  - create
-  - get
-  - list
-  - patch
-  - update
-  - watch
