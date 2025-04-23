@@ -1,0 +1,17 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: "${CLUSTER_NAME}"
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+        - 192.168.0.0/16
+  topology:
+    class: eks-e2e
+    version: "${KUBERNETES_VERSION}"
+    workers:
+      machineDeployments:
+        - class: default-worker
+          name: md-0
+          replicas: ${WORKER_MACHINE_COUNT}
