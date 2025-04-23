@@ -175,6 +175,53 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "with invalid MarketType provided",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AWSLaunchTemplate: AWSLaunchTemplate{
+						MarketType: "invalid",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "with MarketType empty value provided",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AWSLaunchTemplate: AWSLaunchTemplate{
+						MarketType: "",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "with MarketType Spot and CapacityReservationID value provided",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AWSLaunchTemplate: AWSLaunchTemplate{
+						MarketType:            infrav1.MarketTypeSpot,
+						CapacityReservationID: aws.String("cr-123"),
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "with CapacityReservationID and SpotMarketOptions value provided",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AWSLaunchTemplate: AWSLaunchTemplate{
+						SpotMarketOptions:     &infrav1.SpotMarketOptions{},
+						CapacityReservationID: aws.String("cr-123"),
+					},
+				},
+			},
+			wantErr: true,
+		},
+
+		{
 			name: "invalid, MarketType set to MarketTypeCapacityBlock and spotMarketOptions are specified",
 			pool: &AWSMachinePool{
 				Spec: AWSMachinePoolSpec{

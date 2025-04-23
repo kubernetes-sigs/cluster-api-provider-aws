@@ -5771,6 +5771,35 @@ func TestGetInstanceMarketOptionsRequest(t *testing.T) {
 			expectedError: nil,
 		},
 		{
+			name: "with marketType Spot specified",
+			instance: &infrav1.Instance{
+				MarketType: infrav1.MarketTypeSpot,
+			},
+			expectedRequest: &ec2.InstanceMarketOptionsRequest{
+				MarketType: aws.String(ec2.MarketTypeSpot),
+				SpotOptions: &ec2.SpotMarketOptions{
+					InstanceInterruptionBehavior: aws.String(ec2.InstanceInterruptionBehaviorTerminate),
+					SpotInstanceType:             aws.String(ec2.SpotInstanceTypeOneTime),
+				},
+			},
+		},
+		{
+			name: "with marketType Spot and capacityRerservationID specified",
+			instance: &infrav1.Instance{
+				MarketType:            infrav1.MarketTypeSpot,
+				CapacityReservationID: mockCapacityReservationID,
+			},
+			expectedError: errors.Errorf("unable to generate marketOptions for spot instance, capacityReservationID is incompatible with marketType spot and spotMarketOptions"),
+		},
+		{
+			name: "with spotMarketOptions and capacityRerservationID specified",
+			instance: &infrav1.Instance{
+				SpotMarketOptions:     &infrav1.SpotMarketOptions{},
+				CapacityReservationID: mockCapacityReservationID,
+			},
+			expectedError: errors.Errorf("unable to generate marketOptions for spot instance, capacityReservationID is incompatible with marketType spot and spotMarketOptions"),
+		},
+		{
 			name: "with an empty MaxPrice specified",
 			instance: &infrav1.Instance{
 				SpotMarketOptions: &infrav1.SpotMarketOptions{
