@@ -1754,6 +1754,13 @@ func (in *NetworkSpec) DeepCopyInto(out *NetworkSpec) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.AdditionalNodeIngressRules != nil {
+		in, out := &in.AdditionalNodeIngressRules, &out.AdditionalNodeIngressRules
+		*out = make([]IngressRule, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	if in.NodePortIngressRuleCidrBlocks != nil {
 		in, out := &in.NodePortIngressRuleCidrBlocks, &out.NodePortIngressRuleCidrBlocks
 		*out = make([]string, len(*in))
