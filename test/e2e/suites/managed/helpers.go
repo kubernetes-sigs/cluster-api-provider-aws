@@ -50,6 +50,7 @@ const (
 	EKSMachinePoolOnlyFlavor                          = "eks-machinepool-only"
 	EKSIPv6ClusterFlavor                              = "eks-ipv6-cluster"
 	EKSControlPlaneOnlyLegacyFlavor                   = "eks-control-plane-only-legacy"
+	EKSClusterClassFlavor                             = "eks-clusterclass"
 )
 
 const (
