@@ -116,6 +116,8 @@ providers:
         targetName: "cluster-template-eks-control-plane-only-legacy.yaml"
       - sourcePath: "./eks/cluster-template-eks-control-plane-bare-eks.yaml"
         targetName: "cluster-template-eks-control-plane-bare-eks.yaml"
+      - sourcePath: "./infrastructure-aws/withclusterclass/kustomize_sources/eks-clusterclass/clusterclass-eks-e2e.yaml"
+      - sourcePath: "./infrastructure-aws/withclusterclass/generated/cluster-template-eks-clusterclass.yaml"
 
 variables:
   KUBERNETES_VERSION: "v1.32.0"
@@ -125,6 +127,7 @@ variables:
   EXP_MACHINE_POOL: "true"
   EXP_MACHINE_POOL_MACHINES: "true"
   EXP_CLUSTER_RESOURCE_SET: "true"
+  CLUSTER_TOPOLOGY: "true"
   EVENT_BRIDGE_INSTANCE_STATE: "true"
   AWS_NODE_MACHINE_TYPE: t3.large
   AWS_MACHINE_TYPE_VCPU_USAGE: 2
