@@ -1,37 +1,37 @@
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: ClusterClass
 metadata:
-  name: ${CLUSTER_CLASS_NAME}
+  name: eks-e2e
 spec:
   controlPlane:
     ref:
       apiVersion: controlplane.cluster.x-k8s.io/v1beta2
       kind: AWSManagedControlPlaneTemplate
-      name: "${CLUSTER_CLASS_NAME}-control-plane"
+      name: "${CLUSTER_NAME}-control-plane"
   infrastructure:
     ref:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
       kind: AWSManagedClusterTemplate
-      name: "${CLUSTER_CLASS_NAME}"
+      name: "${CLUSTER_NAME}"
   workers:
     machineDeployments:
       - class: default-worker
         template:
           bootstrap:
             ref:
-              name: "${CLUSTER_CLASS_NAME}-md-0"
+              name: "${CLUSTER_NAME}-md-0"
               apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
               kind: EKSConfigTemplate
           infrastructure:
             ref:
-              name: "${CLUSTER_CLASS_NAME}-md-0"
+              name: "${CLUSTER_NAME}-md-0"
               apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
               kind: AWSMachineTemplate
 ---
 kind: AWSManagedClusterTemplate
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 metadata:
-  name: "${CLUSTER_CLASS_NAME}"
+  name: "${CLUSTER_NAME}"
 spec:
   template:
     spec: {}
@@ -39,7 +39,7 @@ spec:
 kind: AWSManagedControlPlaneTemplate
 apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 metadata:
-  name: "${CLUSTER_CLASS_NAME}-control-plane"
+  name: "${CLUSTER_NAME}-control-plane"
 spec:
   template:
     spec:
@@ -50,7 +50,7 @@ spec:
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSMachineTemplate
 metadata:
-  name: "${CLUSTER_CLASS_NAME}-md-0"
+  name: "${CLUSTER_NAME}-md-0"
 spec:
   template:
     spec:
@@ -61,6 +61,6 @@ spec:
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: EKSConfigTemplate
 metadata:
-  name: "${CLUSTER_CLASS_NAME}-md-0"
+  name: "${CLUSTER_NAME}-md-0"
 spec:
   template: {}
