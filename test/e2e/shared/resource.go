@@ -44,8 +44,6 @@ type TestResource struct {
 	EC2GPU           int `json:"ec2-GPU"`
 	VolumeGP2        int `json:"volume-GP2"`
 	EventBridgeRules int `json:"eventBridge-rules"`
-	DedicatedHost  int `json:"dedicated-host"`
-	DedicatedHostInstance int `json:"ec2-dedicated-host"`
 }
 
 func WriteResourceQuotesToFile(logPath string, serviceQuotas map[string]*ServiceQuota) {
@@ -183,7 +181,7 @@ func (r *TestResource) release(request *TestResource) {
 	r.EventBridgeRules += request.EventBridgeRules
 }
 
-func  (request *TestResource, nodeNum int, fileLock *flock.Flock) error {
+func AcquireResources(request *TestResource, nodeNum int, fileLock *flock.Flock) error {
 	timeoutAfter := time.Now().Add(time.Hour * 6)
 	defer func() {
 		if err := fileLock.Unlock(); err != nil {
