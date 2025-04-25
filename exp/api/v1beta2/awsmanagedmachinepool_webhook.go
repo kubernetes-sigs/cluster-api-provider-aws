@@ -149,7 +149,7 @@ func (r *AWSManagedMachinePool) validateLifecycleHooks() field.ErrorList {
 }
 
 // ValidateCreate will do any extra validation when creating a AWSManagedMachinePool.
-func (_ *awsManagedMachinePoolWebhook) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (*awsManagedMachinePoolWebhook) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
 	r, ok := obj.(*AWSManagedMachinePool)
 	if !ok {
 		return nil, fmt.Errorf("expected an AWSManagedMachinePool object but got %T", r)
@@ -192,7 +192,7 @@ func (_ *awsManagedMachinePoolWebhook) ValidateCreate(_ context.Context, obj run
 }
 
 // ValidateUpdate will do any extra validation when updating a AWSManagedMachinePool.
-func (_ *awsManagedMachinePoolWebhook) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+func (*awsManagedMachinePoolWebhook) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
 	r, ok := newObj.(*AWSManagedMachinePool)
 	if !ok {
 		return nil, fmt.Errorf("expected an AWSManagedMachinePool object but got %T", r)
@@ -235,7 +235,7 @@ func (_ *awsManagedMachinePoolWebhook) ValidateUpdate(_ context.Context, oldObj,
 }
 
 // ValidateDelete allows you to add any extra validation when deleting.
-func (_ *awsManagedMachinePoolWebhook) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (*awsManagedMachinePoolWebhook) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
 
@@ -285,7 +285,7 @@ func (r *AWSManagedMachinePool) validateImmutable(old *AWSManagedMachinePool) fi
 }
 
 // Default will set default values for the AWSManagedMachinePool.
-func (_ *awsManagedMachinePoolWebhook) Default(_ context.Context, obj runtime.Object) error {
+func (*awsManagedMachinePoolWebhook) Default(_ context.Context, obj runtime.Object) error {
 	r, ok := obj.(*AWSManagedMachinePool)
 	if !ok {
 		return fmt.Errorf("expected an AWSManagedMachinePool object but got %T", r)

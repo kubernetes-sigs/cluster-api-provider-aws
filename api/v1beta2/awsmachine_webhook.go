@@ -61,7 +61,7 @@ var (
 )
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (_ *awsMachineWebhook) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (*awsMachineWebhook) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
 	r, ok := obj.(*AWSMachine)
 	if !ok {
 		return nil, fmt.Errorf("expected an AWSMachine object but got %T", r)
@@ -83,7 +83,7 @@ func (_ *awsMachineWebhook) ValidateCreate(_ context.Context, obj runtime.Object
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (_ *awsMachineWebhook) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+func (*awsMachineWebhook) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
 	r, ok := newObj.(*AWSMachine)
 	if !ok {
 		return nil, fmt.Errorf("expected an AWSMachine object but got %T", r)
@@ -418,13 +418,13 @@ func (r *AWSMachine) validateNonRootVolumes() field.ErrorList {
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (_ *awsMachineWebhook) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (*awsMachineWebhook) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
 
 // Default implements webhook.Defaulter such that an empty CloudInit will be defined with a default
 // SecureSecretsBackend as SecretBackendSecretsManager iff InsecureSkipSecretsManager is unset.
-func (_ *awsMachineWebhook) Default(_ context.Context, obj runtime.Object) error {
+func (*awsMachineWebhook) Default(_ context.Context, obj runtime.Object) error {
 	r, ok := obj.(*AWSMachine)
 	if !ok {
 		return fmt.Errorf("expected an AWSMachine object but got %T", r)

@@ -40,21 +40,21 @@ var _ webhook.CustomDefaulter = &eksConfigWebhook{}
 var _ webhook.CustomValidator = &eksConfigWebhook{}
 
 // ValidateCreate will do any extra validation when creating a EKSConfig.
-func (_ *eksConfigWebhook) ValidateCreate(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (*eksConfigWebhook) ValidateCreate(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
 
 // ValidateUpdate will do any extra validation when updating a EKSConfig.
-func (_ *eksConfigWebhook) ValidateUpdate(_ context.Context, _, _ runtime.Object) (admission.Warnings, error) {
+func (*eksConfigWebhook) ValidateUpdate(_ context.Context, _, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
 
 // ValidateDelete allows you to add any extra validation when deleting.
-func (_ *eksConfigWebhook) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (*eksConfigWebhook) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
 
 // Default will set default values for the EKSConfig.
-func (_ *eksConfigWebhook) Default(_ context.Context, _ runtime.Object) error {
+func (*eksConfigWebhook) Default(_ context.Context, _ runtime.Object) error {
 	return nil
 }

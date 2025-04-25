@@ -54,7 +54,7 @@ var (
 )
 
 // ValidateCreate will do any extra validation when creating an AWSClusterControllerIdentity.
-func (_ *awsClusterControllerIdentityWebhook) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (*awsClusterControllerIdentityWebhook) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
 	r, ok := obj.(*AWSClusterControllerIdentity)
 	if !ok {
 		return nil, fmt.Errorf("expected an AWSClusterControllerIdentity object but got %T", r)
@@ -78,12 +78,12 @@ func (_ *awsClusterControllerIdentityWebhook) ValidateCreate(_ context.Context, 
 }
 
 // ValidateDelete allows you to add any extra validation when deleting an AWSClusterControllerIdentity.
-func (_ *awsClusterControllerIdentityWebhook) ValidateDelete(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (*awsClusterControllerIdentityWebhook) ValidateDelete(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
 
 // ValidateUpdate will do any extra validation when updating an AWSClusterControllerIdentity.
-func (_ *awsClusterControllerIdentityWebhook) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+func (*awsClusterControllerIdentityWebhook) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
 	r, ok := newObj.(*AWSClusterControllerIdentity)
 	if !ok {
 		return nil, fmt.Errorf("expected an AWSClusterControllerIdentity object but got %T", r)
@@ -115,7 +115,7 @@ func (_ *awsClusterControllerIdentityWebhook) ValidateUpdate(_ context.Context, 
 }
 
 // Default will set default values for the AWSClusterControllerIdentity.
-func (_ *awsClusterControllerIdentityWebhook) Default(_ context.Context, obj runtime.Object) error {
+func (*awsClusterControllerIdentityWebhook) Default(_ context.Context, obj runtime.Object) error {
 	r, ok := obj.(*AWSClusterControllerIdentity)
 	if !ok {
 		return fmt.Errorf("expected an AWSClusterControllerIdentity object but got %T", r)

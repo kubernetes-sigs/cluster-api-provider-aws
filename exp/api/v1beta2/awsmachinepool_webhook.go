@@ -171,7 +171,7 @@ func (r *AWSMachinePool) validateLifecycleHooks() field.ErrorList {
 }
 
 // ValidateCreate will do any extra validation when creating a AWSMachinePool.
-func (_ *awsMachinePoolWebhook) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (*awsMachinePoolWebhook) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
 	r, ok := obj.(*AWSMachinePool)
 	if !ok {
 		return nil, fmt.Errorf("expected an AWSMachinePool object but got %T", r)
@@ -232,7 +232,7 @@ func (r *AWSMachinePool) validateInstanceMarketType() field.ErrorList {
 }
 
 // ValidateUpdate will do any extra validation when updating a AWSMachinePool.
-func (_ *awsMachinePoolWebhook) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+func (*awsMachinePoolWebhook) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
 	r, ok := newObj.(*AWSMachinePool)
 	if !ok {
 		return nil, fmt.Errorf("expected an AWSMachinePool object but got %T", r)
@@ -260,12 +260,12 @@ func (_ *awsMachinePoolWebhook) ValidateUpdate(_ context.Context, oldObj, newObj
 }
 
 // ValidateDelete allows you to add any extra validation when deleting.
-func (_ *awsMachinePoolWebhook) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (*awsMachinePoolWebhook) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
 
 // Default will set default values for the AWSMachinePool.
-func (_ *awsMachinePoolWebhook) Default(ctx context.Context, obj runtime.Object) error {
+func (*awsMachinePoolWebhook) Default(ctx context.Context, obj runtime.Object) error {
 	r, ok := obj.(*AWSMachinePool)
 	if !ok {
 		return fmt.Errorf("expected an AWSMachinePool object but got %T", r)

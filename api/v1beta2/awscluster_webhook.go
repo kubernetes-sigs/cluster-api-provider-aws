@@ -62,7 +62,7 @@ var (
 )
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (_ *awsClusterWebhook) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (*awsClusterWebhook) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
 	r, ok := obj.(*AWSCluster)
 	if !ok {
 		return nil, fmt.Errorf("expected an AWSCluster object but got %T", r)
@@ -89,12 +89,12 @@ func (_ *awsClusterWebhook) ValidateCreate(_ context.Context, obj runtime.Object
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (_ *awsClusterWebhook) ValidateDelete(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (*awsClusterWebhook) ValidateDelete(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (_ *awsClusterWebhook) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+func (*awsClusterWebhook) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
 	r, ok := newObj.(*AWSCluster)
 	if !ok {
 		return nil, fmt.Errorf("expected an AWSCluster object but got %T", r)
@@ -244,7 +244,7 @@ func (r *AWSCluster) validateControlPlaneLoadBalancerUpdate(oldlb, newlb *AWSLoa
 }
 
 // Default satisfies the defaulting webhook interface.
-func (_ *awsClusterWebhook) Default(_ context.Context, obj runtime.Object) error {
+func (*awsClusterWebhook) Default(_ context.Context, obj runtime.Object) error {
 	r, ok := obj.(*AWSCluster)
 	if !ok {
 		return fmt.Errorf("expected an AWSCluster object but got %T", r)

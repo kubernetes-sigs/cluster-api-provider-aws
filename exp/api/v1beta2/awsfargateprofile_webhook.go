@@ -57,7 +57,7 @@ var _ webhook.CustomDefaulter = &awsFargateProfileWebhook{}
 var _ webhook.CustomValidator = &awsFargateProfileWebhook{}
 
 // Default will set default values for the AWSFargateProfile.
-func (_ *awsFargateProfileWebhook) Default(_ context.Context, obj runtime.Object) error {
+func (*awsFargateProfileWebhook) Default(_ context.Context, obj runtime.Object) error {
 	r, ok := obj.(*AWSFargateProfile)
 	if !ok {
 		return fmt.Errorf("expected an AWSFargateProfile object but got %T", r)
@@ -81,7 +81,7 @@ func (_ *awsFargateProfileWebhook) Default(_ context.Context, obj runtime.Object
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (_ *awsFargateProfileWebhook) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+func (*awsFargateProfileWebhook) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
 	r, ok := newObj.(*AWSFargateProfile)
 	if !ok {
 		return nil, fmt.Errorf("expected an AWSFargateProfile object but got %T", r)
@@ -150,7 +150,7 @@ func (_ *awsFargateProfileWebhook) ValidateUpdate(_ context.Context, oldObj, new
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (_ *awsFargateProfileWebhook) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (*awsFargateProfileWebhook) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
 	r, ok := obj.(*AWSFargateProfile)
 	if !ok {
 		return nil, fmt.Errorf("expected an AWSFargateProfile object but got %T", r)
@@ -169,6 +169,6 @@ func (_ *awsFargateProfileWebhook) ValidateCreate(_ context.Context, obj runtime
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (_ *awsFargateProfileWebhook) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (*awsFargateProfileWebhook) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
