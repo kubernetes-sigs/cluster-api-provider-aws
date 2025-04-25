@@ -52,7 +52,7 @@ var (
 )
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type.
-func (_ *awsClusterStaticIdentityWebhook) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (*awsClusterStaticIdentityWebhook) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
 	r, ok := obj.(*AWSClusterStaticIdentity)
 	if !ok {
 		return nil, fmt.Errorf("expected an AWSClusterStaticIdentity object but got %T", r)
@@ -70,12 +70,12 @@ func (_ *awsClusterStaticIdentityWebhook) ValidateCreate(_ context.Context, obj 
 }
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type.
-func (_ *awsClusterStaticIdentityWebhook) ValidateDelete(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (*awsClusterStaticIdentityWebhook) ValidateDelete(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type.
-func (_ *awsClusterStaticIdentityWebhook) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+func (*awsClusterStaticIdentityWebhook) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
 	r, ok := newObj.(*AWSClusterStaticIdentity)
 	if !ok {
 		return nil, fmt.Errorf("expected an AWSClusterStaticIdentity object but got %T", r)
@@ -103,7 +103,7 @@ func (_ *awsClusterStaticIdentityWebhook) ValidateUpdate(_ context.Context, oldO
 }
 
 // Default should return the default AWSClusterStaticIdentity.
-func (_ *awsClusterStaticIdentityWebhook) Default(_ context.Context, obj runtime.Object) error {
+func (*awsClusterStaticIdentityWebhook) Default(_ context.Context, obj runtime.Object) error {
 	r, ok := obj.(*AWSClusterStaticIdentity)
 	if !ok {
 		return fmt.Errorf("expected an AWSClusterStaticIdentity object but got %T", r)

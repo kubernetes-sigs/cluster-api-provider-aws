@@ -36,7 +36,7 @@ var _ webhook.CustomDefaulter = &rdsAMachinePoolWebhook{}
 var _ webhook.CustomValidator = &rdsAMachinePoolWebhook{}
 
 // ValidateCreate implements admission.Validator.
-func (_ *rdsAMachinePoolWebhook) ValidateCreate(_ context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
+func (*rdsAMachinePoolWebhook) ValidateCreate(_ context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	r, ok := obj.(*ROSAMachinePool)
 	if !ok {
 		return nil, fmt.Errorf("expected an ROSAMachinePool object but got %T", r)
@@ -66,7 +66,7 @@ func (_ *rdsAMachinePoolWebhook) ValidateCreate(_ context.Context, obj runtime.O
 }
 
 // ValidateUpdate implements admission.Validator.
-func (_ *rdsAMachinePoolWebhook) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (warnings admission.Warnings, err error) {
+func (*rdsAMachinePoolWebhook) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (warnings admission.Warnings, err error) {
 	r, ok := newObj.(*ROSAMachinePool)
 	if !ok {
 		return nil, fmt.Errorf("expected an ROSAMachinePool object but got %T", r)
@@ -103,7 +103,7 @@ func (_ *rdsAMachinePoolWebhook) ValidateUpdate(_ context.Context, oldObj, newOb
 }
 
 // ValidateDelete implements admission.Validator.
-func (_ *rdsAMachinePoolWebhook) ValidateDelete(_ context.Context, _ runtime.Object) (warnings admission.Warnings, err error) {
+func (*rdsAMachinePoolWebhook) ValidateDelete(_ context.Context, _ runtime.Object) (warnings admission.Warnings, err error) {
 	return nil, nil
 }
 
@@ -146,7 +146,7 @@ func validateImmutable(old, updated interface{}, name string) field.ErrorList {
 }
 
 // Default implements admission.Defaulter.
-func (_ *rdsAMachinePoolWebhook) Default(ctx context.Context, obj runtime.Object) error {
+func (*rdsAMachinePoolWebhook) Default(ctx context.Context, obj runtime.Object) error {
 	r, ok := obj.(*ROSAMachinePool)
 	if !ok {
 		return fmt.Errorf("expected an ROSAMachinePool object but got %T", r)

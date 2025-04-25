@@ -52,7 +52,7 @@ var (
 )
 
 // ValidateCreate will do any extra validation when creating an AWSClusterRoleIdentity.
-func (_ *awsClusterRoleIdentityWebhook) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (*awsClusterRoleIdentityWebhook) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
 	r, ok := obj.(*AWSClusterRoleIdentity)
 	if !ok {
 		return nil, fmt.Errorf("expected an AWSClusterRoleIdentity object but got %T", r)
@@ -75,12 +75,12 @@ func (_ *awsClusterRoleIdentityWebhook) ValidateCreate(_ context.Context, obj ru
 }
 
 // ValidateDelete allows you to add any extra validation when deleting an AWSClusterRoleIdentity.
-func (_ *awsClusterRoleIdentityWebhook) ValidateDelete(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (*awsClusterRoleIdentityWebhook) ValidateDelete(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
 
 // ValidateUpdate will do any extra validation when updating an AWSClusterRoleIdentity.
-func (_ *awsClusterRoleIdentityWebhook) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+func (*awsClusterRoleIdentityWebhook) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
 	r, ok := newObj.(*AWSClusterRoleIdentity)
 	if !ok {
 		return nil, fmt.Errorf("expected an AWSClusterRoleIdentity object but got %T", r)
@@ -109,7 +109,7 @@ func (_ *awsClusterRoleIdentityWebhook) ValidateUpdate(_ context.Context, oldObj
 }
 
 // Default will set default values for the AWSClusterRoleIdentity.
-func (_ *awsClusterRoleIdentityWebhook) Default(_ context.Context, obj runtime.Object) error {
+func (*awsClusterRoleIdentityWebhook) Default(_ context.Context, obj runtime.Object) error {
 	r, ok := obj.(*AWSClusterRoleIdentity)
 	if !ok {
 		return fmt.Errorf("expected an AWSClusterRoleIdentity object but got %T", r)

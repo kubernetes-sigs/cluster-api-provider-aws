@@ -81,7 +81,7 @@ func parseEKSVersion(raw string) (*version.Version, error) {
 }
 
 // ValidateCreate will do any extra validation when creating a AWSManagedControlPlane.
-func (_ *awsManagedControlPlaneWebhook) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (*awsManagedControlPlaneWebhook) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
 	r, ok := obj.(*AWSManagedControlPlane)
 	if !ok {
 		return nil, fmt.Errorf("expected an AWSManagedControlPlane object but got %T", r)
@@ -120,7 +120,7 @@ func (_ *awsManagedControlPlaneWebhook) ValidateCreate(_ context.Context, obj ru
 }
 
 // ValidateUpdate will do any extra validation when updating a AWSManagedControlPlane.
-func (_ *awsManagedControlPlaneWebhook) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+func (*awsManagedControlPlaneWebhook) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
 	r, ok := newObj.(*AWSManagedControlPlane)
 	if !ok {
 		return nil, fmt.Errorf("expected an AWSManagedControlPlane object but got %T", r)
@@ -198,7 +198,7 @@ func (_ *awsManagedControlPlaneWebhook) ValidateUpdate(ctx context.Context, oldO
 }
 
 // ValidateDelete allows you to add any extra validation when deleting.
-func (_ *awsManagedControlPlaneWebhook) ValidateDelete(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (*awsManagedControlPlaneWebhook) ValidateDelete(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
 
@@ -493,7 +493,7 @@ func (r *AWSManagedControlPlane) validateNetwork() field.ErrorList {
 }
 
 // Default will set default values for the AWSManagedControlPlane.
-func (_ *awsManagedControlPlaneWebhook) Default(_ context.Context, obj runtime.Object) error {
+func (*awsManagedControlPlaneWebhook) Default(_ context.Context, obj runtime.Object) error {
 	r, ok := obj.(*AWSManagedControlPlane)
 	if !ok {
 		return fmt.Errorf("expected an AWSManagedControlPlane object but got %T", r)
