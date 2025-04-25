@@ -3,12 +3,13 @@ package v1beta2
 import (
 	"context"
 	"fmt"
+
 	"github.com/blang/semver"
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	runtime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
@@ -19,7 +20,7 @@ import (
 
 // SetupWebhookWithManager will setup the webhooks for the ROSAMachinePool.
 func (r *ROSAMachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	w := new(rdsAMachinePoolWebhook)
+	w := new(rosaMachinePoolWebhook)
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
 		WithValidator(w).
@@ -30,13 +31,13 @@ func (r *ROSAMachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-rosamachinepool,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=rosamachinepools,versions=v1beta2,name=validation.rosamachinepool.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta2-rosamachinepool,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=rosamachinepools,versions=v1beta2,name=default.rosamachinepool.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-type rdsAMachinePoolWebhook struct{}
+type rosaMachinePoolWebhook struct{}
 
-var _ webhook.CustomDefaulter = &rdsAMachinePoolWebhook{}
-var _ webhook.CustomValidator = &rdsAMachinePoolWebhook{}
+var _ webhook.CustomDefaulter = &rosaMachinePoolWebhook{}
+var _ webhook.CustomValidator = &rosaMachinePoolWebhook{}
 
 // ValidateCreate implements admission.Validator.
-func (*rdsAMachinePoolWebhook) ValidateCreate(_ context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
+func (*rosaMachinePoolWebhook) ValidateCreate(_ context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	r, ok := obj.(*ROSAMachinePool)
 	if !ok {
 		return nil, fmt.Errorf("expected an ROSAMachinePool object but got %T", r)
@@ -66,7 +67,7 @@ func (*rdsAMachinePoolWebhook) ValidateCreate(_ context.Context, obj runtime.Obj
 }
 
 // ValidateUpdate implements admission.Validator.
-func (*rdsAMachinePoolWebhook) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (warnings admission.Warnings, err error) {
+func (*rosaMachinePoolWebhook) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (warnings admission.Warnings, err error) {
 	r, ok := newObj.(*ROSAMachinePool)
 	if !ok {
 		return nil, fmt.Errorf("expected an ROSAMachinePool object but got %T", r)
@@ -103,7 +104,7 @@ func (*rdsAMachinePoolWebhook) ValidateUpdate(_ context.Context, oldObj, newObj 
 }
 
 // ValidateDelete implements admission.Validator.
-func (*rdsAMachinePoolWebhook) ValidateDelete(_ context.Context, _ runtime.Object) (warnings admission.Warnings, err error) {
+func (*rosaMachinePoolWebhook) ValidateDelete(_ context.Context, _ runtime.Object) (warnings admission.Warnings, err error) {
 	return nil, nil
 }
 
@@ -146,7 +147,7 @@ func validateImmutable(old, updated interface{}, name string) field.ErrorList {
 }
 
 // Default implements admission.Defaulter.
-func (*rdsAMachinePoolWebhook) Default(ctx context.Context, obj runtime.Object) error {
+func (*rosaMachinePoolWebhook) Default(ctx context.Context, obj runtime.Object) error {
 	r, ok := obj.(*ROSAMachinePool)
 	if !ok {
 		return fmt.Errorf("expected an ROSAMachinePool object but got %T", r)
@@ -156,6 +157,7 @@ func (*rdsAMachinePoolWebhook) Default(ctx context.Context, obj runtime.Object) 
 	return nil
 }
 
+// Default satisfies the defaulting webhook interface.
 func (r *ROSAMachinePool) Default() {
 	if r.Spec.NodeDrainGracePeriod == nil {
 		r.Spec.NodeDrainGracePeriod = &metav1.Duration{}

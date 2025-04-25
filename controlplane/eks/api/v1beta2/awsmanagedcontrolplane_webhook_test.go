@@ -145,7 +145,7 @@ func TestDefaultingWebhook(t *testing.T) {
 					Namespace: tc.resourceNS,
 				},
 			}
-			t.Run("for AWSManagedMachinePool", utildefaulting.DefaultValidateTest(mcp))
+			t.Run("for AWSManagedMachinePool", utildefaulting.DefaultValidateTest(context.Background(), mcp, &awsManagedControlPlaneWebhook{}))
 			mcp.Spec = tc.spec
 
 			g.Expect(testEnv.Create(ctx, mcp)).To(Succeed())
@@ -807,7 +807,8 @@ func TestValidatingWebhookCreateSecondaryCidr(t *testing.T) {
 			if tc.cidrRange != "" {
 				mcp.Spec.SecondaryCidrBlock = aws.String(tc.cidrRange)
 			}
-			warn, err := mcp.ValidateCreate()
+
+			warn, err := (&awsManagedControlPlaneWebhook{}).ValidateCreate(context.Background(), mcp)
 
 			if tc.expectError {
 				g.Expect(err).ToNot(BeNil())
@@ -880,7 +881,7 @@ func TestValidatingWebhookUpdateSecondaryCidr(t *testing.T) {
 				},
 			}
 
-			warn, err := newMCP.ValidateUpdate(oldMCP)
+			warn, err := (&awsManagedControlPlaneWebhook{}).ValidateUpdate(context.Background(), oldMCP, newMCP)
 
 			if tc.expectError {
 				g.Expect(err).ToNot(BeNil())

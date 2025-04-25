@@ -254,6 +254,7 @@ func (*awsClusterWebhook) Default(_ context.Context, obj runtime.Object) error {
 	return nil
 }
 
+// Default satisfies the defaulting webhook interface.
 func (r *AWSCluster) Default() {
 	SetObjectDefaults_AWSCluster(r)
 }
