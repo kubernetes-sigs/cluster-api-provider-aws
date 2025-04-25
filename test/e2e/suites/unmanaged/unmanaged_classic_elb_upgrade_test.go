@@ -78,7 +78,7 @@ var _ = ginkgo.Context("[unmanaged] [upgrade]", func() {
 	ginkgo.AfterEach(func() {
 		if testNamespace != nil {
 			// Dump all the logs from the workload cluster before deleting them.
-			framework.DumpAllResourcesAndLogs(ctx, managementClusterProxy, e2eCtx.Settings.ArtifactFolder, testNamespace, managementClusterResources.Cluster)
+			framework.DumpAllResourcesAndLogs(ctx, managementClusterProxy, e2eCtx.Environment.ClusterctlConfigPath, e2eCtx.Settings.ArtifactFolder, testNamespace, managementClusterResources.Cluster)
 
 			if !e2eCtx.Settings.SkipCleanup {
 				shared.Byf("Deleting all clusters in namespace %s in management cluster %s", testNamespace.Name, managementClusterName)
@@ -107,7 +107,7 @@ var _ = ginkgo.Context("[unmanaged] [upgrade]", func() {
 			managementClusterProxy.Dispose(ctx)
 			managementClusterProvider.Dispose(ctx)
 		} else {
-			framework.DumpSpecResourcesAndCleanup(ctx, specName, e2eCtx.Environment.BootstrapClusterProxy, e2eCtx.Settings.ArtifactFolder, managementClusterNamespace, managementClusterCancelWatches, managementClusterResources.Cluster, e2eCtx.E2EConfig.GetIntervals, e2eCtx.Settings.SkipCleanup)
+			framework.DumpSpecResourcesAndCleanup(ctx, specName, e2eCtx.Environment.BootstrapClusterProxy, e2eCtx.Environment.ClusterctlConfigPath, e2eCtx.Settings.ArtifactFolder, managementClusterNamespace, managementClusterCancelWatches, managementClusterResources.Cluster, e2eCtx.E2EConfig.GetIntervals, e2eCtx.Settings.SkipCleanup)
 		}
 	})
 

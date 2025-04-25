@@ -36,8 +36,11 @@ var log = ctrl.Log.WithName("awsmachinepool-resource")
 
 // SetupWebhookWithManager will setup the webhooks for the AWSMachinePool.
 func (r *AWSMachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	w := new(awsMachinePoolWebhook)
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
+		WithValidator(w).
+		WithDefaulter(w).
 		Complete()
 }
 

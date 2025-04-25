@@ -33,9 +33,10 @@ import (
 
 func TestMachineDefault(t *testing.T) {
 	machine := &AWSMachine{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
-	t.Run("for AWSMachine", utildefaulting.DefaultValidateTest(machine))
-	machine.Default()
+	t.Run("for AWSMachine", utildefaulting.DefaultValidateTest(context.Background(), machine, &awsMachineWebhook{}))
 	g := NewWithT(t)
+	err := (&awsMachineWebhook{}).Default(context.Background(), machine)
+	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(machine.Spec.CloudInit.SecureSecretsBackend).To(Equal(SecretBackendSecretsManager))
 }
 

@@ -827,8 +827,10 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				})
 
 				framework.WaitForClusterDeleted(ctx, framework.WaitForClusterDeletedInput{
-					Client:  mgmtClusterProxy.GetClient(),
-					Cluster: wlResult.Cluster,
+					ClusterProxy:         mgmtClusterProxy,
+					Cluster:              wlResult.Cluster,
+					ClusterctlConfigPath: e2eCtx.Environment.ClusterctlConfigPath,
+					ArtifactFolder:       e2eCtx.Settings.ArtifactFolder,
 				}, e2eCtx.E2EConfig.GetIntervals("", "wait-delete-cluster")...)
 
 				ginkgo.By("Moving the management cluster back to bootstrap")

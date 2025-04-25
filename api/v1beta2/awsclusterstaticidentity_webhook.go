@@ -33,7 +33,7 @@ import (
 var _ = ctrl.Log.WithName("awsclusterstaticidentity-resource")
 
 func (r *AWSClusterStaticIdentity) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	w := new(awsClusterRoleIdentityWebhook)
+	w := new(awsClusterStaticIdentityWebhook)
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
 		WithValidator(w).
