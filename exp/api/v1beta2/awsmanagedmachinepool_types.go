@@ -40,21 +40,21 @@ const (
 	Al2023x86_64 ManagedMachineAMIType = "AL2023_x86_64_STANDARD"
 	// Al2023Arm64 is the AL2023 Arm AMI type.
 	Al2023Arm64 ManagedMachineAMIType = "AL2023_ARM_64_STANDARD"
-	// Al2023 x86 Neuron GPU type
+	// Al2023x86_64Neuron is the Neuron GPU type
 	Al2023x86_64Neuron ManagedMachineAMIType = "AL2023_x86_64_NEURON"
-	// Al2023 x86 Nvidia GPU type
+	// Al2023x86_64Nvidia is the Nvidia GPU type
 	Al2023x86_64Nvidia ManagedMachineAMIType = "AL2023_x86_64_NVIDIA"
-	// BottleRocket ARM64 AMI type
+	// BottleRocketArm64 is the ARM64 AMI type
 	BottleRocketArm64 ManagedMachineAMIType = "BOTTLEROCKET_ARM_64"
-	// BottleRocket x86 AMI type
-	BottleRocketx86_6 ManagedMachineAMIType = "BOTTLEROCKET_x86_64"
-	// BottleRocket Arm64 Fips AMI type
+	// BottleRocketx86_64 is the BottleRocket x86 AMI type
+	BottleRocketx86_64 ManagedMachineAMIType = "BOTTLEROCKET_x86_64"
+	// BottleRocketArm64Fips is the BottleRocket Arm64 Fips AMI type
 	BottleRocketArm64Fips ManagedMachineAMIType = "BOTTLEROCKET_ARM_64_FIPS"
-	// BottleRocket x86 Fips AMI type
+	// BottleRocketx86_64Fips is the BottleRocket x86 Fips AMI type
 	BottleRocketx86_64Fips ManagedMachineAMIType = "BOTTLEROCKET_x86_64_FIPS"
-	// BottleRocket Arm Nvidia AMI type
+	// BottleRocketArm64Nvidia is the BottleRocket Arm Nvidia AMI type
 	BottleRocketArm64Nvidia ManagedMachineAMIType = "BOTTLEROCKET_ARM_64_NVIDIA"
-	// BottleRocket x86 Nvidia AMI type
+	// BottleRocketx86_64Nvidia is the BottleRocket x86 Nvidia AMI type
 	BottleRocketx86_64Nvidia ManagedMachineAMIType = "BOTTLEROCKET_x86_64_NVIDIA"
 )
 
