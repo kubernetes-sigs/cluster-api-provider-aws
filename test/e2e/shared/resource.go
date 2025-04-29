@@ -44,6 +44,7 @@ type TestResource struct {
 	EC2GPU           int `json:"ec2-GPU"`
 	VolumeGP2        int `json:"volume-GP2"`
 	EventBridgeRules int `json:"eventBridge-rules"`
+	//TODO: DedicatedHost    int `json:"dedicated-host"`
 }
 
 func WriteResourceQuotesToFile(logPath string, serviceQuotas map[string]*ServiceQuota) {
