@@ -163,6 +163,10 @@ func (s *ROSAControlPlaneScope) Namespace() string {
 	return s.Cluster.Namespace
 }
 
+func (s *ROSAControlPlaneScope) GetClient() client.Client {
+	return s.Client
+}
+
 // CredentialsSecret returns the CredentialsSecret object.
 func (s *ROSAControlPlaneScope) CredentialsSecret() *corev1.Secret {
 	secretRef := s.ControlPlane.Spec.CredentialsSecretRef

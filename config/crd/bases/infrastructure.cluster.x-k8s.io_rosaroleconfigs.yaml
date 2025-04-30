@@ -1,0 +1,273 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.5
+  name: rosaroleconfigs.infrastructure.cluster.x-k8s.io
+spec:
+  group: infrastructure.cluster.x-k8s.io
+  names:
+    kind: ROSARoleConfig
+    listKind: ROSARoleConfigList
+    plural: rosaroleconfigs
+    singular: rosaroleconfig
+  scope: Namespaced
+  versions:
+  - name: v1beta2
+    schema:
+      openAPIV3Schema:
+        description: ROSARoleConfig is the Schema for the rosaroleconfigs API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              accountRoleConfig:
+                properties:
+                  path:
+                    type: string
+                  permissionsBoundaryARN:
+                    type: string
+                  prefix:
+                    maxLength: 4
+                    type: string
+                  sharedVPCConfig:
+                    properties:
+                      routeRoleARN:
+                        type: string
+                      vpcEndpointRoleArn:
+                        type: string
+                    type: object
+                  version:
+                    type: string
+                required:
+                - prefix
+                - version
+                type: object
+              identityRef:
+                description: |-
+                  IdentityRef is a reference to an identity to be used when reconciling rosa roles config.
+                  If no identity is specified, the default identity for this controller will be used.
+                properties:
+                  kind:
+                    description: Kind of the identity.
+                    enum:
+                    - AWSClusterControllerIdentity
+                    - AWSClusterRoleIdentity
+                    - AWSClusterStaticIdentity
+                    type: string
+                  name:
+                    description: Name of the identity.
+                    minLength: 1
+                    type: string
+                required:
+                - kind
+                - name
+                type: object
+              oidcConfig:
+                properties:
+                  externalAuthProviders:
+                    items:
+                      properties:
+                        claimMappings:
+                          properties:
+                            groups:
+                              properties:
+                                claim:
+                                  type: string
+                                prefixPolicy:
+                                  type: string
+                              required:
+                              - claim
+                              type: object
+                            username:
+                              properties:
+                                claim:
+                                  type: string
+                                prefixPolicy:
+                                  type: string
+                              required:
+                              - claim
+                              type: object
+                          required:
+                          - username
+                          type: object
+                        issuer:
+                          properties:
+                            audiences:
+                              items:
+                                type: string
+                              type: array
+                            issuerURL:
+                              type: string
+                          required:
+                          - issuerURL
+                          type: object
+                        name:
+                          type: string
+                        oidcClients:
+                          items:
+                            properties:
+                              clientID:
+                                type: string
+                              clientSecret:
+                                properties:
+                                  name:
+                                    type: string
+                                required:
+                                - name
+                                type: object
+                              componentName:
+                                type: string
+                              componentNamespace:
+                                type: string
+                            required:
+                            - clientID
+                            - clientSecret
+                            - componentName
+                            - componentNamespace
+                            type: object
+                          type: array
+                      required:
+                      - claimMappings
+                      - issuer
+                      - name
+                      type: object
+                    type: array
+                  managedOIDC:
+                    type: boolean
+                  prefix:
+                    description: Prefix is required for Unmanaged OIDC
+                    type: string
+                  region:
+                    description: Region is required for Unmanaged OIDC
+                    type: string
+                required:
+                - managedOIDC
+                type: object
+              operatorRoleConfig:
+                properties:
+                  oidcConfigId:
+                    type: string
+                  permissionsBoundaryARN:
+                    type: string
+                  prefix:
+                    maxLength: 4
+                    type: string
+                  sharedVPCConfig:
+                    properties:
+                      routeRoleARN:
+                        type: string
+                      vpcEndpointRoleArn:
+                        type: string
+                    type: object
+                required:
+                - prefix
+                type: object
+              region:
+                type: string
+            required:
+            - accountRoleConfig
+            - oidcConfig
+            - operatorRoleConfig
+            type: object
+          status:
+            description: ROSARoleConfigStatus defines the observed state of ROSARoleConfig
+            properties:
+              accountRolesRef:
+                properties:
+                  installerRoleARN:
+                    type: string
+                  supportRoleARN:
+                    type: string
+                  workerRoleARN:
+                    type: string
+                type: object
+              conditions:
+                description: Conditions       []metav1.Condition `json:"conditions,omitempty"`
+                items:
+                  description: Condition defines an observation of a Cluster API resource
+                    operational state.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        Last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed. If that is not known, then using the time when
+                        the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        A human readable message indicating details about the transition.
+                        This field may be empty.
+                      type: string
+                    reason:
+                      description: |-
+                        The reason for the condition's last transition in CamelCase.
+                        The specific API may choose whether or not this field is considered a guaranteed API.
+                        This field may be empty.
+                      type: string
+                    severity:
+                      description: |-
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        understand the current situation and act accordingly.
+                        The Severity field MUST be set only when Status=False.
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: |-
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
+                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
+                        can be useful (see .node.status.conditions), the ability to deconflict is important.
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - status
+                  - type
+                  type: object
+                type: array
+              oidcID:
+                type: string
+              oidcProviderARN:
+                type: string
+              operatorRolesRef:
+                properties:
+                  controlPlaneOperatorARN:
+                    type: string
+                  imageRegistryARN:
+                    type: string
+                  ingressARN:
+                    type: string
+                  kmsProviderARN:
+                    type: string
+                  kubeCloudControllerARN:
+                    type: string
+                  networkARN:
+                    type: string
+                  nodePoolManagementARN:
+                    type: string
+                  storageARN:
+                    type: string
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
