@@ -2,60 +2,62 @@ version: "2"
 domain: cluster.x-k8s.io
 repo: sigs.k8s.io/cluster-api-provider-aws
 resources:
+# v1beta1 types
 - group: infrastructure
+  version: v1beta1
   kind: AWSMachine
-  version: v1beta1
 - group: infrastructure
+  version: v1beta1
   kind: AWSCluster
-  version: v1beta1
 - group: infrastructure
+  version: v1beta1
   kind: AWSMachineTemplate
-  version: v1beta1
 - group: infrastructure
+  version: v1beta1
   kind: AWSClusterStaticIdentity
-  version: v1beta1
 - group: infrastructure
+  version: v1beta1
   kind: AWSClusterRoleIdentity
-  version: v1beta1
 - group: infrastructure
+  version: v1beta1
   kind: AWSClusterControllerIdentity
-  version: v1beta1
 - group: infrastructure
+  version: v1beta1
   kind: AWSClusterTemplate
-  version: v1beta1
 - group: infrastructure
+  version: v1beta1
   kind: AWSManagedControlPlanes
-  version: v1beta1
 - group: infrastructure
+  version: v1beta1
   kind: AWSManagedCluster
-  version: v1beta1
+# v1beta2 types
 - group: infrastructure
+  version: v1beta2
   kind: AWSMachine
-  version: v1beta2
 - group: infrastructure
+  version: v1beta2
   kind: AWSCluster
-  version: v1beta2
 - group: infrastructure
+  version: v1beta2
   kind: AWSMachineTemplate
-  version: v1beta2
 - group: infrastructure
+  version: v1beta2
   kind: AWSClusterStaticIdentity
-  version: v1beta2
 - group: infrastructure
+  version: v1beta2
   kind: AWSClusterRoleIdentity
-  version: v1beta2
 - group: infrastructure
+  version: v1beta2
   kind: AWSClusterControllerIdentity
-  version: v1beta2
 - group: infrastructure
+  version: v1beta2
   kind: AWSClusterTemplate
-  version: v1beta2
 - group: infrastructure
+  version: v1beta2
   kind: AWSManagedControlPlanes
-  version: v1beta2
 - group: infrastructure
-  kind: AWSManagedCluster
   version: v1beta2
+  kind: AWSManagedCluster
 - group: infrastructure
   kind: ROSARoleConfig
   version: v1beta2

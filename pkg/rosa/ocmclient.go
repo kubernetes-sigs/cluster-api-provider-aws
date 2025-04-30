@@ -3,6 +3,7 @@ package rosa
 
 import (
 	"context"
+	"fmt"
 
 	v1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/openshift/rosa/pkg/aws"
@@ -135,4 +136,13 @@ func (c *ocmclient) ValidateHypershiftVersion(versionRawID string, channelGroup 
 // NewMockOCMClient creates a new empty ocm.Client without any real connection.
 func NewMockOCMClient(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (OCMClient, error) {
 	return &ocmclient{ocmClient: &ocm.Client{}}, nil
+}
+
+// ConvertToRosaOcmClient convert OCMClient to *ocm.Client that is needed by rosa-cli lib.
+func ConvertToRosaOcmClient(i OCMClient) (*ocm.Client, error) {
+	c, ok := i.(*ocmclient)
+	if !ok {
+		return nil, fmt.Errorf("failed to conver to Rosa OCM Client")
+	}
+	return c.ocmClient, nil
 }

@@ -1,6 +1,8 @@
 module sigs.k8s.io/cluster-api-provider-aws/v2
 
-go 1.22.0
+go 1.23
+
+toolchain go1.23.1
 
 // kube-openapi should match the version imported by CAPI.
 replace k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340
@@ -30,8 +32,9 @@ require (
 	github.com/onsi/ginkgo/v2 v2.22.0
 	github.com/onsi/gomega v1.36.0
 	github.com/openshift-online/ocm-common v0.0.21
-	github.com/openshift-online/ocm-sdk-go v0.1.459
-	github.com/openshift/rosa v1.2.52
+	github.com/openshift-online/ocm-sdk-go v0.1.465
+	// github.com/openshift/rosa v1.2.54-rc1.0.20250604182244-c38eaa8ff4e2
+	github.com/openshift/rosa v0.0.0-20250528120404-279e4e58d597
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.19.1
 	github.com/sergi/go-diff v1.3.1
@@ -152,6 +155,16 @@ require (
 	github.com/huandu/xstrings v1.5.0 // indirect
 	github.com/imdario/mergo v0.3.13 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+	github.com/itchyny/gojq v0.12.9 // indirect
+	github.com/itchyny/timefmt-go v0.1.4 // indirect
+	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
+	github.com/jackc/pgconn v1.14.3 // indirect
+	github.com/jackc/pgio v1.0.0 // indirect
+	github.com/jackc/pgpassfile v1.0.0 // indirect
+	github.com/jackc/pgproto3/v2 v2.3.3 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
+	github.com/jackc/pgtype v1.14.0 // indirect
+	github.com/jackc/pgx/v4 v4.18.3 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
@@ -237,3 +250,9 @@ require (
 	sigs.k8s.io/kind v0.25.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 )
+
+replace github.com/openshift/rosa => ./rosa
+
+// replace github.com/openshift/rosa => github.com/PanSpagetka/rosa
+// replace github.com/openshift/rosa => github.com/PanSpagetka/rosa v0.0.0-20250528120404-279e4e58d597
+// replace github.com/openshift/rosa => github.com/openshift/rosa v1.2.54-rc1.0.20250604182244-c38eaa8ff4e2

@@ -28,8 +28,15 @@ const (
 	capaAgentName      = "CAPA"
 )
 
+// OCMSecretsRetriever contains functions that are needed for creating OCM connection.
+type OCMSecretsRetriever interface {
+	CredentialsSecret() *corev1.Secret
+	GetClient() client.Client // Or just Client, depending on your actual field
+	Info(msg string, keysAndValues ...interface{})
+}
+
 // NewOCMClient creates a new OCM client.
-func NewOCMClient(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (*ocm.Client, error) {
+func NewOCMClient(ctx context.Context, rosaScope OCMSecretsRetriever) (*ocm.Client, error) {
 	token, url, clientID, clientSecret, err := ocmCredentials(ctx, rosaScope)
 	if err != nil {
 		return nil, err
@@ -60,6 +67,25 @@ func NewWrappedOCMClient(ctx context.Context, rosaScope *scope.ROSAControlPlaneS
 	}
 
 	return &c, err
+}
+
+// NewWrappedOCMClientWithoutControlPlane creates OCM connection without controlplane.
+func NewWrappedOCMClientWithoutControlPlane(ctx context.Context, rosaScope OCMSecretsRetriever) (OCMClient, error) {
+	ocmClient, err := NewOCMClient(ctx, rosaScope)
+	c := ocmclient{
+		ocmClient: ocmClient,
+	}
+
+	return &c, err
+}
+
+// NewWrappedOCMClientFromOCMClient makes a wrapped OCM client from an existing OCM client.
+func NewWrappedOCMClientFromOCMClient(ctx context.Context, ocmClient *ocm.Client) (OCMClient, error) {
+	c := ocmclient{
+		ocmClient: ocmClient,
+	}
+
+	return &c, nil
 }
 
 func newOCMRawConnection(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (*sdk.Connection, error) {
@@ -94,7 +120,9 @@ func newOCMRawConnection(ctx context.Context, rosaScope *scope.ROSAControlPlaneS
 	return connection, nil
 }
 
-func ocmCredentials(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (string, string, string, string, error) {
+// OCMSecretsRetriever defines the interface for types that can provide OCM credentials information.
+
+func ocmCredentials(ctx context.Context, rosaScope OCMSecretsRetriever) (string, string, string, string, error) {
 	var token string           // Offline SSO token
 	var ocmClientID string     // Service account client id
 	var ocmClientSecret string // Service account client secret
@@ -102,8 +130,9 @@ func ocmCredentials(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope)
 	var secret *corev1.Secret
 
 	secret = rosaScope.CredentialsSecret() // We'll retrieve the OCM credentials ref from the ROSA control plane
+
 	if secret != nil {
-		if err := rosaScope.Client.Get(ctx, client.ObjectKeyFromObject(secret), secret); err != nil {
+		if err := rosaScope.GetClient().Get(ctx, client.ObjectKeyFromObject(secret), secret); err != nil {
 			return "", "", "", "", fmt.Errorf("failed to get credentials secret: %w", err)
 		}
 	} else { // If the reference to OCM secret wasn't specified in the ROSA control plane, we'll try to use a predefined secret name from the capa namespace
@@ -114,7 +143,7 @@ func ocmCredentials(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope)
 			},
 		}
 
-		err := rosaScope.Client.Get(ctx, client.ObjectKeyFromObject(secret), secret)
+		err := rosaScope.GetClient().Get(ctx, client.ObjectKeyFromObject(secret), secret)
 		// We'll ignore non-existent secret so that we can try the ENV variable fallback below
 		// TODO: once the ENV variable fallback is gone, we can no longer ignore non-existent secret here
 		if err != nil && !apierrors.IsNotFound(err) {
