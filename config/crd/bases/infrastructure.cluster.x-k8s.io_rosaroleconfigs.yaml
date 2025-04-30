@@ -41,7 +41,6 @@ spec:
           metadata:
             type: object
           spec:
-<<<<<<< HEAD
             description: ROSARoleConfigSpec defines the desired state of ROSARoleConfig
             properties:
               accountRoleConfig:
@@ -77,31 +76,29 @@ spec:
                   version:
                     description: ' Version of OpenShift that will be used to setup
                       policy tag, for example "4.11"'
-=======
-            properties:
-              accountRoleConfig:
-                properties:
-                  path:
-                    type: string
-                  permissionsBoundaryARN:
-                    type: string
-                  prefix:
-                    maxLength: 4
-                    type: string
-                  sharedVPCConfig:
-                    properties:
-                      routeRoleARN:
-                        type: string
-                      vpcEndpointRoleArn:
-                        type: string
-                    type: object
-                  version:
->>>>>>> 7c770d9ae (Add RosaRoleConfig API and CRD.)
                     type: string
                 required:
                 - prefix
                 - version
                 type: object
+              credentialsSecretRef:
+                description: |-
+                  CredentialsSecretRef references a secret with necessary credentials to connect to the OCM API.
+                  The secret should contain the following data keys:
+                  - ocmToken: eyJhbGciOiJIUzI1NiIsI....
+                  - ocmApiUrl: Optional, defaults to 'https://api.openshift.com'
+                properties:
+                  name:
+                    default: ""
+                    description: |-
+                      Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
               identityRef:
                 description: AWSIdentityReference specifies a identity.
                 properties:
@@ -121,7 +118,6 @@ spec:
                 - name
                 type: object
               oidcConfig:
-<<<<<<< HEAD
                 description: |-
                   OIDCConfig creates OIDC config in a S3 bucket for the client AWS account and populates it to be compliant with OIDC protocol.
                   It also creates a Secret in Secrets Manager containing the private key.
@@ -132,10 +128,6 @@ spec:
                       Can only be set if "enableExternalAuthProviders" is set to "True".
 
                       At most one provider can be configured.
-=======
-                properties:
-                  externalAuthProviders:
->>>>>>> 7c770d9ae (Add RosaRoleConfig API and CRD.)
                     items:
                       description: ExternalAuthProvider is an external OIDC identity
                         provider that can issue tokens for this cluster
@@ -369,34 +361,47 @@ spec:
                       - issuer
                       - name
                       type: object
-<<<<<<< HEAD
                     maxItems: 1
                     type: array
                     x-kubernetes-list-map-keys:
                     - name
                     x-kubernetes-list-type: map
+                  identityRef:
+                    description: AWSIdentityReference specifies a identity.
+                    properties:
+                      kind:
+                        description: Kind of the identity.
+                        enum:
+                        - AWSClusterControllerIdentity
+                        - AWSClusterRoleIdentity
+                        - AWSClusterStaticIdentity
+                        type: string
+                      name:
+                        description: Name of the identity.
+                        minLength: 1
+                        type: string
+                    required:
+                    - kind
+                    - name
+                    type: object
                   managedOIDC:
                     default: true
                     description: ManagedOIDC indicates whether it is a Red Hat managed
                       or unmanaged (Customer hosted) OIDC Configuration. Default is
                       true.
-=======
-                    type: array
-                  managedOIDC:
->>>>>>> 7c770d9ae (Add RosaRoleConfig API and CRD.)
                     type: boolean
+                  prefix:
+                    type: string
+                  region:
+                    type: string
                 required:
                 - managedOIDC
+                - prefix
                 type: object
               operatorRoleConfig:
-<<<<<<< HEAD
                 description: OperatorRoleConfig defines cluster-specific operator
                   IAM roles based on your cluster configuration.
                 properties:
-                  oidcConfigId:
-                    description: Registered OIDC configuration ID to add its issuer
-                      URL as the trusted relationship to the operator roles.''
-                    type: string
                   permissionsBoundaryARN:
                     description: The ARN of the policy that is used to set the permissions
                       boundary for the operator roles.
@@ -418,25 +423,9 @@ spec:
                         description: ' Role ARN associated with the shared VPC used
                           for Hosted Control Plane clusters, this role contains policies
                           to be used with the VPC endpoint'
-=======
-                properties:
-                  oidcConfigId:
-                    type: string
-                  permissionsBoundaryARN:
-                    type: string
-                  prefix:
-                    maxLength: 4
-                    type: string
-                  sharedVPCConfig:
-                    properties:
-                      routeRoleARN:
-                        type: string
-                      vpcEndpointRoleArn:
->>>>>>> 7c770d9ae (Add RosaRoleConfig API and CRD.)
                         type: string
                     type: object
                 required:
-                - oidcConfigId
                 - prefix
                 type: object
               region:
@@ -450,7 +439,6 @@ spec:
             description: ROSARoleConfigStatus defines the observed state of ROSARoleConfig
             properties:
               accountRolesRef:
-<<<<<<< HEAD
                 description: Created Account roles that can be used to
                 properties:
                   installerRoleARN:
@@ -466,18 +454,6 @@ spec:
                     description: WorkerRoleARN is an AWS IAM role that will be attached
                       to worker instances.
                     type: string
-                required:
-                - installerRoleARN
-                - supportRoleARN
-=======
-                properties:
-                  installerRoleARN:
-                    type: string
-                  supportRoleARN:
-                    type: string
-                  workerRoleARN:
-                    type: string
->>>>>>> 7c770d9ae (Add RosaRoleConfig API and CRD.)
                 type: object
               conditions:
                 description: Conditions provide observations of the operational state
@@ -533,7 +509,6 @@ spec:
                   type: object
                 type: array
               oidcID:
-<<<<<<< HEAD
                 description: ID of created OIDC config
                 type: string
               oidcProviderARN:
@@ -577,23 +552,10 @@ spec:
                       \"*\"\n\t\t},\n\t\t{\n\t\t\t\"Effect\": \"Allow\",\n\t\t\t\"Action\":
                       [\n\t\t\t\t\"route53:ChangeResourceRecordSets\"\n\t\t\t],\n\t\t\t\"Resource\":
                       [\n\t\t\t\t\"arn:aws:route53:::PUBLIC_ZONE_ID\",\n\t\t\t\t\"arn:aws:route53:::PRIVATE_ZONE_ID\"\n\t\t\t]\n\t\t}\n\t]\n}"
-=======
-                type: string
-              oidcProviderARN:
-                type: string
-              operatorRolesRef:
-                properties:
-                  controlPlaneOperatorARN:
-                    type: string
-                  imageRegistryARN:
-                    type: string
-                  ingressARN:
->>>>>>> 7c770d9ae (Add RosaRoleConfig API and CRD.)
                     type: string
                   kmsProviderARN:
                     type: string
                   kubeCloudControllerARN:
-<<<<<<< HEAD
                     description: |-
                       KubeCloudControllerARN is an ARN value referencing a role appropriate for the KCM/KCC.
                       Source: https://cloud-provider-aws.sigs.k8s.io/prerequisites/#iam-policies
@@ -744,18 +706,6 @@ spec:
                 - nodePoolManagementARN
                 - storageARN
                 type: object
-            required:
-            - operatorRolesRef
-=======
-                    type: string
-                  networkARN:
-                    type: string
-                  nodePoolManagementARN:
-                    type: string
-                  storageARN:
-                    type: string
-                type: object
->>>>>>> 7c770d9ae (Add RosaRoleConfig API and CRD.)
             type: object
         type: object
     served: true

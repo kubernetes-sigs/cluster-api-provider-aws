@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta2
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -34,6 +35,12 @@ type ROSARoleConfigSpec struct {
 	OIDCConfig         OIDCConfig                    `json:"oidcConfig"`
 	IdentityRef        *infrav1.AWSIdentityReference `json:"identityRef,omitempty"`
 	Region             string                        `json:"region,omitempty"`
+	// CredentialsSecretRef references a secret with necessary credentials to connect to the OCM API.
+	// The secret should contain the following data keys:
+	// - ocmToken: eyJhbGciOiJIUzI1NiIsI....
+	// - ocmApiUrl: Optional, defaults to 'https://api.openshift.com'
+	// +optional
+	CredentialsSecretRef *corev1.LocalObjectReference `json:"credentialsSecretRef,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -79,9 +86,6 @@ type OperatorRoleConfig struct {
 	// The ARN of the policy that is used to set the permissions boundary for the operator roles.
 	// +optional
 	PermissionsBoundaryARN string `json:"permissionsBoundaryARN,omitempty"`
-	// Registered OIDC configuration ID to add its issuer URL as the trusted relationship to the operator roles.''
-	// +kubebuilder:validation:Required
-	OIDCConfigID string `json:"oidcConfigId,omitempty"`
 	// SharedVPCConfig is used to set up shared VPC.
 	// +optional
 	SharedVPCConfig SharedVPCConfig `json:"sharedVPCConfig,omitempty"`
@@ -110,6 +114,9 @@ type OIDCConfig struct {
 	// +listMapKey=name
 	// +kubebuilder:validation:MaxItems=1
 	ExternalAuthProviders []rosacontrolplanev1.ExternalAuthProvider `json:"externalAuthProviders,omitempty"`
+	IdentityRef           *infrav1.AWSIdentityReference             `json:"identityRef,omitempty"`
+	Region                string                                    `json:"region,omitempty"`
+	Prefix                string                                    `json:"prefix"`
 }
 
 // ROSARoleConfigStatus defines the observed state of ROSARoleConfig
@@ -121,17 +128,17 @@ type ROSARoleConfigStatus struct {
 	// Created Account roles that can be used to
 	AccountRolesRef AccountRolesRef `json:"accountRolesRef,omitempty"`
 	// AWS IAM roles used to perform credential requests by the openshift operators.
-	OperatorRolesRef rosacontrolplanev1.AWSRolesRef `json:"operatorRolesRef"`
+	OperatorRolesRef rosacontrolplanev1.AWSRolesRef `json:"operatorRolesRef,omitempty"`
 	Conditions       clusterv1.Conditions           `json:"conditions,omitempty"`
 }
 
 // AccountRolesRef defscribes ARNs used as Account roles.
 type AccountRolesRef struct {
 	// InstallerRoleARN is an AWS IAM role that OpenShift Cluster Manager will assume to create the cluster..
-	InstallerRoleARN string `json:"installerRoleARN"`
+	InstallerRoleARN string `json:"installerRoleARN,omitempty"`
 	// SupportRoleARN is an AWS IAM role used by Red Hat SREs to enable
 	// access to the cluster account in order to provide support.
-	SupportRoleARN string `json:"supportRoleARN"`
+	SupportRoleARN string `json:"supportRoleARN,omitempty"`
 	// WorkerRoleARN is an AWS IAM role that will be attached to worker instances.
 	WorkerRoleARN string `json:"workerRoleARN,omitempty"`
 }
@@ -146,20 +153,29 @@ type ROSARoleConfigList struct {
 
 const (
 	// RosaRoleConfigReadyCondition condition reports on the successful reconciliation of RosaRoleConfig.
-	RosaRoleConfigReadyCondition clusterv1.ConditionType = "RosaRoleConfigReady"
+	RosaRoleConfigReadyCondition = "RosaRoleConfigReady"
 
 	// RosaRoleConfigDeletionFailedReason used to report failures while deleting RosaRoleConfig.
 	RosaRoleConfigDeletionFailedReason = "DeletionFailed"
+
+	// RosaRoleConfigReconciliationFailedReason used to report reconciliation failures.
+	RosaRoleConfigReconciliationFailedReason = "ReconciliationFailed"
+
+	// RosaRoleConfigDeletionStarted used to indicate that the deletion of RosaRoleConfig has started.
+	RosaRoleConfigDeletionStarted = "DeletionStarted"
+
+	// RosaRoleConfigCreatedReason used to indicate that the RosaRoleConfig has been created.
+	RosaRoleConfigCreatedReason = "Created"
 )
+
+// SetConditions sets the conditions of the ROSARoleConfig.
+func (r *ROSARoleConfig) SetConditions(conditions clusterv1.Conditions) {
+	r.Status.Conditions = conditions
+}
 
 // GetConditions returns the observations of the operational state of the RosaNetwork resource.
 func (r *ROSARoleConfig) GetConditions() clusterv1.Conditions {
 	return r.Status.Conditions
-}
-
-// SetConditions sets the underlying service state of the RosaRoleConfig to the predescribed clusterv1.Conditions.
-func (r *ROSARoleConfig) SetConditions(conditions clusterv1.Conditions) {
-	r.Status.Conditions = conditions
 }
 
 func init() {

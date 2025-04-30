@@ -22,6 +22,7 @@ import (
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -30,7 +31,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -136,10 +136,7 @@ func (s *RosaRoleConfigScope) GetClient() client.Client {
 func (s *RosaRoleConfigScope) PatchObject() error {
 	return s.patchHelper.Patch(
 		context.TODO(),
-		s.RosaRoleConfig,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
-			expinfrav1.RosaRoleConfigReadyCondition,
-		}})
+		s.RosaRoleConfig)
 }
 
 // Close closes the current scope persisting the RosaRoleConfig configuration and status.
@@ -149,5 +146,15 @@ func (s *RosaRoleConfigScope) Close() error {
 
 // CredentialsSecret returns the CredentialsSecret object.
 func (s *RosaRoleConfigScope) CredentialsSecret() *corev1.Secret {
-	return nil
+	secretRef := s.RosaRoleConfig.Spec.CredentialsSecretRef
+	if secretRef == nil {
+		return nil
+	}
+
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      s.RosaRoleConfig.Spec.CredentialsSecretRef.Name,
+			Namespace: s.RosaRoleConfig.Namespace,
+		},
+	}
 }
