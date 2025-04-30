@@ -22,6 +22,7 @@ import (
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -149,5 +150,15 @@ func (s *RosaRoleConfigScope) Close() error {
 
 // CredentialsSecret returns the CredentialsSecret object.
 func (s *RosaRoleConfigScope) CredentialsSecret() *corev1.Secret {
-	return nil
+	secretRef := s.RosaRoleConfig.Spec.CredentialsSecretRef
+	if secretRef == nil {
+		return nil
+	}
+
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      s.RosaRoleConfig.Spec.CredentialsSecretRef.Name,
+			Namespace: s.RosaRoleConfig.Namespace,
+		},
+	}
 }
