@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta2
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -34,6 +35,12 @@ type ROSARoleConfigSpec struct {
 	OIDCConfig         OIDCConfig                    `json:"oidcConfig"`
 	IdentityRef        *infrav1.AWSIdentityReference `json:"identityRef,omitempty"`
 	Region             string                        `json:"region,omitempty"`
+	// CredentialsSecretRef references a secret with necessary credentials to connect to the OCM API.
+	// The secret should contain the following data keys:
+	// - ocmToken: eyJhbGciOiJIUzI1NiIsI....
+	// - ocmApiUrl: Optional, defaults to 'https://api.openshift.com'
+	// +optional
+	CredentialsSecretRef *corev1.LocalObjectReference `json:"credentialsSecretRef,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -79,9 +86,6 @@ type OperatorRoleConfig struct {
 	// The ARN of the policy that is used to set the permissions boundary for the operator roles.
 	// +optional
 	PermissionsBoundaryARN string `json:"permissionsBoundaryARN,omitempty"`
-	// Registered OIDC configuration ID to add its issuer URL as the trusted relationship to the operator roles.''
-	// +kubebuilder:validation:Required
-	OIDCConfigID string `json:"oidcConfigId,omitempty"`
 	// SharedVPCConfig is used to set up shared VPC.
 	// +optional
 	SharedVPCConfig SharedVPCConfig `json:"sharedVPCConfig,omitempty"`
@@ -110,6 +114,9 @@ type OIDCConfig struct {
 	// +listMapKey=name
 	// +kubebuilder:validation:MaxItems=1
 	ExternalAuthProviders []rosacontrolplanev1.ExternalAuthProvider `json:"externalAuthProviders,omitempty"`
+	IdentityRef           *infrav1.AWSIdentityReference             `json:"identityRef,omitempty"`
+	Region                string                                    `json:"region,omitempty"`
+	Prefix                string                                    `json:"prefix"`
 }
 
 // ROSARoleConfigStatus defines the observed state of ROSARoleConfig

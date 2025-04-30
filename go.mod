@@ -31,7 +31,8 @@ require (
 	github.com/onsi/gomega v1.36.0
 	github.com/openshift-online/ocm-common v0.0.21
 	github.com/openshift-online/ocm-sdk-go v0.1.459
-	github.com/openshift/rosa v1.2.52
+	// github.com/openshift/rosa v1.2.52
+	github.com/openshift/rosa v0.0.0-20250528120404-279e4e58d597
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.19.1
 	github.com/sergi/go-diff v1.3.1
@@ -237,3 +238,7 @@ require (
 	sigs.k8s.io/kind v0.25.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 )
+
+// replace github.com/openshift/rosa => ./rosa
+// replace github.com/openshift/rosa => github.com/PanSpagetka/rosa
+replace github.com/openshift/rosa => github.com/PanSpagetka/rosa v0.0.0-20250528120404-279e4e58d597
