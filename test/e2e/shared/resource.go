@@ -192,7 +192,7 @@ func AcquireResources(request *TestResource, nodeNum int, fileLock *flock.Flock)
 	}()
 
 	By(fmt.Sprintf("Node %d acquiring resources: %s", nodeNum, request.String()))
-	for range time.Tick(time.Second) { //nolint:staticcheck
+	for range time.Tick(time.Second) {
 		if time.Now().After(timeoutAfter) {
 			By(fmt.Sprintf("Timeout reached for node %d", nodeNum))
 			break
@@ -249,7 +249,7 @@ func ReleaseResources(request *TestResource, nodeNum int, fileLock *flock.Flock)
 	}()
 
 	var tryCount = 0
-	for range time.Tick(1 * time.Second) { //nolint:staticcheck
+	for range time.Tick(1 * time.Second) {
 		tryCount++
 		if tryCount > timeoutInSec {
 			break
