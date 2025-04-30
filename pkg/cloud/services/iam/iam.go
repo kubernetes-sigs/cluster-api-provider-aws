@@ -76,19 +76,19 @@ func (s *Service) ReconcileOIDCProvider(ctx context.Context) error {
 		return errors.New("s3 bucket configuration required to associate OIDC provider")
 	}
 
-	if err := s.reconcileIdentityProvider(ctx); err != nil {
-		return err
-	}
-
 	if err := s.reconcileBucketContents(ctx); err != nil {
 		return err
 	}
 
-	if err := s.reconcileTrustPolicyConfigMap(ctx); err != nil {
-		return fmt.Errorf("failed to reconcile trust policy config map: %w", err)
+	if err := s.reconcileIdentityProvider(ctx); err != nil {
+		return err
 	}
 
 	conditions.MarkTrue(s.scope.InfraCluster(), infrav1.OIDCProviderReadyCondition)
+
+	if err := s.reconcileTrustPolicyConfigMap(ctx); err != nil {
+		return fmt.Errorf("failed to reconcile trust policy config map: %w", err)
+	}
 
 	return nil
 }
