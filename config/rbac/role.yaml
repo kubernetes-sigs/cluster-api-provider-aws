@@ -156,12 +156,7 @@ rules:
   - infrastructure.cluster.x-k8s.io
   resources:
   - awsclusters
-  - awsfargateprofiles
-  - awsmachinepools
-  - awsmanagedclusters
-  - awsmanagedmachinepools
-  - rosaclusters
-  - rosamachinepools
+  - awsmachines
   verbs:
   - create
   - delete
@@ -186,7 +181,6 @@ rules:
   resources:
   - awsfargateprofiles
   - awsmachinepools
-  - awsmachines
   - awsmanagedclusters
   - awsmanagedmachinepools
   - rosaclusters
@@ -206,18 +200,6 @@ rules:
   - awsmanagedclusters/status
   - awsmanagedmachinepools/status
   verbs:
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - awsmachines
-  verbs:
-  - create
-  - delete
   - get
   - list
   - patch
