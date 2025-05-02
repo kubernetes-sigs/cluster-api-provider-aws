@@ -207,6 +207,14 @@ type TargetGroupAttribute string
 var (
 	// TargetGroupAttributeEnablePreserveClientIP defines the attribute key for enabling preserve client IP.
 	TargetGroupAttributeEnablePreserveClientIP = "preserve_client_ip.enabled"
+
+	// TargetGroupAttributeEnableConnectionTermination defines the attribute key for terminating
+	// established connections to unhealthy targets.
+	TargetGroupAttributeEnableConnectionTermination = "target_health_state.unhealthy.connection_termination.enabled"
+
+	// TargetGroupAttributeUnhealthyDrainingIntervalSeconds defines the attribute key for the
+	// unhealthy target connection draining interval.
+	TargetGroupAttributeUnhealthyDrainingIntervalSeconds = "target_health_state.unhealthy.draining_interval_seconds"
 )
 
 // LoadBalancerAttribute defines a set of attributes for a V2 load balancer.
