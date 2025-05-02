@@ -17,9 +17,9 @@ require (
 	k8s.io/code-generator v0.32.3
 	k8s.io/gengo/v2 v2.0.0-20240911193312-2b36238f13e9
 	k8s.io/klog/v2 v2.130.1
-	sigs.k8s.io/cluster-api/hack/tools v0.0.0-20250416152108-4eeaa5719065
+	sigs.k8s.io/cluster-api/hack/tools v0.0.0-20250429160156-647a1b741bc8
 	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20240923090159-236e448db12c
-	sigs.k8s.io/controller-tools v0.17.0
+	sigs.k8s.io/controller-tools v0.17.3
 	sigs.k8s.io/kind v0.26.0
 	sigs.k8s.io/kustomize/kustomize/v5 v5.5.0
 	sigs.k8s.io/promo-tools/v4 v4.0.5
@@ -450,7 +450,7 @@ require (
 	k8s.io/kube-openapi v0.0.0-20241105132330-32ad38e42d3f // indirect
 	k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect
-	sigs.k8s.io/cluster-api v1.10.0 // indirect
+	sigs.k8s.io/cluster-api v1.10.1 // indirect
 	sigs.k8s.io/json v0.0.0-20241010143419-9aa6b5e7a4b3 // indirect
 	sigs.k8s.io/kubebuilder/docs/book/utils v0.0.0-20211028165026-57688c578b5d // indirect
 	sigs.k8s.io/kustomize/api v0.18.0 // indirect
