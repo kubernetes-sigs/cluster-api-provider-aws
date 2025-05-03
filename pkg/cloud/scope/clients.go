@@ -213,7 +213,7 @@ func NewS3Client(scopeUser cloud.ScopeUsage, session cloud.Session, logger logge
 			o.ClientLogMode = awslogs.GetAWSLogLevelV2(logger.GetLogger())
 			o.EndpointResolverV2 = s3EndpointResolver
 		},
-		s3.WithAPIOptions(awsmetricsv2.WithMiddlewares(scopeUser.ControllerName(), target)),
+		s3.WithAPIOptions(awsmetricsv2.WithMiddlewares(scopeUser.ControllerName(), target), awsmetricsv2.WithCAPAUserAgentMiddleware()),
 	}
 	return s3.NewFromConfig(cfg, s3Opts...)
 }

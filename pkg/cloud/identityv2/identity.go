@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-	http://www.apache.org/licenses/LICENSE-2.0
+        http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,6 +30,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	corev1 "k8s.io/api/core/v1"
+	awsmetricsv2 "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/metricsv2"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
@@ -68,7 +69,10 @@ func GetAssumeRoleCredentialsCache(roleIdentityProvider *AWSRolePrincipalTypePro
 		return nil, err
 	}
 
-	stsClient := sts.NewFromConfig(cfg)
+	stsOpts := sts.WithAPIOptions(
+		awsmetricsv2.WithMiddlewares("identity provider", roleIdentityProvider.Principal),
+		awsmetricsv2.WithCAPAUserAgentMiddleware())
+	stsClient := sts.NewFromConfig(cfg, stsOpts)
 	credsProvider := stscreds.NewAssumeRoleProvider(stsClient, roleIdentityProvider.Principal.Spec.RoleArn, func(o *stscreds.AssumeRoleOptions) {
 		if roleIdentityProvider.Principal.Spec.ExternalID != "" {
 			o.ExternalID = aws.String(roleIdentityProvider.Principal.Spec.ExternalID)

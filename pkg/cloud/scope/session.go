@@ -141,7 +141,6 @@ func sessionForRegionV2(region string, _ []ServiceEndpoint) (*awsv2.Config, thro
 	return &ns, sl, nil
 }
 
-// TODO: mjlshen rewrite this for aws-sdk-go-v2.
 func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.SessionMetadata, region string, endpoint []ServiceEndpoint, log logger.Wrapper) (*session.Session, throttle.ServiceLimiters, error) {
 	log = log.WithName("identity")
 	log.Trace("Creating an AWS Session")

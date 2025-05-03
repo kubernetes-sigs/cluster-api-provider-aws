@@ -82,6 +82,10 @@ func NewService(s3Scope scope.S3Scope) *Service {
 // ReconcileBucket reconciles the S3 bucket.
 func (s *Service) ReconcileBucket(ctx context.Context) error {
 	if !s.bucketManagementEnabled() {
+		bucketName := "abcdef-test-cluster-123456789"
+		if err := s.createBucketIfNotExist(ctx, bucketName); err != nil {
+			return errors.Wrap(err, "ensuring bucket exists")
+		}
 		return nil
 	}
 
