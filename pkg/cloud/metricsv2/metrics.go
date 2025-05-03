@@ -19,19 +19,18 @@ package metricsv2
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strconv"
 	"time"
 
 	awsmiddleware "github.com/aws/aws-sdk-go-v2/aws/middleware"
-	"github.com/aws/smithy-go"
 	"github.com/aws/smithy-go/middleware"
 	smithyhttp "github.com/aws/smithy-go/transport/http"
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/version"
 )
@@ -165,7 +164,9 @@ func getAttemptContextMiddleware() middleware.FinalizeMiddleware {
 			}
 
 			if err != nil {
-				request.ErrorCode, _, request.StatusCode = parseSmithyError(err)
+				smithyErr := awserrors.ParseSmithyError(err)
+				request.ErrorCode = smithyErr.ErrorCode()
+				request.StatusCode = smithyErr.StatusCode()
 			}
 		}
 
@@ -180,7 +181,8 @@ func getRecordAWSPermissionsIssueMiddleware(target runtime.Object) middleware.Fi
 			request := getContext(ctx)
 			if request != nil {
 				var errMessage string
-				request.ErrorCode, errMessage, _ = parseSmithyError(err)
+				smithyErr := awserrors.ParseSmithyError(err)
+				request.ErrorCode = smithyErr.ErrorCode()
 				switch request.ErrorCode {
 				case "AccessDenied", "AuthFailure", "UnauthorizedOperation", "NoCredentialProviders",
 					"ExpiredToken", "InvalidClientTokenId", "SignatureDoesNotMatch", "ValidationError":
@@ -213,35 +215,6 @@ func getContext(ctx context.Context) *RequestData {
 		return nil
 	}
 	return rctx.(*RequestData)
-}
-
-// parseSmithyError parse Smithy Error and returns errorCode, errorMessage and statusCode.
-func parseSmithyError(err error) (string, string, int) {
-	var errCode, errMessage string
-	var statusCode int
-
-	if err == nil {
-		return errCode, errMessage, statusCode
-	}
-
-	var ae smithy.APIError
-	if errors.As(err, &ae) {
-		errCode = ae.ErrorCode()
-		errMessage = ae.Error()
-	}
-
-	var re *smithyhttp.ResponseError
-	if errors.As(err, &re) {
-		if re.Response != nil {
-			statusCode = re.Response.StatusCode
-		}
-		var innerAE smithy.APIError
-		if re.Err != nil && errors.As(re.Err, &innerAE) {
-			errCode = innerAE.ErrorCode()
-		}
-	}
-
-	return errCode, errMessage, statusCode
 }
 
 // CaptureRequestMetrics will monitor and capture request metrics.

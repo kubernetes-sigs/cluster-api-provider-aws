@@ -31,12 +31,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
-	"github.com/aws/smithy-go"
 	"github.com/pkg/errors"
 	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	iam "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/util/system"
 )
@@ -122,21 +122,15 @@ func (s *Service) DeleteBucket(ctx context.Context) error {
 		Bucket: aws.String(bucketName),
 	})
 	if err != nil {
-		var aerr smithy.APIError
-		if errors.As(err, &aerr) {
-			switch aerr.ErrorCode() {
-			case (&types.NoSuchBucket{}).ErrorCode():
-				log.Info("Bucket already removed")
-			case "BucketNotEmpty":
-				log.Info("Bucket not empty, skipping removal")
-			default:
-				return errors.Wrap(aerr, "deleting S3 bucket")
-			}
-
-			return nil
+		smithyErr := awserrors.ParseSmithyError(err)
+		switch smithyErr.ErrorCode() {
+		case (&types.NoSuchBucket{}).ErrorCode():
+			log.Info("Bucket already removed")
+		case "BucketNotEmpty":
+			log.Info("Bucket not empty, skipping removal")
+		default:
+			return errors.Wrap(err, "deleting S3 bucket")
 		}
-
-		return errors.Wrap(err, "deleting S3 bucket")
 	}
 
 	return nil
@@ -211,32 +205,30 @@ func (s *Service) Delete(ctx context.Context, m *scope.MachineScope) error {
 		Key:    aws.String(key),
 	})
 	if err != nil {
-		var aerr smithy.APIError
-		if errors.As(err, &aerr) {
-			switch aerr.ErrorCode() {
-			case "Forbidden":
-				// In the case that the IAM policy does not have sufficient
-				// permissions to get the object, we will attempt to delete it
-				// anyway for backwards compatibility reasons.
-				s.scope.Debug("Received 403 forbidden from S3 HeadObject call. If GetObject permission has been granted to the controller but not ListBucket, object is already deleted. Attempting deletion anyway in case GetObject permission hasn't been granted to the controller but DeleteObject has.", "bucket", bucket, "key", key)
+		smithyErr := awserrors.ParseSmithyError(err)
+		switch smithyErr.ErrorCode() {
+		case "Forbidden":
+			// In the case that the IAM policy does not have sufficient
+			// permissions to get the object, we will attempt to delete it
+			// anyway for backwards compatibility reasons.
+			s.scope.Debug("Received 403 forbidden from S3 HeadObject call. If GetObject permission has been granted to the controller but not ListBucket, object is already deleted. Attempting deletion anyway in case GetObject permission hasn't been granted to the controller but DeleteObject has.", "bucket", bucket, "key", key)
 
-				if err := s.deleteObject(ctx, bucket, key); err != nil {
-					return err
-				}
-
-				s.scope.Debug("Delete object call succeeded despite missing GetObject permission", "bucket", bucket, "key", key)
-
-				return nil
-			case "NotFound":
-				s.scope.Debug("Either bucket or object does not exist", "bucket", bucket, "key", key)
-				return nil
-			case (&types.NoSuchKey{}).ErrorCode():
-				s.scope.Debug("Object already deleted", "bucket", bucket, "key", key)
-				return nil
-			case (&types.NoSuchBucket{}).ErrorCode():
-				s.scope.Debug("Bucket does not exist", "bucket", bucket)
-				return nil
+			if err := s.deleteObject(ctx, bucket, key); err != nil {
+				return err
 			}
+
+			s.scope.Debug("Delete object call succeeded despite missing GetObject permission", "bucket", bucket, "key", key)
+
+			return nil
+		case "NotFound":
+			s.scope.Debug("Either bucket or object does not exist", "bucket", bucket, "key", key)
+			return nil
+		case (&types.NoSuchKey{}).ErrorCode():
+			s.scope.Debug("Object already deleted", "bucket", bucket, "key", key)
+			return nil
+		case (&types.NoSuchBucket{}).ErrorCode():
+			s.scope.Debug("Bucket does not exist", "bucket", bucket)
+			return nil
 		}
 		return errors.Wrap(err, "deleting S3 object")
 	}
@@ -252,13 +244,11 @@ func (s *Service) deleteObject(ctx context.Context, bucket, key string) error {
 		Key:    aws.String(key),
 	}); err != nil {
 		if ptr.Deref(s.scope.Bucket().BestEffortDeleteObjects, false) {
-			var aerr smithy.APIError
-			if errors.As(err, &aerr) {
-				switch aerr.ErrorCode() {
-				case "Forbidden", "AccessDenied":
-					s.scope.Debug("Ignoring deletion error", "bucket", bucket, "key", key, "error", aerr.ErrorMessage())
-					return nil
-				}
+			smithyErr := awserrors.ParseSmithyError(err)
+			switch smithyErr.ErrorCode() {
+			case "Forbidden", "AccessDenied":
+				s.scope.Debug("Ignoring deletion error", "bucket", bucket, "key", key, "error", smithyErr.ErrorMessage())
+				return nil
 			}
 		}
 		return errors.Wrap(err, "deleting S3 object")
@@ -284,20 +274,16 @@ func (s *Service) createBucketIfNotExist(ctx context.Context, bucketName string)
 		return nil
 	}
 
-	var aerr smithy.APIError
-	if errors.As(err, &aerr) {
-		switch aerr.ErrorCode() {
-		// If bucket already exists, all good.
-		//
-		// TODO: This will fail if bucket is shared with other cluster.
-		case (&types.BucketAlreadyOwnedByYou{}).ErrorCode():
-			return nil
-		default:
-			return errors.Wrap(aerr, "creating S3 bucket")
-		}
+	smithyErr := awserrors.ParseSmithyError(err)
+	switch smithyErr.ErrorCode() {
+	// If bucket already exists, all good.
+	//
+	// TODO: This will fail if bucket is shared with other cluster.
+	case (&types.BucketAlreadyOwnedByYou{}).ErrorCode():
+		return nil
+	default:
+		return errors.Wrap(err, "creating S3 bucket")
 	}
-
-	return errors.Wrap(err, "creating S3 bucket")
 }
 
 func (s *Service) ensureBucketPolicy(ctx context.Context, bucketName string) error {
