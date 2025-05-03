@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-	http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,7 +21,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"strconv"
 	"time"
 
@@ -56,25 +55,19 @@ var (
 		Name:      metricRequestCountKey,
 		Help:      "Total number of AWS requests",
 	}, []string{metricControllerLabel, metricServiceLabel, metricRegionLabel, metricOperationLabel, metricStatusCodeLabel, metricErrorCodeLabel})
+
 	awsRequestDurationSeconds = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Subsystem: metricAWSSubsystem,
 		Name:      metricRequestDurationKey,
 		Help:      "Latency of HTTP requests to AWS",
 	}, []string{metricControllerLabel, metricServiceLabel, metricRegionLabel, metricOperationLabel})
+
 	awsCallRetries = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Subsystem: metricAWSSubsystem,
 		Name:      metricAPICallRetries,
 		Help:      "Number of retries made against an AWS API",
 		Buckets:   []float64{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
 	}, []string{metricControllerLabel, metricServiceLabel, metricRegionLabel, metricOperationLabel})
-	getRawResponse = func(metadata middleware.Metadata) *http.Response {
-		switch res := awsmiddleware.GetRawResponse(metadata).(type) {
-		case *http.Response:
-			return res
-		default:
-			return nil
-		}
-	}
 )
 
 func init() {
@@ -91,34 +84,33 @@ type RequestData struct {
 	RequestEndTime   time.Time
 	StatusCode       int
 	ErrorCode        string
-	RequestCount     int
 	Service          string
 	OperationName    string
 	Region           string
-	UserAgent        string
 	Controller       string
 	Target           runtime.Object
 	Attempts         int
 }
 
 // WithMiddlewares adds instrumentation middleware stacks to AWS GO SDK V2 service clients.
-// Inspired by https://github.com/jonathan-innis/aws-sdk-go-prometheus/v2.
 func WithMiddlewares(controller string, target runtime.Object) func(stack *middleware.Stack) error {
 	return func(stack *middleware.Stack) error {
 		if err := stack.Initialize.Add(getMetricCollectionMiddleware(controller, target), middleware.Before); err != nil {
-			return err
-		}
-		if err := stack.Build.Add(getAddToUserAgentMiddleware(), middleware.Before); err != nil {
-			return err
+			return fmt.Errorf("failed to add metric collection middleware: %w", err)
 		}
 		if err := stack.Finalize.Add(getRequestMetricContextMiddleware(), middleware.Before); err != nil {
-			return err
+			return fmt.Errorf("failed to add request metric context middleware: %w", err)
 		}
 		if err := stack.Finalize.Insert(getAttemptContextMiddleware(), "Retry", middleware.After); err != nil {
-			return err
+			return fmt.Errorf("failed to add attempt context middleware: %w", err)
 		}
-		return stack.Deserialize.Add(getRecordAWSPermissionsIssueMiddleware(target), middleware.After)
+		return stack.Finalize.Add(getRecordAWSPermissionsIssueMiddleware(target), middleware.After)
 	}
+}
+
+// WithCAPAUserAgentMiddleware returns User Agent middleware stack for AWS GO SDK V2 sessions.
+func WithCAPAUserAgentMiddleware() func(*middleware.Stack) error {
+	return awsmiddleware.AddUserAgentKeyValue("aws.cluster.x-k8s.io", version.Get().String())
 }
 
 func getMetricCollectionMiddleware(controller string, target runtime.Object) middleware.InitializeMiddleware {
@@ -128,10 +120,13 @@ func getMetricCollectionMiddleware(controller string, target runtime.Object) mid
 
 		request.RequestStartTime = time.Now().UTC()
 		out, metadata, err := handler.HandleInitialize(ctx, input)
-		request.RequestEndTime = time.Now().UTC()
 
+		if responseAt, ok := awsmiddleware.GetResponseAt(metadata); ok {
+			request.RequestEndTime = responseAt
+		} else {
+			request.RequestEndTime = time.Now().UTC()
+		}
 		request.CaptureRequestMetrics()
-
 		return out, metadata, err
 	})
 }
@@ -139,70 +134,65 @@ func getMetricCollectionMiddleware(controller string, target runtime.Object) mid
 func getRequestMetricContextMiddleware() middleware.FinalizeMiddleware {
 	return middleware.FinalizeMiddlewareFunc("capa/RequestMetricContextMiddleware", func(ctx context.Context, input middleware.FinalizeInput, handler middleware.FinalizeHandler) (middleware.FinalizeOutput, middleware.Metadata, error) {
 		request := getContext(ctx)
-		request.Service = awsmiddleware.GetServiceID(ctx)
-		request.OperationName = awsmiddleware.GetOperationName(ctx)
-		request.Region = awsmiddleware.GetRegion(ctx)
 
+		if request != nil {
+			request.Service = awsmiddleware.GetServiceID(ctx)
+			request.OperationName = awsmiddleware.GetOperationName(ctx)
+			request.Region = awsmiddleware.GetRegion(ctx)
+		}
 		return handler.HandleFinalize(ctx, input)
 	})
 }
 
-// For capturing retry count and status codes.
+// getAttemptContextMiddleware will capture StatusCode and ErrorCode from API call attempt.
+// This will result in the StatusCode and ErrorCode captured for last attempt when publishing to metrics.
 func getAttemptContextMiddleware() middleware.FinalizeMiddleware {
 	return middleware.FinalizeMiddlewareFunc("capa/AttemptMetricContextMiddleware", func(ctx context.Context, input middleware.FinalizeInput, handler middleware.FinalizeHandler) (middleware.FinalizeOutput, middleware.Metadata, error) {
 		request := getContext(ctx)
-		request.Attempts++
-		out, metadata, err := handler.HandleFinalize(ctx, input)
-		response := getRawResponse(metadata)
-
-		if response.Body != nil {
-			defer response.Body.Close()
+		if request != nil {
+			request.Attempts++
 		}
 
-		// This will record only last attempts status code.
-		// Can be further extended to capture status codes of all attempts
-		if response != nil {
-			request.StatusCode = response.StatusCode
-		} else {
-			request.StatusCode = -1
+		out, metadata, err := handler.HandleFinalize(ctx, input)
+
+		if request != nil {
+			if rawResp := awsmiddleware.GetRawResponse(metadata); rawResp != nil {
+				if httpResp, ok := rawResp.(*smithyhttp.Response); ok {
+					request.StatusCode = httpResp.StatusCode
+				}
+			} else {
+				request.StatusCode = -1
+			}
+
+			if err != nil {
+				request.ErrorCode, _, request.StatusCode = parseSmithyError(err)
+			}
 		}
 
 		return out, metadata, err
 	})
 }
-func getRecordAWSPermissionsIssueMiddleware(target runtime.Object) middleware.DeserializeMiddleware {
-	return middleware.DeserializeMiddlewareFunc("capa/RecordAWSPermissionsIssueMiddleware", func(ctx context.Context, input middleware.DeserializeInput, handler middleware.DeserializeHandler) (middleware.DeserializeOutput, middleware.Metadata, error) {
-		output, metadata, err := handler.HandleDeserialize(ctx, input)
+
+func getRecordAWSPermissionsIssueMiddleware(target runtime.Object) middleware.FinalizeMiddleware {
+	return middleware.FinalizeMiddlewareFunc("capa/RecordAWSPermissionsIssueMiddleware", func(ctx context.Context, input middleware.FinalizeInput, handler middleware.FinalizeHandler) (middleware.FinalizeOutput, middleware.Metadata, error) {
+		output, metadata, err := handler.HandleFinalize(ctx, input)
 		if err != nil {
-			var re *smithyhttp.ResponseError
-			if errors.As(err, &re) {
-				var ae smithy.APIError
-				if errors.As(re.Err, &ae) {
-					switch ae.ErrorCode() {
-					case "AuthFailure", "UnauthorizedOperation", "NoCredentialProviders":
-						record.Warnf(target, ae.ErrorCode(), "Operation %s failed with a credentials or permission issue", awsmiddleware.GetOperationName(ctx))
-					}
+			request := getContext(ctx)
+			if request != nil {
+				var errMessage string
+				request.ErrorCode, errMessage, _ = parseSmithyError(err)
+				switch request.ErrorCode {
+				case "AccessDenied", "AuthFailure", "UnauthorizedOperation", "NoCredentialProviders",
+					"ExpiredToken", "InvalidClientTokenId", "SignatureDoesNotMatch", "ValidationError":
+					record.Warnf(target, request.ErrorCode,
+						"Operation %s failed with a credentials or permission issue: %s",
+						request.OperationName,
+						errMessage,
+					)
 				}
 			}
 		}
 		return output, metadata, err
-	})
-}
-
-func getAddToUserAgentMiddleware() middleware.BuildMiddleware {
-	return middleware.BuildMiddlewareFunc("capa/AddUserAgentMiddleware", func(ctx context.Context, input middleware.BuildInput, handler middleware.BuildHandler) (middleware.BuildOutput, middleware.Metadata, error) {
-		request := getContext(ctx)
-		r, ok := input.Request.(*smithyhttp.Request)
-		if !ok {
-			return middleware.BuildOutput{}, middleware.Metadata{}, fmt.Errorf("unknown transport type %T", input.Request)
-		}
-
-		if curUA := r.Header.Get("User-Agent"); curUA != "" {
-			request.UserAgent = curUA + " " + request.UserAgent
-		}
-		r.Header.Set("User-Agent", request.UserAgent)
-
-		return handler.HandleBuild(ctx, input)
 	})
 }
 
@@ -211,7 +201,7 @@ func initRequestContext(ctx context.Context, controller string, target runtime.O
 		ctx = middleware.WithStackValue(ctx, requestContextKey{}, &RequestData{
 			Controller: controller,
 			Target:     target,
-			UserAgent:  fmt.Sprintf("aws.cluster.x-k8s.io/%s", version.Get().String()),
+			Attempts:   0,
 		})
 	}
 	return ctx
@@ -225,12 +215,70 @@ func getContext(ctx context.Context) *RequestData {
 	return rctx.(*RequestData)
 }
 
+// parseSmithyError parse Smithy Error and returns errorCode, errorMessage and statusCode.
+func parseSmithyError(err error) (string, string, int) {
+	var errCode, errMessage string
+	var statusCode int
+
+	if err == nil {
+		return errCode, errMessage, statusCode
+	}
+
+	var ae smithy.APIError
+	if errors.As(err, &ae) {
+		errCode = ae.ErrorCode()
+		errMessage = ae.Error()
+	}
+
+	var re *smithyhttp.ResponseError
+	if errors.As(err, &re) {
+		if re.Response != nil {
+			statusCode = re.Response.StatusCode
+		}
+		var innerAE smithy.APIError
+		if re.Err != nil && errors.As(re.Err, &innerAE) {
+			errCode = innerAE.ErrorCode()
+		}
+	}
+
+	return errCode, errMessage, statusCode
+}
+
 // CaptureRequestMetrics will monitor and capture request metrics.
 func (r *RequestData) CaptureRequestMetrics() {
-	requestDuration := r.RequestStartTime.Sub(r.RequestEndTime)
-	retryCount := r.Attempts - 1
+	if r.Service == "" || r.Region == "" || r.OperationName == "" || r.Controller == "" {
+		return
+	}
 
-	awsRequestCount.WithLabelValues(r.Controller, r.Service, r.Region, r.OperationName, strconv.Itoa(r.StatusCode), r.ErrorCode).Inc()
-	awsRequestDurationSeconds.WithLabelValues(r.Controller, r.Service, r.Region, r.OperationName).Observe(requestDuration.Seconds())
-	awsCallRetries.WithLabelValues(r.Controller, r.Service, r.Region, r.OperationName).Observe(float64(retryCount))
+	requestDuration := r.RequestEndTime.Sub(r.RequestStartTime)
+	retryCount := max(r.Attempts-1, 0)
+	statusCode := strconv.Itoa(r.StatusCode)
+	errorCode := r.ErrorCode
+
+	if errorCode == "" && r.StatusCode >= 400 {
+		errorCode = fmt.Sprintf("HTTP%d", r.StatusCode)
+	}
+
+	awsRequestCount.WithLabelValues(
+		r.Controller,
+		r.Service,
+		r.Region,
+		r.OperationName,
+		statusCode,
+		errorCode,
+	).Inc()
+
+	awsRequestDurationSeconds.WithLabelValues(
+		r.Controller,
+		r.Service,
+		r.Region,
+		r.OperationName,
+	).Observe(requestDuration.Seconds())
+
+	awsCallRetries.WithLabelValues(
+		r.Controller,
+		r.Service,
+		r.Region,
+		r.OperationName,
+	).Observe(float64(retryCount))
 }

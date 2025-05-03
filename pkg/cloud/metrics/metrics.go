@@ -69,9 +69,6 @@ func init() {
 	metrics.Registry.MustRegister(awsCallRetries)
 }
 
-// TODO: mjlshen rewrite this for aws-sdk-go-v2
-//	https://docs.aws.amazon.com/sdk-for-go/v2/developer-guide/sdk-timing.html
-
 // CaptureRequestMetrics will monitor and capture request metrics.
 func CaptureRequestMetrics(controller string) func(r *request.Request) {
 	return func(r *request.Request) {
