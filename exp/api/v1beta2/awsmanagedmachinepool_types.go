@@ -180,6 +180,10 @@ type AWSManagedMachinePoolSpec struct {
 	// are prohibited (https://docs.aws.amazon.com/eks/latest/userguide/launch-templates.html).
 	// +optional
 	AWSLaunchTemplate *AWSLaunchTemplate `json:"awsLaunchTemplate,omitempty"`
+
+	// AWSLifecycleHooks specifies lifecycle hooks for the managed node group.
+	// +optional
+	AWSLifecycleHooks []AWSLifecycleHook `json:"lifecycleHooks,omitempty"`
 }
 
 // ManagedMachinePoolScaling specifies scaling options.
