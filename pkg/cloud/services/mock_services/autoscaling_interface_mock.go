@@ -21,6 +21,7 @@ limitations under the License.
 package mock_services
 
 import (
+	context "context"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -96,6 +97,20 @@ func (mr *MockASGInterfaceMockRecorder) CreateASG(arg0 interface{}) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateASG", reflect.TypeOf((*MockASGInterface)(nil).CreateASG), arg0)
 }
 
+// CreateLifecycleHook mocks base method.
+func (m *MockASGInterface) CreateLifecycleHook(arg0 context.Context, arg1 string, arg2 *v1beta2.AWSLifecycleHook) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateLifecycleHook", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateLifecycleHook indicates an expected call of CreateLifecycleHook.
+func (mr *MockASGInterfaceMockRecorder) CreateLifecycleHook(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLifecycleHook", reflect.TypeOf((*MockASGInterface)(nil).CreateLifecycleHook), arg0, arg1, arg2)
+}
+
 // DeleteASGAndWait mocks base method.
 func (m *MockASGInterface) DeleteASGAndWait(arg0 string) error {
 	m.ctrl.T.Helper()
@@ -108,6 +123,35 @@ func (m *MockASGInterface) DeleteASGAndWait(arg0 string) error {
 func (mr *MockASGInterfaceMockRecorder) DeleteASGAndWait(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteASGAndWait", reflect.TypeOf((*MockASGInterface)(nil).DeleteASGAndWait), arg0)
+}
+
+// DeleteLifecycleHook mocks base method.
+func (m *MockASGInterface) DeleteLifecycleHook(arg0 context.Context, arg1 string, arg2 *v1beta2.AWSLifecycleHook) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteLifecycleHook", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteLifecycleHook indicates an expected call of DeleteLifecycleHook.
+func (mr *MockASGInterfaceMockRecorder) DeleteLifecycleHook(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLifecycleHook", reflect.TypeOf((*MockASGInterface)(nil).DeleteLifecycleHook), arg0, arg1, arg2)
+}
+
+// DescribeLifecycleHooks mocks base method.
+func (m *MockASGInterface) DescribeLifecycleHooks(arg0 string) ([]*v1beta2.AWSLifecycleHook, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeLifecycleHooks", arg0)
+	ret0, _ := ret[0].([]*v1beta2.AWSLifecycleHook)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeLifecycleHooks indicates an expected call of DescribeLifecycleHooks.
+func (mr *MockASGInterfaceMockRecorder) DescribeLifecycleHooks(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeLifecycleHooks", reflect.TypeOf((*MockASGInterface)(nil).DescribeLifecycleHooks), arg0)
 }
 
 // GetASGByName mocks base method.
@@ -194,6 +238,20 @@ func (m *MockASGInterface) UpdateASG(arg0 *scope.MachinePoolScope) error {
 func (mr *MockASGInterfaceMockRecorder) UpdateASG(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateASG", reflect.TypeOf((*MockASGInterface)(nil).UpdateASG), arg0)
+}
+
+// UpdateLifecycleHook mocks base method.
+func (m *MockASGInterface) UpdateLifecycleHook(arg0 context.Context, arg1 string, arg2 *v1beta2.AWSLifecycleHook) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateLifecycleHook", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateLifecycleHook indicates an expected call of UpdateLifecycleHook.
+func (mr *MockASGInterfaceMockRecorder) UpdateLifecycleHook(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateLifecycleHook", reflect.TypeOf((*MockASGInterface)(nil).UpdateLifecycleHook), arg0, arg1, arg2)
 }
 
 // UpdateResourceTags mocks base method.
