@@ -163,6 +163,10 @@ func (r *AWSMachinePool) validateRefreshPreferences() field.ErrorList {
 	return allErrs
 }
 
+func (r *AWSMachinePool) validateLifecycleHooks() field.ErrorList {
+	return validateLifecycleHooks(r.Spec.AWSLifecycleHooks)
+}
+
 // ValidateCreate will do any extra validation when creating a AWSMachinePool.
 func (r *AWSMachinePool) ValidateCreate() (admission.Warnings, error) {
 	log.Info("AWSMachinePool validate create", "machine-pool", klog.KObj(r))
@@ -178,6 +182,7 @@ func (r *AWSMachinePool) ValidateCreate() (admission.Warnings, error) {
 	allErrs = append(allErrs, r.validateSpotInstances()...)
 	allErrs = append(allErrs, r.validateRefreshPreferences()...)
 	allErrs = append(allErrs, r.validateInstanceMarketType()...)
+	allErrs = append(allErrs, r.validateLifecycleHooks()...)
 
 	if len(allErrs) == 0 {
 		return nil, nil
@@ -205,7 +210,7 @@ func (r *AWSMachinePool) validateInstanceMarketType() field.ErrorList {
 	switch r.Spec.AWSLaunchTemplate.MarketType {
 	case "", v1beta2.MarketTypeOnDemand, v1beta2.MarketTypeSpot, v1beta2.MarketTypeCapacityBlock:
 	default:
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec.awsLaunchTemplate.MarketType"), r.Spec.AWSLaunchTemplate.MarketType, fmt.Sprintf("Valid values are: %s, %s, %s and omitted", v1beta2.MarketTypeOnDemand, v1beta2.MarketTypeSpot, v1beta2.MarketTypeCapacityBlock)))
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec.awsLaunchTemplate.marketType"), r.Spec.AWSLaunchTemplate.MarketType, fmt.Sprintf("Valid values are: %s, %s, %s and omitted", v1beta2.MarketTypeOnDemand, v1beta2.MarketTypeSpot, v1beta2.MarketTypeCapacityBlock)))
 	}
 	if r.Spec.AWSLaunchTemplate.MarketType == v1beta2.MarketTypeSpot && r.Spec.AWSLaunchTemplate.CapacityReservationID != nil {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.awsLaunchTemplate.marketType"), "cannot be set to 'Spot' when CapacityReservationID is specified"))
@@ -228,6 +233,7 @@ func (r *AWSMachinePool) ValidateUpdate(_ runtime.Object) (admission.Warnings, e
 	allErrs = append(allErrs, r.validateAdditionalSecurityGroups()...)
 	allErrs = append(allErrs, r.validateSpotInstances()...)
 	allErrs = append(allErrs, r.validateRefreshPreferences()...)
+	allErrs = append(allErrs, r.validateLifecycleHooks()...)
 
 	if len(allErrs) == 0 {
 		return nil, nil
