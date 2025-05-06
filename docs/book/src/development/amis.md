@@ -22,6 +22,12 @@ For a new Kubernetes version that you want to build an AMI for you will need to 
 
 You can determine these values directly or by looking at the publish debian apt repositories for the k8s release.
 
+A quick way to get these values is by using the find-ami-publishing-inputs script.
+The script lives under `/scripts` in the root directory of CAPA, and can be invoked like so (supposing you want to publish k8s v1.32 AMIs):
+```
+./scripts/find-ami-publishing-inputs.sh v1.32
+```
+
 ## Build
 
 ### Using GitHub Actions Workflow
