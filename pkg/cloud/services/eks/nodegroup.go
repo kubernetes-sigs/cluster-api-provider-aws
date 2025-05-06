@@ -34,11 +34,19 @@ import (
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
+	asg "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/autoscaling"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/annotations"
 )
+
+// IgnoredEKSLifecycleHooks lists built-in EKS lifecycle hooks
+// that should not be changed or deleted.
+var IgnoredEKSLifecycleHooks = map[string]bool{
+	"Launch-LC-Hook":    true,
+	"Terminate-LC-Hook": true,
+}
 
 func (s *NodegroupService) describeNodegroup() (*eks.Nodegroup, error) {
 	eksClusterName := s.scope.KubernetesClusterName()
@@ -150,7 +158,7 @@ func (s *NodegroupService) remoteAccess() (*eks.RemoteAccessConfig, error) {
 	// SourceSecurityGroups is validated to be empty if PublicAccess is true
 	// but just in case we use an empty list to take advantage of the documented
 	// API behavior
-	var sSGs = []string{}
+	sSGs := []string{}
 
 	if !pool.RemoteAccess.Public {
 		sSGs = pool.RemoteAccess.SourceSecurityGroups
@@ -576,6 +584,10 @@ func (s *NodegroupService) reconcileNodegroup(ctx context.Context) error {
 		return errors.Wrapf(err, "failed to reconcile asg tags")
 	}
 
+	if err := s.reconcileLifecycleHooks(ctx, ng); err != nil {
+		return errors.Wrapf(err, "failed to reconcile lifecyle hooks")
+	}
+
 	return nil
 }
 
@@ -649,4 +661,13 @@ func (s *NodegroupService) waitForNodegroupActive() (*eks.Nodegroup, error) {
 	}
 
 	return ng, nil
+}
+
+// reconcileLifecycleHooks periodically reconciles a lifecycle hook for the ASG.
+func (s *NodegroupService) reconcileLifecycleHooks(ctx context.Context, ng *eks.Nodegroup) error {
+	if len(ng.Resources.AutoScalingGroups) == 0 {
+		return errors.New("no ASG defined for node group")
+	}
+
+	return asg.ReconcileLifecycleHooks(ctx, s.ASGService, *ng.Resources.AutoScalingGroups[0].Name, s.scope.GetLifecycleHooks(), IgnoredEKSLifecycleHooks, s.scope.GetMachinePool(), s.scope)
 }
