@@ -38,7 +38,7 @@ func NewGlobalScope(params GlobalScopeParams) (*GlobalScope, error) {
 		return nil, errors.Wrap(err, "failed to create aws session")
 	}
 
-	ns2, _, err := sessionForRegionV2(params.Region, params.Endpoints)
+	ns2, _, err := sessionForRegionV2(params.Region)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create aws V2 session")
 	}

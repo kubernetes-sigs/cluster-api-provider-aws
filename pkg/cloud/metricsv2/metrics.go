@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Kubernetes Authors.
+Copyright 2025 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -219,7 +219,7 @@ func getContext(ctx context.Context) *RequestData {
 
 // CaptureRequestMetrics will monitor and capture request metrics.
 func (r *RequestData) CaptureRequestMetrics() {
-	if r.Service == "" || r.Region == "" || r.OperationName == "" || r.Controller == "" {
+	if !r.IsIncomplete() {
 		return
 	}
 
@@ -254,4 +254,9 @@ func (r *RequestData) CaptureRequestMetrics() {
 		r.Region,
 		r.OperationName,
 	).Observe(float64(retryCount))
+}
+
+// IsIncomplete will return true if the RequestData was incomplete.
+func (r *RequestData) IsIncomplete() bool {
+	return r.Service == "" || r.Region == "" || r.OperationName == "" || r.Controller == ""
 }

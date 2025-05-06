@@ -124,8 +124,13 @@ func containsString(slice []string, s string) bool {
 // TODO: punkwalker - remove this after Go SDK V2 migration.
 func saveToServiceEndpointV2Map(src []scope.ServiceEndpoint) {
 	for _, svc := range src {
+		// convert service ID to UpperCase as service IDs in AWS SDK GO V2 are UpperCase & Go map is Case Sensitve
+		// This is for backward compabitibility
+		// Ref: SDK V2 https://pkg.go.dev/github.com/aws/aws-sdk-go-v2/service/ec2#pkg-constants
+		// Ref: SDK V1 https://pkg.go.dev/github.com/aws/aws-sdk-go/aws/endpoints#pkg-constants
+		serviceID := strings.ToUpper(svc.ServiceID)
 		endpoint := endpointsv2.ServiceEndpoint{
-			ServiceID:     svc.ServiceID,
+			ServiceID:     serviceID,
 			URL:           svc.URL,
 			SigningRegion: svc.SigningRegion,
 		}

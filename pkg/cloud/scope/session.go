@@ -117,7 +117,7 @@ func sessionForRegion(region string, endpoint []ServiceEndpoint) (*session.Sessi
 	return ns, sl, nil
 }
 
-func sessionForRegionV2(region string, _ []ServiceEndpoint) (*awsv2.Config, throttle.ServiceLimiters, error) {
+func sessionForRegionV2(region string) (*awsv2.Config, throttle.ServiceLimiters, error) {
 	if s, ok := sessionCacheV2.Load(region); ok {
 		entry := s.(*sessionCacheEntry)
 		return entry.sessionV2, entry.serviceLimiters, nil
