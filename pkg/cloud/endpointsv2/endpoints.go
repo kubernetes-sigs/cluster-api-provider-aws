@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Kubernetes Authors.
+Copyright 2025 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,6 +25,8 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	smithyendpoints "github.com/aws/smithy-go/endpoints"
+
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 )
 
 var (
@@ -104,11 +106,15 @@ type S3EndpointResolver struct {
 // ResolveEndpoint for S3.
 func (s *S3EndpointResolver) ResolveEndpoint(ctx context.Context, params s3.EndpointParameters) (smithyendpoints.Endpoint, error) {
 	// If custom endpoint not found, return default endpoint for the service
-	if _, ok := s.endpoints[s3.ServiceID]; !ok {
+	log := logger.FromContext(ctx)
+	endpoint, ok := s.endpoints[s3.ServiceID]
+
+	if !ok {
+		log.Debug("Custom endpoint not found, using default endpoint")
 		return s3.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
 	}
 
-	endpoint := ServiceEndpointsMap[s3.ServiceID]
+	log.Debug("Custom endpoint found, using custom endpoint", "endpoint", endpoint.URL)
 	params.Endpoint = &endpoint.URL
 	params.Region = &endpoint.SigningRegion
 	return s3.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
