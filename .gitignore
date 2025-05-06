@@ -27,6 +27,7 @@ envfile
 # kubeconfigs
 kind.kubeconfig
 minikube.kubeconfig
+capi-test.kubeconfig
 kubeconfig
 !kubeconfig/
 
@@ -63,3 +64,5 @@ dist
 _artifacts
 awsiamconfiguration.yaml
 cloudformation.yaml
+test-cluster.yaml
+__debug*

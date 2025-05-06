@@ -56,6 +56,9 @@ func (src *AWSMachine) ConvertTo(dstRaw conversion.Hub) error {
 		}
 	}
 
+	dst.Spec.HostAffinity = restored.Spec.HostAffinity
+	dst.Spec.HostID = restored.Spec.HostID
+
 	return nil
 }
 
@@ -119,6 +122,8 @@ func (r *AWSMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 			dst.Spec.Template.Spec.ElasticIPPool.PublicIpv4PoolFallBackOrder = restored.Spec.Template.Spec.ElasticIPPool.PublicIpv4PoolFallBackOrder
 		}
 	}
+	dst.Spec.Template.Spec.HostAffinity = restored.Spec.Template.Spec.HostAffinity
+	dst.Spec.Template.Spec.HostID = restored.Spec.Template.Spec.HostID
 
 	return nil
 }
