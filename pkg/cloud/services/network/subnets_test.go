@@ -676,7 +676,6 @@ func TestReconcileSubnets(t *testing.T) {
 					AvailabilityZone: "us-east-1a",
 					CidrBlock:        "10.0.10.0/24",
 					IsPublic:         true,
-					Tags:             infrav1.Tags{},
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
@@ -782,7 +781,6 @@ func TestReconcileSubnets(t *testing.T) {
 					AvailabilityZone: "us-east-1a",
 					CidrBlock:        "10.0.10.0/24",
 					IsPublic:         true,
-					Tags:             infrav1.Tags{},
 				},
 				{
 					ID:               "subnet-2",
@@ -790,7 +788,6 @@ func TestReconcileSubnets(t *testing.T) {
 					AvailabilityZone: "us-east-1b",
 					CidrBlock:        "10.0.11.0/24",
 					IsPublic:         true,
-					Tags:             infrav1.Tags{},
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
@@ -4144,10 +4141,7 @@ func TestDiscoverSubnets(t *testing.T) {
 					CidrBlock:        "10.0.10.0/24",
 					IsPublic:         true,
 					RouteTableID:     aws.String("rtb-1"),
-					Tags: infrav1.Tags{
-						"Name": "provided-subnet-public",
-					},
-					ZoneType: ptr.To[infrav1.ZoneType]("availability-zone"),
+					ZoneType:         ptr.To[infrav1.ZoneType]("availability-zone"),
 				},
 				{
 					ID:               "subnet-2",
@@ -4156,10 +4150,7 @@ func TestDiscoverSubnets(t *testing.T) {
 					CidrBlock:        "10.0.11.0/24",
 					IsPublic:         false,
 					RouteTableID:     aws.String("rtb-2"),
-					Tags: infrav1.Tags{
-						"Name": "provided-subnet-private",
-					},
-					ZoneType: ptr.To[infrav1.ZoneType]("availability-zone"),
+					ZoneType:         ptr.To[infrav1.ZoneType]("availability-zone"),
 				},
 			},
 		},
