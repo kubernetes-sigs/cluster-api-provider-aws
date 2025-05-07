@@ -60,6 +60,7 @@ func (r *AWSCluster) ValidateCreate() (admission.Warnings, error) {
 	var allErrs field.ErrorList
 	var allWarnings admission.Warnings
 
+	allErrs = append(allErrs, r.Spec.Validate()...)
 	allErrs = append(allErrs, r.Spec.Bastion.Validate()...)
 	allErrs = append(allErrs, r.validateSSHKeyName()...)
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)

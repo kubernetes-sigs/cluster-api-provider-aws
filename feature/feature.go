@@ -92,6 +92,11 @@ const (
 	// owner: @enxebre
 	// alpha: v2.2
 	ROSA featuregate.Feature = "ROSA"
+
+	// OIDCProviderUnmanagedClusters will allow a user to enable OIDC provider support for unmanaged (e.g. kubeadm) clusters.
+	// owner: @sl1pm4t
+	// alpha: v2.9
+	OIDCProviderUnmanagedClusters featuregate.Feature = "OIDCProviderUnmanagedClusters"
 )
 
 func init() {
@@ -111,6 +116,7 @@ var defaultCAPAFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	MachinePoolMachines:           {Default: false, PreRelease: featuregate.Alpha},
 	AutoControllerIdentityCreator: {Default: true, PreRelease: featuregate.Alpha},
 	BootstrapFormatIgnition:       {Default: false, PreRelease: featuregate.Alpha},
+	OIDCProviderUnmanagedClusters: {Default: false, PreRelease: featuregate.Alpha},
 	ExternalResourceGC:            {Default: false, PreRelease: featuregate.Alpha},
 	AlternativeGCStrategy:         {Default: false, PreRelease: featuregate.Alpha},
 	TagUnmanagedNetworkResources:  {Default: true, PreRelease: featuregate.Alpha},

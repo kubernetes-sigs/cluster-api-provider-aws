@@ -178,6 +178,13 @@ type S3Buckets struct {
 	NamePrefix string `json:"namePrefix"`
 }
 
+// IAMIdentityProviders controls the configuration of the AWS IAM role for IAM
+// Identity providers, which can be created to support IRSA for unmanaged clusters.
+type IAMIdentityProviders struct {
+	// Enable controls whether permissions are granted to manage IAM Identity Providers
+	Enable bool `json:"enable,omitempty"`
+}
+
 // AWSIAMConfigurationSpec defines the specification of the AWSIAMConfiguration.
 type AWSIAMConfigurationSpec struct {
 	// NamePrefix will be prepended to every AWS IAM role, user and policy created by clusterawsadm. Defaults to "".
@@ -235,6 +242,11 @@ type AWSIAMConfigurationSpec struct {
 
 	// AllowAssumeRole enables the sts:AssumeRole permission within the CAPA policies
 	AllowAssumeRole bool `json:"allowAssumeRole,omitempty"`
+
+	// IAMIdentityProviders, when enabled, will add controller nodes permissions to
+	// create IAM Identity Providers for kubeadm workload clusters.
+	// +optional
+	IAMIdentityProviders *IAMIdentityProviders `json:"iamIdentityProviders,omitempty"`
 }
 
 // GetObjectKind returns the AAWSIAMConfiguration's TypeMeta.
