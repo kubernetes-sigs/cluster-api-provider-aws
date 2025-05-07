@@ -18,6 +18,7 @@ package v1beta2
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 )
@@ -49,6 +50,15 @@ func SetDefaults_NetworkSpec(obj *NetworkSpec) { //nolint:golint,stylecheck
 					ToPort:      65535,
 				},
 			},
+		}
+	}
+	// If AvailabilityZones are not set, set defaults for AZ selection
+	if obj.VPC.AvailabilityZones == nil {
+		if obj.VPC.AvailabilityZoneUsageLimit == nil {
+			obj.VPC.AvailabilityZoneUsageLimit = ptr.To(3)
+		}
+		if obj.VPC.AvailabilityZoneSelection == nil {
+			obj.VPC.AvailabilityZoneSelection = &AZSelectionSchemeOrdered
 		}
 	}
 }
