@@ -76,8 +76,8 @@ func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, namespace
 		intervals := e2eCtx.E2EConfig.GetIntervals(specName, "wait-delete-cluster")
 		By(fmt.Sprintf("Deleting all clusters in the %q namespace with intervals %q", namespace.Name, intervals))
 		framework.DeleteAllClustersAndWait(ctx, framework.DeleteAllClustersAndWaitInput{
-			Client:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
-			Namespace: namespace.Name,
+			ClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
+			Namespace:    namespace.Name,
 		}, intervals...)
 
 		By(fmt.Sprintf("Deleting namespace used for hosting the %q test spec", specName))
