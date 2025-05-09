@@ -4,7 +4,7 @@ go 1.22.7
 
 toolchain go1.23.6
 
-require github.com/openshift/cluster-capi-operator/manifests-gen v0.0.0-20250326163512-302c8534aab9
+require github.com/openshift/cluster-capi-operator/manifests-gen v0.0.0-20250509150604-ac5aa33f14d7
 
 require (
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
