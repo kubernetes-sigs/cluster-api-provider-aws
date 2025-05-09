@@ -137,10 +137,10 @@ type SecurityGroupInterface interface {
 
 // ObjectStoreInterface encapsulates the methods exposed to the machine actuator.
 type ObjectStoreInterface interface {
-	DeleteBucket() error
-	ReconcileBucket() error
-	Delete(m *scope.MachineScope) error
-	Create(m *scope.MachineScope, data []byte) (objectURL string, err error)
+	DeleteBucket(ctx context.Context) error
+	ReconcileBucket(ctx context.Context) error
+	Delete(ctx context.Context, m *scope.MachineScope) error
+	Create(ctx context.Context, m *scope.MachineScope, data []byte) (objectURL string, err error)
 }
 
 // AWSNodeInterface installs the CNI for EKS clusters.

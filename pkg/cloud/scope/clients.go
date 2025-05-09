@@ -17,6 +17,7 @@ limitations under the License.
 package scope
 
 import (
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/request"
@@ -36,8 +37,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
 	"github.com/aws/aws-sdk-go/service/sqs"
@@ -49,8 +48,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpointsv2"
 	awslogs "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/logs"
 	awsmetrics "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/metrics"
+	awsmetricsv2 "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/metricsv2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/version"
@@ -200,13 +201,21 @@ func NewSSMClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logg
 }
 
 // NewS3Client creates a new S3 API client for a given session.
-func NewS3Client(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) s3iface.S3API {
-	s3Client := s3.New(session.Session(), aws.NewConfig().WithLogLevel(awslogs.GetAWSLogLevel(logger.GetLogger())).WithLogger(awslogs.NewWrapLogr(logger.GetLogger())))
-	s3Client.Handlers.Build.PushFrontNamed(getUserAgentHandler())
-	s3Client.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(scopeUser.ControllerName()))
-	s3Client.Handlers.Complete.PushBack(recordAWSPermissionsIssue(target))
-
-	return s3Client
+func NewS3Client(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) *s3.Client {
+	cfg := session.SessionV2()
+	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
+	s3EndpointResolver := &endpointsv2.S3EndpointResolver{
+		MultiServiceEndpointResolver: multiSvcEndpointResolver,
+	}
+	s3Opts := []func(*s3.Options){
+		func(o *s3.Options) {
+			o.Logger = logger.GetAWSLogger()
+			o.ClientLogMode = awslogs.GetAWSLogLevelV2(logger.GetLogger())
+			o.EndpointResolverV2 = s3EndpointResolver
+		},
+		s3.WithAPIOptions(awsmetricsv2.WithMiddlewares(scopeUser.ControllerName(), target), awsmetricsv2.WithCAPAUserAgentMiddleware()),
+	}
+	return s3.NewFromConfig(cfg, s3Opts...)
 }
 
 func recordAWSPermissionsIssue(target runtime.Object) func(r *request.Request) {

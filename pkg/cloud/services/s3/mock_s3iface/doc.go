@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package mock_s3iface provides a mock implementation of the s3iface.S3API interface
+// Package mock_s3iface provides a mock implementation of the S3API interface
 // Run go generate to regenerate this mock.
 //
-//go:generate ../../../../../hack/tools/bin/mockgen -destination s3api_mock.go -package mock_s3iface github.com/aws/aws-sdk-go/service/s3/s3iface S3API
+//go:generate ../../../../../hack/tools/bin/mockgen -destination s3api_mock.go -package mock_s3iface sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/s3 S3API
 //go:generate /usr/bin/env bash -c "cat ../../../../../hack/boilerplate/boilerplate.generatego.txt s3api_mock.go > _s3api_mock.go && mv _s3api_mock.go s3api_mock.go"
 package mock_s3iface //nolint:stylecheck
