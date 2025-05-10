@@ -524,6 +524,7 @@ func TestCreateCluster(t *testing.T) {
 						RoleName:                   tc.role,
 						NetworkSpec:                infrav1.NetworkSpec{Subnets: tc.subnets},
 						BootstrapSelfManagedAddons: false,
+						UpgradePolicy:              aws.String(eks.SupportTypeStandard),
 					},
 				},
 			})
@@ -546,6 +547,9 @@ func TestCreateCluster(t *testing.T) {
 					Tags:                       tc.tags,
 					Version:                    version,
 					BootstrapSelfManagedAddons: aws.Bool(false),
+					UpgradePolicy: &eks.UpgradePolicyRequest{
+						SupportType: aws.String(eks.SupportTypeStandard),
+					},
 				}).Return(&eks.CreateClusterOutput{}, nil)
 			}
 			s := NewService(scope)
@@ -666,6 +670,107 @@ func TestReconcileEKSEncryptionConfig(t *testing.T) {
 			s.EKSClient = eksMock
 
 			err = s.reconcileEKSEncryptionConfig(makeEksEncryptionConfigs(tc.oldEncryptionConfig))
+			if tc.expectError {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).To(BeNil())
+		})
+	}
+}
+
+func TestReconcileEKSUpgradePolicy(t *testing.T) {
+	clusterName := "default.cluster"
+	tests := []struct {
+		name             string
+		oldUpgradePolicy *string
+		newUpgradePolicy *string
+		expect           func(m *mock_eksiface.MockEKSAPIMockRecorder)
+		expectError      bool
+	}{
+		{
+			name:             "no update necessary - no upgrade policy specified",
+			oldUpgradePolicy: aws.String(eks.SupportTypeStandard),
+			expect:           func(m *mock_eksiface.MockEKSAPIMockRecorder) {},
+			expectError:      false,
+		},
+		{
+			name:             "no update necessary - cannot get cluster upgrade policy",
+			newUpgradePolicy: aws.String(eks.SupportTypeStandard),
+			expect:           func(m *mock_eksiface.MockEKSAPIMockRecorder) {},
+			expectError:      false,
+		},
+		{
+			name:             "no update necessary - upgrade policy unchanged",
+			oldUpgradePolicy: aws.String(eks.SupportTypeStandard),
+			newUpgradePolicy: aws.String(eks.SupportTypeStandard),
+			expect:           func(m *mock_eksiface.MockEKSAPIMockRecorder) {},
+			expectError:      false,
+		},
+		{
+			name:             "needs update",
+			oldUpgradePolicy: aws.String(eks.SupportTypeStandard),
+			newUpgradePolicy: aws.String(eks.SupportTypeExtended),
+			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
+				m.WaitUntilClusterUpdating(
+					gomock.AssignableToTypeOf(&eks.DescribeClusterInput{}), gomock.Any(),
+				).Return(nil)
+				m.UpdateClusterConfig(gomock.AssignableToTypeOf(&eks.UpdateClusterConfigInput{})).Return(&eks.UpdateClusterConfigOutput{}, nil)
+			},
+			expectError: false,
+		},
+		{
+			name:             "api error",
+			oldUpgradePolicy: aws.String(eks.SupportTypeExtended),
+			newUpgradePolicy: aws.String(eks.SupportTypeStandard),
+			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
+				m.
+					UpdateClusterConfig(gomock.AssignableToTypeOf(&eks.UpdateClusterConfigInput{})).
+					Return(&eks.UpdateClusterConfigOutput{}, errors.New(""))
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			mockControl := gomock.NewController(t)
+			defer mockControl.Finish()
+
+			eksMock := mock_eksiface.NewMockEKSAPI(mockControl)
+
+			scheme := runtime.NewScheme()
+			_ = infrav1.AddToScheme(scheme)
+			_ = ekscontrolplanev1.AddToScheme(scheme)
+			client := fake.NewClientBuilder().WithScheme(scheme).Build()
+			scope, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
+				Client: client,
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns",
+						Name:      clusterName,
+					},
+				},
+				ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
+					Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+						Version:       aws.String("1.16"),
+						UpgradePolicy: tc.newUpgradePolicy,
+					},
+				},
+			})
+			g.Expect(err).To(BeNil())
+
+			tc.expect(eksMock.EXPECT())
+			s := NewService(scope)
+			s.EKSClient = eksMock
+
+			err = s.reconcileClusterUpgradePolicy(&eks.Cluster{
+				UpgradePolicy: &eks.UpgradePolicyResponse{
+					SupportType: tc.oldUpgradePolicy,
+				},
+			})
 			if tc.expectError {
 				g.Expect(err).To(HaveOccurred())
 				return
