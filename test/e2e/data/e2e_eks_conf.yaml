@@ -16,7 +16,7 @@ images:
   - name: gcr.io/k8s-staging-cluster-api/capa-manager:e2e
     loadBehavior: mustLoad
 
-## PLEASE KEEP THESE UP TO DATE WITH THE COMPONENTS
+  ## PLEASE KEEP THESE UP TO DATE WITH THE COMPONENTS
   - name: quay.io/jetstack/cert-manager-cainjector:v1.16.1
     loadBehavior: tryLoad
   - name: quay.io/jetstack/cert-manager-webhook:v1.16.1
@@ -116,6 +116,8 @@ providers:
         targetName: "cluster-template-eks-control-plane-only-legacy.yaml"
       - sourcePath: "./eks/cluster-template-eks-control-plane-bare-eks.yaml"
         targetName: "cluster-template-eks-control-plane-bare-eks.yaml"
+      - sourcePath: "./infrastructure-aws/withclusterclass/kustomize_sources/eks-clusterclass/clusterclass-eks-e2e.yaml"
+      - sourcePath: "./infrastructure-aws/withclusterclass/generated/cluster-template-eks-clusterclass.yaml"
 
 variables:
   KUBERNETES_VERSION: "v1.31.0"
@@ -124,6 +126,7 @@ variables:
   UPGRADE_FROM_VERSION: "v1.30.8"
   EXP_MACHINE_POOL: "true"
   EXP_CLUSTER_RESOURCE_SET: "true"
+  CLUSTER_TOPOLOGY: "true"
   EVENT_BRIDGE_INSTANCE_STATE: "true"
   AWS_NODE_MACHINE_TYPE: t3.large
   AWS_MACHINE_TYPE_VCPU_USAGE: 2
