@@ -49,10 +49,10 @@ var _ = ginkgo.Context("[unmanaged] [functional] [ClusterClass] [dedicated-host]
 		result = &clusterctl.ApplyClusterTemplateAndWaitResult{}
 	})
 
-	ginkgo.Describe("Multitenancy test [ClusterClass]", func() {
+	ginkgo.Describe("Dedicated Hosts test [ClusterClass]", func() {
 		ginkgo.It("should create cluster with nested assumed role", func() {
 			// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
-			specName := "functional-multitenancy-nested-clusterclass"
+			specName := "functional-clusterclass-dedicated-host"
 			requiredResources = &shared.TestResource{EC2Normal: 1 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, EventBridgeRules: 50}
 			requiredResources.WriteRequestedResources(e2eCtx, specName)
 			Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
