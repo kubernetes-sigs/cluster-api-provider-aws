@@ -224,7 +224,8 @@ func convertConflictResolution(conflict ekscontrolplanev1.AddonResolution) (*str
 	case ekscontrolplanev1.AddonResolutionPreserve:
 		return aws.String(eks.ResolveConflictsPreserve), nil
 
+	// Defaulting to behavior "Overwrite" as documented
 	default:
-		return aws.String(eks.ResolveConflictsNone), fmt.Errorf("failed to determine adddonResolution; defaulting to None")
+		return aws.String(eks.ResolveConflictsOverwrite), fmt.Errorf("failed to determine adddonResolution; defaulting to Overwrite")
 	}
 }
