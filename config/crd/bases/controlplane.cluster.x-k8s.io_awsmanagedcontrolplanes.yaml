@@ -2212,10 +2212,11 @@ spec:
                       default: overwrite
                       description: |-
                         ConflictResolution is used to declare what should happen if there
-                        are parameter conflicts. Defaults to none
+                        are parameter conflicts. Defaults to overwrite
                       enum:
                       - overwrite
                       - none
+                      - preserve
                       type: string
                     name:
                       description: Name is the name of the addon
