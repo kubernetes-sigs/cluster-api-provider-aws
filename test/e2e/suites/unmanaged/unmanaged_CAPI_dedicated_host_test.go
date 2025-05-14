@@ -61,6 +61,18 @@ var _ = ginkgo.Context("[unmanaged] [functional] [ClusterClass] [dedicated-host]
 			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
 			Expect(shared.SetMultitenancyEnvVars(e2eCtx.AWSSession)).To(Succeed())
 
+			// Allocate a dedicated host and ensure it is released after the test
+			ginkgo.By("Allocating a dedicated host")
+			hostID, err := shared.AllocateHost(e2eCtx)
+			Expect(err).To(BeNil())
+			defer func() {
+				ginkgo.By("Releasing the dedicated host")
+				shared.ReleaseHost(e2eCtx, hostID)
+			}()
+
+			// Pass the dedicated host ID to the cluster config (e.g., as an env var)
+			shared.SetEnvVar("DEDICATED_HOST_ID", hostID, false)
+
 			ginkgo.By("Creating cluster")
 			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
 			clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
@@ -76,6 +88,8 @@ var _ = ginkgo.Context("[unmanaged] [functional] [ClusterClass] [dedicated-host]
 					KubernetesVersion:        e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion),
 					ControlPlaneMachineCount: ptr.To[int64](1),
 					WorkerMachineCount:       ptr.To[int64](0),
+					//TODO: Change ApplyClusterTemplateAndWait to use HostID
+					HostID: hostID,
 				},
 				WaitForClusterIntervals:      e2eCtx.E2EConfig.GetIntervals(specName, "wait-cluster"),
 				WaitForControlPlaneIntervals: e2eCtx.E2EConfig.GetIntervals(specName, "wait-control-plane"),
