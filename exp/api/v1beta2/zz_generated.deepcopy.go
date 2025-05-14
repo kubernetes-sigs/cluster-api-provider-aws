@@ -321,6 +321,11 @@ func (in *AWSMachinePoolSpec) DeepCopyInto(out *AWSMachinePoolSpec) {
 		*out = new(SuspendProcessesTypes)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.Ignition != nil {
+		in, out := &in.Ignition, &out.Ignition
+		*out = new(apiv1beta2.Ignition)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.AWSLifecycleHooks != nil {
 		in, out := &in.AWSLifecycleHooks, &out.AWSLifecycleHooks
 		*out = make([]AWSLifecycleHook, len(*in))
