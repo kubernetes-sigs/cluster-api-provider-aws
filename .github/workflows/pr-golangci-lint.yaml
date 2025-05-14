@@ -28,6 +28,8 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@2e788936b09dd82dc280e845628a40d2ba6b204c # tag=v6.3.1
         with:
-          version: v1.62.2
+          version: v2.1.0
           args: --out-format=colored-line-number
           working-directory: ${{matrix.working-directory}}
+      - name: Lint API
+        run: make lint-api
