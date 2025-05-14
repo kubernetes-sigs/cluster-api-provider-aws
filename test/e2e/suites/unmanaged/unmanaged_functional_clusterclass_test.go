@@ -89,7 +89,8 @@ var _ = ginkgo.Context("[unmanaged] [functional] [ClusterClass]", func() {
 					KubernetesVersion:        e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion),
 					ControlPlaneMachineCount: ptr.To[int64](1),
 					WorkerMachineCount:       ptr.To[int64](0),
-					HostID:                   hostID,
+					//TODO: Change ApplyClusterTemplateAndWait to use HostID
+					HostID: hostID,
 				},
 				WaitForClusterIntervals:      e2eCtx.E2EConfig.GetIntervals(specName, "wait-cluster"),
 				WaitForControlPlaneIntervals: e2eCtx.E2EConfig.GetIntervals(specName, "wait-control-plane"),
