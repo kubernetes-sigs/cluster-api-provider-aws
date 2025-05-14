@@ -32,6 +32,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
+
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
@@ -61,6 +62,18 @@ var _ = ginkgo.Context("[unmanaged] [functional] [ClusterClass]", func() {
 			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
 			Expect(shared.SetMultitenancyEnvVars(e2eCtx.AWSSession)).To(Succeed())
 
+			// Allocate a dedicated host and ensure it is released after the test
+			ginkgo.By("Allocating a dedicated host")
+			hostID, err := shared.AllocateHost(e2eCtx)
+			Expect(err).To(BeNil())
+			defer func() {
+				ginkgo.By("Releasing the dedicated host")
+				shared.ReleaseHost(e2eCtx, hostID)
+			}()
+
+			// Pass the dedicated host ID to the cluster config (e.g., as an env var)
+			shared.SetEnvVar("DEDICATED_HOST_ID", hostID, false)
+
 			ginkgo.By("Creating cluster")
 			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
 			clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
@@ -76,6 +89,7 @@ var _ = ginkgo.Context("[unmanaged] [functional] [ClusterClass]", func() {
 					KubernetesVersion:        e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion),
 					ControlPlaneMachineCount: ptr.To[int64](1),
 					WorkerMachineCount:       ptr.To[int64](0),
+					HostID:                   hostID,
 				},
 				WaitForClusterIntervals:      e2eCtx.E2EConfig.GetIntervals(specName, "wait-cluster"),
 				WaitForControlPlaneIntervals: e2eCtx.E2EConfig.GetIntervals(specName, "wait-control-plane"),
@@ -146,7 +160,8 @@ var _ = ginkgo.Context("[unmanaged] [functional] [ClusterClass]", func() {
 				VpcCidr:           "10.0.0.0/23",
 				PublicSubnetCidr:  "10.0.0.0/24",
 				PrivateSubnetCidr: "10.0.1.0/24",
-				AvailabilityZone:  "us-west-2a",
+				//TODO: Is this standard?
+				AvailabilityZone: "us-west-2a",
 			}, e2eCtx)
 			mgmtClusterInfra.CreateInfrastructure()
 		})

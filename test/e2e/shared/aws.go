@@ -2367,16 +2367,15 @@ func GetMountTargetState(e2eCtx *E2EContext, mountTargetID string) (*string, err
 	return result.LifeCycleState, nil
 }
 
-// ///////////////////////////////////////////////////////////////////////////////
 func getAvailabilityZone() string {
-	return "us-east-1a"
+	return "us-west-2a"
 }
 
 func getInstanceType() string {
 	return "t3.large"
 }
 
-func GetDedicatedHost(e2eCtx *E2EContext) (string, error) {
+func AllocateHost(e2eCtx *E2EContext) (string, error) {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 	input := &ec2.AllocateHostsInput{
 		AvailabilityZone: aws.String(getAvailabilityZone()),
@@ -2384,14 +2383,14 @@ func GetDedicatedHost(e2eCtx *E2EContext) (string, error) {
 		Quantity:         aws.Int64(1),
 	}
 	output, err := ec2Svc.AllocateHosts(input)
-	Expect(err).ToNot(HaveOccurred(), "Failed to allocate dedicated host")
+	Expect(err).ToNot(HaveOccurred(), "Failed to allocate  host")
 	Expect(len(output.HostIds)).To(BeNumerically(">", 0), "No dedicated host ID returned")
 	fmt.Println("Allocated Host ID: ", *output.HostIds[0])
 	hostId := *output.HostIds[0]
 	return hostId, nil
 }
 
-func DeleteDedicatedHost(e2eCtx *E2EContext, hostID string) {
+func ReleaseHost(e2eCtx *E2EContext, hostID string) {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 
 	input := &ec2.ReleaseHostsInput{
@@ -2399,6 +2398,6 @@ func DeleteDedicatedHost(e2eCtx *E2EContext, hostID string) {
 	}
 
 	_, err := ec2Svc.ReleaseHosts(input)
-	Expect(err).ToNot(HaveOccurred(), "Failed to release dedicated host")
+	Expect(err).ToNot(HaveOccurred(), "Failed to releasee host")
 	fmt.Println("Released Host ID: ", hostID)
 }
