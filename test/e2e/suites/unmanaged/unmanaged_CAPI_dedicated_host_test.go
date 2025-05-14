@@ -65,6 +65,8 @@ var _ = ginkgo.Context("[unmanaged] [functional] [ClusterClass] [dedicated-host]
 			ginkgo.By("Allocating a dedicated host")
 			hostID, err := shared.AllocateHost(e2eCtx)
 			Expect(err).To(BeNil())
+			Expect(hostID).NotTo(BeEmpty())
+			ginkgo.By(fmt.Sprintf("Allocated dedicated host ID: %s", hostID))
 			defer func() {
 				ginkgo.By("Releasing the dedicated host")
 				shared.ReleaseHost(e2eCtx, hostID)
