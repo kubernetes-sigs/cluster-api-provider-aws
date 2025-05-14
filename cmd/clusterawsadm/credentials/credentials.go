@@ -58,12 +58,13 @@ type AWSCredentials struct {
 
 // NewAWSCredentialFromDefaultChain will create a new credential provider chain from the
 // default chain.
-func NewAWSCredentialFromDefaultChain(region string) (*AWSCredentials, error) {
+func NewAWSCredentialFromDefaultChain(region, profile string) (*AWSCredentials, error) {
 	creds := AWSCredentials{}
 	conf := aws.NewConfig()
 	conf.CredentialsChainVerboseErrors = aws.Bool(true)
 	sess, err := session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
+		Profile:           profile,
 		Config:            *conf,
 	})
 	if err != nil {
