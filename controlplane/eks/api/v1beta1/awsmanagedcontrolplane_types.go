@@ -224,6 +224,8 @@ type EncryptionConfig struct {
 type OIDCProviderStatus struct {
 	// ARN holds the ARN of the provider
 	ARN string `json:"arn,omitempty"`
+	// IssuerURL holds the OIDC Issuer URL of the cluster.
+	IssuerURL string `json:"issuerUrl,omitempty"`
 	// TrustPolicy contains the boilerplate IAM trust policy to use for IRSA
 	TrustPolicy string `json:"trustPolicy,omitempty"`
 }

@@ -112,6 +112,9 @@ func newBootstrapTemplate(e2eCtx *E2EContext) *cfn_bootstrap.Template {
 	t.Spec.EventBridge = &bootstrapv1.EventBridgeConfig{
 		Enable: true,
 	}
+	t.Spec.IAMIdentityProviders = &bootstrapv1.IAMIdentityProviders{
+		Enable: true,
+	}
 
 	region, err := credentials.ResolveRegion("")
 	Expect(err).NotTo(HaveOccurred())

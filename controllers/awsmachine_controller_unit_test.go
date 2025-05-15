@@ -111,7 +111,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 				Client: client,
 				Cluster: &clusterv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "test",
+						Name:      "test-cluster",
+						Namespace: "namespace",
 					},
 					Status: clusterv1.ClusterStatus{
 						InfrastructureReady: true,
@@ -136,8 +137,13 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 		cs, err = scope.NewClusterScope(
 			scope.ClusterScopeParams{
-				Client:     fake.NewClientBuilder().WithObjects(awsMachine, secret).WithStatusSubresource(awsMachine).Build(),
-				Cluster:    &clusterv1.Cluster{},
+				Client: fake.NewClientBuilder().WithObjects(awsMachine, secret).WithStatusSubresource(awsMachine).Build(),
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-cluster",
+						Namespace: "namespace",
+					},
+				},
 				AWSCluster: &infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}},
 			},
 		)
@@ -153,6 +159,10 @@ func TestAWSMachineReconciler(t *testing.T) {
 			scope.MachineScopeParams{
 				Client: client,
 				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test",
+						Namespace: "namespace",
+					},
 					Status: clusterv1.ClusterStatus{
 						InfrastructureReady: true,
 					},
@@ -2538,7 +2548,10 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 	cp.SetNamespace(ns)
 
 	ownerCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1", Namespace: ns},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "capi-test-1",
+			Namespace: ns,
+		},
 		Spec: clusterv1.ClusterSpec{
 			InfrastructureRef: &corev1.ObjectReference{
 				Kind:       "AWSCluster",

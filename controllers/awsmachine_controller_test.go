@@ -434,7 +434,8 @@ func getMachineScope(cs *scope.ClusterScope, awsMachine *infrav1.AWSMachine) (*s
 			Client: testEnv,
 			Cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "test",
+					Name:      "test",
+					Namespace: awsMachine.Namespace,
 				},
 				Status: clusterv1.ClusterStatus{
 					InfrastructureReady: true,

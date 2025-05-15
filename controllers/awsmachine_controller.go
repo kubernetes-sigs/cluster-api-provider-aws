@@ -309,7 +309,7 @@ func (r *AWSMachineReconciler) reconcileDelete(ctx context.Context, machineScope
 	}
 
 	instance, err := r.findInstance(machineScope, ec2Service)
-	if err != nil && err != ec2.ErrInstanceNotFoundByID {
+	if err != nil && !errors.Is(err, ec2.ErrInstanceNotFoundByID) {
 		machineScope.Error(err, "query to find instance failed")
 		return ctrl.Result{}, err
 	}
@@ -655,12 +655,11 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 
 	// tasks that can only take place during operational instance states
 	if machineScope.InstanceIsOperational() {
-		err := r.reconcileOperationalState(ec2svc, machineScope, instance)
+		err := r.reconcileOperationalState(context.Background(), ec2svc, machineScope, instance)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
 	}
-
 	machineScope.Debug("done reconciling instance", "instance", instance)
 	if shouldRequeue {
 		machineScope.Debug("but find the instance is pending, requeue", "instance", instance.ID)
@@ -669,7 +668,7 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 	return ctrl.Result{}, nil
 }
 
-func (r *AWSMachineReconciler) reconcileOperationalState(ec2svc services.EC2Interface, machineScope *scope.MachineScope, instance *infrav1.Instance) error {
+func (r *AWSMachineReconciler) reconcileOperationalState(_ context.Context, ec2svc services.EC2Interface, machineScope *scope.MachineScope, instance *infrav1.Instance) error {
 	machineScope.SetAddresses(instance.Addresses)
 
 	existingSecurityGroups, err := ec2svc.GetInstanceSecurityGroups(*machineScope.GetInstanceID())
@@ -906,7 +905,7 @@ func (r *AWSMachineReconciler) deleteBootstrapData(ctx context.Context, machineS
 	}
 
 	if machineScope.UseSecretsManager(userDataFormat) {
-		if err := r.deleteEncryptedBootstrapDataSecret(machineScope, clusterScope); err != nil {
+		if err := r.deleteEncryptedBootstrapDataSecret(machineScope, clusterScope); err != nil && !apierrors.IsNotFound(err) {
 			return err
 		}
 	}
@@ -944,6 +943,8 @@ func (r *AWSMachineReconciler) deleteIgnitionBootstrapDataFromS3(ctx context.Con
 			machineScope.AWSMachine.Spec.Ignition.StorageType != infrav1.IgnitionStorageTypeOptionClusterObjectStore) {
 		return nil
 	}
+
+	machineScope.Info("Deleting unneeded entry from AWS S3", "secretPrefix", machineScope.GetSecretPrefix())
 
 	if err := objectStoreSvc.Delete(ctx, machineScope); err != nil {
 		return errors.Wrap(err, "deleting bootstrap data object")
