@@ -354,6 +354,139 @@ func TestServiceSDKToLaunchTemplate(t *testing.T) {
 			wantDataSecretKey: nil, // respective tag is not given
 		},
 		{
+			name: "spot market options",
+			input: &ec2.LaunchTemplateVersion{
+				LaunchTemplateId:   aws.String("lt-12345"),
+				LaunchTemplateName: aws.String("foo"),
+				LaunchTemplateData: &ec2.ResponseLaunchTemplateData{
+					ImageId: aws.String("foo-image"),
+					IamInstanceProfile: &ec2.LaunchTemplateIamInstanceProfileSpecification{
+						Arn: aws.String("instance-profile/foo-profile"),
+					},
+					KeyName: aws.String("foo-keyname"),
+					InstanceMarketOptions: &ec2.LaunchTemplateInstanceMarketOptions{
+						MarketType: aws.String(ec2.MarketTypeSpot),
+						SpotOptions: &ec2.LaunchTemplateSpotMarketOptions{
+							MaxPrice: aws.String("0.05"),
+						},
+					},
+					UserData: aws.String(base64.StdEncoding.EncodeToString([]byte(testUserData))),
+				},
+				VersionNumber: aws.Int64(1),
+			},
+			wantLT: &expinfrav1.AWSLaunchTemplate{
+				Name: "foo",
+				AMI: infrav1.AMIReference{
+					ID: aws.String("foo-image"),
+				},
+				IamInstanceProfile: "foo-profile",
+				SSHKeyName:         aws.String("foo-keyname"),
+				VersionNumber:      aws.Int64(1),
+				SpotMarketOptions: &infrav1.SpotMarketOptions{
+					MaxPrice: aws.String("0.05"),
+				},
+			},
+			wantHash:          testUserDataHash,
+			wantDataSecretKey: nil,
+		},
+		{
+			name: "spot market options with no max price",
+			input: &ec2.LaunchTemplateVersion{
+				LaunchTemplateId:   aws.String("lt-12345"),
+				LaunchTemplateName: aws.String("foo"),
+				LaunchTemplateData: &ec2.ResponseLaunchTemplateData{
+					ImageId: aws.String("foo-image"),
+					IamInstanceProfile: &ec2.LaunchTemplateIamInstanceProfileSpecification{
+						Arn: aws.String("instance-profile/foo-profile"),
+					},
+					KeyName: aws.String("foo-keyname"),
+					InstanceMarketOptions: &ec2.LaunchTemplateInstanceMarketOptions{
+						MarketType:  aws.String(ec2.MarketTypeSpot),
+						SpotOptions: &ec2.LaunchTemplateSpotMarketOptions{},
+					},
+					UserData: aws.String(base64.StdEncoding.EncodeToString([]byte(testUserData))),
+				},
+				VersionNumber: aws.Int64(1),
+			},
+			wantLT: &expinfrav1.AWSLaunchTemplate{
+				Name: "foo",
+				AMI: infrav1.AMIReference{
+					ID: aws.String("foo-image"),
+				},
+				IamInstanceProfile: "foo-profile",
+				SSHKeyName:         aws.String("foo-keyname"),
+				VersionNumber:      aws.Int64(1),
+				SpotMarketOptions:  &infrav1.SpotMarketOptions{},
+			},
+			wantHash:          testUserDataHash,
+			wantDataSecretKey: nil,
+		},
+		{
+			name: "spot market options without SpotOptions",
+			input: &ec2.LaunchTemplateVersion{
+				LaunchTemplateId:   aws.String("lt-12345"),
+				LaunchTemplateName: aws.String("foo"),
+				LaunchTemplateData: &ec2.ResponseLaunchTemplateData{
+					ImageId: aws.String("foo-image"),
+					IamInstanceProfile: &ec2.LaunchTemplateIamInstanceProfileSpecification{
+						Arn: aws.String("instance-profile/foo-profile"),
+					},
+					KeyName: aws.String("foo-keyname"),
+					InstanceMarketOptions: &ec2.LaunchTemplateInstanceMarketOptions{
+						MarketType: aws.String(ec2.MarketTypeSpot),
+					},
+					UserData: aws.String(base64.StdEncoding.EncodeToString([]byte(testUserData))),
+				},
+				VersionNumber: aws.Int64(1),
+			},
+			wantLT: &expinfrav1.AWSLaunchTemplate{
+				Name: "foo",
+				AMI: infrav1.AMIReference{
+					ID: aws.String("foo-image"),
+				},
+				IamInstanceProfile: "foo-profile",
+				SSHKeyName:         aws.String("foo-keyname"),
+				VersionNumber:      aws.Int64(1),
+				SpotMarketOptions:  &infrav1.SpotMarketOptions{},
+			},
+			wantHash:          testUserDataHash,
+			wantDataSecretKey: nil,
+		},
+		{
+			name: "non-spot market type",
+			input: &ec2.LaunchTemplateVersion{
+				LaunchTemplateId:   aws.String("lt-12345"),
+				LaunchTemplateName: aws.String("foo"),
+				LaunchTemplateData: &ec2.ResponseLaunchTemplateData{
+					ImageId: aws.String("foo-image"),
+					IamInstanceProfile: &ec2.LaunchTemplateIamInstanceProfileSpecification{
+						Arn: aws.String("instance-profile/foo-profile"),
+					},
+					KeyName: aws.String("foo-keyname"),
+					InstanceMarketOptions: &ec2.LaunchTemplateInstanceMarketOptions{
+						MarketType: aws.String("different-market-type"),
+						SpotOptions: &ec2.LaunchTemplateSpotMarketOptions{
+							MaxPrice: aws.String("0.05"),
+						},
+					},
+					UserData: aws.String(base64.StdEncoding.EncodeToString([]byte(testUserData))),
+				},
+				VersionNumber: aws.Int64(1),
+			},
+			wantLT: &expinfrav1.AWSLaunchTemplate{
+				Name: "foo",
+				AMI: infrav1.AMIReference{
+					ID: aws.String("foo-image"),
+				},
+				IamInstanceProfile: "foo-profile",
+				SSHKeyName:         aws.String("foo-keyname"),
+				VersionNumber:      aws.Int64(1),
+				SpotMarketOptions:  nil, // Should be nil since market type is not "spot"
+			},
+			wantHash:          testUserDataHash,
+			wantDataSecretKey: nil,
+		},
+		{
 			name: "tag of bootstrap secret",
 			input: &ec2.LaunchTemplateVersion{
 				LaunchTemplateId:   aws.String("lt-12345"),
@@ -441,6 +574,20 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 		wantErr  bool
 	}{
 		{
+			name: "only core security groups, order shouldn't matter",
+			incoming: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{},
+			},
+			existing: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+					{ID: aws.String("sg-222")},
+					{ID: aws.String("sg-111")},
+				},
+			},
+			want:    false,
+			wantErr: false,
+		},
+		{
 			name: "the same security groups",
 			incoming: &expinfrav1.AWSLaunchTemplate{
 				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
@@ -497,6 +644,10 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 				IamInstanceProfile: DefaultAmiNameFormat,
 			},
 			existing: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+					{ID: aws.String("sg-111")},
+					{ID: aws.String("sg-222")},
+				},
 				IamInstanceProfile: "some-other-profile",
 			},
 			want: true,
@@ -507,6 +658,10 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 				InstanceType: "t3.micro",
 			},
 			existing: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+					{ID: aws.String("sg-111")},
+					{ID: aws.String("sg-222")},
+				},
 				InstanceType: "t3.large",
 			},
 			want: true,
@@ -540,9 +695,14 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 					HTTPTokens:              infrav1.HTTPTokensStateRequired,
 				},
 			},
-			existing: &expinfrav1.AWSLaunchTemplate{},
-			want:     true,
-			wantErr:  false,
+			existing: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+					{ID: aws.String("sg-111")},
+					{ID: aws.String("sg-222")},
+				},
+			},
+			want:    true,
+			wantErr: false,
 		},
 		{
 			name:     "new launch template instance metadata options, removing IMDSv2 requirement",
@@ -551,6 +711,59 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 				InstanceMetadataOptions: &infrav1.InstanceMetadataOptions{
 					HTTPPutResponseHopLimit: 1,
 					HTTPTokens:              infrav1.HTTPTokensStateRequired,
+				},
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "Should return true if incoming SpotMarketOptions is different from existing SpotMarketOptions",
+			incoming: &expinfrav1.AWSLaunchTemplate{
+				SpotMarketOptions: &infrav1.SpotMarketOptions{
+					MaxPrice: aws.String("0.10"),
+				},
+			},
+			existing: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+					{ID: aws.String("sg-111")},
+					{ID: aws.String("sg-222")},
+				},
+				SpotMarketOptions: &infrav1.SpotMarketOptions{
+					MaxPrice: aws.String("0.05"),
+				},
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "Should return true if incoming adds SpotMarketOptions and existing has none",
+			incoming: &expinfrav1.AWSLaunchTemplate{
+				SpotMarketOptions: &infrav1.SpotMarketOptions{
+					MaxPrice: aws.String("0.10"),
+				},
+			},
+			existing: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+					{ID: aws.String("sg-111")},
+					{ID: aws.String("sg-222")},
+				},
+				SpotMarketOptions: nil,
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "Should return true if incoming removes SpotMarketOptions and existing has some",
+			incoming: &expinfrav1.AWSLaunchTemplate{
+				SpotMarketOptions: nil,
+			},
+			existing: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+					{ID: aws.String("sg-111")},
+					{ID: aws.String("sg-222")},
+				},
+				SpotMarketOptions: &infrav1.SpotMarketOptions{
+					MaxPrice: aws.String("0.05"),
 				},
 			},
 			want:    true,
