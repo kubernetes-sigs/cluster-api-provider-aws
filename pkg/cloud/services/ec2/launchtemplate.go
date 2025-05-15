@@ -680,6 +680,24 @@ func (s *Service) deleteLaunchTemplateVersion(id string, version *int64) error {
 	return nil
 }
 
+// SDKToSpotMarketOptions converts EC2 instance market options to SpotMarketOptions.
+func SDKToSpotMarketOptions(instanceMarketOptions *ec2.LaunchTemplateInstanceMarketOptions) *infrav1.SpotMarketOptions {
+	if instanceMarketOptions == nil || aws.StringValue(instanceMarketOptions.MarketType) != ec2.MarketTypeSpot {
+		return nil
+	}
+
+	if instanceMarketOptions.SpotOptions == nil {
+		return &infrav1.SpotMarketOptions{}
+	}
+
+	result := &infrav1.SpotMarketOptions{}
+	if instanceMarketOptions.SpotOptions.MaxPrice != nil {
+		result.MaxPrice = instanceMarketOptions.SpotOptions.MaxPrice
+	}
+
+	return result
+}
+
 // SDKToLaunchTemplate converts an AWS EC2 SDK instance to the CAPA instance type.
 func (s *Service) SDKToLaunchTemplate(d *ec2.LaunchTemplateVersion) (*expinfrav1.AWSLaunchTemplate, string, *apimachinerytypes.NamespacedName, error) {
 	v := d.LaunchTemplateData
@@ -688,9 +706,10 @@ func (s *Service) SDKToLaunchTemplate(d *ec2.LaunchTemplateVersion) (*expinfrav1
 		AMI: infrav1.AMIReference{
 			ID: v.ImageId,
 		},
-		InstanceType:  aws.StringValue(v.InstanceType),
-		SSHKeyName:    v.KeyName,
-		VersionNumber: d.VersionNumber,
+		InstanceType:      aws.StringValue(v.InstanceType),
+		SSHKeyName:        v.KeyName,
+		SpotMarketOptions: SDKToSpotMarketOptions(v.InstanceMarketOptions),
+		VersionNumber:     d.VersionNumber,
 	}
 
 	if v.MetadataOptions != nil {
@@ -775,6 +794,9 @@ func (s *Service) LaunchTemplateNeedsUpdate(scope scope.LaunchTemplateScope, inc
 		return true, nil
 	}
 	if !cmp.Equal(incoming.InstanceMetadataOptions, existing.InstanceMetadataOptions) {
+		return true, nil
+	}
+	if !cmp.Equal(incoming.SpotMarketOptions, existing.SpotMarketOptions) {
 		return true, nil
 	}
 
