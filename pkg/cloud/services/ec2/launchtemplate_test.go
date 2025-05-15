@@ -441,6 +441,20 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 		wantErr  bool
 	}{
 		{
+			name: "only core security groups, order shouldn't matter",
+			incoming: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{},
+			},
+			existing: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+					{ID: aws.String("sg-222")},
+					{ID: aws.String("sg-111")},
+				},
+			},
+			want:    false,
+			wantErr: false,
+		},
+		{
 			name: "the same security groups",
 			incoming: &expinfrav1.AWSLaunchTemplate{
 				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
@@ -497,6 +511,10 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 				IamInstanceProfile: DefaultAmiNameFormat,
 			},
 			existing: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+					{ID: aws.String("sg-111")},
+					{ID: aws.String("sg-222")},
+				},
 				IamInstanceProfile: "some-other-profile",
 			},
 			want: true,
@@ -507,6 +525,10 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 				InstanceType: "t3.micro",
 			},
 			existing: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+					{ID: aws.String("sg-111")},
+					{ID: aws.String("sg-222")},
+				},
 				InstanceType: "t3.large",
 			},
 			want: true,
@@ -540,9 +562,14 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 					HTTPTokens:              infrav1.HTTPTokensStateRequired,
 				},
 			},
-			existing: &expinfrav1.AWSLaunchTemplate{},
-			want:     true,
-			wantErr:  false,
+			existing: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+					{ID: aws.String("sg-111")},
+					{ID: aws.String("sg-222")},
+				},
+			},
+			want:    true,
+			wantErr: false,
 		},
 		{
 			name:     "new launch template instance metadata options, removing IMDSv2 requirement",
@@ -551,6 +578,59 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 				InstanceMetadataOptions: &infrav1.InstanceMetadataOptions{
 					HTTPPutResponseHopLimit: 1,
 					HTTPTokens:              infrav1.HTTPTokensStateRequired,
+				},
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "Should return true if incoming SpotMarketOptions is different from existing SpotMarketOptions",
+			incoming: &expinfrav1.AWSLaunchTemplate{
+				SpotMarketOptions: &infrav1.SpotMarketOptions{
+					MaxPrice: aws.String("0.10"),
+				},
+			},
+			existing: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+					{ID: aws.String("sg-111")},
+					{ID: aws.String("sg-222")},
+				},
+				SpotMarketOptions: &infrav1.SpotMarketOptions{
+					MaxPrice: aws.String("0.05"),
+				},
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "Should return true if incoming adds SpotMarketOptions and existing has none",
+			incoming: &expinfrav1.AWSLaunchTemplate{
+				SpotMarketOptions: &infrav1.SpotMarketOptions{
+					MaxPrice: aws.String("0.10"),
+				},
+			},
+			existing: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+					{ID: aws.String("sg-111")},
+					{ID: aws.String("sg-222")},
+				},
+				SpotMarketOptions: nil,
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "Should return true if incoming removes SpotMarketOptions and existing has some",
+			incoming: &expinfrav1.AWSLaunchTemplate{
+				SpotMarketOptions: nil,
+			},
+			existing: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+					{ID: aws.String("sg-111")},
+					{ID: aws.String("sg-222")},
+				},
+				SpotMarketOptions: &infrav1.SpotMarketOptions{
+					MaxPrice: aws.String("0.05"),
 				},
 			},
 			want:    true,

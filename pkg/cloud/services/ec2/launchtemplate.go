@@ -777,6 +777,9 @@ func (s *Service) LaunchTemplateNeedsUpdate(scope scope.LaunchTemplateScope, inc
 	if !cmp.Equal(incoming.InstanceMetadataOptions, existing.InstanceMetadataOptions) {
 		return true, nil
 	}
+	if !cmp.Equal(incoming.SpotMarketOptions, existing.SpotMarketOptions) {
+		return true, nil
+	}
 
 	incomingIDs, err := s.GetAdditionalSecurityGroupsIDs(incoming.AdditionalSecurityGroups)
 	if err != nil {
