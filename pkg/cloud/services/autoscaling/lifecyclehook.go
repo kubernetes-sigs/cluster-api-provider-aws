@@ -20,8 +20,9 @@ import (
 	"context"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
+	autoscalingtypes "github.com/aws/aws-sdk-go-v2/service/autoscaling/types"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
@@ -39,7 +40,7 @@ func (s *Service) DescribeLifecycleHooks(asgName string) ([]*expinfrav1.AWSLifec
 		AutoScalingGroupName: ptr.To(asgName),
 	}
 
-	out, err := s.ASGClient.DescribeLifecycleHooksWithContext(context.TODO(), input)
+	out, err := s.ASGClient.DescribeLifecycleHooks(context.TODO(), input)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to describe lifecycle hooks for AutoScalingGroup: %q", asgName)
 	}
@@ -68,7 +69,7 @@ func getPutLifecycleHookInput(asgName string, hook *expinfrav1.AWSLifecycleHook)
 	// settings are reconciled to the desired state on update. Using AWS default values here.
 	ret.DefaultResult = ptr.To(ptr.Deref(hook.DefaultResult, expinfrav1.LifecycleHookDefaultResultAbandon).String())
 	timeoutSeconds := ptr.Deref(hook.HeartbeatTimeout, metav1.Duration{Duration: 3600 * time.Second}).Duration.Seconds()
-	ret.HeartbeatTimeout = aws.Int64(int64(timeoutSeconds))
+	ret.HeartbeatTimeout = aws.Int32(int32(timeoutSeconds))
 
 	return
 }
@@ -77,7 +78,7 @@ func getPutLifecycleHookInput(asgName string, hook *expinfrav1.AWSLifecycleHook)
 func (s *Service) CreateLifecycleHook(ctx context.Context, asgName string, hook *expinfrav1.AWSLifecycleHook) error {
 	input := getPutLifecycleHookInput(asgName, hook)
 
-	if _, err := s.ASGClient.PutLifecycleHookWithContext(ctx, input); err != nil {
+	if _, err := s.ASGClient.PutLifecycleHook(ctx, input); err != nil {
 		return errors.Wrapf(err, "failed to create lifecycle hook %q for AutoScalingGroup: %q", hook.Name, asgName)
 	}
 
@@ -88,7 +89,7 @@ func (s *Service) CreateLifecycleHook(ctx context.Context, asgName string, hook 
 func (s *Service) UpdateLifecycleHook(ctx context.Context, asgName string, hook *expinfrav1.AWSLifecycleHook) error {
 	input := getPutLifecycleHookInput(asgName, hook)
 
-	if _, err := s.ASGClient.PutLifecycleHookWithContext(ctx, input); err != nil {
+	if _, err := s.ASGClient.PutLifecycleHook(ctx, input); err != nil {
 		return errors.Wrapf(err, "failed to update lifecycle hook %q for AutoScalingGroup: %q", hook.Name, asgName)
 	}
 
@@ -102,7 +103,7 @@ func (s *Service) DeleteLifecycleHook(ctx context.Context, asgName string, hook 
 		LifecycleHookName:    ptr.To(hook.Name),
 	}
 
-	if _, err := s.ASGClient.DeleteLifecycleHookWithContext(ctx, input); err != nil {
+	if _, err := s.ASGClient.DeleteLifecycleHook(ctx, input); err != nil {
 		return errors.Wrapf(err, "failed to delete lifecycle hook %q for AutoScalingGroup: %q", hook.Name, asgName)
 	}
 
@@ -110,7 +111,7 @@ func (s *Service) DeleteLifecycleHook(ctx context.Context, asgName string, hook 
 }
 
 // SDKToLifecycleHook converts an AWS SDK LifecycleHook to the CAPA lifecycle hook type.
-func (s *Service) SDKToLifecycleHook(hook *autoscaling.LifecycleHook) *expinfrav1.AWSLifecycleHook {
+func (s *Service) SDKToLifecycleHook(hook autoscalingtypes.LifecycleHook) *expinfrav1.AWSLifecycleHook {
 	timeoutDuration := time.Duration(*hook.HeartbeatTimeout) * time.Second
 	metav1Duration := metav1.Duration{Duration: timeoutDuration}
 	defaultResult := expinfrav1.LifecycleHookDefaultResult(*hook.DefaultResult)
@@ -127,9 +128,9 @@ func (s *Service) SDKToLifecycleHook(hook *autoscaling.LifecycleHook) *expinfrav
 	}
 }
 
-func getLifecycleHookSpecificationList(lifecycleHooks []expinfrav1.AWSLifecycleHook) (ret []*autoscaling.LifecycleHookSpecification) {
+func getLifecycleHookSpecificationList(lifecycleHooks []expinfrav1.AWSLifecycleHook) (ret []autoscalingtypes.LifecycleHookSpecification) {
 	for _, hook := range lifecycleHooks {
-		spec := &autoscaling.LifecycleHookSpecification{
+		spec := autoscalingtypes.LifecycleHookSpecification{
 			LifecycleHookName:   ptr.To(hook.Name),
 			LifecycleTransition: ptr.To(hook.LifecycleTransition.String()),
 
@@ -146,7 +147,7 @@ func getLifecycleHookSpecificationList(lifecycleHooks []expinfrav1.AWSLifecycleH
 
 		if hook.HeartbeatTimeout != nil {
 			timeoutSeconds := hook.HeartbeatTimeout.Duration.Seconds()
-			spec.HeartbeatTimeout = aws.Int64(int64(timeoutSeconds))
+			spec.HeartbeatTimeout = aws.Int32(int32(timeoutSeconds))
 		}
 
 		ret = append(ret, spec)

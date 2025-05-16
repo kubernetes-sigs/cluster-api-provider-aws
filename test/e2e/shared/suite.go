@@ -156,6 +156,8 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	ensureSSHKeyPair(e2eCtx.AWSSession, DefaultSSHKeyPairName)
 	e2eCtx.Environment.BootstrapAccessKey = newUserAccessKey(e2eCtx.AWSSession, bootstrapTemplate.Spec.BootstrapUser.UserName)
 	e2eCtx.BootstrapUserAWSSession = NewAWSSessionWithKey(e2eCtx.Environment.BootstrapAccessKey)
+	e2eCtx.Environment.BootstrapAccessKeyV2 = newUserAccessKeyV2(e2eCtx.BootstrapUserAWSSession, bootstrapTemplate.Spec.BootstrapUser.UserName)
+	e2eCtx.AWSConfig = NewAWSConfigWithKey(e2eCtx.Environment.BootstrapAccessKeyV2)
 	Expect(ensureTestImageUploaded(e2eCtx)).NotTo(HaveOccurred())
 
 	// Image ID is needed when using a CI Kubernetes version. This is used in conformance test and upgrade to main test.
