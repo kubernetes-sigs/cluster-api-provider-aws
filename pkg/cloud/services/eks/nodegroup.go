@@ -20,9 +20,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
+	autoscalingtypes "github.com/aws/aws-sdk-go-v2/service/autoscaling/types"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/google/go-cmp/cmp"
@@ -74,7 +75,7 @@ func (s *NodegroupService) describeNodegroup() (*eks.Nodegroup, error) {
 	return out.Nodegroup, nil
 }
 
-func (s *NodegroupService) describeASGs(ng *eks.Nodegroup) (*autoscaling.Group, error) {
+func (s *NodegroupService) describeASGs(ng *eks.Nodegroup) (*autoscalingtypes.AutoScalingGroup, error) {
 	eksClusterName := s.scope.KubernetesClusterName()
 	nodegroupName := s.scope.NodegroupName()
 	s.scope.Debug("describing node group ASG", "cluster", eksClusterName, "nodegroup", nodegroupName)
@@ -84,12 +85,12 @@ func (s *NodegroupService) describeASGs(ng *eks.Nodegroup) (*autoscaling.Group, 
 	}
 
 	input := &autoscaling.DescribeAutoScalingGroupsInput{
-		AutoScalingGroupNames: []*string{
-			ng.Resources.AutoScalingGroups[0].Name,
+		AutoScalingGroupNames: []string{
+			*ng.Resources.AutoScalingGroups[0].Name,
 		},
 	}
 
-	out, err := s.AutoscalingClient.DescribeAutoScalingGroupsWithContext(context.TODO(), input)
+	out, err := s.AutoscalingClient.DescribeAutoScalingGroups(context.TODO(), input)
 	switch {
 	case awserrors.IsNotFound(err):
 		return nil, nil
@@ -99,7 +100,7 @@ func (s *NodegroupService) describeASGs(ng *eks.Nodegroup) (*autoscaling.Group, 
 		return nil, errors.Wrap(err, "no ASG found")
 	}
 
-	return out.AutoScalingGroups[0], nil
+	return &out.AutoScalingGroups[0], nil
 }
 
 func (s *NodegroupService) scalingConfig() *eks.NodegroupScalingConfig {
@@ -615,9 +616,9 @@ func (s *NodegroupService) setStatus(ng *eks.Nodegroup) error {
 	if managedPool.Status.Ready && ng.Resources != nil && len(ng.Resources.AutoScalingGroups) > 0 {
 		req := autoscaling.DescribeAutoScalingGroupsInput{}
 		for _, asg := range ng.Resources.AutoScalingGroups {
-			req.AutoScalingGroupNames = append(req.AutoScalingGroupNames, asg.Name)
+			req.AutoScalingGroupNames = append(req.AutoScalingGroupNames, *asg.Name)
 		}
-		groups, err := s.AutoscalingClient.DescribeAutoScalingGroupsWithContext(context.TODO(), &req)
+		groups, err := s.AutoscalingClient.DescribeAutoScalingGroups(context.TODO(), &req)
 		if err != nil {
 			return errors.Wrap(err, "failed to describe AutoScalingGroup for nodegroup")
 		}
