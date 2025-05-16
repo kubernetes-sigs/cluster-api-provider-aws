@@ -31,7 +31,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/aws/aws-sdk-go/service/iam"
+	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/gofrs/flock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -49,7 +49,7 @@ type synchronizedBeforeTestSuiteConfig struct {
 	KubeconfigPath           string               `json:"kubeconfigPath,omitempty"`
 	Region                   string               `json:"region,omitempty"`
 	E2EConfig                clusterctl.E2EConfig `json:"e2eConfig,omitempty"`
-	BootstrapAccessKey       *iam.AccessKey       `json:"bootstrapAccessKey,omitempty"`
+	BootstrapAccessKey       *iamtypes.AccessKey  `json:"bootstrapAccessKey,omitempty"`
 	KubetestConfigFilePath   string               `json:"kubetestConfigFilePath,omitempty"`
 	UseCIArtifacts           bool                 `json:"useCIArtifacts,omitempty"`
 	GinkgoNodes              int                  `json:"ginkgoNodes,omitempty"`
@@ -129,6 +129,7 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 
 	Expect(err).NotTo(HaveOccurred())
 	e2eCtx.AWSSession = NewAWSSession()
+	e2eCtx.AWSConfig = NewAWSConfig(context.TODO())
 
 	logAccountDetails(e2eCtx.AWSSession)
 
@@ -142,7 +143,7 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 			count++
 			By(fmt.Sprintf("Trying to create CloudFormation stack... attempt %d", count))
 			success := true
-			if err := createCloudFormationStack(e2eCtx.AWSSession, bootstrapTemplate, bootstrapTags); err != nil {
+			if err := createCloudFormationStack(context.TODO(), e2eCtx.AWSConfig, e2eCtx.AWSSession, bootstrapTemplate, bootstrapTags); err != nil {
 				By(fmt.Sprintf("Failed to create CloudFormation stack in attempt %d: %s", count, err.Error()))
 				deleteCloudFormationStack(e2eCtx.AWSSession, bootstrapTemplate)
 				success = false
@@ -152,9 +153,9 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	}
 
 	ensureStackTags(e2eCtx.AWSSession, bootstrapTemplate.Spec.StackName, bootstrapTags)
-	ensureNoServiceLinkedRoles(e2eCtx.AWSSession)
+	ensureNoServiceLinkedRoles(context.TODO(), e2eCtx.AWSConfig)
 	ensureSSHKeyPair(e2eCtx.AWSSession, DefaultSSHKeyPairName)
-	e2eCtx.Environment.BootstrapAccessKey = newUserAccessKey(e2eCtx.AWSSession, bootstrapTemplate.Spec.BootstrapUser.UserName)
+	e2eCtx.Environment.BootstrapAccessKey = newUserAccessKey(context.TODO(), e2eCtx.AWSConfig, bootstrapTemplate.Spec.BootstrapUser.UserName)
 	e2eCtx.BootstrapUserAWSSession = NewAWSSessionWithKey(e2eCtx.Environment.BootstrapAccessKey)
 	Expect(ensureTestImageUploaded(e2eCtx)).NotTo(HaveOccurred())
 
@@ -230,6 +231,7 @@ func AllNodesBeforeSuite(e2eCtx *E2EContext, data []byte) {
 	e2eCtx.Settings.GinkgoNodes = conf.GinkgoNodes
 	e2eCtx.Settings.GinkgoSlowSpecThreshold = conf.GinkgoSlowSpecThreshold
 	e2eCtx.AWSSession = NewAWSSession()
+	e2eCtx.AWSConfig = NewAWSConfig(context.TODO())
 	azs := GetAvailabilityZones(e2eCtx.AWSSession)
 	SetEnvVar(AwsAvailabilityZone1, *azs[0].ZoneName, false)
 	SetEnvVar(AwsAvailabilityZone2, *azs[1].ZoneName, false)
