@@ -103,7 +103,8 @@ func (s *Service) reconcileOIDCProvider(cluster *eks.Cluster) error {
 		return errors.Wrap(err, "failed to tag OIDC provider")
 	}
 
-	if s.scope.ControlPlane.Status.OIDCProvider.TrustPolicy == "" {
+	s.scope.Info("Reconciling trust policy", "cluster-name", cluster.Name)
+	if s.scope.ControlPlane.Status.OIDCProvider.TrustPolicy == "" || !s.isTrustPolicyConfigMapPresent() {
 		policy, err := converters.IAMPolicyDocumentToJSON(s.buildOIDCTrustPolicy())
 		if err != nil {
 			return errors.Wrap(err, "failed to parse IAM policy")
@@ -120,9 +121,54 @@ func (s *Service) reconcileOIDCProvider(cluster *eks.Cluster) error {
 	return nil
 }
 
+// Check if trust policy config map exists in target cluster
+func (s *Service) isTrustPolicyConfigMapPresent() bool {
+	ctx := context.Background()
+
+	s.scope.Info("Checking if ConfigMap is present")
+	clusterKey := client.ObjectKey{
+		Name:      s.scope.Name(),
+		Namespace: s.scope.Namespace(),
+	}
+
+	restConfig, err := remote.RESTConfig(ctx, s.scope.ControlPlane.Name, s.scope.Client, clusterKey)
+	if err != nil {
+		s.scope.Error(err, "failed to get remote client")
+		return false
+	}
+
+	remoteClient, err := client.New(restConfig, client.Options{})
+	if err != nil {
+		s.scope.Error(err, "failed to get client for remote cluster")
+		return false
+	}
+
+	configMapRef := types.NamespacedName{
+		Name:      trustPolicyConfigMapName,
+		Namespace: trustPolicyConfigMapNamespace,
+	}
+
+	trustPolicyConfigMap := &corev1.ConfigMap{}
+
+	err = remoteClient.Get(ctx, configMapRef, trustPolicyConfigMap)
+	if err != nil {
+		s.scope.Error(err, "failed to get trust policy config map")
+		return false
+	}
+
+	if apierrors.IsNotFound(err) {
+		s.scope.Info("ConfigMap is not present")
+		return false
+	}
+
+	s.scope.Info("ConfigMap is present")
+	return true
+}
+
 func (s *Service) reconcileTrustPolicy() error {
 	ctx := context.Background()
 
+	s.scope.Debug("reconciling trust policy in workload cluster")
 	clusterKey := client.ObjectKey{
 		Name:      s.scope.Name(),
 		Namespace: s.scope.Namespace(),

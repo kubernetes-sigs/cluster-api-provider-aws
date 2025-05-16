@@ -120,7 +120,7 @@ func CustomEndpointResolverForAWS() endpoints.ResolverFunc {
 			}
 		}
 
-		log.V(0).Info("CustomEndpointResolverForAWS", "resolve: ", resolve)
+		log.V(1).Info("CustomEndpointResolverForAWS", "resolve: ", resolve)
 		return resolve, nil
 	}
 
