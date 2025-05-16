@@ -19,8 +19,8 @@ package converters
 import (
 	"sort"
 
+	autoscalingtypes "github.com/aws/aws-sdk-go-v2/service/autoscaling/types"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/elbv2"
@@ -190,7 +190,7 @@ func MapToIAMTags(src infrav1.Tags) []*iam.Tag {
 }
 
 // ASGTagsToMap converts a []*autoscaling.TagDescription into a infrav1.Tags.
-func ASGTagsToMap(src []*autoscaling.TagDescription) infrav1.Tags {
+func ASGTagsToMap(src []autoscalingtypes.TagDescription) infrav1.Tags {
 	tags := make(infrav1.Tags, len(src))
 
 	for _, t := range src {

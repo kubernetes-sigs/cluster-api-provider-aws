@@ -82,6 +82,7 @@ var _ = ginkgo.Describe("[managed] [legacy] EKS cluster tests - single kind", fu
 				ConfigClusterFn:       defaultConfigCluster,
 				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
 				AWSSession:            e2eCtx.BootstrapUserAWSSession,
+				AWSConfig:             e2eCtx.AWSConfig,
 				Namespace:             namespace,
 				ClusterName:           clusterName,
 				IncludeScaling:        false,

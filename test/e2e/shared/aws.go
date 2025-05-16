@@ -32,6 +32,11 @@ import (
 	"strings"
 	"time"
 
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	configv2 "github.com/aws/aws-sdk-go-v2/config"
+	awscredsv2 "github.com/aws/aws-sdk-go-v2/credentials"
+	iamv2 "github.com/aws/aws-sdk-go-v2/service/iam"
+	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
 	awscreds "github.com/aws/aws-sdk-go/aws/credentials"
@@ -406,6 +411,33 @@ func NewAWSSessionWithKey(accessKey *iam.AccessKey) client.ConfigProvider {
 	_, err = sess.Config.Credentials.Get()
 	Expect(err).NotTo(HaveOccurred())
 	return sess
+}
+
+func NewAWSConfigWithKey(accessKey *iamtypes.AccessKey) awsv2.Config {
+	By("Getting an AWS config - from access key")
+
+	region, err := credentials.ResolveRegion("")
+	Expect(err).NotTo(HaveOccurred())
+
+	staticCredProvider := awscredsv2.NewStaticCredentialsProvider(
+		*accessKey.AccessKeyId,
+		*accessKey.SecretAccessKey,
+		"",
+	)
+
+	cfg, err := configv2.LoadDefaultConfig(
+		context.TODO(),
+		configv2.WithRegion(region),
+		configv2.WithCredentialsProvider(staticCredProvider),
+		configv2.WithClientLogMode(awsv2.LogRetries|awsv2.LogRequest),
+	)
+	Expect(err).NotTo(HaveOccurred())
+
+	// Verify credentials are valid (similar to the v1 verification)
+	_, err = cfg.Credentials.Retrieve(context.TODO())
+	Expect(err).NotTo(HaveOccurred())
+
+	return cfg
 }
 
 // createCloudFormationStack ensures the cloudformation stack is up to date.
@@ -866,6 +898,69 @@ func newUserAccessKey(prov client.ConfigProvider, userName string) *iam.AccessKe
 		AccessKeyId:     out.AccessKey.AccessKeyId,
 		SecretAccessKey: out.AccessKey.SecretAccessKey,
 	}
+}
+
+// newUserAccessKey generates a new AWS Access Key pair based off of the
+// bootstrap user. This tests that the CloudFormation policy is correct. This function
+// is used for v2 SDK.
+func newUserAccessKeyV2(prov client.ConfigProvider, userName string) *iamtypes.AccessKey {
+	cfg := convertSessionToV2Config(prov)
+
+	iamSvc := iamv2.NewFromConfig(cfg)
+
+	keyOuts, err := iamSvc.ListAccessKeys(context.TODO(), &iamv2.ListAccessKeysInput{
+		UserName: aws.String(userName),
+	})
+	Expect(err).NotTo(HaveOccurred())
+
+	for i := range keyOuts.AccessKeyMetadata {
+		By(fmt.Sprintf("Deleting an existing access key: user-name=%s", userName))
+		_, err := iamSvc.DeleteAccessKey(context.TODO(), &iamv2.DeleteAccessKeyInput{
+			UserName:    aws.String(userName),
+			AccessKeyId: keyOuts.AccessKeyMetadata[i].AccessKeyId,
+		})
+		Expect(err).NotTo(HaveOccurred())
+	}
+
+	By(fmt.Sprintf("Creating an access key: user-name=%s", userName))
+	out, err := iamSvc.CreateAccessKey(context.TODO(), &iamv2.CreateAccessKeyInput{
+		UserName: aws.String(userName),
+	})
+	Expect(err).NotTo(HaveOccurred())
+	Expect(out.AccessKey).ToNot(BeNil())
+
+	return &iamtypes.AccessKey{
+		AccessKeyId:     out.AccessKey.AccessKeyId,
+		SecretAccessKey: out.AccessKey.SecretAccessKey,
+	}
+}
+
+func convertSessionToV2Config(sess client.ConfigProvider) awsv2.Config {
+	v1Session, ok := sess.(*session.Session)
+	if !ok {
+		panic("provider is not a session.Session")
+	}
+
+	creds, err := v1Session.Config.Credentials.Get()
+	Expect(err).NotTo(HaveOccurred())
+
+	staticCredProvider := awscredsv2.NewStaticCredentialsProvider(
+		creds.AccessKeyID,
+		creds.SecretAccessKey,
+		creds.SessionToken,
+	)
+
+	region := *v1Session.Config.Region
+
+	cfg, err := configv2.LoadDefaultConfig(
+		context.TODO(),
+		configv2.WithRegion(region),
+		configv2.WithCredentialsProvider(staticCredProvider),
+		configv2.WithClientLogMode(awsv2.LogRetries|awsv2.LogRequest),
+	)
+	Expect(err).NotTo(HaveOccurred())
+
+	return cfg
 }
 
 func DumpCloudTrailEvents(e2eCtx *E2EContext) {

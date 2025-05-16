@@ -19,8 +19,8 @@ package eks
 import (
 	"net/http"
 
+	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
 	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/service/autoscaling/autoscalingiface"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/eks/eksiface"
@@ -93,7 +93,7 @@ func NewService(controlPlaneScope *scope.ManagedControlPlaneScope, opts ...Servi
 type NodegroupService struct {
 	scope             *scope.ManagedMachinePoolScope
 	ASGService        services.ASGInterface
-	AutoscalingClient autoscalingiface.AutoScalingAPI
+	AutoscalingClient *autoscaling.Client
 	EKSClient         eksiface.EKSAPI
 	iam.IAMService
 	STSClient stsiface.STSAPI
