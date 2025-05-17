@@ -469,7 +469,7 @@ func (s *Service) createCluster(eksClusterName string) (*eks.Cluster, error) {
 
 	if s.scope.ControlPlane.Spec.UpgradePolicy != nil {
 		upgradePolicy = &eks.UpgradePolicyRequest{
-			SupportType: aws.String(s.scope.ControlPlane.Spec.UpgradePolicy.String()),
+			SupportType: convertUpgradePolicy(*s.scope.ControlPlane.Spec.UpgradePolicy),
 		}
 	}
 
