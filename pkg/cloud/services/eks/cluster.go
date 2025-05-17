@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -463,6 +464,15 @@ func (s *Service) createCluster(eksClusterName string) (*eks.Cluster, error) {
 		v := versionToEKS(specVersion)
 		eksVersion = &v
 	}
+
+	var upgradePolicy *eks.UpgradePolicyRequest
+
+	if s.scope.ControlPlane.Spec.UpgradePolicy != nil {
+		upgradePolicy = &eks.UpgradePolicyRequest{
+			SupportType: aws.String(s.scope.ControlPlane.Spec.UpgradePolicy.String()),
+		}
+	}
+
 	input := &eks.CreateClusterInput{
 		Name:                    aws.String(eksClusterName),
 		Version:                 eksVersion,
@@ -472,6 +482,7 @@ func (s *Service) createCluster(eksClusterName string) (*eks.Cluster, error) {
 		RoleArn:                 role.Arn,
 		Tags:                    tags,
 		KubernetesNetworkConfig: netConfig,
+		UpgradePolicy:           upgradePolicy,
 	}
 	// Only set BootstrapSelfManagedAddons if it's explicitly set to false in the spec
 	// Default is true, so we don't need to set it in that case
@@ -533,6 +544,12 @@ func (s *Service) reconcileClusterConfig(cluster *eks.Cluster) error {
 	if updateVpcConfig != nil {
 		needsUpdate = true
 		input.ResourcesVpcConfig = updateVpcConfig
+	}
+
+	updateUpgradePolicy := s.reconcileUpgradePolicy(cluster.UpgradePolicy)
+	if updateUpgradePolicy != nil {
+		needsUpdate = true
+		input.UpgradePolicy = updateUpgradePolicy
 	}
 
 	if needsUpdate {
@@ -725,6 +742,31 @@ func (s *Service) reconcileClusterVersion(cluster *eks.Cluster) error {
 	return nil
 }
 
+func (s *Service) reconcileUpgradePolicy(upgradePolicy *eks.UpgradePolicyResponse) *eks.UpgradePolicyRequest {
+	s.Info("reconciling upgrade policy")
+
+	clusterUpgradePolicy := upgradePolicy.SupportType
+
+	if s.scope.ControlPlane.Spec.UpgradePolicy == nil {
+		s.Debug("upgrade policy not given, no action")
+		return nil
+	}
+
+	if clusterUpgradePolicy == nil {
+		s.Debug("cannot get cluster upgrade policy, no action")
+		return nil
+	}
+
+	if strings.ToLower(*clusterUpgradePolicy) == s.scope.ControlPlane.Spec.UpgradePolicy.String() {
+		s.Debug("upgrade policy unchanged, no action")
+		return nil
+	}
+
+	return &eks.UpgradePolicyRequest{
+		SupportType: convertUpgradePolicy(*s.scope.ControlPlane.Spec.UpgradePolicy),
+	}
+}
+
 func (s *Service) describeEKSCluster(eksClusterName string) (*eks.Cluster, error) {
 	input := &eks.DescribeClusterInput{
 		Name: aws.String(eksClusterName),
@@ -853,4 +895,11 @@ func getKeyArn(encryptionConfig *eks.EncryptionConfig) string {
 		return aws.StringValue(encryptionConfig.Provider.KeyArn)
 	}
 	return ""
+}
+
+func convertUpgradePolicy(input ekscontrolplanev1.UpgradePolicy) *string {
+	if input == ekscontrolplanev1.UpgradePolicyStandard {
+		return aws.String(eks.SupportTypeStandard)
+	}
+	return aws.String(eks.SupportTypeExtended)
 }
