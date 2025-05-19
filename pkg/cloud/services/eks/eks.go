@@ -19,6 +19,7 @@ package eks
 
 import (
 	"context"
+	"time"
 
 	"github.com/pkg/errors"
 	"k8s.io/klog/v2"
@@ -29,6 +30,11 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
+)
+
+const (
+	// Maximum duration for waiting on EKS cluster state
+	maxActiveUpdateDeleteWait = 15 * time.Minute
 )
 
 // ReconcileControlPlane reconciles a EKS control plane.
@@ -68,11 +74,11 @@ func (s *Service) ReconcileControlPlane(ctx context.Context) error {
 }
 
 // DeleteControlPlane deletes the EKS control plane.
-func (s *Service) DeleteControlPlane() (err error) {
+func (s *Service) DeleteControlPlane(ctx context.Context) (err error) {
 	s.scope.Debug("Deleting EKS control plane")
 
 	// EKS Cluster
-	if err := s.deleteCluster(); err != nil {
+	if err := s.deleteCluster(ctx); err != nil {
 		return err
 	}
 
@@ -125,12 +131,12 @@ func (s *NodegroupService) ReconcilePool(ctx context.Context) error {
 
 // ReconcilePoolDelete is the entrypoint for ManagedMachinePool deletion
 // reconciliation.
-func (s *NodegroupService) ReconcilePoolDelete() error {
+func (s *NodegroupService) ReconcilePoolDelete(ctx context.Context) error {
 	s.scope.Debug("Reconciling deletion of EKS nodegroup")
 
 	eksNodegroupName := s.scope.NodegroupName()
 
-	ng, err := s.describeNodegroup()
+	ng, err := s.describeNodegroup(ctx)
 	if err != nil {
 		if awserrors.IsNotFound(err) {
 			s.scope.Trace("EKS nodegroup does not exist")
@@ -142,7 +148,7 @@ func (s *NodegroupService) ReconcilePoolDelete() error {
 		return nil
 	}
 
-	if err := s.deleteNodegroupAndWait(); err != nil {
+	if err := s.deleteNodegroupAndWait(ctx); err != nil {
 		return errors.Wrap(err, "failed to delete nodegroup")
 	}
 

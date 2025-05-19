@@ -44,11 +44,11 @@ func TagsToMap(src []*ec2.Tag) infrav1.Tags {
 }
 
 // MapPtrToMap converts a [string]*string into a infrav1.Tags.
-func MapPtrToMap(src map[string]*string) infrav1.Tags {
+func MapPtrToMap(src map[string]string) infrav1.Tags {
 	tags := make(infrav1.Tags, len(src))
 
 	for k, v := range src {
-		tags[k] = *v
+		tags[k] = v
 	}
 
 	return tags

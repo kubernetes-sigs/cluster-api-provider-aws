@@ -405,7 +405,7 @@ func (r *AWSManagedControlPlaneReconciler) reconcileDelete(ctx context.Context, 
 	networkSvc := network.NewService(managedScope)
 	sgService := securitygroup.NewService(managedScope, securityGroupRolesForControlPlane(managedScope))
 
-	if err := ekssvc.DeleteControlPlane(); err != nil {
+	if err := ekssvc.DeleteControlPlane(ctx); err != nil {
 		log.Error(err, "error deleting EKS cluster for EKS control plane", "namespace", controlPlane.Namespace, "name", controlPlane.Name)
 		return reconcile.Result{}, err
 	}

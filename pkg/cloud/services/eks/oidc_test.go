@@ -17,6 +17,7 @@ limitations under the License.
 package eks
 
 import (
+	"context"
 	"crypto/sha1"
 	"crypto/tls"
 	"crypto/x509"
@@ -26,8 +27,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
@@ -50,17 +51,17 @@ func TestOIDCReconcile(t *testing.T) {
 	tests := []struct {
 		name    string
 		expect  func(m *mock_iamauth.MockIAMAPIMockRecorder, url string)
-		cluster func(url string) eks.Cluster
+		cluster func(url string) ekstypes.Cluster
 	}{
 		{
 			name: "cluster create with no OIDC provider present yet should create one",
-			cluster: func(url string) eks.Cluster {
-				return eks.Cluster{
+			cluster: func(url string) ekstypes.Cluster {
+				return ekstypes.Cluster{
 					Name:    aws.String("cluster-test"),
 					Arn:     aws.String("arn:arn"),
 					RoleArn: aws.String("arn:role"),
-					Identity: &eks.Identity{
-						Oidc: &eks.OIDC{
+					Identity: &ekstypes.Identity{
+						Oidc: &ekstypes.OIDC{
 							Issuer: aws.String(url),
 						},
 					},
@@ -85,13 +86,13 @@ func TestOIDCReconcile(t *testing.T) {
 		},
 		{
 			name: "cluster create with existing OIDC provider which is retrieved",
-			cluster: func(url string) eks.Cluster {
-				return eks.Cluster{
+			cluster: func(url string) ekstypes.Cluster {
+				return ekstypes.Cluster{
 					Name:    aws.String("cluster-test"),
 					Arn:     aws.String("arn:arn"),
 					RoleArn: aws.String("arn:role"),
-					Identity: &eks.Identity{
-						Oidc: &eks.OIDC{
+					Identity: &ekstypes.Identity{
+						Oidc: &ekstypes.OIDC{
 							Issuer: aws.String(url),
 						},
 					},
@@ -174,7 +175,7 @@ func TestOIDCReconcile(t *testing.T) {
 			s.IAMClient = iamMock
 
 			cluster := tc.cluster(ts.URL)
-			err := s.reconcileOIDCProvider(&cluster)
+			err := s.reconcileOIDCProvider(context.TODO(), &cluster)
 			// We reached the trusted policy reconcile which will fail because it tries to connect to the server.
 			// But at this point, we already know that the critical area has been covered.
 			g.Expect(err).To(MatchError(ContainSubstring("dial tcp: lookup test-cluster-api.nodomain.example.com")))
