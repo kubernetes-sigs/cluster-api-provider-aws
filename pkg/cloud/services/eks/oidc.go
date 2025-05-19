@@ -22,7 +22,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/service/eks"
+	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -44,7 +44,7 @@ var (
 	whitespaceRe = regexp.MustCompile(`(?m)[\t\n]`)
 )
 
-func (s *Service) reconcileOIDCProvider(cluster *eks.Cluster) error {
+func (s *Service) reconcileOIDCProvider(ctx context.Context, cluster *ekstypes.Cluster) error {
 	if !s.scope.ControlPlane.Spec.AssociateOIDCProvider || s.scope.ControlPlane.Status.OIDCProvider.ARN != "" {
 		return nil
 	}
@@ -55,12 +55,12 @@ func (s *Service) reconcileOIDCProvider(cluster *eks.Cluster) error {
 
 	s.scope.Info("Reconciling EKS OIDC Provider", "cluster-name", cluster.Name)
 
-	oidcProvider, err := s.FindAndVerifyOIDCProvider(cluster)
+	oidcProvider, err := s.FindAndVerifyOIDCProvider(ctx, cluster)
 	if err != nil {
 		return errors.Wrap(err, "failed to reconcile OIDC provider")
 	}
 	if oidcProvider == "" {
-		oidcProvider, err = s.CreateOIDCProvider(cluster)
+		oidcProvider, err = s.CreateOIDCProvider(ctx, cluster)
 		if err != nil {
 			return errors.Wrap(err, "failed to create OIDC provider")
 		}
@@ -85,15 +85,14 @@ func (s *Service) reconcileOIDCProvider(cluster *eks.Cluster) error {
 		return errors.Wrap(err, "failed to tag OIDC provider")
 	}
 
-	if err := s.reconcileTrustPolicy(); err != nil {
+	if err := s.reconcileTrustPolicy(ctx); err != nil {
 		return errors.Wrap(err, "failed to reconcile trust policy in workload cluster")
 	}
 
 	return nil
 }
 
-func (s *Service) reconcileTrustPolicy() error {
-	ctx := context.Background()
+func (s *Service) reconcileTrustPolicy(ctx context.Context) error {
 
 	clusterKey := client.ObjectKey{
 		Name:      s.scope.Name(),

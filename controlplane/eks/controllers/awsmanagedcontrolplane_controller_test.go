@@ -25,11 +25,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/eks"
+	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	stsrequest "github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/golang/mock/gomock"
@@ -129,7 +130,7 @@ func TestAWSManagedControlPlaneReconcilerIntegrationTests(t *testing.T) {
 		mockedCreateSGCalls(ec2Mock.EXPECT())
 		mockedDescribeInstanceCall(ec2Mock.EXPECT())
 		mockedEKSControlPlaneIAMRole(g, iamMock.EXPECT())
-		mockedEKSCluster(g, eksMock.EXPECT(), iamMock.EXPECT(), ec2Mock.EXPECT(), stsMock.EXPECT(), awsNodeMock.EXPECT(), kubeProxyMock.EXPECT(), iamAuthenticatorMock.EXPECT())
+		mockedEKSCluster(ctx, g, eksMock.EXPECT(), iamMock.EXPECT(), ec2Mock.EXPECT(), stsMock.EXPECT(), awsNodeMock.EXPECT(), kubeProxyMock.EXPECT(), iamAuthenticatorMock.EXPECT())
 
 		g.Expect(testEnv.Create(ctx, &cluster)).To(Succeed())
 		cluster.Status.InfrastructureReady = true
@@ -828,10 +829,12 @@ func mockedEKSControlPlaneIAMRole(g *WithT, iamRec *mock_iamauth.MockIAMAPIMockR
 	}).After(getPolicyCall).Return(&iam.AttachRolePolicyOutput{}, nil)
 }
 
-func mockedEKSCluster(g *WithT, eksRec *mock_eksiface.MockEKSAPIMockRecorder, iamRec *mock_iamauth.MockIAMAPIMockRecorder, ec2Rec *mocks.MockEC2APIMockRecorder, stsRec *mock_stsiface.MockSTSAPIMockRecorder, awsNodeRec *mock_services.MockAWSNodeInterfaceMockRecorder, kubeProxyRec *mock_services.MockKubeProxyInterfaceMockRecorder, iamAuthenticatorRec *mock_services.MockIAMAuthenticatorInterfaceMockRecorder) {
-	describeClusterCall := eksRec.DescribeCluster(&eks.DescribeClusterInput{
+func mockedEKSCluster(ctx context.Context, g *WithT, eksRec *mock_eksiface.MockEKSAPIMockRecorder, iamRec *mock_iamauth.MockIAMAPIMockRecorder, ec2Rec *mocks.MockEC2APIMockRecorder, stsRec *mock_stsiface.MockSTSAPIMockRecorder, awsNodeRec *mock_services.MockAWSNodeInterfaceMockRecorder, kubeProxyRec *mock_services.MockKubeProxyInterfaceMockRecorder, iamAuthenticatorRec *mock_services.MockIAMAuthenticatorInterfaceMockRecorder) {
+	describeClusterCall := eksRec.DescribeCluster(ctx, &eks.DescribeClusterInput{
 		Name: aws.String("test-cluster"),
-	}).Return(nil, awserr.New(eks.ErrCodeResourceNotFoundException, "", nil))
+	}).Return(nil, &ekstypes.ResourceNotFoundException{
+		Message: aws.String("cluster not found"),
+	})
 
 	getRoleCall := iamRec.GetRole(&iam.GetRoleInput{
 		RoleName: aws.String("test-cluster-iam-service-role"),
@@ -842,55 +845,55 @@ func mockedEKSCluster(g *WithT, eksRec *mock_eksiface.MockEKSAPIMockRecorder, ia
 		},
 	}, nil)
 
-	resourcesVpcConfig := &eks.VpcConfigResponse{
+	resourcesVpcConfig := &ekstypes.VpcConfigResponse{
 		ClusterSecurityGroupId: aws.String("eks-cluster-sg-test-cluster-44556677"),
 	}
 
 	clusterARN := aws.String("arn:aws:eks:us-east-1:1133557799:cluster/test-cluster")
-	clusterCreating := eks.Cluster{
+	clusterCreating := ekstypes.Cluster{
 		Arn:                clusterARN,
 		Name:               aws.String("test-cluster"),
-		Status:             aws.String(eks.ClusterStatusCreating),
+		Status:             ekstypes.ClusterStatusCreating,
 		ResourcesVpcConfig: resourcesVpcConfig,
-		CertificateAuthority: &eks.Certificate{
+		CertificateAuthority: &ekstypes.Certificate{
 			Data: aws.String(base64.StdEncoding.EncodeToString([]byte("foobar"))),
 		},
-		Logging: &eks.Logging{
-			ClusterLogging: []*eks.LogSetup{
+		Logging: &ekstypes.Logging{
+			ClusterLogging: []ekstypes.LogSetup{
 				{
 					Enabled: aws.Bool(true),
-					Types:   []*string{aws.String(eks.LogTypeApi)},
+					Types:   []ekstypes.LogType{ekstypes.LogTypeApi},
 				},
 				{
 					Enabled: aws.Bool(false),
-					Types: []*string{
-						aws.String(eks.LogTypeAudit),
-						aws.String(eks.LogTypeAuthenticator),
-						aws.String(eks.LogTypeControllerManager),
-						aws.String(eks.LogTypeScheduler),
+					Types: []ekstypes.LogType{
+						ekstypes.LogTypeAudit,
+						ekstypes.LogTypeAuthenticator,
+						ekstypes.LogTypeControllerManager,
+						ekstypes.LogTypeScheduler,
 					},
 				},
 			},
 		},
 	}
 
-	createClusterCall := eksRec.CreateCluster(gomock.Any()).After(getRoleCall).DoAndReturn(func(input *eks.CreateClusterInput) (*eks.CreateClusterOutput, error) {
+	createClusterCall := eksRec.CreateCluster(ctx, gomock.Any()).After(getRoleCall).DoAndReturn(func(ctx context.Context, input *eks.CreateClusterInput, optFns ...func(*eks.Options)) (*eks.CreateClusterOutput, error) {
 		g.Expect(input.Name).To(BeComparableTo(aws.String("test-cluster")))
 		return &eks.CreateClusterOutput{
 			Cluster: &clusterCreating,
 		}, nil
 	})
 
-	waitUntilClusterActiveCall := eksRec.WaitUntilClusterActive(&eks.DescribeClusterInput{
+	waitUntilClusterActiveCall := eksRec.WaitUntilClusterActive(ctx, &eks.DescribeClusterInput{
 		Name: aws.String("test-cluster"),
 	}).After(createClusterCall).Return(nil)
 
 	clusterActive := clusterCreating // copy
-	clusterActive.Status = aws.String(eks.ClusterStatusActive)
+	clusterActive.Status = ekstypes.ClusterStatusActive
 	clusterActive.Endpoint = aws.String("https://F00D133712341337.gr7.us-east-1.eks.amazonaws.com")
 	clusterActive.Version = aws.String("1.24")
 
-	eksRec.DescribeCluster(&eks.DescribeClusterInput{
+	eksRec.DescribeCluster(ctx, &eks.DescribeClusterInput{
 		Name: aws.String("test-cluster"),
 	}).After(waitUntilClusterActiveCall).Return(&eks.DescribeClusterOutput{
 		Cluster: &clusterActive,
@@ -927,18 +930,20 @@ func mockedEKSCluster(g *WithT, eksRec *mock_eksiface.MockEKSAPIMockRecorder, ia
 		Operation:   &stsrequest.Operation{},
 	}, &sts.GetCallerIdentityOutput{})
 
-	eksRec.TagResource(&eks.TagResourceInput{
+	eksRec.TagResource(ctx, &eks.TagResourceInput{
 		ResourceArn: clusterARN,
-		Tags: aws.StringMap(map[string]string{
+		Tags: map[string]string{
 			"Name": "test-cluster",
 			"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster": "owned",
 			"sigs.k8s.io/cluster-api-provider-aws/role":                 "common",
-		}),
+		},
 	}).Return(&eks.TagResourceOutput{}, nil)
 
-	eksRec.ListAddons(&eks.ListAddonsInput{
+	eksRec.ListAddons(ctx, &eks.ListAddonsInput{
 		ClusterName: aws.String("test-cluster"),
 	}).Return(&eks.ListAddonsOutput{}, nil)
+
+	eksRec.UpdateClusterConfig(ctx, gomock.AssignableToTypeOf(&eks.UpdateClusterConfigInput{})).After(waitUntilClusterActiveCall).Return(&eks.UpdateClusterConfigOutput{}, nil)
 
 	awsNodeRec.ReconcileCNI(gomock.Any()).Return(nil)
 	kubeProxyRec.ReconcileKubeProxy(gomock.Any()).Return(nil)

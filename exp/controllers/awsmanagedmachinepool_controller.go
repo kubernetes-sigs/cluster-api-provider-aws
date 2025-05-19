@@ -243,7 +243,7 @@ func (r *AWSManagedMachinePoolReconciler) reconcileNormal(
 }
 
 func (r *AWSManagedMachinePoolReconciler) reconcileDelete(
-	_ context.Context,
+	ctx context.Context,
 	machinePoolScope *scope.ManagedMachinePoolScope,
 	ec2Scope scope.EC2Scope,
 ) error {
@@ -252,7 +252,7 @@ func (r *AWSManagedMachinePoolReconciler) reconcileDelete(
 	ekssvc := eks.NewNodegroupService(machinePoolScope)
 	ec2Svc := ec2.NewService(ec2Scope)
 
-	if err := ekssvc.ReconcilePoolDelete(); err != nil {
+	if err := ekssvc.ReconcilePoolDelete(ctx); err != nil {
 		return errors.Wrapf(err, "failed to reconcile machine pool deletion for AWSManagedMachinePool %s/%s", machinePoolScope.ManagedMachinePool.Namespace, machinePoolScope.ManagedMachinePool.Name)
 	}
 
