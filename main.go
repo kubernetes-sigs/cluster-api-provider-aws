@@ -226,71 +226,46 @@ func main() {
 		os.Exit(1)
 	}
 
-	setupLog.Info("webhook port", "webhook-port", webhookPort)
-	if webhookPort == 0 {
-		if err = (&controllers.AWSMachineReconciler{
-			Client:           mgr.GetClient(),
-			Log:              ctrl.Log.WithName("controllers").WithName("AWSMachine"),
-			Recorder:         mgr.GetEventRecorderFor("awsmachine-controller"),
-			Endpoints:        awsServiceEndpoints,
-			WatchFilterValue: watchFilterValue,
-		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsMachineConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "AWSMachine")
+	setupReconcilersAndWebhooks(ctx, mgr, awsServiceEndpoints, externalResourceGC, alternativeGCStrategy)
+	if feature.Gates.Enabled(feature.EKS) {
+		setupEKSReconcilersAndWebhooks(ctx, mgr, awsServiceEndpoints, externalResourceGC, alternativeGCStrategy, waitInfraPeriod)
+	}
 
-			os.Exit(1)
-		}
-		if err = (&controllers.AWSClusterReconciler{
-			Client:             mgr.GetClient(),
-			Recorder:           mgr.GetEventRecorderFor("awscluster-controller"),
-			Endpoints:          awsServiceEndpoints,
-			WatchFilterValue:   watchFilterValue,
-			ExternalResourceGC: externalResourceGC,
-		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "AWSCluster")
-			os.Exit(1)
-		}
-		enableGates(ctx, mgr, awsServiceEndpoints, externalResourceGC)
-	} else {
-		setupReconcilersAndWebhooks(ctx, mgr, awsServiceEndpoints, externalResourceGC, alternativeGCStrategy)
-		if feature.Gates.Enabled(feature.EKS) {
-			setupEKSReconcilersAndWebhooks(ctx, mgr, awsServiceEndpoints, externalResourceGC, alternativeGCStrategy, waitInfraPeriod)
-		}
-
-		if feature.Gates.Enabled(feature.ROSA) {
-			setupLog.Debug("enabling ROSA control plane controller")
-			if webhookPort == 0 {
-				if err := (&rosacontrolplanecontrollers.ROSAControlPlaneReconciler{
-					Client:           mgr.GetClient(),
-					WatchFilterValue: watchFilterValue,
-					WaitInfraPeriod:  waitInfraPeriod,
-					Endpoints:        awsServiceEndpoints,
-				}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
-					setupLog.Error(err, "unable to create controller", "controller", "ROSAControlPlane")
-					os.Exit(1)
-				}
-
-				setupLog.Debug("enabling ROSA cluster controller")
-				if err := (&controllers.ROSAClusterReconciler{
-					Client:           mgr.GetClient(),
-					Recorder:         mgr.GetEventRecorderFor("rosacluster-controller"),
-					WatchFilterValue: watchFilterValue,
-					Endpoints:        awsServiceEndpoints,
-				}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
-					setupLog.Error(err, "unable to create controller", "controller", "ROSACluster")
-					os.Exit(1)
-				}
-
-				setupLog.Debug("enabling ROSA machinepool controller")
-				if err := (&expcontrollers.ROSAMachinePoolReconciler{
-					Client:           mgr.GetClient(),
-					Recorder:         mgr.GetEventRecorderFor("rosamachinepool-controller"),
-					WatchFilterValue: watchFilterValue,
-					Endpoints:        awsServiceEndpoints,
-				}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
-					setupLog.Error(err, "unable to create controller", "controller", "ROSAMachinePool")
-					os.Exit(1)
-				}
+	if feature.Gates.Enabled(feature.ROSA) {
+		setupLog.Debug("enabling ROSA control plane controller")
+		if webhookPort == 0 {
+			if err := (&rosacontrolplanecontrollers.ROSAControlPlaneReconciler{
+				Client:           mgr.GetClient(),
+				WatchFilterValue: watchFilterValue,
+				WaitInfraPeriod:  waitInfraPeriod,
+				Endpoints:        awsServiceEndpoints,
+			}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
+				setupLog.Error(err, "unable to create controller", "controller", "ROSAControlPlane")
+				os.Exit(1)
 			}
+
+			setupLog.Debug("enabling ROSA cluster controller")
+			if err := (&controllers.ROSAClusterReconciler{
+				Client:           mgr.GetClient(),
+				Recorder:         mgr.GetEventRecorderFor("rosacluster-controller"),
+				WatchFilterValue: watchFilterValue,
+				Endpoints:        awsServiceEndpoints,
+			}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
+				setupLog.Error(err, "unable to create controller", "controller", "ROSACluster")
+				os.Exit(1)
+			}
+
+			setupLog.Debug("enabling ROSA machinepool controller")
+			if err := (&expcontrollers.ROSAMachinePoolReconciler{
+				Client:           mgr.GetClient(),
+				Recorder:         mgr.GetEventRecorderFor("rosamachinepool-controller"),
+				WatchFilterValue: watchFilterValue,
+				Endpoints:        awsServiceEndpoints,
+			}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
+				setupLog.Error(err, "unable to create controller", "controller", "ROSAMachinePool")
+				os.Exit(1)
+			}
+		} else {
 
 			if err := (&rosacontrolplanev1.ROSAControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
 				setupLog.Error(err, "unable to create webhook", "webhook", "ROSAControlPlane")
@@ -302,9 +277,10 @@ func main() {
 				os.Exit(1)
 			}
 		}
+	}
 
-		// +kubebuilder:scaffold:builder
-
+	// +kubebuilder:scaffold:builder
+	if webhookPort != 0 {
 		if err := mgr.AddReadyzCheck("webhook", mgr.GetWebhookServer().StartedChecker()); err != nil {
 			setupLog.Error(err, "unable to create ready check")
 			os.Exit(1)
@@ -403,33 +379,35 @@ func setupReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsServi
 		}
 	}
 
-	if err := (&infrav1.AWSMachineTemplateWebhook{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachineTemplate")
-		os.Exit(1)
-	}
-	if err := (&infrav1.AWSCluster{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSCluster")
-		os.Exit(1)
-	}
-	if err := (&infrav1.AWSClusterTemplate{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterTemplate")
-		os.Exit(1)
-	}
-	if err := (&infrav1.AWSClusterControllerIdentity{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterControllerIdentity")
-		os.Exit(1)
-	}
-	if err := (&infrav1.AWSClusterRoleIdentity{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterRoleIdentity")
-		os.Exit(1)
-	}
-	if err := (&infrav1.AWSClusterStaticIdentity{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterStaticIdentity")
-		os.Exit(1)
-	}
-	if err := (&infrav1.AWSMachine{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachine")
-		os.Exit(1)
+	if webhookPort != 0 {
+		if err := (&infrav1.AWSMachineTemplateWebhook{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachineTemplate")
+			os.Exit(1)
+		}
+		if err := (&infrav1.AWSCluster{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "AWSCluster")
+			os.Exit(1)
+		}
+		if err := (&infrav1.AWSClusterTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterTemplate")
+			os.Exit(1)
+		}
+		if err := (&infrav1.AWSClusterControllerIdentity{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterControllerIdentity")
+			os.Exit(1)
+		}
+		if err := (&infrav1.AWSClusterRoleIdentity{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterRoleIdentity")
+			os.Exit(1)
+		}
+		if err := (&infrav1.AWSClusterStaticIdentity{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "AWSClusterStaticIdentity")
+			os.Exit(1)
+		}
+		if err := (&infrav1.AWSMachine{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachine")
+			os.Exit(1)
+		}
 	}
 }
 
