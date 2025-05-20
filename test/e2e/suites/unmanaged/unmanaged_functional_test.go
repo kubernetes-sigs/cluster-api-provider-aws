@@ -957,4 +957,88 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				"Eventually failed waiting for AWSCluster to show VPC endpoint as deleted in conditions")
 		})
 	})
+
+	ginkgo.Describe("Dedicated hosts cluster test", func() {
+		ginkgo.It("should create cluster with dedicated hosts", func() {
+			specName := "dedicated-host"
+			if !e2eCtx.Settings.SkipQuotas {
+				//TODO: Update TestResource to include dedicated hosts
+				//TODO: Shouldn't this IF be inside shared.AquireResources instead of repeating across tests?
+				requiredResources = &shared.TestResource{EC2Normal: 1 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, EventBridgeRules: 50}
+				requiredResources.WriteRequestedResources(e2eCtx, specName)
+				Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+				defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+			}
+			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
+			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
+
+			//TODO: Allocate Host ID before creating the cluster
+			// Allocate a dedicated host and ensure it is released after the test
+			ginkgo.By("Allocating a dedicated host")
+			hostID, err := shared.AllocateHost(e2eCtx)
+			Expect(err).To(BeNil())
+			Expect(hostID).NotTo(BeEmpty())
+			ginkgo.By(fmt.Sprintf("Allocated dedicated host ID: %s", hostID))
+			defer func() {
+				ginkgo.By("Releasing the dedicated host")
+				shared.ReleaseHost(e2eCtx, hostID)
+			}()
+
+			ginkgo.By("Creating cluster")
+			clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
+			clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
+				ClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
+				ConfigCluster: clusterctl.ConfigClusterInput{
+					LogFolder:                filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName()),
+					ClusterctlConfigPath:     e2eCtx.Environment.ClusterctlConfigPath,
+					KubeconfigPath:           e2eCtx.Environment.BootstrapClusterProxy.GetKubeconfigPath(),
+					InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
+					Flavor:                   shared.NestedMultitenancyFlavor,
+					Namespace:                namespace.Name,
+					ClusterName:              clusterName,
+					KubernetesVersion:        e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion),
+					ControlPlaneMachineCount: ptr.To[int64](1),
+					WorkerMachineCount:       ptr.To[int64](0),
+				},
+				WaitForClusterIntervals:      e2eCtx.E2EConfig.GetIntervals(specName, "wait-cluster"),
+				WaitForControlPlaneIntervals: e2eCtx.E2EConfig.GetIntervals(specName, "wait-control-plane"),
+			}, result)
+
+			// Check if bastion host is up and running
+			awsCluster, err := GetAWSClusterByName(ctx, e2eCtx.Environment.BootstrapClusterProxy, namespace.Name, clusterName)
+			Expect(err).To(BeNil())
+			Expect(awsCluster.Status.Bastion.State).To(Equal(infrav1.InstanceStateRunning))
+			expectAWSClusterConditions(awsCluster, []conditionAssertion{{infrav1.BastionHostReadyCondition, corev1.ConditionTrue, "", ""}})
+
+			mdName := clusterName + "-md01"
+			machineTemplate := makeAWSMachineTemplate(namespace.Name, mdName, e2eCtx.E2EConfig.GetVariable(shared.AwsNodeMachineType), nil)
+
+			machineTemplate.Spec.Template.Spec.HostID = &hostID
+
+			machineDeployment := makeMachineDeployment(namespace.Name, mdName, clusterName, nil, int32(1))
+			framework.CreateMachineDeployment(ctx, framework.CreateMachineDeploymentInput{
+				Creator:                 e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+				MachineDeployment:       machineDeployment,
+				BootstrapConfigTemplate: makeJoinBootstrapConfigTemplate(namespace.Name, mdName),
+				InfraMachineTemplate:    machineTemplate,
+			})
+
+			framework.WaitForMachineDeploymentNodesToExist(ctx, framework.WaitForMachineDeploymentNodesToExistInput{
+				Lister:            e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+				Cluster:           result.Cluster,
+				MachineDeployment: machineDeployment,
+			}, e2eCtx.E2EConfig.GetIntervals("", "wait-worker-nodes")...)
+
+			workerMachines := framework.GetMachinesByMachineDeployments(ctx, framework.GetMachinesByMachineDeploymentsInput{
+				Lister:            e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+				ClusterName:       clusterName,
+				Namespace:         namespace.Name,
+				MachineDeployment: *machineDeployment,
+			})
+			Expect(len(workerMachines)).To(Equal(1))
+			//TODO: Verify that the instance is on the host
+			ginkgo.By("PASSED!")
+		})
+	})
+
 })
