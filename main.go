@@ -266,7 +266,6 @@ func main() {
 				os.Exit(1)
 			}
 		} else {
-
 			if err := (&rosacontrolplanev1.ROSAControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
 				setupLog.Error(err, "unable to create webhook", "webhook", "ROSAControlPlane")
 				os.Exit(1)
@@ -341,11 +340,11 @@ func setupReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsServi
 				setupLog.Error(err, "unable to create controller", "controller", "AWSMachinePool")
 				os.Exit(1)
 			}
-		}
-
-		if err := (&expinfrav1.AWSMachinePool{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachinePool")
-			os.Exit(1)
+		} else {
+			if err := (&expinfrav1.AWSMachinePool{}).SetupWebhookWithManager(mgr); err != nil {
+				setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachinePool")
+				os.Exit(1)
+			}
 		}
 	}
 
@@ -479,11 +478,11 @@ func setupEKSReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsSe
 			}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
 				setupLog.Error(err, "unable to create controller", "controller", "AWSFargateProfile")
 			}
-		}
-
-		if err := (&expinfrav1.AWSFargateProfile{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "AWSFargateProfile")
-			os.Exit(1)
+		} else {
+			if err := (&expinfrav1.AWSFargateProfile{}).SetupWebhookWithManager(mgr); err != nil {
+				setupLog.Error(err, "unable to create webhook", "webhook", "AWSFargateProfile")
+				os.Exit(1)
+			}
 		}
 	}
 
@@ -502,11 +501,11 @@ func setupEKSReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsSe
 				setupLog.Error(err, "unable to create controller", "controller", "AWSManagedMachinePool")
 				os.Exit(1)
 			}
-		}
-
-		if err := (&expinfrav1.AWSManagedMachinePool{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "AWSManagedMachinePool")
-			os.Exit(1)
+		} else {
+			if err := (&expinfrav1.AWSManagedMachinePool{}).SetupWebhookWithManager(mgr); err != nil {
+				setupLog.Error(err, "unable to create webhook", "webhook", "AWSManagedMachinePool")
+				os.Exit(1)
+			}
 		}
 	}
 
