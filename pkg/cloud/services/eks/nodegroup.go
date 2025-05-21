@@ -112,7 +112,7 @@ func (s *NodegroupService) scalingConfig() *ekstypes.NodegroupScalingConfig {
 	return &cfg
 }
 
-func (s *NodegroupService) updateConfig() *ekstypes.NodegroupUpdateConfig {
+func (s *NodegroupService) updateConfig() (*ekstypes.NodegroupUpdateConfig, error) {
 	updateConfig := s.scope.ManagedMachinePool.Spec.UpdateConfig
 
 	return converters.NodegroupUpdateconfigToSDK(updateConfig)
@@ -203,7 +203,10 @@ func (s *NodegroupService) createNodegroup(ctx context.Context) (*ekstypes.Nodeg
 	if err != nil {
 		return nil, fmt.Errorf("failed getting nodegroup subnets: %w", err)
 	}
-
+	updatedConfig, err := s.updateConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed creating nodegroup, invalid update config: %w", err)
+	}
 	input := &eks.CreateNodegroupInput{
 		ScalingConfig: s.scalingConfig(),
 		ClusterName:   aws.String(eksClusterName),
@@ -213,7 +216,7 @@ func (s *NodegroupService) createNodegroup(ctx context.Context) (*ekstypes.Nodeg
 		Labels:        managedPool.Labels,
 		Tags:          tags,
 		RemoteAccess:  remoteAccess,
-		UpdateConfig:  s.updateConfig(),
+		UpdateConfig:  updatedConfig,
 	}
 	if managedPool.AMIType != nil && (managedPool.AWSLaunchTemplate == nil || managedPool.AWSLaunchTemplate.AMI.ID == nil) {
 		input.AmiType = converters.AMITypeToSDK(*managedPool.AMIType)
@@ -466,9 +469,14 @@ func (s *NodegroupService) reconcileNodegroupConfig(ctx context.Context, ng *eks
 		needsUpdate = true
 	}
 	currentUpdateConfig := converters.NodegroupUpdateconfigFromSDK(ng.UpdateConfig)
+	updatedConfig, err := s.updateConfig()
+	if err != nil {
+		return errors.Wrap(err, "invalid update config")
+	}
+
 	if !cmp.Equal(managedPool.UpdateConfig, currentUpdateConfig) {
 		s.Debug("Nodegroup update configuration differs from spec, updating the nodegroup update config", "nodegroup", ng.NodegroupName)
-		input.UpdateConfig = s.updateConfig()
+		input.UpdateConfig = updatedConfig
 		needsUpdate = true
 	}
 	if !needsUpdate {
