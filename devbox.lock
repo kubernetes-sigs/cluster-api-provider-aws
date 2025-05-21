@@ -496,51 +496,51 @@
         }
       }
     },
-    "kustomize@latest": {
-      "last_modified": "2025-03-11T17:52:14Z",
-      "resolved": "github:NixOS/nixpkgs/0d534853a55b5d02a4ababa1d71921ce8f0aee4c#kustomize",
+    "kustomize@5.5.0": {
+      "last_modified": "2024-12-23T21:10:33Z",
+      "resolved": "github:NixOS/nixpkgs/de1864217bfa9b5845f465e771e0ecb48b30e02d#kustomize",
       "source": "devbox-search",
-      "version": "5.6.0",
+      "version": "5.5.0",
       "systems": {
         "aarch64-darwin": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/y85spf2nmlffzmq9lyzl8db7i0acdsqf-kustomize-5.6.0",
+              "path": "/nix/store/xpypw514kxv803li525a5by78g90ygyl-kustomize-5.5.0",
               "default": true
             }
           ],
-          "store_path": "/nix/store/y85spf2nmlffzmq9lyzl8db7i0acdsqf-kustomize-5.6.0"
+          "store_path": "/nix/store/xpypw514kxv803li525a5by78g90ygyl-kustomize-5.5.0"
         },
         "aarch64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/pwnmchq4bafvkbb84m62m8vqp9dqgaz8-kustomize-5.6.0",
+              "path": "/nix/store/4v454dywxsyzcq9ypm7aa5v0mdlj9vqn-kustomize-5.5.0",
               "default": true
             }
           ],
-          "store_path": "/nix/store/pwnmchq4bafvkbb84m62m8vqp9dqgaz8-kustomize-5.6.0"
+          "store_path": "/nix/store/4v454dywxsyzcq9ypm7aa5v0mdlj9vqn-kustomize-5.5.0"
         },
         "x86_64-darwin": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/hrlykqw1jcl2ykzida4amf2s5sjhdsng-kustomize-5.6.0",
+              "path": "/nix/store/6g9p4i5r4qvfdygh157376fhzpp55bqk-kustomize-5.5.0",
               "default": true
             }
           ],
-          "store_path": "/nix/store/hrlykqw1jcl2ykzida4amf2s5sjhdsng-kustomize-5.6.0"
+          "store_path": "/nix/store/6g9p4i5r4qvfdygh157376fhzpp55bqk-kustomize-5.5.0"
         },
         "x86_64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/cwclm6315x1cn2kswzfhfcqp13qf44b0-kustomize-5.6.0",
+              "path": "/nix/store/5z7yq6831fsrsxsvg2ic229146ymmjaq-kustomize-5.5.0",
               "default": true
             }
           ],
-          "store_path": "/nix/store/cwclm6315x1cn2kswzfhfcqp13qf44b0-kustomize-5.6.0"
+          "store_path": "/nix/store/5z7yq6831fsrsxsvg2ic229146ymmjaq-kustomize-5.5.0"
         }
       }
     },

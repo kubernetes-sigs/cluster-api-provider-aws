@@ -993,7 +993,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 					ClusterctlConfigPath:     e2eCtx.Environment.ClusterctlConfigPath,
 					KubeconfigPath:           e2eCtx.Environment.BootstrapClusterProxy.GetKubeconfigPath(),
 					InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-					Flavor:                   shared.NestedMultitenancyFlavor,
+					Flavor:                   shared.DedicatedHostFlavor,
 					Namespace:                namespace.Name,
 					ClusterName:              clusterName,
 					KubernetesVersion:        e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion),
@@ -1036,7 +1036,11 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				MachineDeployment: *machineDeployment,
 			})
 			Expect(len(workerMachines)).To(Equal(1))
-			//TODO: Verify that the instance is on the host
+			//TODO: Verify that the worker machine instance is on the correct dedicated host id
+			// worker := workerMachines[0]
+			// instanceID := "i-0000000000" //???
+			// instanceHostID := "TODO"     // describe instance and get host id
+			// Expect(instanceHostID).To(Equal(hostID), fmt.Sprintf("Expected instance to be on host %s, but got %s", hostID, instanceHostID))
 			ginkgo.By("PASSED!")
 		})
 	})

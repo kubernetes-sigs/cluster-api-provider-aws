@@ -2368,18 +2368,18 @@ func GetMountTargetState(e2eCtx *E2EContext, mountTargetID string) (*string, err
 }
 
 func getAvailabilityZone() string {
-	return "us-west-2a"
+	return "us-east-1a"
 }
 
-func getInstanceType() string {
-	return "t3.large"
+func getInstanceFamily() string {
+	return "t3"
 }
 
 func AllocateHost(e2eCtx *E2EContext) (string, error) {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 	input := &ec2.AllocateHostsInput{
 		AvailabilityZone: aws.String(getAvailabilityZone()),
-		InstanceType:     aws.String(getInstanceType()),
+		InstanceFamily:   aws.String(getInstanceFamily()),
 		Quantity:         aws.Int64(1),
 	}
 	output, err := ec2Svc.AllocateHosts(input)
@@ -2398,6 +2398,6 @@ func ReleaseHost(e2eCtx *E2EContext, hostID string) {
 	}
 
 	_, err := ec2Svc.ReleaseHosts(input)
-	Expect(err).ToNot(HaveOccurred(), "Failed to releasee host")
+	Expect(err).ToNot(HaveOccurred(), "Failed to release host %s", hostID)
 	fmt.Println("Released Host ID: ", hostID)
 }
