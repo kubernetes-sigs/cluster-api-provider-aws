@@ -129,7 +129,7 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 
 	Expect(err).NotTo(HaveOccurred())
 	e2eCtx.AWSSession = NewAWSSession()
-	e2eCtx.AWSConfig = NewAWSConfig(context.TODO())
+	e2eCtx.AWSSessionV2 = NewAWSSessionV2()
 
 	logAccountDetails(e2eCtx.AWSSession)
 
@@ -157,6 +157,12 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	ensureSSHKeyPair(e2eCtx.AWSSession, DefaultSSHKeyPairName)
 	e2eCtx.Environment.BootstrapAccessKey = newUserAccessKey(context.TODO(), e2eCtx.AWSConfig, bootstrapTemplate.Spec.BootstrapUser.UserName)
 	e2eCtx.BootstrapUserAWSSession = NewAWSSessionWithKey(e2eCtx.Environment.BootstrapAccessKey)
+	// v2AccessKey can be removed after AWS SDK V2 Migration
+	v2AccessKey := &iamtypes.AccessKey{
+		AccessKeyId:     e2eCtx.Environment.BootstrapAccessKey.AccessKeyId,
+		SecretAccessKey: e2eCtx.Environment.BootstrapAccessKey.SecretAccessKey,
+	}
+	e2eCtx.BootstrapUserAWSSessionV2 = NewAWSSessionWithKeyV2(v2AccessKey)
 	Expect(ensureTestImageUploaded(e2eCtx)).NotTo(HaveOccurred())
 
 	// Image ID is needed when using a CI Kubernetes version. This is used in conformance test and upgrade to main test.
@@ -225,13 +231,19 @@ func AllNodesBeforeSuite(e2eCtx *E2EContext, data []byte) {
 	e2eCtx.Environment.BootstrapClusterProxy = framework.NewClusterProxy("bootstrap", conf.KubeconfigPath, e2eCtx.Environment.Scheme)
 	e2eCtx.E2EConfig = &conf.E2EConfig
 	e2eCtx.BootstrapUserAWSSession = NewAWSSessionWithKey(conf.BootstrapAccessKey)
+	// v2AccessKey can be removed after AWS SDK V2 Migration
+	v2AccessKey := &iamtypes.AccessKey{
+		AccessKeyId:     e2eCtx.Environment.BootstrapAccessKey.AccessKeyId,
+		SecretAccessKey: e2eCtx.Environment.BootstrapAccessKey.SecretAccessKey,
+	}
+	e2eCtx.BootstrapUserAWSSessionV2 = NewAWSSessionWithKeyV2(v2AccessKey)
 	e2eCtx.Settings.FileLock = flock.New(ResourceQuotaFilePath)
 	e2eCtx.Settings.KubetestConfigFilePath = conf.KubetestConfigFilePath
 	e2eCtx.Settings.UseCIArtifacts = conf.UseCIArtifacts
 	e2eCtx.Settings.GinkgoNodes = conf.GinkgoNodes
 	e2eCtx.Settings.GinkgoSlowSpecThreshold = conf.GinkgoSlowSpecThreshold
 	e2eCtx.AWSSession = NewAWSSession()
-	e2eCtx.AWSConfig = NewAWSConfig(context.TODO())
+	e2eCtx.AWSSessionV2 = NewAWSSessionV2()
 	azs := GetAvailabilityZones(e2eCtx.AWSSession)
 	SetEnvVar(AwsAvailabilityZone1, *azs[0].ZoneName, false)
 	SetEnvVar(AwsAvailabilityZone2, *azs[1].ZoneName, false)

@@ -210,6 +210,7 @@ func (s *Service) translateAPIToAddon(addons []ekscontrolplanev1.Addon) []*eksad
 	return converted
 }
 
+// WaitUntilAddonDeleted is blocking function to wait until EKS Nodegroup is Deleted.
 func (k *EKSClient) WaitUntilAddonDeleted(ctx context.Context, input *eks.DescribeAddonInput) error {
 	waiter := eks.NewAddonDeletedWaiter(k, func(o *eks.AddonDeletedWaiterOptions) {
 		o.LogWaitAttempts = true

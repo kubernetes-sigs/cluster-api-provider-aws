@@ -625,6 +625,7 @@ func (s *NodegroupService) waitForNodegroupActive(ctx context.Context) (*ekstype
 	return ng, nil
 }
 
+// WaitUntilNodegroupDeleted is blocking function to wait until EKS Nodegroup is Deleted.
 func (k *EKSClient) WaitUntilNodegroupDeleted(ctx context.Context, input *eks.DescribeNodegroupInput) error {
 	waiter := eks.NewNodegroupDeletedWaiter(k)
 	err := waiter.Wait(ctx, input, maxActiveUpdateDeleteWait)
@@ -634,6 +635,7 @@ func (k *EKSClient) WaitUntilNodegroupDeleted(ctx context.Context, input *eks.De
 	return nil
 }
 
+// WaitUntilNodegroupActive is blocking function to wait until EKS Nodegroup is Active.
 func (k *EKSClient) WaitUntilNodegroupActive(ctx context.Context, input *eks.DescribeNodegroupInput) error {
 	waiter := eks.NewNodegroupActiveWaiter(k, func(o *eks.NodegroupActiveWaiterOptions) {
 		o.LogWaitAttempts = true
