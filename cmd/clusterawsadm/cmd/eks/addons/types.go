@@ -95,7 +95,7 @@ type installedAddon struct {
 	RoleARN  *string
 
 	Status string
-	Tags   map[string]*string
+	Tags   map[string]string
 
 	HealthIssues []issue
 
