@@ -93,7 +93,6 @@ func (s *Service) reconcileOIDCProvider(ctx context.Context, cluster *ekstypes.C
 }
 
 func (s *Service) reconcileTrustPolicy(ctx context.Context) error {
-
 	clusterKey := client.ObjectKey{
 		Name:      s.scope.Name(),
 		Namespace: s.scope.Namespace(),

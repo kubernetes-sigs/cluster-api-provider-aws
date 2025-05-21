@@ -722,6 +722,7 @@ func getKeyArn(encryptionConfig ekstypes.EncryptionConfig) string {
 	return ""
 }
 
+// WaitUntilClusterActive is blocking function to wait until EKS Cluster is Active.
 func (k *EKSClient) WaitUntilClusterActive(ctx context.Context, input *eks.DescribeClusterInput) error {
 	waiter := eks.NewClusterActiveWaiter(k, func(o *eks.ClusterActiveWaiterOptions) {
 		o.LogWaitAttempts = true
@@ -730,12 +731,14 @@ func (k *EKSClient) WaitUntilClusterActive(ctx context.Context, input *eks.Descr
 	return waiter.Wait(ctx, input, maxActiveUpdateDeleteWait)
 }
 
+// WaitUntilClusterDeleted is blocking function to wait until EKS Cluster is Deleted.
 func (k *EKSClient) WaitUntilClusterDeleted(ctx context.Context, input *eks.DescribeClusterInput) error {
 	waiter := eks.NewClusterDeletedWaiter(k)
 
 	return waiter.Wait(ctx, input, maxActiveUpdateDeleteWait)
 }
 
+// WaitUntilClusterUpdating is blocking function to wait until EKS Cluster is Updating.
 func (k *EKSClient) WaitUntilClusterUpdating(ctx context.Context, input *eks.DescribeClusterInput) error {
 	waiter := eks.NewClusterActiveWaiter(k, func(o *eks.ClusterActiveWaiterOptions) {
 		o.LogWaitAttempts = true

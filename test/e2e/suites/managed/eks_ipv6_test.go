@@ -67,6 +67,7 @@ var _ = ginkgo.Describe("[managed] [general] [ipv6] EKS cluster tests", func() {
 				ConfigClusterFn:          defaultConfigCluster,
 				BootstrapClusterProxy:    e2eCtx.Environment.BootstrapClusterProxy,
 				AWSSession:               e2eCtx.BootstrapUserAWSSession,
+				AWSSessionV2:             e2eCtx.BootstrapUserAWSSessionV2,
 				Namespace:                namespace,
 				ClusterName:              clusterName,
 				Flavour:                  EKSIPv6ClusterFlavor,
