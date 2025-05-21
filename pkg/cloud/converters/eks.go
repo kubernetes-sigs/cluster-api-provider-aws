@@ -20,6 +20,7 @@ package converters
 import (
 	"errors"
 	"fmt"
+	"math"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
@@ -182,20 +183,29 @@ func CapacityTypeToSDK(capacityType expinfrav1.ManagedMachinePoolCapacityType) (
 }
 
 // NodegroupUpdateconfigToSDK is used to convert a CAPA UpdateConfig to AWS SDK NodegroupUpdateConfig.
-func NodegroupUpdateconfigToSDK(updateConfig *expinfrav1.UpdateConfig) *ekstypes.NodegroupUpdateConfig {
+func NodegroupUpdateconfigToSDK(updateConfig *expinfrav1.UpdateConfig) (*ekstypes.NodegroupUpdateConfig, error) {
 	if updateConfig == nil {
-		return nil
+		return nil, nil
+	}
+
+	maxUnavailable, err := toSafeInt32(*updateConfig.MaxUnavailable)
+	if err != nil {
+		return nil, err
+	}
+	maxUnavailablePercant, err := toSafeInt32(*updateConfig.MaxUnavailablePercentage)
+	if err != nil {
+		return nil, err
 	}
 
 	converted := &ekstypes.NodegroupUpdateConfig{}
 	if updateConfig.MaxUnavailable != nil {
-		converted.MaxUnavailable = aws.Int32(int32(*updateConfig.MaxUnavailable))
+		converted.MaxUnavailable = aws.Int32(maxUnavailable)
 	}
 	if updateConfig.MaxUnavailablePercentage != nil {
-		converted.MaxUnavailablePercentage = aws.Int32(int32(*updateConfig.MaxUnavailablePercentage))
+		converted.MaxUnavailablePercentage = aws.Int32(maxUnavailablePercant)
 	}
 
-	return converted
+	return converted, nil
 }
 
 // NodegroupUpdateconfigFromSDK is used to convert a AWS SDK NodegroupUpdateConfig to a CAPA UpdateConfig.
@@ -245,4 +255,11 @@ func AddonConflictResolutionFromSDK(conflict ekstypes.ResolveConflicts) *string 
 		return aws.String(string(ekscontrolplanev1.AddonResolutionNone))
 	}
 	return aws.String(string(ekscontrolplanev1.AddonResolutionOverwrite))
+}
+
+func toSafeInt32(i int) (int32, error) {
+	if i > math.MaxInt32 || i < math.MinInt32 {
+		return 0, fmt.Errorf("value %d out of range for int32", i)
+	}
+	return int32(i), nil
 }
