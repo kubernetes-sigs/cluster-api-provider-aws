@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -44,6 +45,7 @@ type ManagedClusterSpecInput struct {
 	ConfigClusterFn          DefaultConfigClusterFn
 	BootstrapClusterProxy    framework.ClusterProxy
 	AWSSession               client.ConfigProvider
+	AWSSessionV2             *aws.Config
 	Namespace                *corev1.Namespace
 	ClusterName              string
 	Flavour                  string
@@ -87,7 +89,7 @@ func ManagedClusterSpec(ctx context.Context, inputGetter func() ManagedClusterSp
 
 	ginkgo.By("Checking EKS cluster is active")
 	eksClusterName := getEKSClusterName(input.Namespace.Name, input.ClusterName)
-	verifyClusterActiveAndOwned(eksClusterName, input.AWSSession)
+	verifyClusterActiveAndOwned(ctx, eksClusterName, input.AWSSessionV2)
 
 	if input.CluserSpecificRoles {
 		ginkgo.By("Checking that the cluster specific IAM role exists")

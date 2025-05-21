@@ -65,6 +65,7 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 				ConfigClusterFn:          defaultConfigCluster,
 				BootstrapClusterProxy:    e2eCtx.Environment.BootstrapClusterProxy,
 				AWSSession:               e2eCtx.BootstrapUserAWSSession,
+				AWSSessionV2:             e2eCtx.BootstrapUserAWSSessionV2,
 				Namespace:                namespace,
 				ClusterName:              clusterName,
 				Flavour:                  EKSControlPlaneOnlyWithAddonFlavor,
@@ -89,7 +90,7 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 			return CheckAddonExistsSpecInput{
 				E2EConfig:             e2eCtx.E2EConfig,
 				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
-				AWSSession:            e2eCtx.BootstrapUserAWSSession,
+				AWSSession:            e2eCtx.BootstrapUserAWSSessionV2,
 				Namespace:             namespace,
 				ClusterName:           clusterName,
 				AddonName:             cniAddonName,

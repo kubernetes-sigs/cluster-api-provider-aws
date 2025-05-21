@@ -33,7 +33,7 @@ import (
 )
 
 const (
-	// Maximum duration for waiting on EKS cluster state
+	// Maximum duration for waiting on EKS cluster state.
 	maxActiveUpdateDeleteWait = 15 * time.Minute
 )
 

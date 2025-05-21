@@ -25,7 +25,7 @@ import (
 	"fmt"
 	"strings"
 
-	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -43,7 +43,7 @@ type MachinePoolSpecInput struct {
 	ConfigClusterFn       DefaultConfigClusterFn
 	BootstrapClusterProxy framework.ClusterProxy
 	AWSSession            client.ConfigProvider
-	AWSConfig             awsv2.Config
+	AWSSessionV2          *aws.Config
 	Namespace             *corev1.Namespace
 	ClusterName           string
 	IncludeScaling        bool
@@ -110,7 +110,7 @@ func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolSpecInpu
 		} else {
 			nodeGroupName = getEKSNodegroupName(input.Namespace.Name, input.ClusterName)
 		}
-		verifyManagedNodeGroup(eksClusterName, nodeGroupName, true, input.AWSSession)
+		verifyManagedNodeGroup(ctx, eksClusterName, nodeGroupName, true, input.AWSSessionV2)
 	} else {
 		asgName := getASGName(input.ClusterName)
 		verifyASG(eksClusterName, asgName, true, input.AWSConfig)

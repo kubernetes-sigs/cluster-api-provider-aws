@@ -75,6 +75,7 @@ type EKSAPI interface {
 	WaitUntilAddonDeleted(ctx context.Context, params *eks.DescribeAddonInput) error
 }
 
+// EKSClient is a wrapper over eks.Client for implementing custom methods of EKSAPI.
 type EKSClient struct {
 	*eks.Client
 }

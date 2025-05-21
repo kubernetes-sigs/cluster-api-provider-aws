@@ -34,7 +34,10 @@ import (
 
 	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	iam "github.com/aws/aws-sdk-go-v2/service/iam"
+	awscredsv2 "github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/eks"
+	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
+	"github.com/aws/aws-sdk-go-v2/service/iam"
 	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
@@ -46,7 +49,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecrpublic"
 	"github.com/aws/aws-sdk-go/service/efs"
-	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/servicequotas"
 	"github.com/aws/aws-sdk-go/service/sts"
@@ -432,6 +434,55 @@ func NewAWSSessionWithKey(accessKey *iamtypes.AccessKey) client.ConfigProvider {
 	_, err = sess.Config.Credentials.Get()
 	Expect(err).NotTo(HaveOccurred())
 	return sess
+}
+
+func NewAWSSessionV2() *awsv2.Config {
+	By("Getting an AWS IAM session - from environment")
+	region, err := credentials.ResolveRegion("")
+	Expect(err).NotTo(HaveOccurred())
+	optFns := []func(*config.LoadOptions) error{
+		config.WithRegion(region),
+		config.WithClientLogMode(awsv2.LogSigning),
+	}
+	cfg, err := config.LoadDefaultConfig(context.Background(), optFns...)
+	Expect(err).NotTo(HaveOccurred())
+	_, err = cfg.Credentials.Retrieve(context.Background())
+	Expect(err).NotTo(HaveOccurred())
+	return &cfg
+}
+
+func NewAWSSessionRepoWithKeyV2(accessKey *iamtypes.AccessKey) *awsv2.Config {
+	By("Getting an AWS IAM session - from access key")
+	region, err := credentials.ResolveRegion("us-east-1")
+	Expect(err).NotTo(HaveOccurred())
+	staticCredProvider := awscredsv2.NewStaticCredentialsProvider(awsv2.ToString(accessKey.AccessKeyId), awsv2.ToString(accessKey.SecretAccessKey), "")
+	optFns := []func(*config.LoadOptions) error{
+		config.WithRegion(region),
+		config.WithClientLogMode(awsv2.LogSigning),
+		config.WithCredentialsProvider(staticCredProvider),
+	}
+	cfg, err := config.LoadDefaultConfig(context.Background(), optFns...)
+	Expect(err).NotTo(HaveOccurred())
+	_, err = cfg.Credentials.Retrieve(context.Background())
+	Expect(err).NotTo(HaveOccurred())
+	return &cfg
+}
+
+func NewAWSSessionWithKeyV2(accessKey *iamtypes.AccessKey) *awsv2.Config {
+	By("Getting an AWS IAM session - from access key")
+	region, err := credentials.ResolveRegion("")
+	Expect(err).NotTo(HaveOccurred())
+	staticCredProvider := awscredsv2.NewStaticCredentialsProvider(awsv2.ToString(accessKey.AccessKeyId), awsv2.ToString(accessKey.SecretAccessKey), "")
+	optFns := []func(*config.LoadOptions) error{
+		config.WithRegion(region),
+		config.WithClientLogMode(awsv2.LogSigning),
+		config.WithCredentialsProvider(staticCredProvider),
+	}
+	cfg, err := config.LoadDefaultConfig(context.Background(), optFns...)
+	Expect(err).NotTo(HaveOccurred())
+	_, err = cfg.Credentials.Retrieve(context.Background())
+	Expect(err).NotTo(HaveOccurred())
+	return &cfg
 }
 
 // createCloudFormationStack ensures the cloudformation stack is up to date.
@@ -1051,7 +1102,7 @@ func (s *ServiceQuota) updateServiceQuotaRequestStatus(serviceQuotasClient *serv
 }
 
 // DumpEKSClusters dumps the EKS clusters in the environment.
-func DumpEKSClusters(_ context.Context, e2eCtx *E2EContext) {
+func DumpEKSClusters(ctx context.Context, e2eCtx *E2EContext) {
 	name := "no-bootstrap-cluster"
 	if e2eCtx.Environment.BootstrapClusterProxy != nil {
 		name = e2eCtx.Environment.BootstrapClusterProxy.GetName()
@@ -1063,17 +1114,17 @@ func DumpEKSClusters(_ context.Context, e2eCtx *E2EContext) {
 	fmt.Fprintf(GinkgoWriter, "Folder created for eks clusters: %q\n", logPath)
 
 	input := &eks.ListClustersInput{}
-	var eksClient *eks.EKS
-	if e2eCtx.BootstrapUserAWSSession == nil && e2eCtx.AWSSession != nil {
-		eksClient = eks.New(e2eCtx.AWSSession)
-	} else if e2eCtx.BootstrapUserAWSSession != nil {
-		eksClient = eks.New(e2eCtx.BootstrapUserAWSSession)
+	var eksClient *eks.Client
+	if e2eCtx.BootstrapUserAWSSessionV2 == nil && e2eCtx.AWSSessionV2 != nil {
+		eksClient = eks.NewFromConfig(*e2eCtx.AWSSessionV2)
+	} else if e2eCtx.BootstrapUserAWSSessionV2 != nil {
+		eksClient = eks.NewFromConfig(*e2eCtx.BootstrapUserAWSSessionV2)
 	} else {
 		Fail("Couldn't list EKS clusters: no AWS client was set up (please look at previous errors)")
 		return
 	}
 
-	output, err := eksClient.ListClusters(input)
+	output, err := eksClient.ListClusters(ctx, input)
 	if err != nil {
 		fmt.Fprintf(GinkgoWriter, "Couldn't list EKS clusters: err=%s\n", err)
 		return
@@ -1081,18 +1132,18 @@ func DumpEKSClusters(_ context.Context, e2eCtx *E2EContext) {
 
 	for _, clusterName := range output.Clusters {
 		describeInput := &eks.DescribeClusterInput{
-			Name: clusterName,
+			Name: aws.String(clusterName),
 		}
-		describeOutput, err := eksClient.DescribeCluster(describeInput)
+		describeOutput, err := eksClient.DescribeCluster(ctx, describeInput)
 		if err != nil {
-			fmt.Fprintf(GinkgoWriter, "Couldn't describe EKS clusters: name=%q err=%s\n", *clusterName, err)
+			fmt.Fprintf(GinkgoWriter, "Couldn't describe EKS clusters: name=%q err=%s\n", clusterName, err)
 			continue
 		}
 		dumpEKSCluster(describeOutput.Cluster, logPath)
 	}
 }
 
-func dumpEKSCluster(cluster *eks.Cluster, logPath string) {
+func dumpEKSCluster(cluster *ekstypes.Cluster, logPath string) {
 	clusterYAML, err := yaml.Marshal(cluster)
 	if err != nil {
 		fmt.Fprintf(GinkgoWriter, "Couldn't marshal cluster to yaml: name=%q err=%s\n", *cluster.Name, err)
