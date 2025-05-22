@@ -2367,19 +2367,27 @@ func GetMountTargetState(e2eCtx *E2EContext, mountTargetID string) (*string, err
 	return result.LifeCycleState, nil
 }
 
-func getAvailabilityZone() string {
-	return "us-east-1a"
+func getAvailabilityZone(e2eCtx *E2EContext) string {
+	az := e2eCtx.E2EConfig.GetVariable(AwsAvailabilityZone1)
+	return az
 }
 
-func getInstanceFamily() string {
+func getInstanceFamily(e2eCtx *E2EContext) string {
+	machineType := e2eCtx.E2EConfig.GetVariable(AwsNodeMachineType)
+	// from instance type get instace family behind the dot
+	// for example: t3a.medium -> t3
+	machineTypeSplit := strings.Split(machineType, ".")
+	if len(machineTypeSplit) > 0 {
+		return machineTypeSplit[0]
+	}
 	return "t3"
 }
 
 func AllocateHost(e2eCtx *E2EContext) (string, error) {
 	ec2Svc := ec2.New(e2eCtx.AWSSession)
 	input := &ec2.AllocateHostsInput{
-		AvailabilityZone: aws.String(getAvailabilityZone()),
-		InstanceFamily:   aws.String(getInstanceFamily()),
+		AvailabilityZone: aws.String(getAvailabilityZone(e2eCtx)),
+		InstanceFamily:   aws.String(getInstanceFamily(e2eCtx)),
 		Quantity:         aws.Int64(1),
 	}
 	output, err := ec2Svc.AllocateHosts(input)
