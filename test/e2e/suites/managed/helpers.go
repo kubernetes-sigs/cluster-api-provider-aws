@@ -24,9 +24,10 @@ import (
 	"fmt"
 	"time"
 
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
-	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/iam"
 	. "github.com/onsi/gomega"
@@ -198,26 +199,26 @@ func verifyManagedNodeGroup(eksClusterName, nodeGroupName string, checkOwned boo
 	}
 }
 
-func verifyASG(eksClusterName, asgName string, checkOwned bool, sess client.ConfigProvider) {
-	asgClient := autoscaling.New(sess)
+func verifyASG(eksClusterName, asgName string, checkOwned bool, cfg awsv2.Config) {
+	asgClient := autoscaling.NewFromConfig(cfg)
+
 	input := &autoscaling.DescribeAutoScalingGroupsInput{
-		AutoScalingGroupNames: []*string{
-			aws.String(asgName),
+		AutoScalingGroupNames: []string{
+			asgName,
 		},
 	}
-
 	var (
 		result *autoscaling.DescribeAutoScalingGroupsOutput
 		err    error
 	)
 
 	Eventually(func() error {
-		result, err = asgClient.DescribeAutoScalingGroups(input)
+		result, err = asgClient.DescribeAutoScalingGroups(context.TODO(), input)
 		return err
 	}, clientRequestTimeout, clientRequestCheckInterval).Should(Succeed())
 
 	for _, instance := range result.AutoScalingGroups[0].Instances {
-		Expect(*instance.LifecycleState).To(Equal("InService"), "expecting the instance in service")
+		Expect(string(instance.LifecycleState)).To(Equal("InService"), "expecting the instance in service")
 	}
 
 	if checkOwned {

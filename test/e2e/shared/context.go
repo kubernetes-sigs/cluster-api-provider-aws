@@ -23,8 +23,9 @@ import (
 	"context"
 	"time"
 
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/aws/aws-sdk-go/aws/client"
-	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/awslabs/goformation/v4/cloudformation"
 	"github.com/gofrs/flock"
 	corev1 "k8s.io/api/core/v1"
@@ -64,6 +65,8 @@ type E2EContext struct {
 	Environment RuntimeEnvironment
 	// AWSSession is the AWS session for the tests.
 	AWSSession client.ConfigProvider
+	// AWSClient is the AWS client for the tests.
+	AWSConfig awsv2.Config
 	// BootstrapUserAWSSession is the AWS session for the bootstrap user.
 	BootstrapUserAWSSession client.ConfigProvider
 	// IsManaged indicates that this is for the managed part of the provider.
@@ -116,8 +119,8 @@ type RuntimeEnvironment struct {
 	BootstrapClusterProxy framework.ClusterProxy
 	// BootstrapTemplate is the clusterawsadm bootstrap template for this run.
 	BootstrapTemplate *cfn_bootstrap.Template
-	// BootstrapAccessKey is the bootstrap user access key.
-	BootstrapAccessKey *iam.AccessKey
+	// BootstrapAccessKey is the bootstrap user access key for AWS SDK v2.
+	BootstrapAccessKey *iamtypes.AccessKey
 	// ResourceTicker for dumping resources.
 	ResourceTicker *time.Ticker
 	// ResourceTickerDone to stop ticking.
