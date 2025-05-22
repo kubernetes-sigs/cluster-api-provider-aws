@@ -1042,11 +1042,11 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				MachineDeployment: *machineDeployment,
 			})
 			Expect(len(workerMachines)).To(Equal(1))
-			//TODO: Verify that the worker machine instance is on the correct dedicated host id
-			// worker := workerMachines[0]
-			// instanceID := "i-0000000000" //???
-			// instanceHostID := "TODO"     // describe instance and get host id
-			// Expect(instanceHostID).To(Equal(hostID), fmt.Sprintf("Expected instance to be on host %s, but got %s", hostID, instanceHostID))
+			worker := workerMachines[0]
+			instanceID := strings.Split(*worker.Spec.ProviderID, "/")[1]
+			ginkgo.By(fmt.Sprintf("Worker instance ID: %s", instanceID))
+			instanceHostID := shared.GetHostId(e2eCtx, instanceID)
+			Expect(instanceHostID).To(Equal(hostID), fmt.Sprintf("Expected instance to be on host %s, but got %s", hostID, instanceHostID))
 			ginkgo.By("PASSED!")
 		})
 	})
