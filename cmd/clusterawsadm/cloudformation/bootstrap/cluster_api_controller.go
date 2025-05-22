@@ -302,6 +302,19 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 			},
 		})
 	}
+	if t.Spec.IAMIdentityProviders.Enable {
+		statement = append(statement, iamv1.StatementEntry{
+			Effect: iamv1.EffectAllow,
+			Resource: iamv1.Resources{
+				fmt.Sprintf("arn:*:s3:::%s*", t.Spec.S3Buckets.NamePrefix),
+			},
+			Action: iamv1.Actions{
+				"s3:PutBucketOwnershipControls",
+				"s3:PutObjectAcl",
+				"s3:PutBucketPublicAccessBlock",
+			},
+		})
+	}
 	if t.Spec.EventBridge.Enable {
 		statement = append(statement, iamv1.StatementEntry{
 			Effect:   iamv1.EffectAllow,
@@ -320,6 +333,19 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"sqs:GetQueueUrl",
 				"sqs:ReceiveMessage",
 				"sqs:SetQueueAttributes",
+			},
+		})
+	}
+	if t.Spec.IAMIdentityProviders.Enable {
+		statement = append(statement, iamv1.StatementEntry{
+			Effect:   iamv1.EffectAllow,
+			Resource: iamv1.Resources{iamv1.Any},
+			Action: iamv1.Actions{
+				"iam:CreateOpenIDConnectProvider",
+				"iam:DeleteOpenIDConnectProvider",
+				"iam:ListOpenIDConnectProviders",
+				"iam:GetOpenIDConnectProvider",
+				"iam:TagOpenIDConnectProvider",
 			},
 		})
 	}
