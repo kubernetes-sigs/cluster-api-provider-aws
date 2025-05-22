@@ -52,6 +52,11 @@ func (s *Service) reconcileAddons(ctx context.Context) error {
 	// Get the addons from the spec we want for the cluster
 	desiredAddons := s.translateAPIToAddon(s.scope.Addons())
 
+	// Update the tags with the latest version if available
+	if desiredAddons, err = s.updateAddonTagsWithLatestVersion(desiredAddons); err != nil {
+		return fmt.Errorf("updating addon tags with latest version: %w", err)
+	}
+
 	// If there are no addons desired or installed then do nothing
 	if len(installed) == 0 && len(desiredAddons) == 0 {
 		s.scope.Info("no addons installed and no addons to install, no action needed")
@@ -207,6 +212,45 @@ func (s *Service) translateAPIToAddon(addons []ekscontrolplanev1.Addon) []*eksad
 	}
 
 	return converted
+}
+
+func (s *Service) updateAddonTagsWithLatestVersion(addons []*eksaddons.EKSAddon) ([]*eksaddons.EKSAddon, error) {
+	s.Debug("Updating addon tags with the latest available version")
+
+	input := &eks.DescribeAddonVersionsInput{
+		KubernetesVersion: s.scope.ControlPlane.Spec.Version,
+	}
+
+	output, err := s.EKSClient.DescribeAddonVersions(input)
+	if err != nil {
+		return nil, fmt.Errorf("error describing addon versions: %w", err)
+	}
+	if len(output.Addons) == 0 {
+		s.Debug("No addons found for the specified Kubernetes version")
+		return addons, nil
+	}
+
+	latestVersions := make(map[string]string)
+	for _, addon := range output.Addons {
+		if len(addon.AddonVersions) > 0 {
+			latestVersions[*addon.AddonName] = *addon.AddonVersions[0].AddonVersion
+			for _, version := range addon.AddonVersions[1:] {
+				if *version.AddonVersion > latestVersions[*addon.AddonName] {
+					latestVersions[*addon.AddonName] = *version.AddonVersion
+				}
+			}
+		}
+	}
+
+	for _, addon := range addons {
+		if addon.Version != nil && *addon.Version == "latest" {
+			if latestVersion, ok := latestVersions[*addon.Name]; ok {
+				addon.Version = &latestVersion
+			}
+		}
+	}
+
+	return addons, nil
 }
 
 func convertConflictResolution(conflict ekscontrolplanev1.AddonResolution) *string {
