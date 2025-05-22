@@ -2409,3 +2409,20 @@ func ReleaseHost(e2eCtx *E2EContext, hostID string) {
 	Expect(err).ToNot(HaveOccurred(), "Failed to release host %s", hostID)
 	fmt.Println("Released Host ID: ", hostID)
 }
+
+func GetHostId(e2eCtx *E2EContext, instanceID string) string {
+	ec2Svc := ec2.New(e2eCtx.AWSSession)
+
+	input := &ec2.DescribeInstancesInput{
+		InstanceIds: []*string{aws.String(instanceID)},
+	}
+
+	result, err := ec2Svc.DescribeInstances(input)
+	Expect(err).ToNot(HaveOccurred(), "Failed to get host ID for instance %s", instanceID)
+	Expect(len(result.Reservations)).To(BeNumerically(">", 0), "No reservation returned")
+	Expect(len(result.Reservations[0].Instances)).To(BeNumerically(">", 0), "No instance returned")
+	placement := *result.Reservations[0].Instances[0].Placement
+	hostID := *placement.HostId
+	fmt.Println("Host ID: ", hostID)
+	return hostID
+}
