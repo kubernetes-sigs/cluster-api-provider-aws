@@ -989,11 +989,11 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 				ClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
 				ConfigCluster: clusterctl.ConfigClusterInput{
-					LogFolder:              filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName()),
-					ClusterctlConfigPath:   e2eCtx.Environment.ClusterctlConfigPath,
-					KubeconfigPath:         e2eCtx.Environment.BootstrapClusterProxy.GetKubeconfigPath(),
-					InfrastructureProvider: clusterctl.DefaultInfrastructureProvider,
-					// Flavor:                   shared.DedicatedHostFlavor,
+					LogFolder:                filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName()),
+					ClusterctlConfigPath:     e2eCtx.Environment.ClusterctlConfigPath,
+					KubeconfigPath:           e2eCtx.Environment.BootstrapClusterProxy.GetKubeconfigPath(),
+					InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
+					Flavor:                   shared.DedicatedHostFlavor,
 					Namespace:                namespace.Name,
 					ClusterName:              clusterName,
 					KubernetesVersion:        e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion),
