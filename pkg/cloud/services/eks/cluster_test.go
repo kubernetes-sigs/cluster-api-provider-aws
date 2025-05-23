@@ -283,8 +283,8 @@ func TestMakeVPCConfig(t *testing.T) {
 func TestPublicAccessCIDRsEqual(t *testing.T) {
 	testCases := []struct {
 		name   string
-		a      []*string
-		b      []*string
+		a      []string
+		b      []string
 		expect bool
 	}{
 		{
@@ -294,15 +294,21 @@ func TestPublicAccessCIDRsEqual(t *testing.T) {
 			expect: true,
 		},
 		{
-			name:   "every address",
-			a:      []*string{aws.String("0.0.0.0/0")},
+			name:   "every ipv4 address",
+			a:      []string{"0.0.0.0/0"},
+			b:      nil,
+			expect: true,
+		},
+		{
+			name:   "every ipv4 and ipv6 address",
+			a:      []string{"0.0.0.0/0", "::/0"},
 			b:      nil,
 			expect: true,
 		},
 		{
 			name:   "every address",
-			a:      []*string{aws.String("1.1.1.0/24")},
-			b:      []*string{aws.String("1.1.1.0/24")},
+			a:      []string{"1.1.1.0/24"},
+			b:      []string{"1.1.1.0/24"},
 			expect: true,
 		},
 	}
