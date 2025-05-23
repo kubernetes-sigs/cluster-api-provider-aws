@@ -30,9 +30,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/efs"
 	"github.com/blang/semver"
 	"github.com/onsi/ginkgo/v2"
@@ -47,6 +48,7 @@ import (
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/utils"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
@@ -149,24 +151,24 @@ func getSubnetID(filterKey, filterValue, clusterName string) *string {
 	var subnetOutput *ec2.DescribeSubnetsOutput
 	var err error
 
-	ec2Client := ec2.New(e2eCtx.AWSSession)
+	ec2Client := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 	subnetInput := &ec2.DescribeSubnetsInput{
-		Filters: []*ec2.Filter{
+		Filters: []types.Filter{
 			{
 				Name: aws.String(filterKey),
-				Values: []*string{
-					aws.String(filterValue),
+				Values: []string{
+					filterValue,
 				},
 			},
 			{
 				Name:   aws.String("tag-key"),
-				Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/cluster/" + clusterName}),
+				Values: []string{"sigs.k8s.io/cluster-api-provider-aws/cluster/" + clusterName},
 			},
 		},
 	}
 
 	Eventually(func() int {
-		subnetOutput, err = ec2Client.DescribeSubnets(subnetInput)
+		subnetOutput, err = ec2Client.DescribeSubnets(context.TODO(), subnetInput)
 		Expect(err).NotTo(HaveOccurred())
 		return len(subnetOutput.Subnets)
 	}, e2eCtx.E2EConfig.GetIntervals("", "wait-infra-subnets")...).Should(Equal(1))
@@ -318,15 +320,15 @@ func makeMachineDeployment(namespace, mdName, clusterName string, az *string, re
 
 func assertSpotInstanceType(instanceID string) {
 	ginkgo.By(fmt.Sprintf("Finding EC2 spot instance with ID: %s", instanceID))
-	ec2Client := ec2.New(e2eCtx.AWSSession)
+	ec2Client := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 	input := &ec2.DescribeInstancesInput{
-		InstanceIds: []*string{
-			aws.String(instanceID[strings.LastIndex(instanceID, "/")+1:]),
+		InstanceIds: []string{
+			instanceID[strings.LastIndex(instanceID, "/")+1:],
 		},
-		Filters: []*ec2.Filter{{Name: aws.String("instance-lifecycle"), Values: aws.StringSlice([]string{"spot"})}},
+		Filters: []types.Filter{{Name: aws.String("instance-lifecycle"), Values: []string{"spot"}}},
 	}
 
-	result, err := ec2Client.DescribeInstances(input)
+	result, err := ec2Client.DescribeInstances(context.TODO(), input)
 	Expect(err).To(BeNil())
 	Expect(len(result.Reservations)).To(Equal(1))
 	Expect(len(result.Reservations[0].Instances)).To(Equal(1))
@@ -334,14 +336,14 @@ func assertSpotInstanceType(instanceID string) {
 
 func assertInstanceMetadataOptions(instanceID string, expected infrav1.InstanceMetadataOptions) {
 	ginkgo.By(fmt.Sprintf("Finding EC2 instance with ID: %s", instanceID))
-	ec2Client := ec2.New(e2eCtx.AWSSession)
+	ec2Client := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 	input := &ec2.DescribeInstancesInput{
-		InstanceIds: []*string{
-			aws.String(instanceID[strings.LastIndex(instanceID, "/")+1:]),
+		InstanceIds: []string{
+			instanceID[strings.LastIndex(instanceID, "/")+1:],
 		},
 	}
 
-	result, err := ec2Client.DescribeInstances(input)
+	result, err := ec2Client.DescribeInstances(context.TODO(), input)
 	Expect(err).To(BeNil())
 	Expect(len(result.Reservations)).To(Equal(1))
 	Expect(len(result.Reservations[0].Instances)).To(Equal(1))
@@ -349,21 +351,21 @@ func assertInstanceMetadataOptions(instanceID string, expected infrav1.InstanceM
 	metadataOptions := result.Reservations[0].Instances[0].MetadataOptions
 	Expect(metadataOptions).ToNot(BeNil())
 
-	Expect(metadataOptions.HttpTokens).To(HaveValue(Equal(string(expected.HTTPTokens))))
-	Expect(metadataOptions.HttpEndpoint).To(HaveValue(Equal(string(expected.HTTPEndpoint))))
-	Expect(metadataOptions.InstanceMetadataTags).To(HaveValue(Equal(string(expected.InstanceMetadataTags))))
-	Expect(metadataOptions.HttpPutResponseHopLimit).To(HaveValue(Equal(expected.HTTPPutResponseHopLimit)))
+	Expect(string(metadataOptions.HttpTokens)).To(HaveValue(Equal(string(expected.HTTPTokens))))
+	Expect(string(metadataOptions.HttpEndpoint)).To(HaveValue(Equal(string(expected.HTTPEndpoint))))
+	Expect(string(metadataOptions.InstanceMetadataTags)).To(HaveValue(Equal(string(expected.InstanceMetadataTags))))
+	Expect(utils.ToInt64Value(metadataOptions.HttpPutResponseHopLimit)).To(HaveValue(Equal(expected.HTTPPutResponseHopLimit)))
 }
 
 func assertUnencryptedUserDataIgnition(instanceID string, expected string) {
 	ginkgo.By(fmt.Sprintf("Finding EC2 instance with ID: %s", instanceID))
-	ec2Client := ec2.New(e2eCtx.AWSSession)
+	ec2Client := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 	input := &ec2.DescribeInstanceAttributeInput{
-		Attribute:  aws.String(ec2.InstanceAttributeNameUserData),
+		Attribute:  types.InstanceAttributeNameUserData,
 		InstanceId: aws.String(instanceID[strings.LastIndex(instanceID, "/")+1:]),
 	}
 
-	result, err := ec2Client.DescribeInstanceAttribute(input)
+	result, err := ec2Client.DescribeInstanceAttribute(context.TODO(), input)
 	Expect(err).ToNot(HaveOccurred(), "expected DescribeInstanceAttribute call to succeed")
 
 	userData, err := base64.StdEncoding.DecodeString(*result.UserData.Value)
@@ -373,18 +375,18 @@ func assertUnencryptedUserDataIgnition(instanceID string, expected string) {
 
 func terminateInstance(instanceID string) {
 	ginkgo.By(fmt.Sprintf("Terminating EC2 instance with ID: %s", instanceID))
-	ec2Client := ec2.New(e2eCtx.AWSSession)
+	ec2Client := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 	input := &ec2.TerminateInstancesInput{
-		InstanceIds: []*string{
-			aws.String(instanceID[strings.LastIndex(instanceID, "/")+1:]),
+		InstanceIds: []string{
+			instanceID[strings.LastIndex(instanceID, "/")+1:],
 		},
 	}
 
-	result, err := ec2Client.TerminateInstances(input)
+	result, err := ec2Client.TerminateInstances(context.TODO(), input)
 	Expect(err).To(BeNil())
 	Expect(len(result.TerminatingInstances)).To(Equal(1))
 	termCode := int64(32)
-	Expect(*result.TerminatingInstances[0].CurrentState.Code).To(Equal(termCode))
+	Expect(utils.ToInt64Value(result.TerminatingInstances[0].CurrentState.Code)).To(Equal(termCode))
 }
 
 // LatestCIReleaseForVersion returns the latest ci release of a specific version.
@@ -453,14 +455,14 @@ func createEFS() *efs.FileSystemDescription {
 	return efs
 }
 
-func createSecurityGroupForEFS(clusterName string, vpc *ec2.Vpc) *ec2.CreateSecurityGroupOutput {
+func createSecurityGroupForEFS(clusterName string, vpc *types.Vpc) *ec2.CreateSecurityGroupOutput {
 	securityGroup, err := shared.CreateSecurityGroup(e2eCtx, clusterName+"-efs-sg", "security group for EFS Access", *(vpc.VpcId))
 	Expect(err).NotTo(HaveOccurred())
-	nameFilter := &ec2.Filter{
+	nameFilter := types.Filter{
 		Name:   aws.String("tag:Name"),
-		Values: aws.StringSlice([]string{clusterName + "-node"}),
+		Values: []string{clusterName + "-node"},
 	}
-	nodeSecurityGroups, err := shared.GetSecurityGroupByFilters(e2eCtx, []*ec2.Filter{
+	nodeSecurityGroups, err := shared.GetSecurityGroupByFilters(e2eCtx, []types.Filter{
 		nameFilter,
 	})
 	Expect(err).NotTo(HaveOccurred())
@@ -470,7 +472,7 @@ func createSecurityGroupForEFS(clusterName string, vpc *ec2.Vpc) *ec2.CreateSecu
 	return securityGroup
 }
 
-func createMountTarget(efs *efs.FileSystemDescription, securityGroup *ec2.CreateSecurityGroupOutput, vpc *ec2.Vpc) *efs.MountTargetDescription {
+func createMountTarget(efs *efs.FileSystemDescription, securityGroup *ec2.CreateSecurityGroupOutput, vpc *types.Vpc) *efs.MountTargetDescription {
 	mt, err := shared.CreateMountTargetOnEFS(e2eCtx, aws.StringValue(efs.FileSystemId), aws.StringValue(vpc.VpcId), aws.StringValue(securityGroup.GroupId))
 	Expect(err).NotTo(HaveOccurred())
 	Eventually(func() (string, error) {

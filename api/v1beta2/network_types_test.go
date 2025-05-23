@@ -19,7 +19,7 @@ package v1beta2
 import (
 	"testing"
 
-	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	"k8s.io/utils/ptr"
@@ -338,7 +338,7 @@ func TestSubnetSpec_SetZoneInfo(t *testing.T) {
 	tests := []struct {
 		name    string
 		spec    *SubnetSpec
-		zones   []*ec2.AvailabilityZone
+		zones   []types.AvailabilityZone
 		want    *SubnetSpec
 		wantErr string
 	}{
@@ -350,7 +350,7 @@ func TestSubnetSpec_SetZoneInfo(t *testing.T) {
 				s.ParentZoneName = nil
 				return s
 			}(),
-			zones: []*ec2.AvailabilityZone{
+			zones: []types.AvailabilityZone{
 				{
 					ZoneName: ptr.To[string]("us-east-1a"),
 					ZoneType: ptr.To[string]("availability-zone"),
@@ -366,7 +366,7 @@ func TestSubnetSpec_SetZoneInfo(t *testing.T) {
 				s.ParentZoneName = nil
 				return s
 			}(),
-			zones: []*ec2.AvailabilityZone{
+			zones: []types.AvailabilityZone{
 				{
 					ZoneName: ptr.To[string]("us-east-1b"),
 					ZoneType: ptr.To[string]("availability-zone"),
@@ -386,7 +386,7 @@ func TestSubnetSpec_SetZoneInfo(t *testing.T) {
 				s.ParentZoneName = nil
 				return s
 			}(),
-			zones:   []*ec2.AvailabilityZone{},
+			zones:   []types.AvailabilityZone{},
 			wantErr: `unable to update zone information for subnet 'subnet-id-us-east-1a-private' and zone 'us-east-1a'`,
 		},
 		{
@@ -396,7 +396,7 @@ func TestSubnetSpec_SetZoneInfo(t *testing.T) {
 				s.AvailabilityZone = ""
 				return s
 			}(),
-			zones: []*ec2.AvailabilityZone{
+			zones: []types.AvailabilityZone{
 				{
 					ZoneName: ptr.To[string]("us-east-1a"),
 					ZoneType: ptr.To[string]("availability-zone"),
@@ -412,7 +412,7 @@ func TestSubnetSpec_SetZoneInfo(t *testing.T) {
 				s.ParentZoneName = nil
 				return s
 			}(),
-			zones: []*ec2.AvailabilityZone{
+			zones: []types.AvailabilityZone{
 				{
 					ZoneName: ptr.To[string]("us-east-1b"),
 					ZoneType: ptr.To[string]("availability-zone"),
@@ -436,7 +436,7 @@ func TestSubnetSpec_SetZoneInfo(t *testing.T) {
 				s.ParentZoneName = nil
 				return s
 			}(),
-			zones: []*ec2.AvailabilityZone{
+			zones: []types.AvailabilityZone{
 				{
 					ZoneName: ptr.To[string]("us-east-1b"),
 					ZoneType: ptr.To[string]("availability-zone"),

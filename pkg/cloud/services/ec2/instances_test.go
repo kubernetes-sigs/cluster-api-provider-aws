@@ -22,12 +22,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -59,8 +61,8 @@ func TestInstanceIfExists(t *testing.T) {
 			name:       "does not exist",
 			instanceID: "hello",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeInstancesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstancesInput{
-					InstanceIds: []*string{aws.String("hello")},
+				m.DescribeInstances(context.TODO(), gomock.Eq(&ec2.DescribeInstancesInput{
+					InstanceIds: []string{"hello"},
 				})).
 					Return(nil, awserrors.NewNotFound("not found"))
 			},
@@ -78,8 +80,8 @@ func TestInstanceIfExists(t *testing.T) {
 			name:       "does not exist with bad request error",
 			instanceID: "hello-does-not-exist",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeInstancesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstancesInput{
-					InstanceIds: []*string{aws.String("hello-does-not-exist")},
+				m.DescribeInstances(context.TODO(), gomock.Eq(&ec2.DescribeInstancesInput{
+					InstanceIds: []string{"hello-does-not-exist"},
 				})).
 					Return(nil, awserr.New(awserrors.InvalidInstanceID, "does not exist", nil))
 			},
@@ -98,35 +100,35 @@ func TestInstanceIfExists(t *testing.T) {
 			instanceID: "id-1",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				az := "test-zone-1a"
-				m.DescribeInstancesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstancesInput{
-					InstanceIds: []*string{aws.String("id-1")},
+				m.DescribeInstances(context.TODO(), gomock.Eq(&ec2.DescribeInstancesInput{
+					InstanceIds: []string{"id-1"},
 				})).
 					Return(&ec2.DescribeInstancesOutput{
-						Reservations: []*ec2.Reservation{
+						Reservations: []types.Reservation{
 							{
-								Instances: []*ec2.Instance{
+								Instances: []types.Instance{
 									{
 										InstanceId:   aws.String("id-1"),
-										InstanceType: aws.String("m5.large"),
+										InstanceType: types.InstanceTypeM5Large,
 										SubnetId:     aws.String("subnet-1"),
 										ImageId:      aws.String("ami-1"),
-										IamInstanceProfile: &ec2.IamInstanceProfile{
+										IamInstanceProfile: &types.IamInstanceProfile{
 											Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 										},
-										State: &ec2.InstanceState{
-											Code: aws.Int64(16),
-											Name: aws.String(ec2.StateAvailable),
+										State: &types.InstanceState{
+											Code: aws.Int32(16),
+											Name: types.InstanceStateNameRunning,
 										},
 										RootDeviceName: aws.String("device-1"),
-										BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+										BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
 											{
 												DeviceName: aws.String("device-1"),
-												Ebs: &ec2.EbsInstanceBlockDevice{
+												Ebs: &types.EbsInstanceBlockDevice{
 													VolumeId: aws.String("volume-1"),
 												},
 											},
 										},
-										Placement: &ec2.Placement{
+										Placement: &types.Placement{
 											AvailabilityZone: &az,
 										},
 									},
@@ -153,8 +155,8 @@ func TestInstanceIfExists(t *testing.T) {
 			name:       "error describing instances",
 			instanceID: "one",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeInstancesWithContext(context.TODO(), &ec2.DescribeInstancesInput{
-					InstanceIds: []*string{aws.String("one")},
+				m.DescribeInstances(context.TODO(), &ec2.DescribeInstancesInput{
+					InstanceIds: []string{"one"},
 				}).
 					Return(nil, errors.New("some unknown error"))
 			},
@@ -219,8 +221,8 @@ func TestTerminateInstance(t *testing.T) {
 			name:       "instance exists",
 			instanceID: "i-exist",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.TerminateInstancesWithContext(context.TODO(), gomock.Eq(&ec2.TerminateInstancesInput{
-					InstanceIds: []*string{aws.String("i-exist")},
+				m.TerminateInstances(context.TODO(), gomock.Eq(&ec2.TerminateInstancesInput{
+					InstanceIds: []string{"i-exist"},
 				})).
 					Return(&ec2.TerminateInstancesOutput{}, nil)
 			},
@@ -234,8 +236,8 @@ func TestTerminateInstance(t *testing.T) {
 			name:       "instance does not exist",
 			instanceID: "i-donotexist",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.TerminateInstancesWithContext(context.TODO(), gomock.Eq(&ec2.TerminateInstancesInput{
-					InstanceIds: []*string{aws.String("i-donotexist")},
+				m.TerminateInstances(context.TODO(), gomock.Eq(&ec2.TerminateInstancesInput{
+					InstanceIds: []string{"i-donotexist"},
 				})).
 					Return(&ec2.TerminateInstancesOutput{}, instanceNotFoundError)
 			},
@@ -285,7 +287,7 @@ func TestCreateInstance(t *testing.T) {
 	}
 
 	az := "test-zone-1a"
-	tenancy := "dedicated"
+	tenancy := types.TenancyDedicated
 
 	data := []byte("userData")
 
@@ -362,56 +364,56 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
 						},
 					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstancesWithContext(context.TODO(), gomock.Any()).
-					Return(&ec2.Reservation{
-						Instances: []*ec2.Instance{
+					RunInstances(context.TODO(), gomock.Any()).
+					Return(&ec2.RunInstancesOutput{
+						Instances: []types.Instance{
 							{
-								State: &ec2.InstanceState{
-									Name: aws.String(ec2.InstanceStateNamePending),
+								State: &types.InstanceState{
+									Name: types.InstanceStateNamePending,
 								},
-								IamInstanceProfile: &ec2.IamInstanceProfile{
+								IamInstanceProfile: &types.IamInstanceProfile{
 									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 								},
 								InstanceId:     aws.String("two"),
-								InstanceType:   aws.String("m5.large"),
+								InstanceType:   types.InstanceTypeM5Large,
 								SubnetId:       aws.String("subnet-1"),
 								ImageId:        aws.String("ami-1"),
 								RootDeviceName: aws.String("device-1"),
-								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+								BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
 									{
 										DeviceName: aws.String("device-1"),
-										Ebs: &ec2.EbsInstanceBlockDevice{
+										Ebs: &types.EbsInstanceBlockDevice{
 											VolumeId: aws.String("volume-1"),
 										},
 									},
 								},
-								Placement: &ec2.Placement{
+								Placement: &types.Placement{
 									AvailabilityZone: &az,
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
-						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NetworkInterfaces: []types.NetworkInterface{},
 						NextToken:         nil,
 					}, nil)
 			},
@@ -492,56 +494,56 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.2xlarge"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM52xlarge,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
 						},
 					}, nil)
 				m.
-					RunInstancesWithContext(context.TODO(), gomock.Any()).
-					Return(&ec2.Reservation{
-						Instances: []*ec2.Instance{
+					RunInstances(context.TODO(), gomock.Any()).
+					Return(&ec2.RunInstancesOutput{
+						Instances: []types.Instance{
 							{
-								State: &ec2.InstanceState{
-									Name: aws.String(ec2.InstanceStateNamePending),
+								State: &types.InstanceState{
+									Name: types.InstanceStateNamePending,
 								},
-								IamInstanceProfile: &ec2.IamInstanceProfile{
+								IamInstanceProfile: &types.IamInstanceProfile{
 									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 								},
 								InstanceId:     aws.String("two"),
-								InstanceType:   aws.String("m5.large"),
+								InstanceType:   types.InstanceTypeM5Large,
 								SubnetId:       aws.String("subnet-3"),
 								ImageId:        aws.String("ami-1"),
 								RootDeviceName: aws.String("device-1"),
-								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+								BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
 									{
 										DeviceName: aws.String("device-1"),
-										Ebs: &ec2.EbsInstanceBlockDevice{
+										Ebs: &types.EbsInstanceBlockDevice{
 											VolumeId: aws.String("volume-1"),
 										},
 									},
 								},
-								Placement: &ec2.Placement{
+								Placement: &types.Placement{
 									AvailabilityZone: &az,
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
-						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NetworkInterfaces: []types.NetworkInterface{},
 						NextToken:         nil,
 					}, nil)
 			},
@@ -630,31 +632,31 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.2xlarge"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM52xlarge,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
 						},
 					}, nil)
-				m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
-					Filters: []*ec2.Filter{
-						filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
+				m.DescribeSubnets(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
+					Filters: []types.Filter{
+						filter.EC2.SubnetStates(types.SubnetStatePending, types.SubnetStateAvailable),
 						{
 							Name:   aws.String("availability-zone"),
-							Values: aws.StringSlice([]string{"us-east-1c"}),
+							Values: []string{"us-east-1c"},
 						},
 					}})).Return(&ec2.DescribeSubnetsOutput{
-					Subnets: []*ec2.Subnet{
+					Subnets: []types.Subnet{
 						{
 							VpcId:               aws.String("vpc-incorrect-1"),
 							SubnetId:            aws.String("subnet-5"),
@@ -679,21 +681,21 @@ func TestCreateInstance(t *testing.T) {
 					},
 				}, nil)
 				m.
-					RunInstancesWithContext(context.TODO(), &ec2.RunInstancesInput{
+					RunInstances(context.TODO(), &ec2.RunInstancesInput{
 						ImageId:      aws.String("abc"),
-						InstanceType: aws.String("m5.2xlarge"),
+						InstanceType: types.InstanceTypeM52xlarge,
 						KeyName:      aws.String("default"),
-						NetworkInterfaces: []*ec2.InstanceNetworkInterfaceSpecification{
+						NetworkInterfaces: []types.InstanceNetworkInterfaceSpecification{
 							{
-								DeviceIndex: aws.Int64(0),
+								DeviceIndex: aws.Int32(0),
 								SubnetId:    aws.String("subnet-3"),
-								Groups:      aws.StringSlice([]string{"2", "3"}),
+								Groups:      []string{"2", "3"},
 							},
 						},
-						TagSpecifications: []*ec2.TagSpecification{
+						TagSpecifications: []types.TagSpecification{
 							{
-								ResourceType: aws.String("instance"),
-								Tags: []*ec2.Tag{
+								ResourceType: types.ResourceTypeInstance,
+								Tags: []types.Tag{
 									{
 										Key:   aws.String("MachineName"),
 										Value: aws.String("/"),
@@ -717,8 +719,8 @@ func TestCreateInstance(t *testing.T) {
 								},
 							},
 							{
-								ResourceType: aws.String("volume"),
-								Tags: []*ec2.Tag{
+								ResourceType: types.ResourceTypeVolume,
+								Tags: []types.Tag{
 									{
 										Key:   aws.String("MachineName"),
 										Value: aws.String("/"),
@@ -742,8 +744,8 @@ func TestCreateInstance(t *testing.T) {
 								},
 							},
 							{
-								ResourceType: aws.String("network-interface"),
-								Tags: []*ec2.Tag{
+								ResourceType: types.ResourceTypeNetworkInterface,
+								Tags: []types.Tag{
 									{
 										Key:   aws.String("MachineName"),
 										Value: aws.String("/"),
@@ -768,40 +770,40 @@ func TestCreateInstance(t *testing.T) {
 							},
 						},
 						UserData: aws.String(base64.StdEncoding.EncodeToString(userDataCompressed)),
-						MaxCount: aws.Int64(1),
-						MinCount: aws.Int64(1),
-					}).Return(&ec2.Reservation{
-					Instances: []*ec2.Instance{
+						MaxCount: aws.Int32(1),
+						MinCount: aws.Int32(1),
+					}).Return(&ec2.RunInstancesOutput{
+					Instances: []types.Instance{
 						{
-							State: &ec2.InstanceState{
-								Name: aws.String(ec2.InstanceStateNamePending),
+							State: &types.InstanceState{
+								Name: types.InstanceStateNamePending,
 							},
-							IamInstanceProfile: &ec2.IamInstanceProfile{
+							IamInstanceProfile: &types.IamInstanceProfile{
 								Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 							},
 							InstanceId:     aws.String("two"),
-							InstanceType:   aws.String("m5.large"),
+							InstanceType:   types.InstanceTypeM5Large,
 							SubnetId:       aws.String("subnet-3"),
 							ImageId:        aws.String("ami-1"),
 							RootDeviceName: aws.String("device-1"),
-							BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+							BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
 								{
 									DeviceName: aws.String("device-1"),
-									Ebs: &ec2.EbsInstanceBlockDevice{
+									Ebs: &types.EbsInstanceBlockDevice{
 										VolumeId: aws.String("volume-1"),
 									},
 								},
 							},
-							Placement: &ec2.Placement{
+							Placement: &types.Placement{
 								AvailabilityZone: &az,
 							},
 						},
 					},
 				}, nil)
 				m.
-					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
-						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NetworkInterfaces: []types.NetworkInterface{},
 						NextToken:         nil,
 					}, nil)
 			},
@@ -897,32 +899,32 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.2xlarge"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM52xlarge,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
 						},
 					}, nil)
-				m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
-					Filters: []*ec2.Filter{
-						filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
+				m.DescribeSubnets(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
+					Filters: []types.Filter{
+						filter.EC2.SubnetStates(types.SubnetStatePending, types.SubnetStateAvailable),
 						filter.EC2.VPC("vpc-bar"),
 						{
 							Name:   aws.String("availability-zone"),
-							Values: aws.StringSlice([]string{"us-east-1c"}),
+							Values: []string{"us-east-1c"},
 						},
 					}})).Return(&ec2.DescribeSubnetsOutput{
-					Subnets: []*ec2.Subnet{
+					Subnets: []types.Subnet{
 						{
 							VpcId:            aws.String("vpc-bar"),
 							SubnetId:         aws.String("subnet-5"),
@@ -932,21 +934,21 @@ func TestCreateInstance(t *testing.T) {
 					},
 				}, nil)
 				m.
-					RunInstancesWithContext(context.TODO(), &ec2.RunInstancesInput{
+					RunInstances(context.TODO(), &ec2.RunInstancesInput{
 						ImageId:      aws.String("abc"),
-						InstanceType: aws.String("m5.2xlarge"),
+						InstanceType: types.InstanceTypeM52xlarge,
 						KeyName:      aws.String("default"),
-						NetworkInterfaces: []*ec2.InstanceNetworkInterfaceSpecification{
+						NetworkInterfaces: []types.InstanceNetworkInterfaceSpecification{
 							{
-								DeviceIndex: aws.Int64(0),
+								DeviceIndex: aws.Int32(0),
 								SubnetId:    aws.String("subnet-5"),
-								Groups:      aws.StringSlice([]string{"4", "3"}),
+								Groups:      []string{"4", "3"},
 							},
 						},
-						TagSpecifications: []*ec2.TagSpecification{
+						TagSpecifications: []types.TagSpecification{
 							{
-								ResourceType: aws.String("instance"),
-								Tags: []*ec2.Tag{
+								ResourceType: types.ResourceTypeInstance,
+								Tags: []types.Tag{
 									{
 										Key:   aws.String("MachineName"),
 										Value: aws.String("/"),
@@ -970,8 +972,8 @@ func TestCreateInstance(t *testing.T) {
 								},
 							},
 							{
-								ResourceType: aws.String("volume"),
-								Tags: []*ec2.Tag{
+								ResourceType: types.ResourceTypeVolume,
+								Tags: []types.Tag{
 									{
 										Key:   aws.String("MachineName"),
 										Value: aws.String("/"),
@@ -995,8 +997,8 @@ func TestCreateInstance(t *testing.T) {
 								},
 							},
 							{
-								ResourceType: aws.String("network-interface"),
-								Tags: []*ec2.Tag{
+								ResourceType: types.ResourceTypeNetworkInterface,
+								Tags: []types.Tag{
 									{
 										Key:   aws.String("MachineName"),
 										Value: aws.String("/"),
@@ -1021,40 +1023,40 @@ func TestCreateInstance(t *testing.T) {
 							},
 						},
 						UserData: aws.String(base64.StdEncoding.EncodeToString(userDataCompressed)),
-						MaxCount: aws.Int64(1),
-						MinCount: aws.Int64(1),
-					}).Return(&ec2.Reservation{
-					Instances: []*ec2.Instance{
+						MaxCount: aws.Int32(1),
+						MinCount: aws.Int32(1),
+					}).Return(&ec2.RunInstancesOutput{
+					Instances: []types.Instance{
 						{
-							State: &ec2.InstanceState{
-								Name: aws.String(ec2.InstanceStateNamePending),
+							State: &types.InstanceState{
+								Name: types.InstanceStateNamePending,
 							},
-							IamInstanceProfile: &ec2.IamInstanceProfile{
+							IamInstanceProfile: &types.IamInstanceProfile{
 								Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 							},
 							InstanceId:     aws.String("two"),
-							InstanceType:   aws.String("m5.large"),
+							InstanceType:   types.InstanceTypeM5Large,
 							SubnetId:       aws.String("subnet-5"),
 							ImageId:        aws.String("ami-1"),
 							RootDeviceName: aws.String("device-1"),
-							BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+							BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
 								{
 									DeviceName: aws.String("device-1"),
-									Ebs: &ec2.EbsInstanceBlockDevice{
+									Ebs: &types.EbsInstanceBlockDevice{
 										VolumeId: aws.String("volume-1"),
 									},
 								},
 							},
-							Placement: &ec2.Placement{
+							Placement: &types.Placement{
 								AvailabilityZone: &az,
 							},
 						},
 					},
 				}, nil)
 				m.
-					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
-						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NetworkInterfaces: []types.NetworkInterface{},
 						NextToken:         nil,
 					}, nil)
 			},
@@ -1128,17 +1130,17 @@ func TestCreateInstance(t *testing.T) {
 					t.Fatalf("Failed to process ami format: %v", err)
 				}
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m6g.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM6gLarge,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("arm64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeArm64,
 									},
 								},
 							},
@@ -1146,32 +1148,32 @@ func TestCreateInstance(t *testing.T) {
 					}, nil)
 				// verify that the ImageLookupOrg is used when finding AMIs
 				m.
-					DescribeImagesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeImagesInput{
-						Filters: []*ec2.Filter{
+					DescribeImages(context.TODO(), gomock.Eq(&ec2.DescribeImagesInput{
+						Filters: []types.Filter{
 							{
 								Name:   aws.String("owner-id"),
-								Values: []*string{aws.String("test-org-123")},
+								Values: []string{"test-org-123"},
 							},
 							{
 								Name:   aws.String("name"),
-								Values: []*string{aws.String(amiName)},
+								Values: []string{amiName},
 							},
 							{
 								Name:   aws.String("architecture"),
-								Values: []*string{aws.String("arm64")},
+								Values: []string{"arm64"},
 							},
 							{
 								Name:   aws.String("state"),
-								Values: []*string{aws.String("available")},
+								Values: []string{"available"},
 							},
 							{
 								Name:   aws.String("virtualization-type"),
-								Values: []*string{aws.String("hvm")},
+								Values: []string{"hvm"},
 							},
 						},
 					})).
 					Return(&ec2.DescribeImagesOutput{
-						Images: []*ec2.Image{
+						Images: []types.Image{
 							{
 								Name:         aws.String("ami-1"),
 								CreationDate: aws.String("2006-01-02T15:04:05.000Z"),
@@ -1179,39 +1181,39 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstancesWithContext(context.TODO(), gomock.Any()).
-					Return(&ec2.Reservation{
-						Instances: []*ec2.Instance{
+					RunInstances(context.TODO(), gomock.Any()).
+					Return(&ec2.RunInstancesOutput{
+						Instances: []types.Instance{
 							{
-								State: &ec2.InstanceState{
-									Name: aws.String(ec2.InstanceStateNamePending),
+								State: &types.InstanceState{
+									Name: types.InstanceStateNamePending,
 								},
-								IamInstanceProfile: &ec2.IamInstanceProfile{
+								IamInstanceProfile: &types.IamInstanceProfile{
 									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 								},
 								InstanceId:     aws.String("two"),
-								InstanceType:   aws.String("m5.large"),
+								InstanceType:   types.InstanceTypeM5Large,
 								SubnetId:       aws.String("subnet-1"),
 								ImageId:        aws.String("ami-1"),
 								RootDeviceName: aws.String("device-1"),
-								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+								BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
 									{
 										DeviceName: aws.String("device-1"),
-										Ebs: &ec2.EbsInstanceBlockDevice{
+										Ebs: &types.EbsInstanceBlockDevice{
 											VolumeId: aws.String("volume-1"),
 										},
 									},
 								},
-								Placement: &ec2.Placement{
+								Placement: &types.Placement{
 									AvailabilityZone: &az,
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
-						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NetworkInterfaces: []types.NetworkInterface{},
 						NextToken:         nil,
 					}, nil)
 			},
@@ -1281,17 +1283,17 @@ func TestCreateInstance(t *testing.T) {
 					t.Fatalf("Failed to process ami format: %v", err)
 				}
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
@@ -1299,32 +1301,32 @@ func TestCreateInstance(t *testing.T) {
 					}, nil)
 				// verify that the ImageLookupOrg is used when finding AMIs
 				m.
-					DescribeImagesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeImagesInput{
-						Filters: []*ec2.Filter{
+					DescribeImages(context.TODO(), gomock.Eq(&ec2.DescribeImagesInput{
+						Filters: []types.Filter{
 							{
 								Name:   aws.String("owner-id"),
-								Values: []*string{aws.String("cluster-level-image-lookup-org")},
+								Values: []string{"cluster-level-image-lookup-org"},
 							},
 							{
 								Name:   aws.String("name"),
-								Values: []*string{aws.String(amiName)},
+								Values: []string{amiName},
 							},
 							{
 								Name:   aws.String("architecture"),
-								Values: []*string{aws.String("x86_64")},
+								Values: []string{"x86_64"},
 							},
 							{
 								Name:   aws.String("state"),
-								Values: []*string{aws.String("available")},
+								Values: []string{"available"},
 							},
 							{
 								Name:   aws.String("virtualization-type"),
-								Values: []*string{aws.String("hvm")},
+								Values: []string{"hvm"},
 							},
 						},
 					})).
 					Return(&ec2.DescribeImagesOutput{
-						Images: []*ec2.Image{
+						Images: []types.Image{
 							{
 								Name:         aws.String("ami-1"),
 								CreationDate: aws.String("2006-01-02T15:04:05.000Z"),
@@ -1332,39 +1334,39 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstancesWithContext(context.TODO(), gomock.Any()).
-					Return(&ec2.Reservation{
-						Instances: []*ec2.Instance{
+					RunInstances(context.TODO(), gomock.Any()).
+					Return(&ec2.RunInstancesOutput{
+						Instances: []types.Instance{
 							{
-								State: &ec2.InstanceState{
-									Name: aws.String(ec2.InstanceStateNamePending),
+								State: &types.InstanceState{
+									Name: types.InstanceStateNamePending,
 								},
-								IamInstanceProfile: &ec2.IamInstanceProfile{
+								IamInstanceProfile: &types.IamInstanceProfile{
 									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 								},
 								InstanceId:     aws.String("two"),
-								InstanceType:   aws.String("m5.large"),
+								InstanceType:   types.InstanceTypeM5Large,
 								SubnetId:       aws.String("subnet-1"),
 								ImageId:        aws.String("ami-1"),
 								RootDeviceName: aws.String("device-1"),
-								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+								BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
 									{
 										DeviceName: aws.String("device-1"),
-										Ebs: &ec2.EbsInstanceBlockDevice{
+										Ebs: &types.EbsInstanceBlockDevice{
 											VolumeId: aws.String("volume-1"),
 										},
 									},
 								},
-								Placement: &ec2.Placement{
+								Placement: &types.Placement{
 									AvailabilityZone: &az,
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
-						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NetworkInterfaces: []types.NetworkInterface{},
 						NextToken:         nil,
 					}, nil)
 			},
@@ -1435,17 +1437,17 @@ func TestCreateInstance(t *testing.T) {
 					t.Fatalf("Failed to process ami format: %v", err)
 				}
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
@@ -1453,32 +1455,32 @@ func TestCreateInstance(t *testing.T) {
 					}, nil)
 				// verify that the ImageLookupOrg is used when finding AMIs
 				m.
-					DescribeImagesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeImagesInput{
-						Filters: []*ec2.Filter{
+					DescribeImages(context.TODO(), gomock.Eq(&ec2.DescribeImagesInput{
+						Filters: []types.Filter{
 							{
 								Name:   aws.String("owner-id"),
-								Values: []*string{aws.String("machine-level-image-lookup-org")},
+								Values: []string{"machine-level-image-lookup-org"},
 							},
 							{
 								Name:   aws.String("name"),
-								Values: []*string{aws.String(amiName)},
+								Values: []string{amiName},
 							},
 							{
 								Name:   aws.String("architecture"),
-								Values: []*string{aws.String("x86_64")},
+								Values: []string{"x86_64"},
 							},
 							{
 								Name:   aws.String("state"),
-								Values: []*string{aws.String("available")},
+								Values: []string{"available"},
 							},
 							{
 								Name:   aws.String("virtualization-type"),
-								Values: []*string{aws.String("hvm")},
+								Values: []string{"hvm"},
 							},
 						},
 					})).
 					Return(&ec2.DescribeImagesOutput{
-						Images: []*ec2.Image{
+						Images: []types.Image{
 							{
 								Name:         aws.String("ami-1"),
 								CreationDate: aws.String("2006-01-02T15:04:05.000Z"),
@@ -1486,39 +1488,39 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstancesWithContext(context.TODO(), gomock.Any()).
-					Return(&ec2.Reservation{
-						Instances: []*ec2.Instance{
+					RunInstances(context.TODO(), gomock.Any()).
+					Return(&ec2.RunInstancesOutput{
+						Instances: []types.Instance{
 							{
-								State: &ec2.InstanceState{
-									Name: aws.String(ec2.InstanceStateNamePending),
+								State: &types.InstanceState{
+									Name: types.InstanceStateNamePending,
 								},
-								IamInstanceProfile: &ec2.IamInstanceProfile{
+								IamInstanceProfile: &types.IamInstanceProfile{
 									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 								},
 								InstanceId:     aws.String("two"),
-								InstanceType:   aws.String("m5.large"),
+								InstanceType:   types.InstanceTypeM5Large,
 								SubnetId:       aws.String("subnet-1"),
 								ImageId:        aws.String("ami-1"),
 								RootDeviceName: aws.String("device-1"),
-								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+								BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
 									{
 										DeviceName: aws.String("device-1"),
-										Ebs: &ec2.EbsInstanceBlockDevice{
+										Ebs: &types.EbsInstanceBlockDevice{
 											VolumeId: aws.String("volume-1"),
 										},
 									},
 								},
-								Placement: &ec2.Placement{
+								Placement: &types.Placement{
 									AvailabilityZone: &az,
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
-						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NetworkInterfaces: []types.NetworkInterface{},
 						NextToken:         nil,
 					}, nil)
 			},
@@ -1583,69 +1585,69 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
-						Filters: []*ec2.Filter{
-							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
-							{Name: aws.String("tag:some-tag"), Values: aws.StringSlice([]string{"some-value"})},
+					DescribeSubnets(context.TODO(), &ec2.DescribeSubnetsInput{
+						Filters: []types.Filter{
+							filter.EC2.SubnetStates(types.SubnetStatePending, types.SubnetStateAvailable),
+							{Name: aws.String("tag:some-tag"), Values: []string{"some-value"}},
 						},
 					}).
 					Return(&ec2.DescribeSubnetsOutput{
-						Subnets: []*ec2.Subnet{{
+						Subnets: []types.Subnet{{
 							SubnetId:         aws.String("filtered-subnet-1"),
 							AvailabilityZone: aws.String("us-east-1b"),
 						}},
 					}, nil)
 				m.
-					RunInstancesWithContext(context.TODO(), gomock.Any()).
-					Return(&ec2.Reservation{
-						Instances: []*ec2.Instance{
+					RunInstances(context.TODO(), gomock.Any()).
+					Return(&ec2.RunInstancesOutput{
+						Instances: []types.Instance{
 							{
-								State: &ec2.InstanceState{
-									Name: aws.String(ec2.InstanceStateNamePending),
+								State: &types.InstanceState{
+									Name: types.InstanceStateNamePending,
 								},
-								IamInstanceProfile: &ec2.IamInstanceProfile{
+								IamInstanceProfile: &types.IamInstanceProfile{
 									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 								},
 								InstanceId:     aws.String("two"),
-								InstanceType:   aws.String("m5.large"),
+								InstanceType:   types.InstanceTypeM5Large,
 								SubnetId:       aws.String("subnet-1"),
 								ImageId:        aws.String("ami-1"),
 								RootDeviceName: aws.String("device-1"),
-								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+								BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
 									{
 										DeviceName: aws.String("device-1"),
-										Ebs: &ec2.EbsInstanceBlockDevice{
+										Ebs: &types.EbsInstanceBlockDevice{
 											VolumeId: aws.String("volume-1"),
 										},
 									},
 								},
-								Placement: &ec2.Placement{
+								Placement: &types.Placement{
 									AvailabilityZone: &az,
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
-						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NetworkInterfaces: []types.NetworkInterface{},
 						NextToken:         nil,
 					}, nil)
 			},
@@ -1709,69 +1711,69 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
-						Filters: []*ec2.Filter{
-							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
-							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"matching-subnet"})},
+					DescribeSubnets(context.TODO(), &ec2.DescribeSubnetsInput{
+						Filters: []types.Filter{
+							filter.EC2.SubnetStates(types.SubnetStatePending, types.SubnetStateAvailable),
+							{Name: aws.String("subnet-id"), Values: []string{"matching-subnet"}},
 						},
 					}).
 					Return(&ec2.DescribeSubnetsOutput{
-						Subnets: []*ec2.Subnet{{
+						Subnets: []types.Subnet{{
 							SubnetId:         aws.String("matching-subnet"),
 							AvailabilityZone: aws.String("us-east-1b"),
 						}},
 					}, nil)
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
 						},
 					}, nil)
 				m.
-					RunInstancesWithContext(context.TODO(), gomock.Any()).
-					Return(&ec2.Reservation{
-						Instances: []*ec2.Instance{
+					RunInstances(context.TODO(), gomock.Any()).
+					Return(&ec2.RunInstancesOutput{
+						Instances: []types.Instance{
 							{
-								State: &ec2.InstanceState{
-									Name: aws.String(ec2.InstanceStateNamePending),
+								State: &types.InstanceState{
+									Name: types.InstanceStateNamePending,
 								},
-								IamInstanceProfile: &ec2.IamInstanceProfile{
+								IamInstanceProfile: &types.IamInstanceProfile{
 									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 								},
 								InstanceId:     aws.String("two"),
-								InstanceType:   aws.String("m5.large"),
+								InstanceType:   types.InstanceTypeM5Large,
 								SubnetId:       aws.String("matching-subnet"),
 								ImageId:        aws.String("ami-1"),
 								RootDeviceName: aws.String("device-1"),
-								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+								BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
 									{
 										DeviceName: aws.String("device-1"),
-										Ebs: &ec2.EbsInstanceBlockDevice{
+										Ebs: &types.EbsInstanceBlockDevice{
 											VolumeId: aws.String("volume-1"),
 										},
 									},
 								},
-								Placement: &ec2.Placement{
+								Placement: &types.Placement{
 									AvailabilityZone: &az,
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
-						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NetworkInterfaces: []types.NetworkInterface{},
 						NextToken:         nil,
 					}, nil)
 			},
@@ -1835,31 +1837,31 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
-						Filters: []*ec2.Filter{
-							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
-							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"non-matching-subnet"})},
+					DescribeSubnets(context.TODO(), &ec2.DescribeSubnetsInput{
+						Filters: []types.Filter{
+							filter.EC2.SubnetStates(types.SubnetStatePending, types.SubnetStateAvailable),
+							{Name: aws.String("subnet-id"), Values: []string{"non-matching-subnet"}},
 						},
 					}).
 					Return(&ec2.DescribeSubnetsOutput{
-						Subnets: []*ec2.Subnet{},
+						Subnets: []types.Subnet{},
 					}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
@@ -1927,68 +1929,68 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					RunInstancesWithContext(context.TODO(), gomock.Any()).
-					Return(&ec2.Reservation{
-						Instances: []*ec2.Instance{
+					RunInstances(context.TODO(), gomock.Any()).
+					Return(&ec2.RunInstancesOutput{
+						Instances: []types.Instance{
 							{
-								State: &ec2.InstanceState{
-									Name: aws.String(ec2.InstanceStateNamePending),
+								State: &types.InstanceState{
+									Name: types.InstanceStateNamePending,
 								},
-								IamInstanceProfile: &ec2.IamInstanceProfile{
+								IamInstanceProfile: &types.IamInstanceProfile{
 									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 								},
 								InstanceId:     aws.String("two"),
-								InstanceType:   aws.String("m5.large"),
+								InstanceType:   types.InstanceTypeM5Large,
 								SubnetId:       aws.String("matching-subnet"),
 								ImageId:        aws.String("ami-1"),
 								RootDeviceName: aws.String("device-1"),
-								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+								BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
 									{
 										DeviceName: aws.String("device-1"),
-										Ebs: &ec2.EbsInstanceBlockDevice{
+										Ebs: &types.EbsInstanceBlockDevice{
 											VolumeId: aws.String("volume-1"),
 										},
 									},
 								},
-								Placement: &ec2.Placement{
+								Placement: &types.Placement{
 									AvailabilityZone: &az,
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
-						Filters: []*ec2.Filter{
-							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
-							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"matching-subnet"})},
+					DescribeSubnets(context.TODO(), &ec2.DescribeSubnetsInput{
+						Filters: []types.Filter{
+							filter.EC2.SubnetStates(types.SubnetStatePending, types.SubnetStateAvailable),
+							{Name: aws.String("subnet-id"), Values: []string{"matching-subnet"}},
 						},
 					}).
 					Return(&ec2.DescribeSubnetsOutput{
-						Subnets: []*ec2.Subnet{{
+						Subnets: []types.Subnet{{
 							SubnetId: aws.String("matching-subnet"),
 						}},
 					}, nil)
 				m.
-					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
-						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NetworkInterfaces: []types.NetworkInterface{},
 						NextToken:         nil,
 					}, nil)
 			},
@@ -2054,30 +2056,30 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
-						Filters: []*ec2.Filter{
-							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
-							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"subnet-1"})},
+					DescribeSubnets(context.TODO(), &ec2.DescribeSubnetsInput{
+						Filters: []types.Filter{
+							filter.EC2.SubnetStates(types.SubnetStatePending, types.SubnetStateAvailable),
+							{Name: aws.String("subnet-id"), Values: []string{"subnet-1"}},
 						},
 					}).
 					Return(&ec2.DescribeSubnetsOutput{
-						Subnets: []*ec2.Subnet{{
+						Subnets: []types.Subnet{{
 							SubnetId:         aws.String("subnet-1"),
 							AvailabilityZone: aws.String("us-west-1b"),
 						}},
 					}, nil)
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
@@ -2150,17 +2152,17 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
@@ -2234,70 +2236,70 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
-						Filters: []*ec2.Filter{
-							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
-							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"public-subnet-1"})},
+					DescribeSubnets(context.TODO(), &ec2.DescribeSubnetsInput{
+						Filters: []types.Filter{
+							filter.EC2.SubnetStates(types.SubnetStatePending, types.SubnetStateAvailable),
+							{Name: aws.String("subnet-id"), Values: []string{"public-subnet-1"}},
 						},
 					}).
 					Return(&ec2.DescribeSubnetsOutput{
-						Subnets: []*ec2.Subnet{{
+						Subnets: []types.Subnet{{
 							SubnetId:            aws.String("public-subnet-1"),
 							AvailabilityZone:    aws.String("us-east-1b"),
 							MapPublicIpOnLaunch: aws.Bool(true),
 						}},
 					}, nil)
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
 						},
 					}, nil)
 				m.
-					RunInstancesWithContext(context.TODO(), gomock.Any()).
-					Return(&ec2.Reservation{
-						Instances: []*ec2.Instance{
+					RunInstances(context.TODO(), gomock.Any()).
+					Return(&ec2.RunInstancesOutput{
+						Instances: []types.Instance{
 							{
-								State: &ec2.InstanceState{
-									Name: aws.String(ec2.InstanceStateNamePending),
+								State: &types.InstanceState{
+									Name: types.InstanceStateNamePending,
 								},
-								IamInstanceProfile: &ec2.IamInstanceProfile{
+								IamInstanceProfile: &types.IamInstanceProfile{
 									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 								},
 								InstanceId:     aws.String("two"),
-								InstanceType:   aws.String("m5.large"),
+								InstanceType:   types.InstanceTypeM5Large,
 								SubnetId:       aws.String("public-subnet-1"),
 								ImageId:        aws.String("ami-1"),
 								RootDeviceName: aws.String("device-1"),
-								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+								BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
 									{
 										DeviceName: aws.String("device-1"),
-										Ebs: &ec2.EbsInstanceBlockDevice{
+										Ebs: &types.EbsInstanceBlockDevice{
 											VolumeId: aws.String("volume-1"),
 										},
 									},
 								},
-								Placement: &ec2.Placement{
+								Placement: &types.Placement{
 									AvailabilityZone: &az,
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
-						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NetworkInterfaces: []types.NetworkInterface{},
 						NextToken:         nil,
 					}, nil)
 			},
@@ -2363,38 +2365,38 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
-						Filters: []*ec2.Filter{
-							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
-							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"public-subnet-1"})},
+					DescribeSubnets(context.TODO(), &ec2.DescribeSubnetsInput{
+						Filters: []types.Filter{
+							filter.EC2.SubnetStates(types.SubnetStatePending, types.SubnetStateAvailable),
+							{Name: aws.String("subnet-id"), Values: []string{"public-subnet-1"}},
 						},
 					}).
 					Return(&ec2.DescribeSubnetsOutput{
-						Subnets: []*ec2.Subnet{{
+						Subnets: []types.Subnet{{
 							SubnetId:            aws.String("public-subnet-1"),
 							AvailabilityZone:    aws.String("us-east-1b"),
 							MapPublicIpOnLaunch: aws.Bool(false),
 						}},
 					}, nil)
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
 						},
 					}, nil)
 				m.
-					RunInstancesWithContext(context.TODO(), gomock.Any()).
+					RunInstances(context.TODO(), gomock.Any()).
 					Do(func(_ context.Context, in *ec2.RunInstancesInput, _ ...request.Option) {
 						if len(in.NetworkInterfaces) == 0 {
 							t.Fatalf("expected a NetworkInterface to be defined")
@@ -2409,38 +2411,38 @@ func TestCreateInstance(t *testing.T) {
 							t.Fatalf("expected security groups to be set")
 						}
 					}).
-					Return(&ec2.Reservation{
-						Instances: []*ec2.Instance{
+					Return(&ec2.RunInstancesOutput{
+						Instances: []types.Instance{
 							{
-								State: &ec2.InstanceState{
-									Name: aws.String(ec2.InstanceStateNamePending),
+								State: &types.InstanceState{
+									Name: types.InstanceStateNamePending,
 								},
-								IamInstanceProfile: &ec2.IamInstanceProfile{
+								IamInstanceProfile: &types.IamInstanceProfile{
 									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 								},
 								InstanceId:     aws.String("two"),
-								InstanceType:   aws.String("m5.large"),
+								InstanceType:   types.InstanceTypeM5Large,
 								SubnetId:       aws.String("public-subnet-1"),
 								ImageId:        aws.String("ami-1"),
 								RootDeviceName: aws.String("device-1"),
-								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+								BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
 									{
 										DeviceName: aws.String("device-1"),
-										Ebs: &ec2.EbsInstanceBlockDevice{
+										Ebs: &types.EbsInstanceBlockDevice{
 											VolumeId: aws.String("volume-1"),
 										},
 									},
 								},
-								Placement: &ec2.Placement{
+								Placement: &types.Placement{
 									AvailabilityZone: &az,
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
-						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NetworkInterfaces: []types.NetworkInterface{},
 						NextToken:         nil,
 					}, nil)
 			},
@@ -2508,24 +2510,24 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
 						},
 					}, nil)
 				m.
-					RunInstancesWithContext(context.TODO(), gomock.Any()).
+					RunInstances(context.TODO(), gomock.Any()).
 					Do(func(_ context.Context, in *ec2.RunInstancesInput, _ ...request.Option) {
 						if len(in.NetworkInterfaces) == 0 {
 							t.Fatalf("expected a NetworkInterface to be defined")
@@ -2537,38 +2539,38 @@ func TestCreateInstance(t *testing.T) {
 							t.Fatalf("expected interface type to be \"efa\": got %q", interfaceType)
 						}
 					}).
-					Return(&ec2.Reservation{
-						Instances: []*ec2.Instance{
+					Return(&ec2.RunInstancesOutput{
+						Instances: []types.Instance{
 							{
-								State: &ec2.InstanceState{
-									Name: aws.String(ec2.InstanceStateNamePending),
+								State: &types.InstanceState{
+									Name: types.InstanceStateNamePending,
 								},
-								IamInstanceProfile: &ec2.IamInstanceProfile{
+								IamInstanceProfile: &types.IamInstanceProfile{
 									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 								},
 								InstanceId:     aws.String("two"),
-								InstanceType:   aws.String("m5.large"),
+								InstanceType:   types.InstanceTypeM5Large,
 								SubnetId:       aws.String("subnet-1"),
 								ImageId:        aws.String("ami-1"),
 								RootDeviceName: aws.String("device-1"),
-								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+								BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
 									{
 										DeviceName: aws.String("device-1"),
-										Ebs: &ec2.EbsInstanceBlockDevice{
+										Ebs: &types.EbsInstanceBlockDevice{
 											VolumeId: aws.String("volume-1"),
 										},
 									},
 								},
-								Placement: &ec2.Placement{
+								Placement: &types.Placement{
 									AvailabilityZone: &az,
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
-						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NetworkInterfaces: []types.NetworkInterface{},
 						NextToken:         nil,
 					}, nil)
 			},
@@ -2634,31 +2636,31 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
-						Filters: []*ec2.Filter{
-							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
-							{Name: aws.String("subnet-id"), Values: aws.StringSlice([]string{"private-subnet-1"})},
+					DescribeSubnets(context.TODO(), &ec2.DescribeSubnetsInput{
+						Filters: []types.Filter{
+							filter.EC2.SubnetStates(types.SubnetStatePending, types.SubnetStateAvailable),
+							{Name: aws.String("subnet-id"), Values: []string{"private-subnet-1"}},
 						},
 					}).
 					Return(&ec2.DescribeSubnetsOutput{
-						Subnets: []*ec2.Subnet{{
+						Subnets: []types.Subnet{{
 							SubnetId:            aws.String("private-subnet-1"),
 							AvailabilityZone:    aws.String("us-east-1b"),
 							MapPublicIpOnLaunch: aws.Bool(false),
 						}},
 					}, nil)
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
@@ -2741,69 +2743,69 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
-						Filters: []*ec2.Filter{
-							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
-							{Name: aws.String("tag:some-tag"), Values: aws.StringSlice([]string{"some-value"})},
+					DescribeSubnets(context.TODO(), &ec2.DescribeSubnetsInput{
+						Filters: []types.Filter{
+							filter.EC2.SubnetStates(types.SubnetStatePending, types.SubnetStateAvailable),
+							{Name: aws.String("tag:some-tag"), Values: []string{"some-value"}},
 						},
 					}).
 					Return(&ec2.DescribeSubnetsOutput{
-						Subnets: []*ec2.Subnet{{
+						Subnets: []types.Subnet{{
 							SubnetId:            aws.String("public-subnet-1"),
 							MapPublicIpOnLaunch: aws.Bool(true),
 						}},
 					}, nil)
 				m.
-					RunInstancesWithContext(context.TODO(), gomock.Any()).
-					Return(&ec2.Reservation{
-						Instances: []*ec2.Instance{
+					RunInstances(context.TODO(), gomock.Any()).
+					Return(&ec2.RunInstancesOutput{
+						Instances: []types.Instance{
 							{
-								State: &ec2.InstanceState{
-									Name: aws.String(ec2.InstanceStateNamePending),
+								State: &types.InstanceState{
+									Name: types.InstanceStateNamePending,
 								},
-								IamInstanceProfile: &ec2.IamInstanceProfile{
+								IamInstanceProfile: &types.IamInstanceProfile{
 									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 								},
 								InstanceId:     aws.String("two"),
-								InstanceType:   aws.String("m5.large"),
+								InstanceType:   types.InstanceTypeM5Large,
 								SubnetId:       aws.String("public-subnet-1"),
 								ImageId:        aws.String("ami-1"),
 								RootDeviceName: aws.String("device-1"),
-								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+								BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
 									{
 										DeviceName: aws.String("device-1"),
-										Ebs: &ec2.EbsInstanceBlockDevice{
+										Ebs: &types.EbsInstanceBlockDevice{
 											VolumeId: aws.String("volume-1"),
 										},
 									},
 								},
-								Placement: &ec2.Placement{
+								Placement: &types.Placement{
 									AvailabilityZone: &az,
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
-						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NetworkInterfaces: []types.NetworkInterface{},
 						NextToken:         nil,
 					}, nil)
 			},
@@ -2878,37 +2880,37 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
-						Filters: []*ec2.Filter{
-							filter.EC2.SubnetStates(ec2.SubnetStatePending, ec2.SubnetStateAvailable),
-							{Name: aws.String("tag:some-tag"), Values: aws.StringSlice([]string{"some-value"})},
+					DescribeSubnets(context.TODO(), &ec2.DescribeSubnetsInput{
+						Filters: []types.Filter{
+							filter.EC2.SubnetStates(types.SubnetStatePending, types.SubnetStateAvailable),
+							{Name: aws.String("tag:some-tag"), Values: []string{"some-value"}},
 						},
 					}).
 					Return(&ec2.DescribeSubnetsOutput{
-						Subnets: []*ec2.Subnet{{
+						Subnets: []types.Subnet{{
 							SubnetId:            aws.String("public-subnet-1"),
 							MapPublicIpOnLaunch: aws.Bool(false),
 						}},
 					}, nil)
 				m.
-					RunInstancesWithContext(context.TODO(), gomock.Any()).
+					RunInstances(context.TODO(), gomock.Any()).
 					Do(func(_ context.Context, in *ec2.RunInstancesInput, _ ...request.Option) {
 						if len(in.NetworkInterfaces) == 0 {
 							t.Fatalf("expected a NetworkInterface to be defined")
@@ -2923,38 +2925,38 @@ func TestCreateInstance(t *testing.T) {
 							t.Fatalf("expected security groups to be set")
 						}
 					}).
-					Return(&ec2.Reservation{
-						Instances: []*ec2.Instance{
+					Return(&ec2.RunInstancesOutput{
+						Instances: []types.Instance{
 							{
-								State: &ec2.InstanceState{
-									Name: aws.String(ec2.InstanceStateNamePending),
+								State: &types.InstanceState{
+									Name: types.InstanceStateNamePending,
 								},
-								IamInstanceProfile: &ec2.IamInstanceProfile{
+								IamInstanceProfile: &types.IamInstanceProfile{
 									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 								},
 								InstanceId:     aws.String("two"),
-								InstanceType:   aws.String("m5.large"),
+								InstanceType:   types.InstanceTypeM5Large,
 								SubnetId:       aws.String("public-subnet-1"),
 								ImageId:        aws.String("ami-1"),
 								RootDeviceName: aws.String("device-1"),
-								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+								BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
 									{
 										DeviceName: aws.String("device-1"),
-										Ebs: &ec2.EbsInstanceBlockDevice{
+										Ebs: &types.EbsInstanceBlockDevice{
 											VolumeId: aws.String("volume-1"),
 										},
 									},
 								},
-								Placement: &ec2.Placement{
+								Placement: &types.Placement{
 									AvailabilityZone: &az,
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
-						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NetworkInterfaces: []types.NetworkInterface{},
 						NextToken:         nil,
 					}, nil)
 			},
@@ -3023,56 +3025,56 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
 						},
 					}, nil)
 				m.
-					RunInstancesWithContext(context.TODO(), gomock.Any()).
-					Return(&ec2.Reservation{
-						Instances: []*ec2.Instance{
+					RunInstances(context.TODO(), gomock.Any()).
+					Return(&ec2.RunInstancesOutput{
+						Instances: []types.Instance{
 							{
-								State: &ec2.InstanceState{
-									Name: aws.String(ec2.InstanceStateNamePending),
+								State: &types.InstanceState{
+									Name: types.InstanceStateNamePending,
 								},
-								IamInstanceProfile: &ec2.IamInstanceProfile{
+								IamInstanceProfile: &types.IamInstanceProfile{
 									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 								},
 								InstanceId:     aws.String("two"),
-								InstanceType:   aws.String("m5.large"),
+								InstanceType:   types.InstanceTypeM5Large,
 								SubnetId:       aws.String("public-subnet-1"),
 								ImageId:        aws.String("ami-1"),
 								RootDeviceName: aws.String("device-1"),
-								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+								BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
 									{
 										DeviceName: aws.String("device-1"),
-										Ebs: &ec2.EbsInstanceBlockDevice{
+										Ebs: &types.EbsInstanceBlockDevice{
 											VolumeId: aws.String("volume-1"),
 										},
 									},
 								},
-								Placement: &ec2.Placement{
+								Placement: &types.Placement{
 									AvailabilityZone: &az,
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
-						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NetworkInterfaces: []types.NetworkInterface{},
 						NextToken:         nil,
 					}, nil)
 			},
@@ -3141,24 +3143,24 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
 						},
 					}, nil)
 				m.
-					RunInstancesWithContext(context.TODO(), gomock.Any()).
+					RunInstances(context.TODO(), gomock.Any()).
 					Do(func(_ context.Context, in *ec2.RunInstancesInput, _ ...request.Option) {
 						if len(in.NetworkInterfaces) == 0 {
 							t.Fatalf("expected a NetworkInterface to be defined")
@@ -3173,38 +3175,38 @@ func TestCreateInstance(t *testing.T) {
 							t.Fatalf("expected security groups to be set")
 						}
 					}).
-					Return(&ec2.Reservation{
-						Instances: []*ec2.Instance{
+					Return(&ec2.RunInstancesOutput{
+						Instances: []types.Instance{
 							{
-								State: &ec2.InstanceState{
-									Name: aws.String(ec2.InstanceStateNamePending),
+								State: &types.InstanceState{
+									Name: types.InstanceStateNamePending,
 								},
-								IamInstanceProfile: &ec2.IamInstanceProfile{
+								IamInstanceProfile: &types.IamInstanceProfile{
 									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 								},
 								InstanceId:     aws.String("two"),
-								InstanceType:   aws.String("m5.large"),
+								InstanceType:   types.InstanceTypeM5Large,
 								SubnetId:       aws.String("public-subnet-1"),
 								ImageId:        aws.String("ami-1"),
 								RootDeviceName: aws.String("device-1"),
-								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+								BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
 									{
 										DeviceName: aws.String("device-1"),
-										Ebs: &ec2.EbsInstanceBlockDevice{
+										Ebs: &types.EbsInstanceBlockDevice{
 											VolumeId: aws.String("volume-1"),
 										},
 									},
 								},
-								Placement: &ec2.Placement{
+								Placement: &types.Placement{
 									AvailabilityZone: &az,
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
-						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NetworkInterfaces: []types.NetworkInterface{},
 						NextToken:         nil,
 					}, nil)
 			},
@@ -3269,17 +3271,17 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
@@ -3358,62 +3360,62 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
 						},
 					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstancesWithContext(context.TODO(), gomock.Any()).
-					Return(&ec2.Reservation{
-						Instances: []*ec2.Instance{
+					RunInstances(context.TODO(), gomock.Any()).
+					Return(&ec2.RunInstancesOutput{
+						Instances: []types.Instance{
 							{
-								State: &ec2.InstanceState{
-									Name: aws.String(ec2.InstanceStateNamePending),
+								State: &types.InstanceState{
+									Name: types.InstanceStateNamePending,
 								},
-								IamInstanceProfile: &ec2.IamInstanceProfile{
+								IamInstanceProfile: &types.IamInstanceProfile{
 									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 								},
 								InstanceId:     aws.String("two"),
-								InstanceType:   aws.String("m5.large"),
+								InstanceType:   types.InstanceTypeM5Large,
 								SubnetId:       aws.String("subnet-1"),
 								ImageId:        aws.String("ami-1"),
 								RootDeviceName: aws.String("device-1"),
-								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+								BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
 									{
 										DeviceName: aws.String("device-1"),
-										Ebs: &ec2.EbsInstanceBlockDevice{
+										Ebs: &types.EbsInstanceBlockDevice{
 											VolumeId: aws.String("volume-1"),
 										},
 									},
 									{
 										DeviceName: aws.String("device-2"),
-										Ebs: &ec2.EbsInstanceBlockDevice{
+										Ebs: &types.EbsInstanceBlockDevice{
 											VolumeId: aws.String("volume-2"),
 										},
 									},
 								},
-								Placement: &ec2.Placement{
+								Placement: &types.Placement{
 									AvailabilityZone: &az,
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
-						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NetworkInterfaces: []types.NetworkInterface{},
 						NextToken:         nil,
 					}, nil)
 			},
@@ -3483,26 +3485,26 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstancesWithContext(context.TODO(), gomock.Eq(&ec2.RunInstancesInput{
+					RunInstances(context.TODO(), gomock.Eq(&ec2.RunInstancesInput{
 						ImageId:      aws.String("abc"),
-						InstanceType: aws.String("m5.large"),
+						InstanceType: types.InstanceTypeM5Large,
 						KeyName:      aws.String("default"),
-						MaxCount:     aws.Int64(1),
-						MinCount:     aws.Int64(1),
-						Placement: &ec2.Placement{
-							Tenancy: &tenancy,
+						MaxCount:     aws.Int32(1),
+						MinCount:     aws.Int32(1),
+						Placement: &types.Placement{
+							Tenancy: tenancy,
 						},
-						NetworkInterfaces: []*ec2.InstanceNetworkInterfaceSpecification{
+						NetworkInterfaces: []types.InstanceNetworkInterfaceSpecification{
 							{
-								DeviceIndex: aws.Int64(0),
+								DeviceIndex: aws.Int32(0),
 								SubnetId:    aws.String("subnet-1"),
-								Groups:      []*string{aws.String("2"), aws.String("3")},
+								Groups:      []string{"2", "3"},
 							},
 						},
-						TagSpecifications: []*ec2.TagSpecification{
+						TagSpecifications: []types.TagSpecification{
 							{
-								ResourceType: aws.String("instance"),
-								Tags: []*ec2.Tag{
+								ResourceType: types.ResourceTypeInstance,
+								Tags: []types.Tag{
 									{
 										Key:   aws.String("MachineName"),
 										Value: aws.String("default/machine-aws-test1"),
@@ -3526,8 +3528,8 @@ func TestCreateInstance(t *testing.T) {
 								},
 							},
 							{
-								ResourceType: aws.String("volume"),
-								Tags: []*ec2.Tag{
+								ResourceType: types.ResourceTypeVolume,
+								Tags: []types.Tag{
 									{
 										Key:   aws.String("MachineName"),
 										Value: aws.String("default/machine-aws-test1"),
@@ -3551,8 +3553,8 @@ func TestCreateInstance(t *testing.T) {
 								},
 							},
 							{
-								ResourceType: aws.String("network-interface"),
-								Tags: []*ec2.Tag{
+								ResourceType: types.ResourceTypeNetworkInterface,
+								Tags: []types.Tag{
 									{
 										Key:   aws.String("MachineName"),
 										Value: aws.String("default/machine-aws-test1"),
@@ -3578,56 +3580,56 @@ func TestCreateInstance(t *testing.T) {
 						},
 						UserData: aws.String(base64.StdEncoding.EncodeToString(userDataCompressed)),
 					})).
-					Return(&ec2.Reservation{
-						Instances: []*ec2.Instance{
+					Return(&ec2.RunInstancesOutput{
+						Instances: []types.Instance{
 							{
-								State: &ec2.InstanceState{
-									Name: aws.String(ec2.InstanceStateNamePending),
+								State: &types.InstanceState{
+									Name: types.InstanceStateNamePending,
 								},
-								IamInstanceProfile: &ec2.IamInstanceProfile{
+								IamInstanceProfile: &types.IamInstanceProfile{
 									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 								},
 								InstanceId:     aws.String("two"),
-								InstanceType:   aws.String("m5.large"),
+								InstanceType:   types.InstanceTypeM5Large,
 								SubnetId:       aws.String("subnet-1"),
 								ImageId:        aws.String("ami-1"),
 								RootDeviceName: aws.String("device-1"),
-								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+								BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
 									{
 										DeviceName: aws.String("device-1"),
-										Ebs: &ec2.EbsInstanceBlockDevice{
+										Ebs: &types.EbsInstanceBlockDevice{
 											VolumeId: aws.String("volume-1"),
 										},
 									},
 								},
-								Placement: &ec2.Placement{
+								Placement: &types.Placement{
 									AvailabilityZone: &az,
-									Tenancy:          &tenancy,
+									Tenancy:          tenancy,
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
-						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NetworkInterfaces: []types.NetworkInterface{},
 						NextToken:         nil,
 					}, nil)
 			},
@@ -3697,26 +3699,26 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstancesWithContext(context.TODO(), gomock.Eq(&ec2.RunInstancesInput{
+					RunInstances(context.TODO(), gomock.Eq(&ec2.RunInstancesInput{
 						ImageId:      aws.String("abc"),
-						InstanceType: aws.String("m5.large"),
+						InstanceType: types.InstanceTypeM5Large,
 						KeyName:      aws.String("default"),
-						MaxCount:     aws.Int64(1),
-						MinCount:     aws.Int64(1),
-						Placement: &ec2.Placement{
+						MaxCount:     aws.Int32(1),
+						MinCount:     aws.Int32(1),
+						Placement: &types.Placement{
 							GroupName: aws.String("placement-group1"),
 						},
-						NetworkInterfaces: []*ec2.InstanceNetworkInterfaceSpecification{
+						NetworkInterfaces: []types.InstanceNetworkInterfaceSpecification{
 							{
-								DeviceIndex: aws.Int64(0),
+								DeviceIndex: aws.Int32(0),
 								SubnetId:    aws.String("subnet-1"),
-								Groups:      []*string{aws.String("2"), aws.String("3")},
+								Groups:      []string{"2", "3"},
 							},
 						},
-						TagSpecifications: []*ec2.TagSpecification{
+						TagSpecifications: []types.TagSpecification{
 							{
-								ResourceType: aws.String("instance"),
-								Tags: []*ec2.Tag{
+								ResourceType: types.ResourceTypeInstance,
+								Tags: []types.Tag{
 									{
 										Key:   aws.String("MachineName"),
 										Value: aws.String("default/machine-aws-test1"),
@@ -3740,8 +3742,8 @@ func TestCreateInstance(t *testing.T) {
 								},
 							},
 							{
-								ResourceType: aws.String("volume"),
-								Tags: []*ec2.Tag{
+								ResourceType: types.ResourceTypeVolume,
+								Tags: []types.Tag{
 									{
 										Key:   aws.String("MachineName"),
 										Value: aws.String("default/machine-aws-test1"),
@@ -3765,8 +3767,8 @@ func TestCreateInstance(t *testing.T) {
 								},
 							},
 							{
-								ResourceType: aws.String("network-interface"),
-								Tags: []*ec2.Tag{
+								ResourceType: types.ResourceTypeNetworkInterface,
+								Tags: []types.Tag{
 									{
 										Key:   aws.String("MachineName"),
 										Value: aws.String("default/machine-aws-test1"),
@@ -3792,29 +3794,29 @@ func TestCreateInstance(t *testing.T) {
 						},
 						UserData: aws.String(base64.StdEncoding.EncodeToString(userDataCompressed)),
 					})).
-					Return(&ec2.Reservation{
-						Instances: []*ec2.Instance{
+					Return(&ec2.RunInstancesOutput{
+						Instances: []types.Instance{
 							{
-								State: &ec2.InstanceState{
-									Name: aws.String(ec2.InstanceStateNamePending),
+								State: &types.InstanceState{
+									Name: types.InstanceStateNamePending,
 								},
-								IamInstanceProfile: &ec2.IamInstanceProfile{
+								IamInstanceProfile: &types.IamInstanceProfile{
 									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 								},
 								InstanceId:     aws.String("two"),
-								InstanceType:   aws.String("m5.large"),
+								InstanceType:   types.InstanceTypeM5Large,
 								SubnetId:       aws.String("subnet-1"),
 								ImageId:        aws.String("ami-1"),
 								RootDeviceName: aws.String("device-1"),
-								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+								BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
 									{
 										DeviceName: aws.String("device-1"),
-										Ebs: &ec2.EbsInstanceBlockDevice{
+										Ebs: &types.EbsInstanceBlockDevice{
 											VolumeId: aws.String("volume-1"),
 										},
 									},
 								},
-								Placement: &ec2.Placement{
+								Placement: &types.Placement{
 									AvailabilityZone: &az,
 									GroupName:        aws.String("placement-group1"),
 								},
@@ -3822,26 +3824,26 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
-						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NetworkInterfaces: []types.NetworkInterface{},
 						NextToken:         nil,
 					}, nil)
 			},
@@ -3914,44 +3916,44 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
 						},
 					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstancesWithContext(context.TODO(), gomock.Eq(&ec2.RunInstancesInput{
+					RunInstances(context.TODO(), gomock.Eq(&ec2.RunInstancesInput{
 						ImageId:      aws.String("abc"),
-						InstanceType: aws.String("m5.large"),
+						InstanceType: types.InstanceTypeM5Large,
 						KeyName:      aws.String("default"),
-						MaxCount:     aws.Int64(1),
-						MinCount:     aws.Int64(1),
-						Placement: &ec2.Placement{
-							Tenancy:   &tenancy,
+						MaxCount:     aws.Int32(1),
+						MinCount:     aws.Int32(1),
+						Placement: &types.Placement{
+							Tenancy:   tenancy,
 							GroupName: aws.String("placement-group1"),
 						},
-						NetworkInterfaces: []*ec2.InstanceNetworkInterfaceSpecification{
+						NetworkInterfaces: []types.InstanceNetworkInterfaceSpecification{
 							{
-								DeviceIndex: aws.Int64(0),
+								DeviceIndex: aws.Int32(0),
 								SubnetId:    aws.String("subnet-1"),
-								Groups:      []*string{aws.String("2"), aws.String("3")},
+								Groups:      []string{"2", "3"},
 							},
 						},
-						TagSpecifications: []*ec2.TagSpecification{
+						TagSpecifications: []types.TagSpecification{
 							{
-								ResourceType: aws.String("instance"),
-								Tags: []*ec2.Tag{
+								ResourceType: types.ResourceTypeInstance,
+								Tags: []types.Tag{
 									{
 										Key:   aws.String("MachineName"),
 										Value: aws.String("default/machine-aws-test1"),
@@ -3975,8 +3977,8 @@ func TestCreateInstance(t *testing.T) {
 								},
 							},
 							{
-								ResourceType: aws.String("volume"),
-								Tags: []*ec2.Tag{
+								ResourceType: types.ResourceTypeVolume,
+								Tags: []types.Tag{
 									{
 										Key:   aws.String("MachineName"),
 										Value: aws.String("default/machine-aws-test1"),
@@ -4000,8 +4002,8 @@ func TestCreateInstance(t *testing.T) {
 								},
 							},
 							{
-								ResourceType: aws.String("network-interface"),
-								Tags: []*ec2.Tag{
+								ResourceType: types.ResourceTypeNetworkInterface,
+								Tags: []types.Tag{
 									{
 										Key:   aws.String("MachineName"),
 										Value: aws.String("default/machine-aws-test1"),
@@ -4027,39 +4029,39 @@ func TestCreateInstance(t *testing.T) {
 						},
 						UserData: aws.String(base64.StdEncoding.EncodeToString(data)),
 					})).
-					Return(&ec2.Reservation{
-						Instances: []*ec2.Instance{
+					Return(&ec2.RunInstancesOutput{
+						Instances: []types.Instance{
 							{
-								State: &ec2.InstanceState{
-									Name: aws.String(ec2.InstanceStateNamePending),
+								State: &types.InstanceState{
+									Name: types.InstanceStateNamePending,
 								},
-								IamInstanceProfile: &ec2.IamInstanceProfile{
+								IamInstanceProfile: &types.IamInstanceProfile{
 									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 								},
 								InstanceId:     aws.String("two"),
-								InstanceType:   aws.String("m5.large"),
+								InstanceType:   types.InstanceTypeM5Large,
 								SubnetId:       aws.String("subnet-1"),
 								ImageId:        aws.String("ami-1"),
 								RootDeviceName: aws.String("device-1"),
-								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+								BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
 									{
 										DeviceName: aws.String("device-1"),
-										Ebs: &ec2.EbsInstanceBlockDevice{
+										Ebs: &types.EbsInstanceBlockDevice{
 											VolumeId: aws.String("volume-1"),
 										},
 									},
 								},
-								Placement: &ec2.Placement{
+								Placement: &types.Placement{
 									AvailabilityZone: &az,
-									Tenancy:          &tenancy,
+									Tenancy:          tenancy,
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
-						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NetworkInterfaces: []types.NetworkInterface{},
 						NextToken:         nil,
 					}, nil)
 			},
@@ -4127,27 +4129,27 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstancesWithContext(context.TODO(), gomock.Eq(&ec2.RunInstancesInput{
+					RunInstances(context.TODO(), gomock.Eq(&ec2.RunInstancesInput{
 						ImageId:      aws.String("abc"),
-						InstanceType: aws.String("m5.large"),
+						InstanceType: types.InstanceTypeM5Large,
 						KeyName:      aws.String("default"),
-						MaxCount:     aws.Int64(1),
-						MinCount:     aws.Int64(1),
-						Placement: &ec2.Placement{
+						MaxCount:     aws.Int32(1),
+						MinCount:     aws.Int32(1),
+						Placement: &types.Placement{
 							GroupName:       aws.String("placement-group1"),
-							PartitionNumber: aws.Int64(2),
+							PartitionNumber: aws.Int32(2),
 						},
-						NetworkInterfaces: []*ec2.InstanceNetworkInterfaceSpecification{
+						NetworkInterfaces: []types.InstanceNetworkInterfaceSpecification{
 							{
-								DeviceIndex: aws.Int64(0),
+								DeviceIndex: aws.Int32(0),
 								SubnetId:    aws.String("subnet-1"),
-								Groups:      aws.StringSlice([]string{"2", "3"}),
+								Groups:      []string{"2", "3"},
 							},
 						},
-						TagSpecifications: []*ec2.TagSpecification{
+						TagSpecifications: []types.TagSpecification{
 							{
-								ResourceType: aws.String("instance"),
-								Tags: []*ec2.Tag{
+								ResourceType: types.ResourceTypeInstance,
+								Tags: []types.Tag{
 									{
 										Key:   aws.String("MachineName"),
 										Value: aws.String("default/machine-aws-test1"),
@@ -4171,8 +4173,8 @@ func TestCreateInstance(t *testing.T) {
 								},
 							},
 							{
-								ResourceType: aws.String("volume"),
-								Tags: []*ec2.Tag{
+								ResourceType: types.ResourceTypeVolume,
+								Tags: []types.Tag{
 									{
 										Key:   aws.String("MachineName"),
 										Value: aws.String("default/machine-aws-test1"),
@@ -4196,8 +4198,8 @@ func TestCreateInstance(t *testing.T) {
 								},
 							},
 							{
-								ResourceType: aws.String("network-interface"),
-								Tags: []*ec2.Tag{
+								ResourceType: types.ResourceTypeNetworkInterface,
+								Tags: []types.Tag{
 									{
 										Key:   aws.String("MachineName"),
 										Value: aws.String("default/machine-aws-test1"),
@@ -4223,57 +4225,57 @@ func TestCreateInstance(t *testing.T) {
 						},
 						UserData: aws.String(base64.StdEncoding.EncodeToString(userDataCompressed)),
 					})).
-					Return(&ec2.Reservation{
-						Instances: []*ec2.Instance{
+					Return(&ec2.RunInstancesOutput{
+						Instances: []types.Instance{
 							{
-								State: &ec2.InstanceState{
-									Name: aws.String(ec2.InstanceStateNamePending),
+								State: &types.InstanceState{
+									Name: types.InstanceStateNamePending,
 								},
-								IamInstanceProfile: &ec2.IamInstanceProfile{
+								IamInstanceProfile: &types.IamInstanceProfile{
 									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 								},
 								InstanceId:     aws.String("two"),
-								InstanceType:   aws.String("m5.large"),
+								InstanceType:   types.InstanceTypeM5Large,
 								SubnetId:       aws.String("subnet-1"),
 								ImageId:        aws.String("ami-1"),
 								RootDeviceName: aws.String("device-1"),
-								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+								BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
 									{
 										DeviceName: aws.String("device-1"),
-										Ebs: &ec2.EbsInstanceBlockDevice{
+										Ebs: &types.EbsInstanceBlockDevice{
 											VolumeId: aws.String("volume-1"),
 										},
 									},
 								},
-								Placement: &ec2.Placement{
+								Placement: &types.Placement{
 									AvailabilityZone: &az,
 									GroupName:        aws.String("placement-group1"),
-									PartitionNumber:  aws.Int64(2),
+									PartitionNumber:  aws.Int32(2),
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
-						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NetworkInterfaces: []types.NetworkInterface{},
 						NextToken:         nil,
 					}, nil)
 			},
@@ -4340,17 +4342,17 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
@@ -4422,26 +4424,26 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeImagesWithContext(context.TODO(), gomock.Any()).
+					DescribeImages(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeImagesOutput{
-						Images: []*ec2.Image{
+						Images: []types.Image{
 							{
 								Name:         aws.String("ami-1"),
 								CreationDate: aws.String("2011-02-08T17:02:31.000Z"),
@@ -4449,37 +4451,37 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstancesWithContext(context.TODO(), gomock.Any()).
-					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, requestOptions ...request.Option) (*ec2.Reservation, error) {
+					RunInstances(context.TODO(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, requestOptions ...request.Option) (*ec2.RunInstancesOutput, error) {
 						if input.KeyName == nil {
 							t.Fatal("Expected key name not to be nil")
 						}
 						if *input.KeyName != defaultSSHKeyName {
 							t.Fatalf("Expected SSH key name to be '%s', not '%s'", defaultSSHKeyName, *input.KeyName)
 						}
-						return &ec2.Reservation{
-							Instances: []*ec2.Instance{
+						return &ec2.RunInstancesOutput{
+							Instances: []types.Instance{
 								{
-									State: &ec2.InstanceState{
-										Name: aws.String(ec2.InstanceStateNamePending),
+									State: &types.InstanceState{
+										Name: types.InstanceStateNamePending,
 									},
-									IamInstanceProfile: &ec2.IamInstanceProfile{
+									IamInstanceProfile: &types.IamInstanceProfile{
 										Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 									},
 									InstanceId:     aws.String("two"),
-									InstanceType:   aws.String("m5.large"),
+									InstanceType:   types.InstanceTypeM5Large,
 									SubnetId:       aws.String("subnet-1"),
 									ImageId:        aws.String("ami-1"),
 									RootDeviceName: aws.String("device-1"),
-									BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+									BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
 										{
 											DeviceName: aws.String("device-1"),
-											Ebs: &ec2.EbsInstanceBlockDevice{
+											Ebs: &types.EbsInstanceBlockDevice{
 												VolumeId: aws.String("volume-1"),
 											},
 										},
 									},
-									Placement: &ec2.Placement{
+									Placement: &types.Placement{
 										AvailabilityZone: &az,
 									},
 								},
@@ -4487,9 +4489,9 @@ func TestCreateInstance(t *testing.T) {
 						}, nil
 					})
 				m.
-					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
-						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NetworkInterfaces: []types.NetworkInterface{},
 						NextToken:         nil,
 					}, nil)
 			},
@@ -4555,26 +4557,26 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeImagesWithContext(context.TODO(), gomock.Any()).
+					DescribeImages(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeImagesOutput{
-						Images: []*ec2.Image{
+						Images: []types.Image{
 							{
 								Name:         aws.String("ami-1"),
 								CreationDate: aws.String("2011-02-08T17:02:31.000Z"),
@@ -4582,37 +4584,37 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstancesWithContext(context.TODO(), gomock.Any()).
-					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, requestOptions ...request.Option) (*ec2.Reservation, error) {
+					RunInstances(context.TODO(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, requestOptions ...request.Option) (*ec2.RunInstancesOutput, error) {
 						if input.KeyName == nil {
 							t.Fatal("Expected key name not to be nil")
 						}
 						if *input.KeyName != "specific-cluster-key-name" {
 							t.Fatalf("Expected SSH key name to be '%s', not '%s'", "specific-cluster-key-name", *input.KeyName)
 						}
-						return &ec2.Reservation{
-							Instances: []*ec2.Instance{
+						return &ec2.RunInstancesOutput{
+							Instances: []types.Instance{
 								{
-									State: &ec2.InstanceState{
-										Name: aws.String(ec2.InstanceStateNamePending),
+									State: &types.InstanceState{
+										Name: types.InstanceStateNamePending,
 									},
-									IamInstanceProfile: &ec2.IamInstanceProfile{
+									IamInstanceProfile: &types.IamInstanceProfile{
 										Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 									},
 									InstanceId:     aws.String("two"),
-									InstanceType:   aws.String("m5.large"),
+									InstanceType:   types.InstanceTypeM5Large,
 									SubnetId:       aws.String("subnet-1"),
 									ImageId:        aws.String("ami-1"),
 									RootDeviceName: aws.String("device-1"),
-									BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+									BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
 										{
 											DeviceName: aws.String("device-1"),
-											Ebs: &ec2.EbsInstanceBlockDevice{
+											Ebs: &types.EbsInstanceBlockDevice{
 												VolumeId: aws.String("volume-1"),
 											},
 										},
 									},
-									Placement: &ec2.Placement{
+									Placement: &types.Placement{
 										AvailabilityZone: &az,
 									},
 								},
@@ -4620,9 +4622,9 @@ func TestCreateInstance(t *testing.T) {
 						}, nil
 					})
 				m.
-					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
-						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NetworkInterfaces: []types.NetworkInterface{},
 						NextToken:         nil,
 					}, nil)
 			},
@@ -4689,26 +4691,26 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeImagesWithContext(context.TODO(), gomock.Any()).
+					DescribeImages(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeImagesOutput{
-						Images: []*ec2.Image{
+						Images: []types.Image{
 							{
 								Name:         aws.String("ami-1"),
 								CreationDate: aws.String("2011-02-08T17:02:31.000Z"),
@@ -4716,37 +4718,37 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstancesWithContext(context.TODO(), gomock.Any()).
-					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, requestOptions ...request.Option) (*ec2.Reservation, error) {
+					RunInstances(context.TODO(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, requestOptions ...request.Option) (*ec2.RunInstancesOutput, error) {
 						if input.KeyName == nil {
 							t.Fatal("Expected key name not to be nil")
 						}
 						if *input.KeyName != "specific-machine-ssh-key-name" {
 							t.Fatalf("Expected SSH key name to be '%s', not '%s'", "specific-machine-ssh-key-name", *input.KeyName)
 						}
-						return &ec2.Reservation{
-							Instances: []*ec2.Instance{
+						return &ec2.RunInstancesOutput{
+							Instances: []types.Instance{
 								{
-									State: &ec2.InstanceState{
-										Name: aws.String(ec2.InstanceStateNamePending),
+									State: &types.InstanceState{
+										Name: types.InstanceStateNamePending,
 									},
-									IamInstanceProfile: &ec2.IamInstanceProfile{
+									IamInstanceProfile: &types.IamInstanceProfile{
 										Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 									},
 									InstanceId:     aws.String("two"),
-									InstanceType:   aws.String("m5.large"),
+									InstanceType:   types.InstanceTypeM5Large,
 									SubnetId:       aws.String("subnet-1"),
 									ImageId:        aws.String("ami-1"),
 									RootDeviceName: aws.String("device-1"),
-									BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+									BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
 										{
 											DeviceName: aws.String("device-1"),
-											Ebs: &ec2.EbsInstanceBlockDevice{
+											Ebs: &types.EbsInstanceBlockDevice{
 												VolumeId: aws.String("volume-1"),
 											},
 										},
 									},
-									Placement: &ec2.Placement{
+									Placement: &types.Placement{
 										AvailabilityZone: &az,
 									},
 								},
@@ -4754,9 +4756,9 @@ func TestCreateInstance(t *testing.T) {
 						}, nil
 					})
 				m.
-					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
-						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NetworkInterfaces: []types.NetworkInterface{},
 						NextToken:         nil,
 					}, nil)
 			},
@@ -4823,26 +4825,26 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeImagesWithContext(context.TODO(), gomock.Any()).
+					DescribeImages(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeImagesOutput{
-						Images: []*ec2.Image{
+						Images: []types.Image{
 							{
 								Name:         aws.String("ami-1"),
 								CreationDate: aws.String("2011-02-08T17:02:31.000Z"),
@@ -4850,34 +4852,34 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstancesWithContext(context.TODO(), gomock.Any()).
-					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, requestOptions ...request.Option) (*ec2.Reservation, error) {
+					RunInstances(context.TODO(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, requestOptions ...request.Option) (*ec2.RunInstancesOutput, error) {
 						if input.KeyName != nil {
 							t.Fatalf("Expected key name to be nil/unspecified, not '%s'", *input.KeyName)
 						}
-						return &ec2.Reservation{
-							Instances: []*ec2.Instance{
+						return &ec2.RunInstancesOutput{
+							Instances: []types.Instance{
 								{
-									State: &ec2.InstanceState{
-										Name: aws.String(ec2.InstanceStateNamePending),
+									State: &types.InstanceState{
+										Name: types.InstanceStateNamePending,
 									},
-									IamInstanceProfile: &ec2.IamInstanceProfile{
+									IamInstanceProfile: &types.IamInstanceProfile{
 										Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 									},
 									InstanceId:     aws.String("two"),
-									InstanceType:   aws.String("m5.large"),
+									InstanceType:   types.InstanceTypeM5Large,
 									SubnetId:       aws.String("subnet-1"),
 									ImageId:        aws.String("ami-1"),
 									RootDeviceName: aws.String("device-1"),
-									BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+									BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
 										{
 											DeviceName: aws.String("device-1"),
-											Ebs: &ec2.EbsInstanceBlockDevice{
+											Ebs: &types.EbsInstanceBlockDevice{
 												VolumeId: aws.String("volume-1"),
 											},
 										},
 									},
-									Placement: &ec2.Placement{
+									Placement: &types.Placement{
 										AvailabilityZone: &az,
 									},
 								},
@@ -4885,9 +4887,9 @@ func TestCreateInstance(t *testing.T) {
 						}, nil
 					})
 				m.
-					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
-						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NetworkInterfaces: []types.NetworkInterface{},
 						NextToken:         nil,
 					}, nil)
 			},
@@ -4954,26 +4956,26 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeImagesWithContext(context.TODO(), gomock.Any()).
+					DescribeImages(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeImagesOutput{
-						Images: []*ec2.Image{
+						Images: []types.Image{
 							{
 								Name:         aws.String("ami-1"),
 								CreationDate: aws.String("2011-02-08T17:02:31.000Z"),
@@ -4981,34 +4983,34 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstancesWithContext(context.TODO(), gomock.Any()).
-					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, requestOptions ...request.Option) (*ec2.Reservation, error) {
+					RunInstances(context.TODO(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, requestOptions ...request.Option) (*ec2.RunInstancesOutput, error) {
 						if input.KeyName != nil {
 							t.Fatalf("Expected key name to be nil/unspecified, not '%s'", *input.KeyName)
 						}
-						return &ec2.Reservation{
-							Instances: []*ec2.Instance{
+						return &ec2.RunInstancesOutput{
+							Instances: []types.Instance{
 								{
-									State: &ec2.InstanceState{
-										Name: aws.String(ec2.InstanceStateNamePending),
+									State: &types.InstanceState{
+										Name: types.InstanceStateNamePending,
 									},
-									IamInstanceProfile: &ec2.IamInstanceProfile{
+									IamInstanceProfile: &types.IamInstanceProfile{
 										Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 									},
 									InstanceId:     aws.String("two"),
-									InstanceType:   aws.String("m5.large"),
+									InstanceType:   types.InstanceTypeM5Large,
 									SubnetId:       aws.String("subnet-1"),
 									ImageId:        aws.String("ami-1"),
 									RootDeviceName: aws.String("device-1"),
-									BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+									BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
 										{
 											DeviceName: aws.String("device-1"),
-											Ebs: &ec2.EbsInstanceBlockDevice{
+											Ebs: &types.EbsInstanceBlockDevice{
 												VolumeId: aws.String("volume-1"),
 											},
 										},
 									},
-									Placement: &ec2.Placement{
+									Placement: &types.Placement{
 										AvailabilityZone: &az,
 									},
 								},
@@ -5016,9 +5018,9 @@ func TestCreateInstance(t *testing.T) {
 						}, nil
 					})
 				m.
-					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
-						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NetworkInterfaces: []types.NetworkInterface{},
 						NextToken:         nil,
 					}, nil)
 			},
@@ -5085,26 +5087,26 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeImagesWithContext(context.TODO(), gomock.Any()).
+					DescribeImages(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeImagesOutput{
-						Images: []*ec2.Image{
+						Images: []types.Image{
 							{
 								Name:         aws.String("ami-1"),
 								CreationDate: aws.String("2011-02-08T17:02:31.000Z"),
@@ -5112,34 +5114,34 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstancesWithContext(context.TODO(), gomock.Any()).
-					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, requestOptions ...request.Option) (*ec2.Reservation, error) {
+					RunInstances(context.TODO(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, requestOptions ...request.Option) (*ec2.RunInstancesOutput, error) {
 						if input.KeyName != nil {
 							t.Fatalf("Expected key name to be nil/unspecified, not '%s'", *input.KeyName)
 						}
-						return &ec2.Reservation{
-							Instances: []*ec2.Instance{
+						return &ec2.RunInstancesOutput{
+							Instances: []types.Instance{
 								{
-									State: &ec2.InstanceState{
-										Name: aws.String(ec2.InstanceStateNamePending),
+									State: &types.InstanceState{
+										Name: types.InstanceStateNamePending,
 									},
-									IamInstanceProfile: &ec2.IamInstanceProfile{
+									IamInstanceProfile: &types.IamInstanceProfile{
 										Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 									},
 									InstanceId:     aws.String("two"),
-									InstanceType:   aws.String("m5.large"),
+									InstanceType:   types.InstanceTypeM5Large,
 									SubnetId:       aws.String("subnet-1"),
 									ImageId:        aws.String("ami-1"),
 									RootDeviceName: aws.String("device-1"),
-									BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+									BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
 										{
 											DeviceName: aws.String("device-1"),
-											Ebs: &ec2.EbsInstanceBlockDevice{
+											Ebs: &types.EbsInstanceBlockDevice{
 												VolumeId: aws.String("volume-1"),
 											},
 										},
 									},
-									Placement: &ec2.Placement{
+									Placement: &types.Placement{
 										AvailabilityZone: &az,
 									},
 								},
@@ -5147,9 +5149,9 @@ func TestCreateInstance(t *testing.T) {
 						}, nil
 					})
 				m.
-					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
-						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NetworkInterfaces: []types.NetworkInterface{},
 						NextToken:         nil,
 					}, nil)
 			},
@@ -5216,33 +5218,33 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstancesWithContext(context.TODO(), gomock.Any()).
-					Return(&ec2.Reservation{
-						Instances: []*ec2.Instance{
+					RunInstances(context.TODO(), gomock.Any()).
+					Return(&ec2.RunInstancesOutput{
+						Instances: []types.Instance{
 							{
-								State: &ec2.InstanceState{
-									Name: aws.String(ec2.InstanceStateNamePending),
+								State: &types.InstanceState{
+									Name: types.InstanceStateNamePending,
 								},
-								IamInstanceProfile: &ec2.IamInstanceProfile{
+								IamInstanceProfile: &types.IamInstanceProfile{
 									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 								},
 								InstanceId:     aws.String("two"),
-								InstanceType:   aws.String("m5.large"),
+								InstanceType:   types.InstanceTypeM5Large,
 								SubnetId:       aws.String("subnet-1"),
 								ImageId:        aws.String("ami-1"),
 								RootDeviceName: aws.String("device-1"),
-								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+								BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
 									{
 										DeviceName: aws.String("device-1"),
-										Ebs: &ec2.EbsInstanceBlockDevice{
+										Ebs: &types.EbsInstanceBlockDevice{
 											VolumeId: aws.String("volume-1"),
 										},
 									},
 								},
-								Placement: &ec2.Placement{
+								Placement: &types.Placement{
 									AvailabilityZone: &az,
 								},
-								NetworkInterfaces: []*ec2.InstanceNetworkInterface{
+								NetworkInterfaces: []types.InstanceNetworkInterface{
 									{
 										NetworkInterfaceId: aws.String("eni-1"),
 										PrivateIpAddress:   aws.String("192.168.1.10"),
@@ -5254,51 +5256,51 @@ func TestCreateInstance(t *testing.T) {
 						},
 					}, nil)
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
-						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NetworkInterfaces: []types.NetworkInterface{},
 					}, nil)
 				m.
-					DescribeVpcs(&ec2.DescribeVpcsInput{
-						VpcIds: []*string{aws.String("vpc-exists")},
+					DescribeVpcs(context.TODO(), &ec2.DescribeVpcsInput{
+						VpcIds: []string{"vpc-exists"},
 					}).Return(&ec2.DescribeVpcsOutput{
-					Vpcs: []*ec2.Vpc{
+					Vpcs: []types.Vpc{
 						{
 							VpcId:         aws.String("vpc-exists"),
 							CidrBlock:     aws.String("192.168.1.0/24"),
 							IsDefault:     aws.Bool(false),
-							State:         aws.String("available"),
+							State:         types.VpcStateAvailable,
 							DhcpOptionsId: aws.String("dopt-12345678"),
 						},
 					},
 				}, nil)
 				m.
-					DescribeDhcpOptions(&ec2.DescribeDhcpOptionsInput{
-						DhcpOptionsIds: []*string{aws.String("dopt-12345678")},
+					DescribeDhcpOptions(context.TODO(), &ec2.DescribeDhcpOptionsInput{
+						DhcpOptionsIds: []string{"dopt-12345678"},
 					}).Return(&ec2.DescribeDhcpOptionsOutput{
-					DhcpOptions: []*ec2.DhcpOptions{
+					DhcpOptions: []types.DhcpOptions{
 						{
-							DhcpConfigurations: []*ec2.DhcpConfiguration{
+							DhcpConfigurations: []types.DhcpConfiguration{
 								{
 									Key: aws.String("domain-name"),
-									Values: []*ec2.AttributeValue{
+									Values: []types.AttributeValue{
 										{
 											Value: aws.String("example.com"),
 										},
@@ -5385,58 +5387,58 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
 						},
 					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstancesWithContext(context.TODO(), gomock.Any()).
-					Return(&ec2.Reservation{
-						Instances: []*ec2.Instance{
+					RunInstances(context.TODO(), gomock.Any()).
+					Return(&ec2.RunInstancesOutput{
+						Instances: []types.Instance{
 							{
-								State: &ec2.InstanceState{
-									Name: aws.String(ec2.InstanceStateNamePending),
+								State: &types.InstanceState{
+									Name: types.InstanceStateNamePending,
 								},
-								IamInstanceProfile: &ec2.IamInstanceProfile{
+								IamInstanceProfile: &types.IamInstanceProfile{
 									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 								},
 								InstanceId:     aws.String("two"),
-								InstanceType:   aws.String("m5.large"),
+								InstanceType:   types.InstanceTypeM5Large,
 								SubnetId:       aws.String("subnet-1"),
 								ImageId:        aws.String("ami-1"),
 								RootDeviceName: aws.String("device-1"),
-								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+								BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
 									{
 										DeviceName: aws.String("device-1"),
-										Ebs: &ec2.EbsInstanceBlockDevice{
+										Ebs: &types.EbsInstanceBlockDevice{
 											VolumeId: aws.String("volume-1"),
 										},
 									},
 								},
-								Placement: &ec2.Placement{
+								Placement: &types.Placement{
 									AvailabilityZone: &az,
 								},
-								InstanceLifecycle:     aws.String(ec2.MarketTypeCapacityBlock),
+								InstanceLifecycle:     types.InstanceLifecycleTypeCapacityBlock,
 								CapacityReservationId: aws.String("cr-12345678901234567"),
 							},
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
-						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NetworkInterfaces: []types.NetworkInterface{},
 						NextToken:         nil,
 					}, nil)
 			},
@@ -5504,17 +5506,17 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
@@ -5590,58 +5592,58 @@ func TestCreateInstance(t *testing.T) {
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.
-					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []*string{
-							aws.String("m5.large"),
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
 						},
 					})).
 					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []*ec2.InstanceTypeInfo{
+						InstanceTypes: []types.InstanceTypeInfo{
 							{
-								ProcessorInfo: &ec2.ProcessorInfo{
-									SupportedArchitectures: []*string{
-										aws.String("x86_64"),
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
 									},
 								},
 							},
 						},
 					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstancesWithContext(context.TODO(), gomock.Any()).
-					Return(&ec2.Reservation{
-						Instances: []*ec2.Instance{
+					RunInstances(context.TODO(), gomock.Any()).
+					Return(&ec2.RunInstancesOutput{
+						Instances: []types.Instance{
 							{
-								State: &ec2.InstanceState{
-									Name: aws.String(ec2.InstanceStateNamePending),
+								State: &types.InstanceState{
+									Name: types.InstanceStateNamePending,
 								},
-								IamInstanceProfile: &ec2.IamInstanceProfile{
+								IamInstanceProfile: &types.IamInstanceProfile{
 									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 								},
 								InstanceId:     aws.String("two"),
-								InstanceType:   aws.String("m5.large"),
+								InstanceType:   types.InstanceTypeM5Large,
 								SubnetId:       aws.String("subnet-1"),
 								ImageId:        aws.String("ami-1"),
 								RootDeviceName: aws.String("device-1"),
-								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+								BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
 									{
 										DeviceName: aws.String("device-1"),
-										Ebs: &ec2.EbsInstanceBlockDevice{
+										Ebs: &types.EbsInstanceBlockDevice{
 											VolumeId: aws.String("volume-1"),
 										},
 									},
 								},
-								Placement: &ec2.Placement{
+								Placement: &types.Placement{
 									AvailabilityZone: &az,
 								},
 								CapacityReservationId: aws.String("cr-12345678901234567"),
-								InstanceLifecycle:     aws.String("scheduled"),
+								InstanceLifecycle:     types.InstanceLifecycleTypeScheduled,
 							},
 						},
 					}, nil)
 				m.
-					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
-						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NetworkInterfaces: []types.NetworkInterface{},
 						NextToken:         nil,
 					}, nil)
 			},
@@ -5731,7 +5733,7 @@ func TestGetInstanceMarketOptionsRequest(t *testing.T) {
 	testCases := []struct {
 		name            string
 		instance        *infrav1.Instance
-		expectedRequest *ec2.InstanceMarketOptionsRequest
+		expectedRequest *types.InstanceMarketOptionsRequest
 		expectedError   error
 	}{
 		{
@@ -5761,11 +5763,11 @@ func TestGetInstanceMarketOptionsRequest(t *testing.T) {
 			instance: &infrav1.Instance{
 				SpotMarketOptions: &infrav1.SpotMarketOptions{},
 			},
-			expectedRequest: &ec2.InstanceMarketOptionsRequest{
-				MarketType: aws.String(ec2.MarketTypeSpot),
-				SpotOptions: &ec2.SpotMarketOptions{
-					InstanceInterruptionBehavior: aws.String(ec2.InstanceInterruptionBehaviorTerminate),
-					SpotInstanceType:             aws.String(ec2.SpotInstanceTypeOneTime),
+			expectedRequest: &types.InstanceMarketOptionsRequest{
+				MarketType: types.MarketTypeSpot,
+				SpotOptions: &types.SpotMarketOptions{
+					InstanceInterruptionBehavior: types.InstanceInterruptionBehaviorTerminate,
+					SpotInstanceType:             types.SpotInstanceTypeOneTime,
 				},
 			},
 			expectedError: nil,
@@ -5775,11 +5777,11 @@ func TestGetInstanceMarketOptionsRequest(t *testing.T) {
 			instance: &infrav1.Instance{
 				MarketType: infrav1.MarketTypeSpot,
 			},
-			expectedRequest: &ec2.InstanceMarketOptionsRequest{
-				MarketType: aws.String(ec2.MarketTypeSpot),
-				SpotOptions: &ec2.SpotMarketOptions{
-					InstanceInterruptionBehavior: aws.String(ec2.InstanceInterruptionBehaviorTerminate),
-					SpotInstanceType:             aws.String(ec2.SpotInstanceTypeOneTime),
+			expectedRequest: &types.InstanceMarketOptionsRequest{
+				MarketType: types.MarketTypeSpot,
+				SpotOptions: &types.SpotMarketOptions{
+					InstanceInterruptionBehavior: types.InstanceInterruptionBehaviorTerminate,
+					SpotInstanceType:             types.SpotInstanceTypeOneTime,
 				},
 			},
 		},
@@ -5806,11 +5808,11 @@ func TestGetInstanceMarketOptionsRequest(t *testing.T) {
 					MaxPrice: aws.String(""),
 				},
 			},
-			expectedRequest: &ec2.InstanceMarketOptionsRequest{
-				MarketType: aws.String(ec2.MarketTypeSpot),
-				SpotOptions: &ec2.SpotMarketOptions{
-					InstanceInterruptionBehavior: aws.String(ec2.InstanceInterruptionBehaviorTerminate),
-					SpotInstanceType:             aws.String(ec2.SpotInstanceTypeOneTime),
+			expectedRequest: &types.InstanceMarketOptionsRequest{
+				MarketType: types.MarketTypeSpot,
+				SpotOptions: &types.SpotMarketOptions{
+					InstanceInterruptionBehavior: types.InstanceInterruptionBehaviorTerminate,
+					SpotInstanceType:             types.SpotInstanceTypeOneTime,
 				},
 			},
 			expectedError: nil,
@@ -5822,11 +5824,11 @@ func TestGetInstanceMarketOptionsRequest(t *testing.T) {
 					MaxPrice: aws.String("0.01"),
 				},
 			},
-			expectedRequest: &ec2.InstanceMarketOptionsRequest{
-				MarketType: aws.String(ec2.MarketTypeSpot),
-				SpotOptions: &ec2.SpotMarketOptions{
-					InstanceInterruptionBehavior: aws.String(ec2.InstanceInterruptionBehaviorTerminate),
-					SpotInstanceType:             aws.String(ec2.SpotInstanceTypeOneTime),
+			expectedRequest: &types.InstanceMarketOptionsRequest{
+				MarketType: types.MarketTypeSpot,
+				SpotOptions: &types.SpotMarketOptions{
+					InstanceInterruptionBehavior: types.InstanceInterruptionBehaviorTerminate,
+					SpotInstanceType:             types.SpotInstanceTypeOneTime,
 					MaxPrice:                     aws.String("0.01"),
 				},
 			},
@@ -5853,8 +5855,8 @@ func TestGetInstanceMarketOptionsRequest(t *testing.T) {
 				MarketType:            infrav1.MarketTypeCapacityBlock,
 				CapacityReservationID: mockCapacityReservationID,
 			},
-			expectedRequest: &ec2.InstanceMarketOptionsRequest{
-				MarketType: aws.String(ec2.MarketTypeCapacityBlock),
+			expectedRequest: &types.InstanceMarketOptionsRequest{
+				MarketType: types.MarketTypeCapacityBlock,
 			},
 			expectedError: nil,
 		},
@@ -5908,16 +5910,16 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSecurityGroupsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSecurityGroupsInput{
-					Filters: []*ec2.Filter{
+				m.DescribeSecurityGroups(context.TODO(), gomock.Eq(&ec2.DescribeSecurityGroupsInput{
+					Filters: []types.Filter{
 						{
 							Name:   aws.String(securityGroupFilterName),
-							Values: aws.StringSlice(securityGroupFilterValues),
+							Values: securityGroupFilterValues,
 						},
 					},
 				})).Return(
 					&ec2.DescribeSecurityGroupsOutput{
-						SecurityGroups: []*ec2.SecurityGroup{
+						SecurityGroups: []types.SecurityGroup{
 							{
 								GroupId: aws.String(securityGroupID),
 							},
@@ -5944,16 +5946,16 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSecurityGroupsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSecurityGroupsInput{
-					Filters: []*ec2.Filter{
+				m.DescribeSecurityGroups(context.TODO(), gomock.Eq(&ec2.DescribeSecurityGroupsInput{
+					Filters: []types.Filter{
 						{
 							Name:   aws.String(securityGroupFilterName),
-							Values: aws.StringSlice(securityGroupFilterValues),
+							Values: securityGroupFilterValues,
 						},
 					},
 				})).Return(
 					&ec2.DescribeSecurityGroupsOutput{
-						SecurityGroups: []*ec2.SecurityGroup{
+						SecurityGroups: []types.SecurityGroup{
 							{
 								GroupId: aws.String(securityGroupID),
 							},
@@ -6002,11 +6004,11 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSecurityGroupsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSecurityGroupsInput{
-					Filters: []*ec2.Filter{
+				m.DescribeSecurityGroups(context.TODO(), gomock.Eq(&ec2.DescribeSecurityGroupsInput{
+					Filters: []types.Filter{
 						{
 							Name:   aws.String(securityGroupFilterName),
-							Values: aws.StringSlice(securityGroupFilterValues),
+							Values: securityGroupFilterValues,
 						},
 					},
 				})).Return(nil, errors.New("some error"))
@@ -6027,16 +6029,16 @@ func TestGetFilteredSecurityGroupID(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSecurityGroupsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSecurityGroupsInput{
-					Filters: []*ec2.Filter{
+				m.DescribeSecurityGroups(context.TODO(), gomock.Eq(&ec2.DescribeSecurityGroupsInput{
+					Filters: []types.Filter{
 						{
 							Name:   aws.String(securityGroupFilterName),
-							Values: aws.StringSlice(securityGroupFilterValues),
+							Values: securityGroupFilterValues,
 						},
 					},
 				})).Return(
 					&ec2.DescribeSecurityGroupsOutput{
-						SecurityGroups: []*ec2.SecurityGroup{},
+						SecurityGroups: []types.SecurityGroup{},
 					}, nil)
 			},
 			check: func(ids []string, err error) {
@@ -6069,18 +6071,18 @@ func TestGetDHCPOptionSetDomainName(t *testing.T) {
 	testsCases := []struct {
 		name                   string
 		vpcID                  string
-		dhcpOpt                *ec2.DhcpOptions
+		dhcpOpt                *types.DhcpOptions
 		expectedPrivateDNSName *string
 		mockCalls              func(m *mocks.MockEC2APIMockRecorder)
 	}{
 		{
 			name:  "dhcpOptions with domain-name",
 			vpcID: "vpc-exists",
-			dhcpOpt: &ec2.DhcpOptions{
-				DhcpConfigurations: []*ec2.DhcpConfiguration{
+			dhcpOpt: &types.DhcpOptions{
+				DhcpConfigurations: []types.DhcpConfiguration{
 					{
 						Key: aws.String("domain-name"),
-						Values: []*ec2.AttributeValue{
+						Values: []types.AttributeValue{
 							{
 								Value: aws.String("example.com"),
 							},
@@ -6094,11 +6096,11 @@ func TestGetDHCPOptionSetDomainName(t *testing.T) {
 		{
 			name:  "dhcpOptions without domain-name",
 			vpcID: "vpc-empty-domain-name",
-			dhcpOpt: &ec2.DhcpOptions{
-				DhcpConfigurations: []*ec2.DhcpConfiguration{
+			dhcpOpt: &types.DhcpOptions{
+				DhcpConfigurations: []types.DhcpConfiguration{
 					{
 						Key:    aws.String("domain-name"),
-						Values: []*ec2.AttributeValue{},
+						Values: []types.AttributeValue{},
 					},
 				},
 			},
@@ -6147,28 +6149,28 @@ func TestGetDHCPOptionSetDomainName(t *testing.T) {
 }
 
 func mockedGetPrivateDNSDomainNameFromDHCPOptionsCalls(m *mocks.MockEC2APIMockRecorder) {
-	m.DescribeVpcs(&ec2.DescribeVpcsInput{
-		VpcIds: []*string{aws.String("vpc-exists")},
+	m.DescribeVpcs(context.TODO(), &ec2.DescribeVpcsInput{
+		VpcIds: []string{"vpc-exists"},
 	}).Return(&ec2.DescribeVpcsOutput{
-		Vpcs: []*ec2.Vpc{
+		Vpcs: []types.Vpc{
 			{
 				VpcId:         aws.String("vpc-exists"),
 				CidrBlock:     aws.String("10.0.0.0/16"),
 				IsDefault:     aws.Bool(false),
-				State:         aws.String("available"),
+				State:         types.VpcStateAvailable,
 				DhcpOptionsId: aws.String("dopt-12345678"),
 			},
 		},
 	}, nil)
-	m.DescribeDhcpOptions(&ec2.DescribeDhcpOptionsInput{
-		DhcpOptionsIds: []*string{aws.String("dopt-12345678")},
+	m.DescribeDhcpOptions(context.TODO(), &ec2.DescribeDhcpOptionsInput{
+		DhcpOptionsIds: []string{"dopt-12345678"},
 	}).Return(&ec2.DescribeDhcpOptionsOutput{
-		DhcpOptions: []*ec2.DhcpOptions{
+		DhcpOptions: []types.DhcpOptions{
 			{
-				DhcpConfigurations: []*ec2.DhcpConfiguration{
+				DhcpConfigurations: []types.DhcpConfiguration{
 					{
 						Key: aws.String("domain-name"),
-						Values: []*ec2.AttributeValue{
+						Values: []types.AttributeValue{
 							{
 								Value: aws.String("example.com"),
 							},
@@ -6181,28 +6183,28 @@ func mockedGetPrivateDNSDomainNameFromDHCPOptionsCalls(m *mocks.MockEC2APIMockRe
 }
 
 func mockedGetPrivateDNSDomainNameFromDHCPOptionsEmptyCalls(m *mocks.MockEC2APIMockRecorder) {
-	m.DescribeVpcs(&ec2.DescribeVpcsInput{
-		VpcIds: []*string{aws.String("vpc-empty-domain-name")},
+	m.DescribeVpcs(context.TODO(), &ec2.DescribeVpcsInput{
+		VpcIds: []string{"vpc-empty-domain-name"},
 	}).Return(&ec2.DescribeVpcsOutput{
-		Vpcs: []*ec2.Vpc{
+		Vpcs: []types.Vpc{
 			{
 				VpcId:         aws.String("vpc-exists"),
 				CidrBlock:     aws.String("10.0.0.0/16"),
 				IsDefault:     aws.Bool(false),
-				State:         aws.String("available"),
+				State:         types.VpcStateAvailable,
 				DhcpOptionsId: aws.String("dopt-empty"),
 			},
 		},
 	}, nil)
-	m.DescribeDhcpOptions(&ec2.DescribeDhcpOptionsInput{
-		DhcpOptionsIds: []*string{aws.String("dopt-empty")},
+	m.DescribeDhcpOptions(context.TODO(), &ec2.DescribeDhcpOptionsInput{
+		DhcpOptionsIds: []string{"dopt-empty"},
 	}).Return(&ec2.DescribeDhcpOptionsOutput{
-		DhcpOptions: []*ec2.DhcpOptions{
+		DhcpOptions: []types.DhcpOptions{
 			{
-				DhcpConfigurations: []*ec2.DhcpConfiguration{
+				DhcpConfigurations: []types.DhcpConfiguration{
 					{
 						Key:    aws.String("domain-name"),
-						Values: []*ec2.AttributeValue{},
+						Values: []types.AttributeValue{},
 					},
 				},
 			},
@@ -6216,7 +6218,7 @@ func TestGetCapacityReservationSpecification(t *testing.T) {
 	testCases := []struct {
 		name                  string
 		capacityReservationID *string
-		expectedRequest       *ec2.CapacityReservationSpecification
+		expectedRequest       *types.CapacityReservationSpecification
 	}{
 		{
 			name:                  "with no CapacityReservationID options specified",
@@ -6226,8 +6228,8 @@ func TestGetCapacityReservationSpecification(t *testing.T) {
 		{
 			name:                  "with a valid CapacityReservationID specified",
 			capacityReservationID: mockCapacityReservationIDPtr,
-			expectedRequest: &ec2.CapacityReservationSpecification{
-				CapacityReservationTarget: &ec2.CapacityReservationTarget{
+			expectedRequest: &types.CapacityReservationSpecification{
+				CapacityReservationTarget: &types.CapacityReservationTarget{
 					CapacityReservationId: aws.String(mockCapacityReservationID),
 				},
 			},
@@ -6236,7 +6238,7 @@ func TestGetCapacityReservationSpecification(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			request := getCapacityReservationSpecification(tc.capacityReservationID)
-			if !cmp.Equal(request, tc.expectedRequest) {
+			if !cmp.Equal(request, tc.expectedRequest, cmpopts.IgnoreUnexported(types.CapacityReservationSpecification{}, types.CapacityReservationTarget{})) {
 				t.Errorf("Case: %s. Got: %v, expected: %v", tc.name, request, tc.expectedRequest)
 			}
 		})

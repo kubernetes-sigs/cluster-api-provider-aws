@@ -154,7 +154,7 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 
 	ensureStackTags(e2eCtx.AWSSession, bootstrapTemplate.Spec.StackName, bootstrapTags)
 	ensureNoServiceLinkedRoles(context.TODO(), e2eCtx.AWSSessionV2)
-	ensureSSHKeyPair(e2eCtx.AWSSession, DefaultSSHKeyPairName)
+	ensureSSHKeyPair(*e2eCtx.AWSSessionV2, DefaultSSHKeyPairName)
 	e2eCtx.Environment.BootstrapAccessKey = newUserAccessKey(context.TODO(), e2eCtx.AWSSessionV2, bootstrapTemplate.Spec.BootstrapUser.UserName)
 	e2eCtx.BootstrapUserAWSSession = NewAWSSessionWithKey(e2eCtx.Environment.BootstrapAccessKey)
 	e2eCtx.BootstrapUserAWSSessionV2 = NewAWSSessionWithKeyV2(e2eCtx.Environment.BootstrapAccessKey)
@@ -234,7 +234,7 @@ func AllNodesBeforeSuite(e2eCtx *E2EContext, data []byte) {
 	e2eCtx.Settings.GinkgoSlowSpecThreshold = conf.GinkgoSlowSpecThreshold
 	e2eCtx.AWSSession = NewAWSSession()
 	e2eCtx.AWSSessionV2 = NewAWSSessionV2()
-	azs := GetAvailabilityZones(e2eCtx.AWSSession)
+	azs := GetAvailabilityZones(*e2eCtx.AWSSessionV2)
 	SetEnvVar(AwsAvailabilityZone1, *azs[0].ZoneName, false)
 	SetEnvVar(AwsAvailabilityZone2, *azs[1].ZoneName, false)
 	SetEnvVar("AWS_REGION", conf.Region, false)

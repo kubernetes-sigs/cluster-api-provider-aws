@@ -21,8 +21,9 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/eks"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
@@ -34,7 +35,7 @@ import (
 )
 
 var (
-	expectedTags = []*ec2.Tag{
+	expectedTags = []ec2types.Tag{
 		{
 			Key:   aws.String("Name"),
 			Value: aws.String("test"),
@@ -142,8 +143,8 @@ func TestTagsEnsureWithEC2(t *testing.T) {
 				Additional:  map[string]string{"k1": "v1"},
 			}},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.CreateTagsWithContext(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
-					Resources: aws.StringSlice([]string{""}),
+				m.CreateTags(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
+					Resources: []string{""},
 					Tags:      expectedTags,
 				})).Return(nil, errors.New("failed to create tag"))
 			},
@@ -172,8 +173,8 @@ func TestTagsEnsureWithEC2(t *testing.T) {
 				Additional:  map[string]string{"k1": "v1"},
 			}},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.CreateTagsWithContext(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
-					Resources: aws.StringSlice([]string{""}),
+				m.CreateTags(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
+					Resources: []string{""},
 					Tags:      expectedTags,
 				})).Return(nil, nil)
 			},
@@ -188,8 +189,8 @@ func TestTagsEnsureWithEC2(t *testing.T) {
 				Additional:  map[string]string{"k1": "v1", "aws:cloudformation:stack-name": "cloudformation-stack-name"},
 			}},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.CreateTagsWithContext(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
-					Resources: aws.StringSlice([]string{""}),
+				m.CreateTags(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
+					Resources: []string{""},
 					Tags:      expectedTags,
 				})).Return(nil, nil)
 			},
@@ -289,8 +290,8 @@ func TestTagsBuildParamsToTagSpecification(t *testing.T) {
 		Role:        aws.String("testrole"),
 		Additional:  map[string]string{"k1": "v1"},
 	})
-	expectedTagSpec := &ec2.TagSpecification{
-		ResourceType: aws.String("test-resource"),
+	expectedTagSpec := ec2types.TagSpecification{
+		ResourceType: "test-resource",
 		Tags:         expectedTags,
 	}
 	g.Expect(expectedTagSpec).To(Equal(tagSpec))

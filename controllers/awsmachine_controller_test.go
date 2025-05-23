@@ -22,9 +22,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	elb "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -157,7 +158,7 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 			return elbSvc
 		}
 
-		ec2Mock.EXPECT().AssociateAddressWithContext(context.TODO(), gomock.Any()).MaxTimes(1)
+		ec2Mock.EXPECT().AssociateAddress(context.TODO(), gomock.Any()).MaxTimes(1)
 
 		reconciler.secretsManagerServiceFactory = func(clusterScope cloud.ClusterScoper) services.SecretInterface {
 			return secretMock
@@ -341,7 +342,7 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 			return secretMock
 		}
 
-		ec2Mock.EXPECT().AssociateAddressWithContext(context.TODO(), gomock.Any()).MaxTimes(1)
+		ec2Mock.EXPECT().AssociateAddress(context.TODO(), gomock.Any()).MaxTimes(1)
 
 		_, err = reconciler.reconcileNormal(ctx, ms, cs, cs, cs, cs)
 		g.Expect(err).Should(HaveOccurred())
@@ -358,9 +359,9 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		expect := func(m *mocks.MockEC2APIMockRecorder, ev2 *mocks.MockELBV2APIMockRecorder, e *mocks.MockELBAPIMockRecorder) {
 			mockedDescribeInstanceCalls(m)
 			mockedDeleteLBCalls(false, ev2, e)
-			m.TerminateInstancesWithContext(context.TODO(),
+			m.TerminateInstances(context.TODO(),
 				gomock.Eq(&ec2.TerminateInstancesInput{
-					InstanceIds: aws.StringSlice([]string{"id-1"}),
+					InstanceIds: []string{"id-1"},
 				}),
 			).
 				Return(nil, errors.New("Failed to delete instance"))
@@ -551,101 +552,101 @@ func mockedCreateSecretCall(s *mock_services.MockSecretInterfaceMockRecorder) {
 }
 
 func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
-	m.DescribeInstancesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstancesInput{
-		Filters: []*ec2.Filter{
+	m.DescribeInstances(context.TODO(), gomock.Eq(&ec2.DescribeInstancesInput{
+		Filters: []ec2types.Filter{
 			{
 				Name:   aws.String("tag:sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
-				Values: aws.StringSlice([]string{"owned"}),
+				Values: []string{"owned"},
 			},
 			{
 				Name:   aws.String("tag:Name"),
-				Values: aws.StringSlice([]string{"test"}),
+				Values: []string{"test"},
 			},
 			{
 				Name:   aws.String("instance-state-name"),
-				Values: aws.StringSlice([]string{"pending", "running"}),
+				Values: []string{"pending", "running"},
 			},
 		},
 	})).Return(&ec2.DescribeInstancesOutput{}, nil)
-	m.DescribeInstanceTypesWithContext(context.TODO(), gomock.Any()).
+	m.DescribeInstanceTypes(context.TODO(), gomock.Any()).
 		Return(&ec2.DescribeInstanceTypesOutput{
-			InstanceTypes: []*ec2.InstanceTypeInfo{
+			InstanceTypes: []ec2types.InstanceTypeInfo{
 				{
-					ProcessorInfo: &ec2.ProcessorInfo{
-						SupportedArchitectures: []*string{
-							aws.String("x86_64"),
+					ProcessorInfo: &ec2types.ProcessorInfo{
+						SupportedArchitectures: []ec2types.ArchitectureType{
+							ec2types.ArchitectureTypeX8664,
 						},
 					},
 				},
 			},
 		}, nil)
-	m.DescribeImagesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeImagesInput{
-		Filters: []*ec2.Filter{
+	m.DescribeImages(context.TODO(), gomock.Eq(&ec2.DescribeImagesInput{
+		Filters: []ec2types.Filter{
 			{
 				Name:   aws.String("owner-id"),
-				Values: aws.StringSlice([]string{"819546954734"}),
+				Values: []string{"819546954734"},
 			},
 			{
 				Name:   aws.String("name"),
-				Values: aws.StringSlice([]string{"capa-ami-ubuntu-24.04-?test-*"}),
+				Values: []string{"capa-ami-ubuntu-24.04-?test-*"},
 			},
 			{
 				Name:   aws.String("architecture"),
-				Values: aws.StringSlice([]string{"x86_64"}),
+				Values: []string{"x86_64"},
 			},
 			{
 				Name:   aws.String("state"),
-				Values: aws.StringSlice([]string{"available"}),
+				Values: []string{"available"},
 			},
 			{
 				Name:   aws.String("virtualization-type"),
-				Values: aws.StringSlice([]string{"hvm"}),
+				Values: []string{"hvm"},
 			},
 		},
-	})).Return(&ec2.DescribeImagesOutput{Images: []*ec2.Image{
+	})).Return(&ec2.DescribeImagesOutput{Images: []ec2types.Image{
 		{
 			ImageId:      aws.String("latest"),
 			CreationDate: aws.String("2019-02-08T17:02:31.000Z"),
 		},
 	}}, nil)
-	m.RunInstancesWithContext(context.TODO(), gomock.Any()).Return(&ec2.Reservation{
-		Instances: []*ec2.Instance{
+	m.RunInstances(context.TODO(), gomock.Any()).Return(&ec2.RunInstancesOutput{
+		Instances: []ec2types.Instance{
 			{
-				State: &ec2.InstanceState{
-					Name: aws.String(ec2.InstanceStateNameRunning),
+				State: &ec2types.InstanceState{
+					Name: ec2types.InstanceStateNameRunning,
 				},
-				IamInstanceProfile: &ec2.IamInstanceProfile{
+				IamInstanceProfile: &ec2types.IamInstanceProfile{
 					Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
 				},
 				InstanceId:     aws.String("two"),
-				InstanceType:   aws.String("m5.large"),
+				InstanceType:   ec2types.InstanceTypeM5Large,
 				SubnetId:       aws.String("subnet-1"),
 				ImageId:        aws.String("ami-1"),
 				RootDeviceName: aws.String("device-1"),
-				BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+				BlockDeviceMappings: []ec2types.InstanceBlockDeviceMapping{
 					{
 						DeviceName: aws.String("device-1"),
-						Ebs: &ec2.EbsInstanceBlockDevice{
+						Ebs: &ec2types.EbsInstanceBlockDevice{
 							VolumeId: aws.String("volume-1"),
 						},
 					},
 				},
-				Placement: &ec2.Placement{
+				Placement: &ec2types.Placement{
 					AvailabilityZone: aws.String("us-east-1a"),
 				},
 			},
 		},
 	}, nil)
-	m.DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeNetworkInterfacesInput{Filters: []*ec2.Filter{
+	m.DescribeNetworkInterfaces(context.TODO(), gomock.Eq(&ec2.DescribeNetworkInterfacesInput{Filters: []ec2types.Filter{
 		{
 			Name:   aws.String("attachment.instance-id"),
-			Values: aws.StringSlice([]string{"two"}),
+			Values: []string{"two"},
 		},
 	}})).Return(&ec2.DescribeNetworkInterfacesOutput{
-		NetworkInterfaces: []*ec2.NetworkInterface{
+		NetworkInterfaces: []ec2types.NetworkInterface{
 			{
 				NetworkInterfaceId: aws.String("eni-1"),
-				Groups: []*ec2.GroupIdentifier{
+				Groups: []ec2types.GroupIdentifier{
 					{
 						GroupId: aws.String("3"),
 					},
@@ -653,21 +654,21 @@ func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 			},
 		},
 	}, nil).MaxTimes(3)
-	m.DescribeNetworkInterfaceAttributeWithContext(context.TODO(), gomock.Eq(&ec2.DescribeNetworkInterfaceAttributeInput{
+	m.DescribeNetworkInterfaceAttribute(context.TODO(), gomock.Eq(&ec2.DescribeNetworkInterfaceAttributeInput{
 		NetworkInterfaceId: aws.String("eni-1"),
-		Attribute:          aws.String("groupSet"),
-	})).Return(&ec2.DescribeNetworkInterfaceAttributeOutput{Groups: []*ec2.GroupIdentifier{{GroupId: aws.String("3")}}}, nil).MaxTimes(1)
-	m.ModifyNetworkInterfaceAttributeWithContext(context.TODO(), gomock.Any()).AnyTimes()
-	m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{Filters: []*ec2.Filter{
+		Attribute:          ec2types.NetworkInterfaceAttributeGroupSet,
+	})).Return(&ec2.DescribeNetworkInterfaceAttributeOutput{Groups: []ec2types.GroupIdentifier{{GroupId: aws.String("3")}}}, nil).MaxTimes(1)
+	m.ModifyNetworkInterfaceAttribute(context.TODO(), gomock.Any()).AnyTimes()
+	m.DescribeSubnets(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{Filters: []ec2types.Filter{
 		{
 			Name:   aws.String("state"),
-			Values: aws.StringSlice([]string{"pending", "available"}),
+			Values: []string{"pending", "available"},
 		},
 		{
 			Name:   aws.String("subnet-id"),
-			Values: aws.StringSlice([]string{"subnet-1"}),
+			Values: []string{"subnet-1"},
 		},
-	}})).Return(&ec2.DescribeSubnetsOutput{Subnets: []*ec2.Subnet{
+	}})).Return(&ec2.DescribeSubnetsOutput{Subnets: []ec2types.Subnet{
 		{
 			SubnetId: aws.String("subnet-1"),
 		},
@@ -675,9 +676,9 @@ func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 }
 
 func mockedDescribeInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
-	m.DescribeInstancesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstancesInput{
-		InstanceIds: aws.StringSlice([]string{"myMachine"}),
+	m.DescribeInstances(context.TODO(), gomock.Eq(&ec2.DescribeInstancesInput{
+		InstanceIds: []string{"myMachine"},
 	})).Return(&ec2.DescribeInstancesOutput{
-		Reservations: []*ec2.Reservation{{Instances: []*ec2.Instance{{Placement: &ec2.Placement{AvailabilityZone: aws.String("us-east-1a")}, InstanceId: aws.String("id-1"), State: &ec2.InstanceState{Name: aws.String("id-1"), Code: aws.Int64(16)}}}}},
+		Reservations: []ec2types.Reservation{{Instances: []ec2types.Instance{{Placement: &ec2types.Placement{AvailabilityZone: aws.String("us-east-1a")}, InstanceId: aws.String("id-1"), State: &ec2types.InstanceState{Name: "id-1", Code: aws.Int32(16)}}}}},
 	}, nil)
 }

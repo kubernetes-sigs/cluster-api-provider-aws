@@ -27,7 +27,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/blang/semver"
 	"github.com/gofrs/flock"
 	"github.com/onsi/ginkgo/v2"
@@ -391,7 +391,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			ginkgo.By("Creating Machine Deployment in non-configured Availability Zone")
 			md2Name := clusterName + "-md-2"
 			// By default, first availability zone will be used for cluster resources. This step attempts to create a machine deployment in the second availability zone
-			invalidAz := shared.GetAvailabilityZones(e2eCtx.AWSSession)[1].ZoneName
+			invalidAz := shared.GetAvailabilityZones(*e2eCtx.AWSSessionV2)[1].ZoneName
 			framework.CreateMachineDeployment(ctx, framework.CreateMachineDeploymentInput{
 				Creator:                 e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 				MachineDeployment:       makeMachineDeployment(namespace.Name, md2Name, clusterName, invalidAz, 1),
@@ -630,7 +630,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		wlClusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 		wlClusterInfra := new(shared.AWSInfrastructure)
 
-		var cPeering *ec2.VpcPeeringConnection
+		var cPeering *types.VpcPeeringConnection
 
 		// Some infrastructure creation was moved to a setup node to better organize the test.
 		ginkgo.JustBeforeEach(func() {
@@ -952,7 +952,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(endpoints).NotTo(BeNil())
 			Expect(len(endpoints)).To(Equal(1))
-			Expect(*endpoints[0].VpcEndpointType).To(Equal("Gateway"))
+			Expect(string(endpoints[0].VpcEndpointType)).To(Equal("Gateway"))
 			Expect(*endpoints[0].ServiceName).To(Equal("com.amazonaws." + awsCluster.Spec.Region + ".s3"))
 			Expect(*endpoints[0].VpcId).To(Equal(*vpc.VpcId))
 

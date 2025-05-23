@@ -20,8 +20,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -52,23 +53,23 @@ func TestReconcileCarrierGateway(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeCarrierGatewaysWithContext(context.TODO(), gomock.Eq(&ec2.DescribeCarrierGatewaysInput{
-					Filters: []*ec2.Filter{
+				m.DescribeCarrierGateways(context.TODO(), gomock.Eq(&ec2.DescribeCarrierGatewaysInput{
+					Filters: []types.Filter{
 						{
 							Name:   aws.String("vpc-id"),
-							Values: aws.StringSlice([]string{"vpc-cagw"}),
+							Values: []string{"vpc-cagw"},
 						},
 					},
 				})).
 					Return(&ec2.DescribeCarrierGatewaysOutput{
-						CarrierGateways: []*ec2.CarrierGateway{
+						CarrierGateways: []types.CarrierGateway{
 							{
 								CarrierGatewayId: ptr.To("cagw-01"),
 							},
 						},
 					}, nil).AnyTimes()
 
-				m.CreateTagsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
+				m.CreateTags(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
 					Return(nil, nil).AnyTimes()
 			},
 		},
@@ -83,15 +84,15 @@ func TestReconcileCarrierGateway(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeCarrierGatewaysWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeCarrierGatewaysInput{})).
+				m.DescribeCarrierGateways(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeCarrierGatewaysInput{})).
 					Return(&ec2.DescribeCarrierGatewaysOutput{}, nil).AnyTimes()
 
-				m.CreateCarrierGatewayWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateCarrierGatewayInput{})).
+				m.CreateCarrierGateway(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateCarrierGatewayInput{})).
 					Return(&ec2.CreateCarrierGatewayOutput{
-						CarrierGateway: &ec2.CarrierGateway{
+						CarrierGateway: &types.CarrierGateway{
 							CarrierGatewayId: aws.String("cagw-1"),
 							VpcId:            aws.String("vpc-cagw"),
-							Tags: []*ec2.Tag{
+							Tags: []types.Tag{
 								{
 									Key:   aws.String(infrav1.ClusterTagKey("test-cluster")),
 									Value: aws.String("owned"),
@@ -180,11 +181,11 @@ func TestDeleteCarrierGateway(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeCarrierGatewaysWithContext(context.TODO(), gomock.Eq(&ec2.DescribeCarrierGatewaysInput{
-					Filters: []*ec2.Filter{
+				m.DescribeCarrierGateways(context.TODO(), gomock.Eq(&ec2.DescribeCarrierGatewaysInput{
+					Filters: []types.Filter{
 						{
 							Name:   aws.String("vpc-id"),
-							Values: aws.StringSlice([]string{"vpc-cagw"}),
+							Values: []string{"vpc-cagw"},
 						},
 					},
 				})).Return(&ec2.DescribeCarrierGatewaysOutput{}, nil)
@@ -201,9 +202,9 @@ func TestDeleteCarrierGateway(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeCarrierGatewaysWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeCarrierGatewaysInput{})).
+				m.DescribeCarrierGateways(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeCarrierGatewaysInput{})).
 					Return(&ec2.DescribeCarrierGatewaysOutput{
-						CarrierGateways: []*ec2.CarrierGateway{
+						CarrierGateways: []types.CarrierGateway{
 							{
 								CarrierGatewayId: aws.String("cagw-0"),
 								VpcId:            aws.String("vpc-gateways"),
@@ -211,7 +212,7 @@ func TestDeleteCarrierGateway(t *testing.T) {
 						},
 					}, nil)
 
-				m.DeleteCarrierGatewayWithContext(context.TODO(), &ec2.DeleteCarrierGatewayInput{
+				m.DeleteCarrierGateway(context.TODO(), &ec2.DeleteCarrierGatewayInput{
 					CarrierGatewayId: aws.String("cagw-0"),
 				}).Return(&ec2.DeleteCarrierGatewayOutput{}, nil)
 			},
