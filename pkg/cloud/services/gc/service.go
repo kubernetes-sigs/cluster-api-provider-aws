@@ -21,13 +21,13 @@ import (
 	"context"
 
 	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/aws/aws-sdk-go/service/elb/elbiface"
 	"github.com/aws/aws-sdk-go/service/elbv2/elbv2iface"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/common"
 )
 
 // Service is used to perform operations against a tenant/workload/child cluster.
@@ -36,7 +36,7 @@ type Service struct {
 	elbClient             elbiface.ELBAPI
 	elbv2Client           elbv2iface.ELBV2API
 	resourceTaggingClient resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
-	ec2Client             ec2iface.EC2API
+	ec2Client             common.EC2API
 	cleanupFuncs          ResourceCleanupFuncs
 	collectFuncs          ResourceCollectFuncs
 }
