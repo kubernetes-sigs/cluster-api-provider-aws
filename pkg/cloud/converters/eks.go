@@ -20,7 +20,6 @@ package converters
 import (
 	"errors"
 	"fmt"
-	"math"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
@@ -188,21 +187,14 @@ func NodegroupUpdateconfigToSDK(updateConfig *expinfrav1.UpdateConfig) (*ekstype
 		return nil, nil
 	}
 
-	maxUnavailable, err := toSafeInt32(*updateConfig.MaxUnavailable)
-	if err != nil {
-		return nil, err
-	}
-	maxUnavailablePercant, err := toSafeInt32(*updateConfig.MaxUnavailablePercentage)
-	if err != nil {
-		return nil, err
-	}
-
 	converted := &ekstypes.NodegroupUpdateConfig{}
 	if updateConfig.MaxUnavailable != nil {
-		converted.MaxUnavailable = aws.Int32(maxUnavailable)
+		//nolint:gosec,G115 // Added golint exception as there is a kubebuilder validation configured
+		converted.MaxUnavailable = aws.Int32(int32(*updateConfig.MaxUnavailable))
 	}
 	if updateConfig.MaxUnavailablePercentage != nil {
-		converted.MaxUnavailablePercentage = aws.Int32(maxUnavailablePercant)
+		//nolint:gosec,G115 // Added golint exception as there is a kubebuilder validation configured
+		converted.MaxUnavailablePercentage = aws.Int32(int32(*updateConfig.MaxUnavailablePercentage))
 	}
 
 	return converted, nil
@@ -255,11 +247,4 @@ func AddonConflictResolutionFromSDK(conflict ekstypes.ResolveConflicts) *string 
 		return aws.String(string(ekscontrolplanev1.AddonResolutionNone))
 	}
 	return aws.String(string(ekscontrolplanev1.AddonResolutionOverwrite))
-}
-
-func toSafeInt32(i int) (int32, error) {
-	if i > math.MaxInt32 || i < math.MinInt32 {
-		return 0, fmt.Errorf("value %d out of range for int32", i)
-	}
-	return int32(i), nil
 }
