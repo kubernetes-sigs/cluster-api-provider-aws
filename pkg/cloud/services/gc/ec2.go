@@ -26,7 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 
 	converters "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/convertersv2"
-	filter "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/filterv2"
+	filter "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/filter"
 )
 
 func (s *Service) deleteSecurityGroups(ctx context.Context, resources []*AWSResource) error {
@@ -76,7 +76,7 @@ func (s *Service) deleteSecurityGroup(ctx context.Context, securityGroupID strin
 func (s *Service) getProviderOwnedSecurityGroups(ctx context.Context) ([]*AWSResource, error) {
 	input := &ec2.DescribeSecurityGroupsInput{
 		Filters: []types.Filter{
-			*filter.EC2.ProviderOwned(s.scope.KubernetesClusterName()),
+			filter.EC2.ProviderOwned(s.scope.KubernetesClusterName()),
 		},
 	}
 

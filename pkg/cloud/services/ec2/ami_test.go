@@ -20,10 +20,11 @@ import (
 	"context"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	ssmtypes "github.com/aws/aws-sdk-go-v2/service/ssm/types"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -50,7 +51,7 @@ func TestDefaultAMILookup(t *testing.T) {
 		name   string
 		args   args
 		expect func(m *mocks.MockEC2APIMockRecorder)
-		check  func(g *WithT, img *ec2.Image, err error)
+		check  func(g *WithT, img *ec2types.Image, err error)
 	}{
 		{
 			name: "Should return latest AMI in case of valid inputs",
@@ -62,9 +63,9 @@ func TestDefaultAMILookup(t *testing.T) {
 				amiNameFormat:     "ami-name",
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeImagesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+				m.DescribeImages(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(&ec2.DescribeImagesOutput{
-						Images: []*ec2.Image{
+						Images: []ec2types.Image{
 							{
 								ImageId:      aws.String("ancient"),
 								CreationDate: aws.String("2011-02-08T17:02:31.000Z"),
@@ -80,7 +81,7 @@ func TestDefaultAMILookup(t *testing.T) {
 						},
 					}, nil)
 			},
-			check: func(g *WithT, img *ec2.Image, err error) {
+			check: func(g *WithT, img *ec2types.Image, err error) {
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(*img.ImageId).Should(ContainSubstring("latest"))
 			},
@@ -88,10 +89,10 @@ func TestDefaultAMILookup(t *testing.T) {
 		{
 			name: "Should return with error if AWS DescribeImages call failed with some error",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeImagesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+				m.DescribeImages(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(nil, awserrors.NewFailedDependency("dependency failure"))
 			},
-			check: func(g *WithT, img *ec2.Image, err error) {
+			check: func(g *WithT, img *ec2types.Image, err error) {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(img).To(BeNil())
 			},
@@ -99,10 +100,10 @@ func TestDefaultAMILookup(t *testing.T) {
 		{
 			name: "Should return with error if empty list of images returned from AWS ",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeImagesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+				m.DescribeImages(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(&ec2.DescribeImagesOutput{}, nil)
 			},
-			check: func(g *WithT, img *ec2.Image, err error) {
+			check: func(g *WithT, img *ec2types.Image, err error) {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(img).To(BeNil())
 			},
@@ -138,7 +139,7 @@ func TestDefaultAMILookupArm64(t *testing.T) {
 		name   string
 		args   args
 		expect func(m *mocks.MockEC2APIMockRecorder)
-		check  func(g *WithT, img *ec2.Image, err error)
+		check  func(g *WithT, img *ec2types.Image, err error)
 	}{
 		{
 			name: "Should return latest AMI in case of valid inputs",
@@ -150,9 +151,9 @@ func TestDefaultAMILookupArm64(t *testing.T) {
 				amiNameFormat:     "ami-name",
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeImagesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+				m.DescribeImages(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(&ec2.DescribeImagesOutput{
-						Images: []*ec2.Image{
+						Images: []ec2types.Image{
 							{
 								ImageId:      aws.String("ancient"),
 								CreationDate: aws.String("2011-02-08T17:02:31.000Z"),
@@ -168,7 +169,7 @@ func TestDefaultAMILookupArm64(t *testing.T) {
 						},
 					}, nil)
 			},
-			check: func(g *WithT, img *ec2.Image, err error) {
+			check: func(g *WithT, img *ec2types.Image, err error) {
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(*img.ImageId).Should(ContainSubstring("latest"))
 			},
@@ -176,10 +177,10 @@ func TestDefaultAMILookupArm64(t *testing.T) {
 		{
 			name: "Should return with error if AWS DescribeImages call failed with some error",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeImagesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+				m.DescribeImages(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(nil, awserrors.NewFailedDependency("dependency failure"))
 			},
-			check: func(g *WithT, img *ec2.Image, err error) {
+			check: func(g *WithT, img *ec2types.Image, err error) {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(img).To(BeNil())
 			},
@@ -187,10 +188,10 @@ func TestDefaultAMILookupArm64(t *testing.T) {
 		{
 			name: "Should return with error if empty list of images returned from AWS ",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeImagesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+				m.DescribeImages(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(&ec2.DescribeImagesOutput{}, nil)
 			},
-			check: func(g *WithT, img *ec2.Image, err error) {
+			check: func(g *WithT, img *ec2types.Image, err error) {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(img).To(BeNil())
 			},
@@ -221,9 +222,9 @@ func TestAMIs(t *testing.T) {
 		{
 			name: "Should return latest AMI in case of valid inputs",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeImagesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+				m.DescribeImages(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(&ec2.DescribeImagesOutput{
-						Images: []*ec2.Image{
+						Images: []ec2types.Image{
 							{
 								ImageId:      aws.String("ancient"),
 								CreationDate: aws.String("2011-02-08T17:02:31.000Z"),
@@ -247,9 +248,9 @@ func TestAMIs(t *testing.T) {
 		{
 			name: "Should return error if invalid creation date passed",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeImagesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+				m.DescribeImages(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(&ec2.DescribeImagesOutput{
-						Images: []*ec2.Image{
+						Images: []ec2types.Image{
 							{
 								ImageId:      aws.String("ancient"),
 								CreationDate: aws.String("2011-02-08T17:02:31.000Z"),
@@ -399,13 +400,13 @@ func TestGenerateAMIName(t *testing.T) {
 func TestGetLatestImage(t *testing.T) {
 	tests := []struct {
 		name    string
-		imgs    []*ec2.Image
-		want    *ec2.Image
+		imgs    []ec2types.Image
+		want    *ec2types.Image
 		wantErr bool
 	}{
 		{
 			name: "Should return image with latest creation date",
-			imgs: []*ec2.Image{
+			imgs: []ec2types.Image{
 				{
 					ImageId:      aws.String("ancient"),
 					CreationDate: aws.String("2011-02-08T17:02:31.000Z"),
@@ -419,7 +420,7 @@ func TestGetLatestImage(t *testing.T) {
 					CreationDate: aws.String("2014-02-08T17:02:31.000Z"),
 				},
 			},
-			want: &ec2.Image{
+			want: &ec2types.Image{
 				ImageId:      aws.String("latest"),
 				CreationDate: aws.String("2019-02-08T17:02:31.000Z"),
 			},
@@ -427,7 +428,7 @@ func TestGetLatestImage(t *testing.T) {
 		},
 		{
 			name: "Should return last image if all images have same creation date",
-			imgs: []*ec2.Image{
+			imgs: []ec2types.Image{
 				{
 					ImageId:      aws.String("image 1"),
 					CreationDate: aws.String("2019-02-08T17:02:31.000Z"),
@@ -441,7 +442,7 @@ func TestGetLatestImage(t *testing.T) {
 					CreationDate: aws.String("2019-02-08T17:02:31.000Z"),
 				},
 			},
-			want: &ec2.Image{
+			want: &ec2types.Image{
 				ImageId:      aws.String("image 3"),
 				CreationDate: aws.String("2019-02-08T17:02:31.000Z"),
 			},
@@ -449,7 +450,7 @@ func TestGetLatestImage(t *testing.T) {
 		},
 		{
 			name: "Should return error if creation date is given in wrong format",
-			imgs: []*ec2.Image{
+			imgs: []ec2types.Image{
 				{
 					ImageId:      aws.String("image 1"),
 					CreationDate: aws.String("2019-02-08"),

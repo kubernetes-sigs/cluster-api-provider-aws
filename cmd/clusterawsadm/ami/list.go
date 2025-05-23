@@ -18,12 +18,14 @@ limitations under the License.
 package ami
 
 import (
+	"context"
 	"fmt"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	amiv1 "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/api/ami/v1beta1"
@@ -73,16 +75,13 @@ func List(input ListInput) (*amiv1.AWSAMIList, error) {
 		Items: []amiv1.AWSAMI{},
 	}
 	for _, region := range imageRegionList {
-		imageMap := make(map[string][]*ec2.Image)
-		sess, err := session.NewSessionWithOptions(session.Options{
-			SharedConfigState: session.SharedConfigEnable,
-			Config:            aws.Config{Region: aws.String(region)},
-		})
+		imageMap := make(map[string][]types.Image)
+		cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
 		if err != nil {
 			return nil, err
 		}
 
-		ec2Client := ec2.New(sess)
+		ec2Client := ec2.NewFromConfig(cfg)
 		imagesForRegion, err := getAllImages(ec2Client, input.OwnerID)
 		if err != nil {
 			return nil, err
@@ -91,7 +90,7 @@ func List(input ListInput) (*amiv1.AWSAMIList, error) {
 		for key, image := range imagesForRegion {
 			images, ok := imageMap[key]
 			if !ok {
-				images = make([]*ec2.Image, 0)
+				images = make([]types.Image, 0)
 			}
 			imageMap[key] = append(images, image...)
 		}

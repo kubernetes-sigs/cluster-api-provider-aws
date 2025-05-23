@@ -24,8 +24,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -2713,28 +2714,28 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 		return secretMock
 	}
 
-	ec2Mock.EXPECT().DescribeInstancesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstancesInput{
-		InstanceIds: aws.StringSlice([]string{"two"}),
+	ec2Mock.EXPECT().DescribeInstances(context.TODO(), gomock.Eq(&ec2.DescribeInstancesInput{
+		InstanceIds: []string{"two"},
 	})).Return(&ec2.DescribeInstancesOutput{
-		Reservations: []*ec2.Reservation{
+		Reservations: []ec2types.Reservation{
 			{
-				Instances: []*ec2.Instance{
+				Instances: []ec2types.Instance{
 					{
 						InstanceId:   aws.String("two"),
-						InstanceType: aws.String("m5.large"),
+						InstanceType: ec2types.InstanceTypeM5Large,
 						SubnetId:     aws.String("subnet-1"),
 						ImageId:      aws.String("ami-1"),
-						State: &ec2.InstanceState{
-							Name: aws.String(ec2.InstanceStateNameRunning),
+						State: &ec2types.InstanceState{
+							Name: ec2types.InstanceStateNameRunning,
 						},
-						Placement: &ec2.Placement{
+						Placement: &ec2types.Placement{
 							AvailabilityZone: aws.String("thezone"),
 						},
-						MetadataOptions: &ec2.InstanceMetadataOptionsResponse{
-							HttpEndpoint:            aws.String(string(infrav1.InstanceMetadataEndpointStateEnabled)),
-							HttpPutResponseHopLimit: aws.Int64(1),
-							HttpTokens:              aws.String(string(infrav1.HTTPTokensStateOptional)),
-							InstanceMetadataTags:    aws.String(string(infrav1.InstanceMetadataEndpointStateDisabled)),
+						MetadataOptions: &ec2types.InstanceMetadataOptionsResponse{
+							HttpEndpoint:            ec2types.InstanceMetadataEndpointState(string(infrav1.InstanceMetadataEndpointStateEnabled)),
+							HttpPutResponseHopLimit: aws.Int32(1),
+							HttpTokens:              ec2types.HttpTokensState(string(infrav1.HTTPTokensStateOptional)),
+							InstanceMetadataTags:    ec2types.InstanceMetadataTagsState(string(infrav1.InstanceMetadataEndpointStateDisabled)),
 						},
 					},
 				},
@@ -2745,16 +2746,16 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 	// Must attach to a classic LB, not another type. Only these mock calls are therefore expected.
 	mockedCreateLBCalls(t, elbMock.EXPECT(), false)
 
-	ec2Mock.EXPECT().DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeNetworkInterfacesInput{Filters: []*ec2.Filter{
+	ec2Mock.EXPECT().DescribeNetworkInterfaces(context.TODO(), gomock.Eq(&ec2.DescribeNetworkInterfacesInput{Filters: []ec2types.Filter{
 		{
 			Name:   aws.String("attachment.instance-id"),
-			Values: aws.StringSlice([]string{"two"}),
+			Values: []string{"two"},
 		},
 	}})).Return(&ec2.DescribeNetworkInterfacesOutput{
-		NetworkInterfaces: []*ec2.NetworkInterface{
+		NetworkInterfaces: []ec2types.NetworkInterface{
 			{
 				NetworkInterfaceId: aws.String("eni-1"),
-				Groups: []*ec2.GroupIdentifier{
+				Groups: []ec2types.GroupIdentifier{
 					{
 						GroupId: aws.String("3"),
 					},
@@ -2762,12 +2763,12 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 			},
 		},
 	}, nil).MaxTimes(3)
-	ec2Mock.EXPECT().DescribeNetworkInterfaceAttributeWithContext(context.TODO(), gomock.Eq(&ec2.DescribeNetworkInterfaceAttributeInput{
+	ec2Mock.EXPECT().DescribeNetworkInterfaceAttribute(context.TODO(), gomock.Eq(&ec2.DescribeNetworkInterfaceAttributeInput{
 		NetworkInterfaceId: aws.String("eni-1"),
-		Attribute:          aws.String("groupSet"),
-	})).Return(&ec2.DescribeNetworkInterfaceAttributeOutput{Groups: []*ec2.GroupIdentifier{{GroupId: aws.String("3")}}}, nil).MaxTimes(1)
-	ec2Mock.EXPECT().ModifyNetworkInterfaceAttributeWithContext(context.TODO(), gomock.Any()).AnyTimes()
-	ec2Mock.EXPECT().AssociateAddressWithContext(context.TODO(), gomock.Any()).MaxTimes(1)
+		Attribute:          ec2types.NetworkInterfaceAttributeGroupSet,
+	})).Return(&ec2.DescribeNetworkInterfaceAttributeOutput{Groups: []ec2types.GroupIdentifier{{GroupId: aws.String("3")}}}, nil).MaxTimes(1)
+	ec2Mock.EXPECT().ModifyNetworkInterfaceAttribute(context.TODO(), gomock.Any()).AnyTimes()
+	ec2Mock.EXPECT().AssociateAddress(context.TODO(), gomock.Any()).MaxTimes(1)
 
 	_, err = reconciler.Reconcile(ctx, ctrl.Request{
 		NamespacedName: client.ObjectKey{
