@@ -419,7 +419,6 @@ func NewAWSSessionV2() *awsv2.Config {
 	Expect(err).NotTo(HaveOccurred())
 	optFns := []func(*config.LoadOptions) error{
 		config.WithRegion(region),
-		config.WithClientLogMode(awsv2.LogRequest),
 	}
 	cfg, err := config.LoadDefaultConfig(context.Background(), optFns...)
 	Expect(err).NotTo(HaveOccurred())
@@ -435,7 +434,6 @@ func NewAWSSessionRepoWithKeyV2(accessKey *iamtypes.AccessKey) *awsv2.Config {
 	staticCredProvider := awscredsv2.NewStaticCredentialsProvider(awsv2.ToString(accessKey.AccessKeyId), awsv2.ToString(accessKey.SecretAccessKey), "")
 	optFns := []func(*config.LoadOptions) error{
 		config.WithRegion(region),
-		config.WithClientLogMode(awsv2.LogRequest),
 		config.WithCredentialsProvider(staticCredProvider),
 	}
 	cfg, err := config.LoadDefaultConfig(context.Background(), optFns...)
@@ -452,7 +450,6 @@ func NewAWSSessionWithKeyV2(accessKey *iamtypes.AccessKey) *awsv2.Config {
 	staticCredProvider := awscredsv2.NewStaticCredentialsProvider(awsv2.ToString(accessKey.AccessKeyId), awsv2.ToString(accessKey.SecretAccessKey), "")
 	optFns := []func(*config.LoadOptions) error{
 		config.WithRegion(region),
-		config.WithClientLogMode(awsv2.LogRequest),
 		config.WithCredentialsProvider(staticCredProvider),
 	}
 	cfg, err := config.LoadDefaultConfig(context.Background(), optFns...)
