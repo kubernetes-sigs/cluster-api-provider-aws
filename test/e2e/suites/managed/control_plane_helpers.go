@@ -24,8 +24,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/client"
-	"github.com/aws/aws-sdk-go/service/eks"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/util/version"
@@ -37,11 +37,11 @@ import (
 
 type waitForControlPlaneToBeUpgradedInput struct {
 	ControlPlane   *ekscontrolplanev1.AWSManagedControlPlane
-	AWSSession     client.ConfigProvider
+	AWSSession     *aws.Config
 	UpgradeVersion string
 }
 
-func waitForControlPlaneToBeUpgraded(input waitForControlPlaneToBeUpgradedInput, intervals ...interface{}) {
+func waitForControlPlaneToBeUpgraded(ctx context.Context, input waitForControlPlaneToBeUpgradedInput, intervals ...interface{}) {
 	Expect(input.ControlPlane).ToNot(BeNil(), "Invalid argument. input.ControlPlane can't be nil")
 	Expect(input.AWSSession).ToNot(BeNil(), "Invalid argument. input.AWSSession can't be nil")
 	Expect(input.UpgradeVersion).ToNot(BeNil(), "Invalid argument. input.UpgradeVersion can't be nil")
@@ -52,15 +52,15 @@ func waitForControlPlaneToBeUpgraded(input waitForControlPlaneToBeUpgradedInput,
 	expectedVersion := fmt.Sprintf("%d.%d", v.Major(), v.Minor())
 
 	Eventually(func() (bool, error) {
-		cluster, err := getEKSCluster(input.ControlPlane.Spec.EKSClusterName, input.AWSSession)
+		cluster, err := getEKSCluster(ctx, input.ControlPlane.Spec.EKSClusterName, input.AWSSession)
 		if err != nil {
 			return false, err
 		}
 
-		switch *cluster.Status {
-		case eks.ClusterStatusUpdating:
+		switch cluster.Status {
+		case ekstypes.ClusterStatusUpdating:
 			return false, nil
-		case eks.ClusterStatusActive:
+		case ekstypes.ClusterStatusActive:
 			if *cluster.Version == expectedVersion {
 				return true, nil
 			}

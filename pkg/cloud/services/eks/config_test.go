@@ -6,9 +6,9 @@ import (
 	"net/url"
 	"testing"
 
+	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
@@ -29,14 +29,14 @@ import (
 func Test_createCAPIKubeconfigSecret(t *testing.T) {
 	testCases := []struct {
 		name        string
-		input       *eks.Cluster
+		input       *ekstypes.Cluster
 		serviceFunc func() *Service
 		wantErr     bool
 	}{
 		{
 			name: "create kubeconfig secret",
-			input: &eks.Cluster{
-				CertificateAuthority: &eks.Certificate{Data: aws.String("")},
+			input: &ekstypes.Cluster{
+				CertificateAuthority: &ekstypes.Certificate{Data: aws.String("")},
 				Endpoint:             aws.String("https://F00BA4.gr4.us-east-2.eks.amazonaws.com"),
 			},
 			serviceFunc: func() *Service {
@@ -119,7 +119,7 @@ func Test_createCAPIKubeconfigSecret(t *testing.T) {
 func Test_updateCAPIKubeconfigSecret(t *testing.T) {
 	type testCase struct {
 		name        string
-		input       *eks.Cluster
+		input       *ekstypes.Cluster
 		secret      *corev1.Secret
 		serviceFunc func(tc testCase) *Service
 		wantErr     bool
@@ -127,9 +127,9 @@ func Test_updateCAPIKubeconfigSecret(t *testing.T) {
 	testCases := []testCase{
 		{
 			name: "update kubeconfig secret",
-			input: &eks.Cluster{
+			input: &ekstypes.Cluster{
 				Name:                 aws.String("cluster-foo"),
-				CertificateAuthority: &eks.Certificate{Data: aws.String("")},
+				CertificateAuthority: &ekstypes.Certificate{Data: aws.String("")},
 				Endpoint:             aws.String("https://F00BA4.gr4.us-east-2.eks.amazonaws.com"),
 			},
 			secret: &corev1.Secret{
@@ -199,9 +199,9 @@ func Test_updateCAPIKubeconfigSecret(t *testing.T) {
 		},
 		{
 			name: "detect incorrect ownership on the kubeconfig secret",
-			input: &eks.Cluster{
+			input: &ekstypes.Cluster{
 				Name:                 aws.String("cluster-foo"),
-				CertificateAuthority: &eks.Certificate{Data: aws.String("")},
+				CertificateAuthority: &ekstypes.Certificate{Data: aws.String("")},
 				Endpoint:             aws.String("https://F00BA4.gr4.us-east-2.eks.amazonaws.com"),
 			},
 			secret: &corev1.Secret{

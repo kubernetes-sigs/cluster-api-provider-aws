@@ -63,8 +63,8 @@ func NewAWSStaticPrincipalTypeProvider(identity *infrav1.AWSClusterStaticIdentit
 }
 
 // GetAssumeRoleCredentialsCache will return the CredentialsCache of a given AWSRolePrincipalTypeProvider.
-func GetAssumeRoleCredentialsCache(roleIdentityProvider *AWSRolePrincipalTypeProvider, optFns []func(*config.LoadOptions) error) (*aws.CredentialsCache, error) {
-	cfg, err := config.LoadDefaultConfig(context.TODO(), optFns...)
+func GetAssumeRoleCredentialsCache(ctx context.Context, roleIdentityProvider *AWSRolePrincipalTypeProvider, optFns []func(*config.LoadOptions) error) (*aws.CredentialsCache, error) {
+	cfg, err := config.LoadDefaultConfig(ctx, optFns...)
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +172,7 @@ func (p *AWSRolePrincipalTypeProvider) Retrieve(ctx context.Context) (aws.Creden
 			optFns = append(optFns, config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(sourceCreds.AccessKeyID, sourceCreds.SecretAccessKey, sourceCreds.SessionToken)))
 		}
 
-		creds, err := GetAssumeRoleCredentialsCache(p, optFns)
+		creds, err := GetAssumeRoleCredentialsCache(ctx, p, optFns)
 		if err != nil {
 			return aws.Credentials{}, err
 		}
