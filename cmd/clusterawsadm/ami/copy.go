@@ -17,13 +17,15 @@ limitations under the License.
 package ami
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -48,14 +50,11 @@ type CopyInput struct {
 
 // Copy will create an AWSAMI from a CopyInput.
 func Copy(input CopyInput) (*amiv1.AWSAMI, error) {
-	sourceSession, err := session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-		Config:            aws.Config{Region: aws.String(input.SourceRegion)},
-	})
+	sourceCfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(input.SourceRegion))
 	if err != nil {
 		return nil, err
 	}
-	ec2Client := ec2.New(sourceSession)
+	ec2Client := ec2.NewFromConfig(sourceCfg)
 
 	image, err := ec2service.DefaultAMILookup(ec2Client, input.OwnerID, input.OperatingSystem, input.KubernetesVersion, ec2service.Amd64ArchitectureTag, "")
 	if err != nil {
@@ -64,10 +63,7 @@ func Copy(input CopyInput) (*amiv1.AWSAMI, error) {
 
 	var newImageID, newImageName string
 
-	destSession, err := session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-		Config:            aws.Config{Region: aws.String(input.DestinationRegion)},
-	})
+	destCfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(input.DestinationRegion))
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +75,7 @@ func Copy(input CopyInput) (*amiv1.AWSAMI, error) {
 			destinationRegion: input.DestinationRegion,
 			encrypted:         input.Encrypted,
 			kmsKeyID:          input.KmsKeyID,
-			sess:              destSession,
+			cfg:               destCfg,
 			log:               input.Log,
 		})
 	} else {
@@ -87,7 +83,7 @@ func Copy(input CopyInput) (*amiv1.AWSAMI, error) {
 			sourceRegion: input.SourceRegion,
 			image:        image,
 			dryRun:       input.DryRun,
-			sess:         destSession,
+			cfg:          destCfg,
 			log:          input.Log,
 		})
 	}
@@ -113,9 +109,7 @@ func Copy(input CopyInput) (*amiv1.AWSAMI, error) {
 		},
 	}
 
-	if err == nil {
-		input.Log.Info("Completed!")
-	}
+	input.Log.Info("Completed!")
 
 	return &ami, err
 }
@@ -124,13 +118,13 @@ type copyWithoutSnapshotInput struct {
 	sourceRegion string
 	dryRun       bool
 	log          logr.Logger
-	sess         *session.Session
-	image        *ec2.Image
+	cfg          aws.Config
+	image        *types.Image
 }
 
 func copyWithoutSnapshot(input copyWithoutSnapshotInput) (string, string, error) {
-	imgName := aws.StringValue(input.image.Name)
-	ec2Client := ec2.New(input.sess)
+	imgName := aws.ToString(input.image.Name)
+	ec2Client := ec2.NewFromConfig(input.cfg)
 	in2 := &ec2.CopyImageInput{
 		Description:   input.image.Description,
 		DryRun:        aws.Bool(input.dryRun),
@@ -139,14 +133,14 @@ func copyWithoutSnapshot(input copyWithoutSnapshotInput) (string, string, error)
 		SourceRegion:  aws.String(input.sourceRegion),
 	}
 	log := input.log.WithValues("imageName", imgName)
-	log.Info("Copying the retrieved image", "imageID", aws.StringValue(input.image.ImageId), "ownerID", aws.StringValue(input.image.OwnerId))
-	out, err := ec2Client.CopyImage(in2)
+	log.Info("Copying the retrieved image", "imageID", aws.ToString(input.image.ImageId), "ownerID", aws.ToString(input.image.OwnerId))
+	out, err := ec2Client.CopyImage(context.TODO(), in2)
 	if err != nil {
-		fmt.Printf("version %q\n", out)
+		fmt.Printf("version %v\n", out)
 		return imgName, "", err
 	}
 
-	return imgName, aws.StringValue(out.ImageId), nil
+	return imgName, aws.ToString(out.ImageId), nil
 }
 
 type copyWithSnapshotInput struct {
@@ -156,12 +150,12 @@ type copyWithSnapshotInput struct {
 	dryRun            bool
 	encrypted         bool
 	log               logr.Logger
-	image             *ec2.Image
-	sess              *session.Session
+	image             *types.Image
+	cfg               aws.Config
 }
 
 func copyWithSnapshot(input copyWithSnapshotInput) (string, string, error) {
-	ec2Client := ec2.New(input.sess)
+	ec2Client := ec2.NewFromConfig(input.cfg)
 	imgName := *input.image.Name + util.RandomString(3) + strconv.Itoa(int(time.Now().Unix()))
 	log := input.log.WithValues("imageName", imgName)
 
@@ -175,52 +169,57 @@ func copyWithSnapshot(input copyWithSnapshotInput) (string, string, error) {
 	}
 
 	copyInput := &ec2.CopySnapshotInput{
-		Description:       input.image.Description,
-		DestinationRegion: aws.String(input.destinationRegion),
-		DryRun:            aws.Bool(input.dryRun),
-		Encrypted:         aws.Bool(input.encrypted),
-		SourceRegion:      aws.String(input.sourceRegion),
-		KmsKeyId:          kmsKeyIDPtr,
-		SourceSnapshotId:  input.image.BlockDeviceMappings[0].Ebs.SnapshotId,
+		Description:      input.image.Description,
+		DryRun:           aws.Bool(input.dryRun),
+		Encrypted:        aws.Bool(input.encrypted),
+		SourceRegion:     aws.String(input.sourceRegion),
+		KmsKeyId:         kmsKeyIDPtr,
+		SourceSnapshotId: input.image.BlockDeviceMappings[0].Ebs.SnapshotId,
 	}
 
 	// Generate a presigned url from the CopySnapshotInput
-	req, _ := ec2Client.CopySnapshotRequest(copyInput)
-	str, err := req.Presign(15 * time.Minute)
+	scl := ec2.NewPresignClient(ec2Client)
+	str, err := scl.PresignCopySnapshot(context.TODO(), copyInput, ec2.WithPresignClientFromClientOptions(
+		func(o *ec2.Options) {
+			o.Region = input.destinationRegion
+		},
+	))
 	if err != nil {
 		return imgName, "", errors.Wrap(err, "Failed to generate presigned url")
 	}
-	copyInput.PresignedUrl = aws.String(str)
+	copyInput.PresignedUrl = aws.String(str.URL)
 
-	out, err := ec2Client.CopySnapshot(copyInput)
+	out, err := ec2Client.CopySnapshot(context.TODO(), copyInput, func(o *ec2.Options) {
+		o.Region = input.destinationRegion
+	})
 	if err != nil {
 		return imgName, "", errors.Wrap(err, "Failed copying snapshot")
 	}
 	log.Info("Copying snapshot, this may take a couple of minutes...",
-		"sourceSnapshot", aws.StringValue(input.image.BlockDeviceMappings[0].Ebs.SnapshotId),
-		"destinationSnapshot", aws.StringValue(out.SnapshotId),
+		"sourceSnapshot", aws.ToString(input.image.BlockDeviceMappings[0].Ebs.SnapshotId),
+		"destinationSnapshot", aws.ToString(out.SnapshotId),
 	)
 
-	err = ec2Client.WaitUntilSnapshotCompleted(&ec2.DescribeSnapshotsInput{
+	err = ec2.NewSnapshotCompletedWaiter(ec2Client).Wait(context.TODO(), &ec2.DescribeSnapshotsInput{
 		DryRun:      aws.Bool(input.dryRun),
-		SnapshotIds: []*string{out.SnapshotId},
-	})
+		SnapshotIds: []string{aws.ToString(out.SnapshotId)},
+	}, time.Hour*1)
 	if err != nil {
-		return imgName, "", errors.Wrap(err, fmt.Sprintf("Failed waiting for encrypted snapshot copy completion: %q\n", aws.StringValue(out.SnapshotId)))
+		return imgName, "", errors.Wrap(err, fmt.Sprintf("Failed waiting for encrypted snapshot copy completion: %q\n", aws.ToString(out.SnapshotId)))
 	}
 
-	ebsMapping := &ec2.BlockDeviceMapping{
+	ebsMapping := types.BlockDeviceMapping{
 		DeviceName: input.image.BlockDeviceMappings[0].DeviceName,
-		Ebs: &ec2.EbsBlockDevice{
+		Ebs: &types.EbsBlockDevice{
 			SnapshotId: out.SnapshotId,
 		},
 	}
 
 	log.Info("Registering AMI")
 
-	registerOut, err := ec2Client.RegisterImage(&ec2.RegisterImageInput{
+	registerOut, err := ec2Client.RegisterImage(context.TODO(), &ec2.RegisterImageInput{
 		Architecture:        input.image.Architecture,
-		BlockDeviceMappings: []*ec2.BlockDeviceMapping{ebsMapping},
+		BlockDeviceMappings: []types.BlockDeviceMapping{ebsMapping},
 		Description:         input.image.Description,
 		DryRun:              aws.Bool(input.dryRun),
 		EnaSupport:          input.image.EnaSupport,
@@ -229,12 +228,12 @@ func copyWithSnapshot(input copyWithSnapshotInput) (string, string, error) {
 		RamdiskId:           input.image.RamdiskId,
 		RootDeviceName:      input.image.RootDeviceName,
 		SriovNetSupport:     input.image.SriovNetSupport,
-		VirtualizationType:  input.image.VirtualizationType,
+		VirtualizationType:  aws.String(string(input.image.VirtualizationType)),
 	})
 
 	if err != nil {
 		return imgName, "", err
 	}
 
-	return imgName, aws.StringValue(registerOut.ImageId), err
+	return imgName, aws.ToString(registerOut.ImageId), err
 }

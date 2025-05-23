@@ -20,9 +20,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	rgapi "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
@@ -499,7 +499,7 @@ func TestReconcileDelete(t *testing.T) {
 				})
 			},
 			ec2Mocks: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DeleteSecurityGroupWithContext(gomock.Any(), &ec2.DeleteSecurityGroupInput{
+				m.DeleteSecurityGroup(gomock.Any(), &ec2.DeleteSecurityGroupInput{
 					GroupId: aws.String("sg-123456"),
 				})
 			},
@@ -653,7 +653,7 @@ func TestReconcileDelete(t *testing.T) {
 				})
 			},
 			ec2Mocks: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DeleteSecurityGroupWithContext(gomock.Any(), &ec2.DeleteSecurityGroupInput{
+				m.DeleteSecurityGroup(gomock.Any(), &ec2.DeleteSecurityGroupInput{
 					GroupId: aws.String("sg-123456"),
 				})
 			},
