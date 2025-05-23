@@ -228,8 +228,10 @@ func AMITypeToSDK(amiType expinfrav1.ManagedMachineAMIType) ekstypes.AMITypes {
 		return ekstypes.AMITypesAl2Arm64
 	case expinfrav1.Al2023Arm64:
 		return ekstypes.AMITypesAl2023Arm64Standard
-	default:
+	case expinfrav1.Al2023x86_64:
 		return ekstypes.AMITypesAl2023X8664Standard
+	default:
+		return ekstypes.AMITypesCustom
 	}
 }
 
