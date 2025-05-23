@@ -24,10 +24,12 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/eks"
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
+	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
@@ -137,7 +139,54 @@ func (s *Service) reconcileCluster(ctx context.Context) error {
 	return nil
 }
 
+// computeCurrentStatusVersion returns the computed current EKS cluster kubernetes version.
+// The computation has awareness of the fact that EKS clusters only return a major.minor kubernetes version,
+// and returns a compatible version for te status according to the one the user specified in the spec.
+func computeCurrentStatusVersion(specV *string, clusterV *string) *string {
+	specVersion := ""
+	if specV != nil {
+		specVersion = *specV
+	}
+
+	clusterVersion := ""
+	if clusterV != nil {
+		clusterVersion = *clusterV
+	}
+
+	// Ignore parsing errors as these are already validated by the kubebuilder validation and the AWS API.
+	// Also specVersion might not be specified in the spec.Version for AWSManagedControlPlane, this results in a "0.0.0" version.
+	// Also clusterVersion might not yet be returned by the AWS EKS API, as the cluster might still be initializing, this results in a "0.0.0" version.
+	specSemverVersion, _ := semver.ParseTolerant(specVersion)
+	currentSemverVersion, _ := semver.ParseTolerant(clusterVersion)
+
+	// If AWS EKS API is not returning a version, set the status.Version to empty string.
+	if currentSemverVersion.String() == "0.0.0" {
+		return ptr.To("")
+	}
+
+	if currentSemverVersion.Major == specSemverVersion.Major &&
+		currentSemverVersion.Minor == specSemverVersion.Minor &&
+		specSemverVersion.Patch != 0 {
+		// Treat this case differently as we want it to exactly match the spec.Version,
+		// including its Patch, in the status.Version.
+		currentSemverVersion.Patch = specSemverVersion.Patch
+
+		return ptr.To(currentSemverVersion.String())
+	}
+
+	// For all the other cases it doesn't matter to have a patch version, as EKS ignores it internally.
+	// So set the current cluster.Version (this always is a major.minor version format (e.g. "1.31")) in the status.Version.
+	// Even in the event where in the spec.Version a zero patch version is specified (e.g. "1.31.0"),
+	// the call to semver.ParseTolerant on the consumer side
+	// will make sure the version with and without the trailing zero actually result in a match.
+	return clusterV
+}
+
 func (s *Service) setStatus(cluster *ekstypes.Cluster) error {
+	// Set the current Kubernetes control plane version in the status.
+	s.scope.ControlPlane.Status.Version = computeCurrentStatusVersion(s.scope.ControlPlane.Spec.Version, cluster.Version)
+
+	// Set the current cluster status in the control plane status.
 	switch cluster.Status {
 	case ekstypes.ClusterStatusDeleting:
 		s.scope.ControlPlane.Status.Ready = false
@@ -521,16 +570,35 @@ func (s *Service) reconcileLogging(ctx context.Context, logging *ekstypes.Loggin
 	return nil
 }
 
-func publicAccessCIDRsEqual(as []*string, bs []*string) bool {
-	all := "0.0.0.0/0"
+func publicAccessCIDRsEqual(as []string, bs []string) bool {
+	allV4 := "0.0.0.0/0"
+	allV6 := "::/0"
+	asDefault := false
+	bsDefault := false
+
+	// For IPv6 only clusters
 	if len(as) == 0 {
-		as = []*string{&all}
+		as = []string{allV4, allV6}
+		asDefault = true
 	}
 	if len(bs) == 0 {
-		bs = []*string{&all}
+		bs = []string{allV4, allV6}
+		bsDefault = true
 	}
-	return sets.NewString(aws.ToStringSlice(as)...).Equal(
-		sets.NewString(aws.ToStringSlice(bs)...),
+	if sets.NewString(as...).Equal(sets.NewString(bs...)) {
+		fmt.Println("Found IPV6 true")
+		return true
+	}
+
+	// For IPv4 only clusters
+	if asDefault {
+		as = []string{allV4}
+	}
+	if bsDefault {
+		bs = []string{allV4}
+	}
+	return sets.NewString(as...).Equal(
+		sets.NewString(bs...),
 	)
 }
 
@@ -550,7 +618,7 @@ func (s *Service) reconcileVpcConfig(vpcConfig *ekstypes.VpcConfigResponse) (*ek
 	}
 	needsUpdate := !tristate.EqualWithDefault(false, &vpcConfig.EndpointPrivateAccess, updatedVpcConfig.EndpointPrivateAccess) ||
 		!tristate.EqualWithDefault(true, &vpcConfig.EndpointPublicAccess, updatedVpcConfig.EndpointPublicAccess) ||
-		!publicAccessCIDRsEqual(aws.StringSlice(vpcConfig.PublicAccessCidrs), aws.StringSlice(updatedVpcConfig.PublicAccessCidrs))
+		!publicAccessCIDRsEqual(vpcConfig.PublicAccessCidrs, updatedVpcConfig.PublicAccessCidrs)
 	if needsUpdate {
 		return &ekstypes.VpcConfigRequest{
 			EndpointPublicAccess:  updatedVpcConfig.EndpointPublicAccess,
