@@ -218,7 +218,7 @@ variables:
   EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"
   GC_WORKLOAD: "../../data/gcworkload.yaml"
   CLASSICELB_TEST_KUBERNETES_VERSION_FROM: "v1.29.9"
-  CLASSICELB_TEST_KUBERNETES_VERSION_TO: "v1.31.0"
+  CLASSICELB_TEST_KUBERNETES_VERSION_TO: "v1.30.8"
 
 intervals:
   default/wait-cluster: ["35m", "10s"]
