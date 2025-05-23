@@ -24,9 +24,9 @@ import (
 	"fmt"
 	"testing"
 
+	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/go-logr/logr"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
@@ -1079,13 +1079,13 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 
 				var simulatedDeletedVersionNumber int64 = 777
 				bootstrapDataHash := "some-simulated-hash"
-				ec2Svc.EXPECT().PruneLaunchTemplateVersions(gomock.Any()).Return(&ec2.LaunchTemplateVersion{
+				ec2Svc.EXPECT().PruneLaunchTemplateVersions(gomock.Any()).Return(&ec2types.LaunchTemplateVersion{
 					VersionNumber: &simulatedDeletedVersionNumber,
-					LaunchTemplateData: &ec2.ResponseLaunchTemplateData{
-						TagSpecifications: []*ec2.LaunchTemplateTagSpecification{
+					LaunchTemplateData: &ec2types.ResponseLaunchTemplateData{
+						TagSpecifications: []ec2types.LaunchTemplateTagSpecification{
 							{
-								ResourceType: aws.String(ec2.ResourceTypeInstance),
-								Tags: []*ec2.Tag{
+								ResourceType: ec2types.ResourceTypeInstance,
+								Tags: []ec2types.Tag{
 									// Only this tag is relevant for the test. If this is stored in the
 									// launch template version, and the version gets deleted, the S3 object
 									// with the bootstrap data should be deleted as well.

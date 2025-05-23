@@ -20,9 +20,10 @@ import (
 	"context"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -48,21 +49,21 @@ func TestServiceReleaseAddresses(t *testing.T) {
 		{
 			name: "Should return error if failed to describe IP addresses",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeAddressesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(nil, awserrors.NewFailedDependency("dependency failure"))
+				m.DescribeAddresses(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(nil, awserrors.NewFailedDependency("dependency failure"))
 			},
 			wantErr: true,
 		},
 		{
 			name: "Should ignore releasing elastic IP addresses if not found",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeAddressesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(nil, nil)
+				m.DescribeAddresses(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(nil, nil)
 			},
 		},
 		{
 			name: "Should return error if failed to disassociate IP address",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeAddressesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(&ec2.DescribeAddressesOutput{
-					Addresses: []*ec2.Address{
+				m.DescribeAddresses(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(&ec2.DescribeAddressesOutput{
+					Addresses: []types.Address{
 						{
 							AssociationId: aws.String("association-id-1"),
 							PublicIp:      aws.String("public-ip"),
@@ -70,15 +71,15 @@ func TestServiceReleaseAddresses(t *testing.T) {
 						},
 					},
 				}, nil)
-				m.DisassociateAddressWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DisassociateAddressInput{})).Return(nil, awserrors.NewFailedDependency("dependency-failure"))
+				m.DisassociateAddress(context.TODO(), gomock.AssignableToTypeOf(&ec2.DisassociateAddressInput{})).Return(nil, awserrors.NewFailedDependency("dependency-failure"))
 			},
 			wantErr: true,
 		},
 		{
 			name: "Should be able to release the IP address",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeAddressesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(&ec2.DescribeAddressesOutput{
-					Addresses: []*ec2.Address{
+				m.DescribeAddresses(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(&ec2.DescribeAddressesOutput{
+					Addresses: []types.Address{
 						{
 							AssociationId: aws.String("association-id-1"),
 							PublicIp:      aws.String("public-ip"),
@@ -86,15 +87,15 @@ func TestServiceReleaseAddresses(t *testing.T) {
 						},
 					},
 				}, nil)
-				m.DisassociateAddressWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DisassociateAddressInput{})).Return(nil, nil)
-				m.ReleaseAddressWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.ReleaseAddressInput{})).Return(nil, nil)
+				m.DisassociateAddress(context.TODO(), gomock.AssignableToTypeOf(&ec2.DisassociateAddressInput{})).Return(nil, nil)
+				m.ReleaseAddress(context.TODO(), gomock.AssignableToTypeOf(&ec2.ReleaseAddressInput{})).Return(nil, nil)
 			},
 		},
 		{
 			name: "Should retry if unable to release the IP address because of Auth Failure",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeAddressesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(&ec2.DescribeAddressesOutput{
-					Addresses: []*ec2.Address{
+				m.DescribeAddresses(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(&ec2.DescribeAddressesOutput{
+					Addresses: []types.Address{
 						{
 							AssociationId: aws.String("association-id-1"),
 							PublicIp:      aws.String("public-ip"),
@@ -102,16 +103,16 @@ func TestServiceReleaseAddresses(t *testing.T) {
 						},
 					},
 				}, nil)
-				m.DisassociateAddressWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DisassociateAddressInput{})).Return(nil, nil).Times(2)
-				m.ReleaseAddressWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.ReleaseAddressInput{})).Return(nil, awserr.New(awserrors.AuthFailure, awserrors.AuthFailure, errors.Errorf(awserrors.AuthFailure)))
-				m.ReleaseAddressWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.ReleaseAddressInput{})).Return(nil, nil)
+				m.DisassociateAddress(context.TODO(), gomock.AssignableToTypeOf(&ec2.DisassociateAddressInput{})).Return(nil, nil).Times(2)
+				m.ReleaseAddress(context.TODO(), gomock.AssignableToTypeOf(&ec2.ReleaseAddressInput{})).Return(nil, awserr.New(awserrors.AuthFailure, awserrors.AuthFailure, errors.Errorf(awserrors.AuthFailure)))
+				m.ReleaseAddress(context.TODO(), gomock.AssignableToTypeOf(&ec2.ReleaseAddressInput{})).Return(nil, nil)
 			},
 		},
 		{
 			name: "Should retry if unable to release the IP address because IP is already in use",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeAddressesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(&ec2.DescribeAddressesOutput{
-					Addresses: []*ec2.Address{
+				m.DescribeAddresses(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(&ec2.DescribeAddressesOutput{
+					Addresses: []types.Address{
 						{
 							AssociationId: aws.String("association-id-1"),
 							PublicIp:      aws.String("public-ip"),
@@ -119,16 +120,16 @@ func TestServiceReleaseAddresses(t *testing.T) {
 						},
 					},
 				}, nil)
-				m.DisassociateAddressWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DisassociateAddressInput{})).Return(nil, nil).Times(2)
-				m.ReleaseAddressWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.ReleaseAddressInput{})).Return(nil, awserr.New(awserrors.InUseIPAddress, awserrors.InUseIPAddress, errors.Errorf(awserrors.InUseIPAddress)))
-				m.ReleaseAddressWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.ReleaseAddressInput{})).Return(nil, nil)
+				m.DisassociateAddress(context.TODO(), gomock.AssignableToTypeOf(&ec2.DisassociateAddressInput{})).Return(nil, nil).Times(2)
+				m.ReleaseAddress(context.TODO(), gomock.AssignableToTypeOf(&ec2.ReleaseAddressInput{})).Return(nil, awserr.New(awserrors.InUseIPAddress, awserrors.InUseIPAddress, errors.Errorf(awserrors.InUseIPAddress)))
+				m.ReleaseAddress(context.TODO(), gomock.AssignableToTypeOf(&ec2.ReleaseAddressInput{})).Return(nil, nil)
 			},
 		},
 		{
 			name: "Should not retry if unable to release the IP address due to dependency failure",
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeAddressesWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(&ec2.DescribeAddressesOutput{
-					Addresses: []*ec2.Address{
+				m.DescribeAddresses(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeAddressesInput{})).Return(&ec2.DescribeAddressesOutput{
+					Addresses: []types.Address{
 						{
 							AssociationId: aws.String("association-id-1"),
 							PublicIp:      aws.String("public-ip"),
@@ -136,8 +137,8 @@ func TestServiceReleaseAddresses(t *testing.T) {
 						},
 					},
 				}, nil)
-				m.DisassociateAddressWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DisassociateAddressInput{})).Return(nil, nil).Times(2)
-				m.ReleaseAddressWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.ReleaseAddressInput{})).Return(nil, awserr.New("dependency-failure", "dependency-failure", errors.Errorf("dependency-failure")))
+				m.DisassociateAddress(context.TODO(), gomock.AssignableToTypeOf(&ec2.DisassociateAddressInput{})).Return(nil, nil).Times(2)
+				m.ReleaseAddress(context.TODO(), gomock.AssignableToTypeOf(&ec2.ReleaseAddressInput{})).Return(nil, awserr.New("dependency-failure", "dependency-failure", errors.Errorf("dependency-failure")))
 			},
 			wantErr: true,
 		},

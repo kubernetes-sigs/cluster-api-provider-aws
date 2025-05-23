@@ -18,6 +18,7 @@ package scope
 
 import (
 	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/eks"
 	elb "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing"
 	elbv2 "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
@@ -30,8 +31,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
 	"github.com/aws/aws-sdk-go/service/sts"
@@ -43,6 +42,7 @@ import (
 	awslogs "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/logs"
 	awsmetrics "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/metrics"
 	awsmetricsv2 "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/metricsv2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/common"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
@@ -68,19 +68,26 @@ func NewASGClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logg
 }
 
 // NewEC2Client creates a new EC2 API client for a given session.
-func NewEC2Client(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) ec2iface.EC2API {
-	ec2Client := ec2.New(session.Session(), aws.NewConfig().WithLogLevel(awslogs.GetAWSLogLevel(logger.GetLogger())).WithLogger(awslogs.NewWrapLogr(logger.GetLogger())))
-	ec2Client.Handlers.Build.PushFrontNamed(getUserAgentHandler())
-	if session.ServiceLimiter(ec2.ServiceID) != nil {
-		ec2Client.Handlers.Sign.PushFront(session.ServiceLimiter(ec2.ServiceID).LimitRequest)
+func NewEC2Client(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) *ec2.Client {
+	cfg := session.SessionV2()
+	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
+	ec2EndpointResolver := &endpointsv2.EC2EndpointResolver{
+		MultiServiceEndpointResolver: multiSvcEndpointResolver,
 	}
-	ec2Client.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(scopeUser.ControllerName()))
-	if session.ServiceLimiter(ec2.ServiceID) != nil {
-		ec2Client.Handlers.CompleteAttempt.PushFront(session.ServiceLimiter(ec2.ServiceID).ReviewResponse)
-	}
-	ec2Client.Handlers.Complete.PushBack(recordAWSPermissionsIssue(target))
 
-	return ec2Client
+	ec2opts := []func(*ec2.Options){
+		func(o *ec2.Options) {
+			o.Logger = logger.GetAWSLogger()
+			o.ClientLogMode = awslogs.GetAWSLogLevelV2(logger.GetLogger())
+			o.EndpointResolverV2 = ec2EndpointResolver
+		},
+		ec2.WithAPIOptions(
+			awsmetricsv2.WithMiddlewares(scopeUser.ControllerName(), target),
+			awsmetricsv2.WithCAPAUserAgentMiddleware(),
+		),
+	}
+
+	return ec2.NewFromConfig(cfg, ec2opts...)
 }
 
 // NewELBClient creates a new ELB API client for a given session.
@@ -333,8 +340,8 @@ func getUserAgentHandler() request.NamedHandler {
 // AWSClients contains all the aws clients used by the scopes.
 type AWSClients struct {
 	ASG             autoscaling.Client
-	EC2             ec2iface.EC2API
 	ELB             elb.Client
+	EC2             common.EC2API
 	SecretsManager  secretsmanageriface.SecretsManagerAPI
 	ResourceTagging rgapi.Client
 }
