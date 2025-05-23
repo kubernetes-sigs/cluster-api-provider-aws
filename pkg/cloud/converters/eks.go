@@ -217,7 +217,7 @@ func NodegroupUpdateconfigFromSDK(ngUpdateConfig *ekstypes.NodegroupUpdateConfig
 	return converted
 }
 
-// AMITypeToSDK is used to CAPA ManagedMachineAMIType to AWS SDK AMIType.
+// AMITypeToSDK converts a CAPA ManagedMachineAMIType to AWS SDK AMIType.
 func AMITypeToSDK(amiType expinfrav1.ManagedMachineAMIType) ekstypes.AMITypes {
 	switch amiType {
 	case expinfrav1.Al2x86_64:
