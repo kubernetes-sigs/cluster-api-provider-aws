@@ -69,16 +69,16 @@ var _ = ginkgo.Context("[unmanaged] [upgrade]", func() {
 		ctx = context.TODO()
 		managementClusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 
-		kubernetesVersionFrom = e2eCtx.E2EConfig.GetVariable(shared.ClassicElbTestKubernetesFrom)
+		kubernetesVersionFrom = e2eCtx.E2EConfig.MustGetVariable(shared.ClassicElbTestKubernetesFrom)
 		Expect(kubernetesVersionFrom).ToNot(BeEmpty(), "kubernetesVersionFrom is not set")
-		kubernetesVersionTo = e2eCtx.E2EConfig.GetVariable(shared.ClassicElbTestKubernetesTo)
+		kubernetesVersionTo = e2eCtx.E2EConfig.MustGetVariable(shared.ClassicElbTestKubernetesTo)
 		Expect(kubernetesVersionTo).ToNot(BeEmpty(), "kubernetesVersionTo is not set")
 	})
 
 	ginkgo.AfterEach(func() {
 		if testNamespace != nil {
 			// Dump all the logs from the workload cluster before deleting them.
-			framework.DumpAllResourcesAndLogs(ctx, managementClusterProxy, e2eCtx.Settings.ArtifactFolder, testNamespace, managementClusterResources.Cluster)
+			framework.DumpAllResourcesAndLogs(ctx, managementClusterProxy, e2eCtx.Environment.ClusterctlConfigPath, e2eCtx.Settings.ArtifactFolder, testNamespace, managementClusterResources.Cluster)
 
 			if !e2eCtx.Settings.SkipCleanup {
 				shared.Byf("Deleting all clusters in namespace %s in management cluster %s", testNamespace.Name, managementClusterName)
@@ -107,7 +107,7 @@ var _ = ginkgo.Context("[unmanaged] [upgrade]", func() {
 			managementClusterProxy.Dispose(ctx)
 			managementClusterProvider.Dispose(ctx)
 		} else {
-			framework.DumpSpecResourcesAndCleanup(ctx, specName, e2eCtx.Environment.BootstrapClusterProxy, e2eCtx.Settings.ArtifactFolder, managementClusterNamespace, managementClusterCancelWatches, managementClusterResources.Cluster, e2eCtx.E2EConfig.GetIntervals, e2eCtx.Settings.SkipCleanup)
+			framework.DumpSpecResourcesAndCleanup(ctx, specName, e2eCtx.Environment.BootstrapClusterProxy, e2eCtx.Environment.ClusterctlConfigPath, e2eCtx.Settings.ArtifactFolder, managementClusterNamespace, managementClusterCancelWatches, managementClusterResources.Cluster, e2eCtx.E2EConfig.GetIntervals, e2eCtx.Settings.SkipCleanup)
 		}
 	})
 
@@ -116,7 +116,7 @@ var _ = ginkgo.Context("[unmanaged] [upgrade]", func() {
 		ginkgo.It("Should create a management cluster and upgrade the workload cluster to v1.30+", func() {
 			managementClusterName = fmt.Sprintf("%s-management-%s", specName, util.RandomString(6))
 			managementClusterLogFolder := filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", managementClusterName)
-			managemntClusterVersion := e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersionManagement)
+			managemntClusterVersion := e2eCtx.E2EConfig.MustGetVariable(shared.KubernetesVersionManagement)
 
 			ginkgo.By("Creating a kind cluster to be used as a new management cluster")
 

@@ -96,7 +96,7 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 		Expect(len(mp)).To(Equal(1))
 
 		workloadClusterProxy := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name)
-		workloadYamlPath := e2eCtx.E2EConfig.GetVariable(shared.GcWorkloadPath)
+		workloadYamlPath := e2eCtx.E2EConfig.MustGetVariable(shared.GcWorkloadPath)
 		ginkgo.By(fmt.Sprintf("Installing sample workload with load balancer services: %s", workloadYamlPath))
 		workloadYaml, err := os.ReadFile(workloadYamlPath) //nolint:gosec
 		Expect(err).ShouldNot(HaveOccurred())
@@ -131,8 +131,10 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 			Cluster: cluster,
 		})
 		framework.WaitForClusterDeleted(ctx, framework.WaitForClusterDeletedInput{
-			Client:  e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
-			Cluster: cluster,
+			ClusterProxy:         e2eCtx.Environment.BootstrapClusterProxy,
+			Cluster:              cluster,
+			ClusterctlConfigPath: e2eCtx.Environment.ClusterctlConfigPath,
+			ArtifactFolder:       e2eCtx.Settings.ArtifactFolder,
 		}, e2eCtx.E2EConfig.GetIntervals("", "wait-delete-cluster")...)
 
 		ginkgo.By("Getting counts of service load balancers")
@@ -217,7 +219,7 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 		Expect(len(mp)).To(Equal(1))
 
 		workloadClusterProxy := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name)
-		workloadYamlPath := e2eCtx.E2EConfig.GetVariable(shared.GcWorkloadPath)
+		workloadYamlPath := e2eCtx.E2EConfig.MustGetVariable(shared.GcWorkloadPath)
 		ginkgo.By(fmt.Sprintf("Installing sample workload with load balancer services: %s", workloadYamlPath))
 		workloadYaml, err := os.ReadFile(workloadYamlPath) //nolint:gosec
 		Expect(err).ShouldNot(HaveOccurred())
@@ -252,8 +254,10 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 			Cluster: cluster,
 		})
 		framework.WaitForClusterDeleted(ctx, framework.WaitForClusterDeletedInput{
-			Client:  e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
-			Cluster: cluster,
+			ClusterProxy:         e2eCtx.Environment.BootstrapClusterProxy,
+			Cluster:              cluster,
+			ClusterctlConfigPath: e2eCtx.Environment.ClusterctlConfigPath,
+			ArtifactFolder:       e2eCtx.Settings.ArtifactFolder,
 		}, e2eCtx.E2EConfig.GetIntervals("", "wait-delete-cluster")...)
 
 		ginkgo.By("Getting counts of service load balancers")
