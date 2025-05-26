@@ -1213,6 +1213,14 @@ spec:
                     description: Specifies whether enhanced networking with ENA is
                       enabled.
                     type: boolean
+                  hostAffinity:
+                    description: Affinity specifies the dedicated host affinity setting
+                      for the instance.
+                    type: string
+                  hostID:
+                    description: HostID specifies the dedicated host on which the
+                      instance should be started
+                    type: string
                   iamProfile:
                     description: The name of the IAM instance profile associated with
                       the instance, if applicable.
@@ -3378,6 +3386,14 @@ spec:
                     description: Specifies whether enhanced networking with ENA is
                       enabled.
                     type: boolean
+                  hostAffinity:
+                    description: Affinity specifies the dedicated host affinity setting
+                      for the instance.
+                    type: string
+                  hostID:
+                    description: HostID specifies the dedicated host on which the
+                      instance should be started
+                    type: string
                   iamProfile:
                     description: The name of the IAM instance profile associated with
                       the instance, if applicable.

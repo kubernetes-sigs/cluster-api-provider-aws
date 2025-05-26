@@ -223,6 +223,16 @@ type AWSMachineSpec struct {
 	// If marketType is not specified and spotMarketOptions is provided, the marketType defaults to "Spot".
 	// +optional
 	MarketType MarketType `json:"marketType,omitempty"`
+
+	// HostID specifies the Dedicated Host on which the instance must be started.
+	// +optional
+	HostID *string `json:"hostID,omitempty"`
+
+	// Affinity specifies the dedicated host affinity setting for the instance.
+	// When affinity is set to Host, an instance started onto a specific host always restarts on the same host if stopped.
+	// +optional
+	// +kubebuilder:validation:Enum:=Default;Host
+	HostAffinity *string `json:"hostAffinity,omitempty"`
 }
 
 // CloudInit defines options related to the bootstrapping systems where

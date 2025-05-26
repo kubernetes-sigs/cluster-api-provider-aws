@@ -273,6 +273,14 @@ type Instance struct {
 	// If marketType is not specified and spotMarketOptions is provided, the marketType defaults to "Spot".
 	// +optional
 	MarketType MarketType `json:"marketType,omitempty"`
+
+	// HostID specifies the dedicated host on which the instance should be started
+	// +optional
+	HostID *string `json:"hostID,omitempty"`
+
+	// Affinity specifies the dedicated host affinity setting for the instance.
+	// +optional
+	HostAffinity *string `json:"hostAffinity,omitempty"`
 }
 
 // MarketType describes the market type of an Instance

@@ -957,4 +957,76 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				"Eventually failed waiting for AWSCluster to show VPC endpoint as deleted in conditions")
 		})
 	})
+
+	ginkgo.Describe("Dedicated hosts cluster test", func() {
+		ginkgo.It("should create cluster with dedicated hosts", func() {
+			specName := "dedicated-host"
+			if !e2eCtx.Settings.SkipQuotas {
+				//TODO: Update TestResource to include dedicated hosts
+				//TODO: Shouldn't this IF be inside shared.AquireResources instead of repeating across tests?
+				requiredResources = &shared.TestResource{EC2Normal: 1 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, EventBridgeRules: 50}
+				requiredResources.WriteRequestedResources(e2eCtx, specName)
+				Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+				defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+			}
+			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
+			defer shared.DumpSpecResourcesAndCleanup(ctx, specName, namespace, e2eCtx)
+
+			//TODO: Allocate Host ID before creating the cluster
+			// Allocate a dedicated host and ensure it is released after the test
+			ginkgo.By("Allocating a dedicated host")
+			hostID, err := shared.AllocateHost(e2eCtx)
+			Expect(err).To(BeNil())
+			Expect(hostID).NotTo(BeEmpty())
+			ginkgo.By(fmt.Sprintf("Allocated dedicated host: %s", hostID))
+			defer func() {
+				ginkgo.By(fmt.Sprintf("Releasing the dedicated host: %s", hostID))
+				shared.ReleaseHost(e2eCtx, hostID)
+			}()
+
+			ginkgo.By("Creating cluster")
+			clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
+			vars := map[string]string{
+				"HOST_ID":       hostID,
+				"HOST_AFFINITY": "Default",
+			}
+			// Create a cluster with a dedicated host
+			clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
+				ClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
+				ConfigCluster: clusterctl.ConfigClusterInput{
+					LogFolder:                filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName()),
+					ClusterctlConfigPath:     e2eCtx.Environment.ClusterctlConfigPath,
+					KubeconfigPath:           e2eCtx.Environment.BootstrapClusterProxy.GetKubeconfigPath(),
+					InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
+					Flavor:                   shared.DedicatedHostFlavor,
+					Namespace:                namespace.Name,
+					ClusterName:              clusterName,
+					KubernetesVersion:        e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion),
+					ControlPlaneMachineCount: ptr.To[int64](1),
+					WorkerMachineCount:       ptr.To[int64](0),
+					ClusterctlVariables:      vars,
+				},
+				WaitForClusterIntervals:      e2eCtx.E2EConfig.GetIntervals(specName, "wait-cluster"),
+				WaitForControlPlaneIntervals: e2eCtx.E2EConfig.GetIntervals(specName, "wait-control-plane"),
+			}, result)
+			workerMachines := result.MachineDeployments
+			mdName := fmt.Sprintf("%s-md-dh", clusterName)
+			var found *clusterv1.MachineDeployment
+			for _, md := range workerMachines {
+				if md.Name == mdName {
+					found = md
+				}
+			}
+			Expect(found).NotTo(BeNil(), fmt.Sprintf("Expected MachineDeployment %s to be found", mdName))
+			machineList := getAWSMachinesForDeployment(namespace.Name, *found)
+			Expect(len(machineList.Items)).To(Equal(1), fmt.Sprintf("Expected one machine in MachineDeployment %s, but got %d", mdName, len(machineList.Items)))
+			machine := machineList.Items[0]
+			instanceID := *(machine.Spec.InstanceID)
+			ginkgo.By(fmt.Sprintf("Worker instance ID: %s", instanceID))
+			instanceHostID := shared.GetHostID(e2eCtx, instanceID)
+			ginkgo.By(fmt.Sprintf("Worker instance host ID: %s", instanceHostID))
+			Expect(instanceHostID).To(Equal(hostID), fmt.Sprintf("Expected instance to be on host %s, but got %s", hostID, instanceHostID))
+			ginkgo.By("PASSED!")
+		})
+	})
 })
