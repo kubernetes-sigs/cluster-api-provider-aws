@@ -168,6 +168,7 @@ providers:
           - sourcePath: "./shared/v1beta2_provider/metadata.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-ignition.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-upgrade-to-external-cloud-provider.yaml"
+          - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-dedicated-host.yaml"
         replacements:
           # To allow bugs to be catched.
           - old: "failureThreshold: 3"

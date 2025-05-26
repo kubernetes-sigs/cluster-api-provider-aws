@@ -273,6 +273,18 @@ type Instance struct {
 	// If marketType is not specified and spotMarketOptions is provided, the marketType defaults to "Spot".
 	// +optional
 	MarketType MarketType `json:"marketType,omitempty"`
+
+	// HostAffinity specifies the dedicated host affinity setting for the instance.
+	// When hostAffinity is set to host, an instance started onto a specific host always restarts on the same host if stopped.
+	// When hostAffinity is set to default, and you stop and restart the instance, it can be restarted on any available host.
+	// When HostAffinity is defined, HostID is required.
+	// +optional
+	// +kubebuilder:validation:Enum:=default;host
+	HostAffinity *string `json:"hostAffinity,omitempty"`
+
+	// HostID specifies the dedicated host on which the instance should be started.
+	// +optional
+	HostID *string `json:"hostID,omitempty"`
 }
 
 // MarketType describes the market type of an Instance
