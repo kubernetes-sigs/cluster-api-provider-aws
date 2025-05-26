@@ -987,7 +987,8 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			ginkgo.By("Creating cluster")
 			clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 			vars := map[string]string{
-				"hostID": hostID,
+				"HOST_ID":       hostID,
+				"HOST_AFFINITY": "Default",
 			}
 			// Create a cluster with a dedicated host
 			clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
