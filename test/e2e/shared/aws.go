@@ -2441,3 +2441,63 @@ func GetMountTargetState(e2eCtx *E2EContext, mountTargetID string) (*string, err
 	}
 	return result.LifeCycleState, nil
 }
+
+func getAvailabilityZone(e2eCtx *E2EContext) string {
+	az := e2eCtx.E2EConfig.MustGetVariable(AwsAvailabilityZone1)
+	return az
+}
+
+func getInstanceFamily(e2eCtx *E2EContext) string {
+	machineType := e2eCtx.E2EConfig.MustGetVariable(AwsNodeMachineType)
+	// from instance type get instace family behind the dot
+	// for example: t3a.medium -> t3
+	machineTypeSplit := strings.Split(machineType, ".")
+	if len(machineTypeSplit) > 0 {
+		return machineTypeSplit[0]
+	}
+	return "t3"
+}
+
+func AllocateHost(ctx context.Context, e2eCtx *E2EContext) (string, error) {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
+	input := &ec2.AllocateHostsInput{
+		AvailabilityZone: aws.String(getAvailabilityZone(e2eCtx)),
+		InstanceFamily:   aws.String(getInstanceFamily(e2eCtx)),
+		Quantity:         aws.Int32(1),
+	}
+	output, err := ec2Svc.AllocateHosts(ctx, input)
+	Expect(err).ToNot(HaveOccurred(), "Failed to allocate  host")
+	Expect(len(output.HostIds)).To(BeNumerically(">", 0), "No dedicated host ID returned")
+	fmt.Println("Allocated Host ID: ", output.HostIds[0])
+	hostID := output.HostIds[0]
+	return hostID, nil
+}
+
+func ReleaseHost(ctx context.Context, e2eCtx *E2EContext, hostID string) {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
+
+	input := &ec2.ReleaseHostsInput{
+		HostIds: []string{hostID},
+	}
+
+	_, err := ec2Svc.ReleaseHosts(ctx, input)
+	Expect(err).ToNot(HaveOccurred(), "Failed to release host %s", hostID)
+	fmt.Println("Released Host ID: ", hostID)
+}
+
+func GetHostID(ctx context.Context, e2eCtx *E2EContext, instanceID string) string {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
+
+	input := &ec2.DescribeInstancesInput{
+		InstanceIds: []string{instanceID},
+	}
+
+	result, err := ec2Svc.DescribeInstances(ctx, input)
+	Expect(err).ToNot(HaveOccurred(), "Failed to get host ID for instance %s", instanceID)
+	Expect(len(result.Reservations)).To(BeNumerically(">", 0), "No reservation returned")
+	Expect(len(result.Reservations[0].Instances)).To(BeNumerically(">", 0), "No instance returned")
+	placement := *result.Reservations[0].Instances[0].Placement
+	hostID := *placement.HostId
+	fmt.Println("Host ID: ", hostID)
+	return hostID
+}

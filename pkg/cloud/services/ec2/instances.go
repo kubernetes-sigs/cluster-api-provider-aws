@@ -258,6 +258,10 @@ func (s *Service) CreateInstance(ctx context.Context, scope *scope.MachineScope,
 
 	input.MarketType = scope.AWSMachine.Spec.MarketType
 
+	input.HostID = scope.AWSMachine.Spec.HostID
+
+	input.HostAffinity = scope.AWSMachine.Spec.HostAffinity
+
 	s.scope.Debug("Running instance", "machine-role", scope.Role())
 	s.scope.Debug("Running instance with instance metadata options", "metadata options", input.InstanceMetadataOptions)
 	out, err := s.runInstance(scope.Role(), input)
@@ -674,6 +678,30 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 		input.Placement.GroupName = &i.PlacementGroupName
 		if i.PlacementGroupPartition != 0 {
 			input.Placement.PartitionNumber = utils.ToInt32Pointer(&i.PlacementGroupPartition)
+		}
+	}
+
+	if i.HostID != nil {
+		if i.HostAffinity == nil {
+			i.HostAffinity = aws.String("default")
+		}
+		if len(i.Tenancy) == 0 {
+			i.Tenancy = "host"
+		}
+		s.scope.Debug("Running instance with dedicated host placement",
+			"hostId", i.HostID,
+			"affinity", i.HostAffinity)
+		if input.Placement != nil {
+			s.scope.Warn("Placement already set for instance, overwriting with dedicated host placement",
+				"hostId", i.HostID,
+				"affinity", i.HostAffinity,
+				"placement", input.Placement)
+		}
+
+		input.Placement = &types.Placement{
+			Tenancy:  types.Tenancy(i.Tenancy),
+			Affinity: i.HostAffinity,
+			HostId:   i.HostID,
 		}
 	}
 
