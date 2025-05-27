@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/eks"
@@ -266,7 +267,7 @@ func (s *Service) deleteClusterAndWait(ctx context.Context, cluster *ekstypes.Cl
 		Name: cluster.Name,
 	}
 
-	err = s.EKSClient.WaitUntilClusterDeleted(ctx, waitInput)
+	err = s.EKSClient.WaitUntilClusterDeleted(ctx, waitInput, s.scope.MaxWaitActiveUpdateDelete)
 	if err != nil {
 		return errors.Wrapf(err, "failed waiting for eks cluster %s to delete", *cluster.Name)
 	}
@@ -494,7 +495,7 @@ func (s *Service) waitForClusterActive(ctx context.Context) (*ekstypes.Cluster, 
 	req := eks.DescribeClusterInput{
 		Name: aws.String(eksClusterName),
 	}
-	if err := s.EKSClient.WaitUntilClusterActive(ctx, &req); err != nil {
+	if err := s.EKSClient.WaitUntilClusterActive(ctx, &req, s.scope.MaxWaitActiveUpdateDelete); err != nil {
 		return nil, errors.Wrapf(err, "failed to wait for eks control plane %q", *req.Name)
 	}
 
@@ -586,7 +587,6 @@ func publicAccessCIDRsEqual(as []string, bs []string) bool {
 		bsDefault = true
 	}
 	if sets.NewString(as...).Equal(sets.NewString(bs...)) {
-		fmt.Println("Found IPV6 true")
 		return true
 	}
 
@@ -702,6 +702,7 @@ func (s *Service) reconcileClusterVersion(ctx context.Context, cluster *ekstypes
 			if err := s.EKSClient.WaitUntilClusterUpdating(
 				ctx,
 				&eks.DescribeClusterInput{Name: aws.String(s.scope.KubernetesClusterName())},
+				s.scope.MaxWaitActiveUpdateDelete,
 			); err != nil {
 				return false, err
 			}
@@ -752,6 +753,7 @@ func (s *Service) updateEncryptionConfig(ctx context.Context, updatedEncryptionC
 		if err := s.EKSClient.WaitUntilClusterUpdating(
 			ctx,
 			&eks.DescribeClusterInput{Name: aws.String(s.scope.KubernetesClusterName())},
+			s.scope.MaxWaitActiveUpdateDelete,
 		); err != nil {
 			return false, err
 		}
@@ -791,29 +793,29 @@ func getKeyArn(encryptionConfig ekstypes.EncryptionConfig) string {
 }
 
 // WaitUntilClusterActive is blocking function to wait until EKS Cluster is Active.
-func (k *EKSClient) WaitUntilClusterActive(ctx context.Context, input *eks.DescribeClusterInput) error {
+func (k *EKSClient) WaitUntilClusterActive(ctx context.Context, input *eks.DescribeClusterInput, maxWait time.Duration) error {
 	waiter := eks.NewClusterActiveWaiter(k, func(o *eks.ClusterActiveWaiterOptions) {
 		o.LogWaitAttempts = true
 	})
 
-	return waiter.Wait(ctx, input, maxActiveUpdateDeleteWait)
+	return waiter.Wait(ctx, input, maxWait)
 }
 
 // WaitUntilClusterDeleted is blocking function to wait until EKS Cluster is Deleted.
-func (k *EKSClient) WaitUntilClusterDeleted(ctx context.Context, input *eks.DescribeClusterInput) error {
+func (k *EKSClient) WaitUntilClusterDeleted(ctx context.Context, input *eks.DescribeClusterInput, maxWait time.Duration) error {
 	waiter := eks.NewClusterDeletedWaiter(k)
 
-	return waiter.Wait(ctx, input, maxActiveUpdateDeleteWait)
+	return waiter.Wait(ctx, input, maxWait)
 }
 
 // WaitUntilClusterUpdating is blocking function to wait until EKS Cluster is Updating.
-func (k *EKSClient) WaitUntilClusterUpdating(ctx context.Context, input *eks.DescribeClusterInput) error {
+func (k *EKSClient) WaitUntilClusterUpdating(ctx context.Context, input *eks.DescribeClusterInput, maxWait time.Duration) error {
 	waiter := eks.NewClusterActiveWaiter(k, func(o *eks.ClusterActiveWaiterOptions) {
 		o.LogWaitAttempts = true
 		o.Retryable = clusterUpdatingStateRetryable
 	})
 
-	return waiter.Wait(ctx, input, maxActiveUpdateDeleteWait)
+	return waiter.Wait(ctx, input, maxWait)
 }
 
 // clusterUpdatingStateRetryable is adapted from aws-sdk-go-v2/service/eks/api_op_DescribeCluster.go.

@@ -400,6 +400,7 @@ func TestReconcileClusterVersion(t *testing.T) {
 				m.WaitUntilClusterUpdating(
 					gomock.Eq(context.TODO()),
 					gomock.AssignableToTypeOf(&eks.DescribeClusterInput{}),
+					gomock.Any(),
 				).Return(nil)
 				m.
 					UpdateClusterVersion(gomock.Eq(context.TODO()), gomock.AssignableToTypeOf(&eks.UpdateClusterVersionInput{})).
@@ -611,6 +612,7 @@ func TestReconcileEKSEncryptionConfig(t *testing.T) {
 				m.WaitUntilClusterUpdating(
 					gomock.Eq(context.TODO()),
 					gomock.AssignableToTypeOf(&eks.DescribeClusterInput{}),
+					gomock.Any(),
 				).Return(nil)
 				m.AssociateEncryptionConfig(gomock.Eq(context.TODO()), gomock.AssignableToTypeOf(&eks.AssociateEncryptionConfigInput{})).Return(&eks.AssociateEncryptionConfigOutput{}, nil)
 			},

@@ -42,6 +42,7 @@ func TestEKSAddonPlan(t *testing.T) {
 	addonStatusDeleting := string(ekstypes.AddonStatusDeleting)
 	addonStatusCreating := string(ekstypes.AddonStatusCreating)
 	created := time.Now()
+	maxActiveUpdateDeleteWait := 30 * time.Minute
 
 	testCases := []struct {
 		name              string
@@ -348,7 +349,7 @@ func TestEKSAddonPlan(t *testing.T) {
 				m.WaitUntilAddonDeleted(gomock.Eq(context.TODO()), gomock.Eq(&eks.DescribeAddonInput{
 					AddonName:   aws.String(addon1Name),
 					ClusterName: aws.String(clusterName),
-				})).Return(nil)
+				}), maxActiveUpdateDeleteWait).Return(nil)
 			},
 			installedAddons: []*EKSAddon{
 				createInstalledAddon(addon1Name, addon1version, addonARN, addonStatusActive),
@@ -362,7 +363,7 @@ func TestEKSAddonPlan(t *testing.T) {
 				m.WaitUntilAddonDeleted(gomock.Eq(context.TODO()), gomock.Eq(&eks.DescribeAddonInput{
 					AddonName:   aws.String(addon1Name),
 					ClusterName: aws.String(clusterName),
-				})).Return(nil)
+				}), maxActiveUpdateDeleteWait).Return(nil)
 			},
 			installedAddons: []*EKSAddon{
 				createInstalledAddon(addon1Name, addon1version, addonARN, addonStatusDeleting),
@@ -384,7 +385,7 @@ func TestEKSAddonPlan(t *testing.T) {
 
 			ctx := context.TODO()
 
-			planner := NewPlan(clusterName, tc.desiredAddons, tc.installedAddons, eksMock)
+			planner := NewPlan(clusterName, tc.desiredAddons, tc.installedAddons, eksMock, maxActiveUpdateDeleteWait)
 			procedures, err := planner.Create(ctx)
 			if tc.expectCreateError {
 				g.Expect(err).To(HaveOccurred())

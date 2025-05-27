@@ -19,6 +19,7 @@ package eks
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
@@ -299,7 +300,7 @@ func (s *NodegroupService) deleteNodegroupAndWait(ctx context.Context) (reterr e
 		ClusterName:   aws.String(eksClusterName),
 		NodegroupName: aws.String(nodegroupName),
 	}
-	err = s.EKSClient.WaitUntilNodegroupDeleted(ctx, waitInput)
+	err = s.EKSClient.WaitUntilNodegroupDeleted(ctx, waitInput, s.scope.MaxWaitActiveUpdateDelete)
 	if err != nil {
 		return errors.Wrapf(err, "failed waiting for EKS nodegroup %s to delete", nodegroupName)
 	}
@@ -616,7 +617,7 @@ func (s *NodegroupService) waitForNodegroupActive(ctx context.Context) (*ekstype
 		ClusterName:   aws.String(eksClusterName),
 		NodegroupName: aws.String(eksNodegroupName),
 	}
-	if err := s.EKSClient.WaitUntilNodegroupActive(ctx, &req); err != nil {
+	if err := s.EKSClient.WaitUntilNodegroupActive(ctx, &req, s.scope.MaxWaitActiveUpdateDelete); err != nil {
 		return nil, errors.Wrapf(err, "failed to wait for EKS nodegroup %q", *req.NodegroupName)
 	}
 
@@ -634,20 +635,18 @@ func (s *NodegroupService) waitForNodegroupActive(ctx context.Context) (*ekstype
 }
 
 // WaitUntilNodegroupDeleted is blocking function to wait until EKS Nodegroup is Deleted.
-func (k *EKSClient) WaitUntilNodegroupDeleted(ctx context.Context, input *eks.DescribeNodegroupInput) error {
-	waiter := eks.NewNodegroupDeletedWaiter(k)
-	err := waiter.Wait(ctx, input, maxActiveUpdateDeleteWait)
-	if err != nil {
-		return err
-	}
-	return nil
+func (k *EKSClient) WaitUntilNodegroupDeleted(ctx context.Context, input *eks.DescribeNodegroupInput, maxWait time.Duration) error {
+	waiter := eks.NewNodegroupDeletedWaiter(k, func(o *eks.NodegroupDeletedWaiterOptions) {
+		o.LogWaitAttempts = true
+	})
+	return waiter.Wait(ctx, input, maxWait)
 }
 
 // WaitUntilNodegroupActive is blocking function to wait until EKS Nodegroup is Active.
-func (k *EKSClient) WaitUntilNodegroupActive(ctx context.Context, input *eks.DescribeNodegroupInput) error {
+func (k *EKSClient) WaitUntilNodegroupActive(ctx context.Context, input *eks.DescribeNodegroupInput, maxWait time.Duration) error {
 	waiter := eks.NewNodegroupActiveWaiter(k, func(o *eks.NodegroupActiveWaiterOptions) {
 		o.LogWaitAttempts = true
 	})
 
-	return waiter.Wait(ctx, input, maxActiveUpdateDeleteWait)
+	return waiter.Wait(ctx, input, maxWait)
 }

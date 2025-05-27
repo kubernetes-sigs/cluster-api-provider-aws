@@ -230,7 +230,7 @@ func (p *WaitAddonDeleteProcedure) Do(ctx context.Context) error {
 		ClusterName: aws.String(p.plan.clusterName),
 	}
 
-	if err := p.plan.eksClient.WaitUntilAddonDeleted(ctx, input); err != nil {
+	if err := p.plan.eksClient.WaitUntilAddonDeleted(ctx, input, p.plan.maxWaitActiveUpdateDelete); err != nil {
 		return fmt.Errorf("waiting for addon %s to be deleted: %w", p.name, err)
 	}
 

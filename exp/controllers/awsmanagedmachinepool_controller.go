@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"time"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -58,6 +59,7 @@ type AWSManagedMachinePoolReconciler struct {
 	AllowAdditionalRoles         bool
 	WatchFilterValue             string
 	TagUnmanagedNetworkResources bool
+	MaxWaitActiveUpdateDelete    time.Duration
 }
 
 // SetupWithManager is used to setup the controller.
@@ -155,16 +157,17 @@ func (r *AWSManagedMachinePoolReconciler) Reconcile(ctx context.Context, req ctr
 	}
 
 	machinePoolScope, err := scope.NewManagedMachinePoolScope(scope.ManagedMachinePoolScopeParams{
-		Client:               r.Client,
-		ControllerName:       "awsmanagedmachinepool",
-		Cluster:              cluster,
-		ControlPlane:         controlPlane,
-		MachinePool:          machinePool,
-		ManagedMachinePool:   awsPool,
-		EnableIAM:            r.EnableIAM,
-		AllowAdditionalRoles: r.AllowAdditionalRoles,
-		Endpoints:            r.Endpoints,
-		InfraCluster:         managedControlPlaneScope,
+		Client:                    r.Client,
+		ControllerName:            "awsmanagedmachinepool",
+		Cluster:                   cluster,
+		ControlPlane:              controlPlane,
+		MachinePool:               machinePool,
+		ManagedMachinePool:        awsPool,
+		EnableIAM:                 r.EnableIAM,
+		AllowAdditionalRoles:      r.AllowAdditionalRoles,
+		Endpoints:                 r.Endpoints,
+		InfraCluster:              managedControlPlaneScope,
+		MaxWaitActiveUpdateDelete: r.MaxWaitActiveUpdateDelete,
 	})
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to create scope")

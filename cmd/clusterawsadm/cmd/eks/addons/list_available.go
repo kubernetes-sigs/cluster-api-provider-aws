@@ -25,6 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/eks"
 	"github.com/spf13/cobra"
+	"k8s.io/utils/ptr"
 
 	cmdout "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/printers"
 )
@@ -52,13 +53,10 @@ func listAvailableCmd() *cobra.Command {
 }
 
 func listAvailableAddons(region, clusterName, printerType *string) error {
-	var regionOptsFunc config.LoadOptionsFunc
 	ctx := context.TODO()
-	if *region != "" {
-		regionOptsFunc = config.WithRegion(*region)
-	}
+
 	optFns := []func(*config.LoadOptions) error{
-		regionOptsFunc,
+		config.WithRegion(ptr.Deref(region, "")),
 	}
 
 	cfg, err := config.LoadDefaultConfig(context.Background(), optFns...)

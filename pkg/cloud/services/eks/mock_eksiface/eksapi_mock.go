@@ -23,6 +23,7 @@ package mock_eksiface
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
 	eks "github.com/aws/aws-sdk-go-v2/service/eks"
 	gomock "github.com/golang/mock/gomock"
@@ -632,85 +633,85 @@ func (mr *MockEKSAPIMockRecorder) UpdateNodegroupVersion(arg0, arg1 interface{},
 }
 
 // WaitUntilAddonDeleted mocks base method.
-func (m *MockEKSAPI) WaitUntilAddonDeleted(arg0 context.Context, arg1 *eks.DescribeAddonInput) error {
+func (m *MockEKSAPI) WaitUntilAddonDeleted(arg0 context.Context, arg1 *eks.DescribeAddonInput, arg2 time.Duration) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "WaitUntilAddonDeleted", arg0, arg1)
+	ret := m.ctrl.Call(m, "WaitUntilAddonDeleted", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // WaitUntilAddonDeleted indicates an expected call of WaitUntilAddonDeleted.
-func (mr *MockEKSAPIMockRecorder) WaitUntilAddonDeleted(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) WaitUntilAddonDeleted(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilAddonDeleted", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilAddonDeleted), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilAddonDeleted", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilAddonDeleted), arg0, arg1, arg2)
 }
 
 // WaitUntilClusterActive mocks base method.
-func (m *MockEKSAPI) WaitUntilClusterActive(arg0 context.Context, arg1 *eks.DescribeClusterInput) error {
+func (m *MockEKSAPI) WaitUntilClusterActive(arg0 context.Context, arg1 *eks.DescribeClusterInput, arg2 time.Duration) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "WaitUntilClusterActive", arg0, arg1)
+	ret := m.ctrl.Call(m, "WaitUntilClusterActive", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // WaitUntilClusterActive indicates an expected call of WaitUntilClusterActive.
-func (mr *MockEKSAPIMockRecorder) WaitUntilClusterActive(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) WaitUntilClusterActive(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilClusterActive", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilClusterActive), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilClusterActive", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilClusterActive), arg0, arg1, arg2)
 }
 
 // WaitUntilClusterDeleted mocks base method.
-func (m *MockEKSAPI) WaitUntilClusterDeleted(arg0 context.Context, arg1 *eks.DescribeClusterInput) error {
+func (m *MockEKSAPI) WaitUntilClusterDeleted(arg0 context.Context, arg1 *eks.DescribeClusterInput, arg2 time.Duration) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "WaitUntilClusterDeleted", arg0, arg1)
+	ret := m.ctrl.Call(m, "WaitUntilClusterDeleted", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // WaitUntilClusterDeleted indicates an expected call of WaitUntilClusterDeleted.
-func (mr *MockEKSAPIMockRecorder) WaitUntilClusterDeleted(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) WaitUntilClusterDeleted(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilClusterDeleted", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilClusterDeleted), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilClusterDeleted", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilClusterDeleted), arg0, arg1, arg2)
 }
 
 // WaitUntilClusterUpdating mocks base method.
-func (m *MockEKSAPI) WaitUntilClusterUpdating(arg0 context.Context, arg1 *eks.DescribeClusterInput) error {
+func (m *MockEKSAPI) WaitUntilClusterUpdating(arg0 context.Context, arg1 *eks.DescribeClusterInput, arg2 time.Duration) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "WaitUntilClusterUpdating", arg0, arg1)
+	ret := m.ctrl.Call(m, "WaitUntilClusterUpdating", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // WaitUntilClusterUpdating indicates an expected call of WaitUntilClusterUpdating.
-func (mr *MockEKSAPIMockRecorder) WaitUntilClusterUpdating(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) WaitUntilClusterUpdating(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilClusterUpdating", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilClusterUpdating), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilClusterUpdating", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilClusterUpdating), arg0, arg1, arg2)
 }
 
 // WaitUntilNodegroupActive mocks base method.
-func (m *MockEKSAPI) WaitUntilNodegroupActive(arg0 context.Context, arg1 *eks.DescribeNodegroupInput) error {
+func (m *MockEKSAPI) WaitUntilNodegroupActive(arg0 context.Context, arg1 *eks.DescribeNodegroupInput, arg2 time.Duration) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "WaitUntilNodegroupActive", arg0, arg1)
+	ret := m.ctrl.Call(m, "WaitUntilNodegroupActive", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // WaitUntilNodegroupActive indicates an expected call of WaitUntilNodegroupActive.
-func (mr *MockEKSAPIMockRecorder) WaitUntilNodegroupActive(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) WaitUntilNodegroupActive(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilNodegroupActive", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilNodegroupActive), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilNodegroupActive", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilNodegroupActive), arg0, arg1, arg2)
 }
 
 // WaitUntilNodegroupDeleted mocks base method.
-func (m *MockEKSAPI) WaitUntilNodegroupDeleted(arg0 context.Context, arg1 *eks.DescribeNodegroupInput) error {
+func (m *MockEKSAPI) WaitUntilNodegroupDeleted(arg0 context.Context, arg1 *eks.DescribeNodegroupInput, arg2 time.Duration) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "WaitUntilNodegroupDeleted", arg0, arg1)
+	ret := m.ctrl.Call(m, "WaitUntilNodegroupDeleted", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // WaitUntilNodegroupDeleted indicates an expected call of WaitUntilNodegroupDeleted.
-func (mr *MockEKSAPIMockRecorder) WaitUntilNodegroupDeleted(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) WaitUntilNodegroupDeleted(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilNodegroupDeleted", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilNodegroupDeleted), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilNodegroupDeleted", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilNodegroupDeleted), arg0, arg1, arg2)
 }

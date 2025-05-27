@@ -105,6 +105,7 @@ var (
 	instanceStateConcurrency    int
 	awsMachineConcurrency       int
 	waitInfraPeriod             time.Duration
+	maxWaitActiveUpdateDelete   time.Duration
 	syncPeriod                  time.Duration
 	webhookPort                 int
 	webhookCertDir              string
@@ -441,6 +442,7 @@ func setupEKSReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsSe
 		ExternalResourceGC:           externalResourceGC,
 		AlternativeGCStrategy:        alternativeGCStrategy,
 		WaitInfraPeriod:              waitInfraPeriod,
+		MaxWaitActiveUpdateDelete:    maxWaitActiveUpdateDelete,
 		TagUnmanagedNetworkResources: feature.Gates.Enabled(feature.TagUnmanagedNetworkResources),
 	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "AWSManagedControlPlane")
@@ -494,6 +496,7 @@ func setupEKSReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsSe
 			Recorder:                     mgr.GetEventRecorderFor("awsmanagedmachinepool-reconciler"),
 			WatchFilterValue:             watchFilterValue,
 			TagUnmanagedNetworkResources: feature.Gates.Enabled(feature.TagUnmanagedNetworkResources),
+			MaxWaitActiveUpdateDelete:    maxWaitActiveUpdateDelete,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: instanceStateConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "AWSManagedMachinePool")
 			os.Exit(1)
@@ -583,6 +586,12 @@ func initFlags(fs *pflag.FlagSet) {
 		"wait-infra-period",
 		1*time.Minute,
 		"The minimum interval at which reconcile process wait for infrastructure to be ready.",
+	)
+
+	fs.DurationVar(&maxWaitActiveUpdateDelete,
+		"max-wait-managed-resources",
+		30*time.Minute,
+		"The maximum duration to wait for managed AWS resources to be ready.",
 	)
 
 	fs.DurationVar(&syncPeriod,

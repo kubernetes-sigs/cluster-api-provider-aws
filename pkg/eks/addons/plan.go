@@ -19,6 +19,7 @@ package addons
 
 import (
 	"context"
+	"time"
 
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
 
@@ -27,21 +28,23 @@ import (
 )
 
 // NewPlan creates a new Plan to manage EKS addons.
-func NewPlan(clusterName string, desiredAddons, installedAddons []*EKSAddon, client eks.Client) planner.Plan {
+func NewPlan(clusterName string, desiredAddons, installedAddons []*EKSAddon, client eks.Client, maxWait time.Duration) planner.Plan {
 	return &plan{
-		installedAddons: installedAddons,
-		desiredAddons:   desiredAddons,
-		eksClient:       client,
-		clusterName:     clusterName,
+		installedAddons:           installedAddons,
+		desiredAddons:             desiredAddons,
+		eksClient:                 client,
+		clusterName:               clusterName,
+		maxWaitActiveUpdateDelete: maxWait,
 	}
 }
 
 // Plan is a plan that will manage EKS addons.
 type plan struct {
-	installedAddons []*EKSAddon
-	desiredAddons   []*EKSAddon
-	eksClient       eks.Client
-	clusterName     string
+	installedAddons           []*EKSAddon
+	desiredAddons             []*EKSAddon
+	eksClient                 eks.Client
+	clusterName               string
+	maxWaitActiveUpdateDelete time.Duration
 }
 
 // Create will create the plan (i.e. list of procedures) for managing EKS addons.

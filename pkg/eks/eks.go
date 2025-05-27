@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/eks"
 	"github.com/pkg/errors"
@@ -43,7 +44,7 @@ type Client interface {
 	DeleteAddon(ctx context.Context, params *eks.DeleteAddonInput, optFns ...func(*eks.Options)) (*eks.DeleteAddonOutput, error)
 	UpdateAddon(ctx context.Context, params *eks.UpdateAddonInput, optFns ...func(*eks.Options)) (*eks.UpdateAddonOutput, error)
 	DescribeAddon(ctx context.Context, params *eks.DescribeAddonInput, optFns ...func(*eks.Options)) (*eks.DescribeAddonOutput, error)
-	WaitUntilAddonDeleted(ctx context.Context, params *eks.DescribeAddonInput) error
+	WaitUntilAddonDeleted(ctx context.Context, params *eks.DescribeAddonInput, maxWait time.Duration) error
 }
 
 // GenerateEKSName generates a name of an EKS resources.

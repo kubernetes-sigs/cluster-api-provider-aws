@@ -102,6 +102,7 @@ type AWSManagedControlPlaneReconciler struct {
 	ExternalResourceGC           bool
 	AlternativeGCStrategy        bool
 	WaitInfraPeriod              time.Duration
+	MaxWaitActiveUpdateDelete    time.Duration
 	TagUnmanagedNetworkResources bool
 }
 
@@ -245,6 +246,7 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 		Cluster:                      cluster,
 		ControlPlane:                 awsManagedControlPlane,
 		ControllerName:               strings.ToLower(awsManagedControlPlaneKind),
+		MaxWaitActiveUpdateDelete:    r.MaxWaitActiveUpdateDelete,
 		EnableIAM:                    r.EnableIAM,
 		AllowAdditionalRoles:         r.AllowAdditionalRoles,
 		Endpoints:                    r.Endpoints,

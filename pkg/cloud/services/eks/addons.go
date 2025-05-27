@@ -19,6 +19,7 @@ package eks
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/eks"
@@ -61,7 +62,7 @@ func (s *Service) reconcileAddons(ctx context.Context) error {
 
 	//  Compute operations to move installed to desired
 	s.scope.Debug("creating eks addons plan", "cluster", eksClusterName, "numdesired", len(desiredAddons), "numinstalled", len(installed))
-	addonsPlan := eksaddons.NewPlan(eksClusterName, desiredAddons, installed, s.EKSClient)
+	addonsPlan := eksaddons.NewPlan(eksClusterName, desiredAddons, installed, s.EKSClient, s.scope.MaxWaitActiveUpdateDelete)
 	procedures, err := addonsPlan.Create(ctx)
 	if err != nil {
 		s.scope.Error(err, "failed creating eks addons plane")
@@ -210,13 +211,13 @@ func (s *Service) translateAPIToAddon(addons []ekscontrolplanev1.Addon) []*eksad
 	return converted
 }
 
-// WaitUntilAddonDeleted is blocking function to wait until EKS Nodegroup is Deleted.
-func (k *EKSClient) WaitUntilAddonDeleted(ctx context.Context, input *eks.DescribeAddonInput) error {
+// WaitUntilAddonDeleted is blocking function to wait until EKS Addon is Deleted.
+func (k *EKSClient) WaitUntilAddonDeleted(ctx context.Context, input *eks.DescribeAddonInput, maxWait time.Duration) error {
 	waiter := eks.NewAddonDeletedWaiter(k, func(o *eks.AddonDeletedWaiterOptions) {
 		o.LogWaitAttempts = true
 	})
 
-	return waiter.Wait(ctx, input, maxActiveUpdateDeleteWait)
+	return waiter.Wait(ctx, input, maxWait)
 }
 
 func convertConflictResolution(conflict ekscontrolplanev1.AddonResolution) *string {

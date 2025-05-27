@@ -60,6 +60,10 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
+const (
+	maxActiveUpdateDeleteWait = 30 * time.Minute
+)
+
 func TestAWSManagedControlPlaneReconcilerIntegrationTests(t *testing.T) {
 	var (
 		reconciler AWSManagedControlPlaneReconciler
@@ -886,7 +890,7 @@ func mockedEKSCluster(ctx context.Context, g *WithT, eksRec *mock_eksiface.MockE
 
 	waitUntilClusterActiveCall := eksRec.WaitUntilClusterActive(ctx, &eks.DescribeClusterInput{
 		Name: aws.String("test-cluster"),
-	}).After(createClusterCall).Return(nil)
+	}, maxActiveUpdateDeleteWait).After(createClusterCall).Return(nil)
 
 	clusterActive := clusterCreating // copy
 	clusterActive.Status = ekstypes.ClusterStatusActive
