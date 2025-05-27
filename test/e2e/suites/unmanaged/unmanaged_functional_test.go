@@ -1016,6 +1016,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			// Expect(awsCluster.Status.Bastion.State).To(Equal(infrav1.InstanceStateRunning))
 			expectAWSClusterConditions(awsCluster, []conditionAssertion{{infrav1.BastionHostReadyCondition, corev1.ConditionTrue, "", ""}})
 
+			// TODO: Should we create dedicated host machine using the template or makeAWSMachineTemplate()?
 			mdName := clusterName + "-md01"
 			machineTemplate := makeAWSMachineTemplate(namespace.Name, mdName, e2eCtx.E2EConfig.GetVariable(shared.AwsNodeMachineType), nil)
 
@@ -1041,7 +1042,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			})
 			Expect(len(workerMachines)).To(Equal(1))
 			worker := workerMachines[0]
-			instanceID := strings.Split(*worker.Spec.ProviderID, "/")[1]
+			instanceID := strings.Split(*worker.Spec.ProviderID, "/")[1] // TODO: vibe code, verify
 			ginkgo.By(fmt.Sprintf("Worker instance ID: %s", instanceID))
 			instanceHostID := shared.GetHostID(e2eCtx, instanceID)
 			ginkgo.By(fmt.Sprintf("Worker instance host ID: %s", instanceHostID))
