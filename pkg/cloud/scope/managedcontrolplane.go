@@ -57,13 +57,14 @@ func init() {
 
 // ManagedControlPlaneScopeParams defines the input parameters used to create a new Scope.
 type ManagedControlPlaneScopeParams struct {
-	Client         client.Client
-	Logger         *logger.Logger
-	Cluster        *clusterv1.Cluster
-	ControlPlane   *ekscontrolplanev1.AWSManagedControlPlane
-	ControllerName string
-	Endpoints      []ServiceEndpoint
-	Session        awsclient.ConfigProvider
+	Client                    client.Client
+	Logger                    *logger.Logger
+	Cluster                   *clusterv1.Cluster
+	ControlPlane              *ekscontrolplanev1.AWSManagedControlPlane
+	ControllerName            string
+	Endpoints                 []ServiceEndpoint
+	Session                   awsclient.ConfigProvider
+	MaxWaitActiveUpdateDelete time.Duration
 
 	EnableIAM                    bool
 	AllowAdditionalRoles         bool
@@ -89,6 +90,7 @@ func NewManagedControlPlaneScope(params ManagedControlPlaneScopeParams) (*Manage
 		Client:                       params.Client,
 		Cluster:                      params.Cluster,
 		ControlPlane:                 params.ControlPlane,
+		MaxWaitActiveUpdateDelete:    params.MaxWaitActiveUpdateDelete,
 		patchHelper:                  nil,
 		session:                      nil,
 		serviceLimiters:              nil,
@@ -127,8 +129,9 @@ type ManagedControlPlaneScope struct {
 	Client      client.Client
 	patchHelper *patch.Helper
 
-	Cluster      *clusterv1.Cluster
-	ControlPlane *ekscontrolplanev1.AWSManagedControlPlane
+	Cluster                   *clusterv1.Cluster
+	ControlPlane              *ekscontrolplanev1.AWSManagedControlPlane
+	MaxWaitActiveUpdateDelete time.Duration
 
 	session           awsclient.ConfigProvider
 	sessionV2         awsv2.Config

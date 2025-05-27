@@ -19,6 +19,7 @@ package eks
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
 	"github.com/aws/aws-sdk-go-v2/service/eks"
@@ -63,16 +64,16 @@ type EKSAPI interface {
 	DisassociateIdentityProviderConfig(ctx context.Context, params *eks.DisassociateIdentityProviderConfigInput, optFns ...func(*eks.Options)) (*eks.DisassociateIdentityProviderConfigOutput, error)
 
 	// Waiters for EKS Cluster
-	WaitUntilClusterActive(ctx context.Context, params *eks.DescribeClusterInput) error
-	WaitUntilClusterDeleted(ctx context.Context, params *eks.DescribeClusterInput) error
-	WaitUntilClusterUpdating(ctx context.Context, params *eks.DescribeClusterInput) error
+	WaitUntilClusterActive(ctx context.Context, params *eks.DescribeClusterInput, maxWait time.Duration) error
+	WaitUntilClusterDeleted(ctx context.Context, params *eks.DescribeClusterInput, maxWait time.Duration) error
+	WaitUntilClusterUpdating(ctx context.Context, params *eks.DescribeClusterInput, maxWait time.Duration) error
 
 	// Waiters for EKS Nodegroup
-	WaitUntilNodegroupActive(ctx context.Context, params *eks.DescribeNodegroupInput) error
-	WaitUntilNodegroupDeleted(ctx context.Context, params *eks.DescribeNodegroupInput) error
+	WaitUntilNodegroupActive(ctx context.Context, params *eks.DescribeNodegroupInput, maxWait time.Duration) error
+	WaitUntilNodegroupDeleted(ctx context.Context, params *eks.DescribeNodegroupInput, maxWait time.Duration) error
 
 	// Waiters for EKS Addon
-	WaitUntilAddonDeleted(ctx context.Context, params *eks.DescribeAddonInput) error
+	WaitUntilAddonDeleted(ctx context.Context, params *eks.DescribeAddonInput, maxWait time.Duration) error
 }
 
 // EKSClient is a wrapper over eks.Client for implementing custom methods of EKSAPI.
