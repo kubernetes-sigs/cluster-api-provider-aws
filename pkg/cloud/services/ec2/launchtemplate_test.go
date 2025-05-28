@@ -769,6 +769,36 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 			want:    true,
 			wantErr: false,
 		},
+		{
+			name: "Should return true if SSH key names are different",
+			incoming: &expinfrav1.AWSLaunchTemplate{
+				SSHKeyName: aws.String("new-key"),
+			},
+			existing: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+					{ID: aws.String("sg-111")},
+					{ID: aws.String("sg-222")},
+				},
+				SSHKeyName: aws.String("old-key"),
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "Should return true if one has SSH key name and other doesn't",
+			incoming: &expinfrav1.AWSLaunchTemplate{
+				SSHKeyName: aws.String("new-key"),
+			},
+			existing: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+					{ID: aws.String("sg-111")},
+					{ID: aws.String("sg-222")},
+				},
+				SSHKeyName: nil,
+			},
+			want:    true,
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
