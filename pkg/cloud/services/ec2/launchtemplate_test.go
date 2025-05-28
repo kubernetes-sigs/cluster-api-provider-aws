@@ -566,19 +566,42 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	tests := []struct {
-		name     string
-		incoming *expinfrav1.AWSLaunchTemplate
-		existing *expinfrav1.AWSLaunchTemplate
-		expect   func(m *mocks.MockEC2APIMockRecorder)
-		want     bool
-		wantErr  bool
+		name                   string
+		machinePoolScope       *scope.MachinePoolScope
+		existingLaunchTemplate *expinfrav1.AWSLaunchTemplate
+		expect                 func(m *mocks.MockEC2APIMockRecorder)
+		want                   bool
+		wantErr                bool
 	}{
 		{
 			name: "only core security groups, order shouldn't matter",
-			incoming: &expinfrav1.AWSLaunchTemplate{
-				AdditionalSecurityGroups: []infrav1.AWSResourceReference{},
+			machinePoolScope: &scope.MachinePoolScope{
+				AWSMachinePool: &expinfrav1.AWSMachinePool{
+					Spec: expinfrav1.AWSMachinePoolSpec{
+						AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+							AdditionalSecurityGroups: []infrav1.AWSResourceReference{},
+						},
+					},
+				},
+				InfraCluster: &scope.ClusterScope{
+					AWSCluster: &infrav1.AWSCluster{
+						ObjectMeta: metav1.ObjectMeta{Name: "test"},
+						Status: infrav1.AWSClusterStatus{
+							Network: infrav1.NetworkStatus{
+								SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+									infrav1.SecurityGroupNode: {
+										ID: "sg-111",
+									},
+									infrav1.SecurityGroupLB: {
+										ID: "sg-222",
+									},
+								},
+							},
+						},
+					},
+				},
 			},
-			existing: &expinfrav1.AWSLaunchTemplate{
+			existingLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
 				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
 					{ID: aws.String("sg-222")},
 					{ID: aws.String("sg-111")},
@@ -589,12 +612,35 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 		},
 		{
 			name: "the same security groups",
-			incoming: &expinfrav1.AWSLaunchTemplate{
-				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
-					{ID: aws.String("sg-999")},
+			machinePoolScope: &scope.MachinePoolScope{
+				AWSMachinePool: &expinfrav1.AWSMachinePool{
+					Spec: expinfrav1.AWSMachinePoolSpec{
+						AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+							AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+								{ID: aws.String("sg-999")},
+							},
+						},
+					},
+				},
+				InfraCluster: &scope.ClusterScope{
+					AWSCluster: &infrav1.AWSCluster{
+						ObjectMeta: metav1.ObjectMeta{Name: "test"},
+						Status: infrav1.AWSClusterStatus{
+							Network: infrav1.NetworkStatus{
+								SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+									infrav1.SecurityGroupNode: {
+										ID: "sg-111",
+									},
+									infrav1.SecurityGroupLB: {
+										ID: "sg-222",
+									},
+								},
+							},
+						},
+					},
 				},
 			},
-			existing: &expinfrav1.AWSLaunchTemplate{
+			existingLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
 				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
 					{ID: aws.String("sg-111")},
 					{ID: aws.String("sg-222")},
@@ -606,12 +652,35 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 		},
 		{
 			name: "core security group removed externally",
-			incoming: &expinfrav1.AWSLaunchTemplate{
-				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
-					{ID: aws.String("sg-999")},
+			machinePoolScope: &scope.MachinePoolScope{
+				AWSMachinePool: &expinfrav1.AWSMachinePool{
+					Spec: expinfrav1.AWSMachinePoolSpec{
+						AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+							AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+								{ID: aws.String("sg-999")},
+							},
+						},
+					},
+				},
+				InfraCluster: &scope.ClusterScope{
+					AWSCluster: &infrav1.AWSCluster{
+						ObjectMeta: metav1.ObjectMeta{Name: "test"},
+						Status: infrav1.AWSClusterStatus{
+							Network: infrav1.NetworkStatus{
+								SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+									infrav1.SecurityGroupNode: {
+										ID: "sg-111",
+									},
+									infrav1.SecurityGroupLB: {
+										ID: "sg-222",
+									},
+								},
+							},
+						},
+					},
 				},
 			},
-			existing: &expinfrav1.AWSLaunchTemplate{
+			existingLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
 				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
 					{ID: aws.String("sg-222")},
 					{ID: aws.String("sg-999")},
@@ -622,13 +691,36 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 		},
 		{
 			name: "new additional security group",
-			incoming: &expinfrav1.AWSLaunchTemplate{
-				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
-					{ID: aws.String("sg-999")},
-					{ID: aws.String("sg-000")},
+			machinePoolScope: &scope.MachinePoolScope{
+				AWSMachinePool: &expinfrav1.AWSMachinePool{
+					Spec: expinfrav1.AWSMachinePoolSpec{
+						AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+							AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+								{ID: aws.String("sg-999")},
+								{ID: aws.String("sg-000")},
+							},
+						},
+					},
+				},
+				InfraCluster: &scope.ClusterScope{
+					AWSCluster: &infrav1.AWSCluster{
+						ObjectMeta: metav1.ObjectMeta{Name: "test"},
+						Status: infrav1.AWSClusterStatus{
+							Network: infrav1.NetworkStatus{
+								SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+									infrav1.SecurityGroupNode: {
+										ID: "sg-111",
+									},
+									infrav1.SecurityGroupLB: {
+										ID: "sg-222",
+									},
+								},
+							},
+						},
+					},
 				},
 			},
-			existing: &expinfrav1.AWSLaunchTemplate{
+			existingLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
 				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
 					{ID: aws.String("sg-111")},
 					{ID: aws.String("sg-222")},
@@ -640,10 +732,33 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 		},
 		{
 			name: "Should return true if incoming IamInstanceProfile is not same as existing IamInstanceProfile",
-			incoming: &expinfrav1.AWSLaunchTemplate{
-				IamInstanceProfile: DefaultAmiNameFormat,
+			machinePoolScope: &scope.MachinePoolScope{
+				AWSMachinePool: &expinfrav1.AWSMachinePool{
+					Spec: expinfrav1.AWSMachinePoolSpec{
+						AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+							IamInstanceProfile: DefaultAmiNameFormat,
+						},
+					},
+				},
+				InfraCluster: &scope.ClusterScope{
+					AWSCluster: &infrav1.AWSCluster{
+						ObjectMeta: metav1.ObjectMeta{Name: "test"},
+						Status: infrav1.AWSClusterStatus{
+							Network: infrav1.NetworkStatus{
+								SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+									infrav1.SecurityGroupNode: {
+										ID: "sg-111",
+									},
+									infrav1.SecurityGroupLB: {
+										ID: "sg-222",
+									},
+								},
+							},
+						},
+					},
+				},
 			},
-			existing: &expinfrav1.AWSLaunchTemplate{
+			existingLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
 				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
 					{ID: aws.String("sg-111")},
 					{ID: aws.String("sg-222")},
@@ -654,10 +769,33 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 		},
 		{
 			name: "Should return true if incoming InstanceType is not same as existing InstanceType",
-			incoming: &expinfrav1.AWSLaunchTemplate{
-				InstanceType: "t3.micro",
+			machinePoolScope: &scope.MachinePoolScope{
+				AWSMachinePool: &expinfrav1.AWSMachinePool{
+					Spec: expinfrav1.AWSMachinePoolSpec{
+						AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+							InstanceType: "t3.micro",
+						},
+					},
+				},
+				InfraCluster: &scope.ClusterScope{
+					AWSCluster: &infrav1.AWSCluster{
+						ObjectMeta: metav1.ObjectMeta{Name: "test"},
+						Status: infrav1.AWSClusterStatus{
+							Network: infrav1.NetworkStatus{
+								SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+									infrav1.SecurityGroupNode: {
+										ID: "sg-111",
+									},
+									infrav1.SecurityGroupLB: {
+										ID: "sg-222",
+									},
+								},
+							},
+						},
+					},
+				},
 			},
-			existing: &expinfrav1.AWSLaunchTemplate{
+			existingLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
 				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
 					{ID: aws.String("sg-111")},
 					{ID: aws.String("sg-222")},
@@ -668,12 +806,35 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 		},
 		{
 			name: "new additional security group with filters",
-			incoming: &expinfrav1.AWSLaunchTemplate{
-				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
-					{Filters: []infrav1.Filter{{Name: "sg-1", Values: []string{"test-1"}}}},
+			machinePoolScope: &scope.MachinePoolScope{
+				AWSMachinePool: &expinfrav1.AWSMachinePool{
+					Spec: expinfrav1.AWSMachinePoolSpec{
+						AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+							AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+								{Filters: []infrav1.Filter{{Name: "sg-1", Values: []string{"test-1"}}}},
+							},
+						},
+					},
+				},
+				InfraCluster: &scope.ClusterScope{
+					AWSCluster: &infrav1.AWSCluster{
+						ObjectMeta: metav1.ObjectMeta{Name: "test"},
+						Status: infrav1.AWSClusterStatus{
+							Network: infrav1.NetworkStatus{
+								SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+									infrav1.SecurityGroupNode: {
+										ID: "sg-111",
+									},
+									infrav1.SecurityGroupLB: {
+										ID: "sg-222",
+									},
+								},
+							},
+						},
+					},
 				},
 			},
-			existing: &expinfrav1.AWSLaunchTemplate{
+			existingLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
 				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
 					{Filters: []infrav1.Filter{{Name: "sg-2", Values: []string{"test-2"}}}},
 				},
@@ -689,13 +850,36 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 		},
 		{
 			name: "new launch template instance metadata options, requiring IMDSv2",
-			incoming: &expinfrav1.AWSLaunchTemplate{
-				InstanceMetadataOptions: &infrav1.InstanceMetadataOptions{
-					HTTPPutResponseHopLimit: 1,
-					HTTPTokens:              infrav1.HTTPTokensStateRequired,
+			machinePoolScope: &scope.MachinePoolScope{
+				AWSMachinePool: &expinfrav1.AWSMachinePool{
+					Spec: expinfrav1.AWSMachinePoolSpec{
+						AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+							InstanceMetadataOptions: &infrav1.InstanceMetadataOptions{
+								HTTPPutResponseHopLimit: 1,
+								HTTPTokens:              infrav1.HTTPTokensStateRequired,
+							},
+						},
+					},
+				},
+				InfraCluster: &scope.ClusterScope{
+					AWSCluster: &infrav1.AWSCluster{
+						ObjectMeta: metav1.ObjectMeta{Name: "test"},
+						Status: infrav1.AWSClusterStatus{
+							Network: infrav1.NetworkStatus{
+								SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+									infrav1.SecurityGroupNode: {
+										ID: "sg-111",
+									},
+									infrav1.SecurityGroupLB: {
+										ID: "sg-222",
+									},
+								},
+							},
+						},
+					},
 				},
 			},
-			existing: &expinfrav1.AWSLaunchTemplate{
+			existingLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
 				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
 					{ID: aws.String("sg-111")},
 					{ID: aws.String("sg-222")},
@@ -705,9 +889,32 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:     "new launch template instance metadata options, removing IMDSv2 requirement",
-			incoming: &expinfrav1.AWSLaunchTemplate{},
-			existing: &expinfrav1.AWSLaunchTemplate{
+			name: "new launch template instance metadata options, removing IMDSv2 requirement",
+			machinePoolScope: &scope.MachinePoolScope{
+				AWSMachinePool: &expinfrav1.AWSMachinePool{
+					Spec: expinfrav1.AWSMachinePoolSpec{
+						AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{},
+					},
+				},
+				InfraCluster: &scope.ClusterScope{
+					AWSCluster: &infrav1.AWSCluster{
+						ObjectMeta: metav1.ObjectMeta{Name: "test"},
+						Status: infrav1.AWSClusterStatus{
+							Network: infrav1.NetworkStatus{
+								SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+									infrav1.SecurityGroupNode: {
+										ID: "sg-111",
+									},
+									infrav1.SecurityGroupLB: {
+										ID: "sg-222",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			existingLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
 				InstanceMetadataOptions: &infrav1.InstanceMetadataOptions{
 					HTTPPutResponseHopLimit: 1,
 					HTTPTokens:              infrav1.HTTPTokensStateRequired,
@@ -718,12 +925,35 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 		},
 		{
 			name: "Should return true if incoming SpotMarketOptions is different from existing SpotMarketOptions",
-			incoming: &expinfrav1.AWSLaunchTemplate{
-				SpotMarketOptions: &infrav1.SpotMarketOptions{
-					MaxPrice: aws.String("0.10"),
+			machinePoolScope: &scope.MachinePoolScope{
+				AWSMachinePool: &expinfrav1.AWSMachinePool{
+					Spec: expinfrav1.AWSMachinePoolSpec{
+						AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+							SpotMarketOptions: &infrav1.SpotMarketOptions{
+								MaxPrice: aws.String("0.10"),
+							},
+						},
+					},
+				},
+				InfraCluster: &scope.ClusterScope{
+					AWSCluster: &infrav1.AWSCluster{
+						ObjectMeta: metav1.ObjectMeta{Name: "test"},
+						Status: infrav1.AWSClusterStatus{
+							Network: infrav1.NetworkStatus{
+								SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+									infrav1.SecurityGroupNode: {
+										ID: "sg-111",
+									},
+									infrav1.SecurityGroupLB: {
+										ID: "sg-222",
+									},
+								},
+							},
+						},
+					},
 				},
 			},
-			existing: &expinfrav1.AWSLaunchTemplate{
+			existingLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
 				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
 					{ID: aws.String("sg-111")},
 					{ID: aws.String("sg-222")},
@@ -737,12 +967,35 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 		},
 		{
 			name: "Should return true if incoming adds SpotMarketOptions and existing has none",
-			incoming: &expinfrav1.AWSLaunchTemplate{
-				SpotMarketOptions: &infrav1.SpotMarketOptions{
-					MaxPrice: aws.String("0.10"),
+			machinePoolScope: &scope.MachinePoolScope{
+				AWSMachinePool: &expinfrav1.AWSMachinePool{
+					Spec: expinfrav1.AWSMachinePoolSpec{
+						AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+							SpotMarketOptions: &infrav1.SpotMarketOptions{
+								MaxPrice: aws.String("0.10"),
+							},
+						},
+					},
+				},
+				InfraCluster: &scope.ClusterScope{
+					AWSCluster: &infrav1.AWSCluster{
+						ObjectMeta: metav1.ObjectMeta{Name: "test"},
+						Status: infrav1.AWSClusterStatus{
+							Network: infrav1.NetworkStatus{
+								SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+									infrav1.SecurityGroupNode: {
+										ID: "sg-111",
+									},
+									infrav1.SecurityGroupLB: {
+										ID: "sg-222",
+									},
+								},
+							},
+						},
+					},
 				},
 			},
-			existing: &expinfrav1.AWSLaunchTemplate{
+			existingLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
 				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
 					{ID: aws.String("sg-111")},
 					{ID: aws.String("sg-222")},
@@ -754,10 +1007,33 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 		},
 		{
 			name: "Should return true if incoming removes SpotMarketOptions and existing has some",
-			incoming: &expinfrav1.AWSLaunchTemplate{
-				SpotMarketOptions: nil,
+			machinePoolScope: &scope.MachinePoolScope{
+				AWSMachinePool: &expinfrav1.AWSMachinePool{
+					Spec: expinfrav1.AWSMachinePoolSpec{
+						AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+							SpotMarketOptions: nil,
+						},
+					},
+				},
+				InfraCluster: &scope.ClusterScope{
+					AWSCluster: &infrav1.AWSCluster{
+						ObjectMeta: metav1.ObjectMeta{Name: "test"},
+						Status: infrav1.AWSClusterStatus{
+							Network: infrav1.NetworkStatus{
+								SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+									infrav1.SecurityGroupNode: {
+										ID: "sg-111",
+									},
+									infrav1.SecurityGroupLB: {
+										ID: "sg-222",
+									},
+								},
+							},
+						},
+					},
+				},
 			},
-			existing: &expinfrav1.AWSLaunchTemplate{
+			existingLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
 				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
 					{ID: aws.String("sg-111")},
 					{ID: aws.String("sg-222")},
@@ -770,11 +1046,112 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Should return true if SSH key names are different",
-			incoming: &expinfrav1.AWSLaunchTemplate{
-				SSHKeyName: aws.String("new-key"),
+			name: "Should return true if AMI has changed",
+			machinePoolScope: &scope.MachinePoolScope{
+				AWSMachinePool: &expinfrav1.AWSMachinePool{
+					Spec: expinfrav1.AWSMachinePoolSpec{
+						AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+							AMI: infrav1.AMIReference{
+								ID: aws.String("ami-new"),
+							},
+						},
+					},
+				},
+				InfraCluster: &scope.ClusterScope{
+					AWSCluster: &infrav1.AWSCluster{
+						ObjectMeta: metav1.ObjectMeta{Name: "test"},
+						Status: infrav1.AWSClusterStatus{
+							Network: infrav1.NetworkStatus{
+								SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+									infrav1.SecurityGroupNode: {
+										ID: "sg-111",
+									},
+									infrav1.SecurityGroupLB: {
+										ID: "sg-222",
+									},
+								},
+							},
+						},
+					},
+				},
 			},
-			existing: &expinfrav1.AWSLaunchTemplate{
+			existingLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+					{ID: aws.String("sg-111")},
+					{ID: aws.String("sg-222")},
+				},
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "Should return false if AMI has not changed",
+			machinePoolScope: &scope.MachinePoolScope{
+				AWSMachinePool: &expinfrav1.AWSMachinePool{
+					Spec: expinfrav1.AWSMachinePoolSpec{
+						AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+							AMI: infrav1.AMIReference{
+								ID: aws.String("current-ami-id"),
+							},
+						},
+					},
+				},
+				InfraCluster: &scope.ClusterScope{
+					AWSCluster: &infrav1.AWSCluster{
+						ObjectMeta: metav1.ObjectMeta{Name: "test"},
+						Status: infrav1.AWSClusterStatus{
+							Network: infrav1.NetworkStatus{
+								SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+									infrav1.SecurityGroupNode: {
+										ID: "sg-111",
+									},
+									infrav1.SecurityGroupLB: {
+										ID: "sg-222",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			existingLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+					{ID: aws.String("sg-111")},
+					{ID: aws.String("sg-222")},
+				},
+			},
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name: "Should return true if SSH key names are different",
+			machinePoolScope: &scope.MachinePoolScope{
+				AWSMachinePool: &expinfrav1.AWSMachinePool{
+					Spec: expinfrav1.AWSMachinePoolSpec{
+						AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+							SSHKeyName: aws.String("new-key"),
+						},
+					},
+				},
+				InfraCluster: &scope.ClusterScope{
+					AWSCluster: &infrav1.AWSCluster{
+						ObjectMeta: metav1.ObjectMeta{Name: "test"},
+						Status: infrav1.AWSClusterStatus{
+							Network: infrav1.NetworkStatus{
+								SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+									infrav1.SecurityGroupNode: {
+										ID: "sg-111",
+									},
+									infrav1.SecurityGroupLB: {
+										ID: "sg-222",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			existingLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
 				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
 					{ID: aws.String("sg-111")},
 					{ID: aws.String("sg-222")},
@@ -786,10 +1163,33 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 		},
 		{
 			name: "Should return true if one has SSH key name and other doesn't",
-			incoming: &expinfrav1.AWSLaunchTemplate{
-				SSHKeyName: aws.String("new-key"),
+			machinePoolScope: &scope.MachinePoolScope{
+				AWSMachinePool: &expinfrav1.AWSMachinePool{
+					Spec: expinfrav1.AWSMachinePoolSpec{
+						AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+							SSHKeyName: aws.String("new-key"),
+						},
+					},
+				},
+				InfraCluster: &scope.ClusterScope{
+					AWSCluster: &infrav1.AWSCluster{
+						ObjectMeta: metav1.ObjectMeta{Name: "test"},
+						Status: infrav1.AWSClusterStatus{
+							Network: infrav1.NetworkStatus{
+								SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+									infrav1.SecurityGroupNode: {
+										ID: "sg-111",
+									},
+									infrav1.SecurityGroupLB: {
+										ID: "sg-222",
+									},
+								},
+							},
+						},
+					},
+				},
 			},
-			existing: &expinfrav1.AWSLaunchTemplate{
+			existingLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
 				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
 					{ID: aws.String("sg-111")},
 					{ID: aws.String("sg-222")},
@@ -801,14 +1201,37 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 		},
 		{
 			name: "Should return true if incoming PrivateDNSName is different from existing PrivateDNSName",
-			incoming: &expinfrav1.AWSLaunchTemplate{
-				PrivateDNSName: &infrav1.PrivateDNSName{
-					EnableResourceNameDNSARecord:    aws.Bool(true),
-					EnableResourceNameDNSAAAARecord: aws.Bool(false),
-					HostnameType:                    aws.String("resource-name"),
+			machinePoolScope: &scope.MachinePoolScope{
+				AWSMachinePool: &expinfrav1.AWSMachinePool{
+					Spec: expinfrav1.AWSMachinePoolSpec{
+						AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+							PrivateDNSName: &infrav1.PrivateDNSName{
+								EnableResourceNameDNSARecord:    aws.Bool(true),
+								EnableResourceNameDNSAAAARecord: aws.Bool(false),
+								HostnameType:                    aws.String("resource-name"),
+							},
+						},
+					},
+				},
+				InfraCluster: &scope.ClusterScope{
+					AWSCluster: &infrav1.AWSCluster{
+						ObjectMeta: metav1.ObjectMeta{Name: "test"},
+						Status: infrav1.AWSClusterStatus{
+							Network: infrav1.NetworkStatus{
+								SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+									infrav1.SecurityGroupNode: {
+										ID: "sg-111",
+									},
+									infrav1.SecurityGroupLB: {
+										ID: "sg-222",
+									},
+								},
+							},
+						},
+					},
 				},
 			},
-			existing: &expinfrav1.AWSLaunchTemplate{
+			existingLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
 				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
 					{ID: aws.String("sg-111")},
 					{ID: aws.String("sg-222")},
@@ -824,14 +1247,37 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 		},
 		{
 			name: "Should return true if incoming adds PrivateDNSName and existing has none",
-			incoming: &expinfrav1.AWSLaunchTemplate{
-				PrivateDNSName: &infrav1.PrivateDNSName{
-					EnableResourceNameDNSARecord:    aws.Bool(true),
-					EnableResourceNameDNSAAAARecord: aws.Bool(false),
-					HostnameType:                    aws.String("resource-name"),
+			machinePoolScope: &scope.MachinePoolScope{
+				AWSMachinePool: &expinfrav1.AWSMachinePool{
+					Spec: expinfrav1.AWSMachinePoolSpec{
+						AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+							PrivateDNSName: &infrav1.PrivateDNSName{
+								EnableResourceNameDNSARecord:    aws.Bool(true),
+								EnableResourceNameDNSAAAARecord: aws.Bool(false),
+								HostnameType:                    aws.String("resource-name"),
+							},
+						},
+					},
+				},
+				InfraCluster: &scope.ClusterScope{
+					AWSCluster: &infrav1.AWSCluster{
+						ObjectMeta: metav1.ObjectMeta{Name: "test"},
+						Status: infrav1.AWSClusterStatus{
+							Network: infrav1.NetworkStatus{
+								SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+									infrav1.SecurityGroupNode: {
+										ID: "sg-111",
+									},
+									infrav1.SecurityGroupLB: {
+										ID: "sg-222",
+									},
+								},
+							},
+						},
+					},
 				},
 			},
-			existing: &expinfrav1.AWSLaunchTemplate{
+			existingLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
 				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
 					{ID: aws.String("sg-111")},
 					{ID: aws.String("sg-222")},
@@ -843,10 +1289,33 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 		},
 		{
 			name: "Should return true if incoming removes PrivateDNSName and existing has some",
-			incoming: &expinfrav1.AWSLaunchTemplate{
-				PrivateDNSName: nil,
+			machinePoolScope: &scope.MachinePoolScope{
+				AWSMachinePool: &expinfrav1.AWSMachinePool{
+					Spec: expinfrav1.AWSMachinePoolSpec{
+						AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+							PrivateDNSName: nil,
+						},
+					},
+				},
+				InfraCluster: &scope.ClusterScope{
+					AWSCluster: &infrav1.AWSCluster{
+						ObjectMeta: metav1.ObjectMeta{Name: "test"},
+						Status: infrav1.AWSClusterStatus{
+							Network: infrav1.NetworkStatus{
+								SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+									infrav1.SecurityGroupNode: {
+										ID: "sg-111",
+									},
+									infrav1.SecurityGroupLB: {
+										ID: "sg-222",
+									},
+								},
+							},
+						},
+					},
+				},
 			},
-			existing: &expinfrav1.AWSLaunchTemplate{
+			existingLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
 				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
 					{ID: aws.String("sg-111")},
 					{ID: aws.String("sg-222")},
@@ -862,10 +1331,33 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 		},
 		{
 			name: "Should return true if capacity reservation IDs are different",
-			incoming: &expinfrav1.AWSLaunchTemplate{
-				CapacityReservationID: aws.String("new-reservation"),
+			machinePoolScope: &scope.MachinePoolScope{
+				AWSMachinePool: &expinfrav1.AWSMachinePool{
+					Spec: expinfrav1.AWSMachinePoolSpec{
+						AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+							CapacityReservationID: aws.String("new-reservation"),
+						},
+					},
+				},
+				InfraCluster: &scope.ClusterScope{
+					AWSCluster: &infrav1.AWSCluster{
+						ObjectMeta: metav1.ObjectMeta{Name: "test"},
+						Status: infrav1.AWSClusterStatus{
+							Network: infrav1.NetworkStatus{
+								SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+									infrav1.SecurityGroupNode: {
+										ID: "sg-111",
+									},
+									infrav1.SecurityGroupLB: {
+										ID: "sg-222",
+									},
+								},
+							},
+						},
+					},
+				},
 			},
-			existing: &expinfrav1.AWSLaunchTemplate{
+			existingLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
 				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
 					{ID: aws.String("sg-111")},
 					{ID: aws.String("sg-222")},
@@ -877,10 +1369,33 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 		},
 		{
 			name: "Should return true if one has capacity reservation ID and other doesn't",
-			incoming: &expinfrav1.AWSLaunchTemplate{
-				CapacityReservationID: aws.String("new-reservation"),
+			machinePoolScope: &scope.MachinePoolScope{
+				AWSMachinePool: &expinfrav1.AWSMachinePool{
+					Spec: expinfrav1.AWSMachinePoolSpec{
+						AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+							CapacityReservationID: aws.String("new-reservation"),
+						},
+					},
+				},
+				InfraCluster: &scope.ClusterScope{
+					AWSCluster: &infrav1.AWSCluster{
+						ObjectMeta: metav1.ObjectMeta{Name: "test"},
+						Status: infrav1.AWSClusterStatus{
+							Network: infrav1.NetworkStatus{
+								SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+									infrav1.SecurityGroupNode: {
+										ID: "sg-111",
+									},
+									infrav1.SecurityGroupLB: {
+										ID: "sg-222",
+									},
+								},
+							},
+						},
+					},
+				},
 			},
-			existing: &expinfrav1.AWSLaunchTemplate{
+			existingLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
 				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
 					{ID: aws.String("sg-111")},
 					{ID: aws.String("sg-222")},
@@ -914,11 +1429,6 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 					AWSCluster: ac,
 				},
 			}
-			machinePoolScope := &scope.MachinePoolScope{
-				InfraCluster: &scope.ClusterScope{
-					AWSCluster: ac,
-				},
-			}
 			mockEC2Client := mocks.NewMockEC2API(mockCtrl)
 			s.EC2Client = mockEC2Client
 
@@ -926,7 +1436,7 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 				tt.expect(mockEC2Client.EXPECT())
 			}
 
-			got, err := s.LaunchTemplateNeedsUpdate(machinePoolScope, tt.incoming, tt.existing)
+			got, err := s.LaunchTemplateNeedsUpdate(tt.machinePoolScope, tt.existingLaunchTemplate, aws.String("current-ami-id"))
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
