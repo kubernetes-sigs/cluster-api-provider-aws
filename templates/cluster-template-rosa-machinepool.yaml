@@ -3,6 +3,7 @@ apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
 metadata:
   name: "${CLUSTER_NAME}"
+  namespace: "ns-rosa-hcp"
 spec:
   clusterNetwork:
     pods:
@@ -11,21 +12,25 @@ spec:
     apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
     kind: ROSACluster
     name: "${CLUSTER_NAME}"
+    namespace: "ns-rosa-hcp"
   controlPlaneRef:
     apiVersion: controlplane.cluster.x-k8s.io/v1beta2
     kind: ROSAControlPlane
     name: "${CLUSTER_NAME}-control-plane"
+    namespace: "ns-rosa-hcp"
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: ROSACluster
 metadata:
   name: "${CLUSTER_NAME}"
+  namespace: "ns-rosa-hcp"
 spec: {}
 ---
 apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 kind: ROSAControlPlane
 metadata:
   name: "${CLUSTER_NAME}-control-plane"
+  namespace: "ns-rosa-hcp"
 spec:
   rosaClusterName: ${CLUSTER_NAME:0:54}
   version: "${OPENSHIFT_VERSION}"
@@ -55,6 +60,7 @@ apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachinePool
 metadata:
   name: "${CLUSTER_NAME}-pool-0"
+  namespace: "ns-rosa-hcp"
 spec:
   clusterName: "${CLUSTER_NAME}"
   replicas: 3
@@ -72,6 +78,7 @@ apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: ROSAMachinePool
 metadata:
   name: "${CLUSTER_NAME}-pool-0"
+  namespace: "ns-rosa-hcp"
 spec:
   nodePoolName: "nodepool-0"
   instanceType: "m5.xlarge"
