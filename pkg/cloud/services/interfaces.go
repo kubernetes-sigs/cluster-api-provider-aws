@@ -82,7 +82,7 @@ type EC2Interface interface {
 	CreateLaunchTemplateVersion(id string, scope scope.LaunchTemplateScope, imageID *string, userDataSecretKey apimachinerytypes.NamespacedName, userData []byte) error
 	PruneLaunchTemplateVersions(id string) error
 	DeleteLaunchTemplate(id string) error
-	LaunchTemplateNeedsUpdate(scope scope.LaunchTemplateScope, incoming *expinfrav1.AWSLaunchTemplate, existing *expinfrav1.AWSLaunchTemplate) (bool, error)
+	LaunchTemplateNeedsUpdate(scope scope.LaunchTemplateScope, existingLaunchTemplate *expinfrav1.AWSLaunchTemplate, currentlyUsedAMIID *string) (bool, error)
 	DeleteBastion() error
 	ReconcileBastion() error
 	// ReconcileElasticIPFromPublicPool reconciles the elastic IP from a custom Public IPv4 Pool.
