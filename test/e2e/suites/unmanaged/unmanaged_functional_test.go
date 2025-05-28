@@ -970,7 +970,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
 			}
 			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
-			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
+			defer shared.DumpSpecResourcesAndCleanup(ctx, specName, namespace, e2eCtx)
 
 			//TODO: Allocate Host ID before creating the cluster
 			// Allocate a dedicated host and ensure it is released after the test
@@ -1009,42 +1009,19 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				WaitForClusterIntervals:      e2eCtx.E2EConfig.GetIntervals(specName, "wait-cluster"),
 				WaitForControlPlaneIntervals: e2eCtx.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 			}, result)
-
-			// Check if bastion host is up and running
-			awsCluster, err := GetAWSClusterByName(ctx, e2eCtx.Environment.BootstrapClusterProxy, namespace.Name, clusterName)
-			ginkgo.By(fmt.Sprintf("Checking AWSCluster %s", awsCluster.Name))
-			Expect(err).To(BeNil())
-			// TODO: Should wait for bastion?
-			// Expect(awsCluster.Status.Bastion.State).To(Equal(infrav1.InstanceStateRunning))
-			// expectAWSClusterConditions(awsCluster, []conditionAssertion{{infrav1.BastionHostReadyCondition, corev1.ConditionTrue, "", ""}})
-
-			// TODO: Should we create dedicated host machine using the template or makeAWSMachineTemplate()?
-			mdName := clusterName + "-md01"
-			machineTemplate := makeAWSMachineTemplate(namespace.Name, mdName, e2eCtx.E2EConfig.GetVariable(shared.AwsNodeMachineType), nil)
-
-			machineDeployment := makeMachineDeployment(namespace.Name, mdName, clusterName, nil, int32(1))
-			framework.CreateMachineDeployment(ctx, framework.CreateMachineDeploymentInput{
-				Creator:                 e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
-				MachineDeployment:       machineDeployment,
-				BootstrapConfigTemplate: makeJoinBootstrapConfigTemplate(namespace.Name, mdName),
-				InfraMachineTemplate:    machineTemplate,
-			})
-
-			framework.WaitForMachineDeploymentNodesToExist(ctx, framework.WaitForMachineDeploymentNodesToExistInput{
-				Lister:            e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
-				Cluster:           result.Cluster,
-				MachineDeployment: machineDeployment,
-			}, e2eCtx.E2EConfig.GetIntervals("", "wait-worker-nodes")...)
-
-			workerMachines := framework.GetMachinesByMachineDeployments(ctx, framework.GetMachinesByMachineDeploymentsInput{
-				Lister:            e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
-				ClusterName:       clusterName,
-				Namespace:         namespace.Name,
-				MachineDeployment: *machineDeployment,
-			})
-			Expect(len(workerMachines)).To(Equal(1))
-			worker := workerMachines[0]
-			instanceID := strings.Split(*worker.Spec.ProviderID, "/")[1] // TODO: vibe code, verify
+			workerMachines := result.MachineDeployments
+			mdName := fmt.Sprintf("%s-md-dh", clusterName)
+			var found *clusterv1.MachineDeployment
+			for _, md := range workerMachines {
+				if md.Name == mdName {
+					found = md
+				}
+			}
+			Expect(found).NotTo(BeNil(), fmt.Sprintf("Expected MachineDeployment %s to be found", mdName))
+			machineList := getAWSMachinesForDeployment(namespace.Name, *found)
+			Expect(len(machineList.Items)).To(Equal(1), fmt.Sprintf("Expected one machine in MachineDeployment %s, but got %d", mdName, len(machineList.Items)))
+			machine := machineList.Items[0]
+			instanceID := *(machine.Spec.InstanceID)
 			ginkgo.By(fmt.Sprintf("Worker instance ID: %s", instanceID))
 			instanceHostID := shared.GetHostID(e2eCtx, instanceID)
 			ginkgo.By(fmt.Sprintf("Worker instance host ID: %s", instanceHostID))

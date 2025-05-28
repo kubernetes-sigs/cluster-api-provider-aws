@@ -5,7 +5,7 @@ metadata:
   name: "${CLUSTER_NAME}-md-dh"
 spec:
   clusterName: "${CLUSTER_NAME}"
-  replicas: ${WORKER_MACHINE_COUNT}
+  replicas: 1
   selector:
     matchLabels:
   template:
