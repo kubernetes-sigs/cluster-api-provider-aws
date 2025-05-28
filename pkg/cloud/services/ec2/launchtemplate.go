@@ -802,6 +802,10 @@ func (s *Service) LaunchTemplateNeedsUpdate(scope scope.LaunchTemplateScope, inc
 		return true, nil
 	}
 
+	if !cmp.Equal(incoming.PrivateDNSName, existing.PrivateDNSName) {
+		return true, nil
+	}
+
 	if !cmp.Equal(incoming.SSHKeyName, existing.SSHKeyName) {
 		return true, nil
 	}
