@@ -26,7 +26,7 @@ import (
 	elbv2 "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/convertersv2"
 )
 
 func (s *Service) deleteLoadBalancers(ctx context.Context, resources []*AWSResource) error {
@@ -222,7 +222,7 @@ func (s *Service) filterProviderOwnedLB(ctx context.Context, names []string) ([]
 				serviceTag := infrav1.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName())
 				if *tag.Key == serviceTag && *tag.Value == string(infrav1.ResourceLifecycleOwned) {
 					arn := composeFakeArn(elbService, elbResourcePrefix+*tagDesc.LoadBalancerName)
-					resource, err := composeAWSResource(arn, converters.ELBTagsToMap(tagDesc.Tags))
+					resource, err := composeAWSResource(arn, convertersv2.ELBTagsToMap(tagDesc.Tags))
 					if err != nil {
 						return nil, fmt.Errorf("error compose aws elb resource %s: %w", arn, err)
 					}
@@ -250,7 +250,7 @@ func (s *Service) filterProviderOwnedLBV2(ctx context.Context, arns []string) ([
 			for _, tag := range tagDesc.Tags {
 				serviceTag := infrav1.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName())
 				if *tag.Key == serviceTag && *tag.Value == string(infrav1.ResourceLifecycleOwned) {
-					resource, err := composeAWSResource(*tagDesc.ResourceArn, converters.V2TagsToMap(tagDesc.Tags))
+					resource, err := composeAWSResource(*tagDesc.ResourceArn, convertersv2.V2TagsToMap(tagDesc.Tags))
 					if err != nil {
 						return nil, fmt.Errorf("error compose aws elbv2 resource %s: %w", *tagDesc.ResourceArn, err)
 					}
