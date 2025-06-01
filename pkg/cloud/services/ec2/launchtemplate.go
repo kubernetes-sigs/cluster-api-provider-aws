@@ -793,10 +793,16 @@ func (s *Service) LaunchTemplateNeedsUpdate(scope scope.LaunchTemplateScope, inc
 	if incoming.InstanceType != existing.InstanceType {
 		return true, nil
 	}
+
 	if !cmp.Equal(incoming.InstanceMetadataOptions, existing.InstanceMetadataOptions) {
 		return true, nil
 	}
+
 	if !cmp.Equal(incoming.SpotMarketOptions, existing.SpotMarketOptions) {
+		return true, nil
+	}
+
+	if !cmp.Equal(incoming.SSHKeyName, existing.SSHKeyName) {
 		return true, nil
 	}
 
