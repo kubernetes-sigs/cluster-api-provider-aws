@@ -20,8 +20,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
+	autoscalingtypes "github.com/aws/aws-sdk-go-v2/service/autoscaling/types"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/eks/eksiface"
 	"github.com/pkg/errors"
@@ -115,7 +116,7 @@ func (s *NodegroupService) reconcileTags(ng *eks.Nodegroup) error {
 	return updateTags(s.EKSClient, ng.NodegroupArn, aws.StringValueMap(ng.Tags), tags)
 }
 
-func tagDescriptionsToMap(input []*autoscaling.TagDescription) map[string]string {
+func tagDescriptionsToMap(input []autoscalingtypes.TagDescription) map[string]string {
 	tags := make(map[string]string)
 	for _, v := range input {
 		tags[*v.Key] = *v.Value
@@ -140,7 +141,7 @@ func (s *NodegroupService) reconcileASGTags(ng *eks.Nodegroup) error {
 			// https://stackoverflow.com/questions/62446118/implicit-memory-aliasing-in-for-loop
 			kCopy := k
 			vCopy := v
-			input.Tags = append(input.Tags, &autoscaling.Tag{
+			input.Tags = append(input.Tags, autoscalingtypes.Tag{
 				Key:               &kCopy,
 				PropagateAtLaunch: aws.Bool(true),
 				ResourceId:        asg.AutoScalingGroupName,
@@ -148,7 +149,7 @@ func (s *NodegroupService) reconcileASGTags(ng *eks.Nodegroup) error {
 				Value:             &vCopy,
 			})
 		}
-		_, err = s.AutoscalingClient.CreateOrUpdateTagsWithContext(context.TODO(), input)
+		_, err = s.AutoscalingClient.CreateOrUpdateTags(context.TODO(), input)
 		if err != nil {
 			return errors.Wrap(err, "failed to add tags to nodegroup's AutoScalingGroup")
 		}
@@ -160,13 +161,13 @@ func (s *NodegroupService) reconcileASGTags(ng *eks.Nodegroup) error {
 			// The k/vCopy is used to address the "Implicit memory aliasing in for loop" issue
 			// https://stackoverflow.com/questions/62446118/implicit-memory-aliasing-in-for-loop
 			kCopy := k
-			input.Tags = append(input.Tags, &autoscaling.Tag{
+			input.Tags = append(input.Tags, autoscalingtypes.Tag{
 				Key:          &kCopy,
 				ResourceId:   asg.AutoScalingGroupName,
 				ResourceType: ptr.To[string]("auto-scaling-group"),
 			})
 		}
-		_, err = s.AutoscalingClient.DeleteTagsWithContext(context.TODO(), input)
+		_, err = s.AutoscalingClient.DeleteTags(context.TODO(), input)
 		if err != nil {
 			return errors.Wrap(err, "failed to delete tags to nodegroup's AutoScalingGroup")
 		}

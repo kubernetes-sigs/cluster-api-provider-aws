@@ -65,6 +65,8 @@ type S3API interface {
 	PutObject(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error)
 }
 
+var _ S3API = &s3.Client{}
+
 // NewService returns a new service given the api clients.
 func NewService(s3Scope scope.S3Scope) *Service {
 	s3Client := scope.NewS3Client(s3Scope, s3Scope, s3Scope, s3Scope.InfraCluster())
