@@ -17,12 +17,11 @@ limitations under the License.
 package scope
 
 import (
+	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/service/autoscaling"
-	"github.com/aws/aws-sdk-go/service/autoscaling/autoscalingiface"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/aws/aws-sdk-go/service/eks"
@@ -58,13 +57,21 @@ import (
 )
 
 // NewASGClient creates a new ASG API client for a given session.
-func NewASGClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) autoscalingiface.AutoScalingAPI {
-	asgClient := autoscaling.New(session.Session(), aws.NewConfig().WithLogLevel(awslogs.GetAWSLogLevel(logger.GetLogger())).WithLogger(awslogs.NewWrapLogr(logger.GetLogger())))
-	asgClient.Handlers.Build.PushFrontNamed(getUserAgentHandler())
-	asgClient.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(scopeUser.ControllerName()))
-	asgClient.Handlers.Complete.PushBack(recordAWSPermissionsIssue(target))
+func NewASGClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) *autoscaling.Client {
+	cfg := session.SessionV2()
 
-	return asgClient
+	autoscalingOpts := []func(*autoscaling.Options){
+		func(o *autoscaling.Options) {
+			o.Logger = logger.GetAWSLogger()
+			o.ClientLogMode = awslogs.GetAWSLogLevelV2(logger.GetLogger())
+		},
+		autoscaling.WithAPIOptions(
+			awsmetricsv2.WithMiddlewares(scopeUser.ControllerName(), target),
+			awsmetricsv2.WithCAPAUserAgentMiddleware(),
+		),
+	}
+
+	return autoscaling.NewFromConfig(cfg, autoscalingOpts...)
 }
 
 // NewEC2Client creates a new EC2 API client for a given session.
@@ -238,7 +245,7 @@ func getUserAgentHandler() request.NamedHandler {
 
 // AWSClients contains all the aws clients used by the scopes.
 type AWSClients struct {
-	ASG             autoscalingiface.AutoScalingAPI
+	ASG             autoscaling.Client
 	EC2             ec2iface.EC2API
 	ELB             elbiface.ELBAPI
 	SecretsManager  secretsmanageriface.SecretsManagerAPI

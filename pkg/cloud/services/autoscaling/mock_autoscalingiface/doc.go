@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package mock_autoscalingiface provides a mock implementation for the AutoScalingAPI interface.
+// Package mock_autoscalingiface provides a mock implementation for the autoscaling client interface.
 // Run go generate to regenerate this mock.
 //
-//go:generate ../../../../../hack/tools/bin/mockgen -destination autoscalingapi_mock.go -package mock_autoscalingiface github.com/aws/aws-sdk-go/service/autoscaling/autoscalingiface AutoScalingAPI
-//go:generate /usr/bin/env bash -c "cat ../../../../../hack/boilerplate/boilerplate.generatego.txt autoscalingapi_mock.go > _autoscalingapi_mock.go && mv _autoscalingapi_mock.go autoscalingapi_mock.go"
+//go:generate ../../../../../hack/tools/bin/mockgen -destination autoscaling_mock.go -package mock_autoscalingiface sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/autoscaling AutoScalingAPI
+//go:generate /usr/bin/env bash -c "cat ../../../../../hack/boilerplate/boilerplate.generatego.txt autoscaling_mock.go > _autoscaling_mock.go && mv _autoscaling_mock.go autoscaling_mock.go"
 package mock_autoscalingiface //nolint:stylecheck
