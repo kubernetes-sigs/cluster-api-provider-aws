@@ -483,7 +483,7 @@ func NewAWSSessionWithKeyV2(accessKey *iamtypes.AccessKey) *awsv2.Config {
 }
 
 // createCloudFormationStack ensures the cloudformation stack is up to date.
-func createCloudFormationStack(ctx context.Context, cfg awsv2.Config, prov client.ConfigProvider, t *cfn_bootstrap.Template, tags map[string]string) error {
+func createCloudFormationStack(ctx context.Context, cfg *awsv2.Config, prov client.ConfigProvider, t *cfn_bootstrap.Template, tags map[string]string) error {
 	By(fmt.Sprintf("Creating AWS CloudFormation stack for AWS IAM resources: stack-name=%s", t.Spec.StackName))
 	cfnClient := cfn.New(prov)
 	// CloudFormation stack will clean up on a failure, we don't need an Eventually here.
@@ -545,8 +545,8 @@ func SetMultitenancyEnvVars(prov client.ConfigProvider) error {
 }
 
 // Delete resources that already exists.
-func deleteResourcesInCloudFormation(ctx context.Context, cfg awsv2.Config, t *cfn_bootstrap.Template) {
-	iamSvc := iam.NewFromConfig(cfg)
+func deleteResourcesInCloudFormation(ctx context.Context, cfg *awsv2.Config, t *cfn_bootstrap.Template) {
+	iamSvc := iam.NewFromConfig(*cfg)
 	temp := *renderCustomCloudFormation(t)
 	var (
 		iamUsers         []*cfn_iam.User
@@ -660,7 +660,7 @@ func deleteResourcesInCloudFormation(ctx context.Context, cfg awsv2.Config, t *c
 }
 
 // TODO: remove once test infra accounts are fixed.
-func deleteMultitenancyRoles(ctx context.Context, cfg awsv2.Config) {
+func deleteMultitenancyRoles(ctx context.Context, cfg *awsv2.Config) {
 	if err := DeleteRole(ctx, cfg, "multi-tenancy-role"); err != nil {
 		By(fmt.Sprintf("failed to delete role multi-tenancy-role %s", err))
 	}
@@ -670,8 +670,8 @@ func deleteMultitenancyRoles(ctx context.Context, cfg awsv2.Config) {
 }
 
 // detachAllPoliciesForRole detaches all policies for role.
-func detachAllPoliciesForRole(ctx context.Context, cfg awsv2.Config, name string) error {
-	iamSvc := iam.NewFromConfig(cfg)
+func detachAllPoliciesForRole(ctx context.Context, cfg *awsv2.Config, name string) error {
+	iamSvc := iam.NewFromConfig(*cfg)
 
 	input := &iam.ListAttachedRolePoliciesInput{
 		RoleName: aws.String(name),
@@ -697,8 +697,8 @@ func detachAllPoliciesForRole(ctx context.Context, cfg awsv2.Config, name string
 }
 
 // DeleteUser deletes an IAM user in a best effort manner.
-func DeleteUser(ctx context.Context, cfg awsv2.Config, name string) error {
-	iamSvc := iam.NewFromConfig(cfg)
+func DeleteUser(ctx context.Context, cfg *awsv2.Config, name string) error {
+	iamSvc := iam.NewFromConfig(*cfg)
 
 	// if user does not exist, return.
 	_, err := iamSvc.GetUser(ctx, &iam.GetUserInput{UserName: aws.String(name)})
@@ -715,8 +715,8 @@ func DeleteUser(ctx context.Context, cfg awsv2.Config, name string) error {
 }
 
 // DeleteRole deletes roles in a best effort manner.
-func DeleteRole(ctx context.Context, cfg awsv2.Config, name string) error {
-	iamSvc := iam.NewFromConfig(cfg)
+func DeleteRole(ctx context.Context, cfg *awsv2.Config, name string) error {
+	iamSvc := iam.NewFromConfig(*cfg)
 
 	// if role does not exist, return.
 	_, err := iamSvc.GetRole(ctx, &iam.GetRoleInput{RoleName: aws.String(name)})
@@ -868,8 +868,8 @@ func ensureTestImageUploaded(e2eCtx *E2EContext) error {
 
 // ensureNoServiceLinkedRoles removes an auto-created IAM role, and tests
 // the controller's IAM permissions to use ELB and Spot instances successfully.
-func ensureNoServiceLinkedRoles(ctx context.Context, cfg awsv2.Config) {
-	iamSvc := iam.NewFromConfig(cfg)
+func ensureNoServiceLinkedRoles(ctx context.Context, cfg *awsv2.Config) {
+	iamSvc := iam.NewFromConfig(*cfg)
 
 	By("Deleting AWS IAM Service Linked Role: role-name=AWSServiceRoleForElasticLoadBalancing")
 	_, err := iamSvc.DeleteServiceLinkedRole(ctx, &iam.DeleteServiceLinkedRoleInput{
@@ -929,8 +929,8 @@ func encodeCredentials(accessKey *iamtypes.AccessKey, region string) string {
 
 // newUserAccessKey generates a new AWS Access Key pair based off of the
 // bootstrap user. This tests that the CloudFormation policy is correct.
-func newUserAccessKey(ctx context.Context, cfg awsv2.Config, userName string) *iamtypes.AccessKey {
-	iamSvc := iam.NewFromConfig(cfg)
+func newUserAccessKey(ctx context.Context, cfg *awsv2.Config, userName string) *iamtypes.AccessKey {
+	iamSvc := iam.NewFromConfig(*cfg)
 
 	keyOuts, _ := iamSvc.ListAccessKeys(ctx, &iam.ListAccessKeysInput{
 		UserName: aws.String(userName),

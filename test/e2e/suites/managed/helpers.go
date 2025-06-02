@@ -25,7 +25,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
 	"github.com/aws/aws-sdk-go-v2/service/eks"
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
@@ -199,8 +198,8 @@ func verifyManagedNodeGroup(ctx context.Context, eksClusterName, nodeGroupName s
 	}
 }
 
-func verifyASG(eksClusterName, asgName string, checkOwned bool, cfg awsv2.Config) {
-	asgClient := autoscaling.NewFromConfig(cfg)
+func verifyASG(eksClusterName, asgName string, checkOwned bool, cfg *aws.Config) {
+	asgClient := autoscaling.NewFromConfig(*cfg)
 
 	input := &autoscaling.DescribeAutoScalingGroupsInput{
 		AutoScalingGroupNames: []string{
