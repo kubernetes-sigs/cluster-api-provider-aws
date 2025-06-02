@@ -65,8 +65,8 @@ type E2EContext struct {
 	Environment RuntimeEnvironment
 	// AWSSession is the AWS session for the tests.
 	AWSSession client.ConfigProvider
-	// AWSClient is the AWS client for the tests.
-	AWSConfig awsv2.Config
+	// AWSSessionV2 is the AWS SDK V2 client for the tests.
+	AWSSessionV2 *awsv2.Config
 	// BootstrapUserAWSSession is the AWS session for the bootstrap user.
 	BootstrapUserAWSSession client.ConfigProvider
 	// BootstrapUserAWSSessionV2 is the AWS SDK V2 session for the bootstrap user.

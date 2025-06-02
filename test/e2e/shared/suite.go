@@ -143,7 +143,7 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 			count++
 			By(fmt.Sprintf("Trying to create CloudFormation stack... attempt %d", count))
 			success := true
-			if err := createCloudFormationStack(context.TODO(), e2eCtx.AWSConfig, e2eCtx.AWSSession, bootstrapTemplate, bootstrapTags); err != nil {
+			if err := createCloudFormationStack(context.TODO(), e2eCtx.AWSSessionV2, e2eCtx.AWSSession, bootstrapTemplate, bootstrapTags); err != nil {
 				By(fmt.Sprintf("Failed to create CloudFormation stack in attempt %d: %s", count, err.Error()))
 				deleteCloudFormationStack(e2eCtx.AWSSession, bootstrapTemplate)
 				success = false
@@ -153,9 +153,9 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	}
 
 	ensureStackTags(e2eCtx.AWSSession, bootstrapTemplate.Spec.StackName, bootstrapTags)
-	ensureNoServiceLinkedRoles(context.TODO(), e2eCtx.AWSConfig)
+	ensureNoServiceLinkedRoles(context.TODO(), e2eCtx.AWSSessionV2)
 	ensureSSHKeyPair(e2eCtx.AWSSession, DefaultSSHKeyPairName)
-	e2eCtx.Environment.BootstrapAccessKey = newUserAccessKey(context.TODO(), e2eCtx.AWSConfig, bootstrapTemplate.Spec.BootstrapUser.UserName)
+	e2eCtx.Environment.BootstrapAccessKey = newUserAccessKey(context.TODO(), e2eCtx.AWSSessionV2, bootstrapTemplate.Spec.BootstrapUser.UserName)
 	e2eCtx.BootstrapUserAWSSession = NewAWSSessionWithKey(e2eCtx.Environment.BootstrapAccessKey)
 	//TODO: v2AccessKey can be removed after AWS SDK V2 Migration
 	v2AccessKey := &iamtypes.AccessKey{
