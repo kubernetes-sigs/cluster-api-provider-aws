@@ -102,6 +102,7 @@ type AWSManagedControlPlaneReconciler struct {
 	ExternalResourceGC           bool
 	AlternativeGCStrategy        bool
 	WaitInfraPeriod              time.Duration
+	MaxWaitActiveUpdateDelete    time.Duration
 	TagUnmanagedNetworkResources bool
 }
 
@@ -245,6 +246,7 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 		Cluster:                      cluster,
 		ControlPlane:                 awsManagedControlPlane,
 		ControllerName:               strings.ToLower(awsManagedControlPlaneKind),
+		MaxWaitActiveUpdateDelete:    r.MaxWaitActiveUpdateDelete,
 		EnableIAM:                    r.EnableIAM,
 		AllowAdditionalRoles:         r.AllowAdditionalRoles,
 		Endpoints:                    r.Endpoints,
@@ -405,7 +407,7 @@ func (r *AWSManagedControlPlaneReconciler) reconcileDelete(ctx context.Context, 
 	networkSvc := network.NewService(managedScope)
 	sgService := securitygroup.NewService(managedScope, securityGroupRolesForControlPlane(managedScope))
 
-	if err := ekssvc.DeleteControlPlane(); err != nil {
+	if err := ekssvc.DeleteControlPlane(ctx); err != nil {
 		log.Error(err, "error deleting EKS cluster for EKS control plane", "namespace", controlPlane.Namespace, "name", controlPlane.Name)
 		return reconcile.Result{}, err
 	}

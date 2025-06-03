@@ -27,8 +27,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/eks"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/google/go-cmp/cmp"
@@ -428,7 +428,7 @@ func findStringInSlice(slice []*string, toFind string) bool {
 const stsAWSAudience = "sts.amazonaws.com"
 
 // CreateOIDCProvider will create an OIDC provider.
-func (s *IAMService) CreateOIDCProvider(cluster *eks.Cluster) (string, error) {
+func (s *IAMService) CreateOIDCProvider(ctx context.Context, cluster *ekstypes.Cluster) (string, error) {
 	issuerURL, err := url.Parse(*cluster.Identity.Oidc.Issuer)
 	if err != nil {
 		return "", err
@@ -437,7 +437,7 @@ func (s *IAMService) CreateOIDCProvider(cluster *eks.Cluster) (string, error) {
 		return "", errors.Errorf("invalid scheme for issuer URL %s", issuerURL.String())
 	}
 
-	thumbprint, err := fetchRootCAThumbprint(issuerURL.String(), s.Client)
+	thumbprint, err := fetchRootCAThumbprint(ctx, issuerURL.String(), s.Client)
 	if err != nil {
 		return "", err
 	}
@@ -455,7 +455,7 @@ func (s *IAMService) CreateOIDCProvider(cluster *eks.Cluster) (string, error) {
 
 // FindAndVerifyOIDCProvider will try to find an OIDC provider. It will return an error if the found provider does not
 // match the cluster spec.
-func (s *IAMService) FindAndVerifyOIDCProvider(cluster *eks.Cluster) (string, error) {
+func (s *IAMService) FindAndVerifyOIDCProvider(ctx context.Context, cluster *ekstypes.Cluster) (string, error) {
 	issuerURL, err := url.Parse(*cluster.Identity.Oidc.Issuer)
 	if err != nil {
 		return "", err
@@ -464,7 +464,7 @@ func (s *IAMService) FindAndVerifyOIDCProvider(cluster *eks.Cluster) (string, er
 		return "", errors.Errorf("invalid scheme for issuer URL %s", issuerURL.String())
 	}
 
-	thumbprint, err := fetchRootCAThumbprint(issuerURL.String(), s.Client)
+	thumbprint, err := fetchRootCAThumbprint(ctx, issuerURL.String(), s.Client)
 	if err != nil {
 		return "", err
 	}
@@ -492,9 +492,9 @@ func (s *IAMService) FindAndVerifyOIDCProvider(cluster *eks.Cluster) (string, er
 	return "", nil
 }
 
-func fetchRootCAThumbprint(issuerURL string, client *http.Client) (string, error) {
+func fetchRootCAThumbprint(ctx context.Context, issuerURL string, client *http.Client) (string, error) {
 	// needed to appease noctx.
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, issuerURL, http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, issuerURL, http.NoBody)
 	if err != nil {
 		return "", err
 	}
