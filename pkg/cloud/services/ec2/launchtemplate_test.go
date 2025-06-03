@@ -860,6 +860,36 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 			want:    true,
 			wantErr: false,
 		},
+		{
+			name: "Should return true if capacity reservation IDs are different",
+			incoming: &expinfrav1.AWSLaunchTemplate{
+				CapacityReservationID: aws.String("new-reservation"),
+			},
+			existing: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+					{ID: aws.String("sg-111")},
+					{ID: aws.String("sg-222")},
+				},
+				CapacityReservationID: aws.String("old-reservation"),
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "Should return true if one has capacity reservation ID and other doesn't",
+			incoming: &expinfrav1.AWSLaunchTemplate{
+				CapacityReservationID: aws.String("new-reservation"),
+			},
+			existing: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+					{ID: aws.String("sg-111")},
+					{ID: aws.String("sg-222")},
+				},
+				CapacityReservationID: nil,
+			},
+			want:    true,
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

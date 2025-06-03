@@ -712,6 +712,12 @@ func (s *Service) SDKToLaunchTemplate(d *ec2.LaunchTemplateVersion) (*expinfrav1
 		VersionNumber:     d.VersionNumber,
 	}
 
+	if v.CapacityReservationSpecification != nil &&
+		v.CapacityReservationSpecification.CapacityReservationTarget != nil &&
+		v.CapacityReservationSpecification.CapacityReservationTarget.CapacityReservationId != nil {
+		i.CapacityReservationID = v.CapacityReservationSpecification.CapacityReservationTarget.CapacityReservationId
+	}
+
 	if v.MetadataOptions != nil {
 		i.InstanceMetadataOptions = &infrav1.InstanceMetadataOptions{
 			HTTPPutResponseHopLimit: aws.Int64Value(v.MetadataOptions.HttpPutResponseHopLimit),
@@ -799,6 +805,10 @@ func (s *Service) LaunchTemplateNeedsUpdate(scope scope.LaunchTemplateScope, inc
 	}
 
 	if !cmp.Equal(incoming.SpotMarketOptions, existing.SpotMarketOptions) {
+		return true, nil
+	}
+
+	if !cmp.Equal(incoming.CapacityReservationID, existing.CapacityReservationID) {
 		return true, nil
 	}
 
