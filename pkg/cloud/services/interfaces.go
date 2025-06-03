@@ -128,6 +128,12 @@ type NetworkInterface interface {
 	ReconcileNetwork() error
 }
 
+// IAMInterface manages IAM Identity Providers for self-managed clusters.
+type IAMInterface interface {
+	ReconcileOIDCProvider(ctx context.Context) error
+	DeleteOIDCProvider(ctx context.Context) error
+}
+
 // SecurityGroupInterface encapsulates the methods exposed to the cluster
 // controller.
 type SecurityGroupInterface interface {
@@ -141,6 +147,9 @@ type ObjectStoreInterface interface {
 	ReconcileBucket(ctx context.Context) error
 	Delete(ctx context.Context, m *scope.MachineScope) error
 	Create(ctx context.Context, m *scope.MachineScope, data []byte) (objectURL string, err error)
+	DeleteKey(ctx context.Context, key string) error
+	CreatePrivateKey(ctx context.Context, key string, data []byte) (objectURL string, err error)
+	CreatePublicKey(ctx context.Context, key string, data []byte) (objectURL string, err error)
 }
 
 // AWSNodeInterface installs the CNI for EKS clusters.
