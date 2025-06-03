@@ -131,7 +131,12 @@ func generateAWSDefaultProfileWithChain() *cobra.Command {
 				region = backupAWSRegion
 			}
 
-			awsCreds, err := creds.NewAWSCredentialFromDefaultChain(region)
+			profile := flags.GetProfile(c)
+			if profile == "" {
+				fmt.Fprintf(os.Stderr, "Could not resolve AWS profile, defaulting to default.\n\n")
+			}
+
+			awsCreds, err := creds.NewAWSCredentialFromDefaultChain(region, profile)
 			if err != nil {
 				return flags.ResolveAWSError(err)
 			}
@@ -156,5 +161,6 @@ func generateAWSDefaultProfileWithChain() *cobra.Command {
 
 	newCmd.Flags().String("output", string(base64SharedConfig), "Output for credential configuration (rawSharedConfig, base64SharedConfig)")
 	flags.AddRegionFlag(newCmd)
+	flags.AddProfileFlag(newCmd)
 	return newCmd
 }
