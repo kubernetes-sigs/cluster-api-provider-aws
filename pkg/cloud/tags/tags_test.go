@@ -20,9 +20,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/eks"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
@@ -234,9 +234,9 @@ func TestTagsEnsureWithEKS(t *testing.T) {
 				Additional:  map[string]string{"k1": "v1"},
 			}},
 			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
-				m.TagResource(gomock.Eq(&eks.TagResourceInput{
+				m.TagResource(gomock.Eq(context.TODO()), gomock.Eq(&eks.TagResourceInput{
 					ResourceArn: aws.String(""),
-					Tags:        map[string]*string{"Name": aws.String("test"), "k1": aws.String("v1"), "sigs.k8s.io/cluster-api-provider-aws/cluster/testcluster": aws.String("owned"), "sigs.k8s.io/cluster-api-provider-aws/role": aws.String("testrole")},
+					Tags:        map[string]string{"Name": "test", "k1": "v1", "sigs.k8s.io/cluster-api-provider-aws/cluster/testcluster": "owned", "sigs.k8s.io/cluster-api-provider-aws/role": "testrole"},
 				})).Return(nil, errors.New("failed to tag resource"))
 			},
 		},
@@ -250,9 +250,9 @@ func TestTagsEnsureWithEKS(t *testing.T) {
 				Additional:  map[string]string{"k1": "v1"},
 			}},
 			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
-				m.TagResource(gomock.Eq(&eks.TagResourceInput{
+				m.TagResource(gomock.Eq(context.TODO()), gomock.Eq(&eks.TagResourceInput{
 					ResourceArn: aws.String(""),
-					Tags:        map[string]*string{"Name": aws.String("test"), "k1": aws.String("v1"), "sigs.k8s.io/cluster-api-provider-aws/cluster/testcluster": aws.String("owned"), "sigs.k8s.io/cluster-api-provider-aws/role": aws.String("testrole")},
+					Tags:        map[string]string{"Name": "test", "k1": "v1", "sigs.k8s.io/cluster-api-provider-aws/cluster/testcluster": "owned", "sigs.k8s.io/cluster-api-provider-aws/role": "testrole"},
 				})).Return(nil, nil)
 			},
 		},
@@ -266,7 +266,7 @@ func TestTagsEnsureWithEKS(t *testing.T) {
 			var builder *Builder
 			if tc.expect != nil {
 				tc.expect(eksMock.EXPECT())
-				builder = New(tc.builder.params, WithEKS(eksMock))
+				builder = New(tc.builder.params, WithEKS(context.TODO(), eksMock))
 			} else {
 				builder = New(tc.builder.params, func(builder *Builder) {})
 			}

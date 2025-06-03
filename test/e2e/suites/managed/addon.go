@@ -23,8 +23,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws/client"
-	"github.com/aws/aws-sdk-go/service/eks"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -38,7 +38,7 @@ import (
 type CheckAddonExistsSpecInput struct {
 	E2EConfig             *clusterctl.E2EConfig
 	BootstrapClusterProxy framework.ClusterProxy
-	AWSSession            client.ConfigProvider
+	AWSSession            *awsv2.Config
 	Namespace             *corev1.Namespace
 	ClusterName           string
 	AddonName             string
@@ -67,17 +67,17 @@ func CheckAddonExistsSpec(ctx context.Context, inputGetter func() CheckAddonExis
 	}, input.E2EConfig.GetIntervals("", "wait-client-request")...).Should(Succeed(), "eventually failed trying to get the AWSManagedControlPlane")
 
 	By(fmt.Sprintf("Checking EKS addon %s is installed on cluster %s and is active", input.AddonName, input.ClusterName))
-	waitForEKSAddonToHaveStatus(waitForEKSAddonToHaveStatusInput{
+	waitForEKSAddonToHaveStatus(ctx, waitForEKSAddonToHaveStatusInput{
 		ControlPlane: controlPlane,
 		AWSSession:   input.AWSSession,
 		AddonName:    input.AddonName,
 		AddonVersion: input.AddonVersion,
-		AddonStatus:  []string{eks.AddonStatusActive, eks.AddonStatusDegraded},
+		AddonStatus:  []string{string(ekstypes.AddonStatusActive), string(ekstypes.AddonStatusDegraded)},
 	}, input.E2EConfig.GetIntervals("", "wait-addon-status")...)
 
 	if input.AddonConfiguration != "" {
 		By(fmt.Sprintf("Checking EKS addon %s has the correct configuration", input.AddonName))
-		checkEKSAddonConfiguration(checkEKSAddonConfigurationInput{
+		checkEKSAddonConfiguration(ctx, checkEKSAddonConfigurationInput{
 			ControlPlane:       controlPlane,
 			AWSSession:         input.AWSSession,
 			AddonName:          input.AddonName,

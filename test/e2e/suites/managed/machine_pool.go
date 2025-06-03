@@ -25,7 +25,7 @@ import (
 	"fmt"
 	"strings"
 
-	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -43,7 +43,7 @@ type MachinePoolSpecInput struct {
 	ConfigClusterFn       DefaultConfigClusterFn
 	BootstrapClusterProxy framework.ClusterProxy
 	AWSSession            client.ConfigProvider
-	AWSConfig             awsv2.Config
+	AWSSessionV2          *aws.Config
 	Namespace             *corev1.Namespace
 	ClusterName           string
 	IncludeScaling        bool
@@ -60,7 +60,7 @@ func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolSpecInpu
 	Expect(input.ConfigClusterFn).ToNot(BeNil(), "Invalid argument. input.ConfigClusterFn can't be nil")
 	Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil")
 	Expect(input.AWSSession).ToNot(BeNil(), "Invalid argument. input.AWSSession can't be nil")
-	Expect(input.AWSConfig).ToNot(BeNil(), "Invalid argument. input.AWSCfg can't be nil")
+	Expect(input.AWSSessionV2).ToNot(BeNil(), "Invalid argument. input.AWSCfg can't be nil")
 	Expect(input.Namespace).NotTo(BeNil(), "Invalid argument. input.Namespace can't be nil")
 	Expect(input.ClusterName).ShouldNot(BeEmpty(), "Invalid argument. input.ClusterName can't be empty")
 	Expect(input.Flavor).ShouldNot(BeEmpty(), "Invalid argument. input.Flavor can't be empty")
@@ -110,10 +110,10 @@ func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolSpecInpu
 		} else {
 			nodeGroupName = getEKSNodegroupName(input.Namespace.Name, input.ClusterName)
 		}
-		verifyManagedNodeGroup(eksClusterName, nodeGroupName, true, input.AWSSession)
+		verifyManagedNodeGroup(ctx, eksClusterName, nodeGroupName, true, input.AWSSessionV2)
 	} else {
 		asgName := getASGName(input.ClusterName)
-		verifyASG(eksClusterName, asgName, true, input.AWSConfig)
+		verifyASG(eksClusterName, asgName, true, input.AWSSessionV2)
 	}
 
 	if input.IncludeScaling { // TODO (richardcase): should this be a separate spec?

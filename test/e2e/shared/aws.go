@@ -34,7 +34,10 @@ import (
 
 	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	iam "github.com/aws/aws-sdk-go-v2/service/iam"
+	awscredsv2 "github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/eks"
+	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
+	"github.com/aws/aws-sdk-go-v2/service/iam"
 	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
@@ -46,7 +49,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecrpublic"
 	"github.com/aws/aws-sdk-go/service/efs"
-	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/servicequotas"
 	"github.com/aws/aws-sdk-go/service/sts"
@@ -434,8 +436,54 @@ func NewAWSSessionWithKey(accessKey *iamtypes.AccessKey) client.ConfigProvider {
 	return sess
 }
 
+func NewAWSSessionV2() *awsv2.Config {
+	By("Getting an AWS IAM session - from environment")
+	region, err := credentials.ResolveRegion("")
+	Expect(err).NotTo(HaveOccurred())
+	optFns := []func(*config.LoadOptions) error{
+		config.WithRegion(region),
+	}
+	cfg, err := config.LoadDefaultConfig(context.Background(), optFns...)
+	Expect(err).NotTo(HaveOccurred())
+	_, err = cfg.Credentials.Retrieve(context.Background())
+	Expect(err).NotTo(HaveOccurred())
+	return &cfg
+}
+
+func NewAWSSessionRepoWithKeyV2(accessKey *iamtypes.AccessKey) *awsv2.Config {
+	By("Getting an AWS IAM session - from access key")
+	region, err := credentials.ResolveRegion("us-east-1")
+	Expect(err).NotTo(HaveOccurred())
+	staticCredProvider := awscredsv2.NewStaticCredentialsProvider(awsv2.ToString(accessKey.AccessKeyId), awsv2.ToString(accessKey.SecretAccessKey), "")
+	optFns := []func(*config.LoadOptions) error{
+		config.WithRegion(region),
+		config.WithCredentialsProvider(staticCredProvider),
+	}
+	cfg, err := config.LoadDefaultConfig(context.Background(), optFns...)
+	Expect(err).NotTo(HaveOccurred())
+	_, err = cfg.Credentials.Retrieve(context.Background())
+	Expect(err).NotTo(HaveOccurred())
+	return &cfg
+}
+
+func NewAWSSessionWithKeyV2(accessKey *iamtypes.AccessKey) *awsv2.Config {
+	By("Getting an AWS IAM session - from access key")
+	region, err := credentials.ResolveRegion("")
+	Expect(err).NotTo(HaveOccurred())
+	staticCredProvider := awscredsv2.NewStaticCredentialsProvider(awsv2.ToString(accessKey.AccessKeyId), awsv2.ToString(accessKey.SecretAccessKey), "")
+	optFns := []func(*config.LoadOptions) error{
+		config.WithRegion(region),
+		config.WithCredentialsProvider(staticCredProvider),
+	}
+	cfg, err := config.LoadDefaultConfig(context.Background(), optFns...)
+	Expect(err).NotTo(HaveOccurred())
+	_, err = cfg.Credentials.Retrieve(context.Background())
+	Expect(err).NotTo(HaveOccurred())
+	return &cfg
+}
+
 // createCloudFormationStack ensures the cloudformation stack is up to date.
-func createCloudFormationStack(ctx context.Context, cfg awsv2.Config, prov client.ConfigProvider, t *cfn_bootstrap.Template, tags map[string]string) error {
+func createCloudFormationStack(ctx context.Context, cfg *awsv2.Config, prov client.ConfigProvider, t *cfn_bootstrap.Template, tags map[string]string) error {
 	By(fmt.Sprintf("Creating AWS CloudFormation stack for AWS IAM resources: stack-name=%s", t.Spec.StackName))
 	cfnClient := cfn.New(prov)
 	// CloudFormation stack will clean up on a failure, we don't need an Eventually here.
@@ -497,8 +545,8 @@ func SetMultitenancyEnvVars(prov client.ConfigProvider) error {
 }
 
 // Delete resources that already exists.
-func deleteResourcesInCloudFormation(ctx context.Context, cfg awsv2.Config, t *cfn_bootstrap.Template) {
-	iamSvc := iam.NewFromConfig(cfg)
+func deleteResourcesInCloudFormation(ctx context.Context, cfg *awsv2.Config, t *cfn_bootstrap.Template) {
+	iamSvc := iam.NewFromConfig(*cfg)
 	temp := *renderCustomCloudFormation(t)
 	var (
 		iamUsers         []*cfn_iam.User
@@ -612,7 +660,7 @@ func deleteResourcesInCloudFormation(ctx context.Context, cfg awsv2.Config, t *c
 }
 
 // TODO: remove once test infra accounts are fixed.
-func deleteMultitenancyRoles(ctx context.Context, cfg awsv2.Config) {
+func deleteMultitenancyRoles(ctx context.Context, cfg *awsv2.Config) {
 	if err := DeleteRole(ctx, cfg, "multi-tenancy-role"); err != nil {
 		By(fmt.Sprintf("failed to delete role multi-tenancy-role %s", err))
 	}
@@ -622,8 +670,8 @@ func deleteMultitenancyRoles(ctx context.Context, cfg awsv2.Config) {
 }
 
 // detachAllPoliciesForRole detaches all policies for role.
-func detachAllPoliciesForRole(ctx context.Context, cfg awsv2.Config, name string) error {
-	iamSvc := iam.NewFromConfig(cfg)
+func detachAllPoliciesForRole(ctx context.Context, cfg *awsv2.Config, name string) error {
+	iamSvc := iam.NewFromConfig(*cfg)
 
 	input := &iam.ListAttachedRolePoliciesInput{
 		RoleName: aws.String(name),
@@ -649,8 +697,8 @@ func detachAllPoliciesForRole(ctx context.Context, cfg awsv2.Config, name string
 }
 
 // DeleteUser deletes an IAM user in a best effort manner.
-func DeleteUser(ctx context.Context, cfg awsv2.Config, name string) error {
-	iamSvc := iam.NewFromConfig(cfg)
+func DeleteUser(ctx context.Context, cfg *awsv2.Config, name string) error {
+	iamSvc := iam.NewFromConfig(*cfg)
 
 	// if user does not exist, return.
 	_, err := iamSvc.GetUser(ctx, &iam.GetUserInput{UserName: aws.String(name)})
@@ -667,8 +715,8 @@ func DeleteUser(ctx context.Context, cfg awsv2.Config, name string) error {
 }
 
 // DeleteRole deletes roles in a best effort manner.
-func DeleteRole(ctx context.Context, cfg awsv2.Config, name string) error {
-	iamSvc := iam.NewFromConfig(cfg)
+func DeleteRole(ctx context.Context, cfg *awsv2.Config, name string) error {
+	iamSvc := iam.NewFromConfig(*cfg)
 
 	// if role does not exist, return.
 	_, err := iamSvc.GetRole(ctx, &iam.GetRoleInput{RoleName: aws.String(name)})
@@ -820,8 +868,8 @@ func ensureTestImageUploaded(e2eCtx *E2EContext) error {
 
 // ensureNoServiceLinkedRoles removes an auto-created IAM role, and tests
 // the controller's IAM permissions to use ELB and Spot instances successfully.
-func ensureNoServiceLinkedRoles(ctx context.Context, cfg awsv2.Config) {
-	iamSvc := iam.NewFromConfig(cfg)
+func ensureNoServiceLinkedRoles(ctx context.Context, cfg *awsv2.Config) {
+	iamSvc := iam.NewFromConfig(*cfg)
 
 	By("Deleting AWS IAM Service Linked Role: role-name=AWSServiceRoleForElasticLoadBalancing")
 	_, err := iamSvc.DeleteServiceLinkedRole(ctx, &iam.DeleteServiceLinkedRoleInput{
@@ -881,8 +929,8 @@ func encodeCredentials(accessKey *iamtypes.AccessKey, region string) string {
 
 // newUserAccessKey generates a new AWS Access Key pair based off of the
 // bootstrap user. This tests that the CloudFormation policy is correct.
-func newUserAccessKey(ctx context.Context, cfg awsv2.Config, userName string) *iamtypes.AccessKey {
-	iamSvc := iam.NewFromConfig(cfg)
+func newUserAccessKey(ctx context.Context, cfg *awsv2.Config, userName string) *iamtypes.AccessKey {
+	iamSvc := iam.NewFromConfig(*cfg)
 
 	keyOuts, _ := iamSvc.ListAccessKeys(ctx, &iam.ListAccessKeysInput{
 		UserName: aws.String(userName),
@@ -1051,7 +1099,7 @@ func (s *ServiceQuota) updateServiceQuotaRequestStatus(serviceQuotasClient *serv
 }
 
 // DumpEKSClusters dumps the EKS clusters in the environment.
-func DumpEKSClusters(_ context.Context, e2eCtx *E2EContext) {
+func DumpEKSClusters(ctx context.Context, e2eCtx *E2EContext) {
 	name := "no-bootstrap-cluster"
 	if e2eCtx.Environment.BootstrapClusterProxy != nil {
 		name = e2eCtx.Environment.BootstrapClusterProxy.GetName()
@@ -1063,17 +1111,17 @@ func DumpEKSClusters(_ context.Context, e2eCtx *E2EContext) {
 	fmt.Fprintf(GinkgoWriter, "Folder created for eks clusters: %q\n", logPath)
 
 	input := &eks.ListClustersInput{}
-	var eksClient *eks.EKS
-	if e2eCtx.BootstrapUserAWSSession == nil && e2eCtx.AWSSession != nil {
-		eksClient = eks.New(e2eCtx.AWSSession)
-	} else if e2eCtx.BootstrapUserAWSSession != nil {
-		eksClient = eks.New(e2eCtx.BootstrapUserAWSSession)
+	var eksClient *eks.Client
+	if e2eCtx.BootstrapUserAWSSessionV2 == nil && e2eCtx.AWSSessionV2 != nil {
+		eksClient = eks.NewFromConfig(*e2eCtx.AWSSessionV2)
+	} else if e2eCtx.BootstrapUserAWSSessionV2 != nil {
+		eksClient = eks.NewFromConfig(*e2eCtx.BootstrapUserAWSSessionV2)
 	} else {
 		Fail("Couldn't list EKS clusters: no AWS client was set up (please look at previous errors)")
 		return
 	}
 
-	output, err := eksClient.ListClusters(input)
+	output, err := eksClient.ListClusters(ctx, input)
 	if err != nil {
 		fmt.Fprintf(GinkgoWriter, "Couldn't list EKS clusters: err=%s\n", err)
 		return
@@ -1081,18 +1129,18 @@ func DumpEKSClusters(_ context.Context, e2eCtx *E2EContext) {
 
 	for _, clusterName := range output.Clusters {
 		describeInput := &eks.DescribeClusterInput{
-			Name: clusterName,
+			Name: aws.String(clusterName),
 		}
-		describeOutput, err := eksClient.DescribeCluster(describeInput)
+		describeOutput, err := eksClient.DescribeCluster(ctx, describeInput)
 		if err != nil {
-			fmt.Fprintf(GinkgoWriter, "Couldn't describe EKS clusters: name=%q err=%s\n", *clusterName, err)
+			fmt.Fprintf(GinkgoWriter, "Couldn't describe EKS clusters: name=%q err=%s\n", clusterName, err)
 			continue
 		}
 		dumpEKSCluster(describeOutput.Cluster, logPath)
 	}
 }
 
-func dumpEKSCluster(cluster *eks.Cluster, logPath string) {
+func dumpEKSCluster(cluster *ekstypes.Cluster, logPath string) {
 	clusterYAML, err := yaml.Marshal(cluster)
 	if err != nil {
 		fmt.Fprintf(GinkgoWriter, "Couldn't marshal cluster to yaml: name=%q err=%s\n", *cluster.Name, err)

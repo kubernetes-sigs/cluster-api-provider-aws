@@ -19,6 +19,7 @@ package scope
 import (
 	"context"
 	"fmt"
+	"time"
 
 	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
@@ -45,15 +46,16 @@ import (
 
 // ManagedMachinePoolScopeParams defines the input parameters used to create a new Scope.
 type ManagedMachinePoolScopeParams struct {
-	Client             client.Client
-	Logger             *logger.Logger
-	Cluster            *clusterv1.Cluster
-	ControlPlane       *ekscontrolplanev1.AWSManagedControlPlane
-	ManagedMachinePool *expinfrav1.AWSManagedMachinePool
-	MachinePool        *expclusterv1.MachinePool
-	ControllerName     string
-	Endpoints          []ServiceEndpoint
-	Session            awsclient.ConfigProvider
+	Client                    client.Client
+	Logger                    *logger.Logger
+	Cluster                   *clusterv1.Cluster
+	ControlPlane              *ekscontrolplanev1.AWSManagedControlPlane
+	ManagedMachinePool        *expinfrav1.AWSManagedMachinePool
+	MachinePool               *expclusterv1.MachinePool
+	ControllerName            string
+	Endpoints                 []ServiceEndpoint
+	Session                   awsclient.ConfigProvider
+	MaxWaitActiveUpdateDelete time.Duration
 
 	EnableIAM            bool
 	AllowAdditionalRoles bool
@@ -79,11 +81,12 @@ func NewManagedMachinePoolScope(params ManagedMachinePoolScopeParams) (*ManagedM
 	}
 
 	managedScope := &ManagedControlPlaneScope{
-		Logger:         *params.Logger,
-		Client:         params.Client,
-		Cluster:        params.Cluster,
-		ControlPlane:   params.ControlPlane,
-		controllerName: params.ControllerName,
+		Logger:                    *params.Logger,
+		Client:                    params.Client,
+		Cluster:                   params.Cluster,
+		MaxWaitActiveUpdateDelete: params.MaxWaitActiveUpdateDelete,
+		ControlPlane:              params.ControlPlane,
+		controllerName:            params.ControllerName,
 	}
 	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
 	if err != nil {
@@ -132,11 +135,12 @@ type ManagedMachinePoolScope struct {
 	patchHelper                *patch.Helper
 	capiMachinePoolPatchHelper *patch.Helper
 
-	Cluster            *clusterv1.Cluster
-	ControlPlane       *ekscontrolplanev1.AWSManagedControlPlane
-	ManagedMachinePool *expinfrav1.AWSManagedMachinePool
-	MachinePool        *expclusterv1.MachinePool
-	EC2Scope           EC2Scope
+	Cluster                   *clusterv1.Cluster
+	ControlPlane              *ekscontrolplanev1.AWSManagedControlPlane
+	ManagedMachinePool        *expinfrav1.AWSManagedMachinePool
+	MachinePool               *expclusterv1.MachinePool
+	EC2Scope                  EC2Scope
+	MaxWaitActiveUpdateDelete time.Duration
 
 	session           awsclient.ConfigProvider
 	sessionV2         awsv2.Config

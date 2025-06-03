@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"time"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -58,6 +59,7 @@ type AWSManagedMachinePoolReconciler struct {
 	AllowAdditionalRoles         bool
 	WatchFilterValue             string
 	TagUnmanagedNetworkResources bool
+	MaxWaitActiveUpdateDelete    time.Duration
 }
 
 // SetupWithManager is used to setup the controller.
@@ -155,16 +157,17 @@ func (r *AWSManagedMachinePoolReconciler) Reconcile(ctx context.Context, req ctr
 	}
 
 	machinePoolScope, err := scope.NewManagedMachinePoolScope(scope.ManagedMachinePoolScopeParams{
-		Client:               r.Client,
-		ControllerName:       "awsmanagedmachinepool",
-		Cluster:              cluster,
-		ControlPlane:         controlPlane,
-		MachinePool:          machinePool,
-		ManagedMachinePool:   awsPool,
-		EnableIAM:            r.EnableIAM,
-		AllowAdditionalRoles: r.AllowAdditionalRoles,
-		Endpoints:            r.Endpoints,
-		InfraCluster:         managedControlPlaneScope,
+		Client:                    r.Client,
+		ControllerName:            "awsmanagedmachinepool",
+		Cluster:                   cluster,
+		ControlPlane:              controlPlane,
+		MachinePool:               machinePool,
+		ManagedMachinePool:        awsPool,
+		EnableIAM:                 r.EnableIAM,
+		AllowAdditionalRoles:      r.AllowAdditionalRoles,
+		Endpoints:                 r.Endpoints,
+		InfraCluster:              managedControlPlaneScope,
+		MaxWaitActiveUpdateDelete: r.MaxWaitActiveUpdateDelete,
 	})
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to create scope")
@@ -243,7 +246,7 @@ func (r *AWSManagedMachinePoolReconciler) reconcileNormal(
 }
 
 func (r *AWSManagedMachinePoolReconciler) reconcileDelete(
-	_ context.Context,
+	ctx context.Context,
 	machinePoolScope *scope.ManagedMachinePoolScope,
 	ec2Scope scope.EC2Scope,
 ) error {
@@ -252,7 +255,7 @@ func (r *AWSManagedMachinePoolReconciler) reconcileDelete(
 	ekssvc := eks.NewNodegroupService(machinePoolScope)
 	ec2Svc := ec2.NewService(ec2Scope)
 
-	if err := ekssvc.ReconcilePoolDelete(); err != nil {
+	if err := ekssvc.ReconcilePoolDelete(ctx); err != nil {
 		return errors.Wrapf(err, "failed to reconcile machine pool deletion for AWSManagedMachinePool %s/%s", machinePoolScope.ManagedMachinePool.Namespace, machinePoolScope.ManagedMachinePool.Name)
 	}
 
