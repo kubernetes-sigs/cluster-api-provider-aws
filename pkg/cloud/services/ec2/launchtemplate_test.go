@@ -799,6 +799,67 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 			want:    true,
 			wantErr: false,
 		},
+		{
+			name: "Should return true if incoming PrivateDNSName is different from existing PrivateDNSName",
+			incoming: &expinfrav1.AWSLaunchTemplate{
+				PrivateDNSName: &infrav1.PrivateDNSName{
+					EnableResourceNameDNSARecord:    aws.Bool(true),
+					EnableResourceNameDNSAAAARecord: aws.Bool(false),
+					HostnameType:                    aws.String("resource-name"),
+				},
+			},
+			existing: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+					{ID: aws.String("sg-111")},
+					{ID: aws.String("sg-222")},
+				},
+				PrivateDNSName: &infrav1.PrivateDNSName{
+					EnableResourceNameDNSARecord:    aws.Bool(false),
+					EnableResourceNameDNSAAAARecord: aws.Bool(false),
+					HostnameType:                    aws.String("ip-name"),
+				},
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "Should return true if incoming adds PrivateDNSName and existing has none",
+			incoming: &expinfrav1.AWSLaunchTemplate{
+				PrivateDNSName: &infrav1.PrivateDNSName{
+					EnableResourceNameDNSARecord:    aws.Bool(true),
+					EnableResourceNameDNSAAAARecord: aws.Bool(false),
+					HostnameType:                    aws.String("resource-name"),
+				},
+			},
+			existing: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+					{ID: aws.String("sg-111")},
+					{ID: aws.String("sg-222")},
+				},
+				PrivateDNSName: nil,
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "Should return true if incoming removes PrivateDNSName and existing has some",
+			incoming: &expinfrav1.AWSLaunchTemplate{
+				PrivateDNSName: nil,
+			},
+			existing: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+					{ID: aws.String("sg-111")},
+					{ID: aws.String("sg-222")},
+				},
+				PrivateDNSName: &infrav1.PrivateDNSName{
+					EnableResourceNameDNSARecord:    aws.Bool(true),
+					EnableResourceNameDNSAAAARecord: aws.Bool(false),
+					HostnameType:                    aws.String("resource-name"),
+				},
+			},
+			want:    true,
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
