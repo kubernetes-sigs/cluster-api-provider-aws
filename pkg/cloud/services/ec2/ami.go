@@ -87,7 +87,7 @@ const (
 	eksARM64AmiSSMParameterFormat = "/aws/service/eks/optimized-ami/%s/amazon-linux-2-arm64/recommended/image_id"
 
 	// EKS ARM64 AL2023 AMI ID SSM Parameter name.
-	eksARM64AmiAl2023SSMParameterFormat = "/aws/service/eks/optimized-ami/%s/amazon-linux-2023/x86_64/nvidia/recommended/image_id"
+	eksARM64AmiAl2023SSMParameterFormat = "/aws/service/eks/optimized-ami/%s/amazon-linux-2023/arm64/standard/recommended/image_id"
 
 	// EKS GPU AMI ID SSM Parameter name.
 	eksGPUAmiSSMParameterFormat = "/aws/service/eks/optimized-ami/%s/amazon-linux-2-gpu/recommended/image_id"
