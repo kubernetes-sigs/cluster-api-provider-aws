@@ -49,6 +49,7 @@ func (p *DeleteAddonProcedure) Do(ctx context.Context) error {
 	input := &eks.DeleteAddonInput{
 		AddonName:   aws.String(p.name),
 		ClusterName: aws.String(p.plan.clusterName),
+		Preserve:    p.plan.preserveOnDelete,
 	}
 
 	if _, err := p.plan.eksClient.DeleteAddon(ctx, input); err != nil {

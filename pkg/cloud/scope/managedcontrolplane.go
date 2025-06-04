@@ -430,6 +430,11 @@ func (s *ManagedControlPlaneScope) BootstrapSelfManagedAddons() *bool {
 	return &s.ControlPlane.Spec.BootstrapSelfManagedAddons
 }
 
+// PreserveAddons returns whether the AWS EKS addons should be preserved in the case of removal from the manifest.
+func (s *ManagedControlPlaneScope) PreserveAddons() *bool {
+	return &s.ControlPlane.Spec.PreserveAddons
+}
+
 // VpcCni returns a list of environment variables to apply to the `aws-node` DaemonSet.
 func (s *ManagedControlPlaneScope) VpcCni() ekscontrolplanev1.VpcCni {
 	return s.ControlPlane.Spec.VpcCni
