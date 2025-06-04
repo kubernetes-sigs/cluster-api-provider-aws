@@ -358,7 +358,6 @@ func TestEKSAddonPlan(t *testing.T) {
 			},
 			expectCreateError: false,
 			expectDoError:     false,
-			preserveOnDelete:  true,
 		},
 		{
 			name: "1 installed and 0 desired - delete addon & preserve",
@@ -391,6 +390,7 @@ func TestEKSAddonPlan(t *testing.T) {
 			},
 			expectCreateError: false,
 			expectDoError:     false,
+			preserveOnDelete:  true,
 		},
 		{
 			name: "1 installed and 0 desired - addon has status of deleting",
