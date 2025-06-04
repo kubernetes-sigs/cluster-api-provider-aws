@@ -72,6 +72,7 @@ Promote the container images from the staging registry to the production registr
     1. `cluster-template-eks-managedmachinepool-vpccni.yaml`
     1. `cluster-template-eks-managedmachinepool-gpu.yaml`
     1. `cluster-template-external-cloud-provider.yaml`
+    1. `cluster-template-flatcar-machinepool.yaml`
     1. `cluster-template-flatcar.yaml`
     1. `cluster-template-machinepool.yaml`
     1. `cluster-template-multitenancy-clusterclass.yaml`
