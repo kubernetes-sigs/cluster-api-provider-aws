@@ -50,7 +50,7 @@ func (s *Service) SDKToAutoScalingGroup(v *autoscalingtypes.AutoScalingGroup) (*
 		// TODO(rudoi): this is just terrible
 		DesiredCapacity:   v.DesiredCapacity,
 		MaxSize:           aws.Int32Value(v.MaxSize), //#nosec G115
-		MinSize:           aws.Int32Value(v.MaxSize), //#nosec G115
+		MinSize:           aws.Int32Value(v.MinSize), //#nosec G115
 		CapacityRebalance: aws.BoolValue(v.CapacityRebalance),
 		// TODO: determine what additional values go here and what else should be in the struct
 	}
