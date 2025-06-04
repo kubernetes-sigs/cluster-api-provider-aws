@@ -28,13 +28,14 @@ import (
 )
 
 // NewPlan creates a new Plan to manage EKS addons.
-func NewPlan(clusterName string, desiredAddons, installedAddons []*EKSAddon, client eks.Client, maxWait time.Duration) planner.Plan {
+func NewPlan(clusterName string, desiredAddons, installedAddons []*EKSAddon, client eks.Client, maxWait time.Duration, preserveOnDelete bool) planner.Plan {
 	return &plan{
 		installedAddons:           installedAddons,
 		desiredAddons:             desiredAddons,
 		eksClient:                 client,
 		clusterName:               clusterName,
 		maxWaitActiveUpdateDelete: maxWait,
+		preserveOnDelete:          preserveOnDelete,
 	}
 }
 
@@ -45,6 +46,7 @@ type plan struct {
 	eksClient                 eks.Client
 	clusterName               string
 	maxWaitActiveUpdateDelete time.Duration
+	preserveOnDelete          bool
 }
 
 // Create will create the plan (i.e. list of procedures) for managing EKS addons.
