@@ -62,7 +62,7 @@ func (s *Service) reconcileAddons(ctx context.Context) error {
 
 	//  Compute operations to move installed to desired
 	s.scope.Debug("creating eks addons plan", "cluster", eksClusterName, "numdesired", len(desiredAddons), "numinstalled", len(installed))
-	addonsPlan := eksaddons.NewPlan(eksClusterName, desiredAddons, installed, s.EKSClient, s.scope.MaxWaitActiveUpdateDelete, *s.scope.PreserveAddons())
+	addonsPlan := eksaddons.NewPlan(eksClusterName, desiredAddons, installed, s.EKSClient, s.scope.MaxWaitActiveUpdateDelete)
 	procedures, err := addonsPlan.Create(ctx)
 	if err != nil {
 		s.scope.Error(err, "failed creating eks addons plane")

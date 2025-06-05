@@ -202,11 +202,6 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// +kubebuilder:default=true
 	BootstrapSelfManagedAddons bool `json:"bootstrapSelfManagedAddons,omitempty"`
 
-	// PreserveAddons is used to set configuration options for preserving EKS addons
-	// If you set this value to true and remove an addon from the spec, it will not be deleted from the cluster.
-	// +kubebuilder:default=false
-	PreserveAddons bool `json:"preserveAddons,omitempty"`
-
 	// RestrictPrivateSubnets indicates that the EKS control plane should only use private subnets.
 	// +kubebuilder:default=false
 	RestrictPrivateSubnets bool `json:"restrictPrivateSubnets,omitempty"`
