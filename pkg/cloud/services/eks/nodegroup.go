@@ -222,7 +222,10 @@ func (s *NodegroupService) createNodegroup() (*eks.Nodegroup, error) {
 		RemoteAccess:  remoteAccess,
 		UpdateConfig:  s.updateConfig(),
 	}
-	if managedPool.AMIType != nil && (managedPool.AWSLaunchTemplate == nil || managedPool.AWSLaunchTemplate.AMI.ID == nil) {
+
+	// Palette have all input for nodepool customization as optionsl.
+	// Allow creating AWS launch templates without specifying an AMI ID. CAPA will do lookup for the AMI ID.
+	if managedPool.AMIType != nil && (managedPool.AWSLaunchTemplate == nil /*|| managedPool.AWSLaunchTemplate.AMI.ID == nil*/) {
 		input.AmiType = aws.String(string(*managedPool.AMIType))
 	}
 	if managedPool.DiskSize != nil {
