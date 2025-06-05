@@ -69,9 +69,9 @@ type E2EContext struct {
 	AWSSessionV2 *awsv2.Config
 	// BootstrapUserAWSSession is the AWS session for the bootstrap user.
 	BootstrapUserAWSSession client.ConfigProvider
-	// BootstrapUserAWSSessionV2 is the AWS SDK V2 session for the bootstrap user.
+	// BootstrapUserAWSSessionV2 is the AWS SDK V2 session for the bootstrap user. This is until the V2 migration is done.
 	BootstrapUserAWSSessionV2 *awsv2.Config
-	// IsManaged indicates that this is for the managed part of the provider. This is until the V2 migration is done.
+	// IsManaged indicates that this is for the managed part of the provider.
 	IsManaged bool
 	// CloudFormationTemplate is the rendered template created for the test.
 	CloudFormationTemplate *cloudformation.Template
