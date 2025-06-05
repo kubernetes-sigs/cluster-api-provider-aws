@@ -26,7 +26,7 @@ import (
 	autoscalingtypes "github.com/aws/aws-sdk-go-v2/service/autoscaling/types"
 	"github.com/aws/aws-sdk-go-v2/service/eks"
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
-	"github.com/aws/aws-sdk-go/service/iam"
+	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/version"
@@ -119,11 +119,11 @@ func (s *NodegroupService) updateConfig() (*ekstypes.NodegroupUpdateConfig, erro
 	return converters.NodegroupUpdateconfigToSDK(updateConfig)
 }
 
-func (s *NodegroupService) roleArn() (*string, error) {
-	var role *iam.Role
+func (s *NodegroupService) roleArn(ctx context.Context) (*string, error) {
+	var role *iamtypes.Role
 	if s.scope.RoleName() != "" {
 		var err error
-		role, err = s.GetIAMRole(s.scope.RoleName())
+		role, err = s.GetIAMRole(ctx, s.scope.RoleName())
 		if err != nil {
 			return nil, errors.Wrapf(err, "error getting node group IAM role: %s", s.scope.RoleName())
 		}
@@ -188,7 +188,7 @@ func (s *NodegroupService) createNodegroup(ctx context.Context) (*ekstypes.Nodeg
 	eksClusterName := s.scope.KubernetesClusterName()
 	nodegroupName := s.scope.NodegroupName()
 	additionalTags := s.scope.AdditionalTags()
-	roleArn, err := s.roleArn()
+	roleArn, err := s.roleArn(ctx)
 	if err != nil {
 		return nil, err
 	}
