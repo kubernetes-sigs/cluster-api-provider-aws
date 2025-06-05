@@ -59,7 +59,7 @@ var _ = ginkgo.Describe("EKS Cluster upgrade test", func() {
 		upgradeToVersion = e2eCtx.E2EConfig.MustGetVariable(shared.EksUpgradeToVersion)
 
 		ginkgo.By("default iam role should exist")
-		VerifyRoleExistsAndOwned(ekscontrolplanev1.DefaultEKSControlPlaneRole, clusterName, false, e2eCtx.BootstrapUserAWSSession)
+		VerifyRoleExistsAndOwned(ctx, ekscontrolplanev1.DefaultEKSControlPlaneRole, clusterName, false, e2eCtx.AWSSessionV2)
 
 		ginkgo.By("should create an EKS control plane")
 		ManagedClusterSpec(ctx, func() ManagedClusterSpecInput {

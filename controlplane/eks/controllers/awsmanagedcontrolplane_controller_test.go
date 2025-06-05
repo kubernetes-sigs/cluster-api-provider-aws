@@ -28,11 +28,12 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/eks"
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
-	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go-v2/service/iam"
+	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
 	stsrequest "github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/smithy-go"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -797,14 +798,14 @@ func mockedDescribeInstanceCall(ec2Rec *mocks.MockEC2APIMockRecorder) {
 }
 
 func mockedEKSControlPlaneIAMRole(g *WithT, iamRec *mock_iamauth.MockIAMAPIMockRecorder) {
-	getRoleCall := iamRec.GetRole(&iam.GetRoleInput{
+	getRoleCall := iamRec.GetRole(gomock.Any(), &iam.GetRoleInput{
 		RoleName: aws.String("test-cluster-iam-service-role"),
-	}).Return(nil, awserr.New(iam.ErrCodeNoSuchEntityException, "", nil))
+	}).Return(nil, &smithy.GenericAPIError{Code: "NoSuchEntity", Message: ""})
 
-	createRoleCall := iamRec.CreateRole(gomock.Any()).After(getRoleCall).DoAndReturn(func(input *iam.CreateRoleInput) (*iam.CreateRoleOutput, error) {
+	createRoleCall := iamRec.CreateRole(gomock.Any(), gomock.Any()).After(getRoleCall).DoAndReturn(func(ctx context.Context, input *iam.CreateRoleInput, optFns ...func(*iam.Options)) (*iam.CreateRoleOutput, error) {
 		g.Expect(input.RoleName).To(BeComparableTo(aws.String("test-cluster-iam-service-role")))
 		return &iam.CreateRoleOutput{
-			Role: &iam.Role{
+			Role: &iamtypes.Role{
 				RoleName: aws.String("test-cluster-iam-service-role"),
 				Arn:      aws.String("arn:aws:iam::123456789012:role/test-cluster-iam-service-role"),
 				Tags:     input.Tags,
@@ -812,22 +813,22 @@ func mockedEKSControlPlaneIAMRole(g *WithT, iamRec *mock_iamauth.MockIAMAPIMockR
 		}, nil
 	})
 
-	iamRec.ListAttachedRolePolicies(&iam.ListAttachedRolePoliciesInput{
+	iamRec.ListAttachedRolePolicies(gomock.Any(), &iam.ListAttachedRolePoliciesInput{
 		RoleName: aws.String("test-cluster-iam-service-role"),
 	}).After(createRoleCall).Return(&iam.ListAttachedRolePoliciesOutput{
-		AttachedPolicies: []*iam.AttachedPolicy{},
+		AttachedPolicies: []iamtypes.AttachedPolicy{},
 	}, nil)
 
-	getPolicyCall := iamRec.GetPolicy(&iam.GetPolicyInput{
+	getPolicyCall := iamRec.GetPolicy(gomock.Any(), &iam.GetPolicyInput{
 		PolicyArn: aws.String("arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"),
 	}).Return(&iam.GetPolicyOutput{
 		// This policy is predefined by AWS
-		Policy: &iam.Policy{
+		Policy: &iamtypes.Policy{
 			// Fields are not used. Our code only checks for existence of the policy.
 		},
 	}, nil)
 
-	iamRec.AttachRolePolicy(&iam.AttachRolePolicyInput{
+	iamRec.AttachRolePolicy(gomock.Any(), &iam.AttachRolePolicyInput{
 		PolicyArn: aws.String("arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"),
 		RoleName:  aws.String("test-cluster-iam-service-role"),
 	}).After(getPolicyCall).Return(&iam.AttachRolePolicyOutput{}, nil)
@@ -840,10 +841,10 @@ func mockedEKSCluster(ctx context.Context, g *WithT, eksRec *mock_eksiface.MockE
 		Message: aws.String("cluster not found"),
 	})
 
-	getRoleCall := iamRec.GetRole(&iam.GetRoleInput{
+	getRoleCall := iamRec.GetRole(gomock.Any(), &iam.GetRoleInput{
 		RoleName: aws.String("test-cluster-iam-service-role"),
 	}).After(describeClusterCall).Return(&iam.GetRoleOutput{
-		Role: &iam.Role{
+		Role: &iamtypes.Role{
 			RoleName: aws.String("test-cluster-iam-service-role"),
 			Arn:      aws.String("arn:aws:iam::123456789012:role/test-cluster-iam-service-role"),
 		},
