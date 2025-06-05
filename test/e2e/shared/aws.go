@@ -368,25 +368,6 @@ func (i *AWSInfrastructure) DeleteInfrastructure() {
 	}
 }
 
-func NewAWSConfig(ctx context.Context) awsv2.Config {
-	By("Getting an AWS config using SDK v2 - from environment")
-
-	region, err := credentials.ResolveRegion("")
-	Expect(err).NotTo(HaveOccurred())
-
-	cfg, err := config.LoadDefaultConfig(ctx,
-		config.WithRegion(region),
-		config.WithClientLogMode(awsv2.LogSigning),
-		config.WithSharedConfigProfile(""),
-	)
-	Expect(err).NotTo(HaveOccurred())
-
-	_, err = cfg.Credentials.Retrieve(ctx)
-	Expect(err).NotTo(HaveOccurred())
-
-	return cfg
-}
-
 func NewAWSSession() client.ConfigProvider {
 	By("Getting an AWS IAM session - from environment")
 	region, err := credentials.ResolveRegion("")
