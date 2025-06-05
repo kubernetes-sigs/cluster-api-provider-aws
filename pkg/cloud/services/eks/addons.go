@@ -207,6 +207,7 @@ func (s *Service) translateAPIToAddon(addons []ekscontrolplanev1.Addon) []*eksad
 			Tags:                  ngTags(s.scope.Cluster.Name, s.scope.AdditionalTags()),
 			ResolveConflict:       conflict,
 			ServiceAccountRoleARN: addon.ServiceAccountRoleArn,
+			Preserve:              addon.PreserveOnDelete,
 		}
 
 		converted = append(converted, convertedAddon)
