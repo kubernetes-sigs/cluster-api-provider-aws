@@ -96,6 +96,11 @@ spec:
                       description: Name is the name of the addon
                       minLength: 2
                       type: string
+                    preserveOnDelete:
+                      description: |-
+                        PreserveOnDelete indicates that the addon resources should be
+                        preserved in the cluster on delete.
+                      type: boolean
                     serviceAccountRoleARN:
                       description: ServiceAccountRoleArn is the ARN of an IAM role
                         to bind to the addons service account
@@ -2270,6 +2275,11 @@ spec:
                       description: Name is the name of the addon
                       minLength: 2
                       type: string
+                    preserveOnDelete:
+                      description: |-
+                        PreserveOnDelete indicates that the addon resources should be
+                        preserved in the cluster on delete.
+                      type: boolean
                     serviceAccountRoleARN:
                       description: ServiceAccountRoleArn is the ARN of an IAM role
                         to bind to the addons service account
@@ -3116,12 +3126,6 @@ spec:
                 description: Partition is the AWS security partition being used. Defaults
                   to "aws"
                 type: string
-              preserveAddons:
-                default: false
-                description: |-
-                  PreserveAddons is used to set configuration options for preserving EKS addons
-                  If you set this value to true and remove an addon from the spec, it will not be deleted from the cluster.
-                type: boolean
               region:
                 description: The AWS Region the cluster lives in.
                 type: string
