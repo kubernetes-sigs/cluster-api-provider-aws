@@ -30,6 +30,7 @@ type EKSAddon struct {
 	Configuration         *string
 	Tags                  infrav1.Tags
 	ResolveConflict       *string
+	Preserve              bool
 	ARN                   *string
 	Status                *string
 }

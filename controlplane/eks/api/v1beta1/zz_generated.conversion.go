@@ -379,7 +379,6 @@ func autoConvert_v1beta2_AWSManagedControlPlaneSpec_To_v1beta1_AWSManagedControl
 		return err
 	}
 	// WARNING: in.BootstrapSelfManagedAddons requires manual conversion: does not exist in peer-type
-	// WARNING: in.PreserveAddons requires manual conversion: does not exist in peer-type
 	// WARNING: in.RestrictPrivateSubnets requires manual conversion: does not exist in peer-type
 	if err := Convert_v1beta2_KubeProxy_To_v1beta1_KubeProxy(&in.KubeProxy, &out.KubeProxy, s); err != nil {
 		return err
@@ -437,6 +436,7 @@ func autoConvert_v1beta1_Addon_To_v1beta2_Addon(in *Addon, out *v1beta2.Addon, s
 	out.Configuration = in.Configuration
 	out.ConflictResolution = (*v1beta2.AddonResolution)(unsafe.Pointer(in.ConflictResolution))
 	out.ServiceAccountRoleArn = (*string)(unsafe.Pointer(in.ServiceAccountRoleArn))
+	out.PreserveOnDelete = in.PreserveOnDelete
 	return nil
 }
 
@@ -451,6 +451,7 @@ func autoConvert_v1beta2_Addon_To_v1beta1_Addon(in *v1beta2.Addon, out *Addon, s
 	out.Configuration = in.Configuration
 	out.ConflictResolution = (*AddonResolution)(unsafe.Pointer(in.ConflictResolution))
 	out.ServiceAccountRoleArn = (*string)(unsafe.Pointer(in.ServiceAccountRoleArn))
+	out.PreserveOnDelete = in.PreserveOnDelete
 	return nil
 }
 
