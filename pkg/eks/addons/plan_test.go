@@ -41,6 +41,7 @@ func TestEKSAddonPlan(t *testing.T) {
 	addonStatusUpdating := string(ekstypes.AddonStatusUpdating)
 	addonStatusDeleting := string(ekstypes.AddonStatusDeleting)
 	addonStatusCreating := string(ekstypes.AddonStatusCreating)
+	addonPreserve := false
 	created := time.Now()
 	maxActiveUpdateDeleteWait := 30 * time.Minute
 
@@ -51,7 +52,6 @@ func TestEKSAddonPlan(t *testing.T) {
 		expect            func(m *mock_eksiface.MockEKSAPIMockRecorder)
 		expectCreateError bool
 		expectDoError     bool
-		preserveOnDelete  bool
 	}{
 		{
 			name: "no desired and no installed",
@@ -177,7 +177,7 @@ func TestEKSAddonPlan(t *testing.T) {
 				createDesiredAddon(addon1Name, addon1version),
 			},
 			installedAddons: []*EKSAddon{
-				createInstalledAddon(addon1Name, addon1version, addonARN, addonStatusActive),
+				createInstalledAddon(addon1Name, addon1version, addonARN, addonStatusActive, false),
 			},
 			expectCreateError: false,
 			expectDoError:     false,
@@ -199,7 +199,7 @@ func TestEKSAddonPlan(t *testing.T) {
 				createDesiredAddon(addon1Name, addon1version),
 			},
 			installedAddons: []*EKSAddon{
-				createInstalledAddon(addon1Name, addon1version, addonARN, addonStatusCreating),
+				createInstalledAddon(addon1Name, addon1version, addonARN, addonStatusCreating, addonPreserve),
 			},
 			expectCreateError: false,
 			expectDoError:     false,
@@ -237,7 +237,7 @@ func TestEKSAddonPlan(t *testing.T) {
 				createDesiredAddon(addon1Name, addon1Upgrade),
 			},
 			installedAddons: []*EKSAddon{
-				createInstalledAddon(addon1Name, addon1version, addonARN, addonStatusActive),
+				createInstalledAddon(addon1Name, addon1version, addonARN, addonStatusActive, addonPreserve),
 			},
 			expectCreateError: false,
 			expectDoError:     false,
@@ -259,7 +259,7 @@ func TestEKSAddonPlan(t *testing.T) {
 				createDesiredAddon(addon1Name, addon1Upgrade),
 			},
 			installedAddons: []*EKSAddon{
-				createInstalledAddon(addon1Name, addon1Upgrade, addonARN, addonStatusUpdating),
+				createInstalledAddon(addon1Name, addon1Upgrade, addonARN, addonStatusUpdating, addonPreserve),
 			},
 			expectCreateError: false,
 			expectDoError:     false,
@@ -278,7 +278,7 @@ func TestEKSAddonPlan(t *testing.T) {
 				createDesiredAddonExtraTag(addon1Name, addon1version),
 			},
 			installedAddons: []*EKSAddon{
-				createInstalledAddon(addon1Name, addon1version, addonARN, addonStatusActive),
+				createInstalledAddon(addon1Name, addon1version, addonARN, addonStatusActive, addonPreserve),
 			},
 			expectCreateError: false,
 			expectDoError:     false,
@@ -322,7 +322,7 @@ func TestEKSAddonPlan(t *testing.T) {
 				createDesiredAddonExtraTag(addon1Name, addon1Upgrade),
 			},
 			installedAddons: []*EKSAddon{
-				createInstalledAddon(addon1Name, addon1version, addonARN, addonStatusActive),
+				createInstalledAddon(addon1Name, addon1version, addonARN, addonStatusActive, addonPreserve),
 			},
 			expectCreateError: false,
 			expectDoError:     false,
@@ -354,7 +354,7 @@ func TestEKSAddonPlan(t *testing.T) {
 				}), maxActiveUpdateDeleteWait).Return(nil)
 			},
 			installedAddons: []*EKSAddon{
-				createInstalledAddon(addon1Name, addon1version, addonARN, addonStatusActive),
+				createInstalledAddon(addon1Name, addon1version, addonARN, addonStatusActive, addonPreserve),
 			},
 			expectCreateError: false,
 			expectDoError:     false,
@@ -386,11 +386,10 @@ func TestEKSAddonPlan(t *testing.T) {
 				}), maxActiveUpdateDeleteWait).Return(nil)
 			},
 			installedAddons: []*EKSAddon{
-				createInstalledAddon(addon1Name, addon1version, addonARN, addonStatusActive),
+				createInstalledAddon(addon1Name, addon1version, addonARN, addonStatusActive, true),
 			},
 			expectCreateError: false,
 			expectDoError:     false,
-			preserveOnDelete:  true,
 		},
 		{
 			name: "1 installed and 0 desired - addon has status of deleting",
@@ -401,7 +400,7 @@ func TestEKSAddonPlan(t *testing.T) {
 				}), maxActiveUpdateDeleteWait).Return(nil)
 			},
 			installedAddons: []*EKSAddon{
-				createInstalledAddon(addon1Name, addon1version, addonARN, addonStatusDeleting),
+				createInstalledAddon(addon1Name, addon1version, addonARN, addonStatusDeleting, false),
 			},
 			expectCreateError: false,
 			expectDoError:     false,
@@ -420,7 +419,7 @@ func TestEKSAddonPlan(t *testing.T) {
 
 			ctx := context.TODO()
 
-			planner := NewPlan(clusterName, tc.desiredAddons, tc.installedAddons, eksMock, maxActiveUpdateDeleteWait, tc.preserveOnDelete)
+			planner := NewPlan(clusterName, tc.desiredAddons, tc.installedAddons, eksMock, maxActiveUpdateDeleteWait)
 			procedures, err := planner.Create(ctx)
 			if tc.expectCreateError {
 				g.Expect(err).To(HaveOccurred())
@@ -477,10 +476,11 @@ func createDesiredAddonExtraTag(name, version string) *EKSAddon {
 	}
 }
 
-func createInstalledAddon(name, version, arn, status string) *EKSAddon {
+func createInstalledAddon(name, version, arn, status string, preserve bool) *EKSAddon {
 	desired := createDesiredAddon(name, version)
 	desired.ARN = &arn
 	desired.Status = &status
+	desired.Preserve = preserve
 
 	return desired
 }
