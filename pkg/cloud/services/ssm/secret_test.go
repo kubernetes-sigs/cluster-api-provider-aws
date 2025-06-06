@@ -17,6 +17,7 @@ limitations under the License.
 package ssm
 
 import (
+	"context"
 	"crypto/rand"
 	"sort"
 	"strings"
@@ -24,8 +25,10 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/service/ssm/types"
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -35,7 +38,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/ssm/mock_ssmiface"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/ssm/mock_ssm"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -54,20 +57,20 @@ func TestServiceCreate(t *testing.T) {
 
 	check := func(actualPrefix string, expectedPrefix string, err error, IsErrorExpected bool) {
 		if !strings.HasPrefix(actualPrefix, expectedPrefix) {
-			t.Fatalf("Prefix is not as expected: %v", actualPrefix)
+			t.Fatalf("Prefix is not as expected: %v, expected: %v", actualPrefix, expectedPrefix)
 		}
 		if (err != nil) != IsErrorExpected {
 			t.Fatalf("Unexpected error value, error = %v, expectedError %v", err, IsErrorExpected)
 		}
 	}
 
-	sortTagsByKey := func(tags []*ssm.Tag) {
+	sortTagsByKey := func(tags []types.Tag) {
 		sort.Slice(tags, func(i, j int) bool {
 			return *(tags[i].Key) < *(tags[j].Key)
 		})
 	}
 
-	expectedTags := []*ssm.Tag{
+	expectedTags := []types.Tag{
 		{
 			Key:   aws.String("Name"),
 			Value: aws.String("infra-cluster"),
@@ -85,6 +88,7 @@ func TestServiceCreate(t *testing.T) {
 			Value: aws.String("node"),
 		},
 	}
+	sortTagsByKey(expectedTags)
 
 	tests := []struct {
 		name           string
@@ -92,7 +96,7 @@ func TestServiceCreate(t *testing.T) {
 		secretPrefix   string
 		expectedPrefix string
 		wantErr        bool
-		expect         func(m *mock_ssmiface.MockSSMAPIMockRecorder)
+		expect         func(m *mock_ssm.MockSSMClientMockRecorder)
 	}{
 		{
 			name:           "Should not store data in SSM if data is having zero bytes",
@@ -105,15 +109,15 @@ func TestServiceCreate(t *testing.T) {
 			bytesCount:     10000,
 			secretPrefix:   "prefix",
 			expectedPrefix: "/prefix",
-			expect: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
-				m.PutParameter(gomock.AssignableToTypeOf(&ssm.PutParameterInput{})).MinTimes(1).Return(&ssm.PutParameterOutput{}, nil).Do(
-					func(putParameterInput *ssm.PutParameterInput) {
+			expect: func(m *mock_ssm.MockSSMClientMockRecorder) {
+				m.PutParameter(gomock.Any(), gomock.AssignableToTypeOf(&ssm.PutParameterInput{})).MinTimes(1).Return(&ssm.PutParameterOutput{}, nil).Do(
+					func(_ context.Context, putParameterInput *ssm.PutParameterInput, _ ...func(*ssm.Options)) {
 						if !strings.HasPrefix(*(putParameterInput.Name), "/prefix/") {
 							t.Fatalf("Prefix is not as expected: %v", putParameterInput.Name)
 						}
 						sortTagsByKey(putParameterInput.Tags)
-						if !cmp.Equal(putParameterInput.Tags, expectedTags) {
-							t.Fatalf("Tags are not as expected, actual: %v, expected: %v", putParameterInput.Tags, expectedTags)
+						if !cmp.Equal(putParameterInput.Tags, expectedTags, cmpopts.IgnoreUnexported(types.Tag{})) {
+							t.Fatalf("Tags are not as expected, diff: %v", cmp.Diff(putParameterInput.Tags, expectedTags, cmpopts.IgnoreUnexported(types.Tag{})))
 						}
 					},
 				)
@@ -125,15 +129,15 @@ func TestServiceCreate(t *testing.T) {
 			secretPrefix:   "/prefix",
 			expectedPrefix: "/prefix",
 			wantErr:        true,
-			expect: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
-				m.PutParameter(gomock.AssignableToTypeOf(&ssm.PutParameterInput{})).Return(nil, &ssm.ParameterAlreadyExists{}).Do(
-					func(putParameterInput *ssm.PutParameterInput) {
+			expect: func(m *mock_ssm.MockSSMClientMockRecorder) {
+				m.PutParameter(gomock.Any(), gomock.AssignableToTypeOf(&ssm.PutParameterInput{})).Return(nil, &types.ParameterAlreadyExists{}).Do(
+					func(_ context.Context, putParameterInput *ssm.PutParameterInput, _ ...func(*ssm.Options)) {
 						if !strings.HasPrefix(*(putParameterInput.Name), "/prefix/") {
 							t.Fatalf("Prefix is not as expected: %v", putParameterInput.Name)
 						}
 						sortTagsByKey(putParameterInput.Tags)
-						if !cmp.Equal(putParameterInput.Tags, expectedTags) {
-							t.Fatalf("Tags are not as expected, actual: %v, expected: %v", putParameterInput.Tags, expectedTags)
+						if !cmp.Equal(putParameterInput.Tags, expectedTags, cmpopts.IgnoreUnexported(types.Tag{})) {
+							t.Fatalf("Tags are not as expected, diff: %v", cmp.Diff(putParameterInput.Tags, expectedTags, cmpopts.IgnoreUnexported(types.Tag{})))
 						}
 					},
 				)
@@ -144,9 +148,9 @@ func TestServiceCreate(t *testing.T) {
 			bytesCount:     10,
 			secretPrefix:   "",
 			expectedPrefix: "/cluster.x-k8s.io",
-			expect: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
-				m.PutParameter(gomock.AssignableToTypeOf(&ssm.PutParameterInput{})).Return(nil, &ssm.ParameterLimitExceeded{})
-				m.PutParameter(gomock.AssignableToTypeOf(&ssm.PutParameterInput{})).Return(&ssm.PutParameterOutput{}, nil)
+			expect: func(m *mock_ssm.MockSSMClientMockRecorder) {
+				m.PutParameter(gomock.Any(), gomock.AssignableToTypeOf(&ssm.PutParameterInput{})).Return(nil, &types.ParameterLimitExceeded{})
+				m.PutParameter(gomock.Any(), gomock.AssignableToTypeOf(&ssm.PutParameterInput{})).Return(&ssm.PutParameterOutput{}, nil)
 			},
 		},
 	}
@@ -159,7 +163,7 @@ func TestServiceCreate(t *testing.T) {
 
 			clusterScope, err := getClusterScope(client)
 			g.Expect(err).NotTo(HaveOccurred())
-			ssmClientMock := mock_ssmiface.NewMockSSMAPI(mockCtrl)
+			ssmClientMock := mock_ssm.NewMockSSMClient(mockCtrl)
 			if tt.expect != nil {
 				tt.expect(ssmClientMock.EXPECT())
 			}
@@ -184,20 +188,20 @@ func TestServiceDelete(t *testing.T) {
 	tests := []struct {
 		name        string
 		secretCount int32
-		expect      func(m *mock_ssmiface.MockSSMAPIMockRecorder)
+		expect      func(m *mock_ssm.MockSSMClientMockRecorder)
 		wantErr     bool
 		check       func(error)
 	}{
 		{
 			name:        "Should not call AWS when secret count has zero value",
 			secretCount: 0,
-			expect:      func(m *mock_ssmiface.MockSSMAPIMockRecorder) {},
+			expect:      func(m *mock_ssm.MockSSMClientMockRecorder) {},
 		},
 		{
 			name:        "Should not return error when delete is successful",
 			secretCount: 1,
-			expect: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
-				m.DeleteParameter(gomock.Eq(&ssm.DeleteParameterInput{
+			expect: func(m *mock_ssm.MockSSMClientMockRecorder) {
+				m.DeleteParameter(gomock.Any(), gomock.Eq(&ssm.DeleteParameterInput{
 					Name: aws.String("prefix/0"),
 				})).Return(&ssm.DeleteParameterOutput{}, nil)
 			},
@@ -205,14 +209,14 @@ func TestServiceDelete(t *testing.T) {
 		{
 			name:        "Should return all errors except not found errors",
 			secretCount: 3,
-			expect: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
-				m.DeleteParameter(gomock.Eq(&ssm.DeleteParameterInput{
+			expect: func(m *mock_ssm.MockSSMClientMockRecorder) {
+				m.DeleteParameter(gomock.Any(), gomock.Eq(&ssm.DeleteParameterInput{
 					Name: aws.String("prefix/0"),
 				})).Return(nil, awserrors.NewFailedDependency("failed dependency"))
-				m.DeleteParameter(gomock.Eq(&ssm.DeleteParameterInput{
+				m.DeleteParameter(gomock.Any(), gomock.Eq(&ssm.DeleteParameterInput{
 					Name: aws.String("prefix/1"),
 				})).Return(nil, awserrors.NewNotFound("not found"))
-				m.DeleteParameter(gomock.Eq(&ssm.DeleteParameterInput{
+				m.DeleteParameter(gomock.Any(), gomock.Eq(&ssm.DeleteParameterInput{
 					Name: aws.String("prefix/2"),
 				})).Return(nil, awserrors.NewConflict("new conflict"))
 			},
@@ -234,7 +238,7 @@ func TestServiceDelete(t *testing.T) {
 			clusterScope, err := getClusterScope(client)
 			g.Expect(err).NotTo(HaveOccurred())
 
-			ssmClientMock := mock_ssmiface.NewMockSSMAPI(mockCtrl)
+			ssmClientMock := mock_ssm.NewMockSSMClient(mockCtrl)
 			tt.expect(ssmClientMock.EXPECT())
 			s := NewService(clusterScope)
 			s.SSMClient = ssmClientMock
