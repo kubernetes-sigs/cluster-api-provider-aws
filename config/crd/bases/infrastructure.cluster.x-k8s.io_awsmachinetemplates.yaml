@@ -620,6 +620,18 @@ spec:
                             - message: allowed values are 'none' and 'amazon-pool'
                               rule: self in ['none','amazon-pool']
                         type: object
+                      hostAffinity:
+                        description: |-
+                          Affinity specifies the dedicated host affinity setting for the instance.
+                          When affinity is set to Host, an instance started onto a specific host always restarts on the same host if stopped.
+                        enum:
+                        - Default
+                        - Host
+                        type: string
+                      hostID:
+                        description: HostID specifies the Dedicated Host on which
+                          the instance must be started.
+                        type: string
                       iamInstanceProfile:
                         description: IAMInstanceProfile is a name of an IAM instance
                           profile to assign to the instance
