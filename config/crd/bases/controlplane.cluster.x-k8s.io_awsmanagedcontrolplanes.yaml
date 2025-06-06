@@ -2196,12 +2196,11 @@ spec:
                 additionalProperties:
                   type: string
                 description: |-
-                  AdditionalTags is an optional set of tags to add to AWS resources managed by the AWS provider, in addition to the
-                  ones added by default.
+                  AdditionalTags is an optional set of tags to add to AWS resources managed by the AWS provider,
+                  in addition to the ones added by default.
                 type: object
               addons:
-                description: Addons defines the EKS addons to enable with the EKS
-                  cluster.
+                description: Addons defines the EKS addons to enable with the cluster.
                 items:
                   description: Addon represents a EKS addon.
                   properties:
@@ -2236,8 +2235,8 @@ spec:
               associateOIDCProvider:
                 default: false
                 description: |-
-                  AssociateOIDCProvider can be enabled to automatically create an identity
-                  provider for the controller for use with IAM roles for service accounts
+                  AssociateOIDCProvider can be enabled to automatically create an identity provider
+                  for the controller for use with IAM roles for service accounts.
                 type: boolean
               bastion:
                 description: Bastion contains options to configure the bastion host.
@@ -2279,8 +2278,9 @@ spec:
                   If you set this value to false when creating a cluster, the default networking add-ons will not be installed
                 type: boolean
               controlPlaneEndpoint:
-                description: ControlPlaneEndpoint represents the endpoint used to
-                  communicate with the control plane.
+                description: |-
+                  ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
+                  Immutable, populated by the EKS API at create.
                 properties:
                   host:
                     description: The hostname on which the API server is serving.
@@ -2301,7 +2301,7 @@ spec:
                 type: string
               encryptionConfig:
                 description: EncryptionConfig specifies the encryption configuration
-                  for the cluster
+                  for the cluster.
                 properties:
                   provider:
                     description: Provider specifies the ARN or alias of the CMK (in
@@ -2314,8 +2314,8 @@ spec:
                     type: array
                 type: object
               endpointAccess:
-                description: Endpoints specifies access to this cluster's control
-                  plane endpoints
+                description: EndpointAccess specifies how the control plane endpoints
+                  are accessible.
                 properties:
                   private:
                     description: Private points VPC-internal control plane access
@@ -2335,8 +2335,8 @@ spec:
               iamAuthenticatorConfig:
                 description: |-
                   IAMAuthenticatorConfig allows the specification of any additional user or role mappings
-                  for use when generating the aws-iam-authenticator configuration. If this is nil the
-                  default configuration is still generated for the cluster.
+                  for generating the aws-iam-authenticator configuration.
+                  If this is nil, the default configuration is still generated for the cluster.
                 properties:
                   mapRoles:
                     description: RoleMappings is a list of role mappings
@@ -2408,36 +2408,22 @@ spec:
                 - name
                 type: object
               imageLookupBaseOS:
-                description: |-
-                  ImageLookupBaseOS is the name of the base operating system used to look
-                  up machine images when a machine does not specify an AMI. When set, this
-                  will be used for all cluster machines unless a machine specifies a
-                  different ImageLookupBaseOS.
+                description: ImageLookupBaseOS is the name of the base operating system
+                  used to look up machine images when a machine does not specify an
+                  AMI.
                 type: string
               imageLookupFormat:
                 description: |-
-                  ImageLookupFormat is the AMI naming format to look up machine images when
-                  a machine does not specify an AMI. When set, this will be used for all
-                  cluster machines unless a machine specifies a different ImageLookupOrg.
-                  Supports substitutions for {{.BaseOS}} and {{.K8sVersion}} with the base
-                  OS and kubernetes version, respectively. The BaseOS will be the value in
-                  ImageLookupBaseOS or ubuntu (the default), and the kubernetes version as
-                  defined by the packages produced by kubernetes/release without v as a
-                  prefix: 1.13.0, 1.12.5-mybuild.1, or 1.17.3. For example, the default
-                  image format of capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-* will end up
-                  searching for AMIs that match the pattern capa-ami-ubuntu-?1.18.0-* for a
-                  Machine that is targeting kubernetes v1.18.0 and the ubuntu base OS. See
-                  also: https://golang.org/pkg/text/template/
+                  ImageLookupFormat is the AMI naming format used to look up machine images when a machine does not specify an AMI.
+                  Supports substitutions for {{.BaseOS}} and {{.K8sVersion}}.
                 type: string
               imageLookupOrg:
-                description: |-
-                  ImageLookupOrg is the AWS Organization ID to look up machine images when a
-                  machine does not specify an AMI. When set, this will be used for all
-                  cluster machines unless a machine specifies a different ImageLookupOrg.
+                description: ImageLookupOrg is the AWS Organization ID used to look
+                  up machine images when a machine does not specify an AMI.
                 type: string
               kubeProxy:
                 description: KubeProxy defines managed attributes of the kube-proxy
-                  daemonset
+                  daemonset.
                 properties:
                   disable:
                     default: false
@@ -2451,8 +2437,8 @@ spec:
                 type: object
               logging:
                 description: |-
-                  Logging specifies which EKS Cluster logs should be enabled. Entries for
-                  each of the enabled logs will be sent to CloudWatch
+                  Logging specifies which EKS Cluster logs should be enabled.
+                  Entries for each enabled log will be sent to CloudWatch.
                 properties:
                   apiServer:
                     default: false
@@ -2486,8 +2472,15 @@ spec:
                 - controllerManager
                 - scheduler
                 type: object
+              machineTemplate:
+                description: |-
+                  MachineTemplate contains information about how machines
+                  should be shaped when creating or updating a control plane.
+                  For the AWSManagedControlPlaneTemplate, this field is used
+                  only to fulfill the CAPI contract.
+                type: object
               network:
-                description: NetworkSpec encapsulates all things related to AWS network.
+                description: NetworkSpec encapsulates all things related to AWS networking.
                 properties:
                   additionalControlPlaneIngressRules:
                     description: AdditionalControlPlaneIngressRules is an optional
@@ -2992,9 +2985,8 @@ spec:
                     type: object
                 type: object
               oidcIdentityProviderConfig:
-                description: |-
-                  IdentityProviderconfig is used to specify the oidc provider config
-                  to be attached with this eks cluster
+                description: OIDCIdentityProviderConfig is used to specify the OIDC
+                  provider configuration to attach to this EKS cluster.
                 properties:
                   clientId:
                     description: |-
@@ -3064,10 +3056,10 @@ spec:
                 type: object
               partition:
                 description: Partition is the AWS security partition being used. Defaults
-                  to "aws"
+                  to "aws".
                 type: string
               region:
-                description: The AWS Region the cluster lives in.
+                description: Region is the AWS Region in which the cluster is located.
                 type: string
               restrictPrivateSubnets:
                 default: false
@@ -3076,19 +3068,15 @@ spec:
                 type: boolean
               roleAdditionalPolicies:
                 description: |-
-                  RoleAdditionalPolicies allows you to attach additional polices to
-                  the control plane role. You must enable the EKSAllowAddRoles
-                  feature flag to incorporate these into the created role.
+                  RoleAdditionalPolicies allows you to attach additional policies to the control plane role.
+                  You must enable the EKSAllowAddRoles feature flag to incorporate these into the created role.
                 items:
                   type: string
                 type: array
               roleName:
                 description: |-
-                  RoleName specifies the name of IAM role that gives EKS
-                  permission to make API calls. If the role is pre-existing
-                  we will treat it as unmanaged and not delete it on
-                  deletion. If the EKSEnableIAM feature flag is true
-                  and no name is supplied then a role is created.
+                  RoleName specifies the name of the IAM role that gives EKS permission to make API calls.
+                  If the role is pre-existing, it will be treated as unmanaged and not deleted on cluster deletion.
                 minLength: 2
                 type: string
               rolePath:
@@ -3121,32 +3109,30 @@ spec:
                   Must be within the 100.64.0.0/10 or 198.19.0.0/16 range.
                 type: string
               sshKeyName:
-                description: SSHKeyName is the name of the ssh key to attach to the
-                  bastion host. Valid values are empty string (do not use SSH keys),
-                  a valid SSH key name, or omitted (use the default SSH key name)
+                description: |-
+                  SSHKeyName is the name of the SSH key to attach to the bastion host.
+                  Valid values are empty string (do not use SSH keys), a valid SSH key name,
+                  or omitted (use the default SSH key name).
                 type: string
               tokenMethod:
                 default: iam-authenticator
                 description: |-
-                  TokenMethod is used to specify the method for obtaining a client token for communicating with EKS
-                  iam-authenticator - obtains a client token using iam-authentictor
-                  aws-cli - obtains a client token using the AWS CLI
-                  Defaults to iam-authenticator
+                  TokenMethod is used to specify the method for obtaining a client token for communicating with EKS.
+                  Defaults to iam-authenticator.
                 enum:
                 - iam-authenticator
                 - aws-cli
                 type: string
               version:
                 description: |-
-                  Version defines the desired Kubernetes version. If no version number
-                  is supplied then the latest version of Kubernetes that EKS supports
-                  will be used.
+                  Version defines the desired Kubernetes version.
+                  If no version is supplied, then the latest version of Kubernetes that EKS supports will be used.
                 minLength: 2
                 pattern: ^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.?(\.0|[1-9][0-9]*)?$
                 type: string
               vpcCni:
-                description: VpcCni is used to set configuration options for the VPC
-                  CNI plugin
+                description: VpcCni specifies configuration options for the VPC CNI
+                  plugin.
                 properties:
                   disable:
                     default: false
