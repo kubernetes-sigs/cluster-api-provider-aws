@@ -1,8 +1,8 @@
 module sigs.k8s.io/cluster-api-provider-aws/v2
 
-go 1.21
+go 1.22
 
-toolchain go1.21.5
+toolchain go1.24.3
 
 replace (
 	// TODO: remove when component-base updates its prometheus deps (https://github.com/prometheus/client_golang/releases/tag/v1.19.0)
@@ -19,6 +19,8 @@ require (
 	github.com/aws/amazon-vpc-cni-k8s v1.15.4
 	github.com/aws/aws-lambda-go v1.41.0
 	github.com/aws/aws-sdk-go v1.51.17
+	github.com/aws/aws-sdk-go-v2 v1.36.3
+	github.com/aws/aws-sdk-go-v2/service/ssm v1.59.0
 	github.com/awslabs/goformation/v4 v4.19.5
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/coreos/ignition v0.35.0
@@ -73,9 +75,10 @@ require (
 	github.com/adrg/xdg v0.4.0 // indirect
 	github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20230305170008-8188dc5388df // indirect
 	github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535 // indirect
-	github.com/aws/aws-sdk-go-v2 v1.24.1 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.34 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.34 // indirect
 	github.com/aws/aws-sdk-go-v2/service/iam v1.27.1 // indirect
-	github.com/aws/smithy-go v1.19.0 // indirect
+	github.com/aws/smithy-go v1.22.2 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect

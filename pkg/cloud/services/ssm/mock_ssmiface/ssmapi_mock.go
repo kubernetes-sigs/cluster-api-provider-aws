@@ -25,7 +25,7 @@ import (
 	reflect "reflect"
 
 	request "github.com/aws/aws-sdk-go/aws/request"
-	ssm "github.com/aws/aws-sdk-go/service/ssm"
+	ssm "github.com/aws/aws-sdk-go-v2/service/ssm"
 	gomock "github.com/golang/mock/gomock"
 )
 
