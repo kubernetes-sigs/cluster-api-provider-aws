@@ -22,8 +22,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
