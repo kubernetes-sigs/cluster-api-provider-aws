@@ -36,7 +36,7 @@ func (s *Service) ReconcileControlPlane(ctx context.Context) error {
 	s.scope.Debug("Reconciling EKS control plane", "cluster", klog.KRef(s.scope.Cluster.Namespace, s.scope.Cluster.Name))
 
 	// Control Plane IAM Role
-	if err := s.reconcileControlPlaneIAMRole(); err != nil {
+	if err := s.reconcileControlPlaneIAMRole(ctx); err != nil {
 		conditions.MarkFalse(s.scope.ControlPlane, ekscontrolplanev1.IAMControlPlaneRolesReadyCondition, ekscontrolplanev1.IAMControlPlaneRolesReconciliationFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
 		return err
 	}
@@ -77,12 +77,12 @@ func (s *Service) DeleteControlPlane(ctx context.Context) (err error) {
 	}
 
 	// Control Plane IAM role
-	if err := s.deleteControlPlaneIAMRole(); err != nil {
+	if err := s.deleteControlPlaneIAMRole(ctx); err != nil {
 		return err
 	}
 
 	// OIDC Provider
-	if err := s.deleteOIDCProvider(); err != nil {
+	if err := s.deleteOIDCProvider(ctx); err != nil {
 		return err
 	}
 
@@ -94,7 +94,7 @@ func (s *Service) DeleteControlPlane(ctx context.Context) (err error) {
 func (s *NodegroupService) ReconcilePool(ctx context.Context) error {
 	s.scope.Debug("Reconciling EKS nodegroup")
 
-	if err := s.reconcileNodegroupIAMRole(); err != nil {
+	if err := s.reconcileNodegroupIAMRole(ctx); err != nil {
 		conditions.MarkFalse(
 			s.scope.ManagedMachinePool,
 			expinfrav1.IAMNodegroupRolesReadyCondition,
@@ -146,7 +146,7 @@ func (s *NodegroupService) ReconcilePoolDelete(ctx context.Context) error {
 		return errors.Wrap(err, "failed to delete nodegroup")
 	}
 
-	if err := s.deleteNodegroupIAMRole(); err != nil {
+	if err := s.deleteNodegroupIAMRole(ctx); err != nil {
 		return errors.Wrap(err, "failed to delete nodegroup IAM role")
 	}
 

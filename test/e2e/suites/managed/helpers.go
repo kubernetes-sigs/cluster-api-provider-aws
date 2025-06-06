@@ -28,8 +28,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
 	"github.com/aws/aws-sdk-go-v2/service/eks"
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
-	"github.com/aws/aws-sdk-go/aws/client"
-	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go-v2/service/iam"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
@@ -136,8 +135,8 @@ func verifyConfigMapExists(ctx context.Context, name, namespace string, k8sclien
 	}, clientRequestTimeout, clientRequestCheckInterval).Should(Succeed(), fmt.Sprintf("eventually failed trying to verify ConfigMap %q exists", name))
 }
 
-func VerifyRoleExistsAndOwned(roleName string, eksClusterName string, checkOwned bool, sess client.ConfigProvider) {
-	iamClient := iam.New(sess)
+func VerifyRoleExistsAndOwned(ctx context.Context, roleName string, eksClusterName string, checkOwned bool, sess *aws.Config) {
+	iamClient := iam.NewFromConfig(*sess)
 	input := &iam.GetRoleInput{
 		RoleName: aws.String(roleName),
 	}
@@ -148,7 +147,7 @@ func VerifyRoleExistsAndOwned(roleName string, eksClusterName string, checkOwned
 	)
 
 	Eventually(func() error {
-		output, err = iamClient.GetRole(input)
+		output, err = iamClient.GetRole(ctx, input)
 		return err
 	}, clientRequestTimeout, clientRequestCheckInterval).Should(Succeed(), fmt.Sprintf("eventually failed trying to get IAM Role %q", roleName))
 
