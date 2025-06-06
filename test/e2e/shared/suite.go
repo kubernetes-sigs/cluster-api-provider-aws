@@ -157,12 +157,7 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	ensureSSHKeyPair(e2eCtx.AWSSession, DefaultSSHKeyPairName)
 	e2eCtx.Environment.BootstrapAccessKey = newUserAccessKey(context.TODO(), e2eCtx.AWSSessionV2, bootstrapTemplate.Spec.BootstrapUser.UserName)
 	e2eCtx.BootstrapUserAWSSession = NewAWSSessionWithKey(e2eCtx.Environment.BootstrapAccessKey)
-	//TODO: v2AccessKey can be removed after AWS SDK V2 Migration
-	v2AccessKey := &iamtypes.AccessKey{
-		AccessKeyId:     e2eCtx.Environment.BootstrapAccessKey.AccessKeyId,
-		SecretAccessKey: e2eCtx.Environment.BootstrapAccessKey.SecretAccessKey,
-	}
-	e2eCtx.BootstrapUserAWSSessionV2 = NewAWSSessionWithKeyV2(v2AccessKey)
+	e2eCtx.BootstrapUserAWSSessionV2 = NewAWSSessionWithKeyV2(e2eCtx.Environment.BootstrapAccessKey)
 	Expect(ensureTestImageUploaded(e2eCtx)).NotTo(HaveOccurred())
 
 	// Image ID is needed when using a CI Kubernetes version. This is used in conformance test and upgrade to main test.
@@ -231,12 +226,7 @@ func AllNodesBeforeSuite(e2eCtx *E2EContext, data []byte) {
 	e2eCtx.Environment.BootstrapClusterProxy = framework.NewClusterProxy("bootstrap", conf.KubeconfigPath, e2eCtx.Environment.Scheme)
 	e2eCtx.E2EConfig = &conf.E2EConfig
 	e2eCtx.BootstrapUserAWSSession = NewAWSSessionWithKey(conf.BootstrapAccessKey)
-	//TODO: v2AccessKey can be removed after AWS SDK V2 Migration
-	v2AccessKey := &iamtypes.AccessKey{
-		AccessKeyId:     e2eCtx.Environment.BootstrapAccessKey.AccessKeyId,
-		SecretAccessKey: e2eCtx.Environment.BootstrapAccessKey.SecretAccessKey,
-	}
-	e2eCtx.BootstrapUserAWSSessionV2 = NewAWSSessionWithKeyV2(v2AccessKey)
+	e2eCtx.BootstrapUserAWSSessionV2 = NewAWSSessionWithKeyV2(conf.BootstrapAccessKey)
 	e2eCtx.Settings.FileLock = flock.New(ResourceQuotaFilePath)
 	e2eCtx.Settings.KubetestConfigFilePath = conf.KubetestConfigFilePath
 	e2eCtx.Settings.UseCIArtifacts = conf.UseCIArtifacts
