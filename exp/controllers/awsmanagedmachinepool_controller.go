@@ -258,7 +258,7 @@ func (r *AWSManagedMachinePoolReconciler) reconcileDelete(
 	}
 
 	if machinePoolScope.ManagedMachinePool.Spec.AWSLaunchTemplate != nil {
-		// launchTemplateID := machinePoolScope.ManagedMachinePool.Status.LaunchTemplateID
+		launchTemplateID := machinePoolScope.ManagedMachinePool.Status.LaunchTemplateID
 		launchTemplate, _, _, err := ec2Svc.GetLaunchTemplate(machinePoolScope.LaunchTemplateName())
 		if err != nil {
 			return err
@@ -270,14 +270,16 @@ func (r *AWSManagedMachinePoolReconciler) reconcileDelete(
 			controllerutil.RemoveFinalizer(machinePoolScope.ManagedMachinePool, expinfrav1.ManagedMachinePoolFinalizer)
 			return nil
 		}
-		var launchTemplateIDFromAWS string
-		launchTemplateIDFromAWS, err = ec2Svc.GetLaunchTemplateID(machinePoolScope.LaunchTemplateName())
-		if err != nil {
-			return err
+
+		// To handle the case of Private Endpoint, the launch template ID is not set in the status.
+		// and to handle the nil pointer case, we need to get the launch template ID from AWS.
+		if launchTemplateID == nil {
+			id, _ := ec2Svc.GetLaunchTemplateID(machinePoolScope.LaunchTemplateName())
+			launchTemplateID = &id
 		}
 
 		machinePoolScope.Info("deleting launch template", "name", launchTemplate.Name)
-		if err := ec2Svc.DeleteLaunchTemplate(launchTemplateIDFromAWS); err != nil {
+		if err := ec2Svc.DeleteLaunchTemplate(*launchTemplateID); err != nil {
 			r.Recorder.Eventf(machinePoolScope.ManagedMachinePool, corev1.EventTypeWarning, "FailedDelete", "Failed to delete launch template %q: %v", launchTemplate.Name, err)
 			return errors.Wrap(err, "failed to delete launch template")
 		}
