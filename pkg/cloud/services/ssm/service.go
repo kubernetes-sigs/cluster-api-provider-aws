@@ -13,28 +13,40 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 package ssm
 
 import (
-	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
+	"context"
+	"fmt"
 
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 )
 
-// Service holds a collection of interfaces.
-// The interfaces are broken down like this to group functions together.
-// One alternative is to have a large list of functions from the ec2 client.
-type Service struct {
-	scope     cloud.ClusterScoper
-	SSMClient ssmiface.SSMAPI
+// SSMClient defines the interface for the SSM client methods used by the service.
+// It has been updated to include all methods required by the secret management logic.
+type SSMClient interface {
+	GetParameter(ctx context.Context, params *ssm.GetParameterInput, optFns ...func(*ssm.Options)) (*ssm.GetParameterOutput, error)
+	PutParameter(ctx context.Context, params *ssm.PutParameterInput, optFns ...func(*ssm.Options)) (*ssm.PutParameterOutput, error)
+	DeleteParameter(ctx context.Context, params *ssm.DeleteParameterInput, optFns ...func(*ssm.Options)) (*ssm.DeleteParameterOutput, error)
 }
 
-// NewService returns a new service given the api clients.
+// Service holds a collection of interfaces.
+type Service struct {
+	scope     cloud.ClusterScoper
+	SSMClient SSMClient
+}
+
+// NewService returns a new service for the AWS SSM service.
 func NewService(secretsScope cloud.ClusterScoper) *Service {
+	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(secretsScope.Region()))
+	if err != nil {
+		panic(fmt.Sprintf("failed to load AWS config for SSM service: %v", err))
+	}
+
 	return &Service{
 		scope:     secretsScope,
-		SSMClient: scope.NewSSMClient(secretsScope, secretsScope, secretsScope, secretsScope.InfraCluster()),
+		SSMClient: ssm.NewFromConfig(cfg),
 	}
 }
