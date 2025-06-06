@@ -28,11 +28,16 @@ WORKDIR /workspace
 # Copy the Go Modules manifests
 COPY go.mod go.mod
 COPY go.sum go.sum
+COPY ./rosa /workspace/rosa
+
+
 # Cache deps before building and copying source so that we don't need to re-download as much
 # and so that source changes don't invalidate our downloaded layer
 RUN  --mount=type=cache,target=/root/.local/share/golang \
      --mount=type=cache,target=/go/pkg/mod \
      go mod download
+
+# RUN go mod download
 
 # Copy the sources
 COPY ./ ./
