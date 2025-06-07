@@ -17,10 +17,11 @@ limitations under the License.
 package gc
 
 import (
-	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/aws/aws-sdk-go/service/elb/elbiface"
 	"github.com/aws/aws-sdk-go/service/elbv2/elbv2iface"
 	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface"
+
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/common"
 )
 
 // ServiceOption is an option for creating the service.
@@ -48,7 +49,7 @@ func withResourceTaggingClient(client resourcegroupstaggingapiiface.ResourceGrou
 }
 
 // withEC2Client is an option for specifying a AWS EC2 Client.
-func withEC2Client(client ec2iface.EC2API) ServiceOption {
+func withEC2Client(client common.EC2API) ServiceOption {
 	return func(s *Service) {
 		s.ec2Client = client
 	}
