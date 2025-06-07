@@ -277,7 +277,7 @@ func (mr *MockEC2InterfaceMockRecorder) InstanceIfExists(arg0 interface{}) *gomo
 }
 
 // LaunchTemplateNeedsUpdate mocks base method.
-func (m *MockEC2Interface) LaunchTemplateNeedsUpdate(arg0 scope.LaunchTemplateScope, arg1, arg2 *v1beta20.AWSLaunchTemplate) (bool, error) {
+func (m *MockEC2Interface) LaunchTemplateNeedsUpdate(arg0 scope.LaunchTemplateScope, arg1 *v1beta20.AWSLaunchTemplate, arg2 *string) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "LaunchTemplateNeedsUpdate", arg0, arg1, arg2)
 	ret0, _ := ret[0].(bool)
