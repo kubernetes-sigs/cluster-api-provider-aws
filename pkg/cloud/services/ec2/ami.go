@@ -60,7 +60,7 @@ const (
 	ubuntuOwnerIDUsGov = "513442679011"
 
 	// Description regex for fetching Ubuntu AMIs for bastion host.
-	ubuntuImageDescription = "Canonical??Ubuntu??24.04?LTS??amd64?noble?image*"
+	ubuntuImageDescription = "Canonical??Ubuntu??24.04??amd64?noble?image*"
 
 	// defaultMachineAMILookupBaseOS is the default base operating system to use
 	// when looking up machine AMIs.
