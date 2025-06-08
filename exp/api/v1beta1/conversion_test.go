@@ -21,6 +21,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/runtime"
+
 	"sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
