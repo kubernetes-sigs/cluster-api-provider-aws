@@ -47,13 +47,9 @@ func WaitForLoadBalancerToExistForService(input WaitForLoadBalancerToExistForSer
 	By(fmt.Sprintf("Waiting for AWS load balancer of type %s to exist for service %s/%s", input.Type, input.ServiceNamespace, input.ServiceName))
 
 	Eventually(func() bool {
-		arns, err := GetLoadBalancerARNs(GetLoadBalancerARNsInput{ //nolint: gosimple
-			AWSSession:       input.AWSSession,
-			ServiceName:      input.ServiceName,
-			ServiceNamespace: input.ServiceNamespace,
-			ClusterName:      input.ClusterName,
-			Type:             input.Type,
-		})
+		input := GetLoadBalancerARNsInput(input)
+
+		arns, err := GetLoadBalancerARNs(input)
 		if err != nil {
 			fmt.Fprintf(GinkgoWriter, "Error getting loadbalancer arns: %v\n", err)
 
