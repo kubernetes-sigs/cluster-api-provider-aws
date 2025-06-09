@@ -414,16 +414,31 @@ type conditionAssertion struct {
 	reason        string
 }
 
-func expectAWSClusterConditions(m *infrav1.AWSCluster, expected []conditionAssertion) {
-	Expect(len(m.Status.Conditions)).To(BeNumerically(">=", len(expected)), "number of conditions")
+func hasAWSClusterConditions(m *infrav1.AWSCluster, expected []conditionAssertion) bool {
+	if len(m.Status.Conditions) < len(expected) {
+		return false
+	}
 	for _, c := range expected {
 		actual := conditions.Get(m, c.conditionType)
-		Expect(actual).To(Not(BeNil()))
-		Expect(actual.Type).To(Equal(c.conditionType))
-		Expect(actual.Status).To(Equal(c.status))
-		Expect(actual.Severity).To(Equal(c.severity))
-		Expect(actual.Reason).To(Equal(c.reason))
+		if actual == nil {
+			return false
+		}
+
+		if actual.Type != c.conditionType {
+			return false
+		}
+		if actual.Status != c.status {
+			return false
+		}
+		if actual.Severity != c.severity {
+			return false
+		}
+		if actual.Reason != c.reason {
+			return false
+		}
 	}
+
+	return true
 }
 
 func createEFS() *efs.FileSystemDescription {
