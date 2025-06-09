@@ -217,6 +217,7 @@ Resources:
           - ec2:RevokeSecurityGroupIngress
           - ec2:RunInstances
           - ec2:TerminateInstances
+          - ec2:GetSecurityGroupsForVpc
           - tag:GetResources
           - elasticloadbalancing:AddTags
           - elasticloadbalancing:CreateLoadBalancer
@@ -240,6 +241,7 @@ Resources:
           - elasticloadbalancing:CreateListener
           - elasticloadbalancing:DescribeTargetHealth
           - elasticloadbalancing:RegisterTargets
+          - elasticloadbalancing:DeregisterTargets
           - elasticloadbalancing:DeleteListener
           - autoscaling:DescribeAutoScalingGroups
           - autoscaling:DescribeInstanceRefreshes
