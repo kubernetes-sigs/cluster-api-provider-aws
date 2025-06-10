@@ -20,9 +20,10 @@ import (
 	"context"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	ssmtypes "github.com/aws/aws-sdk-go-v2/service/ssm/types"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -495,10 +496,10 @@ func TestEKSAMILookUp(t *testing.T) {
 			arch:       "x86_64",
 			amiType:    &gpuAMI,
 			expect: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
-				m.GetParameter(gomock.Eq(&ssm.GetParameterInput{
+				m.GetParameter(context.TODO(), gomock.Eq(&ssm.GetParameterInput{
 					Name: aws.String("/aws/service/eks/optimized-ami/1.23/amazon-linux-2-gpu/recommended/image_id"),
 				})).Return(&ssm.GetParameterOutput{
-					Parameter: &ssm.Parameter{
+					Parameter: &ssmtypes.Parameter{
 						Value: aws.String("id"),
 					},
 				}, nil)
@@ -511,10 +512,10 @@ func TestEKSAMILookUp(t *testing.T) {
 			k8sVersion: "v1.23.3",
 			arch:       "x86_64",
 			expect: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
-				m.GetParameter(gomock.Eq(&ssm.GetParameterInput{
+				m.GetParameter(context.TODO(), gomock.Eq(&ssm.GetParameterInput{
 					Name: aws.String("/aws/service/eks/optimized-ami/1.23/amazon-linux-2/recommended/image_id"),
 				})).Return(&ssm.GetParameterOutput{
-					Parameter: &ssm.Parameter{
+					Parameter: &ssmtypes.Parameter{
 						Value: aws.String("id"),
 					},
 				}, nil)
@@ -527,7 +528,7 @@ func TestEKSAMILookUp(t *testing.T) {
 			k8sVersion: "v1.23.3",
 			arch:       "x86_64",
 			expect: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
-				m.GetParameter(gomock.Eq(&ssm.GetParameterInput{
+				m.GetParameter(context.TODO(), gomock.Eq(&ssm.GetParameterInput{
 					Name: aws.String("/aws/service/eks/optimized-ami/1.23/amazon-linux-2/recommended/image_id"),
 				})).Return(nil, awserrors.NewFailedDependency("dependency failure"))
 			},
@@ -544,7 +545,7 @@ func TestEKSAMILookUp(t *testing.T) {
 			k8sVersion: "v1.23.3",
 			arch:       "x86_64",
 			expect: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
-				m.GetParameter(gomock.Eq(&ssm.GetParameterInput{
+				m.GetParameter(context.TODO(), gomock.Eq(&ssm.GetParameterInput{
 					Name: aws.String("/aws/service/eks/optimized-ami/1.23/amazon-linux-2/recommended/image_id"),
 				})).Return(&ssm.GetParameterOutput{}, nil)
 			},
