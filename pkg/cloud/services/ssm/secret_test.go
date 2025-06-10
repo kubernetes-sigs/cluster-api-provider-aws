@@ -17,13 +17,16 @@ limitations under the License.
 package ssm
 
 import (
+	"context"
 	"crypto/rand"
 	"sort"
 	"strings"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/service/ssm/types"
+	"github.com/aws/smithy-go"
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
@@ -39,6 +42,31 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
+type mockAPIError struct {
+	Code    string
+	Message string
+}
+
+// ErrorCode returns the error's code, making it satisfy one part of the interface.
+func (e *mockAPIError) ErrorCode() string {
+	return e.Code
+}
+
+// ErrorMessage returns the error's message.
+func (e *mockAPIError) ErrorMessage() string {
+	return e.Message
+}
+
+// Error returns the error's message, satisfying the standard 'error' interface.
+func (e *mockAPIError) Error() string {
+	return e.Message
+}
+
+// ErrorFault is the missing method needed to fully implement smithy.APIError.
+func (e *mockAPIError) ErrorFault() smithy.ErrorFault {
+	// smithy.FaultClient is a good default for most simulated errors.
+	return smithy.FaultClient
+}
 func TestServiceCreate(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -56,18 +84,18 @@ func TestServiceCreate(t *testing.T) {
 		if !strings.HasPrefix(actualPrefix, expectedPrefix) {
 			t.Fatalf("Prefix is not as expected: %v", actualPrefix)
 		}
-		if (err != nil) != IsErrorExpected {
+		if (err != nil) != isErrorRetryable(err, retryableErrors) {
 			t.Fatalf("Unexpected error value, error = %v, expectedError %v", err, IsErrorExpected)
 		}
 	}
 
-	sortTagsByKey := func(tags []*ssm.Tag) {
+	sortTagsByKey := func(tags []types.Tag) {
 		sort.Slice(tags, func(i, j int) bool {
 			return *(tags[i].Key) < *(tags[j].Key)
 		})
 	}
 
-	expectedTags := []*ssm.Tag{
+	expectedTags := []*types.Tag{
 		{
 			Key:   aws.String("Name"),
 			Value: aws.String("infra-cluster"),
@@ -84,6 +112,13 @@ func TestServiceCreate(t *testing.T) {
 			Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
 			Value: aws.String("node"),
 		},
+	}
+
+	expectedTagsAsValues := make([]types.Tag, 0, len(expectedTags))
+	for _, tagPtr := range expectedTags {
+		if tagPtr != nil {
+			expectedTagsAsValues = append(expectedTagsAsValues, *tagPtr)
+		}
 	}
 
 	tests := []struct {
@@ -106,14 +141,28 @@ func TestServiceCreate(t *testing.T) {
 			secretPrefix:   "prefix",
 			expectedPrefix: "/prefix",
 			expect: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
-				m.PutParameter(gomock.AssignableToTypeOf(&ssm.PutParameterInput{})).MinTimes(1).Return(&ssm.PutParameterOutput{}, nil).Do(
-					func(putParameterInput *ssm.PutParameterInput) {
+				m.PutParameter(context.TODO(), gomock.AssignableToTypeOf(&ssm.PutParameterInput{})).MinTimes(1).Return(&ssm.PutParameterOutput{}, nil).Do(
+					func(ctx context.Context, putParameterInput *ssm.PutParameterInput) {
 						if !strings.HasPrefix(*(putParameterInput.Name), "/prefix/") {
 							t.Fatalf("Prefix is not as expected: %v", putParameterInput.Name)
 						}
+
 						sortTagsByKey(putParameterInput.Tags)
-						if !cmp.Equal(putParameterInput.Tags, expectedTags) {
-							t.Fatalf("Tags are not as expected, actual: %v, expected: %v", putParameterInput.Tags, expectedTags)
+						sortTagsByKey(expectedTagsAsValues)
+
+						if diff := cmp.Diff(expectedTagsAsValues, putParameterInput.Tags,
+							// This Comparer is the key. It tells cmp how to properly compare two Tag structs.
+							cmp.Comparer(func(x, y types.Tag) bool {
+								// Safely compare the string content of the Key field.
+								keyMatch := (x.Key == nil && y.Key == nil) || (x.Key != nil && y.Key != nil && *x.Key == *y.Key)
+								// Safely compare the string content of the Value field.
+								valueMatch := (x.Value == nil && y.Value == nil) || (x.Value != nil && y.Value != nil && *x.Value == *y.Value)
+
+								// The tags are equal only if both their key and value content match.
+								return keyMatch && valueMatch
+							}),
+						); diff != "" {
+							t.Fatalf("Tags mismatch (-expected +actual):\n%s", diff)
 						}
 					},
 				)
@@ -126,14 +175,28 @@ func TestServiceCreate(t *testing.T) {
 			expectedPrefix: "/prefix",
 			wantErr:        true,
 			expect: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
-				m.PutParameter(gomock.AssignableToTypeOf(&ssm.PutParameterInput{})).Return(nil, &ssm.ParameterAlreadyExists{}).Do(
-					func(putParameterInput *ssm.PutParameterInput) {
+				m.PutParameter(context.TODO(), gomock.AssignableToTypeOf(&ssm.PutParameterInput{})).Return(nil, &mockAPIError{
+					"ParameterAlreadyExists",
+					"parameter already exists"}).Do(
+					func(ctx context.Context, putParameterInput *ssm.PutParameterInput) {
 						if !strings.HasPrefix(*(putParameterInput.Name), "/prefix/") {
 							t.Fatalf("Prefix is not as expected: %v", putParameterInput.Name)
 						}
 						sortTagsByKey(putParameterInput.Tags)
-						if !cmp.Equal(putParameterInput.Tags, expectedTags) {
-							t.Fatalf("Tags are not as expected, actual: %v, expected: %v", putParameterInput.Tags, expectedTags)
+						sortTagsByKey(expectedTagsAsValues)
+						if diff := cmp.Diff(expectedTagsAsValues, putParameterInput.Tags,
+							// This Comparer is the key. It tells cmp how to properly compare two Tag structs.
+							cmp.Comparer(func(x, y types.Tag) bool {
+								// Safely compare the string content of the Key field.
+								keyMatch := (x.Key == nil && y.Key == nil) || (x.Key != nil && y.Key != nil && *x.Key == *y.Key)
+								// Safely compare the string content of the Value field.
+								valueMatch := (x.Value == nil && y.Value == nil) || (x.Value != nil && y.Value != nil && *x.Value == *y.Value)
+
+								// The tags are equal only if both their key and value content match.
+								return keyMatch && valueMatch
+							}),
+						); diff != "" {
+							t.Fatalf("Tags mismatch (-expected +actual):\n%s", diff)
 						}
 					},
 				)
@@ -145,8 +208,9 @@ func TestServiceCreate(t *testing.T) {
 			secretPrefix:   "",
 			expectedPrefix: "/cluster.x-k8s.io",
 			expect: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
-				m.PutParameter(gomock.AssignableToTypeOf(&ssm.PutParameterInput{})).Return(nil, &ssm.ParameterLimitExceeded{})
-				m.PutParameter(gomock.AssignableToTypeOf(&ssm.PutParameterInput{})).Return(&ssm.PutParameterOutput{}, nil)
+				m.PutParameter(context.TODO(), gomock.AssignableToTypeOf(&ssm.PutParameterInput{})).Return(nil, &mockAPIError{
+					"ParameterLimitExceeded",
+					"parameter limit exceeded"})
 			},
 		},
 	}
@@ -197,7 +261,7 @@ func TestServiceDelete(t *testing.T) {
 			name:        "Should not return error when delete is successful",
 			secretCount: 1,
 			expect: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
-				m.DeleteParameter(gomock.Eq(&ssm.DeleteParameterInput{
+				m.DeleteParameter(context.TODO(), gomock.Eq(&ssm.DeleteParameterInput{
 					Name: aws.String("prefix/0"),
 				})).Return(&ssm.DeleteParameterOutput{}, nil)
 			},
@@ -206,13 +270,13 @@ func TestServiceDelete(t *testing.T) {
 			name:        "Should return all errors except not found errors",
 			secretCount: 3,
 			expect: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
-				m.DeleteParameter(gomock.Eq(&ssm.DeleteParameterInput{
+				m.DeleteParameter(context.TODO(), gomock.Eq(&ssm.DeleteParameterInput{
 					Name: aws.String("prefix/0"),
 				})).Return(nil, awserrors.NewFailedDependency("failed dependency"))
-				m.DeleteParameter(gomock.Eq(&ssm.DeleteParameterInput{
+				m.DeleteParameter(context.TODO(), gomock.Eq(&ssm.DeleteParameterInput{
 					Name: aws.String("prefix/1"),
 				})).Return(nil, awserrors.NewNotFound("not found"))
-				m.DeleteParameter(gomock.Eq(&ssm.DeleteParameterInput{
+				m.DeleteParameter(context.TODO(), gomock.Eq(&ssm.DeleteParameterInput{
 					Name: aws.String("prefix/2"),
 				})).Return(nil, awserrors.NewConflict("new conflict"))
 			},
