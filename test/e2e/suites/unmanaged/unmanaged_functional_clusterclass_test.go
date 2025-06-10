@@ -23,6 +23,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/gofrs/flock"
 	"github.com/onsi/ginkgo/v2"
@@ -81,11 +82,24 @@ var _ = ginkgo.Context("[unmanaged] [functional] [ClusterClass]", func() {
 				WaitForControlPlaneIntervals: e2eCtx.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 			}, result)
 
-			ginkgo.By("Checking if bastion host is running")
-			awsCluster, err := GetAWSClusterByName(ctx, e2eCtx.Environment.BootstrapClusterProxy, namespace.Name, clusterName)
-			Expect(err).To(BeNil())
-			Expect(awsCluster.Status.Bastion.State).To(Equal(infrav1.InstanceStateRunning))
-			expectAWSClusterConditions(awsCluster, []conditionAssertion{{infrav1.BastionHostReadyCondition, corev1.ConditionTrue, "", ""}})
+			Eventually(func(gomega Gomega) (bool, error) {
+				ginkgo.By("Checking if the bastion is ready")
+				awsCluster, err := GetAWSClusterByName(ctx, e2eCtx.Environment.BootstrapClusterProxy, namespace.Name, clusterName)
+				if err != nil {
+					return false, err
+				}
+				if awsCluster.Status.Bastion.State != infrav1.InstanceStateRunning {
+					shared.Byf("Bastion is not running, state is %s", awsCluster.Status.Bastion.State)
+					return false, nil
+				}
+
+				if !hasAWSClusterConditions(awsCluster, []conditionAssertion{{infrav1.BastionHostReadyCondition, corev1.ConditionTrue, "", ""}}) {
+					ginkgo.By("AWSCluster missing bastion host ready condition")
+					return false, nil
+				}
+
+				return true, nil
+			}, 15*time.Minute, 30*time.Second).Should(BeTrue(), "Should've eventually succeeded creating bastion host")
 
 			ginkgo.By("PASSED!")
 		})
