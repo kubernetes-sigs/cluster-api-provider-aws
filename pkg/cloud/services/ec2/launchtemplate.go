@@ -71,21 +71,21 @@ func (s *Service) ReconcileLaunchTemplate(
 	bootstrapDataHash := userdata.ComputeHash(bootstrapData)
 
 	scope.Info("checking for existing launch template")
-	launchTemplate, launchTemplateUserDataHash, launchTemplateUserDataSecretKey, err := ec2svc.GetLaunchTemplate(scope.LaunchTemplateName())
+	existingLaunchTemplate, launchTemplateUserDataHash, launchTemplateUserDataSecretKey, err := ec2svc.GetLaunchTemplate(scope.LaunchTemplateName())
 	if err != nil {
 		conditions.MarkUnknown(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateNotFoundReason, "%s", err.Error())
 		return err
 	}
 
-	imageID, err := ec2svc.DiscoverLaunchTemplateAMI(scope)
+	currentlyUsedAMIID, err := ec2svc.DiscoverLaunchTemplateAMI(scope)
 	if err != nil {
 		conditions.MarkFalse(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateCreateFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
 		return err
 	}
 
-	if launchTemplate == nil {
+	if existingLaunchTemplate == nil {
 		scope.Info("no existing launch template found, creating")
-		launchTemplateID, err := ec2svc.CreateLaunchTemplate(scope, imageID, *bootstrapDataSecretKey, bootstrapData)
+		launchTemplateID, err := ec2svc.CreateLaunchTemplate(scope, currentlyUsedAMIID, *bootstrapDataSecretKey, bootstrapData)
 		if err != nil {
 			conditions.MarkFalse(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateCreateFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
 			return err
@@ -119,20 +119,10 @@ func (s *Service) ReconcileLaunchTemplate(
 		}
 	}
 
-	annotation, err := MachinePoolAnnotationJSON(scope, TagsLastAppliedAnnotation)
+	needsUpdate, err := ec2svc.LaunchTemplateNeedsUpdate(scope, existingLaunchTemplate, currentlyUsedAMIID)
 	if err != nil {
 		return err
 	}
-
-	// Check if the instance tags were changed. If they were, create a new LaunchTemplate.
-	tagsChanged, _, _, _ := tagsChanged(annotation, scope.AdditionalTags()) //nolint:dogsled
-
-	needsUpdate, err := ec2svc.LaunchTemplateNeedsUpdate(scope, scope.GetLaunchTemplate(), launchTemplate)
-	if err != nil {
-		return err
-	}
-
-	amiChanged := *imageID != *launchTemplate.AMI.ID
 
 	// `launchTemplateUserDataSecretKey` can be nil since it comes from a tag on the launch template
 	// which may not exist in older launch templates created by older CAPA versions.
@@ -142,7 +132,7 @@ func (s *Service) ReconcileLaunchTemplate(
 	userDataSecretKeyChanged := launchTemplateUserDataSecretKey != nil && bootstrapDataSecretKey.String() != launchTemplateUserDataSecretKey.String()
 	launchTemplateNeedsUserDataSecretKeyTag := launchTemplateUserDataSecretKey == nil
 
-	if needsUpdate || tagsChanged || amiChanged || userDataSecretKeyChanged {
+	if needsUpdate || userDataSecretKeyChanged {
 		canUpdate, err := canUpdateLaunchTemplate()
 		if err != nil {
 			return err
@@ -157,14 +147,14 @@ func (s *Service) ReconcileLaunchTemplate(
 
 	// Create a new launch template version if there's a difference in configuration, tags,
 	// userdata, OR we've discovered a new AMI ID.
-	if needsUpdate || tagsChanged || amiChanged || userDataHashChanged || userDataSecretKeyChanged || launchTemplateNeedsUserDataSecretKeyTag {
-		scope.Info("creating new version for launch template", "existing", launchTemplate, "incoming", scope.GetLaunchTemplate(), "needsUpdate", needsUpdate, "tagsChanged", tagsChanged, "amiChanged", amiChanged, "userDataHashChanged", userDataHashChanged, "userDataSecretKeyChanged", userDataSecretKeyChanged)
+	if needsUpdate || userDataHashChanged || userDataSecretKeyChanged || launchTemplateNeedsUserDataSecretKeyTag {
+		scope.Info("creating new version for launch template", "existing", existingLaunchTemplate, "incoming", scope.GetLaunchTemplate(), "needsUpdate", needsUpdate, "userDataHashChanged", userDataHashChanged, "userDataSecretKeyChanged", userDataSecretKeyChanged)
 		// There is a limit to the number of Launch Template Versions.
 		// We ensure that the number of versions does not grow without bound by following a simple rule: Before we create a new version, we delete one old version, if there is at least one old version that is not in use.
 		if err := ec2svc.PruneLaunchTemplateVersions(scope.GetLaunchTemplateIDStatus()); err != nil {
 			return err
 		}
-		if err := ec2svc.CreateLaunchTemplateVersion(scope.GetLaunchTemplateIDStatus(), scope, imageID, *bootstrapDataSecretKey, bootstrapData); err != nil {
+		if err := ec2svc.CreateLaunchTemplateVersion(scope.GetLaunchTemplateIDStatus(), scope, currentlyUsedAMIID, *bootstrapDataSecretKey, bootstrapData); err != nil {
 			return err
 		}
 		version, err := ec2svc.GetLaunchTemplateLatestVersion(scope.GetLaunchTemplateIDStatus())
@@ -178,7 +168,7 @@ func (s *Service) ReconcileLaunchTemplate(
 		}
 	}
 
-	if needsUpdate || tagsChanged || amiChanged || userDataSecretKeyChanged {
+	if needsUpdate || userDataSecretKeyChanged {
 		if err := runPostLaunchTemplateUpdateOperation(); err != nil {
 			conditions.MarkFalse(scope.GetSetter(), expinfrav1.PostLaunchTemplateUpdateOperationCondition, expinfrav1.PostLaunchTemplateUpdateOperationFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
 			return err
@@ -788,39 +778,42 @@ func (s *Service) SDKToLaunchTemplate(d *ec2.LaunchTemplateVersion) (*expinfrav1
 }
 
 // LaunchTemplateNeedsUpdate checks if a new launch template version is needed.
-//
-// FIXME(dlipovetsky): This check should account for changed userdata, but does not yet do so.
-// Although userdata is stored in an EC2 Launch Template, it is not a field of AWSLaunchTemplate.
-func (s *Service) LaunchTemplateNeedsUpdate(scope scope.LaunchTemplateScope, incoming *expinfrav1.AWSLaunchTemplate, existing *expinfrav1.AWSLaunchTemplate) (bool, error) {
-	if incoming.IamInstanceProfile != existing.IamInstanceProfile {
+func (s *Service) LaunchTemplateNeedsUpdate(scope scope.LaunchTemplateScope, existingLaunchTemplate *expinfrav1.AWSLaunchTemplate, currentlyUsedAMIID *string) (bool, error) {
+	incomingLaunchTemplate := scope.GetLaunchTemplate()
+
+	if incomingLaunchTemplate.IamInstanceProfile != existingLaunchTemplate.IamInstanceProfile {
 		return true, nil
 	}
 
-	if incoming.InstanceType != existing.InstanceType {
+	if incomingLaunchTemplate.InstanceType != existingLaunchTemplate.InstanceType {
 		return true, nil
 	}
 
-	if !cmp.Equal(incoming.InstanceMetadataOptions, existing.InstanceMetadataOptions) {
+	if !cmp.Equal(incomingLaunchTemplate.InstanceMetadataOptions, existingLaunchTemplate.InstanceMetadataOptions) {
 		return true, nil
 	}
 
-	if !cmp.Equal(incoming.SpotMarketOptions, existing.SpotMarketOptions) {
+	if !cmp.Equal(incomingLaunchTemplate.SpotMarketOptions, existingLaunchTemplate.SpotMarketOptions) {
 		return true, nil
 	}
 
-	if !cmp.Equal(incoming.CapacityReservationID, existing.CapacityReservationID) {
+	if incomingLaunchTemplate.AMI.ID != nil && *incomingLaunchTemplate.AMI.ID != *currentlyUsedAMIID {
 		return true, nil
 	}
 
-	if !cmp.Equal(incoming.PrivateDNSName, existing.PrivateDNSName) {
+	if !cmp.Equal(incomingLaunchTemplate.CapacityReservationID, existingLaunchTemplate.CapacityReservationID) {
 		return true, nil
 	}
 
-	if !cmp.Equal(incoming.SSHKeyName, existing.SSHKeyName) {
+	if !cmp.Equal(incomingLaunchTemplate.PrivateDNSName, existingLaunchTemplate.PrivateDNSName) {
 		return true, nil
 	}
 
-	incomingIDs, err := s.GetAdditionalSecurityGroupsIDs(incoming.AdditionalSecurityGroups)
+	if !cmp.Equal(incomingLaunchTemplate.SSHKeyName, existingLaunchTemplate.SSHKeyName) {
+		return true, nil
+	}
+
+	incomingIDs, err := s.GetAdditionalSecurityGroupsIDs(incomingLaunchTemplate.AdditionalSecurityGroups)
 	if err != nil {
 		return false, err
 	}
@@ -831,7 +824,7 @@ func (s *Service) LaunchTemplateNeedsUpdate(scope scope.LaunchTemplateScope, inc
 	}
 
 	incomingIDs = append(incomingIDs, coreIDs...)
-	existingIDs, err := s.GetAdditionalSecurityGroupsIDs(existing.AdditionalSecurityGroups)
+	existingIDs, err := s.GetAdditionalSecurityGroupsIDs(existingLaunchTemplate.AdditionalSecurityGroups)
 	if err != nil {
 		return false, err
 	}
@@ -839,6 +832,16 @@ func (s *Service) LaunchTemplateNeedsUpdate(scope scope.LaunchTemplateScope, inc
 	sort.Strings(existingIDs)
 
 	if !cmp.Equal(incomingIDs, existingIDs) {
+		return true, nil
+	}
+
+	annotation, err := MachinePoolAnnotationJSON(scope, TagsLastAppliedAnnotation)
+	if err != nil {
+		return false, err
+	}
+	//nolint:dogsled
+	tagsHaveChanged, _, _, _ := tagsChanged(annotation, scope.AdditionalTags())
+	if tagsHaveChanged {
 		return true, nil
 	}
 

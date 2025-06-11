@@ -749,60 +749,6 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				g.Expect(err).To(Succeed())
 			})
 
-			t.Run("launch template and ASG exist and only AMI ID changed", func(t *testing.T) {
-				g := NewWithT(t)
-				setup(t, g)
-				reconciler.reconcileServiceFactory = nil // use real implementation, but keep EC2 calls mocked (`ec2ServiceFactory`)
-				reconSvc = nil                           // not used
-				defer teardown(t, g)
-
-				// Latest ID and version already stored, no need to retrieve it
-				ms.AWSMachinePool.Status.LaunchTemplateID = launchTemplateIDExisting
-				ms.AWSMachinePool.Status.LaunchTemplateVersion = ptr.To[string]("1")
-
-				ec2Svc.EXPECT().GetLaunchTemplate(gomock.Eq("test")).Return(
-					&expinfrav1.AWSLaunchTemplate{
-						Name: "test",
-						AMI: infrav1.AMIReference{
-							ID: ptr.To[string]("ami-existing"),
-						},
-					},
-					// No change to user data
-					userdata.ComputeHash([]byte("shell-script")),
-					&userDataSecretKey,
-					nil)
-				ec2Svc.EXPECT().DiscoverLaunchTemplateAMI(gomock.Any()).Return(ptr.To[string]("ami-different"), nil)
-				ec2Svc.EXPECT().LaunchTemplateNeedsUpdate(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
-				asgSvc.EXPECT().CanStartASGInstanceRefresh(gomock.Any()).Return(true, nil)
-				ec2Svc.EXPECT().PruneLaunchTemplateVersions(gomock.Any()).Return(nil)
-				ec2Svc.EXPECT().CreateLaunchTemplateVersion(gomock.Any(), gomock.Any(), gomock.Eq(ptr.To[string]("ami-different")), gomock.Eq(apimachinerytypes.NamespacedName{Namespace: "default", Name: "bootstrap-data"}), gomock.Any()).Return(nil)
-				ec2Svc.EXPECT().GetLaunchTemplateLatestVersion(gomock.Any()).Return("2", nil)
-				// AMI change should trigger rolling out new nodes
-				asgSvc.EXPECT().StartASGInstanceRefresh(gomock.Any())
-
-				asgSvc.EXPECT().GetASGByName(gomock.Any()).DoAndReturn(func(scope *scope.MachinePoolScope) (*expinfrav1.AutoScalingGroup, error) {
-					g.Expect(scope.Name()).To(Equal("test"))
-
-					// No difference to `AWSMachinePool.spec`
-					return &expinfrav1.AutoScalingGroup{
-						Name: scope.Name(),
-						Subnets: []string{
-							"subnet-1",
-						},
-						MinSize:              awsMachinePool.Spec.MinSize,
-						MaxSize:              awsMachinePool.Spec.MaxSize,
-						MixedInstancesPolicy: awsMachinePool.Spec.MixedInstancesPolicy.DeepCopy(),
-					}, nil
-				})
-				asgSvc.EXPECT().DescribeLifecycleHooks(gomock.Any()).Return(nil, nil)
-				asgSvc.EXPECT().SubnetIDs(gomock.Any()).Return([]string{"subnet-1"}, nil) // no change
-				// No changes, so there must not be an ASG update!
-				asgSvc.EXPECT().UpdateASG(gomock.Any()).Times(0)
-
-				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs)
-				g.Expect(err).To(Succeed())
-			})
-
 			t.Run("launch template and ASG exist and only bootstrap data secret name changed", func(t *testing.T) {
 				g := NewWithT(t)
 				setup(t, g)
