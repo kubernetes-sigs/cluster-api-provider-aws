@@ -296,11 +296,13 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 			Action: iamv1.Actions{
 				"s3:CreateBucket",
 				"s3:DeleteBucket",
-				"s3:GetObject",
-				"s3:PutObject",
 				"s3:DeleteObject",
+				"s3:GetObject",
+				"s3:ListBucket",
 				"s3:PutBucketPolicy",
 				"s3:PutBucketTagging",
+				"s3:PutLifecycleConfiguration",
+				"s3:PutObject",
 			},
 		})
 	}
