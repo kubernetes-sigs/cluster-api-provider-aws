@@ -64,6 +64,7 @@ func (r *AWSMachine) ValidateCreate() (admission.Warnings, error) {
 	allErrs = append(allErrs, r.validateNonRootVolumes()...)
 	allErrs = append(allErrs, r.validateSSHKeyName()...)
 	allErrs = append(allErrs, r.validateAdditionalSecurityGroups()...)
+	allErrs = append(allErrs, r.validateHostAffinity()...)
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 	allErrs = append(allErrs, r.validateNetworkElasticIPPool()...)
 	allErrs = append(allErrs, r.validateInstanceMarketType()...)
@@ -91,6 +92,8 @@ func (r *AWSMachine) ValidateUpdate(old runtime.Object) (admission.Warnings, err
 	allErrs = append(allErrs, r.validateCloudInitSecret()...)
 	allErrs = append(allErrs, r.validateAdditionalSecurityGroups()...)
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
+	allErrs = append(allErrs, r.validateHostAffinity()...)
+	
 
 	newAWSMachineSpec := newAWSMachine["spec"].(map[string]interface{})
 	oldAWSMachineSpec := oldAWSMachine["spec"].(map[string]interface{})
@@ -428,6 +431,17 @@ func (r *AWSMachine) validateAdditionalSecurityGroups() field.ErrorList {
 	for _, additionalSecurityGroup := range r.Spec.AdditionalSecurityGroups {
 		if len(additionalSecurityGroup.Filters) > 0 && additionalSecurityGroup.ID != nil {
 			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.additionalSecurityGroups"), "only one of ID or Filters may be specified, specifying both is forbidden"))
+		}
+	}
+	return allErrs
+}
+
+func (r *AWSMachine) validateHostAffinity() field.ErrorList {
+	var allErrs field.ErrorList
+
+	if r.Spec.HostAffinity != nil {
+		if r.Spec.HostID == nil || len(*r.Spec.HostID) == 0 {
+			allErrs = append(allErrs, field.Required(field.NewPath("spec.hostID"), "hostID must be set when hostAffinity is configured"))
 		}
 	}
 	return allErrs

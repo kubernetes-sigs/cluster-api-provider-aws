@@ -962,8 +962,6 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		ginkgo.It("should create cluster with dedicated hosts", func() {
 			specName := "dedicated-host"
 			if !e2eCtx.Settings.SkipQuotas {
-				//TODO: Update TestResource to include dedicated hosts
-				//TODO: Shouldn't this IF be inside shared.AquireResources instead of repeating across tests?
 				requiredResources = &shared.TestResource{EC2Normal: 1 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, EventBridgeRules: 50}
 				requiredResources.WriteRequestedResources(e2eCtx, specName)
 				Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
@@ -972,7 +970,6 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
 			defer shared.DumpSpecResourcesAndCleanup(ctx, specName, namespace, e2eCtx)
 
-			//TODO: Allocate Host ID before creating the cluster
 			// Allocate a dedicated host and ensure it is released after the test
 			ginkgo.By("Allocating a dedicated host")
 			hostID, err := shared.AllocateHost(e2eCtx)
@@ -986,10 +983,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 
 			ginkgo.By("Creating cluster")
 			clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
-			vars := map[string]string{
-				"HOST_ID":       hostID,
-				"HOST_AFFINITY": "Default",
-			}
+						
 			// Create a cluster with a dedicated host
 			clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 				ClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
@@ -1004,7 +998,11 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 					KubernetesVersion:        e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion),
 					ControlPlaneMachineCount: ptr.To[int64](1),
 					WorkerMachineCount:       ptr.To[int64](0),
-					ClusterctlVariables:      vars,
+					ClusterctlVariables: map[string]string{
+						"HOST_ID":       hostID,
+						"HOST_AFFINITY": "host",
+						"TENANCY": "host",
+					},
 				},
 				WaitForClusterIntervals:      e2eCtx.E2EConfig.GetIntervals(specName, "wait-cluster"),
 				WaitForControlPlaneIntervals: e2eCtx.E2EConfig.GetIntervals(specName, "wait-control-plane"),

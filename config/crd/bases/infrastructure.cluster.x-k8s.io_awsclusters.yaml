@@ -2181,8 +2181,14 @@ spec:
                       enabled.
                     type: boolean
                   hostAffinity:
-                    description: Affinity specifies the dedicated host affinity setting
-                      for the instance.
+                    description: |-
+                      HostAffinity specifies the dedicated host affinity setting for the instance.
+                      When hostAffinity is set to host, an instance started onto a specific host always restarts on the same host if stopped.
+                      When hostAffinity is set to default, and you stop and restart the instance, it can be restarted on any available host.
+                      When HostAffinity is defined, HostID is required.
+                    enum:
+                    - default
+                    - host
                     type: string
                   hostID:
                     description: HostID specifies the dedicated host on which the

@@ -412,6 +412,37 @@ func TestAWSMachineCreate(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "configure host affinity with Host ID",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "test",
+					HostAffinity: ptr.To("default"),
+					HostID: ptr.To("h-09dcf61cb388b0149"),
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "configure host affinity with invalid affinity",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "test",
+					HostAffinity: ptr.To("invalid"),
+				},
+			},
+			wantErr: true,
+		},						
+		{
+			name: "configure host affinity without Host ID",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "test",
+					HostAffinity: ptr.To("default"),
+				},
+			},
+			wantErr: true,
+		},				
+		{
 			name: "create with valid BYOIPv4",
 			machine: &AWSMachine{
 				Spec: AWSMachineSpec{

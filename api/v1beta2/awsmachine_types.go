@@ -228,10 +228,12 @@ type AWSMachineSpec struct {
 	// +optional
 	HostID *string `json:"hostID,omitempty"`
 
-	// Affinity specifies the dedicated host affinity setting for the instance.
-	// When affinity is set to Host, an instance started onto a specific host always restarts on the same host if stopped.
+	// HostAffinity specifies the dedicated host affinity setting for the instance.
+	// When hostAffinity is set to host, an instance started onto a specific host always restarts on the same host if stopped.
+	// When hostAffinity is set to default, and you stop and restart the instance, it can be restarted on any available host.
+	// When HostAffinity is defined, HostID is required.
 	// +optional
-	// +kubebuilder:validation:Enum:=Default;Host
+	// +kubebuilder:validation:Enum:=default;host
 	HostAffinity *string `json:"hostAffinity,omitempty"`
 }
 
