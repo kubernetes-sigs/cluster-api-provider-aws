@@ -2041,8 +2041,8 @@ func autoConvert_v1beta2_Instance_To_v1beta1_Instance(in *v1beta2.Instance, out 
 	// WARNING: in.PublicIPOnLaunch requires manual conversion: does not exist in peer-type
 	// WARNING: in.CapacityReservationID requires manual conversion: does not exist in peer-type
 	// WARNING: in.MarketType requires manual conversion: does not exist in peer-type
-	// WARNING: in.HostID requires manual conversion: does not exist in peer-type
 	// WARNING: in.HostAffinity requires manual conversion: does not exist in peer-type
+	// WARNING: in.HostID requires manual conversion: does not exist in peer-type
 	return nil
 }
 

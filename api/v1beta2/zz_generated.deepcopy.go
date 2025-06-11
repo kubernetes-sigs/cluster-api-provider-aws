@@ -1620,13 +1620,13 @@ func (in *Instance) DeepCopyInto(out *Instance) {
 		*out = new(string)
 		**out = **in
 	}
-	if in.HostID != nil {
-		in, out := &in.HostID, &out.HostID
+	if in.HostAffinity != nil {
+		in, out := &in.HostAffinity, &out.HostAffinity
 		*out = new(string)
 		**out = **in
 	}
-	if in.HostAffinity != nil {
-		in, out := &in.HostAffinity, &out.HostAffinity
+	if in.HostID != nil {
+		in, out := &in.HostID, &out.HostID
 		*out = new(string)
 		**out = **in
 	}

@@ -686,11 +686,10 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 			"hostId", i.HostID,
 			"affinity", i.HostAffinity)
 		if input.Placement != nil {
-			placementStr := input.Placement.GoString()
 			s.scope.Warn("Placement already set for instance, overwriting with dedicated host placement",
 				"hostId", i.HostID,
 				"affinity", i.HostAffinity,
-				"placement", placementStr)
+				"placement", input.Placement.GoString())
 		}
 
 		input.Placement = &ec2.Placement{
