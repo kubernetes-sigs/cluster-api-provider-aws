@@ -20,10 +20,10 @@ import (
 	"context"
 
 	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
-	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/common"
 )
 
 // Service holds a collection of interfaces.
@@ -32,7 +32,7 @@ import (
 type Service struct {
 	scope     cloud.ClusterScoper
 	ASGClient AutoScalingAPI
-	EC2Client ec2iface.EC2API
+	EC2Client common.EC2API
 }
 
 // AutoScalingAPI is an interface for the AWS AutoScaling API client.
