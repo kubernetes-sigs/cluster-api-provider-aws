@@ -73,10 +73,6 @@ type sessionCacheEntry struct {
 	serviceLimiters throttle.ServiceLimiters
 }
 
-// SessionInterface is the interface for AWSCluster and ManagedCluster to be used to get session using identityRef.
-var SessionInterface interface {
-}
-
 // ChainCredentialsProvider defines custom CredentialsProvider chain
 // NewChainCredentialsProvider can be used to initialize this struct.
 type ChainCredentialsProvider struct {
