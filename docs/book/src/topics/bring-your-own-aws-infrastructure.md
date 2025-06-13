@@ -278,30 +278,32 @@ User should only use this feature if their cluster infrastructure lifecycle mana
 
 ## Bring your own (BYO) Public IPv4 addresses
 
-Cluster API also provides a mechanism to allocate Elastic IP from the existing Public IPv4 Pool that you brought to AWS[1].
+Cluster API provides a mechanism to allocate Elastic IPs from an existing Public IPv4 Pool that you brought to AWS[1].
 
-Bringing your own Public IPv4 Pool (BYOIPv4) can be used as an alternative to buying Public IPs from AWS, also considering the changes in charging for this since February 2024[2].
+Bringing your own Public IPv4 Pool (BYOIPv4) can serve as an alternative to purchasing Public IPs from AWS, especially considering the updated pricing model introduced in February 2024[2].
 
-Supported resources to BYO Public IPv4 Pool (`BYO Public IPv4`):
+### Supported Resources for BYO Public IPv4 Pool
+
+The following resources can consume IPs from a BYO Public IPv4 Pool:
 - NAT Gateways
-- Network Load Balancer for API server
+- Network Load Balancer for the API server
 - Machines
 
-Use `BYO Public IPv4` when you have brought to AWS custom IPv4 CIDR blocks and want the cluster to automatically use IPs from the custom pool instead of Amazon-provided pools.
+Use `BYO Public IPv4` when you have custom IPv4 CIDR blocks advertised to AWS and want the cluster to automatically use IPs from the custom pool instead of Amazon-provided pools.
 
-### Prerequisites and limitations for BYO Public IPv4 Pool
+### Prerequisites and Limitations for BYO Public IPv4 Pool
 
-- BYOIPv4 is limited to AWS to selected regions. See more in [AWS Documentation for Regional availability](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-byoip.html#byoip-reg-avail)
-- The IPv4 address must be provisioned and advertised to the AWS account before the cluster is installed
-- The public IPv4 addresses is limited to the network border group that the CIDR block have been advertised[3][4], and the `NetworkSpec.ElasticIpPool.PublicIpv4Pool` must be the same of the cluster will be installed.
-- Only NAT Gateways and the Network Load Balancer for API server will consume from the IPv4 pool defined in the network scope.
-- The public IPv4 pool must be assigned to each machine to consume public IPv4 from a custom IPv4 pool.
+- **Regional Availability**: BYOIPv4 is limited to selected AWS regions. Refer to [AWS Documentation for Regional Availability](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-byoip.html#byoip-reg-avail).
+- **Provisioning and Advertising**: IPv4 addresses must be provisioned and advertised to the AWS account before the cluster is installed.
+- **Network Border Group**: Public IPv4 addresses are restricted to the network border group where the CIDR block has been advertised[3][4]. The `NetworkSpec.ElasticIpPool.PublicIpv4Pool` must match the cluster's installation location.
+- **Resource Scope**: Only NAT Gateways and the Network Load Balancer for the API server will consume IPs from the IPv4 pool defined in the network scope.
+- **Machine Assignment**: Each machine must be assigned to the public IPv4 pool to consume IPs from the custom pool.
 
-### Steps to set BYO Public IPv4 Pool to core infrastructure
+### Steps to Configure BYO Public IPv4 Pool for Core Infrastructure
 
-Currently, CAPA supports BYO Public IPv4 to core components NAT Gateways and Network Load Balancer for the internet-facing API server.
+CAPA supports BYO Public IPv4 for core components, including NAT Gateways and the Network Load Balancer for the internet-facing API server.
 
-To specify a Public IPv4 Pool for core components you must set the `spec.elasticIpPool` as follows:
+To specify a Public IPv4 Pool for core components, set the `spec.elasticIpPool` in the `AWSCluster` object:
 
 ```yaml
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
@@ -313,15 +315,15 @@ spec:
   networkSpec:
     vpc:
       elasticIpPool:
-        publicIpv4Pool: ipv4pool-ec2-0123456789abcdef0
-        publicIpv4PoolFallbackOrder: amazon-pool
+        publicIpv4Pool: ipv4pool-ec2-0123456789abcdef0 # Custom IPv4 pool ID
+        publicIpv4PoolFallbackOrder: amazon-pool       # Fallback to AWS-provided pool
 ```
 
-Then all the Elastic IPs will be created by consuming from the pool `ipv4pool-ec2-0123456789abcdef0`.
+All Elastic IPs will be created by consuming from the pool `ipv4pool-ec2-0123456789abcdef0`.
 
-### Steps to BYO Public IPv4 Pool to machines
+### Steps to Configure BYO Public IPv4 Pool for Machines
 
-To create a machine consuming from a custom Public IPv4 Pool you must set the pool ID to the AWSMachine spec, then set the `PublicIP` to `true`:
+To configure a machine to consume IPs from a custom Public IPv4 Pool, specify the pool ID in the `AWSMachine` spec and set `PublicIP` to `true`:
 
 ```yaml
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
@@ -329,14 +331,15 @@ kind: AWSMachine
 metadata:
   name: byoip-s55p4-bootstrap
 spec:
-  # placeholder for AWSMachine spec
   elasticIpPool:
-    publicIpv4Pool: ipv4pool-ec2-0123456789abcdef0
-    publicIpv4PoolFallbackOrder: amazon-pool
+    publicIpv4Pool: ipv4pool-ec2-0123456789abcdef0 # Custom IPv4 pool ID
+    publicIpv4PoolFallbackOrder: amazon-pool       # Fallback to AWS-provided pool
   publicIP: true
 ```
 
-[1] https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-byoip.html
-[2] https://aws.amazon.com/blogs/aws/new-aws-public-ipv4-address-charge-public-ip-insights/
-[3] https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-byoip.html#byoip-onboard
-[4] https://docs.aws.amazon.com/cli/latest/reference/ec2/advertise-byoip-cidr.html
+### References
+
+[1] [AWS BYOIPv4 Documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-byoip.html)
+[2] [AWS Blog: Public IPv4 Address Charges](https://aws.amazon.com/blogs/aws/new-aws-public-ipv4-address-charge-public-ip-insights/)
+[3] [AWS BYOIPv4 Onboarding Guide](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-byoip.html#byoip-onboard)
+[4] [AWS CLI: Advertise BYOIPv4 CIDR](https://docs.aws.amazon.com/cli/latest/reference/ec2/advertise-byoip-cidr.html)
