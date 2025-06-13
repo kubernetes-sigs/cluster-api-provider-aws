@@ -148,6 +148,7 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"ec2:ModifyNetworkInterfaceAttribute",
 				"ec2:ModifySubnetAttribute",
 				"ec2:ReleaseAddress",
+				"ec2:RevokeSecurityGroupEgress",
 				"ec2:RevokeSecurityGroupIngress",
 				"ec2:RunInstances",
 				"ec2:TerminateInstances",
