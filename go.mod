@@ -32,9 +32,9 @@ require (
 	github.com/google/gofuzz v1.2.0
 	github.com/onsi/ginkgo/v2 v2.22.0
 	github.com/onsi/gomega v1.36.0
-	github.com/openshift-online/ocm-common v0.0.12
-	github.com/openshift-online/ocm-sdk-go v0.1.447
-	github.com/openshift/rosa v1.2.48-rc1
+	github.com/openshift-online/ocm-common v0.0.21
+	github.com/openshift-online/ocm-sdk-go v0.1.459
+	github.com/openshift/rosa v1.2.52
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.19.1
 	github.com/sergi/go-diff v1.3.1
