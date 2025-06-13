@@ -17,7 +17,9 @@ limitations under the License.
 package ssm
 
 import (
-	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
+	"context"
+
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
@@ -28,13 +30,39 @@ import (
 // One alternative is to have a large list of functions from the ec2 client.
 type Service struct {
 	scope     cloud.ClusterScoper
-	SSMClient ssmiface.SSMAPI
+	SSMClient SSMAPI
 }
 
-// NewService returns a new service given the api clients.
+type SSMAPI interface {
+	PutParameter(ctx context.Context, input *ssm.PutParameterInput) (*ssm.PutParameterOutput, error)
+	DeleteParameter(ctx context.Context, input *ssm.DeleteParameterInput) (*ssm.DeleteParameterOutput, error)
+	GetParameter(ctx context.Context, input *ssm.GetParameterInput) (*ssm.GetParameterOutput, error)
+	// Add more methods as needed
+}
+
+type SSMClientV2 struct {
+	Client *ssm.Client
+}
+
+func (c *SSMClientV2) PutParameter(ctx context.Context, input *ssm.PutParameterInput) (*ssm.PutParameterOutput, error) {
+	return c.Client.PutParameter(ctx, input)
+}
+
+func (c *SSMClientV2) DeleteParameter(ctx context.Context, input *ssm.DeleteParameterInput) (*ssm.DeleteParameterOutput, error) {
+	return c.Client.DeleteParameter(ctx, input)
+}
+
+func (c *SSMClientV2) GetParameter(ctx context.Context, input *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
+	return c.Client.GetParameter(ctx, input)
+}
+
+var _ SSMAPI = &SSMClientV2{}
+
 func NewService(secretsScope cloud.ClusterScoper) *Service {
 	return &Service{
-		scope:     secretsScope,
-		SSMClient: scope.NewSSMClient(secretsScope, secretsScope, secretsScope, secretsScope.InfraCluster()),
+		scope: secretsScope,
+		SSMClient: &SSMClientV2{
+			Client: scope.NewSSMClient(secretsScope, secretsScope, secretsScope, secretsScope.InfraCluster()),
+		},
 	}
 }
