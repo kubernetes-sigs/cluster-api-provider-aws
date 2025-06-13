@@ -260,6 +260,7 @@ Resources:
           Resource:
           - '*'
         - Action:
+          - autoscaling:CancelInstanceRefresh
           - autoscaling:CreateAutoScalingGroup
           - autoscaling:UpdateAutoScalingGroup
           - autoscaling:CreateOrUpdateTags
