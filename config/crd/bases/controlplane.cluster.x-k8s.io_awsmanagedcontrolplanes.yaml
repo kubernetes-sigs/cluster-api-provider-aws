@@ -1213,6 +1213,19 @@ spec:
                     description: Specifies whether enhanced networking with ENA is
                       enabled.
                     type: boolean
+                  hostAffinity:
+                    description: |-
+                      HostAffinity specifies the dedicated host affinity setting for the instance.
+                      When hostAffinity is set to Host, an instance started onto a specific host always restarts on the same host if stopped.
+                      When HostAffinity is defined, HostID is required.
+                    enum:
+                    - Default
+                    - Host
+                    type: string
+                  hostID:
+                    description: HostID specifies the dedicated host on which the
+                      instance should be started
+                    type: string
                   iamProfile:
                     description: The name of the IAM instance profile associated with
                       the instance, if applicable.
@@ -3378,6 +3391,19 @@ spec:
                     description: Specifies whether enhanced networking with ENA is
                       enabled.
                     type: boolean
+                  hostAffinity:
+                    description: |-
+                      HostAffinity specifies the dedicated host affinity setting for the instance.
+                      When hostAffinity is set to Host, an instance started onto a specific host always restarts on the same host if stopped.
+                      When HostAffinity is defined, HostID is required.
+                    enum:
+                    - Default
+                    - Host
+                    type: string
+                  hostID:
+                    description: HostID specifies the dedicated host on which the
+                      instance should be started
+                    type: string
                   iamProfile:
                     description: The name of the IAM instance profile associated with
                       the instance, if applicable.
