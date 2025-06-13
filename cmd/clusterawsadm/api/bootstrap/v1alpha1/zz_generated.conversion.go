@@ -53,8 +53,18 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddGeneratedConversionFunc((*v1beta1.AWSIAMConfigurationSpec)(nil), (*AWSIAMConfigurationSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_AWSIAMConfigurationSpec_To_v1alpha1_AWSIAMConfigurationSpec(a.(*v1beta1.AWSIAMConfigurationSpec), b.(*AWSIAMConfigurationSpec), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddGeneratedConversionFunc((*AWSIAMRoleSpec)(nil), (*v1beta1.AWSIAMRoleSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha1_AWSIAMRoleSpec_To_v1beta1_AWSIAMRoleSpec(a.(*AWSIAMRoleSpec), b.(*v1beta1.AWSIAMRoleSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1beta1.AWSIAMRoleSpec)(nil), (*AWSIAMRoleSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_AWSIAMRoleSpec_To_v1alpha1_AWSIAMRoleSpec(a.(*v1beta1.AWSIAMRoleSpec), b.(*AWSIAMRoleSpec), scope)
 	}); err != nil {
 		return err
 	}
@@ -118,20 +128,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*v1beta1.AWSIAMConfigurationSpec)(nil), (*AWSIAMConfigurationSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_AWSIAMConfigurationSpec_To_v1alpha1_AWSIAMConfigurationSpec(a.(*v1beta1.AWSIAMConfigurationSpec), b.(*AWSIAMConfigurationSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddConversionFunc((*v1beta1.AWSIAMRoleSpec)(nil), (*AWSIAMRoleSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_AWSIAMRoleSpec_To_v1alpha1_AWSIAMRoleSpec(a.(*v1beta1.AWSIAMRoleSpec), b.(*AWSIAMRoleSpec), scope)
-	}); err != nil {
-		return err
-	}
 	return nil
 }
 
 func autoConvert_v1alpha1_AWSIAMConfiguration_To_v1beta1_AWSIAMConfiguration(in *AWSIAMConfiguration, out *v1beta1.AWSIAMConfiguration, s conversion.Scope) error {
+	out.TypeMeta = in.TypeMeta
 	if err := Convert_v1alpha1_AWSIAMConfigurationSpec_To_v1beta1_AWSIAMConfigurationSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -144,6 +145,7 @@ func Convert_v1alpha1_AWSIAMConfiguration_To_v1beta1_AWSIAMConfiguration(in *AWS
 }
 
 func autoConvert_v1beta1_AWSIAMConfiguration_To_v1alpha1_AWSIAMConfiguration(in *v1beta1.AWSIAMConfiguration, out *AWSIAMConfiguration, s conversion.Scope) error {
+	out.TypeMeta = in.TypeMeta
 	if err := Convert_v1beta1_AWSIAMConfigurationSpec_To_v1alpha1_AWSIAMConfigurationSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}

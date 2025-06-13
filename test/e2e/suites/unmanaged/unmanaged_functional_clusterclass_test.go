@@ -74,7 +74,7 @@ var _ = ginkgo.Context("[unmanaged] [functional] [ClusterClass]", func() {
 					Flavor:                   shared.NestedMultitenancyClusterClassFlavor,
 					Namespace:                namespace.Name,
 					ClusterName:              clusterName,
-					KubernetesVersion:        e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion),
+					KubernetesVersion:        e2eCtx.E2EConfig.MustGetVariable(shared.KubernetesVersion),
 					ControlPlaneMachineCount: ptr.To[int64](1),
 					WorkerMachineCount:       ptr.To[int64](0),
 				},
