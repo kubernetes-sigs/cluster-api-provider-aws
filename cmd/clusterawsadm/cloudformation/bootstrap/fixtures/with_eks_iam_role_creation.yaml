@@ -1,9 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
 Resources:
-  AWSIAMGroupBootstrapper:
-    Properties:
-      GroupName: bootstrapper.cluster-api-provider-aws.sigs.k8s.io
-    Type: AWS::IAM::Group
   AWSIAMInstanceProfileControlPlane:
     Properties:
       InstanceProfileName: control-plane.cluster-api-provider-aws.sigs.k8s.io
@@ -141,8 +137,6 @@ Resources:
   AWSIAMManagedPolicyControllers:
     Properties:
       Description: For the Kubernetes Cluster API Provider AWS Controllers
-      Groups:
-      - Ref: AWSIAMGroupBootstrapper
       ManagedPolicyName: controllers.cluster-api-provider-aws.sigs.k8s.io
       PolicyDocument:
         Statement:
@@ -217,7 +211,6 @@ Resources:
           - ec2:RevokeSecurityGroupIngress
           - ec2:RunInstances
           - ec2:TerminateInstances
-          - ec2:GetSecurityGroupsForVpc
           - tag:GetResources
           - elasticloadbalancing:AddTags
           - elasticloadbalancing:CreateLoadBalancer
@@ -241,13 +234,9 @@ Resources:
           - elasticloadbalancing:CreateListener
           - elasticloadbalancing:DescribeTargetHealth
           - elasticloadbalancing:RegisterTargets
-          - elasticloadbalancing:DeregisterTargets
           - elasticloadbalancing:DeleteListener
           - autoscaling:DescribeAutoScalingGroups
           - autoscaling:DescribeInstanceRefreshes
-          - autoscaling:DeleteLifecycleHook
-          - autoscaling:DescribeLifecycleHooks
-          - autoscaling:PutLifecycleHook
           - ec2:CreateLaunchTemplate
           - ec2:CreateLaunchTemplateVersion
           - ec2:DescribeLaunchTemplates
@@ -313,8 +302,6 @@ Resources:
   AWSIAMManagedPolicyControllersEKS:
     Properties:
       Description: For the Kubernetes Cluster API Provider AWS Controllers
-      Groups:
-      - Ref: AWSIAMGroupBootstrapper
       ManagedPolicyName: controllers-eks.cluster-api-provider-aws.sigs.k8s.io
       PolicyDocument:
         Statement:
@@ -348,8 +335,24 @@ Resources:
           Resource:
           - arn:aws:iam::*:role/aws-service-role/eks-fargate-pods.amazonaws.com/AWSServiceRoleForAmazonEKSForFargate
         - Action:
+          - iam:ListOpenIDConnectProviders
+          - iam:GetOpenIDConnectProvider
+          - iam:CreateOpenIDConnectProvider
+          - iam:AddClientIDToOpenIDConnectProvider
+          - iam:UpdateOpenIDConnectProviderThumbprint
+          - iam:DeleteOpenIDConnectProvider
+          - iam:TagOpenIDConnectProvider
+          Effect: Allow
+          Resource:
+          - '*'
+        - Action:
           - iam:GetRole
           - iam:ListAttachedRolePolicies
+          - iam:DetachRolePolicy
+          - iam:DeleteRole
+          - iam:CreateRole
+          - iam:TagRole
+          - iam:AttachRolePolicy
           Effect: Allow
           Resource:
           - arn:*:iam::*:role/*
@@ -469,11 +472,6 @@ Resources:
       ManagedPolicyArns:
       - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
       - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+      - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
       RoleName: nodes.cluster-api-provider-aws.sigs.k8s.io
     Type: AWS::IAM::Role
-  AWSIAMUserBootstrapper:
-    Properties:
-      Groups:
-      - Ref: AWSIAMGroupBootstrapper
-      UserName: custom-bootstrapper.cluster-api-provider-aws.sigs.k8s.io
-    Type: AWS::IAM::User
