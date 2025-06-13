@@ -445,7 +445,7 @@ func (s *Service) createCluster(ctx context.Context, eksClusterName string) (*ek
 		tags[k] = tagValue
 	}
 
-	role, err := s.GetIAMRole(*s.scope.ControlPlane.Spec.RoleName)
+	role, err := s.GetIAMRole(ctx, *s.scope.ControlPlane.Spec.RoleName)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting control plane iam role: %s", *s.scope.ControlPlane.Spec.RoleName)
 	}

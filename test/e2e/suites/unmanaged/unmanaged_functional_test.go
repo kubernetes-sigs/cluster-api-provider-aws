@@ -182,7 +182,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			}
 			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
 			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
-			Expect(shared.SetMultitenancyEnvVars(e2eCtx.AWSSession)).To(Succeed())
+			Expect(shared.SetMultitenancyEnvVars(ctx, e2eCtx.AWSSessionV2)).To(Succeed())
 			ginkgo.By("Creating cluster")
 			clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 			clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{

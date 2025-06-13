@@ -516,9 +516,9 @@ func spewCloudFormationResources(cfnClient *cfn.CloudFormation, t *cfn_bootstrap
 	}
 }
 
-func SetMultitenancyEnvVars(prov client.ConfigProvider) error {
+func SetMultitenancyEnvVars(ctx context.Context, cfg *awsv2.Config) error {
 	for _, roles := range MultiTenancyRoles {
-		if err := roles.SetEnvVars(prov); err != nil {
+		if err := roles.SetEnvVars(ctx, cfg); err != nil {
 			return err
 		}
 	}
