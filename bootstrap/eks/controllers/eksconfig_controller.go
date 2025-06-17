@@ -20,8 +20,12 @@ package controllers
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -39,6 +43,7 @@ import (
 	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/internal/userdata"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/util/paused"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -221,9 +226,19 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 		return nil
 	}
 
+	// Get the AWSManagedControlPlane
 	controlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
 	if err := r.Get(ctx, client.ObjectKey{Name: cluster.Spec.ControlPlaneRef.Name, Namespace: cluster.Spec.ControlPlaneRef.Namespace}, controlPlane); err != nil {
-		return err
+		return errors.Wrap(err, "failed to get control plane")
+	}
+
+	// Check if control plane is ready
+	if !conditions.IsTrue(controlPlane, ekscontrolplanev1.EKSControlPlaneReadyCondition) {
+		log.Info("Control plane is not ready yet, waiting...")
+		conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition,
+			eksbootstrapv1.DataSecretGenerationFailedReason,
+			clusterv1.ConditionSeverityInfo, "Control plane is not ready yet")
+		return nil
 	}
 
 	log.Info("Generating userdata")
@@ -234,59 +249,172 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 		return err
 	}
 
-	nodeInput := &userdata.NodeInput{
-		// AWSManagedControlPlane webhooks default and validate EKSClusterName
-		ClusterName:              controlPlane.Spec.EKSClusterName,
-		KubeletExtraArgs:         config.Spec.KubeletExtraArgs,
-		ContainerRuntime:         config.Spec.ContainerRuntime,
-		DNSClusterIP:             config.Spec.DNSClusterIP,
-		DockerConfigJSON:         config.Spec.DockerConfigJSON,
-		APIRetryAttempts:         config.Spec.APIRetryAttempts,
-		UseMaxPods:               config.Spec.UseMaxPods,
-		PreBootstrapCommands:     config.Spec.PreBootstrapCommands,
-		PostBootstrapCommands:    config.Spec.PostBootstrapCommands,
-		BootstrapCommandOverride: config.Spec.BootstrapCommandOverride,
-		NTP:                      config.Spec.NTP,
-		Users:                    config.Spec.Users,
-		DiskSetup:                config.Spec.DiskSetup,
-		Mounts:                   config.Spec.Mounts,
-		Files:                    files,
-	}
-	if config.Spec.PauseContainer != nil {
-		nodeInput.PauseContainerAccount = &config.Spec.PauseContainer.AccountNumber
-		nodeInput.PauseContainerVersion = &config.Spec.PauseContainer.Version
+	// Generate userdata based on node type
+	var userDataScript []byte
+
+	if config.Spec.NodeType == "al2023" {
+		// Use the ControlPlaneEndpoint from the AWSManagedControlPlane spec
+		apiServerEndpoint := controlPlane.Spec.ControlPlaneEndpoint.Host
+
+		log.Info("Generating AL2023 userdata",
+			"cluster", controlPlane.Spec.EKSClusterName,
+			"endpoint", apiServerEndpoint)
+
+		// Fetch CA cert directly from EKS API
+		sess, err := session.NewSession(&aws.Config{Region: aws.String(controlPlane.Spec.Region)})
+		if err != nil {
+			log.Error(err, "Failed to create AWS session for EKS API")
+			conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition,
+				eksbootstrapv1.DataSecretGenerationFailedReason,
+				clusterv1.ConditionSeverityWarning,
+				"Failed to create AWS session: %v", err)
+			return err
+		}
+		eksClient := eks.New(sess)
+		describeInput := &eks.DescribeClusterInput{Name: aws.String(controlPlane.Spec.EKSClusterName)}
+		clusterOut, err := eksClient.DescribeCluster(describeInput)
+		if err != nil {
+			log.Error(err, "Failed to describe EKS cluster for CA cert fetch")
+			conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition,
+				eksbootstrapv1.DataSecretGenerationFailedReason,
+				clusterv1.ConditionSeverityWarning,
+				"Failed to describe EKS cluster: %v", err)
+			return err
+		}
+
+		caCert := ""
+		if clusterOut.Cluster != nil && clusterOut.Cluster.CertificateAuthority != nil && clusterOut.Cluster.CertificateAuthority.Data != nil {
+			caCert = *clusterOut.Cluster.CertificateAuthority.Data
+		} else {
+			log.Error(nil, "CA certificate not found in EKS cluster response")
+			conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition,
+				eksbootstrapv1.DataSecretGenerationFailedReason,
+				clusterv1.ConditionSeverityWarning,
+				"CA certificate not found in EKS cluster response")
+			return fmt.Errorf("CA certificate not found in EKS cluster response")
+		}
+
+		// Get AMI ID from AWSManagedMachinePool's launch template if specified
+		var amiID string
+		if configOwner.GetKind() == "MachinePool" {
+			amp := &expinfrav1.AWSManagedMachinePool{}
+			if err := r.Get(ctx, client.ObjectKey{Namespace: config.Namespace, Name: configOwner.GetName()}, amp); err == nil {
+				if amp.Spec.AWSLaunchTemplate != nil && amp.Spec.AWSLaunchTemplate.AMI.ID != nil {
+					amiID = *amp.Spec.AWSLaunchTemplate.AMI.ID
+				}
+			}
+		}
+
+		input := &userdata.AL2023UserDataInput{
+			ClusterName:       controlPlane.Spec.EKSClusterName,
+			APIServerEndpoint: apiServerEndpoint,
+			CACert:            caCert,
+			NodeGroupName:     config.Name,             // Use the config name as nodegroup name
+			MaxPods:           getMaxPods(config),      // Get from config or use default
+			ClusterDNS:        getClusterDNS(config),   // Get from config or use default
+			AMIImageID:        amiID,                   // Use launch template AMI if specified
+			CapacityType:      getCapacityType(config), // Get from config or use default
+		}
+
+		// Try to generate userdata with retries
+		var userDataErr error
+		for i := 0; i < 3; i++ { // Retry up to 3 times
+			userDataScript, userDataErr = userdata.GenerateAL2023UserData(input)
+			if userDataErr == nil {
+				break
+			}
+			log.Error(userDataErr, "Failed to generate AL2023 userdata, retrying",
+				"attempt", i+1,
+				"cluster", input.ClusterName)
+			time.Sleep(time.Second * time.Duration(i+1)) // Exponential backoff
+		}
+
+		if userDataErr != nil {
+			log.Error(userDataErr, "Failed to generate AL2023 userdata after retries")
+			conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition,
+				eksbootstrapv1.DataSecretGenerationFailedReason,
+				clusterv1.ConditionSeverityWarning,
+				"Failed to generate AL2023 userdata: %v", userDataErr)
+			return userDataErr
+		}
+	} else {
+		log.Info("Generating standard userdata for node type", "type", config.Spec.NodeType)
+		nodeInput := &userdata.NodeInput{
+			// AWSManagedControlPlane webhooks default and validate EKSClusterName
+			ClusterName:              controlPlane.Spec.EKSClusterName,
+			KubeletExtraArgs:         config.Spec.KubeletExtraArgs,
+			ContainerRuntime:         config.Spec.ContainerRuntime,
+			DNSClusterIP:             config.Spec.DNSClusterIP,
+			DockerConfigJSON:         config.Spec.DockerConfigJSON,
+			APIRetryAttempts:         config.Spec.APIRetryAttempts,
+			UseMaxPods:               config.Spec.UseMaxPods,
+			PreBootstrapCommands:     config.Spec.PreBootstrapCommands,
+			PostBootstrapCommands:    config.Spec.PostBootstrapCommands,
+			BootstrapCommandOverride: config.Spec.BootstrapCommandOverride,
+			NTP:                      config.Spec.NTP,
+			Users:                    config.Spec.Users,
+			DiskSetup:                config.Spec.DiskSetup,
+			Mounts:                   config.Spec.Mounts,
+			Files:                    files,
+		}
+
+		if config.Spec.PauseContainer != nil {
+			nodeInput.PauseContainerAccount = &config.Spec.PauseContainer.AccountNumber
+			nodeInput.PauseContainerVersion = &config.Spec.PauseContainer.Version
+		}
+
+		// Check if IPv6 was provided to the user configuration first
+		// If not, we also check if the cluster is ipv6 based.
+		if config.Spec.ServiceIPV6Cidr != nil && *config.Spec.ServiceIPV6Cidr != "" {
+			nodeInput.ServiceIPV6Cidr = config.Spec.ServiceIPV6Cidr
+			nodeInput.IPFamily = ptr.To[string]("ipv6")
+		}
+
+		// we don't want to override any manually set configuration options.
+		if config.Spec.ServiceIPV6Cidr == nil && controlPlane.Spec.NetworkSpec.VPC.IsIPv6Enabled() {
+			log.Info("Adding ipv6 data to userdata....")
+			nodeInput.ServiceIPV6Cidr = ptr.To[string](controlPlane.Spec.NetworkSpec.VPC.IPv6.CidrBlock)
+			nodeInput.IPFamily = ptr.To[string]("ipv6")
+		}
+
+		userDataScript, err = userdata.NewNode(nodeInput)
+		if err != nil {
+			log.Error(err, "Failed to create a worker join configuration")
+			conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, "")
+			return err
+		}
 	}
 
-	// Check if IPv6 was provided to the user configuration first
-	// If not, we also check if the cluster is ipv6 based.
-	if config.Spec.ServiceIPV6Cidr != nil && *config.Spec.ServiceIPV6Cidr != "" {
-		nodeInput.ServiceIPV6Cidr = config.Spec.ServiceIPV6Cidr
-		nodeInput.IPFamily = ptr.To[string]("ipv6")
-	}
-
-	// we don't want to override any manually set configuration options.
-	if config.Spec.ServiceIPV6Cidr == nil && controlPlane.Spec.NetworkSpec.VPC.IsIPv6Enabled() {
-		log.Info("Adding ipv6 data to userdata....")
-		nodeInput.ServiceIPV6Cidr = ptr.To[string](controlPlane.Spec.NetworkSpec.VPC.IPv6.CidrBlock)
-		nodeInput.IPFamily = ptr.To[string]("ipv6")
-	}
-
-	// generate userdata
-	userDataScript, err := userdata.NewNode(nodeInput)
-	if err != nil {
-		log.Error(err, "Failed to create a worker join configuration")
-		conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, "")
-		return err
-	}
-
-	// store userdata as secret
+	// Store the userdata in a secret
 	if err := r.storeBootstrapData(ctx, cluster, config, userDataScript); err != nil {
 		log.Error(err, "Failed to store bootstrap data")
 		conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, "")
 		return err
 	}
 
+	conditions.MarkTrue(config, eksbootstrapv1.DataSecretAvailableCondition)
 	return nil
+}
+
+// Helper functions to get dynamic values
+func getMaxPods(config *eksbootstrapv1.EKSConfig) int {
+	if config.Spec.UseMaxPods != nil && *config.Spec.UseMaxPods {
+		return 58 // Default value when UseMaxPods is true
+	}
+	return 110 // Default value when UseMaxPods is false
+}
+
+func getClusterDNS(config *eksbootstrapv1.EKSConfig) string {
+	if config.Spec.DNSClusterIP != nil && *config.Spec.DNSClusterIP != "" {
+		return *config.Spec.DNSClusterIP
+	}
+	return "10.96.0.10" // Default value
+}
+
+func getCapacityType(config *eksbootstrapv1.EKSConfig) string {
+	// TODO: Get from AWSManagedMachinePool spec if available
+	// For now, return default
+	return "ON_DEMAND"
 }
 
 func (r *EKSConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, option controller.Options) error {

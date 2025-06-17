@@ -19,6 +19,7 @@ package userdata
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"text/template"
 
 	"github.com/alessio/shellescape"
@@ -137,4 +138,92 @@ func NewNode(input *NodeInput) ([]byte, error) {
 	}
 
 	return out.Bytes(), nil
+}
+
+// AL2023UserDataInput defines the required input for generating AL2023 userdata
+type AL2023UserDataInput struct {
+	ClusterName       string
+	APIServerEndpoint string
+	CACert            string
+	NodeGroupName     string
+	MaxPods           int
+	ClusterDNS        string
+	AMIImageID        string
+	CapacityType      string
+}
+
+// ValidateAL2023UserDataInput validates the input for AL2023 userdata generation
+func ValidateAL2023UserDataInput(input *AL2023UserDataInput) error {
+	if input.ClusterName == "" {
+		return fmt.Errorf("cluster name is required")
+	}
+	if input.APIServerEndpoint == "" {
+		return fmt.Errorf("API server endpoint is required")
+	}
+	if !strings.HasPrefix(input.APIServerEndpoint, "https://") {
+		return fmt.Errorf("API server endpoint must start with https://")
+	}
+	if input.CACert == "" {
+		return fmt.Errorf("CA certificate is required")
+	}
+	if input.NodeGroupName == "" {
+		return fmt.Errorf("node group name is required")
+	}
+	if input.MaxPods <= 0 {
+		return fmt.Errorf("max pods must be greater than 0")
+	}
+	if input.ClusterDNS == "" {
+		return fmt.Errorf("cluster DNS is required")
+	}
+	if input.AMIImageID == "" {
+		return fmt.Errorf("AMI image ID is required")
+	}
+	if input.CapacityType == "" {
+		return fmt.Errorf("capacity type is required")
+	}
+	return nil
+}
+
+// GenerateAL2023UserData generates userdata for Amazon Linux 2023 nodes with validation and retry
+func GenerateAL2023UserData(input *AL2023UserDataInput) ([]byte, error) {
+	// Validate input
+	if err := ValidateAL2023UserDataInput(input); err != nil {
+		return nil, fmt.Errorf("invalid input: %w", err)
+	}
+
+	// Generate userdata with validated input
+	userData := fmt.Sprintf(`MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="//"
+
+--//
+Content-Type: application/node.eks.aws
+
+---
+apiVersion: node.eks.aws/v1alpha1
+kind: NodeConfig
+spec:
+  cluster:
+    apiServerEndpoint: %s
+    certificateAuthority: %s
+    cidr: 10.96.0.0/12
+    name: %s
+  kubelet:
+    config:
+      maxPods: %d
+      clusterDNS:
+      - %s
+    flags:
+    - "--node-labels=eks.amazonaws.com/nodegroup-image=%s,eks.amazonaws.com/capacityType=%s,eks.amazonaws.com/nodegroup=%s"
+
+--//--`,
+		input.APIServerEndpoint,
+		input.CACert,
+		input.ClusterName,
+		input.MaxPods,
+		input.ClusterDNS,
+		input.AMIImageID,
+		input.CapacityType,
+		input.NodeGroupName)
+
+	return []byte(userData), nil
 }
