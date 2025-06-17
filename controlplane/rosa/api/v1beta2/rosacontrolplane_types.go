@@ -21,7 +21,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -327,7 +326,7 @@ type DefaultMachinePoolSpec struct {
 	// Autoscaling specifies auto scaling behaviour for the default MachinePool. Autoscaling min/max value
 	// must be equal or multiple of the availability zones count.
 	// +optional
-	Autoscaling *expinfrav1.RosaMachinePoolAutoScaling `json:"autoscaling,omitempty"`
+	Autoscaling *AutoScaling `json:"autoscaling,omitempty"`
 
 	// VolumeSize set the disk volume size for the default workers machine pool in Gib. The default is 300 GiB.
 	// +kubebuilder:validation:Minimum=75
@@ -335,6 +334,14 @@ type DefaultMachinePoolSpec struct {
 	// +immutable
 	// +optional
 	VolumeSize int `json:"volumeSize,omitempty"`
+}
+
+// AutoScaling specifies scaling options.
+type AutoScaling struct {
+	// +kubebuilder:validation:Minimum=1
+	MinReplicas int `json:"minReplicas,omitempty"`
+	// +kubebuilder:validation:Minimum=1
+	MaxReplicas int `json:"maxReplicas,omitempty"`
 }
 
 // AWSRolesRef contains references to various AWS IAM roles required for operators to make calls against the AWS API.
