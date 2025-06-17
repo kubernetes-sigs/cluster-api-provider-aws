@@ -354,11 +354,6 @@ Resources:
           Resource:
           - arn:*:iam::*:role/*
         - Action:
-          - iam:GetPolicy
-          Effect: Allow
-          Resource:
-          - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
-        - Action:
           - eks:DescribeCluster
           - eks:ListClusters
           - eks:CreateCluster
