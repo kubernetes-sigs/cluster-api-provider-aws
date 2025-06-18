@@ -31,7 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/uuid"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/internal/bytes"
@@ -131,8 +130,11 @@ func (s *Service) forceDeleteSecretEntry(name string) error {
 	_, err := s.SSMClient.DeleteParameter(context.TODO(), &ssm.DeleteParameterInput{
 		Name: aws.String(name),
 	})
-	if awserrors.IsNotFound(err) {
-		return nil
+	if err != nil {
+		var aerr smithy.APIError
+		if errors.As(err, &aerr) && aerr.ErrorCode() == "ParameterNotFound" {
+			return nil
+		}
 	}
 	return err
 }

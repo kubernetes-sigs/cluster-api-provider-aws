@@ -275,7 +275,10 @@ func TestServiceDelete(t *testing.T) {
 				})).Return(nil, awserrors.NewFailedDependency("failed dependency"))
 				m.DeleteParameter(context.TODO(), gomock.Eq(&ssm.DeleteParameterInput{
 					Name: aws.String("prefix/1"),
-				})).Return(nil, awserrors.NewNotFound("not found"))
+				})).Return(nil, &smithy.GenericAPIError{
+					Code:    "ParameterNotFound",
+					Message: "not found",
+				})
 				m.DeleteParameter(context.TODO(), gomock.Eq(&ssm.DeleteParameterInput{
 					Name: aws.String("prefix/2"),
 				})).Return(nil, awserrors.NewConflict("new conflict"))
