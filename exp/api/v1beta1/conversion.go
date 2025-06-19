@@ -247,16 +247,8 @@ func Convert_v1beta2_AWSLaunchTemplate_To_v1beta1_AWSLaunchTemplate(in *expinfra
 	return autoConvert_v1beta2_AWSLaunchTemplate_To_v1beta1_AWSLaunchTemplate(in, out, s)
 }
 
-func Convert_v1beta1_AWSMachinePoolSpec_To_v1beta2_AWSMachinePoolSpec(in *AWSMachinePoolSpec, out *expinfrav1.AWSMachinePoolSpec, s apiconversion.Scope) error {
-	return autoConvert_v1beta1_AWSMachinePoolSpec_To_v1beta2_AWSMachinePoolSpec(in, out, s)
-}
-
 func Convert_v1beta2_AWSMachinePoolSpec_To_v1beta1_AWSMachinePoolSpec(in *expinfrav1.AWSMachinePoolSpec, out *AWSMachinePoolSpec, s apiconversion.Scope) error {
 	return autoConvert_v1beta2_AWSMachinePoolSpec_To_v1beta1_AWSMachinePoolSpec(in, out, s)
-}
-
-func Convert_v1beta1_AutoScalingGroup_To_v1beta2_AutoScalingGroup(in *AutoScalingGroup, out *expinfrav1.AutoScalingGroup, s apiconversion.Scope) error {
-	return autoConvert_v1beta1_AutoScalingGroup_To_v1beta2_AutoScalingGroup(in, out, s)
 }
 
 func Convert_v1beta2_AutoScalingGroup_To_v1beta1_AutoScalingGroup(in *expinfrav1.AutoScalingGroup, out *AutoScalingGroup, s apiconversion.Scope) error {

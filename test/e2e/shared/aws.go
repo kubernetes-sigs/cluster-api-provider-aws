@@ -972,7 +972,7 @@ func DumpCloudTrailEvents(e2eCtx *E2EContext) {
 // conformanceImageID looks up a specific image for a given
 // Kubernetes version in the e2econfig.
 func conformanceImageID(e2eCtx *E2EContext) string {
-	ver := e2eCtx.E2EConfig.GetVariable("CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION")
+	ver := e2eCtx.E2EConfig.MustGetVariable("CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION")
 	amiName := AMIPrefix + ver + "*"
 
 	By(fmt.Sprintf("Searching for AMI: name=%s", amiName))

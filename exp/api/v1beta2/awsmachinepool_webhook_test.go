@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta2
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
@@ -27,14 +28,15 @@ import (
 	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
-	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
+	utildefaulting "sigs.k8s.io/cluster-api-provider-aws/v2/util/defaulting"
 )
 
 func TestAWSMachinePoolDefault(t *testing.T) {
 	m := &AWSMachinePool{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
-	t.Run("for AWSCluster", utildefaulting.DefaultValidateTest(m))
-	m.Default()
+	t.Run("for AWSCluster", utildefaulting.DefaultValidateTest(context.Background(), m, &AWSMachinePoolWebhook{}))
+	err := (&AWSMachinePoolWebhook{}).Default(context.Background(), m)
 	g := NewWithT(t)
+	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(m.Spec.DefaultCoolDown.Duration).To(BeNumerically(">=", 0))
 }
 
@@ -352,7 +354,7 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			warn, err := tt.pool.ValidateCreate()
+			warn, err := (&AWSMachinePoolWebhook{}).ValidateCreate(context.Background(), tt.pool)
 			if tt.wantErrToContain != nil {
 				g.Expect(err).ToNot(BeNil())
 				if err != nil {
@@ -510,7 +512,7 @@ func TestAWSMachinePoolValidateUpdate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			warn, err := tt.new.ValidateUpdate(tt.old.DeepCopy())
+			warn, err := (&AWSMachinePoolWebhook{}).ValidateUpdate(context.Background(), tt.old.DeepCopy(), tt.new)
 			if tt.wantErrToContain != nil {
 				g.Expect(err).ToNot(BeNil())
 				if err != nil {
