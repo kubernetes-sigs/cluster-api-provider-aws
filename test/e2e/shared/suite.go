@@ -182,7 +182,7 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 		WriteAWSResourceQuotesToFile(path.Join(e2eCtx.Settings.ArtifactFolder, "initial-aws-resource-quotas.yaml"), originalQuotas)
 	}
 
-	e2eCtx.Settings.InstanceVCPU, err = strconv.Atoi(e2eCtx.E2EConfig.GetVariable(InstanceVcpu))
+	e2eCtx.Settings.InstanceVCPU, err = strconv.Atoi(e2eCtx.E2EConfig.MustGetVariable(InstanceVcpu))
 	Expect(err).NotTo(HaveOccurred())
 
 	By("Initializing the bootstrap cluster")

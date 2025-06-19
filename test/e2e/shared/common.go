@@ -76,8 +76,10 @@ func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, namespace
 		intervals := e2eCtx.E2EConfig.GetIntervals(specName, "wait-delete-cluster")
 		By(fmt.Sprintf("Deleting all clusters in the %q namespace with intervals %q", namespace.Name, intervals))
 		framework.DeleteAllClustersAndWait(ctx, framework.DeleteAllClustersAndWaitInput{
-			Client:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
-			Namespace: namespace.Name,
+			ClusterProxy:         e2eCtx.Environment.BootstrapClusterProxy,
+			ClusterctlConfigPath: e2eCtx.Environment.ClusterctlConfigPath,
+			Namespace:            namespace.Name,
+			ArtifactFolder:       e2eCtx.Settings.ArtifactFolder,
 		}, intervals...)
 
 		By(fmt.Sprintf("Deleting namespace used for hosting the %q test spec", specName))
@@ -207,17 +209,21 @@ func DumpMachine(ctx context.Context, e2eCtx *E2EContext, machine infrav1.AWSMac
 
 func DumpSpecResources(ctx context.Context, e2eCtx *E2EContext, namespace *corev1.Namespace) {
 	framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
-		Lister:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
-		Namespace: namespace.Name,
-		LogPath:   filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName(), "resources"),
+		KubeConfigPath:       e2eCtx.Environment.BootstrapClusterProxy.GetKubeconfigPath(),
+		ClusterctlConfigPath: e2eCtx.Environment.ClusterctlConfigPath,
+		Lister:               e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+		Namespace:            namespace.Name,
+		LogPath:              filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName(), "resources"),
 	})
 }
 
 func DumpSpecResourcesFromProxy(ctx context.Context, e2eCtx *E2EContext, namespace *corev1.Namespace, proxy framework.ClusterProxy) {
 	framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
-		Lister:    proxy.GetClient(),
-		Namespace: namespace.Name,
-		LogPath:   filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", proxy.GetName(), "resources"),
+		KubeConfigPath:       proxy.GetKubeconfigPath(),
+		ClusterctlConfigPath: e2eCtx.Environment.ClusterctlConfigPath,
+		Lister:               proxy.GetClient(),
+		Namespace:            namespace.Name,
+		LogPath:              filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", proxy.GetName(), "resources"),
 	})
 }
 
