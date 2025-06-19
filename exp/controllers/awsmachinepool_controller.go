@@ -22,12 +22,14 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/blang/semver/v4"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
@@ -305,6 +307,16 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 			// But we want to update the LaunchTemplate because an error in the LaunchTemplate may be blocking the ASG creation.
 			return true, nil
 		}
+
+		canProceed, err := r.isMachinePoolAllowedToUpgradeDueToControlPlaneVersionSkew(clusterScope, machinePoolScope)
+		if err != nil {
+			return true, err
+		}
+		if !canProceed {
+			machinePoolScope.Info("blocking the Launch Template update due to control plane k8s version skew")
+			return false, nil
+		}
+
 		return asgsvc.CanStartASGInstanceRefresh(machinePoolScope)
 	}
 	runPostLaunchTemplateUpdateOperation := func() error {
@@ -440,6 +452,35 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 	}
 
 	return ctrl.Result{}, nil
+}
+
+// isMachinePoolAllowedToUpgradeDueToControlPlaneVersionSkew checks if the control plane is being upgraded, in which case we shouldn't update the launch template.
+func (r *AWSMachinePoolReconciler) isMachinePoolAllowedToUpgradeDueToControlPlaneVersionSkew(clusterScope cloud.ClusterScoper, machinePoolScope *scope.MachinePoolScope) (bool, error) {
+	if machinePoolScope.Cluster.Spec.ControlPlaneRef == nil {
+		return false, errors.New("failed to find ControlPlane: cluster.spec.controlPlaneRef is empty")
+	}
+
+	controlPlane, err := clusterScope.UnstructuredControlPlane()
+	if err != nil {
+		return false, errors.Wrap(err, "failed to get ControlPlane")
+	}
+
+	cpVersion, found, err := unstructured.NestedString(controlPlane.Object, "status", "version")
+	if !found || err != nil {
+		return false, errors.Wrapf(err, "failed to get version of ControlPlane %s", machinePoolScope.Cluster.Spec.ControlPlaneRef.Name)
+	}
+
+	controlPlaneCurrentK8sVersion, err := semver.ParseTolerant(cpVersion)
+	if err != nil {
+		return false, errors.Wrapf(err, "failed to parse version of ControlPlane %s", machinePoolScope.Cluster.Spec.ControlPlaneRef.Name)
+	}
+
+	machinePoolDesiredK8sVersion, err := semver.ParseTolerant(*machinePoolScope.MachinePool.Spec.Template.Spec.Version)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to parse version of MachinePool")
+	}
+
+	return controlPlaneCurrentK8sVersion.GE(machinePoolDesiredK8sVersion), nil
 }
 
 func (r *AWSMachinePoolReconciler) reconcileDelete(ctx context.Context, machinePoolScope *scope.MachinePoolScope, clusterScope cloud.ClusterScoper, ec2Scope scope.EC2Scope) error {

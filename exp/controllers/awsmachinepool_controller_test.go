@@ -33,7 +33,9 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	utilfeature "k8s.io/component-base/featuregate/testing"
@@ -145,6 +147,14 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			scope.MachinePoolScopeParams{
 				Client: testEnv.Client,
 				Cluster: &clusterv1.Cluster{
+					Spec: clusterv1.ClusterSpec{
+						ControlPlaneRef: &corev1.ObjectReference{
+							Name:       "test",
+							Kind:       "KubeadmControlPlane",
+							APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+							Namespace:  "default",
+						},
+					},
 					Status: clusterv1.ClusterStatus{
 						InfrastructureReady: true,
 					},
@@ -167,6 +177,8 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 								Bootstrap: clusterv1.Bootstrap{
 									DataSecretName: ptr.To[string]("bootstrap-data"),
 								},
+								// This version should be older or equal to the version used for the control plane, or workers won't be upgraded
+								Version: ptr.To[string]("1.30.0"),
 							},
 						},
 					},
@@ -879,6 +891,65 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				g.Expect(err).To(Succeed())
 			})
 
+			t.Run("launch template and ASG exist, but control plane k8s version is older than machinepool k8s version, should not update ASG", func(t *testing.T) {
+				g := NewWithT(t)
+				setup(t, g)
+				reconciler.reconcileServiceFactory = nil // use real implementation, but keep EC2 calls mocked (`ec2ServiceFactory`)
+				reconSvc = nil                           // not used
+				defer teardown(t, g)
+
+				// Latest ID and version already stored, no need to retrieve it
+				ms.AWSMachinePool.Status.LaunchTemplateID = launchTemplateIDExisting
+				ms.AWSMachinePool.Status.LaunchTemplateVersion = ptr.To[string]("1")
+				// Set the MachinePool k8s version to a version that is newer than the control plane k8s version
+				ms.MachinePool.Spec.Template.Spec.Version = ptr.To[string]("99.99.99")
+
+				ec2Svc.EXPECT().GetLaunchTemplate(gomock.Eq("test")).Return(
+					&expinfrav1.AWSLaunchTemplate{
+						Name: "test",
+						AMI: infrav1.AMIReference{
+							ID: ptr.To[string]("ami-existing"),
+						},
+					},
+					// No change to user data
+					userdata.ComputeHash([]byte("shell-script")),
+					// But the name of the secret changes from `previous-secret-name` to `bootstrap-data`
+					&apimachinerytypes.NamespacedName{Namespace: "default", Name: "previous-secret-name"},
+					nil,
+					nil)
+				ec2Svc.EXPECT().DiscoverLaunchTemplateAMI(gomock.Any(), gomock.Any()).Return(ptr.To[string]("ami-existing"), nil)
+				// Mock changes to the launch template, ASG would be updated, but k8s version skew will prevent it
+				ec2Svc.EXPECT().LaunchTemplateNeedsUpdate(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
+
+				// Control plane kubernetes version skew is checked before, so it won't be called
+				asgSvc.EXPECT().CanStartASGInstanceRefresh(gomock.Any()).Times(0)
+				// Won't be called due to version skew
+				ec2Svc.EXPECT().CreateLaunchTemplateVersion(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				// Won't be called due to version skew
+				asgSvc.EXPECT().StartASGInstanceRefresh(gomock.Any()).Times(0)
+
+				asgSvc.EXPECT().GetASGByName(gomock.Any()).DoAndReturn(func(scope *scope.MachinePoolScope) (*expinfrav1.AutoScalingGroup, error) {
+					g.Expect(scope.Name()).To(Equal("test"))
+
+					// Add differences to `AWSMachinePool.spec`, ASG would be updated, but k8s version skew will prevent it
+					return &expinfrav1.AutoScalingGroup{
+						Name: scope.Name(),
+						Subnets: []string{
+							"subnet-1",
+						},
+						MinSize:              awsMachinePool.Spec.MinSize - 1,
+						MaxSize:              awsMachinePool.Spec.MaxSize + 1,
+						MixedInstancesPolicy: awsMachinePool.Spec.MixedInstancesPolicy.DeepCopy(),
+					}, nil
+				})
+				// No upgrade
+				asgSvc.EXPECT().UpdateASG(gomock.Any()).Times(0)
+
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+				// We expect an error because the workers use a k8s version newer than the control plane version
+				g.Expect(err).To(HaveOccurred())
+			})
+
 			t.Run("launch template and ASG created from zero, then bootstrap config reference changes", func(t *testing.T) {
 				g := NewWithT(t)
 				setup(t, g)
@@ -1396,13 +1467,42 @@ func setupCluster(clusterName string) (*scope.ClusterScope, error) {
 		ObjectMeta: metav1.ObjectMeta{Name: "test"},
 		Spec:       infrav1.AWSClusterSpec{},
 	}
-	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(awsCluster).Build()
+	controlPlane := &unstructured.Unstructured{}
+	controlPlane.Object = map[string]interface{}{
+		"metadata": map[string]interface{}{
+			"name":      "test",
+			"namespace": "default",
+		},
+		"spec": map[string]interface{}{},
+		"status": map[string]interface{}{
+			"version": "1.30.0",
+		},
+	}
+	controlPlane.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "controlplane.cluster.x-k8s.io",
+		Kind:    "KubeadmControlPlane",
+		Version: "v1beta1",
+	})
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(awsCluster).Build()
+	err := fakeClient.Create(context.Background(), controlPlane)
+	if err != nil {
+		return nil, err
+	}
+
 	return scope.NewClusterScope(scope.ClusterScopeParams{
 		Cluster: &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{Name: clusterName},
+			Spec: clusterv1.ClusterSpec{
+				ControlPlaneRef: &corev1.ObjectReference{
+					Kind:       "KubeadmControlPlane",
+					Namespace:  "default",
+					Name:       "test",
+					APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+				},
+			},
 		},
 		AWSCluster: awsCluster,
-		Client:     client,
+		Client:     fakeClient,
 	})
 }
 
