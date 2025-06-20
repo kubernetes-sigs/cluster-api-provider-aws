@@ -1521,6 +1521,30 @@ bool
 </tr>
 <tr>
 <td>
+<code>path</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Path sets the path to the role.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>permissionsBoundary</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PermissionsBoundary sets the ARN of the managed policy that is used to set the permissions boundary for the role.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>trustStatements</code><br/>
 <em>
 []Cluster API AWS iam/api/v1beta1.StatementEntry
@@ -6352,6 +6376,43 @@ feature flag to incorporate these into the created role.</p>
 </tr>
 <tr>
 <td>
+<code>rolePath</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RolePath sets the path to the role. For more information about paths, see IAM Identifiers
+(<a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html">https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html</a>)
+in the IAM User Guide.</p>
+<p>This parameter is optional. If it is not included, it defaults to a slash
+(/).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>rolePermissionsBoundary</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RolePermissionsBoundary sets the ARN of the managed policy that is used
+to set the permissions boundary for the role.</p>
+<p>A permissions boundary policy defines the maximum permissions that identity-based
+policies can grant to an entity, but does not grant permissions. Permissions
+boundaries do not define the maximum permissions that a resource-based policy
+can grant to an entity. To learn more, see Permissions boundaries for IAM
+entities (<a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html">https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html</a>)
+in the IAM User Guide.</p>
+<p>For more information about policy types, see Policy types (<a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html#access_policy-types">https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html#access_policy-types</a>)
+in the IAM User Guide.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>logging</code><br/>
 <em>
 <a href="#controlplane.cluster.x-k8s.io/v1beta2.ControlPlaneLoggingSpec">
@@ -6572,6 +6633,19 @@ VpcCni
 <td>
 <em>(Optional)</em>
 <p>VpcCni is used to set configuration options for the VPC CNI plugin</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>bootstrapSelfManagedAddons</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>BootstrapSelfManagedAddons is used to set configuration options for
+bare EKS cluster without EKS default networking addons
+If you set this value to false when creating a cluster, the default networking add-ons will not be installed</p>
 </td>
 </tr>
 <tr>
@@ -6766,6 +6840,43 @@ feature flag to incorporate these into the created role.</p>
 </tr>
 <tr>
 <td>
+<code>rolePath</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RolePath sets the path to the role. For more information about paths, see IAM Identifiers
+(<a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html">https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html</a>)
+in the IAM User Guide.</p>
+<p>This parameter is optional. If it is not included, it defaults to a slash
+(/).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>rolePermissionsBoundary</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RolePermissionsBoundary sets the ARN of the managed policy that is used
+to set the permissions boundary for the role.</p>
+<p>A permissions boundary policy defines the maximum permissions that identity-based
+policies can grant to an entity, but does not grant permissions. Permissions
+boundaries do not define the maximum permissions that a resource-based policy
+can grant to an entity. To learn more, see Permissions boundaries for IAM
+entities (<a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html">https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html</a>)
+in the IAM User Guide.</p>
+<p>For more information about policy types, see Policy types (<a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html#access_policy-types">https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html#access_policy-types</a>)
+in the IAM User Guide.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>logging</code><br/>
 <em>
 <a href="#controlplane.cluster.x-k8s.io/v1beta2.ControlPlaneLoggingSpec">
@@ -6990,6 +7101,19 @@ VpcCni
 </tr>
 <tr>
 <td>
+<code>bootstrapSelfManagedAddons</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>BootstrapSelfManagedAddons is used to set configuration options for
+bare EKS cluster without EKS default networking addons
+If you set this value to false when creating a cluster, the default networking add-ons will not be installed</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>restrictPrivateSubnets</code><br/>
 <em>
 bool
@@ -7176,6 +7300,19 @@ IdentityProviderStatus
 <em>(Optional)</em>
 <p>IdentityProviderStatus holds the status for
 associated identity provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>version</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Version represents the minimum Kubernetes version for the control plane machines
+in the cluster.</p>
 </td>
 </tr>
 </tbody>
@@ -8527,6 +8664,32 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.ChannelGroupType">ChannelGroupType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>)
+</p>
+<p>
+<p>ChannelGroupType specifies the OpenShift version channel group.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;candidate&#34;</p></td>
+<td><p>Candidate channel group is for testing candidate builds.</p>
+</td>
+</tr><tr><td><p>&#34;nightly&#34;</p></td>
+<td><p>Nightly channel group is for testing nigtly builds.</p>
+</td>
+</tr><tr><td><p>&#34;stable&#34;</p></td>
+<td><p>Stable channel group is the default channel group for stable releases.</p>
+</td>
+</tr></tbody>
+</table>
 <h3 id="controlplane.cluster.x-k8s.io/v1beta2.DefaultMachinePoolSpec">DefaultMachinePoolSpec
 </h3>
 <p>
@@ -8568,6 +8731,18 @@ RosaMachinePoolAutoScaling
 <em>(Optional)</em>
 <p>Autoscaling specifies auto scaling behaviour for the default MachinePool. Autoscaling min/max value
 must be equal or multiple of the availability zones count.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>volumeSize</code><br/>
+<em>
+int
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>VolumeSize set the disk volume size for the default workers machine pool in Gib. The default is 300 GiB.</p>
 </td>
 </tr>
 </tbody>
@@ -9006,6 +9181,36 @@ string
 </tr>
 <tr>
 <td>
+<code>channelGroup</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.ChannelGroupType">
+ChannelGroupType
+</a>
+</em>
+</td>
+<td>
+<p>OpenShift version channel group, default is stable.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>versionGate</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.VersionGateAckType">
+VersionGateAckType
+</a>
+</em>
+</td>
+<td>
+<p>VersionGate requires acknowledgment when upgrading ROSA-HCP y-stream versions (e.g., from 4.15 to 4.16).
+Default is WaitForAcknowledge.
+WaitForAcknowledge: If acknowledgment is required, the upgrade will not proceed until VersionGate is set to Acknowledge or AlwaysAcknowledge.
+Acknowledge: If acknowledgment is required, apply it for the upgrade. After upgrade is done set the version gate to WaitForAcknowledge.
+AlwaysAcknowledge: If acknowledgment is required, apply it and proceed with the upgrade.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>rolesRef</code><br/>
 <em>
 <a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSRolesRef">
@@ -9098,8 +9303,8 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>BillingAccount is an optional AWS account to use for billing the subscription fees for ROSA clusters.
-The cost of running each ROSA cluster will be billed to the infrastructure account in which the cluster
+<p>BillingAccount is an optional AWS account to use for billing the subscription fees for ROSA HCP clusters.
+The cost of running each ROSA HCP cluster will be billed to the infrastructure account in which the cluster
 is running.</p>
 </td>
 </tr>
@@ -9200,7 +9405,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>ProvisionShardID defines the shard where rosa control plane components will be hosted.</p>
+<p>ProvisionShardID defines the shard where ROSA hosted control plane components will be hosted.</p>
 </td>
 </tr>
 <tr>
@@ -9249,6 +9454,20 @@ Cluster API api/v1beta1.APIEndpoint
 <p>ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>clusterRegistryConfig</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.RegistryConfig">
+RegistryConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ClusterRegistryConfig represents registry config used with the cluster.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -9262,6 +9481,177 @@ RosaControlPlaneStatus
 </em>
 </td>
 <td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.RegistryConfig">RegistryConfig
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>)
+</p>
+<p>
+<p>RegistryConfig for ROSA-HCP cluster</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>additionalTrustedCAs</code><br/>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AdditionalTrustedCAs containing the registry hostname as the key, and the PEM-encoded certificate as the value,
+for each additional registry CA to trust.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>allowedRegistriesForImport</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.RegistryLocation">
+[]RegistryLocation
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AllowedRegistriesForImport limits the container image registries that normal users may import
+images from. Set this list to the registries that you trust to contain valid Docker
+images and that you want applications to be able to import from.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>registrySources</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.RegistrySources">
+RegistrySources
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RegistrySources contains configuration that determines how the container runtime
+should treat individual registries when accessing images. It does not contain configuration
+for the internal cluster registry. AllowedRegistries, BlockedRegistries are mutually exclusive.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.RegistryLocation">RegistryLocation
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.RegistryConfig">RegistryConfig</a>)
+</p>
+<p>
+<p>RegistryLocation contains a location of the registry specified by the registry domain name.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>domainName</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>domainName specifies a domain name for the registry. The domain name might include wildcards, like &lsquo;*&rsquo; or &lsquo;??&rsquo;.
+In case the registry use non-standard (80 or 443) port, the port should be included in the domain name as well.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>insecure</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>insecure indicates whether the registry is secure (https) or insecure (http), default is secured.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.RegistrySources">RegistrySources
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.RegistryConfig">RegistryConfig</a>)
+</p>
+<p>
+<p>RegistrySources contains registries configuration.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>allowedRegistries</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AllowedRegistries are the registries for which image pull and push actions are allowed.
+To specify all subdomains, add the asterisk (*) wildcard character as a prefix to the domain name,
+For example, *.example.com.
+You can specify an individual repository within a registry, For example: reg1.io/myrepo/myapp:latest.
+All other registries are blocked.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>blockedRegistries</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>BlockedRegistries are the registries for which image pull and push actions are denied.
+To specify all subdomains, add the asterisk (*) wildcard character as a prefix to the domain name,
+For example, *.example.com.
+You can specify an individual repository within a registry, For example: reg1.io/myrepo/myapp:latest.
+All other registries are allowed.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>insecureRegistries</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>InsecureRegistries are registries which do not have a valid TLS certificate or only support HTTP connections.
+To specify all subdomains, add the asterisk (*) wildcard character as a prefix to the domain name,
+For example, *.example.com.
+You can specify an individual repository within a registry, For example: reg1.io/myrepo/myapp:latest.</p>
 </td>
 </tr>
 </tbody>
@@ -9359,6 +9749,36 @@ string
 </tr>
 <tr>
 <td>
+<code>channelGroup</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.ChannelGroupType">
+ChannelGroupType
+</a>
+</em>
+</td>
+<td>
+<p>OpenShift version channel group, default is stable.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>versionGate</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.VersionGateAckType">
+VersionGateAckType
+</a>
+</em>
+</td>
+<td>
+<p>VersionGate requires acknowledgment when upgrading ROSA-HCP y-stream versions (e.g., from 4.15 to 4.16).
+Default is WaitForAcknowledge.
+WaitForAcknowledge: If acknowledgment is required, the upgrade will not proceed until VersionGate is set to Acknowledge or AlwaysAcknowledge.
+Acknowledge: If acknowledgment is required, apply it for the upgrade. After upgrade is done set the version gate to WaitForAcknowledge.
+AlwaysAcknowledge: If acknowledgment is required, apply it and proceed with the upgrade.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>rolesRef</code><br/>
 <em>
 <a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSRolesRef">
@@ -9451,8 +9871,8 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>BillingAccount is an optional AWS account to use for billing the subscription fees for ROSA clusters.
-The cost of running each ROSA cluster will be billed to the infrastructure account in which the cluster
+<p>BillingAccount is an optional AWS account to use for billing the subscription fees for ROSA HCP clusters.
+The cost of running each ROSA HCP cluster will be billed to the infrastructure account in which the cluster
 is running.</p>
 </td>
 </tr>
@@ -9553,7 +9973,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>ProvisionShardID defines the shard where rosa control plane components will be hosted.</p>
+<p>ProvisionShardID defines the shard where ROSA hosted control plane components will be hosted.</p>
 </td>
 </tr>
 <tr>
@@ -9600,6 +10020,20 @@ Cluster API api/v1beta1.APIEndpoint
 <td>
 <em>(Optional)</em>
 <p>ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clusterRegistryConfig</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.RegistryConfig">
+RegistryConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ClusterRegistryConfig represents registry config used with the cluster.</p>
 </td>
 </tr>
 </tbody>
@@ -9718,6 +10152,29 @@ string
 </td>
 <td>
 <p>OIDCEndpointURL is the endpoint url for the managed OIDC provider.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>version</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OpenShift semantic version, for example &ldquo;4.14.5&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>availableUpgrades</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Available upgrades for the ROSA hosted control plane.</p>
 </td>
 </tr>
 </tbody>
@@ -10067,6 +10524,32 @@ If the username claim is anything else, it is prefixed by the issuerURL</p>
 </td>
 </tr><tr><td><p>&#34;Prefix&#34;</p></td>
 <td><p>Prefix means the prefix value must be specified.  It cannot be empty</p>
+</td>
+</tr></tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.VersionGateAckType">VersionGateAckType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>)
+</p>
+<p>
+<p>VersionGateAckType specifies the version gate acknowledgment.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Acknowledge&#34;</p></td>
+<td><p>Acknowledge if acknowledgment is required and proceed with the upgrade.</p>
+</td>
+</tr><tr><td><p>&#34;AlwaysAcknowledge&#34;</p></td>
+<td><p>AlwaysAcknowledge always acknowledg if required and proceed with the upgrade.</p>
+</td>
+</tr><tr><td><p>&#34;WaitForAcknowledge&#34;</p></td>
+<td><p>WaitForAcknowledge if acknowledgment is required, wait not to proceed with the upgrade.</p>
 </td>
 </tr></tbody>
 </table>
@@ -12296,9 +12779,7 @@ InstanceState
 <td>
 <code>failureReason</code><br/>
 <em>
-<a href="https://pkg.go.dev/sigs.k8s.io/cluster-api@v1.0.0/errors#MachineStatusError">
-Cluster API errors.MachineStatusError
-</a>
+string
 </em>
 </td>
 <td>
@@ -15766,9 +16247,7 @@ string
 <td>
 <code>failureReason</code><br/>
 <em>
-<a href="https://pkg.go.dev/sigs.k8s.io/cluster-api@v1.0.0/errors#MachineStatusError">
-Cluster API errors.MachineStatusError
-</a>
+string
 </em>
 </td>
 <td>
@@ -16467,9 +16946,7 @@ string
 <td>
 <code>failureReason</code><br/>
 <em>
-<a href="https://pkg.go.dev/sigs.k8s.io/cluster-api@v1.0.0/errors#MachineStatusError">
-Cluster API errors.MachineStatusError
-</a>
+string
 </em>
 </td>
 <td>
@@ -16913,9 +17390,7 @@ bool
 <td>
 <code>failureReason</code><br/>
 <em>
-<a href="https://pkg.go.dev/sigs.k8s.io/cluster-api@v1.0.0/errors#MachineStatusError">
-Cluster API errors.MachineStatusError
-</a>
+string
 </em>
 </td>
 <td>
@@ -19423,6 +19898,21 @@ A maximum of 2 may be specified.</p>
 </tr>
 <tr>
 <td>
+<code>networkInterfaceType</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.NetworkInterfaceType">
+NetworkInterfaceType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>NetworkInterfaceType is the interface type of the primary network Interface.
+If not specified, AWS applies a default value.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>uncompressedUserData</code><br/>
 <em>
 bool
@@ -19540,6 +20030,25 @@ string
 <td>
 <em>(Optional)</em>
 <p>CapacityReservationID specifies the target Capacity Reservation into which the instance should be launched.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>marketType</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.MarketType">
+MarketType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>MarketType specifies the type of market for the EC2 instance. Valid values include:
+&ldquo;OnDemand&rdquo; (default): The instance runs as a standard OnDemand instance.
+&ldquo;Spot&rdquo;: The instance runs as a Spot instance. When SpotMarketOptions is provided, the marketType defaults to &ldquo;Spot&rdquo;.
+&ldquo;CapacityBlock&rdquo;: The instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
+If this value is selected, CapacityReservationID must be specified to identify the target reservation.
+If marketType is not specified and spotMarketOptions is provided, the marketType defaults to &ldquo;Spot&rdquo;.</p>
 </td>
 </tr>
 </table>
@@ -19843,6 +20352,21 @@ A maximum of 2 may be specified.</p>
 </tr>
 <tr>
 <td>
+<code>networkInterfaceType</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.NetworkInterfaceType">
+NetworkInterfaceType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>NetworkInterfaceType is the interface type of the primary network Interface.
+If not specified, AWS applies a default value.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>uncompressedUserData</code><br/>
 <em>
 bool
@@ -19962,6 +20486,25 @@ string
 <p>CapacityReservationID specifies the target Capacity Reservation into which the instance should be launched.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>marketType</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.MarketType">
+MarketType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>MarketType specifies the type of market for the EC2 instance. Valid values include:
+&ldquo;OnDemand&rdquo; (default): The instance runs as a standard OnDemand instance.
+&ldquo;Spot&rdquo;: The instance runs as a Spot instance. When SpotMarketOptions is provided, the marketType defaults to &ldquo;Spot&rdquo;.
+&ldquo;CapacityBlock&rdquo;: The instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
+If this value is selected, CapacityReservationID must be specified to identify the target reservation.
+If marketType is not specified and spotMarketOptions is provided, the marketType defaults to &ldquo;Spot&rdquo;.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSMachineStatus">AWSMachineStatus
@@ -20036,9 +20579,7 @@ InstanceState
 <td>
 <code>failureReason</code><br/>
 <em>
-<a href="https://pkg.go.dev/sigs.k8s.io/cluster-api@v1.0.0/errors#MachineStatusError">
-Cluster API errors.MachineStatusError
-</a>
+string
 </em>
 </td>
 <td>
@@ -20479,6 +21020,21 @@ A maximum of 2 may be specified.</p>
 </tr>
 <tr>
 <td>
+<code>networkInterfaceType</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.NetworkInterfaceType">
+NetworkInterfaceType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>NetworkInterfaceType is the interface type of the primary network Interface.
+If not specified, AWS applies a default value.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>uncompressedUserData</code><br/>
 <em>
 bool
@@ -20596,6 +21152,25 @@ string
 <td>
 <em>(Optional)</em>
 <p>CapacityReservationID specifies the target Capacity Reservation into which the instance should be launched.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>marketType</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.MarketType">
+MarketType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>MarketType specifies the type of market for the EC2 instance. Valid values include:
+&ldquo;OnDemand&rdquo; (default): The instance runs as a standard OnDemand instance.
+&ldquo;Spot&rdquo;: The instance runs as a Spot instance. When SpotMarketOptions is provided, the marketType defaults to &ldquo;Spot&rdquo;.
+&ldquo;CapacityBlock&rdquo;: The instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
+If this value is selected, CapacityReservationID must be specified to identify the target reservation.
+If marketType is not specified and spotMarketOptions is provided, the marketType defaults to &ldquo;Spot&rdquo;.</p>
 </td>
 </tr>
 </table>
@@ -20816,6 +21391,20 @@ Cluster API api/v1beta1.FailureDomains
 <td>
 <em>(Optional)</em>
 <p>FailureDomains specifies a list fo available availability zones that can be used</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>conditions</code><br/>
+<em>
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
+Cluster API api/v1beta1.Conditions
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Conditions defines current service state of the AWSManagedCluster.</p>
 </td>
 </tr>
 </tbody>
@@ -21835,7 +22424,7 @@ Mutually exclusive with CidrBlock.</p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.Ignition">Ignition
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachineSpec">AWSMachineSpec</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachinePoolSpec">AWSMachinePoolSpec</a>)
 </p>
 <p>
 <p>Ignition defines options related to the bootstrapping systems where Ignition is used.
@@ -22394,6 +22983,19 @@ Volume
 </tr>
 <tr>
 <td>
+<code>networkInterfaceType</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.NetworkInterfaceType">
+NetworkInterfaceType
+</a>
+</em>
+</td>
+<td>
+<p>NetworkInterfaceType is the interface type of the primary network Interface.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>tags</code><br/>
 <em>
 map[string]string
@@ -22527,6 +23129,25 @@ string
 <td>
 <em>(Optional)</em>
 <p>CapacityReservationID specifies the target Capacity Reservation into which the instance should be launched.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>marketType</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.MarketType">
+MarketType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>MarketType specifies the type of market for the EC2 instance. Valid values include:
+&ldquo;OnDemand&rdquo; (default): The instance runs as a standard OnDemand instance.
+&ldquo;Spot&rdquo;: The instance runs as a Spot instance. When SpotMarketOptions is provided, the marketType defaults to &ldquo;Spot&rdquo;.
+&ldquo;CapacityBlock&rdquo;: The instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
+If this value is selected, CapacityReservationID must be specified to identify the target reservation.
+If marketType is not specified and spotMarketOptions is provided, the marketType defaults to &ldquo;Spot&rdquo;.</p>
 </td>
 </tr>
 </tbody>
@@ -22885,6 +23506,22 @@ LoadBalancerType
 <p>
 <p>LoadBalancerType defines the type of load balancer to use.</p>
 </p>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.MarketType">MarketType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.Instance">Instance</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSLaunchTemplate">AWSLaunchTemplate</a>)
+</p>
+<p>
+<p>MarketType describes the market type of an Instance</p>
+</p>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.NetworkInterfaceType">NetworkInterfaceType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.Instance">Instance</a>)
+</p>
+<p>
+<p>NetworkInterfaceType is the type of network interface.</p>
+</p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.NetworkSpec">NetworkSpec
 </h3>
 <p>
@@ -22968,6 +23605,33 @@ This is optional - if not provided new security groups will be created for the c
 <td>
 <em>(Optional)</em>
 <p>AdditionalControlPlaneIngressRules is an optional set of ingress rules to add to the control plane</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>additionalNodeIngressRules</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.IngressRule">
+[]IngressRule
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AdditionalNodeIngressRules is an optional set of ingress rules to add to every node</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>nodePortIngressRuleCidrBlocks</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>NodePortIngressRuleCidrBlocks is an optional set of CIDR blocks to allow traffic to nodes&rsquo; NodePort services.
+If none are specified here, all IPs are allowed to connect.</p>
 </td>
 </tr>
 </tbody>
@@ -24392,6 +25056,43 @@ flag is true and no name is supplied then a role is created.</p>
 </tr>
 <tr>
 <td>
+<code>rolePath</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RolePath sets the path to the role. For more information about paths, see IAM Identifiers
+(<a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html">https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html</a>)
+in the IAM User Guide.</p>
+<p>This parameter is optional. If it is not included, it defaults to a slash
+(/).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>rolePermissionsBoundary</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RolePermissionsBoundary sets the ARN of the managed policy that is used
+to set the permissions boundary for the role.</p>
+<p>A permissions boundary policy defines the maximum permissions that identity-based
+policies can grant to an entity, but does not grant permissions. Permissions
+boundaries do not define the maximum permissions that a resource-based policy
+can grant to an entity. To learn more, see Permissions boundaries for IAM
+entities (<a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html">https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html</a>)
+in the IAM User Guide.</p>
+<p>For more information about policy types, see Policy types (<a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html#access_policy-types">https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html#access_policy-types</a>)
+in the IAM User Guide.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>selectors</code><br/>
 <em>
 <a href="#infrastructure.cluster.x-k8s.io/v1beta2.FargateSelector">
@@ -24643,6 +25344,147 @@ PrivateDNSName
 <p>PrivateDNSName is the options for the instance hostname.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>capacityReservationId</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CapacityReservationID specifies the target Capacity Reservation into which the instance should be launched.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>marketType</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.MarketType">
+MarketType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>MarketType specifies the type of market for the EC2 instance. Valid values include:
+&ldquo;OnDemand&rdquo; (default): The instance runs as a standard OnDemand instance.
+&ldquo;Spot&rdquo;: The instance runs as a Spot instance. When SpotMarketOptions is provided, the marketType defaults to &ldquo;Spot&rdquo;.
+&ldquo;CapacityBlock&rdquo;: The instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
+If this value is selected, CapacityReservationID must be specified to identify the target reservation.
+If marketType is not specified and spotMarketOptions is provided, the marketType defaults to &ldquo;Spot&rdquo;.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSLifecycleHook">AWSLifecycleHook
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachinePoolSpec">AWSMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedMachinePoolSpec">AWSManagedMachinePoolSpec</a>)
+</p>
+<p>
+<p>AWSLifecycleHook describes an AWS lifecycle hook</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The name of the lifecycle hook.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>notificationTargetARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The ARN of the notification target that Amazon EC2 Auto Scaling uses to
+notify you when an instance is in the transition state for the lifecycle hook.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>roleARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The ARN of the IAM role that allows the Auto Scaling group to publish to the
+specified notification target.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>lifecycleTransition</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.LifecycleTransition">
+LifecycleTransition
+</a>
+</em>
+</td>
+<td>
+<p>The state of the EC2 instance to which to attach the lifecycle hook.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>heartbeatTimeout</code><br/>
+<em>
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The maximum time, in seconds, that an instance can remain in a Pending:Wait or
+Terminating:Wait state. The maximum is 172800 seconds (48 hours) or 100 times
+HeartbeatTimeout, whichever is smaller.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>defaultResult</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.LifecycleHookDefaultResult">
+LifecycleHookDefaultResult
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The default result for the lifecycle hook. The possible values are CONTINUE and ABANDON.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>notificationMetadata</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Contains additional metadata that will be passed to the notification target.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSMachinePool">AWSMachinePool
@@ -24882,6 +25724,34 @@ SuspendProcessesTypes
 <td>
 <p>SuspendProcesses defines a list of processes to suspend for the given ASG. This is constantly reconciled.
 If a process is removed from this list it will automatically be resumed.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ignition</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.Ignition">
+Ignition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Ignition defined options related to the bootstrapping systems where Ignition is used.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>lifecycleHooks</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSLifecycleHook">
+[]AWSLifecycleHook
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AWSLifecycleHooks specifies lifecycle hooks for the autoscaling group.</p>
 </td>
 </tr>
 </table>
@@ -25158,6 +26028,34 @@ SuspendProcessesTypes
 If a process is removed from this list it will automatically be resumed.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>ignition</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.Ignition">
+Ignition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Ignition defined options related to the bootstrapping systems where Ignition is used.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>lifecycleHooks</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSLifecycleHook">
+[]AWSLifecycleHook
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AWSLifecycleHooks specifies lifecycle hooks for the autoscaling group.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSMachinePoolStatus">AWSMachinePoolStatus
@@ -25253,11 +26151,21 @@ string
 </tr>
 <tr>
 <td>
+<code>infrastructureMachineKind</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>InfrastructureMachineKind is the kind of the infrastructure resources behind MachinePool Machines.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>failureReason</code><br/>
 <em>
-<a href="https://pkg.go.dev/sigs.k8s.io/cluster-api@v1.0.0/errors#MachineStatusError">
-Cluster API errors.MachineStatusError
-</a>
+string
 </em>
 </td>
 <td>
@@ -25456,6 +26364,41 @@ flag is true and no name is supplied then a role is created.</p>
 </tr>
 <tr>
 <td>
+<code>rolePath</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>RolePath sets the path to the role. For more information about paths, see IAM Identifiers
+(<a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html">https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html</a>)
+in the IAM User Guide.</p>
+<p>This parameter is optional. If it is not included, it defaults to a slash
+(/).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>rolePermissionsBoundary</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>RolePermissionsBoundary sets the ARN of the managed policy that is used
+to set the permissions boundary for the role.</p>
+<p>A permissions boundary policy defines the maximum permissions that identity-based
+policies can grant to an entity, but does not grant permissions. Permissions
+boundaries do not define the maximum permissions that a resource-based policy
+can grant to an entity. To learn more, see Permissions boundaries for IAM
+entities (<a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html">https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html</a>)
+in the IAM User Guide.</p>
+<p>For more information about policy types, see Policy types (<a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html#access_policy-types">https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html#access_policy-types</a>)
+in the IAM User Guide.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>amiVersion</code><br/>
 <em>
 string
@@ -25617,6 +26560,20 @@ AWSLaunchTemplate
 <p>AWSLaunchTemplate specifies the launch template to use to create the managed node group.
 If AWSLaunchTemplate is specified, certain node group configuraions outside of launch template
 are prohibited (<a href="https://docs.aws.amazon.com/eks/latest/userguide/launch-templates.html">https://docs.aws.amazon.com/eks/latest/userguide/launch-templates.html</a>).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>lifecycleHooks</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSLifecycleHook">
+[]AWSLifecycleHook
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AWSLifecycleHooks specifies lifecycle hooks for the managed node group.</p>
 </td>
 </tr>
 </table>
@@ -25751,6 +26708,41 @@ flag is true and no name is supplied then a role is created.</p>
 </tr>
 <tr>
 <td>
+<code>rolePath</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>RolePath sets the path to the role. For more information about paths, see IAM Identifiers
+(<a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html">https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html</a>)
+in the IAM User Guide.</p>
+<p>This parameter is optional. If it is not included, it defaults to a slash
+(/).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>rolePermissionsBoundary</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>RolePermissionsBoundary sets the ARN of the managed policy that is used
+to set the permissions boundary for the role.</p>
+<p>A permissions boundary policy defines the maximum permissions that identity-based
+policies can grant to an entity, but does not grant permissions. Permissions
+boundaries do not define the maximum permissions that a resource-based policy
+can grant to an entity. To learn more, see Permissions boundaries for IAM
+entities (<a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html">https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html</a>)
+in the IAM User Guide.</p>
+<p>For more information about policy types, see Policy types (<a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html#access_policy-types">https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html#access_policy-types</a>)
+in the IAM User Guide.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>amiVersion</code><br/>
 <em>
 string
@@ -25914,6 +26906,20 @@ If AWSLaunchTemplate is specified, certain node group configuraions outside of l
 are prohibited (<a href="https://docs.aws.amazon.com/eks/latest/userguide/launch-templates.html">https://docs.aws.amazon.com/eks/latest/userguide/launch-templates.html</a>).</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>lifecycleHooks</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSLifecycleHook">
+[]AWSLifecycleHook
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AWSLifecycleHooks specifies lifecycle hooks for the managed node group.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedMachinePoolStatus">AWSManagedMachinePoolStatus
@@ -25984,9 +26990,7 @@ string
 <td>
 <code>failureReason</code><br/>
 <em>
-<a href="https://pkg.go.dev/sigs.k8s.io/cluster-api@v1.0.0/errors#MachineStatusError">
-Cluster API errors.MachineStatusError
-</a>
+string
 </em>
 </td>
 <td>
@@ -26434,6 +27438,43 @@ flag is true and no name is supplied then a role is created.</p>
 </tr>
 <tr>
 <td>
+<code>rolePath</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RolePath sets the path to the role. For more information about paths, see IAM Identifiers
+(<a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html">https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html</a>)
+in the IAM User Guide.</p>
+<p>This parameter is optional. If it is not included, it defaults to a slash
+(/).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>rolePermissionsBoundary</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RolePermissionsBoundary sets the ARN of the managed policy that is used
+to set the permissions boundary for the role.</p>
+<p>A permissions boundary policy defines the maximum permissions that identity-based
+policies can grant to an entity, but does not grant permissions. Permissions
+boundaries do not define the maximum permissions that a resource-based policy
+can grant to an entity. To learn more, see Permissions boundaries for IAM
+entities (<a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html">https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html</a>)
+in the IAM User Guide.</p>
+<p>For more information about policy types, see Policy types (<a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html#access_policy-types">https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html#access_policy-types</a>)
+in the IAM User Guide.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>selectors</code><br/>
 <em>
 <a href="#infrastructure.cluster.x-k8s.io/v1beta2.FargateSelector">
@@ -26478,9 +27519,7 @@ bool
 <td>
 <code>failureReason</code><br/>
 <em>
-<a href="https://pkg.go.dev/sigs.k8s.io/cluster-api@v1.0.0/errors#MachineStatusError">
-Cluster API errors.MachineStatusError
-</a>
+string
 </em>
 </td>
 <td>
@@ -26643,6 +27682,52 @@ int64
 </td>
 </tr>
 </tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.LifecycleHookDefaultResult">LifecycleHookDefaultResult
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSLifecycleHook">AWSLifecycleHook</a>)
+</p>
+<p>
+<p>LifecycleHookDefaultResult is the default result for the lifecycle hook.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;ABANDON&#34;</p></td>
+<td><p>LifecycleHookDefaultResultAbandon is the default result for the lifecycle hook to abandon.</p>
+</td>
+</tr><tr><td><p>&#34;CONTINUE&#34;</p></td>
+<td><p>LifecycleHookDefaultResultContinue is the default result for the lifecycle hook to continue.</p>
+</td>
+</tr></tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.LifecycleTransition">LifecycleTransition
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSLifecycleHook">AWSLifecycleHook</a>)
+</p>
+<p>
+<p>LifecycleTransition is the state of the EC2 instance to which to attach the lifecycle hook.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;autoscaling:EC2_INSTANCE_LAUNCHING&#34;</p></td>
+<td><p>LifecycleHookTransitionInstanceLaunching is the launching state of the EC2 instance.</p>
+</td>
+</tr><tr><td><p>&#34;autoscaling:EC2_INSTANCE_TERMINATING&#34;</p></td>
+<td><p>LifecycleHookTransitionInstanceTerminating is the terminating state of the EC2 instance.</p>
+</td>
+</tr></tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.ManagedMachineAMIType">ManagedMachineAMIType
 (<code>string</code> alias)</p></h3>
@@ -27121,6 +28206,20 @@ Cluster API api/v1beta1.FailureDomains
 <p>FailureDomains specifies a list fo available availability zones that can be used</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>conditions</code><br/>
+<em>
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
+Cluster API api/v1beta1.Conditions
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Conditions defines current service state of the ROSACluster.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.ROSAMachinePool">ROSAMachinePool
@@ -27319,6 +28418,18 @@ with all node instances of the machine pool.</p>
 </tr>
 <tr>
 <td>
+<code>volumeSize</code><br/>
+<em>
+int
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>VolumeSize set the disk volume size for the machine pool, in Gib. The default is 300 GiB.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>providerIDList</code><br/>
 <em>
 []string
@@ -27446,6 +28557,23 @@ int64
 <em>(Optional)</em>
 <p>The amount of capacity as a percentage in ASG that must remain healthy
 during an instance refresh. The default is 90.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>maxHealthyPercentage</code><br/>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The amount of capacity as a percentage in ASG that can be in service and healthy, or pending,
+to support your workload when replacing instances.
+The value is expressed as a percentage of the desired capacity of the ASG. Value range is 100 to 200.
+If you specify MaxHealthyPercentage , you must also specify MinHealthyPercentage , and the difference between
+them cannot be greater than 100.
+A larger range increases the number of instances that can be replaced at the same time.</p>
 </td>
 </tr>
 </tbody>
@@ -27720,6 +28848,18 @@ with all node instances of the machine pool.</p>
 </tr>
 <tr>
 <td>
+<code>volumeSize</code><br/>
+<em>
+int
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>VolumeSize set the disk volume size for the machine pool, in Gib. The default is 300 GiB.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>providerIDList</code><br/>
 <em>
 []string
@@ -27845,6 +28985,17 @@ string
 </td>
 <td>
 <p>ID is the ID given by ROSA.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>availableUpgrades</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Available upgrades for the ROSA MachinePool.</p>
 </td>
 </tr>
 </tbody>
