@@ -23,9 +23,9 @@ package mock_services
 import (
 	reflect "reflect"
 
-	ec2 "github.com/aws/aws-sdk-go/service/ec2"
+	types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	gomock "github.com/golang/mock/gomock"
-	types "k8s.io/apimachinery/pkg/types"
+	types0 "k8s.io/apimachinery/pkg/types"
 	v1beta2 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	v1beta20 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	scope "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
@@ -70,7 +70,7 @@ func (mr *MockEC2InterfaceMockRecorder) CreateInstance(arg0, arg1, arg2 interfac
 }
 
 // CreateLaunchTemplate mocks base method.
-func (m *MockEC2Interface) CreateLaunchTemplate(arg0 scope.LaunchTemplateScope, arg1 *string, arg2 types.NamespacedName, arg3 []byte, arg4 string) (string, error) {
+func (m *MockEC2Interface) CreateLaunchTemplate(arg0 scope.LaunchTemplateScope, arg1 *string, arg2 types0.NamespacedName, arg3 []byte, arg4 string) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateLaunchTemplate", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].(string)
@@ -85,7 +85,7 @@ func (mr *MockEC2InterfaceMockRecorder) CreateLaunchTemplate(arg0, arg1, arg2, a
 }
 
 // CreateLaunchTemplateVersion mocks base method.
-func (m *MockEC2Interface) CreateLaunchTemplateVersion(arg0 string, arg1 scope.LaunchTemplateScope, arg2 *string, arg3 types.NamespacedName, arg4 []byte, arg5 string) error {
+func (m *MockEC2Interface) CreateLaunchTemplateVersion(arg0 string, arg1 scope.LaunchTemplateScope, arg2 *string, arg3 types0.NamespacedName, arg4 []byte, arg5 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateLaunchTemplateVersion", arg0, arg1, arg2, arg3, arg4, arg5)
 	ret0, _ := ret[0].(error)
@@ -201,12 +201,12 @@ func (mr *MockEC2InterfaceMockRecorder) GetInstanceSecurityGroups(arg0 interface
 }
 
 // GetLaunchTemplate mocks base method.
-func (m *MockEC2Interface) GetLaunchTemplate(arg0 string) (*v1beta20.AWSLaunchTemplate, string, *types.NamespacedName, *string, error) {
+func (m *MockEC2Interface) GetLaunchTemplate(arg0 string) (*v1beta20.AWSLaunchTemplate, string, *types0.NamespacedName, *string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetLaunchTemplate", arg0)
 	ret0, _ := ret[0].(*v1beta20.AWSLaunchTemplate)
 	ret1, _ := ret[1].(string)
-	ret2, _ := ret[2].(*types.NamespacedName)
+	ret2, _ := ret[2].(*types0.NamespacedName)
 	ret3, _ := ret[3].(*string)
 	ret4, _ := ret[4].(error)
 	return ret0, ret1, ret2, ret3, ret4
@@ -308,10 +308,10 @@ func (mr *MockEC2InterfaceMockRecorder) ModifyInstanceMetadataOptions(arg0, arg1
 }
 
 // PruneLaunchTemplateVersions mocks base method.
-func (m *MockEC2Interface) PruneLaunchTemplateVersions(arg0 string) (*ec2.LaunchTemplateVersion, error) {
+func (m *MockEC2Interface) PruneLaunchTemplateVersions(arg0 string) (*types.LaunchTemplateVersion, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PruneLaunchTemplateVersions", arg0)
-	ret0, _ := ret[0].(*ec2.LaunchTemplateVersion)
+	ret0, _ := ret[0].(*types.LaunchTemplateVersion)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
