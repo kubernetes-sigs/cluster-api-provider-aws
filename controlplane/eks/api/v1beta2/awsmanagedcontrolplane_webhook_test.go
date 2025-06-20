@@ -85,52 +85,138 @@ func TestDefaultingWebhook(t *testing.T) {
 			resourceName: "cluster1",
 			resourceNS:   "default",
 			expectHash:   false,
-			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1", IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec, TokenMethod: &EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true},
+			expectSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				AWSManagedControlPlaneClassSpec: AWSManagedControlPlaneClassSpec{
+					IdentityRef:                defaultIdentityRef,
+					Bastion:                    defaultTestBastion,
+					NetworkSpec:                defaultNetworkSpec,
+					TokenMethod:                &EKSTokenMethodIAMAuthenticator,
+					BootstrapSelfManagedAddons: true,
+				},
+			},
 		},
 		{
 			name:         "less than 100 chars, dot in name",
 			resourceName: "team1.cluster1",
 			resourceNS:   "default",
 			expectHash:   false,
-			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "default_team1_cluster1", IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec, TokenMethod: &EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true},
+			expectSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_team1_cluster1",
+				AWSManagedControlPlaneClassSpec: AWSManagedControlPlaneClassSpec{
+					IdentityRef:                defaultIdentityRef,
+					Bastion:                    defaultTestBastion,
+					NetworkSpec:                defaultNetworkSpec,
+					TokenMethod:                &EKSTokenMethodIAMAuthenticator,
+					BootstrapSelfManagedAddons: true,
+				},
+			},
 		},
 		{
 			name:         "more than 100 chars",
 			resourceName: "abcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcde",
 			resourceNS:   "default",
 			expectHash:   true,
-			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "capi_", IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec, TokenMethod: &EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true},
+			expectSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "capi_",
+				AWSManagedControlPlaneClassSpec: AWSManagedControlPlaneClassSpec{
+					IdentityRef:                defaultIdentityRef,
+					Bastion:                    defaultTestBastion,
+					NetworkSpec:                defaultNetworkSpec,
+					TokenMethod:                &EKSTokenMethodIAMAuthenticator,
+					BootstrapSelfManagedAddons: true,
+				},
+			},
 		},
 		{
 			name:         "with patch",
 			resourceName: "cluster1",
 			resourceNS:   "default",
 			expectHash:   false,
-			spec:         AWSManagedControlPlaneSpec{Version: &vV1_17_1},
-			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1", Version: &vV1_17_1, IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec, TokenMethod: &EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true},
+			spec: AWSManagedControlPlaneSpec{
+				AWSManagedControlPlaneClassSpec: AWSManagedControlPlaneClassSpec{
+					Version: &vV1_17_1,
+				},
+			},
+			expectSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				AWSManagedControlPlaneClassSpec: AWSManagedControlPlaneClassSpec{
+					Version:                    &vV1_17_1,
+					IdentityRef:                defaultIdentityRef,
+					Bastion:                    defaultTestBastion,
+					NetworkSpec:                defaultNetworkSpec,
+					TokenMethod:                &EKSTokenMethodIAMAuthenticator,
+					BootstrapSelfManagedAddons: true,
+				},
+			},
 		},
 		{
 			name:         "with allowed ip on bastion",
 			resourceName: "cluster1",
 			resourceNS:   "default",
 			expectHash:   false,
-			spec:         AWSManagedControlPlaneSpec{Bastion: infrav1.Bastion{AllowedCIDRBlocks: []string{"100.100.100.100/0"}}},
-			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1", IdentityRef: defaultIdentityRef, Bastion: infrav1.Bastion{AllowedCIDRBlocks: []string{"100.100.100.100/0"}}, NetworkSpec: defaultNetworkSpec, TokenMethod: &EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true},
+			spec: AWSManagedControlPlaneSpec{
+				AWSManagedControlPlaneClassSpec: AWSManagedControlPlaneClassSpec{
+					Bastion: infrav1.Bastion{
+						AllowedCIDRBlocks: []string{"100.100.100.100/0"},
+					},
+				},
+			},
+			expectSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				AWSManagedControlPlaneClassSpec: AWSManagedControlPlaneClassSpec{
+					IdentityRef: defaultIdentityRef,
+					Bastion: infrav1.Bastion{
+						AllowedCIDRBlocks: []string{"100.100.100.100/0"},
+					},
+					NetworkSpec:                defaultNetworkSpec,
+					TokenMethod:                &EKSTokenMethodIAMAuthenticator,
+					BootstrapSelfManagedAddons: true,
+				},
+			},
 		},
 		{
 			name:         "with CNI on network",
 			resourceName: "cluster1",
 			resourceNS:   "default",
 			expectHash:   false,
-			spec:         AWSManagedControlPlaneSpec{NetworkSpec: infrav1.NetworkSpec{CNI: &infrav1.CNISpec{}}},
-			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1", IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: infrav1.NetworkSpec{CNI: &infrav1.CNISpec{}, VPC: defaultVPCSpec}, TokenMethod: &EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true},
+			spec: AWSManagedControlPlaneSpec{
+				AWSManagedControlPlaneClassSpec: AWSManagedControlPlaneClassSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						CNI: &infrav1.CNISpec{},
+					},
+				},
+			},
+			expectSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				AWSManagedControlPlaneClassSpec: AWSManagedControlPlaneClassSpec{
+					IdentityRef: defaultIdentityRef,
+					Bastion:     defaultTestBastion,
+					NetworkSpec: infrav1.NetworkSpec{
+						CNI: &infrav1.CNISpec{},
+						VPC: defaultVPCSpec,
+					},
+					TokenMethod:                &EKSTokenMethodIAMAuthenticator,
+					BootstrapSelfManagedAddons: true,
+				},
+			},
 		},
 		{
 			name:         "secondary CIDR",
 			resourceName: "cluster1",
 			resourceNS:   "default",
 			expectHash:   false,
-			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1", IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec, SecondaryCidrBlock: nil, TokenMethod: &EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true},
+			expectSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				AWSManagedControlPlaneClassSpec: AWSManagedControlPlaneClassSpec{
+					IdentityRef:                defaultIdentityRef,
+					Bastion:                    defaultTestBastion,
+					NetworkSpec:                defaultNetworkSpec,
+					SecondaryCidrBlock:         nil,
+					TokenMethod:                &EKSTokenMethodIAMAuthenticator,
+					BootstrapSelfManagedAddons: true,
+				},
+			},
 		},
 	}
 
@@ -336,12 +422,14 @@ func TestWebhookCreate(t *testing.T) {
 				},
 				Spec: AWSManagedControlPlaneSpec{
 					EKSClusterName: tc.eksClusterName,
-					KubeProxy:      tc.kubeProxy,
-					AdditionalTags: tc.additionalTags,
-					VpcCni:         tc.vpcCNI,
-					NetworkSpec: infrav1.NetworkSpec{
-						VPC: infrav1.VPCSpec{
-							SecondaryCidrBlocks: tc.secondaryCidrBlocks,
+					AWSManagedControlPlaneClassSpec: AWSManagedControlPlaneClassSpec{
+						KubeProxy:      tc.kubeProxy,
+						AdditionalTags: tc.additionalTags,
+						VpcCni:         tc.vpcCNI,
+						NetworkSpec: infrav1.NetworkSpec{
+							VPC: infrav1.VPCSpec{
+								SecondaryCidrBlocks: tc.secondaryCidrBlocks,
+							},
 						},
 					},
 				},
@@ -510,9 +598,11 @@ func TestWebhookCreateIPv6Details(t *testing.T) {
 				},
 				Spec: AWSManagedControlPlaneSpec{
 					EKSClusterName: "test-cluster",
-					Addons:         tc.addons,
-					NetworkSpec:    tc.networkSpec,
-					Version:        aws.String(tc.kubeVersion),
+					AWSManagedControlPlaneClassSpec: AWSManagedControlPlaneClassSpec{
+						Addons:      tc.addons,
+						NetworkSpec: tc.networkSpec,
+						Version:     aws.String(tc.kubeVersion),
+					},
 				},
 			}
 			err := testEnv.Create(ctx, mcp)
@@ -570,36 +660,36 @@ func TestWebhookUpdate(t *testing.T) {
 		{
 			name: "older version",
 			oldClusterSpec: AWSManagedControlPlaneSpec{
-				EKSClusterName: "default_cluster1",
-				Version:        &vV1_17,
+				EKSClusterName:                  "default_cluster1",
+				AWSManagedControlPlaneClassSpec: AWSManagedControlPlaneClassSpec{Version: &vV1_17},
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
-				EKSClusterName: "default_cluster1",
-				Version:        &vV1_16,
+				EKSClusterName:                  "default_cluster1",
+				AWSManagedControlPlaneClassSpec: AWSManagedControlPlaneClassSpec{Version: &vV1_16},
 			},
 			expectError: true,
 		},
 		{
 			name: "same version",
 			oldClusterSpec: AWSManagedControlPlaneSpec{
-				EKSClusterName: "default_cluster1",
-				Version:        &vV1_17,
+				EKSClusterName:                  "default_cluster1",
+				AWSManagedControlPlaneClassSpec: AWSManagedControlPlaneClassSpec{Version: &vV1_17},
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
-				EKSClusterName: "default_cluster1",
-				Version:        &vV1_17,
+				EKSClusterName:                  "default_cluster1",
+				AWSManagedControlPlaneClassSpec: AWSManagedControlPlaneClassSpec{Version: &vV1_17},
 			},
 			expectError: false,
 		},
 		{
 			name: "newer version",
 			oldClusterSpec: AWSManagedControlPlaneSpec{
-				EKSClusterName: "default_cluster1",
-				Version:        &vV1_16,
+				EKSClusterName:                  "default_cluster1",
+				AWSManagedControlPlaneClassSpec: AWSManagedControlPlaneClassSpec{Version: &vV1_16},
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
-				EKSClusterName: "default_cluster1",
-				Version:        &vV1_17,
+				EKSClusterName:                  "default_cluster1",
+				AWSManagedControlPlaneClassSpec: AWSManagedControlPlaneClassSpec{Version: &vV1_17},
 			},
 			expectError: false,
 		},
@@ -607,9 +697,11 @@ func TestWebhookUpdate(t *testing.T) {
 			name: "change in encryption config to nil",
 			oldClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
-				EncryptionConfig: &EncryptionConfig{
-					Provider:  ptr.To[string]("provider"),
-					Resources: []*string{ptr.To[string]("foo"), ptr.To[string]("bar")},
+				AWSManagedControlPlaneClassSpec: AWSManagedControlPlaneClassSpec{
+					EncryptionConfig: &EncryptionConfig{
+						Provider:  ptr.To[string]("provider"),
+						Resources: []*string{ptr.To[string]("foo"), ptr.To[string]("bar")},
+					},
 				},
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
@@ -624,9 +716,11 @@ func TestWebhookUpdate(t *testing.T) {
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
-				EncryptionConfig: &EncryptionConfig{
-					Provider:  ptr.To[string]("provider"),
-					Resources: []*string{ptr.To[string]("foo"), ptr.To[string]("bar")},
+				AWSManagedControlPlaneClassSpec: AWSManagedControlPlaneClassSpec{
+					EncryptionConfig: &EncryptionConfig{
+						Provider:  ptr.To[string]("provider"),
+						Resources: []*string{ptr.To[string]("foo"), ptr.To[string]("bar")},
+					},
 				},
 			},
 			expectError: false,
@@ -635,16 +729,20 @@ func TestWebhookUpdate(t *testing.T) {
 			name: "change in provider of encryption config",
 			oldClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
-				EncryptionConfig: &EncryptionConfig{
-					Provider:  ptr.To[string]("provider"),
-					Resources: []*string{ptr.To[string]("foo"), ptr.To[string]("bar")},
+				AWSManagedControlPlaneClassSpec: AWSManagedControlPlaneClassSpec{
+					EncryptionConfig: &EncryptionConfig{
+						Provider:  ptr.To[string]("provider"),
+						Resources: []*string{ptr.To[string]("foo"), ptr.To[string]("bar")},
+					},
 				},
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
-				EncryptionConfig: &EncryptionConfig{
-					Provider:  ptr.To[string]("new-provider"),
-					Resources: []*string{ptr.To[string]("foo"), ptr.To[string]("bar")},
+				AWSManagedControlPlaneClassSpec: AWSManagedControlPlaneClassSpec{
+					EncryptionConfig: &EncryptionConfig{
+						Provider:  ptr.To[string]("new-provider"),
+						Resources: []*string{ptr.To[string]("foo"), ptr.To[string]("bar")},
+					},
 				},
 			},
 			expectError: true,
@@ -653,14 +751,18 @@ func TestWebhookUpdate(t *testing.T) {
 			name: "no change in provider of encryption config",
 			oldClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
-				EncryptionConfig: &EncryptionConfig{
-					Provider: ptr.To[string]("provider"),
+				AWSManagedControlPlaneClassSpec: AWSManagedControlPlaneClassSpec{
+					EncryptionConfig: &EncryptionConfig{
+						Provider: ptr.To[string]("provider"),
+					},
 				},
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
-				EncryptionConfig: &EncryptionConfig{
-					Provider: ptr.To[string]("provider"),
+				AWSManagedControlPlaneClassSpec: AWSManagedControlPlaneClassSpec{
+					EncryptionConfig: &EncryptionConfig{
+						Provider: ptr.To[string]("provider"),
+					},
 				},
 			},
 			expectError: false,
@@ -672,11 +774,13 @@ func TestWebhookUpdate(t *testing.T) {
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
-				AdditionalTags: infrav1.Tags{
-					"key-1":                    "value-1",
-					"":                         "value-2",
-					strings.Repeat("CAPI", 33): "value-3",
-					"key-4":                    strings.Repeat("CAPI", 65),
+				AWSManagedControlPlaneClassSpec: AWSManagedControlPlaneClassSpec{
+					AdditionalTags: infrav1.Tags{
+						"key-1":                    "value-1",
+						"":                         "value-2",
+						strings.Repeat("CAPI", 33): "value-3",
+						"key-4":                    strings.Repeat("CAPI", 65),
+					},
 				},
 			},
 			expectError: true,
@@ -685,16 +789,20 @@ func TestWebhookUpdate(t *testing.T) {
 			name: "changing ipv6 enabled is not allowed after it has been set - false, true",
 			oldClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
-				NetworkSpec: infrav1.NetworkSpec{
-					VPC: infrav1.VPCSpec{},
+				AWSManagedControlPlaneClassSpec: AWSManagedControlPlaneClassSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{},
+					},
+					Version: ptr.To[string]("1.22"),
 				},
-				Version: ptr.To[string]("1.22"),
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
-				NetworkSpec: infrav1.NetworkSpec{
-					VPC: infrav1.VPCSpec{
-						IPv6: &infrav1.IPv6{},
+				AWSManagedControlPlaneClassSpec: AWSManagedControlPlaneClassSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							IPv6: &infrav1.IPv6{},
+						},
 					},
 				},
 			},
@@ -704,25 +812,29 @@ func TestWebhookUpdate(t *testing.T) {
 			name: "changing ipv6 enabled is not allowed after it has been set - true, false",
 			oldClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
-				NetworkSpec: infrav1.NetworkSpec{
-					VPC: infrav1.VPCSpec{
-						IPv6: &infrav1.IPv6{},
+				AWSManagedControlPlaneClassSpec: AWSManagedControlPlaneClassSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							IPv6: &infrav1.IPv6{},
+						},
 					},
-				},
-				Addons: &[]Addon{
-					{
-						Name:    vpcCniAddon,
-						Version: "1.11.0",
+					Addons: &[]Addon{
+						{
+							Name:    vpcCniAddon,
+							Version: "1.11.0",
+						},
 					},
+					Version: ptr.To[string]("v1.22.0"),
 				},
-				Version: ptr.To[string]("v1.22.0"),
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
-				NetworkSpec: infrav1.NetworkSpec{
-					VPC: infrav1.VPCSpec{},
+				AWSManagedControlPlaneClassSpec: AWSManagedControlPlaneClassSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{},
+					},
+					Version: ptr.To[string]("v1.22.0"),
 				},
-				Version: ptr.To[string]("v1.22.0"),
 			},
 			expectError: true,
 		},
@@ -870,14 +982,18 @@ func TestValidatingWebhookUpdateSecondaryCidr(t *testing.T) {
 
 			newMCP := &AWSManagedControlPlane{
 				Spec: AWSManagedControlPlaneSpec{
-					EKSClusterName:     "default_cluster1",
-					SecondaryCidrBlock: aws.String(tc.cidrRange),
+					EKSClusterName: "default_cluster1",
+					AWSManagedControlPlaneClassSpec: AWSManagedControlPlaneClassSpec{
+						SecondaryCidrBlock: aws.String(tc.cidrRange),
+					},
 				},
 			}
 			oldMCP := &AWSManagedControlPlane{
 				Spec: AWSManagedControlPlaneSpec{
-					EKSClusterName:     "default_cluster1",
-					SecondaryCidrBlock: nil,
+					EKSClusterName: "default_cluster1",
+					AWSManagedControlPlaneClassSpec: AWSManagedControlPlaneClassSpec{
+						SecondaryCidrBlock: nil,
+					},
 				},
 			}
 
