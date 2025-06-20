@@ -52,13 +52,13 @@ func (e *mockAPIError) ErrorCode() string {
 	return e.Code
 }
 
-// ErrorMessage returns the error's message.
-func (e *mockAPIError) ErrorMessage() string {
+// Error returns the error's message, satisfying the standard 'error' interface.
+func (e *mockAPIError) Error() string {
 	return e.Message
 }
 
 // Error returns the error's message, satisfying the standard 'error' interface.
-func (e *mockAPIError) Error() string {
+func (e *mockAPIError) ErrorMessage() string {
 	return e.Message
 }
 
@@ -67,6 +67,9 @@ func (e *mockAPIError) ErrorFault() smithy.ErrorFault {
 	// smithy.FaultClient is a good default for most simulated errors.
 	return smithy.FaultClient
 }
+
+var _ smithy.APIError = (*mockAPIError)(nil)
+
 func TestServiceCreate(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -275,7 +278,7 @@ func TestServiceDelete(t *testing.T) {
 				})).Return(nil, awserrors.NewFailedDependency("failed dependency"))
 				m.DeleteParameter(context.TODO(), gomock.Eq(&ssm.DeleteParameterInput{
 					Name: aws.String("prefix/1"),
-				})).Return(nil, &smithy.GenericAPIError{
+				})).Return(nil, &mockAPIError{
 					Code:    "ParameterNotFound",
 					Message: "not found",
 				})
