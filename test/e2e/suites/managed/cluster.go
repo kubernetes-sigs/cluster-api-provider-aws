@@ -93,10 +93,10 @@ func ManagedClusterSpec(ctx context.Context, inputGetter func() ManagedClusterSp
 
 	if input.CluserSpecificRoles {
 		ginkgo.By("Checking that the cluster specific IAM role exists")
-		VerifyRoleExistsAndOwned(fmt.Sprintf("%s-iam-service-role", input.ClusterName), eksClusterName, true, input.AWSSession)
+		VerifyRoleExistsAndOwned(ctx, fmt.Sprintf("%s-iam-service-role", input.ClusterName), eksClusterName, true, input.AWSSessionV2)
 	} else {
 		ginkgo.By("Checking that the cluster default IAM role exists")
-		VerifyRoleExistsAndOwned(ekscontrolplanev1.DefaultEKSControlPlaneRole, eksClusterName, false, input.AWSSession)
+		VerifyRoleExistsAndOwned(ctx, ekscontrolplanev1.DefaultEKSControlPlaneRole, eksClusterName, false, input.AWSSessionV2)
 	}
 
 	ginkgo.By("Checking kubeconfig secrets exist")

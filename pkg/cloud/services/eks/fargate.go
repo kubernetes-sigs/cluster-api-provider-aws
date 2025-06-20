@@ -24,7 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/eks"
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
-	"github.com/aws/aws-sdk-go/service/iam"
+	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -48,7 +48,7 @@ func requeueRoleUpdating() reconcile.Result {
 func (s *FargateService) Reconcile(ctx context.Context) (reconcile.Result, error) {
 	s.scope.Debug("Reconciling EKS fargate profile")
 
-	requeue, err := s.reconcileFargateIAMRole()
+	requeue, err := s.reconcileFargateIAMRole(ctx)
 	if err != nil {
 		conditions.MarkFalse(
 			s.scope.FargateProfile,
@@ -182,7 +182,7 @@ func (s *FargateService) ReconcileDelete(ctx context.Context) (reconcile.Result,
 		return requeueProfileUpdating(), nil
 	}
 
-	err = s.deleteFargateIAMRole()
+	err = s.deleteFargateIAMRole(ctx)
 	if err != nil {
 		conditions.MarkFalse(
 			s.scope.FargateProfile,
@@ -223,7 +223,7 @@ func (s *FargateService) createFargateProfile(ctx context.Context) (*ekstypes.Fa
 
 	additionalTags := s.scope.AdditionalTags()
 
-	roleArn, err := s.roleArn()
+	roleArn, err := s.roleArn(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -302,11 +302,11 @@ func (s *FargateService) deleteFargateProfile(ctx context.Context) (requeue bool
 	return s.handleStatus(profile), nil
 }
 
-func (s *FargateService) roleArn() (*string, error) {
-	var role *iam.Role
+func (s *FargateService) roleArn(ctx context.Context) (*string, error) {
+	var role *iamtypes.Role
 	if s.scope.RoleName() != "" {
 		var err error
-		role, err = s.GetIAMRole(s.scope.RoleName())
+		role, err = s.GetIAMRole(ctx, s.scope.RoleName())
 		if err != nil {
 			return nil, errors.Wrapf(err, "error getting fargate profile IAM role: %s", s.scope.RoleName())
 		}

@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-	http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -27,9 +27,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go-v2/service/iam"
+	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -68,19 +69,19 @@ func TestOIDCReconcile(t *testing.T) {
 				}
 			},
 			expect: func(m *mock_iamauth.MockIAMAPIMockRecorder, url string) {
-				m.ListOpenIDConnectProviders(&iam.ListOpenIDConnectProvidersInput{}).Return(&iam.ListOpenIDConnectProvidersOutput{
-					OpenIDConnectProviderList: []*iam.OpenIDConnectProviderListEntry{},
+				m.ListOpenIDConnectProviders(gomock.Any(), &iam.ListOpenIDConnectProvidersInput{}).Return(&iam.ListOpenIDConnectProvidersOutput{
+					OpenIDConnectProviderList: []iamtypes.OpenIDConnectProviderListEntry{},
 				}, nil)
-				m.CreateOpenIDConnectProvider(&iam.CreateOpenIDConnectProviderInput{
-					ClientIDList:   aws.StringSlice([]string{"sts.amazonaws.com"}),
-					ThumbprintList: aws.StringSlice([]string{testCertThumbprint}),
-					Url:            &url,
+				m.CreateOpenIDConnectProvider(gomock.Any(), &iam.CreateOpenIDConnectProviderInput{
+					ClientIDList:   []string{"sts.amazonaws.com"},
+					ThumbprintList: []string{testCertThumbprint},
+					Url:            aws.String(url),
 				}).Return(&iam.CreateOpenIDConnectProviderOutput{
 					OpenIDConnectProviderArn: aws.String("arn::oidc"),
 				}, nil)
-				m.TagOpenIDConnectProvider(&iam.TagOpenIDConnectProviderInput{
+				m.TagOpenIDConnectProvider(gomock.Any(), &iam.TagOpenIDConnectProviderInput{
 					OpenIDConnectProviderArn: aws.String("arn::oidc"),
-					Tags:                     []*iam.Tag{},
+					Tags:                     []iamtypes.Tag{},
 				}).Return(&iam.TagOpenIDConnectProviderOutput{}, nil)
 			},
 		},
@@ -99,24 +100,24 @@ func TestOIDCReconcile(t *testing.T) {
 				}
 			},
 			expect: func(m *mock_iamauth.MockIAMAPIMockRecorder, url string) {
-				m.ListOpenIDConnectProviders(&iam.ListOpenIDConnectProvidersInput{}).Return(&iam.ListOpenIDConnectProvidersOutput{
-					OpenIDConnectProviderList: []*iam.OpenIDConnectProviderListEntry{
+				m.ListOpenIDConnectProviders(gomock.Any(), &iam.ListOpenIDConnectProvidersInput{}).Return(&iam.ListOpenIDConnectProvidersOutput{
+					OpenIDConnectProviderList: []iamtypes.OpenIDConnectProviderListEntry{
 						{
 							Arn: aws.String("arn::oidc"),
 						},
 					},
 				}, nil)
 				// This should equal with what we provide.
-				m.GetOpenIDConnectProvider(&iam.GetOpenIDConnectProviderInput{
+				m.GetOpenIDConnectProvider(gomock.Any(), &iam.GetOpenIDConnectProviderInput{
 					OpenIDConnectProviderArn: aws.String("arn::oidc"),
 				}).Return(&iam.GetOpenIDConnectProviderOutput{
-					ClientIDList:   aws.StringSlice([]string{"sts.amazonaws.com"}),
-					ThumbprintList: aws.StringSlice([]string{testCertThumbprint}),
-					Url:            &url,
+					ClientIDList:   []string{"sts.amazonaws.com"},
+					ThumbprintList: []string{testCertThumbprint},
+					Url:            aws.String(url),
 				}, nil)
-				m.TagOpenIDConnectProvider(&iam.TagOpenIDConnectProviderInput{
+				m.TagOpenIDConnectProvider(gomock.Any(), &iam.TagOpenIDConnectProviderInput{
 					OpenIDConnectProviderArn: aws.String("arn::oidc"),
-					Tags:                     []*iam.Tag{},
+					Tags:                     []iamtypes.Tag{},
 				}).Return(&iam.TagOpenIDConnectProviderOutput{}, nil)
 			},
 		},
