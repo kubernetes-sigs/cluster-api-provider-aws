@@ -21,11 +21,12 @@ import (
 	"encoding/base64"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	ssmtypes "github.com/aws/aws-sdk-go-v2/service/ssm/types"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
@@ -1956,9 +1957,9 @@ func TestDiscoverLaunchTemplateAMIForEKS(t *testing.T) {
 					}, nil)
 			},
 			expectSSM: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
-				m.GetParameter(gomock.AssignableToTypeOf(&ssm.GetParameterInput{})).
+				m.GetParameter(context.TODO(), gomock.AssignableToTypeOf(&ssm.GetParameterInput{})).
 					Return(&ssm.GetParameterOutput{
-						Parameter: &ssm.Parameter{
+						Parameter: &ssmtypes.Parameter{
 							Value: aws.String("latest"),
 						},
 					}, nil)
