@@ -22,12 +22,12 @@ import (
 
 	autoscalingtypes "github.com/aws/aws-sdk-go-v2/service/autoscaling/types"
 	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
+	ssmtypes "github.com/aws/aws-sdk-go-v2/service/ssm/types"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
-	"github.com/aws/aws-sdk-go/service/ssm"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 )
@@ -73,6 +73,20 @@ func MapToTags(src infrav1.Tags) []*ec2.Tag {
 	sort.Slice(tags, func(i, j int) bool { return *tags[i].Key < *tags[j].Key })
 
 	return tags
+}
+
+// MapToSSMTags converts infrav1.Tags (a map of string key-value pairs) to a slice of SSM Tag objects.
+func MapToSSMTags(tags infrav1.Tags) []ssmtypes.Tag {
+	result := make([]ssmtypes.Tag, 0, len(tags))
+	for k, v := range tags {
+		key := k
+		value := v
+		result = append(result, ssmtypes.Tag{
+			Key:   &key,
+			Value: &value,
+		})
+	}
+	return result
 }
 
 // ELBTagsToMap converts a []*elb.Tag into a infrav1.Tags.
@@ -141,25 +155,6 @@ func MapToSecretsManagerTags(src infrav1.Tags) []*secretsmanager.Tag {
 
 	for k, v := range src {
 		tag := &secretsmanager.Tag{
-			Key:   aws.String(k),
-			Value: aws.String(v),
-		}
-
-		tags = append(tags, tag)
-	}
-
-	// Sort so that unit tests can expect a stable order
-	sort.Slice(tags, func(i, j int) bool { return *tags[i].Key < *tags[j].Key })
-
-	return tags
-}
-
-// MapToSSMTags converts a infrav1.Tags to a []*ssm.Tag.
-func MapToSSMTags(src infrav1.Tags) []*ssm.Tag {
-	tags := make([]*ssm.Tag, 0, len(src))
-
-	for k, v := range src {
-		tag := &ssm.Tag{
 			Key:   aws.String(k),
 			Value: aws.String(v),
 		}

@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/uuid"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/internal/bytes"
@@ -116,7 +117,7 @@ func (s *Service) retryableCreateSecret(name string, chunk []byte, tags infrav1.
 	_, err := s.SSMClient.PutParameter(context.TODO(), &ssm.PutParameterInput{
 		Name:  aws.String(name),
 		Value: aws.String(string(chunk)),
-		Tags:  MapToSSMTags(tags),
+		Tags:  converters.MapToSSMTags(tags),
 		Type:  types.ParameterTypeSecureString,
 	})
 	if err != nil {
@@ -149,18 +150,4 @@ func (s *Service) Delete(m *scope.MachineScope) error {
 	}
 
 	return kerrors.NewAggregate(errs)
-}
-
-// MapToSSMTags converts infrav1.Tags (a map of string key-value pairs) to a slice of SSM Tag objects.
-func MapToSSMTags(tags infrav1.Tags) []types.Tag {
-	result := make([]types.Tag, 0, len(tags))
-	for k, v := range tags {
-		key := k
-		value := v
-		result = append(result, types.Tag{
-			Key:   &key,
-			Value: &value,
-		})
-	}
-	return result
 }
