@@ -19,6 +19,7 @@ package controllers
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -56,8 +57,9 @@ func TestEKSConfigReconciler(t *testing.T) {
 		}
 		t.Logf("Calling reconcile on cluster '%s' and config '%s' should requeue", cluster.Name, config.Name)
 		g.Eventually(func(gomega Gomega) {
-			err := reconciler.joinWorker(ctx, cluster, config, configOwner("Machine"))
+			result, err := reconciler.joinWorker(ctx, cluster, config, configOwner("Machine"))
 			gomega.Expect(err).NotTo(HaveOccurred())
+			gomega.Expect(result.Requeue).To(BeFalse())
 		}).Should(Succeed())
 
 		t.Logf("Secret '%s' should exist and be correct", config.Name)
@@ -110,8 +112,9 @@ func TestEKSConfigReconciler(t *testing.T) {
 		}
 		t.Logf("Calling reconcile on cluster '%s' and config '%s' should requeue", cluster.Name, config.Name)
 		g.Eventually(func(gomega Gomega) {
-			err := reconciler.joinWorker(ctx, cluster, config, configOwner("MachinePool"))
+			result, err := reconciler.joinWorker(ctx, cluster, config, configOwner("MachinePool"))
 			gomega.Expect(err).NotTo(HaveOccurred())
+			gomega.Expect(result.Requeue).To(BeFalse())
 		}).Should(Succeed())
 
 		t.Logf("Secret '%s' should exist and be correct", config.Name)
@@ -134,8 +137,9 @@ func TestEKSConfigReconciler(t *testing.T) {
 		}
 		t.Log(dump("config", config))
 		g.Eventually(func(gomega Gomega) {
-			err := reconciler.joinWorker(ctx, cluster, config, configOwner("MachinePool"))
+			result, err := reconciler.joinWorker(ctx, cluster, config, configOwner("MachinePool"))
 			gomega.Expect(err).NotTo(HaveOccurred())
+			gomega.Expect(result.Requeue).To(BeFalse())
 		}).Should(Succeed())
 		t.Logf("Secret '%s' should exist and be up to date", config.Name)
 
@@ -181,8 +185,9 @@ func TestEKSConfigReconciler(t *testing.T) {
 		}
 		t.Logf("Calling reconcile on cluster '%s' and config '%s' should requeue", cluster.Name, config.Name)
 		g.Eventually(func(gomega Gomega) {
-			err := reconciler.joinWorker(ctx, cluster, config, configOwner("Machine"))
+			result, err := reconciler.joinWorker(ctx, cluster, config, configOwner("Machine"))
 			gomega.Expect(err).NotTo(HaveOccurred())
+			gomega.Expect(result.Requeue).To(BeFalse())
 		}).Should(Succeed())
 
 		t.Logf("Secret '%s' should exist and be out of date", config.Name)
@@ -199,6 +204,119 @@ func TestEKSConfigReconciler(t *testing.T) {
 			gomega.Expect(string(secret.Data["value"])).To(Not(Equal(string(expectedUserData))))
 		}).Should(Succeed())
 	})
+
+	t.Run("Should return requeue when control plane is not initialized", func(t *testing.T) {
+		g := NewWithT(t)
+		amcp := newAMCP("test-cluster")
+		cluster := newCluster(amcp.Name)
+		machine := newMachine(cluster, "test-machine")
+		config := newEKSConfig(machine)
+
+		// Set cluster status to infrastructure ready but control plane not initialized
+		cluster.Status = clusterv1.ClusterStatus{
+			InfrastructureReady: true,
+			ControlPlaneReady:   false,
+		}
+
+		g.Expect(testEnv.Client.Create(ctx, amcp)).To(Succeed())
+
+		reconciler := EKSConfigReconciler{
+			Client: testEnv.Client,
+		}
+
+		// Should return requeue result when control plane is not initialized
+		result, err := reconciler.joinWorker(ctx, cluster, config, configOwner("Machine"))
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(result.Requeue).To(BeTrue())
+		g.Expect(result.RequeueAfter).To(Equal(30 * time.Second))
+	})
+
+	t.Run("Should generate AL2023 userdata for AL2023 AMI family", func(t *testing.T) {
+		g := NewWithT(t)
+		amcp := newAMCP("test-cluster")
+		cluster := newCluster(amcp.Name)
+		machine := newMachine(cluster, "test-machine")
+		config := newEKSConfig(machine)
+
+		// Set cluster status to ready
+		cluster.Status = clusterv1.ClusterStatus{
+			InfrastructureReady: true,
+			ControlPlaneReady:   true,
+		}
+
+		// Set AMCP status with AL2023 AMI family
+		amcp.Status = ekscontrolplanev1.AWSManagedControlPlaneStatus{
+			Ready:       true,
+			Initialized: true,
+		}
+
+		// Set config to use AL2023
+		config.Spec.NodeType = "al2023"
+		config.Spec.PreBootstrapCommands = []string{
+			"echo 'Pre-bootstrap setup'",
+			"systemctl enable docker",
+		}
+		config.Spec.PostBootstrapCommands = []string{
+			"echo 'Post-bootstrap cleanup'",
+			"systemctl restart kubelet",
+		}
+
+		g.Expect(testEnv.Client.Create(ctx, amcp)).To(Succeed())
+
+		reconciler := EKSConfigReconciler{
+			Client: testEnv.Client,
+		}
+
+		// Should generate AL2023 userdata
+		result, err := reconciler.joinWorker(ctx, cluster, config, configOwner("Machine"))
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(result.Requeue).To(BeFalse())
+
+		// Check that the secret was created with AL2023 userdata
+		secret := &corev1.Secret{}
+		g.Eventually(func(gomega Gomega) {
+			gomega.Expect(testEnv.Client.Get(ctx, client.ObjectKey{
+				Name:      config.Name,
+				Namespace: "default",
+			}, secret)).To(Succeed())
+
+			// Verify it's AL2023 multipart MIME format
+			userData := string(secret.Data["value"])
+			gomega.Expect(userData).To(ContainSubstring("MIME-Version: 1.0"))
+			gomega.Expect(userData).To(ContainSubstring("Content-Type: multipart/mixed"))
+			gomega.Expect(userData).To(ContainSubstring("apiVersion: node.eks.aws/v1alpha1"))
+			gomega.Expect(userData).To(ContainSubstring("kind: NodeConfig"))
+			gomega.Expect(userData).To(ContainSubstring("preKubeadmCommands:"))
+			gomega.Expect(userData).To(ContainSubstring("postKubeadmCommands:"))
+			gomega.Expect(userData).To(ContainSubstring("echo 'Pre-bootstrap setup'"))
+			gomega.Expect(userData).To(ContainSubstring("echo 'Post-bootstrap cleanup'"))
+		}).Should(Succeed())
+	})
+
+	t.Run("Should handle missing AMCP gracefully", func(t *testing.T) {
+		g := NewWithT(t)
+		cluster := newCluster("test-cluster")
+		machine := newMachine(cluster, "test-machine")
+		config := newEKSConfig(machine)
+
+		// Set cluster status to ready
+		cluster.Status = clusterv1.ClusterStatus{
+			InfrastructureReady: true,
+			ControlPlaneReady:   true,
+		}
+
+		// Don't create AMCP - it should be missing
+
+		reconciler := EKSConfigReconciler{
+			Client: testEnv.Client,
+		}
+
+		// Should return error when AMCP is missing
+		result, err := reconciler.joinWorker(ctx, cluster, config, configOwner("Machine"))
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(result.Requeue).To(BeFalse())
+	})
+
 	t.Run("Should Reconcile an EKSConfig with a secret file reference", func(t *testing.T) {
 		g := NewWithT(t)
 		amcp := newAMCP("test-cluster")
@@ -254,8 +372,9 @@ func TestEKSConfigReconciler(t *testing.T) {
 		}
 		t.Logf("Calling reconcile on cluster '%s' and config '%s' should requeue", cluster.Name, config.Name)
 		g.Eventually(func(gomega Gomega) {
-			err := reconciler.joinWorker(ctx, cluster, config, configOwner("Machine"))
+			result, err := reconciler.joinWorker(ctx, cluster, config, configOwner("Machine"))
 			gomega.Expect(err).NotTo(HaveOccurred())
+			gomega.Expect(result.Requeue).To(BeFalse())
 		}).Should(Succeed())
 
 		secretList := &corev1.SecretList{}

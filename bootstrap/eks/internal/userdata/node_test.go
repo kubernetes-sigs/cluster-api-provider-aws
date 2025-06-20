@@ -25,6 +25,7 @@ import (
 	"k8s.io/utils/ptr"
 
 	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2"
+	expv1beta2 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 )
 
 func TestNewNode(t *testing.T) {
@@ -376,6 +377,394 @@ users:
 	for _, testcase := range tests {
 		t.Run(testcase.name, func(t *testing.T) {
 			bytes, err := NewNode(testcase.args.input)
+			if testcase.expectErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(string(bytes)).To(Equal(string(testcase.expectedBytes)))
+		})
+	}
+}
+
+func TestNewNodeAL2023(t *testing.T) {
+	format.TruncatedDiff = false
+	g := NewWithT(t)
+
+	type args struct {
+		input *NodeInput
+	}
+
+	tests := []struct {
+		name          string
+		args          args
+		expectedBytes []byte
+		expectErr     bool
+	}{
+		{
+			name: "basic AL2023 userdata",
+			args: args{
+				input: &NodeInput{
+					AMIFamilyType:     AMIFamilyAL2023,
+					ClusterName:       "test-cluster",
+					APIServerEndpoint: "https://test-endpoint.eks.amazonaws.com",
+					CACert:            "test-cert-data",
+					NodeGroupName:     "test-nodegroup",
+					UseMaxPods:        ptr.To[bool](false),
+					DNSClusterIP:      ptr.To[string]("10.96.0.10"),
+					PreBootstrapCommands: []string{
+						"echo 'Running pre-bootstrap setup'",
+						"systemctl enable docker",
+					},
+					PostBootstrapCommands: []string{
+						"echo 'Running post-bootstrap cleanup'",
+						"systemctl restart kubelet",
+					},
+				},
+			},
+			expectedBytes: []byte(`MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="//"
+
+--//
+Content-Type: application/node.eks.aws
+
+---
+apiVersion: node.eks.aws/v1alpha1
+kind: NodeConfig
+spec:
+  cluster:
+    apiServerEndpoint: https://test-endpoint.eks.amazonaws.com
+    certificateAuthority: test-cert-data
+    cidr: 10.96.0.0/12
+    name: test-cluster
+  kubelet:
+    config:
+      maxPods: 110
+      clusterDNS:
+      - 10.96.0.10
+    flags:
+    - "--node-labels=eks.amazonaws.com/nodegroup-image=,eks.amazonaws.com/capacityType=ON_DEMAND,eks.amazonaws.com/nodegroup=test-nodegroup"
+  preKubeadmCommands:
+  - echo 'Running pre-bootstrap setup'
+  - systemctl enable docker
+  postKubeadmCommands:
+  - echo 'Running post-bootstrap cleanup'
+  - systemctl restart kubelet
+
+--//--`),
+			expectErr: false,
+		},
+		{
+			name: "AL2023 with UseMaxPods true",
+			args: args{
+				input: &NodeInput{
+					AMIFamilyType:     AMIFamilyAL2023,
+					ClusterName:       "test-cluster",
+					APIServerEndpoint: "https://test-endpoint.eks.amazonaws.com",
+					CACert:            "test-cert",
+					NodeGroupName:     "test-nodegroup",
+					UseMaxPods:        ptr.To[bool](true),
+					DNSClusterIP:      ptr.To[string]("10.100.0.10"),
+				},
+			},
+			expectedBytes: []byte(`MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="//"
+
+--//
+Content-Type: application/node.eks.aws
+
+---
+apiVersion: node.eks.aws/v1alpha1
+kind: NodeConfig
+spec:
+  cluster:
+    apiServerEndpoint: https://test-endpoint.eks.amazonaws.com
+    certificateAuthority: test-cert
+    cidr: 10.96.0.0/12
+    name: test-cluster
+  kubelet:
+    config:
+      maxPods: 58
+      clusterDNS:
+      - 10.100.0.10
+    flags:
+    - "--node-labels=eks.amazonaws.com/nodegroup-image=,eks.amazonaws.com/capacityType=ON_DEMAND,eks.amazonaws.com/nodegroup=test-nodegroup"
+
+--//--`),
+			expectErr: false,
+		},
+		{
+			name: "AL2023 with AMI ID and capacity type",
+			args: args{
+				input: &NodeInput{
+					AMIFamilyType:     AMIFamilyAL2023,
+					ClusterName:       "test-cluster",
+					APIServerEndpoint: "https://test-endpoint.eks.amazonaws.com",
+					CACert:            "test-cert",
+					NodeGroupName:     "test-nodegroup",
+					AMIImageID:        "ami-12345678",
+					CapacityType:      ptr.To[expv1beta2.ManagedMachinePoolCapacityType](expv1beta2.ManagedMachinePoolCapacityTypeSpot),
+					UseMaxPods:        ptr.To[bool](false),
+					DNSClusterIP:      ptr.To[string]("10.96.0.10"),
+				},
+			},
+			expectedBytes: []byte(`MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="//"
+
+--//
+Content-Type: application/node.eks.aws
+
+---
+apiVersion: node.eks.aws/v1alpha1
+kind: NodeConfig
+spec:
+  cluster:
+    apiServerEndpoint: https://test-endpoint.eks.amazonaws.com
+    certificateAuthority: test-cert
+    cidr: 10.96.0.0/12
+    name: test-cluster
+  kubelet:
+    config:
+      maxPods: 110
+      clusterDNS:
+      - 10.96.0.10
+    flags:
+    - "--node-labels=eks.amazonaws.com/nodegroup-image=ami-12345678,eks.amazonaws.com/capacityType=SPOT,eks.amazonaws.com/nodegroup=test-nodegroup"
+
+--//--`),
+			expectErr: false,
+		},
+		{
+			name: "AL2023 with nil DNSClusterIP",
+			args: args{
+				input: &NodeInput{
+					AMIFamilyType:     AMIFamilyAL2023,
+					ClusterName:       "test-cluster",
+					APIServerEndpoint: "https://test-endpoint.eks.amazonaws.com",
+					CACert:            "test-cert",
+					NodeGroupName:     "test-nodegroup",
+					UseMaxPods:        ptr.To[bool](false),
+					DNSClusterIP:      nil,
+				},
+			},
+			expectedBytes: []byte(`MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="//"
+
+--//
+Content-Type: application/node.eks.aws
+
+---
+apiVersion: node.eks.aws/v1alpha1
+kind: NodeConfig
+spec:
+  cluster:
+    apiServerEndpoint: https://test-endpoint.eks.amazonaws.com
+    certificateAuthority: test-cert
+    cidr: 10.96.0.0/12
+    name: test-cluster
+  kubelet:
+    config:
+      maxPods: 110
+      clusterDNS:
+      - 10.96.0.10
+    flags:
+    - "--node-labels=eks.amazonaws.com/nodegroup-image=,eks.amazonaws.com/capacityType=ON_DEMAND,eks.amazonaws.com/nodegroup=test-nodegroup"
+
+--//--`),
+			expectErr: false,
+		},
+		{
+			name: "AL2023 with nil UseMaxPods",
+			args: args{
+				input: &NodeInput{
+					AMIFamilyType:     AMIFamilyAL2023,
+					ClusterName:       "test-cluster",
+					APIServerEndpoint: "https://test-endpoint.eks.amazonaws.com",
+					CACert:            "test-cert",
+					NodeGroupName:     "test-nodegroup",
+					UseMaxPods:        nil,
+					DNSClusterIP:      ptr.To[string]("10.96.0.10"),
+				},
+			},
+			expectedBytes: []byte(`MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="//"
+
+--//
+Content-Type: application/node.eks.aws
+
+---
+apiVersion: node.eks.aws/v1alpha1
+kind: NodeConfig
+spec:
+  cluster:
+    apiServerEndpoint: https://test-endpoint.eks.amazonaws.com
+    certificateAuthority: test-cert
+    cidr: 10.96.0.0/12
+    name: test-cluster
+  kubelet:
+    config:
+      maxPods: 110
+      clusterDNS:
+      - 10.96.0.10
+    flags:
+    - "--node-labels=eks.amazonaws.com/nodegroup-image=,eks.amazonaws.com/capacityType=ON_DEMAND,eks.amazonaws.com/nodegroup=test-nodegroup"
+
+--//--`),
+			expectErr: false,
+		},
+		{
+			name: "AL2023 missing required fields",
+			args: args{
+				input: &NodeInput{
+					AMIFamilyType: AMIFamilyAL2023,
+					ClusterName:   "test-cluster",
+					// Missing APIServerEndpoint, CACert, NodeGroupName
+				},
+			},
+			expectErr: true,
+		},
+		{
+			name: "AL2023 missing APIServerEndpoint",
+			args: args{
+				input: &NodeInput{
+					AMIFamilyType: AMIFamilyAL2023,
+					ClusterName:   "test-cluster",
+					CACert:        "test-cert",
+					NodeGroupName: "test-nodegroup",
+				},
+			},
+			expectErr: true,
+		},
+		{
+			name: "AL2023 missing CACert",
+			args: args{
+				input: &NodeInput{
+					AMIFamilyType:     AMIFamilyAL2023,
+					ClusterName:       "test-cluster",
+					APIServerEndpoint: "https://test-endpoint.eks.amazonaws.com",
+					NodeGroupName:     "test-nodegroup",
+				},
+			},
+			expectErr: true,
+		},
+		{
+			name: "AL2023 missing NodeGroupName",
+			args: args{
+				input: &NodeInput{
+					AMIFamilyType:     AMIFamilyAL2023,
+					ClusterName:       "test-cluster",
+					APIServerEndpoint: "https://test-endpoint.eks.amazonaws.com",
+					CACert:            "test-cert",
+				},
+			},
+			expectErr: true,
+		},
+	}
+
+	for _, testcase := range tests {
+		t.Run(testcase.name, func(t *testing.T) {
+			bytes, err := NewNode(testcase.args.input)
+			if testcase.expectErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(string(bytes)).To(Equal(string(testcase.expectedBytes)))
+		})
+	}
+}
+
+func TestGenerateAL2023UserData(t *testing.T) {
+	format.TruncatedDiff = false
+	g := NewWithT(t)
+
+	tests := []struct {
+		name          string
+		input         *NodeInput
+		expectedBytes []byte
+		expectErr     bool
+	}{
+		{
+			name: "valid AL2023 input",
+			input: &NodeInput{
+				AMIFamilyType:     AMIFamilyAL2023,
+				ClusterName:       "test-cluster",
+				APIServerEndpoint: "https://test-endpoint.eks.amazonaws.com",
+				CACert:            "test-cert",
+				NodeGroupName:     "test-nodegroup",
+				UseMaxPods:        ptr.To[bool](false),
+				DNSClusterIP:      ptr.To[string]("10.96.0.10"),
+			},
+			expectedBytes: []byte(`MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="//"
+
+--//
+Content-Type: application/node.eks.aws
+
+---
+apiVersion: node.eks.aws/v1alpha1
+kind: NodeConfig
+spec:
+  cluster:
+    apiServerEndpoint: https://test-endpoint.eks.amazonaws.com
+    certificateAuthority: test-cert
+    cidr: 10.96.0.0/12
+    name: test-cluster
+  kubelet:
+    config:
+      maxPods: 110
+      clusterDNS:
+      - 10.96.0.10
+    flags:
+    - "--node-labels=eks.amazonaws.com/nodegroup-image=,eks.amazonaws.com/capacityType=ON_DEMAND,eks.amazonaws.com/nodegroup=test-nodegroup"
+
+--//--`),
+			expectErr: false,
+		},
+		{
+			name: "AL2023 with custom DNS",
+			input: &NodeInput{
+				AMIFamilyType:     AMIFamilyAL2023,
+				ClusterName:       "test-cluster",
+				APIServerEndpoint: "https://test-endpoint.eks.amazonaws.com",
+				CACert:            "test-cert",
+				NodeGroupName:     "test-nodegroup",
+				UseMaxPods:        ptr.To[bool](true),
+				DNSClusterIP:      ptr.To[string]("10.100.0.10"),
+			},
+			expectedBytes: []byte(`MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="//"
+
+--//
+Content-Type: application/node.eks.aws
+
+---
+apiVersion: node.eks.aws/v1alpha1
+kind: NodeConfig
+spec:
+  cluster:
+    apiServerEndpoint: https://test-endpoint.eks.amazonaws.com
+    certificateAuthority: test-cert
+    cidr: 10.96.0.0/12
+    name: test-cluster
+  kubelet:
+    config:
+      maxPods: 58
+      clusterDNS:
+      - 10.100.0.10
+    flags:
+    - "--node-labels=eks.amazonaws.com/nodegroup-image=,eks.amazonaws.com/capacityType=ON_DEMAND,eks.amazonaws.com/nodegroup=test-nodegroup"
+
+--//--`),
+			expectErr: false,
+		},
+	}
+
+	for _, testcase := range tests {
+		t.Run(testcase.name, func(t *testing.T) {
+			bytes, err := generateAL2023UserData(testcase.input)
 			if testcase.expectErr {
 				g.Expect(err).To(HaveOccurred())
 				return

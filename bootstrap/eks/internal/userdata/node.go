@@ -51,9 +51,9 @@ runcmd:
 
 	// Multipart MIME template for AL2023
 	al2023UserDataTemplate = `MIME-Version: 1.0
-Content-Type: multipart/mixed; boundary="%s"
+Content-Type: multipart/mixed; boundary="{{.Boundary}}"
 
---%s
+--{{.Boundary}}
 Content-Type: application/node.eks.aws
 
 ---
@@ -61,19 +61,119 @@ apiVersion: node.eks.aws/v1alpha1
 kind: NodeConfig
 spec:
   cluster:
-    apiServerEndpoint: %s
-    certificateAuthority: %s
+    apiServerEndpoint: {{.APIServerEndpoint}}
+    certificateAuthority: {{.CACert}}
     cidr: 10.96.0.0/12
-    name: %s
+    name: {{.ClusterName}}
   kubelet:
     config:
-      maxPods: %d
+      maxPods: {{.MaxPods}}
       clusterDNS:
-      - %s
+      - {{.ClusterDNS}}
     flags:
-    - "--node-labels=eks.amazonaws.com/nodegroup-image=%s,eks.amazonaws.com/capacityType=%s,eks.amazonaws.com/nodegroup=%s"
+    - "--node-labels=eks.amazonaws.com/nodegroup-image={{.AMIImageID}},eks.amazonaws.com/capacityType={{.CapacityType}},eks.amazonaws.com/nodegroup={{.NodeGroupName}}"{{.PreCommands}}{{.PostCommands}}{{template "al2023KubeletExtraArgs" .KubeletExtraArgs}}{{template "al2023ContainerRuntime" .ContainerRuntime}}{{template "al2023DockerConfig" .DockerConfigJSONEscaped}}{{template "al2023APIRetryAttempts" .APIRetryAttempts}}{{template "al2023PauseContainer" .PauseContainerInfo}}{{template "al2023Files" .Files}}{{template "al2023DiskSetup" .DiskSetup}}{{template "al2023Mounts" .Mounts}}{{template "al2023Users" .Users}}{{template "al2023NTP" .NTP}}
 
---%s--`
+--{{.Boundary}}--`
+
+	// AL2023-specific templates
+	al2023KubeletExtraArgsTemplate = `{{- define "al2023KubeletExtraArgs" -}}
+{{- if . -}}
+{{- range $k, $v := . -}}
+    - "--{{$k}}={{$v}}"
+{{- end -}}
+{{- end -}}
+{{- end -}}`
+
+	al2023ContainerRuntimeTemplate = `{{- define "al2023ContainerRuntime" -}}
+{{- if . -}}
+  containerRuntime: {{.}}
+{{- end -}}
+{{- end -}}`
+
+	al2023DockerConfigTemplate = `{{- define "al2023DockerConfig" -}}
+{{- if . -}}
+  dockerConfig: {{.}}
+{{- end -}}
+{{- end -}}`
+
+	al2023APIRetryAttemptsTemplate = `{{- define "al2023APIRetryAttempts" -}}
+{{- if . -}}
+  apiRetryAttempts: {{.}}
+{{- end -}}
+{{- end -}}`
+
+	al2023PauseContainerTemplate = `{{- define "al2023PauseContainer" -}}
+{{- if and .AccountNumber .Version -}}
+  pauseContainer:
+    accountNumber: {{.AccountNumber}}
+    version: {{.Version}}
+{{- end -}}
+{{- end -}}`
+
+	al2023FilesTemplate = `{{- define "al2023Files" -}}
+{{- if . -}}
+  files:{{ range . }}
+    - path: {{.Path}}
+      content: |
+{{.Content | Indent 8}}{{ if ne .Owner "" }}
+      owner: {{.Owner}}{{ end }}{{ if ne .Permissions "" }}
+      permissions: '{{.Permissions}}'{{ end }}{{ end }}
+{{- end -}}
+{{- end -}}`
+
+	al2023DiskSetupTemplate = `{{- define "al2023DiskSetup" -}}
+{{- if . -}}
+  diskSetup:{{ if .Partitions }}
+    partitions:{{ range .Partitions }}
+      - device: {{.Device}}
+        layout: {{.Layout}}{{ if .Overwrite }}
+        overwrite: {{.Overwrite}}{{ end }}{{ if .TableType }}
+        tableType: {{.TableType}}{{ end }}{{ end }}{{ end }}{{ if .Filesystems }}
+    filesystems:{{ range .Filesystems }}
+      - device: {{.Device}}
+        filesystem: {{.Filesystem}}
+        label: {{.Label}}{{ if .Partition }}
+        partition: {{.Partition}}{{ end }}{{ if .Overwrite }}
+        overwrite: {{.Overwrite}}{{ end }}{{ if .ExtraOpts }}
+        extraOpts:{{ range .ExtraOpts }}
+          - {{.}}{{ end }}{{ end }}{{ end }}{{ end }}
+{{- end -}}
+{{- end -}}`
+
+	al2023MountsTemplate = `{{- define "al2023Mounts" -}}
+{{- if . -}}
+  mounts:{{ range . }}
+    -{{ range . }}
+      - {{.}}{{ end }}{{ end }}
+{{- end -}}
+{{- end -}}`
+
+	al2023UsersTemplate = `{{- define "al2023Users" -}}
+{{- if . -}}
+  users:{{ range . }}
+    - name: {{.Name}}{{ if .Gecos }}
+      gecos: {{.Gecos}}{{ end }}{{ if .Groups }}
+      groups: {{.Groups}}{{ end }}{{ if .HomeDir }}
+      homeDir: {{.HomeDir}}{{ end }}{{ if .Inactive }}
+      inactive: {{.Inactive}}{{ end }}{{ if .Shell }}
+      shell: {{.Shell}}{{ end }}{{ if .Passwd }}
+      passwd: {{.Passwd}}{{ end }}{{ if .PrimaryGroup }}
+      primaryGroup: {{.PrimaryGroup}}{{ end }}{{ if .LockPassword }}
+      lockPassword: {{.LockPassword}}{{ end }}{{ if .Sudo }}
+      sudo: {{.Sudo}}{{ end }}{{ if .SSHAuthorizedKeys }}
+      sshAuthorizedKeys:{{ range .SSHAuthorizedKeys }}
+        - {{.}}{{ end }}{{ end }}{{ end }}
+{{- end -}}
+{{- end -}}`
+
+	al2023NTPTemplate = `{{- define "al2023NTP" -}}
+{{- if . -}}
+  ntp:{{ if .Enabled }}
+    enabled: true{{ end }}{{ if .Servers }}
+    servers:{{ range .Servers }}
+      - {{.}}{{ end }}{{ end }}
+{{- end -}}
+{{- end -}}`
 )
 
 // NodeInput defines the context to generate a node user data.
@@ -109,6 +209,12 @@ type NodeInput struct {
 	NodeGroupName     string
 	AMIImageID        string
 	CapacityType      *v1beta2.ManagedMachinePoolCapacityType
+}
+
+// PauseContainerInfo holds pause container information for templates
+type PauseContainerInfo struct {
+	AccountNumber *string
+	Version       *string
 }
 
 // DockerConfigJSONEscaped returns the DockerConfigJSON escaped for use in cloud-init.
@@ -237,19 +343,80 @@ func generateAL2023UserData(input *NodeInput) ([]byte, error) {
 	fmt.Printf("DEBUG: AL2023 Userdata Generation - maxPods: %d, clusterDNS: %s, amiID: %s, capacityType: %s\n",
 		maxPods, clusterDNS, amiID, capacityType)
 
-	// Generate userdata using the template
-	userData := fmt.Sprintf(al2023UserDataTemplate,
-		boundary,
-		boundary,
-		input.APIServerEndpoint,
-		input.CACert,
-		input.ClusterName,
-		maxPods,
-		clusterDNS,
-		amiID,
-		capacityType,
-		input.NodeGroupName,
-		boundary)
+	// Generate pre/post commands sections
+	preCommands := ""
+	if len(input.PreBootstrapCommands) > 0 {
+		preCommands = "\n  preKubeadmCommands:"
+		for _, cmd := range input.PreBootstrapCommands {
+			preCommands += fmt.Sprintf("\n  - %s", cmd)
+		}
+	}
 
-	return []byte(userData), nil
+	postCommands := ""
+	if len(input.PostBootstrapCommands) > 0 {
+		postCommands = "\n  postKubeadmCommands:"
+		for _, cmd := range input.PostBootstrapCommands {
+			postCommands += fmt.Sprintf("\n  - %s", cmd)
+		}
+	}
+
+	// Create template with all AL2023 templates
+	tm := template.New("AL2023Node").Funcs(defaultTemplateFuncMap)
+
+	// Parse all AL2023-specific templates
+	templates := []string{
+		al2023KubeletExtraArgsTemplate,
+		al2023ContainerRuntimeTemplate,
+		al2023DockerConfigTemplate,
+		al2023APIRetryAttemptsTemplate,
+		al2023PauseContainerTemplate,
+		al2023FilesTemplate,
+		al2023DiskSetupTemplate,
+		al2023MountsTemplate,
+		al2023UsersTemplate,
+		al2023NTPTemplate,
+	}
+
+	for _, tpl := range templates {
+		if _, err := tm.Parse(tpl); err != nil {
+			return nil, fmt.Errorf("failed to parse AL2023 template: %w", err)
+		}
+	}
+
+	// Parse the main AL2023 template
+	t, err := tm.Parse(al2023UserDataTemplate)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse AL2023 userdata template: %w", err)
+	}
+
+	// Create template data with all fields
+	templateData := struct {
+		*NodeInput
+		Boundary           string
+		MaxPods            int
+		ClusterDNS         string
+		CapacityType       string
+		AMIImageID         string
+		PreCommands        string
+		PostCommands       string
+		PauseContainerInfo PauseContainerInfo
+	}{
+		NodeInput:          input,
+		Boundary:           boundary,
+		MaxPods:            maxPods,
+		ClusterDNS:         clusterDNS,
+		CapacityType:       capacityType,
+		AMIImageID:         amiID,
+		PreCommands:        preCommands,
+		PostCommands:       postCommands,
+		PauseContainerInfo: PauseContainerInfo{AccountNumber: input.PauseContainerAccount, Version: input.PauseContainerVersion},
+	}
+
+	// Execute template
+	var out bytes.Buffer
+	if err := t.Execute(&out, templateData); err != nil {
+		return nil, fmt.Errorf("failed to generate AL2023 userdata: %w", err)
+	}
+
+	return out.Bytes(), nil
 }
