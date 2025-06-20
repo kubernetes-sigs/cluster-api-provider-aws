@@ -23,7 +23,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/eks"
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
-	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go-v2/service/iam"
+	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -544,8 +545,8 @@ func TestCreateCluster(t *testing.T) {
 			}
 
 			if !tc.expectError {
-				roleOutput := iam.GetRoleOutput{Role: &iam.Role{Arn: tc.role}}
-				iamMock.EXPECT().GetRole(gomock.Any()).Return(&roleOutput, nil)
+				roleOutput := iam.GetRoleOutput{Role: &iamtypes.Role{Arn: tc.role}}
+				iamMock.EXPECT().GetRole(gomock.Any(), gomock.Any()).Return(&roleOutput, nil)
 				eksMock.EXPECT().CreateCluster(context.TODO(), &eks.CreateClusterInput{
 					Name:             aws.String(clusterName),
 					EncryptionConfig: []ekstypes.EncryptionConfig{},
@@ -771,11 +772,11 @@ func TestCreateIPv6Cluster(t *testing.T) {
 		},
 		BootstrapSelfManagedAddons: aws.Bool(false),
 	}).Return(&eks.CreateClusterOutput{}, nil)
-	iamMock.EXPECT().GetRole(&iam.GetRoleInput{
+	iamMock.EXPECT().GetRole(gomock.Any(), &iam.GetRoleInput{
 		RoleName: aws.String("arn-role"),
 	}).Return(&iam.GetRoleOutput{
-		Role: &iam.Role{
-			RoleName: ptr.To[string]("arn-role"),
+		Role: &iamtypes.Role{
+			RoleName: aws.String("arn-role"),
 		},
 	}, nil)
 

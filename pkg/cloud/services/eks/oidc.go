@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-	http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
-	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go-v2/service/iam"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -81,7 +81,7 @@ func (s *Service) reconcileOIDCProvider(ctx context.Context, cluster *ekstypes.C
 		OpenIDConnectProviderArn: &s.scope.ControlPlane.Status.OIDCProvider.ARN,
 		Tags:                     tagConverter.MapToIAMTags(tagConverter.MapPtrToMap(cluster.Tags)),
 	}
-	if _, err := s.IAMClient.TagOpenIDConnectProvider(&inputForTags); err != nil {
+	if _, err := s.IAMClient.TagOpenIDConnectProvider(ctx, &inputForTags); err != nil {
 		return errors.Wrap(err, "failed to tag OIDC provider")
 	}
 
@@ -140,13 +140,13 @@ func (s *Service) reconcileTrustPolicy(ctx context.Context) error {
 	return remoteClient.Update(ctx, trustPolicyConfigMap)
 }
 
-func (s *Service) deleteOIDCProvider() error {
+func (s *Service) deleteOIDCProvider(ctx context.Context) error {
 	if !s.scope.ControlPlane.Spec.AssociateOIDCProvider || s.scope.ControlPlane.Status.OIDCProvider.ARN == "" {
 		return nil
 	}
 
 	providerARN := s.scope.ControlPlane.Status.OIDCProvider.ARN
-	if err := s.DeleteOIDCProvider(&providerARN); err != nil {
+	if err := s.DeleteOIDCProvider(ctx, &providerARN); err != nil {
 		return errors.Wrap(err, "failed to delete OIDC provider")
 	}
 

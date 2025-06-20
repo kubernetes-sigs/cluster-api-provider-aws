@@ -17,6 +17,6 @@ limitations under the License.
 // Package mock_iamauth provides a mock implementation for the IAMAPI interface.
 // Run go generate to regenerate this mock.
 //
-//go:generate ../../../../../hack/tools/bin/mockgen -destination iamauth_mock.go -package mock_iamauth github.com/aws/aws-sdk-go/service/iam/iamiface IAMAPI
+//go:generate ../../../../../hack/tools/bin/mockgen -destination iamauth_mock.go -package mock_iamauth sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/iamauth IAMAPI
 //go:generate /usr/bin/env bash -c "cat ../../../../../hack/boilerplate/boilerplate.generatego.txt iamauth_mock.go > _iamauth_mock.go && mv _iamauth_mock.go iamauth_mock.go"
 package mock_iamauth //nolint:stylecheck
