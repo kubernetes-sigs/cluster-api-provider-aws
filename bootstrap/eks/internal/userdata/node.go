@@ -19,8 +19,9 @@ package userdata
 import (
 	"bytes"
 	"fmt"
-	"strings"
 	"text/template"
+
+	"sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 
 	"github.com/alessio/shellescape"
 
@@ -29,6 +30,11 @@ import (
 
 const (
 	defaultBootstrapCommand = "/etc/eks/bootstrap.sh"
+	boundary                = "//"
+
+	// AMI Family Types
+	AMIFamilyAL2    = "AmazonLinux2"
+	AMIFamilyAL2023 = "AmazonLinux2023"
 
 	nodeUserData = `#cloud-config
 {{template "files" .Files}}
@@ -42,6 +48,32 @@ runcmd:
 {{- template "fs_setup" .DiskSetup}}
 {{- template "mounts" .Mounts}}
 `
+
+	// Multipart MIME template for AL2023
+	al2023UserDataTemplate = `MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="%s"
+
+--%s
+Content-Type: application/node.eks.aws
+
+---
+apiVersion: node.eks.aws/v1alpha1
+kind: NodeConfig
+spec:
+  cluster:
+    apiServerEndpoint: %s
+    certificateAuthority: %s
+    cidr: 10.96.0.0/12
+    name: %s
+  kubelet:
+    config:
+      maxPods: %d
+      clusterDNS:
+      - %s
+    flags:
+    - "--node-labels=eks.amazonaws.com/nodegroup-image=%s,eks.amazonaws.com/capacityType=%s,eks.amazonaws.com/nodegroup=%s"
+
+--%s--`
 )
 
 // NodeInput defines the context to generate a node user data.
@@ -67,6 +99,16 @@ type NodeInput struct {
 	Mounts                   []eksbootstrapv1.MountPoints
 	Users                    []eksbootstrapv1.User
 	NTP                      *eksbootstrapv1.NTP
+
+	// AMI Family Type to determine userdata format
+	AMIFamilyType string
+
+	// AL2023 specific fields
+	APIServerEndpoint string
+	CACert            string
+	NodeGroupName     string
+	AMIImageID        string
+	CapacityType      *v1beta2.ManagedMachinePoolCapacityType
 }
 
 // DockerConfigJSONEscaped returns the DockerConfigJSON escaped for use in cloud-init.
@@ -89,6 +131,17 @@ func (ni *NodeInput) BootstrapCommand() string {
 
 // NewNode returns the user data string to be used on a node instance.
 func NewNode(input *NodeInput) ([]byte, error) {
+	// For AL2023, use the multipart MIME format
+	if input.AMIFamilyType == AMIFamilyAL2023 {
+		return generateAL2023UserData(input)
+	}
+
+	// For AL2 and other types, use the standard cloud-config format
+	return generateStandardUserData(input)
+}
+
+// generateStandardUserData generates userdata for AL2 and other standard node types
+func generateStandardUserData(input *NodeInput) ([]byte, error) {
 	tm := template.New("Node").Funcs(defaultTemplateFuncMap)
 
 	if _, err := tm.Parse(filesTemplate); err != nil {
@@ -140,90 +193,63 @@ func NewNode(input *NodeInput) ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-// AL2023UserDataInput defines the required input for generating AL2023 userdata
-type AL2023UserDataInput struct {
-	ClusterName       string
-	APIServerEndpoint string
-	CACert            string
-	NodeGroupName     string
-	MaxPods           int
-	ClusterDNS        string
-	AMIImageID        string
-	CapacityType      string
-}
-
-// ValidateAL2023UserDataInput validates the input for AL2023 userdata generation
-func ValidateAL2023UserDataInput(input *AL2023UserDataInput) error {
-	if input.ClusterName == "" {
-		return fmt.Errorf("cluster name is required")
-	}
+// generateAL2023UserData generates userdata for Amazon Linux 2023 nodes
+func generateAL2023UserData(input *NodeInput) ([]byte, error) {
+	// Validate required AL2023 fields
 	if input.APIServerEndpoint == "" {
-		return fmt.Errorf("API server endpoint is required")
-	}
-	if !strings.HasPrefix(input.APIServerEndpoint, "https://") {
-		return fmt.Errorf("API server endpoint must start with https://")
+		return nil, fmt.Errorf("API server endpoint is required for AL2023")
 	}
 	if input.CACert == "" {
-		return fmt.Errorf("CA certificate is required")
+		return nil, fmt.Errorf("CA certificate is required for AL2023")
+	}
+	if input.ClusterName == "" {
+		return nil, fmt.Errorf("cluster name is required for AL2023")
 	}
 	if input.NodeGroupName == "" {
-		return fmt.Errorf("node group name is required")
-	}
-	if input.MaxPods <= 0 {
-		return fmt.Errorf("max pods must be greater than 0")
-	}
-	if input.ClusterDNS == "" {
-		return fmt.Errorf("cluster DNS is required")
-	}
-	if input.AMIImageID == "" {
-		return fmt.Errorf("AMI image ID is required")
-	}
-	if input.CapacityType == "" {
-		return fmt.Errorf("capacity type is required")
-	}
-	return nil
-}
-
-// GenerateAL2023UserData generates userdata for Amazon Linux 2023 nodes with validation and retry
-func GenerateAL2023UserData(input *AL2023UserDataInput) ([]byte, error) {
-	// Validate input
-	if err := ValidateAL2023UserDataInput(input); err != nil {
-		return nil, fmt.Errorf("invalid input: %w", err)
+		return nil, fmt.Errorf("node group name is required for AL2023")
 	}
 
-	// Generate userdata with validated input
-	userData := fmt.Sprintf(`MIME-Version: 1.0
-Content-Type: multipart/mixed; boundary="//"
+	// Calculate maxPods based on UseMaxPods setting
+	maxPods := 110 // Default when UseMaxPods is false
+	if input.UseMaxPods != nil && *input.UseMaxPods {
+		maxPods = 58 // Default when UseMaxPods is true
+	}
 
---//
-Content-Type: application/node.eks.aws
+	// Get cluster DNS
+	clusterDNS := "10.96.0.10" // Default value
+	if input.DNSClusterIP != nil && *input.DNSClusterIP != "" {
+		clusterDNS = *input.DNSClusterIP
+	}
 
----
-apiVersion: node.eks.aws/v1alpha1
-kind: NodeConfig
-spec:
-  cluster:
-    apiServerEndpoint: %s
-    certificateAuthority: %s
-    cidr: 10.96.0.0/12
-    name: %s
-  kubelet:
-    config:
-      maxPods: %d
-      clusterDNS:
-      - %s
-    flags:
-    - "--node-labels=eks.amazonaws.com/nodegroup-image=%s,eks.amazonaws.com/capacityType=%s,eks.amazonaws.com/nodegroup=%s"
+	// Get capacity type as string
+	capacityType := "ON_DEMAND" // Default value
+	if input.CapacityType != nil {
+		capacityType = string(*input.CapacityType)
+	}
 
---//--`,
+	// Get AMI ID - use empty string if not specified
+	amiID := ""
+	if input.AMIImageID != "" {
+		amiID = input.AMIImageID
+	}
+
+	// Debug logging
+	fmt.Printf("DEBUG: AL2023 Userdata Generation - maxPods: %d, clusterDNS: %s, amiID: %s, capacityType: %s\n",
+		maxPods, clusterDNS, amiID, capacityType)
+
+	// Generate userdata using the template
+	userData := fmt.Sprintf(al2023UserDataTemplate,
+		boundary,
+		boundary,
 		input.APIServerEndpoint,
 		input.CACert,
 		input.ClusterName,
-		input.MaxPods,
-		input.ClusterDNS,
-		input.AMIImageID,
-		input.CapacityType,
-		input.NodeGroupName)
+		maxPods,
+		clusterDNS,
+		amiID,
+		capacityType,
+		input.NodeGroupName,
+		boundary)
 
 	return []byte(userData), nil
 }
