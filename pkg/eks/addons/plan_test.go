@@ -41,6 +41,7 @@ func TestEKSAddonPlan(t *testing.T) {
 	addonStatusUpdating := string(ekstypes.AddonStatusUpdating)
 	addonStatusDeleting := string(ekstypes.AddonStatusDeleting)
 	addonStatusCreating := string(ekstypes.AddonStatusCreating)
+	addonPreserve := false
 	created := time.Now()
 	maxActiveUpdateDeleteWait := 30 * time.Minute
 
@@ -176,7 +177,7 @@ func TestEKSAddonPlan(t *testing.T) {
 				createDesiredAddon(addon1Name, addon1version),
 			},
 			installedAddons: []*EKSAddon{
-				createInstalledAddon(addon1Name, addon1version, addonARN, addonStatusActive),
+				createInstalledAddon(addon1Name, addon1version, addonARN, addonStatusActive, false),
 			},
 			expectCreateError: false,
 			expectDoError:     false,
@@ -198,7 +199,7 @@ func TestEKSAddonPlan(t *testing.T) {
 				createDesiredAddon(addon1Name, addon1version),
 			},
 			installedAddons: []*EKSAddon{
-				createInstalledAddon(addon1Name, addon1version, addonARN, addonStatusCreating),
+				createInstalledAddon(addon1Name, addon1version, addonARN, addonStatusCreating, addonPreserve),
 			},
 			expectCreateError: false,
 			expectDoError:     false,
@@ -236,7 +237,7 @@ func TestEKSAddonPlan(t *testing.T) {
 				createDesiredAddon(addon1Name, addon1Upgrade),
 			},
 			installedAddons: []*EKSAddon{
-				createInstalledAddon(addon1Name, addon1version, addonARN, addonStatusActive),
+				createInstalledAddon(addon1Name, addon1version, addonARN, addonStatusActive, addonPreserve),
 			},
 			expectCreateError: false,
 			expectDoError:     false,
@@ -258,7 +259,7 @@ func TestEKSAddonPlan(t *testing.T) {
 				createDesiredAddon(addon1Name, addon1Upgrade),
 			},
 			installedAddons: []*EKSAddon{
-				createInstalledAddon(addon1Name, addon1Upgrade, addonARN, addonStatusUpdating),
+				createInstalledAddon(addon1Name, addon1Upgrade, addonARN, addonStatusUpdating, addonPreserve),
 			},
 			expectCreateError: false,
 			expectDoError:     false,
@@ -277,7 +278,7 @@ func TestEKSAddonPlan(t *testing.T) {
 				createDesiredAddonExtraTag(addon1Name, addon1version),
 			},
 			installedAddons: []*EKSAddon{
-				createInstalledAddon(addon1Name, addon1version, addonARN, addonStatusActive),
+				createInstalledAddon(addon1Name, addon1version, addonARN, addonStatusActive, addonPreserve),
 			},
 			expectCreateError: false,
 			expectDoError:     false,
@@ -321,7 +322,7 @@ func TestEKSAddonPlan(t *testing.T) {
 				createDesiredAddonExtraTag(addon1Name, addon1Upgrade),
 			},
 			installedAddons: []*EKSAddon{
-				createInstalledAddon(addon1Name, addon1version, addonARN, addonStatusActive),
+				createInstalledAddon(addon1Name, addon1version, addonARN, addonStatusActive, addonPreserve),
 			},
 			expectCreateError: false,
 			expectDoError:     false,
@@ -333,6 +334,7 @@ func TestEKSAddonPlan(t *testing.T) {
 					DeleteAddon(gomock.Eq(context.TODO()), gomock.Eq(&eks.DeleteAddonInput{
 						AddonName:   &addon1Name,
 						ClusterName: &clusterName,
+						Preserve:    false,
 					})).
 					Return(&eks.DeleteAddonOutput{
 						Addon: &ekstypes.Addon{
@@ -352,7 +354,39 @@ func TestEKSAddonPlan(t *testing.T) {
 				}), maxActiveUpdateDeleteWait).Return(nil)
 			},
 			installedAddons: []*EKSAddon{
-				createInstalledAddon(addon1Name, addon1version, addonARN, addonStatusActive),
+				createInstalledAddon(addon1Name, addon1version, addonARN, addonStatusActive, addonPreserve),
+			},
+			expectCreateError: false,
+			expectDoError:     false,
+		},
+		{
+			name: "1 installed and 0 desired - delete addon & preserve",
+			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
+				m.
+					DeleteAddon(gomock.Eq(context.TODO()), gomock.Eq(&eks.DeleteAddonInput{
+						AddonName:   &addon1Name,
+						ClusterName: &clusterName,
+						Preserve:    true,
+					})).
+					Return(&eks.DeleteAddonOutput{
+						Addon: &ekstypes.Addon{
+							AddonArn:     aws.String(addonARN),
+							AddonName:    aws.String(addon1Name),
+							AddonVersion: aws.String(addon1version),
+							ClusterName:  aws.String(clusterName),
+							CreatedAt:    &created,
+							ModifiedAt:   &created,
+							Status:       ekstypes.AddonStatusDeleting,
+							Tags:         createTags(),
+						},
+					}, nil)
+				m.WaitUntilAddonDeleted(gomock.Eq(context.TODO()), gomock.Eq(&eks.DescribeAddonInput{
+					AddonName:   aws.String(addon1Name),
+					ClusterName: aws.String(clusterName),
+				}), maxActiveUpdateDeleteWait).Return(nil)
+			},
+			installedAddons: []*EKSAddon{
+				createInstalledAddon(addon1Name, addon1version, addonARN, addonStatusActive, true),
 			},
 			expectCreateError: false,
 			expectDoError:     false,
@@ -366,7 +400,7 @@ func TestEKSAddonPlan(t *testing.T) {
 				}), maxActiveUpdateDeleteWait).Return(nil)
 			},
 			installedAddons: []*EKSAddon{
-				createInstalledAddon(addon1Name, addon1version, addonARN, addonStatusDeleting),
+				createInstalledAddon(addon1Name, addon1version, addonARN, addonStatusDeleting, false),
 			},
 			expectCreateError: false,
 			expectDoError:     false,
@@ -442,10 +476,11 @@ func createDesiredAddonExtraTag(name, version string) *EKSAddon {
 	}
 }
 
-func createInstalledAddon(name, version, arn, status string) *EKSAddon {
+func createInstalledAddon(name, version, arn, status string, preserve bool) *EKSAddon {
 	desired := createDesiredAddon(name, version)
 	desired.ARN = &arn
 	desired.Status = &status
+	desired.Preserve = preserve
 
 	return desired
 }
