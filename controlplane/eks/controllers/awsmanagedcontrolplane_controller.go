@@ -364,7 +364,7 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 
 	if feature.Gates.Enabled(feature.EventBridgeInstanceState) {
 		instancestateSvc := instancestate.NewService(managedScope)
-		if err := instancestateSvc.ReconcileEC2Events(); err != nil {
+		if err := instancestateSvc.ReconcileEC2Events(ctx); err != nil {
 			// non fatal error, so we continue
 			managedScope.Error(err, "non-fatal: failed to set up EventBridge")
 		}
