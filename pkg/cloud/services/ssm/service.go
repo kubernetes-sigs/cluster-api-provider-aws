@@ -18,6 +18,7 @@ package ssm
 
 import (
 	"context"
+	"errors"
 
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 
@@ -48,16 +49,25 @@ type SSMClientV2 struct {
 
 // PutParameter adds or overwrites a parameter in AWS SSM Parameter Store.
 func (c *SSMClientV2) PutParameter(ctx context.Context, input *ssm.PutParameterInput) (*ssm.PutParameterOutput, error) {
+	if c.Client == nil {
+		return nil, errors.New("SSM client is not initialized")
+	}
 	return c.Client.PutParameter(ctx, input)
 }
 
 // DeleteParameter deletes a parameter from AWS SSM Parameter Store.
 func (c *SSMClientV2) DeleteParameter(ctx context.Context, input *ssm.DeleteParameterInput) (*ssm.DeleteParameterOutput, error) {
+	if c.Client == nil {
+		return nil, errors.New("SSM client is not initialized")
+	}
 	return c.Client.DeleteParameter(ctx, input)
 }
 
 // GetParameter retrieves a parameter from AWS SSM Parameter Store.
 func (c *SSMClientV2) GetParameter(ctx context.Context, input *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
+	if c.Client == nil {
+		return nil, errors.New("SSM client is not initialized")
+	}
 	return c.Client.GetParameter(ctx, input)
 }
 
