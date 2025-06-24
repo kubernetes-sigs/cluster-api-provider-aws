@@ -25,7 +25,7 @@ import (
 	"k8s.io/utils/ptr"
 
 	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2"
-	expv1beta2 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 )
 
 func TestNewNode(t *testing.T) {
@@ -504,7 +504,7 @@ spec:
 					CACert:            "test-cert",
 					NodeGroupName:     "test-nodegroup",
 					AMIImageID:        "ami-12345678",
-					CapacityType:      ptr.To[expv1beta2.ManagedMachinePoolCapacityType](expv1beta2.ManagedMachinePoolCapacityTypeSpot),
+					CapacityType:      ptr.To[expinfrav1.ManagedMachinePoolCapacityType](expinfrav1.ManagedMachinePoolCapacityTypeSpot),
 					UseMaxPods:        ptr.To[bool](false),
 					DNSClusterIP:      ptr.To[string]("10.96.0.10"),
 				},
