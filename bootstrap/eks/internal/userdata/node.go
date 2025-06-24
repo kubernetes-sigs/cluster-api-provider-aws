@@ -21,19 +21,19 @@ import (
 	"fmt"
 	"text/template"
 
-	"sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
-
 	"github.com/alessio/shellescape"
 
 	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 )
 
 const (
 	defaultBootstrapCommand = "/etc/eks/bootstrap.sh"
 	boundary                = "//"
 
-	// AMI Family Types
-	AMIFamilyAL2    = "AmazonLinux2"
+	// AMIFamilyAL2 is the Amazon Linux 2 AMI family.
+	AMIFamilyAL2 = "AmazonLinux2"
+	// AMIFamilyAL2023 is the Amazon Linux 2023 AMI family.
 	AMIFamilyAL2023 = "AmazonLinux2023"
 
 	nodeUserData = `#cloud-config
@@ -49,7 +49,7 @@ runcmd:
 {{- template "mounts" .Mounts}}
 `
 
-	// Multipart MIME template for AL2023
+	// Multipart MIME template for AL2023.
 	al2023UserDataTemplate = `MIME-Version: 1.0
 Content-Type: multipart/mixed; boundary="{{.Boundary}}"
 
@@ -75,7 +75,7 @@ spec:
 
 --{{.Boundary}}--`
 
-	// AL2023-specific templates
+	// AL2023-specific templates.
 	al2023KubeletExtraArgsTemplate = `{{- define "al2023KubeletExtraArgs" -}}
 {{- if . -}}
 {{- range $k, $v := . -}}
@@ -211,7 +211,7 @@ type NodeInput struct {
 	CapacityType      *v1beta2.ManagedMachinePoolCapacityType
 }
 
-// PauseContainerInfo holds pause container information for templates
+// PauseContainerInfo holds pause container information for templates.
 type PauseContainerInfo struct {
 	AccountNumber *string
 	Version       *string
@@ -246,7 +246,7 @@ func NewNode(input *NodeInput) ([]byte, error) {
 	return generateStandardUserData(input)
 }
 
-// generateStandardUserData generates userdata for AL2 and other standard node types
+// generateStandardUserData generates userdata for AL2 and other standard node types.
 func generateStandardUserData(input *NodeInput) ([]byte, error) {
 	tm := template.New("Node").Funcs(defaultTemplateFuncMap)
 
@@ -299,7 +299,7 @@ func generateStandardUserData(input *NodeInput) ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-// generateAL2023UserData generates userdata for Amazon Linux 2023 nodes
+// generateAL2023UserData generates userdata for Amazon Linux 2023 nodes.
 func generateAL2023UserData(input *NodeInput) ([]byte, error) {
 	// Validate required AL2023 fields
 	if input.APIServerEndpoint == "" {
