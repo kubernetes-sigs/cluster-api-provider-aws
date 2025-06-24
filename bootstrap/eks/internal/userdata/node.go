@@ -19,6 +19,7 @@ package userdata
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"text/template"
 
 	"github.com/alessio/shellescape"
@@ -91,7 +92,7 @@ spec:
 {{- end -}}`
 
 	al2023DockerConfigTemplate = `{{- define "al2023DockerConfig" -}}
-{{- if . -}}
+{{- if and . (ne . "''") -}}
   dockerConfig: {{.}}
 {{- end -}}
 {{- end -}}`
@@ -330,7 +331,14 @@ func generateAL2023UserData(input *NodeInput) ([]byte, error) {
 	// Get capacity type as string
 	capacityType := "ON_DEMAND" // Default value
 	if input.CapacityType != nil {
-		capacityType = string(*input.CapacityType)
+		switch *input.CapacityType {
+		case v1beta2.ManagedMachinePoolCapacityTypeSpot:
+			capacityType = "SPOT"
+		case v1beta2.ManagedMachinePoolCapacityTypeOnDemand:
+			capacityType = "ON_DEMAND"
+		default:
+			capacityType = strings.ToUpper(string(*input.CapacityType))
+		}
 	}
 
 	// Get AMI ID - use empty string if not specified

@@ -38,6 +38,9 @@ func (r *EKSConfig) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	if restored.Spec.NodeType != "" {
+		dst.Spec.NodeType = restored.Spec.NodeType
+	}
 	if restored.Spec.PreBootstrapCommands != nil {
 		dst.Spec.PreBootstrapCommands = restored.Spec.PreBootstrapCommands
 	}
@@ -105,6 +108,9 @@ func (r *EKSConfigTemplate) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	if restored.Spec.Template.Spec.NodeType != "" {
+		dst.Spec.Template.Spec.NodeType = restored.Spec.Template.Spec.NodeType
+	}
 	if restored.Spec.Template.Spec.PreBootstrapCommands != nil {
 		dst.Spec.Template.Spec.PreBootstrapCommands = restored.Spec.Template.Spec.PreBootstrapCommands
 	}
