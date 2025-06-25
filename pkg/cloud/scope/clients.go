@@ -226,11 +226,15 @@ func NewSTSClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logg
 // NewSSMClient creates a new Secrets API client for a given session.
 func NewSSMClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) *ssm.Client {
 	cfg := session.SessionV2()
-
+	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
+	ssmEndpointResolver := &endpointsv2.SSMEndpointResolver{
+		MultiServiceEndpointResolver: multiSvcEndpointResolver,
+	}
 	ssmOpts := []func(*ssm.Options){
 		func(o *ssm.Options) {
 			o.Logger = logger.GetAWSLogger()
 			o.ClientLogMode = awslogs.GetAWSLogLevelV2(logger.GetLogger())
+			o.EndpointResolverV2 = ssmEndpointResolver
 		},
 		ssm.WithAPIOptions(
 			awsmetricsv2.WithMiddlewares(scopeUser.ControllerName(), target),
