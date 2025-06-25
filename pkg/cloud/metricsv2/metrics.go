@@ -112,6 +112,13 @@ func WithCAPAUserAgentMiddleware() func(*middleware.Stack) error {
 	return awsmiddleware.AddUserAgentKeyValue("aws.cluster.x-k8s.io", version.Get().String())
 }
 
+// WithRequestMetricContextMiddleware returns Request Metric middleware stack for AWS GO SDK V2 sessions.
+func WithRequestMetricContextMiddleware() func(*middleware.Stack) error {
+	return func(stack *middleware.Stack) error {
+		return stack.Finalize.Add(getRequestMetricContextMiddleware(), middleware.Before)
+	}
+}
+
 func getMetricCollectionMiddleware(controller string, target runtime.Object) middleware.InitializeMiddleware {
 	return middleware.InitializeMiddlewareFunc("capa/MetricCollectionMiddleware", func(ctx context.Context, input middleware.InitializeInput, handler middleware.InitializeHandler) (middleware.InitializeOutput, middleware.Metadata, error) {
 		ctx = initRequestContext(ctx, controller, target)
