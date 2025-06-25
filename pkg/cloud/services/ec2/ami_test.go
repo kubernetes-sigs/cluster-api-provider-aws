@@ -571,7 +571,8 @@ func TestEKSAMILookUp(t *testing.T) {
 			s := NewService(clusterScope)
 			s.SSMClient = ssmMock
 
-			got, err := s.eksAMILookup(tt.k8sVersion, tt.arch, tt.amiType)
+			ctx := context.TODO()
+			got, err := s.eksAMILookup(ctx, tt.k8sVersion, tt.arch, tt.amiType)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

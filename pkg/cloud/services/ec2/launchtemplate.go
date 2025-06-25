@@ -83,7 +83,7 @@ func (s *Service) ReconcileLaunchTemplate(
 		return err
 	}
 
-	imageID, err := ec2svc.DiscoverLaunchTemplateAMI(scope)
+	imageID, err := ec2svc.DiscoverLaunchTemplateAMI(ctx, scope)
 	if err != nil {
 		conditions.MarkFalse(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateCreateFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
 		return err
@@ -981,7 +981,7 @@ func (s *Service) LaunchTemplateNeedsUpdate(scope scope.LaunchTemplateScope, inc
 }
 
 // DiscoverLaunchTemplateAMI will discover the AMI launch template.
-func (s *Service) DiscoverLaunchTemplateAMI(scope scope.LaunchTemplateScope) (*string, error) {
+func (s *Service) DiscoverLaunchTemplateAMI(ctx context.Context, scope scope.LaunchTemplateScope) (*string, error) {
 	lt := scope.GetLaunchTemplate()
 
 	if lt.AMI.ID != nil {
@@ -1029,6 +1029,7 @@ func (s *Service) DiscoverLaunchTemplateAMI(scope scope.LaunchTemplateScope) (*s
 
 	if scope.IsEKSManaged() && imageLookupFormat == "" && imageLookupOrg == "" && imageLookupBaseOS == "" {
 		lookupAMI, err = s.eksAMILookup(
+			ctx,
 			*templateVersion,
 			imageArchitecture,
 			scope.GetLaunchTemplate().AMI.EKSOptimizedLookupType,

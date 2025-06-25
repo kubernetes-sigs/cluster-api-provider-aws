@@ -313,7 +313,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				expectedErr := errors.New("Invalid instance")
 				ec2Svc.EXPECT().InstanceIfExists(gomock.Any()).Return(nil, nil)
 				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return("test", int32(1), nil).Times(1)
-				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, expectedErr)
+				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, expectedErr)
 				secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 
 				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
@@ -349,7 +349,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				instance.State = infrav1.InstanceStatePending
 
 				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, nil)
-				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil)
+				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil)
 			}
 
 			t.Run("instance security group errors", func(t *testing.T) {
@@ -785,7 +785,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					return elbSvc
 				}
 
-				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil)
+				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil)
 				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, nil)
 				elbSvc.EXPECT().IsInstanceRegisteredWithAPIServerELB(gomock.Any()).Return(false, errors.New("error describing ELB"))
 				secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
@@ -811,7 +811,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					return elbSvc
 				}
 
-				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil)
+				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil)
 				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, nil)
 				elbSvc.EXPECT().IsInstanceRegisteredWithAPIServerELB(gomock.Any()).Return(false, nil)
 				elbSvc.EXPECT().RegisterInstanceWithAPIServerELB(gomock.Any()).Return(errors.New("failed to attach ELB"))
@@ -842,7 +842,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				ensureTag := func(t *testing.T, g *WithT) {
 					t.Helper()
 					ec2Svc.EXPECT().InstanceIfExists(gomock.Any()).Return(nil, nil)
-					ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil)
+					ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil)
 					secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return("test", int32(1), nil)
 					secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
 				}
@@ -888,7 +888,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				ensureSecurityGroups := func(t *testing.T, g *WithT) {
 					t.Helper()
 					ec2Svc.EXPECT().InstanceIfExists(gomock.Any()).Return(nil, nil)
-					ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil)
+					ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil)
 					secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return("test", int32(1), nil)
 					secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
 					ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil)
@@ -1011,7 +1011,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, nil).AnyTimes()
 				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return(secretPrefix, int32(1), nil).Times(1)
-				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil).AnyTimes()
+				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil).AnyTimes()
 				secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 				ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil).Times(1)
 				ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
@@ -1048,7 +1048,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, nil).AnyTimes()
 				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return(secretPrefix, int32(1), nil).Times(1)
-				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil).AnyTimes()
+				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil).AnyTimes()
 				secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 				ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil).Times(1)
 				ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
@@ -1304,7 +1304,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				}
 				instance.State = infrav1.InstanceStatePending
 				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return(secretPrefix, int32(1), nil).Times(1)
-				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil).AnyTimes()
+				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil).AnyTimes()
 				secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 				ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil).Times(1)
 				ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
@@ -1357,7 +1357,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					fakeS3URL := "s3://foo"
 
 					objectStoreSvc.EXPECT().Create(gomock.Any(), gomock.Any(), gomock.Any()).Return(fakeS3URL, nil).Times(1)
-					ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil).AnyTimes()
+					ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil).AnyTimes()
 					ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil).Times(1)
 					ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
 					ec2Svc.EXPECT().GetAdditionalSecurityGroupsIDs(gomock.Any()).Return(nil, nil)
@@ -1392,7 +1392,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					presigned := "https://cluster-api-aws.s3.us-west-2.amazonaws.com/bootstrap-data.yaml?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA3SGQVQG7FGA6KKA6%2F20221104%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20221104T140227Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=b228dbec8c1008c80c162e1210e4503dceead1e4d4751b4d9787314fd6da4d55"
 
 					objectStoreSvc.EXPECT().Create(gomock.Any(), gomock.Any(), gomock.Any()).Return(presigned, nil).Times(1)
-					ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil).AnyTimes()
+					ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil).AnyTimes()
 					ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil).Times(1)
 					ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
 					ec2Svc.EXPECT().GetAdditionalSecurityGroupsIDs(gomock.Any()).Return(nil, nil)
@@ -1611,7 +1611,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					// Expect no Cluster Object Store to be created.
 					objectStoreSvc.EXPECT().Create(gomock.Any(), gomock.Any(), gomock.Any()).Return(fakeS3URL, nil).Times(0)
 
-					ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil).AnyTimes()
+					ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil).AnyTimes()
 					ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil).Times(1)
 					ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
 					ec2Svc.EXPECT().GetAdditionalSecurityGroupsIDs(gomock.Any()).Return(nil, nil)

@@ -1922,7 +1922,7 @@ func TestDiscoverLaunchTemplateAMI(t *testing.T) {
 			s := NewService(cs)
 			s.EC2Client = ec2Mock
 
-			id, err := s.DiscoverLaunchTemplateAMI(ms)
+			id, err := s.DiscoverLaunchTemplateAMI(context.TODO(), ms)
 			tc.check(g, id, err)
 		})
 	}
@@ -1999,7 +1999,7 @@ func TestDiscoverLaunchTemplateAMIForEKS(t *testing.T) {
 			s.EC2Client = ec2Mock
 			s.SSMClient = ssmMock
 
-			id, err := s.DiscoverLaunchTemplateAMI(ms)
+			id, err := s.DiscoverLaunchTemplateAMI(context.TODO(), ms)
 			tc.check(g, id, err)
 		})
 	}

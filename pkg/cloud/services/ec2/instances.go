@@ -108,7 +108,7 @@ func (s *Service) InstanceIfExists(id *string) (*infrav1.Instance, error) {
 // CreateInstance runs an ec2 instance.
 //
 //nolint:gocyclo // this function has multiple processes to perform
-func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, userDataFormat string) (*infrav1.Instance, error) {
+func (s *Service) CreateInstance(ctx context.Context, scope *scope.MachineScope, userData []byte, userDataFormat string) (*infrav1.Instance, error) {
 	s.scope.Debug("Creating an instance for a machine")
 
 	input := &infrav1.Instance{
@@ -164,7 +164,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 		}
 
 		if scope.IsEKSManaged() && imageLookupFormat == "" && imageLookupOrg == "" && imageLookupBaseOS == "" {
-			input.ImageID, err = s.eksAMILookup(*scope.Machine.Spec.Version, imageArchitecture, scope.AWSMachine.Spec.AMI.EKSOptimizedLookupType)
+			input.ImageID, err = s.eksAMILookup(ctx, *scope.Machine.Spec.Version, imageArchitecture, scope.AWSMachine.Spec.AMI.EKSOptimizedLookupType)
 			if err != nil {
 				return nil, err
 			}
