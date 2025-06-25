@@ -17,13 +17,15 @@ limitations under the License.
 package instancestate
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/eventbridge"
-	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/eventbridge"
+	eventbridgetypes "github.com/aws/aws-sdk-go-v2/service/eventbridge/types"
+	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	sqstypes "github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -37,6 +39,7 @@ func TestReconcileRules(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	ruleName := "test-cluster-ec2-rule"
+	ctx := context.TODO()
 
 	testCases := []struct {
 		name                        string
@@ -48,9 +51,9 @@ func TestReconcileRules(t *testing.T) {
 		{
 			name: "successfully creates missing rule and target",
 			eventBridgeExpect: func(m *mock_eventbridgeiface.MockEventBridgeAPIMockRecorder) {
-				m.DescribeRule(gomock.Eq(&eventbridge.DescribeRuleInput{
+				m.DescribeRule(ctx, gomock.Eq(&eventbridge.DescribeRuleInput{
 					Name: aws.String(ruleName),
-				})).Return(nil, awserr.New(eventbridge.ErrCodeResourceNotFoundException, "", nil))
+				})).Return(nil, &eventbridgetypes.ResourceNotFoundException{})
 				e := &eventPattern{
 					Source:     []string{"aws.ec2"},
 					DetailType: []string{Ec2StateChangeNotification},
@@ -62,54 +65,54 @@ func TestReconcileRules(t *testing.T) {
 				if err != nil {
 					t.Fatalf("got an unexpected error: %v", err)
 				}
-				m.PutRule(gomock.Eq(&eventbridge.PutRuleInput{
+				m.PutRule(ctx, gomock.Eq(&eventbridge.PutRuleInput{
 					Name:         aws.String(ruleName),
-					State:        aws.String(eventbridge.RuleStateDisabled),
+					State:        eventbridgetypes.RuleStateDisabled,
 					EventPattern: aws.String(string(data)),
 				}))
 			},
 			postCreateEventBridgeExpect: func(m *mock_eventbridgeiface.MockEventBridgeAPIMockRecorder) {
-				m.DescribeRule(gomock.Eq(&eventbridge.DescribeRuleInput{
+				m.DescribeRule(ctx, gomock.Eq(&eventbridge.DescribeRuleInput{
 					Name: aws.String(ruleName),
 				})).Return(&eventbridge.DescribeRuleOutput{Name: aws.String(ruleName), Arn: aws.String("rule-arn")}, nil)
-				m.ListTargetsByRule(&eventbridge.ListTargetsByRuleInput{
+				m.ListTargetsByRule(ctx, &eventbridge.ListTargetsByRuleInput{
 					Rule: aws.String(ruleName),
 				}).Return(&eventbridge.ListTargetsByRuleOutput{
-					Targets: []*eventbridge.Target{{
+					Targets: []eventbridgetypes.Target{{
 						Id:  aws.String("another-queue"),
 						Arn: aws.String("another-queue-arn"),
 					}},
 				}, nil)
-				m.PutTargets(gomock.Eq(&eventbridge.PutTargetsInput{
+				m.PutTargets(ctx, gomock.Eq(&eventbridge.PutTargetsInput{
 					Rule: aws.String(ruleName),
-					Targets: []*eventbridge.Target{{
+					Targets: []eventbridgetypes.Target{{
 						Arn: aws.String("test-cluster-queue-arn"),
 						Id:  aws.String("test-cluster-queue"),
 					}},
 				}))
 			},
 			sqsExpect: func(m *mock_sqsiface.MockSQSAPIMockRecorder) {
-				m.GetQueueUrl(gomock.Eq(&sqs.GetQueueUrlInput{
+				m.GetQueueUrl(ctx, gomock.Eq(&sqs.GetQueueUrlInput{
 					QueueName: aws.String("test-cluster-queue"),
 				})).Return(&sqs.GetQueueUrlOutput{QueueUrl: aws.String("test-cluster-queue-url")}, nil)
 				attrs := make(map[string]string)
-				attrs[sqs.QueueAttributeNameQueueArn] = "test-cluster-queue-arn"
-				m.GetQueueAttributes(gomock.Eq(&sqs.GetQueueAttributesInput{
-					AttributeNames: aws.StringSlice([]string{sqs.QueueAttributeNameQueueArn, sqs.QueueAttributeNamePolicy}),
+				attrs[string(sqstypes.QueueAttributeNameQueueArn)] = "test-cluster-queue-arn"
+				m.GetQueueAttributes(ctx, gomock.Eq(&sqs.GetQueueAttributesInput{
+					AttributeNames: []sqstypes.QueueAttributeName{sqstypes.QueueAttributeNameQueueArn, sqstypes.QueueAttributeNamePolicy},
 					QueueUrl:       aws.String("test-cluster-queue-url"),
-				})).Return(&sqs.GetQueueAttributesOutput{Attributes: aws.StringMap(attrs)}, nil)
-				m.SetQueueAttributes(gomock.AssignableToTypeOf(&sqs.SetQueueAttributesInput{})).Return(nil, nil)
+				})).Return(&sqs.GetQueueAttributesOutput{Attributes: attrs}, nil)
+				m.SetQueueAttributes(ctx, gomock.AssignableToTypeOf(&sqs.SetQueueAttributesInput{})).Return(nil, nil)
 			},
 			expectErr: false,
 		},
 		{
 			name: "skips creating target and queue policy if they already exist",
 			eventBridgeExpect: func(m *mock_eventbridgeiface.MockEventBridgeAPIMockRecorder) {
-				m.DescribeRule(gomock.Eq(&eventbridge.DescribeRuleInput{
+				m.DescribeRule(ctx, gomock.Eq(&eventbridge.DescribeRuleInput{
 					Name: aws.String(ruleName),
 				})).Return(&eventbridge.DescribeRuleOutput{Name: aws.String(ruleName), Arn: aws.String("rule-arn")}, nil)
-				m.ListTargetsByRule(gomock.AssignableToTypeOf(&eventbridge.ListTargetsByRuleInput{})).Return(&eventbridge.ListTargetsByRuleOutput{
-					Targets: []*eventbridge.Target{{
+				m.ListTargetsByRule(ctx, gomock.AssignableToTypeOf(&eventbridge.ListTargetsByRuleInput{})).Return(&eventbridge.ListTargetsByRuleOutput{
+					Targets: []eventbridgetypes.Target{{
 						Id:  aws.String("test-cluster-queue"),
 						Arn: aws.String("test-cluster-queue-arn"),
 					}},
@@ -117,17 +120,32 @@ func TestReconcileRules(t *testing.T) {
 			},
 			postCreateEventBridgeExpect: func(m *mock_eventbridgeiface.MockEventBridgeAPIMockRecorder) {},
 			sqsExpect: func(m *mock_sqsiface.MockSQSAPIMockRecorder) {
-				m.GetQueueUrl(gomock.AssignableToTypeOf(&sqs.GetQueueUrlInput{})).Return(&sqs.GetQueueUrlOutput{QueueUrl: aws.String("test-cluster-queue-url")}, nil)
+				m.GetQueueUrl(ctx, gomock.AssignableToTypeOf(&sqs.GetQueueUrlInput{})).Return(&sqs.GetQueueUrlOutput{QueueUrl: aws.String("test-cluster-queue-url")}, nil)
 				attrs := make(map[string]string)
-				attrs[sqs.QueueAttributeNameQueueArn] = "test-cluster-queue-arn"
-				attrs[sqs.QueueAttributeNamePolicy] = "some policy"
-				m.GetQueueAttributes(gomock.AssignableToTypeOf(&sqs.GetQueueAttributesInput{})).Return(&sqs.GetQueueAttributesOutput{Attributes: aws.StringMap(attrs)}, nil)
+				attrs[string(sqstypes.QueueAttributeNameQueueArn)] = "test-cluster-queue-arn"
+				attrs[string(sqstypes.QueueAttributeNamePolicy)] = "some policy"
+				m.GetQueueAttributes(ctx, gomock.AssignableToTypeOf(&sqs.GetQueueAttributesInput{})).Return(&sqs.GetQueueAttributesOutput{Attributes: attrs}, nil)
 			},
+		},
+		{
+			name: "returns error if GetQueueAttributes doesn't have queue ARN",
+			eventBridgeExpect: func(m *mock_eventbridgeiface.MockEventBridgeAPIMockRecorder) {
+				m.DescribeRule(ctx, gomock.Eq(&eventbridge.DescribeRuleInput{
+					Name: aws.String(ruleName),
+				})).Return(&eventbridge.DescribeRuleOutput{Name: aws.String(ruleName), Arn: aws.String("rule-arn")}, nil)
+			},
+			postCreateEventBridgeExpect: func(m *mock_eventbridgeiface.MockEventBridgeAPIMockRecorder) {},
+			sqsExpect: func(m *mock_sqsiface.MockSQSAPIMockRecorder) {
+				m.GetQueueUrl(ctx, gomock.AssignableToTypeOf(&sqs.GetQueueUrlInput{})).Return(&sqs.GetQueueUrlOutput{QueueUrl: aws.String("test-cluster-queue-url")}, nil)
+				attrs := make(map[string]string)
+				m.GetQueueAttributes(ctx, gomock.AssignableToTypeOf(&sqs.GetQueueAttributesInput{})).Return(&sqs.GetQueueAttributesOutput{Attributes: attrs}, nil)
+			},
+			expectErr: true,
 		},
 		{
 			name: "returns error if DescribeRule runs into unexpected error",
 			eventBridgeExpect: func(m *mock_eventbridgeiface.MockEventBridgeAPIMockRecorder) {
-				m.DescribeRule(gomock.Eq(&eventbridge.DescribeRuleInput{
+				m.DescribeRule(ctx, gomock.Eq(&eventbridge.DescribeRuleInput{
 					Name: aws.String(ruleName),
 				})).Return(nil, errors.New("some error"))
 			},
@@ -152,7 +170,7 @@ func TestReconcileRules(t *testing.T) {
 			s.EventBridgeClient = eventbridgeMock
 			s.SQSClient = sqsMock
 
-			err = s.reconcileRules()
+			err = s.reconcileRules(ctx)
 			if tc.expectErr {
 				g.Expect(err).NotTo(BeNil())
 			} else {
@@ -166,6 +184,8 @@ func TestDeleteRules(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
+	ctx := context.TODO()
+
 	testCases := []struct {
 		name              string
 		eventBridgeExpect func(m *mock_eventbridgeiface.MockEventBridgeAPIMockRecorder)
@@ -174,11 +194,11 @@ func TestDeleteRules(t *testing.T) {
 		{
 			name: "removes target and ec2 rule successfully when they both exist",
 			eventBridgeExpect: func(m *mock_eventbridgeiface.MockEventBridgeAPIMockRecorder) {
-				m.RemoveTargets(gomock.Eq(&eventbridge.RemoveTargetsInput{
+				m.RemoveTargets(ctx, gomock.Eq(&eventbridge.RemoveTargetsInput{
 					Rule: aws.String("test-cluster-ec2-rule"),
-					Ids:  aws.StringSlice([]string{"test-cluster-queue"}),
+					Ids:  []string{"test-cluster-queue"},
 				})).Return(nil, nil)
-				m.DeleteRule(gomock.Eq(&eventbridge.DeleteRuleInput{
+				m.DeleteRule(ctx, gomock.Eq(&eventbridge.DeleteRuleInput{
 					Name: aws.String("test-cluster-ec2-rule"),
 				})).Return(nil, nil)
 			},
@@ -187,9 +207,9 @@ func TestDeleteRules(t *testing.T) {
 		{
 			name: "continues to remove rule when target doesn't exist",
 			eventBridgeExpect: func(m *mock_eventbridgeiface.MockEventBridgeAPIMockRecorder) {
-				m.RemoveTargets(gomock.AssignableToTypeOf(&eventbridge.RemoveTargetsInput{})).
-					Return(nil, awserr.New(eventbridge.ErrCodeResourceNotFoundException, "", nil))
-				m.DeleteRule(gomock.Eq(&eventbridge.DeleteRuleInput{
+				m.RemoveTargets(ctx, gomock.AssignableToTypeOf(&eventbridge.RemoveTargetsInput{})).
+					Return(nil, &eventbridgetypes.ResourceNotFoundException{})
+				m.DeleteRule(ctx, gomock.Eq(&eventbridge.DeleteRuleInput{
 					Name: aws.String("test-cluster-ec2-rule"),
 				})).Return(nil, nil)
 			},
@@ -198,15 +218,15 @@ func TestDeleteRules(t *testing.T) {
 		{
 			name: "returns error when remove target fails unexpectedly",
 			eventBridgeExpect: func(m *mock_eventbridgeiface.MockEventBridgeAPIMockRecorder) {
-				m.RemoveTargets(gomock.AssignableToTypeOf(&eventbridge.RemoveTargetsInput{})).Return(nil, errors.New("some error"))
+				m.RemoveTargets(ctx, gomock.AssignableToTypeOf(&eventbridge.RemoveTargetsInput{})).Return(nil, errors.New("some error"))
 			},
 			expectErr: true,
 		},
 		{
 			name: "returns error when delete rule fails unexpectedly",
 			eventBridgeExpect: func(m *mock_eventbridgeiface.MockEventBridgeAPIMockRecorder) {
-				m.RemoveTargets(gomock.AssignableToTypeOf(&eventbridge.RemoveTargetsInput{})).Return(nil, nil)
-				m.DeleteRule(gomock.AssignableToTypeOf(&eventbridge.DeleteRuleInput{})).Return(nil, errors.New("some error"))
+				m.RemoveTargets(ctx, gomock.AssignableToTypeOf(&eventbridge.RemoveTargetsInput{})).Return(nil, nil)
+				m.DeleteRule(ctx, gomock.AssignableToTypeOf(&eventbridge.DeleteRuleInput{})).Return(nil, errors.New("some error"))
 			},
 			expectErr: true,
 		},
@@ -223,7 +243,7 @@ func TestDeleteRules(t *testing.T) {
 			s := NewService(clusterScope)
 			s.EventBridgeClient = eventbridgeMock
 
-			err = s.deleteRules()
+			err = s.deleteRules(ctx)
 			if tc.expectErr {
 				g.Expect(err).NotTo(BeNil())
 			} else {
@@ -248,6 +268,8 @@ func TestAddInstanceToRule(t *testing.T) {
 		t.Fatalf("got an unexpected error: %v", err)
 	}
 
+	ctx := context.TODO()
+
 	testCases := []struct {
 		name              string
 		eventBridgeExpect func(m *mock_eventbridgeiface.MockEventBridgeAPIMockRecorder)
@@ -257,7 +279,7 @@ func TestAddInstanceToRule(t *testing.T) {
 		{
 			name: "adds instance to event pattern when it doesn't exist",
 			eventBridgeExpect: func(m *mock_eventbridgeiface.MockEventBridgeAPIMockRecorder) {
-				m.DescribeRule(&eventbridge.DescribeRuleInput{
+				m.DescribeRule(ctx, &eventbridge.DescribeRuleInput{
 					Name: aws.String("test-cluster-ec2-rule"),
 				}).Return(&eventbridge.DescribeRuleOutput{
 					EventPattern: aws.String(string(patternData)),
@@ -268,10 +290,10 @@ func TestAddInstanceToRule(t *testing.T) {
 				if err != nil {
 					t.Fatalf("got an unexpected error: %v", err)
 				}
-				m.PutRule(&eventbridge.PutRuleInput{
+				m.PutRule(ctx, &eventbridge.PutRuleInput{
 					Name:         aws.String("test-cluster-ec2-rule"),
 					EventPattern: aws.String(string(expectedData)),
-					State:        aws.String(eventbridge.RuleStateEnabled),
+					State:        eventbridgetypes.RuleStateEnabled,
 				}).Return(nil, nil)
 			},
 			newInstanceID: "instance-b",
@@ -280,7 +302,7 @@ func TestAddInstanceToRule(t *testing.T) {
 		{
 			name: "does nothing if instance is already tracked in event pattern",
 			eventBridgeExpect: func(m *mock_eventbridgeiface.MockEventBridgeAPIMockRecorder) {
-				m.DescribeRule(&eventbridge.DescribeRuleInput{
+				m.DescribeRule(ctx, &eventbridge.DescribeRuleInput{
 					Name: aws.String("test-cluster-ec2-rule"),
 				}).Return(&eventbridge.DescribeRuleOutput{
 					EventPattern: aws.String(string(patternData)),
@@ -302,7 +324,7 @@ func TestAddInstanceToRule(t *testing.T) {
 			s := NewService(clusterScope)
 			s.EventBridgeClient = eventbridgeMock
 
-			err = s.AddInstanceToEventPattern(tc.newInstanceID)
+			err = s.AddInstanceToEventPattern(ctx, tc.newInstanceID)
 			if tc.expectErr {
 				g.Expect(err).NotTo(BeNil())
 			} else {
@@ -327,6 +349,8 @@ func TestRemoveInstanceStateFromEventPattern(t *testing.T) {
 		t.Fatalf("got an unexpected error: %v", err)
 	}
 
+	ctx := context.TODO()
+
 	testCases := []struct {
 		name              string
 		eventBridgeExpect func(m *mock_eventbridgeiface.MockEventBridgeAPIMockRecorder)
@@ -341,7 +365,7 @@ func TestRemoveInstanceStateFromEventPattern(t *testing.T) {
 				if err != nil {
 					t.Fatalf("got an unexpected error: %v", err)
 				}
-				m.DescribeRule(&eventbridge.DescribeRuleInput{
+				m.DescribeRule(ctx, &eventbridge.DescribeRuleInput{
 					Name: aws.String("test-cluster-ec2-rule"),
 				}).Return(&eventbridge.DescribeRuleOutput{
 					EventPattern: aws.String(string(patternData)),
@@ -353,10 +377,10 @@ func TestRemoveInstanceStateFromEventPattern(t *testing.T) {
 					t.Fatalf("got an unexpected error: %v", err)
 				}
 
-				m.PutRule(&eventbridge.PutRuleInput{
+				m.PutRule(ctx, &eventbridge.PutRuleInput{
 					Name:         aws.String("test-cluster-ec2-rule"),
 					EventPattern: aws.String(string(expectedData)),
-					State:        aws.String(eventbridge.RuleStateDisabled),
+					State:        eventbridgetypes.RuleStateDisabled,
 				}).Return(nil, nil)
 			},
 			instanceID: "instance-a",
@@ -364,7 +388,7 @@ func TestRemoveInstanceStateFromEventPattern(t *testing.T) {
 		{
 			name: "remove instance from instance IDs and rule remains enabled when other instances are tracked",
 			eventBridgeExpect: func(m *mock_eventbridgeiface.MockEventBridgeAPIMockRecorder) {
-				m.DescribeRule(&eventbridge.DescribeRuleInput{
+				m.DescribeRule(ctx, &eventbridge.DescribeRuleInput{
 					Name: aws.String("test-cluster-ec2-rule"),
 				}).Return(&eventbridge.DescribeRuleOutput{
 					EventPattern: aws.String(string(patternData)),
@@ -375,10 +399,10 @@ func TestRemoveInstanceStateFromEventPattern(t *testing.T) {
 				if err != nil {
 					t.Fatalf("got an unexpected error: %v", err)
 				}
-				m.PutRule(&eventbridge.PutRuleInput{
+				m.PutRule(ctx, &eventbridge.PutRuleInput{
 					Name:         aws.String("test-cluster-ec2-rule"),
 					EventPattern: aws.String(string(expectedData)),
-					State:        aws.String(eventbridge.RuleStateEnabled),
+					State:        eventbridgetypes.RuleStateEnabled,
 				}).Return(nil, nil)
 			},
 			instanceID: "instance-b",
@@ -386,7 +410,7 @@ func TestRemoveInstanceStateFromEventPattern(t *testing.T) {
 		{
 			name: "does nothing when instanceID is not tracked",
 			eventBridgeExpect: func(m *mock_eventbridgeiface.MockEventBridgeAPIMockRecorder) {
-				m.DescribeRule(&eventbridge.DescribeRuleInput{
+				m.DescribeRule(ctx, &eventbridge.DescribeRuleInput{
 					Name: aws.String("test-cluster-ec2-rule"),
 				}).Return(&eventbridge.DescribeRuleOutput{
 					EventPattern: aws.String(string(patternData)),
@@ -407,7 +431,7 @@ func TestRemoveInstanceStateFromEventPattern(t *testing.T) {
 			s := NewService(clusterScope)
 			s.EventBridgeClient = eventbridgeMock
 
-			s.RemoveInstanceFromEventPattern(tc.instanceID)
+			s.RemoveInstanceFromEventPattern(ctx, tc.instanceID)
 		})
 	}
 }

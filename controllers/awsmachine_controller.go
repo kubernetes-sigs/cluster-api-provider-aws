@@ -346,7 +346,7 @@ func (r *AWSMachineReconciler) reconcileDelete(ctx context.Context, machineScope
 
 	if feature.Gates.Enabled(feature.EventBridgeInstanceState) {
 		instancestateSvc := instancestate.NewService(ec2Scope)
-		instancestateSvc.RemoveInstanceFromEventPattern(instance.ID)
+		instancestateSvc.RemoveInstanceFromEventPattern(ctx, instance.ID)
 	}
 
 	// Check the instance state. If it's already shutting down or terminated,
@@ -558,7 +558,7 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 
 	if feature.Gates.Enabled(feature.EventBridgeInstanceState) {
 		instancestateSvc := instancestate.NewService(ec2Scope)
-		if err := instancestateSvc.AddInstanceToEventPattern(instance.ID); err != nil {
+		if err := instancestateSvc.AddInstanceToEventPattern(ctx, instance.ID); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to add instance to Event Bridge instance state rule")
 		}
 	}

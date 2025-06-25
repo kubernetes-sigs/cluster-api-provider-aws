@@ -228,7 +228,7 @@ func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope
 
 	if feature.Gates.Enabled(feature.EventBridgeInstanceState) {
 		instancestateSvc := instancestate.NewService(clusterScope)
-		if err := instancestateSvc.DeleteEC2Events(); err != nil {
+		if err := instancestateSvc.DeleteEC2Events(ctx); err != nil {
 			// Not deleting the events isn't critical to cluster deletion
 			clusterScope.Error(err, "non-fatal: failed to delete EventBridge notifications")
 		}
@@ -348,7 +348,7 @@ func (r *AWSClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 
 	if feature.Gates.Enabled(feature.EventBridgeInstanceState) {
 		instancestateSvc := instancestate.NewService(clusterScope)
-		if err := instancestateSvc.ReconcileEC2Events(); err != nil {
+		if err := instancestateSvc.ReconcileEC2Events(ctx); err != nil {
 			// non fatal error, so we continue
 			clusterScope.Error(err, "non-fatal: failed to set up EventBridge")
 		}
