@@ -36,46 +36,61 @@ func (m *MockSSMAPI) EXPECT() *MockSSMAPIMockRecorder {
 }
 
 // DeleteParameter mocks base method.
-func (m *MockSSMAPI) DeleteParameter(ctx context.Context, input *ssm.DeleteParameterInput) (*ssm.DeleteParameterOutput, error) {
+func (m *MockSSMAPI) DeleteParameter(ctx context.Context, input *ssm.DeleteParameterInput, optFns ...func(*ssm.Options)) (*ssm.DeleteParameterOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteParameter", ctx, input)
+	varargs := []interface{}{ctx, input}
+	for _, a := range optFns {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteParameter", varargs...)
 	ret0, _ := ret[0].(*ssm.DeleteParameterOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DeleteParameter indicates an expected call of DeleteParameter.
-func (mr *MockSSMAPIMockRecorder) DeleteParameter(ctx, input interface{}) *gomock.Call {
+func (mr *MockSSMAPIMockRecorder) DeleteParameter(ctx, input interface{}, optFns ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteParameter", reflect.TypeOf((*MockSSMAPI)(nil).DeleteParameter), ctx, input)
+	varargs := append([]interface{}{ctx, input}, optFns...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteParameter", reflect.TypeOf((*MockSSMAPI)(nil).DeleteParameter), varargs...)
 }
 
 // GetParameter mocks base method.
-func (m *MockSSMAPI) GetParameter(ctx context.Context, input *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
+func (m *MockSSMAPI) GetParameter(ctx context.Context, input *ssm.GetParameterInput, optFns ...func(*ssm.Options)) (*ssm.GetParameterOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetParameter", ctx, input)
+	varargs := []interface{}{ctx, input}
+	for _, a := range optFns {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetParameter", varargs...)
 	ret0, _ := ret[0].(*ssm.GetParameterOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetParameter indicates an expected call of GetParameter.
-func (mr *MockSSMAPIMockRecorder) GetParameter(ctx, input interface{}) *gomock.Call {
+func (mr *MockSSMAPIMockRecorder) GetParameter(ctx, input interface{}, optFns ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetParameter", reflect.TypeOf((*MockSSMAPI)(nil).GetParameter), ctx, input)
+	varargs := append([]interface{}{ctx, input}, optFns...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetParameter", reflect.TypeOf((*MockSSMAPI)(nil).GetParameter), varargs...)
 }
 
 // PutParameter mocks base method.
-func (m *MockSSMAPI) PutParameter(ctx context.Context, input *ssm.PutParameterInput) (*ssm.PutParameterOutput, error) {
+func (m *MockSSMAPI) PutParameter(ctx context.Context, input *ssm.PutParameterInput, optFns ...func(*ssm.Options)) (*ssm.PutParameterOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PutParameter", ctx, input)
+	varargs := []interface{}{ctx, input}
+	for _, a := range optFns {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "PutParameter", varargs...)
 	ret0, _ := ret[0].(*ssm.PutParameterOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // PutParameter indicates an expected call of PutParameter.
-func (mr *MockSSMAPIMockRecorder) PutParameter(ctx, input interface{}) *gomock.Call {
+func (mr *MockSSMAPIMockRecorder) PutParameter(ctx, input interface{}, optFns ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutParameter", reflect.TypeOf((*MockSSMAPI)(nil).PutParameter), ctx, input)
+	varargs := append([]interface{}{ctx, input}, optFns...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutParameter", reflect.TypeOf((*MockSSMAPI)(nil).PutParameter), varargs...)
 }

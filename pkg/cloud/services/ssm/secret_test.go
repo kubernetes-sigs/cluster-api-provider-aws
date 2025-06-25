@@ -145,7 +145,7 @@ func TestServiceCreate(t *testing.T) {
 			expectedPrefix: "/prefix",
 			expect: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
 				m.PutParameter(context.TODO(), gomock.AssignableToTypeOf(&ssm.PutParameterInput{})).MinTimes(1).Return(&ssm.PutParameterOutput{}, nil).Do(
-					func(ctx context.Context, putParameterInput *ssm.PutParameterInput) {
+					func(ctx context.Context, putParameterInput *ssm.PutParameterInput, optFns ...func(*ssm.Options)) {
 						if !strings.HasPrefix(*(putParameterInput.Name), "/prefix/") {
 							t.Fatalf("Prefix is not as expected: %v", putParameterInput.Name)
 						}
@@ -181,7 +181,7 @@ func TestServiceCreate(t *testing.T) {
 				m.PutParameter(context.TODO(), gomock.AssignableToTypeOf(&ssm.PutParameterInput{})).Return(nil, &mockAPIError{
 					"ParameterAlreadyExists",
 					"parameter already exists"}).Do(
-					func(ctx context.Context, putParameterInput *ssm.PutParameterInput) {
+					func(ctx context.Context, putParameterInput *ssm.PutParameterInput, optFns ...func(*ssm.Options)) {
 						if !strings.HasPrefix(*(putParameterInput.Name), "/prefix/") {
 							t.Fatalf("Prefix is not as expected: %v", putParameterInput.Name)
 						}
