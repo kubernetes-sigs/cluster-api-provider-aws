@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/uuid"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
@@ -53,17 +54,19 @@ var (
 )
 
 func isErrorRetryable(err error, retryableCodes []string) bool {
-	var apiErr smithy.APIError
-	// 1. Get the actual error object from the SDK call
-	if errors.As(err, &apiErr) {
-		// 2. Extract the error code string from the object
-		codeToCheck := apiErr.ErrorCode()
+	// Use the ParseSmithyError utility to parse the error
+	smithyErr := awserrors.ParseSmithyError(err)
+	if smithyErr == nil {
+		return false
+	}
 
-		// 3. Compare the extracted string with your list
-		for _, code := range retryableCodes {
-			if codeToCheck == code {
-				return true // It's a match!
-			}
+	// Get the error code from the parsed error
+	codeToCheck := smithyErr.ErrorCode()
+
+	// Compare the extracted string with your list
+	for _, code := range retryableCodes {
+		if codeToCheck == code {
+			return true // It's a match!
 		}
 	}
 	return false
