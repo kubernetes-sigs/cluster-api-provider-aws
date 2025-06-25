@@ -367,32 +367,6 @@ func newCluster(name string) *clusterv1.Cluster {
 	return cluster
 }
 
-// newClusterWithoutControlPlaneInitialized returns a CAPI cluster object without setting ControlPlaneInitializedCondition.
-func newClusterWithoutControlPlaneInitialized(name string) *clusterv1.Cluster {
-	cluster := &clusterv1.Cluster{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Cluster",
-			APIVersion: clusterv1.GroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "default",
-			Name:      name,
-		},
-		Spec: clusterv1.ClusterSpec{
-			ControlPlaneRef: &corev1.ObjectReference{
-				Name:      name,
-				Kind:      "AWSManagedControlPlane",
-				Namespace: "default",
-			},
-		},
-		Status: clusterv1.ClusterStatus{
-			InfrastructureReady: true,
-		},
-	}
-	// Don't set ControlPlaneInitializedCondition
-	return cluster
-}
-
 func dump(desc string, o interface{}) string {
 	dat, _ := yaml.Marshal(o)
 	return fmt.Sprintf("%s:\n%s", desc, string(dat))
