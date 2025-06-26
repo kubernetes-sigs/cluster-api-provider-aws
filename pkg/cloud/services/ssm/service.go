@@ -18,7 +18,6 @@ package ssm
 
 import (
 	"context"
-	"errors"
 
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 
@@ -42,40 +41,13 @@ type SSMAPI interface {
 	// Add more methods as needed
 }
 
-// SSMClientV2 is a concrete implementation of the SSMAPI interface using AWS SDK v2.
-// It wraps PutParameter for potential custom logic while using the AWS SDK directly for other methods.
-type SSMClientV2 struct {
-	Client *ssm.Client
-}
-
-// PutParameter adds or overwrites a parameter in AWS SSM Parameter Store.
-// This method is wrapped to allow for custom error handling or retry logic if needed.
-func (c *SSMClientV2) PutParameter(ctx context.Context, input *ssm.PutParameterInput, optFns ...func(*ssm.Options)) (*ssm.PutParameterOutput, error) {
-	if c.Client == nil {
-		return nil, errors.New("SSM client is not initialized")
-	}
-	return c.Client.PutParameter(ctx, input, optFns...)
-}
-
-// DeleteParameter deletes a parameter from AWS SSM Parameter Store.
-func (c *SSMClientV2) DeleteParameter(ctx context.Context, input *ssm.DeleteParameterInput, optFns ...func(*ssm.Options)) (*ssm.DeleteParameterOutput, error) {
-	return c.Client.DeleteParameter(ctx, input, optFns...)
-}
-
-// GetParameter retrieves a parameter from AWS SSM Parameter Store.
-func (c *SSMClientV2) GetParameter(ctx context.Context, input *ssm.GetParameterInput, optFns ...func(*ssm.Options)) (*ssm.GetParameterOutput, error) {
-	return c.Client.GetParameter(ctx, input, optFns...)
-}
-
-// Ensure SSMClientV2 satisfies the SSMAPI interface.
-var _ SSMAPI = &SSMClientV2{}
+// Ensure ssm.Client satisfies the SSMAPI interface.
+var _ SSMAPI = &ssm.Client{}
 
 // NewService creates a new Service for managing secrets in AWS SSM.
 func NewService(secretsScope cloud.ClusterScoper) *Service {
 	return &Service{
-		scope: secretsScope,
-		SSMClient: &SSMClientV2{
-			Client: scope.NewSSMClient(secretsScope, secretsScope, secretsScope, secretsScope.InfraCluster()),
-		},
+		scope:     secretsScope,
+		SSMClient: scope.NewSSMClient(secretsScope, secretsScope, secretsScope, secretsScope.InfraCluster()),
 	}
 }

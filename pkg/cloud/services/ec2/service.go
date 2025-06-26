@@ -40,11 +40,9 @@ type Service struct {
 // NewService returns a new service given the ec2 api client.
 func NewService(clusterScope scope.EC2Scope) *Service {
 	return &Service{
-		scope:     clusterScope,
-		EC2Client: scope.NewEC2Client(clusterScope, clusterScope, clusterScope, clusterScope.InfraCluster()),
-		SSMClient: &ssm.SSMClientV2{
-			Client: scope.NewSSMClient(clusterScope, clusterScope, clusterScope, clusterScope.InfraCluster()),
-		},
+		scope:      clusterScope,
+		EC2Client:  scope.NewEC2Client(clusterScope, clusterScope, clusterScope, clusterScope.InfraCluster()),
+		SSMClient:  scope.NewSSMClient(clusterScope, clusterScope, clusterScope, clusterScope.InfraCluster()),
 		netService: network.NewService(clusterScope.(scope.NetworkScope)),
 	}
 }
