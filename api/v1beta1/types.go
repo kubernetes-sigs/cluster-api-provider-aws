@@ -51,7 +51,7 @@ type AMIReference struct {
 	ID *string `json:"id,omitempty"`
 
 	// EKSOptimizedLookupType If specified, will look up an EKS Optimized image in SSM Parameter store
-	// +kubebuilder:validation:Enum:=AmazonLinux;AmazonLinuxGPU;AmazonLinux2023;AmazonLinux2023GPU
+	// +kubebuilder:validation:Enum:=AmazonLinux;AmazonLinuxGPU
 	// +optional
 	EKSOptimizedLookupType *EKSAMILookupType `json:"eksLookupType,omitempty"`
 }
