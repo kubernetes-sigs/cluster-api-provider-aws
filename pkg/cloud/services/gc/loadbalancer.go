@@ -80,7 +80,6 @@ func (s *Service) deleteTargetGroups(ctx context.Context, resources []*AWSResour
 }
 
 func (s *Service) isELBResourceToDelete(resource *AWSResource, resourceName string) bool {
-	// Need to update this to use the v2 service name if it's different
 	if !s.isMatchingResource(resource, "elasticloadbalancing", resourceName) {
 		return false
 	}
@@ -135,9 +134,8 @@ func (s *Service) deleteTargetGroup(ctx context.Context, targetGroupARN string) 
 // describeLoadBalancers gets all elastic LBs.
 func (s *Service) describeLoadBalancers(ctx context.Context) ([]string, error) {
 	var names []string
-	// AWS SDK v2 does not have PagesWithContext, need to use paginator
-	paginator := elasticloadbalancing.NewDescribeLoadBalancersPaginator(s.elbClient, &elasticloadbalancing.DescribeLoadBalancersInput{})
 
+	paginator := elasticloadbalancing.NewDescribeLoadBalancersPaginator(s.elbClient, &elasticloadbalancing.DescribeLoadBalancersInput{})
 	for paginator.HasMorePages() {
 		output, err := paginator.NextPage(ctx)
 		if err != nil {
