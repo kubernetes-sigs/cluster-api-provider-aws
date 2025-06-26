@@ -361,7 +361,9 @@ func getUserAgentHandler() request.NamedHandler {
 type AWSClients struct {
 	ASG               autoscaling.Client
 	EC2               ec2iface.EC2API
+	EC2V2             *ec2v2.Client
 	ELB               elbiface.ELBAPI
+	ELBV2             *elbv2.ELBV2
 	SecretsManager    secretsmanageriface.SecretsManagerAPI
 	ResourceTagging   resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
 	ResourceTaggingV2 *resourcegroupstaggingapiv2.Client

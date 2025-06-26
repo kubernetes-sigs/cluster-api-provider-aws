@@ -330,7 +330,7 @@ func TestReconcileDelete(t *testing.T) {
 								ResourceARN: aws.String("arn:aws:elasticloadbalancing:eu-west-2:1234567890:loadbalancer/net/aec24434cd2ce4630bd14a955413ee37"),
 								Tags: []rgapit.Tag{
 									{
-										Key:   aws.String("kubernetes.io/cluster/eks-test-cluster"),
+										Key:   aws.String("kubernetes.io/cluster/cluster1"),
 										Value: aws.String("owned"),
 									},
 									{
