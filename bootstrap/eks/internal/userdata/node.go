@@ -23,7 +23,8 @@ import (
 	"text/template"
 
 	"github.com/alessio/shellescape"
-
+	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 )
@@ -50,10 +51,32 @@ runcmd:
 {{- template "mounts" .Mounts}}
 `
 
-	// Multipart MIME template for AL2023.
-	al2023UserDataTemplate = `MIME-Version: 1.0
+	// Common MIME header and boundary template
+	mimeHeaderTemplate = `MIME-Version: 1.0
 Content-Type: multipart/mixed; boundary="{{.Boundary}}"
 
+`
+
+	// Shell script part template for AL2023
+	shellScriptPartTemplate = `--{{.Boundary}}
+Content-Type: text/x-shellscript; charset="us-ascii"
+
+#!/bin/bash
+set -o errexit
+set -o pipefail
+set -o nounset
+{{- if or .PreBootstrapCommands .PostBootstrapCommands }}
+
+{{- range .PreBootstrapCommands}}
+{{.}}
+{{- end}}
+{{- range .PostBootstrapCommands}}
+{{.}}
+{{- end}}
+{{- end}}`
+
+	// Node config part template for AL2023
+	nodeConfigPartTemplate = `
 --{{.Boundary}}
 Content-Type: application/node.eks.aws
 
@@ -62,26 +85,24 @@ apiVersion: node.eks.aws/v1alpha1
 kind: NodeConfig
 spec:
   cluster:
+    name: {{.ClusterName}}
     apiServerEndpoint: {{.APIServerEndpoint}}
     certificateAuthority: {{.CACert}}
-    cidr: 10.96.0.0/12
-    name: {{.ClusterName}}
+    cidr: {{if .ClusterCIDR}}{{.ClusterCIDR}}{{else}}10.96.0.0/12{{end}}
   kubelet:
     config:
       maxPods: {{.MaxPods}}
       clusterDNS:
-      - {{.ClusterDNS}}
+      - {{.DNSClusterIP}}
     flags:
-    - "--node-labels=eks.amazonaws.com/nodegroup-image={{.AMIImageID}},eks.amazonaws.com/capacityType={{.CapacityType}},eks.amazonaws.com/nodegroup={{.NodeGroupName}}"{{.PreCommands}}{{.PostCommands}}{{template "al2023KubeletExtraArgs" .KubeletExtraArgs}}{{template "al2023ContainerRuntime" .ContainerRuntime}}{{template "al2023DockerConfig" .DockerConfigJSONEscaped}}{{template "al2023APIRetryAttempts" .APIRetryAttempts}}{{template "al2023PauseContainer" .PauseContainerInfo}}{{template "al2023Files" .Files}}{{template "al2023DiskSetup" .DiskSetup}}{{template "al2023Mounts" .Mounts}}{{template "al2023Users" .Users}}{{template "al2023NTP" .NTP}}
+    - "--node-labels={{if and .KubeletExtraArgs (index .KubeletExtraArgs "node-labels")}}{{index .KubeletExtraArgs "node-labels"}}{{else}}eks.amazonaws.com/nodegroup-image={{if .AMIImageID}}{{.AMIImageID}}{{end}},eks.amazonaws.com/capacityType={{if .CapacityType}}{{.CapacityType}}{{else}}ON_DEMAND{{end}},eks.amazonaws.com/nodegroup={{.NodeGroupName}}{{end}}"
 
 --{{.Boundary}}--`
 
 	// AL2023-specific templates.
 	al2023KubeletExtraArgsTemplate = `{{- define "al2023KubeletExtraArgs" -}}
-{{- if . -}}
-{{- range $k, $v := . -}}
-    - "--{{$k}}={{$v}}"
-{{- end -}}
+{{- if . }}
+    - "--node-labels={{range $k, $v := .}}{{$k}}={{$v}}{{end}}"
 {{- end -}}
 {{- end -}}`
 
@@ -177,7 +198,12 @@ spec:
 {{- end -}}`
 )
 
-// NodeInput defines the context to generate a node user data.
+// NodeUserData is responsible for generating userdata for EKS nodes.
+type NodeUserData struct {
+	input *NodeInput
+}
+
+// NodeInput contains all the information required to generate user data for a node.
 type NodeInput struct {
 	ClusterName           string
 	KubeletExtraArgs      map[string]string
@@ -210,6 +236,10 @@ type NodeInput struct {
 	NodeGroupName     string
 	AMIImageID        string
 	CapacityType      *v1beta2.ManagedMachinePoolCapacityType
+	MaxPods           *int32
+	Boundary          string
+	ClusterDNS        string
+	ClusterCIDR       string // CIDR range for the cluster
 }
 
 // PauseContainerInfo holds pause container information for templates.
@@ -302,129 +332,85 @@ func generateStandardUserData(input *NodeInput) ([]byte, error) {
 
 // generateAL2023UserData generates userdata for Amazon Linux 2023 nodes.
 func generateAL2023UserData(input *NodeInput) ([]byte, error) {
-	// Validate required AL2023 fields
+	if err := validateAL2023Input(input); err != nil {
+		return nil, err
+	}
+
+	var buf bytes.Buffer
+
+	// Write MIME header
+	if _, err := buf.WriteString(fmt.Sprintf("MIME-Version: 1.0\nContent-Type: multipart/mixed; boundary=\"%s\"\n\n", input.Boundary)); err != nil {
+		return nil, fmt.Errorf("failed to write MIME header: %v", err)
+	}
+
+	// Write shell script part if needed
+	if len(input.PreBootstrapCommands) > 0 || len(input.PostBootstrapCommands) > 0 {
+		shellScriptTemplate := template.Must(template.New("shell").Parse(shellScriptPartTemplate))
+		if err := shellScriptTemplate.Execute(&buf, input); err != nil {
+			return nil, fmt.Errorf("failed to execute shell script template: %v", err)
+		}
+		if _, err := buf.WriteString("\n"); err != nil {
+			return nil, fmt.Errorf("failed to write newline: %v", err)
+		}
+	}
+
+	// Write node config part
+	nodeConfigTemplate := template.Must(template.New("node").Parse(nodeConfigPartTemplate))
+	if err := nodeConfigTemplate.Execute(&buf, input); err != nil {
+		return nil, fmt.Errorf("failed to execute node config template: %v", err)
+	}
+
+	return buf.Bytes(), nil
+}
+
+// getCapacityTypeString returns the string representation of the capacity type
+func (ni *NodeInput) getCapacityTypeString() string {
+	if ni.CapacityType == nil {
+		return "ON_DEMAND"
+	}
+	switch *ni.CapacityType {
+	case v1beta2.ManagedMachinePoolCapacityTypeSpot:
+		return "SPOT"
+	case v1beta2.ManagedMachinePoolCapacityTypeOnDemand:
+		return "ON_DEMAND"
+	default:
+		return strings.ToUpper(string(*ni.CapacityType))
+	}
+}
+
+// validateAL2023Input validates the input for AL2023 user data generation
+func validateAL2023Input(input *NodeInput) error {
 	if input.APIServerEndpoint == "" {
-		return nil, fmt.Errorf("API server endpoint is required for AL2023")
+		return fmt.Errorf("API server endpoint is required for AL2023")
 	}
 	if input.CACert == "" {
-		return nil, fmt.Errorf("CA certificate is required for AL2023")
+		return fmt.Errorf("CA certificate is required for AL2023")
 	}
 	if input.ClusterName == "" {
-		return nil, fmt.Errorf("cluster name is required for AL2023")
+		return fmt.Errorf("cluster name is required for AL2023")
 	}
 	if input.NodeGroupName == "" {
-		return nil, fmt.Errorf("node group name is required for AL2023")
+		return fmt.Errorf("node group name is required for AL2023")
 	}
 
-	// Calculate maxPods based on UseMaxPods setting
-	maxPods := 110 // Default when UseMaxPods is false
-	if input.UseMaxPods != nil && *input.UseMaxPods {
-		maxPods = 58 // Default when UseMaxPods is true
-	}
-
-	// Get cluster DNS
-	clusterDNS := "10.96.0.10" // Default value
-	if input.DNSClusterIP != nil && *input.DNSClusterIP != "" {
-		clusterDNS = *input.DNSClusterIP
-	}
-
-	// Get capacity type as string
-	capacityType := "ON_DEMAND" // Default value
-	if input.CapacityType != nil {
-		switch *input.CapacityType {
-		case v1beta2.ManagedMachinePoolCapacityTypeSpot:
-			capacityType = "SPOT"
-		case v1beta2.ManagedMachinePoolCapacityTypeOnDemand:
-			capacityType = "ON_DEMAND"
-		default:
-			capacityType = strings.ToUpper(string(*input.CapacityType))
+	if input.MaxPods == nil {
+		if input.UseMaxPods != nil && *input.UseMaxPods {
+			input.MaxPods = ptr.To[int32](58)
+		} else {
+			input.MaxPods = ptr.To[int32](110)
 		}
 	}
+	if input.DNSClusterIP == nil {
+		input.DNSClusterIP = ptr.To[string]("10.96.0.10")
+	}
+	input.ClusterDNS = *input.DNSClusterIP
 
-	// Get AMI ID - use empty string if not specified
-	amiID := ""
-	if input.AMIImageID != "" {
-		amiID = input.AMIImageID
+	if input.Boundary == "" {
+		input.Boundary = boundary
 	}
 
-	// Debug logging
-	fmt.Printf("DEBUG: AL2023 Userdata Generation - maxPods: %d, clusterDNS: %s, amiID: %s, capacityType: %s\n",
-		maxPods, clusterDNS, amiID, capacityType)
+	klog.V(2).Infof("AL2023 Userdata Generation - maxPods: %d, clusterDNS: %s, amiID: %s, capacityType: %s",
+		*input.MaxPods, *input.DNSClusterIP, input.AMIImageID, input.getCapacityTypeString())
 
-	// Generate pre/post commands sections
-	preCommands := ""
-	if len(input.PreBootstrapCommands) > 0 {
-		preCommands = "\n  preKubeadmCommands:"
-		for _, cmd := range input.PreBootstrapCommands {
-			preCommands += fmt.Sprintf("\n  - %s", cmd)
-		}
-	}
-
-	postCommands := ""
-	if len(input.PostBootstrapCommands) > 0 {
-		postCommands = "\n  postKubeadmCommands:"
-		for _, cmd := range input.PostBootstrapCommands {
-			postCommands += fmt.Sprintf("\n  - %s", cmd)
-		}
-	}
-
-	// Create template with all AL2023 templates
-	tm := template.New("AL2023Node").Funcs(defaultTemplateFuncMap)
-
-	// Parse all AL2023-specific templates
-	templates := []string{
-		al2023KubeletExtraArgsTemplate,
-		al2023ContainerRuntimeTemplate,
-		al2023DockerConfigTemplate,
-		al2023APIRetryAttemptsTemplate,
-		al2023PauseContainerTemplate,
-		al2023FilesTemplate,
-		al2023DiskSetupTemplate,
-		al2023MountsTemplate,
-		al2023UsersTemplate,
-		al2023NTPTemplate,
-	}
-
-	for _, tpl := range templates {
-		if _, err := tm.Parse(tpl); err != nil {
-			return nil, fmt.Errorf("failed to parse AL2023 template: %w", err)
-		}
-	}
-
-	// Parse the main AL2023 template
-	t, err := tm.Parse(al2023UserDataTemplate)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse AL2023 userdata template: %w", err)
-	}
-
-	// Create template data with all fields
-	templateData := struct {
-		*NodeInput
-		Boundary           string
-		MaxPods            int
-		ClusterDNS         string
-		CapacityType       string
-		AMIImageID         string
-		PreCommands        string
-		PostCommands       string
-		PauseContainerInfo PauseContainerInfo
-	}{
-		NodeInput:          input,
-		Boundary:           boundary,
-		MaxPods:            maxPods,
-		ClusterDNS:         clusterDNS,
-		CapacityType:       capacityType,
-		AMIImageID:         amiID,
-		PreCommands:        preCommands,
-		PostCommands:       postCommands,
-		PauseContainerInfo: PauseContainerInfo{AccountNumber: input.PauseContainerAccount, Version: input.PauseContainerVersion},
-	}
-
-	// Execute template
-	var out bytes.Buffer
-	if err := t.Execute(&out, templateData); err != nil {
-		return nil, fmt.Errorf("failed to generate AL2023 userdata: %w", err)
-	}
-
-	return out.Bytes(), nil
+	return nil
 }

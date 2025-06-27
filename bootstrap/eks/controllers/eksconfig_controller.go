@@ -287,6 +287,7 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 		DiskSetup:                config.Spec.DiskSetup,
 		Mounts:                   config.Spec.Mounts,
 		Files:                    files,
+		ClusterCIDR:              controlPlane.Spec.NetworkSpec.VPC.CidrBlock,
 	}
 
 	if config.Spec.PauseContainer != nil {
