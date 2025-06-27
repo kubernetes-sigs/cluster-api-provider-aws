@@ -2546,7 +2546,10 @@ func TestReconcileV2LB(t *testing.T) {
 				scope:       clusterScope,
 				ELBV2Client: elbV2APIMocks,
 			}
-			err = s.reconcileV2LB(clusterScope.ControlPlaneLoadBalancer())
+			reconciler, err := s.getOrCreateV2LB(clusterScope.ControlPlaneLoadBalancer())
+			if err == nil {
+				err = reconciler()
+			}
 			lb := s.scope.Network().APIServerELB
 
 			tc.check(t, &lb, err)
