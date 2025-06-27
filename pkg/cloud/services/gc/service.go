@@ -20,11 +20,7 @@ package gc
 import (
 	"context"
 
-	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
-	"github.com/aws/aws-sdk-go/service/elb/elbiface"
-	"github.com/aws/aws-sdk-go/service/elbv2/elbv2iface"
-	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
@@ -33,10 +29,10 @@ import (
 // Service is used to perform operations against a tenant/workload/child cluster.
 type Service struct {
 	scope                 cloud.ClusterScoper
-	elbClient             elbiface.ELBAPI
-	elbv2Client           elbv2iface.ELBV2API
-	resourceTaggingClient resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
-	ec2Client             ec2iface.EC2API
+	elbClient             scope.ELBAPI
+	elbv2Client           scope.ELBV2API
+	resourceTaggingClient scope.ResourceGroupsTaggingAPIAPI
+	ec2Client             scope.EC2API
 	cleanupFuncs          ResourceCleanupFuncs
 	collectFuncs          ResourceCollectFuncs
 }
@@ -45,10 +41,10 @@ type Service struct {
 func NewService(clusterScope cloud.ClusterScoper, opts ...ServiceOption) *Service {
 	svc := &Service{
 		scope:                 clusterScope,
-		elbClient:             scope.NewELBClient(clusterScope, clusterScope, clusterScope, clusterScope.InfraCluster()),
-		elbv2Client:           scope.NewELBv2Client(clusterScope, clusterScope, clusterScope, clusterScope.InfraCluster()),
-		resourceTaggingClient: scope.NewResourgeTaggingClient(clusterScope, clusterScope, clusterScope, clusterScope.InfraCluster()),
-		ec2Client:             scope.NewEC2Client(clusterScope, clusterScope, clusterScope, clusterScope.InfraCluster()),
+		elbClient:             scope.NewELBClientV2(clusterScope, clusterScope, clusterScope, clusterScope.InfraCluster()),
+		elbv2Client:           scope.NewELBV2ClientV2(clusterScope, clusterScope, clusterScope, clusterScope.InfraCluster()),
+		resourceTaggingClient: scope.NewResourceTaggingClientV2(clusterScope, clusterScope, clusterScope, clusterScope.InfraCluster()),
+		ec2Client:             scope.NewEC2ClientV2(clusterScope, clusterScope, clusterScope, clusterScope.InfraCluster()),
 		cleanupFuncs:          ResourceCleanupFuncs{},
 		collectFuncs:          ResourceCollectFuncs{},
 	}
