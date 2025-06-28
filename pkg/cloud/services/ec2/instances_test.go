@@ -5720,7 +5720,7 @@ func TestCreateInstance(t *testing.T) {
 			s := NewService(clusterScope)
 			s.EC2Client = ec2Mock
 
-			instance, err := s.CreateInstance(machineScope, data, "")
+			instance, err := s.CreateInstance(context.TODO(), machineScope, data, "")
 			tc.check(instance, err)
 		})
 	}

@@ -737,7 +737,7 @@ func (r *AWSMachineReconciler) createInstance(ctx context.Context, ec2svc servic
 		return nil, errors.Wrapf(userDataErr, "failed to resolve userdata")
 	}
 
-	instance, err := ec2svc.CreateInstance(machineScope, userData, userDataFormat)
+	instance, err := ec2svc.CreateInstance(ctx, machineScope, userData, userDataFormat)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create AWSMachine instance")
 	}
