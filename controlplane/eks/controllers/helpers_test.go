@@ -85,35 +85,37 @@ func getManagedClusterObjects(name, namespace string) (clusterv1.Cluster, infrav
 		},
 		Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
 			EKSClusterName: name,
-			Region:         "us-east-1",
-			NetworkSpec: infrav1.NetworkSpec{
-				VPC: infrav1.VPCSpec{
-					ID:        "vpc-exists",
-					CidrBlock: "10.0.0.0/8",
+			AWSManagedControlPlaneClassSpec: ekscontrolplanev1.AWSManagedControlPlaneClassSpec{
+				Region: "us-east-1",
+				NetworkSpec: infrav1.NetworkSpec{
+					VPC: infrav1.VPCSpec{
+						ID:        "vpc-exists",
+						CidrBlock: "10.0.0.0/8",
+					},
+					Subnets: infrav1.Subnets{
+						{
+							ID:               "subnet-1",
+							AvailabilityZone: "us-east-1a",
+							CidrBlock:        "10.0.10.0/24",
+							IsPublic:         false,
+						},
+						{
+							ID:               "subnet-2",
+							AvailabilityZone: "us-east-1b",
+							CidrBlock:        "10.0.11.0/24",
+							IsPublic:         true,
+						},
+						{
+							ID:               "subnet-3",
+							AvailabilityZone: "us-east-1c",
+							CidrBlock:        "10.0.12.0/24",
+							IsPublic:         true,
+						},
+					},
+					SecurityGroupOverrides: map[infrav1.SecurityGroupRole]string{},
 				},
-				Subnets: infrav1.Subnets{
-					{
-						ID:               "subnet-1",
-						AvailabilityZone: "us-east-1a",
-						CidrBlock:        "10.0.10.0/24",
-						IsPublic:         false,
-					},
-					{
-						ID:               "subnet-2",
-						AvailabilityZone: "us-east-1b",
-						CidrBlock:        "10.0.11.0/24",
-						IsPublic:         true,
-					},
-					{
-						ID:               "subnet-3",
-						AvailabilityZone: "us-east-1c",
-						CidrBlock:        "10.0.12.0/24",
-						IsPublic:         true,
-					},
-				},
-				SecurityGroupOverrides: map[infrav1.SecurityGroupRole]string{},
+				Bastion: infrav1.Bastion{Enabled: true},
 			},
-			Bastion: infrav1.Bastion{Enabled: true},
 		},
 	}
 	return cluster, awsManagedCluster, awsManagedControlPlane
