@@ -13,7 +13,10 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.11
 	github.com/aws/aws-sdk-go-v2/service/autoscaling v1.52.4
 	github.com/aws/aws-sdk-go-v2/service/eks v1.64.0
+	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing v1.29.6
+	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.34.0
 	github.com/aws/aws-sdk-go-v2/service/iam v1.32.0
+	github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi v1.26.6
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.53.1
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.59.1
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.6

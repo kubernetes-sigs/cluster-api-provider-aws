@@ -316,6 +316,7 @@ func setupReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsServi
 			Endpoints:                    awsServiceEndpoints,
 			WatchFilterValue:             watchFilterValue,
 			TagUnmanagedNetworkResources: feature.Gates.Enabled(feature.TagUnmanagedNetworkResources),
+			MaxWaitActiveUpdateDelete:    maxWaitActiveUpdateDelete,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsMachineConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "AWSMachine")
 			os.Exit(1)
@@ -330,6 +331,7 @@ func setupReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsServi
 			ExternalResourceGC:           externalResourceGC,
 			AlternativeGCStrategy:        alternativeGCStrategy,
 			TagUnmanagedNetworkResources: feature.Gates.Enabled(feature.TagUnmanagedNetworkResources),
+			MaxWaitActiveUpdateDelete:    maxWaitActiveUpdateDelete,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "AWSCluster")
 			os.Exit(1)

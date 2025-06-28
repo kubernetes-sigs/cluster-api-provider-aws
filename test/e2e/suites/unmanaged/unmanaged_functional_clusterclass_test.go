@@ -171,7 +171,7 @@ var _ = ginkgo.Context("[unmanaged] [functional] [ClusterClass]", func() {
 			shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
 			if !e2eCtx.Settings.SkipCleanup {
 				ginkgo.By("Deleting the management cluster infrastructure")
-				mgmtClusterInfra.DeleteInfrastructure()
+				mgmtClusterInfra.DeleteInfrastructure(ctx)
 			}
 		})
 
