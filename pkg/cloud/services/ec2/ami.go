@@ -25,10 +25,10 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
-	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
 
@@ -318,7 +318,7 @@ func (s *Service) defaultBastionAMILookup() (string, error) {
 	return *latestImage.ImageId, nil
 }
 
-func (s *Service) eksAMILookup(kubernetesVersion string, architecture string, amiType *infrav1.EKSAMILookupType) (string, error) {
+func (s *Service) eksAMILookup(ctx context.Context, kubernetesVersion string, architecture string, amiType *infrav1.EKSAMILookupType) (string, error) {
 	// format ssm parameter path properly
 	formattedVersion, err := formatVersionForEKS(kubernetesVersion)
 	if err != nil {
@@ -359,7 +359,7 @@ func (s *Service) eksAMILookup(kubernetesVersion string, architecture string, am
 		Name: aws.String(paramName),
 	}
 
-	out, err := s.SSMClient.GetParameter(input)
+	out, err := s.SSMClient.GetParameter(ctx, input)
 	if err != nil {
 		record.Eventf(s.scope.InfraCluster(), "FailedGetParameter", "Failed to get ami SSM parameter %q: %v", paramName, err)
 

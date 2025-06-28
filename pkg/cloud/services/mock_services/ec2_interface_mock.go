@@ -21,6 +21,7 @@ limitations under the License.
 package mock_services
 
 import (
+	context "context"
 	reflect "reflect"
 
 	ec2 "github.com/aws/aws-sdk-go/service/ec2"
@@ -55,18 +56,18 @@ func (m *MockEC2Interface) EXPECT() *MockEC2InterfaceMockRecorder {
 }
 
 // CreateInstance mocks base method.
-func (m *MockEC2Interface) CreateInstance(arg0 *scope.MachineScope, arg1 []byte, arg2 string) (*v1beta2.Instance, error) {
+func (m *MockEC2Interface) CreateInstance(arg0 context.Context, arg1 *scope.MachineScope, arg2 []byte, arg3 string) (*v1beta2.Instance, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateInstance", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "CreateInstance", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(*v1beta2.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateInstance indicates an expected call of CreateInstance.
-func (mr *MockEC2InterfaceMockRecorder) CreateInstance(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockEC2InterfaceMockRecorder) CreateInstance(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateInstance", reflect.TypeOf((*MockEC2Interface)(nil).CreateInstance), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateInstance", reflect.TypeOf((*MockEC2Interface)(nil).CreateInstance), arg0, arg1, arg2, arg3)
 }
 
 // CreateLaunchTemplate mocks base method.
@@ -141,18 +142,18 @@ func (mr *MockEC2InterfaceMockRecorder) DetachSecurityGroupsFromNetworkInterface
 }
 
 // DiscoverLaunchTemplateAMI mocks base method.
-func (m *MockEC2Interface) DiscoverLaunchTemplateAMI(arg0 scope.LaunchTemplateScope) (*string, error) {
+func (m *MockEC2Interface) DiscoverLaunchTemplateAMI(arg0 context.Context, arg1 scope.LaunchTemplateScope) (*string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DiscoverLaunchTemplateAMI", arg0)
+	ret := m.ctrl.Call(m, "DiscoverLaunchTemplateAMI", arg0, arg1)
 	ret0, _ := ret[0].(*string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DiscoverLaunchTemplateAMI indicates an expected call of DiscoverLaunchTemplateAMI.
-func (mr *MockEC2InterfaceMockRecorder) DiscoverLaunchTemplateAMI(arg0 interface{}) *gomock.Call {
+func (mr *MockEC2InterfaceMockRecorder) DiscoverLaunchTemplateAMI(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DiscoverLaunchTemplateAMI", reflect.TypeOf((*MockEC2Interface)(nil).DiscoverLaunchTemplateAMI), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DiscoverLaunchTemplateAMI", reflect.TypeOf((*MockEC2Interface)(nil).DiscoverLaunchTemplateAMI), arg0, arg1)
 }
 
 // GetAdditionalSecurityGroupsIDs mocks base method.
