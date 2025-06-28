@@ -913,6 +913,12 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 					},
 				}
 				g.Expect(testEnv.Create(ctx, newBootstrapSecret)).To(Succeed())
+				g.Eventually(func(gomega Gomega) {
+					gomega.Expect(testEnv.Client.Get(ctx, client.ObjectKey{
+						Name:      newBootstrapSecret.Name,
+						Namespace: newBootstrapSecret.Namespace,
+					}, newBootstrapSecret)).To(Succeed())
+				}).Should(Succeed())
 				ms.MachinePool.Spec.Template.Spec.Bootstrap.DataSecretName = ptr.To[string](newBootstrapSecret.Name)
 
 				// Since `AWSMachinePool.status.launchTemplateVersion` isn't set yet,
