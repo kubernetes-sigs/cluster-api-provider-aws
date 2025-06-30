@@ -19,7 +19,6 @@ package userdata
 import (
 	"bytes"
 	"fmt"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"strings"
 	"text/template"
 
@@ -27,6 +26,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 )
 
 const (
@@ -50,6 +50,7 @@ runcmd:
 {{- template "fs_setup" .DiskSetup}}
 {{- template "mounts" .Mounts}}
 `
+
 	// Common MIME header and boundary template
 	mimeHeaderTemplate = `MIME-Version: 1.0
 Content-Type: multipart/mixed; boundary="{{.Boundary}}"
@@ -267,6 +268,17 @@ func (ni *NodeInput) BootstrapCommand() string {
 
 // NewNode returns the user data string to be used on a node instance.
 func NewNode(input *NodeInput) ([]byte, error) {
+	// For AL2023, use the multipart MIME format
+	if input.AMIFamilyType == AMIFamilyAL2023 {
+		return generateAL2023UserData(input)
+	}
+
+	// For AL2 and other types, use the standard cloud-config format
+	return generateStandardUserData(input)
+}
+
+// generateStandardUserData generates userdata for AL2 and other standard node types.
+func generateStandardUserData(input *NodeInput) ([]byte, error) {
 	tm := template.New("Node").Funcs(defaultTemplateFuncMap)
 
 	if _, err := tm.Parse(filesTemplate); err != nil {

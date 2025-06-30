@@ -24,6 +24,9 @@ import (
 
 // EKSConfigSpec defines the desired state of Amazon EKS Bootstrap Configuration.
 type EKSConfigSpec struct {
+	// NodeType specifies the type of node (e.g., "al2023")
+	// +optional
+	NodeType string `json:"nodeType,omitempty"`
 	// KubeletExtraArgs passes the specified kubelet args into the Amazon EKS machine bootstrap script
 	// +optional
 	KubeletExtraArgs map[string]string `json:"kubeletExtraArgs,omitempty"`

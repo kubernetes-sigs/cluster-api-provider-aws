@@ -222,6 +222,7 @@ func Convert_v1beta1_EKSConfigSpec_To_v1beta2_EKSConfigSpec(in *EKSConfigSpec, o
 }
 
 func autoConvert_v1beta2_EKSConfigSpec_To_v1beta1_EKSConfigSpec(in *v1beta2.EKSConfigSpec, out *EKSConfigSpec, s conversion.Scope) error {
+	// WARNING: in.NodeType requires manual conversion: does not exist in peer-type
 	out.KubeletExtraArgs = *(*map[string]string)(unsafe.Pointer(&in.KubeletExtraArgs))
 	out.ContainerRuntime = (*string)(unsafe.Pointer(in.ContainerRuntime))
 	out.DNSClusterIP = (*string)(unsafe.Pointer(in.DNSClusterIP))
