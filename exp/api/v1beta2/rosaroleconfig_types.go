@@ -153,7 +153,7 @@ type ROSARoleConfigList struct {
 
 const (
 	// RosaRoleConfigReadyCondition condition reports on the successful reconciliation of RosaRoleConfig.
-	RosaRoleConfigReadyCondition clusterv1.ConditionType = "RosaRoleConfigReady"
+	RosaRoleConfigReadyCondition = "RosaRoleConfigReady"
 
 	// RosaRoleConfigDeletionFailedReason used to report failures while deleting RosaRoleConfig.
 	RosaRoleConfigDeletionFailedReason = "DeletionFailed"
@@ -163,16 +163,20 @@ const (
 
 	// RosaRoleConfigDeletionStarted used to indicate that the deletion of RosaRoleConfig has started.
 	RosaRoleConfigDeletionStarted = "DeletionStarted"
+
+	// RosaRoleConfigCreatedReason used to indicate that the RosaRoleConfig has been created.
+	RosaRoleConfigCreatedReason = "Created"
 )
+
+// TODO: SOLVE THIS!
+func (r *ROSARoleConfig) SetConditions(conditions clusterv1.Conditions) {
+	r.Status.Conditions = conditions
+
+}
 
 // GetConditions returns the observations of the operational state of the RosaNetwork resource.
 func (r *ROSARoleConfig) GetConditions() clusterv1.Conditions {
 	return r.Status.Conditions
-}
-
-// SetConditions sets the underlying service state of the RosaRoleConfig to the predescribed clusterv1.Conditions.
-func (r *ROSARoleConfig) SetConditions(conditions clusterv1.Conditions) {
-	r.Status.Conditions = conditions
 }
 
 func init() {

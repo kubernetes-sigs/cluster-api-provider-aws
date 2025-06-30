@@ -1,8 +1,6 @@
 module sigs.k8s.io/cluster-api-provider-aws/v2
 
-go 1.23
-
-toolchain go1.23.1
+go 1.23.1
 
 // kube-openapi should match the version imported by CAPI.
 replace k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340
@@ -34,7 +32,8 @@ require (
 	github.com/openshift-online/ocm-common v0.0.21
 	github.com/openshift-online/ocm-sdk-go v0.1.465
 	// github.com/openshift/rosa v1.2.54-rc1.0.20250604182244-c38eaa8ff4e2
-	github.com/openshift/rosa v0.0.0-20250528120404-279e4e58d597
+	// github.com/openshift/rosa v0.0.0-20250528120404-279e4e58d597
+	github.com/openshift/rosa v1.2.54
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.19.1
 	github.com/sergi/go-diff v1.3.1
@@ -223,7 +222,6 @@ require (
 	go.opentelemetry.io/otel/sdk v1.28.0 // indirect
 	go.opentelemetry.io/otel/trace v1.28.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.3.1 // indirect
-	go.uber.org/mock v0.3.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
@@ -251,7 +249,7 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 )
 
-replace github.com/openshift/rosa => ./rosa
+// replace github.com/openshift/rosa => ./rosa
 
 // replace github.com/openshift/rosa => github.com/PanSpagetka/rosa
 // replace github.com/openshift/rosa => github.com/PanSpagetka/rosa v0.0.0-20250528120404-279e4e58d597

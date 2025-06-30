@@ -31,7 +31,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -137,10 +136,7 @@ func (s *RosaRoleConfigScope) GetClient() client.Client {
 func (s *RosaRoleConfigScope) PatchObject() error {
 	return s.patchHelper.Patch(
 		context.TODO(),
-		s.RosaRoleConfig,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
-			expinfrav1.RosaRoleConfigReadyCondition,
-		}})
+		s.RosaRoleConfig)
 }
 
 // Close closes the current scope persisting the RosaRoleConfig configuration and status.

@@ -37,6 +37,7 @@ import (
 	rosalogging "github.com/openshift/rosa/pkg/logging"
 	"github.com/openshift/rosa/pkg/ocm"
 	rosacli "github.com/openshift/rosa/pkg/rosa"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
@@ -164,6 +165,14 @@ func (r *ROSARoleConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	if r.rosaRolesConfigReady(scope) {
 		conditions.MarkTrue(scope.RosaRoleConfig, expinfrav1.RosaRoleConfigReadyCondition)
+		conditions.Set(scope.RosaRoleConfig,
+			&clusterv1.Condition{
+				Type:     expinfrav1.RosaRoleConfigReadyCondition,
+				Status:   corev1.ConditionTrue,
+				Reason:   expinfrav1.RosaRoleConfigCreatedReason,
+				Severity: clusterv1.ConditionSeverityInfo,
+				Message:  "RosaRoleConfig is ready to be used.",
+			})
 
 	}
 	return ctrl.Result{}, nil
