@@ -21,6 +21,7 @@ package managed
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws/client"
@@ -57,8 +58,9 @@ func CheckAwsNodeEnvVarsSet(ctx context.Context, inputGetter func() UpdateAwsNod
 
 	By(fmt.Sprintf("Getting control plane: %s", controlPlaneName))
 	controlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
-	err := mgmtClient.Get(ctx, crclient.ObjectKey{Namespace: input.Namespace.Name, Name: controlPlaneName}, controlPlane)
-	Expect(err).ToNot(HaveOccurred())
+	Eventually(func() error {
+		return mgmtClient.Get(ctx, crclient.ObjectKey{Namespace: input.Namespace.Name, Name: controlPlaneName}, controlPlane)
+	}, input.E2EConfig.GetIntervals("", "wait-client-request")...).Should(Succeed(), "eventually failed trying to get the AWSManagedControlPlane")
 
 	By(fmt.Sprintf("Checking environment variables are set on AWSManagedControlPlane: %s", controlPlaneName))
 	Expect(controlPlane.Spec.VpcCni.Env).NotTo(BeNil())
@@ -66,18 +68,24 @@ func CheckAwsNodeEnvVarsSet(ctx context.Context, inputGetter func() UpdateAwsNod
 
 	By("Checking if aws-node has been updated with the defined environment variables on the workload cluster")
 	daemonSet := &appsv1.DaemonSet{}
-
 	clusterClient := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, input.Namespace.Name, input.ClusterName).GetClient()
-	err = clusterClient.Get(ctx, crclient.ObjectKey{Namespace: "kube-system", Name: "aws-node"}, daemonSet)
-	Expect(err).ToNot(HaveOccurred())
 
-	for _, container := range daemonSet.Spec.Template.Spec.Containers {
-		if container.Name == "aws-node" {
-			Expect(matchEnvVar(container.Env, corev1.EnvVar{Name: "FOO", Value: "BAR"})).Should(BeTrue())
-			Expect(matchEnvVar(container.Env, corev1.EnvVar{Name: "ENABLE_PREFIX_DELEGATION", Value: "true"})).Should(BeTrue())
-			break
+	Eventually(func() error {
+		if err := clusterClient.Get(ctx, crclient.ObjectKey{Namespace: "kube-system", Name: "aws-node"}, daemonSet); err != nil {
+			return fmt.Errorf("unable to get aws-node: %w", err)
 		}
-	}
+
+		for _, container := range daemonSet.Spec.Template.Spec.Containers {
+			if container.Name == "aws-node" {
+				if matchEnvVar(container.Env, corev1.EnvVar{Name: "FOO", Value: "BAR"}) &&
+					matchEnvVar(container.Env, corev1.EnvVar{Name: "ENABLE_PREFIX_DELEGATION", Value: "true"}) {
+					return nil
+				}
+			}
+		}
+
+		return errors.New("unable to find the expected environment variables on the aws-node DaemonSet's container")
+	}, input.E2EConfig.GetIntervals("", "wait-client-request")...).Should(Succeed(), "should have been able to find the expected aws-node DaemonSet")
 }
 
 func matchEnvVar(s []corev1.EnvVar, ev corev1.EnvVar) bool {

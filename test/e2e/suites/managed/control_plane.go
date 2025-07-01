@@ -23,7 +23,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -38,7 +38,7 @@ import (
 // UpgradeControlPlaneVersionSpecInput is the input type for UpgradeControlPlaneVersionSpec.
 type UpgradeControlPlaneVersionSpecInput struct {
 	E2EConfig             *clusterctl.E2EConfig
-	AWSSession            client.ConfigProvider
+	AWSSession            *aws.Config
 	BootstrapClusterProxy framework.ClusterProxy
 	ClusterName           string
 	Namespace             *corev1.Namespace
@@ -70,7 +70,7 @@ func UpgradeControlPlaneVersionSpec(ctx context.Context, inputGetter func() Upgr
 	Expect(patchHelper.Patch(ctx, controlPlane)).To(Succeed())
 
 	ginkgo.By("Waiting for EKS control-plane to be upgraded to new version")
-	waitForControlPlaneToBeUpgraded(waitForControlPlaneToBeUpgradedInput{
+	waitForControlPlaneToBeUpgraded(ctx, waitForControlPlaneToBeUpgradedInput{
 		ControlPlane:   controlPlane,
 		AWSSession:     input.AWSSession,
 		UpgradeVersion: input.UpgradeVersion,

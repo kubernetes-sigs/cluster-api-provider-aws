@@ -64,6 +64,9 @@ const apiServerTargetGroupPrefix = "apiserver-target-"
 // listeners.
 const additionalTargetGroupPrefix = "additional-listener-"
 
+// cantAttachSGToNLBRegions is a set of regions that do not support Security Groups in NLBs.
+var cantAttachSGToNLBRegions = sets.New("us-iso-east-1", "us-iso-west-1", "us-isob-east-1")
+
 // ReconcileLoadbalancers reconciles the load balancers for the given cluster.
 func (s *Service) ReconcileLoadbalancers() error {
 	s.scope.Debug("Reconciling load balancers")
@@ -117,6 +120,17 @@ func (s *Service) reconcileV2LB(lbSpec *infrav1.AWSLoadBalancerSpec) error {
 		// Failed to describe the classic ELB
 		return err
 	}
+
+	wReq := &elbv2.DescribeLoadBalancersInput{
+		LoadBalancerArns: aws.StringSlice([]string{lb.ARN}),
+	}
+	s.scope.Debug("Waiting for LB to become active", "api-server-lb-name", lb.Name)
+	waitStart := time.Now()
+	if err := s.ELBV2Client.WaitUntilLoadBalancerAvailableWithContext(context.TODO(), wReq); err != nil {
+		s.scope.Error(err, "failed to wait for LB to become available", "time", time.Since(waitStart))
+		return err
+	}
+	s.scope.Debug("LB reports active state", "api-server-lb-name", lb.Name, "time", time.Since(waitStart))
 
 	// set up the type for later processing
 	lb.LoadBalancerType = lbSpec.LoadBalancerType
@@ -351,7 +365,8 @@ func (s *Service) getAPIServerLBSpec(elbName string, lbSpec *infrav1.AWSLoadBala
 		// The load balancer APIs require us to only attach one subnet for each AZ.
 		subnets := s.scope.Subnets().FilterPrivate().FilterNonCni()
 
-		if scheme == infrav1.ELBSchemeInternetFacing {
+		// public-only setup has no private subnets
+		if scheme == infrav1.ELBSchemeInternetFacing || len(subnets) == 0 {
 			subnets = s.scope.Subnets().FilterPublic().FilterNonCni()
 		}
 
@@ -393,6 +408,11 @@ func (s *Service) createLB(spec *infrav1.LoadBalancer, lbSpec *infrav1.AWSLoadBa
 
 	if s.scope.VPC().IsIPv6Enabled() {
 		input.IpAddressType = aws.String("dualstack")
+	}
+
+	// TODO: remove when security groups on NLBs is supported in all regions.
+	if cantAttachSGToNLBRegions.Has(s.scope.Region()) {
+		input.SecurityGroups = nil
 	}
 
 	// Allocate custom addresses (Elastic IP) to internet-facing Load Balancers, when defined.
@@ -526,6 +546,14 @@ func (s *Service) reconcileClassicLoadBalancer() error {
 			}
 		}
 
+		if !cmp.Equal(spec.HealthCheck, apiELB.HealthCheck) {
+			s.scope.Debug("Reconciling health check for apiserver load balancer", "health-check", spec.HealthCheck)
+			err := s.configureHealthCheck(apiELB.Name, spec.HealthCheck)
+			if err != nil {
+				return err
+			}
+		}
+
 		if err := s.reconcileELBTags(apiELB, spec.Tags); err != nil {
 			return errors.Wrapf(err, "failed to reconcile tags for apiserver load balancer %q", apiELB.Name)
 		}
@@ -568,6 +596,22 @@ func (s *Service) reconcileClassicLoadBalancer() error {
 	return nil
 }
 
+func (s *Service) configureHealthCheck(name string, healthCheck *infrav1.ClassicELBHealthCheck) error {
+	if _, err := s.ELBClient.ConfigureHealthCheck(&elb.ConfigureHealthCheckInput{
+		LoadBalancerName: aws.String(name),
+		HealthCheck: &elb.HealthCheck{
+			Target:             aws.String(healthCheck.Target),
+			Interval:           aws.Int64(int64(healthCheck.Interval.Seconds())),
+			Timeout:            aws.Int64(int64(healthCheck.Timeout.Seconds())),
+			HealthyThreshold:   aws.Int64(healthCheck.HealthyThreshold),
+			UnhealthyThreshold: aws.Int64(healthCheck.UnhealthyThreshold),
+		},
+	}); err != nil {
+		return errors.Wrapf(err, "failed to configure health check for classic load balancer: %s", name)
+	}
+	return nil
+}
+
 func (s *Service) deleteAPIServerELB() error {
 	s.scope.Debug("Deleting control plane load balancer")
 
@@ -599,7 +643,7 @@ func (s *Service) deleteAPIServerELB() error {
 
 	s.scope.Debug("deleting load balancer", "name", elbName)
 	if err := s.deleteClassicELB(elbName); err != nil {
-		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.LoadBalancerReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
+		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.LoadBalancerReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, "%s", err.Error())
 		return err
 	}
 
@@ -705,7 +749,7 @@ func (s *Service) deleteExistingNLB(lbSpec *infrav1.AWSLoadBalancerSpec) error {
 	}
 	s.scope.Debug("deleting load balancer", "name", name)
 	if err := s.deleteLB(lb.ARN); err != nil {
-		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.LoadBalancerReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
+		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.LoadBalancerReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, "%s", err.Error())
 		return err
 	}
 
@@ -1104,7 +1148,8 @@ func (s *Service) getAPIServerClassicELBSpec(elbName string) (*infrav1.LoadBalan
 		// The load balancer APIs require us to only attach one subnet for each AZ.
 		subnets := s.scope.Subnets().FilterPrivate().FilterNonCni()
 
-		if scheme == infrav1.ELBSchemeInternetFacing {
+		// public-only setup has no private subnets
+		if scheme == infrav1.ELBSchemeInternetFacing || len(subnets) == 0 {
 			subnets = s.scope.Subnets().FilterPublic().FilterNonCni()
 		}
 
@@ -1615,7 +1660,7 @@ func (s *Service) reconcileTargetGroupsAndListeners(lbARN string, spec *infrav1.
 
 		var listener *elbv2.Listener
 		for _, l := range existingListeners.Listeners {
-			if l.DefaultActions != nil && len(l.DefaultActions) > 0 && *l.DefaultActions[0].TargetGroupArn == *group.TargetGroupArn {
+			if len(l.DefaultActions) > 0 && *l.DefaultActions[0].TargetGroupArn == *group.TargetGroupArn {
 				listener = l
 				break
 			}
@@ -1713,7 +1758,7 @@ func (s *Service) createTargetGroup(ln infrav1.Listener, tags map[string]string)
 
 func (s *Service) getHealthCheckTarget() string {
 	controlPlaneELB := s.scope.ControlPlaneLoadBalancer()
-	protocol := &infrav1.ELBProtocolSSL
+	protocol := &infrav1.ELBProtocolTCP
 	if controlPlaneELB != nil && controlPlaneELB.HealthCheckProtocol != nil {
 		protocol = controlPlaneELB.HealthCheckProtocol
 		if protocol.String() == infrav1.ELBProtocolHTTP.String() || protocol.String() == infrav1.ELBProtocolHTTPS.String() {
@@ -1788,7 +1833,11 @@ func shouldReconcileSGs(scope scope.ELBScope, lb *infrav1.LoadBalancer, specSGs 
 	// Once created without a security group, the NLB can never have any added.
 	// (https://docs.aws.amazon.com/elasticloadbalancing/latest/network/load-balancer-security-groups.html)
 	if lb.LoadBalancerType == infrav1.LoadBalancerTypeNLB && len(lb.SecurityGroupIDs) == 0 {
-		scope.Info("Pre-existing NLB %s without security groups, cannot reconcile security groups.", lb.Name)
+		if cantAttachSGToNLBRegions.Has(scope.Region()) {
+			scope.Info("Region doesn't support NLB security groups, cannot reconcile security groups.", "region", scope.Region(), "elb-name", lb.Name)
+		} else {
+			scope.Info("Pre-existing NLB without security groups, cannot reconcile security groups.", "elb-name", lb.Name)
+		}
 		return false
 	}
 	if !sets.NewString(lb.SecurityGroupIDs...).Equal(sets.NewString(specSGs...)) {

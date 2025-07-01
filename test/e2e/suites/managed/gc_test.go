@@ -17,25 +17,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package gc_managed //nolint:stylecheck
+package managed
 
 import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
-	ms "sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/suites/managed"
 	"sigs.k8s.io/cluster-api/test/framework"
-	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -59,18 +55,19 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 		clusterName = fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 
 		ginkgo.By("default iam role should exist")
-		ms.VerifyRoleExistsAndOwned(ekscontrolplanev1.DefaultEKSControlPlaneRole, clusterName, false, e2eCtx.BootstrapUserAWSSession)
+		VerifyRoleExistsAndOwned(ctx, ekscontrolplanev1.DefaultEKSControlPlaneRole, clusterName, false, e2eCtx.AWSSessionV2)
 
 		ginkgo.By("should create an EKS control plane")
-		ms.ManagedClusterSpec(ctx, func() ms.ManagedClusterSpecInput {
-			return ms.ManagedClusterSpecInput{
+		ManagedClusterSpec(ctx, func() ManagedClusterSpecInput {
+			return ManagedClusterSpecInput{
 				E2EConfig:                e2eCtx.E2EConfig,
 				ConfigClusterFn:          defaultConfigCluster,
 				BootstrapClusterProxy:    e2eCtx.Environment.BootstrapClusterProxy,
 				AWSSession:               e2eCtx.BootstrapUserAWSSession,
+				AWSSessionV2:             e2eCtx.BootstrapUserAWSSessionV2,
 				Namespace:                namespace,
 				ClusterName:              clusterName,
-				Flavour:                  ms.EKSManagedPoolFlavor,
+				Flavour:                  EKSManagedPoolFlavor,
 				ControlPlaneMachineCount: 1, // NOTE: this cannot be zero as clusterctl returns an error
 				WorkerMachineCount:       1,
 			}
@@ -85,7 +82,7 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 		Expect(cluster).NotTo(BeNil(), "couldn't find cluster")
 
 		ginkgo.By("getting AWSManagedControlPlane")
-		cp := ms.GetControlPlaneByName(ctx, ms.GetControlPlaneByNameInput{
+		cp := GetControlPlaneByName(ctx, GetControlPlaneByNameInput{
 			Getter:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 			Namespace: cluster.Spec.InfrastructureRef.Namespace,
 			Name:      cluster.Spec.ControlPlaneRef.Name,
@@ -100,11 +97,11 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 		Expect(len(mp)).To(Equal(1))
 
 		workloadClusterProxy := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name)
-		workloadYamlPath := e2eCtx.E2EConfig.GetVariable(shared.GcWorkloadPath)
+		workloadYamlPath := e2eCtx.E2EConfig.MustGetVariable(shared.GcWorkloadPath)
 		ginkgo.By(fmt.Sprintf("Installing sample workload with load balancer services: %s", workloadYamlPath))
 		workloadYaml, err := os.ReadFile(workloadYamlPath) //nolint:gosec
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(workloadClusterProxy.Apply(ctx, workloadYaml)).ShouldNot(HaveOccurred())
+		Expect(workloadClusterProxy.CreateOrUpdate(ctx, workloadYaml)).ShouldNot(HaveOccurred())
 
 		ginkgo.By("Waiting for the Deployment to be available")
 		shared.WaitForDeploymentsAvailable(ctx, shared.WaitForDeploymentsAvailableInput{
@@ -135,8 +132,10 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 			Cluster: cluster,
 		})
 		framework.WaitForClusterDeleted(ctx, framework.WaitForClusterDeletedInput{
-			Getter:  e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
-			Cluster: cluster,
+			ClusterProxy:         e2eCtx.Environment.BootstrapClusterProxy,
+			Cluster:              cluster,
+			ClusterctlConfigPath: e2eCtx.Environment.ClusterctlConfigPath,
+			ArtifactFolder:       e2eCtx.Settings.ArtifactFolder,
 		}, e2eCtx.E2EConfig.GetIntervals("", "wait-delete-cluster")...)
 
 		ginkgo.By("Getting counts of service load balancers")
@@ -180,18 +179,19 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 		clusterName = fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 
 		ginkgo.By("default iam role should exist")
-		ms.VerifyRoleExistsAndOwned(ekscontrolplanev1.DefaultEKSControlPlaneRole, clusterName, false, e2eCtx.BootstrapUserAWSSession)
+		VerifyRoleExistsAndOwned(ctx, ekscontrolplanev1.DefaultEKSControlPlaneRole, clusterName, false, e2eCtx.AWSSessionV2)
 
 		ginkgo.By("should create an EKS control plane")
-		ms.ManagedClusterSpec(ctx, func() ms.ManagedClusterSpecInput {
-			return ms.ManagedClusterSpecInput{
+		ManagedClusterSpec(ctx, func() ManagedClusterSpecInput {
+			return ManagedClusterSpecInput{
 				E2EConfig:                e2eCtx.E2EConfig,
 				ConfigClusterFn:          defaultConfigCluster,
 				BootstrapClusterProxy:    e2eCtx.Environment.BootstrapClusterProxy,
 				AWSSession:               e2eCtx.BootstrapUserAWSSession,
+				AWSSessionV2:             e2eCtx.BootstrapUserAWSSessionV2,
 				Namespace:                namespace,
 				ClusterName:              clusterName,
-				Flavour:                  ms.EKSManagedPoolFlavor,
+				Flavour:                  EKSManagedPoolFlavor,
 				ControlPlaneMachineCount: 1, // NOTE: this cannot be zero as clusterctl returns an error
 				WorkerMachineCount:       1,
 			}
@@ -206,7 +206,7 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 		Expect(cluster).NotTo(BeNil(), "couldn't find cluster")
 
 		ginkgo.By("getting AWSManagedControlPlane")
-		cp := ms.GetControlPlaneByName(ctx, ms.GetControlPlaneByNameInput{
+		cp := GetControlPlaneByName(ctx, GetControlPlaneByNameInput{
 			Getter:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 			Namespace: cluster.Spec.InfrastructureRef.Namespace,
 			Name:      cluster.Spec.ControlPlaneRef.Name,
@@ -221,11 +221,11 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 		Expect(len(mp)).To(Equal(1))
 
 		workloadClusterProxy := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name)
-		workloadYamlPath := e2eCtx.E2EConfig.GetVariable(shared.GcWorkloadPath)
+		workloadYamlPath := e2eCtx.E2EConfig.MustGetVariable(shared.GcWorkloadPath)
 		ginkgo.By(fmt.Sprintf("Installing sample workload with load balancer services: %s", workloadYamlPath))
 		workloadYaml, err := os.ReadFile(workloadYamlPath) //nolint:gosec
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(workloadClusterProxy.Apply(ctx, workloadYaml)).ShouldNot(HaveOccurred())
+		Expect(workloadClusterProxy.CreateOrUpdate(ctx, workloadYaml)).ShouldNot(HaveOccurred())
 
 		ginkgo.By("Waiting for the Deployment to be available")
 		shared.WaitForDeploymentsAvailable(ctx, shared.WaitForDeploymentsAvailableInput{
@@ -256,8 +256,10 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 			Cluster: cluster,
 		})
 		framework.WaitForClusterDeleted(ctx, framework.WaitForClusterDeletedInput{
-			Getter:  e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
-			Cluster: cluster,
+			ClusterProxy:         e2eCtx.Environment.BootstrapClusterProxy,
+			Cluster:              cluster,
+			ClusterctlConfigPath: e2eCtx.Environment.ClusterctlConfigPath,
+			ArtifactFolder:       e2eCtx.Settings.ArtifactFolder,
 		}, e2eCtx.E2EConfig.GetIntervals("", "wait-delete-cluster")...)
 
 		ginkgo.By("Getting counts of service load balancers")
@@ -289,19 +291,3 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 		}, shared.DisableAlternativeGCStrategy, shared.ValidateAlternativeGCStrategyDisabled)
 	})
 })
-
-// TODO (richardcase): remove this when we merge these tests with the main eks e2e tests.
-func defaultConfigCluster(clusterName, namespace string) clusterctl.ConfigClusterInput {
-	return clusterctl.ConfigClusterInput{
-		LogFolder:                filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName()),
-		ClusterctlConfigPath:     e2eCtx.Environment.ClusterctlConfigPath,
-		KubeconfigPath:           e2eCtx.Environment.BootstrapClusterProxy.GetKubeconfigPath(),
-		InfrastructureProvider:   "aws",
-		Flavor:                   ms.EKSManagedPoolFlavor,
-		Namespace:                namespace,
-		ClusterName:              clusterName,
-		KubernetesVersion:        e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion),
-		ControlPlaneMachineCount: ptr.To[int64](1),
-		WorkerMachineCount:       ptr.To[int64](0),
-	}
-}

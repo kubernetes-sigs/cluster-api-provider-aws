@@ -329,7 +329,7 @@ func (s *Service) DeleteSecurityGroups() error {
 		sg := clusterGroups[i]
 		current := sg.IngressRules
 		if err := s.revokeAllSecurityGroupIngressRules(sg.ID); awserrors.IsIgnorableSecurityGroupError(err) != nil { //nolint:gocritic
-			conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
+			conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, "%s", err.Error())
 			return err
 		}
 
@@ -341,7 +341,7 @@ func (s *Service) DeleteSecurityGroups() error {
 	}
 
 	if err != nil {
-		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, err.Error())
+		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, "%s", err.Error())
 		return err
 	}
 	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
@@ -440,7 +440,7 @@ func (s *Service) revokeIngressAndEgressRulesFromVPCDefaultSecurityGroup() error
 		},
 	}
 	err = s.revokeSecurityGroupIngressRules(defaultSecurityGroupID, ingressRules)
-	if err != nil && !awserrors.IsPermissionNotFoundError(errors.Cause(err)) {
+	if err != nil {
 		return errors.Wrapf(err, "failed to revoke ingress rules from vpc default security group %q in VPC %q", defaultSecurityGroupID, s.scope.VPC().ID)
 	}
 
@@ -453,7 +453,7 @@ func (s *Service) revokeIngressAndEgressRulesFromVPCDefaultSecurityGroup() error
 		},
 	}
 	err = s.revokeSecurityGroupEgressRules(defaultSecurityGroupID, egressRules)
-	if err != nil && !awserrors.IsPermissionNotFoundError(errors.Cause(err)) {
+	if err != nil {
 		return errors.Wrapf(err, "failed to revoke egress rules from vpc default security group %q in VPC %q", defaultSecurityGroupID, s.scope.VPC().ID)
 	}
 
@@ -514,7 +514,7 @@ func (s *Service) revokeSecurityGroupIngressRules(id string, rules infrav1.Ingre
 		input.IpPermissions = append(input.IpPermissions, ingressRuleToSDKType(s.scope, &rule))
 	}
 
-	if _, err := s.EC2Client.RevokeSecurityGroupIngressWithContext(context.TODO(), input); err != nil {
+	if _, err := s.EC2Client.RevokeSecurityGroupIngressWithContext(context.TODO(), input); err != nil && !awserrors.IsPermissionNotFoundError(errors.Cause(err)) {
 		record.Warnf(s.scope.InfraCluster(), "FailedRevokeSecurityGroupIngressRules", "Failed to revoke security group ingress rules %v for SecurityGroup %q: %v", rules, id, err)
 		return errors.Wrapf(err, "failed to revoke security group %q ingress rules: %v", id, rules)
 	}
@@ -530,7 +530,7 @@ func (s *Service) revokeSecurityGroupEgressRules(id string, rules infrav1.Ingres
 		input.IpPermissions = append(input.IpPermissions, ingressRuleToSDKType(s.scope, &rule))
 	}
 
-	if _, err := s.EC2Client.RevokeSecurityGroupEgressWithContext(context.TODO(), input); err != nil {
+	if _, err := s.EC2Client.RevokeSecurityGroupEgressWithContext(context.TODO(), input); err != nil && !awserrors.IsPermissionNotFoundError(errors.Cause(err)) {
 		record.Warnf(s.scope.InfraCluster(), "FailedRevokeSecurityGroupEgressRules", "Failed to revoke security group egress rules %v for SecurityGroup %q: %v", rules, id, err)
 		return errors.Wrapf(err, "failed to revoke security group %q egress rules: %v", id, rules)
 	}
@@ -591,7 +591,6 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 			},
 		}
 	}
-	cidrBlocks := []string{services.AnyIPv4CidrBlock}
 	switch role {
 	case infrav1.SecurityGroupBastion:
 		return infrav1.IngressRules{
@@ -645,6 +644,10 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 		return append(cniRules, rules...), nil
 
 	case infrav1.SecurityGroupNode:
+		cidrBlocks := []string{services.AnyIPv4CidrBlock}
+		if scopeCidrBlocks := s.scope.NodePortIngressRuleCidrBlocks(); len(scopeCidrBlocks) > 0 {
+			cidrBlocks = scopeCidrBlocks
+		}
 		rules := infrav1.IngressRules{
 			{
 				Description: "Node Port Services",
@@ -677,14 +680,20 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 				IPv6CidrBlocks: []string{services.AnyIPv6CidrBlock},
 			})
 		}
+
+		additionalIngressRules, err := s.processIngressRulesSGs(s.scope.AdditionalNodeIngressRules())
+		if err != nil {
+			return nil, err
+		}
+		rules = append(rules, additionalIngressRules...)
+
 		return append(cniRules, rules...), nil
 	case infrav1.SecurityGroupEKSNodeAdditional:
+		ingressRules := s.scope.AdditionalControlPlaneIngressRules()
 		if s.scope.Bastion().Enabled {
-			return infrav1.IngressRules{
-				s.defaultSSHIngressRule(s.scope.SecurityGroups()[infrav1.SecurityGroupBastion].ID),
-			}, nil
+			ingressRules = append(ingressRules, s.defaultSSHIngressRule(s.scope.SecurityGroups()[infrav1.SecurityGroupBastion].ID))
 		}
-		return infrav1.IngressRules{}, nil
+		return ingressRules, nil
 	case infrav1.SecurityGroupAPIServerLB:
 		kubeletRules := s.getIngressRulesToAllowKubeletToAccessTheControlPlaneLB()
 		customIngressRules, err := s.processIngressRulesSGs(s.getControlPlaneLBIngressRules())

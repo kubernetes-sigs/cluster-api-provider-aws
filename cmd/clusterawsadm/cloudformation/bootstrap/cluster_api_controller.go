@@ -151,6 +151,7 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"ec2:RevokeSecurityGroupIngress",
 				"ec2:RunInstances",
 				"ec2:TerminateInstances",
+				"ec2:GetSecurityGroupsForVpc",
 				"tag:GetResources",
 				"elasticloadbalancing:AddTags",
 				"elasticloadbalancing:CreateLoadBalancer",
@@ -161,6 +162,7 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"elasticloadbalancing:DescribeLoadBalancerAttributes",
 				"elasticloadbalancing:DescribeTargetGroups",
 				"elasticloadbalancing:ApplySecurityGroupsToLoadBalancer",
+				"elasticloadbalancing:SetSecurityGroups",
 				"elasticloadbalancing:DescribeTags",
 				"elasticloadbalancing:ModifyLoadBalancerAttributes",
 				"elasticloadbalancing:RegisterInstancesWithLoadBalancer",
@@ -173,9 +175,13 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"elasticloadbalancing:CreateListener",
 				"elasticloadbalancing:DescribeTargetHealth",
 				"elasticloadbalancing:RegisterTargets",
+				"elasticloadbalancing:DeregisterTargets",
 				"elasticloadbalancing:DeleteListener",
 				"autoscaling:DescribeAutoScalingGroups",
 				"autoscaling:DescribeInstanceRefreshes",
+				"autoscaling:DeleteLifecycleHook",
+				"autoscaling:DescribeLifecycleHooks",
+				"autoscaling:PutLifecycleHook",
 				"ec2:CreateLaunchTemplate",
 				"ec2:CreateLaunchTemplateVersion",
 				"ec2:DescribeLaunchTemplates",
@@ -290,11 +296,13 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 			Action: iamv1.Actions{
 				"s3:CreateBucket",
 				"s3:DeleteBucket",
-				"s3:GetObject",
-				"s3:PutObject",
 				"s3:DeleteObject",
+				"s3:GetObject",
+				"s3:ListBucket",
 				"s3:PutBucketPolicy",
 				"s3:PutBucketTagging",
+				"s3:PutLifecycleConfiguration",
+				"s3:PutObject",
 			},
 		})
 	}
@@ -415,7 +423,8 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 				"arn:*:iam::*:role/*",
 			},
 			Effect: iamv1.EffectAllow,
-		}, {
+		},
+		{
 			Action: iamv1.Actions{
 				"iam:GetPolicy",
 			},
@@ -423,7 +432,8 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 				t.generateAWSManagedPolicyARN(eksClusterPolicyName),
 			},
 			Effect: iamv1.EffectAllow,
-		}, {
+		},
+		{
 			Action: iamv1.Actions{
 				"eks:DescribeCluster",
 				"eks:ListClusters",
@@ -449,7 +459,8 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 				"arn:*:eks:*:*:nodegroup/*/*/*",
 			},
 			Effect: iamv1.EffectAllow,
-		}, {
+		},
+		{
 			Action: iamv1.Actions{
 				"ec2:AssociateVpcCidrBlock",
 				"ec2:DisassociateVpcCidrBlock",
@@ -468,7 +479,8 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 				"*",
 			},
 			Effect: iamv1.EffectAllow,
-		}, {
+		},
+		{
 			Action: iamv1.Actions{
 				"iam:PassRole",
 			},

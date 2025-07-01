@@ -76,8 +76,10 @@ func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, namespace
 		intervals := e2eCtx.E2EConfig.GetIntervals(specName, "wait-delete-cluster")
 		By(fmt.Sprintf("Deleting all clusters in the %q namespace with intervals %q", namespace.Name, intervals))
 		framework.DeleteAllClustersAndWait(ctx, framework.DeleteAllClustersAndWaitInput{
-			Client:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
-			Namespace: namespace.Name,
+			ClusterProxy:         e2eCtx.Environment.BootstrapClusterProxy,
+			ClusterctlConfigPath: e2eCtx.Environment.ClusterctlConfigPath,
+			Namespace:            namespace.Name,
+			ArtifactFolder:       e2eCtx.Settings.ArtifactFolder,
 		}, intervals...)
 
 		By(fmt.Sprintf("Deleting namespace used for hosting the %q test spec", specName))
@@ -162,10 +164,10 @@ func DumpMachine(ctx context.Context, e2eCtx *E2EContext, machine infrav1.AWSMac
 	}
 	machineLogBase := path.Join(logPath, "instances", machine.Namespace, machine.Name)
 	metaLog := path.Join(machineLogBase, "instance.log")
-	if err := os.MkdirAll(filepath.Dir(metaLog), 0750); err != nil {
-		fmt.Fprintf(GinkgoWriter, "couldn't create directory for file: path=%s, err=%s", metaLog, err)
+	if err := os.MkdirAll(filepath.Dir(metaLog), 0o750); err != nil {
+		fmt.Fprintf(GinkgoWriter, "Couldn't create directory for file: path=%q, err=%s\n", metaLog, err)
 	}
-	f, err := os.OpenFile(metaLog, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644) //nolint:gosec
+	f, err := os.OpenFile(metaLog, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644) //nolint:gosec
 	if err != nil {
 		return
 	}
@@ -207,17 +209,21 @@ func DumpMachine(ctx context.Context, e2eCtx *E2EContext, machine infrav1.AWSMac
 
 func DumpSpecResources(ctx context.Context, e2eCtx *E2EContext, namespace *corev1.Namespace) {
 	framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
-		Lister:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
-		Namespace: namespace.Name,
-		LogPath:   filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName(), "resources"),
+		KubeConfigPath:       e2eCtx.Environment.BootstrapClusterProxy.GetKubeconfigPath(),
+		ClusterctlConfigPath: e2eCtx.Environment.ClusterctlConfigPath,
+		Lister:               e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+		Namespace:            namespace.Name,
+		LogPath:              filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName(), "resources"),
 	})
 }
 
 func DumpSpecResourcesFromProxy(ctx context.Context, e2eCtx *E2EContext, namespace *corev1.Namespace, proxy framework.ClusterProxy) {
 	framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
-		Lister:    proxy.GetClient(),
-		Namespace: namespace.Name,
-		LogPath:   filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", proxy.GetName(), "resources"),
+		KubeConfigPath:       proxy.GetKubeconfigPath(),
+		ClusterctlConfigPath: e2eCtx.Environment.ClusterctlConfigPath,
+		Lister:               proxy.GetClient(),
+		Namespace:            namespace.Name,
+		LogPath:              filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", proxy.GetName(), "resources"),
 	})
 }
 
@@ -238,7 +244,7 @@ func ConditionalIt(conditionFn ConditionFn, text string, body func()) bool {
 
 // LoadE2EConfig loads the e2econfig from the specified path.
 func LoadE2EConfig(configPath string) *clusterctl.E2EConfig {
-	//TODO: This is commented out as it assumes kubeadm and errors if its not there
+	// TODO: This is commented out as it assumes kubeadm and errors if its not there
 	// Remove localLoadE2EConfig and use the line below when this issue is resolved:
 	// https://github.com/kubernetes-sigs/cluster-api/issues/3983
 	// config := clusterctl.LoadE2EConfig(context.TODO(), clusterctl.LoadE2EConfigInput{ConfigPath: configPath})
@@ -276,4 +282,8 @@ func CreateAWSClusterControllerIdentity(k8sclient crclient.Client) {
 		},
 	}
 	_ = k8sclient.Create(context.TODO(), controllerIdentity)
+}
+
+func Byf(format string, a ...interface{}) {
+	By(fmt.Sprintf(format, a...))
 }

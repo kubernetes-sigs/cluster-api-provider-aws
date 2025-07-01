@@ -37,7 +37,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	capierrors "sigs.k8s.io/cluster-api/errors"
 )
 
 // GetRunningInstanceByTags returns the existing instance or nothing if it doesn't exist.
@@ -109,15 +108,16 @@ func (s *Service) InstanceIfExists(id *string) (*infrav1.Instance, error) {
 // CreateInstance runs an ec2 instance.
 //
 //nolint:gocyclo // this function has multiple processes to perform
-func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, userDataFormat string) (*infrav1.Instance, error) {
+func (s *Service) CreateInstance(ctx context.Context, scope *scope.MachineScope, userData []byte, userDataFormat string) (*infrav1.Instance, error) {
 	s.scope.Debug("Creating an instance for a machine")
 
 	input := &infrav1.Instance{
-		Type:              scope.AWSMachine.Spec.InstanceType,
-		IAMProfile:        scope.AWSMachine.Spec.IAMInstanceProfile,
-		RootVolume:        scope.AWSMachine.Spec.RootVolume.DeepCopy(),
-		NonRootVolumes:    scope.AWSMachine.Spec.NonRootVolumes,
-		NetworkInterfaces: scope.AWSMachine.Spec.NetworkInterfaces,
+		Type:                 scope.AWSMachine.Spec.InstanceType,
+		IAMProfile:           scope.AWSMachine.Spec.IAMInstanceProfile,
+		RootVolume:           scope.AWSMachine.Spec.RootVolume.DeepCopy(),
+		NonRootVolumes:       scope.AWSMachine.Spec.NonRootVolumes,
+		NetworkInterfaces:    scope.AWSMachine.Spec.NetworkInterfaces,
+		NetworkInterfaceType: scope.AWSMachine.Spec.NetworkInterfaceType,
 	}
 
 	// Make sure to use the MachineScope here to get the merger of AWSCluster and AWSMachine tags
@@ -143,7 +143,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 	} else {
 		if scope.Machine.Spec.Version == nil {
 			err := errors.New("Either AWSMachine's spec.ami.id or Machine's spec.version must be defined")
-			scope.SetFailureReason(capierrors.CreateMachineError)
+			scope.SetFailureReason("CreateError")
 			scope.SetFailureMessage(err)
 			return nil, err
 		}
@@ -164,7 +164,7 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 		}
 
 		if scope.IsEKSManaged() && imageLookupFormat == "" && imageLookupOrg == "" && imageLookupBaseOS == "" {
-			input.ImageID, err = s.eksAMILookup(*scope.Machine.Spec.Version, imageArchitecture, scope.AWSMachine.Spec.AMI.EKSOptimizedLookupType)
+			input.ImageID, err = s.eksAMILookup(ctx, *scope.Machine.Spec.Version, imageArchitecture, scope.AWSMachine.Spec.AMI.EKSOptimizedLookupType)
 			if err != nil {
 				return nil, err
 			}
@@ -252,6 +252,8 @@ func (s *Service) CreateInstance(scope *scope.MachineScope, userData []byte, use
 	input.PrivateDNSName = scope.AWSMachine.Spec.PrivateDNSName
 
 	input.CapacityReservationID = scope.AWSMachine.Spec.CapacityReservationID
+
+	input.MarketType = scope.AWSMachine.Spec.MarketType
 
 	s.scope.Debug("Running instance", "machine-role", scope.Role())
 	s.scope.Debug("Running instance with instance metadata options", "metadata options", input.InstanceMetadataOptions)
@@ -370,10 +372,10 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 
 			filtered = append(filtered, subnet)
 		}
-		// prefer a subnet in the cluster VPC if multiple match
+		// keep AWS returned orderz stable, but prefer a subnet in the cluster VPC
 		clusterVPC := s.scope.VPC().ID
 		sort.SliceStable(filtered, func(i, j int) bool {
-			return strings.Compare(*filtered[i].VpcId, clusterVPC) > strings.Compare(*filtered[j].VpcId, clusterVPC)
+			return *filtered[i].VpcId == clusterVPC
 		})
 		if len(filtered) == 0 {
 			errMessage = fmt.Sprintf("failed to run machine %q, found %d subnets matching criteria but post-filtering failed.",
@@ -572,22 +574,18 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 
 		input.NetworkInterfaces = netInterfaces
 	} else {
-		if ptr.Deref(i.PublicIPOnLaunch, false) {
-			input.NetworkInterfaces = []*ec2.InstanceNetworkInterfaceSpecification{
-				{
-					DeviceIndex:              aws.Int64(0),
-					SubnetId:                 aws.String(i.SubnetID),
-					Groups:                   aws.StringSlice(i.SecurityGroupIDs),
-					AssociatePublicIpAddress: i.PublicIPOnLaunch,
-				},
-			}
-		} else {
-			input.SubnetId = aws.String(i.SubnetID)
-
-			if len(i.SecurityGroupIDs) > 0 {
-				input.SecurityGroupIds = aws.StringSlice(i.SecurityGroupIDs)
-			}
+		input.NetworkInterfaces = []*ec2.InstanceNetworkInterfaceSpecification{
+			{
+				DeviceIndex:              aws.Int64(0),
+				SubnetId:                 aws.String(i.SubnetID),
+				Groups:                   aws.StringSlice(i.SecurityGroupIDs),
+				AssociatePublicIpAddress: i.PublicIPOnLaunch,
+			},
 		}
+	}
+
+	if i.NetworkInterfaceType != "" {
+		input.NetworkInterfaces[0].InterfaceType = aws.String(string(i.NetworkInterfaceType))
 	}
 
 	if i.IAMProfile != "" {
@@ -645,8 +643,13 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 			input.TagSpecifications = append(input.TagSpecifications, spec)
 		}
 	}
-
-	input.InstanceMarketOptions = getInstanceMarketOptionsRequest(i.SpotMarketOptions)
+	marketOptions, err := getInstanceMarketOptionsRequest(i)
+	if err != nil {
+		return nil, err
+	}
+	if marketOptions != nil {
+		input.InstanceMarketOptions = marketOptions
+	}
 	input.MetadataOptions = getInstanceMetadataOptionsRequest(i.InstanceMetadataOptions)
 	input.PrivateDnsNameOptions = getPrivateDNSNameOptionsRequest(i.PrivateDNSName)
 	input.CapacityReservationSpecification = getCapacityReservationSpecification(i.CapacityReservationID)
@@ -943,37 +946,48 @@ func (s *Service) getInstanceAddresses(instance *ec2.Instance) []clusterv1.Machi
 	// Check if the DHCP Option Set has domain name set
 	domainName := s.GetDHCPOptionSetDomainName(s.EC2Client, instance.VpcId)
 	for _, eni := range instance.NetworkInterfaces {
-		privateDNSAddress := clusterv1.MachineAddress{
-			Type:    clusterv1.MachineInternalDNS,
-			Address: aws.StringValue(eni.PrivateDnsName),
-		}
-		privateIPAddress := clusterv1.MachineAddress{
-			Type:    clusterv1.MachineInternalIP,
-			Address: aws.StringValue(eni.PrivateIpAddress),
-		}
-
-		addresses = append(addresses, privateDNSAddress, privateIPAddress)
-
-		if domainName != nil {
-			// Add secondary private DNS Name with domain name set in DHCP Option Set
-			additionalPrivateDNSAddress := clusterv1.MachineAddress{
+		if addr := aws.StringValue(eni.PrivateDnsName); addr != "" {
+			privateDNSAddress := clusterv1.MachineAddress{
 				Type:    clusterv1.MachineInternalDNS,
-				Address: fmt.Sprintf("%s.%s", strings.Split(privateDNSAddress.Address, ".")[0], *domainName),
+				Address: addr,
 			}
-			addresses = append(addresses, additionalPrivateDNSAddress)
+			addresses = append(addresses, privateDNSAddress)
+
+			if domainName != nil {
+				// Add secondary private DNS Name with domain name set in DHCP Option Set
+				additionalPrivateDNSAddress := clusterv1.MachineAddress{
+					Type:    clusterv1.MachineInternalDNS,
+					Address: fmt.Sprintf("%s.%s", strings.Split(privateDNSAddress.Address, ".")[0], *domainName),
+				}
+				addresses = append(addresses, additionalPrivateDNSAddress)
+			}
+		}
+
+		if addr := aws.StringValue(eni.PrivateIpAddress); addr != "" {
+			privateIPAddress := clusterv1.MachineAddress{
+				Type:    clusterv1.MachineInternalIP,
+				Address: addr,
+			}
+			addresses = append(addresses, privateIPAddress)
 		}
 
 		// An elastic IP is attached if association is non nil pointer
 		if eni.Association != nil {
-			publicDNSAddress := clusterv1.MachineAddress{
-				Type:    clusterv1.MachineExternalDNS,
-				Address: aws.StringValue(eni.Association.PublicDnsName),
+			if addr := aws.StringValue(eni.Association.PublicDnsName); addr != "" {
+				publicDNSAddress := clusterv1.MachineAddress{
+					Type:    clusterv1.MachineExternalDNS,
+					Address: addr,
+				}
+				addresses = append(addresses, publicDNSAddress)
 			}
-			publicIPAddress := clusterv1.MachineAddress{
-				Type:    clusterv1.MachineExternalIP,
-				Address: aws.StringValue(eni.Association.PublicIp),
+
+			if addr := aws.StringValue(eni.Association.PublicIp); addr != "" {
+				publicIPAddress := clusterv1.MachineAddress{
+					Type:    clusterv1.MachineExternalIP,
+					Address: addr,
+				}
+				addresses = append(addresses, publicIPAddress)
 			}
-			addresses = append(addresses, publicDNSAddress, publicIPAddress)
 		}
 	}
 
@@ -1080,7 +1094,7 @@ func (s *Service) GetDHCPOptionSetDomainName(ec2client ec2iface.EC2API, vpcID *s
 	log := s.scope.GetLogger()
 
 	if vpcID == nil {
-		log.Info("vpcID is nil, skipping DHCP Option Set discovery")
+		log.V(4).Info("vpcID is nil, skipping DHCP Option Set discovery")
 		return nil
 	}
 
@@ -1146,34 +1160,65 @@ func getCapacityReservationSpecification(capacityReservationID *string) *ec2.Cap
 	}
 }
 
-func getInstanceMarketOptionsRequest(spotMarketOptions *infrav1.SpotMarketOptions) *ec2.InstanceMarketOptionsRequest {
-	if spotMarketOptions == nil {
-		// Instance is not a Spot instance
-		return nil
+func getInstanceMarketOptionsRequest(i *infrav1.Instance) (*ec2.InstanceMarketOptionsRequest, error) {
+	if i.MarketType != "" && i.MarketType == infrav1.MarketTypeCapacityBlock && i.SpotMarketOptions != nil {
+		return nil, errors.New("can't create spot capacity-blocks, remove spot market request")
 	}
 
-	// Set required values for Spot instances
-	spotOptions := &ec2.SpotMarketOptions{}
-
-	// The following two options ensure that:
-	// - If an instance is interrupted, it is terminated rather than hibernating or stopping
-	// - No replacement instance will be created if the instance is interrupted
-	// - If the spot request cannot immediately be fulfilled, it will not be created
-	// This behaviour should satisfy the 1:1 mapping of Machines to Instances as
-	// assumed by the Cluster API.
-	spotOptions.SetInstanceInterruptionBehavior(ec2.InstanceInterruptionBehaviorTerminate)
-	spotOptions.SetSpotInstanceType(ec2.SpotInstanceTypeOneTime)
-
-	maxPrice := spotMarketOptions.MaxPrice
-	if maxPrice != nil && *maxPrice != "" {
-		spotOptions.SetMaxPrice(*maxPrice)
+	if (i.MarketType == infrav1.MarketTypeSpot || i.SpotMarketOptions != nil) && i.CapacityReservationID != nil {
+		return nil, errors.New("unable to generate marketOptions for spot instance, capacityReservationID is incompatible with marketType spot and spotMarketOptions")
 	}
 
-	instanceMarketOptionsRequest := &ec2.InstanceMarketOptionsRequest{}
-	instanceMarketOptionsRequest.SetMarketType(ec2.MarketTypeSpot)
-	instanceMarketOptionsRequest.SetSpotOptions(spotOptions)
+	// Infer MarketType if not explicitly set
+	if i.SpotMarketOptions != nil && i.MarketType == "" {
+		i.MarketType = infrav1.MarketTypeSpot
+	}
 
-	return instanceMarketOptionsRequest
+	if i.MarketType == "" {
+		i.MarketType = infrav1.MarketTypeOnDemand
+	}
+
+	if i.MarketType == infrav1.MarketTypeSpot && i.SpotMarketOptions == nil {
+		i.SpotMarketOptions = &infrav1.SpotMarketOptions{}
+	}
+
+	switch i.MarketType {
+	case infrav1.MarketTypeCapacityBlock:
+		if i.CapacityReservationID == nil {
+			return nil, errors.Errorf("capacityReservationID is required when CapacityBlock is enabled")
+		}
+		return &ec2.InstanceMarketOptionsRequest{
+			MarketType: aws.String(ec2.MarketTypeCapacityBlock),
+		}, nil
+
+	case infrav1.MarketTypeSpot:
+		// Set required values for Spot instances
+		spotOpts := &ec2.SpotMarketOptions{
+			// The following two options ensure that:
+			// - If an instance is interrupted, it is terminated rather than hibernating or stopping
+			// - No replacement instance will be created if the instance is interrupted
+			// - If the spot request cannot immediately be fulfilled, it will not be created
+			// This behaviour should satisfy the 1:1 mapping of Machines to Instances as
+			// assumed by the Cluster API.
+			InstanceInterruptionBehavior: aws.String(ec2.InstanceInterruptionBehaviorTerminate),
+			SpotInstanceType:             aws.String(ec2.SpotInstanceTypeOneTime),
+		}
+
+		if maxPrice := aws.StringValue(i.SpotMarketOptions.MaxPrice); maxPrice != "" {
+			spotOpts.MaxPrice = aws.String(maxPrice)
+		}
+
+		return &ec2.InstanceMarketOptionsRequest{
+			MarketType:  aws.String(ec2.MarketTypeSpot),
+			SpotOptions: spotOpts,
+		}, nil
+	case infrav1.MarketTypeOnDemand:
+		// Instance is on-demand or empty
+		return nil, nil
+	default:
+		// Invalid MarketType provided
+		return nil, errors.Errorf("invalid MarketType %q", i.MarketType)
+	}
 }
 
 func getInstanceMetadataOptionsRequest(metadataOptions *infrav1.InstanceMetadataOptions) *ec2.InstanceMetadataOptionsRequest {

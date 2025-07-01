@@ -22,11 +22,11 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"k8s.io/kubectl/pkg/util/templates"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/flags"
 	cmdout "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/printers"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/resource"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 
 // ListAWSResourceCmd is the root cmd to list AWS resources created by CAPA.
@@ -37,12 +37,12 @@ func ListAWSResourceCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List all AWS resources created by CAPA",
-		Long: cmd.LongDesc(`
+		Long: templates.LongDesc(`
 			List AWS resources directly created by CAPA based on region and cluster-name. There are some indirect resources like Cloudwatch alarms, rules, etc
 			which are not directly created by CAPA, so those resources are not listed here.
 			If region and cluster-name are not set, then it will throw an error.
 		`),
-		Example: cmd.Examples(`
+		Example: templates.Examples(`
 		# List AWS resources directly created by CAPA in given region and clustername
 		clusterawsadm resource list --region=us-east-1 --cluster-name=test-cluster
 		`),

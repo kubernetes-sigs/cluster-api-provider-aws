@@ -31,10 +31,11 @@ import (
 func getAWSManagedControlPlaneScope(cluster *clusterv1.Cluster, awsManagedControlPlane *ekscontrolplanev1.AWSManagedControlPlane) *scope.ManagedControlPlaneScope {
 	scope, err := scope.NewManagedControlPlaneScope(
 		scope.ManagedControlPlaneScopeParams{
-			Client:       testEnv.Client,
-			Cluster:      cluster,
-			ControlPlane: awsManagedControlPlane,
-			EnableIAM:    true,
+			Client:                    testEnv.Client,
+			Cluster:                   cluster,
+			ControlPlane:              awsManagedControlPlane,
+			EnableIAM:                 true,
+			MaxWaitActiveUpdateDelete: maxActiveUpdateDeleteWait,
 		},
 	)
 	utilruntime.Must(err)

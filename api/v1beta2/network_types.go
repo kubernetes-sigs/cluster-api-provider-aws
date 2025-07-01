@@ -351,6 +351,15 @@ type NetworkSpec struct {
 	// AdditionalControlPlaneIngressRules is an optional set of ingress rules to add to the control plane
 	// +optional
 	AdditionalControlPlaneIngressRules []IngressRule `json:"additionalControlPlaneIngressRules,omitempty"`
+
+	// AdditionalNodeIngressRules is an optional set of ingress rules to add to every node
+	// +optional
+	AdditionalNodeIngressRules []IngressRule `json:"additionalNodeIngressRules,omitempty"`
+
+	// NodePortIngressRuleCidrBlocks is an optional set of CIDR blocks to allow traffic to nodes' NodePort services.
+	// If none are specified here, all IPs are allowed to connect.
+	// +optional
+	NodePortIngressRuleCidrBlocks []string `json:"nodePortIngressRuleCidrBlocks,omitempty"`
 }
 
 // IPv6 contains ipv6 specific settings for the network.

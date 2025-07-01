@@ -3,9 +3,8 @@ kind: Cluster
 metadata:
   labels:
     ccm: external
-    cni: ${CLUSTER_NAME}-crs-0
     csi: external
-  name: ${CLUSTER_NAME}
+  name: "${CLUSTER_NAME}"
 spec:
   clusterNetwork:
     pods:
@@ -14,27 +13,32 @@ spec:
   controlPlaneRef:
     apiVersion: controlplane.cluster.x-k8s.io/v1beta1
     kind: KubeadmControlPlane
-    name: ${CLUSTER_NAME}-control-plane
+    name: "${CLUSTER_NAME}-control-plane"
   infrastructureRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
     kind: AWSCluster
-    name: ${CLUSTER_NAME}
+    name: "${CLUSTER_NAME}"
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSCluster
 metadata:
-  name: ${CLUSTER_NAME}
+  name: "${CLUSTER_NAME}"
 spec:
-  network:
-    vpc:
-      availabilityZoneUsageLimit: 1
-  region: ${AWS_REGION}
-  sshKeyName: ${AWS_SSH_KEY_NAME}
+  region: "${AWS_REGION}"
+  sshKeyName: "${AWS_SSH_KEY_NAME}"
+  controlPlaneLoadBalancer:
+    loadBalancerType: nlb
+    healthCheckProtocol: HTTPS
+  s3Bucket:
+    controlPlaneIAMInstanceProfile: control-plane.cluster-api-provider-aws.sigs.k8s.io
+    name: "${AWS_S3_BUCKET_NAME}"
+    nodesIAMInstanceProfiles:
+    - nodes.cluster-api-provider-aws.sigs.k8s.io
 ---
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 kind: KubeadmControlPlane
 metadata:
-  name: ${CLUSTER_NAME}-control-plane
+  name: "${CLUSTER_NAME}-control-plane"
 spec:
   kubeadmConfigSpec:
     clusterConfiguration:
@@ -48,96 +52,142 @@ spec:
       nodeRegistration:
         kubeletExtraArgs:
           cloud-provider: external
-        name: '{{ ds.meta_data.local_hostname }}'
+        name: $${COREOS_EC2_HOSTNAME}
     joinConfiguration:
       nodeRegistration:
+        name: $${COREOS_EC2_HOSTNAME}
         kubeletExtraArgs:
           cloud-provider: external
-        name: '{{ ds.meta_data.local_hostname }}'
+    format: ignition
+    ignition:
+      containerLinuxConfig:
+        additionalConfig: |
+          systemd:
+            units:
+            - name: kubeadm.service
+              enabled: true
+              dropins:
+              - name: 10-flatcar.conf
+                contents: |
+                  [Unit]
+                  # kubeadm must run after coreos-metadata populated /run/metadata directory.
+                  Requires=coreos-metadata.service
+                  After=coreos-metadata.service
+                  # kubeadm must run after containerd - see https://github.com/kubernetes-sigs/image-builder/issues/939.
+                  After=containerd.service
+                  [Service]
+                  # To make metadata environment variables available for pre-kubeadm commands.
+                  EnvironmentFile=/run/metadata/*
+    preKubeadmCommands:
+    - envsubst < /etc/kubeadm.yml > /etc/kubeadm.yml.tmp
+    - mv /etc/kubeadm.yml.tmp /etc/kubeadm.yml
   machineTemplate:
     infrastructureRef:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
       kind: AWSMachineTemplate
-      name: ${CLUSTER_NAME}-control-plane
+      name: "${CLUSTER_NAME}-control-plane"
   replicas: ${CONTROL_PLANE_MACHINE_COUNT}
-  version: ${KUBERNETES_VERSION}
+  version: "${KUBERNETES_VERSION}"
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSMachineTemplate
 metadata:
-  name: ${CLUSTER_NAME}-control-plane
+  name: "${CLUSTER_NAME}-control-plane"
 spec:
   template:
     spec:
-      iamInstanceProfile: control-plane.cluster-api-provider-aws.sigs.k8s.io
-      instanceType: ${AWS_CONTROL_PLANE_MACHINE_TYPE}
-      sshKeyName: ${AWS_SSH_KEY_NAME}
+      iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
+      instanceType: "${AWS_CONTROL_PLANE_MACHINE_TYPE}"
+      imageLookupBaseOS: flatcar-stable
+      sshKeyName: "${AWS_SSH_KEY_NAME}"
 ---
 apiVersion: cluster.x-k8s.io/v1beta1
-kind: MachineDeployment
+kind: MachinePool
 metadata:
-  name: ${CLUSTER_NAME}-md-0
+  name: "${CLUSTER_NAME}-mp-0"
 spec:
-  clusterName: ${CLUSTER_NAME}
+  clusterName: "${CLUSTER_NAME}"
   replicas: ${WORKER_MACHINE_COUNT}
-  selector:
-    matchLabels: null
   template:
     spec:
       bootstrap:
         configRef:
           apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
-          kind: KubeadmConfigTemplate
-          name: ${CLUSTER_NAME}-md-0
+          kind: KubeadmConfig
+          name: "${CLUSTER_NAME}-mp-0"
       clusterName: ${CLUSTER_NAME}
       infrastructureRef:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-        kind: AWSMachineTemplate
-        name: ${CLUSTER_NAME}-md-0
+        kind: AWSMachinePool
+        name: "${CLUSTER_NAME}-mp-0"
       version: ${KUBERNETES_VERSION}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-kind: AWSMachineTemplate
+kind: AWSMachinePool
 metadata:
-  name: ${CLUSTER_NAME}-md-0
+  name: "${CLUSTER_NAME}-mp-0"
 spec:
-  template:
-    spec:
-      iamInstanceProfile: nodes.cluster-api-provider-aws.sigs.k8s.io
-      instanceType: ${AWS_NODE_MACHINE_TYPE}
-      sshKeyName: ${AWS_SSH_KEY_NAME}
+  awsLaunchTemplate:
+    iamInstanceProfile: nodes.cluster-api-provider-aws.sigs.k8s.io
+    instanceType: "${AWS_NODE_MACHINE_TYPE}"
+    imageLookupBaseOS: flatcar-stable
+    sshKeyName: "${AWS_SSH_KEY_NAME}"
+  availabilityZones:
+    - "${AWS_AVAILABILITY_ZONE}"
+  minSize: 1
+  maxSize: 10
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
-kind: KubeadmConfigTemplate
+kind: KubeadmConfig
 metadata:
-  name: ${CLUSTER_NAME}-md-0
+  name: "${CLUSTER_NAME}-mp-0"
 spec:
-  template:
-    spec:
-      joinConfiguration:
-        nodeRegistration:
-          kubeletExtraArgs:
-            cloud-provider: external
-          name: '{{ ds.meta_data.local_hostname }}'
+  joinConfiguration:
+    nodeRegistration:
+      kubeletExtraArgs:
+        cloud-provider: external
+      name: $${COREOS_EC2_HOSTNAME}
+  format: ignition
+  ignition:
+    containerLinuxConfig:
+      additionalConfig: |
+        systemd:
+          units:
+          - name: kubeadm.service
+            enabled: true
+            dropins:
+            - name: 10-flatcar.conf
+              contents: |
+                [Unit]
+                # kubeadm must run after coreos-metadata populated /run/metadata directory.
+                Requires=coreos-metadata.service
+                After=coreos-metadata.service
+                # kubeadm must run after containerd - see https://github.com/kubernetes-sigs/image-builder/issues/939.
+                After=containerd.service
+                [Service]
+                # To make metadata environment variables available for pre-kubeadm commands.
+                EnvironmentFile=/run/metadata/*
+  preKubeadmCommands:
+  - envsubst < /etc/kubeadm.yml > /etc/kubeadm.yml.tmp
+  - mv /etc/kubeadm.yml.tmp /etc/kubeadm.yml
 ---
-apiVersion: v1
-data: ${CNI_RESOURCES}
-kind: ConfigMap
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachineHealthCheck
 metadata:
-  name: cni-${CLUSTER_NAME}-crs-0
----
-apiVersion: addons.cluster.x-k8s.io/v1beta1
-kind: ClusterResourceSet
-metadata:
-  name: ${CLUSTER_NAME}-crs-0
+  name: "${CLUSTER_NAME}-kcp-unhealthy"
 spec:
-  clusterSelector:
+  clusterName: "${CLUSTER_NAME}"
+  maxUnhealthy: 100%
+  selector:
     matchLabels:
-      cni: ${CLUSTER_NAME}-crs-0
-  resources:
-  - kind: ConfigMap
-    name: cni-${CLUSTER_NAME}-crs-0
-  strategy: ApplyOnce
+      cluster.x-k8s.io/control-plane: ""
+  unhealthyConditions:
+    - type: Ready
+      status: Unknown
+      timeout: 300s
+    - type: Ready
+      status: "False"
+      timeout: 300s
 ---
 apiVersion: addons.cluster.x-k8s.io/v1beta1
 kind: ClusterResourceSet
@@ -188,15 +238,13 @@ data:
             k8s-app: aws-cloud-controller-manager
         spec:
           nodeSelector:
-            node-role.kubernetes.io/master: ""
+            node-role.kubernetes.io/control-plane: ""
           tolerations:
             - key: node.cloudprovider.kubernetes.io/uninitialized
               value: "true"
               effect: NoSchedule
-            - key: node-role.kubernetes.io/master
+            - key: node-role.kubernetes.io/control-plane
               effect: NoSchedule
-            - effect: NoSchedule
-              key: node-role.kubernetes.io/control-plane
           affinity:
             nodeAffinity:
               requiredDuringSchedulingIgnoredDuringExecution:
@@ -204,15 +252,15 @@ data:
                   - matchExpressions:
                       - key: node-role.kubernetes.io/control-plane
                         operator: Exists
-                  - matchExpressions:
-                      - key: node-role.kubernetes.io/master
-                        operator: Exists
           serviceAccountName: cloud-controller-manager
           containers:
             - name: aws-cloud-controller-manager
-              image: gcr.io/k8s-staging-provider-aws/cloud-controller-manager:v1.20.0-alpha.0
+              image: registry.k8s.io/provider-aws/cloud-controller-manager:v1.28.3
               args:
                 - --v=2
+                - --cloud-provider=aws
+                - --use-service-account-credentials=true
+                - --configure-cloud-routes=false
               resources:
                 requests:
                   cpu: 200m
@@ -244,86 +292,95 @@ data:
     metadata:
       name: system:cloud-controller-manager
     rules:
-      - apiGroups:
-          - ""
-        resources:
-          - events
-        verbs:
-          - create
-          - patch
-          - update
-      - apiGroups:
-          - ""
-        resources:
-          - nodes
-        verbs:
-          - '*'
-      - apiGroups:
-          - ""
-        resources:
-          - nodes/status
-        verbs:
-          - patch
-      - apiGroups:
-          - ""
-        resources:
-          - services
-        verbs:
-          - list
-          - patch
-          - update
-          - watch
-      - apiGroups:
-          - ""
-        resources:
-          - services/status
-        verbs:
-          - list
-          - patch
-          - update
-          - watch
-      - apiGroups:
-          - ""
-        resources:
-          - serviceaccounts
-        verbs:
-          - create
-      - apiGroups:
-          - ""
-        resources:
-          - persistentvolumes
-        verbs:
-          - get
-          - list
-          - update
-          - watch
-      - apiGroups:
-          - ""
-        resources:
-          - configmaps
-        verbs:
-          - list
-          - watch
-      - apiGroups:
-          - ""
-        resources:
-          - endpoints
-        verbs:
-          - create
-          - get
-          - list
-          - watch
-          - update
-      - apiGroups:
-          - coordination.k8s.io
-        resources:
-          - leases
-        verbs:
-          - create
-          - get
-          - list
-          - watch
-          - update
+    - apiGroups:
+      - ""
+      resources:
+      - events
+      verbs:
+      - create
+      - patch
+      - update
+    - apiGroups:
+      - ""
+      resources:
+      - nodes
+      verbs:
+      - '*'
+    - apiGroups:
+      - ""
+      resources:
+      - nodes/status
+      verbs:
+      - patch
+    - apiGroups:
+      - ""
+      resources:
+      - services
+      verbs:
+      - list
+      - patch
+      - update
+      - watch
+    - apiGroups:
+      - ""
+      resources:
+      - services/status
+      verbs:
+      - list
+      - patch
+      - update
+      - watch
+    - apiGroups:
+      - ""
+      resources:
+      - serviceaccounts
+      verbs:
+      - create
+      - get
+      - list
+      - watch
+    - apiGroups:
+      - ""
+      resources:
+      - persistentvolumes
+      verbs:
+      - get
+      - list
+      - update
+      - watch
+    - apiGroups:
+      - ""
+      resources:
+      - configmaps
+      verbs:
+      - list
+      - watch
+    - apiGroups:
+      - ""
+      resources:
+      - endpoints
+      verbs:
+      - create
+      - get
+      - list
+      - watch
+      - update
+    - apiGroups:
+      - coordination.k8s.io
+      resources:
+      - leases
+      verbs:
+      - create
+      - get
+      - list
+      - watch
+      - update
+    - apiGroups:
+      - ""
+      resources:
+      - serviceaccounts/token
+      verbs:
+      - create
     ---
     kind: ClusterRoleBinding
     apiVersion: rbac.authorization.k8s.io/v1
@@ -423,6 +480,27 @@ data:
           - volumeattachments/status
         verbs:
           - patch
+    ---
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      labels:
+        app.kubernetes.io/name: aws-ebs-csi-driver
+      name: ebs-csi-node
+    rules:
+    - apiGroups:
+      - ""
+      resources:
+      - pods
+      verbs:
+      - get
+      - patch
+    - apiGroups:
+      - ""
+      resources:
+      - nodes
+      verbs:
+      - get
     ---
     apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
@@ -687,6 +765,21 @@ data:
         name: ebs-csi-controller-sa
         namespace: kube-system
     ---
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      labels:
+        app.kubernetes.io/name: aws-ebs-csi-driver
+      name: ebs-csi-node-binding
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: ebs-csi-node
+    subjects:
+    - kind: ServiceAccount
+      name: ebs-csi-node-sa
+      namespace: kube-system
+    ---
     apiVersion: apps/v1
     kind: Deployment
     metadata:
@@ -730,7 +823,7 @@ data:
                       key: access_key
                       name: aws-secret
                       optional: true
-              image: registry.k8s.io/provider-aws/aws-ebs-csi-driver:v1.2.0
+              image: registry.k8s.io/provider-aws/aws-ebs-csi-driver:v1.25.0
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 failureThreshold: 5
@@ -766,7 +859,7 @@ data:
               env:
                 - name: ADDRESS
                   value: /var/lib/csi/sockets/pluginproxy/csi.sock
-              image: registry.k8.io/sig-storage/csi-provisioner:v2.1.1
+              image: registry.k8s.io/sig-storage/csi-provisioner:v3.6.2
               name: csi-provisioner
               volumeMounts:
                 - mountPath: /var/lib/csi/sockets/pluginproxy/
@@ -778,7 +871,7 @@ data:
               env:
                 - name: ADDRESS
                   value: /var/lib/csi/sockets/pluginproxy/csi.sock
-              image: registry.k8.io/sig-storage/csi-attacher:v3.1.0
+              image: registry.k8s.io/sig-storage/csi-attacher:v4.4.2
               name: csi-attacher
               volumeMounts:
                 - mountPath: /var/lib/csi/sockets/pluginproxy/
@@ -789,7 +882,7 @@ data:
               env:
                 - name: ADDRESS
                   value: /var/lib/csi/sockets/pluginproxy/csi.sock
-              image: registry.k8.io/sig-storage/csi-snapshotter:v3.0.3
+              image: registry.k8s.io/sig-storage/csi-snapshotter:v6.3.2
               name: csi-snapshotter
               volumeMounts:
                 - mountPath: /var/lib/csi/sockets/pluginproxy/
@@ -800,7 +893,7 @@ data:
               env:
                 - name: ADDRESS
                   value: /var/lib/csi/sockets/pluginproxy/csi.sock
-              image: registry.k8.io/sig-storage/csi-resizer:v1.0.0
+              image: registry.k8s.io/sig-storage/csi-resizer:v1.9.2
               imagePullPolicy: Always
               name: csi-resizer
               volumeMounts:
@@ -808,7 +901,7 @@ data:
                   name: socket-dir
             - args:
                 - --csi-address=/csi/csi.sock
-              image: registry.k8.io/sig-storage/livenessprobe:v2.2.0
+              image: registry.k8s.io/sig-storage/livenessprobe:v2.11.0
               name: liveness-probe
               volumeMounts:
                 - mountPath: /csi
@@ -841,7 +934,7 @@ data:
             - emptyDir: {}
               name: socket-dir
     ---
-    apiVersion: policy/v1beta1
+    apiVersion: policy/v1
     kind: PodDisruptionBudget
     metadata:
       labels:
@@ -895,7 +988,7 @@ data:
                   valueFrom:
                     fieldRef:
                       fieldPath: spec.nodeName
-              image: registry.k8.io/provider-aws/aws-ebs-csi-driver:v1.2.0
+              image: registry.k8s.io/provider-aws/aws-ebs-csi-driver:v1.25.0
               livenessProbe:
                 failureThreshold: 5
                 httpGet:
@@ -928,7 +1021,7 @@ data:
                   value: /csi/csi.sock
                 - name: DRIVER_REG_SOCK_PATH
                   value: /var/lib/kubelet/plugins/ebs.csi.aws.com/csi.sock
-              image: registry.k8.io/sig-storage/csi-node-driver-registrar:v2.1.0
+              image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.9.2
               name: node-driver-registrar
               volumeMounts:
                 - mountPath: /csi
@@ -937,7 +1030,7 @@ data:
                   name: registration-dir
             - args:
                 - --csi-address=/csi/csi.sock
-              image: registry.k8.io/sig-storage/livenessprobe:v2.2.0
+              image: registry.k8s.io/sig-storage/livenessprobe:v2.11.0
               name: liveness-probe
               volumeMounts:
                 - mountPath: /csi

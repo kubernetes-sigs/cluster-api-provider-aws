@@ -57,6 +57,7 @@ Resources:
           - elasticloadbalancing:AddTags
           - elasticloadbalancing:AttachLoadBalancerToSubnets
           - elasticloadbalancing:ApplySecurityGroupsToLoadBalancer
+          - elasticloadbalancing:SetSecurityGroups
           - elasticloadbalancing:CreateLoadBalancer
           - elasticloadbalancing:CreateLoadBalancerPolicy
           - elasticloadbalancing:CreateLoadBalancerListeners
@@ -216,6 +217,7 @@ Resources:
           - ec2:RevokeSecurityGroupIngress
           - ec2:RunInstances
           - ec2:TerminateInstances
+          - ec2:GetSecurityGroupsForVpc
           - tag:GetResources
           - elasticloadbalancing:AddTags
           - elasticloadbalancing:CreateLoadBalancer
@@ -226,6 +228,7 @@ Resources:
           - elasticloadbalancing:DescribeLoadBalancerAttributes
           - elasticloadbalancing:DescribeTargetGroups
           - elasticloadbalancing:ApplySecurityGroupsToLoadBalancer
+          - elasticloadbalancing:SetSecurityGroups
           - elasticloadbalancing:DescribeTags
           - elasticloadbalancing:ModifyLoadBalancerAttributes
           - elasticloadbalancing:RegisterInstancesWithLoadBalancer
@@ -238,9 +241,13 @@ Resources:
           - elasticloadbalancing:CreateListener
           - elasticloadbalancing:DescribeTargetHealth
           - elasticloadbalancing:RegisterTargets
+          - elasticloadbalancing:DeregisterTargets
           - elasticloadbalancing:DeleteListener
           - autoscaling:DescribeAutoScalingGroups
           - autoscaling:DescribeInstanceRefreshes
+          - autoscaling:DeleteLifecycleHook
+          - autoscaling:DescribeLifecycleHooks
+          - autoscaling:PutLifecycleHook
           - ec2:CreateLaunchTemplate
           - ec2:CreateLaunchTemplateVersion
           - ec2:DescribeLaunchTemplates

@@ -28,14 +28,15 @@ import (
 	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
-	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
+	utildefaulting "sigs.k8s.io/cluster-api-provider-aws/v2/util/defaulting"
 )
 
 func TestMachineDefault(t *testing.T) {
 	machine := &AWSMachine{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
-	t.Run("for AWSMachine", utildefaulting.DefaultValidateTest(machine))
-	machine.Default()
+	t.Run("for AWSMachine", utildefaulting.DefaultValidateTest(context.Background(), machine, &awsMachineWebhook{}))
 	g := NewWithT(t)
+	err := (&awsMachineWebhook{}).Default(context.Background(), machine)
+	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(machine.Spec.CloudInit.SecureSecretsBackend).To(Equal(SecretBackendSecretsManager))
 }
 
@@ -213,6 +214,49 @@ func TestAWSMachineCreate(t *testing.T) {
 						"key-2": "value-2",
 					},
 					InstanceType: "test",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid case, MarketType set to MarketTypeCapacityBlock and spotMarketOptions are specified",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					MarketType:        MarketTypeCapacityBlock,
+					SpotMarketOptions: &SpotMarketOptions{},
+					InstanceType:      "test",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid case, MarketType set to MarketTypeOnDemand and spotMarketOptions are specified",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					MarketType:        MarketTypeOnDemand,
+					SpotMarketOptions: &SpotMarketOptions{},
+					InstanceType:      "test",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid MarketType set to MarketTypeCapacityBlock is specified and CapacityReservationId is not provided",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					MarketType:   MarketTypeCapacityBlock,
+					InstanceType: "test",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid MarketType set to MarketTypeCapacityBlock and CapacityReservationId are specified",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					MarketType:            MarketTypeCapacityBlock,
+					CapacityReservationID: aws.String("cr-12345678901234567"),
+					InstanceType:          "test",
 				},
 			},
 			wantErr: false,
@@ -439,7 +483,7 @@ func TestAWSMachineCreate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.BootstrapFormatIgnition, true)()
+			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.BootstrapFormatIgnition, true)
 
 			machine := tt.machine.DeepCopy()
 			machine.ObjectMeta = metav1.ObjectMeta{

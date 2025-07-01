@@ -13,7 +13,7 @@ import (
 var MinSupportedVersion = semver.MustParse("4.14.0")
 
 // CheckExistingScheduledUpgrade checks and returns the current upgrade schedule if any.
-func CheckExistingScheduledUpgrade(client *ocm.Client, cluster *cmv1.Cluster) (*cmv1.ControlPlaneUpgradePolicy, error) {
+func CheckExistingScheduledUpgrade(client OCMClient, cluster *cmv1.Cluster) (*cmv1.ControlPlaneUpgradePolicy, error) {
 	upgradePolicies, err := client.GetControlPlaneUpgradePolicies(cluster.ID())
 	if err != nil {
 		return nil, err
@@ -27,7 +27,7 @@ func CheckExistingScheduledUpgrade(client *ocm.Client, cluster *cmv1.Cluster) (*
 }
 
 // ScheduleControlPlaneUpgrade schedules a new control plane upgrade to the specified version at the specified time.
-func ScheduleControlPlaneUpgrade(client *ocm.Client, cluster *cmv1.Cluster, version string, nextRun time.Time) (*cmv1.ControlPlaneUpgradePolicy, error) {
+func ScheduleControlPlaneUpgrade(client OCMClient, cluster *cmv1.Cluster, version string, nextRun time.Time, ack bool) (*cmv1.ControlPlaneUpgradePolicy, error) {
 	// earliestNextRun is set to at least 5 min from now by the OCM API.
 	// Set our next run request to something slightly longer than 5min to make sure we account for the latency between when we send this
 	// request and when the server processes it.
@@ -41,15 +41,37 @@ func ScheduleControlPlaneUpgrade(client *ocm.Client, cluster *cmv1.Cluster, vers
 		ScheduleType(cmv1.ScheduleTypeManual).
 		Version(version).
 		NextRun(nextRun).
+		EnableMinorVersionUpgrades(true).
 		Build()
 	if err != nil {
 		return nil, err
 	}
+
+	versionGates, err := client.GetMissingGateAgreementsHypershift(cluster.ID(), upgradePolicy)
+	if err != nil {
+		return nil, err
+	}
+
+	if !ack && len(versionGates) > 0 {
+		errMess := "version gate acknowledgment required"
+		for id := range versionGates {
+			errMess = fmt.Sprintf(errMess+"\nid:%s\n %s\n %s\n %s\n", versionGates[id].ID(), versionGates[id].Description(), versionGates[id].DocumentationURL(), versionGates[id].WarningMessage())
+		}
+
+		return nil, fmt.Errorf("%s", errMess)
+	}
+
+	for id := range versionGates {
+		if err = client.AckVersionGate(cluster.ID(), versionGates[id].ID()); err != nil {
+			return nil, err
+		}
+	}
+
 	return client.ScheduleHypershiftControlPlaneUpgrade(cluster.ID(), upgradePolicy)
 }
 
 // ScheduleNodePoolUpgrade schedules a new nodePool upgrade to the specified version at the specified time.
-func ScheduleNodePoolUpgrade(client *ocm.Client, clusterID string, nodePool *cmv1.NodePool, version string, nextRun time.Time) (*cmv1.NodePoolUpgradePolicy, error) {
+func ScheduleNodePoolUpgrade(client OCMClient, clusterID string, nodePool *cmv1.NodePool, version string, nextRun time.Time) (*cmv1.NodePoolUpgradePolicy, error) {
 	// earliestNextRun is set to at least 5 min from now by the OCM API.
 	// Set our next run request to something slightly longer than 5min to make sure we account for the latency between when we send this
 	// request and when the server processes it.
@@ -64,6 +86,7 @@ func ScheduleNodePoolUpgrade(client *ocm.Client, clusterID string, nodePool *cmv
 		ScheduleType(cmv1.ScheduleTypeManual).
 		Version(version).
 		NextRun(nextRun).
+		EnableMinorVersionUpgrades(true).
 		Build()
 	if err != nil {
 		return nil, err

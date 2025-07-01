@@ -26,18 +26,19 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/util/defaulting"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
 
 func TestAWSClusterDefault(t *testing.T) {
 	cluster := &AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
-	t.Run("for AWSCluster", utildefaulting.DefaultValidateTest(cluster))
+	t.Run("for AWSCluster", defaultValidateTest(context.Background(), cluster, &awsClusterWebhook{}, true))
 	cluster.Default()
 	g := NewWithT(t)
 	g.Expect(cluster.Spec.IdentityRef).NotTo(BeNil())
@@ -638,10 +639,117 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "accepts node ingress rules with source security group id and role",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						AdditionalNodeIngressRules: []IngressRule{
+							{
+								Protocol:                 SecurityGroupProtocolTCP,
+								SourceSecurityGroupIDs:   []string{"test"},
+								SourceSecurityGroupRoles: []SecurityGroupRole{SecurityGroupBastion},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "rejects node ingress rules with cidr block and source security group id",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						AdditionalNodeIngressRules: []IngressRule{
+							{
+								Protocol:               SecurityGroupProtocolTCP,
+								CidrBlocks:             []string{"test"},
+								SourceSecurityGroupIDs: []string{"test"},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects node ingress rules with cidr block and source security group id and role",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						AdditionalNodeIngressRules: []IngressRule{
+							{
+								Protocol:                 SecurityGroupProtocolTCP,
+								IPv6CidrBlocks:           []string{"test"},
+								SourceSecurityGroupIDs:   []string{"test"},
+								SourceSecurityGroupRoles: []SecurityGroupRole{SecurityGroupBastion},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "accepts node ingress rules with cidr block",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						AdditionalNodeIngressRules: []IngressRule{
+							{
+								Protocol:   SecurityGroupProtocolTCP,
+								CidrBlocks: []string{"test"},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "accepts node ingress rules with source security group id and role",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						AdditionalNodeIngressRules: []IngressRule{
+							{
+								Protocol:                 SecurityGroupProtocolTCP,
+								SourceSecurityGroupIDs:   []string{"test"},
+								SourceSecurityGroupRoles: []SecurityGroupRole{SecurityGroupBastion},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "accepts cidrBlock for default node port ingress rule",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						NodePortIngressRuleCidrBlocks: []string{"10.0.0.0/16"},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "reject invalid cidrBlock for default node port ingress rule",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						NodePortIngressRuleCidrBlocks: []string{"10.0.0.0"},
+					},
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.BootstrapFormatIgnition, true)()
+			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.BootstrapFormatIgnition, true)
 
 			cluster := tt.cluster.DeepCopy()
 			cluster.ObjectMeta = metav1.ObjectMeta{
@@ -677,7 +785,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 }
 
 func TestAWSClusterValidateUpdate(t *testing.T) {
-	var tests = []struct {
+	tests := []struct {
 		name       string
 		oldCluster *AWSCluster
 		newCluster *AWSCluster
@@ -945,10 +1053,11 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Should fail if controlPlaneLoadBalancer healthcheckprotocol is updated",
+			name: "Should fail if controlPlaneLoadBalancer healthcheckprotocol is updated and not classic elb",
 			oldCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:    LoadBalancerTypeNLB,
 						HealthCheckProtocol: &ELBProtocolTCP,
 					},
 				},
@@ -956,11 +1065,46 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 			newCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:    LoadBalancerTypeNLB,
 						HealthCheckProtocol: &ELBProtocolSSL,
 					},
 				},
 			},
 			wantErr: true,
+		},
+		{
+			name: "Should pass if controlPlaneLoadBalancer healthcheckprotocol is updated and a classic elb",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:    LoadBalancerTypeClassic,
+						HealthCheckProtocol: &ELBProtocolSSL,
+					},
+				},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:    LoadBalancerTypeClassic,
+						HealthCheckProtocol: &ELBProtocolTCP,
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Should pass if old secondary lb is absent",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					SecondaryControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						Name: ptr.To("test-lb"),
+					},
+				},
+			},
+			wantErr: false,
 		},
 		{
 			name: "Should pass if controlPlaneLoadBalancer healthcheckprotocol is same after update",
@@ -981,18 +1125,42 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Should fail if controlPlaneLoadBalancer healthcheckprotocol is changed to non-default if it was not set before update",
+			name: "Should fail if controlPlaneLoadBalancer healthcheckprotocol is changed to non-default if it was not set before update for non-classic elb",
 			oldCluster: &AWSCluster{
-				Spec: AWSClusterSpec{},
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType: LoadBalancerTypeNLB,
+					},
+				},
 			},
 			newCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:    LoadBalancerTypeNLB,
 						HealthCheckProtocol: &ELBProtocolTCP,
 					},
 				},
 			},
 			wantErr: true,
+		},
+		{
+			name: "Should pass if controlPlaneLoadBalancer healthcheckprotocol is changed to non-default if it was not set before update for classic elb",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType: LoadBalancerTypeClassic,
+					},
+				},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:    LoadBalancerTypeNLB,
+						HealthCheckProtocol: &ELBProtocolTCP,
+					},
+				},
+			},
+			wantErr: false,
 		},
 		{
 			name: "correct GC tasks annotation",
@@ -1317,6 +1485,51 @@ func TestAWSClusterDefaultAllowedCIDRBlocks(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(cluster.Spec.Bastion).To(Equal(tt.afterCluster.Spec.Bastion))
+			}
+		})
+	}
+}
+
+// defaultValidateTest returns a new testing function to be used in tests to
+// make sure defaulting webhooks also pass validation tests on create,
+// update and delete.
+// NOTE: This is a copy of the DefaultValidateTest function in the cluster-api
+// package, but it has been modified to allow warnings to be returned.
+func defaultValidateTest(ctx context.Context, object runtime.Object, webhook defaulting.DefaulterValidator, allowWarnings bool) func(*testing.T) {
+	return func(t *testing.T) {
+		t.Helper()
+
+		createCopy := object.DeepCopyObject()
+		updateCopy := object.DeepCopyObject()
+		deleteCopy := object.DeepCopyObject()
+		defaultingUpdateCopy := updateCopy.DeepCopyObject()
+
+		t.Run("validate-on-create", func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect(webhook.Default(ctx, createCopy)).To(Succeed())
+			warnings, err := webhook.ValidateCreate(ctx, createCopy)
+			g.Expect(err).ToNot(HaveOccurred())
+			if !allowWarnings {
+				g.Expect(warnings).To(BeEmpty())
+			}
+		})
+		t.Run("validate-on-update", func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect(webhook.Default(ctx, defaultingUpdateCopy)).To(Succeed())
+			g.Expect(webhook.Default(ctx, updateCopy)).To(Succeed())
+			warnings, err := webhook.ValidateUpdate(ctx, updateCopy, defaultingUpdateCopy)
+			g.Expect(err).ToNot(HaveOccurred())
+			if !allowWarnings {
+				g.Expect(warnings).To(BeEmpty())
+			}
+		})
+		t.Run("validate-on-delete", func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect(webhook.Default(ctx, deleteCopy)).To(Succeed())
+			warnings, err := webhook.ValidateDelete(ctx, deleteCopy)
+			g.Expect(err).ToNot(HaveOccurred())
+			if !allowWarnings {
+				g.Expect(warnings).To(BeEmpty())
 			}
 		})
 	}

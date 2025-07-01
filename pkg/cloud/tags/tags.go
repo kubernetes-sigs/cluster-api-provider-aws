@@ -21,15 +21,20 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/eks"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
-	"github.com/aws/aws-sdk-go/service/eks"
-	"github.com/aws/aws-sdk-go/service/eks/eksiface"
 	"github.com/pkg/errors"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+)
+
+const (
+	// AwsInternalTagPrefix is the prefix for AWS internal tags, which are reserved for internal AWS use.
+	AwsInternalTagPrefix = "aws:"
 )
 
 var (
@@ -39,6 +44,11 @@ var (
 	// ErrApplyFuncRequired defines an error for when tags are not supplied.
 	ErrApplyFuncRequired = errors.New("no tags apply function supplied")
 )
+
+// eksClient implements EKSAPI as it can not be imported from pkg/cloud/services/eks.go due to import cycle.
+type eksClient interface {
+	TagResource(ctx context.Context, params *eks.TagResourceInput, optFns ...func(*eks.Options)) (*eks.TagResourceOutput, error)
+}
 
 // BuilderOption represents an option when creating a tags builder.
 type BuilderOption func(*Builder)
@@ -99,7 +109,10 @@ func WithEC2(ec2client ec2iface.EC2API) BuilderOption {
 			// For testing, we need sorted keys
 			sortedKeys := make([]string, 0, len(tags))
 			for k := range tags {
-				sortedKeys = append(sortedKeys, k)
+				// We want to filter out the tag keys that start with `aws:` as they are reserved for internal AWS use.
+				if !strings.HasPrefix(k, AwsInternalTagPrefix) {
+					sortedKeys = append(sortedKeys, k)
+				}
 			}
 			sort.Strings(sortedKeys)
 
@@ -123,22 +136,24 @@ func WithEC2(ec2client ec2iface.EC2API) BuilderOption {
 }
 
 // WithEKS is used to specify that the tags builder will be targeting EKS.
-func WithEKS(eksclient eksiface.EKSAPI) BuilderOption {
+func WithEKS(ctx context.Context, eksclient eksClient) BuilderOption {
 	return func(b *Builder) {
 		b.applyFunc = func(params *infrav1.BuildParams) error {
 			tags := infrav1.Build(*params)
-
 			eksTags := make(map[string]*string, len(tags))
 			for k, v := range tags {
-				eksTags[k] = aws.String(v)
+				// We want to filter out the tag keys that start with `aws:` as they are reserved for internal AWS use.
+				if !strings.HasPrefix(k, AwsInternalTagPrefix) {
+					eksTags[k] = aws.String(v)
+				}
 			}
 
 			tagResourcesInput := &eks.TagResourceInput{
 				ResourceArn: aws.String(params.ResourceID),
-				Tags:        eksTags,
+				Tags:        aws.ToStringMap(eksTags),
 			}
 
-			_, err := eksclient.TagResource(tagResourcesInput)
+			_, err := eksclient.TagResource(ctx, tagResourcesInput)
 			if err != nil {
 				return errors.Wrapf(err, "failed to tag eks cluster %q in cluster %q", params.ResourceID, params.ClusterName)
 			}

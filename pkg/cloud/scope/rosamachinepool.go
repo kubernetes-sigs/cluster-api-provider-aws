@@ -19,6 +19,7 @@ package scope
 import (
 	"context"
 
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/pkg/errors"
 	"k8s.io/klog/v2"
@@ -93,8 +94,15 @@ func NewRosaMachinePoolScope(params RosaMachinePoolScopeParams) (*RosaMachinePoo
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
 
+	sessionv2, serviceLimitersv2, err := sessionForClusterWithRegionV2(params.Client, scope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
+	if err != nil {
+		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
+	}
+
 	scope.session = session
+	scope.sessionV2 = *sessionv2
 	scope.serviceLimiters = serviceLimiters
+	scope.serviceLimitersV2 = serviceLimitersv2
 
 	return scope, nil
 }
@@ -114,8 +122,10 @@ type RosaMachinePoolScope struct {
 	RosaMachinePool *expinfrav1.ROSAMachinePool
 	MachinePool     *expclusterv1.MachinePool
 
-	session         awsclient.ConfigProvider
-	serviceLimiters throttle.ServiceLimiters
+	session           awsclient.ConfigProvider
+	sessionV2         awsv2.Config
+	serviceLimiters   throttle.ServiceLimiters
+	serviceLimitersV2 throttle.ServiceLimiters
 
 	controllerName string
 }
@@ -174,6 +184,11 @@ func (s *RosaMachinePoolScope) Session() awsclient.ConfigProvider {
 	return s.session
 }
 
+// SessionV2 implements cloud.Session for AWS SDK V2.
+func (s *RosaMachinePoolScope) SessionV2() awsv2.Config {
+	return s.sessionV2
+}
+
 // IdentityRef implements cloud.SessionMetadata.
 func (s *RosaMachinePoolScope) IdentityRef() *v1beta2.AWSIdentityReference {
 	return s.ControlPlane.Spec.IdentityRef
@@ -189,9 +204,9 @@ func (s *RosaMachinePoolScope) Namespace() string {
 	return s.Cluster.Namespace
 }
 
-// RosaMchinePoolReadyFalse marks the ready condition false using warning if error isn't
+// RosaMachinePoolReadyFalse marks the ready condition false using warning if error isn't
 // empty.
-func (s *RosaMachinePoolScope) RosaMchinePoolReadyFalse(reason string, err string) error {
+func (s *RosaMachinePoolScope) RosaMachinePoolReadyFalse(reason string, err string) error {
 	severity := clusterv1.ConditionSeverityWarning
 	if err == "" {
 		severity = clusterv1.ConditionSeverityInfo
@@ -201,6 +216,7 @@ func (s *RosaMachinePoolScope) RosaMchinePoolReadyFalse(reason string, err strin
 		expinfrav1.RosaMachinePoolReadyCondition,
 		reason,
 		severity,
+		"%s",
 		err,
 	)
 	if err := s.PatchObject(); err != nil {

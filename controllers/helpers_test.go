@@ -186,7 +186,7 @@ func getClusterScope(awsCluster infrav1.AWSCluster) (*scope.ClusterScope, error)
 	)
 }
 
-func mockedCreateLBCalls(t *testing.T, m *mocks.MockELBAPIMockRecorder) {
+func mockedCreateLBCalls(t *testing.T, m *mocks.MockELBAPIMockRecorder, withHealthCheckUpdate bool) {
 	t.Helper()
 	m.DescribeLoadBalancers(gomock.Eq(describeLBInput)).
 		Return(describeLBOutput, nil).MinTimes(1)
@@ -211,6 +211,10 @@ func mockedCreateLBCalls(t *testing.T, m *mocks.MockELBAPIMockRecorder) {
 		},
 		LoadBalancerName: aws.String(""),
 	})).MaxTimes(1)
+
+	if withHealthCheckUpdate {
+		m.ConfigureHealthCheck(gomock.Any()).MaxTimes(1)
+	}
 
 	m.AddTags(gomock.AssignableToTypeOf(&elb.AddTagsInput{})).Return(&elb.AddTagsOutput{}, nil).Do(
 		func(actual *elb.AddTagsInput) {
@@ -291,6 +295,9 @@ func mockedCreateLBV2Calls(t *testing.T, m *mocks.MockELBV2APIMockRecorder) {
 		LoadBalancerArn: lbArn,
 		SecurityGroups:  aws.StringSlice([]string{"sg-apiserver-lb"}),
 	})).MaxTimes(1)
+	m.WaitUntilLoadBalancerAvailableWithContext(gomock.Any(), gomock.Eq(&elbv2.DescribeLoadBalancersInput{
+		LoadBalancerArns: []*string{lbArn},
+	})).MaxTimes(1)
 }
 
 func mockedDescribeTargetGroupsCall(t *testing.T, m *mocks.MockELBV2APIMockRecorder) {
@@ -320,7 +327,8 @@ func mockedDescribeTargetGroupsCall(t *testing.T, m *mocks.MockELBV2APIMockRecor
 					TargetType:                 new(string),
 					UnhealthyThresholdCount:    new(int64),
 					VpcId:                      new(string),
-				}},
+				},
+			},
 		}, nil)
 }
 
@@ -441,7 +449,8 @@ func mockedCreateListenerCall(t *testing.T, m *mocks.MockELBV2APIMockRecorder) {
 				Port:        aws.Int64(infrav1.DefaultAPIServerPort),
 				Protocol:    aws.String("TCP"),
 			},
-		}}, nil)
+		},
+	}, nil)
 }
 
 func mockedDeleteLBCalls(expectV2Call bool, mv2 *mocks.MockELBV2APIMockRecorder, m *mocks.MockELBAPIMockRecorder) {

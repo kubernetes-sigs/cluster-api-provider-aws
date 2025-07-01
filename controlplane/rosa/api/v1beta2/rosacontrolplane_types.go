@@ -38,6 +38,34 @@ const (
 	Private RosaEndpointAccessType = "Private"
 )
 
+// VersionGateAckType specifies the version gate acknowledgment.
+type VersionGateAckType string
+
+const (
+	// Acknowledge if acknowledgment is required and proceed with the upgrade.
+	Acknowledge VersionGateAckType = "Acknowledge"
+
+	// WaitForAcknowledge if acknowledgment is required, wait not to proceed with the upgrade.
+	WaitForAcknowledge VersionGateAckType = "WaitForAcknowledge"
+
+	// AlwaysAcknowledge always acknowledg if required and proceed with the upgrade.
+	AlwaysAcknowledge VersionGateAckType = "AlwaysAcknowledge"
+)
+
+// ChannelGroupType specifies the OpenShift version channel group.
+type ChannelGroupType string
+
+const (
+	// Stable channel group is the default channel group for stable releases.
+	Stable ChannelGroupType = "stable"
+
+	// Candidate channel group is for testing candidate builds.
+	Candidate ChannelGroupType = "candidate"
+
+	// Nightly channel group is for testing nigtly builds.
+	Nightly ChannelGroupType = "nightly"
+)
+
 // RosaControlPlaneSpec defines the desired state of ROSAControlPlane.
 type RosaControlPlaneSpec struct { //nolint: maligned
 	// Cluster name must be valid DNS-1035 label, so it must consist of lower case alphanumeric
@@ -77,6 +105,22 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// OpenShift semantic version, for example "4.14.5".
 	Version string `json:"version"`
 
+	// OpenShift version channel group, default is stable.
+	//
+	// +kubebuilder:validation:Enum=stable;candidate;nightly
+	// +kubebuilder:default=stable
+	ChannelGroup ChannelGroupType `json:"channelGroup"`
+
+	// VersionGate requires acknowledgment when upgrading ROSA-HCP y-stream versions (e.g., from 4.15 to 4.16).
+	// Default is WaitForAcknowledge.
+	// WaitForAcknowledge: If acknowledgment is required, the upgrade will not proceed until VersionGate is set to Acknowledge or AlwaysAcknowledge.
+	// Acknowledge: If acknowledgment is required, apply it for the upgrade. After upgrade is done set the version gate to WaitForAcknowledge.
+	// AlwaysAcknowledge: If acknowledgment is required, apply it and proceed with the upgrade.
+	//
+	// +kubebuilder:validation:Enum=Acknowledge;WaitForAcknowledge;AlwaysAcknowledge
+	// +kubebuilder:default=WaitForAcknowledge
+	VersionGate VersionGateAckType `json:"versionGate"`
+
 	// AWS IAM roles used to perform credential requests by the openshift operators.
 	RolesRef AWSRolesRef `json:"rolesRef"`
 
@@ -110,8 +154,8 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// WorkerRoleARN is an AWS IAM role that will be attached to worker instances.
 	WorkerRoleARN string `json:"workerRoleARN"`
 
-	// BillingAccount is an optional AWS account to use for billing the subscription fees for ROSA clusters.
-	// The cost of running each ROSA cluster will be billed to the infrastructure account in which the cluster
+	// BillingAccount is an optional AWS account to use for billing the subscription fees for ROSA HCP clusters.
+	// The cost of running each ROSA HCP cluster will be billed to the infrastructure account in which the cluster
 	// is running.
 	//
 	// +kubebuilder:validation:Optional
@@ -158,7 +202,7 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// +optional
 	AuditLogRoleARN string `json:"auditLogRoleARN,omitempty"`
 
-	// ProvisionShardID defines the shard where rosa control plane components will be hosted.
+	// ProvisionShardID defines the shard where ROSA hosted control plane components will be hosted.
 	//
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="provisionShardID is immutable"
 	// +optional
@@ -180,6 +224,69 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
 	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
+
+	// ClusterRegistryConfig represents registry config used with the cluster.
+	// +optional
+	ClusterRegistryConfig *RegistryConfig `json:"clusterRegistryConfig,omitempty"`
+}
+
+// RegistryConfig for ROSA-HCP cluster
+type RegistryConfig struct {
+	// AdditionalTrustedCAs containing the registry hostname as the key, and the PEM-encoded certificate as the value,
+	// for each additional registry CA to trust.
+	// +optional
+	AdditionalTrustedCAs map[string]string `json:"additionalTrustedCAs,omitempty"`
+
+	// AllowedRegistriesForImport limits the container image registries that normal users may import
+	// images from. Set this list to the registries that you trust to contain valid Docker
+	// images and that you want applications to be able to import from.
+	// +optional
+	AllowedRegistriesForImport []RegistryLocation `json:"allowedRegistriesForImport,omitempty"`
+
+	// RegistrySources contains configuration that determines how the container runtime
+	// should treat individual registries when accessing images. It does not contain configuration
+	// for the internal cluster registry. AllowedRegistries, BlockedRegistries are mutually exclusive.
+	// +optional
+	RegistrySources *RegistrySources `json:"registrySources,omitempty"`
+}
+
+// RegistryLocation contains a location of the registry specified by the registry domain name.
+type RegistryLocation struct {
+	// domainName specifies a domain name for the registry. The domain name might include wildcards, like '*' or '??'.
+	// In case the registry use non-standard (80 or 443) port, the port should be included in the domain name as well.
+	// +optional
+	DomainName string `json:"domainName,omitempty"`
+
+	// insecure indicates whether the registry is secure (https) or insecure (http), default is secured.
+	// +kubebuilder:default=false
+	// +optional
+	Insecure bool `json:"insecure,omitempty"`
+}
+
+// RegistrySources contains registries configuration.
+type RegistrySources struct {
+	// AllowedRegistries are the registries for which image pull and push actions are allowed.
+	// To specify all subdomains, add the asterisk (*) wildcard character as a prefix to the domain name,
+	// For example, *.example.com.
+	// You can specify an individual repository within a registry, For example: reg1.io/myrepo/myapp:latest.
+	// All other registries are blocked.
+	// +optional
+	AllowedRegistries []string `json:"allowedRegistries,omitempty"`
+
+	// BlockedRegistries are the registries for which image pull and push actions are denied.
+	// To specify all subdomains, add the asterisk (*) wildcard character as a prefix to the domain name,
+	// For example, *.example.com.
+	// You can specify an individual repository within a registry, For example: reg1.io/myrepo/myapp:latest.
+	// All other registries are allowed.
+	// +optional
+	BlockedRegistries []string `json:"blockedRegistries,omitempty"`
+
+	// InsecureRegistries are registries which do not have a valid TLS certificate or only support HTTP connections.
+	// To specify all subdomains, add the asterisk (*) wildcard character as a prefix to the domain name,
+	// For example, *.example.com.
+	// You can specify an individual repository within a registry, For example: reg1.io/myrepo/myapp:latest.
+	// +optional
+	InsecureRegistries []string `json:"insecureRegistries,omitempty"`
 }
 
 // NetworkSpec for ROSA-HCP.
@@ -221,6 +328,13 @@ type DefaultMachinePoolSpec struct {
 	// must be equal or multiple of the availability zones count.
 	// +optional
 	Autoscaling *expinfrav1.RosaMachinePoolAutoScaling `json:"autoscaling,omitempty"`
+
+	// VolumeSize set the disk volume size for the default workers machine pool in Gib. The default is 300 GiB.
+	// +kubebuilder:validation:Minimum=75
+	// +kubebuilder:validation:Maximum=16384
+	// +immutable
+	// +optional
+	VolumeSize int `json:"volumeSize,omitempty"`
 }
 
 // AWSRolesRef contains references to various AWS IAM roles required for operators to make calls against the AWS API.
@@ -634,6 +748,13 @@ type RosaControlPlaneStatus struct {
 	ConsoleURL string `json:"consoleURL,omitempty"`
 	// OIDCEndpointURL is the endpoint url for the managed OIDC provider.
 	OIDCEndpointURL string `json:"oidcEndpointURL,omitempty"`
+
+	// OpenShift semantic version, for example "4.14.5".
+	// +optional
+	Version string `json:"version"`
+
+	// Available upgrades for the ROSA hosted control plane.
+	AvailableUpgrades []string `json:"availableUpgrades,omitempty"`
 }
 
 // +kubebuilder:object:root=true

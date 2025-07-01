@@ -656,27 +656,40 @@ func TestCreateInstance(t *testing.T) {
 					}})).Return(&ec2.DescribeSubnetsOutput{
 					Subnets: []*ec2.Subnet{
 						{
-							VpcId:               aws.String("vpc-bar"),
+							VpcId:               aws.String("vpc-incorrect-1"),
+							SubnetId:            aws.String("subnet-5"),
+							AvailabilityZone:    aws.String("us-east-1c"),
+							CidrBlock:           aws.String("10.0.12.0/24"),
+							MapPublicIpOnLaunch: aws.Bool(false),
+						},
+						{
+							VpcId:               aws.String("vpc-incorrect-2"),
 							SubnetId:            aws.String("subnet-4"),
 							AvailabilityZone:    aws.String("us-east-1c"),
 							CidrBlock:           aws.String("10.0.10.0/24"),
 							MapPublicIpOnLaunch: aws.Bool(false),
 						},
 						{
-							VpcId:            aws.String("vpc-foo"),
-							SubnetId:         aws.String("subnet-3"),
-							AvailabilityZone: aws.String("us-east-1c"),
-							CidrBlock:        aws.String("10.0.11.0/24"),
+							VpcId:               aws.String("vpc-foo"),
+							SubnetId:            aws.String("subnet-3"),
+							AvailabilityZone:    aws.String("us-east-1c"),
+							CidrBlock:           aws.String("10.0.11.0/24"),
+							MapPublicIpOnLaunch: aws.Bool(false),
 						},
 					},
 				}, nil)
 				m.
 					RunInstancesWithContext(context.TODO(), &ec2.RunInstancesInput{
-						ImageId:          aws.String("abc"),
-						InstanceType:     aws.String("m5.2xlarge"),
-						KeyName:          aws.String("default"),
-						SecurityGroupIds: aws.StringSlice([]string{"2", "3"}),
-						SubnetId:         aws.String("subnet-3"),
+						ImageId:      aws.String("abc"),
+						InstanceType: aws.String("m5.2xlarge"),
+						KeyName:      aws.String("default"),
+						NetworkInterfaces: []*ec2.InstanceNetworkInterfaceSpecification{
+							{
+								DeviceIndex: aws.Int64(0),
+								SubnetId:    aws.String("subnet-3"),
+								Groups:      aws.StringSlice([]string{"2", "3"}),
+							},
+						},
 						TagSpecifications: []*ec2.TagSpecification{
 							{
 								ResourceType: aws.String("instance"),
@@ -920,11 +933,16 @@ func TestCreateInstance(t *testing.T) {
 				}, nil)
 				m.
 					RunInstancesWithContext(context.TODO(), &ec2.RunInstancesInput{
-						ImageId:          aws.String("abc"),
-						InstanceType:     aws.String("m5.2xlarge"),
-						KeyName:          aws.String("default"),
-						SecurityGroupIds: aws.StringSlice([]string{"4", "3"}),
-						SubnetId:         aws.String("subnet-5"),
+						ImageId:      aws.String("abc"),
+						InstanceType: aws.String("m5.2xlarge"),
+						KeyName:      aws.String("default"),
+						NetworkInterfaces: []*ec2.InstanceNetworkInterfaceSpecification{
+							{
+								DeviceIndex: aws.Int64(0),
+								SubnetId:    aws.String("subnet-5"),
+								Groups:      aws.StringSlice([]string{"4", "3"}),
+							},
+						},
 						TagSpecifications: []*ec2.TagSpecification{
 							{
 								ResourceType: aws.String("instance"),
@@ -1105,7 +1123,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				amiName, err := GenerateAmiName("capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*", "ubuntu-18.04", "1.16.1")
+				amiName, err := GenerateAmiName("capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*", "ubuntu-24.04", "1.16.1")
 				if err != nil {
 					t.Fatalf("Failed to process ami format: %v", err)
 				}
@@ -1258,7 +1276,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				amiName, err := GenerateAmiName("capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*", "ubuntu-18.04", "1.16.1")
+				amiName, err := GenerateAmiName("capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*", "ubuntu-24.04", "1.16.1")
 				if err != nil {
 					t.Fatalf("Failed to process ami format: %v", err)
 				}
@@ -1412,7 +1430,7 @@ func TestCreateInstance(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				amiName, err := GenerateAmiName("capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*", "ubuntu-18.04", "1.16.1")
+				amiName, err := GenerateAmiName("capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*", "ubuntu-24.04", "1.16.1")
 				if err != nil {
 					t.Fatalf("Failed to process ami format: %v", err)
 				}
@@ -2433,6 +2451,134 @@ func TestCreateInstance(t *testing.T) {
 			},
 		},
 		{
+			name: "efa interface type",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: ptr.To[string]("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AMIReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType:         "m5.large",
+				NetworkInterfaceType: infrav1.NetworkInterfaceTypeEFAWithENAInterface,
+			},
+			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						Subnets: infrav1.Subnets{
+							infrav1.SubnetSpec{
+								ID:       "subnet-1",
+								IsPublic: false,
+							},
+							infrav1.SubnetSpec{
+								IsPublic: false,
+							},
+						},
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-test",
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.LoadBalancer{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []*string{
+							aws.String("m5.large"),
+						},
+					})).
+					Return(&ec2.DescribeInstanceTypesOutput{
+						InstanceTypes: []*ec2.InstanceTypeInfo{
+							{
+								ProcessorInfo: &ec2.ProcessorInfo{
+									SupportedArchitectures: []*string{
+										aws.String("x86_64"),
+									},
+								},
+							},
+						},
+					}, nil)
+				m.
+					RunInstancesWithContext(context.TODO(), gomock.Any()).
+					Do(func(_ context.Context, in *ec2.RunInstancesInput, _ ...request.Option) {
+						if len(in.NetworkInterfaces) == 0 {
+							t.Fatalf("expected a NetworkInterface to be defined")
+						}
+						if in.NetworkInterfaces[0].Groups == nil {
+							t.Fatalf("expected security groups to be set")
+						}
+						if interfaceType := aws.StringValue(in.NetworkInterfaces[0].InterfaceType); interfaceType != "efa" {
+							t.Fatalf("expected interface type to be \"efa\": got %q", interfaceType)
+						}
+					}).
+					Return(&ec2.Reservation{
+						Instances: []*ec2.Instance{
+							{
+								State: &ec2.InstanceState{
+									Name: aws.String(ec2.InstanceStateNamePending),
+								},
+								IamInstanceProfile: &ec2.IamInstanceProfile{
+									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+								},
+								InstanceId:     aws.String("two"),
+								InstanceType:   aws.String("m5.large"),
+								SubnetId:       aws.String("subnet-1"),
+								ImageId:        aws.String("ami-1"),
+								RootDeviceName: aws.String("device-1"),
+								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+									{
+										DeviceName: aws.String("device-1"),
+										Ebs: &ec2.EbsInstanceBlockDevice{
+											VolumeId: aws.String("volume-1"),
+										},
+									},
+								},
+								Placement: &ec2.Placement{
+									AvailabilityZone: &az,
+								},
+							},
+						},
+					}, nil)
+				m.
+					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NextToken:         nil,
+					}, nil)
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+			},
+		},
+		{
 			name: "public IP true and private subnet ID given",
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
@@ -3346,8 +3492,13 @@ func TestCreateInstance(t *testing.T) {
 						Placement: &ec2.Placement{
 							Tenancy: &tenancy,
 						},
-						SecurityGroupIds: []*string{aws.String("2"), aws.String("3")},
-						SubnetId:         aws.String("subnet-1"),
+						NetworkInterfaces: []*ec2.InstanceNetworkInterfaceSpecification{
+							{
+								DeviceIndex: aws.Int64(0),
+								SubnetId:    aws.String("subnet-1"),
+								Groups:      []*string{aws.String("2"), aws.String("3")},
+							},
+						},
 						TagSpecifications: []*ec2.TagSpecification{
 							{
 								ResourceType: aws.String("instance"),
@@ -3555,8 +3706,13 @@ func TestCreateInstance(t *testing.T) {
 						Placement: &ec2.Placement{
 							GroupName: aws.String("placement-group1"),
 						},
-						SecurityGroupIds: []*string{aws.String("2"), aws.String("3")},
-						SubnetId:         aws.String("subnet-1"),
+						NetworkInterfaces: []*ec2.InstanceNetworkInterfaceSpecification{
+							{
+								DeviceIndex: aws.Int64(0),
+								SubnetId:    aws.String("subnet-1"),
+								Groups:      []*string{aws.String("2"), aws.String("3")},
+							},
+						},
 						TagSpecifications: []*ec2.TagSpecification{
 							{
 								ResourceType: aws.String("instance"),
@@ -3785,8 +3941,13 @@ func TestCreateInstance(t *testing.T) {
 							Tenancy:   &tenancy,
 							GroupName: aws.String("placement-group1"),
 						},
-						SecurityGroupIds: []*string{aws.String("2"), aws.String("3")},
-						SubnetId:         aws.String("subnet-1"),
+						NetworkInterfaces: []*ec2.InstanceNetworkInterfaceSpecification{
+							{
+								DeviceIndex: aws.Int64(0),
+								SubnetId:    aws.String("subnet-1"),
+								Groups:      []*string{aws.String("2"), aws.String("3")},
+							},
+						},
 						TagSpecifications: []*ec2.TagSpecification{
 							{
 								ResourceType: aws.String("instance"),
@@ -3976,8 +4137,13 @@ func TestCreateInstance(t *testing.T) {
 							GroupName:       aws.String("placement-group1"),
 							PartitionNumber: aws.Int64(2),
 						},
-						SecurityGroupIds: []*string{aws.String("2"), aws.String("3")},
-						SubnetId:         aws.String("subnet-1"),
+						NetworkInterfaces: []*ec2.InstanceNetworkInterfaceSpecification{
+							{
+								DeviceIndex: aws.Int64(0),
+								SubnetId:    aws.String("subnet-1"),
+								Groups:      aws.StringSlice([]string{"2", "3"}),
+							},
+						},
 						TagSpecifications: []*ec2.TagSpecification{
 							{
 								ResourceType: aws.String("instance"),
@@ -5159,6 +5325,332 @@ func TestCreateInstance(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "Simple, setting MarketType to MarketTypeCapacityBlock and providing CapacityReservationID",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: ptr.To[string]("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AMIReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType:          "m5.large",
+				MarketType:            infrav1.MarketTypeCapacityBlock,
+				CapacityReservationID: aws.String("cr-12345678901234567"),
+			},
+			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+
+					NetworkSpec: infrav1.NetworkSpec{
+						Subnets: infrav1.Subnets{
+							infrav1.SubnetSpec{
+								ID:       "subnet-1",
+								IsPublic: false,
+							},
+							infrav1.SubnetSpec{
+								IsPublic: false,
+							},
+						},
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-test",
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.LoadBalancer{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []*string{
+							aws.String("m5.large"),
+						},
+					})).
+					Return(&ec2.DescribeInstanceTypesOutput{
+						InstanceTypes: []*ec2.InstanceTypeInfo{
+							{
+								ProcessorInfo: &ec2.ProcessorInfo{
+									SupportedArchitectures: []*string{
+										aws.String("x86_64"),
+									},
+								},
+							},
+						},
+					}, nil)
+				m. // TODO: Restore these parameters, but with the tags as well
+					RunInstancesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.Reservation{
+						Instances: []*ec2.Instance{
+							{
+								State: &ec2.InstanceState{
+									Name: aws.String(ec2.InstanceStateNamePending),
+								},
+								IamInstanceProfile: &ec2.IamInstanceProfile{
+									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+								},
+								InstanceId:     aws.String("two"),
+								InstanceType:   aws.String("m5.large"),
+								SubnetId:       aws.String("subnet-1"),
+								ImageId:        aws.String("ami-1"),
+								RootDeviceName: aws.String("device-1"),
+								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+									{
+										DeviceName: aws.String("device-1"),
+										Ebs: &ec2.EbsInstanceBlockDevice{
+											VolumeId: aws.String("volume-1"),
+										},
+									},
+								},
+								Placement: &ec2.Placement{
+									AvailabilityZone: &az,
+								},
+								InstanceLifecycle:     aws.String(ec2.MarketTypeCapacityBlock),
+								CapacityReservationId: aws.String("cr-12345678901234567"),
+							},
+						},
+					}, nil)
+				m.
+					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NextToken:         nil,
+					}, nil)
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+			},
+		},
+		{
+			name: "expect error when MarketType to MarketTypeCapacityBlock set but not providing CapacityReservationID",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels:    map[string]string{"set": "node"},
+					Namespace: "default",
+					Name:      "machine-aws-test1",
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: ptr.To[string]("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AMIReference{
+					ID: aws.String("abc"),
+				},
+				MarketType:              infrav1.MarketTypeCapacityBlock,
+				InstanceType:            "m5.large",
+				PlacementGroupPartition: 2,
+				UncompressedUserData:    &isUncompressedFalse,
+			},
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						Subnets: infrav1.Subnets{
+							infrav1.SubnetSpec{
+								ID:       "subnet-1",
+								IsPublic: false,
+							},
+							infrav1.SubnetSpec{
+								IsPublic: false,
+							},
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.LoadBalancer{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []*string{
+							aws.String("m5.large"),
+						},
+					})).
+					Return(&ec2.DescribeInstanceTypesOutput{
+						InstanceTypes: []*ec2.InstanceTypeInfo{
+							{
+								ProcessorInfo: &ec2.ProcessorInfo{
+									SupportedArchitectures: []*string{
+										aws.String("x86_64"),
+									},
+								},
+							},
+						},
+					}, nil)
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				expectedErrMsg := "capacityReservationID is required when CapacityBlock is enabled"
+				if err == nil {
+					t.Fatalf("Expected error, but got nil")
+				}
+				if !strings.Contains(err.Error(), expectedErrMsg) {
+					t.Fatalf("Expected error: %s\nInstead got: `%s", expectedErrMsg, err.Error())
+				}
+			},
+		},
+		{
+			name: "Simple, setting not setting MarketType and proving CapacityReservationID",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: ptr.To[string]("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AMIReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType:          "m5.large",
+				CapacityReservationID: aws.String("cr-12345678901234567"),
+			},
+			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+
+					NetworkSpec: infrav1.NetworkSpec{
+						Subnets: infrav1.Subnets{
+							infrav1.SubnetSpec{
+								ID:       "subnet-1",
+								IsPublic: false,
+							},
+							infrav1.SubnetSpec{
+								IsPublic: false,
+							},
+						},
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-test",
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.LoadBalancer{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.
+					DescribeInstanceTypesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []*string{
+							aws.String("m5.large"),
+						},
+					})).
+					Return(&ec2.DescribeInstanceTypesOutput{
+						InstanceTypes: []*ec2.InstanceTypeInfo{
+							{
+								ProcessorInfo: &ec2.ProcessorInfo{
+									SupportedArchitectures: []*string{
+										aws.String("x86_64"),
+									},
+								},
+							},
+						},
+					}, nil)
+				m. // TODO: Restore these parameters, but with the tags as well
+					RunInstancesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.Reservation{
+						Instances: []*ec2.Instance{
+							{
+								State: &ec2.InstanceState{
+									Name: aws.String(ec2.InstanceStateNamePending),
+								},
+								IamInstanceProfile: &ec2.IamInstanceProfile{
+									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+								},
+								InstanceId:     aws.String("two"),
+								InstanceType:   aws.String("m5.large"),
+								SubnetId:       aws.String("subnet-1"),
+								ImageId:        aws.String("ami-1"),
+								RootDeviceName: aws.String("device-1"),
+								BlockDeviceMappings: []*ec2.InstanceBlockDeviceMapping{
+									{
+										DeviceName: aws.String("device-1"),
+										Ebs: &ec2.EbsInstanceBlockDevice{
+											VolumeId: aws.String("volume-1"),
+										},
+									},
+								},
+								Placement: &ec2.Placement{
+									AvailabilityZone: &az,
+								},
+								CapacityReservationId: aws.String("cr-12345678901234567"),
+								InstanceLifecycle:     aws.String("scheduled"),
+							},
+						},
+					}, nil)
+				m.
+					DescribeNetworkInterfacesWithContext(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []*ec2.NetworkInterface{},
+						NextToken:         nil,
+					}, nil)
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+			},
+		},
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -5228,26 +5720,47 @@ func TestCreateInstance(t *testing.T) {
 			s := NewService(clusterScope)
 			s.EC2Client = ec2Mock
 
-			instance, err := s.CreateInstance(machineScope, data, "")
+			instance, err := s.CreateInstance(context.TODO(), machineScope, data, "")
 			tc.check(instance, err)
 		})
 	}
 }
 
 func TestGetInstanceMarketOptionsRequest(t *testing.T) {
+	mockCapacityReservationID := ptr.To[string]("cr-123")
 	testCases := []struct {
-		name              string
-		spotMarketOptions *infrav1.SpotMarketOptions
-		expectedRequest   *ec2.InstanceMarketOptionsRequest
+		name            string
+		instance        *infrav1.Instance
+		expectedRequest *ec2.InstanceMarketOptionsRequest
+		expectedError   error
 	}{
 		{
-			name:              "with no Spot options specified",
-			spotMarketOptions: nil,
-			expectedRequest:   nil,
+			name:            "with no Spot options specified",
+			expectedRequest: nil,
+			instance: &infrav1.Instance{
+				SpotMarketOptions: nil,
+			},
+			expectedError: nil,
 		},
 		{
-			name:              "with an empty Spot options specified",
-			spotMarketOptions: &infrav1.SpotMarketOptions{},
+			name:            "with no MarketType",
+			expectedRequest: nil,
+			instance:        &infrav1.Instance{},
+			expectedError:   nil,
+		},
+		{
+			name:            "invalid MarketType specified",
+			expectedRequest: nil,
+			instance: &infrav1.Instance{
+				MarketType: infrav1.MarketType("inValid"),
+			},
+			expectedError: errors.New("invalid MarketType \"inValid\""),
+		},
+		{
+			name: "with an empty Spot options specified",
+			instance: &infrav1.Instance{
+				SpotMarketOptions: &infrav1.SpotMarketOptions{},
+			},
 			expectedRequest: &ec2.InstanceMarketOptionsRequest{
 				MarketType: aws.String(ec2.MarketTypeSpot),
 				SpotOptions: &ec2.SpotMarketOptions{
@@ -5255,11 +5768,43 @@ func TestGetInstanceMarketOptionsRequest(t *testing.T) {
 					SpotInstanceType:             aws.String(ec2.SpotInstanceTypeOneTime),
 				},
 			},
+			expectedError: nil,
+		},
+		{
+			name: "with marketType Spot specified",
+			instance: &infrav1.Instance{
+				MarketType: infrav1.MarketTypeSpot,
+			},
+			expectedRequest: &ec2.InstanceMarketOptionsRequest{
+				MarketType: aws.String(ec2.MarketTypeSpot),
+				SpotOptions: &ec2.SpotMarketOptions{
+					InstanceInterruptionBehavior: aws.String(ec2.InstanceInterruptionBehaviorTerminate),
+					SpotInstanceType:             aws.String(ec2.SpotInstanceTypeOneTime),
+				},
+			},
+		},
+		{
+			name: "with marketType Spot and capacityRerservationID specified",
+			instance: &infrav1.Instance{
+				MarketType:            infrav1.MarketTypeSpot,
+				CapacityReservationID: mockCapacityReservationID,
+			},
+			expectedError: errors.Errorf("unable to generate marketOptions for spot instance, capacityReservationID is incompatible with marketType spot and spotMarketOptions"),
+		},
+		{
+			name: "with spotMarketOptions and capacityRerservationID specified",
+			instance: &infrav1.Instance{
+				SpotMarketOptions:     &infrav1.SpotMarketOptions{},
+				CapacityReservationID: mockCapacityReservationID,
+			},
+			expectedError: errors.Errorf("unable to generate marketOptions for spot instance, capacityReservationID is incompatible with marketType spot and spotMarketOptions"),
 		},
 		{
 			name: "with an empty MaxPrice specified",
-			spotMarketOptions: &infrav1.SpotMarketOptions{
-				MaxPrice: aws.String(""),
+			instance: &infrav1.Instance{
+				SpotMarketOptions: &infrav1.SpotMarketOptions{
+					MaxPrice: aws.String(""),
+				},
 			},
 			expectedRequest: &ec2.InstanceMarketOptionsRequest{
 				MarketType: aws.String(ec2.MarketTypeSpot),
@@ -5268,11 +5813,14 @@ func TestGetInstanceMarketOptionsRequest(t *testing.T) {
 					SpotInstanceType:             aws.String(ec2.SpotInstanceTypeOneTime),
 				},
 			},
+			expectedError: nil,
 		},
 		{
 			name: "with a valid MaxPrice specified",
-			spotMarketOptions: &infrav1.SpotMarketOptions{
-				MaxPrice: aws.String("0.01"),
+			instance: &infrav1.Instance{
+				SpotMarketOptions: &infrav1.SpotMarketOptions{
+					MaxPrice: aws.String("0.01"),
+				},
 			},
 			expectedRequest: &ec2.InstanceMarketOptionsRequest{
 				MarketType: aws.String(ec2.MarketTypeSpot),
@@ -5282,15 +5830,56 @@ func TestGetInstanceMarketOptionsRequest(t *testing.T) {
 					MaxPrice:                     aws.String("0.01"),
 				},
 			},
+			expectedError: nil,
+		},
+		{
+			name:            "with no MarketTypeCapacityBlock options specified",
+			instance:        &infrav1.Instance{},
+			expectedRequest: nil,
+			expectedError:   nil,
+		},
+		{
+			name: "with a MarketType to MarketTypeCapacityBlock specified with capacityReservationID set to nil",
+			instance: &infrav1.Instance{
+				MarketType:            infrav1.MarketTypeCapacityBlock,
+				CapacityReservationID: nil,
+			},
+			expectedRequest: nil,
+			expectedError:   errors.Errorf("capacityReservationID is required when CapacityBlock is enabled"),
+		},
+		{
+			name: "with a MarketType to MarketTypeCapacityBlock with capacityReservationID set to nil",
+			instance: &infrav1.Instance{
+				MarketType:            infrav1.MarketTypeCapacityBlock,
+				CapacityReservationID: mockCapacityReservationID,
+			},
+			expectedRequest: &ec2.InstanceMarketOptionsRequest{
+				MarketType: aws.String(ec2.MarketTypeCapacityBlock),
+			},
+			expectedError: nil,
+		},
+		{
+			name: "with a MarketType to MarketTypeCapacityBlock set with capacityReservationID set and empty Spot options specified",
+			instance: &infrav1.Instance{
+				MarketType:            infrav1.MarketTypeCapacityBlock,
+				SpotMarketOptions:     &infrav1.SpotMarketOptions{},
+				CapacityReservationID: mockCapacityReservationID,
+			},
+			expectedRequest: nil,
+			expectedError:   errors.New("can't create spot capacity-blocks, remove spot market request"),
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			request := getInstanceMarketOptionsRequest(tc.spotMarketOptions)
-			if !cmp.Equal(request, tc.expectedRequest) {
-				t.Errorf("Case: %s. Got: %v, expected: %v", tc.name, request, tc.expectedRequest)
+			request, err := getInstanceMarketOptionsRequest(tc.instance)
+			g := NewWithT(t)
+			if tc.expectedError != nil {
+				g.Expect(err.Error()).To(Equal(tc.expectedError.Error()))
+			} else {
+				g.Expect(err).To(BeNil())
 			}
+			g.Expect(request).To(Equal(tc.expectedRequest))
 		})
 	}
 }

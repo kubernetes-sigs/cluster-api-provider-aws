@@ -24,7 +24,6 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/errors"
 )
 
 // ManagedMachineAMIType specifies which AWS AMI to use for a managed MachinePool.
@@ -100,6 +99,28 @@ type AWSManagedMachinePoolSpec struct {
 	// +optional
 	RoleName string `json:"roleName,omitempty"`
 
+	// RolePath sets the path to the role. For more information about paths, see IAM Identifiers
+	// (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
+	// in the IAM User Guide.
+	//
+	// This parameter is optional. If it is not included, it defaults to a slash
+	// (/).
+	RolePath string `json:"rolePath,omitempty"`
+
+	// RolePermissionsBoundary sets the ARN of the managed policy that is used
+	// to set the permissions boundary for the role.
+	//
+	// A permissions boundary policy defines the maximum permissions that identity-based
+	// policies can grant to an entity, but does not grant permissions. Permissions
+	// boundaries do not define the maximum permissions that a resource-based policy
+	// can grant to an entity. To learn more, see Permissions boundaries for IAM
+	// entities (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)
+	// in the IAM User Guide.
+	//
+	// For more information about policy types, see Policy types (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html#access_policy-types)
+	// in the IAM User Guide.
+	RolePermissionsBoundary string `json:"rolePermissionsBoundary,omitempty"`
+
 	// AMIVersion defines the desired AMI release version. If no version number
 	// is supplied then the latest version for the Kubernetes version
 	// will be used
@@ -159,6 +180,10 @@ type AWSManagedMachinePoolSpec struct {
 	// are prohibited (https://docs.aws.amazon.com/eks/latest/userguide/launch-templates.html).
 	// +optional
 	AWSLaunchTemplate *AWSLaunchTemplate `json:"awsLaunchTemplate,omitempty"`
+
+	// AWSLifecycleHooks specifies lifecycle hooks for the managed node group.
+	// +optional
+	AWSLifecycleHooks []AWSLifecycleHook `json:"lifecycleHooks,omitempty"`
 }
 
 // ManagedMachinePoolScaling specifies scaling options.
@@ -216,7 +241,7 @@ type AWSManagedMachinePoolStatus struct {
 	// can be added as events to the MachinePool object and/or logged in the
 	// controller's output.
 	// +optional
-	FailureReason *errors.MachineStatusError `json:"failureReason,omitempty"`
+	FailureReason *string `json:"failureReason,omitempty"`
 
 	// FailureMessage will be set in the event that there is a terminal problem
 	// reconciling the MachinePool and will contain a more verbose string suitable

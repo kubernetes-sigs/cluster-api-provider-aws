@@ -1,0 +1,63 @@
+name: build-and-publish-ami-with-vars
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_builder_version:
+        description: "Image builder version"
+        required: true
+        default: 'v0.1.38'
+      target:
+        description: "target os"
+        required: true
+        type: choice
+        options:
+        - ubuntu-2204
+        - ubuntu-2404
+        - flatcar
+      packer_vars:
+        description: "Packer vars (json)"
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  buildandpublish:
+    name: Build and publish CAPA AMIs
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4
+        with:
+          repository: kubernetes-sigs/image-builder
+          ref: ${{ inputs.image_builder_version }}
+          fetch-depth: 0
+      - name: Create packer vars file
+        if: inputs.packer_vars != ''
+        env:
+          PACKER_VARS: ${{ inputs.packer_vars }}
+        run: |
+          echo "$PACKER_VARS" | jq -r > ./images/capi/vars.json
+          cat ./images/capi/vars.json
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-2
+          role-to-assume: arn:aws:iam::819546954734:role/gh-image-builder
+      - name: Install deps
+        run: make deps-ami
+        working-directory: ./images/capi
+      - name: Install Amazon EBS Plugin
+        working-directory: ./images/capi
+        run: ./.local/bin/packer plugins install github.com/hashicorp/amazon
+      - name: Build AMI with vars
+        if: inputs.packer_vars != ''
+        working-directory: ./images/capi
+        run: PACKER_VAR_FILES=vars.json make build-ami-${{ inputs.target }}
+      - name: Build AMI without vars
+        if: inputs.packer_vars == ''
+        working-directory: ./images/capi
+        run: make build-ami-${{ inputs.target }}
+

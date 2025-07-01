@@ -2,7 +2,7 @@
 
 Visit the [Cluster API documentation on E2E][cluster_api_e2e] for information on how to develop and run e2e tests. 
 
-[cluster_api_e2e]: https://cluster-api.sigs.k8s.io/developer/e2e.html
+[cluster_api_e2e]: https://cluster-api.sigs.k8s.io/developer/core/e2e
 
 ## Set up
 

@@ -25,10 +25,10 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
-	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
 
@@ -49,9 +49,9 @@ const (
 	// Arm64ArchitectureTag is the reference AWS uses for arm64 architecture images.
 	Arm64ArchitectureTag = "arm64"
 
-	// DefaultMachineAMIOwnerID is a heptio/VMware owned account. Please see:
-	// https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/487
-	DefaultMachineAMIOwnerID = "258751437250"
+	// DefaultMachineAMIOwnerID is a CNCF owned account. This was previously a VMWare owned account
+	// but the project lost access to it. See the k8s.io repo for the infra definition.
+	DefaultMachineAMIOwnerID = "819546954734"
 
 	// ubuntuOwnerID is Ubuntu owned account. Please see:
 	// https://ubuntu.com/server/docs/cloud-images/amazon-ec2
@@ -60,16 +60,16 @@ const (
 	ubuntuOwnerIDUsGov = "513442679011"
 
 	// Description regex for fetching Ubuntu AMIs for bastion host.
-	ubuntuImageDescription = "Canonical??Ubuntu??20.04?LTS??amd64?focal?image*"
+	ubuntuImageDescription = "Canonical??Ubuntu??24.04??amd64?noble?image*"
 
 	// defaultMachineAMILookupBaseOS is the default base operating system to use
 	// when looking up machine AMIs.
-	defaultMachineAMILookupBaseOS = "ubuntu-18.04"
+	defaultMachineAMILookupBaseOS = "ubuntu-24.04"
 
 	// DefaultAmiNameFormat is defined in the build/ directory of this project.
 	// The pattern is:
 	// 1. the string value `capa-ami-`
-	// 2. the baseOS of the AMI, for example: ubuntu-18.04, centos-7, amazon-2
+	// 2. the baseOS of the AMI, for example: ubuntu-24.04, centos-7, amazon-2
 	// 3. the kubernetes version as defined by the packages produced by kubernetes/release with or without v as a prefix, for example: 1.13.0, 1.12.5-mybuild.1, v1.17.3
 	// 4. a `-` followed by any additional characters.
 	DefaultAmiNameFormat = "capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*"
@@ -80,11 +80,20 @@ const (
 	// EKS AMI ID SSM Parameter name.
 	eksAmiSSMParameterFormat = "/aws/service/eks/optimized-ami/%s/amazon-linux-2/recommended/image_id"
 
+	// EKS AL2023 AMI ID SSM Parameter name.
+	eksAmiAl2023SSMParameterFormat = "/aws/service/eks/optimized-ami/%s/amazon-linux-2023/x86_64/standard/recommended/image_id"
+
 	// EKS ARM64 AMI ID SSM Parameter name.
 	eksARM64AmiSSMParameterFormat = "/aws/service/eks/optimized-ami/%s/amazon-linux-2-arm64/recommended/image_id"
 
+	// EKS ARM64 AL2023 AMI ID SSM Parameter name.
+	eksARM64AmiAl2023SSMParameterFormat = "/aws/service/eks/optimized-ami/%s/amazon-linux-2023/arm64/standard/recommended/image_id"
+
 	// EKS GPU AMI ID SSM Parameter name.
 	eksGPUAmiSSMParameterFormat = "/aws/service/eks/optimized-ami/%s/amazon-linux-2-gpu/recommended/image_id"
+
+	// EKS GPU AL2023 AMI ID SSM Parameter name.
+	eksGPUAmiAl2023SSMParameterFormat = "/aws/service/eks/optimized-ami/%s/amazon-linux-2023/x86_64/nvidia/recommended/image_id"
 )
 
 // AMILookup contains the parameters used to template AMI names used for lookup.
@@ -309,7 +318,7 @@ func (s *Service) defaultBastionAMILookup() (string, error) {
 	return *latestImage.ImageId, nil
 }
 
-func (s *Service) eksAMILookup(kubernetesVersion string, architecture string, amiType *infrav1.EKSAMILookupType) (string, error) {
+func (s *Service) eksAMILookup(ctx context.Context, kubernetesVersion string, architecture string, amiType *infrav1.EKSAMILookupType) (string, error) {
 	// format ssm parameter path properly
 	formattedVersion, err := formatVersionForEKS(kubernetesVersion)
 	if err != nil {
@@ -323,14 +332,24 @@ func (s *Service) eksAMILookup(kubernetesVersion string, architecture string, am
 	}
 
 	switch *amiType {
+	case infrav1.AmazonLinux2023GPU:
+		paramName = fmt.Sprintf(eksGPUAmiAl2023SSMParameterFormat, formattedVersion)
 	case infrav1.AmazonLinuxGPU:
 		paramName = fmt.Sprintf(eksGPUAmiSSMParameterFormat, formattedVersion)
 	default:
 		switch architecture {
 		case Arm64ArchitectureTag:
-			paramName = fmt.Sprintf(eksARM64AmiSSMParameterFormat, formattedVersion)
+			if *amiType == infrav1.AmazonLinux2023 {
+				paramName = fmt.Sprintf(eksARM64AmiAl2023SSMParameterFormat, formattedVersion)
+			} else {
+				paramName = fmt.Sprintf(eksARM64AmiSSMParameterFormat, formattedVersion)
+			}
 		case Amd64ArchitectureTag:
-			paramName = fmt.Sprintf(eksAmiSSMParameterFormat, formattedVersion)
+			if *amiType == infrav1.AmazonLinux2023 {
+				paramName = fmt.Sprintf(eksAmiAl2023SSMParameterFormat, formattedVersion)
+			} else {
+				paramName = fmt.Sprintf(eksAmiSSMParameterFormat, formattedVersion)
+			}
 		default:
 			return "", fmt.Errorf("cannot look up eks-optimized image for architecture %q", architecture)
 		}
@@ -340,7 +359,7 @@ func (s *Service) eksAMILookup(kubernetesVersion string, architecture string, am
 		Name: aws.String(paramName),
 	}
 
-	out, err := s.SSMClient.GetParameter(input)
+	out, err := s.SSMClient.GetParameter(ctx, input)
 	if err != nil {
 		record.Eventf(s.scope.InfraCluster(), "FailedGetParameter", "Failed to get ami SSM parameter %q: %v", paramName, err)
 

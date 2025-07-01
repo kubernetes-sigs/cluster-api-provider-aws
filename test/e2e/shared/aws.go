@@ -32,6 +32,13 @@ import (
 	"strings"
 	"time"
 
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	awscredsv2 "github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/eks"
+	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
+	"github.com/aws/aws-sdk-go-v2/service/iam"
+	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
 	awscreds "github.com/aws/aws-sdk-go/aws/credentials"
@@ -42,10 +49,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecrpublic"
 	"github.com/aws/aws-sdk-go/service/efs"
-	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/aws/aws-sdk-go/service/elb"
-	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/servicequotas"
+	"github.com/aws/aws-sdk-go/service/sts"
 	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -377,8 +383,10 @@ func NewAWSSession() client.ConfigProvider {
 	return sess
 }
 
-func NewAWSSessionRepoWithKey(accessKey *iam.AccessKey) client.ConfigProvider {
+func NewAWSSessionRepoWithKey(accessKey *iamtypes.AccessKey) client.ConfigProvider {
 	By("Getting an AWS IAM session - from access key")
+	Expect(accessKey.AccessKeyId).NotTo(BeNil())
+	Expect(accessKey.SecretAccessKey).NotTo(BeNil())
 	config := aws.NewConfig().WithCredentialsChainVerboseErrors(true).WithRegion("us-east-1")
 	config.Credentials = awscreds.NewStaticCredentials(*accessKey.AccessKeyId, *accessKey.SecretAccessKey, "")
 
@@ -391,8 +399,10 @@ func NewAWSSessionRepoWithKey(accessKey *iam.AccessKey) client.ConfigProvider {
 	return sess
 }
 
-func NewAWSSessionWithKey(accessKey *iam.AccessKey) client.ConfigProvider {
+func NewAWSSessionWithKey(accessKey *iamtypes.AccessKey) client.ConfigProvider {
 	By("Getting an AWS IAM session - from access key")
+	Expect(accessKey.AccessKeyId).NotTo(BeNil())
+	Expect(accessKey.SecretAccessKey).NotTo(BeNil())
 	region, err := credentials.ResolveRegion("")
 	Expect(err).NotTo(HaveOccurred())
 	config := aws.NewConfig().WithCredentialsChainVerboseErrors(true).WithRegion(region)
@@ -407,8 +417,54 @@ func NewAWSSessionWithKey(accessKey *iam.AccessKey) client.ConfigProvider {
 	return sess
 }
 
+func NewAWSSessionV2() *awsv2.Config {
+	By("Getting an AWS IAM session - from environment")
+	region, err := credentials.ResolveRegion("")
+	Expect(err).NotTo(HaveOccurred())
+	optFns := []func(*config.LoadOptions) error{
+		config.WithRegion(region),
+	}
+	cfg, err := config.LoadDefaultConfig(context.Background(), optFns...)
+	Expect(err).NotTo(HaveOccurred())
+	_, err = cfg.Credentials.Retrieve(context.Background())
+	Expect(err).NotTo(HaveOccurred())
+	return &cfg
+}
+
+func NewAWSSessionRepoWithKeyV2(accessKey *iamtypes.AccessKey) *awsv2.Config {
+	By("Getting an AWS IAM session - from access key")
+	region, err := credentials.ResolveRegion("us-east-1")
+	Expect(err).NotTo(HaveOccurred())
+	staticCredProvider := awscredsv2.NewStaticCredentialsProvider(awsv2.ToString(accessKey.AccessKeyId), awsv2.ToString(accessKey.SecretAccessKey), "")
+	optFns := []func(*config.LoadOptions) error{
+		config.WithRegion(region),
+		config.WithCredentialsProvider(staticCredProvider),
+	}
+	cfg, err := config.LoadDefaultConfig(context.Background(), optFns...)
+	Expect(err).NotTo(HaveOccurred())
+	_, err = cfg.Credentials.Retrieve(context.Background())
+	Expect(err).NotTo(HaveOccurred())
+	return &cfg
+}
+
+func NewAWSSessionWithKeyV2(accessKey *iamtypes.AccessKey) *awsv2.Config {
+	By("Getting an AWS IAM session - from access key")
+	region, err := credentials.ResolveRegion("")
+	Expect(err).NotTo(HaveOccurred())
+	staticCredProvider := awscredsv2.NewStaticCredentialsProvider(awsv2.ToString(accessKey.AccessKeyId), awsv2.ToString(accessKey.SecretAccessKey), "")
+	optFns := []func(*config.LoadOptions) error{
+		config.WithRegion(region),
+		config.WithCredentialsProvider(staticCredProvider),
+	}
+	cfg, err := config.LoadDefaultConfig(context.Background(), optFns...)
+	Expect(err).NotTo(HaveOccurred())
+	_, err = cfg.Credentials.Retrieve(context.Background())
+	Expect(err).NotTo(HaveOccurred())
+	return &cfg
+}
+
 // createCloudFormationStack ensures the cloudformation stack is up to date.
-func createCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Template, tags map[string]string) error {
+func createCloudFormationStack(ctx context.Context, cfg *awsv2.Config, prov client.ConfigProvider, t *cfn_bootstrap.Template, tags map[string]string) error {
 	By(fmt.Sprintf("Creating AWS CloudFormation stack for AWS IAM resources: stack-name=%s", t.Spec.StackName))
 	cfnClient := cfn.New(prov)
 	// CloudFormation stack will clean up on a failure, we don't need an Eventually here.
@@ -420,8 +476,8 @@ func createCloudFormationStack(prov client.ConfigProvider, t *cfn_bootstrap.Temp
 
 		// always clean up on a failure because we could leak these resources and the next cloud formation create would
 		// fail with the same problem.
-		deleteMultitenancyRoles(prov)
-		deleteResourcesInCloudFormation(prov, t)
+		deleteMultitenancyRoles(ctx, cfg)
+		deleteResourcesInCloudFormation(ctx, cfg, t)
 		return err
 	}
 
@@ -460,9 +516,9 @@ func spewCloudFormationResources(cfnClient *cfn.CloudFormation, t *cfn_bootstrap
 	}
 }
 
-func SetMultitenancyEnvVars(prov client.ConfigProvider) error {
+func SetMultitenancyEnvVars(ctx context.Context, cfg *awsv2.Config) error {
 	for _, roles := range MultiTenancyRoles {
-		if err := roles.SetEnvVars(prov); err != nil {
+		if err := roles.SetEnvVars(ctx, cfg); err != nil {
 			return err
 		}
 	}
@@ -470,10 +526,11 @@ func SetMultitenancyEnvVars(prov client.ConfigProvider) error {
 }
 
 // Delete resources that already exists.
-func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstrap.Template) {
-	iamSvc := iam.New(prov)
+func deleteResourcesInCloudFormation(ctx context.Context, cfg *awsv2.Config, t *cfn_bootstrap.Template) {
+	iamSvc := iam.NewFromConfig(*cfg)
 	temp := *renderCustomCloudFormation(t)
 	var (
+		iamUsers         []*cfn_iam.User
 		iamRoles         []*cfn_iam.Role
 		instanceProfiles []*cfn_iam.InstanceProfile
 		policies         []*cfn_iam.ManagedPolicy
@@ -484,6 +541,9 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 	// temp.Resources is a map. Traversing that directly results in undetermined order.
 	for _, val := range temp.Resources {
 		switch val.AWSCloudFormationType() {
+		case configservice.ResourceTypeAwsIamUser:
+			user := val.(*cfn_iam.User)
+			iamUsers = append(iamUsers, user)
 		case configservice.ResourceTypeAwsIamRole:
 			role := val.(*cfn_iam.Role)
 			iamRoles = append(iamRoles, role)
@@ -498,63 +558,80 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 			groups = append(groups, group)
 		}
 	}
+	for _, user := range iamUsers {
+		By(fmt.Sprintf("deleting the following user: %q", user.UserName))
+		repeat := false
+		Eventually(func(gomega Gomega) bool {
+			err := DeleteUser(ctx, cfg, user.UserName)
+			if err != nil && !repeat {
+				By(fmt.Sprintf("failed to delete user '%q'; reason: %+v", user.UserName, err))
+				repeat = true
+			}
+			var noSuchEntityErr *iamtypes.NoSuchEntityException
+			return err == nil || errors.As(err, &noSuchEntityErr)
+		}, 5*time.Minute, 5*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed deleting the user: %q", user.UserName))
+	}
 	for _, role := range iamRoles {
 		By(fmt.Sprintf("deleting the following role: %s", role.RoleName))
 		repeat := false
 		Eventually(func(gomega Gomega) bool {
-			err := DeleteRole(prov, role.RoleName)
+			err := DeleteRole(ctx, cfg, role.RoleName)
 			if err != nil && !repeat {
 				By(fmt.Sprintf("failed to delete role '%s'; reason: %+v", role.RoleName, err))
 				repeat = true
 			}
-			code, ok := awserrors.Code(err)
-			return err == nil || (ok && code == iam.ErrCodeNoSuchEntityException)
+			var noSuchEntityErr *iamtypes.NoSuchEntityException
+			return err == nil || errors.As(err, &noSuchEntityErr)
 		}, 5*time.Minute, 5*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed deleting the following role: %q", role.RoleName))
 	}
 	for _, profile := range instanceProfiles {
 		By(fmt.Sprintf("cleanup for profile with name '%s'", profile.InstanceProfileName))
 		repeat := false
 		Eventually(func(gomega Gomega) bool {
-			_, err := iamSvc.DeleteInstanceProfile(&iam.DeleteInstanceProfileInput{InstanceProfileName: aws.String(profile.InstanceProfileName)})
+			_, err := iamSvc.DeleteInstanceProfile(ctx, &iam.DeleteInstanceProfileInput{
+				InstanceProfileName: aws.String(profile.InstanceProfileName),
+			})
 			if err != nil && !repeat {
 				By(fmt.Sprintf("failed to delete role '%s'; reason: %+v", profile.InstanceProfileName, err))
 				repeat = true
 			}
-			code, ok := awserrors.Code(err)
-			return err == nil || (ok && code == iam.ErrCodeNoSuchEntityException)
+			var noSuchEntityErr *iamtypes.NoSuchEntityException
+			return err == nil || errors.As(err, &noSuchEntityErr)
 		}, 5*time.Minute, 5*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed cleaning up profile with name %q", profile.InstanceProfileName))
 	}
 	for _, group := range groups {
 		repeat := false
 		Eventually(func(gomega Gomega) bool {
-			_, err := iamSvc.DeleteGroup(&iam.DeleteGroupInput{GroupName: aws.String(group.GroupName)})
+			_, err := iamSvc.DeleteGroup(ctx, &iam.DeleteGroupInput{
+				GroupName: aws.String(group.GroupName),
+			})
 			if err != nil && !repeat {
 				By(fmt.Sprintf("failed to delete group '%s'; reason: %+v", group.GroupName, err))
 				repeat = true
 			}
-			code, ok := awserrors.Code(err)
-			return err == nil || (ok && code == iam.ErrCodeNoSuchEntityException)
+			var noSuchEntityErr *iamtypes.NoSuchEntityException
+			return err == nil || errors.As(err, &noSuchEntityErr)
 		}, 5*time.Minute, 5*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed deleting group %q", group.GroupName))
 	}
 	for _, policy := range policies {
-		policies, err := iamSvc.ListPolicies(&iam.ListPoliciesInput{})
+		listPoliciesOutput, err := iamSvc.ListPolicies(ctx, &iam.ListPoliciesInput{})
 		Expect(err).NotTo(HaveOccurred())
-		if len(policies.Policies) > 0 {
-			for _, p := range policies.Policies {
-				if aws.StringValue(p.PolicyName) == policy.ManagedPolicyName {
-					By(fmt.Sprintf("cleanup for policy '%s'", p.String()))
+		if len(listPoliciesOutput.Policies) > 0 {
+			for _, p := range listPoliciesOutput.Policies {
+				if awsv2.ToString(p.PolicyName) == policy.ManagedPolicyName {
+					By(fmt.Sprintf("cleanup for policy '%s'", awsv2.ToString(p.PolicyName)))
 					repeat := false
 					Eventually(func(gomega Gomega) bool {
-						response, err := iamSvc.DeletePolicy(&iam.DeletePolicyInput{
+						_, err := iamSvc.DeletePolicy(ctx, &iam.DeletePolicyInput{
 							PolicyArn: p.Arn,
 						})
 						if err != nil && !repeat {
-							By(fmt.Sprintf("failed to delete policy '%s'; reason: %+v, response: %s", policy.Description, err, response.String()))
+							By(fmt.Sprintf("failed to delete policy '%s'; reason: %+v", policy.Description, err))
 							repeat = true
 						}
-						code, ok := awserrors.Code(err)
-						return err == nil || (ok && code == iam.ErrCodeNoSuchEntityException)
-					}, 5*time.Minute, 5*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed to delete policy %q", p.String()))
+						var noSuchEntityErr *iamtypes.NoSuchEntityException
+						return err == nil || errors.As(err, &noSuchEntityErr)
+					}, 5*time.Minute, 5*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed to delete policy %q", awsv2.ToString(p.PolicyName)))
 					// TODO: why is there a break here? Don't we want to clean up everything?
 					break
 				}
@@ -564,33 +641,35 @@ func deleteResourcesInCloudFormation(prov client.ConfigProvider, t *cfn_bootstra
 }
 
 // TODO: remove once test infra accounts are fixed.
-func deleteMultitenancyRoles(prov client.ConfigProvider) {
-	if err := DeleteRole(prov, "multi-tenancy-role"); err != nil {
+func deleteMultitenancyRoles(ctx context.Context, cfg *awsv2.Config) {
+	if err := DeleteRole(ctx, cfg, "multi-tenancy-role"); err != nil {
 		By(fmt.Sprintf("failed to delete role multi-tenancy-role %s", err))
 	}
-	if err := DeleteRole(prov, "multi-tenancy-nested-role"); err != nil {
+	if err := DeleteRole(ctx, cfg, "multi-tenancy-nested-role"); err != nil {
 		By(fmt.Sprintf("failed to delete role multi-tenancy-nested-role %s", err))
 	}
 }
 
 // detachAllPoliciesForRole detaches all policies for role.
-func detachAllPoliciesForRole(prov client.ConfigProvider, name string) error {
-	iamSvc := iam.New(prov)
+func detachAllPoliciesForRole(ctx context.Context, cfg *awsv2.Config, name string) error {
+	iamSvc := iam.NewFromConfig(*cfg)
 
 	input := &iam.ListAttachedRolePoliciesInput{
-		RoleName: &name,
+		RoleName: aws.String(name),
 	}
-	policies, err := iamSvc.ListAttachedRolePolicies(input)
+
+	policies, err := iamSvc.ListAttachedRolePolicies(ctx, input)
 	if err != nil {
 		return errors.New("error fetching policies for role")
 	}
+
 	for _, p := range policies.AttachedPolicies {
 		input := &iam.DetachRolePolicyInput{
 			RoleName:  aws.String(name),
 			PolicyArn: p.PolicyArn,
 		}
 
-		_, err := iamSvc.DetachRolePolicy(input)
+		_, err := iamSvc.DetachRolePolicy(ctx, input)
 		if err != nil {
 			return errors.New("failed detaching policy from a role")
 		}
@@ -598,21 +677,17 @@ func detachAllPoliciesForRole(prov client.ConfigProvider, name string) error {
 	return nil
 }
 
-// DeleteRole deletes roles in a best effort manner.
-func DeleteRole(prov client.ConfigProvider, name string) error {
-	iamSvc := iam.New(prov)
+// DeleteUser deletes an IAM user in a best effort manner.
+func DeleteUser(ctx context.Context, cfg *awsv2.Config, name string) error {
+	iamSvc := iam.NewFromConfig(*cfg)
 
-	// if role does not exist, return.
-	_, err := iamSvc.GetRole(&iam.GetRoleInput{RoleName: aws.String(name)})
+	// if user does not exist, return.
+	_, err := iamSvc.GetUser(ctx, &iam.GetUserInput{UserName: aws.String(name)})
 	if err != nil {
 		return err
 	}
 
-	if err := detachAllPoliciesForRole(prov, name); err != nil {
-		return err
-	}
-
-	_, err = iamSvc.DeleteRole(&iam.DeleteRoleInput{RoleName: aws.String(name)})
+	_, err = iamSvc.DeleteUser(ctx, &iam.DeleteUserInput{UserName: aws.String(name)})
 	if err != nil {
 		return err
 	}
@@ -620,19 +695,55 @@ func DeleteRole(prov client.ConfigProvider, name string) error {
 	return nil
 }
 
-func GetPolicyArn(prov client.ConfigProvider, name string) string {
-	iamSvc := iam.New(prov)
-	policyList, err := iamSvc.ListPolicies(&iam.ListPoliciesInput{
-		Scope: aws.String(iam.PolicyScopeTypeLocal),
+// DeleteRole deletes roles in a best effort manner.
+func DeleteRole(ctx context.Context, cfg *awsv2.Config, name string) error {
+	iamSvc := iam.NewFromConfig(*cfg)
+
+	// if role does not exist, return.
+	_, err := iamSvc.GetRole(ctx, &iam.GetRoleInput{RoleName: aws.String(name)})
+	if err != nil {
+		return err
+	}
+
+	if err := detachAllPoliciesForRole(ctx, cfg, name); err != nil {
+		return err
+	}
+
+	_, err = iamSvc.DeleteRole(ctx, &iam.DeleteRoleInput{RoleName: aws.String(name)})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func GetPolicyArn(ctx context.Context, cfg awsv2.Config, name string) string {
+	iamSvc := iam.NewFromConfig(cfg)
+
+	policyList, err := iamSvc.ListPolicies(ctx, &iam.ListPoliciesInput{
+		Scope: iamtypes.PolicyScopeTypeLocal,
 	})
 	Expect(err).NotTo(HaveOccurred())
 
 	for _, policy := range policyList.Policies {
-		if aws.StringValue(policy.PolicyName) == name {
-			return aws.StringValue(policy.Arn)
+		if awsv2.ToString(policy.PolicyName) == name {
+			return awsv2.ToString(policy.Arn)
 		}
 	}
 	return ""
+}
+
+func logAccountDetails(prov client.ConfigProvider) {
+	By("Getting AWS account details")
+	stsSvc := sts.New(prov)
+
+	output, err := stsSvc.GetCallerIdentity(&sts.GetCallerIdentityInput{})
+	if err != nil {
+		fmt.Fprintf(GinkgoWriter, "Couldn't get sts caller identity: err=%s\n", err)
+		return
+	}
+
+	fmt.Fprintf(GinkgoWriter, "Using AWS account: %s\n", *output.Account)
 }
 
 // deleteCloudFormationStack removes the provisioned clusterawsadm stack.
@@ -667,6 +778,9 @@ func ensureTestImageUploaded(e2eCtx *E2EContext) error {
 	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 		output, err := ecrSvc.CreateRepository(&ecrpublic.CreateRepositoryInput{
 			RepositoryName: aws.String("capa/update"),
+			CatalogData: &ecrpublic.RepositoryCatalogDataInput{
+				AboutText: aws.String("Created by cluster-api-provider-aws/test/e2e/shared/aws.go for E2E tests"),
+			},
 		})
 
 		if err != nil {
@@ -735,21 +849,25 @@ func ensureTestImageUploaded(e2eCtx *E2EContext) error {
 
 // ensureNoServiceLinkedRoles removes an auto-created IAM role, and tests
 // the controller's IAM permissions to use ELB and Spot instances successfully.
-func ensureNoServiceLinkedRoles(prov client.ConfigProvider) {
+func ensureNoServiceLinkedRoles(ctx context.Context, cfg *awsv2.Config) {
+	iamSvc := iam.NewFromConfig(*cfg)
+
 	By("Deleting AWS IAM Service Linked Role: role-name=AWSServiceRoleForElasticLoadBalancing")
-	iamSvc := iam.New(prov)
-	_, err := iamSvc.DeleteServiceLinkedRole(&iam.DeleteServiceLinkedRoleInput{
+	_, err := iamSvc.DeleteServiceLinkedRole(ctx, &iam.DeleteServiceLinkedRoleInput{
 		RoleName: aws.String("AWSServiceRoleForElasticLoadBalancing"),
 	})
-	if code, _ := awserrors.Code(err); code != iam.ErrCodeNoSuchEntityException {
+
+	var noSuchEntityErr *iamtypes.NoSuchEntityException
+	if !errors.As(err, &noSuchEntityErr) {
 		Expect(err).NotTo(HaveOccurred())
 	}
 
 	By("Deleting AWS IAM Service Linked Role: role-name=AWSServiceRoleForEC2Spot")
-	_, err = iamSvc.DeleteServiceLinkedRole(&iam.DeleteServiceLinkedRoleInput{
+	_, err = iamSvc.DeleteServiceLinkedRole(ctx, &iam.DeleteServiceLinkedRoleInput{
 		RoleName: aws.String("AWSServiceRoleForEC2Spot"),
 	})
-	if code, _ := awserrors.Code(err); code != iam.ErrCodeNoSuchEntityException {
+
+	if !errors.As(err, &noSuchEntityErr) {
 		Expect(err).NotTo(HaveOccurred())
 	}
 }
@@ -779,7 +897,7 @@ func ensureStackTags(prov client.ConfigProvider, stackName string, expectedTags 
 }
 
 // encodeCredentials leverages clusterawsadm to encode AWS credentials.
-func encodeCredentials(accessKey *iam.AccessKey, region string) string {
+func encodeCredentials(accessKey *iamtypes.AccessKey, region string) string {
 	creds := credentials.AWSCredentials{
 		Region:          region,
 		AccessKeyID:     *accessKey.AccessKeyId,
@@ -792,31 +910,39 @@ func encodeCredentials(accessKey *iam.AccessKey, region string) string {
 
 // newUserAccessKey generates a new AWS Access Key pair based off of the
 // bootstrap user. This tests that the CloudFormation policy is correct.
-func newUserAccessKey(prov client.ConfigProvider, userName string) *iam.AccessKey {
-	iamSvc := iam.New(prov)
-	keyOuts, _ := iamSvc.ListAccessKeys(&iam.ListAccessKeysInput{
+func newUserAccessKey(ctx context.Context, cfg *awsv2.Config, userName string) *iamtypes.AccessKey {
+	iamSvc := iam.NewFromConfig(*cfg)
+
+	keyOuts, _ := iamSvc.ListAccessKeys(ctx, &iam.ListAccessKeysInput{
 		UserName: aws.String(userName),
 	})
 	for i := range keyOuts.AccessKeyMetadata {
 		By(fmt.Sprintf("Deleting an existing access key: user-name=%s", userName))
-		_, err := iamSvc.DeleteAccessKey(&iam.DeleteAccessKeyInput{
+		_, err := iamSvc.DeleteAccessKey(ctx, &iam.DeleteAccessKeyInput{
 			UserName:    aws.String(userName),
 			AccessKeyId: keyOuts.AccessKeyMetadata[i].AccessKeyId,
 		})
 		Expect(err).NotTo(HaveOccurred())
 	}
 	By(fmt.Sprintf("Creating an access key: user-name=%s", userName))
-	out, err := iamSvc.CreateAccessKey(&iam.CreateAccessKeyInput{UserName: aws.String(userName)})
+	out, err := iamSvc.CreateAccessKey(ctx, &iam.CreateAccessKeyInput{UserName: aws.String(userName)})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(out.AccessKey).ToNot(BeNil())
+	Expect(out.AccessKey.AccessKeyId).ToNot(BeNil())
+	Expect(out.AccessKey.SecretAccessKey).ToNot(BeNil())
 
-	return &iam.AccessKey{
+	return &iamtypes.AccessKey{
 		AccessKeyId:     out.AccessKey.AccessKeyId,
 		SecretAccessKey: out.AccessKey.SecretAccessKey,
 	}
 }
 
 func DumpCloudTrailEvents(e2eCtx *E2EContext) {
+	if e2eCtx.BootstrapUserAWSSession == nil {
+		Fail("Couldn't dump cloudtrail events: no AWS client was set up (please look at previous errors)")
+		return
+	}
+
 	client := cloudtrail.New(e2eCtx.BootstrapUserAWSSession)
 	events := []*cloudtrail.Event{}
 	err := client.LookupEventsPages(
@@ -830,15 +956,15 @@ func DumpCloudTrailEvents(e2eCtx *E2EContext) {
 		},
 	)
 	if err != nil {
-		fmt.Fprintf(GinkgoWriter, "couldn't get AWS CloudTrail events: err=%v", err)
+		fmt.Fprintf(GinkgoWriter, "Couldn't get AWS CloudTrail events: err=%v\n", err)
 	}
 	logPath := filepath.Join(e2eCtx.Settings.ArtifactFolder, "cloudtrail-events.yaml")
 	dat, err := yaml.Marshal(events)
 	if err != nil {
-		fmt.Fprintf(GinkgoWriter, "Failed to marshal AWS CloudTrail events: err=%v", err)
+		fmt.Fprintf(GinkgoWriter, "Failed to marshal AWS CloudTrail events: err=%v\n", err)
 	}
-	if err := os.WriteFile(logPath, dat, 0600); err != nil {
-		fmt.Fprintf(GinkgoWriter, "couldn't write cloudtrail events to file: file=%s err=%s", logPath, err)
+	if err := os.WriteFile(logPath, dat, 0o600); err != nil {
+		fmt.Fprintf(GinkgoWriter, "Couldn't write cloudtrail events to file: file=%q err=%s\n", logPath, err)
 		return
 	}
 }
@@ -846,7 +972,7 @@ func DumpCloudTrailEvents(e2eCtx *E2EContext) {
 // conformanceImageID looks up a specific image for a given
 // Kubernetes version in the e2econfig.
 func conformanceImageID(e2eCtx *E2EContext) string {
-	ver := e2eCtx.E2EConfig.GetVariable("CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION")
+	ver := e2eCtx.E2EConfig.MustGetVariable("CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION")
 	amiName := AMIPrefix + ver + "*"
 
 	By(fmt.Sprintf("Searching for AMI: name=%s", amiName))
@@ -954,48 +1080,51 @@ func (s *ServiceQuota) updateServiceQuotaRequestStatus(serviceQuotasClient *serv
 }
 
 // DumpEKSClusters dumps the EKS clusters in the environment.
-func DumpEKSClusters(_ context.Context, e2eCtx *E2EContext) {
+func DumpEKSClusters(ctx context.Context, e2eCtx *E2EContext) {
 	name := "no-bootstrap-cluster"
 	if e2eCtx.Environment.BootstrapClusterProxy != nil {
 		name = e2eCtx.Environment.BootstrapClusterProxy.GetName()
 	}
 	logPath := filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", name, "aws-resources")
 	if err := os.MkdirAll(logPath, os.ModePerm); err != nil {
-		fmt.Fprintf(GinkgoWriter, "couldn't create directory: path=%s, err=%s", logPath, err)
+		fmt.Fprintf(GinkgoWriter, "Couldn't create directory: path=%q, err=%s\n", logPath, err)
 	}
-	fmt.Fprintf(GinkgoWriter, "folder created for eks clusters: %s\n", logPath)
+	fmt.Fprintf(GinkgoWriter, "Folder created for eks clusters: %q\n", logPath)
 
 	input := &eks.ListClustersInput{}
-	var eksClient *eks.EKS
-	if e2eCtx.BootstrapUserAWSSession == nil {
-		eksClient = eks.New(e2eCtx.AWSSession)
+	var eksClient *eks.Client
+	if e2eCtx.BootstrapUserAWSSessionV2 == nil && e2eCtx.AWSSessionV2 != nil {
+		eksClient = eks.NewFromConfig(*e2eCtx.AWSSessionV2)
+	} else if e2eCtx.BootstrapUserAWSSessionV2 != nil {
+		eksClient = eks.NewFromConfig(*e2eCtx.BootstrapUserAWSSessionV2)
 	} else {
-		eksClient = eks.New(e2eCtx.BootstrapUserAWSSession)
+		Fail("Couldn't list EKS clusters: no AWS client was set up (please look at previous errors)")
+		return
 	}
 
-	output, err := eksClient.ListClusters(input)
+	output, err := eksClient.ListClusters(ctx, input)
 	if err != nil {
-		fmt.Fprintf(GinkgoWriter, "couldn't list EKS clusters: err=%s", err)
+		fmt.Fprintf(GinkgoWriter, "Couldn't list EKS clusters: err=%s\n", err)
 		return
 	}
 
 	for _, clusterName := range output.Clusters {
 		describeInput := &eks.DescribeClusterInput{
-			Name: clusterName,
+			Name: aws.String(clusterName),
 		}
-		describeOutput, err := eksClient.DescribeCluster(describeInput)
+		describeOutput, err := eksClient.DescribeCluster(ctx, describeInput)
 		if err != nil {
-			fmt.Fprintf(GinkgoWriter, "couldn't describe EKS clusters: name=%s err=%s", *clusterName, err)
+			fmt.Fprintf(GinkgoWriter, "Couldn't describe EKS clusters: name=%q err=%s\n", clusterName, err)
 			continue
 		}
 		dumpEKSCluster(describeOutput.Cluster, logPath)
 	}
 }
 
-func dumpEKSCluster(cluster *eks.Cluster, logPath string) {
+func dumpEKSCluster(cluster *ekstypes.Cluster, logPath string) {
 	clusterYAML, err := yaml.Marshal(cluster)
 	if err != nil {
-		fmt.Fprintf(GinkgoWriter, "couldn't marshal cluster to yaml: name=%s err=%s", *cluster.Name, err)
+		fmt.Fprintf(GinkgoWriter, "Couldn't marshal cluster to yaml: name=%q err=%s\n", *cluster.Name, err)
 		return
 	}
 
@@ -1003,13 +1132,13 @@ func dumpEKSCluster(cluster *eks.Cluster, logPath string) {
 	clusterLog := path.Join(logPath, fileName)
 	f, err := os.OpenFile(clusterLog, os.O_APPEND|os.O_CREATE|os.O_WRONLY, os.ModePerm) //nolint:gosec
 	if err != nil {
-		fmt.Fprintf(GinkgoWriter, "couldn't open log file: name=%s err=%s", clusterLog, err)
+		fmt.Fprintf(GinkgoWriter, "Couldn't open log file: name=%q err=%s\n", clusterLog, err)
 		return
 	}
 	defer f.Close()
 
-	if err := os.WriteFile(f.Name(), clusterYAML, 0600); err != nil {
-		fmt.Fprintf(GinkgoWriter, "couldn't write cluster yaml to file: name=%s file=%s err=%s", *cluster.Name, f.Name(), err)
+	if err := os.WriteFile(f.Name(), clusterYAML, 0o600); err != nil {
+		fmt.Fprintf(GinkgoWriter, "Couldn't write cluster yaml to file: name=%q file=%q err=%s\n", *cluster.Name, f.Name(), err)
 		return
 	}
 }
@@ -1207,7 +1336,7 @@ func GetVPCByName(e2eCtx *E2EContext, vpcName string) (*ec2.Vpc, error) {
 	if err != nil {
 		return nil, err
 	}
-	if result.Vpcs == nil || len(result.Vpcs) == 0 {
+	if len(result.Vpcs) == 0 {
 		return nil, awserrors.NewNotFound("Vpc not found")
 	}
 	return result.Vpcs[0], nil
@@ -2291,7 +2420,7 @@ func GetMountTarget(e2eCtx *E2EContext, mountTargetID string) (*efs.MountTargetD
 	if err != nil {
 		return nil, err
 	}
-	if result.MountTargets == nil || len(result.MountTargets) == 0 {
+	if len(result.MountTargets) == 0 {
 		return nil, &efs.MountTargetNotFound{
 			ErrorCode: aws.String(efs.ErrCodeMountTargetNotFound),
 		}

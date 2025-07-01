@@ -247,12 +247,12 @@ func TestGetAPIServerClassicELBSpecControlPlaneLoadBalancer(t *testing.T) {
 		{
 			name: "Should create load balancer spec if elb health check protocol specified in config",
 			lb: &infrav1.AWSLoadBalancerSpec{
-				HealthCheckProtocol: &infrav1.ELBProtocolTCP,
+				HealthCheckProtocol: &infrav1.ELBProtocolUDP,
 			},
 			mocks: func(m *mocks.MockEC2APIMockRecorder) {},
 			expect: func(t *testing.T, g *WithT, res *infrav1.LoadBalancer) {
 				t.Helper()
-				expectedTarget := fmt.Sprintf("%v:%d", infrav1.ELBProtocolTCP, infrav1.DefaultAPIServerPort)
+				expectedTarget := fmt.Sprintf("%v:%d", infrav1.ELBProtocolUDP, infrav1.DefaultAPIServerPort)
 				g.Expect(expectedTarget).To(Equal(res.HealthCheck.Target))
 			},
 		},
@@ -262,7 +262,7 @@ func TestGetAPIServerClassicELBSpecControlPlaneLoadBalancer(t *testing.T) {
 			mocks: func(m *mocks.MockEC2APIMockRecorder) {},
 			expect: func(t *testing.T, g *WithT, res *infrav1.LoadBalancer) {
 				t.Helper()
-				expectedTarget := fmt.Sprintf("%v:%d", infrav1.ELBProtocolSSL, infrav1.DefaultAPIServerPort)
+				expectedTarget := fmt.Sprintf("%v:%d", infrav1.ELBProtocolTCP, infrav1.DefaultAPIServerPort)
 				g.Expect(expectedTarget).To(Equal(res.HealthCheck.Target))
 			},
 		},
@@ -1572,7 +1572,8 @@ func TestReconcileTargetGroupsAndListeners(t *testing.T) {
 							Port:        aws.Int64(infrav1.DefaultAPIServerPort),
 							Protocol:    aws.String("TCP"),
 						},
-					}}, nil)
+					},
+				}, nil)
 			},
 			check: func(t *testing.T, tgs []*elbv2.TargetGroup, listeners []*elbv2.Listener, err error) {
 				t.Helper()
@@ -2275,6 +2276,9 @@ func TestReconcileV2LB(t *testing.T) {
 					},
 					nil,
 				)
+				m.WaitUntilLoadBalancerAvailableWithContext(gomock.Any(), gomock.Eq(&elbv2.DescribeLoadBalancersInput{
+					LoadBalancerArns: aws.StringSlice([]string{elbArn}),
+				})).Return(nil)
 			},
 			check: func(t *testing.T, lb *infrav1.LoadBalancer, err error) {
 				t.Helper()
@@ -2329,7 +2333,8 @@ func TestReconcileV2LB(t *testing.T) {
 								Matcher:            &elbv2.Matcher{},
 								TargetGroupArn:     aws.String(tgArn),
 								TargetGroupName:    aws.String("targetGroup"),
-							}},
+							},
+						},
 					}, nil)
 				m.ModifyLoadBalancerAttributes(&elbv2.ModifyLoadBalancerAttributesInput{
 					LoadBalancerArn: aws.String(elbArn),
@@ -2338,7 +2343,8 @@ func TestReconcileV2LB(t *testing.T) {
 							Key:   aws.String("load_balancing.cross_zone.enabled"),
 							Value: aws.String("false"),
 						},
-					}}).
+					},
+				}).
 					Return(&elbv2.ModifyLoadBalancerAttributesOutput{}, nil)
 
 				m.CreateTargetGroup(helpers.PartialMatchCreateTargetGroupInput(t, &elbv2.CreateTargetGroupInput{
@@ -2440,7 +2446,8 @@ func TestReconcileV2LB(t *testing.T) {
 							Port:        aws.Int64(infrav1.DefaultAPIServerPort),
 							Protocol:    aws.String("TCP"),
 						},
-					}}, nil)
+					},
+				}, nil)
 				m.DescribeLoadBalancerAttributes(&elbv2.DescribeLoadBalancerAttributesInput{LoadBalancerArn: aws.String(elbArn)}).Return(
 					&elbv2.DescribeLoadBalancerAttributesOutput{
 						Attributes: []*elbv2.LoadBalancerAttribute{
@@ -2476,6 +2483,10 @@ func TestReconcileV2LB(t *testing.T) {
 					LoadBalancerArn: aws.String(elbArn),
 					Subnets:         []*string{},
 				}).Return(&elbv2.SetSubnetsOutput{}, nil)
+
+				m.WaitUntilLoadBalancerAvailableWithContext(gomock.Any(), gomock.Eq(&elbv2.DescribeLoadBalancersInput{
+					LoadBalancerArns: aws.StringSlice([]string{elbArn}),
+				})).Return(nil)
 			},
 			check: func(t *testing.T, lb *infrav1.LoadBalancer, err error) {
 				t.Helper()
@@ -2658,6 +2669,12 @@ func TestReconcileLoadbalancers(t *testing.T) {
 					},
 					nil,
 				)
+				m.WaitUntilLoadBalancerAvailableWithContext(gomock.Any(), gomock.Eq(&elbv2.DescribeLoadBalancersInput{
+					LoadBalancerArns: aws.StringSlice([]string{elbArn}),
+				})).Return(nil)
+				m.WaitUntilLoadBalancerAvailableWithContext(gomock.Any(), gomock.Eq(&elbv2.DescribeLoadBalancersInput{
+					LoadBalancerArns: aws.StringSlice([]string{secondElbArn}),
+				})).Return(nil)
 			},
 			check: func(t *testing.T, firstLB *infrav1.LoadBalancer, secondLB *infrav1.LoadBalancer, err error) {
 				t.Helper()
@@ -3429,8 +3446,8 @@ func TestDescribeV2Loadbalancers(t *testing.T) {
 
 func TestChunkELBs(t *testing.T) {
 	base := "loadbalancer"
-	var names []string
-	for i := 0; i < 25; i++ {
+	names := make([]string, 0, 25)
+	for i := range 25 {
 		names = append(names, fmt.Sprintf("%s+%d", base, i))
 	}
 	tests := []struct {
@@ -3471,7 +3488,7 @@ func TestGetHealthCheckProtocol(t *testing.T) {
 		{
 			"default case",
 			&infrav1.AWSLoadBalancerSpec{},
-			"SSL:6443",
+			"TCP:6443",
 		},
 		{
 			"protocol http",

@@ -23,9 +23,9 @@ package mock_eksiface
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
-	request "github.com/aws/aws-sdk-go/aws/request"
-	eks "github.com/aws/aws-sdk-go/service/eks"
+	eks "github.com/aws/aws-sdk-go-v2/service/eks"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -52,3514 +52,666 @@ func (m *MockEKSAPI) EXPECT() *MockEKSAPIMockRecorder {
 	return m.recorder
 }
 
-// AssociateAccessPolicy mocks base method.
-func (m *MockEKSAPI) AssociateAccessPolicy(arg0 *eks.AssociateAccessPolicyInput) (*eks.AssociateAccessPolicyOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AssociateAccessPolicy", arg0)
-	ret0, _ := ret[0].(*eks.AssociateAccessPolicyOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// AssociateAccessPolicy indicates an expected call of AssociateAccessPolicy.
-func (mr *MockEKSAPIMockRecorder) AssociateAccessPolicy(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssociateAccessPolicy", reflect.TypeOf((*MockEKSAPI)(nil).AssociateAccessPolicy), arg0)
-}
-
-// AssociateAccessPolicyRequest mocks base method.
-func (m *MockEKSAPI) AssociateAccessPolicyRequest(arg0 *eks.AssociateAccessPolicyInput) (*request.Request, *eks.AssociateAccessPolicyOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AssociateAccessPolicyRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.AssociateAccessPolicyOutput)
-	return ret0, ret1
-}
-
-// AssociateAccessPolicyRequest indicates an expected call of AssociateAccessPolicyRequest.
-func (mr *MockEKSAPIMockRecorder) AssociateAccessPolicyRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssociateAccessPolicyRequest", reflect.TypeOf((*MockEKSAPI)(nil).AssociateAccessPolicyRequest), arg0)
-}
-
-// AssociateAccessPolicyWithContext mocks base method.
-func (m *MockEKSAPI) AssociateAccessPolicyWithContext(arg0 context.Context, arg1 *eks.AssociateAccessPolicyInput, arg2 ...request.Option) (*eks.AssociateAccessPolicyOutput, error) {
+// AssociateEncryptionConfig mocks base method.
+func (m *MockEKSAPI) AssociateEncryptionConfig(arg0 context.Context, arg1 *eks.AssociateEncryptionConfigInput, arg2 ...func(*eks.Options)) (*eks.AssociateEncryptionConfigOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "AssociateAccessPolicyWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.AssociateAccessPolicyOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// AssociateAccessPolicyWithContext indicates an expected call of AssociateAccessPolicyWithContext.
-func (mr *MockEKSAPIMockRecorder) AssociateAccessPolicyWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssociateAccessPolicyWithContext", reflect.TypeOf((*MockEKSAPI)(nil).AssociateAccessPolicyWithContext), varargs...)
-}
-
-// AssociateEncryptionConfig mocks base method.
-func (m *MockEKSAPI) AssociateEncryptionConfig(arg0 *eks.AssociateEncryptionConfigInput) (*eks.AssociateEncryptionConfigOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AssociateEncryptionConfig", arg0)
+	ret := m.ctrl.Call(m, "AssociateEncryptionConfig", varargs...)
 	ret0, _ := ret[0].(*eks.AssociateEncryptionConfigOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // AssociateEncryptionConfig indicates an expected call of AssociateEncryptionConfig.
-func (mr *MockEKSAPIMockRecorder) AssociateEncryptionConfig(arg0 interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) AssociateEncryptionConfig(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssociateEncryptionConfig", reflect.TypeOf((*MockEKSAPI)(nil).AssociateEncryptionConfig), arg0)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssociateEncryptionConfig", reflect.TypeOf((*MockEKSAPI)(nil).AssociateEncryptionConfig), varargs...)
 }
 
-// AssociateEncryptionConfigRequest mocks base method.
-func (m *MockEKSAPI) AssociateEncryptionConfigRequest(arg0 *eks.AssociateEncryptionConfigInput) (*request.Request, *eks.AssociateEncryptionConfigOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AssociateEncryptionConfigRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.AssociateEncryptionConfigOutput)
-	return ret0, ret1
-}
-
-// AssociateEncryptionConfigRequest indicates an expected call of AssociateEncryptionConfigRequest.
-func (mr *MockEKSAPIMockRecorder) AssociateEncryptionConfigRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssociateEncryptionConfigRequest", reflect.TypeOf((*MockEKSAPI)(nil).AssociateEncryptionConfigRequest), arg0)
-}
-
-// AssociateEncryptionConfigWithContext mocks base method.
-func (m *MockEKSAPI) AssociateEncryptionConfigWithContext(arg0 context.Context, arg1 *eks.AssociateEncryptionConfigInput, arg2 ...request.Option) (*eks.AssociateEncryptionConfigOutput, error) {
+// AssociateIdentityProviderConfig mocks base method.
+func (m *MockEKSAPI) AssociateIdentityProviderConfig(arg0 context.Context, arg1 *eks.AssociateIdentityProviderConfigInput, arg2 ...func(*eks.Options)) (*eks.AssociateIdentityProviderConfigOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "AssociateEncryptionConfigWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.AssociateEncryptionConfigOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// AssociateEncryptionConfigWithContext indicates an expected call of AssociateEncryptionConfigWithContext.
-func (mr *MockEKSAPIMockRecorder) AssociateEncryptionConfigWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssociateEncryptionConfigWithContext", reflect.TypeOf((*MockEKSAPI)(nil).AssociateEncryptionConfigWithContext), varargs...)
-}
-
-// AssociateIdentityProviderConfig mocks base method.
-func (m *MockEKSAPI) AssociateIdentityProviderConfig(arg0 *eks.AssociateIdentityProviderConfigInput) (*eks.AssociateIdentityProviderConfigOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AssociateIdentityProviderConfig", arg0)
+	ret := m.ctrl.Call(m, "AssociateIdentityProviderConfig", varargs...)
 	ret0, _ := ret[0].(*eks.AssociateIdentityProviderConfigOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // AssociateIdentityProviderConfig indicates an expected call of AssociateIdentityProviderConfig.
-func (mr *MockEKSAPIMockRecorder) AssociateIdentityProviderConfig(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssociateIdentityProviderConfig", reflect.TypeOf((*MockEKSAPI)(nil).AssociateIdentityProviderConfig), arg0)
-}
-
-// AssociateIdentityProviderConfigRequest mocks base method.
-func (m *MockEKSAPI) AssociateIdentityProviderConfigRequest(arg0 *eks.AssociateIdentityProviderConfigInput) (*request.Request, *eks.AssociateIdentityProviderConfigOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AssociateIdentityProviderConfigRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.AssociateIdentityProviderConfigOutput)
-	return ret0, ret1
-}
-
-// AssociateIdentityProviderConfigRequest indicates an expected call of AssociateIdentityProviderConfigRequest.
-func (mr *MockEKSAPIMockRecorder) AssociateIdentityProviderConfigRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssociateIdentityProviderConfigRequest", reflect.TypeOf((*MockEKSAPI)(nil).AssociateIdentityProviderConfigRequest), arg0)
-}
-
-// AssociateIdentityProviderConfigWithContext mocks base method.
-func (m *MockEKSAPI) AssociateIdentityProviderConfigWithContext(arg0 context.Context, arg1 *eks.AssociateIdentityProviderConfigInput, arg2 ...request.Option) (*eks.AssociateIdentityProviderConfigOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "AssociateIdentityProviderConfigWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.AssociateIdentityProviderConfigOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// AssociateIdentityProviderConfigWithContext indicates an expected call of AssociateIdentityProviderConfigWithContext.
-func (mr *MockEKSAPIMockRecorder) AssociateIdentityProviderConfigWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) AssociateIdentityProviderConfig(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssociateIdentityProviderConfigWithContext", reflect.TypeOf((*MockEKSAPI)(nil).AssociateIdentityProviderConfigWithContext), varargs...)
-}
-
-// CreateAccessEntry mocks base method.
-func (m *MockEKSAPI) CreateAccessEntry(arg0 *eks.CreateAccessEntryInput) (*eks.CreateAccessEntryOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateAccessEntry", arg0)
-	ret0, _ := ret[0].(*eks.CreateAccessEntryOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CreateAccessEntry indicates an expected call of CreateAccessEntry.
-func (mr *MockEKSAPIMockRecorder) CreateAccessEntry(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAccessEntry", reflect.TypeOf((*MockEKSAPI)(nil).CreateAccessEntry), arg0)
-}
-
-// CreateAccessEntryRequest mocks base method.
-func (m *MockEKSAPI) CreateAccessEntryRequest(arg0 *eks.CreateAccessEntryInput) (*request.Request, *eks.CreateAccessEntryOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateAccessEntryRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.CreateAccessEntryOutput)
-	return ret0, ret1
-}
-
-// CreateAccessEntryRequest indicates an expected call of CreateAccessEntryRequest.
-func (mr *MockEKSAPIMockRecorder) CreateAccessEntryRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAccessEntryRequest", reflect.TypeOf((*MockEKSAPI)(nil).CreateAccessEntryRequest), arg0)
-}
-
-// CreateAccessEntryWithContext mocks base method.
-func (m *MockEKSAPI) CreateAccessEntryWithContext(arg0 context.Context, arg1 *eks.CreateAccessEntryInput, arg2 ...request.Option) (*eks.CreateAccessEntryOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "CreateAccessEntryWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.CreateAccessEntryOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CreateAccessEntryWithContext indicates an expected call of CreateAccessEntryWithContext.
-func (mr *MockEKSAPIMockRecorder) CreateAccessEntryWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAccessEntryWithContext", reflect.TypeOf((*MockEKSAPI)(nil).CreateAccessEntryWithContext), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssociateIdentityProviderConfig", reflect.TypeOf((*MockEKSAPI)(nil).AssociateIdentityProviderConfig), varargs...)
 }
 
 // CreateAddon mocks base method.
-func (m *MockEKSAPI) CreateAddon(arg0 *eks.CreateAddonInput) (*eks.CreateAddonOutput, error) {
+func (m *MockEKSAPI) CreateAddon(arg0 context.Context, arg1 *eks.CreateAddonInput, arg2 ...func(*eks.Options)) (*eks.CreateAddonOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateAddon", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "CreateAddon", varargs...)
 	ret0, _ := ret[0].(*eks.CreateAddonOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateAddon indicates an expected call of CreateAddon.
-func (mr *MockEKSAPIMockRecorder) CreateAddon(arg0 interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) CreateAddon(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAddon", reflect.TypeOf((*MockEKSAPI)(nil).CreateAddon), arg0)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAddon", reflect.TypeOf((*MockEKSAPI)(nil).CreateAddon), varargs...)
 }
 
-// CreateAddonRequest mocks base method.
-func (m *MockEKSAPI) CreateAddonRequest(arg0 *eks.CreateAddonInput) (*request.Request, *eks.CreateAddonOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateAddonRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.CreateAddonOutput)
-	return ret0, ret1
-}
-
-// CreateAddonRequest indicates an expected call of CreateAddonRequest.
-func (mr *MockEKSAPIMockRecorder) CreateAddonRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAddonRequest", reflect.TypeOf((*MockEKSAPI)(nil).CreateAddonRequest), arg0)
-}
-
-// CreateAddonWithContext mocks base method.
-func (m *MockEKSAPI) CreateAddonWithContext(arg0 context.Context, arg1 *eks.CreateAddonInput, arg2 ...request.Option) (*eks.CreateAddonOutput, error) {
+// CreateCluster mocks base method.
+func (m *MockEKSAPI) CreateCluster(arg0 context.Context, arg1 *eks.CreateClusterInput, arg2 ...func(*eks.Options)) (*eks.CreateClusterOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "CreateAddonWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.CreateAddonOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CreateAddonWithContext indicates an expected call of CreateAddonWithContext.
-func (mr *MockEKSAPIMockRecorder) CreateAddonWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAddonWithContext", reflect.TypeOf((*MockEKSAPI)(nil).CreateAddonWithContext), varargs...)
-}
-
-// CreateCluster mocks base method.
-func (m *MockEKSAPI) CreateCluster(arg0 *eks.CreateClusterInput) (*eks.CreateClusterOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateCluster", arg0)
+	ret := m.ctrl.Call(m, "CreateCluster", varargs...)
 	ret0, _ := ret[0].(*eks.CreateClusterOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateCluster indicates an expected call of CreateCluster.
-func (mr *MockEKSAPIMockRecorder) CreateCluster(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCluster", reflect.TypeOf((*MockEKSAPI)(nil).CreateCluster), arg0)
-}
-
-// CreateClusterRequest mocks base method.
-func (m *MockEKSAPI) CreateClusterRequest(arg0 *eks.CreateClusterInput) (*request.Request, *eks.CreateClusterOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateClusterRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.CreateClusterOutput)
-	return ret0, ret1
-}
-
-// CreateClusterRequest indicates an expected call of CreateClusterRequest.
-func (mr *MockEKSAPIMockRecorder) CreateClusterRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateClusterRequest", reflect.TypeOf((*MockEKSAPI)(nil).CreateClusterRequest), arg0)
-}
-
-// CreateClusterWithContext mocks base method.
-func (m *MockEKSAPI) CreateClusterWithContext(arg0 context.Context, arg1 *eks.CreateClusterInput, arg2 ...request.Option) (*eks.CreateClusterOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "CreateClusterWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.CreateClusterOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CreateClusterWithContext indicates an expected call of CreateClusterWithContext.
-func (mr *MockEKSAPIMockRecorder) CreateClusterWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) CreateCluster(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateClusterWithContext", reflect.TypeOf((*MockEKSAPI)(nil).CreateClusterWithContext), varargs...)
-}
-
-// CreateEksAnywhereSubscription mocks base method.
-func (m *MockEKSAPI) CreateEksAnywhereSubscription(arg0 *eks.CreateEksAnywhereSubscriptionInput) (*eks.CreateEksAnywhereSubscriptionOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateEksAnywhereSubscription", arg0)
-	ret0, _ := ret[0].(*eks.CreateEksAnywhereSubscriptionOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CreateEksAnywhereSubscription indicates an expected call of CreateEksAnywhereSubscription.
-func (mr *MockEKSAPIMockRecorder) CreateEksAnywhereSubscription(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateEksAnywhereSubscription", reflect.TypeOf((*MockEKSAPI)(nil).CreateEksAnywhereSubscription), arg0)
-}
-
-// CreateEksAnywhereSubscriptionRequest mocks base method.
-func (m *MockEKSAPI) CreateEksAnywhereSubscriptionRequest(arg0 *eks.CreateEksAnywhereSubscriptionInput) (*request.Request, *eks.CreateEksAnywhereSubscriptionOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateEksAnywhereSubscriptionRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.CreateEksAnywhereSubscriptionOutput)
-	return ret0, ret1
-}
-
-// CreateEksAnywhereSubscriptionRequest indicates an expected call of CreateEksAnywhereSubscriptionRequest.
-func (mr *MockEKSAPIMockRecorder) CreateEksAnywhereSubscriptionRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateEksAnywhereSubscriptionRequest", reflect.TypeOf((*MockEKSAPI)(nil).CreateEksAnywhereSubscriptionRequest), arg0)
-}
-
-// CreateEksAnywhereSubscriptionWithContext mocks base method.
-func (m *MockEKSAPI) CreateEksAnywhereSubscriptionWithContext(arg0 context.Context, arg1 *eks.CreateEksAnywhereSubscriptionInput, arg2 ...request.Option) (*eks.CreateEksAnywhereSubscriptionOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "CreateEksAnywhereSubscriptionWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.CreateEksAnywhereSubscriptionOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CreateEksAnywhereSubscriptionWithContext indicates an expected call of CreateEksAnywhereSubscriptionWithContext.
-func (mr *MockEKSAPIMockRecorder) CreateEksAnywhereSubscriptionWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateEksAnywhereSubscriptionWithContext", reflect.TypeOf((*MockEKSAPI)(nil).CreateEksAnywhereSubscriptionWithContext), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCluster", reflect.TypeOf((*MockEKSAPI)(nil).CreateCluster), varargs...)
 }
 
 // CreateFargateProfile mocks base method.
-func (m *MockEKSAPI) CreateFargateProfile(arg0 *eks.CreateFargateProfileInput) (*eks.CreateFargateProfileOutput, error) {
+func (m *MockEKSAPI) CreateFargateProfile(arg0 context.Context, arg1 *eks.CreateFargateProfileInput, arg2 ...func(*eks.Options)) (*eks.CreateFargateProfileOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateFargateProfile", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "CreateFargateProfile", varargs...)
 	ret0, _ := ret[0].(*eks.CreateFargateProfileOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateFargateProfile indicates an expected call of CreateFargateProfile.
-func (mr *MockEKSAPIMockRecorder) CreateFargateProfile(arg0 interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) CreateFargateProfile(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateFargateProfile", reflect.TypeOf((*MockEKSAPI)(nil).CreateFargateProfile), arg0)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateFargateProfile", reflect.TypeOf((*MockEKSAPI)(nil).CreateFargateProfile), varargs...)
 }
 
-// CreateFargateProfileRequest mocks base method.
-func (m *MockEKSAPI) CreateFargateProfileRequest(arg0 *eks.CreateFargateProfileInput) (*request.Request, *eks.CreateFargateProfileOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateFargateProfileRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.CreateFargateProfileOutput)
-	return ret0, ret1
-}
-
-// CreateFargateProfileRequest indicates an expected call of CreateFargateProfileRequest.
-func (mr *MockEKSAPIMockRecorder) CreateFargateProfileRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateFargateProfileRequest", reflect.TypeOf((*MockEKSAPI)(nil).CreateFargateProfileRequest), arg0)
-}
-
-// CreateFargateProfileWithContext mocks base method.
-func (m *MockEKSAPI) CreateFargateProfileWithContext(arg0 context.Context, arg1 *eks.CreateFargateProfileInput, arg2 ...request.Option) (*eks.CreateFargateProfileOutput, error) {
+// CreateNodegroup mocks base method.
+func (m *MockEKSAPI) CreateNodegroup(arg0 context.Context, arg1 *eks.CreateNodegroupInput, arg2 ...func(*eks.Options)) (*eks.CreateNodegroupOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "CreateFargateProfileWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.CreateFargateProfileOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CreateFargateProfileWithContext indicates an expected call of CreateFargateProfileWithContext.
-func (mr *MockEKSAPIMockRecorder) CreateFargateProfileWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateFargateProfileWithContext", reflect.TypeOf((*MockEKSAPI)(nil).CreateFargateProfileWithContext), varargs...)
-}
-
-// CreateNodegroup mocks base method.
-func (m *MockEKSAPI) CreateNodegroup(arg0 *eks.CreateNodegroupInput) (*eks.CreateNodegroupOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateNodegroup", arg0)
+	ret := m.ctrl.Call(m, "CreateNodegroup", varargs...)
 	ret0, _ := ret[0].(*eks.CreateNodegroupOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateNodegroup indicates an expected call of CreateNodegroup.
-func (mr *MockEKSAPIMockRecorder) CreateNodegroup(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateNodegroup", reflect.TypeOf((*MockEKSAPI)(nil).CreateNodegroup), arg0)
-}
-
-// CreateNodegroupRequest mocks base method.
-func (m *MockEKSAPI) CreateNodegroupRequest(arg0 *eks.CreateNodegroupInput) (*request.Request, *eks.CreateNodegroupOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateNodegroupRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.CreateNodegroupOutput)
-	return ret0, ret1
-}
-
-// CreateNodegroupRequest indicates an expected call of CreateNodegroupRequest.
-func (mr *MockEKSAPIMockRecorder) CreateNodegroupRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateNodegroupRequest", reflect.TypeOf((*MockEKSAPI)(nil).CreateNodegroupRequest), arg0)
-}
-
-// CreateNodegroupWithContext mocks base method.
-func (m *MockEKSAPI) CreateNodegroupWithContext(arg0 context.Context, arg1 *eks.CreateNodegroupInput, arg2 ...request.Option) (*eks.CreateNodegroupOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "CreateNodegroupWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.CreateNodegroupOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CreateNodegroupWithContext indicates an expected call of CreateNodegroupWithContext.
-func (mr *MockEKSAPIMockRecorder) CreateNodegroupWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) CreateNodegroup(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateNodegroupWithContext", reflect.TypeOf((*MockEKSAPI)(nil).CreateNodegroupWithContext), varargs...)
-}
-
-// CreatePodIdentityAssociation mocks base method.
-func (m *MockEKSAPI) CreatePodIdentityAssociation(arg0 *eks.CreatePodIdentityAssociationInput) (*eks.CreatePodIdentityAssociationOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreatePodIdentityAssociation", arg0)
-	ret0, _ := ret[0].(*eks.CreatePodIdentityAssociationOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CreatePodIdentityAssociation indicates an expected call of CreatePodIdentityAssociation.
-func (mr *MockEKSAPIMockRecorder) CreatePodIdentityAssociation(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreatePodIdentityAssociation", reflect.TypeOf((*MockEKSAPI)(nil).CreatePodIdentityAssociation), arg0)
-}
-
-// CreatePodIdentityAssociationRequest mocks base method.
-func (m *MockEKSAPI) CreatePodIdentityAssociationRequest(arg0 *eks.CreatePodIdentityAssociationInput) (*request.Request, *eks.CreatePodIdentityAssociationOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreatePodIdentityAssociationRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.CreatePodIdentityAssociationOutput)
-	return ret0, ret1
-}
-
-// CreatePodIdentityAssociationRequest indicates an expected call of CreatePodIdentityAssociationRequest.
-func (mr *MockEKSAPIMockRecorder) CreatePodIdentityAssociationRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreatePodIdentityAssociationRequest", reflect.TypeOf((*MockEKSAPI)(nil).CreatePodIdentityAssociationRequest), arg0)
-}
-
-// CreatePodIdentityAssociationWithContext mocks base method.
-func (m *MockEKSAPI) CreatePodIdentityAssociationWithContext(arg0 context.Context, arg1 *eks.CreatePodIdentityAssociationInput, arg2 ...request.Option) (*eks.CreatePodIdentityAssociationOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "CreatePodIdentityAssociationWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.CreatePodIdentityAssociationOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CreatePodIdentityAssociationWithContext indicates an expected call of CreatePodIdentityAssociationWithContext.
-func (mr *MockEKSAPIMockRecorder) CreatePodIdentityAssociationWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreatePodIdentityAssociationWithContext", reflect.TypeOf((*MockEKSAPI)(nil).CreatePodIdentityAssociationWithContext), varargs...)
-}
-
-// DeleteAccessEntry mocks base method.
-func (m *MockEKSAPI) DeleteAccessEntry(arg0 *eks.DeleteAccessEntryInput) (*eks.DeleteAccessEntryOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteAccessEntry", arg0)
-	ret0, _ := ret[0].(*eks.DeleteAccessEntryOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DeleteAccessEntry indicates an expected call of DeleteAccessEntry.
-func (mr *MockEKSAPIMockRecorder) DeleteAccessEntry(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAccessEntry", reflect.TypeOf((*MockEKSAPI)(nil).DeleteAccessEntry), arg0)
-}
-
-// DeleteAccessEntryRequest mocks base method.
-func (m *MockEKSAPI) DeleteAccessEntryRequest(arg0 *eks.DeleteAccessEntryInput) (*request.Request, *eks.DeleteAccessEntryOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteAccessEntryRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.DeleteAccessEntryOutput)
-	return ret0, ret1
-}
-
-// DeleteAccessEntryRequest indicates an expected call of DeleteAccessEntryRequest.
-func (mr *MockEKSAPIMockRecorder) DeleteAccessEntryRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAccessEntryRequest", reflect.TypeOf((*MockEKSAPI)(nil).DeleteAccessEntryRequest), arg0)
-}
-
-// DeleteAccessEntryWithContext mocks base method.
-func (m *MockEKSAPI) DeleteAccessEntryWithContext(arg0 context.Context, arg1 *eks.DeleteAccessEntryInput, arg2 ...request.Option) (*eks.DeleteAccessEntryOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "DeleteAccessEntryWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.DeleteAccessEntryOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DeleteAccessEntryWithContext indicates an expected call of DeleteAccessEntryWithContext.
-func (mr *MockEKSAPIMockRecorder) DeleteAccessEntryWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAccessEntryWithContext", reflect.TypeOf((*MockEKSAPI)(nil).DeleteAccessEntryWithContext), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateNodegroup", reflect.TypeOf((*MockEKSAPI)(nil).CreateNodegroup), varargs...)
 }
 
 // DeleteAddon mocks base method.
-func (m *MockEKSAPI) DeleteAddon(arg0 *eks.DeleteAddonInput) (*eks.DeleteAddonOutput, error) {
+func (m *MockEKSAPI) DeleteAddon(arg0 context.Context, arg1 *eks.DeleteAddonInput, arg2 ...func(*eks.Options)) (*eks.DeleteAddonOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteAddon", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteAddon", varargs...)
 	ret0, _ := ret[0].(*eks.DeleteAddonOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DeleteAddon indicates an expected call of DeleteAddon.
-func (mr *MockEKSAPIMockRecorder) DeleteAddon(arg0 interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) DeleteAddon(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAddon", reflect.TypeOf((*MockEKSAPI)(nil).DeleteAddon), arg0)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAddon", reflect.TypeOf((*MockEKSAPI)(nil).DeleteAddon), varargs...)
 }
 
-// DeleteAddonRequest mocks base method.
-func (m *MockEKSAPI) DeleteAddonRequest(arg0 *eks.DeleteAddonInput) (*request.Request, *eks.DeleteAddonOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteAddonRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.DeleteAddonOutput)
-	return ret0, ret1
-}
-
-// DeleteAddonRequest indicates an expected call of DeleteAddonRequest.
-func (mr *MockEKSAPIMockRecorder) DeleteAddonRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAddonRequest", reflect.TypeOf((*MockEKSAPI)(nil).DeleteAddonRequest), arg0)
-}
-
-// DeleteAddonWithContext mocks base method.
-func (m *MockEKSAPI) DeleteAddonWithContext(arg0 context.Context, arg1 *eks.DeleteAddonInput, arg2 ...request.Option) (*eks.DeleteAddonOutput, error) {
+// DeleteCluster mocks base method.
+func (m *MockEKSAPI) DeleteCluster(arg0 context.Context, arg1 *eks.DeleteClusterInput, arg2 ...func(*eks.Options)) (*eks.DeleteClusterOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "DeleteAddonWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.DeleteAddonOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DeleteAddonWithContext indicates an expected call of DeleteAddonWithContext.
-func (mr *MockEKSAPIMockRecorder) DeleteAddonWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAddonWithContext", reflect.TypeOf((*MockEKSAPI)(nil).DeleteAddonWithContext), varargs...)
-}
-
-// DeleteCluster mocks base method.
-func (m *MockEKSAPI) DeleteCluster(arg0 *eks.DeleteClusterInput) (*eks.DeleteClusterOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteCluster", arg0)
+	ret := m.ctrl.Call(m, "DeleteCluster", varargs...)
 	ret0, _ := ret[0].(*eks.DeleteClusterOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DeleteCluster indicates an expected call of DeleteCluster.
-func (mr *MockEKSAPIMockRecorder) DeleteCluster(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteCluster", reflect.TypeOf((*MockEKSAPI)(nil).DeleteCluster), arg0)
-}
-
-// DeleteClusterRequest mocks base method.
-func (m *MockEKSAPI) DeleteClusterRequest(arg0 *eks.DeleteClusterInput) (*request.Request, *eks.DeleteClusterOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteClusterRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.DeleteClusterOutput)
-	return ret0, ret1
-}
-
-// DeleteClusterRequest indicates an expected call of DeleteClusterRequest.
-func (mr *MockEKSAPIMockRecorder) DeleteClusterRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteClusterRequest", reflect.TypeOf((*MockEKSAPI)(nil).DeleteClusterRequest), arg0)
-}
-
-// DeleteClusterWithContext mocks base method.
-func (m *MockEKSAPI) DeleteClusterWithContext(arg0 context.Context, arg1 *eks.DeleteClusterInput, arg2 ...request.Option) (*eks.DeleteClusterOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "DeleteClusterWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.DeleteClusterOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DeleteClusterWithContext indicates an expected call of DeleteClusterWithContext.
-func (mr *MockEKSAPIMockRecorder) DeleteClusterWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) DeleteCluster(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteClusterWithContext", reflect.TypeOf((*MockEKSAPI)(nil).DeleteClusterWithContext), varargs...)
-}
-
-// DeleteEksAnywhereSubscription mocks base method.
-func (m *MockEKSAPI) DeleteEksAnywhereSubscription(arg0 *eks.DeleteEksAnywhereSubscriptionInput) (*eks.DeleteEksAnywhereSubscriptionOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteEksAnywhereSubscription", arg0)
-	ret0, _ := ret[0].(*eks.DeleteEksAnywhereSubscriptionOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DeleteEksAnywhereSubscription indicates an expected call of DeleteEksAnywhereSubscription.
-func (mr *MockEKSAPIMockRecorder) DeleteEksAnywhereSubscription(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteEksAnywhereSubscription", reflect.TypeOf((*MockEKSAPI)(nil).DeleteEksAnywhereSubscription), arg0)
-}
-
-// DeleteEksAnywhereSubscriptionRequest mocks base method.
-func (m *MockEKSAPI) DeleteEksAnywhereSubscriptionRequest(arg0 *eks.DeleteEksAnywhereSubscriptionInput) (*request.Request, *eks.DeleteEksAnywhereSubscriptionOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteEksAnywhereSubscriptionRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.DeleteEksAnywhereSubscriptionOutput)
-	return ret0, ret1
-}
-
-// DeleteEksAnywhereSubscriptionRequest indicates an expected call of DeleteEksAnywhereSubscriptionRequest.
-func (mr *MockEKSAPIMockRecorder) DeleteEksAnywhereSubscriptionRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteEksAnywhereSubscriptionRequest", reflect.TypeOf((*MockEKSAPI)(nil).DeleteEksAnywhereSubscriptionRequest), arg0)
-}
-
-// DeleteEksAnywhereSubscriptionWithContext mocks base method.
-func (m *MockEKSAPI) DeleteEksAnywhereSubscriptionWithContext(arg0 context.Context, arg1 *eks.DeleteEksAnywhereSubscriptionInput, arg2 ...request.Option) (*eks.DeleteEksAnywhereSubscriptionOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "DeleteEksAnywhereSubscriptionWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.DeleteEksAnywhereSubscriptionOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DeleteEksAnywhereSubscriptionWithContext indicates an expected call of DeleteEksAnywhereSubscriptionWithContext.
-func (mr *MockEKSAPIMockRecorder) DeleteEksAnywhereSubscriptionWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteEksAnywhereSubscriptionWithContext", reflect.TypeOf((*MockEKSAPI)(nil).DeleteEksAnywhereSubscriptionWithContext), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteCluster", reflect.TypeOf((*MockEKSAPI)(nil).DeleteCluster), varargs...)
 }
 
 // DeleteFargateProfile mocks base method.
-func (m *MockEKSAPI) DeleteFargateProfile(arg0 *eks.DeleteFargateProfileInput) (*eks.DeleteFargateProfileOutput, error) {
+func (m *MockEKSAPI) DeleteFargateProfile(arg0 context.Context, arg1 *eks.DeleteFargateProfileInput, arg2 ...func(*eks.Options)) (*eks.DeleteFargateProfileOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteFargateProfile", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteFargateProfile", varargs...)
 	ret0, _ := ret[0].(*eks.DeleteFargateProfileOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DeleteFargateProfile indicates an expected call of DeleteFargateProfile.
-func (mr *MockEKSAPIMockRecorder) DeleteFargateProfile(arg0 interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) DeleteFargateProfile(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteFargateProfile", reflect.TypeOf((*MockEKSAPI)(nil).DeleteFargateProfile), arg0)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteFargateProfile", reflect.TypeOf((*MockEKSAPI)(nil).DeleteFargateProfile), varargs...)
 }
 
-// DeleteFargateProfileRequest mocks base method.
-func (m *MockEKSAPI) DeleteFargateProfileRequest(arg0 *eks.DeleteFargateProfileInput) (*request.Request, *eks.DeleteFargateProfileOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteFargateProfileRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.DeleteFargateProfileOutput)
-	return ret0, ret1
-}
-
-// DeleteFargateProfileRequest indicates an expected call of DeleteFargateProfileRequest.
-func (mr *MockEKSAPIMockRecorder) DeleteFargateProfileRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteFargateProfileRequest", reflect.TypeOf((*MockEKSAPI)(nil).DeleteFargateProfileRequest), arg0)
-}
-
-// DeleteFargateProfileWithContext mocks base method.
-func (m *MockEKSAPI) DeleteFargateProfileWithContext(arg0 context.Context, arg1 *eks.DeleteFargateProfileInput, arg2 ...request.Option) (*eks.DeleteFargateProfileOutput, error) {
+// DeleteNodegroup mocks base method.
+func (m *MockEKSAPI) DeleteNodegroup(arg0 context.Context, arg1 *eks.DeleteNodegroupInput, arg2 ...func(*eks.Options)) (*eks.DeleteNodegroupOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "DeleteFargateProfileWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.DeleteFargateProfileOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DeleteFargateProfileWithContext indicates an expected call of DeleteFargateProfileWithContext.
-func (mr *MockEKSAPIMockRecorder) DeleteFargateProfileWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteFargateProfileWithContext", reflect.TypeOf((*MockEKSAPI)(nil).DeleteFargateProfileWithContext), varargs...)
-}
-
-// DeleteNodegroup mocks base method.
-func (m *MockEKSAPI) DeleteNodegroup(arg0 *eks.DeleteNodegroupInput) (*eks.DeleteNodegroupOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteNodegroup", arg0)
+	ret := m.ctrl.Call(m, "DeleteNodegroup", varargs...)
 	ret0, _ := ret[0].(*eks.DeleteNodegroupOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DeleteNodegroup indicates an expected call of DeleteNodegroup.
-func (mr *MockEKSAPIMockRecorder) DeleteNodegroup(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNodegroup", reflect.TypeOf((*MockEKSAPI)(nil).DeleteNodegroup), arg0)
-}
-
-// DeleteNodegroupRequest mocks base method.
-func (m *MockEKSAPI) DeleteNodegroupRequest(arg0 *eks.DeleteNodegroupInput) (*request.Request, *eks.DeleteNodegroupOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteNodegroupRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.DeleteNodegroupOutput)
-	return ret0, ret1
-}
-
-// DeleteNodegroupRequest indicates an expected call of DeleteNodegroupRequest.
-func (mr *MockEKSAPIMockRecorder) DeleteNodegroupRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNodegroupRequest", reflect.TypeOf((*MockEKSAPI)(nil).DeleteNodegroupRequest), arg0)
-}
-
-// DeleteNodegroupWithContext mocks base method.
-func (m *MockEKSAPI) DeleteNodegroupWithContext(arg0 context.Context, arg1 *eks.DeleteNodegroupInput, arg2 ...request.Option) (*eks.DeleteNodegroupOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "DeleteNodegroupWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.DeleteNodegroupOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DeleteNodegroupWithContext indicates an expected call of DeleteNodegroupWithContext.
-func (mr *MockEKSAPIMockRecorder) DeleteNodegroupWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) DeleteNodegroup(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNodegroupWithContext", reflect.TypeOf((*MockEKSAPI)(nil).DeleteNodegroupWithContext), varargs...)
-}
-
-// DeletePodIdentityAssociation mocks base method.
-func (m *MockEKSAPI) DeletePodIdentityAssociation(arg0 *eks.DeletePodIdentityAssociationInput) (*eks.DeletePodIdentityAssociationOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeletePodIdentityAssociation", arg0)
-	ret0, _ := ret[0].(*eks.DeletePodIdentityAssociationOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DeletePodIdentityAssociation indicates an expected call of DeletePodIdentityAssociation.
-func (mr *MockEKSAPIMockRecorder) DeletePodIdentityAssociation(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeletePodIdentityAssociation", reflect.TypeOf((*MockEKSAPI)(nil).DeletePodIdentityAssociation), arg0)
-}
-
-// DeletePodIdentityAssociationRequest mocks base method.
-func (m *MockEKSAPI) DeletePodIdentityAssociationRequest(arg0 *eks.DeletePodIdentityAssociationInput) (*request.Request, *eks.DeletePodIdentityAssociationOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeletePodIdentityAssociationRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.DeletePodIdentityAssociationOutput)
-	return ret0, ret1
-}
-
-// DeletePodIdentityAssociationRequest indicates an expected call of DeletePodIdentityAssociationRequest.
-func (mr *MockEKSAPIMockRecorder) DeletePodIdentityAssociationRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeletePodIdentityAssociationRequest", reflect.TypeOf((*MockEKSAPI)(nil).DeletePodIdentityAssociationRequest), arg0)
-}
-
-// DeletePodIdentityAssociationWithContext mocks base method.
-func (m *MockEKSAPI) DeletePodIdentityAssociationWithContext(arg0 context.Context, arg1 *eks.DeletePodIdentityAssociationInput, arg2 ...request.Option) (*eks.DeletePodIdentityAssociationOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "DeletePodIdentityAssociationWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.DeletePodIdentityAssociationOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DeletePodIdentityAssociationWithContext indicates an expected call of DeletePodIdentityAssociationWithContext.
-func (mr *MockEKSAPIMockRecorder) DeletePodIdentityAssociationWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeletePodIdentityAssociationWithContext", reflect.TypeOf((*MockEKSAPI)(nil).DeletePodIdentityAssociationWithContext), varargs...)
-}
-
-// DeregisterCluster mocks base method.
-func (m *MockEKSAPI) DeregisterCluster(arg0 *eks.DeregisterClusterInput) (*eks.DeregisterClusterOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeregisterCluster", arg0)
-	ret0, _ := ret[0].(*eks.DeregisterClusterOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DeregisterCluster indicates an expected call of DeregisterCluster.
-func (mr *MockEKSAPIMockRecorder) DeregisterCluster(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterCluster", reflect.TypeOf((*MockEKSAPI)(nil).DeregisterCluster), arg0)
-}
-
-// DeregisterClusterRequest mocks base method.
-func (m *MockEKSAPI) DeregisterClusterRequest(arg0 *eks.DeregisterClusterInput) (*request.Request, *eks.DeregisterClusterOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeregisterClusterRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.DeregisterClusterOutput)
-	return ret0, ret1
-}
-
-// DeregisterClusterRequest indicates an expected call of DeregisterClusterRequest.
-func (mr *MockEKSAPIMockRecorder) DeregisterClusterRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterClusterRequest", reflect.TypeOf((*MockEKSAPI)(nil).DeregisterClusterRequest), arg0)
-}
-
-// DeregisterClusterWithContext mocks base method.
-func (m *MockEKSAPI) DeregisterClusterWithContext(arg0 context.Context, arg1 *eks.DeregisterClusterInput, arg2 ...request.Option) (*eks.DeregisterClusterOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "DeregisterClusterWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.DeregisterClusterOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DeregisterClusterWithContext indicates an expected call of DeregisterClusterWithContext.
-func (mr *MockEKSAPIMockRecorder) DeregisterClusterWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterClusterWithContext", reflect.TypeOf((*MockEKSAPI)(nil).DeregisterClusterWithContext), varargs...)
-}
-
-// DescribeAccessEntry mocks base method.
-func (m *MockEKSAPI) DescribeAccessEntry(arg0 *eks.DescribeAccessEntryInput) (*eks.DescribeAccessEntryOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeAccessEntry", arg0)
-	ret0, _ := ret[0].(*eks.DescribeAccessEntryOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DescribeAccessEntry indicates an expected call of DescribeAccessEntry.
-func (mr *MockEKSAPIMockRecorder) DescribeAccessEntry(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAccessEntry", reflect.TypeOf((*MockEKSAPI)(nil).DescribeAccessEntry), arg0)
-}
-
-// DescribeAccessEntryRequest mocks base method.
-func (m *MockEKSAPI) DescribeAccessEntryRequest(arg0 *eks.DescribeAccessEntryInput) (*request.Request, *eks.DescribeAccessEntryOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeAccessEntryRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.DescribeAccessEntryOutput)
-	return ret0, ret1
-}
-
-// DescribeAccessEntryRequest indicates an expected call of DescribeAccessEntryRequest.
-func (mr *MockEKSAPIMockRecorder) DescribeAccessEntryRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAccessEntryRequest", reflect.TypeOf((*MockEKSAPI)(nil).DescribeAccessEntryRequest), arg0)
-}
-
-// DescribeAccessEntryWithContext mocks base method.
-func (m *MockEKSAPI) DescribeAccessEntryWithContext(arg0 context.Context, arg1 *eks.DescribeAccessEntryInput, arg2 ...request.Option) (*eks.DescribeAccessEntryOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "DescribeAccessEntryWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.DescribeAccessEntryOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DescribeAccessEntryWithContext indicates an expected call of DescribeAccessEntryWithContext.
-func (mr *MockEKSAPIMockRecorder) DescribeAccessEntryWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAccessEntryWithContext", reflect.TypeOf((*MockEKSAPI)(nil).DescribeAccessEntryWithContext), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNodegroup", reflect.TypeOf((*MockEKSAPI)(nil).DeleteNodegroup), varargs...)
 }
 
 // DescribeAddon mocks base method.
-func (m *MockEKSAPI) DescribeAddon(arg0 *eks.DescribeAddonInput) (*eks.DescribeAddonOutput, error) {
+func (m *MockEKSAPI) DescribeAddon(arg0 context.Context, arg1 *eks.DescribeAddonInput, arg2 ...func(*eks.Options)) (*eks.DescribeAddonOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeAddon", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeAddon", varargs...)
 	ret0, _ := ret[0].(*eks.DescribeAddonOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeAddon indicates an expected call of DescribeAddon.
-func (mr *MockEKSAPIMockRecorder) DescribeAddon(arg0 interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) DescribeAddon(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAddon", reflect.TypeOf((*MockEKSAPI)(nil).DescribeAddon), arg0)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAddon", reflect.TypeOf((*MockEKSAPI)(nil).DescribeAddon), varargs...)
 }
 
 // DescribeAddonConfiguration mocks base method.
-func (m *MockEKSAPI) DescribeAddonConfiguration(arg0 *eks.DescribeAddonConfigurationInput) (*eks.DescribeAddonConfigurationOutput, error) {
+func (m *MockEKSAPI) DescribeAddonConfiguration(arg0 context.Context, arg1 *eks.DescribeAddonConfigurationInput, arg2 ...func(*eks.Options)) (*eks.DescribeAddonConfigurationOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeAddonConfiguration", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeAddonConfiguration", varargs...)
 	ret0, _ := ret[0].(*eks.DescribeAddonConfigurationOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeAddonConfiguration indicates an expected call of DescribeAddonConfiguration.
-func (mr *MockEKSAPIMockRecorder) DescribeAddonConfiguration(arg0 interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) DescribeAddonConfiguration(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAddonConfiguration", reflect.TypeOf((*MockEKSAPI)(nil).DescribeAddonConfiguration), arg0)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAddonConfiguration", reflect.TypeOf((*MockEKSAPI)(nil).DescribeAddonConfiguration), varargs...)
 }
 
-// DescribeAddonConfigurationRequest mocks base method.
-func (m *MockEKSAPI) DescribeAddonConfigurationRequest(arg0 *eks.DescribeAddonConfigurationInput) (*request.Request, *eks.DescribeAddonConfigurationOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeAddonConfigurationRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.DescribeAddonConfigurationOutput)
-	return ret0, ret1
-}
-
-// DescribeAddonConfigurationRequest indicates an expected call of DescribeAddonConfigurationRequest.
-func (mr *MockEKSAPIMockRecorder) DescribeAddonConfigurationRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAddonConfigurationRequest", reflect.TypeOf((*MockEKSAPI)(nil).DescribeAddonConfigurationRequest), arg0)
-}
-
-// DescribeAddonConfigurationWithContext mocks base method.
-func (m *MockEKSAPI) DescribeAddonConfigurationWithContext(arg0 context.Context, arg1 *eks.DescribeAddonConfigurationInput, arg2 ...request.Option) (*eks.DescribeAddonConfigurationOutput, error) {
+// DescribeAddonVersions mocks base method.
+func (m *MockEKSAPI) DescribeAddonVersions(arg0 context.Context, arg1 *eks.DescribeAddonVersionsInput, arg2 ...func(*eks.Options)) (*eks.DescribeAddonVersionsOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "DescribeAddonConfigurationWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.DescribeAddonConfigurationOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DescribeAddonConfigurationWithContext indicates an expected call of DescribeAddonConfigurationWithContext.
-func (mr *MockEKSAPIMockRecorder) DescribeAddonConfigurationWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAddonConfigurationWithContext", reflect.TypeOf((*MockEKSAPI)(nil).DescribeAddonConfigurationWithContext), varargs...)
-}
-
-// DescribeAddonRequest mocks base method.
-func (m *MockEKSAPI) DescribeAddonRequest(arg0 *eks.DescribeAddonInput) (*request.Request, *eks.DescribeAddonOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeAddonRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.DescribeAddonOutput)
-	return ret0, ret1
-}
-
-// DescribeAddonRequest indicates an expected call of DescribeAddonRequest.
-func (mr *MockEKSAPIMockRecorder) DescribeAddonRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAddonRequest", reflect.TypeOf((*MockEKSAPI)(nil).DescribeAddonRequest), arg0)
-}
-
-// DescribeAddonVersions mocks base method.
-func (m *MockEKSAPI) DescribeAddonVersions(arg0 *eks.DescribeAddonVersionsInput) (*eks.DescribeAddonVersionsOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeAddonVersions", arg0)
+	ret := m.ctrl.Call(m, "DescribeAddonVersions", varargs...)
 	ret0, _ := ret[0].(*eks.DescribeAddonVersionsOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeAddonVersions indicates an expected call of DescribeAddonVersions.
-func (mr *MockEKSAPIMockRecorder) DescribeAddonVersions(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAddonVersions", reflect.TypeOf((*MockEKSAPI)(nil).DescribeAddonVersions), arg0)
-}
-
-// DescribeAddonVersionsPages mocks base method.
-func (m *MockEKSAPI) DescribeAddonVersionsPages(arg0 *eks.DescribeAddonVersionsInput, arg1 func(*eks.DescribeAddonVersionsOutput, bool) bool) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeAddonVersionsPages", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DescribeAddonVersionsPages indicates an expected call of DescribeAddonVersionsPages.
-func (mr *MockEKSAPIMockRecorder) DescribeAddonVersionsPages(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAddonVersionsPages", reflect.TypeOf((*MockEKSAPI)(nil).DescribeAddonVersionsPages), arg0, arg1)
-}
-
-// DescribeAddonVersionsPagesWithContext mocks base method.
-func (m *MockEKSAPI) DescribeAddonVersionsPagesWithContext(arg0 context.Context, arg1 *eks.DescribeAddonVersionsInput, arg2 func(*eks.DescribeAddonVersionsOutput, bool) bool, arg3 ...request.Option) error {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1, arg2}
-	for _, a := range arg3 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "DescribeAddonVersionsPagesWithContext", varargs...)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DescribeAddonVersionsPagesWithContext indicates an expected call of DescribeAddonVersionsPagesWithContext.
-func (mr *MockEKSAPIMockRecorder) DescribeAddonVersionsPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAddonVersionsPagesWithContext", reflect.TypeOf((*MockEKSAPI)(nil).DescribeAddonVersionsPagesWithContext), varargs...)
-}
-
-// DescribeAddonVersionsRequest mocks base method.
-func (m *MockEKSAPI) DescribeAddonVersionsRequest(arg0 *eks.DescribeAddonVersionsInput) (*request.Request, *eks.DescribeAddonVersionsOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeAddonVersionsRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.DescribeAddonVersionsOutput)
-	return ret0, ret1
-}
-
-// DescribeAddonVersionsRequest indicates an expected call of DescribeAddonVersionsRequest.
-func (mr *MockEKSAPIMockRecorder) DescribeAddonVersionsRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAddonVersionsRequest", reflect.TypeOf((*MockEKSAPI)(nil).DescribeAddonVersionsRequest), arg0)
-}
-
-// DescribeAddonVersionsWithContext mocks base method.
-func (m *MockEKSAPI) DescribeAddonVersionsWithContext(arg0 context.Context, arg1 *eks.DescribeAddonVersionsInput, arg2 ...request.Option) (*eks.DescribeAddonVersionsOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "DescribeAddonVersionsWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.DescribeAddonVersionsOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DescribeAddonVersionsWithContext indicates an expected call of DescribeAddonVersionsWithContext.
-func (mr *MockEKSAPIMockRecorder) DescribeAddonVersionsWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) DescribeAddonVersions(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAddonVersionsWithContext", reflect.TypeOf((*MockEKSAPI)(nil).DescribeAddonVersionsWithContext), varargs...)
-}
-
-// DescribeAddonWithContext mocks base method.
-func (m *MockEKSAPI) DescribeAddonWithContext(arg0 context.Context, arg1 *eks.DescribeAddonInput, arg2 ...request.Option) (*eks.DescribeAddonOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "DescribeAddonWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.DescribeAddonOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DescribeAddonWithContext indicates an expected call of DescribeAddonWithContext.
-func (mr *MockEKSAPIMockRecorder) DescribeAddonWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAddonWithContext", reflect.TypeOf((*MockEKSAPI)(nil).DescribeAddonWithContext), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAddonVersions", reflect.TypeOf((*MockEKSAPI)(nil).DescribeAddonVersions), varargs...)
 }
 
 // DescribeCluster mocks base method.
-func (m *MockEKSAPI) DescribeCluster(arg0 *eks.DescribeClusterInput) (*eks.DescribeClusterOutput, error) {
+func (m *MockEKSAPI) DescribeCluster(arg0 context.Context, arg1 *eks.DescribeClusterInput, arg2 ...func(*eks.Options)) (*eks.DescribeClusterOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeCluster", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeCluster", varargs...)
 	ret0, _ := ret[0].(*eks.DescribeClusterOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeCluster indicates an expected call of DescribeCluster.
-func (mr *MockEKSAPIMockRecorder) DescribeCluster(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeCluster", reflect.TypeOf((*MockEKSAPI)(nil).DescribeCluster), arg0)
-}
-
-// DescribeClusterRequest mocks base method.
-func (m *MockEKSAPI) DescribeClusterRequest(arg0 *eks.DescribeClusterInput) (*request.Request, *eks.DescribeClusterOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeClusterRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.DescribeClusterOutput)
-	return ret0, ret1
-}
-
-// DescribeClusterRequest indicates an expected call of DescribeClusterRequest.
-func (mr *MockEKSAPIMockRecorder) DescribeClusterRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeClusterRequest", reflect.TypeOf((*MockEKSAPI)(nil).DescribeClusterRequest), arg0)
-}
-
-// DescribeClusterWithContext mocks base method.
-func (m *MockEKSAPI) DescribeClusterWithContext(arg0 context.Context, arg1 *eks.DescribeClusterInput, arg2 ...request.Option) (*eks.DescribeClusterOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "DescribeClusterWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.DescribeClusterOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DescribeClusterWithContext indicates an expected call of DescribeClusterWithContext.
-func (mr *MockEKSAPIMockRecorder) DescribeClusterWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) DescribeCluster(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeClusterWithContext", reflect.TypeOf((*MockEKSAPI)(nil).DescribeClusterWithContext), varargs...)
-}
-
-// DescribeEksAnywhereSubscription mocks base method.
-func (m *MockEKSAPI) DescribeEksAnywhereSubscription(arg0 *eks.DescribeEksAnywhereSubscriptionInput) (*eks.DescribeEksAnywhereSubscriptionOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeEksAnywhereSubscription", arg0)
-	ret0, _ := ret[0].(*eks.DescribeEksAnywhereSubscriptionOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DescribeEksAnywhereSubscription indicates an expected call of DescribeEksAnywhereSubscription.
-func (mr *MockEKSAPIMockRecorder) DescribeEksAnywhereSubscription(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeEksAnywhereSubscription", reflect.TypeOf((*MockEKSAPI)(nil).DescribeEksAnywhereSubscription), arg0)
-}
-
-// DescribeEksAnywhereSubscriptionRequest mocks base method.
-func (m *MockEKSAPI) DescribeEksAnywhereSubscriptionRequest(arg0 *eks.DescribeEksAnywhereSubscriptionInput) (*request.Request, *eks.DescribeEksAnywhereSubscriptionOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeEksAnywhereSubscriptionRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.DescribeEksAnywhereSubscriptionOutput)
-	return ret0, ret1
-}
-
-// DescribeEksAnywhereSubscriptionRequest indicates an expected call of DescribeEksAnywhereSubscriptionRequest.
-func (mr *MockEKSAPIMockRecorder) DescribeEksAnywhereSubscriptionRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeEksAnywhereSubscriptionRequest", reflect.TypeOf((*MockEKSAPI)(nil).DescribeEksAnywhereSubscriptionRequest), arg0)
-}
-
-// DescribeEksAnywhereSubscriptionWithContext mocks base method.
-func (m *MockEKSAPI) DescribeEksAnywhereSubscriptionWithContext(arg0 context.Context, arg1 *eks.DescribeEksAnywhereSubscriptionInput, arg2 ...request.Option) (*eks.DescribeEksAnywhereSubscriptionOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "DescribeEksAnywhereSubscriptionWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.DescribeEksAnywhereSubscriptionOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DescribeEksAnywhereSubscriptionWithContext indicates an expected call of DescribeEksAnywhereSubscriptionWithContext.
-func (mr *MockEKSAPIMockRecorder) DescribeEksAnywhereSubscriptionWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeEksAnywhereSubscriptionWithContext", reflect.TypeOf((*MockEKSAPI)(nil).DescribeEksAnywhereSubscriptionWithContext), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeCluster", reflect.TypeOf((*MockEKSAPI)(nil).DescribeCluster), varargs...)
 }
 
 // DescribeFargateProfile mocks base method.
-func (m *MockEKSAPI) DescribeFargateProfile(arg0 *eks.DescribeFargateProfileInput) (*eks.DescribeFargateProfileOutput, error) {
+func (m *MockEKSAPI) DescribeFargateProfile(arg0 context.Context, arg1 *eks.DescribeFargateProfileInput, arg2 ...func(*eks.Options)) (*eks.DescribeFargateProfileOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeFargateProfile", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeFargateProfile", varargs...)
 	ret0, _ := ret[0].(*eks.DescribeFargateProfileOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeFargateProfile indicates an expected call of DescribeFargateProfile.
-func (mr *MockEKSAPIMockRecorder) DescribeFargateProfile(arg0 interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) DescribeFargateProfile(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeFargateProfile", reflect.TypeOf((*MockEKSAPI)(nil).DescribeFargateProfile), arg0)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeFargateProfile", reflect.TypeOf((*MockEKSAPI)(nil).DescribeFargateProfile), varargs...)
 }
 
-// DescribeFargateProfileRequest mocks base method.
-func (m *MockEKSAPI) DescribeFargateProfileRequest(arg0 *eks.DescribeFargateProfileInput) (*request.Request, *eks.DescribeFargateProfileOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeFargateProfileRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.DescribeFargateProfileOutput)
-	return ret0, ret1
-}
-
-// DescribeFargateProfileRequest indicates an expected call of DescribeFargateProfileRequest.
-func (mr *MockEKSAPIMockRecorder) DescribeFargateProfileRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeFargateProfileRequest", reflect.TypeOf((*MockEKSAPI)(nil).DescribeFargateProfileRequest), arg0)
-}
-
-// DescribeFargateProfileWithContext mocks base method.
-func (m *MockEKSAPI) DescribeFargateProfileWithContext(arg0 context.Context, arg1 *eks.DescribeFargateProfileInput, arg2 ...request.Option) (*eks.DescribeFargateProfileOutput, error) {
+// DescribeIdentityProviderConfig mocks base method.
+func (m *MockEKSAPI) DescribeIdentityProviderConfig(arg0 context.Context, arg1 *eks.DescribeIdentityProviderConfigInput, arg2 ...func(*eks.Options)) (*eks.DescribeIdentityProviderConfigOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "DescribeFargateProfileWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.DescribeFargateProfileOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DescribeFargateProfileWithContext indicates an expected call of DescribeFargateProfileWithContext.
-func (mr *MockEKSAPIMockRecorder) DescribeFargateProfileWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeFargateProfileWithContext", reflect.TypeOf((*MockEKSAPI)(nil).DescribeFargateProfileWithContext), varargs...)
-}
-
-// DescribeIdentityProviderConfig mocks base method.
-func (m *MockEKSAPI) DescribeIdentityProviderConfig(arg0 *eks.DescribeIdentityProviderConfigInput) (*eks.DescribeIdentityProviderConfigOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeIdentityProviderConfig", arg0)
+	ret := m.ctrl.Call(m, "DescribeIdentityProviderConfig", varargs...)
 	ret0, _ := ret[0].(*eks.DescribeIdentityProviderConfigOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeIdentityProviderConfig indicates an expected call of DescribeIdentityProviderConfig.
-func (mr *MockEKSAPIMockRecorder) DescribeIdentityProviderConfig(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeIdentityProviderConfig", reflect.TypeOf((*MockEKSAPI)(nil).DescribeIdentityProviderConfig), arg0)
-}
-
-// DescribeIdentityProviderConfigRequest mocks base method.
-func (m *MockEKSAPI) DescribeIdentityProviderConfigRequest(arg0 *eks.DescribeIdentityProviderConfigInput) (*request.Request, *eks.DescribeIdentityProviderConfigOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeIdentityProviderConfigRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.DescribeIdentityProviderConfigOutput)
-	return ret0, ret1
-}
-
-// DescribeIdentityProviderConfigRequest indicates an expected call of DescribeIdentityProviderConfigRequest.
-func (mr *MockEKSAPIMockRecorder) DescribeIdentityProviderConfigRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeIdentityProviderConfigRequest", reflect.TypeOf((*MockEKSAPI)(nil).DescribeIdentityProviderConfigRequest), arg0)
-}
-
-// DescribeIdentityProviderConfigWithContext mocks base method.
-func (m *MockEKSAPI) DescribeIdentityProviderConfigWithContext(arg0 context.Context, arg1 *eks.DescribeIdentityProviderConfigInput, arg2 ...request.Option) (*eks.DescribeIdentityProviderConfigOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "DescribeIdentityProviderConfigWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.DescribeIdentityProviderConfigOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DescribeIdentityProviderConfigWithContext indicates an expected call of DescribeIdentityProviderConfigWithContext.
-func (mr *MockEKSAPIMockRecorder) DescribeIdentityProviderConfigWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) DescribeIdentityProviderConfig(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeIdentityProviderConfigWithContext", reflect.TypeOf((*MockEKSAPI)(nil).DescribeIdentityProviderConfigWithContext), varargs...)
-}
-
-// DescribeInsight mocks base method.
-func (m *MockEKSAPI) DescribeInsight(arg0 *eks.DescribeInsightInput) (*eks.DescribeInsightOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeInsight", arg0)
-	ret0, _ := ret[0].(*eks.DescribeInsightOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DescribeInsight indicates an expected call of DescribeInsight.
-func (mr *MockEKSAPIMockRecorder) DescribeInsight(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeInsight", reflect.TypeOf((*MockEKSAPI)(nil).DescribeInsight), arg0)
-}
-
-// DescribeInsightRequest mocks base method.
-func (m *MockEKSAPI) DescribeInsightRequest(arg0 *eks.DescribeInsightInput) (*request.Request, *eks.DescribeInsightOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeInsightRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.DescribeInsightOutput)
-	return ret0, ret1
-}
-
-// DescribeInsightRequest indicates an expected call of DescribeInsightRequest.
-func (mr *MockEKSAPIMockRecorder) DescribeInsightRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeInsightRequest", reflect.TypeOf((*MockEKSAPI)(nil).DescribeInsightRequest), arg0)
-}
-
-// DescribeInsightWithContext mocks base method.
-func (m *MockEKSAPI) DescribeInsightWithContext(arg0 context.Context, arg1 *eks.DescribeInsightInput, arg2 ...request.Option) (*eks.DescribeInsightOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "DescribeInsightWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.DescribeInsightOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DescribeInsightWithContext indicates an expected call of DescribeInsightWithContext.
-func (mr *MockEKSAPIMockRecorder) DescribeInsightWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeInsightWithContext", reflect.TypeOf((*MockEKSAPI)(nil).DescribeInsightWithContext), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeIdentityProviderConfig", reflect.TypeOf((*MockEKSAPI)(nil).DescribeIdentityProviderConfig), varargs...)
 }
 
 // DescribeNodegroup mocks base method.
-func (m *MockEKSAPI) DescribeNodegroup(arg0 *eks.DescribeNodegroupInput) (*eks.DescribeNodegroupOutput, error) {
+func (m *MockEKSAPI) DescribeNodegroup(arg0 context.Context, arg1 *eks.DescribeNodegroupInput, arg2 ...func(*eks.Options)) (*eks.DescribeNodegroupOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeNodegroup", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeNodegroup", varargs...)
 	ret0, _ := ret[0].(*eks.DescribeNodegroupOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeNodegroup indicates an expected call of DescribeNodegroup.
-func (mr *MockEKSAPIMockRecorder) DescribeNodegroup(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeNodegroup", reflect.TypeOf((*MockEKSAPI)(nil).DescribeNodegroup), arg0)
-}
-
-// DescribeNodegroupRequest mocks base method.
-func (m *MockEKSAPI) DescribeNodegroupRequest(arg0 *eks.DescribeNodegroupInput) (*request.Request, *eks.DescribeNodegroupOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeNodegroupRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.DescribeNodegroupOutput)
-	return ret0, ret1
-}
-
-// DescribeNodegroupRequest indicates an expected call of DescribeNodegroupRequest.
-func (mr *MockEKSAPIMockRecorder) DescribeNodegroupRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeNodegroupRequest", reflect.TypeOf((*MockEKSAPI)(nil).DescribeNodegroupRequest), arg0)
-}
-
-// DescribeNodegroupWithContext mocks base method.
-func (m *MockEKSAPI) DescribeNodegroupWithContext(arg0 context.Context, arg1 *eks.DescribeNodegroupInput, arg2 ...request.Option) (*eks.DescribeNodegroupOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "DescribeNodegroupWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.DescribeNodegroupOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DescribeNodegroupWithContext indicates an expected call of DescribeNodegroupWithContext.
-func (mr *MockEKSAPIMockRecorder) DescribeNodegroupWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) DescribeNodegroup(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeNodegroupWithContext", reflect.TypeOf((*MockEKSAPI)(nil).DescribeNodegroupWithContext), varargs...)
-}
-
-// DescribePodIdentityAssociation mocks base method.
-func (m *MockEKSAPI) DescribePodIdentityAssociation(arg0 *eks.DescribePodIdentityAssociationInput) (*eks.DescribePodIdentityAssociationOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribePodIdentityAssociation", arg0)
-	ret0, _ := ret[0].(*eks.DescribePodIdentityAssociationOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DescribePodIdentityAssociation indicates an expected call of DescribePodIdentityAssociation.
-func (mr *MockEKSAPIMockRecorder) DescribePodIdentityAssociation(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribePodIdentityAssociation", reflect.TypeOf((*MockEKSAPI)(nil).DescribePodIdentityAssociation), arg0)
-}
-
-// DescribePodIdentityAssociationRequest mocks base method.
-func (m *MockEKSAPI) DescribePodIdentityAssociationRequest(arg0 *eks.DescribePodIdentityAssociationInput) (*request.Request, *eks.DescribePodIdentityAssociationOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribePodIdentityAssociationRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.DescribePodIdentityAssociationOutput)
-	return ret0, ret1
-}
-
-// DescribePodIdentityAssociationRequest indicates an expected call of DescribePodIdentityAssociationRequest.
-func (mr *MockEKSAPIMockRecorder) DescribePodIdentityAssociationRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribePodIdentityAssociationRequest", reflect.TypeOf((*MockEKSAPI)(nil).DescribePodIdentityAssociationRequest), arg0)
-}
-
-// DescribePodIdentityAssociationWithContext mocks base method.
-func (m *MockEKSAPI) DescribePodIdentityAssociationWithContext(arg0 context.Context, arg1 *eks.DescribePodIdentityAssociationInput, arg2 ...request.Option) (*eks.DescribePodIdentityAssociationOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "DescribePodIdentityAssociationWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.DescribePodIdentityAssociationOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DescribePodIdentityAssociationWithContext indicates an expected call of DescribePodIdentityAssociationWithContext.
-func (mr *MockEKSAPIMockRecorder) DescribePodIdentityAssociationWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribePodIdentityAssociationWithContext", reflect.TypeOf((*MockEKSAPI)(nil).DescribePodIdentityAssociationWithContext), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeNodegroup", reflect.TypeOf((*MockEKSAPI)(nil).DescribeNodegroup), varargs...)
 }
 
 // DescribeUpdate mocks base method.
-func (m *MockEKSAPI) DescribeUpdate(arg0 *eks.DescribeUpdateInput) (*eks.DescribeUpdateOutput, error) {
+func (m *MockEKSAPI) DescribeUpdate(arg0 context.Context, arg1 *eks.DescribeUpdateInput, arg2 ...func(*eks.Options)) (*eks.DescribeUpdateOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeUpdate", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeUpdate", varargs...)
 	ret0, _ := ret[0].(*eks.DescribeUpdateOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DescribeUpdate indicates an expected call of DescribeUpdate.
-func (mr *MockEKSAPIMockRecorder) DescribeUpdate(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeUpdate", reflect.TypeOf((*MockEKSAPI)(nil).DescribeUpdate), arg0)
-}
-
-// DescribeUpdateRequest mocks base method.
-func (m *MockEKSAPI) DescribeUpdateRequest(arg0 *eks.DescribeUpdateInput) (*request.Request, *eks.DescribeUpdateOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeUpdateRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.DescribeUpdateOutput)
-	return ret0, ret1
-}
-
-// DescribeUpdateRequest indicates an expected call of DescribeUpdateRequest.
-func (mr *MockEKSAPIMockRecorder) DescribeUpdateRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeUpdateRequest", reflect.TypeOf((*MockEKSAPI)(nil).DescribeUpdateRequest), arg0)
-}
-
-// DescribeUpdateWithContext mocks base method.
-func (m *MockEKSAPI) DescribeUpdateWithContext(arg0 context.Context, arg1 *eks.DescribeUpdateInput, arg2 ...request.Option) (*eks.DescribeUpdateOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "DescribeUpdateWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.DescribeUpdateOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DescribeUpdateWithContext indicates an expected call of DescribeUpdateWithContext.
-func (mr *MockEKSAPIMockRecorder) DescribeUpdateWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) DescribeUpdate(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeUpdateWithContext", reflect.TypeOf((*MockEKSAPI)(nil).DescribeUpdateWithContext), varargs...)
-}
-
-// DisassociateAccessPolicy mocks base method.
-func (m *MockEKSAPI) DisassociateAccessPolicy(arg0 *eks.DisassociateAccessPolicyInput) (*eks.DisassociateAccessPolicyOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DisassociateAccessPolicy", arg0)
-	ret0, _ := ret[0].(*eks.DisassociateAccessPolicyOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DisassociateAccessPolicy indicates an expected call of DisassociateAccessPolicy.
-func (mr *MockEKSAPIMockRecorder) DisassociateAccessPolicy(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisassociateAccessPolicy", reflect.TypeOf((*MockEKSAPI)(nil).DisassociateAccessPolicy), arg0)
-}
-
-// DisassociateAccessPolicyRequest mocks base method.
-func (m *MockEKSAPI) DisassociateAccessPolicyRequest(arg0 *eks.DisassociateAccessPolicyInput) (*request.Request, *eks.DisassociateAccessPolicyOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DisassociateAccessPolicyRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.DisassociateAccessPolicyOutput)
-	return ret0, ret1
-}
-
-// DisassociateAccessPolicyRequest indicates an expected call of DisassociateAccessPolicyRequest.
-func (mr *MockEKSAPIMockRecorder) DisassociateAccessPolicyRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisassociateAccessPolicyRequest", reflect.TypeOf((*MockEKSAPI)(nil).DisassociateAccessPolicyRequest), arg0)
-}
-
-// DisassociateAccessPolicyWithContext mocks base method.
-func (m *MockEKSAPI) DisassociateAccessPolicyWithContext(arg0 context.Context, arg1 *eks.DisassociateAccessPolicyInput, arg2 ...request.Option) (*eks.DisassociateAccessPolicyOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "DisassociateAccessPolicyWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.DisassociateAccessPolicyOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DisassociateAccessPolicyWithContext indicates an expected call of DisassociateAccessPolicyWithContext.
-func (mr *MockEKSAPIMockRecorder) DisassociateAccessPolicyWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisassociateAccessPolicyWithContext", reflect.TypeOf((*MockEKSAPI)(nil).DisassociateAccessPolicyWithContext), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeUpdate", reflect.TypeOf((*MockEKSAPI)(nil).DescribeUpdate), varargs...)
 }
 
 // DisassociateIdentityProviderConfig mocks base method.
-func (m *MockEKSAPI) DisassociateIdentityProviderConfig(arg0 *eks.DisassociateIdentityProviderConfigInput) (*eks.DisassociateIdentityProviderConfigOutput, error) {
+func (m *MockEKSAPI) DisassociateIdentityProviderConfig(arg0 context.Context, arg1 *eks.DisassociateIdentityProviderConfigInput, arg2 ...func(*eks.Options)) (*eks.DisassociateIdentityProviderConfigOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DisassociateIdentityProviderConfig", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DisassociateIdentityProviderConfig", varargs...)
 	ret0, _ := ret[0].(*eks.DisassociateIdentityProviderConfigOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DisassociateIdentityProviderConfig indicates an expected call of DisassociateIdentityProviderConfig.
-func (mr *MockEKSAPIMockRecorder) DisassociateIdentityProviderConfig(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisassociateIdentityProviderConfig", reflect.TypeOf((*MockEKSAPI)(nil).DisassociateIdentityProviderConfig), arg0)
-}
-
-// DisassociateIdentityProviderConfigRequest mocks base method.
-func (m *MockEKSAPI) DisassociateIdentityProviderConfigRequest(arg0 *eks.DisassociateIdentityProviderConfigInput) (*request.Request, *eks.DisassociateIdentityProviderConfigOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DisassociateIdentityProviderConfigRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.DisassociateIdentityProviderConfigOutput)
-	return ret0, ret1
-}
-
-// DisassociateIdentityProviderConfigRequest indicates an expected call of DisassociateIdentityProviderConfigRequest.
-func (mr *MockEKSAPIMockRecorder) DisassociateIdentityProviderConfigRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisassociateIdentityProviderConfigRequest", reflect.TypeOf((*MockEKSAPI)(nil).DisassociateIdentityProviderConfigRequest), arg0)
-}
-
-// DisassociateIdentityProviderConfigWithContext mocks base method.
-func (m *MockEKSAPI) DisassociateIdentityProviderConfigWithContext(arg0 context.Context, arg1 *eks.DisassociateIdentityProviderConfigInput, arg2 ...request.Option) (*eks.DisassociateIdentityProviderConfigOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "DisassociateIdentityProviderConfigWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.DisassociateIdentityProviderConfigOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DisassociateIdentityProviderConfigWithContext indicates an expected call of DisassociateIdentityProviderConfigWithContext.
-func (mr *MockEKSAPIMockRecorder) DisassociateIdentityProviderConfigWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) DisassociateIdentityProviderConfig(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisassociateIdentityProviderConfigWithContext", reflect.TypeOf((*MockEKSAPI)(nil).DisassociateIdentityProviderConfigWithContext), varargs...)
-}
-
-// ListAccessEntries mocks base method.
-func (m *MockEKSAPI) ListAccessEntries(arg0 *eks.ListAccessEntriesInput) (*eks.ListAccessEntriesOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListAccessEntries", arg0)
-	ret0, _ := ret[0].(*eks.ListAccessEntriesOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListAccessEntries indicates an expected call of ListAccessEntries.
-func (mr *MockEKSAPIMockRecorder) ListAccessEntries(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAccessEntries", reflect.TypeOf((*MockEKSAPI)(nil).ListAccessEntries), arg0)
-}
-
-// ListAccessEntriesPages mocks base method.
-func (m *MockEKSAPI) ListAccessEntriesPages(arg0 *eks.ListAccessEntriesInput, arg1 func(*eks.ListAccessEntriesOutput, bool) bool) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListAccessEntriesPages", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ListAccessEntriesPages indicates an expected call of ListAccessEntriesPages.
-func (mr *MockEKSAPIMockRecorder) ListAccessEntriesPages(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAccessEntriesPages", reflect.TypeOf((*MockEKSAPI)(nil).ListAccessEntriesPages), arg0, arg1)
-}
-
-// ListAccessEntriesPagesWithContext mocks base method.
-func (m *MockEKSAPI) ListAccessEntriesPagesWithContext(arg0 context.Context, arg1 *eks.ListAccessEntriesInput, arg2 func(*eks.ListAccessEntriesOutput, bool) bool, arg3 ...request.Option) error {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1, arg2}
-	for _, a := range arg3 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ListAccessEntriesPagesWithContext", varargs...)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ListAccessEntriesPagesWithContext indicates an expected call of ListAccessEntriesPagesWithContext.
-func (mr *MockEKSAPIMockRecorder) ListAccessEntriesPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAccessEntriesPagesWithContext", reflect.TypeOf((*MockEKSAPI)(nil).ListAccessEntriesPagesWithContext), varargs...)
-}
-
-// ListAccessEntriesRequest mocks base method.
-func (m *MockEKSAPI) ListAccessEntriesRequest(arg0 *eks.ListAccessEntriesInput) (*request.Request, *eks.ListAccessEntriesOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListAccessEntriesRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.ListAccessEntriesOutput)
-	return ret0, ret1
-}
-
-// ListAccessEntriesRequest indicates an expected call of ListAccessEntriesRequest.
-func (mr *MockEKSAPIMockRecorder) ListAccessEntriesRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAccessEntriesRequest", reflect.TypeOf((*MockEKSAPI)(nil).ListAccessEntriesRequest), arg0)
-}
-
-// ListAccessEntriesWithContext mocks base method.
-func (m *MockEKSAPI) ListAccessEntriesWithContext(arg0 context.Context, arg1 *eks.ListAccessEntriesInput, arg2 ...request.Option) (*eks.ListAccessEntriesOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ListAccessEntriesWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.ListAccessEntriesOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListAccessEntriesWithContext indicates an expected call of ListAccessEntriesWithContext.
-func (mr *MockEKSAPIMockRecorder) ListAccessEntriesWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAccessEntriesWithContext", reflect.TypeOf((*MockEKSAPI)(nil).ListAccessEntriesWithContext), varargs...)
-}
-
-// ListAccessPolicies mocks base method.
-func (m *MockEKSAPI) ListAccessPolicies(arg0 *eks.ListAccessPoliciesInput) (*eks.ListAccessPoliciesOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListAccessPolicies", arg0)
-	ret0, _ := ret[0].(*eks.ListAccessPoliciesOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListAccessPolicies indicates an expected call of ListAccessPolicies.
-func (mr *MockEKSAPIMockRecorder) ListAccessPolicies(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAccessPolicies", reflect.TypeOf((*MockEKSAPI)(nil).ListAccessPolicies), arg0)
-}
-
-// ListAccessPoliciesPages mocks base method.
-func (m *MockEKSAPI) ListAccessPoliciesPages(arg0 *eks.ListAccessPoliciesInput, arg1 func(*eks.ListAccessPoliciesOutput, bool) bool) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListAccessPoliciesPages", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ListAccessPoliciesPages indicates an expected call of ListAccessPoliciesPages.
-func (mr *MockEKSAPIMockRecorder) ListAccessPoliciesPages(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAccessPoliciesPages", reflect.TypeOf((*MockEKSAPI)(nil).ListAccessPoliciesPages), arg0, arg1)
-}
-
-// ListAccessPoliciesPagesWithContext mocks base method.
-func (m *MockEKSAPI) ListAccessPoliciesPagesWithContext(arg0 context.Context, arg1 *eks.ListAccessPoliciesInput, arg2 func(*eks.ListAccessPoliciesOutput, bool) bool, arg3 ...request.Option) error {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1, arg2}
-	for _, a := range arg3 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ListAccessPoliciesPagesWithContext", varargs...)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ListAccessPoliciesPagesWithContext indicates an expected call of ListAccessPoliciesPagesWithContext.
-func (mr *MockEKSAPIMockRecorder) ListAccessPoliciesPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAccessPoliciesPagesWithContext", reflect.TypeOf((*MockEKSAPI)(nil).ListAccessPoliciesPagesWithContext), varargs...)
-}
-
-// ListAccessPoliciesRequest mocks base method.
-func (m *MockEKSAPI) ListAccessPoliciesRequest(arg0 *eks.ListAccessPoliciesInput) (*request.Request, *eks.ListAccessPoliciesOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListAccessPoliciesRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.ListAccessPoliciesOutput)
-	return ret0, ret1
-}
-
-// ListAccessPoliciesRequest indicates an expected call of ListAccessPoliciesRequest.
-func (mr *MockEKSAPIMockRecorder) ListAccessPoliciesRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAccessPoliciesRequest", reflect.TypeOf((*MockEKSAPI)(nil).ListAccessPoliciesRequest), arg0)
-}
-
-// ListAccessPoliciesWithContext mocks base method.
-func (m *MockEKSAPI) ListAccessPoliciesWithContext(arg0 context.Context, arg1 *eks.ListAccessPoliciesInput, arg2 ...request.Option) (*eks.ListAccessPoliciesOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ListAccessPoliciesWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.ListAccessPoliciesOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListAccessPoliciesWithContext indicates an expected call of ListAccessPoliciesWithContext.
-func (mr *MockEKSAPIMockRecorder) ListAccessPoliciesWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAccessPoliciesWithContext", reflect.TypeOf((*MockEKSAPI)(nil).ListAccessPoliciesWithContext), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisassociateIdentityProviderConfig", reflect.TypeOf((*MockEKSAPI)(nil).DisassociateIdentityProviderConfig), varargs...)
 }
 
 // ListAddons mocks base method.
-func (m *MockEKSAPI) ListAddons(arg0 *eks.ListAddonsInput) (*eks.ListAddonsOutput, error) {
+func (m *MockEKSAPI) ListAddons(arg0 context.Context, arg1 *eks.ListAddonsInput, arg2 ...func(*eks.Options)) (*eks.ListAddonsOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListAddons", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListAddons", varargs...)
 	ret0, _ := ret[0].(*eks.ListAddonsOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListAddons indicates an expected call of ListAddons.
-func (mr *MockEKSAPIMockRecorder) ListAddons(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAddons", reflect.TypeOf((*MockEKSAPI)(nil).ListAddons), arg0)
-}
-
-// ListAddonsPages mocks base method.
-func (m *MockEKSAPI) ListAddonsPages(arg0 *eks.ListAddonsInput, arg1 func(*eks.ListAddonsOutput, bool) bool) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListAddonsPages", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ListAddonsPages indicates an expected call of ListAddonsPages.
-func (mr *MockEKSAPIMockRecorder) ListAddonsPages(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAddonsPages", reflect.TypeOf((*MockEKSAPI)(nil).ListAddonsPages), arg0, arg1)
-}
-
-// ListAddonsPagesWithContext mocks base method.
-func (m *MockEKSAPI) ListAddonsPagesWithContext(arg0 context.Context, arg1 *eks.ListAddonsInput, arg2 func(*eks.ListAddonsOutput, bool) bool, arg3 ...request.Option) error {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1, arg2}
-	for _, a := range arg3 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ListAddonsPagesWithContext", varargs...)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ListAddonsPagesWithContext indicates an expected call of ListAddonsPagesWithContext.
-func (mr *MockEKSAPIMockRecorder) ListAddonsPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAddonsPagesWithContext", reflect.TypeOf((*MockEKSAPI)(nil).ListAddonsPagesWithContext), varargs...)
-}
-
-// ListAddonsRequest mocks base method.
-func (m *MockEKSAPI) ListAddonsRequest(arg0 *eks.ListAddonsInput) (*request.Request, *eks.ListAddonsOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListAddonsRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.ListAddonsOutput)
-	return ret0, ret1
-}
-
-// ListAddonsRequest indicates an expected call of ListAddonsRequest.
-func (mr *MockEKSAPIMockRecorder) ListAddonsRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAddonsRequest", reflect.TypeOf((*MockEKSAPI)(nil).ListAddonsRequest), arg0)
-}
-
-// ListAddonsWithContext mocks base method.
-func (m *MockEKSAPI) ListAddonsWithContext(arg0 context.Context, arg1 *eks.ListAddonsInput, arg2 ...request.Option) (*eks.ListAddonsOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ListAddonsWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.ListAddonsOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListAddonsWithContext indicates an expected call of ListAddonsWithContext.
-func (mr *MockEKSAPIMockRecorder) ListAddonsWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) ListAddons(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAddonsWithContext", reflect.TypeOf((*MockEKSAPI)(nil).ListAddonsWithContext), varargs...)
-}
-
-// ListAssociatedAccessPolicies mocks base method.
-func (m *MockEKSAPI) ListAssociatedAccessPolicies(arg0 *eks.ListAssociatedAccessPoliciesInput) (*eks.ListAssociatedAccessPoliciesOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListAssociatedAccessPolicies", arg0)
-	ret0, _ := ret[0].(*eks.ListAssociatedAccessPoliciesOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListAssociatedAccessPolicies indicates an expected call of ListAssociatedAccessPolicies.
-func (mr *MockEKSAPIMockRecorder) ListAssociatedAccessPolicies(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAssociatedAccessPolicies", reflect.TypeOf((*MockEKSAPI)(nil).ListAssociatedAccessPolicies), arg0)
-}
-
-// ListAssociatedAccessPoliciesPages mocks base method.
-func (m *MockEKSAPI) ListAssociatedAccessPoliciesPages(arg0 *eks.ListAssociatedAccessPoliciesInput, arg1 func(*eks.ListAssociatedAccessPoliciesOutput, bool) bool) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListAssociatedAccessPoliciesPages", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ListAssociatedAccessPoliciesPages indicates an expected call of ListAssociatedAccessPoliciesPages.
-func (mr *MockEKSAPIMockRecorder) ListAssociatedAccessPoliciesPages(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAssociatedAccessPoliciesPages", reflect.TypeOf((*MockEKSAPI)(nil).ListAssociatedAccessPoliciesPages), arg0, arg1)
-}
-
-// ListAssociatedAccessPoliciesPagesWithContext mocks base method.
-func (m *MockEKSAPI) ListAssociatedAccessPoliciesPagesWithContext(arg0 context.Context, arg1 *eks.ListAssociatedAccessPoliciesInput, arg2 func(*eks.ListAssociatedAccessPoliciesOutput, bool) bool, arg3 ...request.Option) error {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1, arg2}
-	for _, a := range arg3 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ListAssociatedAccessPoliciesPagesWithContext", varargs...)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ListAssociatedAccessPoliciesPagesWithContext indicates an expected call of ListAssociatedAccessPoliciesPagesWithContext.
-func (mr *MockEKSAPIMockRecorder) ListAssociatedAccessPoliciesPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAssociatedAccessPoliciesPagesWithContext", reflect.TypeOf((*MockEKSAPI)(nil).ListAssociatedAccessPoliciesPagesWithContext), varargs...)
-}
-
-// ListAssociatedAccessPoliciesRequest mocks base method.
-func (m *MockEKSAPI) ListAssociatedAccessPoliciesRequest(arg0 *eks.ListAssociatedAccessPoliciesInput) (*request.Request, *eks.ListAssociatedAccessPoliciesOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListAssociatedAccessPoliciesRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.ListAssociatedAccessPoliciesOutput)
-	return ret0, ret1
-}
-
-// ListAssociatedAccessPoliciesRequest indicates an expected call of ListAssociatedAccessPoliciesRequest.
-func (mr *MockEKSAPIMockRecorder) ListAssociatedAccessPoliciesRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAssociatedAccessPoliciesRequest", reflect.TypeOf((*MockEKSAPI)(nil).ListAssociatedAccessPoliciesRequest), arg0)
-}
-
-// ListAssociatedAccessPoliciesWithContext mocks base method.
-func (m *MockEKSAPI) ListAssociatedAccessPoliciesWithContext(arg0 context.Context, arg1 *eks.ListAssociatedAccessPoliciesInput, arg2 ...request.Option) (*eks.ListAssociatedAccessPoliciesOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ListAssociatedAccessPoliciesWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.ListAssociatedAccessPoliciesOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListAssociatedAccessPoliciesWithContext indicates an expected call of ListAssociatedAccessPoliciesWithContext.
-func (mr *MockEKSAPIMockRecorder) ListAssociatedAccessPoliciesWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAssociatedAccessPoliciesWithContext", reflect.TypeOf((*MockEKSAPI)(nil).ListAssociatedAccessPoliciesWithContext), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAddons", reflect.TypeOf((*MockEKSAPI)(nil).ListAddons), varargs...)
 }
 
 // ListClusters mocks base method.
-func (m *MockEKSAPI) ListClusters(arg0 *eks.ListClustersInput) (*eks.ListClustersOutput, error) {
+func (m *MockEKSAPI) ListClusters(arg0 context.Context, arg1 *eks.ListClustersInput, arg2 ...func(*eks.Options)) (*eks.ListClustersOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListClusters", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListClusters", varargs...)
 	ret0, _ := ret[0].(*eks.ListClustersOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListClusters indicates an expected call of ListClusters.
-func (mr *MockEKSAPIMockRecorder) ListClusters(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListClusters", reflect.TypeOf((*MockEKSAPI)(nil).ListClusters), arg0)
-}
-
-// ListClustersPages mocks base method.
-func (m *MockEKSAPI) ListClustersPages(arg0 *eks.ListClustersInput, arg1 func(*eks.ListClustersOutput, bool) bool) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListClustersPages", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ListClustersPages indicates an expected call of ListClustersPages.
-func (mr *MockEKSAPIMockRecorder) ListClustersPages(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListClustersPages", reflect.TypeOf((*MockEKSAPI)(nil).ListClustersPages), arg0, arg1)
-}
-
-// ListClustersPagesWithContext mocks base method.
-func (m *MockEKSAPI) ListClustersPagesWithContext(arg0 context.Context, arg1 *eks.ListClustersInput, arg2 func(*eks.ListClustersOutput, bool) bool, arg3 ...request.Option) error {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1, arg2}
-	for _, a := range arg3 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ListClustersPagesWithContext", varargs...)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ListClustersPagesWithContext indicates an expected call of ListClustersPagesWithContext.
-func (mr *MockEKSAPIMockRecorder) ListClustersPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListClustersPagesWithContext", reflect.TypeOf((*MockEKSAPI)(nil).ListClustersPagesWithContext), varargs...)
-}
-
-// ListClustersRequest mocks base method.
-func (m *MockEKSAPI) ListClustersRequest(arg0 *eks.ListClustersInput) (*request.Request, *eks.ListClustersOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListClustersRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.ListClustersOutput)
-	return ret0, ret1
-}
-
-// ListClustersRequest indicates an expected call of ListClustersRequest.
-func (mr *MockEKSAPIMockRecorder) ListClustersRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListClustersRequest", reflect.TypeOf((*MockEKSAPI)(nil).ListClustersRequest), arg0)
-}
-
-// ListClustersWithContext mocks base method.
-func (m *MockEKSAPI) ListClustersWithContext(arg0 context.Context, arg1 *eks.ListClustersInput, arg2 ...request.Option) (*eks.ListClustersOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ListClustersWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.ListClustersOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListClustersWithContext indicates an expected call of ListClustersWithContext.
-func (mr *MockEKSAPIMockRecorder) ListClustersWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) ListClusters(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListClustersWithContext", reflect.TypeOf((*MockEKSAPI)(nil).ListClustersWithContext), varargs...)
-}
-
-// ListEksAnywhereSubscriptions mocks base method.
-func (m *MockEKSAPI) ListEksAnywhereSubscriptions(arg0 *eks.ListEksAnywhereSubscriptionsInput) (*eks.ListEksAnywhereSubscriptionsOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListEksAnywhereSubscriptions", arg0)
-	ret0, _ := ret[0].(*eks.ListEksAnywhereSubscriptionsOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListEksAnywhereSubscriptions indicates an expected call of ListEksAnywhereSubscriptions.
-func (mr *MockEKSAPIMockRecorder) ListEksAnywhereSubscriptions(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEksAnywhereSubscriptions", reflect.TypeOf((*MockEKSAPI)(nil).ListEksAnywhereSubscriptions), arg0)
-}
-
-// ListEksAnywhereSubscriptionsPages mocks base method.
-func (m *MockEKSAPI) ListEksAnywhereSubscriptionsPages(arg0 *eks.ListEksAnywhereSubscriptionsInput, arg1 func(*eks.ListEksAnywhereSubscriptionsOutput, bool) bool) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListEksAnywhereSubscriptionsPages", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ListEksAnywhereSubscriptionsPages indicates an expected call of ListEksAnywhereSubscriptionsPages.
-func (mr *MockEKSAPIMockRecorder) ListEksAnywhereSubscriptionsPages(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEksAnywhereSubscriptionsPages", reflect.TypeOf((*MockEKSAPI)(nil).ListEksAnywhereSubscriptionsPages), arg0, arg1)
-}
-
-// ListEksAnywhereSubscriptionsPagesWithContext mocks base method.
-func (m *MockEKSAPI) ListEksAnywhereSubscriptionsPagesWithContext(arg0 context.Context, arg1 *eks.ListEksAnywhereSubscriptionsInput, arg2 func(*eks.ListEksAnywhereSubscriptionsOutput, bool) bool, arg3 ...request.Option) error {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1, arg2}
-	for _, a := range arg3 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ListEksAnywhereSubscriptionsPagesWithContext", varargs...)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ListEksAnywhereSubscriptionsPagesWithContext indicates an expected call of ListEksAnywhereSubscriptionsPagesWithContext.
-func (mr *MockEKSAPIMockRecorder) ListEksAnywhereSubscriptionsPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEksAnywhereSubscriptionsPagesWithContext", reflect.TypeOf((*MockEKSAPI)(nil).ListEksAnywhereSubscriptionsPagesWithContext), varargs...)
-}
-
-// ListEksAnywhereSubscriptionsRequest mocks base method.
-func (m *MockEKSAPI) ListEksAnywhereSubscriptionsRequest(arg0 *eks.ListEksAnywhereSubscriptionsInput) (*request.Request, *eks.ListEksAnywhereSubscriptionsOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListEksAnywhereSubscriptionsRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.ListEksAnywhereSubscriptionsOutput)
-	return ret0, ret1
-}
-
-// ListEksAnywhereSubscriptionsRequest indicates an expected call of ListEksAnywhereSubscriptionsRequest.
-func (mr *MockEKSAPIMockRecorder) ListEksAnywhereSubscriptionsRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEksAnywhereSubscriptionsRequest", reflect.TypeOf((*MockEKSAPI)(nil).ListEksAnywhereSubscriptionsRequest), arg0)
-}
-
-// ListEksAnywhereSubscriptionsWithContext mocks base method.
-func (m *MockEKSAPI) ListEksAnywhereSubscriptionsWithContext(arg0 context.Context, arg1 *eks.ListEksAnywhereSubscriptionsInput, arg2 ...request.Option) (*eks.ListEksAnywhereSubscriptionsOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ListEksAnywhereSubscriptionsWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.ListEksAnywhereSubscriptionsOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListEksAnywhereSubscriptionsWithContext indicates an expected call of ListEksAnywhereSubscriptionsWithContext.
-func (mr *MockEKSAPIMockRecorder) ListEksAnywhereSubscriptionsWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEksAnywhereSubscriptionsWithContext", reflect.TypeOf((*MockEKSAPI)(nil).ListEksAnywhereSubscriptionsWithContext), varargs...)
-}
-
-// ListFargateProfiles mocks base method.
-func (m *MockEKSAPI) ListFargateProfiles(arg0 *eks.ListFargateProfilesInput) (*eks.ListFargateProfilesOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListFargateProfiles", arg0)
-	ret0, _ := ret[0].(*eks.ListFargateProfilesOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListFargateProfiles indicates an expected call of ListFargateProfiles.
-func (mr *MockEKSAPIMockRecorder) ListFargateProfiles(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListFargateProfiles", reflect.TypeOf((*MockEKSAPI)(nil).ListFargateProfiles), arg0)
-}
-
-// ListFargateProfilesPages mocks base method.
-func (m *MockEKSAPI) ListFargateProfilesPages(arg0 *eks.ListFargateProfilesInput, arg1 func(*eks.ListFargateProfilesOutput, bool) bool) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListFargateProfilesPages", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ListFargateProfilesPages indicates an expected call of ListFargateProfilesPages.
-func (mr *MockEKSAPIMockRecorder) ListFargateProfilesPages(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListFargateProfilesPages", reflect.TypeOf((*MockEKSAPI)(nil).ListFargateProfilesPages), arg0, arg1)
-}
-
-// ListFargateProfilesPagesWithContext mocks base method.
-func (m *MockEKSAPI) ListFargateProfilesPagesWithContext(arg0 context.Context, arg1 *eks.ListFargateProfilesInput, arg2 func(*eks.ListFargateProfilesOutput, bool) bool, arg3 ...request.Option) error {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1, arg2}
-	for _, a := range arg3 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ListFargateProfilesPagesWithContext", varargs...)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ListFargateProfilesPagesWithContext indicates an expected call of ListFargateProfilesPagesWithContext.
-func (mr *MockEKSAPIMockRecorder) ListFargateProfilesPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListFargateProfilesPagesWithContext", reflect.TypeOf((*MockEKSAPI)(nil).ListFargateProfilesPagesWithContext), varargs...)
-}
-
-// ListFargateProfilesRequest mocks base method.
-func (m *MockEKSAPI) ListFargateProfilesRequest(arg0 *eks.ListFargateProfilesInput) (*request.Request, *eks.ListFargateProfilesOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListFargateProfilesRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.ListFargateProfilesOutput)
-	return ret0, ret1
-}
-
-// ListFargateProfilesRequest indicates an expected call of ListFargateProfilesRequest.
-func (mr *MockEKSAPIMockRecorder) ListFargateProfilesRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListFargateProfilesRequest", reflect.TypeOf((*MockEKSAPI)(nil).ListFargateProfilesRequest), arg0)
-}
-
-// ListFargateProfilesWithContext mocks base method.
-func (m *MockEKSAPI) ListFargateProfilesWithContext(arg0 context.Context, arg1 *eks.ListFargateProfilesInput, arg2 ...request.Option) (*eks.ListFargateProfilesOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ListFargateProfilesWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.ListFargateProfilesOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListFargateProfilesWithContext indicates an expected call of ListFargateProfilesWithContext.
-func (mr *MockEKSAPIMockRecorder) ListFargateProfilesWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListFargateProfilesWithContext", reflect.TypeOf((*MockEKSAPI)(nil).ListFargateProfilesWithContext), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListClusters", reflect.TypeOf((*MockEKSAPI)(nil).ListClusters), varargs...)
 }
 
 // ListIdentityProviderConfigs mocks base method.
-func (m *MockEKSAPI) ListIdentityProviderConfigs(arg0 *eks.ListIdentityProviderConfigsInput) (*eks.ListIdentityProviderConfigsOutput, error) {
+func (m *MockEKSAPI) ListIdentityProviderConfigs(arg0 context.Context, arg1 *eks.ListIdentityProviderConfigsInput, arg2 ...func(*eks.Options)) (*eks.ListIdentityProviderConfigsOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListIdentityProviderConfigs", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListIdentityProviderConfigs", varargs...)
 	ret0, _ := ret[0].(*eks.ListIdentityProviderConfigsOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListIdentityProviderConfigs indicates an expected call of ListIdentityProviderConfigs.
-func (mr *MockEKSAPIMockRecorder) ListIdentityProviderConfigs(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListIdentityProviderConfigs", reflect.TypeOf((*MockEKSAPI)(nil).ListIdentityProviderConfigs), arg0)
-}
-
-// ListIdentityProviderConfigsPages mocks base method.
-func (m *MockEKSAPI) ListIdentityProviderConfigsPages(arg0 *eks.ListIdentityProviderConfigsInput, arg1 func(*eks.ListIdentityProviderConfigsOutput, bool) bool) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListIdentityProviderConfigsPages", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ListIdentityProviderConfigsPages indicates an expected call of ListIdentityProviderConfigsPages.
-func (mr *MockEKSAPIMockRecorder) ListIdentityProviderConfigsPages(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListIdentityProviderConfigsPages", reflect.TypeOf((*MockEKSAPI)(nil).ListIdentityProviderConfigsPages), arg0, arg1)
-}
-
-// ListIdentityProviderConfigsPagesWithContext mocks base method.
-func (m *MockEKSAPI) ListIdentityProviderConfigsPagesWithContext(arg0 context.Context, arg1 *eks.ListIdentityProviderConfigsInput, arg2 func(*eks.ListIdentityProviderConfigsOutput, bool) bool, arg3 ...request.Option) error {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1, arg2}
-	for _, a := range arg3 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ListIdentityProviderConfigsPagesWithContext", varargs...)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ListIdentityProviderConfigsPagesWithContext indicates an expected call of ListIdentityProviderConfigsPagesWithContext.
-func (mr *MockEKSAPIMockRecorder) ListIdentityProviderConfigsPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListIdentityProviderConfigsPagesWithContext", reflect.TypeOf((*MockEKSAPI)(nil).ListIdentityProviderConfigsPagesWithContext), varargs...)
-}
-
-// ListIdentityProviderConfigsRequest mocks base method.
-func (m *MockEKSAPI) ListIdentityProviderConfigsRequest(arg0 *eks.ListIdentityProviderConfigsInput) (*request.Request, *eks.ListIdentityProviderConfigsOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListIdentityProviderConfigsRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.ListIdentityProviderConfigsOutput)
-	return ret0, ret1
-}
-
-// ListIdentityProviderConfigsRequest indicates an expected call of ListIdentityProviderConfigsRequest.
-func (mr *MockEKSAPIMockRecorder) ListIdentityProviderConfigsRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListIdentityProviderConfigsRequest", reflect.TypeOf((*MockEKSAPI)(nil).ListIdentityProviderConfigsRequest), arg0)
-}
-
-// ListIdentityProviderConfigsWithContext mocks base method.
-func (m *MockEKSAPI) ListIdentityProviderConfigsWithContext(arg0 context.Context, arg1 *eks.ListIdentityProviderConfigsInput, arg2 ...request.Option) (*eks.ListIdentityProviderConfigsOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ListIdentityProviderConfigsWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.ListIdentityProviderConfigsOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListIdentityProviderConfigsWithContext indicates an expected call of ListIdentityProviderConfigsWithContext.
-func (mr *MockEKSAPIMockRecorder) ListIdentityProviderConfigsWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) ListIdentityProviderConfigs(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListIdentityProviderConfigsWithContext", reflect.TypeOf((*MockEKSAPI)(nil).ListIdentityProviderConfigsWithContext), varargs...)
-}
-
-// ListInsights mocks base method.
-func (m *MockEKSAPI) ListInsights(arg0 *eks.ListInsightsInput) (*eks.ListInsightsOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListInsights", arg0)
-	ret0, _ := ret[0].(*eks.ListInsightsOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListInsights indicates an expected call of ListInsights.
-func (mr *MockEKSAPIMockRecorder) ListInsights(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListInsights", reflect.TypeOf((*MockEKSAPI)(nil).ListInsights), arg0)
-}
-
-// ListInsightsPages mocks base method.
-func (m *MockEKSAPI) ListInsightsPages(arg0 *eks.ListInsightsInput, arg1 func(*eks.ListInsightsOutput, bool) bool) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListInsightsPages", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ListInsightsPages indicates an expected call of ListInsightsPages.
-func (mr *MockEKSAPIMockRecorder) ListInsightsPages(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListInsightsPages", reflect.TypeOf((*MockEKSAPI)(nil).ListInsightsPages), arg0, arg1)
-}
-
-// ListInsightsPagesWithContext mocks base method.
-func (m *MockEKSAPI) ListInsightsPagesWithContext(arg0 context.Context, arg1 *eks.ListInsightsInput, arg2 func(*eks.ListInsightsOutput, bool) bool, arg3 ...request.Option) error {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1, arg2}
-	for _, a := range arg3 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ListInsightsPagesWithContext", varargs...)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ListInsightsPagesWithContext indicates an expected call of ListInsightsPagesWithContext.
-func (mr *MockEKSAPIMockRecorder) ListInsightsPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListInsightsPagesWithContext", reflect.TypeOf((*MockEKSAPI)(nil).ListInsightsPagesWithContext), varargs...)
-}
-
-// ListInsightsRequest mocks base method.
-func (m *MockEKSAPI) ListInsightsRequest(arg0 *eks.ListInsightsInput) (*request.Request, *eks.ListInsightsOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListInsightsRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.ListInsightsOutput)
-	return ret0, ret1
-}
-
-// ListInsightsRequest indicates an expected call of ListInsightsRequest.
-func (mr *MockEKSAPIMockRecorder) ListInsightsRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListInsightsRequest", reflect.TypeOf((*MockEKSAPI)(nil).ListInsightsRequest), arg0)
-}
-
-// ListInsightsWithContext mocks base method.
-func (m *MockEKSAPI) ListInsightsWithContext(arg0 context.Context, arg1 *eks.ListInsightsInput, arg2 ...request.Option) (*eks.ListInsightsOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ListInsightsWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.ListInsightsOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListInsightsWithContext indicates an expected call of ListInsightsWithContext.
-func (mr *MockEKSAPIMockRecorder) ListInsightsWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListInsightsWithContext", reflect.TypeOf((*MockEKSAPI)(nil).ListInsightsWithContext), varargs...)
-}
-
-// ListNodegroups mocks base method.
-func (m *MockEKSAPI) ListNodegroups(arg0 *eks.ListNodegroupsInput) (*eks.ListNodegroupsOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListNodegroups", arg0)
-	ret0, _ := ret[0].(*eks.ListNodegroupsOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListNodegroups indicates an expected call of ListNodegroups.
-func (mr *MockEKSAPIMockRecorder) ListNodegroups(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListNodegroups", reflect.TypeOf((*MockEKSAPI)(nil).ListNodegroups), arg0)
-}
-
-// ListNodegroupsPages mocks base method.
-func (m *MockEKSAPI) ListNodegroupsPages(arg0 *eks.ListNodegroupsInput, arg1 func(*eks.ListNodegroupsOutput, bool) bool) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListNodegroupsPages", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ListNodegroupsPages indicates an expected call of ListNodegroupsPages.
-func (mr *MockEKSAPIMockRecorder) ListNodegroupsPages(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListNodegroupsPages", reflect.TypeOf((*MockEKSAPI)(nil).ListNodegroupsPages), arg0, arg1)
-}
-
-// ListNodegroupsPagesWithContext mocks base method.
-func (m *MockEKSAPI) ListNodegroupsPagesWithContext(arg0 context.Context, arg1 *eks.ListNodegroupsInput, arg2 func(*eks.ListNodegroupsOutput, bool) bool, arg3 ...request.Option) error {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1, arg2}
-	for _, a := range arg3 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ListNodegroupsPagesWithContext", varargs...)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ListNodegroupsPagesWithContext indicates an expected call of ListNodegroupsPagesWithContext.
-func (mr *MockEKSAPIMockRecorder) ListNodegroupsPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListNodegroupsPagesWithContext", reflect.TypeOf((*MockEKSAPI)(nil).ListNodegroupsPagesWithContext), varargs...)
-}
-
-// ListNodegroupsRequest mocks base method.
-func (m *MockEKSAPI) ListNodegroupsRequest(arg0 *eks.ListNodegroupsInput) (*request.Request, *eks.ListNodegroupsOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListNodegroupsRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.ListNodegroupsOutput)
-	return ret0, ret1
-}
-
-// ListNodegroupsRequest indicates an expected call of ListNodegroupsRequest.
-func (mr *MockEKSAPIMockRecorder) ListNodegroupsRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListNodegroupsRequest", reflect.TypeOf((*MockEKSAPI)(nil).ListNodegroupsRequest), arg0)
-}
-
-// ListNodegroupsWithContext mocks base method.
-func (m *MockEKSAPI) ListNodegroupsWithContext(arg0 context.Context, arg1 *eks.ListNodegroupsInput, arg2 ...request.Option) (*eks.ListNodegroupsOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ListNodegroupsWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.ListNodegroupsOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListNodegroupsWithContext indicates an expected call of ListNodegroupsWithContext.
-func (mr *MockEKSAPIMockRecorder) ListNodegroupsWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListNodegroupsWithContext", reflect.TypeOf((*MockEKSAPI)(nil).ListNodegroupsWithContext), varargs...)
-}
-
-// ListPodIdentityAssociations mocks base method.
-func (m *MockEKSAPI) ListPodIdentityAssociations(arg0 *eks.ListPodIdentityAssociationsInput) (*eks.ListPodIdentityAssociationsOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListPodIdentityAssociations", arg0)
-	ret0, _ := ret[0].(*eks.ListPodIdentityAssociationsOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListPodIdentityAssociations indicates an expected call of ListPodIdentityAssociations.
-func (mr *MockEKSAPIMockRecorder) ListPodIdentityAssociations(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPodIdentityAssociations", reflect.TypeOf((*MockEKSAPI)(nil).ListPodIdentityAssociations), arg0)
-}
-
-// ListPodIdentityAssociationsPages mocks base method.
-func (m *MockEKSAPI) ListPodIdentityAssociationsPages(arg0 *eks.ListPodIdentityAssociationsInput, arg1 func(*eks.ListPodIdentityAssociationsOutput, bool) bool) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListPodIdentityAssociationsPages", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ListPodIdentityAssociationsPages indicates an expected call of ListPodIdentityAssociationsPages.
-func (mr *MockEKSAPIMockRecorder) ListPodIdentityAssociationsPages(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPodIdentityAssociationsPages", reflect.TypeOf((*MockEKSAPI)(nil).ListPodIdentityAssociationsPages), arg0, arg1)
-}
-
-// ListPodIdentityAssociationsPagesWithContext mocks base method.
-func (m *MockEKSAPI) ListPodIdentityAssociationsPagesWithContext(arg0 context.Context, arg1 *eks.ListPodIdentityAssociationsInput, arg2 func(*eks.ListPodIdentityAssociationsOutput, bool) bool, arg3 ...request.Option) error {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1, arg2}
-	for _, a := range arg3 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ListPodIdentityAssociationsPagesWithContext", varargs...)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ListPodIdentityAssociationsPagesWithContext indicates an expected call of ListPodIdentityAssociationsPagesWithContext.
-func (mr *MockEKSAPIMockRecorder) ListPodIdentityAssociationsPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPodIdentityAssociationsPagesWithContext", reflect.TypeOf((*MockEKSAPI)(nil).ListPodIdentityAssociationsPagesWithContext), varargs...)
-}
-
-// ListPodIdentityAssociationsRequest mocks base method.
-func (m *MockEKSAPI) ListPodIdentityAssociationsRequest(arg0 *eks.ListPodIdentityAssociationsInput) (*request.Request, *eks.ListPodIdentityAssociationsOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListPodIdentityAssociationsRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.ListPodIdentityAssociationsOutput)
-	return ret0, ret1
-}
-
-// ListPodIdentityAssociationsRequest indicates an expected call of ListPodIdentityAssociationsRequest.
-func (mr *MockEKSAPIMockRecorder) ListPodIdentityAssociationsRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPodIdentityAssociationsRequest", reflect.TypeOf((*MockEKSAPI)(nil).ListPodIdentityAssociationsRequest), arg0)
-}
-
-// ListPodIdentityAssociationsWithContext mocks base method.
-func (m *MockEKSAPI) ListPodIdentityAssociationsWithContext(arg0 context.Context, arg1 *eks.ListPodIdentityAssociationsInput, arg2 ...request.Option) (*eks.ListPodIdentityAssociationsOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ListPodIdentityAssociationsWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.ListPodIdentityAssociationsOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListPodIdentityAssociationsWithContext indicates an expected call of ListPodIdentityAssociationsWithContext.
-func (mr *MockEKSAPIMockRecorder) ListPodIdentityAssociationsWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPodIdentityAssociationsWithContext", reflect.TypeOf((*MockEKSAPI)(nil).ListPodIdentityAssociationsWithContext), varargs...)
-}
-
-// ListTagsForResource mocks base method.
-func (m *MockEKSAPI) ListTagsForResource(arg0 *eks.ListTagsForResourceInput) (*eks.ListTagsForResourceOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListTagsForResource", arg0)
-	ret0, _ := ret[0].(*eks.ListTagsForResourceOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListTagsForResource indicates an expected call of ListTagsForResource.
-func (mr *MockEKSAPIMockRecorder) ListTagsForResource(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTagsForResource", reflect.TypeOf((*MockEKSAPI)(nil).ListTagsForResource), arg0)
-}
-
-// ListTagsForResourceRequest mocks base method.
-func (m *MockEKSAPI) ListTagsForResourceRequest(arg0 *eks.ListTagsForResourceInput) (*request.Request, *eks.ListTagsForResourceOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListTagsForResourceRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.ListTagsForResourceOutput)
-	return ret0, ret1
-}
-
-// ListTagsForResourceRequest indicates an expected call of ListTagsForResourceRequest.
-func (mr *MockEKSAPIMockRecorder) ListTagsForResourceRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTagsForResourceRequest", reflect.TypeOf((*MockEKSAPI)(nil).ListTagsForResourceRequest), arg0)
-}
-
-// ListTagsForResourceWithContext mocks base method.
-func (m *MockEKSAPI) ListTagsForResourceWithContext(arg0 context.Context, arg1 *eks.ListTagsForResourceInput, arg2 ...request.Option) (*eks.ListTagsForResourceOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ListTagsForResourceWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.ListTagsForResourceOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListTagsForResourceWithContext indicates an expected call of ListTagsForResourceWithContext.
-func (mr *MockEKSAPIMockRecorder) ListTagsForResourceWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTagsForResourceWithContext", reflect.TypeOf((*MockEKSAPI)(nil).ListTagsForResourceWithContext), varargs...)
-}
-
-// ListUpdates mocks base method.
-func (m *MockEKSAPI) ListUpdates(arg0 *eks.ListUpdatesInput) (*eks.ListUpdatesOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListUpdates", arg0)
-	ret0, _ := ret[0].(*eks.ListUpdatesOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListUpdates indicates an expected call of ListUpdates.
-func (mr *MockEKSAPIMockRecorder) ListUpdates(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUpdates", reflect.TypeOf((*MockEKSAPI)(nil).ListUpdates), arg0)
-}
-
-// ListUpdatesPages mocks base method.
-func (m *MockEKSAPI) ListUpdatesPages(arg0 *eks.ListUpdatesInput, arg1 func(*eks.ListUpdatesOutput, bool) bool) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListUpdatesPages", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ListUpdatesPages indicates an expected call of ListUpdatesPages.
-func (mr *MockEKSAPIMockRecorder) ListUpdatesPages(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUpdatesPages", reflect.TypeOf((*MockEKSAPI)(nil).ListUpdatesPages), arg0, arg1)
-}
-
-// ListUpdatesPagesWithContext mocks base method.
-func (m *MockEKSAPI) ListUpdatesPagesWithContext(arg0 context.Context, arg1 *eks.ListUpdatesInput, arg2 func(*eks.ListUpdatesOutput, bool) bool, arg3 ...request.Option) error {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1, arg2}
-	for _, a := range arg3 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ListUpdatesPagesWithContext", varargs...)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ListUpdatesPagesWithContext indicates an expected call of ListUpdatesPagesWithContext.
-func (mr *MockEKSAPIMockRecorder) ListUpdatesPagesWithContext(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUpdatesPagesWithContext", reflect.TypeOf((*MockEKSAPI)(nil).ListUpdatesPagesWithContext), varargs...)
-}
-
-// ListUpdatesRequest mocks base method.
-func (m *MockEKSAPI) ListUpdatesRequest(arg0 *eks.ListUpdatesInput) (*request.Request, *eks.ListUpdatesOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListUpdatesRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.ListUpdatesOutput)
-	return ret0, ret1
-}
-
-// ListUpdatesRequest indicates an expected call of ListUpdatesRequest.
-func (mr *MockEKSAPIMockRecorder) ListUpdatesRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUpdatesRequest", reflect.TypeOf((*MockEKSAPI)(nil).ListUpdatesRequest), arg0)
-}
-
-// ListUpdatesWithContext mocks base method.
-func (m *MockEKSAPI) ListUpdatesWithContext(arg0 context.Context, arg1 *eks.ListUpdatesInput, arg2 ...request.Option) (*eks.ListUpdatesOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ListUpdatesWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.ListUpdatesOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListUpdatesWithContext indicates an expected call of ListUpdatesWithContext.
-func (mr *MockEKSAPIMockRecorder) ListUpdatesWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUpdatesWithContext", reflect.TypeOf((*MockEKSAPI)(nil).ListUpdatesWithContext), varargs...)
-}
-
-// RegisterCluster mocks base method.
-func (m *MockEKSAPI) RegisterCluster(arg0 *eks.RegisterClusterInput) (*eks.RegisterClusterOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RegisterCluster", arg0)
-	ret0, _ := ret[0].(*eks.RegisterClusterOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// RegisterCluster indicates an expected call of RegisterCluster.
-func (mr *MockEKSAPIMockRecorder) RegisterCluster(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterCluster", reflect.TypeOf((*MockEKSAPI)(nil).RegisterCluster), arg0)
-}
-
-// RegisterClusterRequest mocks base method.
-func (m *MockEKSAPI) RegisterClusterRequest(arg0 *eks.RegisterClusterInput) (*request.Request, *eks.RegisterClusterOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RegisterClusterRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.RegisterClusterOutput)
-	return ret0, ret1
-}
-
-// RegisterClusterRequest indicates an expected call of RegisterClusterRequest.
-func (mr *MockEKSAPIMockRecorder) RegisterClusterRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterClusterRequest", reflect.TypeOf((*MockEKSAPI)(nil).RegisterClusterRequest), arg0)
-}
-
-// RegisterClusterWithContext mocks base method.
-func (m *MockEKSAPI) RegisterClusterWithContext(arg0 context.Context, arg1 *eks.RegisterClusterInput, arg2 ...request.Option) (*eks.RegisterClusterOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "RegisterClusterWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.RegisterClusterOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// RegisterClusterWithContext indicates an expected call of RegisterClusterWithContext.
-func (mr *MockEKSAPIMockRecorder) RegisterClusterWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterClusterWithContext", reflect.TypeOf((*MockEKSAPI)(nil).RegisterClusterWithContext), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListIdentityProviderConfigs", reflect.TypeOf((*MockEKSAPI)(nil).ListIdentityProviderConfigs), varargs...)
 }
 
 // TagResource mocks base method.
-func (m *MockEKSAPI) TagResource(arg0 *eks.TagResourceInput) (*eks.TagResourceOutput, error) {
+func (m *MockEKSAPI) TagResource(arg0 context.Context, arg1 *eks.TagResourceInput, arg2 ...func(*eks.Options)) (*eks.TagResourceOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TagResource", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "TagResource", varargs...)
 	ret0, _ := ret[0].(*eks.TagResourceOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // TagResource indicates an expected call of TagResource.
-func (mr *MockEKSAPIMockRecorder) TagResource(arg0 interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) TagResource(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TagResource", reflect.TypeOf((*MockEKSAPI)(nil).TagResource), arg0)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TagResource", reflect.TypeOf((*MockEKSAPI)(nil).TagResource), varargs...)
 }
 
-// TagResourceRequest mocks base method.
-func (m *MockEKSAPI) TagResourceRequest(arg0 *eks.TagResourceInput) (*request.Request, *eks.TagResourceOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TagResourceRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.TagResourceOutput)
-	return ret0, ret1
-}
-
-// TagResourceRequest indicates an expected call of TagResourceRequest.
-func (mr *MockEKSAPIMockRecorder) TagResourceRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TagResourceRequest", reflect.TypeOf((*MockEKSAPI)(nil).TagResourceRequest), arg0)
-}
-
-// TagResourceWithContext mocks base method.
-func (m *MockEKSAPI) TagResourceWithContext(arg0 context.Context, arg1 *eks.TagResourceInput, arg2 ...request.Option) (*eks.TagResourceOutput, error) {
+// UntagResource mocks base method.
+func (m *MockEKSAPI) UntagResource(arg0 context.Context, arg1 *eks.UntagResourceInput, arg2 ...func(*eks.Options)) (*eks.UntagResourceOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "TagResourceWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.TagResourceOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// TagResourceWithContext indicates an expected call of TagResourceWithContext.
-func (mr *MockEKSAPIMockRecorder) TagResourceWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TagResourceWithContext", reflect.TypeOf((*MockEKSAPI)(nil).TagResourceWithContext), varargs...)
-}
-
-// UntagResource mocks base method.
-func (m *MockEKSAPI) UntagResource(arg0 *eks.UntagResourceInput) (*eks.UntagResourceOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UntagResource", arg0)
+	ret := m.ctrl.Call(m, "UntagResource", varargs...)
 	ret0, _ := ret[0].(*eks.UntagResourceOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UntagResource indicates an expected call of UntagResource.
-func (mr *MockEKSAPIMockRecorder) UntagResource(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UntagResource", reflect.TypeOf((*MockEKSAPI)(nil).UntagResource), arg0)
-}
-
-// UntagResourceRequest mocks base method.
-func (m *MockEKSAPI) UntagResourceRequest(arg0 *eks.UntagResourceInput) (*request.Request, *eks.UntagResourceOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UntagResourceRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.UntagResourceOutput)
-	return ret0, ret1
-}
-
-// UntagResourceRequest indicates an expected call of UntagResourceRequest.
-func (mr *MockEKSAPIMockRecorder) UntagResourceRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UntagResourceRequest", reflect.TypeOf((*MockEKSAPI)(nil).UntagResourceRequest), arg0)
-}
-
-// UntagResourceWithContext mocks base method.
-func (m *MockEKSAPI) UntagResourceWithContext(arg0 context.Context, arg1 *eks.UntagResourceInput, arg2 ...request.Option) (*eks.UntagResourceOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "UntagResourceWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.UntagResourceOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// UntagResourceWithContext indicates an expected call of UntagResourceWithContext.
-func (mr *MockEKSAPIMockRecorder) UntagResourceWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) UntagResource(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UntagResourceWithContext", reflect.TypeOf((*MockEKSAPI)(nil).UntagResourceWithContext), varargs...)
-}
-
-// UpdateAccessEntry mocks base method.
-func (m *MockEKSAPI) UpdateAccessEntry(arg0 *eks.UpdateAccessEntryInput) (*eks.UpdateAccessEntryOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateAccessEntry", arg0)
-	ret0, _ := ret[0].(*eks.UpdateAccessEntryOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// UpdateAccessEntry indicates an expected call of UpdateAccessEntry.
-func (mr *MockEKSAPIMockRecorder) UpdateAccessEntry(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAccessEntry", reflect.TypeOf((*MockEKSAPI)(nil).UpdateAccessEntry), arg0)
-}
-
-// UpdateAccessEntryRequest mocks base method.
-func (m *MockEKSAPI) UpdateAccessEntryRequest(arg0 *eks.UpdateAccessEntryInput) (*request.Request, *eks.UpdateAccessEntryOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateAccessEntryRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.UpdateAccessEntryOutput)
-	return ret0, ret1
-}
-
-// UpdateAccessEntryRequest indicates an expected call of UpdateAccessEntryRequest.
-func (mr *MockEKSAPIMockRecorder) UpdateAccessEntryRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAccessEntryRequest", reflect.TypeOf((*MockEKSAPI)(nil).UpdateAccessEntryRequest), arg0)
-}
-
-// UpdateAccessEntryWithContext mocks base method.
-func (m *MockEKSAPI) UpdateAccessEntryWithContext(arg0 context.Context, arg1 *eks.UpdateAccessEntryInput, arg2 ...request.Option) (*eks.UpdateAccessEntryOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "UpdateAccessEntryWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.UpdateAccessEntryOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// UpdateAccessEntryWithContext indicates an expected call of UpdateAccessEntryWithContext.
-func (mr *MockEKSAPIMockRecorder) UpdateAccessEntryWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAccessEntryWithContext", reflect.TypeOf((*MockEKSAPI)(nil).UpdateAccessEntryWithContext), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UntagResource", reflect.TypeOf((*MockEKSAPI)(nil).UntagResource), varargs...)
 }
 
 // UpdateAddon mocks base method.
-func (m *MockEKSAPI) UpdateAddon(arg0 *eks.UpdateAddonInput) (*eks.UpdateAddonOutput, error) {
+func (m *MockEKSAPI) UpdateAddon(arg0 context.Context, arg1 *eks.UpdateAddonInput, arg2 ...func(*eks.Options)) (*eks.UpdateAddonOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateAddon", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "UpdateAddon", varargs...)
 	ret0, _ := ret[0].(*eks.UpdateAddonOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UpdateAddon indicates an expected call of UpdateAddon.
-func (mr *MockEKSAPIMockRecorder) UpdateAddon(arg0 interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) UpdateAddon(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAddon", reflect.TypeOf((*MockEKSAPI)(nil).UpdateAddon), arg0)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAddon", reflect.TypeOf((*MockEKSAPI)(nil).UpdateAddon), varargs...)
 }
 
-// UpdateAddonRequest mocks base method.
-func (m *MockEKSAPI) UpdateAddonRequest(arg0 *eks.UpdateAddonInput) (*request.Request, *eks.UpdateAddonOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateAddonRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.UpdateAddonOutput)
-	return ret0, ret1
-}
-
-// UpdateAddonRequest indicates an expected call of UpdateAddonRequest.
-func (mr *MockEKSAPIMockRecorder) UpdateAddonRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAddonRequest", reflect.TypeOf((*MockEKSAPI)(nil).UpdateAddonRequest), arg0)
-}
-
-// UpdateAddonWithContext mocks base method.
-func (m *MockEKSAPI) UpdateAddonWithContext(arg0 context.Context, arg1 *eks.UpdateAddonInput, arg2 ...request.Option) (*eks.UpdateAddonOutput, error) {
+// UpdateClusterConfig mocks base method.
+func (m *MockEKSAPI) UpdateClusterConfig(arg0 context.Context, arg1 *eks.UpdateClusterConfigInput, arg2 ...func(*eks.Options)) (*eks.UpdateClusterConfigOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "UpdateAddonWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.UpdateAddonOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// UpdateAddonWithContext indicates an expected call of UpdateAddonWithContext.
-func (mr *MockEKSAPIMockRecorder) UpdateAddonWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAddonWithContext", reflect.TypeOf((*MockEKSAPI)(nil).UpdateAddonWithContext), varargs...)
-}
-
-// UpdateClusterConfig mocks base method.
-func (m *MockEKSAPI) UpdateClusterConfig(arg0 *eks.UpdateClusterConfigInput) (*eks.UpdateClusterConfigOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateClusterConfig", arg0)
+	ret := m.ctrl.Call(m, "UpdateClusterConfig", varargs...)
 	ret0, _ := ret[0].(*eks.UpdateClusterConfigOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UpdateClusterConfig indicates an expected call of UpdateClusterConfig.
-func (mr *MockEKSAPIMockRecorder) UpdateClusterConfig(arg0 interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) UpdateClusterConfig(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterConfig", reflect.TypeOf((*MockEKSAPI)(nil).UpdateClusterConfig), arg0)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterConfig", reflect.TypeOf((*MockEKSAPI)(nil).UpdateClusterConfig), varargs...)
 }
 
-// UpdateClusterConfigRequest mocks base method.
-func (m *MockEKSAPI) UpdateClusterConfigRequest(arg0 *eks.UpdateClusterConfigInput) (*request.Request, *eks.UpdateClusterConfigOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateClusterConfigRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.UpdateClusterConfigOutput)
-	return ret0, ret1
-}
-
-// UpdateClusterConfigRequest indicates an expected call of UpdateClusterConfigRequest.
-func (mr *MockEKSAPIMockRecorder) UpdateClusterConfigRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterConfigRequest", reflect.TypeOf((*MockEKSAPI)(nil).UpdateClusterConfigRequest), arg0)
-}
-
-// UpdateClusterConfigWithContext mocks base method.
-func (m *MockEKSAPI) UpdateClusterConfigWithContext(arg0 context.Context, arg1 *eks.UpdateClusterConfigInput, arg2 ...request.Option) (*eks.UpdateClusterConfigOutput, error) {
+// UpdateClusterVersion mocks base method.
+func (m *MockEKSAPI) UpdateClusterVersion(arg0 context.Context, arg1 *eks.UpdateClusterVersionInput, arg2 ...func(*eks.Options)) (*eks.UpdateClusterVersionOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "UpdateClusterConfigWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.UpdateClusterConfigOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// UpdateClusterConfigWithContext indicates an expected call of UpdateClusterConfigWithContext.
-func (mr *MockEKSAPIMockRecorder) UpdateClusterConfigWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterConfigWithContext", reflect.TypeOf((*MockEKSAPI)(nil).UpdateClusterConfigWithContext), varargs...)
-}
-
-// UpdateClusterVersion mocks base method.
-func (m *MockEKSAPI) UpdateClusterVersion(arg0 *eks.UpdateClusterVersionInput) (*eks.UpdateClusterVersionOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateClusterVersion", arg0)
+	ret := m.ctrl.Call(m, "UpdateClusterVersion", varargs...)
 	ret0, _ := ret[0].(*eks.UpdateClusterVersionOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UpdateClusterVersion indicates an expected call of UpdateClusterVersion.
-func (mr *MockEKSAPIMockRecorder) UpdateClusterVersion(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterVersion", reflect.TypeOf((*MockEKSAPI)(nil).UpdateClusterVersion), arg0)
-}
-
-// UpdateClusterVersionRequest mocks base method.
-func (m *MockEKSAPI) UpdateClusterVersionRequest(arg0 *eks.UpdateClusterVersionInput) (*request.Request, *eks.UpdateClusterVersionOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateClusterVersionRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.UpdateClusterVersionOutput)
-	return ret0, ret1
-}
-
-// UpdateClusterVersionRequest indicates an expected call of UpdateClusterVersionRequest.
-func (mr *MockEKSAPIMockRecorder) UpdateClusterVersionRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterVersionRequest", reflect.TypeOf((*MockEKSAPI)(nil).UpdateClusterVersionRequest), arg0)
-}
-
-// UpdateClusterVersionWithContext mocks base method.
-func (m *MockEKSAPI) UpdateClusterVersionWithContext(arg0 context.Context, arg1 *eks.UpdateClusterVersionInput, arg2 ...request.Option) (*eks.UpdateClusterVersionOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "UpdateClusterVersionWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.UpdateClusterVersionOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// UpdateClusterVersionWithContext indicates an expected call of UpdateClusterVersionWithContext.
-func (mr *MockEKSAPIMockRecorder) UpdateClusterVersionWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) UpdateClusterVersion(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterVersionWithContext", reflect.TypeOf((*MockEKSAPI)(nil).UpdateClusterVersionWithContext), varargs...)
-}
-
-// UpdateEksAnywhereSubscription mocks base method.
-func (m *MockEKSAPI) UpdateEksAnywhereSubscription(arg0 *eks.UpdateEksAnywhereSubscriptionInput) (*eks.UpdateEksAnywhereSubscriptionOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateEksAnywhereSubscription", arg0)
-	ret0, _ := ret[0].(*eks.UpdateEksAnywhereSubscriptionOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// UpdateEksAnywhereSubscription indicates an expected call of UpdateEksAnywhereSubscription.
-func (mr *MockEKSAPIMockRecorder) UpdateEksAnywhereSubscription(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateEksAnywhereSubscription", reflect.TypeOf((*MockEKSAPI)(nil).UpdateEksAnywhereSubscription), arg0)
-}
-
-// UpdateEksAnywhereSubscriptionRequest mocks base method.
-func (m *MockEKSAPI) UpdateEksAnywhereSubscriptionRequest(arg0 *eks.UpdateEksAnywhereSubscriptionInput) (*request.Request, *eks.UpdateEksAnywhereSubscriptionOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateEksAnywhereSubscriptionRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.UpdateEksAnywhereSubscriptionOutput)
-	return ret0, ret1
-}
-
-// UpdateEksAnywhereSubscriptionRequest indicates an expected call of UpdateEksAnywhereSubscriptionRequest.
-func (mr *MockEKSAPIMockRecorder) UpdateEksAnywhereSubscriptionRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateEksAnywhereSubscriptionRequest", reflect.TypeOf((*MockEKSAPI)(nil).UpdateEksAnywhereSubscriptionRequest), arg0)
-}
-
-// UpdateEksAnywhereSubscriptionWithContext mocks base method.
-func (m *MockEKSAPI) UpdateEksAnywhereSubscriptionWithContext(arg0 context.Context, arg1 *eks.UpdateEksAnywhereSubscriptionInput, arg2 ...request.Option) (*eks.UpdateEksAnywhereSubscriptionOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "UpdateEksAnywhereSubscriptionWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.UpdateEksAnywhereSubscriptionOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// UpdateEksAnywhereSubscriptionWithContext indicates an expected call of UpdateEksAnywhereSubscriptionWithContext.
-func (mr *MockEKSAPIMockRecorder) UpdateEksAnywhereSubscriptionWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateEksAnywhereSubscriptionWithContext", reflect.TypeOf((*MockEKSAPI)(nil).UpdateEksAnywhereSubscriptionWithContext), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterVersion", reflect.TypeOf((*MockEKSAPI)(nil).UpdateClusterVersion), varargs...)
 }
 
 // UpdateNodegroupConfig mocks base method.
-func (m *MockEKSAPI) UpdateNodegroupConfig(arg0 *eks.UpdateNodegroupConfigInput) (*eks.UpdateNodegroupConfigOutput, error) {
+func (m *MockEKSAPI) UpdateNodegroupConfig(arg0 context.Context, arg1 *eks.UpdateNodegroupConfigInput, arg2 ...func(*eks.Options)) (*eks.UpdateNodegroupConfigOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateNodegroupConfig", arg0)
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "UpdateNodegroupConfig", varargs...)
 	ret0, _ := ret[0].(*eks.UpdateNodegroupConfigOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UpdateNodegroupConfig indicates an expected call of UpdateNodegroupConfig.
-func (mr *MockEKSAPIMockRecorder) UpdateNodegroupConfig(arg0 interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) UpdateNodegroupConfig(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNodegroupConfig", reflect.TypeOf((*MockEKSAPI)(nil).UpdateNodegroupConfig), arg0)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNodegroupConfig", reflect.TypeOf((*MockEKSAPI)(nil).UpdateNodegroupConfig), varargs...)
 }
 
-// UpdateNodegroupConfigRequest mocks base method.
-func (m *MockEKSAPI) UpdateNodegroupConfigRequest(arg0 *eks.UpdateNodegroupConfigInput) (*request.Request, *eks.UpdateNodegroupConfigOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateNodegroupConfigRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.UpdateNodegroupConfigOutput)
-	return ret0, ret1
-}
-
-// UpdateNodegroupConfigRequest indicates an expected call of UpdateNodegroupConfigRequest.
-func (mr *MockEKSAPIMockRecorder) UpdateNodegroupConfigRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNodegroupConfigRequest", reflect.TypeOf((*MockEKSAPI)(nil).UpdateNodegroupConfigRequest), arg0)
-}
-
-// UpdateNodegroupConfigWithContext mocks base method.
-func (m *MockEKSAPI) UpdateNodegroupConfigWithContext(arg0 context.Context, arg1 *eks.UpdateNodegroupConfigInput, arg2 ...request.Option) (*eks.UpdateNodegroupConfigOutput, error) {
+// UpdateNodegroupVersion mocks base method.
+func (m *MockEKSAPI) UpdateNodegroupVersion(arg0 context.Context, arg1 *eks.UpdateNodegroupVersionInput, arg2 ...func(*eks.Options)) (*eks.UpdateNodegroupVersionOutput, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "UpdateNodegroupConfigWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.UpdateNodegroupConfigOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// UpdateNodegroupConfigWithContext indicates an expected call of UpdateNodegroupConfigWithContext.
-func (mr *MockEKSAPIMockRecorder) UpdateNodegroupConfigWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNodegroupConfigWithContext", reflect.TypeOf((*MockEKSAPI)(nil).UpdateNodegroupConfigWithContext), varargs...)
-}
-
-// UpdateNodegroupVersion mocks base method.
-func (m *MockEKSAPI) UpdateNodegroupVersion(arg0 *eks.UpdateNodegroupVersionInput) (*eks.UpdateNodegroupVersionOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateNodegroupVersion", arg0)
+	ret := m.ctrl.Call(m, "UpdateNodegroupVersion", varargs...)
 	ret0, _ := ret[0].(*eks.UpdateNodegroupVersionOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UpdateNodegroupVersion indicates an expected call of UpdateNodegroupVersion.
-func (mr *MockEKSAPIMockRecorder) UpdateNodegroupVersion(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNodegroupVersion", reflect.TypeOf((*MockEKSAPI)(nil).UpdateNodegroupVersion), arg0)
-}
-
-// UpdateNodegroupVersionRequest mocks base method.
-func (m *MockEKSAPI) UpdateNodegroupVersionRequest(arg0 *eks.UpdateNodegroupVersionInput) (*request.Request, *eks.UpdateNodegroupVersionOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateNodegroupVersionRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.UpdateNodegroupVersionOutput)
-	return ret0, ret1
-}
-
-// UpdateNodegroupVersionRequest indicates an expected call of UpdateNodegroupVersionRequest.
-func (mr *MockEKSAPIMockRecorder) UpdateNodegroupVersionRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNodegroupVersionRequest", reflect.TypeOf((*MockEKSAPI)(nil).UpdateNodegroupVersionRequest), arg0)
-}
-
-// UpdateNodegroupVersionWithContext mocks base method.
-func (m *MockEKSAPI) UpdateNodegroupVersionWithContext(arg0 context.Context, arg1 *eks.UpdateNodegroupVersionInput, arg2 ...request.Option) (*eks.UpdateNodegroupVersionOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "UpdateNodegroupVersionWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.UpdateNodegroupVersionOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// UpdateNodegroupVersionWithContext indicates an expected call of UpdateNodegroupVersionWithContext.
-func (mr *MockEKSAPIMockRecorder) UpdateNodegroupVersionWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) UpdateNodegroupVersion(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNodegroupVersionWithContext", reflect.TypeOf((*MockEKSAPI)(nil).UpdateNodegroupVersionWithContext), varargs...)
-}
-
-// UpdatePodIdentityAssociation mocks base method.
-func (m *MockEKSAPI) UpdatePodIdentityAssociation(arg0 *eks.UpdatePodIdentityAssociationInput) (*eks.UpdatePodIdentityAssociationOutput, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdatePodIdentityAssociation", arg0)
-	ret0, _ := ret[0].(*eks.UpdatePodIdentityAssociationOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// UpdatePodIdentityAssociation indicates an expected call of UpdatePodIdentityAssociation.
-func (mr *MockEKSAPIMockRecorder) UpdatePodIdentityAssociation(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdatePodIdentityAssociation", reflect.TypeOf((*MockEKSAPI)(nil).UpdatePodIdentityAssociation), arg0)
-}
-
-// UpdatePodIdentityAssociationRequest mocks base method.
-func (m *MockEKSAPI) UpdatePodIdentityAssociationRequest(arg0 *eks.UpdatePodIdentityAssociationInput) (*request.Request, *eks.UpdatePodIdentityAssociationOutput) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdatePodIdentityAssociationRequest", arg0)
-	ret0, _ := ret[0].(*request.Request)
-	ret1, _ := ret[1].(*eks.UpdatePodIdentityAssociationOutput)
-	return ret0, ret1
-}
-
-// UpdatePodIdentityAssociationRequest indicates an expected call of UpdatePodIdentityAssociationRequest.
-func (mr *MockEKSAPIMockRecorder) UpdatePodIdentityAssociationRequest(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdatePodIdentityAssociationRequest", reflect.TypeOf((*MockEKSAPI)(nil).UpdatePodIdentityAssociationRequest), arg0)
-}
-
-// UpdatePodIdentityAssociationWithContext mocks base method.
-func (m *MockEKSAPI) UpdatePodIdentityAssociationWithContext(arg0 context.Context, arg1 *eks.UpdatePodIdentityAssociationInput, arg2 ...request.Option) (*eks.UpdatePodIdentityAssociationOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "UpdatePodIdentityAssociationWithContext", varargs...)
-	ret0, _ := ret[0].(*eks.UpdatePodIdentityAssociationOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// UpdatePodIdentityAssociationWithContext indicates an expected call of UpdatePodIdentityAssociationWithContext.
-func (mr *MockEKSAPIMockRecorder) UpdatePodIdentityAssociationWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdatePodIdentityAssociationWithContext", reflect.TypeOf((*MockEKSAPI)(nil).UpdatePodIdentityAssociationWithContext), varargs...)
-}
-
-// WaitUntilAddonActive mocks base method.
-func (m *MockEKSAPI) WaitUntilAddonActive(arg0 *eks.DescribeAddonInput) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "WaitUntilAddonActive", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// WaitUntilAddonActive indicates an expected call of WaitUntilAddonActive.
-func (mr *MockEKSAPIMockRecorder) WaitUntilAddonActive(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilAddonActive", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilAddonActive), arg0)
-}
-
-// WaitUntilAddonActiveWithContext mocks base method.
-func (m *MockEKSAPI) WaitUntilAddonActiveWithContext(arg0 context.Context, arg1 *eks.DescribeAddonInput, arg2 ...request.WaiterOption) error {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "WaitUntilAddonActiveWithContext", varargs...)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// WaitUntilAddonActiveWithContext indicates an expected call of WaitUntilAddonActiveWithContext.
-func (mr *MockEKSAPIMockRecorder) WaitUntilAddonActiveWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilAddonActiveWithContext", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilAddonActiveWithContext), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNodegroupVersion", reflect.TypeOf((*MockEKSAPI)(nil).UpdateNodegroupVersion), varargs...)
 }
 
 // WaitUntilAddonDeleted mocks base method.
-func (m *MockEKSAPI) WaitUntilAddonDeleted(arg0 *eks.DescribeAddonInput) error {
+func (m *MockEKSAPI) WaitUntilAddonDeleted(arg0 context.Context, arg1 *eks.DescribeAddonInput, arg2 time.Duration) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "WaitUntilAddonDeleted", arg0)
+	ret := m.ctrl.Call(m, "WaitUntilAddonDeleted", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // WaitUntilAddonDeleted indicates an expected call of WaitUntilAddonDeleted.
-func (mr *MockEKSAPIMockRecorder) WaitUntilAddonDeleted(arg0 interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) WaitUntilAddonDeleted(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilAddonDeleted", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilAddonDeleted), arg0)
-}
-
-// WaitUntilAddonDeletedWithContext mocks base method.
-func (m *MockEKSAPI) WaitUntilAddonDeletedWithContext(arg0 context.Context, arg1 *eks.DescribeAddonInput, arg2 ...request.WaiterOption) error {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "WaitUntilAddonDeletedWithContext", varargs...)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// WaitUntilAddonDeletedWithContext indicates an expected call of WaitUntilAddonDeletedWithContext.
-func (mr *MockEKSAPIMockRecorder) WaitUntilAddonDeletedWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilAddonDeletedWithContext", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilAddonDeletedWithContext), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilAddonDeleted", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilAddonDeleted), arg0, arg1, arg2)
 }
 
 // WaitUntilClusterActive mocks base method.
-func (m *MockEKSAPI) WaitUntilClusterActive(arg0 *eks.DescribeClusterInput) error {
+func (m *MockEKSAPI) WaitUntilClusterActive(arg0 context.Context, arg1 *eks.DescribeClusterInput, arg2 time.Duration) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "WaitUntilClusterActive", arg0)
+	ret := m.ctrl.Call(m, "WaitUntilClusterActive", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // WaitUntilClusterActive indicates an expected call of WaitUntilClusterActive.
-func (mr *MockEKSAPIMockRecorder) WaitUntilClusterActive(arg0 interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) WaitUntilClusterActive(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilClusterActive", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilClusterActive), arg0)
-}
-
-// WaitUntilClusterActiveWithContext mocks base method.
-func (m *MockEKSAPI) WaitUntilClusterActiveWithContext(arg0 context.Context, arg1 *eks.DescribeClusterInput, arg2 ...request.WaiterOption) error {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "WaitUntilClusterActiveWithContext", varargs...)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// WaitUntilClusterActiveWithContext indicates an expected call of WaitUntilClusterActiveWithContext.
-func (mr *MockEKSAPIMockRecorder) WaitUntilClusterActiveWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilClusterActiveWithContext", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilClusterActiveWithContext), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilClusterActive", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilClusterActive), arg0, arg1, arg2)
 }
 
 // WaitUntilClusterDeleted mocks base method.
-func (m *MockEKSAPI) WaitUntilClusterDeleted(arg0 *eks.DescribeClusterInput) error {
+func (m *MockEKSAPI) WaitUntilClusterDeleted(arg0 context.Context, arg1 *eks.DescribeClusterInput, arg2 time.Duration) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "WaitUntilClusterDeleted", arg0)
+	ret := m.ctrl.Call(m, "WaitUntilClusterDeleted", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // WaitUntilClusterDeleted indicates an expected call of WaitUntilClusterDeleted.
-func (mr *MockEKSAPIMockRecorder) WaitUntilClusterDeleted(arg0 interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) WaitUntilClusterDeleted(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilClusterDeleted", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilClusterDeleted), arg0)
-}
-
-// WaitUntilClusterDeletedWithContext mocks base method.
-func (m *MockEKSAPI) WaitUntilClusterDeletedWithContext(arg0 context.Context, arg1 *eks.DescribeClusterInput, arg2 ...request.WaiterOption) error {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "WaitUntilClusterDeletedWithContext", varargs...)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// WaitUntilClusterDeletedWithContext indicates an expected call of WaitUntilClusterDeletedWithContext.
-func (mr *MockEKSAPIMockRecorder) WaitUntilClusterDeletedWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilClusterDeletedWithContext", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilClusterDeletedWithContext), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilClusterDeleted", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilClusterDeleted), arg0, arg1, arg2)
 }
 
 // WaitUntilClusterUpdating mocks base method.
-func (m *MockEKSAPI) WaitUntilClusterUpdating(arg0 *eks.DescribeClusterInput, arg1 ...request.WaiterOption) error {
+func (m *MockEKSAPI) WaitUntilClusterUpdating(arg0 context.Context, arg1 *eks.DescribeClusterInput, arg2 time.Duration) error {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0}
-	for _, a := range arg1 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "WaitUntilClusterUpdating", varargs...)
+	ret := m.ctrl.Call(m, "WaitUntilClusterUpdating", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // WaitUntilClusterUpdating indicates an expected call of WaitUntilClusterUpdating.
-func (mr *MockEKSAPIMockRecorder) WaitUntilClusterUpdating(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) WaitUntilClusterUpdating(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0}, arg1...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilClusterUpdating", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilClusterUpdating), varargs...)
-}
-
-// WaitUntilFargateProfileActive mocks base method.
-func (m *MockEKSAPI) WaitUntilFargateProfileActive(arg0 *eks.DescribeFargateProfileInput) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "WaitUntilFargateProfileActive", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// WaitUntilFargateProfileActive indicates an expected call of WaitUntilFargateProfileActive.
-func (mr *MockEKSAPIMockRecorder) WaitUntilFargateProfileActive(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilFargateProfileActive", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilFargateProfileActive), arg0)
-}
-
-// WaitUntilFargateProfileActiveWithContext mocks base method.
-func (m *MockEKSAPI) WaitUntilFargateProfileActiveWithContext(arg0 context.Context, arg1 *eks.DescribeFargateProfileInput, arg2 ...request.WaiterOption) error {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "WaitUntilFargateProfileActiveWithContext", varargs...)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// WaitUntilFargateProfileActiveWithContext indicates an expected call of WaitUntilFargateProfileActiveWithContext.
-func (mr *MockEKSAPIMockRecorder) WaitUntilFargateProfileActiveWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilFargateProfileActiveWithContext", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilFargateProfileActiveWithContext), varargs...)
-}
-
-// WaitUntilFargateProfileDeleted mocks base method.
-func (m *MockEKSAPI) WaitUntilFargateProfileDeleted(arg0 *eks.DescribeFargateProfileInput) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "WaitUntilFargateProfileDeleted", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// WaitUntilFargateProfileDeleted indicates an expected call of WaitUntilFargateProfileDeleted.
-func (mr *MockEKSAPIMockRecorder) WaitUntilFargateProfileDeleted(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilFargateProfileDeleted", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilFargateProfileDeleted), arg0)
-}
-
-// WaitUntilFargateProfileDeletedWithContext mocks base method.
-func (m *MockEKSAPI) WaitUntilFargateProfileDeletedWithContext(arg0 context.Context, arg1 *eks.DescribeFargateProfileInput, arg2 ...request.WaiterOption) error {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "WaitUntilFargateProfileDeletedWithContext", varargs...)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// WaitUntilFargateProfileDeletedWithContext indicates an expected call of WaitUntilFargateProfileDeletedWithContext.
-func (mr *MockEKSAPIMockRecorder) WaitUntilFargateProfileDeletedWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilFargateProfileDeletedWithContext", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilFargateProfileDeletedWithContext), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilClusterUpdating", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilClusterUpdating), arg0, arg1, arg2)
 }
 
 // WaitUntilNodegroupActive mocks base method.
-func (m *MockEKSAPI) WaitUntilNodegroupActive(arg0 *eks.DescribeNodegroupInput) error {
+func (m *MockEKSAPI) WaitUntilNodegroupActive(arg0 context.Context, arg1 *eks.DescribeNodegroupInput, arg2 time.Duration) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "WaitUntilNodegroupActive", arg0)
+	ret := m.ctrl.Call(m, "WaitUntilNodegroupActive", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // WaitUntilNodegroupActive indicates an expected call of WaitUntilNodegroupActive.
-func (mr *MockEKSAPIMockRecorder) WaitUntilNodegroupActive(arg0 interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) WaitUntilNodegroupActive(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilNodegroupActive", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilNodegroupActive), arg0)
-}
-
-// WaitUntilNodegroupActiveWithContext mocks base method.
-func (m *MockEKSAPI) WaitUntilNodegroupActiveWithContext(arg0 context.Context, arg1 *eks.DescribeNodegroupInput, arg2 ...request.WaiterOption) error {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "WaitUntilNodegroupActiveWithContext", varargs...)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// WaitUntilNodegroupActiveWithContext indicates an expected call of WaitUntilNodegroupActiveWithContext.
-func (mr *MockEKSAPIMockRecorder) WaitUntilNodegroupActiveWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilNodegroupActiveWithContext", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilNodegroupActiveWithContext), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilNodegroupActive", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilNodegroupActive), arg0, arg1, arg2)
 }
 
 // WaitUntilNodegroupDeleted mocks base method.
-func (m *MockEKSAPI) WaitUntilNodegroupDeleted(arg0 *eks.DescribeNodegroupInput) error {
+func (m *MockEKSAPI) WaitUntilNodegroupDeleted(arg0 context.Context, arg1 *eks.DescribeNodegroupInput, arg2 time.Duration) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "WaitUntilNodegroupDeleted", arg0)
+	ret := m.ctrl.Call(m, "WaitUntilNodegroupDeleted", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // WaitUntilNodegroupDeleted indicates an expected call of WaitUntilNodegroupDeleted.
-func (mr *MockEKSAPIMockRecorder) WaitUntilNodegroupDeleted(arg0 interface{}) *gomock.Call {
+func (mr *MockEKSAPIMockRecorder) WaitUntilNodegroupDeleted(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilNodegroupDeleted", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilNodegroupDeleted), arg0)
-}
-
-// WaitUntilNodegroupDeletedWithContext mocks base method.
-func (m *MockEKSAPI) WaitUntilNodegroupDeletedWithContext(arg0 context.Context, arg1 *eks.DescribeNodegroupInput, arg2 ...request.WaiterOption) error {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "WaitUntilNodegroupDeletedWithContext", varargs...)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// WaitUntilNodegroupDeletedWithContext indicates an expected call of WaitUntilNodegroupDeletedWithContext.
-func (mr *MockEKSAPIMockRecorder) WaitUntilNodegroupDeletedWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilNodegroupDeletedWithContext", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilNodegroupDeletedWithContext), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitUntilNodegroupDeleted", reflect.TypeOf((*MockEKSAPI)(nil).WaitUntilNodegroupDeleted), arg0, arg1, arg2)
 }

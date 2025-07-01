@@ -23,10 +23,10 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"k8s.io/kubectl/pkg/util/templates"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/flags"
 	creds "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/credentials"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 
 const (
@@ -86,10 +86,10 @@ func RootCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "credentials",
 		Short: `Encode credentials to use with Kubernetes Cluster API Provider AWS`,
-		Long: cmd.LongDesc(`
+		Long: templates.LongDesc(`
 			Encode credentials to use with Kubernetes Cluster API Provider AWS.
 			` + CredentialHelp + EncodingHelp),
-		Example: cmd.Examples(examples),
+		Example: templates.Examples(examples),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return cmd.Help()
 		},
@@ -113,10 +113,10 @@ func generateAWSDefaultProfileWithChain() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "encode-as-profile",
 		Short: "Generate an AWS profile from the current environment",
-		Long: cmd.LongDesc(`
+		Long: templates.LongDesc(`
 		Generate an AWS profile from the current environment for the ephemeral bootstrap cluster.
 		` + CredentialHelp + EncodingHelp),
-		Example: cmd.Examples(examples),
+		Example: templates.Examples(examples),
 		RunE: func(c *cobra.Command, args []string) error {
 			flags.CredentialWarning(c)
 
@@ -131,7 +131,12 @@ func generateAWSDefaultProfileWithChain() *cobra.Command {
 				region = backupAWSRegion
 			}
 
-			awsCreds, err := creds.NewAWSCredentialFromDefaultChain(region)
+			profile := flags.GetProfile(c)
+			if profile == "" {
+				fmt.Fprintf(os.Stderr, "Could not resolve AWS profile, defaulting to default.\n\n")
+			}
+
+			awsCreds, err := creds.NewAWSCredentialFromDefaultChain(region, profile)
 			if err != nil {
 				return flags.ResolveAWSError(err)
 			}
@@ -156,5 +161,6 @@ func generateAWSDefaultProfileWithChain() *cobra.Command {
 
 	newCmd.Flags().String("output", string(base64SharedConfig), "Output for credential configuration (rawSharedConfig, base64SharedConfig)")
 	flags.AddRegionFlag(newCmd)
+	flags.AddProfileFlag(newCmd)
 	return newCmd
 }

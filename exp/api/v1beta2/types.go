@@ -22,6 +22,11 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 )
 
+const (
+	// KindMachinePool is a MachinePool resource Kind
+	KindMachinePool string = "MachinePool"
+)
+
 // EBS can be used to automatically set up EBS volumes when an instance is launched.
 type EBS struct {
 	// Encrypted is whether the volume should be encrypted or not.
@@ -96,6 +101,10 @@ type AWSLaunchTemplate struct {
 	// +optional
 	RootVolume *infrav1.Volume `json:"rootVolume,omitempty"`
 
+	// Configuration options for the non root storage volumes.
+	// +optional
+	NonRootVolumes []infrav1.Volume `json:"nonRootVolumes,omitempty"`
+
 	// SSHKeyName is the name of the ssh key to attach to the instance. Valid values are empty string
 	// (do not use SSH keys), a valid SSH key name, or omitted (use the default SSH key name)
 	// +optional
@@ -124,6 +133,19 @@ type AWSLaunchTemplate struct {
 	// PrivateDNSName is the options for the instance hostname.
 	// +optional
 	PrivateDNSName *infrav1.PrivateDNSName `json:"privateDnsName,omitempty"`
+
+	// CapacityReservationID specifies the target Capacity Reservation into which the instance should be launched.
+	// +optional
+	CapacityReservationID *string `json:"capacityReservationId,omitempty"`
+
+	// MarketType specifies the type of market for the EC2 instance. Valid values include:
+	// "OnDemand" (default): The instance runs as a standard OnDemand instance.
+	// "Spot": The instance runs as a Spot instance. When SpotMarketOptions is provided, the marketType defaults to "Spot".
+	// "CapacityBlock": The instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
+	//  If this value is selected, CapacityReservationID must be specified to identify the target reservation.
+	// If marketType is not specified and spotMarketOptions is provided, the marketType defaults to "Spot".
+	// +optional
+	MarketType infrav1.MarketType `json:"marketType,omitempty"`
 }
 
 // Overrides are used to override the instance type specified by the launch template with multiple
@@ -215,6 +237,71 @@ type AutoScalingGroup struct {
 	Status                    ASGStatus
 	Instances                 []infrav1.Instance `json:"instances,omitempty"`
 	CurrentlySuspendProcesses []string           `json:"currentlySuspendProcesses,omitempty"`
+}
+
+// AWSLifecycleHook describes an AWS lifecycle hook
+type AWSLifecycleHook struct {
+	// The name of the lifecycle hook.
+	Name string `json:"name"`
+
+	// The ARN of the notification target that Amazon EC2 Auto Scaling uses to
+	// notify you when an instance is in the transition state for the lifecycle hook.
+	// +optional
+	NotificationTargetARN *string `json:"notificationTargetARN,omitempty"`
+
+	// The ARN of the IAM role that allows the Auto Scaling group to publish to the
+	// specified notification target.
+	// +optional
+	RoleARN *string `json:"roleARN,omitempty"`
+
+	// The state of the EC2 instance to which to attach the lifecycle hook.
+	// +kubebuilder:validation:Enum="autoscaling:EC2_INSTANCE_LAUNCHING";"autoscaling:EC2_INSTANCE_TERMINATING"
+	LifecycleTransition LifecycleTransition `json:"lifecycleTransition"`
+
+	// The maximum time, in seconds, that an instance can remain in a Pending:Wait or
+	// Terminating:Wait state. The maximum is 172800 seconds (48 hours) or 100 times
+	// HeartbeatTimeout, whichever is smaller.
+	// +optional
+	// +kubebuilder:validation:Format=duration
+	HeartbeatTimeout *metav1.Duration `json:"heartbeatTimeout,omitempty"`
+
+	// The default result for the lifecycle hook. The possible values are CONTINUE and ABANDON.
+	// +optional
+	// +kubebuilder:validation:Enum=CONTINUE;ABANDON
+	// +kubebuilder:validation:default:=none
+	DefaultResult *LifecycleHookDefaultResult `json:"defaultResult,omitempty"`
+
+	// Contains additional metadata that will be passed to the notification target.
+	// +optional
+	NotificationMetadata *string `json:"notificationMetadata,omitempty"`
+}
+
+// LifecycleTransition is the state of the EC2 instance to which to attach the lifecycle hook.
+type LifecycleTransition string
+
+const (
+	// LifecycleHookTransitionInstanceLaunching is the launching state of the EC2 instance.
+	LifecycleHookTransitionInstanceLaunching LifecycleTransition = "autoscaling:EC2_INSTANCE_LAUNCHING"
+	// LifecycleHookTransitionInstanceTerminating is the terminating state of the EC2 instance.
+	LifecycleHookTransitionInstanceTerminating LifecycleTransition = "autoscaling:EC2_INSTANCE_TERMINATING"
+)
+
+func (l LifecycleTransition) String() string {
+	return string(l)
+}
+
+// LifecycleHookDefaultResult is the default result for the lifecycle hook.
+type LifecycleHookDefaultResult string
+
+const (
+	// LifecycleHookDefaultResultContinue is the default result for the lifecycle hook to continue.
+	LifecycleHookDefaultResultContinue LifecycleHookDefaultResult = "CONTINUE"
+	// LifecycleHookDefaultResultAbandon is the default result for the lifecycle hook to abandon.
+	LifecycleHookDefaultResultAbandon LifecycleHookDefaultResult = "ABANDON"
+)
+
+func (d LifecycleHookDefaultResult) String() string {
+	return string(d)
 }
 
 // ASGStatus is a status string returned by the autoscaling API.

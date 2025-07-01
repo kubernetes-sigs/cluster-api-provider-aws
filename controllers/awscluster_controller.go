@@ -19,10 +19,8 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"net"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -33,9 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
@@ -52,11 +48,16 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/securitygroup"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	infrautilconditions "sigs.k8s.io/cluster-api-provider-aws/v2/util/conditions"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/util/paused"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	capiannotations "sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/predicates"
+)
+
+const (
+	deleteRequeueAfter = 20 * time.Second
 )
 
 var defaultAWSSecurityGroupRoles = []infrav1.SecurityGroupRole{
@@ -164,9 +165,8 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	log = log.WithValues("cluster", klog.KObj(cluster))
 
-	if capiannotations.IsPaused(cluster, awsCluster) {
-		log.Info("AWSCluster or linked Cluster is marked as paused. Won't reconcile")
-		return reconcile.Result{}, nil
+	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, awsCluster); err != nil || isPaused || conditionChanged {
+		return ctrl.Result{}, err
 	}
 
 	// Create the scope.
@@ -192,20 +192,33 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// Handle deleted clusters
 	if !awsCluster.DeletionTimestamp.IsZero() {
-		return ctrl.Result{}, r.reconcileDelete(ctx, clusterScope)
+		return r.reconcileDelete(ctx, clusterScope)
 	}
 
 	// Handle non-deleted clusters
-	return r.reconcileNormal(clusterScope)
+	return r.reconcileNormal(ctx, clusterScope)
 }
 
-func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope *scope.ClusterScope) error {
+func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope *scope.ClusterScope) (ctrl.Result, error) {
 	if !controllerutil.ContainsFinalizer(clusterScope.AWSCluster, infrav1.ClusterFinalizer) {
 		clusterScope.Info("No finalizer on AWSCluster, skipping deletion reconciliation")
-		return nil
+		return reconcile.Result{}, nil
 	}
 
 	clusterScope.Info("Reconciling AWSCluster delete")
+
+	numDependencies, err := r.dependencyCount(ctx, clusterScope)
+	if err != nil {
+		clusterScope.Error(err, "error getting AWSCluster dependencies")
+		return reconcile.Result{}, err
+	}
+
+	if numDependencies > 0 {
+		clusterScope.Info("AWSCluster cluster still has dependencies - requeue needed", "dependencyCount", numDependencies)
+		return reconcile.Result{RequeueAfter: deleteRequeueAfter}, nil
+	}
+
+	clusterScope.Info("AWSCluster has no dependent CAPI resources, proceeding with its deletion")
 
 	ec2svc := r.getEC2Service(clusterScope)
 	elbsvc := r.getELBService(clusterScope)
@@ -215,7 +228,7 @@ func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope
 
 	if feature.Gates.Enabled(feature.EventBridgeInstanceState) {
 		instancestateSvc := instancestate.NewService(clusterScope)
-		if err := instancestateSvc.DeleteEC2Events(); err != nil {
+		if err := instancestateSvc.DeleteEC2Events(ctx); err != nil {
 			// Not deleting the events isn't critical to cluster deletion
 			clusterScope.Error(err, "non-fatal: failed to delete EventBridge notifications")
 		}
@@ -230,7 +243,7 @@ func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope
 	// when external controllers might be using them.
 	allErrs := []error{}
 
-	if err := s3Service.DeleteBucket(); err != nil {
+	if err := s3Service.DeleteBucket(ctx); err != nil {
 		allErrs = append(allErrs, errors.Wrapf(err, "error deleting S3 Bucket"))
 	}
 
@@ -258,12 +271,12 @@ func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope
 	}
 
 	if len(allErrs) > 0 {
-		return kerrors.NewAggregate(allErrs)
+		return reconcile.Result{}, kerrors.NewAggregate(allErrs)
 	}
 
 	// Cluster is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(clusterScope.AWSCluster, infrav1.ClusterFinalizer)
-	return nil
+	return reconcile.Result{}, nil
 }
 
 func (r *AWSClusterReconciler) reconcileLoadBalancer(clusterScope *scope.ClusterScope, awsCluster *infrav1.AWSCluster) (*time.Duration, error) {
@@ -278,7 +291,7 @@ func (r *AWSClusterReconciler) reconcileLoadBalancer(clusterScope *scope.Cluster
 
 	if err := elbService.ReconcileLoadbalancers(); err != nil {
 		clusterScope.Error(err, "failed to reconcile load balancer")
-		conditions.MarkFalse(awsCluster, infrav1.LoadBalancerReadyCondition, infrav1.LoadBalancerFailedReason, infrautilconditions.ErrorConditionAfterInit(clusterScope.ClusterObj()), err.Error())
+		conditions.MarkFalse(awsCluster, infrav1.LoadBalancerReadyCondition, infrav1.LoadBalancerFailedReason, infrautilconditions.ErrorConditionAfterInit(clusterScope.ClusterObj()), "%s", err.Error())
 		return nil, err
 	}
 
@@ -288,13 +301,6 @@ func (r *AWSClusterReconciler) reconcileLoadBalancer(clusterScope *scope.Cluster
 		return &retryAfterDuration, nil
 	}
 
-	clusterScope.Debug("Looking up IP address for DNS", "dns", awsCluster.Status.Network.APIServerELB.DNSName)
-	if _, err := net.LookupIP(awsCluster.Status.Network.APIServerELB.DNSName); err != nil {
-		clusterScope.Error(err, "failed to get IP address for dns name", "dns", awsCluster.Status.Network.APIServerELB.DNSName)
-		conditions.MarkFalse(awsCluster, infrav1.LoadBalancerReadyCondition, infrav1.WaitForDNSNameResolveReason, clusterv1.ConditionSeverityInfo, "")
-		clusterScope.Info("Waiting on API server ELB DNS name to resolve")
-		return &retryAfterDuration, nil
-	}
 	conditions.MarkTrue(awsCluster, infrav1.LoadBalancerReadyCondition)
 
 	awsCluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{
@@ -305,7 +311,7 @@ func (r *AWSClusterReconciler) reconcileLoadBalancer(clusterScope *scope.Cluster
 	return nil, nil
 }
 
-func (r *AWSClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error) {
+func (r *AWSClusterReconciler) reconcileNormal(ctx context.Context, clusterScope *scope.ClusterScope) (reconcile.Result, error) {
 	clusterScope.Info("Reconciling AWSCluster")
 
 	awsCluster := clusterScope.AWSCluster
@@ -330,19 +336,19 @@ func (r *AWSClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope)
 
 	if err := sgService.ReconcileSecurityGroups(); err != nil {
 		clusterScope.Error(err, "failed to reconcile security groups")
-		conditions.MarkFalse(awsCluster, infrav1.ClusterSecurityGroupsReadyCondition, infrav1.ClusterSecurityGroupReconciliationFailedReason, infrautilconditions.ErrorConditionAfterInit(clusterScope.ClusterObj()), err.Error())
+		conditions.MarkFalse(awsCluster, infrav1.ClusterSecurityGroupsReadyCondition, infrav1.ClusterSecurityGroupReconciliationFailedReason, infrautilconditions.ErrorConditionAfterInit(clusterScope.ClusterObj()), "%s", err.Error())
 		return reconcile.Result{}, err
 	}
 
 	if err := ec2Service.ReconcileBastion(); err != nil {
-		conditions.MarkFalse(awsCluster, infrav1.BastionHostReadyCondition, infrav1.BastionHostFailedReason, infrautilconditions.ErrorConditionAfterInit(clusterScope.ClusterObj()), err.Error())
+		conditions.MarkFalse(awsCluster, infrav1.BastionHostReadyCondition, infrav1.BastionHostFailedReason, infrautilconditions.ErrorConditionAfterInit(clusterScope.ClusterObj()), "%s", err.Error())
 		clusterScope.Error(err, "failed to reconcile bastion host")
 		return reconcile.Result{}, err
 	}
 
 	if feature.Gates.Enabled(feature.EventBridgeInstanceState) {
 		instancestateSvc := instancestate.NewService(clusterScope)
-		if err := instancestateSvc.ReconcileEC2Events(); err != nil {
+		if err := instancestateSvc.ReconcileEC2Events(ctx); err != nil {
 			// non fatal error, so we continue
 			clusterScope.Error(err, "non-fatal: failed to set up EventBridge")
 		}
@@ -354,10 +360,11 @@ func (r *AWSClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope)
 		return reconcile.Result{RequeueAfter: *requeueAfter}, err
 	}
 
-	if err := s3Service.ReconcileBucket(); err != nil {
-		conditions.MarkFalse(awsCluster, infrav1.S3BucketReadyCondition, infrav1.S3BucketFailedReason, clusterv1.ConditionSeverityError, err.Error())
+	if err := s3Service.ReconcileBucket(ctx); err != nil {
+		conditions.MarkFalse(awsCluster, infrav1.S3BucketReadyCondition, infrav1.S3BucketFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile S3 Bucket for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
 	}
+	conditions.MarkTrue(awsCluster, infrav1.S3BucketReadyCondition)
 
 	for _, subnet := range clusterScope.Subnets().FilterPrivate() {
 		found := false
@@ -382,40 +389,18 @@ func (r *AWSClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
 		For(&infrav1.AWSCluster{}).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(log.GetLogger(), r.WatchFilterValue)).
-		WithEventFilter(
-			predicate.Funcs{
-				// Avoid reconciling if the event triggering the reconciliation is related to incremental status updates
-				// for AWSCluster resources only
-				UpdateFunc: func(e event.UpdateEvent) bool {
-					if e.ObjectOld.GetObjectKind().GroupVersionKind().Kind != "AWSCluster" {
-						return true
-					}
-
-					oldCluster := e.ObjectOld.(*infrav1.AWSCluster).DeepCopy()
-					newCluster := e.ObjectNew.(*infrav1.AWSCluster).DeepCopy()
-
-					oldCluster.Status = infrav1.AWSClusterStatus{}
-					newCluster.Status = infrav1.AWSClusterStatus{}
-
-					oldCluster.ObjectMeta.ResourceVersion = ""
-					newCluster.ObjectMeta.ResourceVersion = ""
-
-					return !cmp.Equal(oldCluster, newCluster)
-				},
-			},
-		).
-		WithEventFilter(predicates.ResourceIsNotExternallyManaged(log.GetLogger())).
+		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), log.GetLogger(), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceIsNotExternallyManaged(mgr.GetScheme(), log.GetLogger())).
 		Build(r)
 	if err != nil {
 		return errors.Wrap(err, "error creating controller")
 	}
 
 	return controller.Watch(
-		source.Kind(mgr.GetCache(), &clusterv1.Cluster{}),
-		handler.EnqueueRequestsFromMapFunc(r.requeueAWSClusterForUnpausedCluster(ctx, log)),
-		predicates.ClusterUnpaused(log.GetLogger()),
-	)
+		source.Kind[client.Object](mgr.GetCache(), &clusterv1.Cluster{},
+			handler.EnqueueRequestsFromMapFunc(r.requeueAWSClusterForUnpausedCluster(ctx, log)),
+			predicates.ClusterUnpaused(mgr.GetScheme(), log.GetLogger()),
+		))
 }
 
 func (r *AWSClusterReconciler) requeueAWSClusterForUnpausedCluster(_ context.Context, log logger.Wrapper) handler.MapFunc {
@@ -490,4 +475,25 @@ func (r *AWSClusterReconciler) checkForExternalControlPlaneLoadBalancer(clusterS
 
 		return nil
 	}
+}
+
+func (r *AWSClusterReconciler) dependencyCount(ctx context.Context, clusterScope *scope.ClusterScope) (int, error) {
+	clusterName := clusterScope.Name()
+	namespace := clusterScope.Namespace()
+
+	clusterScope.Info("Looking for AWSCluster dependencies")
+
+	listOptions := []client.ListOption{
+		client.InNamespace(namespace),
+		client.MatchingLabels(map[string]string{clusterv1.ClusterNameLabel: clusterName}),
+	}
+
+	machines := &infrav1.AWSMachineList{}
+	if err := r.Client.List(ctx, machines, listOptions...); err != nil {
+		return 0, fmt.Errorf("failed to list machines for cluster %s/%s: %w", namespace, clusterName, err)
+	}
+
+	clusterScope.Debug("Found dependent machines", "count", len(machines.Items))
+
+	return len(machines.Items), nil
 }

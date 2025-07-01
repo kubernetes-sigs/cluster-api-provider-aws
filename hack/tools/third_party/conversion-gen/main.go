@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-	http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -63,7 +63,7 @@ limitations under the License.
 // fundamentally differently typed fields.
 //
 // `conversion-gen` will scan its `--input-dirs`, looking at the
-// Package defined in each of those directories for comment tags that
+// package defined in each of those directories for comment tags that
 // define a conversion code generation task.  A package requests
 // conversion code generation by including one or more comment in the
 // package's `doc.go` file (currently anywhere in that file is
@@ -73,7 +73,7 @@ limitations under the License.
 //	// +k8s:conversion-gen=<import-path-of-internal-package>
 //
 // This introduces a conversion task, for which the destination
-// Package is the one containing the file with the tag and the tag
+// package is the one containing the file with the tag and the tag
 // identifies a package containing internal types.  If there is also a
 // tag of the form
 //
@@ -98,41 +98,41 @@ import (
 	"flag"
 
 	"github.com/spf13/pflag"
-	generatorargs "k8s.io/code-generator/cmd/conversion-gen/args"
 	"k8s.io/klog/v2"
+
+	generatorargs "k8s.io/code-generator/cmd/conversion-gen/args"
+	"k8s.io/gengo/v2"
+	"k8s.io/gengo/v2/generator"
 	"sigs.k8s.io/cluster-api-provider-aws/hack/tools/third_party/conversion-gen/generators"
 )
 
 func main() {
 	klog.InitFlags(nil)
-	genericArgs, customArgs := generatorargs.NewDefaults()
+	args := generatorargs.New()
 
-	genericArgs.AddFlags(pflag.CommandLine)
-	customArgs.AddFlags(pflag.CommandLine)
+	args.AddFlags(pflag.CommandLine)
 	flag.Set("logtostderr", "true")
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
 
-	// k8s.io/apimachinery/pkg/runtime contains a number of manual conversions,
-	// that we need to generate conversions.
-	// Packages being dependencies of explicitly requested packages are only
-	// partially scanned - only types explicitly used are being traversed.
-	// Not used functions or types are omitted.
-	// Adding this explicitly to InputDirs ensures that the package is fully
-	// scanned and all functions are parsed and processed.
-	genericArgs.InputDirs = append(genericArgs.InputDirs, "k8s.io/apimachinery/pkg/runtime")
-
-	if err := generatorargs.Validate(genericArgs); err != nil {
+	if err := args.Validate(); err != nil {
 		klog.Fatalf("Error: %v", err)
 	}
 
+	myTargets := func(context *generator.Context) []generator.Target {
+		return generators.GetTargets(context, args)
+	}
+
 	// Run it.
-	if err := genericArgs.Execute(
+	if err := gengo.Execute(
 		generators.NameSystems(),
 		generators.DefaultNameSystem(),
-		generators.Packages,
+		myTargets,
+		gengo.StdBuildTag,
+		pflag.Args(),
 	); err != nil {
 		klog.Fatalf("Error: %v", err)
 	}
 	klog.V(2).Info("Completed successfully.")
 }
+

@@ -20,12 +20,13 @@ limitations under the License.
 package shared
 
 import (
+	"context"
 	"flag"
 	"strings"
 
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/iam"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/client"
-	"github.com/aws/aws-sdk-go/service/iam"
 	"k8s.io/apimachinery/pkg/runtime"
 	cgscheme "k8s.io/client-go/kubernetes/scheme"
 
@@ -36,15 +37,13 @@ import (
 // Constants.
 const (
 	DefaultSSHKeyPairName                = "cluster-api-provider-aws-sigs-k8s-io"
-	AMIPrefix                            = "capa-ami-ubuntu-18.04-"
-	DefaultImageLookupOrg                = "258751437250"
+	AMIPrefix                            = "capa-ami-ubuntu-24.04-"
+	DefaultImageLookupOrg                = "819546954734"
 	KubernetesVersion                    = "KUBERNETES_VERSION"
 	KubernetesVersionManagement          = "KUBERNETES_VERSION_MANAGEMENT"
 	CNIPath                              = "CNI"
 	CNIResources                         = "CNI_RESOURCES"
 	CNIAddonVersion                      = "VPC_ADDON_VERSION"
-	CorednsAddonVersion                  = "COREDNS_ADDON_VERSION"
-	CorednsAddonConfiguration            = "COREDNS_ADDON_CONFIGURATION"
 	GcWorkloadPath                       = "GC_WORKLOAD"
 	KubeproxyAddonVersion                = "KUBE_PROXY_ADDON_VERSION"
 	AwsNodeMachineType                   = "AWS_NODE_MACHINE_TYPE"
@@ -66,11 +65,14 @@ const (
 	StorageClassOutTreeZoneLabel         = "topology.ebs.csi.aws.com/zone"
 	GPUFlavor                            = "gpu"
 	InstanceVcpu                         = "AWS_MACHINE_TYPE_VCPU_USAGE"
-	PreCSIKubernetesVer                  = "PRE_1_23_KUBERNETES_VERSION"
-	PostCSIKubernetesVer                 = "POST_1_23_KUBERNETES_VERSION"
 	EFSSupport                           = "efs-support"
 	IntreeCloudProvider                  = "intree-cloud-provider"
 	MultiTenancy                         = "MULTI_TENANCY_"
+	EksUpgradeFromVersion                = "UPGRADE_FROM_VERSION"
+	EksUpgradeToVersion                  = "UPGRADE_TO_VERSION"
+
+	ClassicElbTestKubernetesFrom = "CLASSICELB_TEST_KUBERNETES_VERSION_FROM"
+	ClassicElbTestKubernetesTo   = "CLASSICELB_TEST_KUBERNETES_VERSION_TO"
 )
 
 // ResourceQuotaFilePath is the path to the file that contains the resource usage.
@@ -118,8 +120,8 @@ func (m MultitenancyRole) RoleName() string {
 }
 
 // SetEnvVars sets the environment variables for the role.
-func (m MultitenancyRole) SetEnvVars(prov client.ConfigProvider) error {
-	arn, err := m.RoleARN(prov)
+func (m MultitenancyRole) SetEnvVars(ctx context.Context, cfg *awsv2.Config) error {
+	arn, err := m.RoleARN(ctx, cfg)
 	if err != nil {
 		return err
 	}
@@ -130,16 +132,16 @@ func (m MultitenancyRole) SetEnvVars(prov client.ConfigProvider) error {
 }
 
 // RoleARN returns the role ARN.
-func (m MultitenancyRole) RoleARN(prov client.ConfigProvider) (string, error) {
+func (m MultitenancyRole) RoleARN(ctx context.Context, cfg *awsv2.Config) (string, error) {
 	if roleARN, ok := roleLookupCache[m.RoleName()]; ok {
 		return roleARN, nil
 	}
-	iamSvc := iam.New(prov)
-	role, err := iamSvc.GetRole(&iam.GetRoleInput{RoleName: aws.String(m.RoleName())})
+	iamSvc := iam.NewFromConfig(*cfg)
+	role, err := iamSvc.GetRole(ctx, &iam.GetRoleInput{RoleName: aws.String(m.RoleName())})
 	if err != nil {
 		return "", err
 	}
-	roleARN := aws.StringValue(role.Role.Arn)
+	roleARN := *role.Role.Arn
 	roleLookupCache[m.RoleName()] = roleARN
 	return roleARN, nil
 }
