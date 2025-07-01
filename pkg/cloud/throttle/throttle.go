@@ -122,7 +122,6 @@ func (s ServiceLimiter) ReviewResponse(r *request.Request) {
 
 // ReviewResponseV2 will review the limits of a Request's response for AWS SDK V2.
 func (s ServiceLimiter) ReviewResponseV2(ctx context.Context, errorCode string) {
-
 	switch errorCode {
 	case "Throttling", "RequestLimitExceeded":
 		if ol, ok := s.matchRequestV2(ctx); ok {
