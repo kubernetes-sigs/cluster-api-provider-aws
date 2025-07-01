@@ -67,21 +67,6 @@ spec:
             description: AWSManagedControlPlaneSpec defines the desired state of an
               Amazon EKS Cluster.
             properties:
-              accessConfig:
-                description: AccessConfig specifies the access configuration information
-                  for the cluster
-                properties:
-                  authenticationMode:
-                    default: CONFIG_MAP
-                    description: |-
-                      AuthenticationMode specifies the desired authentication mode for the cluster
-                      Defaults to CONFIG_MAP
-                    enum:
-                    - CONFIG_MAP
-                    - API
-                    - API_AND_CONFIG_MAP
-                    type: string
-                type: object
               additionalTags:
                 additionalProperties:
                   type: string
@@ -2265,15 +2250,22 @@ spec:
                   for the cluster
                 properties:
                   authenticationMode:
-                    default: CONFIG_MAP
+                    default: config_map
                     description: |-
                       AuthenticationMode specifies the desired authentication mode for the cluster
-                      Defaults to CONFIG_MAP
+                      Defaults to config_map
                     enum:
-                    - CONFIG_MAP
-                    - API
-                    - API_AND_CONFIG_MAP
+                    - config_map
+                    - api
+                    - api_and_config_map
                     type: string
+                  bootstrapClusterCreatorAdminPermissions:
+                    default: true
+                    description: |-
+                      BootstrapClusterCreatorAdminPermissions grants cluster admin permissions
+                      to the IAM identity creating the cluster. Only applied during creation,
+                      ignored when updating existing clusters. Defaults to true.
+                    type: boolean
                 type: object
               additionalTags:
                 additionalProperties:
@@ -3083,7 +3075,7 @@ spec:
                 type: object
               oidcIdentityProviderConfig:
                 description: |-
-                  OIDCIdentityProviderConfig is used to specify the oidc provider config
+                  IdentityProviderconfig is used to specify the oidc provider config
                   to be attached with this eks cluster
                 properties:
                   clientId:

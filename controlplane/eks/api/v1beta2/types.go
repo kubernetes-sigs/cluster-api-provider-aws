@@ -18,6 +18,7 @@ package v1beta2
 
 import (
 	"fmt"
+	"strings"
 
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -82,16 +83,21 @@ var (
 // EKSAuthenticationMode defines the authentication mode for the cluster
 type EKSAuthenticationMode string
 
+// APIValue returns the corresponding EKS API value for the authentication mode
+func (e EKSAuthenticationMode) APIValue() ekstypes.AuthenticationMode {
+	return ekstypes.AuthenticationMode(strings.ToUpper(string(e)))
+}
+
 var (
 	// EKSAuthenticationModeConfigMap indicates that only `aws-auth` ConfigMap will be used for authentication
-	EKSAuthenticationModeConfigMap = EKSAuthenticationMode("CONFIG_MAP")
+	EKSAuthenticationModeConfigMap = EKSAuthenticationMode("config_map")
 
 	// EKSAuthenticationModeAPI indicates that only AWS Access Entries will be used for authentication
-	EKSAuthenticationModeAPI = EKSAuthenticationMode("API")
+	EKSAuthenticationModeAPI = EKSAuthenticationMode("api")
 
 	// EKSAuthenticationModeAPIAndConfigMap indicates that both `aws-auth` ConfigMap and AWS Access Entries will
 	// be used for authentication
-	EKSAuthenticationModeAPIAndConfigMap = EKSAuthenticationMode("API_AND_CONFIG_MAP")
+	EKSAuthenticationModeAPIAndConfigMap = EKSAuthenticationMode("api_and_config_map")
 )
 
 var (

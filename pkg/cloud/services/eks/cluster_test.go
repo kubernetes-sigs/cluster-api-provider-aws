@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/aws/awserr"
 	"github.com/aws/aws-sdk-go-v2/service/eks"
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
@@ -491,7 +490,7 @@ func TestReconcileAccessConfig(t *testing.T) {
 						Cluster: &ekstypes.Cluster{
 							Name: aws.String("default.cluster"),
 							AccessConfig: &ekstypes.AccessConfigResponse{
-								AuthenticationMode: string(ekstypes.AuthenticationModeApiAndConfigMap),
+								AuthenticationMode: ekstypes.AuthenticationModeApiAndConfigMap,
 							},
 						},
 					}, nil)
@@ -507,7 +506,7 @@ func TestReconcileAccessConfig(t *testing.T) {
 						Cluster: &ekstypes.Cluster{
 							Name: aws.String("default.cluster"),
 							AccessConfig: &ekstypes.AccessConfigResponse{
-								AuthenticationMode: string(ekstypes.AuthenticationModeConfigMap),
+								AuthenticationMode: ekstypes.AuthenticationModeConfigMap,
 							},
 						},
 					}, nil)
@@ -531,13 +530,13 @@ func TestReconcileAccessConfig(t *testing.T) {
 						Cluster: &ekstypes.Cluster{
 							Name: aws.String("default.cluster"),
 							AccessConfig: &ekstypes.AccessConfigResponse{
-								AuthenticationMode: string(ekstypes.AuthenticationModeApi),
+								AuthenticationMode: ekstypes.AuthenticationModeApi,
 							},
 						},
 					}, nil)
 				m.
 					UpdateClusterConfig(gomock.Eq(context.TODO()), gomock.AssignableToTypeOf(&eks.UpdateClusterConfigInput{})).
-					Return(&eks.UpdateClusterConfigOutput{}, awserr.New(string(ekstypes.ErrCodeInvalidParameterException), "Unsupported authentication mode update", nil))
+					Return(&eks.UpdateClusterConfigOutput{}, errors.New("Unsupported authentication mode update"))
 			},
 			expectError: true,
 		},
@@ -568,7 +567,7 @@ func TestReconcileAccessConfig(t *testing.T) {
 					Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
 						EKSClusterName: clusterName,
 						AccessConfig: &ekscontrolplanev1.AccessConfig{
-							AuthenticationMode: ekscontrolplanev1.EKSAuthenticationModeApiAndConfigMap,
+							AuthenticationMode: ekscontrolplanev1.EKSAuthenticationModeAPIAndConfigMap,
 						},
 					},
 				},
@@ -582,7 +581,7 @@ func TestReconcileAccessConfig(t *testing.T) {
 			cluster, err := s.describeEKSCluster(context.TODO(), clusterName)
 			g.Expect(err).To(BeNil())
 
-			err = s.reconcileAccessConfig(cluster.AccessConfig)
+			err = s.reconcileAccessConfig(context.TODO(), cluster.AccessConfig)
 			if tc.expectError {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -871,7 +870,6 @@ func TestCreateIPv6Cluster(t *testing.T) {
 	eksMock.EXPECT().CreateCluster(context.TODO(), &eks.CreateClusterInput{
 		Name:    aws.String("cluster-name"),
 		Version: aws.String("1.22"),
-		RoleArn: aws.String("arn:role"),
 		EncryptionConfig: []ekstypes.EncryptionConfig{
 			{
 				Provider: &ekstypes.Provider{
@@ -895,7 +893,6 @@ func TestCreateIPv6Cluster(t *testing.T) {
 		RoleName: aws.String("arn-role"),
 	}).Return(&iam.GetRoleOutput{
 		Role: &iamtypes.Role{
-			Arn:      aws.String("arn:role"),
 			RoleName: aws.String("arn-role"),
 		},
 	}, nil)
@@ -905,5 +902,76 @@ func TestCreateIPv6Cluster(t *testing.T) {
 	s.IAMClient = iamMock
 
 	_, err = s.createCluster(context.TODO(), "cluster-name")
+	g.Expect(err).To(BeNil())
+}
+
+func TestCreateClusterWithBootstrapClusterCreatorAdminPermissions(t *testing.T) {
+	g := NewWithT(t)
+
+	mockControl := gomock.NewController(t)
+	defer mockControl.Finish()
+
+	eksMock := mock_eksiface.NewMockEKSAPI(mockControl)
+	iamMock := mock_iamauth.NewMockIAMAPI(mockControl)
+
+	scheme := runtime.NewScheme()
+	_ = infrav1.AddToScheme(scheme)
+	_ = ekscontrolplanev1.AddToScheme(scheme)
+	client := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+	clusterName := "test-cluster"
+	scope, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
+		Client: client,
+		Cluster: &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "ns",
+				Name:      "capi-name",
+			},
+		},
+		ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
+			Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+				EKSClusterName: clusterName,
+				Version:        aws.String("1.24"),
+				RoleName:       aws.String("arn:role"),
+				NetworkSpec: infrav1.NetworkSpec{
+					Subnets: []infrav1.SubnetSpec{
+						{ID: "1", AvailabilityZone: "us-west-2a"},
+						{ID: "2", AvailabilityZone: "us-west-2b"},
+					},
+				},
+				AccessConfig: &ekscontrolplanev1.AccessConfig{
+					BootstrapClusterCreatorAdminPermissions: ptr.To(false),
+				},
+			},
+		},
+	})
+	g.Expect(err).To(BeNil())
+
+	eksMock.EXPECT().CreateCluster(context.TODO(), &eks.CreateClusterInput{
+		Name:    aws.String(clusterName),
+		Version: aws.String("1.24"),
+		ResourcesVpcConfig: &ekstypes.VpcConfigRequest{
+			SubnetIds: []string{"1", "2"},
+		},
+		RoleArn: aws.String("arn:role"),
+		Tags: map[string]string{
+			"kubernetes.io/cluster/test-cluster": "owned",
+		},
+		AccessConfig: &ekstypes.CreateAccessConfigRequest{
+			BootstrapClusterCreatorAdminPermissions: ptr.To(false),
+		},
+		EncryptionConfig:           []ekstypes.EncryptionConfig{},
+		BootstrapSelfManagedAddons: aws.Bool(false),
+	}).Return(&eks.CreateClusterOutput{}, nil)
+
+	iamMock.EXPECT().GetRole(gomock.Any(), gomock.Any()).Return(&iam.GetRoleOutput{
+		Role: &iamtypes.Role{Arn: aws.String("arn:role")},
+	}, nil)
+
+	s := NewService(scope)
+	s.EKSClient = eksMock
+	s.IAMClient = iamMock
+
+	_, err = s.createCluster(context.TODO(), clusterName)
 	g.Expect(err).To(BeNil())
 }
