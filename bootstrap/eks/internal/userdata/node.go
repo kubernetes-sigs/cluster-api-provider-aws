@@ -19,15 +19,24 @@ package userdata
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"text/template"
 
 	"github.com/alessio/shellescape"
-
+	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 )
 
 const (
 	defaultBootstrapCommand = "/etc/eks/bootstrap.sh"
+	boundary                = "//"
+
+	// AMIFamilyAL2 is the Amazon Linux 2 AMI family.
+	AMIFamilyAL2 = "AmazonLinux2"
+	// AMIFamilyAL2023 is the Amazon Linux 2023 AMI family.
+	AMIFamilyAL2023 = "AmazonLinux2023"
 
 	nodeUserData = `#cloud-config
 {{template "files" .Files}}
@@ -41,9 +50,160 @@ runcmd:
 {{- template "fs_setup" .DiskSetup}}
 {{- template "mounts" .Mounts}}
 `
+
+	// Common MIME header and boundary template
+	mimeHeaderTemplate = `MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="{{.Boundary}}"
+
+`
+
+	// Shell script part template for AL2023
+	shellScriptPartTemplate = `--{{.Boundary}}
+Content-Type: text/x-shellscript; charset="us-ascii"
+
+#!/bin/bash
+set -o errexit
+set -o pipefail
+set -o nounset
+{{- if or .PreBootstrapCommands .PostBootstrapCommands }}
+
+{{- range .PreBootstrapCommands}}
+{{.}}
+{{- end}}
+{{- range .PostBootstrapCommands}}
+{{.}}
+{{- end}}
+{{- end}}`
+
+	// Node config part template for AL2023
+	nodeConfigPartTemplate = `
+--{{.Boundary}}
+Content-Type: application/node.eks.aws
+
+---
+apiVersion: node.eks.aws/v1alpha1
+kind: NodeConfig
+spec:
+  cluster:
+    name: {{.ClusterName}}
+    apiServerEndpoint: {{.APIServerEndpoint}}
+    certificateAuthority: {{.CACert}}
+    cidr: {{if .ClusterCIDR}}{{.ClusterCIDR}}{{else}}10.96.0.0/12{{end}}
+  kubelet:
+    config:
+      maxPods: {{.MaxPods}}
+      clusterDNS:
+      - {{.DNSClusterIP}}
+    flags:
+    - "--node-labels={{if and .KubeletExtraArgs (index .KubeletExtraArgs "node-labels")}}{{index .KubeletExtraArgs "node-labels"}}{{else}}eks.amazonaws.com/nodegroup-image={{if .AMIImageID}}{{.AMIImageID}}{{end}},eks.amazonaws.com/capacityType={{if .CapacityType}}{{.CapacityType}}{{else}}ON_DEMAND{{end}},eks.amazonaws.com/nodegroup={{.NodeGroupName}}{{end}}"
+
+--{{.Boundary}}--`
+
+	// AL2023-specific templates.
+	al2023KubeletExtraArgsTemplate = `{{- define "al2023KubeletExtraArgs" -}}
+{{- if . }}
+    - "--node-labels={{range $k, $v := .}}{{$k}}={{$v}}{{end}}"
+{{- end -}}
+{{- end -}}`
+
+	al2023ContainerRuntimeTemplate = `{{- define "al2023ContainerRuntime" -}}
+{{- if . -}}
+  containerRuntime: {{.}}
+{{- end -}}
+{{- end -}}`
+
+	al2023DockerConfigTemplate = `{{- define "al2023DockerConfig" -}}
+{{- if and . (ne . "''") -}}
+  dockerConfig: {{.}}
+{{- end -}}
+{{- end -}}`
+
+	al2023APIRetryAttemptsTemplate = `{{- define "al2023APIRetryAttempts" -}}
+{{- if . -}}
+  apiRetryAttempts: {{.}}
+{{- end -}}
+{{- end -}}`
+
+	al2023PauseContainerTemplate = `{{- define "al2023PauseContainer" -}}
+{{- if and .AccountNumber .Version -}}
+  pauseContainer:
+    accountNumber: {{.AccountNumber}}
+    version: {{.Version}}
+{{- end -}}
+{{- end -}}`
+
+	al2023FilesTemplate = `{{- define "al2023Files" -}}
+{{- if . -}}
+  files:{{ range . }}
+    - path: {{.Path}}
+      content: |
+{{.Content | Indent 8}}{{ if ne .Owner "" }}
+      owner: {{.Owner}}{{ end }}{{ if ne .Permissions "" }}
+      permissions: '{{.Permissions}}'{{ end }}{{ end }}
+{{- end -}}
+{{- end -}}`
+
+	al2023DiskSetupTemplate = `{{- define "al2023DiskSetup" -}}
+{{- if . -}}
+  diskSetup:{{ if .Partitions }}
+    partitions:{{ range .Partitions }}
+      - device: {{.Device}}
+        layout: {{.Layout}}{{ if .Overwrite }}
+        overwrite: {{.Overwrite}}{{ end }}{{ if .TableType }}
+        tableType: {{.TableType}}{{ end }}{{ end }}{{ end }}{{ if .Filesystems }}
+    filesystems:{{ range .Filesystems }}
+      - device: {{.Device}}
+        filesystem: {{.Filesystem}}
+        label: {{.Label}}{{ if .Partition }}
+        partition: {{.Partition}}{{ end }}{{ if .Overwrite }}
+        overwrite: {{.Overwrite}}{{ end }}{{ if .ExtraOpts }}
+        extraOpts:{{ range .ExtraOpts }}
+          - {{.}}{{ end }}{{ end }}{{ end }}{{ end }}
+{{- end -}}
+{{- end -}}`
+
+	al2023MountsTemplate = `{{- define "al2023Mounts" -}}
+{{- if . -}}
+  mounts:{{ range . }}
+    -{{ range . }}
+      - {{.}}{{ end }}{{ end }}
+{{- end -}}
+{{- end -}}`
+
+	al2023UsersTemplate = `{{- define "al2023Users" -}}
+{{- if . -}}
+  users:{{ range . }}
+    - name: {{.Name}}{{ if .Gecos }}
+      gecos: {{.Gecos}}{{ end }}{{ if .Groups }}
+      groups: {{.Groups}}{{ end }}{{ if .HomeDir }}
+      homeDir: {{.HomeDir}}{{ end }}{{ if .Inactive }}
+      inactive: {{.Inactive}}{{ end }}{{ if .Shell }}
+      shell: {{.Shell}}{{ end }}{{ if .Passwd }}
+      passwd: {{.Passwd}}{{ end }}{{ if .PrimaryGroup }}
+      primaryGroup: {{.PrimaryGroup}}{{ end }}{{ if .LockPassword }}
+      lockPassword: {{.LockPassword}}{{ end }}{{ if .Sudo }}
+      sudo: {{.Sudo}}{{ end }}{{ if .SSHAuthorizedKeys }}
+      sshAuthorizedKeys:{{ range .SSHAuthorizedKeys }}
+        - {{.}}{{ end }}{{ end }}{{ end }}
+{{- end -}}
+{{- end -}}`
+
+	al2023NTPTemplate = `{{- define "al2023NTP" -}}
+{{- if . -}}
+  ntp:{{ if .Enabled }}
+    enabled: true{{ end }}{{ if .Servers }}
+    servers:{{ range .Servers }}
+      - {{.}}{{ end }}{{ end }}
+{{- end -}}
+{{- end -}}`
 )
 
-// NodeInput defines the context to generate a node user data.
+// NodeUserData is responsible for generating userdata for EKS nodes.
+type NodeUserData struct {
+	input *NodeInput
+}
+
+// NodeInput contains all the information required to generate user data for a node.
 type NodeInput struct {
 	ClusterName           string
 	KubeletExtraArgs      map[string]string
@@ -66,6 +226,26 @@ type NodeInput struct {
 	Mounts                   []eksbootstrapv1.MountPoints
 	Users                    []eksbootstrapv1.User
 	NTP                      *eksbootstrapv1.NTP
+
+	// AMI Family Type to determine userdata format
+	AMIFamilyType string
+
+	// AL2023 specific fields
+	APIServerEndpoint string
+	CACert            string
+	NodeGroupName     string
+	AMIImageID        string
+	CapacityType      *v1beta2.ManagedMachinePoolCapacityType
+	MaxPods           *int32
+	Boundary          string
+	ClusterDNS        string
+	ClusterCIDR       string // CIDR range for the cluster
+}
+
+// PauseContainerInfo holds pause container information for templates.
+type PauseContainerInfo struct {
+	AccountNumber *string
+	Version       *string
 }
 
 // DockerConfigJSONEscaped returns the DockerConfigJSON escaped for use in cloud-init.
@@ -88,6 +268,17 @@ func (ni *NodeInput) BootstrapCommand() string {
 
 // NewNode returns the user data string to be used on a node instance.
 func NewNode(input *NodeInput) ([]byte, error) {
+	// For AL2023, use the multipart MIME format
+	if input.AMIFamilyType == AMIFamilyAL2023 {
+		return generateAL2023UserData(input)
+	}
+
+	// For AL2 and other types, use the standard cloud-config format
+	return generateStandardUserData(input)
+}
+
+// generateStandardUserData generates userdata for AL2 and other standard node types.
+func generateStandardUserData(input *NodeInput) ([]byte, error) {
 	tm := template.New("Node").Funcs(defaultTemplateFuncMap)
 
 	if _, err := tm.Parse(filesTemplate); err != nil {
@@ -137,4 +328,89 @@ func NewNode(input *NodeInput) ([]byte, error) {
 	}
 
 	return out.Bytes(), nil
+}
+
+// generateAL2023UserData generates userdata for Amazon Linux 2023 nodes.
+func generateAL2023UserData(input *NodeInput) ([]byte, error) {
+	if err := validateAL2023Input(input); err != nil {
+		return nil, err
+	}
+
+	var buf bytes.Buffer
+
+	// Write MIME header
+	if _, err := buf.WriteString(fmt.Sprintf("MIME-Version: 1.0\nContent-Type: multipart/mixed; boundary=\"%s\"\n\n", input.Boundary)); err != nil {
+		return nil, fmt.Errorf("failed to write MIME header: %v", err)
+	}
+
+	// Write shell script part if needed
+	if len(input.PreBootstrapCommands) > 0 || len(input.PostBootstrapCommands) > 0 {
+		shellScriptTemplate := template.Must(template.New("shell").Parse(shellScriptPartTemplate))
+		if err := shellScriptTemplate.Execute(&buf, input); err != nil {
+			return nil, fmt.Errorf("failed to execute shell script template: %v", err)
+		}
+		if _, err := buf.WriteString("\n"); err != nil {
+			return nil, fmt.Errorf("failed to write newline: %v", err)
+		}
+	}
+
+	// Write node config part
+	nodeConfigTemplate := template.Must(template.New("node").Parse(nodeConfigPartTemplate))
+	if err := nodeConfigTemplate.Execute(&buf, input); err != nil {
+		return nil, fmt.Errorf("failed to execute node config template: %v", err)
+	}
+
+	return buf.Bytes(), nil
+}
+
+// getCapacityTypeString returns the string representation of the capacity type
+func (ni *NodeInput) getCapacityTypeString() string {
+	if ni.CapacityType == nil {
+		return "ON_DEMAND"
+	}
+	switch *ni.CapacityType {
+	case v1beta2.ManagedMachinePoolCapacityTypeSpot:
+		return "SPOT"
+	case v1beta2.ManagedMachinePoolCapacityTypeOnDemand:
+		return "ON_DEMAND"
+	default:
+		return strings.ToUpper(string(*ni.CapacityType))
+	}
+}
+
+// validateAL2023Input validates the input for AL2023 user data generation
+func validateAL2023Input(input *NodeInput) error {
+	if input.APIServerEndpoint == "" {
+		return fmt.Errorf("API server endpoint is required for AL2023")
+	}
+	if input.CACert == "" {
+		return fmt.Errorf("CA certificate is required for AL2023")
+	}
+	if input.ClusterName == "" {
+		return fmt.Errorf("cluster name is required for AL2023")
+	}
+	if input.NodeGroupName == "" {
+		return fmt.Errorf("node group name is required for AL2023")
+	}
+
+	if input.MaxPods == nil {
+		if input.UseMaxPods != nil && *input.UseMaxPods {
+			input.MaxPods = ptr.To[int32](58)
+		} else {
+			input.MaxPods = ptr.To[int32](110)
+		}
+	}
+	if input.DNSClusterIP == nil {
+		input.DNSClusterIP = ptr.To[string]("10.96.0.10")
+	}
+	input.ClusterDNS = *input.DNSClusterIP
+
+	if input.Boundary == "" {
+		input.Boundary = boundary
+	}
+
+	klog.V(2).Infof("AL2023 Userdata Generation - maxPods: %d, clusterDNS: %s, amiID: %s, capacityType: %s",
+		*input.MaxPods, *input.DNSClusterIP, input.AMIImageID, input.getCapacityTypeString())
+
+	return nil
 }

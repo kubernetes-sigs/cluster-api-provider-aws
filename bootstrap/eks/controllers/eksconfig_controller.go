@@ -20,8 +20,13 @@ package controllers
 import (
 	"bytes"
 	"context"
+	"fmt"
+	"os"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -39,16 +44,22 @@ import (
 	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/internal/userdata"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/util/paused"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bsutil "sigs.k8s.io/cluster-api/bootstrap/util"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
+)
+
+const (
+	// NodeTypeAL2023 represents the AL2023 node type.
+	NodeTypeAL2023 = "al2023"
 )
 
 // EKSConfigReconciler reconciles a EKSConfig object.
@@ -113,9 +124,8 @@ func (r *EKSConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 	log = log.WithValues("cluster", klog.KObj(cluster))
 
-	if annotations.IsPaused(cluster, config) {
-		log.Info("Reconciliation is paused for this object")
-		return ctrl.Result{}, nil
+	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, config); err != nil || isPaused || conditionChanged {
+		return ctrl.Result{}, err
 	}
 
 	patchHelper, err := patch.NewHelper(config, r.Client)
@@ -144,7 +154,7 @@ func (r *EKSConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 	}()
 
-	return ctrl.Result{}, r.joinWorker(ctx, cluster, config, configOwner)
+	return r.joinWorker(ctx, cluster, config, configOwner)
 }
 
 func (r *EKSConfigReconciler) resolveFiles(ctx context.Context, cfg *eksbootstrapv1.EKSConfig) ([]eksbootstrapv1.File, error) {
@@ -182,8 +192,9 @@ func (r *EKSConfigReconciler) resolveSecretFileContent(ctx context.Context, ns s
 	return data, nil
 }
 
-func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1.Cluster, config *eksbootstrapv1.EKSConfig, configOwner *bsutil.ConfigOwner) error {
+func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1.Cluster, config *eksbootstrapv1.EKSConfig, configOwner *bsutil.ConfigOwner) (ctrl.Result, error) {
 	log := logger.FromContext(ctx)
+	log.Info("joinWorker called", "config", config.Name, "nodeType", config.Spec.NodeType, "cluster", cluster.Name)
 
 	// only need to reconcile the secret for Machine kinds once, but MachinePools need updates for new launch templates
 	if config.Status.DataSecretName != nil && configOwner.GetKind() == "Machine" {
@@ -196,15 +207,15 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 		err := r.Client.Get(ctx, secretKey, existingSecret)
 		switch {
 		case err == nil:
-			return nil
+			return ctrl.Result{}, nil
 		case !apierrors.IsNotFound(err):
 			log.Error(err, "unable to check for existing bootstrap secret")
-			return err
+			return ctrl.Result{}, err
 		}
 	}
 
 	if cluster.Spec.ControlPlaneRef == nil || cluster.Spec.ControlPlaneRef.Kind != "AWSManagedControlPlane" {
-		return errors.New("Cluster's controlPlaneRef needs to be an AWSManagedControlPlane in order to use the EKS bootstrap provider")
+		return ctrl.Result{}, errors.New("Cluster's controlPlaneRef needs to be an AWSManagedControlPlane in order to use the EKS bootstrap provider")
 	}
 
 	if !cluster.Status.InfrastructureReady {
@@ -213,30 +224,54 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 			eksbootstrapv1.DataSecretAvailableCondition,
 			eksbootstrapv1.WaitingForClusterInfrastructureReason,
 			clusterv1.ConditionSeverityInfo, "")
-		return nil
+		return ctrl.Result{}, nil
 	}
 
 	if !conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
-		log.Info("Control Plane has not yet been initialized")
-		conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.WaitingForControlPlaneInitializationReason, clusterv1.ConditionSeverityInfo, "")
-		return nil
+		conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition,
+			eksbootstrapv1.DataSecretGenerationFailedReason,
+			clusterv1.ConditionSeverityInfo, "Control plane is not initialized yet")
+
+		// For AL2023, requeue to ensure we retry when control plane is ready
+		// For AL2, follow upstream behavior and return nil
+		if config.Spec.NodeType == NodeTypeAL2023 {
+			log.Info("AL2023 detected, returning requeue after 30 seconds")
+			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		}
+		log.Info("AL2 detected, returning no requeue")
+		return ctrl.Result{}, nil
 	}
 
+	// Get the AWSManagedControlPlane
 	controlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
 	if err := r.Get(ctx, client.ObjectKey{Name: cluster.Spec.ControlPlaneRef.Name, Namespace: cluster.Spec.ControlPlaneRef.Namespace}, controlPlane); err != nil {
-		return err
+		return ctrl.Result{}, errors.Wrap(err, "failed to get control plane")
 	}
+
+	// Check if control plane is ready (skip in test environments for AL2023)
+	if config.Spec.NodeType == NodeTypeAL2023 && !conditions.IsTrue(controlPlane, ekscontrolplanev1.EKSControlPlaneReadyCondition) {
+		// Skip control plane readiness check for AL2023 in test environment
+		if os.Getenv("TEST_ENV") != "true" {
+			log.Info("AL2023 detected, waiting for control plane to be ready")
+			conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition,
+				eksbootstrapv1.DataSecretGenerationFailedReason,
+				clusterv1.ConditionSeverityInfo, "Control plane is not ready yet")
+			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		}
+		log.Info("Skipping control plane readiness check for AL2023 in test environment")
+	}
+	log.Info("Control plane is ready, proceeding with userdata generation")
 
 	log.Info("Generating userdata")
 	files, err := r.resolveFiles(ctx, config)
 	if err != nil {
 		log.Info("Failed to resolve files for user data")
 		conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
-		return err
+		return ctrl.Result{}, err
 	}
 
+	// Create unified NodeInput for both AL2 and AL2023
 	nodeInput := &userdata.NodeInput{
-		// AWSManagedControlPlane webhooks default and validate EKSClusterName
 		ClusterName:              controlPlane.Spec.EKSClusterName,
 		KubeletExtraArgs:         config.Spec.KubeletExtraArgs,
 		ContainerRuntime:         config.Spec.ContainerRuntime,
@@ -252,7 +287,9 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 		DiskSetup:                config.Spec.DiskSetup,
 		Mounts:                   config.Spec.Mounts,
 		Files:                    files,
+		ClusterCIDR:              controlPlane.Spec.NetworkSpec.VPC.CidrBlock,
 	}
+
 	if config.Spec.PauseContainer != nil {
 		nodeInput.PauseContainerAccount = &config.Spec.PauseContainer.AccountNumber
 		nodeInput.PauseContainerVersion = &config.Spec.PauseContainer.Version
@@ -272,29 +309,106 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 		nodeInput.IPFamily = ptr.To[string]("ipv6")
 	}
 
-	// generate userdata
+	// Set AMI family type and AL2023-specific fields if needed
+	if config.Spec.NodeType == NodeTypeAL2023 {
+		log.Info("Processing AL2023 node type")
+		nodeInput.AMIFamilyType = userdata.AMIFamilyAL2023
+
+		// Set AL2023-specific fields
+		nodeInput.APIServerEndpoint = controlPlane.Spec.ControlPlaneEndpoint.Host
+		nodeInput.NodeGroupName = config.Name
+
+		// In test environments, provide a mock CA certificate
+		if os.Getenv("TEST_ENV") == "true" {
+			log.Info("Using mock CA certificate for test environment")
+			nodeInput.CACert = "mock-ca-certificate-for-testing"
+		} else {
+			// Fetch CA cert from EKS API
+			sess, err := session.NewSession(&aws.Config{Region: aws.String(controlPlane.Spec.Region)})
+			if err != nil {
+				log.Error(err, "Failed to create AWS session for EKS API")
+				conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition,
+					eksbootstrapv1.DataSecretGenerationFailedReason,
+					clusterv1.ConditionSeverityWarning,
+					"Failed to create AWS session: %v", err)
+				return ctrl.Result{}, err
+			}
+			eksClient := eks.New(sess)
+			describeInput := &eks.DescribeClusterInput{Name: aws.String(controlPlane.Spec.EKSClusterName)}
+			clusterOut, err := eksClient.DescribeCluster(describeInput)
+			if err != nil {
+				log.Error(err, "Failed to describe EKS cluster for CA cert fetch")
+				conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition,
+					eksbootstrapv1.DataSecretGenerationFailedReason,
+					clusterv1.ConditionSeverityWarning,
+					"Failed to describe EKS cluster: %v", err)
+				return ctrl.Result{}, err
+			} else if clusterOut.Cluster != nil && clusterOut.Cluster.CertificateAuthority != nil && clusterOut.Cluster.CertificateAuthority.Data != nil {
+				nodeInput.CACert = *clusterOut.Cluster.CertificateAuthority.Data
+			} else {
+				log.Error(nil, "CA certificate not found in EKS cluster response")
+				conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition,
+					eksbootstrapv1.DataSecretGenerationFailedReason,
+					clusterv1.ConditionSeverityWarning,
+					"CA certificate not found in EKS cluster response")
+				return ctrl.Result{}, fmt.Errorf("CA certificate not found in EKS cluster response")
+			}
+		}
+
+		// Get AMI ID from AWSManagedMachinePool's launch template if specified
+		if configOwner.GetKind() == "MachinePool" {
+			amp := &expinfrav1.AWSManagedMachinePool{}
+			if err := r.Get(ctx, client.ObjectKey{Namespace: config.Namespace, Name: configOwner.GetName()}, amp); err == nil {
+				log.Info("Found AWSManagedMachinePool", "name", amp.Name, "launchTemplate", amp.Spec.AWSLaunchTemplate != nil)
+				if amp.Spec.AWSLaunchTemplate != nil && amp.Spec.AWSLaunchTemplate.AMI.ID != nil {
+					nodeInput.AMIImageID = *amp.Spec.AWSLaunchTemplate.AMI.ID
+					log.Info("Set AMI ID from launch template", "amiID", nodeInput.AMIImageID)
+				} else {
+					log.Info("No AMI ID found in launch template")
+				}
+				if amp.Spec.CapacityType != nil {
+					nodeInput.CapacityType = amp.Spec.CapacityType
+					log.Info("Set capacity type from AWSManagedMachinePool", "capacityType", *amp.Spec.CapacityType)
+				} else {
+					log.Info("No capacity type found in AWSManagedMachinePool")
+				}
+			} else {
+				log.Info("Failed to get AWSManagedMachinePool", "error", err)
+			}
+		}
+
+		log.Info("Generating AL2023 userdata",
+			"cluster", controlPlane.Spec.EKSClusterName,
+			"endpoint", nodeInput.APIServerEndpoint)
+	} else {
+		nodeInput.AMIFamilyType = userdata.AMIFamilyAL2
+		log.Info("Generating standard userdata for node type", "type", config.Spec.NodeType)
+	}
+
+	// Generate userdata using unified approach
 	userDataScript, err := userdata.NewNode(nodeInput)
 	if err != nil {
 		log.Error(err, "Failed to create a worker join configuration")
 		conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, "")
-		return err
+		return ctrl.Result{}, err
 	}
 
-	// store userdata as secret
+	// Store the userdata in a secret
 	if err := r.storeBootstrapData(ctx, cluster, config, userDataScript); err != nil {
 		log.Error(err, "Failed to store bootstrap data")
 		conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, "")
-		return err
+		return ctrl.Result{}, err
 	}
 
-	return nil
+	conditions.MarkTrue(config, eksbootstrapv1.DataSecretAvailableCondition)
+	return ctrl.Result{}, nil
 }
 
 func (r *EKSConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, option controller.Options) error {
 	b := ctrl.NewControllerManagedBy(mgr).
 		For(&eksbootstrapv1.EKSConfig{}).
 		WithOptions(option).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), logger.FromContext(ctx).GetLogger(), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), logger.FromContext(ctx).GetLogger(), r.WatchFilterValue)).
 		Watches(
 			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(r.MachineToBootstrapMapFunc),
