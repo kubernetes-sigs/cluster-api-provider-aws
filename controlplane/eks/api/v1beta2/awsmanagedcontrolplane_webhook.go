@@ -98,6 +98,7 @@ func (*awsManagedControlPlaneWebhook) ValidateCreate(_ context.Context, obj runt
 	// TODO: Add ipv6 validation things in these validations.
 	allErrs = append(allErrs, r.validateEKSVersion(nil)...)
 	allErrs = append(allErrs, r.Spec.Bastion.Validate()...)
+	allErrs = append(allErrs, r.validateAccessConfig(nil)...)
 	allErrs = append(allErrs, r.validateIAMAuthConfig()...)
 	allErrs = append(allErrs, r.validateSecondaryCIDR()...)
 	allErrs = append(allErrs, r.validateEKSAddons()...)
@@ -309,14 +310,14 @@ func (r *AWSManagedControlPlane) validateAccessConfig(old *AWSManagedControlPlan
 	var allErrs field.ErrorList
 
 	// If accessConfig is already set, do not allow removal of it.
-	if old.Spec.AccessConfig != nil && r.Spec.AccessConfig == nil {
+	if old != nil && old.Spec.AccessConfig != nil && r.Spec.AccessConfig == nil {
 		allErrs = append(allErrs,
 			field.Invalid(field.NewPath("spec", "accessConfig"), r.Spec.AccessConfig, "removing AccessConfig is not allowed after it has been enabled"),
 		)
 	}
 
 	// AuthenticationMode is ratcheting - do not allow downgrades
-	if old.Spec.AccessConfig != nil && old.Spec.AccessConfig.AuthenticationMode != r.Spec.AccessConfig.AuthenticationMode &&
+	if old != nil && old.Spec.AccessConfig != nil && r.Spec.AccessConfig != nil && old.Spec.AccessConfig.AuthenticationMode != r.Spec.AccessConfig.AuthenticationMode &&
 		((old.Spec.AccessConfig.AuthenticationMode == EKSAuthenticationModeAPIAndConfigMap && r.Spec.AccessConfig.AuthenticationMode == EKSAuthenticationModeConfigMap) ||
 			old.Spec.AccessConfig.AuthenticationMode == EKSAuthenticationModeAPI) {
 		allErrs = append(allErrs,
@@ -367,7 +368,7 @@ func (r *AWSManagedControlPlane) validateAccessConfig(old *AWSManagedControlPlan
 						field.Invalid(
 							field.NewPath("spec", "accessConfig", "accessEntries").Index(i).Child("accessPolicies").Index(j).Child("accessScope", "namespaces"),
 							policy.AccessScope.Namespaces,
-							"at least one value must be specified when accessScope type is namespace",
+							"at least one value must be provided when accessScope type is namespace",
 						),
 					)
 				}

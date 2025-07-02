@@ -2238,6 +2238,7 @@ spec:
                                       Only valid when Type is namespace
                                     items:
                                       type: string
+                                    minItems: 1
                                     type: array
                                   type:
                                     default: cluster
@@ -2258,6 +2259,7 @@ spec:
                             - accessScope
                             - policyARN
                             type: object
+                          maxItems: 20
                           type: array
                         kubernetesGroups:
                           description: |-
