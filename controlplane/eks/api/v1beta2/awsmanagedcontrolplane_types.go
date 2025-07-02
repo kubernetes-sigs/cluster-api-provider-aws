@@ -276,6 +276,7 @@ type AccessEntry struct {
 	// AccessPolicies specifies the policies to associate with this access entry
 	// Cannot be specified if Type is EC2_LINUX or EC2_WINDOWS
 	// +optional
+	// +kubebuilder:validation:MaxItems=20
 	AccessPolicies []AccessPolicyReference `json:"accessPolicies,omitempty"`
 }
 
@@ -300,6 +301,7 @@ type AccessScope struct {
 	// Namespaces are the namespaces for the access scope
 	// Only valid when Type is namespace
 	// +optional
+	// +kubebuilder:validation:MinItems=1
 	Namespaces []string `json:"namespaces,omitempty"`
 }
 
