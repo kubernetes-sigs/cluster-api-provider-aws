@@ -40,7 +40,7 @@ func (t Template) controlPlanePolicies() []cfn_iam.Role_Policy {
 }
 
 func (t Template) controlPlaneTrustPolicy() *iamv1.PolicyDocument {
-	policyDocument := ec2AssumeRolePolicy()
+	policyDocument := ec2AssumeRolePolicy(false)
 	policyDocument.Statement = append(policyDocument.Statement, t.Spec.ControlPlane.TrustStatements...)
 	return policyDocument
 }
