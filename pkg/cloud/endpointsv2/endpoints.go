@@ -23,6 +23,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/eks"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
@@ -127,7 +128,7 @@ type EKSEndpointResolver struct {
 	*MultiServiceEndpointResolver
 }
 
-// ResolveEndpoint for S3.
+// ResolveEndpoint for EKS.
 func (s *EKSEndpointResolver) ResolveEndpoint(ctx context.Context, params eks.EndpointParameters) (smithyendpoints.Endpoint, error) {
 	// If custom endpoint not found, return default endpoint for the service
 	log := logger.FromContext(ctx)
@@ -164,4 +165,26 @@ func (s *SSMEndpointResolver) ResolveEndpoint(ctx context.Context, params ssm.En
 	params.Endpoint = &endpoint.URL
 	params.Region = &endpoint.SigningRegion
 	return ssm.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
+}
+
+// EC2EndpointResolver implements EndpointResolverV2 interface for EC2.
+type EC2EndpointResolver struct {
+	*MultiServiceEndpointResolver
+}
+
+// ResolveEndpoint for EC2.
+func (s *EC2EndpointResolver) ResolveEndpoint(ctx context.Context, params ec2.EndpointParameters) (smithyendpoints.Endpoint, error) {
+	// If custom endpoint not found, return default endpoint for the service
+	log := logger.FromContext(ctx)
+	endpoint, ok := s.endpoints[ec2.ServiceID]
+
+	if !ok {
+		log.Debug("Custom endpoint not found, using default endpoint")
+		return ec2.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
+	}
+
+	log.Debug("Custom endpoint found, using custom endpoint", "endpoint", endpoint.URL)
+	params.Endpoint = &endpoint.URL
+	params.Region = &endpoint.SigningRegion
+	return ec2.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
 }

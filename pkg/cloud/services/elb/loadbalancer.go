@@ -23,10 +23,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/elbv2"
 	rgapi "github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
@@ -385,9 +385,9 @@ func (s *Service) getAPIServerLBSpec(elbName string, lbSpec *infrav1.AWSLoadBala
 		// This set of subnets may not match the subnets specified on the Cluster, so we may not have already discovered them
 		// We need to call out to AWS to describe them just in case
 		input := &ec2.DescribeSubnetsInput{
-			SubnetIds: aws.StringSlice(lbSpec.Subnets),
+			SubnetIds: lbSpec.Subnets,
 		}
-		out, err := s.EC2Client.DescribeSubnetsWithContext(context.TODO(), input)
+		out, err := s.EC2Client.DescribeSubnets(context.TODO(), input)
 		if err != nil {
 			return nil, err
 		}
@@ -1001,9 +1001,9 @@ func (s *Service) getControlPlaneLoadBalancerSubnets() (infrav1.Subnets, error) 
 	var subnets infrav1.Subnets
 
 	input := &ec2.DescribeSubnetsInput{
-		SubnetIds: aws.StringSlice(s.scope.ControlPlaneLoadBalancer().Subnets),
+		SubnetIds: s.scope.ControlPlaneLoadBalancer().Subnets,
 	}
-	res, err := s.EC2Client.DescribeSubnetsWithContext(context.TODO(), input)
+	res, err := s.EC2Client.DescribeSubnets(context.TODO(), input)
 	if err != nil {
 		return nil, err
 	}
@@ -1196,9 +1196,9 @@ func (s *Service) getAPIServerClassicELBSpec(elbName string) (*infrav1.LoadBalan
 		// This set of subnets may not match the subnets specified on the Cluster, so we may not have already discovered them
 		// We need to call out to AWS to describe them just in case
 		input := &ec2.DescribeSubnetsInput{
-			SubnetIds: aws.StringSlice(s.scope.ControlPlaneLoadBalancer().Subnets),
+			SubnetIds: s.scope.ControlPlaneLoadBalancer().Subnets,
 		}
-		out, err := s.EC2Client.DescribeSubnetsWithContext(context.TODO(), input)
+		out, err := s.EC2Client.DescribeSubnets(context.TODO(), input)
 		if err != nil {
 			return nil, err
 		}

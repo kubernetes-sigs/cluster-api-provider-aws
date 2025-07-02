@@ -36,6 +36,14 @@ func ToInt64Pointer(to *int32) *int64 {
 	return ptr.To(int64(*to))
 }
 
+// ToInt64Value converts an int32 pointer to an int64 value.
+func ToInt64Value(to *int32) int64 {
+	if to == nil {
+		panic("Cannot convert nil pointer to int64")
+	}
+	return int64(*to)
+}
+
 // ToInt32Pointer converts an int64 pointer to an int32 pointer.
 func ToInt32Pointer(to *int64) *int32 {
 	if to == nil {
