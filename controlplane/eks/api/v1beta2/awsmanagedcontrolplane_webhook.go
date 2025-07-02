@@ -324,6 +324,57 @@ func (r *AWSManagedControlPlane) validateAccessConfig(old *AWSManagedControlPlan
 		)
 	}
 
+	// AccessEntries require AuthenticationMode to be API or API_AND_CONFIG_MAP
+	if r.Spec.AccessConfig != nil && len(r.Spec.AccessConfig.AccessEntries) > 0 {
+		if r.Spec.AccessConfig.AuthenticationMode != EKSAuthenticationModeAPI &&
+			r.Spec.AccessConfig.AuthenticationMode != EKSAuthenticationModeAPIAndConfigMap {
+			allErrs = append(allErrs,
+				field.Invalid(
+					field.NewPath("spec", "accessConfig", "accessEntries"),
+					r.Spec.AccessConfig.AccessEntries,
+					"accessEntries can only be used when authenticationMode is set to API or API_AND_CONFIG_MAP",
+				),
+			)
+		}
+
+		// Validate that EC2 types don't have kubernetes groups or access policies
+		for i, entry := range r.Spec.AccessConfig.AccessEntries {
+			if entry.Type == "EC2_LINUX" || entry.Type == "EC2_WINDOWS" {
+				if len(entry.KubernetesGroups) > 0 {
+					allErrs = append(allErrs,
+						field.Invalid(
+							field.NewPath("spec", "accessConfig", "accessEntries").Index(i).Child("kubernetesGroups"),
+							entry.KubernetesGroups,
+							"kubernetesGroups cannot be specified when type is EC2_LINUX or EC2_WINDOWS",
+						),
+					)
+				}
+				if len(entry.AccessPolicies) > 0 {
+					allErrs = append(allErrs,
+						field.Invalid(
+							field.NewPath("spec", "accessConfig", "accessEntries").Index(i).Child("accessPolicies"),
+							entry.AccessPolicies,
+							"accessPolicies cannot be specified when type is EC2_LINUX or EC2_WINDOWS",
+						),
+					)
+				}
+			}
+
+			// Validate namespace scopes
+			for j, policy := range entry.AccessPolicies {
+				if policy.AccessScope.Type == "namespace" && len(policy.AccessScope.Namespaces) == 0 {
+					allErrs = append(allErrs,
+						field.Invalid(
+							field.NewPath("spec", "accessConfig", "accessEntries").Index(i).Child("accessPolicies").Index(j).Child("accessScope", "namespaces"),
+							policy.AccessScope.Namespaces,
+							"at least one value must be specified when accessScope type is namespace",
+						),
+					)
+				}
+			}
+		}
+	}
+
 	return allErrs
 }
 
