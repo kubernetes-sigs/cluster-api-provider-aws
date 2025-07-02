@@ -606,7 +606,7 @@ promote-images: $(KPROMO) $(YQ)
 
 .PHONY: release-binaries
 release-binaries: $(GORELEASER) ## Builds only the binaries, not a release.
-	$(GORELEASER) build --config $(GORELEASER_CONFIG) --snapshot --clean
+	GOMAXPROCS=2 $(GORELEASER) build --config $(GORELEASER_CONFIG) --snapshot --clean
 
 .PHONY: release-staging
 release-staging: ## Builds and push container images and manifests to the staging bucket.
