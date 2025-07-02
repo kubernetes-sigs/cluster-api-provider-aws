@@ -606,6 +606,13 @@ func (s *Service) reconcileAccessConfig(ctx context.Context, accessConfig *eksty
 		}
 	}
 
+	if expectedAuthenticationMode == string(ekscontrolplanev1.EKSAuthenticationModeAPI) ||
+		expectedAuthenticationMode == string(ekscontrolplanev1.EKSAuthenticationModeAPIAndConfigMap) {
+		if err := s.reconcileAccessEntries(ctx); err != nil {
+			return errors.Wrap(err, "failed to reconcile access entries")
+		}
+	}
+
 	return nil
 }
 
