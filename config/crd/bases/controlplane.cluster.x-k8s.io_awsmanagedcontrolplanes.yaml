@@ -3065,7 +3065,7 @@ spec:
                 type: object
               oidcIdentityProviderConfig:
                 description: |-
-                  OIDCIdentityProviderConfig is used to specify the oidc provider config
+                  IdentityProviderconfig is used to specify the oidc provider config
                   to be attached with this eks cluster
                 properties:
                   clientId:

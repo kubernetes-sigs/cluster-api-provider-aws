@@ -187,7 +187,7 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// +optional
 	Addons *[]Addon `json:"addons,omitempty"`
 
-	// OIDCIdentityProviderConfig is used to specify the oidc provider config
+	// IdentityProviderconfig is used to specify the oidc provider config
 	// to be attached with this eks cluster
 	// +optional
 	OIDCIdentityProviderConfig *OIDCIdentityProviderConfig `json:"oidcIdentityProviderConfig,omitempty"`
