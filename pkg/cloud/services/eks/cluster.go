@@ -363,7 +363,6 @@ func makeVpcConfig(subnets infrav1.Subnets, endpointAccess ekscontrolplanev1.End
 	return vpcConfig, nil
 }
 
-
 func makeEksLogging(loggingSpec *ekscontrolplanev1.ControlPlaneLoggingSpec) *ekstypes.Logging {
 	if loggingSpec == nil {
 		return nil
@@ -594,6 +593,13 @@ func (s *Service) reconcileAccessConfig(ctx context.Context, accessConfig *eksty
 		}); err != nil {
 			record.Warnf(s.scope.ControlPlane, "FailedUpdateEKSControlPlane", "Failed to update EKS control plane auth config: %v", err)
 			return errors.Wrapf(err, "failed to update EKS cluster")
+		}
+	}
+
+	if expectedAuthenticationMode == string(ekscontrolplanev1.EKSAuthenticationModeAPI) ||
+		expectedAuthenticationMode == string(ekscontrolplanev1.EKSAuthenticationModeAPIAndConfigMap) {
+		if err := s.reconcileAccessEntries(ctx); err != nil {
+			return errors.Wrap(err, "failed to reconcile access entries")
 		}
 	}
 
