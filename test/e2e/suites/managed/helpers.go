@@ -22,6 +22,7 @@ package managed
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -35,6 +36,7 @@ import (
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
 
@@ -52,6 +54,7 @@ const (
 	EKSClusterClassFlavor                             = "eks-clusterclass"
 	EKSAuthAPIAndConfigMapFlavor                      = "eks-auth-api-and-config-map"
 	EKSAuthBootstrapDisabledFlavor                    = "eks-auth-bootstrap-disabled"
+	EKSControlPlaneOnlyWithAccessEntriesFlavor        = "eks-control-plane-only-with-accessentries"
 )
 
 const (
@@ -248,4 +251,69 @@ func verifyASG(eksClusterName, asgName string, checkOwned bool, cfg *aws.Config)
 		}
 		Expect(found).To(BeTrue(), "expecting the cluster owned tag to exist")
 	}
+}
+
+func verifyAccessEntries(ctx context.Context, eksClusterName string, expectedEntries []ekscontrolplanev1.AccessEntry, cfg *aws.Config) {
+	eksClient := eks.NewFromConfig(*cfg)
+
+	listOutput, err := eksClient.ListAccessEntries(ctx, &eks.ListAccessEntriesInput{
+		ClusterName: &eksClusterName,
+	})
+	Expect(err).ToNot(HaveOccurred(), "failed to list access entries")
+
+	expectedEntriesMap := make(map[string]ekscontrolplanev1.AccessEntry, len(expectedEntries))
+	for _, entry := range expectedEntries {
+		expectedEntriesMap[entry.PrincipalARN] = entry
+	}
+
+	for _, principalARN := range listOutput.AccessEntries {
+		expectedEntry, exists := expectedEntriesMap[principalARN]
+		Expect(exists).To(BeTrue(), fmt.Sprintf("unexpected access entry: %s", principalARN))
+
+		describeOutput, err := eksClient.DescribeAccessEntry(ctx, &eks.DescribeAccessEntryInput{
+			ClusterName:  &eksClusterName,
+			PrincipalArn: &principalARN,
+		})
+		Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("failed to describe access entry: %s", principalARN))
+
+		Expect(describeOutput.AccessEntry.Type).To(Equal(expectedEntry.Type), "access entry type does not match")
+		Expect(describeOutput.AccessEntry.Username).To(Equal(expectedEntry.Username), "access entry username does not match")
+
+		if len(expectedEntry.KubernetesGroups) > 0 {
+			slices.Sort(expectedEntry.KubernetesGroups)
+			slices.Sort(describeOutput.AccessEntry.KubernetesGroups)
+			Expect(describeOutput.AccessEntry.KubernetesGroups).To(Equal(expectedEntry.KubernetesGroups), "access entry kubernetes groups do not match")
+		}
+
+		if len(expectedEntry.AccessPolicies) > 0 {
+			listOutput, err := eksClient.ListAssociatedAccessPolicies(ctx, &eks.ListAssociatedAccessPoliciesInput{
+				ClusterName:  &eksClusterName,
+				PrincipalArn: &principalARN,
+			})
+			Expect(err).ToNot(HaveOccurred(), "failed to list access policies")
+
+			expectedPolicies := make(map[string]ekscontrolplanev1.AccessPolicyReference, len(expectedEntry.AccessPolicies))
+			for _, policy := range expectedEntry.AccessPolicies {
+				expectedPolicies[policy.PolicyARN] = policy
+			}
+
+			for _, policy := range listOutput.AssociatedAccessPolicies {
+				expectedPolicy, exists := expectedPolicies[*policy.PolicyArn]
+				Expect(exists).To(BeTrue(), fmt.Sprintf("unexpected access policy: %s", *policy.PolicyArn))
+
+				Expect(policy.AccessScope.Type).To(Equal(expectedPolicy.AccessScope.Type), "access policy scope type does not match")
+
+				if expectedPolicy.AccessScope.Type == "namespace" {
+					slices.Sort(expectedPolicy.AccessScope.Namespaces)
+					slices.Sort(policy.AccessScope.Namespaces)
+					Expect(policy.AccessScope.Namespaces).To(Equal(expectedPolicy.AccessScope.Namespaces), "access policy scope namespaces do not match")
+				}
+
+				delete(expectedPolicies, *policy.PolicyArn)
+			}
+			Expect(expectedPolicies).To(BeEmpty(), "not all expected access policies were found")
+		}
+		delete(expectedEntriesMap, principalARN)
+	}
+	Expect(expectedEntriesMap).To(BeEmpty(), "not all expected access entries were found")
 }
