@@ -131,6 +131,8 @@ spec:
                         enum:
                         - AmazonLinux
                         - AmazonLinuxGPU
+                        - AmazonLinux2023
+                        - AmazonLinux2023GPU
                         type: string
                       id:
                         description: ID of resource
@@ -624,6 +626,8 @@ spec:
                         enum:
                         - AmazonLinux
                         - AmazonLinuxGPU
+                        - AmazonLinux2023
+                        - AmazonLinux2023GPU
                         type: string
                       id:
                         description: ID of resource
