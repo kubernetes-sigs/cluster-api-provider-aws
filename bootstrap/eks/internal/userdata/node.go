@@ -51,13 +51,13 @@ runcmd:
 {{- template "mounts" .Mounts}}
 `
 
-	// Common MIME header and boundary template
+	// Common MIME header and boundary template.
 	mimeHeaderTemplate = `MIME-Version: 1.0
 Content-Type: multipart/mixed; boundary="{{.Boundary}}"
 
 `
 
-	// Shell script part template for AL2023
+	// Shell script part template for AL2023.
 	shellScriptPartTemplate = `--{{.Boundary}}
 Content-Type: text/x-shellscript; charset="us-ascii"
 
@@ -75,7 +75,7 @@ set -o nounset
 {{- end}}
 {{- end}}`
 
-	// Node config part template for AL2023
+	// Node config part template for AL2023.
 	nodeConfigPartTemplate = `
 --{{.Boundary}}
 Content-Type: application/node.eks.aws
@@ -339,7 +339,7 @@ func generateAL2023UserData(input *NodeInput) ([]byte, error) {
 	var buf bytes.Buffer
 
 	// Write MIME header
-	if _, err := buf.WriteString(fmt.Sprintf("MIME-Version: 1.0\nContent-Type: multipart/mixed; boundary=\"%s\"\n\n", input.Boundary)); err != nil {
+	if _, err := buf.WriteString(fmt.Sprintf("MIME-Version: 1.0\nContent-Type: multipart/mixed; boundary=%q\n\n", input.Boundary)); err != nil {
 		return nil, fmt.Errorf("failed to write MIME header: %v", err)
 	}
 
@@ -363,7 +363,7 @@ func generateAL2023UserData(input *NodeInput) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// getCapacityTypeString returns the string representation of the capacity type
+// getCapacityTypeString returns the string representation of the capacity type.
 func (ni *NodeInput) getCapacityTypeString() string {
 	if ni.CapacityType == nil {
 		return "ON_DEMAND"
@@ -378,7 +378,7 @@ func (ni *NodeInput) getCapacityTypeString() string {
 	}
 }
 
-// validateAL2023Input validates the input for AL2023 user data generation
+// validateAL2023Input validates the input for AL2023 user data generation.
 func validateAL2023Input(input *NodeInput) error {
 	if input.APIServerEndpoint == "" {
 		return fmt.Errorf("API server endpoint is required for AL2023")

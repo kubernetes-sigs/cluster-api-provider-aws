@@ -356,7 +356,7 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 		}
 
 		// Get AMI ID from AWSManagedMachinePool's launch template if specified
-		if configOwner.GetKind() == "MachinePool" {
+		if configOwner.GetKind() == "AWSManagedMachinePool" {
 			amp := &expinfrav1.AWSManagedMachinePool{}
 			if err := r.Get(ctx, client.ObjectKey{Namespace: config.Namespace, Name: configOwner.GetName()}, amp); err == nil {
 				log.Info("Found AWSManagedMachinePool", "name", amp.Name, "launchTemplate", amp.Spec.AWSLaunchTemplate != nil)
