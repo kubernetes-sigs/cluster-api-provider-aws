@@ -143,6 +143,12 @@ LDFLAGS := $(shell source ./hack/version.sh; version::ldflags)
 # Set USE_EXISTING_CLUSTER to use an existing kubernetes context
 USE_EXISTING_CLUSTER ?= "false"
 
+# GORELEASER_PARALLELISM restricts the number of tasks goreleaser will run
+# concurrently. The primary reason to do this is to ensure its memory usage
+# remains within the resource limits of the
+# cluster-api-provider-aws-build-docker job
+GORELEASER_PARALLELISM ?= 2
+
 # Set E2E_SKIP_EKS_UPGRADE to false to test EKS upgrades.
 # Warning, this takes a long time
 E2E_SKIP_EKS_UPGRADE ?= "false"
@@ -571,7 +577,7 @@ release: clean-release check-release-tag check-release-branch $(RELEASE_DIR) $(G
 	$(MAKE) release-changelog
 	CORE_CONTROLLER_IMG=$(PROD_REGISTRY)/$(CORE_IMAGE_NAME) $(MAKE) release-manifests
 	$(MAKE) release-policies
-	$(GORELEASER) release --config $(GORELEASER_CONFIG) --release-notes $(RELEASE_DIR)/CHANGELOG.md --clean
+	$(GORELEASER) release --config $(GORELEASER_CONFIG) --release-notes $(RELEASE_DIR)/CHANGELOG.md --clean --parallelism $(GORELEASER_PARALLELISM)
 
 release-policies: $(RELEASE_POLICIES) ## Release policies
 
@@ -606,7 +612,7 @@ promote-images: $(KPROMO) $(YQ)
 
 .PHONY: release-binaries
 release-binaries: $(GORELEASER) ## Builds only the binaries, not a release.
-	GOMAXPROCS=2 $(GORELEASER) build --config $(GORELEASER_CONFIG) --snapshot --clean
+	$(GORELEASER) build --config $(GORELEASER_CONFIG) --snapshot --clean --parallelism $(GORELEASER_PARALLELISM)
 
 .PHONY: release-staging
 release-staging: ## Builds and push container images and manifests to the staging bucket.
