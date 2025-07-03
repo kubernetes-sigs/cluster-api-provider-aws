@@ -80,6 +80,7 @@ type AWSClusterReconciler struct {
 	ExternalResourceGC           bool
 	AlternativeGCStrategy        bool
 	TagUnmanagedNetworkResources bool
+	MaxWaitActiveUpdateDelete    time.Duration
 }
 
 // getEC2Service factory func is added for testing purpose so that we can inject mocked EC2Service to the AWSClusterReconciler.
@@ -178,6 +179,7 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		ControllerName:               "awscluster",
 		Endpoints:                    r.Endpoints,
 		TagUnmanagedNetworkResources: r.TagUnmanagedNetworkResources,
+		MaxWaitActiveUpdateDelete:    r.MaxWaitActiveUpdateDelete,
 	})
 	if err != nil {
 		return reconcile.Result{}, errors.Errorf("failed to create scope: %+v", err)
@@ -247,7 +249,7 @@ func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope
 		allErrs = append(allErrs, errors.Wrapf(err, "error deleting S3 Bucket"))
 	}
 
-	if err := elbsvc.DeleteLoadbalancers(); err != nil {
+	if err := elbsvc.DeleteLoadbalancers(ctx); err != nil {
 		allErrs = append(allErrs, errors.Wrapf(err, "error deleting load balancers"))
 	}
 
@@ -279,7 +281,7 @@ func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope
 	return reconcile.Result{}, nil
 }
 
-func (r *AWSClusterReconciler) reconcileLoadBalancer(clusterScope *scope.ClusterScope, awsCluster *infrav1.AWSCluster) (*time.Duration, error) {
+func (r *AWSClusterReconciler) reconcileLoadBalancer(ctx context.Context, clusterScope *scope.ClusterScope, awsCluster *infrav1.AWSCluster) (*time.Duration, error) {
 	retryAfterDuration := 15 * time.Second
 	if clusterScope.AWSCluster.Spec.ControlPlaneLoadBalancer.LoadBalancerType == infrav1.LoadBalancerTypeDisabled {
 		clusterScope.Debug("load balancer reconciliation shifted to external provider, checking external endpoint")
@@ -289,7 +291,7 @@ func (r *AWSClusterReconciler) reconcileLoadBalancer(clusterScope *scope.Cluster
 
 	elbService := r.getELBService(clusterScope)
 
-	if err := elbService.ReconcileLoadbalancers(); err != nil {
+	if err := elbService.ReconcileLoadbalancers(ctx); err != nil {
 		clusterScope.Error(err, "failed to reconcile load balancer")
 		conditions.MarkFalse(awsCluster, infrav1.LoadBalancerReadyCondition, infrav1.LoadBalancerFailedReason, infrautilconditions.ErrorConditionAfterInit(clusterScope.ClusterObj()), "%s", err.Error())
 		return nil, err
@@ -354,7 +356,7 @@ func (r *AWSClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 		}
 	}
 
-	if requeueAfter, err := r.reconcileLoadBalancer(clusterScope, awsCluster); err != nil {
+	if requeueAfter, err := r.reconcileLoadBalancer(ctx, clusterScope, awsCluster); err != nil {
 		return reconcile.Result{}, err
 	} else if requeueAfter != nil {
 		return reconcile.Result{RequeueAfter: *requeueAfter}, err

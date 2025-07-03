@@ -513,3 +513,8 @@ func (s *ManagedControlPlaneScope) UnstructuredControlPlane() (*unstructured.Uns
 func (s *ManagedControlPlaneScope) NodePortIngressRuleCidrBlocks() []string {
 	return nil
 }
+
+// MaxWaitDuration returns time waiting for operation.
+func (s *ManagedControlPlaneScope) MaxWaitDuration() time.Duration {
+	return s.MaxWaitActiveUpdateDelete
+}
