@@ -676,9 +676,9 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 					shared.DeletePeering(e2eCtx, *cPeering.VpcPeeringConnectionId)
 				}
 				ginkgo.By("Deleting the workload cluster infrastructure")
-				wlClusterInfra.DeleteInfrastructure()
+				wlClusterInfra.DeleteInfrastructure(ctx)
 				ginkgo.By("Deleting the management cluster infrastructure")
-				mgmtClusterInfra.DeleteInfrastructure()
+				mgmtClusterInfra.DeleteInfrastructure(ctx)
 			}
 		})
 

@@ -22,9 +22,9 @@ import (
 	"testing"
 	"time"
 
+	elb "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -255,8 +255,8 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		expect := func(m *mocks.MockEC2APIMockRecorder, s *mock_services.MockSecretInterfaceMockRecorder, e *mocks.MockELBAPIMockRecorder) {
 			mockedCreateInstanceCalls(m)
 			mockedCreateSecretCall(s)
-			e.DescribeLoadBalancers(gomock.Eq(&elb.DescribeLoadBalancersInput{
-				LoadBalancerNames: aws.StringSlice([]string{"test-cluster-apiserver"}),
+			e.DescribeLoadBalancers(ctx, gomock.Eq(&elb.DescribeLoadBalancersInput{
+				LoadBalancerNames: []string{"test-cluster-apiserver"},
 			})).
 				Return(&elb.DescribeLoadBalancersOutput{}, nil)
 		}

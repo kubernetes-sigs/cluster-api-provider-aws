@@ -112,14 +112,14 @@ type SecretInterface interface {
 // ELBInterface encapsulates the methods exposed to the cluster and machine
 // controller.
 type ELBInterface interface {
-	DeleteLoadbalancers() error
-	ReconcileLoadbalancers() error
-	IsInstanceRegisteredWithAPIServerELB(i *infrav1.Instance) (bool, error)
-	IsInstanceRegisteredWithAPIServerLB(i *infrav1.Instance, lb *infrav1.AWSLoadBalancerSpec) ([]string, bool, error)
-	DeregisterInstanceFromAPIServerELB(i *infrav1.Instance) error
-	DeregisterInstanceFromAPIServerLB(targetGroupArn string, i *infrav1.Instance) error
-	RegisterInstanceWithAPIServerELB(i *infrav1.Instance) error
-	RegisterInstanceWithAPIServerLB(i *infrav1.Instance, lb *infrav1.AWSLoadBalancerSpec) error
+	DeleteLoadbalancers(ctx context.Context) error
+	ReconcileLoadbalancers(ctx context.Context) error
+	IsInstanceRegisteredWithAPIServerELB(ctx context.Context, i *infrav1.Instance) (bool, error)
+	IsInstanceRegisteredWithAPIServerLB(ctx context.Context, i *infrav1.Instance, lb *infrav1.AWSLoadBalancerSpec) ([]string, bool, error)
+	DeregisterInstanceFromAPIServerELB(ctx context.Context, i *infrav1.Instance) error
+	DeregisterInstanceFromAPIServerLB(ctx context.Context, targetGroupArn string, i *infrav1.Instance) error
+	RegisterInstanceWithAPIServerELB(ctx context.Context, i *infrav1.Instance) error
+	RegisterInstanceWithAPIServerLB(ctx context.Context, i *infrav1.Instance, lb *infrav1.AWSLoadBalancerSpec) error
 }
 
 // NetworkInterface encapsulates the methods exposed to the cluster

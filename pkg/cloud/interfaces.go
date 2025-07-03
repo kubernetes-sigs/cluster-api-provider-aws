@@ -18,6 +18,8 @@ limitations under the License.
 package cloud
 
 import (
+	"time"
+
 	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -89,6 +91,9 @@ type ClusterScoper interface {
 	PatchObject() error
 	// Close closes the current scope persisting the cluster configuration and status.
 	Close() error
+
+	// MaxWaitDuration returns time waiting for operation.
+	MaxWaitDuration() time.Duration
 }
 
 // SessionMetadata knows how to extract the information for managing AWS sessions for a resource.

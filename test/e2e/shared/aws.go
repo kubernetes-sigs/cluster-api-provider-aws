@@ -37,6 +37,8 @@ import (
 	awscredsv2 "github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/eks"
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
+	elb "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing"
+	elbtypes "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing/types"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/aws/aws-sdk-go/aws"
@@ -49,7 +51,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecrpublic"
 	"github.com/aws/aws-sdk-go/service/efs"
-	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/servicequotas"
 	"github.com/aws/aws-sdk-go/service/sts"
 	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
@@ -296,7 +297,7 @@ func (i *AWSInfrastructure) CreateInfrastructure() AWSInfrastructure {
 // by CAPA. In an attempt to avoid dependency violations it works in the following order
 // Instances, Load Balancers, Route Tables, NAT gateway, Elastic IP, Internet Gateway,
 // Security Group Rules, Security Groups, Subnets, VPC.
-func (i *AWSInfrastructure) DeleteInfrastructure() {
+func (i *AWSInfrastructure) DeleteInfrastructure(ctx context.Context) {
 	instances, _ := ListClusterEC2Instances(i.Context, i.Spec.ClusterName)
 	for _, instance := range instances {
 		if instance.State.Code != aws.Int64(48) {
@@ -305,9 +306,9 @@ func (i *AWSInfrastructure) DeleteInfrastructure() {
 	}
 	WaitForInstanceState(i.Context, i.Spec.ClusterName, "terminated")
 
-	loadbalancers, _ := ListLoadBalancers(i.Context, i.Spec.ClusterName)
+	loadbalancers, _ := ListLoadBalancers(ctx, i.Context, i.Spec.ClusterName)
 	for _, lb := range loadbalancers {
-		By(fmt.Sprintf("Deleting orphaned load balancer: %s - %v", *lb.LoadBalancerName, DeleteLoadBalancer(i.Context, *lb.LoadBalancerName)))
+		By(fmt.Sprintf("Deleting orphaned load balancer: %s - %v", *lb.LoadBalancerName, DeleteLoadBalancer(ctx, i.Context, *lb.LoadBalancerName)))
 	}
 
 	for _, rt := range i.RouteTables {
@@ -2295,14 +2296,14 @@ func DeleteSecurityGroupRule(e2eCtx *E2EContext, sgID, sgrID, rt string) bool {
 	return false
 }
 
-func ListLoadBalancers(e2eCtx *E2EContext, clusterName string) ([]*elb.LoadBalancerDescription, error) {
-	elbSvc := elb.New(e2eCtx.AWSSession)
+func ListLoadBalancers(ctx context.Context, e2eCtx *E2EContext, clusterName string) ([]elbtypes.LoadBalancerDescription, error) {
+	elbSvc := elb.NewFromConfig(*e2eCtx.BootstrapUserAWSSessionV2)
 
 	input := &elb.DescribeLoadBalancersInput{
-		LoadBalancerNames: aws.StringSlice([]string{clusterName + "-apiserver"}),
+		LoadBalancerNames: []string{clusterName + "-apiserver"},
 	}
 
-	result, err := elbSvc.DescribeLoadBalancers(input)
+	result, err := elbSvc.DescribeLoadBalancers(ctx, input)
 	if err != nil {
 		return nil, err
 	}
@@ -2312,14 +2313,14 @@ func ListLoadBalancers(e2eCtx *E2EContext, clusterName string) ([]*elb.LoadBalan
 	return result.LoadBalancerDescriptions, nil
 }
 
-func DeleteLoadBalancer(e2eCtx *E2EContext, loadbalancerName string) bool {
-	elbSvc := elb.New(e2eCtx.AWSSession)
+func DeleteLoadBalancer(ctx context.Context, e2eCtx *E2EContext, loadbalancerName string) bool {
+	elbSvc := elb.NewFromConfig(*e2eCtx.BootstrapUserAWSSessionV2)
 
 	input := &elb.DeleteLoadBalancerInput{
 		LoadBalancerName: aws.String(loadbalancerName),
 	}
 
-	if _, err := elbSvc.DeleteLoadBalancer(input); err != nil {
+	if _, err := elbSvc.DeleteLoadBalancer(ctx, input); err != nil {
 		return false
 	}
 	return true
