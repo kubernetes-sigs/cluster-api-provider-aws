@@ -24,7 +24,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
@@ -39,7 +39,7 @@ import (
 type UpdateAwsNodeVersionSpecInput struct {
 	E2EConfig             *clusterctl.E2EConfig
 	BootstrapClusterProxy framework.ClusterProxy
-	AWSSession            client.ConfigProvider
+	AWSSession            aws.Config
 	Namespace             *corev1.Namespace
 	ClusterName           string
 }
