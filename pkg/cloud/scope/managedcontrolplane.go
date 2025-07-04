@@ -92,14 +92,13 @@ func NewManagedControlPlaneScope(params ManagedControlPlaneScopeParams) (*Manage
 		ControlPlane:                 params.ControlPlane,
 		MaxWaitActiveUpdateDelete:    params.MaxWaitActiveUpdateDelete,
 		patchHelper:                  nil,
-		session:                      nil,
 		serviceLimiters:              nil,
 		controllerName:               params.ControllerName,
 		allowAdditionalRoles:         params.AllowAdditionalRoles,
 		enableIAM:                    params.EnableIAM,
 		tagUnmanagedNetworkResources: params.TagUnmanagedNetworkResources,
 	}
-	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
+	_, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
@@ -109,8 +108,7 @@ func NewManagedControlPlaneScope(params ManagedControlPlaneScopeParams) (*Manage
 		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
 	}
 
-	managedScope.session = session
-	managedScope.sessionV2 = *sessionv2
+	managedScope.session = *sessionv2
 	managedScope.serviceLimiters = serviceLimiters
 	managedScope.serviceLimitersV2 = serviceLimitersv2
 
@@ -133,8 +131,7 @@ type ManagedControlPlaneScope struct {
 	ControlPlane              *ekscontrolplanev1.AWSManagedControlPlane
 	MaxWaitActiveUpdateDelete time.Duration
 
-	session           awsclient.ConfigProvider
-	sessionV2         awsv2.Config
+	session           awsv2.Config
 	serviceLimiters   throttle.ServiceLimiters
 	serviceLimitersV2 throttle.ServiceLimiters
 	controllerName    string
@@ -334,14 +331,14 @@ func (s *ManagedControlPlaneScope) ClusterObj() cloud.ClusterObject {
 	return s.Cluster
 }
 
-// Session returns the AWS SDK session. Used for creating clients.
-func (s *ManagedControlPlaneScope) Session() awsclient.ConfigProvider {
+// Session returns the AWS SDK V2 config. Used for creating clients.
+func (s *ManagedControlPlaneScope) Session() awsv2.Config {
 	return s.session
 }
 
-// SessionV2 returns the AWS SDK config. Used for creating clients.
+// SessionV2 returns the AWS SDK V2 config. Used for creating clients.
 func (s *ManagedControlPlaneScope) SessionV2() awsv2.Config {
-	return s.sessionV2
+	return s.session
 }
 
 // Bastion returns the bastion details.

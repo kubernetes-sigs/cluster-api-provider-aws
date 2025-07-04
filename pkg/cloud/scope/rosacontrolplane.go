@@ -22,7 +22,6 @@ import (
 
 	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
 	stsv2 "github.com/aws/aws-sdk-go-v2/service/sts"
-	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -73,7 +72,7 @@ func NewROSAControlPlaneScope(params ROSAControlPlaneScopeParams) (*ROSAControlP
 		controllerName: params.ControllerName,
 	}
 
-	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
+	_, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
@@ -89,8 +88,7 @@ func NewROSAControlPlaneScope(params ROSAControlPlaneScopeParams) (*ROSAControlP
 	}
 
 	managedScope.patchHelper = helper
-	managedScope.session = session
-	managedScope.sessionV2 = *sessionv2
+	managedScope.session = *sessionv2
 	managedScope.serviceLimiters = serviceLimiters
 	managedScope.serviceLimitersV2 = serviceLimitersv2
 
@@ -113,8 +111,7 @@ type ROSAControlPlaneScope struct {
 	Cluster      *clusterv1.Cluster
 	ControlPlane *rosacontrolplanev1.ROSAControlPlane
 
-	session           awsclient.ConfigProvider
-	sessionV2         awsv2.Config
+	session           awsv2.Config
 	serviceLimiters   throttle.ServiceLimiters
 	serviceLimitersV2 throttle.ServiceLimiters
 	controllerName    string
@@ -131,14 +128,9 @@ func (s *ROSAControlPlaneScope) IdentityRef() *infrav1.AWSIdentityReference {
 	return s.ControlPlane.Spec.IdentityRef
 }
 
-// Session returns the AWS SDK session. Used for creating clients.
-func (s *ROSAControlPlaneScope) Session() awsclient.ConfigProvider {
+// Session returns the AWS SDK V2 session. Used for creating clients.
+func (s *ROSAControlPlaneScope) Session() awsv2.Config {
 	return s.session
-}
-
-// SessionV2 returns the AWS SDK V2 Config. Used for creating clients.
-func (s *ROSAControlPlaneScope) SessionV2() awsv2.Config {
-	return s.sessionV2
 }
 
 // ServiceLimiter returns the AWS SDK session. Used for creating clients.

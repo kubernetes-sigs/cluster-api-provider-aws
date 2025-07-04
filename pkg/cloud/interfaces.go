@@ -21,7 +21,6 @@ import (
 	"time"
 
 	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
-	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -34,8 +33,7 @@ import (
 
 // Session represents an AWS session.
 type Session interface {
-	Session() awsclient.ConfigProvider
-	SessionV2() awsv2.Config
+	Session() awsv2.Config
 	ServiceLimiter(service string) *throttle.ServiceLimiter
 }
 
