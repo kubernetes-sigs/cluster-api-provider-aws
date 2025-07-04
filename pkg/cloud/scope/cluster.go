@@ -74,7 +74,7 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 		tagUnmanagedNetworkResources: params.TagUnmanagedNetworkResources,
 	}
 
-	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, clusterScope, params.AWSCluster.Spec.Region, params.Endpoints, params.Logger)
+	_, serviceLimiters, err := sessionForClusterWithRegion(params.Client, clusterScope, params.AWSCluster.Spec.Region, params.Endpoints, params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
@@ -90,8 +90,7 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 	}
 
 	clusterScope.patchHelper = helper
-	clusterScope.session = session
-	clusterScope.sessionV2 = *sessionv2
+	clusterScope.session = *sessionv2
 	clusterScope.serviceLimiters = serviceLimiters
 	clusterScope.serviceLimitersV2 = serviceLimitersv2
 
@@ -107,8 +106,7 @@ type ClusterScope struct {
 	Cluster    *clusterv1.Cluster
 	AWSCluster *infrav1.AWSCluster
 
-	session           awsclient.ConfigProvider
-	sessionV2         awsv2.Config
+	session           awsv2.Config
 	serviceLimiters   throttle.ServiceLimiters
 	serviceLimitersV2 throttle.ServiceLimiters
 	controllerName    string
@@ -357,14 +355,9 @@ func (s *ClusterScope) ClusterObj() cloud.ClusterObject {
 	return s.Cluster
 }
 
-// Session returns the AWS SDK session. Used for creating clients.
-func (s *ClusterScope) Session() awsclient.ConfigProvider {
+// Session returns the AWS SDK V2 session. Used for creating clients.
+func (s *ClusterScope) Session() awsv2.Config {
 	return s.session
-}
-
-// SessionV2 returns the AWS SDK V2 session. Used for creating clients.
-func (s *ClusterScope) SessionV2() awsv2.Config {
-	return s.sessionV2
 }
 
 // ServiceLimiter returns the AWS SDK session. Used for creating clients.

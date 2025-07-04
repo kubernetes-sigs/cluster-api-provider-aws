@@ -302,8 +302,8 @@ func (s *ManagedMachinePoolScope) ClusterObj() cloud.ClusterObject {
 	return s.Cluster
 }
 
-// Session returns the AWS SDK V2 config. Used for creating clients.
-func (s *ManagedMachinePoolScope) Session() awsv2.Config {
+// SessionV2 returns the AWS SDK V2 config. Used for creating clients.
+func (s *ManagedMachinePoolScope) SessionV2() awsv2.Config {
 	return s.session
 }
 
