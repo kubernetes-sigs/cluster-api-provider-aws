@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"time"
 
+	autoscalingtypes "github.com/aws/aws-sdk-go-v2/service/autoscaling/types"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
@@ -296,16 +297,20 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 		return ctrl.Result{}, err
 	}
 
-	canUpdateLaunchTemplate := func() (bool, error) {
+	canStartInstanceRefresh := func() (bool, *autoscalingtypes.InstanceRefreshStatus, error) {
 		// If there is a change: before changing the template, check if there exist an ongoing instance refresh,
 		// because only 1 instance refresh can be "InProgress". If template is updated when refresh cannot be started,
 		// that change will not trigger a refresh. Do not start an instance refresh if only userdata changed.
 		if asg == nil {
 			// If the ASG hasn't been created yet, there is no need to check if we can start the instance refresh.
 			// But we want to update the LaunchTemplate because an error in the LaunchTemplate may be blocking the ASG creation.
-			return true, nil
+			return true, nil, nil
 		}
 		return asgsvc.CanStartASGInstanceRefresh(machinePoolScope)
+	}
+	cancelInstanceRefresh := func() error {
+		machinePoolScope.Info("cancelling instance refresh")
+		return asgsvc.CancelASGInstanceRefresh(machinePoolScope)
 	}
 	runPostLaunchTemplateUpdateOperation := func() error {
 		// skip instance refresh if ASG is not created yet
@@ -330,10 +335,14 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 		machinePoolScope.Info("starting instance refresh", "number of instances", machinePoolScope.MachinePool.Spec.Replicas)
 		return asgsvc.StartASGInstanceRefresh(machinePoolScope)
 	}
-	if err := reconSvc.ReconcileLaunchTemplate(ctx, machinePoolScope, machinePoolScope, s3Scope, ec2Svc, objectStoreSvc, canUpdateLaunchTemplate, runPostLaunchTemplateUpdateOperation); err != nil {
+	res, err := reconSvc.ReconcileLaunchTemplate(ctx, machinePoolScope, machinePoolScope, s3Scope, ec2Svc, objectStoreSvc, canStartInstanceRefresh, cancelInstanceRefresh, runPostLaunchTemplateUpdateOperation)
+	if err != nil {
 		r.Recorder.Eventf(machinePoolScope.AWSMachinePool, corev1.EventTypeWarning, "FailedLaunchTemplateReconcile", "Failed to reconcile launch template: %v", err)
 		machinePoolScope.Error(err, "failed to reconcile launch template")
 		return ctrl.Result{}, err
+	}
+	if res != nil {
+		return *res, nil
 	}
 
 	// set the LaunchTemplateReady condition
