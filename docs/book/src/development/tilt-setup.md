@@ -52,6 +52,7 @@ Next, create a `tilt-settings.json` file and place it in your local copy of `clu
   "kustomize_substitutions": {
     "EXP_CLUSTER_RESOURCE_SET": "true",
     "EXP_MACHINE_POOL": "true",
+    "EXP_MACHINE_POOL_MACHINES": "true",
     "EVENT_BRIDGE_INSTANCE_STATE": "true",
     "AWS_B64ENCODED_CREDENTIALS": "W2RlZmFZSZnRg==",
     "EXP_EKS_FARGATE": "false",
