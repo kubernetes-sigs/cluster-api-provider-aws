@@ -663,7 +663,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					return elbSvc
 				}
 
-				elbSvc.EXPECT().IsInstanceRegisteredWithAPIServerELB(gomock.Any()).Return(true, nil)
+				elbSvc.EXPECT().IsInstanceRegisteredWithAPIServerELB(gomock.Any(), gomock.Any()).Return(true, nil)
 				secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return("test", int32(1), nil).Times(1)
 				ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil).Times(1)
@@ -688,8 +688,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 					return elbSvc
 				}
 
-				elbSvc.EXPECT().IsInstanceRegisteredWithAPIServerELB(gomock.Any()).Return(false, nil)
-				elbSvc.EXPECT().RegisterInstanceWithAPIServerELB(gomock.Any()).Return(nil)
+				elbSvc.EXPECT().IsInstanceRegisteredWithAPIServerELB(gomock.Any(), gomock.Any()).Return(false, nil)
+				elbSvc.EXPECT().RegisterInstanceWithAPIServerELB(gomock.Any(), gomock.Any()).Return(nil)
 				secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return("test", int32(1), nil).Times(1)
 				ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil).Times(1)
@@ -787,7 +787,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil)
 				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, nil)
-				elbSvc.EXPECT().IsInstanceRegisteredWithAPIServerELB(gomock.Any()).Return(false, errors.New("error describing ELB"))
+				elbSvc.EXPECT().IsInstanceRegisteredWithAPIServerELB(gomock.Any(), gomock.Any()).Return(false, errors.New("error describing ELB"))
 				secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return("test", int32(1), nil).Times(1)
 
@@ -813,8 +813,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(instance, nil)
 				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, nil)
-				elbSvc.EXPECT().IsInstanceRegisteredWithAPIServerELB(gomock.Any()).Return(false, nil)
-				elbSvc.EXPECT().RegisterInstanceWithAPIServerELB(gomock.Any()).Return(errors.New("failed to attach ELB"))
+				elbSvc.EXPECT().IsInstanceRegisteredWithAPIServerELB(gomock.Any(), gomock.Any()).Return(false, nil)
+				elbSvc.EXPECT().RegisterInstanceWithAPIServerELB(gomock.Any(), gomock.Any()).Return(errors.New("failed to attach ELB"))
 				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return("test", int32(1), nil).Times(1)
 				secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 
@@ -1831,7 +1831,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(&infrav1.Instance{
 						State: infrav1.InstanceStateTerminated,
 					}, nil)
-					elbSvc.EXPECT().IsInstanceRegisteredWithAPIServerELB(gomock.Any()).Return(false, errors.New("error describing ELB"))
+					elbSvc.EXPECT().IsInstanceRegisteredWithAPIServerELB(gomock.Any(), gomock.Any()).Return(false, errors.New("error describing ELB"))
 
 					_, err := reconciler.reconcileDelete(context.TODO(), ms, cs, cs, cs, cs)
 					g.Expect(err).ToNot(BeNil())
@@ -1856,7 +1856,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(&infrav1.Instance{
 						State: infrav1.InstanceStateTerminated,
 					}, nil)
-					elbSvc.EXPECT().IsInstanceRegisteredWithAPIServerELB(gomock.Any()).Return(false, nil)
+					elbSvc.EXPECT().IsInstanceRegisteredWithAPIServerELB(gomock.Any(), gomock.Any()).Return(false, nil)
 
 					_, err := reconciler.reconcileDelete(context.TODO(), ms, cs, cs, cs, cs)
 					g.Expect(err).To(BeNil())
@@ -1881,8 +1881,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(&infrav1.Instance{
 					State: infrav1.InstanceStateTerminated,
 				}, nil)
-				elbSvc.EXPECT().IsInstanceRegisteredWithAPIServerELB(gomock.Any()).Return(true, nil)
-				elbSvc.EXPECT().DeregisterInstanceFromAPIServerELB(gomock.Any()).Return(nil)
+				elbSvc.EXPECT().IsInstanceRegisteredWithAPIServerELB(gomock.Any(), gomock.Any()).Return(true, nil)
+				elbSvc.EXPECT().DeregisterInstanceFromAPIServerELB(gomock.Any(), gomock.Any()).Return(nil)
 
 				_, err := reconciler.reconcileDelete(context.TODO(), ms, cs, cs, cs, cs)
 				g.Expect(err).To(BeNil())
@@ -1904,8 +1904,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(&infrav1.Instance{
 					State: infrav1.InstanceStateTerminated,
 				}, nil)
-				elbSvc.EXPECT().IsInstanceRegisteredWithAPIServerELB(gomock.Any()).Return(true, nil)
-				elbSvc.EXPECT().DeregisterInstanceFromAPIServerELB(gomock.Any()).Return(errors.New("Duplicate access point name for load balancer"))
+				elbSvc.EXPECT().IsInstanceRegisteredWithAPIServerELB(gomock.Any(), gomock.Any()).Return(true, nil)
+				elbSvc.EXPECT().DeregisterInstanceFromAPIServerELB(gomock.Any(), gomock.Any()).Return(errors.New("Duplicate access point name for load balancer"))
 
 				_, err := reconciler.reconcileDelete(context.TODO(), ms, cs, cs, cs, cs)
 				g.Expect(err).ToNot(BeNil())

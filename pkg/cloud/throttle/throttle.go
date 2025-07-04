@@ -172,7 +172,12 @@ func getServiceLimiterMiddleware(limiter *ServiceLimiter) middleware.FinalizeMid
 
 		out, metadata, err := handler.HandleFinalize(ctx, input)
 		smithyErr := awserrors.ParseSmithyError(err)
-		limiter.ReviewResponseV2(ctx, smithyErr.ErrorCode())
+
+		if smithyErr != nil {
+			limiter.ReviewResponseV2(ctx, smithyErr.ErrorCode())
+			return out, metadata, err
+		}
+
 		return out, metadata, err
 	})
 }

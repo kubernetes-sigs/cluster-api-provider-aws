@@ -19,8 +19,11 @@ package scope
 import (
 	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
 	"github.com/aws/aws-sdk-go-v2/service/eks"
+	elb "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing"
+	elbv2 "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
 	"github.com/aws/aws-sdk-go-v2/service/eventbridge"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
+	rgapi "github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
@@ -29,12 +32,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
-	"github.com/aws/aws-sdk-go/service/elb"
-	"github.com/aws/aws-sdk-go/service/elb/elbiface"
-	"github.com/aws/aws-sdk-go/service/elbv2"
-	"github.com/aws/aws-sdk-go/service/elbv2/elbv2iface"
-	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi"
-	"github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
 	"github.com/aws/aws-sdk-go/service/sts"
@@ -46,6 +43,7 @@ import (
 	awslogs "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/logs"
 	awsmetrics "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/metrics"
 	awsmetricsv2 "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/metricsv2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/version"
@@ -86,34 +84,65 @@ func NewEC2Client(scopeUser cloud.ScopeUsage, session cloud.Session, logger logg
 }
 
 // NewELBClient creates a new ELB API client for a given session.
-func NewELBClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) elbiface.ELBAPI {
-	elbClient := elb.New(session.Session(), aws.NewConfig().WithLogLevel(awslogs.GetAWSLogLevel(logger.GetLogger())).WithLogger(awslogs.NewWrapLogr(logger.GetLogger())))
-	elbClient.Handlers.Build.PushFrontNamed(getUserAgentHandler())
-	elbClient.Handlers.Sign.PushFront(session.ServiceLimiter(elb.ServiceID).LimitRequest)
-	elbClient.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(scopeUser.ControllerName()))
-	elbClient.Handlers.CompleteAttempt.PushFront(session.ServiceLimiter(elb.ServiceID).ReviewResponse)
-	elbClient.Handlers.Complete.PushBack(recordAWSPermissionsIssue(target))
+func NewELBClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) *elb.Client {
+	cfg := session.SessionV2()
+	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
+	endpointResolver := &endpointsv2.ELBEndpointResolver{
+		MultiServiceEndpointResolver: multiSvcEndpointResolver,
+	}
 
-	return elbClient
+	opts := []func(*elb.Options){
+		func(o *elb.Options) {
+			o.Logger = logger.GetAWSLogger()
+			o.ClientLogMode = awslogs.GetAWSLogLevelV2(logger.GetLogger())
+			o.EndpointResolverV2 = endpointResolver
+		},
+		elb.WithAPIOptions(
+			awsmetricsv2.WithMiddlewares(scopeUser.ControllerName(), target),
+			awsmetricsv2.WithCAPAUserAgentMiddleware(),
+			throttle.WithServiceLimiterMiddleware(session.ServiceLimiter(elb.ServiceID)),
+		),
+	}
+
+	return elb.NewFromConfig(cfg, opts...)
 }
 
 // NewELBv2Client creates a new ELB v2 API client for a given session.
-func NewELBv2Client(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) elbv2iface.ELBV2API {
-	elbClient := elbv2.New(session.Session(), aws.NewConfig().WithLogLevel(awslogs.GetAWSLogLevel(logger.GetLogger())).WithLogger(awslogs.NewWrapLogr(logger.GetLogger())))
-	elbClient.Handlers.Build.PushFrontNamed(getUserAgentHandler())
-	elbClient.Handlers.Sign.PushFront(session.ServiceLimiter(elbv2.ServiceID).LimitRequest)
-	elbClient.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(scopeUser.ControllerName()))
-	elbClient.Handlers.CompleteAttempt.PushFront(session.ServiceLimiter(elbv2.ServiceID).ReviewResponse)
-	elbClient.Handlers.Complete.PushBack(recordAWSPermissionsIssue(target))
+func NewELBv2Client(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) *elbv2.Client {
+	cfg := session.SessionV2()
+	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
+	endpointResolver := &endpointsv2.ELBV2EndpointResolver{
+		MultiServiceEndpointResolver: multiSvcEndpointResolver,
+	}
 
-	return elbClient
+	opts := []func(*elbv2.Options){
+		func(o *elbv2.Options) {
+			o.Logger = logger.GetAWSLogger()
+			o.ClientLogMode = awslogs.GetAWSLogLevelV2(logger.GetLogger())
+			o.EndpointResolverV2 = endpointResolver
+		},
+		elbv2.WithAPIOptions(
+			awsmetricsv2.WithMiddlewares(scopeUser.ControllerName(), target),
+			awsmetricsv2.WithCAPAUserAgentMiddleware(),
+			throttle.WithServiceLimiterMiddleware(session.ServiceLimiter(elbv2.ServiceID)),
+		),
+	}
+
+	return elbv2.NewFromConfig(cfg, opts...)
 }
 
 // NewEventBridgeClient creates a new EventBridge API client for a given session.
 func NewEventBridgeClient(scopeUser cloud.ScopeUsage, session cloud.Session, target runtime.Object) *eventbridge.Client {
 	cfg := session.SessionV2()
+	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
+	endpointResolver := &endpointsv2.EventBridgeEndpointResolver{
+		MultiServiceEndpointResolver: multiSvcEndpointResolver,
+	}
 
 	opts := []func(*eventbridge.Options){
+		func(o *eventbridge.Options) {
+			o.EndpointResolverV2 = endpointResolver
+		},
 		eventbridge.WithAPIOptions(
 			awsmetricsv2.WithMiddlewares(scopeUser.ControllerName(), target),
 			awsmetricsv2.WithCAPAUserAgentMiddleware(),
@@ -126,8 +155,15 @@ func NewEventBridgeClient(scopeUser cloud.ScopeUsage, session cloud.Session, tar
 // NewSQSClient creates a new SQS API client for a given session.
 func NewSQSClient(scopeUser cloud.ScopeUsage, session cloud.Session, target runtime.Object) *sqs.Client {
 	cfg := session.SessionV2()
+	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
+	endpointResolver := &endpointsv2.SQSEndpointResolver{
+		MultiServiceEndpointResolver: multiSvcEndpointResolver,
+	}
 
 	opts := []func(*sqs.Options){
+		func(o *sqs.Options) {
+			o.EndpointResolverV2 = endpointResolver
+		},
 		sqs.WithAPIOptions(
 			awsmetricsv2.WithMiddlewares(scopeUser.ControllerName(), target),
 			awsmetricsv2.WithCAPAUserAgentMiddleware(),
@@ -140,8 +176,15 @@ func NewSQSClient(scopeUser cloud.ScopeUsage, session cloud.Session, target runt
 // NewGlobalSQSClient for creating a new SQS API client that isn't tied to a cluster.
 func NewGlobalSQSClient(scopeUser cloud.ScopeUsage, session cloud.Session) *sqs.Client {
 	cfg := session.SessionV2()
+	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
+	endpointResolver := &endpointsv2.SQSEndpointResolver{
+		MultiServiceEndpointResolver: multiSvcEndpointResolver,
+	}
 
 	opts := []func(*sqs.Options){
+		func(o *sqs.Options) {
+			o.EndpointResolverV2 = endpointResolver
+		},
 		sqs.WithAPIOptions(
 			awsmetricsv2.WithRequestMetricContextMiddleware(),
 			awsmetricsv2.WithCAPAUserAgentMiddleware(),
@@ -152,15 +195,23 @@ func NewGlobalSQSClient(scopeUser cloud.ScopeUsage, session cloud.Session) *sqs.
 }
 
 // NewResourgeTaggingClient creates a new Resource Tagging API client for a given session.
-func NewResourgeTaggingClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI {
-	resourceTagging := resourcegroupstaggingapi.New(session.Session(), aws.NewConfig().WithLogLevel(awslogs.GetAWSLogLevel(logger.GetLogger())).WithLogger(awslogs.NewWrapLogr(logger.GetLogger())))
-	resourceTagging.Handlers.Build.PushFrontNamed(getUserAgentHandler())
-	resourceTagging.Handlers.Sign.PushFront(session.ServiceLimiter(resourceTagging.ServiceID).LimitRequest)
-	resourceTagging.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(scopeUser.ControllerName()))
-	resourceTagging.Handlers.CompleteAttempt.PushFront(session.ServiceLimiter(resourceTagging.ServiceID).ReviewResponse)
-	resourceTagging.Handlers.Complete.PushBack(recordAWSPermissionsIssue(target))
+func NewResourgeTaggingClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) *rgapi.Client {
+	cfg := session.SessionV2()
+	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
+	endpointResolver := &endpointsv2.RGAPIEndpointResolver{
+		MultiServiceEndpointResolver: multiSvcEndpointResolver,
+	}
 
-	return resourceTagging
+	opts := []func(*rgapi.Options){
+		func(o *rgapi.Options) {
+			o.Logger = logger.GetAWSLogger()
+			o.ClientLogMode = awslogs.GetAWSLogLevelV2(logger.GetLogger())
+			o.EndpointResolverV2 = endpointResolver
+		},
+		rgapi.WithAPIOptions(awsmetricsv2.WithMiddlewares(scopeUser.ControllerName(), target), awsmetricsv2.WithCAPAUserAgentMiddleware()),
+	}
+
+	return rgapi.NewFromConfig(cfg, opts...)
 }
 
 // NewSecretsManagerClient creates a new Secrets API client for a given session..
@@ -283,7 +334,7 @@ func getUserAgentHandler() request.NamedHandler {
 type AWSClients struct {
 	ASG             autoscaling.Client
 	EC2             ec2iface.EC2API
-	ELB             elbiface.ELBAPI
+	ELB             elb.Client
 	SecretsManager  secretsmanageriface.SecretsManagerAPI
-	ResourceTagging resourcegroupstaggingapiiface.ResourceGroupsTaggingAPIAPI
+	ResourceTagging rgapi.Client
 }

@@ -24,7 +24,12 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/eks"
+	elb "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing"
+	elbv2 "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
+	"github.com/aws/aws-sdk-go-v2/service/eventbridge"
+	rgapi "github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	smithyendpoints "github.com/aws/smithy-go/endpoints"
 
@@ -120,6 +125,116 @@ func (s *S3EndpointResolver) ResolveEndpoint(ctx context.Context, params s3.Endp
 	params.Endpoint = &endpoint.URL
 	params.Region = &endpoint.SigningRegion
 	return s3.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
+}
+
+// ELBEndpointResolver implements EndpointResolverV2 interface for ELB.
+type ELBEndpointResolver struct {
+	*MultiServiceEndpointResolver
+}
+
+// ResolveEndpoint for ELB.
+func (s *ELBEndpointResolver) ResolveEndpoint(ctx context.Context, params elb.EndpointParameters) (smithyendpoints.Endpoint, error) {
+	// If custom endpoint not found, return default endpoint for the service
+	log := logger.FromContext(ctx)
+	endpoint, ok := s.endpoints[elb.ServiceID]
+
+	if !ok {
+		log.Debug("Custom endpoint not found, using default endpoint")
+		return elb.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
+	}
+
+	log.Debug("Custom endpoint found, using custom endpoint", "endpoint", endpoint.URL)
+	params.Endpoint = &endpoint.URL
+	params.Region = &endpoint.SigningRegion
+	return elb.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
+}
+
+// ELBV2EndpointResolver implements EndpointResolverV2 interface for ELBV2.
+type ELBV2EndpointResolver struct {
+	*MultiServiceEndpointResolver
+}
+
+// ResolveEndpoint for ELBV2.
+func (s *ELBV2EndpointResolver) ResolveEndpoint(ctx context.Context, params elbv2.EndpointParameters) (smithyendpoints.Endpoint, error) {
+	// If custom endpoint not found, return default endpoint for the service
+	log := logger.FromContext(ctx)
+	endpoint, ok := s.endpoints[elbv2.ServiceID]
+
+	if !ok {
+		log.Debug("Custom endpoint not found, using default endpoint")
+		return elbv2.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
+	}
+
+	log.Debug("Custom endpoint found, using custom endpoint", "endpoint", endpoint.URL)
+	params.Endpoint = &endpoint.URL
+	params.Region = &endpoint.SigningRegion
+	return elbv2.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
+}
+
+// RGAPIEndpointResolver implements EndpointResolverV2 interface for RGAPI.
+type RGAPIEndpointResolver struct {
+	*MultiServiceEndpointResolver
+}
+
+// ResolveEndpoint for RGAPI.
+func (s *RGAPIEndpointResolver) ResolveEndpoint(ctx context.Context, params rgapi.EndpointParameters) (smithyendpoints.Endpoint, error) {
+	// If custom endpoint not found, return default endpoint for the service
+	log := logger.FromContext(ctx)
+	endpoint, ok := s.endpoints[rgapi.ServiceID]
+
+	if !ok {
+		log.Debug("Custom endpoint not found, using default endpoint")
+		return rgapi.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
+	}
+
+	log.Debug("Custom endpoint found, using custom endpoint", "endpoint", endpoint.URL)
+	params.Endpoint = &endpoint.URL
+	params.Region = &endpoint.SigningRegion
+	return rgapi.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
+}
+
+// SQSEndpointResolver implements EndpointResolverV2 interface for SQS.
+type SQSEndpointResolver struct {
+	*MultiServiceEndpointResolver
+}
+
+// ResolveEndpoint for SQS.
+func (s *SQSEndpointResolver) ResolveEndpoint(ctx context.Context, params sqs.EndpointParameters) (smithyendpoints.Endpoint, error) {
+	// If custom endpoint not found, return default endpoint for the service
+	log := logger.FromContext(ctx)
+	endpoint, ok := s.endpoints[sqs.ServiceID]
+
+	if !ok {
+		log.Debug("Custom endpoint not found, using default endpoint")
+		return sqs.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
+	}
+
+	log.Debug("Custom endpoint found, using custom endpoint", "endpoint", endpoint.URL)
+	params.Endpoint = &endpoint.URL
+	params.Region = &endpoint.SigningRegion
+	return sqs.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
+}
+
+// EventBridgeEndpointResolver implements EndpointResolverV2 interface for EventBridge.
+type EventBridgeEndpointResolver struct {
+	*MultiServiceEndpointResolver
+}
+
+// ResolveEndpoint for EventBridge.
+func (s *EventBridgeEndpointResolver) ResolveEndpoint(ctx context.Context, params eventbridge.EndpointParameters) (smithyendpoints.Endpoint, error) {
+	// If custom endpoint not found, return default endpoint for the service
+	log := logger.FromContext(ctx)
+	endpoint, ok := s.endpoints[eventbridge.ServiceID]
+
+	if !ok {
+		log.Debug("Custom endpoint not found, using default endpoint")
+		return eventbridge.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
+	}
+
+	log.Debug("Custom endpoint found, using custom endpoint", "endpoint", endpoint.URL)
+	params.Endpoint = &endpoint.URL
+	params.Region = &endpoint.SigningRegion
+	return eventbridge.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
 }
 
 // EKSEndpointResolver implements EndpointResolverV2 interface for EKS.
