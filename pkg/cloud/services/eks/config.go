@@ -20,10 +20,9 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"time"
 
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
-	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -302,16 +301,23 @@ func (s *Service) createBaseKubeConfig(cluster *ekstypes.Cluster, userName strin
 func (s *Service) generateToken() (string, error) {
 	eksClusterName := s.scope.KubernetesClusterName()
 
-	req, output := s.STSClient.GetCallerIdentityRequest(&sts.GetCallerIdentityInput{})
-	req.HTTPRequest.Header.Add(clusterNameHeader, eksClusterName)
-	s.Trace("generating token for AWS identity", "user", output.UserId, "account", output.Account, "arn", output.Arn)
+	// Create a presign client for STS
+	presignClient := sts.NewPresignClient(s.STSClient)
 
-	presignedURL, err := req.Presign(tokenAgeMins * time.Minute)
+	// Create the GetCallerIdentity input
+	input := &sts.GetCallerIdentityInput{}
+
+	// Presign the request
+	presignedReq, err := presignClient.PresignGetCallerIdentity(context.TODO(), input)
 	if err != nil {
 		return "", fmt.Errorf("presigning AWS get caller identity: %w", err)
 	}
 
-	encodedURL := base64.RawURLEncoding.EncodeToString([]byte(presignedURL))
+	// Add the cluster name header
+	presignedReq.URL += "&" + clusterNameHeader + "=" + eksClusterName
+
+	// Encode the URL and return the token
+	encodedURL := base64.RawURLEncoding.EncodeToString([]byte(presignedReq.URL))
 	return fmt.Sprintf("%s%s", tokenPrefix, encodedURL), nil
 }
 
