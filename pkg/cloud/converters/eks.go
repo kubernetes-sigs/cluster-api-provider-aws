@@ -226,10 +226,38 @@ func AMITypeToSDK(amiType expinfrav1.ManagedMachineAMIType) ekstypes.AMITypes {
 		return ekstypes.AMITypesAl2X8664Gpu
 	case expinfrav1.Al2Arm64:
 		return ekstypes.AMITypesAl2Arm64
+	case expinfrav1.Custom:
+		return ekstypes.AMITypesCustom
+	case expinfrav1.BottleRocketArm64:
+		return ekstypes.AMITypesBottlerocketArm64
+	case expinfrav1.BottleRocketx86_64:
+		return ekstypes.AMITypesBottlerocketX8664
+	case expinfrav1.BottleRocketArm64Fips:
+		return ekstypes.AMITypesBottlerocketArm64Fips
+	case expinfrav1.BottleRocketx86_64Fips:
+		return ekstypes.AMITypesBottlerocketX8664Fips
+	case expinfrav1.BottleRocketArm64Nvidia:
+		return ekstypes.AMITypesBottlerocketArm64Nvidia
+	case expinfrav1.BottleRocketx86_64Nvidia:
+		return ekstypes.AMITypesBottlerocketX8664Nvidia
+	case expinfrav1.WindowsCore2019x86_64:
+		return ekstypes.AMITypesWindowsCore2019X8664
+	case expinfrav1.WindowsFull2019x86_64:
+		return ekstypes.AMITypesWindowsFull2019X8664
+	case expinfrav1.WindowsCore2022x86_64:
+		return ekstypes.AMITypesWindowsCore2022X8664
+	case expinfrav1.WindowsFull2022x86_64:
+		return ekstypes.AMITypesWindowsFull2022X8664
 	case expinfrav1.Al2023Arm64:
 		return ekstypes.AMITypesAl2023Arm64Standard
 	case expinfrav1.Al2023x86_64:
 		return ekstypes.AMITypesAl2023X8664Standard
+	case expinfrav1.Al2023x86_64Neuron:
+		return ekstypes.AMITypesAl2023X8664Neuron
+	case expinfrav1.Al2023x86_64Nvidia:
+		return ekstypes.AMITypesAl2023X8664Nvidia
+	case expinfrav1.Al2023Arm64Nvidia:
+		return ekstypes.AMITypesAl2023Arm64Nvidia
 	default:
 		return ekstypes.AMITypesCustom
 	}
