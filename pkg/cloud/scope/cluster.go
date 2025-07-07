@@ -19,6 +19,7 @@ package scope
 import (
 	"context"
 	"fmt"
+	"time"
 
 	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
@@ -48,6 +49,7 @@ type ClusterScopeParams struct {
 	Session                      awsclient.ConfigProvider
 	SessionV2                    awsv2.Config
 	TagUnmanagedNetworkResources bool
+	MaxWaitActiveUpdateDelete    time.Duration
 }
 
 // NewClusterScope creates a new Scope from the supplied parameters.
@@ -72,6 +74,7 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 		AWSCluster:                   params.AWSCluster,
 		controllerName:               params.ControllerName,
 		tagUnmanagedNetworkResources: params.TagUnmanagedNetworkResources,
+		maxWaitActiveUpdateDelete:    params.MaxWaitActiveUpdateDelete,
 	}
 
 	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, clusterScope, params.AWSCluster.Spec.Region, params.Endpoints, params.Logger)
@@ -114,6 +117,7 @@ type ClusterScope struct {
 	controllerName    string
 
 	tagUnmanagedNetworkResources bool
+	maxWaitActiveUpdateDelete    time.Duration
 }
 
 // Network returns the cluster network object.
@@ -383,6 +387,11 @@ func (s *ClusterScope) Bastion() *infrav1.Bastion {
 // TagUnmanagedNetworkResources returns if the feature flag tag unmanaged network resources is set.
 func (s *ClusterScope) TagUnmanagedNetworkResources() bool {
 	return s.tagUnmanagedNetworkResources
+}
+
+// MaxWaitDuration returns time waiting for operation.
+func (s *ClusterScope) MaxWaitDuration() time.Duration {
+	return s.maxWaitActiveUpdateDelete
 }
 
 // SetBastionInstance sets the bastion instance in the status of the cluster.

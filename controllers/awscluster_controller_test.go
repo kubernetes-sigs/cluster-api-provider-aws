@@ -21,9 +21,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	elb "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing"
+	elbtypes "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing/types"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -1379,26 +1380,26 @@ func mockedCallsForMissingEverything(m *mocks.MockEC2APIMockRecorder, e *mocks.M
 		SubnetId:     aws.String("subnet-2"),
 	})).Return(&ec2.AssociateRouteTableOutput{}, nil)
 
-	e.DescribeLoadBalancers(gomock.Eq(&elb.DescribeLoadBalancersInput{
-		LoadBalancerNames: aws.StringSlice([]string{"test-cluster-apiserver"}),
+	e.DescribeLoadBalancers(gomock.Any(), gomock.Eq(&elb.DescribeLoadBalancersInput{
+		LoadBalancerNames: []string{"test-cluster-apiserver"},
 	})).Return(&elb.DescribeLoadBalancersOutput{
-		LoadBalancerDescriptions: []*elb.LoadBalancerDescription{},
+		LoadBalancerDescriptions: []elbtypes.LoadBalancerDescription{},
 	}, nil)
 
-	e.CreateLoadBalancer(gomock.Eq(&elb.CreateLoadBalancerInput{
-		Listeners: []*elb.Listener{
+	e.CreateLoadBalancer(gomock.Any(), gomock.Eq(&elb.CreateLoadBalancerInput{
+		Listeners: []elbtypes.Listener{
 			{
-				InstancePort:     aws.Int64(6443),
+				InstancePort:     aws.Int32(6443),
 				InstanceProtocol: aws.String("TCP"),
-				LoadBalancerPort: aws.Int64(6443),
+				LoadBalancerPort: 6443,
 				Protocol:         aws.String("TCP"),
 			},
 		},
 		LoadBalancerName: aws.String("test-cluster-apiserver"),
 		Scheme:           aws.String("internet-facing"),
-		SecurityGroups:   aws.StringSlice([]string{"sg-apiserver-lb"}),
-		Subnets:          aws.StringSlice([]string{"subnet-2"}),
-		Tags: []*elb.Tag{
+		SecurityGroups:   []string{"sg-apiserver-lb"},
+		Subnets:          []string{"subnet-2"},
+		Tags: []elbtypes.Tag{
 			{
 				Key:   aws.String("Name"),
 				Value: aws.String("test-cluster-apiserver"),
@@ -1416,14 +1417,14 @@ func mockedCallsForMissingEverything(m *mocks.MockEC2APIMockRecorder, e *mocks.M
 		DNSName: aws.String("unittest24.de"),
 	}, nil)
 
-	e.ConfigureHealthCheck(gomock.Eq(&elb.ConfigureHealthCheckInput{
+	e.ConfigureHealthCheck(gomock.Any(), gomock.Eq(&elb.ConfigureHealthCheckInput{
 		LoadBalancerName: aws.String("test-cluster-apiserver"),
-		HealthCheck: &elb.HealthCheck{
+		HealthCheck: &elbtypes.HealthCheck{
 			Target:             aws.String("TCP:6443"),
-			Interval:           aws.Int64(10),
-			Timeout:            aws.Int64(5),
-			HealthyThreshold:   aws.Int64(5),
-			UnhealthyThreshold: aws.Int64(3),
+			Interval:           aws.Int32(10),
+			Timeout:            aws.Int32(5),
+			HealthyThreshold:   aws.Int32(5),
+			UnhealthyThreshold: aws.Int32(3),
 		},
 	})).Return(&elb.ConfigureHealthCheckOutput{}, nil)
 }

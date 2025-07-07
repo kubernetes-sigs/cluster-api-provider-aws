@@ -22,6 +22,7 @@ package mocks
 
 import (
 	reflect "reflect"
+	time "time"
 
 	aws "github.com/aws/aws-sdk-go-v2/aws"
 	client "github.com/aws/aws-sdk-go/aws/client"
@@ -277,6 +278,20 @@ func (m *MockClusterScoper) ListOptionsLabelSelector() client0.ListOption {
 func (mr *MockClusterScoperMockRecorder) ListOptionsLabelSelector() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListOptionsLabelSelector", reflect.TypeOf((*MockClusterScoper)(nil).ListOptionsLabelSelector))
+}
+
+// MaxWaitDuration mocks base method.
+func (m *MockClusterScoper) MaxWaitDuration() time.Duration {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MaxWaitDuration")
+	ret0, _ := ret[0].(time.Duration)
+	return ret0
+}
+
+// MaxWaitDuration indicates an expected call of MaxWaitDuration.
+func (mr *MockClusterScoperMockRecorder) MaxWaitDuration() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MaxWaitDuration", reflect.TypeOf((*MockClusterScoper)(nil).MaxWaitDuration))
 }
 
 // Name mocks base method.

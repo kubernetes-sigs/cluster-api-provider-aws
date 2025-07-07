@@ -190,8 +190,8 @@ var _ = ginkgo.Context("[unmanaged] [upgrade]", func() {
 			awsCluster, err := GetAWSClusterByName(ctx, managementClusterProxy, workloadClusterNamespace, workloadClusterName)
 			Expect(err).NotTo(HaveOccurred(), "failed to get the AWS cluster")
 
-			shared.CheckClassicElbHealthCheck(shared.CheckClassicElbHealthCheckInput{
-				AWSSession:       e2eCtx.BootstrapUserAWSSession,
+			shared.CheckClassicElbHealthCheck(ctx, shared.CheckClassicElbHealthCheckInput{
+				AWSSession:       e2eCtx.BootstrapUserAWSSessionV2,
 				LoadBalancerName: awsCluster.Status.Network.APIServerELB.Name,
 				ExpectedTarget:   "SSL:6443",
 			}, e2eCtx.E2EConfig.GetIntervals(specName, "wait-classic-elb-health-check-short")...)
@@ -209,8 +209,8 @@ var _ = ginkgo.Context("[unmanaged] [upgrade]", func() {
 
 			ginkgo.By("Management cluster is upgraded to main version")
 
-			shared.CheckClassicElbHealthCheck(shared.CheckClassicElbHealthCheckInput{
-				AWSSession:       e2eCtx.BootstrapUserAWSSession,
+			shared.CheckClassicElbHealthCheck(ctx, shared.CheckClassicElbHealthCheckInput{
+				AWSSession:       e2eCtx.BootstrapUserAWSSessionV2,
 				LoadBalancerName: awsCluster.Status.Network.APIServerELB.Name,
 				ExpectedTarget:   "TCP:6443",
 			}, e2eCtx.E2EConfig.GetIntervals(specName, "wait-classic-elb-health-check-long")...)
