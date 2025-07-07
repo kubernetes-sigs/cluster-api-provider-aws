@@ -578,7 +578,7 @@ func (s *Service) reconcileAccessConfig(ctx context.Context, accessConfig *eksty
 			}
 
 			// Wait until status transitions to UPDATING because there's a short
-			// window after UpdateClusterVersion returns where the cluster
+			// window after UpdateClusterConfig returns where the cluster
 			// status is ACTIVE and the update would be tried again
 			if err := s.EKSClient.WaitUntilClusterUpdating(
 				ctx,
