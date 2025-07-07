@@ -21,12 +21,12 @@ import (
 	"strings"
 
 	autoscalingtypes "github.com/aws/aws-sdk-go-v2/service/autoscaling/types"
+	elbtypes "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing/types"
+	elbv2types "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2/types"
 	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
 	ssmtypes "github.com/aws/aws-sdk-go-v2/service/ssm/types"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/elb"
-	"github.com/aws/aws-sdk-go/service/elbv2"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -89,8 +89,8 @@ func MapToSSMTags(tags infrav1.Tags) []ssmtypes.Tag {
 	return result
 }
 
-// ELBTagsToMap converts a []*elb.Tag into a infrav1.Tags.
-func ELBTagsToMap(src []*elb.Tag) infrav1.Tags {
+// ELBTagsToMap converts a []elbtypes.Tag into a infrav1.Tags.
+func ELBTagsToMap(src []elbtypes.Tag) infrav1.Tags {
 	tags := make(infrav1.Tags, len(src))
 
 	for _, t := range src {
@@ -100,8 +100,8 @@ func ELBTagsToMap(src []*elb.Tag) infrav1.Tags {
 	return tags
 }
 
-// V2TagsToMap converts a []*elbv2.Tag into a infrav1.Tags.
-func V2TagsToMap(src []*elbv2.Tag) infrav1.Tags {
+// V2TagsToMap converts a []elbv2types.Tag into a infrav1.Tags.
+func V2TagsToMap(src []elbv2types.Tag) infrav1.Tags {
 	tags := make(infrav1.Tags, len(src))
 
 	for _, t := range src {
@@ -111,12 +111,12 @@ func V2TagsToMap(src []*elbv2.Tag) infrav1.Tags {
 	return tags
 }
 
-// MapToELBTags converts a infrav1.Tags to a []*elb.Tag.
-func MapToELBTags(src infrav1.Tags) []*elb.Tag {
-	tags := make([]*elb.Tag, 0, len(src))
+// MapToELBTags converts a infrav1.Tags to a []elbtypes.Tag.
+func MapToELBTags(src infrav1.Tags) []elbtypes.Tag {
+	tags := make([]elbtypes.Tag, 0, len(src))
 
 	for k, v := range src {
-		tag := &elb.Tag{
+		tag := elbtypes.Tag{
 			Key:   aws.String(k),
 			Value: aws.String(v),
 		}
@@ -130,12 +130,12 @@ func MapToELBTags(src infrav1.Tags) []*elb.Tag {
 	return tags
 }
 
-// MapToV2Tags converts a infrav1.Tags to a []*elbv2.Tag.
-func MapToV2Tags(src infrav1.Tags) []*elbv2.Tag {
-	tags := make([]*elbv2.Tag, 0, len(src))
+// MapToV2Tags converts a infrav1.Tags to a []*elbv2types.Tag.
+func MapToV2Tags(src infrav1.Tags) []elbv2types.Tag {
+	tags := make([]elbv2types.Tag, 0, len(src))
 
 	for k, v := range src {
-		tag := &elbv2.Tag{
+		tag := elbv2types.Tag{
 			Key:   aws.String(k),
 			Value: aws.String(v),
 		}
