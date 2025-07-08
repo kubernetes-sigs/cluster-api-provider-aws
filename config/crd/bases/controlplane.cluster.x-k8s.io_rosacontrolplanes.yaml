@@ -87,6 +87,7 @@ spec:
                 description: OpenShift version channel group, default is stable.
                 enum:
                 - stable
+                - fast
                 - candidate
                 - nightly
                 type: string
