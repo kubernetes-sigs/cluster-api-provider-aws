@@ -514,6 +514,11 @@ func setupEKSReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager, awsSe
 		setupLog.Error(err, "unable to create webhook", "webhook", "AWSManagedControlPlane")
 		os.Exit(1)
 	}
+
+	if err := (&ekscontrolplanev1.AWSManagedControlPlaneTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "AWSManagedControlPlaneTemplate")
+		os.Exit(1)
+	}
 }
 
 func initFlags(fs *pflag.FlagSet) {
