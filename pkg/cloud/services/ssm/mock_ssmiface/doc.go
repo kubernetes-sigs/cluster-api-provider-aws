@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package mock_ssmiface provides a mock implementation for the IAMAPI interface.
+// Package mock_ssmiface provides a mock implementation for the SSMAPI interface.
 // Run go generate to regenerate this mock.
 //
-//go:generate ../../../../../hack/tools/bin/mockgen -destination ssmiface_mock.go -package mock_ssmiface sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/iamauth IAMAPI
-//go:generate /usr/bin/env bash -c "cat ../../../../../hack/boilerplate/boilerplate.generatego.txt mock_ssmiface.go > _ssmiface_mock.go && mv _ssmiface_mock.go ssmiface_mock.go"
+//go:generate ../../../../../hack/tools/bin/mockgen -destination mock_ssmiface.go -package mock_ssmiface sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/ssm SSMAPI
+//go:generate /usr/bin/env bash -c "cat ../../../../../hack/boilerplate/boilerplate.generatego.txt mock_ssmiface.go > _mock_ssmiface.go && mv _mock_ssmiface.go mock_ssmiface.go"
 package mock_ssmiface //nolint:stylecheck
