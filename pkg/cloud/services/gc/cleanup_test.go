@@ -21,12 +21,12 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	elb "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing"
 	elbv2 "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
 	rgapi "github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi"
 	rgapitypes "github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi/types"
 	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -500,7 +500,7 @@ func TestReconcileDelete(t *testing.T) {
 				})
 			},
 			ec2Mocks: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DeleteSecurityGroupWithContext(gomock.Any(), &ec2.DeleteSecurityGroupInput{
+				m.DeleteSecurityGroup(gomock.Any(), &ec2.DeleteSecurityGroupInput{
 					GroupId: aws.String("sg-123456"),
 				})
 			},
@@ -654,7 +654,7 @@ func TestReconcileDelete(t *testing.T) {
 				})
 			},
 			ec2Mocks: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DeleteSecurityGroupWithContext(gomock.Any(), &ec2.DeleteSecurityGroupInput{
+				m.DeleteSecurityGroup(gomock.Any(), &ec2.DeleteSecurityGroupInput{
 					GroupId: aws.String("sg-123456"),
 				})
 			},

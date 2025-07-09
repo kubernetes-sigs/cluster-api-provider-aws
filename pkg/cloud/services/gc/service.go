@@ -21,10 +21,10 @@ import (
 	"context"
 
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
-	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/common"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/elb"
 )
 
@@ -34,7 +34,7 @@ type Service struct {
 	elbClient             elb.ELBAPI
 	elbv2Client           elb.ELBV2API
 	resourceTaggingClient elb.ResourceGroupsTaggingAPIAPI
-	ec2Client             ec2iface.EC2API
+	ec2Client             common.EC2API
 	cleanupFuncs          ResourceCleanupFuncs
 	collectFuncs          ResourceCollectFuncs
 }
