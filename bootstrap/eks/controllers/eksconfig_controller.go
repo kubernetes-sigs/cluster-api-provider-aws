@@ -20,19 +20,18 @@ package controllers
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"fmt"
 	"os"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/eks"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -45,14 +44,15 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/internal/userdata"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/util/paused"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bsutil "sigs.k8s.io/cluster-api/bootstrap/util"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	kubeconfigutil "sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
@@ -323,36 +323,22 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 			log.Info("Using mock CA certificate for test environment")
 			nodeInput.CACert = "mock-ca-certificate-for-testing"
 		} else {
-			// Fetch CA cert from EKS API
-			sess, err := session.NewSession(&aws.Config{Region: aws.String(controlPlane.Spec.Region)})
+			// Fetch CA cert from KubeConfig secret
+			// We already have the cluster object passed to this function
+			obj := client.ObjectKey{
+				Namespace: cluster.Namespace,
+				Name:      cluster.Name,
+			}
+			ca, err := extractCAFromSecret(ctx, r.Client, obj)
 			if err != nil {
-				log.Error(err, "Failed to create AWS session for EKS API")
+				log.Error(err, "Failed to extract CA from kubeconfig secret")
 				conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition,
 					eksbootstrapv1.DataSecretGenerationFailedReason,
 					clusterv1.ConditionSeverityWarning,
-					"Failed to create AWS session: %v", err)
+					"Failed to extract CA from kubeconfig secret: %v", err)
 				return ctrl.Result{}, err
 			}
-			eksClient := eks.New(sess)
-			describeInput := &eks.DescribeClusterInput{Name: aws.String(controlPlane.Spec.EKSClusterName)}
-			clusterOut, err := eksClient.DescribeCluster(describeInput)
-			if err != nil {
-				log.Error(err, "Failed to describe EKS cluster for CA cert fetch")
-				conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition,
-					eksbootstrapv1.DataSecretGenerationFailedReason,
-					clusterv1.ConditionSeverityWarning,
-					"Failed to describe EKS cluster: %v", err)
-				return ctrl.Result{}, err
-			} else if clusterOut.Cluster != nil && clusterOut.Cluster.CertificateAuthority != nil && clusterOut.Cluster.CertificateAuthority.Data != nil {
-				nodeInput.CACert = *clusterOut.Cluster.CertificateAuthority.Data
-			} else {
-				log.Error(nil, "CA certificate not found in EKS cluster response")
-				conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition,
-					eksbootstrapv1.DataSecretGenerationFailedReason,
-					clusterv1.ConditionSeverityWarning,
-					"CA certificate not found in EKS cluster response")
-				return ctrl.Result{}, fmt.Errorf("CA certificate not found in EKS cluster response")
-			}
+			nodeInput.CACert = ca
 		}
 
 		// Get AMI ID from AWSManagedMachinePool's launch template if specified
@@ -580,4 +566,24 @@ func (r *EKSConfigReconciler) updateBootstrapSecret(ctx context.Context, secret 
 		return true, r.Client.Update(ctx, secret)
 	}
 	return false, nil
+}
+
+func extractCAFromSecret(ctx context.Context, c client.Client, obj client.ObjectKey) (string, error) {
+	data, err := kubeconfigutil.FromSecret(ctx, c, obj)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to get kubeconfig secret %s", obj.Name)
+	}
+	config, err := clientcmd.Load(data)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to parse kubeconfig data from secret %s", obj.Name)
+	}
+
+	// Iterate through all clusters in the kubeconfig and use the first one with CA data
+	for _, cluster := range config.Clusters {
+		if len(cluster.CertificateAuthorityData) > 0 {
+			return base64.StdEncoding.EncodeToString(cluster.CertificateAuthorityData), nil
+		}
+	}
+
+	return "", fmt.Errorf("no cluster with CA data found in kubeconfig")
 }
