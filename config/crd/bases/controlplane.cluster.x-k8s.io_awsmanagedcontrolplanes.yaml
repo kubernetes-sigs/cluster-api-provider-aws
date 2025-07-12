@@ -674,7 +674,6 @@ spec:
                     description: VPC configuration.
                     properties:
                       availabilityZoneSelection:
-                        default: Ordered
                         description: |-
                           AvailabilityZoneSelection specifies how AZs should be selected if there are more AZs
                           in a region than specified by AvailabilityZoneUsageLimit. There are 2 selection schemes:
@@ -686,7 +685,6 @@ spec:
                         - Random
                         type: string
                       availabilityZoneUsageLimit:
-                        default: 3
                         description: |-
                           AvailabilityZoneUsageLimit specifies the maximum number of availability zones (AZ) that
                           should be used in a region when automatically creating subnets. If a region has more
@@ -694,6 +692,14 @@ spec:
                           default subnets. Defaults to 3
                         minimum: 1
                         type: integer
+                      availabilityZones:
+                        description: |-
+                          AvailabilityZones defines a list of Availability Zones in which to create network resources in.
+                          Cannot be defined at the same time as AvailabilityZoneSelection and AvailabilityZoneUsageLimit.
+                        items:
+                          type: string
+                        minItems: 1
+                        type: array
                       carrierGatewayId:
                         description: |-
                           CarrierGatewayID is the id of the internet gateway associated with the VPC,
@@ -2813,7 +2819,6 @@ spec:
                     description: VPC configuration.
                     properties:
                       availabilityZoneSelection:
-                        default: Ordered
                         description: |-
                           AvailabilityZoneSelection specifies how AZs should be selected if there are more AZs
                           in a region than specified by AvailabilityZoneUsageLimit. There are 2 selection schemes:
@@ -2825,7 +2830,6 @@ spec:
                         - Random
                         type: string
                       availabilityZoneUsageLimit:
-                        default: 3
                         description: |-
                           AvailabilityZoneUsageLimit specifies the maximum number of availability zones (AZ) that
                           should be used in a region when automatically creating subnets. If a region has more
@@ -2833,6 +2837,14 @@ spec:
                           default subnets. Defaults to 3
                         minimum: 1
                         type: integer
+                      availabilityZones:
+                        description: |-
+                          AvailabilityZones defines a list of Availability Zones in which to create network resources in.
+                          Cannot be defined at the same time as AvailabilityZoneSelection and AvailabilityZoneUsageLimit.
+                        items:
+                          type: string
+                        minItems: 1
+                        type: array
                       carrierGatewayId:
                         description: |-
                           CarrierGatewayID is the id of the internet gateway associated with the VPC,
