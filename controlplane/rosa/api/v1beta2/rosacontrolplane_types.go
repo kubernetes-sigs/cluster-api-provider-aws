@@ -59,6 +59,9 @@ const (
 	// Stable channel group is the default channel group for stable releases.
 	Stable ChannelGroupType = "stable"
 
+	// Fast channel group is for fast channel releases.
+	Fast ChannelGroupType = "fast"
+
 	// Candidate channel group is for testing candidate builds.
 	Candidate ChannelGroupType = "candidate"
 
@@ -107,7 +110,7 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 
 	// OpenShift version channel group, default is stable.
 	//
-	// +kubebuilder:validation:Enum=stable;candidate;nightly
+	// +kubebuilder:validation:Enum=stable;fast;candidate;nightly
 	// +kubebuilder:default=stable
 	ChannelGroup ChannelGroupType `json:"channelGroup"`
 
