@@ -25,7 +25,6 @@ import (
 	time "time"
 
 	aws "github.com/aws/aws-sdk-go-v2/aws"
-	client "github.com/aws/aws-sdk-go/aws/client"
 	logging "github.com/aws/smithy-go/logging"
 	logr "github.com/go-logr/logr"
 	gomock "github.com/golang/mock/gomock"
@@ -364,22 +363,8 @@ func (mr *MockClusterScoperMockRecorder) ServiceLimiter(arg0 interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ServiceLimiter", reflect.TypeOf((*MockClusterScoper)(nil).ServiceLimiter), arg0)
 }
 
-// Session mocks base method.
-func (m *MockClusterScoper) Session() client.ConfigProvider {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Session")
-	ret0, _ := ret[0].(client.ConfigProvider)
-	return ret0
-}
-
-// Session indicates an expected call of Session.
-func (mr *MockClusterScoperMockRecorder) Session() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Session", reflect.TypeOf((*MockClusterScoper)(nil).Session))
-}
-
 // SessionV2 mocks base method.
-func (m *MockClusterScoper) SessionV2() aws.Config {
+func (m *MockClusterScoper) Session() aws.Config {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SessionV2")
 	ret0, _ := ret[0].(aws.Config)
@@ -387,9 +372,9 @@ func (m *MockClusterScoper) SessionV2() aws.Config {
 }
 
 // SessionV2 indicates an expected call of SessionV2.
-func (mr *MockClusterScoperMockRecorder) SessionV2() *gomock.Call {
+func (mr *MockClusterScoperMockRecorder) Session() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SessionV2", reflect.TypeOf((*MockClusterScoper)(nil).SessionV2))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SessionV2", reflect.TypeOf((*MockClusterScoper)(nil).Session))
 }
 
 // SetFailureDomain mocks base method.
