@@ -9,6 +9,7 @@
 | EKSAllowAddRoles              | CAPA_EKS_ADD_ROLES                | flase |
 | EKSFargate                    | EXP_EKS_FARGATE                   | flase |
 | MachinePool                   | EXP_MACHINE_POOL                  | false |
+| MachinePoolMachines           | EXP_MACHINE_POOL_MACHINES         | false   |
 | EventBridgeInstanceState      | EVENT_BRIDGE_INSTANCE_STATE       | flase |
 | AutoControllerIdentityCreator | AUTO_CONTROLLER_IDENTITY_CREATOR  | true  |
 | BootstrapFormatIgnition       | EXP_BOOTSTRAP_FORMAT_IGNITION     | false |
