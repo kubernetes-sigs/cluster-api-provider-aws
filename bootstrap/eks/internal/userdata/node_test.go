@@ -17,6 +17,7 @@ limitations under the License.
 package userdata
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -383,6 +384,192 @@ users:
 
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(string(bytes)).To(Equal(string(testcase.expectedBytes)))
+		})
+	}
+}
+
+func TestNewNodeAL2023(t *testing.T) {
+	g := NewWithT(t)
+
+	type args struct {
+		input *NodeInput
+	}
+
+	tests := []struct {
+		name         string
+		args         args
+		expectErr    bool
+		verifyOutput func(output string) bool
+	}{
+		{
+			name: "AL2023 with shell script and node config",
+			args: args{
+				input: &NodeInput{
+					AMIFamilyType:     AMIFamilyAL2023,
+					ClusterName:       "my-cluster",
+					APIServerEndpoint: "https://example.com",
+					CACert:            "Y2VydGlmaWNhdGVBdXRob3JpdHk=",
+					NodeGroupName:     "test-nodegroup",
+					DNSClusterIP:      ptr.To[string]("10.100.0.10"),
+					Boundary:          "BOUNDARY",
+					KubeletExtraArgs: map[string]string{
+						"node-labels": "app=my-app,environment=production",
+					},
+					PreBootstrapCommands: []string{
+						"# Install additional packages",
+						"yum install -y htop jq iptables-services",
+						"",
+						"# Pre-cache commonly used container images",
+						"nohup docker pull public.ecr.aws/eks-distro/kubernetes/pause:3.2 &",
+						"",
+						"# Configure HTTP proxy if needed",
+						`cat > /etc/profile.d/http-proxy.sh << 'EOF'
+export HTTP_PROXY="http://proxy.example.com:3128"
+export HTTPS_PROXY="http://proxy.example.com:3128"
+export NO_PROXY="localhost,127.0.0.1,169.254.169.254,.internal"
+EOF`,
+					},
+				},
+			},
+			expectErr: false,
+			verifyOutput: func(output string) bool {
+				// Verify MIME structure
+				if !strings.Contains(output, "MIME-Version: 1.0") ||
+					!strings.Contains(output, `Content-Type: multipart/mixed; boundary="BOUNDARY"`) {
+					return false
+				}
+
+				// Verify shell script content
+				if !strings.Contains(output, "#!/bin/bash") ||
+					!strings.Contains(output, "yum install -y htop jq iptables-services") ||
+					!strings.Contains(output, "docker pull public.ecr.aws/eks-distro/kubernetes/pause:3.2") {
+					return false
+				}
+
+				// Verify node config content
+				if !strings.Contains(output, "apiVersion: node.eks.aws/v1alpha1") ||
+					!strings.Contains(output, "name: my-cluster") ||
+					!strings.Contains(output, "apiServerEndpoint: https://example.com") ||
+					!strings.Contains(output, `"--node-labels=app=my-app,environment=production"`) {
+					return false
+				}
+
+				return true
+			},
+		},
+	}
+
+	for _, testcase := range tests {
+		t.Run(testcase.name, func(t *testing.T) {
+			bytes, err := NewNode(testcase.args.input)
+			if testcase.expectErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+			if testcase.verifyOutput != nil {
+				g.Expect(testcase.verifyOutput(string(bytes))).To(BeTrue(), "Output verification failed")
+			}
+		})
+	}
+}
+
+func TestGenerateAL2023UserData(t *testing.T) {
+	g := NewWithT(t)
+
+	tests := []struct {
+		name         string
+		input        *NodeInput
+		expectErr    bool
+		verifyOutput func(output string) bool
+	}{
+		{
+			name: "valid AL2023 input",
+			input: &NodeInput{
+				AMIFamilyType:     AMIFamilyAL2023,
+				ClusterName:       "test-cluster",
+				APIServerEndpoint: "https://test-endpoint.eks.amazonaws.com",
+				CACert:            "test-cert",
+				NodeGroupName:     "test-nodegroup",
+				UseMaxPods:        ptr.To[bool](false),
+				DNSClusterIP:      ptr.To[string]("10.96.0.10"),
+			},
+			expectErr: false,
+			verifyOutput: func(output string) bool {
+				return strings.Contains(output, "name: test-cluster") &&
+					strings.Contains(output, "maxPods: 110") &&
+					strings.Contains(output, "nodegroup=test-nodegroup")
+			},
+		},
+		{
+			name: "AL2023 with custom DNS and AMI",
+			input: &NodeInput{
+				AMIFamilyType:     AMIFamilyAL2023,
+				ClusterName:       "test-cluster",
+				APIServerEndpoint: "https://test-endpoint.eks.amazonaws.com",
+				CACert:            "test-cert",
+				NodeGroupName:     "test-nodegroup",
+				UseMaxPods:        ptr.To[bool](true),
+				DNSClusterIP:      ptr.To[string]("10.100.0.10"),
+				AMIImageID:        "ami-123456",
+				ClusterCIDR:       "192.168.0.0/16",
+			},
+			expectErr: false,
+			verifyOutput: func(output string) bool {
+				return strings.Contains(output, "cidr: 192.168.0.0/16") &&
+					strings.Contains(output, "maxPods: 58") &&
+					strings.Contains(output, "nodegroup-image=ami-123456")
+			},
+		},
+		{
+			name: "AL2023 with custom labels and commands",
+			input: &NodeInput{
+				AMIFamilyType:     AMIFamilyAL2023,
+				ClusterName:       "test-cluster",
+				APIServerEndpoint: "https://test-endpoint.eks.amazonaws.com",
+				CACert:            "test-cert",
+				NodeGroupName:     "test-nodegroup",
+				KubeletExtraArgs: map[string]string{
+					"node-labels": "app=my-app,environment=production",
+				},
+				PreBootstrapCommands: []string{
+					"echo 'pre-bootstrap'",
+				},
+				PostBootstrapCommands: []string{
+					"echo 'post-bootstrap'",
+				},
+			},
+			expectErr: false,
+			verifyOutput: func(output string) bool {
+				return strings.Contains(output, "echo 'pre-bootstrap'") &&
+					strings.Contains(output, "echo 'post-bootstrap'") &&
+					strings.Contains(output, `"--node-labels=app=my-app,environment=production"`)
+			},
+		},
+		{
+			name: "AL2023 missing required fields",
+			input: &NodeInput{
+				AMIFamilyType: AMIFamilyAL2023,
+				ClusterName:   "test-cluster",
+				// Missing APIServerEndpoint, CACert, NodeGroupName
+			},
+			expectErr: true,
+		},
+	}
+
+	for _, testcase := range tests {
+		t.Run(testcase.name, func(t *testing.T) {
+			bytes, err := generateAL2023UserData(testcase.input)
+			if testcase.expectErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+			if testcase.verifyOutput != nil {
+				g.Expect(testcase.verifyOutput(string(bytes))).To(BeTrue(), "Output verification failed")
+			}
 		})
 	}
 }
