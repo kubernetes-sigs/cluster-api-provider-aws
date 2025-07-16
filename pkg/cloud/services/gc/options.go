@@ -17,8 +17,7 @@ limitations under the License.
 package gc
 
 import (
-	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
-
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/elb"
 )
 
@@ -47,7 +46,7 @@ func withResourceTaggingClient(client elb.ResourceGroupsTaggingAPIAPI) ServiceOp
 }
 
 // withEC2Client is an option for specifying a AWS EC2 Client.
-func withEC2Client(client ec2iface.EC2API) ServiceOption {
+func withEC2Client(client scope.EC2API) ServiceOption {
 	return func(s *Service) {
 		s.ec2Client = client
 	}

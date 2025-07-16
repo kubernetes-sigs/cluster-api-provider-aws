@@ -17,7 +17,10 @@ limitations under the License.
 package scope
 
 import (
+	"context"
+
 	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
+	ec2v2 "github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/eks"
 	elb "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing"
 	elbv2 "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
@@ -48,6 +51,13 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/version"
 )
+
+// EC2API is a compatibility layer for the v1 ec2iface.EC2API interface.
+// It is used to provide a consistent interface for the DeleteSecurityGroup method.
+type EC2API interface {
+	DeleteSecurityGroup(context.Context, *ec2v2.DeleteSecurityGroupInput, ...func(*ec2v2.Options)) (*ec2v2.DeleteSecurityGroupOutput, error)
+	ec2v2.DescribeSecurityGroupsAPIClient
+}
 
 // NewASGClient creates a new ASG API client for a given session.
 func NewASGClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) *autoscaling.Client {
@@ -312,6 +322,24 @@ func NewS3Client(scopeUser cloud.ScopeUsage, session cloud.Session, logger logge
 	return s3.NewFromConfig(cfg, s3Opts...)
 }
 
+// NewEC2ClientV2 creates a new EC2 API client for a given session using AWS SDK v2.
+func NewEC2ClientV2(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) EC2API {
+	cfg := session.SessionV2()
+	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
+	ec2EndpointResolver := &endpointsv2.EC2EndpointResolver{
+		MultiServiceEndpointResolver: multiSvcEndpointResolver,
+	}
+	ec2Opts := []func(*ec2v2.Options){
+		func(o *ec2v2.Options) {
+			o.Logger = logger.GetAWSLogger()
+			o.ClientLogMode = awslogs.GetAWSLogLevelV2(logger.GetLogger())
+			o.EndpointResolverV2 = ec2EndpointResolver
+		},
+		ec2v2.WithAPIOptions(awsmetricsv2.WithMiddlewares(scopeUser.ControllerName(), target), awsmetricsv2.WithCAPAUserAgentMiddleware()),
+	}
+	return ec2v2.NewFromConfig(cfg, ec2Opts...)
+}
+
 func recordAWSPermissionsIssue(target runtime.Object) func(r *request.Request) {
 	return func(r *request.Request) {
 		if awsErr, ok := r.Error.(awserr.Error); ok {
@@ -332,9 +360,11 @@ func getUserAgentHandler() request.NamedHandler {
 
 // AWSClients contains all the aws clients used by the scopes.
 type AWSClients struct {
-	ASG             autoscaling.Client
-	EC2             ec2iface.EC2API
-	ELB             elb.Client
+	ELB             *elb.Client
 	SecretsManager  secretsmanageriface.SecretsManagerAPI
-	ResourceTagging rgapi.Client
+	ResourceTagging *rgapi.Client
+	ASG             *autoscaling.Client
+	EC2             ec2iface.EC2API
+	EC2V2           *ec2v2.Client
+	ELBV2           *elbv2.Client
 }
