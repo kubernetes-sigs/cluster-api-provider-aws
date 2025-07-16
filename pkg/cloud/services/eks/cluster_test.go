@@ -25,6 +25,7 @@ import (
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -465,6 +466,123 @@ func TestReconcileClusterVersion(t *testing.T) {
 			g.Expect(err).To(BeNil())
 
 			err = s.reconcileClusterVersion(context.TODO(), cluster)
+			if tc.expectError {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).To(BeNil())
+		})
+	}
+}
+
+func TestReconcileAccessConfig(t *testing.T) {
+	clusterName := "default.cluster"
+	invalidParameterException := ekstypes.InvalidParameterException{}
+	tests := []struct {
+		name        string
+		expect      func(m *mock_eksiface.MockEKSAPIMockRecorder)
+		expectError bool
+	}{
+		{
+			name: "no upgrade necessary",
+			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
+				m.
+					DescribeCluster(gomock.Eq(context.TODO()), gomock.AssignableToTypeOf(&eks.DescribeClusterInput{})).
+					Return(&eks.DescribeClusterOutput{
+						Cluster: &ekstypes.Cluster{
+							Name: aws.String("default.cluster"),
+							AccessConfig: &ekstypes.AccessConfigResponse{
+								AuthenticationMode: ekstypes.AuthenticationModeApiAndConfigMap,
+							},
+						},
+					}, nil)
+			},
+			expectError: false,
+		},
+		{
+			name: "needs upgrade",
+			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
+				m.
+					DescribeCluster(gomock.Eq(context.TODO()), gomock.AssignableToTypeOf(&eks.DescribeClusterInput{})).
+					Return(&eks.DescribeClusterOutput{
+						Cluster: &ekstypes.Cluster{
+							Name: aws.String("default.cluster"),
+							AccessConfig: &ekstypes.AccessConfigResponse{
+								AuthenticationMode: ekstypes.AuthenticationModeConfigMap,
+							},
+						},
+					}, nil)
+				m.WaitUntilClusterUpdating(
+					gomock.Eq(context.TODO()),
+					gomock.AssignableToTypeOf(&eks.DescribeClusterInput{}), gomock.Any(),
+				).Return(nil)
+				m.
+					UpdateClusterConfig(gomock.Eq(context.TODO()), gomock.AssignableToTypeOf(&eks.UpdateClusterConfigInput{})).
+					Return(&eks.UpdateClusterConfigOutput{}, nil)
+			},
+			expectError: false,
+		},
+		{
+			name: "api error",
+			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
+				m.
+					DescribeCluster(gomock.Eq(context.TODO()), gomock.AssignableToTypeOf(&eks.DescribeClusterInput{})).
+					Return(&eks.DescribeClusterOutput{
+						Cluster: &ekstypes.Cluster{
+							Name: aws.String("default.cluster"),
+							AccessConfig: &ekstypes.AccessConfigResponse{
+								AuthenticationMode: ekstypes.AuthenticationModeApi,
+							},
+						},
+					}, nil)
+				m.
+					UpdateClusterConfig(gomock.Eq(context.TODO()), gomock.AssignableToTypeOf(&eks.UpdateClusterConfigInput{})).
+					Return(&eks.UpdateClusterConfigOutput{}, awserr.New(invalidParameterException.ErrorCode(), "Unsupported authentication mode update", nil))
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			mockControl := gomock.NewController(t)
+			defer mockControl.Finish()
+
+			eksMock := mock_eksiface.NewMockEKSAPI(mockControl)
+
+			scheme := runtime.NewScheme()
+			_ = infrav1.AddToScheme(scheme)
+			_ = ekscontrolplanev1.AddToScheme(scheme)
+			client := fake.NewClientBuilder().WithScheme(scheme).Build()
+			scope, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
+				Client: client,
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns",
+						Name:      clusterName,
+					},
+				},
+				ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
+					Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+						EKSClusterName: clusterName,
+						AccessConfig: &ekscontrolplanev1.AccessConfig{
+							AuthenticationMode: ekscontrolplanev1.EKSAuthenticationModeAPIAndConfigMap,
+						},
+					},
+				},
+			})
+			g.Expect(err).To(BeNil())
+
+			tc.expect(eksMock.EXPECT())
+			s := NewService(scope)
+			s.EKSClient = eksMock
+
+			cluster, err := s.describeEKSCluster(context.TODO(), clusterName)
+			g.Expect(err).To(BeNil())
+
+			err = s.reconcileAccessConfig(context.TODO(), cluster.AccessConfig)
 			if tc.expectError {
 				g.Expect(err).To(HaveOccurred())
 				return
