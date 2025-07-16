@@ -394,6 +394,14 @@ func mockedModifyTargetGroupAttributes(t *testing.T, m *mocks.MockELBV2APIMockRe
 		TargetGroupArn: tgArn,
 		Attributes: []elbv2types.TargetGroupAttribute{
 			{
+				Key:   aws.String(infrav1.TargetGroupAttributeEnableConnectionTermination),
+				Value: aws.String("false"),
+			},
+			{
+				Key:   aws.String(infrav1.TargetGroupAttributeUnhealthyDrainingIntervalSeconds),
+				Value: aws.String("300"),
+			},
+			{
 				Key:   aws.String(infrav1.TargetGroupAttributeEnablePreserveClientIP),
 				Value: aws.String("false"),
 			},

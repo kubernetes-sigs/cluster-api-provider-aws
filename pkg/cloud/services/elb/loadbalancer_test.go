@@ -1544,6 +1544,14 @@ func TestReconcileTargetGroupsAndListeners(t *testing.T) {
 					TargetGroupArn: aws.String(tgArn),
 					Attributes: []elbv2types.TargetGroupAttribute{
 						{
+							Key:   aws.String(infrav1.TargetGroupAttributeEnableConnectionTermination),
+							Value: aws.String("false"),
+						},
+						{
+							Key:   aws.String(infrav1.TargetGroupAttributeUnhealthyDrainingIntervalSeconds),
+							Value: aws.String("300"),
+						},
+						{
 							Key:   aws.String(infrav1.TargetGroupAttributeEnablePreserveClientIP),
 							Value: aws.String("false"),
 						},
@@ -1662,6 +1670,14 @@ func TestReconcileTargetGroupsAndListeners(t *testing.T) {
 					TargetGroupArn: aws.String(tgArn),
 					Attributes: []elbv2types.TargetGroupAttribute{
 						{
+							Key:   aws.String(infrav1.TargetGroupAttributeEnableConnectionTermination),
+							Value: aws.String("false"),
+						},
+						{
+							Key:   aws.String(infrav1.TargetGroupAttributeUnhealthyDrainingIntervalSeconds),
+							Value: aws.String("300"),
+						},
+						{
 							Key:   aws.String(infrav1.TargetGroupAttributeEnablePreserveClientIP),
 							Value: aws.String("false"),
 						},
@@ -1768,6 +1784,14 @@ func TestReconcileTargetGroupsAndListeners(t *testing.T) {
 					TargetGroupArn: aws.String(tgArn),
 					Attributes: []elbv2types.TargetGroupAttribute{
 						{
+							Key:   aws.String(infrav1.TargetGroupAttributeEnableConnectionTermination),
+							Value: aws.String("false"),
+						},
+						{
+							Key:   aws.String(infrav1.TargetGroupAttributeUnhealthyDrainingIntervalSeconds),
+							Value: aws.String("300"),
+						},
+						{
 							Key:   aws.String(infrav1.TargetGroupAttributeEnablePreserveClientIP),
 							Value: aws.String("false"),
 						},
@@ -1860,6 +1884,19 @@ func TestReconcileTargetGroupsAndListeners(t *testing.T) {
 						},
 					},
 				}, nil)
+				m.ModifyTargetGroupAttributes(gomock.Any(), gomock.Eq(&elbv2.ModifyTargetGroupAttributesInput{
+					TargetGroupArn: aws.String(tgArn),
+					Attributes: []elbv2types.TargetGroupAttribute{
+						{
+							Key:   aws.String(infrav1.TargetGroupAttributeEnableConnectionTermination),
+							Value: aws.String("false"),
+						},
+						{
+							Key:   aws.String(infrav1.TargetGroupAttributeUnhealthyDrainingIntervalSeconds),
+							Value: aws.String("300"),
+						},
+					},
+				})).Return(nil, nil)
 				m.DescribeListeners(gomock.Any(), &elbv2.DescribeListenersInput{
 					LoadBalancerArn: aws.String(elbArn),
 				}).Return(&elbv2.DescribeListenersOutput{
@@ -2001,6 +2038,14 @@ func TestReconcileTargetGroupsAndListeners(t *testing.T) {
 					TargetGroupArn: aws.String(tgArn),
 					Attributes: []elbv2types.TargetGroupAttribute{
 						{
+							Key:   aws.String(infrav1.TargetGroupAttributeEnableConnectionTermination),
+							Value: aws.String("false"),
+						},
+						{
+							Key:   aws.String(infrav1.TargetGroupAttributeUnhealthyDrainingIntervalSeconds),
+							Value: aws.String("300"),
+						},
+						{
 							Key:   aws.String(infrav1.TargetGroupAttributeEnablePreserveClientIP),
 							Value: aws.String("false"),
 						},
@@ -2115,6 +2160,14 @@ func TestReconcileTargetGroupsAndListeners(t *testing.T) {
 				m.ModifyTargetGroupAttributes(gomock.Any(), &elbv2.ModifyTargetGroupAttributesInput{
 					TargetGroupArn: aws.String(tgArn),
 					Attributes: []elbv2types.TargetGroupAttribute{
+						{
+							Key:   aws.String(infrav1.TargetGroupAttributeEnableConnectionTermination),
+							Value: aws.String("false"),
+						},
+						{
+							Key:   aws.String(infrav1.TargetGroupAttributeUnhealthyDrainingIntervalSeconds),
+							Value: aws.String("300"),
+						},
 						{
 							Key:   aws.String(infrav1.TargetGroupAttributeEnablePreserveClientIP),
 							Value: aws.String("false"),
@@ -2403,6 +2456,14 @@ func TestReconcileV2LB(t *testing.T) {
 				m.ModifyTargetGroupAttributes(gomock.Any(), gomock.Eq(&elbv2.ModifyTargetGroupAttributesInput{
 					TargetGroupArn: aws.String(tgArn),
 					Attributes: []elbv2types.TargetGroupAttribute{
+						{
+							Key:   aws.String(infrav1.TargetGroupAttributeEnableConnectionTermination),
+							Value: aws.String("false"),
+						},
+						{
+							Key:   aws.String(infrav1.TargetGroupAttributeUnhealthyDrainingIntervalSeconds),
+							Value: aws.String("300"),
+						},
 						{
 							Key:   aws.String(infrav1.TargetGroupAttributeEnablePreserveClientIP),
 							Value: aws.String("false"),
