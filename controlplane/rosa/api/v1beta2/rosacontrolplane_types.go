@@ -120,13 +120,23 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// +kubebuilder:default=WaitForAcknowledge
 	VersionGate VersionGateAckType `json:"versionGate"`
 
+	// RosaRoleConfigRef is a reference to a RosaRoleConfig resource that contains account and operator roles and OIDC configuration.
+	// If specified, the roles and OIDC configuration will be taken from the referenced RosaRoleConfig instead of the direct fields.
+	//
+	// +optional
+	RosaRoleConfigRef *corev1.LocalObjectReference `json:"rosaRoleConfigRef,omitempty"`
+
 	// AWS IAM roles used to perform credential requests by the openshift operators.
-	RolesRef AWSRolesRef `json:"rolesRef"`
+	// Required if RosaRoleConfigRef is not specified.
+	// +optional
+	RolesRef AWSRolesRef `json:"rolesRef,omitempty"`
 
 	// The ID of the internal OpenID Connect Provider.
+	// Required if RosaRoleConfigRef is not specified.
 	//
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="oidcID is immutable"
-	OIDCID string `json:"oidcID"`
+	// +optional
+	OIDCID string `json:"oidcID,omitempty"`
 
 	// EnableExternalAuthProviders enables external authentication configuration for the cluster.
 	//
@@ -145,13 +155,19 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// +kubebuilder:validation:MaxItems=1
 	ExternalAuthProviders []ExternalAuthProvider `json:"externalAuthProviders,omitempty"`
 
-	// InstallerRoleARN is an AWS IAM role that OpenShift Cluster Manager will assume to create the cluster..
-	InstallerRoleARN string `json:"installerRoleARN"`
+	// InstallerRoleARN is an AWS IAM role that OpenShift Cluster Manager will assume to create the cluster.
+	// Required if RosaRoleConfigRef is not specified.
+	// +optional
+	InstallerRoleARN string `json:"installerRoleARN,omitempty"`
 	// SupportRoleARN is an AWS IAM role used by Red Hat SREs to enable
 	// access to the cluster account in order to provide support.
-	SupportRoleARN string `json:"supportRoleARN"`
+	// Required if RosaRoleConfigRef is not specified.
+	// +optional
+	SupportRoleARN string `json:"supportRoleARN,omitempty"`
 	// WorkerRoleARN is an AWS IAM role that will be attached to worker instances.
-	WorkerRoleARN string `json:"workerRoleARN"`
+	// Required if RosaRoleConfigRef is not specified.
+	// +optional
+	WorkerRoleARN string `json:"workerRoleARN,omitempty"`
 
 	// BillingAccount is an optional AWS account to use for billing the subscription fees for ROSA HCP clusters.
 	// The cost of running each ROSA HCP cluster will be billed to the infrastructure account in which the cluster

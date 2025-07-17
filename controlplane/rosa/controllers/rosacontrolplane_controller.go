@@ -143,6 +143,8 @@ func (r *ROSAControlPlaneReconciler) SetupWithManager(ctx context.Context, mgr c
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=rosacontrolplanes,verbs=get;list;watch;update;patch;delete
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=rosacontrolplanes/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=rosacontrolplanes/finalizers,verbs=update
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=rosaroleconfigs,verbs=get;list;watch;
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=rosaroleconfigs/status,verbs=get;
 
 // Reconcile will reconcile RosaControlPlane Resources.
 func (r *ROSAControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, reterr error) {
@@ -224,6 +226,48 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 	creator, err := rosaaws.CreatorForCallerIdentity(convertStsV2(rosaScope.Identity))
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to transform caller identity to creator: %w", err)
+	}
+
+	// Get role configuration from either RosaRoleConfig or direct fields
+	if rosaScope.ControlPlane.Spec.RosaRoleConfigRef != nil {
+		// Get configuration from RosaRoleConfig
+		rosaRoleConfig := &expinfrav1.ROSARoleConfig{}
+		key := client.ObjectKey{
+			Name:      rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name,
+			Namespace: rosaScope.ControlPlane.Namespace,
+		}
+
+		if err := r.Client.Get(ctx, key, rosaRoleConfig); err != nil {
+			if apierrors.IsNotFound(err) {
+				conditions.MarkFalse(rosaScope.ControlPlane,
+					rosacontrolplanev1.ROSARoleConfigReadyCondition,
+					rosacontrolplanev1.ROSARoleConfigNotFoundReason,
+					clusterv1.ConditionSeverityError,
+					"RosaRoleConfig %s/%s not found", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name)
+				return ctrl.Result{}, fmt.Errorf("RosaRoleConfig %s/%s not found: %w", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name, err)
+			}
+			return ctrl.Result{}, fmt.Errorf("failed to get RosaRoleConfig %s/%s: %w", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name, err)
+		}
+
+		// Check if RosaRoleConfig is ready
+		if !conditions.IsTrue(rosaRoleConfig, expinfrav1.RosaRoleConfigReadyCondition) {
+			conditions.MarkFalse(rosaScope.ControlPlane,
+				rosacontrolplanev1.ROSARoleConfigReadyCondition,
+				rosacontrolplanev1.ROSARoleConfigNotReadyReason,
+				clusterv1.ConditionSeverityWarning,
+				"RosaRoleConfig %s/%s is not ready", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name)
+			return ctrl.Result{}, fmt.Errorf("RosaRoleConfig %s/%s is not ready", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name)
+		}
+
+		conditions.MarkTrue(rosaScope.ControlPlane, rosacontrolplanev1.ROSARoleConfigReadyCondition)
+
+		// Update spec fields from RosaRoleConfig
+		rosaScope.ControlPlane.Spec.OIDCID = rosaRoleConfig.Status.OIDCID
+		rosaScope.ControlPlane.Spec.InstallerRoleARN = rosaRoleConfig.Status.AccountRolesRef.InstallerRoleARN
+		rosaScope.ControlPlane.Spec.SupportRoleARN = rosaRoleConfig.Status.AccountRolesRef.SupportRoleARN
+		rosaScope.ControlPlane.Spec.WorkerRoleARN = rosaRoleConfig.Status.AccountRolesRef.WorkerRoleARN
+		rosaScope.ControlPlane.Spec.RolesRef = rosaRoleConfig.Status.OperatorRolesRef
+		rosaScope.ControlPlane.Spec.EnableExternalAuthProviders = len(rosaRoleConfig.Spec.OIDCConfig.ExternalAuthProviders) > 0
 	}
 
 	validationMessage, err := validateControlPlaneSpec(ocmClient, rosaScope)
