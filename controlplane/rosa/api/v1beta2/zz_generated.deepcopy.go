@@ -325,6 +325,11 @@ func (in *RosaControlPlaneSpec) DeepCopyInto(out *RosaControlPlaneSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.RosaRoleConfigRef != nil {
+		in, out := &in.RosaRoleConfigRef, &out.RosaRoleConfigRef
+		*out = new(v1.LocalObjectReference)
+		**out = **in
+	}
 	out.RolesRef = in.RolesRef
 	if in.ExternalAuthProviders != nil {
 		in, out := &in.ExternalAuthProviders, &out.ExternalAuthProviders
