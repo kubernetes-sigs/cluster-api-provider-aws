@@ -623,7 +623,12 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 	}
 
 	if len(i.Tags) > 0 {
-		resources := []string{ec2.ResourceTypeInstance, ec2.ResourceTypeVolume, ec2.ResourceTypeNetworkInterface}
+		resources := []string{ec2.ResourceTypeInstance, ec2.ResourceTypeVolume}
+
+		if len(i.NetworkInterfaces) == 0 {
+			resources = append(resources, ec2.ResourceTypeNetworkInterface)
+		}
+
 		for _, r := range resources {
 			spec := &ec2.TagSpecification{ResourceType: aws.String(r)}
 
