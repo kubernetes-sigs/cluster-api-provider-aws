@@ -106,4 +106,6 @@ type SessionMetadata interface {
 	InfraCluster() ClusterObject
 	// IdentityRef returns the AWS infrastructure cluster identityRef.
 	IdentityRef() *infrav1.AWSIdentityReference
+	// ControllerName returns the controller name
+	ControllerName() string
 }
