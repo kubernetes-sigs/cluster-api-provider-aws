@@ -17,10 +17,8 @@ limitations under the License.
 package scope
 
 import (
-	"context"
-
 	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
-	ec2v2 "github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/eks"
 	elb "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing"
 	elbv2 "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
@@ -33,8 +31,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
 	"github.com/aws/aws-sdk-go/service/sts"
@@ -51,13 +47,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/version"
 )
-
-// EC2API is a compatibility layer for the v1 ec2iface.EC2API interface.
-// It is used to provide a consistent interface for the DeleteSecurityGroup method.
-type EC2API interface {
-	DeleteSecurityGroup(context.Context, *ec2v2.DeleteSecurityGroupInput, ...func(*ec2v2.Options)) (*ec2v2.DeleteSecurityGroupOutput, error)
-	ec2v2.DescribeSecurityGroupsAPIClient
-}
 
 // NewASGClient creates a new ASG API client for a given session.
 func NewASGClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) *autoscaling.Client {
@@ -78,19 +67,26 @@ func NewASGClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logg
 }
 
 // NewEC2Client creates a new EC2 API client for a given session.
-func NewEC2Client(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) ec2iface.EC2API {
-	ec2Client := ec2.New(session.Session(), aws.NewConfig().WithLogLevel(awslogs.GetAWSLogLevel(logger.GetLogger())).WithLogger(awslogs.NewWrapLogr(logger.GetLogger())))
-	ec2Client.Handlers.Build.PushFrontNamed(getUserAgentHandler())
-	if session.ServiceLimiter(ec2.ServiceID) != nil {
-		ec2Client.Handlers.Sign.PushFront(session.ServiceLimiter(ec2.ServiceID).LimitRequest)
+func NewEC2Client(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) *ec2.Client {
+	cfg := session.SessionV2()
+	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
+	ec2EndpointResolver := &endpointsv2.EC2EndpointResolver{
+		MultiServiceEndpointResolver: multiSvcEndpointResolver,
 	}
-	ec2Client.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(scopeUser.ControllerName()))
-	if session.ServiceLimiter(ec2.ServiceID) != nil {
-		ec2Client.Handlers.CompleteAttempt.PushFront(session.ServiceLimiter(ec2.ServiceID).ReviewResponse)
-	}
-	ec2Client.Handlers.Complete.PushBack(recordAWSPermissionsIssue(target))
 
-	return ec2Client
+	ec2opts := []func(*ec2.Options){
+		func(o *ec2.Options) {
+			o.Logger = logger.GetAWSLogger()
+			o.ClientLogMode = awslogs.GetAWSLogLevelV2(logger.GetLogger())
+			o.EndpointResolverV2 = ec2EndpointResolver
+		},
+		ec2.WithAPIOptions(
+			awsmetricsv2.WithMiddlewares(scopeUser.ControllerName(), target),
+			awsmetricsv2.WithCAPAUserAgentMiddleware(),
+		),
+	}
+
+	return ec2.NewFromConfig(cfg, ec2opts...)
 }
 
 // NewELBClient creates a new ELB API client for a given session.
@@ -322,24 +318,6 @@ func NewS3Client(scopeUser cloud.ScopeUsage, session cloud.Session, logger logge
 	return s3.NewFromConfig(cfg, s3Opts...)
 }
 
-// NewEC2ClientV2 creates a new EC2 API client for a given session using AWS SDK v2.
-func NewEC2ClientV2(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) EC2API {
-	cfg := session.SessionV2()
-	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
-	ec2EndpointResolver := &endpointsv2.EC2EndpointResolver{
-		MultiServiceEndpointResolver: multiSvcEndpointResolver,
-	}
-	ec2Opts := []func(*ec2v2.Options){
-		func(o *ec2v2.Options) {
-			o.Logger = logger.GetAWSLogger()
-			o.ClientLogMode = awslogs.GetAWSLogLevelV2(logger.GetLogger())
-			o.EndpointResolverV2 = ec2EndpointResolver
-		},
-		ec2v2.WithAPIOptions(awsmetricsv2.WithMiddlewares(scopeUser.ControllerName(), target), awsmetricsv2.WithCAPAUserAgentMiddleware()),
-	}
-	return ec2v2.NewFromConfig(cfg, ec2Opts...)
-}
-
 func recordAWSPermissionsIssue(target runtime.Object) func(r *request.Request) {
 	return func(r *request.Request) {
 		if awsErr, ok := r.Error.(awserr.Error); ok {
@@ -364,7 +342,6 @@ type AWSClients struct {
 	SecretsManager  secretsmanageriface.SecretsManagerAPI
 	ResourceTagging *rgapi.Client
 	ASG             *autoscaling.Client
-	EC2             ec2iface.EC2API
-	EC2V2           *ec2v2.Client
+	EC2             *ec2.Client
 	ELBV2           *elbv2.Client
 }

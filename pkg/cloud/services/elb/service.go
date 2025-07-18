@@ -24,9 +24,9 @@ import (
 	elb "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing"
 	elbv2 "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
 	rgapi "github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi"
-	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/common"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/network"
 )
 
@@ -35,7 +35,7 @@ import (
 // One alternative is to have a large list of functions from the ec2 client.
 type Service struct {
 	scope                 scope.ELBScope
-	EC2Client             ec2iface.EC2API
+	EC2Client             common.EC2API
 	ELBClient             ELBAPI
 	ELBV2Client           ELBV2API
 	ResourceTaggingClient ResourceGroupsTaggingAPIAPI
