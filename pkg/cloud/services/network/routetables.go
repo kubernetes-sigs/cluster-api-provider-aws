@@ -145,7 +145,8 @@ func (s *Service) fixMismatchedRouting(specRoute *ec2.CreateRouteInput, currentR
 		if (currentRoute.DestinationIpv6CidrBlock != nil &&
 			aws.ToString(currentRoute.DestinationIpv6CidrBlock) == aws.ToString(specRoute.DestinationIpv6CidrBlock)) &&
 			((currentRoute.GatewayId != nil && aws.ToString(currentRoute.GatewayId) != aws.ToString(specRoute.GatewayId)) ||
-				(currentRoute.NatGatewayId != nil && aws.ToString(currentRoute.NatGatewayId) != aws.ToString(specRoute.NatGatewayId))) {
+				(currentRoute.NatGatewayId != nil && aws.ToString(currentRoute.NatGatewayId) != aws.ToString(specRoute.NatGatewayId)) ||
+				(currentRoute.EgressOnlyInternetGatewayId != nil && aws.ToString(currentRoute.EgressOnlyInternetGatewayId) != aws.ToString(specRoute.EgressOnlyInternetGatewayId))) {
 			input = &ec2.ReplaceRouteInput{
 				RouteTableId:                rt.RouteTableId,
 				DestinationIpv6CidrBlock:    specRoute.DestinationIpv6CidrBlock,
