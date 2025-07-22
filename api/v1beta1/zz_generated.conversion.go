@@ -1399,6 +1399,7 @@ func autoConvert_v1beta2_AWSMachineSpec_To_v1beta1_AWSMachineSpec(in *v1beta2.AW
 	out.ImageLookupOrg = in.ImageLookupOrg
 	out.ImageLookupBaseOS = in.ImageLookupBaseOS
 	out.InstanceType = in.InstanceType
+	// WARNING: in.CPUOptions requires manual conversion: does not exist in peer-type
 	out.AdditionalTags = *(*Tags)(unsafe.Pointer(&in.AdditionalTags))
 	out.IAMInstanceProfile = in.IAMInstanceProfile
 	out.PublicIP = (*bool)(unsafe.Pointer(in.PublicIP))
@@ -2030,6 +2031,7 @@ func autoConvert_v1beta2_Instance_To_v1beta1_Instance(in *v1beta2.Instance, out 
 	out.ID = in.ID
 	out.State = InstanceState(in.State)
 	out.Type = in.Type
+	// WARNING: in.CPUOptions requires manual conversion: does not exist in peer-type
 	out.SubnetID = in.SubnetID
 	out.ImageID = in.ImageID
 	out.SSHKeyName = (*string)(unsafe.Pointer(in.SSHKeyName))

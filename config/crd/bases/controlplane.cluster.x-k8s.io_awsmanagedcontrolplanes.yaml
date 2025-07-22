@@ -1214,6 +1214,16 @@ spec:
                     description: CapacityReservationID specifies the target Capacity
                       Reservation into which the instance should be launched.
                     type: string
+                  cpuOptions:
+                    description: The cpu options of the instance.
+                    properties:
+                      amdSevSnp:
+                        description: amdSevSnp specifies AMD SEV-SNP for the instance.
+                        enum:
+                        - enabled
+                        - disabled
+                        type: string
+                    type: object
                   ebsOptimized:
                     description: Indicates whether the instance is optimized for Amazon
                       EBS I/O.
@@ -3395,6 +3405,16 @@ spec:
                     description: CapacityReservationID specifies the target Capacity
                       Reservation into which the instance should be launched.
                     type: string
+                  cpuOptions:
+                    description: The cpu options of the instance.
+                    properties:
+                      amdSevSnp:
+                        description: amdSevSnp specifies AMD SEV-SNP for the instance.
+                        enum:
+                        - enabled
+                        - disabled
+                        type: string
+                    type: object
                   ebsOptimized:
                     description: Indicates whether the instance is optimized for Amazon
                       EBS I/O.
