@@ -601,14 +601,25 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 
 		input.NetworkInterfaces = netInterfaces
 	} else {
-		input.NetworkInterfaces = []types.InstanceNetworkInterfaceSpecification{
-			{
-				DeviceIndex:              aws.Int32(0),
-				SubnetId:                 aws.String(i.SubnetID),
-				Groups:                   i.SecurityGroupIDs,
-				AssociatePublicIpAddress: i.PublicIPOnLaunch,
-			},
+		netInterface := types.InstanceNetworkInterfaceSpecification{
+			DeviceIndex:              aws.Int32(0),
+			SubnetId:                 aws.String(i.SubnetID),
+			Groups:                   i.SecurityGroupIDs,
+			AssociatePublicIpAddress: i.PublicIPOnLaunch,
 		}
+
+		// When registering targets by instance ID for an IPv6 target group, the targets must have an assigned primary IPv6 address.
+		// Use case: registering controlplane nodes to the API LBs.
+		enablePrimaryIpv6, err := s.shouldEnablePrimaryIpv6(i)
+		if err != nil {
+			return nil, fmt.Errorf("failed to determine whether to enable PrimaryIpv6 for instance: %w", err)
+		}
+		if enablePrimaryIpv6 {
+			netInterface.PrimaryIpv6 = aws.Bool(true)
+			netInterface.Ipv6AddressCount = aws.Int32(1)
+		}
+
+		input.NetworkInterfaces = []types.InstanceNetworkInterfaceSpecification{netInterface}
 	}
 
 	if i.NetworkInterfaceType != "" {
@@ -1380,4 +1391,45 @@ func getInstanceCPUOptionsRequest(cpuOptions infrav1.CPUOptions) *types.CpuOptio
 	}
 
 	return request
+}
+
+// shouldEnablePrimaryIpv6 determines whether to enable a primary IPv6 address for an instance.
+// It returns true if both the VPC has IPv6 enabled and the instance's subnet has an IPv6 CIDR block.
+// This is required when registering instances by ID to IPv6 target groups.
+func (s *Service) shouldEnablePrimaryIpv6(i *infrav1.Instance) (bool, error) {
+	var enablePrimaryIpv6 bool
+
+	// We should enable IPv6 capabilities only when the users explicitly configure so.
+	if !s.scope.VPC().IsIPv6Enabled() {
+		return false, nil
+	}
+
+	sn := s.scope.Subnets().FindByID(i.SubnetID)
+	if sn != nil {
+		enablePrimaryIpv6 = sn.IsIPv6
+	} else {
+		// The subnet is in a different VPC than the cluster VPC. Then, we query AWS API.
+		sns, err := s.getFilteredSubnets(types.Filter{Name: aws.String("subnet-id"), Values: []string{i.SubnetID}})
+		if err != nil {
+			return false, fmt.Errorf("failed to find subnet info with id %q for instance: %w", i.SubnetID, err)
+		}
+		if len(sns) == 0 {
+			return false, fmt.Errorf("expected subnet %q for instance to exist, but found none", i.SubnetID)
+		}
+		if len(sns) > 1 {
+			subnetIDs := make([]string, len(sns))
+			for i, sn := range sns {
+				subnetIDs[i] = aws.ToString(sn.SubnetId)
+			}
+			return false, fmt.Errorf("expected 1 subnet with id %q, but found %v: %v", i.SubnetID, len(sns), subnetIDs)
+		}
+		for _, set := range sns[0].Ipv6CidrBlockAssociationSet {
+			if set.Ipv6CidrBlockState.State == types.SubnetCidrBlockStateCodeAssociated {
+				enablePrimaryIpv6 = true
+				break
+			}
+		}
+	}
+
+	return enablePrimaryIpv6, nil
 }
