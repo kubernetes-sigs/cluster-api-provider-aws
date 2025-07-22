@@ -324,7 +324,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "rejects ipv6",
+			name: "accepts ipv6",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					NetworkSpec: NetworkSpec{
@@ -337,10 +337,10 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
-			name: "rejects ipv6 enabled subnet",
+			name: "accepts ipv6 enabled subnet",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					NetworkSpec: NetworkSpec{
@@ -356,10 +356,10 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
-			name: "rejects ipv6 cidr block for subnets",
+			name: "accepts ipv6 cidr block for subnets",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					NetworkSpec: NetworkSpec{
@@ -372,7 +372,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "rejects ingress rules with cidr block and source security group id",
