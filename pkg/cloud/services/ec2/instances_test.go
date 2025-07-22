@@ -935,6 +935,22 @@ func TestCreateInstance(t *testing.T) {
 						},
 					},
 				}, nil)
+				m.DescribeSubnets(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
+					Filters: []types.Filter{
+						{
+							Name:   aws.String("subnet-id"),
+							Values: []string{"subnet-5"},
+						},
+					}})).Return(&ec2.DescribeSubnetsOutput{
+					Subnets: []types.Subnet{
+						{
+							VpcId:            aws.String("vpc-bar"),
+							SubnetId:         aws.String("subnet-5"),
+							AvailabilityZone: aws.String("us-east-1c"),
+							CidrBlock:        aws.String("10.0.11.0/24"),
+						},
+					},
+				}, nil)
 				m.
 					RunInstances(context.TODO(), &ec2.RunInstancesInput{
 						ImageId:      aws.String("abc"),
@@ -1617,6 +1633,22 @@ func TestCreateInstance(t *testing.T) {
 						}},
 					}, nil)
 				m.
+					DescribeSubnets(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
+						Filters: []types.Filter{
+							{
+								Name:   aws.String("subnet-id"),
+								Values: []string{"filtered-subnet-1"},
+							},
+						}})).Return(&ec2.DescribeSubnetsOutput{
+					Subnets: []types.Subnet{
+						{
+
+							SubnetId:         aws.String("filtered-subnet-1"),
+							AvailabilityZone: aws.String("us-east-1b"),
+						},
+					},
+				}, nil)
+				m.
 					RunInstances(context.TODO(), gomock.Any()).
 					Return(&ec2.RunInstancesOutput{
 						Instances: []types.Instance{
@@ -1989,6 +2021,19 @@ func TestCreateInstance(t *testing.T) {
 							SubnetId: aws.String("matching-subnet"),
 						}},
 					}, nil)
+				m.DescribeSubnets(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
+					Filters: []types.Filter{
+						{
+							Name:   aws.String("subnet-id"),
+							Values: []string{"matching-subnet"},
+						},
+					}})).Return(&ec2.DescribeSubnetsOutput{
+					Subnets: []types.Subnet{
+						{
+							SubnetId: aws.String("matching-subnet"),
+						},
+					},
+				}, nil)
 				m.
 					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
