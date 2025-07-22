@@ -845,6 +845,17 @@ spec:
                             - enabled
                             - disabled
                             type: string
+                          httpProtocolIpv6:
+                            default: disabled
+                            description: |-
+                              Enables or disables the IPv6 endpoint for the instance metadata service.
+                              This applies only if you enabled the HTTP metadata endpoint.
+
+                              Default: disabled
+                            enum:
+                            - enabled
+                            - disabled
+                            type: string
                           httpPutResponseHopLimit:
                             default: 1
                             description: |-
