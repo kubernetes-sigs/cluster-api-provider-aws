@@ -577,14 +577,21 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 
 		input.NetworkInterfaces = netInterfaces
 	} else {
-		input.NetworkInterfaces = []types.InstanceNetworkInterfaceSpecification{
-			{
-				DeviceIndex:              aws.Int32(0),
-				SubnetId:                 aws.String(i.SubnetID),
-				Groups:                   i.SecurityGroupIDs,
-				AssociatePublicIpAddress: i.PublicIPOnLaunch,
-			},
+		netInterface := types.InstanceNetworkInterfaceSpecification{
+			DeviceIndex:              aws.Int32(0),
+			SubnetId:                 aws.String(i.SubnetID),
+			Groups:                   i.SecurityGroupIDs,
+			AssociatePublicIpAddress: i.PublicIPOnLaunch,
 		}
+
+		// When registering targets by instance ID for an IPv6 target group,
+		// the targets must have an assigned primary IPv6 address.
+		if s.scope.VPC().IsIPv6Enabled() {
+			netInterface.Ipv6AddressCount = aws.Int32(1)
+			netInterface.PrimaryIpv6 = aws.Bool(true)
+		}
+
+		input.NetworkInterfaces = []types.InstanceNetworkInterfaceSpecification{netInterface}
 	}
 
 	if i.NetworkInterfaceType != "" {
