@@ -400,6 +400,15 @@ type InstanceMetadataOptions struct {
 	// +kubebuilder:default=enabled
 	HTTPEndpoint InstanceMetadataState `json:"httpEndpoint,omitempty"`
 
+	// Enables or disables the IPv6 endpoint for the instance metadata service.
+	// This applies only if you enabled the HTTP metadata endpoint.
+	//
+	// Default: disabled
+	//
+	// +kubebuilder:validation:Enum:=enabled;disabled
+	// +kubebuilder:default=disabled
+	HTTPProtocolIPv6 InstanceMetadataState `json:"httpProtocolIpv6,omitempty"`
+
 	// The desired HTTP PUT response hop limit for instance metadata requests. The
 	// larger the number, the further instance metadata requests can travel.
 	//
@@ -445,6 +454,9 @@ type InstanceMetadataOptions struct {
 func (obj *InstanceMetadataOptions) SetDefaults() {
 	if obj.HTTPEndpoint == "" {
 		obj.HTTPEndpoint = InstanceMetadataEndpointStateEnabled
+	}
+	if obj.HTTPProtocolIPv6 == "" {
+		obj.HTTPProtocolIPv6 = InstanceMetadataEndpointStateDisabled
 	}
 	if obj.HTTPPutResponseHopLimit == 0 {
 		obj.HTTPPutResponseHopLimit = 1
