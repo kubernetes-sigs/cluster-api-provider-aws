@@ -280,6 +280,30 @@ func TestAWSMachineCreate(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "invalid instance type for AMD SEV-SNP",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "test",
+					CpuOptions: &CpuOptions{
+						AmdSevSnp: aws.Bool(true),
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid instance type for AMD SEV-SNP",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "m6a.large",
+					CpuOptions: &CpuOptions{
+						AmdSevSnp: aws.Bool(true),
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name: "invalid tags return error",
 			machine: &AWSMachine{
 				Spec: AWSMachineSpec{

@@ -255,6 +255,8 @@ func (s *Service) CreateInstance(ctx context.Context, scope *scope.MachineScope,
 
 	input.MarketType = scope.AWSMachine.Spec.MarketType
 
+	input.CpuOptions = scope.AWSMachine.Spec.CpuOptions
+
 	s.scope.Debug("Running instance", "machine-role", scope.Role())
 	s.scope.Debug("Running instance with instance metadata options", "metadata options", input.InstanceMetadataOptions)
 	out, err := s.runInstance(scope.Role(), input)
@@ -560,6 +562,18 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 	}
 
 	s.scope.Debug("userData size", "bytes", len(*i.UserData), "role", role)
+
+	if i.CpuOptions != nil {
+		input.CpuOptions = &ec2.CpuOptionsRequest{}
+
+		if i.CpuOptions.AmdSevSnp != nil {
+			val := ec2.AmdSevSnpSpecificationDisabled
+			if *i.CpuOptions.AmdSevSnp {
+				val = ec2.AmdSevSnpSpecificationEnabled
+			}
+			input.CpuOptions.AmdSevSnp = aws.String(val)
+		}
+	}
 
 	if len(i.NetworkInterfaces) > 0 {
 		netInterfaces := make([]*ec2.InstanceNetworkInterfaceSpecification, 0, len(i.NetworkInterfaces))
