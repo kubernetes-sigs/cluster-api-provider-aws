@@ -162,6 +162,13 @@ func TestReconcileRouteTables(t *testing.T) {
 					After(privateRouteTable)
 
 				m.CreateRoute(context.TODO(), gomock.Eq(&ec2.CreateRouteInput{
+					DestinationIpv6CidrBlock: aws.String("64:ff9b::/96"),
+					NatGatewayId:             aws.String("nat-01"),
+					RouteTableId:             aws.String("rt-1"),
+				})).
+					After(privateRouteTable)
+
+				m.CreateRoute(context.TODO(), gomock.Eq(&ec2.CreateRouteInput{
 					DestinationIpv6CidrBlock:    aws.String("::/0"),
 					EgressOnlyInternetGatewayId: aws.String("eigw-01"),
 					RouteTableId:                aws.String("rt-1"),
@@ -244,6 +251,13 @@ func TestReconcileRouteTables(t *testing.T) {
 					NatGatewayId:         aws.String("nat-01"),
 					DestinationCidrBlock: aws.String("0.0.0.0/0"),
 					RouteTableId:         aws.String("rt-1"),
+				})).
+					After(privateRouteTable)
+
+				m.CreateRoute(context.TODO(), gomock.Eq(&ec2.CreateRouteInput{
+					DestinationIpv6CidrBlock: aws.String("64:ff9b::/96"),
+					NatGatewayId:             aws.String("nat-01"),
+					RouteTableId:             aws.String("rt-1"),
 				})).
 					After(privateRouteTable)
 
@@ -1198,6 +1212,10 @@ func TestService_getRoutesForSubnet(t *testing.T) {
 				{
 					DestinationCidrBlock: aws.String("0.0.0.0/0"),
 					NatGatewayId:         aws.String("nat-gw-fromZone-us-east-1a"),
+				},
+				{
+					DestinationIpv6CidrBlock: aws.String("64:ff9b::/96"),
+					NatGatewayId:             aws.String("nat-gw-fromZone-us-east-1a"),
 				},
 				{
 					DestinationIpv6CidrBlock:    aws.String("::/0"),
