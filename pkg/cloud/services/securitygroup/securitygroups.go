@@ -53,7 +53,7 @@ const (
 	IPProtocolICMP = "icmp"
 
 	// IPProtocolICMPv6 is how EC2 represents the ICMPv6 protocol in ingress rules.
-	IPProtocolICMPv6 = "58"
+	IPProtocolICMPv6 = "icmpv6"
 )
 
 // ReconcileSecurityGroups will reconcile security groups against the Service object.
@@ -921,8 +921,14 @@ func ingressRuleFromSDKProtocol(v types.IpPermission) infrav1.IngressRule {
 		IPProtocolUDP,
 		IPProtocolICMP,
 		IPProtocolICMPv6:
+		// The API returns IpProtocol values as protocol names.
+		// But icmpv6 is handled as its protocol number in CAPA.
+		protocol := *v.IpProtocol
+		if protocol == IPProtocolICMPv6 {
+			protocol = string(infrav1.SecurityGroupProtocolICMPv6)
+		}
 		return infrav1.IngressRule{
-			Protocol: infrav1.SecurityGroupProtocol(*v.IpProtocol),
+			Protocol: infrav1.SecurityGroupProtocol(protocol),
 			FromPort: utils.ToInt64Value(v.FromPort),
 			ToPort:   utils.ToInt64Value(v.ToPort),
 		}
