@@ -58,6 +58,10 @@ func (*rosaControlPlaneWebhook) ValidateCreate(_ context.Context, obj runtime.Ob
 		allErrs = append(allErrs, err)
 	}
 
+	if err := r.validateRosaRoleConfig(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+
 	allErrs = append(allErrs, r.validateNetwork()...)
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 
@@ -174,6 +178,29 @@ func (r *ROSAControlPlane) validateExternalAuthProviders() *field.Error {
 	if !r.Spec.EnableExternalAuthProviders && len(r.Spec.ExternalAuthProviders) > 0 {
 		return field.Invalid(field.NewPath("spec.ExternalAuthProviders"), r.Spec.ExternalAuthProviders,
 			"can only be set if spec.EnableExternalAuthProviders is set to 'True'")
+	}
+
+	return nil
+}
+
+func (r *ROSAControlPlane) validateRosaRoleConfig() *field.Error {
+	hasRosaRoleConfigRef := r.Spec.RosaRoleConfigRef != nil
+	hasAnyDirectRoleFields := r.Spec.OIDCID != "" || r.Spec.InstallerRoleARN != "" || r.Spec.SupportRoleARN != "" || r.Spec.WorkerRoleARN != "" ||
+		r.Spec.RolesRef.IngressARN != "" || r.Spec.RolesRef.ImageRegistryARN != "" || r.Spec.RolesRef.StorageARN != "" ||
+		r.Spec.RolesRef.NetworkARN != "" || r.Spec.RolesRef.KubeCloudControllerARN != "" || r.Spec.RolesRef.NodePoolManagementARN != "" ||
+		r.Spec.RolesRef.ControlPlaneOperatorARN != "" || r.Spec.RolesRef.KMSProviderARN != ""
+
+	hasAllDirectRoleFields := r.Spec.OIDCID != "" && r.Spec.InstallerRoleARN != "" && r.Spec.SupportRoleARN != "" && r.Spec.WorkerRoleARN != "" &&
+		r.Spec.RolesRef.IngressARN != "" && r.Spec.RolesRef.ImageRegistryARN != "" && r.Spec.RolesRef.StorageARN != "" &&
+		r.Spec.RolesRef.NetworkARN != "" && r.Spec.RolesRef.KubeCloudControllerARN != "" && r.Spec.RolesRef.NodePoolManagementARN != "" &&
+		r.Spec.RolesRef.ControlPlaneOperatorARN != "" && r.Spec.RolesRef.KMSProviderARN != ""
+
+	if hasRosaRoleConfigRef && hasAnyDirectRoleFields {
+		return field.Invalid(field.NewPath("spec.rosaRoleConfigRef"), r.Spec.RosaRoleConfigRef, "rosaRoleConfigRef and direct role fields (oidcID, installerRoleARN, supportRoleARN, workerRoleARN, rolesRef) are mutually exclusive")
+	}
+
+	if !hasRosaRoleConfigRef && !hasAllDirectRoleFields {
+		return field.Invalid(field.NewPath("spec"), r.Spec, "either rosaRoleConfigRef or direct role fields (oidcID, installerRoleARN, supportRoleARN, workerRoleARN, rolesRef) must be specified")
 	}
 
 	return nil

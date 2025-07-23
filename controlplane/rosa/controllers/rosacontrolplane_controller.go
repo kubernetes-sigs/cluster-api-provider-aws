@@ -143,6 +143,8 @@ func (r *ROSAControlPlaneReconciler) SetupWithManager(ctx context.Context, mgr c
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=rosacontrolplanes,verbs=get;list;watch;update;patch;delete
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=rosacontrolplanes/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=rosacontrolplanes/finalizers,verbs=update
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=rosaroleconfigs,verbs=get;list;watch;
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=rosaroleconfigs/status,verbs=get;
 
 // Reconcile will reconcile RosaControlPlane Resources.
 func (r *ROSAControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, reterr error) {
@@ -226,7 +228,54 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		return ctrl.Result{}, fmt.Errorf("failed to transform caller identity to creator: %w", err)
 	}
 
+	rosaRoleConfig := &expinfrav1.ROSARoleConfig{}
+	// Get role configuration from either RosaRoleConfig or direct fields
+	if rosaScope.ControlPlane.Spec.RosaRoleConfigRef != nil {
+		// Get configuration from RosaRoleConfig
+
+		key := client.ObjectKey{
+			Name:      rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name,
+			Namespace: rosaScope.ControlPlane.Namespace,
+		}
+
+		if err := r.Client.Get(ctx, key, rosaRoleConfig); err != nil {
+			if apierrors.IsNotFound(err) {
+				conditions.MarkFalse(rosaScope.ControlPlane,
+					rosacontrolplanev1.ROSARoleConfigReadyCondition,
+					rosacontrolplanev1.ROSARoleConfigNotFoundReason,
+					clusterv1.ConditionSeverityError,
+					"RosaRoleConfig %s/%s not found", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name)
+				return ctrl.Result{}, fmt.Errorf("RosaRoleConfig %s/%s not found: %w", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name, err)
+			}
+			return ctrl.Result{}, fmt.Errorf("failed to get RosaRoleConfig %s/%s: %w", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name, err)
+		}
+
+		// Check if RosaRoleConfig is ready
+		if !conditions.IsTrue(rosaRoleConfig, expinfrav1.RosaRoleConfigReadyCondition) {
+			conditions.MarkFalse(rosaScope.ControlPlane,
+				rosacontrolplanev1.ROSARoleConfigReadyCondition,
+				rosacontrolplanev1.ROSARoleConfigNotReadyReason,
+				clusterv1.ConditionSeverityWarning,
+				"RosaRoleConfig %s/%s is not ready", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name)
+			return ctrl.Result{}, fmt.Errorf("RosaRoleConfig %s/%s is not ready", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name)
+		}
+
+		conditions.MarkTrue(rosaScope.ControlPlane, rosacontrolplanev1.ROSARoleConfigReadyCondition)
+	} else {
+		rosaRoleConfig.Status.OIDCID = rosaScope.ControlPlane.Spec.OIDCID
+		rosaRoleConfig.Status.AccountRolesRef.InstallerRoleARN = rosaScope.ControlPlane.Spec.InstallerRoleARN
+		rosaRoleConfig.Status.AccountRolesRef.SupportRoleARN = rosaScope.ControlPlane.Spec.SupportRoleARN
+		rosaRoleConfig.Status.AccountRolesRef.WorkerRoleARN = rosaScope.ControlPlane.Spec.WorkerRoleARN
+		rosaRoleConfig.Status.OperatorRolesRef = rosaScope.ControlPlane.Spec.RolesRef
+		rosaRoleConfig.Spec.OIDCConfig.ExternalAuthProviders = rosaScope.ControlPlane.Spec.ExternalAuthProviders
+	}
+
 	validationMessage, err := validateControlPlaneSpec(ocmClient, rosaScope)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to validate ROSAControlPlane.spec: %w", err)
+	}
+
+	err = validateRoleConfigSpec(rosaRoleConfig)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to validate ROSAControlPlane.spec: %w", err)
 	}
@@ -313,7 +362,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		return ctrl.Result{RequeueAfter: time.Second * 60}, nil
 	}
 
-	ocmClusterSpec, err := buildOCMClusterSpec(rosaScope.ControlPlane.Spec, creator)
+	ocmClusterSpec, err := buildOCMClusterSpec(rosaScope.ControlPlane.Spec, rosaRoleConfig, creator)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -907,7 +956,7 @@ func validateControlPlaneSpec(ocmClient rosa.OCMClient, rosaScope *scope.ROSACon
 	return "", nil
 }
 
-func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpec, creator *rosaaws.Creator) (ocm.Spec, error) {
+func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpec, roleConfig *expinfrav1.ROSARoleConfig, creator *rosaaws.Creator) (ocm.Spec, error) {
 	billingAccount := controlPlaneSpec.BillingAccount
 	if billingAccount == "" {
 		billingAccount = creator.AccountID
@@ -931,11 +980,11 @@ func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpe
 
 		SubnetIds:        controlPlaneSpec.Subnets,
 		IsSTS:            true,
-		RoleARN:          controlPlaneSpec.InstallerRoleARN,
-		SupportRoleARN:   controlPlaneSpec.SupportRoleARN,
-		WorkerRoleARN:    controlPlaneSpec.WorkerRoleARN,
-		OperatorIAMRoles: operatorIAMRoles(controlPlaneSpec.RolesRef),
-		OidcConfigId:     controlPlaneSpec.OIDCID,
+		RoleARN:          roleConfig.Status.AccountRolesRef.InstallerRoleARN,
+		SupportRoleARN:   roleConfig.Status.AccountRolesRef.SupportRoleARN,
+		WorkerRoleARN:    roleConfig.Status.AccountRolesRef.WorkerRoleARN,
+		OperatorIAMRoles: operatorIAMRoles(roleConfig.Status.OperatorRolesRef),
+		OidcConfigId:     roleConfig.Status.OIDCID,
 		Mode:             "auto",
 		Hypershift: ocm.Hypershift{
 			Enabled: true,
@@ -1138,4 +1187,56 @@ func convertStsV2(identity *sts.GetCallerIdentityOutput) *stsv2.GetCallerIdentit
 		Arn:     identity.Arn,
 		UserId:  identity.UserId,
 	}
+}
+
+func validateRoleConfigSpec(roleConfig *expinfrav1.ROSARoleConfig) error {
+	if roleConfig.Status.OIDCID == "" {
+		return fmt.Errorf("OIDCID is required")
+	}
+
+	if roleConfig.Status.AccountRolesRef.InstallerRoleARN == "" {
+		return fmt.Errorf("InstallerRoleARN is required")
+	}
+
+	if roleConfig.Status.AccountRolesRef.SupportRoleARN == "" {
+		return fmt.Errorf("SupportRoleARN is required")
+	}
+
+	if roleConfig.Status.AccountRolesRef.WorkerRoleARN == "" {
+		return fmt.Errorf("WorkerRoleARN is required")
+	}
+
+	if roleConfig.Status.OperatorRolesRef.IngressARN == "" {
+		return fmt.Errorf("IngressARN is required")
+	}
+
+	if roleConfig.Status.OperatorRolesRef.ImageRegistryARN == "" {
+		return fmt.Errorf("ImageRegistryARN is required")
+	}
+
+	if roleConfig.Status.OperatorRolesRef.StorageARN == "" {
+		return fmt.Errorf("StorageARN is required")
+	}
+
+	if roleConfig.Status.OperatorRolesRef.NetworkARN == "" {
+		return fmt.Errorf("NetworkARN is required")
+	}
+
+	if roleConfig.Status.OperatorRolesRef.KubeCloudControllerARN == "" {
+		return fmt.Errorf("KubeCloudControllerARN is required")
+	}
+
+	if roleConfig.Status.OperatorRolesRef.KMSProviderARN == "" {
+		return fmt.Errorf("KMSProviderARN is required")
+	}
+
+	if roleConfig.Status.OperatorRolesRef.ControlPlaneOperatorARN == "" {
+		return fmt.Errorf("ControlPlaneOperatorARN is required")
+	}
+
+	if roleConfig.Status.OperatorRolesRef.NodePoolManagementARN == "" {
+		return fmt.Errorf("NodePoolManagementARN is required")
+	}
+
+	return nil
 }
