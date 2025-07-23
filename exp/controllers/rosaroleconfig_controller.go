@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 	"github.com/go-logr/logr"
@@ -141,26 +140,26 @@ func (r *ROSARoleConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		err = r.createOIDCConfig(roleConfig, scope, ocmClient)
 		if err != nil {
 			conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1.RosaRoleConfigReadyCondition, expinfrav1.RosaRoleConfigReconciliationFailedReason, clusterv1.ConditionSeverityError, "Failed to create OIDC Config: %v", err)
-			return ctrl.Result{RequeueAfter: time.Second * 60}, fmt.Errorf("failed to OICD Config: %w", err)
+			return ctrl.Result{}, fmt.Errorf("failed to OICD Config: %w", err)
 		}
 	}
 
 	err = r.createAccountRoles(ctx, roleConfig, scope, ocmClient)
 	if err != nil {
 		conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1.RosaRoleConfigReadyCondition, expinfrav1.RosaRoleConfigReconciliationFailedReason, clusterv1.ConditionSeverityError, "Failed to create Account Roles: %v", err)
-		return ctrl.Result{RequeueAfter: time.Second * 60}, fmt.Errorf("failed to Create AccountRoles: %w", err)
+		return ctrl.Result{}, fmt.Errorf("failed to Create AccountRoles: %w", err)
 	}
 
 	err = r.createOperatorRoles(ctx, roleConfig, scope, ocmClient)
 	if err != nil {
 		conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1.RosaRoleConfigReadyCondition, expinfrav1.RosaRoleConfigReconciliationFailedReason, clusterv1.ConditionSeverityError, "Failed to create Operator Roles: %v", err)
-		return ctrl.Result{RequeueAfter: time.Second * 60}, fmt.Errorf("failed to Create OperatorRoles: %w", err)
+		return ctrl.Result{}, fmt.Errorf("failed to Create OperatorRoles: %w", err)
 	}
 
 	err = r.createOIDCProvider(scope, ocmClient)
 	if err != nil {
 		conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1.RosaRoleConfigReadyCondition, expinfrav1.RosaRoleConfigReconciliationFailedReason, clusterv1.ConditionSeverityError, "Failed to create OIDC provider: %v", err)
-		return ctrl.Result{RequeueAfter: time.Second * 60}, fmt.Errorf("failed to Create OIDC provider: %w", err)
+		return ctrl.Result{}, fmt.Errorf("failed to Create OIDC provider: %w", err)
 	}
 
 	if r.rosaRolesConfigReady(scope) {

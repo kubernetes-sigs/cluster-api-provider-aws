@@ -60,20 +60,27 @@ type ROSARoleConfig struct {
 // AccountRoleConfig defines account-wide IAM roles before creating your ROSA cluster.
 type AccountRoleConfig struct {
 	// User-defined prefix for all generated AWS resources
-	// +kubebuilder:validation:MaxLength:=4
+	// +kubebuilder:validation:MaxLength:=40
 	// +kubebuilder:validation:Required
+	// +immutable
 	Prefix string `json:"prefix"`
 	// The ARN of the policy that is used to set the permissions boundary for the account roles.
 	// +optional
+	// +immutable
+
 	PermissionsBoundaryARN string `json:"permissionsBoundaryARN,omitempty"`
 	// The arn path for the account/operator roles as well as their policies.
 	// +optional
+	// +immutable
+
 	Path string `json:"path,omitempty"`
 	//  Version of OpenShift that will be used to setup policy tag, for example "4.11"
 	// +kubebuilder:validation:Required
+	// +immutable
 	Version string `json:"version"`
 	// SharedVPCConfig is used to set up shared VPC.
 	// +optional
+	// +immutable
 	SharedVPCConfig SharedVPCConfig `json:"sharedVPCConfig,omitempty"`
 }
 
@@ -82,12 +89,15 @@ type OperatorRoleConfig struct {
 	//  User-defined prefix for generated AWS operator policies.
 	// +kubebuilder:validation:MaxLength:=4
 	// +kubebuilder:validation:Required
+	// +immutable
 	Prefix string `json:"prefix"`
 	// The ARN of the policy that is used to set the permissions boundary for the operator roles.
 	// +optional
+	// +immutable
 	PermissionsBoundaryARN string `json:"permissionsBoundaryARN,omitempty"`
 	// SharedVPCConfig is used to set up shared VPC.
 	// +optional
+	// +immutable
 	SharedVPCConfig SharedVPCConfig `json:"sharedVPCConfig,omitempty"`
 }
 
@@ -104,6 +114,7 @@ type SharedVPCConfig struct {
 type OIDCConfig struct {
 	// ManagedOIDC indicates whether it is a Red Hat managed or unmanaged (Customer hosted) OIDC Configuration. Default is true.
 	// +kubebuilder:default=true
+	// +immutable
 	ManagedOIDC bool `json:"managedOIDC"`
 	// ExternalAuthProviders are external OIDC identity providers that can issue tokens for this cluster.
 	// Can only be set if "enableExternalAuthProviders" is set to "True".
@@ -113,10 +124,17 @@ type OIDCConfig struct {
 	// +listType=map
 	// +listMapKey=name
 	// +kubebuilder:validation:MaxItems=1
+	// +immutable
 	ExternalAuthProviders []rosacontrolplanev1.ExternalAuthProvider `json:"externalAuthProviders,omitempty"`
-	IdentityRef           *infrav1.AWSIdentityReference             `json:"identityRef,omitempty"`
-	Region                string                                    `json:"region,omitempty"`
-	Prefix                string                                    `json:"prefix"`
+	// IdentityRef is the AWS identity reference for the OIDC config.
+	// +immutable
+	IdentityRef *infrav1.AWSIdentityReference `json:"identityRef,omitempty"`
+	// Region is the AWS region for the OIDC config.
+	// +immutable
+	Region string `json:"region,omitempty"`
+	// Prefix is the prefix for the OIDC config.
+	// +immutable
+	Prefix string `json:"prefix"`
 }
 
 // ROSARoleConfigStatus defines the observed state of ROSARoleConfig

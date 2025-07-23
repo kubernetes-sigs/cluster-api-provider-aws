@@ -185,16 +185,21 @@ func (r *ROSAControlPlane) validateExternalAuthProviders() *field.Error {
 
 func (r *ROSAControlPlane) validateRosaRoleConfig() *field.Error {
 	hasRosaRoleConfigRef := r.Spec.RosaRoleConfigRef != nil
-	hasDirectRoleFields := r.Spec.OIDCID != "" || r.Spec.InstallerRoleARN != "" || r.Spec.SupportRoleARN != "" || r.Spec.WorkerRoleARN != "" ||
+	hasAnyDirectRoleFields := r.Spec.OIDCID != "" || r.Spec.InstallerRoleARN != "" || r.Spec.SupportRoleARN != "" || r.Spec.WorkerRoleARN != "" ||
 		r.Spec.RolesRef.IngressARN != "" || r.Spec.RolesRef.ImageRegistryARN != "" || r.Spec.RolesRef.StorageARN != "" ||
 		r.Spec.RolesRef.NetworkARN != "" || r.Spec.RolesRef.KubeCloudControllerARN != "" || r.Spec.RolesRef.NodePoolManagementARN != "" ||
 		r.Spec.RolesRef.ControlPlaneOperatorARN != "" || r.Spec.RolesRef.KMSProviderARN != ""
 
-	if hasRosaRoleConfigRef && hasDirectRoleFields {
+	hasAllDirectRoleFields := r.Spec.OIDCID != "" && r.Spec.InstallerRoleARN != "" && r.Spec.SupportRoleARN != "" && r.Spec.WorkerRoleARN != "" &&
+		r.Spec.RolesRef.IngressARN != "" && r.Spec.RolesRef.ImageRegistryARN != "" && r.Spec.RolesRef.StorageARN != "" &&
+		r.Spec.RolesRef.NetworkARN != "" && r.Spec.RolesRef.KubeCloudControllerARN != "" && r.Spec.RolesRef.NodePoolManagementARN != "" &&
+		r.Spec.RolesRef.ControlPlaneOperatorARN != "" && r.Spec.RolesRef.KMSProviderARN != ""
+
+	if hasRosaRoleConfigRef && hasAnyDirectRoleFields {
 		return field.Invalid(field.NewPath("spec.rosaRoleConfigRef"), r.Spec.RosaRoleConfigRef, "rosaRoleConfigRef and direct role fields (oidcID, installerRoleARN, supportRoleARN, workerRoleARN, rolesRef) are mutually exclusive")
 	}
 
-	if !hasRosaRoleConfigRef && !hasDirectRoleFields {
+	if !hasRosaRoleConfigRef && !hasAllDirectRoleFields {
 		return field.Invalid(field.NewPath("spec"), r.Spec, "either rosaRoleConfigRef or direct role fields (oidcID, installerRoleARN, supportRoleARN, workerRoleARN, rolesRef) must be specified")
 	}
 
