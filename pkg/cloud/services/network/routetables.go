@@ -322,6 +322,13 @@ func (s *Service) getNatGatewayPrivateRoute(natGatewayID string) *ec2.CreateRout
 	}
 }
 
+func (s *Service) getNat64PrivateRoute(natGatewayID string) *ec2.CreateRouteInput {
+	return &ec2.CreateRouteInput{
+		NatGatewayId:             aws.String(natGatewayID),
+		DestinationIpv6CidrBlock: aws.String(services.NAT64CidrBlock),
+	}
+}
+
 func (s *Service) getEgressOnlyInternetGateway() *ec2.CreateRouteInput {
 	return &ec2.CreateRouteInput{
 		DestinationIpv6CidrBlock:    aws.String(services.AnyIPv6CidrBlock),
@@ -416,6 +423,7 @@ func (s *Service) getRoutesToPrivateSubnet(sn *infrav1.SubnetSpec) (routes []*ec
 
 	routes = append(routes, s.getNatGatewayPrivateRoute(natGatewayID))
 	if sn.IsIPv6 {
+		routes = append(routes, s.getNat64PrivateRoute(natGatewayID))
 		if !s.scope.VPC().IsIPv6Enabled() {
 			// Safety net because EgressOnlyInternetGateway needs the ID from the ipv6 block.
 			// if, for whatever reason by this point that is not available, we don't want to
