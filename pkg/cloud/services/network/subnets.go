@@ -545,6 +545,28 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 			return nil, errors.Wrapf(err, "failed to set subnet %q attribute assign ipv6 address on creation", *out.Subnet.SubnetId)
 		}
 		record.Eventf(s.scope.InfraCluster(), "SuccessfulModifySubnetAttributes", "Modified managed Subnet %q attributes", *out.Subnet.SubnetId)
+
+		// Enable DNS64 so that the Route 53 Resolver returns DNS records for IPv4-only services
+		// containing a synthesized IPv6 address prefixed 64:ff9b::/96.
+		// This is needed alongside NAT64 to allow IPv6-only workloads to reach IPv4-only services.
+		// We only need to enable on private subnets.
+		if !sn.IsPublic {
+			if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+				if _, err := s.EC2Client.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
+					SubnetId: out.Subnet.SubnetId,
+					EnableDns64: &types.AttributeBooleanValue{
+						Value: aws.Bool(true),
+					},
+				}); err != nil {
+					return false, err
+				}
+				return true, nil
+			}, awserrors.SubnetNotFound); err != nil {
+				record.Warnf(s.scope.InfraCluster(), "FailedModifySubnetAttributes", "Failed modifying managed Subnet %q attributes: %v", *out.Subnet.SubnetId, err)
+				return nil, errors.Wrapf(err, "failed to set subnet %q attribute enable dns64", *out.Subnet.SubnetId)
+			}
+			record.Eventf(s.scope.InfraCluster(), "SuccessfulModifySubnetAttributes", "Modified managed Subnet %q attributes", *out.Subnet.SubnetId)
+		}
 	}
 
 	// AWS Wavelength Zone's public subnets does not support to map Carrier IP address on launch, and
