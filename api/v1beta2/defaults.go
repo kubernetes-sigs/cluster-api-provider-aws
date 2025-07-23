@@ -50,6 +50,17 @@ func SetDefaults_NetworkSpec(obj *NetworkSpec) { //nolint:golint,stylecheck
 				},
 			},
 		}
+		// To support IPv6, calico must be configured to use VXLAN.
+		// According to https://github.com/projectcalico/calico/issues/5206,
+		// IP-in-IP is not yet supported on IPv6.
+		if obj.VPC.IsIPv6Enabled() {
+			obj.CNI.CNIIngressRules = append(obj.CNI.CNIIngressRules, CNIIngressRule{
+				Description: "VXLAN (calico)",
+				Protocol:    SecurityGroupProtocolUDP,
+				FromPort:    4789,
+				ToPort:      4789,
+			})
+		}
 	}
 }
 
