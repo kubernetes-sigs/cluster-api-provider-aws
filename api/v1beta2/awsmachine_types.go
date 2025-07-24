@@ -73,6 +73,22 @@ const (
 	NetworkInterfaceTypeEFAWithENAInterface NetworkInterfaceType = NetworkInterfaceType("efa")
 )
 
+// CpuOptions defines the cpu options for the instance.
+type CpuOptions struct {
+	// AmdSevSnp enables AMD SEV-SNP on the instance.
+	// +optional
+	AmdSevSnp *bool `json:"amdSevSnp,omitempty"`
+}
+
+// Confidentail computing support depends on the instance type.
+// Only certain instance types in M6a, R6a and C6a series support AMD SEV-SNP. Reference: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/sev-snp.html
+var (
+        instanceTypesSupportingAmdSevsnp = []string{"m6a.large", "m6a.xlarge", "m6a.2xlarge", "m6a.4xlarge", "m6a.8xlarge",
+													"c6a.large", "c6a.xlarge", "c6a.2xlarge", "c6a.4xlarge", "c6a.8xlarge", "c6a.12xlarge", "c6a.16xlarge",
+													"r6a.large", "r6a.xlarge", "r6a.2xlarge", "r6a.4xlarge"}
+)
+
+
 // AWSMachineSpec defines the desired state of an Amazon EC2 instance.
 // +kubebuilder:validation:XValidation:rule="!has(self.capacityReservationId) || !has(self.marketType) || self.marketType != 'Spot'",message="capacityReservationId may not be set when marketType is Spot"
 // +kubebuilder:validation:XValidation:rule="!has(self.capacityReservationId) || !has(self.spotMarketOptions)",message="capacityReservationId cannot be set when spotMarketOptions is specified"
@@ -115,6 +131,10 @@ type AWSMachineSpec struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength:=2
 	InstanceType string `json:"instanceType"`
+
+	// CpuOptions is the set of cpu options for the instance
+	// +optional
+	CpuOptions *CpuOptions `json:"cpuOptions,omitempty"`
 
 	// AdditionalTags is an optional set of tags to add to an instance, in addition to the ones added by default by the
 	// AWS provider. If both the AWSCluster and the AWSMachine specify the same tag name with different values, the

@@ -172,6 +172,9 @@ type Instance struct {
 	// The instance type.
 	Type string `json:"type,omitempty"`
 
+	// The cpu options of the instance.
+	CpuOptions *CpuOptions `json:"cpuOptions,omitempty"`
+
 	// The ID of the subnet of the instance.
 	SubnetID string `json:"subnetId,omitempty"`
 
