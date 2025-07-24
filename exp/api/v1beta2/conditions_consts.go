@@ -63,6 +63,11 @@ const (
 	LifecycleHookUpdateFailedReason = "LifecycleHookUpdateFailed"
 	// LifecycleHookDeletionFailedReason used for failures during lifecycle hook deletion.
 	LifecycleHookDeletionFailedReason = "LifecycleHookDeletionFailed"
+
+	// AWSMachineCreationFailed reports if creating AWSMachines to represent ASG (machine pool) machines failed.
+	AWSMachineCreationFailed = "AWSMachineCreationFailed"
+	// AWSMachineDeletionFailed reports if deleting AWSMachines failed.
+	AWSMachineDeletionFailed = "AWSMachineDeletionFailed"
 )
 
 const (

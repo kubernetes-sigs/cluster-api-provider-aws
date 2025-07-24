@@ -58,6 +58,7 @@ func (src *AWSMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	if restored.Spec.AWSLifecycleHooks != nil {
 		dst.Spec.AWSLifecycleHooks = restored.Spec.AWSLifecycleHooks
 	}
+	dst.Status.InfrastructureMachineKind = restored.Status.InfrastructureMachineKind
 
 	if restored.Spec.AWSLaunchTemplate.PrivateDNSName != nil {
 		dst.Spec.AWSLaunchTemplate.PrivateDNSName = restored.Spec.AWSLaunchTemplate.PrivateDNSName
@@ -89,7 +90,6 @@ func (src *AWSMachinePoolList) ConvertTo(dstRaw conversion.Hub) error {
 // ConvertFrom converts the v1beta2 AWSMachinePoolList receiver to v1beta1 AWSMachinePoolList.
 func (r *AWSMachinePoolList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1exp.AWSMachinePoolList)
-
 	return Convert_v1beta2_AWSMachinePoolList_To_v1beta1_AWSMachinePoolList(src, r, nil)
 }
 
@@ -140,6 +140,10 @@ func (r *AWSManagedMachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 // Convert_v1beta2_AWSManagedMachinePoolSpec_To_v1beta1_AWSManagedMachinePoolSpec is a conversion function.
 func Convert_v1beta2_AWSManagedMachinePoolSpec_To_v1beta1_AWSManagedMachinePoolSpec(in *infrav1exp.AWSManagedMachinePoolSpec, out *AWSManagedMachinePoolSpec, s apiconversion.Scope) error {
 	return autoConvert_v1beta2_AWSManagedMachinePoolSpec_To_v1beta1_AWSManagedMachinePoolSpec(in, out, s)
+}
+
+func Convert_v1beta2_AWSMachinePoolStatus_To_v1beta1_AWSMachinePoolStatus(in *infrav1exp.AWSMachinePoolStatus, out *AWSMachinePoolStatus, s apiconversion.Scope) error {
+	return autoConvert_v1beta2_AWSMachinePoolStatus_To_v1beta1_AWSMachinePoolStatus(in, out, s)
 }
 
 // ConvertTo converts the v1beta1 AWSManagedMachinePoolList receiver to a v1beta2 AWSManagedMachinePoolList.

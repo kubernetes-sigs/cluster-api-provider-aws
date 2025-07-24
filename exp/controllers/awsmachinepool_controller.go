@@ -20,6 +20,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/blang/semver/v4"
 	"github.com/google/go-cmp/cmp"
@@ -45,6 +46,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/controllers"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
@@ -192,16 +194,24 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 	}()
 
+	if feature.Gates.Enabled(feature.MachinePoolMachines) {
+		// Patch now so that the status and selectors are available.
+		awsMachinePool.Status.InfrastructureMachineKind = "AWSMachine"
+		if err := machinePoolScope.PatchObject(); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "failed to patch AWSMachinePool status")
+		}
+	}
+
 	switch infraScope := infraCluster.(type) {
 	case *scope.ManagedControlPlaneScope:
 		if !awsMachinePool.ObjectMeta.DeletionTimestamp.IsZero() {
-			return ctrl.Result{}, r.reconcileDelete(machinePoolScope, infraScope, infraScope)
+			return ctrl.Result{}, r.reconcileDelete(ctx, machinePoolScope, infraScope, infraScope)
 		}
 
 		return r.reconcileNormal(ctx, machinePoolScope, infraScope, infraScope, s3Scope)
 	case *scope.ClusterScope:
 		if !awsMachinePool.ObjectMeta.DeletionTimestamp.IsZero() {
-			return ctrl.Result{}, r.reconcileDelete(machinePoolScope, infraScope, infraScope)
+			return ctrl.Result{}, r.reconcileDelete(ctx, machinePoolScope, infraScope, infraScope)
 		}
 
 		return r.reconcileNormal(ctx, machinePoolScope, infraScope, infraScope, s3Scope)
@@ -285,7 +295,7 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 	// Find existing ASG
 	asg, err := r.findASG(machinePoolScope, asgsvc)
 	if err != nil {
-		conditions.MarkUnknown(machinePoolScope.AWSMachinePool, expinfrav1.ASGReadyCondition, expinfrav1.ASGNotFoundReason, err.Error())
+		conditions.MarkUnknown(machinePoolScope.AWSMachinePool, expinfrav1.ASGReadyCondition, expinfrav1.ASGNotFoundReason, "%s", err.Error())
 		return ctrl.Result{}, err
 	}
 
@@ -353,10 +363,31 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 	if asg == nil {
 		// Create new ASG
 		if err := r.createPool(machinePoolScope, clusterScope); err != nil {
-			conditions.MarkFalse(machinePoolScope.AWSMachinePool, expinfrav1.ASGReadyCondition, expinfrav1.ASGProvisionFailedReason, clusterv1.ConditionSeverityError, err.Error())
+			conditions.MarkFalse(machinePoolScope.AWSMachinePool, expinfrav1.ASGReadyCondition, expinfrav1.ASGProvisionFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
 			return ctrl.Result{}, err
 		}
-		return ctrl.Result{}, nil
+		return ctrl.Result{
+			RequeueAfter: 15 * time.Second,
+		}, nil
+	}
+
+	if feature.Gates.Enabled(feature.MachinePoolMachines) {
+		awsMachineList, err := getAWSMachines(ctx, machinePoolScope.MachinePool, r.Client)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		if err := createAWSMachinesIfNotExists(ctx, awsMachineList, machinePoolScope.MachinePool, &machinePoolScope.AWSMachinePool.ObjectMeta, &machinePoolScope.AWSMachinePool.TypeMeta, asg, machinePoolScope.GetLogger(), r.Client, ec2Svc); err != nil {
+			machinePoolScope.SetNotReady()
+			conditions.MarkFalse(machinePoolScope.AWSMachinePool, clusterv1.ReadyCondition, expinfrav1.AWSMachineCreationFailed, clusterv1.ConditionSeverityWarning, "%s", err.Error())
+			return ctrl.Result{}, fmt.Errorf("failed to create awsmachines: %w", err)
+		}
+
+		if err := deleteOrphanedAWSMachines(ctx, awsMachineList, asg, machinePoolScope.GetLogger(), r.Client); err != nil {
+			machinePoolScope.SetNotReady()
+			conditions.MarkFalse(machinePoolScope.AWSMachinePool, clusterv1.ReadyCondition, expinfrav1.AWSMachineDeletionFailed, clusterv1.ConditionSeverityWarning, "%s", err.Error())
+			return ctrl.Result{}, fmt.Errorf("failed to clean up awsmachines: %w", err)
+		}
 	}
 
 	if err := r.reconcileLifecycleHooks(ctx, machinePoolScope, asgsvc); err != nil {
@@ -419,11 +450,27 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 		machinePoolScope.Error(err, "failed updating instances", "instances", asg.Instances)
 	}
 
+	if feature.Gates.Enabled(feature.MachinePoolMachines) {
+		return ctrl.Result{
+			// Regularly update `AWSMachine` objects, for example if ASG was scaled or refreshed instances
+			// TODO: Requeueing interval can be removed or prolonged once reconciliation of ASG EC2 instances
+			//       can be triggered by events (e.g. with feature gate `EventBridgeInstanceState`).
+			//       See https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/5323.
+			RequeueAfter: 3 * time.Minute,
+		}, nil
+	}
+
 	return ctrl.Result{}, nil
 }
 
-func (r *AWSMachinePoolReconciler) reconcileDelete(machinePoolScope *scope.MachinePoolScope, clusterScope cloud.ClusterScoper, ec2Scope scope.EC2Scope) error {
+func (r *AWSMachinePoolReconciler) reconcileDelete(ctx context.Context, machinePoolScope *scope.MachinePoolScope, clusterScope cloud.ClusterScoper, ec2Scope scope.EC2Scope) error {
 	clusterScope.Info("Handling deleted AWSMachinePool")
+
+	if feature.Gates.Enabled(feature.MachinePoolMachines) {
+		if err := reconcileDeleteAWSMachines(ctx, machinePoolScope.MachinePool, r.Client, machinePoolScope.GetLogger()); err != nil {
+			return err
+		}
+	}
 
 	ec2Svc := r.getEC2Service(ec2Scope)
 	asgSvc := r.getASGService(clusterScope)
