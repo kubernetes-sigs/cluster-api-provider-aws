@@ -777,6 +777,22 @@ spec:
                 x-kubernetes-validations:
                 - message: rosaClusterName is immutable
                   rule: self == oldSelf
+              rosaNetworkRef:
+                description: |-
+                  ROSANetworkRef references ROSANetwork custom resource that contains the networking infrastructure
+                  for Rosa HCP cluster
+                properties:
+                  name:
+                    default: ""
+                    description: |-
+                      Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
               subnets:
                 description: |-
                   The Subnet IDs to use when installing the cluster.
@@ -810,14 +826,12 @@ spec:
                   to worker instances.
                 type: string
             required:
-            - availabilityZones
             - channelGroup
             - installerRoleARN
             - oidcID
             - region
             - rolesRef
             - rosaClusterName
-            - subnets
             - supportRoleARN
             - version
             - versionGate
