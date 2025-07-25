@@ -61,6 +61,10 @@ func (*rosaControlPlaneWebhook) ValidateCreate(_ context.Context, obj runtime.Ob
 	allErrs = append(allErrs, r.validateNetwork()...)
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 
+	if err := r.validateROSANetwork(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+
 	if len(allErrs) == 0 {
 		return nil, nil
 	}
@@ -174,6 +178,23 @@ func (r *ROSAControlPlane) validateExternalAuthProviders() *field.Error {
 	if !r.Spec.EnableExternalAuthProviders && len(r.Spec.ExternalAuthProviders) > 0 {
 		return field.Invalid(field.NewPath("spec.ExternalAuthProviders"), r.Spec.ExternalAuthProviders,
 			"can only be set if spec.EnableExternalAuthProviders is set to 'True'")
+	}
+
+	return nil
+}
+
+func (r *ROSAControlPlane) validateROSANetwork() *field.Error {
+	if r.Spec.ROSANetworkRef != nil {
+		if r.Spec.Subnets != nil {
+			return field.Forbidden(field.NewPath("spec.rosaNetworkRef"), "spec.subnets and spec.rosaNetworkRef are mutually exclusive")
+		}
+		if r.Spec.AvailabilityZones != nil {
+			return field.Forbidden(field.NewPath("spec.rosaNetworkRef"), "spec.availabilityZones and spec.rosaNetworkRef are mutually exclusive")
+		}
+	}
+
+	if r.Spec.ROSANetworkRef == nil && (r.Spec.Subnets == nil || r.Spec.AvailabilityZones == nil) {
+		return field.Required(field.NewPath("spec.subnets"), "spec.subnets and spec.availabilityZones cannot be empty when spec.rosaNetworkRef is unspecified")
 	}
 
 	return nil
