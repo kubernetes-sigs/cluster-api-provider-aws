@@ -108,12 +108,14 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 
 	// The Subnet IDs to use when installing the cluster.
 	// SubnetIDs should come in pairs; two per availability zone, one private and one public.
-	Subnets []string `json:"subnets"`
+	// +optional
+	Subnets []string `json:"subnets,omitempty"`
 
 	// AvailabilityZones describe AWS AvailabilityZones of the worker nodes.
 	// should match the AvailabilityZones of the provided Subnets.
 	// a machinepool will be created for each availabilityZone.
-	AvailabilityZones []string `json:"availabilityZones"`
+	// +optional
+	AvailabilityZones []string `json:"availabilityZones,omitempty"`
 
 	// The AWS Region the cluster lives in.
 	Region string `json:"region"`
@@ -264,6 +266,11 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// autoNode set the autoNode mode and roleARN.
 	// +optional
 	AutoNode *AutoNode `json:"autoNode,omitempty"`
+
+	// ROSANetworkRef references ROSANetwork custom resource that contains the networking infrastructure
+	// for the ROSA HCP cluster.
+	// +optional
+	ROSANetworkRef *corev1.LocalObjectReference `json:"rosaNetworkRef,omitempty"`
 }
 
 // AutoNode set the AutoNode mode and AutoNode role ARN.
