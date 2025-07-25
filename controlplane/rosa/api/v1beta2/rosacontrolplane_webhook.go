@@ -81,6 +81,10 @@ func (*rosaControlPlaneWebhook) ValidateCreate(_ context.Context, obj runtime.Ob
 	allErrs = append(allErrs, r.validateNetwork()...)
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 
+	if err := r.validateROSANetwork(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+
 	if len(allErrs) == 0 {
 		return nil, nil
 	}
@@ -252,6 +256,27 @@ func (r *ROSAControlPlane) validateRosaRoleConfig() *field.Error {
 	if r.Spec.RolesRef.KMSProviderARN == "" {
 		return field.Invalid(field.NewPath("spec.rolesRef.kmsProviderARN"), r.Spec.RolesRef.KMSProviderARN, "must be specified")
 	}
+	return nil
+}
+
+func (r *ROSAControlPlane) validateROSANetwork() *field.Error {
+	if r.Spec.ROSANetworkRef != nil {
+		if r.Spec.Subnets != nil {
+			return field.Forbidden(field.NewPath("spec.rosaNetworkRef"), "spec.subnets and spec.rosaNetworkRef are mutually exclusive")
+		}
+		if r.Spec.AvailabilityZones != nil {
+			return field.Forbidden(field.NewPath("spec.rosaNetworkRef"), "spec.availabilityZones and spec.rosaNetworkRef are mutually exclusive")
+		}
+	}
+
+	if r.Spec.ROSANetworkRef == nil && r.Spec.Subnets == nil {
+		return field.Required(field.NewPath("spec.subnets"), "spec.subnets cannot be empty when spec.rosaNetworkRef is unspecified")
+	}
+
+	if r.Spec.ROSANetworkRef == nil && r.Spec.AvailabilityZones == nil {
+		return field.Required(field.NewPath("spec.availabilityZones"), "spec.availabilityZones cannot be empty when spec.rosaNetworkRef is unspecified")
+	}
+
 	return nil
 }
 

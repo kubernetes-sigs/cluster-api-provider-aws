@@ -92,6 +92,8 @@ require (
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 )
 
+require go.uber.org/mock v0.5.2
+
 require (
 	al.essio.dev/pkg/shellescape v1.5.1 // indirect
 	cel.dev/expr v0.18.0 // indirect
@@ -239,7 +241,6 @@ require (
 	go.opentelemetry.io/otel/sdk v1.29.0 // indirect
 	go.opentelemetry.io/otel/trace v1.29.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.3.1 // indirect
-	go.uber.org/mock v0.5.2
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
