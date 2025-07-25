@@ -19,8 +19,8 @@ package ec2
 import (
 	"sort"
 
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -100,8 +100,8 @@ func newAWSCapacityBlockMachinePool() *expinfrav1.AWSMachinePool {
 	}
 }
 
-func defaultEC2Tags(name, clusterName string) []*ec2.Tag {
-	return []*ec2.Tag{
+func defaultEC2Tags(name, clusterName string) []types.Tag {
+	return []types.Tag{
 		{
 			Key:   aws.String("Name"),
 			Value: aws.String(name),
@@ -222,7 +222,7 @@ func newMachinePool() *v1beta1.MachinePool {
 	}
 }
 
-func sortTags(a []*ec2.Tag) {
+func sortTags(a []types.Tag) {
 	sort.Slice(a, func(i, j int) bool {
 		return *(a[i].Key) < *(a[j].Key)
 	})
