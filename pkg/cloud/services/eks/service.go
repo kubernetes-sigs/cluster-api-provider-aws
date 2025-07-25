@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/eks/iam"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/eks/podidentities"
 )
 
 // EKSAPI defines the EKS API interface.
@@ -62,6 +63,8 @@ type EKSAPI interface {
 	TagResource(ctx context.Context, params *eks.TagResourceInput, optFns ...func(*eks.Options)) (*eks.TagResourceOutput, error)
 	UntagResource(ctx context.Context, params *eks.UntagResourceInput, optFns ...func(*eks.Options)) (*eks.UntagResourceOutput, error)
 	DisassociateIdentityProviderConfig(ctx context.Context, params *eks.DisassociateIdentityProviderConfigInput, optFns ...func(*eks.Options)) (*eks.DisassociateIdentityProviderConfigOutput, error)
+	ListPodIdentityAssociations(ctx context.Context, params *eks.ListPodIdentityAssociationsInput, optFns ...func(*eks.Options)) (*eks.ListPodIdentityAssociationsOutput, error)
+	podidentities.EKSAPIPodIdentity
 
 	// Waiters for EKS Cluster
 	WaitUntilClusterActive(ctx context.Context, params *eks.DescribeClusterInput, maxWait time.Duration) error

@@ -3108,6 +3108,7 @@ spec:
                         to "default" namespace.
                       type: string
                   required:
+                  - roleARN
                   - serviceAccountName
                   - serviceAccountNamespace
                   type: object

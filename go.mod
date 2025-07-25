@@ -8,12 +8,12 @@ require (
 	github.com/aws/amazon-vpc-cni-k8s v1.15.5
 	github.com/aws/aws-lambda-go v1.41.0
 	github.com/aws/aws-sdk-go v1.55.7
-	github.com/aws/aws-sdk-go-v2 v1.36.5
+	github.com/aws/aws-sdk-go-v2 v1.36.6
 	github.com/aws/aws-sdk-go-v2/config v1.27.11
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.11
 	github.com/aws/aws-sdk-go-v2/service/autoscaling v1.52.4
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.159.0
-	github.com/aws/aws-sdk-go-v2/service/eks v1.64.0
+	github.com/aws/aws-sdk-go-v2/service/eks v1.66.2
 	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing v1.29.6
 	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.45.2
 	github.com/aws/aws-sdk-go-v2/service/iam v1.32.0
@@ -86,8 +86,8 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.2 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.1 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.36 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.36 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.37 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.37 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.0 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.36 // indirect
 	github.com/aws/aws-sdk-go-v2/service/cloudformation v1.50.0 // indirect

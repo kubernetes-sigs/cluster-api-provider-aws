@@ -172,6 +172,26 @@ func (mr *MockEKSAPIMockRecorder) CreateNodegroup(arg0, arg1 interface{}, arg2 .
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateNodegroup", reflect.TypeOf((*MockEKSAPI)(nil).CreateNodegroup), varargs...)
 }
 
+// CreatePodIdentityAssociation mocks base method.
+func (m *MockEKSAPI) CreatePodIdentityAssociation(arg0 context.Context, arg1 *eks.CreatePodIdentityAssociationInput, arg2 ...func(*eks.Options)) (*eks.CreatePodIdentityAssociationOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "CreatePodIdentityAssociation", varargs...)
+	ret0, _ := ret[0].(*eks.CreatePodIdentityAssociationOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreatePodIdentityAssociation indicates an expected call of CreatePodIdentityAssociation.
+func (mr *MockEKSAPIMockRecorder) CreatePodIdentityAssociation(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreatePodIdentityAssociation", reflect.TypeOf((*MockEKSAPI)(nil).CreatePodIdentityAssociation), varargs...)
+}
+
 // DeleteAddon mocks base method.
 func (m *MockEKSAPI) DeleteAddon(arg0 context.Context, arg1 *eks.DeleteAddonInput, arg2 ...func(*eks.Options)) (*eks.DeleteAddonOutput, error) {
 	m.ctrl.T.Helper()
@@ -250,6 +270,26 @@ func (mr *MockEKSAPIMockRecorder) DeleteNodegroup(arg0, arg1 interface{}, arg2 .
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNodegroup", reflect.TypeOf((*MockEKSAPI)(nil).DeleteNodegroup), varargs...)
+}
+
+// DeletePodIdentityAssociation mocks base method.
+func (m *MockEKSAPI) DeletePodIdentityAssociation(arg0 context.Context, arg1 *eks.DeletePodIdentityAssociationInput, arg2 ...func(*eks.Options)) (*eks.DeletePodIdentityAssociationOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeletePodIdentityAssociation", varargs...)
+	ret0, _ := ret[0].(*eks.DeletePodIdentityAssociationOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeletePodIdentityAssociation indicates an expected call of DeletePodIdentityAssociation.
+func (mr *MockEKSAPIMockRecorder) DeletePodIdentityAssociation(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeletePodIdentityAssociation", reflect.TypeOf((*MockEKSAPI)(nil).DeletePodIdentityAssociation), varargs...)
 }
 
 // DescribeAddon mocks base method.
@@ -490,6 +530,26 @@ func (mr *MockEKSAPIMockRecorder) ListIdentityProviderConfigs(arg0, arg1 interfa
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListIdentityProviderConfigs", reflect.TypeOf((*MockEKSAPI)(nil).ListIdentityProviderConfigs), varargs...)
+}
+
+// ListPodIdentityAssociations mocks base method.
+func (m *MockEKSAPI) ListPodIdentityAssociations(arg0 context.Context, arg1 *eks.ListPodIdentityAssociationsInput, arg2 ...func(*eks.Options)) (*eks.ListPodIdentityAssociationsOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListPodIdentityAssociations", varargs...)
+	ret0, _ := ret[0].(*eks.ListPodIdentityAssociationsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListPodIdentityAssociations indicates an expected call of ListPodIdentityAssociations.
+func (mr *MockEKSAPIMockRecorder) ListPodIdentityAssociations(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPodIdentityAssociations", reflect.TypeOf((*MockEKSAPI)(nil).ListPodIdentityAssociations), varargs...)
 }
 
 // TagResource mocks base method.

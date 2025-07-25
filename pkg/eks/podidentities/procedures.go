@@ -21,9 +21,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/eks"
-	"github.com/aws/aws-sdk-go/service/eks/eksiface"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/eks"
 )
 
 // errPodIdentityAssociationNotFound defines an error for when an eks pod identity is not found.
@@ -31,19 +30,19 @@ var errPodIdentityAssociationNotFound = errors.New("eks pod identity association
 
 // DeletePodIdentityAssociationProcedure is a procedure that will delete an EKS eks pod identity.
 type DeletePodIdentityAssociationProcedure struct {
-	eksClient             eksiface.EKSAPI
+	eksClient             EKSAPIPodIdentity
 	clusterName           string
 	existingAssociationID string
 }
 
 // Do implements the logic for the procedure.
-func (p *DeletePodIdentityAssociationProcedure) Do(_ context.Context) error {
+func (p *DeletePodIdentityAssociationProcedure) Do(ctx context.Context) error {
 	input := &eks.DeletePodIdentityAssociationInput{
 		AssociationId: aws.String(p.existingAssociationID),
 		ClusterName:   aws.String(p.clusterName),
 	}
 
-	if _, err := p.eksClient.DeletePodIdentityAssociation(input); err != nil {
+	if _, err := p.eksClient.DeletePodIdentityAssociation(ctx, input); err != nil {
 		return fmt.Errorf("deleting eks pod identity %s: %w", p.existingAssociationID, err)
 	}
 
@@ -57,13 +56,13 @@ func (p *DeletePodIdentityAssociationProcedure) Name() string {
 
 // CreatePodIdentityAssociationProcedure is a procedure that will create an EKS eks pod identity for a cluster.
 type CreatePodIdentityAssociationProcedure struct {
-	eksClient      eksiface.EKSAPI
+	eksClient      EKSAPIPodIdentity
 	clusterName    string
 	newAssociation *EKSPodIdentityAssociation
 }
 
 // Do implements the logic for the procedure.
-func (p *CreatePodIdentityAssociationProcedure) Do(_ context.Context) error {
+func (p *CreatePodIdentityAssociationProcedure) Do(ctx context.Context) error {
 	if p.newAssociation == nil {
 		return fmt.Errorf("getting desired eks pod identity for cluster %s: %w", p.clusterName, errPodIdentityAssociationNotFound)
 	}
@@ -75,7 +74,7 @@ func (p *CreatePodIdentityAssociationProcedure) Do(_ context.Context) error {
 		ServiceAccount: &p.newAssociation.ServiceAccountName,
 	}
 
-	_, err := p.eksClient.CreatePodIdentityAssociation(input)
+	_, err := p.eksClient.CreatePodIdentityAssociation(ctx, input)
 	if err != nil {
 		return fmt.Errorf("creating desired eks pod identity for cluster %s: %w", p.clusterName, err)
 	}

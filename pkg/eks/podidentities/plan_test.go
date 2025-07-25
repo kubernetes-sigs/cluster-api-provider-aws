@@ -21,8 +21,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/eks"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/eks"
+	"github.com/aws/aws-sdk-go-v2/service/eks/types"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 
@@ -58,14 +59,14 @@ func TestEKSPodIdentityAssociationsPlan(t *testing.T) {
 			name: "no current and 1 desired",
 			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
 				m.
-					CreatePodIdentityAssociation(gomock.Eq(&eks.CreatePodIdentityAssociationInput{
+					CreatePodIdentityAssociation(gomock.Any(), gomock.Eq(&eks.CreatePodIdentityAssociationInput{
 						Namespace:      aws.String(namespace),
 						RoleArn:        aws.String(roleArn),
 						ServiceAccount: aws.String(serviceAccount),
 						ClusterName:    aws.String(clusterName),
 					})).
 					Return(&eks.CreatePodIdentityAssociationOutput{
-						Association: &eks.PodIdentityAssociation{
+						Association: &types.PodIdentityAssociation{
 							AssociationArn: aws.String(responseAssociationArn),
 							AssociationId:  aws.String(associationID),
 							Namespace:      aws.String(namespace),
@@ -112,12 +113,12 @@ func TestEKSPodIdentityAssociationsPlan(t *testing.T) {
 			name: "1 current and 0 desired",
 			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
 				m.
-					DeletePodIdentityAssociation(gomock.Eq(&eks.DeletePodIdentityAssociationInput{
+					DeletePodIdentityAssociation(gomock.Any(), gomock.Eq(&eks.DeletePodIdentityAssociationInput{
 						AssociationId: aws.String(associationID),
 						ClusterName:   aws.String(clusterName),
 					})).
 					Return(&eks.DeletePodIdentityAssociationOutput{
-						Association: &eks.PodIdentityAssociation{
+						Association: &types.PodIdentityAssociation{
 							AssociationArn: aws.String(responseAssociationArn),
 							AssociationId:  aws.String(associationID),
 							Namespace:      aws.String(namespace),

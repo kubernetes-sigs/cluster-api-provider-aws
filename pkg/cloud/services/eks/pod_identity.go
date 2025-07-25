@@ -20,7 +20,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/service/eks"
+	"github.com/aws/aws-sdk-go-v2/service/eks"
+	"github.com/aws/aws-sdk-go-v2/service/eks/types"
 
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	ekspodidentities "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/eks/podidentities"
@@ -69,14 +70,14 @@ func (s *Service) reconcilePodIdentities(ctx context.Context) error {
 	return nil
 }
 
-func (s *Service) listEksPodIdentities(ctx context.Context, eksClusterName string) ([]*eks.PodIdentityAssociationSummary, error) {
+func (s *Service) listEksPodIdentities(ctx context.Context, eksClusterName string) ([]types.PodIdentityAssociationSummary, error) {
 	s.Debug("getting list of associated eks pod identities")
 
 	input := &eks.ListPodIdentityAssociationsInput{
 		ClusterName: &eksClusterName,
 	}
 
-	output, err := s.EKSClient.ListPodIdentityAssociationsWithContext(ctx, input)
+	output, err := s.EKSClient.ListPodIdentityAssociations(ctx, input)
 	if err != nil {
 		return nil, fmt.Errorf("listing eks pod identity assocations: %w", err)
 	}
@@ -101,7 +102,7 @@ func (s *Service) translateAPIToPodAssociation(assocs []ekscontrolplanev1.PodIde
 	return converted
 }
 
-func (s *Service) translateAWSToPodAssociation(assocs []*eks.PodIdentityAssociationSummary) []ekspodidentities.EKSPodIdentityAssociation {
+func (s *Service) translateAWSToPodAssociation(assocs []types.PodIdentityAssociationSummary) []ekspodidentities.EKSPodIdentityAssociation {
 	converted := []ekspodidentities.EKSPodIdentityAssociation{}
 
 	for _, assoc := range assocs {

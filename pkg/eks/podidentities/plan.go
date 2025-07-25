@@ -20,13 +20,19 @@ package podidentities
 import (
 	"context"
 
-	"github.com/aws/aws-sdk-go/service/eks/eksiface"
+	"github.com/aws/aws-sdk-go-v2/service/eks"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/planner"
 )
 
+// EKSAPIPodIdentity defines the EKS API interface.
+type EKSAPIPodIdentity interface {
+	CreatePodIdentityAssociation(ctx context.Context, params *eks.CreatePodIdentityAssociationInput, optFns ...func(*eks.Options)) (*eks.CreatePodIdentityAssociationOutput, error)
+	DeletePodIdentityAssociation(ctx context.Context, params *eks.DeletePodIdentityAssociationInput, optFns ...func(*eks.Options)) (*eks.DeletePodIdentityAssociationOutput, error)
+}
+
 // NewPlan creates a new Plan to manage EKS pod identities.
-func NewPlan(clusterName string, desiredAssociations, currentAssociations []EKSPodIdentityAssociation, client eksiface.EKSAPI) planner.Plan {
+func NewPlan(clusterName string, desiredAssociations, currentAssociations []EKSPodIdentityAssociation, client EKSAPIPodIdentity) planner.Plan {
 	return &plan{
 		currentAssociations: currentAssociations,
 		desiredAssociations: desiredAssociations,
@@ -39,7 +45,7 @@ func NewPlan(clusterName string, desiredAssociations, currentAssociations []EKSP
 type plan struct {
 	currentAssociations []EKSPodIdentityAssociation
 	desiredAssociations []EKSPodIdentityAssociation
-	eksClient           eksiface.EKSAPI
+	eksClient           EKSAPIPodIdentity
 	clusterName         string
 }
 

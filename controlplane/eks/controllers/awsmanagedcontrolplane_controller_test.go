@@ -951,10 +951,10 @@ func mockedEKSCluster(ctx context.Context, g *WithT, eksRec *mock_eksiface.MockE
 	}).Return(&eks.ListAddonsOutput{}, nil)
 
 	eksRec.UpdateClusterConfig(ctx, gomock.AssignableToTypeOf(&eks.UpdateClusterConfigInput{})).After(waitUntilClusterActiveCall).Return(&eks.UpdateClusterConfigOutput{}, nil)
-	eksRec.ListPodIdentityAssociationsWqithContext(context.TODO(), gomock.Eq(&eks.ListPodIdentityAssociationsInput{
+	eksRec.ListPodIdentityAssociations(context.TODO(), gomock.Eq(&eks.ListPodIdentityAssociationsInput{
 		ClusterName: aws.String("test-cluster"),
 	})).Return(&eks.ListPodIdentityAssociationsOutput{
-		Associations: []*eks.PodIdentityAssociationSummary{},
+		Associations: []ekstypes.PodIdentityAssociationSummary{},
 	}, nil)
 
 	awsNodeRec.ReconcileCNI(gomock.Any()).Return(nil)
