@@ -23,6 +23,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"k8s.io/utils/net"
 	"k8s.io/utils/ptr"
 )
 
@@ -367,7 +368,32 @@ type NetworkSpec struct {
 	// NodePortIngressRuleCidrBlocks is an optional set of CIDR blocks to allow traffic to nodes' NodePort services.
 	// If none are specified here, all IPs are allowed to connect.
 	// +optional
-	NodePortIngressRuleCidrBlocks []string `json:"nodePortIngressRuleCidrBlocks,omitempty"`
+	NodePortIngressRuleCidrBlocks CidrBlocks `json:"nodePortIngressRuleCidrBlocks,omitempty"`
+}
+
+// CidrBlocks defines a set of CIDR blocks.
+type CidrBlocks []string
+
+// IPv4CidrBlocks returns only IPv4 CIDR blocks.
+func (c CidrBlocks) IPv4CidrBlocks() CidrBlocks {
+	var cidrs CidrBlocks
+	for _, cidr := range c {
+		if net.IsIPv4CIDRString(cidr) {
+			cidrs = append(cidrs, cidr)
+		}
+	}
+	return cidrs
+}
+
+// IPv6CidrBlocks returns only IPv6 CIDR blocks.
+func (c CidrBlocks) IPv6CidrBlocks() CidrBlocks {
+	var cidrs CidrBlocks
+	for _, cidr := range c {
+		if net.IsIPv6CIDRString(cidr) {
+			cidrs = append(cidrs, cidr)
+		}
+	}
+	return cidrs
 }
 
 // IPv6 contains ipv6 specific settings for the network.
