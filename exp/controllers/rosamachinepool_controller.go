@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 	"github.com/blang/semver"
 	"github.com/google/go-cmp/cmp"
@@ -586,7 +586,7 @@ func (r *ROSAMachinePoolReconciler) reconcileProviderIDList(ctx context.Context,
 	}
 
 	ec2Svc := scope.NewEC2Client(machinePoolScope, machinePoolScope, &machinePoolScope.Logger, machinePoolScope.InfraCluster())
-	response, err := ec2Svc.DescribeInstancesWithContext(ctx, &ec2.DescribeInstancesInput{
+	response, err := ec2Svc.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
 		Filters: buildEC2FiltersFromTags(tags),
 	})
 	if err != nil {
@@ -605,23 +605,23 @@ func (r *ROSAMachinePoolReconciler) reconcileProviderIDList(ctx context.Context,
 	return nil
 }
 
-func buildEC2FiltersFromTags(tags map[string]string) []*ec2.Filter {
-	filters := make([]*ec2.Filter, len(tags)+1)
+func buildEC2FiltersFromTags(tags map[string]string) []ec2types.Filter {
+	filters := make([]ec2types.Filter, len(tags)+1)
 	for key, value := range tags {
-		filters = append(filters, &ec2.Filter{
+		filters = append(filters, ec2types.Filter{
 			Name: ptr.To(fmt.Sprintf("tag:%s", key)),
-			Values: aws.StringSlice([]string{
+			Values: []string{
 				value,
-			}),
+			},
 		})
 	}
 
 	// only list instances that are running or just started
-	filters = append(filters, &ec2.Filter{
+	filters = append(filters, ec2types.Filter{
 		Name: ptr.To("instance-state-name"),
-		Values: aws.StringSlice([]string{
+		Values: []string{
 			"running", "pending",
-		}),
+		},
 	})
 
 	return filters

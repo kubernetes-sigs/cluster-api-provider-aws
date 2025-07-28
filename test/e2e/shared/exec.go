@@ -29,8 +29,8 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	expect "github.com/google/goexpect"
 )
@@ -42,8 +42,8 @@ type instance struct {
 
 // allMachines gets all EC2 instances at once, to save on DescribeInstances calls.
 func allMachines(ctx context.Context, e2eCtx *E2EContext) ([]instance, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
-	resp, err := ec2Svc.DescribeInstancesWithContext(ctx, &ec2.DescribeInstancesInput{})
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
+	resp, err := ec2Svc.DescribeInstances(ctx, &ec2.DescribeInstancesInput{})
 	if err != nil {
 		return nil, err
 	}

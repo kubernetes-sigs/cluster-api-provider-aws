@@ -26,10 +26,10 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
 	autoscalingtypes "github.com/aws/aws-sdk-go-v2/service/autoscaling/types"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -147,7 +147,7 @@ func (s *Service) ASGIfExists(name *string) (*expinfrav1.AutoScalingGroup, error
 		record.Eventf(s.scope.InfraCluster(), "FailedDescribeAutoScalingGroups", "failed to describe ASG %q: %v", *name, err)
 		return nil, errors.Wrapf(err, "failed to describe AutoScaling Group: %q", *name)
 	case len(out.AutoScalingGroups) == 0:
-		record.Eventf(s.scope.InfraCluster(), corev1.EventTypeNormal, expinfrav1.ASGNotFoundReason, "Unable to find ASG matching %q", *name)
+		record.Eventf(s.scope.InfraCluster(), expinfrav1.ASGNotFoundReason, "Unable to find ASG matching %q", *name)
 		return nil, nil
 	}
 	return s.SDKToAutoScalingGroup(&out.AutoScalingGroups[0])
@@ -503,7 +503,7 @@ func mapToTags(input map[string]string, resourceID *string) []autoscalingtypes.T
 // SubnetIDs return subnet IDs of a AWSMachinePool based on given subnetIDs and filters.
 func (s *Service) SubnetIDs(scope *scope.MachinePoolScope) ([]string, error) {
 	subnetIDs := make([]string, 0)
-	var inputFilters = make([]*ec2.Filter, 0)
+	var inputFilters = make([]ec2types.Filter, 0)
 
 	for _, subnet := range scope.AWSMachinePool.Spec.Subnets {
 		switch {
@@ -511,16 +511,16 @@ func (s *Service) SubnetIDs(scope *scope.MachinePoolScope) ([]string, error) {
 			subnetIDs = append(subnetIDs, aws.StringValue(subnet.ID))
 		case subnet.Filters != nil:
 			for _, eachFilter := range subnet.Filters {
-				inputFilters = append(inputFilters, &ec2.Filter{
+				inputFilters = append(inputFilters, ec2types.Filter{
 					Name:   aws.String(eachFilter.Name),
-					Values: aws.StringSlice(eachFilter.Values),
+					Values: eachFilter.Values,
 				})
 			}
 		}
 	}
 
 	if len(inputFilters) > 0 {
-		out, err := s.EC2Client.DescribeSubnetsWithContext(context.TODO(), &ec2.DescribeSubnetsInput{
+		out, err := s.EC2Client.DescribeSubnets(context.TODO(), &ec2.DescribeSubnetsInput{
 			Filters: inputFilters,
 		})
 		if err != nil {
@@ -538,7 +538,7 @@ func (s *Service) SubnetIDs(scope *scope.MachinePoolScope) ([]string, error) {
 		}
 
 		if len(subnetIDs) == 0 {
-			errMessage := fmt.Sprintf("failed to create ASG %q, no subnets available matching criteria %q", scope.Name(), inputFilters)
+			errMessage := fmt.Sprintf("failed to create ASG %q, no subnets available matching criteria %v", scope.Name(), inputFilters)
 			record.Warnf(scope.AWSMachinePool, "FailedCreate", errMessage)
 			return subnetIDs, awserrors.NewFailedDependency(errMessage)
 		}

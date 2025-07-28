@@ -35,6 +35,8 @@ import (
 	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	awscredsv2 "github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/eks"
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
 	elb "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing"
@@ -48,11 +50,11 @@ import (
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudtrail"
 	"github.com/aws/aws-sdk-go/service/configservice"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecrpublic"
 	"github.com/aws/aws-sdk-go/service/efs"
 	"github.com/aws/aws-sdk-go/service/servicequotas"
 	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/smithy-go"
 	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -89,14 +91,14 @@ type AWSInfrastructureState struct {
 type AWSInfrastructure struct {
 	Spec            AWSInfrastructureSpec `json:"spec"`
 	Context         *E2EContext
-	VPC             *ec2.Vpc
-	Subnets         []*ec2.Subnet
-	RouteTables     []*ec2.RouteTable
-	InternetGateway *ec2.InternetGateway
-	ElasticIP       *ec2.Address
-	NatGateway      *ec2.NatGateway
+	VPC             *ec2types.Vpc
+	Subnets         []*ec2types.Subnet
+	RouteTables     []*ec2types.RouteTable
+	InternetGateway *ec2types.InternetGateway
+	ElasticIP       *ec2types.Address
+	NatGateway      *ec2types.NatGateway
 	State           AWSInfrastructureState `json:"state"`
-	Peering         *ec2.VpcPeeringConnection
+	Peering         *ec2types.VpcPeeringConnection
 }
 
 func (i *AWSInfrastructure) New(ais AWSInfrastructureSpec, e2eCtx *E2EContext) AWSInfrastructure {
@@ -113,7 +115,7 @@ func (i *AWSInfrastructure) CreateVPC() AWSInfrastructure {
 	}
 
 	i.VPC = cv
-	i.State.VpcState = cv.State
+	i.State.VpcState = aws.String(string(cv.State))
 	return *i
 }
 
@@ -127,7 +129,7 @@ func (i *AWSInfrastructure) RefreshVPCState() AWSInfrastructure {
 	}
 	if vpc != nil {
 		i.VPC = vpc
-		i.State.VpcState = vpc.State
+		i.State.VpcState = aws.String(string(vpc.State))
 	}
 	return *i
 }
@@ -139,7 +141,7 @@ func (i *AWSInfrastructure) CreatePublicSubnet() AWSInfrastructure {
 		return *i
 	}
 	i.State.PublicSubnetID = subnet.SubnetId
-	i.State.PublicSubnetState = subnet.State
+	i.State.PublicSubnetState = aws.String(string(subnet.State))
 	i.Subnets = append(i.Subnets, subnet)
 	return *i
 }
@@ -151,7 +153,7 @@ func (i *AWSInfrastructure) CreatePrivateSubnet() AWSInfrastructure {
 		return *i
 	}
 	i.State.PrivateSubnetID = subnet.SubnetId
-	i.State.PrivateSubnetState = subnet.State
+	i.State.PrivateSubnetState = aws.String(string(subnet.State))
 	i.Subnets = append(i.Subnets, subnet)
 	return *i
 }
@@ -176,7 +178,7 @@ func (i *AWSInfrastructure) AllocateAddress() AWSInfrastructure {
 		return *i
 	}
 
-	var addr *ec2.Address
+	var addr *ec2types.Address
 	Eventually(func(gomega Gomega) {
 		addr, _ = GetAddress(i.Context, *aa.AllocationId)
 	}, 2*time.Minute, 5*time.Second).Should(Succeed())
@@ -185,7 +187,7 @@ func (i *AWSInfrastructure) AllocateAddress() AWSInfrastructure {
 }
 
 func (i *AWSInfrastructure) CreateNatGateway(ct string) AWSInfrastructure {
-	var s *ec2.Subnet
+	var s *ec2types.Subnet
 	Eventually(func(gomega Gomega) {
 		s, _ = GetSubnetByName(i.Context, i.Spec.ClusterName+"-subnet-"+ct)
 	}, 2*time.Minute, 5*time.Second).Should(Succeed())
@@ -199,7 +201,7 @@ func (i *AWSInfrastructure) CreateNatGateway(ct string) AWSInfrastructure {
 	if WaitForNatGatewayState(i.Context, *ngwC.NatGatewayId, "available") {
 		ngw, _ := GetNatGateway(i.Context, *ngwC.NatGatewayId)
 		i.NatGateway = ngw
-		i.State.NatGatewayState = ngw.State
+		i.State.NatGatewayState = aws.String(string(ngw.State))
 		return *i
 	}
 	i.NatGateway = ngwC
@@ -300,7 +302,7 @@ func (i *AWSInfrastructure) CreateInfrastructure() AWSInfrastructure {
 func (i *AWSInfrastructure) DeleteInfrastructure(ctx context.Context) {
 	instances, _ := ListClusterEC2Instances(i.Context, i.Spec.ClusterName)
 	for _, instance := range instances {
-		if instance.State.Code != aws.Int64(48) {
+		if instance.State.Code != aws.Int32(48) {
 			By(fmt.Sprintf("Deleting orphaned instance: %s - %v", *instance.InstanceId, TerminateInstance(i.Context, *instance.InstanceId)))
 		}
 	}
@@ -874,11 +876,12 @@ func ensureNoServiceLinkedRoles(ctx context.Context, cfg *awsv2.Config) {
 }
 
 // ensureSSHKeyPair ensures A SSH key is present under the name.
-func ensureSSHKeyPair(prov client.ConfigProvider, keyPairName string) {
+func ensureSSHKeyPair(config awsv2.Config, keyPairName string) {
 	By(fmt.Sprintf("Ensuring presence of SSH key in EC2: key-name=%s", keyPairName))
-	ec2c := ec2.New(prov)
-	_, err := ec2c.CreateKeyPair(&ec2.CreateKeyPairInput{KeyName: aws.String(keyPairName)})
-	if code, _ := awserrors.Code(err); code != "InvalidKeyPair.Duplicate" {
+	ec2c := ec2.NewFromConfig(config)
+	_, err := ec2c.CreateKeyPair(context.TODO(), &ec2.CreateKeyPairInput{KeyName: aws.String(keyPairName)})
+	var oe *smithy.OperationError
+	if errors.As(err, &oe) && !strings.Contains(oe.Unwrap().Error(), "InvalidKeyPair.Duplicate") {
 		Expect(err).NotTo(HaveOccurred())
 	}
 }
@@ -977,18 +980,18 @@ func conformanceImageID(e2eCtx *E2EContext) string {
 	amiName := AMIPrefix + ver + "*"
 
 	By(fmt.Sprintf("Searching for AMI: name=%s", amiName))
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
-	filters := []*ec2.Filter{
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
+	filters := []ec2types.Filter{
 		{
 			Name:   aws.String("name"),
-			Values: []*string{aws.String(amiName)},
+			Values: []string{amiName},
 		},
 	}
-	filters = append(filters, &ec2.Filter{
+	filters = append(filters, ec2types.Filter{
 		Name:   aws.String("owner-id"),
-		Values: []*string{aws.String(DefaultImageLookupOrg)},
+		Values: []string{DefaultImageLookupOrg},
 	})
-	resp, err := ec2Svc.DescribeImages(&ec2.DescribeImagesInput{
+	resp, err := ec2Svc.DescribeImages(context.TODO(), &ec2.DescribeImagesInput{
 		Filters: filters,
 	})
 	Expect(err).NotTo(HaveOccurred())
@@ -998,9 +1001,9 @@ func conformanceImageID(e2eCtx *E2EContext) string {
 	return imageID
 }
 
-func GetAvailabilityZones(sess client.ConfigProvider) []*ec2.AvailabilityZone {
-	ec2Client := ec2.New(sess)
-	azs, err := ec2Client.DescribeAvailabilityZonesWithContext(context.TODO(), nil)
+func GetAvailabilityZones(config awsv2.Config) []ec2types.AvailabilityZone {
+	ec2Client := ec2.NewFromConfig(config)
+	azs, err := ec2Client.DescribeAvailabilityZones(context.TODO(), nil)
 	Expect(err).NotTo(HaveOccurred())
 	return azs.AvailabilityZones
 }
@@ -1147,10 +1150,10 @@ func dumpEKSCluster(cluster *ekstypes.Cluster, logPath string) {
 // To calculate how much resources a test consumes, these helper functions below can be used.
 // ListVpcInternetGateways, ListNATGateways, ListRunningEC2, ListVPC.
 
-func ListVpcInternetGateways(e2eCtx *E2EContext) ([]*ec2.InternetGateway, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+func ListVpcInternetGateways(e2eCtx *E2EContext) ([]ec2types.InternetGateway, error) {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
-	out, err := ec2Svc.DescribeInternetGateways(&ec2.DescribeInternetGatewaysInput{})
+	out, err := ec2Svc.DescribeInternetGateways(context.TODO(), &ec2.DescribeInternetGatewaysInput{})
 	if err != nil {
 		return nil, err
 	}
@@ -1158,26 +1161,26 @@ func ListVpcInternetGateways(e2eCtx *E2EContext) ([]*ec2.InternetGateway, error)
 	return out.InternetGateways, nil
 }
 
-func ListNATGateways(e2eCtx *E2EContext) (map[string]*ec2.NatGateway, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+func ListNATGateways(e2eCtx *E2EContext) (map[string]ec2types.NatGateway, error) {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
 	describeNatGatewayInput := &ec2.DescribeNatGatewaysInput{
-		Filter: []*ec2.Filter{
-			filter.EC2.NATGatewayStates(ec2.NatGatewayStateAvailable),
+		Filter: []ec2types.Filter{
+			filter.EC2.NATGatewayStates(ec2types.NatGatewayStateAvailable),
 		},
 	}
 
-	gateways := make(map[string]*ec2.NatGateway)
+	gateways := make(map[string]ec2types.NatGateway)
 
-	err := ec2Svc.DescribeNatGatewaysPages(describeNatGatewayInput,
-		func(page *ec2.DescribeNatGatewaysOutput, lastPage bool) bool {
-			for _, r := range page.NatGateways {
-				gateways[*r.SubnetId] = r
-			}
-			return !lastPage
-		})
-	if err != nil {
-		return nil, err
+	paginator := ec2.NewDescribeNatGatewaysPaginator(ec2Svc, describeNatGatewayInput)
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(context.TODO())
+		if err != nil {
+			return nil, fmt.Errorf("failed to describe NAT gateways: %w", err)
+		}
+		for _, r := range page.NatGateways {
+			gateways[aws.StringValue(r.SubnetId)] = r
+		}
 	}
 
 	return gateways, nil
@@ -1185,10 +1188,10 @@ func ListNATGateways(e2eCtx *E2EContext) (map[string]*ec2.NatGateway, error) {
 
 // listRunningEC2 returns a list of running EC2 instances.
 func listRunningEC2(e2eCtx *E2EContext) ([]instance, error) { //nolint:unused
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
-	resp, err := ec2Svc.DescribeInstancesWithContext(context.TODO(), &ec2.DescribeInstancesInput{
-		Filters: []*ec2.Filter{filter.EC2.InstanceStates(ec2.InstanceStateNameRunning)},
+	resp, err := ec2Svc.DescribeInstances(context.TODO(), &ec2.DescribeInstancesInput{
+		Filters: []ec2types.Filter{filter.EC2.InstanceStates(ec2types.InstanceStateNameRunning)},
 	})
 	if err != nil {
 		return nil, err
@@ -1220,23 +1223,23 @@ func listRunningEC2(e2eCtx *E2EContext) ([]instance, error) { //nolint:unused
 	return instances, nil
 }
 
-func ListClusterEC2Instances(e2eCtx *E2EContext, clusterName string) ([]*ec2.Instance, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
-	filter := &ec2.Filter{
+func ListClusterEC2Instances(e2eCtx *E2EContext, clusterName string) ([]ec2types.Instance, error) {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
+	filter := ec2types.Filter{
 		Name:   aws.String("tag-key"),
-		Values: aws.StringSlice([]string{"sigs.k8s.io/cluster-api-provider-aws/cluster/" + clusterName}),
+		Values: []string{"sigs.k8s.io/cluster-api-provider-aws/cluster/" + clusterName},
 	}
 	input := &ec2.DescribeInstancesInput{
-		Filters: []*ec2.Filter{
+		Filters: []ec2types.Filter{
 			filter,
 		},
 	}
 
-	result, err := ec2Svc.DescribeInstances(input)
+	result, err := ec2Svc.DescribeInstances(context.TODO(), input)
 	if err != nil {
 		return nil, err
 	}
-	instances := []*ec2.Instance{}
+	instances := []ec2types.Instance{}
 	for _, r := range result.Reservations {
 		instances = append(instances, r.Instances...)
 	}
@@ -1253,8 +1256,8 @@ func WaitForInstanceState(e2eCtx *E2EContext, clusterName string, state string) 
 		}
 		instances, _ := ListClusterEC2Instances(e2eCtx, clusterName)
 		for _, i := range instances {
-			iState := *i.State.Name
-			st[iState]++
+			iState := i.State.Name
+			st[string(iState)]++
 		}
 		if st[state] == len(instances) || len(instances) == 0 {
 			return true
@@ -1266,28 +1269,28 @@ func WaitForInstanceState(e2eCtx *E2EContext, clusterName string, state string) 
 }
 
 func TerminateInstance(e2eCtx *E2EContext, instanceID string) bool {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
 	input := &ec2.TerminateInstancesInput{
-		InstanceIds: aws.StringSlice([]string{instanceID}),
+		InstanceIds: []string{instanceID},
 	}
 
-	if _, err := ec2Svc.TerminateInstances(input); err != nil {
+	if _, err := ec2Svc.TerminateInstances(context.TODO(), input); err != nil {
 		return false
 	}
 	return true
 }
 
 func ListVPC(e2eCtx *E2EContext) int {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
 	input := &ec2.DescribeVpcsInput{
-		Filters: []*ec2.Filter{
-			filter.EC2.VPCStates(ec2.VpcStateAvailable),
+		Filters: []ec2types.Filter{
+			filter.EC2.VPCStates(ec2types.VpcStateAvailable),
 		},
 	}
 
-	out, err := ec2Svc.DescribeVpcs(input)
+	out, err := ec2Svc.DescribeVpcs(context.TODO(), input)
 	if err != nil {
 		return 0
 	}
@@ -1295,86 +1298,88 @@ func ListVPC(e2eCtx *E2EContext) int {
 	return len(out.Vpcs)
 }
 
-func GetVPC(e2eCtx *E2EContext, vpcID string) (*ec2.Vpc, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+func GetVPC(e2eCtx *E2EContext, vpcID string) (*ec2types.Vpc, error) {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
-	filter := &ec2.Filter{
+	filter := ec2types.Filter{
 		Name:   aws.String("vpc-id"),
-		Values: aws.StringSlice([]string{vpcID}),
+		Values: []string{vpcID},
 	}
 
 	input := &ec2.DescribeVpcsInput{
-		Filters: []*ec2.Filter{
+		Filters: []ec2types.Filter{
 			filter,
 		},
 	}
 
-	result, err := ec2Svc.DescribeVpcs(input)
+	result, err := ec2Svc.DescribeVpcs(context.TODO(), input)
 	if err != nil {
 		return nil, err
 	}
 	if result.Vpcs == nil {
 		return nil, nil
 	}
-	return result.Vpcs[0], nil
+	return &result.Vpcs[0], nil
 }
 
-func GetVPCByName(e2eCtx *E2EContext, vpcName string) (*ec2.Vpc, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+func GetVPCByName(e2eCtx *E2EContext, vpcName string) (*ec2types.Vpc, error) {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
-	filter := &ec2.Filter{
+	filter := ec2types.Filter{
 		Name:   aws.String("tag:Name"),
-		Values: aws.StringSlice([]string{vpcName}),
+		Values: []string{vpcName},
 	}
 
 	input := &ec2.DescribeVpcsInput{
-		Filters: []*ec2.Filter{
+		Filters: []ec2types.Filter{
 			filter,
 		},
 	}
 
-	result, err := ec2Svc.DescribeVpcs(input)
+	result, err := ec2Svc.DescribeVpcs(context.TODO(), input)
 	if err != nil {
 		return nil, err
 	}
 	if len(result.Vpcs) == 0 {
 		return nil, awserrors.NewNotFound("Vpc not found")
 	}
-	return result.Vpcs[0], nil
+	return &result.Vpcs[0], nil
 }
 
-func GetVPCEndpointsByID(e2eCtx *E2EContext, vpcID string) ([]*ec2.VpcEndpoint, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+func GetVPCEndpointsByID(e2eCtx *E2EContext, vpcID string) ([]ec2types.VpcEndpoint, error) {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
 	input := &ec2.DescribeVpcEndpointsInput{
-		Filters: []*ec2.Filter{
+		Filters: []ec2types.Filter{
 			{
 				Name:   aws.String("vpc-id"),
-				Values: aws.StringSlice([]string{vpcID}),
+				Values: []string{vpcID},
 			},
 		},
 	}
 
-	res := []*ec2.VpcEndpoint{}
-	if err := ec2Svc.DescribeVpcEndpointsPages(input, func(dveo *ec2.DescribeVpcEndpointsOutput, lastPage bool) bool {
-		res = append(res, dveo.VpcEndpoints...)
-		return true
-	}); err != nil {
-		return nil, err
+	res := []ec2types.VpcEndpoint{}
+	paginator := ec2.NewDescribeVpcEndpointsPaginator(ec2Svc, input)
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(context.TODO())
+		if err != nil {
+			return nil, fmt.Errorf("failed to describe VPC endpoints: %w", err)
+		}
+		res = append(res, page.VpcEndpoints...)
 	}
 
 	return res, nil
 }
 
-func CreateVPC(e2eCtx *E2EContext, vpcName string, cidrBlock string) (*ec2.Vpc, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+func CreateVPC(e2eCtx *E2EContext, vpcName string, cidrBlock string) (*ec2types.Vpc, error) {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
 	input := &ec2.CreateVpcInput{
 		CidrBlock: aws.String(cidrBlock),
-		TagSpecifications: []*ec2.TagSpecification{
+		TagSpecifications: []ec2types.TagSpecification{
 			{
-				ResourceType: aws.String("vpc"),
-				Tags: []*ec2.Tag{
+				ResourceType: ec2types.ResourceTypeVpc,
+				Tags: []ec2types.Tag{
 					{
 						Key:   aws.String("Name"),
 						Value: aws.String(vpcName),
@@ -1383,7 +1388,7 @@ func CreateVPC(e2eCtx *E2EContext, vpcName string, cidrBlock string) (*ec2.Vpc, 
 			},
 		},
 	}
-	result, err := ec2Svc.CreateVpc(input)
+	result, err := ec2Svc.CreateVpc(context.TODO(), input)
 	if err != nil {
 		return nil, err
 	}
@@ -1391,109 +1396,109 @@ func CreateVPC(e2eCtx *E2EContext, vpcName string, cidrBlock string) (*ec2.Vpc, 
 }
 
 func DisassociateVpcCidrBlock(e2eCtx *E2EContext, assocID string) bool {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
 	input := &ec2.DisassociateVpcCidrBlockInput{
 		AssociationId: aws.String(assocID),
 	}
 
-	if _, err := ec2Svc.DisassociateVpcCidrBlock(input); err != nil {
+	if _, err := ec2Svc.DisassociateVpcCidrBlock(context.TODO(), input); err != nil {
 		return false
 	}
 	return true
 }
 
 func DeleteVPC(e2eCtx *E2EContext, vpcID string) bool {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
 	input := &ec2.DeleteVpcInput{
 		VpcId: aws.String(vpcID),
 	}
-	if _, err := ec2Svc.DeleteVpc(input); err != nil {
+	if _, err := ec2Svc.DeleteVpc(context.TODO(), input); err != nil {
 		return false
 	}
 	return true
 }
 
-func ListVpcSubnets(e2eCtx *E2EContext, vpcID string) ([]*ec2.Subnet, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+func ListVpcSubnets(e2eCtx *E2EContext, vpcID string) ([]ec2types.Subnet, error) {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
-	filter := &ec2.Filter{
+	filter := ec2types.Filter{
 		Name:   aws.String("vpc-id"),
-		Values: aws.StringSlice([]string{vpcID}),
+		Values: []string{vpcID},
 	}
 
 	input := &ec2.DescribeSubnetsInput{
-		Filters: []*ec2.Filter{
+		Filters: []ec2types.Filter{
 			filter,
 		},
 	}
 
-	result, err := ec2Svc.DescribeSubnets(input)
+	result, err := ec2Svc.DescribeSubnets(context.TODO(), input)
 	if err != nil {
 		return nil, err
 	}
 	return result.Subnets, nil
 }
 
-func GetSubnet(e2eCtx *E2EContext, subnetID string) (*ec2.Subnet, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+func GetSubnet(e2eCtx *E2EContext, subnetID string) (*ec2types.Subnet, error) {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
-	filter := &ec2.Filter{
+	filter := ec2types.Filter{
 		Name:   aws.String("subnet-id"),
-		Values: aws.StringSlice([]string{subnetID}),
+		Values: []string{subnetID},
 	}
 
 	input := &ec2.DescribeSubnetsInput{
-		Filters: []*ec2.Filter{
+		Filters: []ec2types.Filter{
 			filter,
 		},
 	}
 
-	result, err := ec2Svc.DescribeSubnets(input)
+	result, err := ec2Svc.DescribeSubnets(context.TODO(), input)
 	if err != nil {
 		return nil, err
 	}
 	if result.Subnets == nil {
 		return nil, nil
 	}
-	return result.Subnets[0], nil
+	return &result.Subnets[0], nil
 }
 
-func GetSubnetByName(e2eCtx *E2EContext, name string) (*ec2.Subnet, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+func GetSubnetByName(e2eCtx *E2EContext, name string) (*ec2types.Subnet, error) {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
-	filter := &ec2.Filter{
+	filter := ec2types.Filter{
 		Name:   aws.String("tag:Name"),
-		Values: aws.StringSlice([]string{name}),
+		Values: []string{name},
 	}
 
 	input := &ec2.DescribeSubnetsInput{
-		Filters: []*ec2.Filter{
+		Filters: []ec2types.Filter{
 			filter,
 		},
 	}
 
-	result, err := ec2Svc.DescribeSubnets(input)
+	result, err := ec2Svc.DescribeSubnets(context.TODO(), input)
 	if err != nil {
 		return nil, err
 	}
 	if result.Subnets == nil {
 		return nil, nil
 	}
-	return result.Subnets[0], nil
+	return &result.Subnets[0], nil
 }
 
-func CreateSubnet(e2eCtx *E2EContext, clusterName string, cidrBlock string, az string, vpcID string, st string) (*ec2.Subnet, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+func CreateSubnet(e2eCtx *E2EContext, clusterName string, cidrBlock string, az string, vpcID string, st string) (*ec2types.Subnet, error) {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
 	input := &ec2.CreateSubnetInput{
 		CidrBlock: aws.String(cidrBlock),
 		VpcId:     aws.String(vpcID),
-		TagSpecifications: []*ec2.TagSpecification{
+		TagSpecifications: []ec2types.TagSpecification{
 			{
-				ResourceType: aws.String("subnet"),
-				Tags: []*ec2.Tag{
+				ResourceType: ec2types.ResourceTypeSubnet,
+				Tags: []ec2types.Tag{
 					{
 						Key:   aws.String("Name"),
 						Value: aws.String(clusterName + "-subnet-" + st),
@@ -1507,7 +1512,7 @@ func CreateSubnet(e2eCtx *E2EContext, clusterName string, cidrBlock string, az s
 		input.AvailabilityZone = aws.String(az)
 	}
 
-	result, err := ec2Svc.CreateSubnet(input)
+	result, err := ec2Svc.CreateSubnet(context.TODO(), input)
 	if err != nil {
 		return nil, err
 	}
@@ -1515,51 +1520,51 @@ func CreateSubnet(e2eCtx *E2EContext, clusterName string, cidrBlock string, az s
 }
 
 func DeleteSubnet(e2eCtx *E2EContext, subnetID string) bool {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
 	input := &ec2.DeleteSubnetInput{
 		SubnetId: aws.String(subnetID),
 	}
 
-	if _, err := ec2Svc.DeleteSubnet(input); err != nil {
+	if _, err := ec2Svc.DeleteSubnet(context.TODO(), input); err != nil {
 		return false
 	}
 	return true
 }
 
-func GetAddress(e2eCtx *E2EContext, allocationID string) (*ec2.Address, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+func GetAddress(e2eCtx *E2EContext, allocationID string) (*ec2types.Address, error) {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
-	filter := &ec2.Filter{
+	filter := ec2types.Filter{
 		Name:   aws.String("allocation-id"),
-		Values: aws.StringSlice([]string{allocationID}),
+		Values: []string{allocationID},
 	}
 
 	input := &ec2.DescribeAddressesInput{
-		Filters: []*ec2.Filter{
+		Filters: []ec2types.Filter{
 			filter,
 		},
 	}
 
-	result, err := ec2Svc.DescribeAddresses(input)
+	result, err := ec2Svc.DescribeAddresses(context.TODO(), input)
 	if err != nil {
 		return nil, err
 	}
 	if result.Addresses == nil {
 		return nil, nil
 	}
-	return result.Addresses[0], nil
+	return &result.Addresses[0], nil
 }
 
 func AllocateAddress(e2eCtx *E2EContext, eipName string) (*ec2.AllocateAddressOutput, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
 	input := &ec2.AllocateAddressInput{
-		Domain: aws.String("vpc"),
-		TagSpecifications: []*ec2.TagSpecification{
+		Domain: ec2types.DomainTypeVpc,
+		TagSpecifications: []ec2types.TagSpecification{
 			{
-				ResourceType: aws.String("elastic-ip"),
-				Tags: []*ec2.Tag{
+				ResourceType: ec2types.ResourceTypeElasticIp,
+				Tags: []ec2types.Tag{
 					{
 						Key:   aws.String("Name"),
 						Value: aws.String(eipName),
@@ -1569,7 +1574,7 @@ func AllocateAddress(e2eCtx *E2EContext, eipName string) (*ec2.AllocateAddressOu
 		},
 	}
 
-	result, err := ec2Svc.AllocateAddress(input)
+	result, err := ec2Svc.AllocateAddress(context.TODO(), input)
 	if err != nil {
 		return nil, err
 	}
@@ -1577,40 +1582,40 @@ func AllocateAddress(e2eCtx *E2EContext, eipName string) (*ec2.AllocateAddressOu
 }
 
 func DisassociateAddress(e2eCtx *E2EContext, assocID string) bool {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
 	input := &ec2.DisassociateAddressInput{
 		AssociationId: aws.String(assocID),
 	}
 
-	if _, err := ec2Svc.DisassociateAddress(input); err != nil {
+	if _, err := ec2Svc.DisassociateAddress(context.TODO(), input); err != nil {
 		return false
 	}
 	return true
 }
 
 func ReleaseAddress(e2eCtx *E2EContext, allocationID string) bool {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
 	input := &ec2.ReleaseAddressInput{
 		AllocationId: aws.String(allocationID),
 	}
 
-	if _, err := ec2Svc.ReleaseAddress(input); err != nil {
+	if _, err := ec2Svc.ReleaseAddress(context.TODO(), input); err != nil {
 		return false
 	}
 	return true
 }
 
-func CreateNatGateway(e2eCtx *E2EContext, gatewayName string, connectType string, allocationID string, subnetID string) (*ec2.NatGateway, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+func CreateNatGateway(e2eCtx *E2EContext, gatewayName string, connectType string, allocationID string, subnetID string) (*ec2types.NatGateway, error) {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
 	input := &ec2.CreateNatGatewayInput{
 		SubnetId: aws.String(subnetID),
-		TagSpecifications: []*ec2.TagSpecification{
+		TagSpecifications: []ec2types.TagSpecification{
 			{
-				ResourceType: aws.String("natgateway"),
-				Tags: []*ec2.Tag{
+				ResourceType: ec2types.ResourceTypeNatgateway,
+				Tags: []ec2types.Tag{
 					{
 						Key:   aws.String("Name"),
 						Value: aws.String(gatewayName),
@@ -1621,52 +1626,52 @@ func CreateNatGateway(e2eCtx *E2EContext, gatewayName string, connectType string
 	}
 
 	if connectType != "" {
-		input.ConnectivityType = aws.String(connectType)
+		input.ConnectivityType = ec2types.ConnectivityType(connectType)
 	}
 
 	if allocationID != "" {
 		input.AllocationId = aws.String(allocationID)
 	}
 
-	result, err := ec2Svc.CreateNatGateway(input)
+	result, err := ec2Svc.CreateNatGateway(context.TODO(), input)
 	if err != nil {
 		return nil, err
 	}
 	return result.NatGateway, nil
 }
 
-func GetNatGateway(e2eCtx *E2EContext, gatewayID string) (*ec2.NatGateway, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+func GetNatGateway(e2eCtx *E2EContext, gatewayID string) (*ec2types.NatGateway, error) {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
-	filter := &ec2.Filter{
+	filter := ec2types.Filter{
 		Name:   aws.String("nat-gateway-id"),
-		Values: aws.StringSlice([]string{gatewayID}),
+		Values: []string{gatewayID},
 	}
 
 	input := &ec2.DescribeNatGatewaysInput{
-		Filter: []*ec2.Filter{
+		Filter: []ec2types.Filter{
 			filter,
 		},
 	}
 
-	result, err := ec2Svc.DescribeNatGateways(input)
+	result, err := ec2Svc.DescribeNatGateways(context.TODO(), input)
 	if err != nil {
 		return nil, err
 	}
 	if result.NatGateways == nil {
 		return nil, nil
 	}
-	return result.NatGateways[0], nil
+	return &result.NatGateways[0], nil
 }
 
 func DeleteNatGateway(e2eCtx *E2EContext, gatewayID string) bool {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
 	input := &ec2.DeleteNatGatewayInput{
 		NatGatewayId: aws.String(gatewayID),
 	}
 
-	if _, err := ec2Svc.DeleteNatGateway(input); err != nil {
+	if _, err := ec2Svc.DeleteNatGateway(context.TODO(), input); err != nil {
 		return false
 	}
 	return true
@@ -1675,20 +1680,20 @@ func DeleteNatGateway(e2eCtx *E2EContext, gatewayID string) bool {
 func WaitForNatGatewayState(e2eCtx *E2EContext, gatewayID string, state string) bool {
 	Eventually(func(gomega Gomega) bool {
 		gw, _ := GetNatGateway(e2eCtx, gatewayID)
-		gwState := *gw.State
-		return gwState == state
+		gwState := gw.State
+		return gwState == ec2types.NatGatewayState(state)
 	}, 3*time.Minute, 5*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed waiting for NAT Gateway to be in %q state", state))
 	return false
 }
 
-func CreateInternetGateway(e2eCtx *E2EContext, gatewayName string) (*ec2.InternetGateway, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+func CreateInternetGateway(e2eCtx *E2EContext, gatewayName string) (*ec2types.InternetGateway, error) {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
 	input := &ec2.CreateInternetGatewayInput{
-		TagSpecifications: []*ec2.TagSpecification{
+		TagSpecifications: []ec2types.TagSpecification{
 			{
-				ResourceType: aws.String("internet-gateway"),
-				Tags: []*ec2.Tag{
+				ResourceType: ec2types.ResourceTypeInternetGateway,
+				Tags: []ec2types.Tag{
 					{
 						Key:   aws.String("Name"),
 						Value: aws.String(gatewayName),
@@ -1698,88 +1703,88 @@ func CreateInternetGateway(e2eCtx *E2EContext, gatewayName string) (*ec2.Interne
 		},
 	}
 
-	result, err := ec2Svc.CreateInternetGateway(input)
+	result, err := ec2Svc.CreateInternetGateway(context.TODO(), input)
 	if err != nil {
 		return nil, err
 	}
 	return result.InternetGateway, nil
 }
 
-func GetInternetGateway(e2eCtx *E2EContext, gatewayID string) (*ec2.InternetGateway, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+func GetInternetGateway(e2eCtx *E2EContext, gatewayID string) (*ec2types.InternetGateway, error) {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
-	filter := &ec2.Filter{
+	filter := ec2types.Filter{
 		Name:   aws.String("internet-gateway-id"),
-		Values: aws.StringSlice([]string{gatewayID}),
+		Values: []string{gatewayID},
 	}
 
 	input := &ec2.DescribeInternetGatewaysInput{
-		Filters: []*ec2.Filter{
+		Filters: []ec2types.Filter{
 			filter,
 		},
 	}
 
-	result, err := ec2Svc.DescribeInternetGateways(input)
+	result, err := ec2Svc.DescribeInternetGateways(context.TODO(), input)
 	if err != nil {
 		return nil, err
 	}
 	if result.InternetGateways == nil {
 		return nil, nil
 	}
-	return result.InternetGateways[0], nil
+	return &result.InternetGateways[0], nil
 }
 
 func DeleteInternetGateway(e2eCtx *E2EContext, gatewayID string) bool {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
 	input := &ec2.DeleteInternetGatewayInput{
 		InternetGatewayId: aws.String(gatewayID),
 	}
 
-	if _, err := ec2Svc.DeleteInternetGateway(input); err != nil {
+	if _, err := ec2Svc.DeleteInternetGateway(context.TODO(), input); err != nil {
 		return false
 	}
 	return true
 }
 
 func AttachInternetGateway(e2eCtx *E2EContext, gatewayID string, vpcID string) (bool, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
 	input := &ec2.AttachInternetGatewayInput{
 		InternetGatewayId: aws.String(gatewayID),
 		VpcId:             aws.String(vpcID),
 	}
 
-	if _, err := ec2Svc.AttachInternetGateway(input); err != nil {
+	if _, err := ec2Svc.AttachInternetGateway(context.TODO(), input); err != nil {
 		return false, err
 	}
 	return true, nil
 }
 
 func DetachInternetGateway(e2eCtx *E2EContext, gatewayID string, vpcID string) bool {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
 	input := &ec2.DetachInternetGatewayInput{
 		InternetGatewayId: aws.String(gatewayID),
 		VpcId:             aws.String(vpcID),
 	}
 
-	if _, err := ec2Svc.DetachInternetGateway(input); err != nil {
+	if _, err := ec2Svc.DetachInternetGateway(context.TODO(), input); err != nil {
 		return false
 	}
 	return true
 }
 
-func CreatePeering(e2eCtx *E2EContext, peerName string, vpcID string, peerVpcID string) (*ec2.VpcPeeringConnection, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+func CreatePeering(e2eCtx *E2EContext, peerName string, vpcID string, peerVpcID string) (*ec2types.VpcPeeringConnection, error) {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
 	input := &ec2.CreateVpcPeeringConnectionInput{
 		VpcId:     aws.String(vpcID),
 		PeerVpcId: aws.String(peerVpcID),
-		TagSpecifications: []*ec2.TagSpecification{
+		TagSpecifications: []ec2types.TagSpecification{
 			{
-				ResourceType: aws.String("vpc-peering-connection"),
-				Tags: []*ec2.Tag{
+				ResourceType: ec2types.ResourceTypeVpcPeeringConnection,
+				Tags: []ec2types.Tag{
 					{
 						Key:   aws.String("Name"),
 						Value: aws.String(peerName),
@@ -1789,73 +1794,73 @@ func CreatePeering(e2eCtx *E2EContext, peerName string, vpcID string, peerVpcID 
 		},
 	}
 
-	result, err := ec2Svc.CreateVpcPeeringConnection(input)
+	result, err := ec2Svc.CreateVpcPeeringConnection(context.TODO(), input)
 	if err != nil {
 		return nil, err
 	}
 	return result.VpcPeeringConnection, nil
 }
 
-func GetPeering(e2eCtx *E2EContext, peeringID string) (*ec2.VpcPeeringConnection, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+func GetPeering(e2eCtx *E2EContext, peeringID string) (*ec2types.VpcPeeringConnection, error) {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
-	filter := &ec2.Filter{
+	filter := ec2types.Filter{
 		Name:   aws.String("vpc-peering-connection-id"),
-		Values: aws.StringSlice([]string{peeringID}),
+		Values: []string{peeringID},
 	}
 
 	input := &ec2.DescribeVpcPeeringConnectionsInput{
-		Filters: []*ec2.Filter{
+		Filters: []ec2types.Filter{
 			filter,
 		},
 	}
 
-	result, err := ec2Svc.DescribeVpcPeeringConnections(input)
+	result, err := ec2Svc.DescribeVpcPeeringConnections(context.TODO(), input)
 	if err != nil {
 		return nil, err
 	}
 	if result.VpcPeeringConnections == nil {
 		return nil, nil
 	}
-	return result.VpcPeeringConnections[0], nil
+	return &result.VpcPeeringConnections[0], nil
 }
 
 func DeletePeering(e2eCtx *E2EContext, peeringID string) bool {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
 	input := &ec2.DeleteVpcPeeringConnectionInput{
 		VpcPeeringConnectionId: aws.String(peeringID),
 	}
 
-	if _, err := ec2Svc.DeleteVpcPeeringConnection(input); err != nil {
+	if _, err := ec2Svc.DeleteVpcPeeringConnection(context.TODO(), input); err != nil {
 		return false
 	}
 	return true
 }
 
-func AcceptPeering(e2eCtx *E2EContext, peeringID string) (*ec2.VpcPeeringConnection, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+func AcceptPeering(e2eCtx *E2EContext, peeringID string) (*ec2types.VpcPeeringConnection, error) {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
 	input := &ec2.AcceptVpcPeeringConnectionInput{
 		VpcPeeringConnectionId: aws.String(peeringID),
 	}
 
-	result, err := ec2Svc.AcceptVpcPeeringConnection(input)
+	result, err := ec2Svc.AcceptVpcPeeringConnection(context.TODO(), input)
 	if err != nil {
 		return nil, err
 	}
 	return result.VpcPeeringConnection, nil
 }
 
-func CreateRouteTable(e2eCtx *E2EContext, rtName string, vpcID string) (*ec2.RouteTable, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+func CreateRouteTable(e2eCtx *E2EContext, rtName string, vpcID string) (*ec2types.RouteTable, error) {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
 	input := &ec2.CreateRouteTableInput{
 		VpcId: aws.String(vpcID),
-		TagSpecifications: []*ec2.TagSpecification{
+		TagSpecifications: []ec2types.TagSpecification{
 			{
-				ResourceType: aws.String("route-table"),
-				Tags: []*ec2.Tag{
+				ResourceType: ec2types.ResourceTypeRouteTable,
+				Tags: []ec2types.Tag{
 					{
 						Key:   aws.String("Name"),
 						Value: aws.String(rtName),
@@ -1865,94 +1870,94 @@ func CreateRouteTable(e2eCtx *E2EContext, rtName string, vpcID string) (*ec2.Rou
 		},
 	}
 
-	result, err := ec2Svc.CreateRouteTable(input)
+	result, err := ec2Svc.CreateRouteTable(context.TODO(), input)
 	if err != nil {
 		return nil, err
 	}
 	return result.RouteTable, nil
 }
 
-func ListVpcRouteTables(e2eCtx *E2EContext, vpcID string) ([]*ec2.RouteTable, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+func ListVpcRouteTables(e2eCtx *E2EContext, vpcID string) ([]ec2types.RouteTable, error) {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
-	filter := &ec2.Filter{
+	filter := ec2types.Filter{
 		Name:   aws.String("vpc-id"),
-		Values: aws.StringSlice([]string{vpcID}),
+		Values: []string{vpcID},
 	}
 
 	input := &ec2.DescribeRouteTablesInput{
-		Filters: []*ec2.Filter{
+		Filters: []ec2types.Filter{
 			filter,
 		},
 	}
 
-	result, err := ec2Svc.DescribeRouteTables(input)
+	result, err := ec2Svc.DescribeRouteTables(context.TODO(), input)
 	if err != nil {
 		return nil, err
 	}
 	return result.RouteTables, nil
 }
 
-func ListSubnetRouteTables(e2eCtx *E2EContext, subnetID string) ([]*ec2.RouteTable, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+func ListSubnetRouteTables(e2eCtx *E2EContext, subnetID string) ([]ec2types.RouteTable, error) {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
-	filter := &ec2.Filter{
+	filter := ec2types.Filter{
 		Name:   aws.String("association.subnet-id"),
-		Values: aws.StringSlice([]string{subnetID}),
+		Values: []string{subnetID},
 	}
 
 	input := &ec2.DescribeRouteTablesInput{
-		Filters: []*ec2.Filter{
+		Filters: []ec2types.Filter{
 			filter,
 		},
 	}
 
-	result, err := ec2Svc.DescribeRouteTables(input)
+	result, err := ec2Svc.DescribeRouteTables(context.TODO(), input)
 	if err != nil {
 		return nil, err
 	}
 	return result.RouteTables, nil
 }
 
-func GetRouteTable(e2eCtx *E2EContext, rtID string) (*ec2.RouteTable, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+func GetRouteTable(e2eCtx *E2EContext, rtID string) (*ec2types.RouteTable, error) {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
-	filter := &ec2.Filter{
+	filter := ec2types.Filter{
 		Name:   aws.String("route-table-id"),
-		Values: aws.StringSlice([]string{rtID}),
+		Values: []string{rtID},
 	}
 
 	input := &ec2.DescribeRouteTablesInput{
-		Filters: []*ec2.Filter{
+		Filters: []ec2types.Filter{
 			filter,
 		},
 	}
 
-	result, err := ec2Svc.DescribeRouteTables(input)
+	result, err := ec2Svc.DescribeRouteTables(context.TODO(), input)
 	if err != nil {
 		return nil, err
 	}
 	if result.RouteTables == nil {
 		return nil, nil
 	}
-	return result.RouteTables[0], nil
+	return &result.RouteTables[0], nil
 }
 
 func DeleteRouteTable(e2eCtx *E2EContext, rtID string) bool {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
 	input := &ec2.DeleteRouteTableInput{
 		RouteTableId: aws.String(rtID),
 	}
 
-	if _, err := ec2Svc.DeleteRouteTable(input); err != nil {
+	if _, err := ec2Svc.DeleteRouteTable(context.TODO(), input); err != nil {
 		return false
 	}
 	return true
 }
 
 func CreateRoute(e2eCtx *E2EContext, rtID string, destinationCidr string, natID *string, igwID *string, pcxID *string) bool {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
 	input := &ec2.CreateRouteInput{
 		RouteTableId:         &rtID,
@@ -1971,33 +1976,33 @@ func CreateRoute(e2eCtx *E2EContext, rtID string, destinationCidr string, natID 
 		input.VpcPeeringConnectionId = pcxID
 	}
 
-	_, err := ec2Svc.CreateRoute(input)
+	_, err := ec2Svc.CreateRoute(context.TODO(), input)
 	return err == nil
 }
 
 func DeleteRoute(e2eCtx *E2EContext, rtID string, destinationCidr string) bool {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
 	input := &ec2.DeleteRouteInput{
 		RouteTableId:         aws.String(rtID),
 		DestinationCidrBlock: aws.String(destinationCidr),
 	}
 
-	if _, err := ec2Svc.DeleteRoute(input); err != nil {
+	if _, err := ec2Svc.DeleteRoute(context.TODO(), input); err != nil {
 		return false
 	}
 	return true
 }
 
 func AssociateRouteTable(e2eCtx *E2EContext, rtID string, subnetID string) (*ec2.AssociateRouteTableOutput, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
 	input := &ec2.AssociateRouteTableInput{
 		RouteTableId: aws.String(rtID),
 		SubnetId:     aws.String(subnetID),
 	}
 
-	result, err := ec2Svc.AssociateRouteTable(input)
+	result, err := ec2Svc.AssociateRouteTable(context.TODO(), input)
 	if err != nil {
 		return nil, err
 	}
@@ -2005,29 +2010,29 @@ func AssociateRouteTable(e2eCtx *E2EContext, rtID string, subnetID string) (*ec2
 }
 
 func DisassociateRouteTable(e2eCtx *E2EContext, assocID string) bool {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
 	input := &ec2.DisassociateRouteTableInput{
 		AssociationId: aws.String(assocID),
 	}
 
-	if _, err := ec2Svc.DisassociateRouteTable(input); err != nil {
+	if _, err := ec2Svc.DisassociateRouteTable(context.TODO(), input); err != nil {
 		return false
 	}
 	return true
 }
 
 func CreateSecurityGroup(e2eCtx *E2EContext, sgName string, sgDescription string, vpcID string) (*ec2.CreateSecurityGroupOutput, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
 	input := &ec2.CreateSecurityGroupInput{
 		VpcId:       aws.String(vpcID),
 		GroupName:   aws.String(sgName),
 		Description: aws.String(sgDescription),
-		TagSpecifications: []*ec2.TagSpecification{
+		TagSpecifications: []ec2types.TagSpecification{
 			{
-				ResourceType: aws.String("security-group"),
-				Tags: []*ec2.Tag{
+				ResourceType: ec2types.ResourceTypeSecurityGroup,
+				Tags: []ec2types.Tag{
 					{
 						Key:   aws.String("Name"),
 						Value: aws.String(sgName),
@@ -2037,66 +2042,66 @@ func CreateSecurityGroup(e2eCtx *E2EContext, sgName string, sgDescription string
 		},
 	}
 
-	result, err := ec2Svc.CreateSecurityGroup(input)
+	result, err := ec2Svc.CreateSecurityGroup(context.TODO(), input)
 	if err != nil {
 		return nil, err
 	}
 	return result, nil
 }
 
-func GetSecurityGroupByFilters(e2eCtx *E2EContext, filters []*ec2.Filter) ([]*ec2.SecurityGroup, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+func GetSecurityGroupByFilters(e2eCtx *E2EContext, filters []ec2types.Filter) ([]ec2types.SecurityGroup, error) {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 	input := &ec2.DescribeSecurityGroupsInput{
 		Filters: filters,
 	}
-	result, err := ec2Svc.DescribeSecurityGroups(input)
+	result, err := ec2Svc.DescribeSecurityGroups(context.TODO(), input)
 	if err != nil {
 		return nil, err
 	}
 	return result.SecurityGroups, nil
 }
 
-func GetSecurityGroup(e2eCtx *E2EContext, sgID string) (*ec2.SecurityGroup, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+func GetSecurityGroup(e2eCtx *E2EContext, sgID string) (*ec2types.SecurityGroup, error) {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
-	filter := &ec2.Filter{
+	filter := ec2types.Filter{
 		Name:   aws.String("group-id"),
-		Values: aws.StringSlice([]string{sgID}),
+		Values: []string{sgID},
 	}
 
 	input := &ec2.DescribeSecurityGroupsInput{
-		Filters: []*ec2.Filter{
+		Filters: []ec2types.Filter{
 			filter,
 		},
 	}
 
-	result, err := ec2Svc.DescribeSecurityGroups(input)
+	result, err := ec2Svc.DescribeSecurityGroups(context.TODO(), input)
 	if err != nil {
 		return nil, err
 	}
 	if result.SecurityGroups == nil {
 		return nil, nil
 	}
-	return result.SecurityGroups[0], nil
+	return &result.SecurityGroups[0], nil
 }
 
-func GetSecurityGroupsByVPC(e2eCtx *E2EContext, vpcID string) ([]*ec2.SecurityGroup, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+func GetSecurityGroupsByVPC(e2eCtx *E2EContext, vpcID string) ([]ec2types.SecurityGroup, error) {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
-	filter := &ec2.Filter{
+	filter := ec2types.Filter{
 		Name: aws.String("vpc-id"),
-		Values: []*string{
-			aws.String(vpcID),
+		Values: []string{
+			vpcID,
 		},
 	}
 
 	input := &ec2.DescribeSecurityGroupsInput{
-		Filters: []*ec2.Filter{
+		Filters: []ec2types.Filter{
 			filter,
 		},
 	}
 
-	result, err := ec2Svc.DescribeSecurityGroups(input)
+	result, err := ec2Svc.DescribeSecurityGroups(context.TODO(), input)
 	if err != nil {
 		return nil, err
 	}
@@ -2107,71 +2112,71 @@ func GetSecurityGroupsByVPC(e2eCtx *E2EContext, vpcID string) ([]*ec2.SecurityGr
 }
 
 func DeleteSecurityGroup(e2eCtx *E2EContext, sgID string) bool {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
 	input := &ec2.DeleteSecurityGroupInput{
 		GroupId: aws.String(sgID),
 	}
 
-	if _, err := ec2Svc.DeleteSecurityGroup(input); err != nil {
+	if _, err := ec2Svc.DeleteSecurityGroup(context.TODO(), input); err != nil {
 		return false
 	}
 	return true
 }
 
-func ListSecurityGroupRules(e2eCtx *E2EContext, sgID string) ([]*ec2.SecurityGroupRule, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+func ListSecurityGroupRules(e2eCtx *E2EContext, sgID string) ([]ec2types.SecurityGroupRule, error) {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
-	filter := &ec2.Filter{
+	filter := ec2types.Filter{
 		Name:   aws.String("group-id"),
-		Values: aws.StringSlice([]string{sgID}),
+		Values: []string{sgID},
 	}
 
 	input := &ec2.DescribeSecurityGroupRulesInput{
-		Filters: []*ec2.Filter{
+		Filters: []ec2types.Filter{
 			filter,
 		},
 	}
 
-	result, err := ec2Svc.DescribeSecurityGroupRules(input)
+	result, err := ec2Svc.DescribeSecurityGroupRules(context.TODO(), input)
 	if err != nil {
 		return nil, err
 	}
 	return result.SecurityGroupRules, nil
 }
 
-func GetSecurityGroupRule(e2eCtx *E2EContext, sgrID string) (*ec2.SecurityGroupRule, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+func GetSecurityGroupRule(e2eCtx *E2EContext, sgrID string) (*ec2types.SecurityGroupRule, error) {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
-	filter := &ec2.Filter{
+	filter := ec2types.Filter{
 		Name:   aws.String("security-group-rule-id"),
-		Values: aws.StringSlice([]string{sgrID}),
+		Values: []string{sgrID},
 	}
 
 	input := &ec2.DescribeSecurityGroupRulesInput{
-		Filters: []*ec2.Filter{
+		Filters: []ec2types.Filter{
 			filter,
 		},
 	}
 
-	result, err := ec2Svc.DescribeSecurityGroupRules(input)
+	result, err := ec2Svc.DescribeSecurityGroupRules(context.TODO(), input)
 	if err != nil {
 		return nil, err
 	}
 	if result.SecurityGroupRules == nil {
 		return nil, nil
 	}
-	return result.SecurityGroupRules[0], nil
+	return &result.SecurityGroupRules[0], nil
 }
 
-func CreateSecurityGroupIngressRule(e2eCtx *E2EContext, sgID string, sgrDescription string, cidr string, protocol string, fromPort int64, toPort int64) (bool, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+func CreateSecurityGroupIngressRule(e2eCtx *E2EContext, sgID string, sgrDescription string, cidr string, protocol string, fromPort int32, toPort int32) (bool, error) {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
-	ipPerm := &ec2.IpPermission{
-		FromPort:   aws.Int64(fromPort),
-		ToPort:     aws.Int64(toPort),
+	ipPerm := ec2types.IpPermission{
+		FromPort:   aws.Int32(fromPort),
+		ToPort:     aws.Int32(toPort),
 		IpProtocol: aws.String(protocol),
-		IpRanges: []*ec2.IpRange{
+		IpRanges: []ec2types.IpRange{
 			{
 				CidrIp:      aws.String(cidr),
 				Description: aws.String(sgrDescription),
@@ -2181,26 +2186,26 @@ func CreateSecurityGroupIngressRule(e2eCtx *E2EContext, sgID string, sgrDescript
 
 	input := &ec2.AuthorizeSecurityGroupIngressInput{
 		GroupId: aws.String(sgID),
-		IpPermissions: []*ec2.IpPermission{
+		IpPermissions: []ec2types.IpPermission{
 			ipPerm,
 		},
 	}
 
-	result, err := ec2Svc.AuthorizeSecurityGroupIngress(input)
+	result, err := ec2Svc.AuthorizeSecurityGroupIngress(context.TODO(), input)
 	if err != nil {
 		return false, err
 	}
 	return *result.Return, nil
 }
 
-func CreateSecurityGroupEgressRule(e2eCtx *E2EContext, sgID string, sgrDescription string, cidr string, protocol string, fromPort int64, toPort int64) (bool, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+func CreateSecurityGroupEgressRule(e2eCtx *E2EContext, sgID string, sgrDescription string, cidr string, protocol string, fromPort int32, toPort int32) (bool, error) {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
-	ipPerm := &ec2.IpPermission{
-		FromPort:   aws.Int64(fromPort),
-		ToPort:     aws.Int64(toPort),
+	ipPerm := ec2types.IpPermission{
+		FromPort:   aws.Int32(fromPort),
+		ToPort:     aws.Int32(toPort),
 		IpProtocol: aws.String(protocol),
-		IpRanges: []*ec2.IpRange{
+		IpRanges: []ec2types.IpRange{
 			{
 				CidrIp:      aws.String(cidr),
 				Description: aws.String(sgrDescription),
@@ -2210,18 +2215,18 @@ func CreateSecurityGroupEgressRule(e2eCtx *E2EContext, sgID string, sgrDescripti
 
 	input := &ec2.AuthorizeSecurityGroupEgressInput{
 		GroupId: aws.String(sgID),
-		IpPermissions: []*ec2.IpPermission{
+		IpPermissions: []ec2types.IpPermission{
 			ipPerm,
 		},
 	}
-	result, err := ec2Svc.AuthorizeSecurityGroupEgress(input)
+	result, err := ec2Svc.AuthorizeSecurityGroupEgress(context.TODO(), input)
 	if err != nil {
 		return false, err
 	}
 	return *result.Return, nil
 }
 
-func CreateSecurityGroupRule(e2eCtx *E2EContext, sgID string, sgrDescription string, cidr string, protocol string, fromPort int64, toPort int64, rt string) (bool, error) {
+func CreateSecurityGroupRule(e2eCtx *E2EContext, sgID string, sgrDescription string, cidr string, protocol string, fromPort int32, toPort int32, rt string) (bool, error) {
 	switch rt {
 	case "ingress":
 		return CreateSecurityGroupIngressRule(e2eCtx, sgID, sgrDescription, cidr, protocol, fromPort, toPort)
@@ -2231,14 +2236,14 @@ func CreateSecurityGroupRule(e2eCtx *E2EContext, sgID string, sgrDescription str
 	return false, nil
 }
 
-func CreateSecurityGroupIngressRuleWithSourceSG(e2eCtx *E2EContext, sgID string, protocol string, toPort int64, sourceSecurityGroupID string) (bool, error) {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+func CreateSecurityGroupIngressRuleWithSourceSG(e2eCtx *E2EContext, sgID string, protocol string, toPort int32, sourceSecurityGroupID string) (bool, error) {
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
-	ipPerm := &ec2.IpPermission{
-		FromPort:   aws.Int64(toPort),
-		ToPort:     aws.Int64(toPort),
+	ipPerm := ec2types.IpPermission{
+		FromPort:   aws.Int32(toPort),
+		ToPort:     aws.Int32(toPort),
 		IpProtocol: aws.String(protocol),
-		UserIdGroupPairs: []*ec2.UserIdGroupPair{
+		UserIdGroupPairs: []ec2types.UserIdGroupPair{
 			{
 				GroupId: aws.String(sourceSecurityGroupID),
 			},
@@ -2246,12 +2251,12 @@ func CreateSecurityGroupIngressRuleWithSourceSG(e2eCtx *E2EContext, sgID string,
 	}
 	input := &ec2.AuthorizeSecurityGroupIngressInput{
 		GroupId: aws.String(sgID),
-		IpPermissions: []*ec2.IpPermission{
+		IpPermissions: []ec2types.IpPermission{
 			ipPerm,
 		},
 	}
 
-	result, err := ec2Svc.AuthorizeSecurityGroupIngress(input)
+	result, err := ec2Svc.AuthorizeSecurityGroupIngress(context.TODO(), input)
 	if err != nil {
 		return false, err
 	}
@@ -2259,28 +2264,28 @@ func CreateSecurityGroupIngressRuleWithSourceSG(e2eCtx *E2EContext, sgID string,
 }
 
 func DeleteSecurityGroupIngressRule(e2eCtx *E2EContext, sgID, sgrID string) bool {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
 	input := &ec2.RevokeSecurityGroupIngressInput{
-		SecurityGroupRuleIds: aws.StringSlice([]string{sgrID}),
+		SecurityGroupRuleIds: []string{sgrID},
 		GroupId:              aws.String(sgID),
 	}
 
-	if _, err := ec2Svc.RevokeSecurityGroupIngress(input); err != nil {
+	if _, err := ec2Svc.RevokeSecurityGroupIngress(context.TODO(), input); err != nil {
 		return false
 	}
 	return true
 }
 
 func DeleteSecurityGroupEgressRule(e2eCtx *E2EContext, sgID, sgrID string) bool {
-	ec2Svc := ec2.New(e2eCtx.AWSSession)
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
 
 	input := &ec2.RevokeSecurityGroupEgressInput{
-		SecurityGroupRuleIds: aws.StringSlice([]string{sgrID}),
+		SecurityGroupRuleIds: []string{sgrID},
 		GroupId:              aws.String(sgID),
 	}
 
-	if _, err := ec2Svc.RevokeSecurityGroupEgress(input); err != nil {
+	if _, err := ec2Svc.RevokeSecurityGroupEgress(context.TODO(), input); err != nil {
 		return false
 	}
 	return true

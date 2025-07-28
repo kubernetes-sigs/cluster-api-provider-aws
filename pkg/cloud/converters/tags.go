@@ -21,19 +21,19 @@ import (
 	"strings"
 
 	autoscalingtypes "github.com/aws/aws-sdk-go-v2/service/autoscaling/types"
+	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	elbtypes "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing/types"
 	elbv2types "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2/types"
 	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
 	ssmtypes "github.com/aws/aws-sdk-go-v2/service/ssm/types"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 )
 
 // TagsToMap converts a []*ec2.Tag into a infrav1.Tags.
-func TagsToMap(src []*ec2.Tag) infrav1.Tags {
+func TagsToMap(src []ec2types.Tag) infrav1.Tags {
 	tags := make(infrav1.Tags, len(src))
 
 	for _, t := range src {
@@ -55,12 +55,12 @@ func MapPtrToMap(src map[string]string) infrav1.Tags {
 }
 
 // MapToTags converts a infrav1.Tags to a []*ec2.Tag.
-func MapToTags(src infrav1.Tags) []*ec2.Tag {
-	tags := make([]*ec2.Tag, 0, len(src))
+func MapToTags(src infrav1.Tags) []ec2types.Tag {
+	tags := make([]ec2types.Tag, 0, len(src))
 
 	for k, v := range src {
 		if !strings.HasPrefix(k, "aws:") {
-			tag := &ec2.Tag{
+			tag := ec2types.Tag{
 				Key:   aws.String(k),
 				Value: aws.String(v),
 			}

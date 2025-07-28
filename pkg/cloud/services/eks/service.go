@@ -23,11 +23,11 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
 	"github.com/aws/aws-sdk-go-v2/service/eks"
-	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/common"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/eks/iam"
 )
 
@@ -86,7 +86,7 @@ type EKSClient struct {
 // One alternative is to have a large list of functions from the ec2 client.
 type Service struct {
 	scope     *scope.ManagedControlPlaneScope
-	EC2Client ec2iface.EC2API
+	EC2Client common.EC2API
 	EKSClient EKSAPI
 	iam.IAMService
 	STSClient stsiface.STSAPI
