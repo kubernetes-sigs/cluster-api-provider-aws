@@ -25,13 +25,13 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	elb "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing"
 	elbtypes "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing/types"
 	elbv2 "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
 	elbv2types "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2/types"
 	rgapi "github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi"
 	rgapitypes "github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi/types"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -387,9 +387,9 @@ func (s *Service) getAPIServerLBSpec(ctx context.Context, elbName string, lbSpec
 		// This set of subnets may not match the subnets specified on the Cluster, so we may not have already discovered them
 		// We need to call out to AWS to describe them just in case
 		input := &ec2.DescribeSubnetsInput{
-			SubnetIds: aws.StringSlice(lbSpec.Subnets),
+			SubnetIds: lbSpec.Subnets,
 		}
-		out, err := s.EC2Client.DescribeSubnetsWithContext(ctx, input)
+		out, err := s.EC2Client.DescribeSubnets(ctx, input)
 		if err != nil {
 			return nil, err
 		}
@@ -1001,9 +1001,9 @@ func (s *Service) getControlPlaneLoadBalancerSubnets(ctx context.Context) (infra
 	var subnets infrav1.Subnets
 
 	input := &ec2.DescribeSubnetsInput{
-		SubnetIds: aws.StringSlice(s.scope.ControlPlaneLoadBalancer().Subnets),
+		SubnetIds: s.scope.ControlPlaneLoadBalancer().Subnets,
 	}
-	res, err := s.EC2Client.DescribeSubnetsWithContext(ctx, input)
+	res, err := s.EC2Client.DescribeSubnets(ctx, input)
 	if err != nil {
 		return nil, err
 	}
@@ -1194,9 +1194,9 @@ func (s *Service) getAPIServerClassicELBSpec(ctx context.Context, elbName string
 		// This set of subnets may not match the subnets specified on the Cluster, so we may not have already discovered them
 		// We need to call out to AWS to describe them just in case
 		input := &ec2.DescribeSubnetsInput{
-			SubnetIds: aws.StringSlice(s.scope.ControlPlaneLoadBalancer().Subnets),
+			SubnetIds: s.scope.ControlPlaneLoadBalancer().Subnets,
 		}
-		out, err := s.EC2Client.DescribeSubnetsWithContext(ctx, input)
+		out, err := s.EC2Client.DescribeSubnets(ctx, input)
 		if err != nil {
 			return nil, err
 		}

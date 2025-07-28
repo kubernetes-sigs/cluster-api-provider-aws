@@ -25,13 +25,14 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	elb "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing"
 	elbtypes "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing/types"
 	elbv2 "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
 	elbv2types "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2/types"
 	rgapi "github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi"
 	rgapitypes "github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi/types"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
@@ -207,14 +208,14 @@ func TestGetAPIServerClassicELBSpecControlPlaneLoadBalancer(t *testing.T) {
 				Subnets: []string{"subnet-1", "subnet-2"},
 			},
 			mocks: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
-					SubnetIds: []*string{
-						aws.String("subnet-1"),
-						aws.String("subnet-2"),
+				m.DescribeSubnets(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
+					SubnetIds: []string{
+						"subnet-1",
+						"subnet-2",
 					},
 				})).
 					Return(&ec2.DescribeSubnetsOutput{
-						Subnets: []*ec2.Subnet{
+						Subnets: []ec2types.Subnet{
 							{
 								SubnetId:         aws.String("subnet-1"),
 								AvailabilityZone: aws.String("us-east-1a"),
@@ -358,14 +359,14 @@ func TestGetAPIServerV2ELBSpecControlPlaneLoadBalancer(t *testing.T) {
 				Subnets: []string{"subnet-1", "subnet-2"},
 			},
 			mocks: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
-					SubnetIds: []*string{
-						aws.String("subnet-1"),
-						aws.String("subnet-2"),
+				m.DescribeSubnets(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
+					SubnetIds: []string{
+						"subnet-1",
+						"subnet-2",
 					},
 				})).
 					Return(&ec2.DescribeSubnetsOutput{
-						Subnets: []*ec2.Subnet{
+						Subnets: []ec2types.Subnet{
 							{
 								SubnetId:         aws.String("subnet-1"),
 								AvailabilityZone: aws.String("us-east-1a"),
@@ -632,13 +633,13 @@ func TestRegisterInstanceWithAPIServerELB(t *testing.T) {
 					}, nil)
 			},
 			ec2Mocks: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
-					SubnetIds: []*string{
-						aws.String(elbSubnetID),
+				m.DescribeSubnets(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
+					SubnetIds: []string{
+						elbSubnetID,
 					},
 				})).
 					Return(&ec2.DescribeSubnetsOutput{
-						Subnets: []*ec2.Subnet{
+						Subnets: []ec2types.Subnet{
 							{
 								SubnetId:         aws.String(elbSubnetID),
 								AvailabilityZone: aws.String(az),
@@ -707,13 +708,13 @@ func TestRegisterInstanceWithAPIServerELB(t *testing.T) {
 					}, nil)
 			},
 			ec2Mocks: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSubnetsWithContext(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
-					SubnetIds: []*string{
-						aws.String(elbSubnetID),
+				m.DescribeSubnets(context.TODO(), gomock.Eq(&ec2.DescribeSubnetsInput{
+					SubnetIds: []string{
+						elbSubnetID,
 					},
 				})).
 					Return(&ec2.DescribeSubnetsOutput{
-						Subnets: []*ec2.Subnet{
+						Subnets: []ec2types.Subnet{
 							{
 								SubnetId:         aws.String(elbSubnetID),
 								AvailabilityZone: aws.String(differentAZ),

@@ -22,8 +22,6 @@ limitations under the License.
 //go:generate /usr/bin/env bash -c "cat ../../hack/boilerplate/boilerplate.generatego.txt aws_elb_mock.go > _aws_elb_mock.go && mv _aws_elb_mock.go aws_elb_mock.go"
 //go:generate ../../hack/tools/bin/mockgen -destination aws_rgtagging_mock.go -package mocks sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/elb ResourceGroupsTaggingAPIAPI
 //go:generate /usr/bin/env bash -c "cat ../../hack/boilerplate/boilerplate.generatego.txt aws_rgtagging_mock.go > _aws_rgtagging_mock.go && mv _aws_rgtagging_mock.go aws_rgtagging_mock.go"
-//go:generate ../../hack/tools/bin/mockgen -destination aws_ec2api_mock.go -package mocks github.com/aws/aws-sdk-go/service/ec2/ec2iface EC2API
+//go:generate ../../hack/tools/bin/mockgen -destination aws_ec2api_mock.go -package mocks sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/common EC2API
 //go:generate /usr/bin/env bash -c "cat ../../hack/boilerplate/boilerplate.generatego.txt aws_ec2api_mock.go > _aws_ec2api_mock.go && mv _aws_ec2api_mock.go aws_ec2api_mock.go"
-//go:generate ../../hack/tools/bin/mockgen -destination aws_ec2apiv2_mock.go -package mocks sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope EC2API
-//go:generate /usr/bin/env bash -c "cat ../../hack/boilerplate/boilerplate.generatego.txt aws_ec2apiv2_mock.go > _aws_ec2apiv2_mock.go && mv _aws_ec2apiv2_mock.go v2/aws_ec2api_mock.go && rm aws_ec2apiv2_mock.go"
 package mocks

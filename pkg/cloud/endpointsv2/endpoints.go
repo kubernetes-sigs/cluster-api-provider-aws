@@ -265,7 +265,7 @@ type EKSEndpointResolver struct {
 	*MultiServiceEndpointResolver
 }
 
-// ResolveEndpoint for S3.
+// ResolveEndpoint for EKS.
 func (s *EKSEndpointResolver) ResolveEndpoint(ctx context.Context, params eks.EndpointParameters) (smithyendpoints.Endpoint, error) {
 	// If custom endpoint not found, return default endpoint for the service
 	log := logger.FromContext(ctx)

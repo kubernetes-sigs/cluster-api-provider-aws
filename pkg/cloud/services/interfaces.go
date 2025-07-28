@@ -20,7 +20,7 @@ package services
 import (
 	"context"
 
-	"github.com/aws/aws-sdk-go/service/ec2"
+	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -81,7 +81,7 @@ type EC2Interface interface {
 	GetLaunchTemplateLatestVersion(id string) (string, error)
 	CreateLaunchTemplate(scope scope.LaunchTemplateScope, imageID *string, userDataSecretKey apimachinerytypes.NamespacedName, userData []byte, bootstrapDataHash string) (string, error)
 	CreateLaunchTemplateVersion(id string, scope scope.LaunchTemplateScope, imageID *string, userDataSecretKey apimachinerytypes.NamespacedName, userData []byte, bootstrapDataHash string) error
-	PruneLaunchTemplateVersions(id string) (*ec2.LaunchTemplateVersion, error)
+	PruneLaunchTemplateVersions(id string) (*ec2types.LaunchTemplateVersion, error)
 	DeleteLaunchTemplate(id string) error
 	LaunchTemplateNeedsUpdate(scope scope.LaunchTemplateScope, incoming *expinfrav1.AWSLaunchTemplate, existing *expinfrav1.AWSLaunchTemplate) (bool, error)
 	DeleteBastion() error
