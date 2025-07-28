@@ -647,17 +647,27 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 		return append(cniRules, rules...), nil
 
 	case infrav1.SecurityGroupNode:
-		cidrBlocks := []string{services.AnyIPv4CidrBlock}
-		if scopeCidrBlocks := s.scope.NodePortIngressRuleCidrBlocks(); len(scopeCidrBlocks) > 0 {
-			cidrBlocks = scopeCidrBlocks
+		ipv4CidrBlocks := []string{services.AnyIPv4CidrBlock}
+		if scopeCidrBlocks := s.scope.NodePortIngressRuleCidrBlocks().IPv4CidrBlocks(); len(scopeCidrBlocks) > 0 {
+			ipv4CidrBlocks = scopeCidrBlocks
 		}
+
+		var ipv6CidrBlocks []string
+		if s.scope.VPC().IsIPv6Enabled() {
+			ipv6CidrBlocks = []string{services.AnyIPv6CidrBlock}
+			if scopeCidrBlocks := s.scope.NodePortIngressRuleCidrBlocks().IPv6CidrBlocks(); len(scopeCidrBlocks) > 0 {
+				ipv6CidrBlocks = scopeCidrBlocks
+			}
+		}
+
 		rules := infrav1.IngressRules{
 			{
-				Description: "Node Port Services",
-				Protocol:    infrav1.SecurityGroupProtocolTCP,
-				FromPort:    30000,
-				ToPort:      32767,
-				CidrBlocks:  cidrBlocks,
+				Description:    "Node Port Services",
+				Protocol:       infrav1.SecurityGroupProtocolTCP,
+				FromPort:       30000,
+				ToPort:         32767,
+				CidrBlocks:     ipv4CidrBlocks,
+				IPv6CidrBlocks: ipv6CidrBlocks,
 			},
 			{
 				Description: "Kubelet API",
@@ -671,17 +681,9 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 				},
 			},
 		}
+
 		if s.scope.Bastion().Enabled {
 			rules = append(rules, s.defaultSSHIngressRule(s.scope.SecurityGroups()[infrav1.SecurityGroupBastion].ID))
-		}
-		if s.scope.VPC().IsIPv6Enabled() {
-			rules = append(rules, infrav1.IngressRule{
-				Description:    "Node Port Services IPv6",
-				Protocol:       infrav1.SecurityGroupProtocolTCP,
-				FromPort:       30000,
-				ToPort:         32767,
-				IPv6CidrBlocks: []string{services.AnyIPv6CidrBlock},
-			})
 		}
 
 		additionalIngressRules, err := s.processIngressRulesSGs(s.scope.AdditionalNodeIngressRules())
