@@ -1683,7 +1683,7 @@ func Convert_v1beta2_AllowedNamespaces_To_v1beta1_AllowedNamespaces(in *v1beta2.
 func autoConvert_v1beta1_Bastion_To_v1beta2_Bastion(in *Bastion, out *v1beta2.Bastion, s conversion.Scope) error {
 	out.Enabled = in.Enabled
 	out.DisableIngressRules = in.DisableIngressRules
-	out.AllowedCIDRBlocks = *(*[]string)(unsafe.Pointer(&in.AllowedCIDRBlocks))
+	out.AllowedCIDRBlocks = *(*v1beta2.CidrBlocks)(unsafe.Pointer(&in.AllowedCIDRBlocks))
 	out.InstanceType = in.InstanceType
 	out.AMI = in.AMI
 	return nil
