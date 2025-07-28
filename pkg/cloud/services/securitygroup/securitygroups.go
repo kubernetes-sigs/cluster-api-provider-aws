@@ -596,13 +596,19 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 	}
 	switch role {
 	case infrav1.SecurityGroupBastion:
+		ipv4CidrBlocks := s.scope.Bastion().AllowedCIDRBlocks.IPv4CidrBlocks()
+		var ipv6CidrBlocks []string
+		if s.scope.VPC().IsIPv6Enabled() {
+			ipv6CidrBlocks = s.scope.Bastion().AllowedCIDRBlocks.IPv6CidrBlocks()
+		}
 		return infrav1.IngressRules{
 			{
-				Description: "SSH",
-				Protocol:    infrav1.SecurityGroupProtocolTCP,
-				FromPort:    22,
-				ToPort:      22,
-				CidrBlocks:  s.scope.Bastion().AllowedCIDRBlocks,
+				Description:    "SSH",
+				Protocol:       infrav1.SecurityGroupProtocolTCP,
+				FromPort:       22,
+				ToPort:         22,
+				CidrBlocks:     ipv4CidrBlocks,
+				IPv6CidrBlocks: ipv6CidrBlocks,
 			},
 		}, nil
 	case infrav1.SecurityGroupControlPlane:
