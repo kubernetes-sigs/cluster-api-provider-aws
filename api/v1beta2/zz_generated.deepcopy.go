@@ -1247,7 +1247,7 @@ func (in *Bastion) DeepCopyInto(out *Bastion) {
 	*out = *in
 	if in.AllowedCIDRBlocks != nil {
 		in, out := &in.AllowedCIDRBlocks, &out.AllowedCIDRBlocks
-		*out = make([]string, len(*in))
+		*out = make(CidrBlocks, len(*in))
 		copy(*out, *in)
 	}
 }
