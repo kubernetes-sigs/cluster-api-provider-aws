@@ -523,6 +523,7 @@ spec:
                             description: |-
                               AllowedCIDRBlocks is a list of CIDR blocks allowed to access the bastion host.
                               They are set as ingress rules for the Bastion host's Security Group (defaults to 0.0.0.0/0).
+                              If the cluster has IPv6 enabled, defaults to ::/0 and 0.0.0.0/0.
                             items:
                               type: string
                             type: array
