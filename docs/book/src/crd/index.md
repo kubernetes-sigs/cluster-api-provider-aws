@@ -8682,6 +8682,9 @@ string
 <tbody><tr><td><p>&#34;candidate&#34;</p></td>
 <td><p>Candidate channel group is for testing candidate builds.</p>
 </td>
+</tr><tr><td><p>&#34;fast&#34;</p></td>
+<td><p>Fast channel group is for fast channel releases.</p>
+</td>
 </tr><tr><td><p>&#34;nightly&#34;</p></td>
 <td><p>Nightly channel group is for testing nigtly builds.</p>
 </td>
@@ -15078,8 +15081,7 @@ string
 <td>
 <em>(Optional)</em>
 <p>IPv6CidrBlock is the IPv6 CIDR block to be used when the provider creates a managed VPC.
-A subnet can have an IPv4 and an IPv6 address.
-IPv6 is only supported in managed clusters, this field cannot be set on AWSCluster object.</p>
+A subnet can have an IPv4 and an IPv6 address.</p>
 </td>
 </tr>
 <tr>
@@ -15114,8 +15116,7 @@ bool
 </td>
 <td>
 <em>(Optional)</em>
-<p>IsIPv6 defines the subnet as an IPv6 subnet. A subnet is IPv6 when it is associated with a VPC that has IPv6 enabled.
-IPv6 is only supported in managed clusters, this field cannot be set on AWSCluster object.</p>
+<p>IsIPv6 defines the subnet as an IPv6 subnet. A subnet is IPv6 when it is associated with a VPC that has IPv6 enabled.</p>
 </td>
 </tr>
 <tr>
@@ -21692,13 +21693,16 @@ Requires AllowedCIDRBlocks to be empty.</p>
 <td>
 <code>allowedCIDRBlocks</code><br/>
 <em>
-[]string
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.CidrBlocks">
+CidrBlocks
+</a>
 </em>
 </td>
 <td>
 <em>(Optional)</em>
 <p>AllowedCIDRBlocks is a list of CIDR blocks allowed to access the bastion host.
-They are set as ingress rules for the Bastion host&rsquo;s Security Group (defaults to 0.0.0.0/0).</p>
+They are set as ingress rules for the Bastion host&rsquo;s Security Group (defaults to 0.0.0.0/0).
+If the cluster has IPv6 enabled, defaults to ::/0 and 0.0.0.0/0.</p>
 </td>
 </tr>
 <tr>
@@ -21914,6 +21918,14 @@ The source for the rule will be set to control plane and worker security group I
 </tr>
 </tbody>
 </table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.CidrBlocks">CidrBlocks
+(<code>[]string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.Bastion">Bastion</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.NetworkSpec">NetworkSpec</a>)
+</p>
+<p>
+<p>CidrBlocks defines a set of CIDR blocks.</p>
+</p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.ClassicELBAttributes">ClassicELBAttributes
 </h3>
 <p>
@@ -22911,6 +22923,17 @@ string
 </tr>
 <tr>
 <td>
+<code>ipv6Address</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The IPv6 address assigned to the instance.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>publicIp</code><br/>
 <em>
 string
@@ -23181,6 +23204,21 @@ InstanceMetadataState
 <p>Enables or disables the HTTP metadata endpoint on your instances.</p>
 <p>If you specify a value of disabled, you cannot access your instance metadata.</p>
 <p>Default: enabled</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>httpProtocolIpv6</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.InstanceMetadataState">
+InstanceMetadataState
+</a>
+</em>
+</td>
+<td>
+<p>Enables or disables the IPv6 endpoint for the instance metadata service.
+This applies only if you enabled the HTTP metadata endpoint.</p>
+<p>Default: disabled</p>
 </td>
 </tr>
 <tr>
@@ -23625,7 +23663,9 @@ This is optional - if not provided new security groups will be created for the c
 <td>
 <code>nodePortIngressRuleCidrBlocks</code><br/>
 <em>
-[]string
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.CidrBlocks">
+CidrBlocks
+</a>
 </em>
 </td>
 <td>
@@ -24081,8 +24121,7 @@ string
 <td>
 <em>(Optional)</em>
 <p>IPv6CidrBlock is the IPv6 CIDR block to be used when the provider creates a managed VPC.
-A subnet can have an IPv4 and an IPv6 address.
-IPv6 is only supported in managed clusters, this field cannot be set on AWSCluster object.</p>
+A subnet can have an IPv4 and an IPv6 address.</p>
 </td>
 </tr>
 <tr>
@@ -24117,8 +24156,7 @@ bool
 </td>
 <td>
 <em>(Optional)</em>
-<p>IsIPv6 defines the subnet as an IPv6 subnet. A subnet is IPv6 when it is associated with a VPC that has IPv6 enabled.
-IPv6 is only supported in managed clusters, this field cannot be set on AWSCluster object.</p>
+<p>IsIPv6 defines the subnet as an IPv6 subnet. A subnet is IPv6 when it is associated with a VPC that has IPv6 enabled.</p>
 </td>
 </tr>
 <tr>
@@ -24649,8 +24687,7 @@ IPv6
 </td>
 <td>
 <em>(Optional)</em>
-<p>IPv6 contains ipv6 specific settings for the network. Supported only in managed clusters.
-This field cannot be set on AWSCluster object.</p>
+<p>IPv6 contains ipv6 specific settings for the network.</p>
 </td>
 </tr>
 <tr>
@@ -26225,6 +26262,11 @@ ASGStatus
 </tr>
 </tbody>
 </table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSMachinePoolWebhook">AWSMachinePoolWebhook
+</h3>
+<p>
+<p>AWSMachinePoolWebhook implements a custom validation webhook for AWSMachinePool.</p>
+</p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedMachinePool">AWSManagedMachinePool
 </h3>
 <p>
@@ -27735,7 +27777,9 @@ int64
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedMachinePoolSpec">AWSManagedMachinePoolSpec</a>)
 </p>
 <p>
-<p>ManagedMachineAMIType specifies which AWS AMI to use for a managed MachinePool.</p>
+<p>ManagedMachineAMIType specifies which AWS AMI to use for a managed MachinePool.
+Source of truth can be found using the link below:
+<a href="https://docs.aws.amazon.com/eks/latest/APIReference/API_CreateNodegroup.html#AmazonEKS-CreateNodegroup-request-amiType">https://docs.aws.amazon.com/eks/latest/APIReference/API_CreateNodegroup.html#AmazonEKS-CreateNodegroup-request-amiType</a></p>
 </p>
 <table>
 <thead>
@@ -27747,8 +27791,17 @@ int64
 <tbody><tr><td><p>&#34;AL2023_ARM_64_STANDARD&#34;</p></td>
 <td><p>Al2023Arm64 is the AL2023 Arm AMI type.</p>
 </td>
+</tr><tr><td><p>&#34;AL2023_ARM_64_NVIDIA&#34;</p></td>
+<td><p>Al2023Arm64Nvidia is the AL2023 Arm Nvidia AMI type.</p>
+</td>
 </tr><tr><td><p>&#34;AL2023_x86_64_STANDARD&#34;</p></td>
 <td><p>Al2023x86_64 is the AL2023 x86-64 AMI type.</p>
+</td>
+</tr><tr><td><p>&#34;AL2023_x86_64_NEURON&#34;</p></td>
+<td><p>Al2023x86_64Neuron is the AL2023 x86-64 Neuron AMI type.</p>
+</td>
+</tr><tr><td><p>&#34;AL2023_x86_64_NVIDIA&#34;</p></td>
+<td><p>Al2023x86_64Nvidia is the AL2023 x86-64 Nvidia AMI type.</p>
 </td>
 </tr><tr><td><p>&#34;AL2_ARM_64&#34;</p></td>
 <td><p>Al2Arm64 is the Arm AMI type.</p>
@@ -27758,6 +27811,39 @@ int64
 </td>
 </tr><tr><td><p>&#34;AL2_x86_64_GPU&#34;</p></td>
 <td><p>Al2x86_64GPU is the x86-64 GPU AMI type.</p>
+</td>
+</tr><tr><td><p>&#34;BOTTLEROCKET_ARM_64&#34;</p></td>
+<td><p>BottleRocketArm64 is the Arm AMI type.</p>
+</td>
+</tr><tr><td><p>&#34;BOTTLEROCKET_ARM_64_FIPS&#34;</p></td>
+<td><p>BottleRocketArm64Fips is the BottleRocket Arm Fips AMI type.</p>
+</td>
+</tr><tr><td><p>&#34;BOTTLEROCKET_ARM_64_NVIDIA&#34;</p></td>
+<td><p>BottleRocketArm64Nvidia is the BottleRocket Arm Nvidia AMI type.</p>
+</td>
+</tr><tr><td><p>&#34;BOTTLEROCKET_x86_64&#34;</p></td>
+<td><p>BottleRocketx86_64 is the BottleRocket x86-64 AMI type.</p>
+</td>
+</tr><tr><td><p>&#34;BOTTLEROCKET_x86_64_FIPS&#34;</p></td>
+<td><p>BottleRocketx86_64Fips is the BottleRocket x86-64 Fips AMI type.</p>
+</td>
+</tr><tr><td><p>&#34;BOTTLEROCKET_x86_64_NVIDIA&#34;</p></td>
+<td><p>BottleRocketx86_64Nvidia is the BottleRocket x86-64 Nvidia AMI type.</p>
+</td>
+</tr><tr><td><p>&#34;CUSTOM&#34;</p></td>
+<td><p>Custom is the custom AMI type.</p>
+</td>
+</tr><tr><td><p>&#34;WINDOWS_CORE_2019_x86_64&#34;</p></td>
+<td><p>WindowsCore2019x86_64 is the Windows Core 2019 x86-64 AMI type.</p>
+</td>
+</tr><tr><td><p>&#34;WINDOWS_CORE_2022_x86_64&#34;</p></td>
+<td><p>WindowsCore2022x86_64 is the Windows Core 2022 x86-64 AMI type.</p>
+</td>
+</tr><tr><td><p>&#34;WINDOWS_FULL_2019_x86_64&#34;</p></td>
+<td><p>WindowsFull2019x86_64 is the Windows Full 2019 x86-64 AMI type.</p>
+</td>
+</tr><tr><td><p>&#34;WINDOWS_FULL_2022_x86_64&#34;</p></td>
+<td><p>WindowsFull2022x86_64 is the Windows Full 2022 x86-64 AMI type.</p>
 </td>
 </tr></tbody>
 </table>
