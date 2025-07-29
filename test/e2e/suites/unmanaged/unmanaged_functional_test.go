@@ -974,7 +974,8 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		})
 	})
 
-	ginkgo.Describe("Dedicated hosts cluster test", func() {
+	// NOTE: disabled whilst discussions happen on the costs.
+	ginkgo.PDescribe("Dedicated hosts cluster test", func() {
 		ginkgo.It("should create cluster with dedicated hosts", func() {
 			specName := "dedicated-host"
 			if !e2eCtx.Settings.SkipQuotas {
