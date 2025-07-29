@@ -40,13 +40,13 @@ import (
 
 type waitForControlPlaneToBeUpgradedInput struct {
 	ControlPlane   *ekscontrolplanev1.AWSManagedControlPlane
-	AWSSession     *aws.Config
+	AWSSessionV2   *aws.Config
 	UpgradeVersion string
 }
 
 func waitForControlPlaneToBeUpgraded(ctx context.Context, input waitForControlPlaneToBeUpgradedInput, intervals ...interface{}) {
 	Expect(input.ControlPlane).ToNot(BeNil(), "Invalid argument. input.ControlPlane can't be nil")
-	Expect(input.AWSSession).ToNot(BeNil(), "Invalid argument. input.AWSSession can't be nil")
+	Expect(input.AWSSessionV2).ToNot(BeNil(), "Invalid argument. input.AWSSessionV2 can't be nil")
 	Expect(input.UpgradeVersion).ToNot(BeNil(), "Invalid argument. input.UpgradeVersion can't be nil")
 
 	By(fmt.Sprintf("Ensuring EKS control-plane has been upgraded to kubernetes version %s", input.UpgradeVersion))
@@ -55,7 +55,7 @@ func waitForControlPlaneToBeUpgraded(ctx context.Context, input waitForControlPl
 	expectedVersion := fmt.Sprintf("%d.%d", v.Major(), v.Minor())
 
 	Eventually(func() (bool, error) {
-		cluster, err := getEKSCluster(ctx, input.ControlPlane.Spec.EKSClusterName, input.AWSSession)
+		cluster, err := getEKSCluster(ctx, input.ControlPlane.Spec.EKSClusterName, input.AWSSessionV2)
 		if err != nil {
 			return false, err
 		}

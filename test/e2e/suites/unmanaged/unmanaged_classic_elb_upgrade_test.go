@@ -191,9 +191,9 @@ var _ = ginkgo.Context("[unmanaged] [upgrade]", func() {
 			Expect(err).NotTo(HaveOccurred(), "failed to get the AWS cluster")
 
 			shared.CheckClassicElbHealthCheck(ctx, shared.CheckClassicElbHealthCheckInput{
-				AWSSession:       e2eCtx.BootstrapUserAWSSessionV2,
-				LoadBalancerName: awsCluster.Status.Network.APIServerELB.Name,
-				ExpectedTarget:   "SSL:6443",
+				AWSSessionV2:      e2eCtx.BootstrapUserAWSSessionV2,
+				LoadBalancerName:  awsCluster.Status.Network.APIServerELB.Name,
+				ExpectedTarget:    "SSL:6443",
 			}, e2eCtx.E2EConfig.GetIntervals(specName, "wait-classic-elb-health-check-short")...)
 
 			ginkgo.By("Now the workload cluster is ready upgrade CAPA to main version")
@@ -210,9 +210,9 @@ var _ = ginkgo.Context("[unmanaged] [upgrade]", func() {
 			ginkgo.By("Management cluster is upgraded to main version")
 
 			shared.CheckClassicElbHealthCheck(ctx, shared.CheckClassicElbHealthCheckInput{
-				AWSSession:       e2eCtx.BootstrapUserAWSSessionV2,
-				LoadBalancerName: awsCluster.Status.Network.APIServerELB.Name,
-				ExpectedTarget:   "TCP:6443",
+				AWSSessionV2:      e2eCtx.BootstrapUserAWSSessionV2,
+				LoadBalancerName:  awsCluster.Status.Network.APIServerELB.Name,
+				ExpectedTarget:    "TCP:6443",
 			}, e2eCtx.E2EConfig.GetIntervals(specName, "wait-classic-elb-health-check-long")...)
 
 			shared.Byf("Upgrading the control plane to %s", kubernetesVersionTo)

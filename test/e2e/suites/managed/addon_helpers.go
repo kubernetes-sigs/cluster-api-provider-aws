@@ -32,7 +32,7 @@ import (
 
 type waitForEKSAddonToHaveStatusInput struct {
 	ControlPlane *ekscontrolplanev1.AWSManagedControlPlane
-	AWSSession   *aws.Config
+	AWSSessionV2 *aws.Config
 	AddonName    string
 	AddonVersion string
 	AddonStatus  []string
@@ -40,7 +40,7 @@ type waitForEKSAddonToHaveStatusInput struct {
 
 func waitForEKSAddonToHaveStatus(ctx context.Context, input waitForEKSAddonToHaveStatusInput, intervals ...interface{}) {
 	Expect(input.ControlPlane).ToNot(BeNil(), "Invalid argument. input.ControlPlane can't be nil")
-	Expect(input.AWSSession).ToNot(BeNil(), "Invalid argument. input.AWSSession can't be nil")
+	Expect(input.AWSSessionV2).ToNot(BeNil(), "Invalid argument. input.AWSSessionV2 can't be nil")
 	Expect(input.AddonName).ShouldNot(BeEmpty(), "Invalid argument. input.AddonName can't be empty")
 	Expect(input.AddonVersion).ShouldNot(BeEmpty(), "Invalid argument. input.AddonVersion can't be empty")
 	Expect(input.AddonStatus).ShouldNot(BeEmpty(), "Invalid argument. input.AddonStatus can't be empty")
@@ -48,7 +48,7 @@ func waitForEKSAddonToHaveStatus(ctx context.Context, input waitForEKSAddonToHav
 	ginkgo.By(fmt.Sprintf("Ensuring EKS addon %s has status in %q for EKS cluster %s", input.AddonName, input.AddonStatus, input.ControlPlane.Spec.EKSClusterName))
 
 	Eventually(func() (bool, error) {
-		installedAddon, err := getEKSClusterAddon(ctx, input.ControlPlane.Spec.EKSClusterName, input.AddonName, input.AWSSession)
+		installedAddon, err := getEKSClusterAddon(ctx, input.ControlPlane.Spec.EKSClusterName, input.AddonName, input.AWSSessionV2)
 		if err != nil {
 			return false, err
 		}
@@ -71,7 +71,7 @@ func waitForEKSAddonToHaveStatus(ctx context.Context, input waitForEKSAddonToHav
 
 type checkEKSAddonConfigurationInput struct {
 	ControlPlane       *ekscontrolplanev1.AWSManagedControlPlane
-	AWSSession         *aws.Config
+	AWSSessionV2       *aws.Config
 	AddonName          string
 	AddonVersion       string
 	AddonConfiguration string
@@ -79,7 +79,7 @@ type checkEKSAddonConfigurationInput struct {
 
 func checkEKSAddonConfiguration(ctx context.Context, input checkEKSAddonConfigurationInput, intervals ...interface{}) {
 	Expect(input.ControlPlane).ToNot(BeNil(), "Invalid argument. input.ControlPlane can't be nil")
-	Expect(input.AWSSession).ToNot(BeNil(), "Invalid argument. input.AWSSession can't be nil")
+	Expect(input.AWSSessionV2).ToNot(BeNil(), "Invalid argument. input.AWSSessionV2 can't be nil")
 	Expect(input.AddonName).ShouldNot(BeEmpty(), "Invalid argument. input.AddonName can't be empty")
 	Expect(input.AddonVersion).ShouldNot(BeEmpty(), "Invalid argument. input.AddonVersion can't be empty")
 	Expect(input.AddonConfiguration).ShouldNot(BeEmpty(), "Invalid argument. input.AddonConfiguration can't be empty")
@@ -87,7 +87,7 @@ func checkEKSAddonConfiguration(ctx context.Context, input checkEKSAddonConfigur
 	ginkgo.By(fmt.Sprintf("Ensuring EKS addon %s has config in %q for EKS cluster %s", input.AddonName, input.AddonConfiguration, input.ControlPlane.Spec.EKSClusterName))
 
 	Eventually(func() (bool, error) {
-		installedAddon, err := getEKSClusterAddon(ctx, input.ControlPlane.Spec.EKSClusterName, input.AddonName, input.AWSSession)
+		installedAddon, err := getEKSClusterAddon(ctx, input.ControlPlane.Spec.EKSClusterName, input.AddonName, input.AWSSessionV2)
 		if err != nil {
 			return false, err
 		}
