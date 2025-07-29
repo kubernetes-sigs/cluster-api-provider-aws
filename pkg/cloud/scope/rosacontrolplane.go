@@ -21,8 +21,7 @@ import (
 	"fmt"
 
 	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go/service/sts"
-	"github.com/aws/aws-sdk-go/service/sts/stsiface"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -47,7 +46,7 @@ type ROSAControlPlaneScopeParams struct {
 	ControlPlane   *rosacontrolplanev1.ROSAControlPlane
 	ControllerName string
 	Endpoints      []ServiceEndpoint
-	NewStsClient   func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsiface.STSAPI
+	NewStsClient   func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) *sts.Client
 }
 
 // NewROSAControlPlaneScope creates a new ROSAControlPlaneScope from the supplied parameters.
@@ -93,7 +92,7 @@ func NewROSAControlPlaneScope(params ROSAControlPlaneScopeParams) (*ROSAControlP
 	managedScope.serviceLimitersV2 = serviceLimitersv2
 
 	stsClient := params.NewStsClient(managedScope, managedScope, managedScope, managedScope.ControlPlane)
-	identity, err := stsClient.GetCallerIdentity(&sts.GetCallerIdentityInput{})
+	identity, err := stsClient.GetCallerIdentity(context.TODO(), &sts.GetCallerIdentityInput{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to identify the AWS caller: %w", err)
 	}

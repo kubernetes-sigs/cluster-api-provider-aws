@@ -29,9 +29,7 @@ import (
 	"strings"
 	"time"
 
-	stsv2 "github.com/aws/aws-sdk-go-v2/service/sts"
-	sts "github.com/aws/aws-sdk-go/service/sts"
-	"github.com/aws/aws-sdk-go/service/sts/stsiface"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/google/go-cmp/cmp"
 	idputils "github.com/openshift-online/ocm-common/pkg/idp/utils"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -92,7 +90,7 @@ type ROSAControlPlaneReconciler struct {
 	WatchFilterValue string
 	WaitInfraPeriod  time.Duration
 	Endpoints        []scope.ServiceEndpoint
-	NewStsClient     func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsiface.STSAPI
+	NewStsClient     func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) *sts.Client
 	NewOCMClient     func(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (rosa.OCMClient, error)
 	// Exposing the restClientConfig for integration test. No need to initialize.
 	restClientConfig *restclient.Config
@@ -1132,8 +1130,8 @@ func buildAPIEndpoint(cluster *cmv1.Cluster) (*clusterv1.APIEndpoint, error) {
 }
 
 // TODO: Remove this and update the aws-sdk lib to v2.
-func convertStsV2(identity *sts.GetCallerIdentityOutput) *stsv2.GetCallerIdentityOutput {
-	return &stsv2.GetCallerIdentityOutput{
+func convertStsV2(identity *sts.GetCallerIdentityOutput) *sts.GetCallerIdentityOutput {
+	return &sts.GetCallerIdentityOutput{
 		Account: identity.Account,
 		Arn:     identity.Arn,
 		UserId:  identity.UserId,
