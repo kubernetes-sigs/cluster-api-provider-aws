@@ -18,11 +18,13 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 	"github.com/go-logr/logr"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -136,18 +138,24 @@ func (r *ROSARoleConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 	}
 
-	if scope.RosaRoleConfig.Status.OIDCID == "" {
-		err = r.createOIDCConfig(roleConfig, scope, ocmClient)
-		if err != nil {
-			conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1.RosaRoleConfigReadyCondition, expinfrav1.RosaRoleConfigReconciliationFailedReason, clusterv1.ConditionSeverityError, "Failed to create OIDC Config: %v", err)
-			return ctrl.Result{}, fmt.Errorf("failed to OICD Config: %w", err)
-		}
+	// Perform drift detection first to clean up any resources that no longer exist
+	err = r.detectAndCorrectDrift(ctx, scope, ocmClient)
+	if err != nil {
+		conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1.RosaRoleConfigReadyCondition, expinfrav1.RosaRoleConfigReconciliationFailedReason, clusterv1.ConditionSeverityWarning, "Failed to detect drift: %v", err)
+		log.Error(err, "Failed to perform drift detection")
+		// Continue with reconciliation even if drift detection fails
 	}
 
 	err = r.createAccountRoles(ctx, roleConfig, scope, ocmClient)
 	if err != nil {
 		conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1.RosaRoleConfigReadyCondition, expinfrav1.RosaRoleConfigReconciliationFailedReason, clusterv1.ConditionSeverityError, "Failed to create Account Roles: %v", err)
 		return ctrl.Result{}, fmt.Errorf("failed to Create AccountRoles: %w", err)
+	}
+
+	err = r.reconcileOIDCConfig(roleConfig, scope, ocmClient)
+	if err != nil {
+		conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1.RosaRoleConfigReadyCondition, expinfrav1.RosaRoleConfigReconciliationFailedReason, clusterv1.ConditionSeverityError, "Failed to create OIDC Config: %v", err)
+		return ctrl.Result{}, fmt.Errorf("failed to OICD Config: %w", err)
 	}
 
 	err = r.createOperatorRoles(ctx, roleConfig, scope, ocmClient)
@@ -219,7 +227,7 @@ func (r *ROSARoleConfigReconciler) reconcileDelete(scope *scope.RosaRoleConfigSc
 	return nil
 }
 
-func (r *ROSARoleConfigReconciler) createOperatorRoles(ctx context.Context, roleConfig *expinfrav1.ROSARoleConfig, scope *scope.RosaRoleConfigScope, ocmClient rosa.OCMClient) error {
+func (r *ROSARoleConfigReconciler) createOperatorRoles(ctx context.Context, roleConfig *expinfrav1.ROSARoleConfig, scope *scope.RosaRoleConfigScope, ocmClient *ocm.Client) error {
 	installerRoleArn := scope.RosaRoleConfig.Status.AccountRolesRef.InstallerRoleARN
 	if installerRoleArn == "" {
 		return fmt.Errorf("installer role is empty")
@@ -258,6 +266,7 @@ func (r *ROSARoleConfigReconciler) createOperatorRoles(ctx context.Context, role
 	isSharedVpc := config.SharedVPCConfig.VPCEndpointRoleARN != "" && config.SharedVPCConfig.RouteRoleARN != ""
 
 	operatorRoles, err := runtime.AWSClient.ListOperatorRoles(version, "", config.Prefix)
+
 	if err != nil {
 		return err
 	}
@@ -300,35 +309,24 @@ func (r *ROSARoleConfigReconciler) createOperatorRoles(ctx context.Context, role
 	return nil
 }
 
-func (r *ROSARoleConfigReconciler) createOIDCConfig(roleConfig *expinfrav1.ROSARoleConfig, scope *scope.RosaRoleConfigScope, ocmClient *ocm.Client) error {
+func (r *ROSARoleConfigReconciler) reconcileOIDCConfig(roleConfig *expinfrav1.ROSARoleConfig, scope *scope.RosaRoleConfigScope, ocmClient *ocm.Client) error {
 	if scope.RosaRoleConfig.Status.OIDCID != "" {
 		return nil
 	}
-
-	oicdConfig := roleConfig.Spec.OIDCConfig
-	runtime := rosacli.NewRuntime()
-	var err error
-	runtime.Reporter = (&rosa.Reporter{})
-	runtime.OCMClient = ocmClient
-	runtime.Logger = rosalogging.NewLogger()
-	runtime.AWSClient, err = aws.NewClient().Logger(runtime.Logger).Build()
+	// Try to get OIDC UUID from some operator role policy document.
+	roleName := fmt.Sprintf("%s-openshift-ingress-operator-cloud-credentials", roleConfig.Spec.OperatorRoleConfig.Prefix)
+	roleDetails, err := scope.IAMClient().GetRole(&iam.GetRoleInput{
+		RoleName: &roleName,
+	})
 	if err != nil {
-		return fmt.Errorf("failed to create aws client: %w", err)
+		return r.createOIDCConfig(roleConfig, scope, ocmClient)
 	}
-
-	runtime.Creator, err = runtime.AWSClient.GetCreator()
+	oidcID, err := r.GetOIDCIDFromOperatorRole(scope, roleDetails)
 	if err != nil {
-		return err
+		return r.createOIDCConfig(roleConfig, scope, ocmClient)
 	}
-
-	// userPrefix, region are used only for unmanaged OIDC config
-	configID, createErr := oidcconfig.CreateOIDCConfig(runtime, oicdConfig.ManagedOIDC, oicdConfig.Prefix, oicdConfig.Region)
-	if createErr != nil {
-		return fmt.Errorf("failed to Create OIDC config: %w", err)
-	}
-
-	scope.RosaRoleConfig.Status.OIDCID = configID
-	return createErr
+	scope.RosaRoleConfig.Status.OIDCID = oidcID
+	return nil
 }
 
 func (r *ROSARoleConfigReconciler) createOIDCProvider(scope *scope.RosaRoleConfigScope, ocmClient *ocm.Client) error {
@@ -372,7 +370,6 @@ func (r *ROSARoleConfigReconciler) createOIDCProvider(scope *scope.RosaRoleConfi
 		return err
 	}
 
-	// scope.RosaRoleConfig.Status.OIDCProviderARN
 	return oidcprovider.CreateOIDCProvider(runtime, oidcID, "", true)
 }
 
@@ -438,6 +435,32 @@ func (r *ROSARoleConfigReconciler) createAccountRoles(ctx context.Context, roleC
 	}
 
 	return nil
+}
+
+func (r *ROSARoleConfigReconciler) createOIDCConfig(roleConfig *expinfrav1.ROSARoleConfig, scope *scope.RosaRoleConfigScope, ocmClient *ocm.Client) error {
+	runtime := rosacli.NewRuntime()
+	var err error
+	runtime.Reporter = (&rosa.Reporter{})
+	runtime.OCMClient = ocmClient
+	runtime.Logger = rosalogging.NewLogger()
+	runtime.AWSClient, err = aws.NewClient().Logger(runtime.Logger).Build()
+	if err != nil {
+		return fmt.Errorf("failed to create aws client: %w", err)
+	}
+
+	runtime.Creator, err = runtime.AWSClient.GetCreator()
+	if err != nil {
+		return err
+	}
+
+	// userPrefix, region are used only for unmanaged OIDC config
+	oidcID, createErr := oidcconfig.CreateOIDCConfig(runtime, true, "", roleConfig.Spec.Region)
+	if createErr != nil {
+		return fmt.Errorf("failed to Create OIDC config: %w", err)
+	}
+
+	scope.RosaRoleConfig.Status.OIDCID = oidcID
+	return createErr
 }
 
 func (r *ROSARoleConfigReconciler) deleteAccountRoles(ocmClient *ocm.Client, awsClient aws.Client, scope *scope.RosaRoleConfigScope) error {
@@ -568,6 +591,129 @@ func (r *ROSARoleConfigReconciler) deleteOIDCConfig(ocmClient *ocm.Client, oidcC
 	return ocmClient.DeleteOidcConfig(oidcConfigID)
 }
 
+func (r *ROSARoleConfigReconciler) detectAndCorrectDrift(ctx context.Context, scope *scope.RosaRoleConfigScope, ocmClient *ocm.Client) error {
+	log := logger.FromContext(ctx)
+
+	// Create AWS client for drift detection
+	awsLogger := rosalogging.NewLogger()
+	awsClient, err := aws.NewClient().Logger(awsLogger).Build()
+	if err != nil {
+		return fmt.Errorf("failed to create AWS client for drift detection: %w", err)
+	}
+
+	statusChanged := false
+
+	// Check Account Roles drift
+	if scope.RosaRoleConfig.Status.AccountRolesRef.InstallerRoleARN != "" {
+		roleName := r.extractRoleNameFromARN(scope.RosaRoleConfig.Status.AccountRolesRef.InstallerRoleARN)
+		if !r.roleExists(awsClient, roleName) {
+			log.Info("Installer role no longer exists, clearing from status", "role", roleName)
+			scope.RosaRoleConfig.Status.AccountRolesRef.InstallerRoleARN = ""
+			statusChanged = true
+		}
+	}
+
+	if scope.RosaRoleConfig.Status.AccountRolesRef.SupportRoleARN != "" {
+		roleName := r.extractRoleNameFromARN(scope.RosaRoleConfig.Status.AccountRolesRef.SupportRoleARN)
+		if !r.roleExists(awsClient, roleName) {
+			log.Info("Support role no longer exists, clearing from status", "role", roleName)
+			scope.RosaRoleConfig.Status.AccountRolesRef.SupportRoleARN = ""
+			statusChanged = true
+		}
+	}
+
+	if scope.RosaRoleConfig.Status.AccountRolesRef.WorkerRoleARN != "" {
+		roleName := r.extractRoleNameFromARN(scope.RosaRoleConfig.Status.AccountRolesRef.WorkerRoleARN)
+		if !r.roleExists(awsClient, roleName) {
+			log.Info("Worker role no longer exists, clearing from status", "role", roleName)
+			scope.RosaRoleConfig.Status.AccountRolesRef.WorkerRoleARN = ""
+			statusChanged = true
+		}
+	}
+
+	// Check Operator Roles drift
+	operatorRoles := map[string]*string{
+		"Ingress":              &scope.RosaRoleConfig.Status.OperatorRolesRef.IngressARN,
+		"ImageRegistry":        &scope.RosaRoleConfig.Status.OperatorRolesRef.ImageRegistryARN,
+		"Storage":              &scope.RosaRoleConfig.Status.OperatorRolesRef.StorageARN,
+		"Network":              &scope.RosaRoleConfig.Status.OperatorRolesRef.NetworkARN,
+		"KubeCloudController":  &scope.RosaRoleConfig.Status.OperatorRolesRef.KubeCloudControllerARN,
+		"NodePoolManagement":   &scope.RosaRoleConfig.Status.OperatorRolesRef.NodePoolManagementARN,
+		"ControlPlaneOperator": &scope.RosaRoleConfig.Status.OperatorRolesRef.ControlPlaneOperatorARN,
+		"KMSProvider":          &scope.RosaRoleConfig.Status.OperatorRolesRef.KMSProviderARN,
+	}
+
+	for roleName, roleARN := range operatorRoles {
+		if *roleARN != "" {
+			awsRoleName := r.extractRoleNameFromARN(*roleARN)
+			if !r.roleExists(awsClient, awsRoleName) {
+				log.Info("Operator role no longer exists, clearing from status", "roleType", roleName, "role", awsRoleName)
+				*roleARN = ""
+				statusChanged = true
+			}
+		}
+	}
+
+	// Check OIDC Config drift
+	if scope.RosaRoleConfig.Status.OIDCID != "" {
+		_, err := ocmClient.GetOidcConfig(scope.RosaRoleConfig.Status.OIDCID)
+		if err != nil {
+			log.Info("OIDC Config no longer exists, clearing from status", "oidcID", scope.RosaRoleConfig.Status.OIDCID, "error", err)
+			scope.RosaRoleConfig.Status.OIDCID = ""
+			statusChanged = true
+		}
+	}
+
+	// Check OIDC Provider drift
+	if scope.RosaRoleConfig.Status.OIDCProviderARN != "" {
+		if !r.oidcProviderExists(awsClient, scope.RosaRoleConfig.Status.OIDCProviderARN) {
+			log.Info("OIDC Provider no longer exists, clearing from status", "providerARN", scope.RosaRoleConfig.Status.OIDCProviderARN)
+			scope.RosaRoleConfig.Status.OIDCProviderARN = ""
+			statusChanged = true
+		}
+	}
+
+	if statusChanged {
+		log.Info("Drift detected and status updated, patching object")
+		if err := scope.PatchObject(); err != nil {
+			return fmt.Errorf("failed to patch object after drift correction: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// extractRoleNameFromARN extracts the role name from an ARN
+// ARN format: arn:aws:iam::123456789012:role/role-name
+func (r *ROSARoleConfigReconciler) extractRoleNameFromARN(arn string) string {
+	parts := strings.Split(arn, "/")
+	if len(parts) > 1 {
+		return parts[len(parts)-1]
+	}
+	return arn
+}
+
+// roleExists checks if an IAM role exists
+func (r *ROSARoleConfigReconciler) roleExists(awsClient aws.Client, roleName string) bool {
+	exists, _, err := awsClient.CheckRoleExists(roleName)
+	return err == nil && exists
+}
+
+// oidcProviderExists checks if an OIDC provider exists
+func (r *ROSARoleConfigReconciler) oidcProviderExists(awsClient aws.Client, providerARN string) bool {
+	providers, err := awsClient.ListOidcProviders("", nil)
+	if err != nil {
+		return false
+	}
+
+	for _, provider := range providers {
+		if provider.Arn == providerARN {
+			return true
+		}
+	}
+	return false
+}
+
 func canDeleteRole(clusters []*cmv1.Cluster, roleARN string) bool {
 	if roleARN == "" {
 		return false
@@ -600,4 +746,38 @@ func (r ROSARoleConfigReconciler) rosaRolesConfigReady(scope *scope.RosaRoleConf
 		return false
 	}
 	return true
+}
+
+func (r *ROSARoleConfigReconciler) GetOIDCIDFromOperatorRole(scope *scope.RosaRoleConfigScope, roleDetails *iam.GetRoleOutput) (string, error) {
+	decodedString, err := url.QueryUnescape(*roleDetails.Role.AssumeRolePolicyDocument)
+	if err != nil {
+		return "", err
+	}
+
+	var policyDoc struct {
+		Statement []struct {
+			Principal struct {
+				Federated string `json:"Federated"`
+			} `json:"Principal"`
+			Condition map[string]map[string]string `json:"Condition"`
+		} `json:"Statement"`
+	}
+
+	err = json.Unmarshal([]byte(decodedString), &policyDoc)
+	if err != nil {
+		return "", err
+	}
+
+	// Extract from the 'Federated' ARN
+	if len(policyDoc.Statement) > 0 {
+		federatedARN := policyDoc.Statement[0].Principal.Federated
+		// The format is arn:aws:iam::ACCOUNT_ID:oidc-provider/OIDC_PROVIDER_URL
+		// OIDC_PROVIDER_URL ends with /OIDCID
+		parts := strings.Split(federatedARN, "/")
+		if len(parts) > 1 {
+			oidcUUID := parts[len(parts)-1]
+			return oidcUUID, nil
+		}
+	}
+	return "", fmt.Errorf("cant extract oidc uuid from the %s policy document", roleDetails.Role.RoleName)
 }

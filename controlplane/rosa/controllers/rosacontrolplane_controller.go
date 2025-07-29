@@ -171,7 +171,6 @@ func (r *ROSAControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	log = log.WithValues("cluster", klog.KObj(cluster))
-
 	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, rosaControlPlane); err != nil || isPaused || conditionChanged {
 		return ctrl.Result{}, err
 	}
@@ -202,10 +201,10 @@ func (r *ROSAControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	// Handle normal reconciliation loop.
-	return r.reconcileNormal(ctx, rosaScope)
+	return r.reconcileNormal(ctx, rosaScope, log)
 }
 
-func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (res ctrl.Result, reterr error) {
+func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope, log *logger.Logger) (res ctrl.Result, reterr error) {
 	rosaScope.Info("Reconciling ROSAControlPlane")
 
 	if controllerutil.AddFinalizer(rosaScope.ControlPlane, ROSAControlPlaneFinalizer) {
@@ -245,9 +244,11 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 					rosacontrolplanev1.ROSARoleConfigNotFoundReason,
 					clusterv1.ConditionSeverityError,
 					"RosaRoleConfig %s/%s not found", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name)
-				return ctrl.Result{}, fmt.Errorf("RosaRoleConfig %s/%s not found: %w", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name, err)
+				log.Error(err, fmt.Sprintf("RosaRoleConfig %s/%s not found: %w", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name, err))
+				return ctrl.Result{RequeueAfter: time.Second * 60}, nil
 			}
-			return ctrl.Result{}, fmt.Errorf("failed to get RosaRoleConfig %s/%s: %w", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name, err)
+			log.Error(err, fmt.Sprintf("failed to get RosaRoleConfig %s/%s: %w", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name, err))
+			return ctrl.Result{RequeueAfter: time.Second * 60}, nil
 		}
 
 		// Check if RosaRoleConfig is ready
@@ -257,7 +258,9 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 				rosacontrolplanev1.ROSARoleConfigNotReadyReason,
 				clusterv1.ConditionSeverityWarning,
 				"RosaRoleConfig %s/%s is not ready", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name)
-			return ctrl.Result{}, fmt.Errorf("RosaRoleConfig %s/%s is not ready", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name)
+			log.Error(err, fmt.Sprintf("RosaRoleConfig %s/%s is not ready", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name))
+
+			return ctrl.Result{RequeueAfter: time.Second * 60}, nil
 		}
 
 		conditions.MarkTrue(rosaScope.ControlPlane, rosacontrolplanev1.ROSARoleConfigReadyCondition)
@@ -267,7 +270,6 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		rosaRoleConfig.Status.AccountRolesRef.SupportRoleARN = rosaScope.ControlPlane.Spec.SupportRoleARN
 		rosaRoleConfig.Status.AccountRolesRef.WorkerRoleARN = rosaScope.ControlPlane.Spec.WorkerRoleARN
 		rosaRoleConfig.Status.OperatorRolesRef = rosaScope.ControlPlane.Spec.RolesRef
-		rosaRoleConfig.Spec.OIDCConfig.ExternalAuthProviders = rosaScope.ControlPlane.Spec.ExternalAuthProviders
 	}
 
 	validationMessage, err := validateControlPlaneSpec(ocmClient, rosaScope)

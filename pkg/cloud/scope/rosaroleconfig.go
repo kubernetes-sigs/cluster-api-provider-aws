@@ -26,6 +26,7 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/aws/aws-sdk-go/service/iam"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
@@ -52,6 +53,7 @@ type RosaRoleConfigScope struct {
 	RosaRoleConfig  *expinfrav1.ROSARoleConfig
 	serviceLimiters throttle.ServiceLimiters
 	session         awsclient.ConfigProvider
+	iamClient       *iam.IAM
 }
 
 // NewRosaRoleConfigScope creates a new RosaRoleConfigScope from the supplied parameters.
@@ -74,6 +76,8 @@ func NewRosaRoleConfigScope(params RosaRoleConfigScopeParams) (*RosaRoleConfigSc
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
 
+	iamClient := iam.New(session)
+
 	patchHelper, err := patch.NewHelper(params.RosaRoleConfig, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init patch helper")
@@ -82,6 +86,7 @@ func NewRosaRoleConfigScope(params RosaRoleConfigScopeParams) (*RosaRoleConfigSc
 	RosaRoleConfigScope.patchHelper = patchHelper
 	RosaRoleConfigScope.session = session
 	RosaRoleConfigScope.serviceLimiters = serviceLimiters
+	RosaRoleConfigScope.iamClient = iamClient
 
 	return RosaRoleConfigScope, nil
 }
@@ -157,4 +162,8 @@ func (s *RosaRoleConfigScope) CredentialsSecret() *corev1.Secret {
 			Namespace: s.RosaRoleConfig.Namespace,
 		},
 	}
+}
+
+func (s *RosaRoleConfigScope) IAMClient() *iam.IAM {
+	return s.iamClient
 }
