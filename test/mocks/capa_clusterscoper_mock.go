@@ -34,7 +34,7 @@ import (
 	throttle "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	logger "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	v1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	client0 "sigs.k8s.io/controller-runtime/pkg/client"
+	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // MockClusterScoper is a mock of ClusterScoper interface.
@@ -266,10 +266,10 @@ func (mr *MockClusterScoperMockRecorder) KubernetesClusterName() *gomock.Call {
 }
 
 // ListOptionsLabelSelector mocks base method.
-func (m *MockClusterScoper) ListOptionsLabelSelector() client0.ListOption {
+func (m *MockClusterScoper) ListOptionsLabelSelector() client.ListOption {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListOptionsLabelSelector")
-	ret0, _ := ret[0].(client0.ListOption)
+	ret0, _ := ret[0].(client.ListOption)
 	return ret0
 }
 
@@ -363,18 +363,18 @@ func (mr *MockClusterScoperMockRecorder) ServiceLimiter(arg0 interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ServiceLimiter", reflect.TypeOf((*MockClusterScoper)(nil).ServiceLimiter), arg0)
 }
 
-// SessionV2 mocks base method.
+// Session mocks base method.
 func (m *MockClusterScoper) Session() aws.Config {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SessionV2")
+	ret := m.ctrl.Call(m, "Session")
 	ret0, _ := ret[0].(aws.Config)
 	return ret0
 }
 
-// SessionV2 indicates an expected call of SessionV2.
+// Session indicates an expected call of Session.
 func (mr *MockClusterScoperMockRecorder) Session() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SessionV2", reflect.TypeOf((*MockClusterScoper)(nil).Session))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Session", reflect.TypeOf((*MockClusterScoper)(nil).Session))
 }
 
 // SetFailureDomain mocks base method.

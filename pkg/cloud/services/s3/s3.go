@@ -52,7 +52,7 @@ type Service struct {
 	scope           scope.S3Scope
 	S3Client        S3API
 	S3PresignClient *s3.PresignClient
-	STSClient       *sts.Client
+	STSClient       STSAPI
 }
 
 // S3API is the subset of the AWS S3 API that is used by CAPA.
@@ -68,7 +68,13 @@ type S3API interface {
 	PutObject(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error)
 }
 
+// STSAPI is the subset of the AWS STS API that is used by CAPA.
+type STSAPI interface {
+	GetCallerIdentity(ctx context.Context, params *sts.GetCallerIdentityInput, optFns ...func(*sts.Options)) (*sts.GetCallerIdentityOutput, error)
+}
+
 var _ S3API = &s3.Client{}
+var _ STSAPI = &sts.Client{}
 
 // NewService returns a new service given the api clients.
 func NewService(s3Scope scope.S3Scope) *Service {
@@ -511,7 +517,7 @@ func (s *Service) tagBucket(ctx context.Context, bucketName string) error {
 }
 
 func (s *Service) bucketPolicy(bucketName string) (string, error) {
-	accountID, err := s.STSClient.GetCallerIdentity(context.TODO(), &sts.GetCallerIdentityInput{})
+	accountID, err := s.STSClient.GetCallerIdentity(context.Background(), &sts.GetCallerIdentityInput{})
 	if err != nil {
 		return "", errors.Wrap(err, "getting account ID")
 	}

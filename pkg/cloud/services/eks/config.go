@@ -301,14 +301,11 @@ func (s *Service) createBaseKubeConfig(cluster *ekstypes.Cluster, userName strin
 func (s *Service) generateToken() (string, error) {
 	eksClusterName := s.scope.KubernetesClusterName()
 
-	// Create a presign client for STS
-	presignClient := sts.NewPresignClient(s.STSClient)
-
 	// Create the GetCallerIdentity input
 	input := &sts.GetCallerIdentityInput{}
 
 	// Presign the request
-	presignedReq, err := presignClient.PresignGetCallerIdentity(context.TODO(), input)
+	presignedReq, err := s.STSPresignClient.PresignGetCallerIdentity(context.TODO(), input)
 	if err != nil {
 		return "", fmt.Errorf("presigning AWS get caller identity: %w", err)
 	}

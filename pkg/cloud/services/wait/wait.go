@@ -68,11 +68,12 @@ func WaitForWithRetryable(backoff wait.Backoff, condition wait.ConditionFunc, re
 
 		// If the returned error isn't empty, check if the error is a retryable one,
 		// or return immediately.
-		code, ok := awserrors.Code(errors.Cause(err))
-		if !ok {
+		smithyErr := awserrors.ParseSmithyError(err)
+		if smithyErr == nil {
 			return false, err
 		}
 
+		code := smithyErr.ErrorCode()
 		for _, r := range retryableErrors {
 			if code == r {
 				// We should retry.
