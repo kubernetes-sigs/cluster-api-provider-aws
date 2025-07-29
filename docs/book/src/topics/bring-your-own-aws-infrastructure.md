@@ -29,6 +29,12 @@ In order to have Cluster API consume existing AWS infrastructure, you will need 
 * Route table associations that provide connectivity to the Internet through a NAT gateway (for private subnets) or the Internet gateway (for public subnets)
 * VPC endpoints for `ec2`, `elasticloadbalancing`, `secretsmanager` an `autoscaling` (if using MachinePools) when the private Subnets do not have a NAT gateway
 
+If you enable IPv6 for the workload cluster, you will need to ensure the following additional requirements:
+- An IPv6 CIDR associated with the VPC (i.e. dualstack VPC).
+- An egress-only internet gateway for IPv6 egress traffic from private subnets (only needed if the nodes require access to the Internet)
+  - In the route table associated with private subnets, a route that sends all internet-bound IPv6 traffic (`::/0`) to the egress-only internet gateway.
+- (Optional) Enable DNS64 for private subnets to allow IPv6-only workloads to access IPv4-only services via NAT64.
+
 You will need the ID of the VPC and subnet IDs that Cluster API should use. This information is available via the AWS Management Console or the AWS CLI.
 
 Note that there is no need to create an Elastic Load Balancer (ELB), security groups, or EC2 instances; Cluster API will take care of these items.
