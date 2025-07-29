@@ -596,7 +596,7 @@ type SubnetSpec struct {
 	// +optional
 	IsPublic bool `json:"isPublic"`
 
-	// IsIPv6 defines the subnet as an IPv6 subnet. A subnet is IPv6 when it is associated with a VPC that has IPv6 enabled.
+	// IsIPv6 defines the subnet as an IPv6 subnet. A subnet is IPv6 when it is associated with an IPv6 CIDR.
 	// +optional
 	IsIPv6 bool `json:"isIpv6,omitempty"`
 
