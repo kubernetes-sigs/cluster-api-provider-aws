@@ -307,7 +307,7 @@ spec:
                                 isIpv6:
                                   description: IsIPv6 defines the subnet as an IPv6
                                     subnet. A subnet is IPv6 when it is associated
-                                    with a VPC that has IPv6 enabled.
+                                    with an IPv6 CIDR.
                                   type: boolean
                                 isPublic:
                                   description: IsPublic defines the subnet as a public
@@ -1137,7 +1137,7 @@ spec:
                                 isIpv6:
                                   description: IsIPv6 defines the subnet as an IPv6
                                     subnet. A subnet is IPv6 when it is associated
-                                    with a VPC that has IPv6 enabled.
+                                    with an IPv6 CIDR.
                                   type: boolean
                                 isPublic:
                                   description: IsPublic defines the subnet as a public
