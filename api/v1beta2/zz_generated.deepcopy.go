@@ -1560,6 +1560,11 @@ func (in *Instance) DeepCopyInto(out *Instance) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.IPv6Address != nil {
+		in, out := &in.IPv6Address, &out.IPv6Address
+		*out = new(string)
+		**out = **in
+	}
 	if in.PublicIP != nil {
 		in, out := &in.PublicIP, &out.PublicIP
 		*out = new(string)
