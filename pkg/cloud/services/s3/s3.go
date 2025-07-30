@@ -28,9 +28,8 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	stsv2 "github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/sts"
-	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 	"github.com/pkg/errors"
 	"k8s.io/utils/ptr"
 
@@ -39,6 +38,7 @@ import (
 	iam "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	stsservice "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/util/system"
 )
@@ -53,7 +53,7 @@ type Service struct {
 	scope           scope.S3Scope
 	S3Client        S3API
 	S3PresignClient *s3.PresignClient
-	STSClient       stsiface.STSAPI
+	STSClient       stsservice.STSClient
 }
 
 // S3API is the subset of the AWS S3 API that is used by CAPA.
@@ -512,7 +512,7 @@ func (s *Service) tagBucket(ctx context.Context, bucketName string) error {
 }
 
 func (s *Service) bucketPolicy(bucketName string) (string, error) {
-	accountID, err := s.STSClient.GetCallerIdentity(&sts.GetCallerIdentityInput{})
+	accountID, err := s.STSClient.GetCallerIdentity(context.Background(), &stsv2.GetCallerIdentityInput{})
 	if err != nil {
 		return "", errors.Wrap(err, "getting account ID")
 	}

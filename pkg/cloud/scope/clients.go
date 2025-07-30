@@ -28,13 +28,12 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	stsv2 "github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
-	"github.com/aws/aws-sdk-go/service/sts"
-	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
@@ -42,6 +41,7 @@ import (
 	awslogs "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/logs"
 	awsmetrics "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/metrics"
 	awsmetricsv2 "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/metricsv2"
+	stsservice "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
@@ -270,13 +270,26 @@ func NewIAMClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logg
 }
 
 // NewSTSClient creates a new STS API client for a given session.
-func NewSTSClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) stsiface.STSAPI {
-	stsClient := sts.New(session.Session(), aws.NewConfig().WithLogLevel(awslogs.GetAWSLogLevel(logger.GetLogger())).WithLogger(awslogs.NewWrapLogr(logger.GetLogger())))
-	stsClient.Handlers.Build.PushFrontNamed(getUserAgentHandler())
-	stsClient.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(scopeUser.ControllerName()))
-	stsClient.Handlers.Complete.PushBack(recordAWSPermissionsIssue(target))
+func NewSTSClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) stsservice.STSClient {
+	cfg := session.SessionV2()
+	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
+	stsEndpointResolver := &endpointsv2.STSEndpointResolver{
+		MultiServiceEndpointResolver: multiSvcEndpointResolver,
+	}
 
-	return stsClient
+	stsOpts := []func(*stsv2.Options){
+		func(o *stsv2.Options) {
+			o.Logger = logger.GetAWSLogger()
+			o.ClientLogMode = awslogs.GetAWSLogLevelV2(logger.GetLogger())
+			o.EndpointResolverV2 = stsEndpointResolver
+		},
+		stsv2.WithAPIOptions(
+			awsmetricsv2.WithMiddlewares(scopeUser.ControllerName(), target),
+			awsmetricsv2.WithCAPAUserAgentMiddleware(),
+		),
+	}
+
+	return stsservice.NewClientWrapper(stsv2.NewFromConfig(cfg, stsOpts...))
 }
 
 // NewSSMClient creates a new Secrets API client for a given session.

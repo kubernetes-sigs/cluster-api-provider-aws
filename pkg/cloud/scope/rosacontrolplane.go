@@ -21,9 +21,8 @@ import (
 	"fmt"
 
 	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	stsv2 "github.com/aws/aws-sdk-go-v2/service/sts"
 	awsclient "github.com/aws/aws-sdk-go/aws/client"
-	"github.com/aws/aws-sdk-go/service/sts"
-	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,6 +33,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
+	stsservice "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -48,7 +48,7 @@ type ROSAControlPlaneScopeParams struct {
 	ControlPlane   *rosacontrolplanev1.ROSAControlPlane
 	ControllerName string
 	Endpoints      []ServiceEndpoint
-	NewStsClient   func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsiface.STSAPI
+	NewStsClient   func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsservice.STSClient
 }
 
 // NewROSAControlPlaneScope creates a new ROSAControlPlaneScope from the supplied parameters.
@@ -95,7 +95,7 @@ func NewROSAControlPlaneScope(params ROSAControlPlaneScopeParams) (*ROSAControlP
 	managedScope.serviceLimitersV2 = serviceLimitersv2
 
 	stsClient := params.NewStsClient(managedScope, managedScope, managedScope, managedScope.ControlPlane)
-	identity, err := stsClient.GetCallerIdentity(&sts.GetCallerIdentityInput{})
+	identity, err := stsClient.GetCallerIdentity(context.TODO(), &stsv2.GetCallerIdentityInput{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to identify the AWS caller: %w", err)
 	}
@@ -118,7 +118,7 @@ type ROSAControlPlaneScope struct {
 	serviceLimiters   throttle.ServiceLimiters
 	serviceLimitersV2 throttle.ServiceLimiters
 	controllerName    string
-	Identity          *sts.GetCallerIdentityOutput
+	Identity          *stsv2.GetCallerIdentityOutput
 }
 
 // InfraCluster returns the AWSManagedControlPlane object.

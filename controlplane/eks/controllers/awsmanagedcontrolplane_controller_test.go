@@ -20,20 +20,19 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"net/http"
 	"strconv"
 	"testing"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	signerv4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/eks"
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
-	stsrequest "github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/service/sts"
+	stsv2 "github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/smithy-go"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
@@ -54,8 +53,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/iamauth/mock_iamauth"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/mock_services"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/network"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/s3/mock_stsiface"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/securitygroup"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts/mock_stsiface"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
@@ -76,7 +75,7 @@ func TestAWSManagedControlPlaneReconcilerIntegrationTests(t *testing.T) {
 		ec2Mock              *mocks.MockEC2API
 		eksMock              *mock_eksiface.MockEKSAPI
 		iamMock              *mock_iamauth.MockIAMAPI
-		stsMock              *mock_stsiface.MockSTSAPI
+		stsMock              *mock_stsiface.MockSTSClient
 		awsNodeMock          *mock_services.MockAWSNodeInterface
 		iamAuthenticatorMock *mock_services.MockIAMAuthenticatorInterface
 		kubeProxyMock        *mock_services.MockKubeProxyInterface
@@ -96,7 +95,7 @@ func TestAWSManagedControlPlaneReconcilerIntegrationTests(t *testing.T) {
 		ec2Mock = mocks.NewMockEC2API(mockCtrl)
 		eksMock = mock_eksiface.NewMockEKSAPI(mockCtrl)
 		iamMock = mock_iamauth.NewMockIAMAPI(mockCtrl)
-		stsMock = mock_stsiface.NewMockSTSAPI(mockCtrl)
+		stsMock = mock_stsiface.NewMockSTSClient(mockCtrl)
 
 		// Mocking these as well, since the actual implementation requires a remote client to an actual cluster
 		awsNodeMock = mock_services.NewMockAWSNodeInterface(mockCtrl)
@@ -854,7 +853,7 @@ func mockedEKSControlPlaneIAMRole(g *WithT, iamRec *mock_iamauth.MockIAMAPIMockR
 	}).After(getPolicyCall).Return(&iam.AttachRolePolicyOutput{}, nil)
 }
 
-func mockedEKSCluster(ctx context.Context, g *WithT, eksRec *mock_eksiface.MockEKSAPIMockRecorder, iamRec *mock_iamauth.MockIAMAPIMockRecorder, ec2Rec *mocks.MockEC2APIMockRecorder, stsRec *mock_stsiface.MockSTSAPIMockRecorder, awsNodeRec *mock_services.MockAWSNodeInterfaceMockRecorder, kubeProxyRec *mock_services.MockKubeProxyInterfaceMockRecorder, iamAuthenticatorRec *mock_services.MockIAMAuthenticatorInterfaceMockRecorder) {
+func mockedEKSCluster(ctx context.Context, g *WithT, eksRec *mock_eksiface.MockEKSAPIMockRecorder, iamRec *mock_iamauth.MockIAMAPIMockRecorder, ec2Rec *mocks.MockEC2APIMockRecorder, stsRec *mock_stsiface.MockSTSClientMockRecorder, awsNodeRec *mock_services.MockAWSNodeInterfaceMockRecorder, kubeProxyRec *mock_services.MockKubeProxyInterfaceMockRecorder, iamAuthenticatorRec *mock_services.MockIAMAuthenticatorInterfaceMockRecorder) {
 	describeClusterCall := eksRec.DescribeCluster(ctx, &eks.DescribeClusterInput{
 		Name: aws.String("test-cluster"),
 	}).Return(nil, &ekstypes.ResourceNotFoundException{
@@ -948,12 +947,14 @@ func mockedEKSCluster(ctx context.Context, g *WithT, eksRec *mock_eksiface.MockE
 	})).Return(
 		clusterSgDesc, nil)
 
-	req, err := http.NewRequest(http.MethodGet, "foobar", http.NoBody)
-	g.Expect(err).To(BeNil())
-	stsRec.GetCallerIdentityRequest(&sts.GetCallerIdentityInput{}).Return(&stsrequest.Request{
-		HTTPRequest: req,
-		Operation:   &stsrequest.Operation{},
-	}, &sts.GetCallerIdentityOutput{})
+	stsRec.PresignGetCallerIdentity(gomock.Any(), gomock.Any(), gomock.Any()).Return(&signerv4.PresignedHTTPRequest{
+		URL: "https://example.com",
+	}, nil)
+	stsRec.GetCallerIdentity(gomock.Any(), gomock.Any()).Return(&stsv2.GetCallerIdentityOutput{
+		Account: aws.String("123456789012"),
+		Arn:     aws.String("arn:aws:iam::123456789012:user/test-user"),
+		UserId:  aws.String("AIDACKCEVSQ6C2EXAMPLE"),
+	}, nil)
 
 	eksRec.TagResource(ctx, &eks.TagResourceInput{
 		ResourceArn: clusterARN,
