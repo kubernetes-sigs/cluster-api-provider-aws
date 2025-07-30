@@ -67,6 +67,7 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Status.Bastion.HostID = restored.Status.Bastion.HostID
 		dst.Status.Bastion.CapacityReservationPreference = restored.Status.Bastion.CapacityReservationPreference
 		dst.Status.Bastion.CPUOptions = restored.Status.Bastion.CPUOptions
+		dst.Status.Bastion.IPv6Address = restored.Status.Bastion.IPv6Address
 		if restored.Status.Bastion.DynamicHostAllocation != nil {
 			dst.Status.Bastion.DynamicHostAllocation = restored.Status.Bastion.DynamicHostAllocation
 		}

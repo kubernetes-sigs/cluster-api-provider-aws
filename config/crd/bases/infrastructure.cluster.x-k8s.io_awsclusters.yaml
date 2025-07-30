@@ -899,9 +899,13 @@ spec:
       name: Endpoint
       priority: 1
       type: string
-    - description: Bastion IP address for breakglass access
+    - description: Bastion IPv4 address for breakglass access
       jsonPath: .status.bastion.publicIp
       name: Bastion IP
+      type: string
+    - description: Bastion IPv6 address for breakglass access
+      jsonPath: .status.bastion.ipv6Address
+      name: Bastion IPv6
       type: string
     name: v1beta2
     schema:
@@ -2355,6 +2359,9 @@ spec:
                     type: object
                   instanceState:
                     description: The current state of the instance.
+                    type: string
+                  ipv6Address:
+                    description: The IPv6 address assigned to the instance.
                     type: string
                   marketType:
                     description: |-

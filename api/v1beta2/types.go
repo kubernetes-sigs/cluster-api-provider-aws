@@ -197,6 +197,9 @@ type Instance struct {
 	// The private IPv4 address assigned to the instance.
 	PrivateIP *string `json:"privateIp,omitempty"`
 
+	// The IPv6 address assigned to the instance.
+	IPv6Address *string `json:"ipv6Address,omitempty"`
+
 	// The public IPv4 address assigned to the instance, if applicable.
 	PublicIP *string `json:"publicIp,omitempty"`
 
