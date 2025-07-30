@@ -295,7 +295,7 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 	stsMock := mock_stsiface.NewMockSTSAPI(mockCtrl)
 
 	getCallerIdentityResult := &sts.GetCallerIdentityOutput{Account: aws.String("foo"), Arn: aws.String("arn:aws:iam::123456789012:rosa/foo")}
-	stsMock.EXPECT().GetCallerIdentity(gomock.Any()).Return(getCallerIdentityResult, nil).Times(1)
+	stsMock.EXPECT().GetCallerIdentity(gomock.Any(), gomock.Any(), gomock.Any()).Return(getCallerIdentityResult, nil).Times(1)
 
 	expect := func(m *mocks.MockOCMClientMockRecorder) {
 		m.ValidateHypershiftVersion(gomock.Any(), gomock.Any()).DoAndReturn(func(clusterId string, nodePoolID string) (bool, error) {

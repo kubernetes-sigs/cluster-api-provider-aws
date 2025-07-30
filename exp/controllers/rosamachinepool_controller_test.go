@@ -547,7 +547,7 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 			test.expect(ocmMock.EXPECT())
 
 			stsMock := mock_stsiface.NewMockSTSAPI(mockCtrl)
-			stsMock.EXPECT().GetCallerIdentity(gomock.Any()).Times(1)
+			stsMock.EXPECT().GetCallerIdentity(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 
 			r := ROSAMachinePoolReconciler{
 				Recorder:         recorder,
@@ -642,7 +642,7 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 		expect(ocmMock.EXPECT())
 
 		stsMock := mock_stsiface.NewMockSTSAPI(mockCtrl)
-		stsMock.EXPECT().GetCallerIdentity(gomock.Any()).Times(1)
+		stsMock.EXPECT().GetCallerIdentity(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 
 		r := ROSAMachinePoolReconciler{
 			Recorder:         recorder,

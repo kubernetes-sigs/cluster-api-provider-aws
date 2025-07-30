@@ -2,14 +2,11 @@ package eks
 
 import (
 	"context"
-	"net/http"
-	"net/url"
 	"testing"
 
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -21,7 +18,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts/mock_stsiface"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/s3/mock_stsiface"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/secret"
 )
@@ -42,20 +39,7 @@ func Test_createCAPIKubeconfigSecret(t *testing.T) {
 			serviceFunc: func() *Service {
 				mockCtrl := gomock.NewController(t)
 				stsMock := mock_stsiface.NewMockSTSAPI(mockCtrl)
-				op := request.Request{
-					Operation: &request.Operation{Name: "GetCallerIdentity",
-						HTTPMethod: "POST",
-						HTTPPath:   "/",
-					},
-					HTTPRequest: &http.Request{
-						Header: make(http.Header),
-						URL: &url.URL{
-							Scheme: "https",
-							Host:   "F00BA4.gr4.us-east-2.eks.amazonaws.com",
-						},
-					},
-				}
-				stsMock.EXPECT().GetCallerIdentityRequest(gomock.Any()).Return(&op, &sts.GetCallerIdentityOutput{})
+				stsMock.EXPECT().GetCallerIdentity(gomock.Any(), gomock.Any(), gomock.Any()).Return(&sts.GetCallerIdentityOutput{}, nil)
 
 				scheme := runtime.NewScheme()
 				_ = infrav1.AddToScheme(scheme)
@@ -151,20 +135,7 @@ func Test_updateCAPIKubeconfigSecret(t *testing.T) {
 			serviceFunc: func(tc testCase) *Service {
 				mockCtrl := gomock.NewController(t)
 				stsMock := mock_stsiface.NewMockSTSAPI(mockCtrl)
-				op := request.Request{
-					Operation: &request.Operation{Name: "GetCallerIdentity",
-						HTTPMethod: "POST",
-						HTTPPath:   "/",
-					},
-					HTTPRequest: &http.Request{
-						Header: make(http.Header),
-						URL: &url.URL{
-							Scheme: "https",
-							Host:   "F00BA4.gr4.us-east-2.eks.amazonaws.com",
-						},
-					},
-				}
-				stsMock.EXPECT().GetCallerIdentityRequest(gomock.Any()).Return(&op, &sts.GetCallerIdentityOutput{})
+				stsMock.EXPECT().GetCallerIdentity(gomock.Any(), gomock.Any(), gomock.Any()).Return(&sts.GetCallerIdentityOutput{}, nil)
 
 				scheme := runtime.NewScheme()
 				_ = infrav1.AddToScheme(scheme)

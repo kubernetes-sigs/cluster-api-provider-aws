@@ -37,11 +37,11 @@ import (
 )
 
 type WaitForLoadBalancerToExistForServiceInput struct {
-	AWSSession       *aws.Config
-	ServiceName      string
-	ServiceNamespace string
-	ClusterName      string
-	Type             infrav1.LoadBalancerType
+	AWSSessionV2      *aws.Config
+	ServiceName       string
+	ServiceNamespace  string
+	ClusterName       string
+	Type              infrav1.LoadBalancerType
 }
 
 func WaitForLoadBalancerToExistForService(ctx context.Context, input WaitForLoadBalancerToExistForServiceInput, intervals ...interface{}) {
@@ -65,11 +65,11 @@ func WaitForLoadBalancerToExistForService(ctx context.Context, input WaitForLoad
 }
 
 type GetLoadBalancerARNsInput struct {
-	AWSSession       *aws.Config
-	ServiceName      string
-	ServiceNamespace string
-	ClusterName      string
-	Type             infrav1.LoadBalancerType
+	AWSSessionV2      *aws.Config
+	ServiceName       string
+	ServiceNamespace  string
+	ClusterName       string
+	Type              infrav1.LoadBalancerType
 }
 
 func GetLoadBalancerARNs(ctx context.Context, input GetLoadBalancerARNsInput) ([]string, error) {
@@ -81,8 +81,8 @@ func GetLoadBalancerARNs(ctx context.Context, input GetLoadBalancerARNsInput) ([
 		serviceTag:                   {string(infrav1.ResourceLifecycleOwned)},
 	}
 	descInput := &DescribeResourcesByTagsInput{
-		AWSSession: input.AWSSession,
-		Tags:       tags,
+		AWSSessionV2: input.AWSSessionV2,
+		Tags:         tags,
 	}
 
 	descOutput, err := DescribeResourcesByTags(ctx, *descInput)
@@ -123,8 +123,8 @@ func GetLoadBalancerARNs(ctx context.Context, input GetLoadBalancerARNsInput) ([
 }
 
 type DescribeResourcesByTagsInput struct {
-	AWSSession *aws.Config
-	Tags       map[string][]string
+	AWSSessionV2 *aws.Config
+	Tags         map[string][]string
 }
 
 type DescribeResourcesByTagsOutput struct {
@@ -147,7 +147,7 @@ func DescribeResourcesByTags(ctx context.Context, input DescribeResourcesByTagsI
 		})
 	}
 
-	rgSvc := rgapi.NewFromConfig(*input.AWSSession)
+	rgSvc := rgapi.NewFromConfig(*input.AWSSessionV2)
 	awsOutput, err := rgSvc.GetResources(ctx, &awsInput)
 	if err != nil {
 		return nil, fmt.Errorf("getting resources by tags: %w", err)
@@ -164,15 +164,15 @@ func DescribeResourcesByTags(ctx context.Context, input DescribeResourcesByTagsI
 }
 
 type CheckClassicElbHealthCheckInput struct {
-	AWSSession       *aws.Config
-	LoadBalancerName string
-	ExpectedTarget   string
+	AWSSessionV2      *aws.Config
+	LoadBalancerName  string
+	ExpectedTarget    string
 }
 
 func CheckClassicElbHealthCheck(ctx context.Context, input CheckClassicElbHealthCheckInput, intervals ...interface{}) {
 	Byf("Checking the health check for the classic load balancer %s", input.LoadBalancerName)
 
-	elbSvc := elb.NewFromConfig(*input.AWSSession)
+	elbSvc := elb.NewFromConfig(*input.AWSSessionV2)
 
 	Eventually(func() error {
 		out, err := elbSvc.DescribeLoadBalancers(ctx, &elb.DescribeLoadBalancersInput{

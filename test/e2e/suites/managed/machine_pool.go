@@ -26,7 +26,6 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -42,7 +41,7 @@ type MachinePoolSpecInput struct {
 	E2EConfig             *clusterctl.E2EConfig
 	ConfigClusterFn       DefaultConfigClusterFn
 	BootstrapClusterProxy framework.ClusterProxy
-	AWSSession            client.ConfigProvider
+	AWSSession            aws.Config
 	AWSSessionV2          *aws.Config
 	Namespace             *corev1.Namespace
 	ClusterName           string
@@ -59,8 +58,7 @@ func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolSpecInpu
 	Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil")
 	Expect(input.ConfigClusterFn).ToNot(BeNil(), "Invalid argument. input.ConfigClusterFn can't be nil")
 	Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil")
-	Expect(input.AWSSession).ToNot(BeNil(), "Invalid argument. input.AWSSession can't be nil")
-	Expect(input.AWSSessionV2).ToNot(BeNil(), "Invalid argument. input.AWSCfg can't be nil")
+	Expect(input.AWSSessionV2).ToNot(BeNil(), "Invalid argument. input.AWSSessionV2 can't be nil")
 	Expect(input.Namespace).NotTo(BeNil(), "Invalid argument. input.Namespace can't be nil")
 	Expect(input.ClusterName).ShouldNot(BeEmpty(), "Invalid argument. input.ClusterName can't be empty")
 	Expect(input.Flavor).ShouldNot(BeEmpty(), "Invalid argument. input.Flavor can't be empty")

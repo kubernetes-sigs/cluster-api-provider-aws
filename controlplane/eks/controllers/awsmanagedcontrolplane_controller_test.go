@@ -32,7 +32,6 @@ import (
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
-	stsrequest "github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/smithy-go"
 	"github.com/golang/mock/gomock"
@@ -948,12 +947,9 @@ func mockedEKSCluster(ctx context.Context, g *WithT, eksRec *mock_eksiface.MockE
 	})).Return(
 		clusterSgDesc, nil)
 
-	req, err := http.NewRequest(http.MethodGet, "foobar", http.NoBody)
+	_, err := http.NewRequest(http.MethodGet, "foobar", http.NoBody)
 	g.Expect(err).To(BeNil())
-	stsRec.GetCallerIdentityRequest(&sts.GetCallerIdentityInput{}).Return(&stsrequest.Request{
-		HTTPRequest: req,
-		Operation:   &stsrequest.Operation{},
-	}, &sts.GetCallerIdentityOutput{})
+	stsRec.GetCallerIdentity(gomock.Any(), gomock.Any(), gomock.Any()).Return(&sts.GetCallerIdentityOutput{}, nil)
 
 	eksRec.TagResource(ctx, &eks.TagResourceInput{
 		ResourceArn: clusterARN,
