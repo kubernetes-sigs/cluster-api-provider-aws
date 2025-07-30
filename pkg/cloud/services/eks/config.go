@@ -20,10 +20,10 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"time"
 
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
-	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
+	smithyhttp "github.com/aws/smithy-go/transport/http"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -45,6 +45,8 @@ const (
 	tokenPrefix       = "k8s-aws-v1." //nolint:gosec
 	clusterNameHeader = "x-k8s-aws-id"
 	tokenAgeMins      = 15
+	xAmzExpiresHeader = "X-Amz-Expires"
+	xAmzExpires       = 60
 
 	relativeKubeconfigKey = "relative"
 	relativeTokenFileKey  = "token-file"
@@ -301,17 +303,28 @@ func (s *Service) createBaseKubeConfig(cluster *ekstypes.Cluster, userName strin
 
 func (s *Service) generateToken() (string, error) {
 	eksClusterName := s.scope.KubernetesClusterName()
+	ctx := context.Background()
 
-	req, output := s.STSClient.GetCallerIdentityRequest(&sts.GetCallerIdentityInput{})
-	req.HTTPRequest.Header.Add(clusterNameHeader, eksClusterName)
-	s.Trace("generating token for AWS identity", "user", output.UserId, "account", output.Account, "arn", output.Arn)
-
-	presignedURL, err := req.Presign(tokenAgeMins * time.Minute)
+	presignedReq, err := s.STSClient.PresignGetCallerIdentity(ctx, &sts.GetCallerIdentityInput{}, func(po *sts.PresignOptions) {
+		po.ClientOptions = append(po.ClientOptions, func(o *sts.Options) {
+			o.APIOptions = append(o.APIOptions,
+				smithyhttp.SetHeaderValue(clusterNameHeader, eksClusterName),
+				smithyhttp.SetHeaderValue(xAmzExpiresHeader, fmt.Sprintf("%d", xAmzExpires)),
+			)
+		})
+	})
 	if err != nil {
 		return "", fmt.Errorf("presigning AWS get caller identity: %w", err)
 	}
 
-	encodedURL := base64.RawURLEncoding.EncodeToString([]byte(presignedURL))
+	output, err := s.STSClient.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
+	if err != nil {
+		return "", fmt.Errorf("getting AWS caller identity: %w", err)
+	}
+
+	s.Trace("generating token for AWS identity", "user", output.UserId, "account", output.Account, "arn", output.Arn)
+
+	encodedURL := base64.RawURLEncoding.EncodeToString([]byte(presignedReq.URL))
 	return fmt.Sprintf("%s%s", tokenPrefix, encodedURL), nil
 }
 

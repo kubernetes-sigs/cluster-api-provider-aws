@@ -30,8 +30,6 @@ import (
 	"time"
 
 	stsv2 "github.com/aws/aws-sdk-go-v2/service/sts"
-	sts "github.com/aws/aws-sdk-go/service/sts"
-	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 	"github.com/google/go-cmp/cmp"
 	idputils "github.com/openshift-online/ocm-common/pkg/idp/utils"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -62,6 +60,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/annotations"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	stsiface "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/rosa"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/utils"
@@ -92,7 +91,7 @@ type ROSAControlPlaneReconciler struct {
 	WatchFilterValue string
 	WaitInfraPeriod  time.Duration
 	Endpoints        []scope.ServiceEndpoint
-	NewStsClient     func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsiface.STSAPI
+	NewStsClient     func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsiface.STSClient
 	NewOCMClient     func(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (rosa.OCMClient, error)
 	// Exposing the restClientConfig for integration test. No need to initialize.
 	restClientConfig *restclient.Config
@@ -221,7 +220,11 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		return ctrl.Result{}, fmt.Errorf("failed to create OCM client: %w", err)
 	}
 
-	creator, err := rosaaws.CreatorForCallerIdentity(convertStsV2(rosaScope.Identity))
+	creator, err := rosaaws.CreatorForCallerIdentity(&stsv2.GetCallerIdentityOutput{
+		Account: rosaScope.Identity.Account,
+		Arn:     rosaScope.Identity.Arn,
+		UserId:  rosaScope.Identity.UserId,
+	})
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to transform caller identity to creator: %w", err)
 	}
@@ -354,7 +357,11 @@ func (r *ROSAControlPlaneReconciler) reconcileDelete(ctx context.Context, rosaSc
 		return ctrl.Result{}, fmt.Errorf("failed to create OCM client: %w", err)
 	}
 
-	creator, err := rosaaws.CreatorForCallerIdentity(convertStsV2(rosaScope.Identity))
+	creator, err := rosaaws.CreatorForCallerIdentity(&stsv2.GetCallerIdentityOutput{
+		Account: rosaScope.Identity.Account,
+		Arn:     rosaScope.Identity.Arn,
+		UserId:  rosaScope.Identity.UserId,
+	})
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to transform caller identity to creator: %w", err)
 	}
@@ -1129,13 +1136,4 @@ func buildAPIEndpoint(cluster *cmv1.Cluster) (*clusterv1.APIEndpoint, error) {
 		Host: host,
 		Port: int32(port), //#nosec G109 G115
 	}, nil
-}
-
-// TODO: Remove this and update the aws-sdk lib to v2.
-func convertStsV2(identity *sts.GetCallerIdentityOutput) *stsv2.GetCallerIdentityOutput {
-	return &stsv2.GetCallerIdentityOutput{
-		Account: identity.Account,
-		Arn:     identity.Arn,
-		UserId:  identity.UserId,
-	}
 }

@@ -51,7 +51,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/mock_services"
 	s3svc "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/s3"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/s3/mock_s3iface"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/s3/mock_stsiface"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts/mock_stsiface"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -71,7 +71,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 		asgSvc            *mock_services.MockASGInterface
 		reconSvc          *mock_services.MockMachinePoolReconcileInterface
 		s3Mock            *mock_s3iface.MockS3API
-		stsMock           *mock_stsiface.MockSTSAPI
+		stsMock           *mock_stsiface.MockSTSClient
 		recorder          *record.FakeRecorder
 		awsMachinePool    *expinfrav1.AWSMachinePool
 		secret            *corev1.Secret
@@ -182,7 +182,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 		asgSvc = mock_services.NewMockASGInterface(mockCtrl)
 		reconSvc = mock_services.NewMockMachinePoolReconcileInterface(mockCtrl)
 		s3Mock = mock_s3iface.NewMockS3API(mockCtrl)
-		stsMock = mock_stsiface.NewMockSTSAPI(mockCtrl)
+		stsMock = mock_stsiface.NewMockSTSClient(mockCtrl)
 
 		// If the test hangs for 9 minutes, increase the value here to the number of events during a reconciliation loop
 		recorder = record.NewFakeRecorder(2)
