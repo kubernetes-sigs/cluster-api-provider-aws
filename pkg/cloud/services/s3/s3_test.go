@@ -29,7 +29,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	s3svc "github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
-	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/golang/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -42,7 +42,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/s3"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/s3/mock_s3iface"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/s3/mock_stsiface"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts/mock_stsiface"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -117,10 +117,10 @@ func TestReconcileBucket(t *testing.T) {
 
 		mockCtrl := gomock.NewController(t)
 		s3Mock := mock_s3iface.NewMockS3API(mockCtrl)
-		stsMock := mock_stsiface.NewMockSTSAPI(mockCtrl)
+		stsMock := mock_stsiface.NewMockSTSClient(mockCtrl)
 
 		getCallerIdentityResult := &sts.GetCallerIdentityOutput{Account: aws.String("foo")}
-		stsMock.EXPECT().GetCallerIdentity(gomock.Any()).Return(getCallerIdentityResult, nil).AnyTimes()
+		stsMock.EXPECT().GetCallerIdentity(gomock.Any(), gomock.Any()).Return(getCallerIdentityResult, nil).AnyTimes()
 
 		scheme := runtime.NewScheme()
 		_ = infrav1.AddToScheme(scheme)
@@ -298,8 +298,8 @@ func TestReconcileBucket(t *testing.T) {
 			s3Mock.EXPECT().PutBucketTagging(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 
 			mockCtrl := gomock.NewController(t)
-			stsMock := mock_stsiface.NewMockSTSAPI(mockCtrl)
-			stsMock.EXPECT().GetCallerIdentity(gomock.Any()).Return(nil, errors.New(t.Name())).AnyTimes()
+			stsMock := mock_stsiface.NewMockSTSClient(mockCtrl)
+			stsMock.EXPECT().GetCallerIdentity(gomock.Any(), gomock.Any()).Return(nil, errors.New(t.Name())).AnyTimes()
 			svc.STSClient = stsMock
 
 			if err := svc.ReconcileBucket(context.TODO()); err == nil {
@@ -896,10 +896,10 @@ func testService(t *testing.T, si *testServiceInput) (*s3.Service, *mock_s3iface
 
 	mockCtrl := gomock.NewController(t)
 	s3Mock := mock_s3iface.NewMockS3API(mockCtrl)
-	stsMock := mock_stsiface.NewMockSTSAPI(mockCtrl)
+	stsMock := mock_stsiface.NewMockSTSClient(mockCtrl)
 
 	getCallerIdentityResult := &sts.GetCallerIdentityOutput{Account: aws.String("foo")}
-	stsMock.EXPECT().GetCallerIdentity(gomock.Any()).Return(getCallerIdentityResult, nil).AnyTimes()
+	stsMock.EXPECT().GetCallerIdentity(gomock.Any(), gomock.Any()).Return(getCallerIdentityResult, nil).AnyTimes()
 
 	scheme := runtime.NewScheme()
 	_ = infrav1.AddToScheme(scheme)

@@ -131,7 +131,7 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	e2eCtx.AWSSession = NewAWSSession()
 	e2eCtx.AWSSessionV2 = NewAWSSessionV2()
 
-	logAccountDetails(e2eCtx.AWSSession)
+	logAccountDetails(e2eCtx.AWSSessionV2)
 
 	bootstrapTemplate := getBootstrapTemplate(e2eCtx)
 	bootstrapTags := map[string]string{"capa-e2e-test": "true"}

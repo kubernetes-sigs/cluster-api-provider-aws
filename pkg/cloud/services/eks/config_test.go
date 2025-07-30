@@ -2,14 +2,12 @@ package eks
 
 import (
 	"context"
-	"net/http"
-	"net/url"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	signerv4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -36,26 +34,19 @@ func Test_createCAPIKubeconfigSecret(t *testing.T) {
 		{
 			name: "create kubeconfig secret",
 			input: &ekstypes.Cluster{
-				CertificateAuthority: &ekstypes.Certificate{Data: aws.String("")},
-				Endpoint:             aws.String("https://F00BA4.gr4.us-east-2.eks.amazonaws.com"),
+				Name:                 aws.String("cluster-foo"),
+				CertificateAuthority: &ekstypes.Certificate{Data: aws.String("LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t")},
+				Endpoint:             aws.String("https://cluster-foo.us-east-2.eks.amazonaws.com"),
 			},
 			serviceFunc: func() *Service {
 				mockCtrl := gomock.NewController(t)
-				stsMock := mock_stsiface.NewMockSTSAPI(mockCtrl)
-				op := request.Request{
-					Operation: &request.Operation{Name: "GetCallerIdentity",
-						HTTPMethod: "POST",
-						HTTPPath:   "/",
-					},
-					HTTPRequest: &http.Request{
-						Header: make(http.Header),
-						URL: &url.URL{
-							Scheme: "https",
-							Host:   "F00BA4.gr4.us-east-2.eks.amazonaws.com",
-						},
-					},
-				}
-				stsMock.EXPECT().GetCallerIdentityRequest(gomock.Any()).Return(&op, &sts.GetCallerIdentityOutput{})
+				stsMock := mock_stsiface.NewMockSTSClient(mockCtrl)
+				stsMock.EXPECT().PresignGetCallerIdentity(gomock.Any(), gomock.Any(), gomock.Any()).Return(&signerv4.PresignedHTTPRequest{URL: "https://example.com"}, nil)
+				stsMock.EXPECT().GetCallerIdentity(gomock.Any(), gomock.Any()).Return(&sts.GetCallerIdentityOutput{
+					UserId:  aws.String("FAKEUSERID"),
+					Account: aws.String("FAKEACCOUNT"),
+					Arn:     aws.String("arn:aws:sts::FAKEACCOUNT:user/FAKEUSERID"),
+				}, nil).AnyTimes()
 
 				scheme := runtime.NewScheme()
 				_ = infrav1.AddToScheme(scheme)
@@ -150,21 +141,13 @@ func Test_updateCAPIKubeconfigSecret(t *testing.T) {
 			},
 			serviceFunc: func(tc testCase) *Service {
 				mockCtrl := gomock.NewController(t)
-				stsMock := mock_stsiface.NewMockSTSAPI(mockCtrl)
-				op := request.Request{
-					Operation: &request.Operation{Name: "GetCallerIdentity",
-						HTTPMethod: "POST",
-						HTTPPath:   "/",
-					},
-					HTTPRequest: &http.Request{
-						Header: make(http.Header),
-						URL: &url.URL{
-							Scheme: "https",
-							Host:   "F00BA4.gr4.us-east-2.eks.amazonaws.com",
-						},
-					},
-				}
-				stsMock.EXPECT().GetCallerIdentityRequest(gomock.Any()).Return(&op, &sts.GetCallerIdentityOutput{})
+				stsMock := mock_stsiface.NewMockSTSClient(mockCtrl)
+				stsMock.EXPECT().PresignGetCallerIdentity(gomock.Any(), gomock.Any(), gomock.Any()).Return(&signerv4.PresignedHTTPRequest{URL: "https://example.com"}, nil)
+				stsMock.EXPECT().GetCallerIdentity(gomock.Any(), gomock.Any()).Return(&sts.GetCallerIdentityOutput{
+					UserId:  aws.String("FAKEUSERID"),
+					Account: aws.String("FAKEACCOUNT"),
+					Arn:     aws.String("arn:aws:sts::FAKEACCOUNT:user/FAKEUSERID"),
+				}, nil).AnyTimes()
 
 				scheme := runtime.NewScheme()
 				_ = infrav1.AddToScheme(scheme)
