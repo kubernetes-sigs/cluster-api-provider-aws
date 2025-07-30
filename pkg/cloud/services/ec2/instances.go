@@ -952,6 +952,7 @@ func (s *Service) SDKToInstance(v types.Instance) (*infrav1.Instance, error) {
 		ImageID:      aws.ToString(v.ImageId),
 		SSHKeyName:   v.KeyName,
 		PrivateIP:    v.PrivateIpAddress,
+		IPv6Address:  v.Ipv6Address,
 		PublicIP:     v.PublicIpAddress,
 		ENASupport:   v.EnaSupport,
 		EBSOptimized: v.EbsOptimized,

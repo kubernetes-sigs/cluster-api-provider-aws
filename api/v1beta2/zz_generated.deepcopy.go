@@ -22,7 +22,7 @@ package v1beta2
 
 import (
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api/api/core/v1beta1"
 )
@@ -1759,6 +1759,11 @@ func (in *Instance) DeepCopyInto(out *Instance) {
 	}
 	if in.PrivateIP != nil {
 		in, out := &in.PrivateIP, &out.PrivateIP
+		*out = new(string)
+		**out = **in
+	}
+	if in.IPv6Address != nil {
+		in, out := &in.IPv6Address, &out.IPv6Address
 		*out = new(string)
 		**out = **in
 	}

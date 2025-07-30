@@ -1381,6 +1381,9 @@ spec:
                   instanceState:
                     description: The current state of the instance.
                     type: string
+                  ipv6Address:
+                    description: The IPv6 address assigned to the instance.
+                    type: string
                   marketType:
                     description: |-
                       MarketType specifies the type of market for the EC2 instance. Valid values include:
@@ -3759,6 +3762,9 @@ spec:
                     type: object
                   instanceState:
                     description: The current state of the instance.
+                    type: string
+                  ipv6Address:
+                    description: The IPv6 address assigned to the instance.
                     type: string
                   marketType:
                     description: |-

@@ -324,7 +324,8 @@ type S3Bucket struct {
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="Cluster infrastructure is ready for EC2 instances"
 // +kubebuilder:printcolumn:name="VPC",type="string",JSONPath=".spec.network.vpc.id",description="AWS VPC the cluster is using"
 // +kubebuilder:printcolumn:name="Endpoint",type="string",JSONPath=".spec.controlPlaneEndpoint",description="API Endpoint",priority=1
-// +kubebuilder:printcolumn:name="Bastion IP",type="string",JSONPath=".status.bastion.publicIp",description="Bastion IP address for breakglass access"
+// +kubebuilder:printcolumn:name="Bastion IP",type="string",JSONPath=".status.bastion.publicIp",description="Bastion IPv4 address for breakglass access"
+// +kubebuilder:printcolumn:name="Bastion IPv6",type="string",JSONPath=".status.bastion.ipv6Address",description="Bastion IPv6 address for breakglass access"
 // +k8s:defaulter-gen=true
 
 // AWSCluster is the schema for Amazon EC2 based Kubernetes Cluster API.
