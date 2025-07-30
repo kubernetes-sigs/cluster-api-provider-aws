@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -26,7 +25,8 @@ import (
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/s3/mock_stsiface"
+	stsiface "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts/mock_stsiface"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/rosa"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
@@ -546,15 +546,17 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 			ocmMock := mocks.NewMockOCMClient(mockCtrl)
 			test.expect(ocmMock.EXPECT())
 
-			stsMock := mock_stsiface.NewMockSTSAPI(mockCtrl)
-			stsMock.EXPECT().GetCallerIdentity(gomock.Any()).Times(1)
+			stsMock := mock_stsiface.NewMockSTSClient(mockCtrl)
+			stsMock.EXPECT().GetCallerIdentity(gomock.Any(), gomock.Any()).Times(1)
 
 			r := ROSAMachinePoolReconciler{
 				Recorder:         recorder,
 				WatchFilterValue: "",
 				Endpoints:        []scope.ServiceEndpoint{},
 				Client:           testEnv,
-				NewStsClient:     func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsiface.STSAPI { return stsMock },
+				NewStsClient: func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsiface.STSClient {
+					return stsMock
+				},
 				NewOCMClient: func(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (rosa.OCMClient, error) {
 					return ocmMock, nil
 				},
@@ -641,15 +643,17 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 		}
 		expect(ocmMock.EXPECT())
 
-		stsMock := mock_stsiface.NewMockSTSAPI(mockCtrl)
-		stsMock.EXPECT().GetCallerIdentity(gomock.Any()).Times(1)
+		stsMock := mock_stsiface.NewMockSTSClient(mockCtrl)
+		stsMock.EXPECT().GetCallerIdentity(gomock.Any(), gomock.Any()).Times(1)
 
 		r := ROSAMachinePoolReconciler{
 			Recorder:         recorder,
 			WatchFilterValue: "",
 			Endpoints:        []scope.ServiceEndpoint{},
 			Client:           testEnv,
-			NewStsClient:     func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsiface.STSAPI { return stsMock },
+			NewStsClient: func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsiface.STSClient {
+				return stsMock
+			},
 			NewOCMClient: func(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (rosa.OCMClient, error) {
 				return ocmMock, nil
 			},

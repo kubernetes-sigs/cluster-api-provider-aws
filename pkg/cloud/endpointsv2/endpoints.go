@@ -32,6 +32,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	smithyendpoints "github.com/aws/smithy-go/endpoints"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
@@ -302,4 +303,26 @@ func (s *SSMEndpointResolver) ResolveEndpoint(ctx context.Context, params ssm.En
 	params.Endpoint = &endpoint.URL
 	params.Region = &endpoint.SigningRegion
 	return ssm.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
+}
+
+// STSEndpointResolver implements EndpointResolverV2 interface for STS.
+type STSEndpointResolver struct {
+	*MultiServiceEndpointResolver
+}
+
+// ResolveEndpoint for STS.
+func (s *STSEndpointResolver) ResolveEndpoint(ctx context.Context, params sts.EndpointParameters) (smithyendpoints.Endpoint, error) {
+	// If custom endpoint not found, return default endpoint for the service
+	log := logger.FromContext(ctx)
+	endpoint, ok := s.endpoints[sts.ServiceID]
+
+	if !ok {
+		log.Debug("Custom endpoint not found, using default endpoint")
+		return sts.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
+	}
+
+	log.Debug("Custom endpoint found, using custom endpoint", "endpoint", endpoint.URL)
+	params.Endpoint = &endpoint.URL
+	params.Region = &endpoint.SigningRegion
+	return sts.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
 }
