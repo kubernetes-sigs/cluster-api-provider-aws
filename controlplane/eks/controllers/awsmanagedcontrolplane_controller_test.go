@@ -551,71 +551,74 @@ func mockedCallsForMissingEverything(ec2Rec *mocks.MockEC2APIMockRecorder, subne
 			eipAllocationID := strconv.Itoa(1234 + subnetIndex)
 			natGatewayID := fmt.Sprintf("nat-%d", subnetIndex+1)
 
-			ec2Rec.AllocateAddress(context.TODO(), gomock.Eq(&ec2.AllocateAddressInput{
-				Domain: ec2types.DomainTypeVpc,
-				TagSpecifications: []ec2types.TagSpecification{
-					{
-						ResourceType: ec2types.ResourceTypeElasticIp,
-						Tags: []ec2types.Tag{
-							{
-								Key:   aws.String("Name"),
-								Value: aws.String("test-cluster-eip-common"),
-							},
-							{
-								Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
-								Value: aws.String("owned"),
-							},
-							{
-								Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
-								Value: aws.String("common"),
+			// We only expect to create NAT gateways for the public subnet AZ used by the private subnet
+			if subnet.ID == "my-managed-subnet-pub1" {
+				ec2Rec.AllocateAddress(context.TODO(), gomock.Eq(&ec2.AllocateAddressInput{
+					Domain: ec2types.DomainTypeVpc,
+					TagSpecifications: []ec2types.TagSpecification{
+						{
+							ResourceType: ec2types.ResourceTypeElasticIp,
+							Tags: []ec2types.Tag{
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-eip-common"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("common"),
+								},
 							},
 						},
 					},
-				},
-			})).Return(&ec2.AllocateAddressOutput{
-				AllocationId: aws.String(eipAllocationID),
-			}, nil)
+				})).Return(&ec2.AllocateAddressOutput{
+					AllocationId: aws.String(eipAllocationID),
+				}, nil)
 
-			ec2Rec.CreateNatGateway(context.TODO(), gomock.Eq(&ec2.CreateNatGatewayInput{
-				AllocationId: aws.String(eipAllocationID),
-				SubnetId:     aws.String(subnetID),
-				TagSpecifications: []ec2types.TagSpecification{
-					{
-						ResourceType: ec2types.ResourceTypeNatgateway,
-						Tags: []ec2types.Tag{
-							{
-								Key:   aws.String("Name"),
-								Value: aws.String("test-cluster-nat"),
-							},
-							{
-								Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
-								Value: aws.String("owned"),
-							},
-							{
-								Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
-								Value: aws.String("common"),
-							},
-						},
-					},
-				},
-			})).Return(&ec2.CreateNatGatewayOutput{
-				NatGateway: &ec2types.NatGateway{
-					NatGatewayId: aws.String(natGatewayID),
+				ec2Rec.CreateNatGateway(context.TODO(), gomock.Eq(&ec2.CreateNatGatewayInput{
+					AllocationId: aws.String(eipAllocationID),
 					SubnetId:     aws.String(subnetID),
-				},
-			}, nil)
-
-			ec2Rec.DescribeNatGateways(gomock.Any(), gomock.Eq(&ec2.DescribeNatGatewaysInput{
-				NatGatewayIds: []string{natGatewayID},
-			}), gomock.Any()).Return(&ec2.DescribeNatGatewaysOutput{
-				NatGateways: []ec2types.NatGateway{
-					{
+					TagSpecifications: []ec2types.TagSpecification{
+						{
+							ResourceType: ec2types.ResourceTypeNatgateway,
+							Tags: []ec2types.Tag{
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-nat"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("common"),
+								},
+							},
+						},
+					},
+				})).Return(&ec2.CreateNatGatewayOutput{
+					NatGateway: &ec2types.NatGateway{
 						NatGatewayId: aws.String(natGatewayID),
 						SubnetId:     aws.String(subnetID),
-						State:        ec2types.NatGatewayStateAvailable,
 					},
-				},
-			}, nil)
+				}, nil)
+
+				ec2Rec.DescribeNatGateways(gomock.Any(), gomock.Eq(&ec2.DescribeNatGatewaysInput{
+					NatGatewayIds: []string{natGatewayID},
+				}), gomock.Any()).Return(&ec2.DescribeNatGatewaysOutput{
+					NatGateways: []ec2types.NatGateway{
+						{
+							NatGatewayId: aws.String(natGatewayID),
+							SubnetId:     aws.String(subnetID),
+							State:        ec2types.NatGatewayStateAvailable,
+						},
+					},
+				}, nil)
+			}
 		}
 
 		routeTableID := fmt.Sprintf("rtb-%d", subnetIndex+1)

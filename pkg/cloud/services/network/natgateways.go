@@ -115,10 +115,28 @@ func (s *Service) updateNatGatewayIPs(updateTags bool) ([]string, error) {
 	natGatewaysIPs := []string{}
 	subnetIDs := []string{}
 
+	// Find AZs that have private subnets
+	privateSubnetAZs := make(map[string]bool)
+	for _, sn := range s.scope.Subnets().FilterPrivate().FilterNonCni() {
+		if sn.GetResourceID() != "" {
+			privateSubnetAZs[sn.AvailabilityZone] = true
+		}
+	}
+
+	// For each AZ with private subnets, find a public subnet and check for NAT gateway
+	processedAZs := make(map[string]bool)
 	for _, sn := range s.scope.Subnets().FilterPublic().FilterNonCni() {
 		if sn.GetResourceID() == "" {
 			continue
 		}
+
+		// Only process this AZ if it has private subnets and we haven't processed it yet
+		if !privateSubnetAZs[sn.AvailabilityZone] || processedAZs[sn.AvailabilityZone] {
+			continue
+		}
+
+		// Mark this AZ as processed
+		processedAZs[sn.AvailabilityZone] = true
 
 		if ngw, ok := existing[sn.GetResourceID()]; ok {
 			if len(ngw.NatGatewayAddresses) > 0 && ngw.NatGatewayAddresses[0].PublicIp != nil {
