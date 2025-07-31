@@ -26,7 +26,7 @@ import (
 func SetDefaults_Bastion(obj *Bastion) { //nolint:golint,stylecheck
 	// Default to allow open access to the bastion host if no CIDR Blocks have been set
 	if len(obj.AllowedCIDRBlocks) == 0 && !obj.DisableIngressRules {
-		obj.AllowedCIDRBlocks = []string{"0.0.0.0/0"}
+		obj.AllowedCIDRBlocks = []string{"0.0.0.0/0", "::/0"}
 	}
 }
 
@@ -49,6 +49,17 @@ func SetDefaults_NetworkSpec(obj *NetworkSpec) { //nolint:golint,stylecheck
 					ToPort:      65535,
 				},
 			},
+		}
+		// To support IPv6, calico must be configured to use VXLAN.
+		// According to https://github.com/projectcalico/calico/issues/5206,
+		// IP-in-IP is not yet supported on IPv6.
+		if obj.VPC.IsIPv6Enabled() {
+			obj.CNI.CNIIngressRules = append(obj.CNI.CNIIngressRules, CNIIngressRule{
+				Description: "VXLAN (calico)",
+				Protocol:    SecurityGroupProtocolUDP,
+				FromPort:    4789,
+				ToPort:      4789,
+			})
 		}
 	}
 }

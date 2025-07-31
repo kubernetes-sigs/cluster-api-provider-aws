@@ -2332,12 +2332,29 @@ func TestNodePortServicesIngressRules(t *testing.T) {
 
 	testCases := []struct {
 		name                string
-		cidrBlocks          []string
+		awsCluster          *infrav1.AWSCluster
 		expectedIngresRules infrav1.IngressRules
 	}{
 		{
-			name:       "default node ports services ingress rules, no node port cidr block provided",
-			cidrBlocks: nil,
+			name: "default node ports services ingress rules, no node port cidr block provided",
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{},
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							CidrBlock: "10.0.0.0/16",
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {ID: "Id1"},
+							infrav1.SecurityGroupNode:         {ID: "Id2"},
+						},
+					},
+				},
+			},
 			expectedIngresRules: infrav1.IngressRules{
 				{
 					Description: "Node Port Services",
@@ -2356,8 +2373,65 @@ func TestNodePortServicesIngressRules(t *testing.T) {
 			},
 		},
 		{
-			name:       "node port cidr block provided, no default cidr block used for node port services ingress rule",
-			cidrBlocks: []string{"10.0.0.0/16"},
+			name: "default node ports services ingress rules for IPv6, no node port cidr block provided",
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{},
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							CidrBlock: "10.0.0.0/16",
+							IPv6:      &infrav1.IPv6{},
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {ID: "Id1"},
+							infrav1.SecurityGroupNode:         {ID: "Id2"},
+						},
+					},
+				},
+			},
+			expectedIngresRules: infrav1.IngressRules{
+				{
+					Description:    "Node Port Services",
+					Protocol:       infrav1.SecurityGroupProtocolTCP,
+					FromPort:       30000,
+					ToPort:         32767,
+					CidrBlocks:     []string{services.AnyIPv4CidrBlock},
+					IPv6CidrBlocks: []string{services.AnyIPv6CidrBlock},
+				},
+				{
+					Description:            "Kubelet API",
+					Protocol:               infrav1.SecurityGroupProtocolTCP,
+					FromPort:               10250,
+					ToPort:                 10250,
+					SourceSecurityGroupIDs: []string{"Id1", "Id2"},
+				},
+			},
+		},
+		{
+			name: "node port cidr block provided, no default cidr block used for node port services ingress rule",
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{},
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							CidrBlock: "10.0.0.0/16",
+						},
+						NodePortIngressRuleCidrBlocks: []string{"10.0.0.0/16"},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {ID: "Id1"},
+							infrav1.SecurityGroupNode:         {ID: "Id2"},
+						},
+					},
+				},
+			},
 			expectedIngresRules: infrav1.IngressRules{
 				{
 					Description: "Node Port Services",
@@ -2365,6 +2439,90 @@ func TestNodePortServicesIngressRules(t *testing.T) {
 					FromPort:    30000,
 					ToPort:      32767,
 					CidrBlocks:  []string{"10.0.0.0/16"},
+				},
+				{
+					Description:            "Kubelet API",
+					Protocol:               infrav1.SecurityGroupProtocolTCP,
+					FromPort:               10250,
+					ToPort:                 10250,
+					SourceSecurityGroupIDs: []string{"Id1", "Id2"},
+				},
+			},
+		},
+		{
+			name: "node port cidr block provided for only IPv6, no default cidr block used for node port services ingress rule",
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{},
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							CidrBlock: "10.0.0.0/16",
+							IPv6: &infrav1.IPv6{
+								CidrBlock: "2001:1234:5678:9a40::/56",
+							},
+						},
+						NodePortIngressRuleCidrBlocks: []string{"2001:1234:5678:9a40::/56"},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {ID: "Id1"},
+							infrav1.SecurityGroupNode:         {ID: "Id2"},
+						},
+					},
+				},
+			},
+			expectedIngresRules: infrav1.IngressRules{
+				{
+					Description:    "Node Port Services",
+					Protocol:       infrav1.SecurityGroupProtocolTCP,
+					FromPort:       30000,
+					ToPort:         32767,
+					CidrBlocks:     []string{services.AnyIPv4CidrBlock},
+					IPv6CidrBlocks: []string{"2001:1234:5678:9a40::/56"},
+				},
+				{
+					Description:            "Kubelet API",
+					Protocol:               infrav1.SecurityGroupProtocolTCP,
+					FromPort:               10250,
+					ToPort:                 10250,
+					SourceSecurityGroupIDs: []string{"Id1", "Id2"},
+				},
+			},
+		},
+		{
+			name: "node port cidr block provided for both IPv4 and IPv6, no default cidr block used for node port services ingress rule",
+			awsCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{},
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							CidrBlock: "10.0.0.0/16",
+							IPv6: &infrav1.IPv6{
+								CidrBlock: "2001:1234:5678:9a40::/56",
+							},
+						},
+						NodePortIngressRuleCidrBlocks: []string{"10.0.0.0/16", "2001:1234:5678:9a40::/56"},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {ID: "Id1"},
+							infrav1.SecurityGroupNode:         {ID: "Id2"},
+						},
+					},
+				},
+			},
+			expectedIngresRules: infrav1.IngressRules{
+				{
+					Description:    "Node Port Services",
+					Protocol:       infrav1.SecurityGroupProtocolTCP,
+					FromPort:       30000,
+					ToPort:         32767,
+					CidrBlocks:     []string{"10.0.0.0/16"},
+					IPv6CidrBlocks: []string{"2001:1234:5678:9a40::/56"},
 				},
 				{
 					Description:            "Kubelet API",
@@ -2384,25 +2542,7 @@ func TestNodePortServicesIngressRules(t *testing.T) {
 				Cluster: &clusterv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
 				},
-				AWSCluster: &infrav1.AWSCluster{
-					Spec: infrav1.AWSClusterSpec{
-						ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{},
-						NetworkSpec: infrav1.NetworkSpec{
-							VPC: infrav1.VPCSpec{
-								CidrBlock: "10.0.0.0/16",
-							},
-							NodePortIngressRuleCidrBlocks: tc.cidrBlocks,
-						},
-					},
-					Status: infrav1.AWSClusterStatus{
-						Network: infrav1.NetworkStatus{
-							SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
-								infrav1.SecurityGroupControlPlane: {ID: "Id1"},
-								infrav1.SecurityGroupNode:         {ID: "Id2"},
-							},
-						},
-					},
-				},
+				AWSCluster: tc.awsCluster,
 			})
 			if err != nil {
 				t.Fatalf("Failed to create test context: %v", err)
