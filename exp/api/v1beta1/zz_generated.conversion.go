@@ -760,6 +760,7 @@ func autoConvert_v1beta2_AWSManagedMachinePoolSpec_To_v1beta1_AWSManagedMachineP
 		out.AWSLaunchTemplate = nil
 	}
 	// WARNING: in.AWSLifecycleHooks requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeRepairConfig requires manual conversion: does not exist in peer-type
 	return nil
 }
 
