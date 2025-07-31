@@ -25,3 +25,5 @@ spec:
     maxSize: 2
   updateConfig:
     maxUnavailable: 2
+  nodeRepairConfig:
+    enabled: false
