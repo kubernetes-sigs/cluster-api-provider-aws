@@ -211,6 +211,7 @@ func (*AWSMachinePoolWebhook) ValidateCreate(_ context.Context, obj runtime.Obje
 	allErrs = append(allErrs, r.validateSpotInstances()...)
 	allErrs = append(allErrs, r.validateRefreshPreferences()...)
 	allErrs = append(allErrs, r.validateInstanceMarketType()...)
+	allErrs = append(allErrs, r.validateCapacityReservation()...)
 	allErrs = append(allErrs, r.validateLifecycleHooks()...)
 	allErrs = append(allErrs, r.validateIgnition()...)
 
@@ -223,6 +224,16 @@ func (*AWSMachinePoolWebhook) ValidateCreate(_ context.Context, obj runtime.Obje
 		r.Name,
 		allErrs,
 	)
+}
+
+func (r *AWSMachinePool) validateCapacityReservation() field.ErrorList {
+	var allErrs field.ErrorList
+	if r.Spec.AWSLaunchTemplate.CapacityReservationID != nil &&
+		r.Spec.AWSLaunchTemplate.CapacityReservationPreference != infrav1.CapacityReservationPreferenceOnly &&
+		r.Spec.AWSLaunchTemplate.CapacityReservationPreference != "" {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "capacityReservationPreference"), "when a reservation ID is specified, capacityReservationPreference may only be `capacity-reservations-only` or empty"))
+	}
+	return allErrs
 }
 
 func (r *AWSMachinePool) validateInstanceMarketType() field.ErrorList {

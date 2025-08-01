@@ -262,6 +262,8 @@ func (s *Service) CreateInstance(ctx context.Context, scope *scope.MachineScope,
 
 	input.HostAffinity = scope.AWSMachine.Spec.HostAffinity
 
+	input.CapacityReservationPreference = scope.AWSMachine.Spec.CapacityReservationPreference
+
 	s.scope.Debug("Running instance", "machine-role", scope.Role())
 	s.scope.Debug("Running instance with instance metadata options", "metadata options", input.InstanceMetadataOptions)
 	out, err := s.runInstance(scope.Role(), input)
@@ -659,7 +661,7 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 	}
 	input.MetadataOptions = getInstanceMetadataOptionsRequest(i.InstanceMetadataOptions)
 	input.PrivateDnsNameOptions = getPrivateDNSNameOptionsRequest(i.PrivateDNSName)
-	input.CapacityReservationSpecification = getCapacityReservationSpecification(i.CapacityReservationID)
+	input.CapacityReservationSpecification = getCapacityReservationSpecification(i.CapacityReservationID, i.CapacityReservationPreference)
 
 	if i.Tenancy != "" {
 		input.Placement = &types.Placement{
@@ -1172,17 +1174,18 @@ func filterGroups(list []string, strToFilter string) (newList []string) {
 	return
 }
 
-func getCapacityReservationSpecification(capacityReservationID *string) *types.CapacityReservationSpecification {
-	if capacityReservationID == nil {
-		//  Not targeting any specific Capacity Reservation
+func getCapacityReservationSpecification(capacityReservationID *string, capacityReservationPreference infrav1.CapacityReservationPreference) *types.CapacityReservationSpecification {
+	if capacityReservationID == nil && capacityReservationPreference == "" {
 		return nil
 	}
-
-	return &types.CapacityReservationSpecification{
-		CapacityReservationTarget: &types.CapacityReservationTarget{
+	var spec types.CapacityReservationSpecification
+	if capacityReservationID != nil {
+		spec.CapacityReservationTarget = &types.CapacityReservationTarget{
 			CapacityReservationId: capacityReservationID,
-		},
+		}
 	}
+	spec.CapacityReservationPreference = CapacityReservationPreferenceToSDK(capacityReservationPreference)
+	return &spec
 }
 
 func getInstanceMarketOptionsRequest(i *infrav1.Instance) (*types.InstanceMarketOptionsRequest, error) {

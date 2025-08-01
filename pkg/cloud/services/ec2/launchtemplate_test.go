@@ -1439,6 +1439,18 @@ func TestLaunchTemplateDataCreation(t *testing.T) {
 	})
 }
 
+var LaunchTemplateVersionIgnoreUnexported = cmpopts.IgnoreUnexported(
+	ec2types.CapacityReservationTarget{},
+	ec2types.LaunchTemplateCapacityReservationSpecificationRequest{},
+	ec2types.LaunchTemplateIamInstanceProfileSpecificationRequest{},
+	ec2types.LaunchTemplateSpotMarketOptionsRequest{},
+	ec2types.LaunchTemplateInstanceMarketOptionsRequest{},
+	ec2types.Tag{},
+	ec2types.LaunchTemplateTagSpecificationRequest{},
+	ec2types.RequestLaunchTemplateData{},
+	ec2.CreateLaunchTemplateVersionInput{},
+)
+
 func TestCreateLaunchTemplateVersion(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -1459,6 +1471,7 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 		awsResourceReference []infrav1.AWSResourceReference
 		expect               func(m *mocks.MockEC2APIMockRecorder)
 		wantErr              bool
+		mpScopeUpdater       func(*scope.MachinePoolScope)
 		marketType           ec2types.MarketType
 	}{
 		{
@@ -1506,16 +1519,8 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 					func(ctx context.Context, arg *ec2.CreateLaunchTemplateVersionInput, requestOptions ...request.Option) {
 						// formatting added to match tags slice during cmp.Equal()
 						formatTagsInput(arg)
-						if !cmp.Equal(expectedInput, arg, cmpopts.IgnoreUnexported(
-							ec2types.LaunchTemplateIamInstanceProfileSpecificationRequest{},
-							ec2types.LaunchTemplateSpotMarketOptionsRequest{},
-							ec2types.LaunchTemplateInstanceMarketOptionsRequest{},
-							ec2types.Tag{},
-							ec2types.LaunchTemplateTagSpecificationRequest{},
-							ec2types.RequestLaunchTemplateData{},
-							ec2.CreateLaunchTemplateVersionInput{},
-						)) {
-							t.Fatalf("mismatch in input expected: %+v, but got %+v, diff: %s", expectedInput, arg, cmp.Diff(expectedInput, arg))
+						if !cmp.Equal(expectedInput, arg, LaunchTemplateVersionIgnoreUnexported) {
+							t.Fatalf("mismatch in input expected: %+v, but got %+v, diff: %s", expectedInput, arg, cmp.Diff(expectedInput, arg, LaunchTemplateVersionIgnoreUnexported))
 						}
 					})
 			},
@@ -1523,7 +1528,13 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 		{
 			name:                 "Should successfully create launch template version with capacity-block",
 			awsResourceReference: []infrav1.AWSResourceReference{{ID: aws.String("1")}},
-			marketType:           ec2types.MarketTypeCapacityBlock,
+			mpScopeUpdater: func(mps *scope.MachinePoolScope) {
+				spec := mps.AWSMachinePool.Spec
+				spec.AWSLaunchTemplate.CapacityReservationID = aws.String("cr-12345678901234567")
+				spec.AWSLaunchTemplate.MarketType = infrav1.MarketTypeCapacityBlock
+				spec.AWSLaunchTemplate.SpotMarketOptions = nil
+				mps.AWSMachinePool.Spec = spec
+			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				sgMap := make(map[infrav1.SecurityGroupRole]infrav1.SecurityGroup)
 				sgMap[infrav1.SecurityGroupNode] = infrav1.SecurityGroup{ID: "1"}
@@ -1541,6 +1552,11 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 						ImageId:          aws.String("imageID"),
 						InstanceMarketOptions: &ec2types.LaunchTemplateInstanceMarketOptionsRequest{
 							MarketType: ec2types.MarketTypeCapacityBlock,
+						},
+						CapacityReservationSpecification: &ec2types.LaunchTemplateCapacityReservationSpecificationRequest{
+							CapacityReservationTarget: &ec2types.CapacityReservationTarget{
+								CapacityReservationId: aws.String("cr-12345678901234567"),
+							},
 						},
 						TagSpecifications: []ec2types.LaunchTemplateTagSpecificationRequest{
 							{
@@ -1563,16 +1579,66 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 					func(ctx context.Context, arg *ec2.CreateLaunchTemplateVersionInput, requestOptions ...request.Option) {
 						// formatting added to match tags slice during cmp.Equal()
 						formatTagsInput(arg)
-						if !cmp.Equal(expectedInput, arg, cmpopts.IgnoreUnexported(
-							ec2types.LaunchTemplateIamInstanceProfileSpecificationRequest{},
-							ec2types.LaunchTemplateSpotMarketOptionsRequest{},
-							ec2types.LaunchTemplateInstanceMarketOptionsRequest{},
-							ec2types.Tag{},
-							ec2types.LaunchTemplateTagSpecificationRequest{},
-							ec2types.RequestLaunchTemplateData{},
-							ec2.CreateLaunchTemplateVersionInput{},
-						)) {
-							t.Fatalf("mismatch in input expected: %+v, but got %+v, diff: %s", expectedInput, arg, cmp.Diff(expectedInput, arg))
+						if !cmp.Equal(expectedInput, arg, LaunchTemplateVersionIgnoreUnexported) {
+							t.Fatalf("mismatch in input expected: %+v, but got %+v, diff: %s", expectedInput, arg, cmp.Diff(expectedInput, arg, LaunchTemplateVersionIgnoreUnexported))
+						}
+					})
+			},
+		},
+		{
+			name:                 "Should successfully create launch template version with capacity reservation ID and preference",
+			awsResourceReference: []infrav1.AWSResourceReference{{ID: aws.String("1")}},
+			mpScopeUpdater: func(mps *scope.MachinePoolScope) {
+				spec := mps.AWSMachinePool.Spec
+				spec.AWSLaunchTemplate.CapacityReservationID = aws.String("cr-12345678901234567")
+				spec.AWSLaunchTemplate.CapacityReservationPreference = infrav1.CapacityReservationPreferenceOnly
+				spec.AWSLaunchTemplate.SpotMarketOptions = nil
+				mps.AWSMachinePool.Spec = spec
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				sgMap := make(map[infrav1.SecurityGroupRole]infrav1.SecurityGroup)
+				sgMap[infrav1.SecurityGroupNode] = infrav1.SecurityGroup{ID: "1"}
+				sgMap[infrav1.SecurityGroupLB] = infrav1.SecurityGroup{ID: "2"}
+
+				expectedInput := &ec2.CreateLaunchTemplateVersionInput{
+					LaunchTemplateData: &ec2types.RequestLaunchTemplateData{
+						InstanceType: ec2types.InstanceTypeT3Large,
+						IamInstanceProfile: &ec2types.LaunchTemplateIamInstanceProfileSpecificationRequest{
+							Name: aws.String("instance-profile"),
+						},
+						KeyName:          aws.String("default"),
+						UserData:         ptr.To[string](base64.StdEncoding.EncodeToString(userData)),
+						SecurityGroupIds: []string{"nodeSG", "lbSG", "1"},
+						ImageId:          aws.String("imageID"),
+						CapacityReservationSpecification: &ec2types.LaunchTemplateCapacityReservationSpecificationRequest{
+							CapacityReservationTarget: &ec2types.CapacityReservationTarget{
+								CapacityReservationId: aws.String("cr-12345678901234567"),
+							},
+							CapacityReservationPreference: ec2types.CapacityReservationPreferenceCapacityReservationsOnly,
+						},
+						TagSpecifications: []ec2types.LaunchTemplateTagSpecificationRequest{
+							{
+								ResourceType: ec2types.ResourceTypeInstance,
+								Tags:         defaultEC2AndDataTags("aws-mp-name", "cluster-name", userDataSecretKey, testBootstrapDataHash),
+							},
+							{
+								ResourceType: ec2types.ResourceTypeVolume,
+								Tags:         defaultEC2Tags("aws-mp-name", "cluster-name"),
+							},
+						},
+					},
+					LaunchTemplateId: aws.String("launch-template-id"),
+				}
+				m.CreateLaunchTemplateVersion(context.TODO(), gomock.AssignableToTypeOf(expectedInput)).Return(&ec2.CreateLaunchTemplateVersionOutput{
+					LaunchTemplateVersion: &ec2types.LaunchTemplateVersion{
+						LaunchTemplateId: aws.String("launch-template-id"),
+					},
+				}, nil).Do(
+					func(ctx context.Context, arg *ec2.CreateLaunchTemplateVersionInput, requestOptions ...request.Option) {
+						// formatting added to match tags slice during cmp.Equal()
+						formatTagsInput(arg)
+						if !cmp.Equal(expectedInput, arg, LaunchTemplateVersionIgnoreUnexported) {
+							t.Fatalf("mismatch in input expected: %+v, but got %+v, diff: %s", expectedInput, arg, cmp.Diff(expectedInput, arg, LaunchTemplateVersionIgnoreUnexported))
 						}
 					})
 			},
@@ -1619,15 +1685,7 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 					func(ctx context.Context, arg *ec2.CreateLaunchTemplateVersionInput, requestOptions ...request.Option) {
 						// formatting added to match tags slice during cmp.Equal()
 						formatTagsInput(arg)
-						if !cmp.Equal(expectedInput, arg, cmpopts.IgnoreUnexported(
-							ec2types.LaunchTemplateIamInstanceProfileSpecificationRequest{},
-							ec2types.LaunchTemplateSpotMarketOptionsRequest{},
-							ec2types.LaunchTemplateInstanceMarketOptionsRequest{},
-							ec2types.Tag{},
-							ec2types.LaunchTemplateTagSpecificationRequest{},
-							ec2types.RequestLaunchTemplateData{},
-							ec2.CreateLaunchTemplateVersionInput{},
-						)) {
+						if !cmp.Equal(expectedInput, arg, LaunchTemplateVersionIgnoreUnexported) {
 							t.Fatalf("mismatch in input expected: %+v, got: %+v", expectedInput, arg)
 						}
 					})
@@ -1645,13 +1703,11 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 			cs, err := setupClusterScope(client)
 			g.Expect(err).NotTo(HaveOccurred())
 
-			var ms *scope.MachinePoolScope
-			if tc.marketType == ec2types.MarketTypeCapacityBlock {
-				ms, err = setupCapacityBlocksMachinePoolScope(client, cs)
-			} else {
-				ms, err = setupMachinePoolScope(client, cs)
-			}
+			ms, err := setupMachinePoolScope(client, cs)
 			g.Expect(err).NotTo(HaveOccurred())
+			if updateScope := tc.mpScopeUpdater; updateScope != nil {
+				updateScope(ms)
+			}
 
 			ms.AWSMachinePool.Spec.AWSLaunchTemplate.AdditionalSecurityGroups = tc.awsResourceReference
 

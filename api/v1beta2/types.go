@@ -285,7 +285,30 @@ type Instance struct {
 	// HostID specifies the dedicated host on which the instance should be started.
 	// +optional
 	HostID *string `json:"hostID,omitempty"`
+
+	// CapacityReservationPreference specifies the preference for use of Capacity Reservations by the instance. Valid values include:
+	// "Open" (default): The instance may make make use of open Capacity Reservations that match its AZ and InstanceType
+	// "None": The instance may not make use of any Capacity Reservations. This is to conserve open reservations for desired workloads
+	// "CapacityReservationsOnly": The instance will only run if matched or targeted to a Capacity Reservation
+	// +optional
+	CapacityReservationPreference CapacityReservationPreference `json:"capacityReservationPreference,omitempty"`
 }
+
+// CapacityReservationPreference describes the preferred use of capacity reservations
+// of an instance
+// +kubebuilder:validation:Enum:=None;CapacityReservationsOnly;Open
+type CapacityReservationPreference string
+
+const (
+	// CapacityReservationPreferenceNone is a CapacityReservationPreference enum value
+	CapacityReservationPreferenceNone CapacityReservationPreference = "None"
+
+	// CapacityReservationPreferenceOnly is a CapacityReservationPreference enum value
+	CapacityReservationPreferenceOnly CapacityReservationPreference = "CapacityReservationsOnly"
+
+	// CapacityReservationPreferenceOpen is a CapacityReservationPreference enum value
+	CapacityReservationPreferenceOpen CapacityReservationPreference = "Open"
+)
 
 // MarketType describes the market type of an Instance
 // +kubebuilder:validation:Enum:=OnDemand;Spot;CapacityBlock
