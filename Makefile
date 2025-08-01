@@ -92,7 +92,7 @@ endif
 
 # Release variables
 
-STAGING_REGISTRY ?= gcr.io/spectro-dev-public/cluster-api-aws
+STAGING_REGISTRY ?= us-east1-docker.pkg.dev/spectro-images/dev/$(USER)/cluster-api-aws
 STAGING_BUCKET ?= k8s-staging-cluster-api-aws
 BUCKET ?= $(STAGING_BUCKET)
 PROD_REGISTRY := registry.k8s.io/cluster-api-aws
@@ -126,7 +126,7 @@ ARCH ?= amd64
 # ALL_ARCH = amd64 arm arm64 ppc64le s390x
 ALL_ARCH = amd64 arm64
 
-REGISTRY ?= gcr.io/spectro-dev-public/$(USER)/${RELEASE_LOC}
+REGISTRY ?= us-east1-docker.pkg.dev/spectro-images/dev/$(USER)/${RELEASE_LOC}
 
 # main controller
 CORE_IMAGE_NAME ?= cluster-api-aws-controller
