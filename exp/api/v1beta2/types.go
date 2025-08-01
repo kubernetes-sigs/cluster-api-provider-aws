@@ -146,6 +146,13 @@ type AWSLaunchTemplate struct {
 	// If marketType is not specified and spotMarketOptions is provided, the marketType defaults to "Spot".
 	// +optional
 	MarketType infrav1.MarketType `json:"marketType,omitempty"`
+
+	// CapacityReservationPreference specifies the preference for use of Capacity Reservations by the instance. Valid values include:
+	// "Open" (default): The instance may make make use of open Capacity Reservations that match its AZ and InstanceType
+	// "None": The instance may not make use of any Capacity Reservations. This is to conserve open reservations for desired workloads
+	// "CapacityReservationsOnly": The instance will only run if matched or targeted to a Capacity Reservation
+	// +optional
+	CapacityReservationPreference infrav1.CapacityReservationPreference `json:"capacityReservationPreference,omitempty"`
 }
 
 // Overrides are used to override the instance type specified by the launch template with multiple
