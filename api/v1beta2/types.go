@@ -293,6 +293,9 @@ type Instance struct {
 	// +kubebuilder:validation:Enum="";None;CapacityReservationsOnly;Open
 	// +optional
 	CapacityReservationPreference CapacityReservationPreference `json:"capacityReservationPreference,omitempty"`
+
+	// The cpu options of the instance.
+	CPUOptions *CPUOptions `json:"cpuOptions,omitempty"`
 }
 
 // CapacityReservationPreference describes the preferred use of capacity reservations

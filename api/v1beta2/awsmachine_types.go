@@ -73,6 +73,34 @@ const (
 	NetworkInterfaceTypeEFAWithENAInterface NetworkInterfaceType = NetworkInterfaceType("efa")
 )
 
+// AWSConfidentialComputePolicy represents the confidential compute configuration for the instance.
+type AWSConfidentialComputePolicy string
+
+const (
+	// AWSConfidentialComputePolicyDisabled disables confidential computing for the instance.
+	AWSConfidentialComputePolicyDisabled AWSConfidentialComputePolicy = "Disabled"
+	// AWSConfidentialComputePolicySEVSNP enables AMD SEV-SNP as the confidential computing technology for the instance.
+	AWSConfidentialComputePolicySEVSNP AWSConfidentialComputePolicy = "AMDEncrytedVirtualizationNestedPaging"
+)
+
+// CPUOptions defines CPU-related settings for the instance, including the confidential computing policy.
+type CPUOptions struct {
+	// confidentialCompute specifies whether confidential computing should be enabled for the instance,
+	// and, if so, which confidential computing technology to use.
+	// Valid values are: Disabled, AMDEncrytedVirtualizationNestedPaging
+	// When set to Disabled, confidential computing will be disabled for the instance.
+	// When set to AMDEncrytedVirtualizationNestedPaging, AMD SEV-SNP will be used as the confidential computing technology for the instance.
+	// In this case, ensure the following conditions are met:
+	// 1) The selected instance type supports AMD SEV-SNP.
+	// 2) The selected AWS region supports AMD SEV-SNP.
+	// 3) The selected AMI supports AMD SEV-SNP.
+	// More details can be checked at https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/sev-snp.html
+	// When omitted, this means no opinion and the platform is left to choose a reasonable default, which is subject to change without notice. The current default is Disabled.
+	// +kubebuilder:validation:Enum=Disabled;AMDEncrytedVirtualizationNestedPaging
+	// +optional
+	ConfidentialCompute AWSConfidentialComputePolicy `json:"confidentialCompute,omitempty"`
+}
+
 // AWSMachineSpec defines the desired state of an Amazon EC2 instance.
 // +kubebuilder:validation:XValidation:rule="!has(self.capacityReservationId) || !has(self.marketType) || self.marketType != 'Spot'",message="capacityReservationId may not be set when marketType is Spot"
 // +kubebuilder:validation:XValidation:rule="!has(self.capacityReservationId) || !has(self.spotMarketOptions)",message="capacityReservationId cannot be set when spotMarketOptions is specified"
@@ -253,6 +281,11 @@ type AWSMachineSpec struct {
 	// +kubebuilder:validation:Enum="";None;CapacityReservationsOnly;Open
 	// +optional
 	CapacityReservationPreference CapacityReservationPreference `json:"capacityReservationPreference,omitempty"`
+
+	// cpuOptions defines CPU-related settings for the instance, including the confidential computing policy.
+	// If unset, no CPU options will be passed to the AWS platform and AWS default CPU options will be applied.
+	// +optional
+	CPUOptions *CPUOptions `json:"cpuOptions,omitempty"`
 }
 
 // CloudInit defines options related to the bootstrapping systems where
