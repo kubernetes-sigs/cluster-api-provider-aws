@@ -593,6 +593,22 @@ spec:
                             - ssm-parameter-store
                             type: string
                         type: object
+                      cpuOptions:
+                        description: cpuOptions is the set of cpu options for the
+                          instance
+                        properties:
+                          confidentialCompute:
+                            description: |-
+                              ConfidentialCompute specifies whether confidential computing should be enabled for the instance,
+                              and, if so, which confidential computing technology to use.
+                              If set to Disabled, the instance will not be configured for confidential computing.
+                              If set to AMDSevSnp, the instance will be configured with AMD Secure Encrypted Virtualization - Secure Nested Paging (SEV-SNP).
+                              If omitted, a default setting will applied, which is currently Disabled but may change over time.
+                            enum:
+                            - Disabled
+                            - AMDSevSnp
+                            type: string
+                        type: object
                       elasticIpPool:
                         description: ElasticIPPool is the configuration to allocate
                           Public IPv4 address (Elastic IP/EIP) from user-defined pool.

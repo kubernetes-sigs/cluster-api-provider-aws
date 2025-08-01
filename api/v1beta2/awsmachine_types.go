@@ -73,6 +73,28 @@ const (
 	NetworkInterfaceTypeEFAWithENAInterface NetworkInterfaceType = NetworkInterfaceType("efa")
 )
 
+// ConfidentialComputePolicy represents the confidential compute configuration for the AWS machine.
+type ConfidentialComputePolicy string
+
+const (
+	// ConfidentialComputePolicyDisabled disables confidential compute for the AWS machine.
+	ConfidentialComputePolicyDisabled ConfidentialComputePolicy = "Disabled"
+	// ConfidentialComputePolicySEVSNP sets AMD SEV-SNP as the VM instance's confidential computing technology of choice.
+	ConfidentialComputePolicySEVSNP ConfidentialComputePolicy = "AMDSevSnp"
+)
+
+// CPUOptions defines the cpu options for the instance.
+type CPUOptions struct {
+	// ConfidentialCompute specifies whether confidential computing should be enabled for the instance,
+	// and, if so, which confidential computing technology to use.
+	// If set to Disabled, the instance will not be configured for confidential computing.
+	// If set to AMDSevSnp, the instance will be configured with AMD Secure Encrypted Virtualization - Secure Nested Paging (SEV-SNP).
+	//  If omitted, the platform will apply a default value — currently Disabled, but this may change over time.
+	// +kubebuilder:validation:Enum=Disabled;AMDSevSnp
+	// +optional
+	ConfidentialCompute *ConfidentialComputePolicy `json:"confidentialCompute,omitempty"`
+}
+
 // AWSMachineSpec defines the desired state of an Amazon EC2 instance.
 // +kubebuilder:validation:XValidation:rule="!has(self.capacityReservationId) || !has(self.marketType) || self.marketType != 'Spot'",message="capacityReservationId may not be set when marketType is Spot"
 // +kubebuilder:validation:XValidation:rule="!has(self.capacityReservationId) || !has(self.spotMarketOptions)",message="capacityReservationId cannot be set when spotMarketOptions is specified"
@@ -233,6 +255,10 @@ type AWSMachineSpec struct {
 	// If marketType is not specified and spotMarketOptions is provided, the marketType defaults to "Spot".
 	// +optional
 	MarketType MarketType `json:"marketType,omitempty"`
+
+	// cpuOptions is the set of cpu options for the instance
+	// +optional
+	CPUOptions *CPUOptions `json:"cpuOptions,omitempty"`
 }
 
 // CloudInit defines options related to the bootstrapping systems where
