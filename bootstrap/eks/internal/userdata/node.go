@@ -25,6 +25,7 @@ import (
 	"github.com/alessio/shellescape"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
+
 	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 )
@@ -75,7 +76,7 @@ set -o nounset
 {{- end}}
 {{- end}}`
 
-	// Node config part template for AL2023
+	// Node config part template for AL2023.
 	nodeConfigPartTemplate = `
 --{{.Boundary}}
 Content-Type: application/node.eks.aws
@@ -363,7 +364,7 @@ func generateAL2023UserData(input *NodeInput) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// getCapacityTypeString returns the string representation of the capacity type
+// getCapacityTypeString returns the string representation of the capacity type.
 func (ni *NodeInput) getCapacityTypeString() string {
 	if ni.CapacityType == nil {
 		return "ON_DEMAND"
@@ -378,7 +379,7 @@ func (ni *NodeInput) getCapacityTypeString() string {
 	}
 }
 
-// validateAL2023Input validates the input for AL2023 user data generation
+// validateAL2023Input validates the input for AL2023 user data generation.
 func validateAL2023Input(input *NodeInput) error {
 	if input.APIServerEndpoint == "" {
 		return fmt.Errorf("API server endpoint is required for AL2023")
