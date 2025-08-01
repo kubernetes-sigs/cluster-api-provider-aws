@@ -73,6 +73,33 @@ const (
 	NetworkInterfaceTypeEFAWithENAInterface NetworkInterfaceType = NetworkInterfaceType("efa")
 )
 
+// AmdSevSnpSpecification defines the different values for AmdSevSnp
+type AmdSevSnpSpecification string
+
+const (
+	// AmdSevSnpSpecificationEnabled means AMD SEV SNP is enabled for the instance.
+	AmdSevSnpSpecificationEnabled AmdSevSnpSpecification = "enabled"
+
+	// AmdSevSnpSpecificationDisabled means AMD SEV SNP is disabled for the instance.
+	AmdSevSnpSpecificationDisabled AmdSevSnpSpecification = "disabled"
+)
+
+// CPUOptions defines the cpu options for the instance.
+type CPUOptions struct {
+	// amdSevSnp specifies AMD SEV-SNP for the instance.
+	// +kubebuilder:validation:Enum=enabled;disabled
+	// +optional
+	AmdSevSnp AmdSevSnpSpecification `json:"amdSevSnp,omitempty"`
+}
+
+// Confidential computing support depends on the instance type.
+// Only certain instance types in M6a, R6a and C6a series support AMD SEV-SNP. Reference: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/sev-snp.html
+var (
+	instanceTypesSupportingAmdSevsnp = []string{"m6a.large", "m6a.xlarge", "m6a.2xlarge", "m6a.4xlarge", "m6a.8xlarge",
+		"c6a.large", "c6a.xlarge", "c6a.2xlarge", "c6a.4xlarge", "c6a.8xlarge", "c6a.12xlarge", "c6a.16xlarge",
+		"r6a.large", "r6a.xlarge", "r6a.2xlarge", "r6a.4xlarge"}
+)
+
 // AWSMachineSpec defines the desired state of an Amazon EC2 instance.
 // +kubebuilder:validation:XValidation:rule="!has(self.capacityReservationId) || !has(self.marketType) || self.marketType != 'Spot'",message="capacityReservationId may not be set when marketType is Spot"
 // +kubebuilder:validation:XValidation:rule="!has(self.capacityReservationId) || !has(self.spotMarketOptions)",message="capacityReservationId cannot be set when spotMarketOptions is specified"
@@ -115,6 +142,10 @@ type AWSMachineSpec struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength:=2
 	InstanceType string `json:"instanceType"`
+
+	// cpuOptions is the set of cpu options for the instance
+	// +optional
+	CPUOptions *CPUOptions `json:"cpuOptions,omitempty"`
 
 	// AdditionalTags is an optional set of tags to add to an instance, in addition to the ones added by default by the
 	// AWS provider. If both the AWSCluster and the AWSMachine specify the same tag name with different values, the

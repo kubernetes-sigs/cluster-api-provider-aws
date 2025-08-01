@@ -593,6 +593,17 @@ spec:
                             - ssm-parameter-store
                             type: string
                         type: object
+                      cpuOptions:
+                        description: cpuOptions is the set of cpu options for the
+                          instance
+                        properties:
+                          amdSevSnp:
+                            description: amdSevSnp specifies AMD SEV-SNP for the instance.
+                            enum:
+                            - enabled
+                            - disabled
+                            type: string
+                        type: object
                       elasticIpPool:
                         description: ElasticIPPool is the configuration to allocate
                           Public IPv4 address (Elastic IP/EIP) from user-defined pool.

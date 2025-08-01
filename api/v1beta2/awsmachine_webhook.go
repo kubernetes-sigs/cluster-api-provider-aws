@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
+	"k8s.io/utils/strings/slices"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -78,6 +79,7 @@ func (*awsMachineWebhook) ValidateCreate(_ context.Context, obj runtime.Object) 
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 	allErrs = append(allErrs, r.validateNetworkElasticIPPool()...)
 	allErrs = append(allErrs, r.validateInstanceMarketType()...)
+	allErrs = append(allErrs, r.validateInstanceTypeForConfidentialCompute()...)
 
 	return nil, aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
@@ -411,6 +413,17 @@ func (r *AWSMachine) validateNonRootVolumes() field.ErrorList {
 
 		if volume.DeviceName == "" {
 			allErrs = append(allErrs, field.Required(field.NewPath("spec.nonRootVolumes.deviceName"), "non root volume should have device name"))
+		}
+	}
+
+	return allErrs
+}
+
+func (r *AWSMachine) validateInstanceTypeForConfidentialCompute() field.ErrorList {
+	var allErrs field.ErrorList
+	if r.Spec.CPUOptions != nil {
+		if r.Spec.CPUOptions.AmdSevSnp == "enabled" && !slices.Contains(instanceTypesSupportingAmdSevsnp, r.Spec.InstanceType) {
+			allErrs = append(allErrs, field.Required(field.NewPath("spec.InstanceType"), "this instance type doesn't support AMD SEV-SNP"))
 		}
 	}
 
