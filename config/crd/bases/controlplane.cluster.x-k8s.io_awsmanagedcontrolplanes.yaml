@@ -1237,6 +1237,31 @@ spec:
                       "None": The instance may not make use of any Capacity Reservations. This is to conserve open reservations for desired workloads
                       "CapacityReservationsOnly": The instance will only run if matched or targeted to a Capacity Reservation. Note that this is incompatible with a MarketType of `Spot`
                     type: string
+                  cpuOptions:
+                    description: |-
+                      CPUOptions defines CPU-related settings for the instance, including the confidential computing policy.
+                      When omitted, this means no opinion and the AWS platform is left to choose a reasonable default.
+                    minProperties: 1
+                    properties:
+                      confidentialCompute:
+                        description: |-
+                          ConfidentialCompute specifies whether confidential computing should be enabled for the instance,
+                          and, if so, which confidential computing technology to use.
+                          Valid values are: Disabled, AMDEncryptedVirtualizationNestedPaging
+                          When set to Disabled, confidential computing will be disabled for the instance.
+                          When set to AMDEncryptedVirtualizationNestedPaging, AMD SEV-SNP will be used as the confidential computing technology for the instance.
+                          In this case, ensure the following conditions are met:
+                          1) The selected instance type supports AMD SEV-SNP.
+                          2) The selected AWS region supports AMD SEV-SNP.
+                          3) The selected AMI supports AMD SEV-SNP.
+                          More details can be checked at https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/sev-snp.html
+                          When omitted, this means no opinion and the AWS platform is left to choose a reasonable default,
+                          which is subject to change without notice. The current default is Disabled.
+                        enum:
+                        - Disabled
+                        - AMDEncryptedVirtualizationNestedPaging
+                        type: string
+                    type: object
                   ebsOptimized:
                     description: Indicates whether the instance is optimized for Amazon
                       EBS I/O.
@@ -3456,6 +3481,31 @@ spec:
                       "None": The instance may not make use of any Capacity Reservations. This is to conserve open reservations for desired workloads
                       "CapacityReservationsOnly": The instance will only run if matched or targeted to a Capacity Reservation. Note that this is incompatible with a MarketType of `Spot`
                     type: string
+                  cpuOptions:
+                    description: |-
+                      CPUOptions defines CPU-related settings for the instance, including the confidential computing policy.
+                      When omitted, this means no opinion and the AWS platform is left to choose a reasonable default.
+                    minProperties: 1
+                    properties:
+                      confidentialCompute:
+                        description: |-
+                          ConfidentialCompute specifies whether confidential computing should be enabled for the instance,
+                          and, if so, which confidential computing technology to use.
+                          Valid values are: Disabled, AMDEncryptedVirtualizationNestedPaging
+                          When set to Disabled, confidential computing will be disabled for the instance.
+                          When set to AMDEncryptedVirtualizationNestedPaging, AMD SEV-SNP will be used as the confidential computing technology for the instance.
+                          In this case, ensure the following conditions are met:
+                          1) The selected instance type supports AMD SEV-SNP.
+                          2) The selected AWS region supports AMD SEV-SNP.
+                          3) The selected AMI supports AMD SEV-SNP.
+                          More details can be checked at https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/sev-snp.html
+                          When omitted, this means no opinion and the AWS platform is left to choose a reasonable default,
+                          which is subject to change without notice. The current default is Disabled.
+                        enum:
+                        - Disabled
+                        - AMDEncryptedVirtualizationNestedPaging
+                        type: string
+                    type: object
                   ebsOptimized:
                     description: Indicates whether the instance is optimized for Amazon
                       EBS I/O.

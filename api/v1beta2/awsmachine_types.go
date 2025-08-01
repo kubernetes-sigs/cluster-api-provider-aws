@@ -116,6 +116,11 @@ type AWSMachineSpec struct {
 	// +kubebuilder:validation:MinLength:=2
 	InstanceType string `json:"instanceType"`
 
+	// CPUOptions defines CPU-related settings for the instance, including the confidential computing policy.
+	// When omitted, this means no opinion and the AWS platform is left to choose a reasonable default.
+	// +optional
+	CPUOptions CPUOptions `json:"cpuOptions,omitempty,omitzero"`
+
 	// AdditionalTags is an optional set of tags to add to an instance, in addition to the ones added by default by the
 	// AWS provider. If both the AWSCluster and the AWSMachine specify the same tag name with different values, the
 	// AWSMachine's value takes precedence.
