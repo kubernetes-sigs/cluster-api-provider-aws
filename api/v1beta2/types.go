@@ -273,6 +273,9 @@ type Instance struct {
 	// If marketType is not specified and spotMarketOptions is provided, the marketType defaults to "Spot".
 	// +optional
 	MarketType MarketType `json:"marketType,omitempty"`
+
+	// The cpu options of the instance.
+	CPUOptions CPUOptions `json:"cpuOptions,omitempty,omitzero"`
 }
 
 // MarketType describes the market type of an Instance
