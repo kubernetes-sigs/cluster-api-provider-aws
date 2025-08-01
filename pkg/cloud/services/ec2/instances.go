@@ -264,6 +264,8 @@ func (s *Service) CreateInstance(ctx context.Context, scope *scope.MachineScope,
 
 	input.CapacityReservationPreference = scope.AWSMachine.Spec.CapacityReservationPreference
 
+	input.CPUOptions = scope.AWSMachine.Spec.CPUOptions
+
 	s.scope.Debug("Running instance", "machine-role", scope.Role())
 	s.scope.Debug("Running instance with instance metadata options", "metadata options", input.InstanceMetadataOptions)
 	out, err := s.runInstance(scope.Role(), input)
@@ -667,6 +669,7 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 	input.MetadataOptions = getInstanceMetadataOptionsRequest(i.InstanceMetadataOptions)
 	input.PrivateDnsNameOptions = getPrivateDNSNameOptionsRequest(i.PrivateDNSName)
 	input.CapacityReservationSpecification = getCapacityReservationSpecification(i.CapacityReservationID, i.CapacityReservationPreference)
+	input.CpuOptions = getInstanceCPUOptionsRequest(i.CPUOptions)
 
 	if i.Tenancy != "" {
 		input.Placement = &types.Placement{
@@ -1286,4 +1289,21 @@ func getPrivateDNSNameOptionsRequest(privateDNSName *infrav1.PrivateDNSName) *ty
 		EnableResourceNameDnsARecord:    privateDNSName.EnableResourceNameDNSARecord,
 		HostnameType:                    types.HostnameType(aws.ToString(privateDNSName.HostnameType)),
 	}
+}
+
+func getInstanceCPUOptionsRequest(cpuOptions infrav1.CPUOptions) *types.CpuOptionsRequest {
+	request := &types.CpuOptionsRequest{}
+	switch cpuOptions.ConfidentialCompute {
+	case infrav1.AWSConfidentialComputePolicySEVSNP:
+		request.AmdSevSnp = types.AmdSevSnpSpecificationEnabled
+	case infrav1.AWSConfidentialComputePolicyDisabled:
+		request.AmdSevSnp = types.AmdSevSnpSpecificationDisabled
+	default:
+	}
+
+	if *request == (types.CpuOptionsRequest{}) {
+		return nil
+	}
+
+	return request
 }
