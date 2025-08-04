@@ -1,0 +1,9 @@
+resources:
+  - cluster-template.yaml
+generatorOptions:
+  disableNameSuffixHash: true
+  labels:
+    type: generated
+  annotations:
+    note: generated
+
