@@ -23,12 +23,12 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
 	"github.com/aws/aws-sdk-go-v2/service/eks"
-	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/common"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/eks/iam"
+	stsservice "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts"
 )
 
 // EKSAPI defines the EKS API interface.
@@ -89,7 +89,7 @@ type Service struct {
 	EC2Client common.EC2API
 	EKSClient EKSAPI
 	iam.IAMService
-	STSClient stsiface.STSAPI
+	STSClient stsservice.STSClient
 }
 
 // ServiceOpts defines the functional arguments for the service.
@@ -134,7 +134,7 @@ type NodegroupService struct {
 	AutoscalingClient *autoscaling.Client
 	EKSClient         EKSAPI
 	iam.IAMService
-	STSClient stsiface.STSAPI
+	STSClient stsservice.STSClient
 }
 
 // NewNodegroupService returns a new service given the api clients.
@@ -159,7 +159,7 @@ type FargateService struct {
 	scope     *scope.FargateProfileScope
 	EKSClient EKSAPI
 	iam.IAMService
-	STSClient stsiface.STSAPI
+	STSClient stsservice.STSClient
 }
 
 // NewFargateService returns a new service given the api clients.
