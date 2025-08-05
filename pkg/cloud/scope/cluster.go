@@ -77,7 +77,7 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 		maxWaitActiveUpdateDelete:    params.MaxWaitActiveUpdateDelete,
 	}
 
-	_, serviceLimiters, err := sessionForClusterWithRegion(params.Client, clusterScope, params.AWSCluster.Spec.Region, params.Endpoints, params.Logger)
+	serviceLimiters, err := sessionForClusterWithRegion(params.Client, clusterScope, params.AWSCluster.Spec.Region, params.Endpoints, params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}

@@ -137,7 +137,7 @@ func sessionForRegionV2(region string) (*awsv2.Config, throttle.ServiceLimiters,
 	return &ns, sl, nil
 }
 
-func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.SessionMetadata, region string, endpoint []ServiceEndpoint, log logger.Wrapper) (*session.Session, throttle.ServiceLimiters, error) {
+func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.SessionMetadata, region string, endpoint []ServiceEndpoint, log logger.Wrapper) (throttle.ServiceLimiters, error) {
 	log = log.WithName("identity")
 	log.Trace("Creating an AWS Session")
 
@@ -157,7 +157,7 @@ func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.Se
 	if err != nil {
 		// could not get providers and retrieve the credentials
 		conditions.MarkFalse(clusterScoper.InfraCluster(), infrav1.PrincipalCredentialRetrievedCondition, infrav1.PrincipalCredentialRetrievalFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
-		return nil, nil, errors.Wrap(err, "Failed to get providers for cluster")
+		return nil, errors.Wrap(err, "Failed to get providers for cluster")
 	}
 
 	isChanged := false
@@ -166,7 +166,7 @@ func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.Se
 		// load an existing matching providers from the cache if such a providers exists
 		providerHash, err := provider.Hash()
 		if err != nil {
-			return nil, nil, errors.Wrap(err, "Failed to calculate provider hash")
+			return nil, errors.Wrap(err, "Failed to calculate provider hash")
 		}
 		cachedProvider, ok := providerCache.Load(providerHash)
 		if ok {
@@ -182,7 +182,7 @@ func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.Se
 	if !isChanged {
 		if s, ok := sessionCache.Load(getSessionName(region, clusterScoper)); ok {
 			entry := s.(*sessionCacheEntry)
-			return entry.session, entry.serviceLimiters, nil
+			return entry.serviceLimiters, nil
 		}
 	}
 	awsConfig := &aws.Config{
@@ -199,7 +199,7 @@ func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.Se
 			// delete the existing session from cache. Otherwise, we give back a defective session on next method invocation with same cluster scope
 			sessionCache.Delete(getSessionName(region, clusterScoper))
 
-			return nil, nil, errors.Wrap(err, "Failed to retrieve identity credentials")
+			return nil, errors.Wrap(err, "Failed to retrieve identity credentials")
 		}
 		awsConfig = awsConfig.WithCredentials(credentials.NewChainCredentials(awsProviders))
 	}
@@ -208,7 +208,7 @@ func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.Se
 
 	ns, err := session.NewSession(awsConfig)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "Failed to create a new AWS session")
+		return nil, errors.Wrap(err, "Failed to create a new AWS session")
 	}
 	sl := newServiceLimiters()
 	sessionCache.Store(getSessionName(region, clusterScoper), &sessionCacheEntry{
@@ -217,7 +217,7 @@ func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.Se
 		sessionV2:       nil,
 	})
 
-	return ns, sl, nil
+	return sl, nil
 }
 
 func sessionForClusterWithRegionV2(k8sClient client.Client, clusterScoper cloud.SessionMetadata, region string, _ []ServiceEndpoint, log logger.Wrapper) (*awsv2.Config, throttle.ServiceLimiters, error) {

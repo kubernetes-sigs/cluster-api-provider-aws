@@ -37,11 +37,11 @@ import (
 )
 
 type WaitForLoadBalancerToExistForServiceInput struct {
-	AWSSessionV2      *aws.Config
-	ServiceName       string
-	ServiceNamespace  string
-	ClusterName       string
-	Type              infrav1.LoadBalancerType
+	AWSSessionV2     *aws.Config
+	ServiceName      string
+	ServiceNamespace string
+	ClusterName      string
+	Type             infrav1.LoadBalancerType
 }
 
 func WaitForLoadBalancerToExistForService(ctx context.Context, input WaitForLoadBalancerToExistForServiceInput, intervals ...interface{}) {
@@ -65,11 +65,11 @@ func WaitForLoadBalancerToExistForService(ctx context.Context, input WaitForLoad
 }
 
 type GetLoadBalancerARNsInput struct {
-	AWSSessionV2      *aws.Config
-	ServiceName       string
-	ServiceNamespace  string
-	ClusterName       string
-	Type              infrav1.LoadBalancerType
+	AWSSessionV2     *aws.Config
+	ServiceName      string
+	ServiceNamespace string
+	ClusterName      string
+	Type             infrav1.LoadBalancerType
 }
 
 func GetLoadBalancerARNs(ctx context.Context, input GetLoadBalancerARNsInput) ([]string, error) {
@@ -164,9 +164,9 @@ func DescribeResourcesByTags(ctx context.Context, input DescribeResourcesByTagsI
 }
 
 type CheckClassicElbHealthCheckInput struct {
-	AWSSessionV2      *aws.Config
-	LoadBalancerName  string
-	ExpectedTarget    string
+	AWSSessionV2     *aws.Config
+	LoadBalancerName string
+	ExpectedTarget   string
 }
 
 func CheckClassicElbHealthCheck(ctx context.Context, input CheckClassicElbHealthCheckInput, intervals ...interface{}) {

@@ -30,8 +30,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	stsv2 "github.com/aws/aws-sdk-go-v2/service/sts"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/request"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
@@ -41,8 +39,6 @@ import (
 	stsservice "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/version"
 )
 
 // NewASGClient creates a new ASG API client for a given session.
@@ -334,24 +330,6 @@ func NewS3Client(scopeUser cloud.ScopeUsage, session cloud.Session, logger logge
 		s3.WithAPIOptions(awsmetricsv2.WithMiddlewares(scopeUser.ControllerName(), target), awsmetricsv2.WithCAPAUserAgentMiddleware()),
 	}
 	return s3.NewFromConfig(cfg, s3Opts...)
-}
-
-func recordAWSPermissionsIssue(target runtime.Object) func(r *request.Request) {
-	return func(r *request.Request) {
-		if awsErr, ok := r.Error.(awserr.Error); ok {
-			switch awsErr.Code() {
-			case "AuthFailure", "UnauthorizedOperation", "NoCredentialProviders":
-				record.Warnf(target, awsErr.Code(), "Operation %s failed with a credentials or permission issue", r.Operation.Name)
-			}
-		}
-	}
-}
-
-func getUserAgentHandler() request.NamedHandler {
-	return request.NamedHandler{
-		Name: "capa/user-agent",
-		Fn:   request.MakeAddToUserAgentHandler("aws.cluster.x-k8s.io", version.Get().String()),
-	}
 }
 
 // AWSClients contains all the aws clients used by the scopes.

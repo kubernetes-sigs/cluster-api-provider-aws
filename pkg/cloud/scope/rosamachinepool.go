@@ -88,7 +88,7 @@ func NewRosaMachinePoolScope(params RosaMachinePoolScopeParams) (*RosaMachinePoo
 		controllerName:  params.ControllerName,
 	}
 
-	_, serviceLimiters, err := sessionForClusterWithRegion(params.Client, scope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
+	serviceLimiters, err := sessionForClusterWithRegion(params.Client, scope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws session: %v", err)
 	}
