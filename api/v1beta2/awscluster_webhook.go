@@ -301,10 +301,35 @@ func (r *AWSCluster) validateSSHKeyName() field.ErrorList {
 
 func (r *AWSCluster) validateNetwork() field.ErrorList {
 	var allErrs field.ErrorList
-	for _, subnet := range r.Spec.NetworkSpec.Subnets {
+
+	vpcSpec := r.Spec.NetworkSpec.VPC
+	vpcField := field.NewPath("spec", "network", "vpc")
+	if vpcSpec.CidrBlock != "" {
+		if _, _, err := net.ParseCIDR(vpcSpec.CidrBlock); err != nil {
+			allErrs = append(allErrs, field.Invalid(vpcField.Child("cidrBlock"), vpcSpec.CidrBlock, "VPC CIDR block is invalid"))
+		}
+	}
+	if vpcSpec.IPv6 != nil && vpcSpec.IPv6.CidrBlock != "" {
+		if _, _, err := net.ParseCIDR(vpcSpec.IPv6.CidrBlock); err != nil {
+			allErrs = append(allErrs, field.Invalid(vpcField.Child("ipv6", "cidrBlock"), vpcSpec.IPv6.CidrBlock, "VPC IPv6 CIDR block is invalid"))
+		}
+	}
+
+	subnetField := field.NewPath("spec", "network", "subnets")
+	for i, subnet := range r.Spec.NetworkSpec.Subnets {
 		if subnet.ZoneType != nil && subnet.IsEdge() {
 			if subnet.ParentZoneName == nil {
-				allErrs = append(allErrs, field.Invalid(field.NewPath("subnets"), r.Spec.NetworkSpec.Subnets, "ParentZoneName must be set when ZoneType is 'local-zone'."))
+				allErrs = append(allErrs, field.Invalid(subnetField.Index(i).Child("parentZoneName"), subnet.ParentZoneName, "ParentZoneName must be set when ZoneType is 'local-zone' or 'wavelength-zone."))
+			}
+		}
+		if subnet.CidrBlock != "" {
+			if _, _, err := net.ParseCIDR(subnet.CidrBlock); err != nil {
+				allErrs = append(allErrs, field.Invalid(subnetField.Index(i).Child("cidrBlock"), subnet.CidrBlock, "subnet CIDR block is invalid"))
+			}
+		}
+		if subnet.IPv6CidrBlock != "" {
+			if _, _, err := net.ParseCIDR(subnet.IPv6CidrBlock); err != nil {
+				allErrs = append(allErrs, field.Invalid(subnetField.Index(i).Child("ipv6CidrBlock"), subnet.IPv6CidrBlock, "subnet IPv6 CIDR block is invalid"))
 			}
 		}
 	}
@@ -344,9 +369,14 @@ func (r *AWSCluster) validateNetwork() field.ErrorList {
 
 	secondaryCidrBlocks := r.Spec.NetworkSpec.VPC.SecondaryCidrBlocks
 	secondaryCidrBlocksField := field.NewPath("spec", "network", "vpc", "secondaryCidrBlocks")
-	for _, cidrBlock := range secondaryCidrBlocks {
+	for i, cidrBlock := range secondaryCidrBlocks {
 		if r.Spec.NetworkSpec.VPC.CidrBlock != "" && r.Spec.NetworkSpec.VPC.CidrBlock == cidrBlock.IPv4CidrBlock {
 			allErrs = append(allErrs, field.Invalid(secondaryCidrBlocksField, secondaryCidrBlocks, fmt.Sprintf("AWSCluster.spec.network.vpc.secondaryCidrBlocks must not contain the primary AWSCluster.spec.network.vpc.cidrBlock %v", r.Spec.NetworkSpec.VPC.CidrBlock)))
+		}
+		if cidrBlock.IPv4CidrBlock != "" {
+			if _, _, err := net.ParseCIDR(cidrBlock.IPv4CidrBlock); err != nil {
+				allErrs = append(allErrs, field.Invalid(secondaryCidrBlocksField.Index(i).Child("ipv4CidrBlock"), cidrBlock.IPv4CidrBlock, "secondary VPC CIDR block is invalid"))
+			}
 		}
 	}
 
