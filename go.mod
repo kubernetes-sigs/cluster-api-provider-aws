@@ -50,6 +50,7 @@ require (
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.6
 	github.com/zgalor/weberr v0.8.2
+	go.uber.org/mock v0.5.2
 	golang.org/x/crypto v0.36.0
 	golang.org/x/net v0.38.0
 	golang.org/x/text v0.23.0
@@ -81,7 +82,6 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
-	go.uber.org/mock v0.5.2
 )
 
 require (
