@@ -50,6 +50,7 @@ require (
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.6
 	github.com/zgalor/weberr v0.8.2
+	go.uber.org/mock v0.5.2
 	golang.org/x/crypto v0.41.0
 	golang.org/x/net v0.43.0
 	golang.org/x/text v0.28.0
@@ -91,8 +92,6 @@ require (
 	github.com/openshift-online/ocm-api-model/model v0.0.431 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 )
-
-require go.uber.org/mock v0.5.2
 
 require (
 	al.essio.dev/pkg/shellescape v1.5.1 // indirect
