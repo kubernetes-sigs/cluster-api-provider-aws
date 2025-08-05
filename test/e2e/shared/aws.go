@@ -43,6 +43,7 @@ import (
 	elbtypes "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing/types"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
 	awscreds "github.com/aws/aws-sdk-go/aws/credentials"
@@ -53,7 +54,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/ecrpublic"
 	"github.com/aws/aws-sdk-go/service/efs"
 	"github.com/aws/aws-sdk-go/service/servicequotas"
-	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/smithy-go"
 	cfn_iam "github.com/awslabs/goformation/v4/cloudformation/iam"
 	. "github.com/onsi/ginkgo/v2"
@@ -736,11 +736,11 @@ func GetPolicyArn(ctx context.Context, cfg awsv2.Config, name string) string {
 	return ""
 }
 
-func logAccountDetails(prov client.ConfigProvider) {
+func logAccountDetails(cfg *awsv2.Config) {
 	By("Getting AWS account details")
-	stsSvc := sts.New(prov)
+	stsSvc := sts.NewFromConfig(*cfg)
 
-	output, err := stsSvc.GetCallerIdentity(&sts.GetCallerIdentityInput{})
+	output, err := stsSvc.GetCallerIdentity(context.TODO(), &sts.GetCallerIdentityInput{})
 	if err != nil {
 		fmt.Fprintf(GinkgoWriter, "Couldn't get sts caller identity: err=%s\n", err)
 		return
