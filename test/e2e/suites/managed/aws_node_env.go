@@ -39,7 +39,7 @@ import (
 type UpdateAwsNodeVersionSpecInput struct {
 	E2EConfig             *clusterctl.E2EConfig
 	BootstrapClusterProxy framework.ClusterProxy
-	AWSSessionV2          *aws.Config
+	AWSSession            *aws.Config
 	Namespace             *corev1.Namespace
 	ClusterName           string
 }
@@ -49,7 +49,7 @@ func CheckAwsNodeEnvVarsSet(ctx context.Context, inputGetter func() UpdateAwsNod
 	input := inputGetter()
 	Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil")
 	Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil")
-	Expect(input.AWSSessionV2).ToNot(BeNil(), "Invalid argument. input.AWSSessionV2 can't be nil")
+	Expect(input.AWSSession).ToNot(BeNil(), "Invalid argument. input.AWSSession can't be nil")
 	Expect(input.Namespace).NotTo(BeNil(), "Invalid argument. input.Namespace can't be nil")
 	Expect(input.ClusterName).ShouldNot(BeEmpty(), "Invalid argument. input.ClusterName can't be empty")
 

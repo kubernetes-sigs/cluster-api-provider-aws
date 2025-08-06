@@ -37,7 +37,7 @@ import (
 )
 
 type WaitForLoadBalancerToExistForServiceInput struct {
-	AWSSessionV2     *aws.Config
+	AWSSession       *aws.Config
 	ServiceName      string
 	ServiceNamespace string
 	ClusterName      string
@@ -65,7 +65,7 @@ func WaitForLoadBalancerToExistForService(ctx context.Context, input WaitForLoad
 }
 
 type GetLoadBalancerARNsInput struct {
-	AWSSessionV2     *aws.Config
+	AWSSession       *aws.Config
 	ServiceName      string
 	ServiceNamespace string
 	ClusterName      string
@@ -81,8 +81,8 @@ func GetLoadBalancerARNs(ctx context.Context, input GetLoadBalancerARNsInput) ([
 		serviceTag:                   {string(infrav1.ResourceLifecycleOwned)},
 	}
 	descInput := &DescribeResourcesByTagsInput{
-		AWSSessionV2: input.AWSSessionV2,
-		Tags:         tags,
+		AWSSession: input.AWSSession,
+		Tags:       tags,
 	}
 
 	descOutput, err := DescribeResourcesByTags(ctx, *descInput)
@@ -123,8 +123,8 @@ func GetLoadBalancerARNs(ctx context.Context, input GetLoadBalancerARNsInput) ([
 }
 
 type DescribeResourcesByTagsInput struct {
-	AWSSessionV2 *aws.Config
-	Tags         map[string][]string
+	AWSSession *aws.Config
+	Tags       map[string][]string
 }
 
 type DescribeResourcesByTagsOutput struct {
@@ -147,7 +147,7 @@ func DescribeResourcesByTags(ctx context.Context, input DescribeResourcesByTagsI
 		})
 	}
 
-	rgSvc := rgapi.NewFromConfig(*input.AWSSessionV2)
+	rgSvc := rgapi.NewFromConfig(*input.AWSSession)
 	awsOutput, err := rgSvc.GetResources(ctx, &awsInput)
 	if err != nil {
 		return nil, fmt.Errorf("getting resources by tags: %w", err)
@@ -164,7 +164,7 @@ func DescribeResourcesByTags(ctx context.Context, input DescribeResourcesByTagsI
 }
 
 type CheckClassicElbHealthCheckInput struct {
-	AWSSessionV2     *aws.Config
+	AWSSession       *aws.Config
 	LoadBalancerName string
 	ExpectedTarget   string
 }
@@ -172,7 +172,7 @@ type CheckClassicElbHealthCheckInput struct {
 func CheckClassicElbHealthCheck(ctx context.Context, input CheckClassicElbHealthCheckInput, intervals ...interface{}) {
 	Byf("Checking the health check for the classic load balancer %s", input.LoadBalancerName)
 
-	elbSvc := elb.NewFromConfig(*input.AWSSessionV2)
+	elbSvc := elb.NewFromConfig(*input.AWSSession)
 
 	Eventually(func() error {
 		out, err := elbSvc.DescribeLoadBalancers(ctx, &elb.DescribeLoadBalancersInput{

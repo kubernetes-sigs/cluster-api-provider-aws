@@ -67,7 +67,7 @@ var _ = ginkgo.Describe("EKS Cluster upgrade test", func() {
 				E2EConfig:                e2eCtx.E2EConfig,
 				ConfigClusterFn:          defaultConfigCluster,
 				BootstrapClusterProxy:    e2eCtx.Environment.BootstrapClusterProxy,
-				AWSSessionV2:             e2eCtx.BootstrapUserAWSSessionV2,
+				AWSSession:               e2eCtx.BootstrapUserAWSSessionV2,
 				Namespace:                namespace,
 				ClusterName:              clusterName,
 				Flavour:                  EKSControlPlaneOnlyFlavor, // TODO (richardcase) - change in the future when upgrades to machinepools work
@@ -99,7 +99,7 @@ var _ = ginkgo.Describe("EKS Cluster upgrade test", func() {
 		UpgradeControlPlaneVersionSpec(ctx, func() UpgradeControlPlaneVersionSpecInput {
 			return UpgradeControlPlaneVersionSpecInput{
 				E2EConfig:             e2eCtx.E2EConfig,
-				AWSSessionV2:          e2eCtx.BootstrapUserAWSSessionV2,
+				AWSSession:            e2eCtx.BootstrapUserAWSSessionV2,
 				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
 				ClusterName:           clusterName,
 				Namespace:             namespace,

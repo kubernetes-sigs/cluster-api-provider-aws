@@ -38,7 +38,7 @@ import (
 // UpgradeControlPlaneVersionSpecInput is the input type for UpgradeControlPlaneVersionSpec.
 type UpgradeControlPlaneVersionSpecInput struct {
 	E2EConfig             *clusterctl.E2EConfig
-	AWSSessionV2          *aws.Config
+	AWSSession            *aws.Config
 	BootstrapClusterProxy framework.ClusterProxy
 	ClusterName           string
 	Namespace             *corev1.Namespace
@@ -49,7 +49,7 @@ type UpgradeControlPlaneVersionSpecInput struct {
 func UpgradeControlPlaneVersionSpec(ctx context.Context, inputGetter func() UpgradeControlPlaneVersionSpecInput) {
 	input := inputGetter()
 	Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil")
-	Expect(input.AWSSessionV2).ToNot(BeNil(), "Invalid argument. input.AWSSessionV2 can't be nil")
+	Expect(input.AWSSession).ToNot(BeNil(), "Invalid argument. input.AWSSession can't be nil")
 	Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil")
 	Expect(input.ClusterName).ToNot(BeNil(), "Invalid argument. input.ClusterName can't be nil")
 	Expect(input.Namespace).ToNot(BeNil(), "Invalid argument. input.Namespace can't be nil")
@@ -72,7 +72,7 @@ func UpgradeControlPlaneVersionSpec(ctx context.Context, inputGetter func() Upgr
 	ginkgo.By("Waiting for EKS control-plane to be upgraded to new version")
 	waitForControlPlaneToBeUpgraded(ctx, waitForControlPlaneToBeUpgradedInput{
 		ControlPlane:   controlPlane,
-		AWSSessionV2:   input.AWSSessionV2,
+		AWSSession:     input.AWSSession,
 		UpgradeVersion: input.UpgradeVersion,
 	}, input.E2EConfig.GetIntervals("", "wait-control-plane-upgrade")...)
 }
