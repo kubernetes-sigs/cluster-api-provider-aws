@@ -336,11 +336,6 @@ func (s *ManagedControlPlaneScope) Session() awsv2.Config {
 	return s.session
 }
 
-// SessionV2 returns the AWS SDK V2 config. Used for creating clients.
-func (s *ManagedControlPlaneScope) SessionV2() awsv2.Config {
-	return s.session
-}
-
 // Bastion returns the bastion details.
 func (s *ManagedControlPlaneScope) Bastion() *infrav1.Bastion {
 	return &s.ControlPlane.Spec.Bastion

@@ -31,7 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/uuid"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
@@ -49,28 +48,8 @@ var (
 	prefixRe        = regexp.MustCompile(`(?i)^[\/]?(aws|ssm)[.]?`)
 	retryableErrors = []string{
 		"ParameterLimitExceeded",
-		"ParameterAlreadyExists",
 	}
 )
-
-func isErrorRetryable(err error, retryableCodes []string) bool {
-	// Use the ParseSmithyError utility to parse the error
-	smithyErr := awserrors.ParseSmithyError(err)
-	if smithyErr == nil {
-		return false
-	}
-
-	// Get the error code from the parsed error
-	codeToCheck := smithyErr.ErrorCode()
-
-	// Compare the extracted string with your list
-	for _, code := range retryableCodes {
-		if codeToCheck == code {
-			return true // It's a match!
-		}
-	}
-	return false
-}
 
 // Create stores data in AWS SSM for a given machine, chunking at 4kb per secret. The prefix of the secret
 // ARN and the number of chunks are returned.

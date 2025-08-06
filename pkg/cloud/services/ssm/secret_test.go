@@ -36,7 +36,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/ssm/mock_ssmiface"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -87,7 +86,7 @@ func TestServiceCreate(t *testing.T) {
 		if !strings.HasPrefix(actualPrefix, expectedPrefix) {
 			t.Fatalf("Prefix is not as expected: %v", actualPrefix)
 		}
-		if (err != nil) != isErrorRetryable(err, retryableErrors) {
+		if (err != nil) != IsErrorExpected {
 			t.Fatalf("Unexpected error value, error = %v, expectedError %v", err, IsErrorExpected)
 		}
 	}
@@ -214,6 +213,7 @@ func TestServiceCreate(t *testing.T) {
 				m.PutParameter(context.TODO(), gomock.AssignableToTypeOf(&ssm.PutParameterInput{})).Return(nil, &mockAPIError{
 					"ParameterLimitExceeded",
 					"parameter limit exceeded"})
+				m.PutParameter(context.TODO(), gomock.AssignableToTypeOf(&ssm.PutParameterInput{})).Return(&ssm.PutParameterOutput{}, nil)
 			},
 		},
 	}
@@ -275,7 +275,7 @@ func TestServiceDelete(t *testing.T) {
 			expect: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
 				m.DeleteParameter(context.TODO(), gomock.Eq(&ssm.DeleteParameterInput{
 					Name: aws.String("prefix/0"),
-				})).Return(nil, awserrors.NewFailedDependency("failed dependency"))
+				})).Return(nil, &smithy.GenericAPIError{Code: "FailedDependency", Message: "failed dependency"})
 				m.DeleteParameter(context.TODO(), gomock.Eq(&ssm.DeleteParameterInput{
 					Name: aws.String("prefix/1"),
 				})).Return(nil, &mockAPIError{
@@ -284,11 +284,11 @@ func TestServiceDelete(t *testing.T) {
 				})
 				m.DeleteParameter(context.TODO(), gomock.Eq(&ssm.DeleteParameterInput{
 					Name: aws.String("prefix/2"),
-				})).Return(nil, awserrors.NewConflict("new conflict"))
+				})).Return(nil, &smithy.GenericAPIError{Code: "Conflict", Message: "new conflict"})
 			},
 			wantErr: true,
 			check: func(err error) {
-				if err.Error() != "[failed dependency, new conflict]" {
+				if err.Error() != "[api error FailedDependency: failed dependency, api error Conflict: new conflict]" {
 					t.Fatalf("Unexpected error: %v", err)
 				}
 			},
