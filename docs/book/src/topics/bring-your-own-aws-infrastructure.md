@@ -34,6 +34,7 @@ If you enable IPv6 for the workload cluster, you will need to ensure the followi
 - An egress-only internet gateway for IPv6 egress traffic from private subnets (only needed if the nodes require access to the Internet)
   - In the route table associated with private subnets, a route that sends all internet-bound IPv6 traffic (`::/0`) to the egress-only internet gateway.
 - (Optional) Enable DNS64 for private subnets to allow IPv6-only workloads to access IPv4-only services via NAT64.
+  - In the route table associated with private subnets, a route that sends traffic for destination `64:ff9b::/96` to the NAT gateways. More details [here](https://docs.aws.amazon.com/vpc/latest/userguide/nat-gateway-nat64-dns64.html).
 
 You will need the ID of the VPC and subnet IDs that Cluster API should use. This information is available via the AWS Management Console or the AWS CLI.
 

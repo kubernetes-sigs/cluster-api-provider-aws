@@ -111,7 +111,7 @@ There must already be a provisioned pool and a set of IPv6 CIDRs for that.
 
 ### BYO IPv6 VPC
 
-If you have a VPC that is IPv6 enabled (i.e. dual stack VPC) and you would like to use it, please define it in the `AWSCluster` specs:
+If you have a dual stack VPC (i.e. CAPA will only use IPv6 for the cluster in this configuration) and you would like to use it, please define it in the `AWSCluster` specs:
 
 ```yaml
 spec:
