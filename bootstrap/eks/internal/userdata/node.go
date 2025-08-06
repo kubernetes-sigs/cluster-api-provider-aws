@@ -87,10 +87,12 @@ spec:
   kubelet:
     config:
       maxPods: {{.MaxPods}}
+      {{- with .DNSClusterIP }}
       clusterDNS:
-      - {{.DNSClusterIP}}
+      - {{.}}
+      {{- end }}
     flags:
-    - "--node-labels={{if and .KubeletExtraArgs (index .KubeletExtraArgs "node-labels")}}{{index .KubeletExtraArgs "node-labels"}}{{else}}eks.amazonaws.com/nodegroup-image={{if .AMIImageID}}{{.AMIImageID}}{{end}},eks.amazonaws.com/capacityType={{if .CapacityType}}{{.CapacityType}}{{else}}ON_DEMAND{{end}},eks.amazonaws.com/nodegroup={{.NodeGroupName}}{{end}}"
+    - "--node-labels={{.NodeLabels}}"
 
 --{{.Boundary}}--`
 )
@@ -123,15 +125,16 @@ type NodeInput struct {
 	AMIFamilyType string
 
 	// AL2023 specific fields
-	APIServerEndpoint string
-	CACert            string
-	NodeGroupName     string
 	AMIImageID        string
-	CapacityType      *v1beta2.ManagedMachinePoolCapacityType
-	MaxPods           *int32
+	APIServerEndpoint string
 	Boundary          string
-	ClusterDNS        string
+	CACert            string
+	CapacityType      *v1beta2.ManagedMachinePoolCapacityType
 	ClusterCIDR       string // CIDR range for the cluster
+	ClusterDNS        string
+	MaxPods           *int32
+	NodeGroupName     string
+	NodeLabels        string // Not exposed in CRD, computed from user input
 }
 
 // PauseContainerInfo holds pause container information for templates.
@@ -255,6 +258,24 @@ func generateAL2023UserData(input *NodeInput) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// getNodeLabels returns the string representation of node-labels flags for nodeadm
+func (ni *NodeInput) getNodeLabels() string {
+	if ni.KubeletExtraArgs != nil {
+		if _, ok := ni.KubeletExtraArgs["node-labels"]; ok {
+			return ni.KubeletExtraArgs["node-labels"]
+		}
+	}
+	nodeLabels := make([]string, 0, 3)
+	if ni.AMIImageID != "" {
+		nodeLabels = append(nodeLabels, fmt.Sprintf("eks.amazonaws.com/nodegroup-image=%s", ni.AMIImageID))
+	}
+	if ni.NodeGroupName != "" {
+		nodeLabels = append(nodeLabels, fmt.Sprintf("eks.amazonaws.com/nodegroup=%s", ni.NodeGroupName))
+	}
+	nodeLabels = append(nodeLabels, fmt.Sprintf("eks.amazonaws.com/capacityType=%s", ni.getCapacityTypeString()))
+	return strings.Join(nodeLabels, ",")
+}
+
 // getCapacityTypeString returns the string representation of the capacity type.
 func (ni *NodeInput) getCapacityTypeString() string {
 	if ni.CapacityType == nil {
@@ -287,22 +308,22 @@ func validateAL2023Input(input *NodeInput) error {
 
 	if input.MaxPods == nil {
 		if input.UseMaxPods != nil && *input.UseMaxPods {
-			input.MaxPods = ptr.To[int32](58)
-		} else {
 			input.MaxPods = ptr.To[int32](110)
+		} else {
+			input.MaxPods = ptr.To[int32](58)
 		}
 	}
-	if input.DNSClusterIP == nil {
-		input.DNSClusterIP = ptr.To[string]("10.96.0.10")
+	if input.DNSClusterIP != nil {
+		input.ClusterDNS = *input.DNSClusterIP
 	}
-	input.ClusterDNS = *input.DNSClusterIP
 
 	if input.Boundary == "" {
 		input.Boundary = boundary
 	}
+	input.NodeLabels = input.getNodeLabels()
 
-	klog.V(2).Infof("AL2023 Userdata Generation - maxPods: %d, clusterDNS: %s, amiID: %s, capacityType: %s",
-		*input.MaxPods, *input.DNSClusterIP, input.AMIImageID, input.getCapacityTypeString())
+	klog.V(2).Infof("AL2023 Userdata Generation - maxPods: %d, node-labels: %s",
+		*input.MaxPods, input.NodeLabels)
 
 	return nil
 }

@@ -194,7 +194,6 @@ func (r *EKSConfigReconciler) resolveSecretFileContent(ctx context.Context, ns s
 
 func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1.Cluster, config *eksbootstrapv1.EKSConfig, configOwner *bsutil.ConfigOwner) (ctrl.Result, error) {
 	log := logger.FromContext(ctx)
-	log.Info("joinWorker called", "config", config.Name, "nodeType", config.Spec.NodeType, "cluster", cluster.Name)
 
 	// only need to reconcile the secret for Machine kinds once, but MachinePools need updates for new launch templates
 	if config.Status.DataSecretName != nil && configOwner.GetKind() == "Machine" {
