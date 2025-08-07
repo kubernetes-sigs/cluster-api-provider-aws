@@ -86,7 +86,7 @@ func TestServiceCreate(t *testing.T) {
 		if !strings.HasPrefix(actualPrefix, expectedPrefix) {
 			t.Fatalf("Prefix is not as expected: %v", actualPrefix)
 		}
-		if (err != nil) != isErrorRetryable(err, retryableErrors) {
+		if (err != nil) != IsErrorExpected {
 			t.Fatalf("Unexpected error value, error = %v, expectedError %v", err, IsErrorExpected)
 		}
 	}
@@ -171,12 +171,13 @@ func TestServiceCreate(t *testing.T) {
 			},
 		},
 		{
-			name:           "Should not retry if non-retryable error occurred while storing data in SSM",
+			name:           "Should retry if retryable error occurred while storing data in SSM",
 			bytesCount:     10,
 			secretPrefix:   "/prefix",
 			expectedPrefix: "/prefix",
-			wantErr:        true,
+			wantErr:        false,
 			expect: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
+				// First call fails with retryable error
 				m.PutParameter(context.TODO(), gomock.AssignableToTypeOf(&ssm.PutParameterInput{})).Return(nil, &mockAPIError{
 					"ParameterAlreadyExists",
 					"parameter already exists"}).Do(
@@ -202,17 +203,42 @@ func TestServiceCreate(t *testing.T) {
 						}
 					},
 				)
+				// Second call succeeds
+				m.PutParameter(context.TODO(), gomock.AssignableToTypeOf(&ssm.PutParameterInput{})).Return(&ssm.PutParameterOutput{}, nil)
 			},
 		},
 		{
-			name:           "Should retry if retryable error occurred while storing data in SSM",
+			name:           "Should not retry if non-retryable error occurred while storing data in SSM",
 			bytesCount:     10,
-			secretPrefix:   "",
-			expectedPrefix: "/cluster.x-k8s.io",
+			secretPrefix:   "/prefix",
+			expectedPrefix: "/prefix",
+			wantErr:        true,
 			expect: func(m *mock_ssmiface.MockSSMAPIMockRecorder) {
 				m.PutParameter(context.TODO(), gomock.AssignableToTypeOf(&ssm.PutParameterInput{})).Return(nil, &mockAPIError{
-					"ParameterLimitExceeded",
-					"parameter limit exceeded"})
+					"InvalidParameterValue",
+					"invalid parameter value"}).Do(
+					func(ctx context.Context, putParameterInput *ssm.PutParameterInput, optFns ...func(*ssm.Options)) {
+						if !strings.HasPrefix(*(putParameterInput.Name), "/prefix/") {
+							t.Fatalf("Prefix is not as expected: %v", putParameterInput.Name)
+						}
+						sortTagsByKey(putParameterInput.Tags)
+						sortTagsByKey(expectedTagsAsValues)
+						if diff := cmp.Diff(expectedTagsAsValues, putParameterInput.Tags,
+							// This Comparer is the key. It tells cmp how to properly compare two Tag structs.
+							cmp.Comparer(func(x, y types.Tag) bool {
+								// Safely compare the string content of the Key field.
+								keyMatch := (x.Key == nil && y.Key == nil) || (x.Key != nil && y.Key != nil && *x.Key == *y.Key)
+								// Safely compare the string content of the Value field.
+								valueMatch := (x.Value == nil && y.Value == nil) || (x.Value != nil && y.Value != nil && *x.Value == *y.Value)
+
+								// The tags are equal only if both their key and value content match.
+								return keyMatch && valueMatch
+							}),
+						); diff != "" {
+							t.Fatalf("Tags mismatch (-expected +actual):\n%s", diff)
+						}
+					},
+				)
 			},
 		},
 	}
