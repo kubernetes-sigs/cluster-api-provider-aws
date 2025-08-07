@@ -160,6 +160,10 @@ func (s *Service) ReconcileSecurityGroups() error {
 			// skip rule reconciliation, as we expect the in-cluster cloud integration to manage them
 			continue
 		}
+		if sg.Name == "default" {
+			// skip rule reconciliation, as default SG group is already handled by revokeIngressAndEgressRulesFromVPCDefaultSecurityGroup
+			continue
+		}
 		current := sg.IngressRules
 
 		specRules, err := s.getSecurityGroupIngressRules(role)
@@ -516,8 +520,8 @@ func (s *Service) revokeSecurityGroupIngressRules(id string, rules infrav1.Ingre
 		rule := rules[i]
 		input.IpPermissions = append(input.IpPermissions, *ingressRuleToSDKType(s.scope, &rule))
 	}
-
-	if _, err := s.EC2Client.RevokeSecurityGroupIngress(context.TODO(), input); err != nil && !awserrors.IsPermissionNotFoundError(errors.Cause(err)) {
+	_, err := s.EC2Client.RevokeSecurityGroupIngress(context.TODO(), input)
+	if err != nil && !awserrors.IsPermissionNotFoundError(errors.Cause(err)) {
 		record.Warnf(s.scope.InfraCluster(), "FailedRevokeSecurityGroupIngressRules", "Failed to revoke security group ingress rules %v for SecurityGroup %q: %v", rules, id, err)
 		return errors.Wrapf(err, "failed to revoke security group %q ingress rules: %v", id, rules)
 	}
