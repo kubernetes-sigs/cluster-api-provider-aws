@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
@@ -424,6 +425,105 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 			{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, "DeletingFailed"},
 			{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
 		})
+		g.Expect(ms.AWSMachine.Finalizers).ShouldNot(ContainElement(infrav1.MachineFinalizer))
+	})
+	t.Run("Should successfully continue AWSMachinePool machine deletion if spec.cloudInit=={}", func(t *testing.T) {
+		g := NewWithT(t)
+		mockCtrl = gomock.NewController(t)
+		ec2Mock := mocks.NewMockEC2API(mockCtrl)
+
+		// Simulate terminated instance
+		ec2Mock.EXPECT().DescribeInstancesWithContext(context.TODO(), gomock.Eq(&ec2.DescribeInstancesInput{
+			InstanceIds: aws.StringSlice([]string{"myMachine"}),
+		})).Return(&ec2.DescribeInstancesOutput{
+			Reservations: []*ec2.Reservation{{Instances: []*ec2.Instance{{Placement: &ec2.Placement{AvailabilityZone: aws.String("us-east-1a")}, InstanceId: aws.String("i-mymachine"), State: &ec2.InstanceState{Name: aws.String(ec2.InstanceStateNameTerminated), Code: aws.Int64(48)}}}}},
+		}, nil)
+
+		ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("integ-test-%s", util.RandomString(5)))
+		g.Expect(err).To(BeNil())
+
+		setup(t, g)
+		awsMachine := &infrav1.AWSMachine{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:    ns.Name,
+				GenerateName: "mypool-",
+				Labels: map[string]string{
+					clusterv1.MachinePoolNameLabel: "mypool",
+					clusterv1.ClusterNameLabel:     "test-cluster",
+				},
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion:         expinfrav1.GroupVersion.String(),
+						Kind:               "AWSMachinePool",
+						Name:               "mypool",
+						BlockOwnerDeletion: ptr.To(true),
+						UID:                "6d1e6238-045d-4297-8c7e-73df7a5cc998",
+					},
+				},
+			},
+			Spec: infrav1.AWSMachineSpec{
+				ProviderID: aws.String(providerID),
+				InstanceID: aws.String("i-mymachine"),
+				AMI: infrav1.AMIReference{
+					ID: aws.String("ami-alsodoesntmatter"),
+				},
+				InstanceType:            "foo",
+				PublicIP:                aws.Bool(false),
+				SSHKeyName:              aws.String("foo"),
+				InstanceMetadataOptions: &infrav1.InstanceMetadataOptions{
+					// ...
+				},
+				IAMInstanceProfile:       "foo",
+				AdditionalSecurityGroups: nil,
+				Subnet:                   &infrav1.AWSResourceReference{ID: aws.String("sub-doesntmatter")},
+				RootVolume: &infrav1.Volume{
+					Size: 8,
+					// ...
+				},
+				NonRootVolumes:    nil,
+				NetworkInterfaces: []string{"eni-foobar"},
+				CloudInit:         infrav1.CloudInit{},
+				SpotMarketOptions: nil,
+				Tenancy:           "host",
+			},
+		}
+		createAWSMachine(g, awsMachine)
+
+		defer teardown(g)
+		defer t.Cleanup(func() {
+			g.Expect(testEnv.Cleanup(ctx, awsMachine, ns)).To(Succeed())
+		})
+
+		cs, err := getClusterScope(infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}})
+		g.Expect(err).To(BeNil())
+		cs.Cluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"}}
+		ms, err := getMachineScope(cs, awsMachine)
+		g.Expect(err).To(BeNil())
+
+		// This case happened in a live object. It didn't get defaulted and actually was
+		// a machine pool AWSMachine managed via Ignition. The AWSMachine controller must
+		// not try to use this field or delete bootstrap data, as the object is managed
+		// by the AWSMachinePool controller.
+		ms.AWSMachine.Spec.CloudInit.SecureSecretsBackend = ""
+		now := metav1.Now()
+		ms.AWSMachine.DeletionTimestamp = &now
+		ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateTerminated
+
+		// Machine pool controlled Machine/AWSMachine
+		if ms.Machine.Labels == nil {
+			ms.Machine.Labels = map[string]string{}
+		}
+		ms.Machine.Labels[clusterv1.MachinePoolNameLabel] = ms.AWSMachine.Labels[clusterv1.MachinePoolNameLabel]
+		ms.Machine.Labels[clusterv1.ClusterNameLabel] = ms.AWSMachine.Labels[clusterv1.ClusterNameLabel]
+
+		ec2Svc := ec2Service.NewService(cs)
+		ec2Svc.EC2Client = ec2Mock
+		reconciler.ec2ServiceFactory = func(scope scope.EC2Scope) services.EC2Interface {
+			return ec2Svc
+		}
+
+		_, err = reconciler.reconcileDelete(ms, cs, cs, cs, cs)
+		g.Expect(err).To(BeNil())
 		g.Expect(ms.AWSMachine.Finalizers).ShouldNot(ContainElement(infrav1.MachineFinalizer))
 	})
 }
