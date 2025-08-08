@@ -601,6 +601,8 @@ func initFlags(fs *pflag.FlagSet) {
 		"The maximum duration to wait for managed AWS resources to be ready.",
 	)
 
+	// THIS IS A TEST
+
 	fs.DurationVar(&syncPeriod,
 		"sync-period",
 		10*time.Minute,
