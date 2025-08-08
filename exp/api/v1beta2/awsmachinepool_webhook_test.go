@@ -303,7 +303,18 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 			},
 			wantErrToContain: ptr.To("cannot be set to when CapacityReservationID is specified"),
 		},
-
+		{
+			name: "with CapacityReservationPreference of `none` and CapacityReservationID is specified",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AWSLaunchTemplate: AWSLaunchTemplate{
+						CapacityReservationID:         aws.String("cr-123"),
+						CapacityReservationPreference: infrav1.CapacityReservationPreferenceNone,
+					},
+				},
+			},
+			wantErrToContain: ptr.To("when a reservation ID is specified, capacityReservationPreference may only be `capacity-reservations-only` or empty"),
+		},
 		{
 			name: "invalid, MarketType set to MarketTypeCapacityBlock and spotMarketOptions are specified",
 			pool: &AWSMachinePool{

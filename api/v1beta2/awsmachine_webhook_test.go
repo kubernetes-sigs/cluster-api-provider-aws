@@ -262,6 +262,38 @@ func TestAWSMachineCreate(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "invalid case, CapacityReservationId is set and CapacityReservationPreference is not `capacity-reservation-only`",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType:                  "test",
+					CapacityReservationID:         aws.String("cr-12345678901234567"),
+					CapacityReservationPreference: CapacityReservationPreferenceNone,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid CapacityReservationId is set and CapacityReservationPreference is not specified",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType:          "test",
+					CapacityReservationID: aws.String("cr-12345678901234567"),
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid CapacityReservationId is set and CapacityReservationPreference is `capacity-reservation-only`",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType:                  "test",
+					CapacityReservationID:         aws.String("cr-12345678901234567"),
+					CapacityReservationPreference: CapacityReservationPreferenceOnly,
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name: "empty instance type not allowed",
 			machine: &AWSMachine{
 				Spec: AWSMachineSpec{
