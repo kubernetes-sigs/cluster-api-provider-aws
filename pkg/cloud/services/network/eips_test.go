@@ -23,10 +23,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/smithy-go"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -104,7 +103,7 @@ func TestServiceReleaseAddresses(t *testing.T) {
 					},
 				}, nil)
 				m.DisassociateAddress(context.TODO(), gomock.AssignableToTypeOf(&ec2.DisassociateAddressInput{})).Return(nil, nil).Times(2)
-				m.ReleaseAddress(context.TODO(), gomock.AssignableToTypeOf(&ec2.ReleaseAddressInput{})).Return(nil, awserr.New(awserrors.AuthFailure, awserrors.AuthFailure, errors.Errorf(awserrors.AuthFailure)))
+				m.ReleaseAddress(context.TODO(), gomock.AssignableToTypeOf(&ec2.ReleaseAddressInput{})).Return(nil, &smithy.GenericAPIError{Code: awserrors.AuthFailure, Message: awserrors.AuthFailure})
 				m.ReleaseAddress(context.TODO(), gomock.AssignableToTypeOf(&ec2.ReleaseAddressInput{})).Return(nil, nil)
 			},
 		},
@@ -121,7 +120,7 @@ func TestServiceReleaseAddresses(t *testing.T) {
 					},
 				}, nil)
 				m.DisassociateAddress(context.TODO(), gomock.AssignableToTypeOf(&ec2.DisassociateAddressInput{})).Return(nil, nil).Times(2)
-				m.ReleaseAddress(context.TODO(), gomock.AssignableToTypeOf(&ec2.ReleaseAddressInput{})).Return(nil, awserr.New(awserrors.InUseIPAddress, awserrors.InUseIPAddress, errors.Errorf(awserrors.InUseIPAddress)))
+				m.ReleaseAddress(context.TODO(), gomock.AssignableToTypeOf(&ec2.ReleaseAddressInput{})).Return(nil, &smithy.GenericAPIError{Code: awserrors.InUseIPAddress, Message: awserrors.InUseIPAddress})
 				m.ReleaseAddress(context.TODO(), gomock.AssignableToTypeOf(&ec2.ReleaseAddressInput{})).Return(nil, nil)
 			},
 		},
@@ -138,7 +137,7 @@ func TestServiceReleaseAddresses(t *testing.T) {
 					},
 				}, nil)
 				m.DisassociateAddress(context.TODO(), gomock.AssignableToTypeOf(&ec2.DisassociateAddressInput{})).Return(nil, nil).Times(2)
-				m.ReleaseAddress(context.TODO(), gomock.AssignableToTypeOf(&ec2.ReleaseAddressInput{})).Return(nil, awserr.New("dependency-failure", "dependency-failure", errors.Errorf("dependency-failure")))
+				m.ReleaseAddress(context.TODO(), gomock.AssignableToTypeOf(&ec2.ReleaseAddressInput{})).Return(nil, &smithy.GenericAPIError{Code: "dependency-failure", Message: "dependency-failure"})
 			},
 			wantErr: true,
 		},

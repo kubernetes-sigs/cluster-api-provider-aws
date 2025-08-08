@@ -17,12 +17,14 @@ limitations under the License.
 package secretsmanager
 
 import (
+	"context"
 	"crypto/rand"
 	"sort"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,7 +33,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/secretsmanager/mock_secretsmanageriface"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -48,13 +49,13 @@ func TestServiceCreate(t *testing.T) {
 		return token
 	}
 
-	sortTagsByKey := func(tags []*secretsmanager.Tag) {
+	sortTagsByKey := func(tags []types.Tag) {
 		sort.Slice(tags, func(i, j int) bool {
 			return *(tags[i].Key) < *(tags[j].Key)
 		})
 	}
 
-	expectedTags := []*secretsmanager.Tag{
+	expectedTags := []types.Tag{
 		{
 			Key:   aws.String("Name"),
 			Value: aws.String("infra-cluster"),
@@ -97,7 +98,7 @@ func TestServiceCreate(t *testing.T) {
 			expectedPrefix: "/awsprefix",
 			wantErr:        false,
 			expect: func(g *WithT, m *mock_secretsmanageriface.MockSecretsManagerAPIMockRecorder) {
-				m.CreateSecret(gomock.Any()).Times(0)
+				m.CreateSecret(gomock.Any(), gomock.AssignableToTypeOf(&secretsmanager.CreateSecretInput{})).Times(0)
 			},
 		},
 		{
@@ -107,8 +108,8 @@ func TestServiceCreate(t *testing.T) {
 			expectedPrefix: "prefix",
 			wantErr:        false,
 			expect: func(g *WithT, m *mock_secretsmanageriface.MockSecretsManagerAPIMockRecorder) {
-				m.CreateSecret(gomock.AssignableToTypeOf(&secretsmanager.CreateSecretInput{})).MinTimes(1).Return(&secretsmanager.CreateSecretOutput{}, nil).Do(
-					func(createSecretInput *secretsmanager.CreateSecretInput) {
+				m.CreateSecret(gomock.Any(), gomock.AssignableToTypeOf(&secretsmanager.CreateSecretInput{})).MinTimes(1).Return(&secretsmanager.CreateSecretOutput{}, nil).Do(
+					func(ctx context.Context, createSecretInput *secretsmanager.CreateSecretInput, optFns ...func(*secretsmanager.Options)) {
 						g.Expect(*(createSecretInput.Name)).To(HavePrefix("prefix-"))
 						sortTagsByKey(createSecretInput.Tags)
 						g.Expect(createSecretInput.Tags).To(Equal(expectedTags))
@@ -123,8 +124,8 @@ func TestServiceCreate(t *testing.T) {
 			expectedPrefix: "/prefix",
 			wantErr:        true,
 			expect: func(g *WithT, m *mock_secretsmanageriface.MockSecretsManagerAPIMockRecorder) {
-				m.CreateSecret(gomock.AssignableToTypeOf(&secretsmanager.CreateSecretInput{})).Return(nil, &secretsmanager.InternalServiceError{}).Do(
-					func(createSecretInput *secretsmanager.CreateSecretInput) {
+				m.CreateSecret(gomock.Any(), gomock.AssignableToTypeOf(&secretsmanager.CreateSecretInput{})).Return(nil, &types.InternalServiceError{}).Do(
+					func(ctx context.Context, createSecretInput *secretsmanager.CreateSecretInput, optFns ...func(*secretsmanager.Options)) {
 						g.Expect(*(createSecretInput.Name)).To(HavePrefix("/prefix-"))
 						sortTagsByKey(createSecretInput.Tags)
 						g.Expect(createSecretInput.Tags).To(Equal(expectedTags))
@@ -139,9 +140,9 @@ func TestServiceCreate(t *testing.T) {
 			expectedPrefix: "aws.cluster.x-k8s.io",
 			wantErr:        false,
 			expect: func(g *WithT, m *mock_secretsmanageriface.MockSecretsManagerAPIMockRecorder) {
-				m.CreateSecret(gomock.AssignableToTypeOf(&secretsmanager.CreateSecretInput{})).Return(nil, &secretsmanager.InvalidRequestException{})
-				m.CreateSecret(gomock.AssignableToTypeOf(&secretsmanager.CreateSecretInput{})).Return(nil, &secretsmanager.ResourceNotFoundException{})
-				m.CreateSecret(gomock.AssignableToTypeOf(&secretsmanager.CreateSecretInput{})).Return(&secretsmanager.CreateSecretOutput{}, nil)
+				m.CreateSecret(gomock.Any(), gomock.AssignableToTypeOf(&secretsmanager.CreateSecretInput{})).Return(nil, &types.InvalidRequestException{})
+				m.CreateSecret(gomock.Any(), gomock.AssignableToTypeOf(&secretsmanager.CreateSecretInput{})).Return(nil, &types.ResourceNotFoundException{})
+				m.CreateSecret(gomock.Any(), gomock.AssignableToTypeOf(&secretsmanager.CreateSecretInput{})).Return(&secretsmanager.CreateSecretOutput{}, nil)
 			},
 		},
 		{
@@ -151,9 +152,9 @@ func TestServiceCreate(t *testing.T) {
 			expectedPrefix: "aws.cluster.x-k8s.io",
 			wantErr:        false,
 			expect: func(g *WithT, m *mock_secretsmanageriface.MockSecretsManagerAPIMockRecorder) {
-				m.CreateSecret(gomock.AssignableToTypeOf(&secretsmanager.CreateSecretInput{})).Return(nil, &secretsmanager.ResourceExistsException{})
-				m.DeleteSecret(gomock.AssignableToTypeOf(&secretsmanager.DeleteSecretInput{})).Return(&secretsmanager.DeleteSecretOutput{}, nil)
-				m.CreateSecret(gomock.AssignableToTypeOf(&secretsmanager.CreateSecretInput{})).Return(&secretsmanager.CreateSecretOutput{}, nil)
+				m.CreateSecret(gomock.Any(), gomock.AssignableToTypeOf(&secretsmanager.CreateSecretInput{})).Return(nil, &types.ResourceExistsException{})
+				m.DeleteSecret(gomock.Any(), gomock.AssignableToTypeOf(&secretsmanager.DeleteSecretInput{})).Return(&secretsmanager.DeleteSecretOutput{}, nil)
+				m.CreateSecret(gomock.Any(), gomock.AssignableToTypeOf(&secretsmanager.CreateSecretInput{})).Return(&secretsmanager.CreateSecretOutput{}, nil)
 			},
 		},
 	}
@@ -202,7 +203,7 @@ func TestServiceDelete(t *testing.T) {
 			name:        "Should not return error when delete is successful",
 			secretCount: 1,
 			expect: func(m *mock_secretsmanageriface.MockSecretsManagerAPIMockRecorder) {
-				m.DeleteSecret(gomock.Eq(&secretsmanager.DeleteSecretInput{
+				m.DeleteSecret(gomock.Any(), gomock.Eq(&secretsmanager.DeleteSecretInput{
 					SecretId:                   aws.String("prefix-0"),
 					ForceDeleteWithoutRecovery: aws.Bool(true),
 				})).Return(&secretsmanager.DeleteSecretOutput{}, nil)
@@ -215,22 +216,22 @@ func TestServiceDelete(t *testing.T) {
 			name:        "Should return all errors except not found errors",
 			secretCount: 3,
 			expect: func(m *mock_secretsmanageriface.MockSecretsManagerAPIMockRecorder) {
-				m.DeleteSecret(gomock.Eq(&secretsmanager.DeleteSecretInput{
+				m.DeleteSecret(gomock.Any(), gomock.Eq(&secretsmanager.DeleteSecretInput{
 					SecretId:                   aws.String("prefix-0"),
 					ForceDeleteWithoutRecovery: aws.Bool(true),
-				})).Return(nil, awserrors.NewFailedDependency("failed dependency"))
-				m.DeleteSecret(gomock.Eq(&secretsmanager.DeleteSecretInput{
+				})).Return(nil, &types.InternalServiceError{})
+				m.DeleteSecret(gomock.Any(), gomock.Eq(&secretsmanager.DeleteSecretInput{
 					SecretId:                   aws.String("prefix-1"),
 					ForceDeleteWithoutRecovery: aws.Bool(true),
-				})).Return(nil, awserrors.NewNotFound("not found"))
-				m.DeleteSecret(gomock.Eq(&secretsmanager.DeleteSecretInput{
+				})).Return(nil, &types.ResourceNotFoundException{})
+				m.DeleteSecret(gomock.Any(), gomock.Eq(&secretsmanager.DeleteSecretInput{
 					SecretId:                   aws.String("prefix-2"),
 					ForceDeleteWithoutRecovery: aws.Bool(true),
-				})).Return(nil, awserrors.NewConflict("new conflict"))
+				})).Return(nil, &types.InvalidRequestException{})
 			},
 			check: func(g *WithT, err error) {
 				g.Expect(err).ToNot(BeNil())
-				g.Expect((err.Error())).To(Equal("[failed dependency, new conflict]"))
+				g.Expect((err.Error())).To(Equal("[InternalServiceError: , InvalidRequestException: ]"))
 			},
 		},
 	}
