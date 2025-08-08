@@ -2197,6 +2197,28 @@ spec:
                     description: CapacityReservationID specifies the target Capacity
                       Reservation into which the instance should be launched.
                     type: string
+                  cpuOptions:
+                    description: The cpu options of the instance.
+                    minProperties: 1
+                    properties:
+                      confidentialCompute:
+                        description: |-
+                          confidentialCompute specifies whether confidential computing should be enabled for the instance,
+                          and, if so, which confidential computing technology to use.
+                          Valid values are: None, AmdSev
+                          When set to None, confidential computing will be disabled for the instance.
+                          When set to AmdSevSnp, AMD SEV-SNP will be used as the confidential computing technology for the instance.
+                          In this case, ensure the following conditions are met:
+                          1) The selected instance type supports AMD SEV-SNP.
+                          2) The selected AWS region supports AMD SEV-SNP.
+                          3) The selected AMI supports AMD SEV-SNP.
+                          More details can be checked at https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/sev-snp.html
+                          When omitted, this means no opinion and the platform is left to choose a reasonable default, which is subject to change without notice. The current default is Disabled.
+                        enum:
+                        - Disabled
+                        - AmdSevSnp
+                        type: string
+                    type: object
                   ebsOptimized:
                     description: Indicates whether the instance is optimized for Amazon
                       EBS I/O.

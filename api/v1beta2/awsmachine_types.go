@@ -73,6 +73,35 @@ const (
 	NetworkInterfaceTypeEFAWithENAInterface NetworkInterfaceType = NetworkInterfaceType("efa")
 )
 
+// AWSConfidentialComputePolicy represents the confidential compute configuration for the instance.
+// +kubebuilder:validation:Enum=Disabled;AmdSevSnp
+type AWSConfidentialComputePolicy string
+
+const (
+	// AWSConfidentialComputePolicyNone disables confidential computing for the instance.
+	AWSConfidentialComputePolicyNone AWSConfidentialComputePolicy = "None"
+	// AWSConfidentialComputePolicySEVSNP enables AMD SEV-SNP as the confidential computing technology for the instance.
+	AWSConfidentialComputePolicySEVSNP AWSConfidentialComputePolicy = "AmdSevSnp"
+)
+
+// CPUOptions defines CPU-related settings for the instance, including the confidential computing policy.
+// +kubebuilder:validation:MinProperties=1
+type CPUOptions struct {
+	// confidentialCompute specifies whether confidential computing should be enabled for the instance,
+	// and, if so, which confidential computing technology to use.
+	// Valid values are: None, AmdSev
+	// When set to None, confidential computing will be disabled for the instance.
+	// When set to AmdSevSnp, AMD SEV-SNP will be used as the confidential computing technology for the instance.
+	// In this case, ensure the following conditions are met:
+	// 1) The selected instance type supports AMD SEV-SNP.
+	// 2) The selected AWS region supports AMD SEV-SNP.
+	// 3) The selected AMI supports AMD SEV-SNP.
+	// More details can be checked at https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/sev-snp.html
+	// When omitted, this means no opinion and the platform is left to choose a reasonable default, which is subject to change without notice. The current default is Disabled.
+	// +optional
+	ConfidentialCompute AWSConfidentialComputePolicy `json:"confidentialCompute,omitempty"`
+}
+
 // AWSMachineSpec defines the desired state of an Amazon EC2 instance.
 // +kubebuilder:validation:XValidation:rule="!has(self.capacityReservationId) || !has(self.marketType) || self.marketType != 'Spot'",message="capacityReservationId may not be set when marketType is Spot"
 // +kubebuilder:validation:XValidation:rule="!has(self.capacityReservationId) || !has(self.spotMarketOptions)",message="capacityReservationId cannot be set when spotMarketOptions is specified"
@@ -233,6 +262,11 @@ type AWSMachineSpec struct {
 	// If marketType is not specified and spotMarketOptions is provided, the marketType defaults to "Spot".
 	// +optional
 	MarketType MarketType `json:"marketType,omitempty"`
+
+	// cpuOptions defines CPU-related settings for the instance, including the confidential computing policy.
+	// If unset, no CPU options will be passed to the AWS platform and AWS default CPU options will be applied.
+	// +optional
+	CPUOptions CPUOptions `json:"cpuOptions,omitempty,omitzero"`
 }
 
 // CloudInit defines options related to the bootstrapping systems where
@@ -263,7 +297,7 @@ type CloudInit struct {
 }
 
 // Ignition defines options related to the bootstrapping systems where Ignition is used.
-// For more information on Ignition configuration, see https://coreos.github.io/butane/specs/
+// For more informfation on Ignition configuration, see https://coreos.github.io/butane/specs/
 type Ignition struct {
 	// Version defines which version of Ignition will be used to generate bootstrap data.
 	//
