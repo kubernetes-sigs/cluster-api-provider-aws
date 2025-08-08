@@ -81,6 +81,20 @@ By default, no CNI plugin is installed when provisioning a self-managed cluster.
 
 You can find the guides to enable [IPv6](https://docs.tigera.io/calico/latest/networking/ipam/ipv6#ipv6) and [VXLAN](https://docs.tigera.io/calico/latest/networking/configuring/vxlan-ipip) support for Calico on their official documentation. Or you can use a customized Calico manifests [here](https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-aws/refs/heads/main/test/e2e/data/cni/calico_ipv6.yaml) for IPv6.
 
+**Note**: If you are using Calico as the CNI provider, ensure the CNI ingress rule allows VXLAN. You can set the rule in the `AWSCluster` resource, for example:
+```yaml
+spec:
+  network:
+    cni:
+      cniIngressRules:
+      # If using Calico as CNI provider, this rule is required.
+      # Note: Calico currently supports IPv6 with VXLAN.
+      - description: "IPv6 VXLAN (calico)"
+        protocol: udp
+        fromPort: 4789
+        toPort: 4789
+```
+
 ## IPv6 CIDR Allocations
 
 ### AWS-assigned IPv6 VPC CIDR
