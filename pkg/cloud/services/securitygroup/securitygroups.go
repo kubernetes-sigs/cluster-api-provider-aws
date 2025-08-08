@@ -53,7 +53,7 @@ const (
 	IPProtocolICMP = "icmp"
 
 	// IPProtocolICMPv6 is how EC2 represents the ICMPv6 protocol in ingress rules.
-	IPProtocolICMPv6 = "58"
+	IPProtocolICMPv6 = "icmpv6"
 )
 
 // ReconcileSecurityGroups will reconcile security groups against the Service object.
@@ -596,13 +596,19 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 	}
 	switch role {
 	case infrav1.SecurityGroupBastion:
+		ipv4CidrBlocks := s.scope.Bastion().AllowedCIDRBlocks.IPv4CidrBlocks()
+		var ipv6CidrBlocks []string
+		if s.scope.VPC().IsIPv6Enabled() {
+			ipv6CidrBlocks = s.scope.Bastion().AllowedCIDRBlocks.IPv6CidrBlocks()
+		}
 		return infrav1.IngressRules{
 			{
-				Description: "SSH",
-				Protocol:    infrav1.SecurityGroupProtocolTCP,
-				FromPort:    22,
-				ToPort:      22,
-				CidrBlocks:  s.scope.Bastion().AllowedCIDRBlocks,
+				Description:    "SSH",
+				Protocol:       infrav1.SecurityGroupProtocolTCP,
+				FromPort:       22,
+				ToPort:         22,
+				CidrBlocks:     ipv4CidrBlocks,
+				IPv6CidrBlocks: ipv6CidrBlocks,
 			},
 		}, nil
 	case infrav1.SecurityGroupControlPlane:
@@ -647,17 +653,27 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 		return append(cniRules, rules...), nil
 
 	case infrav1.SecurityGroupNode:
-		cidrBlocks := []string{services.AnyIPv4CidrBlock}
-		if scopeCidrBlocks := s.scope.NodePortIngressRuleCidrBlocks(); len(scopeCidrBlocks) > 0 {
-			cidrBlocks = scopeCidrBlocks
+		ipv4CidrBlocks := []string{services.AnyIPv4CidrBlock}
+		if scopeCidrBlocks := s.scope.NodePortIngressRuleCidrBlocks().IPv4CidrBlocks(); len(scopeCidrBlocks) > 0 {
+			ipv4CidrBlocks = scopeCidrBlocks
 		}
+
+		var ipv6CidrBlocks []string
+		if s.scope.VPC().IsIPv6Enabled() {
+			ipv6CidrBlocks = []string{services.AnyIPv6CidrBlock}
+			if scopeCidrBlocks := s.scope.NodePortIngressRuleCidrBlocks().IPv6CidrBlocks(); len(scopeCidrBlocks) > 0 {
+				ipv6CidrBlocks = scopeCidrBlocks
+			}
+		}
+
 		rules := infrav1.IngressRules{
 			{
-				Description: "Node Port Services",
-				Protocol:    infrav1.SecurityGroupProtocolTCP,
-				FromPort:    30000,
-				ToPort:      32767,
-				CidrBlocks:  cidrBlocks,
+				Description:    "Node Port Services",
+				Protocol:       infrav1.SecurityGroupProtocolTCP,
+				FromPort:       30000,
+				ToPort:         32767,
+				CidrBlocks:     ipv4CidrBlocks,
+				IPv6CidrBlocks: ipv6CidrBlocks,
 			},
 			{
 				Description: "Kubelet API",
@@ -671,17 +687,9 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 				},
 			},
 		}
+
 		if s.scope.Bastion().Enabled {
 			rules = append(rules, s.defaultSSHIngressRule(s.scope.SecurityGroups()[infrav1.SecurityGroupBastion].ID))
-		}
-		if s.scope.VPC().IsIPv6Enabled() {
-			rules = append(rules, infrav1.IngressRule{
-				Description:    "Node Port Services IPv6",
-				Protocol:       infrav1.SecurityGroupProtocolTCP,
-				FromPort:       30000,
-				ToPort:         32767,
-				IPv6CidrBlocks: []string{services.AnyIPv6CidrBlock},
-			})
 		}
 
 		additionalIngressRules, err := s.processIngressRulesSGs(s.scope.AdditionalNodeIngressRules())
@@ -921,8 +929,14 @@ func ingressRuleFromSDKProtocol(v types.IpPermission) infrav1.IngressRule {
 		IPProtocolUDP,
 		IPProtocolICMP,
 		IPProtocolICMPv6:
+		// The API returns IpProtocol values as protocol names.
+		// But icmpv6 is handled as its protocol number in CAPA.
+		protocol := *v.IpProtocol
+		if protocol == IPProtocolICMPv6 {
+			protocol = string(infrav1.SecurityGroupProtocolICMPv6)
+		}
 		return infrav1.IngressRule{
-			Protocol: infrav1.SecurityGroupProtocol(*v.IpProtocol),
+			Protocol: infrav1.SecurityGroupProtocol(protocol),
 			FromPort: utils.ToInt64Value(v.FromPort),
 			ToPort:   utils.ToInt64Value(v.ToPort),
 		}

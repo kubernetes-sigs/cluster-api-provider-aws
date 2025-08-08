@@ -84,6 +84,11 @@ func (s *Service) reconcileRouteTables() error {
 				}
 			}
 
+			// Make sure desired routes are created in the route table.
+			if err := s.fixMissingRoutes(routes, rt.Routes, rt); err != nil {
+				return err
+			}
+
 			// Make sure tags are up-to-date.
 			if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 				buildParams := s.getRouteTableTagParams(aws.ToString(rt.RouteTableId), sn.IsPublic, sn.AvailabilityZone)
@@ -145,7 +150,8 @@ func (s *Service) fixMismatchedRouting(specRoute *ec2.CreateRouteInput, currentR
 		if (currentRoute.DestinationIpv6CidrBlock != nil &&
 			aws.ToString(currentRoute.DestinationIpv6CidrBlock) == aws.ToString(specRoute.DestinationIpv6CidrBlock)) &&
 			((currentRoute.GatewayId != nil && aws.ToString(currentRoute.GatewayId) != aws.ToString(specRoute.GatewayId)) ||
-				(currentRoute.NatGatewayId != nil && aws.ToString(currentRoute.NatGatewayId) != aws.ToString(specRoute.NatGatewayId))) {
+				(currentRoute.NatGatewayId != nil && aws.ToString(currentRoute.NatGatewayId) != aws.ToString(specRoute.NatGatewayId)) ||
+				(currentRoute.EgressOnlyInternetGatewayId != nil && aws.ToString(currentRoute.EgressOnlyInternetGatewayId) != aws.ToString(specRoute.EgressOnlyInternetGatewayId))) {
 			input = &ec2.ReplaceRouteInput{
 				RouteTableId:                rt.RouteTableId,
 				DestinationIpv6CidrBlock:    specRoute.DestinationIpv6CidrBlock,
@@ -168,6 +174,36 @@ func (s *Service) fixMismatchedRouting(specRoute *ec2.CreateRouteInput, currentR
 		}
 	}
 	return nil
+}
+
+func (s *Service) fixMissingRoutes(specRoutes []*ec2.CreateRouteInput, currentRoutes []types.Route, rt types.RouteTable) error {
+	// Routes destination cidr blocks must be unique within a routing table.
+	// Each route can define either an IPv4 or IPv6 CIDR, but not both.
+	currRouteMap := make(map[string]types.Route)
+	for _, route := range currentRoutes {
+		if route.DestinationCidrBlock != nil {
+			currRouteMap[aws.ToString(route.DestinationCidrBlock)] = route
+		}
+		if route.DestinationIpv6CidrBlock != nil {
+			currRouteMap[aws.ToString(route.DestinationIpv6CidrBlock)] = route
+		}
+	}
+
+	routesToAdd := make([]*ec2.CreateRouteInput, 0)
+	for _, route := range specRoutes {
+		var dest string
+		if route.DestinationCidrBlock != nil {
+			dest = aws.ToString(route.DestinationCidrBlock)
+		}
+		if route.DestinationIpv6CidrBlock != nil {
+			dest = aws.ToString(route.DestinationIpv6CidrBlock)
+		}
+		if _, ok := currRouteMap[dest]; !ok {
+			routesToAdd = append(routesToAdd, route)
+		}
+	}
+
+	return s.createRoutesForRouteTable(routesToAdd, rt.RouteTableId)
 }
 
 func (s *Service) describeVpcRouteTablesBySubnet() (map[string]types.RouteTable, error) {
@@ -274,28 +310,34 @@ func (s *Service) createRouteTableWithRoutes(routes []*ec2.CreateRouteInput, isP
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateRouteTable", "Created managed RouteTable %q", aws.ToString(out.RouteTable.RouteTableId))
 	s.scope.Info("Created route table", "route-table-id", *out.RouteTable.RouteTableId)
 
-	for i := range routes {
-		route := routes[i]
-		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
-			route.RouteTableId = out.RouteTable.RouteTableId
-			if _, err := s.EC2Client.CreateRoute(context.TODO(), route); err != nil {
-				return false, err
-			}
-			return true, nil
-		}, awserrors.RouteTableNotFound, awserrors.NATGatewayNotFound, awserrors.GatewayNotFound); err != nil {
-			record.Warnf(s.scope.InfraCluster(), "FailedCreateRoute", "Failed to create route %s for RouteTable %q: %v", route, aws.ToString(out.RouteTable.RouteTableId), err)
-			errDel := s.deleteRouteTable(*out.RouteTable)
-			if errDel != nil {
-				record.Warnf(s.scope.InfraCluster(), "FailedDeleteRouteTable", "Failed to delete managed RouteTable %q: %v", aws.ToString(out.RouteTable.RouteTableId), errDel)
-			}
-			return nil, errors.Wrapf(err, "failed to create route in route table %q: %v", aws.ToString(out.RouteTable.RouteTableId), route)
+	if err := s.createRoutesForRouteTable(routes, out.RouteTable.RouteTableId); err != nil {
+		if cleanupErr := s.deleteRouteTable(*out.RouteTable); cleanupErr != nil {
+			record.Warnf(s.scope.InfraCluster(), "FailedDeleteRouteTable", "Failed to delete managed RouteTable %q: %v", aws.ToString(out.RouteTable.RouteTableId), cleanupErr)
 		}
-		record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateRoute", "Created route %s for RouteTable %q", route, aws.ToString(out.RouteTable.RouteTableId))
+		return nil, err
 	}
 
 	return &infrav1.RouteTable{
 		ID: *out.RouteTable.RouteTableId,
 	}, nil
+}
+
+func (s *Service) createRoutesForRouteTable(routes []*ec2.CreateRouteInput, routeTableID *string) error {
+	for i := range routes {
+		route := routes[i]
+		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+			route.RouteTableId = routeTableID
+			if _, err := s.EC2Client.CreateRoute(context.TODO(), route); err != nil {
+				return false, err
+			}
+			return true, nil
+		}, awserrors.RouteTableNotFound, awserrors.NATGatewayNotFound, awserrors.GatewayNotFound); err != nil {
+			record.Warnf(s.scope.InfraCluster(), "FailedCreateRoute", "Failed to create route %s for RouteTable %q: %v", route, aws.ToString(routeTableID), err)
+			return errors.Wrapf(err, "failed to create route in route table %q: %v", aws.ToString(routeTableID), route)
+		}
+		record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateRoute", "Created route %s for RouteTable %q", route, aws.ToString(routeTableID))
+	}
+	return nil
 }
 
 func (s *Service) associateRouteTable(rt *infrav1.RouteTable, subnetID string) error {
@@ -317,6 +359,13 @@ func (s *Service) getNatGatewayPrivateRoute(natGatewayID string) *ec2.CreateRout
 	return &ec2.CreateRouteInput{
 		NatGatewayId:         aws.String(natGatewayID),
 		DestinationCidrBlock: aws.String(services.AnyIPv4CidrBlock),
+	}
+}
+
+func (s *Service) getNat64PrivateRoute(natGatewayID string) *ec2.CreateRouteInput {
+	return &ec2.CreateRouteInput{
+		NatGatewayId:             aws.String(natGatewayID),
+		DestinationIpv6CidrBlock: aws.String(services.NAT64CidrBlock),
 	}
 }
 
@@ -414,6 +463,7 @@ func (s *Service) getRoutesToPrivateSubnet(sn *infrav1.SubnetSpec) (routes []*ec
 
 	routes = append(routes, s.getNatGatewayPrivateRoute(natGatewayID))
 	if sn.IsIPv6 {
+		routes = append(routes, s.getNat64PrivateRoute(natGatewayID))
 		if !s.scope.VPC().IsIPv6Enabled() {
 			// Safety net because EgressOnlyInternetGateway needs the ID from the ipv6 block.
 			// if, for whatever reason by this point that is not available, we don't want to

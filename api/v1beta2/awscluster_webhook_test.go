@@ -324,7 +324,87 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "rejects ipv6",
+			name: "accepts vpc cidr",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						VPC: VPCSpec{
+							CidrBlock: "10.0.0.0/16",
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "rejects invalid vpc cidr",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						VPC: VPCSpec{
+							CidrBlock: "10.0.0.0",
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "accepts vpc secondary cidr",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						VPC: VPCSpec{
+							CidrBlock: "10.0.0.0/16",
+							SecondaryCidrBlocks: []VpcCidrBlock{
+								{
+									IPv4CidrBlock: "10.0.1.0/24",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "rejects invalid vpc secondary cidr",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						VPC: VPCSpec{
+							CidrBlock: "10.0.0.0/16",
+							SecondaryCidrBlocks: []VpcCidrBlock{
+								{
+									IPv4CidrBlock: "10.0.1.0",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects vpc secondary cidr duplicate with vpc primary cidr",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						VPC: VPCSpec{
+							CidrBlock: "10.0.0.0/16",
+							SecondaryCidrBlocks: []VpcCidrBlock{
+								{
+									IPv4CidrBlock: "10.0.0.0/16",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "accepts vpc ipv6 cidr",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					NetworkSpec: NetworkSpec{
@@ -337,10 +417,26 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 					},
 				},
 			},
+			wantErr: false,
+		},
+		{
+			name: "reject invalid vpc ipv6 cidr",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						VPC: VPCSpec{
+							IPv6: &IPv6{
+								CidrBlock: "2001:2345:5678::",
+								PoolID:    "pool-id",
+							},
+						},
+					},
+				},
+			},
 			wantErr: true,
 		},
 		{
-			name: "rejects ipv6 enabled subnet",
+			name: "accepts ipv6 enabled subnet",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					NetworkSpec: NetworkSpec{
@@ -356,10 +452,42 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 					},
 				},
 			},
+			wantErr: false,
+		},
+		{
+			name: "accepts cidr block for subnets",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						Subnets: []SubnetSpec{
+							{
+								ID:        "sub-1",
+								CidrBlock: "10.0.10.0/24",
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "rejects invalid cidr block for subnets",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						Subnets: []SubnetSpec{
+							{
+								ID:        "sub-1",
+								CidrBlock: "10.0.10.0",
+							},
+						},
+					},
+				},
+			},
 			wantErr: true,
 		},
 		{
-			name: "rejects ipv6 cidr block for subnets",
+			name: "accepts ipv6 cidr block for subnets",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					NetworkSpec: NetworkSpec{
@@ -367,6 +495,22 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 							{
 								ID:            "sub-1",
 								IPv6CidrBlock: "2022:1234:5678:9101::/64",
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "rejects invalid ipv6 cidr block for subnets",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						Subnets: []SubnetSpec{
+							{
+								ID:            "sub-1",
+								IPv6CidrBlock: "2022:1234:5678:9101::",
 							},
 						},
 					},
@@ -1353,6 +1497,7 @@ func TestAWSClusterValidateAllowedCIDRBlocks(t *testing.T) {
 						AllowedCIDRBlocks: []string{
 							"192.168.0.0/16",
 							"192.168.0.1/32",
+							"2001:1234:5678:9a40::/56",
 						},
 					},
 				},
@@ -1379,6 +1524,7 @@ func TestAWSClusterValidateAllowedCIDRBlocks(t *testing.T) {
 						AllowedCIDRBlocks: []string{
 							"192.168.0.0/16",
 							"192.168.0.1/32",
+							"2001:1234:5678:9a40::/56",
 						},
 						DisableIngressRules: true,
 					},
@@ -1393,6 +1539,7 @@ func TestAWSClusterValidateAllowedCIDRBlocks(t *testing.T) {
 					Bastion: Bastion{
 						AllowedCIDRBlocks: []string{
 							"100.200.300.400/99",
+							"2001:1234:5678:9a40::/129",
 						},
 					},
 				},
@@ -1445,6 +1592,7 @@ func TestAWSClusterDefaultAllowedCIDRBlocks(t *testing.T) {
 					Bastion: Bastion{
 						AllowedCIDRBlocks: []string{
 							"0.0.0.0/0",
+							"::/0",
 						},
 					},
 				},
@@ -1455,7 +1603,7 @@ func TestAWSClusterDefaultAllowedCIDRBlocks(t *testing.T) {
 			beforeCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					Bastion: Bastion{
-						AllowedCIDRBlocks:   []string{"0.0.0.0/0"},
+						AllowedCIDRBlocks:   []string{"0.0.0.0/0", "::/0"},
 						DisableIngressRules: true,
 						Enabled:             true,
 					},
