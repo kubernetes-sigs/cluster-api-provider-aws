@@ -31,6 +31,14 @@ spec:
     loadBalancerType: nlb
     healthCheckProtocol: HTTPS
   network:
+    cni:
+      cniIngressRules:
+      # If using Calico as CNI provider, this rule is required.
+      # Note: Calico currently supports IPv6 with VXLAN.
+      - description: "IPv6 VXLAN (calico)"
+        protocol: udp
+        fromPort: 4789
+        toPort: 4789
     vpc:
       ipv6: {}
   region: "${AWS_REGION}"
