@@ -24,6 +24,7 @@ import (
 	elbtypes "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing/types"
 	elbv2types "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2/types"
 	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
+	secretsmanagertypes "github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
 	ssmtypes "github.com/aws/aws-sdk-go-v2/service/ssm/types"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -166,6 +167,20 @@ func MapToSecretsManagerTags(src infrav1.Tags) []*secretsmanager.Tag {
 	sort.Slice(tags, func(i, j int) bool { return *tags[i].Key < *tags[j].Key })
 
 	return tags
+}
+
+// MapToSecretsManagerTagsV2 converts infrav1.Tags (a map of string key-value pairs) to a slice of Secrets Manager Tag objects for SDK v2.
+func MapToSecretsManagerTagsV2(tags infrav1.Tags) []secretsmanagertypes.Tag {
+	result := make([]secretsmanagertypes.Tag, 0, len(tags))
+	for k, v := range tags {
+		key := k
+		value := v
+		result = append(result, secretsmanagertypes.Tag{
+			Key:   &key,
+			Value: &value,
+		})
+	}
+	return result
 }
 
 // MapToIAMTags converts a infrav1.Tags to a []*iam.Tag.

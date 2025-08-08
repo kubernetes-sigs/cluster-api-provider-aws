@@ -60,9 +60,9 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework] [ClusterClass]", fun
 			}
 		})
 
-		ginkgo.AfterEach(func() {
-			shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
-		})
+		// ginkgo.AfterEach(func() {
+		// 	shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+		// })
 	})
 
 	ginkgo.PDescribe("Cluster Upgrade Spec - HA control plane with workers [K8s-Upgrade] [ClusterClass]", func() {

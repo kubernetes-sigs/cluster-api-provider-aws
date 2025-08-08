@@ -30,6 +30,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/eventbridge"
 	rgapi "github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	smithyendpoints "github.com/aws/smithy-go/endpoints"
@@ -302,4 +303,26 @@ func (s *SSMEndpointResolver) ResolveEndpoint(ctx context.Context, params ssm.En
 	params.Endpoint = &endpoint.URL
 	params.Region = &endpoint.SigningRegion
 	return ssm.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
+}
+
+// SecretsManagerEndpointResolver implements EndpointResolverV2 interface for Secrets Manager.
+type SecretsManagerEndpointResolver struct {
+	*MultiServiceEndpointResolver
+}
+
+// ResolveEndpoint for Secrets Manager.
+func (s *SecretsManagerEndpointResolver) ResolveEndpoint(ctx context.Context, params secretsmanager.EndpointParameters) (smithyendpoints.Endpoint, error) {
+	// If custom endpoint not found, return default endpoint for the service
+	log := logger.FromContext(ctx)
+	endpoint, ok := s.endpoints[secretsmanager.ServiceID]
+
+	if !ok {
+		log.Debug("Custom endpoint not found, using default endpoint")
+		return secretsmanager.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
+	}
+
+	log.Debug("Custom endpoint found, using custom endpoint", "endpoint", endpoint.URL)
+	params.Endpoint = &endpoint.URL
+	params.Region = &endpoint.SigningRegion
+	return secretsmanager.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
 }

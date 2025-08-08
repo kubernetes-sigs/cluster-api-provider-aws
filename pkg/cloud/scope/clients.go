@@ -28,6 +28,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	rgapi "github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	secretsmanagerv2 "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/aws/aws-sdk-go/aws"
@@ -35,7 +36,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
-	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
@@ -224,16 +224,26 @@ func NewResourgeTaggingClient(scopeUser cloud.ScopeUsage, session cloud.Session,
 	return rgapi.NewFromConfig(cfg, opts...)
 }
 
-// NewSecretsManagerClient creates a new Secrets API client for a given session..
-func NewSecretsManagerClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) secretsmanageriface.SecretsManagerAPI {
-	secretsClient := secretsmanager.New(session.Session(), aws.NewConfig().WithLogLevel(awslogs.GetAWSLogLevel(logger.GetLogger())).WithLogger(awslogs.NewWrapLogr(logger.GetLogger())))
-	secretsClient.Handlers.Build.PushFrontNamed(getUserAgentHandler())
-	secretsClient.Handlers.Sign.PushFront(session.ServiceLimiter(secretsClient.ServiceID).LimitRequest)
-	secretsClient.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(scopeUser.ControllerName()))
-	secretsClient.Handlers.CompleteAttempt.PushFront(session.ServiceLimiter(secretsClient.ServiceID).ReviewResponse)
-	secretsClient.Handlers.Complete.PushBack(recordAWSPermissionsIssue(target))
+// NewSecretsManagerClientV2 creates a new Secrets Manager API client for a given session using AWS SDK v2.
+func NewSecretsManagerClientV2(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) *secretsmanagerv2.Client {
+	cfg := session.SessionV2()
+	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
+	secretsManagerEndpointResolver := &endpointsv2.SecretsManagerEndpointResolver{
+		MultiServiceEndpointResolver: multiSvcEndpointResolver,
+	}
+	secretsManagerOpts := []func(*secretsmanagerv2.Options){
+		func(o *secretsmanagerv2.Options) {
+			o.Logger = logger.GetAWSLogger()
+			o.ClientLogMode = awslogs.GetAWSLogLevelV2(logger.GetLogger())
+			o.EndpointResolverV2 = secretsManagerEndpointResolver
+		},
+		secretsmanagerv2.WithAPIOptions(
+			awsmetricsv2.WithMiddlewares(scopeUser.ControllerName(), target),
+			awsmetricsv2.WithCAPAUserAgentMiddleware(),
+		),
+	}
 
-	return secretsClient
+	return secretsmanagerv2.NewFromConfig(cfg, secretsManagerOpts...)
 }
 
 // NewEKSClient creates a new EKS API client for a given session.
