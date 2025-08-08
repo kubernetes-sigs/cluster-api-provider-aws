@@ -848,6 +848,8 @@ func SDKToSpotMarketOptions(instanceMarketOptions *types.LaunchTemplateInstanceM
 	return result
 }
 
+// SDKToCapacityReservationPreference maps an AWS SDK Capacity Reservation Preference onto the CAPA internal CapacityReservationPreference type.
+// inverse to `CapacityReservationPreferenceToSDK`.
 func SDKToCapacityReservationPreference(preference types.CapacityReservationPreference) infrav1.CapacityReservationPreference {
 	switch preference {
 	case types.CapacityReservationPreferenceCapacityReservationsOnly:
@@ -861,6 +863,8 @@ func SDKToCapacityReservationPreference(preference types.CapacityReservationPref
 	}
 }
 
+// CapacityReservationPreferenceToSDK maps a CAPA internal Capacity Reservation Preference enum type onto the AWS SDK equivalent.
+// inverse to `SDKToCapacityReservationPreference`.
 func CapacityReservationPreferenceToSDK(preference infrav1.CapacityReservationPreference) types.CapacityReservationPreference {
 	switch preference {
 	case infrav1.CapacityReservationPreferenceNone:
