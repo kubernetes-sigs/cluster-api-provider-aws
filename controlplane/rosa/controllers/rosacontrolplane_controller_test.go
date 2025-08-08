@@ -206,7 +206,7 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 			},
 		},
 	}
-	identity.SetGroupVersionKind(infrav1.GroupVersion.WithKind("AWSClusterStaticIdentity"))
+	identity.SetGroupVersionKind(infrav1.GroupVersion.WithKind("AWSClusterControllerIdentity"))
 
 	rosaControlPlane := &rosacontrolplanev1.ROSAControlPlane{
 		ObjectMeta: metav1.ObjectMeta{
