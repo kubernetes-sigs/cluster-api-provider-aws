@@ -258,7 +258,7 @@ func generateAL2023UserData(input *NodeInput) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// getNodeLabels returns the string representation of node-labels flags for nodeadm
+// getNodeLabels returns the string representation of node-labels flags for nodeadm.
 func (ni *NodeInput) getNodeLabels() string {
 	if ni.KubeletExtraArgs != nil {
 		if _, ok := ni.KubeletExtraArgs["node-labels"]; ok {
