@@ -70,11 +70,6 @@ func NewFargateProfileScope(params FargateProfileScopeParams) (*FargateProfileSc
 		controllerName: params.ControllerName,
 	}
 
-	serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
-	if err != nil {
-		return nil, errors.Errorf("failed to create aws session: %v", err)
-	}
-
 	sessionv2, serviceLimitersv2, err := sessionForClusterWithRegionV2(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws v2 session: %v", err)
@@ -86,17 +81,16 @@ func NewFargateProfileScope(params FargateProfileScopeParams) (*FargateProfileSc
 	}
 
 	return &FargateProfileScope{
-		Logger:            *params.Logger,
-		Client:            params.Client,
-		Cluster:           params.Cluster,
-		ControlPlane:      params.ControlPlane,
-		FargateProfile:    params.FargateProfile,
-		patchHelper:       helper,
-		session:           *sessionv2,
-		serviceLimiters:   serviceLimiters,
-		serviceLimitersV2: serviceLimitersv2,
-		controllerName:    params.ControllerName,
-		enableIAM:         params.EnableIAM,
+		Logger:          *params.Logger,
+		Client:          params.Client,
+		Cluster:         params.Cluster,
+		ControlPlane:    params.ControlPlane,
+		FargateProfile:  params.FargateProfile,
+		patchHelper:     helper,
+		session:         *sessionv2,
+		serviceLimiters: serviceLimitersv2,
+		controllerName:  params.ControllerName,
+		enableIAM:       params.EnableIAM,
 	}, nil
 }
 
@@ -110,10 +104,9 @@ type FargateProfileScope struct {
 	ControlPlane   *ekscontrolplanev1.AWSManagedControlPlane
 	FargateProfile *expinfrav1.AWSFargateProfile
 
-	session           awsv2.Config
-	serviceLimiters   throttle.ServiceLimiters
-	serviceLimitersV2 throttle.ServiceLimiters
-	controllerName    string
+	session         awsv2.Config
+	serviceLimiters throttle.ServiceLimiters
+	controllerName  string
 
 	enableIAM bool
 }

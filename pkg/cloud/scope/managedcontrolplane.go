@@ -98,19 +98,13 @@ func NewManagedControlPlaneScope(params ManagedControlPlaneScopeParams) (*Manage
 		enableIAM:                    params.EnableIAM,
 		tagUnmanagedNetworkResources: params.TagUnmanagedNetworkResources,
 	}
-	serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
-	if err != nil {
-		return nil, errors.Errorf("failed to create aws session: %v", err)
-	}
-
 	sessionv2, serviceLimitersv2, err := sessionForClusterWithRegionV2(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
 	}
 
 	managedScope.session = *sessionv2
-	managedScope.serviceLimiters = serviceLimiters
-	managedScope.serviceLimitersV2 = serviceLimitersv2
+	managedScope.serviceLimiters = serviceLimitersv2
 
 	helper, err := patch.NewHelper(params.ControlPlane, params.Client)
 	if err != nil {
@@ -131,10 +125,9 @@ type ManagedControlPlaneScope struct {
 	ControlPlane              *ekscontrolplanev1.AWSManagedControlPlane
 	MaxWaitActiveUpdateDelete time.Duration
 
-	session           awsv2.Config
-	serviceLimiters   throttle.ServiceLimiters
-	serviceLimitersV2 throttle.ServiceLimiters
-	controllerName    string
+	session         awsv2.Config
+	serviceLimiters throttle.ServiceLimiters
+	controllerName  string
 
 	enableIAM                    bool
 	allowAdditionalRoles         bool

@@ -88,19 +88,13 @@ func NewRosaMachinePoolScope(params RosaMachinePoolScopeParams) (*RosaMachinePoo
 		controllerName:  params.ControllerName,
 	}
 
-	serviceLimiters, err := sessionForClusterWithRegion(params.Client, scope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
-	if err != nil {
-		return nil, errors.Errorf("failed to create aws session: %v", err)
-	}
-
 	sessionv2, serviceLimitersv2, err := sessionForClusterWithRegionV2(params.Client, scope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
 	}
 
 	scope.session = *sessionv2
-	scope.serviceLimiters = serviceLimiters
-	scope.serviceLimitersV2 = serviceLimitersv2
+	scope.serviceLimiters = serviceLimitersv2
 
 	return scope, nil
 }
@@ -119,9 +113,8 @@ type RosaMachinePoolScope struct {
 	RosaMachinePool *expinfrav1.ROSAMachinePool
 	MachinePool     *expclusterv1.MachinePool
 
-	session           awsv2.Config
-	serviceLimiters   throttle.ServiceLimiters
-	serviceLimitersV2 throttle.ServiceLimiters
+	session         awsv2.Config
+	serviceLimiters throttle.ServiceLimiters
 
 	controllerName string
 }

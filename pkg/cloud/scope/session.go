@@ -29,7 +29,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/google/go-cmp/cmp"
@@ -64,7 +63,6 @@ type ServiceEndpoint struct {
 
 var sessionCache sync.Map
 var sessionCacheV2 sync.Map
-var providerCache sync.Map
 var providerCacheV2 sync.Map
 
 type sessionCacheEntry struct {
@@ -135,89 +133,6 @@ func sessionForRegionV2(region string) (*awsv2.Config, throttle.ServiceLimiters,
 		session:         nil,
 	})
 	return &ns, sl, nil
-}
-
-func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.SessionMetadata, region string, endpoint []ServiceEndpoint, log logger.Wrapper) (throttle.ServiceLimiters, error) {
-	log = log.WithName("identity")
-	log.Trace("Creating an AWS Session")
-
-	resolver := func(service, region string, optFns ...func(*endpoints.Options)) (endpoints.ResolvedEndpoint, error) {
-		for _, s := range endpoint {
-			if service == s.ServiceID {
-				return endpoints.ResolvedEndpoint{
-					URL:           s.URL,
-					SigningRegion: s.SigningRegion,
-				}, nil
-			}
-		}
-		return endpoints.DefaultResolver().EndpointFor(service, region, optFns...)
-	}
-
-	providers, err := getProvidersForCluster(context.Background(), k8sClient, clusterScoper, region, log)
-	if err != nil {
-		// could not get providers and retrieve the credentials
-		conditions.MarkFalse(clusterScoper.InfraCluster(), infrav1.PrincipalCredentialRetrievedCondition, infrav1.PrincipalCredentialRetrievalFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
-		return nil, errors.Wrap(err, "Failed to get providers for cluster")
-	}
-
-	isChanged := false
-	awsProviders := make([]credentials.Provider, len(providers))
-	for i, provider := range providers {
-		// load an existing matching providers from the cache if such a providers exists
-		providerHash, err := provider.Hash()
-		if err != nil {
-			return nil, errors.Wrap(err, "Failed to calculate provider hash")
-		}
-		cachedProvider, ok := providerCache.Load(providerHash)
-		if ok {
-			provider = cachedProvider.(identity.AWSPrincipalTypeProvider)
-		} else {
-			isChanged = true
-			// add this provider to the cache
-			providerCache.Store(providerHash, provider)
-		}
-		awsProviders[i] = provider.(credentials.Provider)
-	}
-
-	if !isChanged {
-		if s, ok := sessionCache.Load(getSessionName(region, clusterScoper)); ok {
-			entry := s.(*sessionCacheEntry)
-			return entry.serviceLimiters, nil
-		}
-	}
-	awsConfig := &aws.Config{
-		Region:           aws.String(region),
-		EndpointResolver: endpoints.ResolverFunc(resolver),
-	}
-
-	if len(providers) > 0 {
-		// Check if identity credentials can be retrieved. One reason this will fail is that source identity is not authorized for assume role.
-		_, err := providers[0].Retrieve()
-		if err != nil {
-			conditions.MarkUnknown(clusterScoper.InfraCluster(), infrav1.PrincipalCredentialRetrievedCondition, infrav1.CredentialProviderBuildFailedReason, "%s", err.Error())
-
-			// delete the existing session from cache. Otherwise, we give back a defective session on next method invocation with same cluster scope
-			sessionCache.Delete(getSessionName(region, clusterScoper))
-
-			return nil, errors.Wrap(err, "Failed to retrieve identity credentials")
-		}
-		awsConfig = awsConfig.WithCredentials(credentials.NewChainCredentials(awsProviders))
-	}
-
-	conditions.MarkTrue(clusterScoper.InfraCluster(), infrav1.PrincipalCredentialRetrievedCondition)
-
-	ns, err := session.NewSession(awsConfig)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to create a new AWS session")
-	}
-	sl := newServiceLimiters()
-	sessionCache.Store(getSessionName(region, clusterScoper), &sessionCacheEntry{
-		session:         ns,
-		serviceLimiters: sl,
-		sessionV2:       nil,
-	})
-
-	return sl, nil
 }
 
 func sessionForClusterWithRegionV2(k8sClient client.Client, clusterScoper cloud.SessionMetadata, region string, _ []ServiceEndpoint, log logger.Wrapper) (*awsv2.Config, throttle.ServiceLimiters, error) {

@@ -72,11 +72,6 @@ func NewROSAControlPlaneScope(params ROSAControlPlaneScopeParams) (*ROSAControlP
 		controllerName: params.ControllerName,
 	}
 
-	serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
-	if err != nil {
-		return nil, errors.Errorf("failed to create aws session: %v", err)
-	}
-
 	sessionv2, serviceLimitersv2, err := sessionForClusterWithRegionV2(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
@@ -89,8 +84,7 @@ func NewROSAControlPlaneScope(params ROSAControlPlaneScopeParams) (*ROSAControlP
 
 	managedScope.patchHelper = helper
 	managedScope.session = *sessionv2
-	managedScope.serviceLimiters = serviceLimiters
-	managedScope.serviceLimitersV2 = serviceLimitersv2
+	managedScope.serviceLimiters = serviceLimitersv2
 
 	stsClient := params.NewStsClient(managedScope, managedScope, managedScope, managedScope.ControlPlane)
 	identity, err := stsClient.GetCallerIdentity(context.TODO(), &stsv2.GetCallerIdentityInput{})
@@ -111,11 +105,10 @@ type ROSAControlPlaneScope struct {
 	Cluster      *clusterv1.Cluster
 	ControlPlane *rosacontrolplanev1.ROSAControlPlane
 
-	session           awsv2.Config
-	serviceLimiters   throttle.ServiceLimiters
-	serviceLimitersV2 throttle.ServiceLimiters
-	controllerName    string
-	Identity          *stsv2.GetCallerIdentityOutput
+	session         awsv2.Config
+	serviceLimiters throttle.ServiceLimiters
+	controllerName  string
+	Identity        *stsv2.GetCallerIdentityOutput
 }
 
 // InfraCluster returns the AWSManagedControlPlane object.
