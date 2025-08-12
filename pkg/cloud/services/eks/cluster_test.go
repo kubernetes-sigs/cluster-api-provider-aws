@@ -904,3 +904,74 @@ func TestCreateIPv6Cluster(t *testing.T) {
 	_, err = s.createCluster(context.TODO(), "cluster-name")
 	g.Expect(err).To(BeNil())
 }
+
+func TestCreateClusterWithBootstrapClusterCreatorAdminPermissions(t *testing.T) {
+	g := NewWithT(t)
+
+	mockControl := gomock.NewController(t)
+	defer mockControl.Finish()
+
+	eksMock := mock_eksiface.NewMockEKSAPI(mockControl)
+	iamMock := mock_iamauth.NewMockIAMAPI(mockControl)
+
+	scheme := runtime.NewScheme()
+	_ = infrav1.AddToScheme(scheme)
+	_ = ekscontrolplanev1.AddToScheme(scheme)
+	client := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+	clusterName := "test-cluster"
+	scope, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
+		Client: client,
+		Cluster: &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "ns",
+				Name:      "capi-name",
+			},
+		},
+		ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
+			Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+				EKSClusterName: clusterName,
+				Version:        aws.String("1.24"),
+				RoleName:       aws.String("arn:role"),
+				NetworkSpec: infrav1.NetworkSpec{
+					Subnets: []infrav1.SubnetSpec{
+						{ID: "1", AvailabilityZone: "us-west-2a"},
+						{ID: "2", AvailabilityZone: "us-west-2b"},
+					},
+				},
+				AccessConfig: &ekscontrolplanev1.AccessConfig{
+					BootstrapClusterCreatorAdminPermissions: ptr.To(false),
+				},
+			},
+		},
+	})
+	g.Expect(err).To(BeNil())
+
+	eksMock.EXPECT().CreateCluster(context.TODO(), &eks.CreateClusterInput{
+		Name:    aws.String(clusterName),
+		Version: aws.String("1.24"),
+		ResourcesVpcConfig: &ekstypes.VpcConfigRequest{
+			SubnetIds: []string{"1", "2"},
+		},
+		RoleArn: aws.String("arn:role"),
+		Tags: map[string]string{
+			"kubernetes.io/cluster/test-cluster": "owned",
+		},
+		AccessConfig: &ekstypes.CreateAccessConfigRequest{
+			BootstrapClusterCreatorAdminPermissions: ptr.To(false),
+		},
+		EncryptionConfig:           []ekstypes.EncryptionConfig{},
+		BootstrapSelfManagedAddons: aws.Bool(false),
+	}).Return(&eks.CreateClusterOutput{}, nil)
+
+	iamMock.EXPECT().GetRole(gomock.Any(), gomock.Any()).Return(&iam.GetRoleOutput{
+		Role: &iamtypes.Role{Arn: aws.String("arn:role")},
+	}, nil)
+
+	s := NewService(scope)
+	s.EKSClient = eksMock
+	s.IAMClient = iamMock
+
+	_, err = s.createCluster(context.TODO(), clusterName)
+	g.Expect(err).To(BeNil())
+}
