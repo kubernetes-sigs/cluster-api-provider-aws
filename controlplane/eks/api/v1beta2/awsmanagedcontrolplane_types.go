@@ -259,6 +259,12 @@ type AccessConfig struct {
 	// +kubebuilder:default=CONFIG_MAP
 	// +kubebuilder:validation:Enum=CONFIG_MAP;API;API_AND_CONFIG_MAP
 	AuthenticationMode EKSAuthenticationMode `json:"authenticationMode,omitempty"`
+
+	// BootstrapClusterCreatorAdminPermissions grants cluster admin permissions
+	// to the IAM identity creating the cluster. Only applied during creation,
+	// ignored when updating existing clusters. Defaults to true.
+	// +kubebuilder:default=true
+	BootstrapClusterCreatorAdminPermissions *bool `json:"bootstrapClusterCreatorAdminPermissions,omitempty"`
 }
 
 // EncryptionConfig specifies the encryption configuration for the EKS clsuter.

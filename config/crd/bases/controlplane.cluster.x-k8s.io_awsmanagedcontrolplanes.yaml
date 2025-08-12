@@ -2222,6 +2222,13 @@ spec:
                     - API
                     - API_AND_CONFIG_MAP
                     type: string
+                  bootstrapClusterCreatorAdminPermissions:
+                    default: true
+                    description: |-
+                      BootstrapClusterCreatorAdminPermissions grants cluster admin permissions
+                      to the IAM identity creating the cluster. Only applied during creation,
+                      ignored when updating existing clusters. Defaults to true.
+                    type: boolean
                 type: object
               additionalTags:
                 additionalProperties:
