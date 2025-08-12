@@ -760,6 +760,22 @@ func TestWebhookUpdate(t *testing.T) {
 			expectError: true,
 		},
 		{
+			name: "change in access config bootstrap admin permissions is ignored",
+			oldClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				AccessConfig: &AccessConfig{
+					BootstrapClusterCreatorAdminPermissions: ptr.To(true),
+				},
+			},
+			newClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				AccessConfig: &AccessConfig{
+					BootstrapClusterCreatorAdminPermissions: ptr.To(false),
+				},
+			},
+			expectError: false,
+		},
+		{
 			name: "change in encryption config to nil",
 			oldClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
