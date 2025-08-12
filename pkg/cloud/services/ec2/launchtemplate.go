@@ -650,6 +650,7 @@ func (s *Service) createLaunchTemplateData(scope scope.LaunchTemplateScope, imag
 	}
 	data.InstanceMarketOptions = instanceMarketOptions
 	data.PrivateDnsNameOptions = getLaunchTemplatePrivateDNSNameOptionsRequest(scope.GetLaunchTemplate().PrivateDNSName)
+	data.CapacityReservationSpecification = getLaunchTemplateCapacityReservationSpecification(scope.GetLaunchTemplate())
 
 	blockDeviceMappings := []types.LaunchTemplateBlockDeviceMappingRequest{}
 
@@ -680,6 +681,24 @@ func (s *Service) createLaunchTemplateData(scope scope.LaunchTemplateScope, imag
 	data.TagSpecifications = s.buildLaunchTemplateTagSpecificationRequest(scope, userDataSecretKey, bootstrapDataHash)
 
 	return data, nil
+}
+
+func getLaunchTemplateCapacityReservationSpecification(awsLaunchTemplate *expinfrav1.AWSLaunchTemplate) *types.LaunchTemplateCapacityReservationSpecificationRequest {
+	if awsLaunchTemplate == nil {
+		return nil
+	}
+	if awsLaunchTemplate.CapacityReservationID == nil && awsLaunchTemplate.CapacityReservationPreference == "" {
+		return nil
+	}
+	spec := &types.LaunchTemplateCapacityReservationSpecificationRequest{
+		CapacityReservationPreference: CapacityReservationPreferenceToSDK(awsLaunchTemplate.CapacityReservationPreference),
+	}
+	if awsLaunchTemplate.CapacityReservationID != nil {
+		spec.CapacityReservationTarget = &types.CapacityReservationTarget{
+			CapacityReservationId: awsLaunchTemplate.CapacityReservationID,
+		}
+	}
+	return spec
 }
 
 func volumeToLaunchTemplateBlockDeviceMappingRequest(v *infrav1.Volume) *types.LaunchTemplateBlockDeviceMappingRequest {
@@ -827,6 +846,36 @@ func SDKToSpotMarketOptions(instanceMarketOptions *types.LaunchTemplateInstanceM
 	}
 
 	return result
+}
+
+// SDKToCapacityReservationPreference maps an AWS SDK Capacity Reservation Preference onto the CAPA internal CapacityReservationPreference type.
+// inverse to `CapacityReservationPreferenceToSDK`.
+func SDKToCapacityReservationPreference(preference types.CapacityReservationPreference) infrav1.CapacityReservationPreference {
+	switch preference {
+	case types.CapacityReservationPreferenceCapacityReservationsOnly:
+		return infrav1.CapacityReservationPreferenceOnly
+	case types.CapacityReservationPreferenceNone:
+		return infrav1.CapacityReservationPreferenceNone
+	case types.CapacityReservationPreferenceOpen:
+		return infrav1.CapacityReservationPreferenceOpen
+	default:
+		return ""
+	}
+}
+
+// CapacityReservationPreferenceToSDK maps a CAPA internal Capacity Reservation Preference enum type onto the AWS SDK equivalent.
+// inverse to `SDKToCapacityReservationPreference`.
+func CapacityReservationPreferenceToSDK(preference infrav1.CapacityReservationPreference) types.CapacityReservationPreference {
+	switch preference {
+	case infrav1.CapacityReservationPreferenceNone:
+		return types.CapacityReservationPreferenceNone
+	case infrav1.CapacityReservationPreferenceOnly:
+		return types.CapacityReservationPreferenceCapacityReservationsOnly
+	case infrav1.CapacityReservationPreferenceOpen:
+		return types.CapacityReservationPreferenceOpen
+	default:
+		return ""
+	}
 }
 
 // SDKToLaunchTemplate converts an AWS EC2 SDK instance to the CAPA instance type.
