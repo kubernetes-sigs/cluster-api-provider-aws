@@ -418,6 +418,7 @@ func autoConvert_v1beta2_AWSLaunchTemplate_To_v1beta1_AWSLaunchTemplate(in *v1be
 	// WARNING: in.PrivateDNSName requires manual conversion: does not exist in peer-type
 	// WARNING: in.CapacityReservationID requires manual conversion: does not exist in peer-type
 	// WARNING: in.MarketType requires manual conversion: does not exist in peer-type
+	// WARNING: in.CapacityReservationPreference requires manual conversion: does not exist in peer-type
 	return nil
 }
 

@@ -72,6 +72,10 @@ func (src *AWSMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.AWSLaunchTemplate.MarketType = restored.Spec.AWSLaunchTemplate.MarketType
 	}
 
+	if preference := restored.Spec.AWSLaunchTemplate.CapacityReservationPreference; preference != "" {
+		dst.Spec.AWSLaunchTemplate.CapacityReservationPreference = preference
+	}
+
 	dst.Spec.DefaultInstanceWarmup = restored.Spec.DefaultInstanceWarmup
 	dst.Spec.AWSLaunchTemplate.NonRootVolumes = restored.Spec.AWSLaunchTemplate.NonRootVolumes
 	return nil
@@ -129,6 +133,10 @@ func (src *AWSManagedMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 
 		if restored.Spec.AWSLaunchTemplate.MarketType != "" {
 			dst.Spec.AWSLaunchTemplate.MarketType = restored.Spec.AWSLaunchTemplate.MarketType
+		}
+
+		if preference := restored.Spec.AWSLaunchTemplate.CapacityReservationPreference; preference != "" {
+			dst.Spec.AWSLaunchTemplate.CapacityReservationPreference = preference
 		}
 	}
 	if restored.Spec.AvailabilityZoneSubnetType != nil {
