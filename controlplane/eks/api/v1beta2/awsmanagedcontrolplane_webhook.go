@@ -330,12 +330,19 @@ func (r *AWSManagedControlPlane) validateAccessConfig(old *AWSManagedControlPlan
 	}
 
 	// AuthenticationMode is ratcheting - do not allow downgrades
-	if old.Spec.AccessConfig != nil && old.Spec.AccessConfig.AuthenticationMode != r.Spec.AccessConfig.AuthenticationMode &&
+	if old.Spec.AccessConfig != nil && r.Spec.AccessConfig != nil &&
+		old.Spec.AccessConfig.AuthenticationMode != r.Spec.AccessConfig.AuthenticationMode &&
 		((old.Spec.AccessConfig.AuthenticationMode == EKSAuthenticationModeAPIAndConfigMap && r.Spec.AccessConfig.AuthenticationMode == EKSAuthenticationModeConfigMap) ||
 			old.Spec.AccessConfig.AuthenticationMode == EKSAuthenticationModeAPI) {
 		allErrs = append(allErrs,
 			field.Invalid(field.NewPath("spec", "accessConfig", "authenticationMode"), r.Spec.AccessConfig.AuthenticationMode, "downgrading authentication mode is not allowed after it has been enabled"),
 		)
+	}
+
+	// BootstrapClusterCreatorAdminPermissions only applies on create, but changes should not invalidate updates
+	if old.Spec.AccessConfig != nil && r.Spec.AccessConfig != nil &&
+		old.Spec.AccessConfig.BootstrapClusterCreatorAdminPermissions != r.Spec.AccessConfig.BootstrapClusterCreatorAdminPermissions {
+		mcpLog.Info("Ignoring changes to BootstrapClusterCreatorAdminPermissions on cluster update", "old", old.Spec.AccessConfig.BootstrapClusterCreatorAdminPermissions, "new", r.Spec.AccessConfig.BootstrapClusterCreatorAdminPermissions)
 	}
 
 	return allErrs
