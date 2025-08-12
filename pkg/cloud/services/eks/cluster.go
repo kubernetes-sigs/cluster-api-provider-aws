@@ -433,6 +433,13 @@ func (s *Service) createCluster(ctx context.Context, eksClusterName string) (*ek
 		}
 	}
 
+	if s.scope.ControlPlane.Spec.AccessConfig != nil && s.scope.ControlPlane.Spec.AccessConfig.BootstrapClusterCreatorAdminPermissions != nil {
+		if accessConfig == nil {
+			accessConfig = &ekstypes.CreateAccessConfigRequest{}
+		}
+		accessConfig.BootstrapClusterCreatorAdminPermissions = s.scope.ControlPlane.Spec.AccessConfig.BootstrapClusterCreatorAdminPermissions
+	}
+
 	var netConfig *ekstypes.KubernetesNetworkConfigRequest
 	if s.scope.VPC().IsIPv6Enabled() {
 		netConfig = &ekstypes.KubernetesNetworkConfigRequest{
