@@ -19,8 +19,8 @@ package scope
 import (
 	"context"
 
-	awsclient "github.com/aws/aws-sdk-go/aws/client"
-	"github.com/aws/aws-sdk-go/service/iam"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	iamv2 "github.com/aws/aws-sdk-go-v2/service/iam"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -52,8 +52,8 @@ type RosaRoleConfigScope struct {
 	patchHelper     *patch.Helper
 	RosaRoleConfig  *expinfrav1.ROSARoleConfig
 	serviceLimiters throttle.ServiceLimiters
-	session         awsclient.ConfigProvider
-	iamClient       *iam.IAM
+	session         awsv2.Config
+	iamClient       *iamv2.Client
 }
 
 // NewRosaRoleConfigScope creates a new RosaRoleConfigScope from the supplied parameters.
@@ -71,12 +71,12 @@ func NewRosaRoleConfigScope(params RosaRoleConfigScopeParams) (*RosaRoleConfigSc
 		RosaRoleConfig: params.RosaRoleConfig,
 	}
 
-	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, RosaRoleConfigScope, "", params.Endpoints, params.Logger)
+	sessionv2, serviceLimitersv2, err := sessionForClusterWithRegionV2(params.Client, RosaRoleConfigScope, "", params.Endpoints, params.Logger)
 	if err != nil {
-		return nil, errors.Errorf("failed to create aws session: %v", err)
+		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
 	}
 
-	iamClient := iam.New(session)
+	iamClient := iamv2.NewFromConfig(*sessionv2)
 
 	patchHelper, err := patch.NewHelper(params.RosaRoleConfig, params.Client)
 	if err != nil {
@@ -84,8 +84,8 @@ func NewRosaRoleConfigScope(params RosaRoleConfigScopeParams) (*RosaRoleConfigSc
 	}
 
 	RosaRoleConfigScope.patchHelper = patchHelper
-	RosaRoleConfigScope.session = session
-	RosaRoleConfigScope.serviceLimiters = serviceLimiters
+	RosaRoleConfigScope.session = *sessionv2
+	RosaRoleConfigScope.serviceLimiters = serviceLimitersv2
 	RosaRoleConfigScope.iamClient = iamClient
 
 	return RosaRoleConfigScope, nil
@@ -96,8 +96,8 @@ func (s *RosaRoleConfigScope) IdentityRef() *infrav1.AWSIdentityReference {
 	return s.RosaRoleConfig.Spec.IdentityRef
 }
 
-// Session returns the AWS SDK session (used for creating clients).
-func (s *RosaRoleConfigScope) Session() awsclient.ConfigProvider {
+// Session returns the AWS SDK V2 session. Used for creating clients.
+func (s *RosaRoleConfigScope) Session() awsv2.Config {
 	return s.session
 }
 
@@ -165,6 +165,6 @@ func (s *RosaRoleConfigScope) CredentialsSecret() *corev1.Secret {
 }
 
 // IAMClient returns the IAM client.
-func (s *RosaRoleConfigScope) IAMClient() *iam.IAM {
+func (s *RosaRoleConfigScope) IAMClient() *iamv2.Client {
 	return s.iamClient
 }
