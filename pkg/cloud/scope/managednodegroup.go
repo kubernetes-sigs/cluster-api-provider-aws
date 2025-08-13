@@ -22,7 +22,6 @@ import (
 	"time"
 
 	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
-	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -54,7 +53,7 @@ type ManagedMachinePoolScopeParams struct {
 	MachinePool               *expclusterv1.MachinePool
 	ControllerName            string
 	Endpoints                 []ServiceEndpoint
-	Session                   awsclient.ConfigProvider
+	Session                   awsv2.Config
 	MaxWaitActiveUpdateDelete time.Duration
 
 	EnableIAM            bool
@@ -88,10 +87,6 @@ func NewManagedMachinePoolScope(params ManagedMachinePoolScopeParams) (*ManagedM
 		ControlPlane:              params.ControlPlane,
 		controllerName:            params.ControllerName,
 	}
-	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
-	if err != nil {
-		return nil, errors.Errorf("failed to create aws session: %v", err)
-	}
 
 	sessionv2, serviceLimitersv2, err := sessionForClusterWithRegionV2(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
 	if err != nil {
@@ -119,10 +114,8 @@ func NewManagedMachinePoolScope(params ManagedMachinePoolScopeParams) (*ManagedM
 		MachinePool:               params.MachinePool,
 		MaxWaitActiveUpdateDelete: params.MaxWaitActiveUpdateDelete,
 		EC2Scope:                  params.InfraCluster,
-		session:                   session,
-		sessionV2:                 *sessionv2,
-		serviceLimiters:           serviceLimiters,
-		serviceLimitersV2:         serviceLimitersv2,
+		session:                   *sessionv2,
+		serviceLimiters:           serviceLimitersv2,
 		controllerName:            params.ControllerName,
 		enableIAM:                 params.EnableIAM,
 		allowAdditionalRoles:      params.AllowAdditionalRoles,
@@ -143,11 +136,9 @@ type ManagedMachinePoolScope struct {
 	EC2Scope                  EC2Scope
 	MaxWaitActiveUpdateDelete time.Duration
 
-	session           awsclient.ConfigProvider
-	sessionV2         awsv2.Config
-	serviceLimiters   throttle.ServiceLimiters
-	serviceLimitersV2 throttle.ServiceLimiters
-	controllerName    string
+	session         awsv2.Config
+	serviceLimiters throttle.ServiceLimiters
+	controllerName  string
 
 	enableIAM            bool
 	allowAdditionalRoles bool
@@ -311,14 +302,9 @@ func (s *ManagedMachinePoolScope) ClusterObj() cloud.ClusterObject {
 	return s.Cluster
 }
 
-// Session returns the AWS SDK session. Used for creating clients.
-func (s *ManagedMachinePoolScope) Session() awsclient.ConfigProvider {
+// Session returns the AWS SDK V2 config. Used for creating clients.
+func (s *ManagedMachinePoolScope) Session() awsv2.Config {
 	return s.session
-}
-
-// SessionV2 returns the AWS SDK V2 config. Used for creating clients.
-func (s *ManagedMachinePoolScope) SessionV2() awsv2.Config {
-	return s.sessionV2
 }
 
 // ControllerName returns the name of the controller that
