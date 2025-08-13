@@ -69,6 +69,12 @@ func Code(err error) (string, bool) {
 	if awserr, ok := err.(awserr.Error); ok {
 		return awserr.Code(), true
 	}
+
+	// Handle smithy errors from AWS SDK v2
+	if smithyErr := ParseSmithyError(err); smithyErr != nil && smithyErr.ErrorCode() != "" {
+		return smithyErr.ErrorCode(), true
+	}
+
 	return "", false
 }
 
@@ -77,6 +83,12 @@ func Message(err error) string {
 	if awserr, ok := err.(awserr.Error); ok {
 		return awserr.Message()
 	}
+
+	// Handle smithy errors from AWS SDK v2
+	if smithyErr := ParseSmithyError(err); smithyErr != nil {
+		return smithyErr.ErrorMessage()
+	}
+
 	return ""
 }
 

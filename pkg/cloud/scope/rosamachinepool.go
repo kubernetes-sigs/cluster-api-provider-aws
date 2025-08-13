@@ -20,7 +20,6 @@ import (
 	"context"
 
 	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
-	awsclient "github.com/aws/aws-sdk-go/aws/client"
 	"github.com/pkg/errors"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -89,25 +88,17 @@ func NewRosaMachinePoolScope(params RosaMachinePoolScopeParams) (*RosaMachinePoo
 		controllerName:  params.ControllerName,
 	}
 
-	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, scope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
-	if err != nil {
-		return nil, errors.Errorf("failed to create aws session: %v", err)
-	}
-
 	sessionv2, serviceLimitersv2, err := sessionForClusterWithRegionV2(params.Client, scope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
 	}
 
-	scope.session = session
-	scope.sessionV2 = *sessionv2
-	scope.serviceLimiters = serviceLimiters
-	scope.serviceLimitersV2 = serviceLimitersv2
+	scope.session = *sessionv2
+	scope.serviceLimiters = serviceLimitersv2
 
 	return scope, nil
 }
 
-var _ cloud.Session = &RosaMachinePoolScope{}
 var _ cloud.SessionMetadata = &RosaMachinePoolScope{}
 
 // RosaMachinePoolScope defines the basic context for an actuator to operate upon.
@@ -122,10 +113,8 @@ type RosaMachinePoolScope struct {
 	RosaMachinePool *expinfrav1.ROSAMachinePool
 	MachinePool     *expclusterv1.MachinePool
 
-	session           awsclient.ConfigProvider
-	sessionV2         awsv2.Config
-	serviceLimiters   throttle.ServiceLimiters
-	serviceLimitersV2 throttle.ServiceLimiters
+	session         awsv2.Config
+	serviceLimiters throttle.ServiceLimiters
 
 	controllerName string
 }
@@ -179,14 +168,9 @@ func (s *RosaMachinePoolScope) ServiceLimiter(service string) *throttle.ServiceL
 	return nil
 }
 
-// Session implements cloud.Session.
-func (s *RosaMachinePoolScope) Session() awsclient.ConfigProvider {
+// Session implements cloud.Session for AWS SDK V2.
+func (s *RosaMachinePoolScope) Session() awsv2.Config {
 	return s.session
-}
-
-// SessionV2 implements cloud.Session for AWS SDK V2.
-func (s *RosaMachinePoolScope) SessionV2() awsv2.Config {
-	return s.sessionV2
 }
 
 // IdentityRef implements cloud.SessionMetadata.

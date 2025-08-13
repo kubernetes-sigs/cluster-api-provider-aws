@@ -158,6 +158,10 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	e2eCtx.Environment.BootstrapAccessKey = newUserAccessKey(context.TODO(), e2eCtx.AWSSessionV2, bootstrapTemplate.Spec.BootstrapUser.UserName)
 	e2eCtx.BootstrapUserAWSSession = NewAWSSessionWithKey(e2eCtx.Environment.BootstrapAccessKey)
 	e2eCtx.BootstrapUserAWSSessionV2 = NewAWSSessionWithKeyV2(e2eCtx.Environment.BootstrapAccessKey)
+
+	By("Waiting for access key to propagate...")
+	time.Sleep(10 * time.Second)
+
 	Expect(ensureTestImageUploaded(e2eCtx)).NotTo(HaveOccurred())
 
 	// Image ID is needed when using a CI Kubernetes version. This is used in conformance test and upgrade to main test.

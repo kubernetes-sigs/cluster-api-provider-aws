@@ -26,31 +26,24 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	rgapi "github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	stsv2 "github.com/aws/aws-sdk-go-v2/service/sts"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/service/secretsmanager"
-	"github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpointsv2"
 	awslogs "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/logs"
-	awsmetrics "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/metrics"
 	awsmetricsv2 "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/metricsv2"
 	stsservice "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/version"
 )
 
 // NewASGClient creates a new ASG API client for a given session.
 func NewASGClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) *autoscaling.Client {
-	cfg := session.SessionV2()
+	cfg := session.Session()
 
 	autoscalingOpts := []func(*autoscaling.Options){
 		func(o *autoscaling.Options) {
@@ -68,7 +61,7 @@ func NewASGClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logg
 
 // NewEC2Client creates a new EC2 API client for a given session.
 func NewEC2Client(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) *ec2.Client {
-	cfg := session.SessionV2()
+	cfg := session.Session()
 	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
 	ec2EndpointResolver := &endpointsv2.EC2EndpointResolver{
 		MultiServiceEndpointResolver: multiSvcEndpointResolver,
@@ -92,7 +85,7 @@ func NewEC2Client(scopeUser cloud.ScopeUsage, session cloud.Session, logger logg
 
 // NewELBClient creates a new ELB API client for a given session.
 func NewELBClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) *elb.Client {
-	cfg := session.SessionV2()
+	cfg := session.Session()
 	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
 	endpointResolver := &endpointsv2.ELBEndpointResolver{
 		MultiServiceEndpointResolver: multiSvcEndpointResolver,
@@ -116,7 +109,7 @@ func NewELBClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logg
 
 // NewELBv2Client creates a new ELB v2 API client for a given session.
 func NewELBv2Client(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) *elbv2.Client {
-	cfg := session.SessionV2()
+	cfg := session.Session()
 	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
 	endpointResolver := &endpointsv2.ELBV2EndpointResolver{
 		MultiServiceEndpointResolver: multiSvcEndpointResolver,
@@ -140,7 +133,7 @@ func NewELBv2Client(scopeUser cloud.ScopeUsage, session cloud.Session, logger lo
 
 // NewEventBridgeClient creates a new EventBridge API client for a given session.
 func NewEventBridgeClient(scopeUser cloud.ScopeUsage, session cloud.Session, target runtime.Object) *eventbridge.Client {
-	cfg := session.SessionV2()
+	cfg := session.Session()
 	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
 	endpointResolver := &endpointsv2.EventBridgeEndpointResolver{
 		MultiServiceEndpointResolver: multiSvcEndpointResolver,
@@ -161,7 +154,7 @@ func NewEventBridgeClient(scopeUser cloud.ScopeUsage, session cloud.Session, tar
 
 // NewSQSClient creates a new SQS API client for a given session.
 func NewSQSClient(scopeUser cloud.ScopeUsage, session cloud.Session, target runtime.Object) *sqs.Client {
-	cfg := session.SessionV2()
+	cfg := session.Session()
 	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
 	endpointResolver := &endpointsv2.SQSEndpointResolver{
 		MultiServiceEndpointResolver: multiSvcEndpointResolver,
@@ -182,7 +175,7 @@ func NewSQSClient(scopeUser cloud.ScopeUsage, session cloud.Session, target runt
 
 // NewGlobalSQSClient for creating a new SQS API client that isn't tied to a cluster.
 func NewGlobalSQSClient(scopeUser cloud.ScopeUsage, session cloud.Session) *sqs.Client {
-	cfg := session.SessionV2()
+	cfg := session.Session()
 	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
 	endpointResolver := &endpointsv2.SQSEndpointResolver{
 		MultiServiceEndpointResolver: multiSvcEndpointResolver,
@@ -203,7 +196,7 @@ func NewGlobalSQSClient(scopeUser cloud.ScopeUsage, session cloud.Session) *sqs.
 
 // NewResourgeTaggingClient creates a new Resource Tagging API client for a given session.
 func NewResourgeTaggingClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) *rgapi.Client {
-	cfg := session.SessionV2()
+	cfg := session.Session()
 	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
 	endpointResolver := &endpointsv2.RGAPIEndpointResolver{
 		MultiServiceEndpointResolver: multiSvcEndpointResolver,
@@ -222,20 +215,27 @@ func NewResourgeTaggingClient(scopeUser cloud.ScopeUsage, session cloud.Session,
 }
 
 // NewSecretsManagerClient creates a new Secrets API client for a given session..
-func NewSecretsManagerClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) secretsmanageriface.SecretsManagerAPI {
-	secretsClient := secretsmanager.New(session.Session(), aws.NewConfig().WithLogLevel(awslogs.GetAWSLogLevel(logger.GetLogger())).WithLogger(awslogs.NewWrapLogr(logger.GetLogger())))
-	secretsClient.Handlers.Build.PushFrontNamed(getUserAgentHandler())
-	secretsClient.Handlers.Sign.PushFront(session.ServiceLimiter(secretsClient.ServiceID).LimitRequest)
-	secretsClient.Handlers.CompleteAttempt.PushFront(awsmetrics.CaptureRequestMetrics(scopeUser.ControllerName()))
-	secretsClient.Handlers.CompleteAttempt.PushFront(session.ServiceLimiter(secretsClient.ServiceID).ReviewResponse)
-	secretsClient.Handlers.Complete.PushBack(recordAWSPermissionsIssue(target))
+func NewSecretsManagerClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) *secretsmanager.Client {
+	cfg := session.Session()
 
-	return secretsClient
+	secretsOpts := []func(*secretsmanager.Options){
+		func(o *secretsmanager.Options) {
+			o.Logger = logger.GetAWSLogger()
+			o.ClientLogMode = awslogs.GetAWSLogLevelV2(logger.GetLogger())
+		},
+		secretsmanager.WithAPIOptions(
+			awsmetricsv2.WithMiddlewares(scopeUser.ControllerName(), target),
+			awsmetricsv2.WithCAPAUserAgentMiddleware(),
+			throttle.WithServiceLimiterMiddleware(session.ServiceLimiter(secretsmanager.ServiceID)),
+		),
+	}
+
+	return secretsmanager.NewFromConfig(cfg, secretsOpts...)
 }
 
 // NewEKSClient creates a new EKS API client for a given session.
 func NewEKSClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) *eks.Client {
-	cfg := session.SessionV2()
+	cfg := session.Session()
 	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
 	eksEndpointResolver := &endpointsv2.EKSEndpointResolver{
 		MultiServiceEndpointResolver: multiSvcEndpointResolver,
@@ -253,7 +253,7 @@ func NewEKSClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logg
 
 // NewIAMClient creates a new IAM API client for a given session.
 func NewIAMClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) *iam.Client {
-	cfg := session.SessionV2()
+	cfg := session.Session()
 
 	iamOpts := []func(*iam.Options){
 		func(o *iam.Options) {
@@ -271,7 +271,7 @@ func NewIAMClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logg
 
 // NewSTSClient creates a new STS API client for a given session.
 func NewSTSClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) stsservice.STSClient {
-	cfg := session.SessionV2()
+	cfg := session.Session()
 	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
 	stsEndpointResolver := &endpointsv2.STSEndpointResolver{
 		MultiServiceEndpointResolver: multiSvcEndpointResolver,
@@ -294,7 +294,7 @@ func NewSTSClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logg
 
 // NewSSMClient creates a new Secrets API client for a given session.
 func NewSSMClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) *ssm.Client {
-	cfg := session.SessionV2()
+	cfg := session.Session()
 	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
 	ssmEndpointResolver := &endpointsv2.SSMEndpointResolver{
 		MultiServiceEndpointResolver: multiSvcEndpointResolver,
@@ -316,7 +316,7 @@ func NewSSMClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logg
 
 // NewS3Client creates a new S3 API client for a given session.
 func NewS3Client(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) *s3.Client {
-	cfg := session.SessionV2()
+	cfg := session.Session()
 	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
 	s3EndpointResolver := &endpointsv2.S3EndpointResolver{
 		MultiServiceEndpointResolver: multiSvcEndpointResolver,
@@ -332,28 +332,10 @@ func NewS3Client(scopeUser cloud.ScopeUsage, session cloud.Session, logger logge
 	return s3.NewFromConfig(cfg, s3Opts...)
 }
 
-func recordAWSPermissionsIssue(target runtime.Object) func(r *request.Request) {
-	return func(r *request.Request) {
-		if awsErr, ok := r.Error.(awserr.Error); ok {
-			switch awsErr.Code() {
-			case "AuthFailure", "UnauthorizedOperation", "NoCredentialProviders":
-				record.Warnf(target, awsErr.Code(), "Operation %s failed with a credentials or permission issue", r.Operation.Name)
-			}
-		}
-	}
-}
-
-func getUserAgentHandler() request.NamedHandler {
-	return request.NamedHandler{
-		Name: "capa/user-agent",
-		Fn:   request.MakeAddToUserAgentHandler("aws.cluster.x-k8s.io", version.Get().String()),
-	}
-}
-
 // AWSClients contains all the aws clients used by the scopes.
 type AWSClients struct {
 	ELB             *elb.Client
-	SecretsManager  secretsmanageriface.SecretsManagerAPI
+	SecretsManager  *secretsmanager.Client
 	ResourceTagging *rgapi.Client
 	ASG             *autoscaling.Client
 	EC2             *ec2.Client

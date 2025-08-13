@@ -23,8 +23,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/smithy-go"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -33,7 +33,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -414,7 +413,7 @@ func TestReconcileVPC(t *testing.T) {
 							Values: []string{string(types.VpcStatePending), string(types.VpcStateAvailable)},
 						},
 					},
-				})).Return(nil, awserr.New("404", "http not found err", errors.New("err")))
+				})).Return(nil, &smithy.GenericAPIError{Code: "404", Message: "http not found err"})
 			},
 		},
 		{
@@ -464,7 +463,7 @@ func TestReconcileVPC(t *testing.T) {
 						},
 					},
 				}, nil)
-				m.DescribeVpcAttribute(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcAttributeInput{})).Return(nil, awserr.New("InvalidVpcID.NotFound", "not found", nil))
+				m.DescribeVpcAttribute(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcAttributeInput{})).Return(nil, &smithy.GenericAPIError{Code: "InvalidVpcID.NotFound", Message: "not found"})
 				m.DescribeVpcAttribute(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcAttributeInput{})).
 					DoAndReturn(describeVpcAttributeTrue).AnyTimes()
 			},
@@ -494,7 +493,7 @@ func TestReconcileVPC(t *testing.T) {
 						},
 					},
 				}, nil)
-				m.DescribeVpcAttribute(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcAttributeInput{})).AnyTimes().Return(nil, awserrors.NewFailedDependency("failed dependency"))
+				m.DescribeVpcAttribute(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeVpcAttributeInput{})).AnyTimes().Return(nil, &smithy.GenericAPIError{Code: "FailedDependency", Message: "failed dependency"})
 			},
 		},
 		{
@@ -510,7 +509,7 @@ func TestReconcileVPC(t *testing.T) {
 						},
 					},
 				})).Return(&ec2.DescribeVpcsOutput{Vpcs: []types.Vpc{}}, nil)
-				m.CreateVpc(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).After(describeVPCByNameCall).Return(nil, awserrors.NewFailedDependency("failed dependency"))
+				m.CreateVpc(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateVpcInput{})).After(describeVPCByNameCall).Return(nil, &smithy.GenericAPIError{Code: "FailedDependency", Message: "failed dependency"})
 			},
 		},
 		{
@@ -610,7 +609,7 @@ func TestDeleteVPC(t *testing.T) {
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DeleteVpc(context.TODO(), gomock.Eq(&ec2.DeleteVpcInput{
 					VpcId: aws.String("managed-vpc"),
-				})).Return(nil, awserrors.NewFailedDependency("failed dependency"))
+				})).Return(nil, &smithy.GenericAPIError{Code: "FailedDependency", Message: "failed dependency"})
 			},
 		},
 		{
@@ -636,7 +635,7 @@ func TestDeleteVPC(t *testing.T) {
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DeleteVpc(context.TODO(), gomock.Eq(&ec2.DeleteVpcInput{
 					VpcId: aws.String("managed-vpc"),
-				})).Return(nil, awserr.New("InvalidVpcID.NotFound", "not found", nil))
+				})).Return(nil, &smithy.GenericAPIError{Code: "InvalidVpcID.NotFound", Message: "not found"})
 			},
 		},
 	}

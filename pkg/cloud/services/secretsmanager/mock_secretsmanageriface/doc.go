@@ -17,6 +17,6 @@ limitations under the License.
 // Package mock_secretsmanageriface provides a mock interface for the SecretsManager API client.
 // Run go generate to regenerate this mock.
 //
-//go:generate ../../../../../hack/tools/bin/mockgen -destination secretsmanagerapi_mock.go -package mock_secretsmanageriface github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface SecretsManagerAPI
+//go:generate ../../../../../hack/tools/bin/mockgen -destination secretsmanagerapi_mock.go -package mock_secretsmanageriface sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/secretsmanager SecretsManagerAPI
 //go:generate /usr/bin/env bash -c "cat ../../../../../hack/boilerplate/boilerplate.generatego.txt secretsmanagerapi_mock.go > _secretsmanagerapi_mock.go && mv _secretsmanagerapi_mock.go secretsmanagerapi_mock.go"
 package mock_secretsmanageriface //nolint:stylecheck
