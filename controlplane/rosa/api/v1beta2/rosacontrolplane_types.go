@@ -414,7 +414,7 @@ type AWSRolesRef struct {
 	//		}
 	//	]
 	// }
-	IngressARN string `json:"ingressARN"`
+	IngressARN string `json:"ingressARN,omitempty"`
 
 	// ImageRegistryARN is an ARN value referencing a role appropriate for the Image Registry Operator.
 	//
@@ -449,7 +449,7 @@ type AWSRolesRef struct {
 	//		}
 	//	]
 	// }
-	ImageRegistryARN string `json:"imageRegistryARN"`
+	ImageRegistryARN string `json:"imageRegistryARN,omitempty"`
 
 	// StorageARN is an ARN value referencing a role appropriate for the Storage Operator.
 	//
@@ -480,7 +480,7 @@ type AWSRolesRef struct {
 	//		}
 	//	]
 	// }
-	StorageARN string `json:"storageARN"`
+	StorageARN string `json:"storageARN,omitempty"`
 
 	// NetworkARN is an ARN value referencing a role appropriate for the Network Operator.
 	//
@@ -506,7 +506,7 @@ type AWSRolesRef struct {
 	//		}
 	//	]
 	// }
-	NetworkARN string `json:"networkARN"`
+	NetworkARN string `json:"networkARN,omitempty"`
 
 	// KubeCloudControllerARN is an ARN value referencing a role appropriate for the KCM/KCC.
 	// Source: https://cloud-provider-aws.sigs.k8s.io/prerequisites/#iam-policies
@@ -584,7 +584,7 @@ type AWSRolesRef struct {
 	//  ]
 	// }
 	// +immutable
-	KubeCloudControllerARN string `json:"kubeCloudControllerARN"`
+	KubeCloudControllerARN string `json:"kubeCloudControllerARN,omitempty"`
 
 	// NodePoolManagementARN is an ARN value referencing a role appropriate for the CAPI Controller.
 	//
@@ -697,7 +697,7 @@ type AWSRolesRef struct {
 	// }
 	//
 	// +immutable
-	NodePoolManagementARN string `json:"nodePoolManagementARN"`
+	NodePoolManagementARN string `json:"nodePoolManagementARN,omitempty"`
 
 	// ControlPlaneOperatorARN  is an ARN value referencing a role appropriate for the Control Plane Operator.
 	//
@@ -737,8 +737,8 @@ type AWSRolesRef struct {
 	//	]
 	// }
 	// +immutable
-	ControlPlaneOperatorARN string `json:"controlPlaneOperatorARN"`
-	KMSProviderARN          string `json:"kmsProviderARN"`
+	ControlPlaneOperatorARN string `json:"controlPlaneOperatorARN,omitempty"`
+	KMSProviderARN          string `json:"kmsProviderARN,omitempty"`
 }
 
 // RosaControlPlaneStatus defines the observed state of ROSAControlPlane.
