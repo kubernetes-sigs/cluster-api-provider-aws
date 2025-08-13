@@ -632,7 +632,12 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 	}
 
 	if len(i.Tags) > 0 {
-		resources := []types.ResourceType{types.ResourceTypeInstance, types.ResourceTypeVolume, types.ResourceTypeNetworkInterface}
+		resources := []types.ResourceType{types.ResourceTypeInstance, types.ResourceTypeVolume}
+
+		if len(i.NetworkInterfaces) == 0 {
+			resources = append(resources, types.ResourceTypeNetworkInterface)
+		}
+
 		for _, r := range resources {
 			spec := types.TagSpecification{ResourceType: r}
 
