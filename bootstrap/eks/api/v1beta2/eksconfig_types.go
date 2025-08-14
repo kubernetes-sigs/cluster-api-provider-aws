@@ -22,6 +22,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
+// NodeType specifies the type of nodeq
 // +kubebuilder:validation:Enum=al2023
 type NodeType string
 
