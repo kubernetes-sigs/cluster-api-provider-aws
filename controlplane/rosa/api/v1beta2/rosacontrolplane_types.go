@@ -21,7 +21,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
-	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -124,13 +123,23 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// +kubebuilder:default=WaitForAcknowledge
 	VersionGate VersionGateAckType `json:"versionGate"`
 
+	// RosaRoleConfigRef is a reference to a RosaRoleConfig resource that contains account and operator roles and OIDC configuration.
+	// If specified, the roles and OIDC configuration will be taken from the referenced RosaRoleConfig instead of the direct fields.
+	//
+	// +optional
+	RosaRoleConfigRef *corev1.LocalObjectReference `json:"rosaRoleConfigRef,omitempty"`
+
 	// AWS IAM roles used to perform credential requests by the openshift operators.
-	RolesRef AWSRolesRef `json:"rolesRef"`
+	// Required if RosaRoleConfigRef is not specified.
+	// +optional
+	RolesRef AWSRolesRef `json:"rolesRef,omitempty"`
 
 	// The ID of the internal OpenID Connect Provider.
+	// Required if RosaRoleConfigRef is not specified.
 	//
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="oidcID is immutable"
-	OIDCID string `json:"oidcID"`
+	// +optional
+	OIDCID string `json:"oidcID,omitempty"`
 
 	// EnableExternalAuthProviders enables external authentication configuration for the cluster.
 	//
@@ -149,13 +158,19 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// +kubebuilder:validation:MaxItems=1
 	ExternalAuthProviders []ExternalAuthProvider `json:"externalAuthProviders,omitempty"`
 
-	// InstallerRoleARN is an AWS IAM role that OpenShift Cluster Manager will assume to create the cluster..
-	InstallerRoleARN string `json:"installerRoleARN"`
+	// InstallerRoleARN is an AWS IAM role that OpenShift Cluster Manager will assume to create the cluster.
+	// Required if RosaRoleConfigRef is not specified.
+	// +optional
+	InstallerRoleARN string `json:"installerRoleARN,omitempty"`
 	// SupportRoleARN is an AWS IAM role used by Red Hat SREs to enable
 	// access to the cluster account in order to provide support.
-	SupportRoleARN string `json:"supportRoleARN"`
+	// Required if RosaRoleConfigRef is not specified.
+	// +optional
+	SupportRoleARN string `json:"supportRoleARN,omitempty"`
 	// WorkerRoleARN is an AWS IAM role that will be attached to worker instances.
-	WorkerRoleARN string `json:"workerRoleARN"`
+	// Required if RosaRoleConfigRef is not specified.
+	// +optional
+	WorkerRoleARN string `json:"workerRoleARN,omitempty"`
 
 	// BillingAccount is an optional AWS account to use for billing the subscription fees for ROSA HCP clusters.
 	// The cost of running each ROSA HCP cluster will be billed to the infrastructure account in which the cluster
@@ -330,7 +345,7 @@ type DefaultMachinePoolSpec struct {
 	// Autoscaling specifies auto scaling behaviour for the default MachinePool. Autoscaling min/max value
 	// must be equal or multiple of the availability zones count.
 	// +optional
-	Autoscaling *expinfrav1.RosaMachinePoolAutoScaling `json:"autoscaling,omitempty"`
+	Autoscaling *AutoScaling `json:"autoscaling,omitempty"`
 
 	// VolumeSize set the disk volume size for the default workers machine pool in Gib. The default is 300 GiB.
 	// +kubebuilder:validation:Minimum=75
@@ -338,6 +353,14 @@ type DefaultMachinePoolSpec struct {
 	// +immutable
 	// +optional
 	VolumeSize int `json:"volumeSize,omitempty"`
+}
+
+// AutoScaling specifies scaling options.
+type AutoScaling struct {
+	// +kubebuilder:validation:Minimum=1
+	MinReplicas int `json:"minReplicas,omitempty"`
+	// +kubebuilder:validation:Minimum=1
+	MaxReplicas int `json:"maxReplicas,omitempty"`
 }
 
 // AWSRolesRef contains references to various AWS IAM roles required for operators to make calls against the AWS API.
@@ -391,7 +414,7 @@ type AWSRolesRef struct {
 	//		}
 	//	]
 	// }
-	IngressARN string `json:"ingressARN"`
+	IngressARN string `json:"ingressARN,omitempty"`
 
 	// ImageRegistryARN is an ARN value referencing a role appropriate for the Image Registry Operator.
 	//
@@ -426,7 +449,7 @@ type AWSRolesRef struct {
 	//		}
 	//	]
 	// }
-	ImageRegistryARN string `json:"imageRegistryARN"`
+	ImageRegistryARN string `json:"imageRegistryARN,omitempty"`
 
 	// StorageARN is an ARN value referencing a role appropriate for the Storage Operator.
 	//
@@ -457,7 +480,7 @@ type AWSRolesRef struct {
 	//		}
 	//	]
 	// }
-	StorageARN string `json:"storageARN"`
+	StorageARN string `json:"storageARN,omitempty"`
 
 	// NetworkARN is an ARN value referencing a role appropriate for the Network Operator.
 	//
@@ -483,7 +506,7 @@ type AWSRolesRef struct {
 	//		}
 	//	]
 	// }
-	NetworkARN string `json:"networkARN"`
+	NetworkARN string `json:"networkARN,omitempty"`
 
 	// KubeCloudControllerARN is an ARN value referencing a role appropriate for the KCM/KCC.
 	// Source: https://cloud-provider-aws.sigs.k8s.io/prerequisites/#iam-policies
@@ -561,7 +584,7 @@ type AWSRolesRef struct {
 	//  ]
 	// }
 	// +immutable
-	KubeCloudControllerARN string `json:"kubeCloudControllerARN"`
+	KubeCloudControllerARN string `json:"kubeCloudControllerARN,omitempty"`
 
 	// NodePoolManagementARN is an ARN value referencing a role appropriate for the CAPI Controller.
 	//
@@ -674,7 +697,7 @@ type AWSRolesRef struct {
 	// }
 	//
 	// +immutable
-	NodePoolManagementARN string `json:"nodePoolManagementARN"`
+	NodePoolManagementARN string `json:"nodePoolManagementARN,omitempty"`
 
 	// ControlPlaneOperatorARN  is an ARN value referencing a role appropriate for the Control Plane Operator.
 	//
@@ -714,8 +737,8 @@ type AWSRolesRef struct {
 	//	]
 	// }
 	// +immutable
-	ControlPlaneOperatorARN string `json:"controlPlaneOperatorARN"`
-	KMSProviderARN          string `json:"kmsProviderARN"`
+	ControlPlaneOperatorARN string `json:"controlPlaneOperatorARN,omitempty"`
+	KMSProviderARN          string `json:"kmsProviderARN,omitempty"`
 }
 
 // RosaControlPlaneStatus defines the observed state of ROSAControlPlane.
