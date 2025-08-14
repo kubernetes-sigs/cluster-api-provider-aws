@@ -24,7 +24,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/service/iam"
+	iamv2 "github.com/aws/aws-sdk-go-v2/service/iam"
 	"github.com/go-logr/logr"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	accountroles "github.com/openshift/rosa/cmd/create/accountroles"
@@ -309,7 +309,7 @@ func (r *ROSARoleConfigReconciler) reconcileOIDCConfig(roleConfig *expinfrav1.RO
 	}
 	// Try to get OIDC UUID from some operator role policy document.
 	roleName := fmt.Sprintf("%s-openshift-ingress-operator-cloud-credentials", roleConfig.Spec.OperatorRoleConfig.Prefix)
-	roleDetails, err := scope.IAMClient().GetRole(&iam.GetRoleInput{
+	roleDetails, err := scope.IAMClient().GetRole(context.TODO(), &iamv2.GetRoleInput{
 		RoleName: &roleName,
 	})
 	if err != nil {
@@ -627,7 +627,7 @@ func (r ROSARoleConfigReconciler) operatorRolesReady(operatorRolesRef *v1beta2.A
 }
 
 // GetOIDCIDFromOperatorRole extracts the OIDC UUID from the operator role policy document.
-func (r *ROSARoleConfigReconciler) GetOIDCIDFromOperatorRole(scope *scope.RosaRoleConfigScope, roleDetails *iam.GetRoleOutput) (string, error) {
+func (r *ROSARoleConfigReconciler) GetOIDCIDFromOperatorRole(scope *scope.RosaRoleConfigScope, roleDetails *iamv2.GetRoleOutput) (string, error) {
 	decodedString, err := url.QueryUnescape(*roleDetails.Role.AssumeRolePolicyDocument)
 	if err != nil {
 		return "", err
