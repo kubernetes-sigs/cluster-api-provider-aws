@@ -217,20 +217,23 @@ func NewResourgeTaggingClient(scopeUser cloud.ScopeUsage, session cloud.Session,
 // NewSecretsManagerClient creates a new Secrets API client for a given session..
 func NewSecretsManagerClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) *secretsmanager.Client {
 	cfg := session.Session()
-
-	secretsOpts := []func(*secretsmanager.Options){
+	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
+	secretsManagerEndpointResolver := &endpointsv2.SecretsManagerEndpointResolver{
+		MultiServiceEndpointResolver: multiSvcEndpointResolver,
+	}
+	secretsManagerOpts := []func(*secretsmanager.Options){
 		func(o *secretsmanager.Options) {
 			o.Logger = logger.GetAWSLogger()
 			o.ClientLogMode = awslogs.GetAWSLogLevelV2(logger.GetLogger())
+			o.EndpointResolverV2 = secretsManagerEndpointResolver
 		},
 		secretsmanager.WithAPIOptions(
 			awsmetricsv2.WithMiddlewares(scopeUser.ControllerName(), target),
 			awsmetricsv2.WithCAPAUserAgentMiddleware(),
-			throttle.WithServiceLimiterMiddleware(session.ServiceLimiter(secretsmanager.ServiceID)),
 		),
 	}
 
-	return secretsmanager.NewFromConfig(cfg, secretsOpts...)
+	return secretsmanager.NewFromConfig(cfg, secretsManagerOpts...)
 }
 
 // NewEKSClient creates a new EKS API client for a given session.
