@@ -518,7 +518,7 @@ func TestGenerateAL2023UserData(t *testing.T) {
 			expectErr: false,
 			verifyOutput: func(output string) bool {
 				return strings.Contains(output, "cidr: 192.168.0.0/16") &&
-					strings.Contains(output, "maxPods: 58") &&
+					strings.Contains(output, "maxPods: 110") &&
 					strings.Contains(output, "nodegroup-image=ami-123456")
 			},
 		},
