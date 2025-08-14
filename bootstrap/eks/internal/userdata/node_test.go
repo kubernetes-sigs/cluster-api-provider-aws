@@ -498,7 +498,7 @@ func TestGenerateAL2023UserData(t *testing.T) {
 			expectErr: false,
 			verifyOutput: func(output string) bool {
 				return strings.Contains(output, "name: test-cluster") &&
-					strings.Contains(output, "maxPods: 110") &&
+					strings.Contains(output, "maxPods: 58") &&
 					strings.Contains(output, "nodegroup=test-nodegroup")
 			},
 		},

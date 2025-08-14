@@ -57,11 +57,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
-const (
-	// NodeTypeAL2023 represents the AL2023 node type.
-	NodeTypeAL2023 = "al2023"
-)
-
 // EKSConfigReconciler reconciles a EKSConfig object.
 type EKSConfigReconciler struct {
 	client.Client
@@ -233,7 +228,7 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 
 		// For AL2023, requeue to ensure we retry when control plane is ready
 		// For AL2, follow upstream behavior and return nil
-		if config.Spec.NodeType == NodeTypeAL2023 {
+		if config.Spec.NodeType == eksbootstrapv1.NodeTypeAL2023 {
 			log.Info("AL2023 detected, returning requeue after 30 seconds")
 			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 		}
@@ -248,7 +243,7 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 	}
 
 	// Check if control plane is ready (skip in test environments for AL2023)
-	if config.Spec.NodeType == NodeTypeAL2023 && !conditions.IsTrue(controlPlane, ekscontrolplanev1.EKSControlPlaneReadyCondition) {
+	if config.Spec.NodeType == eksbootstrapv1.NodeTypeAL2023 && !conditions.IsTrue(controlPlane, ekscontrolplanev1.EKSControlPlaneReadyCondition) {
 		// Skip control plane readiness check for AL2023 in test environment
 		if os.Getenv("TEST_ENV") != "true" {
 			log.Info("AL2023 detected, waiting for control plane to be ready")
@@ -309,7 +304,7 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 	}
 
 	// Set AMI family type and AL2023-specific fields if needed
-	if config.Spec.NodeType == NodeTypeAL2023 {
+	if config.Spec.NodeType == eksbootstrapv1.NodeTypeAL2023 {
 		log.Info("Processing AL2023 node type")
 		nodeInput.AMIFamilyType = userdata.AMIFamilyAL2023
 
