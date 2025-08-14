@@ -18,16 +18,17 @@ package secretsmanager
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	"github.com/aws/smithy-go"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/uuid"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/convertersv2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
@@ -93,11 +94,11 @@ func (s *Service) retryableCreateSecret(name string, chunk []byte, tags infrav1.
 		Tags:         convertersv2.MapToSecretsManagerTags(tags),
 	})
 	// If the secret already exists, delete it, return request to retry, as deletes are eventually consistent
-	smithyErr := awserrors.ParseSmithyError(err)
-	if smithyErr != nil && smithyErr.ErrorCode() == "ResourceExistsException" {
-		return false, s.forceDeleteSecretEntry(name)
-	}
 	if err != nil {
+		var aerr smithy.APIError
+		if errors.As(err, &aerr) && aerr.ErrorCode() == "ResourceExistsException" {
+			return false, s.forceDeleteSecretEntry(name)
+		}
 		return false, err
 	}
 	return true, err
@@ -109,9 +110,11 @@ func (s *Service) forceDeleteSecretEntry(name string) error {
 		SecretId:                   aws.String(name),
 		ForceDeleteWithoutRecovery: aws.Bool(true),
 	})
-	smithyErr := awserrors.ParseSmithyError(err)
-	if smithyErr != nil && smithyErr.ErrorCode() == "ResourceNotFoundException" {
-		return nil
+	if err != nil {
+		var aerr smithy.APIError
+		if errors.As(err, &aerr) && aerr.ErrorCode() == "ResourceNotFoundException" {
+			return nil
+		}
 	}
 	return err
 }
