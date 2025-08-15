@@ -670,6 +670,112 @@ func TestWebhookUpdate(t *testing.T) {
 			expectError: false,
 		},
 		{
+			name: "no change in access config",
+			oldClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				AccessConfig: &AccessConfig{
+					AuthenticationMode: EKSAuthenticationModeConfigMap,
+				},
+			},
+			newClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				AccessConfig: &AccessConfig{
+					AuthenticationMode: EKSAuthenticationModeConfigMap,
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "change in access config to nil",
+			oldClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				AccessConfig: &AccessConfig{
+					AuthenticationMode: EKSAuthenticationModeConfigMap,
+				},
+			},
+			newClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+			},
+			expectError: true,
+		},
+		{
+			name: "change in access config from nil to valid",
+			oldClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+			},
+			newClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				AccessConfig: &AccessConfig{
+					AuthenticationMode: EKSAuthenticationModeConfigMap,
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "change in access config auth mode from ApiAndConfigMap to API is allowed",
+			oldClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				AccessConfig: &AccessConfig{
+					AuthenticationMode: EKSAuthenticationModeAPIAndConfigMap,
+				},
+			},
+			newClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				AccessConfig: &AccessConfig{
+					AuthenticationMode: EKSAuthenticationModeAPI,
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "change in access config auth mode from API to Config Map is denied",
+			oldClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				AccessConfig: &AccessConfig{
+					AuthenticationMode: EKSAuthenticationModeAPI,
+				},
+			},
+			newClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				AccessConfig: &AccessConfig{
+					AuthenticationMode: EKSAuthenticationModeConfigMap,
+				},
+			},
+			expectError: true,
+		},
+		{
+			name: "change in access config auth mode from APIAndConfigMap to Config Map is denied",
+			oldClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				AccessConfig: &AccessConfig{
+					AuthenticationMode: EKSAuthenticationModeAPIAndConfigMap,
+				},
+			},
+			newClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				AccessConfig: &AccessConfig{
+					AuthenticationMode: EKSAuthenticationModeConfigMap,
+				},
+			},
+			expectError: true,
+		},
+		{
+			name: "change in access config bootstrap admin permissions is ignored",
+			oldClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				AccessConfig: &AccessConfig{
+					BootstrapClusterCreatorAdminPermissions: ptr.To(true),
+				},
+			},
+			newClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				AccessConfig: &AccessConfig{
+					BootstrapClusterCreatorAdminPermissions: ptr.To(false),
+				},
+			},
+			expectError: false,
+		},
+		{
 			name: "change in encryption config to nil",
 			oldClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
