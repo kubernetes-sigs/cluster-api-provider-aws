@@ -565,8 +565,11 @@ func (r *ROSAControlPlaneReconciler) updateOCMClusterSpec(rosaControlPlane *rosa
 		updated = true
 	}
 
-	// TODO: check for cluster AutoScale changes
-	// rosaControlPlane.Spec.DefaultMachinePoolSpec.Autoscaling
+	channelGroup := string(rosaControlPlane.Spec.ChannelGroup)
+	if ocmClusterSpec.ChannelGroup != channelGroup {
+		ocmClusterSpec.ChannelGroup = channelGroup
+		updated = true
+	}
 
 	return ocmClusterSpec, updated
 }

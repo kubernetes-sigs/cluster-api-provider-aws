@@ -179,6 +179,30 @@ func TestUpdateOCMClusterSpec(t *testing.T) {
 		g.Expect(updated).To(BeTrue())
 		g.Expect(ocmSpec).To(Equal(expectedOCMSpec))
 	})
+
+	// Test case 6: channel group update
+	t.Run("Update AllowedRegistriesForImport", func(t *testing.T) {
+		rosaControlPlane := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				ChannelGroup: rosacontrolplanev1.Candidate,
+			},
+		}
+
+		mockCluster, _ := v1.NewCluster().
+			Version(v1.NewVersion().
+				ChannelGroup("stable")).
+			Build()
+
+		expectedOCMSpec := ocm.Spec{
+			ChannelGroup: "candidate",
+		}
+
+		reconciler := &ROSAControlPlaneReconciler{}
+		ocmSpec, updated := reconciler.updateOCMClusterSpec(rosaControlPlane, mockCluster)
+
+		g.Expect(updated).To(BeTrue())
+		g.Expect(ocmSpec).To(Equal(expectedOCMSpec))
+	})
 }
 
 func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
