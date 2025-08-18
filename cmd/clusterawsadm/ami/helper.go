@@ -24,9 +24,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
 
@@ -218,7 +218,7 @@ func getAllImages(ec2Client common.EC2API, ownerID string) (map[string][]types.I
 
 	imagesMap := make(map[string][]types.Image)
 	for _, image := range out.Images {
-		arr := strings.Split(aws.StringValue(image.Name), "-")
+		arr := strings.Split(aws.ToString(image.Name), "-")
 		if arr[len(arr)-2] == "00" {
 			arr = arr[:len(arr)-2]
 		} else {

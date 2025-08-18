@@ -28,8 +28,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	stsv2 "github.com/aws/aws-sdk-go-v2/service/sts"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	v1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -417,7 +417,6 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 
 	r := ROSAControlPlaneReconciler{
 		WatchFilterValue: "",
-		Endpoints:        []scope.ServiceEndpoint{},
 		Client:           testEnv,
 		restClientConfig: cfg,
 		NewStsClient: func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsiface.STSClient {

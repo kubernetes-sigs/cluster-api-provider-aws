@@ -25,19 +25,19 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/api/bootstrap/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpoints"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/common"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/util/system"
 )
 
 const (
@@ -234,8 +234,8 @@ func (s *Service) defaultAMIIDLookup(amiNameFormat, ownerID, baseOS, architectur
 		return "", errors.Wrapf(err, "failed to find ami")
 	}
 
-	s.scope.Debug("Found and using an existing AMI", "ami-id", aws.StringValue(latestImage.ImageId))
-	return aws.StringValue(latestImage.ImageId), nil
+	s.scope.Debug("Found and using an existing AMI", "ami-id", aws.ToString(latestImage.ImageId))
+	return aws.ToString(latestImage.ImageId), nil
 }
 
 type images []ec2types.Image
@@ -249,8 +249,8 @@ func (i images) Len() int {
 // index i should sort before the element with index j.
 // At this point all CreationDates have been checked for errors so ignoring the error is ok.
 func (i images) Less(k, j int) bool {
-	firstTime, _ := time.Parse(createDateTimestampFormat, aws.StringValue(i[k].CreationDate))
-	secondTime, _ := time.Parse(createDateTimestampFormat, aws.StringValue(i[j].CreationDate))
+	firstTime, _ := time.Parse(createDateTimestampFormat, aws.ToString(i[k].CreationDate))
+	secondTime, _ := time.Parse(createDateTimestampFormat, aws.ToString(i[j].CreationDate))
 	return firstTime.Before(secondTime)
 }
 
@@ -262,7 +262,7 @@ func (i images) Swap(k, j int) {
 // GetLatestImage assumes imgs is not empty. Responsibility of the caller to check.
 func GetLatestImage(imgs []ec2types.Image) (*ec2types.Image, error) {
 	for _, img := range imgs {
-		if _, err := time.Parse(createDateTimestampFormat, aws.StringValue(img.CreationDate)); err != nil {
+		if _, err := time.Parse(createDateTimestampFormat, aws.ToString(img.CreationDate)); err != nil {
 			return nil, err
 		}
 	}
@@ -294,7 +294,7 @@ func (s *Service) defaultBastionAMILookup() (string, error) {
 	}
 
 	ownerID := ubuntuOwnerID
-	partition := system.GetPartitionFromRegion(s.scope.Region())
+	partition := endpoints.GetPartitionFromRegion(s.scope.Region())
 	if strings.Contains(partition, v1beta1.PartitionNameUSGov) {
 		ownerID = ubuntuOwnerIDUsGov
 	}
@@ -371,7 +371,7 @@ func (s *Service) eksAMILookup(ctx context.Context, kubernetesVersion string, ar
 		return "", errors.Errorf("SSM parameter returned with nil value: %q", paramName)
 	}
 
-	id := aws.StringValue(out.Parameter.Value)
+	id := aws.ToString(out.Parameter.Value)
 	s.scope.Info("found AMI", "id", id, "version", formattedVersion)
 
 	return id, nil

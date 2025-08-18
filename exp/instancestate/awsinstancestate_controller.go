@@ -54,7 +54,6 @@ type AwsInstanceStateReconciler struct {
 	Log               logr.Logger
 	sqsServiceFactory func() instancestate.SQSAPI
 	queueURLs         sync.Map
-	Endpoints         []scope.ServiceEndpoint
 	WatchFilterValue  string
 }
 
@@ -69,7 +68,6 @@ func (r *AwsInstanceStateReconciler) getSQSService(region string) (instancestate
 	globalScope, err := scope.NewGlobalScope(scope.GlobalScopeParams{
 		ControllerName: "awsinstancestate",
 		Region:         region,
-		Endpoints:      r.Endpoints,
 	})
 
 	if err != nil {

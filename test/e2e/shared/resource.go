@@ -27,7 +27,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/aws/aws-sdk-go/service/servicequotas"
+	servicequotastypes "github.com/aws/aws-sdk-go-v2/service/servicequotas/types"
 	"github.com/gofrs/flock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -70,7 +70,7 @@ func WriteResourceQuotesToFile(logPath string, serviceQuotas map[string]*Service
 	Expect(err).NotTo(HaveOccurred())
 }
 
-func WriteAWSResourceQuotesToFile(logPath string, serviceQuotas map[string]*servicequotas.ServiceQuota) {
+func WriteAWSResourceQuotesToFile(logPath string, serviceQuotas map[string]*servicequotastypes.ServiceQuota) {
 	if _, err := os.Stat(logPath); err == nil {
 		// If resource-quotas file exists, remove it. Should not fail on error, another ginkgo node might have already deleted it.
 		os.Remove(logPath)

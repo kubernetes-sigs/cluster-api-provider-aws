@@ -55,7 +55,7 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 		clusterName = fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 
 		ginkgo.By("default iam role should exist")
-		VerifyRoleExistsAndOwned(ctx, ekscontrolplanev1.DefaultEKSControlPlaneRole, clusterName, false, e2eCtx.AWSSessionV2)
+		VerifyRoleExistsAndOwned(ctx, ekscontrolplanev1.DefaultEKSControlPlaneRole, clusterName, false, e2eCtx.AWSSession)
 
 		ginkgo.By("should create an EKS control plane")
 		ManagedClusterSpec(ctx, func() ManagedClusterSpecInput {
@@ -63,7 +63,7 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 				E2EConfig:                e2eCtx.E2EConfig,
 				ConfigClusterFn:          defaultConfigCluster,
 				BootstrapClusterProxy:    e2eCtx.Environment.BootstrapClusterProxy,
-				AWSSession:               e2eCtx.BootstrapUserAWSSessionV2,
+				AWSSession:               e2eCtx.BootstrapUserAWSSession,
 				Namespace:                namespace,
 				ClusterName:              clusterName,
 				Flavour:                  EKSManagedPoolFlavor,
@@ -111,14 +111,14 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 
 		ginkgo.By("Checking we have the load balancers in AWS")
 		shared.WaitForLoadBalancerToExistForService(ctx, shared.WaitForLoadBalancerToExistForServiceInput{
-			AWSSession:       e2eCtx.BootstrapUserAWSSessionV2,
+			AWSSession:       e2eCtx.BootstrapUserAWSSession,
 			ServiceName:      "podinfo-nlb",
 			ServiceNamespace: "default",
 			ClusterName:      cp.Spec.EKSClusterName,
 			Type:             infrav1.LoadBalancerTypeNLB,
 		}, e2eCtx.E2EConfig.GetIntervals("", "wait-loadbalancer-ready")...)
 		shared.WaitForLoadBalancerToExistForService(ctx, shared.WaitForLoadBalancerToExistForServiceInput{
-			AWSSession:       e2eCtx.BootstrapUserAWSSessionV2,
+			AWSSession:       e2eCtx.BootstrapUserAWSSession,
 			ServiceName:      "podinfo-elb",
 			ServiceNamespace: "default",
 			ClusterName:      cp.Spec.EKSClusterName,
@@ -139,7 +139,7 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 
 		ginkgo.By("Getting counts of service load balancers")
 		arns, err := shared.GetLoadBalancerARNs(ctx, shared.GetLoadBalancerARNsInput{
-			AWSSession:       e2eCtx.BootstrapUserAWSSessionV2,
+			AWSSession:       e2eCtx.BootstrapUserAWSSession,
 			ServiceName:      "podinfo-nlb",
 			ServiceNamespace: "default",
 			ClusterName:      cp.Spec.EKSClusterName,
@@ -148,7 +148,7 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 		Expect(err).NotTo(HaveOccurred())
 		Expect(arns).To(BeEmpty(), "there are %d service load balancers (nlb) still", len(arns))
 		arns, err = shared.GetLoadBalancerARNs(ctx, shared.GetLoadBalancerARNsInput{
-			AWSSession:       e2eCtx.BootstrapUserAWSSessionV2,
+			AWSSession:       e2eCtx.BootstrapUserAWSSession,
 			ServiceName:      "podinfo-elb",
 			ServiceNamespace: "default",
 			ClusterName:      cp.Spec.EKSClusterName,
@@ -178,7 +178,7 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 		clusterName = fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 
 		ginkgo.By("default iam role should exist")
-		VerifyRoleExistsAndOwned(ctx, ekscontrolplanev1.DefaultEKSControlPlaneRole, clusterName, false, e2eCtx.AWSSessionV2)
+		VerifyRoleExistsAndOwned(ctx, ekscontrolplanev1.DefaultEKSControlPlaneRole, clusterName, false, e2eCtx.AWSSession)
 
 		ginkgo.By("should create an EKS control plane")
 		ManagedClusterSpec(ctx, func() ManagedClusterSpecInput {
@@ -186,7 +186,7 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 				E2EConfig:                e2eCtx.E2EConfig,
 				ConfigClusterFn:          defaultConfigCluster,
 				BootstrapClusterProxy:    e2eCtx.Environment.BootstrapClusterProxy,
-				AWSSession:               e2eCtx.BootstrapUserAWSSessionV2,
+				AWSSession:               e2eCtx.BootstrapUserAWSSession,
 				Namespace:                namespace,
 				ClusterName:              clusterName,
 				Flavour:                  EKSManagedPoolFlavor,
@@ -234,14 +234,14 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 
 		ginkgo.By("Checking we have the load balancers in AWS")
 		shared.WaitForLoadBalancerToExistForService(ctx, shared.WaitForLoadBalancerToExistForServiceInput{
-			AWSSession:       e2eCtx.BootstrapUserAWSSessionV2,
+			AWSSession:       e2eCtx.BootstrapUserAWSSession,
 			ServiceName:      "podinfo-nlb",
 			ServiceNamespace: "default",
 			ClusterName:      cp.Spec.EKSClusterName,
 			Type:             infrav1.LoadBalancerTypeNLB,
 		}, e2eCtx.E2EConfig.GetIntervals("", "wait-loadbalancer-ready")...)
 		shared.WaitForLoadBalancerToExistForService(ctx, shared.WaitForLoadBalancerToExistForServiceInput{
-			AWSSession:       e2eCtx.BootstrapUserAWSSessionV2,
+			AWSSession:       e2eCtx.BootstrapUserAWSSession,
 			ServiceName:      "podinfo-elb",
 			ServiceNamespace: "default",
 			ClusterName:      cp.Spec.EKSClusterName,
@@ -262,7 +262,7 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 
 		ginkgo.By("Getting counts of service load balancers")
 		arns, err := shared.GetLoadBalancerARNs(ctx, shared.GetLoadBalancerARNsInput{
-			AWSSession:       e2eCtx.BootstrapUserAWSSessionV2,
+			AWSSession:       e2eCtx.BootstrapUserAWSSession,
 			ServiceName:      "podinfo-nlb",
 			ServiceNamespace: "default",
 			ClusterName:      cp.Spec.EKSClusterName,
@@ -271,7 +271,7 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 		Expect(err).NotTo(HaveOccurred())
 		Expect(arns).To(BeEmpty(), "there are %d service load balancers (nlb) still", len(arns))
 		arns, err = shared.GetLoadBalancerARNs(ctx, shared.GetLoadBalancerARNsInput{
-			AWSSession:       e2eCtx.BootstrapUserAWSSessionV2,
+			AWSSession:       e2eCtx.BootstrapUserAWSSession,
 			ServiceName:      "podinfo-elb",
 			ServiceNamespace: "default",
 			ClusterName:      cp.Spec.EKSClusterName,

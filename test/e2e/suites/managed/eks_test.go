@@ -56,7 +56,7 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 		eksClusterName := getEKSClusterName(namespace.Name, clusterName)
 
 		ginkgo.By("default iam role should exist")
-		VerifyRoleExistsAndOwned(ctx, ekscontrolplanev1.DefaultEKSControlPlaneRole, eksClusterName, false, e2eCtx.AWSSessionV2)
+		VerifyRoleExistsAndOwned(ctx, ekscontrolplanev1.DefaultEKSControlPlaneRole, eksClusterName, false, e2eCtx.AWSSession)
 
 		ginkgo.By("should create an EKS control plane")
 		ManagedClusterSpec(ctx, func() ManagedClusterSpecInput {
@@ -64,7 +64,7 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 				E2EConfig:                e2eCtx.E2EConfig,
 				ConfigClusterFn:          defaultConfigCluster,
 				BootstrapClusterProxy:    e2eCtx.Environment.BootstrapClusterProxy,
-				AWSSession:               e2eCtx.BootstrapUserAWSSessionV2,
+				AWSSession:               e2eCtx.BootstrapUserAWSSession,
 				Namespace:                namespace,
 				ClusterName:              clusterName,
 				Flavour:                  EKSControlPlaneOnlyWithAddonFlavor,
@@ -78,7 +78,7 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 			return UpdateAwsNodeVersionSpecInput{
 				E2EConfig:             e2eCtx.E2EConfig,
 				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
-				AWSSession:            e2eCtx.BootstrapUserAWSSessionV2,
+				AWSSession:            e2eCtx.BootstrapUserAWSSession,
 				Namespace:             namespace,
 				ClusterName:           clusterName,
 			}
@@ -89,7 +89,7 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 			return CheckAddonExistsSpecInput{
 				E2EConfig:             e2eCtx.E2EConfig,
 				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
-				AWSSession:            e2eCtx.BootstrapUserAWSSessionV2,
+				AWSSession:            e2eCtx.BootstrapUserAWSSession,
 				Namespace:             namespace,
 				ClusterName:           clusterName,
 				AddonName:             cniAddonName,
@@ -103,7 +103,7 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 				E2EConfig:             e2eCtx.E2EConfig,
 				ConfigClusterFn:       defaultConfigCluster,
 				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
-				AWSSession:            e2eCtx.BootstrapUserAWSSessionV2,
+				AWSSession:            e2eCtx.BootstrapUserAWSSession,
 				Namespace:             namespace,
 				ClusterName:           clusterName,
 				Replicas:              1,
@@ -117,7 +117,7 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 				E2EConfig:             e2eCtx.E2EConfig,
 				ConfigClusterFn:       defaultConfigCluster,
 				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
-				AWSSession:            e2eCtx.BootstrapUserAWSSessionV2,
+				AWSSession:            e2eCtx.BootstrapUserAWSSession,
 				Namespace:             namespace,
 				ClusterName:           clusterName,
 				IncludeScaling:        true,
@@ -133,7 +133,7 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 				E2EConfig:             e2eCtx.E2EConfig,
 				ConfigClusterFn:       defaultConfigCluster,
 				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
-				AWSSession:            e2eCtx.BootstrapUserAWSSessionV2,
+				AWSSession:            e2eCtx.BootstrapUserAWSSession,
 				Namespace:             namespace,
 				ClusterName:           clusterName,
 				IncludeScaling:        true,
@@ -150,7 +150,7 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 				E2EConfig:             e2eCtx.E2EConfig,
 				ConfigClusterFn:       defaultConfigCluster,
 				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
-				AWSSession:            e2eCtx.BootstrapUserAWSSessionV2,
+				AWSSession:            e2eCtx.BootstrapUserAWSSession,
 				Namespace:             namespace,
 				ClusterName:           clusterName,
 				IncludeScaling:        true,

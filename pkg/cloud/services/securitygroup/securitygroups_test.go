@@ -22,10 +22,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/smithy-go"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -809,11 +809,17 @@ func TestReconcileSecurityGroups(t *testing.T) {
 
 				m.RevokeSecurityGroupIngress(context.TODO(), gomock.AssignableToTypeOf(&ec2.RevokeSecurityGroupIngressInput{
 					GroupId: aws.String("sg-default"),
-				})).Return(&ec2.RevokeSecurityGroupIngressOutput{}, awserr.New("InvalidPermission.NotFound", "rules not found in security group", nil))
+				})).Return(&ec2.RevokeSecurityGroupIngressOutput{}, &smithy.GenericAPIError{
+					Code:    "InvalidPermission.NotFound",
+					Message: "rules not found in security group",
+				})
 
 				m.RevokeSecurityGroupEgress(context.TODO(), gomock.AssignableToTypeOf(&ec2.RevokeSecurityGroupEgressInput{
 					GroupId: aws.String("sg-default"),
-				})).Return(&ec2.RevokeSecurityGroupEgressOutput{}, awserr.New("InvalidPermission.NotFound", "rules not found in security group", nil))
+				})).Return(&ec2.RevokeSecurityGroupEgressOutput{}, &smithy.GenericAPIError{
+					Code:    "InvalidPermission.NotFound",
+					Message: "rules not found in security group",
+				})
 
 				m.DescribeSecurityGroups(context.TODO(), &ec2.DescribeSecurityGroupsInput{
 					Filters: []types.Filter{
@@ -1955,7 +1961,10 @@ func TestDeleteSecurityGroups(t *testing.T) {
 				VPC: infrav1.VPCSpec{ID: "vpc-id"},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeSecurityGroups(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{}), gomock.Any()).Return(nil, awserr.New("dependency-failure", "dependency-failure", errors.Errorf("dependency-failure")))
+				m.DescribeSecurityGroups(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeSecurityGroupsInput{}), gomock.Any()).Return(nil, &smithy.GenericAPIError{
+					Code:    "dependency-failure",
+					Message: "dependency-failure",
+				})
 			},
 			wantErr: true,
 		},
@@ -1996,7 +2005,10 @@ func TestDeleteSecurityGroups(t *testing.T) {
 						},
 					},
 				}, nil).Times(2)
-				m.RevokeSecurityGroupIngress(context.TODO(), gomock.AssignableToTypeOf(&ec2.RevokeSecurityGroupIngressInput{}), gomock.Any()).Return(nil, awserr.New("failure", "failure", errors.Errorf("failure")))
+				m.RevokeSecurityGroupIngress(context.TODO(), gomock.AssignableToTypeOf(&ec2.RevokeSecurityGroupIngressInput{}), gomock.Any()).Return(nil, &smithy.GenericAPIError{
+					Code:    "failure",
+					Message: "failure",
+				})
 			},
 			wantErr: true,
 		},

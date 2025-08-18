@@ -46,7 +46,6 @@ type ROSAControlPlaneScopeParams struct {
 	Cluster        *clusterv1.Cluster
 	ControlPlane   *rosacontrolplanev1.ROSAControlPlane
 	ControllerName string
-	Endpoints      []ServiceEndpoint
 	NewStsClient   func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsservice.STSClient
 }
 
@@ -72,7 +71,7 @@ func NewROSAControlPlaneScope(params ROSAControlPlaneScopeParams) (*ROSAControlP
 		controllerName: params.ControllerName,
 	}
 
-	sessionv2, serviceLimitersv2, err := sessionForClusterWithRegionV2(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
+	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
 	}
@@ -83,8 +82,8 @@ func NewROSAControlPlaneScope(params ROSAControlPlaneScopeParams) (*ROSAControlP
 	}
 
 	managedScope.patchHelper = helper
-	managedScope.session = *sessionv2
-	managedScope.serviceLimiters = serviceLimitersv2
+	managedScope.session = *session
+	managedScope.serviceLimiters = serviceLimiters
 
 	stsClient := params.NewStsClient(managedScope, managedScope, managedScope, managedScope.ControlPlane)
 	identity, err := stsClient.GetCallerIdentity(context.TODO(), &stsv2.GetCallerIdentityInput{})
