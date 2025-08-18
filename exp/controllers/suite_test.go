@@ -87,7 +87,7 @@ func setup() {
 		panic(fmt.Sprintf("Unable to setup ROSAMachinePool webhook: %v", err))
 	}
 	if err := (&rosacontrolplanev1.ROSAControlPlane{}).SetupWebhookWithManager(testEnv); err != nil {
-		panic(fmt.Sprintf("Unable to setup ROSAMachinePool webhook: %v", err))
+		panic(fmt.Sprintf("Unable to setup ROSAControlPlane webhook: %v", err))
 	}
 	go func() {
 		fmt.Println("Starting the manager")
