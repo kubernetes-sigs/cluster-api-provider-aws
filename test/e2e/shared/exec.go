@@ -100,7 +100,7 @@ func commandsForMachine(ctx context.Context, e2eCtx *E2EContext, f *os.File, ins
 		fmt.Fprintf(f, "unable to marshal session: err=%s", err)
 		return
 	}
-	cmdLine := fmt.Sprintf("session-manager-plugin %s %s StartSession %s", string(sessionToken), ssmSvc.Options().Region, *ssmSvc.Options().BaseEndpoint)
+	cmdLine := fmt.Sprintf("session-manager-plugin %s %s StartSession", string(sessionToken), ssmSvc.Options().Region)
 	e, _, err := expect.Spawn(cmdLine, -1)
 	if err != nil {
 		fmt.Fprintf(f, "unable to spawn AWS SSM Session Manager plugin: %s", err)
