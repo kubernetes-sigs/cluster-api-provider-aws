@@ -1,5 +1,5 @@
 /*
-Copyright The Kubernetes Authors.
+Copyright 2025 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -63,7 +63,6 @@ type ROSARoleConfigReconciler struct {
 	client.Client
 	Log              logr.Logger
 	Scheme           *runtime.Scheme
-	Endpoints        []scope.ServiceEndpoint
 	WatchFilterValue string
 	NewStsClient     func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsiface.STSClient
 	NewOCMClient     func(ctx context.Context, scope rosa.OCMSecretsRetriever) (rosa.OCMClient, error)
@@ -93,6 +92,7 @@ func (r *ROSARoleConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
+		log.Error(err, "Failed to get ROSARoleConfig")
 		return ctrl.Result{Requeue: true}, nil
 	}
 
@@ -101,7 +101,6 @@ func (r *ROSARoleConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		Client:         r.Client,
 		RosaRoleConfig: roleConfig,
 		ControllerName: "rosaroleconfig",
-		Endpoints:      r.Endpoints,
 		Logger:         log,
 	})
 
@@ -113,7 +112,7 @@ func (r *ROSARoleConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	defer func() {
 		conditions.SetSummary(scope.RosaRoleConfig, conditions.WithConditions(expinfrav1.RosaRoleConfigReadyCondition), conditions.WithStepCounter())
 
-		if err := scope.Close(); err != nil {
+		if err := scope.PatchObject(); err != nil {
 			reterr = errors.Join(reterr, err)
 		}
 	}()
@@ -134,9 +133,7 @@ func (r *ROSARoleConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	if controllerutil.AddFinalizer(scope.RosaRoleConfig, expinfrav1.RosaRoleConfigFinalizer) {
-		if err := scope.PatchObject(); err != nil {
-			return ctrl.Result{}, err
-		}
+		return ctrl.Result{}, err
 	}
 
 	err = r.createAccountRoles(ctx, roleConfig, scope, ocmClient)
@@ -231,7 +228,7 @@ func (r *ROSARoleConfigReconciler) createOperatorRoles(ctx context.Context, role
 	}
 	oidcConfigID := scope.RosaRoleConfig.Status.OIDCID
 	if oidcConfigID == "" {
-		return fmt.Errorf("OIDCID is empty")
+		return fmt.Errorf("OIDCID is required to create operator roles")
 	}
 
 	runtime := rosacli.NewRuntime()
@@ -260,7 +257,6 @@ func (r *ROSARoleConfigReconciler) createOperatorRoles(ctx context.Context, role
 	version := roleConfig.Spec.AccountRoleConfig.Version
 	hostedCp := true
 	forcePolicyCreation := true
-	isSharedVpc := config.SharedVPCConfig.VPCEndpointRoleARN != "" && config.SharedVPCConfig.RouteRoleARN != ""
 
 	operatorRoles, err := runtime.AWSClient.ListOperatorRoles(version, "", config.Prefix)
 
@@ -270,28 +266,35 @@ func (r *ROSARoleConfigReconciler) createOperatorRoles(ctx context.Context, role
 
 	for _, roles := range operatorRoles {
 		for _, role := range roles {
-			if role.RoleName == fmt.Sprintf("%s-openshift-ingress-operator-cloud-credentials", config.Prefix) {
+			roleSuffix := strings.TrimPrefix(role.RoleName, config.Prefix)
+			if roleSuffix == role.RoleName {
+				continue
+			}
+			switch roleSuffix {
+			case expinfrav1.IngressOperatorARNSuffix:
 				scope.RosaRoleConfig.Status.OperatorRolesRef.IngressARN = role.RoleARN
-			} else if role.RoleName == fmt.Sprintf("%s-openshift-image-registry-installer-cloud-credentials", config.Prefix) {
+			case expinfrav1.ImageRegistryARNSuffix:
 				scope.RosaRoleConfig.Status.OperatorRolesRef.ImageRegistryARN = role.RoleARN
-			} else if role.RoleName == fmt.Sprintf("%s-openshift-cluster-csi-drivers-ebs-cloud-credentials", config.Prefix) {
+			case expinfrav1.StorageARNSuffix:
 				scope.RosaRoleConfig.Status.OperatorRolesRef.StorageARN = role.RoleARN
-			} else if role.RoleName == fmt.Sprintf("%s-openshift-cloud-network-config-controller-cloud-credentials", config.Prefix) {
+			case expinfrav1.NetworkARNSuffix:
 				scope.RosaRoleConfig.Status.OperatorRolesRef.NetworkARN = role.RoleARN
-			} else if role.RoleName == fmt.Sprintf("%s-kube-system-kube-controller-manager", config.Prefix) {
+			case expinfrav1.KubeCloudControllerARNSuffix:
 				scope.RosaRoleConfig.Status.OperatorRolesRef.KubeCloudControllerARN = role.RoleARN
-			} else if role.RoleName == fmt.Sprintf("%s-kube-system-capa-controller-manager", config.Prefix) {
+			case expinfrav1.NodePoolManagementARNSuffix:
 				scope.RosaRoleConfig.Status.OperatorRolesRef.NodePoolManagementARN = role.RoleARN
-			} else if role.RoleName == fmt.Sprintf("%s-kube-system-control-plane-operator", config.Prefix) {
+			case expinfrav1.ControlPlaneOperatorARNSuffix:
 				scope.RosaRoleConfig.Status.OperatorRolesRef.ControlPlaneOperatorARN = role.RoleARN
-			} else if role.RoleName == fmt.Sprintf("%s-kube-system-kms-provider", config.Prefix) {
+			case expinfrav1.KMSProviderARNSuffix:
 				scope.RosaRoleConfig.Status.OperatorRolesRef.KMSProviderARN = role.RoleARN
 			}
 		}
 	}
 
 	if !r.operatorRolesReady(&scope.RosaRoleConfig.Status.OperatorRolesRef) {
-		err = operatorroles.CreateOperatorRoles(runtime, ocm.Production, config.PermissionsBoundaryARN, interactive.ModeAuto, policies, version, isSharedVpc, config.Prefix, hostedCp, installerRoleArn, forcePolicyCreation,
+		// not all operator roles are set, operator roles are not ready yet.
+		r.clearOperatorRolesRef(&scope.RosaRoleConfig.Status.OperatorRolesRef)
+		err = operatorroles.CreateOperatorRoles(runtime, ocm.Production, config.PermissionsBoundaryARN, interactive.ModeAuto, policies, version, config.SharedVPCConfig.IsSharedVPC(), config.Prefix, hostedCp, installerRoleArn, forcePolicyCreation,
 			oidcConfigID, config.SharedVPCConfig.RouteRoleARN, ocm.DefaultChannelGroup, config.SharedVPCConfig.VPCEndpointRoleARN)
 		return err
 	}
@@ -300,34 +303,26 @@ func (r *ROSARoleConfigReconciler) createOperatorRoles(ctx context.Context, role
 }
 
 func (r *ROSARoleConfigReconciler) reconcileOIDCConfig(roleConfig *expinfrav1.ROSARoleConfig, scope *scope.RosaRoleConfigScope, ocmClient *ocm.Client) error {
+	oidcID := ""
 	if scope.RosaRoleConfig.Status.OIDCID != "" {
+		oidcID = scope.RosaRoleConfig.Status.OIDCID
+	} else if roleConfig.Spec.OperatorRoleConfig.OIDCID != "" {
+		oidcID = roleConfig.Spec.OperatorRoleConfig.OIDCID
+	}
+
+	if oidcID != "" {
+		oidcConfig, err := ocmClient.GetOidcConfig(oidcID)
+		if err != nil || oidcConfig == nil {
+			return fmt.Errorf("failed to get OIDC config: %w", err)
+		}
+		scope.RosaRoleConfig.Status.OIDCID = oidcID
 		return nil
 	}
-	if roleConfig.Spec.OperatorRoleConfig.OIDCID != "" {
-		scope.RosaRoleConfig.Status.OIDCID = roleConfig.Spec.OperatorRoleConfig.OIDCID
-		return nil
-	}
-	// Try to get OIDC UUID from some operator role policy document.
-	roleName := fmt.Sprintf("%s-openshift-ingress-operator-cloud-credentials", roleConfig.Spec.OperatorRoleConfig.Prefix)
-	roleDetails, err := scope.IAMClient().GetRole(context.TODO(), &iamv2.GetRoleInput{
-		RoleName: &roleName,
-	})
-	if err != nil {
-		return r.createOIDCConfig(scope, ocmClient)
-	}
-	oidcID, err := r.GetOIDCIDFromOperatorRole(scope, roleDetails)
-	if err != nil {
-		return r.createOIDCConfig(scope, ocmClient)
-	}
-	scope.RosaRoleConfig.Status.OIDCID = oidcID
-	return nil
+
+	return r.createOIDCConfig(scope, ocmClient)
 }
 
 func (r *ROSARoleConfigReconciler) createOIDCProvider(scope *scope.RosaRoleConfigScope, ocmClient *ocm.Client) error {
-	if scope.RosaRoleConfig.Status.OIDCProviderARN != "" {
-		return nil
-	}
-
 	var err error
 	oidcID := scope.RosaRoleConfig.Status.OIDCID
 	if oidcID == "" {
@@ -423,8 +418,7 @@ func (r *ROSARoleConfigReconciler) createAccountRoles(ctx context.Context, roleC
 		}
 
 		managedPolicies := true
-		isSharedVpc := config.SharedVPCConfig.VPCEndpointRoleARN != "" && config.SharedVPCConfig.RouteRoleARN != ""
-		err := accountroles.CreateHCPRoles(runtime, config.Prefix, managedPolicies, config.PermissionsBoundaryARN, ocm.Production, policies, config.Version, config.Path, isSharedVpc, config.SharedVPCConfig.RouteRoleARN, config.SharedVPCConfig.VPCEndpointRoleARN)
+		err := accountroles.CreateHCPRoles(runtime, config.Prefix, managedPolicies, config.PermissionsBoundaryARN, ocm.Production, policies, config.Version, config.Path, config.SharedVPCConfig.IsSharedVPC(), config.SharedVPCConfig.RouteRoleARN, config.SharedVPCConfig.VPCEndpointRoleARN)
 		return err
 	}
 
@@ -471,23 +465,16 @@ func (r *ROSARoleConfigReconciler) deleteAccountRoles(ocmClient *ocm.Client, aws
 		return err
 	}
 
-	var err2, err3 error
 	if canDeleteRole(clusters, roles.InstallerRoleARN) {
-		err = awsClient.DeleteAccountRole(strings.Split(roles.InstallerRoleARN, "/")[1], config.Prefix, true, deleteHcpSharedVpcPolicies)
+		err = errors.Join(err, awsClient.DeleteAccountRole(strings.Split(roles.InstallerRoleARN, "/")[1], config.Prefix, true, deleteHcpSharedVpcPolicies))
 	}
 	if canDeleteRole(clusters, roles.WorkerRoleARN) {
-		err2 = awsClient.DeleteAccountRole(strings.Split(roles.WorkerRoleARN, "/")[1], config.Prefix, true, deleteHcpSharedVpcPolicies)
+		err = errors.Join(err, awsClient.DeleteAccountRole(strings.Split(roles.WorkerRoleARN, "/")[1], config.Prefix, true, deleteHcpSharedVpcPolicies))
 	}
 	if canDeleteRole(clusters, roles.SupportRoleARN) {
-		err3 = awsClient.DeleteAccountRole(strings.Split(roles.SupportRoleARN, "/")[1], config.Prefix, true, deleteHcpSharedVpcPolicies)
+		err = errors.Join(err, awsClient.DeleteAccountRole(strings.Split(roles.SupportRoleARN, "/")[1], config.Prefix, true, deleteHcpSharedVpcPolicies))
 	}
-	if err != nil {
-		return err
-	}
-	if err2 != nil {
-		return err2
-	}
-	return err3
+	return err
 }
 
 func (r *ROSARoleConfigReconciler) deleteOIDCProvider(ocmClient *ocm.Client, awsClient aws.Client, oidcConfigID string) error {
@@ -660,4 +647,20 @@ func (r *ROSARoleConfigReconciler) GetOIDCIDFromOperatorRole(scope *scope.RosaRo
 	}
 
 	return "", fmt.Errorf("cant extract oidc uuid from the %s policy document", *roleDetails.Role.RoleName)
+}
+
+// clearOperatorRolesRef clears all field values in the OperatorRolesRef by setting them to empty strings.
+func (r ROSARoleConfigReconciler) clearOperatorRolesRef(operatorRolesRef *v1beta2.AWSRolesRef) {
+	if operatorRolesRef == nil {
+		return
+	}
+
+	operatorRolesRef.IngressARN = ""
+	operatorRolesRef.ImageRegistryARN = ""
+	operatorRolesRef.StorageARN = ""
+	operatorRolesRef.NetworkARN = ""
+	operatorRolesRef.KubeCloudControllerARN = ""
+	operatorRolesRef.NodePoolManagementARN = ""
+	operatorRolesRef.ControlPlaneOperatorARN = ""
+	operatorRolesRef.KMSProviderARN = ""
 }
