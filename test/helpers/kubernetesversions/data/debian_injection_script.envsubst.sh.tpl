@@ -120,6 +120,6 @@ fi
 echo "* checking binary versions"
 echo "ctr version: " "$(ctr version)"
 echo "kubeadm version: " "$(kubeadm version -o=short)"
-echo "kubectl version: " "$(kubectl version --client=true --short=true)"
+echo "kubectl version: " "$(kubectl version --client=true)"
 echo "kubelet version: " "$(kubelet --version)"
 echo "$${LINE_SEPARATOR}"
