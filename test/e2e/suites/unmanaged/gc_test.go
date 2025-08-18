@@ -91,14 +91,14 @@ var _ = ginkgo.Context("[unmanaged] [gc]", func() {
 
 		ginkgo.By("Checking we have the load balancers in AWS")
 		shared.WaitForLoadBalancerToExistForService(ctx, shared.WaitForLoadBalancerToExistForServiceInput{
-			AWSSession:       e2eCtx.BootstrapUserAWSSessionV2,
+			AWSSession:       e2eCtx.BootstrapUserAWSSession,
 			ServiceName:      "podinfo-nlb",
 			ServiceNamespace: "default",
 			ClusterName:      clusterName,
 			Type:             infrav1.LoadBalancerTypeNLB,
 		}, e2eCtx.E2EConfig.GetIntervals("", "wait-loadbalancer-ready")...)
 		shared.WaitForLoadBalancerToExistForService(ctx, shared.WaitForLoadBalancerToExistForServiceInput{
-			AWSSession:       e2eCtx.BootstrapUserAWSSessionV2,
+			AWSSession:       e2eCtx.BootstrapUserAWSSession,
 			ServiceName:      "podinfo-elb",
 			ServiceNamespace: "default",
 			ClusterName:      clusterName,
@@ -119,7 +119,7 @@ var _ = ginkgo.Context("[unmanaged] [gc]", func() {
 
 		ginkgo.By("Getting counts of service load balancers")
 		arns, err := shared.GetLoadBalancerARNs(ctx, shared.GetLoadBalancerARNsInput{
-			AWSSession:       e2eCtx.BootstrapUserAWSSessionV2,
+			AWSSession:       e2eCtx.BootstrapUserAWSSession,
 			ServiceName:      "podinfo-nlb",
 			ServiceNamespace: "default",
 			ClusterName:      clusterName,
@@ -128,7 +128,7 @@ var _ = ginkgo.Context("[unmanaged] [gc]", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(arns).To(BeEmpty(), "there are %d service load balancers (nlb) still", len(arns))
 		arns, err = shared.GetLoadBalancerARNs(ctx, shared.GetLoadBalancerARNsInput{
-			AWSSession:       e2eCtx.BootstrapUserAWSSessionV2,
+			AWSSession:       e2eCtx.BootstrapUserAWSSession,
 			ServiceName:      "podinfo-elb",
 			ServiceNamespace: "default",
 			ClusterName:      clusterName,
@@ -197,14 +197,14 @@ var _ = ginkgo.Context("[unmanaged] [gc]", func() {
 
 		ginkgo.By("Checking we have the load balancers in AWS")
 		shared.WaitForLoadBalancerToExistForService(ctx, shared.WaitForLoadBalancerToExistForServiceInput{
-			AWSSession:       e2eCtx.BootstrapUserAWSSessionV2,
+			AWSSession:       e2eCtx.BootstrapUserAWSSession,
 			ServiceName:      "podinfo-nlb",
 			ServiceNamespace: "default",
 			ClusterName:      clusterName,
 			Type:             infrav1.LoadBalancerTypeNLB,
 		}, e2eCtx.E2EConfig.GetIntervals("", "wait-loadbalancer-ready")...)
 		shared.WaitForLoadBalancerToExistForService(ctx, shared.WaitForLoadBalancerToExistForServiceInput{
-			AWSSession:       e2eCtx.BootstrapUserAWSSessionV2,
+			AWSSession:       e2eCtx.BootstrapUserAWSSession,
 			ServiceName:      "podinfo-elb",
 			ServiceNamespace: "default",
 			ClusterName:      clusterName,
@@ -225,7 +225,7 @@ var _ = ginkgo.Context("[unmanaged] [gc]", func() {
 
 		ginkgo.By("Getting counts of service load balancers")
 		arns, err := shared.GetLoadBalancerARNs(ctx, shared.GetLoadBalancerARNsInput{
-			AWSSession:       e2eCtx.BootstrapUserAWSSessionV2,
+			AWSSession:       e2eCtx.BootstrapUserAWSSession,
 			ServiceName:      "podinfo-nlb",
 			ServiceNamespace: "default",
 			ClusterName:      clusterName,
@@ -234,7 +234,7 @@ var _ = ginkgo.Context("[unmanaged] [gc]", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(arns).To(BeEmpty(), "there are %d service load balancers (nlb) still", len(arns))
 		arns, err = shared.GetLoadBalancerARNs(ctx, shared.GetLoadBalancerARNsInput{
-			AWSSession:       e2eCtx.BootstrapUserAWSSessionV2,
+			AWSSession:       e2eCtx.BootstrapUserAWSSession,
 			ServiceName:      "podinfo-elb",
 			ServiceNamespace: "default",
 			ClusterName:      clusterName,

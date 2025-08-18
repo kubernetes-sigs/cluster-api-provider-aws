@@ -19,123 +19,107 @@ package endpoints
 import (
 	"errors"
 	"testing"
-
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 )
 
 func TestParseFlags(t *testing.T) {
 	testCases := []struct {
-		name           string
-		flagToParse    string
-		expectedOutput []scope.ServiceEndpoint
-		expectedError  error
+		name          string
+		flagToParse   string
+		expectedError error
 	}{
 		{
-			name:           "no configuration",
-			flagToParse:    "",
-			expectedOutput: nil,
-			expectedError:  nil,
-		},
-		{
-			name:        "single region, single service",
-			flagToParse: "us-iso:ec2=https://localhost:8080",
-			expectedOutput: []scope.ServiceEndpoint{
-				{
-					ServiceID:     "ec2",
-					URL:           "https://localhost:8080",
-					SigningRegion: "us-iso",
-				},
-			},
+			name:          "no configuration",
+			flagToParse:   "",
 			expectedError: nil,
 		},
 		{
-			name:        "single region, multiple services",
-			flagToParse: "us-iso:ec2=https://localhost:8080,sts=https://elbhost:8080",
-			expectedOutput: []scope.ServiceEndpoint{
-				{
-					ServiceID:     "ec2",
-					URL:           "https://localhost:8080",
-					SigningRegion: "us-iso",
-				},
-				{
-					ServiceID:     "sts",
-					URL:           "https://elbhost:8080",
-					SigningRegion: "us-iso",
-				},
-			},
+			name:          "single region, single service",
+			flagToParse:   "us-iso:ec2=https://localhost:8080",
 			expectedError: nil,
 		},
 		{
-			name:           "single region, duplicate service",
-			flagToParse:    "us-iso:ec2=https://localhost:8080,ec2=https://elbhost:8080",
-			expectedOutput: nil,
-			expectedError:  errServiceEndpointDuplicateServiceID,
-		},
-		{
-			name:           "single region, non-valid URI",
-			flagToParse:    "us-iso:ec2=fdsfs",
-			expectedOutput: nil,
-			expectedError:  errServiceEndpointURL,
-		},
-		{
-			name:        "multiples regions",
-			flagToParse: "us-iso:ec2=https://localhost:8080,sts=https://elbhost:8080;gb-iso:ec2=https://localhost:8080,sts=https://elbhost:8080",
-			expectedOutput: []scope.ServiceEndpoint{
-				{
-					ServiceID:     "ec2",
-					URL:           "https://localhost:8080",
-					SigningRegion: "us-iso",
-				},
-				{
-					ServiceID:     "sts",
-					URL:           "https://elbhost:8080",
-					SigningRegion: "us-iso",
-				},
-				{
-					ServiceID:     "ec2",
-					URL:           "https://localhost:8080",
-					SigningRegion: "gb-iso",
-				},
-				{
-					ServiceID:     "sts",
-					URL:           "https://elbhost:8080",
-					SigningRegion: "gb-iso",
-				},
-			},
+			name:          "single region, multiple services",
+			flagToParse:   "us-iso:ec2=https://localhost:8080,sts=https://elbhost:8080",
 			expectedError: nil,
 		},
 		{
-			name:           "invalid config",
-			flagToParse:    "us-isoec2=localhost",
-			expectedOutput: nil,
-			expectedError:  errServiceEndpointSigningRegion,
+			name:          "single region, duplicate service",
+			flagToParse:   "us-iso:ec2=https://localhost:8080,ec2=https://elbhost:8080",
+			expectedError: errServiceEndpointDuplicateServiceID,
+		},
+		{
+			name:          "single region, non-valid URI",
+			flagToParse:   "us-iso:ec2=fdsfs",
+			expectedError: errServiceEndpointURL,
+		},
+		{
+			name:          "multiples regions",
+			flagToParse:   "us-iso:ec2=https://localhost:8080,sts=https://elbhost:8080;gb-iso:ec2=https://localhost:8080,sts=https://elbhost:8080",
+			expectedError: nil,
+		},
+		{
+			name:          "invalid config",
+			flagToParse:   "us-isoec2=localhost",
+			expectedError: errServiceEndpointSigningRegion,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			out, err := ParseFlag(tc.flagToParse)
+			err := ParseFlag(tc.flagToParse)
 
 			if !errors.Is(err, tc.expectedError) {
 				t.Fatalf("did not expect correct error: got %v, expected %v", err, tc.expectedError)
-			}
-
-			if !endpointsEqual(out, tc.expectedOutput) {
-				t.Fatalf("did not expect correct output: got %v, expected %v", out, tc.expectedOutput)
 			}
 		})
 	}
 }
 
-func endpointsEqual(a, b []scope.ServiceEndpoint) bool {
-	if len(a) != len(b) {
-		return false
+func TestGetPartitionFromRegion(t *testing.T) {
+	testCases := []struct {
+		name          string
+		region        string
+		expectedValue string
+	}{
+		{
+			name:          "should return gov partition",
+			region:        "us-gov-east-1",
+			expectedValue: "aws-us-gov",
+		},
+		{
+			name:          "should return cn partition",
+			region:        "cn-north-1",
+			expectedValue: "aws-cn",
+		},
+		{
+			name:          "should return iso partition",
+			region:        "us-iso-east-1",
+			expectedValue: "aws-iso",
+		},
+		{
+			name:          "should return iso-b partition",
+			region:        "us-isob-east-1",
+			expectedValue: "aws-iso-b",
+		},
+		{
+			name:          "should return default partition for valid region",
+			region:        "us-west-2",
+			expectedValue: "aws",
+		},
+		{
+			name:          "should return default partition for invalid region",
+			region:        "us-west-3",
+			expectedValue: "aws",
+		},
 	}
 
-	for i, v := range a {
-		if v != b[i] {
-			return false
-		}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			value := GetPartitionFromRegion(tc.region)
+
+			if value != tc.expectedValue {
+				t.Fatalf("did not get expected value: got %v, expected %v", value, tc.expectedValue)
+			}
+		})
 	}
-	return true
 }

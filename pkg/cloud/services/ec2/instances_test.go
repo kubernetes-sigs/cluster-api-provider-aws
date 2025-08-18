@@ -22,11 +22,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/smithy-go"
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -83,7 +82,10 @@ func TestInstanceIfExists(t *testing.T) {
 				m.DescribeInstances(context.TODO(), gomock.Eq(&ec2.DescribeInstancesInput{
 					InstanceIds: []string{"hello-does-not-exist"},
 				})).
-					Return(nil, awserr.New(awserrors.InvalidInstanceID, "does not exist", nil))
+					Return(nil, &smithy.GenericAPIError{
+						Code:    awserrors.InvalidInstanceID,
+						Message: "does not exist",
+					})
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err == nil {
@@ -2397,14 +2399,14 @@ func TestCreateInstance(t *testing.T) {
 					}, nil)
 				m.
 					RunInstances(context.TODO(), gomock.Any()).
-					Do(func(_ context.Context, in *ec2.RunInstancesInput, _ ...request.Option) {
+					Do(func(_ context.Context, in *ec2.RunInstancesInput, _ ...ec2.Options) {
 						if len(in.NetworkInterfaces) == 0 {
 							t.Fatalf("expected a NetworkInterface to be defined")
 						}
-						if !aws.BoolValue(in.NetworkInterfaces[0].AssociatePublicIpAddress) {
+						if !aws.ToBool(in.NetworkInterfaces[0].AssociatePublicIpAddress) {
 							t.Fatalf("expected AssociatePublicIpAddress to be set and true")
 						}
-						if subnet := aws.StringValue(in.NetworkInterfaces[0].SubnetId); subnet != "public-subnet-1" {
+						if subnet := aws.ToString(in.NetworkInterfaces[0].SubnetId); subnet != "public-subnet-1" {
 							t.Fatalf("expected subnet ID to be \"public-subnet-1\", got %q", subnet)
 						}
 						if in.NetworkInterfaces[0].Groups == nil {
@@ -2528,14 +2530,14 @@ func TestCreateInstance(t *testing.T) {
 					}, nil)
 				m.
 					RunInstances(context.TODO(), gomock.Any()).
-					Do(func(_ context.Context, in *ec2.RunInstancesInput, _ ...request.Option) {
+					Do(func(_ context.Context, in *ec2.RunInstancesInput, _ ...ec2.Options) {
 						if len(in.NetworkInterfaces) == 0 {
 							t.Fatalf("expected a NetworkInterface to be defined")
 						}
 						if in.NetworkInterfaces[0].Groups == nil {
 							t.Fatalf("expected security groups to be set")
 						}
-						if interfaceType := aws.StringValue(in.NetworkInterfaces[0].InterfaceType); interfaceType != "efa" {
+						if interfaceType := aws.ToString(in.NetworkInterfaces[0].InterfaceType); interfaceType != "efa" {
 							t.Fatalf("expected interface type to be \"efa\": got %q", interfaceType)
 						}
 					}).
@@ -2911,14 +2913,14 @@ func TestCreateInstance(t *testing.T) {
 					}, nil)
 				m.
 					RunInstances(context.TODO(), gomock.Any()).
-					Do(func(_ context.Context, in *ec2.RunInstancesInput, _ ...request.Option) {
+					Do(func(_ context.Context, in *ec2.RunInstancesInput, _ ...ec2.Options) {
 						if len(in.NetworkInterfaces) == 0 {
 							t.Fatalf("expected a NetworkInterface to be defined")
 						}
-						if !aws.BoolValue(in.NetworkInterfaces[0].AssociatePublicIpAddress) {
+						if !aws.ToBool(in.NetworkInterfaces[0].AssociatePublicIpAddress) {
 							t.Fatalf("expected AssociatePublicIpAddress to be set and true")
 						}
-						if subnet := aws.StringValue(in.NetworkInterfaces[0].SubnetId); subnet != "public-subnet-1" {
+						if subnet := aws.ToString(in.NetworkInterfaces[0].SubnetId); subnet != "public-subnet-1" {
 							t.Fatalf("expected subnet ID to be \"public-subnet-1\", got %q", subnet)
 						}
 						if in.NetworkInterfaces[0].Groups == nil {
@@ -3161,14 +3163,14 @@ func TestCreateInstance(t *testing.T) {
 					}, nil)
 				m.
 					RunInstances(context.TODO(), gomock.Any()).
-					Do(func(_ context.Context, in *ec2.RunInstancesInput, _ ...request.Option) {
+					Do(func(_ context.Context, in *ec2.RunInstancesInput, _ ...ec2.Options) {
 						if len(in.NetworkInterfaces) == 0 {
 							t.Fatalf("expected a NetworkInterface to be defined")
 						}
-						if !aws.BoolValue(in.NetworkInterfaces[0].AssociatePublicIpAddress) {
+						if !aws.ToBool(in.NetworkInterfaces[0].AssociatePublicIpAddress) {
 							t.Fatalf("expected AssociatePublicIpAddress to be set and true")
 						}
-						if subnet := aws.StringValue(in.NetworkInterfaces[0].SubnetId); subnet != "public-subnet-1" {
+						if subnet := aws.ToString(in.NetworkInterfaces[0].SubnetId); subnet != "public-subnet-1" {
 							t.Fatalf("expected subnet ID to be \"public-subnet-1\", got %q", subnet)
 						}
 						if in.NetworkInterfaces[0].Groups == nil {
@@ -4452,7 +4454,7 @@ func TestCreateInstance(t *testing.T) {
 					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
 					RunInstances(context.TODO(), gomock.Any()).
-					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, requestOptions ...request.Option) (*ec2.RunInstancesOutput, error) {
+					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, requestOptions ...ec2.Options) (*ec2.RunInstancesOutput, error) {
 						if input.KeyName == nil {
 							t.Fatal("Expected key name not to be nil")
 						}
@@ -4585,7 +4587,7 @@ func TestCreateInstance(t *testing.T) {
 					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
 					RunInstances(context.TODO(), gomock.Any()).
-					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, requestOptions ...request.Option) (*ec2.RunInstancesOutput, error) {
+					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, requestOptions ...ec2.Options) (*ec2.RunInstancesOutput, error) {
 						if input.KeyName == nil {
 							t.Fatal("Expected key name not to be nil")
 						}
@@ -4719,7 +4721,7 @@ func TestCreateInstance(t *testing.T) {
 					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
 					RunInstances(context.TODO(), gomock.Any()).
-					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, requestOptions ...request.Option) (*ec2.RunInstancesOutput, error) {
+					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, requestOptions ...ec2.Options) (*ec2.RunInstancesOutput, error) {
 						if input.KeyName == nil {
 							t.Fatal("Expected key name not to be nil")
 						}
@@ -4853,7 +4855,7 @@ func TestCreateInstance(t *testing.T) {
 					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
 					RunInstances(context.TODO(), gomock.Any()).
-					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, requestOptions ...request.Option) (*ec2.RunInstancesOutput, error) {
+					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, requestOptions ...ec2.Options) (*ec2.RunInstancesOutput, error) {
 						if input.KeyName != nil {
 							t.Fatalf("Expected key name to be nil/unspecified, not '%s'", *input.KeyName)
 						}
@@ -4984,7 +4986,7 @@ func TestCreateInstance(t *testing.T) {
 					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
 					RunInstances(context.TODO(), gomock.Any()).
-					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, requestOptions ...request.Option) (*ec2.RunInstancesOutput, error) {
+					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, requestOptions ...ec2.Options) (*ec2.RunInstancesOutput, error) {
 						if input.KeyName != nil {
 							t.Fatalf("Expected key name to be nil/unspecified, not '%s'", *input.KeyName)
 						}
@@ -5115,7 +5117,7 @@ func TestCreateInstance(t *testing.T) {
 					}, nil)
 				m. // TODO: Restore these parameters, but with the tags as well
 					RunInstances(context.TODO(), gomock.Any()).
-					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, requestOptions ...request.Option) (*ec2.RunInstancesOutput, error) {
+					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, requestOptions ...ec2.Options) (*ec2.RunInstancesOutput, error) {
 						if input.KeyName != nil {
 							t.Fatalf("Expected key name to be nil/unspecified, not '%s'", *input.KeyName)
 						}

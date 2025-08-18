@@ -25,9 +25,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/pkg/errors"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -367,7 +367,7 @@ func (s *Service) deleteSubnets() error {
 	}
 
 	for _, sn := range existing.Subnets {
-		if err := s.deleteSubnet(aws.StringValue(sn.SubnetId)); err != nil {
+		if err := s.deleteSubnet(aws.ToString(sn.SubnetId)); err != nil {
 			return err
 		}
 	}
@@ -402,10 +402,10 @@ func (s *Service) describeVpcSubnets() (infrav1.Subnets, error) {
 			Tags:             converters.TagsToMap(ec2sn.Tags),
 		}
 		// For IPv6 subnets, both, ipv4 and 6 have to be defined so pods can have ipv6 cidr ranges.
-		spec.CidrBlock = aws.StringValue(ec2sn.CidrBlock)
+		spec.CidrBlock = aws.ToString(ec2sn.CidrBlock)
 		for _, set := range ec2sn.Ipv6CidrBlockAssociationSet {
 			if set.Ipv6CidrBlockState.State == types.SubnetCidrBlockStateCodeAssociated {
-				spec.IPv6CidrBlock = aws.StringValue(set.Ipv6CidrBlock)
+				spec.IPv6CidrBlock = aws.ToString(set.Ipv6CidrBlock)
 				spec.IsIPv6 = true
 			}
 		}
@@ -520,7 +520,7 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateSubnet", "Created new managed Subnet %q", *out.Subnet.SubnetId)
 	s.scope.Info("Created subnet", "id", *out.Subnet.SubnetId, "public", sn.IsPublic, "az", sn.AvailabilityZone, "cidr", sn.CidrBlock, "ipv6", sn.IsIPv6, "ipv6-cidr", sn.IPv6CidrBlock)
 
-	wReq := &ec2.DescribeSubnetsInput{SubnetIds: []string{aws.StringValue(out.Subnet.SubnetId)}}
+	wReq := &ec2.DescribeSubnetsInput{SubnetIds: []string{aws.ToString(out.Subnet.SubnetId)}}
 	if err := ec2.NewSubnetAvailableWaiter(s.EC2Client).Wait(context.TODO(), wReq, time.Minute*5); err != nil {
 		return nil, errors.Wrapf(err, "failed to wait for subnet %q", *out.Subnet.SubnetId)
 	}
@@ -574,7 +574,7 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 			if _, err := s.EC2Client.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
 				SubnetId:                       out.Subnet.SubnetId,
-				PrivateDnsHostnameTypeOnLaunch: types.HostnameType(aws.StringValue(s.scope.VPC().PrivateDNSHostnameTypeOnLaunch)),
+				PrivateDnsHostnameTypeOnLaunch: types.HostnameType(aws.ToString(s.scope.VPC().PrivateDNSHostnameTypeOnLaunch)),
 			}); err != nil {
 				return false, err
 			}
@@ -597,7 +597,7 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 	}
 	for _, set := range out.Subnet.Ipv6CidrBlockAssociationSet {
 		if set.Ipv6CidrBlockState.State == types.SubnetCidrBlockStateCodeAssociated {
-			subnet.IPv6CidrBlock = aws.StringValue(set.Ipv6CidrBlock)
+			subnet.IPv6CidrBlock = aws.ToString(set.Ipv6CidrBlock)
 			subnet.IsIPv6 = true
 		}
 	}

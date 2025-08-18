@@ -55,7 +55,7 @@ func ListAWSResourceCmd() *cobra.Command {
 			}
 
 			fmt.Fprintf(os.Stdout, "Attempting to fetch resources created by CAPA for cluster:%s present in %s\n\n", clusterName, region)
-			resourceList, err := resource.ListAWSResource(&region, &clusterName)
+			resourceList, err := resource.ListAWSResource(region, clusterName)
 			if err != nil || len(resourceList.AWSResources) == 0 {
 				return err
 			}

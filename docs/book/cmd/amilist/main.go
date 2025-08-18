@@ -19,31 +19,37 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	s3manager "github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/ami"
 )
 
-var svc *s3manager.Uploader
+var (
+	ctx = context.TODO()
+	svc *s3manager.Uploader
+)
 
 const (
 	bucket = "cluster-api-aws-amis.sigs.k8s.io"
 )
 
 func init() {
-	var err error
-	var sess *session.Session
-	sess, err = session.NewSession()
+	sess, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		panic(err)
 	}
-	svc = s3manager.NewUploader(sess)
+	s3Client := s3.NewFromConfig(sess)
+
+	svc = s3manager.NewUploader(s3Client)
 }
 
 func main() {
@@ -67,11 +73,11 @@ func LambdaHandler() error {
 		return err
 	}
 
-	_, err = svc.Upload(&s3manager.UploadInput{
+	_, err = svc.Upload(ctx, &s3.PutObjectInput{
 		Body:   bytes.NewReader(data),
 		Bucket: aws.String(bucket),
 		Key:    aws.String("amis.json"),
-		ACL:    aws.String("public-read"),
+		ACL:    types.ObjectCannedACLPublicRead,
 	})
 	if err != nil {
 		ctrl.Log.Error(err, "error uploading data")

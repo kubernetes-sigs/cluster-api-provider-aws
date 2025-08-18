@@ -33,9 +33,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpointsv2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpoints"
 	awslogs "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/logs"
-	awsmetricsv2 "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/metricsv2"
+	awsmetrics "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/metrics"
 	stsservice "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
@@ -48,11 +48,11 @@ func NewASGClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logg
 	autoscalingOpts := []func(*autoscaling.Options){
 		func(o *autoscaling.Options) {
 			o.Logger = logger.GetAWSLogger()
-			o.ClientLogMode = awslogs.GetAWSLogLevelV2(logger.GetLogger())
+			o.ClientLogMode = awslogs.GetAWSLogLevel(logger.GetLogger())
 		},
 		autoscaling.WithAPIOptions(
-			awsmetricsv2.WithMiddlewares(scopeUser.ControllerName(), target),
-			awsmetricsv2.WithCAPAUserAgentMiddleware(),
+			awsmetrics.WithMiddlewares(scopeUser.ControllerName(), target),
+			awsmetrics.WithCAPAUserAgentMiddleware(),
 		),
 	}
 
@@ -62,20 +62,20 @@ func NewASGClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logg
 // NewEC2Client creates a new EC2 API client for a given session.
 func NewEC2Client(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) *ec2.Client {
 	cfg := session.Session()
-	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
-	ec2EndpointResolver := &endpointsv2.EC2EndpointResolver{
+	multiSvcEndpointResolver := endpoints.NewMultiServiceEndpointResolver()
+	ec2EndpointResolver := &endpoints.EC2EndpointResolver{
 		MultiServiceEndpointResolver: multiSvcEndpointResolver,
 	}
 
 	ec2opts := []func(*ec2.Options){
 		func(o *ec2.Options) {
 			o.Logger = logger.GetAWSLogger()
-			o.ClientLogMode = awslogs.GetAWSLogLevelV2(logger.GetLogger())
+			o.ClientLogMode = awslogs.GetAWSLogLevel(logger.GetLogger())
 			o.EndpointResolverV2 = ec2EndpointResolver
 		},
 		ec2.WithAPIOptions(
-			awsmetricsv2.WithMiddlewares(scopeUser.ControllerName(), target),
-			awsmetricsv2.WithCAPAUserAgentMiddleware(),
+			awsmetrics.WithMiddlewares(scopeUser.ControllerName(), target),
+			awsmetrics.WithCAPAUserAgentMiddleware(),
 			throttle.WithServiceLimiterMiddleware(session.ServiceLimiter(ec2.ServiceID)),
 		),
 	}
@@ -86,20 +86,20 @@ func NewEC2Client(scopeUser cloud.ScopeUsage, session cloud.Session, logger logg
 // NewELBClient creates a new ELB API client for a given session.
 func NewELBClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) *elb.Client {
 	cfg := session.Session()
-	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
-	endpointResolver := &endpointsv2.ELBEndpointResolver{
+	multiSvcEndpointResolver := endpoints.NewMultiServiceEndpointResolver()
+	endpointResolver := &endpoints.ELBEndpointResolver{
 		MultiServiceEndpointResolver: multiSvcEndpointResolver,
 	}
 
 	opts := []func(*elb.Options){
 		func(o *elb.Options) {
 			o.Logger = logger.GetAWSLogger()
-			o.ClientLogMode = awslogs.GetAWSLogLevelV2(logger.GetLogger())
+			o.ClientLogMode = awslogs.GetAWSLogLevel(logger.GetLogger())
 			o.EndpointResolverV2 = endpointResolver
 		},
 		elb.WithAPIOptions(
-			awsmetricsv2.WithMiddlewares(scopeUser.ControllerName(), target),
-			awsmetricsv2.WithCAPAUserAgentMiddleware(),
+			awsmetrics.WithMiddlewares(scopeUser.ControllerName(), target),
+			awsmetrics.WithCAPAUserAgentMiddleware(),
 			throttle.WithServiceLimiterMiddleware(session.ServiceLimiter(elb.ServiceID)),
 		),
 	}
@@ -110,20 +110,20 @@ func NewELBClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logg
 // NewELBv2Client creates a new ELB v2 API client for a given session.
 func NewELBv2Client(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) *elbv2.Client {
 	cfg := session.Session()
-	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
-	endpointResolver := &endpointsv2.ELBV2EndpointResolver{
+	multiSvcEndpointResolver := endpoints.NewMultiServiceEndpointResolver()
+	endpointResolver := &endpoints.ELBV2EndpointResolver{
 		MultiServiceEndpointResolver: multiSvcEndpointResolver,
 	}
 
 	opts := []func(*elbv2.Options){
 		func(o *elbv2.Options) {
 			o.Logger = logger.GetAWSLogger()
-			o.ClientLogMode = awslogs.GetAWSLogLevelV2(logger.GetLogger())
+			o.ClientLogMode = awslogs.GetAWSLogLevel(logger.GetLogger())
 			o.EndpointResolverV2 = endpointResolver
 		},
 		elbv2.WithAPIOptions(
-			awsmetricsv2.WithMiddlewares(scopeUser.ControllerName(), target),
-			awsmetricsv2.WithCAPAUserAgentMiddleware(),
+			awsmetrics.WithMiddlewares(scopeUser.ControllerName(), target),
+			awsmetrics.WithCAPAUserAgentMiddleware(),
 			throttle.WithServiceLimiterMiddleware(session.ServiceLimiter(elbv2.ServiceID)),
 		),
 	}
@@ -134,8 +134,8 @@ func NewELBv2Client(scopeUser cloud.ScopeUsage, session cloud.Session, logger lo
 // NewEventBridgeClient creates a new EventBridge API client for a given session.
 func NewEventBridgeClient(scopeUser cloud.ScopeUsage, session cloud.Session, target runtime.Object) *eventbridge.Client {
 	cfg := session.Session()
-	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
-	endpointResolver := &endpointsv2.EventBridgeEndpointResolver{
+	multiSvcEndpointResolver := endpoints.NewMultiServiceEndpointResolver()
+	endpointResolver := &endpoints.EventBridgeEndpointResolver{
 		MultiServiceEndpointResolver: multiSvcEndpointResolver,
 	}
 
@@ -144,8 +144,8 @@ func NewEventBridgeClient(scopeUser cloud.ScopeUsage, session cloud.Session, tar
 			o.EndpointResolverV2 = endpointResolver
 		},
 		eventbridge.WithAPIOptions(
-			awsmetricsv2.WithMiddlewares(scopeUser.ControllerName(), target),
-			awsmetricsv2.WithCAPAUserAgentMiddleware(),
+			awsmetrics.WithMiddlewares(scopeUser.ControllerName(), target),
+			awsmetrics.WithCAPAUserAgentMiddleware(),
 		),
 	}
 
@@ -155,8 +155,8 @@ func NewEventBridgeClient(scopeUser cloud.ScopeUsage, session cloud.Session, tar
 // NewSQSClient creates a new SQS API client for a given session.
 func NewSQSClient(scopeUser cloud.ScopeUsage, session cloud.Session, target runtime.Object) *sqs.Client {
 	cfg := session.Session()
-	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
-	endpointResolver := &endpointsv2.SQSEndpointResolver{
+	multiSvcEndpointResolver := endpoints.NewMultiServiceEndpointResolver()
+	endpointResolver := &endpoints.SQSEndpointResolver{
 		MultiServiceEndpointResolver: multiSvcEndpointResolver,
 	}
 
@@ -165,8 +165,8 @@ func NewSQSClient(scopeUser cloud.ScopeUsage, session cloud.Session, target runt
 			o.EndpointResolverV2 = endpointResolver
 		},
 		sqs.WithAPIOptions(
-			awsmetricsv2.WithMiddlewares(scopeUser.ControllerName(), target),
-			awsmetricsv2.WithCAPAUserAgentMiddleware(),
+			awsmetrics.WithMiddlewares(scopeUser.ControllerName(), target),
+			awsmetrics.WithCAPAUserAgentMiddleware(),
 		),
 	}
 
@@ -176,8 +176,8 @@ func NewSQSClient(scopeUser cloud.ScopeUsage, session cloud.Session, target runt
 // NewGlobalSQSClient for creating a new SQS API client that isn't tied to a cluster.
 func NewGlobalSQSClient(scopeUser cloud.ScopeUsage, session cloud.Session) *sqs.Client {
 	cfg := session.Session()
-	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
-	endpointResolver := &endpointsv2.SQSEndpointResolver{
+	multiSvcEndpointResolver := endpoints.NewMultiServiceEndpointResolver()
+	endpointResolver := &endpoints.SQSEndpointResolver{
 		MultiServiceEndpointResolver: multiSvcEndpointResolver,
 	}
 
@@ -186,8 +186,8 @@ func NewGlobalSQSClient(scopeUser cloud.ScopeUsage, session cloud.Session) *sqs.
 			o.EndpointResolverV2 = endpointResolver
 		},
 		sqs.WithAPIOptions(
-			awsmetricsv2.WithRequestMetricContextMiddleware(),
-			awsmetricsv2.WithCAPAUserAgentMiddleware(),
+			awsmetrics.WithRequestMetricContextMiddleware(),
+			awsmetrics.WithCAPAUserAgentMiddleware(),
 		),
 	}
 
@@ -197,18 +197,18 @@ func NewGlobalSQSClient(scopeUser cloud.ScopeUsage, session cloud.Session) *sqs.
 // NewResourgeTaggingClient creates a new Resource Tagging API client for a given session.
 func NewResourgeTaggingClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) *rgapi.Client {
 	cfg := session.Session()
-	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
-	endpointResolver := &endpointsv2.RGAPIEndpointResolver{
+	multiSvcEndpointResolver := endpoints.NewMultiServiceEndpointResolver()
+	endpointResolver := &endpoints.RGAPIEndpointResolver{
 		MultiServiceEndpointResolver: multiSvcEndpointResolver,
 	}
 
 	opts := []func(*rgapi.Options){
 		func(o *rgapi.Options) {
 			o.Logger = logger.GetAWSLogger()
-			o.ClientLogMode = awslogs.GetAWSLogLevelV2(logger.GetLogger())
+			o.ClientLogMode = awslogs.GetAWSLogLevel(logger.GetLogger())
 			o.EndpointResolverV2 = endpointResolver
 		},
-		rgapi.WithAPIOptions(awsmetricsv2.WithMiddlewares(scopeUser.ControllerName(), target), awsmetricsv2.WithCAPAUserAgentMiddleware()),
+		rgapi.WithAPIOptions(awsmetrics.WithMiddlewares(scopeUser.ControllerName(), target), awsmetrics.WithCAPAUserAgentMiddleware()),
 	}
 
 	return rgapi.NewFromConfig(cfg, opts...)
@@ -217,19 +217,19 @@ func NewResourgeTaggingClient(scopeUser cloud.ScopeUsage, session cloud.Session,
 // NewSecretsManagerClient creates a new Secrets API client for a given session..
 func NewSecretsManagerClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) *secretsmanager.Client {
 	cfg := session.Session()
-	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
-	secretsManagerEndpointResolver := &endpointsv2.SecretsManagerEndpointResolver{
+	multiSvcEndpointResolver := endpoints.NewMultiServiceEndpointResolver()
+	secretsManagerEndpointResolver := &endpoints.SecretsManagerEndpointResolver{
 		MultiServiceEndpointResolver: multiSvcEndpointResolver,
 	}
 	secretsManagerOpts := []func(*secretsmanager.Options){
 		func(o *secretsmanager.Options) {
 			o.Logger = logger.GetAWSLogger()
-			o.ClientLogMode = awslogs.GetAWSLogLevelV2(logger.GetLogger())
+			o.ClientLogMode = awslogs.GetAWSLogLevel(logger.GetLogger())
 			o.EndpointResolverV2 = secretsManagerEndpointResolver
 		},
 		secretsmanager.WithAPIOptions(
-			awsmetricsv2.WithMiddlewares(scopeUser.ControllerName(), target),
-			awsmetricsv2.WithCAPAUserAgentMiddleware(),
+			awsmetrics.WithMiddlewares(scopeUser.ControllerName(), target),
+			awsmetrics.WithCAPAUserAgentMiddleware(),
 		),
 	}
 
@@ -239,17 +239,17 @@ func NewSecretsManagerClient(scopeUser cloud.ScopeUsage, session cloud.Session, 
 // NewEKSClient creates a new EKS API client for a given session.
 func NewEKSClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) *eks.Client {
 	cfg := session.Session()
-	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
-	eksEndpointResolver := &endpointsv2.EKSEndpointResolver{
+	multiSvcEndpointResolver := endpoints.NewMultiServiceEndpointResolver()
+	eksEndpointResolver := &endpoints.EKSEndpointResolver{
 		MultiServiceEndpointResolver: multiSvcEndpointResolver,
 	}
 	s3Opts := []func(*eks.Options){
 		func(o *eks.Options) {
 			o.Logger = logger.GetAWSLogger()
-			o.ClientLogMode = awslogs.GetAWSLogLevelV2(logger.GetLogger())
+			o.ClientLogMode = awslogs.GetAWSLogLevel(logger.GetLogger())
 			o.EndpointResolverV2 = eksEndpointResolver
 		},
-		eks.WithAPIOptions(awsmetricsv2.WithMiddlewares(scopeUser.ControllerName(), target), awsmetricsv2.WithCAPAUserAgentMiddleware()),
+		eks.WithAPIOptions(awsmetrics.WithMiddlewares(scopeUser.ControllerName(), target), awsmetrics.WithCAPAUserAgentMiddleware()),
 	}
 	return eks.NewFromConfig(cfg, s3Opts...)
 }
@@ -261,11 +261,11 @@ func NewIAMClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logg
 	iamOpts := []func(*iam.Options){
 		func(o *iam.Options) {
 			o.Logger = logger.GetAWSLogger()
-			o.ClientLogMode = awslogs.GetAWSLogLevelV2(logger.GetLogger())
+			o.ClientLogMode = awslogs.GetAWSLogLevel(logger.GetLogger())
 		},
 		iam.WithAPIOptions(
-			awsmetricsv2.WithMiddlewares(scopeUser.ControllerName(), target),
-			awsmetricsv2.WithCAPAUserAgentMiddleware(),
+			awsmetrics.WithMiddlewares(scopeUser.ControllerName(), target),
+			awsmetrics.WithCAPAUserAgentMiddleware(),
 		),
 	}
 
@@ -275,20 +275,20 @@ func NewIAMClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logg
 // NewSTSClient creates a new STS API client for a given session.
 func NewSTSClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) stsservice.STSClient {
 	cfg := session.Session()
-	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
-	stsEndpointResolver := &endpointsv2.STSEndpointResolver{
+	multiSvcEndpointResolver := endpoints.NewMultiServiceEndpointResolver()
+	stsEndpointResolver := &endpoints.STSEndpointResolver{
 		MultiServiceEndpointResolver: multiSvcEndpointResolver,
 	}
 
 	stsOpts := []func(*stsv2.Options){
 		func(o *stsv2.Options) {
 			o.Logger = logger.GetAWSLogger()
-			o.ClientLogMode = awslogs.GetAWSLogLevelV2(logger.GetLogger())
+			o.ClientLogMode = awslogs.GetAWSLogLevel(logger.GetLogger())
 			o.EndpointResolverV2 = stsEndpointResolver
 		},
 		stsv2.WithAPIOptions(
-			awsmetricsv2.WithMiddlewares(scopeUser.ControllerName(), target),
-			awsmetricsv2.WithCAPAUserAgentMiddleware(),
+			awsmetrics.WithMiddlewares(scopeUser.ControllerName(), target),
+			awsmetrics.WithCAPAUserAgentMiddleware(),
 		),
 	}
 
@@ -298,19 +298,19 @@ func NewSTSClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logg
 // NewSSMClient creates a new Secrets API client for a given session.
 func NewSSMClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) *ssm.Client {
 	cfg := session.Session()
-	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
-	ssmEndpointResolver := &endpointsv2.SSMEndpointResolver{
+	multiSvcEndpointResolver := endpoints.NewMultiServiceEndpointResolver()
+	ssmEndpointResolver := &endpoints.SSMEndpointResolver{
 		MultiServiceEndpointResolver: multiSvcEndpointResolver,
 	}
 	ssmOpts := []func(*ssm.Options){
 		func(o *ssm.Options) {
 			o.Logger = logger.GetAWSLogger()
-			o.ClientLogMode = awslogs.GetAWSLogLevelV2(logger.GetLogger())
+			o.ClientLogMode = awslogs.GetAWSLogLevel(logger.GetLogger())
 			o.EndpointResolverV2 = ssmEndpointResolver
 		},
 		ssm.WithAPIOptions(
-			awsmetricsv2.WithMiddlewares(scopeUser.ControllerName(), target),
-			awsmetricsv2.WithCAPAUserAgentMiddleware(),
+			awsmetrics.WithMiddlewares(scopeUser.ControllerName(), target),
+			awsmetrics.WithCAPAUserAgentMiddleware(),
 		),
 	}
 
@@ -320,17 +320,17 @@ func NewSSMClient(scopeUser cloud.ScopeUsage, session cloud.Session, logger logg
 // NewS3Client creates a new S3 API client for a given session.
 func NewS3Client(scopeUser cloud.ScopeUsage, session cloud.Session, logger logger.Wrapper, target runtime.Object) *s3.Client {
 	cfg := session.Session()
-	multiSvcEndpointResolver := endpointsv2.NewMultiServiceEndpointResolver()
-	s3EndpointResolver := &endpointsv2.S3EndpointResolver{
+	multiSvcEndpointResolver := endpoints.NewMultiServiceEndpointResolver()
+	s3EndpointResolver := &endpoints.S3EndpointResolver{
 		MultiServiceEndpointResolver: multiSvcEndpointResolver,
 	}
 	s3Opts := []func(*s3.Options){
 		func(o *s3.Options) {
 			o.Logger = logger.GetAWSLogger()
-			o.ClientLogMode = awslogs.GetAWSLogLevelV2(logger.GetLogger())
+			o.ClientLogMode = awslogs.GetAWSLogLevel(logger.GetLogger())
 			o.EndpointResolverV2 = s3EndpointResolver
 		},
-		s3.WithAPIOptions(awsmetricsv2.WithMiddlewares(scopeUser.ControllerName(), target), awsmetricsv2.WithCAPAUserAgentMiddleware()),
+		s3.WithAPIOptions(awsmetrics.WithMiddlewares(scopeUser.ControllerName(), target), awsmetrics.WithCAPAUserAgentMiddleware()),
 	}
 	return s3.NewFromConfig(cfg, s3Opts...)
 }

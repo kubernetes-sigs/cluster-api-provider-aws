@@ -45,7 +45,6 @@ import (
 type AWSFargateProfileReconciler struct {
 	client.Client
 	Recorder         record.EventRecorder
-	Endpoints        []scope.ServiceEndpoint
 	EnableIAM        bool
 	WatchFilterValue string
 }
@@ -107,7 +106,6 @@ func (r *AWSFargateProfileReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		ControlPlane:   controlPlane,
 		FargateProfile: fargateProfile,
 		EnableIAM:      r.EnableIAM,
-		Endpoints:      r.Endpoints,
 	})
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to create scope")

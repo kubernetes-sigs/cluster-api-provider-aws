@@ -20,9 +20,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -229,7 +229,7 @@ func (s *Service) reconcileVPCEndpoints() error {
 	for _, service := range services.UnsortedList() {
 		var existing *types.VpcEndpoint
 		for _, ep := range endpoints {
-			if aws.StringValue(ep.ServiceName) == service {
+			if aws.ToString(ep.ServiceName) == service {
 				existing = &ep
 				break
 			}
@@ -331,7 +331,7 @@ func (s *Service) ensureManagedVPCAttributes(vpc *infrav1.VPCSpec) error {
 			return err
 		}
 		errs = append(errs, errors.Wrap(err, "failed to describe enableDnsHostnames vpc attribute"))
-	} else if !aws.BoolValue(vpcAttr.EnableDnsHostnames.Value) {
+	} else if !aws.ToBool(vpcAttr.EnableDnsHostnames.Value) {
 		attrInput := &ec2.ModifyVpcAttributeInput{
 			VpcId:              aws.String(vpc.ID),
 			EnableDnsHostnames: &types.AttributeBooleanValue{Value: aws.Bool(true)},
@@ -358,7 +358,7 @@ func (s *Service) ensureManagedVPCAttributes(vpc *infrav1.VPCSpec) error {
 			return err
 		}
 		errs = append(errs, errors.Wrap(err, "failed to describe enableDnsSupport vpc attribute"))
-	} else if !aws.BoolValue(vpcAttr.EnableDnsSupport.Value) {
+	} else if !aws.ToBool(vpcAttr.EnableDnsSupport.Value) {
 		attrInput := &ec2.ModifyVpcAttributeInput{
 			VpcId:            aws.String(vpc.ID),
 			EnableDnsSupport: &types.AttributeBooleanValue{Value: aws.Bool(true)},
@@ -495,7 +495,7 @@ func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 
 	// We have to describe the VPC again because the `create` output will **NOT** contain the associated IPv6 address.
 	vpc, err := s.EC2Client.DescribeVpcs(context.TODO(), &ec2.DescribeVpcsInput{
-		VpcIds: []string{aws.StringValue(out.Vpc.VpcId)},
+		VpcIds: []string{aws.ToString(out.Vpc.VpcId)},
 	})
 	if err != nil {
 		record.Warnf(s.scope.InfraCluster(), "DescribeVpcs", "Failed to describe the new ipv6 vpc: %v", err)
@@ -509,8 +509,8 @@ func (s *Service) createVPC() (*infrav1.VPCSpec, error) {
 		if set.Ipv6CidrBlockState.State == types.VpcCidrBlockStateCodeAssociated {
 			return &infrav1.VPCSpec{
 				IPv6: &infrav1.IPv6{
-					CidrBlock: aws.StringValue(set.Ipv6CidrBlock),
-					PoolID:    aws.StringValue(set.Ipv6Pool),
+					CidrBlock: aws.ToString(set.Ipv6CidrBlock),
+					PoolID:    aws.ToString(set.Ipv6Pool),
 				},
 				ID:        *vpc.Vpcs[0].VpcId,
 				CidrBlock: *out.Vpc.CidrBlock,
@@ -598,8 +598,8 @@ func (s *Service) describeVPCByID() (*infrav1.VPCSpec, error) {
 	for _, set := range out.Vpcs[0].Ipv6CidrBlockAssociationSet {
 		if set.Ipv6CidrBlockState.State == types.VpcCidrBlockStateCodeAssociated {
 			vpc.IPv6 = &infrav1.IPv6{
-				CidrBlock: aws.StringValue(set.Ipv6CidrBlock),
-				PoolID:    aws.StringValue(set.Ipv6Pool),
+				CidrBlock: aws.ToString(set.Ipv6CidrBlock),
+				PoolID:    aws.ToString(set.Ipv6Pool),
 			}
 			break
 		}
@@ -646,8 +646,8 @@ func (s *Service) describeVPCByName() (*infrav1.VPCSpec, error) {
 	for _, set := range out.Vpcs[0].Ipv6CidrBlockAssociationSet {
 		if set.Ipv6CidrBlockState.State == types.VpcCidrBlockStateCodeAssociated {
 			vpc.IPv6 = &infrav1.IPv6{
-				CidrBlock: aws.StringValue(set.Ipv6CidrBlock),
-				PoolID:    aws.StringValue(set.Ipv6Pool),
+				CidrBlock: aws.ToString(set.Ipv6CidrBlock),
+				PoolID:    aws.ToString(set.Ipv6Pool),
 			}
 			break
 		}

@@ -29,9 +29,9 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	expect "github.com/google/goexpect"
 )
 
@@ -42,7 +42,7 @@ type instance struct {
 
 // allMachines gets all EC2 instances at once, to save on DescribeInstances calls.
 func allMachines(ctx context.Context, e2eCtx *E2EContext) ([]instance, error) {
-	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
+	ec2Svc := ec2.NewFromConfig(*e2eCtx.AWSSession)
 	resp, err := ec2Svc.DescribeInstances(ctx, &ec2.DescribeInstancesInput{})
 	if err != nil {
 		return nil, err
@@ -56,8 +56,8 @@ func allMachines(ctx context.Context, e2eCtx *E2EContext) ([]instance, error) {
 			tags := i.Tags
 			name := ""
 			for _, t := range tags {
-				if aws.StringValue(t.Key) == "Name" {
-					name = aws.StringValue(t.Value)
+				if aws.ToString(t.Key) == "Name" {
+					name = aws.ToString(t.Value)
 				}
 			}
 			if name == "" {
@@ -66,7 +66,7 @@ func allMachines(ctx context.Context, e2eCtx *E2EContext) ([]instance, error) {
 			instances = append(instances,
 				instance{
 					name:       name,
-					instanceID: aws.StringValue(i.InstanceId),
+					instanceID: aws.ToString(i.InstanceId),
 				},
 			)
 		}
@@ -82,8 +82,8 @@ type command struct {
 // commandsForMachine opens a terminal connection using AWS SSM Session Manager
 // and executes the given commands, outputting the results to a file for each.
 func commandsForMachine(ctx context.Context, e2eCtx *E2EContext, f *os.File, instanceID string, commands []command) {
-	ssmSvc := ssm.New(e2eCtx.BootstrapUserAWSSession)
-	sess, err := ssmSvc.StartSessionWithContext(ctx, &ssm.StartSessionInput{
+	ssmSvc := ssm.NewFromConfig(*e2eCtx.BootstrapUserAWSSession)
+	sess, err := ssmSvc.StartSession(ctx, &ssm.StartSessionInput{
 		Target: aws.String(instanceID),
 	})
 	if err != nil {
@@ -91,7 +91,7 @@ func commandsForMachine(ctx context.Context, e2eCtx *E2EContext, f *os.File, ins
 		return
 	}
 	defer func() {
-		if _, err := ssmSvc.TerminateSession(&ssm.TerminateSessionInput{SessionId: sess.SessionId}); err != nil {
+		if _, err := ssmSvc.TerminateSession(ctx, &ssm.TerminateSessionInput{SessionId: sess.SessionId}); err != nil {
 			fmt.Fprintf(f, "unable to terminate session: err=%s", err)
 		}
 	}()
@@ -100,7 +100,7 @@ func commandsForMachine(ctx context.Context, e2eCtx *E2EContext, f *os.File, ins
 		fmt.Fprintf(f, "unable to marshal session: err=%s", err)
 		return
 	}
-	cmdLine := fmt.Sprintf("session-manager-plugin %s %s StartSession %s", string(sessionToken), *ssmSvc.Client.Config.Region, ssmSvc.Client.Endpoint)
+	cmdLine := fmt.Sprintf("session-manager-plugin %s %s StartSession %s", string(sessionToken), ssmSvc.Options().Region, *ssmSvc.Options().BaseEndpoint)
 	e, _, err := expect.Spawn(cmdLine, -1)
 	if err != nil {
 		fmt.Fprintf(f, "unable to spawn AWS SSM Session Manager plugin: %s", err)

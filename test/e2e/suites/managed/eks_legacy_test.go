@@ -58,7 +58,7 @@ var _ = ginkgo.Describe("[managed] [legacy] EKS cluster tests - single kind", fu
 		eksClusterName := getEKSClusterName(namespace.Name, clusterName)
 
 		ginkgo.By("default iam role should exist")
-		VerifyRoleExistsAndOwned(ctx, ekscontrolplanev1.DefaultEKSControlPlaneRole, eksClusterName, false, e2eCtx.AWSSessionV2)
+		VerifyRoleExistsAndOwned(ctx, ekscontrolplanev1.DefaultEKSControlPlaneRole, eksClusterName, false, e2eCtx.AWSSession)
 
 		ginkgo.By("should create an EKS control plane")
 		ManagedClusterSpec(ctx, func() ManagedClusterSpecInput {
@@ -66,7 +66,7 @@ var _ = ginkgo.Describe("[managed] [legacy] EKS cluster tests - single kind", fu
 				E2EConfig:                e2eCtx.E2EConfig,
 				ConfigClusterFn:          defaultConfigCluster,
 				BootstrapClusterProxy:    e2eCtx.Environment.BootstrapClusterProxy,
-				AWSSession:               e2eCtx.BootstrapUserAWSSessionV2,
+				AWSSession:               e2eCtx.BootstrapUserAWSSession,
 				Namespace:                namespace,
 				ClusterName:              clusterName,
 				Flavour:                  EKSControlPlaneOnlyLegacyFlavor,
@@ -81,7 +81,7 @@ var _ = ginkgo.Describe("[managed] [legacy] EKS cluster tests - single kind", fu
 				E2EConfig:             e2eCtx.E2EConfig,
 				ConfigClusterFn:       defaultConfigCluster,
 				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
-				AWSSession:            e2eCtx.BootstrapUserAWSSessionV2,
+				AWSSession:            e2eCtx.BootstrapUserAWSSession,
 				Namespace:             namespace,
 				ClusterName:           clusterName,
 				IncludeScaling:        false,

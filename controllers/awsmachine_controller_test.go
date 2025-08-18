@@ -22,10 +22,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	elb "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -548,7 +548,7 @@ func expectConditions(g *WithT, m *infrav1.AWSMachine, expected []conditionAsser
 
 func mockedCreateSecretCall(s *mock_services.MockSecretInterfaceMockRecorder) {
 	s.Create(gomock.AssignableToTypeOf(&scope.MachineScope{}), gomock.AssignableToTypeOf([]byte{}))
-	s.UserData(gomock.Any(), gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf([]scope.ServiceEndpoint{}))
+	s.UserData(gomock.Any(), gomock.Any(), gomock.Any())
 }
 
 func mockedCreateInstanceCalls(m *mocks.MockEC2APIMockRecorder) {

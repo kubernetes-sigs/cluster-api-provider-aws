@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/blang/semver"
 	ignTypes "github.com/coreos/ignition/config/v2_3/types"
 	ignV3Types "github.com/coreos/ignition/v2/config/v3_4/types"
@@ -84,7 +84,6 @@ type AWSMachineReconciler struct {
 	secretsManagerServiceFactory func(cloud.ClusterScoper) services.SecretInterface
 	SSMServiceFactory            func(cloud.ClusterScoper) services.SecretInterface
 	objectStoreServiceFactory    func(cloud.ClusterScoper) services.ObjectStoreInterface
-	Endpoints                    []scope.ServiceEndpoint
 	WatchFilterValue             string
 	TagUnmanagedNetworkResources bool
 	MaxWaitActiveUpdateDelete    time.Duration
@@ -804,7 +803,7 @@ func (r *AWSMachineReconciler) cloudInitUserData(machineScope *scope.MachineScop
 		machineScope.Error(serviceErr, "Failed to create AWS Secret entry", "secretPrefix", prefix)
 		return nil, serviceErr
 	}
-	encryptedCloudInit, err := secretSvc.UserData(machineScope.GetSecretPrefix(), machineScope.GetSecretCount(), machineScope.InfraCluster.Region(), r.Endpoints)
+	encryptedCloudInit, err := secretSvc.UserData(machineScope.GetSecretPrefix(), machineScope.GetSecretCount(), machineScope.InfraCluster.Region())
 	if err != nil {
 		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedGenerateAWSSecretsCloudInit", err.Error())
 		return nil, err
@@ -1205,7 +1204,6 @@ func (r *AWSMachineReconciler) getInfraCluster(ctx context.Context, log *logger.
 			Cluster:                      cluster,
 			ControlPlane:                 controlPlane,
 			ControllerName:               "awsManagedControlPlane",
-			Endpoints:                    r.Endpoints,
 			TagUnmanagedNetworkResources: r.TagUnmanagedNetworkResources,
 		})
 		if err != nil {

@@ -30,11 +30,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/efs"
+	"github.com/aws/aws-sdk-go-v2/service/efs"
+	efstypes "github.com/aws/aws-sdk-go-v2/service/efs/types"
 	"github.com/blang/semver"
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -48,6 +48,7 @@ import (
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/utils"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -151,7 +152,7 @@ func getSubnetID(filterKey, filterValue, clusterName string) *string {
 	var subnetOutput *ec2.DescribeSubnetsOutput
 	var err error
 
-	ec2Client := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
+	ec2Client := ec2.NewFromConfig(*e2eCtx.AWSSession)
 	subnetInput := &ec2.DescribeSubnetsInput{
 		Filters: []types.Filter{
 			{
@@ -320,7 +321,7 @@ func makeMachineDeployment(namespace, mdName, clusterName string, az *string, re
 
 func assertSpotInstanceType(instanceID string) {
 	ginkgo.By(fmt.Sprintf("Finding EC2 spot instance with ID: %s", instanceID))
-	ec2Client := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
+	ec2Client := ec2.NewFromConfig(*e2eCtx.AWSSession)
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: []string{
 			instanceID[strings.LastIndex(instanceID, "/")+1:],
@@ -336,7 +337,7 @@ func assertSpotInstanceType(instanceID string) {
 
 func assertInstanceMetadataOptions(instanceID string, expected infrav1.InstanceMetadataOptions) {
 	ginkgo.By(fmt.Sprintf("Finding EC2 instance with ID: %s", instanceID))
-	ec2Client := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
+	ec2Client := ec2.NewFromConfig(*e2eCtx.AWSSession)
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: []string{
 			instanceID[strings.LastIndex(instanceID, "/")+1:],
@@ -359,7 +360,7 @@ func assertInstanceMetadataOptions(instanceID string, expected infrav1.InstanceM
 
 func assertUnencryptedUserDataIgnition(instanceID string, expected string) {
 	ginkgo.By(fmt.Sprintf("Finding EC2 instance with ID: %s", instanceID))
-	ec2Client := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
+	ec2Client := ec2.NewFromConfig(*e2eCtx.AWSSession)
 	input := &ec2.DescribeInstanceAttributeInput{
 		Attribute:  types.InstanceAttributeNameUserData,
 		InstanceId: aws.String(instanceID[strings.LastIndex(instanceID, "/")+1:]),
@@ -375,7 +376,7 @@ func assertUnencryptedUserDataIgnition(instanceID string, expected string) {
 
 func terminateInstance(instanceID string) {
 	ginkgo.By(fmt.Sprintf("Terminating EC2 instance with ID: %s", instanceID))
-	ec2Client := ec2.NewFromConfig(*e2eCtx.AWSSessionV2)
+	ec2Client := ec2.NewFromConfig(*e2eCtx.AWSSession)
 	input := &ec2.TerminateInstancesInput{
 		InstanceIds: []string{
 			instanceID[strings.LastIndex(instanceID, "/")+1:],
@@ -445,12 +446,12 @@ func hasAWSClusterConditions(m *infrav1.AWSCluster, expected []conditionAssertio
 	return true
 }
 
-func createEFS() *efs.FileSystemDescription {
+func createEFS(ctx context.Context) *efs.CreateFileSystemOutput {
 	efs, err := shared.CreateEFS(e2eCtx, string(uuid.NewUUID()))
 	Expect(err).NotTo(HaveOccurred())
 	Eventually(func() (string, error) {
-		state, err := shared.GetEFSState(e2eCtx, aws.StringValue(efs.FileSystemId))
-		return aws.StringValue(state), err
+		state, err := shared.GetEFSState(ctx, e2eCtx, aws.ToString(efs.FileSystemId))
+		return aws.ToString(state), err
 	}, 2*time.Minute, 5*time.Second).Should(Equal("available"))
 	return efs
 }
@@ -467,35 +468,35 @@ func createSecurityGroupForEFS(clusterName string, vpc *types.Vpc) *ec2.CreateSe
 	})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(len(nodeSecurityGroups)).To(Equal(1))
-	_, err = shared.CreateSecurityGroupIngressRuleWithSourceSG(e2eCtx, aws.StringValue(securityGroup.GroupId), "tcp", 2049, aws.StringValue(nodeSecurityGroups[0].GroupId))
+	_, err = shared.CreateSecurityGroupIngressRuleWithSourceSG(e2eCtx, aws.ToString(securityGroup.GroupId), "tcp", 2049, aws.ToString(nodeSecurityGroups[0].GroupId))
 	Expect(err).NotTo(HaveOccurred())
 	return securityGroup
 }
 
-func createMountTarget(efs *efs.FileSystemDescription, securityGroup *ec2.CreateSecurityGroupOutput, vpc *types.Vpc) *efs.MountTargetDescription {
-	mt, err := shared.CreateMountTargetOnEFS(e2eCtx, aws.StringValue(efs.FileSystemId), aws.StringValue(vpc.VpcId), aws.StringValue(securityGroup.GroupId))
+func createMountTarget(ctx context.Context, efs *efs.CreateFileSystemOutput, securityGroup *ec2.CreateSecurityGroupOutput, vpc *types.Vpc) *efs.CreateMountTargetOutput {
+	mt, err := shared.CreateMountTargetOnEFS(ctx, e2eCtx, aws.ToString(efs.FileSystemId), aws.ToString(vpc.VpcId), aws.ToString(securityGroup.GroupId))
 	Expect(err).NotTo(HaveOccurred())
 	Eventually(func() (string, error) {
-		state, err := shared.GetMountTargetState(e2eCtx, *mt.MountTargetId)
-		return aws.StringValue(state), err
+		state, err := shared.GetMountTargetState(ctx, e2eCtx, *mt.MountTargetId)
+		return aws.ToString(state), err
 	}, 5*time.Minute, 10*time.Second).Should(Equal("available"))
 	return mt
 }
 
-func deleteMountTarget(mountTarget *efs.MountTargetDescription) {
-	_, err := shared.DeleteMountTarget(e2eCtx, *mountTarget.MountTargetId)
+func deleteMountTarget(ctx context.Context, mountTarget *efs.CreateMountTargetOutput) {
+	_, err := shared.DeleteMountTarget(ctx, e2eCtx, *mountTarget.MountTargetId)
 	Expect(err).NotTo(HaveOccurred())
 	Eventually(func(g Gomega) {
-		_, err = shared.GetMountTarget(e2eCtx, *mountTarget.MountTargetId)
+		_, err = shared.GetMountTarget(ctx, e2eCtx, *mountTarget.MountTargetId)
 		g.Expect(err).ShouldNot(BeNil())
-		aerr, ok := err.(awserr.Error)
+		code, ok := awserrors.Code(err)
 		g.Expect(ok).To(BeTrue())
-		g.Expect(aerr.Code()).To(Equal(efs.ErrCodeMountTargetNotFound))
+		g.Expect(code).To(Equal((&efstypes.MountTargetNotFound{}).ErrorCode()))
 	}, 5*time.Minute, 10*time.Second).Should(Succeed())
 }
 
 // example taken from aws-efs-csi-driver (https://github.com/kubernetes-sigs/aws-efs-csi-driver/blob/master/examples/kubernetes/dynamic_provisioning/specs/storageclass.yaml)
-func createEFSStorageClass(storageClassName string, clusterClient crclient.Client, efs *efs.FileSystemDescription) {
+func createEFSStorageClass(storageClassName string, clusterClient crclient.Client, efs *efs.CreateFileSystemOutput) {
 	storageClass := &storagev1.StorageClass{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "storage.k8s.io/v1",
@@ -507,7 +508,7 @@ func createEFSStorageClass(storageClassName string, clusterClient crclient.Clien
 		MountOptions: []string{"tls"},
 		Parameters: map[string]string{
 			"provisioningMode": "efs-ap",
-			"fileSystemId":     aws.StringValue(efs.FileSystemId),
+			"fileSystemId":     aws.ToString(efs.FileSystemId),
 			"directoryPerms":   "700",
 			"gidRangeStart":    "1000",
 			"gidRangeEnd":      "2000",

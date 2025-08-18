@@ -88,14 +88,14 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			clusterClient := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, clusterName).GetClient()
 
 			ginkgo.By("Setting up EFS in AWS")
-			efs := createEFS()
-			defer shared.DeleteEFS(e2eCtx, *efs.FileSystemId)
+			efs := createEFS(ctx)
+			defer shared.DeleteEFS(ctx, e2eCtx, *efs.FileSystemId)
 			vpc, err := shared.GetVPCByName(e2eCtx, clusterName+"-vpc")
 			Expect(err).NotTo(HaveOccurred())
 			securityGroup := createSecurityGroupForEFS(clusterName, vpc)
 			defer shared.DeleteSecurityGroup(e2eCtx, *securityGroup.GroupId)
-			mountTarget := createMountTarget(efs, securityGroup, vpc)
-			defer deleteMountTarget(mountTarget)
+			mountTarget := createMountTarget(ctx, efs, securityGroup, vpc)
+			defer deleteMountTarget(ctx, mountTarget)
 
 			// running efs dynamic provisioning example (https://github.com/kubernetes-sigs/aws-efs-gpu-op-driver/tree/master/examples/kubernetes/dynamic_provisioning)
 			ginkgo.By("Deploying efs dynamic provisioning resources")
@@ -182,7 +182,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			}
 			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
 			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
-			Expect(shared.SetMultitenancyEnvVars(ctx, e2eCtx.AWSSessionV2)).To(Succeed())
+			Expect(shared.SetMultitenancyEnvVars(ctx, e2eCtx.AWSSession)).To(Succeed())
 			ginkgo.By("Creating cluster")
 			clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 			clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
@@ -391,7 +391,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			ginkgo.By("Creating Machine Deployment in non-configured Availability Zone")
 			md2Name := clusterName + "-md-2"
 			// By default, first availability zone will be used for cluster resources. This step attempts to create a machine deployment in the second availability zone
-			invalidAz := shared.GetAvailabilityZones(*e2eCtx.AWSSessionV2)[1].ZoneName
+			invalidAz := shared.GetAvailabilityZones(*e2eCtx.AWSSession)[1].ZoneName
 			framework.CreateMachineDeployment(ctx, framework.CreateMachineDeploymentInput{
 				Creator:                 e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 				MachineDeployment:       makeMachineDeployment(namespace.Name, md2Name, clusterName, invalidAz, 1),

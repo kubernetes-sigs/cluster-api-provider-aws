@@ -24,11 +24,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
 	autoscalingtypes "github.com/aws/aws-sdk-go-v2/service/autoscaling/types"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/pkg/errors"
 	"k8s.io/utils/ptr"
 
@@ -45,13 +45,13 @@ import (
 // SDKToAutoScalingGroup converts an AWS EC2 SDK AutoScalingGroup to the CAPA AutoScalingGroup type.
 func (s *Service) SDKToAutoScalingGroup(v *autoscalingtypes.AutoScalingGroup) (*expinfrav1.AutoScalingGroup, error) {
 	i := &expinfrav1.AutoScalingGroup{
-		ID:   aws.StringValue(v.AutoScalingGroupARN),
-		Name: aws.StringValue(v.AutoScalingGroupName),
+		ID:   aws.ToString(v.AutoScalingGroupARN),
+		Name: aws.ToString(v.AutoScalingGroupName),
 		// TODO(rudoi): this is just terrible
 		DesiredCapacity:   v.DesiredCapacity,
-		MaxSize:           aws.Int32Value(v.MaxSize), //#nosec G115
-		MinSize:           aws.Int32Value(v.MinSize), //#nosec G115
-		CapacityRebalance: aws.BoolValue(v.CapacityRebalance),
+		MaxSize:           aws.ToInt32(v.MaxSize), //#nosec G115
+		MinSize:           aws.ToInt32(v.MinSize), //#nosec G115
+		CapacityRebalance: aws.ToBool(v.CapacityRebalance),
 		// TODO: determine what additional values go here and what else should be in the struct
 	}
 
@@ -68,10 +68,10 @@ func (s *Service) SDKToAutoScalingGroup(v *autoscalingtypes.AutoScalingGroup) (*
 		}
 
 		for _, override := range v.MixedInstancesPolicy.LaunchTemplate.Overrides {
-			i.MixedInstancesPolicy.Overrides = append(i.MixedInstancesPolicy.Overrides, expinfrav1.Overrides{InstanceType: aws.StringValue(override.InstanceType)})
+			i.MixedInstancesPolicy.Overrides = append(i.MixedInstancesPolicy.Overrides, expinfrav1.Overrides{InstanceType: aws.ToString(override.InstanceType)})
 		}
 
-		onDemandAllocationStrategy := aws.StringValue(v.MixedInstancesPolicy.InstancesDistribution.OnDemandAllocationStrategy)
+		onDemandAllocationStrategy := aws.ToString(v.MixedInstancesPolicy.InstancesDistribution.OnDemandAllocationStrategy)
 		switch onDemandAllocationStrategy {
 		case string(expinfrav1.OnDemandAllocationStrategyPrioritized):
 			i.MixedInstancesPolicy.InstancesDistribution.OnDemandAllocationStrategy = expinfrav1.OnDemandAllocationStrategyPrioritized
@@ -81,7 +81,7 @@ func (s *Service) SDKToAutoScalingGroup(v *autoscalingtypes.AutoScalingGroup) (*
 			return nil, fmt.Errorf("unsupported on-demand allocation strategy: %s", onDemandAllocationStrategy)
 		}
 
-		spotAllocationStrategy := aws.StringValue(v.MixedInstancesPolicy.InstancesDistribution.SpotAllocationStrategy)
+		spotAllocationStrategy := aws.ToString(v.MixedInstancesPolicy.InstancesDistribution.SpotAllocationStrategy)
 		switch spotAllocationStrategy {
 		case string(expinfrav1.SpotAllocationStrategyLowestPrice):
 			i.MixedInstancesPolicy.InstancesDistribution.SpotAllocationStrategy = expinfrav1.SpotAllocationStrategyLowestPrice
@@ -107,7 +107,7 @@ func (s *Service) SDKToAutoScalingGroup(v *autoscalingtypes.AutoScalingGroup) (*
 	if len(v.Instances) > 0 {
 		for _, autoscalingInstance := range v.Instances {
 			tmp := &infrav1.Instance{
-				ID:               aws.StringValue(autoscalingInstance.InstanceId),
+				ID:               aws.ToString(autoscalingInstance.InstanceId),
 				State:            infrav1.InstanceState(autoscalingInstance.LifecycleState),
 				AvailabilityZone: *autoscalingInstance.AvailabilityZone,
 			}
@@ -118,7 +118,7 @@ func (s *Service) SDKToAutoScalingGroup(v *autoscalingtypes.AutoScalingGroup) (*
 	if len(v.SuspendedProcesses) > 0 {
 		currentlySuspendedProcesses := make([]string, len(v.SuspendedProcesses))
 		for i, service := range v.SuspendedProcesses {
-			currentlySuspendedProcesses[i] = aws.StringValue(service.ProcessName)
+			currentlySuspendedProcesses[i] = aws.ToString(service.ProcessName)
 		}
 		i.CurrentlySuspendProcesses = currentlySuspendedProcesses
 	}
@@ -508,7 +508,7 @@ func (s *Service) SubnetIDs(scope *scope.MachinePoolScope) ([]string, error) {
 	for _, subnet := range scope.AWSMachinePool.Spec.Subnets {
 		switch {
 		case subnet.ID != nil:
-			subnetIDs = append(subnetIDs, aws.StringValue(subnet.ID))
+			subnetIDs = append(subnetIDs, aws.ToString(subnet.ID))
 		case subnet.Filters != nil:
 			for _, eachFilter := range subnet.Filters {
 				inputFilters = append(inputFilters, ec2types.Filter{

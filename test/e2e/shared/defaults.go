@@ -24,9 +24,8 @@ import (
 	"flag"
 	"strings"
 
-	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
-	"github.com/aws/aws-sdk-go/aws"
 	"k8s.io/apimachinery/pkg/runtime"
 	cgscheme "k8s.io/client-go/kubernetes/scheme"
 
@@ -122,7 +121,7 @@ func (m MultitenancyRole) RoleName() string {
 }
 
 // SetEnvVars sets the environment variables for the role.
-func (m MultitenancyRole) SetEnvVars(ctx context.Context, cfg *awsv2.Config) error {
+func (m MultitenancyRole) SetEnvVars(ctx context.Context, cfg *aws.Config) error {
 	arn, err := m.RoleARN(ctx, cfg)
 	if err != nil {
 		return err
@@ -134,7 +133,7 @@ func (m MultitenancyRole) SetEnvVars(ctx context.Context, cfg *awsv2.Config) err
 }
 
 // RoleARN returns the role ARN.
-func (m MultitenancyRole) RoleARN(ctx context.Context, cfg *awsv2.Config) (string, error) {
+func (m MultitenancyRole) RoleARN(ctx context.Context, cfg *aws.Config) (string, error) {
 	if roleARN, ok := roleLookupCache[m.RoleName()]; ok {
 		return roleARN, nil
 	}
