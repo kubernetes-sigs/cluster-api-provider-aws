@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: kubernetes-sigs/image-builder
           ref: ${{ inputs.image_builder_version }}
