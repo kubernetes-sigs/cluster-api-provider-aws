@@ -1,5 +1,5 @@
 /*
-Copyright The Kubernetes Authors.
+Copyright 2025 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,9 +24,6 @@ import (
 	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
-
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // ROSARoleConfigSpec defines the desired state of ROSARoleConfig
 type ROSARoleConfigSpec struct {
@@ -158,6 +155,25 @@ const (
 	RosaRoleConfigCreatedReason = "Created"
 )
 
+const (
+	// IngressOperatorARNSuffix is the suffix for the ingress operator role.
+	IngressOperatorARNSuffix = "-openshift-ingress-operator-cloud-credentials"
+	// ImageRegistryARNSuffix is the suffix for the image registry operator role.
+	ImageRegistryARNSuffix = "-openshift-image-registry-installer-cloud-credentials"
+	// StorageARNSuffix is the suffix for the storage operator role.
+	StorageARNSuffix = "-openshift-cluster-csi-drivers-ebs-cloud-credentials"
+	// NetworkARNSuffix is the suffix for the network operator role.
+	NetworkARNSuffix = "-openshift-cloud-network-config-controller-cloud-credentials"
+	// KubeCloudControllerARNSuffix is the suffix for the kube cloud controller role.
+	KubeCloudControllerARNSuffix = "-kube-system-kube-controller-manager"
+	// NodePoolManagementARNSuffix is the suffix for the node pool management role.
+	NodePoolManagementARNSuffix = "-kube-system-capa-controller-manager"
+	// ControlPlaneOperatorARNSuffix is the suffix for the control plane operator role.
+	ControlPlaneOperatorARNSuffix = "-kube-system-control-plane-operator"
+	// KMSProviderARNSuffix is the suffix for the kms provider role.
+	KMSProviderARNSuffix = "-kube-system-kms-provider"
+)
+
 // SetConditions sets the conditions of the ROSARoleConfig.
 func (r *ROSARoleConfig) SetConditions(conditions clusterv1.Conditions) {
 	r.Status.Conditions = conditions
@@ -166,6 +182,11 @@ func (r *ROSARoleConfig) SetConditions(conditions clusterv1.Conditions) {
 // GetConditions returns the observations of the operational state of the RosaNetwork resource.
 func (r *ROSARoleConfig) GetConditions() clusterv1.Conditions {
 	return r.Status.Conditions
+}
+
+// IsSharedVPC checks if the shared VPC config is set.
+func (s SharedVPCConfig) IsSharedVPC() bool {
+	return s.VPCEndpointRoleARN != "" && s.RouteRoleARN != ""
 }
 
 func init() {

@@ -1,5 +1,5 @@
 /*
- Copyright The Kubernetes Authors.
+ Copyright 2025 The Kubernetes Authors.
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -19,8 +19,8 @@ package scope
 import (
 	"context"
 
-	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
-	iamv2 "github.com/aws/aws-sdk-go-v2/service/iam"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/iam"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,7 +39,6 @@ import (
 type RosaRoleConfigScopeParams struct {
 	Client         client.Client
 	ControllerName string
-	Endpoints      []ServiceEndpoint
 	Logger         *logger.Logger
 	RosaRoleConfig *expinfrav1.ROSARoleConfig
 }
@@ -52,8 +51,8 @@ type RosaRoleConfigScope struct {
 	patchHelper     *patch.Helper
 	RosaRoleConfig  *expinfrav1.ROSARoleConfig
 	serviceLimiters throttle.ServiceLimiters
-	session         awsv2.Config
-	iamClient       *iamv2.Client
+	session         aws.Config
+	iamClient       *iam.Client
 }
 
 // NewRosaRoleConfigScope creates a new RosaRoleConfigScope from the supplied parameters.
@@ -71,12 +70,13 @@ func NewRosaRoleConfigScope(params RosaRoleConfigScopeParams) (*RosaRoleConfigSc
 		RosaRoleConfig: params.RosaRoleConfig,
 	}
 
-	sessionv2, serviceLimitersv2, err := sessionForClusterWithRegionV2(params.Client, RosaRoleConfigScope, "", params.Endpoints, params.Logger)
+	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, RosaRoleConfigScope, "", params.Logger)
+
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
 	}
 
-	iamClient := iamv2.NewFromConfig(*sessionv2)
+	iamClient := iam.NewFromConfig(*session)
 
 	patchHelper, err := patch.NewHelper(params.RosaRoleConfig, params.Client)
 	if err != nil {
@@ -84,8 +84,8 @@ func NewRosaRoleConfigScope(params RosaRoleConfigScopeParams) (*RosaRoleConfigSc
 	}
 
 	RosaRoleConfigScope.patchHelper = patchHelper
-	RosaRoleConfigScope.session = *sessionv2
-	RosaRoleConfigScope.serviceLimiters = serviceLimitersv2
+	RosaRoleConfigScope.session = *session
+	RosaRoleConfigScope.serviceLimiters = serviceLimiters
 	RosaRoleConfigScope.iamClient = iamClient
 
 	return RosaRoleConfigScope, nil
@@ -97,7 +97,7 @@ func (s *RosaRoleConfigScope) IdentityRef() *infrav1.AWSIdentityReference {
 }
 
 // Session returns the AWS SDK V2 session. Used for creating clients.
-func (s *RosaRoleConfigScope) Session() awsv2.Config {
+func (s *RosaRoleConfigScope) Session() aws.Config {
 	return s.session
 }
 
@@ -140,13 +140,8 @@ func (s *RosaRoleConfigScope) GetClient() client.Client {
 // PatchObject persists the RosaRoleConfig configuration and status.
 func (s *RosaRoleConfigScope) PatchObject() error {
 	return s.patchHelper.Patch(
-		context.TODO(),
+		context.Background(),
 		s.RosaRoleConfig)
-}
-
-// Close closes the current scope persisting the RosaRoleConfig configuration and status.
-func (s *RosaRoleConfigScope) Close() error {
-	return s.PatchObject()
 }
 
 // CredentialsSecret returns the CredentialsSecret object.
@@ -165,6 +160,6 @@ func (s *RosaRoleConfigScope) CredentialsSecret() *corev1.Secret {
 }
 
 // IAMClient returns the IAM client.
-func (s *RosaRoleConfigScope) IAMClient() *iamv2.Client {
+func (s *RosaRoleConfigScope) IAMClient() *iam.Client {
 	return s.iamClient
 }
