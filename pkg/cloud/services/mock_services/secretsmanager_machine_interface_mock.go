@@ -81,16 +81,16 @@ func (mr *MockSecretInterfaceMockRecorder) Delete(arg0 interface{}) *gomock.Call
 }
 
 // UserData mocks base method.
-func (m *MockSecretInterface) UserData(arg0 string, arg1 int32, arg2 string, arg3 []scope.ServiceEndpoint) ([]byte, error) {
+func (m *MockSecretInterface) UserData(arg0 string, arg1 int32, arg2 string) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UserData", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "UserData", arg0, arg1, arg2)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UserData indicates an expected call of UserData.
-func (mr *MockSecretInterfaceMockRecorder) UserData(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+func (mr *MockSecretInterfaceMockRecorder) UserData(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UserData", reflect.TypeOf((*MockSecretInterface)(nil).UserData), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UserData", reflect.TypeOf((*MockSecretInterface)(nil).UserData), arg0, arg1, arg2)
 }

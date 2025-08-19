@@ -21,8 +21,7 @@ import (
 	"fmt"
 	"time"
 
-	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
-	awsclient "github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog/v2"
@@ -30,9 +29,9 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpoints"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/util/system"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -45,9 +44,7 @@ type ClusterScopeParams struct {
 	Cluster                      *clusterv1.Cluster
 	AWSCluster                   *infrav1.AWSCluster
 	ControllerName               string
-	Endpoints                    []ServiceEndpoint
-	Session                      awsclient.ConfigProvider
-	SessionV2                    awsv2.Config
+	Session                      aws.Config
 	TagUnmanagedNetworkResources bool
 	MaxWaitActiveUpdateDelete    time.Duration
 }
@@ -77,7 +74,7 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 		maxWaitActiveUpdateDelete:    params.MaxWaitActiveUpdateDelete,
 	}
 
-	sessionv2, serviceLimitersv2, err := sessionForClusterWithRegionV2(params.Client, clusterScope, params.AWSCluster.Spec.Region, params.Endpoints, params.Logger)
+	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, clusterScope, params.AWSCluster.Spec.Region, params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
 	}
@@ -88,8 +85,8 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 	}
 
 	clusterScope.patchHelper = helper
-	clusterScope.session = *sessionv2
-	clusterScope.serviceLimiters = serviceLimitersv2
+	clusterScope.session = *session
+	clusterScope.serviceLimiters = serviceLimiters
 
 	return clusterScope, nil
 }
@@ -103,7 +100,7 @@ type ClusterScope struct {
 	Cluster    *clusterv1.Cluster
 	AWSCluster *infrav1.AWSCluster
 
-	session         awsv2.Config
+	session         aws.Config
 	serviceLimiters throttle.ServiceLimiters
 	controllerName  string
 
@@ -353,7 +350,7 @@ func (s *ClusterScope) ClusterObj() cloud.ClusterObject {
 }
 
 // Session returns the AWS SDK V2 session. Used for creating clients.
-func (s *ClusterScope) Session() awsv2.Config {
+func (s *ClusterScope) Session() aws.Config {
 	return s.session
 }
 
@@ -414,7 +411,7 @@ func (s *ClusterScope) ImageLookupBaseOS() string {
 // Partition returns the cluster partition.
 func (s *ClusterScope) Partition() string {
 	if s.AWSCluster.Spec.Partition == "" {
-		s.AWSCluster.Spec.Partition = system.GetPartitionFromRegion(s.Region())
+		s.AWSCluster.Spec.Partition = endpoints.GetPartitionFromRegion(s.Region())
 	}
 	return s.AWSCluster.Spec.Partition
 }

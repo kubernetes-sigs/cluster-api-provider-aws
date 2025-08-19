@@ -21,12 +21,11 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
 	autoscalingtypes "github.com/aws/aws-sdk-go-v2/service/autoscaling/types"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -551,7 +550,7 @@ func TestServiceCreateASG(t *testing.T) {
 				}
 
 				m.CreateAutoScalingGroup(context.TODO(), gomock.AssignableToTypeOf(&autoscaling.CreateAutoScalingGroupInput{})).Do(
-					func(ctx context.Context, actual *autoscaling.CreateAutoScalingGroupInput, requestOptions ...request.Option) (*autoscaling.CreateAutoScalingGroupOutput, error) {
+					func(ctx context.Context, actual *autoscaling.CreateAutoScalingGroupInput, requestOptions ...autoscaling.Options) (*autoscaling.CreateAutoScalingGroupOutput, error) {
 						sortTagsByKey := func(tags []autoscalingtypes.Tag) {
 							sort.Slice(tags, func(i, j int) bool {
 								return *(tags[i].Key) < *(tags[j].Key)
@@ -589,7 +588,7 @@ func TestServiceCreateASG(t *testing.T) {
 			wantErr: false,
 			expect: func(m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder) {
 				m.CreateAutoScalingGroup(context.TODO(), gomock.AssignableToTypeOf(&autoscaling.CreateAutoScalingGroupInput{})).Do(
-					func(ctx context.Context, actual *autoscaling.CreateAutoScalingGroupInput, requestOptions ...request.Option) (*autoscaling.CreateAutoScalingGroupOutput, error) {
+					func(ctx context.Context, actual *autoscaling.CreateAutoScalingGroupInput, requestOptions ...autoscaling.Options) (*autoscaling.CreateAutoScalingGroupOutput, error) {
 						if actual.DesiredCapacity != nil {
 							t.Fatalf("Actual DesiredCapacity did not match expected, Actual: %d, Expected: <nil>", *actual.DesiredCapacity)
 						}
@@ -611,7 +610,7 @@ func TestServiceCreateASG(t *testing.T) {
 			wantErr: false,
 			expect: func(m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder) {
 				m.CreateAutoScalingGroup(context.TODO(), gomock.AssignableToTypeOf(&autoscaling.CreateAutoScalingGroupInput{})).Do(
-					func(ctx context.Context, actual *autoscaling.CreateAutoScalingGroupInput, requestOptions ...request.Option) (*autoscaling.CreateAutoScalingGroupOutput, error) {
+					func(ctx context.Context, actual *autoscaling.CreateAutoScalingGroupInput, requestOptions ...autoscaling.Options) (*autoscaling.CreateAutoScalingGroupOutput, error) {
 						if actual.DesiredCapacity != nil {
 							t.Fatalf("Actual DesiredCapacity did not match expected, Actual: %d, Expected: <nil>", *actual.DesiredCapacity)
 						}
@@ -724,7 +723,7 @@ func TestServiceUpdateASG(t *testing.T) {
 				mps.AWSMachinePool.Spec.MaxSize = 5
 			},
 			expect: func(e *mocks.MockEC2APIMockRecorder, m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder, g *WithT) {
-				m.UpdateAutoScalingGroup(context.TODO(), gomock.AssignableToTypeOf(&autoscaling.UpdateAutoScalingGroupInput{})).DoAndReturn(func(ctx context.Context, input *autoscaling.UpdateAutoScalingGroupInput, options ...request.Option) (*autoscaling.UpdateAutoScalingGroupOutput, error) {
+				m.UpdateAutoScalingGroup(context.TODO(), gomock.AssignableToTypeOf(&autoscaling.UpdateAutoScalingGroupInput{})).DoAndReturn(func(ctx context.Context, input *autoscaling.UpdateAutoScalingGroupInput, options ...autoscaling.Options) (*autoscaling.UpdateAutoScalingGroupOutput, error) {
 					// CAPA should set min/max, and because there's no "externally managed" annotation, also the
 					// "desired" number of instances
 					g.Expect(input.MinSize).To(BeComparableTo(ptr.To[int32](2)))
@@ -757,7 +756,7 @@ func TestServiceUpdateASG(t *testing.T) {
 				mps.AWSMachinePool.Spec.MaxSize = 50
 			},
 			expect: func(e *mocks.MockEC2APIMockRecorder, m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder, g *WithT) {
-				m.UpdateAutoScalingGroup(context.TODO(), gomock.AssignableToTypeOf(&autoscaling.UpdateAutoScalingGroupInput{})).DoAndReturn(func(ctx context.Context, input *autoscaling.UpdateAutoScalingGroupInput, options ...request.Option) (*autoscaling.UpdateAutoScalingGroupOutput, error) {
+				m.UpdateAutoScalingGroup(context.TODO(), gomock.AssignableToTypeOf(&autoscaling.UpdateAutoScalingGroupInput{})).DoAndReturn(func(ctx context.Context, input *autoscaling.UpdateAutoScalingGroupInput, options ...autoscaling.Options) (*autoscaling.UpdateAutoScalingGroupOutput, error) {
 					// CAPA should set min/max, but not the externally managed "desired" number of instances
 					g.Expect(input.MinSize).To(BeComparableTo(ptr.To[int32](20)))
 					g.Expect(input.MaxSize).To(BeComparableTo(ptr.To[int32](50)))

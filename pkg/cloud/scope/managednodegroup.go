@@ -34,9 +34,9 @@ import (
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpoints"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/util/system"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -52,7 +52,6 @@ type ManagedMachinePoolScopeParams struct {
 	ManagedMachinePool        *expinfrav1.AWSManagedMachinePool
 	MachinePool               *expclusterv1.MachinePool
 	ControllerName            string
-	Endpoints                 []ServiceEndpoint
 	Session                   awsv2.Config
 	MaxWaitActiveUpdateDelete time.Duration
 
@@ -88,7 +87,7 @@ func NewManagedMachinePoolScope(params ManagedMachinePoolScopeParams) (*ManagedM
 		controllerName:            params.ControllerName,
 	}
 
-	sessionv2, serviceLimitersv2, err := sessionForClusterWithRegionV2(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
+	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
 	}
@@ -114,8 +113,8 @@ func NewManagedMachinePoolScope(params ManagedMachinePoolScopeParams) (*ManagedM
 		MachinePool:               params.MachinePool,
 		MaxWaitActiveUpdateDelete: params.MaxWaitActiveUpdateDelete,
 		EC2Scope:                  params.InfraCluster,
-		session:                   *sessionv2,
-		serviceLimiters:           serviceLimitersv2,
+		session:                   *session,
+		serviceLimiters:           serviceLimiters,
 		controllerName:            params.ControllerName,
 		enableIAM:                 params.EnableIAM,
 		allowAdditionalRoles:      params.AllowAdditionalRoles,
@@ -174,7 +173,7 @@ func (s *ManagedMachinePoolScope) AllowAdditionalRoles() bool {
 
 // Partition returns the machine pool subnet IDs.
 func (s *ManagedMachinePoolScope) Partition() string {
-	return system.GetPartitionFromRegion(s.ControlPlane.Spec.Region)
+	return endpoints.GetPartitionFromRegion(s.ControlPlane.Spec.Region)
 }
 
 // IdentityRef returns the cluster identityRef.

@@ -26,10 +26,10 @@ import (
 	"path"
 	"sort"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	stsv2 "github.com/aws/aws-sdk-go-v2/service/sts"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/pkg/errors"
 	"k8s.io/utils/ptr"
 
@@ -37,10 +37,10 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
 	iam "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpoints"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	stsservice "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/util/system"
 )
 
 // AWSDefaultRegion is the default AWS region.
@@ -138,7 +138,7 @@ func (s *Service) DeleteBucket(ctx context.Context) error {
 			if err != nil {
 				smithyErr := awserrors.ParseSmithyError(err)
 				switch smithyErr.ErrorCode() {
-				case (&types.NoSuchBucket{}).ErrorCode():
+				case (&s3types.NoSuchBucket{}).ErrorCode():
 					log.Info("Bucket already removed")
 					return nil
 				default:
@@ -170,7 +170,7 @@ func (s *Service) DeleteBucket(ctx context.Context) error {
 	if err != nil {
 		smithyErr := awserrors.ParseSmithyError(err)
 		switch smithyErr.ErrorCode() {
-		case (&types.NoSuchBucket{}).ErrorCode():
+		case (&s3types.NoSuchBucket{}).ErrorCode():
 			log.Info("Bucket already removed")
 			return nil
 		case "BucketNotEmpty":
@@ -203,10 +203,10 @@ func (s *Service) Create(ctx context.Context, m *scope.MachineScope, data []byte
 	s.scope.Info("Creating object", "bucket_name", bucket, "key", key)
 
 	if _, err := s.S3Client.PutObject(ctx, &s3.PutObjectInput{
-		Body:                 aws.ReadSeekCloser(bytes.NewReader(data)),
+		Body:                 bytes.NewReader(data),
 		Bucket:               aws.String(bucket),
 		Key:                  aws.String(key),
-		ServerSideEncryption: types.ServerSideEncryptionAwsKms,
+		ServerSideEncryption: s3types.ServerSideEncryptionAwsKms,
 	}); err != nil {
 		return "", errors.Wrap(err, "putting object")
 	}
@@ -254,10 +254,10 @@ func (s *Service) CreateForMachinePool(ctx context.Context, scope scope.LaunchTe
 	s.scope.Info("Creating object for machine pool", "bucket_name", bucket, "key", key)
 
 	if _, err := s.S3Client.PutObject(ctx, &s3.PutObjectInput{
-		Body:                 aws.ReadSeekCloser(bytes.NewReader(data)),
+		Body:                 bytes.NewReader(data),
 		Bucket:               aws.String(bucket),
 		Key:                  aws.String(key),
-		ServerSideEncryption: types.ServerSideEncryptionAwsKms,
+		ServerSideEncryption: s3types.ServerSideEncryptionAwsKms,
 	}); err != nil {
 		return "", errors.Wrap(err, "putting object for machine pool")
 	}
@@ -321,10 +321,10 @@ func (s *Service) Delete(ctx context.Context, m *scope.MachineScope) error {
 		case "NotFound":
 			s.scope.Debug("Either bucket or object does not exist", "bucket", bucket, "key", key)
 			return nil
-		case (&types.NoSuchKey{}).ErrorCode():
+		case (&s3types.NoSuchKey{}).ErrorCode():
 			s.scope.Debug("Object already deleted", "bucket", bucket, "key", key)
 			return nil
-		case (&types.NoSuchBucket{}).ErrorCode():
+		case (&s3types.NoSuchBucket{}).ErrorCode():
 			s.scope.Debug("Bucket does not exist", "bucket", bucket)
 			return nil
 		}
@@ -380,7 +380,7 @@ func (s *Service) DeleteForMachinePool(ctx context.Context, scope scope.LaunchTe
 
 	smithyErr := awserrors.ParseSmithyError(err)
 	switch smithyErr.ErrorCode() {
-	case (&types.NoSuchBucket{}).ErrorCode():
+	case (&s3types.NoSuchBucket{}).ErrorCode():
 	default:
 		return errors.Wrap(err, "deleting S3 object for machine pool")
 	}
@@ -393,8 +393,8 @@ func (s *Service) createBucketIfNotExist(ctx context.Context, bucketName string)
 
 	// See https://docs.aws.amazon.com/AmazonS3/latest/API/API_CreateBucket.html#AmazonS3-CreateBucket-request-LocationConstraint.
 	if s.scope.Region() != AWSDefaultRegion {
-		input.CreateBucketConfiguration = &types.CreateBucketConfiguration{
-			LocationConstraint: types.BucketLocationConstraint(s.scope.Region()),
+		input.CreateBucketConfiguration = &s3types.CreateBucketConfiguration{
+			LocationConstraint: s3types.BucketLocationConstraint(s.scope.Region()),
 		}
 	}
 
@@ -410,7 +410,7 @@ func (s *Service) createBucketIfNotExist(ctx context.Context, bucketName string)
 	// If bucket already exists, all good.
 	//
 	// TODO: This will fail if bucket is shared with other cluster.
-	case (&types.BucketAlreadyOwnedByYou{}).ErrorCode():
+	case (&s3types.BucketAlreadyOwnedByYou{}).ErrorCode():
 		return nil
 	default:
 		return errors.Wrap(err, "creating S3 bucket")
@@ -444,11 +444,11 @@ func (s *Service) ensureBucketLifecycleConfiguration(ctx context.Context, bucket
 
 	input := &s3.PutBucketLifecycleConfigurationInput{
 		Bucket: aws.String(bucketName),
-		LifecycleConfiguration: &types.BucketLifecycleConfiguration{
-			Rules: []types.LifecycleRule{
+		LifecycleConfiguration: &s3types.BucketLifecycleConfiguration{
+			Rules: []s3types.LifecycleRule{
 				{
 					ID: aws.String("machine-pool"),
-					Expiration: &types.LifecycleExpiration{
+					Expiration: &s3types.LifecycleExpiration{
 						// The bootstrap token for new nodes to join the cluster is normally rotated regularly,
 						// such as in CAPI's `KubeadmConfig` reconciler. Therefore, the launch template user data
 						// stored in the S3 bucket only needs to live longer than the token TTL.
@@ -456,10 +456,10 @@ func (s *Service) ensureBucketLifecycleConfiguration(ctx context.Context, bucket
 						// (see function `DeleteForMachinePool`).
 						Days: aws.Int32(1),
 					},
-					Filter: &types.LifecycleRuleFilterMemberPrefix{
-						Value: "machine-pool/",
+					Filter: &s3types.LifecycleRuleFilter{
+						Prefix: aws.String("machine-pool/"),
 					},
-					Status: types.ExpirationStatusEnabled,
+					Status: s3types.ExpirationStatusEnabled,
 				},
 			},
 		},
@@ -477,7 +477,7 @@ func (s *Service) ensureBucketLifecycleConfiguration(ctx context.Context, bucket
 func (s *Service) tagBucket(ctx context.Context, bucketName string) error {
 	taggingInput := &s3.PutBucketTaggingInput{
 		Bucket: aws.String(bucketName),
-		Tagging: &types.Tagging{
+		Tagging: &s3types.Tagging{
 			TagSet: nil,
 		},
 	}
@@ -491,7 +491,7 @@ func (s *Service) tagBucket(ctx context.Context, bucketName string) error {
 	})
 
 	for key, value := range tags {
-		taggingInput.Tagging.TagSet = append(taggingInput.Tagging.TagSet, types.Tag{
+		taggingInput.Tagging.TagSet = append(taggingInput.Tagging.TagSet, s3types.Tag{
 			Key:   aws.String(key),
 			Value: aws.String(value),
 		})
@@ -518,7 +518,7 @@ func (s *Service) bucketPolicy(bucketName string) (string, error) {
 	}
 
 	bucket := s.scope.Bucket()
-	partition := system.GetPartitionFromRegion(s.scope.Region())
+	partition := endpoints.GetPartitionFromRegion(s.scope.Region())
 
 	statements := []iam.StatementEntry{
 		{

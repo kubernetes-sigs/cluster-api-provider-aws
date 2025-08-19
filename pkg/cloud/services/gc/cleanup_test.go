@@ -26,7 +26,6 @@ import (
 	elbv2 "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
 	rgapi "github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi"
 	rgapitypes "github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi/types"
-	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -73,7 +72,7 @@ func TestReconcileDelete(t *testing.T) {
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...request.Option) (*rgapi.GetResourcesOutput, error) {
+				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
 					return &rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{},
 					}, nil
@@ -95,7 +94,7 @@ func TestReconcileDelete(t *testing.T) {
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...request.Option) (*rgapi.GetResourcesOutput, error) {
+				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
 					return &rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{},
 					}, nil
@@ -117,7 +116,7 @@ func TestReconcileDelete(t *testing.T) {
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...request.Option) (*rgapi.GetResourcesOutput, error) {
+				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
 					return &rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{},
 					}, nil
@@ -139,7 +138,7 @@ func TestReconcileDelete(t *testing.T) {
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...request.Option) (*rgapi.GetResourcesOutput, error) {
+				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
 					return &rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{
 							{
@@ -171,7 +170,7 @@ func TestReconcileDelete(t *testing.T) {
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...request.Option) (*rgapi.GetResourcesOutput, error) {
+				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
 					return &rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{
 							{
@@ -203,7 +202,7 @@ func TestReconcileDelete(t *testing.T) {
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...request.Option) (*rgapi.GetResourcesOutput, error) {
+				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
 					return &rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{
 							{
@@ -243,7 +242,7 @@ func TestReconcileDelete(t *testing.T) {
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...request.Option) (*rgapi.GetResourcesOutput, error) {
+				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
 					return &rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{
 							{
@@ -283,7 +282,7 @@ func TestReconcileDelete(t *testing.T) {
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...request.Option) (*rgapi.GetResourcesOutput, error) {
+				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
 					return &rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{
 							{
@@ -323,7 +322,7 @@ func TestReconcileDelete(t *testing.T) {
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...request.Option) (*rgapi.GetResourcesOutput, error) {
+				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
 					return &rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{
 							{
@@ -363,7 +362,7 @@ func TestReconcileDelete(t *testing.T) {
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...request.Option) (*rgapi.GetResourcesOutput, error) {
+				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
 					return &rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{
 							{
@@ -403,7 +402,7 @@ func TestReconcileDelete(t *testing.T) {
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...request.Option) (*rgapi.GetResourcesOutput, error) {
+				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
 					return &rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{
 							{
@@ -443,7 +442,7 @@ func TestReconcileDelete(t *testing.T) {
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...request.Option) (*rgapi.GetResourcesOutput, error) {
+				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
 					return &rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{
 							{
@@ -483,7 +482,7 @@ func TestReconcileDelete(t *testing.T) {
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...request.Option) (*rgapi.GetResourcesOutput, error) {
+				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
 					return &rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{
 							{
@@ -558,7 +557,7 @@ func TestReconcileDelete(t *testing.T) {
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...request.Option) (*rgapi.GetResourcesOutput, error) {
+				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
 					return &rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{
 							{
@@ -598,7 +597,7 @@ func TestReconcileDelete(t *testing.T) {
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...request.Option) (*rgapi.GetResourcesOutput, error) {
+				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
 					return &rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{
 							{
@@ -638,7 +637,7 @@ func TestReconcileDelete(t *testing.T) {
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...request.Option) (*rgapi.GetResourcesOutput, error) {
+				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
 					return &rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{
 							{
@@ -713,7 +712,7 @@ func TestReconcileDelete(t *testing.T) {
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...request.Option) (*rgapi.GetResourcesOutput, error) {
+				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
 					return &rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{
 							{
@@ -783,7 +782,7 @@ func TestReconcileDelete(t *testing.T) {
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...request.Option) (*rgapi.GetResourcesOutput, error) {
+				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
 					return &rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{
 							{

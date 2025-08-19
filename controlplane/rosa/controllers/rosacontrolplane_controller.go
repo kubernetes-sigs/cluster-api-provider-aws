@@ -90,7 +90,6 @@ type ROSAControlPlaneReconciler struct {
 	client.Client
 	WatchFilterValue string
 	WaitInfraPeriod  time.Duration
-	Endpoints        []scope.ServiceEndpoint
 	NewStsClient     func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsiface.STSClient
 	NewOCMClient     func(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (rosa.OCMClient, error)
 	// Exposing the restClientConfig for integration test. No need to initialize.
@@ -178,7 +177,6 @@ func (r *ROSAControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		Cluster:        cluster,
 		ControlPlane:   rosaControlPlane,
 		ControllerName: strings.ToLower(rosaControlPlaneKind),
-		Endpoints:      r.Endpoints,
 		Logger:         log,
 		NewStsClient:   r.NewStsClient,
 	})

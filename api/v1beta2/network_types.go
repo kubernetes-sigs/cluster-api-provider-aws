@@ -21,8 +21,8 @@ import (
 	"sort"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
-	"github.com/aws/aws-sdk-go/aws"
 	"k8s.io/utils/ptr"
 )
 
@@ -670,7 +670,7 @@ func (s *SubnetSpec) IsEdgeWavelength() bool {
 func (s *SubnetSpec) SetZoneInfo(zones []types.AvailabilityZone) error {
 	zoneInfo := func(zoneName string) *types.AvailabilityZone {
 		for _, zone := range zones {
-			if aws.StringValue(zone.ZoneName) == zoneName {
+			if aws.ToString(zone.ZoneName) == zoneName {
 				return &zone
 			}
 		}

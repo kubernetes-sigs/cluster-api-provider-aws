@@ -106,7 +106,7 @@ type MachinePoolReconcileInterface interface {
 type SecretInterface interface {
 	Delete(m *scope.MachineScope) error
 	Create(m *scope.MachineScope, data []byte) (string, int32, error)
-	UserData(secretPrefix string, chunks int32, region string, endpoints []scope.ServiceEndpoint) ([]byte, error)
+	UserData(secretPrefix string, chunks int32, region string) ([]byte, error)
 }
 
 // ELBInterface encapsulates the methods exposed to the cluster and machine

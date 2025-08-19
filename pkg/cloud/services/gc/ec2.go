@@ -25,7 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 
-	converters "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/convertersv2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
 	filter "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/filter"
 )
 

@@ -24,9 +24,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/blang/semver"
 	ignTypes "github.com/coreos/ignition/config/v2_3/types"
 	ignV3Types "github.com/coreos/ignition/v2/config/v3_4/types"
@@ -519,7 +519,7 @@ func (s *Service) GetLaunchTemplateID(launchTemplateName string) (string, error)
 		return "", nil
 	}
 
-	return aws.StringValue(out.LaunchTemplateVersions[0].LaunchTemplateId), nil
+	return aws.ToString(out.LaunchTemplateVersions[0].LaunchTemplateId), nil
 }
 
 // CreateLaunchTemplate generates a launch template to be used with the autoscaling group.
@@ -563,7 +563,7 @@ func (s *Service) CreateLaunchTemplate(scope scope.LaunchTemplateScope, imageID 
 	if err != nil {
 		return "", err
 	}
-	return aws.StringValue(result.LaunchTemplate.LaunchTemplateId), nil
+	return aws.ToString(result.LaunchTemplate.LaunchTemplateId), nil
 }
 
 // CreateLaunchTemplateVersion will create a launch template.
@@ -661,7 +661,7 @@ func (s *Service) createLaunchTemplateData(scope scope.LaunchTemplateScope, imag
 			return nil, err
 		}
 
-		lt.RootVolume.DeviceName = aws.StringValue(rootDeviceName)
+		lt.RootVolume.DeviceName = aws.ToString(rootDeviceName)
 
 		req := volumeToLaunchTemplateBlockDeviceMappingRequest(lt.RootVolume)
 		blockDeviceMappings = append(blockDeviceMappings, *req)
@@ -882,7 +882,7 @@ func CapacityReservationPreferenceToSDK(preference infrav1.CapacityReservationPr
 func (s *Service) SDKToLaunchTemplate(d types.LaunchTemplateVersion) (*expinfrav1.AWSLaunchTemplate, string, *apimachinerytypes.NamespacedName, *string, error) {
 	v := d.LaunchTemplateData
 	i := &expinfrav1.AWSLaunchTemplate{
-		Name: aws.StringValue(d.LaunchTemplateName),
+		Name: aws.ToString(d.LaunchTemplateName),
 		AMI: infrav1.AMIReference{
 			ID: v.ImageId,
 		},
@@ -922,12 +922,12 @@ func (s *Service) SDKToLaunchTemplate(d types.LaunchTemplateVersion) (*expinfrav
 	}
 
 	if v.IamInstanceProfile != nil {
-		i.IamInstanceProfile = aws.StringValue(v.IamInstanceProfile.Name)
+		i.IamInstanceProfile = aws.ToString(v.IamInstanceProfile.Name)
 	}
 
 	// Extract IAM Instance Profile name from ARN
 	if v.IamInstanceProfile != nil && v.IamInstanceProfile.Arn != nil {
-		split := strings.Split(aws.StringValue(v.IamInstanceProfile.Arn), "instance-profile/")
+		split := strings.Split(aws.ToString(v.IamInstanceProfile.Arn), "instance-profile/")
 		if len(split) > 1 && split[1] != "" {
 			i.IamInstanceProfile = split[1]
 		}
@@ -1227,7 +1227,7 @@ func getLaunchTemplateInstanceMarketOptionsRequest(i *expinfrav1.AWSLaunchTempla
 		// Persistent option is not available for EC2 autoscaling, EC2 makes a one-time request by default and setting request type should not be allowed.
 		// For one-time requests, only terminate option is available as interruption behavior, and default for spotOptions.SetInstanceInterruptionBehavior() is terminate, so it is not set here explicitly.
 
-		if maxPrice := aws.StringValue(i.SpotMarketOptions.MaxPrice); maxPrice != "" {
+		if maxPrice := aws.ToString(i.SpotMarketOptions.MaxPrice); maxPrice != "" {
 			spotOptions.MaxPrice = aws.String(maxPrice)
 		}
 
@@ -1253,6 +1253,6 @@ func getLaunchTemplatePrivateDNSNameOptionsRequest(privateDNSName *infrav1.Priva
 	return &types.LaunchTemplatePrivateDnsNameOptionsRequest{
 		EnableResourceNameDnsAAAARecord: privateDNSName.EnableResourceNameDNSAAAARecord,
 		EnableResourceNameDnsARecord:    privateDNSName.EnableResourceNameDNSARecord,
-		HostnameType:                    types.HostnameType(aws.StringValue(privateDNSName.HostnameType)),
+		HostnameType:                    types.HostnameType(aws.ToString(privateDNSName.HostnameType)),
 	}
 }

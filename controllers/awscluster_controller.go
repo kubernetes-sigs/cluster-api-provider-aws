@@ -75,7 +75,6 @@ type AWSClusterReconciler struct {
 	networkServiceFactory        func(scope.ClusterScope) services.NetworkInterface
 	elbServiceFactory            func(scope.ELBScope) services.ELBInterface
 	securityGroupFactory         func(scope.ClusterScope) services.SecurityGroupInterface
-	Endpoints                    []scope.ServiceEndpoint
 	WatchFilterValue             string
 	ExternalResourceGC           bool
 	AlternativeGCStrategy        bool
@@ -177,7 +176,6 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		Cluster:                      cluster,
 		AWSCluster:                   awsCluster,
 		ControllerName:               "awscluster",
-		Endpoints:                    r.Endpoints,
 		TagUnmanagedNetworkResources: r.TagUnmanagedNetworkResources,
 		MaxWaitActiveUpdateDelete:    r.MaxWaitActiveUpdateDelete,
 	})

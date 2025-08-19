@@ -20,14 +20,14 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	autoscalingtypes "github.com/aws/aws-sdk-go-v2/service/autoscaling/types"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	elbtypes "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing/types"
 	elbv2types "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2/types"
 	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
+	secretsmanagertypes "github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
 	ssmtypes "github.com/aws/aws-sdk-go-v2/service/ssm/types"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/secretsmanager"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 )
@@ -149,25 +149,6 @@ func MapToV2Tags(src infrav1.Tags) []elbv2types.Tag {
 	return tags
 }
 
-// MapToSecretsManagerTags converts a infrav1.Tags to a []*secretsmanager.Tag.
-func MapToSecretsManagerTags(src infrav1.Tags) []*secretsmanager.Tag {
-	tags := make([]*secretsmanager.Tag, 0, len(src))
-
-	for k, v := range src {
-		tag := &secretsmanager.Tag{
-			Key:   aws.String(k),
-			Value: aws.String(v),
-		}
-
-		tags = append(tags, tag)
-	}
-
-	// Sort so that unit tests can expect a stable order
-	sort.Slice(tags, func(i, j int) bool { return *tags[i].Key < *tags[j].Key })
-
-	return tags
-}
-
 // MapToIAMTags converts a infrav1.Tags to a []*iam.Tag.
 func MapToIAMTags(src infrav1.Tags) []iamtypes.Tag {
 	tags := make([]iamtypes.Tag, 0, len(src))
@@ -194,6 +175,25 @@ func ASGTagsToMap(src []autoscalingtypes.TagDescription) infrav1.Tags {
 	for _, t := range src {
 		tags[*t.Key] = *t.Value
 	}
+
+	return tags
+}
+
+// MapToSecretsManagerTags converts a infrav1.Tags to a []secretsmanagertypes.Tag.
+func MapToSecretsManagerTags(src infrav1.Tags) []secretsmanagertypes.Tag {
+	tags := make([]secretsmanagertypes.Tag, 0, len(src))
+
+	for k, v := range src {
+		tag := secretsmanagertypes.Tag{
+			Key:   aws.String(k),
+			Value: aws.String(v),
+		}
+
+		tags = append(tags, tag)
+	}
+
+	// Sort so that unit tests can expect a stable order
+	sort.Slice(tags, func(i, j int) bool { return *tags[i].Key < *tags[j].Key })
 
 	return tags
 }

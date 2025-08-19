@@ -19,12 +19,12 @@ package credentials
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"errors"
 	"text/template"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/config"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/util"
 )
@@ -60,17 +60,14 @@ type AWSCredentials struct {
 // default chain.
 func NewAWSCredentialFromDefaultChain(region, profile string) (*AWSCredentials, error) {
 	creds := AWSCredentials{}
-	conf := aws.NewConfig()
-	conf.CredentialsChainVerboseErrors = aws.Bool(true)
-	sess, err := session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-		Profile:           profile,
-		Config:            *conf,
-	})
+	ctx := context.TODO()
+
+	sess, err := config.LoadDefaultConfig(ctx, config.WithRegion(region), config.WithSharedConfigProfile(profile))
+
 	if err != nil {
 		return nil, err
 	}
-	chainCreds, err := sess.Config.Credentials.Get()
+	chainCreds, err := sess.Credentials.Retrieve(ctx)
 	if err != nil {
 		return nil, err
 	}
