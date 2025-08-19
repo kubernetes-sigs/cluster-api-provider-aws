@@ -356,6 +356,10 @@ func (r *AWSCluster) validateNetwork() field.ErrorList {
 		}
 	}
 
+	if err := r.Spec.NetworkSpec.VPC.ValidateAvailabilityZones(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+
 	return allErrs
 }
 

@@ -2325,6 +2325,11 @@ func (in *VPCSpec) DeepCopyInto(out *VPCSpec) {
 		*out = new(AZSelectionScheme)
 		**out = **in
 	}
+	if in.AvailabilityZones != nil {
+		in, out := &in.AvailabilityZones, &out.AvailabilityZones
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.PrivateDNSHostnameTypeOnLaunch != nil {
 		in, out := &in.PrivateDNSHostnameTypeOnLaunch, &out.PrivateDNSHostnameTypeOnLaunch
 		*out = new(string)

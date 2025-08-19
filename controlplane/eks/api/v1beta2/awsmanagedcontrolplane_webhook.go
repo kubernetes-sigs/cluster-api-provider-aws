@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -537,6 +538,10 @@ func validateNetwork(resourceName string, networkSpec infrav1.NetworkSpec, secon
 		}
 	}
 
+	if err := r.Spec.NetworkSpec.VPC.ValidateAvailabilityZones(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+
 	return allErrs
 }
 
@@ -565,6 +570,16 @@ func (*awsManagedControlPlaneWebhook) Default(_ context.Context, obj runtime.Obj
 		r.Spec.IdentityRef = &infrav1.AWSIdentityReference{
 			Kind: infrav1.ControllerIdentityKind,
 			Name: infrav1.AWSClusterControllerIdentityName,
+		}
+	}
+
+	// If AvailabilityZones are not set, set defaults for AZ selection
+	if r.Spec.NetworkSpec.VPC.AvailabilityZones == nil {
+		if r.Spec.NetworkSpec.VPC.AvailabilityZoneUsageLimit == nil {
+			r.Spec.NetworkSpec.VPC.AvailabilityZoneUsageLimit = ptr.To(3)
+		}
+		if r.Spec.NetworkSpec.VPC.AvailabilityZoneSelection == nil {
+			r.Spec.NetworkSpec.VPC.AvailabilityZoneSelection = &infrav1.AZSelectionSchemeOrdered
 		}
 	}
 
