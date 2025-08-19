@@ -85,8 +85,7 @@ func securityGroupRolesForControlPlane(scope *scope.ManagedControlPlaneScope) []
 // AWSManagedControlPlaneReconciler reconciles a AWSManagedControlPlane object.
 type AWSManagedControlPlaneReconciler struct {
 	client.Client
-	Recorder  record.EventRecorder
-	Endpoints []scope.ServiceEndpoint
+	Recorder record.EventRecorder
 
 	awsNodeServiceFactory          func(scope.AWSNodeScope) services.AWSNodeInterface
 	ec2ServiceFactory              func(scope.EC2Scope) services.EC2Interface
@@ -249,7 +248,6 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 		MaxWaitActiveUpdateDelete:    r.MaxWaitActiveUpdateDelete,
 		EnableIAM:                    r.EnableIAM,
 		AllowAdditionalRoles:         r.AllowAdditionalRoles,
-		Endpoints:                    r.Endpoints,
 		TagUnmanagedNetworkResources: r.TagUnmanagedNetworkResources,
 		Logger:                       log,
 	})

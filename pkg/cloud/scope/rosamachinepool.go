@@ -45,8 +45,6 @@ type RosaMachinePoolScopeParams struct {
 	RosaMachinePool *expinfrav1.ROSAMachinePool
 	MachinePool     *expclusterv1.MachinePool
 	ControllerName  string
-
-	Endpoints []ServiceEndpoint
 }
 
 // NewRosaMachinePoolScope creates a new Scope from the supplied parameters.
@@ -88,13 +86,13 @@ func NewRosaMachinePoolScope(params RosaMachinePoolScopeParams) (*RosaMachinePoo
 		controllerName:  params.ControllerName,
 	}
 
-	sessionv2, serviceLimitersv2, err := sessionForClusterWithRegionV2(params.Client, scope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
+	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, scope, params.ControlPlane.Spec.Region, params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
 	}
 
-	scope.session = *sessionv2
-	scope.serviceLimiters = serviceLimitersv2
+	scope.session = *session
+	scope.serviceLimiters = serviceLimiters
 
 	return scope, nil
 }

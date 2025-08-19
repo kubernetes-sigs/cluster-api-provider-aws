@@ -29,7 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/uuid"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/convertersv2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/internal/bytes"
@@ -91,7 +91,7 @@ func (s *Service) retryableCreateSecret(name string, chunk []byte, tags infrav1.
 	_, err := s.SecretsManagerClient.CreateSecret(context.TODO(), &secretsmanager.CreateSecretInput{
 		Name:         aws.String(name),
 		SecretBinary: chunk,
-		Tags:         convertersv2.MapToSecretsManagerTags(tags),
+		Tags:         converters.MapToSecretsManagerTags(tags),
 	})
 	// If the secret already exists, delete it, return request to retry, as deletes are eventually consistent
 	if err != nil {

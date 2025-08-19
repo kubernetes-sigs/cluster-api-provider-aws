@@ -51,7 +51,6 @@ type ROSAMachinePoolReconciler struct {
 	client.Client
 	Recorder         record.EventRecorder
 	WatchFilterValue string
-	Endpoints        []scope.ServiceEndpoint
 	NewStsClient     func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsservice.STSClient
 	NewOCMClient     func(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (rosa.OCMClient, error)
 }
@@ -143,7 +142,6 @@ func (r *ROSAMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		MachinePool:     machinePool,
 		RosaMachinePool: rosaMachinePool,
 		Logger:          log,
-		Endpoints:       r.Endpoints,
 	})
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to create rosaMachinePool scope")
@@ -154,7 +152,6 @@ func (r *ROSAMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		Cluster:        cluster,
 		ControlPlane:   controlPlane,
 		ControllerName: "rosaControlPlane",
-		Endpoints:      r.Endpoints,
 		NewStsClient:   r.NewStsClient,
 	})
 	if err != nil {

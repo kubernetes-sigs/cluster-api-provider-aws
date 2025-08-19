@@ -22,8 +22,7 @@ import (
 	"time"
 
 	amazoncni "github.com/aws/amazon-vpc-cni-k8s/pkg/apis/crd/v1alpha1"
-	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
-	awsclient "github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -36,9 +35,9 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpoints"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/util/system"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -62,8 +61,7 @@ type ManagedControlPlaneScopeParams struct {
 	Cluster                   *clusterv1.Cluster
 	ControlPlane              *ekscontrolplanev1.AWSManagedControlPlane
 	ControllerName            string
-	Endpoints                 []ServiceEndpoint
-	Session                   awsclient.ConfigProvider
+	Session                   aws.Config
 	MaxWaitActiveUpdateDelete time.Duration
 
 	EnableIAM                    bool
@@ -98,13 +96,13 @@ func NewManagedControlPlaneScope(params ManagedControlPlaneScopeParams) (*Manage
 		enableIAM:                    params.EnableIAM,
 		tagUnmanagedNetworkResources: params.TagUnmanagedNetworkResources,
 	}
-	sessionv2, serviceLimitersv2, err := sessionForClusterWithRegionV2(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
+	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
 	}
 
-	managedScope.session = *sessionv2
-	managedScope.serviceLimiters = serviceLimitersv2
+	managedScope.session = *session
+	managedScope.serviceLimiters = serviceLimiters
 
 	helper, err := patch.NewHelper(params.ControlPlane, params.Client)
 	if err != nil {
@@ -125,7 +123,7 @@ type ManagedControlPlaneScope struct {
 	ControlPlane              *ekscontrolplanev1.AWSManagedControlPlane
 	MaxWaitActiveUpdateDelete time.Duration
 
-	session         awsv2.Config
+	session         aws.Config
 	serviceLimiters throttle.ServiceLimiters
 	controllerName  string
 
@@ -325,7 +323,7 @@ func (s *ManagedControlPlaneScope) ClusterObj() cloud.ClusterObject {
 }
 
 // Session returns the AWS SDK V2 config. Used for creating clients.
-func (s *ManagedControlPlaneScope) Session() awsv2.Config {
+func (s *ManagedControlPlaneScope) Session() aws.Config {
 	return s.session
 }
 
@@ -473,7 +471,7 @@ func (s *ManagedControlPlaneScope) ControlPlaneLoadBalancers() []*infrav1.AWSLoa
 // Partition returns the cluster partition.
 func (s *ManagedControlPlaneScope) Partition() string {
 	if s.ControlPlane.Spec.Partition == "" {
-		s.ControlPlane.Spec.Partition = system.GetPartitionFromRegion(s.Region())
+		s.ControlPlane.Spec.Partition = endpoints.GetPartitionFromRegion(s.Region())
 	}
 	return s.ControlPlane.Spec.Partition
 }

@@ -552,7 +552,6 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 			r := ROSAMachinePoolReconciler{
 				Recorder:         recorder,
 				WatchFilterValue: "",
-				Endpoints:        []scope.ServiceEndpoint{},
 				Client:           testEnv,
 				NewStsClient: func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsiface.STSClient {
 					return stsMock
@@ -649,7 +648,6 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 		r := ROSAMachinePoolReconciler{
 			Recorder:         recorder,
 			WatchFilterValue: "",
-			Endpoints:        []scope.ServiceEndpoint{},
 			Client:           testEnv,
 			NewStsClient: func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsiface.STSClient {
 				return stsMock
@@ -668,7 +666,6 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 			MachinePool:     omp,
 			RosaMachinePool: mp,
 			Logger:          log,
-			Endpoints:       r.Endpoints,
 		})
 		g.Expect(err1).ToNot(HaveOccurred())
 
@@ -677,7 +674,6 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 			Cluster:        oc,
 			ControlPlane:   cp,
 			ControllerName: "rosaControlPlane",
-			Endpoints:      r.Endpoints,
 			NewStsClient:   r.NewStsClient,
 		})
 		g.Expect(err2).ToNot(HaveOccurred())

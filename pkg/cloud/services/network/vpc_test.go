@@ -20,10 +20,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/smithy-go"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
@@ -38,7 +37,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-func describeVpcAttributeTrue(_ context.Context, input *ec2.DescribeVpcAttributeInput, _ ...request.Option) (*ec2.DescribeVpcAttributeOutput, error) {
+func describeVpcAttributeTrue(_ context.Context, input *ec2.DescribeVpcAttributeInput, _ ...ec2.Options) (*ec2.DescribeVpcAttributeOutput, error) {
 	result := &ec2.DescribeVpcAttributeOutput{
 		VpcId: input.VpcId,
 	}
@@ -51,7 +50,7 @@ func describeVpcAttributeTrue(_ context.Context, input *ec2.DescribeVpcAttribute
 	return result, nil
 }
 
-func describeVpcAttributeFalse(_ context.Context, input *ec2.DescribeVpcAttributeInput, _ ...request.Option) (*ec2.DescribeVpcAttributeOutput, error) {
+func describeVpcAttributeFalse(_ context.Context, input *ec2.DescribeVpcAttributeInput, _ ...ec2.Options) (*ec2.DescribeVpcAttributeOutput, error) {
 	result := &ec2.DescribeVpcAttributeOutput{
 		VpcId: input.VpcId,
 	}

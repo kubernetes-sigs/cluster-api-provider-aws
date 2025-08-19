@@ -32,12 +32,8 @@ func NewGlobalScope(params GlobalScopeParams) (*GlobalScope, error) {
 	if params.ControllerName == "" {
 		return nil, errors.New("controller name required to generate global scope")
 	}
-	_, limiters, err := sessionForRegion(params.Region, params.Endpoints)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create aws session")
-	}
 
-	ns2, _, err := sessionForRegionV2(params.Region)
+	ns2, limiters, err := sessionForRegion(params.Region)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create aws V2 session")
 	}
@@ -52,7 +48,6 @@ func NewGlobalScope(params GlobalScopeParams) (*GlobalScope, error) {
 type GlobalScopeParams struct {
 	ControllerName string
 	Region         string
-	Endpoints      []ServiceEndpoint
 }
 
 // GlobalScope defines the specs for the GlobalScope.

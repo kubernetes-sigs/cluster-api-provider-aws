@@ -21,13 +21,11 @@ import (
 	"encoding/base64"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	ssmtypes "github.com/aws/aws-sdk-go-v2/service/ssm/types"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/smithy-go"
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
@@ -984,11 +982,10 @@ func TestGetLaunchTemplateID(t *testing.T) {
 				m.DescribeLaunchTemplateVersions(context.TODO(), gomock.Eq(&ec2.DescribeLaunchTemplateVersionsInput{
 					LaunchTemplateName: aws.String("foo"),
 					Versions:           []string{"$Latest"},
-				})).Return(nil, awserr.New(
-					awserrors.LaunchTemplateNameNotFound,
-					"The specified launch template, with template name foo, does not exist.",
-					nil,
-				))
+				})).Return(nil, &smithy.GenericAPIError{
+					Code:    awserrors.LaunchTemplateNameNotFound,
+					Message: "The specified launch template, with template name foo, does not exist.",
+				})
 			},
 			check: func(g *WithT, launchTemplateID string, err error) {
 				g.Expect(err).NotTo(HaveOccurred())
@@ -1221,7 +1218,7 @@ func TestCreateLaunchTemplate(t *testing.T) {
 					LaunchTemplate: &ec2types.LaunchTemplate{
 						LaunchTemplateId: aws.String("launch-template-id"),
 					},
-				}, nil).Do(func(ctx context.Context, arg *ec2.CreateLaunchTemplateInput, requestOptions ...request.Option) {
+				}, nil).Do(func(ctx context.Context, arg *ec2.CreateLaunchTemplateInput, requestOptions ...ec2.Options) {
 					// formatting added to match arrays during cmp.Equal
 					formatTagsInput(arg)
 					if !cmp.Equal(expectedInput, arg, cmpopts.IgnoreUnexported(
@@ -1290,7 +1287,7 @@ func TestCreateLaunchTemplate(t *testing.T) {
 					LaunchTemplate: &ec2types.LaunchTemplate{
 						LaunchTemplateId: aws.String("launch-template-id"),
 					},
-				}, nil).Do(func(ctx context.Context, arg *ec2.CreateLaunchTemplateInput, requestOptions ...request.Option) {
+				}, nil).Do(func(ctx context.Context, arg *ec2.CreateLaunchTemplateInput, requestOptions ...ec2.Options) {
 					// formatting added to match arrays during reflect.DeepEqual
 					formatTagsInput(arg)
 					if !cmp.Equal(expectedInput, arg, cmpopts.IgnoreUnexported(
@@ -1358,7 +1355,7 @@ func TestCreateLaunchTemplate(t *testing.T) {
 					},
 				}
 				m.CreateLaunchTemplate(context.TODO(), gomock.AssignableToTypeOf(expectedInput)).Return(nil,
-					awserrors.NewFailedDependency("dependency failure")).Do(func(ctx context.Context, arg *ec2.CreateLaunchTemplateInput, requestOptions ...request.Option) {
+					awserrors.NewFailedDependency("dependency failure")).Do(func(ctx context.Context, arg *ec2.CreateLaunchTemplateInput, requestOptions ...ec2.Options) {
 					// formatting added to match arrays during cmp.Equal
 					formatTagsInput(arg)
 					if !cmp.Equal(expectedInput, arg, cmpopts.IgnoreUnexported(
@@ -1516,7 +1513,7 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 						LaunchTemplateId: aws.String("launch-template-id"),
 					},
 				}, nil).Do(
-					func(ctx context.Context, arg *ec2.CreateLaunchTemplateVersionInput, requestOptions ...request.Option) {
+					func(ctx context.Context, arg *ec2.CreateLaunchTemplateVersionInput, requestOptions ...ec2.Options) {
 						// formatting added to match tags slice during cmp.Equal()
 						formatTagsInput(arg)
 						if !cmp.Equal(expectedInput, arg, LaunchTemplateVersionIgnoreUnexported) {
@@ -1576,7 +1573,7 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 						LaunchTemplateId: aws.String("launch-template-id"),
 					},
 				}, nil).Do(
-					func(ctx context.Context, arg *ec2.CreateLaunchTemplateVersionInput, requestOptions ...request.Option) {
+					func(ctx context.Context, arg *ec2.CreateLaunchTemplateVersionInput, requestOptions ...ec2.Options) {
 						// formatting added to match tags slice during cmp.Equal()
 						formatTagsInput(arg)
 						if !cmp.Equal(expectedInput, arg, LaunchTemplateVersionIgnoreUnexported) {
@@ -1634,7 +1631,7 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 						LaunchTemplateId: aws.String("launch-template-id"),
 					},
 				}, nil).Do(
-					func(ctx context.Context, arg *ec2.CreateLaunchTemplateVersionInput, requestOptions ...request.Option) {
+					func(ctx context.Context, arg *ec2.CreateLaunchTemplateVersionInput, requestOptions ...ec2.Options) {
 						// formatting added to match tags slice during cmp.Equal()
 						formatTagsInput(arg)
 						if !cmp.Equal(expectedInput, arg, LaunchTemplateVersionIgnoreUnexported) {
@@ -1682,7 +1679,7 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 				}
 				m.CreateLaunchTemplateVersion(context.TODO(), gomock.AssignableToTypeOf(expectedInput)).Return(nil,
 					awserrors.NewFailedDependency("dependency failure")).Do(
-					func(ctx context.Context, arg *ec2.CreateLaunchTemplateVersionInput, requestOptions ...request.Option) {
+					func(ctx context.Context, arg *ec2.CreateLaunchTemplateVersionInput, requestOptions ...ec2.Options) {
 						// formatting added to match tags slice during cmp.Equal()
 						formatTagsInput(arg)
 						if !cmp.Equal(expectedInput, arg, LaunchTemplateVersionIgnoreUnexported) {

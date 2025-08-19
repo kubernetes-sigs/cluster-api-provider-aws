@@ -54,7 +54,6 @@ import (
 type AWSManagedMachinePoolReconciler struct {
 	client.Client
 	Recorder                     record.EventRecorder
-	Endpoints                    []scope.ServiceEndpoint
 	EnableIAM                    bool
 	AllowAdditionalRoles         bool
 	WatchFilterValue             string
@@ -166,7 +165,6 @@ func (r *AWSManagedMachinePoolReconciler) Reconcile(ctx context.Context, req ctr
 		ManagedMachinePool:        awsPool,
 		EnableIAM:                 r.EnableIAM,
 		AllowAdditionalRoles:      r.AllowAdditionalRoles,
-		Endpoints:                 r.Endpoints,
 		InfraCluster:              managedControlPlaneScope,
 		MaxWaitActiveUpdateDelete: r.MaxWaitActiveUpdateDelete,
 	})

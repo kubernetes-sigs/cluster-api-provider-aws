@@ -20,9 +20,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/pkg/errors"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -43,7 +43,7 @@ func (s *Service) getOrAllocateAddresses(num int, role string, pool *infrav1.Ela
 	// Reuse existing unallocated addreses with the same role.
 	for _, address := range out.Addresses {
 		if address.AssociationId == nil {
-			eips = append(eips, aws.StringValue(address.AllocationId))
+			eips = append(eips, aws.ToString(address.AllocationId))
 		}
 	}
 
@@ -82,7 +82,7 @@ func (s *Service) allocateAddress(alloc *ec2.AllocateAddressInput) (string, erro
 		return "", err
 	}
 
-	return aws.StringValue(out.AllocationId), nil
+	return aws.ToString(out.AllocationId), nil
 }
 
 func (s *Service) describeAddresses(role string) (*ec2.DescribeAddressesOutput, error) {
@@ -239,7 +239,7 @@ func (s *Service) publicIpv4PoolHasAtLeastNFreeIPs(pool *infrav1.ElasticIPPool, 
 	}
 	publicIpv4Pool := pool.PublicIpv4Pool
 	pools, err := s.EC2Client.DescribePublicIpv4Pools(context.TODO(), &ec2.DescribePublicIpv4PoolsInput{
-		PoolIds: []string{aws.StringValue(publicIpv4Pool)},
+		PoolIds: []string{aws.ToString(publicIpv4Pool)},
 	})
 	if err != nil {
 		return false, fmt.Errorf("failed to describe Public IPv4 Pool %q: %w", *publicIpv4Pool, err)
@@ -248,7 +248,7 @@ func (s *Service) publicIpv4PoolHasAtLeastNFreeIPs(pool *infrav1.ElasticIPPool, 
 		return false, fmt.Errorf("unexpected number of configured Public IPv4 Pools. want 1, got %d", len(pools.PublicIpv4Pools))
 	}
 
-	freeIPs := aws.Int32Value(pools.PublicIpv4Pools[0].TotalAvailableAddressCount)
+	freeIPs := aws.ToInt32(pools.PublicIpv4Pools[0].TotalAvailableAddressCount)
 	hasFreeIPs := freeIPs >= want
 
 	// force to fallback to Amazon pool when the custom pool is full.

@@ -57,7 +57,7 @@ var _ = ginkgo.Describe("[managed] [general] EKS clusterclass tests", func() {
 		clusterName = fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 
 		ginkgo.By("default iam role should exist")
-		VerifyRoleExistsAndOwned(ctx, ekscontrolplanev1.DefaultEKSControlPlaneRole, "", false, e2eCtx.AWSSessionV2)
+		VerifyRoleExistsAndOwned(ctx, ekscontrolplanev1.DefaultEKSControlPlaneRole, "", false, e2eCtx.AWSSession)
 	})
 
 	capi_e2e.QuickStartSpec(context.TODO(), func() capi_e2e.QuickStartSpecInput {
