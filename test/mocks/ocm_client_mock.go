@@ -290,6 +290,21 @@ func (mr *MockOCMClientMockRecorder) GetNodePool(arg0, arg1 interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNodePool", reflect.TypeOf((*MockOCMClient)(nil).GetNodePool), arg0, arg1)
 }
 
+// GetNodePools mocks base method.
+func (m *MockOCMClient) GetNodePools(arg0 string) ([]*v1.NodePool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetNodePools", arg0)
+	ret0, _ := ret[0].([]*v1.NodePool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetNodePools indicates an expected call of GetNodePools.
+func (mr *MockOCMClientMockRecorder) GetNodePools(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNodePools", reflect.TypeOf((*MockOCMClient)(nil).GetNodePools), arg0)
+}
+
 // GetUser mocks base method.
 func (m *MockOCMClient) GetUser(arg0, arg1, arg2 string) (*v1.User, error) {
 	m.ctrl.T.Helper()
