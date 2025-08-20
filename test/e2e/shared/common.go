@@ -21,14 +21,17 @@ package shared
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -203,8 +206,18 @@ func DumpMachine(ctx context.Context, e2eCtx *E2EContext, machine infrav1.AWSMac
 				title: "containerd",
 				cmd:   "journalctl --no-pager -u containerd.service",
 			},
+			{
+				title: "pod-logs",
+				cmd:   "sudo tar -czf - -C /var/log pods | base64 -w0",
+			},
 		},
 	)
+
+	// Post-process pod-logs to have a tar.gz file instead of base64 date encoded in the log file.
+	// Note: It is not possible to directly output the raw tar.gz data because something truncates it.
+	if err := postProcessBase64LogData(filepath.Dir(f.Name()), "pod-logs.log", "pod-logs.tar.gz"); err != nil {
+		fmt.Fprintf(GinkgoWriter, "Failed to post-process pod-logs: %v\n", err)
+	}
 }
 
 func DumpSpecResources(ctx context.Context, e2eCtx *E2EContext, namespace *corev1.Namespace) {
@@ -286,4 +299,40 @@ func CreateAWSClusterControllerIdentity(k8sclient crclient.Client) {
 
 func Byf(format string, a ...interface{}) {
 	By(fmt.Sprintf(format, a...))
+}
+
+func postProcessBase64LogData(dir, src, dst string) error {
+	sourceFile := filepath.Clean(path.Join(dir, src))
+	destinationFile := filepath.Clean(path.Join(dir, dst))
+
+	// Read input data
+	inputData, err := os.ReadFile(sourceFile)
+	if err != nil {
+		return errors.Wrapf(err, "unable to read source file %q", sourceFile)
+	}
+
+	// Extract second line which contains the data (first line contains the command)
+	inputStringData := strings.Split(string(inputData), "\n")[1]
+
+	// Trim spaces and the $ suffix.
+	inputStringData = strings.TrimSpace(inputStringData)
+	inputStringData = strings.TrimSuffix(inputStringData, "$")
+
+	// Base64 decode the data
+	outputData, err := base64.StdEncoding.DecodeString(inputStringData)
+	if err != nil {
+		return errors.Wrapf(err, "unable to base64 decode input data")
+	}
+
+	// Write the destination file
+	if err := os.WriteFile(destinationFile, outputData, 0600); err != nil {
+		return errors.Wrapf(err, "unable to write destination file at %q", destinationFile)
+	}
+
+	// Delete the source file.
+	if err := os.Remove(sourceFile); err != nil {
+		return errors.Wrapf(err, "unable to delete source file at %q", sourceFile)
+	}
+
+	return nil
 }
