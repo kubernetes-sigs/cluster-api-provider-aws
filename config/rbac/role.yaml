@@ -83,6 +83,7 @@ rules:
   - machinepools
   - machinepools/status
   verbs:
+  - create
   - get
   - list
   - patch
@@ -161,7 +162,6 @@ rules:
   - awsmanagedclusters
   - awsmanagedmachinepools
   - rosaclusters
-  - rosamachinepools
   verbs:
   - delete
   - get
@@ -175,7 +175,6 @@ rules:
   - awsclusters/status
   - awsfargateprofiles/status
   - rosaclusters/status
-  - rosamachinepools/status
   verbs:
   - get
   - patch
@@ -197,6 +196,7 @@ rules:
   - infrastructure.cluster.x-k8s.io
   resources:
   - awsmachines
+  - rosamachinepools
   verbs:
   - create
   - delete
@@ -211,3 +211,14 @@ rules:
   - rosamachinepools/finalizers
   verbs:
   - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - rosamachinepools/status
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch

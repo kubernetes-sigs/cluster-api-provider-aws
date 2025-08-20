@@ -421,6 +421,15 @@ func (r *ROSAControlPlaneReconciler) deleteMachinePools(ctx context.Context, ros
 		}
 	}
 
+	// Workaround the case where last machinePool cannot be deleted without deleting the ROSA controlplane.
+	// In Cluster API (CAPI), machine pools (MPs) are normally deleted before the control plane is removed.
+	// However, in ROSA-HCP, deleting the final MP results in an error because the control plane cannot exist without at least 1 MP.
+	// To handle this, when only one MP remains, we ignore the deletion error and proceed with deleting the control plane.
+	// Also OCM cascade delete the MPs when deleting control plane, so we are safe to ignore last MP and delete the control plane.
+	if len(errs) == 0 && len(machinePools) == 1 {
+		return true, nil
+	}
+
 	if len(errs) > 0 {
 		return false, kerrors.NewAggregate(errs)
 	}
