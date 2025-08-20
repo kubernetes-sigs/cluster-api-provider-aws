@@ -25,28 +25,30 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	"sigs.k8s.io/cluster-api/util/annotations"
-	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
-// ConditionSetter combines the client.Object and Setter interface.
+// ConditionSetter combines the client.Object and accessors for v1beta1-style conditions.
 type ConditionSetter interface {
-	conditions.Setter
 	client.Object
+	GetConditions() clusterv1.Conditions
+	SetConditions(clusterv1.Conditions)
 }
 
 // EnsurePausedCondition sets the paused condition on the object and returns if it should be considered as paused.
 func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, obj ConditionSetter) (isPaused bool, conditionChanged bool, err error) {
-	oldCondition := conditions.Get(obj, clusterv1.PausedV1Beta2Condition)
+	oldCondition := getCondition(obj, clusterv1.PausedV1Beta2Condition)
 	newCondition := pausedCondition(c.Scheme(), cluster, obj, clusterv1.PausedV1Beta2Condition)
 
 	isPaused = newCondition.Status == corev1.ConditionTrue
@@ -54,7 +56,7 @@ func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *cluste
 	log := ctrl.LoggerFrom(ctx)
 
 	// Return early if the paused condition did not change.
-	if oldCondition != nil && conditions.HasSameState(oldCondition, &newCondition) {
+	if oldCondition != nil && hasSameState(oldCondition, &newCondition) {
 		if isPaused {
 			log.V(6).Info("Reconciliation is paused for this object", "reason", newCondition.Message)
 		}
@@ -72,9 +74,9 @@ func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *cluste
 		log.V(4).Info("Unpausing reconciliation for this object")
 	}
 
-	conditions.Set(obj, &newCondition)
+	setCondition(obj, newCondition)
 
-	if err := patchHelper.Patch(ctx, obj, patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+	if err := patchHelper.Patch(ctx, obj, patch.WithOwnedConditions{Conditions: []string{
 		clusterv1.PausedV1Beta2Condition,
 	}}); err != nil {
 		return isPaused, false, err
@@ -111,4 +113,57 @@ func pausedCondition(scheme *runtime.Scheme, cluster *clusterv1.Cluster, obj Con
 		Status: corev1.ConditionFalse,
 		Reason: clusterv1.NotPausedV1Beta2Reason,
 	}
+}
+
+// getCondition returns the condition with the given type, if present.
+func getCondition(from ConditionSetter, t clusterv1.ConditionType) *clusterv1.Condition {
+	conditions := from.GetConditions()
+	for i := range conditions {
+		c := conditions[i]
+		if c.Type == t {
+			return &c
+		}
+	}
+	return nil
+}
+
+// hasSameState compares two v1beta1 conditions for state equality.
+func hasSameState(i, j *clusterv1.Condition) bool {
+	if i == nil && j == nil {
+		return true
+	}
+	if i == nil || j == nil {
+		return false
+	}
+	return i.Status == j.Status && i.Reason == j.Reason && i.Severity == j.Severity && i.Message == j.Message
+}
+
+// setCondition sets/updates the given condition into the object's v1beta1 conditions list.
+func setCondition(to ConditionSetter, condition clusterv1.Condition) {
+	conds := to.GetConditions()
+	exists := false
+	for idx := range conds {
+		existing := conds[idx]
+		if existing.Type == condition.Type {
+			exists = true
+			// Preserve LastTransitionTime if status didn't change; otherwise set now if not provided
+			if existing.Status != condition.Status {
+				if condition.LastTransitionTime.IsZero() {
+					condition.LastTransitionTime = metav1.NewTime(time.Now().UTC().Truncate(time.Second))
+				}
+			} else {
+				// keep previous LastTransitionTime when status unchanged
+				condition.LastTransitionTime = existing.LastTransitionTime
+			}
+			conds[idx] = condition
+			break
+		}
+	}
+	if !exists {
+		if condition.LastTransitionTime.IsZero() {
+			condition.LastTransitionTime = metav1.NewTime(time.Now().UTC().Truncate(time.Second))
+		}
+		conds = append(conds, condition)
+	}
+	to.SetConditions(conds)
 }

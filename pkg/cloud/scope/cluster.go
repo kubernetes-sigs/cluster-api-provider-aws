@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpoints"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -273,10 +273,11 @@ func (s *ClusterScope) PatchObject() error {
 		}
 	}
 
-	conditions.SetSummary(s.AWSCluster,
-		conditions.WithConditions(applicableConditions...),
-		conditions.WithStepCounterIf(s.AWSCluster.ObjectMeta.DeletionTimestamp.IsZero()),
-		conditions.WithStepCounter(),
+	// Build summary condition for the AWSCluster Ready from the list of applicable conditions.
+	_ = conditions.SetSummaryCondition(s.AWSCluster, s.AWSCluster, string(clusterv1.ReadyCondition),
+		conditions.ForConditionTypes(applicableConditions...),
+		conditions.StepCounterIf(s.AWSCluster.ObjectMeta.DeletionTimestamp.IsZero()),
+		conditions.StepCounter(),
 	)
 
 	return s.patchHelper.Patch(
