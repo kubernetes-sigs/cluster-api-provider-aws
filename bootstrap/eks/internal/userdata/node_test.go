@@ -450,7 +450,8 @@ EOF`,
 				if !strings.Contains(output, "apiVersion: node.eks.aws/v1alpha1") ||
 					!strings.Contains(output, "name: my-cluster") ||
 					!strings.Contains(output, "apiServerEndpoint: https://example.com") ||
-					!strings.Contains(output, `"--node-labels=app=my-app,environment=production"`) {
+					!strings.Contains(output, `"--node-labels=app=my-app,environment=production"`) ||
+					!strings.Contains(output, "cidr: 172.20.0.0/16") {
 					return false
 				}
 
@@ -493,13 +494,15 @@ func TestGenerateAL2023UserData(t *testing.T) {
 				CACert:            "test-cert",
 				NodeGroupName:     "test-nodegroup",
 				UseMaxPods:        ptr.To[bool](false),
-				DNSClusterIP:      ptr.To[string]("10.96.0.10"),
+				DNSClusterIP:      ptr.To[string]("172.20.0.10"),
 			},
 			expectErr: false,
 			verifyOutput: func(output string) bool {
 				return strings.Contains(output, "name: test-cluster") &&
 					strings.Contains(output, "maxPods: 58") &&
-					strings.Contains(output, "nodegroup=test-nodegroup")
+					strings.Contains(output, "nodegroup=test-nodegroup") &&
+					strings.Contains(output, "cidr: 172.20.0.0/16") &&
+					strings.Contains(output, "clusterDNS:\n      - 172.20.0.10")
 			},
 		},
 		{
@@ -513,7 +516,7 @@ func TestGenerateAL2023UserData(t *testing.T) {
 				UseMaxPods:        ptr.To[bool](true),
 				DNSClusterIP:      ptr.To[string]("10.100.0.10"),
 				AMIImageID:        "ami-123456",
-				ClusterCIDR:       "192.168.0.0/16",
+				ServiceCIDR:       "192.168.0.0/16",
 			},
 			expectErr: false,
 			verifyOutput: func(output string) bool {
@@ -544,7 +547,8 @@ func TestGenerateAL2023UserData(t *testing.T) {
 			verifyOutput: func(output string) bool {
 				return strings.Contains(output, "echo 'pre-bootstrap'") &&
 					strings.Contains(output, "echo 'post-bootstrap'") &&
-					strings.Contains(output, `"--node-labels=app=my-app,environment=production"`)
+					strings.Contains(output, `"--node-labels=app=my-app,environment=production"`) &&
+					strings.Contains(output, "cidr: 172.20.0.0/16")
 			},
 		},
 		{

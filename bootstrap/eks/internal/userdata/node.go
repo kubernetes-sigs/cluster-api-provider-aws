@@ -83,7 +83,7 @@ spec:
     name: {{.ClusterName}}
     apiServerEndpoint: {{.APIServerEndpoint}}
     certificateAuthority: {{.CACert}}
-    cidr: {{if .ClusterCIDR}}{{.ClusterCIDR}}{{else}}10.96.0.0/12{{end}}
+    cidr: {{if .ServiceCIDR}}{{.ServiceCIDR}}{{else}}172.20.0.0/16{{end}}
   kubelet:
     config:
       maxPods: {{.MaxPods}}
@@ -130,7 +130,7 @@ type NodeInput struct {
 	Boundary          string
 	CACert            string
 	CapacityType      *v1beta2.ManagedMachinePoolCapacityType
-	ClusterCIDR       string // CIDR range for the cluster
+	ServiceCIDR       string // Service CIDR range for the cluster
 	ClusterDNS        string
 	MaxPods           *int32
 	NodeGroupName     string

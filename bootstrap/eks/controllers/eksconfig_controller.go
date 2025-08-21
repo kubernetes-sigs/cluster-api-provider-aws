@@ -264,6 +264,11 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 		return ctrl.Result{}, err
 	}
 
+	serviceCIDR := ""
+	if cluster.Spec.ClusterNetwork != nil && cluster.Spec.ClusterNetwork.Services != nil && len(cluster.Spec.ClusterNetwork.Services.CIDRBlocks) > 0 {
+		serviceCIDR = cluster.Spec.ClusterNetwork.Services.CIDRBlocks[0]
+	}
+
 	// Create unified NodeInput for both AL2 and AL2023
 	nodeInput := &userdata.NodeInput{
 		ClusterName:              controlPlane.Spec.EKSClusterName,
@@ -281,7 +286,7 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 		DiskSetup:                config.Spec.DiskSetup,
 		Mounts:                   config.Spec.Mounts,
 		Files:                    files,
-		ClusterCIDR:              controlPlane.Spec.NetworkSpec.VPC.CidrBlock,
+		ServiceCIDR:              serviceCIDR,
 	}
 
 	if config.Spec.PauseContainer != nil {
