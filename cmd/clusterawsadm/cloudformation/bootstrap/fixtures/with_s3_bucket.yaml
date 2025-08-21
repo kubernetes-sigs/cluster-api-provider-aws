@@ -211,6 +211,7 @@ Resources:
           - ec2:RevokeSecurityGroupIngress
           - ec2:RunInstances
           - ec2:TerminateInstances
+          - ec2:GetSecurityGroupsForVpc
           - tag:GetResources
           - elasticloadbalancing:AddTags
           - elasticloadbalancing:CreateLoadBalancer
@@ -234,9 +235,13 @@ Resources:
           - elasticloadbalancing:CreateListener
           - elasticloadbalancing:DescribeTargetHealth
           - elasticloadbalancing:RegisterTargets
+          - elasticloadbalancing:DeregisterTargets
           - elasticloadbalancing:DeleteListener
           - autoscaling:DescribeAutoScalingGroups
           - autoscaling:DescribeInstanceRefreshes
+          - autoscaling:DeleteLifecycleHook
+          - autoscaling:DescribeLifecycleHooks
+          - autoscaling:PutLifecycleHook
           - ec2:CreateLaunchTemplate
           - ec2:CreateLaunchTemplateVersion
           - ec2:DescribeLaunchTemplates
@@ -297,11 +302,13 @@ Resources:
         - Action:
           - s3:CreateBucket
           - s3:DeleteBucket
-          - s3:GetObject
-          - s3:PutObject
           - s3:DeleteObject
+          - s3:GetObject
+          - s3:ListBucket
           - s3:PutBucketPolicy
           - s3:PutBucketTagging
+          - s3:PutLifecycleConfiguration
+          - s3:PutObject
           Effect: Allow
           Resource:
           - arn:*:s3:::cluster-api-provider-aws-*

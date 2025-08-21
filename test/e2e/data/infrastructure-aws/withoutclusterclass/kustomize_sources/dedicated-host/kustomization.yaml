@@ -1,0 +1,10 @@
+resources:
+  - ../default
+  - dedicated-host-resource-set.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
+  labels:
+    type: generated
+  annotations:
+    note: generated

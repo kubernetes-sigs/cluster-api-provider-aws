@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.5
+    controller-gen.kubebuilder.io/version: v0.17.3
   name: awsmachinetemplates.infrastructure.cluster.x-k8s.io
 spec:
   group: infrastructure.cluster.x-k8s.io
@@ -66,7 +66,7 @@ spec:
                         additionalProperties:
                           type: string
                         description: |-
-                          Map of string keys and values that can be used to organize and categorize
+                          labels is a map of string keys and values that can be used to organize and categorize
                           (scope and select) objects. May match selectors of replication controllers
                           and services.
                           More info: http://kubernetes.io/docs/user-guide/labels
@@ -480,7 +480,7 @@ spec:
                         additionalProperties:
                           type: string
                         description: |-
-                          Map of string keys and values that can be used to organize and categorize
+                          labels is a map of string keys and values that can be used to organize and categorize
                           (scope and select) objects. May match selectors of replication controllers
                           and services.
                           More info: http://kubernetes.io/docs/user-guide/labels
@@ -549,6 +549,8 @@ spec:
                             enum:
                             - AmazonLinux
                             - AmazonLinuxGPU
+                            - AmazonLinux2023
+                            - AmazonLinux2023GPU
                             type: string
                           id:
                             description: ID of resource
@@ -557,6 +559,24 @@ spec:
                       capacityReservationId:
                         description: CapacityReservationID specifies the target Capacity
                           Reservation into which the instance should be launched.
+                        type: string
+                      capacityReservationPreference:
+                        allOf:
+                        - enum:
+                          - ""
+                          - None
+                          - CapacityReservationsOnly
+                          - Open
+                        - enum:
+                          - ""
+                          - None
+                          - CapacityReservationsOnly
+                          - Open
+                        description: |-
+                          CapacityReservationPreference specifies the preference for use of Capacity Reservations by the instance. Valid values include:
+                          "Open": The instance may make use of open Capacity Reservations that match its AZ and InstanceType
+                          "None": The instance may not make use of any Capacity Reservations. This is to conserve open reservations for desired workloads
+                          "CapacityReservationsOnly": The instance will only run if matched or targeted to a Capacity Reservation
                         type: string
                       cloudInit:
                         description: |-
@@ -620,6 +640,20 @@ spec:
                             - message: allowed values are 'none' and 'amazon-pool'
                               rule: self in ['none','amazon-pool']
                         type: object
+                      hostAffinity:
+                        description: |-
+                          HostAffinity specifies the dedicated host affinity setting for the instance.
+                          When hostAffinity is set to host, an instance started onto a specific host always restarts on the same host if stopped.
+                          When hostAffinity is set to default, and you stop and restart the instance, it can be restarted on any available host.
+                          When HostAffinity is defined, HostID is required.
+                        enum:
+                        - default
+                        - host
+                        type: string
+                      hostID:
+                        description: HostID specifies the Dedicated Host on which
+                          the instance must be started.
+                        type: string
                       iamInstanceProfile:
                         description: IAMInstanceProfile is a name of an IAM instance
                           profile to assign to the instance

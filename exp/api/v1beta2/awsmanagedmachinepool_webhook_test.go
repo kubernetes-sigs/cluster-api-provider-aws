@@ -17,16 +17,17 @@ limitations under the License.
 package v1beta2
 
 import (
+	"context"
 	"strings"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
-	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
+	utildefaulting "sigs.k8s.io/cluster-api-provider-aws/v2/util/defaulting"
 )
 
 var (
@@ -41,9 +42,13 @@ var (
 )
 
 func TestAWSManagedMachinePoolDefault(t *testing.T) {
+	g := NewWithT(t)
+
 	fargate := &AWSManagedMachinePool{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
-	t.Run("for AWSManagedMachinePool", utildefaulting.DefaultValidateTest(fargate))
-	fargate.Default()
+	t.Run("for AWSManagedMachinePool", utildefaulting.DefaultValidateTest(context.Background(), fargate, &awsManagedMachinePoolWebhook{}))
+
+	err := (&awsManagedMachinePoolWebhook{}).Default(context.Background(), fargate)
+	g.Expect(err).NotTo(HaveOccurred())
 }
 
 func TestAWSManagedMachinePoolValidateCreate(t *testing.T) {
@@ -153,7 +158,7 @@ func TestAWSManagedMachinePoolValidateCreate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			warn, err := tt.pool.ValidateCreate()
+			warn, err := (&awsManagedMachinePoolWebhook{}).ValidateCreate(context.Background(), tt.pool)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -691,7 +696,7 @@ func TestAWSManagedMachinePoolValidateUpdate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			warn, err := tt.new.ValidateUpdate(tt.old.DeepCopy())
+			warn, err := (&awsManagedMachinePoolWebhook{}).ValidateUpdate(context.Background(), tt.old.DeepCopy(), tt.new)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {

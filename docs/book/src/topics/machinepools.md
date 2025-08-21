@@ -148,3 +148,7 @@ When using GitOps, make sure to ignore differences in `spec.replicas` on Machine
       jsonPointers:
         - /spec/replicas
 ```
+
+## Machine pool machines
+
+With the feature gate `MachinePoolMachines=true`, you can enable creation of `Machine`/`AWSMachine` objects for nodes created by a `AWSMachinePool`. This is experimental and will be used to introduce features such as per-node health checks.

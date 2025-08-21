@@ -17,11 +17,14 @@ limitations under the License.
 package eks
 
 import (
+	"context"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/eks"
-	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/eks"
+	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
+	"github.com/aws/aws-sdk-go-v2/service/iam"
+	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -46,12 +49,12 @@ func TestMakeEKSEncryptionConfigs(t *testing.T) {
 	testCases := []struct {
 		name   string
 		input  *ekscontrolplanev1.EncryptionConfig
-		expect []*eks.EncryptionConfig
+		expect []ekstypes.EncryptionConfig
 	}{
 		{
 			name:   "nil input",
 			input:  nil,
-			expect: []*eks.EncryptionConfig{},
+			expect: []ekstypes.EncryptionConfig{},
 		},
 		{
 			name: "nil input",
@@ -59,9 +62,9 @@ func TestMakeEKSEncryptionConfigs(t *testing.T) {
 				Provider:  &providerOne,
 				Resources: []*string{&resourceOne, &resourceTwo},
 			},
-			expect: []*eks.EncryptionConfig{{
-				Provider:  &eks.Provider{KeyArn: &providerOne},
-				Resources: []*string{&resourceOne, &resourceTwo},
+			expect: []ekstypes.EncryptionConfig{{
+				Provider:  &ekstypes.Provider{KeyArn: &providerOne},
+				Resources: []string{resourceOne, resourceTwo},
 			}},
 		},
 	}
@@ -148,7 +151,7 @@ func TestMakeVPCConfig(t *testing.T) {
 		name   string
 		input  input
 		err    bool
-		expect *eks.VpcConfigRequest
+		expect *ekstypes.VpcConfigRequest
 	}{
 		{
 			name: "no subnets",
@@ -178,8 +181,8 @@ func TestMakeVPCConfig(t *testing.T) {
 				},
 				endpointAccess: ekscontrolplanev1.EndpointAccess{},
 			},
-			expect: &eks.VpcConfigRequest{
-				SubnetIds: []*string{&idOne, &idTwo},
+			expect: &ekstypes.VpcConfigRequest{
+				SubnetIds: []string{idOne, idTwo},
 			},
 		},
 		{
@@ -205,8 +208,8 @@ func TestMakeVPCConfig(t *testing.T) {
 				},
 				endpointAccess: ekscontrolplanev1.EndpointAccess{},
 			},
-			expect: &eks.VpcConfigRequest{
-				SubnetIds: []*string{&idOne, &idTwo},
+			expect: &ekstypes.VpcConfigRequest{
+				SubnetIds: []string{idOne, idTwo},
 			},
 		},
 		{
@@ -233,9 +236,9 @@ func TestMakeVPCConfig(t *testing.T) {
 					},
 				},
 			},
-			expect: &eks.VpcConfigRequest{
-				SubnetIds:        []*string{&idOne, &idTwo},
-				SecurityGroupIds: []*string{&idOne},
+			expect: &ekstypes.VpcConfigRequest{
+				SubnetIds:        []string{idOne, idTwo},
+				SecurityGroupIds: []string{idOne},
 			},
 		},
 		{
@@ -259,9 +262,9 @@ func TestMakeVPCConfig(t *testing.T) {
 					PublicCIDRs: []*string{aws.String("10.0.0.1/24")},
 				},
 			},
-			expect: &eks.VpcConfigRequest{
-				SubnetIds:         []*string{&idOne, &idTwo},
-				PublicAccessCidrs: []*string{aws.String("10.0.0.0/24")},
+			expect: &ekstypes.VpcConfigRequest{
+				SubnetIds:         []string{idOne, idTwo},
+				PublicAccessCidrs: []string{"10.0.0.0/24"},
 			},
 		},
 	}
@@ -281,8 +284,8 @@ func TestMakeVPCConfig(t *testing.T) {
 func TestPublicAccessCIDRsEqual(t *testing.T) {
 	testCases := []struct {
 		name   string
-		a      []*string
-		b      []*string
+		a      []string
+		b      []string
 		expect bool
 	}{
 		{
@@ -292,15 +295,21 @@ func TestPublicAccessCIDRsEqual(t *testing.T) {
 			expect: true,
 		},
 		{
-			name:   "every address",
-			a:      []*string{aws.String("0.0.0.0/0")},
+			name:   "every ipv4 address",
+			a:      []string{"0.0.0.0/0"},
+			b:      nil,
+			expect: true,
+		},
+		{
+			name:   "every ipv4 and ipv6 address",
+			a:      []string{"0.0.0.0/0", "::/0"},
 			b:      nil,
 			expect: true,
 		},
 		{
 			name:   "every address",
-			a:      []*string{aws.String("1.1.1.0/24")},
-			b:      []*string{aws.String("1.1.1.0/24")},
+			a:      []string{"1.1.1.0/24"},
+			b:      []string{"1.1.1.0/24"},
 			expect: true,
 		},
 	}
@@ -316,7 +325,7 @@ func TestMakeEKSLogging(t *testing.T) {
 	testCases := []struct {
 		name   string
 		input  *ekscontrolplanev1.ControlPlaneLoggingSpec
-		expect *eks.Logging
+		expect *ekstypes.Logging
 	}{
 		{
 			name:   "no subnets",
@@ -329,19 +338,19 @@ func TestMakeEKSLogging(t *testing.T) {
 				APIServer: true,
 				Audit:     false,
 			},
-			expect: &eks.Logging{
-				ClusterLogging: []*eks.LogSetup{
+			expect: &ekstypes.Logging{
+				ClusterLogging: []ekstypes.LogSetup{
 					{
 						Enabled: aws.Bool(true),
-						Types:   []*string{aws.String(eks.LogTypeApi)},
+						Types:   []ekstypes.LogType{ekstypes.LogTypeApi},
 					},
 					{
 						Enabled: aws.Bool(false),
-						Types: []*string{
-							aws.String(eks.LogTypeAudit),
-							aws.String(eks.LogTypeAuthenticator),
-							aws.String(eks.LogTypeControllerManager),
-							aws.String(eks.LogTypeScheduler),
+						Types: []ekstypes.LogType{
+							ekstypes.LogTypeAudit,
+							ekstypes.LogTypeAuthenticator,
+							ekstypes.LogTypeControllerManager,
+							ekstypes.LogTypeScheduler,
 						},
 					},
 				},
@@ -368,9 +377,9 @@ func TestReconcileClusterVersion(t *testing.T) {
 			name: "no upgrade necessary",
 			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
 				m.
-					DescribeCluster(gomock.AssignableToTypeOf(&eks.DescribeClusterInput{})).
+					DescribeCluster(gomock.Eq(context.TODO()), gomock.AssignableToTypeOf(&eks.DescribeClusterInput{})).
 					Return(&eks.DescribeClusterOutput{
-						Cluster: &eks.Cluster{
+						Cluster: &ekstypes.Cluster{
 							Name:    aws.String("default.cluster"),
 							Version: aws.String("1.16"),
 						},
@@ -382,18 +391,20 @@ func TestReconcileClusterVersion(t *testing.T) {
 			name: "needs upgrade",
 			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
 				m.
-					DescribeCluster(gomock.AssignableToTypeOf(&eks.DescribeClusterInput{})).
+					DescribeCluster(gomock.Eq(context.TODO()), gomock.AssignableToTypeOf(&eks.DescribeClusterInput{})).
 					Return(&eks.DescribeClusterOutput{
-						Cluster: &eks.Cluster{
+						Cluster: &ekstypes.Cluster{
 							Name:    aws.String("default.cluster"),
 							Version: aws.String("1.14"),
 						},
 					}, nil)
 				m.WaitUntilClusterUpdating(
-					gomock.AssignableToTypeOf(&eks.DescribeClusterInput{}), gomock.Any(),
+					gomock.Eq(context.TODO()),
+					gomock.AssignableToTypeOf(&eks.DescribeClusterInput{}),
+					gomock.Any(),
 				).Return(nil)
 				m.
-					UpdateClusterVersion(gomock.AssignableToTypeOf(&eks.UpdateClusterVersionInput{})).
+					UpdateClusterVersion(gomock.Eq(context.TODO()), gomock.AssignableToTypeOf(&eks.UpdateClusterVersionInput{})).
 					Return(&eks.UpdateClusterVersionOutput{}, nil)
 			},
 			expectError: false,
@@ -402,15 +413,15 @@ func TestReconcileClusterVersion(t *testing.T) {
 			name: "api error",
 			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
 				m.
-					DescribeCluster(gomock.AssignableToTypeOf(&eks.DescribeClusterInput{})).
+					DescribeCluster(gomock.Eq(context.TODO()), gomock.AssignableToTypeOf(&eks.DescribeClusterInput{})).
 					Return(&eks.DescribeClusterOutput{
-						Cluster: &eks.Cluster{
+						Cluster: &ekstypes.Cluster{
 							Name:    aws.String("default.cluster"),
 							Version: aws.String("1.14"),
 						},
 					}, nil)
 				m.
-					UpdateClusterVersion(gomock.AssignableToTypeOf(&eks.UpdateClusterVersionInput{})).
+					UpdateClusterVersion(gomock.Eq(context.TODO()), gomock.AssignableToTypeOf(&eks.UpdateClusterVersionInput{})).
 					Return(&eks.UpdateClusterVersionOutput{}, errors.New(""))
 			},
 			expectError: true,
@@ -450,10 +461,10 @@ func TestReconcileClusterVersion(t *testing.T) {
 			s := NewService(scope)
 			s.EKSClient = eksMock
 
-			cluster, err := s.describeEKSCluster(clusterName)
+			cluster, err := s.describeEKSCluster(context.TODO(), clusterName)
 			g.Expect(err).To(BeNil())
 
-			err = s.reconcileClusterVersion(cluster)
+			err = s.reconcileClusterVersion(context.TODO(), cluster)
 			if tc.expectError {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -471,7 +482,7 @@ func TestCreateCluster(t *testing.T) {
 		expectEKS   func(m *mock_eksiface.MockEKSAPIMockRecorder)
 		expectError bool
 		role        *string
-		tags        map[string]*string
+		tags        map[string]string
 		subnets     []infrav1.SubnetSpec
 	}{
 		{
@@ -479,8 +490,8 @@ func TestCreateCluster(t *testing.T) {
 			expectEKS:   func(m *mock_eksiface.MockEKSAPIMockRecorder) {},
 			expectError: false,
 			role:        aws.String("arn:role"),
-			tags: map[string]*string{
-				"kubernetes.io/cluster/" + clusterName: aws.String("owned"),
+			tags: map[string]string{
+				"kubernetes.io/cluster/" + clusterName: "owned",
 			},
 			subnets: []infrav1.SubnetSpec{
 				{ID: "1", AvailabilityZone: "us-west-2a"}, {ID: "2", AvailabilityZone: "us-west-2b"},
@@ -527,19 +538,19 @@ func TestCreateCluster(t *testing.T) {
 					},
 				},
 			})
-			subnetIDs := make([]*string, 0)
+			subnetIDs := make([]string, 0)
 			for i := range tc.subnets {
 				subnet := tc.subnets[i]
-				subnetIDs = append(subnetIDs, &subnet.ID)
+				subnetIDs = append(subnetIDs, subnet.ID)
 			}
 
 			if !tc.expectError {
-				roleOutput := iam.GetRoleOutput{Role: &iam.Role{Arn: tc.role}}
-				iamMock.EXPECT().GetRole(gomock.Any()).Return(&roleOutput, nil)
-				eksMock.EXPECT().CreateCluster(&eks.CreateClusterInput{
+				roleOutput := iam.GetRoleOutput{Role: &iamtypes.Role{Arn: tc.role}}
+				iamMock.EXPECT().GetRole(gomock.Any(), gomock.Any()).Return(&roleOutput, nil)
+				eksMock.EXPECT().CreateCluster(context.TODO(), &eks.CreateClusterInput{
 					Name:             aws.String(clusterName),
-					EncryptionConfig: []*eks.EncryptionConfig{},
-					ResourcesVpcConfig: &eks.VpcConfigRequest{
+					EncryptionConfig: []ekstypes.EncryptionConfig{},
+					ResourcesVpcConfig: &ekstypes.VpcConfigRequest{
 						SubnetIds: subnetIDs,
 					},
 					RoleArn:                    tc.role,
@@ -552,7 +563,7 @@ func TestCreateCluster(t *testing.T) {
 			s.IAMClient = iamMock
 			s.EKSClient = eksMock
 
-			_, err := s.createCluster(clusterName)
+			_, err := s.createCluster(context.TODO(), clusterName)
 			if tc.expectError {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -600,9 +611,11 @@ func TestReconcileEKSEncryptionConfig(t *testing.T) {
 			},
 			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
 				m.WaitUntilClusterUpdating(
-					gomock.AssignableToTypeOf(&eks.DescribeClusterInput{}), gomock.Any(),
+					gomock.Eq(context.TODO()),
+					gomock.AssignableToTypeOf(&eks.DescribeClusterInput{}),
+					gomock.Any(),
 				).Return(nil)
-				m.AssociateEncryptionConfig(gomock.AssignableToTypeOf(&eks.AssociateEncryptionConfigInput{})).Return(&eks.AssociateEncryptionConfigOutput{}, nil)
+				m.AssociateEncryptionConfig(gomock.Eq(context.TODO()), gomock.AssignableToTypeOf(&eks.AssociateEncryptionConfigInput{})).Return(&eks.AssociateEncryptionConfigOutput{}, nil)
 			},
 			expectError: false,
 		},
@@ -665,7 +678,7 @@ func TestReconcileEKSEncryptionConfig(t *testing.T) {
 			s := NewService(scope)
 			s.EKSClient = eksMock
 
-			err = s.reconcileEKSEncryptionConfig(makeEksEncryptionConfigs(tc.oldEncryptionConfig))
+			err = s.reconcileEKSEncryptionConfig(context.TODO(), makeEksEncryptionConfigs(tc.oldEncryptionConfig))
 			if tc.expectError {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -737,33 +750,33 @@ func TestCreateIPv6Cluster(t *testing.T) {
 	})
 	g.Expect(err).To(BeNil())
 
-	eksMock.EXPECT().CreateCluster(&eks.CreateClusterInput{
+	eksMock.EXPECT().CreateCluster(context.TODO(), &eks.CreateClusterInput{
 		Name:    aws.String("cluster-name"),
 		Version: aws.String("1.22"),
-		EncryptionConfig: []*eks.EncryptionConfig{
+		EncryptionConfig: []ekstypes.EncryptionConfig{
 			{
-				Provider: &eks.Provider{
+				Provider: &ekstypes.Provider{
 					KeyArn: encryptionConfig.Provider,
 				},
-				Resources: encryptionConfig.Resources,
+				Resources: aws.ToStringSlice(encryptionConfig.Resources),
 			},
 		},
-		ResourcesVpcConfig: &eks.VpcConfigRequest{
-			SubnetIds: []*string{ptr.To[string]("sub-1"), ptr.To[string]("sub-2")},
+		ResourcesVpcConfig: &ekstypes.VpcConfigRequest{
+			SubnetIds: []string{"sub-1", "sub-2"},
 		},
-		KubernetesNetworkConfig: &eks.KubernetesNetworkConfigRequest{
-			IpFamily: ptr.To[string]("ipv6"),
+		KubernetesNetworkConfig: &ekstypes.KubernetesNetworkConfigRequest{
+			IpFamily: ekstypes.IpFamilyIpv6,
 		},
-		Tags: map[string]*string{
-			"kubernetes.io/cluster/cluster-name": ptr.To[string]("owned"),
+		Tags: map[string]string{
+			"kubernetes.io/cluster/cluster-name": "owned",
 		},
 		BootstrapSelfManagedAddons: aws.Bool(false),
 	}).Return(&eks.CreateClusterOutput{}, nil)
-	iamMock.EXPECT().GetRole(&iam.GetRoleInput{
+	iamMock.EXPECT().GetRole(gomock.Any(), &iam.GetRoleInput{
 		RoleName: aws.String("arn-role"),
 	}).Return(&iam.GetRoleOutput{
-		Role: &iam.Role{
-			RoleName: ptr.To[string]("arn-role"),
+		Role: &iamtypes.Role{
+			RoleName: aws.String("arn-role"),
 		},
 	}, nil)
 
@@ -771,6 +784,6 @@ func TestCreateIPv6Cluster(t *testing.T) {
 	s.EKSClient = eksMock
 	s.IAMClient = iamMock
 
-	_, err = s.createCluster("cluster-name")
+	_, err = s.createCluster(context.TODO(), "cluster-name")
 	g.Expect(err).To(BeNil())
 }

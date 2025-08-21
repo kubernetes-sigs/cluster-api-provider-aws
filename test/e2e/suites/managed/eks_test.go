@@ -56,7 +56,7 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 		eksClusterName := getEKSClusterName(namespace.Name, clusterName)
 
 		ginkgo.By("default iam role should exist")
-		VerifyRoleExistsAndOwned(ekscontrolplanev1.DefaultEKSControlPlaneRole, eksClusterName, false, e2eCtx.BootstrapUserAWSSession)
+		VerifyRoleExistsAndOwned(ctx, ekscontrolplanev1.DefaultEKSControlPlaneRole, eksClusterName, false, e2eCtx.AWSSession)
 
 		ginkgo.By("should create an EKS control plane")
 		ManagedClusterSpec(ctx, func() ManagedClusterSpecInput {
@@ -93,7 +93,7 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 				Namespace:             namespace,
 				ClusterName:           clusterName,
 				AddonName:             cniAddonName,
-				AddonVersion:          e2eCtx.E2EConfig.GetVariable(shared.CNIAddonVersion),
+				AddonVersion:          e2eCtx.E2EConfig.MustGetVariable(shared.CNIAddonVersion),
 			}
 		})
 
@@ -174,8 +174,10 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 			Cluster: cluster,
 		})
 		framework.WaitForClusterDeleted(ctx, framework.WaitForClusterDeletedInput{
-			Client:  e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
-			Cluster: cluster,
+			ClusterProxy:         e2eCtx.Environment.BootstrapClusterProxy,
+			Cluster:              cluster,
+			ClusterctlConfigPath: e2eCtx.Environment.ClusterctlConfigPath,
+			ArtifactFolder:       e2eCtx.Settings.ArtifactFolder,
 		}, e2eCtx.E2EConfig.GetIntervals("", "wait-delete-cluster")...)
 	})
 })

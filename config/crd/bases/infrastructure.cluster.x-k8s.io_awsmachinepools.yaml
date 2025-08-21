@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.5
+    controller-gen.kubebuilder.io/version: v0.17.3
   name: awsmachinepools.infrastructure.cluster.x-k8s.io
 spec:
   group: infrastructure.cluster.x-k8s.io
@@ -131,6 +131,8 @@ spec:
                         enum:
                         - AmazonLinux
                         - AmazonLinuxGPU
+                        - AmazonLinux2023
+                        - AmazonLinux2023GPU
                         type: string
                       id:
                         description: ID of resource
@@ -392,27 +394,32 @@ spec:
                   properties:
                     lastTransitionTime:
                       description: |-
-                        Last time the condition transitioned from one status to another.
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
                         This should be when the underlying condition changed. If that is not known, then using the time when
                         the API field changed is acceptable.
                       format: date-time
                       type: string
                     message:
                       description: |-
-                        A human readable message indicating details about the transition.
+                        message is a human readable message indicating details about the transition.
                         This field may be empty.
+                      maxLength: 10240
+                      minLength: 1
                       type: string
                     reason:
                       description: |-
-                        The reason for the condition's last transition in CamelCase.
+                        reason is the reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
                         This field may be empty.
+                      maxLength: 256
+                      minLength: 1
                       type: string
                     severity:
                       description: |-
                         severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
+                      maxLength: 32
                       type: string
                     status:
                       description: status of the condition, one of True, False, Unknown.
@@ -422,6 +429,8 @@ spec:
                         type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
+                      maxLength: 256
+                      minLength: 1
                       type: string
                   required:
                   - lastTransitionTime
@@ -624,6 +633,8 @@ spec:
                         enum:
                         - AmazonLinux
                         - AmazonLinuxGPU
+                        - AmazonLinux2023
+                        - AmazonLinux2023GPU
                         type: string
                       id:
                         description: ID of resource
@@ -632,6 +643,24 @@ spec:
                   capacityReservationId:
                     description: CapacityReservationID specifies the target Capacity
                       Reservation into which the instance should be launched.
+                    type: string
+                  capacityReservationPreference:
+                    allOf:
+                    - enum:
+                      - ""
+                      - None
+                      - CapacityReservationsOnly
+                      - Open
+                    - enum:
+                      - ""
+                      - None
+                      - CapacityReservationsOnly
+                      - Open
+                    description: |-
+                      CapacityReservationPreference specifies the preference for use of Capacity Reservations by the instance. Valid values include:
+                      "Open": The instance may make use of open Capacity Reservations that match its AZ and InstanceType
+                      "None": The instance may not make use of any Capacity Reservations. This is to conserve open reservations for desired workloads
+                      "CapacityReservationsOnly": The instance will only run if matched or targeted to a Capacity Reservation
                     type: string
                   iamInstanceProfile:
                     description: |-
@@ -889,6 +918,150 @@ spec:
                   after it enters the InService state.
                   If no value is supplied by user a default value of 300 seconds is set
                 type: string
+              ignition:
+                description: Ignition defined options related to the bootstrapping
+                  systems where Ignition is used.
+                properties:
+                  proxy:
+                    description: |-
+                      Proxy defines proxy settings for Ignition.
+                      Only valid for Ignition versions 3.1 and above.
+                    properties:
+                      httpProxy:
+                        description: |-
+                          HTTPProxy is the HTTP proxy to use for Ignition.
+                          A single URL that specifies the proxy server to use for HTTP and HTTPS requests,
+                          unless overridden by the HTTPSProxy or NoProxy options.
+                        type: string
+                      httpsProxy:
+                        description: |-
+                          HTTPSProxy is the HTTPS proxy to use for Ignition.
+                          A single URL that specifies the proxy server to use for HTTPS requests,
+                          unless overridden by the NoProxy option.
+                        type: string
+                      noProxy:
+                        description: |-
+                          NoProxy is the list of domains to not proxy for Ignition.
+                          Specifies a list of strings to hosts that should be excluded from proxying.
+
+                          Each value is represented by:
+                          - An IP address prefix (1.2.3.4)
+                          - An IP address prefix in CIDR notation (1.2.3.4/8)
+                          - A domain name
+                            - A domain name matches that name and all subdomains
+                            - A domain name with a leading . matches subdomains only
+                          - A special DNS label (*), indicates that no proxying should be done
+
+                          An IP address prefix and domain name can also include a literal port number (1.2.3.4:80).
+                        items:
+                          description: IgnitionNoProxy defines the list of domains
+                            to not proxy for Ignition.
+                          maxLength: 2048
+                          type: string
+                        maxItems: 64
+                        type: array
+                    type: object
+                  storageType:
+                    default: ClusterObjectStore
+                    description: |-
+                      StorageType defines how to store the boostrap user data for Ignition.
+                      This can be used to instruct Ignition from where to fetch the user data to bootstrap an instance.
+
+                      When omitted, the storage option will default to ClusterObjectStore.
+
+                      When set to "ClusterObjectStore", if the capability is available and a Cluster ObjectStore configuration
+                      is correctly provided in the Cluster object (under .spec.s3Bucket),
+                      an object store will be used to store bootstrap user data.
+
+                      When set to "UnencryptedUserData", EC2 Instance User Data will be used to store the machine bootstrap user data, unencrypted.
+                      This option is considered less secure than others as user data may contain sensitive informations (keys, certificates, etc.)
+                      and users with ec2:DescribeInstances permission or users running pods
+                      that can access the ec2 metadata service have access to this sensitive information.
+                      So this is only to be used at ones own risk, and only when other more secure options are not viable.
+                    enum:
+                    - ClusterObjectStore
+                    - UnencryptedUserData
+                    type: string
+                  tls:
+                    description: |-
+                      TLS defines TLS settings for Ignition.
+                      Only valid for Ignition versions 3.1 and above.
+                    properties:
+                      certificateAuthorities:
+                        description: |-
+                          CASources defines the list of certificate authorities to use for Ignition.
+                          The value is the certificate bundle (in PEM format). The bundle can contain multiple concatenated certificates.
+                          Supported schemes are http, https, tftp, s3, arn, gs, and `data` (RFC 2397) URL scheme.
+                        items:
+                          description: IgnitionCASource defines the source of the
+                            certificate authority to use for Ignition.
+                          maxLength: 65536
+                          type: string
+                        maxItems: 64
+                        type: array
+                    type: object
+                  version:
+                    default: "2.3"
+                    description: Version defines which version of Ignition will be
+                      used to generate bootstrap data.
+                    enum:
+                    - "2.3"
+                    - "3.0"
+                    - "3.1"
+                    - "3.2"
+                    - "3.3"
+                    - "3.4"
+                    type: string
+                type: object
+              lifecycleHooks:
+                description: AWSLifecycleHooks specifies lifecycle hooks for the autoscaling
+                  group.
+                items:
+                  description: AWSLifecycleHook describes an AWS lifecycle hook
+                  properties:
+                    defaultResult:
+                      description: The default result for the lifecycle hook. The
+                        possible values are CONTINUE and ABANDON.
+                      enum:
+                      - CONTINUE
+                      - ABANDON
+                      type: string
+                    heartbeatTimeout:
+                      description: |-
+                        The maximum time, in seconds, that an instance can remain in a Pending:Wait or
+                        Terminating:Wait state. The maximum is 172800 seconds (48 hours) or 100 times
+                        HeartbeatTimeout, whichever is smaller.
+                      format: duration
+                      type: string
+                    lifecycleTransition:
+                      description: The state of the EC2 instance to which to attach
+                        the lifecycle hook.
+                      enum:
+                      - autoscaling:EC2_INSTANCE_LAUNCHING
+                      - autoscaling:EC2_INSTANCE_TERMINATING
+                      type: string
+                    name:
+                      description: The name of the lifecycle hook.
+                      type: string
+                    notificationMetadata:
+                      description: Contains additional metadata that will be passed
+                        to the notification target.
+                      type: string
+                    notificationTargetARN:
+                      description: |-
+                        The ARN of the notification target that Amazon EC2 Auto Scaling uses to
+                        notify you when an instance is in the transition state for the lifecycle hook.
+                      type: string
+                    roleARN:
+                      description: |-
+                        The ARN of the IAM role that allows the Auto Scaling group to publish to the
+                        specified notification target.
+                      type: string
+                  required:
+                  - lifecycleTransition
+                  - name
+                  type: object
+                type: array
               maxSize:
                 default: 1
                 description: MaxSize defines the maximum size of the group.
@@ -1086,27 +1259,32 @@ spec:
                   properties:
                     lastTransitionTime:
                       description: |-
-                        Last time the condition transitioned from one status to another.
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
                         This should be when the underlying condition changed. If that is not known, then using the time when
                         the API field changed is acceptable.
                       format: date-time
                       type: string
                     message:
                       description: |-
-                        A human readable message indicating details about the transition.
+                        message is a human readable message indicating details about the transition.
                         This field may be empty.
+                      maxLength: 10240
+                      minLength: 1
                       type: string
                     reason:
                       description: |-
-                        The reason for the condition's last transition in CamelCase.
+                        reason is the reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
                         This field may be empty.
+                      maxLength: 256
+                      minLength: 1
                       type: string
                     severity:
                       description: |-
                         severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
+                      maxLength: 32
                       type: string
                     status:
                       description: status of the condition, one of True, False, Unknown.
@@ -1116,6 +1294,8 @@ spec:
                         type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
+                      maxLength: 256
+                      minLength: 1
                       type: string
                   required:
                   - lastTransitionTime
