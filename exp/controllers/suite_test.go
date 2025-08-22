@@ -71,7 +71,7 @@ func setup() {
 	if err := (&infrav1.AWSMachine{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup AWSMachine webhook: %v", err))
 	}
-	if err := (&infrav1.AWSMachineTemplateWebhook{}).SetupWebhookWithManager(testEnv); err != nil {
+	if err := (&infrav1.AWSMachineTemplate{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup AWSMachineTemplate webhook: %v", err))
 	}
 	if err := (&expinfrav1.AWSMachinePool{}).SetupWebhookWithManager(testEnv); err != nil {
@@ -87,7 +87,7 @@ func setup() {
 		panic(fmt.Sprintf("Unable to setup ROSAMachinePool webhook: %v", err))
 	}
 	if err := (&rosacontrolplanev1.ROSAControlPlane{}).SetupWebhookWithManager(testEnv); err != nil {
-		panic(fmt.Sprintf("Unable to setup ROSAMachinePool webhook: %v", err))
+		panic(fmt.Sprintf("Unable to setup ROSAControlPlane webhook: %v", err))
 	}
 	go func() {
 		fmt.Println("Starting the manager")

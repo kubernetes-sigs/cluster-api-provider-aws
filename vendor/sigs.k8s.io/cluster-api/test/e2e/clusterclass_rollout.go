@@ -22,7 +22,6 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -47,6 +46,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/labels"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -63,7 +63,7 @@ type ClusterClassRolloutSpecInput struct {
 	// InfrastructureProviders specifies the infrastructure to use for clusterctl
 	// operations (Example: get cluster templates).
 	// Note: In most cases this need not be specified. It only needs to be specified when
-	// multiple infrastructure providers (ex: CAPD + in-memory) are installed on the cluster as clusterctl will not be
+	// multiple infrastructure providers are installed on the cluster as clusterctl will not be
 	// able to identify the default.
 	InfrastructureProvider *string
 
@@ -115,7 +115,7 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 		Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil when calling %s spec", specName)
 		Expect(os.MkdirAll(input.ArtifactFolder, 0750)).To(Succeed(), "Invalid argument. input.ArtifactFolder can't be created for %s spec", specName)
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
-		Expect(input.E2EConfig.Variables).To(HaveValidVersion(input.E2EConfig.GetVariable(KubernetesVersion)))
+		Expect(input.E2EConfig.Variables).To(HaveValidVersion(input.E2EConfig.MustGetVariable(KubernetesVersion)))
 
 		// Set a default function to ensure that FilterMetadataBeforeValidation has a default behavior for
 		// filtering metadata if it is not specified by infrastructure provider.
@@ -146,7 +146,7 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 				Flavor:                   input.Flavor,
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
-				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
+				KubernetesVersion:        input.E2EConfig.MustGetVariable(KubernetesVersion),
 				ControlPlaneMachineCount: ptr.To[int64](1),
 				WorkerMachineCount:       ptr.To[int64](1),
 			},
@@ -308,7 +308,7 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 
 	AfterEach(func() {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
-		framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+		framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ClusterctlConfigPath, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 	})
 }
 
@@ -522,8 +522,12 @@ func assertControlPlaneMachines(g Gomega, clusterObjects clusterObjects, cluster
 		node := clusterObjects.NodesByMachine[machine.Name]
 		nodeMetadata := filterMetadataBeforeValidation(node)
 
-		for k, v := range getManagedLabels(machineMetadata.Labels) {
+		for k, v := range labels.GetManagedLabels(machineMetadata.Labels) {
 			g.Expect(nodeMetadata.Labels).To(HaveKeyWithValue(k, v))
+		}
+
+		for k, v := range annotations.GetManagedAnnotations(machine) {
+			g.Expect(nodeMetadata.Annotations).To(HaveKeyWithValue(k, v))
 		}
 	}
 }
@@ -891,8 +895,12 @@ func assertMachineSetsMachines(g Gomega, clusterObjects clusterObjects, cluster 
 				// MachineDeployment MachineSet Machine Node.metadata
 				node := clusterObjects.NodesByMachine[machine.Name]
 				nodeMetadata := filterMetadataBeforeValidation(node)
-				for k, v := range getManagedLabels(machineMetadata.Labels) {
+				for k, v := range labels.GetManagedLabels(machineMetadata.Labels) {
 					g.Expect(nodeMetadata.Labels).To(HaveKeyWithValue(k, v))
+				}
+
+				for k, v := range annotations.GetManagedAnnotations(machine) {
+					g.Expect(nodeMetadata.Annotations).To(HaveKeyWithValue(k, v))
 				}
 			}
 		}
@@ -1010,28 +1018,6 @@ func (m unionMap) without(g Gomega, keys ...string) unionMap {
 		delete(m, key)
 	}
 	return m
-}
-
-// getManagedLabels gets a map[string]string and returns another map[string]string
-// filtering out labels not managed by CAPI.
-// Note: This is replicated from machine_controller_noderef.go.
-// TODO: Consider moving this func to an internal util or the API package.
-func getManagedLabels(labels map[string]string) map[string]string {
-	managedLabels := make(map[string]string)
-	for key, value := range labels {
-		dnsSubdomainOrName := strings.Split(key, "/")[0]
-		if dnsSubdomainOrName == clusterv1.NodeRoleLabelPrefix {
-			managedLabels[key] = value
-		}
-		if dnsSubdomainOrName == clusterv1.NodeRestrictionLabelDomain || strings.HasSuffix(dnsSubdomainOrName, "."+clusterv1.NodeRestrictionLabelDomain) {
-			managedLabels[key] = value
-		}
-		if dnsSubdomainOrName == clusterv1.ManagedNodeLabelDomain || strings.HasSuffix(dnsSubdomainOrName, "."+clusterv1.ManagedNodeLabelDomain) {
-			managedLabels[key] = value
-		}
-	}
-
-	return managedLabels
 }
 
 type clusterClassObjects struct {

@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.5
+    controller-gen.kubebuilder.io/version: v0.17.3
   name: awsmanagedcontrolplanes.controlplane.cluster.x-k8s.io
 spec:
   group: controlplane.cluster.x-k8s.io
@@ -151,10 +151,11 @@ spec:
                   communicate with the control plane.
                 properties:
                   host:
-                    description: The hostname on which the API server is serving.
+                    description: host is the hostname on which the API server is serving.
+                    maxLength: 512
                     type: string
                   port:
-                    description: The port on which the API server is serving.
+                    description: port is the port on which the API server is serving.
                     format: int32
                     type: integer
                 required:
@@ -369,6 +370,83 @@ spec:
                   additionalControlPlaneIngressRules:
                     description: AdditionalControlPlaneIngressRules is an optional
                       set of ingress rules to add to the control plane
+                    items:
+                      description: IngressRule defines an AWS ingress rule for security
+                        groups.
+                      properties:
+                        cidrBlocks:
+                          description: List of CIDR blocks to allow access from. Cannot
+                            be specified with SourceSecurityGroupID.
+                          items:
+                            type: string
+                          type: array
+                        description:
+                          description: Description provides extended information about
+                            the ingress rule.
+                          type: string
+                        fromPort:
+                          description: FromPort is the start of port range.
+                          format: int64
+                          type: integer
+                        ipv6CidrBlocks:
+                          description: List of IPv6 CIDR blocks to allow access from.
+                            Cannot be specified with SourceSecurityGroupID.
+                          items:
+                            type: string
+                          type: array
+                        natGatewaysIPsSource:
+                          description: NatGatewaysIPsSource use the NAT gateways IPs
+                            as the source for the ingress rule.
+                          type: boolean
+                        protocol:
+                          description: Protocol is the protocol for the ingress rule.
+                            Accepted values are "-1" (all), "4" (IP in IP),"tcp",
+                            "udp", "icmp", and "58" (ICMPv6), "50" (ESP).
+                          enum:
+                          - "-1"
+                          - "4"
+                          - tcp
+                          - udp
+                          - icmp
+                          - "58"
+                          - "50"
+                          type: string
+                        sourceSecurityGroupIds:
+                          description: The security group id to allow access from.
+                            Cannot be specified with CidrBlocks.
+                          items:
+                            type: string
+                          type: array
+                        sourceSecurityGroupRoles:
+                          description: |-
+                            The security group role to allow access from. Cannot be specified with CidrBlocks.
+                            The field will be combined with source security group IDs if specified.
+                          items:
+                            description: SecurityGroupRole defines the unique role
+                              of a security group.
+                            enum:
+                            - bastion
+                            - node
+                            - controlplane
+                            - apiserver-lb
+                            - lb
+                            - node-eks-additional
+                            type: string
+                          type: array
+                        toPort:
+                          description: ToPort is the end of port range.
+                          format: int64
+                          type: integer
+                      required:
+                      - description
+                      - fromPort
+                      - protocol
+                      - toPort
+                      type: object
+                    type: array
+                  additionalNodeIngressRules:
+                    description: AdditionalNodeIngressRules is an optional set of
+                      ingress rules to add to every node
                     items:
                       description: IngressRule defines an AWS ingress rule for security
                         groups.
@@ -1110,11 +1188,19 @@ spec:
                         address.
                       properties:
                         address:
-                          description: The machine address.
+                          description: address is the machine address.
+                          maxLength: 256
+                          minLength: 1
                           type: string
                         type:
-                          description: Machine address type, one of Hostname, ExternalIP,
-                            InternalIP, ExternalDNS or InternalDNS.
+                          description: type is the machine address type, one of Hostname,
+                            ExternalIP, InternalIP, ExternalDNS or InternalDNS.
+                          enum:
+                          - Hostname
+                          - ExternalIP
+                          - InternalIP
+                          - ExternalDNS
+                          - InternalDNS
                           type: string
                       required:
                       - address
@@ -1128,6 +1214,24 @@ spec:
                     description: CapacityReservationID specifies the target Capacity
                       Reservation into which the instance should be launched.
                     type: string
+                  capacityReservationPreference:
+                    allOf:
+                    - enum:
+                      - ""
+                      - None
+                      - CapacityReservationsOnly
+                      - Open
+                    - enum:
+                      - ""
+                      - None
+                      - CapacityReservationsOnly
+                      - Open
+                    description: |-
+                      CapacityReservationPreference specifies the preference for use of Capacity Reservations by the instance. Valid values include:
+                      "Open": The instance may make use of open Capacity Reservations that match its AZ and InstanceType
+                      "None": The instance may not make use of any Capacity Reservations. This is to conserve open reservations for desired workloads
+                      "CapacityReservationsOnly": The instance will only run if matched or targeted to a Capacity Reservation
+                    type: string
                   ebsOptimized:
                     description: Indicates whether the instance is optimized for Amazon
                       EBS I/O.
@@ -1136,6 +1240,20 @@ spec:
                     description: Specifies whether enhanced networking with ENA is
                       enabled.
                     type: boolean
+                  hostAffinity:
+                    description: |-
+                      HostAffinity specifies the dedicated host affinity setting for the instance.
+                      When hostAffinity is set to host, an instance started onto a specific host always restarts on the same host if stopped.
+                      When hostAffinity is set to default, and you stop and restart the instance, it can be restarted on any available host.
+                      When HostAffinity is defined, HostID is required.
+                    enum:
+                    - default
+                    - host
+                    type: string
+                  hostID:
+                    description: HostID specifies the dedicated host on which the
+                      instance should be started.
+                    type: string
                   iamProfile:
                     description: The name of the IAM instance profile associated with
                       the instance, if applicable.
@@ -1415,27 +1533,32 @@ spec:
                   properties:
                     lastTransitionTime:
                       description: |-
-                        Last time the condition transitioned from one status to another.
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
                         This should be when the underlying condition changed. If that is not known, then using the time when
                         the API field changed is acceptable.
                       format: date-time
                       type: string
                     message:
                       description: |-
-                        A human readable message indicating details about the transition.
+                        message is a human readable message indicating details about the transition.
                         This field may be empty.
+                      maxLength: 10240
+                      minLength: 1
                       type: string
                     reason:
                       description: |-
-                        The reason for the condition's last transition in CamelCase.
+                        reason is the reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
                         This field may be empty.
+                      maxLength: 256
+                      minLength: 1
                       type: string
                     severity:
                       description: |-
                         severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
+                      maxLength: 32
                       type: string
                     status:
                       description: status of the condition, one of True, False, Unknown.
@@ -1445,6 +1568,8 @@ spec:
                         type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
+                      maxLength: 256
+                      minLength: 1
                       type: string
                   required:
                   - lastTransitionTime
@@ -2135,10 +2260,11 @@ spec:
                       default: overwrite
                       description: |-
                         ConflictResolution is used to declare what should happen if there
-                        are parameter conflicts. Defaults to none
+                        are parameter conflicts. Defaults to overwrite
                       enum:
                       - overwrite
                       - none
+                      - preserve
                       type: string
                     name:
                       description: Name is the name of the addon
@@ -2206,10 +2332,11 @@ spec:
                   communicate with the control plane.
                 properties:
                   host:
-                    description: The hostname on which the API server is serving.
+                    description: host is the hostname on which the API server is serving.
+                    maxLength: 512
                     type: string
                   port:
-                    description: The port on which the API server is serving.
+                    description: port is the port on which the API server is serving.
                     format: int32
                     type: integer
                 required:
@@ -2415,6 +2542,83 @@ spec:
                   additionalControlPlaneIngressRules:
                     description: AdditionalControlPlaneIngressRules is an optional
                       set of ingress rules to add to the control plane
+                    items:
+                      description: IngressRule defines an AWS ingress rule for security
+                        groups.
+                      properties:
+                        cidrBlocks:
+                          description: List of CIDR blocks to allow access from. Cannot
+                            be specified with SourceSecurityGroupID.
+                          items:
+                            type: string
+                          type: array
+                        description:
+                          description: Description provides extended information about
+                            the ingress rule.
+                          type: string
+                        fromPort:
+                          description: FromPort is the start of port range.
+                          format: int64
+                          type: integer
+                        ipv6CidrBlocks:
+                          description: List of IPv6 CIDR blocks to allow access from.
+                            Cannot be specified with SourceSecurityGroupID.
+                          items:
+                            type: string
+                          type: array
+                        natGatewaysIPsSource:
+                          description: NatGatewaysIPsSource use the NAT gateways IPs
+                            as the source for the ingress rule.
+                          type: boolean
+                        protocol:
+                          description: Protocol is the protocol for the ingress rule.
+                            Accepted values are "-1" (all), "4" (IP in IP),"tcp",
+                            "udp", "icmp", and "58" (ICMPv6), "50" (ESP).
+                          enum:
+                          - "-1"
+                          - "4"
+                          - tcp
+                          - udp
+                          - icmp
+                          - "58"
+                          - "50"
+                          type: string
+                        sourceSecurityGroupIds:
+                          description: The security group id to allow access from.
+                            Cannot be specified with CidrBlocks.
+                          items:
+                            type: string
+                          type: array
+                        sourceSecurityGroupRoles:
+                          description: |-
+                            The security group role to allow access from. Cannot be specified with CidrBlocks.
+                            The field will be combined with source security group IDs if specified.
+                          items:
+                            description: SecurityGroupRole defines the unique role
+                              of a security group.
+                            enum:
+                            - bastion
+                            - node
+                            - controlplane
+                            - apiserver-lb
+                            - lb
+                            - node-eks-additional
+                            type: string
+                          type: array
+                        toPort:
+                          description: ToPort is the end of port range.
+                          format: int64
+                          type: integer
+                      required:
+                      - description
+                      - fromPort
+                      - protocol
+                      - toPort
+                      type: object
+                    type: array
+                  additionalNodeIngressRules:
+                    description: AdditionalNodeIngressRules is an optional set of
+                      ingress rules to add to every node
                     items:
                       description: IngressRule defines an AWS ingress rule for security
                         groups.
@@ -2937,6 +3141,30 @@ spec:
                   and no name is supplied then a role is created.
                 minLength: 2
                 type: string
+              rolePath:
+                description: |-
+                  RolePath sets the path to the role. For more information about paths, see IAM Identifiers
+                  (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
+                  in the IAM User Guide.
+
+                  This parameter is optional. If it is not included, it defaults to a slash
+                  (/).
+                type: string
+              rolePermissionsBoundary:
+                description: |-
+                  RolePermissionsBoundary sets the ARN of the managed policy that is used
+                  to set the permissions boundary for the role.
+
+                  A permissions boundary policy defines the maximum permissions that identity-based
+                  policies can grant to an entity, but does not grant permissions. Permissions
+                  boundaries do not define the maximum permissions that a resource-based policy
+                  can grant to an entity. To learn more, see Permissions boundaries for IAM
+                  entities (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)
+                  in the IAM User Guide.
+
+                  For more information about policy types, see Policy types (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html#access_policy-types)
+                  in the IAM User Guide.
+                type: string
               secondaryCidrBlock:
                 description: |-
                   SecondaryCidrBlock is the additional CIDR range to use for pod IPs.
@@ -3174,11 +3402,19 @@ spec:
                         address.
                       properties:
                         address:
-                          description: The machine address.
+                          description: address is the machine address.
+                          maxLength: 256
+                          minLength: 1
                           type: string
                         type:
-                          description: Machine address type, one of Hostname, ExternalIP,
-                            InternalIP, ExternalDNS or InternalDNS.
+                          description: type is the machine address type, one of Hostname,
+                            ExternalIP, InternalIP, ExternalDNS or InternalDNS.
+                          enum:
+                          - Hostname
+                          - ExternalIP
+                          - InternalIP
+                          - ExternalDNS
+                          - InternalDNS
                           type: string
                       required:
                       - address
@@ -3192,6 +3428,24 @@ spec:
                     description: CapacityReservationID specifies the target Capacity
                       Reservation into which the instance should be launched.
                     type: string
+                  capacityReservationPreference:
+                    allOf:
+                    - enum:
+                      - ""
+                      - None
+                      - CapacityReservationsOnly
+                      - Open
+                    - enum:
+                      - ""
+                      - None
+                      - CapacityReservationsOnly
+                      - Open
+                    description: |-
+                      CapacityReservationPreference specifies the preference for use of Capacity Reservations by the instance. Valid values include:
+                      "Open": The instance may make use of open Capacity Reservations that match its AZ and InstanceType
+                      "None": The instance may not make use of any Capacity Reservations. This is to conserve open reservations for desired workloads
+                      "CapacityReservationsOnly": The instance will only run if matched or targeted to a Capacity Reservation
+                    type: string
                   ebsOptimized:
                     description: Indicates whether the instance is optimized for Amazon
                       EBS I/O.
@@ -3200,6 +3454,20 @@ spec:
                     description: Specifies whether enhanced networking with ENA is
                       enabled.
                     type: boolean
+                  hostAffinity:
+                    description: |-
+                      HostAffinity specifies the dedicated host affinity setting for the instance.
+                      When hostAffinity is set to host, an instance started onto a specific host always restarts on the same host if stopped.
+                      When hostAffinity is set to default, and you stop and restart the instance, it can be restarted on any available host.
+                      When HostAffinity is defined, HostID is required.
+                    enum:
+                    - default
+                    - host
+                    type: string
+                  hostID:
+                    description: HostID specifies the dedicated host on which the
+                      instance should be started.
+                    type: string
                   iamProfile:
                     description: The name of the IAM instance profile associated with
                       the instance, if applicable.
@@ -3479,27 +3747,32 @@ spec:
                   properties:
                     lastTransitionTime:
                       description: |-
-                        Last time the condition transitioned from one status to another.
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
                         This should be when the underlying condition changed. If that is not known, then using the time when
                         the API field changed is acceptable.
                       format: date-time
                       type: string
                     message:
                       description: |-
-                        A human readable message indicating details about the transition.
+                        message is a human readable message indicating details about the transition.
                         This field may be empty.
+                      maxLength: 10240
+                      minLength: 1
                       type: string
                     reason:
                       description: |-
-                        The reason for the condition's last transition in CamelCase.
+                        reason is the reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
                         This field may be empty.
+                      maxLength: 256
+                      minLength: 1
                       type: string
                     severity:
                       description: |-
                         severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
+                      maxLength: 32
                       type: string
                     status:
                       description: status of the condition, one of True, False, Unknown.
@@ -3509,6 +3782,8 @@ spec:
                         type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
+                      maxLength: 256
+                      minLength: 1
                       type: string
                   required:
                   - lastTransitionTime

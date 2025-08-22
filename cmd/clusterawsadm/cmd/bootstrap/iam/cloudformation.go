@@ -17,11 +17,11 @@ limitations under the License.
 package iam
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/config"
+	cfn "github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/spf13/cobra"
 	"k8s.io/kubectl/pkg/util/templates"
 
@@ -98,24 +98,25 @@ func createCloudFormationStackCmd() *cobra.Command {
 			}
 
 			fmt.Printf("Attempting to create AWS CloudFormation stack %s\n", t.Spec.StackName)
-			sess, err := session.NewSessionWithOptions(session.Options{
-				SharedConfigState: session.SharedConfigEnable,
-				Config:            aws.Config{Region: aws.String(t.Spec.Region)},
-			})
+
+			sess, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(t.Spec.Region))
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
 				return err
 			}
 
-			cfnSvc := cloudformation.NewService(cfn.New(sess))
+			cfnSvc := cloudformation.NewService(
+				&cloudformation.CFNClient{
+					Client: cfn.NewFromConfig(sess),
+				})
 
-			err = cfnSvc.ReconcileBootstrapStack(t.Spec.StackName, *t.RenderCloudFormation(), t.Spec.StackTags)
+			err = cfnSvc.ReconcileBootstrapStack(context.TODO(), t.Spec.StackName, *t.RenderCloudFormation(), t.Spec.StackTags)
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
 				return err
 			}
 
-			return cfnSvc.ShowStackResources(t.Spec.StackName)
+			return cfnSvc.ShowStackResources(context.TODO(), t.Spec.StackName)
 		},
 	}
 	addConfigFlag(newCmd)
@@ -144,18 +145,19 @@ func deleteCloudFormationStackCmd() *cobra.Command {
 			}
 
 			fmt.Printf("Attempting to delete AWS CloudFormation stack %s\n", t.Spec.StackName)
-			sess, err := session.NewSessionWithOptions(session.Options{
-				SharedConfigState: session.SharedConfigEnable,
-				Config:            aws.Config{Region: aws.String(t.Spec.Region)},
-			})
+
+			sess, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(t.Spec.Region))
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
 				return err
 			}
 
-			cfnSvc := cloudformation.NewService(cfn.New(sess))
+			cfnSvc := cloudformation.NewService(
+				&cloudformation.CFNClient{
+					Client: cfn.NewFromConfig(sess),
+				})
 
-			err = cfnSvc.DeleteStack(t.Spec.StackName, nil)
+			err = cfnSvc.DeleteStack(context.TODO(), t.Spec.StackName, nil)
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
 				return err

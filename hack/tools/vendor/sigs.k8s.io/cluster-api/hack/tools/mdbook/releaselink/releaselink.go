@@ -21,20 +21,17 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"fmt"
-	"io"
 	"log"
-	"net/http"
-	"net/url"
 	"os"
-	"path"
 	"reflect"
-	"sort"
 	"strings"
 
-	"github.com/blang/semver"
-	"golang.org/x/tools/go/vcs"
+	"github.com/blang/semver/v4"
 	"sigs.k8s.io/kubebuilder/docs/book/utils/plugin"
+
+	"sigs.k8s.io/cluster-api/internal/goproxy"
 )
 
 // ReleaseLink responds to {{#releaselink <args>}} input. It asks for a `gomodule` parameter
@@ -50,43 +47,37 @@ func (ReleaseLink) SupportsOutput(_ string) bool { return true }
 
 // Process modifies the book in the input, which gets returned as the result of the plugin.
 func (l ReleaseLink) Process(input *plugin.Input) error {
-	return plugin.EachCommand(&input.Book, "releaselink", func(chapter *plugin.BookChapter, args string) (string, error) {
-		tags := reflect.StructTag(strings.TrimSpace(args))
+	return plugin.EachCommand(&input.Book, "releaselink", func(_ *plugin.BookChapter, args string) (string, error) {
+		var gomodule, asset, repo string
+		var found bool
 
-		gomodule := tags.Get("gomodule")
-		asset := tags.Get("asset")
+		tags := reflect.StructTag(strings.TrimSpace(args))
+		if gomodule, found = tags.Lookup("gomodule"); !found {
+			return "", fmt.Errorf("releaselink requires tag \"gomodule\" to be set")
+		}
+		if asset, found = tags.Lookup("asset"); !found {
+			return "", fmt.Errorf("releaselink requires tag \"asset\" to be set")
+		}
+		if repo, found = tags.Lookup("repo"); !found {
+			return "", fmt.Errorf("releaselink requires tag \"repo\" to be set")
+		}
 		versionRange := semver.MustParseRange(tags.Get("version"))
 		includePrereleases := tags.Get("prereleases") == "true"
 
-		repo, err := vcs.RepoRootForImportPath(gomodule, false)
+		scheme, host, err := goproxy.GetSchemeAndHost(os.Getenv("GOPROXY"))
 		if err != nil {
 			return "", err
 		}
-
-		rawURL := url.URL{
-			Scheme: "https",
-			Host:   "proxy.golang.org",
-			Path:   path.Join(gomodule, "@v", "/list"),
+		if scheme == "" || host == "" {
+			return "", fmt.Errorf("releaselink does not support disabling the go proxy: GOPROXY=%q", os.Getenv("GOPROXY"))
 		}
 
-		resp, err := http.Get(rawURL.String()) //nolint:noctx // NB: as we're just implementing an external interface we won't be able to get a context here.
+		goproxyClient := goproxy.NewClient(scheme, host)
+
+		parsedTags, err := goproxyClient.GetVersions(context.Background(), gomodule)
 		if err != nil {
 			return "", err
 		}
-		defer resp.Body.Close()
-
-		out, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return "", err
-		}
-
-		parsedTags := semver.Versions{}
-		for _, line := range strings.Split(string(out), "\n") {
-			if strings.HasPrefix(line, "v") {
-				parsedTags = append(parsedTags, semver.MustParse(strings.TrimPrefix(line, "v")))
-			}
-		}
-		sort.Sort(parsedTags)
 
 		var picked semver.Version
 		for i, tag := range parsedTags {
@@ -98,7 +89,7 @@ func (l ReleaseLink) Process(input *plugin.Input) error {
 			}
 		}
 
-		return fmt.Sprintf("%s/releases/download/v%s/%s", repo.Repo, picked, asset), nil
+		return fmt.Sprintf("%s/releases/download/v%s/%s", repo, picked, asset), nil
 	})
 }
 

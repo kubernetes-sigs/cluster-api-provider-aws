@@ -75,11 +75,11 @@ type AWSClusterReconciler struct {
 	networkServiceFactory        func(scope.ClusterScope) services.NetworkInterface
 	elbServiceFactory            func(scope.ELBScope) services.ELBInterface
 	securityGroupFactory         func(scope.ClusterScope) services.SecurityGroupInterface
-	Endpoints                    []scope.ServiceEndpoint
 	WatchFilterValue             string
 	ExternalResourceGC           bool
 	AlternativeGCStrategy        bool
 	TagUnmanagedNetworkResources bool
+	MaxWaitActiveUpdateDelete    time.Duration
 }
 
 // getEC2Service factory func is added for testing purpose so that we can inject mocked EC2Service to the AWSClusterReconciler.
@@ -176,8 +176,8 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		Cluster:                      cluster,
 		AWSCluster:                   awsCluster,
 		ControllerName:               "awscluster",
-		Endpoints:                    r.Endpoints,
 		TagUnmanagedNetworkResources: r.TagUnmanagedNetworkResources,
+		MaxWaitActiveUpdateDelete:    r.MaxWaitActiveUpdateDelete,
 	})
 	if err != nil {
 		return reconcile.Result{}, errors.Errorf("failed to create scope: %+v", err)
@@ -196,7 +196,7 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// Handle non-deleted clusters
-	return r.reconcileNormal(clusterScope)
+	return r.reconcileNormal(ctx, clusterScope)
 }
 
 func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope *scope.ClusterScope) (ctrl.Result, error) {
@@ -228,7 +228,7 @@ func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope
 
 	if feature.Gates.Enabled(feature.EventBridgeInstanceState) {
 		instancestateSvc := instancestate.NewService(clusterScope)
-		if err := instancestateSvc.DeleteEC2Events(); err != nil {
+		if err := instancestateSvc.DeleteEC2Events(ctx); err != nil {
 			// Not deleting the events isn't critical to cluster deletion
 			clusterScope.Error(err, "non-fatal: failed to delete EventBridge notifications")
 		}
@@ -243,11 +243,11 @@ func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope
 	// when external controllers might be using them.
 	allErrs := []error{}
 
-	if err := s3Service.DeleteBucket(); err != nil {
+	if err := s3Service.DeleteBucket(ctx); err != nil {
 		allErrs = append(allErrs, errors.Wrapf(err, "error deleting S3 Bucket"))
 	}
 
-	if err := elbsvc.DeleteLoadbalancers(); err != nil {
+	if err := elbsvc.DeleteLoadbalancers(ctx); err != nil {
 		allErrs = append(allErrs, errors.Wrapf(err, "error deleting load balancers"))
 	}
 
@@ -279,7 +279,7 @@ func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope
 	return reconcile.Result{}, nil
 }
 
-func (r *AWSClusterReconciler) reconcileLoadBalancer(clusterScope *scope.ClusterScope, awsCluster *infrav1.AWSCluster) (*time.Duration, error) {
+func (r *AWSClusterReconciler) reconcileLoadBalancer(ctx context.Context, clusterScope *scope.ClusterScope, awsCluster *infrav1.AWSCluster) (*time.Duration, error) {
 	retryAfterDuration := 15 * time.Second
 	if clusterScope.AWSCluster.Spec.ControlPlaneLoadBalancer.LoadBalancerType == infrav1.LoadBalancerTypeDisabled {
 		clusterScope.Debug("load balancer reconciliation shifted to external provider, checking external endpoint")
@@ -289,7 +289,7 @@ func (r *AWSClusterReconciler) reconcileLoadBalancer(clusterScope *scope.Cluster
 
 	elbService := r.getELBService(clusterScope)
 
-	if err := elbService.ReconcileLoadbalancers(); err != nil {
+	if err := elbService.ReconcileLoadbalancers(ctx); err != nil {
 		clusterScope.Error(err, "failed to reconcile load balancer")
 		conditions.MarkFalse(awsCluster, infrav1.LoadBalancerReadyCondition, infrav1.LoadBalancerFailedReason, infrautilconditions.ErrorConditionAfterInit(clusterScope.ClusterObj()), "%s", err.Error())
 		return nil, err
@@ -311,7 +311,7 @@ func (r *AWSClusterReconciler) reconcileLoadBalancer(clusterScope *scope.Cluster
 	return nil, nil
 }
 
-func (r *AWSClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope) (reconcile.Result, error) {
+func (r *AWSClusterReconciler) reconcileNormal(ctx context.Context, clusterScope *scope.ClusterScope) (reconcile.Result, error) {
 	clusterScope.Info("Reconciling AWSCluster")
 
 	awsCluster := clusterScope.AWSCluster
@@ -348,19 +348,19 @@ func (r *AWSClusterReconciler) reconcileNormal(clusterScope *scope.ClusterScope)
 
 	if feature.Gates.Enabled(feature.EventBridgeInstanceState) {
 		instancestateSvc := instancestate.NewService(clusterScope)
-		if err := instancestateSvc.ReconcileEC2Events(); err != nil {
+		if err := instancestateSvc.ReconcileEC2Events(ctx); err != nil {
 			// non fatal error, so we continue
 			clusterScope.Error(err, "non-fatal: failed to set up EventBridge")
 		}
 	}
 
-	if requeueAfter, err := r.reconcileLoadBalancer(clusterScope, awsCluster); err != nil {
+	if requeueAfter, err := r.reconcileLoadBalancer(ctx, clusterScope, awsCluster); err != nil {
 		return reconcile.Result{}, err
 	} else if requeueAfter != nil {
 		return reconcile.Result{RequeueAfter: *requeueAfter}, err
 	}
 
-	if err := s3Service.ReconcileBucket(); err != nil {
+	if err := s3Service.ReconcileBucket(ctx); err != nil {
 		conditions.MarkFalse(awsCluster, infrav1.S3BucketReadyCondition, infrav1.S3BucketFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile S3 Bucket for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
 	}

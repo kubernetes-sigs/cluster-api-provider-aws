@@ -29,6 +29,7 @@ envfile
 !vendor/github.com/sagikazarmark/slog-shim/.envrc
 !vendor/github.com/spf13/viper/.envrc
 !vendor/github.com/subosito/gotenv/.env
+!vendor/github.com/go-viper/mapstructure/v2/.envrc
 
 # kubeconfigs
 kind.kubeconfig

@@ -121,7 +121,7 @@ func (a *Agent) Get(url string) (content []byte, err error) {
 	}
 	defer request.Body.Close()
 
-	return a.readResponse(request)
+	return a.readResponseToByteArray(request)
 }
 
 // GetRequest sends a GET request to a URL and returns the request and response
@@ -156,7 +156,7 @@ func (a *Agent) Post(url string, postData []byte) (content []byte, err error) {
 	}
 	defer response.Body.Close()
 
-	return a.readResponse(response)
+	return a.readResponseToByteArray(response)
 }
 
 // PostRequest sends the postData in a POST request to a URL and returns the request object
@@ -209,26 +209,54 @@ func (impl *defaultAgentImplementation) SendGetRequest(client *http.Client, url 
 	return response, nil
 }
 
-// readResponse read an dinterpret the http request
-func (a *Agent) readResponse(response *http.Response) (body []byte, err error) {
+// readResponseToByteArray returns the contents of an http response as a byte array
+func (a *Agent) readResponseToByteArray(response *http.Response) ([]byte, error) {
+	var b bytes.Buffer
+	if err := a.readResponse(response, &b); err != nil {
+		return nil, fmt.Errorf("reading array buffer: %w", err)
+	}
+	return b.Bytes(), nil
+}
+
+// readResponse reads and interprets the response to an HTTP request to an io.Writer.
+// If the response status is < 200 or >= 300 and FailOnHTTPError is set, the function
+// will return an error.
+//
+// This function will close the response body reader.
+func (a *Agent) readResponse(response *http.Response, w io.Writer) (err error) {
 	// Read the response body
 	defer response.Body.Close()
-	body, err = io.ReadAll(response.Body)
-	if err != nil {
-		return nil, fmt.Errorf(
-			"reading the response body from %s: %w",
-			response.Request.URL, err,
-		)
+	if _, err := io.Copy(w, response.Body); err != nil {
+		return fmt.Errorf("reading response: %w", err)
 	}
 
 	// Check the https response code
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		if a.options.FailOnHTTPError {
-			return nil, fmt.Errorf(
+			return fmt.Errorf(
 				"HTTP error %s for %s", response.Status, response.Request.URL,
 			)
 		}
 		logrus.Warnf("Got HTTP error but FailOnHTTPError not set: %s", response.Status)
 	}
-	return body, err
+	return err
+}
+
+// GetToWriter sends a get request and writes the response to an io.Writer
+func (a *Agent) GetToWriter(w io.Writer, url string) error {
+	resp, err := a.AgentImplementation.SendGetRequest(a.Client(), url)
+	if err != nil {
+		return fmt.Errorf("sending GET request: %w", err)
+	}
+
+	return a.readResponse(resp, w)
+}
+
+// PostToWriter sends a request to a url and writes the response to an io.Writer
+func (a *Agent) PostToWriter(w io.Writer, url string, postData []byte) error {
+	resp, err := a.AgentImplementation.SendPostRequest(a.Client(), url, postData, a.options.PostContentType)
+	if err != nil {
+		return fmt.Errorf("sending POST request: %w", err)
+	}
+	return a.readResponse(resp, w)
 }

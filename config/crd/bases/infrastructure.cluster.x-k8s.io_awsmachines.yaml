@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.5
+    controller-gen.kubebuilder.io/version: v0.17.3
   name: awsmachines.infrastructure.cluster.x-k8s.io
 spec:
   group: infrastructure.cluster.x-k8s.io
@@ -399,11 +399,19 @@ spec:
                     address.
                   properties:
                     address:
-                      description: The machine address.
+                      description: address is the machine address.
+                      maxLength: 256
+                      minLength: 1
                       type: string
                     type:
-                      description: Machine address type, one of Hostname, ExternalIP,
-                        InternalIP, ExternalDNS or InternalDNS.
+                      description: type is the machine address type, one of Hostname,
+                        ExternalIP, InternalIP, ExternalDNS or InternalDNS.
+                      enum:
+                      - Hostname
+                      - ExternalIP
+                      - InternalIP
+                      - ExternalDNS
+                      - InternalDNS
                       type: string
                   required:
                   - address
@@ -418,27 +426,32 @@ spec:
                   properties:
                     lastTransitionTime:
                       description: |-
-                        Last time the condition transitioned from one status to another.
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
                         This should be when the underlying condition changed. If that is not known, then using the time when
                         the API field changed is acceptable.
                       format: date-time
                       type: string
                     message:
                       description: |-
-                        A human readable message indicating details about the transition.
+                        message is a human readable message indicating details about the transition.
                         This field may be empty.
+                      maxLength: 10240
+                      minLength: 1
                       type: string
                     reason:
                       description: |-
-                        The reason for the condition's last transition in CamelCase.
+                        reason is the reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
                         This field may be empty.
+                      maxLength: 256
+                      minLength: 1
                       type: string
                     severity:
                       description: |-
                         severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
+                      maxLength: 32
                       type: string
                     status:
                       description: status of the condition, one of True, False, Unknown.
@@ -448,6 +461,8 @@ spec:
                         type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
+                      maxLength: 256
+                      minLength: 1
                       type: string
                   required:
                   - lastTransitionTime
@@ -615,6 +630,8 @@ spec:
                     enum:
                     - AmazonLinux
                     - AmazonLinuxGPU
+                    - AmazonLinux2023
+                    - AmazonLinux2023GPU
                     type: string
                   id:
                     description: ID of resource
@@ -623,6 +640,24 @@ spec:
               capacityReservationId:
                 description: CapacityReservationID specifies the target Capacity Reservation
                   into which the instance should be launched.
+                type: string
+              capacityReservationPreference:
+                allOf:
+                - enum:
+                  - ""
+                  - None
+                  - CapacityReservationsOnly
+                  - Open
+                - enum:
+                  - ""
+                  - None
+                  - CapacityReservationsOnly
+                  - Open
+                description: |-
+                  CapacityReservationPreference specifies the preference for use of Capacity Reservations by the instance. Valid values include:
+                  "Open": The instance may make use of open Capacity Reservations that match its AZ and InstanceType
+                  "None": The instance may not make use of any Capacity Reservations. This is to conserve open reservations for desired workloads
+                  "CapacityReservationsOnly": The instance will only run if matched or targeted to a Capacity Reservation
                 type: string
               cloudInit:
                 description: |-
@@ -686,6 +721,20 @@ spec:
                     - message: allowed values are 'none' and 'amazon-pool'
                       rule: self in ['none','amazon-pool']
                 type: object
+              hostAffinity:
+                description: |-
+                  HostAffinity specifies the dedicated host affinity setting for the instance.
+                  When hostAffinity is set to host, an instance started onto a specific host always restarts on the same host if stopped.
+                  When hostAffinity is set to default, and you stop and restart the instance, it can be restarted on any available host.
+                  When HostAffinity is defined, HostID is required.
+                enum:
+                - default
+                - host
+                type: string
+              hostID:
+                description: HostID specifies the Dedicated Host on which the instance
+                  must be started.
+                type: string
               iamInstanceProfile:
                 description: IAMInstanceProfile is a name of an IAM instance profile
                   to assign to the instance
@@ -1121,11 +1170,19 @@ spec:
                     address.
                   properties:
                     address:
-                      description: The machine address.
+                      description: address is the machine address.
+                      maxLength: 256
+                      minLength: 1
                       type: string
                     type:
-                      description: Machine address type, one of Hostname, ExternalIP,
-                        InternalIP, ExternalDNS or InternalDNS.
+                      description: type is the machine address type, one of Hostname,
+                        ExternalIP, InternalIP, ExternalDNS or InternalDNS.
+                      enum:
+                      - Hostname
+                      - ExternalIP
+                      - InternalIP
+                      - ExternalDNS
+                      - InternalDNS
                       type: string
                   required:
                   - address
@@ -1140,27 +1197,32 @@ spec:
                   properties:
                     lastTransitionTime:
                       description: |-
-                        Last time the condition transitioned from one status to another.
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
                         This should be when the underlying condition changed. If that is not known, then using the time when
                         the API field changed is acceptable.
                       format: date-time
                       type: string
                     message:
                       description: |-
-                        A human readable message indicating details about the transition.
+                        message is a human readable message indicating details about the transition.
                         This field may be empty.
+                      maxLength: 10240
+                      minLength: 1
                       type: string
                     reason:
                       description: |-
-                        The reason for the condition's last transition in CamelCase.
+                        reason is the reason for the condition's last transition in CamelCase.
                         The specific API may choose whether or not this field is considered a guaranteed API.
                         This field may be empty.
+                      maxLength: 256
+                      minLength: 1
                       type: string
                     severity:
                       description: |-
                         severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
+                      maxLength: 32
                       type: string
                     status:
                       description: status of the condition, one of True, False, Unknown.
@@ -1170,6 +1232,8 @@ spec:
                         type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
+                      maxLength: 256
+                      minLength: 1
                       type: string
                   required:
                   - lastTransitionTime

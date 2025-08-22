@@ -14,9 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package mock_stsiface provides a mock implementation for the STSAPI interface.
+// Package mock_stsiface provides a mock implementation for the STSClient interface.
 // Run go generate to regenerate this mock.
 //
-//go:generate ../../../../../hack/tools/bin/mockgen -destination stsiface_mock.go -package mock_stsiface github.com/aws/aws-sdk-go/service/sts/stsiface STSAPI
+//go:generate ../../../../../hack/tools/bin/mockgen -destination stsiface_mock.go -package mock_stsiface sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts STSClient
 //go:generate /usr/bin/env bash -c "cat ../../../../../hack/boilerplate/boilerplate.generatego.txt stsiface_mock.go > _stsiface_mock.go && mv _stsiface_mock.go stsiface_mock.go"
 package mock_stsiface //nolint:stylecheck

@@ -23,8 +23,15 @@ spec:
       conflictResolution: "overwrite"
 ```
 
+Valid values are:
+```
+none
+overwrite
+preserve
+```
+
 _Note_: For `conflictResolution` `overwrite` is the **default** behaviour. That means, if not otherwise specified, it's
-set to `overwrite`.
+set to `overwrite`. Review [API Documentation](https://docs.aws.amazon.com/eks/latest/APIReference/API_CreateAddon.html#AmazonEKS-CreateAddon-request-resolveConflicts) for detailed behavior.
 
 Additionally, there is a cluster [flavor](https://cluster-api.sigs.k8s.io/clusterctl/commands/generate-cluster.html#flavors)
 called [eks-managedmachinepool-vpccni](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/templates/cluster-template-eks-managedmachinepool-vpccni.yaml) that you can use with **clusterctl**:
@@ -45,6 +52,8 @@ To update the version of an addon you need to edit the `AWSManagedControlPlane` 
       conflictResolution: "overwrite"
 ...
 ```
+
+_Note_: For `conflictResolution` `none`, updating may fail if a change was made to the addon that is unexpected by EKS. Review [API Documentation](https://docs.aws.amazon.com/eks/latest/APIReference/API_UpdateAddon.html#AmazonEKS-UpdateAddon-request-resolveConflicts) for detailed behavior on conflict resolution.
 
 ## Deleting Addons
 

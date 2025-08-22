@@ -21,21 +21,22 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
-	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
+	utildefaulting "sigs.k8s.io/cluster-api-provider-aws/v2/util/defaulting"
 )
 
 func TestMachineDefault(t *testing.T) {
 	machine := &AWSMachine{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
-	t.Run("for AWSMachine", utildefaulting.DefaultValidateTest(machine))
-	machine.Default()
+	t.Run("for AWSMachine", utildefaulting.DefaultValidateTest(context.Background(), machine, &awsMachineWebhook{}))
 	g := NewWithT(t)
+	err := (&awsMachineWebhook{}).Default(context.Background(), machine)
+	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(machine.Spec.CloudInit.SecureSecretsBackend).To(Equal(SecretBackendSecretsManager))
 }
 
@@ -261,6 +262,38 @@ func TestAWSMachineCreate(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "invalid case, CapacityReservationId is set and CapacityReservationPreference is not `capacity-reservation-only`",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType:                  "test",
+					CapacityReservationID:         aws.String("cr-12345678901234567"),
+					CapacityReservationPreference: CapacityReservationPreferenceNone,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid CapacityReservationId is set and CapacityReservationPreference is not specified",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType:          "test",
+					CapacityReservationID: aws.String("cr-12345678901234567"),
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid CapacityReservationId is set and CapacityReservationPreference is `capacity-reservation-only`",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType:                  "test",
+					CapacityReservationID:         aws.String("cr-12345678901234567"),
+					CapacityReservationPreference: CapacityReservationPreferenceOnly,
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name: "empty instance type not allowed",
 			machine: &AWSMachine{
 				Spec: AWSMachineSpec{
@@ -407,6 +440,37 @@ func TestAWSMachineCreate(t *testing.T) {
 							HTTPProxy: ptr.To("http://proxy.example.com:3128"),
 						},
 					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "configure host affinity with Host ID",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "test",
+					HostAffinity: ptr.To("default"),
+					HostID:       ptr.To("h-09dcf61cb388b0149"),
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "configure host affinity with invalid affinity",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "test",
+					HostAffinity: ptr.To("invalid"),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "configure host affinity without Host ID",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "test",
+					HostAffinity: ptr.To("default"),
 				},
 			},
 			wantErr: true,

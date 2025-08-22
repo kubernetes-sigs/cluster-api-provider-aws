@@ -114,7 +114,7 @@ func (c *ClusterBuilder) Build() *clusterv1.Cluster {
 
 // ClusterTopologyBuilder contains the fields needed to build a testable ClusterTopology.
 type ClusterTopologyBuilder struct {
-	class                 string
+	class, classNamespace string
 	workers               *clusterv1.WorkersTopology
 	version               string
 	controlPlaneReplicas  int32
@@ -133,6 +133,12 @@ func ClusterTopology() *ClusterTopologyBuilder {
 // WithClass adds the passed ClusterClass name to the ClusterTopologyBuilder.
 func (c *ClusterTopologyBuilder) WithClass(class string) *ClusterTopologyBuilder {
 	c.class = class
+	return c
+}
+
+// WithClassNamespace adds the passed classNamespace to the ClusterTopologyBuilder.
+func (c *ClusterTopologyBuilder) WithClassNamespace(ns string) *ClusterTopologyBuilder {
+	c.classNamespace = ns
 	return c
 }
 
@@ -181,9 +187,10 @@ func (c *ClusterTopologyBuilder) WithVariables(vars ...clusterv1.ClusterVariable
 // Build returns a testable cluster Topology object with any values passed to the builder.
 func (c *ClusterTopologyBuilder) Build() *clusterv1.Topology {
 	t := &clusterv1.Topology{
-		Class:   c.class,
-		Workers: c.workers,
-		Version: c.version,
+		Class:          c.class,
+		ClassNamespace: c.classNamespace,
+		Workers:        c.workers,
+		Version:        c.version,
 		ControlPlane: clusterv1.ControlPlaneTopology{
 			Replicas:           &c.controlPlaneReplicas,
 			MachineHealthCheck: c.controlPlaneMHC,
@@ -332,6 +339,7 @@ type ClusterClassBuilder struct {
 	name                                      string
 	infrastructureClusterTemplate             *unstructured.Unstructured
 	controlPlaneMetadata                      *clusterv1.ObjectMeta
+	controlPlaneReadinessGates                []clusterv1.MachineReadinessGate
 	controlPlaneTemplate                      *unstructured.Unstructured
 	controlPlaneInfrastructureMachineTemplate *unstructured.Unstructured
 	controlPlaneMHC                           *clusterv1.MachineHealthCheckClass
@@ -339,6 +347,7 @@ type ClusterClassBuilder struct {
 	controlPlaneNodeVolumeDetachTimeout       *metav1.Duration
 	controlPlaneNodeDeletionTimeout           *metav1.Duration
 	controlPlaneNamingStrategy                *clusterv1.ControlPlaneClassNamingStrategy
+	infraClusterNamingStrategy                *clusterv1.InfrastructureNamingStrategy
 	machineDeploymentClasses                  []clusterv1.MachineDeploymentClass
 	machinePoolClasses                        []clusterv1.MachinePoolClass
 	variables                                 []clusterv1.ClusterClassVariable
@@ -376,6 +385,12 @@ func (c *ClusterClassBuilder) WithControlPlaneMetadata(labels, annotations map[s
 	return c
 }
 
+// WithControlPlaneReadinessGates adds the given readinessGates for use with the ControlPlane to the ClusterClassBuilder.
+func (c *ClusterClassBuilder) WithControlPlaneReadinessGates(readinessGates []clusterv1.MachineReadinessGate) *ClusterClassBuilder {
+	c.controlPlaneReadinessGates = readinessGates
+	return c
+}
+
 // WithControlPlaneInfrastructureMachineTemplate adds the ControlPlane's InfrastructureMachineTemplate to the ClusterClassBuilder.
 func (c *ClusterClassBuilder) WithControlPlaneInfrastructureMachineTemplate(t *unstructured.Unstructured) *ClusterClassBuilder {
 	c.controlPlaneInfrastructureMachineTemplate = t
@@ -409,6 +424,12 @@ func (c *ClusterClassBuilder) WithControlPlaneNodeDeletionTimeout(t *metav1.Dura
 // WithControlPlaneNamingStrategy sets the NamingStrategy for the ControlPlane to the ClusterClassBuilder.
 func (c *ClusterClassBuilder) WithControlPlaneNamingStrategy(n *clusterv1.ControlPlaneClassNamingStrategy) *ClusterClassBuilder {
 	c.controlPlaneNamingStrategy = n
+	return c
+}
+
+// WithInfraClusterStrategy sets the NamingStrategy for the infra cluster to the ClusterClassBuilder.
+func (c *ClusterClassBuilder) WithInfraClusterStrategy(n *clusterv1.InfrastructureNamingStrategy) *ClusterClassBuilder {
+	c.infraClusterNamingStrategy = n
 	return c
 }
 
@@ -482,6 +503,9 @@ func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 	if c.controlPlaneMetadata != nil {
 		obj.Spec.ControlPlane.Metadata = *c.controlPlaneMetadata
 	}
+	if c.controlPlaneReadinessGates != nil {
+		obj.Spec.ControlPlane.ReadinessGates = c.controlPlaneReadinessGates
+	}
 	if c.controlPlaneTemplate != nil {
 		obj.Spec.ControlPlane.LocalObjectTemplate = clusterv1.LocalObjectTemplate{
 			Ref: objToRef(c.controlPlaneTemplate),
@@ -507,6 +531,9 @@ func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 	if c.controlPlaneNamingStrategy != nil {
 		obj.Spec.ControlPlane.NamingStrategy = c.controlPlaneNamingStrategy
 	}
+	if c.infraClusterNamingStrategy != nil {
+		obj.Spec.InfrastructureNamingStrategy = c.infraClusterNamingStrategy
+	}
 
 	obj.Spec.Workers.MachineDeployments = c.machineDeploymentClasses
 	obj.Spec.Workers.MachinePools = c.machinePoolClasses
@@ -521,6 +548,7 @@ type MachineDeploymentClassBuilder struct {
 	labels                        map[string]string
 	annotations                   map[string]string
 	machineHealthCheckClass       *clusterv1.MachineHealthCheckClass
+	readinessGates                []clusterv1.MachineReadinessGate
 	failureDomain                 *string
 	nodeDrainTimeout              *metav1.Duration
 	nodeVolumeDetachTimeout       *metav1.Duration
@@ -564,6 +592,12 @@ func (m *MachineDeploymentClassBuilder) WithAnnotations(annotations map[string]s
 // WithMachineHealthCheckClass sets the MachineHealthCheckClass for the MachineDeploymentClassBuilder.
 func (m *MachineDeploymentClassBuilder) WithMachineHealthCheckClass(mhc *clusterv1.MachineHealthCheckClass) *MachineDeploymentClassBuilder {
 	m.machineHealthCheckClass = mhc
+	return m
+}
+
+// WithReadinessGates sets the readinessGates for the MachineDeploymentClassBuilder.
+func (m *MachineDeploymentClassBuilder) WithReadinessGates(readinessGates []clusterv1.MachineReadinessGate) *MachineDeploymentClassBuilder {
+	m.readinessGates = readinessGates
 	return m
 }
 
@@ -628,6 +662,9 @@ func (m *MachineDeploymentClassBuilder) Build() *clusterv1.MachineDeploymentClas
 	}
 	if m.machineHealthCheckClass != nil {
 		obj.MachineHealthCheck = m.machineHealthCheckClass
+	}
+	if m.readinessGates != nil {
+		obj.ReadinessGates = m.readinessGates
 	}
 	if m.failureDomain != nil {
 		obj.FailureDomain = m.failureDomain

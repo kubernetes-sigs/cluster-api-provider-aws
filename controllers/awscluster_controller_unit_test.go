@@ -23,7 +23,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -196,7 +196,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 				g := NewWithT(t)
 				runningCluster := func() {
 					ec2Svc.EXPECT().ReconcileBastion().Return(nil)
-					elbSvc.EXPECT().ReconcileLoadbalancers().Return(nil)
+					elbSvc.EXPECT().ReconcileLoadbalancers(gomock.Any()).Return(nil)
 					networkSvc.EXPECT().ReconcileNetwork().Return(nil)
 					sgSvc.EXPECT().ReconcileSecurityGroups().Return(nil)
 				}
@@ -242,7 +242,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 						IsPublic:         false,
 					},
 				})
-				_, err = reconciler.reconcileNormal(cs)
+				_, err = reconciler.reconcileNormal(context.TODO(), cs)
 				g.Expect(err).To(BeNil())
 				expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{{infrav1.LoadBalancerReadyCondition, corev1.ConditionTrue, "", ""}})
 				g.Expect(awsCluster.GetFinalizers()).To(ContainElement(infrav1.ClusterFinalizer))
@@ -252,7 +252,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 				g := NewWithT(t)
 				runningCluster := func() {
 					ec2Svc.EXPECT().ReconcileBastion().Return(nil)
-					elbSvc.EXPECT().ReconcileLoadbalancers().Return(nil)
+					elbSvc.EXPECT().ReconcileLoadbalancers(gomock.Any()).Return(nil)
 					networkSvc.EXPECT().ReconcileNetwork().Return(nil)
 					sgSvc.EXPECT().ReconcileSecurityGroups().Return(nil)
 				}
@@ -274,7 +274,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 					PublicIpv4PoolFallBackOrder: ptr.To(infrav1.PublicIpv4PoolFallbackOrderAmazonPool),
 				}
 				g.Expect(err).To(Not(HaveOccurred()))
-				_, err = reconciler.reconcileNormal(cs)
+				_, err = reconciler.reconcileNormal(context.TODO(), cs)
 				g.Expect(err).To(Not(HaveOccurred()))
 			})
 		})
@@ -297,7 +297,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 					},
 				)
 				g.Expect(err).To(BeNil())
-				_, err = reconciler.reconcileNormal(cs)
+				_, err = reconciler.reconcileNormal(context.TODO(), cs)
 				g.Expect(err).Should(Equal(expectedErr))
 			})
 			t.Run("Should fail AWSCluster create with ClusterSecurityGroupsReadyCondition status false", func(t *testing.T) {
@@ -318,7 +318,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 					},
 				)
 				g.Expect(err).To(BeNil())
-				_, err = reconciler.reconcileNormal(cs)
+				_, err = reconciler.reconcileNormal(context.TODO(), cs)
 				g.Expect(err).ToNot(BeNil())
 				expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{{infrav1.ClusterSecurityGroupsReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, infrav1.ClusterSecurityGroupReconciliationFailedReason}})
 			})
@@ -341,7 +341,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 					},
 				)
 				g.Expect(err).To(BeNil())
-				_, err = reconciler.reconcileNormal(cs)
+				_, err = reconciler.reconcileNormal(context.TODO(), cs)
 				g.Expect(err).ToNot(BeNil())
 				expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{{infrav1.BastionHostReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, infrav1.BastionHostFailedReason}})
 			})
@@ -352,7 +352,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 					networkSvc.EXPECT().ReconcileNetwork().Return(nil)
 					sgSvc.EXPECT().ReconcileSecurityGroups().Return(nil)
 					ec2Svc.EXPECT().ReconcileBastion().Return(nil)
-					elbSvc.EXPECT().ReconcileLoadbalancers().Return(expectedErr)
+					elbSvc.EXPECT().ReconcileLoadbalancers(gomock.Any()).Return(expectedErr)
 				}
 				csClient := setup(t, &awsCluster)
 				defer teardown()
@@ -365,7 +365,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 					},
 				)
 				g.Expect(err).To(BeNil())
-				_, err = reconciler.reconcileNormal(cs)
+				_, err = reconciler.reconcileNormal(context.TODO(), cs)
 				g.Expect(err).ToNot(BeNil())
 				expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{{infrav1.LoadBalancerReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, infrav1.LoadBalancerFailedReason}})
 			})
@@ -376,7 +376,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 					networkSvc.EXPECT().ReconcileNetwork().Return(nil)
 					sgSvc.EXPECT().ReconcileSecurityGroups().Return(nil)
 					ec2Svc.EXPECT().ReconcileBastion().Return(nil)
-					elbSvc.EXPECT().ReconcileLoadbalancers().Return(nil)
+					elbSvc.EXPECT().ReconcileLoadbalancers(gomock.Any()).Return(nil)
 				}
 				csClient := setup(t, &awsCluster)
 				defer teardown()
@@ -389,7 +389,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 					},
 				)
 				g.Expect(err).To(BeNil())
-				_, err = reconciler.reconcileNormal(cs)
+				_, err = reconciler.reconcileNormal(context.TODO(), cs)
 				g.Expect(err).To(BeNil())
 				expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{{infrav1.LoadBalancerReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, infrav1.WaitForDNSNameReason}})
 			})
@@ -399,7 +399,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 		t.Run("Reconcile success", func(t *testing.T) {
 			deleteCluster := func() {
 				ec2Svc.EXPECT().DeleteBastion().Return(nil)
-				elbSvc.EXPECT().DeleteLoadbalancers().Return(nil)
+				elbSvc.EXPECT().DeleteLoadbalancers(gomock.Any()).Return(nil)
 				networkSvc.EXPECT().DeleteNetwork().Return(nil)
 				sgSvc.EXPECT().DeleteSecurityGroups().Return(nil)
 			}
@@ -429,7 +429,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 				g := NewWithT(t)
 				deleteCluster := func() {
 					t.Helper()
-					elbSvc.EXPECT().DeleteLoadbalancers().Return(expectedErr)
+					elbSvc.EXPECT().DeleteLoadbalancers(gomock.Any()).Return(expectedErr)
 					ec2Svc.EXPECT().DeleteBastion().Return(nil)
 					networkSvc.EXPECT().DeleteNetwork().Return(nil)
 					sgSvc.EXPECT().DeleteSecurityGroups().Return(nil)
@@ -455,7 +455,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 				g := NewWithT(t)
 				deleteCluster := func() {
 					ec2Svc.EXPECT().DeleteBastion().Return(expectedErr)
-					elbSvc.EXPECT().DeleteLoadbalancers().Return(nil)
+					elbSvc.EXPECT().DeleteLoadbalancers(gomock.Any()).Return(nil)
 					networkSvc.EXPECT().DeleteNetwork().Return(nil)
 					sgSvc.EXPECT().DeleteSecurityGroups().Return(nil)
 				}
@@ -480,7 +480,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 				g := NewWithT(t)
 				deleteCluster := func() {
 					ec2Svc.EXPECT().DeleteBastion().Return(nil)
-					elbSvc.EXPECT().DeleteLoadbalancers().Return(nil)
+					elbSvc.EXPECT().DeleteLoadbalancers(gomock.Any()).Return(nil)
 					sgSvc.EXPECT().DeleteSecurityGroups().Return(expectedErr)
 					networkSvc.EXPECT().DeleteNetwork().Return(nil)
 				}
@@ -505,7 +505,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 				g := NewWithT(t)
 				deleteCluster := func() {
 					ec2Svc.EXPECT().DeleteBastion().Return(nil)
-					elbSvc.EXPECT().DeleteLoadbalancers().Return(nil)
+					elbSvc.EXPECT().DeleteLoadbalancers(gomock.Any()).Return(nil)
 					sgSvc.EXPECT().DeleteSecurityGroups().Return(nil)
 					networkSvc.EXPECT().DeleteNetwork().Return(expectedErr)
 				}

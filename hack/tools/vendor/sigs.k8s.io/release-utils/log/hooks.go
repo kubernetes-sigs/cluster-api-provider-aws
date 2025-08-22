@@ -41,7 +41,7 @@ func NewFilenameHook() *FileNameHook {
 	return &FileNameHook{
 		field:      "file",
 		skipPrefix: []string{"log/", "logrus/", "logrus@"},
-		Formatter: func(file, function string, line int) string {
+		Formatter: func(file, _ string, line int) string {
 			return fmt.Sprintf("%s:%d", file, line)
 		},
 	}

@@ -37,7 +37,7 @@ const (
 	DefaultNodeImageRepository = "kindest/node"
 
 	// DefaultNodeImageVersion is the default Kubernetes version to be used for creating a kind cluster.
-	DefaultNodeImageVersion = "v1.32.0@sha256:2458b423d635d7b01637cac2d6de7e1c1dca1148a2ba2e90975e214ca849e7cb"
+	DefaultNodeImageVersion = "v1.33.0@sha256:02f73d6ae3f11ad5d543f16736a2cb2a63a300ad60e81dac22099b0b04784a4e"
 )
 
 // KindClusterOption is a NewKindClusterProvider option.
@@ -149,6 +149,7 @@ func (k *KindClusterProvider) createKindCluster() {
 		},
 		Nodes: []kindv1.Node{
 			{
+				Role:              kindv1.ControlPlaneRole,
 				ExtraPortMappings: k.extraPortMappings,
 			},
 		},
@@ -163,7 +164,10 @@ func (k *KindClusterProvider) createKindCluster() {
 	kindv1.SetDefaultsCluster(cfg)
 
 	if k.withDockerSock {
-		setDockerSockConfig(cfg)
+		cfg.Nodes[0].ExtraMounts = append(cfg.Nodes[0].ExtraMounts, kindv1.Mount{
+			HostPath:      "/var/run/docker.sock",
+			ContainerPath: "/var/run/docker.sock",
+		})
 	}
 
 	kindCreateOptions = append(kindCreateOptions, kind.CreateWithV1Alpha4Config(cfg))
@@ -194,21 +198,6 @@ func (k *KindClusterProvider) createKindCluster() {
 			errStr += "\n" + string(runErr.Output)
 		}
 		Expect(err).ToNot(HaveOccurred(), errStr)
-	}
-}
-
-// setDockerSockConfig returns a kind config for mounting /var/run/docker.sock into the kind node.
-func setDockerSockConfig(cfg *kindv1.Cluster) {
-	cfg.Nodes = []kindv1.Node{
-		{
-			Role: kindv1.ControlPlaneRole,
-			ExtraMounts: []kindv1.Mount{
-				{
-					HostPath:      "/var/run/docker.sock",
-					ContainerPath: "/var/run/docker.sock",
-				},
-			},
-		},
 	}
 }
 

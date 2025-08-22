@@ -48,9 +48,9 @@ const (
 	HarvesterProviderName      = "harvester-harvester"
 	HetznerProviderName        = "hetzner"
 	HivelocityProviderName     = "hivelocity-hivelocity"
+	HuaweiProviderName         = "huawei"
 	OutscaleProviderName       = "outscale"
 	IBMCloudProviderName       = "ibmcloud"
-	InMemoryProviderName       = "in-memory"
 	LinodeProviderName         = "linode-linode"
 	Metal3ProviderName         = "metal3"
 	NestedProviderName         = "nested"
@@ -72,6 +72,7 @@ const (
 	K0smotronProviderName      = "k0sproject-k0smotron"
 	IonosCloudProviderName     = "ionoscloud-ionoscloud"
 	VultrProviderName          = "vultr-vultr"
+	OpenNebulaProviderName     = "opennebula"
 )
 
 // Bootstrap providers.
@@ -79,7 +80,6 @@ const (
 	KubeadmBootstrapProviderName             = "kubeadm"
 	TalosBootstrapProviderName               = "talos"
 	MicroK8sBootstrapProviderName            = "microk8s"
-	OracleCloudNativeBootstrapProviderName   = "ocne"
 	KubeKeyK3sBootstrapProviderName          = "kubekey-k3s"
 	RKE2BootstrapProviderName                = "rke2"
 	K0smotronBootstrapProviderName           = "k0sproject-k0smotron"
@@ -92,7 +92,6 @@ const (
 	TalosControlPlaneProviderName               = "talos"
 	MicroK8sControlPlaneProviderName            = "microk8s"
 	NestedControlPlaneProviderName              = "nested"
-	OracleCloudNativeControlPlaneProviderName   = "ocne"
 	KubeKeyK3sControlPlaneProviderName          = "kubekey-k3s"
 	KamajiControlPlaneProviderName              = "kamaji"
 	RKE2ControlPlaneProviderName                = "rke2"
@@ -108,7 +107,8 @@ const (
 
 // Add-on providers.
 const (
-	HelmAddonProviderName = "helm"
+	HelmAddonProviderName  = "helm"
+	FleetAddonProviderName = "rancher-fleet"
 )
 
 // Runtime extensions providers.
@@ -275,6 +275,11 @@ func (p *providersClient) defaults() []Provider {
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{
+			name:         HuaweiProviderName,
+			url:          "https://github.com/HuaweiCloudDeveloper/cluster-api-provider-huawei/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
 			name:         OutscaleProviderName,
 			url:          "https://github.com/outscale/cluster-api-provider-outscale/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
@@ -282,11 +287,6 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         IBMCloudProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud/releases/latest/infrastructure-components.yaml",
-			providerType: clusterctlv1.InfrastructureProviderType,
-		},
-		&provider{
-			name:         InMemoryProviderName,
-			url:          "https://github.com/kubernetes-sigs/cluster-api/releases/latest/infrastructure-components-in-memory-development.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{
@@ -321,7 +321,7 @@ func (p *providersClient) defaults() []Provider {
 		},
 		&provider{
 			name:         K0smotronProviderName,
-			url:          "https://github.com/k0sproject/k0smotron/releases/latest/infrastructure-components.yaml",
+			url:          "https://github.com/k0smotron/k0smotron/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{
@@ -332,6 +332,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         VultrProviderName,
 			url:          "https://github.com/vultr/cluster-api-provider-vultr/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         OpenNebulaProviderName,
+			url:          "https://github.com/OpenNebula/cluster-api-provider-opennebula/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 
@@ -357,18 +362,13 @@ func (p *providersClient) defaults() []Provider {
 			providerType: clusterctlv1.BootstrapProviderType,
 		},
 		&provider{
-			name:         OracleCloudNativeBootstrapProviderName,
-			url:          "https://github.com/verrazzano/cluster-api-provider-ocne/releases/latest/bootstrap-components.yaml",
-			providerType: clusterctlv1.BootstrapProviderType,
-		},
-		&provider{
 			name:         RKE2BootstrapProviderName,
 			url:          "https://github.com/rancher/cluster-api-provider-rke2/releases/latest/bootstrap-components.yaml",
 			providerType: clusterctlv1.BootstrapProviderType,
 		},
 		&provider{
 			name:         K0smotronBootstrapProviderName,
-			url:          "https://github.com/k0sproject/k0smotron/releases/latest/bootstrap-components.yaml",
+			url:          "https://github.com/k0smotron/k0smotron/releases/latest/bootstrap-components.yaml",
 			providerType: clusterctlv1.BootstrapProviderType,
 		},
 		&provider{
@@ -404,11 +404,6 @@ func (p *providersClient) defaults() []Provider {
 			providerType: clusterctlv1.ControlPlaneProviderType,
 		},
 		&provider{
-			name:         OracleCloudNativeControlPlaneProviderName,
-			url:          "https://github.com/verrazzano/cluster-api-provider-ocne/releases/latest/control-plane-components.yaml",
-			providerType: clusterctlv1.ControlPlaneProviderType,
-		},
-		&provider{
 			name:         KamajiControlPlaneProviderName,
 			url:          "https://github.com/clastix/cluster-api-control-plane-provider-kamaji/releases/latest/control-plane-components.yaml",
 			providerType: clusterctlv1.ControlPlaneProviderType,
@@ -420,7 +415,7 @@ func (p *providersClient) defaults() []Provider {
 		},
 		&provider{
 			name:         K0smotronControlPlaneProviderName,
-			url:          "https://github.com/k0sproject/k0smotron/releases/latest/control-plane-components.yaml",
+			url:          "https://github.com/k0smotron/k0smotron/releases/latest/control-plane-components.yaml",
 			providerType: clusterctlv1.ControlPlaneProviderType,
 		},
 		&provider{
@@ -442,6 +437,11 @@ func (p *providersClient) defaults() []Provider {
 		},
 
 		// Add-on providers
+		&provider{
+			name:         FleetAddonProviderName,
+			url:          "https://github.com/rancher-sandbox/cluster-api-addon-provider-fleet/releases/latest/addon-components.yaml",
+			providerType: clusterctlv1.AddonProviderType,
+		},
 		&provider{
 			name:         HelmAddonProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-addon-provider-helm/releases/latest/addon-components.yaml",

@@ -27,6 +27,8 @@ func (d *differ) correspond(old, new types.Type) bool {
 //
 // Compare this to the implementation of go/types.Identical.
 func (d *differ) corr(old, new types.Type, p *ifacePair) bool {
+	old = types.Unalias(old)
+	new = types.Unalias(new)
 	// Structure copied from types.Identical.
 	switch old := old.(type) {
 	case *types.Basic:
@@ -208,17 +210,14 @@ func (d *differ) establishCorrespondence(old *types.Named, new types.Type) bool 
 		// Two generic named types correspond if their type parameter lists correspond.
 		// Since one or the other of those lists will be empty, it doesn't hurt
 		// to check both.
-		oldOrigin := old.Origin()
-		newOrigin := newn.Origin()
-		if oldOrigin != old {
-			// old is an instantiated type.
-			if newOrigin == newn {
-				// new is not; they cannot correspond.
+		if isInstantiated(old) {
+			if !isInstantiated(new) {
+				// old is an instantiated type but new is not; they cannot correspond.
 				return false
 			}
 			// Two instantiated types correspond if their origins correspond and
 			// their type argument lists correspond.
-			if !d.correspond(oldOrigin, newOrigin) {
+			if !d.correspond(old.Origin(), new.Origin()) {
 				return false
 			}
 			if !d.typeListsCorrespond(old.TypeArgs(), newn.TypeArgs()) {
@@ -300,4 +299,9 @@ type ifacePair struct {
 
 func (p *ifacePair) identical(q *ifacePair) bool {
 	return p.x == q.x && p.y == q.y || p.x == q.y && p.y == q.x
+}
+
+// isInstantiated reports whether t is instantiated from a generic type.
+func isInstantiated(t *types.Named) bool {
+	return t.Origin() != t
 }
