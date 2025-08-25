@@ -40,6 +40,5 @@ import (
 	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"
 	_ "sigs.k8s.io/kind"
 	_ "sigs.k8s.io/kustomize/kustomize/v5"
-	_ "sigs.k8s.io/promo-tools/v4/cmd/kpromo"
 	_ "sigs.k8s.io/testing_frameworks/integration"
 )
