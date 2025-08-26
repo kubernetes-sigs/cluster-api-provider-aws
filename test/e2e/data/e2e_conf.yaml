@@ -26,11 +26,11 @@ images:
     loadBehavior: tryLoad
   - name: quay.io/jetstack/cert-manager-controller:v1.17.2
     loadBehavior: tryLoad
-  - name: registry.k8s.io/cluster-api/cluster-api-controller:v1.10.2
+  - name: registry.k8s.io/cluster-api/cluster-api-controller:v1.11.0
     loadBehavior: tryLoad
-  - name: registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:v1.10.2
+  - name: registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:v1.11.0
     loadBehavior: tryLoad
-  - name: registry.k8s.io/cluster-api/kubeadm-control-plane-controller:v1.10.2
+  - name: registry.k8s.io/cluster-api/kubeadm-control-plane-controller:v1.11.0
     loadBehavior: tryLoad
 
 providers:
@@ -48,12 +48,12 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.10.2 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.10.2/core-components.yaml"
+      - name: v1.11.0 # latest published release in the v1beta1 series; used for v1beta1 --> main clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.11.0/core-components.yaml"
         type: "url"
         contract: v1beta1
         files:
-          - sourcePath: "./shared/v1beta1/metadata.yaml"
+          - sourcePath: "./shared/v1beta1_provider/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -75,12 +75,12 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.10.2 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.10.2/bootstrap-components.yaml"
+      - name: v1.11.0 # latest published release in the v1beta1 series; used for v1beta1 --> main clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.11.0/bootstrap-components.yaml"
         type: "url"
         contract: v1beta1
         files:
-          - sourcePath: "./shared/v1beta1/metadata.yaml"
+          - sourcePath: "./shared/v1beta1_provider/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -102,12 +102,12 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.10.2 # latest published release in the v1beta1 series; this is used for v1beta1 --> v1beta1 latest clusterctl upgrades test only.
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.10.2/control-plane-components.yaml"
+      - name: v1.11.0 # latest published release in the v1beta1 series; used for v1beta1 --> v1beta1 latest clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.11.0/control-plane-components.yaml"
         type: "url"
         contract: v1beta1
         files:
-          - sourcePath: "./shared/v1beta1/metadata.yaml"
+          - sourcePath: "./shared/v1beta1_provider/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -116,7 +116,7 @@ providers:
   - name: aws
     type: InfrastructureProvider
     versions:
-      - name: v1.5.2 # latest published release in the v1beta1 series; this is used for v1beta1 --> v1beta2 clusterctl upgrades test only.
+      - name: v1.5.2 # latest published release in the v1beta1 series; this is used for v1beta1 --> v1beta1 clusterctl upgrades test only.
         value: "https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases/download/v1.5.2/infrastructure-components.yaml"
         type: "url"
         contract: v1beta1
@@ -126,12 +126,12 @@ providers:
       - name: "v2.7.1"
         value: "https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases/download/v2.7.1/infrastructure-components.yaml"
         type: "url"
-        contract: v1beta2
+        contract: v1beta1
         replacements:
           - old: --metrics-addr=127.0.0.1:8080
             new: --metrics-addr=:8080
         files:
-          - sourcePath: "./shared/v1beta2_provider/v2.7/metadata.yaml"
+          - sourcePath: "./shared/v1beta1_provider/v2.7/metadata.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-classicelb-upgrade.yaml"
       - name: v9.9.99
         # Use manifest from source files
@@ -165,7 +165,7 @@ providers:
           - sourcePath: "./infrastructure-aws/withclusterclass/kustomize_sources/nested-multitenancy-clusterclass/clusterclass-multi-tenancy.yaml"
           - sourcePath: "./infrastructure-aws/withclusterclass/generated/cluster-template-self-hosted-clusterclass.yaml"
           - sourcePath: "./infrastructure-aws/withclusterclass/generated/cluster-template-external-vpc-clusterclass.yaml"
-          - sourcePath: "./shared/v1beta2_provider/metadata.yaml"
+          - sourcePath: "./shared/v1beta1_provider/metadata.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-ignition.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-upgrade-to-external-cloud-provider.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-dedicated-host.yaml"

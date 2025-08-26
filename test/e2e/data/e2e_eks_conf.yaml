@@ -34,8 +34,8 @@ providers:
   - name: cluster-api
     type: CoreProvider
     versions:
-      - name: v1.10.2
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.10.2/core-components.yaml"
+      - name: v1.11.0
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.11.0/core-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -50,8 +50,8 @@ providers:
     files:
       - sourcePath: "./shared/v1beta1/metadata.yaml"
     versions:
-      - name: v1.10.2
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.10.2/bootstrap-components.yaml"
+      - name: v1.11.0
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.11.0/bootstrap-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -66,8 +66,8 @@ providers:
     files:
       - sourcePath: "./shared/v1beta1/metadata.yaml"
     versions:
-      - name: v1.10.2
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.10.2/control-plane-components.yaml"
+      - name: v1.11.0
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.11.0/control-plane-components.yaml"
         type: "url"
         contract: v1beta1
         files:
@@ -85,7 +85,7 @@ providers:
         value: ../../../config/default
         contract: v1beta1
         files:
-          - sourcePath: "./shared/v1beta2_provider/metadata.yaml"
+          - sourcePath: "./shared/v1beta1_provider/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
