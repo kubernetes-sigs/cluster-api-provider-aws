@@ -58,14 +58,14 @@ spec:
                           information for the cluster
                         properties:
                           authenticationMode:
-                            default: CONFIG_MAP
+                            default: config_map
                             description: |-
                               AuthenticationMode specifies the desired authentication mode for the cluster
-                              Defaults to CONFIG_MAP
+                              Defaults to config_map
                             enum:
-                            - CONFIG_MAP
-                            - API
-                            - API_AND_CONFIG_MAP
+                            - config_map
+                            - api
+                            - api_and_config_map
                             type: string
                           bootstrapClusterCreatorAdminPermissions:
                             default: true

@@ -429,7 +429,7 @@ func (s *Service) createCluster(ctx context.Context, eksClusterName string) (*ek
 	var accessConfig *ekstypes.CreateAccessConfigRequest
 	if s.scope.ControlPlane.Spec.AccessConfig != nil && s.scope.ControlPlane.Spec.AccessConfig.AuthenticationMode != "" {
 		accessConfig = &ekstypes.CreateAccessConfigRequest{
-			AuthenticationMode: ekstypes.AuthenticationMode(string(s.scope.ControlPlane.Spec.AccessConfig.AuthenticationMode)),
+			AuthenticationMode: s.scope.ControlPlane.Spec.AccessConfig.AuthenticationMode.APIValue(),
 		}
 	}
 
@@ -568,7 +568,7 @@ func (s *Service) reconcileAccessConfig(ctx context.Context, accessConfig *eksty
 		return nil
 	}
 
-	expectedAuthenticationMode := ekstypes.AuthenticationMode(string(s.scope.ControlPlane.Spec.AccessConfig.AuthenticationMode))
+	expectedAuthenticationMode := s.scope.ControlPlane.Spec.AccessConfig.AuthenticationMode.APIValue()
 	s.scope.Debug("Reconciling EKS Access Config for cluster", "cluster-name", s.scope.KubernetesClusterName(), "expected", expectedAuthenticationMode, "current", accessConfig.AuthenticationMode)
 	if expectedAuthenticationMode != accessConfig.AuthenticationMode {
 		input.AccessConfig = &ekstypes.UpdateAccessConfigRequest{

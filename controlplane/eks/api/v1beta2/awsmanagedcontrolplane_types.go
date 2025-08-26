@@ -255,9 +255,9 @@ type EndpointAccess struct {
 // AccessConfig represents the access configuration information for the cluster
 type AccessConfig struct {
 	// AuthenticationMode specifies the desired authentication mode for the cluster
-	// Defaults to CONFIG_MAP
-	// +kubebuilder:default=CONFIG_MAP
-	// +kubebuilder:validation:Enum=CONFIG_MAP;API;API_AND_CONFIG_MAP
+	// Defaults to config_map
+	// +kubebuilder:default=config_map
+	// +kubebuilder:validation:Enum=config_map;api;api_and_config_map
 	AuthenticationMode EKSAuthenticationMode `json:"authenticationMode,omitempty"`
 
 	// BootstrapClusterCreatorAdminPermissions grants cluster admin permissions
