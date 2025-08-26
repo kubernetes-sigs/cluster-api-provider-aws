@@ -19,6 +19,7 @@ package v1beta2
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/google/go-cmp/cmp"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -176,6 +177,38 @@ func (r *AWSMachineTemplate) validateSSHKeyName() field.ErrorList {
 	return validateSSHKeyName(r.Spec.Template.Spec.SSHKeyName)
 }
 
+func (r *AWSMachineTemplate) validateInstanceTypeMatchesDedicatedHost() field.ErrorList {
+	dynamicHostAllocation := r.Spec.Template.Spec.DynamicHostAllocation	
+	if r.Spec.Template.Spec.DynamicHostAllocation == nil {
+		return nil
+	}
+	
+	desiredInstanceType := dynamicHostAllocation.InstanceType
+	if desiredInstanceType != nil {
+		if *desiredInstanceType != r.Spec.Template.Spec.InstanceType {
+			return field.ErrorList{field.Invalid(field.NewPath("spec", "template", "spec", "dynamicHostAllocation", "instanceType"), *desiredInstanceType, "instance type does not match dedicated host")}
+		}
+	}
+
+	desiredInstanceFamily := dynamicHostAllocation.InstanceFamily
+
+	if len(desiredInstanceFamily) == 0 {
+		return field.ErrorList{field.Invalid(field.NewPath("spec", "template", "spec", "dynamicHostAllocation", "instanceFamily"), desiredInstanceFamily, "instance family is required")}
+	}
+
+	instanceTypeParts := strings.Split(r.Spec.Template.Spec.InstanceType, ".")
+	if len(instanceTypeParts) < 2 {
+		return field.ErrorList{field.Invalid(field.NewPath("spec", "template", "spec", "instanceType"), r.Spec.Template.Spec.InstanceType, "instance type must be in the format of <family>.<instance>")}
+	}
+
+	familyFromInstanceType := instanceTypeParts[0]
+	if familyFromInstanceType != desiredInstanceFamily {
+		return field.ErrorList{field.Invalid(field.NewPath("spec", "template", "spec", "dynamicHostAllocation", "instanceFamily"), desiredInstanceFamily, "instance family does not match instance type")}
+	}	
+
+	return nil
+}
+
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (r *AWSMachineTemplateWebhook) ValidateCreate(_ context.Context, raw runtime.Object) (admission.Warnings, error) {
 	var allErrs field.ErrorList
@@ -204,6 +237,7 @@ func (r *AWSMachineTemplateWebhook) ValidateCreate(_ context.Context, raw runtim
 	allErrs = append(allErrs, obj.validateNonRootVolumes()...)
 	allErrs = append(allErrs, obj.validateSSHKeyName()...)
 	allErrs = append(allErrs, obj.validateAdditionalSecurityGroups()...)
+	allErrs = append(allErrs, obj.validateInstanceTypeMatchesDedicatedHost()...)
 	allErrs = append(allErrs, obj.Spec.Template.Spec.AdditionalTags.Validate()...)
 
 	return nil, aggregateObjErrors(obj.GroupVersionKind().GroupKind(), obj.Name, allErrs)

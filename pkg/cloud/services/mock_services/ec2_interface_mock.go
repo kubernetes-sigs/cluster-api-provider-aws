@@ -55,6 +55,21 @@ func (m *MockEC2Interface) EXPECT() *MockEC2InterfaceMockRecorder {
 	return m.recorder
 }
 
+// AllocateDedicatedHost mocks base method.
+func (m *MockEC2Interface) AllocateDedicatedHost(arg0 context.Context, arg1 *v1beta2.DynamicHostAllocationSpec, arg2 string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AllocateDedicatedHost", arg0, arg1, arg2)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AllocateDedicatedHost indicates an expected call of AllocateDedicatedHost.
+func (mr *MockEC2InterfaceMockRecorder) AllocateDedicatedHost(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AllocateDedicatedHost", reflect.TypeOf((*MockEC2Interface)(nil).AllocateDedicatedHost), arg0, arg1, arg2)
+}
+
 // CreateInstance mocks base method.
 func (m *MockEC2Interface) CreateInstance(arg0 context.Context, arg1 *scope.MachineScope, arg2 []byte, arg3 string) (*v1beta2.Instance, error) {
 	m.ctrl.T.Helper()
@@ -125,6 +140,21 @@ func (m *MockEC2Interface) DeleteLaunchTemplate(arg0 string) error {
 func (mr *MockEC2InterfaceMockRecorder) DeleteLaunchTemplate(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLaunchTemplate", reflect.TypeOf((*MockEC2Interface)(nil).DeleteLaunchTemplate), arg0)
+}
+
+// DescribeDedicatedHost mocks base method.
+func (m *MockEC2Interface) DescribeDedicatedHost(arg0 context.Context, arg1 string) (*v1beta2.DedicatedHostInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DescribeDedicatedHost", arg0, arg1)
+	ret0, _ := ret[0].(*v1beta2.DedicatedHostInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeDedicatedHost indicates an expected call of DescribeDedicatedHost.
+func (mr *MockEC2InterfaceMockRecorder) DescribeDedicatedHost(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeDedicatedHost", reflect.TypeOf((*MockEC2Interface)(nil).DescribeDedicatedHost), arg0, arg1)
 }
 
 // DetachSecurityGroupsFromNetworkInterface mocks base method.
@@ -294,6 +324,21 @@ func (mr *MockEC2InterfaceMockRecorder) LaunchTemplateNeedsUpdate(arg0, arg1, ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LaunchTemplateNeedsUpdate", reflect.TypeOf((*MockEC2Interface)(nil).LaunchTemplateNeedsUpdate), arg0, arg1, arg2)
 }
 
+// ListDedicatedHosts mocks base method.
+func (m *MockEC2Interface) ListDedicatedHosts(arg0 context.Context, arg1 map[string]string) ([]*v1beta2.DedicatedHostInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListDedicatedHosts", arg0, arg1)
+	ret0, _ := ret[0].([]*v1beta2.DedicatedHostInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListDedicatedHosts indicates an expected call of ListDedicatedHosts.
+func (mr *MockEC2InterfaceMockRecorder) ListDedicatedHosts(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListDedicatedHosts", reflect.TypeOf((*MockEC2Interface)(nil).ListDedicatedHosts), arg0, arg1)
+}
+
 // ModifyInstanceMetadataOptions mocks base method.
 func (m *MockEC2Interface) ModifyInstanceMetadataOptions(arg0 string, arg1 *v1beta2.InstanceMetadataOptions) error {
 	m.ctrl.T.Helper()
@@ -350,6 +395,20 @@ func (m *MockEC2Interface) ReconcileElasticIPFromPublicPool(arg0 *v1beta2.Elasti
 func (mr *MockEC2InterfaceMockRecorder) ReconcileElasticIPFromPublicPool(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReconcileElasticIPFromPublicPool", reflect.TypeOf((*MockEC2Interface)(nil).ReconcileElasticIPFromPublicPool), arg0, arg1)
+}
+
+// ReleaseDedicatedHost mocks base method.
+func (m *MockEC2Interface) ReleaseDedicatedHost(arg0 context.Context, arg1 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReleaseDedicatedHost", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ReleaseDedicatedHost indicates an expected call of ReleaseDedicatedHost.
+func (mr *MockEC2InterfaceMockRecorder) ReleaseDedicatedHost(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReleaseDedicatedHost", reflect.TypeOf((*MockEC2Interface)(nil).ReleaseDedicatedHost), arg0, arg1)
 }
 
 // ReleaseElasticIP mocks base method.

@@ -1232,6 +1232,47 @@ spec:
                       "None": The instance may not make use of any Capacity Reservations. This is to conserve open reservations for desired workloads
                       "CapacityReservationsOnly": The instance will only run if matched or targeted to a Capacity Reservation
                     type: string
+                  dynamicHostAllocation:
+                    description: |-
+                      DynamicHostAllocation enables automatic allocation of dedicated hosts.
+                      This field is mutually exclusive with HostID.
+                    properties:
+                      autoRelease:
+                        default: true
+                        description: |-
+                          AutoRelease determines whether to automatically release the dedicated host
+                          when the machine is deleted.
+                        type: boolean
+                      availabilityZone:
+                        description: |-
+                          AvailabilityZone specifies the target availability zone for allocation.
+                          If not specified, uses the same AZ as the instance.
+                        type: string
+                      instanceFamily:
+                        description: InstanceFamily specifies the EC2 instance family
+                          (e.g., "m5", "c5", "r5").
+                        type: string
+                      instanceType:
+                        description: |-
+                          InstanceType specifies the specific instance type for the dedicated host.
+                          If not specified, derives from InstanceFamily.
+                        type: string
+                      quantity:
+                        default: 1
+                        description: Quantity specifies the number of dedicated hosts
+                          to allocate.
+                        format: int32
+                        maximum: 10
+                        minimum: 1
+                        type: integer
+                      tags:
+                        additionalProperties:
+                          type: string
+                        description: Tags to apply to the allocated dedicated host.
+                        type: object
+                    required:
+                    - instanceFamily
+                    type: object
                   ebsOptimized:
                     description: Indicates whether the instance is optimized for Amazon
                       EBS I/O.
@@ -3446,6 +3487,47 @@ spec:
                       "None": The instance may not make use of any Capacity Reservations. This is to conserve open reservations for desired workloads
                       "CapacityReservationsOnly": The instance will only run if matched or targeted to a Capacity Reservation
                     type: string
+                  dynamicHostAllocation:
+                    description: |-
+                      DynamicHostAllocation enables automatic allocation of dedicated hosts.
+                      This field is mutually exclusive with HostID.
+                    properties:
+                      autoRelease:
+                        default: true
+                        description: |-
+                          AutoRelease determines whether to automatically release the dedicated host
+                          when the machine is deleted.
+                        type: boolean
+                      availabilityZone:
+                        description: |-
+                          AvailabilityZone specifies the target availability zone for allocation.
+                          If not specified, uses the same AZ as the instance.
+                        type: string
+                      instanceFamily:
+                        description: InstanceFamily specifies the EC2 instance family
+                          (e.g., "m5", "c5", "r5").
+                        type: string
+                      instanceType:
+                        description: |-
+                          InstanceType specifies the specific instance type for the dedicated host.
+                          If not specified, derives from InstanceFamily.
+                        type: string
+                      quantity:
+                        default: 1
+                        description: Quantity specifies the number of dedicated hosts
+                          to allocate.
+                        format: int32
+                        maximum: 10
+                        minimum: 1
+                        type: integer
+                      tags:
+                        additionalProperties:
+                          type: string
+                        description: Tags to apply to the allocated dedicated host.
+                        type: object
+                    required:
+                    - instanceFamily
+                    type: object
                   ebsOptimized:
                     description: Indicates whether the instance is optimized for Amazon
                       EBS I/O.
