@@ -158,7 +158,11 @@ func NewMockOCMClient(ctx context.Context, rosaScope *scope.ROSAControlPlaneScop
 func ConvertToRosaOcmClient(i OCMClient) (*ocm.Client, error) {
 	c, ok := i.(*ocmclient)
 	if !ok {
-		return nil, fmt.Errorf("failed to conver to Rosa OCM Client")
+		c, ok := i.(*ocm.Client)
+		if !ok {
+			return nil, fmt.Errorf("failed to convert to Rosa OCM Client")
+		}
+		return c, nil
 	}
 	return c.ocmClient, nil
 }
