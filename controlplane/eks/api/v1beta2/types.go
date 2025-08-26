@@ -83,6 +83,7 @@ var (
 // EKSAuthenticationMode defines the authentication mode for the cluster
 type EKSAuthenticationMode string
 
+// APIValue returns the corresponding EKS API value for the authentication mode
 func (e EKSAuthenticationMode) APIValue() ekstypes.AuthenticationMode {
 	return ekstypes.AuthenticationMode(strings.ToUpper(string(e)))
 }
