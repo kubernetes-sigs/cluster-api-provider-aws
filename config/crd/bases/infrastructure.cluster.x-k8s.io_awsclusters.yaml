@@ -2215,6 +2215,26 @@ spec:
                       "None": The instance may not make use of any Capacity Reservations. This is to conserve open reservations for desired workloads
                       "CapacityReservationsOnly": The instance will only run if matched or targeted to a Capacity Reservation
                     type: string
+                  dynamicHostAllocation:
+                    description: |-
+                      DynamicHostAllocation enables automatic allocation of dedicated hosts.
+                      This field is mutually exclusive with HostID.
+                    properties:
+                      release:
+                        default: on-machine-deletion
+                        description: |-
+                          AutoRelease determines whether to automatically release the dedicated host
+                          when the machine is deleted.
+                        enum:
+                        - on-machine-deletion
+                        - manual
+                        type: string
+                      tags:
+                        additionalProperties:
+                          type: string
+                        description: Tags to apply to the allocated dedicated host.
+                        type: object
+                    type: object
                   ebsOptimized:
                     description: Indicates whether the instance is optimized for Amazon
                       EBS I/O.
