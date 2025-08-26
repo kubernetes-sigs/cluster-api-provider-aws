@@ -66,6 +66,7 @@ type ROSARoleConfigReconciler struct {
 	WatchFilterValue string
 	NewStsClient     func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsiface.STSClient
 	NewOCMClient     func(ctx context.Context, scope rosa.OCMSecretsRetriever) (rosa.OCMClient, error)
+	Runtime          *rosacli.Runtime
 }
 
 func (r *ROSARoleConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -117,44 +118,39 @@ func (r *ROSARoleConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 	}()
 
-	ocm, err := r.NewOCMClient(ctx, scope)
+	err = r.setUpRuntime(ctx, scope)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to create OCM client: %w", err)
-	}
-
-	ocmClient, err := rosa.ConvertToRosaOcmClient(ocm)
-	if err != nil || ocmClient == nil {
-		return ctrl.Result{}, fmt.Errorf("failed to create OCM client: %w", err)
+		return ctrl.Result{}, fmt.Errorf("failed to set up runtime: %w", err)
 	}
 
 	if !roleConfig.ObjectMeta.DeletionTimestamp.IsZero() {
 		conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1.RosaRoleConfigReadyCondition, expinfrav1.RosaRoleConfigDeletionStarted, clusterv1.ConditionSeverityInfo, "Deletion of RosaRolesConfig started")
-		return ctrl.Result{}, r.reconcileDelete(scope, ocmClient)
+		return ctrl.Result{}, r.reconcileDelete(scope)
 	}
 
 	if controllerutil.AddFinalizer(scope.RosaRoleConfig, expinfrav1.RosaRoleConfigFinalizer) {
 		return ctrl.Result{}, err
 	}
 
-	err = r.createAccountRoles(ctx, roleConfig, scope, ocmClient)
+	err = r.createAccountRoles(roleConfig, scope)
 	if err != nil {
 		conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1.RosaRoleConfigReadyCondition, expinfrav1.RosaRoleConfigReconciliationFailedReason, clusterv1.ConditionSeverityError, "Failed to create Account Roles: %v", err)
 		return ctrl.Result{}, fmt.Errorf("failed to Create AccountRoles: %w", err)
 	}
 
-	err = r.reconcileOIDCConfig(roleConfig, scope, ocmClient)
+	err = r.reconcileOIDCConfig(roleConfig, scope)
 	if err != nil {
 		conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1.RosaRoleConfigReadyCondition, expinfrav1.RosaRoleConfigReconciliationFailedReason, clusterv1.ConditionSeverityError, "Failed to create OIDC Config: %v", err)
 		return ctrl.Result{}, fmt.Errorf("failed to OICD Config: %w", err)
 	}
 
-	err = r.createOIDCProvider(scope, ocmClient)
+	err = r.createOIDCProvider(scope)
 	if err != nil {
 		conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1.RosaRoleConfigReadyCondition, expinfrav1.RosaRoleConfigReconciliationFailedReason, clusterv1.ConditionSeverityError, "Failed to create OIDC provider: %v", err)
 		return ctrl.Result{}, fmt.Errorf("failed to Create OIDC provider: %w", err)
 	}
 
-	err = r.createOperatorRoles(ctx, roleConfig, scope, ocmClient)
+	err = r.createOperatorRoles(roleConfig, scope)
 	if err != nil {
 		conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1.RosaRoleConfigReadyCondition, expinfrav1.RosaRoleConfigReconciliationFailedReason, clusterv1.ConditionSeverityError, "Failed to create Operator Roles: %v", err)
 		return ctrl.Result{}, fmt.Errorf("failed to Create OperatorRoles: %w", err)
@@ -174,15 +170,8 @@ func (r *ROSARoleConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	return ctrl.Result{}, nil
 }
 
-func (r *ROSARoleConfigReconciler) reconcileDelete(scope *scope.RosaRoleConfigScope, ocmClient *ocm.Client) error {
-	log := rosalogging.NewLogger()
-	awsClient, err := aws.NewClient().Logger(log).Build()
-	if err != nil {
-		conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1.RosaRoleConfigReadyCondition, expinfrav1.RosaRoleConfigDeletionFailedReason, clusterv1.ConditionSeverityError, "Failed to create AWS client: %v", err)
-		return err
-	}
-
-	err = r.deleteOperatorRoles(ocmClient, awsClient, scope.RosaRoleConfig.Spec.AccountRoleConfig.Prefix)
+func (r *ROSARoleConfigReconciler) reconcileDelete(scope *scope.RosaRoleConfigScope) error {
+	err := r.deleteOperatorRoles(scope.RosaRoleConfig.Spec.AccountRoleConfig.Prefix)
 	if err != nil {
 		conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1.RosaRoleConfigReadyCondition, expinfrav1.RosaRoleConfigDeletionFailedReason, clusterv1.ConditionSeverityError, "Failed to delete operator roles: %v", err)
 		return err
@@ -190,21 +179,21 @@ func (r *ROSARoleConfigReconciler) reconcileDelete(scope *scope.RosaRoleConfigSc
 
 	oidcID := scope.RosaRoleConfig.Status.OIDCID
 	if scope.RosaRoleConfig.Spec.OperatorRoleConfig.OIDCID == "" {
-		err = r.deleteOIDCProvider(ocmClient, awsClient, oidcID)
+		err = r.deleteOIDCProvider(oidcID)
 		if err != nil {
 			conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1.RosaRoleConfigReadyCondition, expinfrav1.RosaRoleConfigDeletionFailedReason, clusterv1.ConditionSeverityError, "Failed to delete OIDC provider: %v", err)
 			return err
 		}
 	}
 
-	err = r.deleteAccountRoles(ocmClient, awsClient, scope)
+	err = r.deleteAccountRoles(scope)
 	if err != nil {
 		conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1.RosaRoleConfigReadyCondition, expinfrav1.RosaRoleConfigDeletionFailedReason, clusterv1.ConditionSeverityError, "Failed to delete account roles: %v", err)
 		return err
 	}
 
 	if scope.RosaRoleConfig.Spec.OperatorRoleConfig.OIDCID == "" {
-		err = r.deleteOIDCConfig(ocmClient, oidcID)
+		err = r.deleteOIDCConfig(oidcID)
 		if err != nil {
 			conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1.RosaRoleConfigReadyCondition, expinfrav1.RosaRoleConfigDeletionFailedReason, clusterv1.ConditionSeverityError, "Failed to delete OIDC config: %v", err)
 			return err
@@ -221,7 +210,7 @@ func (r *ROSARoleConfigReconciler) reconcileDelete(scope *scope.RosaRoleConfigSc
 	return nil
 }
 
-func (r *ROSARoleConfigReconciler) createOperatorRoles(ctx context.Context, roleConfig *expinfrav1.ROSARoleConfig, scope *scope.RosaRoleConfigScope, ocmClient *ocm.Client) error {
+func (r *ROSARoleConfigReconciler) createOperatorRoles(roleConfig *expinfrav1.ROSARoleConfig, scope *scope.RosaRoleConfigScope) error {
 	installerRoleArn := scope.RosaRoleConfig.Status.AccountRolesRef.InstallerRoleARN
 	if installerRoleArn == "" {
 		return fmt.Errorf("installer role is empty")
@@ -231,24 +220,7 @@ func (r *ROSARoleConfigReconciler) createOperatorRoles(ctx context.Context, role
 		return fmt.Errorf("OIDCID is required to create operator roles")
 	}
 
-	runtime := rosacli.NewRuntime()
-	policies, err := ocmClient.GetPolicies("OperatorRole")
-	if err != nil {
-		return err
-	}
-	runtime.OCMClient, err = rosa.NewOCMClient(ctx, scope)
-	if err != nil {
-		return err
-	}
-
-	runtime.Reporter = (&rosa.Reporter{})
-	runtime.Logger = rosalogging.NewLogger()
-	runtime.AWSClient, err = aws.NewClient().Logger(runtime.Logger).Build()
-	if err != nil {
-		return fmt.Errorf("failed to create aws client: %w", err)
-	}
-
-	runtime.Creator, err = runtime.AWSClient.GetCreator()
+	policies, err := r.Runtime.OCMClient.GetPolicies("OperatorRole")
 	if err != nil {
 		return err
 	}
@@ -258,8 +230,7 @@ func (r *ROSARoleConfigReconciler) createOperatorRoles(ctx context.Context, role
 	hostedCp := true
 	forcePolicyCreation := true
 
-	operatorRoles, err := runtime.AWSClient.ListOperatorRoles(version, "", config.Prefix)
-
+	operatorRoles, err := r.Runtime.AWSClient.ListOperatorRoles(version, "", config.Prefix)
 	if err != nil {
 		return err
 	}
@@ -294,7 +265,7 @@ func (r *ROSARoleConfigReconciler) createOperatorRoles(ctx context.Context, role
 	if !r.operatorRolesReady(&scope.RosaRoleConfig.Status.OperatorRolesRef) {
 		// not all operator roles are set, operator roles are not ready yet.
 		r.clearOperatorRolesRef(&scope.RosaRoleConfig.Status.OperatorRolesRef)
-		err = operatorroles.CreateOperatorRoles(runtime, ocm.Production, config.PermissionsBoundaryARN, interactive.ModeAuto, policies, version, config.SharedVPCConfig.IsSharedVPC(), config.Prefix, hostedCp, installerRoleArn, forcePolicyCreation,
+		err = operatorroles.CreateOperatorRoles(r.Runtime, ocm.Production, config.PermissionsBoundaryARN, interactive.ModeAuto, policies, version, config.SharedVPCConfig.IsSharedVPC(), config.Prefix, hostedCp, installerRoleArn, forcePolicyCreation,
 			oidcConfigID, config.SharedVPCConfig.RouteRoleARN, ocm.DefaultChannelGroup, config.SharedVPCConfig.VPCEndpointRoleARN)
 		return err
 	}
@@ -302,7 +273,7 @@ func (r *ROSARoleConfigReconciler) createOperatorRoles(ctx context.Context, role
 	return nil
 }
 
-func (r *ROSARoleConfigReconciler) reconcileOIDCConfig(roleConfig *expinfrav1.ROSARoleConfig, scope *scope.RosaRoleConfigScope, ocmClient *ocm.Client) error {
+func (r *ROSARoleConfigReconciler) reconcileOIDCConfig(roleConfig *expinfrav1.ROSARoleConfig, scope *scope.RosaRoleConfigScope) error {
 	oidcID := ""
 	if scope.RosaRoleConfig.Status.OIDCID != "" {
 		oidcID = scope.RosaRoleConfig.Status.OIDCID
@@ -311,7 +282,7 @@ func (r *ROSARoleConfigReconciler) reconcileOIDCConfig(roleConfig *expinfrav1.RO
 	}
 
 	if oidcID != "" {
-		oidcConfig, err := ocmClient.GetOidcConfig(oidcID)
+		oidcConfig, err := r.Runtime.OCMClient.GetOidcConfig(oidcID)
 		if err != nil || oidcConfig == nil {
 			return fmt.Errorf("failed to get OIDC config: %w", err)
 		}
@@ -319,31 +290,21 @@ func (r *ROSARoleConfigReconciler) reconcileOIDCConfig(roleConfig *expinfrav1.RO
 		return nil
 	}
 
-	return r.createOIDCConfig(scope, ocmClient)
+	return r.createOIDCConfig(scope)
 }
 
-func (r *ROSARoleConfigReconciler) createOIDCProvider(scope *scope.RosaRoleConfigScope, ocmClient *ocm.Client) error {
-	var err error
+func (r *ROSARoleConfigReconciler) createOIDCProvider(scope *scope.RosaRoleConfigScope) error {
 	oidcID := scope.RosaRoleConfig.Status.OIDCID
 	if oidcID == "" {
 		return nil
 	}
-	runtime := rosacli.NewRuntime()
-	runtime.OCMClient = ocmClient
-	runtime.Reporter = (&rosa.Reporter{})
 
-	runtime.Logger = rosalogging.NewLogger()
-	runtime.AWSClient, err = aws.NewClient().Logger(runtime.Logger).Build()
-	if err != nil {
-		return fmt.Errorf("failed to create aws client: %w", err)
-	}
-
-	oidcConfig, err := runtime.OCMClient.GetOidcConfig(oidcID)
+	oidcConfig, err := r.Runtime.OCMClient.GetOidcConfig(oidcID)
 	if err != nil {
 		return err
 	}
 
-	providers, err := runtime.AWSClient.ListOidcProviders("", oidcConfig)
+	providers, err := r.Runtime.AWSClient.ListOidcProviders("", oidcConfig)
 	if err != nil {
 		return err
 	}
@@ -354,40 +315,18 @@ func (r *ROSARoleConfigReconciler) createOIDCProvider(scope *scope.RosaRoleConfi
 		}
 	}
 
-	runtime.Creator, err = runtime.AWSClient.GetCreator()
-	if err != nil {
-		return err
-	}
-
-	return oidcprovider.CreateOIDCProvider(runtime, oidcID, "", true)
+	return oidcprovider.CreateOIDCProvider(r.Runtime, oidcID, "", true)
 }
 
-func (r *ROSARoleConfigReconciler) createAccountRoles(ctx context.Context, roleConfig *expinfrav1.ROSARoleConfig, scope *scope.RosaRoleConfigScope, ocmClient rosa.OCMClient) error {
+func (r *ROSARoleConfigReconciler) createAccountRoles(roleConfig *expinfrav1.ROSARoleConfig, scope *scope.RosaRoleConfigScope) error {
 	config := roleConfig.Spec.AccountRoleConfig
-	runtime := rosacli.NewRuntime()
-	policies, err := ocmClient.GetPolicies("AccountRole")
-	if err != nil {
-		return err
-	}
-	runtime.OCMClient, err = rosa.NewOCMClient(ctx, scope)
-	if err != nil {
-		return err
-	}
-
-	runtime.Reporter = (&rosa.Reporter{})
-	runtime.Logger = rosalogging.NewLogger()
-	runtime.AWSClient, err = aws.NewClient().Logger(runtime.Logger).Build()
-	if err != nil {
-		return fmt.Errorf("failed to create aws client: %w", err)
-	}
-
-	runtime.Creator, err = runtime.AWSClient.GetCreator()
+	policies, err := r.Runtime.OCMClient.GetPolicies("AccountRole")
 	if err != nil {
 		return err
 	}
 
 	createRoles := true
-	accountRoles, err := runtime.AWSClient.ListAccountRoles(config.Version)
+	accountRoles, err := r.Runtime.AWSClient.ListAccountRoles(config.Version)
 	if err != nil {
 		// Let create account roles continue if no account roles are found
 		if !strings.Contains(err.Error(), "no account roles found") {
@@ -410,79 +349,53 @@ func (r *ROSARoleConfigReconciler) createAccountRoles(ctx context.Context, roleC
 		}
 	}
 	if createRoles {
-		runtime.Reporter = (&rosa.Reporter{})
-		runtime.Logger = rosalogging.NewLogger()
-		runtime.AWSClient, err = aws.NewClient().Logger(runtime.Logger).Build()
-		if err != nil {
-			return fmt.Errorf("failed to create aws client: %w", err)
-		}
-
 		managedPolicies := true
-		err := accountroles.CreateHCPRoles(runtime, config.Prefix, managedPolicies, config.PermissionsBoundaryARN, ocm.Production, policies, config.Version, config.Path, config.SharedVPCConfig.IsSharedVPC(), config.SharedVPCConfig.RouteRoleARN, config.SharedVPCConfig.VPCEndpointRoleARN)
+		err := accountroles.CreateHCPRoles(r.Runtime, config.Prefix, managedPolicies, config.PermissionsBoundaryARN, ocm.Production, policies, config.Version, config.Path, config.SharedVPCConfig.IsSharedVPC(), config.SharedVPCConfig.RouteRoleARN, config.SharedVPCConfig.VPCEndpointRoleARN)
 		return err
 	}
 
 	return nil
 }
 
-func (r *ROSARoleConfigReconciler) createOIDCConfig(scope *scope.RosaRoleConfigScope, ocmClient *ocm.Client) error {
-	runtime := rosacli.NewRuntime()
-	var err error
-	runtime.Reporter = (&rosa.Reporter{})
-	runtime.OCMClient = ocmClient
-	runtime.Logger = rosalogging.NewLogger()
-	runtime.AWSClient, err = aws.NewClient().Logger(runtime.Logger).Build()
-	if err != nil {
-		return fmt.Errorf("failed to create aws client: %w", err)
-	}
-
-	runtime.Creator, err = runtime.AWSClient.GetCreator()
-	if err != nil {
-		return err
-	}
-
+func (r *ROSARoleConfigReconciler) createOIDCConfig(scope *scope.RosaRoleConfigScope) error {
 	// userPrefix, region are used only for unmanaged OIDC config
-	oidcID, createErr := oidcconfig.CreateOIDCConfig(runtime, true, "", "")
+	oidcID, createErr := oidcconfig.CreateOIDCConfig(r.Runtime, true, "", "")
 	if createErr != nil {
-		return fmt.Errorf("failed to Create OIDC config: %w", err)
+		return fmt.Errorf("failed to Create OIDC config: %w", createErr)
 	}
 
 	scope.RosaRoleConfig.Status.OIDCID = oidcID
 	return createErr
 }
 
-func (r *ROSARoleConfigReconciler) deleteAccountRoles(ocmClient *ocm.Client, awsClient aws.Client, scope *scope.RosaRoleConfigScope) error {
+func (r *ROSARoleConfigReconciler) deleteAccountRoles(scope *scope.RosaRoleConfigScope) error {
 	roles := scope.RosaRoleConfig.Status.AccountRolesRef
 	config := scope.RosaRoleConfig.Spec.AccountRoleConfig
 	deleteHcpSharedVpcPolicies := config.SharedVPCConfig.VPCEndpointRoleARN != "" && config.SharedVPCConfig.RouteRoleARN != ""
-	creator, err := awsClient.GetCreator()
-	if err != nil {
-		return err
-	}
 
-	clusters, err := ocmClient.GetAllClusters(creator)
+	clusters, err := r.Runtime.OCMClient.GetAllClusters(r.Runtime.Creator)
 	if err != nil {
 		return err
 	}
 
 	if canDeleteRole(clusters, roles.InstallerRoleARN) {
-		err = errors.Join(err, awsClient.DeleteAccountRole(strings.Split(roles.InstallerRoleARN, "/")[1], config.Prefix, true, deleteHcpSharedVpcPolicies))
+		err = errors.Join(err, r.Runtime.AWSClient.DeleteAccountRole(strings.Split(roles.InstallerRoleARN, "/")[1], config.Prefix, true, deleteHcpSharedVpcPolicies))
 	}
 	if canDeleteRole(clusters, roles.WorkerRoleARN) {
-		err = errors.Join(err, awsClient.DeleteAccountRole(strings.Split(roles.WorkerRoleARN, "/")[1], config.Prefix, true, deleteHcpSharedVpcPolicies))
+		err = errors.Join(err, r.Runtime.AWSClient.DeleteAccountRole(strings.Split(roles.WorkerRoleARN, "/")[1], config.Prefix, true, deleteHcpSharedVpcPolicies))
 	}
 	if canDeleteRole(clusters, roles.SupportRoleARN) {
-		err = errors.Join(err, awsClient.DeleteAccountRole(strings.Split(roles.SupportRoleARN, "/")[1], config.Prefix, true, deleteHcpSharedVpcPolicies))
+		err = errors.Join(err, r.Runtime.AWSClient.DeleteAccountRole(strings.Split(roles.SupportRoleARN, "/")[1], config.Prefix, true, deleteHcpSharedVpcPolicies))
 	}
 	return err
 }
 
-func (r *ROSARoleConfigReconciler) deleteOIDCProvider(ocmClient *ocm.Client, awsClient aws.Client, oidcConfigID string) error {
+func (r *ROSARoleConfigReconciler) deleteOIDCProvider(oidcConfigID string) error {
 	if oidcConfigID == "" {
 		return nil
 	}
 
-	oidcConfig, err := ocmClient.GetOidcConfig(oidcConfigID)
+	oidcConfig, err := r.Runtime.OCMClient.GetOidcConfig(oidcConfigID)
 	if err != nil {
 		return err
 	}
@@ -492,7 +405,7 @@ func (r *ROSARoleConfigReconciler) deleteOIDCProvider(ocmClient *ocm.Client, aws
 	if parsedURI.Scheme != helper.ProtocolHttps {
 		return fmt.Errorf("expected OIDC endpoint URL '%s' to use an https:// scheme", oidcEndpointURL)
 	}
-	providerArn, err := awsClient.GetOpenIDConnectProviderByOidcEndpointUrl(oidcEndpointURL)
+	providerArn, err := r.Runtime.AWSClient.GetOpenIDConnectProviderByOidcEndpointUrl(oidcEndpointURL)
 	if err != nil {
 		return err
 	}
@@ -500,11 +413,7 @@ func (r *ROSARoleConfigReconciler) deleteOIDCProvider(ocmClient *ocm.Client, aws
 	if providerArn == "" {
 		return nil
 	}
-	creator, err := awsClient.GetCreator()
-	if err != nil {
-		return err
-	}
-	hasClusterUsingOidcProvider, err := ocmClient.HasAClusterUsingOidcProvider(oidcEndpointURL, creator.AccountID)
+	hasClusterUsingOidcProvider, err := r.Runtime.OCMClient.HasAClusterUsingOidcProvider(oidcEndpointURL, r.Runtime.Creator.AccountID)
 	if err != nil {
 		return err
 	}
@@ -513,11 +422,11 @@ func (r *ROSARoleConfigReconciler) deleteOIDCProvider(ocmClient *ocm.Client, aws
 		return fmt.Errorf("there are clusters using OIDC config '%s', can't delete the provider", oidcEndpointURL)
 	}
 
-	return awsClient.DeleteOpenIDConnectProvider(providerArn)
+	return r.Runtime.AWSClient.DeleteOpenIDConnectProvider(providerArn)
 }
 
-func (r *ROSARoleConfigReconciler) deleteOperatorRoles(ocmClient *ocm.Client, awsClient aws.Client, prefix string) error {
-	hasClusterUsingOperatorRolesPrefix, err := ocmClient.HasAClusterUsingOperatorRolesPrefix(prefix)
+func (r *ROSARoleConfigReconciler) deleteOperatorRoles(prefix string) error {
+	hasClusterUsingOperatorRolesPrefix, err := r.Runtime.OCMClient.HasAClusterUsingOperatorRolesPrefix(prefix)
 	if err != nil {
 		return err
 	}
@@ -525,12 +434,12 @@ func (r *ROSARoleConfigReconciler) deleteOperatorRoles(ocmClient *ocm.Client, aw
 		return fmt.Errorf("there are clusters using Operator Roles Prefix '%s', can't delete the IAM roles", prefix)
 	}
 
-	credRequests, err := ocmClient.GetAllCredRequests()
+	credRequests, err := r.Runtime.OCMClient.GetAllCredRequests()
 	if err != nil {
 		return err
 	}
 
-	foundOperatorRoles, err := awsClient.GetOperatorRolesFromAccountByPrefix(prefix, credRequests)
+	foundOperatorRoles, err := r.Runtime.AWSClient.GetOperatorRolesFromAccountByPrefix(prefix, credRequests)
 	if err != nil {
 		return err
 	}
@@ -539,19 +448,19 @@ func (r *ROSARoleConfigReconciler) deleteOperatorRoles(ocmClient *ocm.Client, aw
 		return nil
 	}
 
-	_, roleARN, err := awsClient.CheckRoleExists(foundOperatorRoles[0])
+	_, roleARN, err := r.Runtime.AWSClient.CheckRoleExists(foundOperatorRoles[0])
 	if err != nil {
 		return err
 	}
 
-	managedPolicies, err := awsClient.HasManagedPolicies(roleARN)
+	managedPolicies, err := r.Runtime.AWSClient.HasManagedPolicies(roleARN)
 	if err != nil {
 		return err
 	}
 
 	allSharedVpcPoliciesNotDeleted := make(map[string]bool)
 	for _, role := range foundOperatorRoles {
-		sharedVpcPoliciesNotDeleted, _ := awsClient.DeleteOperatorRole(role, managedPolicies, true)
+		sharedVpcPoliciesNotDeleted, _ := r.Runtime.AWSClient.DeleteOperatorRole(role, managedPolicies, true)
 		for key, value := range sharedVpcPoliciesNotDeleted {
 			allSharedVpcPoliciesNotDeleted[key] = value
 		}
@@ -565,11 +474,11 @@ func (r *ROSARoleConfigReconciler) deleteOperatorRoles(ocmClient *ocm.Client, aw
 	return nil
 }
 
-func (r *ROSARoleConfigReconciler) deleteOIDCConfig(ocmClient *ocm.Client, oidcConfigID string) error {
+func (r *ROSARoleConfigReconciler) deleteOIDCConfig(oidcConfigID string) error {
 	if oidcConfigID == "" {
 		return nil
 	}
-	return ocmClient.DeleteOidcConfig(oidcConfigID)
+	return r.Runtime.OCMClient.DeleteOidcConfig(oidcConfigID)
 }
 
 func canDeleteRole(clusters []*cmv1.Cluster, roleARN string) bool {
@@ -647,6 +556,41 @@ func (r *ROSARoleConfigReconciler) GetOIDCIDFromOperatorRole(scope *scope.RosaRo
 	}
 
 	return "", fmt.Errorf("cant extract oidc uuid from the %s policy document", *roleDetails.Role.RoleName)
+}
+
+// setUpRuntime sets up the ROSA runtime if it doesn't exist.
+func (r *ROSARoleConfigReconciler) setUpRuntime(ctx context.Context, scope *scope.RosaRoleConfigScope) error {
+	if r.Runtime != nil {
+		return nil
+	}
+
+	// Create OCM client
+	ocm, err := r.NewOCMClient(ctx, scope)
+	if err != nil {
+		return fmt.Errorf("failed to create OCM client: %w", err)
+	}
+
+	ocmClient, err := rosa.ConvertToRosaOcmClient(ocm)
+	if err != nil || ocmClient == nil {
+		return fmt.Errorf("failed to create OCM client: %w", err)
+	}
+
+	r.Runtime = rosacli.NewRuntime()
+	r.Runtime.OCMClient = ocmClient
+	r.Runtime.Reporter = &rosa.Reporter{}
+	r.Runtime.Logger = rosalogging.NewLogger()
+
+	r.Runtime.AWSClient, err = aws.NewClient().Logger(r.Runtime.Logger).Build()
+	if err != nil {
+		return fmt.Errorf("failed to create aws client: %w", err)
+	}
+
+	r.Runtime.Creator, err = r.Runtime.AWSClient.GetCreator()
+	if err != nil {
+		return fmt.Errorf("failed to get creator: %w", err)
+	}
+
+	return nil
 }
 
 // clearOperatorRolesRef clears all field values in the OperatorRolesRef by setting them to empty strings.
