@@ -384,7 +384,13 @@ func (r *AWSMachine) validateNetworkElasticIPPool() field.ErrorList {
 func (r *AWSMachine) validateCapacityReservation() field.ErrorList {
 	var allErrs field.ErrorList
 	if r.Spec.CapacityReservationID != nil && r.Spec.CapacityReservationPreference != CapacityReservationPreferenceOnly && r.Spec.CapacityReservationPreference != "" {
-		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "capacityReservationPreference"), "when a reservation ID is specified, capacityReservationPreference may only be `capacity-reservations-only` or empty"))
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "capacityReservationPreference"), "when a reservation ID is specified, capacityReservationPreference may only be 'CapacityReservationsOnly' or empty"))
+	}
+	if r.Spec.CapacityReservationPreference == CapacityReservationPreferenceOnly && r.Spec.MarketType == MarketTypeSpot {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "capacityReservationPreference"), "when MarketType is set to 'Spot', capacityReservationPreference cannot be set to 'CapacityReservationsOnly'"))
+	}
+	if r.Spec.CapacityReservationPreference == CapacityReservationPreferenceOnly && r.Spec.SpotMarketOptions != nil {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "capacityReservationPreference"), "when capacityReservationPreference is 'CapacityReservationsOnly', SpotMarketOptions cannot be set (which implies MarketType: 'Spot')"))
 	}
 	return allErrs
 }
