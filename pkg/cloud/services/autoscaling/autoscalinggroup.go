@@ -305,30 +305,50 @@ func (s *Service) UpdateASG(machinePoolScope *scope.MachinePoolScope) error {
 	return nil
 }
 
-// CanStartASGInstanceRefresh will start an ASG instance with refresh.
-func (s *Service) CanStartASGInstanceRefresh(scope *scope.MachinePoolScope) (bool, error) {
+// CanStartASGInstanceRefresh checks if a new ASG instance refresh can currently be started, and returns the status if there is an existing, unfinished refresh.
+func (s *Service) CanStartASGInstanceRefresh(scope *scope.MachinePoolScope) (bool, *autoscalingtypes.InstanceRefreshStatus, error) {
 	describeInput := &autoscaling.DescribeInstanceRefreshesInput{AutoScalingGroupName: aws.String(scope.Name())}
 	refreshes, err := s.ASGClient.DescribeInstanceRefreshes(context.TODO(), describeInput)
 	if err != nil {
-		return false, err
+		return false, nil, err
 	}
-	hasUnfinishedRefresh := false
-	if len(refreshes.InstanceRefreshes) != 0 {
-		for i := range refreshes.InstanceRefreshes {
-			if refreshes.InstanceRefreshes[i].Status == autoscalingtypes.InstanceRefreshStatusInProgress ||
-				refreshes.InstanceRefreshes[i].Status == autoscalingtypes.InstanceRefreshStatusPending ||
-				refreshes.InstanceRefreshes[i].Status == autoscalingtypes.InstanceRefreshStatusCancelling {
-				hasUnfinishedRefresh = true
-			}
+	var unfinishedRefreshStatus *autoscalingtypes.InstanceRefreshStatus
+	for _, refresh := range refreshes.InstanceRefreshes {
+		if refresh.Status == autoscalingtypes.InstanceRefreshStatusInProgress ||
+			refresh.Status == autoscalingtypes.InstanceRefreshStatusPending ||
+			refresh.Status == autoscalingtypes.InstanceRefreshStatusCancelling {
+			unfinishedRefreshStatus = &refresh.Status
 		}
 	}
-	if hasUnfinishedRefresh {
-		return false, nil
+	if unfinishedRefreshStatus != nil {
+		// There's an unfinished instance refresh, so no other refresh can be started right now
+		return false, unfinishedRefreshStatus, nil
 	}
-	return true, nil
+	return true, nil, nil
 }
 
-// StartASGInstanceRefresh will start an ASG instance with refresh.
+// CancelASGInstanceRefresh cancels an ASG instance refresh.
+func (s *Service) CancelASGInstanceRefresh(scope *scope.MachinePoolScope) error {
+	input := &autoscaling.CancelInstanceRefreshInput{
+		AutoScalingGroupName: aws.String(scope.Name()),
+	}
+
+	if _, err := s.ASGClient.CancelInstanceRefresh(context.TODO(), input); err != nil {
+		smithyErr := awserrors.ParseSmithyError(err)
+		if smithyErr.ErrorCode() == (&autoscalingtypes.ActiveInstanceRefreshNotFoundFault{}).ErrorCode() {
+			// Refresh isn't "in progress". It may have turned to cancelled status
+			// by now. So this is not an error for us because we may have called
+			// CancelInstanceRefresh multiple times and should be idempotent here.
+			return nil
+		}
+
+		return errors.Wrapf(err, "failed to cancel ASG instance refresh %q", scope.Name())
+	}
+
+	return nil
+}
+
+// StartASGInstanceRefresh will start an ASG instance refresh.
 func (s *Service) StartASGInstanceRefresh(scope *scope.MachinePoolScope) error {
 	strategy := ptr.To(autoscalingtypes.RefreshStrategyRolling)
 	var minHealthyPercentage, maxHealthyPercentage, instanceWarmup *int32

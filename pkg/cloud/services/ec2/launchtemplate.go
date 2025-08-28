@@ -23,8 +23,10 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	autoscalingtypes "github.com/aws/aws-sdk-go-v2/service/autoscaling/types"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/blang/semver"
@@ -35,6 +37,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
@@ -70,25 +73,26 @@ func (s *Service) ReconcileLaunchTemplate(
 	s3Scope scope.S3Scope,
 	ec2svc services.EC2Interface,
 	objectStoreSvc services.ObjectStoreInterface,
-	canUpdateLaunchTemplate func() (bool, error),
+	canStartInstanceRefresh func() (bool, *autoscalingtypes.InstanceRefreshStatus, error),
+	cancelInstanceRefresh func() error,
 	runPostLaunchTemplateUpdateOperation func() error,
-) error {
+) (*ctrl.Result, error) {
 	bootstrapData, bootstrapDataFormat, bootstrapDataSecretKey, err := scope.GetRawBootstrapData()
 	if err != nil {
 		record.Eventf(scope.GetMachinePool(), corev1.EventTypeWarning, "FailedGetBootstrapData", err.Error())
-		return err
+		return nil, err
 	}
 	scope.Info("checking for existing launch template")
 	launchTemplate, launchTemplateUserDataHash, launchTemplateUserDataSecretKey, _, err := ec2svc.GetLaunchTemplate(scope.LaunchTemplateName())
 	if err != nil {
 		conditions.MarkUnknown(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateNotFoundReason, "%s", err.Error())
-		return err
+		return nil, err
 	}
 
 	imageID, err := ec2svc.DiscoverLaunchTemplateAMI(ctx, scope)
 	if err != nil {
 		conditions.MarkFalse(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateCreateFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
-		return err
+		return nil, err
 	}
 
 	var ignitionStorageType = infrav1.DefaultMachinePoolIgnitionStorageType
@@ -101,7 +105,7 @@ func (s *Service) ReconcileLaunchTemplate(
 	var userDataForLaunchTemplate []byte
 	if bootstrapDataFormat == "ignition" && ignitionStorageType == infrav1.IgnitionStorageTypeOptionClusterObjectStore {
 		if s3Scope.Bucket() == nil {
-			return errors.New("using Ignition with `AWSMachinePool.spec.ignition.storageType=ClusterObjectStore` " +
+			return nil, errors.New("using Ignition with `AWSMachinePool.spec.ignition.storageType=ClusterObjectStore` " +
 				"requires a cluster wide object storage configured at `AWSCluster.spec.s3Bucket`")
 		}
 
@@ -116,14 +120,14 @@ func (s *Service) ReconcileLaunchTemplate(
 
 		if err != nil {
 			conditions.MarkFalse(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateReconcileFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
-			return err
+			return nil, err
 		}
 
 		semver, err := semver.ParseTolerant(ignitionVersion)
 		if err != nil {
 			err = errors.Wrapf(err, "failed to parse ignition version %q", ignitionVersion)
 			conditions.MarkFalse(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateReconcileFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
-			return err
+			return nil, err
 		}
 
 		// EC2 user data points to S3
@@ -146,7 +150,7 @@ func (s *Service) ReconcileLaunchTemplate(
 			if err != nil {
 				err = errors.Wrap(err, "failed to convert ignition config to JSON")
 				conditions.MarkFalse(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateReconcileFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
-				return err
+				return nil, err
 			}
 		case 3:
 			ignData := &ignV3Types.Config{
@@ -166,12 +170,12 @@ func (s *Service) ReconcileLaunchTemplate(
 			if err != nil {
 				err = errors.Wrap(err, "failed to convert ignition config to JSON")
 				conditions.MarkFalse(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateReconcileFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
-				return err
+				return nil, err
 			}
 		default:
 			err = errors.Errorf("unsupported ignition version %q", ignitionVersion)
 			conditions.MarkFalse(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateReconcileFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
-			return err
+			return nil, err
 		}
 	} else {
 		// S3 bucket not used, so the bootstrap data is stored directly in the launch template
@@ -186,11 +190,11 @@ func (s *Service) ReconcileLaunchTemplate(
 		launchTemplateID, err := ec2svc.CreateLaunchTemplate(scope, imageID, *bootstrapDataSecretKey, userDataForLaunchTemplate, userdata.ComputeHash(bootstrapData))
 		if err != nil {
 			conditions.MarkFalse(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateCreateFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
-			return err
+			return nil, err
 		}
 
 		scope.SetLaunchTemplateIDStatus(launchTemplateID)
-		return scope.PatchObject()
+		return nil, scope.PatchObject()
 	}
 
 	// LaunchTemplateID is set during LaunchTemplate creation, but for a scenario such as `clusterctl move`, status fields become blank.
@@ -199,27 +203,29 @@ func (s *Service) ReconcileLaunchTemplate(
 		launchTemplateID, err := ec2svc.GetLaunchTemplateID(scope.LaunchTemplateName())
 		if err != nil {
 			conditions.MarkUnknown(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateNotFoundReason, "%s", err.Error())
-			return err
+			return nil, err
 		}
 		scope.SetLaunchTemplateIDStatus(launchTemplateID)
-		return scope.PatchObject()
+		if err = scope.PatchObject(); err != nil {
+			return nil, err
+		}
 	}
 
 	if scope.GetLaunchTemplateLatestVersionStatus() == "" {
 		launchTemplateVersion, err := ec2svc.GetLaunchTemplateLatestVersion(scope.GetLaunchTemplateIDStatus())
 		if err != nil {
 			conditions.MarkUnknown(scope.GetSetter(), expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateNotFoundReason, "%s", err.Error())
-			return err
+			return nil, err
 		}
 		scope.SetLaunchTemplateLatestVersionStatus(launchTemplateVersion)
-		if err := scope.PatchObject(); err != nil {
-			return err
+		if err = scope.PatchObject(); err != nil {
+			return nil, err
 		}
 	}
 
 	annotation, err := MachinePoolAnnotationJSON(scope, TagsLastAppliedAnnotation)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Check if the instance tags were changed. If they were, create a new LaunchTemplate.
@@ -227,7 +233,7 @@ func (s *Service) ReconcileLaunchTemplate(
 
 	needsUpdate, err := ec2svc.LaunchTemplateNeedsUpdate(scope, scope.GetLaunchTemplate(), launchTemplate)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	amiChanged := *imageID != *launchTemplate.AMI.ID
@@ -241,13 +247,29 @@ func (s *Service) ReconcileLaunchTemplate(
 	launchTemplateNeedsUserDataSecretKeyTag := launchTemplateUserDataSecretKey == nil
 
 	if needsUpdate || tagsChanged || amiChanged || userDataSecretKeyChanged {
-		canUpdate, err := canUpdateLaunchTemplate()
+		// More than just the bootstrap token changed
+
+		canStartRefresh, unfinishedRefreshStatus, err := canStartInstanceRefresh()
 		if err != nil {
-			return err
+			return nil, err
 		}
-		if !canUpdate {
-			conditions.MarkFalse(scope.GetSetter(), expinfrav1.PreLaunchTemplateUpdateCheckCondition, expinfrav1.PreLaunchTemplateUpdateCheckFailedReason, clusterv1.ConditionSeverityWarning, "")
-			return errors.New("Cannot update the launch template, prerequisite not met")
+		if !canStartRefresh {
+			if unfinishedRefreshStatus != nil && *unfinishedRefreshStatus != autoscalingtypes.InstanceRefreshStatusCancelling {
+				// Until the previous instance refresh goes into `Cancelled` state
+				// asynchronously, allowing another refresh to be started,
+				// defer the reconciliation. Otherwise, we get an
+				// `ErrCodeInstanceRefreshInProgressFault` error if we tried to
+				// start an instance refresh immediately.
+				scope.Info("Cancelling previous instance refresh and delaying reconciliation until the next one can be started", "unfinishedRefreshStatus", unfinishedRefreshStatus)
+
+				err := cancelInstanceRefresh()
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				scope.Info("Existing instance refresh is not finished, delaying reconciliation until the next one can be started", "unfinishedRefreshStatus", unfinishedRefreshStatus)
+			}
+			return &ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 		}
 	}
 
@@ -262,7 +284,7 @@ func (s *Service) ReconcileLaunchTemplate(
 		// We ensure that the number of versions does not grow without bound by following a simple rule: Before we create a new version, we delete one old version, if there is at least one old version that is not in use.
 		deletedLaunchTemplateVersion, err := ec2svc.PruneLaunchTemplateVersions(scope.GetLaunchTemplateIDStatus())
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		// S3 objects should be deleted as soon as possible if they're not used
@@ -271,7 +293,7 @@ func (s *Service) ReconcileLaunchTemplate(
 		if feature.Gates.Enabled(feature.MachinePool) && deletedLaunchTemplateVersion != nil {
 			_, _, _, deletedLaunchTemplateVersionBootstrapDataHash, err := s.SDKToLaunchTemplate(*deletedLaunchTemplateVersion)
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			if deletedLaunchTemplateVersionBootstrapDataHash != nil && s3Scope.Bucket() != nil && bootstrapDataFormat == "ignition" && ignitionStorageType == infrav1.IgnitionStorageTypeOptionClusterObjectStore {
@@ -287,28 +309,28 @@ func (s *Service) ReconcileLaunchTemplate(
 		}
 
 		if err := ec2svc.CreateLaunchTemplateVersion(scope.GetLaunchTemplateIDStatus(), scope, imageID, *bootstrapDataSecretKey, userDataForLaunchTemplate, userdata.ComputeHash(bootstrapData)); err != nil {
-			return err
+			return nil, err
 		}
 		version, err := ec2svc.GetLaunchTemplateLatestVersion(scope.GetLaunchTemplateIDStatus())
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		scope.SetLaunchTemplateLatestVersionStatus(version)
 		if err := scope.PatchObject(); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	if needsUpdate || tagsChanged || amiChanged || userDataSecretKeyChanged {
 		if err := runPostLaunchTemplateUpdateOperation(); err != nil {
 			conditions.MarkFalse(scope.GetSetter(), expinfrav1.PostLaunchTemplateUpdateOperationCondition, expinfrav1.PostLaunchTemplateUpdateOperationFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
-			return err
+			return nil, err
 		}
 		conditions.MarkTrue(scope.GetSetter(), expinfrav1.PostLaunchTemplateUpdateOperationCondition)
 	}
 
-	return nil
+	return nil, nil
 }
 
 // ReconcileTags reconciles the tags for the AWSMachinePool instances.
