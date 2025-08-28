@@ -241,7 +241,7 @@ func TestAWSMachineCreate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "valid MarketType set to MarketTypeCapacityBlock is specified and CapacityReservationId is not provided",
+			name: "invalid MarketType set to MarketTypeCapacityBlock is specified and CapacityReservationId is not provided",
 			machine: &AWSMachine{
 				Spec: AWSMachineSpec{
 					MarketType:   MarketTypeCapacityBlock,
@@ -292,6 +292,30 @@ func TestAWSMachineCreate(t *testing.T) {
 				},
 			},
 			wantErr: false,
+		},
+		{
+			name: "invalid CapacityReservationPreference is `CapacityReservationsOnly` and MarketType is `Spot`",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType:                  "test",
+					CapacityReservationID:         aws.String("cr-12345678901234567"),
+					CapacityReservationPreference: CapacityReservationPreferenceOnly,
+					MarketType:                    MarketTypeSpot,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid CapacityReservationPreference is `CapacityReservationsOnly` and SpotMarketOptions is non-nil",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType:                  "test",
+					CapacityReservationID:         aws.String("cr-12345678901234567"),
+					CapacityReservationPreference: CapacityReservationPreferenceOnly,
+					SpotMarketOptions:             &SpotMarketOptions{},
+				},
+			},
+			wantErr: true,
 		},
 		{
 			name: "empty instance type not allowed",
