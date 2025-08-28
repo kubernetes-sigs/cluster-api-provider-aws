@@ -23,16 +23,16 @@ import (
 	"context"
 	"fmt"
 
+	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // EKS authentication mode e2e tests.

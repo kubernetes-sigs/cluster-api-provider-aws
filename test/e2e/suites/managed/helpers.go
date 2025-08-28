@@ -119,7 +119,7 @@ func verifyClusterAuthenticationMode(ctx context.Context, eksClusterName string,
 	}, clientRequestTimeout, clientRequestCheckInterval).Should(Succeed(), fmt.Sprintf("eventually failed trying to get EKS Cluster %q", eksClusterName))
 
 	Expect(cluster.AccessConfig).ToNot(BeNil(), "expecting AccessConfig to be set on the cluster")
-	Expect(cluster.AccessConfig.AuthenticationMode).To(BeEquivalentTo(expectedAuthMode), 
+	Expect(cluster.AccessConfig.AuthenticationMode).To(BeEquivalentTo(expectedAuthMode),
 		fmt.Sprintf("expecting authentication mode to be %s, got %s", expectedAuthMode, cluster.AccessConfig.AuthenticationMode))
 }
 
