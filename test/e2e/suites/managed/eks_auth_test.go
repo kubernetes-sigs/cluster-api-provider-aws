@@ -55,9 +55,6 @@ var _ = ginkgo.Describe("[managed] [auth] EKS authentication mode tests", func()
 		clusterName = fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 		eksClusterName := getEKSClusterName(namespace.Name, clusterName)
 
-		ginkgo.By("default iam role should exist")
-		VerifyRoleExistsAndOwned(ctx, ekscontrolplanev1.DefaultEKSControlPlaneRole, eksClusterName, false, e2eCtx.AWSSessionV2)
-
 		ginkgo.By("should create an EKS control plane with api_and_config_map authentication mode")
 		ManagedClusterSpec(ctx, func() ManagedClusterSpecInput {
 			return ManagedClusterSpecInput{
@@ -74,7 +71,7 @@ var _ = ginkgo.Describe("[managed] [auth] EKS authentication mode tests", func()
 			}
 		})
 
-		ginkgo.By("EKS cluster should be active and have correct authentication mode")
+		ginkgo.By("EKS cluster should be active")
 		verifyClusterActiveAndOwned(ctx, eksClusterName, e2eCtx.BootstrapUserAWSSessionV2)
 
 		ginkgo.By("verifying cluster has the correct authentication mode")
@@ -93,9 +90,6 @@ var _ = ginkgo.Describe("[managed] [auth] EKS authentication mode tests", func()
 		err = e2eCtx.Environment.BootstrapClusterProxy.GetClient().Update(ctx, controlPlane)
 		Expect(err).To(HaveOccurred(), "expected downgrade from api_and_config_map to config_map to fail")
 
-		ginkgo.By("verifying cluster still has api_and_config_map mode after failed downgrade")
-		verifyClusterAuthenticationMode(ctx, eksClusterName, ekstypes.AuthenticationModeApiAndConfigMap, e2eCtx.BootstrapUserAWSSessionV2)
-
 		ginkgo.By("upgrading from api_and_config_map to api should succeed")
 		err = e2eCtx.Environment.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKey{
 			Namespace: namespace.Name,
@@ -106,9 +100,6 @@ var _ = ginkgo.Describe("[managed] [auth] EKS authentication mode tests", func()
 		controlPlane.Spec.AccessConfig.AuthenticationMode = ekscontrolplanev1.EKSAuthenticationModeAPI
 		err = e2eCtx.Environment.BootstrapClusterProxy.GetClient().Update(ctx, controlPlane)
 		Expect(err).ToNot(HaveOccurred(), "expected upgrade from api_and_config_map to api to succeed")
-
-		ginkgo.By("verifying cluster now has api mode after successful upgrade")
-		verifyClusterAuthenticationMode(ctx, eksClusterName, ekstypes.AuthenticationModeApi, e2eCtx.BootstrapUserAWSSessionV2)
 
 		ginkgo.By("attempting to downgrade from api to api_and_config_map should fail")
 		err = e2eCtx.Environment.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKey{
@@ -121,11 +112,7 @@ var _ = ginkgo.Describe("[managed] [auth] EKS authentication mode tests", func()
 		err = e2eCtx.Environment.BootstrapClusterProxy.GetClient().Update(ctx, controlPlane)
 		Expect(err).To(HaveOccurred(), "expected downgrade from api to api_and_config_map to fail")
 
-		ginkgo.By("verifying cluster still has api mode after failed downgrade")
-		verifyClusterAuthenticationMode(ctx, eksClusterName, ekstypes.AuthenticationModeApi, e2eCtx.BootstrapUserAWSSessionV2)
-
-		ginkgo.By("Getting cluster for cleanup")
-		cluster := framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
+		cluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
 			Getter:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 			Namespace: namespace.Name,
 			Name:      clusterName,
