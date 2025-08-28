@@ -62,7 +62,6 @@ var _ = ginkgo.Describe("[managed] [auth] EKS authentication mode tests", func()
 				ConfigClusterFn:          defaultConfigCluster,
 				BootstrapClusterProxy:    e2eCtx.Environment.BootstrapClusterProxy,
 				AWSSession:               e2eCtx.BootstrapUserAWSSession,
-				AWSSessionV2:             e2eCtx.BootstrapUserAWSSessionV2,
 				Namespace:                namespace,
 				ClusterName:              clusterName,
 				Flavour:                  EKSAuthAPIAndConfigMapFlavor,
@@ -72,13 +71,13 @@ var _ = ginkgo.Describe("[managed] [auth] EKS authentication mode tests", func()
 		})
 
 		ginkgo.By("EKS cluster should be active")
-		verifyClusterActiveAndOwned(ctx, eksClusterName, e2eCtx.BootstrapUserAWSSessionV2)
+		verifyClusterActiveAndOwned(ctx, eksClusterName, e2eCtx.BootstrapUserAWSSession)
 
 		ginkgo.By("verifying cluster has the correct authentication mode")
-		verifyClusterAuthenticationMode(ctx, eksClusterName, ekstypes.AuthenticationModeApiAndConfigMap, e2eCtx.BootstrapUserAWSSessionV2)
+		verifyClusterAuthenticationMode(ctx, eksClusterName, ekstypes.AuthenticationModeApiAndConfigMap, e2eCtx.BootstrapUserAWSSession)
 
 		ginkgo.By("verifying cluster has default bootstrap permissions")
-		verifyClusterBootstrapPermissions(ctx, eksClusterName, true, e2eCtx.BootstrapUserAWSSessionV2)
+		verifyClusterBootstrapPermissions(ctx, eksClusterName, true, e2eCtx.BootstrapUserAWSSession)
 
 		ginkgo.By("attempting to downgrade from api_and_config_map to config_map should fail")
 		controlPlaneName := fmt.Sprintf("%s-control-plane", clusterName)
@@ -152,7 +151,6 @@ var _ = ginkgo.Describe("[managed] [auth] EKS authentication mode tests", func()
 				ConfigClusterFn:          defaultConfigCluster,
 				BootstrapClusterProxy:    e2eCtx.Environment.BootstrapClusterProxy,
 				AWSSession:               e2eCtx.BootstrapUserAWSSession,
-				AWSSessionV2:             e2eCtx.BootstrapUserAWSSessionV2,
 				Namespace:                namespace,
 				ClusterName:              clusterName,
 				Flavour:                  EKSAuthBootstrapDisabledFlavor,
@@ -162,10 +160,10 @@ var _ = ginkgo.Describe("[managed] [auth] EKS authentication mode tests", func()
 		})
 
 		ginkgo.By("EKS cluster should be active")
-		verifyClusterActiveAndOwned(ctx, eksClusterName, e2eCtx.BootstrapUserAWSSessionV2)
+		verifyClusterActiveAndOwned(ctx, eksClusterName, e2eCtx.BootstrapUserAWSSession)
 
 		ginkgo.By("verifying cluster has bootstrap permissions disabled")
-		verifyClusterBootstrapPermissions(ctx, eksClusterName, false, e2eCtx.BootstrapUserAWSSessionV2)
+		verifyClusterBootstrapPermissions(ctx, eksClusterName, false, e2eCtx.BootstrapUserAWSSession)
 
 		cluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
 			Getter:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
