@@ -77,6 +77,9 @@ var _ = ginkgo.Describe("[managed] [auth] EKS authentication mode tests", func()
 		ginkgo.By("verifying cluster has the correct authentication mode")
 		verifyClusterAuthenticationMode(ctx, eksClusterName, ekstypes.AuthenticationModeApiAndConfigMap, e2eCtx.BootstrapUserAWSSessionV2)
 
+		ginkgo.By("verifying cluster has default bootstrap permissions")
+		verifyClusterBootstrapPermissions(ctx, eksClusterName, true, e2eCtx.BootstrapUserAWSSessionV2)
+
 		ginkgo.By("attempting to downgrade from api_and_config_map to config_map should fail")
 		controlPlaneName := fmt.Sprintf("%s-control-plane", clusterName)
 		controlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
@@ -130,5 +133,56 @@ var _ = ginkgo.Describe("[managed] [auth] EKS authentication mode tests", func()
 			ArtifactFolder:       e2eCtx.Settings.ArtifactFolder,
 		}, e2eCtx.E2EConfig.GetIntervals("", "wait-delete-cluster")...)
 	})
-})
 
+	shared.ConditionalIt(runGeneralTests, "should create a cluster with bootstrapClusterCreatorAdminPermissions disabled", func() {
+		ginkgo.By("should have a valid test configuration")
+		Expect(e2eCtx.Environment.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. BootstrapClusterProxy can't be nil")
+		Expect(e2eCtx.E2EConfig).ToNot(BeNil(), "Invalid argument. e2eConfig can't be nil when calling bootstrap spec")
+		Expect(e2eCtx.E2EConfig.Variables).To(HaveKey(shared.KubernetesVersion))
+
+		ctx = context.TODO()
+		namespace = shared.SetupSpecNamespace(ctx, "bootstrap", e2eCtx)
+		clusterName = fmt.Sprintf("bootstrap-%s", util.RandomString(6))
+		eksClusterName := getEKSClusterName(namespace.Name, clusterName)
+
+		ginkgo.By("should create an EKS control plane with bootstrapClusterCreatorAdminPermissions disabled")
+		ManagedClusterSpec(ctx, func() ManagedClusterSpecInput {
+			return ManagedClusterSpecInput{
+				E2EConfig:                e2eCtx.E2EConfig,
+				ConfigClusterFn:          defaultConfigCluster,
+				BootstrapClusterProxy:    e2eCtx.Environment.BootstrapClusterProxy,
+				AWSSession:               e2eCtx.BootstrapUserAWSSession,
+				AWSSessionV2:             e2eCtx.BootstrapUserAWSSessionV2,
+				Namespace:                namespace,
+				ClusterName:              clusterName,
+				Flavour:                  EKSAuthBootstrapDisabledFlavor,
+				ControlPlaneMachineCount: 1,
+				WorkerMachineCount:       0,
+			}
+		})
+
+		ginkgo.By("EKS cluster should be active")
+		verifyClusterActiveAndOwned(ctx, eksClusterName, e2eCtx.BootstrapUserAWSSessionV2)
+
+		ginkgo.By("verifying cluster has bootstrap permissions disabled")
+		verifyClusterBootstrapPermissions(ctx, eksClusterName, false, e2eCtx.BootstrapUserAWSSessionV2)
+
+		cluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
+			Getter:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+			Namespace: namespace.Name,
+			Name:      clusterName,
+		})
+		Expect(cluster).NotTo(BeNil(), "couldn't find CAPI cluster")
+
+		framework.DeleteCluster(ctx, framework.DeleteClusterInput{
+			Deleter: e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
+			Cluster: cluster,
+		})
+		framework.WaitForClusterDeleted(ctx, framework.WaitForClusterDeletedInput{
+			ClusterProxy:         e2eCtx.Environment.BootstrapClusterProxy,
+			Cluster:              cluster,
+			ClusterctlConfigPath: e2eCtx.Environment.ClusterctlConfigPath,
+			ArtifactFolder:       e2eCtx.Settings.ArtifactFolder,
+		}, e2eCtx.E2EConfig.GetIntervals("", "wait-delete-cluster")...)
+	})
+})
