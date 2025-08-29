@@ -119,6 +119,11 @@ func (s *NodegroupService) updateConfig() (*ekstypes.NodegroupUpdateConfig, erro
 	return converters.NodegroupUpdateconfigToSDK(updateConfig)
 }
 
+func (s *NodegroupService) nodeRepairConfig() *ekstypes.NodeRepairConfig {
+	repairConfig := s.scope.ManagedMachinePool.Spec.NodeRepairConfig
+	return converters.NodegroupRepairConfigToSDK(repairConfig)
+}
+
 func (s *NodegroupService) roleArn(ctx context.Context) (*string, error) {
 	var role *iamtypes.Role
 	if s.scope.RoleName() != "" {
@@ -248,6 +253,9 @@ func (s *NodegroupService) createNodegroup(ctx context.Context) (*ekstypes.Nodeg
 			Id:      s.scope.ManagedMachinePool.Status.LaunchTemplateID,
 			Version: s.scope.ManagedMachinePool.Status.LaunchTemplateVersion,
 		}
+	}
+	if managedPool.NodeRepairConfig != nil {
+		input.NodeRepairConfig = s.nodeRepairConfig()
 	}
 
 	out, err := s.EKSClient.CreateNodegroup(ctx, input)
@@ -480,6 +488,14 @@ func (s *NodegroupService) reconcileNodegroupConfig(ctx context.Context, ng *eks
 		input.UpdateConfig = updatedConfig
 		needsUpdate = true
 	}
+
+	specRepairConfig := s.nodeRepairConfig()
+	if !cmp.Equal(ng.NodeRepairConfig, specRepairConfig) {
+		s.Debug("Nodegroup repair configuration differs from spec, updating the nodegroup repair config", "nodegroup", ng.NodegroupName)
+		input.NodeRepairConfig = specRepairConfig
+		needsUpdate = true
+	}
+
 	if !needsUpdate {
 		s.Debug("node group config update not needed", "cluster", eksClusterName, "name", *ng.NodegroupName)
 		return nil
