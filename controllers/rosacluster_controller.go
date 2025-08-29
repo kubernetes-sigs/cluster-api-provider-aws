@@ -21,10 +21,15 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -35,9 +40,15 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/exp/utils"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	stsservice "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/rosa"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/util/paused"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -48,16 +59,20 @@ type ROSAClusterReconciler struct {
 	client.Client
 	Recorder         record.EventRecorder
 	WatchFilterValue string
+	NewStsClient     func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsservice.STSClient
+	NewOCMClient     func(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (rosa.OCMClient, error)
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=rosaclusters,verbs=get;list;watch;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=rosaclusters/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=rosacontrolplanes;rosacontrolplanes/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinepools;machinepools/status,verbs=get;list;watch;create
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=rosamachinepools;rosamachinepools/status,verbs=get;list;watch;create
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 
 func (r *ROSAClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
-	log := ctrl.LoggerFrom(ctx)
+	log := logger.FromContext(ctx)
 	log.Info("Reconciling ROSACluster")
 
 	// Fetch the ROSACluster instance
@@ -70,11 +85,17 @@ func (r *ROSAClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return reconcile.Result{}, err
 	}
 
+	if !rosaCluster.DeletionTimestamp.IsZero() {
+		log.Info("Deleting ROSACluster.")
+		return reconcile.Result{}, nil
+	}
+
 	// Fetch the Cluster.
 	cluster, err := util.GetOwnerCluster(ctx, r.Client, rosaCluster.ObjectMeta)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
+
 	if cluster == nil {
 		log.Info("Cluster Controller has not yet set OwnerRef")
 		return reconcile.Result{}, nil
@@ -111,6 +132,113 @@ func (r *ROSAClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return reconcile.Result{}, fmt.Errorf("failed to patch ROSACluster: %w", err)
 	}
 
+	if controlPlane.Status.Ready {
+		// List the ROSA-HCP nodePools and ROSA MachinePools
+		rosaScope, err := scope.NewROSAControlPlaneScope(scope.ROSAControlPlaneScopeParams{
+			Client:         r.Client,
+			Cluster:        cluster,
+			ControlPlane:   controlPlane,
+			ControllerName: "",
+			Logger:         log,
+			NewStsClient:   r.NewStsClient,
+		})
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to create rosa controlplane scope: %w", err)
+		}
+
+		if r.NewOCMClient == nil {
+			return ctrl.Result{}, fmt.Errorf("failed to create OCM client: NewOCMClient is nil")
+		}
+
+		ocmClient, err := r.NewOCMClient(ctx, rosaScope)
+		if err != nil || ocmClient == nil {
+			return ctrl.Result{}, fmt.Errorf("failed to create OCM client: %w", err)
+		}
+
+		nodePools, err := ocmClient.GetNodePools(rosaScope.ControlPlane.Status.ID)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to get nodePools: %w", err)
+		}
+
+		rosaMPNames, err := r.getRosaMachinePoolNames(ctx, cluster)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to get Rosa machinePool names: %w", err)
+		}
+
+		var errs []error
+		for _, nodePool := range nodePools {
+			// continue if nodePool is not in ready state.
+			if !rosa.IsNodePoolReady(nodePool) {
+				continue
+			}
+			// continue if nodePool exist
+			if rosaMPNames[nodePool.ID()] {
+				continue
+			}
+
+			// create RosaMachinePool
+			rosaMPSpec := utils.NodePoolToRosaMachinePoolSpec(nodePool)
+			rosaMachinePool := &expinfrav1.ROSAMachinePool{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: expinfrav1.GroupVersion.String(),
+					Kind:       "ROSAMachinePool",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      nodePool.ID(),
+					Namespace: controlPlane.Namespace,
+					Labels: map[string]string{
+						clusterv1.ClusterNameLabel: cluster.Name,
+					},
+				},
+				Spec: rosaMPSpec,
+			}
+			log.Info(fmt.Sprintf("Create ROSAMachinePool %s", rosaMachinePool.Name))
+			if err = r.Client.Create(ctx, rosaMachinePool); err != nil {
+				errs = append(errs, err)
+			}
+
+			// create MachinePool
+			machinePool := &expclusterv1.MachinePool{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: expclusterv1.GroupVersion.String(),
+					Kind:       "MachinePool",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      nodePool.ID(),
+					Namespace: cluster.Namespace,
+					Labels: map[string]string{
+						clusterv1.ClusterNameLabel: cluster.Name,
+					},
+				},
+				Spec: expclusterv1.MachinePoolSpec{
+					ClusterName: cluster.Name,
+					Replicas:    ptr.To(int32(1)),
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							ClusterName: cluster.Name,
+							Bootstrap: clusterv1.Bootstrap{
+								DataSecretName: ptr.To(string("")),
+							},
+							InfrastructureRef: corev1.ObjectReference{
+								APIVersion: expinfrav1.GroupVersion.String(),
+								Kind:       "ROSAMachinePool",
+								Name:       rosaMachinePool.Name,
+							},
+						},
+					},
+				},
+			}
+			log.Info(fmt.Sprintf("Create MachinePool %s", machinePool.Name))
+			if err = r.Client.Create(ctx, machinePool); err != nil {
+				errs = append(errs, err)
+			}
+		}
+
+		if len(errs) > 0 {
+			return ctrl.Result{}, kerrors.NewAggregate(errs)
+		}
+	}
+
 	log.Info("Successfully reconciled ROSACluster")
 
 	return reconcile.Result{}, nil
@@ -118,6 +246,8 @@ func (r *ROSAClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 func (r *ROSAClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	log := logger.FromContext(ctx)
+	r.NewOCMClient = rosa.NewWrappedOCMClient
+	r.NewStsClient = scope.NewSTSClient
 
 	rosaCluster := &expinfrav1.ROSACluster{}
 
@@ -195,4 +325,27 @@ func (r *ROSAClusterReconciler) rosaControlPlaneToManagedCluster(log *logger.Log
 			},
 		}
 	}
+}
+
+// GetRosMachinePools get map of RosaMachinePool names associatd with the cluster.
+func (r *ROSAClusterReconciler) getRosaMachinePoolNames(ctx context.Context, cluster *clusterv1.Cluster) (map[string]bool, error) {
+	selectors := []client.ListOption{
+		client.InNamespace(cluster.GetNamespace()),
+		client.MatchingLabels{
+			clusterv1.ClusterNameLabel: cluster.GetName(),
+		},
+	}
+
+	rosaMachinePoolList := &expinfrav1.ROSAMachinePoolList{}
+	err := r.Client.List(ctx, rosaMachinePoolList, selectors...)
+	if err != nil {
+		return nil, err
+	}
+
+	rosaMPNames := make(map[string]bool)
+	for _, rosaMP := range rosaMachinePoolList.Items {
+		rosaMPNames[rosaMP.Spec.NodePoolName] = true
+	}
+
+	return rosaMPNames, nil
 }
