@@ -355,7 +355,7 @@ func (r *AWSManagedControlPlane) validateAccessConfigCreate() field.ErrorList {
 	if r.Spec.AccessConfig != nil {
 		if r.Spec.AccessConfig.AuthenticationMode == EKSAuthenticationModeConfigMap &&
 			r.Spec.AccessConfig.BootstrapClusterCreatorAdminPermissions != nil &&
-			*r.Spec.AccessConfig.BootstrapClusterCreatorAdminPermissions == false {
+			!*r.Spec.AccessConfig.BootstrapClusterCreatorAdminPermissions {
 			allErrs = append(allErrs,
 				field.Invalid(field.NewPath("spec", "accessConfig", "bootstrapClusterCreatorAdminPermissions"),
 					*r.Spec.AccessConfig.BootstrapClusterCreatorAdminPermissions,
