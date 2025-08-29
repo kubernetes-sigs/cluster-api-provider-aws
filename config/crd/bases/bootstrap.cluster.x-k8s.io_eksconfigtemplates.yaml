@@ -318,6 +318,11 @@ spec:
                             type: string
                           type: array
                         type: array
+                      nodeType:
+                        description: NodeType specifies the type of node (e.g., "al2023")
+                        enum:
+                        - al2023
+                        type: string
                       ntp:
                         description: NTP specifies NTP configuration
                         properties:
