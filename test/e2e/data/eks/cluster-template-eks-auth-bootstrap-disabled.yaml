@@ -31,6 +31,7 @@ spec:
   sshKeyName: "${AWS_SSH_KEY_NAME}"
   version: "${KUBERNETES_VERSION}"
   accessConfig:
+    authenticationMode: api_and_config_map
     bootstrapClusterCreatorAdminPermissions: false
   identityRef:
     kind: AWSClusterStaticIdentity
