@@ -80,6 +80,40 @@ func TestAWSMachineTemplateValidateCreate(t *testing.T) {
 			},
 			wantError: false,
 		},
+		{
+			name: "ensure instance type family mismatch is detected",
+			inputTemplate: &AWSMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: AWSMachineTemplateSpec{
+					Template: AWSMachineTemplateResource{
+						Spec: AWSMachineSpec{
+							InstanceType: "m6i.xlarge",
+							DynamicHostAllocation: &DynamicHostAllocationSpec{
+								InstanceFamily: "m6g",
+							},
+						},
+					},
+				},
+			},
+			wantError: true,
+		},
+		{
+			name: "ensure instance type family matches is allowed",
+			inputTemplate: &AWSMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: AWSMachineTemplateSpec{
+					Template: AWSMachineTemplateResource{
+						Spec: AWSMachineSpec{
+							InstanceType: "m6i.xlarge",
+							DynamicHostAllocation: &DynamicHostAllocationSpec{
+								InstanceFamily: "m6i",
+							},
+						},
+					},
+				},
+			},
+			wantError: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

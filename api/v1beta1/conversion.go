@@ -103,3 +103,8 @@ func Convert_v1beta2_S3Bucket_To_v1beta1_S3Bucket(in *v1beta2.S3Bucket, out *S3B
 func Convert_v1beta2_Ignition_To_v1beta1_Ignition(in *v1beta2.Ignition, out *Ignition, s conversion.Scope) error {
 	return autoConvert_v1beta2_Ignition_To_v1beta1_Ignition(in, out, s)
 }
+
+func Convert_v1beta2_AWSMachineStatus_To_v1beta1_AWSMachineStatus(in *v1beta2.AWSMachineStatus, out *AWSMachineStatus, s conversion.Scope) error {
+	// Note: AllocatedHostID is not present in v1beta1, so it will be dropped during conversion
+	return autoConvert_v1beta2_AWSMachineStatus_To_v1beta1_AWSMachineStatus(in, out, s)
+}

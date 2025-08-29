@@ -380,6 +380,21 @@ func (r *AWSMachineReconciler) reconcileDelete(ctx context.Context, machineScope
 		}
 		conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
 
+		// Handle dedicated host cleanup if auto-release is enabled
+		if machineScope.AWSMachine.Status.AllocatedHostID != nil &&
+			machineScope.AWSMachine.Spec.DynamicHostAllocation != nil &&
+			(machineScope.AWSMachine.Spec.DynamicHostAllocation.AutoRelease == nil || *machineScope.AWSMachine.Spec.DynamicHostAllocation.AutoRelease) {
+			hostID := *machineScope.AWSMachine.Status.AllocatedHostID
+			machineScope.Info("Releasing dynamically allocated dedicated host", "hostID", hostID)
+			if err := ec2Service.ReleaseDedicatedHost(ctx, hostID); err != nil {
+				machineScope.Error(err, "failed to release dedicated host", "hostID", hostID)
+				r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedReleaseHost", "Failed to release dedicated host %s: %v", hostID, err)
+				// Continue with deletion even if host release fails
+			} else {
+				machineScope.Info("Successfully released dedicated host", "hostID", hostID)
+				r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeNormal, "SuccessfulReleaseHost", "Released dedicated host %s", hostID)
+			}
+		}
 		// If the AWSMachine specifies NetworkStatus Interfaces, detach the cluster's core Security Groups from them as part of deletion.
 		if len(machineScope.AWSMachine.Spec.NetworkInterfaces) > 0 {
 			core, err := ec2Service.GetCoreSecurityGroups(machineScope)
