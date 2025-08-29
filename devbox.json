@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.13.7/.schema/devbox.schema.json",
   "packages": [
-    "go@1.22",
+    "go@latest",
     "kind@latest",
     "docker@latest",
     "jq@latest",
@@ -11,7 +11,7 @@
     "tilt@latest",
     "awscli2@latest",
     "direnv@latest",
-    "kustomize@latest"
+    "kustomize@5.5.0"
   ],
   "shell": {
     "init_hook": [
