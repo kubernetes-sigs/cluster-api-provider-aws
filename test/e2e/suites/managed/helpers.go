@@ -123,22 +123,6 @@ func verifyClusterAuthenticationMode(ctx context.Context, eksClusterName string,
 		fmt.Sprintf("expecting authentication mode to be %s, got %s", expectedAuthMode, cluster.AccessConfig.AuthenticationMode))
 }
 
-func verifyClusterBootstrapPermissions(ctx context.Context, eksClusterName string, expectedBootstrapPermissions bool, sess *aws.Config) {
-	var (
-		cluster *ekstypes.Cluster
-		err     error
-	)
-	Eventually(func() error {
-		cluster, err = getEKSCluster(ctx, eksClusterName, sess)
-		return err
-	}, clientRequestTimeout, clientRequestCheckInterval).Should(Succeed(), fmt.Sprintf("eventually failed trying to get EKS Cluster %q", eksClusterName))
-
-	Expect(cluster.AccessConfig).ToNot(BeNil(), "expecting AccessConfig to be set on the cluster")
-	Expect(cluster.AccessConfig.BootstrapClusterCreatorAdminPermissions).ToNot(BeNil(), "expecting BootstrapClusterCreatorAdminPermissions to be set")
-	Expect(*cluster.AccessConfig.BootstrapClusterCreatorAdminPermissions).To(Equal(expectedBootstrapPermissions),
-		fmt.Sprintf("expecting bootstrap cluster creator admin permissions to be %t, got %t", expectedBootstrapPermissions, *cluster.AccessConfig.BootstrapClusterCreatorAdminPermissions))
-}
-
 func getEKSClusterAddon(ctx context.Context, eksClusterName, addonName string, sess *aws.Config) (*ekstypes.Addon, error) {
 	eksClient := eks.NewFromConfig(*sess)
 

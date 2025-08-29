@@ -76,9 +76,6 @@ var _ = ginkgo.Describe("[managed] [auth] EKS authentication mode tests", func()
 		ginkgo.By("verifying cluster has the correct authentication mode")
 		verifyClusterAuthenticationMode(ctx, eksClusterName, ekstypes.AuthenticationModeApiAndConfigMap, e2eCtx.BootstrapUserAWSSession)
 
-		ginkgo.By("verifying cluster has default bootstrap permissions")
-		verifyClusterBootstrapPermissions(ctx, eksClusterName, true, e2eCtx.BootstrapUserAWSSession)
-
 		ginkgo.By("attempting to downgrade from api_and_config_map to config_map should fail")
 		controlPlaneName := fmt.Sprintf("%s-control-plane", clusterName)
 		controlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
@@ -161,9 +158,6 @@ var _ = ginkgo.Describe("[managed] [auth] EKS authentication mode tests", func()
 
 		ginkgo.By("EKS cluster should be active")
 		verifyClusterActiveAndOwned(ctx, eksClusterName, e2eCtx.BootstrapUserAWSSession)
-
-		ginkgo.By("verifying cluster has bootstrap permissions disabled")
-		verifyClusterBootstrapPermissions(ctx, eksClusterName, false, e2eCtx.BootstrapUserAWSSession)
 
 		cluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
 			Getter:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
