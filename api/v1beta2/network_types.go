@@ -23,6 +23,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"k8s.io/utils/net"
 	"k8s.io/utils/ptr"
 )
 
@@ -367,7 +368,32 @@ type NetworkSpec struct {
 	// NodePortIngressRuleCidrBlocks is an optional set of CIDR blocks to allow traffic to nodes' NodePort services.
 	// If none are specified here, all IPs are allowed to connect.
 	// +optional
-	NodePortIngressRuleCidrBlocks []string `json:"nodePortIngressRuleCidrBlocks,omitempty"`
+	NodePortIngressRuleCidrBlocks CidrBlocks `json:"nodePortIngressRuleCidrBlocks,omitempty"`
+}
+
+// CidrBlocks defines a set of CIDR blocks.
+type CidrBlocks []string
+
+// IPv4CidrBlocks returns only IPv4 CIDR blocks.
+func (c CidrBlocks) IPv4CidrBlocks() CidrBlocks {
+	var cidrs CidrBlocks
+	for _, cidr := range c {
+		if net.IsIPv4CIDRString(cidr) {
+			cidrs = append(cidrs, cidr)
+		}
+	}
+	return cidrs
+}
+
+// IPv6CidrBlocks returns only IPv6 CIDR blocks.
+func (c CidrBlocks) IPv6CidrBlocks() CidrBlocks {
+	var cidrs CidrBlocks
+	for _, cidr := range c {
+		if net.IsIPv6CIDRString(cidr) {
+			cidrs = append(cidrs, cidr)
+		}
+	}
+	return cidrs
 }
 
 // IPv6 contains ipv6 specific settings for the network.
@@ -432,8 +458,7 @@ type VPCSpec struct {
 	// Mutually exclusive with CidrBlock.
 	IPAMPool *IPAMPool `json:"ipamPool,omitempty"`
 
-	// IPv6 contains ipv6 specific settings for the network. Supported only in managed clusters.
-	// This field cannot be set on AWSCluster object.
+	// IPv6 contains ipv6 specific settings for the network.
 	// +optional
 	IPv6 *IPv6 `json:"ipv6,omitempty"`
 
@@ -561,7 +586,6 @@ type SubnetSpec struct {
 
 	// IPv6CidrBlock is the IPv6 CIDR block to be used when the provider creates a managed VPC.
 	// A subnet can have an IPv4 and an IPv6 address.
-	// IPv6 is only supported in managed clusters, this field cannot be set on AWSCluster object.
 	// +optional
 	IPv6CidrBlock string `json:"ipv6CidrBlock,omitempty"`
 
@@ -573,7 +597,6 @@ type SubnetSpec struct {
 	IsPublic bool `json:"isPublic"`
 
 	// IsIPv6 defines the subnet as an IPv6 subnet. A subnet is IPv6 when it is associated with a VPC that has IPv6 enabled.
-	// IPv6 is only supported in managed clusters, this field cannot be set on AWSCluster object.
 	// +optional
 	IsIPv6 bool `json:"isIpv6,omitempty"`
 

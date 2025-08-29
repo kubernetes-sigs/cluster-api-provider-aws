@@ -583,14 +583,21 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 
 		input.NetworkInterfaces = netInterfaces
 	} else {
-		input.NetworkInterfaces = []types.InstanceNetworkInterfaceSpecification{
-			{
-				DeviceIndex:              aws.Int32(0),
-				SubnetId:                 aws.String(i.SubnetID),
-				Groups:                   i.SecurityGroupIDs,
-				AssociatePublicIpAddress: i.PublicIPOnLaunch,
-			},
+		netInterface := types.InstanceNetworkInterfaceSpecification{
+			DeviceIndex:              aws.Int32(0),
+			SubnetId:                 aws.String(i.SubnetID),
+			Groups:                   i.SecurityGroupIDs,
+			AssociatePublicIpAddress: i.PublicIPOnLaunch,
 		}
+
+		// When registering targets by instance ID for an IPv6 target group,
+		// the targets must have an assigned primary IPv6 address.
+		if s.scope.VPC().IsIPv6Enabled() {
+			netInterface.Ipv6AddressCount = aws.Int32(1)
+			netInterface.PrimaryIpv6 = aws.Bool(true)
+		}
+
+		input.NetworkInterfaces = []types.InstanceNetworkInterfaceSpecification{netInterface}
 	}
 
 	if i.NetworkInterfaceType != "" {
@@ -919,6 +926,7 @@ func (s *Service) SDKToInstance(v types.Instance) (*infrav1.Instance, error) {
 		ImageID:      aws.ToString(v.ImageId),
 		SSHKeyName:   v.KeyName,
 		PrivateIP:    v.PrivateIpAddress,
+		IPv6Address:  v.Ipv6Address,
 		PublicIP:     v.PublicIpAddress,
 		ENASupport:   v.EnaSupport,
 		EBSOptimized: v.EbsOptimized,
@@ -955,6 +963,7 @@ func (s *Service) SDKToInstance(v types.Instance) (*infrav1.Instance, error) {
 		metadataOptions.HTTPEndpoint = infrav1.InstanceMetadataState(string(v.MetadataOptions.HttpEndpoint))
 		metadataOptions.HTTPTokens = infrav1.HTTPTokensState(string(v.MetadataOptions.HttpTokens))
 		metadataOptions.InstanceMetadataTags = infrav1.InstanceMetadataState(string(v.MetadataOptions.InstanceMetadataTags))
+		metadataOptions.HTTPProtocolIPv6 = infrav1.InstanceMetadataState(v.MetadataOptions.HttpProtocolIpv6)
 		if v.MetadataOptions.HttpPutResponseHopLimit != nil {
 			metadataOptions.HTTPPutResponseHopLimit = int64(*v.MetadataOptions.HttpPutResponseHopLimit)
 		}
@@ -1110,6 +1119,7 @@ func (s *Service) ModifyInstanceMetadataOptions(instanceID string, options *infr
 		HttpPutResponseHopLimit: utils.ToInt32Pointer(&options.HTTPPutResponseHopLimit),
 		HttpTokens:              types.HttpTokensState(string(options.HTTPTokens)),
 		InstanceMetadataTags:    types.InstanceMetadataTagsState(string(options.InstanceMetadataTags)),
+		HttpProtocolIpv6:        types.InstanceMetadataProtocolState(string(options.HTTPProtocolIPv6)),
 		InstanceId:              aws.String(instanceID),
 	}
 
@@ -1262,6 +1272,9 @@ func getInstanceMetadataOptionsRequest(metadataOptions *infrav1.InstanceMetadata
 	request := &types.InstanceMetadataOptionsRequest{}
 	if metadataOptions.HTTPEndpoint != "" {
 		request.HttpEndpoint = types.InstanceMetadataEndpointState(string(metadataOptions.HTTPEndpoint))
+	}
+	if metadataOptions.HTTPProtocolIPv6 != "" {
+		request.HttpProtocolIpv6 = types.InstanceMetadataProtocolState(string(metadataOptions.HTTPProtocolIPv6))
 	}
 	if metadataOptions.HTTPPutResponseHopLimit != 0 {
 		request.HttpPutResponseHopLimit = utils.ToInt32Pointer(&metadataOptions.HTTPPutResponseHopLimit)

@@ -199,8 +199,8 @@ func TestDeleteEgressOnlyInternetGateways(t *testing.T) {
 				m.DescribeEgressOnlyInternetGateways(context.TODO(), gomock.Eq(&ec2.DescribeEgressOnlyInternetGatewaysInput{
 					Filters: []types.Filter{
 						{
-							Name:   aws.String("attachment.vpc-id"),
-							Values: []string{"vpc-gateways"},
+							Name:   aws.String("tag-key"),
+							Values: []string{infrav1.ClusterTagKey("test-cluster")},
 						},
 					},
 				})).Return(&ec2.DescribeEgressOnlyInternetGatewaysOutput{}, nil)
