@@ -25,7 +25,7 @@ linters:
               #- "nobools" # Bools do not evolve over time, should use enums instead.
               #- "nofloats" # Ensure floats are not used.
               #- "optionalorrequired" # Every field should be marked as `+optional` or `+required`.
-              # - "requiredfields" # Required fields should not be pointers, and should not have `omitempty`.
+              - "requiredfields" # Required fields should not be pointers, and should not have `omitempty`.
               - "statussubresource" # All root objects that have a `status` field should have a status subresource.
 
             # Linters below this line are disabled, pending conversation on how and when to enable them.
@@ -45,11 +45,11 @@ linters:
           #   pointerPolicy: Warn | SuggestFix # Defaults to `SuggestFix`. We want our required fields to not be pointers.
 
 exclusions:
-    generated: strict
-    paths:
-      - zz_generated.*\.go$
-      - ".*_test.go"  # Exclude test files.
-    rules:
+  generated: strict
+  paths:
+    - zz_generated.*\.go$
+    - ".*_test.go" # Exclude test files.
+  rules:
     # KAL should only run on API folders.
     - path-except: "api//*"
       linters:

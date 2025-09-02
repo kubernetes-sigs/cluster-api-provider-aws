@@ -52,7 +52,7 @@ type EBS struct {
 type BlockDeviceMapping struct {
 	// The device name exposed to the EC2 instance (for example, /dev/sdh or xvdh).
 	// +kubebuilder:validation:Required
-	DeviceName string `json:"deviceName,omitempty"`
+	DeviceName string `json:"deviceName"`
 
 	// You can specify either VirtualName or Ebs, but not both.
 	// +optional
