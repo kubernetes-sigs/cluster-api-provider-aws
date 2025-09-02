@@ -822,9 +822,10 @@ spec:
                         type: array
                     type: object
                   version:
-                    default: "2.3"
-                    description: Version defines which version of Ignition will be
-                      used to generate bootstrap data.
+                    description: |-
+                      Version defines which version of Ignition will be used to generate bootstrap data.
+                      Defaults to `2.3` if storageType is set to `ClusterObjectStore`.
+                      It will be ignored if storageType is set to `UnencryptedUserData`, as the userdata defines its own version.
                     enum:
                     - "2.3"
                     - "3.0"

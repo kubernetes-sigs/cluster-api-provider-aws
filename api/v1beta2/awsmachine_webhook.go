@@ -451,7 +451,9 @@ func (*awsMachineWebhook) Default(_ context.Context, obj runtime.Object) error {
 		r.Spec.CloudInit.SecureSecretsBackend = SecretBackendSecretsManager
 	}
 
-	if r.ignitionEnabled() && r.Spec.Ignition.Version == "" {
+	// Defaults the version field if StorageType is not set to `UnencryptedUserData`.
+	// When using `UnencryptedUserData` the version field is ignored because the userdata defines its version itself.
+	if r.ignitionEnabled() && r.Spec.Ignition.Version == "" && r.Spec.Ignition.StorageType != IgnitionStorageTypeOptionUnencryptedUserData {
 		r.Spec.Ignition.Version = DefaultIgnitionVersion
 	}
 	if r.ignitionEnabled() && r.Spec.Ignition.StorageType == "" {
