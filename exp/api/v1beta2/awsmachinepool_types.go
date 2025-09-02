@@ -31,6 +31,10 @@ import (
 const (
 	// LaunchTemplateLatestVersion defines the launching of the latest version of the template.
 	LaunchTemplateLatestVersion = "$Latest"
+
+	// GiantSwarmReleaseLabel is the label key used to identify the Giant Swarm release version of a cluster.
+	// GIANT SWARM CUSTOMIZED!!!
+	GiantSwarmReleaseLabel = "release.giantswarm.io/version"
 )
 
 // AWSMachinePoolSpec defines the desired state of AWSMachinePool.
