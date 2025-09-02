@@ -22,6 +22,7 @@ import (
 	"net"
 
 	"github.com/apparentlymart/go-cidr/cidr"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -572,6 +573,13 @@ func (*awsManagedControlPlaneWebhook) Default(_ context.Context, obj runtime.Obj
 	infrav1.SetDefaults_NetworkSpec(&r.Spec.NetworkSpec)
 
 	// Set default value for BootstrapSelfManagedAddons
-	r.Spec.BootstrapSelfManagedAddons = true
+	if r.Spec.BootstrapSelfManagedAddons == nil {
+		r.Spec.BootstrapSelfManagedAddons = aws.Bool(true)
+	}
+
+	// Set default value for AutoMode
+	if r.Spec.AutoMode == nil {
+		r.Spec.AutoMode = aws.Bool(false)
+	}
 	return nil
 }
