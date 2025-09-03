@@ -158,6 +158,12 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, nil
 	}
 
+	// Return early if the object or Cluster is paused.
+	if annotations.IsPaused(cluster, awsMachinePool) {
+		log.Info("Reconciliation is paused for this object")
+		return ctrl.Result{}, nil
+	}
+
 	// Create the machine pool scope
 	machinePoolScope, err := scope.NewMachinePoolScope(scope.MachinePoolScopeParams{
 		Client:         r.Client,
