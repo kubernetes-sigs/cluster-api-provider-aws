@@ -286,9 +286,10 @@ type CloudInit struct {
 // For more information on Ignition configuration, see https://coreos.github.io/butane/specs/
 type Ignition struct {
 	// Version defines which version of Ignition will be used to generate bootstrap data.
+	// Defaults to `2.3` if storageType is set to `ClusterObjectStore`.
+	// It will be ignored if storageType is set to `UnencryptedUserData`, as the userdata defines its own version.
 	//
 	// +optional
-	// +kubebuilder:default="2.3"
 	// +kubebuilder:validation:Enum="2.3";"3.0";"3.1";"3.2";"3.3";"3.4"
 	Version string `json:"version,omitempty"`
 
