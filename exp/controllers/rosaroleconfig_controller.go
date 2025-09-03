@@ -113,8 +113,11 @@ func (r *ROSARoleConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	defer func() {
 		conditions.SetSummary(scope.RosaRoleConfig, conditions.WithConditions(expinfrav1.RosaRoleConfigReadyCondition), conditions.WithStepCounter())
 
-		if err := scope.PatchObject(); err != nil {
-			reterr = errors.Join(reterr, err)
+		// Delete is already patched
+		if roleConfig.ObjectMeta.DeletionTimestamp.IsZero() {
+			if err := scope.PatchObject(); err != nil {
+				reterr = errors.Join(reterr, err)
+			}
 		}
 	}()
 
