@@ -2240,6 +2240,108 @@ spec:
             description: AWSManagedControlPlaneSpec defines the desired state of an
               Amazon EKS Cluster.
             properties:
+              accessConfig:
+                description: AccessConfig specifies the access configuration information
+                  for the cluster
+                properties:
+                  accessEntries:
+                    description: |-
+                      AccessEntries specifies the access entries for the cluster
+                      Access entries require AuthenticationMode to be either API or API_AND_CONFIG_MAP
+                    items:
+                      description: AccessEntry represents an AWS EKS access entry
+                        for IAM principals
+                      properties:
+                        accessPolicies:
+                          description: |-
+                            AccessPolicies specifies the policies to associate with this access entry
+                            Cannot be specified if Type is EC2_LINUX or EC2_WINDOWS
+                          items:
+                            description: AccessPolicyReference represents a reference
+                              to an AWS EKS access policy
+                            properties:
+                              accessScope:
+                                description: AccessScope specifies the scope for the
+                                  policy
+                                properties:
+                                  namespaces:
+                                    description: |-
+                                      Namespaces are the namespaces for the access scope
+                                      Only valid when Type is namespace
+                                    items:
+                                      type: string
+                                    minItems: 1
+                                    type: array
+                                  type:
+                                    default: cluster
+                                    description: Type is the type of access scope.
+                                      Defaults to "cluster".
+                                    enum:
+                                    - cluster
+                                    - namespace
+                                    type: string
+                                required:
+                                - type
+                                type: object
+                              policyARN:
+                                description: PolicyARN is the Amazon Resource Name
+                                  (ARN) of the access policy
+                                type: string
+                            required:
+                            - accessScope
+                            - policyARN
+                            type: object
+                          maxItems: 20
+                          type: array
+                        kubernetesGroups:
+                          description: |-
+                            KubernetesGroups represents the Kubernetes groups for the access entry
+                            Cannot be specified if Type is EC2_LINUX or EC2_WINDOWS
+                          items:
+                            type: string
+                          type: array
+                        principalARN:
+                          description: PrincipalARN is the Amazon Resource Name (ARN)
+                            of the IAM principal
+                          type: string
+                        type:
+                          default: STANDARD
+                          description: Type is the type of access entry. Defaults
+                            to STANDARD if not specified.
+                          enum:
+                          - STANDARD
+                          - EC2_LINUX
+                          - EC2_WINDOWS
+                          - FARGATE_LINUX
+                          - EC2
+                          - HYBRID_LINUX
+                          - HYPERPOD_LINUX
+                          type: string
+                        username:
+                          description: Username is the username for the access entry
+                          type: string
+                      required:
+                      - principalARN
+                      type: object
+                    type: array
+                  authenticationMode:
+                    default: CONFIG_MAP
+                    description: |-
+                      AuthenticationMode specifies the desired authentication mode for the cluster
+                      Defaults to CONFIG_MAP
+                    enum:
+                    - CONFIG_MAP
+                    - API
+                    - API_AND_CONFIG_MAP
+                    type: string
+                  bootstrapClusterCreatorAdminPermissions:
+                    default: true
+                    description: |-
+                      BootstrapClusterCreatorAdminPermissions grants cluster admin permissions
+                      to the IAM identity creating the cluster. Only applied during creation,
+                      ignored when updating existing clusters. Defaults to true.
+                    type: boolean
+                type: object
               additionalTags:
                 additionalProperties:
                   type: string

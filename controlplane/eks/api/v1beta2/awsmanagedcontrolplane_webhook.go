@@ -98,6 +98,7 @@ func (*awsManagedControlPlaneWebhook) ValidateCreate(_ context.Context, obj runt
 	// TODO: Add ipv6 validation things in these validations.
 	allErrs = append(allErrs, r.validateEKSVersion(nil)...)
 	allErrs = append(allErrs, r.Spec.Bastion.Validate()...)
+	allErrs = append(allErrs, r.validateAccessConfig(nil)...)
 	allErrs = append(allErrs, r.validateIAMAuthConfig()...)
 	allErrs = append(allErrs, r.validateSecondaryCIDR()...)
 	allErrs = append(allErrs, r.validateEKSAddons()...)
@@ -107,6 +108,7 @@ func (*awsManagedControlPlaneWebhook) ValidateCreate(_ context.Context, obj runt
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 	allErrs = append(allErrs, r.validateNetwork()...)
 	allErrs = append(allErrs, r.validatePrivateDNSHostnameTypeOnLaunch()...)
+	allErrs = append(allErrs, r.validateAccessConfigCreate()...)
 
 	if len(allErrs) == 0 {
 		return nil, nil
@@ -140,6 +142,7 @@ func (*awsManagedControlPlaneWebhook) ValidateUpdate(ctx context.Context, oldObj
 	allErrs = append(allErrs, r.validateEKSClusterNameSame(oldAWSManagedControlplane)...)
 	allErrs = append(allErrs, r.validateEKSVersion(oldAWSManagedControlplane)...)
 	allErrs = append(allErrs, r.Spec.Bastion.Validate()...)
+	allErrs = append(allErrs, r.validateAccessConfig(oldAWSManagedControlplane)...)
 	allErrs = append(allErrs, r.validateIAMAuthConfig()...)
 	allErrs = append(allErrs, r.validateSecondaryCIDR()...)
 	allErrs = append(allErrs, r.validateEKSAddons()...)
@@ -312,6 +315,107 @@ func validateEKSAddons(eksVersion *string, networkSpec infrav1.NetworkSpec, addo
 					break
 				}
 			}
+		}
+	}
+
+	return allErrs
+}
+
+func (r *AWSManagedControlPlane) validateAccessConfig(old *AWSManagedControlPlane) field.ErrorList {
+	var allErrs field.ErrorList
+
+	// If accessConfig is already set, do not allow removal of it.
+	if old != nil && old.Spec.AccessConfig != nil && r.Spec.AccessConfig == nil {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec", "accessConfig"), r.Spec.AccessConfig, "removing AccessConfig is not allowed after it has been enabled"),
+		)
+	}
+
+	// AuthenticationMode is ratcheting - do not allow downgrades
+	if old != nil && old.Spec.AccessConfig != nil && r.Spec.AccessConfig != nil &&
+		old.Spec.AccessConfig.AuthenticationMode != r.Spec.AccessConfig.AuthenticationMode &&
+		((old.Spec.AccessConfig.AuthenticationMode == EKSAuthenticationModeAPIAndConfigMap && r.Spec.AccessConfig.AuthenticationMode == EKSAuthenticationModeConfigMap) ||
+			old.Spec.AccessConfig.AuthenticationMode == EKSAuthenticationModeAPI) {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec", "accessConfig", "authenticationMode"), r.Spec.AccessConfig.AuthenticationMode, "downgrading authentication mode is not allowed after it has been enabled"),
+		)
+	}
+
+	// BootstrapClusterCreatorAdminPermissions only applies on create, but changes should not invalidate updates
+	if old.Spec.AccessConfig != nil && r.Spec.AccessConfig != nil &&
+		old.Spec.AccessConfig.BootstrapClusterCreatorAdminPermissions != r.Spec.AccessConfig.BootstrapClusterCreatorAdminPermissions {
+		mcpLog.Info("Ignoring changes to BootstrapClusterCreatorAdminPermissions on cluster update", "old", old.Spec.AccessConfig.BootstrapClusterCreatorAdminPermissions, "new", r.Spec.AccessConfig.BootstrapClusterCreatorAdminPermissions)
+	}
+
+	// AccessEntries require AuthenticationMode to be API or API_AND_CONFIG_MAP
+	if r.Spec.AccessConfig != nil && len(r.Spec.AccessConfig.AccessEntries) > 0 {
+		if r.Spec.AccessConfig.AuthenticationMode != EKSAuthenticationModeAPI &&
+			r.Spec.AccessConfig.AuthenticationMode != EKSAuthenticationModeAPIAndConfigMap {
+			allErrs = append(allErrs,
+				field.Invalid(
+					field.NewPath("spec", "accessConfig", "accessEntries"),
+					r.Spec.AccessConfig.AccessEntries,
+					"accessEntries can only be used when authenticationMode is set to API or API_AND_CONFIG_MAP",
+				),
+			)
+		}
+
+		// Validate that EC2 types don't have kubernetes groups or access policies
+		for i, entry := range r.Spec.AccessConfig.AccessEntries {
+			if entry.Type == "EC2_LINUX" || entry.Type == "EC2_WINDOWS" {
+				if len(entry.KubernetesGroups) > 0 {
+					allErrs = append(allErrs,
+						field.Invalid(
+							field.NewPath("spec", "accessConfig", "accessEntries").Index(i).Child("kubernetesGroups"),
+							entry.KubernetesGroups,
+							"kubernetesGroups cannot be specified when type is EC2_LINUX or EC2_WINDOWS",
+						),
+					)
+				}
+				if len(entry.AccessPolicies) > 0 {
+					allErrs = append(allErrs,
+						field.Invalid(
+							field.NewPath("spec", "accessConfig", "accessEntries").Index(i).Child("accessPolicies"),
+							entry.AccessPolicies,
+							"accessPolicies cannot be specified when type is EC2_LINUX or EC2_WINDOWS",
+						),
+					)
+				}
+			}
+
+			// Validate namespace scopes
+			for j, policy := range entry.AccessPolicies {
+				if policy.AccessScope.Type == "namespace" && len(policy.AccessScope.Namespaces) == 0 {
+					allErrs = append(allErrs,
+						field.Invalid(
+							field.NewPath("spec", "accessConfig", "accessEntries").Index(i).Child("accessPolicies").Index(j).Child("accessScope", "namespaces"),
+							policy.AccessScope.Namespaces,
+							"at least one value must be provided when accessScope type is namespace",
+						),
+					)
+				}
+			}
+		}
+	}
+	return allErrs
+}
+
+func (r *AWSManagedControlPlane) validateIAMAuthConfig() field.ErrorList {
+	return validateIAMAuthConfig(r.Spec.IAMAuthenticatorConfig, field.NewPath("spec.iamAuthenticatorConfig"))
+}
+
+func (r *AWSManagedControlPlane) validateAccessConfigCreate() field.ErrorList {
+	var allErrs field.ErrorList
+
+	if r.Spec.AccessConfig != nil {
+		if r.Spec.AccessConfig.AuthenticationMode == EKSAuthenticationModeConfigMap &&
+			r.Spec.AccessConfig.BootstrapClusterCreatorAdminPermissions != nil &&
+			!*r.Spec.AccessConfig.BootstrapClusterCreatorAdminPermissions {
+			allErrs = append(allErrs,
+				field.Invalid(field.NewPath("spec", "accessConfig", "bootstrapClusterCreatorAdminPermissions"),
+					*r.Spec.AccessConfig.BootstrapClusterCreatorAdminPermissions,
+					"bootstrapClusterCreatorAdminPermissions must be true if cluster authentication mode is set to config_map"),
+			)
 		}
 	}
 

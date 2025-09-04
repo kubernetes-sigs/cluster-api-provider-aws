@@ -161,6 +161,56 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 			}
 		})
 
+		ginkgo.By("should create a cluster with access entries")
+		ManagedClusterSpec(ctx, func() ManagedClusterSpecInput {
+			return ManagedClusterSpecInput{
+				E2EConfig:                e2eCtx.E2EConfig,
+				ConfigClusterFn:          defaultConfigCluster,
+				BootstrapClusterProxy:    e2eCtx.Environment.BootstrapClusterProxy,
+				AWSSession:               e2eCtx.BootstrapUserAWSSession,
+				AWSSessionV2:             e2eCtx.BootstrapUserAWSSessionV2,
+				Namespace:                namespace,
+				ClusterName:              clusterName,
+				Flavour:                  EKSControlPlaneOnlyWithAccessEntriesFlavor,
+				ControlPlaneMachineCount: 1, // NOTE: this cannot be zero as clusterctl returns an error
+				WorkerMachineCount:       0,
+			}
+		})
+
+		ginkgo.By("should have created the expected access entries")
+		expectedEntries := []ekscontrolplanev1.AccessEntry{
+			{
+				PrincipalARN:     "arn:aws:iam::123456789012:role/KubernetesAdmin",
+				Type:             "STANDARD",
+				Username:         "kubernetes-admin",
+				KubernetesGroups: []string{"system:masters"},
+				AccessPolicies: []ekscontrolplanev1.AccessPolicyReference{
+					{
+						PolicyARN: "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy",
+						AccessScope: ekscontrolplanev1.AccessScope{
+							Type: "cluster",
+						},
+					},
+				},
+			},
+			{
+				PrincipalARN:     "arn:aws:iam::123456789012:role/DeveloperRole",
+				Type:             "STANDARD",
+				Username:         "developer",
+				KubernetesGroups: []string{"developers"},
+				AccessPolicies: []ekscontrolplanev1.AccessPolicyReference{
+					{
+						PolicyARN: "arn:aws:eks::aws:cluster-access-policy/AmazonEKSViewPolicy",
+						AccessScope: ekscontrolplanev1.AccessScope{
+							Type:       "namespace",
+							Namespaces: []string{"default"},
+						},
+					},
+				},
+			},
+		}
+		verifyAccessEntries(ctx, eksClusterName, expectedEntries, e2eCtx.BootstrapUserAWSSessionV2)
+
 		ginkgo.By(fmt.Sprintf("getting cluster with name %s", clusterName))
 		cluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
 			Getter:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),

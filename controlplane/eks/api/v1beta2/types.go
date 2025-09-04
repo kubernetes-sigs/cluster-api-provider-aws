@@ -18,6 +18,7 @@ package v1beta2
 
 import (
 	"fmt"
+	"strings"
 
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -79,6 +80,25 @@ var (
 	EKSTokenMethodAWSCli = EKSTokenMethod("aws-cli")
 )
 
+// EKSAuthenticationMode defines the authentication mode for the cluster
+type EKSAuthenticationMode string
+
+// APIValue returns the corresponding EKS API value for the authentication mode
+func (e EKSAuthenticationMode) APIValue() ekstypes.AuthenticationMode {
+	return ekstypes.AuthenticationMode(string(e))
+}
+
+var (
+	// EKSAuthenticationModeConfigMap indicates that only `aws-auth` ConfigMap will be used for authentication
+	EKSAuthenticationModeConfigMap = EKSAuthenticationMode("CONFIG_MAP")
+
+	// EKSAuthenticationModeAPI indicates that only AWS Access Entries will be used for authentication
+	EKSAuthenticationModeAPI = EKSAuthenticationMode("API")
+
+	// EKSAuthenticationModeAPIAndConfigMap indicates that both `aws-auth` ConfigMap and AWS Access Entries will
+	// be used for authentication
+	EKSAuthenticationModeAPIAndConfigMap = EKSAuthenticationMode("API_AND_CONFIG_MAP")
+)
 var (
 	// DefaultEKSControlPlaneRole is the name of the default IAM role to use for the EKS control plane
 	// if no other role is supplied in the spec and if iam role creation is not enabled. The default
