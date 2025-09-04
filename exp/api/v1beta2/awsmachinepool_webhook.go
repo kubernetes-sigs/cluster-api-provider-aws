@@ -231,7 +231,7 @@ func (r *AWSMachinePool) validateCapacityReservation() field.ErrorList {
 	if r.Spec.AWSLaunchTemplate.CapacityReservationID != nil &&
 		r.Spec.AWSLaunchTemplate.CapacityReservationPreference != infrav1.CapacityReservationPreferenceOnly &&
 		r.Spec.AWSLaunchTemplate.CapacityReservationPreference != "" {
-		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "capacityReservationPreference"), "when a reservation ID is specified, capacityReservationPreference may only be `capacity-reservations-only` or empty"))
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "capacityReservationPreference"), "when capacityReservationId is specified, capacityReservationPreference may only be `CapacityReservationsOnly` or empty"))
 	}
 	return allErrs
 }
