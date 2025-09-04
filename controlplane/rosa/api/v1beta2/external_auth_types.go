@@ -4,15 +4,15 @@ package v1beta2
 type ExternalAuthProvider struct {
 	// Name of the OIDC provider
 	//
-	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
 	// +required
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 	// Issuer describes attributes of the OIDC token issuer
 	//
 	// +kubebuilder:validation:Required
 	// +required
-	Issuer TokenIssuer `json:"issuer"`
+	Issuer TokenIssuer `json:"issuer,omitzero"`
 
 	// OIDCClients contains configuration for the platform's clients that
 	// need to request tokens from the issuer
@@ -46,9 +46,10 @@ type TokenIssuer struct {
 	// Must use the https:// scheme.
 	//
 	// +kubebuilder:validation:Pattern=`^https:\/\/[^\s]`
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:Required
 	// +required
-	URL string `json:"issuerURL"`
+	URL string `json:"issuerURL,omitempty"`
 
 	// Audiences is an array of audiences that the token was issued for.
 	// Valid tokens must include at least one of these values in their
@@ -60,7 +61,7 @@ type TokenIssuer struct {
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=10
 	// +required
-	Audiences []TokenAudience `json:"audiences"`
+	Audiences []TokenAudience `json:"audiences,omitempty"`
 
 	// CertificateAuthority is a reference to a config map in the
 	// configuration namespace. The .data of the configMap must contain
@@ -79,7 +80,7 @@ type OIDCClientConfig struct {
 	// +kubebuilder:validation:MaxLength=256
 	// +kubebuilder:validation:Required
 	// +required
-	ComponentName string `json:"componentName"`
+	ComponentName string `json:"componentName,omitempty"`
 
 	// ComponentNamespace is the namespace of the component that is supposed to consume this
 	// client configuration
@@ -87,15 +88,16 @@ type OIDCClientConfig struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Pattern=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
 	// +required
-	ComponentNamespace string `json:"componentNamespace"`
+	ComponentNamespace string `json:"componentNamespace,omitempty"`
 
 	// ClientID is the identifier of the OIDC client from the OIDC provider
 	//
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:Required
 	// +required
-	ClientID string `json:"clientID"`
+	ClientID string `json:"clientID,omitempty"`
 
 	// ClientSecret refers to a secret that
 	// contains the client secret in the `clientSecret` key of the `.data` field
@@ -130,8 +132,9 @@ type PrefixedClaimMapping struct {
 	// Claim is a JWT token claim to be used in the mapping
 	//
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
 	// +required
-	Claim string `json:"claim"`
+	Claim string `json:"claim,omitempty"`
 
 	// Prefix is a string to prefix the value from the token in the result of the
 	// claim mapping.
@@ -151,8 +154,9 @@ type UsernameClaimMapping struct {
 	// Claim is a JWT token claim to be used in the mapping
 	//
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
 	// +required
-	Claim string `json:"claim"`
+	Claim string `json:"claim,omitempty"`
 
 	// PrefixPolicy specifies how a prefix should apply.
 	//
@@ -218,7 +222,7 @@ type TokenClaimValidationRule struct {
 
 	// RequiredClaim allows configuring a required claim name and its expected value
 	// +kubebuilder:validation:Required
-	RequiredClaim TokenRequiredClaim `json:"requiredClaim"`
+	RequiredClaim TokenRequiredClaim `json:"requiredClaim,omitzero"`
 }
 
 // TokenRequiredClaim allows configuring a required claim name and its expected value.
@@ -229,14 +233,14 @@ type TokenRequiredClaim struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:Required
 	// +required
-	Claim string `json:"claim"`
+	Claim string `json:"claim,omitempty"`
 
 	// RequiredValue is the required value for the claim.
 	//
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:Required
 	// +required
-	RequiredValue string `json:"requiredValue"`
+	RequiredValue string `json:"requiredValue,omitempty"`
 }
 
 // LocalObjectReference references an object in the same namespace.
@@ -244,6 +248,7 @@ type LocalObjectReference struct {
 	// Name is the metadata.name of the referenced object.
 	//
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
 	// +required
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 }

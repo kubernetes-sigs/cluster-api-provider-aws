@@ -162,7 +162,7 @@ type KubernetesMapping struct {
 // RoleMapping represents a mapping from a IAM role to Kubernetes users and groups.
 type RoleMapping struct {
 	// RoleARN is the AWS ARN for the role to map
-	// +kubebuilder:validation:MinLength:=31
+	// +kubebuilder:validation:MinLength=31
 	RoleARN string `json:"rolearn"`
 	// KubernetesMapping holds the RBAC details for the mapping
 	KubernetesMapping `json:",inline"`
@@ -171,7 +171,7 @@ type RoleMapping struct {
 // UserMapping represents a mapping from an IAM user to Kubernetes users and groups.
 type UserMapping struct {
 	// UserARN is the AWS ARN for the user to map
-	// +kubebuilder:validation:MinLength:=31
+	// +kubebuilder:validation:MinLength=31
 	UserARN string `json:"userarn"`
 	// KubernetesMapping holds the RBAC details for the mapping
 	KubernetesMapping `json:",inline"`
@@ -180,9 +180,9 @@ type UserMapping struct {
 // Addon represents a EKS addon.
 type Addon struct {
 	// Name is the name of the addon
-	// +kubebuilder:validation:MinLength:=2
+	// +kubebuilder:validation:MinLength=2
 	// +kubebuilder:validation:Required
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 	// Version is the version of the addon to use
 	Version string `json:"version"`
 	// Configuration of the EKS addon
@@ -304,7 +304,8 @@ type OIDCIdentityProviderConfig struct {
 	// This is also known as audience. The ID for the client application that makes
 	// authentication requests to the OpenID identity provider.
 	// +kubebuilder:validation:Required
-	ClientID string `json:"clientId"`
+	// +kubebuilder:validation:MinLength=1
+	ClientID string `json:"clientId,omitempty"`
 
 	// The JWT claim that the provider uses to return your groups.
 	// +optional
@@ -320,7 +321,8 @@ type OIDCIdentityProviderConfig struct {
 	//
 	// IdentityProviderConfigName is a required field
 	// +kubebuilder:validation:Required
-	IdentityProviderConfigName string `json:"identityProviderConfigName"`
+	// +kubebuilder:validation:MinLength=1
+	IdentityProviderConfigName string `json:"identityProviderConfigName,omitempty"`
 
 	// The URL of the OpenID identity provider that allows the API server to discover
 	// public signing keys for verifying tokens. The URL must begin with https://
@@ -331,7 +333,9 @@ type OIDCIdentityProviderConfig struct {
 	// and must be publicly accessible over the internet.
 	//
 	// +kubebuilder:validation:Required
-	IssuerURL string `json:"issuerUrl"`
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:Pattern=`^https://.+`
+	IssuerURL string `json:"issuerUrl,omitempty"`
 
 	// The key value pairs that describe required claims in the identity token.
 	// If set, each claim is verified to be present in the token with a matching

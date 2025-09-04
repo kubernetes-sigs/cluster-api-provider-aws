@@ -883,6 +883,7 @@ spec:
                     description: |-
                       This is also known as audience. The ID for the client application that makes
                       authentication requests to the OpenID identity provider.
+                    minLength: 1
                     type: string
                   groupsClaim:
                     description: The JWT claim that the provider uses to return your
@@ -899,6 +900,7 @@ spec:
                       The name of the OIDC provider configuration.
 
                       IdentityProviderConfigName is a required field
+                    minLength: 1
                     type: string
                   issuerUrl:
                     description: |-
@@ -909,6 +911,8 @@ spec:
                       not. Typically the URL consists of only a hostname, like https://server.example.org
                       or https://example.com. This URL should point to the level below .well-known/openid-configuration
                       and must be publicly accessible over the internet.
+                    minLength: 1
+                    pattern: ^https://.+
                     type: string
                   requiredClaims:
                     additionalProperties:
@@ -3200,6 +3204,7 @@ spec:
                     description: |-
                       This is also known as audience. The ID for the client application that makes
                       authentication requests to the OpenID identity provider.
+                    minLength: 1
                     type: string
                   groupsClaim:
                     description: The JWT claim that the provider uses to return your
@@ -3216,6 +3221,7 @@ spec:
                       The name of the OIDC provider configuration.
 
                       IdentityProviderConfigName is a required field
+                    minLength: 1
                     type: string
                   issuerUrl:
                     description: |-
@@ -3226,6 +3232,8 @@ spec:
                       not. Typically the URL consists of only a hostname, like https://server.example.org
                       or https://example.com. This URL should point to the level below .well-known/openid-configuration
                       and must be publicly accessible over the internet.
+                    minLength: 1
+                    pattern: ^https://.+
                     type: string
                   requiredClaims:
                     additionalProperties:
