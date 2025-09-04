@@ -24,7 +24,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	v1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	v1 "github.com/openshift-online/ocm-api-model/clientapi/clustersmgmt/v1"
 	aws "github.com/openshift/rosa/pkg/aws"
 	ocm "github.com/openshift/rosa/pkg/ocm"
 )
