@@ -40,8 +40,9 @@ var (
 
 // DeleteAddonProcedure is a procedure that will delete an EKS addon.
 type DeleteAddonProcedure struct {
-	plan *plan
-	name string
+	plan     *plan
+	name     string
+	preserve bool
 }
 
 // Do implements the logic for the procedure.
@@ -49,6 +50,7 @@ func (p *DeleteAddonProcedure) Do(ctx context.Context) error {
 	input := &eks.DeleteAddonInput{
 		AddonName:   aws.String(p.name),
 		ClusterName: aws.String(p.plan.clusterName),
+		Preserve:    p.preserve,
 	}
 
 	if _, err := p.plan.eksClient.DeleteAddon(ctx, input); err != nil {

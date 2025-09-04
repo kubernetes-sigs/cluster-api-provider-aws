@@ -83,6 +83,11 @@ spec:
                               description: Name is the name of the addon
                               minLength: 2
                               type: string
+                            preserveOnDelete:
+                              description: |-
+                                PreserveOnDelete indicates that the addon resources should be
+                                preserved in the cluster on delete.
+                              type: boolean
                             serviceAccountRoleARN:
                               description: ServiceAccountRoleArn is the ARN of an
                                 IAM role to bind to the addons service account

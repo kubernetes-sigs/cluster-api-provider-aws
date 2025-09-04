@@ -141,6 +141,10 @@ type Addon struct {
 	// ServiceAccountRoleArn is the ARN of an IAM role to bind to the addons service account
 	// +optional
 	ServiceAccountRoleArn *string `json:"serviceAccountRoleARN,omitempty"`
+	// PreserveOnDelete indicates that the addon resources should be
+	// preserved in the cluster on delete.
+	// +optional
+	PreserveOnDelete bool `json:"preserveOnDelete,omitempty"`
 }
 
 // AddonResolution defines the method for resolving parameter conflicts.
