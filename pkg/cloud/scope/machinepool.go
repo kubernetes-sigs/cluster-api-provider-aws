@@ -34,9 +34,8 @@ import (
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -50,7 +49,7 @@ type MachinePoolScope struct {
 	capiMachinePoolPatchHelper *patch.Helper
 
 	Cluster        *clusterv1.Cluster
-	MachinePool    *expclusterv1.MachinePool
+	MachinePool    *clusterv1.MachinePool
 	InfraCluster   EC2Scope
 	AWSMachinePool *expinfrav1.AWSMachinePool
 }
@@ -61,7 +60,7 @@ type MachinePoolScopeParams struct {
 	Logger *logger.Logger
 
 	Cluster        *clusterv1.Cluster
-	MachinePool    *expclusterv1.MachinePool
+	MachinePool    *clusterv1.MachinePool
 	InfraCluster   EC2Scope
 	AWSMachinePool *expinfrav1.AWSMachinePool
 }
@@ -380,7 +379,7 @@ func (m *MachinePoolScope) GetLaunchTemplate() *expinfrav1.AWSLaunchTemplate {
 }
 
 // GetMachinePool returns the machine pool object.
-func (m *MachinePoolScope) GetMachinePool() *expclusterv1.MachinePool {
+func (m *MachinePoolScope) GetMachinePool() *clusterv1.MachinePool {
 	return m.MachinePool
 }
 

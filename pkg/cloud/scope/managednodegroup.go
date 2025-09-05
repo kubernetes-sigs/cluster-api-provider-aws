@@ -37,8 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpoints"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -50,7 +49,7 @@ type ManagedMachinePoolScopeParams struct {
 	Cluster                   *clusterv1.Cluster
 	ControlPlane              *ekscontrolplanev1.AWSManagedControlPlane
 	ManagedMachinePool        *expinfrav1.AWSManagedMachinePool
-	MachinePool               *expclusterv1.MachinePool
+	MachinePool               *clusterv1.MachinePool
 	ControllerName            string
 	Session                   awsv2.Config
 	MaxWaitActiveUpdateDelete time.Duration
@@ -131,7 +130,7 @@ type ManagedMachinePoolScope struct {
 	Cluster                   *clusterv1.Cluster
 	ControlPlane              *ekscontrolplanev1.AWSManagedControlPlane
 	ManagedMachinePool        *expinfrav1.AWSManagedMachinePool
-	MachinePool               *expclusterv1.MachinePool
+	MachinePool               *clusterv1.MachinePool
 	EC2Scope                  EC2Scope
 	MaxWaitActiveUpdateDelete time.Duration
 
@@ -410,7 +409,7 @@ func (s *ManagedMachinePoolScope) GetLaunchTemplate() *expinfrav1.AWSLaunchTempl
 }
 
 // GetMachinePool returns the machine pool.
-func (s *ManagedMachinePoolScope) GetMachinePool() *expclusterv1.MachinePool {
+func (s *ManagedMachinePoolScope) GetMachinePool() *clusterv1.MachinePool {
 	return s.MachinePool
 }
 
