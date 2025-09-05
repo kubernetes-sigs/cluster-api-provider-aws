@@ -106,6 +106,10 @@ KUSTOMIZE := $(BIN_DIR)/kustomize
 $(KUSTOMIZE): $(BIN_DIR) go.mod go.sum # Build kustomize from tools folder.
 	CGO_ENABLED=0 go build -tags=tools -o $@ sigs.k8s.io/kustomize/kustomize/v5
 
+PROWJOB_GEN := $(BIN_DIR)/prowjob-gen
+$(PROWJOB_GEN): $(BIN_DIR) go.mod go.sum
+	go build -tags=tools -o $@ sigs.k8s.io/cluster-api/hack/tools/prowjob-gen
+
 MDBOOK_SHARE := $(SHARE_DIR)/mdbook$(MDBOOK_ARCHIVE_EXT)
 $(MDBOOK_SHARE): ../../versions.mk $(SHARE_DIR)
 	curl -sL -o $(MDBOOK_SHARE) "https://github.com/rust-lang/mdBook/releases/download/$(MDBOOK_VERSION)/mdBook-$(MDBOOK_VERSION)-x86_64-$(RUST_TARGET)$(MDBOOK_ARCHIVE_EXT)"
