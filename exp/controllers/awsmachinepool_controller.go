@@ -143,7 +143,9 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	// If the release version labels differ, it means Helm hasn't updated all objects yet.
-	if machinePool.Labels[expinfrav1.GiantSwarmReleaseLabel] != awsMachinePool.Labels[expinfrav1.GiantSwarmReleaseLabel] {
+	releaseLabelMP, okMP := machinePool.Labels[expinfrav1.GiantSwarmReleaseLabel]
+	releaseLabelAMP, okAMP := awsMachinePool.Labels[expinfrav1.GiantSwarmReleaseLabel]
+	if okMP && okAMP && releaseLabelMP != releaseLabelAMP {
 		log.Info("Requeuing reconciliation in 5 seconds due to release version mismatch with MachinePool")
 		return reconcile.Result{RequeueAfter: time.Duration(5) * time.Second}, nil
 	}
@@ -157,7 +159,9 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	// If the release version labels differ, it means Helm hasn't updated all objects yet.
-	if cluster.Labels[expinfrav1.GiantSwarmReleaseLabel] != awsMachinePool.Labels[expinfrav1.GiantSwarmReleaseLabel] {
+	releaseLabelC, okC := cluster.Labels[expinfrav1.GiantSwarmReleaseLabel]
+	releaseLabelAMP, okAMP = awsMachinePool.Labels[expinfrav1.GiantSwarmReleaseLabel]
+	if okC && okAMP && releaseLabelC != releaseLabelAMP {
 		log.Info("Requeuing reconciliation in 5 seconds due to release version mismatch with Cluster")
 		return reconcile.Result{RequeueAfter: time.Duration(5) * time.Second}, nil
 	}
