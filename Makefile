@@ -75,6 +75,7 @@ YQ := $(TOOLS_BIN_DIR)/yq
 KPROMO := $(TOOLS_BIN_DIR)/kpromo
 RELEASE_NOTES := $(TOOLS_BIN_DIR)/release-notes
 GORELEASER := $(TOOLS_BIN_DIR)/goreleaser
+PROWJOB_GEN := $(TOOLS_BIN_DIR)/prowjob-gen
 
 CLUSTERAWSADM_SRCS := $(call rwildcard,.,cmd/clusterawsadm/*.*)
 
@@ -422,6 +423,14 @@ $(ARTIFACTS):
 generate-test-flavors: $(KUSTOMIZE)  ## Generate test template flavors
 	./hack/gen-test-flavors.sh withoutclusterclass
 	./hack/gen-test-flavors.sh withclusterclass
+
+.PHONY: generate-test-infra-prowjobs
+generate-test-infra-prowjobs: $(PROWJOB_GEN) ## Generates the prowjob configurations in test-infra
+	@if [ -z "${TEST_INFRA_DIR}" ]; then echo "TEST_INFRA_DIR is not set"; exit 1; fi
+	$(PROWJOB_GEN) \
+		-config "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-aws/cluster-api-provider-aws-prowjob-gen.yaml" \
+		-templates-dir "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-aws/templates" \
+		-output-dir "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-aws"
 
 .PHONY: e2e-image
 e2e-image: docker-pull-prerequisites $(TOOLS_BIN_DIR)/start.sh $(TOOLS_BIN_DIR)/restart.sh ## Build an e2e test image
