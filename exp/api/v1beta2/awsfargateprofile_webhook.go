@@ -30,8 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/eks"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-)
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1")
 
 const (
 	maxProfileNameLength = 100

@@ -22,8 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-)
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1")
 
 // RosaMachinePoolSpec defines the desired state of RosaMachinePool.
 type RosaMachinePoolSpec struct {

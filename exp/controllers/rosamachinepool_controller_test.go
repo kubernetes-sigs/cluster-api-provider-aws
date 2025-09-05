@@ -30,8 +30,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/rosa"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -72,7 +71,7 @@ func TestNodePoolToRosaMachinePoolSpec(t *testing.T) {
 		},
 	}
 
-	machinePoolSpec := expclusterv1.MachinePoolSpec{
+	machinePoolSpec := clusterv1.MachinePoolSpec{
 		Replicas: ptr.To[int32](2),
 	}
 
@@ -188,8 +187,8 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 		}
 	}
 
-	ownerMachinePool := func(i int) *expclusterv1.MachinePool {
-		return &expclusterv1.MachinePool{
+	ownerMachinePool := func(i int) *clusterv1.MachinePool {
+		return &clusterv1.MachinePool{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      fmt.Sprintf("machinepool-%v", i),
 				Namespace: ns.Name,
@@ -200,7 +199,7 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 				Kind:       "MachinePool",
 				APIVersion: clusterv1.GroupVersion.String(),
 			},
-			Spec: expclusterv1.MachinePoolSpec{
+			Spec: clusterv1.MachinePoolSpec{
 				ClusterName: fmt.Sprintf("owner-cluster-%v", i),
 				Template: clusterv1.MachineTemplateSpec{
 					Spec: clusterv1.MachineSpec{
@@ -210,7 +209,7 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 							Name:       rosaMachinePool(i).Name,
 							Namespace:  ns.Namespace,
 							Kind:       "ROSAMachinePool",
-							APIVersion: expclusterv1.GroupVersion.String(),
+							APIVersion: clusterv1.GroupVersion.String(),
 						},
 					},
 				},
@@ -222,7 +221,7 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 		name               string
 		newROSAMachinePool *expinfrav1.ROSAMachinePool
 		oldROSAMachinePool *expinfrav1.ROSAMachinePool
-		machinePool        *expclusterv1.MachinePool
+		machinePool        *clusterv1.MachinePool
 		expect             func(m *mocks.MockOCMClientMockRecorder)
 		result             reconcile.Result
 	}{
@@ -350,7 +349,7 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 		},
 		{
 			name: "Create nodepool, replicas are set in MachinePool",
-			machinePool: &expclusterv1.MachinePool{
+			machinePool: &clusterv1.MachinePool{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      ownerMachinePool(3).Name,
 					Namespace: ns.Name,
@@ -361,7 +360,7 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 					Kind:       "MachinePool",
 					APIVersion: clusterv1.GroupVersion.String(),
 				},
-				Spec: expclusterv1.MachinePoolSpec{
+				Spec: clusterv1.MachinePoolSpec{
 					ClusterName: ownerCluster(3).Name,
 					Replicas:    ptr.To[int32](2),
 					Template: clusterv1.MachineTemplateSpec{
@@ -372,7 +371,7 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 								Name:       rosaMachinePool(3).Name,
 								Namespace:  ns.Namespace,
 								Kind:       "ROSAMachinePool",
-								APIVersion: expclusterv1.GroupVersion.String(),
+								APIVersion: clusterv1.GroupVersion.String(),
 							},
 						},
 					},
@@ -412,7 +411,7 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 		},
 		{
 			name: "Update nodepool, replicas are updated from MachinePool",
-			machinePool: &expclusterv1.MachinePool{
+			machinePool: &clusterv1.MachinePool{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      ownerMachinePool(4).Name,
 					Namespace: ns.Name,
@@ -423,7 +422,7 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 					Kind:       "MachinePool",
 					APIVersion: clusterv1.GroupVersion.String(),
 				},
-				Spec: expclusterv1.MachinePoolSpec{
+				Spec: clusterv1.MachinePoolSpec{
 					ClusterName: ownerCluster(4).Name,
 					Replicas:    ptr.To[int32](2),
 					Template: clusterv1.MachineTemplateSpec{
@@ -434,7 +433,7 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 								Name:       rosaMachinePool(4).Name,
 								Namespace:  ns.Namespace,
 								Kind:       "ROSAMachinePool",
-								APIVersion: expclusterv1.GroupVersion.String(),
+								APIVersion: clusterv1.GroupVersion.String(),
 							},
 						},
 					},

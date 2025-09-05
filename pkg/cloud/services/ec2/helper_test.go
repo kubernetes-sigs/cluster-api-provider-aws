@@ -31,8 +31,7 @@ import (
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 )
 
 func setupClusterScope(cl client.Client) (*scope.ClusterScope, error) {
@@ -164,8 +163,8 @@ func newAWSManagedControlPlane() *ekscontrolplanev1.AWSManagedControlPlane {
 	}
 }
 
-func newMachinePool() *v1beta1.MachinePool {
-	return &v1beta1.MachinePool{
+func newMachinePool() *clusterv1.MachinePool {
+	return &clusterv1.MachinePool{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "MachinePool",
 			APIVersion: "v1",
@@ -173,7 +172,7 @@ func newMachinePool() *v1beta1.MachinePool {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "mp",
 		},
-		Spec: v1beta1.MachinePoolSpec{
+		Spec: clusterv1.MachinePoolSpec{
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Version: ptr.To[string]("v1.23.3"),
@@ -206,7 +205,7 @@ func setupScheme() (*runtime.Scheme, error) {
 	if err := ekscontrolplanev1.AddToScheme(scheme); err != nil {
 		return nil, err
 	}
-	if err := v1beta1.AddToScheme(scheme); err != nil {
+	if err := clusterv1.AddToScheme(scheme); err != nil {
 		return nil, err
 	}
 	return scheme, nil

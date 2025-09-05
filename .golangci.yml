@@ -169,8 +169,8 @@ linters:
           alias: crclient
         - pkg: k8s.io/apimachinery/pkg/types
           alias: apimachinerytypes
-        - pkg: sigs.k8s.io/cluster-api/exp/api/v1beta1
-          alias: expclusterv1
+        - pkg: "sigs.k8s.io/cluster-api/api/core/v1beta1"
+          alias: clusterv1
       no-unaliased: false
     nolintlint:
       require-specific: true

@@ -16,8 +16,7 @@ limitations under the License.
 
 package v1beta1
 
-import clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-
+import clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 const (
 	// PrincipalCredentialRetrievedCondition reports on whether Principal credentials could be retrieved successfully.
 	// A possible scenario, where retrieval is unsuccessful, is when SourcePrincipal is not authorized for assume role.

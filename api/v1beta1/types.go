@@ -19,8 +19,7 @@ package v1beta1
 import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-)
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1")
 
 // AWSResourceReference is a reference to a specific AWS resource by ID or filters.
 // Only one of ID or Filters may be specified. Specifying more than one will result in

@@ -31,8 +31,7 @@ import (
 	eksiam "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/eks/iam"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/eks"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-)
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1")
 
 const (
 	maxIAMRoleNameLength = 64
