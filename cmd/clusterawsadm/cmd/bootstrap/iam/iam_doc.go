@@ -18,12 +18,13 @@ package iam
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 	"k8s.io/kubectl/pkg/util/templates"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cloudformation/bootstrap"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/converters"
+	cmdout "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/printers"
 )
 
 var errInvalidDocumentName = fmt.Errorf("invalid document name, use one of: %+v", bootstrap.ManagedIAMPolicyNames)
@@ -53,31 +54,31 @@ func printPolicyCmd() *cobra.Command {
 		clusterawsadm bootstrap iam print-policy --document AWSIAMManagedPolicyCloudProviderNodes
 
 		# Print out the IAM policy for the Kubernetes AWS EBS CSI Driver Controller.
-		clusterawsadm bootstrap iam print-policy --document AWSEBSCSIPolicyController
+		# Note that this is available only when 'spec.controlPlane.enableCSIPolicy' is set to 'true' in the configuration file.
+		clusterawsadm bootstrap iam print-policy --document AWSEBSCSIPolicyControllerc
 		`),
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			template, err := getBootstrapTemplate(cmd)
+			printer, err := cmdout.New("json", os.Stdout)
+			if err != nil {
+				return fmt.Errorf("failed creating output printer: %w", err)
+			}
+
+			t, err := getBootstrapTemplate(cmd)
 			if err != nil {
 				return err
 			}
 
-			policyName, err := getDocumentName(cmd)
+			specificPolicyName, err := getPolicyName(cmd)
 			if err != nil {
 				return err
 			}
-
-			if policyName == "" {
-				return template.PrintPolicyDocs()
+			if specificPolicyName != "" {
+				printer.Print(t.RenderManagedIAMPolicy(specificPolicyName))
+				return nil
 			}
 
-			policyDocument := template.GetPolicyDocFromPolicyName(policyName)
-			str, err := converters.IAMPolicyDocumentToJSON(*policyDocument)
-			if err != nil {
-				return err
-			}
-
-			fmt.Println(str)
+			printer.Print(t.RenderManagedIAMPolicies())
 			return nil
 		},
 	}
@@ -86,7 +87,7 @@ func printPolicyCmd() *cobra.Command {
 	return newCmd
 }
 
-func getDocumentName(cmd *cobra.Command) (bootstrap.PolicyName, error) {
+func getPolicyName(cmd *cobra.Command) (bootstrap.PolicyName, error) {
 	val := bootstrap.PolicyName(cmd.Flags().Lookup("document").Value.String())
 
 	if val == "" {
