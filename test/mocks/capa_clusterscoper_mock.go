@@ -33,7 +33,7 @@ import (
 	cloud "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	throttle "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	logger "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	v1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	v1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 

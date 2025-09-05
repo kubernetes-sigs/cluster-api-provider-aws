@@ -28,12 +28,12 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	clusterv1igs.k8s.io/cluster-api/api/core/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 )
 
 type deleteMachinePoolInput struct {
-	MachinePool *expclusterv1.MachinePool
+	MachinePool *clusterv1.MachinePool
 	Deleter     framework.Deleter
 }
 
@@ -43,14 +43,14 @@ func deleteMachinePool(ctx context.Context, input deleteMachinePoolInput) {
 }
 
 type waitForMachinePoolDeletedInput struct {
-	MachinePool *expclusterv1.MachinePool
+	MachinePool *clusterv1.MachinePool
 	Getter      framework.Getter
 }
 
 func waitForMachinePoolDeleted(ctx context.Context, input waitForMachinePoolDeletedInput, intervals ...interface{}) {
 	By(fmt.Sprintf("Waiting for machine pool %s to be deleted", input.MachinePool.GetName()))
 	Eventually(func() bool {
-		mp := &expclusterv1.MachinePool{}
+		mp := &clusterv1.MachinePool{}
 		key := client.ObjectKey{
 			Namespace: input.MachinePool.GetNamespace(),
 			Name:      input.MachinePool.GetName(),
