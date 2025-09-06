@@ -127,7 +127,7 @@ type Addon struct {
 	// Name is the name of the addon
 	// +kubebuilder:validation:MinLength:=2
 	// +kubebuilder:validation:Required
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 	// Version is the version of the addon to use
 	Version string `json:"version"`
 	// Configuration of the EKS addon
@@ -227,6 +227,7 @@ type OIDCIdentityProviderConfig struct {
 	// This is also known as audience. The ID for the client application that makes
 	// authentication requests to the OpenID identity provider.
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
 	ClientID string `json:"clientId,omitempty"`
 
 	// The JWT claim that the provider uses to return your groups.
@@ -243,6 +244,7 @@ type OIDCIdentityProviderConfig struct {
 	//
 	// IdentityProviderConfigName is a required field
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
 	IdentityProviderConfigName string `json:"identityProviderConfigName,omitempty"`
 
 	// The URL of the OpenID identity provider that allows the API server to discover
@@ -254,6 +256,8 @@ type OIDCIdentityProviderConfig struct {
 	// and must be publicly accessible over the internet.
 	//
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:Pattern=`^https://.+`
 	IssuerURL string `json:"issuerUrl,omitempty"`
 
 	// The key value pairs that describe required claims in the identity token.

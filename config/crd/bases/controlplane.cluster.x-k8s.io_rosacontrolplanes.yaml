@@ -285,6 +285,7 @@ spec:
                             claim:
                               description: Claim is a JWT token claim to be used in
                                 the mapping
+                              minLength: 1
                               type: string
                             prefix:
                               description: |-
@@ -310,6 +311,7 @@ spec:
                             claim:
                               description: Claim is a JWT token claim to be used in
                                 the mapping
+                              minLength: 1
                               type: string
                             prefix:
                               description: Prefix is prepended to claim to prevent
@@ -417,6 +419,7 @@ spec:
                             name:
                               description: Name is the metadata.name of the referenced
                                 object.
+                              minLength: 1
                               type: string
                           required:
                           - name
@@ -425,6 +428,7 @@ spec:
                           description: |-
                             URL is the serving URL of the token issuer.
                             Must use the https:// scheme.
+                          minLength: 1
                           pattern: ^https:\/\/[^\s]
                           type: string
                       required:
@@ -457,6 +461,7 @@ spec:
                               name:
                                 description: Name is the metadata.name of the referenced
                                   object.
+                                minLength: 1
                                 type: string
                             required:
                             - name
@@ -474,6 +479,7 @@ spec:
                               client configuration
                             maxLength: 63
                             minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                             type: string
                           extraScopes:
                             description: ExtraScopes is an optional set of scopes
