@@ -212,6 +212,15 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 
 	// KubeProxy defines managed attributes of the kube-proxy daemonset
 	KubeProxy KubeProxy `json:"kubeProxy,omitempty"`
+
+	// The support policy to use for the cluster.
+	// Extended support indicates that the cluster will not be automatically upgraded
+	// when it leaves the standard support period, and will enter extended support.
+	// Clusters in extended support have higher costs.
+	// If omitted, new clusters use AWS default extended support and existing clusters stay unchanged.
+	// +kubebuilder:validation:Enum=extended;standard
+	// +optional
+	UpgradePolicy UpgradePolicy `json:"upgradePolicy,omitempty"`
 }
 
 // KubeProxy specifies how the kube-proxy daemonset is managed.

@@ -241,6 +241,24 @@ type AddonIssue struct {
 	ResourceIDs []string `json:"resourceIds,omitempty"`
 }
 
+// UpgradePolicy defines the support policy to use for the cluster.
+type UpgradePolicy string
+
+var (
+	// UpgradePolicyExtended indicates that the cluster will not be automatically upgraded
+	// when it leaves the standard support period, and will enter extended support.
+	// Clusters in extended support have higher costs.
+	UpgradePolicyExtended = UpgradePolicy("extended")
+
+	// UpgradePolicyStandard indicates that the cluster will be automatically upgraded
+	// when it leaves the standard support period.
+	UpgradePolicyStandard = UpgradePolicy("standard")
+)
+
+func (e UpgradePolicy) String() string {
+	return string(e)
+}
+
 const (
 	// SecurityGroupCluster is the security group for communication between EKS
 	// control plane and managed node groups.

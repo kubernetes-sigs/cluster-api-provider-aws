@@ -3243,6 +3243,17 @@ spec:
                 - iam-authenticator
                 - aws-cli
                 type: string
+              upgradePolicy:
+                description: |-
+                  The support policy to use for the cluster.
+                  Extended support indicates that the cluster will not be automatically upgraded
+                  when it leaves the standard support period, and will enter extended support.
+                  Clusters in extended support have higher costs.
+                  If omitted, new clusters use AWS default extended support and existing clusters stay unchanged.
+                enum:
+                - extended
+                - standard
+                type: string
               version:
                 description: |-
                   Version defines the desired Kubernetes version. If no version number
