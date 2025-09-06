@@ -421,6 +421,12 @@ func (r *ROSAControlPlaneReconciler) deleteMachinePools(ctx context.Context, ros
 		}
 	}
 
+	// Workaround the case where last machinePool cannot be deleted without deleting the ROSA controlplane.
+	// When the last MachinePool is deleted we continue so no error appear.
+	if len(errs) == 0 && len(machinePools) == 1 {
+		return true, nil
+	}
+
 	if len(errs) > 0 {
 		return false, kerrors.NewAggregate(errs)
 	}
