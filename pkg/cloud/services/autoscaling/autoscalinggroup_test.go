@@ -42,8 +42,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/autoscaling/mock_autoscalingiface"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 )
 
 func TestServiceGetASGByName(t *testing.T) {
@@ -1267,7 +1266,7 @@ func getFakeClient() client.Client {
 	scheme := runtime.NewScheme()
 	_ = infrav1.AddToScheme(scheme)
 	_ = expinfrav1.AddToScheme(scheme)
-	_ = expclusterv1.AddToScheme(scheme)
+	_ = clusterv1.AddToScheme(scheme)
 	return fake.NewClientBuilder().WithScheme(scheme).Build()
 }
 
@@ -1350,7 +1349,7 @@ func getMachinePoolScope(client client.Client, clusterScope *scope.ClusterScope)
 	mps, err := scope.NewMachinePoolScope(scope.MachinePoolScopeParams{
 		Client:         client,
 		Cluster:        clusterScope.Cluster,
-		MachinePool:    &expclusterv1.MachinePool{},
+		MachinePool:    &clusterv1.MachinePool{},
 		InfraCluster:   clusterScope,
 		AWSMachinePool: awsMachinePool,
 	})

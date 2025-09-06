@@ -54,8 +54,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts/mock_stsiface"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/labels/format"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -149,7 +148,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 						InfrastructureReady: true,
 					},
 				},
-				MachinePool: &expclusterv1.MachinePool{
+				MachinePool: &clusterv1.MachinePool{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "mp",
 						Namespace: "default",
@@ -159,7 +158,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 						APIVersion: "cluster.x-k8s.io/v1beta1",
 						Kind:       "MachinePool",
 					},
-					Spec: expclusterv1.MachinePoolSpec{
+					Spec: clusterv1.MachinePoolSpec{
 						ClusterName: "test",
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
@@ -1420,8 +1419,8 @@ func TestDiffASG(t *testing.T) {
 			name: "replicas != asg.desiredCapacity",
 			args: args{
 				machinePoolScope: &scope.MachinePoolScope{
-					MachinePool: &expclusterv1.MachinePool{
-						Spec: expclusterv1.MachinePoolSpec{
+					MachinePool: &clusterv1.MachinePool{
+						Spec: clusterv1.MachinePoolSpec{
 							Replicas: ptr.To[int32](0),
 						},
 					},
@@ -1436,8 +1435,8 @@ func TestDiffASG(t *testing.T) {
 			name: "replicas (nil) != asg.desiredCapacity",
 			args: args{
 				machinePoolScope: &scope.MachinePoolScope{
-					MachinePool: &expclusterv1.MachinePool{
-						Spec: expclusterv1.MachinePoolSpec{
+					MachinePool: &clusterv1.MachinePool{
+						Spec: clusterv1.MachinePoolSpec{
 							Replicas: nil,
 						},
 					},
@@ -1452,8 +1451,8 @@ func TestDiffASG(t *testing.T) {
 			name: "replicas != asg.desiredCapacity (nil)",
 			args: args{
 				machinePoolScope: &scope.MachinePoolScope{
-					MachinePool: &expclusterv1.MachinePool{
-						Spec: expclusterv1.MachinePoolSpec{
+					MachinePool: &clusterv1.MachinePool{
+						Spec: clusterv1.MachinePoolSpec{
 							Replicas: ptr.To[int32](0),
 						},
 					},
@@ -1468,8 +1467,8 @@ func TestDiffASG(t *testing.T) {
 			name: "maxSize != asg.maxSize",
 			args: args{
 				machinePoolScope: &scope.MachinePoolScope{
-					MachinePool: &expclusterv1.MachinePool{
-						Spec: expclusterv1.MachinePoolSpec{
+					MachinePool: &clusterv1.MachinePool{
+						Spec: clusterv1nePoolSpec{
 							Replicas: ptr.To[int32](1),
 						},
 					},
@@ -1490,8 +1489,8 @@ func TestDiffASG(t *testing.T) {
 			name: "minSize != asg.minSize",
 			args: args{
 				machinePoolScope: &scope.MachinePoolScope{
-					MachinePool: &expclusterv1.MachinePool{
-						Spec: expclusterv1.MachinePoolSpec{
+					MachinePool: &clusterv1.MachinePool{
+						Spec: clusterv1.MachinePoolSpec{
 							Replicas: ptr.To[int32](1),
 						},
 					},
@@ -1514,8 +1513,8 @@ func TestDiffASG(t *testing.T) {
 			name: "capacityRebalance != asg.capacityRebalance",
 			args: args{
 				machinePoolScope: &scope.MachinePoolScope{
-					MachinePool: &expclusterv1.MachinePool{
-						Spec: expclusterv1.MachinePoolSpec{
+					MachinePool: &clusterv1.MachinePool{
+						Spec: clusterv1.MachinePoolSpec{
 							Replicas: ptr.To[int32](1),
 						},
 					},
@@ -1540,8 +1539,8 @@ func TestDiffASG(t *testing.T) {
 			name: "MixedInstancesPolicy != asg.MixedInstancesPolicy",
 			args: args{
 				machinePoolScope: &scope.MachinePoolScope{
-					MachinePool: &expclusterv1.MachinePool{
-						Spec: expclusterv1.MachinePoolSpec{
+					MachinePool: &clusterv1.MachinePool{
+						Spec: clusterv1.MachinePoolSpec{
 							Replicas: ptr.To[int32](1),
 						},
 					},
@@ -1574,8 +1573,8 @@ func TestDiffASG(t *testing.T) {
 			name: "MixedInstancesPolicy.InstancesDistribution != asg.MixedInstancesPolicy.InstancesDistribution",
 			args: args{
 				machinePoolScope: &scope.MachinePoolScope{
-					MachinePool: &expclusterv1.MachinePool{
-						Spec: expclusterv1.MachinePoolSpec{
+					MachinePool: &clusterv1.MachinePool{
+						Spec: clusterv1.MachinePoolSpec{
 							Replicas: ptr.To[int32](1),
 						},
 					},
@@ -1627,8 +1626,8 @@ func TestDiffASG(t *testing.T) {
 			name: "MixedInstancesPolicy.InstancesDistribution unset",
 			args: args{
 				machinePoolScope: &scope.MachinePoolScope{
-					MachinePool: &expclusterv1.MachinePool{
-						Spec: expclusterv1.MachinePoolSpec{
+					MachinePool: &clusterv1.MachinePool{
+						Spec: clusterv1.MachinePoolSpec{
 							Replicas: ptr.To[int32](1),
 						},
 					},
@@ -1674,8 +1673,8 @@ func TestDiffASG(t *testing.T) {
 			name: "SuspendProcesses != asg.SuspendProcesses",
 			args: args{
 				machinePoolScope: &scope.MachinePoolScope{
-					MachinePool: &expclusterv1.MachinePool{
-						Spec: expclusterv1.MachinePoolSpec{
+					MachinePool: &clusterv1.MachinePool{
+						Spec: clusterv1.MachinePoolSpec{
 							Replicas: ptr.To[int32](1),
 						},
 					},
@@ -1715,8 +1714,8 @@ func TestDiffASG(t *testing.T) {
 			name: "all matches",
 			args: args{
 				machinePoolScope: &scope.MachinePoolScope{
-					MachinePool: &expclusterv1.MachinePool{
-						Spec: expclusterv1.MachinePoolSpec{
+					MachinePool: &clusterv1.MachinePool{
+						Spec: clusterv1.MachinePoolSpec{
 							Replicas: ptr.To[int32](1),
 						},
 					},
@@ -1753,13 +1752,13 @@ func TestDiffASG(t *testing.T) {
 			name: "externally managed annotation ignores difference between desiredCapacity and replicas",
 			args: args{
 				machinePoolScope: &scope.MachinePoolScope{
-					MachinePool: &expclusterv1.MachinePool{
+					MachinePool: &clusterv1.MachinePool{
 						ObjectMeta: metav1.ObjectMeta{
 							Annotations: map[string]string{
 								clusterv1.ReplicasManagedByAnnotation: "", // empty value counts as true (= externally managed)
 							},
 						},
-						Spec: expclusterv1.MachinePoolSpec{
+						Spec: clusterv1.MachinePoolSpec{
 							Replicas: ptr.To[int32](0),
 						},
 					},
@@ -1777,8 +1776,8 @@ func TestDiffASG(t *testing.T) {
 			name: "without externally managed annotation ignores difference between desiredCapacity and replicas",
 			args: args{
 				machinePoolScope: &scope.MachinePoolScope{
-					MachinePool: &expclusterv1.MachinePool{
-						Spec: expclusterv1.MachinePoolSpec{
+					MachinePool: &clusterv1.MachinePool{
+						Spec: clusterv1.MachinePoolSpec{
 							Replicas: ptr.To[int32](0),
 						},
 					},
