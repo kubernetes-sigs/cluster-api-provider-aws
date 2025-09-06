@@ -200,7 +200,15 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// bare EKS cluster without EKS default networking addons
 	// If you set this value to false when creating a cluster, the default networking add-ons will not be installed
 	// +kubebuilder:default=true
-	BootstrapSelfManagedAddons bool `json:"bootstrapSelfManagedAddons,omitempty"`
+	BootstrapSelfManagedAddons *bool `json:"bootstrapSelfManagedAddons,omitempty"`
+
+	// autoMode indicates the EKS Auto Mode state for control-plane.
+	// If you set this value to false, the following params will be disabled for EKS:
+	// AWS::EKS::Cluster KubernetesNetworkConfig ElasticLoadBalancing Enabled -> false.
+	// AWS::EKS::Cluster StorageConfig blockStorage Enabled -> false.
+	// AWS::EKS::Cluster ComputeConfig Enabled -> false.
+	// +kubebuilder:default=false
+	AutoMode *bool `json:"autoMode"`
 
 	// RestrictPrivateSubnets indicates that the EKS control plane should only use private subnets.
 	// +kubebuilder:default=false

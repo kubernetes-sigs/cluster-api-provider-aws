@@ -2298,6 +2298,15 @@ spec:
                   AssociateOIDCProvider can be enabled to automatically create an identity
                   provider for the controller for use with IAM roles for service accounts
                 type: boolean
+              autoMode:
+                default: false
+                description: |-
+                  autoMode indicates the EKS Auto Mode state for control-plane.
+                  If you set this value to false, the following params will be disabled for EKS:
+                  AWS::EKS::Cluster KubernetesNetworkConfig ElasticLoadBalancing Enabled -> false.
+                  AWS::EKS::Cluster StorageConfig blockStorage Enabled -> false.
+                  AWS::EKS::Cluster ComputeConfig Enabled -> false.
+                type: boolean
               bastion:
                 description: Bastion contains options to configure the bastion host.
                 properties:
@@ -3339,6 +3348,8 @@ spec:
                       type: object
                     type: array
                 type: object
+            required:
+            - autoMode
             type: object
           status:
             description: AWSManagedControlPlaneStatus defines the observed state of

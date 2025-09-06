@@ -171,6 +171,16 @@ func (in *AWSManagedControlPlaneSpec) DeepCopyInto(out *AWSManagedControlPlaneSp
 		(*in).DeepCopyInto(*out)
 	}
 	in.VpcCni.DeepCopyInto(&out.VpcCni)
+	if in.BootstrapSelfManagedAddons != nil {
+		in, out := &in.BootstrapSelfManagedAddons, &out.BootstrapSelfManagedAddons
+		*out = new(bool)
+		**out = **in
+	}
+	if in.AutoMode != nil {
+		in, out := &in.AutoMode, &out.AutoMode
+		*out = new(bool)
+		**out = **in
+	}
 	out.KubeProxy = in.KubeProxy
 }
 

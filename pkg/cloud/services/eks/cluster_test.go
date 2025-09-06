@@ -534,7 +534,8 @@ func TestCreateCluster(t *testing.T) {
 						Version:                    version,
 						RoleName:                   tc.role,
 						NetworkSpec:                infrav1.NetworkSpec{Subnets: tc.subnets},
-						BootstrapSelfManagedAddons: false,
+						BootstrapSelfManagedAddons: aws.Bool(false),
+						AutoMode:                   aws.Bool(false),
 					},
 				},
 			})
@@ -557,6 +558,8 @@ func TestCreateCluster(t *testing.T) {
 					Tags:                       tc.tags,
 					Version:                    version,
 					BootstrapSelfManagedAddons: aws.Bool(false),
+					ComputeConfig:              &ekstypes.ComputeConfigRequest{Enabled: aws.Bool(false)},
+					StorageConfig:              &ekstypes.StorageConfigRequest{BlockStorage: &ekstypes.BlockStorage{Enabled: aws.Bool(false)}},
 				}).Return(&eks.CreateClusterOutput{}, nil)
 			}
 			s := NewService(scope)
@@ -744,7 +747,8 @@ func TestCreateIPv6Cluster(t *testing.T) {
 					VPC: vpcSpec,
 				},
 				EncryptionConfig:           encryptionConfig,
-				BootstrapSelfManagedAddons: false,
+				BootstrapSelfManagedAddons: aws.Bool(false),
+				AutoMode:                   aws.Bool(false),
 			},
 		},
 	})
@@ -766,6 +770,12 @@ func TestCreateIPv6Cluster(t *testing.T) {
 		},
 		KubernetesNetworkConfig: &ekstypes.KubernetesNetworkConfigRequest{
 			IpFamily: ekstypes.IpFamilyIpv6,
+		},
+		ComputeConfig: &ekstypes.ComputeConfigRequest{
+			Enabled: aws.Bool(false),
+		},
+		StorageConfig: &ekstypes.StorageConfigRequest{
+			BlockStorage: &ekstypes.BlockStorage{Enabled: aws.Bool(false)},
 		},
 		Tags: map[string]string{
 			"kubernetes.io/cluster/cluster-name": "owned",
