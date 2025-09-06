@@ -41,6 +41,19 @@ const (
 	DefaultMachinePoolIgnitionStorageType = IgnitionStorageTypeOptionUnencryptedUserData
 )
 
+// DynamicHostReleaseStrategy defines the strategy for releasing a dynamically allocated dedicated host.
+// It determines when the dedicated host associated with an AWSMachine should be released, such as
+// automatically upon machine deletion or only when manually triggered.
+type DynamicHostReleaseStrategy string
+
+const (
+	// DedicatedHostReleaseStrategyOnMachineDeletion means the dedicated host will be released when the machine is deleted.
+	DedicatedHostReleaseStrategyOnMachineDeletion = DynamicHostReleaseStrategy("on-machine-deletion")
+
+	// DedicatedHostReleaseStrategyManual means the dedicated host will be released manually by the user.
+	DedicatedHostReleaseStrategyManual = DynamicHostReleaseStrategy("manual")
+)
+
 // SecretBackend defines variants for backend secret storage.
 type SecretBackend string
 
@@ -235,16 +248,24 @@ type AWSMachineSpec struct {
 	MarketType MarketType `json:"marketType,omitempty"`
 
 	// HostID specifies the Dedicated Host on which the instance must be started.
+	// This field is mutually exclusive with DynamicHostAllocation.
+	// +kubebuilder:validation:Pattern=`^h-[0-9a-f]{17}$`
 	// +optional
 	HostID *string `json:"hostID,omitempty"`
 
 	// HostAffinity specifies the dedicated host affinity setting for the instance.
-	// When hostAffinity is set to host, an instance started onto a specific host always restarts on the same host if stopped.
-	// When hostAffinity is set to default, and you stop and restart the instance, it can be restarted on any available host.
+	// When HostAffinity is set to host, an instance started onto a specific host always restarts on the same host if stopped.
+	// When HostAffinity is set to default, and you stop and restart the instance, it can be restarted on any available host.
 	// When HostAffinity is defined, HostID is required.
 	// +optional
 	// +kubebuilder:validation:Enum:=default;host
+	// +kubebuilder:default=default
 	HostAffinity *string `json:"hostAffinity,omitempty"`
+
+	// DynamicHostAllocation enables automatic allocation of a single dedicated host.
+	// This field is mutually exclusive with HostID and always allocates exactly one host.
+	// +optional
+	DynamicHostAllocation *DynamicHostAllocationSpec `json:"dynamicHostAllocation,omitempty"`
 
 	// CapacityReservationPreference specifies the preference for use of Capacity Reservations by the instance. Valid values include:
 	// "Open": The instance may make use of open Capacity Reservations that match its AZ and InstanceType
@@ -253,6 +274,21 @@ type AWSMachineSpec struct {
 	// +kubebuilder:validation:Enum="";None;CapacityReservationsOnly;Open
 	// +optional
 	CapacityReservationPreference CapacityReservationPreference `json:"capacityReservationPreference,omitempty"`
+}
+
+// DynamicHostAllocationSpec defines the configuration for dynamic dedicated host allocation.
+// This specification always allocates exactly one dedicated host per machine.
+type DynamicHostAllocationSpec struct {
+	// AutoRelease determines whether to automatically release the dedicated host
+	// when the machine is deleted.
+	// +kubebuilder:default=on-machine-deletion
+	// +kubebuilder:validation:Enum:=on-machine-deletion;manual
+	// +optional
+	Release DynamicHostReleaseStrategy `json:"release,omitempty"`
+
+	// Tags to apply to the allocated dedicated host.
+	// +optional
+	Tags map[string]string `json:"tags,omitempty"`
 }
 
 // CloudInit defines options related to the bootstrapping systems where
@@ -433,6 +469,23 @@ type AWSMachineStatus struct {
 	// Conditions defines current service state of the AWSMachine.
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+
+	// AllocatedHostID tracks the dynamically allocated dedicated host ID.
+	// This field is populated when DynamicHostAllocation is used.
+	// +optional
+	AllocatedHostID *string `json:"allocatedHostID,omitempty"`
+
+	// HostReleaseAttempts tracks the number of attempts to release the dedicated host.
+	// +optional
+	HostReleaseAttempts *int32 `json:"hostReleaseAttempts,omitempty"`
+
+	// LastHostReleaseAttempt tracks the timestamp of the last attempt to release the dedicated host.
+	// +optional
+	LastHostReleaseAttempt *metav1.Time `json:"lastHostReleaseAttempt,omitempty"`
+
+	// HostReleaseFailedReason tracks the reason for the last host release failure.
+	// +optional
+	HostReleaseFailedReason *string `json:"hostReleaseFailedReason,omitempty"`
 }
 
 // +kubebuilder:object:root=true

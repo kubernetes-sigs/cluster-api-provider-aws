@@ -692,6 +692,26 @@ spec:
                     - ssm-parameter-store
                     type: string
                 type: object
+              dynamicHostAllocation:
+                description: |-
+                  DynamicHostAllocation enables automatic allocation of a single dedicated host.
+                  This field is mutually exclusive with HostID and always allocates exactly one host.
+                properties:
+                  release:
+                    default: on-machine-deletion
+                    description: |-
+                      AutoRelease determines whether to automatically release the dedicated host
+                      when the machine is deleted.
+                    enum:
+                    - on-machine-deletion
+                    - manual
+                    type: string
+                  tags:
+                    additionalProperties:
+                      type: string
+                    description: Tags to apply to the allocated dedicated host.
+                    type: object
+                type: object
               elasticIpPool:
                 description: ElasticIPPool is the configuration to allocate Public
                   IPv4 address (Elastic IP/EIP) from user-defined pool.
@@ -722,18 +742,21 @@ spec:
                       rule: self in ['none','amazon-pool']
                 type: object
               hostAffinity:
+                default: default
                 description: |-
                   HostAffinity specifies the dedicated host affinity setting for the instance.
-                  When hostAffinity is set to host, an instance started onto a specific host always restarts on the same host if stopped.
-                  When hostAffinity is set to default, and you stop and restart the instance, it can be restarted on any available host.
+                  When HostAffinity is set to host, an instance started onto a specific host always restarts on the same host if stopped.
+                  When HostAffinity is set to default, and you stop and restart the instance, it can be restarted on any available host.
                   When HostAffinity is defined, HostID is required.
                 enum:
                 - default
                 - host
                 type: string
               hostID:
-                description: HostID specifies the Dedicated Host on which the instance
-                  must be started.
+                description: |-
+                  HostID specifies the Dedicated Host on which the instance must be started.
+                  This field is mutually exclusive with DynamicHostAllocation.
+                pattern: ^h-[0-9a-f]{17}$
                 type: string
               iamInstanceProfile:
                 description: IAMInstanceProfile is a name of an IAM instance profile
@@ -1190,6 +1213,11 @@ spec:
                   - type
                   type: object
                 type: array
+              allocatedHostID:
+                description: |-
+                  AllocatedHostID tracks the dynamically allocated dedicated host ID.
+                  This field is populated when DynamicHostAllocation is used.
+                type: string
               conditions:
                 description: Conditions defines current service state of the AWSMachine.
                 items:
@@ -1280,6 +1308,15 @@ spec:
                   can be added as events to the Machine object and/or logged in the
                   controller's output.
                 type: string
+              hostReleaseAttempts:
+                description: HostReleaseAttempts tracks the number of attempts to
+                  release the dedicated host.
+                format: int32
+                type: integer
+              hostReleaseFailedReason:
+                description: HostReleaseFailedReason tracks the reason for the last
+                  host release failure.
+                type: string
               instanceState:
                 description: InstanceState is the state of the AWS instance for this
                   machine.
@@ -1289,6 +1326,11 @@ spec:
                   Interruptible reports that this machine is using spot instances and can therefore be interrupted by CAPI when it receives a notice that the spot instance is to be terminated by AWS.
                   This will be set to true when SpotMarketOptions is not nil (i.e. this machine is using a spot instance).
                 type: boolean
+              lastHostReleaseAttempt:
+                description: LastHostReleaseAttempt tracks the timestamp of the last
+                  attempt to release the dedicated host.
+                format: date-time
+                type: string
               ready:
                 description: Ready is true when the provider resource is ready.
                 type: boolean

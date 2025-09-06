@@ -48,6 +48,9 @@ func (src *AWSMachine) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.HostAffinity = restored.Spec.HostAffinity
 	dst.Spec.CapacityReservationPreference = restored.Spec.CapacityReservationPreference
 	dst.Spec.NetworkInterfaceType = restored.Spec.NetworkInterfaceType
+	if restored.Spec.DynamicHostAllocation != nil {
+		dst.Spec.DynamicHostAllocation = restored.Spec.DynamicHostAllocation
+	}
 	if restored.Spec.ElasticIPPool != nil {
 		if dst.Spec.ElasticIPPool == nil {
 			dst.Spec.ElasticIPPool = &infrav1.ElasticIPPool{}
@@ -59,6 +62,11 @@ func (src *AWSMachine) ConvertTo(dstRaw conversion.Hub) error {
 			dst.Spec.ElasticIPPool.PublicIpv4PoolFallBackOrder = restored.Spec.ElasticIPPool.PublicIpv4PoolFallBackOrder
 		}
 	}
+
+	dst.Status.AllocatedHostID = restored.Status.AllocatedHostID
+	dst.Status.HostReleaseAttempts = restored.Status.HostReleaseAttempts
+	dst.Status.LastHostReleaseAttempt = restored.Status.LastHostReleaseAttempt
+	dst.Status.HostReleaseFailedReason = restored.Status.HostReleaseFailedReason
 
 	return nil
 }
@@ -115,6 +123,9 @@ func (r *AWSMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.Template.Spec.HostAffinity = restored.Spec.Template.Spec.HostAffinity
 	dst.Spec.Template.Spec.CapacityReservationPreference = restored.Spec.Template.Spec.CapacityReservationPreference
 	dst.Spec.Template.Spec.NetworkInterfaceType = restored.Spec.Template.Spec.NetworkInterfaceType
+	if restored.Spec.Template.Spec.DynamicHostAllocation != nil {
+		dst.Spec.Template.Spec.DynamicHostAllocation = restored.Spec.Template.Spec.DynamicHostAllocation
+	}
 	if restored.Spec.Template.Spec.ElasticIPPool != nil {
 		if dst.Spec.Template.Spec.ElasticIPPool == nil {
 			dst.Spec.Template.Spec.ElasticIPPool = &infrav1.ElasticIPPool{}

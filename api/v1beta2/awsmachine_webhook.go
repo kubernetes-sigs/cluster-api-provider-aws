@@ -75,11 +75,11 @@ func (*awsMachineWebhook) ValidateCreate(_ context.Context, obj runtime.Object) 
 	allErrs = append(allErrs, r.validateNonRootVolumes()...)
 	allErrs = append(allErrs, r.validateSSHKeyName()...)
 	allErrs = append(allErrs, r.validateAdditionalSecurityGroups()...)
-	allErrs = append(allErrs, r.validateHostAffinity()...)
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 	allErrs = append(allErrs, r.validateNetworkElasticIPPool()...)
 	allErrs = append(allErrs, r.validateInstanceMarketType()...)
 	allErrs = append(allErrs, r.validateCapacityReservation()...)
+	allErrs = append(allErrs, r.validateHostAllocation()...)
 
 	return nil, aggregateObjErrors(r.GroupVersionKind().GroupKind(), r.Name, allErrs)
 }
@@ -109,7 +109,7 @@ func (*awsMachineWebhook) ValidateUpdate(ctx context.Context, oldObj, newObj run
 	allErrs = append(allErrs, r.validateCloudInitSecret()...)
 	allErrs = append(allErrs, r.validateAdditionalSecurityGroups()...)
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
-	allErrs = append(allErrs, r.validateHostAffinity()...)
+	allErrs = append(allErrs, r.validateHostAllocation()...)
 
 	newAWSMachineSpec := newAWSMachine["spec"].(map[string]interface{})
 	oldAWSMachineSpec := oldAWSMachine["spec"].(map[string]interface{})
@@ -474,14 +474,17 @@ func (r *AWSMachine) validateAdditionalSecurityGroups() field.ErrorList {
 	return allErrs
 }
 
-func (r *AWSMachine) validateHostAffinity() field.ErrorList {
+func (r *AWSMachine) validateHostAllocation() field.ErrorList {
 	var allErrs field.ErrorList
 
-	if r.Spec.HostAffinity != nil {
-		if r.Spec.HostID == nil || len(*r.Spec.HostID) == 0 {
-			allErrs = append(allErrs, field.Required(field.NewPath("spec.hostID"), "hostID must be set when hostAffinity is configured"))
-		}
+	// Check if both hostID and dynamicHostAllocation are specified
+	hasHostID := r.Spec.HostID != nil && len(*r.Spec.HostID) > 0
+	hasDynamicHostAllocation := r.Spec.DynamicHostAllocation != nil
+
+	if hasHostID && hasDynamicHostAllocation {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.hostID"), "hostID and dynamicHostAllocation are mutually exclusive"), field.Forbidden(field.NewPath("spec.dynamicHostAllocation"), "hostID and dynamicHostAllocation are mutually exclusive"))
 	}
+
 	return allErrs
 }
 
