@@ -556,8 +556,7 @@ func (s *Service) reconcileClusterConfig(ctx context.Context, cluster *ekstypes.
 		input.ResourcesVpcConfig = updateVpcConfig
 	}
 
-	updateUpgradePolicy := s.reconcileUpgradePolicy(cluster.UpgradePolicy)
-	if updateUpgradePolicy != nil {
+	if updateUpgradePolicy := s.reconcileUpgradePolicy(cluster.UpgradePolicy); updateUpgradePolicy != nil {
 		needsUpdate = true
 		input.UpgradePolicy = updateUpgradePolicy
 	}
