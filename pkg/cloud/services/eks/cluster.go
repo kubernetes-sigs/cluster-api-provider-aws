@@ -799,22 +799,17 @@ func (s *Service) reconcileClusterVersion(ctx context.Context, cluster *ekstypes
 }
 
 func (s *Service) reconcileUpgradePolicy(upgradePolicy *ekstypes.UpgradePolicyResponse) *ekstypes.UpgradePolicyRequest {
-	s.Info("reconciling upgrade policy")
-
+	// Should not update when cluster upgrade policy is unknown
 	if upgradePolicy == nil {
-		s.Warn("cannot get cluster upgrade policy, no action")
 		return nil
 	}
 
-	clusterUpgradePolicy := upgradePolicy.SupportType
-
+	// Cluster stay unchanged when upgrade policy omitted
 	if s.scope.ControlPlane.Spec.UpgradePolicy == "" {
-		s.Debug("upgrade policy omitted, no action")
 		return nil
 	}
 
-	if strings.ToLower(string(clusterUpgradePolicy)) == s.scope.ControlPlane.Spec.UpgradePolicy.String() {
-		s.Debug("upgrade policy unchanged, no action")
+	if strings.ToLower(string(upgradePolicy.SupportType)) == s.scope.ControlPlane.Spec.UpgradePolicy.String() {
 		return nil
 	}
 
