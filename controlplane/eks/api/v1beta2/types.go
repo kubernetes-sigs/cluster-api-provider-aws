@@ -245,13 +245,13 @@ type AddonIssue struct {
 type UpgradePolicy string
 
 var (
-	// UpgradePolicyExtended indicates that the cluster will not be automatically upgraded
-	// when it leaves the standard support period, and will enter extended support.
-	// Clusters in extended support have higher costs.
+	// UpgradePolicyExtended indicates that the cluster will enter into extended support once the Kubernetes version reaches end of standard support.
+	// You will incur extended support charges with this setting.
+	// You can upgrade your cluster to a standard supported Kubernetes version to stop incurring extended support charges.
 	UpgradePolicyExtended = UpgradePolicy("extended")
 
-	// UpgradePolicyStandard indicates that the cluster will be automatically upgraded
-	// when it leaves the standard support period.
+	// UpgradePolicyStandard indicates that the cluster is eligible for automatic upgrade at the end of standard support.
+	// You will not incur extended support charges with this setting but you EKS cluster will automatically upgrade to the next supported Kubernetes version in standard support.
 	UpgradePolicyStandard = UpgradePolicy("standard")
 )
 
