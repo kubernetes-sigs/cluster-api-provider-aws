@@ -14,8 +14,8 @@ clusterctl generate cluster capi-eks-quickstart --flavor eks-managedmachinepool 
 
 NOTE: When creating an EKS cluster only the **MAJOR.MINOR** of the `-kubernetes-version` is taken into consideration.
 
-By default, EKS cluster uses:
-- EXTENDED support. See more info about [cluster upgrade policy](https://docs.aws.amazon.com/eks/latest/userguide/view-upgrade-policy.html)
+By default CAPA relies on the default EKS cluster upgrade policy, which at the moment of writing is EXTENDED support.
+See more info about [cluster upgrade policy](https://docs.aws.amazon.com/eks/latest/userguide/view-upgrade-policy.html)
 
 ## Kubeconfig
 
