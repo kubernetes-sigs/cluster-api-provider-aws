@@ -251,7 +251,7 @@ var (
 	UpgradePolicyExtended = UpgradePolicy("extended")
 
 	// UpgradePolicyStandard indicates that the cluster is eligible for automatic upgrade at the end of standard support.
-	// You will not incur extended support charges with this setting but you EKS cluster will automatically upgrade to the next supported Kubernetes version in standard support.
+	// You will not incur extended support charges with this setting but your EKS cluster will automatically upgrade to the next supported Kubernetes version in standard support.
 	UpgradePolicyStandard = UpgradePolicy("standard")
 )
 
