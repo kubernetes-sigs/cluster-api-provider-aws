@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 
+	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 )
 
@@ -81,7 +82,7 @@ func TestNodePoolToRosaMachinePoolSpec(t *testing.T) {
 		TuningConfigs:            []string{"tuning1"},
 		AdditionalSecurityGroups: []string{"sg-123", "sg-456"},
 		VolumeSize:               120,
-		Autoscaling: &expinfrav1.RosaMachinePoolAutoScaling{
+		Autoscaling: &rosacontrolplanev1.AutoScaling{
 			MinReplicas: 2,
 			MaxReplicas: 5,
 		},

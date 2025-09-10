@@ -86,9 +86,7 @@ func init() {
 	_ = rosacontrolplanev1.AddToScheme(scheme)
 	_ = infrav1.AddToScheme(scheme)
 	_ = infrav1beta1.AddToScheme(scheme)
-
 	_ = expinfrav1beta1.AddToScheme(scheme)
-
 	_ = expinfrav1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
@@ -282,10 +280,11 @@ func main() {
 			os.Exit(1)
 		}
 
+		setupLog.Debug("enabling ROSA role config controller")
 		if err = (&expcontrollers.ROSARoleConfigReconciler{
-			Client: mgr.GetClient(),
-			Log:    ctrl.Log.WithName("controllers").WithName("ROSARoleConfig"),
-			Scheme: mgr.GetScheme(),
+			Client:           mgr.GetClient(),
+			Recorder:         mgr.GetEventRecorderFor("rosaroleconfig-controller"),
+			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "ROSARoleConfig")
 			os.Exit(1)

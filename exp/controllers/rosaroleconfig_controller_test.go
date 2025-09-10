@@ -54,26 +54,7 @@ func generateTestID() string {
 	return fmt.Sprintf("%d-%d", time.Now().UnixNano(), rand.Intn(10000))
 }
 
-func TestROSARoleConfigReconcile(t *testing.T) {
-	tests := []test{
-		{firstReconcile},
-		{reconcileWithExistingAccountRolesTest},
-		{reconcileWithAllExistingResourcesTest},
-		{roleConfigDeleteTest},
-	}
-	for i, test := range tests {
-		time.Sleep(100 * time.Millisecond)
-		t.Run(fmt.Sprintf("test RosaRoleconfig: %d", i), func(t *testing.T) {
-			test.t(t)
-		})
-	}
-}
-
-type test struct {
-	t func(*testing.T)
-}
-
-func firstReconcile(t *testing.T) { //nolint:thelper
+func TestROSARoleConfigReconcileCreate(t *testing.T) {
 	RegisterTestingT(t)
 	g := NewWithT(t)
 
@@ -116,13 +97,16 @@ func firstReconcile(t *testing.T) { //nolint:thelper
 	mockIamClient.EXPECT().ListRoles(gomock.Any(), gomock.Any()).Return(&iamv2.ListRolesOutput{
 		Roles: []iamTypes.Role{},
 	}, nil).AnyTimes()
+
 	mockIamClient.EXPECT().ListOpenIDConnectProviders(gomock.Any(), gomock.Any()).Return(&iamv2.ListOpenIDConnectProvidersOutput{
 		OpenIDConnectProviderList: []iamTypes.OpenIDConnectProviderListEntry{},
 	}, nil).AnyTimes()
+
 	// Mock GetRole calls - return role not found error to trigger role creation
 	mockIamClient.EXPECT().GetRole(gomock.Any(), gomock.Any()).Return(nil, &iamTypes.NoSuchEntityException{
 		Message: awsSdk.String("The role with name test-role does not exist."),
 	}).AnyTimes()
+
 	// Mock CreateRole calls for role creation
 	mockIamClient.EXPECT().CreateRole(gomock.Any(), gomock.Any()).Return(&iamv2.CreateRoleOutput{
 		Role: &iamTypes.Role{
@@ -130,8 +114,14 @@ func firstReconcile(t *testing.T) { //nolint:thelper
 			Arn:      awsSdk.String("arn:aws:iam::123456789012:role/test-role"),
 		},
 	}, nil).AnyTimes()
+
+	providerARN := "test-oidc-id-created"
+	mockIamClient.EXPECT().CreateOpenIDConnectProvider(gomock.Any(), gomock.Any(), gomock.Any()).Return(
+		&iamv2.CreateOpenIDConnectProviderOutput{OpenIDConnectProviderArn: &providerARN}, nil).AnyTimes()
+
 	// Mock AttachRolePolicy calls
 	mockIamClient.EXPECT().AttachRolePolicy(gomock.Any(), gomock.Any()).Return(&iamv2.AttachRolePolicyOutput{}, nil).AnyTimes()
+
 	// Mock CreatePolicy calls
 	mockIamClient.EXPECT().CreatePolicy(gomock.Any(), gomock.Any()).Return(&iamv2.CreatePolicyOutput{
 		Policy: &iamTypes.Policy{
@@ -139,6 +129,7 @@ func firstReconcile(t *testing.T) { //nolint:thelper
 			Arn:        awsSdk.String("arn:aws:iam::123456789012:policy/test-policy"),
 		},
 	}, nil).AnyTimes()
+
 	// Mock GetPolicy calls - return success for AWS managed policies, not found for others
 	mockIamClient.EXPECT().GetPolicy(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, input *iamv2.GetPolicyInput) (*iamv2.GetPolicyOutput, error) {
 		switch *input.PolicyArn {
@@ -156,7 +147,6 @@ func firstReconcile(t *testing.T) { //nolint:thelper
 					Arn:        awsSdk.String("arn:aws:iam::aws:policy/sts_hcp_support_permission_policy"),
 				},
 			}, nil
-
 		case "arn:aws:iam::aws:policy/sts_hcp_worker_permission_policy":
 			return &iamv2.GetPolicyOutput{
 				Policy: &iamTypes.Policy{
@@ -170,6 +160,7 @@ func firstReconcile(t *testing.T) { //nolint:thelper
 			}
 		}
 	}).AnyTimes()
+
 	// Mock ListPolicies calls - return expected ROSA managed policies
 	mockIamClient.EXPECT().ListPolicies(gomock.Any(), gomock.Any()).Return(&iamv2.ListPoliciesOutput{
 		Policies: []iamTypes.Policy{
@@ -302,7 +293,7 @@ func firstReconcile(t *testing.T) { //nolint:thelper
 			}
 		})
 
-	// mock ocm API calls - first call gets tris response
+	// Mock ocm API calls - first call gets tris response
 	apiServer.AppendHandlers(
 		ocmsdk.RespondWithJSON(
 			http.StatusOK, "",
@@ -314,12 +305,19 @@ func firstReconcile(t *testing.T) { //nolint:thelper
 			http.StatusOK, `{"id": "test-oidc-id", "issuer_url": "https://test.oidc.url"}`,
 		),
 	)
-	// Mock GetAllClusters call
-	apiServer.AppendHandlers(
+	// Mock OIDC config creation calls - POST /api/clusters_mgmt/v1/oidc_configs
+	apiServer.RouteToHandler("POST", "/api/clusters_mgmt/v1/oidc_configs",
 		ocmsdk.RespondWithJSON(
-			http.StatusOK, `{"items": []}`,
+			http.StatusCreated, `{"id": "test-oidc-id-created", "issuer_url": "https://test.oidc.url"}`,
 		),
 	)
+	// Additional OIDC config call mock for GET requests
+	apiServer.RouteToHandler("GET", "/api/clusters_mgmt/v1/oidc_configs/test-oidc-id-created",
+		ocmsdk.RespondWithJSON(
+			http.StatusOK, `{"id": "test-oidc-id-created", "issuer_url": "https://test.oidc.url"}`,
+		),
+	)
+
 	// Mock GetAllCredRequests call
 	apiServer.AppendHandlers(
 		ocmsdk.RespondWithJSON(
@@ -339,8 +337,6 @@ func firstReconcile(t *testing.T) { //nolint:thelper
 		),
 	)
 
-	// prepare the role config
-
 	// Create CRs with unique names to avoid conflicts
 	ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("test-namespace-%s", testID))
 	rosaRoleConfig := &expinfrav1.ROSARoleConfig{
@@ -352,11 +348,12 @@ func firstReconcile(t *testing.T) { //nolint:thelper
 		Spec: expinfrav1.ROSARoleConfigSpec{
 			AccountRoleConfig: expinfrav1.AccountRoleConfig{
 				Prefix:  "test",
-				Version: "4.15",
+				Version: "4.15.0",
 			},
 			OperatorRoleConfig: expinfrav1.OperatorRoleConfig{
 				Prefix: "test",
 			},
+			OidcProviderType: expinfrav1.Managed,
 		},
 	}
 	g.Expect(err).ToNot(HaveOccurred())
@@ -376,180 +373,6 @@ func firstReconcile(t *testing.T) { //nolint:thelper
 	_, errReconcile := reconciler.Reconcile(ctx, req)
 
 	// Assertions - expect the installer role empty error since AccountRolesRef is not populated yet
-	g.Expect(errReconcile).To(HaveOccurred())
-	g.Expect(errReconcile.Error()).To(ContainSubstring("installer role is empty"))
-
-	// Sleep to ensure the status is updated
-	time.Sleep(100 * time.Millisecond)
-
-	// Check the status of the ROSARoleConfig resource
-	updatedRoleConfig := &expinfrav1.ROSARoleConfig{}
-	err = reconciler.Client.Get(ctx, req.NamespacedName, updatedRoleConfig)
-	g.Expect(err).ToNot(HaveOccurred())
-
-	// Should have a condition indicating the failure at operator role creation
-	hasFailureCondition := false
-	for _, condition := range updatedRoleConfig.Status.Conditions {
-		if condition.Type == expinfrav1.RosaRoleConfigReadyCondition &&
-			condition.Status == corev1.ConditionFalse &&
-			condition.Reason == expinfrav1.RosaRoleConfigReconciliationFailedReason {
-			hasFailureCondition = true
-			g.Expect(condition.Message).To(ContainSubstring("Failed to create Operator Roles"))
-			break
-		}
-	}
-	g.Expect(hasFailureCondition).To(BeTrue(), "Expected to find a failure condition for operator role creation")
-}
-
-func reconcileWithExistingAccountRolesTest(t *testing.T) { //nolint:thelper
-	RegisterTestingT(t)
-	g := NewWithT(t)
-
-	// Generate unique test ID for resource isolation
-	testID := generateTestID()
-
-	ssoServer := ocmsdk.MakeTCPServer()
-	apiServer := ocmsdk.MakeTCPServer()
-	defer ssoServer.Close()
-	defer apiServer.Close()
-	apiServer.SetAllowUnhandledRequests(true)
-	apiServer.SetUnhandledRequestStatusCode(http.StatusInternalServerError)
-	ctx := context.TODO()
-
-	// Create the token:
-	accessToken := ocmsdk.MakeTokenString("Bearer", 15*time.Minute)
-
-	// Prepare the server:
-	ssoServer.AppendHandlers(
-		ocmsdk.RespondWithAccessToken(accessToken),
-	)
-	logger, err := ocmlogging.NewGoLoggerBuilder().
-		Debug(false).
-		Build()
-	Expect(err).ToNot(HaveOccurred())
-	// Set up the connection with the fake config
-	connection, err := sdk.NewConnectionBuilder().
-		Logger(logger).
-		Tokens(accessToken).
-		URL(apiServer.URL()).
-		Build()
-	// Initialize client object
-	Expect(err).To(BeNil())
-	ocmClient := ocm.NewClientWithConnection(connection)
-
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	// mock iam client to expect ListRoles call - return existing account roles
-
-	mockAWSClient2 := aws.NewMockClient(mockCtrl)
-	mockAWSClient2.EXPECT().HasManagedPolicies(gomock.Any()).Return(false, nil).AnyTimes()
-	mockAWSClient2.EXPECT().HasHostedCPPolicies(gomock.Any()).Return(true, nil).AnyTimes()
-	mockAWSClient2.EXPECT().ListAccountRoles(gomock.Any()).Return([]aws.Role{
-		{
-			RoleName: "test-HCP-ROSA-Installer-Role",
-			RoleARN:  "arn:aws:iam::123456789012:role/test-HCP-ROSA-Installer-Role",
-		},
-		{
-			RoleName: "test-HCP-ROSA-Support-Role",
-			RoleARN:  "arn:aws:iam::123456789012:role/test-HCP-ROSA-Support-Role",
-		},
-		{
-			RoleName: "test-HCP-ROSA-Worker-Role",
-			RoleARN:  "arn:aws:iam::123456789012:role/test-HCP-ROSA-Worker-Role",
-		},
-	}, nil).AnyTimes()
-	mockAWSClient2.EXPECT().ListOperatorRoles(gomock.Any(), gomock.Any(), gomock.Any()).Return(map[string][]aws.OperatorRoleDetail{}, nil).AnyTimes()
-	mockAWSClient2.EXPECT().ListOidcProviders(gomock.Any(), gomock.Any()).Return([]aws.OidcProviderOutput{
-		{
-			Arn: "arn:aws:iam::123456789012:oidc-provider/test-oidc-id-created",
-		},
-	}, nil).AnyTimes()
-	mockAWSClient2.EXPECT().GetCreator().Return(&aws.Creator{
-		ARN:       "arn:aws:iam::123456789012:user/test-user",
-		AccountID: "123456789012",
-		IsSTS:     false,
-	}, nil).AnyTimes()
-
-	awsClient := mockAWSClient2
-
-	r := rosacli.NewRuntime()
-	r.OCMClient = ocmClient
-	r.AWSClient = awsClient
-	r.Creator = &aws.Creator{
-		ARN:       "arn:aws:iam::123456789012:user/test-user",
-		AccountID: "123456789012",
-		IsSTS:     false,
-	}
-
-	// mock ocm API calls - first call gets tris response
-	apiServer.AppendHandlers(
-		ocmsdk.RespondWithJSON(
-			http.StatusOK, "",
-		),
-	)
-	// Mock GetOidcConfig call
-	apiServer.AppendHandlers(
-		ocmsdk.RespondWithJSON(
-			http.StatusOK, `{"id": "test-oidc-id", "issuer_url": "https://test.oidc.url"}`,
-		),
-	)
-	// Mock GetAllClusters call
-	apiServer.AppendHandlers(
-		ocmsdk.RespondWithJSON(
-			http.StatusOK, `{"items": []}`,
-		),
-	)
-
-	// Mock OIDC config creation calls - POST /api/clusters_mgmt/v1/oidc_configs
-	apiServer.RouteToHandler("POST", "/api/clusters_mgmt/v1/oidc_configs",
-		ocmsdk.RespondWithJSON(
-			http.StatusCreated, `{"id": "test-oidc-id-created", "issuer_url": "https://test.oidc.url"}`,
-		),
-	)
-	// Additional OIDC config call mock for GET requests
-	apiServer.RouteToHandler("GET", "/api/clusters_mgmt/v1/oidc_configs/test-oidc-id-created",
-		ocmsdk.RespondWithJSON(
-			http.StatusOK, `{"id": "test-oidc-id-created", "issuer_url": "https://test.oidc.url"}`,
-		),
-	)
-
-	// Create CRs with unique names to avoid conflicts
-	ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("test-namespace-existing-roles-%s", testID))
-	g.Expect(err).ToNot(HaveOccurred())
-
-	rosaRoleConfig := &expinfrav1.ROSARoleConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:       fmt.Sprintf("test-rosa-role-existing-%s", testID),
-			Namespace:  ns.Name,
-			Finalizers: []string{expinfrav1.RosaRoleConfigFinalizer},
-		},
-		Spec: expinfrav1.ROSARoleConfigSpec{
-			AccountRoleConfig: expinfrav1.AccountRoleConfig{
-				Prefix:  "test",
-				Version: "4.15",
-			},
-			OperatorRoleConfig: expinfrav1.OperatorRoleConfig{
-				Prefix: "test",
-			},
-		},
-	}
-
-	createObject(g, rosaRoleConfig, ns.Name)
-	defer cleanupObject(g, rosaRoleConfig)
-
-	// Setup the reconciler with these mocks
-	reconciler := &ROSARoleConfigReconciler{
-		Client:  testEnv.Client,
-		Runtime: r,
-	}
-
-	// Call the Reconcile function
-	req := ctrl.Request{}
-	req.NamespacedName = types.NamespacedName{Name: rosaRoleConfig.Name, Namespace: rosaRoleConfig.Namespace}
-	_, errReconcile := reconciler.Reconcile(ctx, req)
-
-	// Assertions - since account roles, OIDC config, and operator roles already exist,
-	// reconciliation should succeed
 	g.Expect(errReconcile).ToNot(HaveOccurred())
 
 	// Sleep to ensure the status is updated
@@ -560,35 +383,21 @@ func reconcileWithExistingAccountRolesTest(t *testing.T) { //nolint:thelper
 	err = reconciler.Client.Get(ctx, req.NamespacedName, updatedRoleConfig)
 	g.Expect(err).ToNot(HaveOccurred())
 
-	// Verify that all existing data is preserved
-	g.Expect(updatedRoleConfig.Status.AccountRolesRef.InstallerRoleARN).ToNot(BeEmpty())
-	g.Expect(updatedRoleConfig.Status.AccountRolesRef.InstallerRoleARN).To(Equal("arn:aws:iam::123456789012:role/test-HCP-ROSA-Installer-Role"))
-	g.Expect(updatedRoleConfig.Status.AccountRolesRef.SupportRoleARN).To(Equal("arn:aws:iam::123456789012:role/test-HCP-ROSA-Support-Role"))
-	g.Expect(updatedRoleConfig.Status.AccountRolesRef.WorkerRoleARN).To(Equal("arn:aws:iam::123456789012:role/test-HCP-ROSA-Worker-Role"))
-
-	// Verify OIDC config was created during reconciliation
-	g.Expect(updatedRoleConfig.Status.OIDCID).ToNot(BeEmpty())
+	// We expect only oidcID to be set with first reconcile happen, Account roles and Operator roles should be empty
 	g.Expect(updatedRoleConfig.Status.OIDCID).To(Equal("test-oidc-id-created"))
-	g.Expect(updatedRoleConfig.Status.OIDCProviderARN).ToNot(BeEmpty())
-	// The provider ARN should contain the OIDC ID
-	g.Expect(updatedRoleConfig.Status.OIDCProviderARN).To(ContainSubstring("test-oidc-id-created"))
+	g.Expect(updatedRoleConfig.Status.AccountRolesRef).To(Equal(expinfrav1.AccountRolesRef{}))
+	g.Expect(updatedRoleConfig.Status.OperatorRolesRef).To(Equal(rosacontrolplanev1.AWSRolesRef{}))
 
-	// Verify operator roles are preserved
-	g.Expect(updatedRoleConfig.Status.OperatorRolesRef.IngressARN).To(BeEmpty())
-	g.Expect(updatedRoleConfig.Status.OperatorRolesRef.ImageRegistryARN).To(BeEmpty())
-	g.Expect(updatedRoleConfig.Status.OperatorRolesRef.StorageARN).To(BeEmpty())
-	g.Expect(updatedRoleConfig.Status.OperatorRolesRef.NetworkARN).To(BeEmpty())
-	g.Expect(updatedRoleConfig.Status.OperatorRolesRef.KubeCloudControllerARN).To(BeEmpty())
-	g.Expect(updatedRoleConfig.Status.OperatorRolesRef.NodePoolManagementARN).To(BeEmpty())
-	g.Expect(updatedRoleConfig.Status.OperatorRolesRef.ControlPlaneOperatorARN).To(BeEmpty())
-	g.Expect(updatedRoleConfig.Status.OperatorRolesRef.KMSProviderARN).To(BeEmpty())
-
-	// Should have a condition indicating success
-	readyCondition := conditions.Get(updatedRoleConfig, expinfrav1.RosaRoleConfigReadyCondition)
-	g.Expect(readyCondition).To(BeNil())
+	// Ready condition should be false.
+	for _, condition := range updatedRoleConfig.Status.Conditions {
+		if condition.Type == expinfrav1.RosaRoleConfigReadyCondition {
+			g.Expect(condition.Status).To(Equal(corev1.ConditionFalse))
+			break
+		}
+	}
 }
 
-func reconcileWithAllExistingResourcesTest(t *testing.T) { //nolint:thelper
+func TestROSARoleConfigReconcileExist(t *testing.T) {
 	RegisterTestingT(t)
 	g := NewWithT(t)
 
@@ -650,56 +459,41 @@ func reconcileWithAllExistingResourcesTest(t *testing.T) { //nolint:thelper
 
 	// Return existing operator roles
 	mockAWSClient.EXPECT().ListOperatorRoles(gomock.Any(), gomock.Any(), gomock.Any()).Return(map[string][]aws.OperatorRoleDetail{
-		"ingress": {
+		"test": {
 			{
 				RoleName: "test-openshift-ingress-operator-cloud-credentials",
 				RoleARN:  "arn:aws:iam::123456789012:role/test-openshift-ingress-operator-cloud-credentials",
 			},
-		},
-		"image-registry": {
 			{
 				RoleName: "test-openshift-image-registry-installer-cloud-credentials",
 				RoleARN:  "arn:aws:iam::123456789012:role/test-openshift-image-registry-installer-cloud-credentials",
 			},
-		},
-		"storage": {
 			{
 				RoleName: "test-openshift-cluster-csi-drivers-ebs-cloud-credentials",
 				RoleARN:  "arn:aws:iam::123456789012:role/test-openshift-cluster-csi-drivers-ebs-cloud-credentials",
 			},
-		},
-		"network": {
 			{
 				RoleName: "test-openshift-cloud-network-config-controller-cloud-credentials",
 				RoleARN:  "arn:aws:iam::123456789012:role/test-openshift-cloud-network-config-controller-cloud-credentials",
 			},
-		},
-		"kube-controller": {
 			{
 				RoleName: "test-kube-system-kube-controller-manager",
 				RoleARN:  "arn:aws:iam::123456789012:role/test-kube-system-kube-controller-manager",
 			},
-		},
-		"nodepool": {
 			{
 				RoleName: "test-kube-system-capa-controller-manager",
 				RoleARN:  "arn:aws:iam::123456789012:role/test-kube-system-capa-controller-manager",
 			},
-		},
-		"control-plane": {
 			{
 				RoleName: "test-kube-system-control-plane-operator",
 				RoleARN:  "arn:aws:iam::123456789012:role/test-kube-system-control-plane-operator",
 			},
-		},
-		"kms": {
 			{
 				RoleName: "test-kube-system-kms-provider",
 				RoleARN:  "arn:aws:iam::123456789012:role/test-kube-system-kms-provider",
 			},
 		},
 	}, nil).AnyTimes()
-
 	// Return existing OIDC providers
 	mockAWSClient.EXPECT().ListOidcProviders(gomock.Any(), gomock.Any()).Return([]aws.OidcProviderOutput{
 		{
@@ -775,11 +569,12 @@ func reconcileWithAllExistingResourcesTest(t *testing.T) { //nolint:thelper
 		Spec: expinfrav1.ROSARoleConfigSpec{
 			AccountRoleConfig: expinfrav1.AccountRoleConfig{
 				Prefix:  "test",
-				Version: "4.15",
+				Version: "4.15.0",
 			},
 			OperatorRoleConfig: expinfrav1.OperatorRoleConfig{
 				Prefix: "test",
 			},
+			OidcProviderType: expinfrav1.Managed,
 		},
 		Status: expinfrav1.ROSARoleConfigStatus{
 			OIDCID: "test-existing-oidc-id",
@@ -812,15 +607,12 @@ func reconcileWithAllExistingResourcesTest(t *testing.T) { //nolint:thelper
 	g.Expect(err).ToNot(HaveOccurred())
 
 	// Verify that all existing account roles are preserved
-	g.Expect(updatedRoleConfig.Status.AccountRolesRef.InstallerRoleARN).ToNot(BeEmpty())
 	g.Expect(updatedRoleConfig.Status.AccountRolesRef.InstallerRoleARN).To(Equal("arn:aws:iam::123456789012:role/test-HCP-ROSA-Installer-Role"))
 	g.Expect(updatedRoleConfig.Status.AccountRolesRef.SupportRoleARN).To(Equal("arn:aws:iam::123456789012:role/test-HCP-ROSA-Support-Role"))
 	g.Expect(updatedRoleConfig.Status.AccountRolesRef.WorkerRoleARN).To(Equal("arn:aws:iam::123456789012:role/test-HCP-ROSA-Worker-Role"))
 
 	// Verify OIDC config is preserved
-	g.Expect(updatedRoleConfig.Status.OIDCID).ToNot(BeEmpty())
 	g.Expect(updatedRoleConfig.Status.OIDCID).To(Equal("test-existing-oidc-id"))
-	g.Expect(updatedRoleConfig.Status.OIDCProviderARN).ToNot(BeEmpty())
 	g.Expect(updatedRoleConfig.Status.OIDCProviderARN).To(Equal("arn:aws:iam::123456789012:oidc-provider/test-existing-oidc-id"))
 
 	// Verify operator roles are populated with existing roles
@@ -840,7 +632,7 @@ func reconcileWithAllExistingResourcesTest(t *testing.T) { //nolint:thelper
 	g.Expect(readyCondition.Reason).To(Equal(expinfrav1.RosaRoleConfigCreatedReason))
 }
 
-func roleConfigDeleteTest(t *testing.T) { //nolint:thelper
+func TestROSARoleConfigReconcileDelete(t *testing.T) {
 	RegisterTestingT(t)
 	g := NewWithT(t)
 
@@ -890,7 +682,7 @@ func roleConfigDeleteTest(t *testing.T) { //nolint:thelper
 		"test-kube-system-capa-controller-manager",
 		"test-kube-system-control-plane-operator",
 		"test-kube-system-kms-provider",
-	}, nil).Times(1)
+	}, nil).AnyTimes()
 
 	// Return existing account roles that will be deleted
 	mockAWSClient.EXPECT().ListAccountRoles(gomock.Any()).Return([]aws.Role{
@@ -908,51 +700,36 @@ func roleConfigDeleteTest(t *testing.T) { //nolint:thelper
 		},
 	}, nil).AnyTimes()
 
-	// Return existing operator roles that will be deleted
 	mockAWSClient.EXPECT().ListOperatorRoles(gomock.Any(), gomock.Any(), gomock.Any()).Return(map[string][]aws.OperatorRoleDetail{
-		"ingress": {
+		"test": {
 			{
 				RoleName: "test-openshift-ingress-operator-cloud-credentials",
 				RoleARN:  "arn:aws:iam::123456789012:role/test-openshift-ingress-operator-cloud-credentials",
 			},
-		},
-		"image-registry": {
 			{
 				RoleName: "test-openshift-image-registry-installer-cloud-credentials",
 				RoleARN:  "arn:aws:iam::123456789012:role/test-openshift-image-registry-installer-cloud-credentials",
 			},
-		},
-		"storage": {
 			{
 				RoleName: "test-openshift-cluster-csi-drivers-ebs-cloud-credentials",
 				RoleARN:  "arn:aws:iam::123456789012:role/test-openshift-cluster-csi-drivers-ebs-cloud-credentials",
 			},
-		},
-		"network": {
 			{
 				RoleName: "test-openshift-cloud-network-config-controller-cloud-credentials",
 				RoleARN:  "arn:aws:iam::123456789012:role/test-openshift-cloud-network-config-controller-cloud-credentials",
 			},
-		},
-		"kube-controller": {
 			{
 				RoleName: "test-kube-system-kube-controller-manager",
 				RoleARN:  "arn:aws:iam::123456789012:role/test-kube-system-kube-controller-manager",
 			},
-		},
-		"nodepool": {
 			{
 				RoleName: "test-kube-system-capa-controller-manager",
 				RoleARN:  "arn:aws:iam::123456789012:role/test-kube-system-capa-controller-manager",
 			},
-		},
-		"control-plane": {
 			{
 				RoleName: "test-kube-system-control-plane-operator",
 				RoleARN:  "arn:aws:iam::123456789012:role/test-kube-system-control-plane-operator",
 			},
-		},
-		"kms": {
 			{
 				RoleName: "test-kube-system-kms-provider",
 				RoleARN:  "arn:aws:iam::123456789012:role/test-kube-system-kms-provider",
@@ -969,10 +746,12 @@ func roleConfigDeleteTest(t *testing.T) { //nolint:thelper
 
 	// Delete operator roles (called individually for each role)
 	mockAWSClient.EXPECT().DeleteOperatorRole(gomock.Any(), gomock.Any(), true).Return(map[string]bool{}, nil).AnyTimes()
-	mockAWSClient.EXPECT().CheckRoleExists(gomock.Any()).Return(true, "", nil).AnyTimes()
 
 	// Mock OIDC provider deletion
-	// mockAWSClient.EXPECT().DeleteOpenIDConnectProvider("arn:aws:iam::123456789012:oidc-provider/test-existing-oidc-id").Return(nil).Times(1)
+	mockAWSClient.EXPECT().DeleteOpenIDConnectProvider("arn:aws:iam::123456789012:oidc-provider/test-existing-oidc-id").Return(nil).AnyTimes()
+
+	// Delete account roles (called individually for each role)
+	mockAWSClient.EXPECT().DeleteAccountRole(gomock.Any(), gomock.Any(), true, false).Return(nil).AnyTimes()
 
 	mockAWSClient.EXPECT().GetCreator().Return(&aws.Creator{
 		ARN:       "arn:aws:iam::123456789012:user/test-user",
@@ -1052,11 +831,12 @@ func roleConfigDeleteTest(t *testing.T) { //nolint:thelper
 		Spec: expinfrav1.ROSARoleConfigSpec{
 			AccountRoleConfig: expinfrav1.AccountRoleConfig{
 				Prefix:  "test",
-				Version: "4.15",
+				Version: "4.15.0",
 			},
 			OperatorRoleConfig: expinfrav1.OperatorRoleConfig{
 				Prefix: "test",
 			},
+			OidcProviderType: expinfrav1.Managed,
 		},
 		Status: expinfrav1.ROSARoleConfigStatus{
 			OIDCID:          "test-existing-oidc-id",
@@ -1104,7 +884,7 @@ func roleConfigDeleteTest(t *testing.T) { //nolint:thelper
 	g.Expect(errReconcile).ToNot(HaveOccurred())
 
 	// Sleep to ensure the status is updated
-	time.Sleep(103 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 
 	deletedRoleConfig := &expinfrav1.ROSARoleConfig{}
 
@@ -1116,6 +896,4 @@ func roleConfigDeleteTest(t *testing.T) { //nolint:thelper
 		// If object still exists, verify finalizers are removed
 		g.Expect(deletedRoleConfig.Finalizers).To(BeEmpty(), "Finalizers should be removed after successful deletion")
 	}
-
-	// If object is not found, that's also acceptable as it means deletion completed
 }

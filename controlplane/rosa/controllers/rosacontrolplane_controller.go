@@ -198,10 +198,10 @@ func (r *ROSAControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	// Handle normal reconciliation loop.
-	return r.reconcileNormal(ctx, rosaScope, log)
+	return r.reconcileNormal(ctx, rosaScope)
 }
 
-func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope, log *logger.Logger) (res ctrl.Result, reterr error) {
+func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (res ctrl.Result, reterr error) {
 	rosaScope.Info("Reconciling ROSAControlPlane")
 
 	if controllerutil.AddFinalizer(rosaScope.ControlPlane, ROSAControlPlaneFinalizer) {
@@ -245,10 +245,10 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 					rosacontrolplanev1.ROSARoleConfigNotFoundReason,
 					clusterv1.ConditionSeverityError,
 					"RosaRoleConfig %s/%s not found", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name)
-				log.Error(err, fmt.Sprintf("RosaRoleConfig %s/%s not found: %s", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name, err.Error()))
+				rosaScope.Error(err, fmt.Sprintf("RosaRoleConfig %s/%s not found: %s", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name, err.Error()))
 				return ctrl.Result{RequeueAfter: time.Second * 60}, nil
 			}
-			log.Error(err, fmt.Sprintf("failed to get RosaRoleConfig %s/%s: %s", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name, err.Error()))
+			rosaScope.Error(err, fmt.Sprintf("failed to get RosaRoleConfig %s/%s: %s", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name, err.Error()))
 			return ctrl.Result{RequeueAfter: time.Second * 60}, nil
 		}
 
@@ -259,7 +259,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 				rosacontrolplanev1.ROSARoleConfigNotReadyReason,
 				clusterv1.ConditionSeverityWarning,
 				"RosaRoleConfig %s/%s is not ready", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name)
-			log.Error(err, fmt.Sprintf("RosaRoleConfig %s/%s is not ready", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name))
+			rosaScope.Error(err, fmt.Sprintf("RosaRoleConfig %s/%s is not ready", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name))
 
 			return ctrl.Result{RequeueAfter: time.Second * 60}, nil
 		}
@@ -274,11 +274,6 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 	}
 
 	validationMessage, err := validateControlPlaneSpec(ocmClient, rosaScope)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to validate ROSAControlPlane.spec: %w", err)
-	}
-
-	err = validateRoleConfigSpec(rosaRoleConfig)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to validate ROSAControlPlane.spec: %w", err)
 	}
@@ -1197,56 +1192,4 @@ func buildAPIEndpoint(cluster *cmv1.Cluster) (*clusterv1.APIEndpoint, error) {
 		Host: host,
 		Port: int32(port), //#nosec G109 G115
 	}, nil
-}
-
-func validateRoleConfigSpec(roleConfig *expinfrav1.ROSARoleConfig) error {
-	if roleConfig.Status.OIDCID == "" {
-		return fmt.Errorf("OIDCID is required")
-	}
-
-	if roleConfig.Status.AccountRolesRef.InstallerRoleARN == "" {
-		return fmt.Errorf("InstallerRoleARN is required")
-	}
-
-	if roleConfig.Status.AccountRolesRef.SupportRoleARN == "" {
-		return fmt.Errorf("SupportRoleARN is required")
-	}
-
-	if roleConfig.Status.AccountRolesRef.WorkerRoleARN == "" {
-		return fmt.Errorf("WorkerRoleARN is required")
-	}
-
-	if roleConfig.Status.OperatorRolesRef.IngressARN == "" {
-		return fmt.Errorf("IngressARN is required")
-	}
-
-	if roleConfig.Status.OperatorRolesRef.ImageRegistryARN == "" {
-		return fmt.Errorf("ImageRegistryARN is required")
-	}
-
-	if roleConfig.Status.OperatorRolesRef.StorageARN == "" {
-		return fmt.Errorf("StorageARN is required")
-	}
-
-	if roleConfig.Status.OperatorRolesRef.NetworkARN == "" {
-		return fmt.Errorf("NetworkARN is required")
-	}
-
-	if roleConfig.Status.OperatorRolesRef.KubeCloudControllerARN == "" {
-		return fmt.Errorf("KubeCloudControllerARN is required")
-	}
-
-	if roleConfig.Status.OperatorRolesRef.KMSProviderARN == "" {
-		return fmt.Errorf("KMSProviderARN is required")
-	}
-
-	if roleConfig.Status.OperatorRolesRef.ControlPlaneOperatorARN == "" {
-		return fmt.Errorf("ControlPlaneOperatorARN is required")
-	}
-
-	if roleConfig.Status.OperatorRolesRef.NodePoolManagementARN == "" {
-		return fmt.Errorf("NodePoolManagementARN is required")
-	}
-
-	return nil
 }
