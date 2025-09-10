@@ -31,9 +31,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-// log is for logging in this package.
-var rosacpLog = ctrl.Log.WithName("rosacontrolplane-resource")
-
 // SetupWebhookWithManager will setup the webhooks for the ROSAControlPlane.
 func (r *ROSAControlPlane) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	w := new(rosaControlPlaneWebhook)
@@ -124,6 +121,10 @@ func (*rosaControlPlaneWebhook) ValidateUpdate(_ context.Context, oldObj, newObj
 		allErrs = append(allErrs, err)
 	}
 
+	if err := r.validateRosaRoleConfig(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+
 	allErrs = append(allErrs, r.validateNetwork()...)
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 
@@ -203,14 +204,14 @@ func (r *ROSAControlPlane) validateExternalAuthProviders() *field.Error {
 }
 
 func (r *ROSAControlPlane) validateRosaRoleConfig() *field.Error {
-	hasAnyDirectRoleFields := r.Spec.OIDCID != "" || r.Spec.InstallerRoleARN != "" || r.Spec.SupportRoleARN != "" || r.Spec.WorkerRoleARN != "" ||
+	hasRoleFields := r.Spec.OIDCID != "" || r.Spec.InstallerRoleARN != "" || r.Spec.SupportRoleARN != "" || r.Spec.WorkerRoleARN != "" ||
 		r.Spec.RolesRef.IngressARN != "" || r.Spec.RolesRef.ImageRegistryARN != "" || r.Spec.RolesRef.StorageARN != "" ||
 		r.Spec.RolesRef.NetworkARN != "" || r.Spec.RolesRef.KubeCloudControllerARN != "" || r.Spec.RolesRef.NodePoolManagementARN != "" ||
 		r.Spec.RolesRef.ControlPlaneOperatorARN != "" || r.Spec.RolesRef.KMSProviderARN != ""
 
 	if r.Spec.RosaRoleConfigRef != nil {
-		if hasAnyDirectRoleFields {
-			rosacpLog.Info("rosaRoleConfigRef and direct role fields (oidcID, installerRoleARN, supportRoleARN, workerRoleARN, rolesRef) are mutually exclusive")
+		if hasRoleFields {
+			return field.Invalid(field.NewPath("spec.rosaRoleConfigRef"), r.Spec.RosaRoleConfigRef, "RosaRoleConfigRef and role fields such as installerRoleARN, supportRoleARN, workerRoleARN, rolesRef and oidcID are mutually exclusive")
 		}
 		return nil
 	}

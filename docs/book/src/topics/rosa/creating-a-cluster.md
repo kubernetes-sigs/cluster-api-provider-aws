@@ -89,19 +89,26 @@ The SSO offline token is being deprecated and it is recommended to use service a
 
 Follow the guide [here](https://docs.aws.amazon.com/ROSA/latest/userguide/getting-started-hcp.html) up until ["Create a ROSA with HCP Cluster"](https://docs.aws.amazon.com/ROSA/latest/userguide/getting-started-hcp.html#create-hcp-cluster-cli) to install the required tools and setup the prerequisite infrastructure. Once Step 3 is done, you will be ready to proceed with creating a ROSA HCP cluster using cluster-api.
 
+Note; Skip the "Create the required IAM roles and OpenID Connect configuration" step from the prerequisites url above and use the templates/cluster-template-rosa-role-config.yaml to generate a ROSARoleConfig CR to create the required account roles, operator roles & managed OIDC provider.
+
 ## Creating the cluster
 
 1. Prepare the environment:
     ```bash
-    export OPENSHIFT_VERSION="4.14.5"
+    export OPENSHIFT_VERSION="4.19.0"
     export AWS_REGION="us-west-2"
     export AWS_AVAILABILITY_ZONE="us-west-2a"
     export AWS_ACCOUNT_ID="<account_id>"
     export AWS_CREATOR_ARN="<user_arn>" # can be retrieved e.g. using `aws sts get-caller-identity`
 
+    # Note: if using templates/cluster-template-rosa.yaml set the below env variables
     export OIDC_CONFIG_ID="<oidc_id>" # OIDC config id creating previously with `rosa create oidc-config`
     export ACCOUNT_ROLES_PREFIX="ManagedOpenShift-HCP" # prefix used to create account IAM roles with `rosa create account-roles`
     export OPERATOR_ROLES_PREFIX="capi-rosa-quickstart"  # prefix used to create operator roles with `rosa create operator-roles --prefix <PREFIX_NAME>`
+
+    # Note: if using templates/cluster-template-rosa-role-config.yaml set the below env variables
+    export ACCOUNT_ROLES_PREFIX="capa" # prefix can be change to preferable prefix with max 4 chars
+    export OPERATOR_ROLES_PREFIX="capa"  # prefix can be change to preferable prefix with max 4 chars
 
     # subnet IDs created earlier
     export PUBLIC_SUBNET_ID="subnet-0b54a1111111111111"
@@ -109,10 +116,19 @@ Follow the guide [here](https://docs.aws.amazon.com/ROSA/latest/userguide/gettin
     ```
 
 1. Render the cluster manifest using the ROSA HCP cluster template:
+
+    a. Using templates/cluster-template-rosa.yaml
+
+    Note: The AWS role name must be no more than 64 characters in length. Otherwise an error will be returned. Truncate values exceeding 64 characters.
     ```shell
     clusterctl generate cluster <cluster-name> --from templates/cluster-template-rosa.yaml > rosa-capi-cluster.yaml
     ```
-    Note: The AWS role name must be no more than 64 characters in length. Otherwise an error will be returned. Truncate values exceeding 64 characters.
+
+    b. Using templates/cluster-template-rosa-role-config.yaml
+    ```shell
+    clusterctl generate cluster <cluster-name> --from templates/cluster-template-rosa-role-config.yaml > rosa-capi-cluster.yaml
+    ```
+
 
 1. If a credentials secret was created earlier, edit `ROSAControlPlane` to reference it:
     ```yaml

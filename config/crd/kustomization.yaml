@@ -42,7 +42,6 @@ patchesStrategicMerge:
 - patches/webhook_in_awsmanagedcontrolplanetemplates.yaml
 - patches/webhook_in_eksconfigs.yaml
 - patches/webhook_in_eksconfigtemplates.yaml
-- patches/webhook_in_rosaroleconfigs.yaml
   # +kubebuilder:scaffold:crdkustomizewebhookpatch
 
 # [CERTMANAGER] To enable webhook, uncomment all the sections with [CERTMANAGER] prefix.
