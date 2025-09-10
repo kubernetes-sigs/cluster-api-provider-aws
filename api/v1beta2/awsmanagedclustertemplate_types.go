@@ -26,7 +26,7 @@ type AWSManagedClusterTemplateSpec struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=awsmanagedclustertemplates,scope=Namespaced,categories=cluster-api,shortName=amct
+// +kubebuilder:resource:path=awsmanagedclustertemplates,scope=Namespaced,categories=cluster-api,shortName=awsmct
 // +kubebuilder:storageversion
 
 // AWSManagedClusterTemplate is the Schema for the AWSManagedClusterTemplates API.
