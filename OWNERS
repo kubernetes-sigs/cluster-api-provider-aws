@@ -1,22 +1,7 @@
 # See the OWNERS docs: <https://git.k8s.io/community/contributors/guide/owners.md>
 
 approvers:
-  - sig-cluster-lifecycle-leads
-  - cluster-api-aws-admins
-  - cluster-api-aws-maintainers
+  - capi-admins
 
 reviewers:
-  - cluster-api-aws-admins
-  - cluster-api-aws-maintainers
-  - cluster-api-aws-reviewers
-
-emeritus_approvers:
-  - AverageMarcus
-  - chuckha
-  - detiber
-  - ncdc
-  - randomvariable
-  - rudoi
-  - sedefsavas
-  - Skarlso
-  - vincepri
+  - capi-admins
