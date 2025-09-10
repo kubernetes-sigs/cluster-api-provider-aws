@@ -126,8 +126,8 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// +kubebuilder:default=WaitForAcknowledge
 	VersionGate VersionGateAckType `json:"versionGate"`
 
-	// RosaRoleConfigRef is a reference to a RosaRoleConfig resource that contains account and operator roles and OIDC configuration.
-	// If specified, the roles and OIDC configuration will be taken from the referenced RosaRoleConfig instead of the direct fields.
+	// RosaRoleConfigRef is a reference to a RosaRoleConfig resource that contains account roles, operator roles and OIDC configuration.
+	// RosaRoleConfigRef and role fields such as installerRoleARN, supportRoleARN, workerRoleARN, rolesRef and oidcID are mutually exclusive.
 	//
 	// +optional
 	RosaRoleConfigRef *corev1.LocalObjectReference `json:"rosaRoleConfigRef,omitempty"`
