@@ -1,0 +1,65 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  name: nodeadmconfigtemplates.bootstrap.cluster.x-k8s.io
+spec:
+  group: bootstrap.cluster.x-k8s.io
+  names:
+    categories:
+    - cluster-api
+    kind: NodeadmConfigTemplate
+    listKind: NodeadmConfigTemplateList
+    plural: nodeadmconfigtemplates
+    shortNames:
+    - eksct
+    singular: nodeadmconfigtemplate
+  scope: Namespaced
+  versions:
+  - name: v1beta2
+    schema:
+      openAPIV3Schema:
+        description: NodeadmConfigTemplate is the Amazon EKS Bootstrap Configuration
+          Template API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: NodeadmConfigTemplateSpec defines the desired state of templated
+              NodeadmConfig Amazon EKS Configuration resources.
+            properties:
+              template:
+                description: NodeadmConfigTemplateResource defines the Template structure.
+                properties:
+                  spec:
+                    description: NodeadmConfigSpec defines the desired state of NodeadmConfig.
+                    properties:
+                      foo:
+                        description: Foo is an example field of NodeadmConfig. Edit
+                          nodeadmconfig_types.go to remove/update
+                        type: string
+                    type: object
+                type: object
+            required:
+            - template
+            type: object
+        type: object
+    served: true
+    storage: true
