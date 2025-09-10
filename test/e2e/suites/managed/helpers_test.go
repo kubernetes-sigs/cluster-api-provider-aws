@@ -42,3 +42,9 @@ func defaultConfigCluster(clusterName, namespace string) clusterctl.ConfigCluste
 		WorkerMachineCount:       ptr.To[int64](0),
 	}
 }
+
+func upgradeFromConfigCluster(clusterName, namespace string) clusterctl.ConfigClusterInput {
+	cfg := defaultConfigCluster(clusterName, namespace)
+	cfg.KubernetesVersion = e2eCtx.E2EConfig.MustGetVariable(shared.EksUpgradeFromVersion)
+	return cfg
+}
