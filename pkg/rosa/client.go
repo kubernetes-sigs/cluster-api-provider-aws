@@ -197,3 +197,21 @@ func ocmCredentials(ctx context.Context, rosaScope OCMSecretsRetriever) (string,
 
 	return token, ocmAPIUrl, ocmClientID, ocmClientSecret, nil
 }
+
+// GetOCMClientEnv return env name based on ocmCient assigned url defaults to production.
+// "production":  "https://api.openshift.com",
+// "staging":     "https://api.stage.openshift.com",
+// "integration": "https://api.integration.openshift.com",
+// "local":       "http://localhost:8000",
+// "local-proxy": "http://localhost:9000",
+// "crc":         "https://clusters-service.apps-crc.testing",
+func GetOCMClientEnv(ocmClient *ocm.Client) string {
+	for k, v := range ocm.URLAliases {
+		if v == ocmClient.GetConnectionURL() {
+			return k
+		}
+	}
+
+	// Defaults to production
+	return ocm.Production
+}
