@@ -33,6 +33,8 @@ import (
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	kubeconfigutil "sigs.k8s.io/cluster-api/util/kubeconfig"
 )
 
 func TestEKSConfigReconciler(t *testing.T) {
@@ -295,6 +297,8 @@ func newCluster(name string) *clusterv1.Cluster {
 		},
 	}
 	cluster.Status.Initialization.ControlPlaneInitialized = ptr.To(true)
+	v1beta1conditions.MarkTrue(cluster, clusterv1.ControlPlaneReadyCondition)
+	v1beta1conditions.MarkTrue(cluster, clusterv1.InfrastructureReadyCondition)
 	return cluster
 }
 
@@ -413,7 +417,7 @@ func newUserData(clusterName string, kubeletExtraArgs map[string]string) ([]byte
 // newAMCP returns an EKS AWSManagedControlPlane object.
 func newAMCP(name string) *ekscontrolplanev1.AWSManagedControlPlane {
 	generatedName := fmt.Sprintf("%s-%s", name, util.RandomString(5))
-	return &ekscontrolplanev1.AWSManagedControlPlane{
+	amcp := &ekscontrolplanev1.AWSManagedControlPlane{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "AWSManagedControlPlane",
 			APIVersion: ekscontrolplanev1.GroupVersion.String(),
@@ -426,4 +430,40 @@ func newAMCP(name string) *ekscontrolplanev1.AWSManagedControlPlane {
 			EKSClusterName: generatedName,
 		},
 	}
+	v1beta1conditions.MarkTrue(amcp, ekscontrolplanev1.EKSControlPlaneReadyCondition)
+	return amcp
+}
+
+const dummyKubeconfigTemplate = `
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCkV5QXV0aG9yIElzc3VlciBJc3N1ZXI6IGV4YW1wbGUuY29tIC0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+    server: %s
+  name: %s
+contexts:
+- context:
+    cluster: %s
+    user: my-user
+  name: my-context
+current-context: my-context
+kind: Config
+users:
+- name: my-user
+  user:
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+`
+
+func newKubeconfigSecret(apiEndpoint string, cluster *clusterv1.Cluster) *corev1.Secret {
+	data := fmt.Sprintf(dummyKubeconfigTemplate, apiEndpoint, cluster.Name, cluster.Name)
+	return kubeconfigutil.GenerateSecretWithOwner(
+		client.ObjectKeyFromObject(cluster),
+		[]byte(data),
+		metav1.OwnerReference{
+			Kind:       "Cluster",
+			APIVersion: clusterv1.GroupVersion.String(),
+			Name:       cluster.Name,
+			UID:        cluster.UID,
+		},
+	)
 }
