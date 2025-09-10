@@ -62,10 +62,23 @@ rules:
   - bootstrap.cluster.x-k8s.io
   resources:
   - eksconfigs/status
+  - nodeadmconfigs/status
   verbs:
   - get
   - patch
   - update
+- apiGroups:
+  - bootstrap.cluster.x-k8s.io
+  resources:
+  - nodeadmconfigs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - cluster.x-k8s.io
   resources:
