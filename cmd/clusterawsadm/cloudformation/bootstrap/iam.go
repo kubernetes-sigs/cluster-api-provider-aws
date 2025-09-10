@@ -17,19 +17,14 @@ limitations under the License.
 package bootstrap
 
 import (
-	"fmt"
-	"os"
-	"path"
-
-	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/converters"
-	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
+	"github.com/awslabs/goformation/v4/cloudformation/iam"
 )
 
 // PolicyName defines the name of a managed IAM policy.
 type PolicyName string
 
 // ManagedIAMPolicyNames slice of managed IAM policies.
-var ManagedIAMPolicyNames = [5]PolicyName{ControllersPolicy, ControllersPolicyEKS, ControlPlanePolicy, NodePolicy, CSIPolicy}
+var ManagedIAMPolicyNames = []PolicyName{ControllersPolicy, ControllersPolicyEKS, ControlPlanePolicy, NodePolicy, CSIPolicy}
 
 // IsValid will check if a given policy name is valid. That is, it will check if the given policy name is
 // one of the ManagedIAMPolicyNames.
@@ -42,49 +37,21 @@ func (p PolicyName) IsValid() bool {
 	return false
 }
 
-// GenerateManagedIAMPolicyDocuments generates JSON representation of policy documents for all ManagedIAMPolicy.
-func (t Template) GenerateManagedIAMPolicyDocuments(policyDocDir string) error {
-	for _, pn := range ManagedIAMPolicyNames {
-		pd := t.GetPolicyDocFromPolicyName(pn)
+// RenderManagedIAMPolicies returns all the managed IAM Policies that would be rendered by the template.
+func (t Template) RenderManagedIAMPolicies() map[string]*iam.ManagedPolicy {
+	cft := t.RenderCloudFormation()
 
-		pds, err := converters.IAMPolicyDocumentToJSON(*pd)
-		if err != nil {
-			return fmt.Errorf("failed to marshal policy document for ManagedIAMPolicy %q: %w", pn, err)
-		}
-
-		fn := path.Join(policyDocDir, fmt.Sprintf("%s.json", pn))
-		err = os.WriteFile(fn, []byte(pds), 0o600)
-		if err != nil {
-			return fmt.Errorf("failed to generate policy document for ManagedIAMPolicy %q: %w", pn, err)
-		}
-	}
-	return nil
+	return cft.GetAllIAMManagedPolicyResources()
 }
 
-func (t Template) policyFunctionMap() map[PolicyName]func() *iamv1.PolicyDocument {
-	return map[PolicyName]func() *iamv1.PolicyDocument{
-		ControlPlanePolicy:   t.cloudProviderControlPlaneAwsPolicy,
-		ControllersPolicy:    t.ControllersPolicy,
-		ControllersPolicyEKS: t.ControllersPolicyEKS,
-		NodePolicy:           t.cloudProviderNodeAwsPolicy,
-		CSIPolicy:            t.csiControllerPolicy,
-	}
-}
+// RenderManagedIAMPolicy returns a specific managed IAM Policy by name, or nil if the policy is not found.
+func (t Template) RenderManagedIAMPolicy(name PolicyName) *iam.ManagedPolicy {
+	cft := t.RenderCloudFormation()
 
-// PrintPolicyDocs prints the JSON representation of policy documents for all ManagedIAMPolicy.
-func (t Template) PrintPolicyDocs() error {
-	for _, name := range ManagedIAMPolicyNames {
-		policyDoc := t.GetPolicyDocFromPolicyName(name)
-		value, err := converters.IAMPolicyDocumentToJSON(*policyDoc)
-		if err != nil {
-			return err
-		}
-		fmt.Println(name, value)
+	p, err := cft.GetIAMManagedPolicyWithName(string(name))
+	if err != nil {
+		// Return error only if the policy is not found.
+		return nil
 	}
-	return nil
-}
-
-// GetPolicyDocFromPolicyName returns a Template's policy document.
-func (t Template) GetPolicyDocFromPolicyName(policyName PolicyName) *iamv1.PolicyDocument {
-	return t.policyFunctionMap()[policyName]()
+	return p
 }
