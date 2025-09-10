@@ -783,8 +783,8 @@ spec:
                   rule: self == oldSelf
               rosaRoleConfigRef:
                 description: |-
-                  RosaRoleConfigRef is a reference to a RosaRoleConfig resource that contains account and operator roles and OIDC configuration.
-                  If specified, the roles and OIDC configuration will be taken from the referenced RosaRoleConfig instead of the direct fields.
+                  RosaRoleConfigRef is a reference to a RosaRoleConfig resource that contains account roles, operator roles and OIDC configuration.
+                  RosaRoleConfigRef and role fields such as installerRoleARN, supportRoleARN, workerRoleARN, rolesRef and oidcID are mutually exclusive.
                 properties:
                   name:
                     default: ""
