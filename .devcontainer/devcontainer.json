@@ -1,0 +1,29 @@
+{
+  "name": "CAPA Devcontainer + Devbox + VSCode",
+  "image": "mcr.microsoft.com/devcontainers/go",
+  "features": {
+    "ghcr.io/dlouwers/devcontainer-features/devbox:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2.12.0": {},
+    "ghcr.io/devcontainers/features/kubectl-helm-minikube:1.2.0": {
+      "version": "latest",
+      "helm": "none",
+      "minikube": "none"
+    }
+  },
+  "postCreateCommand": "devbox install",
+  "customizations": {
+    "vscode": {
+      "settings": {},
+      "extensions": [
+        "jetpack-io.devbox",
+        "foxundermoon.shell-format",
+        "golang.go",
+        "ethan-reesor.vscode-go-test-adapter",
+        "ms-kubernetes-tools.vscode-kubernetes-tools",
+        "ms-kubernetes-tools.kubernetes-ide",
+        "ms-azuretools.vscode-dockerr", 
+        "redhat.vscode-yaml"
+      ]
+    }
+  }
+}

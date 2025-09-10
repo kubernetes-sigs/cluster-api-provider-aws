@@ -23,11 +23,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -40,7 +40,7 @@ type MachineDeploymentSpecInput struct {
 	E2EConfig             *clusterctl.E2EConfig
 	ConfigClusterFn       DefaultConfigClusterFn
 	BootstrapClusterProxy framework.ClusterProxy
-	AWSSession            client.ConfigProvider
+	AWSSession            *aws.Config
 	Namespace             *corev1.Namespace
 	Replicas              int64
 	ClusterName           string
@@ -68,7 +68,7 @@ func MachineDeploymentSpec(ctx context.Context, inputGetter func() MachineDeploy
 	By(fmt.Sprintf("creating an applying the %s template", EKSMachineDeployOnlyFlavor))
 	configCluster := input.ConfigClusterFn(input.ClusterName, input.Namespace.Name)
 	configCluster.Flavor = EKSMachineDeployOnlyFlavor
-	configCluster.WorkerMachineCount = pointer.Int64(input.Replicas)
+	configCluster.WorkerMachineCount = ptr.To[int64](input.Replicas)
 	err := shared.ApplyTemplate(ctx, configCluster, input.BootstrapClusterProxy)
 	Expect(err).ShouldNot(HaveOccurred())
 
@@ -100,10 +100,6 @@ func MachineDeploymentSpec(ctx context.Context, inputGetter func() MachineDeploy
 			Deleter:           input.BootstrapClusterProxy.GetClient(),
 			MachineDeployment: md[0],
 		})
-		// deleteMachine(ctx, deleteMachineInput{
-		// 	Deleter: input.BootstrapClusterProxy.GetClient(),
-		// 	Machine: &workerMachines[0],
-		// })
 
 		waitForMachineDeploymentDeleted(ctx, waitForMachineDeploymentDeletedInput{
 			Getter:            input.BootstrapClusterProxy.GetClient(),

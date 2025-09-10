@@ -35,9 +35,9 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/util/paused"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
@@ -78,11 +78,6 @@ func (r *AWSManagedClusterReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return reconcile.Result{}, nil
 	}
 
-	if annotations.IsPaused(cluster, awsManagedCluster) {
-		log.Info("AWSManagedCluster or linked Cluster is marked as paused. Won't reconcile")
-		return reconcile.Result{}, nil
-	}
-
 	log = log.WithValues("cluster", cluster.Name)
 
 	controlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
@@ -93,6 +88,10 @@ func (r *AWSManagedClusterReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	if err := r.Get(ctx, controlPlaneRef, controlPlane); err != nil {
 		return reconcile.Result{}, fmt.Errorf("failed to get control plane ref: %w", err)
+	}
+
+	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, awsManagedCluster); err != nil || isPaused || conditionChanged {
+		return ctrl.Result{}, err
 	}
 
 	log = log.WithValues("controlPlane", controlPlaneRef.Name)
@@ -124,26 +123,26 @@ func (r *AWSManagedClusterReconciler) SetupWithManager(ctx context.Context, mgr 
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
 		For(awsManagedCluster).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceIsNotExternallyManaged(mgr.GetScheme(), log.GetLogger())).
 		Build(r)
-
 	if err != nil {
 		return fmt.Errorf("error creating controller: %w", err)
 	}
 
-	// Add a watch for clusterv1.Cluster unpaise
+	// Add a watch for clusterv1.Cluster unpause
 	if err = controller.Watch(
-		&source.Kind{Type: &clusterv1.Cluster{}},
-		handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("AWSManagedCluster"), mgr.GetClient(), &infrav1.AWSManagedCluster{})),
-		predicates.ClusterUnpaused(log.GetLogger()),
+		source.Kind[client.Object](mgr.GetCache(), &clusterv1.Cluster{},
+			handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("AWSManagedCluster"), mgr.GetClient(), &infrav1.AWSManagedCluster{})),
+			predicates.ClusterPausedTransitions(mgr.GetScheme(), log.GetLogger())),
 	); err != nil {
 		return fmt.Errorf("failed adding a watch for ready clusters: %w", err)
 	}
 
 	// Add a watch for AWSManagedControlPlane
 	if err = controller.Watch(
-		&source.Kind{Type: &ekscontrolplanev1.AWSManagedControlPlane{}},
-		handler.EnqueueRequestsFromMapFunc(r.managedControlPlaneToManagedCluster(ctx, log)),
+		source.Kind[client.Object](mgr.GetCache(), &ekscontrolplanev1.AWSManagedControlPlane{},
+			handler.EnqueueRequestsFromMapFunc(r.managedControlPlaneToManagedCluster(ctx, log))),
 	); err != nil {
 		return fmt.Errorf("failed adding watch on AWSManagedControlPlane: %w", err)
 	}
@@ -151,8 +150,8 @@ func (r *AWSManagedClusterReconciler) SetupWithManager(ctx context.Context, mgr 
 	return nil
 }
 
-func (r *AWSManagedClusterReconciler) managedControlPlaneToManagedCluster(ctx context.Context, log *logger.Logger) handler.MapFunc {
-	return func(o client.Object) []ctrl.Request {
+func (r *AWSManagedClusterReconciler) managedControlPlaneToManagedCluster(_ context.Context, log *logger.Logger) handler.MapFunc {
+	return func(ctx context.Context, o client.Object) []ctrl.Request {
 		awsManagedControlPlane, ok := o.(*ekscontrolplanev1.AWSManagedControlPlane)
 		if !ok {
 			log.Error(errors.Errorf("expected an AWSManagedControlPlane, got %T instead", o), "failed to map AWSManagedControlPlane")

@@ -20,13 +20,14 @@ import (
 	"context"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -60,7 +61,7 @@ func TestReconcileNatGateways(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.CreateNatGatewayWithContext(context.TODO(), gomock.Any()).Times(0)
+				m.CreateNatGateway(context.TODO(), gomock.Any()).Times(0)
 			},
 		},
 		{
@@ -74,8 +75,8 @@ func TestReconcileNatGateways(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeNatGatewaysPagesWithContext(context.TODO(), gomock.Any(), gomock.Any()).Times(0)
-				m.CreateNatGatewayWithContext(context.TODO(), gomock.Any()).Times(0)
+				m.DescribeNatGateways(context.TODO(), gomock.Any(), gomock.Any()).Times(0)
+				m.CreateNatGateway(context.TODO(), gomock.Any()).Times(0)
 			},
 		},
 		{
@@ -95,33 +96,33 @@ func TestReconcileNatGateways(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeNatGatewaysPagesWithContext(context.TODO(),
+				m.DescribeNatGateways(context.TODO(),
 					gomock.Eq(&ec2.DescribeNatGatewaysInput{
-						Filter: []*ec2.Filter{
+						Filter: []types.Filter{
 							{
 								Name:   aws.String("vpc-id"),
-								Values: []*string{aws.String(subnetsVPCID)},
+								Values: []string{subnetsVPCID},
 							},
 							{
 								Name:   aws.String("state"),
-								Values: []*string{aws.String("pending"), aws.String("available")},
+								Values: []string{"pending", "available"},
 							},
 						},
 					}),
-					gomock.Any()).Return(nil)
+					gomock.Any()).Return(&ec2.DescribeNatGatewaysOutput{}, nil)
 
-				m.DescribeAddressesWithContext(context.TODO(), gomock.Any()).
+				m.DescribeAddresses(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeAddressesOutput{}, nil)
 
-				m.AllocateAddressWithContext(context.TODO(), &ec2.AllocateAddressInput{
-					Domain: aws.String("vpc"),
-					TagSpecifications: []*ec2.TagSpecification{
+				m.AllocateAddress(context.TODO(), &ec2.AllocateAddressInput{
+					Domain: types.DomainTypeVpc,
+					TagSpecifications: []types.TagSpecification{
 						{
-							ResourceType: aws.String("elastic-ip"),
-							Tags: []*ec2.Tag{
+							ResourceType: types.ResourceTypeElasticIp,
+							Tags: []types.Tag{
 								{
 									Key:   aws.String("Name"),
-									Value: aws.String("test-cluster-eip-apiserver"),
+									Value: aws.String("test-cluster-eip-common"),
 								},
 								{
 									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
@@ -129,7 +130,7 @@ func TestReconcileNatGateways(t *testing.T) {
 								},
 								{
 									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
-									Value: aws.String("apiserver"),
+									Value: aws.String("common"),
 								},
 							},
 						},
@@ -138,13 +139,13 @@ func TestReconcileNatGateways(t *testing.T) {
 					AllocationId: aws.String(ElasticIPAllocationID),
 				}, nil)
 
-				m.CreateNatGatewayWithContext(context.TODO(), &ec2.CreateNatGatewayInput{
+				m.CreateNatGateway(context.TODO(), &ec2.CreateNatGatewayInput{
 					AllocationId: aws.String(ElasticIPAllocationID),
 					SubnetId:     aws.String("subnet-1"),
-					TagSpecifications: []*ec2.TagSpecification{
+					TagSpecifications: []types.TagSpecification{
 						{
-							ResourceType: aws.String("natgateway"),
-							Tags: []*ec2.Tag{
+							ResourceType: types.ResourceTypeNatgateway,
+							Tags: []types.Tag{
 								{
 									Key:   aws.String("Name"),
 									Value: aws.String("test-cluster-nat"),
@@ -162,19 +163,27 @@ func TestReconcileNatGateways(t *testing.T) {
 					},
 				},
 				).Return(&ec2.CreateNatGatewayOutput{
-					NatGateway: &ec2.NatGateway{
+					NatGateway: &types.NatGateway{
 						NatGatewayId: aws.String("natgateway"),
 						SubnetId:     aws.String("subnet-1"),
 					},
 				}, nil)
 
-				m.WaitUntilNatGatewayAvailableWithContext(context.TODO(), &ec2.DescribeNatGatewaysInput{
-					NatGatewayIds: []*string{aws.String("natgateway")},
-				}).Return(nil)
+				m.DescribeNatGateways(gomock.Any(), &ec2.DescribeNatGatewaysInput{
+					NatGatewayIds: []string{"natgateway"},
+				}, gomock.Any()).Return(&ec2.DescribeNatGatewaysOutput{
+					NatGateways: []types.NatGateway{
+						{
+							State:        types.NatGatewayStateAvailable,
+							NatGatewayId: aws.String("natgateway"),
+							SubnetId:     aws.String("subnet-1"),
+						},
+					},
+				}, nil)
 			},
 		},
 		{
-			name: "two public & 1 private subnet, and one NAT gateway exists",
+			name: "two public & 1 private subnet, and one NAT gateway exists, should not create additional NAT gateway",
 			input: []infrav1.SubnetSpec{
 				{
 					ID:               "subnet-1",
@@ -196,65 +205,105 @@ func TestReconcileNatGateways(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeNatGatewaysPagesWithContext(context.TODO(),
+				m.DescribeNatGateways(context.TODO(),
 					gomock.Eq(&ec2.DescribeNatGatewaysInput{
-						Filter: []*ec2.Filter{
+						Filter: []types.Filter{
 							{
 								Name:   aws.String("vpc-id"),
-								Values: []*string{aws.String(subnetsVPCID)},
+								Values: []string{subnetsVPCID},
 							},
 							{
 								Name:   aws.String("state"),
-								Values: []*string{aws.String("pending"), aws.String("available")},
+								Values: []string{"pending", "available"},
 							},
 						},
 					}),
-					gomock.Any()).Do(func(ctx context.Context, _, y interface{}, requestOptions ...request.Option) {
-					funct := y.(func(page *ec2.DescribeNatGatewaysOutput, lastPage bool) bool)
-					funct(&ec2.DescribeNatGatewaysOutput{NatGateways: []*ec2.NatGateway{{
-						NatGatewayId: aws.String("gateway"),
-						SubnetId:     aws.String("subnet-1"),
-					}}}, true)
-				}).Return(nil)
-
-				m.DescribeAddressesWithContext(context.TODO(), gomock.Any()).
-					Return(&ec2.DescribeAddressesOutput{}, nil)
-
-				m.AllocateAddressWithContext(context.TODO(), &ec2.AllocateAddressInput{
-					Domain: aws.String("vpc"),
-					TagSpecifications: []*ec2.TagSpecification{
-						{
-							ResourceType: aws.String("elastic-ip"),
-							Tags: []*ec2.Tag{
-								{
-									Key:   aws.String("Name"),
-									Value: aws.String("test-cluster-eip-apiserver"),
-								},
-								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
-									Value: aws.String("owned"),
-								},
-								{
-									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
-									Value: aws.String("apiserver"),
+					gomock.Any()).
+					Return(&ec2.DescribeNatGatewaysOutput{
+						NatGateways: []types.NatGateway{
+							{
+								NatGatewayId: aws.String("gateway"),
+								SubnetId:     aws.String("subnet-1"),
+								Tags: []types.Tag{
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Value: aws.String("common"),
+									},
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("test-cluster-nat"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+										Value: aws.String("owned"),
+									},
 								},
 							},
 						},
-					},
-				}).Return(&ec2.AllocateAddressOutput{
-					AllocationId: aws.String(ElasticIPAllocationID),
-				}, nil)
+					}, nil)
 
-				m.CreateNatGatewayWithContext(context.TODO(), &ec2.CreateNatGatewayInput{
-					AllocationId: aws.String(ElasticIPAllocationID),
-					SubnetId:     aws.String("subnet-3"),
-					TagSpecifications: []*ec2.TagSpecification{
+				// Should not create any new NAT gateways because subnet-3 (public subnet in us-east-1b) has no private subnets
+				m.DescribeAddresses(context.TODO(), gomock.Any()).Times(0)
+				m.AllocateAddress(context.TODO(), gomock.Any()).Times(0)
+				m.CreateNatGateway(context.TODO(), gomock.Any()).Times(0)
+			},
+		},
+		{
+			name: "multiple AZs with private subnets, should create one NAT gateway per AZ",
+			input: []infrav1.SubnetSpec{
+				{
+					ID:               "subnet-1",
+					AvailabilityZone: "us-east-1a",
+					CidrBlock:        "10.0.10.0/24",
+					IsPublic:         true,
+				},
+				{
+					ID:               "subnet-2",
+					AvailabilityZone: "us-east-1a",
+					CidrBlock:        "10.0.12.0/24",
+					IsPublic:         false,
+				},
+				{
+					ID:               "subnet-3",
+					AvailabilityZone: "us-east-1b",
+					CidrBlock:        "10.0.13.0/24",
+					IsPublic:         true,
+				},
+				{
+					ID:               "subnet-4",
+					AvailabilityZone: "us-east-1b",
+					CidrBlock:        "10.0.14.0/24",
+					IsPublic:         false,
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeNatGateways(context.TODO(),
+					gomock.Eq(&ec2.DescribeNatGatewaysInput{
+						Filter: []types.Filter{
+							{
+								Name:   aws.String("vpc-id"),
+								Values: []string{subnetsVPCID},
+							},
+							{
+								Name:   aws.String("state"),
+								Values: []string{"pending", "available"},
+							},
+						},
+					}),
+					gomock.Any()).Return(&ec2.DescribeNatGatewaysOutput{}, nil)
+
+				m.DescribeAddresses(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeAddressesOutput{}, nil)
+
+				m.AllocateAddress(context.TODO(), &ec2.AllocateAddressInput{
+					Domain: types.DomainTypeVpc,
+					TagSpecifications: []types.TagSpecification{
 						{
-							ResourceType: aws.String("natgateway"),
-							Tags: []*ec2.Tag{
+							ResourceType: types.ResourceTypeElasticIp,
+							Tags: []types.Tag{
 								{
 									Key:   aws.String("Name"),
-									Value: aws.String("test-cluster-nat"),
+									Value: aws.String("test-cluster-eip-common"),
 								},
 								{
 									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
@@ -267,19 +316,48 @@ func TestReconcileNatGateways(t *testing.T) {
 							},
 						},
 					},
-				}).Return(&ec2.CreateNatGatewayOutput{
-					NatGateway: &ec2.NatGateway{
-						NatGatewayId: aws.String("natgateway"),
-						SubnetId:     aws.String("subnet-3"),
-					},
-				}, nil)
+				}).Return(&ec2.AllocateAddressOutput{
+					AllocationId: aws.String(ElasticIPAllocationID),
+				}, nil).Times(2)
 
-				m.WaitUntilNatGatewayAvailableWithContext(context.TODO(), &ec2.DescribeNatGatewaysInput{
-					NatGatewayIds: []*string{aws.String("natgateway")},
-				}).Return(nil)
+				// Should create NAT gateways for both AZs since both have private subnets
+				m.CreateNatGateway(context.TODO(), gomock.Any()).
+					Return(&ec2.CreateNatGatewayOutput{
+						NatGateway: &types.NatGateway{
+							NatGatewayId: aws.String("natgateway-1"),
+							SubnetId:     aws.String("subnet-1"),
+						},
+					}, nil)
 
-				m.CreateTagsWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateTagsInput{})).
-					Return(nil, nil).Times(1)
+				m.CreateNatGateway(context.TODO(), gomock.Any()).
+					Return(&ec2.CreateNatGatewayOutput{
+						NatGateway: &types.NatGateway{
+							NatGatewayId: aws.String("natgateway-2"),
+							SubnetId:     aws.String("subnet-3"),
+						},
+					}, nil)
+
+				m.DescribeNatGateways(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(&ec2.DescribeNatGatewaysOutput{
+						NatGateways: []types.NatGateway{
+							{
+								State:        types.NatGatewayStateAvailable,
+								NatGatewayId: aws.String("natgateway-1"),
+								SubnetId:     aws.String("subnet-1"),
+							},
+						},
+					}, nil)
+
+				m.DescribeNatGateways(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(&ec2.DescribeNatGatewaysOutput{
+						NatGateways: []types.NatGateway{
+							{
+								State:        types.NatGatewayStateAvailable,
+								NatGatewayId: aws.String("natgateway-2"),
+								SubnetId:     aws.String("subnet-3"),
+							},
+						},
+					}, nil)
 			},
 		},
 		{
@@ -299,44 +377,44 @@ func TestReconcileNatGateways(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeNatGatewaysPagesWithContext(context.TODO(),
+				m.DescribeNatGateways(context.TODO(),
 					gomock.Eq(&ec2.DescribeNatGatewaysInput{
-						Filter: []*ec2.Filter{
+						Filter: []types.Filter{
 							{
 								Name:   aws.String("vpc-id"),
-								Values: []*string{aws.String(subnetsVPCID)},
+								Values: []string{subnetsVPCID},
 							},
 							{
 								Name:   aws.String("state"),
-								Values: []*string{aws.String("pending"), aws.String("available")},
+								Values: []string{"pending", "available"},
 							},
 						},
 					}),
-					gomock.Any()).Do(func(ctx context.Context, _, y interface{}, requestOptions ...request.Option) {
-					funct := y.(func(page *ec2.DescribeNatGatewaysOutput, lastPage bool) bool)
-					funct(&ec2.DescribeNatGatewaysOutput{NatGateways: []*ec2.NatGateway{{
-						NatGatewayId: aws.String("gateway"),
-						SubnetId:     aws.String("subnet-1"),
-						Tags: []*ec2.Tag{
-							{
-								Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
-								Value: aws.String("common"),
-							},
-							{
-								Key:   aws.String("Name"),
-								Value: aws.String("test-cluster-nat"),
-							},
-							{
-								Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
-								Value: aws.String("owned"),
+					gomock.Any()).Return(&ec2.DescribeNatGatewaysOutput{
+					NatGateways: []types.NatGateway{
+						{
+							NatGatewayId: aws.String("gateway"),
+							SubnetId:     aws.String("subnet-1"),
+							Tags: []types.Tag{
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("common"),
+								},
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-nat"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
 							},
 						},
-					}}}, true)
-				}).Return(nil)
+					}}, nil)
 
-				m.DescribeAddressesWithContext(context.TODO(), gomock.Any()).Times(0)
-				m.AllocateAddressWithContext(context.TODO(), gomock.Any()).Times(0)
-				m.CreateNatGatewayWithContext(context.TODO(), gomock.Any()).Times(0)
+				m.DescribeAddresses(context.TODO(), gomock.Any()).Times(0)
+				m.AllocateAddress(context.TODO(), gomock.Any()).Times(0)
+				m.CreateNatGateway(context.TODO(), gomock.Any()).Times(0)
 			},
 		},
 		{
@@ -356,8 +434,8 @@ func TestReconcileNatGateways(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeNatGatewaysPagesWithContext(context.TODO(), gomock.Any(), gomock.Any()).
-					Return(nil).
+				m.DescribeNatGateways(context.TODO(), gomock.Any(), gomock.Any()).
+					Return(&ec2.DescribeNatGatewaysOutput{}, nil).
 					Times(1)
 			},
 		},
@@ -382,9 +460,8 @@ func TestReconcileNatGateways(t *testing.T) {
 					},
 				},
 			}
-			client := fake.NewClientBuilder().WithScheme(scheme).Build()
-			ctx := context.TODO()
-			client.Create(ctx, awsCluster)
+			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(awsCluster).WithStatusSubresource(awsCluster).Build()
+
 			clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 				Cluster: &clusterv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
@@ -462,20 +539,18 @@ func TestDeleteNatGateways(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeNatGatewaysPagesWithContext(context.TODO(),
-					gomock.Eq(&ec2.DescribeNatGatewaysInput{
-						Filter: []*ec2.Filter{
-							{
-								Name:   aws.String("vpc-id"),
-								Values: []*string{aws.String("managed-vpc")},
-							},
-							{
-								Name:   aws.String("state"),
-								Values: []*string{aws.String("pending"), aws.String("available")},
-							},
+				m.DescribeNatGateways(context.TODO(), gomock.Eq(&ec2.DescribeNatGatewaysInput{
+					Filter: []types.Filter{
+						{
+							Name:   aws.String("vpc-id"),
+							Values: []string{"managed-vpc"},
 						},
-					}),
-					gomock.Any()).Return(nil)
+						{
+							Name:   aws.String("state"),
+							Values: []string{"pending", "available"},
+						},
+					},
+				}), gomock.Any()).Return(&ec2.DescribeNatGatewaysOutput{}, nil)
 			},
 		},
 		{
@@ -495,27 +570,33 @@ func TestDeleteNatGateways(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeNatGatewaysPagesWithContext(context.TODO(),
-					gomock.AssignableToTypeOf(&ec2.DescribeNatGatewaysInput{}),
-					gomock.Any()).Do(mockDescribeNatGatewaysOutput).Return(nil)
+				m.DescribeNatGateways(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeNatGatewaysInput{}), gomock.Any()).
+					Return(&ec2.DescribeNatGatewaysOutput{
+						NatGateways: []types.NatGateway{
+							{
+								NatGatewayId: aws.String("natgateway"),
+								SubnetId:     aws.String("subnet-1"),
+							},
+						},
+					}, nil)
 
-				m.DeleteNatGatewayWithContext(context.TODO(), gomock.Eq(&ec2.DeleteNatGatewayInput{
+				m.DeleteNatGateway(context.TODO(), gomock.Eq(&ec2.DeleteNatGatewayInput{
 					NatGatewayId: aws.String("natgateway"),
 				})).Return(&ec2.DeleteNatGatewayOutput{}, nil)
 
-				m.DescribeNatGatewaysWithContext(context.TODO(), gomock.Eq(&ec2.DescribeNatGatewaysInput{
-					NatGatewayIds: []*string{aws.String("natgateway")},
+				m.DescribeNatGateways(context.TODO(), gomock.Eq(&ec2.DescribeNatGatewaysInput{
+					NatGatewayIds: []string{"natgateway"},
 				})).Return(&ec2.DescribeNatGatewaysOutput{
-					NatGateways: []*ec2.NatGateway{
+					NatGateways: []types.NatGateway{
 						{
-							State: aws.String("available"),
+							State: types.NatGatewayStateAvailable,
 						},
 					},
 				}, nil)
-				m.DescribeNatGatewaysWithContext(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeNatGatewaysInput{})).Return(&ec2.DescribeNatGatewaysOutput{
-					NatGateways: []*ec2.NatGateway{
+				m.DescribeNatGateways(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeNatGatewaysInput{})).Return(&ec2.DescribeNatGatewaysOutput{
+					NatGateways: []types.NatGateway{
 						{
-							State: aws.String("deleted"),
+							State: types.NatGatewayStateDeleted,
 						},
 					},
 				}, nil)
@@ -544,19 +625,26 @@ func TestDeleteNatGateways(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeNatGatewaysPagesWithContext(context.TODO(),
-					gomock.AssignableToTypeOf(&ec2.DescribeNatGatewaysInput{}), gomock.Any()).Do(mockDescribeNatGatewaysOutput).Return(nil)
+				m.DescribeNatGateways(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeNatGatewaysInput{}), gomock.Any()).
+					Return(&ec2.DescribeNatGatewaysOutput{
+						NatGateways: []types.NatGateway{
+							{
+								NatGatewayId: aws.String("natgateway"),
+								SubnetId:     aws.String("subnet-1"),
+							},
+						},
+					}, nil)
 
-				m.DeleteNatGatewayWithContext(context.TODO(), gomock.Eq(&ec2.DeleteNatGatewayInput{
+				m.DeleteNatGateway(context.TODO(), gomock.Eq(&ec2.DeleteNatGatewayInput{
 					NatGatewayId: aws.String("natgateway"),
 				})).Return(&ec2.DeleteNatGatewayOutput{}, nil)
 
-				m.DescribeNatGatewaysWithContext(context.TODO(), gomock.Eq(&ec2.DescribeNatGatewaysInput{
-					NatGatewayIds: []*string{aws.String("natgateway")},
+				m.DescribeNatGateways(context.TODO(), gomock.Eq(&ec2.DescribeNatGatewaysInput{
+					NatGatewayIds: []string{"natgateway"},
 				})).Return(&ec2.DescribeNatGatewaysOutput{
-					NatGateways: []*ec2.NatGateway{
+					NatGateways: []types.NatGateway{
 						{
-							State: aws.String("unknown"),
+							State: types.NatGatewayStatePending,
 						},
 					},
 				}, nil)
@@ -580,15 +668,22 @@ func TestDeleteNatGateways(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeNatGatewaysPagesWithContext(context.TODO(),
-					gomock.AssignableToTypeOf(&ec2.DescribeNatGatewaysInput{}), gomock.Any()).Do(mockDescribeNatGatewaysOutput).Return(nil)
+				m.DescribeNatGateways(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeNatGatewaysInput{}), gomock.Any()).
+					Return(&ec2.DescribeNatGatewaysOutput{
+						NatGateways: []types.NatGateway{
+							{
+								NatGatewayId: aws.String("natgateway"),
+								SubnetId:     aws.String("subnet-1"),
+							},
+						},
+					}, nil)
 
-				m.DeleteNatGatewayWithContext(context.TODO(), gomock.Eq(&ec2.DeleteNatGatewayInput{
+				m.DeleteNatGateway(context.TODO(), gomock.Eq(&ec2.DeleteNatGatewayInput{
 					NatGatewayId: aws.String("natgateway"),
 				})).Return(&ec2.DeleteNatGatewayOutput{}, nil)
 
-				m.DescribeNatGatewaysWithContext(context.TODO(), gomock.Eq(&ec2.DescribeNatGatewaysInput{
-					NatGatewayIds: []*string{aws.String("natgateway")},
+				m.DescribeNatGateways(context.TODO(), gomock.Eq(&ec2.DescribeNatGatewaysInput{
+					NatGatewayIds: []string{"natgateway"},
 				})).Return(nil, nil)
 			},
 			wantErr: true,
@@ -610,8 +705,8 @@ func TestDeleteNatGateways(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeNatGatewaysPagesWithContext(context.TODO(),
-					gomock.AssignableToTypeOf(&ec2.DescribeNatGatewaysInput{}), gomock.Any()).Return(awserrors.NewFailedDependency("failed dependency"))
+				m.DescribeNatGateways(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeNatGatewaysInput{}), gomock.Any()).
+					Return(nil, awserrors.NewFailedDependency("failed dependency"))
 			},
 			wantErr: true,
 		},
@@ -632,10 +727,17 @@ func TestDeleteNatGateways(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeNatGatewaysPagesWithContext(context.TODO(),
-					gomock.AssignableToTypeOf(&ec2.DescribeNatGatewaysInput{}), gomock.Any()).Do(mockDescribeNatGatewaysOutput).Return(nil)
+				m.DescribeNatGateways(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeNatGatewaysInput{}), gomock.Any()).
+					Return(&ec2.DescribeNatGatewaysOutput{
+						NatGateways: []types.NatGateway{
+							{
+								NatGatewayId: aws.String("natgateway"),
+								SubnetId:     aws.String("subnet-1"),
+							},
+						},
+					}, nil)
 
-				m.DeleteNatGatewayWithContext(context.TODO(), gomock.Eq(&ec2.DeleteNatGatewayInput{
+				m.DeleteNatGateway(context.TODO(), gomock.Eq(&ec2.DeleteNatGatewayInput{
 					NatGatewayId: aws.String("natgateway"),
 				})).Return(nil, awserrors.NewFailedDependency("failed dependency"))
 			},
@@ -658,15 +760,22 @@ func TestDeleteNatGateways(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeNatGatewaysPagesWithContext(context.TODO(),
-					gomock.AssignableToTypeOf(&ec2.DescribeNatGatewaysInput{}), gomock.Any()).Do(mockDescribeNatGatewaysOutput).Return(nil)
+				m.DescribeNatGateways(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeNatGatewaysInput{}), gomock.Any()).
+					Return(&ec2.DescribeNatGatewaysOutput{
+						NatGateways: []types.NatGateway{
+							{
+								NatGatewayId: aws.String("natgateway"),
+								SubnetId:     aws.String("subnet-1"),
+							},
+						},
+					}, nil)
 
-				m.DeleteNatGatewayWithContext(context.TODO(), gomock.Eq(&ec2.DeleteNatGatewayInput{
+				m.DeleteNatGateway(context.TODO(), gomock.Eq(&ec2.DeleteNatGatewayInput{
 					NatGatewayId: aws.String("natgateway"),
 				})).Return(&ec2.DeleteNatGatewayOutput{}, nil)
 
-				m.DescribeNatGatewaysWithContext(context.TODO(), gomock.Eq(&ec2.DescribeNatGatewaysInput{
-					NatGatewayIds: []*string{aws.String("natgateway")},
+				m.DescribeNatGateways(context.TODO(), gomock.Eq(&ec2.DescribeNatGatewaysInput{
+					NatGatewayIds: []string{"natgateway"},
 				})).Return(nil, awserrors.NewNotFound("not found"))
 			},
 			wantErr: true,
@@ -722,10 +831,272 @@ func TestDeleteNatGateways(t *testing.T) {
 	}
 }
 
-var mockDescribeNatGatewaysOutput = func(ctx context.Context, _, y interface{}, requestOptions ...request.Option) {
-	funct := y.(func(page *ec2.DescribeNatGatewaysOutput, lastPage bool) bool)
-	funct(&ec2.DescribeNatGatewaysOutput{NatGateways: []*ec2.NatGateway{{
-		NatGatewayId: aws.String("natgateway"),
-		SubnetId:     aws.String("subnet-1"),
-	}}}, true)
+func TestGetdNatGatewayForEdgeSubnet(t *testing.T) {
+	subnetsSpec := infrav1.Subnets{
+		{
+			ID:               "subnet-az-1x-private",
+			AvailabilityZone: "us-east-1x",
+			IsPublic:         false,
+		},
+		{
+			ID:               "subnet-az-1x-public",
+			AvailabilityZone: "us-east-1x",
+			IsPublic:         true,
+			NatGatewayID:     aws.String("natgw-az-1b-last"),
+		},
+		{
+			ID:               "subnet-az-1a-private",
+			AvailabilityZone: "us-east-1a",
+			IsPublic:         false,
+		},
+		{
+			ID:               "subnet-az-1a-public",
+			AvailabilityZone: "us-east-1a",
+			IsPublic:         true,
+			NatGatewayID:     aws.String("natgw-az-1b-first"),
+		},
+		{
+			ID:               "subnet-az-1b-private",
+			AvailabilityZone: "us-east-1b",
+			IsPublic:         false,
+		},
+		{
+			ID:               "subnet-az-1b-public",
+			AvailabilityZone: "us-east-1b",
+			IsPublic:         true,
+			NatGatewayID:     aws.String("natgw-az-1b-second"),
+		},
+		{
+			ID:               "subnet-az-1p-private",
+			AvailabilityZone: "us-east-1p",
+			IsPublic:         false,
+		},
+	}
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	testCases := []struct {
+		name             string
+		spec             infrav1.Subnets
+		input            infrav1.SubnetSpec
+		expect           string
+		expectErr        bool
+		expectErrMessage string
+	}{
+		{
+			name: "zone availability-zone, valid nat gateway",
+			input: infrav1.SubnetSpec{
+				ID:               "subnet-az-1b-private",
+				AvailabilityZone: "us-east-1b",
+				IsPublic:         false,
+			},
+			expect: "natgw-az-1b-second",
+		},
+		{
+			name: "zone availability-zone, valid nat gateway",
+			input: infrav1.SubnetSpec{
+				ID:               "subnet-az-1a-private",
+				AvailabilityZone: "us-east-1a",
+				IsPublic:         false,
+			},
+			expect: "natgw-az-1b-first",
+		},
+		{
+			name: "zone availability-zone, valid nat gateway",
+			input: infrav1.SubnetSpec{
+				ID:               "subnet-az-1x-private",
+				AvailabilityZone: "us-east-1x",
+				IsPublic:         false,
+			},
+			expect: "natgw-az-1b-last",
+		},
+		{
+			name: "zone local-zone, valid nat gateway from parent",
+			input: infrav1.SubnetSpec{
+				ID:               "subnet-lz-nyc1a-private",
+				AvailabilityZone: "us-east-1-nyc-1a",
+				IsPublic:         false,
+				ZoneType:         ptr.To(infrav1.ZoneTypeLocalZone),
+				ParentZoneName:   aws.String("us-east-1a"),
+			},
+			expect: "natgw-az-1b-first",
+		},
+		{
+			name: "zone local-zone, valid nat gateway from parent",
+			input: infrav1.SubnetSpec{
+				ID:               "subnet-lz-nyc1a-private",
+				AvailabilityZone: "us-east-1-nyc-1a",
+				IsPublic:         false,
+				ZoneType:         ptr.To(infrav1.ZoneTypeLocalZone),
+				ParentZoneName:   aws.String("us-east-1x"),
+			},
+			expect: "natgw-az-1b-last",
+		},
+		{
+			name: "zone local-zone, valid nat gateway from fallback",
+			input: infrav1.SubnetSpec{
+				ID:               "subnet-lz-nyc1a-private",
+				AvailabilityZone: "us-east-1-nyc-1a",
+				IsPublic:         false,
+				ZoneType:         ptr.To(infrav1.ZoneTypeLocalZone),
+				ParentZoneName:   aws.String("us-east-1-notAvailable"),
+			},
+			expect: "natgw-az-1b-first",
+		},
+		{
+			name: "edge zones without NAT GW support, no public subnet and NAT Gateway for the parent zone, return first nat gateway available",
+			input: infrav1.SubnetSpec{
+				ID:               "subnet-7",
+				AvailabilityZone: "us-east-1-nyc-1a",
+				ZoneType:         ptr.To(infrav1.ZoneTypeLocalZone),
+			},
+			expect: "natgw-az-1b-first",
+		},
+		{
+			name: "edge zones without NAT GW support, no public subnet and NAT Gateway for the parent zone, return first nat gateway available",
+			input: infrav1.SubnetSpec{
+				ID:               "subnet-7",
+				CidrBlock:        "10.0.10.0/24",
+				AvailabilityZone: "us-east-1-nyc-1a",
+				ZoneType:         ptr.To(infrav1.ZoneTypeLocalZone),
+				ParentZoneName:   aws.String("us-east-1-notFound"),
+			},
+			expect: "natgw-az-1b-first",
+		},
+		{
+			name: "edge zones without NAT GW support, valid public subnet and NAT Gateway for the parent zone, return parent's zone nat gateway",
+			input: infrav1.SubnetSpec{
+				ID:               "subnet-lz-7",
+				AvailabilityZone: "us-east-1-nyc-1a",
+				ZoneType:         ptr.To(infrav1.ZoneTypeLocalZone),
+				ParentZoneName:   aws.String("us-east-1b"),
+			},
+			expect: "natgw-az-1b-second",
+		},
+		{
+			name: "wavelength zones without Nat GW support, public subnet and Nat Gateway for the parent zone, return parent's zone nat gateway",
+			input: infrav1.SubnetSpec{
+				ID:               "subnet-7",
+				CidrBlock:        "10.0.10.0/24",
+				AvailabilityZone: "us-east-1-wl1-nyc-wlz-1",
+				ZoneType:         ptr.To(infrav1.ZoneTypeWavelengthZone),
+				ParentZoneName:   aws.String("us-east-1x"),
+			},
+			expect: "natgw-az-1b-last",
+		},
+		// errors
+		{
+			name: "error if the subnet is public",
+			input: infrav1.SubnetSpec{
+				ID:               "subnet-az-1-public",
+				AvailabilityZone: "us-east-1a",
+				IsPublic:         true,
+			},
+			expectErr:        true,
+			expectErrMessage: `cannot get NAT gateway for a public subnet, got id "subnet-az-1-public"`,
+		},
+		{
+			name: "error if the subnet is public",
+			input: infrav1.SubnetSpec{
+				ID:               "subnet-lz-1-public",
+				AvailabilityZone: "us-east-1-nyc-1a",
+				IsPublic:         true,
+			},
+			expectErr:        true,
+			expectErrMessage: `cannot get NAT gateway for a public subnet, got id "subnet-lz-1-public"`,
+		},
+		{
+			name: "error if there are no nat gateways available in the subnets",
+			spec: infrav1.Subnets{},
+			input: infrav1.SubnetSpec{
+				ID:               "subnet-az-1-private",
+				AvailabilityZone: "us-east-1p",
+				IsPublic:         false,
+			},
+			expectErr:        true,
+			expectErrMessage: `no nat gateways available in "us-east-1p" for private subnet "subnet-az-1-private"`,
+		},
+		{
+			name: "error if there are no nat gateways available in the subnets",
+			spec: infrav1.Subnets{},
+			input: infrav1.SubnetSpec{
+				ID:               "subnet-lz-1",
+				AvailabilityZone: "us-east-1-nyc-1a",
+				IsPublic:         false,
+				ZoneType:         ptr.To(infrav1.ZoneTypeLocalZone),
+			},
+			expectErr:        true,
+			expectErrMessage: `no nat gateways available in "us-east-1-nyc-1a" for private edge subnet "subnet-lz-1", current state: map[]`,
+		},
+		{
+			name: "error if the subnet is public",
+			input: infrav1.SubnetSpec{
+				ID:               "subnet-lz-1",
+				AvailabilityZone: "us-east-1-nyc-1a",
+				IsPublic:         true,
+			},
+			expectErr:        true,
+			expectErrMessage: `cannot get NAT gateway for a public subnet, got id "subnet-lz-1"`,
+		},
+	}
+
+	for idx, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			subnets := subnetsSpec
+			if tc.spec != nil {
+				subnets = tc.spec
+			}
+			scheme := runtime.NewScheme()
+			_ = infrav1.AddToScheme(scheme)
+			awsCluster := &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							ID: subnetsVPCID,
+							Tags: infrav1.Tags{
+								infrav1.ClusterTagKey("test-cluster"): "owned",
+							},
+						},
+						Subnets: subnets,
+					},
+				},
+			}
+
+			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(awsCluster).WithStatusSubresource(awsCluster).Build()
+
+			clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
+				},
+				AWSCluster: awsCluster,
+				Client:     client,
+			})
+			if err != nil {
+				t.Fatalf("Failed to create test context: %v", err)
+				return
+			}
+
+			s := NewService(clusterScope)
+
+			id, err := s.getNatGatewayForSubnet(&testCases[idx].input)
+
+			if tc.expectErr && err == nil {
+				t.Fatal("expected error but got no error")
+			}
+			if err != nil && len(tc.expectErrMessage) > 0 {
+				if err.Error() != tc.expectErrMessage {
+					t.Fatalf("got an unexpected error message:\nwant: %v\n got: %v\n", tc.expectErrMessage, err.Error())
+				}
+			}
+			if !tc.expectErr && err != nil {
+				t.Fatalf("got an unexpected error: %v", err)
+			}
+			if len(tc.expect) > 0 {
+				g.Expect(id).To(Equal(tc.expect))
+			}
+		})
+	}
 }

@@ -22,11 +22,12 @@ import (
 	"time"
 
 	amazoncni "github.com/aws/amazon-vpc-cni-k8s/pkg/apis/crd/v1alpha1"
-	awsclient "github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -34,9 +35,9 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpoints"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/util/system"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -55,13 +56,13 @@ func init() {
 
 // ManagedControlPlaneScopeParams defines the input parameters used to create a new Scope.
 type ManagedControlPlaneScopeParams struct {
-	Client         client.Client
-	Logger         *logger.Logger
-	Cluster        *clusterv1.Cluster
-	ControlPlane   *ekscontrolplanev1.AWSManagedControlPlane
-	ControllerName string
-	Endpoints      []ServiceEndpoint
-	Session        awsclient.ConfigProvider
+	Client                    client.Client
+	Logger                    *logger.Logger
+	Cluster                   *clusterv1.Cluster
+	ControlPlane              *ekscontrolplanev1.AWSManagedControlPlane
+	ControllerName            string
+	Session                   aws.Config
+	MaxWaitActiveUpdateDelete time.Duration
 
 	EnableIAM                    bool
 	AllowAdditionalRoles         bool
@@ -87,20 +88,20 @@ func NewManagedControlPlaneScope(params ManagedControlPlaneScopeParams) (*Manage
 		Client:                       params.Client,
 		Cluster:                      params.Cluster,
 		ControlPlane:                 params.ControlPlane,
+		MaxWaitActiveUpdateDelete:    params.MaxWaitActiveUpdateDelete,
 		patchHelper:                  nil,
-		session:                      nil,
 		serviceLimiters:              nil,
 		controllerName:               params.ControllerName,
 		allowAdditionalRoles:         params.AllowAdditionalRoles,
 		enableIAM:                    params.EnableIAM,
 		tagUnmanagedNetworkResources: params.TagUnmanagedNetworkResources,
 	}
-	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
+	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Logger)
 	if err != nil {
-		return nil, errors.Errorf("failed to create aws session: %v", err)
+		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
 	}
 
-	managedScope.session = session
+	managedScope.session = *session
 	managedScope.serviceLimiters = serviceLimiters
 
 	helper, err := patch.NewHelper(params.ControlPlane, params.Client)
@@ -118,10 +119,11 @@ type ManagedControlPlaneScope struct {
 	Client      client.Client
 	patchHelper *patch.Helper
 
-	Cluster      *clusterv1.Cluster
-	ControlPlane *ekscontrolplanev1.AWSManagedControlPlane
+	Cluster                   *clusterv1.Cluster
+	ControlPlane              *ekscontrolplanev1.AWSManagedControlPlane
+	MaxWaitActiveUpdateDelete time.Duration
 
-	session         awsclient.ConfigProvider
+	session         aws.Config
 	serviceLimiters throttle.ServiceLimiters
 	controllerName  string
 
@@ -207,6 +209,28 @@ func (s *ManagedControlPlaneScope) SecondaryCidrBlock() *string {
 	return s.ControlPlane.Spec.SecondaryCidrBlock
 }
 
+// SecondaryCidrBlocks returns the additional CIDR blocks to be associated with the managed VPC.
+func (s *ManagedControlPlaneScope) SecondaryCidrBlocks() []infrav1.VpcCidrBlock {
+	return s.ControlPlane.Spec.NetworkSpec.VPC.SecondaryCidrBlocks
+}
+
+// AllSecondaryCidrBlocks returns all secondary CIDR blocks (combining `SecondaryCidrBlock` and `SecondaryCidrBlocks`).
+func (s *ManagedControlPlaneScope) AllSecondaryCidrBlocks() []infrav1.VpcCidrBlock {
+	secondaryCidrBlocks := s.ControlPlane.Spec.NetworkSpec.VPC.SecondaryCidrBlocks
+
+	// If only `AWSManagedControlPlane.spec.secondaryCidrBlock` is set, no additional checks are done to remain
+	// backward-compatible. The `VPCSpec.SecondaryCidrBlocks` field was added later - if that list is not empty, we
+	// require `AWSManagedControlPlane.spec.secondaryCidrBlock` to be listed in there as well (validation done in
+	// webhook).
+	if s.ControlPlane.Spec.SecondaryCidrBlock != nil && len(secondaryCidrBlocks) == 0 {
+		secondaryCidrBlocks = []infrav1.VpcCidrBlock{{
+			IPv4CidrBlock: *s.ControlPlane.Spec.SecondaryCidrBlock,
+		}}
+	}
+
+	return secondaryCidrBlocks
+}
+
 // SecurityGroupOverrides returns the security groups that are overrides in the ControlPlane spec.
 func (s *ManagedControlPlaneScope) SecurityGroupOverrides() map[infrav1.SecurityGroupRole]string {
 	return s.ControlPlane.Spec.NetworkSpec.SecurityGroupOverrides
@@ -251,6 +275,7 @@ func (s *ManagedControlPlaneScope) PatchObject() error {
 			infrav1.InternetGatewayReadyCondition,
 			infrav1.NatGatewaysReadyCondition,
 			infrav1.RouteTablesReadyCondition,
+			infrav1.VpcEndpointsReadyCondition,
 			infrav1.BastionHostReadyCondition,
 			infrav1.EgressOnlyInternetGatewayReadyCondition,
 			ekscontrolplanev1.EKSControlPlaneCreatingCondition,
@@ -297,14 +322,20 @@ func (s *ManagedControlPlaneScope) ClusterObj() cloud.ClusterObject {
 	return s.Cluster
 }
 
-// Session returns the AWS SDK session. Used for creating clients.
-func (s *ManagedControlPlaneScope) Session() awsclient.ConfigProvider {
+// Session returns the AWS SDK V2 config. Used for creating clients.
+func (s *ManagedControlPlaneScope) Session() aws.Config {
 	return s.session
 }
 
 // Bastion returns the bastion details.
 func (s *ManagedControlPlaneScope) Bastion() *infrav1.Bastion {
 	return &s.ControlPlane.Spec.Bastion
+}
+
+// Bucket returns the bucket details.
+// For ManagedControlPlane this is always nil, as we don't support S3 buckets for managed clusters.
+func (s *ManagedControlPlaneScope) Bucket() *infrav1.S3Bucket {
+	return nil
 }
 
 // TagUnmanagedNetworkResources returns if the feature flag tag unmanaged network resources is set.
@@ -394,11 +425,22 @@ func (s *ManagedControlPlaneScope) DisableVPCCNI() bool {
 	return s.ControlPlane.Spec.VpcCni.Disable
 }
 
+// BootstrapSelfManagedAddons returns whether the AWS EKS networking addons should be disabled.
+func (s *ManagedControlPlaneScope) BootstrapSelfManagedAddons() *bool {
+	return &s.ControlPlane.Spec.BootstrapSelfManagedAddons
+}
+
 // VpcCni returns a list of environment variables to apply to the `aws-node` DaemonSet.
 func (s *ManagedControlPlaneScope) VpcCni() ekscontrolplanev1.VpcCni {
 	return s.ControlPlane.Spec.VpcCni
 }
 
+// RestrictPrivateSubnets returns whether Control Plane should be restricted to Private subnets.
+func (s *ManagedControlPlaneScope) RestrictPrivateSubnets() bool {
+	return s.ControlPlane.Spec.RestrictPrivateSubnets
+}
+
+// OIDCIdentityProviderConfig returns the OIDC identity provider config.
 func (s *ManagedControlPlaneScope) OIDCIdentityProviderConfig() *ekscontrolplanev1.OIDCIdentityProviderConfig {
 	return s.ControlPlane.Spec.OIDCIdentityProviderConfig
 }
@@ -421,15 +463,41 @@ func (s *ManagedControlPlaneScope) ControlPlaneLoadBalancer() *infrav1.AWSLoadBa
 	return nil
 }
 
+// ControlPlaneLoadBalancers returns the AWSLoadBalancerSpecs.
+func (s *ManagedControlPlaneScope) ControlPlaneLoadBalancers() []*infrav1.AWSLoadBalancerSpec {
+	return nil
+}
+
 // Partition returns the cluster partition.
 func (s *ManagedControlPlaneScope) Partition() string {
 	if s.ControlPlane.Spec.Partition == "" {
-		s.ControlPlane.Spec.Partition = system.GetPartitionFromRegion(s.Region())
+		s.ControlPlane.Spec.Partition = endpoints.GetPartitionFromRegion(s.Region())
 	}
 	return s.ControlPlane.Spec.Partition
 }
 
 // AdditionalControlPlaneIngressRules returns the additional ingress rules for the control plane security group.
 func (s *ManagedControlPlaneScope) AdditionalControlPlaneIngressRules() []infrav1.IngressRule {
+	return s.ControlPlane.Spec.NetworkSpec.DeepCopy().AdditionalControlPlaneIngressRules
+}
+
+// AdditionalNodeIngressRules returns the additional ingress rules for the node security group.
+func (s *ManagedControlPlaneScope) AdditionalNodeIngressRules() []infrav1.IngressRule {
+	return s.ControlPlane.Spec.NetworkSpec.DeepCopy().AdditionalNodeIngressRules
+}
+
+// UnstructuredControlPlane returns the unstructured object for the control plane, if any.
+// When the reference is not set, it returns an empty object.
+func (s *ManagedControlPlaneScope) UnstructuredControlPlane() (*unstructured.Unstructured, error) {
+	return getUnstructuredControlPlane(context.TODO(), s.Client, s.Cluster)
+}
+
+// NodePortIngressRuleCidrBlocks returns the CIDR blocks for the node NodePort ingress rules.
+func (s *ManagedControlPlaneScope) NodePortIngressRuleCidrBlocks() []string {
 	return nil
+}
+
+// MaxWaitDuration returns time waiting for operation.
+func (s *ManagedControlPlaneScope) MaxWaitDuration() time.Duration {
+	return s.MaxWaitActiveUpdateDelete
 }

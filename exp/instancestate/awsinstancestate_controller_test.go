@@ -22,20 +22,21 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/sqs"
-	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	sqstypes "github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/controllers"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/instancestate"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/instancestate/mock_sqsiface"
 )
 
@@ -45,7 +46,7 @@ func TestAWSInstanceStateController(t *testing.T) {
 	instanceStateReconciler = &AwsInstanceStateReconciler{
 		Client: testEnv.Client,
 		Log:    ctrl.Log.WithName("controllers").WithName("AWSInstanceState"),
-		sqsServiceFactory: func() sqsiface.SQSAPI {
+		sqsServiceFactory: func() instancestate.SQSAPI {
 			return sqsSvs
 		},
 	}
@@ -58,38 +59,38 @@ func TestAWSInstanceStateController(t *testing.T) {
 			Name:      "aws-cluster-1-instance-1",
 			Namespace: "default",
 		}
-		sqsSvs.EXPECT().GetQueueUrl(&sqs.GetQueueUrlInput{QueueName: aws.String("aws-cluster-1-queue")}).AnyTimes().
+		sqsSvs.EXPECT().GetQueueUrl(gomock.Any(), &sqs.GetQueueUrlInput{QueueName: aws.String("aws-cluster-1-queue")}).AnyTimes().
 			Return(&sqs.GetQueueUrlOutput{QueueUrl: aws.String("aws-cluster-1-url")}, nil)
-		sqsSvs.EXPECT().GetQueueUrl(&sqs.GetQueueUrlInput{QueueName: aws.String("aws-cluster-2-queue")}).AnyTimes().
+		sqsSvs.EXPECT().GetQueueUrl(gomock.Any(), &sqs.GetQueueUrlInput{QueueName: aws.String("aws-cluster-2-queue")}).AnyTimes().
 			Return(&sqs.GetQueueUrlOutput{QueueUrl: aws.String("aws-cluster-2-url")}, nil)
-		sqsSvs.EXPECT().GetQueueUrl(&sqs.GetQueueUrlInput{QueueName: aws.String("aws-cluster-3-queue")}).AnyTimes().
+		sqsSvs.EXPECT().GetQueueUrl(gomock.Any(), &sqs.GetQueueUrlInput{QueueName: aws.String("aws-cluster-3-queue")}).AnyTimes().
 			Return(&sqs.GetQueueUrlOutput{QueueUrl: aws.String("aws-cluster-3-url")}, nil)
-		sqsSvs.EXPECT().ReceiveMessage(&sqs.ReceiveMessageInput{QueueUrl: aws.String("aws-cluster-1-url")}).AnyTimes().
-			DoAndReturn(func(arg *sqs.ReceiveMessageInput) (*sqs.ReceiveMessageOutput, error) {
+		sqsSvs.EXPECT().ReceiveMessage(gomock.Any(), &sqs.ReceiveMessageInput{QueueUrl: aws.String("aws-cluster-1-url")}).AnyTimes().
+			DoAndReturn(func(ctx context.Context, arg *sqs.ReceiveMessageInput, optFns ...func(*sqs.Options)) (*sqs.ReceiveMessageOutput, error) {
 				m := &infrav1.AWSMachine{}
 				lookupKey := types.NamespacedName{
 					Namespace: failingMachineMeta.Namespace,
 					Name:      failingMachineMeta.Name,
 				}
-				err := k8sClient.Get(context.TODO(), lookupKey, m)
+				err := k8sClient.Get(ctx, lookupKey, m)
 				// start returning a message once the AWSMachine is available
 				if err == nil {
 					return &sqs.ReceiveMessageOutput{
-						Messages: []*sqs.Message{{
+						Messages: []sqstypes.Message{{
 							ReceiptHandle: aws.String("message-receipt-handle"),
 							Body:          aws.String(messageBodyJSON),
 						}},
 					}, nil
 				}
 
-				return &sqs.ReceiveMessageOutput{Messages: []*sqs.Message{}}, nil
+				return &sqs.ReceiveMessageOutput{Messages: []sqstypes.Message{}}, nil
 			})
 
-		sqsSvs.EXPECT().ReceiveMessage(&sqs.ReceiveMessageInput{QueueUrl: aws.String("aws-cluster-2-url")}).AnyTimes().
-			Return(&sqs.ReceiveMessageOutput{Messages: []*sqs.Message{}}, nil)
-		sqsSvs.EXPECT().ReceiveMessage(&sqs.ReceiveMessageInput{QueueUrl: aws.String("aws-cluster-3-url")}).AnyTimes().
-			Return(&sqs.ReceiveMessageOutput{Messages: []*sqs.Message{}}, nil)
-		sqsSvs.EXPECT().DeleteMessage(&sqs.DeleteMessageInput{QueueUrl: aws.String("aws-cluster-1-url"), ReceiptHandle: aws.String("message-receipt-handle")}).AnyTimes().
+		sqsSvs.EXPECT().ReceiveMessage(gomock.Any(), &sqs.ReceiveMessageInput{QueueUrl: aws.String("aws-cluster-2-url")}).AnyTimes().
+			Return(&sqs.ReceiveMessageOutput{Messages: []sqstypes.Message{}}, nil)
+		sqsSvs.EXPECT().ReceiveMessage(gomock.Any(), &sqs.ReceiveMessageInput{QueueUrl: aws.String("aws-cluster-3-url")}).AnyTimes().
+			Return(&sqs.ReceiveMessageOutput{Messages: []sqstypes.Message{}}, nil)
+		sqsSvs.EXPECT().DeleteMessage(gomock.Any(), &sqs.DeleteMessageInput{QueueUrl: aws.String("aws-cluster-1-url"), ReceiptHandle: aws.String("message-receipt-handle")}).AnyTimes().
 			Return(nil, nil)
 
 		g.Expect(testEnv.Manager.GetFieldIndexer().IndexField(context.Background(), &infrav1.AWSMachine{},
@@ -120,7 +121,7 @@ func TestAWSInstanceStateController(t *testing.T) {
 
 		machine1 := &infrav1.AWSMachine{
 			Spec: infrav1.AWSMachineSpec{
-				InstanceID:   pointer.String("i-failing-instance-1"),
+				InstanceID:   ptr.To[string]("i-failing-instance-1"),
 				InstanceType: "test",
 			},
 			ObjectMeta: failingMachineMeta,
@@ -135,14 +136,14 @@ func TestAWSInstanceStateController(t *testing.T) {
 				exist = exist && ok
 			}
 			return exist
-		}, 10*time.Second).Should(Equal(true))
+		}, 10*time.Second).Should(BeTrue(), "Eventually failed ensuring queue URLs are up-to-date")
 
 		deleteAWSCluster(g, "aws-cluster-2")
 		t.Log("Ensuring we stop tracking deleted queue")
 		g.Eventually(func() bool {
 			_, ok := instanceStateReconciler.queueURLs.Load("aws-cluster-2")
 			return ok
-		}, 10*time.Second).Should(BeFalse())
+		}, 10*time.Second).Should(BeFalse(), "Eventually failed ensuring we stop tracking deleted queue")
 
 		persistObject(g, createAWSCluster("aws-cluster-3"))
 		t.Log("Ensuring newly created cluster is added to tracked clusters")
@@ -153,7 +154,7 @@ func TestAWSInstanceStateController(t *testing.T) {
 				exist = exist && ok
 			}
 			return exist
-		}, 10*time.Second).Should(Equal(true))
+		}, 10*time.Second).Should(BeTrue(), "Eventually failed ensuring newly created cluster is added to the tracked clusters")
 
 		t.Log("Ensuring machine is labelled with correct instance state")
 		g.Eventually(func() bool {
@@ -166,7 +167,7 @@ func TestAWSInstanceStateController(t *testing.T) {
 			labels := m.GetLabels()
 			val := labels[Ec2InstanceStateLabelKey]
 			return val == "shutting-down"
-		}, 10*time.Second).Should(Equal(true))
+		}, 10*time.Second).Should(BeTrue(), "Eventually failed ensuring machine is labelled with correct instance state")
 	})
 }
 

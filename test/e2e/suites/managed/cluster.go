@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package managed implements a test for creating a managed cluster using CAPA.
 package managed
 
 import (
@@ -24,12 +25,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
@@ -42,7 +43,7 @@ type ManagedClusterSpecInput struct {
 	E2EConfig                *clusterctl.E2EConfig
 	ConfigClusterFn          DefaultConfigClusterFn
 	BootstrapClusterProxy    framework.ClusterProxy
-	AWSSession               client.ConfigProvider
+	AWSSession               *aws.Config
 	Namespace                *corev1.Namespace
 	ClusterName              string
 	Flavour                  string
@@ -65,8 +66,8 @@ func ManagedClusterSpec(ctx context.Context, inputGetter func() ManagedClusterSp
 	ginkgo.By(fmt.Sprintf("creating an applying the %s template", input.Flavour))
 	configCluster := input.ConfigClusterFn(input.ClusterName, input.Namespace.Name)
 	configCluster.Flavor = input.Flavour
-	configCluster.ControlPlaneMachineCount = pointer.Int64(input.ControlPlaneMachineCount)
-	configCluster.WorkerMachineCount = pointer.Int64(input.WorkerMachineCount)
+	configCluster.ControlPlaneMachineCount = ptr.To[int64](input.ControlPlaneMachineCount)
+	configCluster.WorkerMachineCount = ptr.To[int64](input.WorkerMachineCount)
 	if input.KubernetesVersion != "" {
 		configCluster.KubernetesVersion = input.KubernetesVersion
 	}
@@ -86,14 +87,14 @@ func ManagedClusterSpec(ctx context.Context, inputGetter func() ManagedClusterSp
 
 	ginkgo.By("Checking EKS cluster is active")
 	eksClusterName := getEKSClusterName(input.Namespace.Name, input.ClusterName)
-	verifyClusterActiveAndOwned(eksClusterName, input.AWSSession)
+	verifyClusterActiveAndOwned(ctx, eksClusterName, input.AWSSession)
 
 	if input.CluserSpecificRoles {
 		ginkgo.By("Checking that the cluster specific IAM role exists")
-		VerifyRoleExistsAndOwned(fmt.Sprintf("%s-iam-service-role", input.ClusterName), eksClusterName, true, input.AWSSession)
+		VerifyRoleExistsAndOwned(ctx, fmt.Sprintf("%s-iam-service-role", input.ClusterName), eksClusterName, true, input.AWSSession)
 	} else {
 		ginkgo.By("Checking that the cluster default IAM role exists")
-		VerifyRoleExistsAndOwned(ekscontrolplanev1.DefaultEKSControlPlaneRole, eksClusterName, false, input.AWSSession)
+		VerifyRoleExistsAndOwned(ctx, ekscontrolplanev1.DefaultEKSControlPlaneRole, eksClusterName, false, input.AWSSession)
 	}
 
 	ginkgo.By("Checking kubeconfig secrets exist")

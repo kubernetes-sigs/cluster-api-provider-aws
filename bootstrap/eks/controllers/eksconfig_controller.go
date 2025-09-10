@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package controllers provides a way to reconcile EKSConfig objects.
 package controllers
 
 import (
@@ -28,7 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -39,12 +40,12 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/internal/userdata"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/util/paused"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bsutil "sigs.k8s.io/cluster-api/bootstrap/util"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -79,7 +80,7 @@ func (r *EKSConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	log = log.WithValues("EKSConfig", config.GetName())
 
 	// check owner references and look up owning Machine object
-	configOwner, err := bsutil.GetConfigOwner(ctx, r.Client, config)
+	configOwner, err := bsutil.GetTypedConfigOwner(ctx, r.Client, config)
 	if apierrors.IsNotFound(err) {
 		// no error here, requeue until we find an owner
 		log.Debug("eksconfig failed to look up owner reference, re-queueing")
@@ -112,9 +113,8 @@ func (r *EKSConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 	log = log.WithValues("cluster", klog.KObj(cluster))
 
-	if annotations.IsPaused(cluster, config) {
-		log.Info("Reconciliation is paused for this object")
-		return ctrl.Result{}, nil
+	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, config); err != nil || isPaused || conditionChanged {
+		return ctrl.Result{}, err
 	}
 
 	patchHelper, err := patch.NewHelper(config, r.Client)
@@ -143,7 +143,7 @@ func (r *EKSConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 	}()
 
-	return r.joinWorker(ctx, cluster, config, configOwner)
+	return ctrl.Result{}, r.joinWorker(ctx, cluster, config, configOwner)
 }
 
 func (r *EKSConfigReconciler) resolveFiles(ctx context.Context, cfg *eksbootstrapv1.EKSConfig) ([]eksbootstrapv1.File, error) {
@@ -181,7 +181,7 @@ func (r *EKSConfigReconciler) resolveSecretFileContent(ctx context.Context, ns s
 	return data, nil
 }
 
-func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1.Cluster, config *eksbootstrapv1.EKSConfig, configOwner *bsutil.ConfigOwner) (ctrl.Result, error) {
+func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1.Cluster, config *eksbootstrapv1.EKSConfig, configOwner *bsutil.ConfigOwner) error {
 	log := logger.FromContext(ctx)
 
 	// only need to reconcile the secret for Machine kinds once, but MachinePools need updates for new launch templates
@@ -195,15 +195,15 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 		err := r.Client.Get(ctx, secretKey, existingSecret)
 		switch {
 		case err == nil:
-			return ctrl.Result{}, nil
+			return nil
 		case !apierrors.IsNotFound(err):
 			log.Error(err, "unable to check for existing bootstrap secret")
-			return ctrl.Result{}, err
+			return err
 		}
 	}
 
 	if cluster.Spec.ControlPlaneRef == nil || cluster.Spec.ControlPlaneRef.Kind != "AWSManagedControlPlane" {
-		return ctrl.Result{}, errors.New("Cluster's controlPlaneRef needs to be an AWSManagedControlPlane in order to use the EKS bootstrap provider")
+		return errors.New("Cluster's controlPlaneRef needs to be an AWSManagedControlPlane in order to use the EKS bootstrap provider")
 	}
 
 	if !cluster.Status.InfrastructureReady {
@@ -212,26 +212,26 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 			eksbootstrapv1.DataSecretAvailableCondition,
 			eksbootstrapv1.WaitingForClusterInfrastructureReason,
 			clusterv1.ConditionSeverityInfo, "")
-		return ctrl.Result{}, nil
+		return nil
 	}
 
 	if !conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
 		log.Info("Control Plane has not yet been initialized")
 		conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.WaitingForControlPlaneInitializationReason, clusterv1.ConditionSeverityInfo, "")
-		return ctrl.Result{}, nil
+		return nil
 	}
 
 	controlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
 	if err := r.Get(ctx, client.ObjectKey{Name: cluster.Spec.ControlPlaneRef.Name, Namespace: cluster.Spec.ControlPlaneRef.Namespace}, controlPlane); err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
 
 	log.Info("Generating userdata")
 	files, err := r.resolveFiles(ctx, config)
 	if err != nil {
 		log.Info("Failed to resolve files for user data")
-		conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
-		return ctrl.Result{}, err
+		conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
+		return err
 	}
 
 	nodeInput := &userdata.NodeInput{
@@ -261,14 +261,14 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 	// If not, we also check if the cluster is ipv6 based.
 	if config.Spec.ServiceIPV6Cidr != nil && *config.Spec.ServiceIPV6Cidr != "" {
 		nodeInput.ServiceIPV6Cidr = config.Spec.ServiceIPV6Cidr
-		nodeInput.IPFamily = pointer.String("ipv6")
+		nodeInput.IPFamily = ptr.To[string]("ipv6")
 	}
 
 	// we don't want to override any manually set configuration options.
 	if config.Spec.ServiceIPV6Cidr == nil && controlPlane.Spec.NetworkSpec.VPC.IsIPv6Enabled() {
 		log.Info("Adding ipv6 data to userdata....")
-		nodeInput.ServiceIPV6Cidr = pointer.String(controlPlane.Spec.NetworkSpec.VPC.IPv6.CidrBlock)
-		nodeInput.IPFamily = pointer.String("ipv6")
+		nodeInput.ServiceIPV6Cidr = ptr.To[string](controlPlane.Spec.NetworkSpec.VPC.IPv6.CidrBlock)
+		nodeInput.IPFamily = ptr.To[string]("ipv6")
 	}
 
 	// generate userdata
@@ -276,32 +276,32 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 	if err != nil {
 		log.Error(err, "Failed to create a worker join configuration")
 		conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, "")
-		return ctrl.Result{}, err
+		return err
 	}
 
 	// store userdata as secret
 	if err := r.storeBootstrapData(ctx, cluster, config, userDataScript); err != nil {
 		log.Error(err, "Failed to store bootstrap data")
 		conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, "")
-		return ctrl.Result{}, err
+		return err
 	}
 
-	return ctrl.Result{}, nil
+	return nil
 }
 
 func (r *EKSConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, option controller.Options) error {
 	b := ctrl.NewControllerManagedBy(mgr).
 		For(&eksbootstrapv1.EKSConfig{}).
 		WithOptions(option).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(logger.FromContext(ctx).GetLogger(), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), logger.FromContext(ctx).GetLogger(), r.WatchFilterValue)).
 		Watches(
-			&source.Kind{Type: &clusterv1.Machine{}},
+			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(r.MachineToBootstrapMapFunc),
 		)
 
 	if feature.Gates.Enabled(feature.MachinePool) {
 		b = b.Watches(
-			&source.Kind{Type: &expclusterv1.MachinePool{}},
+			&expclusterv1.MachinePool{},
 			handler.EnqueueRequestsFromMapFunc(r.MachinePoolToBootstrapMapFunc),
 		)
 	}
@@ -312,9 +312,9 @@ func (r *EKSConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Man
 	}
 
 	err = c.Watch(
-		&source.Kind{Type: &clusterv1.Cluster{}},
-		handler.EnqueueRequestsFromMapFunc((r.ClusterToEKSConfigs)),
-		predicates.ClusterUnpausedAndInfrastructureReady(logger.FromContext(ctx).GetLogger()),
+		source.Kind[client.Object](mgr.GetCache(), &clusterv1.Cluster{},
+			handler.EnqueueRequestsFromMapFunc((r.ClusterToEKSConfigs)),
+			predicates.ClusterPausedTransitionsOrInfrastructureReady(mgr.GetScheme(), logger.FromContext(ctx).GetLogger())),
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed adding watch for Clusters to controller manager")
@@ -355,7 +355,7 @@ func (r *EKSConfigReconciler) storeBootstrapData(ctx context.Context, cluster *c
 		}
 	}
 
-	config.Status.DataSecretName = pointer.String(secret.Name)
+	config.Status.DataSecretName = ptr.To[string](secret.Name)
 	config.Status.Ready = true
 	conditions.MarkTrue(config, eksbootstrapv1.DataSecretAvailableCondition)
 	return nil
@@ -363,7 +363,7 @@ func (r *EKSConfigReconciler) storeBootstrapData(ctx context.Context, cluster *c
 
 // MachineToBootstrapMapFunc is a handler.ToRequestsFunc to be used to enqueue requests
 // for EKSConfig reconciliation.
-func (r *EKSConfigReconciler) MachineToBootstrapMapFunc(o client.Object) []ctrl.Request {
+func (r *EKSConfigReconciler) MachineToBootstrapMapFunc(_ context.Context, o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 
 	m, ok := o.(*clusterv1.Machine)
@@ -379,7 +379,7 @@ func (r *EKSConfigReconciler) MachineToBootstrapMapFunc(o client.Object) []ctrl.
 
 // MachinePoolToBootstrapMapFunc is a handler.ToRequestsFunc to be uses to enqueue requests
 // for EKSConfig reconciliation.
-func (r *EKSConfigReconciler) MachinePoolToBootstrapMapFunc(o client.Object) []ctrl.Request {
+func (r *EKSConfigReconciler) MachinePoolToBootstrapMapFunc(_ context.Context, o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 
 	m, ok := o.(*expclusterv1.MachinePool)
@@ -397,7 +397,7 @@ func (r *EKSConfigReconciler) MachinePoolToBootstrapMapFunc(o client.Object) []c
 
 // ClusterToEKSConfigs is a handler.ToRequestsFunc to be used to enqueue requests for
 // EKSConfig reconciliation.
-func (r *EKSConfigReconciler) ClusterToEKSConfigs(o client.Object) []ctrl.Request {
+func (r *EKSConfigReconciler) ClusterToEKSConfigs(_ context.Context, o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 
 	c, ok := o.(*clusterv1.Cluster)
@@ -443,7 +443,7 @@ func (r *EKSConfigReconciler) createBootstrapSecret(ctx context.Context, cluster
 					Kind:       "EKSConfig",
 					Name:       config.Name,
 					UID:        config.UID,
-					Controller: pointer.Bool(true),
+					Controller: ptr.To[bool](true),
 				},
 			},
 		},

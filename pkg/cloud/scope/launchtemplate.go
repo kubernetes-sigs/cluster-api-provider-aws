@@ -18,6 +18,7 @@ package scope
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -36,7 +37,7 @@ type LaunchTemplateScope interface {
 	SetLaunchTemplateIDStatus(id string)
 	GetLaunchTemplateLatestVersionStatus() string
 	SetLaunchTemplateLatestVersionStatus(version string)
-	GetRawBootstrapData() ([]byte, error)
+	GetRawBootstrapData() ([]byte, string, *types.NamespacedName, error)
 
 	IsEKSManaged() bool
 	AdditionalTags() infrav1.Tags
@@ -50,11 +51,13 @@ type LaunchTemplateScope interface {
 	logger.Wrapper
 }
 
+// ResourceServiceToUpdate is a struct that contains the resource ID and the resource service to update.
 type ResourceServiceToUpdate struct {
 	ResourceID      *string
 	ResourceService ResourceService
 }
 
+// ResourceService defines the interface for resources.
 type ResourceService interface {
 	UpdateResourceTags(resourceID *string, create, remove map[string]string) error
 }

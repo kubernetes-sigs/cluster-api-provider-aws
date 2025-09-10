@@ -17,6 +17,7 @@ limitations under the License.
 package s3_test
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -25,21 +26,23 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	s3svc "github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	s3svc "github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/golang/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilfeature "k8s.io/component-base/featuregate/testing"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
 	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/s3"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/s3/mock_s3iface"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/s3/mock_stsiface"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts/mock_stsiface"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -49,48 +52,75 @@ const (
 )
 
 func TestReconcileBucket(t *testing.T) {
-	t.Parallel()
-
 	t.Run("does_nothing_when_bucket_management_is_disabled", func(t *testing.T) {
 		t.Parallel()
 
 		svc, _ := testService(t, nil)
 
-		if err := svc.ReconcileBucket(); err != nil {
+		if err := svc.ReconcileBucket(context.TODO()); err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
 	})
 
 	t.Run("creates_bucket_with_configured_name", func(t *testing.T) {
-		t.Parallel()
+		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
 
 		expectedBucketName := "baz"
 
-		svc, s3Mock := testService(t, &infrav1.S3Bucket{
-			Name: expectedBucketName,
+		svc, s3Mock := testService(t, &testServiceInput{
+			Bucket: &infrav1.S3Bucket{
+				Name: expectedBucketName,
+			},
 		})
 
 		input := &s3svc.CreateBucketInput{
 			Bucket: aws.String(expectedBucketName),
+			CreateBucketConfiguration: &types.CreateBucketConfiguration{
+				LocationConstraint: types.BucketLocationConstraintUsWest2,
+			},
 		}
 
-		s3Mock.EXPECT().CreateBucket(gomock.Eq(input)).Return(nil, nil).Times(1)
-		s3Mock.EXPECT().PutBucketPolicy(gomock.Any()).Return(nil, nil).Times(1)
+		s3Mock.EXPECT().CreateBucket(gomock.Any(), gomock.Eq(input)).Return(nil, nil).Times(1)
 
-		if err := svc.ReconcileBucket(); err != nil {
+		taggingInput := &s3svc.PutBucketTaggingInput{
+			Bucket: aws.String(expectedBucketName),
+			Tagging: &types.Tagging{
+				TagSet: []types.Tag{
+					{
+						Key:   aws.String("additional"),
+						Value: aws.String("from-aws-cluster"),
+					},
+					{
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+						Value: aws.String("owned"),
+					},
+					{
+						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+						Value: aws.String("node"),
+					},
+				},
+			},
+		}
+
+		s3Mock.EXPECT().PutBucketTagging(gomock.Any(), gomock.Eq(taggingInput)).Return(nil, nil).Times(1)
+
+		s3Mock.EXPECT().PutBucketPolicy(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+		s3Mock.EXPECT().PutBucketLifecycleConfiguration(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+
+		if err := svc.ReconcileBucket(context.TODO()); err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
 	})
 
 	t.Run("hashes_default_bucket_name_if_name_exceeds_maximum_length", func(t *testing.T) {
-		t.Parallel()
+		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
 
 		mockCtrl := gomock.NewController(t)
 		s3Mock := mock_s3iface.NewMockS3API(mockCtrl)
-		stsMock := mock_stsiface.NewMockSTSAPI(mockCtrl)
+		stsMock := mock_stsiface.NewMockSTSClient(mockCtrl)
 
 		getCallerIdentityResult := &sts.GetCallerIdentityOutput{Account: aws.String("foo")}
-		stsMock.EXPECT().GetCallerIdentity(gomock.Any()).Return(getCallerIdentityResult, nil).AnyTimes()
+		stsMock.EXPECT().GetCallerIdentity(gomock.Any(), gomock.Any()).Return(getCallerIdentityResult, nil).AnyTimes()
 
 		scheme := runtime.NewScheme()
 		_ = infrav1.AddToScheme(scheme)
@@ -119,7 +149,7 @@ func TestReconcileBucket(t *testing.T) {
 		svc.S3Client = s3Mock
 		svc.STSClient = stsMock
 
-		s3Mock.EXPECT().CreateBucket(gomock.Any()).Do(func(input *s3svc.CreateBucketInput) {
+		s3Mock.EXPECT().CreateBucket(gomock.Any(), gomock.Any()).Do(func(ctx context.Context, input *s3svc.CreateBucketInput, optFns ...func(*s3svc.Options)) {
 			if input.Bucket == nil {
 				t.Fatalf("CreateBucket request must have Bucket specified")
 			}
@@ -129,28 +159,33 @@ func TestReconcileBucket(t *testing.T) {
 			}
 		}).Return(nil, nil).Times(1)
 
-		s3Mock.EXPECT().PutBucketPolicy(gomock.Any()).Return(nil, nil).Times(1)
+		s3Mock.EXPECT().PutBucketTagging(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+		s3Mock.EXPECT().PutBucketPolicy(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+		s3Mock.EXPECT().PutBucketLifecycleConfiguration(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 
-		if err := svc.ReconcileBucket(); err != nil {
+		if err := svc.ReconcileBucket(context.TODO()); err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
 	})
 
 	t.Run("creates_bucket_with_policy_allowing_controlplane_and_worker_nodes_to_read_their_secrets", func(t *testing.T) {
-		t.Parallel()
+		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
 
 		bucketName := "bar"
 
-		svc, s3Mock := testService(t, &infrav1.S3Bucket{
-			Name:                           bucketName,
-			ControlPlaneIAMInstanceProfile: fmt.Sprintf("control-plane%s", iamv1.DefaultNameSuffix),
-			NodesIAMInstanceProfiles: []string{
-				fmt.Sprintf("nodes%s", iamv1.DefaultNameSuffix),
+		svc, s3Mock := testService(t, &testServiceInput{
+			Bucket: &infrav1.S3Bucket{
+				Name:                           bucketName,
+				ControlPlaneIAMInstanceProfile: fmt.Sprintf("control-plane%s", iamv1.DefaultNameSuffix),
+				NodesIAMInstanceProfiles: []string{
+					fmt.Sprintf("nodes%s", iamv1.DefaultNameSuffix),
+				},
 			},
 		})
 
-		s3Mock.EXPECT().CreateBucket(gomock.Any()).Return(nil, nil).Times(1)
-		s3Mock.EXPECT().PutBucketPolicy(gomock.Any()).Do(func(input *s3svc.PutBucketPolicyInput) {
+		s3Mock.EXPECT().CreateBucket(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+		s3Mock.EXPECT().PutBucketTagging(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+		s3Mock.EXPECT().PutBucketPolicy(gomock.Any(), gomock.Any()).Do(func(ctx context.Context, input *s3svc.PutBucketPolicyInput, optFns ...func(*s3svc.Options)) {
 			if input.Policy == nil {
 				t.Fatalf("Policy must be defined")
 			}
@@ -176,41 +211,50 @@ func TestReconcileBucket(t *testing.T) {
 			if !strings.Contains(policy, "arn:aws:iam::foo:role/control-plane.cluster-api-provider-aws.sigs.k8s.io") {
 				t.Errorf("Expected arn to contain the right principal; got: %v", policy)
 			}
-		}).Return(nil, nil).Times(1)
 
-		if err := svc.ReconcileBucket(); err != nil {
+			if !strings.Contains(policy, "SecureTransport") {
+				t.Errorf("Expected deny when not using SecureTransport; got: %v", policy)
+			}
+		}).Return(nil, nil).Times(1)
+		s3Mock.EXPECT().PutBucketLifecycleConfiguration(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+
+		if err := svc.ReconcileBucket(context.TODO()); err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
 	})
 
 	t.Run("is_idempotent", func(t *testing.T) {
-		t.Parallel()
+		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
 
-		svc, s3Mock := testService(t, &infrav1.S3Bucket{})
+		svc, s3Mock := testService(t, &testServiceInput{Bucket: &infrav1.S3Bucket{}})
 
-		s3Mock.EXPECT().CreateBucket(gomock.Any()).Return(nil, nil).Times(2)
-		s3Mock.EXPECT().PutBucketPolicy(gomock.Any()).Return(nil, nil).Times(2)
+		s3Mock.EXPECT().CreateBucket(gomock.Any(), gomock.Any()).Return(nil, nil).Times(2)
+		s3Mock.EXPECT().PutBucketTagging(gomock.Any(), gomock.Any()).Return(nil, nil).Times(2)
+		s3Mock.EXPECT().PutBucketPolicy(gomock.Any(), gomock.Any()).Return(nil, nil).Times(2)
+		s3Mock.EXPECT().PutBucketLifecycleConfiguration(gomock.Any(), gomock.Any()).Return(nil, nil).Times(2)
 
-		if err := svc.ReconcileBucket(); err != nil {
+		if err := svc.ReconcileBucket(context.TODO()); err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
 
-		if err := svc.ReconcileBucket(); err != nil {
+		if err := svc.ReconcileBucket(context.TODO()); err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
 	})
 
 	t.Run("ignores_when_bucket_already_exists_but_its_owned_by_the_same_account", func(t *testing.T) {
-		t.Parallel()
+		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
 
-		svc, s3Mock := testService(t, &infrav1.S3Bucket{})
+		svc, s3Mock := testService(t, &testServiceInput{Bucket: &infrav1.S3Bucket{}})
 
-		err := awserr.New(s3svc.ErrCodeBucketAlreadyOwnedByYou, "err", errors.New("err"))
+		err := &types.BucketAlreadyOwnedByYou{Message: aws.String("err")}
 
-		s3Mock.EXPECT().CreateBucket(gomock.Any()).Return(nil, err).Times(1)
-		s3Mock.EXPECT().PutBucketPolicy(gomock.Any()).Return(nil, nil).Times(1)
+		s3Mock.EXPECT().CreateBucket(gomock.Any(), gomock.Any()).Return(nil, err).Times(1)
+		s3Mock.EXPECT().PutBucketTagging(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+		s3Mock.EXPECT().PutBucketPolicy(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+		s3Mock.EXPECT().PutBucketLifecycleConfiguration(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 
-		if err := svc.ReconcileBucket(); err != nil {
+		if err := svc.ReconcileBucket(context.TODO()); err != nil {
 			t.Fatalf("Unexpected error, got: %v", err)
 		}
 	})
@@ -221,11 +265,11 @@ func TestReconcileBucket(t *testing.T) {
 		t.Run("bucket_creation_fails", func(t *testing.T) {
 			t.Parallel()
 
-			svc, s3Mock := testService(t, &infrav1.S3Bucket{})
+			svc, s3Mock := testService(t, &testServiceInput{Bucket: &infrav1.S3Bucket{}})
 
-			s3Mock.EXPECT().CreateBucket(gomock.Any()).Return(nil, errors.New("error")).Times(1)
+			s3Mock.EXPECT().CreateBucket(gomock.Any(), gomock.Any()).Return(nil, errors.New("error")).Times(1)
 
-			if err := svc.ReconcileBucket(); err == nil {
+			if err := svc.ReconcileBucket(context.TODO()); err == nil {
 				t.Fatalf("Expected error")
 			}
 		})
@@ -233,11 +277,14 @@ func TestReconcileBucket(t *testing.T) {
 		t.Run("bucket_creation_returns_unexpected_AWS_error", func(t *testing.T) {
 			t.Parallel()
 
-			svc, s3Mock := testService(t, &infrav1.S3Bucket{})
+			svc, s3Mock := testService(t, &testServiceInput{Bucket: &infrav1.S3Bucket{}})
 
-			s3Mock.EXPECT().CreateBucket(gomock.Any()).Return(nil, awserr.New("foo", "", nil)).Times(1)
+			s3Mock.EXPECT().CreateBucket(gomock.Any(), gomock.Any()).Return(nil, &types.NoSuchBucket{
+				Message:           aws.String(""),
+				ErrorCodeOverride: aws.String("foo"),
+			}).Times(1)
 
-			if err := svc.ReconcileBucket(); err == nil {
+			if err := svc.ReconcileBucket(context.TODO()); err == nil {
 				t.Fatalf("Expected error")
 			}
 		})
@@ -245,16 +292,17 @@ func TestReconcileBucket(t *testing.T) {
 		t.Run("generating_bucket_policy_fails", func(t *testing.T) {
 			t.Parallel()
 
-			svc, s3Mock := testService(t, &infrav1.S3Bucket{})
+			svc, s3Mock := testService(t, &testServiceInput{Bucket: &infrav1.S3Bucket{}})
 
-			s3Mock.EXPECT().CreateBucket(gomock.Any()).Return(nil, nil).Times(1)
+			s3Mock.EXPECT().CreateBucket(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			s3Mock.EXPECT().PutBucketTagging(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 
 			mockCtrl := gomock.NewController(t)
-			stsMock := mock_stsiface.NewMockSTSAPI(mockCtrl)
-			stsMock.EXPECT().GetCallerIdentity(gomock.Any()).Return(nil, fmt.Errorf(t.Name())).AnyTimes()
+			stsMock := mock_stsiface.NewMockSTSClient(mockCtrl)
+			stsMock.EXPECT().GetCallerIdentity(gomock.Any(), gomock.Any()).Return(nil, errors.New(t.Name())).AnyTimes()
 			svc.STSClient = stsMock
 
-			if err := svc.ReconcileBucket(); err == nil {
+			if err := svc.ReconcileBucket(context.TODO()); err == nil {
 				t.Fatalf("Expected error")
 			}
 		})
@@ -262,13 +310,36 @@ func TestReconcileBucket(t *testing.T) {
 		t.Run("creating_bucket_policy_fails", func(t *testing.T) {
 			t.Parallel()
 
-			svc, s3Mock := testService(t, &infrav1.S3Bucket{})
+			svc, s3Mock := testService(t, &testServiceInput{Bucket: &infrav1.S3Bucket{}})
 
-			s3Mock.EXPECT().CreateBucket(gomock.Any()).Return(nil, nil).Times(1)
-			s3Mock.EXPECT().PutBucketPolicy(gomock.Any()).Return(nil, errors.New("error")).Times(1)
+			s3Mock.EXPECT().CreateBucket(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			s3Mock.EXPECT().PutBucketTagging(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			s3Mock.EXPECT().PutBucketPolicy(gomock.Any(), gomock.Any()).Return(nil, errors.New("error")).Times(1)
 
-			if err := svc.ReconcileBucket(); err == nil {
+			if err := svc.ReconcileBucket(context.TODO()); err == nil {
 				t.Fatalf("Expected error")
+			}
+		})
+
+		t.Run("creates_bucket_without_location", func(t *testing.T) {
+			t.Parallel()
+
+			bucketName := "test"
+			svc, s3Mock := testService(t, &testServiceInput{
+				Region: "us-east-1",
+				Bucket: &infrav1.S3Bucket{Name: bucketName},
+			})
+			input := &s3svc.CreateBucketInput{
+				Bucket: aws.String(bucketName),
+			}
+
+			s3Mock.EXPECT().CreateBucket(gomock.Any(), gomock.Eq(input)).Return(nil, nil).Times(1)
+			s3Mock.EXPECT().PutBucketTagging(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			s3Mock.EXPECT().PutBucketPolicy(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			s3Mock.EXPECT().PutBucketLifecycleConfiguration(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+
+			if err := svc.ReconcileBucket(context.TODO()); err != nil {
+				t.Fatalf("Unexpected error: %v", err)
 			}
 		})
 	})
@@ -280,80 +351,92 @@ func TestDeleteBucket(t *testing.T) {
 	const bucketName = "foo"
 
 	t.Run("does_nothing_when_bucket_management_is_disabled", func(t *testing.T) {
-		t.Parallel()
+		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
 
 		svc, _ := testService(t, nil)
 
-		if err := svc.DeleteBucket(); err != nil {
+		if err := svc.DeleteBucket(context.TODO()); err != nil {
 			t.Fatalf("Unexpected error, got: %v", err)
 		}
 	})
 
 	t.Run("deletes_bucket_with_configured_name", func(t *testing.T) {
-		t.Parallel()
+		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
 
-		svc, s3Mock := testService(t, &infrav1.S3Bucket{
-			Name: bucketName,
+		svc, s3Mock := testService(t, &testServiceInput{
+			Bucket: &infrav1.S3Bucket{
+				Name: bucketName,
+			},
 		})
 
 		input := &s3svc.DeleteBucketInput{
 			Bucket: aws.String(bucketName),
 		}
 
-		s3Mock.EXPECT().DeleteBucket(input).Return(nil, nil).Times(1)
+		s3Mock.EXPECT().ListObjectsV2(gomock.Any(), gomock.Any()).Return(&s3svc.ListObjectsV2Output{}, nil).Times(1)
+		s3Mock.EXPECT().DeleteBucket(gomock.Any(), input).Return(nil, nil).Times(1)
 
-		if err := svc.DeleteBucket(); err != nil {
+		if err := svc.DeleteBucket(context.TODO()); err != nil {
 			t.Fatalf("Unexpected error, got: %v", err)
 		}
 	})
 
 	t.Run("returns_error_when_bucket_removal_returns", func(t *testing.T) {
-		t.Parallel()
 		t.Run("unexpected_error", func(t *testing.T) {
-			t.Parallel()
+			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
 
-			svc, s3Mock := testService(t, &infrav1.S3Bucket{})
+			svc, s3Mock := testService(t, &testServiceInput{Bucket: &infrav1.S3Bucket{}})
 
-			s3Mock.EXPECT().DeleteBucket(gomock.Any()).Return(nil, errors.New("err")).Times(1)
+			s3Mock.EXPECT().ListObjectsV2(gomock.Any(), gomock.Any()).Return(&s3svc.ListObjectsV2Output{}, nil).Times(1)
+			s3Mock.EXPECT().DeleteBucket(gomock.Any(), gomock.Any()).Return(nil, errors.New("err")).Times(1)
 
-			if err := svc.DeleteBucket(); err == nil {
+			if err := svc.DeleteBucket(context.TODO()); err == nil {
 				t.Fatalf("Expected error")
 			}
 		})
 
 		t.Run("unexpected_AWS_error", func(t *testing.T) {
-			t.Parallel()
+			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
 
-			svc, s3Mock := testService(t, &infrav1.S3Bucket{})
+			svc, s3Mock := testService(t, &testServiceInput{Bucket: &infrav1.S3Bucket{}})
 
-			s3Mock.EXPECT().DeleteBucket(gomock.Any()).Return(nil, awserr.New("foo", "", nil)).Times(1)
+			s3Mock.EXPECT().ListObjectsV2(gomock.Any(), gomock.Any()).Return(&s3svc.ListObjectsV2Output{}, nil).Times(1)
+			s3Mock.EXPECT().DeleteBucket(gomock.Any(), gomock.Any()).Return(nil, &types.NoSuchBucket{
+				Message:           aws.String(""),
+				ErrorCodeOverride: aws.String("foo"),
+			}).Times(1)
 
-			if err := svc.DeleteBucket(); err == nil {
+			if err := svc.DeleteBucket(context.TODO()); err == nil {
 				t.Fatalf("Expected error")
 			}
 		})
 	})
 
 	t.Run("ignores_when_bucket_has_already_been_removed", func(t *testing.T) {
-		t.Parallel()
+		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
 
-		svc, s3Mock := testService(t, &infrav1.S3Bucket{})
+		svc, s3Mock := testService(t, &testServiceInput{Bucket: &infrav1.S3Bucket{}})
 
-		s3Mock.EXPECT().DeleteBucket(gomock.Any()).Return(nil, awserr.New(s3svc.ErrCodeNoSuchBucket, "", nil)).Times(1)
+		s3Mock.EXPECT().ListObjectsV2(gomock.Any(), gomock.Any()).Return(&s3svc.ListObjectsV2Output{}, nil).Times(1)
+		s3Mock.EXPECT().DeleteBucket(gomock.Any(), gomock.Any()).Return(nil, &types.NoSuchBucket{}).Times(1)
 
-		if err := svc.DeleteBucket(); err != nil {
+		if err := svc.DeleteBucket(context.TODO()); err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
 	})
 
 	t.Run("skips_bucket_removal_when_bucket_is_not_empty", func(t *testing.T) {
-		t.Parallel()
+		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
 
-		svc, s3Mock := testService(t, &infrav1.S3Bucket{})
+		svc, s3Mock := testService(t, &testServiceInput{Bucket: &infrav1.S3Bucket{}})
 
-		s3Mock.EXPECT().DeleteBucket(gomock.Any()).Return(nil, awserr.New("BucketNotEmpty", "", nil)).Times(1)
+		s3Mock.EXPECT().ListObjectsV2(gomock.Any(), gomock.Any()).Return(&s3svc.ListObjectsV2Output{}, nil).Times(1)
+		s3Mock.EXPECT().DeleteBucket(gomock.Any(), gomock.Any()).Return(nil, &types.NoSuchBucket{
+			Message:           aws.String(""),
+			ErrorCodeOverride: aws.String("BucketNotEmpty"),
+		}).Times(1)
 
-		if err := svc.DeleteBucket(); err != nil {
+		if err := svc.DeleteBucket(context.TODO()); err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
 	})
@@ -370,8 +453,10 @@ func TestCreateObject(t *testing.T) {
 	t.Run("for_machine", func(t *testing.T) {
 		t.Parallel()
 
-		svc, s3Mock := testService(t, &infrav1.S3Bucket{
-			Name: bucketName,
+		svc, s3Mock := testService(t, &testServiceInput{
+			Bucket: &infrav1.S3Bucket{
+				Name: bucketName,
+			},
 		})
 
 		machineScope := &scope.MachineScope{
@@ -385,7 +470,7 @@ func TestCreateObject(t *testing.T) {
 
 		bootstrapData := []byte("foobar")
 
-		s3Mock.EXPECT().PutObject(gomock.Any()).Do(func(putObjectInput *s3svc.PutObjectInput) {
+		s3Mock.EXPECT().PutObject(gomock.Any(), gomock.Any()).Do(func(ctx context.Context, putObjectInput *s3svc.PutObjectInput, optFns ...func(*s3svc.Options)) {
 			t.Run("use_configured_bucket_name_on_cluster_level", func(t *testing.T) {
 				t.Parallel()
 
@@ -420,7 +505,7 @@ func TestCreateObject(t *testing.T) {
 			})
 		}).Return(nil, nil).Times(1)
 
-		bootstrapDataURL, err := svc.Create(machineScope, bootstrapData)
+		bootstrapDataURL, err := svc.Create(context.TODO(), machineScope, bootstrapData)
 		if err != nil {
 			t.Fatalf("Unexpected error, got: %v", err)
 		}
@@ -451,7 +536,7 @@ func TestCreateObject(t *testing.T) {
 	t.Run("is_idempotent", func(t *testing.T) {
 		t.Parallel()
 
-		svc, s3Mock := testService(t, &infrav1.S3Bucket{})
+		svc, s3Mock := testService(t, &testServiceInput{Bucket: &infrav1.S3Bucket{}})
 
 		machineScope := &scope.MachineScope{
 			Machine: &clusterv1.Machine{},
@@ -462,14 +547,14 @@ func TestCreateObject(t *testing.T) {
 			},
 		}
 
-		s3Mock.EXPECT().PutObject(gomock.Any()).Return(nil, nil).Times(2)
+		s3Mock.EXPECT().PutObject(gomock.Any(), gomock.Any()).Return(nil, nil).Times(2)
 
 		boostrapData := []byte("foo")
 
-		if _, err := svc.Create(machineScope, boostrapData); err != nil {
+		if _, err := svc.Create(context.TODO(), machineScope, boostrapData); err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
-		if _, err := svc.Create(machineScope, boostrapData); err != nil {
+		if _, err := svc.Create(context.TODO(), machineScope, boostrapData); err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
 	})
@@ -480,7 +565,7 @@ func TestCreateObject(t *testing.T) {
 		t.Run("object_creation_fails", func(t *testing.T) {
 			t.Parallel()
 
-			svc, s3Mock := testService(t, &infrav1.S3Bucket{})
+			svc, s3Mock := testService(t, &testServiceInput{Bucket: &infrav1.S3Bucket{}})
 
 			machineScope := &scope.MachineScope{
 				Machine: &clusterv1.Machine{},
@@ -491,9 +576,9 @@ func TestCreateObject(t *testing.T) {
 				},
 			}
 
-			s3Mock.EXPECT().PutObject(gomock.Any()).Return(nil, errors.New("foo")).Times(1)
+			s3Mock.EXPECT().PutObject(gomock.Any(), gomock.Any()).Return(nil, errors.New("foo")).Times(1)
 
-			bootstrapDataURL, err := svc.Create(machineScope, []byte("foo"))
+			bootstrapDataURL, err := svc.Create(context.TODO(), machineScope, []byte("foo"))
 			if err == nil {
 				t.Fatalf("Expected error")
 			}
@@ -506,9 +591,9 @@ func TestCreateObject(t *testing.T) {
 		t.Run("given_empty_machine_scope", func(t *testing.T) {
 			t.Parallel()
 
-			svc, _ := testService(t, &infrav1.S3Bucket{})
+			svc, _ := testService(t, &testServiceInput{Bucket: &infrav1.S3Bucket{}})
 
-			bootstrapDataURL, err := svc.Create(nil, []byte("foo"))
+			bootstrapDataURL, err := svc.Create(context.TODO(), nil, []byte("foo"))
 			if err == nil {
 				t.Fatalf("Expected error")
 			}
@@ -522,7 +607,7 @@ func TestCreateObject(t *testing.T) {
 		t.Run("given_empty_bootstrap_data", func(t *testing.T) {
 			t.Parallel()
 
-			svc, _ := testService(t, &infrav1.S3Bucket{})
+			svc, _ := testService(t, &testServiceInput{Bucket: &infrav1.S3Bucket{}})
 
 			machineScope := &scope.MachineScope{
 				Machine: &clusterv1.Machine{},
@@ -533,7 +618,7 @@ func TestCreateObject(t *testing.T) {
 				},
 			}
 
-			bootstrapDataURL, err := svc.Create(machineScope, []byte{})
+			bootstrapDataURL, err := svc.Create(context.TODO(), machineScope, []byte{})
 			if err == nil {
 				t.Fatalf("Expected error")
 			}
@@ -557,7 +642,7 @@ func TestCreateObject(t *testing.T) {
 				},
 			}
 
-			bootstrapDataURL, err := svc.Create(machineScope, []byte("foo"))
+			bootstrapDataURL, err := svc.Create(context.TODO(), machineScope, []byte("foo"))
 			if err == nil {
 				t.Fatalf("Expected error")
 			}
@@ -579,8 +664,10 @@ func TestDeleteObject(t *testing.T) {
 
 		expectedBucketName := "foo"
 
-		svc, s3Mock := testService(t, &infrav1.S3Bucket{
-			Name: expectedBucketName,
+		svc, s3Mock := testService(t, &testServiceInput{
+			Bucket: &infrav1.S3Bucket{
+				Name: expectedBucketName,
+			},
 		})
 
 		machineScope := &scope.MachineScope{
@@ -598,7 +685,9 @@ func TestDeleteObject(t *testing.T) {
 			},
 		}
 
-		s3Mock.EXPECT().DeleteObject(gomock.Any()).Do(func(deleteObjectInput *s3svc.DeleteObjectInput) {
+		s3Mock.EXPECT().HeadObject(gomock.Any(), gomock.Any())
+
+		s3Mock.EXPECT().DeleteObject(gomock.Any(), gomock.Any()).Do(func(ctx context.Context, deleteObjectInput *s3svc.DeleteObjectInput, optFns ...func(*s3svc.Options)) {
 			t.Run("use_configured_bucket_name_on_cluster_level", func(t *testing.T) {
 				t.Parallel()
 
@@ -620,15 +709,13 @@ func TestDeleteObject(t *testing.T) {
 			})
 		}).Return(nil, nil).Times(1)
 
-		if err := svc.Delete(machineScope); err != nil {
+		if err := svc.Delete(context.TODO(), machineScope); err != nil {
 			t.Fatalf("Unexpected error, got: %v", err)
 		}
 	})
 
-	t.Run("succeeds_when_bucket_has_already_been_removed", func(t *testing.T) {
+	t.Run("succeeds_when", func(t *testing.T) {
 		t.Parallel()
-
-		svc, s3Mock := testService(t, &infrav1.S3Bucket{})
 
 		machineScope := &scope.MachineScope{
 			Machine: &clusterv1.Machine{},
@@ -639,11 +726,56 @@ func TestDeleteObject(t *testing.T) {
 			},
 		}
 
-		s3Mock.EXPECT().DeleteObject(gomock.Any()).Return(nil, awserr.New(s3svc.ErrCodeNoSuchBucket, "", nil)).Times(1)
+		t.Run("bucket_has_already_been_removed", func(t *testing.T) {
+			t.Parallel()
 
-		if err := svc.Delete(machineScope); err != nil {
-			t.Fatalf("Unexpected error, got: %v", err)
-		}
+			svc, s3Mock := testService(t, &testServiceInput{Bucket: &infrav1.S3Bucket{}})
+			s3Mock.EXPECT().HeadObject(gomock.Any(), gomock.Any()).Return(nil, &types.NoSuchBucket{})
+
+			if err := svc.Delete(context.TODO(), machineScope); err != nil {
+				t.Fatalf("Unexpected error, got: %v", err)
+			}
+		})
+
+		t.Run("object_has_already_been_removed", func(t *testing.T) {
+			t.Parallel()
+
+			svc, s3Mock := testService(t, &testServiceInput{Bucket: &infrav1.S3Bucket{}})
+			s3Mock.EXPECT().HeadObject(gomock.Any(), gomock.Any()).Return(nil, &types.NoSuchKey{})
+
+			if err := svc.Delete(context.TODO(), machineScope); err != nil {
+				t.Fatalf("Unexpected error, got: %v", err)
+			}
+		})
+
+		t.Run("bucket_or_object_not_found", func(t *testing.T) {
+			t.Parallel()
+
+			svc, s3Mock := testService(t, &testServiceInput{Bucket: &infrav1.S3Bucket{}})
+			s3Mock.EXPECT().HeadObject(gomock.Any(), gomock.Any()).Return(nil, &types.NoSuchBucket{
+				Message:           aws.String("Not found"),
+				ErrorCodeOverride: aws.String("NotFound"),
+			})
+
+			if err := svc.Delete(context.TODO(), machineScope); err != nil {
+				t.Fatalf("Unexpected error, got: %v", err)
+			}
+		})
+
+		t.Run("object_access_denied_and_BestEffortDeleteObjects_is_on", func(t *testing.T) {
+			t.Parallel()
+
+			svc, s3Mock := testService(t, &testServiceInput{Bucket: &infrav1.S3Bucket{BestEffortDeleteObjects: aws.Bool(true)}})
+			s3Mock.EXPECT().HeadObject(gomock.Any(), gomock.Any()).Return(nil, nil)
+			s3Mock.EXPECT().DeleteObject(gomock.Any(), gomock.Any()).Return(nil, &types.NoSuchBucket{
+				Message:           aws.String("Access Denied"),
+				ErrorCodeOverride: aws.String("AccessDenied"),
+			})
+
+			if err := svc.Delete(context.TODO(), machineScope); err != nil {
+				t.Fatalf("Unexpected error, got: %v", err)
+			}
+		})
 	})
 
 	t.Run("returns_error_when", func(t *testing.T) {
@@ -652,7 +784,7 @@ func TestDeleteObject(t *testing.T) {
 		t.Run("object_deletion_fails", func(t *testing.T) {
 			t.Parallel()
 
-			svc, s3Mock := testService(t, &infrav1.S3Bucket{})
+			svc, s3Mock := testService(t, &testServiceInput{Bucket: &infrav1.S3Bucket{}})
 
 			machineScope := &scope.MachineScope{
 				Machine: &clusterv1.Machine{},
@@ -663,9 +795,10 @@ func TestDeleteObject(t *testing.T) {
 				},
 			}
 
-			s3Mock.EXPECT().DeleteObject(gomock.Any()).Return(nil, errors.New("foo")).Times(1)
+			s3Mock.EXPECT().HeadObject(gomock.Any(), gomock.Any())
+			s3Mock.EXPECT().DeleteObject(gomock.Any(), gomock.Any()).Return(nil, errors.New("foo")).Times(1)
 
-			if err := svc.Delete(machineScope); err == nil {
+			if err := svc.Delete(context.TODO(), machineScope); err == nil {
 				t.Fatalf("Expected error")
 			}
 		})
@@ -673,9 +806,9 @@ func TestDeleteObject(t *testing.T) {
 		t.Run("given_empty_machine_scope", func(t *testing.T) {
 			t.Parallel()
 
-			svc, _ := testService(t, &infrav1.S3Bucket{})
+			svc, _ := testService(t, nil)
 
-			if err := svc.Delete(nil); err == nil {
+			if err := svc.Delete(context.TODO(), nil); err == nil {
 				t.Fatalf("Expected error")
 			}
 		})
@@ -694,7 +827,31 @@ func TestDeleteObject(t *testing.T) {
 				},
 			}
 
-			if err := svc.Delete(machineScope); err == nil {
+			if err := svc.Delete(context.TODO(), machineScope); err == nil {
+				t.Fatalf("Expected error")
+			}
+		})
+
+		t.Run("object_access_denied_and_BestEffortDeleteObjects_is_off", func(t *testing.T) {
+			t.Parallel()
+
+			svc, s3Mock := testService(t, &testServiceInput{Bucket: &infrav1.S3Bucket{}})
+			s3Mock.EXPECT().HeadObject(gomock.Any(), gomock.Any()).Return(nil, nil)
+			s3Mock.EXPECT().DeleteObject(gomock.Any(), gomock.Any()).Return(nil, &types.NoSuchBucket{
+				Message:           aws.String("Access Denied"),
+				ErrorCodeOverride: aws.String("AccessDenied"),
+			})
+
+			machineScope := &scope.MachineScope{
+				Machine: &clusterv1.Machine{},
+				AWSMachine: &infrav1.AWSMachine{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: nodeName,
+					},
+				},
+			}
+
+			if err := svc.Delete(context.TODO(), machineScope); err == nil {
 				t.Fatalf("Expected error")
 			}
 		})
@@ -703,7 +860,7 @@ func TestDeleteObject(t *testing.T) {
 	t.Run("is_idempotent", func(t *testing.T) {
 		t.Parallel()
 
-		svc, s3Mock := testService(t, &infrav1.S3Bucket{})
+		svc, s3Mock := testService(t, &testServiceInput{Bucket: &infrav1.S3Bucket{}})
 
 		machineScope := &scope.MachineScope{
 			Machine: &clusterv1.Machine{},
@@ -714,31 +871,46 @@ func TestDeleteObject(t *testing.T) {
 			},
 		}
 
-		s3Mock.EXPECT().DeleteObject(gomock.Any()).Return(nil, nil).Times(2)
+		s3Mock.EXPECT().HeadObject(gomock.Any(), gomock.Any()).Times(2)
+		s3Mock.EXPECT().DeleteObject(gomock.Any(), gomock.Any()).Return(nil, nil).Times(2)
 
-		if err := svc.Delete(machineScope); err != nil {
+		if err := svc.Delete(context.TODO(), machineScope); err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
 
-		if err := svc.Delete(machineScope); err != nil {
+		if err := svc.Delete(context.TODO(), machineScope); err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
 	})
 }
 
-func testService(t *testing.T, bucket *infrav1.S3Bucket) (*s3.Service, *mock_s3iface.MockS3API) {
+type testServiceInput struct {
+	Bucket *infrav1.S3Bucket
+	Region string
+}
+
+const testAWSRegion string = "us-west-2"
+
+func testService(t *testing.T, si *testServiceInput) (*s3.Service, *mock_s3iface.MockS3API) {
 	t.Helper()
 
 	mockCtrl := gomock.NewController(t)
 	s3Mock := mock_s3iface.NewMockS3API(mockCtrl)
-	stsMock := mock_stsiface.NewMockSTSAPI(mockCtrl)
+	stsMock := mock_stsiface.NewMockSTSClient(mockCtrl)
 
 	getCallerIdentityResult := &sts.GetCallerIdentityOutput{Account: aws.String("foo")}
-	stsMock.EXPECT().GetCallerIdentity(gomock.Any()).Return(getCallerIdentityResult, nil).AnyTimes()
+	stsMock.EXPECT().GetCallerIdentity(gomock.Any(), gomock.Any()).Return(getCallerIdentityResult, nil).AnyTimes()
 
 	scheme := runtime.NewScheme()
 	_ = infrav1.AddToScheme(scheme)
 	client := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+	if si == nil {
+		si = &testServiceInput{}
+	}
+	if si.Region == "" {
+		si.Region = testAWSRegion
+	}
 
 	scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 		Client: client,
@@ -750,7 +922,11 @@ func testService(t *testing.T, bucket *infrav1.S3Bucket) (*s3.Service, *mock_s3i
 		},
 		AWSCluster: &infrav1.AWSCluster{
 			Spec: infrav1.AWSClusterSpec{
-				S3Bucket: bucket,
+				S3Bucket: si.Bucket,
+				Region:   si.Region,
+				AdditionalTags: infrav1.Tags{
+					"additional": "from-aws-cluster",
+				},
 			},
 		},
 	})

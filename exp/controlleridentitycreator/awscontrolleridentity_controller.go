@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package controlleridentitycreator provides a way to reconcile AWSClusterControllerIdentity instance.
 package controlleridentitycreator
 
 import (
@@ -29,12 +30,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
@@ -43,7 +42,6 @@ import (
 type AWSControllerIdentityReconciler struct {
 	client.Client
 	Log              logr.Logger
-	Endpoints        []scope.ServiceEndpoint
 	WatchFilterValue string
 }
 
@@ -134,12 +132,13 @@ func (r *AWSControllerIdentityReconciler) Reconcile(ctx context.Context, req ctr
 func (r *AWSControllerIdentityReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	controller := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.AWSCluster{}).
+		Named("awscontrolleridentity").
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(logger.FromContext(ctx).GetLogger(), r.WatchFilterValue))
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), logger.FromContext(ctx).GetLogger(), r.WatchFilterValue))
 
 	if feature.Gates.Enabled(feature.EKS) {
 		controller.Watches(
-			&source.Kind{Type: &ekscontrolplanev1.AWSManagedControlPlane{}},
+			&ekscontrolplanev1.AWSManagedControlPlane{},
 			handler.EnqueueRequestsFromMapFunc(r.managedControlPlaneMap),
 		)
 	}
@@ -147,7 +146,7 @@ func (r *AWSControllerIdentityReconciler) SetupWithManager(ctx context.Context, 
 	return controller.Complete(r)
 }
 
-func (r *AWSControllerIdentityReconciler) managedControlPlaneMap(o client.Object) []ctrl.Request {
+func (r *AWSControllerIdentityReconciler) managedControlPlaneMap(_ context.Context, o client.Object) []ctrl.Request {
 	managedControlPlane, ok := o.(*ekscontrolplanev1.AWSManagedControlPlane)
 	if !ok {
 		klog.Errorf("Expected a managedControlPlane but got a %T", o)

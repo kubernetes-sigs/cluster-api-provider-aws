@@ -19,8 +19,7 @@ package elb
 import (
 	"net/http"
 
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/elb"
+	elbtypes "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing/types"
 	"github.com/pkg/errors"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
@@ -56,13 +55,22 @@ func NewConflict(msg string) error {
 	}
 }
 
+// NewInstanceNotRunning returns an error which indicates that the request cannot be processed due to the instance not
+// being in a running state.
+func NewInstanceNotRunning(msg string) error {
+	return &ELBError{
+		msg:  msg,
+		Code: http.StatusTooEarly,
+	}
+}
+
 // IsNotFound returns true if the error was created by NewNotFound.
 func IsNotFound(err error) bool {
 	if ReasonForError(err) == http.StatusNotFound {
 		return true
 	}
 	if code, ok := awserrors.Code(errors.Cause(err)); ok {
-		if code == elb.ErrCodeAccessPointNotFoundException {
+		if code == (&elbtypes.AccessPointNotFoundException{}).ErrorCode() {
 			return true
 		}
 	}
@@ -84,10 +92,9 @@ func IsConflict(err error) bool {
 	return ReasonForError(err) == http.StatusConflict
 }
 
-// IsSDKError returns true if the error is of type awserr.Error.
-func IsSDKError(err error) (ok bool) {
-	_, ok = errors.Cause(err).(awserr.Error)
-	return
+// IsInstanceNotRunning returns true if the error was created by NewInstanceNotRunning.
+func IsInstanceNotRunning(err error) (ok bool) {
+	return ReasonForError(err) == http.StatusTooEarly
 }
 
 // ReasonForError returns the HTTP status for a particular error.

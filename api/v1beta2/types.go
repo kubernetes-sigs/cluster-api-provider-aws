@@ -17,9 +17,17 @@ limitations under the License.
 package v1beta2
 
 import (
+	"strings"
+
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+)
+
+const (
+	// PreventDeletionLabel can be used in situations where preventing delation is allowed. The docs
+	// and the CRD will call this out where its allowed.
+	PreventDeletionLabel = "aws.cluster.x-k8s.io/prevent-deletion"
 )
 
 // AWSResourceReference is a reference to a specific AWS resource by ID or filters.
@@ -46,7 +54,7 @@ type AMIReference struct {
 	ID *string `json:"id,omitempty"`
 
 	// EKSOptimizedLookupType If specified, will look up an EKS Optimized image in SSM Parameter store
-	// +kubebuilder:validation:Enum:=AmazonLinux;AmazonLinuxGPU
+	// +kubebuilder:validation:Enum:=AmazonLinux;AmazonLinuxGPU;AmazonLinux2023;AmazonLinux2023GPU
 	// +optional
 	EKSOptimizedLookupType *EKSAMILookupType `json:"eksLookupType,omitempty"`
 }
@@ -80,6 +88,7 @@ const (
 	ExternalResourceGCTasksAnnotation = "aws.cluster.x-k8s.io/external-resource-tasks-gc"
 )
 
+// GCTask defines a task to be executed by the garbage collector.
 type GCTask string
 
 var (
@@ -208,6 +217,9 @@ type Instance struct {
 	// Specifies ENIs attached to instance
 	NetworkInterfaces []string `json:"networkInterfaces,omitempty"`
 
+	// NetworkInterfaceType is the interface type of the primary network Interface.
+	NetworkInterfaceType NetworkInterfaceType `json:"networkInterfaceType,omitempty"`
+
 	// The tags associated with the instance.
 	Tags map[string]string `json:"tags,omitempty"`
 
@@ -221,6 +233,14 @@ type Instance struct {
 	// +optional
 	PlacementGroupName string `json:"placementGroupName,omitempty"`
 
+	// PlacementGroupPartition is the partition number within the placement group in which to launch the instance.
+	// This value is only valid if the placement group, referred in `PlacementGroupName`, was created with
+	// strategy set to partition.
+	// +kubebuilder:validation:Minimum:=1
+	// +kubebuilder:validation:Maximum:=7
+	// +optional
+	PlacementGroupPartition int64 `json:"placementGroupPartition,omitempty"`
+
 	// Tenancy indicates if instance should run on shared or single-tenant hardware.
 	// +optional
 	Tenancy string `json:"tenancy,omitempty"`
@@ -232,7 +252,79 @@ type Instance struct {
 	// InstanceMetadataOptions is the metadata options for the EC2 instance.
 	// +optional
 	InstanceMetadataOptions *InstanceMetadataOptions `json:"instanceMetadataOptions,omitempty"`
+
+	// PrivateDNSName is the options for the instance hostname.
+	// +optional
+	PrivateDNSName *PrivateDNSName `json:"privateDnsName,omitempty"`
+
+	// PublicIPOnLaunch is the option to associate a public IP on instance launch
+	// +optional
+	PublicIPOnLaunch *bool `json:"publicIPOnLaunch,omitempty"`
+
+	// CapacityReservationID specifies the target Capacity Reservation into which the instance should be launched.
+	// +optional
+	CapacityReservationID *string `json:"capacityReservationId,omitempty"`
+
+	// MarketType specifies the type of market for the EC2 instance. Valid values include:
+	// "OnDemand" (default): The instance runs as a standard OnDemand instance.
+	// "Spot": The instance runs as a Spot instance. When SpotMarketOptions is provided, the marketType defaults to "Spot".
+	// "CapacityBlock": The instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
+	//  If this value is selected, CapacityReservationID must be specified to identify the target reservation.
+	// If marketType is not specified and spotMarketOptions is provided, the marketType defaults to "Spot".
+	// +optional
+	MarketType MarketType `json:"marketType,omitempty"`
+
+	// HostAffinity specifies the dedicated host affinity setting for the instance.
+	// When hostAffinity is set to host, an instance started onto a specific host always restarts on the same host if stopped.
+	// When hostAffinity is set to default, and you stop and restart the instance, it can be restarted on any available host.
+	// When HostAffinity is defined, HostID is required.
+	// +optional
+	// +kubebuilder:validation:Enum:=default;host
+	HostAffinity *string `json:"hostAffinity,omitempty"`
+
+	// HostID specifies the dedicated host on which the instance should be started.
+	// +optional
+	HostID *string `json:"hostID,omitempty"`
+
+	// CapacityReservationPreference specifies the preference for use of Capacity Reservations by the instance. Valid values include:
+	// "Open": The instance may make use of open Capacity Reservations that match its AZ and InstanceType
+	// "None": The instance may not make use of any Capacity Reservations. This is to conserve open reservations for desired workloads
+	// "CapacityReservationsOnly": The instance will only run if matched or targeted to a Capacity Reservation. Note that this is incompatible with a MarketType of `Spot`
+	// +kubebuilder:validation:Enum="";None;CapacityReservationsOnly;Open
+	// +optional
+	CapacityReservationPreference CapacityReservationPreference `json:"capacityReservationPreference,omitempty"`
 }
+
+// CapacityReservationPreference describes the preferred use of capacity reservations
+// of an instance
+// +kubebuilder:validation:Enum:="";None;CapacityReservationsOnly;Open
+type CapacityReservationPreference string
+
+const (
+	// CapacityReservationPreferenceNone the instance may not make use of any Capacity Reservations. This is to conserve open reservations for desired workloads
+	CapacityReservationPreferenceNone CapacityReservationPreference = "None"
+
+	// CapacityReservationPreferenceOnly the instance will only run if matched or targeted to a Capacity Reservation. Note that this is incompatible with a MarketType of `Spot`
+	CapacityReservationPreferenceOnly CapacityReservationPreference = "CapacityReservationsOnly"
+
+	// CapacityReservationPreferenceOpen the instance may make use of open Capacity Reservations that match its AZ and InstanceType.
+	CapacityReservationPreferenceOpen CapacityReservationPreference = "Open"
+)
+
+// MarketType describes the market type of an Instance
+// +kubebuilder:validation:Enum:=OnDemand;Spot;CapacityBlock
+type MarketType string
+
+const (
+	// MarketTypeOnDemand is a MarketType enum value
+	MarketTypeOnDemand MarketType = "OnDemand"
+
+	// MarketTypeSpot is a MarketType enum value
+	MarketTypeSpot MarketType = "Spot"
+
+	// MarketTypeCapacityBlock is a MarketType enum value
+	MarketTypeCapacityBlock MarketType = "CapacityBlock"
+)
 
 // InstanceMetadataState describes the state of InstanceMetadataOptions.HttpEndpoint and InstanceMetadataOptions.InstanceMetadataTags
 type InstanceMetadataState string
@@ -309,6 +401,7 @@ type InstanceMetadataOptions struct {
 	InstanceMetadataTags InstanceMetadataState `json:"instanceMetadataTags,omitempty"`
 }
 
+// SetDefaults sets the default values for the InstanceMetadataOptions.
 func (obj *InstanceMetadataOptions) SetDefaults() {
 	if obj.HTTPEndpoint == "" {
 		obj.HTTPEndpoint = InstanceMetadataEndpointStateEnabled
@@ -406,4 +499,38 @@ const (
 	AmazonLinux EKSAMILookupType = "AmazonLinux"
 	// AmazonLinuxGPU is the AmazonLinux GPU AMI type.
 	AmazonLinuxGPU EKSAMILookupType = "AmazonLinuxGPU"
+	// AmazonLinux2023 is the AmazonLinux 2023 AMI type.
+	AmazonLinux2023 EKSAMILookupType = "AmazonLinux2023"
+	// AmazonLinux2023GPU is the AmazonLinux 2023 GPU AMI type.
+	AmazonLinux2023GPU EKSAMILookupType = "AmazonLinux2023GPU"
+)
+
+// PrivateDNSName is the options for the instance hostname.
+type PrivateDNSName struct {
+	// EnableResourceNameDNSAAAARecord indicates whether to respond to DNS queries for instance hostnames with DNS AAAA records.
+	// +optional
+	EnableResourceNameDNSAAAARecord *bool `json:"enableResourceNameDnsAAAARecord,omitempty"`
+	// EnableResourceNameDNSARecord indicates whether to respond to DNS queries for instance hostnames with DNS A records.
+	// +optional
+	EnableResourceNameDNSARecord *bool `json:"enableResourceNameDnsARecord,omitempty"`
+	// The type of hostname to assign to an instance.
+	// +optional
+	// +kubebuilder:validation:Enum:=ip-name;resource-name
+	HostnameType *string `json:"hostnameType,omitempty"`
+}
+
+// SubnetSchemaType specifies how given network should be divided on subnets
+// in the VPC depending on the number of AZs.
+type SubnetSchemaType string
+
+// Name returns subnet schema type name without prefix.
+func (s *SubnetSchemaType) Name() string {
+	return strings.ToLower(strings.TrimPrefix(string(*s), "Prefer"))
+}
+
+var (
+	// SubnetSchemaPreferPrivate allocates more subnets in the VPC to private subnets.
+	SubnetSchemaPreferPrivate = SubnetSchemaType("PreferPrivate")
+	// SubnetSchemaPreferPublic allocates more subnets in the VPC to public subnets.
+	SubnetSchemaPreferPublic = SubnetSchemaType("PreferPublic")
 )

@@ -25,11 +25,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -41,7 +41,7 @@ type MachinePoolSpecInput struct {
 	E2EConfig             *clusterctl.E2EConfig
 	ConfigClusterFn       DefaultConfigClusterFn
 	BootstrapClusterProxy framework.ClusterProxy
-	AWSSession            client.ConfigProvider
+	AWSSession            *aws.Config
 	Namespace             *corev1.Namespace
 	ClusterName           string
 	IncludeScaling        bool
@@ -73,7 +73,7 @@ func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolSpecInpu
 	ginkgo.By(fmt.Sprintf("creating an applying the %s template", input.Flavor))
 	configCluster := input.ConfigClusterFn(input.ClusterName, input.Namespace.Name)
 	configCluster.Flavor = input.Flavor
-	configCluster.WorkerMachineCount = pointer.Int64(1)
+	configCluster.WorkerMachineCount = ptr.To[int64](1)
 	workloadClusterTemplate := shared.GetTemplate(ctx, configCluster)
 	if input.UsesLaunchTemplate {
 		userDataTemplate := `#!/bin/bash
@@ -87,7 +87,7 @@ func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolSpecInpu
 	}
 	ginkgo.By(string(workloadClusterTemplate))
 	ginkgo.By(fmt.Sprintf("Applying the %s cluster template yaml to the cluster", configCluster.Flavor))
-	err := input.BootstrapClusterProxy.Apply(ctx, workloadClusterTemplate)
+	err := input.BootstrapClusterProxy.CreateOrUpdate(ctx, workloadClusterTemplate)
 	Expect(err).ShouldNot(HaveOccurred())
 
 	ginkgo.By("Waiting for the machine pool to be running")
@@ -107,7 +107,7 @@ func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolSpecInpu
 		} else {
 			nodeGroupName = getEKSNodegroupName(input.Namespace.Name, input.ClusterName)
 		}
-		verifyManagedNodeGroup(eksClusterName, nodeGroupName, true, input.AWSSession)
+		verifyManagedNodeGroup(ctx, eksClusterName, nodeGroupName, true, input.AWSSession)
 	} else {
 		asgName := getASGName(input.ClusterName)
 		verifyASG(eksClusterName, asgName, true, input.AWSSession)

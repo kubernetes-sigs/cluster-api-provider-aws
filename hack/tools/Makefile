@@ -45,7 +45,8 @@ ifeq ($(OS), windows)
 	MDBOOK_EXTRACT_COMMAND := unzip -d /tmp
 endif
 
-GOLANGCI_LINT_VERSION := v1.52.2
+# Use a golangci-lint built with Go >= 1.24 to match repo go.mod
+GOLANGCI_LINT_VERSION := v1.60.3
 ## --------------------------------------
 ## Tooling Binaries
 ## --------------------------------------
@@ -94,20 +95,6 @@ GENCRDAPIREFERENCEDOCS := $(BIN_DIR)/gen-crd-api-reference-docs
 $(GENCRDAPIREFERENCEDOCS): $(BIN_DIR) go.mod go.sum # Build gen-crd-api-reference-docs from tools folder.
 	go build -tags=tools -o $@ github.com/ahmetb/gen-crd-api-reference-docs
 
-GH_SHARE := $(SHARE_DIR)/gh
-
-$(GH_SHARE): $(SHARE_DIR)
-	mkdir -p $@
-
-$(GH_SHARE)/gh.tar.gz: $(GH_SHARE)
-	curl -L "https://github.com/cli/cli/releases/download/v$(GH_VERSION)/gh_$(GH_VERSION)_$(GH_ARCH_SUFFIX).tar.gz" -o $@
-
-GH := $(BIN_DIR)/gh
-$(GH): $(GTAR) $(GH_SHARE)/gh.tar.gz
-	$(GTAR) -xvf share/gh/gh.tar.gz gh_$(GH_VERSION)_$(GH_ARCH_SUFFIX)/bin/gh --strip-components 1 --directory $(BIN_DIR)
-	chmod +x $@
-	touch -m $@
-
 GOJQ := $(BIN_DIR)/gojq
 $(GOJQ): $(BIN_DIR) go.mod go.sum
 	go build -tags=tools -o $@ github.com/itchyny/gojq/cmd/gojq
@@ -118,7 +105,11 @@ $(KIND): $(BIN_DIR) go.mod go.sum
 
 KUSTOMIZE := $(BIN_DIR)/kustomize
 $(KUSTOMIZE): $(BIN_DIR) go.mod go.sum # Build kustomize from tools folder.
-	CGO_ENABLED=0 go build -tags=tools -o $@ sigs.k8s.io/kustomize/kustomize/v4
+	CGO_ENABLED=0 go build -tags=tools -o $@ sigs.k8s.io/kustomize/kustomize/v5
+
+PROWJOB_GEN := $(BIN_DIR)/prowjob-gen
+$(PROWJOB_GEN): $(BIN_DIR) go.mod go.sum
+	go build -tags=tools -o $@ sigs.k8s.io/cluster-api/hack/tools/prowjob-gen
 
 MDBOOK_SHARE := $(SHARE_DIR)/mdbook$(MDBOOK_ARCHIVE_EXT)
 $(MDBOOK_SHARE): ../../versions.mk $(SHARE_DIR)
@@ -165,15 +156,6 @@ YQ :=  $(BIN_DIR)/$(YQ_BIN)
 $(YQ):
 	CGO_ENABLED=0 go build -tags=tools -o $@ github.com/mikefarah/yq/v4
 
-GOLANGCI_LINT_BIN := golangci-lint
-GOLANGCI_LINT := $(BIN_DIR)/$(GOLANGCI_LINT_BIN)
-GOLANGCI_LINT_PKG := github.com/golangci/golangci-lint/cmd/golangci-lint
-.PHONY: $(GOLANGCI_LINT_BIN)
-$(GOLANGCI_LINT_BIN): $(GOLANGCI_LINT) ## Build a local copy of golangci-lint.
-
-$(GOLANGCI_LINT): # Build golangci-lint from tools folder.
-	GOBIN=$(abspath $(BIN_DIR)) go install $(GOLANGCI_LINT_PKG)@$(GOLANGCI_LINT_VERSION)
-
 RELEASE_NOTES_BIN := release-notes
 RELEASE_NOTES := $(BIN_DIR)/$(RELEASE_NOTES_BIN)
 RELEASE_NOTES_PKG := k8s.io/release/cmd/release-notes
@@ -182,6 +164,15 @@ $(RELEASE_NOTES_BIN): $(RELEASE_NOTES)
 
 $(RELEASE_NOTES): ## Build release notes from tools folders.
 	GOBIN=$(abspath $(BIN_DIR)) go install $(RELEASE_NOTES_PKG)@$(RELEASE_NOTES_VERSION)
+
+GORELEASER_BIN := goreleaser
+GORELEASER := $(BIN_DIR)/$(GORELEASER_BIN)
+GORELEASER_PKG := github.com/goreleaser/goreleaser
+.PHONY: $(GORELEASER_BIN)
+$(GORELEASER_BIN): $(GORELEASER)
+
+$(GORELEASER):
+	GOBIN=$(abspath $(BIN_DIR)) go install $(GORELEASER_PKG)@$(GORELEASER_VERSION)
 
 
 ## ------------------------------------------------------------------------------------------------

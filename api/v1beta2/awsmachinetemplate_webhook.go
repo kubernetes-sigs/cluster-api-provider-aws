@@ -32,10 +32,11 @@ import (
 	"sigs.k8s.io/cluster-api/util/topology"
 )
 
-func (r *AWSMachineTemplateWebhook) SetupWebhookWithManager(mgr ctrl.Manager) error {
+func (r *AWSMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	w := new(AWSMachineTemplateWebhook)
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&AWSMachineTemplate{}).
-		WithValidator(r).
+		WithValidator(w).
 		Complete()
 }
 
@@ -176,11 +177,11 @@ func (r *AWSMachineTemplate) validateSSHKeyName() field.ErrorList {
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (r *AWSMachineTemplateWebhook) ValidateCreate(_ context.Context, raw runtime.Object) error {
+func (r *AWSMachineTemplateWebhook) ValidateCreate(_ context.Context, raw runtime.Object) (admission.Warnings, error) {
 	var allErrs field.ErrorList
 	obj, ok := raw.(*AWSMachineTemplate)
 	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected a VSphereMachineTemplate but got a %T", raw))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a AWSMachineTemplate but got a %T", raw))
 	}
 
 	spec := obj.Spec.Template.Spec
@@ -205,23 +206,23 @@ func (r *AWSMachineTemplateWebhook) ValidateCreate(_ context.Context, raw runtim
 	allErrs = append(allErrs, obj.validateAdditionalSecurityGroups()...)
 	allErrs = append(allErrs, obj.Spec.Template.Spec.AdditionalTags.Validate()...)
 
-	return aggregateObjErrors(obj.GroupVersionKind().GroupKind(), obj.Name, allErrs)
+	return nil, aggregateObjErrors(obj.GroupVersionKind().GroupKind(), obj.Name, allErrs)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (r *AWSMachineTemplateWebhook) ValidateUpdate(ctx context.Context, oldRaw runtime.Object, newRaw runtime.Object) error {
+func (r *AWSMachineTemplateWebhook) ValidateUpdate(ctx context.Context, oldRaw runtime.Object, newRaw runtime.Object) (admission.Warnings, error) {
 	newAWSMachineTemplate, ok := newRaw.(*AWSMachineTemplate)
 	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected a AWSMachineTemplate but got a %T", newRaw))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a AWSMachineTemplate but got a %T", newRaw))
 	}
 	oldAWSMachineTemplate, ok := oldRaw.(*AWSMachineTemplate)
 	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected a AWSMachineTemplate but got a %T", oldRaw))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a AWSMachineTemplate but got a %T", oldRaw))
 	}
 
 	req, err := admission.RequestFromContext(ctx)
 	if err != nil {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected a admission.Request inside context: %v", err))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a admission.Request inside context: %v", err))
 	}
 
 	var allErrs field.ErrorList
@@ -238,10 +239,10 @@ func (r *AWSMachineTemplateWebhook) ValidateUpdate(ctx context.Context, oldRaw r
 		}
 	}
 
-	return aggregateObjErrors(newAWSMachineTemplate.GroupVersionKind().GroupKind(), newAWSMachineTemplate.Name, allErrs)
+	return nil, aggregateObjErrors(newAWSMachineTemplate.GroupVersionKind().GroupKind(), newAWSMachineTemplate.Name, allErrs)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (r *AWSMachineTemplateWebhook) ValidateDelete(_ context.Context, _ runtime.Object) error {
-	return nil
+func (r *AWSMachineTemplateWebhook) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+	return nil, nil
 }

@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package flags provides a way to add flags to the cli.
 package flags
 
 import (
@@ -65,4 +66,14 @@ func MarkAlphaDeprecated(c *cobra.Command) {
 // CredentialWarning will output a credential warning.
 func CredentialWarning(c *cobra.Command) {
 	fmt.Fprintf(os.Stderr, "\nWARNING: `%s` should only be used for bootstrapping.\n\n", c.Name())
+}
+
+// AddProfileFlag will add a profile flag to the cli.
+func AddProfileFlag(c *cobra.Command) {
+	c.Flags().String("profile", "", "The AWS profile to use for authentication")
+}
+
+// GetProfile will return the AWS profile to use.
+func GetProfile(c *cobra.Command) string {
+	return c.Flags().Lookup("profile").Value.String()
 }

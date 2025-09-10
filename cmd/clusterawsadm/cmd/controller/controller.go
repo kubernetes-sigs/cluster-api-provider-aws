@@ -14,14 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package controller provides the controller command.
 package controller
 
 import (
 	"github.com/spf13/cobra"
+	"k8s.io/kubectl/pkg/util/templates"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/controller/credentials"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/controller/rollout"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 
 // RootCmd is the root of the `controller command`.
@@ -30,7 +31,7 @@ func RootCmd() *cobra.Command {
 		Use:   "controller [command]",
 		Short: "controller commands",
 		Args:  cobra.NoArgs,
-		Long: cmd.LongDesc(`
+		Long: templates.LongDesc(`
 			All controller related actions such as:
 			# Zero controller credentials and rollout controllers
 		`),

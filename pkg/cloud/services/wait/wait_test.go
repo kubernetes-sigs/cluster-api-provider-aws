@@ -21,14 +21,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/smithy-go"
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	. "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
 )
 
 var (
-	errRetryable        = awserr.New("retryable error", "", nil)
+	errRetryable        = &smithy.GenericAPIError{Code: "retryable error", Message: "retryable error"}
 	errNonRetryable     = errors.New("non retryable error")
 	retryableErrorCodes = []string{"retryable error"}
 )
@@ -66,7 +66,7 @@ func TestWaitForWithRetryable(t *testing.T) {
 				return false, nil
 			},
 			retryableErrors: retryableErrorCodes,
-			expectedError:   wait.ErrWaitTimeout,
+			expectedError:   wait.ErrorInterrupted(errors.New("timed out waiting for the condition")),
 		},
 		{
 			name:    "error occurred in conditionFunc, returns actual error",
@@ -111,7 +111,7 @@ func TestWaitForWithRetryable(t *testing.T) {
 				return false, nil
 			},
 			retryableErrors: retryableErrorCodes,
-			expectedError:   wait.ErrWaitTimeout,
+			expectedError:   wait.ErrorInterrupted(errors.New("timed out waiting for the condition")),
 		},
 		{
 			name:    "retryable error at first, success after that, returns nil",

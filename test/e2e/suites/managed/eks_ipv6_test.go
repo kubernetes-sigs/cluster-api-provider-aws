@@ -51,7 +51,6 @@ var _ = ginkgo.Describe("[managed] [general] [ipv6] EKS cluster tests", func() {
 		Expect(e2eCtx.E2EConfig).ToNot(BeNil(), "Invalid argument. e2eConfig can't be nil when calling %s spec", specName)
 		Expect(e2eCtx.E2EConfig.Variables).To(HaveKey(shared.KubernetesVersion))
 		Expect(e2eCtx.E2EConfig.Variables).To(HaveKey(shared.CNIAddonVersion))
-		Expect(e2eCtx.E2EConfig.Variables).To(HaveKey(shared.CorednsAddonVersion))
 		Expect(e2eCtx.E2EConfig.Variables).To(HaveKey(shared.KubeproxyAddonVersion))
 
 		ctx = context.TODO()
@@ -59,7 +58,7 @@ var _ = ginkgo.Describe("[managed] [general] [ipv6] EKS cluster tests", func() {
 		clusterName = fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 
 		ginkgo.By("default iam role should exist")
-		VerifyRoleExistsAndOwned(ekscontrolplanev1.DefaultEKSControlPlaneRole, clusterName, false, e2eCtx.BootstrapUserAWSSession)
+		VerifyRoleExistsAndOwned(ctx, ekscontrolplanev1.DefaultEKSControlPlaneRole, clusterName, false, e2eCtx.AWSSession)
 
 		ginkgo.By("should create an EKS control plane")
 		ManagedClusterSpec(ctx, func() ManagedClusterSpecInput {
@@ -71,7 +70,7 @@ var _ = ginkgo.Describe("[managed] [general] [ipv6] EKS cluster tests", func() {
 				Namespace:                namespace,
 				ClusterName:              clusterName,
 				Flavour:                  EKSIPv6ClusterFlavor,
-				ControlPlaneMachineCount: 1, //NOTE: this cannot be zero as clusterctl returns an error
+				ControlPlaneMachineCount: 1, // NOTE: this cannot be zero as clusterctl returns an error
 				WorkerMachineCount:       0,
 			}
 		})
@@ -85,8 +84,11 @@ var _ = ginkgo.Describe("[managed] [general] [ipv6] EKS cluster tests", func() {
 				AWSSession:            e2eCtx.BootstrapUserAWSSession,
 				Namespace:             namespace,
 				ClusterName:           clusterName,
+				IncludeScaling:        false,
+				Cleanup:               false,
 				ManagedMachinePool:    true,
-				Flavor:                EKSIPv6ClusterFlavor,
+				Flavor:                EKSManagedMachinePoolOnlyFlavor,
+				UsesLaunchTemplate:    false,
 			}
 		})
 
@@ -129,8 +131,10 @@ var _ = ginkgo.Describe("[managed] [general] [ipv6] EKS cluster tests", func() {
 			Cluster: cluster,
 		})
 		framework.WaitForClusterDeleted(ctx, framework.WaitForClusterDeletedInput{
-			Getter:  e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
-			Cluster: cluster,
+			ClusterProxy:         e2eCtx.Environment.BootstrapClusterProxy,
+			Cluster:              cluster,
+			ClusterctlConfigPath: e2eCtx.Environment.ClusterctlConfigPath,
+			ArtifactFolder:       e2eCtx.Settings.ArtifactFolder,
 		}, e2eCtx.E2EConfig.GetIntervals("", "wait-delete-cluster")...)
 	})
 })

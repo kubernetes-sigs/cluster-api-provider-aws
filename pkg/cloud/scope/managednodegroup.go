@@ -19,8 +19,9 @@ package scope
 import (
 	"context"
 	"fmt"
+	"time"
 
-	awsclient "github.com/aws/aws-sdk-go/aws/client"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,9 +34,9 @@ import (
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpoints"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/util/system"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -44,15 +45,15 @@ import (
 
 // ManagedMachinePoolScopeParams defines the input parameters used to create a new Scope.
 type ManagedMachinePoolScopeParams struct {
-	Client             client.Client
-	Logger             *logger.Logger
-	Cluster            *clusterv1.Cluster
-	ControlPlane       *ekscontrolplanev1.AWSManagedControlPlane
-	ManagedMachinePool *expinfrav1.AWSManagedMachinePool
-	MachinePool        *expclusterv1.MachinePool
-	ControllerName     string
-	Endpoints          []ServiceEndpoint
-	Session            awsclient.ConfigProvider
+	Client                    client.Client
+	Logger                    *logger.Logger
+	Cluster                   *clusterv1.Cluster
+	ControlPlane              *ekscontrolplanev1.AWSManagedControlPlane
+	ManagedMachinePool        *expinfrav1.AWSManagedMachinePool
+	MachinePool               *expclusterv1.MachinePool
+	ControllerName            string
+	Session                   awsv2.Config
+	MaxWaitActiveUpdateDelete time.Duration
 
 	EnableIAM            bool
 	AllowAdditionalRoles bool
@@ -78,15 +79,17 @@ func NewManagedMachinePoolScope(params ManagedMachinePoolScopeParams) (*ManagedM
 	}
 
 	managedScope := &ManagedControlPlaneScope{
-		Logger:         *params.Logger,
-		Client:         params.Client,
-		Cluster:        params.Cluster,
-		ControlPlane:   params.ControlPlane,
-		controllerName: params.ControllerName,
+		Logger:                    *params.Logger,
+		Client:                    params.Client,
+		Cluster:                   params.Cluster,
+		MaxWaitActiveUpdateDelete: params.MaxWaitActiveUpdateDelete,
+		ControlPlane:              params.ControlPlane,
+		controllerName:            params.ControllerName,
 	}
-	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Endpoints, params.Logger)
+
+	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Logger)
 	if err != nil {
-		return nil, errors.Errorf("failed to create aws session: %v", err)
+		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
 	}
 
 	ammpHelper, err := patch.NewHelper(params.ManagedMachinePool, params.Client)
@@ -104,16 +107,17 @@ func NewManagedMachinePoolScope(params ManagedMachinePoolScopeParams) (*ManagedM
 		patchHelper:                ammpHelper,
 		capiMachinePoolPatchHelper: mpHelper,
 
-		Cluster:              params.Cluster,
-		ControlPlane:         params.ControlPlane,
-		ManagedMachinePool:   params.ManagedMachinePool,
-		MachinePool:          params.MachinePool,
-		EC2Scope:             params.InfraCluster,
-		session:              session,
-		serviceLimiters:      serviceLimiters,
-		controllerName:       params.ControllerName,
-		enableIAM:            params.EnableIAM,
-		allowAdditionalRoles: params.AllowAdditionalRoles,
+		Cluster:                   params.Cluster,
+		ControlPlane:              params.ControlPlane,
+		ManagedMachinePool:        params.ManagedMachinePool,
+		MachinePool:               params.MachinePool,
+		MaxWaitActiveUpdateDelete: params.MaxWaitActiveUpdateDelete,
+		EC2Scope:                  params.InfraCluster,
+		session:                   *session,
+		serviceLimiters:           serviceLimiters,
+		controllerName:            params.ControllerName,
+		enableIAM:                 params.EnableIAM,
+		allowAdditionalRoles:      params.AllowAdditionalRoles,
 	}, nil
 }
 
@@ -124,13 +128,14 @@ type ManagedMachinePoolScope struct {
 	patchHelper                *patch.Helper
 	capiMachinePoolPatchHelper *patch.Helper
 
-	Cluster            *clusterv1.Cluster
-	ControlPlane       *ekscontrolplanev1.AWSManagedControlPlane
-	ManagedMachinePool *expinfrav1.AWSManagedMachinePool
-	MachinePool        *expclusterv1.MachinePool
-	EC2Scope           EC2Scope
+	Cluster                   *clusterv1.Cluster
+	ControlPlane              *ekscontrolplanev1.AWSManagedControlPlane
+	ManagedMachinePool        *expinfrav1.AWSManagedMachinePool
+	MachinePool               *expclusterv1.MachinePool
+	EC2Scope                  EC2Scope
+	MaxWaitActiveUpdateDelete time.Duration
 
-	session         awsclient.ConfigProvider
+	session         awsv2.Config
 	serviceLimiters throttle.ServiceLimiters
 	controllerName  string
 
@@ -168,7 +173,7 @@ func (s *ManagedMachinePoolScope) AllowAdditionalRoles() bool {
 
 // Partition returns the machine pool subnet IDs.
 func (s *ManagedMachinePoolScope) Partition() string {
-	return system.GetPartitionFromRegion(s.ControlPlane.Spec.Region)
+	return endpoints.GetPartitionFromRegion(s.ControlPlane.Spec.Region)
 }
 
 // IdentityRef returns the cluster identityRef.
@@ -216,6 +221,7 @@ func (s *ManagedMachinePoolScope) SubnetIDs() ([]string, error) {
 		SpecAvailabilityZones:   s.ManagedMachinePool.Spec.AvailabilityZones,
 		ParentAvailabilityZones: s.MachinePool.Spec.FailureDomains,
 		ControlplaneSubnets:     s.ControlPlaneSubnets(),
+		SubnetPlacementType:     s.ManagedMachinePool.Spec.AvailabilityZoneSubnetType,
 	})
 }
 
@@ -231,6 +237,7 @@ func (s *ManagedMachinePoolScope) NodegroupReadyFalse(reason string, err string)
 		expinfrav1.EKSNodegroupReadyCondition,
 		reason,
 		severity,
+		"%s",
 		err,
 	)
 	if err := s.PatchObject(); err != nil {
@@ -251,6 +258,7 @@ func (s *ManagedMachinePoolScope) IAMReadyFalse(reason string, err string) error
 		expinfrav1.IAMNodegroupRolesReadyCondition,
 		reason,
 		severity,
+		"%s",
 		err,
 	)
 	if err := s.PatchObject(); err != nil {
@@ -293,8 +301,8 @@ func (s *ManagedMachinePoolScope) ClusterObj() cloud.ClusterObject {
 	return s.Cluster
 }
 
-// Session returns the AWS SDK session. Used for creating clients.
-func (s *ManagedMachinePoolScope) Session() awsclient.ConfigProvider {
+// Session returns the AWS SDK V2 config. Used for creating clients.
+func (s *ManagedMachinePoolScope) Session() awsv2.Config {
 	return s.session
 }
 
@@ -302,6 +310,11 @@ func (s *ManagedMachinePoolScope) Session() awsclient.ConfigProvider {
 // created the ManagedMachinePool.
 func (s *ManagedMachinePoolScope) ControllerName() string {
 	return s.controllerName
+}
+
+// Ignition gets the ignition config.
+func (s *ManagedMachinePoolScope) Ignition() *infrav1.Ignition {
+	return nil
 }
 
 // KubernetesClusterName is the name of the EKS cluster name.
@@ -314,86 +327,104 @@ func (s *ManagedMachinePoolScope) NodegroupName() string {
 	return s.ManagedMachinePool.Spec.EKSNodegroupName
 }
 
+// Name returns the name of the AWSManagedMachinePool.
 func (s *ManagedMachinePoolScope) Name() string {
 	return s.ManagedMachinePool.Name
 }
 
+// Namespace returns the namespace of the AWSManagedMachinePool.
 func (s *ManagedMachinePoolScope) Namespace() string {
 	return s.ManagedMachinePool.Namespace
 }
 
-func (s *ManagedMachinePoolScope) GetRawBootstrapData() ([]byte, error) {
+// GetRawBootstrapData returns the raw bootstrap data from the linked Machine's bootstrap.dataSecretName.
+func (s *ManagedMachinePoolScope) GetRawBootstrapData() ([]byte, string, *types.NamespacedName, error) {
 	if s.MachinePool.Spec.Template.Spec.Bootstrap.DataSecretName == nil {
-		return nil, errors.New("error retrieving bootstrap data: linked Machine's bootstrap.dataSecretName is nil")
+		return nil, "", nil, errors.New("error retrieving bootstrap data: linked Machine's bootstrap.dataSecretName is nil")
 	}
 
 	secret := &corev1.Secret{}
 	key := types.NamespacedName{Namespace: s.Namespace(), Name: *s.MachinePool.Spec.Template.Spec.Bootstrap.DataSecretName}
 
 	if err := s.Client.Get(context.TODO(), key, secret); err != nil {
-		return nil, errors.Wrapf(err, "failed to retrieve bootstrap data secret for AWSManagedMachinePool %s/%s", s.Namespace(), s.Name())
+		return nil, "", nil, errors.Wrapf(err, "failed to retrieve bootstrap data secret for AWSManagedMachinePool %s/%s", s.Namespace(), s.Name())
 	}
 
 	value, ok := secret.Data["value"]
 	if !ok {
-		return nil, errors.New("error retrieving bootstrap data: secret value key is missing")
+		return nil, "", nil, errors.New("error retrieving bootstrap data: secret value key is missing")
 	}
 
-	return value, nil
+	return value, string(secret.Data["format"]), &key, nil
 }
 
+// GetObjectMeta returns the ObjectMeta for the AWSManagedMachinePool.
 func (s *ManagedMachinePoolScope) GetObjectMeta() *metav1.ObjectMeta {
 	return &s.ManagedMachinePool.ObjectMeta
 }
 
+// GetSetter returns the condition setter.
 func (s *ManagedMachinePoolScope) GetSetter() conditions.Setter {
 	return s.ManagedMachinePool
 }
 
+// GetEC2Scope returns the EC2Scope.
 func (s *ManagedMachinePoolScope) GetEC2Scope() EC2Scope {
 	return s.EC2Scope
 }
 
+// IsEKSManaged returns true if the control plane is managed by EKS.
 func (s *ManagedMachinePoolScope) IsEKSManaged() bool {
 	return true
 }
 
+// GetLaunchTemplateIDStatus returns the launch template ID status.
 func (s *ManagedMachinePoolScope) GetLaunchTemplateIDStatus() string {
 	if s.ManagedMachinePool.Status.LaunchTemplateID != nil {
 		return *s.ManagedMachinePool.Status.LaunchTemplateID
-	} else {
-		return ""
 	}
+	return ""
 }
 
+// SetLaunchTemplateIDStatus sets the launch template ID status.
 func (s *ManagedMachinePoolScope) SetLaunchTemplateIDStatus(id string) {
 	s.ManagedMachinePool.Status.LaunchTemplateID = &id
 }
 
+// GetLaunchTemplateLatestVersionStatus returns the launch template latest version status.
 func (s *ManagedMachinePoolScope) GetLaunchTemplateLatestVersionStatus() string {
 	if s.ManagedMachinePool.Status.LaunchTemplateVersion != nil {
 		return *s.ManagedMachinePool.Status.LaunchTemplateVersion
-	} else {
-		return ""
 	}
+	return ""
 }
 
+// SetLaunchTemplateLatestVersionStatus sets the launch template latest version status.
 func (s *ManagedMachinePoolScope) SetLaunchTemplateLatestVersionStatus(version string) {
 	s.ManagedMachinePool.Status.LaunchTemplateVersion = &version
 }
 
+// GetLaunchTemplate returns the launch template.
 func (s *ManagedMachinePoolScope) GetLaunchTemplate() *expinfrav1.AWSLaunchTemplate {
 	return s.ManagedMachinePool.Spec.AWSLaunchTemplate
 }
 
+// GetMachinePool returns the machine pool.
 func (s *ManagedMachinePoolScope) GetMachinePool() *expclusterv1.MachinePool {
 	return s.MachinePool
 }
 
+// LaunchTemplateName returns the launch template name.
 func (s *ManagedMachinePoolScope) LaunchTemplateName() string {
 	return fmt.Sprintf("%s-%s", s.ControlPlane.Name, s.ManagedMachinePool.Name)
 }
 
+// GetRuntimeObject returns the AWSManagedMachinePool, in runtime.Object form.
 func (s *ManagedMachinePoolScope) GetRuntimeObject() runtime.Object {
 	return s.ManagedMachinePool
+}
+
+// GetLifecycleHooks returns the desired lifecycle hooks for the ASG.
+func (s *ManagedMachinePoolScope) GetLifecycleHooks() []expinfrav1.AWSLifecycleHook {
+	return s.ManagedMachinePool.Spec.AWSLifecycleHooks
 }

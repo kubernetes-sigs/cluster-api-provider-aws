@@ -23,12 +23,13 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/gofrs/flock"
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
@@ -59,7 +60,7 @@ var _ = ginkgo.Context("[unmanaged] [functional] [ClusterClass]", func() {
 			defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
 			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
 			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
-			Expect(shared.SetMultitenancyEnvVars(e2eCtx.AWSSession)).To(Succeed())
+			Expect(shared.SetMultitenancyEnvVars(ctx, e2eCtx.AWSSession)).To(Succeed())
 
 			ginkgo.By("Creating cluster")
 			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
@@ -73,19 +74,32 @@ var _ = ginkgo.Context("[unmanaged] [functional] [ClusterClass]", func() {
 					Flavor:                   shared.NestedMultitenancyClusterClassFlavor,
 					Namespace:                namespace.Name,
 					ClusterName:              clusterName,
-					KubernetesVersion:        e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion),
-					ControlPlaneMachineCount: pointer.Int64(1),
-					WorkerMachineCount:       pointer.Int64(0),
+					KubernetesVersion:        e2eCtx.E2EConfig.MustGetVariable(shared.KubernetesVersion),
+					ControlPlaneMachineCount: ptr.To[int64](1),
+					WorkerMachineCount:       ptr.To[int64](0),
 				},
 				WaitForClusterIntervals:      e2eCtx.E2EConfig.GetIntervals(specName, "wait-cluster"),
 				WaitForControlPlaneIntervals: e2eCtx.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 			}, result)
 
-			ginkgo.By("Checking if bastion host is running")
-			awsCluster, err := GetAWSClusterByName(ctx, namespace.Name, clusterName)
-			Expect(err).To(BeNil())
-			Expect(awsCluster.Status.Bastion.State).To(Equal(infrav1.InstanceStateRunning))
-			expectAWSClusterConditions(awsCluster, []conditionAssertion{{infrav1.BastionHostReadyCondition, corev1.ConditionTrue, "", ""}})
+			Eventually(func(gomega Gomega) (bool, error) {
+				ginkgo.By("Checking if the bastion is ready")
+				awsCluster, err := GetAWSClusterByName(ctx, e2eCtx.Environment.BootstrapClusterProxy, namespace.Name, clusterName)
+				if err != nil {
+					return false, err
+				}
+				if awsCluster.Status.Bastion.State != infrav1.InstanceStateRunning {
+					shared.Byf("Bastion is not running, state is %s", awsCluster.Status.Bastion.State)
+					return false, nil
+				}
+
+				if !hasAWSClusterConditions(awsCluster, []conditionAssertion{{infrav1.BastionHostReadyCondition, corev1.ConditionTrue, "", ""}}) {
+					ginkgo.By("AWSCluster missing bastion host ready condition")
+					return false, nil
+				}
+
+				return true, nil
+			}, 15*time.Minute, 30*time.Second).Should(BeTrue(), "Should've eventually succeeded creating bastion host")
 
 			ginkgo.By("PASSED!")
 		})
@@ -104,8 +118,8 @@ var _ = ginkgo.Context("[unmanaged] [functional] [ClusterClass]", func() {
 			ginkgo.By("Creating a cluster")
 			clusterName := fmt.Sprintf("cluster-%s", util.RandomString(6))
 			configCluster := defaultConfigCluster(clusterName, namespace.Name)
-			configCluster.ControlPlaneMachineCount = pointer.Int64(1)
-			configCluster.WorkerMachineCount = pointer.Int64(1)
+			configCluster.ControlPlaneMachineCount = ptr.To[int64](1)
+			configCluster.WorkerMachineCount = ptr.To[int64](1)
 			configCluster.Flavor = shared.TopologyFlavor
 			_, md, _ := createCluster(ctx, configCluster, result)
 
@@ -157,7 +171,7 @@ var _ = ginkgo.Context("[unmanaged] [functional] [ClusterClass]", func() {
 			shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
 			if !e2eCtx.Settings.SkipCleanup {
 				ginkgo.By("Deleting the management cluster infrastructure")
-				mgmtClusterInfra.DeleteInfrastructure()
+				mgmtClusterInfra.DeleteInfrastructure(ctx)
 			}
 		})
 
@@ -177,7 +191,7 @@ var _ = ginkgo.Context("[unmanaged] [functional] [ClusterClass]", func() {
 
 			ginkgo.By("Creating a management cluster in a peered VPC")
 			mgmtConfigCluster := defaultConfigCluster(mgmtClusterName, namespace.Name)
-			mgmtConfigCluster.WorkerMachineCount = pointer.Int64(1)
+			mgmtConfigCluster.WorkerMachineCount = ptr.To[int64](1)
 			mgmtConfigCluster.Flavor = "external-vpc-clusterclass"
 			mgmtCluster, mgmtMD, _ := createCluster(ctx, mgmtConfigCluster, result)
 
@@ -198,5 +212,4 @@ var _ = ginkgo.Context("[unmanaged] [functional] [ClusterClass]", func() {
 			deleteCluster(ctx, mgmtCluster)
 		})
 	})
-
 })

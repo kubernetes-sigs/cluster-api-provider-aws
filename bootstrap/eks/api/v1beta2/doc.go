@@ -14,7 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package v1beta2 contains API Schema definitions for the Amazon EKS Bootstrap v1beta2 API group.
 // +gencrdrefdocs:force //nolint: revive
 // +groupName=bootstrap.cluster.x-k8s.io
-
+// +k8s:conversion-gen=sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta1
 package v1beta2

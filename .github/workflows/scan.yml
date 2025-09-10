@@ -18,11 +18,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v4.1.0
+        uses: actions/checkout@v5
         with:
           ref: ${{ matrix.branch }}
       - name: Setup go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version-file: '${{ github.workspace }}/go.mod'
       - name: Run verify container script

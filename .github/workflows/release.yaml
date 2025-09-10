@@ -1,0 +1,40 @@
+name: release
+
+on:
+  push:
+    tags:
+    - 'v*'
+
+permissions:
+  contents: write # required to write to github release.
+
+jobs:
+  release:
+    name: Create draft release
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+      - name: Set version info
+        run: |
+          echo "VERSION=${GITHUB_REF_NAME}" >> $GITHUB_ENV
+          # NB: this gets the closest tag cut from the same branch; for new minor tags, it will find the previous minor, not the previous patch release
+          # (for example v2.7.0, not v2.7.3). For new patch releases, it should fetch the previous patch (e.g. 2.7.3, not v2.7.0)
+          echo "PREVIOUS_VERSION=$(git describe --abbrev=0 2> /dev/null)" >> $GITHUB_ENV 
+          echo "RELEASE_BRANCH=release-$(echo ${GITHUB_REF_NAME} | grep -Eo '[0-9]\.[0-9]+')" >> $GITHUB_ENV
+          echo "RELEASE_TAG=${GITHUB_REF_NAME}" >> $GITHUB_ENV
+      - name: Run release
+        run: |
+          echo "Version is: $VERSION"
+          echo "Previous version is: $PREVIOUS_VERSION"
+          echo "Release branch is: $RELEASE_BRANCH"
+          echo "Release tag is: $RELEASE_TAG"
+          make release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -18,9 +18,14 @@ resources:
 - bases/infrastructure.cluster.x-k8s.io_awsclustercontrolleridentities.yaml
 - bases/infrastructure.cluster.x-k8s.io_awsclustertemplates.yaml
 - bases/controlplane.cluster.x-k8s.io_awsmanagedcontrolplanes.yaml
+- bases/controlplane.cluster.x-k8s.io_awsmanagedcontrolplanetemplates.yaml
 - bases/infrastructure.cluster.x-k8s.io_awsmanagedclusters.yaml
+- bases/infrastructure.cluster.x-k8s.io_awsmanagedclustertemplates.yaml
 - bases/bootstrap.cluster.x-k8s.io_eksconfigs.yaml
 - bases/bootstrap.cluster.x-k8s.io_eksconfigtemplates.yaml
+- bases/controlplane.cluster.x-k8s.io_rosacontrolplanes.yaml
+- bases/infrastructure.cluster.x-k8s.io_rosaclusters.yaml
+- bases/infrastructure.cluster.x-k8s.io_rosamachinepools.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:
@@ -33,6 +38,7 @@ patchesStrategicMerge:
 - patches/webhook_in_awsclusterroleidentities.yaml
 - patches/webhook_in_awsclustertemplates.yaml
 - patches/webhook_in_awsmanagedcontrolplanes.yaml
+- patches/webhook_in_awsmanagedcontrolplanetemplates.yaml
 - patches/webhook_in_eksconfigs.yaml
 - patches/webhook_in_eksconfigtemplates.yaml
   # +kubebuilder:scaffold:crdkustomizewebhookpatch
@@ -46,7 +52,9 @@ patchesStrategicMerge:
 - patches/cainjection_in_awsclusterroleidentities.yaml
 - patches/cainjection_in_awsclustertemplates.yaml
 - patches/cainjection_in_awsmanagedcontrolplanes.yaml
+- patches/cainjection_in_awsmanagedcontrolplanetemplates.yaml
 - patches/cainjection_in_awsmanagedclusters.yaml
+- patches/cainjection_in_awsmanagedclustertemplates.yaml
 - patches/cainjection_in_eksconfigs.yaml
 - patches/cainjection_in_eksconfigtemplates.yaml
 # +kubebuilder:scaffold:crdkustomizecainjectionpatch

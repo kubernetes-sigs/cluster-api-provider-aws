@@ -20,9 +20,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/eks"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"github.com/aws/aws-sdk-go-v2/service/eks"
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
@@ -34,14 +35,7 @@ import (
 )
 
 var (
-	bp = infrav1.BuildParams{
-		Lifecycle:   infrav1.ResourceLifecycleOwned,
-		ClusterName: "testcluster",
-		Name:        aws.String("test"),
-		Role:        aws.String("testrole"),
-		Additional:  map[string]string{"k1": "v1"},
-	}
-	tags = []*ec2.Tag{
+	expectedTags = []ec2types.Tag{
 		{
 			Key:   aws.String("Name"),
 			Value: aws.String("test"),
@@ -140,30 +134,64 @@ func TestTagsEnsureWithEC2(t *testing.T) {
 		expect  func(m *mocks.MockEC2APIMockRecorder)
 	}{
 		{
-			name:    "Should return error when create tag fails",
-			builder: Builder{params: &bp},
+			name: "Should return error when create tag fails",
+			builder: Builder{params: &infrav1.BuildParams{
+				Lifecycle:   infrav1.ResourceLifecycleOwned,
+				ClusterName: "testcluster",
+				Name:        aws.String("test"),
+				Role:        aws.String("testrole"),
+				Additional:  map[string]string{"k1": "v1"},
+			}},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.CreateTagsWithContext(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
-					Resources: aws.StringSlice([]string{""}),
-					Tags:      tags,
+				m.CreateTags(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
+					Resources: []string{""},
+					Tags:      expectedTags,
 				})).Return(nil, errors.New("failed to create tag"))
 			},
 		},
 		{
-			name:    "Should return error when optional configuration for builder is nil",
-			builder: Builder{params: &bp, applyFunc: nil},
+			name: "Should return error when optional configuration for builder is nil",
+			builder: Builder{params: &infrav1.BuildParams{
+				Lifecycle:   infrav1.ResourceLifecycleOwned,
+				ClusterName: "testcluster",
+				Name:        aws.String("test"),
+				Role:        aws.String("testrole"),
+				Additional:  map[string]string{"k1": "v1"},
+			}, applyFunc: nil},
 		},
 		{
 			name:    "Should return error when build params is nil",
 			builder: Builder{params: nil},
 		},
 		{
-			name:    "Should ensure tags successfully",
-			builder: Builder{params: &bp},
+			name: "Should ensure tags successfully",
+			builder: Builder{params: &infrav1.BuildParams{
+				Lifecycle:   infrav1.ResourceLifecycleOwned,
+				ClusterName: "testcluster",
+				Name:        aws.String("test"),
+				Role:        aws.String("testrole"),
+				Additional:  map[string]string{"k1": "v1"},
+			}},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.CreateTagsWithContext(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
-					Resources: aws.StringSlice([]string{""}),
-					Tags:      tags,
+				m.CreateTags(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
+					Resources: []string{""},
+					Tags:      expectedTags,
+				})).Return(nil, nil)
+			},
+		},
+		{
+			name: "Should filter internal aws tags",
+			builder: Builder{params: &infrav1.BuildParams{
+				Lifecycle:   infrav1.ResourceLifecycleOwned,
+				ClusterName: "testcluster",
+				Name:        aws.String("test"),
+				Role:        aws.String("testrole"),
+				Additional:  map[string]string{"k1": "v1", "aws:cloudformation:stack-name": "cloudformation-stack-name"},
+			}},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.CreateTags(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
+					Resources: []string{""},
+					Tags:      expectedTags,
 				})).Return(nil, nil)
 			},
 		},
@@ -198,22 +226,34 @@ func TestTagsEnsureWithEKS(t *testing.T) {
 		expect  func(m *mock_eksiface.MockEKSAPIMockRecorder)
 	}{
 		{
-			name:    "Should return error when tag resources fails",
-			builder: Builder{params: &bp},
+			name: "Should return error when tag resources fails",
+			builder: Builder{params: &infrav1.BuildParams{
+				Lifecycle:   infrav1.ResourceLifecycleOwned,
+				ClusterName: "testcluster",
+				Name:        aws.String("test"),
+				Role:        aws.String("testrole"),
+				Additional:  map[string]string{"k1": "v1"},
+			}},
 			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
-				m.TagResource(gomock.Eq(&eks.TagResourceInput{
+				m.TagResource(gomock.Eq(context.TODO()), gomock.Eq(&eks.TagResourceInput{
 					ResourceArn: aws.String(""),
-					Tags:        map[string]*string{"Name": aws.String("test"), "k1": aws.String("v1"), "sigs.k8s.io/cluster-api-provider-aws/cluster/testcluster": aws.String("owned"), "sigs.k8s.io/cluster-api-provider-aws/role": aws.String("testrole")},
+					Tags:        map[string]string{"Name": "test", "k1": "v1", "sigs.k8s.io/cluster-api-provider-aws/cluster/testcluster": "owned", "sigs.k8s.io/cluster-api-provider-aws/role": "testrole"},
 				})).Return(nil, errors.New("failed to tag resource"))
 			},
 		},
 		{
-			name:    "Should ensure tags successfully",
-			builder: Builder{params: &bp},
+			name: "Should ensure tags successfully",
+			builder: Builder{params: &infrav1.BuildParams{
+				Lifecycle:   infrav1.ResourceLifecycleOwned,
+				ClusterName: "testcluster",
+				Name:        aws.String("test"),
+				Role:        aws.String("testrole"),
+				Additional:  map[string]string{"k1": "v1"},
+			}},
 			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
-				m.TagResource(gomock.Eq(&eks.TagResourceInput{
+				m.TagResource(gomock.Eq(context.TODO()), gomock.Eq(&eks.TagResourceInput{
 					ResourceArn: aws.String(""),
-					Tags:        map[string]*string{"Name": aws.String("test"), "k1": aws.String("v1"), "sigs.k8s.io/cluster-api-provider-aws/cluster/testcluster": aws.String("owned"), "sigs.k8s.io/cluster-api-provider-aws/role": aws.String("testrole")},
+					Tags:        map[string]string{"Name": "test", "k1": "v1", "sigs.k8s.io/cluster-api-provider-aws/cluster/testcluster": "owned", "sigs.k8s.io/cluster-api-provider-aws/role": "testrole"},
 				})).Return(nil, nil)
 			},
 		},
@@ -227,7 +267,7 @@ func TestTagsEnsureWithEKS(t *testing.T) {
 			var builder *Builder
 			if tc.expect != nil {
 				tc.expect(eksMock.EXPECT())
-				builder = New(tc.builder.params, WithEKS(eksMock))
+				builder = New(tc.builder.params, WithEKS(context.TODO(), eksMock))
 			} else {
 				builder = New(tc.builder.params, func(builder *Builder) {})
 			}
@@ -243,10 +283,16 @@ func TestTagsEnsureWithEKS(t *testing.T) {
 
 func TestTagsBuildParamsToTagSpecification(t *testing.T) {
 	g := NewWithT(t)
-	tagSpec := BuildParamsToTagSpecification("test-resource", bp)
-	expectedTagSpec := &ec2.TagSpecification{
-		ResourceType: aws.String("test-resource"),
-		Tags:         tags,
+	tagSpec := BuildParamsToTagSpecification("test-resource", infrav1.BuildParams{
+		Lifecycle:   infrav1.ResourceLifecycleOwned,
+		ClusterName: "testcluster",
+		Name:        aws.String("test"),
+		Role:        aws.String("testrole"),
+		Additional:  map[string]string{"k1": "v1"},
+	})
+	expectedTagSpec := ec2types.TagSpecification{
+		ResourceType: "test-resource",
+		Tags:         expectedTags,
 	}
 	g.Expect(expectedTagSpec).To(Equal(tagSpec))
 }

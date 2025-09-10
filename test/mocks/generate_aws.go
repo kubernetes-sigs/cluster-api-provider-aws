@@ -14,16 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-//go:generate ../../hack/tools/bin/mockgen -destination aws_elbv2_mock.go -package mocks github.com/aws/aws-sdk-go/service/elbv2/elbv2iface ELBV2API
+// Package mocks provides a way to generate mock objects for AWS services.
+//
+//go:generate ../../hack/tools/bin/mockgen -destination aws_elbv2_mock.go -package mocks sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/elb ELBV2API
 //go:generate /usr/bin/env bash -c "cat ../../hack/boilerplate/boilerplate.generatego.txt aws_elbv2_mock.go > _aws_elbv2_mock.go && mv _aws_elbv2_mock.go aws_elbv2_mock.go"
-
-//go:generate ../../hack/tools/bin/mockgen -destination aws_elb_mock.go -package mocks github.com/aws/aws-sdk-go/service/elb/elbiface ELBAPI
+//go:generate ../../hack/tools/bin/mockgen -destination aws_elb_mock.go -package mocks sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/elb ELBAPI
 //go:generate /usr/bin/env bash -c "cat ../../hack/boilerplate/boilerplate.generatego.txt aws_elb_mock.go > _aws_elb_mock.go && mv _aws_elb_mock.go aws_elb_mock.go"
-
-//go:generate ../../hack/tools/bin/mockgen -destination aws_rgtagging_mock.go -package mocks github.com/aws/aws-sdk-go/service/resourcegroupstaggingapi/resourcegroupstaggingapiiface ResourceGroupsTaggingAPIAPI
+//go:generate ../../hack/tools/bin/mockgen -destination aws_rgtagging_mock.go -package mocks sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/elb ResourceGroupsTaggingAPIAPI
 //go:generate /usr/bin/env bash -c "cat ../../hack/boilerplate/boilerplate.generatego.txt aws_rgtagging_mock.go > _aws_rgtagging_mock.go && mv _aws_rgtagging_mock.go aws_rgtagging_mock.go"
-
-//go:generate ../../hack/tools/bin/mockgen -destination aws_ec2api_mock.go -package mocks github.com/aws/aws-sdk-go/service/ec2/ec2iface EC2API
+//go:generate ../../hack/tools/bin/mockgen -destination aws_ec2api_mock.go -package mocks sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/common EC2API
 //go:generate /usr/bin/env bash -c "cat ../../hack/boilerplate/boilerplate.generatego.txt aws_ec2api_mock.go > _aws_ec2api_mock.go && mv _aws_ec2api_mock.go aws_ec2api_mock.go"
-
+//go:generate ../../hack/tools/bin/mockgen -destination aws_secretsmanager_mock.go -package mocks sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/secretsmanager SecretsManagerAPI
+//go:generate /usr/bin/env bash -c "cat ../../hack/boilerplate/boilerplate.generatego.txt aws_secretsmanager_mock.go > _aws_secretsmanager_mock.go && mv _aws_secretsmanager_mock.go aws_secretsmanager_mock.go"
 package mocks

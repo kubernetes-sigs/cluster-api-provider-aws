@@ -17,12 +17,18 @@ limitations under the License.
 package scope
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/external"
 )
 
 var (
@@ -40,6 +46,7 @@ type placementInput struct {
 	SpecAvailabilityZones   []string
 	ParentAvailabilityZones []string
 	ControlplaneSubnets     infrav1.Subnets
+	SubnetPlacementType     *expinfrav1.AZSubnetType
 }
 
 type subnetsPlacementStratgey interface {
@@ -75,7 +82,7 @@ func (p *defaultSubnetPlacementStrategy) Place(input *placementInput) ([]string,
 
 	if len(input.SpecAvailabilityZones) > 0 {
 		p.logger.Debug("determining subnets to use from the spec availability zones")
-		subnetIDs, err := p.getSubnetsForAZs(input.SpecAvailabilityZones, input.ControlplaneSubnets)
+		subnetIDs, err := p.getSubnetsForAZs(input.SpecAvailabilityZones, input.ControlplaneSubnets, input.SubnetPlacementType)
 		if err != nil {
 			return nil, fmt.Errorf("getting subnets for spec azs: %w", err)
 		}
@@ -85,7 +92,7 @@ func (p *defaultSubnetPlacementStrategy) Place(input *placementInput) ([]string,
 
 	if len(input.ParentAvailabilityZones) > 0 {
 		p.logger.Debug("determining subnets to use from the parents availability zones")
-		subnetIDs, err := p.getSubnetsForAZs(input.ParentAvailabilityZones, input.ControlplaneSubnets)
+		subnetIDs, err := p.getSubnetsForAZs(input.ParentAvailabilityZones, input.ControlplaneSubnets, input.SubnetPlacementType)
 		if err != nil {
 			return nil, fmt.Errorf("getting subnets for parent azs: %w", err)
 		}
@@ -93,7 +100,7 @@ func (p *defaultSubnetPlacementStrategy) Place(input *placementInput) ([]string,
 		return subnetIDs, nil
 	}
 
-	controlPlaneSubnetIDs := input.ControlplaneSubnets.FilterPrivate().IDs()
+	controlPlaneSubnetIDs := input.ControlplaneSubnets.FilterPrivate().FilterNonCni().IDs()
 	if len(controlPlaneSubnetIDs) > 0 {
 		p.logger.Debug("using all the private subnets from the control plane")
 		return controlPlaneSubnetIDs, nil
@@ -102,11 +109,21 @@ func (p *defaultSubnetPlacementStrategy) Place(input *placementInput) ([]string,
 	return nil, ErrNotPlaced
 }
 
-func (p *defaultSubnetPlacementStrategy) getSubnetsForAZs(azs []string, controlPlaneSubnets infrav1.Subnets) ([]string, error) {
+func (p *defaultSubnetPlacementStrategy) getSubnetsForAZs(azs []string, controlPlaneSubnets infrav1.Subnets, placementType *expinfrav1.AZSubnetType) ([]string, error) {
 	subnetIDs := []string{}
 
 	for _, zone := range azs {
 		subnets := controlPlaneSubnets.FilterByZone(zone)
+		if placementType != nil {
+			switch *placementType {
+			case expinfrav1.AZSubnetTypeAll:
+				// no-op
+			case expinfrav1.AZSubnetTypePublic:
+				subnets = subnets.FilterPublic().FilterNonCni()
+			case expinfrav1.AZSubnetTypePrivate:
+				subnets = subnets.FilterPrivate().FilterNonCni()
+			}
+		}
 		if len(subnets) == 0 {
 			return nil, fmt.Errorf("getting subnets for availability zone %s: %w", zone, ErrAZSubnetsNotFound)
 		}
@@ -114,4 +131,20 @@ func (p *defaultSubnetPlacementStrategy) getSubnetsForAZs(azs []string, controlP
 	}
 
 	return subnetIDs, nil
+}
+
+// getUnstructuredControlPlane returns the unstructured object for the control plane, if any.
+// When the reference is not set, it returns an empty object.
+func getUnstructuredControlPlane(ctx context.Context, client client.Client, cluster *clusterv1.Cluster) (*unstructured.Unstructured, error) {
+	if cluster.Spec.ControlPlaneRef == nil {
+		// If the control plane ref is not set, return an empty object.
+		// Not having a control plane ref is valid given API contracts.
+		return &unstructured.Unstructured{}, nil
+	}
+
+	u, err := external.Get(ctx, client, cluster.Spec.ControlPlaneRef)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to retrieve control plane object %s/%s", cluster.Spec.ControlPlaneRef.Namespace, cluster.Spec.ControlPlaneRef.Name)
+	}
+	return u, nil
 }

@@ -18,12 +18,13 @@ package iam
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
+	"k8s.io/kubectl/pkg/util/templates"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cloudformation/bootstrap"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/converters"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
+	cmdout "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/printers"
 )
 
 var errInvalidDocumentName = fmt.Errorf("invalid document name, use one of: %+v", bootstrap.ManagedIAMPolicyNames)
@@ -32,11 +33,11 @@ func printPolicyCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "print-policy",
 		Short: "Generate and show an IAM policy",
-		Long: cmd.LongDesc(`
+		Long: templates.LongDesc(`
 			Generate and show an AWS Identity and Access Management (IAM) policy for
 			Kubernetes Cluster API Provider AWS.
 		`),
-		Example: cmd.Examples(`
+		Example: templates.Examples(`
 		# Print out all the IAM policies for the Kubernetes CLuster API Provider AWS.
 		clusterawsadm bootstrap iam print-policy
 
@@ -44,7 +45,7 @@ func printPolicyCmd() *cobra.Command {
 		clusterawsadm bootstrap iam print-policy --document AWSIAMManagedPolicyControllers
 
 		# Print out the IAM policy for the Kubernetes Cluster API Provider AWS Controller using a given configuration file.
-		clusterawsadm bootstrap iam print-policy --document AWSIAMManagedPolicyControllers --config bootstrap_config.yaml		
+		clusterawsadm bootstrap iam print-policy --document AWSIAMManagedPolicyControllers --config bootstrap_config.yaml
 
 		# Print out the IAM policy for the Kubernetes AWS Cloud Provider for the control plane.
 		clusterawsadm bootstrap iam print-policy --document AWSIAMManagedPolicyCloudProviderControlPlane
@@ -53,31 +54,31 @@ func printPolicyCmd() *cobra.Command {
 		clusterawsadm bootstrap iam print-policy --document AWSIAMManagedPolicyCloudProviderNodes
 
 		# Print out the IAM policy for the Kubernetes AWS EBS CSI Driver Controller.
-		clusterawsadm bootstrap iam print-policy --document AWSEBSCSIPolicyController
+		# Note that this is available only when 'spec.controlPlane.enableCSIPolicy' is set to 'true' in the configuration file.
+		clusterawsadm bootstrap iam print-policy --document AWSEBSCSIPolicyControllerc
 		`),
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			template, err := getBootstrapTemplate(cmd)
+			printer, err := cmdout.New("json", os.Stdout)
+			if err != nil {
+				return fmt.Errorf("failed creating output printer: %w", err)
+			}
+
+			t, err := getBootstrapTemplate(cmd)
 			if err != nil {
 				return err
 			}
 
-			policyName, err := getDocumentName(cmd)
+			specificPolicyName, err := getPolicyName(cmd)
 			if err != nil {
 				return err
 			}
-
-			if policyName == "" {
-				return template.PrintPolicyDocs()
+			if specificPolicyName != "" {
+				printer.Print(t.RenderManagedIAMPolicy(specificPolicyName))
+				return nil
 			}
 
-			policyDocument := template.GetPolicyDocFromPolicyName(policyName)
-			str, err := converters.IAMPolicyDocumentToJSON(*policyDocument)
-			if err != nil {
-				return err
-			}
-
-			fmt.Println(str)
+			printer.Print(t.RenderManagedIAMPolicies())
 			return nil
 		},
 	}
@@ -86,7 +87,7 @@ func printPolicyCmd() *cobra.Command {
 	return newCmd
 }
 
-func getDocumentName(cmd *cobra.Command) (bootstrap.PolicyName, error) {
+func getPolicyName(cmd *cobra.Command) (bootstrap.PolicyName, error) {
 	val := bootstrap.PolicyName(cmd.Flags().Lookup("document").Value.String())
 
 	if val == "" {

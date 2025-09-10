@@ -24,7 +24,6 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/errors"
 )
 
 // ManagedMachineAMIType specifies which AWS AMI to use for a managed MachinePool.
@@ -37,6 +36,10 @@ const (
 	Al2x86_64GPU ManagedMachineAMIType = "AL2_x86_64_GPU"
 	// Al2Arm64 is the Arm AMI type.
 	Al2Arm64 ManagedMachineAMIType = "AL2_ARM_64"
+	// Al2023x86_64 is the AL2023 x86-64 AMI type.
+	Al2023x86_64 ManagedMachineAMIType = "AL2023_x86_64_STANDARD"
+	// Al2023Arm64 is the AL2023 Arm AMI type.
+	Al2023Arm64 ManagedMachineAMIType = "AL2023_ARM_64_STANDARD"
 )
 
 // ManagedMachinePoolCapacityType specifies the capacity type to be used for the managed MachinePool.
@@ -99,7 +102,7 @@ type AWSManagedMachinePoolSpec struct {
 	AMIVersion *string `json:"amiVersion,omitempty"`
 
 	// AMIType defines the AMI type
-	// +kubebuilder:validation:Enum:=AL2_x86_64;AL2_x86_64_GPU;AL2_ARM_64;CUSTOM
+	// +kubebuilder:validation:Enum:=AL2_x86_64;AL2_x86_64_GPU;AL2_ARM_64;AL2023_x86_64_STANDARD;AL2023_ARM_64_STANDARD;CUSTOM
 	// +kubebuilder:default:=AL2_x86_64
 	// +optional
 	AMIType *ManagedMachineAMIType `json:"amiType,omitempty"`
@@ -207,7 +210,7 @@ type AWSManagedMachinePoolStatus struct {
 	// can be added as events to the MachinePool object and/or logged in the
 	// controller's output.
 	// +optional
-	FailureReason *errors.MachineStatusError `json:"failureReason,omitempty"`
+	FailureReason *string `json:"failureReason,omitempty"`
 
 	// FailureMessage will be set in the event that there is a terminal problem
 	// reconciling the MachinePool and will contain a more verbose string suitable
@@ -234,6 +237,7 @@ type AWSManagedMachinePoolStatus struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:unservedversion
 // +kubebuilder:resource:path=awsmanagedmachinepools,scope=Namespaced,categories=cluster-api,shortName=awsmmp
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="MachinePool ready status"
@@ -259,6 +263,7 @@ func (r *AWSManagedMachinePool) SetConditions(conditions clusterv1.Conditions) {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:unservedversion
 
 // AWSManagedMachinePoolList contains a list of AWSManagedMachinePools.
 type AWSManagedMachinePoolList struct {

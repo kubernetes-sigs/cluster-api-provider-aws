@@ -29,7 +29,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
@@ -46,7 +45,6 @@ import (
 type AWSFargateProfileReconciler struct {
 	client.Client
 	Recorder         record.EventRecorder
-	Endpoints        []scope.ServiceEndpoint
 	EnableIAM        bool
 	WatchFilterValue string
 }
@@ -57,9 +55,9 @@ func (r *AWSFargateProfileReconciler) SetupWithManager(ctx context.Context, mgr 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&expinfrav1.AWSFargateProfile{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(logger.FromContext(ctx).GetLogger(), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), logger.FromContext(ctx).GetLogger(), r.WatchFilterValue)).
 		Watches(
-			&source.Kind{Type: &ekscontrolplanev1.AWSManagedControlPlane{}},
+			&ekscontrolplanev1.AWSManagedControlPlane{},
 			handler.EnqueueRequestsFromMapFunc(managedControlPlaneToFargateProfileMap),
 		).
 		Complete(r)
@@ -108,7 +106,6 @@ func (r *AWSFargateProfileReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		ControlPlane:   controlPlane,
 		FargateProfile: fargateProfile,
 		EnableIAM:      r.EnableIAM,
-		Endpoints:      r.Endpoints,
 	})
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to create scope")
@@ -141,7 +138,7 @@ func (r *AWSFargateProfileReconciler) Reconcile(ctx context.Context, req ctrl.Re
 }
 
 func (r *AWSFargateProfileReconciler) reconcileNormal(
-	_ context.Context,
+	ctx context.Context,
 	fargateProfileScope *scope.FargateProfileScope,
 ) (ctrl.Result, error) {
 	fargateProfileScope.Info("Reconciling AWSFargateProfile")
@@ -154,7 +151,7 @@ func (r *AWSFargateProfileReconciler) reconcileNormal(
 
 	ekssvc := eks.NewFargateService(fargateProfileScope)
 
-	res, err := ekssvc.Reconcile()
+	res, err := ekssvc.Reconcile(ctx)
 	if err != nil {
 		return res, errors.Wrapf(err, "failed to reconcile fargate profile for AWSFargateProfile %s/%s", fargateProfileScope.FargateProfile.Namespace, fargateProfileScope.FargateProfile.Name)
 	}
@@ -163,14 +160,14 @@ func (r *AWSFargateProfileReconciler) reconcileNormal(
 }
 
 func (r *AWSFargateProfileReconciler) reconcileDelete(
-	_ context.Context,
+	ctx context.Context,
 	fargateProfileScope *scope.FargateProfileScope,
 ) (ctrl.Result, error) {
 	fargateProfileScope.Info("Reconciling deletion of AWSFargateProfile")
 
 	ekssvc := eks.NewFargateService(fargateProfileScope)
 
-	res, err := ekssvc.ReconcileDelete()
+	res, err := ekssvc.ReconcileDelete(ctx)
 	if err != nil {
 		return res, errors.Wrapf(err, "failed to reconcile fargate profile deletion for AWSFargateProfile %s/%s", fargateProfileScope.FargateProfile.Namespace, fargateProfileScope.FargateProfile.Name)
 	}
@@ -183,9 +180,7 @@ func (r *AWSFargateProfileReconciler) reconcileDelete(
 }
 
 func managedControlPlaneToFargateProfileMapFunc(c client.Client, log logger.Wrapper) handler.MapFunc {
-	return func(o client.Object) []ctrl.Request {
-		ctx := context.Background()
-
+	return func(ctx context.Context, o client.Object) []ctrl.Request {
 		awsControlPlane, ok := o.(*ekscontrolplanev1.AWSManagedControlPlane)
 		if !ok {
 			klog.Errorf("Expected a AWSManagedControlPlane but got a %T", o)

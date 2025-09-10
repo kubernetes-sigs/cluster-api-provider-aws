@@ -39,9 +39,11 @@ type ELBScope interface {
 	VPC() *infrav1.VPCSpec
 
 	// ControlPlaneLoadBalancer returns the AWSLoadBalancerSpec
+	// Deprecated: Use ControlPlaneLoadBalancers()
 	ControlPlaneLoadBalancer() *infrav1.AWSLoadBalancerSpec
 
 	// ControlPlaneLoadBalancerScheme returns the Classic ELB scheme (public or internal facing)
+	// Deprecated: This method is going to be removed in a future release. Use LoadBalancer.Scheme.
 	ControlPlaneLoadBalancerScheme() infrav1.ELBScheme
 
 	// ControlPlaneLoadBalancerName returns the Classic ELB name
@@ -49,4 +51,8 @@ type ELBScope interface {
 
 	// ControlPlaneEndpoint returns AWSCluster control plane endpoint
 	ControlPlaneEndpoint() clusterv1.APIEndpoint
+
+	// ControlPlaneLoadBalancers returns both the ControlPlaneLoadBalancer and SecondaryControlPlaneLoadBalancer AWSLoadBalancerSpecs.
+	// The control plane load balancers should always be returned in the above order.
+	ControlPlaneLoadBalancers() []*infrav1.AWSLoadBalancerSpec
 }

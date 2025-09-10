@@ -14,13 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package resource provides commands related to AWS resources.
 package resource
 
 import (
 	"github.com/spf13/cobra"
+	"k8s.io/kubectl/pkg/util/templates"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/resource/list"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 
 // RootCmd is the root of the `resource command`.
@@ -29,15 +30,12 @@ func RootCmd() *cobra.Command {
 		Use:   "resource [command]",
 		Short: "Commands related to AWS resources",
 		Args:  cobra.NoArgs,
-		Long: cmd.LongDesc(`
+		Long: templates.LongDesc(`
 			All AWS resources related actions such as:
 			# List of AWS resources created by CAPA
 		`),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := cmd.Help(); err != nil {
-				return err
-			}
-			return nil
+			return cmd.Help()
 		},
 	}
 

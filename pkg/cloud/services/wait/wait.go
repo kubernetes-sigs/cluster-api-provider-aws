@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package wait provides a set of utilities for polling and waiting.
 package wait
 
 import (
@@ -67,9 +68,16 @@ func WaitForWithRetryable(backoff wait.Backoff, condition wait.ConditionFunc, re
 
 		// If the returned error isn't empty, check if the error is a retryable one,
 		// or return immediately.
-		code, ok := awserrors.Code(errors.Cause(err))
-		if !ok {
-			return false, err
+		// Also check for smithy errors
+		var code string
+		smithyErr := awserrors.ParseSmithyError(err)
+		if smithyErr != nil {
+			code = smithyErr.ErrorCode()
+		} else {
+			code, ok = awserrors.Code(errors.Cause(err))
+			if !ok {
+				return false, err
+			}
 		}
 
 		for _, r := range retryableErrors {
@@ -85,7 +93,7 @@ func WaitForWithRetryable(backoff wait.Backoff, condition wait.ConditionFunc, re
 	})
 
 	// If the waitError is not a timeout error (nil or a non-retryable error), return it
-	if !errors.Is(waitErr, wait.ErrWaitTimeout) {
+	if !errors.Is(waitErr, wait.ErrorInterrupted(waitErr)) {
 		return waitErr
 	}
 

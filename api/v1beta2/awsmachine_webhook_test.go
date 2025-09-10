@@ -21,19 +21,22 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	utilfeature "k8s.io/component-base/featuregate/testing"
+	"k8s.io/utils/ptr"
 
-	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
+	utildefaulting "sigs.k8s.io/cluster-api-provider-aws/v2/util/defaulting"
 )
 
 func TestMachineDefault(t *testing.T) {
 	machine := &AWSMachine{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
-	t.Run("for AWSMachine", utildefaulting.DefaultValidateTest(machine))
-	machine.Default()
+	t.Run("for AWSMachine", utildefaulting.DefaultValidateTest(context.Background(), machine, &awsMachineWebhook{}))
 	g := NewWithT(t)
+	err := (&awsMachineWebhook{}).Default(context.Background(), machine)
+	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(machine.Spec.CloudInit.SecureSecretsBackend).To(Equal(SecretBackendSecretsManager))
 }
 
@@ -216,6 +219,105 @@ func TestAWSMachineCreate(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "invalid case, MarketType set to MarketTypeCapacityBlock and spotMarketOptions are specified",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					MarketType:        MarketTypeCapacityBlock,
+					SpotMarketOptions: &SpotMarketOptions{},
+					InstanceType:      "test",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid case, MarketType set to MarketTypeOnDemand and spotMarketOptions are specified",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					MarketType:        MarketTypeOnDemand,
+					SpotMarketOptions: &SpotMarketOptions{},
+					InstanceType:      "test",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid MarketType set to MarketTypeCapacityBlock is specified and CapacityReservationId is not provided",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					MarketType:   MarketTypeCapacityBlock,
+					InstanceType: "test",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid MarketType set to MarketTypeCapacityBlock and CapacityReservationId are specified",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					MarketType:            MarketTypeCapacityBlock,
+					CapacityReservationID: aws.String("cr-12345678901234567"),
+					InstanceType:          "test",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid case, CapacityReservationId is set and CapacityReservationPreference is not `capacity-reservation-only`",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType:                  "test",
+					CapacityReservationID:         aws.String("cr-12345678901234567"),
+					CapacityReservationPreference: CapacityReservationPreferenceNone,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid CapacityReservationId is set and CapacityReservationPreference is not specified",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType:          "test",
+					CapacityReservationID: aws.String("cr-12345678901234567"),
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid CapacityReservationId is set and CapacityReservationPreference is `capacity-reservation-only`",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType:                  "test",
+					CapacityReservationID:         aws.String("cr-12345678901234567"),
+					CapacityReservationPreference: CapacityReservationPreferenceOnly,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid CapacityReservationPreference is `CapacityReservationsOnly` and MarketType is `Spot`",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType:                  "test",
+					CapacityReservationID:         aws.String("cr-12345678901234567"),
+					CapacityReservationPreference: CapacityReservationPreferenceOnly,
+					MarketType:                    MarketTypeSpot,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid CapacityReservationPreference is `CapacityReservationsOnly` and SpotMarketOptions is non-nil",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType:                  "test",
+					CapacityReservationID:         aws.String("cr-12345678901234567"),
+					CapacityReservationPreference: CapacityReservationPreferenceOnly,
+					SpotMarketOptions:             &SpotMarketOptions{},
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name: "empty instance type not allowed",
 			machine: &AWSMachine{
 				Spec: AWSMachineSpec{
@@ -248,9 +350,228 @@ func TestAWSMachineCreate(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "ignition proxy and TLS can be from version 3.1",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "test",
+					Ignition: &Ignition{
+						Version: "3.1",
+						Proxy: &IgnitionProxy{
+							HTTPProxy: ptr.To("http://proxy.example.com:3128"),
+						},
+						TLS: &IgnitionTLS{
+							CASources: []IgnitionCASource{"s3://example.com/ca.pem"},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "ignition tls with invalid CASources URL",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "test",
+					Ignition: &Ignition{
+						Version: "3.1",
+						TLS: &IgnitionTLS{
+							CASources: []IgnitionCASource{"data;;"},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "ignition proxy with valid URLs, and noproxy",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "test",
+					Ignition: &Ignition{
+						Version: "3.1",
+						Proxy: &IgnitionProxy{
+							HTTPProxy:  ptr.To("http://proxy.example.com:3128"),
+							HTTPSProxy: ptr.To("https://proxy.example.com:3128"),
+							NoProxy: []IgnitionNoProxy{
+								"10.0.0.1",         // single ip
+								"example.com",      // domain
+								".example.com",     // all subdomains
+								"example.com:3128", // domain with port
+								"10.0.0.1:3128",    // ip with port
+								"10.0.0.0/8",       // cidr block
+								"*",                // no proxy wildcard
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "ignition proxy with invalid HTTPProxy URL",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "test",
+					Ignition: &Ignition{
+						Version: "3.1",
+						Proxy: &IgnitionProxy{
+							HTTPProxy: ptr.To("*:80"),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "ignition proxy with invalid HTTPSProxy URL",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "test",
+					Ignition: &Ignition{
+						Version: "3.1",
+						Proxy: &IgnitionProxy{
+							HTTPSProxy: ptr.To("*:80"),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "ignition proxy with invalid noproxy URL",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "test",
+					Ignition: &Ignition{
+						Version: "3.1",
+						Proxy: &IgnitionProxy{
+							NoProxy: []IgnitionNoProxy{"&"},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "cannot use ignition proxy with version 2.3",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "test",
+					Ignition: &Ignition{
+						Version: "2.3.0",
+						Proxy: &IgnitionProxy{
+							HTTPProxy: ptr.To("http://proxy.example.com:3128"),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "configure host affinity with Host ID",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "test",
+					HostAffinity: ptr.To("default"),
+					HostID:       ptr.To("h-09dcf61cb388b0149"),
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "configure host affinity with invalid affinity",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "test",
+					HostAffinity: ptr.To("invalid"),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "configure host affinity without Host ID",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "test",
+					HostAffinity: ptr.To("default"),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "create with valid BYOIPv4",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "type",
+					PublicIP:     aws.Bool(true),
+					ElasticIPPool: &ElasticIPPool{
+						PublicIpv4Pool:              aws.String("ipv4pool-ec2-0123456789abcdef0"),
+						PublicIpv4PoolFallBackOrder: ptr.To(PublicIpv4PoolFallbackOrderAmazonPool),
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "error when BYOIPv4 without fallback",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "type",
+					PublicIP:     aws.Bool(true),
+					ElasticIPPool: &ElasticIPPool{
+						PublicIpv4Pool: aws.String("ipv4pool-ec2-0123456789abcdef0"),
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "error when BYOIPv4 without public ipv4 pool",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "type",
+					PublicIP:     aws.Bool(true),
+					ElasticIPPool: &ElasticIPPool{
+						PublicIpv4PoolFallBackOrder: ptr.To(PublicIpv4PoolFallbackOrderAmazonPool),
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "error when BYOIPv4 with non-public IP set",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "type",
+					PublicIP:     aws.Bool(false),
+					ElasticIPPool: &ElasticIPPool{
+						PublicIpv4Pool:              aws.String("ipv4pool-ec2-0123456789abcdef0"),
+						PublicIpv4PoolFallBackOrder: ptr.To(PublicIpv4PoolFallbackOrderAmazonPool),
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "error when BYOIPv4 with invalid pool name",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "type",
+					PublicIP:     aws.Bool(true),
+					ElasticIPPool: &ElasticIPPool{
+						PublicIpv4Pool:              aws.String("ipv4poolx-ec2-0123456789abcdef"),
+						PublicIpv4PoolFallBackOrder: ptr.To(PublicIpv4PoolFallbackOrderAmazonPool),
+					},
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.BootstrapFormatIgnition, true)
+
 			machine := tt.machine.DeepCopy()
 			machine.ObjectMeta = metav1.ObjectMeta{
 				GenerateName: "machine-",
@@ -273,7 +594,7 @@ func TestAWSMachineUpdate(t *testing.T) {
 		wantErr    bool
 	}{
 		{
-			name: "change in providerid, cloudinit, tags and securitygroups",
+			name: "change in providerid, cloudinit, tags, securitygroups",
 			oldMachine: &AWSMachine{
 				Spec: AWSMachineSpec{
 					ProviderID:               nil,
@@ -284,14 +605,14 @@ func TestAWSMachineUpdate(t *testing.T) {
 			},
 			newMachine: &AWSMachine{
 				Spec: AWSMachineSpec{
-					ProviderID:   pointer.String("ID"),
+					ProviderID:   ptr.To[string]("ID"),
 					InstanceType: "test",
 					AdditionalTags: Tags{
 						"key-1": "value-1",
 					},
 					AdditionalSecurityGroups: []AWSResourceReference{
 						{
-							ID: pointer.String("ID"),
+							ID: ptr.To[string]("ID"),
 						},
 					},
 					CloudInit: CloudInit{
@@ -316,14 +637,18 @@ func TestAWSMachineUpdate(t *testing.T) {
 				Spec: AWSMachineSpec{
 					ImageLookupOrg: "test",
 					InstanceType:   "test",
-					ProviderID:     pointer.String("ID"),
+					ProviderID:     ptr.To[string]("ID"),
 					AdditionalTags: Tags{
 						"key-1": "value-1",
 					},
 					AdditionalSecurityGroups: []AWSResourceReference{
 						{
-							ID: pointer.String("ID"),
+							ID: ptr.To[string]("ID"),
 						},
+					},
+					PrivateDNSName: &PrivateDNSName{
+						EnableResourceNameDNSAAAARecord: aws.Bool(true),
+						EnableResourceNameDNSARecord:    aws.Bool(true),
 					},
 				},
 			},

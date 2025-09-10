@@ -14,12 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package iam provides a way to generate IAM policies and roles.
 package iam
 
 import (
 	"github.com/spf13/cobra"
-
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
+	"k8s.io/kubectl/pkg/util/templates"
 )
 
 // RootCmd is the root of the `bootstrap iam command`.
@@ -27,7 +27,7 @@ func RootCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "iam [command]",
 		Short: "View required AWS IAM policies and create/update IAM roles using AWS CloudFormation",
-		Long: cmd.LongDesc(`
+		Long: templates.LongDesc(`
 			View/output AWS Identity and Access Management (IAM) policy documents required for
 			configuring Kubernetes Cluster API Provider AWS as well as create/update AWS IAM
 			resources using AWS CloudFormation.

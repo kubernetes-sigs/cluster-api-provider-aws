@@ -21,11 +21,11 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"k8s.io/kubectl/pkg/util/templates"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/ami"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/flags"
 	cmdout "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/printers"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 )
 
@@ -34,14 +34,14 @@ func CopyAMICmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "copy",
 		Short: "Copy AMIs from an AWS account to the AWS account which credentials are provided",
-		Long: cmd.LongDesc(`
+		Long: templates.LongDesc(`
 			Copy AMIs based on Kubernetes version, OS, region from an AWS account where AMIs are stored
             to the current AWS account (use case: air-gapped deployments)
 		`),
-		Example: cmd.Examples(`
+		Example: templates.Examples(`
 		# Copy AMI from the default AWS account where AMIs are stored.
-		# Available os options: centos-7, ubuntu-18.04, ubuntu-20.04, amazon-2, flatcar-stable
-		clusterawsadm ami copy --kubernetes-version=v1.18.12 --os=ubuntu-20.04  --region=us-west-2
+		# Available os options: centos-7, ubuntu-24.04, ubuntu-22.04, amazon-2, flatcar-stable
+		clusterawsadm ami copy --kubernetes-version=v1.30.1 --os=ubuntu-22.04  --region=us-west-2
 
 		# owner-id and dry-run flags are optional. region can be set via flag or env
 		clusterawsadm ami copy --os centos-7 --kubernetes-version=v1.19.4 --owner-id=111111111111 --dry-run
@@ -81,7 +81,6 @@ func CopyAMICmd() *cobra.Command {
 				SourceRegion:      sourceRegion,
 			},
 			)
-
 			if err != nil {
 				fmt.Print(err)
 				return err
@@ -89,7 +88,6 @@ func CopyAMICmd() *cobra.Command {
 
 			printer.Print(ami)
 
-			// klog.V(0).Infof("Completed copying %v\n", *image.ImageId)
 			return nil
 		},
 	}

@@ -19,12 +19,12 @@ package ec2
 import (
 	"sort"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -61,8 +61,8 @@ func setupMachinePoolScope(cl client.Client, ec2Scope scope.EC2Scope) (*scope.Ma
 	})
 }
 
-func defaultEC2Tags(name, clusterName string) []*ec2.Tag {
-	return []*ec2.Tag{
+func defaultEC2Tags(name, clusterName string) []types.Tag {
+	return []types.Tag{
 		{
 			Key:   aws.String("Name"),
 			Value: aws.String(name),
@@ -176,14 +176,14 @@ func newMachinePool() *v1beta1.MachinePool {
 		Spec: v1beta1.MachinePoolSpec{
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
-					Version: pointer.String("v1.23.3"),
+					Version: ptr.To[string]("v1.23.3"),
 				},
 			},
 		},
 	}
 }
 
-func sortTags(a []*ec2.Tag) {
+func sortTags(a []types.Tag) {
 	sort.Slice(a, func(i, j int) bool {
 		return *(a[i].Key) < *(a[j].Key)
 	})

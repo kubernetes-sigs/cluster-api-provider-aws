@@ -17,30 +17,30 @@ limitations under the License.
 package iam
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/config"
+	cfn "github.com/aws/aws-sdk-go-v2/service/cloudformation"
 	"github.com/spf13/cobra"
+	"k8s.io/kubectl/pkg/util/templates"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cloudformation/bootstrap"
 	cloudformation "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cloudformation/service"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/bootstrap/credentials"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/flags"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 
 func printCloudFormationTemplateCmd() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "print-cloudformation-template",
 		Short: "Print cloudformation template",
-		Long: cmd.LongDesc(`
+		Long: templates.LongDesc(`
 			Generate and print out a CloudFormation template that can be used to
 			provision AWS Identity and Access Management (IAM) policies and roles for use
 			with Kubernetes Cluster API Provider AWS.
 		`),
-		Example: cmd.Examples(`
+		Example: templates.Examples(`
 		# Print out the default CloudFormation template.
 		clusterawsadm bootstrap iam print-cloudformation-template
 
@@ -75,12 +75,12 @@ func createCloudFormationStackCmd() *cobra.Command {
 		Aliases: []string{"update-cloudformation-stack"},
 		Short:   "Create or update an AWS CloudFormation stack",
 		Args:    cobra.NoArgs,
-		Long: cmd.LongDesc(`
+		Long: templates.LongDesc(`
 	Create or update an AWS CloudFormation stack for bootstrapping Kubernetes Cluster
 	API and Kubernetes AWS Identity and Access Management (IAM) permissions. To use this
 	command, there must be AWS credentials loaded in this environment.
 		` + credentials.CredentialHelp),
-		Example: cmd.Examples(`
+		Example: templates.Examples(`
 		# Create or update IAM roles and policies for Kubernetes using a AWS CloudFormation stack.
 		clusterawsadm bootstrap iam create-cloudformation-stack
 
@@ -98,24 +98,25 @@ func createCloudFormationStackCmd() *cobra.Command {
 			}
 
 			fmt.Printf("Attempting to create AWS CloudFormation stack %s\n", t.Spec.StackName)
-			sess, err := session.NewSessionWithOptions(session.Options{
-				SharedConfigState: session.SharedConfigEnable,
-				Config:            aws.Config{Region: aws.String(t.Spec.Region)},
-			})
+
+			sess, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(t.Spec.Region))
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
 				return err
 			}
 
-			cfnSvc := cloudformation.NewService(cfn.New(sess))
+			cfnSvc := cloudformation.NewService(
+				&cloudformation.CFNClient{
+					Client: cfn.NewFromConfig(sess),
+				})
 
-			err = cfnSvc.ReconcileBootstrapStack(t.Spec.StackName, *t.RenderCloudFormation(), t.Spec.StackTags)
+			err = cfnSvc.ReconcileBootstrapStack(context.TODO(), t.Spec.StackName, *t.RenderCloudFormation(), t.Spec.StackTags)
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
 				return err
 			}
 
-			return cfnSvc.ShowStackResources(t.Spec.StackName)
+			return cfnSvc.ShowStackResources(context.TODO(), t.Spec.StackName)
 		},
 	}
 	addConfigFlag(newCmd)
@@ -128,7 +129,7 @@ func deleteCloudFormationStackCmd() *cobra.Command {
 		Use:   "delete-cloudformation-stack",
 		Short: "Delete an AWS CloudFormation stack",
 		Args:  cobra.NoArgs,
-		Long: cmd.LongDesc(`
+		Long: templates.LongDesc(`
 			Delete the AWS CloudFormation stack that created AWS Identity and Access
 			Management (IAM) resources for use with Kubernetes Cluster API Provider
 			AWS.
@@ -144,18 +145,19 @@ func deleteCloudFormationStackCmd() *cobra.Command {
 			}
 
 			fmt.Printf("Attempting to delete AWS CloudFormation stack %s\n", t.Spec.StackName)
-			sess, err := session.NewSessionWithOptions(session.Options{
-				SharedConfigState: session.SharedConfigEnable,
-				Config:            aws.Config{Region: aws.String(t.Spec.Region)},
-			})
+
+			sess, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(t.Spec.Region))
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
 				return err
 			}
 
-			cfnSvc := cloudformation.NewService(cfn.New(sess))
+			cfnSvc := cloudformation.NewService(
+				&cloudformation.CFNClient{
+					Client: cfn.NewFromConfig(sess),
+				})
 
-			err = cfnSvc.DeleteStack(t.Spec.StackName, nil)
+			err = cfnSvc.DeleteStack(context.TODO(), t.Spec.StackName, nil)
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
 				return err

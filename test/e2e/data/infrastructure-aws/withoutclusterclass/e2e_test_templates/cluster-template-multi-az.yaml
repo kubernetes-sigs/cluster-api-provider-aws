@@ -27,14 +27,18 @@ metadata:
 spec:
   network:
     subnets:
-    - availabilityZone: ${AWS_AVAILABILITY_ZONE_1}
+    - id: subnet-zone-1
+      availabilityZone: ${AWS_AVAILABILITY_ZONE_1}
       cidrBlock: 10.0.0.0/24
-    - availabilityZone: ${AWS_AVAILABILITY_ZONE_1}
+    - id: subnet-zone-2
+      availabilityZone: ${AWS_AVAILABILITY_ZONE_1}
       cidrBlock: 10.0.1.0/24
       isPublic: true
-    - availabilityZone: ${AWS_AVAILABILITY_ZONE_2}
+    - id: subnet-zone-2-2
+      availabilityZone: ${AWS_AVAILABILITY_ZONE_2}
       cidrBlock: 10.0.2.0/24
-    - availabilityZone: ${AWS_AVAILABILITY_ZONE_2}
+    - id: subnet-zone-2-3
+      availabilityZone: ${AWS_AVAILABILITY_ZONE_2}
       cidrBlock: 10.0.3.0/24
       isPublic: true
   region: ${AWS_REGION}

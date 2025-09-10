@@ -18,24 +18,27 @@ package v1beta2
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	utilfeature "k8s.io/component-base/featuregate/testing"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/util/defaulting"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
 
 func TestAWSClusterDefault(t *testing.T) {
 	cluster := &AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
-	t.Run("for AWSCluster", utildefaulting.DefaultValidateTest(cluster))
+	t.Run("for AWSCluster", defaultValidateTest(context.Background(), cluster, &awsClusterWebhook{}, true))
 	cluster.Default()
 	g := NewWithT(t)
 	g.Expect(cluster.Spec.IdentityRef).NotTo(BeNil())
@@ -50,6 +53,126 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 		wantErr bool
 		expect  func(g *WithT, res *AWSLoadBalancerSpec)
 	}{
+		{
+			name: "No options are allowed when LoadBalancer is disabled (name)",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType: LoadBalancerTypeDisabled,
+						Name:             ptr.To("name"),
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "No options are allowed when LoadBalancer is disabled (crossZoneLoadBalancing)",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						CrossZoneLoadBalancing: true,
+						LoadBalancerType:       LoadBalancerTypeDisabled,
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "No options are allowed when LoadBalancer is disabled (subnets)",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						Subnets:          []string{"foo", "bar"},
+						LoadBalancerType: LoadBalancerTypeDisabled,
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "No options are allowed when LoadBalancer is disabled (healthCheckProtocol)",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						HealthCheckProtocol: &ELBProtocolTCP,
+						LoadBalancerType:    LoadBalancerTypeDisabled,
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "No options are allowed when LoadBalancer is disabled (additionalSecurityGroups)",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						AdditionalSecurityGroups: []string{"foo", "bar"},
+						LoadBalancerType:         LoadBalancerTypeDisabled,
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "No options are allowed when LoadBalancer is disabled (additionalListeners)",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						AdditionalListeners: []AdditionalListenerSpec{
+							{
+								Port:     6443,
+								Protocol: ELBProtocolTCP,
+							},
+						},
+						LoadBalancerType: LoadBalancerTypeDisabled,
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "No options are allowed when LoadBalancer is disabled (ingressRules)",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						IngressRules: []IngressRule{
+							{
+								Description: "ingress rule",
+								Protocol:    SecurityGroupProtocolTCP,
+								FromPort:    6443,
+								ToPort:      6443,
+							},
+						},
+						LoadBalancerType: LoadBalancerTypeDisabled,
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "No options are allowed when LoadBalancer is disabled (disableHostsRewrite)",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						DisableHostsRewrite: true,
+						LoadBalancerType:    LoadBalancerTypeDisabled,
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "No options are allowed when LoadBalancer is disabled (preserveClientIP)",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						PreserveClientIP: true,
+						LoadBalancerType: LoadBalancerTypeDisabled,
+					},
+				},
+			},
+			wantErr: true,
+		},
 		// The SSHKeyName tests were moved to sshkeyname_test.go
 		{
 			name: "Supported schemes are 'internet-facing, Internet-facing, internal, or nil', rest will be rejected",
@@ -287,6 +410,59 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "rejects ingress rules with cidr block, source security group id, role and nat gateway IP source",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						IngressRules: []IngressRule{
+							{
+								Protocol:                 SecurityGroupProtocolTCP,
+								IPv6CidrBlocks:           []string{"test"},
+								SourceSecurityGroupIDs:   []string{"test"},
+								SourceSecurityGroupRoles: []SecurityGroupRole{SecurityGroupBastion},
+								NatGatewaysIPsSource:     true,
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects ingress rules with source security role and nat gateway IP source",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						IngressRules: []IngressRule{
+							{
+								Protocol:                 SecurityGroupProtocolTCP,
+								SourceSecurityGroupRoles: []SecurityGroupRole{SecurityGroupBastion},
+								NatGatewaysIPsSource:     true,
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects ingress rules with cidr block and nat gateway IP source",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						IngressRules: []IngressRule{
+							{
+								Protocol:             SecurityGroupProtocolTCP,
+								IPv6CidrBlocks:       []string{"test"},
+								NatGatewaysIPsSource: true,
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name: "accepts ingress rules with cidr block",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
@@ -295,6 +471,22 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 							{
 								Protocol:   SecurityGroupProtocolTCP,
 								CidrBlocks: []string{"test"},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "accepts ingress rules with nat gateway IPs source",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						IngressRules: []IngressRule{
+							{
+								Protocol:             SecurityGroupProtocolTCP,
+								NatGatewaysIPsSource: true,
 							},
 						},
 					},
@@ -447,10 +639,117 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "accepts node ingress rules with source security group id and role",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						AdditionalNodeIngressRules: []IngressRule{
+							{
+								Protocol:                 SecurityGroupProtocolTCP,
+								SourceSecurityGroupIDs:   []string{"test"},
+								SourceSecurityGroupRoles: []SecurityGroupRole{SecurityGroupBastion},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "rejects node ingress rules with cidr block and source security group id",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						AdditionalNodeIngressRules: []IngressRule{
+							{
+								Protocol:               SecurityGroupProtocolTCP,
+								CidrBlocks:             []string{"test"},
+								SourceSecurityGroupIDs: []string{"test"},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects node ingress rules with cidr block and source security group id and role",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						AdditionalNodeIngressRules: []IngressRule{
+							{
+								Protocol:                 SecurityGroupProtocolTCP,
+								IPv6CidrBlocks:           []string{"test"},
+								SourceSecurityGroupIDs:   []string{"test"},
+								SourceSecurityGroupRoles: []SecurityGroupRole{SecurityGroupBastion},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "accepts node ingress rules with cidr block",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						AdditionalNodeIngressRules: []IngressRule{
+							{
+								Protocol:   SecurityGroupProtocolTCP,
+								CidrBlocks: []string{"test"},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "accepts node ingress rules with source security group id and role",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						AdditionalNodeIngressRules: []IngressRule{
+							{
+								Protocol:                 SecurityGroupProtocolTCP,
+								SourceSecurityGroupIDs:   []string{"test"},
+								SourceSecurityGroupRoles: []SecurityGroupRole{SecurityGroupBastion},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "accepts cidrBlock for default node port ingress rule",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						NodePortIngressRuleCidrBlocks: []string{"10.0.0.0/16"},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "reject invalid cidrBlock for default node port ingress rule",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						NodePortIngressRuleCidrBlocks: []string{"10.0.0.0"},
+					},
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.BootstrapFormatIgnition, true)()
+			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.BootstrapFormatIgnition, true)
 
 			cluster := tt.cluster.DeepCopy()
 			cluster.ObjectMeta = metav1.ObjectMeta{
@@ -476,7 +775,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 			g.Eventually(func() bool {
 				err := testEnv.Get(ctx, key, c)
 				return err == nil
-			}, 10*time.Second).Should(Equal(true))
+			}, 10*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed getting the newly created cluster %q", cluster.Name))
 
 			if tt.expect != nil {
 				tt.expect(g, c.Spec.ControlPlaneLoadBalancer)
@@ -492,6 +791,42 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 		newCluster *AWSCluster
 		wantErr    bool
 	}{
+		{
+			name: "Control Plane LB type is immutable when switching from disabled to any",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType: LoadBalancerTypeDisabled,
+					},
+				},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType: LoadBalancerTypeClassic,
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Control Plane LB type is immutable when switching from any to disabled",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType: LoadBalancerTypeClassic,
+					},
+				},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType: LoadBalancerTypeDisabled,
+					},
+				},
+			},
+			wantErr: true,
+		},
 		{
 			name: "region is immutable",
 			oldCluster: &AWSCluster{
@@ -718,10 +1053,11 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Should fail if controlPlaneLoadBalancer healthcheckprotocol is updated",
+			name: "Should fail if controlPlaneLoadBalancer healthcheckprotocol is updated and not classic elb",
 			oldCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:    LoadBalancerTypeNLB,
 						HealthCheckProtocol: &ELBProtocolTCP,
 					},
 				},
@@ -729,11 +1065,46 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 			newCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:    LoadBalancerTypeNLB,
 						HealthCheckProtocol: &ELBProtocolSSL,
 					},
 				},
 			},
 			wantErr: true,
+		},
+		{
+			name: "Should pass if controlPlaneLoadBalancer healthcheckprotocol is updated and a classic elb",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:    LoadBalancerTypeClassic,
+						HealthCheckProtocol: &ELBProtocolSSL,
+					},
+				},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:    LoadBalancerTypeClassic,
+						HealthCheckProtocol: &ELBProtocolTCP,
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Should pass if old secondary lb is absent",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					SecondaryControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						Name: ptr.To("test-lb"),
+					},
+				},
+			},
+			wantErr: false,
 		},
 		{
 			name: "Should pass if controlPlaneLoadBalancer healthcheckprotocol is same after update",
@@ -754,18 +1125,42 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Should fail if controlPlaneLoadBalancer healthcheckprotocol is changed to non-default if it was not set before update",
+			name: "Should fail if controlPlaneLoadBalancer healthcheckprotocol is changed to non-default if it was not set before update for non-classic elb",
 			oldCluster: &AWSCluster{
-				Spec: AWSClusterSpec{},
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType: LoadBalancerTypeNLB,
+					},
+				},
 			},
 			newCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:    LoadBalancerTypeNLB,
 						HealthCheckProtocol: &ELBProtocolTCP,
 					},
 				},
 			},
 			wantErr: true,
+		},
+		{
+			name: "Should pass if controlPlaneLoadBalancer healthcheckprotocol is changed to non-default if it was not set before update for classic elb",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType: LoadBalancerTypeClassic,
+					},
+				},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:    LoadBalancerTypeNLB,
+						HealthCheckProtocol: &ELBProtocolTCP,
+					},
+				},
+			},
+			wantErr: false,
 		},
 		{
 			name: "correct GC tasks annotation",
@@ -835,6 +1230,7 @@ func TestAWSClusterDefaultCNIIngressRules(t *testing.T) {
 	defaultVPCSpec := VPCSpec{
 		AvailabilityZoneUsageLimit: &AZUsageLimit,
 		AvailabilityZoneSelection:  &AZSelectionSchemeOrdered,
+		SubnetSchema:               &SubnetSchemaPreferPrivate,
 	}
 	g := NewWithT(t)
 	tests := []struct {
@@ -1089,6 +1485,51 @@ func TestAWSClusterDefaultAllowedCIDRBlocks(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(cluster.Spec.Bastion).To(Equal(tt.afterCluster.Spec.Bastion))
+			}
+		})
+	}
+}
+
+// defaultValidateTest returns a new testing function to be used in tests to
+// make sure defaulting webhooks also pass validation tests on create,
+// update and delete.
+// NOTE: This is a copy of the DefaultValidateTest function in the cluster-api
+// package, but it has been modified to allow warnings to be returned.
+func defaultValidateTest(ctx context.Context, object runtime.Object, webhook defaulting.DefaulterValidator, allowWarnings bool) func(*testing.T) {
+	return func(t *testing.T) {
+		t.Helper()
+
+		createCopy := object.DeepCopyObject()
+		updateCopy := object.DeepCopyObject()
+		deleteCopy := object.DeepCopyObject()
+		defaultingUpdateCopy := updateCopy.DeepCopyObject()
+
+		t.Run("validate-on-create", func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect(webhook.Default(ctx, createCopy)).To(Succeed())
+			warnings, err := webhook.ValidateCreate(ctx, createCopy)
+			g.Expect(err).ToNot(HaveOccurred())
+			if !allowWarnings {
+				g.Expect(warnings).To(BeEmpty())
+			}
+		})
+		t.Run("validate-on-update", func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect(webhook.Default(ctx, defaultingUpdateCopy)).To(Succeed())
+			g.Expect(webhook.Default(ctx, updateCopy)).To(Succeed())
+			warnings, err := webhook.ValidateUpdate(ctx, updateCopy, defaultingUpdateCopy)
+			g.Expect(err).ToNot(HaveOccurred())
+			if !allowWarnings {
+				g.Expect(warnings).To(BeEmpty())
+			}
+		})
+		t.Run("validate-on-delete", func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect(webhook.Default(ctx, deleteCopy)).To(Succeed())
+			warnings, err := webhook.ValidateDelete(ctx, deleteCopy)
+			g.Expect(err).ToNot(HaveOccurred())
+			if !allowWarnings {
+				g.Expect(warnings).To(BeEmpty())
 			}
 		})
 	}

@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package printers provides a wrapper for the k8s.io/cli-runtime/pkg/printers package.
 package printers
 
 import (

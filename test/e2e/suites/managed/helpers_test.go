@@ -22,7 +22,7 @@ package managed
 import (
 	"path/filepath"
 
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -37,8 +37,8 @@ func defaultConfigCluster(clusterName, namespace string) clusterctl.ConfigCluste
 		Flavor:                   EKSManagedPoolFlavor,
 		Namespace:                namespace,
 		ClusterName:              clusterName,
-		KubernetesVersion:        e2eCtx.E2EConfig.GetVariable(shared.KubernetesVersion),
-		ControlPlaneMachineCount: pointer.Int64(1),
-		WorkerMachineCount:       pointer.Int64(0),
+		KubernetesVersion:        e2eCtx.E2EConfig.MustGetVariable(shared.KubernetesVersion),
+		ControlPlaneMachineCount: ptr.To[int64](1),
+		WorkerMachineCount:       ptr.To[int64](0),
 	}
 }

@@ -2,6 +2,8 @@
   - [Development with Tilt](./development/tilt-setup.md)
   - [Developing E2E tests](./development/e2e.md)
   - [Coding Conventions](./development/conventions.md)
+  - [Try unreleased changes with Nightly Builds](./development/nightlies.md)
+  - [Publishing AMIs](./development/amis.md)
 - [CRD Reference](./crd/index.md)
 - [Reference](./topics/reference/reference.md)
   - [Glossary](./topics/reference/glossary.md)

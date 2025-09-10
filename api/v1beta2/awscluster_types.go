@@ -60,6 +60,14 @@ type AWSClusterSpec struct {
 	// +optional
 	ControlPlaneLoadBalancer *AWSLoadBalancerSpec `json:"controlPlaneLoadBalancer,omitempty"`
 
+	// SecondaryControlPlaneLoadBalancer is an additional load balancer that can be used for the control plane.
+	//
+	// An example use case is to have a separate internal load balancer for internal traffic,
+	// and a separate external load balancer for external traffic.
+	//
+	// +optional
+	SecondaryControlPlaneLoadBalancer *AWSLoadBalancerSpec `json:"secondaryControlPlaneLoadBalancer,omitempty"`
+
 	// ImageLookupFormat is the AMI naming format to look up machine images when
 	// a machine does not specify an AMI. When set, this will be used for all
 	// cluster machines unless a machine specifies a different ImageLookupOrg.
@@ -91,8 +99,10 @@ type AWSClusterSpec struct {
 	// +optional
 	Bastion Bastion `json:"bastion"`
 
-	// IdentityRef is a reference to a identity to be used when reconciling this cluster
 	// +optional
+
+	// IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
+	// If no identity is specified, the default identity for this controller will be used.
 	IdentityRef *AWSIdentityReference `json:"identityRef,omitempty"`
 
 	// S3Bucket contains options to configure a supporting S3 bucket for this
@@ -156,13 +166,20 @@ type Bastion struct {
 	AMI string `json:"ami,omitempty"`
 }
 
+// LoadBalancerType defines the type of load balancer to use.
 type LoadBalancerType string
 
 var (
+	// LoadBalancerTypeClassic is the classic ELB type.
 	LoadBalancerTypeClassic = LoadBalancerType("classic")
-	LoadBalancerTypeELB     = LoadBalancerType("elb")
-	LoadBalancerTypeALB     = LoadBalancerType("alb")
-	LoadBalancerTypeNLB     = LoadBalancerType("nlb")
+	// LoadBalancerTypeELB is the ELB type.
+	LoadBalancerTypeELB = LoadBalancerType("elb")
+	// LoadBalancerTypeALB is the ALB type.
+	LoadBalancerTypeALB = LoadBalancerType("alb")
+	// LoadBalancerTypeNLB is the NLB type.
+	LoadBalancerTypeNLB = LoadBalancerType("nlb")
+	// LoadBalancerTypeDisabled disables the load balancer.
+	LoadBalancerTypeDisabled = LoadBalancerType("disabled")
 )
 
 // AWSLoadBalancerSpec defines the desired state of an AWS load balancer.
@@ -203,10 +220,21 @@ type AWSLoadBalancerSpec struct {
 	// +optional
 	HealthCheckProtocol *ELBProtocol `json:"healthCheckProtocol,omitempty"`
 
+	// HealthCheck sets custom health check configuration to the API target group.
+	// +optional
+	HealthCheck *TargetGroupHealthCheckAPISpec `json:"healthCheck,omitempty"`
+
 	// AdditionalSecurityGroups sets the security groups used by the load balancer. Expected to be security group IDs
 	// This is optional - if not provided new security groups will be created for the load balancer
 	// +optional
 	AdditionalSecurityGroups []string `json:"additionalSecurityGroups,omitempty"`
+
+	// AdditionalListeners sets the additional listeners for the control plane load balancer.
+	// This is only applicable to Network Load Balancer (NLB) types for the time being.
+	// +listType=map
+	// +listMapKey=port
+	// +optional
+	AdditionalListeners []AdditionalListenerSpec `json:"additionalListeners,omitempty"`
 
 	// IngressRules sets the ingress rules for the control plane load balancer.
 	// +optional
@@ -214,7 +242,7 @@ type AWSLoadBalancerSpec struct {
 
 	// LoadBalancerType sets the type for a load balancer. The default type is classic.
 	// +kubebuilder:default=classic
-	// +kubebuilder:validation:Enum:=classic;elb;alb;nlb
+	// +kubebuilder:validation:Enum:=classic;elb;alb;nlb;disabled
 	LoadBalancerType LoadBalancerType `json:"loadBalancerType,omitempty"`
 
 	// DisableHostsRewrite disabled the hair pinning issue solution that adds the NLB's address as 127.0.0.1 to the hosts
@@ -224,6 +252,25 @@ type AWSLoadBalancerSpec struct {
 	// PreserveClientIP lets the user control if preservation of client ips must be retained or not.
 	// If this is enabled 6443 will be opened to 0.0.0.0/0.
 	PreserveClientIP bool `json:"preserveClientIP,omitempty"`
+}
+
+// AdditionalListenerSpec defines the desired state of an
+// additional listener on an AWS load balancer.
+type AdditionalListenerSpec struct {
+	// Port sets the port for the additional listener.
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	Port int64 `json:"port"`
+
+	// Protocol sets the protocol for the additional listener.
+	// Currently only TCP is supported.
+	// +kubebuilder:validation:Enum=TCP
+	// +kubebuilder:default=TCP
+	Protocol ELBProtocol `json:"protocol,omitempty"`
+
+	// HealthCheck sets the optional custom health check configuration to the API target group.
+	// +optional
+	HealthCheck *TargetGroupHealthCheckAdditionalSpec `json:"healthCheck,omitempty"`
 }
 
 // AWSClusterStatus defines the observed state of AWSCluster.
@@ -236,20 +283,36 @@ type AWSClusterStatus struct {
 	Conditions     clusterv1.Conditions     `json:"conditions,omitempty"`
 }
 
+// S3Bucket defines a supporting S3 bucket for the cluster, currently can be optionally used for Ignition.
 type S3Bucket struct {
 	// ControlPlaneIAMInstanceProfile is a name of the IAMInstanceProfile, which will be allowed
 	// to read control-plane node bootstrap data from S3 Bucket.
-	ControlPlaneIAMInstanceProfile string `json:"controlPlaneIAMInstanceProfile"`
+	// +optional
+	ControlPlaneIAMInstanceProfile string `json:"controlPlaneIAMInstanceProfile,omitempty"`
 
 	// NodesIAMInstanceProfiles is a list of IAM instance profiles, which will be allowed to read
 	// worker nodes bootstrap data from S3 Bucket.
-	NodesIAMInstanceProfiles []string `json:"nodesIAMInstanceProfiles"`
+	// +optional
+	NodesIAMInstanceProfiles []string `json:"nodesIAMInstanceProfiles,omitempty"`
+
+	// PresignedURLDuration defines the duration for which presigned URLs are valid.
+	//
+	// This is used to generate presigned URLs for S3 Bucket objects, which are used by
+	// control-plane and worker nodes to fetch bootstrap data.
+	//
+	// When enabled, the IAM instance profiles specified are not used.
+	// +optional
+	PresignedURLDuration *metav1.Duration `json:"presignedURLDuration,omitempty"`
 
 	// Name defines name of S3 Bucket to be created.
 	// +kubebuilder:validation:MinLength:=3
 	// +kubebuilder:validation:MaxLength:=63
 	// +kubebuilder:validation:Pattern=`^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$`
 	Name string `json:"name"`
+
+	// BestEffortDeleteObjects defines whether access/permission errors during object deletion should be ignored.
+	// +optional
+	BestEffortDeleteObjects *bool `json:"bestEffortDeleteObjects,omitempty"`
 }
 
 // +kubebuilder:object:root=true

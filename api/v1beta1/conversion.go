@@ -20,6 +20,7 @@ import (
 	"unsafe"
 
 	"k8s.io/apimachinery/pkg/conversion"
+
 	"sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 )
 
@@ -93,4 +94,12 @@ func Convert_v1beta2_IPv6_To_v1beta1_IPv6(in *v1beta2.IPv6, out *IPv6, s convers
 
 func Convert_v1beta2_NetworkSpec_To_v1beta1_NetworkSpec(in *v1beta2.NetworkSpec, out *NetworkSpec, s conversion.Scope) error {
 	return autoConvert_v1beta2_NetworkSpec_To_v1beta1_NetworkSpec(in, out, s)
+}
+
+func Convert_v1beta2_S3Bucket_To_v1beta1_S3Bucket(in *v1beta2.S3Bucket, out *S3Bucket, s conversion.Scope) error {
+	return autoConvert_v1beta2_S3Bucket_To_v1beta1_S3Bucket(in, out, s)
+}
+
+func Convert_v1beta2_Ignition_To_v1beta1_Ignition(in *v1beta2.Ignition, out *Ignition, s conversion.Scope) error {
+	return autoConvert_v1beta2_Ignition_To_v1beta1_Ignition(in, out, s)
 }

@@ -24,7 +24,6 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/errors"
 )
 
 // Constants block.
@@ -52,6 +51,11 @@ type AWSMachinePoolSpec struct {
 	// AvailabilityZones is an array of availability zones instances can run in
 	AvailabilityZones []string `json:"availabilityZones,omitempty"`
 
+	// AvailabilityZoneSubnetType specifies which type of subnets to use when an availability zone is specified.
+	// +kubebuilder:validation:Enum:=public;private;all
+	// +optional
+	AvailabilityZoneSubnetType *AZSubnetType `json:"availabilityZoneSubnetType,omitempty"`
+
 	// Subnets is an array of subnet configurations
 	// +optional
 	Subnets []infrav1.AWSResourceReference `json:"subnets,omitempty"`
@@ -78,6 +82,13 @@ type AWSMachinePoolSpec struct {
 	// +optional
 	DefaultCoolDown metav1.Duration `json:"defaultCoolDown,omitempty"`
 
+	// The amount of time, in seconds, until a new instance is considered to
+	// have finished initializing and resource consumption to become stable
+	// after it enters the InService state.
+	// If no value is supplied by user a default value of 300 seconds is set
+	// +optional
+	DefaultInstanceWarmup metav1.Duration `json:"defaultInstanceWarmup,omitempty"`
+
 	// RefreshPreferences describes set of preferences associated with the instance refresh request.
 	// +optional
 	RefreshPreferences *RefreshPreferences `json:"refreshPreferences,omitempty"`
@@ -89,6 +100,14 @@ type AWSMachinePoolSpec struct {
 	// SuspendProcesses defines a list of processes to suspend for the given ASG. This is constantly reconciled.
 	// If a process is removed from this list it will automatically be resumed.
 	SuspendProcesses *SuspendProcessesTypes `json:"suspendProcesses,omitempty"`
+
+	// Ignition defined options related to the bootstrapping systems where Ignition is used.
+	// +optional
+	Ignition *infrav1.Ignition `json:"ignition,omitempty"`
+
+	// AWSLifecycleHooks specifies lifecycle hooks for the autoscaling group.
+	// +optional
+	AWSLifecycleHooks []AWSLifecycleHook `json:"lifecycleHooks,omitempty"`
 }
 
 // SuspendProcessesTypes contains user friendly auto-completable values for suspended process names.
@@ -122,7 +141,7 @@ func (s *SuspendProcessesTypes) ConvertSetValuesToStringSlice() []string {
 
 	e := reflect.ValueOf(s.Processes).Elem()
 	var result []string
-	for i := 0; i < e.NumField(); i++ {
+	for i := range e.NumField() {
 		if s.All {
 			if !e.Field(i).IsNil() && !*e.Field(i).Interface().(*bool) {
 				// don't enable if explicitly set to false.
@@ -160,6 +179,17 @@ type RefreshPreferences struct {
 	// during an instance refresh. The default is 90.
 	// +optional
 	MinHealthyPercentage *int64 `json:"minHealthyPercentage,omitempty"`
+
+	// The amount of capacity as a percentage in ASG that can be in service and healthy, or pending,
+	// to support your workload when replacing instances.
+	// The value is expressed as a percentage of the desired capacity of the ASG. Value range is 100 to 200.
+	// If you specify MaxHealthyPercentage , you must also specify MinHealthyPercentage , and the difference between
+	// them cannot be greater than 100.
+	// A larger range increases the number of instances that can be replaced at the same time.
+	// +optional
+	// +kubebuilder:validation:Minimum=100
+	// +kubebuilder:validation:Maximum=200
+	MaxHealthyPercentage *int64 `json:"maxHealthyPercentage,omitempty"`
 }
 
 // AWSMachinePoolStatus defines the observed state of AWSMachinePool.
@@ -187,6 +217,10 @@ type AWSMachinePoolStatus struct {
 	// +optional
 	LaunchTemplateVersion *string `json:"launchTemplateVersion,omitempty"`
 
+	// InfrastructureMachineKind is the kind of the infrastructure resources behind MachinePool Machines.
+	// +optional
+	InfrastructureMachineKind string `json:"infrastructureMachineKind,omitempty"`
+
 	// FailureReason will be set in the event that there is a terminal problem
 	// reconciling the Machine and will contain a succinct value suitable
 	// for machine interpretation.
@@ -204,7 +238,7 @@ type AWSMachinePoolStatus struct {
 	// can be added as events to the Machine object and/or logged in the
 	// controller's output.
 	// +optional
-	FailureReason *errors.MachineStatusError `json:"failureReason,omitempty"`
+	FailureReason *string `json:"failureReason,omitempty"`
 
 	// FailureMessage will be set in the event that there is a terminal problem
 	// reconciling the Machine and will contain a more verbose string suitable

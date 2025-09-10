@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package configreader provides a way to load a bootstrapv1.AWSIAMConfiguration from a file.
 package configreader
 
 import (

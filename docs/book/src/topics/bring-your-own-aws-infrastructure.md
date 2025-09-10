@@ -120,6 +120,30 @@ spec:
 
 Users may either specify `failureDomain` on the Machine or MachineDeployment objects, _or_ users may explicitly specify subnet IDs on the AWSMachine or AWSMachineTemplate objects. If both are specified, the subnet ID is used and the `failureDomain` is ignored.
 
+### Placing EC2 Instances in Specific External VPCs
+
+CAPA clusters are deployed within a single VPC, but it's possible to place machines that live in external VPCs. For this kind of configuration, we assume that all the VPCs have the ability to communicate, either through external peering, a transit gateway, or some other mechanism already established outside of CAPA. CAPA will not create a tunnel or manage the network configuration for any secondary VPCs.
+
+The AWSMachineTemplate `subnet` field allows specifying filters or specific subnet ids for worker machine placement. If the filters or subnet id is specified in a secondary VPC, CAPA will place the machine in that VPC and subnet.
+
+```yaml
+spec:
+  template:
+    spec:
+      subnet:
+        filters:
+          name: "vpc-id"
+          values:
+            - "secondary-vpc-id"
+      securityGroupOverrides:
+        node: sg-04e870a3507a5ad2c5c8c2
+        node-eks-additional: sg-04e870a3507a5ad2c5c8c1
+```
+
+#### Caveats/Notes
+
+CAPA helpfully creates security groups for various roles in the cluster and automatically attaches them to workers. However, security groups are tied to a specific VPC, so workers placed in a VPC outside of the cluster will need to have these security groups created by some external process first and set in the `securityGroupOverrides` field, otherwise the ec2 creation will fail.
+
 ### Security Groups
 
 To use existing security groups for instances for a cluster, add this to the AWSCluster specification:
@@ -145,6 +169,15 @@ spec:
     additionalSecurityGroups:
     - sg-0200a3507a5ad2c5c8c3
     - ...
+```
+
+It's also possible to override the cluster security groups for an individual AWSMachine or AWSMachineTemplate:
+
+```yaml
+spec:
+  SecurityGroupOverrides:
+    node: sg-04e870a3507a5ad2c5c8c2
+    node-eks-additional: sg-04e870a3507a5ad2c5c8c1
 ```
 
 ### Control Plane Load Balancer
@@ -210,7 +243,7 @@ c, err := ctrl.NewControllerManagedBy(mgr).
         For(&providerv1.InfraCluster{}).
         Watches(...).
         WithOptions(options).
-        WithEventFilter(predicates.ResourceIsNotExternallyManaged(logger.FromContext(ctx))).
+        WithEventFilter(predicates.ResourceIsNotExternallyManaged(mgr.GetScheme(),logger.FromContext(ctx))).
         Build(r)
 if err != nil {
 	return errors.Wrap(err, "failed setting up with a controller manager")
@@ -241,3 +274,72 @@ The external system must provide all required fields within the spec of the AWSC
 Once the user has created externally managed AWSCluster, it is not allowed to convert it to CAPA managed cluster. However, converting from managed to externally managed is allowed.
 
 User should only use this feature if their cluster infrastructure lifecycle management has constraints that the reference implementation does not support. See [user stories](https://github.com/kubernetes-sigs/cluster-api/blob/10d89ceca938e4d3d94a1d1c2b60515bcdf39829/docs/proposals/20210203-externally-managed-cluster-infrastructure.md#user-stories) for more details.
+
+
+## Bring your own (BYO) Public IPv4 addresses
+
+Cluster API provides a mechanism to allocate Elastic IPs from an existing Public IPv4 Pool that you brought to AWS[1].
+
+Bringing your own Public IPv4 Pool (BYOIPv4) can serve as an alternative to purchasing Public IPs from AWS, especially considering the updated pricing model introduced in February 2024[2].
+
+### Supported Resources for BYO Public IPv4 Pool
+
+The following resources can consume IPs from a BYO Public IPv4 Pool:
+- NAT Gateways
+- Network Load Balancer for the API server
+- Machines
+
+Use `BYO Public IPv4` when you have custom IPv4 CIDR blocks advertised to AWS and want the cluster to automatically use IPs from the custom pool instead of Amazon-provided pools.
+
+### Prerequisites and Limitations for BYO Public IPv4 Pool
+
+- **Regional Availability**: BYOIPv4 is limited to selected AWS regions. Refer to [AWS Documentation for Regional Availability](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-byoip.html#byoip-reg-avail).
+- **Provisioning and Advertising**: IPv4 addresses must be provisioned and advertised to the AWS account before the cluster is installed.
+- **Network Border Group**: Public IPv4 addresses are restricted to the network border group where the CIDR block has been advertised[3][4]. The `NetworkSpec.ElasticIpPool.PublicIpv4Pool` must match the cluster's installation location.
+- **Resource Scope**: Only NAT Gateways and the Network Load Balancer for the API server will consume IPs from the IPv4 pool defined in the network scope.
+- **Machine Assignment**: Each machine must be assigned to the public IPv4 pool to consume IPs from the custom pool.
+
+### Steps to Configure BYO Public IPv4 Pool for Core Infrastructure
+
+CAPA supports BYO Public IPv4 for core components, including NAT Gateways and the Network Load Balancer for the internet-facing API server.
+
+To specify a Public IPv4 Pool for core components, set the `spec.elasticIpPool` in the `AWSCluster` object:
+
+```yaml
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: AWSCluster
+metadata:
+  name: aws-cluster-localzone
+spec:
+  region: us-east-1
+  networkSpec:
+    vpc:
+      elasticIpPool:
+        publicIpv4Pool: ipv4pool-ec2-0123456789abcdef0 # Custom IPv4 pool ID
+        publicIpv4PoolFallbackOrder: amazon-pool       # Fallback to AWS-provided pool
+```
+
+All Elastic IPs will be created by consuming from the pool `ipv4pool-ec2-0123456789abcdef0`.
+
+### Steps to Configure BYO Public IPv4 Pool for Machines
+
+To configure a machine to consume IPs from a custom Public IPv4 Pool, specify the pool ID in the `AWSMachine` spec and set `PublicIP` to `true`:
+
+```yaml
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: AWSMachine
+metadata:
+  name: byoip-s55p4-bootstrap
+spec:
+  elasticIpPool:
+    publicIpv4Pool: ipv4pool-ec2-0123456789abcdef0 # Custom IPv4 pool ID
+    publicIpv4PoolFallbackOrder: amazon-pool       # Fallback to AWS-provided pool
+  publicIP: true
+```
+
+### References
+
+[1] [AWS BYOIPv4 Documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-byoip.html)
+[2] [AWS Blog: Public IPv4 Address Charges](https://aws.amazon.com/blogs/aws/new-aws-public-ipv4-address-charge-public-ip-insights/)
+[3] [AWS BYOIPv4 Onboarding Guide](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-byoip.html#byoip-onboard)
+[4] [AWS CLI: Advertise BYOIPv4 CIDR](https://docs.aws.amazon.com/cli/latest/reference/ec2/advertise-byoip-cidr.html)

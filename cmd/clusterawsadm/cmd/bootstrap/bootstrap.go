@@ -14,14 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package bootstrap provides cli commands for bootstrapping
+// AWS accounts for use with the Kubernetes Cluster API Provider AWS.
 package bootstrap
 
 import (
 	"github.com/spf13/cobra"
+	"k8s.io/kubectl/pkg/util/templates"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/bootstrap/credentials"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/bootstrap/iam"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd"
 )
 
 // RootCmd is the root of the `alpha bootstrap command`.
@@ -30,7 +32,7 @@ func RootCmd() *cobra.Command {
 		Use:   "bootstrap [command]",
 		Short: "bootstrap commands",
 		Args:  cobra.NoArgs,
-		Long: cmd.LongDesc(`
+		Long: templates.LongDesc(`
 			In order to use Kubernetes Cluster API Provider AWS, an AWS account needs to
 			be prepared with AWS Identity and Access Management (IAM) roles to be used by
 			clusters as well as provide Kubernetes Cluster API Provider AWS with credentials
