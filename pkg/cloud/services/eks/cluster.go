@@ -216,7 +216,8 @@ func (s *Service) setStatus(cluster *ekstypes.Cluster) error {
 			record.Eventf(s.scope.ControlPlane, "SuccessfulUpdateEKSControlPlane", "Updated EKS control plane %s", s.scope.KubernetesClusterName())
 		}
 		if s.scope.ControlPlane.Spec.UpgradePolicy == ekscontrolplanev1.UpgradePolicyStandard &&
-			(specSemver.Major < clusterSemver.Major || specSemver.Minor < clusterSemver.Minor) {
+			(specSemver.Major < clusterSemver.Major ||
+				(specSemver.Major == clusterSemver.Major && specSemver.Minor < clusterSemver.Minor)) {
 			s.scope.ControlPlane.Status.Ready = false
 			failureMsg := fmt.Sprintf(
 				"EKS control plane %s was automatically upgraded to version %s because %s is out of standard support. "+
