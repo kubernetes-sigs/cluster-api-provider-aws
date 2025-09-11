@@ -220,7 +220,7 @@ func (s *Service) setStatus(cluster *ekstypes.Cluster) error {
 			s.scope.ControlPlane.Status.Ready = false
 			failureMsg := fmt.Sprintf(
 				"EKS control plane %s was automatically upgraded to version %s because %s is out of standard support. "+
-					"This can be fixed by bumping to the actual version of the cluster",
+					"This can be fixed by changing to the version of the AWSManagedControlPlane to the one reported in the status",
 				s.scope.KubernetesClusterName(),
 				clusterSemver.String(),
 				specSemver.String(),
