@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 )
 
-func TestAddDefaultNodeLabelsToKubeletFlags(t *testing.T) {
+func TestSetKubeletFlags(t *testing.T) {
 	g := NewWithT(t)
 
 	tests := []struct {

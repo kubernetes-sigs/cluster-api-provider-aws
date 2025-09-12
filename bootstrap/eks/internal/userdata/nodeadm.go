@@ -159,7 +159,7 @@ type NodeadmInput struct {
 	NodeLabels        string // Not exposed in CRD, computed from user input
 }
 
-func (input *NodeadmInput) setKubeletFlags() {
+func (input *NodeadmInput) setKubeletFlags() error {
 	var nodeLabels string
 	newFlags := []string{}
 	for _, flag := range input.KubeletFlags {
@@ -174,6 +174,9 @@ func (input *NodeadmInput) setKubeletFlags() {
 		labels := strings.Split(nodeLabels, ",")
 		for _, label := range labels {
 			labelSplit := strings.Split(label, "=")
+			if len(labelSplit) != 2 {
+				return fmt.Errorf("invalid label: %s", label)
+			}
 			labelKey := labelSplit[0]
 			labelValue := labelSplit[1]
 			labelsMap[labelKey] = labelValue
@@ -195,6 +198,7 @@ func (input *NodeadmInput) setKubeletFlags() {
 	newLabels := stringBuilder.String()[:len(stringBuilder.String())-1] // remove the last comma
 	newFlags = append(newFlags, fmt.Sprintf("--node-labels=%s", newLabels))
 	input.KubeletFlags = newFlags
+	return nil
 }
 
 // getCapacityTypeString returns the string representation of the capacity type.
@@ -252,7 +256,10 @@ func validateNodeadmInput(input *NodeadmInput) error {
 	if input.Boundary == "" {
 		input.Boundary = boundary
 	}
-	input.setKubeletFlags()
+	err := input.setKubeletFlags()
+	if err != nil {
+		return err
+	}
 
 	klog.V(2).Infof("Nodeadm Userdata Generation - node-labels: %s", input.NodeLabels)
 

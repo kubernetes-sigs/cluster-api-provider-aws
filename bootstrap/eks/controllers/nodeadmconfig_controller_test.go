@@ -2,67 +2,98 @@ package controllers
 
 import (
 	"context"
+	"fmt"
+	"testing"
 
-	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
-	bootstrapv1beta2 "sigs.k8s.io/cluster-api-provider-aws/bootstrap/eks/api/v1beta2"
+	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-var _ = Describe("NodeadmConfig Controller", func() {
-	Context("When reconciling a resource", func() {
-		const resourceName = "test-resource"
+func TestNodeadmConfigReconcilerReturnEarlyIfClusterInfraNotReady(t *testing.T) {
+	g := NewWithT(t)
 
-		ctx := context.Background()
+	cluster := newCluster("cluster")
+	machine := newMachine(cluster, "machine")
+	config := newNodeadmConfig(machine)
 
-		typeNamespacedName := types.NamespacedName{
-			Name:      resourceName,
-			Namespace: "default", // TODO(user):Modify as needed
+	cluster.Status = clusterv1.ClusterStatus{
+		InfrastructureReady: false,
+	}
+
+	reconciler := NodeadmConfigReconciler{
+		Client: testEnv.Client,
+	}
+
+	g.Eventually(func(gomega Gomega) {
+		_, err := reconciler.joinWorker(context.Background(), cluster, config, configOwner("Machine"))
+		gomega.Expect(err).NotTo(HaveOccurred())
+	}).Should(Succeed())
+}
+
+func TestNodeadmConfigReconcilerReturnEarlyIfClusterControlPlaneNotInitialized(t *testing.T) {
+	g := NewWithT(t)
+
+	cluster := newCluster("cluster")
+	machine := newMachine(cluster, "machine")
+	config := newNodeadmConfig(machine)
+
+	cluster.Status = clusterv1.ClusterStatus{
+		InfrastructureReady: true,
+	}
+
+	reconciler := NodeadmConfigReconciler{
+		Client: testEnv.Client,
+	}
+
+	g.Eventually(func(gomega Gomega) {
+		_, err := reconciler.joinWorker(context.Background(), cluster, config, configOwner("Machine"))
+		gomega.Expect(err).NotTo(HaveOccurred())
+	}).Should(Succeed())
+}
+
+func newNodeadmConfig(machine *clusterv1.Machine) *eksbootstrapv1.NodeadmConfig {
+	config := &eksbootstrapv1.NodeadmConfig{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "NodeadmConfig",
+			APIVersion: eksbootstrapv1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+		},
+	}
+	if machine != nil {
+		config.ObjectMeta.Name = machine.Name
+		config.ObjectMeta.UID = types.UID(fmt.Sprintf("%s uid", machine.Name))
+		config.ObjectMeta.OwnerReferences = []metav1.OwnerReference{
+			{
+				Kind:       "Machine",
+				APIVersion: clusterv1.GroupVersion.String(),
+				Name:       machine.Name,
+				UID:        types.UID(fmt.Sprintf("%s uid", machine.Name)),
+			},
 		}
-		nodeadmconfig := &bootstrapv1beta2.NodeadmConfig{}
-
-		BeforeEach(func() {
-			By("creating the custom resource for the Kind NodeadmConfig")
-			err := k8sClient.Get(ctx, typeNamespacedName, nodeadmconfig)
-			if err != nil && errors.IsNotFound(err) {
-				resource := &bootstrapv1beta2.NodeadmConfig{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      resourceName,
-						Namespace: "default",
-					},
-					// TODO(user): Specify other spec details if needed.
-				}
-				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
-			}
-		})
-
-		AfterEach(func() {
-			// TODO(user): Cleanup logic after each test, like removing the resource instance.
-			resource := &bootstrapv1beta2.NodeadmConfig{}
-			err := k8sClient.Get(ctx, typeNamespacedName, resource)
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Cleanup the specific resource instance NodeadmConfig")
-			Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
-		})
-		It("should successfully reconcile the resource", func() {
-			By("Reconciling the created resource")
-			controllerReconciler := &NodeadmConfigReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
-			}
-
-			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespacedName,
-			})
-			Expect(err).NotTo(HaveOccurred())
-			// TODO(user): Add more specific assertions depending on your controller's reconciliation logic.
-			// Example: If you expect a certain status condition after reconciliation, verify it here.
-		})
-	})
-})
+		config.Status.DataSecretName = &machine.Name
+		machine.Spec.Bootstrap.ConfigRef.Name = config.Name
+		machine.Spec.Bootstrap.ConfigRef.Namespace = config.Namespace
+	}
+	if machine != nil {
+		config.ObjectMeta.Name = machine.Name
+		config.ObjectMeta.UID = types.UID(fmt.Sprintf("%s uid", machine.Name))
+		config.ObjectMeta.OwnerReferences = []metav1.OwnerReference{
+			{
+				Kind:       "Machine",
+				APIVersion: clusterv1.GroupVersion.String(),
+				Name:       machine.Name,
+				UID:        types.UID(fmt.Sprintf("%s uid", machine.Name)),
+			},
+		}
+		config.Status.DataSecretName = &machine.Name
+		machine.Spec.Bootstrap.ConfigRef.Name = config.Name
+		machine.Spec.Bootstrap.ConfigRef.Namespace = config.Namespace
+	}
+	return config
+}
