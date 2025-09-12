@@ -6,9 +6,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // NodeadmConfigSpec defines the desired state of NodeadmConfig.
 type NodeadmConfigSpec struct {
 	// Kubelet contains options for kubelet.

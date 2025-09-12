@@ -80,12 +80,6 @@ rules:
   - update
   - watch
 - apiGroups:
-  - bootstrap.cluster.x-k8s.io
-  resources:
-  - nodeadmconfigs/finalizers
-  verbs:
-  - update
-- apiGroups:
   - cluster.x-k8s.io
   resources:
   - clusters

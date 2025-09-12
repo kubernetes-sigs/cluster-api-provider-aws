@@ -31,7 +31,7 @@ type NodeadmConfigTemplateResource struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=nodeadmconfigtemplates,scope=Namespaced,categories=cluster-api,shortName=eksct
+// +kubebuilder:resource:path=nodeadmconfigtemplates,scope=Namespaced,categories=cluster-api,shortName=nodeadmct
 // +kubebuilder:storageversion
 
 // NodeadmConfigTemplate is the Amazon EKS Bootstrap Configuration Template API.
