@@ -50,6 +50,9 @@ const (
 	// Annotation key for certificate renewBefore.
 	RenewBeforeAnnotationKey = "cert-manager.io/renew-before"
 
+	// Annotation key for certificate renewBeforePercentage.
+	RenewBeforePercentageAnnotationKey = "cert-manager.io/renew-before-percentage"
+
 	// Annotation key for emails subjectAltNames.
 	EmailsAnnotationKey = "cert-manager.io/email-sans"
 
@@ -145,6 +148,10 @@ const (
 	// controller only processes Ingresses with this annotation either unset, or
 	// set to either the configured value or the empty string.
 	IngressClassAnnotationKey = "kubernetes.io/ingress.class"
+
+	// IngressSecretTemplate can be used to set the secretTemplate field in the generated Certificate.
+	// The value is a JSON representation of secretTemplate and must not have any unknown fields.
+	IngressSecretTemplate = "cert-manager.io/secret-template"
 )
 
 // Annotation names for CertificateRequests
@@ -287,6 +294,9 @@ const (
 	JKSSecretKey = "keystore.jks"
 	// Data Entry Name in the Secret resource for JKS containing Certificate Authority
 	JKSTruststoreKey = "truststore.jks"
+
+	// The password used to encrypt the keystore and truststore
+	KeystorePassword = "keystorePassword"
 )
 
 // DefaultKeyUsages contains the default list of key usages
