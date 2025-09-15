@@ -92,14 +92,17 @@ func (s *Service) ReconcileLaunchTemplate(
 	}
 
 	var ignitionStorageType = infrav1.DefaultMachinePoolIgnitionStorageType
-	var ignitionVersion = infrav1.DefaultIgnitionVersion
 	if ignition := ignitionScope.Ignition(); ignition != nil {
 		ignitionStorageType = ignition.StorageType
-		ignitionVersion = ignition.Version
 	}
 
 	var userDataForLaunchTemplate []byte
 	if bootstrapDataFormat == "ignition" && ignitionStorageType == infrav1.IgnitionStorageTypeOptionClusterObjectStore {
+		var ignitionVersion = infrav1.DefaultIgnitionVersion
+		if ignition := ignitionScope.Ignition(); ignition != nil {
+			ignitionVersion = ignition.Version
+		}
+
 		if s3Scope.Bucket() == nil {
 			return errors.New("using Ignition with `AWSMachinePool.spec.ignition.storageType=ClusterObjectStore` " +
 				"requires a cluster wide object storage configured at `AWSCluster.spec.s3Bucket`")

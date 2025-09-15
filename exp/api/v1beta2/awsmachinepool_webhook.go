@@ -314,11 +314,13 @@ func (*AWSMachinePoolWebhook) Default(ctx context.Context, obj runtime.Object) e
 		r.Spec.DefaultInstanceWarmup.Duration = 300 * time.Second
 	}
 
-	if r.ignitionEnabled() && r.Spec.Ignition.Version == "" {
-		r.Spec.Ignition.Version = infrav1.DefaultIgnitionVersion
-	}
 	if r.ignitionEnabled() && r.Spec.Ignition.StorageType == "" {
 		r.Spec.Ignition.StorageType = infrav1.DefaultMachinePoolIgnitionStorageType
+	}
+	// Defaults the version field if StorageType is not set to `UnencryptedUserData`.
+	// When using `UnencryptedUserData` the version field is ignored because the userdata defines its version itself.
+	if r.ignitionEnabled() && r.Spec.Ignition.Version == "" && r.Spec.Ignition.StorageType != infrav1.IgnitionStorageTypeOptionUnencryptedUserData {
+		r.Spec.Ignition.Version = infrav1.DefaultIgnitionVersion
 	}
 
 	return nil
