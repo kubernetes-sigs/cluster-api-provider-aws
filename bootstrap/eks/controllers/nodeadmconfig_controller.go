@@ -222,6 +222,7 @@ func (r *NodeadmConfigReconciler) joinWorker(ctx context.Context, cluster *clust
 	}
 	if config.Spec.Kubelet != nil {
 		nodeInput.KubeletFlags = config.Spec.Kubelet.Flags
+		nodeInput.KubeletConfig = config.Spec.Kubelet.Config
 	}
 	if config.Spec.Containerd != nil {
 		nodeInput.ContainerdConfig = config.Spec.Containerd.Config
