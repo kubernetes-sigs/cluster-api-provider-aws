@@ -18,8 +18,13 @@ limitations under the License.
 package feature
 
 import (
+	"fmt"
+	"os"
+	"regexp"
+
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/component-base/featuregate"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 const (
@@ -115,4 +120,44 @@ var defaultCAPAFeatureGates = map[featuregate.Feature]featuregate.FeatureSpec{
 	AlternativeGCStrategy:         {Default: false, PreRelease: featuregate.Alpha},
 	TagUnmanagedNetworkResources:  {Default: true, PreRelease: featuregate.Alpha},
 	ROSA:                          {Default: false, PreRelease: featuregate.Alpha},
+}
+
+// GiantSwarmMachinePoolMachinesFeatureGateCheck is used while testing
+// https://github.com/giantswarm/giantswarm/issues/28006 to allow for
+// fine-grained control which workload clusters are reconciled by the hard-to-roll-back
+// MachinePool Machines feature.
+//
+// This can be removed once the feature gate is activated on all management clusters.
+//
+// Don't send this GS-specific code to upstream.
+func GiantSwarmMachinePoolMachinesFeatureGateCheck(cluster *clusterv1.Cluster) bool {
+	clusterNamespace := cluster.GetNamespace()
+	clusterName := cluster.GetName()
+
+	key := "GIANT_SWARM_CAPA_MACHINE_POOL_MACHINES_ONLY_FOR_CLUSTER_NAME_REGEX"
+	pattern := os.Getenv(key)
+	if pattern == "" {
+		fmt.Printf("Environment variable %s is undefined or empty. Allowing MachinePool Machines feature gate for cluster %s/%s (if the gate is enabled).\n", key, clusterNamespace, clusterName)
+
+		// Previous default behavior
+		return true
+	}
+
+	fmt.Printf("Checking if MachinePool Machines feature gate should be allowed for cluster %s/%s, using regex %q\n", clusterNamespace, clusterName, pattern)
+
+	re, err := regexp.Compile(pattern)
+	if err != nil {
+		fmt.Printf("Failed to compile regex from environment variable %s (error: %s), disabling MachinePool Machines feature gate\n", key, err)
+		return false
+	}
+
+	if clusterName == "" {
+		fmt.Println("Got empty cluster name, refusing to allow MachinePool Machines feature gate")
+		return false
+	}
+
+	// Don't allow the feature gate if the regex only matched an empty string (human error in the regex)
+	allow := re.FindString(clusterName) != ""
+	fmt.Printf("MachinePool Machines feature gate check for cluster %s/%s: allow=%v\n", clusterNamespace, clusterName, allow)
+	return allow
 }

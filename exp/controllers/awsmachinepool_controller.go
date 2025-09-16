@@ -209,7 +209,7 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 	}()
 
-	if feature.Gates.Enabled(feature.MachinePoolMachines) {
+	if feature.GiantSwarmMachinePoolMachinesFeatureGateCheck(cluster) && feature.Gates.Enabled(feature.MachinePoolMachines) {
 		// Patch now so that the status and selectors are available.
 		awsMachinePool.Status.InfrastructureMachineKind = "AWSMachine"
 		if err := machinePoolScope.PatchObject(); err != nil {
@@ -386,7 +386,7 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 		}, nil
 	}
 
-	if feature.Gates.Enabled(feature.MachinePoolMachines) {
+	if feature.GiantSwarmMachinePoolMachinesFeatureGateCheck(machinePoolScope.Cluster) && feature.Gates.Enabled(feature.MachinePoolMachines) {
 		awsMachineList, err := getAWSMachines(ctx, machinePoolScope.MachinePool, r.Client)
 		if err != nil {
 			return ctrl.Result{}, err
@@ -465,7 +465,7 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 		machinePoolScope.Error(err, "failed updating instances", "instances", asg.Instances)
 	}
 
-	if feature.Gates.Enabled(feature.MachinePoolMachines) {
+	if feature.GiantSwarmMachinePoolMachinesFeatureGateCheck(machinePoolScope.Cluster) && feature.Gates.Enabled(feature.MachinePoolMachines) {
 		return ctrl.Result{
 			// Regularly update `AWSMachine` objects, for example if ASG was scaled or refreshed instances
 			// TODO: Requeueing interval can be removed or prolonged once reconciliation of ASG EC2 instances
@@ -481,7 +481,7 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 func (r *AWSMachinePoolReconciler) reconcileDelete(ctx context.Context, machinePoolScope *scope.MachinePoolScope, clusterScope cloud.ClusterScoper, ec2Scope scope.EC2Scope) error {
 	clusterScope.Info("Handling deleted AWSMachinePool")
 
-	if feature.Gates.Enabled(feature.MachinePoolMachines) {
+	if feature.GiantSwarmMachinePoolMachinesFeatureGateCheck(machinePoolScope.Cluster) && feature.Gates.Enabled(feature.MachinePoolMachines) {
 		if err := reconcileDeleteAWSMachines(ctx, machinePoolScope.MachinePool, r.Client, machinePoolScope.GetLogger()); err != nil {
 			return err
 		}
