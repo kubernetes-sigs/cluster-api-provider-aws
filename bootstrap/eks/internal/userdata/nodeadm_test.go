@@ -323,7 +323,7 @@ func TestNodeadmUserdata(t *testing.T) {
 					strings.Contains(output, "Content-Type: application/node.eks.aws") &&
 					strings.Contains(output, "Content-Type: text/x-shellscript") &&
 					strings.Contains(output, "Content-Type: text/cloud-config") &&
-					strings.Count(output, fmt.Sprintf("--%s", boundary)) == 6 // 3 parts * 2 boundaries each
+					strings.Count(output, fmt.Sprintf("--%s", boundary)) == 5 // 3 parts * 2 boundaries each except cloud-config
 			},
 		},
 		{
@@ -370,7 +370,7 @@ func TestNodeadmUserdata(t *testing.T) {
 					strings.Contains(output, "Content-Type: application/node.eks.aws") &&
 					strings.Contains(output, "Content-Type: text/x-shellscript") &&
 					strings.Contains(output, "Content-Type: text/cloud-config") &&
-					strings.Count(output, fmt.Sprintf("--%s", boundary)) == 6 // 3 parts * 2 boundaries each
+					strings.Count(output, fmt.Sprintf("--%s", boundary)) == 5 // 3 parts * 2 boundaries each except cloud-config
 			},
 		},
 		{

@@ -32,8 +32,8 @@ import (
 const (
 	boundary = "//"
 
+	// this does not start with a boundary because it is the last item that is processed.
 	cloudInitUserData = `
---{{.Boundary}}
 Content-Type: text/cloud-config
 MIME-Version: 1.0
 Content-Transfer-Encoding: 7bit
@@ -43,12 +43,19 @@ Content-Disposition: attachment; filename="cloud-config.yaml"
 {{- if .Files }}
 {{template "files" .Files}}
 {{- end }}
-runcmd:
+{{- if .NTP }}
 {{- template "ntp" .NTP }}
+{{- end }}
+{{- if .Users }}
 {{- template "users" .Users }}
-{{- template "disk_setup" .DiskSetup}}
-{{- template "fs_setup" .DiskSetup}}
-{{- template "mounts" .Mounts}}
+{{- end }}
+{{- if .DiskSetup }}
+{{- template "disk_setup" .DiskSetup }}
+{{- template "fs_setup" .DiskSetup }}
+{{- end }}
+{{- if .Mounts }}
+{{- template "mounts" .Mounts }}
+{{- end }}
 --{{.Boundary}}`
 
 	// Shell script part template for nodeadm.
