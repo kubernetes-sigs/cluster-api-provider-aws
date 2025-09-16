@@ -27,11 +27,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/internal/userdata"
-
 	// ekscontrolplanev1 is registered in suite_test; we don't reference it directly here.
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	v1beta1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 )
 
 func TestNodeadmConfigReconciler_CreateSecret(t *testing.T) {
@@ -76,7 +74,7 @@ func TestNodeadmConfigReconciler_UpdateSecret_ForMachinePool(t *testing.T) {
 	cfg.ObjectMeta.UID = types.UID(fmt.Sprintf("%s uid", mp.Name))
 	cfg.ObjectMeta.OwnerReferences = []metav1.OwnerReference{{
 		Kind:       "MachinePool",
-		APIVersion: v1beta1.GroupVersion.String(),
+		APIVersion: expclusterv1.GroupVersion.String(),
 		Name:       mp.Name,
 		UID:        types.UID(fmt.Sprintf("%s uid", mp.Name)),
 	}}
@@ -151,7 +149,7 @@ func TestNodeadmConfigReconciler_ResolvesSecretFileReference(t *testing.T) {
 
 	amcp := newAMCP("test-cluster")
 	amcp.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "https://3.3.3.3"}
-	// nolint:gosec // test constant
+	//nolint:gosec // test constant
 	secretPath := "/etc/secret.txt"
 	secretContent := "secretValue"
 	cluster := newCluster(amcp.Name)
@@ -192,14 +190,4 @@ func TestNodeadmConfigReconciler_ResolvesSecretFileReference(t *testing.T) {
 	for _, s := range expectedContains {
 		g.Expect(string(got.Data["value"])).To(ContainSubstring(s), "userdata should contain %q", s)
 	}
-}
-
-// helper to build minimal expected userdata if needed
-func newNodeadmUserData(clusterName, apiEndpoint string, flags []string) ([]byte, error) {
-	return userdata.NewNodeadmUserdata(&userdata.NodeadmInput{
-		ClusterName:       clusterName,
-		APIServerEndpoint: apiEndpoint,
-		CACert:            "mock-ca-certificate-for-testing",
-		KubeletFlags:      flags,
-	})
 }

@@ -16,8 +16,19 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
-	infrav1beta2 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/source"
+
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/internal/userdata"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/util/paused"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bsutil "sigs.k8s.io/cluster-api/bootstrap/util"
 	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
@@ -27,20 +38,9 @@ import (
 	kubeconfigutil "sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/internal/userdata"
-	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/util/paused"
 )
 
-// NodeadmConfigReconciler reconciles a NodeadmConfig object
+// NodeadmConfigReconciler reconciles a NodeadmConfig object.
 type NodeadmConfigReconciler struct {
 	client.Client
 	Scheme           *runtime.Scheme
@@ -275,7 +275,7 @@ func (r *NodeadmConfigReconciler) joinWorker(ctx context.Context, cluster *clust
 			log.Info("Failed to get AWSManagedMachinePool", "error", err)
 		}
 	case "AWSMachineTemplate":
-		awsmt := &infrav1beta2.AWSMachineTemplate{}
+		awsmt := &infrav1.AWSMachineTemplate{}
 		var awsMTGetErr error
 		if awsMTGetErr = r.Get(ctx, client.ObjectKey{Namespace: config.Namespace, Name: configOwner.GetName()}, awsmt); awsMTGetErr == nil {
 			log.Info("Found AWSMachineTemplate", "name", awsmt.Name)
@@ -423,6 +423,8 @@ func (r *NodeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	return nil
 }
 
+// MachineToBootstrapMapFunc is a handler.ToRequestsFunc to be used to enque requests for
+// NodeadmConfig reconciliation.
 func (r *NodeadmConfigReconciler) MachineToBootstrapMapFunc(_ context.Context, o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 

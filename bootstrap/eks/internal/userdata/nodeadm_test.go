@@ -24,6 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/format"
 	"k8s.io/utils/ptr"
+
 	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 )
@@ -283,8 +284,8 @@ func TestNodeadmUserdata(t *testing.T) {
 					CACert:            "test-ca-cert",
 					NodeGroupName:     "test-nodegroup",
 					Mounts: []eksbootstrapv1.MountPoints{
-						eksbootstrapv1.MountPoints{"/dev/disk/azure/scsi1/lun0"},
-						eksbootstrapv1.MountPoints{"/mnt/etcd"},
+						{"/dev/disk/scsi1/lun0"},
+						{"/mnt/etcd"},
 					},
 				},
 			},
@@ -292,7 +293,7 @@ func TestNodeadmUserdata(t *testing.T) {
 			verifyOutput: func(output string) bool {
 				return strings.Contains(output, "Content-Type: text/cloud-config") &&
 					strings.Contains(output, "#cloud-config") &&
-					strings.Contains(output, "/dev/disk/azure/scsi1/lun0") &&
+					strings.Contains(output, "/dev/disk/scsi1/lun0") &&
 					strings.Contains(output, "/mnt/etcd") &&
 					strings.Contains(output, "apiVersion: node.eks.aws/v1alpha1")
 			},
@@ -316,7 +317,7 @@ func TestNodeadmUserdata(t *testing.T) {
 			expectErr: false,
 			verifyOutput: func(output string) bool {
 				boundary := "CUSTOMBOUNDARY123"
-				return strings.Contains(output, fmt.Sprintf(`boundary="%s"`, boundary)) &&
+				return strings.Contains(output, fmt.Sprintf(`boundary=%q`, boundary)) &&
 					strings.Contains(output, fmt.Sprintf("--%s", boundary)) &&
 					strings.Contains(output, fmt.Sprintf("--%s--", boundary)) &&
 					strings.Contains(output, "Content-Type: application/node.eks.aws") &&
@@ -338,7 +339,7 @@ func TestNodeadmUserdata(t *testing.T) {
 			expectErr: false,
 			verifyOutput: func(output string) bool {
 				boundary := "//" // default boundary
-				return strings.Contains(output, fmt.Sprintf(`boundary="%s"`, boundary)) &&
+				return strings.Contains(output, fmt.Sprintf(`boundary=%q`, boundary)) &&
 					strings.Contains(output, fmt.Sprintf("--%s", boundary)) &&
 					strings.Contains(output, fmt.Sprintf("--%s--", boundary)) &&
 					strings.Contains(output, "Content-Type: application/node.eks.aws") &&
@@ -347,7 +348,7 @@ func TestNodeadmUserdata(t *testing.T) {
 			},
 		},
 		{
-			name: "boundary verification - shell script and node config parts only",
+			name: "boundary verification - all 3 parts",
 			args: args{
 				input: &NodeadmInput{
 					ClusterName:          "test-cluster",
@@ -365,11 +366,11 @@ func TestNodeadmUserdata(t *testing.T) {
 			verifyOutput: func(output string) bool {
 				boundary := "//" // default boundary
 				fmt.Println(output)
-				return strings.Contains(output, fmt.Sprintf(`boundary="%s"`, boundary)) &&
+				return strings.Contains(output, fmt.Sprintf(`boundary=%q`, boundary)) &&
 					strings.Contains(output, "Content-Type: application/node.eks.aws") &&
 					strings.Contains(output, "Content-Type: text/x-shellscript") &&
 					strings.Contains(output, "Content-Type: text/cloud-config") &&
-					strings.Count(output, fmt.Sprintf("--%s", boundary)) >= 4 // 2 parts * 2 boundaries each
+					strings.Count(output, fmt.Sprintf("--%s", boundary)) == 6 // 3 parts * 2 boundaries each
 			},
 		},
 		{

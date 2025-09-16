@@ -3,6 +3,7 @@ package v1beta2
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -101,8 +102,10 @@ type LocalStorageOptions struct {
 type Feature string
 
 const (
-	FeatureInstanceIdNodeName Feature = "InstanceIdNodeName"
-	FeatureFastImagePull      Feature = "FastImagePull"
+	// FeatureInstanceIDNodeName  will use EC2 instance ID as node name.
+	FeatureInstanceIDNodeName Feature = "InstanceIdNodeName"
+	// FeatureFastImagePull enables a parallel image pull for container images.
+	FeatureFastImagePull Feature = "FastImagePull"
 )
 
 // LocalStorageStrategy specifies how to handle an instance's local storage devices.
@@ -110,9 +113,12 @@ const (
 type LocalStorageStrategy string
 
 const (
-	RAID0Strategy  LocalStorageStrategy = "RAID0"
+	// RAID0Strategy is a local storage strategy for EKS nodes
+	RAID0Strategy LocalStorageStrategy = "RAID0"
+	// RAID10Strategy is a local storage strategy for EKS nodes
 	RAID10Strategy LocalStorageStrategy = "RAID10"
-	MountStrategy  LocalStorageStrategy = "Mount"
+	// MountStrategy is a local storage strategy for EKS nodes
+	MountStrategy LocalStorageStrategy = "Mount"
 )
 
 // DisabledMount specifies a directory that should not be mounted onto local storage.
@@ -120,8 +126,10 @@ const (
 type DisabledMount string
 
 const (
+	// DisabledMountContainerd refers to /var/lib/containerd
 	DisabledMountContainerd DisabledMount = "Containerd"
-	DisabledMountPodLogs    DisabledMount = "PodLogs"
+	// DisabledMountPodLogs refers to /var/log/pods
+	DisabledMountPodLogs DisabledMount = "PodLogs"
 )
 
 // GetConditions returns the observations of the operational state of the NodeadmConfig resource.

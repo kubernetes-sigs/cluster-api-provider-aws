@@ -24,6 +24,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
+
 	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 )
@@ -202,17 +203,17 @@ func (input *NodeadmInput) setKubeletFlags() error {
 }
 
 // getCapacityTypeString returns the string representation of the capacity type.
-func (ni *NodeadmInput) getCapacityTypeString() string {
-	if ni.CapacityType == nil {
+func (input *NodeadmInput) getCapacityTypeString() string {
+	if input.CapacityType == nil {
 		return "ON_DEMAND"
 	}
-	switch *ni.CapacityType {
+	switch *input.CapacityType {
 	case v1beta2.ManagedMachinePoolCapacityTypeSpot:
 		return "SPOT"
 	case v1beta2.ManagedMachinePoolCapacityTypeOnDemand:
 		return "ON_DEMAND"
 	default:
-		return strings.ToUpper(string(*ni.CapacityType))
+		return strings.ToUpper(string(*input.CapacityType))
 	}
 }
 
@@ -266,7 +267,7 @@ func validateNodeadmInput(input *NodeadmInput) error {
 	return nil
 }
 
-// NewNode returns the user data string to be used on a node instance.
+// NewNodeadmUserdata returns the user data string to be used on a node instance.
 func NewNodeadmUserdata(input *NodeadmInput) ([]byte, error) {
 	if err := validateNodeadmInput(input); err != nil {
 		return nil, err
@@ -336,8 +337,7 @@ func NewNodeadmUserdata(input *NodeadmInput) ([]byte, error) {
 			return nil, fmt.Errorf("failed to execute node user data template: %w", err)
 		}
 	}
-	// write the final boundry closing, all of the ones in the script use intermediate boundries
+	// write the final boundary closing, all of the ones in the script use intermediate boundries
 	buf.Write([]byte("--"))
 	return buf.Bytes(), nil
-
 }
