@@ -1304,9 +1304,10 @@ spec:
                         type: array
                     type: object
                   version:
-                    default: "2.3"
-                    description: Version defines which version of Ignition will be
-                      used to generate bootstrap data.
+                    description: |-
+                      Version defines which version of Ignition will be used to generate bootstrap data.
+                      Defaults to `2.3` if storageType is set to `ClusterObjectStore`.
+                      It will be ignored if storageType is set to `UnencryptedUserData`, as the userdata defines its own version.
                     enum:
                     - "2.3"
                     - "3.0"
@@ -6135,9 +6136,10 @@ spec:
                                 type: array
                             type: object
                           version:
-                            default: "2.3"
-                            description: Version defines which version of Ignition
-                              will be used to generate bootstrap data.
+                            description: |-
+                              Version defines which version of Ignition will be used to generate bootstrap data.
+                              Defaults to `2.3` if storageType is set to `ClusterObjectStore`.
+                              It will be ignored if storageType is set to `UnencryptedUserData`, as the userdata defines its own version.
                             enum:
                             - "2.3"
                             - "3.0"
@@ -7526,9 +7528,10 @@ spec:
                         type: array
                     type: object
                   version:
-                    default: "2.3"
-                    description: Version defines which version of Ignition will be
-                      used to generate bootstrap data.
+                    description: |-
+                      Version defines which version of Ignition will be used to generate bootstrap data.
+                      Defaults to `2.3` if storageType is set to `ClusterObjectStore`.
+                      It will be ignored if storageType is set to `UnencryptedUserData`, as the userdata defines its own version.
                     enum:
                     - "2.3"
                     - "3.0"
@@ -17606,7 +17609,7 @@ spec:
     listKind: AWSManagedClusterTemplateList
     plural: awsmanagedclustertemplates
     shortNames:
-    - amct
+    - awsmct
     singular: awsmanagedclustertemplate
   scope: Namespaced
   versions:
@@ -18859,6 +18862,7 @@ spec:
                 description: OpenShift version channel group, default is stable.
                 enum:
                 - stable
+                - eus
                 - fast
                 - candidate
                 - nightly
