@@ -23,8 +23,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-)
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1")
 
 // ManagedMachineAMIType specifies which AWS AMI to use for a managed MachinePool.
 // Source of truth can be found using the link below:

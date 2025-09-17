@@ -16,8 +16,7 @@ limitations under the License.
 
 package v1beta1
 
-import clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-
+import clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 const (
 	// ASGReadyCondition reports on current status of the autoscaling group. Ready indicates the group is provisioned.
 	ASGReadyCondition clusterv1.ConditionType = "ASGReady"

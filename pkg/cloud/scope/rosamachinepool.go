@@ -30,8 +30,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -43,7 +42,7 @@ type RosaMachinePoolScopeParams struct {
 	Cluster         *clusterv1.Cluster
 	ControlPlane    *rosacontrolplanev1.ROSAControlPlane
 	RosaMachinePool *expinfrav1.ROSAMachinePool
-	MachinePool     *expclusterv1.MachinePool
+	MachinePool     *clusterv1.MachinePool
 	ControllerName  string
 }
 
@@ -109,7 +108,7 @@ type RosaMachinePoolScope struct {
 	Cluster         *clusterv1.Cluster
 	ControlPlane    *rosacontrolplanev1.ROSAControlPlane
 	RosaMachinePool *expinfrav1.ROSAMachinePool
-	MachinePool     *expclusterv1.MachinePool
+	MachinePool     *clusterv1.MachinePool
 
 	session         awsv2.Config
 	serviceLimiters throttle.ServiceLimiters

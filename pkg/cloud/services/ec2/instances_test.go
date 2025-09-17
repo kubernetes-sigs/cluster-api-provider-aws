@@ -43,7 +43,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 )
 
 func TestInstanceIfExists(t *testing.T) {
@@ -1687,7 +1687,7 @@ func TestCreateInstance(t *testing.T) {
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
 						},
-						Subnets: infrav1.Subnets{{
+						Subnets: infrav1.Subnets{infrav1.SubnetSpec{
 							ID: "matching-subnet",
 						}},
 					},
@@ -1813,7 +1813,7 @@ func TestCreateInstance(t *testing.T) {
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
 						},
-						Subnets: infrav1.Subnets{{
+						Subnets: infrav1.Subnets{infrav1.SubnetSpec{
 							ID: "subnet-1",
 						}},
 					},
@@ -1905,7 +1905,7 @@ func TestCreateInstance(t *testing.T) {
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
 						},
-						Subnets: infrav1.Subnets{{
+						Subnets: infrav1.Subnets{infrav1.SubnetSpec{
 							ID: "subnet-1",
 						}},
 					},
@@ -2031,7 +2031,7 @@ func TestCreateInstance(t *testing.T) {
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
 						},
-						Subnets: infrav1.Subnets{{
+						Subnets: infrav1.Subnets{infrav1.SubnetSpec{
 							ID:               "subnet-1",
 							AvailabilityZone: "us-west-1b",
 						}},
@@ -2126,7 +2126,7 @@ func TestCreateInstance(t *testing.T) {
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
 						},
-						Subnets: infrav1.Subnets{{
+						Subnets: infrav1.Subnets{infrav1.SubnetSpec{
 							ID:               "private-subnet-1",
 							AvailabilityZone: "us-east-1b",
 							IsPublic:         false,
@@ -2211,7 +2211,7 @@ func TestCreateInstance(t *testing.T) {
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
 						},
-						Subnets: infrav1.Subnets{{
+						Subnets: infrav1.Subnets{infrav1.SubnetSpec{
 							ID:       "public-subnet-1",
 							IsPublic: true,
 						}},
@@ -2340,7 +2340,7 @@ func TestCreateInstance(t *testing.T) {
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
 						},
-						Subnets: infrav1.Subnets{{
+						Subnets: infrav1.Subnets{infrav1.SubnetSpec{
 							ID:       "public-subnet-1",
 							IsPublic: true,
 						}},
@@ -2611,7 +2611,7 @@ func TestCreateInstance(t *testing.T) {
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
 						},
-						Subnets: infrav1.Subnets{{
+						Subnets: infrav1.Subnets{infrav1.SubnetSpec{
 							ID:       "private-subnet-1",
 							IsPublic: false,
 						}},
