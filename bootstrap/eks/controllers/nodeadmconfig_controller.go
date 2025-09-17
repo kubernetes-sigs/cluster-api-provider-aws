@@ -222,11 +222,15 @@ func (r *NodeadmConfigReconciler) joinWorker(ctx context.Context, cluster *clust
 	}
 	if config.Spec.Kubelet != nil {
 		nodeInput.KubeletFlags = config.Spec.Kubelet.Flags
-		nodeInput.KubeletConfig = config.Spec.Kubelet.Config
+		if config.Spec.Kubelet.Config != nil {
+			nodeInput.KubeletConfig = config.Spec.Kubelet.Config
+		}
 	}
 	if config.Spec.Containerd != nil {
 		nodeInput.ContainerdConfig = config.Spec.Containerd.Config
-		nodeInput.ContainerdBaseRuntimeSpec = config.Spec.Containerd.BaseRuntimeSpec
+		if config.Spec.Containerd.BaseRuntimeSpec != nil {
+			nodeInput.ContainerdBaseRuntimeSpec = config.Spec.Containerd.BaseRuntimeSpec
+		}
 	}
 	if config.Spec.FeatureGates != nil {
 		nodeInput.FeatureGates = config.Spec.FeatureGates
@@ -328,21 +332,21 @@ func (r *NodeadmConfigReconciler) storeBootstrapData(ctx context.Context, cluste
 	}, secret); err != nil {
 		if apierrors.IsNotFound(err) {
 			if secret, err = r.createBootstrapSecret(ctx, cluster, config, data); err != nil {
-				return errors.Wrap(err, "failed to create bootstrap data secret for EKSConfig")
+				return errors.Wrap(err, "failed to create bootstrap data secret for NodeadmConfig")
 			}
-			log.Info("created bootstrap data secret for EKSConfig", "secret", klog.KObj(secret))
+			log.Info("created bootstrap data secret for NodeadmConfig", "secret", klog.KObj(secret))
 		} else {
-			return errors.Wrap(err, "failed to get data secret for EKSConfig")
+			return errors.Wrap(err, "failed to get data secret for NodeadmConfig")
 		}
 	} else {
 		updated, err := r.updateBootstrapSecret(ctx, secret, data)
 		if err != nil {
-			return errors.Wrap(err, "failed to update data secret for EKSConfig")
+			return errors.Wrap(err, "failed to update data secret for NodeadmConfig")
 		}
 		if updated {
-			log.Info("updated bootstrap data secret for EKSConfig", "secret", klog.KObj(secret))
+			log.Info("updated bootstrap data secret for NodeadmConfig", "secret", klog.KObj(secret))
 		} else {
-			log.Trace("no change in bootstrap data secret for EKSConfig", "secret", klog.KObj(secret))
+			log.Trace("no change in bootstrap data secret for NodeadmConfig", "secret", klog.KObj(secret))
 		}
 	}
 

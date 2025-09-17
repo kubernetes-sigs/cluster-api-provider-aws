@@ -98,7 +98,7 @@ spec:
   kubelet:
     {{- if .KubeletConfig }}
     config: |
-{{ Indent 6 .KubeletConfigRaw }}
+{{ Indent 6 .KubeletConfig }}
     {{- end }}
     flags:
     {{- range $flag := .KubeletFlags }}
@@ -112,7 +112,7 @@ spec:
     {{- end }}
     {{- if .ContainerdBaseRuntimeSpec }}
     baseRuntimeSpec: |
-{{ Indent 6 .ContainerdBaseRuntimeSpecRaw }}
+{{ Indent 6 .ContainerdBaseRuntimeSpec}}
     {{- end }}
   {{- end }}
   {{- if .Instance }}
@@ -222,28 +222,6 @@ func (input *NodeadmInput) getCapacityTypeString() string {
 	default:
 		return strings.ToUpper(string(*input.CapacityType))
 	}
-}
-
-// ContainerdBaseRuntimeSpecRaw returns the raw JSON/YAML for inclusion into templates.
-func (input *NodeadmInput) ContainerdBaseRuntimeSpecRaw() string {
-	if input.ContainerdBaseRuntimeSpec == nil {
-		return ""
-	}
-	if len(input.ContainerdBaseRuntimeSpec.Raw) == 0 {
-		return ""
-	}
-	return string(input.ContainerdBaseRuntimeSpec.Raw)
-}
-
-// KubeletConfigRaw returns the raw JSON/YAML for inclusion into templates.
-func (input *NodeadmInput) KubeletConfigRaw() string {
-	if input.KubeletConfig == nil {
-		return ""
-	}
-	if len(input.KubeletConfig.Raw) == 0 {
-		return ""
-	}
-	return string(input.KubeletConfig.Raw)
 }
 
 // validateNodeInput validates the input for nodeadm user data generation.

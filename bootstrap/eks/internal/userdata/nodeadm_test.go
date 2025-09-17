@@ -161,6 +161,28 @@ func TestNodeadmUserdata(t *testing.T) {
 			},
 		},
 		{
+			name: "with kubelet config",
+			args: args{
+				input: &NodeadmInput{
+					ClusterName:       "test-cluster",
+					APIServerEndpoint: "https://example.com",
+					CACert:            "test-ca-cert",
+					NodeGroupName:     "test-nodegroup",
+					KubeletConfig: `
+evictionHard:
+  memory.available: "2000Mi"
+
+					`,
+				},
+			},
+			expectErr: false,
+			verifyOutput: func(output string) bool {
+				return strings.Contains(output, "evictionHard:") &&
+					strings.Contains(output, "memory.available: \"2000Mi\"") &&
+					strings.Contains(output, "apiVersion: node.eks.aws/v1alpha1")
+			},
+		},
+		{
 			name: "with pre bootstrap commands",
 			args: args{
 				input: &NodeadmInput{
@@ -365,7 +387,6 @@ func TestNodeadmUserdata(t *testing.T) {
 			expectErr: false,
 			verifyOutput: func(output string) bool {
 				boundary := "//" // default boundary
-				fmt.Println(output)
 				return strings.Contains(output, fmt.Sprintf(`boundary=%q`, boundary)) &&
 					strings.Contains(output, "Content-Type: application/node.eks.aws") &&
 					strings.Contains(output, "Content-Type: text/x-shellscript") &&
