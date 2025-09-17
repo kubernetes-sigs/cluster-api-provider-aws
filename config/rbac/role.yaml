@@ -119,6 +119,13 @@ rules:
 - apiGroups:
   - controlplane.cluster.x-k8s.io
   resources:
+  - awsmanagedcontrolplanes/finalizers
+  - rosacontrolplanes/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - controlplane.cluster.x-k8s.io
+  resources:
   - awsmanagedcontrolplanes/status
   - rosacontrolplanes/status
   verbs:
@@ -127,12 +134,6 @@ rules:
   - patch
   - update
   - watch
-- apiGroups:
-  - controlplane.cluster.x-k8s.io
-  resources:
-  - rosacontrolplanes/finalizers
-  verbs:
-  - update
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
