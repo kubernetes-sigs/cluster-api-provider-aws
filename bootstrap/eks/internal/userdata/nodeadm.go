@@ -97,8 +97,8 @@ spec:
   {{- end }}
   kubelet:
     {{- if .KubeletConfig }}
-    config: |
-{{ Indent 6 .KubeletConfig }}
+    config:
+{{ Indent 6 (toYaml .KubeletConfig) }}
     {{- end }}
     flags:
     {{- range $flag := .KubeletFlags }}
@@ -107,12 +107,12 @@ spec:
   {{- if or .ContainerdConfig .ContainerdBaseRuntimeSpec }}
   containerd:
     {{- if .ContainerdConfig }}
-    config: |
+    config:
 {{ Indent 6 .ContainerdConfig }}
     {{- end }}
     {{- if .ContainerdBaseRuntimeSpec }}
-    baseRuntimeSpec: |
-{{ Indent 6 .ContainerdBaseRuntimeSpec}}
+    baseRuntimeSpec:
+{{ Indent 6 (toYaml .ContainerdBaseRuntimeSpec) }}
     {{- end }}
   {{- end }}
   {{- if .Instance }}
@@ -238,7 +238,6 @@ func validateNodeadmInput(input *NodeadmInput) error {
 	if input.NodeGroupName == "" {
 		return fmt.Errorf("node group name is required for nodeadm")
 	}
-
 	if input.Boundary == "" {
 		input.Boundary = boundary
 	}

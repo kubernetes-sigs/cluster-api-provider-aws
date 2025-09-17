@@ -23,6 +23,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/format"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/ptr"
 
 	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2"
@@ -168,11 +169,12 @@ func TestNodeadmUserdata(t *testing.T) {
 					APIServerEndpoint: "https://example.com",
 					CACert:            "test-ca-cert",
 					NodeGroupName:     "test-nodegroup",
-					KubeletConfig: `
+					KubeletConfig: &runtime.RawExtension{
+						Raw: []byte(`
 evictionHard:
   memory.available: "2000Mi"
-
-					`,
+						`),
+					},
 				},
 			},
 			expectErr: false,
