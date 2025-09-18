@@ -1,0 +1,47 @@
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: AWSMachine
+metadata:
+  name: test-machine-with-dynamic-host
+  namespace: default
+spec:
+  instanceType: m5.large
+  ami:
+    id: ami-0abcdef1234567890
+  iamInstanceProfile: nodes.cluster-api-provider-aws.sigs.k8s.io
+  
+  # Additional tags that will be applied to the dedicated host
+  # These tags can be overridden by dedicated host specific tags
+  additionalTags:
+    Environment: "test"
+    Owner: "platform-team"
+    CostCenter: "engineering"
+
+  # Dynamic dedicated host allocation configuration
+  # This will allocate a single dedicated host automatically
+  dynamicHostAllocation:    
+    # Tags to apply to the allocated dedicated host (optional)
+    # These tags take precedence over additionalTags above
+    tags:
+      Environment: "production"  # This will override the "test" value from additionalTags
+      Application: "virtualization"
+      Purpose: "BYOL-Windows"
+
+  # Standard instance configuration
+  subnet:
+    id: subnet-0a1b2c3d4e5f6g7h8
+  
+  securityGroupOverrides:
+    - id: sg-0123456789abcdef0
+  
+  userData:
+    name: test-userdata
+    namespace: default
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-userdata
+  namespace: default
+type: Opaque
+data:
+  userData: IyEvYmluL2Jhc2gKZWNobyAiSGVsbG8gV29ybGQi  # base64 encoded "#!/bin/bash\necho \"Hello World\""

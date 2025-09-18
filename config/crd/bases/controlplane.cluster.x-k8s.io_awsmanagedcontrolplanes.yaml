@@ -1237,6 +1237,17 @@ spec:
                       "None": The instance may not make use of any Capacity Reservations. This is to conserve open reservations for desired workloads
                       "CapacityReservationsOnly": The instance will only run if matched or targeted to a Capacity Reservation. Note that this is incompatible with a MarketType of `Spot`
                     type: string
+                  dynamicHostAllocation:
+                    description: |-
+                      DynamicHostAllocation enables automatic allocation of dedicated hosts.
+                      This field is mutually exclusive with HostID.
+                    properties:
+                      tags:
+                        additionalProperties:
+                          type: string
+                        description: Tags to apply to the allocated dedicated host.
+                        type: object
+                    type: object
                   ebsOptimized:
                     description: Indicates whether the instance is optimized for Amazon
                       EBS I/O.
@@ -3456,6 +3467,17 @@ spec:
                       "None": The instance may not make use of any Capacity Reservations. This is to conserve open reservations for desired workloads
                       "CapacityReservationsOnly": The instance will only run if matched or targeted to a Capacity Reservation. Note that this is incompatible with a MarketType of `Spot`
                     type: string
+                  dynamicHostAllocation:
+                    description: |-
+                      DynamicHostAllocation enables automatic allocation of dedicated hosts.
+                      This field is mutually exclusive with HostID.
+                    properties:
+                      tags:
+                        additionalProperties:
+                          type: string
+                        description: Tags to apply to the allocated dedicated host.
+                        type: object
+                    type: object
                   ebsOptimized:
                     description: Indicates whether the instance is optimized for Amazon
                       EBS I/O.
