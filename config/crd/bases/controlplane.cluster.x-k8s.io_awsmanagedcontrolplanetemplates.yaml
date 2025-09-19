@@ -53,6 +53,25 @@ spec:
                     description: AWSManagedControlPlaneSpec defines the desired state
                       of an Amazon EKS Cluster.
                     properties:
+                      accessConfig:
+                        description: |-
+                          AccessConfig specifies the EKS cluster access configuration.
+                          It defines the authentication mode and whether to bootstrap the cluster creator
+                          as a cluster-admin.
+                        properties:
+                          authenticationMode:
+                            description: |-
+                              AuthenticationMode mode controls how Kubernetes API authentication is performed:
+                                - CONFIG_MAP — uses only the aws-auth ConfigMap (legacy mode).
+                                - API — uses only EKS Access Entries (aws-auth is ignored).
+                                - API_AND_CONFIG_MAP — enables both Access Entries and aws-auth.
+                            type: string
+                          bootstrapAdminPermissions:
+                            description: |-
+                              BootstrapAdminPermissions specifies whether or not the cluster creator IAM principal was set as a cluster
+                              admin access entry during cluster creation time.
+                            type: boolean
+                        type: object
                       additionalTags:
                         additionalProperties:
                           type: string
@@ -107,6 +126,32 @@ spec:
                           AssociateOIDCProvider can be enabled to automatically create an identity
                           provider for the controller for use with IAM roles for service accounts
                         type: boolean
+                      autoMode:
+                        description: |-
+                          AutoMode is the EKS Auto Mode.
+                          allows to create cluster with aws compute, ebs, elb capabilities.
+                        properties:
+                          compute:
+                            description: Compute capability configuration for EKS
+                              Auto Mode.
+                            properties:
+                              nodePools:
+                                items:
+                                  type: string
+                                type: array
+                              nodeRoleArn:
+                                description: |-
+                                  NodeRoleArn the ARN of the IAM Role EKS will assign to EC2 Managed Instances in your EKS
+                                  Auto Mode cluster. This value cannot be changed after the compute capability of
+                                  EKS Auto Mode is enabled. For more information, see the IAM Reference in the
+                                  Amazon EKS User Guide.
+                                type: string
+                            type: object
+                          enabled:
+                            default: false
+                            description: Enabled will enable EKS Auto Mode.
+                            type: boolean
+                        type: object
                       bastion:
                         description: Bastion contains options to configure the bastion
                           host.

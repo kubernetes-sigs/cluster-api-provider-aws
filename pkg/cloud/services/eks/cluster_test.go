@@ -534,7 +534,10 @@ func TestCreateCluster(t *testing.T) {
 						Version:                    version,
 						RoleName:                   tc.role,
 						NetworkSpec:                infrav1.NetworkSpec{Subnets: tc.subnets},
-						BootstrapSelfManagedAddons: false,
+						BootstrapSelfManagedAddons: aws.Bool(false),
+						AccessConfig: ekscontrolplanev1.AccessConfig{
+							AuthenticationMode: aws.String("CONFIG_MAP"),
+						},
 					},
 				},
 			})
@@ -557,6 +560,9 @@ func TestCreateCluster(t *testing.T) {
 					Tags:                       tc.tags,
 					Version:                    version,
 					BootstrapSelfManagedAddons: aws.Bool(false),
+					AccessConfig: &ekstypes.CreateAccessConfigRequest{
+						AuthenticationMode: ekstypes.AuthenticationModeConfigMap,
+					},
 				}).Return(&eks.CreateClusterOutput{}, nil)
 			}
 			s := NewService(scope)
@@ -722,6 +728,9 @@ func TestCreateIPv6Cluster(t *testing.T) {
 			Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
 				RoleName: ptr.To[string]("arn-role"),
 				Version:  aws.String("1.22"),
+				AccessConfig: ekscontrolplanev1.AccessConfig{
+					AuthenticationMode: aws.String("CONFIG_MAP"),
+				},
 				NetworkSpec: infrav1.NetworkSpec{
 					Subnets: []infrav1.SubnetSpec{
 						{
@@ -744,7 +753,7 @@ func TestCreateIPv6Cluster(t *testing.T) {
 					VPC: vpcSpec,
 				},
 				EncryptionConfig:           encryptionConfig,
-				BootstrapSelfManagedAddons: false,
+				BootstrapSelfManagedAddons: aws.Bool(false),
 			},
 		},
 	})
@@ -771,6 +780,9 @@ func TestCreateIPv6Cluster(t *testing.T) {
 			"kubernetes.io/cluster/cluster-name": "owned",
 		},
 		BootstrapSelfManagedAddons: aws.Bool(false),
+		AccessConfig: &ekstypes.CreateAccessConfigRequest{
+			AuthenticationMode: ekstypes.AuthenticationModeConfigMap,
+		},
 	}).Return(&eks.CreateClusterOutput{}, nil)
 	iamMock.EXPECT().GetRole(gomock.Any(), &iam.GetRoleInput{
 		RoleName: aws.String("arn-role"),

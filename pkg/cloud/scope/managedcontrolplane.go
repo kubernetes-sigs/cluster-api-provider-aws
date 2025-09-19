@@ -427,7 +427,15 @@ func (s *ManagedControlPlaneScope) DisableVPCCNI() bool {
 
 // BootstrapSelfManagedAddons returns whether the AWS EKS networking addons should be disabled.
 func (s *ManagedControlPlaneScope) BootstrapSelfManagedAddons() *bool {
-	return &s.ControlPlane.Spec.BootstrapSelfManagedAddons
+	return s.ControlPlane.Spec.BootstrapSelfManagedAddons
+}
+
+// IsAutoModeEnabled returns whether compute capability should be enabled with EKS Auto Mode.
+func (s *ManagedControlPlaneScope) IsAutoModeEnabled() bool {
+	if s.ControlPlane.Spec.AutoMode != nil {
+		return s.ControlPlane.Spec.AutoMode.Enabled
+	}
+	return false
 }
 
 // VpcCni returns a list of environment variables to apply to the `aws-node` DaemonSet.
