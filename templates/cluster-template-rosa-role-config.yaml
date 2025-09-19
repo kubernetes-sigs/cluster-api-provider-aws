@@ -1,0 +1,57 @@
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: ROSARoleConfig
+metadata:
+  name: "${CLUSTER_NAME}-role-config"
+spec:
+  accountRoleConfig:
+    prefix: "${ACCOUNT_ROLES_PREFIX}"
+    version: "${OPENSHIFT_VERSION}"  
+  operatorRoleConfig:
+    prefix: "${OPERATOR_ROLES_PREFIX}"
+  credentialsSecretRef:
+    name: rosa-creds-secret
+  oidcProviderType: Managed
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: "${CLUSTER_NAME}"
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks: ["192.168.0.0/16"]
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+    kind: ROSACluster
+    name: "${CLUSTER_NAME}"
+  controlPlaneRef:
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+    kind: ROSAControlPlane
+    name: "${CLUSTER_NAME}-control-plane"
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: ROSACluster
+metadata:
+  name: "${CLUSTER_NAME}"
+spec: {}
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+kind: ROSAControlPlane
+metadata:
+  name: "${CLUSTER_NAME}-control-plane"
+spec:
+  rosaClusterName: ${CLUSTER_NAME:0:54}
+  version: "${OPENSHIFT_VERSION}"
+  region: "${AWS_REGION}"
+  network:
+    machineCIDR: "10.0.0.0/16"
+  subnets:
+    - "${PUBLIC_SUBNET_ID}" # remove if creating a private cluster
+    - "${PRIVATE_SUBNET_ID}"
+  availabilityZones:
+    - "${AWS_AVAILABILITY_ZONE}"
+  credentialsSecretRef:
+    name: rosa-creds-secret
+  rosaRoleConfigRef:
+    name: "${CLUSTER_NAME}-role-config"
