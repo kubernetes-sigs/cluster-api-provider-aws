@@ -69,6 +69,7 @@ const (
 	MultiTenancy                         = "MULTI_TENANCY_"
 	EksUpgradeFromVersion                = "UPGRADE_FROM_VERSION"
 	EksUpgradeToVersion                  = "UPGRADE_TO_VERSION"
+	UpgradePolicy                        = "UPGRADE_POLICY"
 
 	ClassicElbTestKubernetesFrom = "CLASSICELB_TEST_KUBERNETES_VERSION_FROM"
 	ClassicElbTestKubernetesTo   = "CLASSICELB_TEST_KUBERNETES_VERSION_TO"
