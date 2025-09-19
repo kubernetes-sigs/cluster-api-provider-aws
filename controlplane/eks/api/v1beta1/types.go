@@ -257,7 +257,7 @@ type OIDCIdentityProviderConfig struct {
 	//
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:Pattern=`^https://.+`
+	// +kubebuilder:validation:XValidation:rule="isURL(self) && url(self).getScheme() == 'https'"
 	IssuerURL string `json:"issuerUrl,omitempty"`
 
 	// The key value pairs that describe required claims in the identity token.

@@ -912,8 +912,9 @@ spec:
                       or https://example.com. This URL should point to the level below .well-known/openid-configuration
                       and must be publicly accessible over the internet.
                     minLength: 1
-                    pattern: ^https://.+
                     type: string
+                    x-kubernetes-validations:
+                    - rule: isURL(self) && url(self).getScheme() == 'https'
                   requiredClaims:
                     additionalProperties:
                       type: string
@@ -3233,8 +3234,9 @@ spec:
                       or https://example.com. This URL should point to the level below .well-known/openid-configuration
                       and must be publicly accessible over the internet.
                     minLength: 1
-                    pattern: ^https://.+
                     type: string
+                    x-kubernetes-validations:
+                    - rule: isURL(self) && url(self).getScheme() == 'https'
                   requiredClaims:
                     additionalProperties:
                       type: string
