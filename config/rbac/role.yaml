@@ -176,6 +176,7 @@ rules:
   - awsclusters/status
   - awsfargateprofiles/status
   - rosaclusters/status
+  - rosanetworks/status
   verbs:
   - get
   - patch
@@ -198,6 +199,7 @@ rules:
   resources:
   - awsmachines
   - rosamachinepools
+  - rosanetworks
   verbs:
   - create
   - delete

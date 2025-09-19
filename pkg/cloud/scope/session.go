@@ -156,7 +156,7 @@ func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.Se
 }
 
 func getSessionName(region string, clusterScoper cloud.SessionMetadata) string {
-	return fmt.Sprintf("%s-%s-%s", region, clusterScoper.InfraClusterName(), clusterScoper.Namespace())
+	return fmt.Sprintf("%s-%s-%s-%s", region, clusterScoper.ControllerName(), clusterScoper.InfraClusterName(), clusterScoper.Namespace())
 }
 
 func newServiceLimiters() throttle.ServiceLimiters {
