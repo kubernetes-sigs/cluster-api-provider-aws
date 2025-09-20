@@ -80,6 +80,7 @@ spec:
               awsLaunchTemplate:
                 description: AWSLaunchTemplate specifies the launch template and version
                   to use when an instance is launched.
+                minProperties: 1
                 properties:
                   additionalSecurityGroups:
                     description: |-
@@ -582,6 +583,7 @@ spec:
               awsLaunchTemplate:
                 description: AWSLaunchTemplate specifies the launch template and version
                   to use when an instance is launched.
+                minProperties: 1
                 properties:
                   additionalSecurityGroups:
                     description: |-
