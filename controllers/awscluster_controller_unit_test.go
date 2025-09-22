@@ -73,6 +73,12 @@ func TestAWSClusterReconcilerReconcile(t *testing.T) {
 			expectError:  false,
 		},
 		{
+			name:         "Should not Reconcile if owner cluster is deleted",
+			awsCluster:   &infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{GenerateName: "aws-test-"}},
+			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{GenerateName: "capi-test-", DeletionTimestamp: &metav1.Time{Time: time.Now()}}},
+			expectError:  false,
+		},
+		{
 			name:        "Should Reconcile successfully if no AWSCluster found",
 			expectError: false,
 		},

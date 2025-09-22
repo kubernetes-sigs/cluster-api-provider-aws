@@ -312,6 +312,11 @@ func (r *AWSClusterReconciler) reconcileLoadBalancer(ctx context.Context, cluste
 }
 
 func (r *AWSClusterReconciler) reconcileNormal(ctx context.Context, clusterScope *scope.ClusterScope) (reconcile.Result, error) {
+	if !clusterScope.Cluster.DeletionTimestamp.IsZero() {
+		clusterScope.Info("Cluster owning the AWSCluster is being deleted, skipping reconciliation")
+		return reconcile.Result{}, nil
+	}
+
 	clusterScope.Info("Reconciling AWSCluster")
 
 	awsCluster := clusterScope.AWSCluster
