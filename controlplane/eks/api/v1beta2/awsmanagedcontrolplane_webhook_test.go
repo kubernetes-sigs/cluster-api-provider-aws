@@ -338,7 +338,7 @@ func TestWebhookCreate(t *testing.T) {
 			eksClusterName:       "default_cluster1",
 			eksVersion:           "v1.19",
 			expectError:          true,
-			expectErrorToContain: "bootstrapClusterCreatorAdminPermissions must be true if cluster authentication mode is set to CONFIG_MAP",
+			expectErrorToContain: "bootstrapClusterCreatorAdminPermissions must be true if cluster authentication mode is set to config_map",
 			accessConfig: &AccessConfig{
 				AuthenticationMode:                      EKSAuthenticationModeConfigMap,
 				BootstrapClusterCreatorAdminPermissions: ptr.To(false),
