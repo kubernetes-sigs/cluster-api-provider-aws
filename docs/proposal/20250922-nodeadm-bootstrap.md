@@ -151,7 +151,7 @@ This KEP proposes a new type that handles bootstrapping with `nodeadm` alone. Th
 
  ### Upgrade Strategy
 
- A valid concern that CAPA users will have is upgrading existing clusters to machines that use the new bootstrap `Nodeadm` CRD. This is largely assuaged by CAPI's immutable design where new machines will be deployed by referencing new templates. In summary, upgrading should not be a problem.
+A valid concern that CAPA users will have is upgrading existing clusters to machines that use the new bootstrap `Nodeadm` CRD. This KEP does not change the process. As before, the user will reference a new BootstrapConfigTemplate. However, the kind will change from EKSConfigTemplate to NodeadmConfigTemplate. 
 
  #### MachineDeployment Upgrade Example
 
