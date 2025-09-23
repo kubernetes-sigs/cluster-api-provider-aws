@@ -46,6 +46,18 @@ var (
 	errServiceEndpointServiceID          = errors.New("must use a valid serviceID from the AWS GO SDK")
 	errServiceEndpointDuplicateServiceID = errors.New("same serviceID defined twice for signing region")
 	serviceEndpointsMap                  = map[string]serviceEndpoint{}
+	compatServiceIDMap                   = map[string]string{
+		"s3":                   s3.ServiceID,
+		"elasticloadbalancing": elb.ServiceID,
+		"ec2":                  ec2.ServiceID,
+		"tagging":              rgapi.ServiceID,
+		"sqs":                  sqs.ServiceID,
+		"events":               eventbridge.ServiceID,
+		"eks":                  eks.ServiceID,
+		"ssm":                  ssm.ServiceID,
+		"sts":                  sts.ServiceID,
+		"secretsmanager":       secretsmanager.ServiceID,
+	}
 )
 
 // serviceEndpoint contains AWS Service resolution information for SDK V2.
@@ -87,11 +99,13 @@ func ParseFlag(serviceEndpoints string) error {
 			}
 			seenServices = append(seenServices, serviceID)
 
-			// convert service ID to UpperCase as service IDs in AWS SDK GO V2 are UpperCase & Go map is Case Sensitve
-			// This is for backward compabitibility
-			// Ref: SDK V2 https://pkg.go.dev/github.com/aws/aws-sdk-go-v2/service/ec2#pkg-constants
-			// Ref: SDK V1 https://pkg.go.dev/github.com/aws/aws-sdk-go/aws/endpoints#pkg-constants
-			serviceID = strings.ToUpper(serviceID)
+			// In v1 sdk, a constant EndpointsID is exported in each service to look up the custom service endpoint.
+			// For example: https://github.com/aws/aws-sdk-go/blob/070853e88d22854d2355c2543d0958a5f76ad407/service/resourcegroupstaggingapi/service.go#L33-L34
+			// In v2 SDK, these constants are no longer available.
+			// For backwards compatibility, we copy those constants from the SDK v1 and map it to ServiceID in SDK v2.
+			if v2serviceID, ok := compatServiceIDMap[serviceID]; ok {
+				serviceID = v2serviceID
+			}
 
 			URL, err := url.ParseRequestURI(kv[1])
 			if err != nil {
@@ -103,6 +117,20 @@ func ParseFlag(serviceEndpoints string) error {
 				SigningRegion: signingRegion,
 			}
 			serviceEndpointsMap[serviceID] = endpoint
+		}
+
+		// In v1 SDK, elb and elbv2 uses the same identifier, thus the same endpoint.
+		// elbv2: https://github.com/aws/aws-sdk-go/blob/070853e88d22854d2355c2543d0958a5f76ad407/service/elbv2/service.go#L32-L33
+		// elb: https://github.com/aws/aws-sdk-go/blob/070853e88d22854d2355c2543d0958a5f76ad407/service/elb/service.go#L32-L33
+		// For backwards compatibility, if elbv2 endpoint is undefined, the elbv2 endpoint resolver should fall back to elb endpoint if any.
+		if _, ok := serviceEndpointsMap[elbv2.ServiceID]; !ok {
+			if elbEp, ok := serviceEndpointsMap[elb.ServiceID]; ok {
+				serviceEndpointsMap[elbv2.ServiceID] = serviceEndpoint{
+					ServiceID:     elbv2.ServiceID,
+					URL:           elbEp.URL,
+					SigningRegion: elbEp.SigningRegion,
+				}
+			}
 		}
 	}
 	return nil
