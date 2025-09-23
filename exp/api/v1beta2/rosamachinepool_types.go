@@ -74,7 +74,9 @@ type RosaMachinePoolSpec struct {
 	// InstanceType specifies the AWS instance type
 	//
 	// +kubebuilder:validation:Required
-	InstanceType string `json:"instanceType"`
+	// +kubebuilder:validation:MinLength=1
+	// +required
+	InstanceType string `json:"instanceType,omitempty"`
 
 	// Autoscaling specifies auto scaling behaviour for this MachinePool.
 	// required if Replicas is not configured
@@ -125,7 +127,8 @@ type RosaTaint struct {
 	// The taint key to be applied to a node.
 	//
 	// +kubebuilder:validation:Required
-	Key string `json:"key"`
+	// +kubebuilder:validation:MinLength=1
+	Key string `json:"key,omitempty"`
 	// The taint value corresponding to the taint key.
 	//
 	// +kubebuilder:validation:Pattern:=`^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$`
@@ -136,7 +139,7 @@ type RosaTaint struct {
 	//
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Enum=NoSchedule;PreferNoSchedule;NoExecute
-	Effect corev1.TaintEffect `json:"effect"`
+	Effect corev1.TaintEffect `json:"effect,omitempty"`
 }
 
 // RosaMachinePoolAutoScaling specifies scaling options.

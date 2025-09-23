@@ -114,7 +114,7 @@ type AWSMachineSpec struct {
 	// InstanceType is the type of instance to create. Example: m4.xlarge
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength:=2
-	InstanceType string `json:"instanceType"`
+	InstanceType string `json:"instanceType,omitempty"`
 
 	// CPUOptions defines CPU-related settings for the instance, including the confidential computing policy.
 	// When omitted, this means no opinion and the AWS platform is left to choose a reasonable default.
