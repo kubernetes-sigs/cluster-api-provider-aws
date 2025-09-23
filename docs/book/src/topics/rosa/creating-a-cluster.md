@@ -93,7 +93,7 @@ Follow the guide [here](https://docs.aws.amazon.com/ROSA/latest/userguide/gettin
 
 1. Prepare the environment:
     ```bash
-    export OPENSHIFT_VERSION="4.14.5"
+    export OPENSHIFT_VERSION="4.18.23"
     export AWS_REGION="us-west-2"
     export AWS_AVAILABILITY_ZONE="us-west-2a"
     export AWS_ACCOUNT_ID="<account_id>"
@@ -151,7 +151,7 @@ Follow the guide [here](https://docs.aws.amazon.com/ROSA/latest/userguide/gettin
 
     see [Multi-tenancy](../multitenancy.md) for more details
 
-1. Finally apply the manifest to create your Rosa cluster:
+1. Finally apply the manifest to create your ROSA cluster:
     ```shell
     kubectl apply -f rosa-capi-cluster.yaml
     ```
