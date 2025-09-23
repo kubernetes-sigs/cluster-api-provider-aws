@@ -363,6 +363,7 @@ func autoConvert_v1beta2_AWSManagedControlPlaneSpec_To_v1beta1_AWSManagedControl
 	out.EncryptionConfig = (*EncryptionConfig)(unsafe.Pointer(in.EncryptionConfig))
 	out.AdditionalTags = *(*apiv1beta2.Tags)(unsafe.Pointer(&in.AdditionalTags))
 	out.IAMAuthenticatorConfig = (*IAMAuthenticatorConfig)(unsafe.Pointer(in.IAMAuthenticatorConfig))
+	// WARNING: in.AccessConfig requires manual conversion: does not exist in peer-type
 	if err := Convert_v1beta2_EndpointAccess_To_v1beta1_EndpointAccess(&in.EndpointAccess, &out.EndpointAccess, s); err != nil {
 		return err
 	}
@@ -379,6 +380,7 @@ func autoConvert_v1beta2_AWSManagedControlPlaneSpec_To_v1beta1_AWSManagedControl
 		return err
 	}
 	// WARNING: in.BootstrapSelfManagedAddons requires manual conversion: does not exist in peer-type
+	// WARNING: in.AutoMode requires manual conversion: does not exist in peer-type
 	// WARNING: in.RestrictPrivateSubnets requires manual conversion: does not exist in peer-type
 	if err := Convert_v1beta2_KubeProxy_To_v1beta1_KubeProxy(&in.KubeProxy, &out.KubeProxy, s); err != nil {
 		return err
