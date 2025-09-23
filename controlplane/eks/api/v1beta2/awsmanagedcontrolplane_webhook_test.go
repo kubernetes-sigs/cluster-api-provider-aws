@@ -39,7 +39,7 @@ var (
 
 func TestDefaultingWebhook(t *testing.T) {
 	defaultTestBastion := infrav1.Bastion{
-		AllowedCIDRBlocks: []string{"0.0.0.0/0"},
+		AllowedCIDRBlocks: []string{"0.0.0.0/0", "::/0"},
 	}
 	AZUsageLimit := 3
 	defaultVPCSpec := infrav1.VPCSpec{
@@ -114,8 +114,21 @@ func TestDefaultingWebhook(t *testing.T) {
 			resourceName: "cluster1",
 			resourceNS:   "default",
 			expectHash:   false,
-			spec:         AWSManagedControlPlaneSpec{Bastion: infrav1.Bastion{AllowedCIDRBlocks: []string{"100.100.100.100/0"}}},
-			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1", IdentityRef: defaultIdentityRef, Bastion: infrav1.Bastion{AllowedCIDRBlocks: []string{"100.100.100.100/0"}}, NetworkSpec: defaultNetworkSpec, TokenMethod: &EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true},
+			spec: AWSManagedControlPlaneSpec{
+				Bastion: infrav1.Bastion{
+					AllowedCIDRBlocks: []string{"100.100.100.100/0", "2001:1234:5678:9a40::/56"},
+				},
+			},
+			expectSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				IdentityRef:    defaultIdentityRef,
+				Bastion: infrav1.Bastion{
+					AllowedCIDRBlocks: []string{"100.100.100.100/0", "2001:1234:5678:9a40::/56"},
+				},
+				NetworkSpec:                defaultNetworkSpec,
+				TokenMethod:                &EKSTokenMethodIAMAuthenticator,
+				BootstrapSelfManagedAddons: true,
+			},
 		},
 		{
 			name:         "with CNI on network",
