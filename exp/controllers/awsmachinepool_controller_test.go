@@ -25,6 +25,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	autoscalingtypes "github.com/aws/aws-sdk-go-v2/service/autoscaling/types"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/go-logr/logr"
@@ -309,7 +310,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				getASG(t, g)
 
 				expectedErr := errors.New("no connection available ")
-				reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(expectedErr)
+				reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, expectedErr)
 				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
 				g.Expect(errors.Cause(err)).To(MatchError(expectedErr))
 			})
@@ -335,7 +336,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 					Subnets: []string{},
 				}
 
-				reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
 				asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(asg, nil)
 				asgSvc.EXPECT().DescribeLifecycleHooks(gomock.Any()).Return(nil, nil)
 				asgSvc.EXPECT().SubnetIDs(gomock.Any()).Return([]string{}, nil)
@@ -373,7 +374,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 					Subnets: []string{},
 				}
 
-				reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
 				asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(asg, nil)
 				ec2Svc.EXPECT().InstanceIfExists(aws.String("1")).Return(&infrav1.Instance{ID: "1", Type: "m6.2xlarge"}, nil)
 				ec2Svc.EXPECT().InstanceIfExists(aws.String("2")).Return(&infrav1.Instance{ID: "2", Type: "m6.2xlarge"}, nil)
@@ -474,7 +475,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 					},
 				})).To(Succeed())
 
-				reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
 				asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(asg, nil)
 				asgSvc.EXPECT().DescribeLifecycleHooks(gomock.Any()).Return(nil, nil)
 				asgSvc.EXPECT().SubnetIDs(gomock.Any()).Return([]string{}, nil)
@@ -509,7 +510,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				defer teardown(t, g)
 				setSuspendedProcesses(t, g)
 
-				reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
 				asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(nil, nil)
 				asgSvc.EXPECT().CreateASG(gomock.Any()).Return(&expinfrav1.AutoScalingGroup{
 					Name: "name",
@@ -533,7 +534,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				defer teardown(t, g)
 				setSuspendedProcesses(t, g)
 				ms.AWSMachinePool.Spec.SuspendProcesses.All = true
-				reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
 				asgSvc.EXPECT().DescribeLifecycleHooks(gomock.Any()).Return(nil, nil)
 				reconSvc.EXPECT().ReconcileTags(gomock.Any(), gomock.Any()).Return(nil)
 				asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(&expinfrav1.AutoScalingGroup{
@@ -574,7 +575,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				defer teardown(t, g)
 				setSuspendedProcesses(t, g)
 
-				reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
 				asgSvc.EXPECT().DescribeLifecycleHooks(gomock.Any()).Return(nil, nil)
 				reconSvc.EXPECT().ReconcileTags(gomock.Any(), gomock.Any()).Return(nil)
 				asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(&expinfrav1.AutoScalingGroup{
@@ -600,7 +601,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				Name:            "an-asg",
 				DesiredCapacity: ptr.To[int32](1),
 			}
-			reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
 			asgSvc.EXPECT().DescribeLifecycleHooks(gomock.Any()).Return(nil, nil)
 			asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(&asg, nil)
 			asgSvc.EXPECT().SubnetIDs(gomock.Any()).Return([]string{}, nil)
@@ -641,7 +642,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				},
 				Subnets: []string{"subnet1", "subnet2"},
 			}
-			reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
 			asgSvc.EXPECT().DescribeLifecycleHooks(gomock.Any()).Return(nil, nil)
 			reconSvc.EXPECT().ReconcileTags(gomock.Any(), gomock.Any()).Return(nil)
 			asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(&asg, nil).AnyTimes()
@@ -661,7 +662,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				MaxSize: int32(100),
 				Subnets: []string{"subnet1", "subnet2"},
 			}
-			reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
 			asgSvc.EXPECT().DescribeLifecycleHooks(gomock.Any()).Return(nil, nil)
 			reconSvc.EXPECT().ReconcileTags(gomock.Any(), gomock.Any()).Return(nil)
 			asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(&asg, nil).AnyTimes()
@@ -681,7 +682,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				MaxSize: int32(2),
 				Subnets: []string{},
 			}
-			reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
 			asgSvc.EXPECT().DescribeLifecycleHooks(gomock.Any()).Return(nil, nil)
 			reconSvc.EXPECT().ReconcileTags(gomock.Any(), gomock.Any()).Return(nil)
 			asgSvc.EXPECT().GetASGByName(gomock.Any()).Return(&asg, nil).AnyTimes()
@@ -791,7 +792,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 					nil)
 				ec2Svc.EXPECT().DiscoverLaunchTemplateAMI(gomock.Any(), gomock.Any()).Return(ptr.To[string]("ami-different"), nil)
 				ec2Svc.EXPECT().LaunchTemplateNeedsUpdate(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
-				asgSvc.EXPECT().CanStartASGInstanceRefresh(gomock.Any()).Return(true, nil)
+				asgSvc.EXPECT().CanStartASGInstanceRefresh(gomock.Any()).Return(true, nil, nil)
 				ec2Svc.EXPECT().PruneLaunchTemplateVersions(gomock.Any()).Return(nil, nil)
 				ec2Svc.EXPECT().CreateLaunchTemplateVersion(gomock.Any(), gomock.Any(), gomock.Eq(ptr.To[string]("ami-different")), gomock.Eq(apimachinerytypes.NamespacedName{Namespace: "default", Name: "bootstrap-data"}), gomock.Any(), gomock.Any()).Return(nil)
 				ec2Svc.EXPECT().GetLaunchTemplateLatestVersion(gomock.Any()).Return("2", nil)
@@ -847,7 +848,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 					nil)
 				ec2Svc.EXPECT().DiscoverLaunchTemplateAMI(gomock.Any(), gomock.Any()).Return(ptr.To[string]("ami-existing"), nil)
 				ec2Svc.EXPECT().LaunchTemplateNeedsUpdate(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
-				asgSvc.EXPECT().CanStartASGInstanceRefresh(gomock.Any()).Return(true, nil)
+				asgSvc.EXPECT().CanStartASGInstanceRefresh(gomock.Any()).Return(true, nil, nil)
 				ec2Svc.EXPECT().PruneLaunchTemplateVersions(gomock.Any()).Return(nil, nil)
 				ec2Svc.EXPECT().CreateLaunchTemplateVersion(gomock.Any(), gomock.Any(), gomock.Eq(ptr.To[string]("ami-existing")), gomock.Eq(apimachinerytypes.NamespacedName{Namespace: "default", Name: "bootstrap-data"}), gomock.Any(), gomock.Any()).Return(nil)
 				ec2Svc.EXPECT().GetLaunchTemplateLatestVersion(gomock.Any()).Return("2", nil)
@@ -939,7 +940,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 					nil)
 				ec2Svc.EXPECT().DiscoverLaunchTemplateAMI(gomock.Any(), gomock.Any()).Return(ptr.To[string]("ami-existing"), nil)
 				ec2Svc.EXPECT().LaunchTemplateNeedsUpdate(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
-				asgSvc.EXPECT().CanStartASGInstanceRefresh(gomock.Any()).Return(true, nil)
+				asgSvc.EXPECT().CanStartASGInstanceRefresh(gomock.Any()).Return(true, nil, nil)
 				ec2Svc.EXPECT().PruneLaunchTemplateVersions(gomock.Any()).Return(nil, nil)
 				ec2Svc.EXPECT().CreateLaunchTemplateVersion(gomock.Any(), gomock.Any(), gomock.Eq(ptr.To[string]("ami-existing")), gomock.Eq(apimachinerytypes.NamespacedName{Namespace: "default", Name: "bootstrap-data-new"}), gomock.Any(), gomock.Any()).Return(nil)
 				ec2Svc.EXPECT().GetLaunchTemplateLatestVersion(gomock.Any()).Return("2", nil)
@@ -1031,15 +1032,19 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 					return &s3.PutObjectOutput{}, nil
 				})
 
-				// Simulate a pending instance refresh
-				asgSvc.EXPECT().CanStartASGInstanceRefresh(gomock.Any()).Return(false, nil)
+				// Simulate a pending instance refresh here, to see if `CancelInstanceRefresh` gets called
+				instanceRefreshStatus := autoscalingtypes.InstanceRefreshStatusPending
+				asgSvc.EXPECT().CanStartASGInstanceRefresh(gomock.Any()).Return(false, &instanceRefreshStatus, nil)
+				asgSvc.EXPECT().CancelASGInstanceRefresh(gomock.Any()).Return(nil)
 
-				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
-				g.Expect(err).To(HaveOccurred())
-				expectConditions(g, ms.AWSMachinePool, []conditionAssertion{{expinfrav1.PreLaunchTemplateUpdateCheckCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, expinfrav1.PreLaunchTemplateUpdateCheckFailedReason}})
+				// First reconciliation should notice the existing instance refresh and cancel it.
+				// Since the cancellation is asynchronous, the controller should requeue.
+				res, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
+				g.Expect(res.RequeueAfter).To(BeNumerically(">", 0))
+				g.Expect(err).To(Succeed())
 
-				// Now simulate that no pending instance refresh exists
-				asgSvc.EXPECT().CanStartASGInstanceRefresh(gomock.Any()).Return(true, nil)
+				// Now simulate that no pending instance refresh exists. Cancellation should not be called anymore.
+				asgSvc.EXPECT().CanStartASGInstanceRefresh(gomock.Any()).Return(true, nil, nil)
 
 				asgSvc.EXPECT().GetASGByName(gomock.Any()).DoAndReturn(func(scope *scope.MachinePoolScope) (*expinfrav1.AutoScalingGroup, error) {
 					g.Expect(scope.Name()).To(Equal("test"))
@@ -1076,6 +1081,9 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 					g.Expect(*input.Key).To(Equal(fmt.Sprintf("machine-pool/test/%s", userdata.ComputeHash([]byte("shell-script")))))
 					return &s3.PutObjectOutput{}, nil
 				})
+
+				// No cancellation expected in this second reconciliation (see above)
+				asgSvc.EXPECT().CancelASGInstanceRefresh(gomock.Any()).Times(0)
 
 				var simulatedDeletedVersionNumber int64 = 777
 				bootstrapDataHash := "some-simulated-hash"
@@ -1194,7 +1202,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			}
 			ms.AWSMachinePool.Spec.AWSLifecycleHooks = append(ms.AWSMachinePool.Spec.AWSLifecycleHooks, newLifecycleHook)
 
-			reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
 
 			// New ASG must be created with lifecycle hooks (single AWS SDK call is enough)
 			//
@@ -1220,7 +1228,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			}
 			ms.AWSMachinePool.Spec.AWSLifecycleHooks = append(ms.AWSMachinePool.Spec.AWSLifecycleHooks, newLifecycleHook)
 
-			reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
 			asgSvc.EXPECT().DescribeLifecycleHooks(gomock.Eq(ms.Name())).Return(nil, nil)
 			asgSvc.EXPECT().CreateLifecycleHook(gomock.Any(), ms.Name(), &newLifecycleHook).Return(nil)
 			reconSvc.EXPECT().ReconcileTags(gomock.Any(), gomock.Any()).Return(nil)
@@ -1250,7 +1258,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			setup(t, g)
 			defer teardown(t, g)
 
-			reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
 			asgSvc.EXPECT().DescribeLifecycleHooks(gomock.Eq(ms.Name())).Return([]*expinfrav1.AWSLifecycleHook{
 				{
 					Name:                "hook-to-remove",
@@ -1293,7 +1301,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			}
 			ms.AWSMachinePool.Spec.AWSLifecycleHooks = append(ms.AWSMachinePool.Spec.AWSLifecycleHooks, newLifecycleHook)
 
-			reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
 			asgSvc.EXPECT().DescribeLifecycleHooks(gomock.Eq(ms.Name())).Return([]*expinfrav1.AWSLifecycleHook{
 				{
 					Name:                "hook-to-remove",
@@ -1337,7 +1345,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			}
 			ms.AWSMachinePool.Spec.AWSLifecycleHooks = append(ms.AWSMachinePool.Spec.AWSLifecycleHooks, updateLifecycleHook)
 
-			reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			reconSvc.EXPECT().ReconcileLaunchTemplate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil)
 			asgSvc.EXPECT().DescribeLifecycleHooks(gomock.Eq(ms.Name())).Return([]*expinfrav1.AWSLifecycleHook{
 				{
 					Name:                "hook-to-update",
