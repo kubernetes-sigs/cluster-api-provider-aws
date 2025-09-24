@@ -104,6 +104,10 @@ func getEKSCluster(ctx context.Context, eksClusterName string, sess *aws.Config)
 	}
 	result, err := eksClient.DescribeCluster(ctx, input)
 
+	if err != nil {
+		return nil, err
+	}
+
 	return result.Cluster, err
 }
 
