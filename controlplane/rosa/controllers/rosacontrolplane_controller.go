@@ -234,7 +234,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		return ctrl.Result{}, err
 	}
 
-	validationMessage, err := validateControlPlaneSpec(ocmClient, rosaScope)
+	validationMessage, err := validateControlPlaneSpec(ocmClient, rosaScope.ControlPlane)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to validate ROSAControlPlane.spec: %w", err)
 	}
@@ -627,6 +627,18 @@ func (r *ROSAControlPlaneReconciler) updateOCMClusterSpec(rosaControlPlane *rosa
 		updated = true
 	}
 
+	if rosaControlPlane.Spec.AutoNode != nil {
+		if !strings.EqualFold(ocmClusterSpec.AutoNodeMode, string(rosaControlPlane.Spec.AutoNode.Mode)) {
+			ocmClusterSpec.AutoNodeMode = strings.ToLower(string(rosaControlPlane.Spec.AutoNode.Mode))
+			updated = true
+		}
+
+		if ocmClusterSpec.AutoNodeRoleARN != rosaControlPlane.Spec.AutoNode.RoleARN {
+			ocmClusterSpec.AutoNodeRoleARN = rosaControlPlane.Spec.AutoNode.RoleARN
+			updated = true
+		}
+	}
+
 	return ocmClusterSpec, updated
 }
 
@@ -958,15 +970,21 @@ func (r *ROSAControlPlaneReconciler) reconcileClusterAdminPassword(ctx context.C
 	return password, nil
 }
 
-func validateControlPlaneSpec(ocmClient rosa.OCMClient, rosaScope *scope.ROSAControlPlaneScope) (string, error) {
-	version := rosaScope.ControlPlane.Spec.Version
-	channelGroup := string(rosaScope.ControlPlane.Spec.ChannelGroup)
+func validateControlPlaneSpec(ocmClient rosa.OCMClient, rosaControlPlane *rosacontrolplanev1.ROSAControlPlane) (string, error) {
+	version := rosaControlPlane.Spec.Version
+	channelGroup := string(rosaControlPlane.Spec.ChannelGroup)
 	valid, err := ocmClient.ValidateHypershiftVersion(version, channelGroup)
 	if err != nil {
 		return "", fmt.Errorf("error validating version in this channelGroup : %w", err)
 	}
 	if !valid {
 		return fmt.Sprintf("this version %s is not supported in this channelGroup", version), nil
+	}
+
+	if rosaControlPlane.Spec.AutoNode != nil {
+		if rosaControlPlane.Spec.AutoNode.Mode == rosacontrolplanev1.AutoNodeModeEnabled && rosaControlPlane.Spec.AutoNode.RoleARN == "" {
+			return "", fmt.Errorf("error ROSAControlPlane autoNode.roleARN, must be set when autoNode mode is enabled")
+		}
 	}
 
 	// TODO: add more input validations
@@ -1086,6 +1104,12 @@ func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpe
 			ocmClusterSpec.AllowedRegistries = controlPlaneSpec.ClusterRegistryConfig.RegistrySources.AllowedRegistries
 			ocmClusterSpec.InsecureRegistries = controlPlaneSpec.ClusterRegistryConfig.RegistrySources.InsecureRegistries
 		}
+	}
+
+	// Set auto node karpenter config
+	if controlPlaneSpec.AutoNode != nil {
+		ocmClusterSpec.AutoNodeMode = strings.ToLower(string(controlPlaneSpec.AutoNode.Mode))
+		ocmClusterSpec.AutoNodeRoleARN = controlPlaneSpec.AutoNode.RoleARN
 	}
 
 	return ocmClusterSpec, nil
