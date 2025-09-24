@@ -25,11 +25,13 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -109,11 +111,27 @@ var _ = ginkgo.Describe("EKS upgrade policy test", func() {
 
 func WaitForEKSClusterUpgradePolicy(ctx context.Context, sess *aws.Config, eksClusterName string, upgradePolicy ekscontrolplanev1.UpgradePolicy) {
 	ginkgo.By(fmt.Sprintf("Checking EKS control plane upgrade policy matches %s", upgradePolicy))
-	Eventually(func() (bool, error) {
+	Eventually(func() error {
 		cluster, err := getEKSCluster(ctx, eksClusterName, sess)
 		if err != nil {
-			return false, err
+			smithyErr := awserrors.ParseSmithyError(err)
+			notFoundErr := &ekstypes.ResourceNotFoundException{}
+			if smithyErr.ErrorCode() == notFoundErr.ErrorCode() {
+				// Unrecoverable error stop trying and fail early.
+				return StopTrying(fmt.Sprintf("unrecoverable error: cluster %q not found: %s", eksClusterName, smithyErr.ErrorMessage()))
+			}
+			return err // For transient errors, retry
 		}
-		return converters.SupportTypeToSDK(upgradePolicy) == cluster.UpgradePolicy.SupportType, nil
-	}, 5*time.Minute, 10*time.Second).Should(BeTrue(), fmt.Sprintf("eventually failed checking EKS Cluster %q upgrade policy is %s", eksClusterName, upgradePolicy))
+
+		expectedPolicy := converters.SupportTypeToSDK(upgradePolicy)
+		actualPolicy := cluster.UpgradePolicy.SupportType
+
+		if actualPolicy != expectedPolicy {
+			// The upgrade policy change hasn't been reflected in EKS yet, error and try again.
+			return fmt.Errorf("upgrade policy mismatch: expected %s, but found %s", expectedPolicy, actualPolicy)
+		}
+
+		// Success in finding the change has been reflected in EKS.
+		return nil
+	}, 5*time.Minute, 10*time.Second).Should(Succeed(), fmt.Sprintf("eventually failed checking EKS Cluster %q upgrade policy is %s", eksClusterName, upgradePolicy))
 }
