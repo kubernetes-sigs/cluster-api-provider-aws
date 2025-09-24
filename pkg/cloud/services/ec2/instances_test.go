@@ -5905,256 +5905,6 @@ func TestCreateInstance(t *testing.T) {
 				}
 			},
 		},
-		{
-			name: "with AMD SEV-SNP disabled",
-			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{"set": "node"},
-				},
-				Spec: clusterv1.MachineSpec{
-					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: ptr.To[string]("bootstrap-data"),
-					},
-				},
-			},
-			machineConfig: &infrav1.AWSMachineSpec{
-				AMI: infrav1.AMIReference{
-					ID: aws.String("abc"),
-				},
-				InstanceType: "m6a.large",
-				CPUOptions: infrav1.CPUOptions{
-					ConfidentialCompute: infrav1.AWSConfidentialComputePolicy("Disabled"),
-				},
-			},
-			awsCluster: &infrav1.AWSCluster{
-				ObjectMeta: metav1.ObjectMeta{Name: "test"},
-				Spec: infrav1.AWSClusterSpec{
-					NetworkSpec: infrav1.NetworkSpec{
-						Subnets: infrav1.Subnets{
-							infrav1.SubnetSpec{
-								ID:       "subnet-1",
-								IsPublic: false,
-							},
-							infrav1.SubnetSpec{
-								IsPublic: false,
-							},
-						},
-						VPC: infrav1.VPCSpec{
-							ID: "vpc-test",
-						},
-					},
-				},
-				Status: infrav1.AWSClusterStatus{
-					Network: infrav1.NetworkStatus{
-						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
-							infrav1.SecurityGroupControlPlane: {
-								ID: "1",
-							},
-							infrav1.SecurityGroupNode: {
-								ID: "2",
-							},
-							infrav1.SecurityGroupLB: {
-								ID: "3",
-							},
-						},
-						APIServerELB: infrav1.LoadBalancer{
-							DNSName: "test-apiserver.us-east-1.aws",
-						},
-					},
-				},
-			},
-			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.
-					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []types.InstanceType{
-							types.InstanceTypeM6aLarge,
-						},
-					})).
-					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []types.InstanceTypeInfo{
-							{
-								ProcessorInfo: &types.ProcessorInfo{
-									SupportedArchitectures: []types.ArchitectureType{
-										types.ArchitectureTypeX8664,
-									},
-								},
-							},
-						},
-					}, nil)
-				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstances(context.TODO(), gomock.Any()).
-					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, optFns ...func(*ec2.Options)) (*ec2.RunInstancesOutput, error) {
-						if input.CpuOptions == nil {
-							t.Fatalf("expected AMD SEV-SNP to be disabled, but got no CpuOptions")
-						} else if input.CpuOptions.AmdSevSnp != types.AmdSevSnpSpecificationDisabled {
-							t.Fatalf("expected AMD SEV-SNP to be disabled, but got %s", input.CpuOptions.AmdSevSnp)
-						}
-						return &ec2.RunInstancesOutput{
-							Instances: []types.Instance{
-								{
-									State: &types.InstanceState{
-										Name: types.InstanceStateNamePending,
-									},
-									IamInstanceProfile: &types.IamInstanceProfile{
-										Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
-									},
-									InstanceId:     aws.String("two"),
-									InstanceType:   types.InstanceTypeM5Large,
-									SubnetId:       aws.String("subnet-1"),
-									ImageId:        aws.String("ami-1"),
-									RootDeviceName: aws.String("device-1"),
-									BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
-										{
-											DeviceName: aws.String("device-1"),
-											Ebs: &types.EbsInstanceBlockDevice{
-												VolumeId: aws.String("volume-1"),
-											},
-										},
-									},
-									Placement: &types.Placement{
-										AvailabilityZone: &az,
-									},
-								},
-							},
-						}, nil
-					})
-				m.
-					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
-					Return(&ec2.DescribeNetworkInterfacesOutput{
-						NetworkInterfaces: []types.NetworkInterface{},
-						NextToken:         nil,
-					}, nil)
-			},
-			check: func(instance *infrav1.Instance, err error) {
-				if err != nil {
-					t.Fatalf("did not expect error: %v", err)
-				}
-			},
-		},
-		{
-			name: "with AMD SEV-SNP unspecified",
-			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{"set": "node"},
-				},
-				Spec: clusterv1.MachineSpec{
-					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: ptr.To[string]("bootstrap-data"),
-					},
-				},
-			},
-			machineConfig: &infrav1.AWSMachineSpec{
-				AMI: infrav1.AMIReference{
-					ID: aws.String("abc"),
-				},
-				InstanceType: "m6a.large",
-				CPUOptions: infrav1.CPUOptions{
-					ConfidentialCompute: "",
-				},
-			},
-			awsCluster: &infrav1.AWSCluster{
-				ObjectMeta: metav1.ObjectMeta{Name: "test"},
-				Spec: infrav1.AWSClusterSpec{
-					NetworkSpec: infrav1.NetworkSpec{
-						Subnets: infrav1.Subnets{
-							infrav1.SubnetSpec{
-								ID:       "subnet-1",
-								IsPublic: false,
-							},
-							infrav1.SubnetSpec{
-								IsPublic: false,
-							},
-						},
-						VPC: infrav1.VPCSpec{
-							ID: "vpc-test",
-						},
-					},
-				},
-				Status: infrav1.AWSClusterStatus{
-					Network: infrav1.NetworkStatus{
-						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
-							infrav1.SecurityGroupControlPlane: {
-								ID: "1",
-							},
-							infrav1.SecurityGroupNode: {
-								ID: "2",
-							},
-							infrav1.SecurityGroupLB: {
-								ID: "3",
-							},
-						},
-						APIServerELB: infrav1.LoadBalancer{
-							DNSName: "test-apiserver.us-east-1.aws",
-						},
-					},
-				},
-			},
-			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.
-					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
-						InstanceTypes: []types.InstanceType{
-							types.InstanceTypeM6aLarge,
-						},
-					})).
-					Return(&ec2.DescribeInstanceTypesOutput{
-						InstanceTypes: []types.InstanceTypeInfo{
-							{
-								ProcessorInfo: &types.ProcessorInfo{
-									SupportedArchitectures: []types.ArchitectureType{
-										types.ArchitectureTypeX8664,
-									},
-								},
-							},
-						},
-					}, nil)
-				m. // TODO: Restore these parameters, but with the tags as well
-					RunInstances(context.TODO(), gomock.Any()).
-					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, optFns ...func(*ec2.Options)) (*ec2.RunInstancesOutput, error) {
-						if input.CpuOptions != nil {
-							t.Fatalf("expected no CpuOptions, but got %+v", input.CpuOptions)
-						}
-						return &ec2.RunInstancesOutput{
-							Instances: []types.Instance{
-								{
-									State: &types.InstanceState{
-										Name: types.InstanceStateNamePending,
-									},
-									IamInstanceProfile: &types.IamInstanceProfile{
-										Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
-									},
-									InstanceId:     aws.String("two"),
-									InstanceType:   types.InstanceTypeM5Large,
-									SubnetId:       aws.String("subnet-1"),
-									ImageId:        aws.String("ami-1"),
-									RootDeviceName: aws.String("device-1"),
-									BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
-										{
-											DeviceName: aws.String("device-1"),
-											Ebs: &types.EbsInstanceBlockDevice{
-												VolumeId: aws.String("volume-1"),
-											},
-										},
-									},
-									Placement: &types.Placement{
-										AvailabilityZone: &az,
-									},
-								},
-							},
-						}, nil
-					})
-				m.
-					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
-					Return(&ec2.DescribeNetworkInterfacesOutput{
-						NetworkInterfaces: []types.NetworkInterface{},
-						NextToken:         nil,
-					}, nil)
-			},
-			check: func(instance *infrav1.Instance, err error) {
-				if err != nil {
-					t.Fatalf("did not expect error: %v", err)
-				}
-			},
-		},
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -6763,6 +6513,54 @@ func TestGetCapacityReservationSpecification(t *testing.T) {
 			if !cmp.Equal(request, tc.expectedRequest, cmpopts.IgnoreUnexported(types.CapacityReservationSpecification{}, types.CapacityReservationTarget{})) {
 				t.Errorf("Case: %s. Got: %v, expected: %v", tc.name, request, tc.expectedRequest)
 			}
+		})
+	}
+}
+
+func TestGetInstanceCPUOptionsRequest (t *testing.T) {
+	testCases := []struct {
+		name            string
+		instance        *infrav1.Instance
+		expectedRequest *types.CpuOptionsRequest
+	}{
+		{
+			name:            "with ConfidentialCompute set to AMD SEV-SNP",
+			expectedRequest: &types.CpuOptionsRequest{
+				AmdSevSnp: types.AmdSevSnpSpecificationEnabled,
+			},
+			instance: &infrav1.Instance{
+				CPUOptions: infrav1.CPUOptions{
+					ConfidentialCompute: infrav1.AWSConfidentialComputePolicy("AMDEncryptedVirtualizationNestedPaging"),
+				},
+			},
+		},
+		{
+			name:            "with ConfidentialCompute disabled",
+			expectedRequest: &types.CpuOptionsRequest{
+				AmdSevSnp: types.AmdSevSnpSpecificationDisabled,
+			},
+			instance: &infrav1.Instance{
+				CPUOptions: infrav1.CPUOptions{
+					ConfidentialCompute: infrav1.AWSConfidentialComputePolicy("Disabled"),
+				},
+			},
+		},
+		{
+			name:            "with ConfidentialCompute empty",
+			expectedRequest: nil,
+			instance: &infrav1.Instance{
+				CPUOptions: infrav1.CPUOptions{
+					ConfidentialCompute: "",
+				},			
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			request := getInstanceCPUOptionsRequest(tc.instance.CPUOptions)
+			g := NewWithT(t)
+			g.Expect(request).To(Equal(tc.expectedRequest))
 		})
 	}
 }
