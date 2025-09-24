@@ -88,7 +88,7 @@ var _ = ginkgo.Describe("EKS upgrade policy test", func() {
 
 		WaitForEKSClusterUpgradePolicy(ctx, e2eCtx.BootstrapUserAWSSession, eksClusterName, upgradePolicy)
 
-		changedUpgradePolicy = ekscontrolplanev1.UpgradePolicyExtended
+		changedUpgradePolicy := ekscontrolplanev1.UpgradePolicyExtended
 		ginkgo.By(fmt.Sprintf("Changing the UpgradePolicy from %s to %s", upgradePolicy, changedUpgradePolicy))
 		shared.SetEnvVar(shared.UpgradePolicy, changedUpgradePolicy.String(), false)
 		ManagedClusterSpec(ctx, getManagedClusterSpec)
