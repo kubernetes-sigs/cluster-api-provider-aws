@@ -63,6 +63,22 @@ spec:
                   AuditLogRoleARN defines the role that is used to forward audit logs to AWS CloudWatch.
                   If not set, audit log forwarding is disabled.
                 type: string
+              autoNode:
+                description: AutoNode set the autoNode mode and autoNode role ARN.
+                properties:
+                  mode:
+                    default: disabled
+                    description: AutoNode mode allowed values are enabled & disabled
+                    enum:
+                    - enabled
+                    - disabled
+                    type: string
+                  roleARN:
+                    description: |-
+                      AutoNode role ARN that has the IAM Policy and cluster-specific Role that gives permissions to the Karpenter controller.
+                      The role must be attached with the same OIDC-ID that is used with the ROSA-HCP cluster.
+                    type: string
+                type: object
               availabilityZones:
                 description: |-
                   AvailabilityZones describe AWS AvailabilityZones of the worker nodes.

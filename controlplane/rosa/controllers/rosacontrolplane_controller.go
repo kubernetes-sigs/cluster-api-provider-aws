@@ -578,6 +578,18 @@ func (r *ROSAControlPlaneReconciler) updateOCMClusterSpec(rosaControlPlane *rosa
 		updated = true
 	}
 
+	if rosaControlPlane.Spec.AutoNode != nil {
+		if ocmClusterSpec.AutoNodeMode != string(rosaControlPlane.Spec.AutoNode.Mode) {
+			ocmClusterSpec.AutoNodeMode = string(rosaControlPlane.Spec.AutoNode.Mode)
+			updated = true
+		}
+
+		if ocmClusterSpec.AutoNodeRoleARN != rosaControlPlane.Spec.AutoNode.RoleARN {
+			ocmClusterSpec.AutoNodeRoleARN = rosaControlPlane.Spec.AutoNode.RoleARN
+			updated = true
+		}
+	}
+
 	return ocmClusterSpec, updated
 }
 
@@ -1037,6 +1049,12 @@ func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpe
 			ocmClusterSpec.AllowedRegistries = controlPlaneSpec.ClusterRegistryConfig.RegistrySources.AllowedRegistries
 			ocmClusterSpec.InsecureRegistries = controlPlaneSpec.ClusterRegistryConfig.RegistrySources.InsecureRegistries
 		}
+	}
+
+	// Set auto node karpenter config
+	if controlPlaneSpec.AutoNode != nil {
+		ocmClusterSpec.AutoNodeMode = string(controlPlaneSpec.AutoNode.Mode)
+		ocmClusterSpec.AutoNodeRoleARN = controlPlaneSpec.AutoNode.RoleARN
 	}
 
 	return ocmClusterSpec, nil
