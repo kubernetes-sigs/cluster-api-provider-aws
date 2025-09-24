@@ -88,11 +88,11 @@ var _ = ginkgo.Describe("EKS upgrade policy test", func() {
 
 		WaitForEKSClusterUpgradePolicy(ctx, e2eCtx.BootstrapUserAWSSession, eksClusterName, upgradePolicy)
 
-		upgradePolicy = ekscontrolplanev1.UpgradePolicyExtended
-		ginkgo.By(fmt.Sprintf("should update upgrade policy to %s", upgradePolicy))
-		shared.SetEnvVar(shared.UpgradePolicy, upgradePolicy.String(), false)
+		changedUpgradePolicy = ekscontrolplanev1.UpgradePolicyExtended
+		ginkgo.By(fmt.Sprintf("Changing the UpgradePolicy from %s to %s", upgradePolicy, changedUpgradePolicy))
+		shared.SetEnvVar(shared.UpgradePolicy, changedUpgradePolicy.String(), false)
 		ManagedClusterSpec(ctx, getManagedClusterSpec)
-		WaitForEKSClusterUpgradePolicy(ctx, e2eCtx.BootstrapUserAWSSession, eksClusterName, upgradePolicy)
+		WaitForEKSClusterUpgradePolicy(ctx, e2eCtx.BootstrapUserAWSSession, eksClusterName, changedUpgradePolicy)
 
 		framework.DeleteCluster(ctx, framework.DeleteClusterInput{
 			Deleter: e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
@@ -108,7 +108,7 @@ var _ = ginkgo.Describe("EKS upgrade policy test", func() {
 })
 
 func WaitForEKSClusterUpgradePolicy(ctx context.Context, sess *aws.Config, eksClusterName string, upgradePolicy ekscontrolplanev1.UpgradePolicy) {
-	ginkgo.By(fmt.Sprintf("EKS control plane upgrade policy should be %s", upgradePolicy))
+	ginkgo.By(fmt.Sprintf("Checking EKS control plane upgrade policy matches %s", upgradePolicy))
 	Eventually(func() (bool, error) {
 		cluster, err := getEKSCluster(ctx, eksClusterName, sess)
 		if err != nil {
