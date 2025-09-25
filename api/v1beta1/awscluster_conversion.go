@@ -66,6 +66,7 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Status.Bastion.HostAffinity = restored.Status.Bastion.HostAffinity
 		dst.Status.Bastion.HostID = restored.Status.Bastion.HostID
 		dst.Status.Bastion.CapacityReservationPreference = restored.Status.Bastion.CapacityReservationPreference
+		dst.Status.Bastion.CPUOptions = restored.Status.Bastion.CPUOptions
 	}
 	dst.Spec.Partition = restored.Spec.Partition
 

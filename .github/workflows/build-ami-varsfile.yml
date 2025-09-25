@@ -42,7 +42,7 @@ jobs:
           echo "$PACKER_VARS" | jq -r > ./images/capi/vars.json
           cat ./images/capi/vars.json
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
           aws-region: us-east-2
           role-to-assume: arn:aws:iam::819546954734:role/gh-image-builder

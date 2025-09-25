@@ -14,7 +14,7 @@ spec:
     listKind: AWSManagedClusterTemplateList
     plural: awsmanagedclustertemplates
     shortNames:
-    - amct
+    - awsmct
     singular: awsmanagedclustertemplate
   scope: Namespaced
   versions:
