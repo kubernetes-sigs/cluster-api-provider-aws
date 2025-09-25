@@ -141,6 +141,8 @@ func (r *ROSAControlPlaneReconciler) SetupWithManager(ctx context.Context, mgr c
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=rosacontrolplanes,verbs=get;list;watch;update;patch;delete
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=rosacontrolplanes/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=rosacontrolplanes/finalizers,verbs=update
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=rosaroleconfigs,verbs=get;list;watch;
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=rosaroleconfigs/status,verbs=get;
 
 // Reconcile will reconcile RosaControlPlane Resources.
 func (r *ROSAControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, reterr error) {
@@ -167,7 +169,6 @@ func (r *ROSAControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	log = log.WithValues("cluster", klog.KObj(cluster))
-
 	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, rosaControlPlane); err != nil || isPaused || conditionChanged {
 		return ctrl.Result{}, err
 	}
@@ -225,6 +226,12 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 	})
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to transform caller identity to creator: %w", err)
+	}
+
+	rosaRoleConfig, err := r.reconcileRosaRoleConfig(ctx, rosaScope)
+	if err != nil {
+		rosaScope.Error(err, "cannot reconcile RosaRoleConfig ")
+		return ctrl.Result{}, err
 	}
 
 	validationMessage, err := validateControlPlaneSpec(ocmClient, rosaScope)
@@ -314,7 +321,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		return ctrl.Result{RequeueAfter: time.Second * 60}, nil
 	}
 
-	ocmClusterSpec, err := buildOCMClusterSpec(rosaScope.ControlPlane.Spec, creator)
+	ocmClusterSpec, err := buildOCMClusterSpec(rosaScope.ControlPlane.Spec, rosaRoleConfig, creator)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -334,6 +341,48 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 	rosaScope.ControlPlane.Status.ID = cluster.ID()
 
 	return ctrl.Result{}, nil
+}
+
+func (r *ROSAControlPlaneReconciler) reconcileRosaRoleConfig(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (*expinfrav1.ROSARoleConfig, error) {
+	rosaRoleConfig := &expinfrav1.ROSARoleConfig{}
+	// Get role configuration from either RosaRoleConfig or direct fields
+	if rosaScope.ControlPlane.Spec.RosaRoleConfigRef != nil {
+		// Get RosaRoleConfig
+		key := client.ObjectKey{
+			Name:      rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name,
+			Namespace: rosaScope.ControlPlane.Namespace,
+		}
+
+		if err := r.Client.Get(ctx, key, rosaRoleConfig); err != nil {
+			conditions.MarkFalse(rosaScope.ControlPlane,
+				rosacontrolplanev1.ROSARoleConfigReadyCondition,
+				rosacontrolplanev1.ROSARoleConfigNotFoundReason,
+				clusterv1.ConditionSeverityError,
+				"Failed to get RosaRoleConfig %s/%s", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name)
+
+			return nil, err
+		}
+
+		// Check if RosaRoleConfig is ready
+		if !conditions.IsTrue(rosaRoleConfig, expinfrav1.RosaRoleConfigReadyCondition) {
+			conditions.MarkFalse(rosaScope.ControlPlane,
+				rosacontrolplanev1.ROSARoleConfigReadyCondition,
+				rosacontrolplanev1.ROSARoleConfigNotReadyReason,
+				clusterv1.ConditionSeverityWarning,
+				"RosaRoleConfig %s/%s is not ready", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name)
+
+			return nil, fmt.Errorf("RosaRoleConfig %s/%s is not ready", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name)
+		}
+		conditions.MarkTrue(rosaScope.ControlPlane, rosacontrolplanev1.ROSARoleConfigReadyCondition)
+	} else {
+		rosaRoleConfig.Status.OIDCID = rosaScope.ControlPlane.Spec.OIDCID
+		rosaRoleConfig.Status.AccountRolesRef.InstallerRoleARN = rosaScope.ControlPlane.Spec.InstallerRoleARN
+		rosaRoleConfig.Status.AccountRolesRef.SupportRoleARN = rosaScope.ControlPlane.Spec.SupportRoleARN
+		rosaRoleConfig.Status.AccountRolesRef.WorkerRoleARN = rosaScope.ControlPlane.Spec.WorkerRoleARN
+		rosaRoleConfig.Status.OperatorRolesRef = rosaScope.ControlPlane.Spec.RolesRef
+	}
+
+	return rosaRoleConfig, nil
 }
 
 func (r *ROSAControlPlaneReconciler) reconcileDelete(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (res ctrl.Result, reterr error) {
@@ -924,7 +973,7 @@ func validateControlPlaneSpec(ocmClient rosa.OCMClient, rosaScope *scope.ROSACon
 	return "", nil
 }
 
-func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpec, creator *rosaaws.Creator) (ocm.Spec, error) {
+func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpec, roleConfig *expinfrav1.ROSARoleConfig, creator *rosaaws.Creator) (ocm.Spec, error) {
 	billingAccount := controlPlaneSpec.BillingAccount
 	if billingAccount == "" {
 		billingAccount = creator.AccountID
@@ -948,11 +997,11 @@ func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpe
 
 		SubnetIds:        controlPlaneSpec.Subnets,
 		IsSTS:            true,
-		RoleARN:          controlPlaneSpec.InstallerRoleARN,
-		SupportRoleARN:   controlPlaneSpec.SupportRoleARN,
-		WorkerRoleARN:    controlPlaneSpec.WorkerRoleARN,
-		OperatorIAMRoles: operatorIAMRoles(controlPlaneSpec.RolesRef),
-		OidcConfigId:     controlPlaneSpec.OIDCID,
+		RoleARN:          roleConfig.Status.AccountRolesRef.InstallerRoleARN,
+		SupportRoleARN:   roleConfig.Status.AccountRolesRef.SupportRoleARN,
+		WorkerRoleARN:    roleConfig.Status.AccountRolesRef.WorkerRoleARN,
+		OperatorIAMRoles: operatorIAMRoles(roleConfig.Status.OperatorRolesRef),
+		OidcConfigId:     roleConfig.Status.OIDCID,
 		Mode:             "auto",
 		Hypershift: ocm.Hypershift{
 			Enabled: true,

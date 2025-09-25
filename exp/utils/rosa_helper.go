@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 
+	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/rosa"
 )
@@ -49,7 +50,7 @@ func NodePoolToRosaMachinePoolSpec(nodePool *cmv1.NodePool) expinfrav1.RosaMachi
 	}
 
 	if nodePool.Autoscaling() != nil {
-		spec.Autoscaling = &expinfrav1.RosaMachinePoolAutoScaling{
+		spec.Autoscaling = &rosacontrolplanev1.AutoScaling{
 			MinReplicas: nodePool.Autoscaling().MinReplica(),
 			MaxReplicas: nodePool.Autoscaling().MaxReplica(),
 		}
