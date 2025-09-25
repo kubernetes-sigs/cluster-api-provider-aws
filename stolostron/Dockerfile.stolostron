@@ -1,0 +1,30 @@
+FROM registry.access.redhat.com/ubi8/go-toolset:1.24.6-1755529056 AS toolchain
+
+# Run this with docker build --build_arg $(go env GOPROXY) to override the goproxy
+ARG goproxy=https://proxy.golang.org
+ENV GOPROXY=$goproxy
+
+FROM toolchain AS builder
+
+ENV GOPATH=/opt/app-root/src/go
+ENV GOFLAGS="-buildvcs=false"
+
+COPY . .
+
+# Cache deps before building and copying source so that we don't need to re-download as much
+# and so that source changes don't invalidate our downloaded layer
+RUN  --mount=type=cache,target=/root/.local/share/golang \
+     --mount=type=cache,target=/go/pkg/mod \
+     go mod download
+
+# Build
+ARG package=.
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.local/share/golang \
+    CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -ldflags "-extldflags '-static'"  -o manager ${package}
+
+# Copy the controller-manager into a thin image
+FROM registry.access.redhat.com/ubi9/ubi:9.6-1754380668
+COPY --from=builder /opt/app-root/src/manager /bin/cluster-api-provider-aws-controller-manager
+ENTRYPOINT ["/bin/cluster-api-provider-aws-controller-manager"]
