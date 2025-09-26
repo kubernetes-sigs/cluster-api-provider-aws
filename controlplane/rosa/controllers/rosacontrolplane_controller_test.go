@@ -181,7 +181,7 @@ func TestUpdateOCMClusterSpec(t *testing.T) {
 	})
 
 	// Test case 6: channel group update
-	t.Run("Update AllowedRegistriesForImport", func(t *testing.T) {
+	t.Run("Update channel group", func(t *testing.T) {
 		rosaControlPlane := &rosacontrolplanev1.ROSAControlPlane{
 			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
 				ChannelGroup: rosacontrolplanev1.Candidate,
@@ -195,6 +195,34 @@ func TestUpdateOCMClusterSpec(t *testing.T) {
 
 		expectedOCMSpec := ocm.Spec{
 			ChannelGroup: "candidate",
+		}
+
+		reconciler := &ROSAControlPlaneReconciler{}
+		ocmSpec, updated := reconciler.updateOCMClusterSpec(rosaControlPlane, mockCluster)
+
+		g.Expect(updated).To(BeTrue())
+		g.Expect(ocmSpec).To(Equal(expectedOCMSpec))
+	})
+
+	// Test case 7: AutoNode update
+	t.Run("Update Auto Node", func(t *testing.T) {
+		rosaControlPlane := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				AutoNode: &rosacontrolplanev1.AutoNode{
+					Mode:    rosacontrolplanev1.Enabled,
+					RoleARN: "autoNodeARN",
+				},
+			},
+		}
+
+		mockCluster, _ := v1.NewCluster().
+			AutoNode(v1.NewClusterAutoNode().Mode("disabled")).
+			AWS(v1.NewAWS().AutoNode(v1.NewAwsAutoNode().RoleArn("anyARN"))).
+			Build()
+
+		expectedOCMSpec := ocm.Spec{
+			AutoNodeMode:    "enabled",
+			AutoNodeRoleARN: "autoNodeARN",
 		}
 
 		reconciler := &ROSAControlPlaneReconciler{}
