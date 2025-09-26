@@ -88,7 +88,6 @@ This KEP proposes a new type that handles bootstrapping with `nodeadm` alone. Th
  The **cons** are:
 
    * The scope of work to support EKS nodes grows significantly and is pushed out.
-   * Users need to know that setting `AWSMachine.Spec.Ami.EKSLookupType` to `AmazonLinux` won’t work with the new `nodeadm` bootstrap method.
 
  ### User Stories
 
@@ -110,10 +109,6 @@ This KEP proposes a new type that handles bootstrapping with `nodeadm` alone. Th
  // Containerd contains options for containerd.
  // +optional
  Containerd *ContainerdOptions `json:"containerd,omitempty"`
-
- // Instance contains options for the node's operating system and devices.
- // +optional
- Instance *InstanceOptions `json:"instance,omitempty"`
 
  // FeatureGates holds key-value pairs to enable or disable application features.
  // +optional
@@ -282,6 +277,7 @@ A valid concern that CAPA users will have is upgrading existing clusters to mach
            kind: NodeadmConfigTemplate
            name: default-133
        infrastructureRef:
+         apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
          kind: AWSMachinePool
          name: default
        version: v1.33.0
@@ -293,11 +289,6 @@ A valid concern that CAPA users will have is upgrading existing clusters to mach
     * Integration tests for new Nodeadm Controller.
     * E2e tests exercising the migration from EKSConfig to NodeadmConfig,
 
-
- ## Drawbacks
-
-   * The scope of work to support EKS nodes grows significantly and is pushed out.
-   * Users need to know that setting `AWSMachine.Spec.Ami.EKSLookupType` to `AmazonLinux` won’t work with the new `nodeadm` bootstrap method.
 
  -----
 
