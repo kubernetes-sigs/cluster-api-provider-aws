@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/smithy-go/ptr"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -43,8 +44,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/rosa"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -136,19 +136,17 @@ func TestRosaClusterReconcile(t *testing.T) {
 				UID:       types.UID("capi-cluster-1"),
 			},
 			Spec: clusterv1.ClusterSpec{
-				InfrastructureRef: &corev1.ObjectReference{
-					Name:       rosaCluster.Name,
-					Kind:       "ROSACluster",
-					APIVersion: expinfrav1.GroupVersion.String(),
-					Namespace:  ns.Name,
+				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+					Name:     rosaCluster.Name,
+					Kind:     "ROSACluster",
+					APIGroup: expinfrav1.GroupVersion.Group,
 				},
-				ControlPlaneRef: &corev1.ObjectReference{
-					Name:       rosaControlPlane.Name,
-					Kind:       "ROSAControlPlane",
-					APIVersion: rosacontrolplanev1.GroupVersion.String(),
-					Namespace:  ns.Name,
+				ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+					Name:     rosaControlPlane.Name,
+					Kind:     "ROSAControlPlane",
+					APIGroup: expinfrav1.GroupVersion.Group,
 				},
-				Paused: false,
+				Paused: ptr.Bool(false),
 			},
 		}
 
@@ -169,7 +167,7 @@ func TestRosaClusterReconcile(t *testing.T) {
 
 		// set controlplane status
 		rosaCPPatch, err := patch.NewHelper(rosaControlPlane, testEnv)
-		rosaControlPlane.Status.Ready = true
+		rosaControlPlane.Status.Initialization.ControlPlaneInitialized = true
 		rosaControlPlane.Status.Version = "4.19.20"
 		rosaControlPlane.Status.ID = rosaClusterName
 		g.Expect(rosaCPPatch.Patch(ctx, rosaControlPlane)).To(Succeed())
@@ -177,11 +175,11 @@ func TestRosaClusterReconcile(t *testing.T) {
 
 		// set rosaCluster pause conditions
 		rosaClsPatch, err := patch.NewHelper(rosaCluster, testEnv)
-		rosaCluster.Status.Conditions = clusterv1.Conditions{
-			clusterv1.Condition{
-				Type:    clusterv1.PausedV1Beta2Condition,
-				Status:  corev1.ConditionFalse,
-				Reason:  clusterv1.NotPausedV1Beta2Reason,
+		rosaCluster.Status.Conditions = []metav1.Condition{
+			metav1.Condition{
+				Type:    clusterv1.PausedCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.PausedReason,
 				Message: "",
 			},
 		}
@@ -190,11 +188,11 @@ func TestRosaClusterReconcile(t *testing.T) {
 
 		// set capiCluster pause condition
 		clsPatch, err := patch.NewHelper(capiCluster, testEnv)
-		capiCluster.Status.Conditions = clusterv1.Conditions{
-			clusterv1.Condition{
-				Type:    clusterv1.PausedV1Beta2Condition,
-				Status:  corev1.ConditionFalse,
-				Reason:  clusterv1.NotPausedV1Beta2Reason,
+		capiCluster.Status.Conditions = []metav1.Condition{
+			metav1.Condition{
+				Type:    clusterv1.PausedCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.PausedReason,
 				Message: "",
 			},
 		}
@@ -282,7 +280,7 @@ func TestRosaClusterReconcile(t *testing.T) {
 		errRosaMP := testEnv.Get(ctx, keyRosaMP, rosaMachinePool)
 		g.Expect(errRosaMP).ToNot(HaveOccurred())
 
-		machinePool := &expclusterv1.MachinePool{}
+		machinePool := &clusterv1.MachinePool{}
 		keyMP := client.ObjectKey{Name: nodePoolName, Namespace: ns.Name}
 		errMP := testEnv.Get(ctx, keyMP, machinePool)
 		g.Expect(errMP).ToNot(HaveOccurred())

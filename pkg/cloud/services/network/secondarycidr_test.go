@@ -35,13 +35,13 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
-	"sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 func setupNewManagedControlPlaneScope(cl client.Client) (*scope.ManagedControlPlaneScope, error) {
 	return scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
 		Client:  cl,
-		Cluster: &v1beta1.Cluster{},
+		Cluster: &v1beta2.Cluster{},
 		ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
 			Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
 				SecondaryCidrBlock: ptr.To[string]("secondary-cidr"),

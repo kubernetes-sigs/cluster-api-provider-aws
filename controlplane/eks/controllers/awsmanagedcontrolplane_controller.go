@@ -22,8 +22,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/smithy-go/ptr"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
@@ -51,10 +53,10 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/network"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/securitygroup"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/util/paused"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -178,7 +180,7 @@ func (r *AWSManagedControlPlaneReconciler) SetupWithManager(ctx context.Context,
 	if err = c.Watch(
 		source.Kind[client.Object](mgr.GetCache(), &clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, awsManagedControlPlane.GroupVersionKind(), mgr.GetClient(), &ekscontrolplanev1.AWSManagedControlPlane{})),
-			predicates.ClusterPausedTransitionsOrInfrastructureReady(mgr.GetScheme(), log.GetLogger())),
+			predicates.ClusterPausedTransitionsOrInfrastructureProvisioned(mgr.GetScheme(), log.GetLogger())),
 	); err != nil {
 		return fmt.Errorf("failed adding a watch for ready clusters: %w", err)
 	}
@@ -258,7 +260,7 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 
 	// Always close the scope
 	defer func() {
-		applicableConditions := []clusterv1.ConditionType{
+		forConditionTypes := conditions.ForConditionTypes{
 			ekscontrolplanev1.EKSControlPlaneReadyCondition,
 			ekscontrolplanev1.IAMControlPlaneRolesReadyCondition,
 			ekscontrolplanev1.IAMAuthenticatorConfiguredCondition,
@@ -269,21 +271,32 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 		}
 
 		if managedScope.VPC().IsManaged(managedScope.Name()) {
-			applicableConditions = append(applicableConditions,
+			forConditionTypes = append(forConditionTypes,
 				infrav1.InternetGatewayReadyCondition,
 				infrav1.NatGatewaysReadyCondition,
 				infrav1.RouteTablesReadyCondition,
 				infrav1.VpcEndpointsReadyCondition,
 			)
 			if managedScope.Bastion().Enabled {
-				applicableConditions = append(applicableConditions, infrav1.BastionHostReadyCondition)
+				forConditionTypes = append(forConditionTypes, infrav1.BastionHostReadyCondition)
 			}
 			if managedScope.VPC().IsIPv6Enabled() {
-				applicableConditions = append(applicableConditions, infrav1.EgressOnlyInternetGatewayReadyCondition)
+				forConditionTypes = append(forConditionTypes, infrav1.EgressOnlyInternetGatewayReadyCondition)
 			}
 		}
 
-		conditions.SetSummary(managedScope.ControlPlane, conditions.WithConditions(applicableConditions...), conditions.WithStepCounter())
+		summaryOpts := []conditions.SummaryOption{
+			forConditionTypes,
+		}
+
+		readyCondition, err := conditions.NewSummaryCondition(managedScope.ControlPlane, clusterv1.ReadyCondition, summaryOpts...)
+		if err != nil {
+			readyCondition = &metav1.Condition{
+				Type:   clusterv1.ReadyCondition,
+				Status: metav1.ConditionFalse,
+			}
+		}
+		conditions.Set(managedScope.ControlPlane, *readyCondition)
 
 		if err := managedScope.Close(); err != nil && reterr == nil {
 			reterr = err
@@ -302,7 +315,7 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, managedScope *scope.ManagedControlPlaneScope) (res ctrl.Result, reterr error) {
 	managedScope.Info("Reconciling AWSManagedControlPlane")
 
-	if managedScope.Cluster.Spec.InfrastructureRef == nil {
+	if !managedScope.Cluster.Spec.InfrastructureRef.IsDefined() {
 		managedScope.Info("InfrastructureRef not set, skipping reconciliation")
 		return ctrl.Result{}, nil
 	}
@@ -312,7 +325,7 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 	// infrastructureRef and controlplaneRef.
 	if managedScope.Cluster.Spec.InfrastructureRef.Kind != awsManagedControlPlaneKind {
 		// Wait for the cluster infrastructure to be ready before creating machines
-		if !managedScope.Cluster.Status.InfrastructureReady {
+		if !*managedScope.Cluster.Status.Initialization.InfrastructureProvisioned {
 			managedScope.Info("Cluster infrastructure is not ready yet")
 			return ctrl.Result{RequeueAfter: r.WaitInfraPeriod}, nil
 		}
@@ -339,12 +352,22 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 	}
 
 	if err := sgService.ReconcileSecurityGroups(); err != nil {
-		conditions.MarkFalse(awsManagedControlPlane, infrav1.ClusterSecurityGroupsReadyCondition, infrav1.ClusterSecurityGroupReconciliationFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
+		conditions.Set(awsManagedControlPlane, metav1.Condition{
+			Type:    infrav1.ClusterSecurityGroupsReadyCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  infrav1.ClusterSecurityGroupReconciliationFailedReason,
+			Message: fmt.Sprintf("%s", err),
+		})
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile general security groups for AWSManagedControlPlane %s/%s", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name)
 	}
 
 	if err := ec2Service.ReconcileBastion(); err != nil {
-		conditions.MarkFalse(awsManagedControlPlane, infrav1.BastionHostReadyCondition, infrav1.BastionHostFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
+		conditions.Set(awsManagedControlPlane, metav1.Condition{
+			Type:    infrav1.BastionHostReadyCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  infrav1.BastionHostFailedReason,
+			Message: fmt.Sprintf("%s", err),
+		})
 		return reconcile.Result{}, fmt.Errorf("failed to reconcile bastion host for AWSManagedControlPlane %s/%s: %w", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name, err)
 	}
 
@@ -353,7 +376,12 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 	}
 
 	if err := awsnodeService.ReconcileCNI(ctx); err != nil {
-		conditions.MarkFalse(managedScope.InfraCluster(), infrav1.SecondaryCidrsReadyCondition, infrav1.SecondaryCidrReconciliationFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
+		conditions.Set(awsManagedControlPlane, metav1.Condition{
+			Type:    infrav1.SecondaryCidrsReadyCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  infrav1.SecondaryCidrReconciliationFailedReason,
+			Message: fmt.Sprintf("%s", err),
+		})
 		return reconcile.Result{}, fmt.Errorf("failed to reconcile control plane for AWSManagedControlPlane %s/%s: %w", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name, err)
 	}
 
@@ -369,14 +397,22 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 		}
 	}
 	if err := authService.ReconcileIAMAuthenticator(ctx); err != nil {
-		conditions.MarkFalse(awsManagedControlPlane, ekscontrolplanev1.IAMAuthenticatorConfiguredCondition, ekscontrolplanev1.IAMAuthenticatorConfigurationFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
+		conditions.Set(awsManagedControlPlane, metav1.Condition{
+			Type:    ekscontrolplanev1.IAMAuthenticatorConfiguredCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  ekscontrolplanev1.IAMAuthenticatorConfigurationFailedReason,
+			Message: fmt.Sprintf("%s", err),
+		})
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile aws-iam-authenticator config for AWSManagedControlPlane %s/%s", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name)
 	}
-	conditions.MarkTrue(awsManagedControlPlane, ekscontrolplanev1.IAMAuthenticatorConfiguredCondition)
+	conditions.Set(awsManagedControlPlane, metav1.Condition{
+		Type:   ekscontrolplanev1.IAMAuthenticatorConfiguredCondition,
+		Status: metav1.ConditionTrue,
+	})
 
 	for _, subnet := range managedScope.Subnets().FilterPrivate() {
-		managedScope.SetFailureDomain(subnet.AvailabilityZone, clusterv1.FailureDomainSpec{
-			ControlPlane: true,
+		managedScope.SetFailureDomain(subnet.AvailabilityZone, []clusterv1.FailureDomain{
+			{Name: subnet.AvailabilityZone, ControlPlane: ptr.Bool(true)},
 		})
 	}
 
@@ -451,8 +487,11 @@ func (r *AWSManagedControlPlaneReconciler) ClusterToAWSManagedControlPlane(o cli
 	}
 
 	controlPlaneRef := c.Spec.ControlPlaneRef
-	if controlPlaneRef != nil && controlPlaneRef.Kind == awsManagedControlPlaneKind {
-		return []ctrl.Request{{NamespacedName: client.ObjectKey{Namespace: controlPlaneRef.Namespace, Name: controlPlaneRef.Name}}}
+	if controlPlaneRef.IsDefined() && controlPlaneRef.Kind == awsManagedControlPlaneKind {
+		return []ctrl.Request{{NamespacedName: client.ObjectKey{
+			Name:      controlPlaneRef.Name,
+			Namespace: c.Namespace,
+		}}}
 	}
 
 	return nil
@@ -522,7 +561,7 @@ func (r *AWSManagedControlPlaneReconciler) managedClusterToManagedControlPlane(_
 		}
 
 		controlPlaneRef := cluster.Spec.ControlPlaneRef
-		if controlPlaneRef == nil || controlPlaneRef.Kind != awsManagedControlPlaneKind {
+		if !controlPlaneRef.IsDefined() || controlPlaneRef.Kind != awsManagedControlPlaneKind {
 			log.Debug("ControlPlaneRef is nil or not AWSManagedControlPlane, skipping mapping")
 			return nil
 		}
@@ -531,7 +570,7 @@ func (r *AWSManagedControlPlaneReconciler) managedClusterToManagedControlPlane(_
 			{
 				NamespacedName: types.NamespacedName{
 					Name:      controlPlaneRef.Name,
-					Namespace: controlPlaneRef.Namespace,
+					Namespace: cluster.Namespace,
 				},
 			},
 		}

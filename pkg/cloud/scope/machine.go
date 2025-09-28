@@ -19,20 +19,23 @@ package scope
 import (
 	"context"
 	"encoding/base64"
+	"slices"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
+	clusterapiv1beta1util "sigs.k8s.io/cluster-api-provider-aws/v2/util/clusterapiv1beta1"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -183,16 +186,6 @@ func (m *MachineScope) SetNotReady() {
 	m.AWSMachine.Status.Ready = false
 }
 
-// SetFailureMessage sets the AWSMachine status failure message.
-func (m *MachineScope) SetFailureMessage(v error) {
-	m.AWSMachine.Status.FailureMessage = ptr.To[string](v.Error())
-}
-
-// SetFailureReason sets the AWSMachine status failure reason.
-func (m *MachineScope) SetFailureReason(v string) {
-	m.AWSMachine.Status.FailureReason = &v
-}
-
 // SetAnnotation sets a key value annotation on the AWSMachine.
 func (m *MachineScope) SetAnnotation(key, value string) {
 	if m.AWSMachine.Annotations == nil {
@@ -302,25 +295,48 @@ func (m *MachineScope) GetRawBootstrapDataWithFormat() ([]byte, string, error) {
 func (m *MachineScope) PatchObject() error {
 	// Always update the readyCondition by summarizing the state of other conditions.
 	// A step counter is added to represent progress during the provisioning process (instead we are hiding during the deletion process).
-	applicableConditions := []clusterv1.ConditionType{
+	forConditionTypes := conditions.ForConditionTypes{
 		infrav1.InstanceReadyCondition,
 		infrav1.SecurityGroupsReadyCondition,
 	}
 
 	if m.IsControlPlane() {
-		applicableConditions = append(applicableConditions, infrav1.ELBAttachedCondition)
+		forConditionTypes = append(forConditionTypes, infrav1.ELBAttachedCondition)
 	}
 
-	conditions.SetSummary(m.AWSMachine,
-		conditions.WithConditions(applicableConditions...),
-		conditions.WithStepCounterIf(m.AWSMachine.ObjectMeta.DeletionTimestamp.IsZero()),
-		conditions.WithStepCounter(),
-	)
+	// TODO(@toby-archer-tr): Review Summary Options for correctness.
+
+	summaryOpts := []conditions.SummaryOption{
+		forConditionTypes,
+		//// Instruct summary to consider Deleting condition with negative polarity.
+		//conditions.NegativePolarityConditionTypes{},
+		//// Using a custom merge strategy to override reasons applied during merge and to ignore some
+		//// info message so the available condition is less noisy.
+		//conditions.CustomMergeStrategy{
+		//	MergeStrategy: clusterConditionCustomMergeStrategy{
+		//		cluster: cluster,
+		//		// Instruct merge to consider Deleting condition with negative polarity,
+		//		negativePolarityConditionTypes: negativePolarityConditionTypes,
+		//	},
+		//},
+	}
+
+	availableCondition, err := conditions.NewSummaryCondition(m.AWSMachine, clusterv1.MachineReadyCondition, summaryOpts...)
+	if err != nil {
+		availableCondition = &metav1.Condition{
+			Type:    clusterv1.MachinesReadyCondition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.ClusterAvailableInternalErrorReason,
+			Message: "Please check controller logs for errors",
+		}
+	}
+
+	conditions.Set(m.AWSMachine, *availableCondition)
 
 	return m.patchHelper.Patch(
 		context.TODO(),
 		m.AWSMachine,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+		patch.WithOwnedConditions{Conditions: []string{
 			clusterv1.ReadyCondition,
 			infrav1.InstanceReadyCondition,
 			infrav1.SecurityGroupsReadyCondition,
@@ -348,7 +364,9 @@ func (m *MachineScope) AdditionalTags() infrav1.Tags {
 
 // HasFailed returns the failure state of the machine scope.
 func (m *MachineScope) HasFailed() bool {
-	return m.AWSMachine.Status.FailureReason != nil || m.AWSMachine.Status.FailureMessage != nil
+	return slices.ContainsFunc(m.AWSMachine.Status.Conditions, func(condition metav1.Condition) bool {
+		return condition.Status == metav1.StatusFailure
+	})
 }
 
 // InstanceIsRunning returns the instance state of the machine scope.
@@ -399,7 +417,7 @@ func (m *MachineScope) IsControlPlaneExternallyManaged() bool {
 		m.Error(err, "failed to get unstructured control plane")
 		return false
 	}
-	return util.IsExternalManagedControlPlane(u)
+	return clusterapiv1beta1util.IsExternalManagedControlPlane(u)
 }
 
 // IsExternallyManaged checks if the machine is externally managed.

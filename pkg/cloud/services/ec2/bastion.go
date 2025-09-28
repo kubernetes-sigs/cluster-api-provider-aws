@@ -26,13 +26,14 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
@@ -73,7 +74,11 @@ func (s *Service) ReconcileBastion() error {
 	instance, err := s.describeBastionInstance()
 	if awserrors.IsNotFound(err) { //nolint:nestif
 		if !conditions.Has(s.scope.InfraCluster(), infrav1.BastionHostReadyCondition) {
-			conditions.MarkFalse(s.scope.InfraCluster(), infrav1.BastionHostReadyCondition, infrav1.BastionCreationStartedReason, clusterv1.ConditionSeverityInfo, "")
+			conditions.Set(s.scope.InfraCluster(), metav1.Condition{
+				Type:   infrav1.BastionHostReadyCondition,
+				Status: metav1.ConditionFalse,
+				Reason: infrav1.BastionCreationStartedReason,
+			})
 			if err := s.scope.PatchObject(); err != nil {
 				return errors.Wrap(err, "failed to patch conditions")
 			}
@@ -98,7 +103,10 @@ func (s *Service) ReconcileBastion() error {
 	// TODO(vincepri): check for possible changes between the default spec and the instance.
 
 	s.scope.SetBastionInstance(instance.DeepCopy())
-	conditions.MarkTrue(s.scope.InfraCluster(), infrav1.BastionHostReadyCondition)
+	conditions.Set(s.scope.InfraCluster(), metav1.Condition{
+		Type:   infrav1.BastionHostReadyCondition,
+		Status: metav1.ConditionTrue,
+	})
 	s.scope.Debug("Reconcile bastion completed successfully")
 
 	return nil
@@ -114,21 +122,33 @@ func (s *Service) DeleteBastion() error {
 		}
 		return errors.Wrap(err, "unable to describe bastion instance")
 	}
-
-	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.BastionHostReadyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+	conditions.Set(s.scope.InfraCluster(), metav1.Condition{
+		Type:   infrav1.BastionHostReadyCondition,
+		Status: metav1.ConditionFalse,
+		Reason: clusterv1.DeletingReason,
+	})
 	if err := s.scope.PatchObject(); err != nil {
 		return err
 	}
 
 	if err := s.TerminateInstanceAndWait(instance.ID); err != nil {
-		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.BastionHostReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, "%s", err.Error())
+		conditions.Set(s.scope.InfraCluster(), metav1.Condition{
+			Type:    infrav1.BastionHostReadyCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  "DeletingFailed",
+			Message: fmt.Sprintf("%s", err),
+		})
 		record.Warnf(s.scope.InfraCluster(), "FailedTerminateBastion", "Failed to terminate bastion instance %q: %v", instance.ID, err)
 		return errors.Wrap(err, "unable to delete bastion instance")
 	}
 
 	s.scope.SetBastionInstance(nil)
 
-	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.BastionHostReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
+	conditions.Set(s.scope.InfraCluster(), metav1.Condition{
+		Type:   infrav1.BastionHostReadyCondition,
+		Status: metav1.ConditionFalse,
+		Reason: clusterv1.DeletedV1Beta1Reason,
+	})
 	record.Eventf(s.scope.InfraCluster(), "SuccessfulTerminateBastion", "Terminated bastion instance %q", instance.ID)
 	s.scope.Info("Deleted bastion host", "id", instance.ID)
 

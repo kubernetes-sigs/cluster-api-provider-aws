@@ -28,7 +28,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/cluster-api/util/conditions"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
@@ -39,7 +41,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/utils"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 // GetRunningInstanceByTags returns the existing instance or nothing if it doesn't exist.
@@ -144,10 +146,14 @@ func (s *Service) CreateInstance(ctx context.Context, scope *scope.MachineScope,
 	if scope.AWSMachine.Spec.AMI.ID != nil { //nolint:nestif
 		input.ImageID = *scope.AWSMachine.Spec.AMI.ID
 	} else {
-		if scope.Machine.Spec.Version == nil {
+		if scope.Machine.Spec.Version == "" {
 			err := errors.New("Either AWSMachine's spec.ami.id or Machine's spec.version must be defined")
-			scope.SetFailureReason("CreateError")
-			scope.SetFailureMessage(err)
+			conditions.Set(scope.AWSMachine, metav1.Condition{
+				Type:    clusterv1.ReadyCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  "CreateError",
+				Message: fmt.Sprintf("%s", err),
+			})
 			return nil, err
 		}
 
@@ -167,12 +173,12 @@ func (s *Service) CreateInstance(ctx context.Context, scope *scope.MachineScope,
 		}
 
 		if scope.IsEKSManaged() && imageLookupFormat == "" && imageLookupOrg == "" && imageLookupBaseOS == "" {
-			input.ImageID, err = s.eksAMILookup(ctx, *scope.Machine.Spec.Version, imageArchitecture, scope.AWSMachine.Spec.AMI.EKSOptimizedLookupType)
+			input.ImageID, err = s.eksAMILookup(ctx, scope.Machine.Spec.Version, imageArchitecture, scope.AWSMachine.Spec.AMI.EKSOptimizedLookupType)
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			input.ImageID, err = s.defaultAMIIDLookup(imageLookupFormat, imageLookupOrg, imageLookupBaseOS, imageArchitecture, *scope.Machine.Spec.Version)
+			input.ImageID, err = s.defaultAMIIDLookup(imageLookupFormat, imageLookupOrg, imageLookupBaseOS, imageArchitecture, scope.Machine.Spec.Version)
 			if err != nil {
 				return nil, err
 			}
@@ -355,11 +361,12 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 		var filtered []types.Subnet
 		var errMessage string
 		for _, subnet := range subnets {
-			if failureDomain != nil && *subnet.AvailabilityZone != *failureDomain {
+
+			if failureDomain != "" && *subnet.AvailabilityZone != failureDomain {
 				// we could have included the failure domain in the query criteria, but then we end up with EC2 error
 				// messages that don't give a good hint about what is really wrong
 				errMessage += fmt.Sprintf(" subnet %q availability zone %q does not match failure domain %q.",
-					*subnet.SubnetId, *subnet.AvailabilityZone, *failureDomain)
+					*subnet.SubnetId, *subnet.AvailabilityZone, failureDomain)
 				continue
 			}
 
@@ -395,22 +402,22 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 			return "", awserrors.NewFailedDependency(errMessage)
 		}
 		return *filtered[0].SubnetId, nil
-	case failureDomain != nil:
+	case failureDomain != "":
 		if scope.AWSMachine.Spec.PublicIP != nil && *scope.AWSMachine.Spec.PublicIP {
-			subnets := s.scope.Subnets().FilterPublic().FilterNonCni().FilterByZone(*failureDomain)
+			subnets := s.scope.Subnets().FilterPublic().FilterNonCni().FilterByZone(failureDomain)
 			if len(subnets) == 0 {
 				errMessage := fmt.Sprintf("failed to run machine %q with public IP, no public subnets available in availability zone %q",
-					scope.Name(), *failureDomain)
+					scope.Name(), failureDomain)
 				record.Warnf(scope.AWSMachine, "FailedCreate", errMessage)
 				return "", awserrors.NewFailedDependency(errMessage)
 			}
 			return subnets[0].GetResourceID(), nil
 		}
 
-		subnets := s.scope.Subnets().FilterPrivate().FilterNonCni().FilterByZone(*failureDomain)
+		subnets := s.scope.Subnets().FilterPrivate().FilterNonCni().FilterByZone(failureDomain)
 		if len(subnets) == 0 {
 			errMessage := fmt.Sprintf("failed to run machine %q, no subnets available in availability zone %q",
-				scope.Name(), *failureDomain)
+				scope.Name(), failureDomain)
 			record.Warnf(scope.AWSMachine, "FailedCreate", errMessage)
 			return "", awserrors.NewFailedDependency(errMessage)
 		}

@@ -22,12 +22,14 @@ import (
 	"time"
 
 	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/smithy-go/ptr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -37,8 +39,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpoints"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -50,7 +50,7 @@ type ManagedMachinePoolScopeParams struct {
 	Cluster                   *clusterv1.Cluster
 	ControlPlane              *ekscontrolplanev1.AWSManagedControlPlane
 	ManagedMachinePool        *expinfrav1.AWSManagedMachinePool
-	MachinePool               *expclusterv1.MachinePool
+	MachinePool               *clusterv1.MachinePool
 	ControllerName            string
 	Session                   awsv2.Config
 	MaxWaitActiveUpdateDelete time.Duration
@@ -131,7 +131,7 @@ type ManagedMachinePoolScope struct {
 	Cluster                   *clusterv1.Cluster
 	ControlPlane              *ekscontrolplanev1.AWSManagedControlPlane
 	ManagedMachinePool        *expinfrav1.AWSManagedMachinePool
-	MachinePool               *expclusterv1.MachinePool
+	MachinePool               *clusterv1.MachinePool
 	EC2Scope                  EC2Scope
 	MaxWaitActiveUpdateDelete time.Duration
 
@@ -201,7 +201,7 @@ func (s *ManagedMachinePoolScope) RoleName() string {
 
 // Version returns the nodegroup Kubernetes version.
 func (s *ManagedMachinePoolScope) Version() *string {
-	return s.MachinePool.Spec.Template.Spec.Version
+	return ptr.String(s.MachinePool.Spec.Template.Spec.Version)
 }
 
 // ControlPlaneSubnets returns the control plane subnets.
@@ -228,18 +228,12 @@ func (s *ManagedMachinePoolScope) SubnetIDs() ([]string, error) {
 // NodegroupReadyFalse marks the ready condition false using warning if error isn't
 // empty.
 func (s *ManagedMachinePoolScope) NodegroupReadyFalse(reason string, err string) error {
-	severity := clusterv1.ConditionSeverityWarning
-	if err == "" {
-		severity = clusterv1.ConditionSeverityInfo
-	}
-	conditions.MarkFalse(
-		s.ManagedMachinePool,
-		expinfrav1.EKSNodegroupReadyCondition,
-		reason,
-		severity,
-		"%s",
-		err,
-	)
+	conditions.Set(s.ManagedMachinePool, metav1.Condition{
+		Type:    expinfrav1.EKSNodegroupReadyCondition,
+		Status:  metav1.ConditionFalse,
+		Reason:  reason,
+		Message: fmt.Sprintf("%s", err),
+	})
 	if err := s.PatchObject(); err != nil {
 		return errors.Wrap(err, "failed to mark nodegroup not ready")
 	}
@@ -249,18 +243,12 @@ func (s *ManagedMachinePoolScope) NodegroupReadyFalse(reason string, err string)
 // IAMReadyFalse marks the ready condition false using warning if error isn't
 // empty.
 func (s *ManagedMachinePoolScope) IAMReadyFalse(reason string, err string) error {
-	severity := clusterv1.ConditionSeverityWarning
-	if err == "" {
-		severity = clusterv1.ConditionSeverityInfo
-	}
-	conditions.MarkFalse(
-		s.ManagedMachinePool,
-		expinfrav1.IAMNodegroupRolesReadyCondition,
-		reason,
-		severity,
-		"%s",
-		err,
-	)
+	conditions.Set(s.ManagedMachinePool, metav1.Condition{
+		Type:    expinfrav1.IAMNodegroupRolesReadyCondition,
+		Status:  metav1.ConditionFalse,
+		Reason:  reason,
+		Message: fmt.Sprintf("%s", err),
+	})
 	if err := s.PatchObject(); err != nil {
 		return errors.Wrap(err, "failed to mark nodegroup role not ready")
 	}
@@ -272,7 +260,7 @@ func (s *ManagedMachinePoolScope) PatchObject() error {
 	return s.patchHelper.Patch(
 		context.TODO(),
 		s.ManagedMachinePool,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+		patch.WithOwnedConditions{Conditions: []string{
 			expinfrav1.EKSNodegroupReadyCondition,
 			expinfrav1.IAMNodegroupRolesReadyCondition,
 		}})
@@ -410,7 +398,7 @@ func (s *ManagedMachinePoolScope) GetLaunchTemplate() *expinfrav1.AWSLaunchTempl
 }
 
 // GetMachinePool returns the machine pool.
-func (s *ManagedMachinePoolScope) GetMachinePool() *expclusterv1.MachinePool {
+func (s *ManagedMachinePoolScope) GetMachinePool() *clusterv1.MachinePool {
 	return s.MachinePool
 }
 

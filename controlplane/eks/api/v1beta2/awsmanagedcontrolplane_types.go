@@ -21,7 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 const (
@@ -273,14 +273,25 @@ type IdentityProviderStatus struct {
 	Status string `json:"status,omitempty"`
 }
 
+// AWSManagedControlPlaneInitializationStatus provides observations of the AWSManagedControlPlane initialization process.
+// +kubebuilder:validation:MinProperties=1
+type AWSManagedControlPlaneInitializationStatus struct {
+	// InfrastructureProvisioned is true when the infrastructure provider reports that the Machine's infrastructure is fully provisioned.
+	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.
+	// The value of this field is never updated after provisioning is completed.
+	// Use conditions to monitor the operational state of the Machine's infrastructure.
+	// +optional
+	InfrastructureProvisioned bool `json:"infrastructureProvisioned"`
+}
+
 // AWSManagedControlPlaneStatus defines the observed state of an Amazon EKS Cluster.
 type AWSManagedControlPlaneStatus struct {
 	// Networks holds details about the AWS networking resources used by the control plane
 	// +optional
 	Network infrav1.NetworkStatus `json:"networkStatus,omitempty"`
-	// FailureDomains specifies a list fo available availability zones that can be used
+	// FailureDomains specifies a list of available availability zones that can be used
 	// +optional
-	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
+	FailureDomains []clusterv1.FailureDomain `json:"failureDomains,omitempty"`
 	// Bastion holds details of the instance that is used as a bastion jump box
 	// +optional
 	Bastion *infrav1.Instance `json:"bastion,omitempty"`
@@ -291,20 +302,23 @@ type AWSManagedControlPlaneStatus struct {
 	// is managed by an external service such as AKS, EKS, GKE, etc.
 	// +kubebuilder:default=true
 	ExternalManagedControlPlane *bool `json:"externalManagedControlPlane,omitempty"`
-	// Initialized denotes whether or not the control plane has the
+	// Initialization denotes whether or not the control plane has the
 	// uploaded kubernetes config-map.
 	// +optional
-	Initialized bool `json:"initialized"`
+	Initialization AWSManagedControlPlaneInitializationStatus `json:"initialization,omitempty,omitzero"`
+
 	// Ready denotes that the AWSManagedControlPlane API Server is ready to
 	// receive requests and that the VPC infra is ready.
 	// +kubebuilder:default=false
 	Ready bool `json:"ready"`
-	// ErrorMessage indicates that there is a terminal problem reconciling the
-	// state, and will be set to a descriptive error message.
+
+	// Conditions specifies the conditions for the managed control plane
 	// +optional
-	FailureMessage *string `json:"failureMessage,omitempty"`
-	// Conditions specifies the cpnditions for the managed control plane
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
 	// Addons holds the current status of the EKS addons
 	// +optional
 	Addons []AddonState `json:"addons,omitempty"`
@@ -337,6 +351,12 @@ type AWSManagedControlPlane struct {
 	Status AWSManagedControlPlaneStatus `json:"status,omitempty"`
 }
 
+func (r *AWSManagedControlPlane) GetConditions() []metav1.Condition { return r.Status.Conditions }
+
+func (r *AWSManagedControlPlane) SetConditions(conditions []metav1.Condition) {
+	r.Status.Conditions = conditions
+}
+
 // +kubebuilder:object:root=true
 
 // AWSManagedControlPlaneList contains a list of Amazon EKS Managed Control Planes.
@@ -344,16 +364,6 @@ type AWSManagedControlPlaneList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []AWSManagedControlPlane `json:"items"`
-}
-
-// GetConditions returns the control planes conditions.
-func (r *AWSManagedControlPlane) GetConditions() clusterv1.Conditions {
-	return r.Status.Conditions
-}
-
-// SetConditions sets the status conditions for the AWSManagedControlPlane.
-func (r *AWSManagedControlPlane) SetConditions(conditions clusterv1.Conditions) {
-	r.Status.Conditions = conditions
 }
 
 func init() {

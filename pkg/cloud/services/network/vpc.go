@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 
@@ -36,7 +37,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/tags"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/utils"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
@@ -138,7 +138,11 @@ func (s *Service) reconcileVPC() error {
 	s.scope.VPC().ID = vpc.ID
 
 	if !conditions.Has(s.scope.InfraCluster(), infrav1.VpcReadyCondition) {
-		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.VpcReadyCondition, infrav1.VpcCreationStartedReason, clusterv1.ConditionSeverityInfo, "")
+		conditions.Set(s.scope.InfraCluster(), metav1.Condition{
+			Type:   infrav1.VpcReadyCondition,
+			Status: metav1.ConditionTrue,
+			Reason: infrav1.VpcCreationStartedReason,
+		})
 		if err := s.scope.PatchObject(); err != nil {
 			return errors.Wrap(err, "failed to patch conditions")
 		}

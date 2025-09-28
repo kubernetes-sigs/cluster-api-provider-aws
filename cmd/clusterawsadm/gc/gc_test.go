@@ -22,7 +22,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -31,7 +30,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/annotations"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
 )
 
@@ -105,7 +104,7 @@ func TestEnableGC(t *testing.T) {
 			cluster := tc.existingObjs[0].(*clusterv1.Cluster)
 			ref := cluster.Spec.InfrastructureRef
 
-			obj, err := external.Get(ctx, fake, ref)
+			obj, err := external.GetObjectFromContractVersionedRef(ctx, fake, ref, cluster.Namespace)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(obj).NotTo(BeNil())
 
@@ -176,7 +175,7 @@ func TestDisableGC(t *testing.T) {
 			cluster := tc.existingObjs[0].(*clusterv1.Cluster)
 			ref := cluster.Spec.InfrastructureRef
 
-			obj, err := external.Get(ctx, fake, ref)
+			obj, err := external.GetObjectFromContractVersionedRef(ctx, fake, ref, cluster.Namespace)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(obj).NotTo(BeNil())
 
@@ -271,7 +270,7 @@ func TestConfigureGC(t *testing.T) {
 			cluster := tc.existingObjs[0].(*clusterv1.Cluster)
 			ref := cluster.Spec.InfrastructureRef
 
-			obj, err := external.Get(ctx, fake, ref)
+			obj, err := external.GetObjectFromContractVersionedRef(ctx, fake, ref, cluster.Namespace)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(obj).NotTo(BeNil())
 
@@ -304,11 +303,10 @@ func newManagedCluster(name string, excludeInfra bool) []client.Object {
 				Namespace: "default",
 			},
 			Spec: clusterv1.ClusterSpec{
-				InfrastructureRef: &corev1.ObjectReference{
-					Name:       name,
-					Namespace:  "default",
-					Kind:       "AWSManagedControlPlane",
-					APIVersion: ekscontrolplanev1.GroupVersion.String(),
+				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+					Kind:     "AWSManagedControlPlane",
+					Name:     name,
+					APIGroup: ekscontrolplanev1.GroupVersion.Group,
 				},
 			},
 		},
@@ -351,11 +349,10 @@ func newUnManagedCluster(name string, excludeInfra bool) []client.Object {
 				Namespace: "default",
 			},
 			Spec: clusterv1.ClusterSpec{
-				InfrastructureRef: &corev1.ObjectReference{
-					Name:       name,
-					Namespace:  "default",
-					Kind:       "AWSCluster",
-					APIVersion: infrav1.GroupVersion.String(),
+				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+					Name:     name,
+					Kind:     "AWSCluster",
+					APIGroup: infrav1.GroupVersion.Group,
 				},
 			},
 		},

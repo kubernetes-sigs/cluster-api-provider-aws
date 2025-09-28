@@ -23,7 +23,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // Constants block.
@@ -192,19 +191,46 @@ type RefreshPreferences struct {
 	MaxHealthyPercentage *int64 `json:"maxHealthyPercentage,omitempty"`
 }
 
+type AWSMachinePoolInitializationStatus struct {
+	// BootstrapDataSecretCreated is true when the bootstrap provider reports that the MachinePool's boostrap data secret is created.
+	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial MachinePool provisioning.
+	// The value of this field is never updated after provisioning is completed.
+	// Use conditions to monitor the operational state of the MachinePool's BootstrapSecret.
+	// +optional
+	BootstrapDataSecretCreated bool `json:"bootstrapDataSecretCreated"`
+
+	// InfrastructureProvisioned is true when the infrastructure provider reports that the MachinePool's infrastructure is fully provisioned.
+	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial MachinePool provisioning.
+	// The value of this field is never updated after provisioning is completed.
+	// Use conditions to monitor the operational state of the MachinePool's infrastructure.
+	// +optional
+	InfrastructureProvisioned bool `json:"infrastructureProvisioned"`
+}
+
 // AWSMachinePoolStatus defines the observed state of AWSMachinePool.
 type AWSMachinePoolStatus struct {
-	// Ready is true when the provider resource is ready.
+	// The number of ready replicas for this MachinePool. A machine is considered ready when Machine's Ready condition is true.
 	// +optional
-	Ready bool `json:"ready"`
+	ReadyReplicas *int32 `json:"readyReplicas,omitempty"`
 
-	// Replicas is the most recently observed number of replicas
+	// The number of available replicas for this MachinePool. A machine is considered available when Machine's Available condition is true.
 	// +optional
-	Replicas int32 `json:"replicas"`
+	AvailableReplicas *int32 `json:"availableReplicas,omitempty"`
+
+	// The number of up-to-date replicas targeted by this MachinePool. A machine is considered available when Machine's  UpToDate condition is true.
+	// +optional
+	UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
+
+	// Initialization provides observations of the MachinePool initialization process.
+	// NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial MachinePool provisioning.
+	// The value of those fields is never updated after provisioning is completed.
+	// Use conditions to monitor the operational state of the MachinePool.
+	// +optional
+	Initialization AWSMachinePoolInitializationStatus `json:"initialization,omitempty,omitzero"`
 
 	// Conditions defines current service state of the AWSMachinePool.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 	// Instances contains the status for each instance in the pool
 	// +optional
@@ -220,44 +246,6 @@ type AWSMachinePoolStatus struct {
 	// InfrastructureMachineKind is the kind of the infrastructure resources behind MachinePool Machines.
 	// +optional
 	InfrastructureMachineKind string `json:"infrastructureMachineKind,omitempty"`
-
-	// FailureReason will be set in the event that there is a terminal problem
-	// reconciling the Machine and will contain a succinct value suitable
-	// for machine interpretation.
-	//
-	// This field should not be set for transitive errors that a controller
-	// faces that are expected to be fixed automatically over
-	// time (like service outages), but instead indicate that something is
-	// fundamentally wrong with the Machine's spec or the configuration of
-	// the controller, and that manual intervention is required. Examples
-	// of terminal errors would be invalid combinations of settings in the
-	// spec, values that are unsupported by the controller, or the
-	// responsible controller itself being critically misconfigured.
-	//
-	// Any transient errors that occur during the reconciliation of Machines
-	// can be added as events to the Machine object and/or logged in the
-	// controller's output.
-	// +optional
-	FailureReason *string `json:"failureReason,omitempty"`
-
-	// FailureMessage will be set in the event that there is a terminal problem
-	// reconciling the Machine and will contain a more verbose string suitable
-	// for logging and human consumption.
-	//
-	// This field should not be set for transitive errors that a controller
-	// faces that are expected to be fixed automatically over
-	// time (like service outages), but instead indicate that something is
-	// fundamentally wrong with the Machine's spec or the configuration of
-	// the controller, and that manual intervention is required. Examples
-	// of terminal errors would be invalid combinations of settings in the
-	// spec, values that are unsupported by the controller, or the
-	// responsible controller itself being critically misconfigured.
-	//
-	// Any transient errors that occur during the reconciliation of Machines
-	// can be added as events to the Machine object and/or logged in the
-	// controller's output.
-	// +optional
-	FailureMessage *string `json:"failureMessage,omitempty"`
 
 	ASGStatus *ASGStatus `json:"asgStatus,omitempty"`
 }
@@ -306,12 +294,12 @@ func init() {
 }
 
 // GetConditions returns the observations of the operational state of the AWSMachinePool resource.
-func (r *AWSMachinePool) GetConditions() clusterv1.Conditions {
+func (r *AWSMachinePool) GetConditions() []metav1.Condition {
 	return r.Status.Conditions
 }
 
-// SetConditions sets the underlying service state of the AWSMachinePool to the predescribed clusterv1.Conditions.
-func (r *AWSMachinePool) SetConditions(conditions clusterv1.Conditions) {
+// SetConditions sets the underlying service state of the AWSMachinePool to the predescribed []metav1.Condition.
+func (r *AWSMachinePool) SetConditions(conditions []metav1.Condition) {
 	r.Status.Conditions = conditions
 }
 

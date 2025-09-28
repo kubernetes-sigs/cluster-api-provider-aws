@@ -29,6 +29,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
@@ -205,7 +206,10 @@ func (s *Service) reconcileSubnets() error {
 	}
 
 	s.scope.Debug("Reconciled subnets", "subnets", subnets)
-	conditions.MarkTrue(s.scope.InfraCluster(), infrav1.SubnetsReadyCondition)
+	conditions.Set(s.scope.InfraCluster(), metav1.Condition{
+		Type:   infrav1.SubnetsReadyCondition,
+		Status: metav1.ConditionTrue,
+	})
 	return nil
 }
 

@@ -204,7 +204,7 @@ endif
 .PHONY: defaulters
 defaulters: $(DEFAULTER_GEN) ## Generate all Go types
 	$(DEFAULTER_GEN) \
-		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/v1beta1 \
+		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/core/v1beta1 \
 		--v=0 \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
 		--output-file=zz_generated.defaults.go \
@@ -262,7 +262,7 @@ generate-go-apis: ## Alias for .build/generate-go-apis
 	$(MAKE) defaulters
 
 	$(CONVERSION_GEN) \
-		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/v1beta1 \
+		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/core/v1beta1 \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
 		./api/v1beta1 \
@@ -270,28 +270,28 @@ generate-go-apis: ## Alias for .build/generate-go-apis
 
 	$(CONVERSION_GEN) \
 		--extra-peer-dirs=sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1 \
-		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/v1beta1 \
+		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/core/v1beta1 \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
 		./$(EXP_DIR)/api/v1beta1
 
 	$(CONVERSION_GEN) \
 		--extra-peer-dirs=sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1 \
-		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/v1beta1 \
+		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/core/v1beta1 \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
 		./bootstrap/eks/api/v1beta1
 
 	$(CONVERSION_GEN) \
 		--extra-peer-dirs=sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1 \
-		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/v1beta1 \
+		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/core/v1beta1 \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
 		./controlplane/eks/api/v1beta1
 
 	$(CONVERSION_GEN) \
 		--extra-peer-dirs=sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1 \
-		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/v1beta1 \
+		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/core/v1beta1 \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
 		./controlplane/rosa/api/v1beta2

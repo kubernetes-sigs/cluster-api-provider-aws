@@ -19,6 +19,7 @@ package scope
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -27,16 +28,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -50,7 +49,7 @@ type MachinePoolScope struct {
 	capiMachinePoolPatchHelper *patch.Helper
 
 	Cluster        *clusterv1.Cluster
-	MachinePool    *expclusterv1.MachinePool
+	MachinePool    *clusterv1.MachinePool
 	InfraCluster   EC2Scope
 	AWSMachinePool *expinfrav1.AWSMachinePool
 }
@@ -61,7 +60,7 @@ type MachinePoolScopeParams struct {
 	Logger *logger.Logger
 
 	Cluster        *clusterv1.Cluster
-	MachinePool    *expclusterv1.MachinePool
+	MachinePool    *clusterv1.MachinePool
 	InfraCluster   EC2Scope
 	AWSMachinePool *expinfrav1.AWSMachinePool
 }
@@ -175,7 +174,7 @@ func (m *MachinePoolScope) PatchObject() error {
 	return m.patchHelper.Patch(
 		context.TODO(),
 		m.AWSMachinePool,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+		patch.WithOwnedConditions{Conditions: []string{
 			expinfrav1.ASGReadyCondition,
 			expinfrav1.LaunchTemplateReadyCondition,
 		}})
@@ -202,24 +201,11 @@ func (m *MachinePoolScope) SetAnnotation(key, value string) {
 	m.AWSMachinePool.Annotations[key] = value
 }
 
-// SetFailureMessage sets the AWSMachine status failure message.
-func (m *MachinePoolScope) SetFailureMessage(v error) {
-	m.AWSMachinePool.Status.FailureMessage = ptr.To[string](v.Error())
-}
-
-// SetFailureReason sets the AWSMachine status failure reason.
-func (m *MachinePoolScope) SetFailureReason(v string) {
-	m.AWSMachinePool.Status.FailureReason = &v
-}
-
 // HasFailed returns true when the AWSMachinePool's Failure reason or Failure message is populated.
 func (m *MachinePoolScope) HasFailed() bool {
-	return m.AWSMachinePool.Status.FailureReason != nil || m.AWSMachinePool.Status.FailureMessage != nil
-}
-
-// SetNotReady sets the AWSMachinePool Ready Status to false.
-func (m *MachinePoolScope) SetNotReady() {
-	m.AWSMachinePool.Status.Ready = false
+	return slices.ContainsFunc(m.AWSMachinePool.Status.Conditions, func(condition metav1.Condition) bool {
+		return condition.Status == metav1.StatusFailure
+	})
 }
 
 // GetASGStatus returns the AWSMachinePool instance state from the status.
@@ -380,7 +366,7 @@ func (m *MachinePoolScope) GetLaunchTemplate() *expinfrav1.AWSLaunchTemplate {
 }
 
 // GetMachinePool returns the machine pool object.
-func (m *MachinePoolScope) GetMachinePool() *expclusterv1.MachinePool {
+func (m *MachinePoolScope) GetMachinePool() *clusterv1.MachinePool {
 	return m.MachinePool
 }
 

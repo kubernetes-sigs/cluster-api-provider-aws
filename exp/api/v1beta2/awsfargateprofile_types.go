@@ -23,7 +23,6 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 var (
@@ -102,47 +101,9 @@ type FargateProfileStatus struct {
 	// +kubebuilder:default=false
 	Ready bool `json:"ready"`
 
-	// FailureReason will be set in the event that there is a terminal problem
-	// reconciling the FargateProfile and will contain a succinct value suitable
-	// for machine interpretation.
-	//
-	// This field should not be set for transitive errors that a controller
-	// faces that are expected to be fixed automatically over
-	// time (like service outages), but instead indicate that something is
-	// fundamentally wrong with the FargateProfile's spec or the configuration of
-	// the controller, and that manual intervention is required. Examples
-	// of terminal errors would be invalid combinations of settings in the
-	// spec, values that are unsupported by the controller, or the
-	// responsible controller itself being critically misconfigured.
-	//
-	// Any transient errors that occur during the reconciliation of
-	// FargateProfiles can be added as events to the FargateProfile object
-	// and/or logged in the controller's output.
-	// +optional
-	FailureReason *string `json:"failureReason,omitempty"`
-
-	// FailureMessage will be set in the event that there is a terminal problem
-	// reconciling the FargateProfile and will contain a more verbose string suitable
-	// for logging and human consumption.
-	//
-	// This field should not be set for transitive errors that a controller
-	// faces that are expected to be fixed automatically over
-	// time (like service outages), but instead indicate that something is
-	// fundamentally wrong with the FargateProfile's spec or the configuration of
-	// the controller, and that manual intervention is required. Examples
-	// of terminal errors would be invalid combinations of settings in the
-	// spec, values that are unsupported by the controller, or the
-	// responsible controller itself being critically misconfigured.
-	//
-	// Any transient errors that occur during the reconciliation of
-	// FargateProfiles can be added as events to the FargateProfile
-	// object and/or logged in the controller's output.
-	// +optional
-	FailureMessage *string `json:"failureMessage,omitempty"`
-
 	// Conditions defines current state of the Fargate profile.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -163,12 +124,12 @@ type AWSFargateProfile struct {
 }
 
 // GetConditions returns the observations of the operational state of the AWSFargateProfile resource.
-func (r *AWSFargateProfile) GetConditions() clusterv1.Conditions {
+func (r *AWSFargateProfile) GetConditions() []metav1.Condition {
 	return r.Status.Conditions
 }
 
-// SetConditions sets the underlying service state of the AWSFargateProfile to the predescribed clusterv1.Conditions.
-func (r *AWSFargateProfile) SetConditions(conditions clusterv1.Conditions) {
+// SetConditions sets the underlying service state of the AWSFargateProfile to the predescribed []metav1.Condition.
+func (r *AWSFargateProfile) SetConditions(conditions []metav1.Condition) {
 	r.Status.Conditions = conditions
 }
 

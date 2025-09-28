@@ -21,7 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 const (
@@ -244,7 +244,7 @@ type AWSManagedControlPlaneStatus struct {
 	Network infrav1.NetworkStatus `json:"networkStatus,omitempty"`
 	// FailureDomains specifies a list fo available availability zones that can be used
 	// +optional
-	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
+	FailureDomains []clusterv1.FailureDomain `json:"failureDomains,omitempty"`
 	// Bastion holds details of the instance that is used as a bastion jump box
 	// +optional
 	Bastion *infrav1.Instance `json:"bastion,omitempty"`
@@ -268,7 +268,8 @@ type AWSManagedControlPlaneStatus struct {
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"`
 	// Conditions specifies the cpnditions for the managed control plane
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 	// Addons holds the current status of the EKS addons
 	// +optional
 	Addons []AddonState `json:"addons,omitempty"`
@@ -308,12 +309,12 @@ type AWSManagedControlPlaneList struct {
 }
 
 // GetConditions returns the control planes conditions.
-func (r *AWSManagedControlPlane) GetConditions() clusterv1.Conditions {
+func (r *AWSManagedControlPlane) GetConditions() []metav1.Condition {
 	return r.Status.Conditions
 }
 
 // SetConditions sets the status conditions for the AWSManagedControlPlane.
-func (r *AWSManagedControlPlane) SetConditions(conditions clusterv1.Conditions) {
+func (r *AWSManagedControlPlane) SetConditions(conditions []metav1.Condition) {
 	r.Status.Conditions = conditions
 }
 

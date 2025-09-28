@@ -125,7 +125,7 @@ func WaitForJobComplete(ctx context.Context, input WaitForJobCompleteInput, inte
 		key := crclient.ObjectKey{Namespace: namespace, Name: name}
 		if err := input.Getter.Get(ctx, key, input.Job); err == nil {
 			for _, c := range input.Job.Status.Conditions {
-				if c.Type == batchv1.JobComplete && c.Status == corev1.ConditionTrue {
+				if c.Type == batchv1.JobComplete && c.Status == metav1.ConditionTrue {
 					return input.Job.Status.Succeeded > 0
 				}
 			}
