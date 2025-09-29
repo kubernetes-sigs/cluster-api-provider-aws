@@ -18,8 +18,6 @@ package v1beta2
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // EKSConfigSpec defines the desired state of Amazon EKS Bootstrap Configuration.
@@ -84,6 +82,15 @@ type PauseContainer struct {
 	Version string `json:"version"`
 }
 
+type EKSConfigInitializationStatus struct {
+	// BootstrapDataSecretCreated is true when the bootstrap provider reports that the Machine's boostrap secret is created.
+	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.
+	// The value of this field is never updated after provisioning is completed.
+	// Use conditions to monitor the operational state of the Machine's BootstrapSecret.
+	// +optional
+	BootstrapDataSecretCreated bool `json:"bootstrapDataSecretCreated"`
+}
+
 // EKSConfigStatus defines the observed state of the Amazon EKS Bootstrap Configuration.
 type EKSConfigStatus struct {
 	// Ready indicates the BootstrapData secret is ready to be consumed
@@ -93,13 +100,12 @@ type EKSConfigStatus struct {
 	// +optional
 	DataSecretName *string `json:"dataSecretName,omitempty"`
 
-	// FailureReason will be set on non-retryable errors
+	// Initialization provides observations of the Machine initialization process.
+	// NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.
+	// The value of those fields is never updated after provisioning is completed.
+	// Use conditions to monitor the operational state of the Machine.
 	// +optional
-	FailureReason string `json:"failureReason,omitempty"`
-
-	// FailureMessage will be set on non-retryable errors
-	// +optional
-	FailureMessage string `json:"failureMessage,omitempty"`
+	Initialization EKSConfigInitializationStatus `json:"initialization,omitempty,omitzero"`
 
 	// ObservedGeneration is the latest generation observed by the controller.
 	// +optional
@@ -107,7 +113,7 @@ type EKSConfigStatus struct {
 
 	// Conditions defines current service state of the EKSConfig.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // Encoding specifies the cloud-init file encoding.
@@ -324,12 +330,12 @@ type EKSConfig struct {
 }
 
 // GetConditions returns the observations of the operational state of the EKSConfig resource.
-func (r *EKSConfig) GetConditions() clusterv1.Conditions {
+func (r *EKSConfig) GetConditions() []metav1.Condition {
 	return r.Status.Conditions
 }
 
-// SetConditions sets the underlying service state of the EKSConfig to the predescribed clusterv1.Conditions.
-func (r *EKSConfig) SetConditions(conditions clusterv1.Conditions) {
+// SetConditions sets the underlying service state of the EKSConfig to the predescribed []metav1.Condition.
+func (r *EKSConfig) SetConditions(conditions []metav1.Condition) {
 	r.Status.Conditions = conditions
 }
 

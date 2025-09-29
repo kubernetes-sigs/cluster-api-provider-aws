@@ -37,11 +37,10 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/rosa"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/util/paused"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
@@ -71,7 +70,7 @@ func (r *ROSAMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ct
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), log.GetLogger(), r.WatchFilterValue)).
 		Watches(
-			&expclusterv1.MachinePool{},
+			&clusterv1.MachinePool{},
 			handler.EnqueueRequestsFromMapFunc(machinePoolToInfrastructureMapFunc(gvk)),
 		).
 		Watches(
@@ -361,7 +360,7 @@ func (r *ROSAMachinePoolReconciler) reconcileMachinePoolVersion(machinePoolScope
 
 	condition := &clusterv1.Condition{
 		Type:    expinfrav1.RosaMachinePoolUpgradingCondition,
-		Status:  corev1.ConditionTrue,
+		Status:  metav1.ConditionTrue,
 		Reason:  string(scheduledUpgrade.State().Value()),
 		Message: fmt.Sprintf("Upgrading to version %s", scheduledUpgrade.Version()),
 	}
@@ -459,7 +458,7 @@ func validateMachinePoolSpec(machinePoolScope *scope.RosaMachinePoolScope) (*str
 	return nil, nil
 }
 
-func nodePoolBuilder(rosaMachinePoolSpec expinfrav1.RosaMachinePoolSpec, machinePoolSpec expclusterv1.MachinePoolSpec, controlPlaneChannelGroup rosacontrolplanev1.ChannelGroupType) *cmv1.NodePoolBuilder {
+func nodePoolBuilder(rosaMachinePoolSpec expinfrav1.RosaMachinePoolSpec, machinePoolSpec clusterv1.MachinePoolSpec, controlPlaneChannelGroup rosacontrolplanev1.ChannelGroupType) *cmv1.NodePoolBuilder {
 	npBuilder := cmv1.NewNodePool().ID(rosaMachinePoolSpec.NodePoolName).
 		Labels(rosaMachinePoolSpec.Labels).
 		AutoRepair(rosaMachinePoolSpec.AutoRepair)
@@ -602,7 +601,7 @@ func rosaControlPlaneToRosaMachinePoolMapFunc(c client.Client, gvk schema.GroupV
 			return nil
 		}
 
-		managedPoolForClusterList := expclusterv1.MachinePoolList{}
+		managedPoolForClusterList := clusterv1.MachinePoolList{}
 		if err := c.List(
 			ctx, &managedPoolForClusterList, client.InNamespace(clusterKey.Namespace), client.MatchingLabels{clusterv1.ClusterNameLabel: clusterKey.Name},
 		); err != nil {

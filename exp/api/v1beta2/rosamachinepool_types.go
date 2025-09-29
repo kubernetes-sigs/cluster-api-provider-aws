@@ -22,7 +22,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // RosaMachinePoolSpec defines the desired state of RosaMachinePool.
@@ -205,20 +204,10 @@ type RosaMachinePoolStatus struct {
 	// Replicas is the most recently observed number of replicas.
 	// +optional
 	Replicas int32 `json:"replicas"`
+
 	// Conditions defines current service state of the managed machine pool
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
-	// FailureMessage will be set in the event that there is a terminal problem
-	// reconciling the state and will be set to a descriptive error message.
-	//
-	// This field should not be set for transitive errors that a controller
-	// faces that are expected to be fixed automatically over
-	// time (like service outages), but instead indicate that something is
-	// fundamentally wrong with the spec or the configuration of
-	// the controller, and that manual intervention is required.
-	//
-	// +optional
-	FailureMessage *string `json:"failureMessage,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 	// ID is the ID given by ROSA.
 	ID string `json:"id,omitempty"`
@@ -253,12 +242,12 @@ type ROSAMachinePoolList struct {
 }
 
 // GetConditions returns the observations of the operational state of the RosaMachinePool resource.
-func (r *ROSAMachinePool) GetConditions() clusterv1.Conditions {
+func (r *ROSAMachinePool) GetConditions() []metav1.Condition {
 	return r.Status.Conditions
 }
 
-// SetConditions sets the underlying service state of the RosaMachinePool to the predescribed clusterv1.Conditions.
-func (r *ROSAMachinePool) SetConditions(conditions clusterv1.Conditions) {
+// SetConditions sets the underlying service state of the RosaMachinePool to the predescribed []metav1.Condition.
+func (r *ROSAMachinePool) SetConditions(conditions []metav1.Condition) {
 	r.Status.Conditions = conditions
 }
 

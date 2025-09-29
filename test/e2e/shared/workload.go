@@ -72,7 +72,7 @@ func WaitForDeploymentsAvailable(ctx context.Context, input WaitForDeploymentsAv
 			return false
 		}
 		for _, c := range deployment.Status.Conditions {
-			if c.Type == appsv1.DeploymentAvailable && c.Status == corev1.ConditionTrue {
+			if c.Type == appsv1.DeploymentAvailable && c.Status == metav1.ConditionTrue {
 				return true
 			}
 		}

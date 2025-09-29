@@ -23,6 +23,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -32,7 +33,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpoints"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -250,7 +251,7 @@ func (s *ClusterScope) ListOptionsLabelSelector() client.ListOption {
 func (s *ClusterScope) PatchObject() error {
 	// Always update the readyCondition by summarizing the state of other conditions.
 	// A step counter is added to represent progress during the provisioning process (instead we are hiding during the deletion process).
-	applicableConditions := []clusterv1.ConditionType{
+	forConditionTypes := conditions.ForConditionTypes{
 		infrav1.VpcReadyCondition,
 		infrav1.SubnetsReadyCondition,
 		infrav1.ClusterSecurityGroupsReadyCondition,
@@ -258,7 +259,7 @@ func (s *ClusterScope) PatchObject() error {
 	}
 
 	if s.VPC().IsManaged(s.Name()) {
-		applicableConditions = append(applicableConditions,
+		forConditionTypes = append(forConditionTypes,
 			infrav1.InternetGatewayReadyCondition,
 			infrav1.NatGatewaysReadyCondition,
 			infrav1.RouteTablesReadyCondition,
@@ -266,23 +267,42 @@ func (s *ClusterScope) PatchObject() error {
 		)
 
 		if s.AWSCluster.Spec.Bastion.Enabled {
-			applicableConditions = append(applicableConditions, infrav1.BastionHostReadyCondition)
+			forConditionTypes = append(forConditionTypes, infrav1.BastionHostReadyCondition)
 		}
 		if s.VPC().IsIPv6Enabled() {
-			applicableConditions = append(applicableConditions, infrav1.EgressOnlyInternetGatewayReadyCondition)
+			forConditionTypes = append(forConditionTypes, infrav1.EgressOnlyInternetGatewayReadyCondition)
 		}
 	}
 
-	conditions.SetSummary(s.AWSCluster,
-		conditions.WithConditions(applicableConditions...),
-		conditions.WithStepCounterIf(s.AWSCluster.ObjectMeta.DeletionTimestamp.IsZero()),
-		conditions.WithStepCounter(),
-	)
+	summaryOpts := []conditions.SummaryOption{
+		forConditionTypes,
+		//// Instruct summary to consider Deleting condition with negative polarity.
+		//conditions.NegativePolarityConditionTypes{},
+		//// Using a custom merge strategy to override reasons applied during merge and to ignore some
+		//// info message so the available condition is less noisy.
+		//conditions.CustomMergeStrategy{
+		//	MergeStrategy: clusterConditionCustomMergeStrategy{
+		//		cluster: cluster,
+		//		// Instruct merge to consider Deleting condition with negative polarity,
+		//		negativePolarityConditionTypes: negativePolarityConditionTypes,
+		//	},
+		//},
+	}
+
+	availableCondition, err := conditions.NewSummaryCondition(s.AWSCluster, clusterv1.ReadyCondition, summaryOpts...)
+	if err != nil {
+		availableCondition = &metav1.Condition{
+			Type:   clusterv1.ReadyCondition,
+			Status: metav1.ConditionFalse,
+		}
+	}
+
+	conditions.Set(s.AWSCluster, *availableCondition)
 
 	return s.patchHelper.Patch(
 		context.TODO(),
 		s.AWSCluster,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+		patch.WithOwnedConditions{Conditions: []string{
 			clusterv1.ReadyCondition,
 			infrav1.VpcReadyCondition,
 			infrav1.SubnetsReadyCondition,
@@ -315,18 +335,18 @@ func (s *ClusterScope) AdditionalTags() infrav1.Tags {
 
 // APIServerPort returns the APIServerPort to use when creating the load balancer.
 func (s *ClusterScope) APIServerPort() int32 {
-	if s.Cluster.Spec.ClusterNetwork != nil && s.Cluster.Spec.ClusterNetwork.APIServerPort != nil {
-		return *s.Cluster.Spec.ClusterNetwork.APIServerPort
+	if s.Cluster.Spec.ClusterNetwork.APIServerPort != 0 {
+		return s.Cluster.Spec.ClusterNetwork.APIServerPort
 	}
 	return infrav1.DefaultAPIServerPort
 }
 
 // SetFailureDomain sets the infrastructure provider failure domain key to the spec given as input.
-func (s *ClusterScope) SetFailureDomain(id string, spec clusterv1.FailureDomainSpec) {
+func (s *ClusterScope) SetFailureDomain(id string, spec []clusterv1.FailureDomain) {
 	if s.AWSCluster.Status.FailureDomains == nil {
-		s.AWSCluster.Status.FailureDomains = make(clusterv1.FailureDomains)
+		s.AWSCluster.Status.FailureDomains = make([]clusterv1.FailureDomain, len(spec))
 	}
-	s.AWSCluster.Status.FailureDomains[id] = spec
+	s.AWSCluster.Status.FailureDomains = spec
 }
 
 // SetNatGatewaysIPs sets the Nat Gateways Public IPs.

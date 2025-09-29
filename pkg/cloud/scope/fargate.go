@@ -18,9 +18,11 @@ package scope
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -31,7 +33,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpoints"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -168,18 +170,12 @@ func (s *FargateProfileScope) Partition() string {
 // IAMReadyFalse marks the ready condition false using warning if error isn't
 // empty.
 func (s *FargateProfileScope) IAMReadyFalse(reason string, err string) error {
-	severity := clusterv1.ConditionSeverityWarning
-	if err == "" {
-		severity = clusterv1.ConditionSeverityInfo
-	}
-	conditions.MarkFalse(
-		s.FargateProfile,
-		expinfrav1.IAMFargateRolesReadyCondition,
-		reason,
-		severity,
-		"%s",
-		err,
-	)
+	conditions.Set(s.FargateProfile, metav1.Condition{
+		Type:    expinfrav1.IAMFargateRolesReadyCondition,
+		Reason:  reason,
+		Message: fmt.Sprintf("%s", err),
+	})
+
 	if err := s.PatchObject(); err != nil {
 		return errors.Wrap(err, "failed to mark role not ready")
 	}
@@ -191,7 +187,7 @@ func (s *FargateProfileScope) PatchObject() error {
 	return s.patchHelper.Patch(
 		context.TODO(),
 		s.FargateProfile,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+		patch.WithOwnedConditions{Conditions: []string{
 			expinfrav1.EKSFargateProfileReadyCondition,
 			expinfrav1.EKSFargateCreatingCondition,
 			expinfrav1.EKSFargateDeletingCondition,

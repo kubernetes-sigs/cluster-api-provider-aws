@@ -18,10 +18,13 @@ package scope
 
 import (
 	"context"
+	"fmt"
 
 	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -30,8 +33,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -43,7 +44,7 @@ type RosaMachinePoolScopeParams struct {
 	Cluster         *clusterv1.Cluster
 	ControlPlane    *rosacontrolplanev1.ROSAControlPlane
 	RosaMachinePool *expinfrav1.ROSAMachinePool
-	MachinePool     *expclusterv1.MachinePool
+	MachinePool     *clusterv1.MachinePool
 	ControllerName  string
 }
 
@@ -109,7 +110,7 @@ type RosaMachinePoolScope struct {
 	Cluster         *clusterv1.Cluster
 	ControlPlane    *rosacontrolplanev1.ROSAControlPlane
 	RosaMachinePool *expinfrav1.ROSAMachinePool
-	MachinePool     *expclusterv1.MachinePool
+	MachinePool     *clusterv1.MachinePool
 
 	session         awsv2.Config
 	serviceLimiters throttle.ServiceLimiters
@@ -189,18 +190,13 @@ func (s *RosaMachinePoolScope) Namespace() string {
 // RosaMachinePoolReadyFalse marks the ready condition false using warning if error isn't
 // empty.
 func (s *RosaMachinePoolScope) RosaMachinePoolReadyFalse(reason string, err string) error {
-	severity := clusterv1.ConditionSeverityWarning
-	if err == "" {
-		severity = clusterv1.ConditionSeverityInfo
-	}
-	conditions.MarkFalse(
-		s.RosaMachinePool,
-		expinfrav1.RosaMachinePoolReadyCondition,
-		reason,
-		severity,
-		"%s",
-		err,
-	)
+	conditions.Set(s.RosaMachinePool, metav1.Condition{
+		Type:    expinfrav1.RosaMachinePoolReadyCondition,
+		Status:  metav1.ConditionFalse,
+		Reason:  reason,
+		Message: fmt.Sprintf("%s", err),
+	})
+
 	if err := s.PatchObject(); err != nil {
 		return errors.Wrap(err, "failed to mark rosa machinepool not ready")
 	}
@@ -212,7 +208,7 @@ func (s *RosaMachinePoolScope) PatchObject() error {
 	return s.patchHelper.Patch(
 		context.TODO(),
 		s.RosaMachinePool,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+		patch.WithOwnedConditions{Conditions: []string{
 			expinfrav1.RosaMachinePoolReadyCondition,
 		}})
 }

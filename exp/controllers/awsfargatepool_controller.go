@@ -21,6 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -35,7 +36,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/eks"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -112,13 +113,23 @@ func (r *AWSFargateProfileReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 
 	defer func() {
-		applicableConditions := []clusterv1.ConditionType{
+		forConditionTypes := conditions.ForConditionTypes{
 			expinfrav1.IAMFargateRolesReadyCondition,
 			expinfrav1.EKSFargateProfileReadyCondition,
 		}
 
-		conditions.SetSummary(fargateProfileScope.FargateProfile, conditions.WithConditions(applicableConditions...), conditions.WithStepCounter())
-
+		summaryOpts := []conditions.SummaryOption{
+			forConditionTypes,
+		}
+		readyCondition, err := conditions.NewSummaryCondition(fargateProfileScope.FargateProfile, clusterv1.ReadyCondition, summaryOpts...)
+		if err != nil {
+			readyCondition = &metav1.Condition{
+				Type:   clusterv1.ReadyCondition,
+				Status: metav1.ConditionFalse,
+			}
+		}
+		conditions.Set(fargateProfileScope.FargateProfile, *readyCondition)
+		
 		if err := fargateProfileScope.Close(); err != nil && reterr == nil {
 			reterr = err
 		}
@@ -126,7 +137,11 @@ func (r *AWSFargateProfileReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	if !controlPlane.Status.Ready {
 		log.Info("Control plane is not ready yet")
-		conditions.MarkFalse(fargateProfile, clusterv1.ReadyCondition, expinfrav1.WaitingForEKSControlPlaneReason, clusterv1.ConditionSeverityInfo, "")
+		conditions.Set(fargateProfile, metav1.Condition{
+			Type:   clusterv1.ReadyCondition,
+			Status: metav1.ConditionFalse,
+			Reason: expinfrav1.WaitingForEKSControlPlaneReason,
+		})
 		return ctrl.Result{}, nil
 	}
 

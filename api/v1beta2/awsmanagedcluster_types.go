@@ -19,7 +19,7 @@ package v1beta2
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 // AWSManagedClusterSpec defines the desired state of AWSManagedCluster
@@ -37,11 +37,11 @@ type AWSManagedClusterStatus struct {
 
 	// FailureDomains specifies a list fo available availability zones that can be used
 	// +optional
-	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
+	FailureDomains []clusterv1.FailureDomain `json:"failureDomains,omitempty"`
 
 	// Conditions defines current service state of the AWSManagedCluster.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -76,12 +76,12 @@ func init() {
 
 // GetConditions returns the observations of the operational state of the
 // AWSManagedCluster resource.
-func (r *AWSManagedCluster) GetConditions() clusterv1.Conditions {
+func (r *AWSManagedCluster) GetConditions() []metav1.Condition {
 	return r.Status.Conditions
 }
 
 // SetConditions sets the underlying service state of the AWSManagedCluster to
-// the predescribed clusterv1.Conditions.
-func (r *AWSManagedCluster) SetConditions(conditions clusterv1.Conditions) {
+// the predescribed []metav1.Condition.
+func (r *AWSManagedCluster) SetConditions(conditions []metav1.Condition) {
 	r.Status.Conditions = conditions
 }

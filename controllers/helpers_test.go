@@ -36,7 +36,7 @@ import (
 	elbService "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/elb"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/helpers"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
@@ -127,11 +127,11 @@ var (
 func expectAWSClusterConditions(g *WithT, m *infrav1.AWSCluster, expected []conditionAssertion) {
 	g.Expect(len(m.Status.Conditions)).To(BeNumerically(">=", len(expected)), "number of conditions")
 	for _, c := range expected {
-		actual := conditions.Get(m, c.conditionType)
+		actual := conditions.Get(m, string(c.conditionType))
 		g.Expect(actual).To(Not(BeNil()))
 		g.Expect(actual.Type).To(Equal(c.conditionType))
 		g.Expect(actual.Status).To(Equal(c.status))
-		g.Expect(actual.Severity).To(Equal(c.severity))
+		//g.Expect(actual.Severity).To(Equal(c.severity))
 		g.Expect(actual.Reason).To(Equal(c.reason))
 	}
 }

@@ -18,8 +18,8 @@ limitations under the License.
 package conditions
 
 import (
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 )
 
 // ErrorConditionAfterInit returns severity error, if the control plane is initialized; otherwise, returns severity warning.

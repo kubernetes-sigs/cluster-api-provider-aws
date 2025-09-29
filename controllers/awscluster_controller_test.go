@@ -29,7 +29,6 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/retry"
@@ -43,7 +42,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/network"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/securitygroup"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -156,7 +155,7 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 		g.Expect(cluster.Spec.ControlPlaneEndpoint.Host).To(BeEmpty())
 		g.Expect(cluster.Spec.ControlPlaneEndpoint.Port).To(BeZero())
 		expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{
-			{conditionType: infrav1.LoadBalancerReadyCondition, status: corev1.ConditionFalse, severity: clusterv1.ConditionSeverityInfo, reason: infrav1.WaitForExternalControlPlaneEndpointReason},
+			{conditionType: infrav1.LoadBalancerReadyCondition, status: metav1.ConditionFalse, severity: clusterv1.ConditionSeverityWarning, reason: infrav1.WaitForExternalControlPlaneEndpointReason},
 		})
 		// Mimicking an external operator patching the cluster with an already provisioned Load Balancer:
 		// this could be done by a human who provisioned a LB, or by a Control Plane provider.
@@ -176,11 +175,11 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 		g.Expect(err).To(BeNil())
 		g.Expect(cs.VPC().ID).To(Equal("vpc-exists"))
 		expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{
-			{conditionType: infrav1.ClusterSecurityGroupsReadyCondition, status: corev1.ConditionTrue, severity: "", reason: ""},
-			{conditionType: infrav1.BastionHostReadyCondition, status: corev1.ConditionTrue, severity: "", reason: ""},
-			{conditionType: infrav1.VpcReadyCondition, status: corev1.ConditionTrue, severity: "", reason: ""},
-			{conditionType: infrav1.SubnetsReadyCondition, status: corev1.ConditionTrue, severity: "", reason: ""},
-			{conditionType: infrav1.LoadBalancerReadyCondition, status: corev1.ConditionTrue, severity: "", reason: ""},
+			{conditionType: infrav1.ClusterSecurityGroupsReadyCondition, status: metav1.ConditionTrue, severity: "", reason: ""},
+			{conditionType: infrav1.BastionHostReadyCondition, status: metav1.ConditionTrue, severity: "", reason: ""},
+			{conditionType: infrav1.VpcReadyCondition, status: metav1.ConditionTrue, severity: "", reason: ""},
+			{conditionType: infrav1.SubnetsReadyCondition, status: metav1.ConditionTrue, severity: "", reason: ""},
+			{conditionType: infrav1.LoadBalancerReadyCondition, status: metav1.ConditionTrue, severity: "", reason: ""},
 		})
 	})
 	t.Run("Should successfully reconcile AWSCluster creation with unmanaged VPC", func(t *testing.T) {
@@ -275,10 +274,10 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 		g.Expect(err).To(BeNil())
 		g.Expect(cs.VPC().ID).To(Equal("vpc-exists"))
 		expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{
-			{conditionType: infrav1.ClusterSecurityGroupsReadyCondition, status: corev1.ConditionTrue, severity: "", reason: ""},
-			{conditionType: infrav1.BastionHostReadyCondition, status: corev1.ConditionTrue, severity: "", reason: ""},
-			{conditionType: infrav1.VpcReadyCondition, status: corev1.ConditionTrue, severity: "", reason: ""},
-			{conditionType: infrav1.SubnetsReadyCondition, status: corev1.ConditionTrue, severity: "", reason: ""},
+			{conditionType: infrav1.ClusterSecurityGroupsReadyCondition, status: metav1.ConditionTrue, severity: "", reason: ""},
+			{conditionType: infrav1.BastionHostReadyCondition, status: metav1.ConditionTrue, severity: "", reason: ""},
+			{conditionType: infrav1.VpcReadyCondition, status: metav1.ConditionTrue, severity: "", reason: ""},
+			{conditionType: infrav1.SubnetsReadyCondition, status: metav1.ConditionTrue, severity: "", reason: ""},
 		})
 	})
 	t.Run("Should successfully reconcile AWSCluster creation with unmanaged VPC and a network type load balancer", func(t *testing.T) {
@@ -382,10 +381,10 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 		g.Expect(err).To(BeNil())
 		g.Expect(cs.VPC().ID).To(Equal("vpc-exists"))
 		expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{
-			{conditionType: infrav1.ClusterSecurityGroupsReadyCondition, status: corev1.ConditionTrue, severity: "", reason: ""},
-			{conditionType: infrav1.BastionHostReadyCondition, status: corev1.ConditionTrue, severity: "", reason: ""},
-			{conditionType: infrav1.VpcReadyCondition, status: corev1.ConditionTrue, severity: "", reason: ""},
-			{conditionType: infrav1.SubnetsReadyCondition, status: corev1.ConditionTrue, severity: "", reason: ""},
+			{conditionType: infrav1.ClusterSecurityGroupsReadyCondition, status: metav1.ConditionTrue, severity: "", reason: ""},
+			{conditionType: infrav1.BastionHostReadyCondition, status: metav1.ConditionTrue, severity: "", reason: ""},
+			{conditionType: infrav1.VpcReadyCondition, status: metav1.ConditionTrue, severity: "", reason: ""},
+			{conditionType: infrav1.SubnetsReadyCondition, status: metav1.ConditionTrue, severity: "", reason: ""},
 		})
 	})
 	t.Run("Should successfully reconcile AWSCluster creation with managed VPC", func(t *testing.T) {
@@ -475,10 +474,10 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 		g.Expect(err).To(BeNil())
 		g.Expect(cs.VPC().ID).To(Equal("vpc-new"))
 		expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{
-			{conditionType: infrav1.ClusterSecurityGroupsReadyCondition, status: corev1.ConditionTrue, severity: "", reason: ""},
-			{conditionType: infrav1.BastionHostReadyCondition, status: corev1.ConditionTrue, severity: "", reason: ""},
-			{conditionType: infrav1.VpcReadyCondition, status: corev1.ConditionTrue, severity: "", reason: ""},
-			{conditionType: infrav1.SubnetsReadyCondition, status: corev1.ConditionTrue, severity: "", reason: ""},
+			{conditionType: infrav1.ClusterSecurityGroupsReadyCondition, status: metav1.ConditionTrue, severity: "", reason: ""},
+			{conditionType: infrav1.BastionHostReadyCondition, status: metav1.ConditionTrue, severity: "", reason: ""},
+			{conditionType: infrav1.VpcReadyCondition, status: metav1.ConditionTrue, severity: "", reason: ""},
+			{conditionType: infrav1.SubnetsReadyCondition, status: metav1.ConditionTrue, severity: "", reason: ""},
 		})
 
 		// Information should get written back into the `ClusterScope` object. Keeping it up to date means that
@@ -651,15 +650,15 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 		_, err = reconciler.reconcileDelete(ctx, cs)
 		g.Expect(err).To(BeNil())
 		expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{
-			{infrav1.LoadBalancerReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
-			{infrav1.BastionHostReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
-			{infrav1.SecondaryCidrsReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletingReason},
-			{infrav1.RouteTablesReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
-			{infrav1.VpcEndpointsReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
-			{infrav1.NatGatewaysReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
-			{infrav1.InternetGatewayReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
-			{infrav1.SubnetsReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
-			{infrav1.VpcReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
+			{infrav1.LoadBalancerReadyCondition, metav1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedV1Beta1Reason},
+			{infrav1.BastionHostReadyCondition, metav1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedV1Beta1Reason},
+			{infrav1.SecondaryCidrsReadyCondition, metav1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletingReason},
+			{infrav1.RouteTablesReadyCondition, metav1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedV1Beta1Reason},
+			{infrav1.VpcEndpointsReadyCondition, metav1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedV1Beta1Reason},
+			{infrav1.NatGatewaysReadyCondition, metav1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedV1Beta1Reason},
+			{infrav1.InternetGatewayReadyCondition, metav1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedV1Beta1Reason},
+			{infrav1.SubnetsReadyCondition, metav1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedV1Beta1Reason},
+			{infrav1.VpcReadyCondition, metav1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedV1Beta1Reason},
 		})
 	})
 }

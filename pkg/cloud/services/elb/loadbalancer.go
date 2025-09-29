@@ -34,6 +34,7 @@ import (
 	rgapitypes "github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi/types"
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/storage/names"
@@ -46,7 +47,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/hash"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
@@ -682,7 +683,11 @@ func (s *Service) deleteAPIServerELB(ctx context.Context) error {
 		return errors.Wrap(err, "failed to get control plane load balancer name")
 	}
 
-	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.LoadBalancerReadyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+	conditions.Set(s.scope.InfraCluster(), metav1.Condition{
+		Type:   infrav1.LoadBalancerReadyCondition,
+		Status: metav1.ConditionFalse,
+		Reason: clusterv1.DeletingReason,
+	})
 	if err := s.scope.PatchObject(); err != nil {
 		return err
 	}
@@ -690,7 +695,11 @@ func (s *Service) deleteAPIServerELB(ctx context.Context) error {
 	apiELB, err := s.describeClassicELB(ctx, elbName)
 	if IsNotFound(err) {
 		s.scope.Debug("Control plane load balancer not found, skipping deletion")
-		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.LoadBalancerReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
+		conditions.Set(s.scope.InfraCluster(), metav1.Condition{
+			Type:   infrav1.LoadBalancerReadyCondition,
+			Status: metav1.ConditionFalse,
+			Reason: clusterv1.DeletedV1Beta1Reason,
+		})
 		return nil
 	}
 	if err != nil {
@@ -699,13 +708,22 @@ func (s *Service) deleteAPIServerELB(ctx context.Context) error {
 
 	if apiELB.IsUnmanaged(s.scope.Name()) {
 		s.scope.Debug("Found unmanaged classic load balancer for apiserver, skipping deletion", "api-server-elb-name", apiELB.Name)
-		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.LoadBalancerReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
+		conditions.Set(s.scope.InfraCluster(), metav1.Condition{
+			Type:   infrav1.LoadBalancerReadyCondition,
+			Status: metav1.ConditionFalse,
+			Reason: clusterv1.DeletedV1Beta1Reason,
+		})
 		return nil
 	}
 
 	s.scope.Debug("deleting load balancer", "name", elbName)
 	if err := s.deleteClassicELB(ctx, elbName); err != nil {
-		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.LoadBalancerReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, "%s", err.Error())
+		conditions.Set(s.scope.InfraCluster(), metav1.Condition{
+			Type:    infrav1.LoadBalancerReadyCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  "DeletingFailed",
+			Message: fmt.Sprintf("%s", err),
+		})
 		return err
 	}
 
@@ -717,7 +735,11 @@ func (s *Service) deleteAPIServerELB(ctx context.Context) error {
 		return errors.Wrapf(err, "failed to wait for %q load balancer deletion", s.scope.Name())
 	}
 
-	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.LoadBalancerReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
+	conditions.Set(s.scope.InfraCluster(), metav1.Condition{
+		Type:   infrav1.LoadBalancerReadyCondition,
+		Status: metav1.ConditionFalse,
+		Reason: clusterv1.DeletedV1Beta1Reason,
+	})
 	s.scope.Info("Deleted control plane load balancer", "name", elbName)
 	return nil
 }
@@ -792,7 +814,11 @@ func (s *Service) deleteExistingNLB(ctx context.Context, lbSpec *infrav1.AWSLoad
 	if err != nil {
 		return errors.Wrap(err, "failed to get control plane load balancer name")
 	}
-	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.LoadBalancerReadyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+	conditions.Set(s.scope.InfraCluster(), metav1.Condition{
+		Type:   infrav1.LoadBalancerReadyCondition,
+		Status: metav1.ConditionFalse,
+		Reason: clusterv1.DeletingReason,
+	})
 	if err := s.scope.PatchObject(); err != nil {
 		return err
 	}
@@ -811,7 +837,12 @@ func (s *Service) deleteExistingNLB(ctx context.Context, lbSpec *infrav1.AWSLoad
 	}
 	s.scope.Debug("deleting load balancer", "name", name)
 	if err := s.deleteLB(ctx, lb.ARN); err != nil {
-		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.LoadBalancerReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, "%s", err.Error())
+		conditions.Set(s.scope.InfraCluster(), metav1.Condition{
+			Type:    infrav1.LoadBalancerReadyCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  "DeletingFailed",
+			Message: fmt.Sprintf("%s", err),
+		})
 		return err
 	}
 
@@ -823,7 +854,11 @@ func (s *Service) deleteExistingNLB(ctx context.Context, lbSpec *infrav1.AWSLoad
 		return errors.Wrapf(err, "failed to wait for %q load balancer deletion", s.scope.Name())
 	}
 
-	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.LoadBalancerReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
+	conditions.Set(s.scope.InfraCluster(), metav1.Condition{
+		Type:   infrav1.LoadBalancerReadyCondition,
+		Status: metav1.ConditionFalse,
+		Reason: clusterv1.DeletedV1Beta1Reason,
+	})
 	s.scope.Info("Deleted control plane load balancer", "name", name)
 
 	return nil

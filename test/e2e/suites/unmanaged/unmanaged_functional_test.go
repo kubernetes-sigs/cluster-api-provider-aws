@@ -41,11 +41,11 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/exp/instancestate"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 )
 
 const TestSvc = "test-svc-"
@@ -215,7 +215,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 					return false, nil
 				}
 
-				if !hasAWSClusterConditions(awsCluster, []conditionAssertion{{infrav1.BastionHostReadyCondition, corev1.ConditionTrue, "", ""}}) {
+				if !hasAWSClusterConditions(awsCluster, []conditionAssertion{{infrav1.BastionHostReadyCondition, metav1.ConditionTrue, "", ""}}) {
 					ginkgo.By("AWSCluster missing bastion host ready condition")
 					return false, nil
 				}

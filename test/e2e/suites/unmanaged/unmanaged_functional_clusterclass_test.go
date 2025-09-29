@@ -93,7 +93,7 @@ var _ = ginkgo.Context("[unmanaged] [functional] [ClusterClass]", func() {
 					return false, nil
 				}
 
-				if !hasAWSClusterConditions(awsCluster, []conditionAssertion{{infrav1.BastionHostReadyCondition, corev1.ConditionTrue, "", ""}}) {
+				if !hasAWSClusterConditions(awsCluster, []conditionAssertion{{infrav1.BastionHostReadyCondition, metav1.ConditionTrue, "", ""}}) {
 					ginkgo.By("AWSCluster missing bastion host ready condition")
 					return false, nil
 				}

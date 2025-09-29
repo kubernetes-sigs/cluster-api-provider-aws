@@ -46,7 +46,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/helpers"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
@@ -2969,7 +2969,7 @@ func TestDeleteAPIServerELB(t *testing.T) {
 					t.Fatalf("Expected LoadBalancerReady condition to be False, but was True")
 				}
 				loadBalancerConditionReason := conditions.GetReason(awsCluster, infrav1.LoadBalancerReadyCondition)
-				if loadBalancerConditionReason != clusterv1.DeletedReason {
+				if loadBalancerConditionReason != clusterv1.DeletedV1Beta1Reason {
 					t.Fatalf("Expected LoadBalancerReady condition reason to be Deleted, but was %s", loadBalancerConditionReason)
 				}
 			},
@@ -3018,7 +3018,7 @@ func TestDeleteAPIServerELB(t *testing.T) {
 					t.Fatalf("Expected LoadBalancerReady condition to be False, but was True")
 				}
 				loadBalancerConditionReason := conditions.GetReason(awsCluster, infrav1.LoadBalancerReadyCondition)
-				if loadBalancerConditionReason != clusterv1.DeletedReason {
+				if loadBalancerConditionReason != clusterv1.DeletedV1Beta1Reason {
 					t.Fatalf("Expected LoadBalancerReady condition reason to be Deleted, but was %s", loadBalancerConditionReason)
 				}
 			},
@@ -3080,7 +3080,7 @@ func TestDeleteAPIServerELB(t *testing.T) {
 					t.Fatalf("Expected LoadBalancerReady condition to be False, but was True")
 				}
 				loadBalancerConditionReason := conditions.GetReason(awsCluster, infrav1.LoadBalancerReadyCondition)
-				if loadBalancerConditionReason != clusterv1.DeletedReason {
+				if loadBalancerConditionReason != clusterv1.DeletedV1Beta1Reason {
 					t.Fatalf("Expected LoadBalancerReady condition reason to be Deleted, but was %s", loadBalancerConditionReason)
 				}
 			},

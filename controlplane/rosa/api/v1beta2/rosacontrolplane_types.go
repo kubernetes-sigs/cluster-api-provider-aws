@@ -22,7 +22,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 // RosaEndpointAccessType specifies the publishing scope of cluster endpoints.
@@ -721,32 +721,32 @@ type AWSRolesRef struct {
 	KMSProviderARN          string `json:"kmsProviderARN"`
 }
 
+// KubeadmControlPlaneInitializationStatus provides observations of the ControlPlane initialization process.
+// +kubebuilder:validation:MinProperties=1
+
+type RosaControlPlaneInitializationStatus struct {
+	// controlPlaneInitialized is true when the control plane provider reports that the Kubernetes control plane is initialized;
+	// usually a control plane is considered initialized when it can accept requests, no matter if this happens before
+	// the control plane is fully provisioned or not.
+	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Cluster provisioning.
+	// +optional
+	ControlPlaneInitialized bool `json:"controlPlaneInitialized"`
+}
+
 // RosaControlPlaneStatus defines the observed state of ROSAControlPlane.
 type RosaControlPlaneStatus struct {
 	// ExternalManagedControlPlane indicates to cluster-api that the control plane
 	// is managed by an external service such as AKS, EKS, GKE, etc.
 	// +kubebuilder:default=true
 	ExternalManagedControlPlane *bool `json:"externalManagedControlPlane,omitempty"`
+
 	// Initialized denotes whether or not the control plane has the
 	// uploaded kubernetes config-map.
 	// +optional
-	Initialized bool `json:"initialized"`
-	// Ready denotes that the ROSAControlPlane API Server is ready to receive requests.
-	// +kubebuilder:default=false
-	Ready bool `json:"ready"`
-	// FailureMessage will be set in the event that there is a terminal problem
-	// reconciling the state and will be set to a descriptive error message.
-	//
-	// This field should not be set for transitive errors that a controller
-	// faces that are expected to be fixed automatically over
-	// time (like service outages), but instead indicate that something is
-	// fundamentally wrong with the spec or the configuration of
-	// the controller, and that manual intervention is required.
-	//
-	// +optional
-	FailureMessage *string `json:"failureMessage,omitempty"`
+	Initialization RosaControlPlaneInitializationStatus `json:"initialization,omitempty,omitzero"`
+	
 	// Conditions specifies the conditions for the managed control plane
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 	// ID is the cluster ID given by ROSA.
 	ID string `json:"id,omitempty"`
@@ -790,12 +790,12 @@ type ROSAControlPlaneList struct {
 }
 
 // GetConditions returns the control planes conditions.
-func (r *ROSAControlPlane) GetConditions() clusterv1.Conditions {
+func (r *ROSAControlPlane) GetConditions() []metav1.Condition {
 	return r.Status.Conditions
 }
 
 // SetConditions sets the status conditions for the AWSManagedControlPlane.
-func (r *ROSAControlPlane) SetConditions(conditions clusterv1.Conditions) {
+func (r *ROSAControlPlane) SetConditions(conditions []metav1.Condition) {
 	r.Status.Conditions = conditions
 }
 

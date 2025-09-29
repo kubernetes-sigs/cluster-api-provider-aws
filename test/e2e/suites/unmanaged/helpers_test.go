@@ -51,12 +51,12 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/utils"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 )
 
 // GetClusterByName returns a Cluster object given his name.
@@ -414,7 +414,7 @@ func LatestCIReleaseForVersion(searchVersion string) (string, error) {
 
 type conditionAssertion struct {
 	conditionType clusterv1.ConditionType
-	status        corev1.ConditionStatus
+	status        metav1.ConditionStatus
 	severity      clusterv1.ConditionSeverity
 	reason        string
 }

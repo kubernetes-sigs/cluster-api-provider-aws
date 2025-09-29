@@ -32,8 +32,8 @@ import (
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 )
 
 func requeueProfileUpdating() reconcile.Result {

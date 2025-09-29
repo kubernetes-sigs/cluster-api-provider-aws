@@ -38,7 +38,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpoints"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -268,7 +269,7 @@ func (s *ManagedControlPlaneScope) PatchObject() error {
 	return s.patchHelper.Patch(
 		context.TODO(),
 		s.ControlPlane,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+		patch.WithOwnedConditions{Conditions: []string{
 			infrav1.VpcReadyCondition,
 			infrav1.SubnetsReadyCondition,
 			infrav1.ClusterSecurityGroupsReadyCondition,
@@ -305,11 +306,11 @@ func (s *ManagedControlPlaneScope) APIServerPort() int32 {
 }
 
 // SetFailureDomain sets the infrastructure provider failure domain key to the spec given as input.
-func (s *ManagedControlPlaneScope) SetFailureDomain(id string, spec clusterv1.FailureDomainSpec) {
+func (s *ManagedControlPlaneScope) SetFailureDomain(id string, spec []clusterv1.FailureDomain) {
 	if s.ControlPlane.Status.FailureDomains == nil {
-		s.ControlPlane.Status.FailureDomains = make(clusterv1.FailureDomains)
+		s.ControlPlane.Status.FailureDomains = make([]clusterv1.FailureDomain, len(spec))
 	}
-	s.ControlPlane.Status.FailureDomains[id] = spec
+	s.ControlPlane.Status.FailureDomains = spec
 }
 
 // InfraCluster returns the AWS infrastructure cluster or control plane object.
@@ -446,16 +447,12 @@ func (s *ManagedControlPlaneScope) OIDCIdentityProviderConfig() *ekscontrolplane
 }
 
 // ServiceCidrs returns the CIDR blocks used for services.
-func (s *ManagedControlPlaneScope) ServiceCidrs() *clusterv1.NetworkRanges {
-	if s.Cluster.Spec.ClusterNetwork != nil {
-		if s.Cluster.Spec.ClusterNetwork.Services != nil {
-			if len(s.Cluster.Spec.ClusterNetwork.Services.CIDRBlocks) > 0 {
-				return s.Cluster.Spec.ClusterNetwork.Services
-			}
-		}
+func (s *ManagedControlPlaneScope) ServiceCidrs() clusterv1.NetworkRanges {
+	if len(s.Cluster.Spec.ClusterNetwork.Services.CIDRBlocks) > 0 {
+		return s.Cluster.Spec.ClusterNetwork.Services
 	}
 
-	return nil
+	return clusterv1.NetworkRanges{}
 }
 
 // ControlPlaneLoadBalancer returns the AWSLoadBalancerSpec.

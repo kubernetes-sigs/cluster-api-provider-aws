@@ -27,7 +27,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
@@ -46,6 +46,7 @@ type ScopeUsage interface {
 // ClusterObject represents a AWS cluster object.
 type ClusterObject interface {
 	conditions.Setter
+	client.Object
 }
 
 // ClusterScoper is the interface for a cluster scope.
@@ -84,7 +85,7 @@ type ClusterScoper interface {
 	// AdditionalTags returns any tags that you would like to attach to AWS resources. The returned value will never be nil.
 	AdditionalTags() infrav1.Tags
 	// SetFailureDomain sets the infrastructure provider failure domain key to the spec given as input.
-	SetFailureDomain(id string, spec clusterv1.FailureDomainSpec)
+	SetFailureDomain(id string, spec []clusterv1.FailureDomain)
 	// PatchObject persists the cluster configuration and status.
 	PatchObject() error
 	// Close closes the current scope persisting the cluster configuration and status.

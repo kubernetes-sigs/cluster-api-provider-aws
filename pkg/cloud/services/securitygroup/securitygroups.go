@@ -25,6 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 
@@ -38,7 +39,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/tags"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/utils"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
@@ -197,7 +198,10 @@ func (s *Service) ReconcileSecurityGroups() error {
 			s.scope.Debug("Authorized ingress rules in security group", "authorized-ingress-rules", toAuthorize, "security-group-id", sg.ID)
 		}
 	}
-	conditions.MarkTrue(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition)
+	conditions.Set(s.scope.InfraCluster(), metav1.Condition{
+		Type:   infrav1.ClusterSecurityGroupsReadyCondition,
+		Status: metav1.ConditionTrue,
+	})
 	return nil
 }
 
@@ -308,7 +312,11 @@ func (s *Service) ec2SecurityGroupToSecurityGroup(ec2SecurityGroup types.Securit
 func (s *Service) DeleteSecurityGroups() error {
 	if s.scope.VPC().ID == "" {
 		s.scope.Debug("Skipping security group deletion, vpc-id is nil", "vpc-id", s.scope.VPC().ID)
-		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
+		conditions.Set(s.scope.InfraCluster(), metav1.Condition{
+			Type:   infrav1.ClusterSecurityGroupsReadyCondition,
+			Status: metav1.ConditionFalse,
+			Reason: clusterv1.DeletedV1Beta1Reason,
+		})
 		return nil
 	}
 
@@ -321,8 +329,11 @@ func (s *Service) DeleteSecurityGroups() error {
 	if len(clusterGroups) == 0 {
 		return nil
 	}
-
-	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+	conditions.Set(s.scope.InfraCluster(), metav1.Condition{
+		Type:   infrav1.ClusterSecurityGroupsReadyCondition,
+		Status: metav1.ConditionFalse,
+		Reason: clusterv1.DeletingReason,
+	})
 	if err := s.scope.PatchObject(); err != nil {
 		return err
 	}
@@ -331,7 +342,12 @@ func (s *Service) DeleteSecurityGroups() error {
 		sg := clusterGroups[i]
 		current := sg.IngressRules
 		if err := s.revokeAllSecurityGroupIngressRules(sg.ID); awserrors.IsIgnorableSecurityGroupError(err) != nil { //nolint:gocritic
-			conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, "%s", err.Error())
+			conditions.Set(s.scope.InfraCluster(), metav1.Condition{
+				Type:    infrav1.ClusterSecurityGroupsReadyCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  "DeletingFailed",
+				Message: fmt.Sprintf("%s", err),
+			})
 			return err
 		}
 
@@ -343,10 +359,19 @@ func (s *Service) DeleteSecurityGroups() error {
 	}
 
 	if err != nil {
-		conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, "DeletingFailed", clusterv1.ConditionSeverityWarning, "%s", err.Error())
+		conditions.Set(s.scope.InfraCluster(), metav1.Condition{
+			Type:    infrav1.ClusterSecurityGroupsReadyCondition,
+			Status:  metav1.ConditionFalse,
+			Reason:  "DeletingFailed",
+			Message: fmt.Sprintf("%s", err),
+		})
 		return err
 	}
-	conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
+	conditions.Set(s.scope.InfraCluster(), metav1.Condition{
+		Type:   infrav1.ClusterSecurityGroupsReadyCondition,
+		Status: metav1.ConditionFalse,
+		Reason: clusterv1.DeletedV1Beta1Reason,
+	})
 
 	return nil
 }

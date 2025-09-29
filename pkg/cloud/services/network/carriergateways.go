@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
@@ -78,7 +79,10 @@ func (s *Service) reconcileCarrierGateway() error {
 		record.Warnf(s.scope.InfraCluster(), "FailedTagCarrierGateway", "Failed to tag managed Carrier Gateway %q: %v", cagw.CarrierGatewayId, err)
 		return errors.Wrapf(err, "failed to tag carrier gateway %q", *cagw.CarrierGatewayId)
 	}
-	conditions.MarkTrue(s.scope.InfraCluster(), infrav1.CarrierGatewayReadyCondition)
+	conditions.Set(s.scope.InfraCluster(), metav1.Condition{
+		Type:   infrav1.CarrierGatewayReadyCondition,
+		Status: metav1.ConditionTrue,
+	})
 	return nil
 }
 
