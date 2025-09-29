@@ -994,19 +994,7 @@ func (s *Service) getControlPlaneLBIngressRules() infrav1.IngressRules {
 }
 
 func (s *Service) getIngressRuleToAllowAnyIPInTheAPIServer() infrav1.IngressRules {
-	if s.scope.VPC().IsIPv6Enabled() {
-		return infrav1.IngressRules{
-			{
-				Description:    "Kubernetes API IPv6",
-				Protocol:       infrav1.SecurityGroupProtocolTCP,
-				FromPort:       int64(s.scope.APIServerPort()),
-				ToPort:         int64(s.scope.APIServerPort()),
-				IPv6CidrBlocks: []string{services.AnyIPv6CidrBlock},
-			},
-		}
-	}
-
-	return infrav1.IngressRules{
+	rules := infrav1.IngressRules{
 		{
 			Description: "Kubernetes API",
 			Protocol:    infrav1.SecurityGroupProtocolTCP,
@@ -1015,22 +1003,20 @@ func (s *Service) getIngressRuleToAllowAnyIPInTheAPIServer() infrav1.IngressRule
 			CidrBlocks:  []string{services.AnyIPv4CidrBlock},
 		},
 	}
+	if s.scope.VPC().IsIPv6Enabled() {
+		rules = append(rules, infrav1.IngressRule{
+			Description:    "Kubernetes API IPv6",
+			Protocol:       infrav1.SecurityGroupProtocolTCP,
+			FromPort:       int64(s.scope.APIServerPort()),
+			ToPort:         int64(s.scope.APIServerPort()),
+			IPv6CidrBlocks: []string{services.AnyIPv6CidrBlock},
+		})
+	}
+	return rules
 }
 
 func (s *Service) getIngressRuleToAllowVPCCidrInTheAPIServer() infrav1.IngressRules {
-	if s.scope.VPC().IsIPv6Enabled() {
-		return infrav1.IngressRules{
-			{
-				Description:    "Kubernetes API IPv6",
-				Protocol:       infrav1.SecurityGroupProtocolTCP,
-				FromPort:       int64(s.scope.APIServerPort()),
-				ToPort:         int64(s.scope.APIServerPort()),
-				IPv6CidrBlocks: []string{s.scope.VPC().IPv6.CidrBlock},
-			},
-		}
-	}
-
-	return infrav1.IngressRules{
+	rules := infrav1.IngressRules{
 		{
 			Description: "Kubernetes API",
 			Protocol:    infrav1.SecurityGroupProtocolTCP,
@@ -1039,6 +1025,16 @@ func (s *Service) getIngressRuleToAllowVPCCidrInTheAPIServer() infrav1.IngressRu
 			CidrBlocks:  []string{s.scope.VPC().CidrBlock},
 		},
 	}
+	if s.scope.VPC().IsIPv6Enabled() {
+		rules = append(rules, infrav1.IngressRule{
+			Description:    "Kubernetes API IPv6",
+			Protocol:       infrav1.SecurityGroupProtocolTCP,
+			FromPort:       int64(s.scope.APIServerPort()),
+			ToPort:         int64(s.scope.APIServerPort()),
+			IPv6CidrBlocks: []string{s.scope.VPC().IPv6.CidrBlock},
+		})
+	}
+	return rules
 }
 
 func (s *Service) processIngressRulesSGs(ingressRules []infrav1.IngressRule) (infrav1.IngressRules, error) {
