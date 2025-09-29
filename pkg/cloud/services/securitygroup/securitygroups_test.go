@@ -1607,7 +1607,7 @@ func TestControlPlaneLoadBalancerIngressRules(t *testing.T) {
 			},
 		},
 		{
-			name: "when no ingress rules are passed and nat gateway IPs are not available, the default for IPv6 is set",
+			name: "when no ingress rules are passed and nat gateway IPs are not available with vpc ipv6 block is defined, the default for IPv4 and IPv6 are set",
 			awsCluster: &infrav1.AWSCluster{
 				Spec: infrav1.AWSClusterSpec{
 					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{},
@@ -1621,6 +1621,13 @@ func TestControlPlaneLoadBalancerIngressRules(t *testing.T) {
 				Status: infrav1.AWSClusterStatus{},
 			},
 			expectedIngresRules: infrav1.IngressRules{
+				infrav1.IngressRule{
+					Description: "Kubernetes API",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{services.AnyIPv4CidrBlock},
+				},
 				infrav1.IngressRule{
 					Description:    "Kubernetes API IPv6",
 					Protocol:       infrav1.SecurityGroupProtocolTCP,
@@ -1748,8 +1755,9 @@ func TestControlPlaneLoadBalancerIngressRules(t *testing.T) {
 					},
 					NetworkSpec: infrav1.NetworkSpec{
 						VPC: infrav1.VPCSpec{
+							CidrBlock: "10.0.0.0/16",
 							IPv6: &infrav1.IPv6{
-								CidrBlock: "10.0.0.0/16",
+								CidrBlock: "2001:1234:5678:9a40::/56",
 							},
 						},
 					},
@@ -1757,11 +1765,25 @@ func TestControlPlaneLoadBalancerIngressRules(t *testing.T) {
 			},
 			expectedIngresRules: infrav1.IngressRules{
 				infrav1.IngressRule{
+					Description: "Kubernetes API",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{"10.0.0.0/16"},
+				},
+				infrav1.IngressRule{
 					Description:    "Kubernetes API IPv6",
 					Protocol:       infrav1.SecurityGroupProtocolTCP,
 					FromPort:       6443,
 					ToPort:         6443,
-					IPv6CidrBlocks: []string{"10.0.0.0/16"},
+					IPv6CidrBlocks: []string{"2001:1234:5678:9a40::/56"},
+				},
+				infrav1.IngressRule{
+					Description: "Kubernetes API",
+					Protocol:    infrav1.SecurityGroupProtocolTCP,
+					FromPort:    6443,
+					ToPort:      6443,
+					CidrBlocks:  []string{services.AnyIPv4CidrBlock},
 				},
 				infrav1.IngressRule{
 					Description:    "Kubernetes API IPv6",
