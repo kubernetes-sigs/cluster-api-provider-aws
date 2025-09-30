@@ -119,6 +119,12 @@ type RosaMachinePoolSpec struct {
 	//
 	// +optional
 	UpdateConfig *RosaUpdateConfig `json:"updateConfig,omitempty"`
+
+	// CapacityReservationID specifies the ID of an AWS On-Demand Capacity Reservation and Capacity Blocks for ML.
+	// The CapacityReservationID must be pre-created in advance, before creating a NodePool.
+	//
+	// +optional
+	CapacityReservationID string `json:"capacityReservationID,omitempty"`
 }
 
 // RosaTaint represents a taint to be applied to a node.

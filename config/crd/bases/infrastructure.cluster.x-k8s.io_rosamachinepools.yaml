@@ -88,6 +88,11 @@ spec:
                   AvailabilityZone is an optinal field specifying the availability zone where instances of this machine pool should run
                   For Multi-AZ clusters, you can create a machine pool in a Single-AZ of your choice.
                 type: string
+              capacityReservationID:
+                description: |-
+                  CapacityReservationID specifies the ID of an AWS On-Demand Capacity Reservation and Capacity Blocks for ML.
+                  The CapacityReservationID must be pre-created in advance, before creating a NodePool.
+                type: string
               instanceType:
                 description: InstanceType specifies the AWS instance type
                 type: string
