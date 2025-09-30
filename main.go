@@ -279,8 +279,22 @@ func main() {
 			setupLog.Error(err, "unable to create webhook", "webhook", "ROSAMachinePool")
 			os.Exit(1)
 		}
-	}
 
+		setupLog.Debug("enabling ROSA role config controller")
+		if err = (&expcontrollers.ROSARoleConfigReconciler{
+			Client:           mgr.GetClient(),
+			Recorder:         mgr.GetEventRecorderFor("rosaroleconfig-controller"),
+			WatchFilterValue: watchFilterValue,
+		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "ROSARoleConfig")
+			os.Exit(1)
+		}
+
+		if err := (&expinfrav1.ROSARoleConfig{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "ROSARoleConfig")
+			os.Exit(1)
+		}
+	}
 	// +kubebuilder:scaffold:builder
 
 	if err := mgr.AddReadyzCheck("webhook", mgr.GetWebhookServer().StartedChecker()); err != nil {

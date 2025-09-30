@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -79,7 +80,7 @@ type RosaMachinePoolSpec struct {
 	// Autoscaling specifies auto scaling behaviour for this MachinePool.
 	// required if Replicas is not configured
 	// +optional
-	Autoscaling *RosaMachinePoolAutoScaling `json:"autoscaling,omitempty"`
+	Autoscaling *rosacontrolplanev1.AutoScaling `json:"autoscaling,omitempty"`
 
 	// TuningConfigs specifies the names of the tuning configs to be applied to this MachinePool.
 	// Tuning configs must already exist.
@@ -137,14 +138,6 @@ type RosaTaint struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Enum=NoSchedule;PreferNoSchedule;NoExecute
 	Effect corev1.TaintEffect `json:"effect"`
-}
-
-// RosaMachinePoolAutoScaling specifies scaling options.
-type RosaMachinePoolAutoScaling struct {
-	// +kubebuilder:validation:Minimum=1
-	MinReplicas int `json:"minReplicas,omitempty"`
-	// +kubebuilder:validation:Minimum=1
-	MaxReplicas int `json:"maxReplicas,omitempty"`
 }
 
 // RosaUpdateConfig specifies update configuration
