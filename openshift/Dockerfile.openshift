@@ -1,4 +1,4 @@
-FROM registry.ci.openshift.org/ocp/builder:rhel-9-golang-1.24-openshift-4.20 AS builder
+FROM registry.ci.openshift.org/ocp/builder:rhel-9-golang-1.24-openshift-4.21 AS builder
 
 WORKDIR /build
 COPY . .
@@ -7,7 +7,7 @@ RUN GO111MODULE=on CGO_ENABLED=0 GOOS=${GOOS} GOPROXY=${GOPROXY} go build \
   -o=cluster-api-provider-aws-controller-manager \
   main.go
 
-FROM registry.ci.openshift.org/ocp/4.20:base-rhel9
+FROM registry.ci.openshift.org/ocp/4.21:base-rhel9
 
 LABEL description="Cluster API Provider AWS Controller Manager"
 
