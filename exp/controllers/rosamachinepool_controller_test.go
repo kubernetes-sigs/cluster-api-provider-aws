@@ -70,6 +70,7 @@ func TestNodePoolToRosaMachinePoolSpec(t *testing.T) {
 				Effect: corev1.TaintEffectNoExecute,
 			},
 		},
+		CapacityReservationID: "capacity-reservation-id",
 	}
 
 	machinePoolSpec := expclusterv1.MachinePoolSpec{
