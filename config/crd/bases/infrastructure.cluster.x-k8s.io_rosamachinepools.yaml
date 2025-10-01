@@ -95,6 +95,7 @@ spec:
                 type: string
               instanceType:
                 description: InstanceType specifies the AWS instance type
+                minLength: 1
                 type: string
               labels:
                 additionalProperties:
@@ -148,6 +149,7 @@ spec:
                       type: string
                     key:
                       description: The taint key to be applied to a node.
+                      minLength: 1
                       type: string
                     value:
                       description: The taint value corresponding to the taint key.

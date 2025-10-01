@@ -98,6 +98,9 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			Spec: expinfrav1.AWSMachinePoolSpec{
 				MinSize: int32(0),
 				MaxSize: int32(100),
+				AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+					Name: "test",
+				},
 				MixedInstancesPolicy: &expinfrav1.MixedInstancesPolicy{
 					InstancesDistribution: &expinfrav1.InstancesDistribution{
 						OnDemandAllocationStrategy:          expinfrav1.OnDemandAllocationStrategyPrioritized,
