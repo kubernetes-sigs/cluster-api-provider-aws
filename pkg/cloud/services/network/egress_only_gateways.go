@@ -136,9 +136,12 @@ func (s *Service) createEgressOnlyInternetGateway() (*types.EgressOnlyInternetGa
 }
 
 func (s *Service) describeEgressOnlyVpcInternetGateways() ([]types.EgressOnlyInternetGateway, error) {
+	// The API for DescribeEgressOnlyInternetGateways does not support filtering by VPC ID attachment.
+	// More details: https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeEgressOnlyInternetGateways.html
+	// Since the eigw is managed by CAPA, we can filter by the kubernetes cluster tag.
 	out, err := s.EC2Client.DescribeEgressOnlyInternetGateways(context.TODO(), &ec2.DescribeEgressOnlyInternetGatewaysInput{
 		Filters: []types.Filter{
-			filter.EC2.VPCAttachment(s.scope.VPC().ID),
+			filter.EC2.Cluster(s.scope.Name()),
 		},
 	})
 	if err != nil {
@@ -146,11 +149,28 @@ func (s *Service) describeEgressOnlyVpcInternetGateways() ([]types.EgressOnlyInt
 		return nil, errors.Wrapf(err, "failed to describe egress only internet gateways in vpc %q", s.scope.VPC().ID)
 	}
 
-	if len(out.EgressOnlyInternetGateways) == 0 {
-		return nil, awserrors.NewNotFound(fmt.Sprintf("no egress only internet gateways found in vpc %q", s.scope.VPC().ID))
+	// For safeguarding, we collect only egress-only internet gateways
+	// that are attached to the VPC.
+	eigws := make([]types.EgressOnlyInternetGateway, 0)
+	for _, eigw := range out.EgressOnlyInternetGateways {
+		for _, attachment := range eigw.Attachments {
+			if aws.ToString(attachment.VpcId) == s.scope.VPC().ID {
+				eigws = append(eigws, eigw)
+			}
+		}
 	}
 
-	return out.EgressOnlyInternetGateways, nil
+	if len(eigws) == 0 {
+		return nil, awserrors.NewNotFound(fmt.Sprintf("no egress only internet gateways found in vpc %q", s.scope.VPC().ID))
+	} else if len(eigws) > 1 {
+		eigwIDs := make([]string, len(eigws))
+		for i, eigw := range eigws {
+			eigwIDs[i] = aws.ToString(eigw.EgressOnlyInternetGatewayId)
+		}
+		return nil, awserrors.NewConflict(fmt.Sprintf("expected 1 egress only internet gateway in vpc %q, but found %v: %v", s.scope.VPC().ID, len(eigws), eigwIDs))
+	}
+
+	return eigws, nil
 }
 
 func (s *Service) getEgressOnlyGatewayTagParams(id string) infrav1.BuildParams {
