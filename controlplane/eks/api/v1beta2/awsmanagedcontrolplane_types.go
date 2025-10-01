@@ -192,6 +192,10 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// +optional
 	OIDCIdentityProviderConfig *OIDCIdentityProviderConfig `json:"oidcIdentityProviderConfig,omitempty"`
 
+	// AccessConfig specifies the access configuration information for the cluster
+	// +optional
+	AccessConfig *AccessConfig `json:"accessConfig,omitempty"`
+
 	// VpcCni is used to set configuration options for the VPC CNI plugin
 	// +optional
 	VpcCni VpcCni `json:"vpcCni,omitempty"`
@@ -246,6 +250,21 @@ type EndpointAccess struct {
 	// Private points VPC-internal control plane access to the private endpoint
 	// +optional
 	Private *bool `json:"private,omitempty"`
+}
+
+// AccessConfig represents the access configuration information for the cluster
+type AccessConfig struct {
+	// AuthenticationMode specifies the desired authentication mode for the cluster
+	// Defaults to config_map
+	// +kubebuilder:default=config_map
+	// +kubebuilder:validation:Enum=config_map;api;api_and_config_map
+	AuthenticationMode EKSAuthenticationMode `json:"authenticationMode,omitempty"`
+
+	// BootstrapClusterCreatorAdminPermissions grants cluster admin permissions
+	// to the IAM identity creating the cluster. Only applied during creation,
+	// ignored when updating existing clusters. Defaults to true.
+	// +kubebuilder:default=true
+	BootstrapClusterCreatorAdminPermissions *bool `json:"bootstrapClusterCreatorAdminPermissions,omitempty"`
 }
 
 // EncryptionConfig specifies the encryption configuration for the EKS clsuter.
