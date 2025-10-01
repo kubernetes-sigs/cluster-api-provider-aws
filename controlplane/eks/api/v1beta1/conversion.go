@@ -117,6 +117,7 @@ func (r *AWSManagedControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 
 	dst.Spec.Partition = restored.Spec.Partition
 	dst.Spec.RestrictPrivateSubnets = restored.Spec.RestrictPrivateSubnets
+	dst.Spec.AccessConfig = restored.Spec.AccessConfig
 	dst.Spec.RolePath = restored.Spec.RolePath
 	dst.Spec.RolePermissionsBoundary = restored.Spec.RolePermissionsBoundary
 	dst.Status.Version = restored.Status.Version

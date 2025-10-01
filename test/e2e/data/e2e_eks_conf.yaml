@@ -116,6 +116,10 @@ providers:
         targetName: "cluster-template-eks-control-plane-only-legacy.yaml"
       - sourcePath: "./eks/cluster-template-eks-control-plane-bare-eks.yaml"
         targetName: "cluster-template-eks-control-plane-bare-eks.yaml"
+      - sourcePath: "./eks/cluster-template-eks-auth-api-and-config-map.yaml"
+        targetName: "cluster-template-eks-auth-api-and-config-map.yaml"
+      - sourcePath: "./eks/cluster-template-eks-auth-bootstrap-disabled.yaml"
+        targetName: "cluster-template-eks-auth-bootstrap-disabled.yaml"
       - sourcePath: "./infrastructure-aws/withclusterclass/kustomize_sources/eks-clusterclass/clusterclass-eks-e2e.yaml"
       - sourcePath: "./infrastructure-aws/withclusterclass/generated/cluster-template-eks-clusterclass.yaml"
 

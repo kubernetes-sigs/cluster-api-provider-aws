@@ -179,6 +179,7 @@ func TestWebhookCreate(t *testing.T) {
 		secondaryCidr        *string
 		secondaryCidrBlocks  []infrav1.VpcCidrBlock
 		kubeProxy            KubeProxy
+		accessConfig         *AccessConfig
 	}{
 		{
 			name:           "ekscluster specified",
@@ -322,6 +323,47 @@ func TestWebhookCreate(t *testing.T) {
 				Disable: true,
 			},
 		},
+		{
+			name:           "BootstrapClusterCreatorAdminPermissions true with EKSAuthenticationModeConfigMap",
+			eksClusterName: "default_cluster1",
+			eksVersion:     "v1.19",
+			expectError:    false,
+			accessConfig: &AccessConfig{
+				AuthenticationMode:                      EKSAuthenticationModeConfigMap,
+				BootstrapClusterCreatorAdminPermissions: ptr.To(true),
+			},
+		},
+		{
+			name:                 "BootstrapClusterCreatorAdminPermissions false with EKSAuthenticationModeConfigMap",
+			eksClusterName:       "default_cluster1",
+			eksVersion:           "v1.19",
+			expectError:          true,
+			expectErrorToContain: "bootstrapClusterCreatorAdminPermissions must be true if cluster authentication mode is set to config_map",
+			accessConfig: &AccessConfig{
+				AuthenticationMode:                      EKSAuthenticationModeConfigMap,
+				BootstrapClusterCreatorAdminPermissions: ptr.To(false),
+			},
+		},
+		{
+			name:           "BootstrapClusterCreatorAdminPermissions false with EKSAuthenticationModeAPIAndConfigMap",
+			eksClusterName: "default_cluster1",
+			eksVersion:     "v1.19",
+			expectError:    false,
+			accessConfig: &AccessConfig{
+				AuthenticationMode:                      EKSAuthenticationModeAPIAndConfigMap,
+				BootstrapClusterCreatorAdminPermissions: ptr.To(false),
+			},
+		},
+		{
+			name:           "BootstrapClusterCreatorAdminPermissions false with EKSAuthenticationModeAPI",
+			eksClusterName: "default_cluster1",
+			eksVersion:     "v1.19",
+			expectError:    false,
+			accessConfig: &AccessConfig{
+				AuthenticationMode:                      EKSAuthenticationModeAPI,
+				BootstrapClusterCreatorAdminPermissions: ptr.To(false),
+			},
+		},
 	}
 
 	for _, tc := range tests {
@@ -364,6 +406,9 @@ func TestWebhookCreate(t *testing.T) {
 			}
 			if tc.secondaryCidr != nil {
 				mcp.Spec.SecondaryCidrBlock = tc.secondaryCidr
+			}
+			if tc.accessConfig != nil {
+				mcp.Spec.AccessConfig = tc.accessConfig
 			}
 
 			err := testEnv.Create(ctx, mcp)
@@ -600,6 +645,112 @@ func TestWebhookUpdate(t *testing.T) {
 			newClusterSpec: AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
 				Version:        &vV1_17,
+			},
+			expectError: false,
+		},
+		{
+			name: "no change in access config",
+			oldClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				AccessConfig: &AccessConfig{
+					AuthenticationMode: EKSAuthenticationModeConfigMap,
+				},
+			},
+			newClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				AccessConfig: &AccessConfig{
+					AuthenticationMode: EKSAuthenticationModeConfigMap,
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "change in access config to nil",
+			oldClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				AccessConfig: &AccessConfig{
+					AuthenticationMode: EKSAuthenticationModeConfigMap,
+				},
+			},
+			newClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+			},
+			expectError: true,
+		},
+		{
+			name: "change in access config from nil to valid",
+			oldClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+			},
+			newClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				AccessConfig: &AccessConfig{
+					AuthenticationMode: EKSAuthenticationModeConfigMap,
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "change in access config auth mode from ApiAndConfigMap to API is allowed",
+			oldClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				AccessConfig: &AccessConfig{
+					AuthenticationMode: EKSAuthenticationModeAPIAndConfigMap,
+				},
+			},
+			newClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				AccessConfig: &AccessConfig{
+					AuthenticationMode: EKSAuthenticationModeAPI,
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "change in access config auth mode from API to Config Map is denied",
+			oldClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				AccessConfig: &AccessConfig{
+					AuthenticationMode: EKSAuthenticationModeAPI,
+				},
+			},
+			newClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				AccessConfig: &AccessConfig{
+					AuthenticationMode: EKSAuthenticationModeConfigMap,
+				},
+			},
+			expectError: true,
+		},
+		{
+			name: "change in access config auth mode from APIAndConfigMap to Config Map is denied",
+			oldClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				AccessConfig: &AccessConfig{
+					AuthenticationMode: EKSAuthenticationModeAPIAndConfigMap,
+				},
+			},
+			newClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				AccessConfig: &AccessConfig{
+					AuthenticationMode: EKSAuthenticationModeConfigMap,
+				},
+			},
+			expectError: true,
+		},
+		{
+			name: "change in access config bootstrap admin permissions is ignored",
+			oldClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				AccessConfig: &AccessConfig{
+					BootstrapClusterCreatorAdminPermissions: ptr.To(true),
+				},
+			},
+			newClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				AccessConfig: &AccessConfig{
+					BootstrapClusterCreatorAdminPermissions: ptr.To(false),
+				},
 			},
 			expectError: false,
 		},
