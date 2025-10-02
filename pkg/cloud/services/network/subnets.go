@@ -507,9 +507,8 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 			),
 		},
 	}
-	if s.scope.VPC().IsIPv6Enabled() {
+	if sn.IsIPv6 {
 		input.Ipv6CidrBlock = aws.String(sn.IPv6CidrBlock)
-		sn.IsIPv6 = true
 	}
 	out, err := s.EC2Client.CreateSubnet(context.TODO(), input)
 	if err != nil {
@@ -521,7 +520,32 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 	s.scope.Info("Created subnet", "id", *out.Subnet.SubnetId, "public", sn.IsPublic, "az", sn.AvailabilityZone, "cidr", sn.CidrBlock, "ipv6", sn.IsIPv6, "ipv6-cidr", sn.IPv6CidrBlock)
 
 	wReq := &ec2.DescribeSubnetsInput{SubnetIds: []string{aws.ToString(out.Subnet.SubnetId)}}
-	if err := ec2.NewSubnetAvailableWaiter(s.EC2Client).Wait(context.TODO(), wReq, time.Minute*5); err != nil {
+	if err := ec2.NewSubnetAvailableWaiter(s.EC2Client).Wait(context.TODO(), wReq, time.Minute*5, func(sawo *ec2.SubnetAvailableWaiterOptions) {
+		// There is a brief period where the IPv6 CIDR is not yet associated with the subnets.
+		// We need to additionally wait till the CIDR is associated.
+		if sn.IsIPv6 {
+			// Default handler will check for subnet state "available".
+			subnetStateCheck := sawo.Retryable
+			sawo.Retryable = func(ctx context.Context, dsi *ec2.DescribeSubnetsInput, dso *ec2.DescribeSubnetsOutput, err error) (bool, error) {
+				available, err := subnetStateCheck(ctx, dsi, dso, err)
+				if err != nil {
+					return false, err
+				}
+
+				cidrAssociated := true
+				for _, subnet := range dso.Subnets {
+					for _, set := range subnet.Ipv6CidrBlockAssociationSet {
+						if set.Ipv6CidrBlockState.State != types.SubnetCidrBlockStateCodeAssociated {
+							cidrAssociated = false
+							break
+						}
+					}
+				}
+
+				return available && cidrAssociated, nil
+			}
+		}
+	}); err != nil {
 		return nil, errors.Wrapf(err, "failed to wait for subnet %q", *out.Subnet.SubnetId)
 	}
 
@@ -545,6 +569,28 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 			return nil, errors.Wrapf(err, "failed to set subnet %q attribute assign ipv6 address on creation", *out.Subnet.SubnetId)
 		}
 		record.Eventf(s.scope.InfraCluster(), "SuccessfulModifySubnetAttributes", "Modified managed Subnet %q attributes", *out.Subnet.SubnetId)
+
+		// Enable DNS64 so that the Route 53 Resolver returns DNS records for IPv4-only services
+		// containing a synthesized IPv6 address prefixed 64:ff9b::/96.
+		// This is needed alongside NAT64 to allow IPv6-only workloads to reach IPv4-only services.
+		// We only need to enable on private subnets.
+		if !sn.IsPublic {
+			if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+				if _, err := s.EC2Client.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
+					SubnetId: out.Subnet.SubnetId,
+					EnableDns64: &types.AttributeBooleanValue{
+						Value: aws.Bool(true),
+					},
+				}); err != nil {
+					return false, err
+				}
+				return true, nil
+			}, awserrors.SubnetNotFound); err != nil {
+				record.Warnf(s.scope.InfraCluster(), "FailedModifySubnetAttributes", "Failed modifying managed Subnet %q attributes: %v", *out.Subnet.SubnetId, err)
+				return nil, errors.Wrapf(err, "failed to set subnet %q attribute enable dns64", *out.Subnet.SubnetId)
+			}
+			record.Eventf(s.scope.InfraCluster(), "SuccessfulModifySubnetAttributes", "Modified managed Subnet %q attributes", *out.Subnet.SubnetId)
+		}
 	}
 
 	// AWS Wavelength Zone's public subnets does not support to map Carrier IP address on launch, and
@@ -591,23 +637,23 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 		ID:               sn.ID,
 		ResourceID:       *out.Subnet.SubnetId,
 		AvailabilityZone: *out.Subnet.AvailabilityZone,
-		CidrBlock:        *out.Subnet.CidrBlock, // TODO: this will panic in case of IPv6 only subnets...
-		IsPublic:         sn.IsPublic,
-		Tags:             sn.Tags,
+		// In case of IPv6-only subnets, cidrBlock (IPv4) is empty.
+		CidrBlock: aws.ToString(out.Subnet.CidrBlock),
+		IsPublic:  sn.IsPublic,
+		Tags:      sn.Tags,
 	}
 	for _, set := range out.Subnet.Ipv6CidrBlockAssociationSet {
-		if set.Ipv6CidrBlockState.State == types.SubnetCidrBlockStateCodeAssociated {
-			subnet.IPv6CidrBlock = aws.ToString(set.Ipv6CidrBlock)
-			subnet.IsIPv6 = true
-		}
+		// The IPv6 CIDR is already ensured to be associated so we don't need to check for its association state.
+		subnet.IPv6CidrBlock = aws.ToString(set.Ipv6CidrBlock)
+		subnet.IsIPv6 = true
 	}
 
 	s.scope.Debug("Created new subnet in VPC with cidr and availability zone ",
-		"subnet-id", *out.Subnet.SubnetId,
+		"subnet-id", subnet.ResourceID,
 		"vpc-id", *out.Subnet.VpcId,
-		"cidr-block", *out.Subnet.CidrBlock,
+		"cidr-block", subnet.CidrBlock,
 		"ipv6-cidr-block", subnet.IPv6CidrBlock,
-		"availability-zone", *out.Subnet.AvailabilityZone)
+		"availability-zone", subnet.AvailabilityZone)
 
 	return subnet, nil
 }

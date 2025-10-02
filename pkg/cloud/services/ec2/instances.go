@@ -585,14 +585,25 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 
 		input.NetworkInterfaces = netInterfaces
 	} else {
-		input.NetworkInterfaces = []types.InstanceNetworkInterfaceSpecification{
-			{
-				DeviceIndex:              aws.Int32(0),
-				SubnetId:                 aws.String(i.SubnetID),
-				Groups:                   i.SecurityGroupIDs,
-				AssociatePublicIpAddress: i.PublicIPOnLaunch,
-			},
+		netInterface := types.InstanceNetworkInterfaceSpecification{
+			DeviceIndex:              aws.Int32(0),
+			SubnetId:                 aws.String(i.SubnetID),
+			Groups:                   i.SecurityGroupIDs,
+			AssociatePublicIpAddress: i.PublicIPOnLaunch,
 		}
+
+		// When registering targets by instance ID for an IPv6 target group, the targets must have an assigned primary IPv6 address.
+		// Use case: registering controlplane nodes to the API LBs.
+		enablePrimaryIpv6, err := s.shouldEnablePrimaryIpv6(i)
+		if err != nil {
+			return nil, fmt.Errorf("failed to determine whether to enable PrimaryIpv6 for instance: %w", err)
+		}
+		if enablePrimaryIpv6 {
+			netInterface.PrimaryIpv6 = aws.Bool(true)
+			netInterface.Ipv6AddressCount = aws.Int32(1)
+		}
+
+		input.NetworkInterfaces = []types.InstanceNetworkInterfaceSpecification{netInterface}
 	}
 
 	if i.NetworkInterfaceType != "" {
@@ -922,6 +933,7 @@ func (s *Service) SDKToInstance(v types.Instance) (*infrav1.Instance, error) {
 		ImageID:      aws.ToString(v.ImageId),
 		SSHKeyName:   v.KeyName,
 		PrivateIP:    v.PrivateIpAddress,
+		IPv6Address:  v.Ipv6Address,
 		PublicIP:     v.PublicIpAddress,
 		ENASupport:   v.EnaSupport,
 		EBSOptimized: v.EbsOptimized,
@@ -958,6 +970,7 @@ func (s *Service) SDKToInstance(v types.Instance) (*infrav1.Instance, error) {
 		metadataOptions.HTTPEndpoint = infrav1.InstanceMetadataState(string(v.MetadataOptions.HttpEndpoint))
 		metadataOptions.HTTPTokens = infrav1.HTTPTokensState(string(v.MetadataOptions.HttpTokens))
 		metadataOptions.InstanceMetadataTags = infrav1.InstanceMetadataState(string(v.MetadataOptions.InstanceMetadataTags))
+		metadataOptions.HTTPProtocolIPv6 = infrav1.InstanceMetadataState(v.MetadataOptions.HttpProtocolIpv6)
 		if v.MetadataOptions.HttpPutResponseHopLimit != nil {
 			metadataOptions.HTTPPutResponseHopLimit = int64(*v.MetadataOptions.HttpPutResponseHopLimit)
 		}
@@ -1113,6 +1126,7 @@ func (s *Service) ModifyInstanceMetadataOptions(instanceID string, options *infr
 		HttpPutResponseHopLimit: utils.ToInt32Pointer(&options.HTTPPutResponseHopLimit),
 		HttpTokens:              types.HttpTokensState(string(options.HTTPTokens)),
 		InstanceMetadataTags:    types.InstanceMetadataTagsState(string(options.InstanceMetadataTags)),
+		HttpProtocolIpv6:        types.InstanceMetadataProtocolState(string(options.HTTPProtocolIPv6)),
 		InstanceId:              aws.String(instanceID),
 	}
 
@@ -1266,6 +1280,9 @@ func getInstanceMetadataOptionsRequest(metadataOptions *infrav1.InstanceMetadata
 	if metadataOptions.HTTPEndpoint != "" {
 		request.HttpEndpoint = types.InstanceMetadataEndpointState(string(metadataOptions.HTTPEndpoint))
 	}
+	if metadataOptions.HTTPProtocolIPv6 != "" {
+		request.HttpProtocolIpv6 = types.InstanceMetadataProtocolState(string(metadataOptions.HTTPProtocolIPv6))
+	}
 	if metadataOptions.HTTPPutResponseHopLimit != 0 {
 		request.HttpPutResponseHopLimit = utils.ToInt32Pointer(&metadataOptions.HTTPPutResponseHopLimit)
 	}
@@ -1306,4 +1323,35 @@ func getInstanceCPUOptionsRequest(cpuOptions infrav1.CPUOptions) *types.CpuOptio
 	}
 
 	return request
+}
+
+func (s *Service) shouldEnablePrimaryIpv6(i *infrav1.Instance) (bool, error) {
+	var enablePrimaryIpv6 bool
+
+	// We should enable IPv6 capabilities only when the users explicitly configure so.
+	if !s.scope.VPC().IsIPv6Enabled() {
+		return false, nil
+	}
+
+	sn := s.scope.Subnets().FindByID(i.SubnetID)
+	if sn != nil {
+		enablePrimaryIpv6 = sn.IsIPv6
+	} else {
+		// The subnet is in a different VPC than the cluster VPC. Then, we query AWS API.
+		sns, err := s.getFilteredSubnets(types.Filter{Name: aws.String("subnet-id"), Values: []string{i.SubnetID}})
+		if err != nil {
+			return false, fmt.Errorf("failed to find subnet info with id %q for instance: %w", i.SubnetID, err)
+		}
+		if len(sns) == 0 {
+			return false, fmt.Errorf("expected subnet %q for instance to exist, but found none", i.SubnetID)
+		}
+		for _, set := range sns[0].Ipv6CidrBlockAssociationSet {
+			if set.Ipv6CidrBlockState.State == types.SubnetCidrBlockStateCodeAssociated {
+				enablePrimaryIpv6 = true
+				break
+			}
+		}
+	}
+
+	return enablePrimaryIpv6, nil
 }

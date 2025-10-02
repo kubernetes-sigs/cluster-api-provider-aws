@@ -1782,14 +1782,6 @@ func TestReconcileSubnets(t *testing.T) {
 					After(firstSubnet)
 
 				m.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
-					AssignIpv6AddressOnCreation: &types.AttributeBooleanValue{
-						Value: aws.Bool(true),
-					},
-					SubnetId: aws.String("subnet-2"),
-				}).Return(&ec2.ModifySubnetAttributeOutput{}, nil).
-					After(firstSubnet)
-
-				m.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
 					MapPublicIpOnLaunch: &types.AttributeBooleanValue{
 						Value: aws.Bool(true),
 					},
@@ -1863,6 +1855,22 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					},
 				}, nil).
+					After(secondSubnet)
+
+				m.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
+					AssignIpv6AddressOnCreation: &types.AttributeBooleanValue{
+						Value: aws.Bool(true),
+					},
+					SubnetId: aws.String("subnet-2"),
+				}).Return(&ec2.ModifySubnetAttributeOutput{}, nil).
+					After(secondSubnet)
+
+				m.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
+					EnableDns64: &types.AttributeBooleanValue{
+						Value: aws.Bool(true),
+					},
+					SubnetId: aws.String("subnet-2"),
+				}).Return(&ec2.ModifySubnetAttributeOutput{}, nil).
 					After(secondSubnet)
 
 				m.DescribeAvailabilityZones(context.TODO(), gomock.Any()).
@@ -3657,15 +3665,6 @@ func TestReconcileSubnets(t *testing.T) {
 					After(firstSubnet)
 
 				m.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
-					AssignIpv6AddressOnCreation: &types.AttributeBooleanValue{
-						Value: aws.Bool(true),
-					},
-					SubnetId: aws.String("subnet-2"),
-				}).
-					Return(&ec2.ModifySubnetAttributeOutput{}, nil).
-					After(firstSubnet)
-
-				m.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
 					MapPublicIpOnLaunch: &types.AttributeBooleanValue{
 						Value: aws.Bool(true),
 					},
@@ -3739,6 +3738,22 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					},
 				}, nil).
+					After(secondSubnet)
+
+				m.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
+					AssignIpv6AddressOnCreation: &types.AttributeBooleanValue{
+						Value: aws.Bool(true),
+					},
+					SubnetId: aws.String("subnet-2"),
+				}).Return(&ec2.ModifySubnetAttributeOutput{}, nil).
+					After(secondSubnet)
+
+				m.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
+					EnableDns64: &types.AttributeBooleanValue{
+						Value: aws.Bool(true),
+					},
+					SubnetId: aws.String("subnet-2"),
+				}).Return(&ec2.ModifySubnetAttributeOutput{}, nil).
 					After(secondSubnet)
 
 				m.DescribeAvailabilityZones(context.TODO(), gomock.Any()).
@@ -3904,15 +3919,6 @@ func TestReconcileSubnets(t *testing.T) {
 					After(zone1PublicSubnet)
 
 				m.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
-					AssignIpv6AddressOnCreation: &types.AttributeBooleanValue{
-						Value: aws.Bool(true),
-					},
-					SubnetId: aws.String("subnet-2"),
-				}).
-					Return(&ec2.ModifySubnetAttributeOutput{}, nil).
-					After(zone1PublicSubnet)
-
-				m.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
 					MapPublicIpOnLaunch: &types.AttributeBooleanValue{
 						Value: aws.Bool(true),
 					},
@@ -3986,6 +3992,24 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					},
 				}, nil).
+					After(zone1PrivateSubnet)
+
+				m.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
+					AssignIpv6AddressOnCreation: &types.AttributeBooleanValue{
+						Value: aws.Bool(true),
+					},
+					SubnetId: aws.String("subnet-2"),
+				}).
+					Return(&ec2.ModifySubnetAttributeOutput{}, nil).
+					After(zone1PrivateSubnet)
+
+				m.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
+					EnableDns64: &types.AttributeBooleanValue{
+						Value: aws.Bool(true),
+					},
+					SubnetId: aws.String("subnet-2"),
+				}).
+					Return(&ec2.ModifySubnetAttributeOutput{}, nil).
 					After(zone1PrivateSubnet)
 
 				// zone 2
@@ -4078,14 +4102,6 @@ func TestReconcileSubnets(t *testing.T) {
 					After(zone2PublicSubnet)
 
 				m.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
-					AssignIpv6AddressOnCreation: &types.AttributeBooleanValue{
-						Value: aws.Bool(true),
-					},
-					SubnetId: aws.String("subnet-2"),
-				}).
-					Return(&ec2.ModifySubnetAttributeOutput{}, nil).
-					After(zone2PublicSubnet)
-				m.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
 					MapPublicIpOnLaunch: &types.AttributeBooleanValue{
 						Value: aws.Bool(true),
 					},
@@ -4159,6 +4175,24 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					},
 				}, nil).
+					After(zone2PrivateSubnet)
+
+				m.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
+					AssignIpv6AddressOnCreation: &types.AttributeBooleanValue{
+						Value: aws.Bool(true),
+					},
+					SubnetId: aws.String("subnet-2"),
+				}).
+					Return(&ec2.ModifySubnetAttributeOutput{}, nil).
+					After(zone2PrivateSubnet)
+
+				m.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
+					EnableDns64: &types.AttributeBooleanValue{
+						Value: aws.Bool(true),
+					},
+					SubnetId: aws.String("subnet-2"),
+				}).
+					Return(&ec2.ModifySubnetAttributeOutput{}, nil).
 					After(zone2PrivateSubnet)
 			},
 		},
