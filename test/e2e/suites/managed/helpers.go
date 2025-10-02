@@ -48,6 +48,7 @@ const (
 	EKSManagedMachinePoolWithLaunchTemplateOnlyFlavor = "eks-managed-machinepool-with-launch-template-only"
 	EKSMachinePoolOnlyFlavor                          = "eks-machinepool-only"
 	EKSIPv6ClusterFlavor                              = "eks-ipv6-cluster"
+	EKSUpgradePolicyFlavor                            = "eks-upgrade-policy"
 	EKSControlPlaneOnlyLegacyFlavor                   = "eks-control-plane-only-legacy"
 	EKSClusterClassFlavor                             = "eks-clusterclass"
 	EKSAuthAPIAndConfigMapFlavor                      = "eks-auth-api-and-config-map"
@@ -104,6 +105,10 @@ func getEKSCluster(ctx context.Context, eksClusterName string, sess *aws.Config)
 		Name: aws.String(eksClusterName),
 	}
 	result, err := eksClient.DescribeCluster(ctx, input)
+
+	if err != nil {
+		return nil, err
+	}
 
 	return result.Cluster, err
 }

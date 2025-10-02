@@ -212,6 +212,15 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 
 	// KubeProxy defines managed attributes of the kube-proxy daemonset
 	KubeProxy KubeProxy `json:"kubeProxy,omitempty"`
+
+	// The cluster upgrade policy to use for the cluster.
+	// (Official AWS docs for this policy: https://docs.aws.amazon.com/eks/latest/userguide/view-upgrade-policy.html)
+	// `extended` upgrade policy indicates that the cluster will enter into extended support once the Kubernetes version reaches end of standard support. You will incur extended support charges with this setting. You can upgrade your cluster to a standard supported Kubernetes version to stop incurring extended support charges.
+	// `standard` upgrade policy indicates that the cluster is eligible for automatic upgrade at the end of standard support. You will not incur extended support charges with this setting but your EKS cluster will automatically upgrade to the next supported Kubernetes version in standard support.
+	// If omitted, new clusters will use the AWS default upgrade policy (which at the time of writing is "extended") and existing clusters will have their upgrade policy unchanged.
+	// +kubebuilder:validation:Enum=extended;standard
+	// +optional
+	UpgradePolicy UpgradePolicy `json:"upgradePolicy,omitempty"`
 }
 
 // KubeProxy specifies how the kube-proxy daemonset is managed.
