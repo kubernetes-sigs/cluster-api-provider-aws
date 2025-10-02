@@ -253,6 +253,15 @@ type AWSLoadBalancerSpec struct {
 	// PreserveClientIP lets the user control if preservation of client ips must be retained or not.
 	// If this is enabled 6443 will be opened to 0.0.0.0/0.
 	PreserveClientIP bool `json:"preserveClientIP,omitempty"`
+
+	// TargetGroupIPType sets the IP address type for the target group.
+	// Valid values are ipv4 and ipv6. If not specified, defaults to ipv4 unless
+	// the VPC has IPv6 enabled, in which case it defaults to ipv6.
+	// This applies to the API server target group.
+	// This field cannot be set if LoadBalancerType is classic or disabled.
+	// +kubebuilder:validation:Enum=ipv4;ipv6
+	// +optional
+	TargetGroupIPType *TargetGroupIPType `json:"targetGroupIPType,omitempty"`
 }
 
 // AdditionalListenerSpec defines the desired state of an
@@ -272,6 +281,14 @@ type AdditionalListenerSpec struct {
 	// HealthCheck sets the optional custom health check configuration to the API target group.
 	// +optional
 	HealthCheck *TargetGroupHealthCheckAdditionalSpec `json:"healthCheck,omitempty"`
+
+	// TargetGroupIPType sets the IP address type for the target group.
+	// Valid values are ipv4 and ipv6. If not specified, defaults to ipv4 unless
+	// the VPC has IPv6 enabled, in which case it defaults to ipv6.
+	// This field cannot be set if LoadBalancerType is classic or disabled.
+	// +kubebuilder:validation:Enum=ipv4;ipv6
+	// +optional
+	TargetGroupIPType *TargetGroupIPType `json:"targetGroupIPType,omitempty"`
 }
 
 // AWSClusterStatus defines the observed state of AWSCluster.

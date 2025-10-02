@@ -890,6 +890,111 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "rejects targetGroupIPType when LoadBalancer is disabled",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						TargetGroupIPType: &TargetGroupIPTypeIPv4,
+						LoadBalancerType:  LoadBalancerTypeDisabled,
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects targetGroupIPType with Classic Load Balancer",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:  LoadBalancerTypeClassic,
+						TargetGroupIPType: &TargetGroupIPTypeIPv4,
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "accepts targetGroupIPType IPv4 with Network Load Balancer",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:  LoadBalancerTypeNLB,
+						TargetGroupIPType: &TargetGroupIPTypeIPv4,
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "rejects targetGroupIPType IPv6 with VPC IPv6 disabled",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:  LoadBalancerTypeNLB,
+						TargetGroupIPType: &TargetGroupIPTypeIPv6,
+					},
+					NetworkSpec: NetworkSpec{},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "accepts targetGroupIPType IPv6 with NLB and VPC IPv6 enabled",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:  LoadBalancerTypeNLB,
+						TargetGroupIPType: &TargetGroupIPTypeIPv6,
+					},
+					NetworkSpec: NetworkSpec{
+						VPC: VPCSpec{
+							IPv6: &IPv6{
+								CidrBlock: "2001:db8::/56",
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "rejects additionalListener targetGroupIPType with Classic Load Balancer",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType: LoadBalancerTypeClassic,
+						AdditionalListeners: []AdditionalListenerSpec{
+							{
+								Port:              22623,
+								Protocol:          ELBProtocolTCP,
+								TargetGroupIPType: &TargetGroupIPTypeIPv4,
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects additionalListener targetGroupIPType IPv6 with VPC IPv6 disabled",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType: LoadBalancerTypeNLB,
+						AdditionalListeners: []AdditionalListenerSpec{
+							{
+								Port:              8443,
+								Protocol:          ELBProtocolTCP,
+								TargetGroupIPType: &TargetGroupIPTypeIPv6,
+							},
+						},
+					},
+					NetworkSpec: NetworkSpec{},
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1347,6 +1452,53 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 				},
 			},
 			wantErr: true,
+		},
+		{
+			name: "should failed if controlPlaneLoadBalancer targetGroupIPType is changed",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:  LoadBalancerTypeNLB,
+						TargetGroupIPType: &TargetGroupIPTypeIPv4,
+					},
+				},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:  LoadBalancerTypeNLB,
+						TargetGroupIPType: &TargetGroupIPTypeIPv6,
+					},
+					NetworkSpec: NetworkSpec{
+						VPC: VPCSpec{
+							IPv6: &IPv6{
+								CidrBlock: "2001:db8::/56",
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "should pass controlPlaneLoadBalancer targetGroupIPType is the same on update",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:  LoadBalancerTypeNLB,
+						TargetGroupIPType: &TargetGroupIPTypeIPv4,
+					},
+				},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:  LoadBalancerTypeNLB,
+						TargetGroupIPType: &TargetGroupIPTypeIPv4,
+					},
+				},
+			},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
