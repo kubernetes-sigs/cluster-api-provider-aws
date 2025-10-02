@@ -1620,6 +1620,23 @@ func TestReconcileTargetGroupsAndListeners(t *testing.T) {
 		{
 			name: "created with ipv6 vpc",
 			spec: func(spec infrav1.LoadBalancer) infrav1.LoadBalancer {
+				spec.ELBListeners = []infrav1.Listener{
+					{
+						Protocol: "TCP",
+						Port:     infrav1.DefaultAPIServerPort,
+						TargetGroup: infrav1.TargetGroupSpec{
+							Name:     "name",
+							Port:     infrav1.DefaultAPIServerPort,
+							Protocol: "TCP",
+							VpcID:    vpcID,
+							HealthCheck: &infrav1.TargetGroupHealthCheck{
+								Protocol: aws.String("tcp"),
+								Port:     aws.String(infrav1.DefaultAPIServerPortString),
+							},
+							IPType: infrav1.TargetGroupIPTypeIPv6,
+						},
+					},
+				}
 				return spec
 			},
 			awsCluster: func(acl infrav1.AWSCluster) infrav1.AWSCluster {
