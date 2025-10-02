@@ -218,6 +218,53 @@ var (
 	TargetGroupAttributeUnhealthyDrainingIntervalSeconds = "target_health_state.unhealthy.draining_interval_seconds"
 )
 
+// TargetGroupIPType defines the IP address type for target groups.
+type TargetGroupIPType string
+
+var (
+	// TargetGroupIPTypeIPv4 defines the IPv4 address type for target groups.
+	TargetGroupIPTypeIPv4 = TargetGroupIPType("ipv4")
+
+	// TargetGroupIPTypeIPv6 defines the IPv6 address type for target groups.
+	TargetGroupIPTypeIPv6 = TargetGroupIPType("ipv6")
+)
+
+func (t TargetGroupIPType) String() string {
+	return string(t)
+}
+
+// Equals returns true if two TargetGroupIPType are equal.
+func (t TargetGroupIPType) Equals(other *TargetGroupIPType) bool {
+	if other == nil {
+		return false
+	}
+
+	return t == *other
+}
+
+// LoadBalancerIPAddressType defines the IP address type for load balancers.
+type LoadBalancerIPAddressType string
+
+// Enum values for LoadBalancerIPAddressType
+const (
+	LoadBalancerIPAddressTypeIPv4                       = LoadBalancerIPAddressType("ipv4")
+	LoadBalancerIPAddressTypeDualstack                  = LoadBalancerIPAddressType("dualstack")
+	LoadBalancerIPAddressTypeDualstackWithoutPublicIPv4 = LoadBalancerIPAddressType("dualstack-without-public-ipv4")
+)
+
+func (t LoadBalancerIPAddressType) String() string {
+	return string(t)
+}
+
+// Equals returns true if two LoadBalancerIPAddressType are equal.
+func (t LoadBalancerIPAddressType) Equals(other *LoadBalancerIPAddressType) bool {
+	if other == nil {
+		return false
+	}
+
+	return t == *other
+}
+
 // LoadBalancerAttribute defines a set of attributes for a V2 load balancer.
 type LoadBalancerAttribute string
 
@@ -243,6 +290,8 @@ type TargetGroupSpec struct {
 	VpcID    string      `json:"vpcId"`
 	// HealthCheck is the elb health check associated with the load balancer.
 	HealthCheck *TargetGroupHealthCheck `json:"targetGroupHealthCheck,omitempty"`
+	// IPType is the IP address type for the target group.
+	IPType TargetGroupIPType `json:"ipType,omitempty"`
 }
 
 // Listener defines an AWS network load balancer listener.
@@ -298,6 +347,10 @@ type LoadBalancer struct {
 	// LoadBalancerType sets the type for a load balancer. The default type is classic.
 	// +kubebuilder:validation:Enum:=classic;elb;alb;nlb
 	LoadBalancerType LoadBalancerType `json:"loadBalancerType,omitempty"`
+
+	// LoadBalancerIPAddressType specifies the IP address type for the load balancer.
+	// +kubebuilder:validation:Enum:=ipv4;dualstack;dualstack-without-public-ipv4
+	LoadBalancerIPAddressType LoadBalancerIPAddressType `json:"loadBalancerIPAddressType,omitempty"`
 }
 
 // IsUnmanaged returns true if the Classic ELB is unmanaged.
