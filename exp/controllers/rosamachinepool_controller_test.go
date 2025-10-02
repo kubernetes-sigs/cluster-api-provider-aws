@@ -70,6 +70,7 @@ func TestNodePoolToRosaMachinePoolSpec(t *testing.T) {
 				Effect: corev1.TaintEffectNoExecute,
 			},
 		},
+		CapacityReservationID: "capacity-reservation-id",
 	}
 
 	machinePoolSpec := expclusterv1.MachinePoolSpec{
@@ -127,10 +128,19 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 					PodCIDR:     "10.128.0.0/14",
 					ServiceCIDR: "172.30.0.0/16",
 				},
-				Region:           "us-east-1",
-				Version:          "4.15.20",
-				ChannelGroup:     "stable",
-				RolesRef:         rosacontrolplanev1.AWSRolesRef{},
+				Region:       "us-east-1",
+				Version:      "4.15.20",
+				ChannelGroup: "stable",
+				RolesRef: rosacontrolplanev1.AWSRolesRef{
+					IngressARN:              "op-arn1",
+					ImageRegistryARN:        "op-arn2",
+					StorageARN:              "op-arn3",
+					NetworkARN:              "op-arn4",
+					KubeCloudControllerARN:  "op-arn5",
+					NodePoolManagementARN:   "op-arn6",
+					ControlPlaneOperatorARN: "op-arn7",
+					KMSProviderARN:          "op-arn8",
+				},
 				OIDCID:           "iodcid1",
 				InstallerRoleARN: "arn1",
 				WorkerRoleARN:    "arn2",

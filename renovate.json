@@ -1,0 +1,31 @@
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  baseBranches: ["main", "/^backplane-2\\.1[0-99]$/"],
+  packageRules: [
+    {
+      matchManagers: ["dockerfile"],
+      enabled: true,
+    },
+    {
+      matchBaseBranches: ["main", "/^backplane-2\\.1[0-99]$/"],
+      matchManagers: ["tekton"],
+      enabled: true,
+      addLabels: ["ok-to-test"],
+    },
+    {
+      matchManagers: ["gomod"],
+      enabled: false,
+      groupName: "go dependencies",
+      groupSlug: "go-deps",
+    },
+    {
+      matchManagers: ["gomod"],
+      matchDepTypes: ["indirect"],
+      enabled: false,
+    },
+  ],
+  rebaseWhen: "behind-base-branch",
+  recreateWhen: "never",
+  addLabels: ["ok-to-test"],
+  schedule: ["every monday"],
+}
