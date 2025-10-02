@@ -238,6 +238,14 @@ func (r *AWSCluster) validateControlPlaneLoadBalancerUpdate(oldlb, newlb *AWSLoa
 				)
 			}
 		}
+
+		// TargetGroupIPType is immutable after creation.
+		if !cmp.Equal(oldlb.TargetGroupIPType, newlb.TargetGroupIPType) {
+			allErrs = append(allErrs,
+				field.Forbidden(field.NewPath("spec", "controlPlaneLoadBalancer", "targetGroupIPType"),
+					"field is immutable and cannot be changed after target group creation"),
+			)
+		}
 	}
 
 	return allErrs
@@ -467,6 +475,33 @@ func (r *AWSCluster) validateControlPlaneLBs() (admission.Warnings, field.ErrorL
 		if r.Spec.ControlPlaneLoadBalancer.DisableHostsRewrite {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer", "disableHostsRewrite"), r.Spec.ControlPlaneLoadBalancer.DisableHostsRewrite, "cannot disable hosts rewrite if the LoadBalancer reconciliation is disabled"))
 		}
+
+		if r.Spec.ControlPlaneLoadBalancer.TargetGroupIPType != nil {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "controlPlaneLoadBalancer", "targetGroupIPType"), r.Spec.ControlPlaneLoadBalancer.TargetGroupIPType, "cannot set target group IP type if the LoadBalancer reconciliation is disabled"))
+		}
+	}
+
+	if r.Spec.ControlPlaneLoadBalancer != nil {
+		basePath := field.NewPath("spec", "controlPlaneLoadBalancer")
+		if r.Spec.ControlPlaneLoadBalancer.TargetGroupIPType != nil {
+			allErrs = append(allErrs, r.validateTargetGroupIPType(basePath.Child("targetGroupIPType"), r.Spec.ControlPlaneLoadBalancer.TargetGroupIPType, r.Spec.ControlPlaneLoadBalancer)...)
+		}
+		for i, listener := range r.Spec.ControlPlaneLoadBalancer.AdditionalListeners {
+			if listener.TargetGroupIPType != nil {
+				allErrs = append(allErrs, r.validateTargetGroupIPType(basePath.Child("additionalListeners").Index(i).Child("targetGroupIPType"), listener.TargetGroupIPType, r.Spec.ControlPlaneLoadBalancer)...)
+			}
+		}
+	}
+	if r.Spec.SecondaryControlPlaneLoadBalancer != nil {
+		basePath := field.NewPath("spec", "secondaryControlPlaneLoadBalancer")
+		if r.Spec.SecondaryControlPlaneLoadBalancer.TargetGroupIPType != nil {
+			allErrs = append(allErrs, r.validateTargetGroupIPType(basePath.Child("targetGroupIPType"), r.Spec.SecondaryControlPlaneLoadBalancer.TargetGroupIPType, r.Spec.SecondaryControlPlaneLoadBalancer)...)
+		}
+		for i, listener := range r.Spec.SecondaryControlPlaneLoadBalancer.AdditionalListeners {
+			if listener.TargetGroupIPType != nil {
+				allErrs = append(allErrs, r.validateTargetGroupIPType(basePath.Child("additionalListeners").Index(i).Child("targetGroupIPType"), listener.TargetGroupIPType, r.Spec.SecondaryControlPlaneLoadBalancer)...)
+			}
+		}
 	}
 
 	return allWarnings, allErrs
@@ -486,5 +521,22 @@ func (r *AWSCluster) validateIngressRules(path *field.Path, rules []IngressRule)
 			}
 		}
 	}
+	return allErrs
+}
+
+// validateTargetGroupIPType validates that the target group IP type is compatible
+// with the load balancer type and VPC configuration.
+func (r *AWSCluster) validateTargetGroupIPType(path *field.Path, targetGroupIPType *TargetGroupIPType, lbSpec *AWSLoadBalancerSpec) field.ErrorList {
+	var allErrs field.ErrorList
+
+	if targetGroupIPType != nil {
+		if lbSpec.LoadBalancerType == LoadBalancerTypeClassic {
+			allErrs = append(allErrs, field.Invalid(path, targetGroupIPType, "targetGroupIPType cannot be used with classic load balancer types"))
+		}
+		if TargetGroupIPTypeIPv6.Equals(targetGroupIPType) && !r.Spec.NetworkSpec.VPC.IsIPv6Enabled() {
+			allErrs = append(allErrs, field.Invalid(path, targetGroupIPType, "targetGroupIPType IPv6 requires IPv6 to be enabled on the VPC. Set spec.network.vpc.ipv6 to enable IPv6"))
+		}
+	}
+
 	return allErrs
 }

@@ -156,6 +156,7 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 func restoreControlPlaneLoadBalancerStatus(restored, dst *infrav1.LoadBalancer) {
 	dst.ARN = restored.ARN
 	dst.LoadBalancerType = restored.LoadBalancerType
+	dst.LoadBalancerIPAddressType = restored.LoadBalancerIPAddressType
 	dst.ELBAttributes = restored.ELBAttributes
 	dst.ELBListeners = restored.ELBListeners
 	dst.Name = restored.Name
@@ -193,6 +194,7 @@ func restoreControlPlaneLoadBalancer(restored, dst *infrav1.AWSLoadBalancerSpec)
 	dst.Scheme = restored.Scheme
 	dst.CrossZoneLoadBalancing = restored.CrossZoneLoadBalancing
 	dst.Subnets = restored.Subnets
+	dst.TargetGroupIPType = restored.TargetGroupIPType
 }
 
 // ConvertFrom converts the v1beta1 AWSCluster receiver to a v1beta1 AWSCluster.
