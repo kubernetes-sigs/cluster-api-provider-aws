@@ -71,6 +71,17 @@ const (
 	Nightly ChannelGroupType = "nightly"
 )
 
+// AutoNodeMode specifies the AutoNode mode for the ROSA Control Plane.
+type AutoNodeMode string
+
+const (
+	// AutoNodeModeEnabled enable AutoNode
+	AutoNodeModeEnabled AutoNodeMode = "Enabled"
+
+	// AutoNodeModeDisabled Disabled AutoNode
+	AutoNodeModeDisabled AutoNodeMode = "Disabled"
+)
+
 // RosaControlPlaneSpec defines the desired state of ROSAControlPlane.
 type RosaControlPlaneSpec struct { //nolint: maligned
 	// Cluster name must be valid DNS-1035 label, so it must consist of lower case alphanumeric
@@ -249,6 +260,25 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// ClusterRegistryConfig represents registry config used with the cluster.
 	// +optional
 	ClusterRegistryConfig *RegistryConfig `json:"clusterRegistryConfig,omitempty"`
+
+	// autoNode set the autoNode mode and roleARN.
+	// +optional
+	AutoNode *AutoNode `json:"autoNode,omitempty"`
+}
+
+// AutoNode set the AutoNode mode and AutoNode role ARN.
+type AutoNode struct {
+	// mode specifies the mode for the AutoNode. Setting Enable/Disable mode will allows/disallow karpenter AutoNode scaling.
+	// +kubebuilder:validation:Enum=Enabled;Disabled
+	// +kubebuilder:default=Disabled
+	// +optional
+	Mode AutoNodeMode `json:"mode,omitempty"`
+
+	// roleARN sets the autoNode role ARN, which includes the IAM policy and cluster-specific role that grant the necessary permissions to the Karpenter controller.
+	// The role must be attached with the same OIDC-ID that is used with the ROSA-HCP cluster.
+	// +kubebuilder:validation:MaxLength:=2048
+	// +optional
+	RoleARN string `json:"roleARN,omitempty"`
 }
 
 // RegistryConfig for ROSA-HCP cluster
