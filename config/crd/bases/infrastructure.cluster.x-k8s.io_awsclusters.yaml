@@ -2240,6 +2240,17 @@ spec:
                         - AMDEncryptedVirtualizationNestedPaging
                         type: string
                     type: object
+                  dynamicHostAllocation:
+                    description: |-
+                      DynamicHostAllocation enables automatic allocation of dedicated hosts.
+                      This field is mutually exclusive with HostID.
+                    properties:
+                      tags:
+                        additionalProperties:
+                          type: string
+                        description: Tags to apply to the allocated dedicated host.
+                        type: object
+                    type: object
                   ebsOptimized:
                     description: Indicates whether the instance is optimized for Amazon
                       EBS I/O.

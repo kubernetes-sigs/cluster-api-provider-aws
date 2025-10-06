@@ -71,6 +71,26 @@ func (mr *MockEC2APIMockRecorder) AllocateAddress(arg0, arg1 interface{}, arg2 .
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AllocateAddress", reflect.TypeOf((*MockEC2API)(nil).AllocateAddress), varargs...)
 }
 
+// AllocateHosts mocks base method.
+func (m *MockEC2API) AllocateHosts(arg0 context.Context, arg1 *ec2.AllocateHostsInput, arg2 ...func(*ec2.Options)) (*ec2.AllocateHostsOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "AllocateHosts", varargs...)
+	ret0, _ := ret[0].(*ec2.AllocateHostsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AllocateHosts indicates an expected call of AllocateHosts.
+func (mr *MockEC2APIMockRecorder) AllocateHosts(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AllocateHosts", reflect.TypeOf((*MockEC2API)(nil).AllocateHosts), varargs...)
+}
+
 // AssociateAddress mocks base method.
 func (m *MockEC2API) AssociateAddress(arg0 context.Context, arg1 *ec2.AssociateAddressInput, arg2 ...func(*ec2.Options)) (*ec2.AssociateAddressOutput, error) {
 	m.ctrl.T.Helper()
@@ -771,6 +791,26 @@ func (mr *MockEC2APIMockRecorder) DescribeEgressOnlyInternetGateways(arg0, arg1 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeEgressOnlyInternetGateways", reflect.TypeOf((*MockEC2API)(nil).DescribeEgressOnlyInternetGateways), varargs...)
 }
 
+// DescribeHosts mocks base method.
+func (m *MockEC2API) DescribeHosts(arg0 context.Context, arg1 *ec2.DescribeHostsInput, arg2 ...func(*ec2.Options)) (*ec2.DescribeHostsOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeHosts", varargs...)
+	ret0, _ := ret[0].(*ec2.DescribeHostsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeHosts indicates an expected call of DescribeHosts.
+func (mr *MockEC2APIMockRecorder) DescribeHosts(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeHosts", reflect.TypeOf((*MockEC2API)(nil).DescribeHosts), varargs...)
+}
+
 // DescribeImages mocks base method.
 func (m *MockEC2API) DescribeImages(arg0 context.Context, arg1 *ec2.DescribeImagesInput, arg2 ...func(*ec2.Options)) (*ec2.DescribeImagesOutput, error) {
 	m.ctrl.T.Helper()
@@ -1289,6 +1329,26 @@ func (mr *MockEC2APIMockRecorder) ReleaseAddress(arg0, arg1 interface{}, arg2 ..
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReleaseAddress", reflect.TypeOf((*MockEC2API)(nil).ReleaseAddress), varargs...)
+}
+
+// ReleaseHosts mocks base method.
+func (m *MockEC2API) ReleaseHosts(arg0 context.Context, arg1 *ec2.ReleaseHostsInput, arg2 ...func(*ec2.Options)) (*ec2.ReleaseHostsOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ReleaseHosts", varargs...)
+	ret0, _ := ret[0].(*ec2.ReleaseHostsOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReleaseHosts indicates an expected call of ReleaseHosts.
+func (mr *MockEC2APIMockRecorder) ReleaseHosts(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReleaseHosts", reflect.TypeOf((*MockEC2API)(nil).ReleaseHosts), varargs...)
 }
 
 // ReplaceRoute mocks base method.

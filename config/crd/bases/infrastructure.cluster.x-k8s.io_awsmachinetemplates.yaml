@@ -636,6 +636,20 @@ spec:
                             - AMDEncryptedVirtualizationNestedPaging
                             type: string
                         type: object
+                      dynamicHostAllocation:
+                        description: |-
+                          DynamicHostAllocation enables automatic allocation of a single dedicated host.
+                          This field is mutually exclusive with HostID and always allocates exactly one host.
+                          Cost effectiveness of allocating a single instance on a dedicated host may vary
+                          depending on the instance type and the region.
+                        properties:
+                          tags:
+                            additionalProperties:
+                              type: string
+                            description: Tags to apply to the allocated dedicated
+                              host.
+                            type: object
+                        type: object
                       elasticIpPool:
                         description: ElasticIPPool is the configuration to allocate
                           Public IPv4 address (Elastic IP/EIP) from user-defined pool.
@@ -666,18 +680,22 @@ spec:
                               rule: self in ['none','amazon-pool']
                         type: object
                       hostAffinity:
+                        default: host
                         description: |-
                           HostAffinity specifies the dedicated host affinity setting for the instance.
-                          When hostAffinity is set to host, an instance started onto a specific host always restarts on the same host if stopped.
-                          When hostAffinity is set to default, and you stop and restart the instance, it can be restarted on any available host.
+                          When HostAffinity is set to host, an instance started onto a specific host always restarts on the same host if stopped.
+                          When HostAffinity is set to default, and you stop and restart the instance, it can be restarted on any available host.
                           When HostAffinity is defined, HostID is required.
                         enum:
                         - default
                         - host
                         type: string
                       hostID:
-                        description: HostID specifies the Dedicated Host on which
-                          the instance must be started.
+                        description: |-
+                          HostID specifies the Dedicated Host on which the instance must be started.
+                          This field is mutually exclusive with DynamicHostAllocation.
+                        maxLength: 19
+                        pattern: ^h-[0-9a-f]{17}$
                         type: string
                       iamInstanceProfile:
                         description: IAMInstanceProfile is a name of an IAM instance
@@ -1089,8 +1107,12 @@ spec:
                             type: string
                         type: object
                       tenancy:
-                        description: Tenancy indicates if instance should run on shared
-                          or single-tenant hardware.
+                        description: |-
+                          Tenancy indicates if instance should run on shared or single-tenant hardware.
+                          When Tenancy=host, AWS will attempt to find a suitable host from:
+                          - Preexisting allocated hosts that have auto-placement enabled
+                          - A specific host ID, if configured
+                          - Allocating a new dedicated host if DynamicHostAllocation is configured
                         enum:
                         - default
                         - dedicated
