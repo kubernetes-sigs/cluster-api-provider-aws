@@ -218,6 +218,10 @@ type AWSMachineSpec struct {
 	PlacementGroupPartition int64 `json:"placementGroupPartition,omitempty"`
 
 	// Tenancy indicates if instance should run on shared or single-tenant hardware.
+	// When Tenancy=host, AWS will attempt to find a suitable host from:
+	// - Preexisting allocated hosts that have auto-placement enabled
+	// - A specific host ID, if configured
+	// - Allocating a new dedicated host if DynamicHostAllocation is configured
 	// +optional
 	// +kubebuilder:validation:Enum:=default;dedicated;host
 	Tenancy string `json:"tenancy,omitempty"`
@@ -240,16 +244,27 @@ type AWSMachineSpec struct {
 	MarketType MarketType `json:"marketType,omitempty"`
 
 	// HostID specifies the Dedicated Host on which the instance must be started.
+	// This field is mutually exclusive with DynamicHostAllocation.
+	// +kubebuilder:validation:Pattern=`^h-[0-9a-f]{17}$`
+	// +kubebuilder:validation:MaxLength=19
 	// +optional
 	HostID *string `json:"hostID,omitempty"`
 
 	// HostAffinity specifies the dedicated host affinity setting for the instance.
-	// When hostAffinity is set to host, an instance started onto a specific host always restarts on the same host if stopped.
-	// When hostAffinity is set to default, and you stop and restart the instance, it can be restarted on any available host.
+	// When HostAffinity is set to host, an instance started onto a specific host always restarts on the same host if stopped.
+	// When HostAffinity is set to default, and you stop and restart the instance, it can be restarted on any available host.
 	// When HostAffinity is defined, HostID is required.
 	// +optional
 	// +kubebuilder:validation:Enum:=default;host
+	// +kubebuilder:default=host
 	HostAffinity *string `json:"hostAffinity,omitempty"`
+
+	// DynamicHostAllocation enables automatic allocation of a single dedicated host.
+	// This field is mutually exclusive with HostID and always allocates exactly one host.
+	// Cost effectiveness of allocating a single instance on a dedicated host may vary
+	// depending on the instance type and the region.
+	// +optional
+	DynamicHostAllocation *DynamicHostAllocationSpec `json:"dynamicHostAllocation,omitempty"`
 
 	// CapacityReservationPreference specifies the preference for use of Capacity Reservations by the instance. Valid values include:
 	// "Open": The instance may make use of open Capacity Reservations that match its AZ and InstanceType
@@ -258,6 +273,14 @@ type AWSMachineSpec struct {
 	// +kubebuilder:validation:Enum="";None;CapacityReservationsOnly;Open
 	// +optional
 	CapacityReservationPreference CapacityReservationPreference `json:"capacityReservationPreference,omitempty"`
+}
+
+// DynamicHostAllocationSpec defines the configuration for dynamic dedicated host allocation.
+// This specification always allocates exactly one dedicated host per machine.
+type DynamicHostAllocationSpec struct {
+	// Tags to apply to the allocated dedicated host.
+	// +optional
+	Tags map[string]string `json:"tags,omitempty"`
 }
 
 // CloudInit defines options related to the bootstrapping systems where
@@ -438,6 +461,37 @@ type AWSMachineStatus struct {
 	// Conditions defines current service state of the AWSMachine.
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+
+	// DedicatedHost tracks the dynamically allocated dedicated host.
+	// This field is populated when DynamicHostAllocation is used.
+	// +optional
+	DedicatedHost *DedicatedHostStatus `json:"dedicatedHost,omitempty"`
+
+	// HostReleaseAttempts tracks the number of attempts to release the dedicated host.
+	// +optional
+	HostReleaseAttempts *int32 `json:"hostReleaseAttempts,omitempty"`
+
+	// LastHostReleaseAttempt tracks the timestamp of the last attempt to release the dedicated host.
+	// +optional
+	LastHostReleaseAttempt *metav1.Time `json:"lastHostReleaseAttempt,omitempty"`
+
+	// HostReleaseFailedReason tracks the reason for the last host release failure.
+	// +optional
+	HostReleaseFailedReason *string `json:"hostReleaseFailedReason,omitempty"`
+}
+
+// DedicatedHostStatus defines the observed state of a dynamically allocated dedicated host
+// associated with an AWSMachine. This struct is used to track the ID of the dedicated host
+// and any failure messages encountered during host release operations.
+type DedicatedHostStatus struct {
+	// ID tracks the dynamically allocated dedicated host ID.
+	// This field is populated when DynamicHostAllocation is used.
+	// +optional
+	ID *string `json:"id,omitempty"`
+
+	// ReleaseFailureMessage tracks the last failure message for the release host attempt.
+	// +optional
+	ReleaseFailureMessage *string `json:"releaseFailureMessage,omitempty"`
 }
 
 // +kubebuilder:object:root=true

@@ -490,16 +490,6 @@ func TestAWSMachineCreate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "configure host affinity without Host ID",
-			machine: &AWSMachine{
-				Spec: AWSMachineSpec{
-					InstanceType: "test",
-					HostAffinity: ptr.To("default"),
-				},
-			},
-			wantErr: true,
-		},
-		{
 			name: "create with valid BYOIPv4",
 			machine: &AWSMachine{
 				Spec: AWSMachineSpec{
@@ -566,6 +556,45 @@ func TestAWSMachineCreate(t *testing.T) {
 				},
 			},
 			wantErr: true,
+		},
+		{
+			name: "hostID and dynamicHostAllocation are mutually exclusive",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "test",
+					HostID:       aws.String("h-1234567890abcdef0"),
+					DynamicHostAllocation: &DynamicHostAllocationSpec{
+						Tags: map[string]string{
+							"Environment": "test",
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "hostID alone is valid",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "test",
+					HostID:       aws.String("h-1234567890abcdef0"),
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "dynamicHostAllocation alone is valid",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType: "test",
+					DynamicHostAllocation: &DynamicHostAllocationSpec{
+						Tags: map[string]string{
+							"Environment": "test",
+						},
+					},
+				},
+			},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
