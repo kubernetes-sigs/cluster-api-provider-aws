@@ -34,6 +34,10 @@ type Service struct {
 
 	// SSMClient is used to look up the official EKS AMI ID
 	SSMClient ssm.SSMAPI
+
+	// RetryEC2Client is used for dedicated host operations with enhanced retry configuration
+	// If nil, a new retry client will be created as needed
+	RetryEC2Client common.EC2API
 }
 
 // NewService returns a new service given the ec2 api client.

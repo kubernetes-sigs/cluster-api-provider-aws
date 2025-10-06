@@ -32,6 +32,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
@@ -360,6 +361,84 @@ func (r *AWSMachineReconciler) reconcileDelete(ctx context.Context, machineScope
 		return ctrl.Result{RequeueAfter: time.Minute}, nil
 	case infrav1.InstanceStateTerminated:
 		machineScope.Info("EC2 instance terminated successfully", "instance-id", instance.ID)
+
+		// Handle dedicated host cleanup AFTER instance is confirmed terminated
+		if machineScope.AWSMachine.Status.DedicatedHost != nil &&
+			machineScope.AWSMachine.Status.DedicatedHost.ID != nil &&
+			machineScope.AWSMachine.Spec.DynamicHostAllocation != nil {
+			hostID := *machineScope.AWSMachine.Status.DedicatedHost.ID
+
+			// Check if we should retry host release
+			shouldRetry, retryAfter := shouldRetryHostRelease(machineScope)
+
+			if shouldRetry {
+				// Mark that we're retrying
+				conditions.MarkFalse(machineScope.AWSMachine, infrav1.DedicatedHostReleaseCondition,
+					infrav1.DedicatedHostReleaseRetryingReason, clusterv1.ConditionSeverityWarning,
+					"Retrying dedicated host release, attempt %d", getHostReleaseAttempts(machineScope))
+
+				// Update retry tracking
+				updateHostReleaseRetryTracking(machineScope)
+
+				// Patch the object to persist retry tracking
+				if err := machineScope.PatchObject(); err != nil {
+					machineScope.Error(err, "failed to patch object with retry tracking")
+					return ctrl.Result{}, err
+				}
+
+				machineScope.Info("Retrying dedicated host release", "hostID", hostID, "attempt", getHostReleaseAttempts(machineScope))
+				return ctrl.Result{RequeueAfter: retryAfter}, nil
+			}
+
+			// Attempt to release the dedicated host
+			machineScope.Info("Releasing dynamically allocated dedicated host", "hostID", hostID, "attempt", getHostReleaseAttempts(machineScope))
+			if err := ec2Service.ReleaseDedicatedHost(ctx, hostID); err != nil {
+				// Host release failed, set up retry logic
+				machineScope.Error(err, "failed to release dedicated host", "hostID", hostID, "attempt", getHostReleaseAttempts(machineScope))
+				r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedReleaseHost", "Failed to release dedicated host %s: %v", hostID, err)
+
+				// Update failure tracking
+				updateHostReleaseFailureTracking(machineScope, err.Error())
+
+				// Mark the condition as failed
+				conditions.MarkFalse(machineScope.AWSMachine, infrav1.DedicatedHostReleaseCondition,
+					infrav1.DedicatedHostReleaseFailedReason, clusterv1.ConditionSeverityWarning,
+					"Failed to release dedicated host: %v", err)
+
+				// Patch the object to persist failure tracking
+				if err := machineScope.PatchObject(); err != nil {
+					machineScope.Error(err, "failed to patch object with failure tracking")
+					return ctrl.Result{}, err
+				}
+
+				// Check if we've exceeded max retries
+				if hasExceededMaxHostReleaseRetries(machineScope) {
+					machineScope.Error(err, "exceeded maximum retry attempts for dedicated host release", "hostID", hostID, "maxAttempts", getMaxHostReleaseRetries())
+					r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "MaxRetriesExceeded", "Exceeded maximum retry attempts for dedicated host %s release", hostID)
+					// Continue with deletion even if host release fails permanently
+				} else {
+					// Return to trigger retry
+					return ctrl.Result{RequeueAfter: getInitialHostReleaseRetryDelay()}, nil
+				}
+			} else {
+				// Host release succeeded
+				machineScope.Info("Successfully released dedicated host", "hostID", hostID)
+				r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeNormal, "SuccessfulReleaseHost", "Released dedicated host %s", hostID)
+
+				// Mark the condition as succeeded
+				conditions.MarkTrue(machineScope.AWSMachine, infrav1.DedicatedHostReleaseCondition)
+
+				// Clear retry tracking since we succeeded
+				clearHostReleaseRetryTracking(machineScope)
+
+				// Patch the object to persist success state
+				if err := machineScope.PatchObject(); err != nil {
+					machineScope.Error(err, "failed to patch object after successful host release")
+					return ctrl.Result{}, err
+				}
+			}
+		}
+
 		controllerutil.RemoveFinalizer(machineScope.AWSMachine, infrav1.MachineFinalizer)
 		return ctrl.Result{}, nil
 	default:
@@ -1293,4 +1372,95 @@ func (r *AWSMachineReconciler) ensureInstanceMetadataOptions(ec2svc services.EC2
 	}
 
 	return ec2svc.ModifyInstanceMetadataOptions(instance.ID, machine.Spec.InstanceMetadataOptions)
+}
+
+// getMaxHostReleaseRetries returns the maximum number of retry attempts for dedicated host release.
+func getMaxHostReleaseRetries() int32 {
+	return 5
+}
+
+// getInitialHostReleaseRetryDelay returns the initial delay before the first retry.
+func getInitialHostReleaseRetryDelay() time.Duration {
+	return 30 * time.Second
+}
+
+// getHostReleaseAttempts returns the current number of host release attempts.
+func getHostReleaseAttempts(scope *scope.MachineScope) int32 {
+	if scope.AWSMachine.Status.HostReleaseAttempts == nil {
+		return 0
+	}
+	return *scope.AWSMachine.Status.HostReleaseAttempts
+}
+
+// shouldRetryHostRelease determines if we should retry host release based on retry tracking.
+func shouldRetryHostRelease(scope *scope.MachineScope) (bool, time.Duration) {
+	attempts := getHostReleaseAttempts(scope)
+
+	// If no attempts yet, don't retry
+	if attempts == 0 {
+		return false, 0
+	}
+
+	// Check if we've exceeded max retries
+	if attempts >= getMaxHostReleaseRetries() {
+		return false, 0
+	}
+
+	// Check if enough time has passed since last attempt
+	lastAttempt := scope.AWSMachine.Status.LastHostReleaseAttempt
+	if lastAttempt == nil {
+		return false, 0
+	}
+
+	// Calculate exponential backoff delay
+	baseDelay := getInitialHostReleaseRetryDelay()
+	multiplier := int64(1)
+	for i := int32(1); i < attempts; i++ {
+		multiplier *= 2
+	}
+	backoffDelay := time.Duration(int64(baseDelay) * multiplier)
+
+	// Cap the maximum delay at 5 minutes
+	if backoffDelay > 5*time.Minute {
+		backoffDelay = 5 * time.Minute
+	}
+
+	// Check if enough time has passed
+	timeSinceLastAttempt := time.Since(lastAttempt.Time)
+	if timeSinceLastAttempt < backoffDelay {
+		remainingDelay := backoffDelay - timeSinceLastAttempt
+		return false, remainingDelay
+	}
+
+	return true, backoffDelay
+}
+
+// updateHostReleaseRetryTracking increments the retry attempt counter and updates the timestamp.
+func updateHostReleaseRetryTracking(scope *scope.MachineScope) {
+	attempts := getHostReleaseAttempts(scope) + 1
+	scope.AWSMachine.Status.HostReleaseAttempts = &attempts
+
+	now := time.Now()
+	scope.AWSMachine.Status.LastHostReleaseAttempt = &metav1.Time{Time: now}
+}
+
+// updateHostReleaseFailureTracking updates the failure reason and timestamp.
+func updateHostReleaseFailureTracking(scope *scope.MachineScope, reason string) {
+	scope.AWSMachine.Status.HostReleaseFailedReason = &reason
+
+	// Update the timestamp for the last attempt
+	now := time.Now()
+	scope.AWSMachine.Status.LastHostReleaseAttempt = &metav1.Time{Time: now}
+}
+
+// clearHostReleaseRetryTracking resets all retry tracking fields after successful release.
+func clearHostReleaseRetryTracking(scope *scope.MachineScope) {
+	scope.AWSMachine.Status.HostReleaseAttempts = nil
+	scope.AWSMachine.Status.LastHostReleaseAttempt = nil
+	scope.AWSMachine.Status.HostReleaseFailedReason = nil
+}
+
+// hasExceededMaxHostReleaseRetries checks if we've exceeded the maximum retry attempts.
+func hasExceededMaxHostReleaseRetries(scope *scope.MachineScope) bool {
+	return getHostReleaseAttempts(scope) >= getMaxHostReleaseRetries()
 }

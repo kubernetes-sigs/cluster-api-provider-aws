@@ -258,9 +258,22 @@ func (s *Service) CreateInstance(ctx context.Context, scope *scope.MachineScope,
 
 	input.MarketType = scope.AWSMachine.Spec.MarketType
 
-	input.HostID = scope.AWSMachine.Spec.HostID
+	// Handle dynamic host allocation if specified
+	if scope.AWSMachine.Spec.DynamicHostAllocation != nil {
+		hostID, err := s.ensureDedicatedHostAllocation(ctx, scope)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to allocate dedicated host")
+		}
+		input.HostID = aws.String(hostID)
+		input.HostAffinity = aws.String("host")
 
-	input.HostAffinity = scope.AWSMachine.Spec.HostAffinity
+		// Update machine status with allocated host ID
+		scope.AWSMachine.Status.DedicatedHost.ID = &hostID
+	} else {
+		// Use static host allocation if specified
+		input.HostID = scope.AWSMachine.Spec.HostID
+		input.HostAffinity = scope.AWSMachine.Spec.HostAffinity
+	}
 
 	input.CapacityReservationPreference = scope.AWSMachine.Spec.CapacityReservationPreference
 
@@ -1277,6 +1290,95 @@ func getInstanceMetadataOptionsRequest(metadataOptions *infrav1.InstanceMetadata
 	}
 
 	return request
+}
+
+// ensureDedicatedHostAllocation ensures a dedicated host is allocated for the machine.
+func (s *Service) ensureDedicatedHostAllocation(ctx context.Context, scope *scope.MachineScope) (string, error) {
+	spec := scope.AWSMachine.Spec.DynamicHostAllocation
+	if spec == nil {
+		return "", errors.New("dynamic host allocation spec is nil")
+	}
+
+	// Check if a host is already allocated for this machine
+	// Each machine gets its own dedicated host for complete isolation and resource dedication
+	if scope.AWSMachine.Status.DedicatedHost.ID != nil {
+		existingHostID := aws.ToString(scope.AWSMachine.Status.DedicatedHost.ID)
+		s.scope.Info("Found existing allocated host for machine", "hostID", existingHostID, "machine", scope.Name())
+		return existingHostID, nil
+	}
+
+	// Determine the availability zone for the host
+	var availabilityZone *string
+
+	// Get AZ from the machine's subnet
+	if scope.AWSMachine.Spec.Subnet != nil {
+		var subnet *types.Subnet
+		var err error
+		if scope.AWSMachine.Spec.Subnet.ID != nil {
+			subnet, err = s.getSubnet(scope.AWSMachine.Spec.Subnet.ID)
+			if err != nil {
+				return "", errors.Wrap(err, "failed to get subnet for host allocation")
+			}
+		} else if len(scope.AWSMachine.Spec.Subnet.Filters) > 0 {
+			// Convert CAPA filters to AWS SDK filters
+			awsFilters := make([]types.Filter, len(scope.AWSMachine.Spec.Subnet.Filters))
+			for i, f := range scope.AWSMachine.Spec.Subnet.Filters {
+				awsFilters[i] = types.Filter{
+					Name:   aws.String(f.Name),
+					Values: f.Values,
+				}
+			}
+
+			subnets, err := s.getFilteredSubnets(awsFilters...)
+			if err != nil {
+				return "", errors.Wrap(err, "failed to get subnet by filters for host allocation")
+			}
+			// if more than one subnet is found, use the first one. they should all share the same AZ.
+			if len(subnets) > 0 {
+				subnet = &subnets[0]
+			}
+		}
+		if subnet != nil && subnet.AvailabilityZone != nil {
+			availabilityZone = subnet.AvailabilityZone
+		}
+	}
+
+	instanceType := scope.AWSMachine.Spec.InstanceType
+
+	if availabilityZone == nil {
+		return "", errors.New("availability zone could not be determined, please specify a subnet ID or subnet filters")
+	}
+
+	// Allocate the dedicated host
+	hostID, err := s.AllocateDedicatedHost(ctx, spec, instanceType, *availabilityZone, scope)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to allocate dedicated host")
+	}
+
+	s.scope.Info("Successfully allocated dedicated host for machine", "hostID", hostID, "machine", scope.Name())
+	return hostID, nil
+}
+
+// getSubnet retrieves subnet information by ID.
+func (s *Service) getSubnet(subnetID *string) (*types.Subnet, error) {
+	if subnetID == nil {
+		return nil, errors.New("subnet ID is nil")
+	}
+
+	input := &ec2.DescribeSubnetsInput{
+		SubnetIds: []string{*subnetID},
+	}
+
+	output, err := s.EC2Client.DescribeSubnets(context.TODO(), input)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to describe subnet")
+	}
+
+	if len(output.Subnets) == 0 {
+		return nil, errors.Errorf("subnet %s not found", *subnetID)
+	}
+
+	return &output.Subnets[0], nil
 }
 
 func getPrivateDNSNameOptionsRequest(privateDNSName *infrav1.PrivateDNSName) *types.PrivateDnsNameOptionsRequest {
