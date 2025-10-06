@@ -52,6 +52,26 @@ func (m *MockEKSAPI) EXPECT() *MockEKSAPIMockRecorder {
 	return m.recorder
 }
 
+// AssociateAccessPolicy mocks base method.
+func (m *MockEKSAPI) AssociateAccessPolicy(arg0 context.Context, arg1 *eks.AssociateAccessPolicyInput, arg2 ...func(*eks.Options)) (*eks.AssociateAccessPolicyOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "AssociateAccessPolicy", varargs...)
+	ret0, _ := ret[0].(*eks.AssociateAccessPolicyOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AssociateAccessPolicy indicates an expected call of AssociateAccessPolicy.
+func (mr *MockEKSAPIMockRecorder) AssociateAccessPolicy(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssociateAccessPolicy", reflect.TypeOf((*MockEKSAPI)(nil).AssociateAccessPolicy), varargs...)
+}
+
 // AssociateEncryptionConfig mocks base method.
 func (m *MockEKSAPI) AssociateEncryptionConfig(arg0 context.Context, arg1 *eks.AssociateEncryptionConfigInput, arg2 ...func(*eks.Options)) (*eks.AssociateEncryptionConfigOutput, error) {
 	m.ctrl.T.Helper()
@@ -90,6 +110,26 @@ func (mr *MockEKSAPIMockRecorder) AssociateIdentityProviderConfig(arg0, arg1 int
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssociateIdentityProviderConfig", reflect.TypeOf((*MockEKSAPI)(nil).AssociateIdentityProviderConfig), varargs...)
+}
+
+// CreateAccessEntry mocks base method.
+func (m *MockEKSAPI) CreateAccessEntry(arg0 context.Context, arg1 *eks.CreateAccessEntryInput, arg2 ...func(*eks.Options)) (*eks.CreateAccessEntryOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "CreateAccessEntry", varargs...)
+	ret0, _ := ret[0].(*eks.CreateAccessEntryOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateAccessEntry indicates an expected call of CreateAccessEntry.
+func (mr *MockEKSAPIMockRecorder) CreateAccessEntry(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAccessEntry", reflect.TypeOf((*MockEKSAPI)(nil).CreateAccessEntry), varargs...)
 }
 
 // CreateAddon mocks base method.
@@ -172,6 +212,26 @@ func (mr *MockEKSAPIMockRecorder) CreateNodegroup(arg0, arg1 interface{}, arg2 .
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateNodegroup", reflect.TypeOf((*MockEKSAPI)(nil).CreateNodegroup), varargs...)
 }
 
+// DeleteAccessEntry mocks base method.
+func (m *MockEKSAPI) DeleteAccessEntry(arg0 context.Context, arg1 *eks.DeleteAccessEntryInput, arg2 ...func(*eks.Options)) (*eks.DeleteAccessEntryOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteAccessEntry", varargs...)
+	ret0, _ := ret[0].(*eks.DeleteAccessEntryOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteAccessEntry indicates an expected call of DeleteAccessEntry.
+func (mr *MockEKSAPIMockRecorder) DeleteAccessEntry(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAccessEntry", reflect.TypeOf((*MockEKSAPI)(nil).DeleteAccessEntry), varargs...)
+}
+
 // DeleteAddon mocks base method.
 func (m *MockEKSAPI) DeleteAddon(arg0 context.Context, arg1 *eks.DeleteAddonInput, arg2 ...func(*eks.Options)) (*eks.DeleteAddonOutput, error) {
 	m.ctrl.T.Helper()
@@ -250,6 +310,26 @@ func (mr *MockEKSAPIMockRecorder) DeleteNodegroup(arg0, arg1 interface{}, arg2 .
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNodegroup", reflect.TypeOf((*MockEKSAPI)(nil).DeleteNodegroup), varargs...)
+}
+
+// DescribeAccessEntry mocks base method.
+func (m *MockEKSAPI) DescribeAccessEntry(arg0 context.Context, arg1 *eks.DescribeAccessEntryInput, arg2 ...func(*eks.Options)) (*eks.DescribeAccessEntryOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DescribeAccessEntry", varargs...)
+	ret0, _ := ret[0].(*eks.DescribeAccessEntryOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DescribeAccessEntry indicates an expected call of DescribeAccessEntry.
+func (mr *MockEKSAPIMockRecorder) DescribeAccessEntry(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeAccessEntry", reflect.TypeOf((*MockEKSAPI)(nil).DescribeAccessEntry), varargs...)
 }
 
 // DescribeAddon mocks base method.
@@ -412,6 +492,26 @@ func (mr *MockEKSAPIMockRecorder) DescribeUpdate(arg0, arg1 interface{}, arg2 ..
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeUpdate", reflect.TypeOf((*MockEKSAPI)(nil).DescribeUpdate), varargs...)
 }
 
+// DisassociateAccessPolicy mocks base method.
+func (m *MockEKSAPI) DisassociateAccessPolicy(arg0 context.Context, arg1 *eks.DisassociateAccessPolicyInput, arg2 ...func(*eks.Options)) (*eks.DisassociateAccessPolicyOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DisassociateAccessPolicy", varargs...)
+	ret0, _ := ret[0].(*eks.DisassociateAccessPolicyOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DisassociateAccessPolicy indicates an expected call of DisassociateAccessPolicy.
+func (mr *MockEKSAPIMockRecorder) DisassociateAccessPolicy(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisassociateAccessPolicy", reflect.TypeOf((*MockEKSAPI)(nil).DisassociateAccessPolicy), varargs...)
+}
+
 // DisassociateIdentityProviderConfig mocks base method.
 func (m *MockEKSAPI) DisassociateIdentityProviderConfig(arg0 context.Context, arg1 *eks.DisassociateIdentityProviderConfigInput, arg2 ...func(*eks.Options)) (*eks.DisassociateIdentityProviderConfigOutput, error) {
 	m.ctrl.T.Helper()
@@ -432,6 +532,26 @@ func (mr *MockEKSAPIMockRecorder) DisassociateIdentityProviderConfig(arg0, arg1 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisassociateIdentityProviderConfig", reflect.TypeOf((*MockEKSAPI)(nil).DisassociateIdentityProviderConfig), varargs...)
 }
 
+// ListAccessEntries mocks base method.
+func (m *MockEKSAPI) ListAccessEntries(arg0 context.Context, arg1 *eks.ListAccessEntriesInput, arg2 ...func(*eks.Options)) (*eks.ListAccessEntriesOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListAccessEntries", varargs...)
+	ret0, _ := ret[0].(*eks.ListAccessEntriesOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListAccessEntries indicates an expected call of ListAccessEntries.
+func (mr *MockEKSAPIMockRecorder) ListAccessEntries(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAccessEntries", reflect.TypeOf((*MockEKSAPI)(nil).ListAccessEntries), varargs...)
+}
+
 // ListAddons mocks base method.
 func (m *MockEKSAPI) ListAddons(arg0 context.Context, arg1 *eks.ListAddonsInput, arg2 ...func(*eks.Options)) (*eks.ListAddonsOutput, error) {
 	m.ctrl.T.Helper()
@@ -450,6 +570,26 @@ func (mr *MockEKSAPIMockRecorder) ListAddons(arg0, arg1 interface{}, arg2 ...int
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAddons", reflect.TypeOf((*MockEKSAPI)(nil).ListAddons), varargs...)
+}
+
+// ListAssociatedAccessPolicies mocks base method.
+func (m *MockEKSAPI) ListAssociatedAccessPolicies(arg0 context.Context, arg1 *eks.ListAssociatedAccessPoliciesInput, arg2 ...func(*eks.Options)) (*eks.ListAssociatedAccessPoliciesOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListAssociatedAccessPolicies", varargs...)
+	ret0, _ := ret[0].(*eks.ListAssociatedAccessPoliciesOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListAssociatedAccessPolicies indicates an expected call of ListAssociatedAccessPolicies.
+func (mr *MockEKSAPIMockRecorder) ListAssociatedAccessPolicies(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAssociatedAccessPolicies", reflect.TypeOf((*MockEKSAPI)(nil).ListAssociatedAccessPolicies), varargs...)
 }
 
 // ListClusters mocks base method.
@@ -530,6 +670,26 @@ func (mr *MockEKSAPIMockRecorder) UntagResource(arg0, arg1 interface{}, arg2 ...
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UntagResource", reflect.TypeOf((*MockEKSAPI)(nil).UntagResource), varargs...)
+}
+
+// UpdateAccessEntry mocks base method.
+func (m *MockEKSAPI) UpdateAccessEntry(arg0 context.Context, arg1 *eks.UpdateAccessEntryInput, arg2 ...func(*eks.Options)) (*eks.UpdateAccessEntryOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "UpdateAccessEntry", varargs...)
+	ret0, _ := ret[0].(*eks.UpdateAccessEntryOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateAccessEntry indicates an expected call of UpdateAccessEntry.
+func (mr *MockEKSAPIMockRecorder) UpdateAccessEntry(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAccessEntry", reflect.TypeOf((*MockEKSAPI)(nil).UpdateAccessEntry), varargs...)
 }
 
 // UpdateAddon mocks base method.
