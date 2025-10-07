@@ -176,6 +176,7 @@ rules:
   - awsclusters/status
   - awsfargateprofiles/status
   - rosaclusters/status
+  - rosanetworks/status
   - rosaroleconfigs/status
   verbs:
   - get
@@ -199,6 +200,7 @@ rules:
   resources:
   - awsmachines
   - rosamachinepools
+  - rosanetworks
   - rosaroleconfigs
   verbs:
   - create

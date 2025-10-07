@@ -321,7 +321,27 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		return ctrl.Result{RequeueAfter: time.Second * 60}, nil
 	}
 
-	ocmClusterSpec, err := buildOCMClusterSpec(rosaScope.ControlPlane.Spec, rosaRoleConfig, creator)
+	rosaNet := &expinfrav1.ROSANetwork{}
+	// Does the control plane reference ROSANetwork?
+	if rosaScope.ControlPlane.Spec.ROSANetworkRef != nil {
+		objKey := client.ObjectKey{
+			Name:      rosaScope.ControlPlane.Spec.ROSANetworkRef.Name,
+			Namespace: rosaScope.ControlPlane.Namespace,
+		}
+
+		err := rosaScope.Client.Get(ctx, objKey, rosaNet)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to fetch ROSANetwork: %w", err)
+		}
+
+		// Is the referenced ROSANetwork ready yet?
+		if !conditions.IsTrue(rosaNet, expinfrav1.ROSANetworkReadyCondition) {
+			rosaScope.Info(fmt.Sprintf("referenced ROSANetwork %s is not ready", rosaNet.Name))
+			return ctrl.Result{RequeueAfter: time.Minute}, nil
+		}
+	}
+
+	ocmClusterSpec, err := buildOCMClusterSpec(rosaScope.ControlPlane.Spec, rosaRoleConfig, rosaNet, creator)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -991,10 +1011,30 @@ func validateControlPlaneSpec(ocmClient rosa.OCMClient, rosaControlPlane *rosaco
 	return "", nil
 }
 
-func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpec, roleConfig *expinfrav1.ROSARoleConfig, creator *rosaaws.Creator) (ocm.Spec, error) {
+func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpec, roleConfig *expinfrav1.ROSARoleConfig, rosaNet *expinfrav1.ROSANetwork, creator *rosaaws.Creator) (ocm.Spec, error) {
 	billingAccount := controlPlaneSpec.BillingAccount
 	if billingAccount == "" {
 		billingAccount = creator.AccountID
+	}
+
+	var subnetIDs []string
+	var availabilityZones []string
+
+	if controlPlaneSpec.ROSANetworkRef == nil {
+		if len(controlPlaneSpec.Subnets) == 0 {
+			return ocm.Spec{}, fmt.Errorf("RosaControlPlaneSpec.Subnets is empty")
+		}
+		if len(controlPlaneSpec.AvailabilityZones) == 0 {
+			return ocm.Spec{}, fmt.Errorf("RosaControlPlaneSpec.AvailabilityZones is empty")
+		}
+
+		subnetIDs = controlPlaneSpec.Subnets
+		availabilityZones = controlPlaneSpec.AvailabilityZones
+	} else {
+		for _, v := range rosaNet.Status.Subnets {
+			subnetIDs = append(subnetIDs, v.PublicSubnet, v.PrivateSubnet)
+			availabilityZones = append(availabilityZones, v.AvailabilityZone)
+		}
 	}
 
 	ocmClusterSpec := ocm.Spec{
@@ -1008,12 +1048,12 @@ func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpe
 		DisableWorkloadMonitoring: ptr.To(true),
 		DefaultIngress:            ocm.NewDefaultIngressSpec(), // n.b. this is a no-op when it's set to the default value
 		ComputeMachineType:        controlPlaneSpec.DefaultMachinePoolSpec.InstanceType,
-		AvailabilityZones:         controlPlaneSpec.AvailabilityZones,
+		AvailabilityZones:         availabilityZones,
 		Tags:                      controlPlaneSpec.AdditionalTags,
 		EtcdEncryption:            controlPlaneSpec.EtcdEncryptionKMSARN != "",
 		EtcdEncryptionKMSArn:      controlPlaneSpec.EtcdEncryptionKMSARN,
 
-		SubnetIds:        controlPlaneSpec.Subnets,
+		SubnetIds:        subnetIDs,
 		IsSTS:            true,
 		RoleARN:          roleConfig.Status.AccountRolesRef.InstallerRoleARN,
 		SupportRoleARN:   roleConfig.Status.AccountRolesRef.SupportRoleARN,
@@ -1074,8 +1114,8 @@ func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpe
 		ocmClusterSpec.Autoscaling = true
 		ocmClusterSpec.MaxReplicas = computeAutoscaling.MaxReplicas
 		ocmClusterSpec.MinReplicas = computeAutoscaling.MinReplicas
-	} else if len(controlPlaneSpec.AvailabilityZones) > 1 {
-		ocmClusterSpec.ComputeNodes = len(controlPlaneSpec.AvailabilityZones)
+	} else if len(ocmClusterSpec.AvailabilityZones) > 1 {
+		ocmClusterSpec.ComputeNodes = len(ocmClusterSpec.AvailabilityZones)
 	}
 
 	if controlPlaneSpec.ProvisionShardID != "" {
