@@ -129,3 +129,23 @@ const (
 	// RosaMachinePoolReconciliationFailedReason used to report failures while reconciling ROSAMachinePool.
 	RosaMachinePoolReconciliationFailedReason = "ReconciliationFailed"
 )
+
+const (
+	// ROSANetworkReadyCondition condition reports on the successful reconciliation of ROSANetwork.
+	ROSANetworkReadyCondition clusterv1.ConditionType = "ROSANetworkReady"
+
+	// ROSANetworkCreatingReason used when ROSANetwork is being created.
+	ROSANetworkCreatingReason = "Creating"
+
+	// ROSANetworkCreatedReason used when ROSANetwork is created.
+	ROSANetworkCreatedReason = "Created"
+
+	// ROSANetworkFailedReason used when rosaNetwork creation failed.
+	ROSANetworkFailedReason = "Failed"
+
+	// ROSANetworkDeletingReason used when ROSANetwork is being deleted.
+	ROSANetworkDeletingReason = "Deleting"
+
+	// ROSANetworkDeletionFailedReason used to report failures while deleting ROSANetwork.
+	ROSANetworkDeletionFailedReason = "DeletionFailed"
+)
