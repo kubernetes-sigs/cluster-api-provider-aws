@@ -213,10 +213,10 @@ func DefaultAMILookup(ec2Client common.EC2API, ownerID, baseOS, kubernetesVersio
 
 	out, err := ec2Client.DescribeImages(context.TODO(), describeImageInput)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to find ami: %q", amiName)
+		return nil, errors.Wrapf(err, "failed to find AMI with name %q, architecture %q, ownerID %q", amiName, architecture, ownerID)
 	}
 	if out == nil || len(out.Images) == 0 {
-		return nil, errors.Errorf("found no AMIs with the name: %q", amiName)
+		return nil, errors.Errorf("found no AMIs with name %q, architecture %q, ownerID %q", amiName, architecture, ownerID)
 	}
 	latestImage, err := GetLatestImage(out.Images)
 	if err != nil {
