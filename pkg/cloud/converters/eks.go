@@ -278,3 +278,11 @@ func AddonConflictResolutionFromSDK(conflict ekstypes.ResolveConflicts) *string 
 	}
 	return aws.String(string(ekscontrolplanev1.AddonResolutionOverwrite))
 }
+
+// SupportTypeToSDK converts CAPA upgrade support policy types to SDK types.
+func SupportTypeToSDK(input ekscontrolplanev1.UpgradePolicy) ekstypes.SupportType {
+	if input == ekscontrolplanev1.UpgradePolicyStandard {
+		return ekstypes.SupportTypeStandard
+	}
+	return ekstypes.SupportTypeExtended
+}

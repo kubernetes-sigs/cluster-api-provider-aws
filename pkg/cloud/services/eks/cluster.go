@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -35,6 +36,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/internal/cidr"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/internal/cmp"
@@ -147,23 +149,7 @@ func (s *Service) reconcileCluster(ctx context.Context) error {
 // computeCurrentStatusVersion returns the computed current EKS cluster kubernetes version.
 // The computation has awareness of the fact that EKS clusters only return a major.minor kubernetes version,
 // and returns a compatible version for te status according to the one the user specified in the spec.
-func computeCurrentStatusVersion(specV *string, clusterV *string) *string {
-	specVersion := ""
-	if specV != nil {
-		specVersion = *specV
-	}
-
-	clusterVersion := ""
-	if clusterV != nil {
-		clusterVersion = *clusterV
-	}
-
-	// Ignore parsing errors as these are already validated by the kubebuilder validation and the AWS API.
-	// Also specVersion might not be specified in the spec.Version for AWSManagedControlPlane, this results in a "0.0.0" version.
-	// Also clusterVersion might not yet be returned by the AWS EKS API, as the cluster might still be initializing, this results in a "0.0.0" version.
-	specSemverVersion, _ := semver.ParseTolerant(specVersion)
-	currentSemverVersion, _ := semver.ParseTolerant(clusterVersion)
-
+func computeCurrentStatusVersion(clusterV *string, specSemverVersion semver.Version, currentSemverVersion semver.Version) *string {
 	// If AWS EKS API is not returning a version, set the status.Version to empty string.
 	if currentSemverVersion.String() == "0.0.0" {
 		return ptr.To("")
@@ -187,9 +173,27 @@ func computeCurrentStatusVersion(specV *string, clusterV *string) *string {
 	return clusterV
 }
 
+// parseClusterVersionString parse a version string to semver version.
+// If the string cannot be parsed to semver, returning 0.0.0.
+func parseClusterVersionString(str *string) semver.Version {
+	version := ""
+	if str != nil {
+		version = *str
+	}
+
+	// Ignore parsing errors as these are already validated by the kubebuilder validation and the AWS API.
+	semverVersion, _ := semver.ParseTolerant(version)
+	return semverVersion
+}
+
 func (s *Service) setStatus(cluster *ekstypes.Cluster) error {
+	// specSemver might not be specified in the spec.Version for AWSManagedControlPlane, this results in a "0.0.0" version.
+	specSemver := parseClusterVersionString(s.scope.ControlPlane.Spec.Version)
+	// clusterSemver might not yet be returned by the AWS EKS API, as the cluster might still be initializing, this results in a "0.0.0" version.
+	clusterSemver := parseClusterVersionString(cluster.Version)
+
 	// Set the current Kubernetes control plane version in the status.
-	s.scope.ControlPlane.Status.Version = computeCurrentStatusVersion(s.scope.ControlPlane.Spec.Version, cluster.Version)
+	s.scope.ControlPlane.Status.Version = computeCurrentStatusVersion(cluster.Version, specSemver, clusterSemver)
 
 	// Set the current cluster status in the control plane status.
 	switch cluster.Status {
@@ -210,6 +214,19 @@ func (s *Service) setStatus(cluster *ekstypes.Cluster) error {
 		if conditions.IsTrue(s.scope.ControlPlane, ekscontrolplanev1.EKSControlPlaneUpdatingCondition) {
 			conditions.MarkFalse(s.scope.ControlPlane, ekscontrolplanev1.EKSControlPlaneUpdatingCondition, "updated", clusterv1.ConditionSeverityInfo, "")
 			record.Eventf(s.scope.ControlPlane, "SuccessfulUpdateEKSControlPlane", "Updated EKS control plane %s", s.scope.KubernetesClusterName())
+		}
+		if s.scope.ControlPlane.Spec.UpgradePolicy == ekscontrolplanev1.UpgradePolicyStandard &&
+			(specSemver.Major < clusterSemver.Major ||
+				(specSemver.Major == clusterSemver.Major && specSemver.Minor < clusterSemver.Minor)) {
+			s.scope.ControlPlane.Status.Ready = false
+			failureMsg := fmt.Sprintf(
+				"EKS control plane %s was automatically upgraded to version %s because %s is out of standard support. "+
+					"This can be fixed by changing to the version of the AWSManagedControlPlane to the one reported in the status",
+				s.scope.KubernetesClusterName(),
+				clusterSemver.String(),
+				specSemver.String(),
+			)
+			s.scope.ControlPlane.Status.FailureMessage = &failureMsg
 		}
 		// TODO FailureReason
 	case ekstypes.ClusterStatusCreating:
@@ -478,6 +495,14 @@ func (s *Service) createCluster(ctx context.Context, eksClusterName string) (*ek
 		eksVersion = &v
 	}
 
+	var upgradePolicy *ekstypes.UpgradePolicyRequest
+
+	if s.scope.ControlPlane.Spec.UpgradePolicy != "" {
+		upgradePolicy = &ekstypes.UpgradePolicyRequest{
+			SupportType: converters.SupportTypeToSDK(s.scope.ControlPlane.Spec.UpgradePolicy),
+		}
+	}
+
 	bootstrapAddon := s.scope.BootstrapSelfManagedAddons()
 	input := &eks.CreateClusterInput{
 		Name:                       aws.String(eksClusterName),
@@ -490,6 +515,7 @@ func (s *Service) createCluster(ctx context.Context, eksClusterName string) (*ek
 		Tags:                       tags,
 		KubernetesNetworkConfig:    netConfig,
 		BootstrapSelfManagedAddons: bootstrapAddon,
+		UpgradePolicy:              upgradePolicy,
 	}
 
 	var out *eks.CreateClusterOutput
@@ -543,6 +569,11 @@ func (s *Service) reconcileClusterConfig(ctx context.Context, cluster *ekstypes.
 	if updateVpcConfig != nil {
 		needsUpdate = true
 		input.ResourcesVpcConfig = updateVpcConfig
+	}
+
+	if updateUpgradePolicy := s.reconcileUpgradePolicy(cluster.UpgradePolicy); updateUpgradePolicy != nil {
+		needsUpdate = true
+		input.UpgradePolicy = updateUpgradePolicy
 	}
 
 	if needsUpdate {
@@ -780,6 +811,26 @@ func (s *Service) reconcileClusterVersion(ctx context.Context, cluster *ekstypes
 		}
 	}
 	return nil
+}
+
+func (s *Service) reconcileUpgradePolicy(upgradePolicy *ekstypes.UpgradePolicyResponse) *ekstypes.UpgradePolicyRequest {
+	// Should not update when cluster upgrade policy is unknown
+	if upgradePolicy == nil {
+		return nil
+	}
+
+	// Cluster stay unchanged when upgrade policy omitted
+	if s.scope.ControlPlane.Spec.UpgradePolicy == "" {
+		return nil
+	}
+
+	if strings.ToLower(string(upgradePolicy.SupportType)) == s.scope.ControlPlane.Spec.UpgradePolicy.String() {
+		return nil
+	}
+
+	return &ekstypes.UpgradePolicyRequest{
+		SupportType: converters.SupportTypeToSDK(s.scope.ControlPlane.Spec.UpgradePolicy),
+	}
 }
 
 func (s *Service) describeEKSCluster(ctx context.Context, eksClusterName string) (*ekstypes.Cluster, error) {
