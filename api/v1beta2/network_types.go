@@ -481,6 +481,7 @@ type IPAMPool struct {
 	// The netmask length of the IPv4 CIDR you want to allocate to VPC from
 	// an Amazon VPC IP Address Manager (IPAM) pool.
 	// Defaults to /16 for IPv4 if not specified.
+	// Defaults to /56 for IPv6 if not specified.
 	NetmaskLength int64 `json:"netmaskLength,omitempty"`
 }
 
