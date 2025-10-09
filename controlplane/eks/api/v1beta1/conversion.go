@@ -122,6 +122,7 @@ func (r *AWSManagedControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.RolePermissionsBoundary = restored.Spec.RolePermissionsBoundary
 	dst.Status.Version = restored.Status.Version
 	dst.Spec.BootstrapSelfManagedAddons = restored.Spec.BootstrapSelfManagedAddons
+	dst.Spec.UpgradePolicy = restored.Spec.UpgradePolicy
 	return nil
 }
 
