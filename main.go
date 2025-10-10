@@ -476,6 +476,14 @@ func setupEKSReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager,
 		os.Exit(1)
 	}
 
+	if err := (&eksbootstrapcontrollers.NodeadmConfigReconciler{
+		Client:           mgr.GetClient(),
+		WatchFilterValue: watchFilterValue,
+	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "EKSConfig")
+		os.Exit(1)
+	}
+
 	setupLog.Debug("enabling EKS managed cluster controller")
 	if err := (&controllers.AWSManagedClusterReconciler{
 		Client:           mgr.GetClient(),
