@@ -641,8 +641,8 @@ func (s *Service) createSubnet(sn *infrav1.SubnetSpec) (*infrav1.SubnetSpec, err
 		// Enable DNS64 so that the Route 53 Resolver returns DNS records for IPv4-only services
 		// containing a synthesized IPv6 address prefixed 64:ff9b::/96.
 		// This is needed alongside NAT64 to allow IPv6-only workloads to reach IPv4-only services.
-		// We only need to enable on private subnets.
-		if !sn.IsPublic {
+		// We only need to enable on IPv6-only private subnets as dualstack nodes can use communicate over IPv4.
+		if !sn.IsPublic && sn.CidrBlock == "" {
 			if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
 				if _, err := s.EC2Client.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
 					SubnetId: out.Subnet.SubnetId,
