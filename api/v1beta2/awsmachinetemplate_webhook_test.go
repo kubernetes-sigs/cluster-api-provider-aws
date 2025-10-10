@@ -80,6 +80,26 @@ func TestAWSMachineTemplateValidateCreate(t *testing.T) {
 			},
 			wantError: false,
 		},
+		{
+			name: "hostID and dynamicHostAllocation are mutually exclusive",
+			inputTemplate: &AWSMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: AWSMachineTemplateSpec{
+					Template: AWSMachineTemplateResource{
+						Spec: AWSMachineSpec{
+							InstanceType: "test",
+							HostID:       aws.String("h-1234567890abcdef0"),
+							DynamicHostAllocation: &DynamicHostAllocationSpec{
+								Tags: map[string]string{
+									"Environment": "test",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantError: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
