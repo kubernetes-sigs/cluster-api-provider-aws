@@ -1865,14 +1865,6 @@ func TestReconcileSubnets(t *testing.T) {
 				}).Return(&ec2.ModifySubnetAttributeOutput{}, nil).
 					After(secondSubnet)
 
-				m.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
-					EnableDns64: &types.AttributeBooleanValue{
-						Value: aws.Bool(true),
-					},
-					SubnetId: aws.String("subnet-2"),
-				}).Return(&ec2.ModifySubnetAttributeOutput{}, nil).
-					After(secondSubnet)
-
 				m.DescribeAvailabilityZones(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeAvailabilityZonesOutput{
 						AvailabilityZones: []types.AvailabilityZone{
@@ -3748,14 +3740,6 @@ func TestReconcileSubnets(t *testing.T) {
 				}).Return(&ec2.ModifySubnetAttributeOutput{}, nil).
 					After(secondSubnet)
 
-				m.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
-					EnableDns64: &types.AttributeBooleanValue{
-						Value: aws.Bool(true),
-					},
-					SubnetId: aws.String("subnet-2"),
-				}).Return(&ec2.ModifySubnetAttributeOutput{}, nil).
-					After(secondSubnet)
-
 				m.DescribeAvailabilityZones(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeAvailabilityZonesOutput{
 						AvailabilityZones: []types.AvailabilityZone{
@@ -4003,15 +3987,6 @@ func TestReconcileSubnets(t *testing.T) {
 					Return(&ec2.ModifySubnetAttributeOutput{}, nil).
 					After(zone1PrivateSubnet)
 
-				m.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
-					EnableDns64: &types.AttributeBooleanValue{
-						Value: aws.Bool(true),
-					},
-					SubnetId: aws.String("subnet-2"),
-				}).
-					Return(&ec2.ModifySubnetAttributeOutput{}, nil).
-					After(zone1PrivateSubnet)
-
 				// zone 2
 				m.DescribeAvailabilityZones(context.TODO(), &ec2.DescribeAvailabilityZonesInput{
 					ZoneNames: []string{"us-east-1c"},
@@ -4179,15 +4154,6 @@ func TestReconcileSubnets(t *testing.T) {
 
 				m.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
 					AssignIpv6AddressOnCreation: &types.AttributeBooleanValue{
-						Value: aws.Bool(true),
-					},
-					SubnetId: aws.String("subnet-2"),
-				}).
-					Return(&ec2.ModifySubnetAttributeOutput{}, nil).
-					After(zone2PrivateSubnet)
-
-				m.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
-					EnableDns64: &types.AttributeBooleanValue{
 						Value: aws.Bool(true),
 					},
 					SubnetId: aws.String("subnet-2"),
