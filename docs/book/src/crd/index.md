@@ -6700,6 +6700,24 @@ KubeProxy
 <p>KubeProxy defines managed attributes of the kube-proxy daemonset</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>upgradePolicy</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.UpgradePolicy">
+UpgradePolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The cluster upgrade policy to use for the cluster.
+(Official AWS docs for this policy: <a href="https://docs.aws.amazon.com/eks/latest/userguide/view-upgrade-policy.html">https://docs.aws.amazon.com/eks/latest/userguide/view-upgrade-policy.html</a>)
+<code>extended</code> upgrade policy indicates that the cluster will enter into extended support once the Kubernetes version reaches end of standard support. You will incur extended support charges with this setting. You can upgrade your cluster to a standard supported Kubernetes version to stop incurring extended support charges.
+<code>standard</code> upgrade policy indicates that the cluster is eligible for automatic upgrade at the end of standard support. You will not incur extended support charges with this setting but your EKS cluster will automatically upgrade to the next supported Kubernetes version in standard support.
+If omitted, new clusters will use the AWS default upgrade policy (which at the time of writing is &ldquo;extended&rdquo;) and existing clusters will have their upgrade policy unchanged.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -7177,6 +7195,24 @@ KubeProxy
 </td>
 <td>
 <p>KubeProxy defines managed attributes of the kube-proxy daemonset</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>upgradePolicy</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.UpgradePolicy">
+UpgradePolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The cluster upgrade policy to use for the cluster.
+(Official AWS docs for this policy: <a href="https://docs.aws.amazon.com/eks/latest/userguide/view-upgrade-policy.html">https://docs.aws.amazon.com/eks/latest/userguide/view-upgrade-policy.html</a>)
+<code>extended</code> upgrade policy indicates that the cluster will enter into extended support once the Kubernetes version reaches end of standard support. You will incur extended support charges with this setting. You can upgrade your cluster to a standard supported Kubernetes version to stop incurring extended support charges.
+<code>standard</code> upgrade policy indicates that the cluster is eligible for automatic upgrade at the end of standard support. You will not incur extended support charges with this setting but your EKS cluster will automatically upgrade to the next supported Kubernetes version in standard support.
+If omitted, new clusters will use the AWS default upgrade policy (which at the time of writing is &ldquo;extended&rdquo;) and existing clusters will have their upgrade policy unchanged.</p>
 </td>
 </tr>
 </tbody>
@@ -7890,6 +7926,24 @@ KubeProxy
 </td>
 <td>
 <p>KubeProxy defines managed attributes of the kube-proxy daemonset</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>upgradePolicy</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.UpgradePolicy">
+UpgradePolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The cluster upgrade policy to use for the cluster.
+(Official AWS docs for this policy: <a href="https://docs.aws.amazon.com/eks/latest/userguide/view-upgrade-policy.html">https://docs.aws.amazon.com/eks/latest/userguide/view-upgrade-policy.html</a>)
+<code>extended</code> upgrade policy indicates that the cluster will enter into extended support once the Kubernetes version reaches end of standard support. You will incur extended support charges with this setting. You can upgrade your cluster to a standard supported Kubernetes version to stop incurring extended support charges.
+<code>standard</code> upgrade policy indicates that the cluster is eligible for automatic upgrade at the end of standard support. You will not incur extended support charges with this setting but your EKS cluster will automatically upgrade to the next supported Kubernetes version in standard support.
+If omitted, new clusters will use the AWS default upgrade policy (which at the time of writing is &ldquo;extended&rdquo;) and existing clusters will have their upgrade policy unchanged.</p>
 </td>
 </tr>
 </table>
@@ -8809,6 +8863,14 @@ KubernetesMapping
 </tr>
 </tbody>
 </table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.UpgradePolicy">UpgradePolicy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>)
+</p>
+<p>
+<p>UpgradePolicy defines the support policy to use for the cluster.</p>
+</p>
 <h3 id="controlplane.cluster.x-k8s.io/v1beta2.UserMapping">UserMapping
 </h3>
 <p>
@@ -9340,6 +9402,74 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.AutoNode">AutoNode
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>)
+</p>
+<p>
+<p>AutoNode set the AutoNode mode and AutoNode role ARN.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>mode</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.AutoNodeMode">
+AutoNodeMode
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>mode specifies the mode for the AutoNode. Setting Enable/Disable mode will allows/disallow karpenter AutoNode scaling.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>roleARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>roleARN sets the autoNode role ARN, which includes the IAM policy and cluster-specific role that grant the necessary permissions to the Karpenter controller.
+The role must be attached with the same OIDC-ID that is used with the ROSA-HCP cluster.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.AutoNodeMode">AutoNodeMode
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.AutoNode">AutoNode</a>)
+</p>
+<p>
+<p>AutoNodeMode specifies the AutoNode mode for the ROSA Control Plane.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Disabled&#34;</p></td>
+<td><p>AutoNodeModeDisabled Disabled AutoNode</p>
+</td>
+</tr><tr><td><p>&#34;Enabled&#34;</p></td>
+<td><p>AutoNodeModeEnabled enable AutoNode</p>
+</td>
+</tr></tbody>
+</table>
 <h3 id="controlplane.cluster.x-k8s.io/v1beta2.AutoScaling">AutoScaling
 </h3>
 <p>
@@ -9860,6 +9990,7 @@ end with an alphanumeric character and have a max length of 15 characters.</p>
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>The Subnet IDs to use when installing the cluster.
 SubnetIDs should come in pairs; two per availability zone, one private and one public.</p>
 </td>
@@ -9872,6 +10003,7 @@ SubnetIDs should come in pairs; two per availability zone, one private and one p
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>AvailabilityZones describe AWS AvailabilityZones of the worker nodes.
 should match the AvailabilityZones of the provided Subnets.
 a machinepool will be created for each availabilityZone.</p>
@@ -10211,6 +10343,35 @@ RegistryConfig
 <td>
 <em>(Optional)</em>
 <p>ClusterRegistryConfig represents registry config used with the cluster.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>autoNode</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.AutoNode">
+AutoNode
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>autoNode set the autoNode mode and roleARN.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>rosaNetworkRef</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#localobjectreference-v1-core">
+Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ROSANetworkRef references ROSANetwork custom resource that contains the networking infrastructure
+for the ROSA HCP cluster.</p>
 </td>
 </tr>
 </table>
@@ -10453,6 +10614,7 @@ end with an alphanumeric character and have a max length of 15 characters.</p>
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>The Subnet IDs to use when installing the cluster.
 SubnetIDs should come in pairs; two per availability zone, one private and one public.</p>
 </td>
@@ -10465,6 +10627,7 @@ SubnetIDs should come in pairs; two per availability zone, one private and one p
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>AvailabilityZones describe AWS AvailabilityZones of the worker nodes.
 should match the AvailabilityZones of the provided Subnets.
 a machinepool will be created for each availabilityZone.</p>
@@ -10804,6 +10967,35 @@ RegistryConfig
 <td>
 <em>(Optional)</em>
 <p>ClusterRegistryConfig represents registry config used with the cluster.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>autoNode</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.AutoNode">
+AutoNode
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>autoNode set the autoNode mode and roleARN.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>rosaNetworkRef</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#localobjectreference-v1-core">
+Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ROSANetworkRef references ROSANetwork custom resource that contains the networking infrastructure
+for the ROSA HCP cluster.</p>
 </td>
 </tr>
 </tbody>
@@ -20148,7 +20340,7 @@ AWSClusterTemplateResource
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSIdentityReference">AWSIdentityReference
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSClusterRoleIdentitySpec">AWSClusterRoleIdentitySpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSClusterSpec">AWSClusterSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSARoleConfigSpec">ROSARoleConfigSpec</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSClusterRoleIdentitySpec">AWSClusterRoleIdentitySpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSClusterSpec">AWSClusterSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSANetworkSpec">ROSANetworkSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSARoleConfigSpec">ROSARoleConfigSpec</a>)
 </p>
 <p>
 <p>AWSIdentityReference specifies a identity.</p>
@@ -23530,7 +23722,8 @@ int64
 <td>
 <p>The netmask length of the IPv4 CIDR you want to allocate to VPC from
 an Amazon VPC IP Address Manager (IPAM) pool.
-Defaults to /16 for IPv4 if not specified.</p>
+Defaults to /16 for IPv4 if not specified.
+Defaults to /56 for IPv6 if not specified.</p>
 </td>
 </tr>
 </tbody>
@@ -28764,6 +28957,79 @@ EBS
 </tr>
 </tbody>
 </table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.CFResource">CFResource
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSANetworkStatus">ROSANetworkStatus</a>)
+</p>
+<p>
+<p>CFResource groups information pertaining to a resource created as a part of a cloudformation stack</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>resource</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Type of the created resource: AWS::EC2::VPC, AWS::EC2::Subnet, &hellip;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logicalId</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>LogicalResourceID of the created resource.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>physicalId</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>PhysicalResourceID of the created resource.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Status of the resource: CREATE_IN_PROGRESS, CREATE_COMPLETE, &hellip;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>reason</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Message pertaining to the status of the resource</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.EBS">EBS
 </h3>
 <p>
@@ -30104,6 +30370,369 @@ RosaMachinePoolStatus
 </tr>
 </tbody>
 </table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.ROSANetwork">ROSANetwork
+</h3>
+<p>
+<p>ROSANetwork is the schema for the rosanetworks API</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSANetworkSpec">
+ROSANetworkSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>stackName</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The name of the cloudformation stack under which the network infrastructure would be created</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>region</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The AWS region in which the components of ROSA network infrastruture are to be crated</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>availabilityZoneCount</code><br/>
+<em>
+int
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The number of availability zones to be used for creation of the network infrastructure.
+You can specify anything between one and four, depending on the chosen AWS region.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>availabilityZones</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The list of availability zones to be used for creation of the network infrastructure.
+You can specify anything between one and four valid availability zones from a given region.
+Should you specify both the availabilityZoneCount and availabilityZones, the list of availability zones takes preference.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>cidrBlock</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>CIDR block to be used for the VPC</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>identityRef</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSIdentityReference">
+AWSIdentityReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>IdentityRef is a reference to an identity to be used when reconciling rosa network.
+If no identity is specified, the default identity for this controller will be used.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>stackTags</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.Tags">
+Tags
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>StackTags is an optional set of tags to add to the created cloudformation stack.
+The stack tags will then be automatically applied to the supported AWS resources (VPC, subnets, &hellip;).</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSANetworkStatus">
+ROSANetworkStatus
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.ROSANetworkSpec">ROSANetworkSpec
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSANetwork">ROSANetwork</a>)
+</p>
+<p>
+<p>ROSANetworkSpec defines the desired state of ROSANetwork</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>stackName</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The name of the cloudformation stack under which the network infrastructure would be created</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>region</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The AWS region in which the components of ROSA network infrastruture are to be crated</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>availabilityZoneCount</code><br/>
+<em>
+int
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The number of availability zones to be used for creation of the network infrastructure.
+You can specify anything between one and four, depending on the chosen AWS region.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>availabilityZones</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The list of availability zones to be used for creation of the network infrastructure.
+You can specify anything between one and four valid availability zones from a given region.
+Should you specify both the availabilityZoneCount and availabilityZones, the list of availability zones takes preference.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>cidrBlock</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>CIDR block to be used for the VPC</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>identityRef</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSIdentityReference">
+AWSIdentityReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>IdentityRef is a reference to an identity to be used when reconciling rosa network.
+If no identity is specified, the default identity for this controller will be used.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>stackTags</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.Tags">
+Tags
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>StackTags is an optional set of tags to add to the created cloudformation stack.
+The stack tags will then be automatically applied to the supported AWS resources (VPC, subnets, &hellip;).</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.ROSANetworkStatus">ROSANetworkStatus
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSANetwork">ROSANetwork</a>)
+</p>
+<p>
+<p>ROSANetworkStatus defines the observed state of ROSANetwork</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>subnets</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSANetworkSubnet">
+[]ROSANetworkSubnet
+</a>
+</em>
+</td>
+<td>
+<p>Array of created private, public subnets and availability zones, grouped by availability zones</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resources</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.CFResource">
+[]CFResource
+</a>
+</em>
+</td>
+<td>
+<p>Resources created in the cloudformation stack</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>conditions</code><br/>
+<em>
+<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
+Cluster API api/v1beta1.Conditions
+</a>
+</em>
+</td>
+<td>
+<p>Conditions specifies the conditions for ROSANetwork</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.ROSANetworkSubnet">ROSANetworkSubnet
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSANetworkStatus">ROSANetworkStatus</a>)
+</p>
+<p>
+<p>ROSANetworkSubnet groups public and private subnet and the availability zone in which the two subnets got created</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>availabilityZone</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Availability zone of the subnet pair, for example us-west-2a</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>publicSubnet</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ID of the public subnet, for example subnet-0f7e49a3ce68ff338</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>privateSubnet</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ID of the private subnet, for example subnet-07a20d6c41af2b725</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.ROSARoleConfig">ROSARoleConfig
 </h3>
 <p>
@@ -31057,6 +31686,9 @@ Processes
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.Tags">Tags
 (<code>map[string]string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSANetworkSpec">ROSANetworkSpec</a>)
+</p>
 <p>
 <p>Tags is a mapping for tags.</p>
 </p>
