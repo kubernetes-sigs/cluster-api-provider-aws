@@ -248,8 +248,8 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 		return ctrl.Result{}, errors.Wrap(err, "failed to get control plane")
 	}
 
-	// Check if control plane is ready (skip in test environments for AL2023)
-	if config.Spec.NodeType == NodeTypeAL2023 && !conditions.IsTrue(controlPlane, ekscontrolplanev1.EKSControlPlaneReadyCondition) {
+	// Check if control plane is ready (skip in test environments for AL2023).
+	if config.Spec.NodeType == NodeTypeAL2023 && !controlPlane.Status.Ready {
 		// Skip control plane readiness check for AL2023 in test environment
 		if os.Getenv("TEST_ENV") != "true" {
 			log.Info("AL2023 detected, waiting for control plane to be ready")
