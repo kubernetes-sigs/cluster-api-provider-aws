@@ -20,6 +20,7 @@ import (
 	"context"
 	"time"
 
+	autoscalingtypes "github.com/aws/aws-sdk-go-v2/service/autoscaling/types"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -190,7 +191,7 @@ func (r *AWSManagedMachinePoolReconciler) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, r.reconcileDelete(ctx, machinePoolScope, managedControlPlaneScope)
 	}
 
-	return ctrl.Result{}, r.reconcileNormal(ctx, machinePoolScope, managedControlPlaneScope, managedControlPlaneScope)
+	return r.reconcileNormal(ctx, machinePoolScope, managedControlPlaneScope, managedControlPlaneScope)
 }
 
 func (r *AWSManagedMachinePoolReconciler) reconcileNormal(
@@ -198,12 +199,12 @@ func (r *AWSManagedMachinePoolReconciler) reconcileNormal(
 	machinePoolScope *scope.ManagedMachinePoolScope,
 	ec2Scope scope.EC2Scope,
 	s3Scope scope.S3Scope,
-) error {
+) (ctrl.Result, error) {
 	machinePoolScope.Info("Reconciling AWSManagedMachinePool")
 
 	if controllerutil.AddFinalizer(machinePoolScope.ManagedMachinePool, expinfrav1.ManagedMachinePoolFinalizer) {
 		if err := machinePoolScope.PatchObject(); err != nil {
-			return err
+			return ctrl.Result{}, err
 		}
 	}
 
@@ -212,18 +213,25 @@ func (r *AWSManagedMachinePoolReconciler) reconcileNormal(
 	reconSvc := r.getReconcileService(ec2Scope)
 
 	if machinePoolScope.ManagedMachinePool.Spec.AWSLaunchTemplate != nil {
-		canUpdateLaunchTemplate := func() (bool, error) {
-			return true, nil
+		canStartInstanceRefresh := func() (bool, *autoscalingtypes.InstanceRefreshStatus, error) {
+			return true, nil, nil
+		}
+		cancelInstanceRefresh := func() error {
+			return nil
 		}
 		runPostLaunchTemplateUpdateOperation := func() error {
 			return nil
 		}
 		var objectStoreSvc services.ObjectStoreInterface // nil because no S3 bucket support for `AWSManagedControlPlane` yet
-		if err := reconSvc.ReconcileLaunchTemplate(ctx, machinePoolScope, machinePoolScope, s3Scope, ec2svc, objectStoreSvc, canUpdateLaunchTemplate, runPostLaunchTemplateUpdateOperation); err != nil {
+		res, err := reconSvc.ReconcileLaunchTemplate(ctx, machinePoolScope, machinePoolScope, s3Scope, ec2svc, objectStoreSvc, canStartInstanceRefresh, cancelInstanceRefresh, runPostLaunchTemplateUpdateOperation)
+		if err != nil {
 			r.Recorder.Eventf(machinePoolScope.ManagedMachinePool, corev1.EventTypeWarning, "FailedLaunchTemplateReconcile", "Failed to reconcile launch template: %v", err)
 			machinePoolScope.Error(err, "failed to reconcile launch template")
 			conditions.MarkFalse(machinePoolScope.ManagedMachinePool, expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateReconcileFailedReason, clusterv1.ConditionSeverityError, "")
-			return err
+			return ctrl.Result{}, err
+		}
+		if res != nil {
+			return *res, nil
 		}
 
 		launchTemplateID := machinePoolScope.GetLaunchTemplateIDStatus()
@@ -232,7 +240,7 @@ func (r *AWSManagedMachinePoolReconciler) reconcileNormal(
 			ResourceService: ec2svc,
 		}}
 		if err := reconSvc.ReconcileTags(machinePoolScope, resourceServiceToUpdate); err != nil {
-			return errors.Wrap(err, "error updating tags")
+			return ctrl.Result{}, errors.Wrap(err, "error updating tags")
 		}
 
 		// set the LaunchTemplateReady condition
@@ -240,10 +248,10 @@ func (r *AWSManagedMachinePoolReconciler) reconcileNormal(
 	}
 
 	if err := ekssvc.ReconcilePool(ctx); err != nil {
-		return errors.Wrapf(err, "failed to reconcile machine pool for AWSManagedMachinePool %s/%s", machinePoolScope.ManagedMachinePool.Namespace, machinePoolScope.ManagedMachinePool.Name)
+		return ctrl.Result{}, errors.Wrapf(err, "failed to reconcile machine pool for AWSManagedMachinePool %s/%s", machinePoolScope.ManagedMachinePool.Namespace, machinePoolScope.ManagedMachinePool.Name)
 	}
 
-	return nil
+	return ctrl.Result{}, nil
 }
 
 func (r *AWSManagedMachinePoolReconciler) reconcileDelete(
