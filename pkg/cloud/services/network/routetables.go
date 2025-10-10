@@ -423,7 +423,11 @@ func (s *Service) getRoutesToPrivateSubnet(sn *infrav1.SubnetSpec) (routes []*ec
 
 	routes = append(routes, s.getNatGatewayPrivateRoute(natGatewayID))
 	if sn.IsIPv6 {
-		routes = append(routes, s.getNat64PrivateRoute(natGatewayID))
+		// We add the NAT64 route only if DNS64 is enabled for the subnet
+		// That is when the subnet is private and IPv6-only.
+		if sn.CidrBlock == "" {
+			routes = append(routes, s.getNat64PrivateRoute(natGatewayID))
+		}
 		if !s.scope.VPC().IsIPv6Enabled() {
 			// Safety net because EgressOnlyInternetGateway needs the ID from the ipv6 block.
 			// if, for whatever reason by this point that is not available, we don't want to
