@@ -1,5 +1,5 @@
 # See https://cloud.google.com/cloud-build/docs/build-config
-timeout: 3000s
+timeout: 7200s
 options:
   substitution_option: ALLOW_LOOSE
 steps:
