@@ -55,8 +55,10 @@ Promote the container images from the staging registry to the production registr
     ```
 
 
-## Verify and Publish the draft release
-
+## Verifing and Publish the release
+1. Now a draft release should be available on the Github Releases page for the CAPA repository: https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases you should go there and verify all the relevant informations are there before undrafting the release.
+1. Make sure the release notes are present in the release description.
+1. Update the release description to link to the promotion image.
 1. Verify that all the files below are attached to the drafted release:
     1. `clusterawsadm-darwin-amd64`
     1. `clusterawsadm-darwin-arm64`
@@ -82,7 +84,6 @@ Promote the container images from the staging registry to the production registr
     1. `cluster-template-rosa.yaml`
     1. `cluster-template-simple-clusterclass.yaml`
     1. `metadata.yaml`
-1. Update the release description to link to the promotion image.
 1. Publish release. Use the pre-release option for release candidate versions of Cluster API Provider AWS.
 1. Email `kubernetes-sig-cluster-lifecycle@googlegroups.com` to announce the release. You can use this template for the email:
 
