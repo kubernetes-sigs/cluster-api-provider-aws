@@ -9,9 +9,11 @@ spec:
   clusterNetwork:
     pods:
       cidrBlocks:
+      - 192.168.0.0/16
       - fd01::/48
     services:
       cidrBlocks:
+      - 172.30.0.0/16
       - fd02::/112
   controlPlaneRef:
     apiVersion: controlplane.cluster.x-k8s.io/v1beta1
@@ -30,12 +32,13 @@ spec:
   controlPlaneLoadBalancer:
     loadBalancerType: nlb
     healthCheckProtocol: HTTPS
+    targetGroupIPType: ipv4
   network:
     cni:
       cniIngressRules:
       # If using Calico as CNI provider, this rule is required.
       # Note: Calico currently supports IPv6 with VXLAN.
-      - description: "IPv6 VXLAN (calico)"
+      - description: "VXLAN (calico)"
         protocol: udp
         fromPort: 4789
         toPort: 4789
@@ -53,38 +56,20 @@ spec:
     clusterConfiguration:
       apiServer:
         extraArgs:
-          bind-address: "::"
           cloud-provider: external
       controllerManager:
         extraArgs:
-          bind-address: "::"
           cloud-provider: external
-      scheduler:
-        extraArgs:
-          bind-address: "::"
     initConfiguration:
       nodeRegistration:
         kubeletExtraArgs:
           cloud-provider: external
-          # node-ip: pass "::" to make kubelet prefer the default IPv6 address
-          # rather than the default IPv4 address.
-          node-ip: "::"
-        name: "{{ ds.meta_data.local_hostname }}"
-      localAPIEndpoint:
-        advertiseAddress: "::"
-        bindPort: 6443
+        name: '{{ ds.meta_data.local_hostname }}'
     joinConfiguration:
       nodeRegistration:
         kubeletExtraArgs:
           cloud-provider: external
-          # node-ip: pass "::" to make kubelet prefer the default IPv6 address
-          # rather than the default IPv4 address.
-          node-ip: "::"
-        name: "{{ ds.meta_data.local_hostname }}"
-      controlPlane:
-        localAPIEndpoint:
-          advertiseAddress: "::"
-          bindPort: 6443
+        name: '{{ ds.meta_data.local_hostname }}'
   machineTemplate:
     infrastructureRef:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
@@ -157,23 +142,10 @@ metadata:
 spec:
   template:
     spec:
-      clusterConfiguration:
-        apiServer:
-          extraArgs:
-            bind-address: '::'
-        controllerManager:
-          extraArgs:
-            bind-address: '::'
-        scheduler:
-          extraArgs:
-            bind-address: '::'
       joinConfiguration:
         nodeRegistration:
           kubeletExtraArgs:
             cloud-provider: external
-            # node-ip: pass "::" to make kubelet prefer the default IPv6 address
-            # rather than the default IPv4 address.
-            node-ip: "::"
           name: '{{ ds.meta_data.local_hostname }}'
 ---
 apiVersion: addons.cluster.x-k8s.io/v1beta1
@@ -203,9 +175,8 @@ spec:
   strategy: ApplyOnce
 ---
 # We need to provide cloud-config to the CCM via a ConfigMap to
-# set the NodeIPFamilies to IPv6. This instructs the CCM to consider
-# IPv6 in the node's network interface.
-# Note: This template provisions dualstack subnets to nodes will be dualstack.
+# set the NodeIPFamilies to IPv4 and IPv6.
+# This instructs the CCM to also consider IPv6 in the node's network interface.
 apiVersion: v1
 data:
   aws-ccm-external.yaml: |
@@ -274,8 +245,8 @@ data:
     data:
       cloud-config.conf: |
         [Global]
-        NodeIPFamilies=ipv6
         NodeIPFamilies=ipv4
+        NodeIPFamilies=ipv6
     ---
     apiVersion: v1
     kind: ServiceAccount
