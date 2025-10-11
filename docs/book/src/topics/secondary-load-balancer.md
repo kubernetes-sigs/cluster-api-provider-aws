@@ -34,3 +34,32 @@ spec:
     name: internal-apiserver
     scheme: internal     # optional
 ```
+
+## Target Group IP Address Type
+
+**Note:** The `targetGroupIPType` field is only available when using Network Load Balancers (NLB), Application Load Balancers (ALB), or Gateway Load Balancers (ELB). It **cannot** be configured when using Classic Load Balancers.
+
+The secondary load balancer supports the same `targetGroupIPType` configuration as the primary load balancer. By default, the target group IP address type is set based on the VPC configuration:
+- If the VPC has IPv6 enabled, the target group uses `ipv6`
+- Otherwise, it defaults to `ipv4`
+
+You can explicitly configure the IP address type for the secondary load balancer's target group:
+
+```yaml
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: AWSCluster
+metadata:
+  name: test-aws-cluster
+spec:
+  region: us-east-2
+  sshKeyName: nrb-default
+  secondaryControlPlaneLoadBalancer:
+    name: internal-apiserver
+    scheme: internal
+    targetGroupIPType: ipv6
+```
+
+Valid values are:
+- `ipv4`: Routes traffic to targets using IPv4 addresses
+- `ipv6`: Routes traffic to targets using IPv6 addresses
