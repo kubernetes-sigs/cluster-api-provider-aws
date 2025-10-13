@@ -267,6 +267,9 @@ func (s *Service) CreateInstance(ctx context.Context, scope *scope.MachineScope,
 		input.HostID = aws.String(hostID)
 		input.HostAffinity = aws.String("host")
 
+		if scope.AWSMachine.Status.DedicatedHost == nil {
+			scope.AWSMachine.Status.DedicatedHost = &infrav1.DedicatedHostStatus{}
+		}
 		// Update machine status with allocated host ID
 		scope.AWSMachine.Status.DedicatedHost.ID = &hostID
 	} else {
@@ -1301,7 +1304,7 @@ func (s *Service) ensureDedicatedHostAllocation(ctx context.Context, scope *scop
 
 	// Check if a host is already allocated for this machine
 	// Each machine gets its own dedicated host for complete isolation and resource dedication
-	if scope.AWSMachine.Status.DedicatedHost.ID != nil {
+	if scope.AWSMachine.Status.DedicatedHost != nil && scope.AWSMachine.Status.DedicatedHost.ID != nil {
 		existingHostID := aws.ToString(scope.AWSMachine.Status.DedicatedHost.ID)
 		s.scope.Info("Found existing allocated host for machine", "hostID", existingHostID, "machine", scope.Name())
 		return existingHostID, nil
@@ -1312,32 +1315,17 @@ func (s *Service) ensureDedicatedHostAllocation(ctx context.Context, scope *scop
 
 	// Get AZ from the machine's subnet
 	if scope.AWSMachine.Spec.Subnet != nil {
-		var subnet *types.Subnet
-		var err error
-		if scope.AWSMachine.Spec.Subnet.ID != nil {
-			subnet, err = s.getSubnet(scope.AWSMachine.Spec.Subnet.ID)
-			if err != nil {
-				return "", errors.Wrap(err, "failed to get subnet for host allocation")
-			}
-		} else if len(scope.AWSMachine.Spec.Subnet.Filters) > 0 {
-			// Convert CAPA filters to AWS SDK filters
-			awsFilters := make([]types.Filter, len(scope.AWSMachine.Spec.Subnet.Filters))
-			for i, f := range scope.AWSMachine.Spec.Subnet.Filters {
-				awsFilters[i] = types.Filter{
-					Name:   aws.String(f.Name),
-					Values: f.Values,
-				}
-			}
-
-			subnets, err := s.getFilteredSubnets(awsFilters...)
-			if err != nil {
-				return "", errors.Wrap(err, "failed to get subnet by filters for host allocation")
-			}
-			// if more than one subnet is found, use the first one. they should all share the same AZ.
-			if len(subnets) > 0 {
-				subnet = &subnets[0]
-			}
+		subnetID, err := s.findSubnet(scope)
+		if err != nil {
+			return "", errors.Wrap(err, "failed to find subnet for host allocation")
 		}
+
+		// Get the full subnet object to extract availability zone
+		subnet, err := s.getSubnet(&subnetID)
+		if err != nil {
+			return "", errors.Wrap(err, "failed to get subnet details for host allocation")
+		}
+
 		if subnet != nil && subnet.AvailabilityZone != nil {
 			availabilityZone = subnet.AvailabilityZone
 		}

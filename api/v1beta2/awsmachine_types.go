@@ -466,18 +466,6 @@ type AWSMachineStatus struct {
 	// This field is populated when DynamicHostAllocation is used.
 	// +optional
 	DedicatedHost *DedicatedHostStatus `json:"dedicatedHost,omitempty"`
-
-	// HostReleaseAttempts tracks the number of attempts to release the dedicated host.
-	// +optional
-	HostReleaseAttempts *int32 `json:"hostReleaseAttempts,omitempty"`
-
-	// LastHostReleaseAttempt tracks the timestamp of the last attempt to release the dedicated host.
-	// +optional
-	LastHostReleaseAttempt *metav1.Time `json:"lastHostReleaseAttempt,omitempty"`
-
-	// HostReleaseFailedReason tracks the reason for the last host release failure.
-	// +optional
-	HostReleaseFailedReason *string `json:"hostReleaseFailedReason,omitempty"`
 }
 
 // DedicatedHostStatus defines the observed state of a dynamically allocated dedicated host
@@ -488,10 +476,6 @@ type DedicatedHostStatus struct {
 	// This field is populated when DynamicHostAllocation is used.
 	// +optional
 	ID *string `json:"id,omitempty"`
-
-	// ReleaseFailureMessage tracks the last failure message for the release host attempt.
-	// +optional
-	ReleaseFailureMessage *string `json:"releaseFailureMessage,omitempty"`
 }
 
 // +kubebuilder:object:root=true

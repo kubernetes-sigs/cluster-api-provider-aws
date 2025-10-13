@@ -65,10 +65,6 @@ func (src *AWSMachine) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	dst.Status.DedicatedHost = restored.Status.DedicatedHost
-	dst.Status.HostReleaseAttempts = restored.Status.HostReleaseAttempts
-	dst.Status.LastHostReleaseAttempt = restored.Status.LastHostReleaseAttempt
-	dst.Status.HostReleaseFailedReason = restored.Status.HostReleaseFailedReason
-
 	return nil
 }
 
