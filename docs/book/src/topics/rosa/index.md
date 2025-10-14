@@ -7,7 +7,7 @@
 
 The AWS provider supports creating Red Hat OpenShift Service on AWS ([ROSA](https://www.redhat.com/en/technologies/cloud-computing/openshift/aws)) based cluster. Currently the following features are supported:
 
-- Provisioning/Deleting a ROSA cluster with hosted control planes ([HCP](https://docs.openshift.com/rosa/rosa_hcp/rosa-hcp-sts-creating-a-cluster-quickly.html))
+- Provisioning/Deleting a ROSA cluster with hosted control planes ([HCP](https://docs.redhat.com/en/documentation/red_hat_openshift_service_on_aws/4))
 
 The implementation introduces the following CRD kinds:
 
