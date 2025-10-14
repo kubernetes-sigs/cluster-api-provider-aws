@@ -167,7 +167,7 @@ Note; Skip the "Create the required IAM roles and OpenID Connect configuration" 
 
     see [Multi-tenancy](../multitenancy.md) for more details
 
-1. Finally apply the manifest to create your Rosa cluster:
+1. Finally apply the manifest to create your ROSA cluster:
     ```shell
     kubectl apply -f rosa-capi-cluster.yaml
     ```
