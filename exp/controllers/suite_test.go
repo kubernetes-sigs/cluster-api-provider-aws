@@ -86,6 +86,9 @@ func setup() {
 	if err := (&expinfrav1.ROSAMachinePool{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup ROSAMachinePool webhook: %v", err))
 	}
+	if err := (&expinfrav1.ROSARoleConfig{}).SetupWebhookWithManager(testEnv); err != nil {
+		panic(fmt.Sprintf("Unable to setup ROSARoleConfig webhook: %v", err))
+	}
 	if err := (&rosacontrolplanev1.ROSAControlPlane{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup ROSAControlPlane webhook: %v", err))
 	}

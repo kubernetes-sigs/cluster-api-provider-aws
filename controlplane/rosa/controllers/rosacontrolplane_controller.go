@@ -141,6 +141,8 @@ func (r *ROSAControlPlaneReconciler) SetupWithManager(ctx context.Context, mgr c
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=rosacontrolplanes,verbs=get;list;watch;update;patch;delete
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=rosacontrolplanes/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=rosacontrolplanes/finalizers,verbs=update
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=rosaroleconfigs,verbs=get;list;watch;
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=rosaroleconfigs/status,verbs=get;
 
 // Reconcile will reconcile RosaControlPlane Resources.
 func (r *ROSAControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, reterr error) {
@@ -167,7 +169,6 @@ func (r *ROSAControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	log = log.WithValues("cluster", klog.KObj(cluster))
-
 	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, rosaControlPlane); err != nil || isPaused || conditionChanged {
 		return ctrl.Result{}, err
 	}
@@ -227,7 +228,13 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		return ctrl.Result{}, fmt.Errorf("failed to transform caller identity to creator: %w", err)
 	}
 
-	validationMessage, err := validateControlPlaneSpec(ocmClient, rosaScope)
+	rosaRoleConfig, err := r.reconcileRosaRoleConfig(ctx, rosaScope)
+	if err != nil {
+		rosaScope.Error(err, "cannot reconcile RosaRoleConfig ")
+		return ctrl.Result{}, err
+	}
+
+	validationMessage, err := validateControlPlaneSpec(ocmClient, rosaScope.ControlPlane)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to validate ROSAControlPlane.spec: %w", err)
 	}
@@ -314,7 +321,27 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		return ctrl.Result{RequeueAfter: time.Second * 60}, nil
 	}
 
-	ocmClusterSpec, err := buildOCMClusterSpec(rosaScope.ControlPlane.Spec, creator)
+	rosaNet := &expinfrav1.ROSANetwork{}
+	// Does the control plane reference ROSANetwork?
+	if rosaScope.ControlPlane.Spec.ROSANetworkRef != nil {
+		objKey := client.ObjectKey{
+			Name:      rosaScope.ControlPlane.Spec.ROSANetworkRef.Name,
+			Namespace: rosaScope.ControlPlane.Namespace,
+		}
+
+		err := rosaScope.Client.Get(ctx, objKey, rosaNet)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to fetch ROSANetwork: %w", err)
+		}
+
+		// Is the referenced ROSANetwork ready yet?
+		if !conditions.IsTrue(rosaNet, expinfrav1.ROSANetworkReadyCondition) {
+			rosaScope.Info(fmt.Sprintf("referenced ROSANetwork %s is not ready", rosaNet.Name))
+			return ctrl.Result{RequeueAfter: time.Minute}, nil
+		}
+	}
+
+	ocmClusterSpec, err := buildOCMClusterSpec(rosaScope.ControlPlane.Spec, rosaRoleConfig, rosaNet, creator)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -334,6 +361,48 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 	rosaScope.ControlPlane.Status.ID = cluster.ID()
 
 	return ctrl.Result{}, nil
+}
+
+func (r *ROSAControlPlaneReconciler) reconcileRosaRoleConfig(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (*expinfrav1.ROSARoleConfig, error) {
+	rosaRoleConfig := &expinfrav1.ROSARoleConfig{}
+	// Get role configuration from either RosaRoleConfig or direct fields
+	if rosaScope.ControlPlane.Spec.RosaRoleConfigRef != nil {
+		// Get RosaRoleConfig
+		key := client.ObjectKey{
+			Name:      rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name,
+			Namespace: rosaScope.ControlPlane.Namespace,
+		}
+
+		if err := r.Client.Get(ctx, key, rosaRoleConfig); err != nil {
+			conditions.MarkFalse(rosaScope.ControlPlane,
+				rosacontrolplanev1.ROSARoleConfigReadyCondition,
+				rosacontrolplanev1.ROSARoleConfigNotFoundReason,
+				clusterv1.ConditionSeverityError,
+				"Failed to get RosaRoleConfig %s/%s", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name)
+
+			return nil, err
+		}
+
+		// Check if RosaRoleConfig is ready
+		if !conditions.IsTrue(rosaRoleConfig, expinfrav1.RosaRoleConfigReadyCondition) {
+			conditions.MarkFalse(rosaScope.ControlPlane,
+				rosacontrolplanev1.ROSARoleConfigReadyCondition,
+				rosacontrolplanev1.ROSARoleConfigNotReadyReason,
+				clusterv1.ConditionSeverityWarning,
+				"RosaRoleConfig %s/%s is not ready", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name)
+
+			return nil, fmt.Errorf("RosaRoleConfig %s/%s is not ready", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name)
+		}
+		conditions.MarkTrue(rosaScope.ControlPlane, rosacontrolplanev1.ROSARoleConfigReadyCondition)
+	} else {
+		rosaRoleConfig.Status.OIDCID = rosaScope.ControlPlane.Spec.OIDCID
+		rosaRoleConfig.Status.AccountRolesRef.InstallerRoleARN = rosaScope.ControlPlane.Spec.InstallerRoleARN
+		rosaRoleConfig.Status.AccountRolesRef.SupportRoleARN = rosaScope.ControlPlane.Spec.SupportRoleARN
+		rosaRoleConfig.Status.AccountRolesRef.WorkerRoleARN = rosaScope.ControlPlane.Spec.WorkerRoleARN
+		rosaRoleConfig.Status.OperatorRolesRef = rosaScope.ControlPlane.Spec.RolesRef
+	}
+
+	return rosaRoleConfig, nil
 }
 
 func (r *ROSAControlPlaneReconciler) reconcileDelete(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (res ctrl.Result, reterr error) {
@@ -419,6 +488,15 @@ func (r *ROSAControlPlaneReconciler) deleteMachinePools(ctx context.Context, ros
 		if err = rosaScope.Client.Delete(ctx, &machinePools[id]); err != nil {
 			errs = append(errs, err)
 		}
+	}
+
+	// Workaround the case where last machinePool cannot be deleted without deleting the ROSA controlplane.
+	// In Cluster API (CAPI), machine pools (MPs) are normally deleted before the control plane is removed.
+	// However, in ROSA-HCP, deleting the final MP results in an error because the control plane cannot exist without at least 1 MP.
+	// To handle this, when only one MP remains, we ignore the deletion error and proceed with deleting the control plane.
+	// Also OCM cascade delete the MPs when deleting control plane, so we are safe to ignore last MP and delete the control plane.
+	if len(errs) == 0 && len(machinePools) == 1 {
+		return true, nil
 	}
 
 	if len(errs) > 0 {
@@ -567,6 +645,18 @@ func (r *ROSAControlPlaneReconciler) updateOCMClusterSpec(rosaControlPlane *rosa
 	if ocmClusterSpec.ChannelGroup != channelGroup {
 		ocmClusterSpec.ChannelGroup = channelGroup
 		updated = true
+	}
+
+	if rosaControlPlane.Spec.AutoNode != nil {
+		if !strings.EqualFold(ocmClusterSpec.AutoNodeMode, string(rosaControlPlane.Spec.AutoNode.Mode)) {
+			ocmClusterSpec.AutoNodeMode = strings.ToLower(string(rosaControlPlane.Spec.AutoNode.Mode))
+			updated = true
+		}
+
+		if ocmClusterSpec.AutoNodeRoleARN != rosaControlPlane.Spec.AutoNode.RoleARN {
+			ocmClusterSpec.AutoNodeRoleARN = rosaControlPlane.Spec.AutoNode.RoleARN
+			updated = true
+		}
 	}
 
 	return ocmClusterSpec, updated
@@ -900,9 +990,9 @@ func (r *ROSAControlPlaneReconciler) reconcileClusterAdminPassword(ctx context.C
 	return password, nil
 }
 
-func validateControlPlaneSpec(ocmClient rosa.OCMClient, rosaScope *scope.ROSAControlPlaneScope) (string, error) {
-	version := rosaScope.ControlPlane.Spec.Version
-	channelGroup := string(rosaScope.ControlPlane.Spec.ChannelGroup)
+func validateControlPlaneSpec(ocmClient rosa.OCMClient, rosaControlPlane *rosacontrolplanev1.ROSAControlPlane) (string, error) {
+	version := rosaControlPlane.Spec.Version
+	channelGroup := string(rosaControlPlane.Spec.ChannelGroup)
 	valid, err := ocmClient.ValidateHypershiftVersion(version, channelGroup)
 	if err != nil {
 		return "", fmt.Errorf("error validating version in this channelGroup : %w", err)
@@ -911,14 +1001,40 @@ func validateControlPlaneSpec(ocmClient rosa.OCMClient, rosaScope *scope.ROSACon
 		return fmt.Sprintf("this version %s is not supported in this channelGroup", version), nil
 	}
 
+	if rosaControlPlane.Spec.AutoNode != nil {
+		if rosaControlPlane.Spec.AutoNode.Mode == rosacontrolplanev1.AutoNodeModeEnabled && rosaControlPlane.Spec.AutoNode.RoleARN == "" {
+			return "", fmt.Errorf("error ROSAControlPlane autoNode.roleARN, must be set when autoNode mode is enabled")
+		}
+	}
+
 	// TODO: add more input validations
 	return "", nil
 }
 
-func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpec, creator *rosaaws.Creator) (ocm.Spec, error) {
+func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpec, roleConfig *expinfrav1.ROSARoleConfig, rosaNet *expinfrav1.ROSANetwork, creator *rosaaws.Creator) (ocm.Spec, error) {
 	billingAccount := controlPlaneSpec.BillingAccount
 	if billingAccount == "" {
 		billingAccount = creator.AccountID
+	}
+
+	var subnetIDs []string
+	var availabilityZones []string
+
+	if controlPlaneSpec.ROSANetworkRef == nil {
+		if len(controlPlaneSpec.Subnets) == 0 {
+			return ocm.Spec{}, fmt.Errorf("RosaControlPlaneSpec.Subnets is empty")
+		}
+		if len(controlPlaneSpec.AvailabilityZones) == 0 {
+			return ocm.Spec{}, fmt.Errorf("RosaControlPlaneSpec.AvailabilityZones is empty")
+		}
+
+		subnetIDs = controlPlaneSpec.Subnets
+		availabilityZones = controlPlaneSpec.AvailabilityZones
+	} else {
+		for _, v := range rosaNet.Status.Subnets {
+			subnetIDs = append(subnetIDs, v.PublicSubnet, v.PrivateSubnet)
+			availabilityZones = append(availabilityZones, v.AvailabilityZone)
+		}
 	}
 
 	ocmClusterSpec := ocm.Spec{
@@ -932,18 +1048,18 @@ func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpe
 		DisableWorkloadMonitoring: ptr.To(true),
 		DefaultIngress:            ocm.NewDefaultIngressSpec(), // n.b. this is a no-op when it's set to the default value
 		ComputeMachineType:        controlPlaneSpec.DefaultMachinePoolSpec.InstanceType,
-		AvailabilityZones:         controlPlaneSpec.AvailabilityZones,
+		AvailabilityZones:         availabilityZones,
 		Tags:                      controlPlaneSpec.AdditionalTags,
 		EtcdEncryption:            controlPlaneSpec.EtcdEncryptionKMSARN != "",
 		EtcdEncryptionKMSArn:      controlPlaneSpec.EtcdEncryptionKMSARN,
 
-		SubnetIds:        controlPlaneSpec.Subnets,
+		SubnetIds:        subnetIDs,
 		IsSTS:            true,
-		RoleARN:          controlPlaneSpec.InstallerRoleARN,
-		SupportRoleARN:   controlPlaneSpec.SupportRoleARN,
-		WorkerRoleARN:    controlPlaneSpec.WorkerRoleARN,
-		OperatorIAMRoles: operatorIAMRoles(controlPlaneSpec.RolesRef),
-		OidcConfigId:     controlPlaneSpec.OIDCID,
+		RoleARN:          roleConfig.Status.AccountRolesRef.InstallerRoleARN,
+		SupportRoleARN:   roleConfig.Status.AccountRolesRef.SupportRoleARN,
+		WorkerRoleARN:    roleConfig.Status.AccountRolesRef.WorkerRoleARN,
+		OperatorIAMRoles: operatorIAMRoles(roleConfig.Status.OperatorRolesRef),
+		OidcConfigId:     roleConfig.Status.OIDCID,
 		Mode:             "auto",
 		Hypershift: ocm.Hypershift{
 			Enabled: true,
@@ -998,8 +1114,8 @@ func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpe
 		ocmClusterSpec.Autoscaling = true
 		ocmClusterSpec.MaxReplicas = computeAutoscaling.MaxReplicas
 		ocmClusterSpec.MinReplicas = computeAutoscaling.MinReplicas
-	} else if len(controlPlaneSpec.AvailabilityZones) > 1 {
-		ocmClusterSpec.ComputeNodes = len(controlPlaneSpec.AvailabilityZones)
+	} else if len(ocmClusterSpec.AvailabilityZones) > 1 {
+		ocmClusterSpec.ComputeNodes = len(ocmClusterSpec.AvailabilityZones)
 	}
 
 	if controlPlaneSpec.ProvisionShardID != "" {
@@ -1028,6 +1144,12 @@ func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpe
 			ocmClusterSpec.AllowedRegistries = controlPlaneSpec.ClusterRegistryConfig.RegistrySources.AllowedRegistries
 			ocmClusterSpec.InsecureRegistries = controlPlaneSpec.ClusterRegistryConfig.RegistrySources.InsecureRegistries
 		}
+	}
+
+	// Set auto node karpenter config
+	if controlPlaneSpec.AutoNode != nil {
+		ocmClusterSpec.AutoNodeMode = strings.ToLower(string(controlPlaneSpec.AutoNode.Mode))
+		ocmClusterSpec.AutoNodeRoleARN = controlPlaneSpec.AutoNode.RoleARN
 	}
 
 	return ocmClusterSpec, nil

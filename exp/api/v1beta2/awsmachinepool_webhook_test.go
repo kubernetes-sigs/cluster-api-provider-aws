@@ -313,7 +313,7 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 					},
 				},
 			},
-			wantErrToContain: ptr.To("when a reservation ID is specified, capacityReservationPreference may only be `capacity-reservations-only` or empty"),
+			wantErrToContain: ptr.To("when capacityReservationId is specified, capacityReservationPreference may only be `CapacityReservationsOnly` or empty"),
 		},
 		{
 			name: "invalid, MarketType set to MarketTypeCapacityBlock and spotMarketOptions are specified",

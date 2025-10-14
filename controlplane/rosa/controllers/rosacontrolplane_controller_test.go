@@ -25,6 +25,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -181,7 +182,7 @@ func TestUpdateOCMClusterSpec(t *testing.T) {
 	})
 
 	// Test case 6: channel group update
-	t.Run("Update AllowedRegistriesForImport", func(t *testing.T) {
+	t.Run("Update channel group", func(t *testing.T) {
 		rosaControlPlane := &rosacontrolplanev1.ROSAControlPlane{
 			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
 				ChannelGroup: rosacontrolplanev1.Candidate,
@@ -202,6 +203,99 @@ func TestUpdateOCMClusterSpec(t *testing.T) {
 
 		g.Expect(updated).To(BeTrue())
 		g.Expect(ocmSpec).To(Equal(expectedOCMSpec))
+	})
+
+	// Test case 7: AutoNode update
+	t.Run("Update Auto Node", func(t *testing.T) {
+		rosaControlPlane := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				AutoNode: &rosacontrolplanev1.AutoNode{
+					Mode:    rosacontrolplanev1.AutoNodeModeEnabled,
+					RoleARN: "autoNodeARN",
+				},
+			},
+		}
+
+		mockCluster, _ := v1.NewCluster().
+			AutoNode(v1.NewClusterAutoNode().Mode("disabled")).
+			AWS(v1.NewAWS().AutoNode(v1.NewAwsAutoNode().RoleArn("anyARN"))).
+			Build()
+
+		expectedOCMSpec := ocm.Spec{
+			AutoNodeMode:    "enabled",
+			AutoNodeRoleARN: "autoNodeARN",
+		}
+
+		reconciler := &ROSAControlPlaneReconciler{}
+		ocmSpec, updated := reconciler.updateOCMClusterSpec(rosaControlPlane, mockCluster)
+
+		g.Expect(updated).To(BeTrue())
+		g.Expect(ocmSpec).To(Equal(expectedOCMSpec))
+	})
+}
+
+func TestValidateControlPlaneSpec(t *testing.T) {
+	g := NewWithT(t)
+
+	mockCtrl := gomock.NewController(t)
+	ocmMock := mocks.NewMockOCMClient(mockCtrl)
+	expect := func(m *mocks.MockOCMClientMockRecorder) {
+		m.ValidateHypershiftVersion(gomock.Any(), gomock.Any()).DoAndReturn(func(versionRawID string, channelGroup string) (bool, error) {
+			return true, nil
+		}).AnyTimes()
+	}
+	expect(ocmMock.EXPECT())
+
+	// Test case 1: AutoNode and Version are set valid
+	t.Run("AutoNode is valid.", func(t *testing.T) {
+		rosaControlPlane := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				AutoNode: &rosacontrolplanev1.AutoNode{
+					Mode:    rosacontrolplanev1.AutoNodeModeEnabled,
+					RoleARN: "autoNodeARN",
+				},
+				Version:      "4.19.0",
+				ChannelGroup: rosacontrolplanev1.Stable,
+			},
+		}
+		str, err := validateControlPlaneSpec(ocmMock, rosaControlPlane)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(str).To(Equal(""))
+	})
+
+	// Test case 2: AutoNode is enabled and AutoNode ARN is empty.
+	t.Run("AutoNode is enabled and AutoNode ARN is empty", func(t *testing.T) {
+		rosaControlPlane := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				AutoNode: &rosacontrolplanev1.AutoNode{
+					Mode:    rosacontrolplanev1.AutoNodeModeEnabled,
+					RoleARN: "",
+				},
+				Version:      "4.19.0",
+				ChannelGroup: rosacontrolplanev1.Stable,
+			},
+		}
+		str, err := validateControlPlaneSpec(ocmMock, rosaControlPlane)
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(strings.Contains(err.Error(), "autoNode.roleARN, must be set when autoNode mode is enabled")).To(BeTrue())
+		g.Expect(str).To(Equal(""))
+	})
+
+	// Test case 3: AutoNode is disabled and AutoNode ARN is empty.
+	t.Run("AutoNode is disabled and AutoNode ARN is empty.", func(t *testing.T) {
+		rosaControlPlane := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				AutoNode: &rosacontrolplanev1.AutoNode{
+					Mode:    rosacontrolplanev1.AutoNodeModeDisabled,
+					RoleARN: "",
+				},
+				Version:      "4.19.0",
+				ChannelGroup: rosacontrolplanev1.Stable,
+			},
+		}
+		str, err := validateControlPlaneSpec(ocmMock, rosaControlPlane)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(str).To(Equal(""))
 	})
 }
 
@@ -250,10 +344,19 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 				PodCIDR:     "10.128.0.0/14",
 				ServiceCIDR: "172.30.0.0/16",
 			},
-			Region:           "us-east-1",
-			Version:          "4.15.20",
-			ChannelGroup:     "stable",
-			RolesRef:         rosacontrolplanev1.AWSRolesRef{},
+			Region:       "us-east-1",
+			Version:      "4.15.20",
+			ChannelGroup: "stable",
+			RolesRef: rosacontrolplanev1.AWSRolesRef{
+				IngressARN:              "op-arn1",
+				ImageRegistryARN:        "op-arn2",
+				StorageARN:              "op-arn3",
+				NetworkARN:              "op-arn4",
+				KubeCloudControllerARN:  "op-arn5",
+				NodePoolManagementARN:   "op-arn6",
+				ControlPlaneOperatorARN: "op-arn7",
+				KMSProviderARN:          "op-arn8",
+			},
 			OIDCID:           "iodcid1",
 			InstallerRoleARN: "arn1",
 			WorkerRoleARN:    "arn2",

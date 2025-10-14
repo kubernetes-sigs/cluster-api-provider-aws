@@ -15,10 +15,8 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -32,6 +30,7 @@ import (
 
 	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/exp/utils"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	stsservice "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts"
@@ -43,6 +42,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -130,6 +130,18 @@ func (r *ROSAMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 	controlPlane := &rosacontrolplanev1.ROSAControlPlane{}
 	if err := r.Client.Get(ctx, controlPlaneKey, controlPlane); err != nil {
+		if apierrors.IsNotFound(err) && !rosaMachinePool.DeletionTimestamp.IsZero() {
+			log.Info("RosaControlPlane not found, RosaMachinePool is deleted")
+			patchHelper, err := patch.NewHelper(rosaMachinePool, r.Client)
+			if err != nil {
+				return ctrl.Result{}, errors.Wrap(err, "failed to init RosaMachinePool patch helper")
+			}
+
+			controllerutil.RemoveFinalizer(rosaMachinePool, expinfrav1.RosaMachinePoolFinalizer)
+			return ctrl.Result{}, patchHelper.Patch(ctx, rosaMachinePool, patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+				expinfrav1.RosaMachinePoolReadyCondition}})
+		}
+
 		log.Info("Failed to retrieve ControlPlane from MachinePool")
 		return ctrl.Result{}, err
 	}
@@ -410,7 +422,7 @@ func (r *ROSAMachinePoolReconciler) updateNodePool(machinePoolScope *scope.RosaM
 }
 
 func computeSpecDiff(desiredSpec expinfrav1.RosaMachinePoolSpec, nodePool *cmv1.NodePool) string {
-	currentSpec := nodePoolToRosaMachinePoolSpec(nodePool)
+	currentSpec := utils.NodePoolToRosaMachinePoolSpec(nodePool)
 
 	ignoredFields := []string{
 		"ProviderIDList",           // providerIDList is set by the controller.
@@ -492,6 +504,10 @@ func nodePoolBuilder(rosaMachinePoolSpec expinfrav1.RosaMachinePoolSpec, machine
 	if rosaMachinePoolSpec.VolumeSize > 75 {
 		awsNodePool = awsNodePool.RootVolume(cmv1.NewAWSVolume().Size(rosaMachinePoolSpec.VolumeSize))
 	}
+	if rosaMachinePoolSpec.CapacityReservationID != "" {
+		capacityReservation := cmv1.NewAWSCapacityReservation().Id(rosaMachinePoolSpec.CapacityReservationID)
+		awsNodePool = awsNodePool.CapacityReservation(capacityReservation)
+	}
 	npBuilder.AWSNodePool(awsNodePool)
 
 	if rosaMachinePoolSpec.Version != "" {
@@ -519,60 +535,6 @@ func nodePoolBuilder(rosaMachinePoolSpec expinfrav1.RosaMachinePoolSpec, machine
 	}
 
 	return npBuilder
-}
-
-func nodePoolToRosaMachinePoolSpec(nodePool *cmv1.NodePool) expinfrav1.RosaMachinePoolSpec {
-	spec := expinfrav1.RosaMachinePoolSpec{
-		NodePoolName:             nodePool.ID(),
-		Version:                  rosa.RawVersionID(nodePool.Version()),
-		AvailabilityZone:         nodePool.AvailabilityZone(),
-		Subnet:                   nodePool.Subnet(),
-		Labels:                   nodePool.Labels(),
-		AutoRepair:               nodePool.AutoRepair(),
-		InstanceType:             nodePool.AWSNodePool().InstanceType(),
-		TuningConfigs:            nodePool.TuningConfigs(),
-		AdditionalSecurityGroups: nodePool.AWSNodePool().AdditionalSecurityGroupIds(),
-		VolumeSize:               nodePool.AWSNodePool().RootVolume().Size(),
-		// nodePool.AWSNodePool().Tags() returns all tags including "system" tags if "fetchUserTagsOnly" parameter is not specified.
-		// TODO: enable when AdditionalTags day2 changes is supported.
-		// AdditionalTags:           nodePool.AWSNodePool().Tags(),
-	}
-
-	if nodePool.Autoscaling() != nil {
-		spec.Autoscaling = &expinfrav1.RosaMachinePoolAutoScaling{
-			MinReplicas: nodePool.Autoscaling().MinReplica(),
-			MaxReplicas: nodePool.Autoscaling().MaxReplica(),
-		}
-	}
-	if nodePool.Taints() != nil {
-		rosaTaints := make([]expinfrav1.RosaTaint, 0, len(nodePool.Taints()))
-		for _, taint := range nodePool.Taints() {
-			rosaTaints = append(rosaTaints, expinfrav1.RosaTaint{
-				Key:    taint.Key(),
-				Value:  taint.Value(),
-				Effect: corev1.TaintEffect(taint.Effect()),
-			})
-		}
-		spec.Taints = rosaTaints
-	}
-	if nodePool.NodeDrainGracePeriod() != nil {
-		spec.NodeDrainGracePeriod = &metav1.Duration{
-			Duration: time.Minute * time.Duration(nodePool.NodeDrainGracePeriod().Value()),
-		}
-	}
-	if nodePool.ManagementUpgrade() != nil {
-		spec.UpdateConfig = &expinfrav1.RosaUpdateConfig{
-			RollingUpdate: &expinfrav1.RollingUpdate{},
-		}
-		if nodePool.ManagementUpgrade().MaxSurge() != "" {
-			spec.UpdateConfig.RollingUpdate.MaxSurge = ptr.To(intstr.Parse(nodePool.ManagementUpgrade().MaxSurge()))
-		}
-		if nodePool.ManagementUpgrade().MaxUnavailable() != "" {
-			spec.UpdateConfig.RollingUpdate.MaxUnavailable = ptr.To(intstr.Parse(nodePool.ManagementUpgrade().MaxUnavailable()))
-		}
-	}
-
-	return spec
 }
 
 func (r *ROSAMachinePoolReconciler) reconcileProviderIDList(ctx context.Context, machinePoolScope *scope.RosaMachinePoolScope, nodePool *cmv1.NodePool) error {

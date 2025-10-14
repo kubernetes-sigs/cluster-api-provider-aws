@@ -26,6 +26,8 @@ resources:
 - bases/controlplane.cluster.x-k8s.io_rosacontrolplanes.yaml
 - bases/infrastructure.cluster.x-k8s.io_rosaclusters.yaml
 - bases/infrastructure.cluster.x-k8s.io_rosamachinepools.yaml
+- bases/infrastructure.cluster.x-k8s.io_rosaroleconfigs.yaml
+- bases/infrastructure.cluster.x-k8s.io_rosanetworks.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:
@@ -57,6 +59,8 @@ patchesStrategicMerge:
 - patches/cainjection_in_awsmanagedclustertemplates.yaml
 - patches/cainjection_in_eksconfigs.yaml
 - patches/cainjection_in_eksconfigtemplates.yaml
+- patches/cainjection_in_rosaroleconfigs.yaml
+- patches/cainjection_in_rosanetworks.yaml
 # +kubebuilder:scaffold:crdkustomizecainjectionpatch
 
 # [LABEL] To enable label, uncomment all the sections with [LABEL] prefix.

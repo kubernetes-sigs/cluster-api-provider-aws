@@ -63,6 +63,25 @@ spec:
                   AuditLogRoleARN defines the role that is used to forward audit logs to AWS CloudWatch.
                   If not set, audit log forwarding is disabled.
                 type: string
+              autoNode:
+                description: autoNode set the autoNode mode and roleARN.
+                properties:
+                  mode:
+                    default: Disabled
+                    description: mode specifies the mode for the AutoNode. Setting
+                      Enable/Disable mode will allows/disallow karpenter AutoNode
+                      scaling.
+                    enum:
+                    - Enabled
+                    - Disabled
+                    type: string
+                  roleARN:
+                    description: |-
+                      roleARN sets the autoNode role ARN, which includes the IAM policy and cluster-specific role that grant the necessary permissions to the Karpenter controller.
+                      The role must be attached with the same OIDC-ID that is used with the ROSA-HCP cluster.
+                    maxLength: 2048
+                    type: string
+                type: object
               availabilityZones:
                 description: |-
                   AvailabilityZones describe AWS AvailabilityZones of the worker nodes.
@@ -525,8 +544,9 @@ spec:
                 - name
                 type: object
               installerRoleARN:
-                description: InstallerRoleARN is an AWS IAM role that OpenShift Cluster
-                  Manager will assume to create the cluster..
+                description: |-
+                  InstallerRoleARN is an AWS IAM role that OpenShift Cluster Manager will assume to create the cluster.
+                  Required if RosaRoleConfigRef is not specified.
                 type: string
               network:
                 description: Network config for the ROSA HCP cluster.
@@ -560,7 +580,9 @@ spec:
                     type: string
                 type: object
               oidcID:
-                description: The ID of the internal OpenID Connect Provider.
+                description: |-
+                  The ID of the internal OpenID Connect Provider.
+                  Required if RosaRoleConfigRef is not specified.
                 type: string
                 x-kubernetes-validations:
                 - message: oidcID is immutable
@@ -576,8 +598,9 @@ spec:
                 description: The AWS Region the cluster lives in.
                 type: string
               rolesRef:
-                description: AWS IAM roles used to perform credential requests by
-                  the openshift operators.
+                description: |-
+                  AWS IAM roles used to perform credential requests by the openshift operators.
+                  Required if RosaRoleConfigRef is not specified.
                 properties:
                   controlPlaneOperatorARN:
                     description: "ControlPlaneOperatorARN  is an ARN value referencing
@@ -777,6 +800,38 @@ spec:
                 x-kubernetes-validations:
                 - message: rosaClusterName is immutable
                   rule: self == oldSelf
+              rosaNetworkRef:
+                description: |-
+                  ROSANetworkRef references ROSANetwork custom resource that contains the networking infrastructure
+                  for the ROSA HCP cluster.
+                properties:
+                  name:
+                    default: ""
+                    description: |-
+                      Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              rosaRoleConfigRef:
+                description: |-
+                  RosaRoleConfigRef is a reference to a RosaRoleConfig resource that contains account roles, operator roles and OIDC configuration.
+                  RosaRoleConfigRef and role fields such as installerRoleARN, supportRoleARN, workerRoleARN, rolesRef and oidcID are mutually exclusive.
+                properties:
+                  name:
+                    default: ""
+                    description: |-
+                      Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
               subnets:
                 description: |-
                   The Subnet IDs to use when installing the cluster.
@@ -788,6 +843,7 @@ spec:
                 description: |-
                   SupportRoleARN is an AWS IAM role used by Red Hat SREs to enable
                   access to the cluster account in order to provide support.
+                  Required if RosaRoleConfigRef is not specified.
                 type: string
               version:
                 description: OpenShift semantic version, for example "4.14.5".
@@ -806,22 +862,16 @@ spec:
                 - AlwaysAcknowledge
                 type: string
               workerRoleARN:
-                description: WorkerRoleARN is an AWS IAM role that will be attached
-                  to worker instances.
+                description: |-
+                  WorkerRoleARN is an AWS IAM role that will be attached to worker instances.
+                  Required if RosaRoleConfigRef is not specified.
                 type: string
             required:
-            - availabilityZones
             - channelGroup
-            - installerRoleARN
-            - oidcID
             - region
-            - rolesRef
             - rosaClusterName
-            - subnets
-            - supportRoleARN
             - version
             - versionGate
-            - workerRoleARN
             type: object
           status:
             description: RosaControlPlaneStatus defines the observed state of ROSAControlPlane.
