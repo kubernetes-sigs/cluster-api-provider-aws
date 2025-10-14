@@ -82,6 +82,11 @@ type OrderSpec struct {
 	// this is set on order creation as pe the ACME spec.
 	// +optional
 	Duration *metav1.Duration `json:"duration,omitempty"`
+
+	// Profile allows requesting a certificate profile from the ACME server.
+	// Supported profiles are listed by the server's ACME directory URL.
+	// +optional
+	Profile string `json:"profile,omitempty"`
 }
 
 type OrderStatus struct {
@@ -176,7 +181,7 @@ type ACMEChallenge struct {
 	// This is used to compute the 'key' that must also be presented.
 	Token string `json:"token"`
 
-	// Type is the type of challenge being offered, e.g. 'http-01', 'dns-01',
+	// Type is the type of challenge being offered, e.g., 'http-01', 'dns-01',
 	// 'tls-sni-01', etc.
 	// This is the raw value retrieved from the ACME server.
 	// Only 'http-01' and 'dns-01' are supported by cert-manager, other values
@@ -223,7 +228,7 @@ const (
 	Processing State = "processing"
 
 	// Invalid signifies that an ACME resource is invalid for some reason.
-	// If an Order is marked 'invalid', one of its validations be have invalid for some reason.
+	// If an Order is marked 'invalid', one of its validations must be invalid for some reason.
 	// This is a final state.
 	Invalid State = "invalid"
 
