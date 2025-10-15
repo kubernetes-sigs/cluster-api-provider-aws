@@ -275,6 +275,16 @@ func (c *ClusterClient) IdentityProviders() *IdentityProvidersClient {
 	)
 }
 
+// ImageMirrors returns the target 'image_mirrors' resource.
+//
+// Reference to the resource that manages image mirror configurations for the cluster.
+func (c *ClusterClient) ImageMirrors() *ImageMirrorsClient {
+	return NewImageMirrorsClient(
+		c.transport,
+		path.Join(c.path, "image_mirrors"),
+	)
+}
+
 // InflightChecks returns the target 'inflight_checks' resource.
 //
 // Reference to the resource that manages the collection of inflight checks.

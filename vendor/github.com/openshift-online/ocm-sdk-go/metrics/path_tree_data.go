@@ -155,6 +155,12 @@ var pathTreeData = `{
       "v1alpha1": {
         "clusters": {
           "-": {
+            "autoscaler": null,
+            "external_auth_config": {
+              "external_auths": {
+                "-": null
+              }
+            },
             "inflight_checks": {
               "-": null
             },
@@ -165,6 +171,10 @@ var pathTreeData = `{
             },
             "status": null
           }
+        },
+        "managed_identities_requirements": null,
+        "versions": {
+          "-": null
         }
       }
     },
@@ -283,6 +293,9 @@ var pathTreeData = `{
                   "import": null
                 }
               }
+            },
+            "image_mirrors": {
+              "-": null
             },
             "inflight_checks": {
               "-": null
@@ -406,6 +419,7 @@ var pathTreeData = `{
         }
       }
     },
+    "dependencymagnet": {},
     "job_queue": {
       "v1": {
         "queues": {

@@ -1,3 +1,19 @@
+/*
+Copyright 2023 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package v1beta2
 
 import (
@@ -58,8 +74,16 @@ func (*rosaControlPlaneWebhook) ValidateCreate(_ context.Context, obj runtime.Ob
 		allErrs = append(allErrs, err)
 	}
 
+	if err := r.validateRosaRoleConfig(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+
 	allErrs = append(allErrs, r.validateNetwork()...)
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
+
+	if err := r.validateROSANetwork(); err != nil {
+		allErrs = append(allErrs, err)
+	}
 
 	if len(allErrs) == 0 {
 		return nil, nil
@@ -98,6 +122,10 @@ func (*rosaControlPlaneWebhook) ValidateUpdate(_ context.Context, oldObj, newObj
 	}
 
 	if err := r.validateEtcdEncryptionKMSArn(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+
+	if err := r.validateRosaRoleConfig(); err != nil {
 		allErrs = append(allErrs, err)
 	}
 
@@ -174,6 +202,79 @@ func (r *ROSAControlPlane) validateExternalAuthProviders() *field.Error {
 	if !r.Spec.EnableExternalAuthProviders && len(r.Spec.ExternalAuthProviders) > 0 {
 		return field.Invalid(field.NewPath("spec.ExternalAuthProviders"), r.Spec.ExternalAuthProviders,
 			"can only be set if spec.EnableExternalAuthProviders is set to 'True'")
+	}
+
+	return nil
+}
+
+func (r *ROSAControlPlane) validateRosaRoleConfig() *field.Error {
+	hasRoleFields := r.Spec.OIDCID != "" || r.Spec.InstallerRoleARN != "" || r.Spec.SupportRoleARN != "" || r.Spec.WorkerRoleARN != "" ||
+		r.Spec.RolesRef.IngressARN != "" || r.Spec.RolesRef.ImageRegistryARN != "" || r.Spec.RolesRef.StorageARN != "" ||
+		r.Spec.RolesRef.NetworkARN != "" || r.Spec.RolesRef.KubeCloudControllerARN != "" || r.Spec.RolesRef.NodePoolManagementARN != "" ||
+		r.Spec.RolesRef.ControlPlaneOperatorARN != "" || r.Spec.RolesRef.KMSProviderARN != ""
+
+	if r.Spec.RosaRoleConfigRef != nil {
+		if hasRoleFields {
+			return field.Invalid(field.NewPath("spec.rosaRoleConfigRef"), r.Spec.RosaRoleConfigRef, "RosaRoleConfigRef and role fields such as installerRoleARN, supportRoleARN, workerRoleARN, rolesRef and oidcID are mutually exclusive")
+		}
+		return nil
+	}
+
+	if r.Spec.OIDCID == "" {
+		return field.Invalid(field.NewPath("spec.oidcID"), r.Spec.OIDCID, "must be specified")
+	}
+	if r.Spec.InstallerRoleARN == "" {
+		return field.Invalid(field.NewPath("spec.installerRoleARN"), r.Spec.InstallerRoleARN, "must be specified")
+	}
+	if r.Spec.SupportRoleARN == "" {
+		return field.Invalid(field.NewPath("spec.supportRoleARN"), r.Spec.SupportRoleARN, "must be specified")
+	}
+	if r.Spec.WorkerRoleARN == "" {
+		return field.Invalid(field.NewPath("spec.workerRoleARN"), r.Spec.WorkerRoleARN, "must be specified")
+	}
+	if r.Spec.RolesRef.IngressARN == "" {
+		return field.Invalid(field.NewPath("spec.rolesRef.ingressARN"), r.Spec.RolesRef.IngressARN, "must be specified")
+	}
+	if r.Spec.RolesRef.ImageRegistryARN == "" {
+		return field.Invalid(field.NewPath("spec.rolesRef.imageRegistryARN"), r.Spec.RolesRef.ImageRegistryARN, "must be specified")
+	}
+	if r.Spec.RolesRef.StorageARN == "" {
+		return field.Invalid(field.NewPath("spec.rolesRef.storageARN"), r.Spec.RolesRef.StorageARN, "must be specified")
+	}
+	if r.Spec.RolesRef.NetworkARN == "" {
+		return field.Invalid(field.NewPath("spec.rolesRef.networkARN"), r.Spec.RolesRef.NetworkARN, "must be specified")
+	}
+	if r.Spec.RolesRef.KubeCloudControllerARN == "" {
+		return field.Invalid(field.NewPath("spec.rolesRef.kubeCloudControllerARN"), r.Spec.RolesRef.KubeCloudControllerARN, "must be specified")
+	}
+	if r.Spec.RolesRef.NodePoolManagementARN == "" {
+		return field.Invalid(field.NewPath("spec.rolesRef.nodePoolManagementARN"), r.Spec.RolesRef.NodePoolManagementARN, "must be specified")
+	}
+	if r.Spec.RolesRef.ControlPlaneOperatorARN == "" {
+		return field.Invalid(field.NewPath("spec.rolesRef.controlPlaneOperatorARN"), r.Spec.RolesRef.ControlPlaneOperatorARN, "must be specified")
+	}
+	if r.Spec.RolesRef.KMSProviderARN == "" {
+		return field.Invalid(field.NewPath("spec.rolesRef.kmsProviderARN"), r.Spec.RolesRef.KMSProviderARN, "must be specified")
+	}
+	return nil
+}
+
+func (r *ROSAControlPlane) validateROSANetwork() *field.Error {
+	if r.Spec.ROSANetworkRef != nil {
+		if r.Spec.Subnets != nil {
+			return field.Forbidden(field.NewPath("spec.rosaNetworkRef"), "spec.subnets and spec.rosaNetworkRef are mutually exclusive")
+		}
+		if r.Spec.AvailabilityZones != nil {
+			return field.Forbidden(field.NewPath("spec.rosaNetworkRef"), "spec.availabilityZones and spec.rosaNetworkRef are mutually exclusive")
+		}
+	}
+
+	if r.Spec.ROSANetworkRef == nil && r.Spec.Subnets == nil {
+		return field.Required(field.NewPath("spec.subnets"), "spec.subnets cannot be empty when spec.rosaNetworkRef is unspecified")
+	}
+
+	if r.Spec.ROSANetworkRef == nil && r.Spec.AvailabilityZones == nil {
+		return field.Required(field.NewPath("spec.availabilityZones"), "spec.availabilityZones cannot be empty when spec.rosaNetworkRef is unspecified")
 	}
 
 	return nil

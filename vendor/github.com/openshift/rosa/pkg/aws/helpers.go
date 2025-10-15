@@ -980,9 +980,6 @@ func GetAccountRolePolicyKeys(roleType string) []string {
 // GetAccountRolePolicyKeys returns the policy key for fetching the managed policy ARN
 func GetHcpAccountRolePolicyKeys(roleType string) []string {
 	policyKeys := []string{fmt.Sprintf("sts_hcp_%s_permission_policy", roleType)}
-	if roleType == HCPWorkerRole {
-		policyKeys = append(policyKeys, WorkerEC2RegistryKey)
-	}
 
 	return policyKeys
 }

@@ -44,6 +44,10 @@ var hasUnknownFlags bool
 var DisableRegionDeprecationFlagName = "disable-region-deprecation" // Temporary for region deprecation
 var DisableRegionDeprecationWarning = false                         // Temporary for region deprecation
 
+var UwmDeprecationMessage = "[DEPRECATED FOR ROSA HCP] User workload monitoring (--disable-workload-monitoring)" +
+	" has been deprecated for Hosted Control Plane clusters, and will be removed in a future version of ROSA CLI. " +
+	"Please remove from your workflows to avoid future issues"
+
 // ParseUnknownFlags parses all flags from the CLI, including
 // unknown ones, and adds them to the current command tree
 func ParseUnknownFlags(cmd *cobra.Command, argv []string) error {

@@ -1,0 +1,218 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.3
+  name: rosanetworks.infrastructure.cluster.x-k8s.io
+spec:
+  group: infrastructure.cluster.x-k8s.io
+  names:
+    categories:
+    - cluster-api
+    kind: ROSANetwork
+    listKind: ROSANetworkList
+    plural: rosanetworks
+    shortNames:
+    - rosanet
+    singular: rosanetwork
+  scope: Namespaced
+  versions:
+  - name: v1beta2
+    schema:
+      openAPIV3Schema:
+        description: ROSANetwork is the schema for the rosanetworks API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ROSANetworkSpec defines the desired state of ROSANetwork
+            properties:
+              availabilityZoneCount:
+                default: 1
+                description: |-
+                  The number of availability zones to be used for creation of the network infrastructure.
+                  You can specify anything between one and four, depending on the chosen AWS region.
+                type: integer
+              availabilityZones:
+                description: |-
+                  The list of availability zones to be used for creation of the network infrastructure.
+                  You can specify anything between one and four valid availability zones from a given region.
+                  Should you specify both the availabilityZoneCount and availabilityZones, the list of availability zones takes preference.
+                items:
+                  type: string
+                type: array
+              cidrBlock:
+                description: CIDR block to be used for the VPC
+                format: cidr
+                type: string
+              identityRef:
+                description: |-
+                  IdentityRef is a reference to an identity to be used when reconciling rosa network.
+                  If no identity is specified, the default identity for this controller will be used.
+                properties:
+                  kind:
+                    description: Kind of the identity.
+                    enum:
+                    - AWSClusterControllerIdentity
+                    - AWSClusterRoleIdentity
+                    - AWSClusterStaticIdentity
+                    type: string
+                  name:
+                    description: Name of the identity.
+                    minLength: 1
+                    type: string
+                required:
+                - kind
+                - name
+                type: object
+              region:
+                description: The AWS region in which the components of ROSA network
+                  infrastruture are to be crated
+                type: string
+              stackName:
+                description: The name of the cloudformation stack under which the
+                  network infrastructure would be created
+                type: string
+              stackTags:
+                additionalProperties:
+                  type: string
+                description: |-
+                  StackTags is an optional set of tags to add to the created cloudformation stack.
+                  The stack tags will then be automatically applied to the supported AWS resources (VPC, subnets, ...).
+                type: object
+            required:
+            - cidrBlock
+            - region
+            - stackName
+            type: object
+          status:
+            description: ROSANetworkStatus defines the observed state of ROSANetwork
+            properties:
+              conditions:
+                description: Conditions specifies the conditions for ROSANetwork
+                items:
+                  description: Condition defines an observation of a Cluster API resource
+                    operational state.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed. If that is not known, then using the time when
+                        the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This field may be empty.
+                      maxLength: 10240
+                      minLength: 1
+                      type: string
+                    reason:
+                      description: |-
+                        reason is the reason for the condition's last transition in CamelCase.
+                        The specific API may choose whether or not this field is considered a guaranteed API.
+                        This field may be empty.
+                      maxLength: 256
+                      minLength: 1
+                      type: string
+                    severity:
+                      description: |-
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        understand the current situation and act accordingly.
+                        The Severity field MUST be set only when Status=False.
+                      maxLength: 32
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: |-
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
+                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
+                        can be useful (see .node.status.conditions), the ability to deconflict is important.
+                      maxLength: 256
+                      minLength: 1
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - status
+                  - type
+                  type: object
+                type: array
+              resources:
+                description: Resources created in the cloudformation stack
+                items:
+                  description: CFResource groups information pertaining to a resource
+                    created as a part of a cloudformation stack
+                  properties:
+                    logicalId:
+                      description: LogicalResourceID of the created resource.
+                      type: string
+                    physicalId:
+                      description: PhysicalResourceID of the created resource.
+                      type: string
+                    reason:
+                      description: Message pertaining to the status of the resource
+                      type: string
+                    resource:
+                      description: 'Type of the created resource: AWS::EC2::VPC, AWS::EC2::Subnet,
+                        ...'
+                      type: string
+                    status:
+                      description: 'Status of the resource: CREATE_IN_PROGRESS, CREATE_COMPLETE,
+                        ...'
+                      type: string
+                  required:
+                  - logicalId
+                  - physicalId
+                  - reason
+                  - resource
+                  - status
+                  type: object
+                type: array
+              subnets:
+                description: Array of created private, public subnets and availability
+                  zones, grouped by availability zones
+                items:
+                  description: ROSANetworkSubnet groups public and private subnet
+                    and the availability zone in which the two subnets got created
+                  properties:
+                    availabilityZone:
+                      description: Availability zone of the subnet pair, for example
+                        us-west-2a
+                      type: string
+                    privateSubnet:
+                      description: ID of the private subnet, for example subnet-07a20d6c41af2b725
+                      type: string
+                    publicSubnet:
+                      description: ID of the public subnet, for example subnet-0f7e49a3ce68ff338
+                      type: string
+                  required:
+                  - availabilityZone
+                  - privateSubnet
+                  - publicSubnet
+                  type: object
+                type: array
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

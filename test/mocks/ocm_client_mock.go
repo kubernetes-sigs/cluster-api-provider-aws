@@ -24,7 +24,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	v1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	v1 "github.com/openshift-online/ocm-api-model/clientapi/clustersmgmt/v1"
 	aws "github.com/openshift/rosa/pkg/aws"
 	ocm "github.com/openshift/rosa/pkg/ocm"
 )
@@ -288,6 +288,36 @@ func (m *MockOCMClient) GetNodePool(arg0, arg1 string) (*v1.NodePool, bool, erro
 func (mr *MockOCMClientMockRecorder) GetNodePool(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNodePool", reflect.TypeOf((*MockOCMClient)(nil).GetNodePool), arg0, arg1)
+}
+
+// GetNodePools mocks base method.
+func (m *MockOCMClient) GetNodePools(arg0 string) ([]*v1.NodePool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetNodePools", arg0)
+	ret0, _ := ret[0].([]*v1.NodePool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetNodePools indicates an expected call of GetNodePools.
+func (mr *MockOCMClientMockRecorder) GetNodePools(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNodePools", reflect.TypeOf((*MockOCMClient)(nil).GetNodePools), arg0)
+}
+
+// GetPolicies mocks base method.
+func (m *MockOCMClient) GetPolicies(arg0 string) (map[string]*v1.AWSSTSPolicy, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPolicies", arg0)
+	ret0, _ := ret[0].(map[string]*v1.AWSSTSPolicy)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPolicies indicates an expected call of GetPolicies.
+func (mr *MockOCMClientMockRecorder) GetPolicies(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPolicies", reflect.TypeOf((*MockOCMClient)(nil).GetPolicies), arg0)
 }
 
 // GetUser mocks base method.

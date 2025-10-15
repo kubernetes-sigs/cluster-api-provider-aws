@@ -57,3 +57,19 @@ func (c *Client) Clusters() *ClustersClient {
 		path.Join(c.path, "clusters"),
 	)
 }
+
+// ManagedIdentitiesRequirements returns the target 'managed_identities_requirements' resource.
+func (c *Client) ManagedIdentitiesRequirements() *ManagedIdentitiesRequirementsClient {
+	return NewManagedIdentitiesRequirementsClient(
+		c.transport,
+		path.Join(c.path, "managed_identities_requirements"),
+	)
+}
+
+// Versions returns the target 'versions' resource.
+func (c *Client) Versions() *VersionsClient {
+	return NewVersionsClient(
+		c.transport,
+		path.Join(c.path, "versions"),
+	)
+}

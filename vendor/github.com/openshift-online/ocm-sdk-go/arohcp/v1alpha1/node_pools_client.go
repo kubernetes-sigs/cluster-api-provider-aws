@@ -50,7 +50,7 @@ func NewNodePoolsClient(transport http.RoundTripper, path string) *NodePoolsClie
 	}
 }
 
-// Add creates a request for the 'add' method.
+// Add creates a request for the 'async_add' method.
 //
 // Adds a new node pool to the cluster.
 func (c *NodePoolsClient) Add() *NodePoolsAddRequest {
@@ -80,7 +80,7 @@ func (c *NodePoolsClient) NodePool(id string) *NodePoolClient {
 	)
 }
 
-// NodePoolsAddRequest is the request for the 'add' method.
+// NodePoolsAddRequest is the request for the 'async_add' method.
 type NodePoolsAddRequest struct {
 	transport http.RoundTripper
 	path      string
@@ -129,7 +129,7 @@ func (r *NodePoolsAddRequest) SendContext(ctx context.Context) (result *NodePool
 	query := helpers.CopyQuery(r.query)
 	header := helpers.CopyHeader(r.header)
 	buffer := &bytes.Buffer{}
-	err = writeNodePoolsAddRequest(r, buffer)
+	err = writeNodePoolsAsyncAddRequest(r, buffer)
 	if err != nil {
 		return
 	}
@@ -168,14 +168,14 @@ func (r *NodePoolsAddRequest) SendContext(ctx context.Context) (result *NodePool
 		err = result.err
 		return
 	}
-	err = readNodePoolsAddResponse(result, reader)
+	err = readNodePoolsAsyncAddResponse(result, reader)
 	if err != nil {
 		return
 	}
 	return
 }
 
-// NodePoolsAddResponse is the response for the 'add' method.
+// NodePoolsAddResponse is the response for the 'async_add' method.
 type NodePoolsAddResponse struct {
 	status int
 	header http.Header

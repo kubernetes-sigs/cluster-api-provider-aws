@@ -1,0 +1,13 @@
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: ROSANetwork
+metadata:
+  name: "${ROSA_NETWORK_NAME}"
+spec:
+  region: "${AWS_REGION}"
+  stackName: "${ROSA_NETWORK_NAME}"
+  availabilityZoneCount: ${AVAILABILITY_ZONE_COUNT}
+  cidrBlock: "${CIDR_BLOCK}"
+  identityRef:
+    kind: AWSClusterControllerIdentity
+    name: default

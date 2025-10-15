@@ -1122,3 +1122,21 @@ func ValidateClaimValidationRules(input interface{}) error {
 	}
 	return nil
 }
+
+// GetAutoNodeMode returns the AutoNode mode and whether AutoNode configuration exists
+func GetAutoNodeMode(cluster *cmv1.Cluster) (string, bool) {
+	if cluster.AutoNode() != nil {
+		mode := cluster.AutoNode().Mode()
+		return mode, mode != ""
+	}
+	return "", false
+}
+
+// GetAutoNodeRoleArn returns the AutoNode IAM role ARN and whether it exists
+func GetAutoNodeRoleArn(cluster *cmv1.Cluster) (string, bool) {
+	if cluster.AWS() != nil && cluster.AWS().AutoNode() != nil {
+		roleArn := cluster.AWS().AutoNode().RoleArn()
+		return roleArn, roleArn != ""
+	}
+	return "", false
+}

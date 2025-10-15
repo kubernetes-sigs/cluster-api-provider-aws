@@ -140,7 +140,6 @@ const (
 	InstallerCoreKey        = "sts_installer_core_permission_policy"
 	InstallerVPCKey         = "sts_installer_vpc_permission_policy"
 	InstallerPrivateLinkKey = "sts_installer_privatelink_permission_policy"
-	WorkerEC2RegistryKey    = "sts_hcp_ec2_registry_permission_policy"
 )
 
 var AccountRoles = map[string]AccountRole{
@@ -2184,11 +2183,6 @@ func (c *awsClient) validateManagedPolicy(policies map[string]*cmv1.AWSSTSPolicy
 	roleName string) error {
 	managedPolicyARN, err := GetManagedPolicyARN(policies, policyKey)
 	if err != nil {
-		// EC2 policy is only available to orgs for zero-egress feature toggle enabled
-		if policyKey == WorkerEC2RegistryKey {
-			c.logger.Info(fmt.Sprintf("Ignored check for policy key '%s' (zero egress feature toggle is not enabled)", policyKey))
-			return nil
-		}
 		return err
 	}
 

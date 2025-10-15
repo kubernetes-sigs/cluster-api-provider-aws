@@ -50,7 +50,7 @@ func NewClustersClient(transport http.RoundTripper, path string) *ClustersClient
 	}
 }
 
-// Add creates a request for the 'add' method.
+// Add creates a request for the 'async_add' method.
 //
 // Provision a new cluster and add it to the collection of clusters.
 //
@@ -82,7 +82,7 @@ func (c *ClustersClient) Cluster(id string) *ClusterClient {
 	)
 }
 
-// ClustersAddRequest is the request for the 'add' method.
+// ClustersAddRequest is the request for the 'async_add' method.
 type ClustersAddRequest struct {
 	transport http.RoundTripper
 	path      string
@@ -131,7 +131,7 @@ func (r *ClustersAddRequest) SendContext(ctx context.Context) (result *ClustersA
 	query := helpers.CopyQuery(r.query)
 	header := helpers.CopyHeader(r.header)
 	buffer := &bytes.Buffer{}
-	err = writeClustersAddRequest(r, buffer)
+	err = writeClustersAsyncAddRequest(r, buffer)
 	if err != nil {
 		return
 	}
@@ -170,14 +170,14 @@ func (r *ClustersAddRequest) SendContext(ctx context.Context) (result *ClustersA
 		err = result.err
 		return
 	}
-	err = readClustersAddResponse(result, reader)
+	err = readClustersAsyncAddResponse(result, reader)
 	if err != nil {
 		return
 	}
 	return
 }
 
-// ClustersAddResponse is the response for the 'add' method.
+// ClustersAddResponse is the response for the 'async_add' method.
 type ClustersAddResponse struct {
 	status int
 	header http.Header

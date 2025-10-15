@@ -23,6 +23,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift-online/ocm-common/pkg/deprecation"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	"github.com/sirupsen/logrus"
 
@@ -119,6 +120,9 @@ func (b *ClientBuilder) Build() (result *Client, err error) {
 	// values in the configuration, so that default values won't be overridden:
 	builder := sdk.NewConnectionBuilder()
 	builder.Logger(logger)
+
+	// Add deprecation transport wrapper to automatically handle deprecation headers
+	builder.TransportWrapper(deprecation.NewTransportWrapper())
 
 	userAgent := info.DefaultUserAgent
 	version := info.DefaultVersion

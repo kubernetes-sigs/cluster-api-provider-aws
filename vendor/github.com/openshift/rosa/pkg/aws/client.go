@@ -59,6 +59,7 @@ import (
 	"github.com/openshift/rosa/pkg/aws/tags"
 	"github.com/openshift/rosa/pkg/fedramp"
 	"github.com/openshift/rosa/pkg/helper"
+	"github.com/openshift/rosa/pkg/iamserviceaccount"
 	"github.com/openshift/rosa/pkg/info"
 	"github.com/openshift/rosa/pkg/logging"
 	"github.com/openshift/rosa/pkg/reporter"
@@ -70,8 +71,6 @@ var (
 )
 
 // Name of the AWS user that will be used to create all the resources of the cluster:
-//
-//go:generate mockgen -source=client.go -package=aws -destination=client_mock.go
 const (
 	AdminUserName        = "osdCcsAdmin"
 	OsdCcsAdminStackName = "osdCcsAdminIAMUser"
@@ -228,6 +227,10 @@ type Client interface {
 	GetCFStack(ctx context.Context, stackName string) (*cftypes.Stack, error)
 	DescribeCFStackResources(ctx context.Context, stackName string) (*[]cftypes.StackResource, error)
 	DeleteCFStack(ctx context.Context, stackName string) error
+	// Service account role filtering (only add the filtering functionality we need)
+	ListServiceAccountRoles(clusterName string) ([]iamtypes.Role, error)
+	GetServiceAccountRoleDetails(roleName string) (*iamtypes.Role, []iamtypes.AttachedPolicy, []string, error)
+	DeleteServiceAccountRole(roleName string) error
 }
 
 type AccessKeyGetter interface {
@@ -965,10 +968,6 @@ func (c *awsClient) ValidateAccessKeys(AccessKey *AccessKey) error {
 				time.Sleep(wait)
 			}
 
-			if i == maxAttempts {
-				logger.Error("Error waiting for IAM credentials to become ready")
-				return err
-			}
 		} else {
 			waited := time.Since(start)
 			logger.Debug(fmt.Sprintf("\nCredentials ready in %.2fs\n", waited.Seconds()))
@@ -1401,4 +1400,104 @@ func Ec2ResourceHasTag(tags []ec2types.Tag, tagName, tagValue string) bool {
 		}
 	}
 	return false
+}
+
+// ListServiceAccountRoles lists IAM roles tagged as service account roles
+func (c *awsClient) ListServiceAccountRoles(clusterName string) ([]iamtypes.Role, error) {
+	var roles []iamtypes.Role
+	var marker *string
+
+	for {
+		input := &iam.ListRolesInput{
+			MaxItems: aws.Int32(1000),
+		}
+		if marker != nil {
+			input.Marker = marker
+		}
+
+		result, err := c.iamClient.ListRoles(context.Background(), input)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list roles: %w", err)
+		}
+
+		// Filter roles by service account role type and cluster
+		for _, role := range result.Roles {
+			isServiceAccountRole := false
+			hasClusterTag := false
+
+			// ListRoles doesn't include tags by default, need to get them separately
+			listTagsResult, err := c.iamClient.ListRoleTags(context.Background(), &iam.ListRoleTagsInput{
+				RoleName: role.RoleName,
+			})
+			if err != nil {
+				// Skip roles we can't get tags for (might be permission issues)
+				continue
+			}
+
+			for _, tag := range listTagsResult.Tags {
+				if aws.ToString(tag.Key) == iamserviceaccount.RoleTypeTagKey && aws.ToString(tag.Value) == iamserviceaccount.ServiceAccountRoleType {
+					isServiceAccountRole = true
+				}
+				if aws.ToString(tag.Key) == iamserviceaccount.ClusterTagKey && aws.ToString(tag.Value) == clusterName {
+					hasClusterTag = true
+				}
+			}
+
+			if isServiceAccountRole && (clusterName == "" || hasClusterTag) {
+				// Populate the Tags field since ListRoles doesn't include them
+				role.Tags = listTagsResult.Tags
+				roles = append(roles, role)
+			}
+		}
+
+		if !result.IsTruncated {
+			break
+		}
+		marker = result.Marker
+	}
+
+	return roles, nil
+}
+
+// GetServiceAccountRoleDetails gets detailed information about a service account role using existing methods
+func (c *awsClient) GetServiceAccountRoleDetails(roleName string) (*iamtypes.Role, []iamtypes.AttachedPolicy, []string, error) {
+	// Use existing GetRoleByName method
+	role, err := c.GetRoleByName(roleName)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to get role %s: %w", roleName, err)
+	}
+
+	// Get attached managed policies
+	listAttachedPoliciesResult, err := c.iamClient.ListAttachedRolePolicies(context.Background(), &iam.ListAttachedRolePoliciesInput{
+		RoleName: aws.String(roleName),
+	})
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to list attached policies for role %s: %w", roleName, err)
+	}
+
+	// Get inline policies
+	listRolePoliciesResult, err := c.iamClient.ListRolePolicies(context.Background(), &iam.ListRolePoliciesInput{
+		RoleName: aws.String(roleName),
+	})
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("failed to list inline policies for role %s: %w", roleName, err)
+	}
+
+	return &role, listAttachedPoliciesResult.AttachedPolicies, listRolePoliciesResult.PolicyNames, nil
+}
+
+// DeleteServiceAccountRole deletes an IAM role using existing methods
+func (c *awsClient) DeleteServiceAccountRole(roleName string) error {
+	// Use existing role deletion functionality - delegate to DeleteOperatorRole with managedPolicies=false
+	roleMap, err := c.DeleteOperatorRole(roleName, false, false)
+	if err != nil {
+		return fmt.Errorf("failed to delete role %s: %w", roleName, err)
+	}
+
+	// Check if the role was successfully deleted
+	if deleted, exists := roleMap[roleName]; exists && !deleted {
+		return fmt.Errorf("failed to delete role %s", roleName)
+	}
+
+	return nil
 }

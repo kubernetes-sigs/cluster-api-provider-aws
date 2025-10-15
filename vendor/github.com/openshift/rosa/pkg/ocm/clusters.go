@@ -153,6 +153,10 @@ type Spec struct {
 	// Audit Log Forwarding
 	AuditLogRoleARN *string
 
+	// AutoNode configuration
+	AutoNodeMode    string
+	AutoNodeRoleARN string
+
 	Ec2MetadataHttpTokens cmv1.Ec2MetadataHttpTokens
 
 	// Cluster Admin
@@ -191,6 +195,10 @@ type Spec struct {
 	PlatformAllowlist          string
 	AdditionalTrustedCaFile    string
 	AdditionalTrustedCa        map[string]string
+
+	// Master/Infra Machine Config
+	MasterMachineType string
+	InfraMachineType  string
 }
 
 // Volume represents a volume property for a disk
@@ -695,7 +703,8 @@ func (c *Client) UpdateCluster(clusterKey string, creator *aws.Creator, config S
 		clusterBuilder.RegistryConfig(registryConfigBuilder)
 	}
 
-	if config.AuditLogRoleARN != nil || config.AdditionalAllowedPrincipals != nil || config.BillingAccount != "" {
+	if config.AuditLogRoleARN != nil || config.AdditionalAllowedPrincipals != nil || config.BillingAccount != "" ||
+		config.AutoNodeRoleARN != "" {
 		awsBuilder := cmv1.NewAWS()
 		if config.AdditionalAllowedPrincipals != nil {
 			awsBuilder = awsBuilder.AdditionalAllowedPrincipals(config.AdditionalAllowedPrincipals...)
@@ -708,7 +717,18 @@ func (c *Client) UpdateCluster(clusterKey string, creator *aws.Creator, config S
 		if config.BillingAccount != "" {
 			awsBuilder.BillingAccountID(config.BillingAccount)
 		}
+		// Add AutoNode configuration
+		if config.AutoNodeRoleARN != "" {
+			autoNodeBuilder := cmv1.NewAwsAutoNode().RoleArn(config.AutoNodeRoleARN)
+			awsBuilder = awsBuilder.AutoNode(autoNodeBuilder)
+		}
 		clusterBuilder.AWS(awsBuilder)
+	}
+
+	// Set AutoNode mode if specified
+	if config.AutoNodeMode != "" {
+		autoNodeBuilder := cmv1.NewClusterAutoNode().Mode(config.AutoNodeMode)
+		clusterBuilder.AutoNode(autoNodeBuilder)
 	}
 
 	clusterSpec, err := clusterBuilder.Build()
@@ -924,6 +944,12 @@ func (c *Client) createClusterSpec(config Spec) (*cmv1.Cluster, error) {
 		}
 		if len(config.ComputeLabels) > 0 {
 			clusterNodesBuilder = clusterNodesBuilder.ComputeLabels(config.ComputeLabels)
+		}
+		if config.MasterMachineType != "" {
+			clusterNodesBuilder.MasterMachineType(cmv1.NewMachineType().ID(config.MasterMachineType))
+		}
+		if config.InfraMachineType != "" {
+			clusterNodesBuilder.InfraMachineType(cmv1.NewMachineType().ID(config.InfraMachineType))
 		}
 		clusterBuilder = clusterBuilder.Nodes(clusterNodesBuilder)
 	}
