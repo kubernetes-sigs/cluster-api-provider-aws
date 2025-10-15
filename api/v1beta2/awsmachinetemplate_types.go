@@ -40,6 +40,7 @@ type AWSMachineTemplateSpec struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=awsmachinetemplates,scope=Namespaced,categories=cluster-api,shortName=awsmt
 // +kubebuilder:storageversion
+// +kubebuilder:subresource:status
 // +k8s:defaulter-gen=true
 
 // AWSMachineTemplate is the schema for the Amazon EC2 Machine Templates API.
