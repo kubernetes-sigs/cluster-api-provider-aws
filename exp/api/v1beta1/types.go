@@ -53,6 +53,7 @@ type EBS struct {
 type BlockDeviceMapping struct {
 	// The device name exposed to the EC2 instance (for example, /dev/sdh or xvdh).
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
 	DeviceName string `json:"deviceName,omitempty"`
 
 	// You can specify either VirtualName or Ebs, but not both.
@@ -61,6 +62,7 @@ type BlockDeviceMapping struct {
 }
 
 // AWSLaunchTemplate defines the desired state of AWSLaunchTemplate.
+// +kubebuilder:validation:MinProperties=1
 type AWSLaunchTemplate struct {
 	// The name of the launch template.
 	Name string `json:"name,omitempty"`
@@ -227,13 +229,15 @@ type Taint struct {
 	// Effect specifies the effect for the taint
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Enum=no-schedule;no-execute;prefer-no-schedule
-	Effect TaintEffect `json:"effect"`
+	Effect TaintEffect `json:"effect,omitempty"`
 	// Key is the key of the taint
 	// +kubebuilder:validation:Required
-	Key string `json:"key"`
+	// +kubebuilder:validation:MinLength=1
+	Key string `json:"key,omitempty"`
 	// Value is the value of the taint
 	// +kubebuilder:validation:Required
-	Value string `json:"value"`
+	// +kubebuilder:validation:MinLength=1
+	Value string `json:"value,omitempty"`
 }
 
 // Equals is used to test if 2 taints are equal.
