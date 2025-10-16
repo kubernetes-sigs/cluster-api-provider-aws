@@ -32,8 +32,8 @@ import (
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/helpers"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	kubeadmv1beta1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
-	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	kubeadmv1beta1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1"
+	expclusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 )
 
 var (
