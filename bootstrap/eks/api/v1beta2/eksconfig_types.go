@@ -22,8 +22,20 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
+// NodeType specifies the type of nodeq
+// +kubebuilder:validation:Enum=al2023
+type NodeType string
+
+const (
+	// NodeTypeAL2023 represents the AL2023 node type.
+	NodeTypeAL2023 NodeType = "al2023"
+)
+
 // EKSConfigSpec defines the desired state of Amazon EKS Bootstrap Configuration.
 type EKSConfigSpec struct {
+	// NodeType specifies the type of node (e.g., "al2023")
+	// +optional
+	NodeType NodeType `json:"nodeType,omitempty"`
 	// KubeletExtraArgs passes the specified kubelet args into the Amazon EKS machine bootstrap script
 	// +optional
 	KubeletExtraArgs map[string]string `json:"kubeletExtraArgs,omitempty"`
