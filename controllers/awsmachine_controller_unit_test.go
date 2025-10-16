@@ -53,7 +53,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	kubeadmv1beta1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	kubeadmv1beta1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 )
 
