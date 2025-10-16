@@ -286,6 +286,11 @@ type Instance struct {
 	// +optional
 	HostID *string `json:"hostID,omitempty"`
 
+	// DynamicHostAllocation enables automatic allocation of dedicated hosts.
+	// This field is mutually exclusive with HostID.
+	// +optional
+	DynamicHostAllocation *DynamicHostAllocationSpec `json:"dynamicHostAllocation,omitempty"`
+
 	// CapacityReservationPreference specifies the preference for use of Capacity Reservations by the instance. Valid values include:
 	// "Open": The instance may make use of open Capacity Reservations that match its AZ and InstanceType
 	// "None": The instance may not make use of any Capacity Reservations. This is to conserve open reservations for desired workloads
@@ -315,6 +320,33 @@ const (
 	// CapacityReservationPreferenceOpen the instance may make use of open Capacity Reservations that match its AZ and InstanceType.
 	CapacityReservationPreferenceOpen CapacityReservationPreference = "Open"
 )
+
+// DedicatedHostInfo contains information about a dedicated host.
+type DedicatedHostInfo struct {
+	// HostID is the ID of the dedicated host.
+	HostID string `json:"hostID"`
+
+	// InstanceFamily is the instance family supported by the host.
+	InstanceFamily string `json:"instanceFamily"`
+
+	// InstanceType is the instance type supported by the host.
+	InstanceType string `json:"instanceType"`
+
+	// AvailabilityZone is the AZ where the host is located.
+	AvailabilityZone string `json:"availabilityZone"`
+
+	// State is the current state of the dedicated host.
+	State string `json:"state"`
+
+	// TotalCapacity is the total number of instances that can be launched on the host.
+	TotalCapacity int32 `json:"totalCapacity"`
+
+	// AvailableCapacity is the number of instances that can still be launched on the host.
+	AvailableCapacity int32 `json:"availableCapacity"`
+
+	// Tags associated with the dedicated host.
+	Tags map[string]string `json:"tags,omitempty"`
+}
 
 // MarketType describes the market type of an Instance
 // +kubebuilder:validation:Enum:=OnDemand;Spot;CapacityBlock
