@@ -1044,3 +1044,166 @@ func TestValidatingWebhookUpdateSecondaryCidr(t *testing.T) {
 		})
 	}
 }
+
+func TestWebhookValidateAccessEntries(t *testing.T) {
+	tests := []struct {
+		name          string
+		accessConfig  *AccessConfig
+		accessEntries []AccessEntry
+		expectError   bool
+		errorSubstr   string
+	}{
+		{
+			name: "valid access entries with api auth mode",
+			accessConfig: &AccessConfig{
+				AuthenticationMode: EKSAuthenticationModeAPI,
+			},
+			accessEntries: []AccessEntry{
+				{
+					PrincipalARN:     "arn:aws:iam::123456789012:role/EKSAdmin",
+					Type:             AccessEntryTypeStandard,
+					KubernetesGroups: []string{"system:masters"},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "valid access entries with api_and_config_map auth mode",
+			accessConfig: &AccessConfig{
+				AuthenticationMode: EKSAuthenticationModeAPIAndConfigMap,
+			},
+			accessEntries: []AccessEntry{
+				{
+					PrincipalARN:     "arn:aws:iam::123456789012:role/EKSAdmin",
+					Type:             AccessEntryTypeStandard,
+					KubernetesGroups: []string{"system:masters"},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "invalid access entries with config_map auth mode",
+			accessConfig: &AccessConfig{
+				AuthenticationMode: EKSAuthenticationModeConfigMap,
+			},
+			accessEntries: []AccessEntry{
+				{
+					PrincipalARN:     "arn:aws:iam::123456789012:role/EKSAdmin",
+					Type:             AccessEntryTypeStandard,
+					KubernetesGroups: []string{"system:masters"},
+				},
+			},
+			expectError: true,
+			errorSubstr: "accessEntries can only be used when authenticationMode is set to api or api_and_config_map",
+		},
+		{
+			name: "invalid ec2_linux access entry with kubernetes groups",
+			accessConfig: &AccessConfig{
+				AuthenticationMode: EKSAuthenticationModeAPI,
+			},
+			accessEntries: []AccessEntry{
+				{
+					PrincipalARN:     "arn:aws:iam::123456789012:role/EKSAdmin",
+					Type:             AccessEntryTypeEC2Linux,
+					KubernetesGroups: []string{"system:masters"},
+				},
+			},
+			expectError: true,
+			errorSubstr: "kubernetesGroups cannot be specified when type is ec2_linux or ec2_windows",
+		},
+		{
+			name: "invalid ec2_windows access entry with access policies",
+			accessConfig: &AccessConfig{
+				AuthenticationMode: EKSAuthenticationModeAPI,
+			},
+			accessEntries: []AccessEntry{
+				{
+					PrincipalARN: "arn:aws:iam::123456789012:role/EKSAdmin",
+					Type:         AccessEntryTypeEC2Windows,
+					AccessPolicies: []AccessPolicyReference{
+						{
+							PolicyARN: "arn:aws:eks::aws:cluster-access-policy/AmazonEKSViewPolicy",
+							AccessScope: AccessScope{
+								Type: AccessScopeTypeCluster,
+							},
+						},
+					},
+				},
+			},
+			expectError: true,
+			errorSubstr: "accessPolicies cannot be specified when type is ec2_linux or ec2_windows",
+		},
+		{
+			name: "invalid access policy with namespace type and no namespaces",
+			accessConfig: &AccessConfig{
+				AuthenticationMode: EKSAuthenticationModeAPI,
+			},
+			accessEntries: []AccessEntry{
+				{
+					PrincipalARN: "arn:aws:iam::123456789012:role/EKSAdmin",
+					Type:         AccessEntryTypeStandard,
+					AccessPolicies: []AccessPolicyReference{
+						{
+							PolicyARN: "arn:aws:eks::aws:cluster-access-policy/AmazonEKSViewPolicy",
+							AccessScope: AccessScope{
+								Type: AccessScopeTypeNamespace,
+							},
+						},
+					},
+				},
+			},
+			expectError: true,
+			errorSubstr: "at least one value must be provided when accessScope type is namespace",
+		},
+		{
+			name: "valid access policy with namespace type and namespaces",
+			accessConfig: &AccessConfig{
+				AuthenticationMode: EKSAuthenticationModeAPI,
+			},
+			accessEntries: []AccessEntry{
+				{
+					PrincipalARN: "arn:aws:iam::123456789012:role/EKSAdmin",
+					Type:         AccessEntryTypeStandard,
+					AccessPolicies: []AccessPolicyReference{
+						{
+							PolicyARN: "arn:aws:eks::aws:cluster-access-policy/AmazonEKSViewPolicy",
+							AccessScope: AccessScope{
+								Type:       AccessScopeTypeNamespace,
+								Namespaces: []string{"default", "kube-system"},
+							},
+						},
+					},
+				},
+			},
+			expectError: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			mcp := &AWSManagedControlPlane{
+				Spec: AWSManagedControlPlaneSpec{
+					EKSClusterName: "default_cluster1",
+					AccessConfig:   tc.accessConfig,
+					AccessEntries:  tc.accessEntries,
+				},
+			}
+
+			warn, err := (&awsManagedControlPlaneWebhook{}).ValidateCreate(context.Background(), mcp)
+
+			if tc.expectError {
+				g.Expect(err).ToNot(BeNil())
+				if tc.errorSubstr != "" {
+					g.Expect(err.Error()).To(ContainSubstring(tc.errorSubstr))
+				}
+			} else {
+				g.Expect(err).To(BeNil())
+			}
+			// Nothing emits warnings yet
+			g.Expect(warn).To(BeEmpty())
+		})
+	}
+}
+
