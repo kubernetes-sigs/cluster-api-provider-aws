@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta2
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"strings"
@@ -44,6 +45,8 @@ var _ = ctrl.Log.WithName("awscluster-resource")
 func (r *AWSCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
+		WithDefaulter(r). // registers webhook.CustomDefaulter
+		WithValidator(r). // registers webhook.CustomValidator
 		Complete()
 }
 
@@ -51,12 +54,17 @@ func (r *AWSCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta2-awscluster,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsclusters,versions=v1beta2,name=default.awscluster.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
 var (
-	_ webhook.Validator = &AWSCluster{}
-	_ webhook.Defaulter = &AWSCluster{}
+	_ webhook.CustomValidator = &AWSCluster{}
+	_ webhook.CustomDefaulter = &AWSCluster{}
 )
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (r *AWSCluster) ValidateCreate() (admission.Warnings, error) {
+func (r *AWSCluster) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
+	r, ok := obj.(*AWSCluster)
+	if !ok {
+		return nil, fmt.Errorf("expected *AWSCluster, got %T", obj)
+	}
+
 	var allErrs field.ErrorList
 	var allWarnings admission.Warnings
 
@@ -78,12 +86,17 @@ func (r *AWSCluster) ValidateCreate() (admission.Warnings, error) {
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (r *AWSCluster) ValidateDelete() (admission.Warnings, error) {
+func (r *AWSCluster) ValidateDelete(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	return nil, nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (r *AWSCluster) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+func (r *AWSCluster) ValidateUpdate(ctx context.Context, old runtime.Object, new runtime.Object) (warnings admission.Warnings, err error) {
+	r, ok := new.(*AWSCluster)
+	if !ok {
+		return nil, fmt.Errorf("expected *AWSCluster, got %T", new)
+	}
+
 	var allErrs field.ErrorList
 	var allWarnings admission.Warnings
 
@@ -228,8 +241,13 @@ func (r *AWSCluster) validateControlPlaneLoadBalancerUpdate(oldlb, newlb *AWSLoa
 }
 
 // Default satisfies the defaulting webhook interface.
-func (r *AWSCluster) Default() {
+func (r *AWSCluster) Default(ctx context.Context, obj runtime.Object) error {
+	r, ok := obj.(*AWSCluster)
+	if !ok {
+		return fmt.Errorf("expected *AWSCluster, got %T", obj)
+	}
 	SetObjectDefaults_AWSCluster(r)
+	return nil
 }
 
 func (r *AWSCluster) validateGCTasksAnnotation() field.ErrorList {

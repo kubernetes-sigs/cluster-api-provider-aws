@@ -1,6 +1,9 @@
 package v1beta2
 
 import (
+	"context"
+	"fmt"
+
 	"github.com/blang/semver"
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
@@ -19,17 +22,24 @@ import (
 func (r *ROSAMachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
+		WithDefaulter(r). // registers webhook.CustomDefaulter
+		WithValidator(r). // registers webhook.CustomValidator
 		Complete()
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-rosamachinepool,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=rosamachinepools,versions=v1beta2,name=validation.rosamachinepool.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta2-rosamachinepool,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=rosamachinepools,versions=v1beta2,name=default.rosamachinepool.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.Defaulter = &ROSAMachinePool{}
-var _ webhook.Validator = &ROSAMachinePool{}
+var _ webhook.CustomDefaulter = &ROSAMachinePool{}
+var _ webhook.CustomValidator = &ROSAMachinePool{}
 
 // ValidateCreate implements admission.Validator.
-func (r *ROSAMachinePool) ValidateCreate() (warnings admission.Warnings, err error) {
+func (r *ROSAMachinePool) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
+	r, ok := obj.(*ROSAMachinePool)
+	if !ok {
+		return nil, fmt.Errorf("expected *ROSAMachinePool, got %T", obj)
+	}
+
 	var allErrs field.ErrorList
 
 	if err := r.validateVersion(); err != nil {
@@ -54,7 +64,12 @@ func (r *ROSAMachinePool) ValidateCreate() (warnings admission.Warnings, err err
 }
 
 // ValidateUpdate implements admission.Validator.
-func (r *ROSAMachinePool) ValidateUpdate(old runtime.Object) (warnings admission.Warnings, err error) {
+func (r *ROSAMachinePool) ValidateUpdate(ctx context.Context, old runtime.Object, new runtime.Object) (warnings admission.Warnings, err error) {
+	r, ok := new.(*ROSAMachinePool)
+	if !ok {
+		return nil, fmt.Errorf("expected *ROSAMachinePool, got %T", new)
+	}
+	
 	oldPool, ok := old.(*ROSAMachinePool)
 	if !ok {
 		return nil, apierrors.NewInvalid(GroupVersion.WithKind("ROSAMachinePool").GroupKind(), r.Name, field.ErrorList{
@@ -86,7 +101,7 @@ func (r *ROSAMachinePool) ValidateUpdate(old runtime.Object) (warnings admission
 }
 
 // ValidateDelete implements admission.Validator.
-func (r *ROSAMachinePool) ValidateDelete() (warnings admission.Warnings, err error) {
+func (r *ROSAMachinePool) ValidateDelete(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	return nil, nil
 }
 
@@ -129,7 +144,12 @@ func validateImmutable(old, updated interface{}, name string) field.ErrorList {
 }
 
 // Default implements admission.Defaulter.
-func (r *ROSAMachinePool) Default() {
+func (r *ROSAMachinePool) Default(ctx context.Context, obj runtime.Object) error {
+	r, ok := obj.(*ROSAMachinePool)
+	if !ok {
+		return fmt.Errorf("expected *ROSAMachinePool, got %T", obj)
+	}
+
 	if r.Spec.NodeDrainGracePeriod == nil {
 		r.Spec.NodeDrainGracePeriod = &metav1.Duration{}
 	}
@@ -143,4 +163,6 @@ func (r *ROSAMachinePool) Default() {
 			MaxSurge:       ptr.To(intstr.FromInt32(1)),
 		}
 	}
+
+	return nil
 }

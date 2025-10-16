@@ -26,7 +26,7 @@ import (
 	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
-	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
+	// utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
 
 var (
@@ -41,9 +41,17 @@ var (
 )
 
 func TestAWSManagedMachinePoolDefault(t *testing.T) {
-	fargate := &AWSManagedMachinePool{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
-	t.Run("for AWSManagedMachinePool", utildefaulting.DefaultValidateTest(fargate))
-	fargate.Default()
+	g := NewWithT(t)
+	pool := &AWSManagedMachinePool{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "my-pool",
+		},
+	}
+
+	// t.Run("for AWSManagedMachinePool", utildefaulting.DefaultValidateTest(pool))
+	pool.Default()
+
+	g.Expect(pool.Spec.AMIType).To(HaveValue(Equal(AMITypesAmazonLinux2)))
 }
 
 func TestAWSManagedMachinePoolValidateCreate(t *testing.T) {

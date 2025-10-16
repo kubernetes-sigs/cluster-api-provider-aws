@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta2
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"net"
@@ -43,6 +44,8 @@ var log = ctrl.Log.WithName("awsmachine-resource")
 func (r *AWSMachine) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
+		WithDefaulter(r). // registers webhook.CustomDefaulter
+		WithValidator(r). // registers webhook.CustomValidator
 		Complete()
 }
 
@@ -50,12 +53,17 @@ func (r *AWSMachine) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta2-awsmachine,mutating=true,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=awsmachines,versions=v1beta2,name=mawsmachine.kb.io,name=mutation.awsmachine.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
 var (
-	_ webhook.Validator = &AWSMachine{}
-	_ webhook.Defaulter = &AWSMachine{}
+	_ webhook.CustomValidator = &AWSMachine{}
+	_ webhook.CustomDefaulter = &AWSMachine{}
 )
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (r *AWSMachine) ValidateCreate() (admission.Warnings, error) {
+func (r *AWSMachine) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
+	r, ok := obj.(*AWSMachine)
+	if !ok {
+		return nil, fmt.Errorf("expected *AWSMachine, got %T", obj)
+	}
+
 	var allErrs field.ErrorList
 
 	allErrs = append(allErrs, r.validateCloudInitSecret()...)
@@ -72,7 +80,12 @@ func (r *AWSMachine) ValidateCreate() (admission.Warnings, error) {
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (r *AWSMachine) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+func (r *AWSMachine) ValidateUpdate(ctx context.Context, old runtime.Object, new runtime.Object) (warnings admission.Warnings, err error) {
+	r, ok := new.(*AWSMachine)
+	if !ok {
+		return nil, fmt.Errorf("expected *AWSMachine, got %T", new)
+	}
+
 	newAWSMachine, err := runtime.DefaultUnstructuredConverter.ToUnstructured(r)
 	if err != nil {
 		return nil, apierrors.NewInvalid(GroupVersion.WithKind("AWSMachine").GroupKind(), r.Name, field.ErrorList{
@@ -403,13 +416,18 @@ func (r *AWSMachine) validateNonRootVolumes() field.ErrorList {
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (r *AWSMachine) ValidateDelete() (admission.Warnings, error) {
+func (r *AWSMachine) ValidateDelete(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	return nil, nil
 }
 
 // Default implements webhook.Defaulter such that an empty CloudInit will be defined with a default
 // SecureSecretsBackend as SecretBackendSecretsManager iff InsecureSkipSecretsManager is unset.
-func (r *AWSMachine) Default() {
+func (r *AWSMachine) Default(ctx context.Context, obj runtime.Object) error {
+	r, ok := obj.(*AWSMachine)
+	if !ok {
+		return fmt.Errorf("expected *AWSMachine, got %T", obj)
+	}
+
 	if !r.Spec.CloudInit.InsecureSkipSecretsManager && r.Spec.CloudInit.SecureSecretsBackend == "" && !r.ignitionEnabled() {
 		r.Spec.CloudInit.SecureSecretsBackend = SecretBackendSecretsManager
 	}
@@ -425,6 +443,8 @@ func (r *AWSMachine) Default() {
 
 		r.Spec.Ignition.Version = DefaultIgnitionVersion
 	}
+
+	return nil
 }
 
 func (r *AWSMachine) validateAdditionalSecurityGroups() field.ErrorList {

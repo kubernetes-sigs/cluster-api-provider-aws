@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta2
 
 import (
+	"context"
 	"fmt"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -41,12 +42,12 @@ func (r *AWSClusterRoleIdentity) SetupWebhookWithManager(mgr ctrl.Manager) error
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta2-awsclusterroleidentity,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsclusterroleidentities,versions=v1beta2,name=default.awsclusterroleidentity.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
 var (
-	_ webhook.Validator = &AWSClusterRoleIdentity{}
-	_ webhook.Defaulter = &AWSClusterRoleIdentity{}
+	_ webhook.CustomValidator = &AWSClusterRoleIdentity{}
+	_ webhook.CustomDefaulter = &AWSClusterRoleIdentity{}
 )
 
 // ValidateCreate will do any extra validation when creating an AWSClusterRoleIdentity.
-func (r *AWSClusterRoleIdentity) ValidateCreate() (admission.Warnings, error) {
+func (r *AWSClusterRoleIdentity) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	if r.Spec.SourceIdentityRef == nil {
 		return nil, field.Invalid(field.NewPath("spec", "sourceIdentityRef"),
 			r.Spec.SourceIdentityRef, "field cannot be set to nil")
@@ -64,12 +65,12 @@ func (r *AWSClusterRoleIdentity) ValidateCreate() (admission.Warnings, error) {
 }
 
 // ValidateDelete allows you to add any extra validation when deleting an AWSClusterRoleIdentity.
-func (r *AWSClusterRoleIdentity) ValidateDelete() (admission.Warnings, error) {
+func (r *AWSClusterRoleIdentity) ValidateDelete(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	return nil, nil
 }
 
 // ValidateUpdate will do any extra validation when updating an AWSClusterRoleIdentity.
-func (r *AWSClusterRoleIdentity) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+func (r *AWSClusterRoleIdentity) ValidateUpdate(ctx context.Context, old runtime.Object, new runtime.Object) (warnings admission.Warnings, err error) {
 	oldP, ok := old.(*AWSClusterRoleIdentity)
 	if !ok {
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected an AWSClusterRoleIdentity but got a %T", old))
@@ -93,6 +94,7 @@ func (r *AWSClusterRoleIdentity) ValidateUpdate(old runtime.Object) (admission.W
 }
 
 // Default will set default values for the AWSClusterRoleIdentity.
-func (r *AWSClusterRoleIdentity) Default() {
+func (r *AWSClusterRoleIdentity) Default(ctx context.Context, obj runtime.Object) error {
 	SetDefaults_Labels(&r.ObjectMeta)
+	return nil
 }

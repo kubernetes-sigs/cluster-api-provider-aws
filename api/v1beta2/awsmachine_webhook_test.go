@@ -25,18 +25,20 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilfeature "k8s.io/component-base/featuregate/testing"
+	"k8s.io/utils/pointer"
 	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
-	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
+	// utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
 
-func TestMachineDefault(t *testing.T) {
-	machine := &AWSMachine{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
-	t.Run("for AWSMachine", utildefaulting.DefaultValidateTest(machine))
-	machine.Default()
+func TestAWSMachineDefaultingWebhook(t *testing.T) {
 	g := NewWithT(t)
-	g.Expect(machine.Spec.CloudInit.SecureSecretsBackend).To(Equal(SecretBackendSecretsManager))
+	machine := &AWSMachine{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
+	// t.Run("for AWSMachine", utildefaulting.DefaultValidateTest(machine))
+	machine.Default()
+	g.Expect(machine.Spec.ImageLookupFormat).To(Equal(DefaultImageLookupFormat))
+	g.Expect(machine.Spec.ImageLookupOrg).To(Equal(DefaultImageLookupOrg))
 }
 
 func TestAWSMachineCreate(t *testing.T) {

@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta2
 
 import (
+	"context"
 	"fmt"
 	"net"
 
@@ -57,14 +58,16 @@ const (
 func (r *AWSManagedControlPlane) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
+		WithDefaulter(r). // registers webhook.CustomDefaulter
+		WithValidator(r). // registers webhook.CustomValidator
 		Complete()
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-controlplane-cluster-x-k8s-io-v1beta2-awsmanagedcontrolplane,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=controlplane.cluster.x-k8s.io,resources=awsmanagedcontrolplanes,versions=v1beta2,name=validation.awsmanagedcontrolplanes.controlplane.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-controlplane-cluster-x-k8s-io-v1beta2-awsmanagedcontrolplane,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=controlplane.cluster.x-k8s.io,resources=awsmanagedcontrolplanes,versions=v1beta2,name=default.awsmanagedcontrolplanes.controlplane.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.Defaulter = &AWSManagedControlPlane{}
-var _ webhook.Validator = &AWSManagedControlPlane{}
+var _ webhook.CustomDefaulter = &AWSManagedControlPlane{}
+var _ webhook.CustomValidator = &AWSManagedControlPlane{}
 
 func parseEKSVersion(raw string) (*version.Version, error) {
 	v, err := version.ParseGeneric(raw)
@@ -75,7 +78,12 @@ func parseEKSVersion(raw string) (*version.Version, error) {
 }
 
 // ValidateCreate will do any extra validation when creating a AWSManagedControlPlane.
-func (r *AWSManagedControlPlane) ValidateCreate() (admission.Warnings, error) {
+func (r *AWSManagedControlPlane) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
+	r, ok := obj.(*AWSManagedControlPlane)
+	if !ok {
+		return nil, fmt.Errorf("expected *AWSManagedControlPlane, got %T", obj)
+	}
+
 	mcpLog.Info("AWSManagedControlPlane validate create", "control-plane", klog.KObj(r))
 
 	var allErrs field.ErrorList
@@ -109,7 +117,12 @@ func (r *AWSManagedControlPlane) ValidateCreate() (admission.Warnings, error) {
 }
 
 // ValidateUpdate will do any extra validation when updating a AWSManagedControlPlane.
-func (r *AWSManagedControlPlane) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+func (r *AWSManagedControlPlane) ValidateUpdate(ctx context.Context, old runtime.Object, new runtime.Object) (warnings admission.Warnings, err error) {
+	r, ok := new.(*AWSManagedControlPlane)
+	if !ok {
+		return nil, fmt.Errorf("expected *AWSManagedControlPlane, got %T", new)
+	}
+
 	mcpLog.Info("AWSManagedControlPlane validate update", "control-plane", klog.KObj(r))
 	oldAWSManagedControlplane, ok := old.(*AWSManagedControlPlane)
 	if !ok {
@@ -181,7 +194,7 @@ func (r *AWSManagedControlPlane) ValidateUpdate(old runtime.Object) (admission.W
 }
 
 // ValidateDelete allows you to add any extra validation when deleting.
-func (r *AWSManagedControlPlane) ValidateDelete() (admission.Warnings, error) {
+func (r *AWSManagedControlPlane) ValidateDelete(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	mcpLog.Info("AWSManagedControlPlane validate delete", "control-plane", klog.KObj(r))
 
 	return nil, nil
@@ -478,15 +491,19 @@ func (r *AWSManagedControlPlane) validateNetwork() field.ErrorList {
 }
 
 // Default will set default values for the AWSManagedControlPlane.
-func (r *AWSManagedControlPlane) Default() {
+func (r *AWSManagedControlPlane) Default(ctx context.Context, obj runtime.Object) error {
+	r, ok := obj.(*AWSManagedControlPlane)
+	if !ok {
+		return fmt.Errorf("expected *AWSManagedControlPlane, got %T", obj)
+	}
+
 	mcpLog.Info("AWSManagedControlPlane setting defaults", "control-plane", klog.KObj(r))
 
 	if r.Spec.EKSClusterName == "" {
 		mcpLog.Info("EKSClusterName is empty, generating name")
 		name, err := eks.GenerateEKSName(r.Name, r.Namespace, maxClusterNameLength)
 		if err != nil {
-			mcpLog.Error(err, "failed to create EKS cluster name")
-			return
+			return errors.Wrap(err, "failed to create EKS cluster name")
 		}
 
 		mcpLog.Info("defaulting EKS cluster name", "cluster", klog.KRef(r.Namespace, name))
@@ -502,4 +519,6 @@ func (r *AWSManagedControlPlane) Default() {
 
 	infrav1.SetDefaults_Bastion(&r.Spec.Bastion)
 	infrav1.SetDefaults_NetworkSpec(&r.Spec.NetworkSpec)
+
+	return nil
 }

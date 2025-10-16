@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta2
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/google/go-cmp/cmp"
@@ -36,6 +37,8 @@ var _ = ctrl.Log.WithName("awsclustercontrolleridentity-resource")
 func (r *AWSClusterControllerIdentity) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
+		WithDefaulter(r). // registers webhook.CustomDefaulter
+		WithValidator(r). // registers webhook.CustomValidator
 		Complete()
 }
 
@@ -43,12 +46,17 @@ func (r *AWSClusterControllerIdentity) SetupWebhookWithManager(mgr ctrl.Manager)
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta2-awsclustercontrolleridentity,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsclustercontrolleridentities,versions=v1beta2,name=default.awsclustercontrolleridentity.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
 var (
-	_ webhook.Validator = &AWSClusterControllerIdentity{}
-	_ webhook.Defaulter = &AWSClusterControllerIdentity{}
+	_ webhook.CustomValidator = &AWSClusterControllerIdentity{}
+	_ webhook.CustomDefaulter = &AWSClusterControllerIdentity{}
 )
 
 // ValidateCreate will do any extra validation when creating an AWSClusterControllerIdentity.
-func (r *AWSClusterControllerIdentity) ValidateCreate() (admission.Warnings, error) {
+func (r *AWSClusterControllerIdentity) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
+	r, ok := obj.(*AWSClusterControllerIdentity)
+	if !ok {
+		return nil, fmt.Errorf("expected *AWSClusterControllerIdentity, got %T", obj)
+	}
+
 	// Ensures AWSClusterControllerIdentity being singleton by only allowing "default" as name
 	if r.Name != AWSClusterControllerIdentityName {
 		return nil, field.Invalid(field.NewPath("name"),
@@ -67,12 +75,17 @@ func (r *AWSClusterControllerIdentity) ValidateCreate() (admission.Warnings, err
 }
 
 // ValidateDelete allows you to add any extra validation when deleting an AWSClusterControllerIdentity.
-func (r *AWSClusterControllerIdentity) ValidateDelete() (admission.Warnings, error) {
+func (r *AWSClusterControllerIdentity) ValidateDelete(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	return nil, nil
 }
 
 // ValidateUpdate will do any extra validation when updating an AWSClusterControllerIdentity.
-func (r *AWSClusterControllerIdentity) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+func (r *AWSClusterControllerIdentity) ValidateUpdate(ctx context.Context, old runtime.Object, new runtime.Object) (warnings admission.Warnings, err error) {
+	r, ok := new.(*AWSClusterControllerIdentity)
+	if !ok {
+		return nil, fmt.Errorf("expected *AWSClusterControllerIdentity, got %T", new)
+	}
+
 	oldP, ok := old.(*AWSClusterControllerIdentity)
 	if !ok {
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected an AWSClusterControllerIdentity but got a %T", old))
@@ -99,6 +112,11 @@ func (r *AWSClusterControllerIdentity) ValidateUpdate(old runtime.Object) (admis
 }
 
 // Default will set default values for the AWSClusterControllerIdentity.
-func (r *AWSClusterControllerIdentity) Default() {
+func (r *AWSClusterControllerIdentity) Default(ctx context.Context, obj runtime.Object) error {
+	_, ok := obj.(*AWSClusterControllerIdentity)
+	if !ok {
+		return fmt.Errorf("expected *AWSClusterControllerIdentity, got %T", obj)
+	}
 	SetDefaults_Labels(&r.ObjectMeta)
+	return nil
 }

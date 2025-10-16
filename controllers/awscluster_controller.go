@@ -152,7 +152,7 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// TODO: Remove this after v1alpha4
 	// The defaulting must happen before `NewClusterScope` is called since otherwise we keep detecting
 	// differences that result in patch operations.
-	awsCluster.Default()
+	awsCluster.Default(ctx, awsCluster)
 
 	// Fetch the Cluster.
 	cluster, err := util.GetOwnerCluster(ctx, r.Client, awsCluster.ObjectMeta)
