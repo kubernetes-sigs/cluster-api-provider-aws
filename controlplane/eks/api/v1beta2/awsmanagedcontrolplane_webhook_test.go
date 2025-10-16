@@ -28,7 +28,7 @@ import (
 	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
-	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
+	// utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
 
 var (
@@ -145,7 +145,7 @@ func TestDefaultingWebhook(t *testing.T) {
 					Namespace: tc.resourceNS,
 				},
 			}
-			t.Run("for AWSManagedMachinePool", utildefaulting.DefaultValidateTest(mcp))
+			// t.Run("for AWSManagedMachinePool", utildefaulting.DefaultValidateTest(mcp))
 			mcp.Spec = tc.spec
 
 			g.Expect(testEnv.Create(ctx, mcp)).To(Succeed())

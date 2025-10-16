@@ -17,6 +17,9 @@ limitations under the License.
 package v1beta2
 
 import (
+	"context"
+	"fmt"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -27,30 +30,45 @@ import (
 func (r *EKSConfig) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
+		WithDefaulter(r). // registers webhook.CustomDefaulter
+		WithValidator(r). // registers webhook.CustomValidator
 		Complete()
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-bootstrap-cluster-x-k8s-io-v1beta2-eksconfig,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=bootstrap.cluster.x-k8s.io,resources=eksconfig,versions=v1beta2,name=validation.eksconfigs.bootstrap.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-bootstrap-cluster-x-k8s-io-v1beta2-eksconfig,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=bootstrap.cluster.x-k8s.io,resources=eksconfig,versions=v1beta2,name=default.eksconfigs.bootstrap.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.Defaulter = &EKSConfig{}
-var _ webhook.Validator = &EKSConfig{}
+var _ webhook.CustomDefaulter = &EKSConfig{}
+var _ webhook.CustomValidator = &EKSConfig{}
 
 // ValidateCreate will do any extra validation when creating a EKSConfig.
-func (r *EKSConfig) ValidateCreate() (admission.Warnings, error) {
+func (r *EKSConfig) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
+	r, ok := obj.(*EKSConfig)
+	if !ok {
+		return nil, fmt.Errorf("expected *EKSConfig, got %T", obj)
+	}
 	return nil, nil
 }
 
 // ValidateUpdate will do any extra validation when updating a EKSConfig.
-func (r *EKSConfig) ValidateUpdate(_ runtime.Object) (admission.Warnings, error) {
+func (r *EKSConfig) ValidateUpdate(ctx context.Context, oldObj runtime.Object, newObj runtime.Object) (warnings admission.Warnings, err error) {
+	r, ok := newObj.(*EKSConfig)
+	if !ok {
+		return nil, fmt.Errorf("expected *EKSConfig, got %T", newObj)
+	}
 	return nil, nil
 }
 
 // ValidateDelete allows you to add any extra validation when deleting.
-func (r *EKSConfig) ValidateDelete() (admission.Warnings, error) {
+func (r *EKSConfig) ValidateDelete(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	return nil, nil
 }
 
 // Default will set default values for the EKSConfig.
-func (r *EKSConfig) Default() {
+func (r *EKSConfig) Default(ctx context.Context, obj runtime.Object) error {
+	r, ok := obj.(*EKSConfig)
+	if !ok {
+		return fmt.Errorf("expected *EKSConfig, got %T", obj)
+	}
+	return nil
 }

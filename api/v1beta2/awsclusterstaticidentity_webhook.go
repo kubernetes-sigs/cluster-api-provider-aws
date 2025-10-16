@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta2
 
 import (
+	"context"
 	"fmt"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -34,6 +35,8 @@ var _ = ctrl.Log.WithName("awsclusterstaticidentity-resource")
 func (r *AWSClusterStaticIdentity) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
+		WithDefaulter(r). // registers webhook.CustomDefaulter
+		WithValidator(r). // registers webhook.CustomValidator
 		Complete()
 }
 
@@ -41,12 +44,17 @@ func (r *AWSClusterStaticIdentity) SetupWebhookWithManager(mgr ctrl.Manager) err
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta2-awsclusterstaticidentity,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsclusterstaticidentities,versions=v1beta2,name=default.awsclusterstaticidentity.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
 var (
-	_ webhook.Validator = &AWSClusterStaticIdentity{}
-	_ webhook.Defaulter = &AWSClusterStaticIdentity{}
+	_ webhook.CustomValidator = &AWSClusterStaticIdentity{}
+	_ webhook.CustomDefaulter = &AWSClusterStaticIdentity{}
 )
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (r *AWSClusterStaticIdentity) ValidateCreate() (admission.Warnings, error) {
+func (r *AWSClusterStaticIdentity) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
+	r, ok := obj.(*AWSClusterStaticIdentity)
+	if !ok {
+		return nil, fmt.Errorf("expected *AWSClusterStaticIdentity, got %T", obj)
+	}
+
 	// Validate selector parses as Selector
 	if r.Spec.AllowedNamespaces != nil {
 		_, err := metav1.LabelSelectorAsSelector(&r.Spec.AllowedNamespaces.Selector)
@@ -59,12 +67,17 @@ func (r *AWSClusterStaticIdentity) ValidateCreate() (admission.Warnings, error) 
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (r *AWSClusterStaticIdentity) ValidateDelete() (admission.Warnings, error) {
+func (r *AWSClusterStaticIdentity) ValidateDelete(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	return nil, nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (r *AWSClusterStaticIdentity) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+func (r *AWSClusterStaticIdentity) ValidateUpdate(ctx context.Context, old runtime.Object, new runtime.Object) (warnings admission.Warnings, err error) {
+	r, ok := new.(*AWSClusterStaticIdentity)
+	if !ok {
+		return nil, fmt.Errorf("expected *AWSClusterStaticIdentity, got %T", new)
+	}
+
 	oldP, ok := old.(*AWSClusterStaticIdentity)
 	if !ok {
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected an AWSClusterStaticIdentity but got a %T", old))
@@ -87,6 +100,11 @@ func (r *AWSClusterStaticIdentity) ValidateUpdate(old runtime.Object) (admission
 }
 
 // Default should return the default AWSClusterStaticIdentity.
-func (r *AWSClusterStaticIdentity) Default() {
+func (r *AWSClusterStaticIdentity) Default(ctx context.Context, obj runtime.Object) error {
+	r, ok := obj.(*AWSClusterStaticIdentity)
+	if !ok {
+		return fmt.Errorf("expected *AWSClusterStaticIdentity, got %T", obj)
+	}
 	SetDefaults_Labels(&r.ObjectMeta)
+	return nil
 }

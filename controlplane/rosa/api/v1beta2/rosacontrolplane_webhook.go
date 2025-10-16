@@ -1,6 +1,7 @@
 package v1beta2
 
 import (
+	"context"
 	"net"
 
 	"github.com/blang/semver"
@@ -23,11 +24,11 @@ func (r *ROSAControlPlane) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:webhook:verbs=create;update,path=/validate-controlplane-cluster-x-k8s-io-v1beta2-rosacontrolplane,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=controlplane.cluster.x-k8s.io,resources=rosacontrolplanes,versions=v1beta2,name=validation.rosacontrolplanes.controlplane.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-controlplane-cluster-x-k8s-io-v1beta2-rosacontrolplane,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=controlplane.cluster.x-k8s.io,resources=rosacontrolplanes,versions=v1beta2,name=default.rosacontrolplanes.controlplane.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.Defaulter = &ROSAControlPlane{}
-var _ webhook.Validator = &ROSAControlPlane{}
+var _ webhook.CustomDefaulter = &ROSAControlPlane{}
+var _ webhook.CustomValidator = &ROSAControlPlane{}
 
 // ValidateCreate implements admission.Validator.
-func (r *ROSAControlPlane) ValidateCreate() (warnings admission.Warnings, err error) {
+func (r *ROSAControlPlane) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	var allErrs field.ErrorList
 
 	if err := r.validateVersion(); err != nil {
@@ -73,7 +74,7 @@ func (r *ROSAControlPlane) validateClusterRegistryConfig() *field.Error {
 }
 
 // ValidateUpdate implements admission.Validator.
-func (r *ROSAControlPlane) ValidateUpdate(old runtime.Object) (warnings admission.Warnings, err error) {
+func (r *ROSAControlPlane) ValidateUpdate(ctx context.Context, old runtime.Object, new runtime.Object) (warnings admission.Warnings, err error) {
 	var allErrs field.ErrorList
 
 	if err := r.validateVersion(); err != nil {
@@ -99,7 +100,7 @@ func (r *ROSAControlPlane) ValidateUpdate(old runtime.Object) (warnings admissio
 }
 
 // ValidateDelete implements admission.Validator.
-func (r *ROSAControlPlane) ValidateDelete() (warnings admission.Warnings, err error) {
+func (r *ROSAControlPlane) ValidateDelete(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	return nil, nil
 }
 
@@ -163,6 +164,7 @@ func (r *ROSAControlPlane) validateExternalAuthProviders() *field.Error {
 }
 
 // Default implements admission.Defaulter.
-func (r *ROSAControlPlane) Default() {
+func (r *ROSAControlPlane) Default(ctx context.Context, obj runtime.Object) error {
 	SetObjectDefaults_ROSAControlPlane(r)
+	return nil
 }

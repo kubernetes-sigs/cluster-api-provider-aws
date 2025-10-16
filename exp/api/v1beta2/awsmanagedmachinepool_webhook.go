@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta2
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 
@@ -45,14 +46,16 @@ var mmpLog = ctrl.Log.WithName("awsmanagedmachinepool-resource")
 func (r *AWSManagedMachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
+		WithDefaulter(r). // registers webhook.CustomDefaulter
+		WithValidator(r). // registers webhook.CustomValidator
 		Complete()
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-awsmanagedmachinepool,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsmanagedmachinepools,versions=v1beta2,name=validation.awsmanagedmachinepool.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta2-awsmanagedmachinepool,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=awsmanagedmachinepools,versions=v1beta2,name=default.awsmanagedmachinepool.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.Defaulter = &AWSManagedMachinePool{}
-var _ webhook.Validator = &AWSManagedMachinePool{}
+var _ webhook.CustomDefaulter = &AWSManagedMachinePool{}
+var _ webhook.CustomValidator = &AWSManagedMachinePool{}
 
 func (r *AWSManagedMachinePool) validateScaling() field.ErrorList {
 	var allErrs field.ErrorList
@@ -139,7 +142,12 @@ func (r *AWSManagedMachinePool) validateLaunchTemplate() field.ErrorList {
 }
 
 // ValidateCreate will do any extra validation when creating a AWSManagedMachinePool.
-func (r *AWSManagedMachinePool) ValidateCreate() (admission.Warnings, error) {
+func (r *AWSManagedMachinePool) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
+	r, ok := obj.(*AWSManagedMachinePool)
+	if !ok {
+		return nil, fmt.Errorf("expected *AWSManagedMachinePool, got %T", obj)
+	}
+
 	mmpLog.Info("AWSManagedMachinePool validate create", "managed-machine-pool", klog.KObj(r))
 
 	var allErrs field.ErrorList
@@ -174,7 +182,12 @@ func (r *AWSManagedMachinePool) ValidateCreate() (admission.Warnings, error) {
 }
 
 // ValidateUpdate will do any extra validation when updating a AWSManagedMachinePool.
-func (r *AWSManagedMachinePool) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+func (r *AWSManagedMachinePool) ValidateUpdate(ctx context.Context, old runtime.Object, new runtime.Object) (warnings admission.Warnings, err error) {
+	r, ok := new.(*AWSManagedMachinePool)
+	if !ok {
+		return nil, fmt.Errorf("expected *AWSManagedMachinePool, got %T", new)
+	}
+
 	mmpLog.Info("AWSManagedMachinePool validate update", "managed-machine-pool", klog.KObj(r))
 	oldPool, ok := old.(*AWSManagedMachinePool)
 	if !ok {
@@ -209,7 +222,7 @@ func (r *AWSManagedMachinePool) ValidateUpdate(old runtime.Object) (admission.Wa
 }
 
 // ValidateDelete allows you to add any extra validation when deleting.
-func (r *AWSManagedMachinePool) ValidateDelete() (admission.Warnings, error) {
+func (r *AWSManagedMachinePool) ValidateDelete(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
 	mmpLog.Info("AWSManagedMachinePool validate delete", "managed-machine-pool", klog.KObj(r))
 
 	return nil, nil
@@ -261,15 +274,19 @@ func (r *AWSManagedMachinePool) validateImmutable(old *AWSManagedMachinePool) fi
 }
 
 // Default will set default values for the AWSManagedMachinePool.
-func (r *AWSManagedMachinePool) Default() {
+func (r *AWSManagedMachinePool) Default(ctx context.Context, obj runtime.Object) error {
+	r, ok := obj.(*AWSManagedMachinePool)
+	if !ok {
+		return fmt.Errorf("expected *AWSManagedMachinePool, got %T", obj)
+	}
+	
 	mmpLog.Info("AWSManagedMachinePool setting defaults", "managed-machine-pool", klog.KObj(r))
 
 	if r.Spec.EKSNodegroupName == "" {
 		mmpLog.Info("EKSNodegroupName is empty, generating name")
 		name, err := eks.GenerateEKSName(r.Name, r.Namespace, maxNodegroupNameLength)
 		if err != nil {
-			mmpLog.Error(err, "failed to create EKS nodegroup name")
-			return
+			return errors.Wrap(err, "failed to create EKS nodegroup name")
 		}
 
 		mmpLog.Info("Generated EKSNodegroupName", "nodegroup", klog.KRef(r.Namespace, name))
@@ -281,4 +298,6 @@ func (r *AWSManagedMachinePool) Default() {
 			MaxUnavailable: ptr.To[int](1),
 		}
 	}
+
+	return nil
 }
