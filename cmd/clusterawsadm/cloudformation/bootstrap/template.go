@@ -149,7 +149,7 @@ func (t Template) RenderCloudFormation() *cloudformation.Template {
 	template.Resources[AWSIAMRoleControllers] = &cfn_iam.Role{
 		RoleName:                 t.NewManagedName("controllers"),
 		Path:                     t.Spec.ControlPlane.Path,
-		AssumeRolePolicyDocument: t.controllersTrustPolicy(),
+		AssumeRolePolicyDocument: t.controllersTrustPolicy(!t.Spec.EKS.Disable),
 		Policies:                 t.controllersRolePolicy(),
 		PermissionsBoundary:      t.Spec.ControlPlane.PermissionsBoundary,
 		Tags:                     converters.MapToCloudFormationTags(t.Spec.ClusterAPIControllers.Tags),
@@ -224,8 +224,12 @@ func (t Template) RenderCloudFormation() *cloudformation.Template {
 	return template
 }
 
-func ec2AssumeRolePolicy() *iamv1.PolicyDocument {
-	return AssumeRolePolicy(iamv1.PrincipalService, []string{"ec2.amazonaws.com"})
+func ec2AssumeRolePolicy(eksEnabled bool) *iamv1.PolicyDocument {
+	principalIDs := []string{"ec2.amazonaws.com"}
+	if eksEnabled {
+		principalIDs = append(principalIDs, "pods.eks.amazonaws.com")
+	}
+	return AssumeRolePolicy(iamv1.PrincipalService, principalIDs)
 }
 
 // AWSArnAssumeRolePolicy will assume Policies using PolicyArns.
