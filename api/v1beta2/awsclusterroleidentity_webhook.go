@@ -35,6 +35,8 @@ var _ = ctrl.Log.WithName("awsclusterroleidentity-resource")
 func (r *AWSClusterRoleIdentity) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
+		WithDefaulter(r). // registers webhook.CustomDefaulter
+		WithValidator(r). // registers webhook.CustomValidator
 		Complete()
 }
 
@@ -48,6 +50,11 @@ var (
 
 // ValidateCreate will do any extra validation when creating an AWSClusterRoleIdentity.
 func (r *AWSClusterRoleIdentity) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
+	r, ok := obj.(*AWSClusterRoleIdentity)
+	if !ok {
+		return nil, fmt.Errorf("expected an AWSClusterRoleIdentity object but got %T", r)
+	}
+
 	if r.Spec.SourceIdentityRef == nil {
 		return nil, field.Invalid(field.NewPath("spec", "sourceIdentityRef"),
 			r.Spec.SourceIdentityRef, "field cannot be set to nil")
@@ -71,6 +78,11 @@ func (r *AWSClusterRoleIdentity) ValidateDelete(ctx context.Context, obj runtime
 
 // ValidateUpdate will do any extra validation when updating an AWSClusterRoleIdentity.
 func (r *AWSClusterRoleIdentity) ValidateUpdate(ctx context.Context, old runtime.Object, new runtime.Object) (warnings admission.Warnings, err error) {
+	r, ok := new.(*AWSClusterRoleIdentity)
+	if !ok {
+		return nil, fmt.Errorf("expected an AWSClusterRoleIdentity object but got %T", new)
+	}
+
 	oldP, ok := old.(*AWSClusterRoleIdentity)
 	if !ok {
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected an AWSClusterRoleIdentity but got a %T", old))
@@ -95,6 +107,10 @@ func (r *AWSClusterRoleIdentity) ValidateUpdate(ctx context.Context, old runtime
 
 // Default will set default values for the AWSClusterRoleIdentity.
 func (r *AWSClusterRoleIdentity) Default(ctx context.Context, obj runtime.Object) error {
+	r, ok := obj.(*AWSClusterRoleIdentity)
+	if !ok {
+		return fmt.Errorf("expected an AWSClusterRoleIdentity object but got %T", r)
+	}
 	SetDefaults_Labels(&r.ObjectMeta)
 	return nil
 }

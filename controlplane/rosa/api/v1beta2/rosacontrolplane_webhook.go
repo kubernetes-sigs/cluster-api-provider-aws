@@ -2,6 +2,7 @@ package v1beta2
 
 import (
 	"context"
+	"fmt"
 	"net"
 
 	"github.com/blang/semver"
@@ -18,6 +19,8 @@ import (
 func (r *ROSAControlPlane) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
+		WithDefaulter(r). // registers webhook.CustomDefaulter
+		WithValidator(r). // registers webhook.CustomValidator
 		Complete()
 }
 
@@ -29,6 +32,11 @@ var _ webhook.CustomValidator = &ROSAControlPlane{}
 
 // ValidateCreate implements admission.Validator.
 func (r *ROSAControlPlane) ValidateCreate(ctx context.Context, obj runtime.Object) (warnings admission.Warnings, err error) {
+	r, ok := obj.(*ROSAControlPlane)
+	if !ok {
+		return nil, fmt.Errorf("expected *ROSAControlPlane, got %T", obj)
+	}
+
 	var allErrs field.ErrorList
 
 	if err := r.validateVersion(); err != nil {
@@ -75,6 +83,11 @@ func (r *ROSAControlPlane) validateClusterRegistryConfig() *field.Error {
 
 // ValidateUpdate implements admission.Validator.
 func (r *ROSAControlPlane) ValidateUpdate(ctx context.Context, old runtime.Object, new runtime.Object) (warnings admission.Warnings, err error) {
+	r, ok := new.(*ROSAControlPlane)
+	if !ok {
+		return nil, fmt.Errorf("expected *ROSAControlPlane, got %T", new)
+	}
+
 	var allErrs field.ErrorList
 
 	if err := r.validateVersion(); err != nil {
@@ -165,6 +178,10 @@ func (r *ROSAControlPlane) validateExternalAuthProviders() *field.Error {
 
 // Default implements admission.Defaulter.
 func (r *ROSAControlPlane) Default(ctx context.Context, obj runtime.Object) error {
+	r, ok := obj.(*ROSAControlPlane)
+	if !ok {
+		return fmt.Errorf("expected *ROSAControlPlane, got %T", obj)
+	}
 	SetObjectDefaults_ROSAControlPlane(r)
 	return nil
 }
