@@ -60,6 +60,7 @@ type ROSANetworkReconciler struct {
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=rosanetworks,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=rosanetworks/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=rosanetworks/finalizers,verbs=update
 
 func (r *ROSANetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, reterr error) {
 	log := logger.FromContext(ctx)
@@ -136,15 +137,20 @@ func (r *ROSANetworkReconciler) reconcileNormal(ctx context.Context, rosaNetScop
 
 	if r.cfStack == nil { // The CF stack does not exist yet
 		templateBody := string(rosaCFNetwork.CloudFormationTemplateFile)
+
+		zoneCount := 1
+		if rosaNetScope.ROSANetwork.Spec.AvailabilityZoneCount > 0 {
+			zoneCount = rosaNetScope.ROSANetwork.Spec.AvailabilityZoneCount
+		}
 		cfParams := map[string]string{
-			"AvailabilityZoneCount": strconv.Itoa(rosaNetScope.ROSANetwork.Spec.AvailabilityZoneCount),
+			"AvailabilityZoneCount": strconv.Itoa(zoneCount),
 			"Region":                rosaNetScope.ROSANetwork.Spec.Region,
 			"Name":                  rosaNetScope.ROSANetwork.Spec.StackName,
 			"VpcCidr":               rosaNetScope.ROSANetwork.Spec.CIDRBlock,
 		}
 		// Explicitly specified AZs
-		for i, zone := range rosaNetScope.ROSANetwork.Spec.AvailabilityZones {
-			cfParams[fmt.Sprintf("AZ%d", i)] = zone
+		for idx, zone := range rosaNetScope.ROSANetwork.Spec.AvailabilityZones {
+			cfParams[fmt.Sprintf("AZ%d", (idx+1))] = zone
 		}
 
 		// Call the AWS CF stack create API
