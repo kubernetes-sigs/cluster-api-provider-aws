@@ -308,6 +308,13 @@ rules:
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
+  - awsmachinepools/finalizers
+  verbs:
+  - delete
+  - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
   - awsmachinepools/status
   verbs:
   - get
