@@ -1396,6 +1396,9 @@ func getInstanceCPUOptionsRequest(cpuOptions infrav1.CPUOptions) *types.CpuOptio
 	return request
 }
 
+// shouldEnablePrimaryIpv6 determines whether to enable a primary IPv6 address for an instance.
+// It returns true if both the VPC has IPv6 enabled and the instance's subnet has an IPv6 CIDR block.
+// This is required when registering instances by ID to IPv6 target groups.
 func (s *Service) shouldEnablePrimaryIpv6(i *infrav1.Instance) (bool, error) {
 	var enablePrimaryIpv6 bool
 
@@ -1415,6 +1418,13 @@ func (s *Service) shouldEnablePrimaryIpv6(i *infrav1.Instance) (bool, error) {
 		}
 		if len(sns) == 0 {
 			return false, fmt.Errorf("expected subnet %q for instance to exist, but found none", i.SubnetID)
+		}
+		if len(sns) > 1 {
+			subnetIDs := make([]string, len(sns))
+			for i, sn := range sns {
+				subnetIDs[i] = aws.ToString(sn.SubnetId)
+			}
+			return false, fmt.Errorf("expected 1 subnet with id %q, but found %v: %v", i.SubnetID, len(sns), subnetIDs)
 		}
 		for _, set := range sns[0].Ipv6CidrBlockAssociationSet {
 			if set.Ipv6CidrBlockState.State == types.SubnetCidrBlockStateCodeAssociated {
