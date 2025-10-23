@@ -32,20 +32,21 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	infrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	ekscontrolplanev1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta1"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpoints"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 )
 
-var (
-	scheme = runtime.NewScheme()
-)
+var scheme = runtime.NewScheme()
 
 func init() {
 	_ = amazoncni.AddToScheme(scheme)
@@ -268,20 +269,20 @@ func (s *ManagedControlPlaneScope) PatchObject() error {
 	return s.patchHelper.Patch(
 		context.TODO(),
 		s.ControlPlane,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
-			infrav1.VpcReadyCondition,
-			infrav1.SubnetsReadyCondition,
-			infrav1.ClusterSecurityGroupsReadyCondition,
-			infrav1.InternetGatewayReadyCondition,
-			infrav1.NatGatewaysReadyCondition,
-			infrav1.RouteTablesReadyCondition,
-			infrav1.VpcEndpointsReadyCondition,
-			infrav1.BastionHostReadyCondition,
-			infrav1.EgressOnlyInternetGatewayReadyCondition,
-			ekscontrolplanev1.EKSControlPlaneCreatingCondition,
-			ekscontrolplanev1.EKSControlPlaneReadyCondition,
-			ekscontrolplanev1.EKSControlPlaneUpdatingCondition,
-			ekscontrolplanev1.IAMControlPlaneRolesReadyCondition,
+		patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
+			infrav1beta1.VpcReadyCondition,
+			infrav1beta1.SubnetsReadyCondition,
+			infrav1beta1.ClusterSecurityGroupsReadyCondition,
+			infrav1beta1.InternetGatewayReadyCondition,
+			infrav1beta1.NatGatewaysReadyCondition,
+			infrav1beta1.RouteTablesReadyCondition,
+			infrav1beta1.VpcEndpointsReadyCondition,
+			infrav1beta1.BastionHostReadyCondition,
+			infrav1beta1.EgressOnlyInternetGatewayReadyCondition,
+			ekscontrolplanev1beta1.EKSControlPlaneCreatingCondition,
+			ekscontrolplanev1beta1.EKSControlPlaneReadyCondition,
+			ekscontrolplanev1beta1.EKSControlPlaneUpdatingCondition,
+			ekscontrolplanev1beta1.IAMControlPlaneRolesReadyCondition,
 		}})
 }
 
@@ -305,9 +306,9 @@ func (s *ManagedControlPlaneScope) APIServerPort() int32 {
 }
 
 // SetFailureDomain sets the infrastructure provider failure domain key to the spec given as input.
-func (s *ManagedControlPlaneScope) SetFailureDomain(id string, spec clusterv1.FailureDomainSpec) {
+func (s *ManagedControlPlaneScope) SetFailureDomain(id string, spec clusterv1.FailureDomain) {
 	if s.ControlPlane.Status.FailureDomains == nil {
-		s.ControlPlane.Status.FailureDomains = make(clusterv1.FailureDomains)
+		s.ControlPlane.Status.FailureDomains = make(map[string]clusterv1.FailureDomain)
 	}
 	s.ControlPlane.Status.FailureDomains[id] = spec
 }
@@ -318,7 +319,7 @@ func (s *ManagedControlPlaneScope) InfraCluster() cloud.ClusterObject {
 }
 
 // ClusterObj returns the cluster object.
-func (s *ManagedControlPlaneScope) ClusterObj() cloud.ClusterObject {
+func (s *ManagedControlPlaneScope) ClusterObj() *clusterv1.Cluster {
 	return s.Cluster
 }
 
@@ -447,12 +448,8 @@ func (s *ManagedControlPlaneScope) OIDCIdentityProviderConfig() *ekscontrolplane
 
 // ServiceCidrs returns the CIDR blocks used for services.
 func (s *ManagedControlPlaneScope) ServiceCidrs() *clusterv1.NetworkRanges {
-	if s.Cluster.Spec.ClusterNetwork != nil {
-		if s.Cluster.Spec.ClusterNetwork.Services != nil {
-			if len(s.Cluster.Spec.ClusterNetwork.Services.CIDRBlocks) > 0 {
-				return s.Cluster.Spec.ClusterNetwork.Services
-			}
-		}
+	if len(s.Cluster.Spec.ClusterNetwork.Services.CIDRBlocks) > 0 {
+		return &s.Cluster.Spec.ClusterNetwork.Services
 	}
 
 	return nil

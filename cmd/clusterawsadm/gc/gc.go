@@ -32,7 +32,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/annotations"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -187,9 +187,9 @@ func (c *CmdProcessor) getInfraCluster(ctx context.Context) (*unstructured.Unstr
 	}
 
 	ref := cluster.Spec.InfrastructureRef
-	obj, err := external.Get(ctx, c.client, ref)
+	obj, err := external.GetObjectFromContractVersionedRef(ctx, c.client, ref, c.namespace)
 	if err != nil {
-		return nil, fmt.Errorf("getting infra cluster %s/%s: %w", ref.Namespace, ref.Name, err)
+		return nil, fmt.Errorf("getting infra cluster %s/%s: %w", c.namespace, ref.Name, err)
 	}
 
 	return obj, nil

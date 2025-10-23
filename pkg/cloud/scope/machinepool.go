@@ -32,13 +32,15 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	expinfrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta1"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 )
 
 // MachinePoolScope defines a scope defined around a machine and its cluster.
@@ -174,9 +176,9 @@ func (m *MachinePoolScope) PatchObject() error {
 	return m.patchHelper.Patch(
 		context.TODO(),
 		m.AWSMachinePool,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
-			expinfrav1.ASGReadyCondition,
-			expinfrav1.LaunchTemplateReadyCondition,
+		patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
+			expinfrav1beta1.ASGReadyCondition,
+			expinfrav1beta1.LaunchTemplateReadyCondition,
 		}})
 }
 

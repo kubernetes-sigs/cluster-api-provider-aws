@@ -22,7 +22,6 @@ import (
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -48,8 +47,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/rosa"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/util/paused"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	expclusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	expclusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -111,7 +110,7 @@ func (r *ROSAClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	controlPlane := &rosacontrolplanev1.ROSAControlPlane{}
 	controlPlaneRef := types.NamespacedName{
 		Name:      cluster.Spec.ControlPlaneRef.Name,
-		Namespace: cluster.Spec.ControlPlaneRef.Namespace,
+		Namespace: cluster.Namespace,
 	}
 
 	if err := r.Get(ctx, controlPlaneRef, controlPlane); err != nil {
@@ -222,8 +221,8 @@ func (r *ROSAClusterReconciler) rosaControlPlaneToManagedCluster(log *logger.Log
 		}
 
 		rosaClusterRef := cluster.Spec.InfrastructureRef
-		if rosaClusterRef == nil || rosaClusterRef.Kind != "ROSACluster" {
-			log.Info("InfrastructureRef is nil or not ROSACluster, skipping mapping")
+		if !rosaClusterRef.IsDefined() || rosaClusterRef.Kind != "ROSACluster" {
+			log.Info("InfrastructureRef is not defined or not ROSACluster, skipping mapping")
 			return nil
 		}
 
@@ -231,7 +230,7 @@ func (r *ROSAClusterReconciler) rosaControlPlaneToManagedCluster(log *logger.Log
 			{
 				NamespacedName: types.NamespacedName{
 					Name:      rosaClusterRef.Name,
-					Namespace: rosaClusterRef.Namespace,
+					Namespace: cluster.Namespace,
 				},
 			},
 		}
@@ -299,10 +298,10 @@ func (r *ROSAClusterReconciler) buildROSAMachinePool(nodePoolName string, cluste
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: ptr.To(string("")),
 					},
-					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: expinfrav1.GroupVersion.String(),
-						Kind:       "ROSAMachinePool",
-						Name:       rosaMachinePool.Name,
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						APIGroup: expinfrav1.GroupVersion.Group,
+						Kind:     "ROSAMachinePool",
+						Name:     rosaMachinePool.Name,
 					},
 				},
 			},

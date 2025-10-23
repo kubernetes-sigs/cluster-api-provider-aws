@@ -21,7 +21,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1")
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+)
 
 const (
 	// PreventDeletionLabel can be used in situations where preventing delation is allowed. The docs

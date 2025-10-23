@@ -26,13 +26,15 @@ import (
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
+	expinfrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta1"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	"sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/cluster-api/util/patch"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 )
 
 // RosaMachinePoolScopeParams defines the input parameters used to create a new Scope.
@@ -142,7 +144,7 @@ func (s *RosaMachinePoolScope) InfraCluster() cloud.ClusterObject {
 }
 
 // ClusterObj returns the cluster object.
-func (s *RosaMachinePoolScope) ClusterObj() cloud.ClusterObject {
+func (s *RosaMachinePoolScope) ClusterObj() *clusterv1.Cluster {
 	return s.Cluster
 }
 
@@ -188,13 +190,13 @@ func (s *RosaMachinePoolScope) Namespace() string {
 // RosaMachinePoolReadyFalse marks the ready condition false using warning if error isn't
 // empty.
 func (s *RosaMachinePoolScope) RosaMachinePoolReadyFalse(reason string, err string) error {
-	severity := clusterv1.ConditionSeverityWarning
+	severity := clusterv1beta1.ConditionSeverityWarning
 	if err == "" {
-		severity = clusterv1.ConditionSeverityInfo
+		severity = clusterv1beta1.ConditionSeverityInfo
 	}
 	conditions.MarkFalse(
 		s.RosaMachinePool,
-		expinfrav1.RosaMachinePoolReadyCondition,
+		expinfrav1beta1.RosaMachinePoolReadyCondition,
 		reason,
 		severity,
 		"%s",
@@ -211,8 +213,8 @@ func (s *RosaMachinePoolScope) PatchObject() error {
 	return s.patchHelper.Patch(
 		context.TODO(),
 		s.RosaMachinePool,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
-			expinfrav1.RosaMachinePoolReadyCondition,
+		patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
+			expinfrav1beta1.RosaMachinePoolReadyCondition,
 		}})
 }
 

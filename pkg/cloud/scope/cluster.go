@@ -27,14 +27,16 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	infrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpoints"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	"sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/cluster-api/util/patch"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 )
 
 // ClusterScopeParams defines the input parameters used to create a new Scope.
@@ -250,26 +252,26 @@ func (s *ClusterScope) ListOptionsLabelSelector() client.ListOption {
 func (s *ClusterScope) PatchObject() error {
 	// Always update the readyCondition by summarizing the state of other conditions.
 	// A step counter is added to represent progress during the provisioning process (instead we are hiding during the deletion process).
-	applicableConditions := []clusterv1.ConditionType{
-		infrav1.VpcReadyCondition,
-		infrav1.SubnetsReadyCondition,
-		infrav1.ClusterSecurityGroupsReadyCondition,
-		infrav1.LoadBalancerReadyCondition,
+	applicableConditions := []clusterv1beta1.ConditionType{
+		infrav1beta1.VpcReadyCondition,
+		infrav1beta1.SubnetsReadyCondition,
+		infrav1beta1.ClusterSecurityGroupsReadyCondition,
+		infrav1beta1.LoadBalancerReadyCondition,
 	}
 
 	if s.VPC().IsManaged(s.Name()) {
 		applicableConditions = append(applicableConditions,
-			infrav1.InternetGatewayReadyCondition,
-			infrav1.NatGatewaysReadyCondition,
-			infrav1.RouteTablesReadyCondition,
-			infrav1.VpcEndpointsReadyCondition,
+			infrav1beta1.InternetGatewayReadyCondition,
+			infrav1beta1.NatGatewaysReadyCondition,
+			infrav1beta1.RouteTablesReadyCondition,
+			infrav1beta1.VpcEndpointsReadyCondition,
 		)
 
 		if s.AWSCluster.Spec.Bastion.Enabled {
-			applicableConditions = append(applicableConditions, infrav1.BastionHostReadyCondition)
+			applicableConditions = append(applicableConditions, infrav1beta1.BastionHostReadyCondition)
 		}
 		if s.VPC().IsIPv6Enabled() {
-			applicableConditions = append(applicableConditions, infrav1.EgressOnlyInternetGatewayReadyCondition)
+			applicableConditions = append(applicableConditions, infrav1beta1.EgressOnlyInternetGatewayReadyCondition)
 		}
 	}
 
@@ -282,20 +284,20 @@ func (s *ClusterScope) PatchObject() error {
 	return s.patchHelper.Patch(
 		context.TODO(),
 		s.AWSCluster,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
-			clusterv1.ReadyCondition,
-			infrav1.VpcReadyCondition,
-			infrav1.SubnetsReadyCondition,
-			infrav1.InternetGatewayReadyCondition,
-			infrav1.EgressOnlyInternetGatewayReadyCondition,
-			infrav1.NatGatewaysReadyCondition,
-			infrav1.RouteTablesReadyCondition,
-			infrav1.VpcEndpointsReadyCondition,
-			infrav1.ClusterSecurityGroupsReadyCondition,
-			infrav1.BastionHostReadyCondition,
-			infrav1.LoadBalancerReadyCondition,
-			infrav1.PrincipalUsageAllowedCondition,
-			infrav1.PrincipalCredentialRetrievedCondition,
+		patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
+			clusterv1beta1.ReadyCondition,
+			infrav1beta1.VpcReadyCondition,
+			infrav1beta1.SubnetsReadyCondition,
+			infrav1beta1.InternetGatewayReadyCondition,
+			infrav1beta1.EgressOnlyInternetGatewayReadyCondition,
+			infrav1beta1.NatGatewaysReadyCondition,
+			infrav1beta1.RouteTablesReadyCondition,
+			infrav1beta1.VpcEndpointsReadyCondition,
+			infrav1beta1.ClusterSecurityGroupsReadyCondition,
+			infrav1beta1.BastionHostReadyCondition,
+			infrav1beta1.LoadBalancerReadyCondition,
+			infrav1beta1.PrincipalUsageAllowedCondition,
+			infrav1beta1.PrincipalCredentialRetrievedCondition,
 		}})
 }
 
@@ -315,16 +317,16 @@ func (s *ClusterScope) AdditionalTags() infrav1.Tags {
 
 // APIServerPort returns the APIServerPort to use when creating the load balancer.
 func (s *ClusterScope) APIServerPort() int32 {
-	if s.Cluster.Spec.ClusterNetwork != nil && s.Cluster.Spec.ClusterNetwork.APIServerPort != nil {
-		return *s.Cluster.Spec.ClusterNetwork.APIServerPort
+	if s.Cluster.Spec.ClusterNetwork.APIServerPort != 0 {
+		return s.Cluster.Spec.ClusterNetwork.APIServerPort
 	}
 	return infrav1.DefaultAPIServerPort
 }
 
 // SetFailureDomain sets the infrastructure provider failure domain key to the spec given as input.
-func (s *ClusterScope) SetFailureDomain(id string, spec clusterv1.FailureDomainSpec) {
+func (s *ClusterScope) SetFailureDomain(id string, spec clusterv1.FailureDomain) {
 	if s.AWSCluster.Status.FailureDomains == nil {
-		s.AWSCluster.Status.FailureDomains = make(clusterv1.FailureDomains)
+		s.AWSCluster.Status.FailureDomains = make(map[string]clusterv1.FailureDomain)
 	}
 	s.AWSCluster.Status.FailureDomains[id] = spec
 }
@@ -345,7 +347,7 @@ func (s *ClusterScope) InfraCluster() cloud.ClusterObject {
 }
 
 // ClusterObj returns the cluster object.
-func (s *ClusterScope) ClusterObj() cloud.ClusterObject {
+func (s *ClusterScope) ClusterObj() *clusterv1.Cluster {
 	return s.Cluster
 }
 

@@ -21,7 +21,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 // RosaEndpointAccessType specifies the publishing scope of cluster endpoints.
@@ -806,7 +807,7 @@ type RosaControlPlaneStatus struct {
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"`
 	// Conditions specifies the conditions for the managed control plane
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
 
 	// ID is the cluster ID given by ROSA.
 	ID string `json:"id,omitempty"`
@@ -850,12 +851,12 @@ type ROSAControlPlaneList struct {
 }
 
 // GetConditions returns the control planes conditions.
-func (r *ROSAControlPlane) GetConditions() clusterv1.Conditions {
+func (r *ROSAControlPlane) GetConditions() clusterv1beta1.Conditions {
 	return r.Status.Conditions
 }
 
 // SetConditions sets the status conditions for the AWSManagedControlPlane.
-func (r *ROSAControlPlane) SetConditions(conditions clusterv1.Conditions) {
+func (r *ROSAControlPlane) SetConditions(conditions clusterv1beta1.Conditions) {
 	r.Status.Conditions = conditions
 }
 

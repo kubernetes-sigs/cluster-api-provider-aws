@@ -27,15 +27,17 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	infrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
-	"sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 )
 
 // MachineScopeParams defines the input parameters used to create a new MachineScope.
@@ -302,13 +304,13 @@ func (m *MachineScope) GetRawBootstrapDataWithFormat() ([]byte, string, error) {
 func (m *MachineScope) PatchObject() error {
 	// Always update the readyCondition by summarizing the state of other conditions.
 	// A step counter is added to represent progress during the provisioning process (instead we are hiding during the deletion process).
-	applicableConditions := []clusterv1.ConditionType{
-		infrav1.InstanceReadyCondition,
-		infrav1.SecurityGroupsReadyCondition,
+	applicableConditions := []clusterv1beta1.ConditionType{
+		infrav1beta1.InstanceReadyCondition,
+		infrav1beta1.SecurityGroupsReadyCondition,
 	}
 
 	if m.IsControlPlane() {
-		applicableConditions = append(applicableConditions, infrav1.ELBAttachedCondition)
+		applicableConditions = append(applicableConditions, infrav1beta1.ELBAttachedCondition)
 	}
 
 	conditions.SetSummary(m.AWSMachine,
@@ -320,11 +322,11 @@ func (m *MachineScope) PatchObject() error {
 	return m.patchHelper.Patch(
 		context.TODO(),
 		m.AWSMachine,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+		patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
 			clusterv1.ReadyCondition,
-			infrav1.InstanceReadyCondition,
-			infrav1.SecurityGroupsReadyCondition,
-			infrav1.ELBAttachedCondition,
+			infrav1beta1.InstanceReadyCondition,
+			infrav1beta1.SecurityGroupsReadyCondition,
+			infrav1beta1.ELBAttachedCondition,
 		}})
 }
 
@@ -354,19 +356,19 @@ func (m *MachineScope) HasFailed() bool {
 // InstanceIsRunning returns the instance state of the machine scope.
 func (m *MachineScope) InstanceIsRunning() bool {
 	state := m.GetInstanceState()
-	return state != nil && infrav1.InstanceRunningStates.Has(string(*state))
+	return state != nil && infrav1beta1.InstanceRunningStates.Has(string(*state))
 }
 
 // InstanceIsOperational returns the operational state of the machine scope.
 func (m *MachineScope) InstanceIsOperational() bool {
 	state := m.GetInstanceState()
-	return state != nil && infrav1.InstanceOperationalStates.Has(string(*state))
+	return state != nil && infrav1beta1.InstanceOperationalStates.Has(string(*state))
 }
 
 // InstanceIsInKnownState checks if the machine scope's instance state is known.
 func (m *MachineScope) InstanceIsInKnownState() bool {
 	state := m.GetInstanceState()
-	return state != nil && infrav1.InstanceKnownStates.Has(string(*state))
+	return state != nil && infrav1beta1.InstanceKnownStates.Has(string(*state))
 }
 
 // AWSMachineIsDeleted checks if the AWS machine was deleted.

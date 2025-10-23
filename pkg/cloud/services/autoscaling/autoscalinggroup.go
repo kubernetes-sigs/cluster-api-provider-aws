@@ -33,6 +33,7 @@ import (
 	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	expinfrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta1"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
@@ -147,7 +148,7 @@ func (s *Service) ASGIfExists(name *string) (*expinfrav1.AutoScalingGroup, error
 		record.Eventf(s.scope.InfraCluster(), "FailedDescribeAutoScalingGroups", "failed to describe ASG %q: %v", *name, err)
 		return nil, errors.Wrapf(err, "failed to describe AutoScaling Group: %q", *name)
 	case len(out.AutoScalingGroups) == 0:
-		record.Eventf(s.scope.InfraCluster(), expinfrav1.ASGNotFoundReason, "Unable to find ASG matching %q", *name)
+		record.Eventf(s.scope.InfraCluster(), expinfrav1beta1.ASGNotFoundReason, "Unable to find ASG matching %q", *name)
 		return nil, nil
 	}
 	return s.SDKToAutoScalingGroup(&out.AutoScalingGroups[0])

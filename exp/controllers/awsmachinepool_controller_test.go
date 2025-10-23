@@ -43,7 +43,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	infrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	expinfrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta1"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
@@ -55,8 +57,9 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts/mock_stsiface"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/cluster-api/util/labels/format"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -146,7 +149,9 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				Client: testEnv.Client,
 				Cluster: &clusterv1.Cluster{
 					Status: clusterv1.ClusterStatus{
-						InfrastructureReady: true,
+						Initialization: clusterv1.ClusterInitializationStatus{
+							InfrastructureProvisioned: ptr.To(true),
+						},
 					},
 				},
 				MachinePool: &clusterv1.MachinePool{
@@ -262,7 +267,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				defer teardown(t, g)
 				getASG(t, g)
 
-				ms.Cluster.Status.InfrastructureReady = false
+				ms.Cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(false)
 
 				buf := new(bytes.Buffer)
 				klog.SetOutput(buf)
@@ -270,7 +275,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs)
 				g.Expect(err).To(BeNil())
 				g.Expect(buf.String()).To(ContainSubstring("Cluster infrastructure is not ready yet"))
-				expectConditions(g, ms.AWSMachinePool, []conditionAssertion{{expinfrav1.ASGReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, infrav1.WaitingForClusterInfrastructureReason}})
+				expectConditions(g, ms.AWSMachinePool, []conditionAssertion{{expinfrav1beta1.ASGReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityInfo, infrav1beta1.WaitingForClusterInfrastructureReason}})
 			})
 			t.Run("should exit immediately if bootstrap data secret reference isn't available", func(t *testing.T) {
 				g := NewWithT(t)
@@ -286,7 +291,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 
 				g.Expect(err).To(BeNil())
 				g.Expect(buf.String()).To(ContainSubstring("Bootstrap data secret reference is not yet available"))
-				expectConditions(g, ms.AWSMachinePool, []conditionAssertion{{expinfrav1.ASGReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, infrav1.WaitingForBootstrapDataReason}})
+				expectConditions(g, ms.AWSMachinePool, []conditionAssertion{{expinfrav1beta1.ASGReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityInfo, infrav1beta1.WaitingForBootstrapDataReason}})
 			})
 		})
 		t.Run("there's a provider ID", func(t *testing.T) {
@@ -1165,7 +1170,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 			g.Expect(err).To(BeNil())
 			g.Expect(buf.String()).To(ContainSubstring("Unable to locate ASG"))
 			g.Expect(ms.AWSMachinePool.Finalizers).To(ConsistOf(metav1.FinalizerDeleteDependents))
-			g.Eventually(recorder.Events).Should(Receive(ContainSubstring(expinfrav1.ASGNotFoundReason)))
+			g.Eventually(recorder.Events).Should(Receive(ContainSubstring(expinfrav1beta1.ASGNotFoundReason)))
 		})
 		t.Run("should cause AWSMachinePool to go into NotReady", func(t *testing.T) {
 			g := NewWithT(t)
@@ -1378,9 +1383,9 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 }
 
 type conditionAssertion struct {
-	conditionType clusterv1.ConditionType
+	conditionType clusterv1beta1.ConditionType
 	status        corev1.ConditionStatus
-	severity      clusterv1.ConditionSeverity
+	severity      clusterv1beta1.ConditionSeverity
 	reason        string
 }
 
@@ -1476,7 +1481,7 @@ func TestDiffASG(t *testing.T) {
 			args: args{
 				machinePoolScope: &scope.MachinePoolScope{
 					MachinePool: &clusterv1.MachinePool{
-						Spec: clusterv1nePoolSpec{
+						Spec: clusterv1.MachinePoolSpec{
 							Replicas: ptr.To[int32](1),
 						},
 					},

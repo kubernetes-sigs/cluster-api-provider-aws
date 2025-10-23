@@ -38,7 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	"sigs.k8s.io/cluster-api/util/annotations"
 )
 
@@ -266,7 +266,7 @@ func (s *NodegroupService) createNodegroup(ctx context.Context) (*ekstypes.Nodeg
 func (s *NodegroupService) deleteNodegroupAndWait(ctx context.Context) (reterr error) {
 	eksClusterName := s.scope.KubernetesClusterName()
 	nodegroupName := s.scope.NodegroupName()
-	if err := s.scope.NodegroupReadyFalse(clusterv1.DeletingReason, ""); err != nil {
+	if err := s.scope.NodegroupReadyFalse(clusterv1beta1.DeletingReason, ""); err != nil {
 		return err
 	}
 	defer func() {
@@ -277,7 +277,7 @@ func (s *NodegroupService) deleteNodegroupAndWait(ctx context.Context) (reterr e
 			if err := s.scope.NodegroupReadyFalse("DeletingFailed", reterr.Error()); err != nil {
 				reterr = err
 			}
-		} else if err := s.scope.NodegroupReadyFalse(clusterv1.DeletedReason, ""); err != nil {
+		} else if err := s.scope.NodegroupReadyFalse(clusterv1beta1.DeletedReason, ""); err != nil {
 			reterr = err
 		}
 	}()
