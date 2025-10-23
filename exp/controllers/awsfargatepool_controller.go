@@ -31,13 +31,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	expinfrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta1"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/eks"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -112,9 +114,9 @@ func (r *AWSFargateProfileReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 
 	defer func() {
-		applicableConditions := []clusterv1.ConditionType{
-			expinfrav1.IAMFargateRolesReadyCondition,
-			expinfrav1.EKSFargateProfileReadyCondition,
+		applicableConditions := []clusterv1beta1.ConditionType{
+			expinfrav1beta1.IAMFargateRolesReadyCondition,
+			expinfrav1beta1.EKSFargateProfileReadyCondition,
 		}
 
 		conditions.SetSummary(fargateProfileScope.FargateProfile, conditions.WithConditions(applicableConditions...), conditions.WithStepCounter())
@@ -126,7 +128,7 @@ func (r *AWSFargateProfileReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	if !controlPlane.Status.Ready {
 		log.Info("Control plane is not ready yet")
-		conditions.MarkFalse(fargateProfile, clusterv1.ReadyCondition, expinfrav1.WaitingForEKSControlPlaneReason, clusterv1.ConditionSeverityInfo, "")
+		conditions.MarkFalse(fargateProfile, clusterv1.ReadyCondition, expinfrav1beta1.WaitingForEKSControlPlaneReason, clusterv1beta1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
 	}
 

@@ -42,7 +42,7 @@ require (
 	github.com/openshift-online/ocm-api-model/clientapi v0.0.431
 	github.com/openshift-online/ocm-common v0.0.31
 	github.com/openshift-online/ocm-sdk-go v0.1.476
-	github.com/openshift/rosa v1.2.55
+	github.com/openshift/rosa v1.2.57
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.23.0
 	github.com/sergi/go-diff v1.3.1

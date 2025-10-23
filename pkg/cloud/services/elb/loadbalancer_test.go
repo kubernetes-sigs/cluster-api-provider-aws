@@ -42,12 +42,14 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	infrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/helpers"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 )
 
 var stubInfraV1TargetGroupSpecAPI = infrav1.TargetGroupSpec{
@@ -2964,12 +2966,12 @@ func TestDeleteAPIServerELB(t *testing.T) {
 				}).Return(nil, &elbtypes.AccessPointNotFoundException{})
 			},
 			verifyAWSCluster: func(awsCluster *infrav1.AWSCluster) {
-				loadBalancerConditionReady := conditions.IsTrue(awsCluster, infrav1.LoadBalancerReadyCondition)
+				loadBalancerConditionReady := conditions.IsTrue(awsCluster, infrav1beta1.LoadBalancerReadyCondition)
 				if loadBalancerConditionReady {
 					t.Fatalf("Expected LoadBalancerReady condition to be False, but was True")
 				}
-				loadBalancerConditionReason := conditions.GetReason(awsCluster, infrav1.LoadBalancerReadyCondition)
-				if loadBalancerConditionReason != clusterv1.DeletedReason {
+				loadBalancerConditionReason := conditions.GetReason(awsCluster, infrav1beta1.LoadBalancerReadyCondition)
+				if loadBalancerConditionReason != clusterv1beta1.DeletedReason {
 					t.Fatalf("Expected LoadBalancerReady condition reason to be Deleted, but was %s", loadBalancerConditionReason)
 				}
 			},
@@ -3013,12 +3015,12 @@ func TestDeleteAPIServerELB(t *testing.T) {
 				)
 			},
 			verifyAWSCluster: func(awsCluster *infrav1.AWSCluster) {
-				loadBalancerConditionReady := conditions.IsTrue(awsCluster, infrav1.LoadBalancerReadyCondition)
+				loadBalancerConditionReady := conditions.IsTrue(awsCluster, infrav1beta1.LoadBalancerReadyCondition)
 				if loadBalancerConditionReady {
 					t.Fatalf("Expected LoadBalancerReady condition to be False, but was True")
 				}
-				loadBalancerConditionReason := conditions.GetReason(awsCluster, infrav1.LoadBalancerReadyCondition)
-				if loadBalancerConditionReason != clusterv1.DeletedReason {
+				loadBalancerConditionReason := conditions.GetReason(awsCluster, infrav1beta1.LoadBalancerReadyCondition)
+				if loadBalancerConditionReason != clusterv1beta1.DeletedReason {
 					t.Fatalf("Expected LoadBalancerReady condition reason to be Deleted, but was %s", loadBalancerConditionReason)
 				}
 			},
@@ -3075,12 +3077,12 @@ func TestDeleteAPIServerELB(t *testing.T) {
 				)
 			},
 			verifyAWSCluster: func(awsCluster *infrav1.AWSCluster) {
-				loadBalancerConditionReady := conditions.IsTrue(awsCluster, infrav1.LoadBalancerReadyCondition)
+				loadBalancerConditionReady := conditions.IsTrue(awsCluster, infrav1beta1.LoadBalancerReadyCondition)
 				if loadBalancerConditionReady {
 					t.Fatalf("Expected LoadBalancerReady condition to be False, but was True")
 				}
-				loadBalancerConditionReason := conditions.GetReason(awsCluster, infrav1.LoadBalancerReadyCondition)
-				if loadBalancerConditionReason != clusterv1.DeletedReason {
+				loadBalancerConditionReason := conditions.GetReason(awsCluster, infrav1beta1.LoadBalancerReadyCondition)
+				if loadBalancerConditionReason != clusterv1beta1.DeletedReason {
 					t.Fatalf("Expected LoadBalancerReady condition reason to be Deleted, but was %s", loadBalancerConditionReason)
 				}
 			},

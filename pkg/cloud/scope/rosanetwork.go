@@ -25,12 +25,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	expinfrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta1"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	"sigs.k8s.io/cluster-api/util/patch"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 )
 
 // ROSANetworkScopeParams defines the input parameters used to create a new ROSANetworkScope.
@@ -130,7 +131,7 @@ func (s *ROSANetworkScope) PatchObject() error {
 	return s.patchHelper.Patch(
 		context.TODO(),
 		s.ROSANetwork,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
-			expinfrav1.ROSANetworkReadyCondition,
+		patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
+			expinfrav1beta1.ROSANetworkReadyCondition,
 		}})
 }

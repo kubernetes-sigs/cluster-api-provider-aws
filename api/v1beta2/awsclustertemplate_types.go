@@ -19,7 +19,8 @@ package v1beta2
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1")
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+)
 
 // AWSClusterTemplateSpec defines the desired state of AWSClusterTemplate.
 type AWSClusterTemplateSpec struct {

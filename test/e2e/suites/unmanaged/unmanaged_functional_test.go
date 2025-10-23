@@ -41,10 +41,10 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/exp/instancestate"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"	"sigs.k8s.io/cluster-api/test/framework"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 )
 
 const TestSvc = "test-svc-"
@@ -967,7 +967,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				}
 				Expect(err).To(BeNil())
 				return conditions.IsFalse(awsCluster, infrav1.VpcEndpointsReadyCondition) &&
-					conditions.GetReason(awsCluster, infrav1.VpcEndpointsReadyCondition) == clusterv1.DeletedReason
+					conditions.GetReason(awsCluster, infrav1.VpcEndpointsReadyCondition) == clusterv1beta1.DeletedReason
 			}, e2eCtx.E2EConfig.GetIntervals("", "wait-delete-cluster")...).Should(BeTrue(),
 				"Eventually failed waiting for AWSCluster to show VPC endpoint as deleted in conditions")
 		})

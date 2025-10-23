@@ -32,14 +32,16 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	expinfrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta1"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpoints"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	"sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/cluster-api/util/patch"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 )
 
 // ManagedMachinePoolScopeParams defines the input parameters used to create a new Scope.
@@ -200,7 +202,10 @@ func (s *ManagedMachinePoolScope) RoleName() string {
 
 // Version returns the nodegroup Kubernetes version.
 func (s *ManagedMachinePoolScope) Version() *string {
-	return s.MachinePool.Spec.Template.Spec.Version
+	if s.MachinePool.Spec.Template.Spec.Version == "" {
+		return nil
+	}
+	return &s.MachinePool.Spec.Template.Spec.Version
 }
 
 // ControlPlaneSubnets returns the control plane subnets.
@@ -227,13 +232,13 @@ func (s *ManagedMachinePoolScope) SubnetIDs() ([]string, error) {
 // NodegroupReadyFalse marks the ready condition false using warning if error isn't
 // empty.
 func (s *ManagedMachinePoolScope) NodegroupReadyFalse(reason string, err string) error {
-	severity := clusterv1.ConditionSeverityWarning
+	severity := clusterv1beta1.ConditionSeverityWarning
 	if err == "" {
-		severity = clusterv1.ConditionSeverityInfo
+		severity = clusterv1beta1.ConditionSeverityInfo
 	}
 	conditions.MarkFalse(
 		s.ManagedMachinePool,
-		expinfrav1.EKSNodegroupReadyCondition,
+		expinfrav1beta1.EKSNodegroupReadyCondition,
 		reason,
 		severity,
 		"%s",
@@ -248,13 +253,13 @@ func (s *ManagedMachinePoolScope) NodegroupReadyFalse(reason string, err string)
 // IAMReadyFalse marks the ready condition false using warning if error isn't
 // empty.
 func (s *ManagedMachinePoolScope) IAMReadyFalse(reason string, err string) error {
-	severity := clusterv1.ConditionSeverityWarning
+	severity := clusterv1beta1.ConditionSeverityWarning
 	if err == "" {
-		severity = clusterv1.ConditionSeverityInfo
+		severity = clusterv1beta1.ConditionSeverityInfo
 	}
 	conditions.MarkFalse(
 		s.ManagedMachinePool,
-		expinfrav1.IAMNodegroupRolesReadyCondition,
+		expinfrav1beta1.IAMNodegroupRolesReadyCondition,
 		reason,
 		severity,
 		"%s",
@@ -271,9 +276,9 @@ func (s *ManagedMachinePoolScope) PatchObject() error {
 	return s.patchHelper.Patch(
 		context.TODO(),
 		s.ManagedMachinePool,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
-			expinfrav1.EKSNodegroupReadyCondition,
-			expinfrav1.IAMNodegroupRolesReadyCondition,
+		patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
+			expinfrav1beta1.EKSNodegroupReadyCondition,
+			expinfrav1beta1.IAMNodegroupRolesReadyCondition,
 		}})
 }
 
@@ -296,7 +301,7 @@ func (s *ManagedMachinePoolScope) InfraCluster() cloud.ClusterObject {
 }
 
 // ClusterObj returns the cluster object.
-func (s *ManagedMachinePoolScope) ClusterObj() cloud.ClusterObject {
+func (s *ManagedMachinePoolScope) ClusterObj() *clusterv1.Cluster {
 	return s.Cluster
 }
 

@@ -29,7 +29,8 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	apiv1beta2 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	v1beta2 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
-	apiv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	corev1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	corev1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 func init() {
@@ -386,7 +387,19 @@ func autoConvert_v1beta2_AWSManagedControlPlaneSpec_To_v1beta1_AWSManagedControl
 
 func autoConvert_v1beta1_AWSManagedControlPlaneStatus_To_v1beta2_AWSManagedControlPlaneStatus(in *AWSManagedControlPlaneStatus, out *v1beta2.AWSManagedControlPlaneStatus, s conversion.Scope) error {
 	out.Network = in.Network
-	out.FailureDomains = *(*apiv1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
+	if in.FailureDomains != nil {
+		in, out := &in.FailureDomains, &out.FailureDomains
+		*out = make(map[string]corev1beta2.FailureDomain, len(*in))
+		for key, val := range *in {
+			(*out)[key] = corev1beta2.FailureDomain{
+				Name:         key,
+				ControlPlane: &val.ControlPlane,
+				Attributes:   val.Attributes,
+			}
+		}
+	} else {
+		out.FailureDomains = nil
+	}
 	out.Bastion = (*apiv1beta2.Instance)(unsafe.Pointer(in.Bastion))
 	if err := Convert_v1beta1_OIDCProviderStatus_To_v1beta2_OIDCProviderStatus(&in.OIDCProvider, &out.OIDCProvider, s); err != nil {
 		return err
@@ -395,7 +408,7 @@ func autoConvert_v1beta1_AWSManagedControlPlaneStatus_To_v1beta2_AWSManagedContr
 	out.Initialized = in.Initialized
 	out.Ready = in.Ready
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
-	out.Conditions = *(*apiv1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
+	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
 	out.Addons = *(*[]v1beta2.AddonState)(unsafe.Pointer(&in.Addons))
 	if err := Convert_v1beta1_IdentityProviderStatus_To_v1beta2_IdentityProviderStatus(&in.IdentityProviderStatus, &out.IdentityProviderStatus, s); err != nil {
 		return err
@@ -410,7 +423,18 @@ func Convert_v1beta1_AWSManagedControlPlaneStatus_To_v1beta2_AWSManagedControlPl
 
 func autoConvert_v1beta2_AWSManagedControlPlaneStatus_To_v1beta1_AWSManagedControlPlaneStatus(in *v1beta2.AWSManagedControlPlaneStatus, out *AWSManagedControlPlaneStatus, s conversion.Scope) error {
 	out.Network = in.Network
-	out.FailureDomains = *(*apiv1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
+	if in.FailureDomains != nil {
+		in, out := &in.FailureDomains, &out.FailureDomains
+		*out = make(corev1beta1.FailureDomains, len(*in))
+		for key, val := range *in {
+			(*out)[key] = corev1beta1.FailureDomainSpec{
+				ControlPlane: *val.ControlPlane,
+				Attributes:   val.Attributes,
+			}
+		}
+	} else {
+		out.FailureDomains = nil
+	}
 	out.Bastion = (*apiv1beta2.Instance)(unsafe.Pointer(in.Bastion))
 	if err := Convert_v1beta2_OIDCProviderStatus_To_v1beta1_OIDCProviderStatus(&in.OIDCProvider, &out.OIDCProvider, s); err != nil {
 		return err
@@ -419,7 +443,7 @@ func autoConvert_v1beta2_AWSManagedControlPlaneStatus_To_v1beta1_AWSManagedContr
 	out.Initialized = in.Initialized
 	out.Ready = in.Ready
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
-	out.Conditions = *(*apiv1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
+	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
 	out.Addons = *(*[]AddonState)(unsafe.Pointer(&in.Addons))
 	if err := Convert_v1beta2_IdentityProviderStatus_To_v1beta1_IdentityProviderStatus(&in.IdentityProviderStatus, &out.IdentityProviderStatus, s); err != nil {
 		return err

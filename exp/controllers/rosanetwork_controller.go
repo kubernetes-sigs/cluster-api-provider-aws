@@ -40,11 +40,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	expinfrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta1"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -158,17 +159,17 @@ func (r *ROSANetworkReconciler) reconcileNormal(ctx context.Context, rosaNetScop
 		_, err := r.awsClient.CreateStackWithParamsTags(ctx, templateBody, rosaNetScope.ROSANetwork.Spec.StackName, cfParams, rosaNetScope.ROSANetwork.Spec.StackTags)
 		if err != nil {
 			conditions.MarkFalse(rosaNetScope.ROSANetwork,
-				expinfrav1.ROSANetworkReadyCondition,
-				expinfrav1.ROSANetworkFailedReason,
-				clusterv1.ConditionSeverityError,
+				expinfrav1beta1.ROSANetworkReadyCondition,
+				expinfrav1beta1.ROSANetworkFailedReason,
+				clusterv1beta1.ConditionSeverityError,
 				"%s",
 				err.Error())
 			return ctrl.Result{}, fmt.Errorf("failed to start CF stack creation: %w", err)
 		}
 		conditions.MarkFalse(rosaNetScope.ROSANetwork,
-			expinfrav1.ROSANetworkReadyCondition,
-			expinfrav1.ROSANetworkCreatingReason,
-			clusterv1.ConditionSeverityInfo,
+			expinfrav1beta1.ROSANetworkReadyCondition,
+			expinfrav1beta1.ROSANetworkCreatingReason,
+			clusterv1beta1.ConditionSeverityInfo,
 			"")
 		return ctrl.Result{}, nil
 	}
@@ -182,9 +183,9 @@ func (r *ROSANetworkReconciler) reconcileNormal(ctx context.Context, rosaNetScop
 	case cloudformationtypes.StackStatusCreateInProgress: // Create in progress
 		// Set the reason of false ROSANetworkReadyCondition to Creating
 		conditions.MarkFalse(rosaNetScope.ROSANetwork,
-			expinfrav1.ROSANetworkReadyCondition,
-			expinfrav1.ROSANetworkCreatingReason,
-			clusterv1.ConditionSeverityInfo,
+			expinfrav1beta1.ROSANetworkReadyCondition,
+			expinfrav1beta1.ROSANetworkCreatingReason,
+			clusterv1beta1.ConditionSeverityInfo,
 			"")
 		return ctrl.Result{RequeueAfter: time.Second * 60}, nil
 	case cloudformationtypes.StackStatusCreateComplete: // Create complete
@@ -195,19 +196,19 @@ func (r *ROSANetworkReconciler) reconcileNormal(ctx context.Context, rosaNetScop
 		// Set the reason of true ROSANetworkReadyCondition to Created
 		// We have to use conditions.Set(), since conditions.MarkTrue() does not support setting reason
 		conditions.Set(rosaNetScope.ROSANetwork,
-			&clusterv1.Condition{
-				Type:     expinfrav1.ROSANetworkReadyCondition,
+			&clusterv1beta1.Condition{
+				Type:     expinfrav1beta1.ROSANetworkReadyCondition,
 				Status:   corev1.ConditionTrue,
-				Reason:   expinfrav1.ROSANetworkCreatedReason,
-				Severity: clusterv1.ConditionSeverityInfo,
+				Reason:   expinfrav1beta1.ROSANetworkCreatedReason,
+				Severity: clusterv1beta1.ConditionSeverityInfo,
 			})
 		return ctrl.Result{}, nil
 	case cloudformationtypes.StackStatusCreateFailed: // Create failed
 		// Set the reason of false ROSANetworkReadyCondition to Failed
 		conditions.MarkFalse(rosaNetScope.ROSANetwork,
-			expinfrav1.ROSANetworkReadyCondition,
-			expinfrav1.ROSANetworkFailedReason,
-			clusterv1.ConditionSeverityError,
+			expinfrav1beta1.ROSANetworkReadyCondition,
+			expinfrav1beta1.ROSANetworkFailedReason,
+			clusterv1beta1.ConditionSeverityError,
 			"")
 		return ctrl.Result{}, fmt.Errorf("cloudformation stack %s creation failed, see the stack resources for more information", *r.cfStack.StackName)
 	}
@@ -229,26 +230,26 @@ func (r *ROSANetworkReconciler) reconcileDelete(ctx context.Context, rosaNetScop
 			return ctrl.Result{RequeueAfter: time.Second * 60}, nil
 		case cloudformationtypes.StackStatusDeleteFailed: // Deletion failed
 			conditions.MarkFalse(rosaNetScope.ROSANetwork,
-				expinfrav1.ROSANetworkReadyCondition,
-				expinfrav1.ROSANetworkDeletionFailedReason,
-				clusterv1.ConditionSeverityError,
+				expinfrav1beta1.ROSANetworkReadyCondition,
+				expinfrav1beta1.ROSANetworkDeletionFailedReason,
+				clusterv1beta1.ConditionSeverityError,
 				"")
 			return ctrl.Result{}, fmt.Errorf("CF stack deletion failed")
 		default: // All the other states
 			err := r.awsClient.DeleteCFStack(ctx, rosaNetScope.ROSANetwork.Spec.StackName)
 			if err != nil {
 				conditions.MarkFalse(rosaNetScope.ROSANetwork,
-					expinfrav1.ROSANetworkReadyCondition,
-					expinfrav1.ROSANetworkDeletionFailedReason,
-					clusterv1.ConditionSeverityError,
+					expinfrav1beta1.ROSANetworkReadyCondition,
+					expinfrav1beta1.ROSANetworkDeletionFailedReason,
+					clusterv1beta1.ConditionSeverityError,
 					"%s",
 					err.Error())
 				return ctrl.Result{}, fmt.Errorf("failed to start CF stack deletion: %w", err)
 			}
 			conditions.MarkFalse(rosaNetScope.ROSANetwork,
-				expinfrav1.ROSANetworkReadyCondition,
-				expinfrav1.ROSANetworkDeletingReason,
-				clusterv1.ConditionSeverityInfo,
+				expinfrav1beta1.ROSANetworkReadyCondition,
+				expinfrav1beta1.ROSANetworkDeletingReason,
+				clusterv1beta1.ConditionSeverityInfo,
 				"")
 			return ctrl.Result{RequeueAfter: time.Second * 60}, nil
 		}

@@ -19,7 +19,9 @@ package v1beta2
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1")
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+)
 
 const (
 	// MachineFinalizer allows ReconcileAWSMachine to clean up AWS resources associated with AWSMachine before
@@ -459,7 +461,7 @@ type AWSMachineStatus struct {
 
 	// Conditions defines current service state of the AWSMachine.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
 
 	// DedicatedHost tracks the dynamically allocated dedicated host.
 	// This field is populated when DynamicHostAllocation is used.
@@ -497,12 +499,12 @@ type AWSMachine struct {
 }
 
 // GetConditions returns the observations of the operational state of the AWSMachine resource.
-func (r *AWSMachine) GetConditions() clusterv1.Conditions {
+func (r *AWSMachine) GetConditions() clusterv1beta1.Conditions {
 	return r.Status.Conditions
 }
 
-// SetConditions sets the underlying service state of the AWSMachine to the predescribed clusterv1.Conditions.
-func (r *AWSMachine) SetConditions(conditions clusterv1.Conditions) {
+// SetConditions sets the underlying service state of the AWSMachine to the predescribed clusterv1beta1.Conditions.
+func (r *AWSMachine) SetConditions(conditions clusterv1beta1.Conditions) {
 	r.Status.Conditions = conditions
 }
 

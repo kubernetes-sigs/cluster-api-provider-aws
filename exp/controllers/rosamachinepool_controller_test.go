@@ -30,7 +30,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/rosa"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -113,7 +114,8 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 		return &rosacontrolplanev1.ROSAControlPlane{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      fmt.Sprintf("rosa-control-plane-%v", i),
-				Namespace: ns.Name},
+				Namespace: ns.Name,
+			},
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "ROSAControlPlane",
 				APIVersion: rosacontrolplanev1.GroupVersion.String(),
@@ -168,10 +170,10 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 				Namespace: ns.Name,
 			},
 			Spec: clusterv1.ClusterSpec{
-				ControlPlaneRef: &corev1.ObjectReference{
-					Name:       rosaControlPlane(i).Name,
-					Kind:       "ROSAControlPlane",
-					APIVersion: rosacontrolplanev1.GroupVersion.String(),
+				ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+					Name:     rosaControlPlane(i).Name,
+					Kind:     "ROSAControlPlane",
+					APIGroup: rosacontrolplanev1.GroupVersion.Group,
 				},
 			},
 		}
@@ -214,12 +216,10 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 				Template: clusterv1.MachineTemplateSpec{
 					Spec: clusterv1.MachineSpec{
 						ClusterName: fmt.Sprintf("owner-cluster-%v", i),
-						InfrastructureRef: corev1.ObjectReference{
-							UID:        rosaMachinePool(i).UID,
-							Name:       rosaMachinePool(i).Name,
-							Namespace:  ns.Namespace,
-							Kind:       "ROSAMachinePool",
-							APIVersion: clusterv1.GroupVersion.String(),
+						InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+							Name:     rosaMachinePool(i).Name,
+							Kind:     "ROSAMachinePool",
+							APIGroup: clusterv1.GroupVersion.Group,
 						},
 					},
 				},
@@ -376,12 +376,10 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							ClusterName: ownerCluster(3).Name,
-							InfrastructureRef: corev1.ObjectReference{
-								UID:        rosaMachinePool(3).UID,
-								Name:       rosaMachinePool(3).Name,
-								Namespace:  ns.Namespace,
-								Kind:       "ROSAMachinePool",
-								APIVersion: clusterv1.GroupVersion.String(),
+							InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+								Name:     rosaMachinePool(3).Name,
+								Kind:     "ROSAMachinePool",
+								APIGroup: clusterv1.GroupVersion.Group,
 							},
 						},
 					},
@@ -438,12 +436,10 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							ClusterName: ownerCluster(4).Name,
-							InfrastructureRef: corev1.ObjectReference{
-								UID:        rosaMachinePool(4).UID,
-								Name:       rosaMachinePool(4).Name,
-								Namespace:  ns.Namespace,
-								Kind:       "ROSAMachinePool",
-								APIVersion: clusterv1.GroupVersion.String(),
+							InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+								Name:     rosaMachinePool(4).Name,
+								Kind:     "ROSAMachinePool",
+								APIGroup: clusterv1.GroupVersion.Group,
 							},
 						},
 					},
@@ -535,7 +531,7 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 
 			// patch status conditions
 			rmpPh, err := patch.NewHelper(test.oldROSAMachinePool, testEnv)
-			test.oldROSAMachinePool.Status.Conditions = clusterv1.Conditions{
+			test.oldROSAMachinePool.Status.Conditions = clusterv1beta1.Conditions{
 				{
 					Type:   "Paused",
 					Status: corev1.ConditionFalse,

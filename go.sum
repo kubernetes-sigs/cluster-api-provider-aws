@@ -512,8 +512,8 @@ github.com/openshift-online/ocm-common v0.0.31 h1:csxB4UQAUhwhDOVBmOzUKgtemuwV9r
 github.com/openshift-online/ocm-common v0.0.31/go.mod h1:VEkuZp9aqbXtetZ5ycND6QpvhykvTuBF3oPsVM1X3vI=
 github.com/openshift-online/ocm-sdk-go v0.1.476 h1:l5gp/QEqnocqM02m7pDeS9ndXcCTBamewVSGaymd88Y=
 github.com/openshift-online/ocm-sdk-go v0.1.476/go.mod h1:ds+aOAlQbiK0ubZP3CwXkzd7m48v6fMQ1ef9UCrjzBY=
-github.com/openshift/rosa v1.2.55 h1:Y6UD1474aExF4bZSh2KH4zE+Xl2NVsiuj3TLQGT9U+Y=
-github.com/openshift/rosa v1.2.55/go.mod h1:EE0yTEjbwxfnH/9YbQZaUXUVbIzfPa9KCRNw19QdLsw=
+github.com/openshift/rosa v1.2.57 h1:f2nZCEdQs0a1jadLvgM9Za36ilJq6z+IhteJNnNcTlc=
+github.com/openshift/rosa v1.2.57/go.mod h1:kb6iV145TXhUWBONqlflNIYNbrcYGLk/SFZD6vNx4wM=
 github.com/pelletier/go-toml v1.9.5 h1:4yBQzkHv+7BHq2PQUZF3Mx0IYxG7LsP222s7Agd3ve8=
 github.com/pelletier/go-toml v1.9.5/go.mod h1:u1nR/EPcESfeI/szUZKdtJ0xRNbUoANCkoOuaOx1Y+c=
 github.com/pelletier/go-toml/v2 v2.2.3 h1:YmeHyLY8mFWbdkNWwpr+qIL2bEqT0o95WSdkNHvL12M=

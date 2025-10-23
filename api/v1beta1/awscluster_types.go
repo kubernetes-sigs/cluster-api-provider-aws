@@ -19,7 +19,8 @@ package v1beta1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 const (
@@ -200,11 +201,11 @@ type AWSLoadBalancerSpec struct {
 // AWSClusterStatus defines the observed state of AWSCluster.
 type AWSClusterStatus struct {
 	// +kubebuilder:default=false
-	Ready          bool                     `json:"ready"`
-	Network        NetworkStatus            `json:"networkStatus,omitempty"`
-	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
-	Bastion        *Instance                `json:"bastion,omitempty"`
-	Conditions     clusterv1.Conditions     `json:"conditions,omitempty"`
+	Ready          bool                          `json:"ready"`
+	Network        NetworkStatus                 `json:"networkStatus,omitempty"`
+	FailureDomains clusterv1beta1.FailureDomains `json:"failureDomains,omitempty"`
+	Bastion        *Instance                     `json:"bastion,omitempty"`
+	Conditions     clusterv1beta1.Conditions     `json:"conditions,omitempty"`
 }
 
 // S3Bucket defines a supporting S3 bucket for the cluster, currently can be optionally used for Ignition.
@@ -254,12 +255,12 @@ type AWSClusterList struct {
 }
 
 // GetConditions returns the observations of the operational state of the AWSCluster resource.
-func (r *AWSCluster) GetConditions() clusterv1.Conditions {
+func (r *AWSCluster) GetConditions() clusterv1beta1.Conditions {
 	return r.Status.Conditions
 }
 
-// SetConditions sets the underlying service state of the AWSCluster to the predescribed clusterv1.Conditions.
-func (r *AWSCluster) SetConditions(conditions clusterv1.Conditions) {
+// SetConditions sets the underlying service state of the AWSCluster to the predescribed clusterv1beta1.Conditions.
+func (r *AWSCluster) SetConditions(conditions clusterv1beta1.Conditions) {
 	r.Status.Conditions = conditions
 }
 

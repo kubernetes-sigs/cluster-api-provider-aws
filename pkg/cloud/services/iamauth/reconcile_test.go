@@ -23,7 +23,6 @@ import (
 
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
@@ -31,7 +30,7 @@ import (
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -59,22 +58,20 @@ func TestReconcileIAMAuth(t *testing.T) {
 		eksCluster := createEKSCluster(name, ns)
 		g.Expect(testEnv.Create(ctx, eksCluster)).To(Succeed())
 		awsMP := createAWSMachinePoolForClusterWithInstanceProfile(name, ns, eksCluster.Name, "nodes.cluster-api-provider-aws.sigs.k8s.io")
-		infraRef := corev1.ObjectReference{
-			Kind:       awsMP.TypeMeta.Kind,
-			Name:       awsMP.Name,
-			Namespace:  awsMP.Namespace,
-			APIVersion: awsMP.TypeMeta.APIVersion,
+		infraRef := clusterv1.ContractVersionedObjectReference{
+			Kind:     awsMP.TypeMeta.Kind,
+			Name:     awsMP.Name,
+			APIGroup: awsMP.TypeMeta.GroupVersionKind().Group,
 		}
 		g.Expect(testEnv.Create(ctx, awsMP)).To(Succeed())
 		mp := createMachinepoolForCluster(name, ns, eksCluster.Name, infraRef)
 		g.Expect(testEnv.Create(ctx, mp)).To(Succeed())
 
 		awsMachineTemplate := createAWSMachineTemplateForClusterWithInstanceProfile(name, ns, eksCluster.Name, "eks-nodes.cluster-api-provider-aws.sigs.k8s.io")
-		infraRefForMD := corev1.ObjectReference{
-			Kind:       awsMachineTemplate.TypeMeta.Kind,
-			Name:       awsMachineTemplate.Name,
-			Namespace:  awsMachineTemplate.Namespace,
-			APIVersion: awsMachineTemplate.TypeMeta.APIVersion,
+		infraRefForMD := clusterv1.ContractVersionedObjectReference{
+			Kind:     awsMachineTemplate.TypeMeta.Kind,
+			Name:     awsMachineTemplate.Name,
+			APIGroup: awsMachineTemplate.TypeMeta.GroupVersionKind().Group,
 		}
 		g.Expect(testEnv.Create(ctx, awsMachineTemplate)).To(Succeed())
 		md := createMachineDeploymentForCluster(name, ns, eksCluster.Name, infraRefForMD)
@@ -145,7 +142,7 @@ func createAWSMachinePoolForClusterWithInstanceProfile(name, namespace, clusterN
 	return awsMP
 }
 
-func createMachinepoolForCluster(name, namespace, clusterName string, infrastructureRef corev1.ObjectReference) *clusterv1.MachinePool {
+func createMachinepoolForCluster(name, namespace, clusterName string, infrastructureRef clusterv1.ContractVersionedObjectReference) *clusterv1.MachinePool {
 	mp := &clusterv1.MachinePool{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -191,7 +188,7 @@ func createAWSMachineTemplateForClusterWithInstanceProfile(name, namespace, clus
 	return mt
 }
 
-func createMachineDeploymentForCluster(name, namespace, clusterName string, infrastructureRef corev1.ObjectReference) *clusterv1.MachineDeployment {
+func createMachineDeploymentForCluster(name, namespace, clusterName string, infrastructureRef clusterv1.ContractVersionedObjectReference) *clusterv1.MachineDeployment {
 	md := &clusterv1.MachineDeployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,

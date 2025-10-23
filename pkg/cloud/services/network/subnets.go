@@ -30,6 +30,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/pkg/errors"
 
+	infrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
@@ -39,7 +40,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/tags"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/internal/cidr"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 )
 
 const (
@@ -205,7 +206,7 @@ func (s *Service) reconcileSubnets() error {
 	}
 
 	s.scope.Debug("Reconciled subnets", "subnets", subnets)
-	conditions.MarkTrue(s.scope.InfraCluster(), infrav1.SubnetsReadyCondition)
+	conditions.MarkTrue(s.scope.InfraCluster(), infrav1beta1.SubnetsReadyCondition)
 	return nil
 }
 
