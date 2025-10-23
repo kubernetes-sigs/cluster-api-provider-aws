@@ -187,22 +187,74 @@ func TestAWSMachineTemplateReconciler(t *testing.T) {
 		})
 	})
 
-	// Note: getInstanceTypeCapacity tests are skipped as they require EC2 client injection
+	// Note: getInstanceTypeInfo tests are skipped as they require EC2 client injection
 	// which would need significant refactoring. The function is tested indirectly through
 	// integration tests.
 
 	t.Run("Reconcile", func(t *testing.T) {
-		t.Run("should skip when capacity already set", func(t *testing.T) {
+		t.Run("should skip when capacity and nodeInfo already set", func(t *testing.T) {
 			g := NewWithT(t)
 			template := newAWSMachineTemplate("test-template")
 			template.Status.Capacity = corev1.ResourceList{
 				corev1.ResourceCPU: *resource.NewQuantity(2, resource.DecimalSI),
+			}
+			template.Status.NodeInfo = &infrav1.NodeInfo{
+				Architecture: infrav1.ArchitectureAmd64,
 			}
 
 			reconciler := &AWSMachineTemplateReconciler{
 				Client: newFakeClient(template),
 			}
 
+			result, err := reconciler.Reconcile(context.Background(), ctrl.Request{
+				NamespacedName: client.ObjectKeyFromObject(template),
+			})
+
+			g.Expect(err).To(BeNil())
+			g.Expect(result.Requeue).To(BeFalse())
+		})
+
+		t.Run("should reconcile when capacity set but nodeInfo is not", func(t *testing.T) {
+			g := NewWithT(t)
+			template := newAWSMachineTemplate("test-template")
+			template.Status.Capacity = corev1.ResourceList{
+				corev1.ResourceCPU: *resource.NewQuantity(2, resource.DecimalSI),
+			}
+			template.OwnerReferences = []metav1.OwnerReference{
+				{
+					APIVersion: clusterv1.GroupVersion.String(),
+					Kind:       "Cluster",
+					Name:       "test-cluster",
+				},
+			}
+			cluster := &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: "default",
+				},
+				Spec: clusterv1.ClusterSpec{
+					InfrastructureRef: &corev1.ObjectReference{
+						Kind:      "AWSCluster",
+						Name:      "test-aws-cluster",
+						Namespace: "default",
+					},
+				},
+			}
+			awsCluster := &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-aws-cluster",
+					Namespace: "default",
+				},
+				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
+				},
+			}
+
+			reconciler := &AWSMachineTemplateReconciler{
+				Client: newFakeClient(template, cluster, awsCluster),
+			}
+
+			// This will fail at AWS API call, but demonstrates that reconcile proceeds
 			result, err := reconciler.Reconcile(context.Background(), ctrl.Request{
 				NamespacedName: client.ObjectKeyFromObject(template),
 			})

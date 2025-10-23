@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
@@ -67,8 +68,8 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, err
 	}
 
-	// Skip if capacity is already set
-	if len(awsMachineTemplate.Status.Capacity) > 0 {
+	// Skip if capacity and nodeInfo are already set
+	if len(awsMachineTemplate.Status.Capacity) > 0 && awsMachineTemplate.Status.NodeInfo != nil {
 		return ctrl.Result{}, nil
 	}
 
@@ -98,21 +99,22 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, nil
 	}
 
-	// Query instance type capacity
-	capacity, err := r.getInstanceTypeCapacity(ctx, globalScope, instanceType)
+	// Query instance type capacity and node info
+	capacity, nodeInfo, err := r.getInstanceTypeInfo(ctx, globalScope, awsMachineTemplate, instanceType)
 	if err != nil {
 		record.Warnf(awsMachineTemplate, "CapacityQueryFailed", "Failed to query capacity for instance type %q: %v", instanceType, err)
 		return ctrl.Result{}, nil
 	}
 
-	// Update status with capacity
+	// Update status with capacity and nodeInfo
 	awsMachineTemplate.Status.Capacity = capacity
+	awsMachineTemplate.Status.NodeInfo = nodeInfo
 
 	if err := r.Status().Update(ctx, awsMachineTemplate); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to update AWSMachineTemplate status")
 	}
 
-	log.Info("Successfully populated capacity information", "instanceType", instanceType, "region", region, "capacity", capacity)
+	log.Info("Successfully populated capacity and nodeInfo", "instanceType", instanceType, "region", region, "capacity", capacity, "nodeInfo", nodeInfo)
 	return ctrl.Result{}, nil
 }
 
@@ -145,8 +147,8 @@ func (r *AWSMachineTemplateReconciler) getRegion(ctx context.Context, template *
 	return "", nil
 }
 
-// getInstanceTypeCapacity queries AWS EC2 API for instance type capacity.
-func (r *AWSMachineTemplateReconciler) getInstanceTypeCapacity(ctx context.Context, globalScope *scope.GlobalScope, instanceType string) (corev1.ResourceList, error) {
+// getInstanceTypeInfo queries AWS EC2 API for instance type capacity and node info.
+func (r *AWSMachineTemplateReconciler) getInstanceTypeInfo(ctx context.Context, globalScope *scope.GlobalScope, template *infrav1.AWSMachineTemplate, instanceType string) (corev1.ResourceList, *infrav1.NodeInfo, error) {
 	// Create EC2 client from global scope
 	ec2Client := ec2.NewFromConfig(globalScope.Session())
 
@@ -157,11 +159,11 @@ func (r *AWSMachineTemplateReconciler) getInstanceTypeCapacity(ctx context.Conte
 
 	result, err := ec2Client.DescribeInstanceTypes(ctx, input)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to describe instance type %q", instanceType)
+		return nil, nil, errors.Wrapf(err, "failed to describe instance type %q", instanceType)
 	}
 
 	if len(result.InstanceTypes) == 0 {
-		return nil, errors.Errorf("no information found for instance type %q", instanceType)
+		return nil, nil, errors.Errorf("no information found for instance type %q", instanceType)
 	}
 
 	// Extract capacity information
@@ -178,7 +180,71 @@ func (r *AWSMachineTemplateReconciler) getInstanceTypeCapacity(ctx context.Conte
 		memoryBytes := *info.MemoryInfo.SizeInMiB * 1024 * 1024
 		resourceList[corev1.ResourceMemory] = *resource.NewQuantity(memoryBytes, resource.BinarySI)
 	}
-	return resourceList, nil
+
+	// Extract node info from AMI if available
+	nodeInfo := &infrav1.NodeInfo{}
+	amiID := template.Spec.Template.Spec.AMI.ID
+	if amiID != nil && *amiID != "" {
+		arch, os, err := r.getNodeInfoFromAMI(ctx, ec2Client, *amiID)
+		if err == nil {
+			if arch != "" {
+				nodeInfo.Architecture = arch
+			}
+			if os != "" {
+				nodeInfo.OperatingSystem = os
+			}
+		}
+	}
+
+	return resourceList, nodeInfo, nil
+}
+
+// getNodeInfoFromAMI queries the AMI to determine architecture and operating system.
+func (r *AWSMachineTemplateReconciler) getNodeInfoFromAMI(ctx context.Context, ec2Client *ec2.Client, amiID string) (infrav1.Architecture, string, error) {
+	input := &ec2.DescribeImagesInput{
+		ImageIds: []string{amiID},
+	}
+
+	result, err := ec2Client.DescribeImages(ctx, input)
+	if err != nil {
+		return "", "", errors.Wrapf(err, "failed to describe AMI %q", amiID)
+	}
+
+	if len(result.Images) == 0 {
+		return "", "", errors.Errorf("no information found for AMI %q", amiID)
+	}
+
+	image := result.Images[0]
+
+	// Get architecture from AMI
+	var arch infrav1.Architecture
+	switch image.Architecture {
+	case ec2types.ArchitectureValuesX8664:
+		arch = infrav1.ArchitectureAmd64
+	case ec2types.ArchitectureValuesArm64:
+		arch = infrav1.ArchitectureArm64
+	}
+
+	// Determine OS - check Platform field first (specifically for Windows identification)
+	var os string
+
+	// 1. Check Platform field (most reliable for Windows detection)
+	if image.Platform == ec2types.PlatformValuesWindows {
+		os = "windows"
+	}
+
+	// 2. Check PlatformDetails field (provides more detailed information)
+	if os == "" && image.PlatformDetails != nil {
+		platformDetails := strings.ToLower(*image.PlatformDetails)
+		switch {
+		case strings.Contains(platformDetails, "windows"):
+			os = "windows"
+		case strings.Contains(platformDetails, "linux"), strings.Contains(platformDetails, "unix"):
+			os = "linux"
+		}
+	}
+
+	return arch, os, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
