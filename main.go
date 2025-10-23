@@ -291,6 +291,11 @@ func main() {
 			os.Exit(1)
 		}
 
+		if err := (&expinfrav1.ROSANetwork{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "ROSANetwork")
+			os.Exit(1)
+		}
+
 		setupLog.Debug("enabling ROSA role config controller")
 		if err = (&expcontrollers.ROSARoleConfigReconciler{
 			Client:           mgr.GetClient(),
