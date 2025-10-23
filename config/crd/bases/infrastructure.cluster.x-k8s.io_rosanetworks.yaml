@@ -44,19 +44,26 @@ spec:
             description: ROSANetworkSpec defines the desired state of ROSANetwork
             properties:
               availabilityZoneCount:
-                default: 1
                 description: |-
                   The number of availability zones to be used for creation of the network infrastructure.
                   You can specify anything between one and four, depending on the chosen AWS region.
+                  Either AvailabilityZoneCount OR AvailabilityZones must be set.
+                minimum: 1
                 type: integer
+                x-kubernetes-validations:
+                - message: availabilityZoneCount is immutable
+                  rule: self == oldSelf
               availabilityZones:
                 description: |-
                   The list of availability zones to be used for creation of the network infrastructure.
                   You can specify anything between one and four valid availability zones from a given region.
-                  Should you specify both the availabilityZoneCount and availabilityZones, the list of availability zones takes preference.
+                  Either AvailabilityZones OR AvailabilityZoneCount must be set.
                 items:
                   type: string
                 type: array
+                x-kubernetes-validations:
+                - message: availabilityZones is immutable
+                  rule: self == oldSelf
               cidrBlock:
                 description: CIDR block to be used for the VPC
                 format: cidr
@@ -85,10 +92,16 @@ spec:
                 description: The AWS region in which the components of ROSA network
                   infrastruture are to be crated
                 type: string
+                x-kubernetes-validations:
+                - message: region is immutable
+                  rule: self == oldSelf
               stackName:
                 description: The name of the cloudformation stack under which the
                   network infrastructure would be created
                 type: string
+                x-kubernetes-validations:
+                - message: stackName is immutable
+                  rule: self == oldSelf
               stackTags:
                 additionalProperties:
                   type: string
