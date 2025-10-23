@@ -202,16 +202,9 @@ spec:
       - fd02::/112
 ```
 
-## Cloud Controller Manager IPv6 Support for Self-managed Clusters
+## Cloud Controller Manager Node IP Configurations
 
-<aside class="note warning">
-<h1>Warning</h1>
-
-The AWS Cloud Controller Manager (CCM) does not currently support dualstack Load Balancers. When creating Services of type LoadBalancer in a dualstack cluster, they will be
-assigned addresses from only one IP family.
-</aside>
-
-**Node IP addresses**: You need to provide cloud-config to the CCM via a ConfigMap to set the `NodeIPFamilies` to include IPv6. This instructs the CCM to consider IPv6 in the node's network interface. If not, the CCM will only consider node's IPv4. This causes nodes to have only IPv4 and new pods with `hostNetwork: true` will only pick up the node's IPv4 address.
+You need to provide cloud-config to the CCM via a ConfigMap to set the `NodeIPFamilies` to include IPv6. This instructs the CCM to consider IPv6 in the machine network interface, if any. If not configured, the CCM will only consider the node's IPv4 address. This causes nodes to have only IPv4 and new pods with `hostNetwork: true` will only pick up the node's IPv4 address.
 
 For example, provide the following ConfigMap to `cloud-controller-manager-addon`:
 
@@ -251,6 +244,14 @@ spec:
     configMap:
       name: cloud-config
 ```
+
+## Cloud Controller Manager Load Balancer Limitations
+
+<aside class="note warning">
+<h1>Warning</h1>
+
+The AWS Cloud Controller Manager (CCM) does **not** currently support dualstack Load Balancers. When creating Services of type LoadBalancer in a dualstack cluster, the Load Balancers will be created with **only** IPv4.
+</aside>
 
 ## CNI IPv6 Support for Self-managed Clusters
 

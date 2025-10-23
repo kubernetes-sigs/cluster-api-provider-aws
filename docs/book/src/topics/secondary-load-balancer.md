@@ -37,8 +37,6 @@ spec:
 
 ## Target Group IP Address Type
 
-**Note:** The `targetGroupIPType` field is only available when using Network Load Balancers (NLB), Application Load Balancers (ALB), or Gateway Load Balancers (ELB). It **cannot** be configured when using Classic Load Balancers.
-
 The secondary load balancer supports the same `targetGroupIPType` configuration as the primary load balancer. By default, the target group IP address type is set based on the VPC configuration:
 - If the VPC has IPv6 enabled, the target group uses `ipv6`
 - Otherwise, it defaults to `ipv4`
