@@ -36,8 +36,8 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 )
 
 // MachineScopeParams defines the input parameters used to create a new MachineScope.
@@ -74,7 +74,7 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 		params.Logger = logger.NewLogger(log)
 	}
 
-	helper, err := patch.NewHelper(params.AWSMachine, params.Client)
+	helper, err := v1beta1patch.NewHelper(params.AWSMachine, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init patch helper")
 	}
@@ -93,7 +93,7 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 type MachineScope struct {
 	logger.Logger
 	client      client.Client
-	patchHelper *patch.Helper
+	patchHelper *v1beta1patch.Helper
 
 	Cluster      *clusterv1.Cluster
 	Machine      *clusterv1.Machine
@@ -313,16 +313,16 @@ func (m *MachineScope) PatchObject() error {
 		applicableConditions = append(applicableConditions, infrav1beta1.ELBAttachedCondition)
 	}
 
-	conditions.SetSummary(m.AWSMachine,
-		conditions.WithConditions(applicableConditions...),
-		conditions.WithStepCounterIf(m.AWSMachine.ObjectMeta.DeletionTimestamp.IsZero()),
-		conditions.WithStepCounter(),
+	v1beta1conditions.SetSummary(m.AWSMachine,
+		v1beta1conditions.WithConditions(applicableConditions...),
+		v1beta1conditions.WithStepCounterIf(m.AWSMachine.ObjectMeta.DeletionTimestamp.IsZero()),
+		v1beta1conditions.WithStepCounter(),
 	)
 
 	return m.patchHelper.Patch(
 		context.TODO(),
 		m.AWSMachine,
-		patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
+		v1beta1patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
 			clusterv1.ReadyCondition,
 			infrav1beta1.InstanceReadyCondition,
 			infrav1beta1.SecurityGroupsReadyCondition,

@@ -40,7 +40,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/utils"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 )
 
 const (
@@ -198,7 +198,7 @@ func (s *Service) ReconcileSecurityGroups() error {
 			s.scope.Debug("Authorized ingress rules in security group", "authorized-ingress-rules", toAuthorize, "security-group-id", sg.ID)
 		}
 	}
-	conditions.MarkTrue(s.scope.InfraCluster(), infrav1beta1.ClusterSecurityGroupsReadyCondition)
+	v1beta1conditions.MarkTrue(s.scope.InfraCluster(), infrav1beta1.ClusterSecurityGroupsReadyCondition)
 	return nil
 }
 
@@ -309,7 +309,7 @@ func (s *Service) ec2SecurityGroupToSecurityGroup(ec2SecurityGroup types.Securit
 func (s *Service) DeleteSecurityGroups() error {
 	if s.scope.VPC().ID == "" {
 		s.scope.Debug("Skipping security group deletion, vpc-id is nil", "vpc-id", s.scope.VPC().ID)
-		conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.ClusterSecurityGroupsReadyCondition, clusterv1beta1.DeletedReason, clusterv1beta1.ConditionSeverityInfo, "")
+		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.ClusterSecurityGroupsReadyCondition, clusterv1beta1.DeletedReason, clusterv1beta1.ConditionSeverityInfo, "")
 		return nil
 	}
 
@@ -323,7 +323,7 @@ func (s *Service) DeleteSecurityGroups() error {
 		return nil
 	}
 
-	conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.ClusterSecurityGroupsReadyCondition, clusterv1beta1.DeletingReason, clusterv1beta1.ConditionSeverityInfo, "")
+	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.ClusterSecurityGroupsReadyCondition, clusterv1beta1.DeletingReason, clusterv1beta1.ConditionSeverityInfo, "")
 	if err := s.scope.PatchObject(); err != nil {
 		return err
 	}
@@ -332,7 +332,7 @@ func (s *Service) DeleteSecurityGroups() error {
 		sg := clusterGroups[i]
 		current := sg.IngressRules
 		if err := s.revokeAllSecurityGroupIngressRules(sg.ID); awserrors.IsIgnorableSecurityGroupError(err) != nil { //nolint:gocritic
-			conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.ClusterSecurityGroupsReadyCondition, "DeletingFailed", clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
+			v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.ClusterSecurityGroupsReadyCondition, "DeletingFailed", clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
 			return err
 		}
 
@@ -344,10 +344,10 @@ func (s *Service) DeleteSecurityGroups() error {
 	}
 
 	if err != nil {
-		conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.ClusterSecurityGroupsReadyCondition, "DeletingFailed", clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
+		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.ClusterSecurityGroupsReadyCondition, "DeletingFailed", clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
 		return err
 	}
-	conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.ClusterSecurityGroupsReadyCondition, clusterv1beta1.DeletedReason, clusterv1beta1.ConditionSeverityInfo, "")
+	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.ClusterSecurityGroupsReadyCondition, clusterv1beta1.DeletedReason, clusterv1beta1.ConditionSeverityInfo, "")
 
 	return nil
 }

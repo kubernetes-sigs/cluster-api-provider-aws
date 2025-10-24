@@ -47,7 +47,7 @@ import (
 	bsutil "sigs.k8s.io/cluster-api/bootstrap/util"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
@@ -125,11 +125,11 @@ func (r *EKSConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// set up defer block for updating config
 	defer func() {
-		conditions.SetSummary(config,
-			conditions.WithConditions(
+		v1beta1conditions.SetSummary(config,
+			v1beta1conditions.WithConditions(
 				eksbootstrapv1.DataSecretAvailableCondition,
 			),
-			conditions.WithStepCounter(),
+			v1beta1conditions.WithStepCounter(),
 		)
 
 		patchOpts := []patch.Option{}
@@ -209,7 +209,7 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 
 	if !meta.IsStatusConditionTrue(cluster.GetConditions(), string(clusterv1beta1.InfrastructureReadyCondition)) {
 		log.Info("Cluster infrastructure is not ready")
-		conditions.MarkFalse(config,
+		v1beta1conditions.MarkFalse(config,
 			eksbootstrapv1.DataSecretAvailableCondition,
 			eksbootstrapv1.WaitingForClusterInfrastructureReason,
 			clusterv1beta1.ConditionSeverityInfo, "")
@@ -218,7 +218,7 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 
 	if !meta.IsStatusConditionTrue(cluster.GetConditions(), string(clusterv1beta1.ControlPlaneInitializedCondition)) {
 		log.Info("Control Plane has not yet been initialized")
-		conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.WaitingForControlPlaneInitializationReason, clusterv1beta1.ConditionSeverityInfo, "")
+		v1beta1conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.WaitingForControlPlaneInitializationReason, clusterv1beta1.ConditionSeverityInfo, "")
 		return nil
 	}
 
@@ -231,7 +231,7 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 	files, err := r.resolveFiles(ctx, config)
 	if err != nil {
 		log.Info("Failed to resolve files for user data")
-		conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.DataSecretGenerationFailedReason, clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
+		v1beta1conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.DataSecretGenerationFailedReason, clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
 		return err
 	}
 
@@ -276,14 +276,14 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 	userDataScript, err := userdata.NewNode(nodeInput)
 	if err != nil {
 		log.Error(err, "Failed to create a worker join configuration")
-		conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.DataSecretGenerationFailedReason, clusterv1beta1.ConditionSeverityWarning, "")
+		v1beta1conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.DataSecretGenerationFailedReason, clusterv1beta1.ConditionSeverityWarning, "")
 		return err
 	}
 
 	// store userdata as secret
 	if err := r.storeBootstrapData(ctx, cluster, config, userDataScript); err != nil {
 		log.Error(err, "Failed to store bootstrap data")
-		conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.DataSecretGenerationFailedReason, clusterv1beta1.ConditionSeverityWarning, "")
+		v1beta1conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.DataSecretGenerationFailedReason, clusterv1beta1.ConditionSeverityWarning, "")
 		return err
 	}
 
@@ -358,7 +358,7 @@ func (r *EKSConfigReconciler) storeBootstrapData(ctx context.Context, cluster *c
 
 	config.Status.DataSecretName = ptr.To[string](secret.Name)
 	config.Status.Ready = true
-	conditions.MarkTrue(config, eksbootstrapv1.DataSecretAvailableCondition)
+	v1beta1conditions.MarkTrue(config, eksbootstrapv1.DataSecretAvailableCondition)
 	return nil
 }
 

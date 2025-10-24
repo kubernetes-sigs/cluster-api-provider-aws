@@ -50,7 +50,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/utils"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 )
 
 const (
@@ -86,13 +86,13 @@ func (s *Service) ReconcileLaunchTemplate(
 	scope.Info("checking for existing launch template")
 	launchTemplate, launchTemplateUserDataHash, launchTemplateUserDataSecretKey, _, err := ec2svc.GetLaunchTemplate(scope.LaunchTemplateName())
 	if err != nil {
-		conditions.MarkUnknown(scope.GetSetter(), expinfrav1beta1.LaunchTemplateReadyCondition, expinfrav1beta1.LaunchTemplateNotFoundReason, "%s", err.Error())
+		v1beta1conditions.MarkUnknown(scope.GetSetter(), expinfrav1beta1.LaunchTemplateReadyCondition, expinfrav1beta1.LaunchTemplateNotFoundReason, "%s", err.Error())
 		return nil, err
 	}
 
 	imageID, err := ec2svc.DiscoverLaunchTemplateAMI(ctx, scope)
 	if err != nil {
-		conditions.MarkFalse(scope.GetSetter(), expinfrav1beta1.LaunchTemplateReadyCondition, expinfrav1beta1.LaunchTemplateCreateFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
+		v1beta1conditions.MarkFalse(scope.GetSetter(), expinfrav1beta1.LaunchTemplateReadyCondition, expinfrav1beta1.LaunchTemplateCreateFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
 		return nil, err
 	}
 
@@ -122,14 +122,14 @@ func (s *Service) ReconcileLaunchTemplate(
 		// `AWSMachinePool.Spec.Ignition != nil` to toggle the S3 feature on for `AWSMachinePool` objects.
 		objectURL, err := objectStoreSvc.CreateForMachinePool(ctx, scope, bootstrapData)
 		if err != nil {
-			conditions.MarkFalse(scope.GetSetter(), expinfrav1beta1.LaunchTemplateReadyCondition, expinfrav1beta1.LaunchTemplateReconcileFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
+			v1beta1conditions.MarkFalse(scope.GetSetter(), expinfrav1beta1.LaunchTemplateReadyCondition, expinfrav1beta1.LaunchTemplateReconcileFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
 			return nil, err
 		}
 
 		semver, err := semver.ParseTolerant(ignitionVersion)
 		if err != nil {
 			err = errors.Wrapf(err, "failed to parse ignition version %q", ignitionVersion)
-			conditions.MarkFalse(scope.GetSetter(), expinfrav1beta1.LaunchTemplateReadyCondition, expinfrav1beta1.LaunchTemplateReconcileFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
+			v1beta1conditions.MarkFalse(scope.GetSetter(), expinfrav1beta1.LaunchTemplateReadyCondition, expinfrav1beta1.LaunchTemplateReconcileFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
 			return nil, err
 		}
 
@@ -152,7 +152,7 @@ func (s *Service) ReconcileLaunchTemplate(
 			userDataForLaunchTemplate, err = json.Marshal(ignData)
 			if err != nil {
 				err = errors.Wrap(err, "failed to convert ignition config to JSON")
-				conditions.MarkFalse(scope.GetSetter(), expinfrav1beta1.LaunchTemplateReadyCondition, expinfrav1beta1.LaunchTemplateReconcileFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
+				v1beta1conditions.MarkFalse(scope.GetSetter(), expinfrav1beta1.LaunchTemplateReadyCondition, expinfrav1beta1.LaunchTemplateReconcileFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
 				return nil, err
 			}
 		case 3:
@@ -172,12 +172,12 @@ func (s *Service) ReconcileLaunchTemplate(
 			userDataForLaunchTemplate, err = json.Marshal(ignData)
 			if err != nil {
 				err = errors.Wrap(err, "failed to convert ignition config to JSON")
-				conditions.MarkFalse(scope.GetSetter(), expinfrav1beta1.LaunchTemplateReadyCondition, expinfrav1beta1.LaunchTemplateReconcileFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
+				v1beta1conditions.MarkFalse(scope.GetSetter(), expinfrav1beta1.LaunchTemplateReadyCondition, expinfrav1beta1.LaunchTemplateReconcileFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
 				return nil, err
 			}
 		default:
 			err = errors.Errorf("unsupported ignition version %q", ignitionVersion)
-			conditions.MarkFalse(scope.GetSetter(), expinfrav1beta1.LaunchTemplateReadyCondition, expinfrav1beta1.LaunchTemplateReconcileFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
+			v1beta1conditions.MarkFalse(scope.GetSetter(), expinfrav1beta1.LaunchTemplateReadyCondition, expinfrav1beta1.LaunchTemplateReconcileFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
 			return nil, err
 		}
 	} else {
@@ -192,7 +192,7 @@ func (s *Service) ReconcileLaunchTemplate(
 		scope.Info("no existing launch template found, creating")
 		launchTemplateID, err := ec2svc.CreateLaunchTemplate(scope, imageID, *bootstrapDataSecretKey, userDataForLaunchTemplate, userdata.ComputeHash(bootstrapData))
 		if err != nil {
-			conditions.MarkFalse(scope.GetSetter(), expinfrav1beta1.LaunchTemplateReadyCondition, expinfrav1beta1.LaunchTemplateCreateFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
+			v1beta1conditions.MarkFalse(scope.GetSetter(), expinfrav1beta1.LaunchTemplateReadyCondition, expinfrav1beta1.LaunchTemplateCreateFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
 			return nil, err
 		}
 
@@ -205,7 +205,7 @@ func (s *Service) ReconcileLaunchTemplate(
 	if scope.GetLaunchTemplateIDStatus() == "" {
 		launchTemplateID, err := ec2svc.GetLaunchTemplateID(scope.LaunchTemplateName())
 		if err != nil {
-			conditions.MarkUnknown(scope.GetSetter(), expinfrav1beta1.LaunchTemplateReadyCondition, expinfrav1beta1.LaunchTemplateNotFoundReason, "%s", err.Error())
+			v1beta1conditions.MarkUnknown(scope.GetSetter(), expinfrav1beta1.LaunchTemplateReadyCondition, expinfrav1beta1.LaunchTemplateNotFoundReason, "%s", err.Error())
 			return nil, err
 		}
 		scope.SetLaunchTemplateIDStatus(launchTemplateID)
@@ -217,7 +217,7 @@ func (s *Service) ReconcileLaunchTemplate(
 	if scope.GetLaunchTemplateLatestVersionStatus() == "" {
 		launchTemplateVersion, err := ec2svc.GetLaunchTemplateLatestVersion(scope.GetLaunchTemplateIDStatus())
 		if err != nil {
-			conditions.MarkUnknown(scope.GetSetter(), expinfrav1beta1.LaunchTemplateReadyCondition, expinfrav1beta1.LaunchTemplateNotFoundReason, "%s", err.Error())
+			v1beta1conditions.MarkUnknown(scope.GetSetter(), expinfrav1beta1.LaunchTemplateReadyCondition, expinfrav1beta1.LaunchTemplateNotFoundReason, "%s", err.Error())
 			return nil, err
 		}
 		scope.SetLaunchTemplateLatestVersionStatus(launchTemplateVersion)
@@ -326,10 +326,10 @@ func (s *Service) ReconcileLaunchTemplate(
 
 	if needsUpdate || tagsChanged || amiChanged || userDataSecretKeyChanged {
 		if err := runPostLaunchTemplateUpdateOperation(); err != nil {
-			conditions.MarkFalse(scope.GetSetter(), expinfrav1beta1.PostLaunchTemplateUpdateOperationCondition, expinfrav1beta1.PostLaunchTemplateUpdateOperationFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
+			v1beta1conditions.MarkFalse(scope.GetSetter(), expinfrav1beta1.PostLaunchTemplateUpdateOperationCondition, expinfrav1beta1.PostLaunchTemplateUpdateOperationFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
 			return nil, err
 		}
-		conditions.MarkTrue(scope.GetSetter(), expinfrav1beta1.PostLaunchTemplateUpdateOperationCondition)
+		v1beta1conditions.MarkTrue(scope.GetSetter(), expinfrav1beta1.PostLaunchTemplateUpdateOperationCondition)
 	}
 
 	return nil, nil

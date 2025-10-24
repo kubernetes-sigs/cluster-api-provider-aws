@@ -25,7 +25,7 @@ import (
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 )
 
 // LaunchTemplateScope defines a scope defined around a launch template.
@@ -43,7 +43,7 @@ type LaunchTemplateScope interface {
 	AdditionalTags() infrav1.Tags
 
 	GetObjectMeta() *metav1.ObjectMeta
-	GetSetter() conditions.Setter
+	GetSetter() v1beta1conditions.Setter
 	PatchObject() error
 	GetEC2Scope() EC2Scope
 

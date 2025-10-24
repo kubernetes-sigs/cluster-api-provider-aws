@@ -43,16 +43,18 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/util/system"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 )
 
 const (
 	notPermittedError = "Namespace is not permitted to use %s: %s"
 )
 
-var sessionCache sync.Map
-var providerCache sync.Map
+var (
+	sessionCache  sync.Map
+	providerCache sync.Map
+)
 
 type sessionCacheEntry struct {
 	session         *aws.Config
@@ -72,7 +74,6 @@ func sessionForRegion(region string) (*aws.Config, throttle.ServiceLimiters, err
 	}
 
 	ns, err := config.LoadDefaultConfig(context.Background(), config.WithRegion(region))
-
 	if err != nil {
 		return nil, nil, err
 	}
@@ -92,7 +93,7 @@ func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.Se
 	providers, err := getProvidersForCluster(context.Background(), k8sClient, clusterScoper, region, log)
 	if err != nil {
 		// could not get providers and retrieve the credentials
-		conditions.MarkFalse(clusterScoper.InfraCluster(), infrav1beta1.PrincipalCredentialRetrievedCondition, infrav1beta1.PrincipalCredentialRetrievalFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
+		v1beta1conditions.MarkFalse(clusterScoper.InfraCluster(), infrav1beta1.PrincipalCredentialRetrievedCondition, infrav1beta1.PrincipalCredentialRetrievalFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
 		return nil, nil, errors.Wrap(err, "Failed to get providers for cluster")
 	}
 
@@ -130,7 +131,7 @@ func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.Se
 		// Check if identity credentials can be retrieved. One reason this will fail is that source identity is not authorized for assume role.
 		_, err := providers[0].Retrieve(context.Background())
 		if err != nil {
-			conditions.MarkUnknown(clusterScoper.InfraCluster(), infrav1beta1.PrincipalCredentialRetrievedCondition, infrav1beta1.CredentialProviderBuildFailedReason, "%s", err.Error())
+			v1beta1conditions.MarkUnknown(clusterScoper.InfraCluster(), infrav1beta1.PrincipalCredentialRetrievedCondition, infrav1beta1.CredentialProviderBuildFailedReason, "%s", err.Error())
 
 			// delete the existing session from cache. Otherwise, we give back a defective session on next method invocation with same cluster scope
 			sessionCache.Delete(getSessionName(region, clusterScoper))
@@ -141,7 +142,7 @@ func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.Se
 		optFns = append(optFns, config.WithCredentialsProvider(chainProvider))
 	}
 
-	conditions.MarkTrue(clusterScoper.InfraCluster(), infrav1beta1.PrincipalCredentialRetrievedCondition)
+	v1beta1conditions.MarkTrue(clusterScoper.InfraCluster(), infrav1beta1.PrincipalCredentialRetrievedCondition)
 
 	ns, err := config.LoadDefaultConfig(context.Background(), optFns...)
 	if err != nil {
@@ -227,7 +228,8 @@ func buildProvidersForRef(
 	clusterScoper cloud.SessionMetadata,
 	ref *infrav1.AWSIdentityReference,
 	region string,
-	log logger.Wrapper) ([]identity.AWSPrincipalTypeProvider, error) {
+	log logger.Wrapper,
+) ([]identity.AWSPrincipalTypeProvider, error) {
 	if ref == nil {
 		log.Trace("AWSCluster does not have a IdentityRef specified")
 		return providers, nil
@@ -289,21 +291,21 @@ func buildProvidersForRef(
 	default:
 		return providers, errors.Errorf("No such provider known: '%s'", ref.Kind)
 	}
-	conditions.MarkTrue(clusterScoper.InfraCluster(), infrav1beta1.PrincipalUsageAllowedCondition)
+	v1beta1conditions.MarkTrue(clusterScoper.InfraCluster(), infrav1beta1.PrincipalUsageAllowedCondition)
 	return providers, nil
 }
 
 func setPrincipalUsageAllowedCondition(clusterScoper cloud.SessionMetadata) {
-	conditions.MarkTrue(clusterScoper.InfraCluster(), infrav1beta1.PrincipalUsageAllowedCondition)
+	v1beta1conditions.MarkTrue(clusterScoper.InfraCluster(), infrav1beta1.PrincipalUsageAllowedCondition)
 }
 
 func setPrincipalUsageNotAllowedCondition(kind infrav1.AWSIdentityKind, identityObjectKey client.ObjectKey, clusterScoper cloud.SessionMetadata) {
 	errMsg := fmt.Sprintf(notPermittedError, kind, identityObjectKey.Name)
 
 	if clusterScoper.IdentityRef().Name == identityObjectKey.Name {
-		conditions.MarkFalse(clusterScoper.InfraCluster(), infrav1beta1.PrincipalUsageAllowedCondition, infrav1beta1.PrincipalUsageUnauthorizedReason, clusterv1beta1.ConditionSeverityError, "%s", errMsg)
+		v1beta1conditions.MarkFalse(clusterScoper.InfraCluster(), infrav1beta1.PrincipalUsageAllowedCondition, infrav1beta1.PrincipalUsageUnauthorizedReason, clusterv1beta1.ConditionSeverityError, "%s", errMsg)
 	} else {
-		conditions.MarkFalse(clusterScoper.InfraCluster(), infrav1beta1.PrincipalUsageAllowedCondition, infrav1beta1.SourcePrincipalUsageUnauthorizedReason, clusterv1beta1.ConditionSeverityError, "%s", errMsg)
+		v1beta1conditions.MarkFalse(clusterScoper.InfraCluster(), infrav1beta1.PrincipalUsageAllowedCondition, infrav1beta1.SourcePrincipalUsageUnauthorizedReason, clusterv1beta1.ConditionSeverityError, "%s", errMsg)
 	}
 }
 
@@ -320,7 +322,7 @@ func buildAWSClusterStaticIdentity(ctx context.Context, identityObjectKey client
 	}
 
 	// Set ClusterStaticPrincipal as Secret's owner reference for 'clusterctl move'.
-	patchHelper, err := patch.NewHelper(secret, k8sClient)
+	patchHelper, err := v1beta1patch.NewHelper(secret, k8sClient)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to init patch helper for secret name:%s namespace:%s", secret.Name, secret.Namespace)
 	}

@@ -38,7 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 )
 
 // ROSAControlPlaneScopeParams defines the input parameters used to create a new ROSAControlPlaneScope.
@@ -78,7 +78,7 @@ func NewROSAControlPlaneScope(params ROSAControlPlaneScopeParams) (*ROSAControlP
 		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
 	}
 
-	helper, err := patch.NewHelper(params.ControlPlane, params.Client)
+	helper, err := v1beta1patch.NewHelper(params.ControlPlane, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init patch helper")
 	}
@@ -101,7 +101,7 @@ func NewROSAControlPlaneScope(params ROSAControlPlaneScopeParams) (*ROSAControlP
 type ROSAControlPlaneScope struct {
 	logger.Logger
 	Client      client.Client
-	patchHelper *patch.Helper
+	patchHelper *v1beta1patch.Helper
 
 	Cluster      *clusterv1.Cluster
 	ControlPlane *rosacontrolplanev1.ROSAControlPlane
@@ -216,7 +216,7 @@ func (s *ROSAControlPlaneScope) PatchObject() error {
 	return s.patchHelper.Patch(
 		context.TODO(),
 		s.ControlPlane,
-		patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
+		v1beta1patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
 			rosacontrolplanev1beta1.ROSAControlPlaneReadyCondition,
 			rosacontrolplanev1beta1.ROSAControlPlaneValidCondition,
 			rosacontrolplanev1beta1.ROSAControlPlaneUpgradingCondition,

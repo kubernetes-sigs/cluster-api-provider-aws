@@ -55,7 +55,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -517,7 +517,7 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 	key := client.ObjectKey{Name: rosaControlPlane.Name, Namespace: rosaControlPlane.Namespace}
 	errGet := testEnv.Get(ctx, key, cp)
 	g.Expect(errGet).NotTo(HaveOccurred())
-	oldCondition := conditions.Get(cp, clusterv1beta1.PausedV1Beta2Condition)
+	oldCondition := v1beta1conditions.Get(cp, clusterv1beta1.PausedV1Beta2Condition)
 	g.Expect(oldCondition).NotTo(BeNil())
 
 	r := ROSAControlPlaneReconciler{

@@ -43,7 +43,7 @@ import (
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 )
 
 var scheme = runtime.NewScheme()
@@ -105,7 +105,7 @@ func NewManagedControlPlaneScope(params ManagedControlPlaneScopeParams) (*Manage
 	managedScope.session = *session
 	managedScope.serviceLimiters = serviceLimiters
 
-	helper, err := patch.NewHelper(params.ControlPlane, params.Client)
+	helper, err := v1beta1patch.NewHelper(params.ControlPlane, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init patch helper")
 	}
@@ -118,7 +118,7 @@ func NewManagedControlPlaneScope(params ManagedControlPlaneScopeParams) (*Manage
 type ManagedControlPlaneScope struct {
 	logger.Logger
 	Client      client.Client
-	patchHelper *patch.Helper
+	patchHelper *v1beta1patch.Helper
 
 	Cluster                   *clusterv1.Cluster
 	ControlPlane              *ekscontrolplanev1.AWSManagedControlPlane
@@ -269,7 +269,7 @@ func (s *ManagedControlPlaneScope) PatchObject() error {
 	return s.patchHelper.Patch(
 		context.TODO(),
 		s.ControlPlane,
-		patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
+		v1beta1patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
 			infrav1beta1.VpcReadyCondition,
 			infrav1beta1.SubnetsReadyCondition,
 			infrav1beta1.ClusterSecurityGroupsReadyCondition,

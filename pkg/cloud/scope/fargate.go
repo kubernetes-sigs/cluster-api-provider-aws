@@ -34,8 +34,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 )
 
 // FargateProfileScopeParams defines the input parameters used to create a new Scope.
@@ -75,7 +75,7 @@ func NewFargateProfileScope(params FargateProfileScopeParams) (*FargateProfileSc
 		return nil, errors.Errorf("failed to create aws v2 session: %v", err)
 	}
 
-	helper, err := patch.NewHelper(params.FargateProfile, params.Client)
+	helper, err := v1beta1patch.NewHelper(params.FargateProfile, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init patch helper")
 	}
@@ -98,7 +98,7 @@ func NewFargateProfileScope(params FargateProfileScopeParams) (*FargateProfileSc
 type FargateProfileScope struct {
 	logger.Logger
 	Client      client.Client
-	patchHelper *patch.Helper
+	patchHelper *v1beta1patch.Helper
 
 	Cluster        *clusterv1.Cluster
 	ControlPlane   *ekscontrolplanev1.AWSManagedControlPlane
@@ -174,7 +174,7 @@ func (s *FargateProfileScope) IAMReadyFalse(reason string, err string) error {
 	if err == "" {
 		severity = clusterv1beta1.ConditionSeverityInfo
 	}
-	conditions.MarkFalse(
+	v1beta1conditions.MarkFalse(
 		s.FargateProfile,
 		expinfrav1beta1.IAMFargateRolesReadyCondition,
 		reason,
@@ -193,7 +193,7 @@ func (s *FargateProfileScope) PatchObject() error {
 	return s.patchHelper.Patch(
 		context.TODO(),
 		s.FargateProfile,
-		patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
+		v1beta1patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
 			expinfrav1beta1.EKSFargateProfileReadyCondition,
 			expinfrav1beta1.EKSFargateCreatingCondition,
 			expinfrav1beta1.EKSFargateDeletingCondition,

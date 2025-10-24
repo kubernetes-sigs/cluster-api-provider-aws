@@ -56,7 +56,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 )
 
 // GetClusterByName returns a Cluster object given his name.
@@ -424,7 +424,7 @@ func hasAWSClusterConditions(m *infrav1.AWSCluster, expected []conditionAssertio
 		return false
 	}
 	for _, c := range expected {
-		actual := conditions.Get(m, c.conditionType)
+		actual := v1beta1conditions.Get(m, c.conditionType)
 		if actual == nil {
 			return false
 		}

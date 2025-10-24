@@ -58,7 +58,7 @@ import (
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -287,7 +287,7 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 			}
 		}
 
-		conditions.SetSummary(managedScope.ControlPlane, conditions.WithConditions(applicableConditions...), conditions.WithStepCounter())
+		v1beta1conditions.SetSummary(managedScope.ControlPlane, v1beta1conditions.WithConditions(applicableConditions...), v1beta1conditions.WithStepCounter())
 
 		if err := managedScope.Close(); err != nil && reterr == nil {
 			reterr = err
@@ -343,12 +343,12 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 	}
 
 	if err := sgService.ReconcileSecurityGroups(); err != nil {
-		conditions.MarkFalse(awsManagedControlPlane, infrav1beta1.ClusterSecurityGroupsReadyCondition, infrav1beta1.ClusterSecurityGroupReconciliationFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
+		v1beta1conditions.MarkFalse(awsManagedControlPlane, infrav1beta1.ClusterSecurityGroupsReadyCondition, infrav1beta1.ClusterSecurityGroupReconciliationFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile general security groups for AWSManagedControlPlane %s/%s", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name)
 	}
 
 	if err := ec2Service.ReconcileBastion(); err != nil {
-		conditions.MarkFalse(awsManagedControlPlane, infrav1beta1.BastionHostReadyCondition, infrav1beta1.BastionHostFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
+		v1beta1conditions.MarkFalse(awsManagedControlPlane, infrav1beta1.BastionHostReadyCondition, infrav1beta1.BastionHostFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
 		return reconcile.Result{}, fmt.Errorf("failed to reconcile bastion host for AWSManagedControlPlane %s/%s: %w", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name, err)
 	}
 
@@ -357,7 +357,7 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 	}
 
 	if err := awsnodeService.ReconcileCNI(ctx); err != nil {
-		conditions.MarkFalse(managedScope.InfraCluster(), infrav1beta1.SecondaryCidrsReadyCondition, infrav1beta1.SecondaryCidrReconciliationFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
+		v1beta1conditions.MarkFalse(managedScope.InfraCluster(), infrav1beta1.SecondaryCidrsReadyCondition, infrav1beta1.SecondaryCidrReconciliationFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
 		return reconcile.Result{}, fmt.Errorf("failed to reconcile control plane for AWSManagedControlPlane %s/%s: %w", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name, err)
 	}
 
@@ -373,10 +373,10 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 		}
 	}
 	if err := authService.ReconcileIAMAuthenticator(ctx); err != nil {
-		conditions.MarkFalse(awsManagedControlPlane, ekscontrolplanev1beta1.IAMAuthenticatorConfiguredCondition, ekscontrolplanev1.IAMAuthenticatorConfigurationFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
+		v1beta1conditions.MarkFalse(awsManagedControlPlane, ekscontrolplanev1beta1.IAMAuthenticatorConfiguredCondition, ekscontrolplanev1.IAMAuthenticatorConfigurationFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile aws-iam-authenticator config for AWSManagedControlPlane %s/%s", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name)
 	}
-	conditions.MarkTrue(awsManagedControlPlane, ekscontrolplanev1beta1.IAMAuthenticatorConfiguredCondition)
+	v1beta1conditions.MarkTrue(awsManagedControlPlane, ekscontrolplanev1beta1.IAMAuthenticatorConfiguredCondition)
 
 	for _, subnet := range managedScope.Subnets().FilterPrivate() {
 		managedScope.SetFailureDomain(subnet.AvailabilityZone, clusterv1.FailureDomain{

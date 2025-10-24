@@ -33,8 +33,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 )
 
 // RosaMachinePoolScopeParams defines the input parameters used to create a new Scope.
@@ -65,11 +65,11 @@ func NewRosaMachinePoolScope(params RosaMachinePoolScopeParams) (*RosaMachinePoo
 		params.Logger = logger.NewLogger(log)
 	}
 
-	ammpHelper, err := patch.NewHelper(params.RosaMachinePool, params.Client)
+	ammpHelper, err := v1beta1patch.NewHelper(params.RosaMachinePool, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init RosaMachinePool patch helper")
 	}
-	mpHelper, err := patch.NewHelper(params.MachinePool, params.Client)
+	mpHelper, err := v1beta1patch.NewHelper(params.MachinePool, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init MachinePool patch helper")
 	}
@@ -104,8 +104,8 @@ var _ cloud.SessionMetadata = &RosaMachinePoolScope{}
 type RosaMachinePoolScope struct {
 	logger.Logger
 	client.Client
-	patchHelper                *patch.Helper
-	capiMachinePoolPatchHelper *patch.Helper
+	patchHelper                *v1beta1patch.Helper
+	capiMachinePoolPatchHelper *v1beta1patch.Helper
 
 	Cluster         *clusterv1.Cluster
 	ControlPlane    *rosacontrolplanev1.ROSAControlPlane
@@ -155,7 +155,7 @@ func (s *RosaMachinePoolScope) ControllerName() string {
 }
 
 // GetSetter returns the condition setter for the RosaMachinePool.
-func (s *RosaMachinePoolScope) GetSetter() conditions.Setter {
+func (s *RosaMachinePoolScope) GetSetter() v1beta1conditions.Setter {
 	return s.RosaMachinePool
 }
 
@@ -194,7 +194,7 @@ func (s *RosaMachinePoolScope) RosaMachinePoolReadyFalse(reason string, err stri
 	if err == "" {
 		severity = clusterv1beta1.ConditionSeverityInfo
 	}
-	conditions.MarkFalse(
+	v1beta1conditions.MarkFalse(
 		s.RosaMachinePool,
 		expinfrav1beta1.RosaMachinePoolReadyCondition,
 		reason,
@@ -213,7 +213,7 @@ func (s *RosaMachinePoolScope) PatchObject() error {
 	return s.patchHelper.Patch(
 		context.TODO(),
 		s.RosaMachinePool,
-		patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
+		v1beta1patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
 			expinfrav1beta1.RosaMachinePoolReadyCondition,
 		}})
 }
