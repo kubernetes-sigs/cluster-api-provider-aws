@@ -36,18 +36,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
-	patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
-)
-
-const (
-	// PausedCondition is the condition type for paused status
-	PausedCondition clusterv1beta1.ConditionType = "Paused"
-
-	// PausedReason is the reason when an object is paused
-	PausedReason = "Paused"
-
-	// NotPausedReason is the reason when an object is not paused
-	NotPausedReason = "NotPaused"
+	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 )
 
 // ConditionSetter combines the client.Object and Setter interface.
@@ -58,8 +47,8 @@ type ConditionSetter interface {
 
 // EnsurePausedCondition sets the paused condition on the object and returns if it should be considered as paused.
 func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, obj ConditionSetter) (isPaused bool, conditionChanged bool, err error) {
-	oldCondition := conditions.Get(obj, PausedCondition)
-	newCondition := pausedCondition(c.Scheme(), cluster, obj, string(PausedCondition))
+	oldCondition := conditions.Get(obj, clusterv1beta1.PausedV1Beta2Condition)
+	newCondition := pausedCondition(c.Scheme(), cluster, obj, string(clusterv1beta1.PausedV1Beta2Condition))
 
 	isPaused = newCondition.Status == corev1.ConditionTrue
 
@@ -73,7 +62,7 @@ func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *cluste
 		return isPaused, false, nil
 	}
 
-	patchHelper, err := patch.NewHelper(obj, c)
+	patchHelper, err := v1beta1patch.NewHelper(obj, c)
 	if err != nil {
 		return isPaused, false, err
 	}
@@ -86,8 +75,8 @@ func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *cluste
 
 	conditions.Set(obj, &newCondition)
 
-	if err := patchHelper.Patch(ctx, obj, patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
-		PausedCondition,
+	if err := patchHelper.Patch(ctx, obj, v1beta1patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
+		clusterv1beta1.PausedV1Beta2Condition,
 	}}); err != nil {
 		return isPaused, false, err
 	}
@@ -113,7 +102,7 @@ func pausedCondition(scheme *runtime.Scheme, cluster *clusterv1.Cluster, obj Con
 		return clusterv1beta1.Condition{
 			Type:    clusterv1beta1.ConditionType(targetConditionType),
 			Status:  corev1.ConditionTrue,
-			Reason:  PausedReason,
+			Reason:  clusterv1beta1.PausedV1Beta2Reason,
 			Message: strings.Join(messages, ", "),
 		}
 	}
@@ -121,6 +110,6 @@ func pausedCondition(scheme *runtime.Scheme, cluster *clusterv1.Cluster, obj Con
 	return clusterv1beta1.Condition{
 		Type:   clusterv1beta1.ConditionType(targetConditionType),
 		Status: corev1.ConditionFalse,
-		Reason: NotPausedReason,
+		Reason: clusterv1beta1.NotPausedV1Beta2Reason,
 	}
 }
