@@ -42,7 +42,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
@@ -186,7 +186,7 @@ func (r *ROSAMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	defer func() {
-		conditions.SetSummary(machinePoolScope.RosaMachinePool, conditions.WithConditions(expinfrav1beta1.RosaMachinePoolReadyCondition), conditions.WithStepCounter())
+		v1beta1conditions.SetSummary(machinePoolScope.RosaMachinePool, v1beta1conditions.WithConditions(expinfrav1beta1.RosaMachinePoolReadyCondition), v1beta1conditions.WithStepCounter())
 
 		if err := machinePoolScope.Close(); err != nil && reterr == nil {
 			reterr = err
@@ -278,7 +278,7 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 
 		rosaMachinePool.Status.Replicas = currentReplicas
 		if rosa.IsNodePoolReady(nodePool) {
-			conditions.MarkTrue(rosaMachinePool, expinfrav1beta1.RosaMachinePoolReadyCondition)
+			v1beta1conditions.MarkTrue(rosaMachinePool, expinfrav1beta1.RosaMachinePoolReadyCondition)
 			rosaMachinePool.Status.Ready = true
 
 			if err := r.reconcileMachinePoolVersion(machinePoolScope, ocmClient, nodePool); err != nil {
@@ -288,7 +288,7 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 			return ctrl.Result{}, nil
 		}
 
-		conditions.MarkFalse(rosaMachinePool,
+		v1beta1conditions.MarkFalse(rosaMachinePool,
 			expinfrav1beta1.RosaMachinePoolReadyCondition,
 			nodePool.Status().Message(),
 			clusterv1beta1.ConditionSeverityInfo,
@@ -307,7 +307,7 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 
 	nodePool, err = ocmClient.CreateNodePool(machinePoolScope.ControlPlane.Status.ID, nodePoolSpec)
 	if err != nil {
-		conditions.MarkFalse(rosaMachinePool,
+		v1beta1conditions.MarkFalse(rosaMachinePool,
 			expinfrav1beta1.RosaMachinePoolReadyCondition,
 			expinfrav1beta1.RosaMachinePoolReconciliationFailedReason,
 			clusterv1beta1.ConditionSeverityError,
@@ -351,7 +351,7 @@ func (r *ROSAMachinePoolReconciler) reconcileMachinePoolVersion(machinePoolScope
 	version := machinePoolScope.RosaMachinePool.Spec.Version
 	if version == "" || version == rosa.RawVersionID(nodePool.Version()) {
 		machinePoolScope.RosaMachinePool.Status.AvailableUpgrades = nodePool.Version().AvailableUpgrades()
-		conditions.MarkFalse(machinePoolScope.RosaMachinePool, expinfrav1beta1.RosaMachinePoolUpgradingCondition, "upgraded", clusterv1beta1.ConditionSeverityInfo, "")
+		v1beta1conditions.MarkFalse(machinePoolScope.RosaMachinePool, expinfrav1beta1.RosaMachinePoolUpgradingCondition, "upgraded", clusterv1beta1.ConditionSeverityInfo, "")
 		return nil
 	}
 
@@ -374,7 +374,7 @@ func (r *ROSAMachinePoolReconciler) reconcileMachinePoolVersion(machinePoolScope
 		Reason:  string(scheduledUpgrade.State().Value()),
 		Message: fmt.Sprintf("Upgrading to version %s", scheduledUpgrade.Version()),
 	}
-	conditions.Set(machinePoolScope.RosaMachinePool, condition)
+	v1beta1conditions.Set(machinePoolScope.RosaMachinePool, condition)
 
 	// if nodePool is already upgrading to another version we need to wait until the current upgrade is finished, return an error to requeue and try later.
 	if scheduledUpgrade.Version() != version {
@@ -419,7 +419,7 @@ func (r *ROSAMachinePoolReconciler) updateNodePool(machinePoolScope *scope.RosaM
 
 	updatedNodePool, err := ocmClient.UpdateNodePool(machinePoolScope.ControlPlane.Status.ID, nodePoolSpec)
 	if err != nil {
-		conditions.MarkFalse(machinePoolScope.RosaMachinePool,
+		v1beta1conditions.MarkFalse(machinePoolScope.RosaMachinePool,
 			expinfrav1beta1.RosaMachinePoolReadyCondition,
 			expinfrav1beta1.RosaMachinePoolReconciliationFailedReason,
 			clusterv1beta1.ConditionSeverityError,

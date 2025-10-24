@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 )
 
 // Session represents an AWS session.
@@ -45,7 +45,7 @@ type ScopeUsage interface {
 
 // ClusterObject represents a AWS cluster object.
 type ClusterObject interface {
-	conditions.Setter
+	v1beta1conditions.Setter
 }
 
 // ClusterScoper is the interface for a cluster scope.

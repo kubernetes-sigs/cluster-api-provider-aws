@@ -40,8 +40,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 )
 
 // ManagedMachinePoolScopeParams defines the input parameters used to create a new Scope.
@@ -93,11 +93,11 @@ func NewManagedMachinePoolScope(params ManagedMachinePoolScopeParams) (*ManagedM
 		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
 	}
 
-	ammpHelper, err := patch.NewHelper(params.ManagedMachinePool, params.Client)
+	ammpHelper, err := v1beta1patch.NewHelper(params.ManagedMachinePool, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init AWSManagedMachinePool patch helper")
 	}
-	mpHelper, err := patch.NewHelper(params.MachinePool, params.Client)
+	mpHelper, err := v1beta1patch.NewHelper(params.MachinePool, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init MachinePool patch helper")
 	}
@@ -126,8 +126,8 @@ func NewManagedMachinePoolScope(params ManagedMachinePoolScopeParams) (*ManagedM
 type ManagedMachinePoolScope struct {
 	logger.Logger
 	client.Client
-	patchHelper                *patch.Helper
-	capiMachinePoolPatchHelper *patch.Helper
+	patchHelper                *v1beta1patch.Helper
+	capiMachinePoolPatchHelper *v1beta1patch.Helper
 
 	Cluster                   *clusterv1.Cluster
 	ControlPlane              *ekscontrolplanev1.AWSManagedControlPlane
@@ -236,7 +236,7 @@ func (s *ManagedMachinePoolScope) NodegroupReadyFalse(reason string, err string)
 	if err == "" {
 		severity = clusterv1beta1.ConditionSeverityInfo
 	}
-	conditions.MarkFalse(
+	v1beta1conditions.MarkFalse(
 		s.ManagedMachinePool,
 		expinfrav1beta1.EKSNodegroupReadyCondition,
 		reason,
@@ -257,7 +257,7 @@ func (s *ManagedMachinePoolScope) IAMReadyFalse(reason string, err string) error
 	if err == "" {
 		severity = clusterv1beta1.ConditionSeverityInfo
 	}
-	conditions.MarkFalse(
+	v1beta1conditions.MarkFalse(
 		s.ManagedMachinePool,
 		expinfrav1beta1.IAMNodegroupRolesReadyCondition,
 		reason,
@@ -276,7 +276,7 @@ func (s *ManagedMachinePoolScope) PatchObject() error {
 	return s.patchHelper.Patch(
 		context.TODO(),
 		s.ManagedMachinePool,
-		patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
+		v1beta1patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
 			expinfrav1beta1.EKSNodegroupReadyCondition,
 			expinfrav1beta1.IAMNodegroupRolesReadyCondition,
 		}})
@@ -368,7 +368,7 @@ func (s *ManagedMachinePoolScope) GetObjectMeta() *metav1.ObjectMeta {
 }
 
 // GetSetter returns the condition setter.
-func (s *ManagedMachinePoolScope) GetSetter() conditions.Setter {
+func (s *ManagedMachinePoolScope) GetSetter() v1beta1conditions.Setter {
 	return s.ManagedMachinePool
 }
 

@@ -39,16 +39,16 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 )
 
 // MachinePoolScope defines a scope defined around a machine and its cluster.
 type MachinePoolScope struct {
 	logger.Logger
 	client.Client
-	patchHelper                *patch.Helper
-	capiMachinePoolPatchHelper *patch.Helper
+	patchHelper                *v1beta1patch.Helper
+	capiMachinePoolPatchHelper *v1beta1patch.Helper
 
 	Cluster        *clusterv1.Cluster
 	MachinePool    *clusterv1.MachinePool
@@ -99,11 +99,11 @@ func NewMachinePoolScope(params MachinePoolScopeParams) (*MachinePoolScope, erro
 		params.Logger = logger.NewLogger(log)
 	}
 
-	ampHelper, err := patch.NewHelper(params.AWSMachinePool, params.Client)
+	ampHelper, err := v1beta1patch.NewHelper(params.AWSMachinePool, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init AWSMachinePool patch helper")
 	}
-	mpHelper, err := patch.NewHelper(params.MachinePool, params.Client)
+	mpHelper, err := v1beta1patch.NewHelper(params.MachinePool, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init MachinePool patch helper")
 	}
@@ -176,7 +176,7 @@ func (m *MachinePoolScope) PatchObject() error {
 	return m.patchHelper.Patch(
 		context.TODO(),
 		m.AWSMachinePool,
-		patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
+		v1beta1patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
 			expinfrav1beta1.ASGReadyCondition,
 			expinfrav1beta1.LaunchTemplateReadyCondition,
 		}})
@@ -239,7 +239,7 @@ func (m *MachinePoolScope) GetObjectMeta() *metav1.ObjectMeta {
 }
 
 // GetSetter returns the AWSMachinePool object setter.
-func (m *MachinePoolScope) GetSetter() conditions.Setter {
+func (m *MachinePoolScope) GetSetter() v1beta1conditions.Setter {
 	return m.AWSMachinePool
 }
 

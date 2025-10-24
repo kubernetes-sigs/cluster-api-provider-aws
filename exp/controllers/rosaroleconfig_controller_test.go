@@ -47,7 +47,7 @@ import (
 	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
 	expinfrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta1"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 )
 
 // generateTestID creates a unique identifier for test resources.
@@ -627,7 +627,7 @@ func TestROSARoleConfigReconcileExist(t *testing.T) {
 	g.Expect(updatedRoleConfig.Status.OperatorRolesRef.KMSProviderARN).To(Equal("arn:aws:iam::123456789012:role/test-kube-system-kms-provider"))
 
 	// Should have a condition indicating success - expect Ready condition to be True
-	readyCondition := conditions.Get(updatedRoleConfig, expinfrav1beta1.RosaRoleConfigReadyCondition)
+	readyCondition := v1beta1conditions.Get(updatedRoleConfig, expinfrav1beta1.RosaRoleConfigReadyCondition)
 	g.Expect(readyCondition).ToNot(BeNil())
 	g.Expect(readyCondition.Status).To(Equal(corev1.ConditionTrue))
 	g.Expect(readyCondition.Reason).To(Equal(expinfrav1beta1.RosaRoleConfigCreatedReason))

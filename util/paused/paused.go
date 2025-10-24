@@ -35,19 +35,19 @@ import (
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/annotations"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 )
 
 // ConditionSetter combines the client.Object and Setter interface.
 type ConditionSetter interface {
-	conditions.Setter
+	v1beta1conditions.Setter
 	client.Object
 }
 
 // EnsurePausedCondition sets the paused condition on the object and returns if it should be considered as paused.
 func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, obj ConditionSetter) (isPaused bool, conditionChanged bool, err error) {
-	oldCondition := conditions.Get(obj, clusterv1beta1.PausedV1Beta2Condition)
+	oldCondition := v1beta1conditions.Get(obj, clusterv1beta1.PausedV1Beta2Condition)
 	newCondition := pausedCondition(c.Scheme(), cluster, obj, string(clusterv1beta1.PausedV1Beta2Condition))
 
 	isPaused = newCondition.Status == corev1.ConditionTrue
@@ -55,7 +55,7 @@ func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *cluste
 	log := ctrl.LoggerFrom(ctx)
 
 	// Return early if the paused condition did not change.
-	if oldCondition != nil && conditions.HasSameState(oldCondition, &newCondition) {
+	if oldCondition != nil && v1beta1conditions.HasSameState(oldCondition, &newCondition) {
 		if isPaused {
 			log.V(6).Info("Reconciliation is paused for this object", "reason", newCondition.Message)
 		}
@@ -73,7 +73,7 @@ func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *cluste
 		log.V(4).Info("Unpausing reconciliation for this object")
 	}
 
-	conditions.Set(obj, &newCondition)
+	v1beta1conditions.Set(obj, &newCondition)
 
 	if err := patchHelper.Patch(ctx, obj, v1beta1patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
 		clusterv1beta1.PausedV1Beta2Condition,

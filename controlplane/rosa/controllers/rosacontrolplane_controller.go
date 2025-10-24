@@ -70,7 +70,7 @@ import (
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	"sigs.k8s.io/cluster-api/util/secret"
@@ -241,9 +241,9 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		return ctrl.Result{}, fmt.Errorf("failed to validate ROSAControlPlane.spec: %w", err)
 	}
 
-	conditions.MarkTrue(rosaScope.ControlPlane, rosacontrolplanev1beta1.ROSAControlPlaneValidCondition)
+	v1beta1conditions.MarkTrue(rosaScope.ControlPlane, rosacontrolplanev1beta1.ROSAControlPlaneValidCondition)
 	if validationMessage != "" {
-		conditions.MarkFalse(rosaScope.ControlPlane,
+		v1beta1conditions.MarkFalse(rosaScope.ControlPlane,
 			rosacontrolplanev1beta1.ROSAControlPlaneValidCondition,
 			rosacontrolplanev1beta1.ROSAControlPlaneInvalidConfigurationReason,
 			clusterv1beta1.ConditionSeverityError,
@@ -268,7 +268,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 
 		switch cluster.Status().State() {
 		case cmv1.ClusterStateReady:
-			conditions.MarkTrue(rosaScope.ControlPlane, rosacontrolplanev1beta1.ROSAControlPlaneReadyCondition)
+			v1beta1conditions.MarkTrue(rosaScope.ControlPlane, rosacontrolplanev1beta1.ROSAControlPlaneReadyCondition)
 			rosaScope.ControlPlane.Status.Ready = true
 
 			apiEndpoint, err := buildAPIEndpoint(cluster)
@@ -301,7 +301,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 			errorMessage := cluster.Status().ProvisionErrorMessage()
 			rosaScope.ControlPlane.Status.FailureMessage = &errorMessage
 
-			conditions.MarkFalse(rosaScope.ControlPlane,
+			v1beta1conditions.MarkFalse(rosaScope.ControlPlane,
 				rosacontrolplanev1beta1.ROSAControlPlaneReadyCondition,
 				string(cluster.Status().State()),
 				clusterv1beta1.ConditionSeverityError,
@@ -311,7 +311,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 			return ctrl.Result{}, nil
 		}
 
-		conditions.MarkFalse(rosaScope.ControlPlane,
+		v1beta1conditions.MarkFalse(rosaScope.ControlPlane,
 			rosacontrolplanev1beta1.ROSAControlPlaneReadyCondition,
 			string(cluster.Status().State()),
 			clusterv1beta1.ConditionSeverityInfo,
@@ -337,7 +337,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		}
 
 		// Is the referenced ROSANetwork ready yet?
-		if !conditions.IsTrue(rosaNet, expinfrav1beta1.ROSANetworkReadyCondition) {
+		if !v1beta1conditions.IsTrue(rosaNet, expinfrav1beta1.ROSANetworkReadyCondition) {
 			rosaScope.Info(fmt.Sprintf("referenced ROSANetwork %s is not ready", rosaNet.Name))
 			return ctrl.Result{RequeueAfter: time.Minute}, nil
 		}
@@ -350,7 +350,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 
 	cluster, err = ocmClient.CreateCluster(ocmClusterSpec)
 	if err != nil {
-		conditions.MarkFalse(rosaScope.ControlPlane,
+		v1beta1conditions.MarkFalse(rosaScope.ControlPlane,
 			rosacontrolplanev1beta1.ROSAControlPlaneReadyCondition,
 			rosacontrolplanev1beta1.ReconciliationFailedReason,
 			clusterv1beta1.ConditionSeverityError,
@@ -376,7 +376,7 @@ func (r *ROSAControlPlaneReconciler) reconcileRosaRoleConfig(ctx context.Context
 		}
 
 		if err := r.Client.Get(ctx, key, rosaRoleConfig); err != nil {
-			conditions.MarkFalse(rosaScope.ControlPlane,
+			v1beta1conditions.MarkFalse(rosaScope.ControlPlane,
 				rosacontrolplanev1beta1.ROSARoleConfigReadyCondition,
 				rosacontrolplanev1beta1.ROSARoleConfigNotFoundReason,
 				clusterv1beta1.ConditionSeverityError,
@@ -386,8 +386,8 @@ func (r *ROSAControlPlaneReconciler) reconcileRosaRoleConfig(ctx context.Context
 		}
 
 		// Check if RosaRoleConfig is ready
-		if !conditions.IsTrue(rosaRoleConfig, expinfrav1beta1.RosaRoleConfigReadyCondition) {
-			conditions.MarkFalse(rosaScope.ControlPlane,
+		if !v1beta1conditions.IsTrue(rosaRoleConfig, expinfrav1beta1.RosaRoleConfigReadyCondition) {
+			v1beta1conditions.MarkFalse(rosaScope.ControlPlane,
 				rosacontrolplanev1beta1.ROSARoleConfigReadyCondition,
 				rosacontrolplanev1beta1.ROSARoleConfigNotReadyReason,
 				clusterv1beta1.ConditionSeverityWarning,
@@ -395,7 +395,7 @@ func (r *ROSAControlPlaneReconciler) reconcileRosaRoleConfig(ctx context.Context
 
 			return nil, fmt.Errorf("RosaRoleConfig %s/%s is not ready", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name)
 		}
-		conditions.MarkTrue(rosaScope.ControlPlane, rosacontrolplanev1beta1.ROSARoleConfigReadyCondition)
+		v1beta1conditions.MarkTrue(rosaScope.ControlPlane, rosacontrolplanev1beta1.ROSARoleConfigReadyCondition)
 	} else {
 		rosaRoleConfig.Status.OIDCID = rosaScope.ControlPlane.Spec.OIDCID
 		rosaRoleConfig.Status.AccountRolesRef.InstallerRoleARN = rosaScope.ControlPlane.Spec.InstallerRoleARN
@@ -453,7 +453,7 @@ func (r *ROSAControlPlaneReconciler) reconcileDelete(ctx context.Context, rosaSc
 
 	if cluster.Status().State() != cmv1.ClusterStateUninstalling {
 		if _, err := ocmClient.DeleteCluster(cluster.ID(), bestEffort, creator); err != nil {
-			conditions.MarkFalse(rosaScope.ControlPlane,
+			v1beta1conditions.MarkFalse(rosaScope.ControlPlane,
 				rosacontrolplanev1beta1.ROSAControlPlaneReadyCondition,
 				rosacontrolplanev1beta1.ROSAControlPlaneDeletionFailedReason,
 				clusterv1beta1.ConditionSeverityError,
@@ -464,7 +464,7 @@ func (r *ROSAControlPlaneReconciler) reconcileDelete(ctx context.Context, rosaSc
 		}
 	}
 
-	conditions.MarkFalse(rosaScope.ControlPlane,
+	v1beta1conditions.MarkFalse(rosaScope.ControlPlane,
 		rosacontrolplanev1beta1.ROSAControlPlaneReadyCondition,
 		string(cluster.Status().State()),
 		clusterv1beta1.ConditionSeverityInfo,
@@ -512,7 +512,7 @@ func (r *ROSAControlPlaneReconciler) deleteMachinePools(ctx context.Context, ros
 func (r *ROSAControlPlaneReconciler) reconcileClusterVersion(rosaScope *scope.ROSAControlPlaneScope, ocmClient rosa.OCMClient, cluster *cmv1.Cluster) error {
 	version := rosaScope.ControlPlane.Spec.Version
 	if version == rosa.RawVersionID(cluster.Version()) {
-		conditions.MarkFalse(rosaScope.ControlPlane, rosacontrolplanev1beta1.ROSAControlPlaneUpgradingCondition, "upgraded", clusterv1beta1.ConditionSeverityInfo, "")
+		v1beta1conditions.MarkFalse(rosaScope.ControlPlane, rosacontrolplanev1beta1.ROSAControlPlaneUpgradingCondition, "upgraded", clusterv1beta1.ConditionSeverityInfo, "")
 
 		if cluster.Version() != nil {
 			rosaScope.ControlPlane.Status.AvailableUpgrades = cluster.Version().AvailableUpgrades()
@@ -542,7 +542,7 @@ func (r *ROSAControlPlaneReconciler) reconcileClusterVersion(rosaScope *scope.RO
 				Reason:  "failed",
 				Message: fmt.Sprintf("failed to schedule upgrade to version %s: %v", version, err),
 			}
-			conditions.Set(rosaScope.ControlPlane, condition)
+			v1beta1conditions.Set(rosaScope.ControlPlane, condition)
 
 			return err
 		}
@@ -554,7 +554,7 @@ func (r *ROSAControlPlaneReconciler) reconcileClusterVersion(rosaScope *scope.RO
 		Reason:  string(scheduledUpgrade.State().Value()),
 		Message: fmt.Sprintf("Upgrading to version %s", scheduledUpgrade.Version()),
 	}
-	conditions.Set(rosaScope.ControlPlane, condition)
+	v1beta1conditions.Set(rosaScope.ControlPlane, condition)
 
 	// if cluster is already upgrading to another version we need to wait until the current upgrade is finished, return an error to requeue and try later.
 	if scheduledUpgrade.Version() != version {
@@ -571,7 +571,7 @@ func (r *ROSAControlPlaneReconciler) updateOCMCluster(rosaScope *scope.ROSAContr
 		// Update the cluster.
 		rosaScope.Info("Updating cluster")
 		if err := ocmClient.UpdateCluster(cluster.ID(), creator, ocmClusterSpec); err != nil {
-			conditions.MarkFalse(rosaScope.ControlPlane,
+			v1beta1conditions.MarkFalse(rosaScope.ControlPlane,
 				rosacontrolplanev1beta1.ROSAControlPlaneValidCondition,
 				rosacontrolplanev1beta1.ROSAControlPlaneInvalidConfigurationReason,
 				clusterv1beta1.ConditionSeverityError,
@@ -675,14 +675,14 @@ func (r *ROSAControlPlaneReconciler) reconcileExternalAuth(ctx context.Context, 
 	var errs []error
 	if err := r.reconcileExternalAuthProviders(ctx, externalAuthClient, rosaScope, cluster); err != nil {
 		errs = append(errs, err)
-		conditions.MarkFalse(rosaScope.ControlPlane,
+		v1beta1conditions.MarkFalse(rosaScope.ControlPlane,
 			rosacontrolplanev1beta1.ExternalAuthConfiguredCondition,
 			rosacontrolplanev1beta1.ReconciliationFailedReason,
 			clusterv1beta1.ConditionSeverityError,
 			"%s",
 			err.Error())
 	} else {
-		conditions.MarkTrue(rosaScope.ControlPlane, rosacontrolplanev1beta1.ExternalAuthConfiguredCondition)
+		v1beta1conditions.MarkTrue(rosaScope.ControlPlane, rosacontrolplanev1beta1.ExternalAuthConfiguredCondition)
 	}
 
 	if err := r.reconcileExternalAuthBootstrapKubeconfig(ctx, externalAuthClient, rosaScope, cluster); err != nil {
