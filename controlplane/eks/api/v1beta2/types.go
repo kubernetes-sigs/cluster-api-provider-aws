@@ -100,6 +100,32 @@ var (
 	EKSAuthenticationModeAPIAndConfigMap = EKSAuthenticationMode("api_and_config_map")
 )
 
+// AccessEntryType defines the type of an access entry
+type AccessEntryType string
+
+func (a AccessEntryType) APIValue() *string {
+	v := strings.ToUpper(string(a))
+	return &v
+}
+
+var (
+	AccessEntryTypeStandard      = AccessEntryType("standard")
+	AccessEntryTypeEC2Linux      = AccessEntryType("ec2_linux")
+	AccessEntryTypeEC2Windows    = AccessEntryType("ec2_windows")
+	AccessEntryTypeFargateLinux  = AccessEntryType("fargate_linux")
+	AccessEntryTypeEC2           = AccessEntryType("ec2")
+	AccessEntryTypeHybridLinux   = AccessEntryType("hybrid_linux")
+	AccessEntryTypeHyperpodLinux = AccessEntryType("hyperpod_linux")
+)
+
+// AccessScopeType defines the scope type for an access policy
+type AccessScopeType string
+
+var (
+	AccessScopeTypeCluster = AccessScopeType("cluster")
+	AccessScopeTypeNamespace = AccessScopeType("namespace")
+)
+
 var (
 	// DefaultEKSControlPlaneRole is the name of the default IAM role to use for the EKS control plane
 	// if no other role is supplied in the spec and if iam role creation is not enabled. The default
