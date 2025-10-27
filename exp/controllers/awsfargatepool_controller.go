@@ -31,15 +31,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
-	expinfrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta1"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/eks"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1" //nolint:staticcheck
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions" //nolint:staticcheck
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -115,8 +114,8 @@ func (r *AWSFargateProfileReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	defer func() {
 		applicableConditions := []clusterv1beta1.ConditionType{
-			expinfrav1beta1.IAMFargateRolesReadyCondition,
-			expinfrav1beta1.EKSFargateProfileReadyCondition,
+			expinfrav1.IAMFargateRolesReadyCondition,
+			expinfrav1.EKSFargateProfileReadyCondition,
 		}
 
 		v1beta1conditions.SetSummary(fargateProfileScope.FargateProfile, v1beta1conditions.WithConditions(applicableConditions...), v1beta1conditions.WithStepCounter())
@@ -128,7 +127,7 @@ func (r *AWSFargateProfileReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	if !controlPlane.Status.Ready {
 		log.Info("Control plane is not ready yet")
-		v1beta1conditions.MarkFalse(fargateProfile, clusterv1.ReadyCondition, expinfrav1beta1.WaitingForEKSControlPlaneReason, clusterv1beta1.ConditionSeverityInfo, "")
+		v1beta1conditions.MarkFalse(fargateProfile, clusterv1.ReadyCondition, expinfrav1.WaitingForEKSControlPlaneReason, clusterv1beta1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
 	}
 

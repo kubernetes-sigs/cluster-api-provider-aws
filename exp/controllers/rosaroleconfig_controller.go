@@ -45,15 +45,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
-	expinfrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta1"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	stsiface "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/rosa"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"                      //nolint:staticcheck
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions" //nolint:staticcheck
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -110,7 +109,7 @@ func (r *ROSARoleConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	// Always close the scope and set summary condition
 	defer func() {
-		v1beta1conditions.SetSummary(scope.RosaRoleConfig, v1beta1conditions.WithConditions(expinfrav1beta1.RosaRoleConfigReadyCondition), v1beta1conditions.WithStepCounter())
+		v1beta1conditions.SetSummary(scope.RosaRoleConfig, v1beta1conditions.WithConditions(expinfrav1.RosaRoleConfigReadyCondition), v1beta1conditions.WithStepCounter())
 		if err := scope.PatchObject(); err != nil {
 			reterr = errors.Join(reterr, err)
 		}
@@ -122,7 +121,7 @@ func (r *ROSARoleConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	if !roleConfig.DeletionTimestamp.IsZero() {
 		scope.Info("Deleting ROSARoleConfig.")
-		v1beta1conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1beta1.RosaRoleConfigReadyCondition, expinfrav1.RosaRoleConfigDeletionStarted, clusterv1beta1.ConditionSeverityInfo, "Deletion of RosaRolesConfig started")
+		v1beta1conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1.RosaRoleConfigReadyCondition, expinfrav1.RosaRoleConfigDeletionStarted, clusterv1beta1.ConditionSeverityInfo, "Deletion of RosaRolesConfig started")
 		err = r.reconcileDelete(scope)
 		if err == nil {
 			controllerutil.RemoveFinalizer(scope.RosaRoleConfig, expinfrav1.RosaRoleConfigFinalizer)
@@ -136,35 +135,35 @@ func (r *ROSARoleConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	if err := r.reconcileAccountRoles(scope); err != nil {
-		v1beta1conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1beta1.RosaRoleConfigReadyCondition, expinfrav1beta1.RosaRoleConfigReconciliationFailedReason, clusterv1beta1.ConditionSeverityError, "Account Roles failure: %v", err)
+		v1beta1conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1.RosaRoleConfigReadyCondition, expinfrav1.RosaRoleConfigReconciliationFailedReason, clusterv1beta1.ConditionSeverityError, "Account Roles failure: %v", err)
 		return ctrl.Result{}, fmt.Errorf("account Roles: %w", err)
 	}
 
 	if err := r.reconcileOIDC(scope); err != nil {
-		v1beta1conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1beta1.RosaRoleConfigReadyCondition, expinfrav1beta1.RosaRoleConfigReconciliationFailedReason, clusterv1beta1.ConditionSeverityError, "OIDC Config/provider failure: %v", err)
+		v1beta1conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1.RosaRoleConfigReadyCondition, expinfrav1.RosaRoleConfigReconciliationFailedReason, clusterv1beta1.ConditionSeverityError, "OIDC Config/provider failure: %v", err)
 		return ctrl.Result{}, fmt.Errorf("oicd Config: %w", err)
 	}
 
 	if err := r.reconcileOperatorRoles(scope); err != nil {
-		v1beta1conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1beta1.RosaRoleConfigReadyCondition, expinfrav1beta1.RosaRoleConfigReconciliationFailedReason, clusterv1beta1.ConditionSeverityError, "Operator Roles failure: %v", err)
+		v1beta1conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1.RosaRoleConfigReadyCondition, expinfrav1.RosaRoleConfigReconciliationFailedReason, clusterv1beta1.ConditionSeverityError, "Operator Roles failure: %v", err)
 		return ctrl.Result{}, fmt.Errorf("operator Roles: %w", err)
 	}
 
 	if r.rosaRolesConfigReady(scope.RosaRoleConfig) {
 		v1beta1conditions.Set(scope.RosaRoleConfig,
 			&clusterv1beta1.Condition{
-				Type:     expinfrav1beta1.RosaRoleConfigReadyCondition,
+				Type:     expinfrav1.RosaRoleConfigReadyCondition,
 				Status:   corev1.ConditionTrue,
-				Reason:   expinfrav1beta1.RosaRoleConfigCreatedReason,
+				Reason:   expinfrav1.RosaRoleConfigCreatedReason,
 				Severity: clusterv1beta1.ConditionSeverityInfo,
 				Message:  "RosaRoleConfig is ready",
 			})
 	} else {
 		v1beta1conditions.Set(scope.RosaRoleConfig,
 			&clusterv1beta1.Condition{
-				Type:     expinfrav1beta1.RosaRoleConfigReadyCondition,
+				Type:     expinfrav1.RosaRoleConfigReadyCondition,
 				Status:   corev1.ConditionFalse,
-				Reason:   expinfrav1beta1.RosaRoleConfigCreatedReason,
+				Reason:   expinfrav1.RosaRoleConfigCreatedReason,
 				Severity: clusterv1beta1.ConditionSeverityInfo,
 				Message:  "RosaRoleConfig not ready",
 			})
@@ -175,17 +174,17 @@ func (r *ROSARoleConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 func (r *ROSARoleConfigReconciler) reconcileDelete(scope *scope.RosaRoleConfigScope) error {
 	if err := r.deleteOperatorRoles(scope); err != nil {
-		v1beta1conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1beta1.RosaRoleConfigReadyCondition, expinfrav1beta1.RosaRoleConfigDeletionFailedReason, clusterv1beta1.ConditionSeverityError, "Failed to delete operator roles: %v", err)
+		v1beta1conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1.RosaRoleConfigReadyCondition, expinfrav1.RosaRoleConfigDeletionFailedReason, clusterv1beta1.ConditionSeverityError, "Failed to delete operator roles: %v", err)
 		return err
 	}
 
 	if err := r.deleteOIDC(scope); err != nil {
-		v1beta1conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1beta1.RosaRoleConfigReadyCondition, expinfrav1beta1.RosaRoleConfigDeletionFailedReason, clusterv1beta1.ConditionSeverityError, "Failed to delete OIDC provider: %v", err)
+		v1beta1conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1.RosaRoleConfigReadyCondition, expinfrav1.RosaRoleConfigDeletionFailedReason, clusterv1beta1.ConditionSeverityError, "Failed to delete OIDC provider: %v", err)
 		return err
 	}
 
 	if err := r.deleteAccountRoles(scope); err != nil {
-		v1beta1conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1beta1.RosaRoleConfigReadyCondition, expinfrav1beta1.RosaRoleConfigDeletionFailedReason, clusterv1beta1.ConditionSeverityError, "Failed to delete account roles: %v", err)
+		v1beta1conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1.RosaRoleConfigReadyCondition, expinfrav1.RosaRoleConfigDeletionFailedReason, clusterv1beta1.ConditionSeverityError, "Failed to delete account roles: %v", err)
 		return err
 	}
 

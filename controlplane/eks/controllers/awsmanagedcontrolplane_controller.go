@@ -38,7 +38,6 @@ import (
 
 	infrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
-	ekscontrolplanev1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta1"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
@@ -55,10 +54,10 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/securitygroup"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/util/paused"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1" //nolint:staticcheck
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions" //nolint:staticcheck
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -263,10 +262,10 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 	// Always close the scope
 	defer func() {
 		applicableConditions := []clusterv1beta1.ConditionType{
-			ekscontrolplanev1beta1.EKSControlPlaneReadyCondition,
-			ekscontrolplanev1beta1.IAMControlPlaneRolesReadyCondition,
-			ekscontrolplanev1beta1.IAMAuthenticatorConfiguredCondition,
-			ekscontrolplanev1beta1.EKSAddonsConfiguredCondition,
+			ekscontrolplanev1.EKSControlPlaneReadyCondition,
+			ekscontrolplanev1.IAMControlPlaneRolesReadyCondition,
+			ekscontrolplanev1.IAMAuthenticatorConfiguredCondition,
+			ekscontrolplanev1.EKSAddonsConfiguredCondition,
 			infrav1beta1.VpcReadyCondition,
 			infrav1beta1.SubnetsReadyCondition,
 			infrav1beta1.ClusterSecurityGroupsReadyCondition,
@@ -373,10 +372,10 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 		}
 	}
 	if err := authService.ReconcileIAMAuthenticator(ctx); err != nil {
-		v1beta1conditions.MarkFalse(awsManagedControlPlane, ekscontrolplanev1beta1.IAMAuthenticatorConfiguredCondition, ekscontrolplanev1.IAMAuthenticatorConfigurationFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
+		v1beta1conditions.MarkFalse(awsManagedControlPlane, ekscontrolplanev1.IAMAuthenticatorConfiguredCondition, ekscontrolplanev1.IAMAuthenticatorConfigurationFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile aws-iam-authenticator config for AWSManagedControlPlane %s/%s", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name)
 	}
-	v1beta1conditions.MarkTrue(awsManagedControlPlane, ekscontrolplanev1beta1.IAMAuthenticatorConfiguredCondition)
+	v1beta1conditions.MarkTrue(awsManagedControlPlane, ekscontrolplanev1.IAMAuthenticatorConfiguredCondition)
 
 	for _, subnet := range managedScope.Subnets().FilterPrivate() {
 		managedScope.SetFailureDomain(subnet.AvailabilityZone, clusterv1.FailureDomain{

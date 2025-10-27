@@ -42,15 +42,17 @@ import (
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/util/paused"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1" //nolint:staticcheck
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	bsutil "sigs.k8s.io/cluster-api/bootstrap/util"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
-	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions" //nolint:staticcheck
+	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"           //nolint:staticcheck
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
+
+const eksConfigKind = "EKSConfig"
 
 // EKSConfigReconciler reconciles a EKSConfig object.
 type EKSConfigReconciler struct {
@@ -78,7 +80,7 @@ func (r *EKSConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		log.Error(err, "Failed to get config")
 		return ctrl.Result{}, err
 	}
-	log = log.WithValues("EKSConfig", config.GetName())
+	log = log.WithValues(eksConfigKind, config.GetName())
 
 	// check owner references and look up owning Machine object
 	configOwner, err := bsutil.GetTypedConfigOwner(ctx, r.Client, config)
@@ -315,7 +317,7 @@ func (r *EKSConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Man
 	err = c.Watch(
 		source.Kind[client.Object](mgr.GetCache(), &clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc((r.ClusterToEKSConfigs)),
-			predicates.ClusterUnpausedAndInfrastructureProvisioned(mgr.GetScheme(), logger.FromContext(ctx).GetLogger())),
+			predicates.ClusterPausedTransitionsOrInfrastructureProvisioned(mgr.GetScheme(), logger.FromContext(ctx).GetLogger())),
 	)
 	if err != nil {
 		return errors.Wrap(err, "failed adding watch for Clusters to controller manager")
@@ -371,7 +373,7 @@ func (r *EKSConfigReconciler) MachineToBootstrapMapFunc(_ context.Context, o cli
 	if !ok {
 		klog.Errorf("Expected a Machine but got a %T", o)
 	}
-	if m.Spec.Bootstrap.ConfigRef.Name != "" && m.Spec.Bootstrap.ConfigRef.APIGroup == eksbootstrapv1.GroupVersion.Group && m.Spec.Bootstrap.ConfigRef.Kind == "EKSConfig" {
+	if m.Spec.Bootstrap.ConfigRef.Name != "" && m.Spec.Bootstrap.ConfigRef.APIGroup == eksbootstrapv1.GroupVersion.Group && m.Spec.Bootstrap.ConfigRef.Kind == eksConfigKind {
 		name := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.Bootstrap.ConfigRef.Name}
 		result = append(result, ctrl.Request{NamespacedName: name})
 	}
@@ -388,7 +390,7 @@ func (r *EKSConfigReconciler) MachinePoolToBootstrapMapFunc(_ context.Context, o
 		klog.Errorf("Expected a MachinePool but got a %T", o)
 	}
 	configRef := m.Spec.Template.Spec.Bootstrap.ConfigRef
-	if configRef.Name != "" && configRef.APIGroup == eksbootstrapv1.GroupVersion.Group && configRef.Kind == "EKSConfig" {
+	if configRef.Name != "" && configRef.APIGroup == eksbootstrapv1.GroupVersion.Group && configRef.Kind == eksConfigKind {
 		name := client.ObjectKey{Namespace: m.Namespace, Name: configRef.Name}
 		result = append(result, ctrl.Request{NamespacedName: name})
 	}
@@ -421,7 +423,7 @@ func (r *EKSConfigReconciler) ClusterToEKSConfigs(_ context.Context, o client.Ob
 	for _, m := range machineList.Items {
 		if m.Spec.Bootstrap.ConfigRef.Name != "" &&
 			m.Spec.Bootstrap.ConfigRef.APIGroup == eksbootstrapv1.GroupVersion.Group &&
-			m.Spec.Bootstrap.ConfigRef.Kind == "EKSConfig" {
+			m.Spec.Bootstrap.ConfigRef.Kind == eksConfigKind {
 			name := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.Bootstrap.ConfigRef.Name}
 			result = append(result, ctrl.Request{NamespacedName: name})
 		}
@@ -442,7 +444,7 @@ func (r *EKSConfigReconciler) createBootstrapSecret(ctx context.Context, cluster
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					APIVersion: eksbootstrapv1.GroupVersion.String(),
-					Kind:       "EKSConfig",
+					Kind:       eksConfigKind,
 					Name:       config.Name,
 					UID:        config.UID,
 					Controller: ptr.To[bool](true),

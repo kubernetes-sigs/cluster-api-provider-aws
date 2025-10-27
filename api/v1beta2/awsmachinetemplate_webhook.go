@@ -172,6 +172,7 @@ func (r *AWSMachineTemplate) validateIgnitionAndCloudInit() field.ErrorList {
 
 	return allErrs
 }
+<<<<<<< HEAD
 func (r *AWSMachineTemplate) validateHostAllocation() field.ErrorList {
 	var allErrs field.ErrorList
 
@@ -187,6 +188,8 @@ func (r *AWSMachineTemplate) validateHostAllocation() field.ErrorList {
 
 	return allErrs
 }
+=======
+>>>>>>> c3fc709ee (Consolidate conditions imports and fix linting)
 
 func (r *AWSMachineTemplate) validateSSHKeyName() field.ErrorList {
 	return validateSSHKeyName(r.Spec.Template.Spec.SSHKeyName)
@@ -244,7 +247,7 @@ func (r *AWSMachineTemplateWebhook) ValidateUpdate(ctx context.Context, oldRaw r
 
 	var allErrs field.ErrorList
 
-	if !topology.ShouldSkipImmutabilityChecks(req, newAWSMachineTemplate) && !cmp.Equal(newAWSMachineTemplate.Spec, oldAWSMachineTemplate.Spec) {
+	if !topology.IsDryRunRequest(req, newAWSMachineTemplate) && !cmp.Equal(newAWSMachineTemplate.Spec, oldAWSMachineTemplate.Spec) {
 		if oldAWSMachineTemplate.Spec.Template.Spec.InstanceMetadataOptions == nil {
 			oldAWSMachineTemplate.Spec.Template.Spec.InstanceMetadataOptions = newAWSMachineTemplate.Spec.Template.Spec.InstanceMetadataOptions
 		}

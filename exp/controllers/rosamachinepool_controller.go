@@ -29,7 +29,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
-	expinfrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta1"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/exp/utils"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
@@ -38,11 +37,11 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/rosa"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/util/paused"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1" //nolint:staticcheck
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions" //nolint:staticcheck
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
@@ -147,7 +146,7 @@ func (r *ROSAMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 			controllerutil.RemoveFinalizer(rosaMachinePool, expinfrav1.RosaMachinePoolFinalizer)
 			return ctrl.Result{}, patchHelper.Patch(ctx, rosaMachinePool, patch.WithOwnedConditions{Conditions: []string{
-				string(expinfrav1beta1.RosaMachinePoolReadyCondition),
+				string(expinfrav1.RosaMachinePoolReadyCondition),
 			}})
 		}
 
@@ -181,12 +180,12 @@ func (r *ROSAMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	if !controlPlane.Status.Ready && controlPlane.ObjectMeta.DeletionTimestamp.IsZero() {
 		log.Info("Control plane is not ready yet")
-		err := machinePoolScope.RosaMachinePoolReadyFalse(expinfrav1beta1.WaitingForRosaControlPlaneReason, "")
+		err := machinePoolScope.RosaMachinePoolReadyFalse(expinfrav1.WaitingForRosaControlPlaneReason, "")
 		return ctrl.Result{}, err
 	}
 
 	defer func() {
-		v1beta1conditions.SetSummary(machinePoolScope.RosaMachinePool, v1beta1conditions.WithConditions(expinfrav1beta1.RosaMachinePoolReadyCondition), v1beta1conditions.WithStepCounter())
+		v1beta1conditions.SetSummary(machinePoolScope.RosaMachinePool, v1beta1conditions.WithConditions(expinfrav1.RosaMachinePoolReadyCondition), v1beta1conditions.WithStepCounter())
 
 		if err := machinePoolScope.Close(); err != nil && reterr == nil {
 			reterr = err
@@ -278,7 +277,7 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 
 		rosaMachinePool.Status.Replicas = currentReplicas
 		if rosa.IsNodePoolReady(nodePool) {
-			v1beta1conditions.MarkTrue(rosaMachinePool, expinfrav1beta1.RosaMachinePoolReadyCondition)
+			v1beta1conditions.MarkTrue(rosaMachinePool, expinfrav1.RosaMachinePoolReadyCondition)
 			rosaMachinePool.Status.Ready = true
 
 			if err := r.reconcileMachinePoolVersion(machinePoolScope, ocmClient, nodePool); err != nil {
@@ -289,7 +288,7 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 		}
 
 		v1beta1conditions.MarkFalse(rosaMachinePool,
-			expinfrav1beta1.RosaMachinePoolReadyCondition,
+			expinfrav1.RosaMachinePoolReadyCondition,
 			nodePool.Status().Message(),
 			clusterv1beta1.ConditionSeverityInfo,
 			"")
@@ -308,8 +307,8 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 	nodePool, err = ocmClient.CreateNodePool(machinePoolScope.ControlPlane.Status.ID, nodePoolSpec)
 	if err != nil {
 		v1beta1conditions.MarkFalse(rosaMachinePool,
-			expinfrav1beta1.RosaMachinePoolReadyCondition,
-			expinfrav1beta1.RosaMachinePoolReconciliationFailedReason,
+			expinfrav1.RosaMachinePoolReadyCondition,
+			expinfrav1.RosaMachinePoolReconciliationFailedReason,
 			clusterv1beta1.ConditionSeverityError,
 			"failed to create ROSAMachinePool: %s", err.Error())
 		return ctrl.Result{}, fmt.Errorf("failed to create nodepool: %w", err)
@@ -351,7 +350,7 @@ func (r *ROSAMachinePoolReconciler) reconcileMachinePoolVersion(machinePoolScope
 	version := machinePoolScope.RosaMachinePool.Spec.Version
 	if version == "" || version == rosa.RawVersionID(nodePool.Version()) {
 		machinePoolScope.RosaMachinePool.Status.AvailableUpgrades = nodePool.Version().AvailableUpgrades()
-		v1beta1conditions.MarkFalse(machinePoolScope.RosaMachinePool, expinfrav1beta1.RosaMachinePoolUpgradingCondition, "upgraded", clusterv1beta1.ConditionSeverityInfo, "")
+		v1beta1conditions.MarkFalse(machinePoolScope.RosaMachinePool, expinfrav1.RosaMachinePoolUpgradingCondition, "upgraded", clusterv1beta1.ConditionSeverityInfo, "")
 		return nil
 	}
 
@@ -369,7 +368,7 @@ func (r *ROSAMachinePoolReconciler) reconcileMachinePoolVersion(machinePoolScope
 	}
 
 	condition := &clusterv1beta1.Condition{
-		Type:    expinfrav1beta1.RosaMachinePoolUpgradingCondition,
+		Type:    expinfrav1.RosaMachinePoolUpgradingCondition,
 		Status:  corev1.ConditionTrue,
 		Reason:  string(scheduledUpgrade.State().Value()),
 		Message: fmt.Sprintf("Upgrading to version %s", scheduledUpgrade.Version()),
@@ -420,8 +419,8 @@ func (r *ROSAMachinePoolReconciler) updateNodePool(machinePoolScope *scope.RosaM
 	updatedNodePool, err := ocmClient.UpdateNodePool(machinePoolScope.ControlPlane.Status.ID, nodePoolSpec)
 	if err != nil {
 		v1beta1conditions.MarkFalse(machinePoolScope.RosaMachinePool,
-			expinfrav1beta1.RosaMachinePoolReadyCondition,
-			expinfrav1beta1.RosaMachinePoolReconciliationFailedReason,
+			expinfrav1.RosaMachinePoolReadyCondition,
+			expinfrav1.RosaMachinePoolReconciliationFailedReason,
 			clusterv1beta1.ConditionSeverityError,
 			"failed to update ROSAMachinePool: %s", err.Error())
 		return nil, fmt.Errorf("failed to update nodePool: %w", err)
