@@ -371,7 +371,7 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 		var filtered []types.Subnet
 		var errMessage string
 		for _, subnet := range subnets {
-			if *subnet.AvailabilityZone != failureDomain {
+			if failureDomain != "" && *subnet.AvailabilityZone != failureDomain {
 				// we could have included the failure domain in the query criteria, but then we end up with EC2 error
 				// messages that don't give a good hint about what is really wrong
 				errMessage += fmt.Sprintf(" subnet %q availability zone %q does not match failure domain %q.",
