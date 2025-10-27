@@ -19,7 +19,6 @@ package network
 import (
 	"k8s.io/klog/v2"
 
-	infrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	infrautilconditions "sigs.k8s.io/cluster-api-provider-aws/v2/util/conditions"
@@ -33,66 +32,66 @@ func (s *Service) ReconcileNetwork() (err error) {
 
 	// VPC.
 	if err := s.reconcileVPC(); err != nil {
-		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.VpcReadyCondition, infrav1beta1.VpcReconciliationFailedReason, infrautilconditions.ErrorConditionAfterInit(s.scope.ClusterObj()), "%s", err.Error())
+		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.VpcReadyCondition, infrav1.VpcReconciliationFailedReason, infrautilconditions.ErrorConditionAfterInit(s.scope.ClusterObj()), "%s", err.Error())
 		return err
 	}
-	v1beta1conditions.MarkTrue(s.scope.InfraCluster(), infrav1beta1.VpcReadyCondition)
+	v1beta1conditions.MarkTrue(s.scope.InfraCluster(), infrav1.VpcReadyCondition)
 
 	// Secondary CIDRs
 	if err := s.associateSecondaryCidrs(); err != nil {
-		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.SecondaryCidrsReadyCondition, infrav1beta1.SecondaryCidrReconciliationFailedReason, infrautilconditions.ErrorConditionAfterInit(s.scope.ClusterObj()), "%s", err.Error())
+		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.SecondaryCidrsReadyCondition, infrav1.SecondaryCidrReconciliationFailedReason, infrautilconditions.ErrorConditionAfterInit(s.scope.ClusterObj()), "%s", err.Error())
 		return err
 	}
-	v1beta1conditions.MarkTrue(s.scope.InfraCluster(), infrav1beta1.SecondaryCidrsReadyCondition)
+	v1beta1conditions.MarkTrue(s.scope.InfraCluster(), infrav1.SecondaryCidrsReadyCondition)
 
 	// Subnets.
 	if err := s.reconcileSubnets(); err != nil {
-		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.SubnetsReadyCondition, infrav1beta1.SubnetsReconciliationFailedReason, infrautilconditions.ErrorConditionAfterInit(s.scope.ClusterObj()), "%s", err.Error())
+		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.SubnetsReadyCondition, infrav1.SubnetsReconciliationFailedReason, infrautilconditions.ErrorConditionAfterInit(s.scope.ClusterObj()), "%s", err.Error())
 		return err
 	}
-	v1beta1conditions.MarkTrue(s.scope.InfraCluster(), infrav1beta1.SubnetsReadyCondition)
+	v1beta1conditions.MarkTrue(s.scope.InfraCluster(), infrav1.SubnetsReadyCondition)
 
 	// Internet Gateways.
 	if err := s.reconcileInternetGateways(); err != nil {
-		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.InternetGatewayReadyCondition, infrav1beta1.InternetGatewayFailedReason, infrautilconditions.ErrorConditionAfterInit(s.scope.ClusterObj()), "%s", err.Error())
+		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.InternetGatewayReadyCondition, infrav1.InternetGatewayFailedReason, infrautilconditions.ErrorConditionAfterInit(s.scope.ClusterObj()), "%s", err.Error())
 		return err
 	}
-	v1beta1conditions.MarkTrue(s.scope.InfraCluster(), infrav1beta1.InternetGatewayReadyCondition)
+	v1beta1conditions.MarkTrue(s.scope.InfraCluster(), infrav1.InternetGatewayReadyCondition)
 
 	// Carrier Gateway.
 	if err := s.reconcileCarrierGateway(); err != nil {
-		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.CarrierGatewayReadyCondition, infrav1beta1.CarrierGatewayFailedReason, infrautilconditions.ErrorConditionAfterInit(s.scope.ClusterObj()), "%s", err.Error())
+		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.CarrierGatewayReadyCondition, infrav1.CarrierGatewayFailedReason, infrautilconditions.ErrorConditionAfterInit(s.scope.ClusterObj()), "%s", err.Error())
 		return err
 	}
-	v1beta1conditions.MarkTrue(s.scope.InfraCluster(), infrav1beta1.CarrierGatewayReadyCondition)
+	v1beta1conditions.MarkTrue(s.scope.InfraCluster(), infrav1.CarrierGatewayReadyCondition)
 
 	// Egress Only Internet Gateways.
 	if err := s.reconcileEgressOnlyInternetGateways(); err != nil {
-		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.EgressOnlyInternetGatewayReadyCondition, infrav1beta1.EgressOnlyInternetGatewayFailedReason, infrautilconditions.ErrorConditionAfterInit(s.scope.ClusterObj()), "%s", err.Error())
+		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.EgressOnlyInternetGatewayReadyCondition, infrav1.EgressOnlyInternetGatewayFailedReason, infrautilconditions.ErrorConditionAfterInit(s.scope.ClusterObj()), "%s", err.Error())
 		return err
 	}
-	v1beta1conditions.MarkTrue(s.scope.InfraCluster(), infrav1beta1.EgressOnlyInternetGatewayReadyCondition)
+	v1beta1conditions.MarkTrue(s.scope.InfraCluster(), infrav1.EgressOnlyInternetGatewayReadyCondition)
 
 	// NAT Gateways.
 	if err := s.reconcileNatGateways(); err != nil {
-		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.NatGatewaysReadyCondition, infrav1beta1.NatGatewaysReconciliationFailedReason, infrautilconditions.ErrorConditionAfterInit(s.scope.ClusterObj()), "%s", err.Error())
+		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.NatGatewaysReadyCondition, infrav1.NatGatewaysReconciliationFailedReason, infrautilconditions.ErrorConditionAfterInit(s.scope.ClusterObj()), "%s", err.Error())
 		return err
 	}
-	v1beta1conditions.MarkTrue(s.scope.InfraCluster(), infrav1beta1.NatGatewaysReadyCondition)
+	v1beta1conditions.MarkTrue(s.scope.InfraCluster(), infrav1.NatGatewaysReadyCondition)
 
 	// Routing tables.
 	if err := s.reconcileRouteTables(); err != nil {
-		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.RouteTablesReadyCondition, infrav1beta1.RouteTableReconciliationFailedReason, infrautilconditions.ErrorConditionAfterInit(s.scope.ClusterObj()), "%s", err.Error())
+		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.RouteTablesReadyCondition, infrav1.RouteTableReconciliationFailedReason, infrautilconditions.ErrorConditionAfterInit(s.scope.ClusterObj()), "%s", err.Error())
 		return err
 	}
-	v1beta1conditions.MarkTrue(s.scope.InfraCluster(), infrav1beta1.RouteTablesReadyCondition)
+	v1beta1conditions.MarkTrue(s.scope.InfraCluster(), infrav1.RouteTablesReadyCondition)
 
 	// VPC Endpoints.
 	if err := s.reconcileVPCEndpoints(); err != nil {
-		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.VpcEndpointsReadyCondition, infrav1beta1.VpcEndpointsReconciliationFailedReason, infrautilconditions.ErrorConditionAfterInit(s.scope.ClusterObj()), "%s", err.Error())
+		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.VpcEndpointsReadyCondition, infrav1.VpcEndpointsReconciliationFailedReason, infrautilconditions.ErrorConditionAfterInit(s.scope.ClusterObj()), "%s", err.Error())
 		return err
 	}
-	v1beta1conditions.MarkTrue(s.scope.InfraCluster(), infrav1beta1.VpcEndpointsReadyCondition)
+	v1beta1conditions.MarkTrue(s.scope.InfraCluster(), infrav1.VpcEndpointsReadyCondition)
 
 	s.scope.Debug("Reconcile network completed successfully")
 	return nil
@@ -121,40 +120,40 @@ func (s *Service) DeleteNetwork() (err error) {
 	vpc.DeepCopyInto(s.scope.VPC())
 
 	// VPC Endpoints.
-	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.VpcEndpointsReadyCondition, clusterv1beta1.DeletingReason, clusterv1beta1.ConditionSeverityInfo, "")
+	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.VpcEndpointsReadyCondition, clusterv1beta1.DeletingReason, clusterv1beta1.ConditionSeverityInfo, "")
 	if err := s.scope.PatchObject(); err != nil {
 		return err
 	}
 
 	if err := s.deleteVPCEndpoints(); err != nil {
-		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.VpcEndpointsReadyCondition, "DeletingFailed", clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
+		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.VpcEndpointsReadyCondition, "DeletingFailed", clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
 		return err
 	}
-	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.VpcEndpointsReadyCondition, clusterv1beta1.DeletedReason, clusterv1beta1.ConditionSeverityInfo, "")
+	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.VpcEndpointsReadyCondition, clusterv1beta1.DeletedReason, clusterv1beta1.ConditionSeverityInfo, "")
 
 	// Routing tables.
-	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.RouteTablesReadyCondition, clusterv1beta1.DeletingReason, clusterv1beta1.ConditionSeverityInfo, "")
+	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.RouteTablesReadyCondition, clusterv1beta1.DeletingReason, clusterv1beta1.ConditionSeverityInfo, "")
 	if err := s.scope.PatchObject(); err != nil {
 		return err
 	}
 
 	if err := s.deleteRouteTables(); err != nil {
-		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.RouteTablesReadyCondition, "DeletingFailed", clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
+		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.RouteTablesReadyCondition, "DeletingFailed", clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
 		return err
 	}
-	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.RouteTablesReadyCondition, clusterv1beta1.DeletedReason, clusterv1beta1.ConditionSeverityInfo, "")
+	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.RouteTablesReadyCondition, clusterv1beta1.DeletedReason, clusterv1beta1.ConditionSeverityInfo, "")
 
 	// NAT Gateways.
-	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.NatGatewaysReadyCondition, clusterv1beta1.DeletingReason, clusterv1beta1.ConditionSeverityInfo, "")
+	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.NatGatewaysReadyCondition, clusterv1beta1.DeletingReason, clusterv1beta1.ConditionSeverityInfo, "")
 	if err := s.scope.PatchObject(); err != nil {
 		return err
 	}
 
 	if err := s.deleteNatGateways(); err != nil {
-		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.NatGatewaysReadyCondition, "DeletingFailed", clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
+		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.NatGatewaysReadyCondition, "DeletingFailed", clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
 		return err
 	}
-	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.NatGatewaysReadyCondition, clusterv1beta1.DeletedReason, clusterv1beta1.ConditionSeverityInfo, "")
+	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.NatGatewaysReadyCondition, clusterv1beta1.DeletedReason, clusterv1beta1.ConditionSeverityInfo, "")
 
 	// EIPs.
 	if err := s.releaseAddresses(); err != nil {
@@ -162,68 +161,68 @@ func (s *Service) DeleteNetwork() (err error) {
 	}
 
 	// Internet Gateways.
-	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.InternetGatewayReadyCondition, clusterv1beta1.DeletingReason, clusterv1beta1.ConditionSeverityInfo, "")
+	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.InternetGatewayReadyCondition, clusterv1beta1.DeletingReason, clusterv1beta1.ConditionSeverityInfo, "")
 	if err := s.scope.PatchObject(); err != nil {
 		return err
 	}
 
 	if err := s.deleteInternetGateways(); err != nil {
-		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.InternetGatewayReadyCondition, "DeletingFailed", clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
+		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.InternetGatewayReadyCondition, "DeletingFailed", clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
 		return err
 	}
-	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.InternetGatewayReadyCondition, clusterv1beta1.DeletedReason, clusterv1beta1.ConditionSeverityInfo, "")
+	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.InternetGatewayReadyCondition, clusterv1beta1.DeletedReason, clusterv1beta1.ConditionSeverityInfo, "")
 
 	// Carrier Gateway.
 	if s.scope.VPC().CarrierGatewayID != nil {
 		if err := s.deleteCarrierGateway(); err != nil {
-			v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.CarrierGatewayReadyCondition, "DeletingFailed", clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
+			v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.CarrierGatewayReadyCondition, "DeletingFailed", clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
 			return err
 		}
-		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.CarrierGatewayReadyCondition, clusterv1beta1.DeletedReason, clusterv1beta1.ConditionSeverityInfo, "")
+		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.CarrierGatewayReadyCondition, clusterv1beta1.DeletedReason, clusterv1beta1.ConditionSeverityInfo, "")
 	}
 
 	// Egress Only Internet Gateways.
-	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.EgressOnlyInternetGatewayReadyCondition, clusterv1beta1.DeletingReason, clusterv1beta1.ConditionSeverityInfo, "")
+	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.EgressOnlyInternetGatewayReadyCondition, clusterv1beta1.DeletingReason, clusterv1beta1.ConditionSeverityInfo, "")
 	if err := s.scope.PatchObject(); err != nil {
 		return err
 	}
 
 	if err := s.deleteEgressOnlyInternetGateways(); err != nil {
-		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.EgressOnlyInternetGatewayReadyCondition, "DeletingFailed", clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
+		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.EgressOnlyInternetGatewayReadyCondition, "DeletingFailed", clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
 		return err
 	}
-	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.EgressOnlyInternetGatewayReadyCondition, clusterv1beta1.DeletedReason, clusterv1beta1.ConditionSeverityInfo, "")
+	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.EgressOnlyInternetGatewayReadyCondition, clusterv1beta1.DeletedReason, clusterv1beta1.ConditionSeverityInfo, "")
 
 	// Subnets.
-	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.SubnetsReadyCondition, clusterv1beta1.DeletingReason, clusterv1beta1.ConditionSeverityInfo, "")
+	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.SubnetsReadyCondition, clusterv1beta1.DeletingReason, clusterv1beta1.ConditionSeverityInfo, "")
 	if err := s.scope.PatchObject(); err != nil {
 		return err
 	}
 
 	if err := s.deleteSubnets(); err != nil {
-		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.SubnetsReadyCondition, "DeletingFailed", clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
+		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.SubnetsReadyCondition, "DeletingFailed", clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
 		return err
 	}
-	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.SubnetsReadyCondition, clusterv1beta1.DeletedReason, clusterv1beta1.ConditionSeverityInfo, "")
+	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.SubnetsReadyCondition, clusterv1beta1.DeletedReason, clusterv1beta1.ConditionSeverityInfo, "")
 
 	// Secondary CIDR.
-	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.SecondaryCidrsReadyCondition, clusterv1beta1.DeletingReason, clusterv1beta1.ConditionSeverityInfo, "")
+	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.SecondaryCidrsReadyCondition, clusterv1beta1.DeletingReason, clusterv1beta1.ConditionSeverityInfo, "")
 	if err := s.disassociateSecondaryCidrs(); err != nil {
-		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.SecondaryCidrsReadyCondition, "DisassociateFailed", clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
+		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.SecondaryCidrsReadyCondition, "DisassociateFailed", clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
 		return err
 	}
 
 	// VPC.
-	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.VpcReadyCondition, clusterv1beta1.DeletingReason, clusterv1beta1.ConditionSeverityInfo, "")
+	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.VpcReadyCondition, clusterv1beta1.DeletingReason, clusterv1beta1.ConditionSeverityInfo, "")
 	if err := s.scope.PatchObject(); err != nil {
 		return err
 	}
 
 	if err := s.deleteVPC(); err != nil {
-		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.VpcReadyCondition, "DeletingFailed", clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
+		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.VpcReadyCondition, "DeletingFailed", clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
 		return err
 	}
-	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.VpcReadyCondition, clusterv1beta1.DeletedReason, clusterv1beta1.ConditionSeverityInfo, "")
+	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.VpcReadyCondition, clusterv1beta1.DeletedReason, clusterv1beta1.ConditionSeverityInfo, "")
 
 	s.scope.Debug("Delete network completed successfully")
 	return nil

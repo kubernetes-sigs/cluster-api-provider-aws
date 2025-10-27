@@ -34,7 +34,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	infrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/identity"
@@ -93,7 +92,7 @@ func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.Se
 	providers, err := getProvidersForCluster(context.Background(), k8sClient, clusterScoper, region, log)
 	if err != nil {
 		// could not get providers and retrieve the credentials
-		v1beta1conditions.MarkFalse(clusterScoper.InfraCluster(), infrav1beta1.PrincipalCredentialRetrievedCondition, infrav1beta1.PrincipalCredentialRetrievalFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
+		v1beta1conditions.MarkFalse(clusterScoper.InfraCluster(), infrav1.PrincipalCredentialRetrievedCondition, infrav1.PrincipalCredentialRetrievalFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
 		return nil, nil, errors.Wrap(err, "Failed to get providers for cluster")
 	}
 
@@ -131,7 +130,7 @@ func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.Se
 		// Check if identity credentials can be retrieved. One reason this will fail is that source identity is not authorized for assume role.
 		_, err := providers[0].Retrieve(context.Background())
 		if err != nil {
-			v1beta1conditions.MarkUnknown(clusterScoper.InfraCluster(), infrav1beta1.PrincipalCredentialRetrievedCondition, infrav1beta1.CredentialProviderBuildFailedReason, "%s", err.Error())
+			v1beta1conditions.MarkUnknown(clusterScoper.InfraCluster(), infrav1.PrincipalCredentialRetrievedCondition, infrav1.CredentialProviderBuildFailedReason, "%s", err.Error())
 
 			// delete the existing session from cache. Otherwise, we give back a defective session on next method invocation with same cluster scope
 			sessionCache.Delete(getSessionName(region, clusterScoper))
@@ -142,7 +141,7 @@ func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.Se
 		optFns = append(optFns, config.WithCredentialsProvider(chainProvider))
 	}
 
-	v1beta1conditions.MarkTrue(clusterScoper.InfraCluster(), infrav1beta1.PrincipalCredentialRetrievedCondition)
+	v1beta1conditions.MarkTrue(clusterScoper.InfraCluster(), infrav1.PrincipalCredentialRetrievedCondition)
 
 	ns, err := config.LoadDefaultConfig(context.Background(), optFns...)
 	if err != nil {
@@ -291,21 +290,21 @@ func buildProvidersForRef(
 	default:
 		return providers, errors.Errorf("No such provider known: '%s'", ref.Kind)
 	}
-	v1beta1conditions.MarkTrue(clusterScoper.InfraCluster(), infrav1beta1.PrincipalUsageAllowedCondition)
+	v1beta1conditions.MarkTrue(clusterScoper.InfraCluster(), infrav1.PrincipalUsageAllowedCondition)
 	return providers, nil
 }
 
 func setPrincipalUsageAllowedCondition(clusterScoper cloud.SessionMetadata) {
-	v1beta1conditions.MarkTrue(clusterScoper.InfraCluster(), infrav1beta1.PrincipalUsageAllowedCondition)
+	v1beta1conditions.MarkTrue(clusterScoper.InfraCluster(), infrav1.PrincipalUsageAllowedCondition)
 }
 
 func setPrincipalUsageNotAllowedCondition(kind infrav1.AWSIdentityKind, identityObjectKey client.ObjectKey, clusterScoper cloud.SessionMetadata) {
 	errMsg := fmt.Sprintf(notPermittedError, kind, identityObjectKey.Name)
 
 	if clusterScoper.IdentityRef().Name == identityObjectKey.Name {
-		v1beta1conditions.MarkFalse(clusterScoper.InfraCluster(), infrav1beta1.PrincipalUsageAllowedCondition, infrav1beta1.PrincipalUsageUnauthorizedReason, clusterv1beta1.ConditionSeverityError, "%s", errMsg)
+		v1beta1conditions.MarkFalse(clusterScoper.InfraCluster(), infrav1.PrincipalUsageAllowedCondition, infrav1.PrincipalUsageUnauthorizedReason, clusterv1beta1.ConditionSeverityError, "%s", errMsg)
 	} else {
-		v1beta1conditions.MarkFalse(clusterScoper.InfraCluster(), infrav1beta1.PrincipalUsageAllowedCondition, infrav1beta1.SourcePrincipalUsageUnauthorizedReason, clusterv1beta1.ConditionSeverityError, "%s", errMsg)
+		v1beta1conditions.MarkFalse(clusterScoper.InfraCluster(), infrav1.PrincipalUsageAllowedCondition, infrav1.SourcePrincipalUsageUnauthorizedReason, clusterv1beta1.ConditionSeverityError, "%s", errMsg)
 	}
 }
 

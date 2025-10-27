@@ -25,7 +25,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/pkg/errors"
 
-	infrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
@@ -75,7 +74,7 @@ func (s *Service) reconcileInternetGateways() error {
 		record.Warnf(s.scope.InfraCluster(), "FailedTagInternetGateway", "Failed to tag managed Internet Gateway %q: %v", gateway.InternetGatewayId, err)
 		return errors.Wrapf(err, "failed to tag internet gateway %q", *gateway.InternetGatewayId)
 	}
-	v1beta1conditions.MarkTrue(s.scope.InfraCluster(), infrav1beta1.InternetGatewayReadyCondition)
+	v1beta1conditions.MarkTrue(s.scope.InfraCluster(), infrav1.InternetGatewayReadyCondition)
 	return nil
 }
 

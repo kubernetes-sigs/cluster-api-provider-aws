@@ -38,7 +38,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
-	expinfrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta1"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"                      //nolint:staticcheck
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions" //nolint:staticcheck
@@ -159,7 +158,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetwork)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(cnd).ToNot(BeNil())
-		g.Expect(cnd.Reason).To(Equal(expinfrav1beta1.ROSANetworkFailedReason))
+		g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkFailedReason))
 		g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityError))
 		g.Expect(cnd.Message).To(Equal("test-error"))
 	})
@@ -190,7 +189,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetwork)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(cnd).ToNot(BeNil())
-		g.Expect(cnd.Reason).To(Equal(expinfrav1beta1.ROSANetworkCreatingReason))
+		g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkCreatingReason))
 		g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityInfo))
 	})
 
@@ -222,7 +221,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetwork)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(cnd).ToNot(BeNil())
-		g.Expect(cnd.Reason).To(Equal(expinfrav1beta1.ROSANetworkCreatingReason))
+		g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkCreatingReason))
 		g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityInfo))
 	})
 
@@ -254,7 +253,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetwork)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(cnd).ToNot(BeNil())
-		g.Expect(cnd.Reason).To(Equal(expinfrav1beta1.ROSANetworkCreatedReason))
+		g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkCreatedReason))
 		g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityInfo))
 	})
 
@@ -286,7 +285,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetwork)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(cnd).ToNot(BeNil())
-		g.Expect(cnd.Reason).To(Equal(expinfrav1beta1.ROSANetworkFailedReason))
+		g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkFailedReason))
 		g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityError))
 	})
 
@@ -320,7 +319,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetworkDeleted)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(cnd).ToNot(BeNil())
-		g.Expect(cnd.Reason).To(Equal(expinfrav1beta1.ROSANetworkDeletionFailedReason))
+		g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkDeletionFailedReason))
 		g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityError))
 	})
 
@@ -354,7 +353,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetworkDeleted)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(cnd).ToNot(BeNil())
-		g.Expect(cnd.Reason).To(Equal(expinfrav1beta1.ROSANetworkDeletingReason))
+		g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkDeletingReason))
 		g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityInfo))
 	})
 
@@ -417,7 +416,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetworkDeleted)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(cnd).ToNot(BeNil())
-		g.Expect(cnd.Reason).To(Equal(expinfrav1beta1.ROSANetworkDeletionFailedReason))
+		g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkDeletionFailedReason))
 		g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityError))
 	})
 
