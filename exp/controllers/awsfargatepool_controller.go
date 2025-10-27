@@ -127,7 +127,7 @@ func (r *AWSFargateProfileReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	if !controlPlane.Status.Ready {
 		log.Info("Control plane is not ready yet")
-		v1beta1conditions.MarkFalse(fargateProfile, clusterv1.ReadyCondition, expinfrav1.WaitingForEKSControlPlaneReason, clusterv1beta1.ConditionSeverityInfo, "")
+		v1beta1conditions.MarkFalse(fargateProfile, clusterv1beta1.ReadyCondition, expinfrav1.WaitingForEKSControlPlaneReason, clusterv1beta1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
 	}
 
