@@ -306,7 +306,7 @@ func (r *AWSClusterReconciler) reconcileLoadBalancer(ctx context.Context, cluste
 
 	v1beta1conditions.MarkTrue(awsCluster, infrav1beta1.LoadBalancerReadyCondition)
 
-	awsCluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{
+	awsCluster.Spec.ControlPlaneEndpoint = clusterv1beta1.APIEndpoint{
 		Host: awsCluster.Status.Network.APIServerELB.DNSName,
 		Port: clusterScope.APIServerPort(),
 	}

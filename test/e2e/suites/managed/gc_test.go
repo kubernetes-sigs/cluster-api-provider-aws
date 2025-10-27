@@ -83,7 +83,7 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 		ginkgo.By("getting AWSManagedControlPlane")
 		cp := GetControlPlaneByName(ctx, GetControlPlaneByNameInput{
 			Getter:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
-			Namespace: cluster.Spec.InfrastructureRef.Namespace,
+			Namespace: cluster.Namespace,
 			Name:      cluster.Spec.ControlPlaneRef.Name,
 		})
 
@@ -206,7 +206,7 @@ var _ = ginkgo.Describe("[managed] [gc] EKS Cluster external resource GC tests",
 		ginkgo.By("getting AWSManagedControlPlane")
 		cp := GetControlPlaneByName(ctx, GetControlPlaneByNameInput{
 			Getter:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
-			Namespace: cluster.Spec.InfrastructureRef.Namespace,
+			Namespace: cluster.Namespace,
 			Name:      cluster.Spec.ControlPlaneRef.Name,
 		})
 

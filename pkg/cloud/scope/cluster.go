@@ -227,7 +227,10 @@ func (s *ClusterScope) ControlPlaneLoadBalancerName() *string {
 
 // ControlPlaneEndpoint returns the cluster control plane endpoint.
 func (s *ClusterScope) ControlPlaneEndpoint() clusterv1.APIEndpoint {
-	return s.AWSCluster.Spec.ControlPlaneEndpoint
+	return clusterv1.APIEndpoint{
+		Host: s.AWSCluster.Spec.ControlPlaneEndpoint.Host,
+		Port: s.AWSCluster.Spec.ControlPlaneEndpoint.Port,
+	}
 }
 
 // Bucket returns the cluster bucket configuration.
@@ -326,9 +329,12 @@ func (s *ClusterScope) APIServerPort() int32 {
 // SetFailureDomain sets the infrastructure provider failure domain key to the spec given as input.
 func (s *ClusterScope) SetFailureDomain(id string, spec clusterv1.FailureDomain) {
 	if s.AWSCluster.Status.FailureDomains == nil {
-		s.AWSCluster.Status.FailureDomains = make(map[string]clusterv1.FailureDomain)
+		s.AWSCluster.Status.FailureDomains = make(clusterv1beta1.FailureDomains)
 	}
-	s.AWSCluster.Status.FailureDomains[id] = spec
+	s.AWSCluster.Status.FailureDomains[id] = clusterv1beta1.FailureDomainSpec{
+		Attributes:   spec.Attributes,
+		ControlPlane: *spec.ControlPlane,
+	}
 }
 
 // SetNatGatewaysIPs sets the Nat Gateways Public IPs.

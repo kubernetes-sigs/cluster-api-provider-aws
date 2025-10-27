@@ -20,14 +20,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 // AWSManagedClusterSpec defines the desired state of AWSManagedCluster
 type AWSManagedClusterSpec struct {
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
-	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
+	ControlPlaneEndpoint clusterv1beta1.APIEndpoint `json:"controlPlaneEndpoint"`
 }
 
 // AWSManagedClusterStatus defines the observed state of AWSManagedCluster
@@ -38,7 +37,7 @@ type AWSManagedClusterStatus struct {
 
 	// FailureDomains specifies a list fo available availability zones that can be used
 	// +optional
-	FailureDomains map[string]clusterv1.FailureDomain `json:"failureDomains,omitempty"`
+	FailureDomains clusterv1beta1.FailureDomains `json:"failureDomains,omitempty"`
 
 	// Conditions defines current service state of the AWSManagedCluster.
 	// +optional

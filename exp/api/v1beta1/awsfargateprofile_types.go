@@ -23,7 +23,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
-	clusterv1betav1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 )
 
 // DefaultEKSFargateRole is the name of the default IAM role to use for fargate
@@ -116,7 +116,7 @@ type FargateProfileStatus struct {
 
 	// Conditions defines current state of the Fargate profile.
 	// +optional
-	Conditions clusterv1betav1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -137,12 +137,12 @@ type AWSFargateProfile struct {
 }
 
 // GetConditions returns the observations of the operational state of the AWSFargateProfile resource.
-func (r *AWSFargateProfile) GetConditions() clusterv1betav1.Conditions {
+func (r *AWSFargateProfile) GetConditions() clusterv1beta1.Conditions {
 	return r.Status.Conditions
 }
 
 // SetConditions sets the underlying service state of the AWSFargateProfile to the predescribed clusterv1betav1.Conditions.
-func (r *AWSFargateProfile) SetConditions(conditions clusterv1betav1.Conditions) {
+func (r *AWSFargateProfile) SetConditions(conditions clusterv1beta1.Conditions) {
 	r.Status.Conditions = conditions
 }
 

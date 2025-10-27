@@ -20,7 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 const (
@@ -50,7 +49,7 @@ type AWSClusterSpec struct {
 
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
-	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
+	ControlPlaneEndpoint clusterv1beta1.APIEndpoint `json:"controlPlaneEndpoint"`
 
 	// AdditionalTags is an optional set of tags to add to AWS resources managed by the AWS provider, in addition to the
 	// ones added by default.
@@ -277,11 +276,11 @@ type AdditionalListenerSpec struct {
 // AWSClusterStatus defines the observed state of AWSCluster.
 type AWSClusterStatus struct {
 	// +kubebuilder:default=false
-	Ready          bool                               `json:"ready"`
-	Network        NetworkStatus                      `json:"networkStatus,omitempty"`
-	FailureDomains map[string]clusterv1.FailureDomain `json:"failureDomains,omitempty"`
-	Bastion        *Instance                          `json:"bastion,omitempty"`
-	Conditions     clusterv1beta1.Conditions          `json:"conditions,omitempty"`
+	Ready          bool                          `json:"ready"`
+	Network        NetworkStatus                 `json:"networkStatus,omitempty"`
+	FailureDomains clusterv1beta1.FailureDomains `json:"failureDomains,omitempty"`
+	Bastion        *Instance                     `json:"bastion,omitempty"`
+	Conditions     clusterv1beta1.Conditions     `json:"conditions,omitempty"`
 }
 
 // S3Bucket defines a supporting S3 bucket for the cluster, currently can be optionally used for Ignition.

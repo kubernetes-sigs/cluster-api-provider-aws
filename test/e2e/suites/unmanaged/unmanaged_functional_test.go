@@ -38,9 +38,11 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	infrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/exp/instancestate"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -215,7 +217,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 					return false, nil
 				}
 
-				if !hasAWSClusterConditions(awsCluster, []conditionAssertion{{infrav1.BastionHostReadyCondition, corev1.ConditionTrue, "", ""}}) {
+				if !hasAWSClusterConditions(awsCluster, []conditionAssertion{{infrav1beta1.BastionHostReadyCondition, corev1.ConditionTrue, "", ""}}) {
 					ginkgo.By("AWSCluster missing bastion host ready condition")
 					return false, nil
 				}
@@ -255,7 +257,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			})
 			Expect(len(workerMachines)).To(Equal(1))
 
-			assertInstanceMetadataOptions(*workerMachines[0].Spec.ProviderID, *machineTempalte.Spec.Template.Spec.InstanceMetadataOptions)
+			assertInstanceMetadataOptions(workerMachines[0].Spec.ProviderID, *machineTempalte.Spec.Template.Spec.InstanceMetadataOptions)
 			ginkgo.By("PASSED!")
 		})
 	})
@@ -522,7 +524,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 					MachineDeployment: *md2[0],
 				})
 				Expect(len(machines)).Should(BeNumerically(">", 0))
-				terminateInstance(*machines[0].Spec.ProviderID)
+				terminateInstance(machines[0].Spec.ProviderID)
 
 				ginkgo.By("Waiting for AWSMachine to be labelled as terminated")
 				Eventually(func() bool {
@@ -610,7 +612,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				Namespace:   namespace.Name,
 			})
 			Expect(len(workerMachines)).To(Equal(1))
-			assertSpotInstanceType(*workerMachines[0].Spec.ProviderID)
+			assertSpotInstanceType(workerMachines[0].Spec.ProviderID)
 			Expect(len(controlPlaneMachines)).To(Equal(1))
 		})
 	})
@@ -942,7 +944,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			machineUserData, userDataFormat, err := getRawBootstrapDataWithFormat(e2eCtx.Environment.BootstrapClusterProxy.GetClient(), m)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(userDataFormat).To(Equal("ignition"))
-			assertUnencryptedUserDataIgnition(*m.Spec.ProviderID, string(machineUserData))
+			assertUnencryptedUserDataIgnition(m.Spec.ProviderID, string(machineUserData))
 
 			ginkgo.By("Validating the s3 endpoint was created")
 			vpc, err := shared.GetVPCByName(e2eCtx, clusterName+"-vpc")
@@ -967,8 +969,8 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 					return true
 				}
 				Expect(err).To(BeNil())
-				return v1beta1conditions.IsFalse(awsCluster, infrav1.VpcEndpointsReadyCondition) &&
-					v1beta1conditions.GetReason(awsCluster, infrav1.VpcEndpointsReadyCondition) == clusterv1beta1.DeletedReason
+				return v1beta1conditions.IsFalse(awsCluster, infrav1beta1.VpcEndpointsReadyCondition) &&
+					v1beta1conditions.GetReason(awsCluster, infrav1beta1.VpcEndpointsReadyCondition) == clusterv1beta1.DeletedReason
 			}, e2eCtx.E2EConfig.GetIntervals("", "wait-delete-cluster")...).Should(BeTrue(),
 				"Eventually failed waiting for AWSCluster to show VPC endpoint as deleted in conditions")
 		})

@@ -49,14 +49,14 @@ func getManagedClusterObjects(name, namespace string) (clusterv1.Cluster, infrav
 			UID:       "1",
 		},
 		Spec: clusterv1.ClusterSpec{
-			ControlPlaneRef: clusterv1.ContractVersionedObjectReference {
+			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: ekscontrolplanev1.GroupVersion.Group,
-				Name:       name,
+				Name:     name,
 				Kind:     "AWSManagedControlPlane",
 			},
-			InfrastructureRef: clusterv1.ContractVersionedObjectReference {
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				APIGroup: infrav1.GroupVersion.Group,
-				Name:       name,
+				Name:     name,
 				Kind:     "AWSManagedCluster",
 			},
 		},
