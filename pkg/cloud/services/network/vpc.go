@@ -27,7 +27,6 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	infrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
@@ -138,8 +137,8 @@ func (s *Service) reconcileVPC() error {
 	s.scope.VPC().Tags = vpc.Tags
 	s.scope.VPC().ID = vpc.ID
 
-	if !v1beta1conditions.Has(s.scope.InfraCluster(), infrav1beta1.VpcReadyCondition) {
-		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1beta1.VpcReadyCondition, infrav1beta1.VpcCreationStartedReason, clusterv1beta1.ConditionSeverityInfo, "")
+	if !v1beta1conditions.Has(s.scope.InfraCluster(), infrav1.VpcReadyCondition) {
+		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.VpcReadyCondition, infrav1.VpcCreationStartedReason, clusterv1beta1.ConditionSeverityInfo, "")
 		if err := s.scope.PatchObject(); err != nil {
 			return errors.Wrap(err, "failed to patch conditions")
 		}

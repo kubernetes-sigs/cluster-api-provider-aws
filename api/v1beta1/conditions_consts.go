@@ -70,14 +70,6 @@ const (
 )
 
 const (
-	// CarrierGatewayReadyCondition reports on the successful reconciliation of carrier gateways.
-	// Only applicable to managed clusters.
-	CarrierGatewayReadyCondition clusterv1beta1.ConditionType = "CarrierGatewayReady"
-	// CarrierGatewayFailedReason used when errors occur during carrier gateway reconciliation.
-	CarrierGatewayFailedReason = "CarrierGatewayFailed"
-)
-
-const (
 	// NatGatewaysReadyCondition reports successful reconciliation of NAT gateways.
 	// Only applicable to managed clusters.
 	NatGatewaysReadyCondition clusterv1beta1.ConditionType = "NatGatewaysReady"
@@ -93,14 +85,6 @@ const (
 	RouteTablesReadyCondition clusterv1beta1.ConditionType = "RouteTablesReady"
 	// RouteTableReconciliationFailedReason used when any errors occur during reconciliation of route tables.
 	RouteTableReconciliationFailedReason = "RouteTableReconciliationFailed"
-)
-
-const (
-	// VpcEndpointsReadyCondition reports successful reconciliation of vpc endpoints.
-	// Only applicable to managed clusters.
-	VpcEndpointsReadyCondition clusterv1beta1.ConditionType = "VpcEndpointsReadyCondition"
-	// VpcEndpointsReconciliationFailedReason used when any errors occur during reconciliation of vpc endpoints.
-	VpcEndpointsReconciliationFailedReason = "VpcEndpointsReconciliationFailed"
 )
 
 const (
@@ -133,9 +117,6 @@ const (
 	LoadBalancerReadyCondition clusterv1beta1.ConditionType = "LoadBalancerReady"
 	// WaitForDNSNameReason used while waiting for a DNS name for the API server to be populated.
 	WaitForDNSNameReason = "WaitForDNSName"
-	// WaitForExternalControlPlaneEndpointReason is available when the AWS Cluster is waiting for an externally managed
-	// Load Balancer, such as an external Control Plane provider.
-	WaitForExternalControlPlaneEndpointReason = "WaitForExternalControlPlaneEndpoint"
 	// WaitForDNSNameResolveReason used while waiting for DNS name to resolve.
 	WaitForDNSNameResolveReason = "WaitForDNSNameResolve"
 	// LoadBalancerFailedReason used when an error occurs during load balancer reconciliation.

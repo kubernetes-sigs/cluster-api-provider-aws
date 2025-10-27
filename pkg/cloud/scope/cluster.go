@@ -27,7 +27,6 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	infrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpoints"
@@ -256,25 +255,25 @@ func (s *ClusterScope) PatchObject() error {
 	// Always update the readyCondition by summarizing the state of other conditions.
 	// A step counter is added to represent progress during the provisioning process (instead we are hiding during the deletion process).
 	applicableConditions := []clusterv1beta1.ConditionType{
-		infrav1beta1.VpcReadyCondition,
-		infrav1beta1.SubnetsReadyCondition,
-		infrav1beta1.ClusterSecurityGroupsReadyCondition,
-		infrav1beta1.LoadBalancerReadyCondition,
+		infrav1.VpcReadyCondition,
+		infrav1.SubnetsReadyCondition,
+		infrav1.ClusterSecurityGroupsReadyCondition,
+		infrav1.LoadBalancerReadyCondition,
 	}
 
 	if s.VPC().IsManaged(s.Name()) {
 		applicableConditions = append(applicableConditions,
-			infrav1beta1.InternetGatewayReadyCondition,
-			infrav1beta1.NatGatewaysReadyCondition,
-			infrav1beta1.RouteTablesReadyCondition,
-			infrav1beta1.VpcEndpointsReadyCondition,
+			infrav1.InternetGatewayReadyCondition,
+			infrav1.NatGatewaysReadyCondition,
+			infrav1.RouteTablesReadyCondition,
+			infrav1.VpcEndpointsReadyCondition,
 		)
 
 		if s.AWSCluster.Spec.Bastion.Enabled {
-			applicableConditions = append(applicableConditions, infrav1beta1.BastionHostReadyCondition)
+			applicableConditions = append(applicableConditions, infrav1.BastionHostReadyCondition)
 		}
 		if s.VPC().IsIPv6Enabled() {
-			applicableConditions = append(applicableConditions, infrav1beta1.EgressOnlyInternetGatewayReadyCondition)
+			applicableConditions = append(applicableConditions, infrav1.EgressOnlyInternetGatewayReadyCondition)
 		}
 	}
 
@@ -289,18 +288,18 @@ func (s *ClusterScope) PatchObject() error {
 		s.AWSCluster,
 		v1beta1patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
 			clusterv1beta1.ReadyCondition,
-			infrav1beta1.VpcReadyCondition,
-			infrav1beta1.SubnetsReadyCondition,
-			infrav1beta1.InternetGatewayReadyCondition,
-			infrav1beta1.EgressOnlyInternetGatewayReadyCondition,
-			infrav1beta1.NatGatewaysReadyCondition,
-			infrav1beta1.RouteTablesReadyCondition,
-			infrav1beta1.VpcEndpointsReadyCondition,
-			infrav1beta1.ClusterSecurityGroupsReadyCondition,
-			infrav1beta1.BastionHostReadyCondition,
-			infrav1beta1.LoadBalancerReadyCondition,
-			infrav1beta1.PrincipalUsageAllowedCondition,
-			infrav1beta1.PrincipalCredentialRetrievedCondition,
+			infrav1.VpcReadyCondition,
+			infrav1.SubnetsReadyCondition,
+			infrav1.InternetGatewayReadyCondition,
+			infrav1.EgressOnlyInternetGatewayReadyCondition,
+			infrav1.NatGatewaysReadyCondition,
+			infrav1.RouteTablesReadyCondition,
+			infrav1.VpcEndpointsReadyCondition,
+			infrav1.ClusterSecurityGroupsReadyCondition,
+			infrav1.BastionHostReadyCondition,
+			infrav1.LoadBalancerReadyCondition,
+			infrav1.PrincipalUsageAllowedCondition,
+			infrav1.PrincipalCredentialRetrievedCondition,
 		}})
 }
 

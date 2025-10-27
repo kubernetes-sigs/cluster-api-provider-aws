@@ -25,7 +25,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/pkg/errors"
 
-	infrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
@@ -123,7 +122,7 @@ func (s *Service) reconcileRouteTables() error {
 		s.scope.Debug("Subnet has been associated with route table", "subnet-id", sn.GetResourceID(), "route-table-id", rt.ID)
 		sn.RouteTableID = aws.String(rt.ID)
 	}
-	v1beta1conditions.MarkTrue(s.scope.InfraCluster(), infrav1beta1.RouteTablesReadyCondition)
+	v1beta1conditions.MarkTrue(s.scope.InfraCluster(), infrav1.RouteTablesReadyCondition)
 	return nil
 }
 

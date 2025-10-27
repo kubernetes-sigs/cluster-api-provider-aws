@@ -36,7 +36,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	infrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
@@ -266,23 +265,23 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 			ekscontrolplanev1.IAMControlPlaneRolesReadyCondition,
 			ekscontrolplanev1.IAMAuthenticatorConfiguredCondition,
 			ekscontrolplanev1.EKSAddonsConfiguredCondition,
-			infrav1beta1.VpcReadyCondition,
-			infrav1beta1.SubnetsReadyCondition,
-			infrav1beta1.ClusterSecurityGroupsReadyCondition,
+			infrav1.VpcReadyCondition,
+			infrav1.SubnetsReadyCondition,
+			infrav1.ClusterSecurityGroupsReadyCondition,
 		}
 
 		if managedScope.VPC().IsManaged(managedScope.Name()) {
 			applicableConditions = append(applicableConditions,
-				infrav1beta1.InternetGatewayReadyCondition,
-				infrav1beta1.NatGatewaysReadyCondition,
-				infrav1beta1.RouteTablesReadyCondition,
-				infrav1beta1.VpcEndpointsReadyCondition,
+				infrav1.InternetGatewayReadyCondition,
+				infrav1.NatGatewaysReadyCondition,
+				infrav1.RouteTablesReadyCondition,
+				infrav1.VpcEndpointsReadyCondition,
 			)
 			if managedScope.Bastion().Enabled {
-				applicableConditions = append(applicableConditions, infrav1beta1.BastionHostReadyCondition)
+				applicableConditions = append(applicableConditions, infrav1.BastionHostReadyCondition)
 			}
 			if managedScope.VPC().IsIPv6Enabled() {
-				applicableConditions = append(applicableConditions, infrav1beta1.EgressOnlyInternetGatewayReadyCondition)
+				applicableConditions = append(applicableConditions, infrav1.EgressOnlyInternetGatewayReadyCondition)
 			}
 		}
 
@@ -342,12 +341,12 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 	}
 
 	if err := sgService.ReconcileSecurityGroups(); err != nil {
-		v1beta1conditions.MarkFalse(awsManagedControlPlane, infrav1beta1.ClusterSecurityGroupsReadyCondition, infrav1beta1.ClusterSecurityGroupReconciliationFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
+		v1beta1conditions.MarkFalse(awsManagedControlPlane, infrav1.ClusterSecurityGroupsReadyCondition, infrav1.ClusterSecurityGroupReconciliationFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile general security groups for AWSManagedControlPlane %s/%s", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name)
 	}
 
 	if err := ec2Service.ReconcileBastion(); err != nil {
-		v1beta1conditions.MarkFalse(awsManagedControlPlane, infrav1beta1.BastionHostReadyCondition, infrav1beta1.BastionHostFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
+		v1beta1conditions.MarkFalse(awsManagedControlPlane, infrav1.BastionHostReadyCondition, infrav1.BastionHostFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
 		return reconcile.Result{}, fmt.Errorf("failed to reconcile bastion host for AWSManagedControlPlane %s/%s: %w", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name, err)
 	}
 
@@ -356,7 +355,7 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 	}
 
 	if err := awsnodeService.ReconcileCNI(ctx); err != nil {
-		v1beta1conditions.MarkFalse(managedScope.InfraCluster(), infrav1beta1.SecondaryCidrsReadyCondition, infrav1beta1.SecondaryCidrReconciliationFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
+		v1beta1conditions.MarkFalse(managedScope.InfraCluster(), infrav1.SecondaryCidrsReadyCondition, infrav1.SecondaryCidrReconciliationFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
 		return reconcile.Result{}, fmt.Errorf("failed to reconcile control plane for AWSManagedControlPlane %s/%s: %w", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name, err)
 	}
 

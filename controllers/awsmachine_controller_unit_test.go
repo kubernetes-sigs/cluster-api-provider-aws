@@ -43,7 +43,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	infrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
@@ -246,7 +245,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 				g.Expect(err).To(BeNil())
 				g.Expect(buf.String()).To(ContainSubstring("Cluster infrastructure is not ready yet"))
-				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1beta1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityInfo, infrav1beta1.WaitingForClusterInfrastructureReason}})
+				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityInfo, infrav1.WaitingForClusterInfrastructureReason}})
 			})
 
 			t.Run("should exit immediately if bootstrap data secret reference isn't available", func(t *testing.T) {
@@ -264,7 +263,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				g.Expect(err).To(BeNil())
 				g.Expect(buf.String()).To(ContainSubstring("Bootstrap data secret reference is not yet available"))
-				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1beta1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityInfo, infrav1beta1.WaitingForBootstrapDataReason}})
+				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityInfo, infrav1.WaitingForBootstrapDataReason}})
 			})
 
 			t.Run("should return an error when we can't list instances by tags", func(t *testing.T) {
@@ -399,7 +398,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					g.Expect(ms.AWSMachine.Status.Ready).To(BeFalse())
 					g.Expect(buf.String()).To(ContainSubstring("EC2 instance state changed"))
 
-					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1beta1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, infrav1beta1.InstanceNotReadyReason}})
+					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
 				})
 
 				t.Run("should set instance to running", func(t *testing.T) {
@@ -419,7 +418,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					g.Expect(ms.AWSMachine.Status.Ready).To(BeTrue())
 					g.Expect(buf.String()).To(ContainSubstring("EC2 instance state changed"))
 					expectConditions(g, ms.AWSMachine, []conditionAssertion{
-						{conditionType: infrav1beta1.InstanceReadyCondition, status: corev1.ConditionTrue},
+						{conditionType: infrav1.InstanceReadyCondition, status: corev1.ConditionTrue},
 					})
 				})
 			})
@@ -441,7 +440,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				g.Expect(buf.String()).To(ContainSubstring("EC2 instance state is undefined"))
 				g.Eventually(recorder.Events).Should(Receive(ContainSubstring("InstanceUnhandledState")))
 				g.Expect(ms.AWSMachine.Status.FailureMessage).To(PointTo(Equal("EC2 instance state \"NewAWSMachineState\" is undefined")))
-				expectConditions(g, ms.AWSMachine, []conditionAssertion{{conditionType: infrav1beta1.InstanceReadyCondition, status: corev1.ConditionUnknown}})
+				expectConditions(g, ms.AWSMachine, []conditionAssertion{{conditionType: infrav1.InstanceReadyCondition, status: corev1.ConditionUnknown}})
 			})
 			t.Run("security Groups succeed", func(t *testing.T) {
 				getCoreSecurityGroups := func(t *testing.T, g *WithT) {
@@ -470,7 +469,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					ec2Svc.EXPECT().GetAdditionalSecurityGroupsIDs(gomock.Any()).Return([]string{"sg-2345"}, nil)
 
 					_, _ = reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
-					expectConditions(g, ms.AWSMachine, []conditionAssertion{{conditionType: infrav1beta1.SecurityGroupsReadyCondition, status: corev1.ConditionTrue}})
+					expectConditions(g, ms.AWSMachine, []conditionAssertion{{conditionType: infrav1.SecurityGroupsReadyCondition, status: corev1.ConditionTrue}})
 				})
 
 				t.Run("should not tag instances if there's no tags", func(t *testing.T) {
@@ -580,7 +579,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					g.Expect(ms.AWSMachine.Status.InstanceState).To(PointTo(Equal(infrav1.InstanceStateStopping)))
 					g.Expect(ms.AWSMachine.Status.Ready).To(BeFalse())
 					g.Expect(buf.String()).To(ContainSubstring("EC2 instance state changed"))
-					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1beta1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityError, infrav1beta1.InstanceStoppedReason}})
+					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityError, infrav1.InstanceStoppedReason}})
 				})
 
 				t.Run("should then set instance to stopped and unready", func(t *testing.T) {
@@ -596,7 +595,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					g.Expect(ms.AWSMachine.Status.InstanceState).To(PointTo(Equal(infrav1.InstanceStateStopped)))
 					g.Expect(ms.AWSMachine.Status.Ready).To(BeFalse())
 					g.Expect(buf.String()).To(ContainSubstring("EC2 instance state changed"))
-					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1beta1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityError, infrav1beta1.InstanceStoppedReason}})
+					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityError, infrav1.InstanceStoppedReason}})
 				})
 
 				t.Run("should then set instance to running and ready once it is restarted", func(t *testing.T) {
@@ -654,7 +653,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					g.Expect(buf.String()).To(ContainSubstring("Unexpected EC2 instance termination"))
 					g.Eventually(recorder.Events).Should(Receive(ContainSubstring("UnexpectedTermination")))
 					g.Expect(ms.AWSMachine.Status.FailureMessage).To(PointTo(Equal("EC2 instance state \"terminated\" is unexpected")))
-					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1beta1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityError, infrav1beta1.InstanceTerminatedReason}})
+					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityError, infrav1.InstanceTerminatedReason}})
 				})
 			})
 			t.Run("should not register if control plane ELB is already registered", func(t *testing.T) {
@@ -680,7 +679,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 				g.Expect(err).To(BeNil())
 				g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
-				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1beta1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, infrav1beta1.InstanceNotReadyReason}})
+				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
 			})
 			t.Run("should attach control plane ELB to instance", func(t *testing.T) {
 				g := NewWithT(t)
@@ -706,8 +705,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 				g.Expect(err).To(BeNil())
 				g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
-				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1beta1.ELBAttachedCondition, corev1.ConditionTrue, "", ""}})
-				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1beta1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, infrav1beta1.InstanceNotReadyReason}})
+				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.ELBAttachedCondition, corev1.ConditionTrue, "", ""}})
+				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
 			})
 			t.Run("should store userdata for CloudInit using AWS Secrets Manager only when not skipped", func(t *testing.T) {
 				g := NewWithT(t)
@@ -727,7 +726,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 				g.Expect(err).To(BeNil())
-				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1beta1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, infrav1beta1.InstanceNotReadyReason}})
+				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
 				g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
 			})
 			t.Run("should fail to delete bootstrap data secret if AWSMachine state is updated", func(t *testing.T) {
@@ -776,7 +775,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				g.Expect(err.Error()).To(ContainSubstring(expectedError))
 
 				g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
-				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1beta1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityError, infrav1beta1.InstanceProvisionFailedReason}})
+				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityError, infrav1.InstanceProvisionFailedReason}})
 			})
 			t.Run("should fail to determine the registration status of control plane ELB", func(t *testing.T) {
 				g := NewWithT(t)
@@ -802,7 +801,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				g.Expect(err.Error()).To(ContainSubstring("error describing ELB"))
 				g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
 				g.Eventually(recorder.Events).Should(Receive(ContainSubstring("FailedAttachControlPlaneELB")))
-				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1beta1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, infrav1beta1.InstanceNotReadyReason}})
+				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
 			})
 			t.Run("should fail to attach control plane ELB to instance", func(t *testing.T) {
 				g := NewWithT(t)
@@ -828,7 +827,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				g.Expect(err).ToNot(BeNil())
 				g.Expect(err.Error()).To(ContainSubstring("failed to attach ELB"))
 				g.Eventually(recorder.Events).Should(Receive(ContainSubstring("FailedAttachControlPlaneELB")))
-				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1beta1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, infrav1beta1.InstanceNotReadyReason}})
+				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
 				g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
 			})
 			t.Run("should fail to delete bootstrap data secret if AWSMachine is in failed state", func(t *testing.T) {
@@ -867,7 +866,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(err.Error()).To(ContainSubstring("json: cannot unmarshal number into Go value of type map[string]interface {}"))
 					g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
-					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1beta1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, infrav1beta1.InstanceNotReadyReason}})
+					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
 				})
 				t.Run("Should fail to update resource tags after instance is created", func(t *testing.T) {
 					g := NewWithT(t)
@@ -886,7 +885,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(err).ToNot(BeNil())
 					g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
-					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1beta1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, infrav1beta1.InstanceNotReadyReason}})
+					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
 				})
 			})
 			t.Run("While ensuring SecurityGroups", func(t *testing.T) {
@@ -917,7 +916,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(err).ToNot(BeNil())
 					g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
-					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1beta1.SecurityGroupsReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityError, infrav1beta1.SecurityGroupsFailedReason}})
+					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.SecurityGroupsReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityError, infrav1.SecurityGroupsFailedReason}})
 				})
 				t.Run("Should fail to fetch core security groups", func(t *testing.T) {
 					g := NewWithT(t)
@@ -935,7 +934,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(err).ToNot(BeNil())
 					g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
-					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1beta1.SecurityGroupsReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityError, infrav1beta1.SecurityGroupsFailedReason}})
+					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.SecurityGroupsReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityError, infrav1.SecurityGroupsFailedReason}})
 				})
 				t.Run("Should fail if ensureSecurityGroups fails to fetch additional security groups", func(t *testing.T) {
 					g := NewWithT(t)
@@ -965,7 +964,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(err).ToNot(BeNil())
 					g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
-					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1beta1.SecurityGroupsReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityError, infrav1beta1.SecurityGroupsFailedReason}})
+					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.SecurityGroupsReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityError, infrav1.SecurityGroupsFailedReason}})
 				})
 				t.Run("Should fail to update security group", func(t *testing.T) {
 					g := NewWithT(t)
@@ -996,7 +995,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(err).ToNot(BeNil())
 					g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
-					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1beta1.SecurityGroupsReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityError, infrav1beta1.SecurityGroupsFailedReason}})
+					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.SecurityGroupsReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityError, infrav1.SecurityGroupsFailedReason}})
 				})
 			})
 		})
@@ -1840,7 +1839,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					g.Expect(err.Error()).To(ContainSubstring("error describing ELB"))
 					g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(metav1.FinalizerDeleteDependents))
 					g.Eventually(recorder.Events).Should(Receive(ContainSubstring("FailedDetachControlPlaneELB")))
-					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1beta1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, "DeletingFailed"}})
+					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, "DeletingFailed"}})
 				})
 
 				t.Run("should not do anything if control plane ELB is already detached from instance", func(t *testing.T) {
@@ -1863,7 +1862,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					_, err := reconciler.reconcileDelete(context.TODO(), ms, cs, cs, cs, cs)
 					g.Expect(err).To(BeNil())
 					g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(metav1.FinalizerDeleteDependents))
-					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1beta1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityInfo, clusterv1beta1.DeletedReason}})
+					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityInfo, clusterv1beta1.DeletedReason}})
 				})
 			})
 		})
@@ -1889,7 +1888,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				_, err := reconciler.reconcileDelete(context.TODO(), ms, cs, cs, cs, cs)
 				g.Expect(err).To(BeNil())
 				g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(metav1.FinalizerDeleteDependents))
-				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1beta1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityInfo, clusterv1beta1.DeletedReason}})
+				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityInfo, clusterv1beta1.DeletedReason}})
 			})
 			t.Run("should fail to detach control plane ELB from instance", func(t *testing.T) {
 				g := NewWithT(t)
@@ -1913,7 +1912,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				g.Expect(err).ToNot(BeNil())
 				g.Expect(err.Error()).To(ContainSubstring("Duplicate access point name for load balancer"))
 				g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(metav1.FinalizerDeleteDependents))
-				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1beta1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, "DeletingFailed"}})
+				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, "DeletingFailed"}})
 			})
 			t.Run("should fail if secretPrefix present, but secretCount is not set", func(t *testing.T) {
 				g := NewWithT(t)

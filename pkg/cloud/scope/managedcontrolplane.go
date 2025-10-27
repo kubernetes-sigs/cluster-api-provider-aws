@@ -32,7 +32,6 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	infrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
@@ -269,15 +268,15 @@ func (s *ManagedControlPlaneScope) PatchObject() error {
 		context.TODO(),
 		s.ControlPlane,
 		v1beta1patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
-			infrav1beta1.VpcReadyCondition,
-			infrav1beta1.SubnetsReadyCondition,
-			infrav1beta1.ClusterSecurityGroupsReadyCondition,
-			infrav1beta1.InternetGatewayReadyCondition,
-			infrav1beta1.NatGatewaysReadyCondition,
-			infrav1beta1.RouteTablesReadyCondition,
-			infrav1beta1.VpcEndpointsReadyCondition,
-			infrav1beta1.BastionHostReadyCondition,
-			infrav1beta1.EgressOnlyInternetGatewayReadyCondition,
+			infrav1.VpcReadyCondition,
+			infrav1.SubnetsReadyCondition,
+			infrav1.ClusterSecurityGroupsReadyCondition,
+			infrav1.InternetGatewayReadyCondition,
+			infrav1.NatGatewaysReadyCondition,
+			infrav1.RouteTablesReadyCondition,
+			infrav1.VpcEndpointsReadyCondition,
+			infrav1.BastionHostReadyCondition,
+			infrav1.EgressOnlyInternetGatewayReadyCondition,
 			ekscontrolplanev1.EKSControlPlaneCreatingCondition,
 			ekscontrolplanev1.EKSControlPlaneReadyCondition,
 			ekscontrolplanev1.EKSControlPlaneUpdatingCondition,
