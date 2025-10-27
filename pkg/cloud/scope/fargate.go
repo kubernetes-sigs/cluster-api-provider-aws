@@ -26,16 +26,15 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
-	expinfrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta1"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpoints"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1" //nolint:staticcheck
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
-	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions" //nolint:staticcheck
+	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"           //nolint:staticcheck
 )
 
 // FargateProfileScopeParams defines the input parameters used to create a new Scope.
@@ -176,7 +175,7 @@ func (s *FargateProfileScope) IAMReadyFalse(reason string, err string) error {
 	}
 	v1beta1conditions.MarkFalse(
 		s.FargateProfile,
-		expinfrav1beta1.IAMFargateRolesReadyCondition,
+		expinfrav1.IAMFargateRolesReadyCondition,
 		reason,
 		severity,
 		"%s",
@@ -194,10 +193,10 @@ func (s *FargateProfileScope) PatchObject() error {
 		context.TODO(),
 		s.FargateProfile,
 		v1beta1patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
-			expinfrav1beta1.EKSFargateProfileReadyCondition,
-			expinfrav1beta1.EKSFargateCreatingCondition,
-			expinfrav1beta1.EKSFargateDeletingCondition,
-			expinfrav1beta1.IAMFargateRolesReadyCondition,
+			expinfrav1.EKSFargateProfileReadyCondition,
+			expinfrav1.EKSFargateCreatingCondition,
+			expinfrav1.EKSFargateDeletingCondition,
+			expinfrav1.IAMFargateRolesReadyCondition,
 		}})
 }
 

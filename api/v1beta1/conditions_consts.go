@@ -16,7 +16,7 @@ limitations under the License.
 
 package v1beta1
 
-import clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+import clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1" //nolint:staticcheck
 
 const (
 	// PrincipalCredentialRetrievedCondition reports on whether Principal credentials could be retrieved successfully.

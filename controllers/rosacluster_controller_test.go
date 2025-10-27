@@ -44,7 +44,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/rosa"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1" //nolint:staticcheck
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -198,6 +198,7 @@ func TestRosaClusterReconcile(t *testing.T) {
 
 		// set capiCluster pause condition
 		clsPatch, err := patch.NewHelper(capiCluster, testEnv)
+		//nolint:staticcheck
 		capiCluster.Status.Deprecated.V1Beta1.Conditions = clusterv1.Conditions{
 			clusterv1.Condition{
 				Type:    clusterv1beta1.PausedV1Beta2Condition,

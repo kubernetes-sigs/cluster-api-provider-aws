@@ -34,16 +34,15 @@ import (
 
 	infrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
-	ekscontrolplanev1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta1"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpoints"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1" //nolint:staticcheck
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch" //nolint:staticcheck
 )
 
 var scheme = runtime.NewScheme()
@@ -279,10 +278,10 @@ func (s *ManagedControlPlaneScope) PatchObject() error {
 			infrav1beta1.VpcEndpointsReadyCondition,
 			infrav1beta1.BastionHostReadyCondition,
 			infrav1beta1.EgressOnlyInternetGatewayReadyCondition,
-			ekscontrolplanev1beta1.EKSControlPlaneCreatingCondition,
-			ekscontrolplanev1beta1.EKSControlPlaneReadyCondition,
-			ekscontrolplanev1beta1.EKSControlPlaneUpdatingCondition,
-			ekscontrolplanev1beta1.IAMControlPlaneRolesReadyCondition,
+			ekscontrolplanev1.EKSControlPlaneCreatingCondition,
+			ekscontrolplanev1.EKSControlPlaneReadyCondition,
+			ekscontrolplanev1.EKSControlPlaneUpdatingCondition,
+			ekscontrolplanev1.IAMControlPlaneRolesReadyCondition,
 		}})
 }
 

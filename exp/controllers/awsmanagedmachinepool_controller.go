@@ -37,7 +37,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
-	expinfrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta1"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
@@ -45,10 +44,10 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/eks"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/util/paused"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1" //nolint:staticcheck
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions" //nolint:staticcheck
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -153,7 +152,7 @@ func (r *AWSManagedMachinePoolReconciler) Reconcile(ctx context.Context, req ctr
 
 	if !controlPlane.Status.Ready {
 		log.Info("Control plane is not ready yet")
-		v1beta1conditions.MarkFalse(awsPool, expinfrav1beta1.EKSNodegroupReadyCondition, expinfrav1beta1.WaitingForEKSControlPlaneReason, clusterv1beta1.ConditionSeverityInfo, "")
+		v1beta1conditions.MarkFalse(awsPool, expinfrav1.EKSNodegroupReadyCondition, expinfrav1.WaitingForEKSControlPlaneReason, clusterv1beta1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
 	}
 
@@ -176,9 +175,9 @@ func (r *AWSManagedMachinePoolReconciler) Reconcile(ctx context.Context, req ctr
 
 	defer func() {
 		applicableConditions := []clusterv1beta1.ConditionType{
-			expinfrav1beta1.EKSNodegroupReadyCondition,
-			expinfrav1beta1.IAMNodegroupRolesReadyCondition,
-			expinfrav1beta1.LaunchTemplateReadyCondition,
+			expinfrav1.EKSNodegroupReadyCondition,
+			expinfrav1.IAMNodegroupRolesReadyCondition,
+			expinfrav1.LaunchTemplateReadyCondition,
 		}
 
 		v1beta1conditions.SetSummary(machinePoolScope.ManagedMachinePool, v1beta1conditions.WithConditions(applicableConditions...), v1beta1conditions.WithStepCounter())
@@ -228,7 +227,7 @@ func (r *AWSManagedMachinePoolReconciler) reconcileNormal(
 		if err != nil {
 			r.Recorder.Eventf(machinePoolScope.ManagedMachinePool, corev1.EventTypeWarning, "FailedLaunchTemplateReconcile", "Failed to reconcile launch template: %v", err)
 			machinePoolScope.Error(err, "failed to reconcile launch template")
-			v1beta1conditions.MarkFalse(machinePoolScope.ManagedMachinePool, expinfrav1beta1.LaunchTemplateReadyCondition, expinfrav1beta1.LaunchTemplateReconcileFailedReason, clusterv1beta1.ConditionSeverityError, "")
+			v1beta1conditions.MarkFalse(machinePoolScope.ManagedMachinePool, expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateReconcileFailedReason, clusterv1beta1.ConditionSeverityError, "")
 			return ctrl.Result{}, err
 		}
 		if res != nil {
@@ -245,7 +244,7 @@ func (r *AWSManagedMachinePoolReconciler) reconcileNormal(
 		}
 
 		// set the LaunchTemplateReady condition
-		v1beta1conditions.MarkTrue(machinePoolScope.ManagedMachinePool, expinfrav1beta1.LaunchTemplateReadyCondition)
+		v1beta1conditions.MarkTrue(machinePoolScope.ManagedMachinePool, expinfrav1.LaunchTemplateReadyCondition)
 	}
 
 	if err := ekssvc.ReconcilePool(ctx); err != nil {

@@ -32,16 +32,15 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
-	expinfrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta1"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpoints"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1" //nolint:staticcheck
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
-	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions" //nolint:staticcheck
+	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"           //nolint:staticcheck
 )
 
 // ManagedMachinePoolScopeParams defines the input parameters used to create a new Scope.
@@ -238,7 +237,7 @@ func (s *ManagedMachinePoolScope) NodegroupReadyFalse(reason string, err string)
 	}
 	v1beta1conditions.MarkFalse(
 		s.ManagedMachinePool,
-		expinfrav1beta1.EKSNodegroupReadyCondition,
+		expinfrav1.EKSNodegroupReadyCondition,
 		reason,
 		severity,
 		"%s",
@@ -259,7 +258,7 @@ func (s *ManagedMachinePoolScope) IAMReadyFalse(reason string, err string) error
 	}
 	v1beta1conditions.MarkFalse(
 		s.ManagedMachinePool,
-		expinfrav1beta1.IAMNodegroupRolesReadyCondition,
+		expinfrav1.IAMNodegroupRolesReadyCondition,
 		reason,
 		severity,
 		"%s",
@@ -277,8 +276,8 @@ func (s *ManagedMachinePoolScope) PatchObject() error {
 		context.TODO(),
 		s.ManagedMachinePool,
 		v1beta1patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
-			expinfrav1beta1.EKSNodegroupReadyCondition,
-			expinfrav1beta1.IAMNodegroupRolesReadyCondition,
+			expinfrav1.EKSNodegroupReadyCondition,
+			expinfrav1.IAMNodegroupRolesReadyCondition,
 		}})
 }
 
