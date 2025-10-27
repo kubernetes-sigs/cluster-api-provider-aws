@@ -100,7 +100,7 @@ func (s *Service) reconcileCluster(ctx context.Context) error {
 
 	s.scope.Debug("EKS Control Plane active", "endpoint", *cluster.Endpoint)
 
-	s.scope.ControlPlane.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{
+	s.scope.ControlPlane.Spec.ControlPlaneEndpoint = clusterv1beta1.APIEndpoint{
 		Host: *cluster.Endpoint,
 		Port: 443,
 	}

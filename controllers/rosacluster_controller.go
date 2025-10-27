@@ -48,7 +48,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/rosa"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/util/paused"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	expclusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -261,7 +260,7 @@ func (r *ROSAClusterReconciler) getRosaMachinePoolNames(ctx context.Context, clu
 }
 
 // buildROSAMachinePool returns a ROSAMachinePool and its corresponding MachinePool.
-func (r *ROSAClusterReconciler) buildROSAMachinePool(nodePoolName string, clusterName string, namespace string, nodePool *cmv1.NodePool) (*expinfrav1.ROSAMachinePool, *expclusterv1.MachinePool) {
+func (r *ROSAClusterReconciler) buildROSAMachinePool(nodePoolName string, clusterName string, namespace string, nodePool *cmv1.NodePool) (*expinfrav1.ROSAMachinePool, *clusterv1.MachinePool) {
 	rosaMPSpec := utils.NodePoolToRosaMachinePoolSpec(nodePool)
 	rosaMachinePool := &expinfrav1.ROSAMachinePool{
 		TypeMeta: metav1.TypeMeta{
@@ -277,9 +276,9 @@ func (r *ROSAClusterReconciler) buildROSAMachinePool(nodePoolName string, cluste
 		},
 		Spec: rosaMPSpec,
 	}
-	machinePool := &expclusterv1.MachinePool{
+	machinePool := &clusterv1.MachinePool{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: expclusterv1.GroupVersion.String(),
+			APIVersion: clusterv1.GroupVersion.String(),
 			Kind:       "MachinePool",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -289,7 +288,7 @@ func (r *ROSAClusterReconciler) buildROSAMachinePool(nodePoolName string, cluste
 				clusterv1.ClusterNameLabel: clusterName,
 			},
 		},
-		Spec: expclusterv1.MachinePoolSpec{
+		Spec: clusterv1.MachinePoolSpec{
 			ClusterName: clusterName,
 			Replicas:    ptr.To(int32(1)),
 			Template: clusterv1.MachineTemplateSpec{

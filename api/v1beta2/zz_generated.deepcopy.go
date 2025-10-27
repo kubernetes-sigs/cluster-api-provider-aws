@@ -416,7 +416,7 @@ func (in *AWSClusterStatus) DeepCopyInto(out *AWSClusterStatus) {
 	in.Network.DeepCopyInto(&out.Network)
 	if in.FailureDomains != nil {
 		in, out := &in.FailureDomains, &out.FailureDomains
-		*out = make(map[string]corev1beta2.FailureDomain, len(*in))
+		*out = make(v1beta1.FailureDomains, len(*in))
 		for key, val := range *in {
 			(*out)[key] = *val.DeepCopy()
 		}
@@ -1041,7 +1041,7 @@ func (in *AWSManagedClusterStatus) DeepCopyInto(out *AWSManagedClusterStatus) {
 	*out = *in
 	if in.FailureDomains != nil {
 		in, out := &in.FailureDomains, &out.FailureDomains
-		*out = make(map[string]corev1beta2.FailureDomain, len(*in))
+		*out = make(v1beta1.FailureDomains, len(*in))
 		for key, val := range *in {
 			(*out)[key] = *val.DeepCopy()
 		}

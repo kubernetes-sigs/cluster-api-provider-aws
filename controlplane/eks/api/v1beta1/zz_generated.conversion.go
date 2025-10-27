@@ -30,7 +30,6 @@ import (
 	apiv1beta2 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	v1beta2 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	corev1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	corev1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 func init() {
@@ -387,19 +386,7 @@ func autoConvert_v1beta2_AWSManagedControlPlaneSpec_To_v1beta1_AWSManagedControl
 
 func autoConvert_v1beta1_AWSManagedControlPlaneStatus_To_v1beta2_AWSManagedControlPlaneStatus(in *AWSManagedControlPlaneStatus, out *v1beta2.AWSManagedControlPlaneStatus, s conversion.Scope) error {
 	out.Network = in.Network
-	if in.FailureDomains != nil {
-		in, out := &in.FailureDomains, &out.FailureDomains
-		*out = make(map[string]corev1beta2.FailureDomain, len(*in))
-		for key, val := range *in {
-			(*out)[key] = corev1beta2.FailureDomain{
-				Name:         key,
-				ControlPlane: &val.ControlPlane,
-				Attributes:   val.Attributes,
-			}
-		}
-	} else {
-		out.FailureDomains = nil
-	}
+	out.FailureDomains = *(*corev1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
 	out.Bastion = (*apiv1beta2.Instance)(unsafe.Pointer(in.Bastion))
 	if err := Convert_v1beta1_OIDCProviderStatus_To_v1beta2_OIDCProviderStatus(&in.OIDCProvider, &out.OIDCProvider, s); err != nil {
 		return err
@@ -423,18 +410,7 @@ func Convert_v1beta1_AWSManagedControlPlaneStatus_To_v1beta2_AWSManagedControlPl
 
 func autoConvert_v1beta2_AWSManagedControlPlaneStatus_To_v1beta1_AWSManagedControlPlaneStatus(in *v1beta2.AWSManagedControlPlaneStatus, out *AWSManagedControlPlaneStatus, s conversion.Scope) error {
 	out.Network = in.Network
-	if in.FailureDomains != nil {
-		in, out := &in.FailureDomains, &out.FailureDomains
-		*out = make(corev1beta1.FailureDomains, len(*in))
-		for key, val := range *in {
-			(*out)[key] = corev1beta1.FailureDomainSpec{
-				ControlPlane: *val.ControlPlane,
-				Attributes:   val.Attributes,
-			}
-		}
-	} else {
-		out.FailureDomains = nil
-	}
+	out.FailureDomains = *(*corev1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
 	out.Bastion = (*apiv1beta2.Instance)(unsafe.Pointer(in.Bastion))
 	if err := Convert_v1beta2_OIDCProviderStatus_To_v1beta1_OIDCProviderStatus(&in.OIDCProvider, &out.OIDCProvider, s); err != nil {
 		return err

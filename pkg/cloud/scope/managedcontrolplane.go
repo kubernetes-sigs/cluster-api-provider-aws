@@ -308,9 +308,12 @@ func (s *ManagedControlPlaneScope) APIServerPort() int32 {
 // SetFailureDomain sets the infrastructure provider failure domain key to the spec given as input.
 func (s *ManagedControlPlaneScope) SetFailureDomain(id string, spec clusterv1.FailureDomain) {
 	if s.ControlPlane.Status.FailureDomains == nil {
-		s.ControlPlane.Status.FailureDomains = make(map[string]clusterv1.FailureDomain)
+		s.ControlPlane.Status.FailureDomains = make(clusterv1beta1.FailureDomains)
 	}
-	s.ControlPlane.Status.FailureDomains[id] = spec
+	s.ControlPlane.Status.FailureDomains[id] = clusterv1beta1.FailureDomainSpec{
+		ControlPlane: *spec.ControlPlane,
+		Attributes:   spec.Attributes,
+	}
 }
 
 // InfraCluster returns the AWS infrastructure cluster or control plane object.

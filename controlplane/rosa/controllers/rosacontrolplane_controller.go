@@ -1243,7 +1243,7 @@ func (r *ROSAControlPlaneReconciler) rosaClusterToROSAControlPlane(log *logger.L
 	}
 }
 
-func buildAPIEndpoint(cluster *cmv1.Cluster) (*clusterv1.APIEndpoint, error) {
+func buildAPIEndpoint(cluster *cmv1.Cluster) (*clusterv1beta1.APIEndpoint, error) {
 	parsedURL, err := url.ParseRequestURI(cluster.API().URL())
 	if err != nil {
 		return nil, err
@@ -1258,7 +1258,7 @@ func buildAPIEndpoint(cluster *cmv1.Cluster) (*clusterv1.APIEndpoint, error) {
 		return nil, err
 	}
 
-	return &clusterv1.APIEndpoint{
+	return &clusterv1beta1.APIEndpoint{
 		Host: host,
 		Port: int32(port), //#nosec G109 G115
 	}, nil

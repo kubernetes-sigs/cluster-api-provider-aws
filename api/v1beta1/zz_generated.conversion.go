@@ -1031,19 +1031,7 @@ func autoConvert_v1beta1_AWSClusterStatus_To_v1beta2_AWSClusterStatus(in *AWSClu
 	if err := Convert_v1beta1_NetworkStatus_To_v1beta2_NetworkStatus(&in.Network, &out.Network, s); err != nil {
 		return err
 	}
-	if in.FailureDomains != nil {
-		in, out := &in.FailureDomains, &out.FailureDomains
-		*out = make(map[string]corev1beta2.FailureDomain, len(*in))
-		for key, val := range *in {
-			(*out)[key] = corev1beta2.FailureDomain{
-				Name:         key,
-				ControlPlane: &val.ControlPlane,
-				Attributes:   val.Attributes,
-			}
-		}
-	} else {
-		out.FailureDomains = nil
-	}
+	out.FailureDomains = *(*corev1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
 	if in.Bastion != nil {
 		in, out := &in.Bastion, &out.Bastion
 		*out = new(v1beta2.Instance)
@@ -1067,18 +1055,7 @@ func autoConvert_v1beta2_AWSClusterStatus_To_v1beta1_AWSClusterStatus(in *v1beta
 	if err := Convert_v1beta2_NetworkStatus_To_v1beta1_NetworkStatus(&in.Network, &out.Network, s); err != nil {
 		return err
 	}
-	if in.FailureDomains != nil {
-		in, out := &in.FailureDomains, &out.FailureDomains
-		*out = make(corev1beta1.FailureDomains, len(*in))
-		for key, val := range *in {
-			(*out)[key] = corev1beta1.FailureDomainSpec{
-				ControlPlane: *val.ControlPlane,
-				Attributes:   val.Attributes,
-			}
-		}
-	} else {
-		out.FailureDomains = nil
-	}
+	out.FailureDomains = *(*corev1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
 	if in.Bastion != nil {
 		in, out := &in.Bastion, &out.Bastion
 		*out = new(Instance)

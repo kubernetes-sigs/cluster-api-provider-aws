@@ -48,7 +48,7 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
-	patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -118,7 +118,7 @@ func (r *EKSConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
-	patchHelper, err := patch.NewHelper(config, r.Client)
+	patchHelper, err := v1beta1patch.NewHelper(config, r.Client)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -132,9 +132,9 @@ func (r *EKSConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			v1beta1conditions.WithStepCounter(),
 		)
 
-		patchOpts := []patch.Option{}
+		patchOpts := []v1beta1patch.Option{}
 		if rerr == nil {
-			patchOpts = append(patchOpts, patch.WithStatusObservedGeneration{})
+			patchOpts = append(patchOpts, v1beta1patch.WithStatusObservedGeneration{})
 		}
 		if err := patchHelper.Patch(ctx, config, patchOpts...); err != nil {
 			log.Error(rerr, "Failed to patch config")

@@ -46,7 +46,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	expclusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -291,7 +290,7 @@ func TestRosaClusterReconcile(t *testing.T) {
 		errRosaMP := testEnv.Get(ctx, keyRosaMP, rosaMachinePool)
 		g.Expect(errRosaMP).ToNot(HaveOccurred())
 
-		machinePool := &expclusterv1.MachinePool{}
+		machinePool := &clusterv1.MachinePool{}
 		keyMP := client.ObjectKey{Name: nodePoolName, Namespace: ns.Name}
 		errMP := testEnv.Get(ctx, keyMP, machinePool)
 		g.Expect(errMP).ToNot(HaveOccurred())

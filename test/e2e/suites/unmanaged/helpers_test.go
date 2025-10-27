@@ -52,7 +52,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/utils"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
 	bootstrapv1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1"
-	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -295,26 +296,24 @@ func makeMachineDeployment(namespace, mdName, clusterName string, az *string, re
 				Spec: clusterv1.MachineSpec{
 					ClusterName: clusterName,
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							Kind:       "KubeadmConfigTemplate",
-							APIVersion: bootstrapv1.GroupVersion.String(),
-							Name:       mdName,
-							Namespace:  namespace,
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							Kind:     "KubeadmConfigTemplate",
+							APIGroup: bootstrapv1.GroupVersion.Group,
+							Name:     mdName,
 						},
 					},
-					InfrastructureRef: corev1.ObjectReference{
-						Kind:       "AWSMachineTemplate",
-						APIVersion: infrav1.GroupVersion.String(),
-						Name:       mdName,
-						Namespace:  namespace,
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSMachineTemplate",
+						APIGroup: infrav1.GroupVersion.Group,
+						Name:     mdName,
 					},
-					Version: ptr.To[string](e2eCtx.E2EConfig.MustGetVariable(shared.KubernetesVersion)),
+					Version: e2eCtx.E2EConfig.MustGetVariable(shared.KubernetesVersion),
 				},
 			},
 		},
 	}
 	if az != nil {
-		machineDeployment.Spec.Template.Spec.FailureDomain = az
+		machineDeployment.Spec.Template.Spec.FailureDomain = *az
 	}
 	return machineDeployment
 }
@@ -413,7 +412,7 @@ func LatestCIReleaseForVersion(searchVersion string) (string, error) {
 }
 
 type conditionAssertion struct {
-	conditionType clusterv1.ConditionType
+	conditionType clusterv1beta1.ConditionType
 	status        corev1.ConditionStatus
 	severity      clusterv1beta1.ConditionSeverity
 	reason        string

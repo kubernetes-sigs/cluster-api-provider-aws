@@ -31,6 +31,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
 
+	infrav1beta1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -93,7 +94,7 @@ var _ = ginkgo.Context("[unmanaged] [functional] [ClusterClass]", func() {
 					return false, nil
 				}
 
-				if !hasAWSClusterConditions(awsCluster, []conditionAssertion{{infrav1.BastionHostReadyCondition, corev1.ConditionTrue, "", ""}}) {
+				if !hasAWSClusterConditions(awsCluster, []conditionAssertion{{infrav1beta1.BastionHostReadyCondition, corev1.ConditionTrue, "", ""}}) {
 					ginkgo.By("AWSCluster missing bastion host ready condition")
 					return false, nil
 				}

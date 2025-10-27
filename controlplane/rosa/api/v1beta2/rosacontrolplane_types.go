@@ -22,7 +22,6 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 // RosaEndpointAccessType specifies the publishing scope of cluster endpoints.
@@ -258,7 +257,7 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
-	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
+	ControlPlaneEndpoint clusterv1beta1.APIEndpoint `json:"controlPlaneEndpoint"`
 
 	// ClusterRegistryConfig represents registry config used with the cluster.
 	// +optional
