@@ -47,19 +47,6 @@ const (
 	// PostLaunchTemplateUpdateOperationFailedReason used to report when post launch template update operation failed.
 	PostLaunchTemplateUpdateOperationFailedReason = "PostLaunchTemplateUpdateOperationFailed"
 
-	// AWSMachineCreationFailed reports if creating AWSMachines to represent ASG (machine pool) machines failed.
-	AWSMachineCreationFailed = "AWSMachineCreationFailed"
-	// AWSMachineDeletionFailed reports if deleting AWSMachines failed.
-	AWSMachineDeletionFailed = "AWSMachineDeletionFailed"
-	// LifecycleHookReadyCondition reports on the status of the lifecycle hook.
-	LifecycleHookReadyCondition clusterv1beta1.ConditionType = "LifecycleHookReady"
-	// LifecycleHookCreationFailedReason used for failures during lifecycle hook creation.
-	LifecycleHookCreationFailedReason = "LifecycleHookCreationFailed"
-	// LifecycleHookUpdateFailedReason used for failures during lifecycle hook update.
-	LifecycleHookUpdateFailedReason = "LifecycleHookUpdateFailed"
-	// LifecycleHookDeletionFailedReason used for failures during lifecycle hook deletion.
-	LifecycleHookDeletionFailedReason = "LifecycleHookDeletionFailed"
-
 	// InstanceRefreshStartedCondition reports on successfully starting instance refresh.
 	InstanceRefreshStartedCondition clusterv1beta1.ConditionType = "InstanceRefreshStarted"
 	// InstanceRefreshNotReadyReason used to report instance refresh is not initiated.
@@ -114,55 +101,4 @@ const (
 	// IAMFargateRolesReconciliationFailedReason used to report failures while
 	// reconciling EKS nodegroup iam roles.
 	IAMFargateRolesReconciliationFailedReason = "IAMFargateRolesReconciliationFailed"
-)
-
-const (
-	// RosaMachinePoolReadyCondition condition reports on the successful reconciliation of rosa machinepool.
-	RosaMachinePoolReadyCondition clusterv1beta1.ConditionType = "RosaMachinePoolReady"
-	// RosaMachinePoolUpgradingCondition condition reports whether ROSAMachinePool is upgrading or not.
-	RosaMachinePoolUpgradingCondition clusterv1beta1.ConditionType = "RosaMachinePoolUpgrading"
-
-	// WaitingForRosaControlPlaneReason used when the machine pool is waiting for
-	// ROSA control plane infrastructure to be ready before proceeding.
-	WaitingForRosaControlPlaneReason = "WaitingForRosaControlPlane"
-
-	// RosaMachinePoolReconciliationFailedReason used to report failures while reconciling ROSAMachinePool.
-	RosaMachinePoolReconciliationFailedReason = "ReconciliationFailed"
-)
-
-const (
-	// ROSANetworkReadyCondition condition reports on the successful reconciliation of ROSANetwork.
-	ROSANetworkReadyCondition clusterv1beta1.ConditionType = "ROSANetworkReady"
-
-	// ROSANetworkCreatingReason used when ROSANetwork is being created.
-	ROSANetworkCreatingReason = "Creating"
-
-	// ROSANetworkCreatedReason used when ROSANetwork is created.
-	ROSANetworkCreatedReason = "Created"
-
-	// ROSANetworkFailedReason used when rosaNetwork creation failed.
-	ROSANetworkFailedReason = "Failed"
-
-	// ROSANetworkDeletingReason used when ROSANetwork is being deleted.
-	ROSANetworkDeletingReason = "Deleting"
-
-	// ROSANetworkDeletionFailedReason used to report failures while deleting ROSANetwork.
-	ROSANetworkDeletionFailedReason = "DeletionFailed"
-)
-
-const (
-	// RosaRoleConfigReadyCondition condition reports on the successful reconciliation of RosaRoleConfig.
-	RosaRoleConfigReadyCondition = "RosaRoleConfigReady"
-
-	// RosaRoleConfigDeletionFailedReason used to report failures while deleting RosaRoleConfig.
-	RosaRoleConfigDeletionFailedReason = "DeletionFailed"
-
-	// RosaRoleConfigReconciliationFailedReason used to report reconciliation failures.
-	RosaRoleConfigReconciliationFailedReason = "ReconciliationFailed"
-
-	// RosaRoleConfigDeletionStarted used to indicate that the deletion of RosaRoleConfig has started.
-	RosaRoleConfigDeletionStarted = "DeletionStarted"
-
-	// RosaRoleConfigCreatedReason used to indicate that the RosaRoleConfig has been created.
-	RosaRoleConfigCreatedReason = "Created"
 )
