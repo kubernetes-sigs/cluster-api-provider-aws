@@ -21,6 +21,7 @@ include $(ROOT_DIR_RELATIVE)/common.mk
 
 # Go
 GO_VERSION ?=1.24.7
+GO_DIRECTIVE_VERSION ?= 1.24.0
 GO_CONTAINER_IMAGE ?= golang:$(GO_VERSION)
 
 # Directories.
@@ -329,7 +330,7 @@ modules: ## Runs go mod to ensure proper vendoring.
 	cd $(TOOLS_DIR); go mod tidy
 
 .PHONY: verify ## Verify ties together the rest of the verification targets into one target
-verify: verify-boilerplate verify-modules verify-gen verify-conversions verify-shellcheck verify-book-links release-manifests
+verify: verify-boilerplate verify-modules verify-gen verify-conversions verify-shellcheck verify-book-links release-manifests verify-go-directive
 
 .PHONY: verify-boilerplate
 verify-boilerplate: ## Verify boilerplate
@@ -366,6 +367,12 @@ verify-gen: generate ## Verify generated files
 .PHONY: verify-container-images
 verify-container-images: ## Verify container images
 	TRACE=$(TRACE) ./hack/verify-container-images.sh
+
+.PHONY: verify-go-directive
+verify-go-directive:
+	# use the core Cluster API script directly to verify the go directive matches the desired one.
+	# ref: https://github.com/kubernetes-sigs/cluster-api/blob/v1.10.7/hack/verify-go-directive.sh
+	curl --retry 3 -fsL https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/refs/tags/v1.10.7/hack/verify-go-directive.sh | bash -s -- -g $(GO_DIRECTIVE_VERSION)
 
 .PHONY: apidiff
 apidiff: APIDIFF_OLD_COMMIT ?= $(shell git rev-parse origin/main)
