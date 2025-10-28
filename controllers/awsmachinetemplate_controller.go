@@ -32,8 +32,11 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	ec2service "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
@@ -53,6 +56,8 @@ type AWSMachineTemplateReconciler struct {
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsclusters,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters,verbs=get;list;watch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedeployments,verbs=get;list;watch
+// +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=kubeadmcontrolplanes,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 
 // Reconcile populates capacity information for AWSMachineTemplate.
@@ -99,18 +104,32 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, nil
 	}
 
-	// Query instance type capacity and node info
-	capacity, nodeInfo, err := r.getInstanceTypeInfo(ctx, globalScope, awsMachineTemplate, instanceType)
+	// Create EC2 client from global scope
+	ec2Client := ec2.NewFromConfig(globalScope.Session())
+
+	// Query instance type capacity
+	capacity, err := r.getInstanceTypeCapacity(ctx, ec2Client, instanceType)
 	if err != nil {
 		record.Warnf(awsMachineTemplate, "CapacityQueryFailed", "Failed to query capacity for instance type %q: %v", instanceType, err)
 		return ctrl.Result{}, nil
 	}
 
-	// Update status with capacity and nodeInfo
-	awsMachineTemplate.Status.Capacity = capacity
-	awsMachineTemplate.Status.NodeInfo = nodeInfo
+	// Query node info (architecture and OS)
+	nodeInfo, err := r.getNodeInfo(ctx, ec2Client, awsMachineTemplate, instanceType)
+	if err != nil {
+		record.Warnf(awsMachineTemplate, "NodeInfoQueryFailed", "Failed to query node info for instance type %q: %v", instanceType, err)
+		return ctrl.Result{}, nil
+	}
 
-	if err := r.Status().Update(ctx, awsMachineTemplate); err != nil {
+	// Save original before modifying, then update all status fields at once
+	original := awsMachineTemplate.DeepCopy()
+	if len(capacity) > 0 {
+		awsMachineTemplate.Status.Capacity = capacity
+	}
+	if nodeInfo != nil && (nodeInfo.Architecture != "" || nodeInfo.OperatingSystem != "") {
+		awsMachineTemplate.Status.NodeInfo = nodeInfo
+	}
+	if err := r.Status().Patch(ctx, awsMachineTemplate, client.MergeFrom(original)); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to update AWSMachineTemplate status")
 	}
 
@@ -147,11 +166,9 @@ func (r *AWSMachineTemplateReconciler) getRegion(ctx context.Context, template *
 	return "", nil
 }
 
-// getInstanceTypeInfo queries AWS EC2 API for instance type capacity and node info.
-func (r *AWSMachineTemplateReconciler) getInstanceTypeInfo(ctx context.Context, globalScope *scope.GlobalScope, template *infrav1.AWSMachineTemplate, instanceType string) (corev1.ResourceList, *infrav1.NodeInfo, error) {
-	// Create EC2 client from global scope
-	ec2Client := ec2.NewFromConfig(globalScope.Session())
-
+// getInstanceTypeCapacity queries AWS EC2 API for instance type capacity information.
+// Returns the resource list (CPU, Memory).
+func (r *AWSMachineTemplateReconciler) getInstanceTypeCapacity(ctx context.Context, ec2Client *ec2.Client, instanceType string) (corev1.ResourceList, error) {
 	// Query instance type information
 	input := &ec2.DescribeInstanceTypesInput{
 		InstanceTypes: []ec2types.InstanceType{ec2types.InstanceType(instanceType)},
@@ -159,11 +176,11 @@ func (r *AWSMachineTemplateReconciler) getInstanceTypeInfo(ctx context.Context, 
 
 	result, err := ec2Client.DescribeInstanceTypes(ctx, input)
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "failed to describe instance type %q", instanceType)
+		return nil, errors.Wrapf(err, "failed to describe instance type %q", instanceType)
 	}
 
 	if len(result.InstanceTypes) == 0 {
-		return nil, nil, errors.Errorf("no information found for instance type %q", instanceType)
+		return nil, errors.Errorf("no information found for instance type %q", instanceType)
 	}
 
 	// Extract capacity information
@@ -181,10 +198,16 @@ func (r *AWSMachineTemplateReconciler) getInstanceTypeInfo(ctx context.Context, 
 		resourceList[corev1.ResourceMemory] = *resource.NewQuantity(memoryBytes, resource.BinarySI)
 	}
 
-	// Extract node info from AMI if available
+	return resourceList, nil
+}
+
+// getNodeInfo queries node information (architecture and OS) for the AWSMachineTemplate.
+// It uses AMI ID if specified, otherwise attempts AMI lookup or falls back to instance type info.
+func (r *AWSMachineTemplateReconciler) getNodeInfo(ctx context.Context, ec2Client *ec2.Client, template *infrav1.AWSMachineTemplate, instanceType string) (*infrav1.NodeInfo, error) {
 	nodeInfo := &infrav1.NodeInfo{}
 	amiID := template.Spec.Template.Spec.AMI.ID
 	if amiID != nil && *amiID != "" {
+		// AMI ID is specified, query it directly
 		arch, os, err := r.getNodeInfoFromAMI(ctx, ec2Client, *amiID)
 		if err == nil {
 			if arch != "" {
@@ -194,9 +217,67 @@ func (r *AWSMachineTemplateReconciler) getInstanceTypeInfo(ctx context.Context, 
 				nodeInfo.OperatingSystem = os
 			}
 		}
+	} else {
+		// AMI ID is not specified, query instance type to get architecture
+		input := &ec2.DescribeInstanceTypesInput{
+			InstanceTypes: []ec2types.InstanceType{ec2types.InstanceType(instanceType)},
+		}
+
+		result, err := ec2Client.DescribeInstanceTypes(ctx, input)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to describe instance type %q", instanceType)
+		}
+
+		if len(result.InstanceTypes) == 0 {
+			return nil, errors.Errorf("no information found for instance type %q", instanceType)
+		}
+
+		instanceTypeInfo := result.InstanceTypes[0]
+
+		// Infer architecture from instance type
+		var architecture string
+		if instanceTypeInfo.ProcessorInfo != nil && len(instanceTypeInfo.ProcessorInfo.SupportedArchitectures) == 1 {
+			// Use the supported architecture
+			switch instanceTypeInfo.ProcessorInfo.SupportedArchitectures[0] {
+			case ec2types.ArchitectureTypeX8664:
+				architecture = ec2service.Amd64ArchitectureTag
+				nodeInfo.Architecture = infrav1.ArchitectureAmd64
+			case ec2types.ArchitectureTypeArm64:
+				architecture = ec2service.Arm64ArchitectureTag
+				nodeInfo.Architecture = infrav1.ArchitectureArm64
+			}
+		} else {
+			return nil, errors.Errorf("instance type must support exactly one architecture, got %d", len(instanceTypeInfo.ProcessorInfo.SupportedArchitectures))
+		}
+
+		// Attempt to get Kubernetes version from MachineDeployment
+		kubernetesVersion, versionErr := r.getKubernetesVersion(ctx, template)
+		if versionErr == nil && kubernetesVersion != "" {
+			// Try to look up AMI using the version
+			image, err := ec2service.DefaultAMILookup(
+				ec2Client,
+				template.Spec.Template.Spec.ImageLookupOrg,
+				template.Spec.Template.Spec.ImageLookupBaseOS,
+				kubernetesVersion,
+				architecture,
+				template.Spec.Template.Spec.ImageLookupFormat,
+			)
+			if err == nil && image != nil {
+				// Successfully found AMI, extract accurate nodeInfo from it
+				arch, os, _ := r.getNodeInfoFromAMI(ctx, ec2Client, *image.ImageId)
+				if arch != "" {
+					nodeInfo.Architecture = arch
+				}
+				if os != "" {
+					nodeInfo.OperatingSystem = os
+				}
+				return nodeInfo, nil
+			}
+			// AMI lookup failed, fall through to defaults
+		}
 	}
 
-	return resourceList, nodeInfo, nil
+	return nodeInfo, nil
 }
 
 // getNodeInfoFromAMI queries the AMI to determine architecture and operating system.
@@ -225,26 +306,60 @@ func (r *AWSMachineTemplateReconciler) getNodeInfoFromAMI(ctx context.Context, e
 		arch = infrav1.ArchitectureArm64
 	}
 
-	// Determine OS - check Platform field first (specifically for Windows identification)
-	var os string
+	// Determine OS - default to Linux, change to Windows if detected
+	// Most AMIs are Linux-based, so we initialize with Linux as the default
+	os := infrav1.OperatingSystemLinux
 
 	// 1. Check Platform field (most reliable for Windows detection)
 	if image.Platform == ec2types.PlatformValuesWindows {
-		os = "windows"
+		os = infrav1.OperatingSystemWindows
 	}
 
-	// 2. Check PlatformDetails field (provides more detailed information)
-	if os == "" && image.PlatformDetails != nil {
+	// 2. Check PlatformDetails field for Windows indication
+	if os != infrav1.OperatingSystemWindows && image.PlatformDetails != nil {
 		platformDetails := strings.ToLower(*image.PlatformDetails)
-		switch {
-		case strings.Contains(platformDetails, "windows"):
-			os = "windows"
-		case strings.Contains(platformDetails, "linux"), strings.Contains(platformDetails, "unix"):
-			os = "linux"
+		if strings.Contains(platformDetails, infrav1.OperatingSystemWindows) {
+			os = infrav1.OperatingSystemWindows
 		}
 	}
 
 	return arch, os, nil
+}
+
+// getKubernetesVersion attempts to find the Kubernetes version by querying MachineDeployments
+// or KubeadmControlPlanes that reference this AWSMachineTemplate.
+func (r *AWSMachineTemplateReconciler) getKubernetesVersion(ctx context.Context, template *infrav1.AWSMachineTemplate) (string, error) {
+	// Try to find version from MachineDeployment first
+	machineDeploymentList := &clusterv1.MachineDeploymentList{}
+	if err := r.List(ctx, machineDeploymentList, client.InNamespace(template.Namespace)); err != nil {
+		return "", errors.Wrap(err, "failed to list MachineDeployments")
+	}
+
+	// Find MachineDeployments that reference this AWSMachineTemplate
+	for _, md := range machineDeploymentList.Items {
+		if md.Spec.Template.Spec.InfrastructureRef.Kind == "AWSMachineTemplate" &&
+			md.Spec.Template.Spec.InfrastructureRef.Name == template.Name &&
+			md.Spec.Template.Spec.Version != nil {
+			return *md.Spec.Template.Spec.Version, nil
+		}
+	}
+
+	// If not found in MachineDeployment, try KubeadmControlPlane
+	kcpList := &controlplanev1.KubeadmControlPlaneList{}
+	if err := r.List(ctx, kcpList, client.InNamespace(template.Namespace)); err != nil {
+		return "", errors.Wrap(err, "failed to list KubeadmControlPlanes")
+	}
+
+	// Find KubeadmControlPlanes that reference this AWSMachineTemplate
+	for _, kcp := range kcpList.Items {
+		if kcp.Spec.MachineTemplate.InfrastructureRef.Kind == "AWSMachineTemplate" &&
+			kcp.Spec.MachineTemplate.InfrastructureRef.Name == template.Name &&
+			kcp.Spec.Version != "" {
+			return kcp.Spec.Version, nil
+		}
+	}
+
+	return "", errors.New("no MachineDeployment or KubeadmControlPlane found referencing this AWSMachineTemplate with a version")
 }
 
 // SetupWithManager sets up the controller with the Manager.

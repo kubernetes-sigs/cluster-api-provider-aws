@@ -35,6 +35,14 @@ const (
 	ArchitectureArm64 Architecture = "arm64"
 )
 
+// Operating system constants.
+const (
+	// OperatingSystemLinux represents the Linux operating system.
+	OperatingSystemLinux = "linux"
+	// OperatingSystemWindows represents the Windows operating system.
+	OperatingSystemWindows = "windows"
+)
+
 // NodeInfo contains information about the node's architecture and operating system.
 type NodeInfo struct {
 	// Architecture is the CPU architecture of the node.

@@ -101,6 +101,7 @@ rules:
   - controlplane.cluster.x-k8s.io
   resources:
   - '*'
+  - kubeadmcontrolplanes
   verbs:
   - get
   - list

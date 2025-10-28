@@ -337,7 +337,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			configCluster.ControlPlaneMachineCount = ptr.To[int64](1)
 			configCluster.WorkerMachineCount = ptr.To[int64](1)
 			configCluster.Flavor = shared.SSMFlavor
-			_, md, _ := createCluster(ctx, configCluster, result)
+			cluster, md, _ := createCluster(ctx, configCluster, result)
 
 			workerMachines := framework.GetMachinesByMachineDeployments(ctx, framework.GetMachinesByMachineDeploymentsInput{
 				Lister:            e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
@@ -358,6 +358,15 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			err := e2eCtx.Environment.BootstrapClusterProxy.GetClient().List(ctx, awsMachineTemplateList, client.InNamespace(namespace.Name))
 			Expect(err).To(BeNil())
 			Expect(len(awsMachineTemplateList.Items)).To(BeNumerically(">", 0), "Expected at least one AWSMachineTemplate")
+
+			ginkgo.By(fmt.Sprintf("Found %d AWSMachineTemplates", len(awsMachineTemplateList.Items)))
+			ginkgo.By(fmt.Sprintf("Cluster: name=%s, namespace=%s, infrastructureRef=%v",
+				cluster.Name, cluster.Namespace, cluster.Spec.InfrastructureRef))
+
+			// Print each AWSMachineTemplate for debugging
+			for i, template := range awsMachineTemplateList.Items {
+				ginkgo.By(fmt.Sprintf("AWSMachineTemplate[%d]: %+v", i, template))
+			}
 
 			foundTemplateWithCapacity := false
 			foundTemplateWithNodeInfo := false
