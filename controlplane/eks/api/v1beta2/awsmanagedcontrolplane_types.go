@@ -206,6 +206,12 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// +kubebuilder:default=true
 	BootstrapSelfManagedAddons bool `json:"bootstrapSelfManagedAddons,omitempty"`
 
+	// DeletionProtection indicates whether to enable deletion protection for the EKS cluster.
+	// When enabled, the cluster cannot be deleted unless deletion protection is first disabled.
+	// Matches the EKS CreateCluster and UpdateClusterConfig API field `deletionProtection`.
+	// +kubebuilder:default=false
+	DeletionProtection bool `json:"deletionProtection,omitempty"`
+
 	// RestrictPrivateSubnets indicates that the EKS control plane should only use private subnets.
 	// +kubebuilder:default=false
 	RestrictPrivateSubnets bool `json:"restrictPrivateSubnets,omitempty"`
