@@ -15,4 +15,4 @@ resources:
 - group: bootstrap
   kind: EKSConfigTemplate
   version: v1beta2
-version: "2"
+version: "3"

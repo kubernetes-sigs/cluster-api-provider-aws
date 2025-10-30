@@ -22,17 +22,21 @@ package managed
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
+	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 // MachineDeploymentSpecInput is the input for MachineDeploymentSpec.
@@ -110,5 +114,57 @@ func MachineDeploymentSpec(ctx context.Context, inputGetter func() MachineDeploy
 			Getter:  input.BootstrapClusterProxy.GetClient(),
 			Machine: &workerMachines[0],
 		}, input.E2EConfig.GetIntervals("", "wait-delete-machine")...)
+	}
+}
+
+// UpgradeMachineDeploymentsAndWaitInput is the input type for UpgradeMachineDeploymentsAndWait.
+// This function is copied from capi-core, but also allows the user to change
+// the bootstrap reference as well..
+type UpgradeMachineDeploymentsAndWaitInput struct {
+	BootstrapClusterProxy       framework.ClusterProxy
+	Cluster                     *clusterv1.Cluster
+	UpgradeVersion              string
+	UpgradeMachineTemplate      *string
+	UpgradeBootstrapTemplate    *corev1.ObjectReference
+	MachineDeployments          []*clusterv1.MachineDeployment
+	WaitForMachinesToBeUpgraded []interface{}
+}
+
+// UpgradeMachineDeploymentsAndWait upgrades a machine deployment and waits for its machines to be upgraded.
+func UpgradeMachineDeploymentsAndWait(ctx context.Context, input UpgradeMachineDeploymentsAndWaitInput) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for UpgradeMachineDeploymentsAndWait")
+	Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling UpgradeMachineDeploymentsAndWait")
+	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling UpgradeMachineDeploymentsAndWait")
+	Expect(input.UpgradeVersion).ToNot(BeNil(), "Invalid argument. input.UpgradeVersion can't be nil when calling UpgradeMachineDeploymentsAndWait")
+	Expect(input.MachineDeployments).ToNot(BeEmpty(), "Invalid argument. input.MachineDeployments can't be empty when calling UpgradeMachineDeploymentsAndWait")
+
+	mgmtClient := input.BootstrapClusterProxy.GetClient()
+
+	for _, deployment := range input.MachineDeployments {
+		log := logger.FromContext(ctx)
+		patchHelper, err := patch.NewHelper(deployment, mgmtClient)
+		Expect(err).ToNot(HaveOccurred())
+
+		oldVersion := deployment.Spec.Template.Spec.Version
+		deployment.Spec.Template.Spec.Version = &input.UpgradeVersion
+		if input.UpgradeMachineTemplate != nil {
+			deployment.Spec.Template.Spec.InfrastructureRef.Name = *input.UpgradeMachineTemplate
+		}
+		if input.UpgradeBootstrapTemplate != nil {
+			deployment.Spec.Template.Spec.Bootstrap.ConfigRef = input.UpgradeBootstrapTemplate
+		}
+		Eventually(func() error {
+			return patchHelper.Patch(ctx, deployment)
+		}, time.Minute*3, time.Second*3).Should(Succeed(), "Failed to patch Kubernetes version on MachineDeployment %s", klog.KObj(deployment))
+
+		log.Logf("Waiting for Kubernetes versions of machines in MachineDeployment %s to be upgraded from %s to %s",
+			deployment.Name, *oldVersion, input.UpgradeVersion)
+		framework.WaitForMachineDeploymentMachinesToBeUpgraded(ctx, framework.WaitForMachineDeploymentMachinesToBeUpgradedInput{
+			Lister:                   mgmtClient,
+			Cluster:                  input.Cluster,
+			MachineCount:             int(*deployment.Spec.Replicas),
+			KubernetesUpgradeVersion: input.UpgradeVersion,
+			MachineDeployment:        *deployment,
+		}, input.WaitForMachinesToBeUpgraded...)
 	}
 }
