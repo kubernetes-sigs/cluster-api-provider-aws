@@ -75,6 +75,87 @@ spec:
                               ignored when updating existing clusters. Defaults to true.
                             type: boolean
                         type: object
+                      accessEntries:
+                        description: |-
+                          AccessEntries specifies the access entries for the cluster
+                          Access entries require AuthenticationMode to be either "api" or "api_and_config_map"
+                        items:
+                          description: AccessEntry represents an AWS EKS access entry
+                            for IAM principals
+                          properties:
+                            accessPolicies:
+                              description: |-
+                                AccessPolicies specifies the policies to associate with this access entry
+                                Cannot be specified if Type is "ec2_linux" or "ec2_windows"
+                              items:
+                                description: AccessPolicyReference represents a reference
+                                  to an AWS EKS access policy
+                                properties:
+                                  accessScope:
+                                    description: AccessScope specifies the scope for
+                                      the policy
+                                    properties:
+                                      namespaces:
+                                        description: |-
+                                          Namespaces are the namespaces for the access scope
+                                          Only valid when Type is namespace
+                                        items:
+                                          type: string
+                                        minItems: 1
+                                        type: array
+                                      type:
+                                        default: cluster
+                                        description: Type is the type of access scope.
+                                          Defaults to "cluster".
+                                        enum:
+                                        - cluster
+                                        - namespace
+                                        type: string
+                                    required:
+                                    - type
+                                    type: object
+                                  policyARN:
+                                    description: PolicyARN is the Amazon Resource
+                                      Name (ARN) of the access policy
+                                    type: string
+                                required:
+                                - accessScope
+                                - policyARN
+                                type: object
+                              maxItems: 20
+                              type: array
+                            kubernetesGroups:
+                              description: |-
+                                KubernetesGroups represents the Kubernetes groups for the access entry
+                                Cannot be specified if Type is "ec2_linux" or "ec2_windows"
+                              items:
+                                type: string
+                              type: array
+                            principalARN:
+                              description: PrincipalARN is the Amazon Resource Name
+                                (ARN) of the IAM principal
+                              type: string
+                            type:
+                              default: standard
+                              description: Type is the type of access entry. Defaults
+                                to standard if not specified.
+                              enum:
+                              - standard
+                              - ec2_linux
+                              - ec2_windows
+                              - fargate_linux
+                              - ec2
+                              - hybrid_linux
+                              - hyperpod_linux
+                              type: string
+                            username:
+                              description: Username is the username for the access
+                                entry
+                              type: string
+                          required:
+                          - principalARN
+                          type: object
+                        type: array
                       additionalTags:
                         additionalProperties:
                           type: string
