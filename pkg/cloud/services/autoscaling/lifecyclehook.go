@@ -191,7 +191,7 @@ func ReconcileLifecycleHooks(ctx context.Context, asgService services.ASGInterfa
 		if !found {
 			log.Info("Deleting extraneous lifecycle hook", "hook", existingHook.Name)
 			if err := asgService.DeleteLifecycleHook(ctx, asgName, existingHook); err != nil {
-				deprecatedv1beta1conditions.MarkFalse(storeConditionsOnObject, expinfrav1.V1Beta2LifecycleHookReadyCondition, expinfrav1.LifecycleHookDeletionFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
+				deprecatedv1beta1conditions.MarkFalse(storeConditionsOnObject, clusterv1.ConditionType(expinfrav1.LifecycleHookReadyCondition), expinfrav1.LifecycleHookDeletionFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
 				return err
 			}
 		}
@@ -223,7 +223,7 @@ func reconcileLifecycleHook(ctx context.Context, asgService services.ASGInterfac
 	if existingHook == nil {
 		log.Info("Creating lifecycle hook")
 		if err := asgService.CreateLifecycleHook(ctx, asgName, wantedHook); err != nil {
-			deprecatedv1beta1conditions.MarkFalse(storeConditionsOnObject, expinfrav1.V1Beta2LifecycleHookReadyCondition, expinfrav1.LifecycleHookCreationFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
+			deprecatedv1beta1conditions.MarkFalse(storeConditionsOnObject, clusterv1.ConditionType(expinfrav1.LifecycleHookReadyCondition), expinfrav1.LifecycleHookCreationFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
 			return err
 		}
 		return nil
@@ -232,11 +232,11 @@ func reconcileLifecycleHook(ctx context.Context, asgService services.ASGInterfac
 	if lifecycleHookNeedsUpdate(existingHook, wantedHook) {
 		log.Info("Updating lifecycle hook")
 		if err := asgService.UpdateLifecycleHook(ctx, asgName, wantedHook); err != nil {
-			deprecatedv1beta1conditions.MarkFalse(storeConditionsOnObject, expinfrav1.V1Beta2LifecycleHookReadyCondition, expinfrav1.LifecycleHookUpdateFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
+			deprecatedv1beta1conditions.MarkFalse(storeConditionsOnObject, clusterv1.ConditionType(expinfrav1.LifecycleHookReadyCondition), expinfrav1.LifecycleHookUpdateFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
 			return err
 		}
 	}
 
-	deprecatedv1beta1conditions.MarkTrue(storeConditionsOnObject, expinfrav1.V1Beta2LifecycleHookReadyCondition)
+	deprecatedv1beta1conditions.MarkTrue(storeConditionsOnObject, clusterv1.ConditionType(expinfrav1.LifecycleHookReadyCondition))
 	return nil
 }
