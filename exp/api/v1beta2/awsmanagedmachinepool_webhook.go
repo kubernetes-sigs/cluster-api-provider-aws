@@ -28,11 +28,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/eks"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
-
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/eks"
 )
 
 const (
@@ -60,7 +59,7 @@ type awsManagedMachinePoolWebhook struct{}
 var _ webhook.CustomDefaulter = &awsManagedMachinePoolWebhook{}
 var _ webhook.CustomValidator = &awsManagedMachinePoolWebhook{}
 
-func (r *AWSManagedMachinePool) validateScaling() field.ErrorList {
+func validateScaling(r *AWSManagedMachinePool) field.ErrorList {
 	var allErrs field.ErrorList
 	if r.Spec.Scaling != nil { //nolint:nestif
 		minField := field.NewPath("spec", "scaling", "minSize")
@@ -85,7 +84,7 @@ func (r *AWSManagedMachinePool) validateScaling() field.ErrorList {
 	return allErrs
 }
 
-func (r *AWSManagedMachinePool) validateNodegroupUpdateConfig() field.ErrorList {
+func validateNodegroupUpdateConfig(r *AWSManagedMachinePool) field.ErrorList {
 	var allErrs field.ErrorList
 
 	if r.Spec.UpdateConfig != nil {
@@ -106,7 +105,7 @@ func (r *AWSManagedMachinePool) validateNodegroupUpdateConfig() field.ErrorList 
 	return allErrs
 }
 
-func (r *AWSManagedMachinePool) validateRemoteAccess() field.ErrorList {
+func validateRemoteAccess(r *AWSManagedMachinePool) field.ErrorList {
 	var allErrs field.ErrorList
 	if r.Spec.RemoteAccess == nil {
 		return allErrs
@@ -124,7 +123,7 @@ func (r *AWSManagedMachinePool) validateRemoteAccess() field.ErrorList {
 	return allErrs
 }
 
-func (r *AWSManagedMachinePool) validateLaunchTemplate() field.ErrorList {
+func validateLaunchTemplate(r *AWSManagedMachinePool) field.ErrorList {
 	var allErrs field.ErrorList
 	if r.Spec.AWSLaunchTemplate == nil {
 		return allErrs
@@ -162,16 +161,16 @@ func (*awsManagedMachinePoolWebhook) ValidateCreate(_ context.Context, obj runti
 	if r.Spec.EKSNodegroupName == "" {
 		allErrs = append(allErrs, field.Required(field.NewPath("spec.eksNodegroupName"), "eksNodegroupName is required"))
 	}
-	if errs := r.validateScaling(); errs != nil || len(errs) == 0 {
+	if errs := validateScaling(r); errs != nil || len(errs) == 0 {
 		allErrs = append(allErrs, errs...)
 	}
-	if errs := r.validateRemoteAccess(); len(errs) > 0 {
+	if errs := validateRemoteAccess(r); len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
 	}
-	if errs := r.validateNodegroupUpdateConfig(); len(errs) > 0 {
+	if errs := validateNodegroupUpdateConfig(r); len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
 	}
-	if errs := r.validateLaunchTemplate(); len(errs) > 0 {
+	if errs := validateLaunchTemplate(r); len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
 	}
 	if errs := r.validateLifecycleHooks(); len(errs) > 0 {
@@ -207,16 +206,16 @@ func (*awsManagedMachinePoolWebhook) ValidateUpdate(_ context.Context, oldObj, n
 	}
 
 	var allErrs field.ErrorList
-	allErrs = append(allErrs, r.validateImmutable(oldPool)...)
+	allErrs = append(allErrs, validateAMPImmutable(oldPool, r)...)
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 
-	if errs := r.validateScaling(); errs != nil || len(errs) == 0 {
+	if errs := validateScaling(r); errs != nil || len(errs) == 0 {
 		allErrs = append(allErrs, errs...)
 	}
-	if errs := r.validateNodegroupUpdateConfig(); len(errs) > 0 {
+	if errs := validateNodegroupUpdateConfig(r); len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
 	}
-	if errs := r.validateLaunchTemplate(); len(errs) > 0 {
+	if errs := validateLaunchTemplate(r); len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
 	}
 	if errs := r.validateLifecycleHooks(); len(errs) > 0 {
@@ -239,7 +238,7 @@ func (*awsManagedMachinePoolWebhook) ValidateDelete(_ context.Context, _ runtime
 	return nil, nil
 }
 
-func (r *AWSManagedMachinePool) validateImmutable(old *AWSManagedMachinePool) field.ErrorList {
+func validateAMPImmutable(old *AWSManagedMachinePool, current *AWSManagedMachinePool) field.ErrorList {
 	var allErrs field.ErrorList
 
 	appendErrorIfMutated := func(old, update interface{}, name string) {
@@ -260,25 +259,25 @@ func (r *AWSManagedMachinePool) validateImmutable(old *AWSManagedMachinePool) fi
 	}
 
 	if old.Spec.EKSNodegroupName != "" {
-		appendErrorIfMutated(old.Spec.EKSNodegroupName, r.Spec.EKSNodegroupName, "eksNodegroupName")
+		appendErrorIfMutated(old.Spec.EKSNodegroupName, current.Spec.EKSNodegroupName, "eksNodegroupName")
 	}
-	appendErrorIfMutated(old.Spec.SubnetIDs, r.Spec.SubnetIDs, "subnetIDs")
-	appendErrorIfSetAndMutated(old.Spec.RoleName, r.Spec.RoleName, "roleName")
-	appendErrorIfMutated(old.Spec.DiskSize, r.Spec.DiskSize, "diskSize")
-	appendErrorIfMutated(old.Spec.AMIType, r.Spec.AMIType, "amiType")
-	appendErrorIfMutated(old.Spec.RemoteAccess, r.Spec.RemoteAccess, "remoteAccess")
-	appendErrorIfSetAndMutated(old.Spec.CapacityType, r.Spec.CapacityType, "capacityType")
-	appendErrorIfMutated(old.Spec.AvailabilityZones, r.Spec.AvailabilityZones, "availabilityZones")
-	appendErrorIfMutated(old.Spec.AvailabilityZoneSubnetType, r.Spec.AvailabilityZoneSubnetType, "availabilityZoneSubnetType")
-	if (old.Spec.AWSLaunchTemplate != nil && r.Spec.AWSLaunchTemplate == nil) ||
-		(old.Spec.AWSLaunchTemplate == nil && r.Spec.AWSLaunchTemplate != nil) {
+	appendErrorIfMutated(old.Spec.SubnetIDs, current.Spec.SubnetIDs, "subnetIDs")
+	appendErrorIfSetAndMutated(old.Spec.RoleName, current.Spec.RoleName, "roleName")
+	appendErrorIfMutated(old.Spec.DiskSize, current.Spec.DiskSize, "diskSize")
+	appendErrorIfMutated(old.Spec.AMIType, current.Spec.AMIType, "amiType")
+	appendErrorIfMutated(old.Spec.RemoteAccess, current.Spec.RemoteAccess, "remoteAccess")
+	appendErrorIfSetAndMutated(old.Spec.CapacityType, current.Spec.CapacityType, "capacityType")
+	appendErrorIfMutated(old.Spec.AvailabilityZones, current.Spec.AvailabilityZones, "availabilityZones")
+	appendErrorIfMutated(old.Spec.AvailabilityZoneSubnetType, current.Spec.AvailabilityZoneSubnetType, "availabilityZoneSubnetType")
+	if (old.Spec.AWSLaunchTemplate != nil && current.Spec.AWSLaunchTemplate == nil) ||
+		(old.Spec.AWSLaunchTemplate == nil && current.Spec.AWSLaunchTemplate != nil) {
 		allErrs = append(
 			allErrs,
 			field.Invalid(field.NewPath("spec", "AWSLaunchTemplate"), old.Spec.AWSLaunchTemplate, "field is immutable"),
 		)
 	}
-	if old.Spec.AWSLaunchTemplate != nil && r.Spec.AWSLaunchTemplate != nil {
-		appendErrorIfMutated(old.Spec.AWSLaunchTemplate.Name, r.Spec.AWSLaunchTemplate.Name, "awsLaunchTemplate.name")
+	if old.Spec.AWSLaunchTemplate != nil && current.Spec.AWSLaunchTemplate != nil {
+		appendErrorIfMutated(old.Spec.AWSLaunchTemplate.Name, current.Spec.AWSLaunchTemplate.Name, "awsLaunchTemplate.name")
 	}
 
 	return allErrs
@@ -306,9 +305,13 @@ func (*awsManagedMachinePoolWebhook) Default(_ context.Context, obj runtime.Obje
 	}
 
 	if r.Spec.UpdateConfig == nil {
-		r.Spec.UpdateConfig = &UpdateConfig{
-			MaxUnavailable: ptr.To[int](1),
-		}
+		r.Spec.UpdateConfig = defaultManagedMachinePoolUpdateConfig()
 	}
 	return nil
+}
+
+func defaultManagedMachinePoolUpdateConfig() *UpdateConfig {
+	return &UpdateConfig{
+		MaxUnavailable: ptr.To[int](1),
+	}
 }

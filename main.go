@@ -381,6 +381,10 @@ func setupReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager,
 			setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachinePool")
 			os.Exit(1)
 		}
+		if err := (&expinfrav1.AWSManagedMachinePoolTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "AWSManagedMachinePoolTemplate")
+			os.Exit(1)
+		}
 	}
 
 	if feature.Gates.Enabled(feature.EventBridgeInstanceState) {
