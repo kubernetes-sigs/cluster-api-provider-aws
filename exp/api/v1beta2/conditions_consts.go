@@ -18,7 +18,6 @@ package v1beta2
 
 import (
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1" //nolint:staticcheck
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 const (
@@ -62,9 +61,6 @@ const (
 	AWSMachineCreationFailed = "AWSMachineCreationFailed"
 	// AWSMachineDeletionFailed reports if deleting AWSMachines failed.
 	AWSMachineDeletionFailed = "AWSMachineDeletionFailed"
-	// V1Beta2LifecycleHookReadyCondition reports on the status of the lifecycle hook.
-	// TODO: delete when conditions are migrated.
-	V1Beta2LifecycleHookReadyCondition clusterv1.ConditionType = "LifecycleHookReady"
 	// LifecycleHookReadyCondition reports on the status of the lifecycle hook.
 	LifecycleHookReadyCondition clusterv1beta1.ConditionType = "LifecycleHookReady"
 	// LifecycleHookCreationFailedReason used for failures during lifecycle hook creation.
