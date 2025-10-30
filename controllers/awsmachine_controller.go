@@ -360,6 +360,36 @@ func (r *AWSMachineReconciler) reconcileDelete(ctx context.Context, machineScope
 		return ctrl.Result{RequeueAfter: time.Minute}, nil
 	case infrav1.InstanceStateTerminated:
 		machineScope.Info("EC2 instance terminated successfully", "instance-id", instance.ID)
+
+		// Handle dedicated host cleanup AFTER instance is confirmed terminated
+		if machineScope.AWSMachine.Status.DedicatedHost != nil &&
+			machineScope.AWSMachine.Status.DedicatedHost.ID != nil &&
+			machineScope.AWSMachine.Spec.DynamicHostAllocation != nil {
+			hostID := *machineScope.AWSMachine.Status.DedicatedHost.ID
+
+			// Attempt to release the dedicated host
+			machineScope.Info("Releasing dynamically allocated dedicated host", "hostID", hostID)
+			if err := ec2Service.ReleaseDedicatedHost(ctx, hostID); err != nil {
+				machineScope.Error(err, "failed to release dedicated host", "hostID", hostID)
+				conditions.MarkFalse(machineScope.AWSMachine, infrav1.DedicatedHostReleaseCondition, infrav1.DedicatedHostReleaseFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
+				r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedReleaseHost", "Failed to release dedicated host %s: %v", hostID, err)
+				return ctrl.Result{}, err
+			}
+
+			// Host release succeeded
+			machineScope.Info("Successfully released dedicated host", "hostID", hostID)
+			r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeNormal, "SuccessfulReleaseHost", "Released dedicated host %s", hostID)
+
+			// Mark the condition as succeeded
+			conditions.MarkTrue(machineScope.AWSMachine, infrav1.DedicatedHostReleaseCondition)
+
+			// Patch the object to persist success state
+			if err := machineScope.PatchObject(); err != nil {
+				machineScope.Error(err, "failed to patch object after successful host release")
+				return ctrl.Result{}, err
+			}
+		}
+
 		controllerutil.RemoveFinalizer(machineScope.AWSMachine, infrav1.MachineFinalizer)
 		return ctrl.Result{}, nil
 	default:
@@ -448,6 +478,7 @@ func (r *AWSMachineReconciler) findInstance(machineScope *scope.MachineScope, ec
 	} else {
 		// If the ProviderID is populated, describe the instance using the ID.
 		// InstanceIfExists() returns error (ErrInstanceNotFoundByID or ErrDescribeInstance) if the instance could not be found.
+
 		//nolint:staticcheck
 		instance, err = ec2svc.InstanceIfExists(ptr.To[string](pid.ID()))
 		if err != nil {
