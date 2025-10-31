@@ -23,6 +23,38 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
+// Architecture represents the CPU architecture of the node.
+// Its underlying type is a string and its value can be any of amd64, arm64.
+// +kubebuilder:validation:Enum=amd64;arm64
+// +enum
+type Architecture string
+
+// Architecture constants.
+const (
+	ArchitectureAmd64 Architecture = "amd64"
+	ArchitectureArm64 Architecture = "arm64"
+)
+
+// Operating system constants.
+const (
+	// OperatingSystemLinux represents the Linux operating system.
+	OperatingSystemLinux = "linux"
+	// OperatingSystemWindows represents the Windows operating system.
+	OperatingSystemWindows = "windows"
+)
+
+// NodeInfo contains information about the node's architecture and operating system.
+type NodeInfo struct {
+	// Architecture is the CPU architecture of the node.
+	// Its underlying type is a string and its value can be any of amd64, arm64.
+	// +optional
+	Architecture Architecture `json:"architecture,omitempty"`
+	// OperatingSystem is a string representing the operating system of the node.
+	// This may be a string like 'linux' or 'windows'.
+	// +optional
+	OperatingSystem string `json:"operatingSystem,omitempty"`
+}
+
 // AWSMachineTemplateStatus defines a status for an AWSMachineTemplate.
 type AWSMachineTemplateStatus struct {
 	// Capacity defines the resource capacity for this machine.
@@ -30,6 +62,12 @@ type AWSMachineTemplateStatus struct {
 	// https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20210310-opt-in-autoscaling-from-zero.md
 	// +optional
 	Capacity corev1.ResourceList `json:"capacity,omitempty"`
+
+	// NodeInfo contains information about the node's architecture and operating system.
+	// This value is used for autoscaling from zero operations as defined in:
+	// https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20210310-opt-in-autoscaling-from-zero.md
+	// +optional
+	NodeInfo *NodeInfo `json:"nodeInfo,omitempty"`
 }
 
 // AWSMachineTemplateSpec defines the desired state of AWSMachineTemplate.
@@ -40,6 +78,7 @@ type AWSMachineTemplateSpec struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=awsmachinetemplates,scope=Namespaced,categories=cluster-api,shortName=awsmt
 // +kubebuilder:storageversion
+// +kubebuilder:subresource:status
 // +k8s:defaulter-gen=true
 
 // AWSMachineTemplate is the schema for the Amazon EC2 Machine Templates API.

@@ -136,6 +136,9 @@ func (r *AWSMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 		}
 	}
 
+	// Restore Status fields that don't exist in v1beta1.
+	dst.Status.NodeInfo = restored.Status.NodeInfo
+
 	return nil
 }
 

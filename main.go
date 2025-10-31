@@ -407,6 +407,15 @@ func setupReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager,
 		}
 	}
 
+	setupLog.Debug("enabling AWSMachineTemplate controller")
+	if err := (&controllers.AWSMachineTemplateReconciler{
+		Client:           mgr.GetClient(),
+		WatchFilterValue: watchFilterValue,
+	}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "AWSMachineTemplate")
+		os.Exit(1)
+	}
+
 	if err := (&infrav1.AWSMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "AWSMachineTemplate")
 		os.Exit(1)
