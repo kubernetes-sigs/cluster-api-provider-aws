@@ -178,6 +178,13 @@ rules:
 - apiGroups:
   - controlplane.cluster.x-k8s.io
   resources:
+  - awsmanagedcontrolplanes/finalizers
+  verbs:
+  - delete
+  - update
+- apiGroups:
+  - controlplane.cluster.x-k8s.io
+  resources:
   - rosacontrolplanes
   verbs:
   - delete
