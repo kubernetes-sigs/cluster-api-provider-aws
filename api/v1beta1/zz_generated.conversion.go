@@ -1447,7 +1447,7 @@ func autoConvert_v1beta2_AWSMachineSpec_To_v1beta1_AWSMachineSpec(in *v1beta2.AW
 func autoConvert_v1beta1_AWSMachineStatus_To_v1beta2_AWSMachineStatus(in *AWSMachineStatus, out *v1beta2.AWSMachineStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
 	out.Interruptible = in.Interruptible
-	out.Addresses = *(*[]corev1beta2.MachineAddress)(unsafe.Pointer(&in.Addresses))
+	out.Addresses = *(*[]corev1beta1.MachineAddress)(unsafe.Pointer(&in.Addresses))
 	out.InstanceState = (*v1beta2.InstanceState)(unsafe.Pointer(in.InstanceState))
 	out.FailureReason = (*string)(unsafe.Pointer(in.FailureReason))
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
@@ -1989,7 +1989,7 @@ func autoConvert_v1beta1_Instance_To_v1beta2_Instance(in *Instance, out *v1beta2
 	out.SecurityGroupIDs = *(*[]string)(unsafe.Pointer(&in.SecurityGroupIDs))
 	out.UserData = (*string)(unsafe.Pointer(in.UserData))
 	out.IAMProfile = in.IAMProfile
-	out.Addresses = *(*[]corev1beta2.MachineAddress)(unsafe.Pointer(&in.Addresses))
+	out.Addresses = *(*[]corev1beta1.MachineAddress)(unsafe.Pointer(&in.Addresses))
 	out.PrivateIP = (*string)(unsafe.Pointer(in.PrivateIP))
 	out.PublicIP = (*string)(unsafe.Pointer(in.PublicIP))
 	out.ENASupport = (*bool)(unsafe.Pointer(in.ENASupport))

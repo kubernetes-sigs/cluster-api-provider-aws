@@ -43,6 +43,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1" //nolint:staticcheck
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
@@ -5321,11 +5322,11 @@ func TestCreateInstance(t *testing.T) {
 				g.Expect(len(instance.Addresses)).To(Equal(3))
 
 				for _, address := range instance.Addresses {
-					if address.Type == clusterv1.MachineInternalIP {
+					if address.Type == clusterv1beta1.MachineInternalIP {
 						g.Expect(address.Address).To(Equal("192.168.1.10"))
 					}
 
-					if address.Type == clusterv1.MachineInternalDNS {
+					if address.Type == clusterv1beta1.MachineInternalDNS {
 						g.Expect(address.Address).To(Or(Equal("ip-192-168-1-10.ec2.internal"), Equal("ip-192-168-1-10.example.com")))
 					}
 				}

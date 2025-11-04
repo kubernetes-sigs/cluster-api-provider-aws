@@ -259,7 +259,7 @@ func (m *MachineScope) SetSecretCount(i int32) {
 }
 
 // SetAddresses sets the AWSMachine address status.
-func (m *MachineScope) SetAddresses(addrs []clusterv1.MachineAddress) {
+func (m *MachineScope) SetAddresses(addrs []clusterv1beta1.MachineAddress) {
 	m.AWSMachine.Status.Addresses = addrs
 }
 

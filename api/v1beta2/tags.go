@@ -23,7 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1" //nolint:staticcheck
 )
 
 // Tags defines a map of tags.
@@ -78,7 +78,7 @@ func (t Tags) Validate() []*field.Error {
 	// Defines the maximum number of user tags which can be created for a specific resource
 	const maxUserTagsAllowed = 50
 	var errs field.ErrorList
-	var userTagCount = len(t)
+	userTagCount := len(t)
 	re := regexp.MustCompile(`^[a-zA-Z0-9\s\_\.\:\=\+\-\@\/]*$`)
 
 	for k, v := range t {
@@ -239,7 +239,7 @@ type BuildParams struct {
 
 // WithMachineName tags the namespaced machine name
 // The machine name will be tagged with key "MachineName".
-func (b BuildParams) WithMachineName(m *clusterv1.Machine) BuildParams {
+func (b BuildParams) WithMachineName(m *clusterv1beta1.Machine) BuildParams {
 	machineNamespacedName := types.NamespacedName{Namespace: m.Namespace, Name: m.Name}
 	b.Additional[MachineNameTagKey] = machineNamespacedName.String()
 	return b

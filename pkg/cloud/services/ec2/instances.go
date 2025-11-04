@@ -28,6 +28,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -39,6 +40,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/utils"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1" //nolint:staticcheck
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
@@ -123,6 +125,20 @@ func (s *Service) CreateInstance(ctx context.Context, scope *scope.MachineScope,
 		NetworkInterfaceType: scope.AWSMachine.Spec.NetworkInterfaceType,
 	}
 
+	scheme := runtime.NewScheme()
+	if err := clusterv1beta1.AddToScheme(scheme); err != nil {
+		return nil, fmt.Errorf("error adding clusterv1beta1 to schema for conversion: %s", err)
+	}
+	if err := clusterv1.AddToScheme(scheme); err != nil {
+		return nil, fmt.Errorf("error adding clusterv1 to schema for conversion: %s", err)
+	}
+
+	var v1beta1Machine clusterv1beta1.Machine
+	// Convert v1beta1 to v1beta2
+	if err := scheme.Convert(scope.Machine, &v1beta1Machine, nil); err != nil {
+		return nil, fmt.Errorf("error converting v1beta2.Machine to v1beta1.Machine: %s", err)
+	}
+
 	// Make sure to use the MachineScope here to get the merger of AWSCluster and AWSMachine tags
 	additionalTags := scope.AdditionalTags()
 	input.Tags = infrav1.Build(infrav1.BuildParams{
@@ -131,7 +147,7 @@ func (s *Service) CreateInstance(ctx context.Context, scope *scope.MachineScope,
 		Name:        aws.String(scope.Name()),
 		Role:        aws.String(scope.Role()),
 		Additional:  additionalTags,
-	}.WithCloudProvider(s.scope.KubernetesClusterName()).WithMachineName(scope.Machine))
+	}.WithCloudProvider(s.scope.KubernetesClusterName()).WithMachineName(&v1beta1Machine))
 
 	var err error
 
@@ -992,22 +1008,22 @@ func (s *Service) SDKToInstance(v types.Instance) (*infrav1.Instance, error) {
 	return i, nil
 }
 
-func (s *Service) getInstanceAddresses(instance types.Instance) []clusterv1.MachineAddress {
-	addresses := []clusterv1.MachineAddress{}
+func (s *Service) getInstanceAddresses(instance types.Instance) []clusterv1beta1.MachineAddress {
+	addresses := []clusterv1beta1.MachineAddress{}
 	// Check if the DHCP Option Set has domain name set
 	domainName := s.GetDHCPOptionSetDomainName(s.EC2Client, instance.VpcId)
 	for _, eni := range instance.NetworkInterfaces {
 		if addr := aws.ToString(eni.PrivateDnsName); addr != "" {
-			privateDNSAddress := clusterv1.MachineAddress{
-				Type:    clusterv1.MachineInternalDNS,
+			privateDNSAddress := clusterv1beta1.MachineAddress{
+				Type:    clusterv1beta1.MachineInternalDNS,
 				Address: addr,
 			}
 			addresses = append(addresses, privateDNSAddress)
 
 			if domainName != nil {
 				// Add secondary private DNS Name with domain name set in DHCP Option Set
-				additionalPrivateDNSAddress := clusterv1.MachineAddress{
-					Type:    clusterv1.MachineInternalDNS,
+				additionalPrivateDNSAddress := clusterv1beta1.MachineAddress{
+					Type:    clusterv1beta1.MachineInternalDNS,
 					Address: fmt.Sprintf("%s.%s", strings.Split(privateDNSAddress.Address, ".")[0], *domainName),
 				}
 				addresses = append(addresses, additionalPrivateDNSAddress)
@@ -1015,8 +1031,8 @@ func (s *Service) getInstanceAddresses(instance types.Instance) []clusterv1.Mach
 		}
 
 		if addr := aws.ToString(eni.PrivateIpAddress); addr != "" {
-			privateIPAddress := clusterv1.MachineAddress{
-				Type:    clusterv1.MachineInternalIP,
+			privateIPAddress := clusterv1beta1.MachineAddress{
+				Type:    clusterv1beta1.MachineInternalIP,
 				Address: addr,
 			}
 			addresses = append(addresses, privateIPAddress)
@@ -1025,16 +1041,16 @@ func (s *Service) getInstanceAddresses(instance types.Instance) []clusterv1.Mach
 		// An elastic IP is attached if association is non nil pointer
 		if eni.Association != nil {
 			if addr := aws.ToString(eni.Association.PublicDnsName); addr != "" {
-				publicDNSAddress := clusterv1.MachineAddress{
-					Type:    clusterv1.MachineExternalDNS,
+				publicDNSAddress := clusterv1beta1.MachineAddress{
+					Type:    clusterv1beta1.MachineExternalDNS,
 					Address: addr,
 				}
 				addresses = append(addresses, publicDNSAddress)
 			}
 
 			if addr := aws.ToString(eni.Association.PublicIp); addr != "" {
-				publicIPAddress := clusterv1.MachineAddress{
-					Type:    clusterv1.MachineExternalIP,
+				publicIPAddress := clusterv1beta1.MachineAddress{
+					Type:    clusterv1beta1.MachineExternalIP,
 					Address: addr,
 				}
 				addresses = append(addresses, publicIPAddress)

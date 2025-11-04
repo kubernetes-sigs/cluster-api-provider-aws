@@ -20,7 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1" //nolint:staticcheck
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 const (
@@ -415,7 +414,7 @@ type AWSMachineStatus struct {
 	Interruptible bool `json:"interruptible,omitempty"`
 
 	// Addresses contains the AWS instance associated addresses.
-	Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
+	Addresses []clusterv1beta1.MachineAddress `json:"addresses,omitempty"`
 
 	// InstanceState is the state of the AWS instance for this machine.
 	// +optional
