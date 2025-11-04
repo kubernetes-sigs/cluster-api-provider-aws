@@ -148,7 +148,7 @@ const (
 
 	// DedicatedHostReleaseCondition reports on the status of dedicated host release operations.
 	// This condition tracks whether the dedicated host has been successfully released or if there are failures.
-	DedicatedHostReleaseCondition clusterv1.ConditionType = "DedicatedHostRelease"
+	DedicatedHostReleaseCondition clusterv1beta1.ConditionType = "DedicatedHostRelease"
 
 	// InstanceNotFoundReason used when the instance couldn't be retrieved.
 	InstanceNotFoundReason = "InstanceNotFound"

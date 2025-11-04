@@ -373,7 +373,7 @@ func (r *AWSMachineReconciler) reconcileDelete(ctx context.Context, machineScope
 			machineScope.Info("Releasing dynamically allocated dedicated host", "hostID", hostID)
 			if err := ec2Service.ReleaseDedicatedHost(ctx, hostID); err != nil {
 				machineScope.Error(err, "failed to release dedicated host", "hostID", hostID)
-				conditions.MarkFalse(machineScope.AWSMachine, infrav1.DedicatedHostReleaseCondition, infrav1.DedicatedHostReleaseFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
+				v1beta1conditions.MarkFalse(machineScope.AWSMachine, infrav1.DedicatedHostReleaseCondition, infrav1.DedicatedHostReleaseFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
 				r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedReleaseHost", "Failed to release dedicated host %s: %v", hostID, err)
 				return ctrl.Result{}, err
 			}
@@ -383,7 +383,7 @@ func (r *AWSMachineReconciler) reconcileDelete(ctx context.Context, machineScope
 			r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeNormal, "SuccessfulReleaseHost", "Released dedicated host %s", hostID)
 
 			// Mark the condition as succeeded
-			conditions.MarkTrue(machineScope.AWSMachine, infrav1.DedicatedHostReleaseCondition)
+			v1beta1conditions.MarkTrue(machineScope.AWSMachine, infrav1.DedicatedHostReleaseCondition)
 
 			// Patch the object to persist success state
 			if err := machineScope.PatchObject(); err != nil {

@@ -172,7 +172,7 @@ func (r *AWSMachineTemplate) validateIgnitionAndCloudInit() field.ErrorList {
 
 	return allErrs
 }
-<<<<<<< HEAD
+
 func (r *AWSMachineTemplate) validateHostAllocation() field.ErrorList {
 	var allErrs field.ErrorList
 
@@ -188,8 +188,6 @@ func (r *AWSMachineTemplate) validateHostAllocation() field.ErrorList {
 
 	return allErrs
 }
-=======
->>>>>>> c3fc709ee (Consolidate conditions imports and fix linting)
 
 func (r *AWSMachineTemplate) validateSSHKeyName() field.ErrorList {
 	return validateSSHKeyName(r.Spec.Template.Spec.SSHKeyName)
