@@ -180,6 +180,14 @@ type AWSManagedMachinePoolSpec struct {
 	// +optional
 	InstanceType *string `json:"instanceType,omitempty"`
 
+	// InstanceTypes specifies a list of AWS instance types for the node group.
+	// When specified, this allows using multiple instance types which enhances
+	// the availability of Spot instances.
+	// At most one of InstanceType or InstanceTypes may be specified.
+	// See https://docs.aws.amazon.com/eks/latest/userguide/managed-node-groups.html#managed-node-group-capacity-types
+	// +optional
+	InstanceTypes []string `json:"instanceTypes,omitempty"`
+
 	// Scaling specifies scaling for the ASG behind this pool
 	// +optional
 	Scaling *ManagedMachinePoolScaling `json:"scaling,omitempty"`
