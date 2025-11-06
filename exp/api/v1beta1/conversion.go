@@ -147,6 +147,14 @@ func (src *AWSManagedMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.RolePath = restored.Spec.RolePath
 	dst.Spec.RolePermissionsBoundary = restored.Spec.RolePermissionsBoundary
 
+	// Restore InstanceType and InstanceTypes from the hub version
+	// v1beta1 doesn't have InstanceTypes, but v1beta2 does
+	// We preserve the exact state through the annotation-based conversion data
+	// This includes cases where both fields are set (even though webhook would reject it)
+	// to ensure fuzzy conversion tests pass
+	dst.Spec.InstanceType = restored.Spec.InstanceType
+	dst.Spec.InstanceTypes = restored.Spec.InstanceTypes
+
 	if restored.Spec.NodeRepairConfig != nil {
 		dst.Spec.NodeRepairConfig = restored.Spec.NodeRepairConfig
 	}
@@ -162,12 +170,26 @@ func (r *AWSManagedMachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
+	// Preserve v1beta2 data through annotation
+	// This ensures fuzzy conversion tests pass
 	return utilconversion.MarshalData(src, r)
 }
 
 // Convert_v1beta2_AWSManagedMachinePoolSpec_To_v1beta1_AWSManagedMachinePoolSpec is a conversion function.
 func Convert_v1beta2_AWSManagedMachinePoolSpec_To_v1beta1_AWSManagedMachinePoolSpec(in *expinfrav1.AWSManagedMachinePoolSpec, out *AWSManagedMachinePoolSpec, s apiconversion.Scope) error {
-	return autoConvert_v1beta2_AWSManagedMachinePoolSpec_To_v1beta1_AWSManagedMachinePoolSpec(in, out, s)
+	if err := autoConvert_v1beta2_AWSManagedMachinePoolSpec_To_v1beta1_AWSManagedMachinePoolSpec(in, out, s); err != nil {
+		return err
+	}
+
+	// Convert v1beta2 InstanceTypes or InstanceType to v1beta1 InstanceType
+	// Prefer InstanceTypes if set (use first element), otherwise use InstanceType
+	if len(in.InstanceTypes) > 0 {
+		out.InstanceType = &in.InstanceTypes[0]
+	} else if in.InstanceType != nil {
+		out.InstanceType = in.InstanceType
+	}
+
+	return nil
 }
 
 func Convert_v1beta2_AWSMachinePoolStatus_To_v1beta1_AWSMachinePoolStatus(in *expinfrav1.AWSMachinePoolStatus, out *AWSMachinePoolStatus, s apiconversion.Scope) error {

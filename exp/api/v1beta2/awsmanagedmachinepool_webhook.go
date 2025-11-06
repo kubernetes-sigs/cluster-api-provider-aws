@@ -124,6 +124,20 @@ func (r *AWSManagedMachinePool) validateRemoteAccess() field.ErrorList {
 	return allErrs
 }
 
+func (r *AWSManagedMachinePool) validateInstanceTypes() field.ErrorList {
+	var allErrs field.ErrorList
+
+	// InstanceType and InstanceTypes are mutually exclusive
+	if r.Spec.InstanceType != nil && len(r.Spec.InstanceTypes) > 0 {
+		allErrs = append(allErrs, field.Invalid(
+			field.NewPath("spec", "InstanceTypes"),
+			r.Spec.InstanceTypes,
+			"cannot specify both instanceType and instanceTypes. Use instanceTypes for multiple instance types or instanceType for a single instance type"))
+	}
+
+	return allErrs
+}
+
 func (r *AWSManagedMachinePool) validateLaunchTemplate() field.ErrorList {
 	var allErrs field.ErrorList
 	if r.Spec.AWSLaunchTemplate == nil {
@@ -132,6 +146,9 @@ func (r *AWSManagedMachinePool) validateLaunchTemplate() field.ErrorList {
 
 	if r.Spec.InstanceType != nil {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "InstanceType"), r.Spec.InstanceType, "InstanceType cannot be specified when LaunchTemplate is specified"))
+	}
+	if len(r.Spec.InstanceTypes) > 0 {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "InstanceTypes"), r.Spec.InstanceTypes, "InstanceTypes cannot be specified when LaunchTemplate is specified"))
 	}
 	if r.Spec.DiskSize != nil {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "DiskSize"), r.Spec.DiskSize, "DiskSize cannot be specified when LaunchTemplate is specified"))
@@ -169,6 +186,9 @@ func (*awsManagedMachinePoolWebhook) ValidateCreate(_ context.Context, obj runti
 		allErrs = append(allErrs, errs...)
 	}
 	if errs := r.validateNodegroupUpdateConfig(); len(errs) > 0 {
+		allErrs = append(allErrs, errs...)
+	}
+	if errs := r.validateInstanceTypes(); len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
 	}
 	if errs := r.validateLaunchTemplate(); len(errs) > 0 {
@@ -214,6 +234,9 @@ func (*awsManagedMachinePoolWebhook) ValidateUpdate(_ context.Context, oldObj, n
 		allErrs = append(allErrs, errs...)
 	}
 	if errs := r.validateNodegroupUpdateConfig(); len(errs) > 0 {
+		allErrs = append(allErrs, errs...)
+	}
+	if errs := r.validateInstanceTypes(); len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
 	}
 	if errs := r.validateLaunchTemplate(); len(errs) > 0 {
@@ -265,6 +288,8 @@ func (r *AWSManagedMachinePool) validateImmutable(old *AWSManagedMachinePool) fi
 	appendErrorIfMutated(old.Spec.SubnetIDs, r.Spec.SubnetIDs, "subnetIDs")
 	appendErrorIfSetAndMutated(old.Spec.RoleName, r.Spec.RoleName, "roleName")
 	appendErrorIfMutated(old.Spec.DiskSize, r.Spec.DiskSize, "diskSize")
+	appendErrorIfMutated(old.Spec.InstanceType, r.Spec.InstanceType, "instanceType")
+	appendErrorIfMutated(old.Spec.InstanceTypes, r.Spec.InstanceTypes, "instanceTypes")
 	appendErrorIfMutated(old.Spec.AMIType, r.Spec.AMIType, "amiType")
 	appendErrorIfMutated(old.Spec.RemoteAccess, r.Spec.RemoteAccess, "remoteAccess")
 	appendErrorIfSetAndMutated(old.Spec.CapacityType, r.Spec.CapacityType, "capacityType")
