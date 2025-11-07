@@ -136,7 +136,7 @@ func (p *defaultSubnetPlacementStrategy) getSubnetsForAZs(azs []string, controlP
 // getUnstructuredControlPlane returns the unstructured object for the control plane, if any.
 // When the reference is not set, it returns an empty object.
 func getUnstructuredControlPlane(ctx context.Context, client client.Client, cluster *clusterv1.Cluster) (*unstructured.Unstructured, error) {
-	if cluster.Spec.ControlPlaneRef.Name == "" {
+	if !cluster.Spec.ControlPlaneRef.IsDefined() {
 		// If the control plane ref is not set, return an empty object.
 		// Not having a control plane ref is valid given API contracts.
 		return &unstructured.Unstructured{}, nil

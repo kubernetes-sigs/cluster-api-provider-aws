@@ -34,7 +34,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/util/defaulting"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 func TestAWSClusterDefault(t *testing.T) {
@@ -983,7 +982,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 			name: "removal of externally managed annotation is not allowed",
 			oldCluster: &AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{clusterv1.ManagedByAnnotation: ""},
+					Annotations: map[string]string{clusterv1beta1.ManagedByAnnotation: ""},
 				},
 			},
 			newCluster: &AWSCluster{},
@@ -994,7 +993,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 			oldCluster: &AWSCluster{},
 			newCluster: &AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{clusterv1.ManagedByAnnotation: ""},
+					Annotations: map[string]string{clusterv1beta1.ManagedByAnnotation: ""},
 				},
 			},
 			wantErr: false,

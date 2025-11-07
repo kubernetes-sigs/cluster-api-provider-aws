@@ -18,6 +18,8 @@ limitations under the License.
 package ec2
 
 import (
+	"k8s.io/apimachinery/pkg/runtime"
+
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/common"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/network"
@@ -38,6 +40,8 @@ type Service struct {
 	// RetryEC2Client is used for dedicated host operations with enhanced retry configuration
 	// If nil, a new retry client will be created as needed
 	RetryEC2Client common.EC2API
+
+	scheme *runtime.Scheme
 }
 
 // NewService returns a new service given the ec2 api client.
@@ -47,5 +51,6 @@ func NewService(clusterScope scope.EC2Scope) *Service {
 		EC2Client:  scope.NewEC2Client(clusterScope, clusterScope, clusterScope, clusterScope.InfraCluster()),
 		SSMClient:  scope.NewSSMClient(clusterScope, clusterScope, clusterScope, clusterScope.InfraCluster()),
 		netService: network.NewService(clusterScope.(scope.NetworkScope)),
+		scheme:     runtime.NewScheme(),
 	}
 }

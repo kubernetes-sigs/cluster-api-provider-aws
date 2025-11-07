@@ -487,7 +487,7 @@ func (r *AWSClusterReconciler) dependencyCount(ctx context.Context, clusterScope
 
 	listOptions := []client.ListOption{
 		client.InNamespace(namespace),
-		client.MatchingLabels(map[string]string{clusterv1.ClusterNameLabel: clusterName}),
+		client.MatchingLabels(map[string]string{clusterv1beta1.ClusterNameLabel: clusterName}),
 	}
 
 	machines := &infrav1.AWSMachineList{}

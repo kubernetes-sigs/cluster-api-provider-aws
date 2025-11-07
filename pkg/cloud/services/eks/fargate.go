@@ -33,7 +33,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 )
 
@@ -73,7 +72,7 @@ func (s *FargateService) Reconcile(ctx context.Context) (reconcile.Result, error
 	if err != nil {
 		v1beta1conditions.MarkFalse(
 			s.scope.FargateProfile,
-			clusterv1.ReadyCondition,
+			clusterv1beta1.ReadyCondition,
 			expinfrav1.EKSFargateReconciliationFailedReason,
 			clusterv1beta1.ConditionSeverityError,
 			"%s",
@@ -170,7 +169,7 @@ func (s *FargateService) ReconcileDelete(ctx context.Context) (reconcile.Result,
 	if err != nil {
 		v1beta1conditions.MarkFalse(
 			s.scope.FargateProfile,
-			clusterv1.ReadyCondition,
+			clusterv1beta1.ReadyCondition,
 			expinfrav1.EKSFargateReconciliationFailedReason,
 			clusterv1beta1.ConditionSeverityError,
 			"%s",

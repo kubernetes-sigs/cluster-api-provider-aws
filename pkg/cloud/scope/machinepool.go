@@ -40,6 +40,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 // MachinePoolScope defines a scope defined around a machine and its cluster.
@@ -47,7 +48,7 @@ type MachinePoolScope struct {
 	logger.Logger
 	client.Client
 	patchHelper                *v1beta1patch.Helper
-	capiMachinePoolPatchHelper *v1beta1patch.Helper
+	capiMachinePoolPatchHelper *patch.Helper
 
 	Cluster        *clusterv1.Cluster
 	MachinePool    *clusterv1.MachinePool
@@ -102,7 +103,7 @@ func NewMachinePoolScope(params MachinePoolScopeParams) (*MachinePoolScope, erro
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init AWSMachinePool patch helper")
 	}
-	mpHelper, err := v1beta1patch.NewHelper(params.MachinePool, params.Client)
+	mpHelper, err := patch.NewHelper(params.MachinePool, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init MachinePool patch helper")
 	}

@@ -28,6 +28,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
@@ -86,9 +87,9 @@ func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *cluste
 
 // pausedCondition sets the paused condition on the object and returns if it should be considered as paused.
 func pausedCondition(scheme *runtime.Scheme, cluster *clusterv1.Cluster, obj ConditionSetter, targetConditionType string) clusterv1beta1.Condition {
-	if (cluster != nil && cluster.Spec.Paused != nil && *cluster.Spec.Paused) || annotations.HasPaused(obj) {
+	if (cluster != nil && ptr.Deref(cluster.Spec.Paused, false)) || annotations.HasPaused(obj) {
 		var messages []string
-		if cluster != nil && cluster.Spec.Paused != nil && *cluster.Spec.Paused {
+		if cluster != nil && ptr.Deref(cluster.Spec.Paused, false) {
 			messages = append(messages, "Cluster spec.paused is set to true")
 		}
 		if annotations.HasPaused(obj) {

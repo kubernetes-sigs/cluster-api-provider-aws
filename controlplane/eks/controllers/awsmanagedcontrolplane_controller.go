@@ -469,7 +469,7 @@ func (r *AWSManagedControlPlaneReconciler) dependencyCount(ctx context.Context, 
 
 	listOptions := []client.ListOption{
 		client.InNamespace(namespace),
-		client.MatchingLabels(map[string]string{clusterv1.ClusterNameLabel: clusterName}),
+		client.MatchingLabels(map[string]string{clusterv1beta1.ClusterNameLabel: clusterName}),
 	}
 
 	dependencies := 0

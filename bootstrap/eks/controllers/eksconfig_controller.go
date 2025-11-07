@@ -25,7 +25,6 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -205,11 +204,11 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 		}
 	}
 
-	if cluster.Spec.ControlPlaneRef.Name == "" || cluster.Spec.ControlPlaneRef.Kind != "AWSManagedControlPlane" {
+	if !cluster.Spec.ControlPlaneRef.IsDefined() || cluster.Spec.ControlPlaneRef.Kind != "AWSManagedControlPlane" {
 		return errors.New("Cluster's controlPlaneRef needs to be an AWSManagedControlPlane in order to use the EKS bootstrap provider")
 	}
 
-	if !meta.IsStatusConditionTrue(cluster.GetConditions(), string(clusterv1beta1.InfrastructureReadyCondition)) {
+	if !ptr.Deref(cluster.Status.Initialization.InfrastructureProvisioned, false) {
 		log.Info("Cluster infrastructure is not ready")
 		v1beta1conditions.MarkFalse(config,
 			eksbootstrapv1.DataSecretAvailableCondition,
@@ -218,7 +217,7 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 		return nil
 	}
 
-	if !meta.IsStatusConditionTrue(cluster.GetConditions(), string(clusterv1beta1.ControlPlaneInitializedCondition)) {
+	if !ptr.Deref(cluster.Status.Initialization.ControlPlaneInitialized, false) {
 		log.Info("Control Plane has not yet been initialized")
 		v1beta1conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.WaitingForControlPlaneInitializationReason, clusterv1beta1.ConditionSeverityInfo, "")
 		return nil
@@ -373,7 +372,7 @@ func (r *EKSConfigReconciler) MachineToBootstrapMapFunc(_ context.Context, o cli
 	if !ok {
 		klog.Errorf("Expected a Machine but got a %T", o)
 	}
-	if m.Spec.Bootstrap.ConfigRef.Name != "" && m.Spec.Bootstrap.ConfigRef.APIGroup == eksbootstrapv1.GroupVersion.Group && m.Spec.Bootstrap.ConfigRef.Kind == eksConfigKind {
+	if m.Spec.Bootstrap.ConfigRef.IsDefined() && m.Spec.Bootstrap.ConfigRef.APIGroup == eksbootstrapv1.GroupVersion.Group && m.Spec.Bootstrap.ConfigRef.Kind == eksConfigKind {
 		name := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.Bootstrap.ConfigRef.Name}
 		result = append(result, ctrl.Request{NamespacedName: name})
 	}
@@ -390,7 +389,7 @@ func (r *EKSConfigReconciler) MachinePoolToBootstrapMapFunc(_ context.Context, o
 		klog.Errorf("Expected a MachinePool but got a %T", o)
 	}
 	configRef := m.Spec.Template.Spec.Bootstrap.ConfigRef
-	if configRef.Name != "" && configRef.APIGroup == eksbootstrapv1.GroupVersion.Group && configRef.Kind == eksConfigKind {
+	if configRef.IsDefined() && configRef.APIGroup == eksbootstrapv1.GroupVersion.Group && configRef.Kind == eksConfigKind {
 		name := client.ObjectKey{Namespace: m.Namespace, Name: configRef.Name}
 		result = append(result, ctrl.Request{NamespacedName: name})
 	}
@@ -421,7 +420,7 @@ func (r *EKSConfigReconciler) ClusterToEKSConfigs(_ context.Context, o client.Ob
 	}
 
 	for _, m := range machineList.Items {
-		if m.Spec.Bootstrap.ConfigRef.Name != "" &&
+		if m.Spec.Bootstrap.ConfigRef.IsDefined() &&
 			m.Spec.Bootstrap.ConfigRef.APIGroup == eksbootstrapv1.GroupVersion.Group &&
 			m.Spec.Bootstrap.ConfigRef.Kind == eksConfigKind {
 			name := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.Bootstrap.ConfigRef.Name}

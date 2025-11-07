@@ -374,13 +374,13 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 
 		if err := createAWSMachinesIfNotExists(ctx, awsMachineList, machinePoolScope.MachinePool, &machinePoolScope.AWSMachinePool.ObjectMeta, &machinePoolScope.AWSMachinePool.TypeMeta, asg, machinePoolScope.GetLogger(), r.Client, ec2Svc); err != nil {
 			machinePoolScope.SetNotReady()
-			v1beta1conditions.MarkFalse(machinePoolScope.AWSMachinePool, clusterv1.ReadyCondition, expinfrav1.AWSMachineCreationFailed, clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
+			v1beta1conditions.MarkFalse(machinePoolScope.AWSMachinePool, clusterv1beta1.ReadyCondition, expinfrav1.AWSMachineCreationFailed, clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
 			return ctrl.Result{}, fmt.Errorf("failed to create awsmachines: %w", err)
 		}
 
 		if err := deleteOrphanedAWSMachines(ctx, awsMachineList, asg, machinePoolScope.GetLogger(), r.Client); err != nil {
 			machinePoolScope.SetNotReady()
-			v1beta1conditions.MarkFalse(machinePoolScope.AWSMachinePool, clusterv1.ReadyCondition, expinfrav1.AWSMachineDeletionFailed, clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
+			v1beta1conditions.MarkFalse(machinePoolScope.AWSMachinePool, clusterv1beta1.ReadyCondition, expinfrav1.AWSMachineDeletionFailed, clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
 			return ctrl.Result{}, fmt.Errorf("failed to clean up awsmachines: %w", err)
 		}
 	}

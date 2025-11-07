@@ -18,7 +18,7 @@ limitations under the License.
 package conditions
 
 import (
-	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/utils/ptr"
 
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -28,7 +28,7 @@ import (
 // Failures after control plane is initialized is likely to be non-transient,
 // hence conditions severities should be set to Error.
 func ErrorConditionAfterInit(cluster *clusterv1.Cluster) clusterv1beta1.ConditionSeverity {
-	if meta.IsStatusConditionTrue(cluster.GetConditions(), string(clusterv1beta1.ControlPlaneInitializedCondition)) {
+	if ptr.Deref(cluster.Status.Initialization.ControlPlaneInitialized, false) {
 		return clusterv1beta1.ConditionSeverityError
 	}
 	return clusterv1beta1.ConditionSeverityWarning

@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -309,7 +310,7 @@ func (s *ManagedControlPlaneScope) SetFailureDomain(id string, spec clusterv1.Fa
 		s.ControlPlane.Status.FailureDomains = make(clusterv1beta1.FailureDomains)
 	}
 	s.ControlPlane.Status.FailureDomains[id] = clusterv1beta1.FailureDomainSpec{
-		ControlPlane: *spec.ControlPlane,
+		ControlPlane: ptr.Deref(spec.ControlPlane, false),
 		Attributes:   spec.Attributes,
 	}
 }

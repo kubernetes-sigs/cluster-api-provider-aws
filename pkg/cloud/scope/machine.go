@@ -322,7 +322,7 @@ func (m *MachineScope) PatchObject() error {
 		context.TODO(),
 		m.AWSMachine,
 		v1beta1patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
-			clusterv1.ReadyCondition,
+			clusterv1beta1.ReadyCondition,
 			infrav1.InstanceReadyCondition,
 			infrav1.SecurityGroupsReadyCondition,
 			infrav1.ELBAttachedCondition,

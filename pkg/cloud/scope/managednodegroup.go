@@ -41,6 +41,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 // ManagedMachinePoolScopeParams defines the input parameters used to create a new Scope.
@@ -96,7 +97,7 @@ func NewManagedMachinePoolScope(params ManagedMachinePoolScopeParams) (*ManagedM
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init AWSManagedMachinePool patch helper")
 	}
-	mpHelper, err := v1beta1patch.NewHelper(params.MachinePool, params.Client)
+	mpHelper, err := patch.NewHelper(params.MachinePool, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init MachinePool patch helper")
 	}
@@ -126,7 +127,7 @@ type ManagedMachinePoolScope struct {
 	logger.Logger
 	client.Client
 	patchHelper                *v1beta1patch.Helper
-	capiMachinePoolPatchHelper *v1beta1patch.Helper
+	capiMachinePoolPatchHelper *patch.Helper
 
 	Cluster                   *clusterv1.Cluster
 	ControlPlane              *ekscontrolplanev1.AWSManagedControlPlane
