@@ -29,7 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/test/builder" //nolint:staticcheck
+	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/test/builder"
 )
 
 func TestEnsurePausedCondition(t *testing.T) {

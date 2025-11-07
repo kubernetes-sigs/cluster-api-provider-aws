@@ -42,9 +42,9 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/internal/cmp"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/internal/tristate"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1" //nolint:staticcheck
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions" //nolint:staticcheck
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 )
 
 func (s *Service) reconcileCluster(ctx context.Context) error {
