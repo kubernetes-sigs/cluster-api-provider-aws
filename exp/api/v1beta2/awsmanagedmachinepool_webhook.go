@@ -200,6 +200,11 @@ func (*awsManagedMachinePoolWebhook) ValidateCreate(_ context.Context, obj runti
 
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 
+	// Log deprecation warning for InstanceType field
+	if r.Spec.InstanceType != nil {
+		mmpLog.Info("spec.instanceType is deprecated, use spec.instanceTypes instead", "managed-machine-pool", klog.KObj(r))
+	}
+
 	if len(allErrs) == 0 {
 		return nil, nil
 	}

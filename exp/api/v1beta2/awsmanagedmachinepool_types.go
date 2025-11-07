@@ -176,15 +176,18 @@ type AWSManagedMachinePoolSpec struct {
 	// +optional
 	DiskSize *int32 `json:"diskSize,omitempty"`
 
-	// InstanceType specifies the AWS instance type
+	// InstanceType specifies the AWS instance type.
+	// This field is deprecated. Use InstanceTypes instead.
 	// +optional
 	InstanceType *string `json:"instanceType,omitempty"`
 
 	// InstanceTypes specifies a list of AWS instance types for the node group.
-	// When specified, this allows using multiple instance types which enhances
-	// the availability of Spot instances.
+	// The order of instance types specified determines priority of picking that instance type.
+	// This is also influenced by the CapacityType. For On-Demand capacity, the allocation strategy
+	// uses the order of instance types to determine which instance type to use first when fulfilling capacity.
+	// See AWS documentation https://docs.aws.amazon.com/eks/latest/userguide/managed-node-groups.html#managed-node-group-capacity-types
+	// for more information.
 	// At most one of InstanceType or InstanceTypes may be specified.
-	// See https://docs.aws.amazon.com/eks/latest/userguide/managed-node-groups.html#managed-node-group-capacity-types
 	// +optional
 	InstanceTypes []string `json:"instanceTypes,omitempty"`
 
