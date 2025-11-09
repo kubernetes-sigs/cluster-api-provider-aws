@@ -208,7 +208,6 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 
 	// DeletionProtection indicates whether to enable deletion protection for the EKS cluster.
 	// When enabled, the cluster cannot be deleted unless deletion protection is first disabled.
-	// Matches the EKS CreateCluster and UpdateClusterConfig API field `deletionProtection`.
 	// +kubebuilder:default=false
 	DeletionProtection bool `json:"deletionProtection,omitempty"`
 
