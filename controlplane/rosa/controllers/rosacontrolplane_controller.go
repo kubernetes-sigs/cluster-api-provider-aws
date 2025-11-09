@@ -481,6 +481,7 @@ func (r *ROSAControlPlaneReconciler) deleteMachinePools(ctx context.Context, ros
 	}
 
 	var errs []error
+	allMachinePoolDeleted := true
 	for id, mp := range machinePools {
 		if !mp.DeletionTimestamp.IsZero() {
 			continue
@@ -488,22 +489,22 @@ func (r *ROSAControlPlaneReconciler) deleteMachinePools(ctx context.Context, ros
 		if err = rosaScope.Client.Delete(ctx, &machinePools[id]); err != nil {
 			errs = append(errs, err)
 		}
-	}
-
-	// Workaround the case where last machinePool cannot be deleted without deleting the ROSA controlplane.
-	// In Cluster API (CAPI), machine pools (MPs) are normally deleted before the control plane is removed.
-	// However, in ROSA-HCP, deleting the final MP results in an error because the control plane cannot exist without at least 1 MP.
-	// To handle this, when only one MP remains, we ignore the deletion error and proceed with deleting the control plane.
-	// Also OCM cascade delete the MPs when deleting control plane, so we are safe to ignore last MP and delete the control plane.
-	if len(errs) == 0 && len(machinePools) == 1 {
-		return true, nil
+		allMachinePoolDeleted = false
 	}
 
 	if len(errs) > 0 {
 		return false, kerrors.NewAggregate(errs)
 	}
 
-	return len(machinePools) == 0, nil
+	// Workaround: Handle the dependency issue between MachinePools and the ROSA control plane.
+	// In Cluster API (CAPI), MachinePools (MPs) are typically deleted before the control plane is deprovisioned.
+	// However, in ROSA-HCP, a cluster cannot exist without MachinePools, which causes an error when attempting
+	// to delete them first — preventing the ROSAControlPlane from being removed.
+	// To resolve this, we initiate the deletion of the MachinePool CRs, wait for one reconcile cycle,
+	// and then proceed to delete the ROSA-HCP control plane.
+	// OCM will automatically cascade the deletion of NodePools before the control plane is deleted.
+
+	return allMachinePoolDeleted, nil
 }
 
 func (r *ROSAControlPlaneReconciler) reconcileClusterVersion(rosaScope *scope.ROSAControlPlaneScope, ocmClient rosa.OCMClient, cluster *cmv1.Cluster) error {
