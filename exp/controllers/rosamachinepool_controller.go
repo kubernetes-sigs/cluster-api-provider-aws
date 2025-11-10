@@ -131,6 +131,13 @@ func (r *ROSAMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	controlPlane := &rosacontrolplanev1.ROSAControlPlane{}
 	if err := r.Client.Get(ctx, controlPlaneKey, controlPlane); err != nil {
 		if apierrors.IsNotFound(err) && !rosaMachinePool.DeletionTimestamp.IsZero() {
+			// When the ROSAControlPlane is not found and the ROSAMachinePool CR is marked for deletion,
+			// it indicates that the ROSAControlPlane (and its associated NodePools) has already been deleted,
+			// while the ROSAMachinePool remains pending — since a ROSA-HCP cluster cannot exist without a NodePool.
+			// To handle this scenario, we trigger deletion of the ROSAControlPlane CR to initiate cleanup of the ROSA-HCP,
+			// relying on OCM to cascade-delete the related NodePools.
+			// Note: This state should rarely occur. However, during smoke tests, the ROSAMachinePool reconcile cycle
+			// may occasionally lag behind the deletion of the NodePools and ROSAControlPlane.
 			log.Info("RosaControlPlane not found, RosaMachinePool is deleted")
 			patchHelper, err := patch.NewHelper(rosaMachinePool, r.Client)
 			if err != nil {
