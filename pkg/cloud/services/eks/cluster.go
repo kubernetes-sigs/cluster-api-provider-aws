@@ -577,7 +577,6 @@ func (s *Service) reconcileClusterConfig(ctx context.Context, cluster *ekstypes.
 		input.UpgradePolicy = updateUpgradePolicy
 	}
 
-	// Reconcile DeletionProtection (handled only if supported by the SDK/build)
 	if s.reconcileDeletionProtection(cluster, s.scope.ControlPlane.Spec.DeletionProtection) {
 		needsUpdate = true
 		input.DeletionProtection = aws.Bool(s.scope.ControlPlane.Spec.DeletionProtection)
