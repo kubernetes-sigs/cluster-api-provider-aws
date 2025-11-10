@@ -2400,6 +2400,12 @@ spec:
                 - host
                 - port
                 type: object
+              deletionProtection:
+                default: false
+                description: |-
+                  DeletionProtection indicates whether to enable deletion protection for the EKS cluster.
+                  When enabled, the cluster cannot be deleted unless deletion protection is first disabled.
+                type: boolean
               eksClusterName:
                 description: |-
                   EKSClusterName allows you to specify the name of the EKS cluster in
