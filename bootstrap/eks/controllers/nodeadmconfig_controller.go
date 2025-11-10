@@ -209,7 +209,7 @@ func (r *NodeadmConfigReconciler) joinWorker(ctx context.Context, cluster *clust
 		Mounts:             config.Spec.Mounts,
 		Files:              files,
 		ServiceCIDR:        serviceCIDR,
-		APIServerEndpoint:  controlPlane.Spec.ControlPlaneEndpoint.Host,
+		APIServerEndpoint:  cluster.Spec.ControlPlaneEndpoint.Host,
 	}
 	if config.Spec.Kubelet != nil {
 		nodeInput.KubeletFlags = config.Spec.Kubelet.Flags

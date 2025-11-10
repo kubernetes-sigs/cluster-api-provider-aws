@@ -39,6 +39,7 @@ func TestNodeadmConfigReconciler_CreateSecret(t *testing.T) {
 	endpoint := clusterv1.APIEndpoint{Host: "https://9.9.9.9", Port: 6443}
 	amcp.Spec.ControlPlaneEndpoint = endpoint
 	cluster := newCluster(amcp.Name)
+	cluster.Spec.ControlPlaneEndpoint = endpoint
 	newStatus := cluster.Status
 	amcpStatus := amcp.Status
 	g.Expect(testEnv.Client.Create(ctx, amcp)).To(Succeed())
@@ -77,6 +78,7 @@ func TestNodeadmConfigReconciler_UpdateSecret_ForMachinePool(t *testing.T) {
 	endpoint := clusterv1.APIEndpoint{Host: "https://9.9.9.9", Port: 6443}
 	amcp.Spec.ControlPlaneEndpoint = endpoint
 	cluster := newCluster(amcp.Name)
+	cluster.Spec.ControlPlaneEndpoint = endpoint
 	newStatus := cluster.Status
 	amcpStatus := amcp.Status
 	g.Expect(testEnv.Client.Create(ctx, amcp)).To(Succeed())
@@ -137,6 +139,7 @@ func TestNodeadmConfigReconciler_ResolvesSecretFileReference(t *testing.T) {
 	endpoint := clusterv1.APIEndpoint{Host: "https://9.9.9.9", Port: 6443}
 	amcp.Spec.ControlPlaneEndpoint = endpoint
 	cluster := newCluster(amcp.Name)
+	cluster.Spec.ControlPlaneEndpoint = endpoint
 	newStatus := cluster.Status
 	amcpStatus := amcp.Status
 	g.Expect(testEnv.Client.Create(ctx, amcp)).To(Succeed())
