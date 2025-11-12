@@ -250,6 +250,14 @@ type AWSMachineSpec struct {
 	// +optional
 	HostID *string `json:"hostID,omitempty"`
 
+	// HostResourceGroupArn specifies the Dedicated Host Resource Group ARN on which the instance must be started.
+	// This field is mutually exclusive with DynamicHostAllocation and HostID.
+	// Note: The instance's AMI licenses must match the licenses associated with the host resource group.
+	// If the host resource group has no associated licenses, ensure the AMI also has no special licensing requirements.
+	// +kubebuilder:validation:Pattern=`^arn:aws[a-z\-]*:resource-groups:[a-z0-9\-]+:[0-9]{12}:group/[a-zA-Z0-9\-_]+$`
+	// +optional
+	HostResourceGroupArn *string `json:"hostResourceGroupArn,omitempty"`
+
 	// HostAffinity specifies the dedicated host affinity setting for the instance.
 	// When HostAffinity is set to host, an instance started onto a specific host always restarts on the same host if stopped.
 	// When HostAffinity is set to default, and you stop and restart the instance, it can be restarted on any available host.

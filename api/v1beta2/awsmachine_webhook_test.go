@@ -596,6 +596,58 @@ func TestAWSMachineCreate(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "hostResourceGroupArn alone is valid",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType:         "test",
+					HostResourceGroupArn: aws.String("arn:aws:resource-groups:us-west-2:123456789012:group/test-group"),
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "hostID and hostResourceGroupArn are mutually exclusive",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType:         "test",
+					HostID:               aws.String("h-1234567890abcdef0"),
+					HostResourceGroupArn: aws.String("arn:aws:resource-groups:us-west-2:123456789012:group/test-group"),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "hostResourceGroupArn and dynamicHostAllocation are mutually exclusive",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType:         "test",
+					HostResourceGroupArn: aws.String("arn:aws:resource-groups:us-west-2:123456789012:group/test-group"),
+					DynamicHostAllocation: &DynamicHostAllocationSpec{
+						Tags: map[string]string{
+							"Environment": "test",
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "all three host allocation options are mutually exclusive",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType:         "test",
+					HostID:               aws.String("h-1234567890abcdef0"),
+					HostResourceGroupArn: aws.String("arn:aws:resource-groups:us-west-2:123456789012:group/test-group"),
+					DynamicHostAllocation: &DynamicHostAllocationSpec{
+						Tags: map[string]string{
+							"Environment": "test",
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

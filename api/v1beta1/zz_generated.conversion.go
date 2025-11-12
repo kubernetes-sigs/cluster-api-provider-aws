@@ -1437,6 +1437,7 @@ func autoConvert_v1beta2_AWSMachineSpec_To_v1beta1_AWSMachineSpec(in *v1beta2.AW
 	// WARNING: in.CapacityReservationID requires manual conversion: does not exist in peer-type
 	// WARNING: in.MarketType requires manual conversion: does not exist in peer-type
 	// WARNING: in.HostID requires manual conversion: does not exist in peer-type
+	// WARNING: in.HostResourceGroupArn requires manual conversion: does not exist in peer-type
 	// WARNING: in.HostAffinity requires manual conversion: does not exist in peer-type
 	// WARNING: in.DynamicHostAllocation requires manual conversion: does not exist in peer-type
 	// WARNING: in.CapacityReservationPreference requires manual conversion: does not exist in peer-type
@@ -2042,6 +2043,7 @@ func autoConvert_v1beta2_Instance_To_v1beta1_Instance(in *v1beta2.Instance, out 
 	// WARNING: in.MarketType requires manual conversion: does not exist in peer-type
 	// WARNING: in.HostAffinity requires manual conversion: does not exist in peer-type
 	// WARNING: in.HostID requires manual conversion: does not exist in peer-type
+	// WARNING: in.HostResourceGroupArn requires manual conversion: does not exist in peer-type
 	// WARNING: in.DynamicHostAllocation requires manual conversion: does not exist in peer-type
 	// WARNING: in.CapacityReservationPreference requires manual conversion: does not exist in peer-type
 	// WARNING: in.CPUOptions requires manual conversion: does not exist in peer-type

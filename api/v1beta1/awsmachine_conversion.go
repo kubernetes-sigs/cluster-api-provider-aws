@@ -45,6 +45,7 @@ func (src *AWSMachine) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.CapacityReservationID = restored.Spec.CapacityReservationID
 	dst.Spec.MarketType = restored.Spec.MarketType
 	dst.Spec.HostID = restored.Spec.HostID
+	dst.Spec.HostResourceGroupArn = restored.Spec.HostResourceGroupArn
 	dst.Spec.HostAffinity = restored.Spec.HostAffinity
 	dst.Spec.CapacityReservationPreference = restored.Spec.CapacityReservationPreference
 	dst.Spec.NetworkInterfaceType = restored.Spec.NetworkInterfaceType
@@ -117,6 +118,7 @@ func (r *AWSMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.Template.Spec.CapacityReservationID = restored.Spec.Template.Spec.CapacityReservationID
 	dst.Spec.Template.Spec.MarketType = restored.Spec.Template.Spec.MarketType
 	dst.Spec.Template.Spec.HostID = restored.Spec.Template.Spec.HostID
+	dst.Spec.Template.Spec.HostResourceGroupArn = restored.Spec.Template.Spec.HostResourceGroupArn
 	dst.Spec.Template.Spec.HostAffinity = restored.Spec.Template.Spec.HostAffinity
 	dst.Spec.Template.Spec.CapacityReservationPreference = restored.Spec.Template.Spec.CapacityReservationPreference
 	dst.Spec.Template.Spec.NetworkInterfaceType = restored.Spec.Template.Spec.NetworkInterfaceType

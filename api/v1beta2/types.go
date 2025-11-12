@@ -286,6 +286,11 @@ type Instance struct {
 	// +optional
 	HostID *string `json:"hostID,omitempty"`
 
+	// HostResourceGroupArn specifies the Dedicated Host Resource Group ARN on which the instance should be started.
+	// Note: The instance's AMI licenses must match the licenses associated with the host resource group.
+	// +optional
+	HostResourceGroupArn *string `json:"hostResourceGroupArn,omitempty"`
+
 	// DynamicHostAllocation enables automatic allocation of dedicated hosts.
 	// This field is mutually exclusive with HostID.
 	// +optional

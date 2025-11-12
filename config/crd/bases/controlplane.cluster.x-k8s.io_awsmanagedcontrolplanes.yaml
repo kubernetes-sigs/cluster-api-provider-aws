@@ -1295,6 +1295,10 @@ spec:
                     description: HostID specifies the dedicated host on which the
                       instance should be started.
                     type: string
+                  hostResourceGroupArn:
+                    description: HostResourceGroupArn specifies the Dedicated Host
+                      Resource Group ARN on which the instance should be started.
+                    type: string
                   iamProfile:
                     description: The name of the IAM instance profile associated with
                       the instance, if applicable.
@@ -3582,6 +3586,10 @@ spec:
                   hostID:
                     description: HostID specifies the dedicated host on which the
                       instance should be started.
+                    type: string
+                  hostResourceGroupArn:
+                    description: HostResourceGroupArn specifies the Dedicated Host
+                      Resource Group ARN on which the instance should be started.
                     type: string
                   iamProfile:
                     description: The name of the IAM instance profile associated with

@@ -477,12 +477,24 @@ func (r *AWSMachine) validateAdditionalSecurityGroups() field.ErrorList {
 func (r *AWSMachine) validateHostAllocation() field.ErrorList {
 	var allErrs field.ErrorList
 
-	// Check if both hostID and dynamicHostAllocation are specified
+	// Check if multiple host allocation options are specified
 	hasHostID := r.Spec.HostID != nil && len(*r.Spec.HostID) > 0
+	hasHostResourceGroupArn := r.Spec.HostResourceGroupArn != nil && len(*r.Spec.HostResourceGroupArn) > 0
 	hasDynamicHostAllocation := r.Spec.DynamicHostAllocation != nil
 
-	if hasHostID && hasDynamicHostAllocation {
-		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.hostID"), "hostID and dynamicHostAllocation are mutually exclusive"), field.Forbidden(field.NewPath("spec.dynamicHostAllocation"), "hostID and dynamicHostAllocation are mutually exclusive"))
+	count := 0
+	if hasHostID {
+		count++
+	}
+	if hasHostResourceGroupArn {
+		count++
+	}
+	if hasDynamicHostAllocation {
+		count++
+	}
+
+	if count > 1 {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"), "hostID, hostResourceGroupArn, and dynamicHostAllocation are mutually exclusive"))
 	}
 
 	return allErrs
