@@ -295,7 +295,6 @@ func newFakeClient(scheme *runtime.Scheme, objs ...client.Object) client.Client 
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "awsmanagedcontrolplanes.controlplane.cluster.x-k8s.io",
 				Labels: map[string]string{
-					"cluster.x-k8s.io/v1beta2": "v1beta2",
 					"cluster.x-k8s.io/v1beta1": "v1beta2",
 				},
 			},
@@ -323,7 +322,6 @@ func newFakeClient(scheme *runtime.Scheme, objs ...client.Object) client.Client 
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "awsclusters.infrastructure.cluster.x-k8s.io",
 				Labels: map[string]string{
-					"cluster.x-k8s.io/v1beta2": "v1beta2",
 					"cluster.x-k8s.io/v1beta1": "v1beta2",
 				},
 			},
