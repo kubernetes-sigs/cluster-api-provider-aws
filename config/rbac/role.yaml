@@ -183,6 +183,7 @@ rules:
   resources:
   - awsclusters/status
   - awsfargateprofiles/status
+  - awsmachinetemplates/status
   - rosaclusters/status
   - rosanetworks/status
   - rosaroleconfigs/status
