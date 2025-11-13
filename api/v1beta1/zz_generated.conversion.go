@@ -1626,6 +1626,7 @@ func Convert_v1beta1_AWSMachineTemplateStatus_To_v1beta2_AWSMachineTemplateStatu
 func autoConvert_v1beta2_AWSMachineTemplateStatus_To_v1beta1_AWSMachineTemplateStatus(in *v1beta2.AWSMachineTemplateStatus, out *AWSMachineTemplateStatus, s conversion.Scope) error {
 	out.Capacity = *(*v1.ResourceList)(unsafe.Pointer(&in.Capacity))
 	// WARNING: in.NodeInfo requires manual conversion: does not exist in peer-type
+	// WARNING: in.Conditions requires manual conversion: does not exist in peer-type
 	return nil
 }
 

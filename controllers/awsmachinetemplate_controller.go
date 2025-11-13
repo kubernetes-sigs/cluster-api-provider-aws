@@ -40,6 +40,7 @@ import (
 	ec2service "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/util/paused"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
@@ -101,8 +102,22 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, nil
 	}
 
+	// Get the owner cluster
+	cluster, err := util.GetOwnerCluster(ctx, r.Client, awsMachineTemplate.ObjectMeta)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if cluster == nil {
+		return ctrl.Result{}, nil
+	}
+
+	// Check if the resource is paused
+	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, awsMachineTemplate); err != nil || isPaused || conditionChanged {
+		return ctrl.Result{}, err
+	}
+
 	// Find the region by checking ownerReferences
-	region, err := r.getRegion(ctx, awsMachineTemplate)
+	region, err := r.getRegion(ctx, cluster)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -155,12 +170,7 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 }
 
 // getRegion finds the region by checking the template's owner cluster reference.
-func (r *AWSMachineTemplateReconciler) getRegion(ctx context.Context, template *infrav1.AWSMachineTemplate) (string, error) {
-	// Get the owner cluster
-	cluster, err := util.GetOwnerCluster(ctx, r.Client, template.ObjectMeta)
-	if err != nil {
-		return "", err
-	}
+func (r *AWSMachineTemplateReconciler) getRegion(ctx context.Context, cluster *clusterv1.Cluster) (string, error) {
 	if cluster == nil {
 		return "", errors.New("no owner cluster found")
 	}

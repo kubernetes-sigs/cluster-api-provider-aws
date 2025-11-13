@@ -110,6 +110,6 @@ func Convert_v1beta2_AWSMachineStatus_To_v1beta1_AWSMachineStatus(in *v1beta2.AW
 }
 
 func Convert_v1beta2_AWSMachineTemplateStatus_To_v1beta1_AWSMachineTemplateStatus(in *v1beta2.AWSMachineTemplateStatus, out *AWSMachineTemplateStatus, s conversion.Scope) error {
-	// NodeInfo field is ignored (dropped) as it doesn't exist in v1beta1
+	// NodeInfo and Conditions fields are ignored (dropped) as they don't exist in v1beta1
 	return autoConvert_v1beta2_AWSMachineTemplateStatus_To_v1beta1_AWSMachineTemplateStatus(in, out, s)
 }

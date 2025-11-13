@@ -69,14 +69,6 @@ func TestAWSMachineTemplateReconciler(t *testing.T) {
 	t.Run("getRegion", func(t *testing.T) {
 		t.Run("should get region from AWSCluster", func(t *testing.T) {
 			g := NewWithT(t)
-			template := newAWSMachineTemplate("test-template")
-			template.OwnerReferences = []metav1.OwnerReference{
-				{
-					APIVersion: clusterv1.GroupVersion.String(),
-					Kind:       "Cluster",
-					Name:       "test-cluster",
-				},
-			}
 			cluster := &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
@@ -101,24 +93,23 @@ func TestAWSMachineTemplateReconciler(t *testing.T) {
 			}
 
 			reconciler := &AWSMachineTemplateReconciler{
-				Client: newFakeClient(template, cluster, awsCluster),
+				Client: newFakeClient(cluster, awsCluster),
 			}
 
-			region, err := reconciler.getRegion(context.Background(), template)
+			region, err := reconciler.getRegion(context.Background(), cluster)
 
 			g.Expect(err).To(BeNil())
 			g.Expect(region).To(Equal("us-west-2"))
 		})
 
-		t.Run("should return error when no owner cluster found", func(t *testing.T) {
+		t.Run("should return error when cluster is nil", func(t *testing.T) {
 			g := NewWithT(t)
-			template := newAWSMachineTemplate("test-template")
 
 			reconciler := &AWSMachineTemplateReconciler{
-				Client: newFakeClient(template),
+				Client: newFakeClient(),
 			}
 
-			region, err := reconciler.getRegion(context.Background(), template)
+			region, err := reconciler.getRegion(context.Background(), nil)
 
 			g.Expect(err).ToNot(BeNil())
 			g.Expect(err.Error()).To(ContainSubstring("no owner cluster found"))
@@ -127,14 +118,6 @@ func TestAWSMachineTemplateReconciler(t *testing.T) {
 
 		t.Run("should return empty when cluster has no infrastructure ref", func(t *testing.T) {
 			g := NewWithT(t)
-			template := newAWSMachineTemplate("test-template")
-			template.OwnerReferences = []metav1.OwnerReference{
-				{
-					APIVersion: clusterv1.GroupVersion.String(),
-					Kind:       "Cluster",
-					Name:       "test-cluster",
-				},
-			}
 			cluster := &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
@@ -143,10 +126,10 @@ func TestAWSMachineTemplateReconciler(t *testing.T) {
 			}
 
 			reconciler := &AWSMachineTemplateReconciler{
-				Client: newFakeClient(template, cluster),
+				Client: newFakeClient(cluster),
 			}
 
-			region, err := reconciler.getRegion(context.Background(), template)
+			region, err := reconciler.getRegion(context.Background(), cluster)
 
 			g.Expect(err).To(BeNil())
 			g.Expect(region).To(Equal(""))
@@ -154,14 +137,6 @@ func TestAWSMachineTemplateReconciler(t *testing.T) {
 
 		t.Run("should return empty when AWSCluster not found", func(t *testing.T) {
 			g := NewWithT(t)
-			template := newAWSMachineTemplate("test-template")
-			template.OwnerReferences = []metav1.OwnerReference{
-				{
-					APIVersion: clusterv1.GroupVersion.String(),
-					Kind:       "Cluster",
-					Name:       "test-cluster",
-				},
-			}
 			cluster := &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
@@ -177,10 +152,10 @@ func TestAWSMachineTemplateReconciler(t *testing.T) {
 			}
 
 			reconciler := &AWSMachineTemplateReconciler{
-				Client: newFakeClient(template, cluster),
+				Client: newFakeClient(cluster),
 			}
 
-			region, err := reconciler.getRegion(context.Background(), template)
+			region, err := reconciler.getRegion(context.Background(), cluster)
 
 			g.Expect(err).To(BeNil())
 			g.Expect(region).To(Equal(""))
@@ -284,7 +259,99 @@ func TestAWSMachineTemplateReconciler(t *testing.T) {
 			g.Expect(result.Requeue).To(BeFalse())
 		})
 
-		t.Run("should return error when no owner cluster", func(t *testing.T) {
+		t.Run("should not reconcile when cluster is paused", func(t *testing.T) {
+			g := NewWithT(t)
+			template := newAWSMachineTemplate("test-template")
+			template.OwnerReferences = []metav1.OwnerReference{
+				{
+					APIVersion: clusterv1.GroupVersion.String(),
+					Kind:       "Cluster",
+					Name:       "test-cluster",
+				},
+			}
+			cluster := &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: "default",
+				},
+				Spec: clusterv1.ClusterSpec{
+					Paused: true,
+					InfrastructureRef: &corev1.ObjectReference{
+						Kind:      "AWSCluster",
+						Name:      "test-aws-cluster",
+						Namespace: "default",
+					},
+				},
+			}
+			awsCluster := &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-aws-cluster",
+					Namespace: "default",
+				},
+				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
+				},
+			}
+
+			reconciler := &AWSMachineTemplateReconciler{
+				Client: newFakeClient(template, cluster, awsCluster),
+			}
+
+			result, err := reconciler.Reconcile(context.Background(), ctrl.Request{
+				NamespacedName: client.ObjectKeyFromObject(template),
+			})
+
+			g.Expect(err).To(BeNil())
+			g.Expect(result.Requeue).To(BeFalse())
+		})
+
+		t.Run("should not reconcile when template has paused annotation", func(t *testing.T) {
+			g := NewWithT(t)
+			template := newAWSMachineTemplate("test-template")
+			template.Annotations = map[string]string{clusterv1.PausedAnnotation: ""}
+			template.OwnerReferences = []metav1.OwnerReference{
+				{
+					APIVersion: clusterv1.GroupVersion.String(),
+					Kind:       "Cluster",
+					Name:       "test-cluster",
+				},
+			}
+			cluster := &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: "default",
+				},
+				Spec: clusterv1.ClusterSpec{
+					InfrastructureRef: &corev1.ObjectReference{
+						Kind:      "AWSCluster",
+						Name:      "test-aws-cluster",
+						Namespace: "default",
+					},
+				},
+			}
+			awsCluster := &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-aws-cluster",
+					Namespace: "default",
+				},
+				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
+				},
+			}
+
+			reconciler := &AWSMachineTemplateReconciler{
+				Client: newFakeClient(template, cluster, awsCluster),
+			}
+
+			result, err := reconciler.Reconcile(context.Background(), ctrl.Request{
+				NamespacedName: client.ObjectKeyFromObject(template),
+			})
+
+			g.Expect(err).To(BeNil())
+			g.Expect(result.Requeue).To(BeFalse())
+		})
+
+		t.Run("should skip when no owner cluster", func(t *testing.T) {
 			g := NewWithT(t)
 			template := newAWSMachineTemplate("test-template")
 
@@ -296,8 +363,7 @@ func TestAWSMachineTemplateReconciler(t *testing.T) {
 				NamespacedName: client.ObjectKeyFromObject(template),
 			})
 
-			g.Expect(err).ToNot(BeNil())
-			g.Expect(err.Error()).To(ContainSubstring("no owner cluster found"))
+			g.Expect(err).To(BeNil())
 			g.Expect(result.Requeue).To(BeFalse())
 		})
 
