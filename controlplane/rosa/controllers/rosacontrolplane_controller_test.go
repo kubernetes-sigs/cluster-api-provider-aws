@@ -375,11 +375,12 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 		Status: rosacontrolplanev1.RosaControlPlaneStatus{
 			ID: "rosa-control-plane-1",
 			Conditions: clusterv1beta1.Conditions{clusterv1beta1.Condition{
-				Type:     "Paused",
-				Status:   "False",
-				Severity: "",
-				Reason:   "NotPaused",
-				Message:  "",
+				Type:               "Paused",
+				Status:             "False",
+				Severity:           "",
+				Reason:             "NotPaused",
+				Message:            "",
+				LastTransitionTime: metav1.NewTime(time.Now()),
 			}},
 		},
 	}
@@ -501,11 +502,12 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 	rosaControlPlane.Status = rosacontrolplanev1.RosaControlPlaneStatus{
 		ID: "rosa-control-plane-1",
 		Conditions: clusterv1beta1.Conditions{clusterv1beta1.Condition{
-			Type:     "Paused",
-			Status:   "False",
-			Severity: "",
-			Reason:   "NotPaused",
-			Message:  "",
+			Type:               "Paused",
+			Status:             "False",
+			Severity:           "",
+			Reason:             "NotPaused",
+			Message:            "",
+			LastTransitionTime: metav1.NewTime(time.Now()),
 		}},
 	}
 

@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"strings"
 
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/exec" // import all auth plugins
@@ -45,6 +46,7 @@ func init() {
 	_ = clusterv1.AddToScheme(scheme)
 	_ = infrav1.AddToScheme(scheme)
 	_ = ekscontrolplanev1.AddToScheme(scheme)
+	_ = apiextensionsv1.AddToScheme(scheme)
 }
 
 // CmdProcessor handles the garbage collection commands.

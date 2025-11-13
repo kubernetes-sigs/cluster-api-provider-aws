@@ -162,9 +162,11 @@ func TestAWSManagedControlPlaneReconcilerIntegrationTests(t *testing.T) {
 		awsManagedControlPlanePatcher, err := patch.NewHelper(&awsManagedControlPlane, testEnv)
 		awsManagedControlPlane.Status.Conditions = clusterv1beta1.Conditions{
 			{
-				Type:   "Paused",
-				Status: corev1.ConditionFalse,
-				Reason: "NotPaused",
+				Type:               "Paused",
+				Status:             corev1.ConditionFalse,
+				Reason:             "NotPaused",
+				Message:            "",
+				LastTransitionTime: metav1.NewTime(time.Now()),
 			},
 		}
 

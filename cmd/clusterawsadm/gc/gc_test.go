@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -288,7 +289,68 @@ func TestConfigureGC(t *testing.T) {
 }
 
 func newFakeClient(scheme *runtime.Scheme, objs ...client.Object) client.Client {
-	return fake.NewClientBuilder().WithScheme(scheme).WithObjects(objs...).Build()
+	// Add CRDs to the fake client so external.GetObjectFromContractVersionedRef can find them
+	crds := []client.Object{
+		&apiextensionsv1.CustomResourceDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "awsmanagedcontrolplanes.controlplane.cluster.x-k8s.io",
+				Labels: map[string]string{
+					"cluster.x-k8s.io/v1beta2": "v1beta2",
+					"cluster.x-k8s.io/v1beta1": "v1beta2",
+				},
+			},
+			Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+				Group: ekscontrolplanev1.GroupVersion.Group,
+				Names: apiextensionsv1.CustomResourceDefinitionNames{
+					Kind:   "AWSManagedControlPlane",
+					Plural: "awsmanagedcontrolplanes",
+				},
+				Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
+					{
+						Name:    "v1beta2",
+						Served:  true,
+						Storage: true,
+						Schema: &apiextensionsv1.CustomResourceValidation{
+							OpenAPIV3Schema: &apiextensionsv1.JSONSchemaProps{
+								Type: "object",
+							},
+						},
+					},
+				},
+			},
+		},
+		&apiextensionsv1.CustomResourceDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "awsclusters.infrastructure.cluster.x-k8s.io",
+				Labels: map[string]string{
+					"cluster.x-k8s.io/v1beta2": "v1beta2",
+					"cluster.x-k8s.io/v1beta1": "v1beta2",
+				},
+			},
+			Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+				Group: infrav1.GroupVersion.Group,
+				Names: apiextensionsv1.CustomResourceDefinitionNames{
+					Kind:   "AWSCluster",
+					Plural: "awsclusters",
+				},
+				Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
+					{
+						Name:    "v1beta2",
+						Served:  true,
+						Storage: true,
+						Schema: &apiextensionsv1.CustomResourceValidation{
+							OpenAPIV3Schema: &apiextensionsv1.JSONSchemaProps{
+								Type: "object",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	allObjs := append(crds, objs...)
+	return fake.NewClientBuilder().WithScheme(scheme).WithObjects(allObjs...).Build()
 }
 
 func newManagedCluster(name string, excludeInfra bool) []client.Object {

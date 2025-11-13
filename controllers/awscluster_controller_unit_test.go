@@ -68,10 +68,19 @@ func TestAWSClusterReconcilerReconcile(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name:         "Should not Reconcile if cluster is paused",
-			awsCluster:   &infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{GenerateName: "aws-test-", Annotations: map[string]string{clusterv1.PausedAnnotation: ""}}},
-			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{GenerateName: "capi-test-"}},
-			expectError:  false,
+			name:       "Should not Reconcile if cluster is paused",
+			awsCluster: &infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{GenerateName: "aws-test-", Annotations: map[string]string{clusterv1.PausedAnnotation: ""}}},
+			ownerCluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{GenerateName: "capi-test-"},
+				Spec: clusterv1.ClusterSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSCluster",
+						Name:     "aws-cluster",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+				},
+			},
+			expectError: false,
 		},
 		{
 			name:        "Should Reconcile successfully if no AWSCluster found",

@@ -112,7 +112,6 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		req.NamespacedName = types.NamespacedName{Name: "non-existent-object", Namespace: "non-existent-namespace"}
 		reqReconcile, errReconcile := reconciler.Reconcile(ctx, req)
 
-		g.Expect(reqReconcile.RequeueAfter).To(BeZero())
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(time.Duration(0)))
 		g.Expect(errReconcile).ToNot(HaveOccurred())
 	})
@@ -127,7 +126,6 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		req.NamespacedName = types.NamespacedName{Name: rosaNetwork.Name, Namespace: rosaNetwork.Namespace}
 		reqReconcile, errReconcile := reconciler.Reconcile(ctx, req)
 
-		g.Expect(reqReconcile.RequeueAfter).To(BeZero())
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(time.Duration(0)))
 		g.Expect(errReconcile).To(MatchError(ContainSubstring("error fetching CF stack details:")))
 	})
@@ -151,7 +149,6 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		req.NamespacedName = types.NamespacedName{Name: rosaNetwork.Name, Namespace: rosaNetwork.Namespace}
 		reqReconcile, errReconcile := reconciler.Reconcile(ctx, req)
 
-		g.Expect(reqReconcile.RequeueAfter).To(BeZero())
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(time.Duration(0)))
 		g.Expect(errReconcile).To(MatchError(ContainSubstring("failed to start CF stack creation:")))
 
@@ -182,7 +179,6 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		req.NamespacedName = types.NamespacedName{Name: rosaNetwork.Name, Namespace: rosaNetwork.Namespace}
 		reqReconcile, errReconcile := reconciler.Reconcile(ctx, req)
 
-		g.Expect(reqReconcile.RequeueAfter).To(BeZero())
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(time.Duration(0)))
 		g.Expect(errReconcile).ToNot(HaveOccurred())
 
@@ -214,7 +210,6 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		req.NamespacedName = types.NamespacedName{Name: rosaNetwork.Name, Namespace: rosaNetwork.Namespace}
 		reqReconcile, errReconcile := reconciler.Reconcile(ctx, req)
 
-		g.Expect(reqReconcile.RequeueAfter).To(BeZero())
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(time.Second * 60))
 		g.Expect(errReconcile).ToNot(HaveOccurred())
 
@@ -246,7 +241,6 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		req.NamespacedName = types.NamespacedName{Name: rosaNetwork.Name, Namespace: rosaNetwork.Namespace}
 		reqReconcile, errReconcile := reconciler.Reconcile(ctx, req)
 
-		g.Expect(reqReconcile.RequeueAfter).To(BeZero())
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(time.Duration(0)))
 		g.Expect(errReconcile).ToNot(HaveOccurred())
 
@@ -278,7 +272,6 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		req.NamespacedName = types.NamespacedName{Name: rosaNetwork.Name, Namespace: rosaNetwork.Namespace}
 		reqReconcile, errReconcile := reconciler.Reconcile(ctx, req)
 
-		g.Expect(reqReconcile.RequeueAfter).To(BeZero())
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(time.Duration(0)))
 		g.Expect(errReconcile).To(MatchError(ContainSubstring("creation failed")))
 
@@ -312,7 +305,6 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		req.NamespacedName = types.NamespacedName{Name: nameDeleted, Namespace: rosaNetworkDeleted.Namespace}
 		reqReconcile, errReconcile := reconciler.Reconcile(ctx, req)
 
-		g.Expect(reqReconcile.RequeueAfter).To(BeZero())
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(time.Duration(0)))
 		g.Expect(errReconcile).To(MatchError(ContainSubstring("failed to start CF stack deletion:")))
 
@@ -346,7 +338,6 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		req.NamespacedName = types.NamespacedName{Name: nameDeleted, Namespace: rosaNetworkDeleted.Namespace}
 		reqReconcile, errReconcile := reconciler.Reconcile(ctx, req)
 
-		g.Expect(reqReconcile.RequeueAfter).To(BeZero())
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(60 * time.Second))
 		g.Expect(errReconcile).NotTo(HaveOccurred())
 
@@ -378,7 +369,6 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		req.NamespacedName = types.NamespacedName{Name: nameDeleted, Namespace: rosaNetworkDeleted.Namespace}
 		reqReconcile, errReconcile := reconciler.Reconcile(ctx, req)
 
-		g.Expect(reqReconcile.RequeueAfter).To(BeZero())
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(60 * time.Second))
 		g.Expect(errReconcile).NotTo(HaveOccurred())
 	})
@@ -409,7 +399,6 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		req.NamespacedName = types.NamespacedName{Name: nameDeleted, Namespace: rosaNetworkDeleted.Namespace}
 		reqReconcile, errReconcile := reconciler.Reconcile(ctx, req)
 
-		g.Expect(reqReconcile.RequeueAfter).To(BeZero())
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(time.Duration(0)))
 		g.Expect(errReconcile).To(MatchError(ContainSubstring("CF stack deletion failed")))
 

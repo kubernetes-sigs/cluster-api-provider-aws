@@ -127,6 +127,11 @@ func TestAWSMachineReconciler(t *testing.T) {
 					},
 					Spec: clusterv1.MachineSpec{
 						ClusterName: "capi-test",
+						InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+							Kind:     "AWSCluster",
+							Name:     "aws-cluster",
+							APIGroup: infrav1.GroupVersion.Group,
+						},
 						Bootstrap: clusterv1.Bootstrap{
 							DataSecretName: ptr.To[string]("bootstrap-data"),
 						},
@@ -166,6 +171,11 @@ func TestAWSMachineReconciler(t *testing.T) {
 				Machine: &clusterv1.Machine{
 					Spec: clusterv1.MachineSpec{
 						ClusterName: "capi-test",
+						InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+							Kind:     "AWSCluster",
+							Name:     "aws-cluster",
+							APIGroup: infrav1.GroupVersion.Group,
+						},
 						Bootstrap: clusterv1.Bootstrap{
 							DataSecretName: ptr.To[string]("bootstrap-data"),
 						},
@@ -1966,8 +1976,17 @@ func TestAWSMachineReconcilerAWSClusterToAWSMachines(t *testing.T) {
 		requests     []reconcile.Request
 	}{
 		{
-			name:         "Should create reconcile request successfully",
-			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-6"}},
+			name: "Should create reconcile request successfully",
+			ownerCluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "capi-test-6"},
+				Spec: clusterv1.ClusterSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSCluster",
+						Name:     "aws-cluster-6",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+				},
+			},
 			awsMachine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "aws-test-6",
@@ -1981,6 +2000,13 @@ func TestAWSMachineReconcilerAWSClusterToAWSMachines(t *testing.T) {
 						Kind:     "AWSMachine",
 						Name:     "aws-machine-6",
 						APIGroup: infrav1.GroupVersion.Group,
+					},
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							Name:     "capi-test-6-config",
+							Kind:     "EKSConfig",
+							APIGroup: clusterv1.GroupVersion.Group,
+						},
 					},
 				},
 			},
@@ -2006,8 +2032,17 @@ func TestAWSMachineReconcilerAWSClusterToAWSMachines(t *testing.T) {
 			},
 		},
 		{
-			name:         "Should not create reconcile request for deleted clusters",
-			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1", DeletionTimestamp: &metav1.Time{Time: time.Now()}}},
+			name: "Should not create reconcile request for deleted clusters",
+			ownerCluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1", DeletionTimestamp: &metav1.Time{Time: time.Now()}},
+				Spec: clusterv1.ClusterSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSCluster",
+						Name:     "aws-cluster-1",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+				},
+			},
 			awsMachine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
@@ -2021,6 +2056,13 @@ func TestAWSMachineReconcilerAWSClusterToAWSMachines(t *testing.T) {
 						Kind:     "AWSMachine",
 						Name:     "aws-machine-1",
 						APIGroup: infrav1.GroupVersion.Group,
+					},
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							Name:     "capi-test-1-config",
+							Kind:     "EKSConfig",
+							APIGroup: clusterv1.GroupVersion.Group,
+						},
 					},
 				},
 			},
@@ -2054,6 +2096,13 @@ func TestAWSMachineReconcilerAWSClusterToAWSMachines(t *testing.T) {
 						Name:     "aws-machine-2",
 						APIGroup: infrav1.GroupVersion.Group,
 					},
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							Name:     "capi-test-2-config",
+							Kind:     "EKSConfig",
+							APIGroup: clusterv1.GroupVersion.Group,
+						},
+					},
 				},
 			},
 			awsCluster: &infrav1.AWSCluster{
@@ -2070,8 +2119,17 @@ func TestAWSMachineReconcilerAWSClusterToAWSMachines(t *testing.T) {
 			},
 		},
 		{
-			name:         "Should not create reconcile request if owned Machines not found",
-			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-3"}},
+			name: "Should not create reconcile request if owned Machines not found",
+			ownerCluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "capi-test-3"},
+				Spec: clusterv1.ClusterSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSCluster",
+						Name:     "aws-cluster-3",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+				},
+			},
 			awsMachine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "aws-test-3",
@@ -2082,6 +2140,13 @@ func TestAWSMachineReconcilerAWSClusterToAWSMachines(t *testing.T) {
 						Kind:     "AWSMachine",
 						Name:     "aws-machine-3",
 						APIGroup: infrav1.GroupVersion.Group,
+					},
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							Name:     "capi-test-6-config",
+							Kind:     "EKSConfig",
+							APIGroup: clusterv1.GroupVersion.Group,
+						},
 					},
 				},
 			},
@@ -2100,8 +2165,17 @@ func TestAWSMachineReconcilerAWSClusterToAWSMachines(t *testing.T) {
 			requests: []reconcile.Request{},
 		},
 		{
-			name:         "Should not create reconcile request if owned Machine type is not AWSMachine",
-			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-4"}},
+			name: "Should not create reconcile request if owned Machine type is not AWSMachine",
+			ownerCluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "capi-test-4"},
+				Spec: clusterv1.ClusterSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSCluster",
+						Name:     "aws-cluster-4",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+				},
+			},
 			awsMachine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
@@ -2120,6 +2194,13 @@ func TestAWSMachineReconcilerAWSClusterToAWSMachines(t *testing.T) {
 						Name:     "aws-machine-4",
 						APIGroup: infrav1.GroupVersion.Group,
 					},
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							Name:     "capi-test-4-config",
+							Kind:     "EKSConfig",
+							APIGroup: clusterv1.GroupVersion.Group,
+						},
+					},
 				},
 			},
 			awsCluster: &infrav1.AWSCluster{
@@ -2136,9 +2217,19 @@ func TestAWSMachineReconcilerAWSClusterToAWSMachines(t *testing.T) {
 			},
 			requests: []reconcile.Request{},
 		},
+		// BONFIRE: probably need to delete this test
 		{
-			name:         "Should not create reconcile request if name for machine in infrastructure ref not found",
-			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-5"}},
+			name: "Should not create reconcile request if name for machine in infrastructure ref not found",
+			ownerCluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "capi-test-5"},
+				Spec: clusterv1.ClusterSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSCluster",
+						Name:     "aws-cluster-5",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+				},
+			},
 			awsMachine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "aws-test-5",
@@ -2149,8 +2240,16 @@ func TestAWSMachineReconcilerAWSClusterToAWSMachines(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "capi-test",
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Name:     "capi-test-5",
 						Kind:     "AWSMachine",
 						APIGroup: infrav1.GroupVersion.Group,
+					},
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							Name:     "capi-test-5-config",
+							Kind:     "EKSConfig",
+							APIGroup: clusterv1.GroupVersion.Group,
+						},
 					},
 				},
 			},
@@ -2159,7 +2258,7 @@ func TestAWSMachineReconcilerAWSClusterToAWSMachines(t *testing.T) {
 					Name: "aws-test-5",
 					OwnerReferences: []metav1.OwnerReference{
 						{
-							Name:       "capi-test-5",
+							Name:       "capi-test-not-5",
 							Kind:       "Cluster",
 							APIVersion: clusterv1.GroupVersion.String(),
 						},
@@ -2210,13 +2309,31 @@ func TestAWSMachineReconcilerRequeueAWSMachinesForUnpausedCluster(t *testing.T) 
 		requests     []reconcile.Request
 	}{
 		{
-			name:         "Should not create reconcile request for deleted clusters",
-			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1", Namespace: "default", DeletionTimestamp: &metav1.Time{Time: time.Now()}}},
+			name: "Should not create reconcile request for deleted clusters",
+			ownerCluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1", Namespace: "default", DeletionTimestamp: &metav1.Time{Time: time.Now()}},
+				Spec: clusterv1.ClusterSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSCluster",
+						Name:     "aws-cluster-1",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+				},
+			},
 		},
 		{
-			name:         "Should create reconcile request successfully",
-			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1", Namespace: "default"}},
-			requests:     []reconcile.Request{},
+			name: "Should create reconcile request successfully",
+			ownerCluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1", Namespace: "default"},
+				Spec: clusterv1.ClusterSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSCluster",
+						Name:     "aws-cluster-1",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+				},
+			},
+			requests: []reconcile.Request{},
 		},
 	}
 	for _, tc := range testCases {
@@ -2327,10 +2444,31 @@ func TestAWSMachineReconcilerReconcile(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "capi-test",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSMachine",
+						Name:     "aws-machine-6",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							Name:     "capi-test-6-config",
+							Kind:     "EKSConfig",
+							APIGroup: clusterv1.GroupVersion.Group,
+						},
+					},
 				},
 			},
-			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1"}},
-			expectError:  false,
+			ownerCluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1"},
+				Spec: clusterv1.ClusterSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSCluster",
+						Name:     "aws-cluster-1",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+				},
+			},
+			expectError: false,
 		},
 		{
 			name: "Should not Reconcile if cluster is paused",
@@ -2355,11 +2493,30 @@ func TestAWSMachineReconcilerReconcile(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "capi-test",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSMachine",
+						Name:     "aws-machine-6",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							Name:     "capi-test-6-config",
+							Kind:     "EKSConfig",
+							APIGroup: clusterv1.GroupVersion.Group,
+						},
+					},
 				},
 			},
-			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1"}, Spec: clusterv1.ClusterSpec{
-				InfrastructureRef: clusterv1.ContractVersionedObjectReference{Name: "foo"},
-			}},
+			ownerCluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1"},
+				Spec: clusterv1.ClusterSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSCluster",
+						Name:     "aws-cluster-1",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+				},
+			},
 			expectError: false,
 		},
 		{
@@ -2382,14 +2539,36 @@ func TestAWSMachineReconcilerReconcile(t *testing.T) {
 						clusterv1.ClusterNameLabel: "capi-test-1",
 					},
 					Name: "capi-test-machine", Namespace: "default",
-				}, Spec: clusterv1.MachineSpec{
+				},
+				Spec: clusterv1.MachineSpec{
 					ClusterName: "capi-test",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSMachine",
+						Name:     "aws-machine-6",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							Name:     "capi-test-6-config",
+							Kind:     "EKSConfig",
+							APIGroup: clusterv1.GroupVersion.Group,
+						},
+					},
 				},
 			},
 			ownerCluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1"},
 				Spec: clusterv1.ClusterSpec{
-					ControlPlaneRef: clusterv1.ContractVersionedObjectReference{Kind: AWSManagedControlPlaneRefKind},
+					ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+						Name:     "capi-test-1-cpref",
+						Kind:     AWSManagedControlPlaneRefKind,
+						APIGroup: clusterv1.GroupVersion.Group,
+					},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSCluster",
+						Name:     "aws-cluster-1",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
 				},
 			},
 			expectError: false,
@@ -2417,12 +2596,28 @@ func TestAWSMachineReconcilerReconcile(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "capi-test",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSMachine",
+						Name:     "aws-machine-6",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							Name:     "capi-test-6-config",
+							Kind:     "EKSConfig",
+							APIGroup: clusterv1.GroupVersion.Group,
+						},
+					},
 				},
 			},
 			ownerCluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1"},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: clusterv1.ContractVersionedObjectReference{Name: "aws-test-5"},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSCluster",
+						Name:     "aws-cluster-1",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
 				},
 			},
 			expectError: false,
@@ -2450,12 +2645,28 @@ func TestAWSMachineReconcilerReconcile(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "capi-test",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSMachine",
+						Name:     "aws-machine-6",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							Name:     "capi-test-6-config",
+							Kind:     "EKSConfig",
+							APIGroup: clusterv1.GroupVersion.Group,
+						},
+					},
 				},
 			},
 			ownerCluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1"},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: clusterv1.ContractVersionedObjectReference{Name: "aws-test-5"},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSCluster",
+						Name:     "aws-test-5",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
 				},
 			},
 			awsCluster:  &infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "aws-test-5"}},
@@ -2618,6 +2829,11 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "capi-test",
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				Kind:     "AWSMachine",
+				Name:     "aws-machine-6",
+				APIGroup: infrav1.GroupVersion.Group,
+			},
 			Bootstrap: clusterv1.Bootstrap{
 				DataSecretName: aws.String("bootstrap-data"),
 			},

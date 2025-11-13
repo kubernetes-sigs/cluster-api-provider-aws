@@ -167,6 +167,11 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
 								ClusterName: "test",
+								InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+									Name:     "rosa-mp",
+									Kind:     "ROSAMachinePool",
+									APIGroup: clusterv1.GroupVersion.Group,
+								},
 								Bootstrap: clusterv1.Bootstrap{
 									DataSecretName: ptr.To[string]("bootstrap-data"),
 								},
@@ -420,6 +425,18 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 					},
 					Spec: clusterv1.MachineSpec{
 						ClusterName: "test",
+						InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+							Name:     "name-1",
+							Kind:     "ROSAMachine",
+							APIGroup: clusterv1.GroupVersion.Group,
+						},
+						Bootstrap: clusterv1.Bootstrap{
+							ConfigRef: clusterv1.ContractVersionedObjectReference{
+								Name:     "name-1-config",
+								Kind:     "EKSConfig",
+								APIGroup: clusterv1.GroupVersion.Group,
+							},
+						},
 					},
 				})).To(Succeed())
 				g.Expect(testEnv.Create(context.Background(), &infrav1.AWSMachine{
@@ -452,6 +469,18 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 					},
 					Spec: clusterv1.MachineSpec{
 						ClusterName: "test",
+						InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+							Name:     "name-2",
+							Kind:     "ROSAMachinePool",
+							APIGroup: clusterv1.GroupVersion.Group,
+						},
+						Bootstrap: clusterv1.Bootstrap{
+							ConfigRef: clusterv1.ContractVersionedObjectReference{
+								Name:     "name-2-config",
+								Kind:     "EKSConfig",
+								APIGroup: clusterv1.GroupVersion.Group,
+							},
+						},
 					},
 				})).To(Succeed())
 				g.Expect(testEnv.Create(context.Background(), &infrav1.AWSMachine{

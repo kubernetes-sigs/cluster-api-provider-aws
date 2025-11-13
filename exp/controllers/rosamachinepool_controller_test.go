@@ -221,6 +221,13 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 							Kind:     "ROSAMachinePool",
 							APIGroup: clusterv1.GroupVersion.Group,
 						},
+						Bootstrap: clusterv1.Bootstrap{
+							ConfigRef: clusterv1.ContractVersionedObjectReference{
+								Name:     fmt.Sprintf("%s-config", rosaMachinePool(i).Name),
+								Kind:     "EKSConfig",
+								APIGroup: clusterv1.GroupVersion.Group,
+							},
+						},
 					},
 				},
 			},
@@ -381,6 +388,13 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 								Kind:     "ROSAMachinePool",
 								APIGroup: clusterv1.GroupVersion.Group,
 							},
+							Bootstrap: clusterv1.Bootstrap{
+								ConfigRef: clusterv1.ContractVersionedObjectReference{
+									Name:     fmt.Sprintf("%s-config", rosaMachinePool(3).Name),
+									Kind:     "EKSConfig",
+									APIGroup: clusterv1.GroupVersion.Group,
+								},
+							},
 						},
 					},
 				},
@@ -440,6 +454,13 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 								Name:     rosaMachinePool(4).Name,
 								Kind:     "ROSAMachinePool",
 								APIGroup: clusterv1.GroupVersion.Group,
+							},
+							Bootstrap: clusterv1.Bootstrap{
+								ConfigRef: clusterv1.ContractVersionedObjectReference{
+									Name:     fmt.Sprintf("%s-config", rosaMachinePool(3).Name),
+									Kind:     "EKSConfig",
+									APIGroup: clusterv1.GroupVersion.Group,
+								},
 							},
 						},
 					},
@@ -533,9 +554,11 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 			rmpPh, err := patch.NewHelper(test.oldROSAMachinePool, testEnv)
 			test.oldROSAMachinePool.Status.Conditions = clusterv1beta1.Conditions{
 				{
-					Type:   "Paused",
-					Status: corev1.ConditionFalse,
-					Reason: "NotPaused",
+					Type:               "Paused",
+					Status:             corev1.ConditionFalse,
+					Reason:             "NotPaused",
+					Message:            "",
+					LastTransitionTime: metav1.NewTime(time.Now()),
 				},
 			}
 

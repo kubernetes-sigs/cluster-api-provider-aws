@@ -36,7 +36,6 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/goexpect v0.0.0-20210430020637-ab937bf7fd6f
-	github.com/google/gofuzz v1.2.0
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.38.0
 	github.com/openshift-online/ocm-api-model/clientapi v0.0.431
@@ -258,6 +257,6 @@ require (
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.2 // indirect
 	sigs.k8s.io/json v0.0.0-20241010143419-9aa6b5e7a4b3 // indirect
 	sigs.k8s.io/kind v0.30.0 // indirect
-	sigs.k8s.io/randfill v1.0.0 // indirect
+	sigs.k8s.io/randfill v1.0.0
 	sigs.k8s.io/structured-merge-diff/v4 v4.6.0 // indirect
 )

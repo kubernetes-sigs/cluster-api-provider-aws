@@ -187,10 +187,11 @@ func TestRosaClusterReconcile(t *testing.T) {
 		rosaClsPatch, err := patch.NewHelper(rosaCluster, testEnv)
 		rosaCluster.Status.Conditions = clusterv1beta1.Conditions{
 			clusterv1beta1.Condition{
-				Type:    clusterv1beta1.PausedV1Beta2Condition,
-				Status:  corev1.ConditionFalse,
-				Reason:  clusterv1beta1.NotPausedV1Beta2Reason,
-				Message: "",
+				Type:               clusterv1beta1.PausedV1Beta2Condition,
+				Status:             corev1.ConditionFalse,
+				Reason:             clusterv1beta1.NotPausedV1Beta2Reason,
+				Message:            "",
+				LastTransitionTime: metav1.NewTime(time.Now()),
 			},
 		}
 		g.Expect(rosaClsPatch.Patch(ctx, rosaCluster)).To(Succeed())
@@ -198,13 +199,17 @@ func TestRosaClusterReconcile(t *testing.T) {
 
 		// set capiCluster pause condition
 		clsPatch, err := patch.NewHelper(capiCluster, testEnv)
-		//nolint:staticcheck
-		capiCluster.Status.Deprecated.V1Beta1.Conditions = clusterv1.Conditions{
-			clusterv1.Condition{
-				Type:    clusterv1beta1.PausedV1Beta2Condition,
-				Status:  corev1.ConditionFalse,
-				Reason:  clusterv1beta1.NotPausedV1Beta2Reason,
-				Message: "",
+		capiCluster.Status.Deprecated = &clusterv1.ClusterDeprecatedStatus{
+			V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
+				Conditions: clusterv1.Conditions{
+					clusterv1.Condition{
+						Type:               clusterv1beta1.PausedV1Beta2Condition,
+						Status:             corev1.ConditionFalse,
+						Reason:             clusterv1beta1.NotPausedV1Beta2Reason,
+						Message:            "",
+						LastTransitionTime: metav1.NewTime(time.Now()),
+					},
+				},
 			},
 		}
 		g.Expect(clsPatch.Patch(ctx, capiCluster)).To(Succeed())

@@ -63,8 +63,13 @@ func TestReconcileIAMAuth(t *testing.T) {
 			Name:     awsMP.Name,
 			APIGroup: awsMP.TypeMeta.GroupVersionKind().Group,
 		}
+		configRef := clusterv1.ContractVersionedObjectReference{
+			Kind:     "EKSConfig",
+			Name:     awsMP.Name,
+			APIGroup: awsMP.TypeMeta.GroupVersionKind().Group,
+		}
 		g.Expect(testEnv.Create(ctx, awsMP)).To(Succeed())
-		mp := createMachinepoolForCluster(name, ns, eksCluster.Name, infraRef)
+		mp := createMachinepoolForCluster(name, ns, eksCluster.Name, infraRef, configRef)
 		g.Expect(testEnv.Create(ctx, mp)).To(Succeed())
 
 		awsMachineTemplate := createAWSMachineTemplateForClusterWithInstanceProfile(name, ns, eksCluster.Name, "eks-nodes.cluster-api-provider-aws.sigs.k8s.io")
@@ -73,8 +78,13 @@ func TestReconcileIAMAuth(t *testing.T) {
 			Name:     awsMachineTemplate.Name,
 			APIGroup: awsMachineTemplate.TypeMeta.GroupVersionKind().Group,
 		}
+		configRefForMD := clusterv1.ContractVersionedObjectReference{
+			Kind:     "EKSConfig",
+			Name:     awsMachineTemplate.Name,
+			APIGroup: awsMachineTemplate.TypeMeta.GroupVersionKind().Group,
+		}
 		g.Expect(testEnv.Create(ctx, awsMachineTemplate)).To(Succeed())
-		md := createMachineDeploymentForCluster(name, ns, eksCluster.Name, infraRefForMD)
+		md := createMachineDeploymentForCluster(name, ns, eksCluster.Name, infraRefForMD, configRefForMD)
 		g.Expect(testEnv.Create(ctx, md)).To(Succeed())
 
 		expectedRoles := map[string]struct{}{
@@ -123,7 +133,8 @@ func createEKSCluster(name, namespace string) *ekscontrolplanev1.AWSManagedContr
 func createAWSMachinePoolForClusterWithInstanceProfile(name, namespace, clusterName, instanceProfile string) *expinfrav1.AWSMachinePool {
 	awsMP := &expinfrav1.AWSMachinePool{
 		TypeMeta: metav1.TypeMeta{
-			Kind: "AWSMachinePool",
+			Kind:       "AWSMachinePool",
+			APIVersion: "infrastructure.cluster.x-k8s.io/v1beta2",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -142,7 +153,7 @@ func createAWSMachinePoolForClusterWithInstanceProfile(name, namespace, clusterN
 	return awsMP
 }
 
-func createMachinepoolForCluster(name, namespace, clusterName string, infrastructureRef clusterv1.ContractVersionedObjectReference) *clusterv1.MachinePool {
+func createMachinepoolForCluster(name, namespace, clusterName string, infrastructureRef, configRef clusterv1.ContractVersionedObjectReference) *clusterv1.MachinePool {
 	mp := &clusterv1.MachinePool{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -157,6 +168,9 @@ func createMachinepoolForCluster(name, namespace, clusterName string, infrastruc
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       clusterName,
 					InfrastructureRef: infrastructureRef,
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: configRef,
+					},
 				},
 			},
 		},
@@ -167,7 +181,8 @@ func createMachinepoolForCluster(name, namespace, clusterName string, infrastruc
 func createAWSMachineTemplateForClusterWithInstanceProfile(name, namespace, clusterName, instanceProfile string) *infrav1.AWSMachineTemplate {
 	mt := &infrav1.AWSMachineTemplate{
 		TypeMeta: metav1.TypeMeta{
-			Kind: "AWSMachineTemplate",
+			Kind:       "AWSMachineTemplate",
+			APIVersion: "bootstrap.cluster.x-k8s.io/v1beta2",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -188,7 +203,7 @@ func createAWSMachineTemplateForClusterWithInstanceProfile(name, namespace, clus
 	return mt
 }
 
-func createMachineDeploymentForCluster(name, namespace, clusterName string, infrastructureRef clusterv1.ContractVersionedObjectReference) *clusterv1.MachineDeployment {
+func createMachineDeploymentForCluster(name, namespace, clusterName string, infrastructureRef, configRefForMD clusterv1.ContractVersionedObjectReference) *clusterv1.MachineDeployment {
 	md := &clusterv1.MachineDeployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -199,10 +214,16 @@ func createMachineDeploymentForCluster(name, namespace, clusterName string, infr
 		},
 		Spec: clusterv1.MachineDeploymentSpec{
 			ClusterName: clusterName,
+			Selector: metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": "test-app"},
+			},
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       clusterName,
 					InfrastructureRef: infrastructureRef,
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: configRefForMD,
+					},
 				},
 			},
 			Replicas: ptr.To[int32](2),
