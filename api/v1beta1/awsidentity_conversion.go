@@ -25,7 +25,12 @@ import (
 // ConvertTo converts the v1beta1 AWSClusterControllerIdentity receiver to a v1beta2 AWSClusterControllerIdentity.
 func (src *AWSClusterControllerIdentity) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1.AWSClusterControllerIdentity)
-	return Convert_v1beta1_AWSClusterControllerIdentity_To_v1beta2_AWSClusterControllerIdentity(src, dst, nil)
+	if err := Convert_v1beta1_AWSClusterControllerIdentity_To_v1beta2_AWSClusterControllerIdentity(src, dst, nil); err != nil {
+		return err
+	}
+	// Ensure the APIVersion is set correctly after conversion
+	dst.APIVersion = infrav1.GroupVersion.String()
+	return nil
 }
 
 // ConvertFrom converts the v1beta2 AWSClusterControllerIdentity to a v1beta1 AWSClusterControllerIdentity.
@@ -38,7 +43,12 @@ func (dst *AWSClusterControllerIdentity) ConvertFrom(srcRaw conversion.Hub) erro
 // ConvertTo converts the v1beta1 AWSClusterControllerIdentityList receiver to a v1beta2 AWSClusterControllerIdentityList.
 func (src *AWSClusterControllerIdentityList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1.AWSClusterControllerIdentityList)
-	return Convert_v1beta1_AWSClusterControllerIdentityList_To_v1beta2_AWSClusterControllerIdentityList(src, dst, nil)
+	if err := Convert_v1beta1_AWSClusterControllerIdentityList_To_v1beta2_AWSClusterControllerIdentityList(src, dst, nil); err != nil {
+		return err
+	}
+	// Ensure the APIVersion is set correctly after conversion
+	dst.APIVersion = infrav1.GroupVersion.String()
+	return nil
 }
 
 // ConvertFrom converts the v1beta2 AWSClusterControllerIdentityList to a v1beta1 AWSClusterControllerIdentityList.
