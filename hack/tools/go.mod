@@ -10,11 +10,8 @@ require (
 	github.com/itchyny/gojq v0.12.17
 	github.com/joelanford/go-apidiff v0.8.3
 	github.com/mikefarah/yq/v4 v4.44.6
-	github.com/spf13/pflag v1.0.6
 	k8s.io/apimachinery v0.32.3
 	k8s.io/code-generator v0.32.3
-	k8s.io/gengo/v2 v2.0.0-20240911193312-2b36238f13e9
-	k8s.io/klog/v2 v2.130.1
 	sigs.k8s.io/cluster-api/hack/tools v0.0.0-20250520093716-525566440a77
 	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20240923090159-236e448db12c
 	sigs.k8s.io/controller-tools v0.17.3
@@ -296,6 +293,7 @@ require (
 	github.com/spf13/afero v1.12.0 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/spf13/cobra v1.9.1 // indirect
+	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/spf13/viper v1.20.1 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399 // indirect
@@ -360,7 +358,9 @@ require (
 	k8s.io/api v0.32.3 // indirect
 	k8s.io/apiextensions-apiserver v0.32.3 // indirect
 	k8s.io/gengo v0.0.0-20230829151522-9cce18d56c01 // indirect
+	k8s.io/gengo/v2 v2.0.0-20240911193312-2b36238f13e9 // indirect
 	k8s.io/klog v0.2.0 // indirect
+	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20241105132330-32ad38e42d3f // indirect
 	k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect
