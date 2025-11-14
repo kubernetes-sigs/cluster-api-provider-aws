@@ -28,7 +28,6 @@ FROM gcr.io/distroless/base:latest
 WORKDIR /app
 COPY --chown=nobody:nobody --from=builder /go/bin/server /app/triage-party
 COPY --chown=nobody:nobody --from=builder /git/triage-party/site /app/site
-COPY --chown=nobody:nobody --from=builder /git/triage-party/third_party /app/third_party
 COPY --chown=nobody:nobody config/config.yaml /app/config/config.yaml
 COPY --chown=nobody:nobody --from=builder /.cache /app/.cache
 ENV HOME /app
