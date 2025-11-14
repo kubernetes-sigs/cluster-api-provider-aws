@@ -22,6 +22,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 )
@@ -49,6 +50,29 @@ func TestLifecycleHookNeedsUpdate(t *testing.T) {
 				LifecycleTransition: "autoscaling:EC2_INSTANCE_TERMINATING",
 				HeartbeatTimeout:    &metav1.Duration{Duration: 3600 * time.Second},
 				DefaultResult:       &defaultResultAbandon,
+			},
+			wantUpdate: false,
+		},
+
+		{
+			name: "exactly equal (all fields filled)",
+			existing: expinfrav1.AWSLifecycleHook{
+				Name:                  "test",
+				NotificationTargetARN: ptr.To("arn:aws:sqs:eu-west-1:123456789012:mycluster-nth"),
+				RoleARN:               ptr.To("arn:aws:iam::123456789012:role/mycluster-nth-notification"),
+				LifecycleTransition:   "autoscaling:EC2_INSTANCE_TERMINATING",
+				HeartbeatTimeout:      &metav1.Duration{Duration: 3600 * time.Second},
+				DefaultResult:         &defaultResultAbandon,
+				NotificationMetadata:  nil,
+			},
+			expected: expinfrav1.AWSLifecycleHook{
+				Name:                  "test",
+				NotificationTargetARN: ptr.To("arn:aws:sqs:eu-west-1:123456789012:mycluster-nth"),
+				RoleARN:               ptr.To("arn:aws:iam::123456789012:role/mycluster-nth-notification"),
+				LifecycleTransition:   "autoscaling:EC2_INSTANCE_TERMINATING",
+				HeartbeatTimeout:      &metav1.Duration{Duration: 3600 * time.Second},
+				DefaultResult:         &defaultResultAbandon,
+				NotificationMetadata:  nil,
 			},
 			wantUpdate: false,
 		},
@@ -116,6 +140,90 @@ func TestLifecycleHookNeedsUpdate(t *testing.T) {
 				LifecycleTransition: "autoscaling:EC2_INSTANCE_TERMINATING",
 				HeartbeatTimeout:    &metav1.Duration{Duration: 3600 * time.Second},
 				DefaultResult:       &defaultResultContinue,
+			},
+			wantUpdate: true,
+		},
+
+		{
+			name: "role ARN differs",
+			existing: expinfrav1.AWSLifecycleHook{
+				Name:                  "test",
+				NotificationTargetARN: ptr.To("arn:aws:sqs:eu-west-1:123456789012:mycluster-nth"),
+				RoleARN:               ptr.To("arn:aws:iam::123456789012:role/mycluster-nth-notification"),
+				LifecycleTransition:   "autoscaling:EC2_INSTANCE_TERMINATING",
+				HeartbeatTimeout:      &metav1.Duration{Duration: 3600 * time.Second},
+				DefaultResult:         &defaultResultAbandon,
+				NotificationMetadata:  nil,
+			},
+			expected: expinfrav1.AWSLifecycleHook{
+				Name:                  "test",
+				NotificationTargetARN: ptr.To("arn:aws:sqs:eu-west-1:123456789012:mycluster-nth"),
+				RoleARN:               ptr.To("arn:aws:iam::123456789012:role/mycluster-nth-notification2"),
+				LifecycleTransition:   "autoscaling:EC2_INSTANCE_TERMINATING",
+				HeartbeatTimeout:      &metav1.Duration{Duration: 3600 * time.Second},
+				DefaultResult:         &defaultResultAbandon,
+				NotificationMetadata:  nil,
+			},
+			wantUpdate: true,
+		},
+
+		{
+			name: "notification target ARN differs",
+			existing: expinfrav1.AWSLifecycleHook{
+				Name:                  "test",
+				NotificationTargetARN: ptr.To("arn:aws:sqs:eu-west-1:123456789012:mycluster-nth"),
+				RoleARN:               ptr.To("arn:aws:iam::123456789012:role/mycluster-nth-notification"),
+				LifecycleTransition:   "autoscaling:EC2_INSTANCE_TERMINATING",
+				HeartbeatTimeout:      &metav1.Duration{Duration: 3600 * time.Second},
+				DefaultResult:         &defaultResultAbandon,
+				NotificationMetadata:  nil,
+			},
+			expected: expinfrav1.AWSLifecycleHook{
+				Name:                  "test",
+				NotificationTargetARN: ptr.To("arn:aws:sqs:eu-west-1:123456789012:mycluster-nth2"),
+				RoleARN:               ptr.To("arn:aws:iam::123456789012:role/mycluster-nth-notification"),
+				LifecycleTransition:   "autoscaling:EC2_INSTANCE_TERMINATING",
+				HeartbeatTimeout:      &metav1.Duration{Duration: 3600 * time.Second},
+				DefaultResult:         &defaultResultAbandon,
+				NotificationMetadata:  nil,
+			},
+			wantUpdate: true,
+		},
+
+		{
+			name: "notification metadata both empty",
+			existing: expinfrav1.AWSLifecycleHook{
+				Name:                 "test",
+				LifecycleTransition:  "autoscaling:EC2_INSTANCE_TERMINATING",
+				HeartbeatTimeout:     &metav1.Duration{Duration: 3600 * time.Second},
+				DefaultResult:        &defaultResultAbandon,
+				NotificationMetadata: nil,
+			},
+			expected: expinfrav1.AWSLifecycleHook{
+				Name:                 "test",
+				LifecycleTransition:  "autoscaling:EC2_INSTANCE_TERMINATING",
+				HeartbeatTimeout:     &metav1.Duration{Duration: 3600 * time.Second},
+				DefaultResult:        &defaultResultAbandon,
+				NotificationMetadata: ptr.To(""),
+			},
+			wantUpdate: false,
+		},
+
+		{
+			name: "notification metadata differs",
+			existing: expinfrav1.AWSLifecycleHook{
+				Name:                 "test",
+				LifecycleTransition:  "autoscaling:EC2_INSTANCE_TERMINATING",
+				HeartbeatTimeout:     &metav1.Duration{Duration: 3600 * time.Second},
+				DefaultResult:        &defaultResultAbandon,
+				NotificationMetadata: ptr.To("abc"),
+			},
+			expected: expinfrav1.AWSLifecycleHook{
+				Name:                 "test",
+				LifecycleTransition:  "autoscaling:EC2_INSTANCE_TERMINATING",
+				HeartbeatTimeout:     &metav1.Duration{Duration: 3600 * time.Second},
+				DefaultResult:        &defaultResultAbandon,
+				NotificationMetadata: ptr.To("xyz"),
 			},
 			wantUpdate: true,
 		},

@@ -204,8 +204,9 @@ func lifecycleHookNeedsUpdate(existing *expinfrav1.AWSLifecycleHook, expected *e
 	return ptr.Deref(existing.DefaultResult, expinfrav1.LifecycleHookDefaultResultAbandon) != ptr.Deref(expected.DefaultResult, expinfrav1.LifecycleHookDefaultResultAbandon) ||
 		ptr.Deref(existing.HeartbeatTimeout, metav1.Duration{Duration: 3600 * time.Second}) != ptr.Deref(expected.HeartbeatTimeout, metav1.Duration{Duration: 3600 * time.Second}) ||
 		existing.LifecycleTransition != expected.LifecycleTransition ||
-		existing.NotificationTargetARN != expected.NotificationTargetARN ||
-		existing.NotificationMetadata != expected.NotificationMetadata
+		ptr.Deref(existing.NotificationTargetARN, "") != ptr.Deref(expected.NotificationTargetARN, "") ||
+		ptr.Deref(existing.RoleARN, "") != ptr.Deref(expected.RoleARN, "") ||
+		ptr.Deref(existing.NotificationMetadata, "") != ptr.Deref(expected.NotificationMetadata, "")
 }
 
 func reconcileLifecycleHook(ctx context.Context, asgService services.ASGInterface, asgName string, wantedHook *expinfrav1.AWSLifecycleHook, existingHooks []*expinfrav1.AWSLifecycleHook, storeConditionsOnObject deprecatedv1beta1conditions.Setter, log logger.Wrapper) error {
