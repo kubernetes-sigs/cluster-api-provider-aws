@@ -59,23 +59,8 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*AWSManagedControlPlaneSpec)(nil), (*v1beta2.AWSManagedControlPlaneSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_AWSManagedControlPlaneSpec_To_v1beta2_AWSManagedControlPlaneSpec(a.(*AWSManagedControlPlaneSpec), b.(*v1beta2.AWSManagedControlPlaneSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.AWSManagedControlPlaneSpec)(nil), (*AWSManagedControlPlaneSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_AWSManagedControlPlaneSpec_To_v1beta1_AWSManagedControlPlaneSpec(a.(*v1beta2.AWSManagedControlPlaneSpec), b.(*AWSManagedControlPlaneSpec), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*AWSManagedControlPlaneStatus)(nil), (*v1beta2.AWSManagedControlPlaneStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_AWSManagedControlPlaneStatus_To_v1beta2_AWSManagedControlPlaneStatus(a.(*AWSManagedControlPlaneStatus), b.(*v1beta2.AWSManagedControlPlaneStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.AWSManagedControlPlaneStatus)(nil), (*AWSManagedControlPlaneStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_AWSManagedControlPlaneStatus_To_v1beta1_AWSManagedControlPlaneStatus(a.(*v1beta2.AWSManagedControlPlaneStatus), b.(*AWSManagedControlPlaneStatus), scope)
 	}); err != nil {
 		return err
 	}
@@ -224,7 +209,22 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.VpcCni)(nil), (*VpcCni)(nil), func(a, b interface{}, scope conversion.Scope) error {
+	if err := s.AddConversionFunc((*AWSManagedControlPlaneSpec)(nil), (*v1beta2.AWSManagedControlPlaneSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_AWSManagedControlPlaneSpec_To_v1beta2_AWSManagedControlPlaneSpec(a.(*AWSManagedControlPlaneSpec), b.(*v1beta2.AWSManagedControlPlaneSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.AWSManagedControlPlaneSpec)(nil), (*AWSManagedControlPlaneSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_AWSManagedControlPlaneSpec_To_v1beta1_AWSManagedControlPlaneSpec(a.(*v1beta2.AWSManagedControlPlaneSpec), b.(*AWSManagedControlPlaneSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.AWSManagedControlPlaneStatus)(nil), (*AWSManagedControlPlaneStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_AWSManagedControlPlaneStatus_To_v1beta1_AWSManagedControlPlaneStatus(a.(*v1beta2.AWSManagedControlPlaneStatus), b.(*AWSManagedControlPlaneStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.VpcCni)(nil), (*VpcCni)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_VpcCni_To_v1beta1_VpcCni(a.(*v1beta2.VpcCni), b.(*VpcCni), scope)
 	}); err != nil {
 		return err
@@ -233,7 +233,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 }
 
 func autoConvert_v1beta1_AWSManagedControlPlane_To_v1beta2_AWSManagedControlPlane(in *AWSManagedControlPlane, out *v1beta2.AWSManagedControlPlane, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_v1beta1_AWSManagedControlPlaneSpec_To_v1beta2_AWSManagedControlPlaneSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
@@ -250,7 +249,6 @@ func Convert_v1beta1_AWSManagedControlPlane_To_v1beta2_AWSManagedControlPlane(in
 }
 
 func autoConvert_v1beta2_AWSManagedControlPlane_To_v1beta1_AWSManagedControlPlane(in *v1beta2.AWSManagedControlPlane, out *AWSManagedControlPlane, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_v1beta2_AWSManagedControlPlaneSpec_To_v1beta1_AWSManagedControlPlaneSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
@@ -267,7 +265,6 @@ func Convert_v1beta2_AWSManagedControlPlane_To_v1beta1_AWSManagedControlPlane(in
 }
 
 func autoConvert_v1beta1_AWSManagedControlPlaneList_To_v1beta2_AWSManagedControlPlaneList(in *AWSManagedControlPlaneList, out *v1beta2.AWSManagedControlPlaneList, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
@@ -289,7 +286,6 @@ func Convert_v1beta1_AWSManagedControlPlaneList_To_v1beta2_AWSManagedControlPlan
 }
 
 func autoConvert_v1beta2_AWSManagedControlPlaneList_To_v1beta1_AWSManagedControlPlaneList(in *v1beta2.AWSManagedControlPlaneList, out *AWSManagedControlPlaneList, s conversion.Scope) error {
-	out.TypeMeta = in.TypeMeta
 	out.ListMeta = in.ListMeta
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
