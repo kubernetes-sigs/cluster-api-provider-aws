@@ -53,6 +53,7 @@ const (
 	EKSClusterClassFlavor                             = "eks-clusterclass"
 	EKSAuthAPIAndConfigMapFlavor                      = "eks-auth-api-and-config-map"
 	EKSAuthBootstrapDisabledFlavor                    = "eks-auth-bootstrap-disabled"
+	EKSNodeadmClusterClassFlavor                      = "eks-nodeadm-clusterclass"
 )
 
 const (
