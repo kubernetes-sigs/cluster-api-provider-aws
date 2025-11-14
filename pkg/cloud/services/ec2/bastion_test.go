@@ -34,7 +34,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/filter"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 func TestServiceDeleteBastion(t *testing.T) {
@@ -419,7 +420,7 @@ func TestServiceReconcileBastion(t *testing.T) {
 				SubnetID:         "subnet-1",
 				ImageID:          "ubuntu-ami-id-latest",
 				IAMProfile:       "foo",
-				Addresses:        []clusterv1.MachineAddress{},
+				Addresses:        []clusterv1beta1.MachineAddress{},
 				AvailabilityZone: "us-east-1",
 				VolumeIDs:        []string{"volume-1"},
 			},
@@ -450,10 +451,10 @@ func TestServiceReconcileBastion(t *testing.T) {
 								ID: "vpcID",
 							},
 							Subnets: infrav1.Subnets{
-								{
+								infrav1.SubnetSpec{
 									ID: "subnet-1",
 								},
-								{
+								infrav1.SubnetSpec{
 									ID:       "subnet-2",
 									IsPublic: true,
 								},
@@ -651,7 +652,7 @@ func TestServiceReconcileBastionUSGOV(t *testing.T) {
 				SubnetID:         "subnet-1",
 				ImageID:          "ubuntu-ami-id-latest",
 				IAMProfile:       "foo",
-				Addresses:        []clusterv1.MachineAddress{},
+				Addresses:        []clusterv1beta1.MachineAddress{},
 				AvailabilityZone: "us-gov-east-1",
 				VolumeIDs:        []string{"volume-1"},
 			},
@@ -682,10 +683,10 @@ func TestServiceReconcileBastionUSGOV(t *testing.T) {
 								ID: "vpcID",
 							},
 							Subnets: infrav1.Subnets{
-								{
+								infrav1.SubnetSpec{
 									ID: "subnet-1",
 								},
-								{
+								infrav1.SubnetSpec{
 									ID:       "subnet-2",
 									IsPublic: true,
 								},

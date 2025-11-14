@@ -24,11 +24,12 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util/test/builder"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/test/builder"
 )
 
 func TestEnsurePausedCondition(t *testing.T) {
@@ -48,10 +49,10 @@ func TestEnsurePausedCondition(t *testing.T) {
 
 	// Cluster Case 2: paused
 	pausedCluster := normalCluster.DeepCopy()
-	pausedCluster.Spec.Paused = true
+	pausedCluster.Spec.Paused = ptr.To(true)
 
 	// Object case 1: unpaused
-	obj := &builder.Phase1Obj{ObjectMeta: metav1.ObjectMeta{
+	obj := &builder.Phase2Obj{ObjectMeta: metav1.ObjectMeta{
 		Name:      "some-object",
 		Namespace: "default",
 	}}
@@ -96,7 +97,7 @@ func TestEnsurePausedCondition(t *testing.T) {
 			g := NewWithT(t)
 			ctx := context.Background()
 
-			c := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(&clusterv1.Cluster{}, &builder.Phase1Obj{}).
+			c := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(&clusterv1.Cluster{}, &builder.Phase2Obj{}).
 				WithObjects(tt.object, tt.cluster).Build()
 
 			g.Expect(c.Get(ctx, client.ObjectKeyFromObject(tt.object), tt.object)).To(Succeed())

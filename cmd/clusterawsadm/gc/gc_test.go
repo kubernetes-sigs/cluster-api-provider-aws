@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -31,7 +31,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/annotations"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
 )
 
@@ -105,7 +105,7 @@ func TestEnableGC(t *testing.T) {
 			cluster := tc.existingObjs[0].(*clusterv1.Cluster)
 			ref := cluster.Spec.InfrastructureRef
 
-			obj, err := external.Get(ctx, fake, ref)
+			obj, err := external.GetObjectFromContractVersionedRef(ctx, fake, ref, cluster.Namespace)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(obj).NotTo(BeNil())
 
@@ -176,7 +176,7 @@ func TestDisableGC(t *testing.T) {
 			cluster := tc.existingObjs[0].(*clusterv1.Cluster)
 			ref := cluster.Spec.InfrastructureRef
 
-			obj, err := external.Get(ctx, fake, ref)
+			obj, err := external.GetObjectFromContractVersionedRef(ctx, fake, ref, cluster.Namespace)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(obj).NotTo(BeNil())
 
@@ -271,7 +271,7 @@ func TestConfigureGC(t *testing.T) {
 			cluster := tc.existingObjs[0].(*clusterv1.Cluster)
 			ref := cluster.Spec.InfrastructureRef
 
-			obj, err := external.Get(ctx, fake, ref)
+			obj, err := external.GetObjectFromContractVersionedRef(ctx, fake, ref, cluster.Namespace)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(obj).NotTo(BeNil())
 
@@ -289,7 +289,66 @@ func TestConfigureGC(t *testing.T) {
 }
 
 func newFakeClient(scheme *runtime.Scheme, objs ...client.Object) client.Client {
-	return fake.NewClientBuilder().WithScheme(scheme).WithObjects(objs...).Build()
+	// Add CRDs to the fake client so external.GetObjectFromContractVersionedRef can find them
+	crds := []client.Object{
+		&apiextensionsv1.CustomResourceDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "awsmanagedcontrolplanes.controlplane.cluster.x-k8s.io",
+				Labels: map[string]string{
+					"cluster.x-k8s.io/v1beta1": "v1beta2",
+				},
+			},
+			Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+				Group: ekscontrolplanev1.GroupVersion.Group,
+				Names: apiextensionsv1.CustomResourceDefinitionNames{
+					Kind:   "AWSManagedControlPlane",
+					Plural: "awsmanagedcontrolplanes",
+				},
+				Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
+					{
+						Name:    "v1beta2",
+						Served:  true,
+						Storage: true,
+						Schema: &apiextensionsv1.CustomResourceValidation{
+							OpenAPIV3Schema: &apiextensionsv1.JSONSchemaProps{
+								Type: "object",
+							},
+						},
+					},
+				},
+			},
+		},
+		&apiextensionsv1.CustomResourceDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "awsclusters.infrastructure.cluster.x-k8s.io",
+				Labels: map[string]string{
+					"cluster.x-k8s.io/v1beta1": "v1beta2",
+				},
+			},
+			Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+				Group: infrav1.GroupVersion.Group,
+				Names: apiextensionsv1.CustomResourceDefinitionNames{
+					Kind:   "AWSCluster",
+					Plural: "awsclusters",
+				},
+				Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
+					{
+						Name:    "v1beta2",
+						Served:  true,
+						Storage: true,
+						Schema: &apiextensionsv1.CustomResourceValidation{
+							OpenAPIV3Schema: &apiextensionsv1.JSONSchemaProps{
+								Type: "object",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	allObjs := append(crds, objs...)
+	return fake.NewClientBuilder().WithScheme(scheme).WithObjects(allObjs...).Build()
 }
 
 func newManagedCluster(name string, excludeInfra bool) []client.Object {
@@ -304,11 +363,10 @@ func newManagedCluster(name string, excludeInfra bool) []client.Object {
 				Namespace: "default",
 			},
 			Spec: clusterv1.ClusterSpec{
-				InfrastructureRef: &corev1.ObjectReference{
-					Name:       name,
-					Namespace:  "default",
-					Kind:       "AWSManagedControlPlane",
-					APIVersion: ekscontrolplanev1.GroupVersion.String(),
+				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+					Name:     name,
+					Kind:     "AWSManagedControlPlane",
+					APIGroup: ekscontrolplanev1.GroupVersion.Group,
 				},
 			},
 		},
@@ -351,11 +409,10 @@ func newUnManagedCluster(name string, excludeInfra bool) []client.Object {
 				Namespace: "default",
 			},
 			Spec: clusterv1.ClusterSpec{
-				InfrastructureRef: &corev1.ObjectReference{
-					Name:       name,
-					Namespace:  "default",
-					Kind:       "AWSCluster",
-					APIVersion: infrav1.GroupVersion.String(),
+				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+					Name:     name,
+					Kind:     "AWSCluster",
+					APIGroup: infrav1.GroupVersion.Group,
 				},
 			},
 		},
