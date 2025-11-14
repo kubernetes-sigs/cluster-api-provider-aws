@@ -509,7 +509,7 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 		return ctrl.Result{}, nil
 	}
 
-	if !*machineScope.Cluster.Status.Initialization.InfrastructureProvisioned {
+	if !ptr.Deref(machineScope.Cluster.Status.Initialization.InfrastructureProvisioned, false) {
 		machineScope.Info("Cluster infrastructure is not ready yet")
 		v1beta1conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, infrav1.WaitingForClusterInfrastructureReason, clusterv1beta1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil

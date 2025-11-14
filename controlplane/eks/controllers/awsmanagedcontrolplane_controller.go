@@ -314,7 +314,7 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 	// infrastructureRef and controlplaneRef.
 	if managedScope.Cluster.Spec.InfrastructureRef.Kind != awsManagedControlPlaneKind {
 		// Wait for the cluster infrastructure to be ready before creating machines
-		if !*managedScope.Cluster.Status.Initialization.InfrastructureProvisioned {
+		if !ptr.Deref(managedScope.Cluster.Status.Initialization.InfrastructureProvisioned, false) {
 			managedScope.Info("Cluster infrastructure is not ready yet")
 			return ctrl.Result{RequeueAfter: r.WaitInfraPeriod}, nil
 		}

@@ -40,7 +40,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/utils"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 // GetRunningInstanceByTags returns the existing instance or nothing if it doesn't exist.
@@ -124,19 +123,6 @@ func (s *Service) CreateInstance(ctx context.Context, scope *scope.MachineScope,
 		NetworkInterfaceType: scope.AWSMachine.Spec.NetworkInterfaceType,
 	}
 
-	if err := clusterv1beta1.AddToScheme(s.scheme); err != nil {
-		return nil, fmt.Errorf("error adding clusterv1beta1 to schema for conversion: %s", err)
-	}
-	if err := clusterv1.AddToScheme(s.scheme); err != nil {
-		return nil, fmt.Errorf("error adding clusterv1 to schema for conversion: %s", err)
-	}
-
-	var v1beta1Machine clusterv1beta1.Machine
-	// Convert v1beta1 to v1beta2
-	if err := s.scheme.Convert(scope.Machine, &v1beta1Machine, nil); err != nil {
-		return nil, fmt.Errorf("error converting v1beta2.Machine to v1beta1.Machine: %s", err)
-	}
-
 	// Make sure to use the MachineScope here to get the merger of AWSCluster and AWSMachine tags
 	additionalTags := scope.AdditionalTags()
 	input.Tags = infrav1.Build(infrav1.BuildParams{
@@ -145,7 +131,7 @@ func (s *Service) CreateInstance(ctx context.Context, scope *scope.MachineScope,
 		Name:        aws.String(scope.Name()),
 		Role:        aws.String(scope.Role()),
 		Additional:  additionalTags,
-	}.WithCloudProvider(s.scope.KubernetesClusterName()).WithMachineName(&v1beta1Machine))
+	}.WithCloudProvider(s.scope.KubernetesClusterName()).WithMachineName(scope.Machine))
 
 	var err error
 
