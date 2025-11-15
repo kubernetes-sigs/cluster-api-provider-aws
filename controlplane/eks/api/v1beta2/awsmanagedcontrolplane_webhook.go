@@ -372,51 +372,53 @@ func (r *AWSManagedControlPlane) validateAccessConfigCreate() field.ErrorList {
 func (r *AWSManagedControlPlane) validateAccessEntries() field.ErrorList {
 	var allErrs field.ErrorList
 
-	if len(r.Spec.AccessEntries) > 0 {
-		// AccessEntries require AuthenticationMode to be api or api_and_config_map
-		if r.Spec.AccessConfig == nil ||
-			(r.Spec.AccessConfig.AuthenticationMode != EKSAuthenticationModeAPI &&
-				r.Spec.AccessConfig.AuthenticationMode != EKSAuthenticationModeAPIAndConfigMap) {
-			allErrs = append(allErrs,
-				field.Invalid(field.NewPath("spec", "accessEntries"),
-					r.Spec.AccessEntries,
-					"accessEntries can only be used when authenticationMode is set to api or api_and_config_map",
-				),
-			)
-		}
+	if len(r.Spec.AccessEntries) == 0 {
+		return allErrs
+	}
 
-		for i, entry := range r.Spec.AccessEntries {
-			// Validate that EC2 types don't have kubernetes groups or access policies
-			if entry.Type == AccessEntryTypeEC2Linux || entry.Type == AccessEntryTypeEC2Windows {
-				if len(entry.KubernetesGroups) > 0 {
-					allErrs = append(allErrs,
-						field.Invalid(field.NewPath("spec", "accessEntries").Index(i).Child("kubernetesGroups"),
-							entry.KubernetesGroups,
-							"kubernetesGroups cannot be specified when type is ec2_linux or ec2_windows",
-						),
-					)
-				}
+	// AccessEntries require AuthenticationMode to be api or api_and_config_map
+	if r.Spec.AccessConfig == nil ||
+		(r.Spec.AccessConfig.AuthenticationMode != EKSAuthenticationModeAPI &&
+			r.Spec.AccessConfig.AuthenticationMode != EKSAuthenticationModeAPIAndConfigMap) {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec", "accessEntries"),
+				r.Spec.AccessEntries,
+				"accessEntries can only be used when authenticationMode is set to api or api_and_config_map",
+			),
+		)
+	}
 
-				if len(entry.AccessPolicies) > 0 {
-					allErrs = append(allErrs,
-						field.Invalid(field.NewPath("spec", "accessEntries").Index(i).Child("accessPolicies"),
-							entry.AccessPolicies,
-							"accessPolicies cannot be specified when type is ec2_linux or ec2_windows",
-						),
-					)
-				}
+	for i, entry := range r.Spec.AccessEntries {
+		// Validate that EC2 types don't have kubernetes groups or access policies
+		if entry.Type == AccessEntryTypeEC2Linux || entry.Type == AccessEntryTypeEC2Windows {
+			if len(entry.KubernetesGroups) > 0 {
+				allErrs = append(allErrs,
+					field.Invalid(field.NewPath("spec", "accessEntries").Index(i).Child("kubernetesGroups"),
+						entry.KubernetesGroups,
+						"kubernetesGroups cannot be specified when type is ec2_linux or ec2_windows",
+					),
+				)
 			}
 
-			// Validate namespace scopes
-			for j, policy := range entry.AccessPolicies {
-				if policy.AccessScope.Type == AccessScopeTypeNamespace && len(policy.AccessScope.Namespaces) == 0 {
-					allErrs = append(allErrs,
-						field.Invalid(field.NewPath("spec", "accessEntries").Index(i).Child("accessPolicies").Index(j).Child("accessScope", "namespaces"),
-							policy.AccessScope.Namespaces,
-							"at least one value must be provided when accessScope type is namespace",
-						),
-					)
-				}
+			if len(entry.AccessPolicies) > 0 {
+				allErrs = append(allErrs,
+					field.Invalid(field.NewPath("spec", "accessEntries").Index(i).Child("accessPolicies"),
+						entry.AccessPolicies,
+						"accessPolicies cannot be specified when type is ec2_linux or ec2_windows",
+					),
+				)
+			}
+		}
+
+		// Validate namespace scopes
+		for j, policy := range entry.AccessPolicies {
+			if policy.AccessScope.Type == AccessScopeTypeNamespace && len(policy.AccessScope.Namespaces) == 0 {
+				allErrs = append(allErrs,
+					field.Invalid(field.NewPath("spec", "accessEntries").Index(i).Child("accessPolicies").Index(j).Child("accessScope", "namespaces"),
+						policy.AccessScope.Namespaces,
+						"at least one value must be provided when accessScope type is namespace",
+					),
+				)
 			}
 		}
 	}
