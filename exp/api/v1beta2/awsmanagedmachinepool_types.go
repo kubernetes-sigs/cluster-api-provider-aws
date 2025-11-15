@@ -177,8 +177,9 @@ type AWSManagedMachinePoolSpec struct {
 	DiskSize *int32 `json:"diskSize,omitempty"`
 
 	// InstanceType specifies the AWS instance type.
-	// This field is deprecated. Use InstanceTypes instead.
+	// Deprecated: Use InstanceTypes instead.
 	// +optional
+	// +kubebuilder:validation:Deprecated
 	InstanceType *string `json:"instanceType,omitempty"`
 
 	// InstanceTypes specifies a list of AWS instance types for the node group.
