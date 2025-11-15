@@ -258,6 +258,12 @@ type AWSMachineSpec struct {
 	// +optional
 	HostResourceGroupArn *string `json:"hostResourceGroupArn,omitempty"`
 
+	// LicenseConfigurationArns specifies the License Configuration ARNs to associate with the instance.
+	// This field is required when HostResourceGroupArn is specified to ensure proper license compliance.
+	// +kubebuilder:validation:MaxItems=10
+	// +optional
+	LicenseConfigurationArns []string `json:"licenseConfigurationArns,omitempty"`
+
 	// HostAffinity specifies the dedicated host affinity setting for the instance.
 	// When HostAffinity is set to host, an instance started onto a specific host always restarts on the same host if stopped.
 	// When HostAffinity is set to default, and you stop and restart the instance, it can be restarted on any available host.

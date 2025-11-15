@@ -497,6 +497,13 @@ func (r *AWSMachine) validateHostAllocation() field.ErrorList {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"), "hostID, hostResourceGroupArn, and dynamicHostAllocation are mutually exclusive"))
 	}
 
+	// Validate licenseConfigurationArns is required when hostResourceGroupArn is specified
+	if hasHostResourceGroupArn {
+		if len(r.Spec.LicenseConfigurationArns) == 0 {
+			allErrs = append(allErrs, field.Required(field.NewPath("spec", "licenseConfigurationArns"), "licenseConfigurationArns is required when hostResourceGroupArn is specified"))
+		}
+	}
+
 	return allErrs
 }
 

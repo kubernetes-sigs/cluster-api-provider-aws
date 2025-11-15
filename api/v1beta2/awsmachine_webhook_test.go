@@ -648,6 +648,27 @@ func TestAWSMachineCreate(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "hostResourceGroupArn without licenseConfigurationArns should fail",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType:         "test",
+					HostResourceGroupArn: aws.String("arn:aws:resource-groups:us-west-2:123456789012:group/test-group"),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "hostResourceGroupArn with licenseConfigurationArns should succeed",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType:             "test",
+					HostResourceGroupArn:     aws.String("arn:aws:resource-groups:us-west-2:123456789012:group/test-group"),
+					LicenseConfigurationArns: []string{"arn:aws:license-manager:us-west-2:259732043995:license-configuration:lic-4acd3f7c117b9e314cce36e46084d071"},
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

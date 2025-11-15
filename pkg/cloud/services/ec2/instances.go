@@ -276,6 +276,7 @@ func (s *Service) CreateInstance(ctx context.Context, scope *scope.MachineScope,
 		// Use static host allocation if specified
 		input.HostID = scope.AWSMachine.Spec.HostID
 		input.HostResourceGroupArn = scope.AWSMachine.Spec.HostResourceGroupArn
+		input.LicenseConfigurationArns = scope.AWSMachine.Spec.LicenseConfigurationArns
 		input.HostAffinity = scope.AWSMachine.Spec.HostAffinity
 	}
 
@@ -752,9 +753,15 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 			Affinity:             i.HostAffinity,
 			HostResourceGroupArn: i.HostResourceGroupArn,
 		}
-		// input.LicenseSpecifications = &types.LicenseConfiguration{
-		// 	LicenseConfigurationArn: ,
-		// }
+		if len(i.LicenseConfigurationArns) > 0 {
+			licenseSpecs := make([]types.LicenseConfigurationRequest, len(i.LicenseConfigurationArns))
+			for idx, arn := range i.LicenseConfigurationArns {
+				licenseSpecs[idx] = types.LicenseConfigurationRequest{
+					LicenseConfigurationArn: aws.String(arn),
+				}
+			}
+			input.LicenseSpecifications = licenseSpecs
+		}
 	}
 
 	out, err := s.EC2Client.RunInstances(context.TODO(), input)
@@ -1016,6 +1023,21 @@ func (s *Service) SDKToInstance(v types.Instance) (*infrav1.Instance, error) {
 			EnableResourceNameDNSAAAARecord: v.PrivateDnsNameOptions.EnableResourceNameDnsAAAARecord,
 			EnableResourceNameDNSARecord:    v.PrivateDnsNameOptions.EnableResourceNameDnsARecord,
 			HostnameType:                    aws.String(string(v.PrivateDnsNameOptions.HostnameType)),
+		}
+	}
+
+	// Extract host allocation information from placement
+	if v.Placement != nil {
+		i.HostID = v.Placement.HostId
+		i.HostResourceGroupArn = v.Placement.HostResourceGroupArn
+		i.HostAffinity = v.Placement.Affinity
+	}
+
+	// Extract license configuration ARNs from license specifications
+	if len(v.Licenses) > 0 {
+		i.LicenseConfigurationArns = make([]string, len(v.Licenses))
+		for idx, license := range v.Licenses {
+			i.LicenseConfigurationArns[idx] = aws.ToString(license.LicenseConfigurationArn)
 		}
 	}
 
