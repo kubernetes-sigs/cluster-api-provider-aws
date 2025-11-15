@@ -933,7 +933,7 @@ spec:
               instanceType:
                 description: |-
                   InstanceType specifies the AWS instance type.
-                  This field is deprecated. Use InstanceTypes instead.
+                  Deprecated: Use InstanceTypes instead.
                 type: string
               instanceTypes:
                 description: |-
