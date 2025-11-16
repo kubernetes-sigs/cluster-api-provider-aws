@@ -277,4 +277,3 @@ func (s *Service) getExistingAccessPolicies(ctx context.Context, principalARN st
 
 	return existingPolicies, nil
 }
-
