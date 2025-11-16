@@ -108,7 +108,6 @@ func getEKSCluster(ctx context.Context, eksClusterName string, sess *aws.Config)
 		Name: aws.String(eksClusterName),
 	}
 	result, err := eksClient.DescribeCluster(ctx, input)
-
 	if err != nil {
 		return nil, err
 	}
@@ -281,8 +280,8 @@ func verifyAccessEntries(ctx context.Context, eksClusterName string, expectedEnt
 		})
 		Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("failed to describe access entry: %s", principalARN))
 
-		Expect(describeOutput.AccessEntry.Type).To(Equal(expectedEntry.Type), "access entry type does not match")
-		Expect(describeOutput.AccessEntry.Username).To(Equal(expectedEntry.Username), "access entry username does not match")
+		Expect(describeOutput.AccessEntry.Type).To(HaveValue(BeEquivalentTo(expectedEntry.Type)), "access entry type does not match")
+		Expect(describeOutput.AccessEntry.Username).To(HaveValue(BeEquivalentTo(expectedEntry.Username)), "access entry username does not match")
 
 		if len(expectedEntry.KubernetesGroups) > 0 {
 			slices.Sort(expectedEntry.KubernetesGroups)
@@ -306,7 +305,7 @@ func verifyAccessEntries(ctx context.Context, eksClusterName string, expectedEnt
 				expectedPolicy, exists := expectedPolicies[*policy.PolicyArn]
 				Expect(exists).To(BeTrue(), fmt.Sprintf("unexpected access policy: %s", *policy.PolicyArn))
 
-				Expect(policy.AccessScope.Type).To(Equal(expectedPolicy.AccessScope.Type), "access policy scope type does not match")
+				Expect(policy.AccessScope.Type).To(BeEquivalentTo(expectedPolicy.AccessScope.Type), "access policy scope type does not match")
 
 				if expectedPolicy.AccessScope.Type == "namespace" {
 					slices.Sort(expectedPolicy.AccessScope.Namespaces)
