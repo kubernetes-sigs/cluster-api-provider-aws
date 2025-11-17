@@ -1125,24 +1125,6 @@ func (s *Service) checkRootVolume(rootVolume *infrav1.Volume, imageID string) (*
 	return rootDeviceName, nil
 }
 
-// ModifyInstanceMetadataOptions modifies the metadata options of the given EC2 instance.
-func (s *Service) ModifyInstanceMetadataOptions(instanceID string, options *infrav1.InstanceMetadataOptions) error {
-	input := &ec2.ModifyInstanceMetadataOptionsInput{
-		HttpEndpoint:            types.InstanceMetadataEndpointState(string(options.HTTPEndpoint)),
-		HttpPutResponseHopLimit: utils.ToInt32Pointer(&options.HTTPPutResponseHopLimit),
-		HttpTokens:              types.HttpTokensState(string(options.HTTPTokens)),
-		InstanceMetadataTags:    types.InstanceMetadataTagsState(string(options.InstanceMetadataTags)),
-		InstanceId:              aws.String(instanceID),
-	}
-
-	s.scope.Info("Updating instance metadata options", "instance id", instanceID, "options", input)
-	if _, err := s.EC2Client.ModifyInstanceMetadataOptions(context.TODO(), input); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // GetDHCPOptionSetDomainName returns the domain DNS name for the VPC from the DHCP Options.
 func (s *Service) GetDHCPOptionSetDomainName(ec2client common.EC2API, vpcID *string) *string {
 	log := s.scope.GetLogger()
