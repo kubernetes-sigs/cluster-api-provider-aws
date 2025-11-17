@@ -226,9 +226,9 @@ func DefaultScheme() *runtime.Scheme {
 	framework.TryAddDefaultSchemes(sc)
 
 	// Temporary add v1beta1 scheme as long as the e2e tests use v1beta1 templates
-	clusterv1beta1.AddToScheme(sc)
-	bootstrapv1beta1.AddToScheme(sc)
-	controlplanev1beta1.AddToScheme(sc)
+	_ = clusterv1beta1.AddToScheme(sc)
+	_ = bootstrapv1beta1.AddToScheme(sc)
+	_ = controlplanev1beta1.AddToScheme(sc)
 
 	_ = infrav1.AddToScheme(sc)
 	_ = cgscheme.AddToScheme(sc)
