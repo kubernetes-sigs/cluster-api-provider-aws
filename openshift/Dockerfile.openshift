@@ -4,16 +4,16 @@ WORKDIR /build
 COPY . .
 RUN GO111MODULE=on CGO_ENABLED=0 GOOS=${GOOS} GOPROXY=${GOPROXY} go build \
   -ldflags="-w -s -X 'main.version=${VERSION}'" \
-  -o=cluster-api-provider-aws-controller-manager \
+  -o=manager \
   main.go
 
 FROM registry.ci.openshift.org/ocp/4.21:base-rhel9
 
 LABEL description="Cluster API Provider AWS Controller Manager"
 
-COPY --from=builder /build/cluster-api-provider-aws-controller-manager /bin/cluster-api-provider-aws-controller-manager
+COPY --from=builder /build/manager /manager
 COPY --from=builder /build/openshift/manifests /manifests
 
-ENTRYPOINT [ "/bin/cluster-api-provider-aws-controller-manager" ]
+ENTRYPOINT [ "/manager" ]
 
 LABEL io.openshift.release.operator true
