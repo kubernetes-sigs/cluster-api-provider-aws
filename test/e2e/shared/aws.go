@@ -919,6 +919,7 @@ func DumpCloudTrailEvents(e2eCtx *E2EContext) {
 		page, err := paginator.NextPage(context.TODO())
 		if err != nil {
 			fmt.Fprintf(GinkgoWriter, "Couldn't get AWS CloudTrail events: err=%v\n", err)
+			break
 		}
 		events = append(events, page.Events...)
 	}
