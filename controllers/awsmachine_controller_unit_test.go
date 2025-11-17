@@ -87,6 +87,12 @@ func TestAWSMachineReconciler(t *testing.T) {
 		}
 		klog.SetOutput(GinkgoWriter)
 
+		// Ensure InstanceMetadataOptions defaults are set (webhook sets these normally, but not in unit tests)
+		if awsMachine.Spec.InstanceMetadataOptions == nil {
+			awsMachine.Spec.InstanceMetadataOptions = &infrav1.InstanceMetadataOptions{}
+			awsMachine.Spec.InstanceMetadataOptions.SetDefaults()
+		}
+
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "bootstrap-data",
@@ -346,6 +352,12 @@ func TestAWSMachineReconciler(t *testing.T) {
 				instance = &infrav1.Instance{
 					ID:        "myMachine",
 					VolumeIDs: []string{"volume-1", "volume-2"},
+					InstanceMetadataOptions: &infrav1.InstanceMetadataOptions{
+						HTTPEndpoint:            infrav1.InstanceMetadataEndpointStateEnabled,
+						HTTPPutResponseHopLimit: 1,
+						HTTPTokens:              infrav1.HTTPTokensStateOptional,
+						InstanceMetadataTags:    infrav1.InstanceMetadataEndpointStateDisabled,
+					},
 				}
 				instance.State = infrav1.InstanceStatePending
 
@@ -752,6 +764,12 @@ func TestAWSMachineReconciler(t *testing.T) {
 					ID:               "myMachine",
 					VolumeIDs:        []string{"volume-1", "volume-2"},
 					AvailabilityZone: "us-east-1",
+					InstanceMetadataOptions: &infrav1.InstanceMetadataOptions{
+						HTTPEndpoint:            infrav1.InstanceMetadataEndpointStateEnabled,
+						HTTPPutResponseHopLimit: 1,
+						HTTPTokens:              infrav1.HTTPTokensStateOptional,
+						InstanceMetadataTags:    infrav1.InstanceMetadataEndpointStateDisabled,
+					},
 				}
 				instance.State = infrav1.InstanceStatePending
 			}
@@ -1008,6 +1026,12 @@ func TestAWSMachineReconciler(t *testing.T) {
 				instance = &infrav1.Instance{
 					ID:    "myMachine",
 					State: infrav1.InstanceStatePending,
+					InstanceMetadataOptions: &infrav1.InstanceMetadataOptions{
+						HTTPEndpoint:            infrav1.InstanceMetadataEndpointStateEnabled,
+						HTTPPutResponseHopLimit: 1,
+						HTTPTokens:              infrav1.HTTPTokensStateOptional,
+						InstanceMetadataTags:    infrav1.InstanceMetadataEndpointStateDisabled,
+					},
 				}
 
 				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, nil).AnyTimes()
@@ -1045,6 +1069,12 @@ func TestAWSMachineReconciler(t *testing.T) {
 				instance = &infrav1.Instance{
 					ID:    "myMachine",
 					State: infrav1.InstanceStatePending,
+					InstanceMetadataOptions: &infrav1.InstanceMetadataOptions{
+						HTTPEndpoint:            infrav1.InstanceMetadataEndpointStateEnabled,
+						HTTPPutResponseHopLimit: 1,
+						HTTPTokens:              infrav1.HTTPTokensStateOptional,
+						InstanceMetadataTags:    infrav1.InstanceMetadataEndpointStateDisabled,
+					},
 				}
 
 				ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(nil, nil).AnyTimes()
@@ -1069,6 +1099,12 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				instance = &infrav1.Instance{
 					ID: "myMachine",
+					InstanceMetadataOptions: &infrav1.InstanceMetadataOptions{
+						HTTPEndpoint:            infrav1.InstanceMetadataEndpointStateEnabled,
+						HTTPPutResponseHopLimit: 1,
+						HTTPTokens:              infrav1.HTTPTokensStateOptional,
+						InstanceMetadataTags:    infrav1.InstanceMetadataEndpointStateDisabled,
+					},
 				}
 
 				ms.Machine.Status.NodeRef = &corev1.ObjectReference{
@@ -1205,6 +1241,12 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				instance = &infrav1.Instance{
 					ID: "myMachine",
+					InstanceMetadataOptions: &infrav1.InstanceMetadataOptions{
+						HTTPEndpoint:            infrav1.InstanceMetadataEndpointStateEnabled,
+						HTTPPutResponseHopLimit: 1,
+						HTTPTokens:              infrav1.HTTPTokensStateOptional,
+						InstanceMetadataTags:    infrav1.InstanceMetadataEndpointStateDisabled,
+					},
 				}
 
 				ms.AWSMachine.Spec.CloudInit = infrav1.CloudInit{
@@ -1302,6 +1344,12 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				instance = &infrav1.Instance{
 					ID: "myMachine",
+					InstanceMetadataOptions: &infrav1.InstanceMetadataOptions{
+						HTTPEndpoint:            infrav1.InstanceMetadataEndpointStateEnabled,
+						HTTPPutResponseHopLimit: 1,
+						HTTPTokens:              infrav1.HTTPTokensStateOptional,
+						InstanceMetadataTags:    infrav1.InstanceMetadataEndpointStateDisabled,
+					},
 				}
 				instance.State = infrav1.InstanceStatePending
 				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return(secretPrefix, int32(1), nil).Times(1)
@@ -1354,6 +1402,12 @@ func TestAWSMachineReconciler(t *testing.T) {
 					instance = &infrav1.Instance{
 						ID:    "myMachine",
 						State: infrav1.InstanceStatePending,
+						InstanceMetadataOptions: &infrav1.InstanceMetadataOptions{
+							HTTPEndpoint:            infrav1.InstanceMetadataEndpointStateEnabled,
+							HTTPPutResponseHopLimit: 1,
+							HTTPTokens:              infrav1.HTTPTokensStateOptional,
+							InstanceMetadataTags:    infrav1.InstanceMetadataEndpointStateDisabled,
+						},
 					}
 					fakeS3URL := "s3://foo"
 
@@ -1387,6 +1441,12 @@ func TestAWSMachineReconciler(t *testing.T) {
 					instance = &infrav1.Instance{
 						ID:    "myMachine",
 						State: infrav1.InstanceStatePending,
+						InstanceMetadataOptions: &infrav1.InstanceMetadataOptions{
+							HTTPEndpoint:            infrav1.InstanceMetadataEndpointStateEnabled,
+							HTTPPutResponseHopLimit: 1,
+							HTTPTokens:              infrav1.HTTPTokensStateOptional,
+							InstanceMetadataTags:    infrav1.InstanceMetadataEndpointStateDisabled,
+						},
 					}
 
 					//nolint:gosec
@@ -1414,6 +1474,12 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 					instance = &infrav1.Instance{
 						ID: "myMachine",
+						InstanceMetadataOptions: &infrav1.InstanceMetadataOptions{
+							HTTPEndpoint:            infrav1.InstanceMetadataEndpointStateEnabled,
+							HTTPPutResponseHopLimit: 1,
+							HTTPTokens:              infrav1.HTTPTokensStateOptional,
+							InstanceMetadataTags:    infrav1.InstanceMetadataEndpointStateDisabled,
+						},
 					}
 
 					ms.Machine.Status.NodeRef = &corev1.ObjectReference{
@@ -1497,6 +1563,12 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 					instance = &infrav1.Instance{
 						ID: "myMachine",
+						InstanceMetadataOptions: &infrav1.InstanceMetadataOptions{
+							HTTPEndpoint:            infrav1.InstanceMetadataEndpointStateEnabled,
+							HTTPPutResponseHopLimit: 1,
+							HTTPTokens:              infrav1.HTTPTokensStateOptional,
+							InstanceMetadataTags:    infrav1.InstanceMetadataEndpointStateDisabled,
+						},
 					}
 					ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(instance, nil).AnyTimes()
 				}
@@ -1606,6 +1678,12 @@ func TestAWSMachineReconciler(t *testing.T) {
 					instance = &infrav1.Instance{
 						ID:    "myMachine",
 						State: infrav1.InstanceStatePending,
+						InstanceMetadataOptions: &infrav1.InstanceMetadataOptions{
+							HTTPEndpoint:            infrav1.InstanceMetadataEndpointStateEnabled,
+							HTTPPutResponseHopLimit: 1,
+							HTTPTokens:              infrav1.HTTPTokensStateOptional,
+							InstanceMetadataTags:    infrav1.InstanceMetadataEndpointStateDisabled,
+						},
 					}
 					fakeS3URL := "s3://foo"
 
