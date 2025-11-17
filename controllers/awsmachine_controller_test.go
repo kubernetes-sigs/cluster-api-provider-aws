@@ -585,6 +585,12 @@ func getAWSMachine() *infrav1.AWSMachine {
 			},
 			InstanceType: "test",
 			Subnet:       &infrav1.AWSResourceReference{ID: aws.String("subnet-1")},
+			InstanceMetadataOptions: &infrav1.InstanceMetadataOptions{
+				HTTPEndpoint:            infrav1.InstanceMetadataEndpointStateEnabled,
+				HTTPPutResponseHopLimit: 1,
+				HTTPTokens:              infrav1.HTTPTokensStateOptional,
+				InstanceMetadataTags:    infrav1.InstanceMetadataEndpointStateDisabled,
+			},
 		},
 	}
 }
