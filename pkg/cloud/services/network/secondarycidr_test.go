@@ -67,10 +67,10 @@ func TestServiceAssociateSecondaryCidr(t *testing.T) {
 
 	tests := []struct {
 		name                                    string
-		fillAWSManagedControlPlaneSecondaryCIDR bool
+		fillAWSManagedControlPlaneSecondaryCIDR bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		networkSecondaryCIDRBlocks              []infrav1.VpcCidrBlock
 		expect                                  func(m *mocks.MockEC2APIMockRecorder)
-		wantErr                                 bool
+		wantErr                                 bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name:                                    "Should not associate secondary CIDR if no secondary cidr block info present in control plane",
@@ -247,11 +247,11 @@ func TestServiceDiassociateSecondaryCidr(t *testing.T) {
 
 	tests := []struct {
 		name                                    string
-		fillAWSManagedControlPlaneSecondaryCIDR bool
-		unmanagedVPC                            bool
+		fillAWSManagedControlPlaneSecondaryCIDR bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+		unmanagedVPC                            bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		networkSecondaryCIDRBlocks              []infrav1.VpcCidrBlock
 		expect                                  func(m *mocks.MockEC2APIMockRecorder)
-		wantErr                                 bool
+		wantErr                                 bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name:                                    "Should not disassociate secondary CIDR if no secondary cidr block info present in control plane",

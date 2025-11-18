@@ -95,7 +95,7 @@ type AWSMachinePoolSpec struct {
 
 	// Enable or disable the capacity rebalance autoscaling group feature
 	// +optional
-	CapacityRebalance bool `json:"capacityRebalance,omitempty"`
+	CapacityRebalance bool `json:"capacityRebalance,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// SuspendProcesses defines a list of processes to suspend for the given ASG. This is constantly reconciled.
 	// If a process is removed from this list it will automatically be resumed.
@@ -112,21 +112,21 @@ type AWSMachinePoolSpec struct {
 
 // SuspendProcessesTypes contains user friendly auto-completable values for suspended process names.
 type SuspendProcessesTypes struct {
-	All       bool       `json:"all,omitempty"`
+	All       bool       `json:"all,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	Processes *Processes `json:"processes,omitempty"`
 }
 
 // Processes defines the processes which can be enabled or disabled individually.
 type Processes struct {
-	Launch            *bool `json:"launch,omitempty"`
-	Terminate         *bool `json:"terminate,omitempty"`
-	AddToLoadBalancer *bool `json:"addToLoadBalancer,omitempty"`
-	AlarmNotification *bool `json:"alarmNotification,omitempty"`
-	AZRebalance       *bool `json:"azRebalance,omitempty"`
-	HealthCheck       *bool `json:"healthCheck,omitempty"`
-	InstanceRefresh   *bool `json:"instanceRefresh,omitempty"`
-	ReplaceUnhealthy  *bool `json:"replaceUnhealthy,omitempty"`
-	ScheduledActions  *bool `json:"scheduledActions,omitempty"`
+	Launch            *bool `json:"launch,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+	Terminate         *bool `json:"terminate,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+	AddToLoadBalancer *bool `json:"addToLoadBalancer,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+	AlarmNotification *bool `json:"alarmNotification,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+	AZRebalance       *bool `json:"azRebalance,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+	HealthCheck       *bool `json:"healthCheck,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+	InstanceRefresh   *bool `json:"instanceRefresh,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+	ReplaceUnhealthy  *bool `json:"replaceUnhealthy,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+	ScheduledActions  *bool `json:"scheduledActions,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 }
 
 // ConvertSetValuesToStringSlice converts all the values that are set into a string slice for further processing.
@@ -161,7 +161,7 @@ type RefreshPreferences struct {
 	// Disable, if true, disables instance refresh from triggering when new launch templates are detected.
 	// This is useful in scenarios where ASG nodes are externally managed.
 	// +optional
-	Disable bool `json:"disable,omitempty"`
+	Disable bool `json:"disable,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// The strategy to use for the instance refresh. The only valid value is Rolling.
 	// A rolling update is an update that is applied to all instances in an Auto
@@ -196,7 +196,7 @@ type RefreshPreferences struct {
 type AWSMachinePoolStatus struct {
 	// Ready is true when the provider resource is ready.
 	// +optional
-	Ready bool `json:"ready"`
+	Ready bool `json:"ready"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// Replicas is the most recently observed number of replicas
 	// +optional

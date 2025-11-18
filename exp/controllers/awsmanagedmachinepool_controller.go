@@ -55,10 +55,10 @@ import (
 type AWSManagedMachinePoolReconciler struct {
 	client.Client
 	Recorder                     record.EventRecorder
-	EnableIAM                    bool
-	AllowAdditionalRoles         bool
+	EnableIAM                    bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+	AllowAdditionalRoles         bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	WatchFilterValue             string
-	TagUnmanagedNetworkResources bool
+	TagUnmanagedNetworkResources bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	MaxWaitActiveUpdateDelete    time.Duration
 }
 

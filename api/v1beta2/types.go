@@ -201,10 +201,10 @@ type Instance struct {
 	PublicIP *string `json:"publicIp,omitempty"`
 
 	// Specifies whether enhanced networking with ENA is enabled.
-	ENASupport *bool `json:"enaSupport,omitempty"`
+	ENASupport *bool `json:"enaSupport,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// Indicates whether the instance is optimized for Amazon EBS I/O.
-	EBSOptimized *bool `json:"ebsOptimized,omitempty"`
+	EBSOptimized *bool `json:"ebsOptimized,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// Configuration options for the root storage volume.
 	// +optional
@@ -259,7 +259,7 @@ type Instance struct {
 
 	// PublicIPOnLaunch is the option to associate a public IP on instance launch
 	// +optional
-	PublicIPOnLaunch *bool `json:"publicIPOnLaunch,omitempty"`
+	PublicIPOnLaunch *bool `json:"publicIPOnLaunch,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// CapacityReservationID specifies the target Capacity Reservation into which the instance should be launched.
 	// +optional
@@ -479,7 +479,7 @@ type Volume struct {
 
 	// Encrypted is whether the volume should be encrypted or not.
 	// +optional
-	Encrypted *bool `json:"encrypted,omitempty"`
+	Encrypted *bool `json:"encrypted,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// EncryptionKey is the KMS key to use to encrypt the volume. Can be either a KMS key ID or ARN.
 	// If Encrypted is set and this is omitted, the default AWS key will be used.
@@ -546,10 +546,10 @@ const (
 type PrivateDNSName struct {
 	// EnableResourceNameDNSAAAARecord indicates whether to respond to DNS queries for instance hostnames with DNS AAAA records.
 	// +optional
-	EnableResourceNameDNSAAAARecord *bool `json:"enableResourceNameDnsAAAARecord,omitempty"`
+	EnableResourceNameDNSAAAARecord *bool `json:"enableResourceNameDnsAAAARecord,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	// EnableResourceNameDNSARecord indicates whether to respond to DNS queries for instance hostnames with DNS A records.
 	// +optional
-	EnableResourceNameDNSARecord *bool `json:"enableResourceNameDnsARecord,omitempty"`
+	EnableResourceNameDNSARecord *bool `json:"enableResourceNameDnsARecord,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	// The type of hostname to assign to an instance.
 	// +optional
 	// +kubebuilder:validation:Enum:=ip-name;resource-name

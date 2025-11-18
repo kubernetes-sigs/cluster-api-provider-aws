@@ -95,7 +95,7 @@ type AWSMachineSpec struct {
 	// 2. Cluster/flavor setting
 	// 3. Subnet default
 	// +optional
-	PublicIP *bool `json:"publicIP,omitempty"`
+	PublicIP *bool `json:"publicIP,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// AdditionalSecurityGroups is an array of references to security groups that should be applied to the
 	// instance. These security groups would be set in addition to any security groups defined
@@ -137,7 +137,7 @@ type AWSMachineSpec struct {
 	// user data stored in aws secret manager is always gzip-compressed.
 	//
 	// +optional
-	UncompressedUserData *bool `json:"uncompressedUserData,omitempty"`
+	UncompressedUserData *bool `json:"uncompressedUserData,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// CloudInit defines options related to the bootstrapping systems where
 	// CloudInit is used.
@@ -165,7 +165,7 @@ type CloudInit struct {
 	// or AWS Systems Manager Parameter Store to ensure privacy of userdata.
 	// By default, a cloud-init boothook shell script is prepended to download
 	// the userdata from Secrets Manager and additionally delete the secret.
-	InsecureSkipSecretsManager bool `json:"insecureSkipSecretsManager,omitempty"`
+	InsecureSkipSecretsManager bool `json:"insecureSkipSecretsManager,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// SecretCount is the number of secrets used to form the complete secret
 	// +optional
@@ -199,12 +199,12 @@ type Ignition struct {
 type AWSMachineStatus struct {
 	// Ready is true when the provider resource is ready.
 	// +optional
-	Ready bool `json:"ready"`
+	Ready bool `json:"ready"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// Interruptible reports that this machine is using spot instances and can therefore be interrupted by CAPI when it receives a notice that the spot instance is to be terminated by AWS.
 	// This will be set to true when SpotMarketOptions is not nil (i.e. this machine is using a spot instance).
 	// +optional
-	Interruptible bool `json:"interruptible,omitempty"`
+	Interruptible bool `json:"interruptible,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// Addresses contains the AWS instance associated addresses.
 	Addresses []clusterv1beta1.MachineAddress `json:"addresses,omitempty"`

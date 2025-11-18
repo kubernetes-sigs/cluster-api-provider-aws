@@ -43,8 +43,8 @@ func TestIsClusterPermittedToUsePrincipal(t *testing.T) {
 		clusterNamespace string
 		allowedNs        *infrav1.AllowedNamespaces
 		setup            func(*testing.T, client.Client)
-		expectedResult   bool
-		expectErr        bool
+		expectedResult   bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+		expectErr        bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name:             "All clusters are permitted to use identity if allowedNamespaces is empty",
@@ -239,7 +239,7 @@ func TestPrincipalParsing(t *testing.T) {
 		identity    runtime.Object
 		setup       func(*testing.T, client.Client)
 		expect      func([]identity.AWSPrincipalTypeProvider)
-		expectError bool
+		expectError bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "Default case - no Principal specified",

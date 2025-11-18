@@ -118,7 +118,7 @@ func (lim *Limiter) AllowN(now time.Time, n int) bool {
 // A Reservation holds information about events that are permitted by a Limiter to happen after a delay.
 // A Reservation may be canceled, which may enable the Limiter to permit additional events.
 type Reservation struct {
-	ok        bool
+	ok        bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	lim       *Limiter
 	tokens    int
 	timeToAct time.Time

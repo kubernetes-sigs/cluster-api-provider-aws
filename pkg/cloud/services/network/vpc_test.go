@@ -591,7 +591,7 @@ func TestDeleteVPC(t *testing.T) {
 		name           string
 		input          *infrav1.VPCSpec
 		additionalTags map[string]string
-		wantErr        bool
+		wantErr        bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		expect         func(m *mocks.MockEC2APIMockRecorder)
 	}{
 		{

@@ -85,9 +85,9 @@ func TestReconcileSubnets(t *testing.T) {
 		name                         string
 		input                        ScopeBuilder
 		expect                       func(m *mocks.MockEC2APIMockRecorder)
-		errorExpected                bool
+		errorExpected                bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		errorMessageExpected         string
-		tagUnmanagedNetworkResources bool
+		tagUnmanagedNetworkResources bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		optionalExpectSubnets        infrav1.Subnets
 	}{
 		{
@@ -4437,7 +4437,7 @@ func TestDeleteSubnets(t *testing.T) {
 		name          string
 		input         *infrav1.NetworkSpec
 		expect        func(m *mocks.MockEC2APIMockRecorder)
-		errorExpected bool
+		errorExpected bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "managed vpc - success",

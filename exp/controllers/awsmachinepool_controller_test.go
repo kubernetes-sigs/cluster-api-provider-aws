@@ -1453,7 +1453,7 @@ func TestDiffASG(t *testing.T) {
 	tests := []struct {
 		name           string
 		args           args
-		wantDifference bool
+		wantDifference bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "replicas != asg.desiredCapacity",

@@ -42,7 +42,7 @@ var (
 type DeleteAddonProcedure struct {
 	plan     *plan
 	name     string
-	preserve bool
+	preserve bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 }
 
 // Do implements the logic for the procedure.
@@ -181,7 +181,7 @@ func (p *CreateAddonProcedure) Name() string {
 type WaitAddonActiveProcedure struct {
 	plan            *plan
 	name            string
-	includeDegraded bool
+	includeDegraded bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 }
 
 // Do implements the logic for the procedure.

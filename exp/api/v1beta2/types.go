@@ -31,7 +31,7 @@ const (
 type EBS struct {
 	// Encrypted is whether the volume should be encrypted or not.
 	// +optional
-	Encrypted bool `json:"encrypted,omitempty"`
+	Encrypted bool `json:"encrypted,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// The size of the volume, in GiB.
 	// This can be a number from 1-1,024 for standard, 4-16,384 for io1, 1-16,384
@@ -239,7 +239,7 @@ type AutoScalingGroup struct {
 	Subnets               []string        `json:"subnets,omitempty"`
 	DefaultCoolDown       metav1.Duration `json:"defaultCoolDown,omitempty"`
 	DefaultInstanceWarmup metav1.Duration `json:"defaultInstanceWarmup,omitempty"`
-	CapacityRebalance     bool            `json:"capacityRebalance,omitempty"`
+	CapacityRebalance     bool            `json:"capacityRebalance,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	MixedInstancesPolicy      *MixedInstancesPolicy `json:"mixedInstancesPolicy,omitempty"`
 	Status                    ASGStatus

@@ -294,7 +294,7 @@ func (m *MachinePoolScope) SubnetIDs(subnetIDs []string) ([]string, error) {
 
 // NodeStatus represents the status of a Kubernetes node.
 type NodeStatus struct {
-	Ready   bool
+	Ready   bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	Version string
 }
 

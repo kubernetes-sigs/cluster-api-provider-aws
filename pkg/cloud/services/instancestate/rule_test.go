@@ -46,7 +46,7 @@ func TestReconcileRules(t *testing.T) {
 		eventBridgeExpect           func(m *mock_eventbridgeiface.MockEventBridgeAPIMockRecorder)
 		postCreateEventBridgeExpect func(m *mock_eventbridgeiface.MockEventBridgeAPIMockRecorder)
 		sqsExpect                   func(m *mock_sqsiface.MockSQSAPIMockRecorder)
-		expectErr                   bool
+		expectErr                   bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "successfully creates missing rule and target",
@@ -189,7 +189,7 @@ func TestDeleteRules(t *testing.T) {
 	testCases := []struct {
 		name              string
 		eventBridgeExpect func(m *mock_eventbridgeiface.MockEventBridgeAPIMockRecorder)
-		expectErr         bool
+		expectErr         bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "removes target and ec2 rule successfully when they both exist",
@@ -274,7 +274,7 @@ func TestAddInstanceToRule(t *testing.T) {
 		name              string
 		eventBridgeExpect func(m *mock_eventbridgeiface.MockEventBridgeAPIMockRecorder)
 		newInstanceID     string
-		expectErr         bool
+		expectErr         bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "adds instance to event pattern when it doesn't exist",

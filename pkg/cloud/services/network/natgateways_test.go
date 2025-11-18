@@ -492,9 +492,9 @@ func TestDeleteNatGateways(t *testing.T) {
 	testCases := []struct {
 		name           string
 		input          []infrav1.SubnetSpec
-		isUnmanagedVPC bool
+		isUnmanagedVPC bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		expect         func(m *mocks.MockEC2APIMockRecorder)
-		wantErr        bool
+		wantErr        bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name:           "Should skip deletion if vpc is unmanaged",
@@ -881,7 +881,7 @@ func TestGetdNatGatewayForEdgeSubnet(t *testing.T) {
 		spec             infrav1.Subnets
 		input            infrav1.SubnetSpec
 		expect           string
-		expectErr        bool
+		expectErr        bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		expectErrMessage string
 	}{
 		{

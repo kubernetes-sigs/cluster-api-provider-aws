@@ -74,7 +74,7 @@ type FargateSelector struct {
 type FargateProfileStatus struct {
 	// Ready denotes that the FargateProfile is available.
 	// +kubebuilder:default=false
-	Ready bool `json:"ready"`
+	Ready bool `json:"ready"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// FailureReason will be set in the event that there is a terminal problem
 	// reconciling the FargateProfile and will contain a succinct value suitable

@@ -39,7 +39,7 @@ func TestNewNode(t *testing.T) {
 		name          string
 		args          args
 		expectedBytes []byte
-		expectErr     bool
+		expectErr     bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "only cluster name",

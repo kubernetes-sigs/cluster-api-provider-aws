@@ -75,7 +75,7 @@ func TestServiceDeleteBastion(t *testing.T) {
 	tests := []struct {
 		name          string
 		expect        func(m *mocks.MockEC2APIMockRecorder)
-		expectError   bool
+		expectError   bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		bastionStatus *infrav1.Instance
 	}{
 		{
@@ -306,9 +306,9 @@ func TestServiceReconcileBastion(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		bastionEnabled bool
+		bastionEnabled bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		expect         func(m *mocks.MockEC2APIMockRecorder)
-		expectError    bool
+		expectError    bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		bastionStatus  *infrav1.Instance
 	}{
 		{
@@ -538,9 +538,9 @@ func TestServiceReconcileBastionUSGOV(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		bastionEnabled bool
+		bastionEnabled bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		expect         func(m *mocks.MockEC2APIMockRecorder)
-		expectError    bool
+		expectError    bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		bastionStatus  *infrav1.Instance
 	}{
 		{

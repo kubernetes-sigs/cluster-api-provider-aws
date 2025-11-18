@@ -30,19 +30,19 @@ import (
 type ControlPlaneLoggingSpec struct {
 	// APIServer indicates if the Kubernetes API Server log (kube-apiserver) shoulkd be enabled
 	// +kubebuilder:default=false
-	APIServer bool `json:"apiServer"`
+	APIServer bool `json:"apiServer"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	// Audit indicates if the Kubernetes API audit log should be enabled
 	// +kubebuilder:default=false
-	Audit bool `json:"audit"`
+	Audit bool `json:"audit"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	// Authenticator indicates if the iam authenticator log should be enabled
 	// +kubebuilder:default=false
-	Authenticator bool `json:"authenticator"`
+	Authenticator bool `json:"authenticator"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	// ControllerManager indicates if the controller manager (kube-controller-manager) log should be enabled
 	// +kubebuilder:default=false
-	ControllerManager bool `json:"controllerManager"`
+	ControllerManager bool `json:"controllerManager"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	// Scheduler indicates if the Kubernetes scheduler (kube-scheduler) log should be enabled
 	// +kubebuilder:default=false
-	Scheduler bool `json:"scheduler"`
+	Scheduler bool `json:"scheduler"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 }
 
 // IsLogEnabled returns true if the log is enabled.
@@ -144,7 +144,7 @@ type Addon struct {
 	// PreserveOnDelete indicates that the addon resources should be
 	// preserved in the cluster on delete.
 	// +optional
-	PreserveOnDelete bool `json:"preserveOnDelete,omitempty"`
+	PreserveOnDelete bool `json:"preserveOnDelete,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 }
 
 // AddonResolution defines the method for resolving parameter conflicts.

@@ -34,7 +34,7 @@ func TestAddOnEqual(t *testing.T) {
 		orig        *EKSAddon
 		other       *EKSAddon
 		result      gomega.OmegaMatcher
-		includeTags bool
+		includeTags bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			orig: &EKSAddon{

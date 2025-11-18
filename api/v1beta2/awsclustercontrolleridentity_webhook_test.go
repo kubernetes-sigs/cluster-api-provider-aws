@@ -30,7 +30,7 @@ func TestAWSClusterControllerIdentityCreationValidation(t *testing.T) {
 	tests := []struct {
 		name      string
 		identity  *AWSClusterControllerIdentity
-		wantError bool
+		wantError bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "only allow AWSClusterControllerIdentity creation with name default",
@@ -71,7 +71,7 @@ func TestAWSClusterControllerIdentityLabelSelectorAsSelectorValidation(t *testin
 	tests := []struct {
 		name      string
 		selectors map[string]string
-		wantError bool
+		wantError bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name:      "should not return error for valid selector",
@@ -140,7 +140,7 @@ func TestAWSClusterControllerValidateUpdate(t *testing.T) {
 	tests := []struct {
 		name      string
 		identity  *AWSClusterControllerIdentity
-		wantError bool
+		wantError bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "do not allow any spec changes",
@@ -211,7 +211,7 @@ func TestAWSClusterControllerIdentityUpdateValidation(t *testing.T) {
 	tests := []struct {
 		name      string
 		identity  *AWSClusterControllerIdentity
-		wantError bool
+		wantError bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name:      "should not return error for valid selector",

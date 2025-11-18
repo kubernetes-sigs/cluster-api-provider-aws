@@ -75,7 +75,7 @@ func TestDefaultingWebhook(t *testing.T) {
 		name         string
 		resourceName string
 		resourceNS   string
-		expectHash   bool
+		expectHash   bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		expect       string
 		spec         AWSManagedControlPlaneSpec
 		expectSpec   AWSManagedControlPlaneSpec
@@ -170,10 +170,10 @@ func TestWebhookCreate(t *testing.T) {
 	tests := []struct { //nolint:maligned
 		name                 string
 		eksClusterName       string
-		expectError          bool
+		expectError          bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		expectErrorToContain string // if non-empty, the error message must contain this substring
 		eksVersion           string
-		hasAddons            bool
+		hasAddons            bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		vpcCNI               VpcCni
 		additionalTags       infrav1.Tags
 		secondaryCidr        *string
@@ -580,7 +580,7 @@ func TestWebhookUpdate(t *testing.T) {
 		newClusterName string
 		oldEksVersion  string
 		newEksVersion  string
-		expectError    bool
+		expectError    bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "ekscluster specified, same cluster names",
@@ -906,7 +906,7 @@ func TestWebhookUpdate(t *testing.T) {
 func TestValidatingWebhookCreateSecondaryCidr(t *testing.T) {
 	tests := []struct {
 		name        string
-		expectError bool
+		expectError bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		cidrRange   string
 	}{
 		{
@@ -976,7 +976,7 @@ func TestValidatingWebhookUpdateSecondaryCidr(t *testing.T) {
 	tests := []struct {
 		name        string
 		cidrRange   string
-		expectError bool
+		expectError bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name:        "complete range 1",

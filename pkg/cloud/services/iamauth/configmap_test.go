@@ -55,7 +55,7 @@ func TestAddRoleMappingCM(t *testing.T) {
 		existingAuthConfigMap *corev1.ConfigMap
 		roleToMap             ekscontrolplanev1.RoleMapping
 		expectedRoleMaps      []ekscontrolplanev1.RoleMapping
-		expectError           bool
+		expectError           bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "no existing mappings, add role mapping",
@@ -188,7 +188,7 @@ func TestAddUserMappingCM(t *testing.T) {
 		existingAuthConfigMap *corev1.ConfigMap
 		userToMap             ekscontrolplanev1.UserMapping
 		expectedUsersMap      []ekscontrolplanev1.UserMapping
-		expectError           bool
+		expectError           bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "no existing user mappings, add user mapping",
