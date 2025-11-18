@@ -37,7 +37,7 @@ providers:
       - name: v1.11.1
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.11.1/core-components.yaml"
         type: "url"
-        contract: v1beta1
+        contract: v1beta2
         files:
           - sourcePath: "./shared/v1beta1/metadata.yaml"
         replacements:
@@ -53,7 +53,7 @@ providers:
       - name: v1.11.1
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.11.1/bootstrap-components.yaml"
         type: "url"
-        contract: v1beta1
+        contract: v1beta2
         files:
           - sourcePath: "./shared/v1beta1/metadata.yaml"
         replacements:
@@ -69,7 +69,7 @@ providers:
       - name: v1.11.1
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.11.1/control-plane-components.yaml"
         type: "url"
-        contract: v1beta1
+        contract: v1beta2
         files:
           - sourcePath: "./shared/v1beta1/metadata.yaml"
         replacements:
