@@ -83,7 +83,7 @@ providers:
       - name: v9.9.99
         # Use manifest from source files
         value: ../../../config/default
-        contract: v1beta1
+        contract: v1beta2
         files:
           - sourcePath: "./shared/v1beta2_provider/metadata.yaml"
         replacements:

@@ -136,7 +136,7 @@ providers:
       - name: v9.9.99
         # Use manifest from source files
         value: ../../../config/default
-        # Do not add contract field for v1beta1 --> v1beta2 clusterctl upgrades test to work.
+        contract: v1beta2
         files:
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-efs-support.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-external-csi.yaml"
