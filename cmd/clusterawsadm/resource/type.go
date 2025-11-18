@@ -21,17 +21,25 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 // AWSResource defines an AWS resource.
 type AWSResource struct {
+	// +required
 	Partition string `json:"partition"`
+	// +required
 	Service   string `json:"service"`
+	// +required
 	Region    string `json:"region"`
+	// +required
 	AccountID string `json:"account_id"`
+	// +required
 	Resource  string `json:"resource"`
+	// +required
 	ARN       string `json:"arn"`
 }
 
 // AWSResourceList defines list of AWSResources.
 type AWSResourceList struct {
+	// +required
 	ClusterName  string        `json:"cluster_name"`
+	// +required
 	AWSResources []AWSResource `json:"aws_resources"`
 }
 

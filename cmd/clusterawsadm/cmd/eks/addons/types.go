@@ -25,16 +25,24 @@ import (
 )
 
 type availableAddon struct {
+	// +required
 	Name            string          `json:"name"`
+	// +required
 	Type            string          `json:"type"`
+	// +required
 	Version         string          `json:"version"`
+	// +required
 	Architecture    []string        `json:"architecture"`
+	// +required
 	Compatibilities []compatibility `json:"compatibilities"`
 }
 
 type compatibility struct {
+	// +required
 	ClusterVersion   string   `json:"clusterVersion"`
+	// +required
 	DefaultVersion   bool     `json:"defaultVersion"`
+	// +required
 	PlatformVersions []string `json:"platformVersions"`
 }
 
@@ -43,7 +51,9 @@ func (c compatibility) String() string {
 }
 
 type availableAddonsList struct {
+	// +required
 	Cluster string           `json:"cluster"`
+	// +required
 	Addons  []availableAddon `json:"addons"`
 }
 
@@ -88,29 +98,43 @@ func (a *availableAddonsList) ToTable() *metav1.Table {
 }
 
 type installedAddon struct {
+	// +optional
 	Name    string
+	// +optional
 	Version string
 
+	// +optional
 	AddonARN string
+	// +optional
 	RoleARN  *string
 
+	// +optional
 	Status string
+	// +optional
 	Tags   map[string]string
 
+	// +optional
 	HealthIssues []issue
 
+	// +optional
 	CreatedAt  time.Time
+	// +optional
 	ModifiedAt time.Time
 }
 
 type issue struct {
+	// +optional
 	Code        string
+	// +optional
 	Message     string
+	// +optional
 	ResourceIDs []string
 }
 
 type installedAddonsList struct {
+	// +required
 	Cluster string           `json:"cluster"`
+	// +required
 	Addons  []installedAddon `json:"addons"`
 }
 

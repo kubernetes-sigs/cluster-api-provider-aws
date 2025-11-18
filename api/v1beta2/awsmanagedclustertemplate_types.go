@@ -22,6 +22,7 @@ import (
 
 // AWSManagedClusterTemplateSpec defines the desired state of AWSManagedClusterTemplate.
 type AWSManagedClusterTemplateSpec struct {
+	// +required
 	Template AWSManagedClusterTemplateResource `json:"template"`
 }
 
@@ -32,8 +33,10 @@ type AWSManagedClusterTemplateSpec struct {
 // AWSManagedClusterTemplate is the Schema for the AWSManagedClusterTemplates API.
 type AWSManagedClusterTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// +optional
 	Spec AWSManagedClusterTemplateSpec `json:"spec,omitempty"`
 }
 
@@ -42,7 +45,9 @@ type AWSManagedClusterTemplate struct {
 // AWSManagedClusterTemplateList contains a list of AWSManagedClusterTemplates.
 type AWSManagedClusterTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
+	// +required
 	Items           []AWSManagedClusterTemplate `json:"items"`
 }
 
@@ -52,5 +57,6 @@ func init() {
 
 // AWSManagedClusterTemplateResource describes the data needed to create an AWSManagedCluster from a template.
 type AWSManagedClusterTemplateResource struct {
+	// +required
 	Spec AWSManagedClusterSpec `json:"spec"`
 }

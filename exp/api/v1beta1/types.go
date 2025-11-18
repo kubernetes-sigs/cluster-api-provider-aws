@@ -52,7 +52,7 @@ type EBS struct {
 // You can specify virtual devices and EBS volumes.
 type BlockDeviceMapping struct {
 	// The device name exposed to the EC2 instance (for example, /dev/sdh or xvdh).
-	// +kubebuilder:validation:Required
+	// +required
 	DeviceName string `json:"deviceName,omitempty"`
 
 	// You can specify either VirtualName or Ebs, but not both.
@@ -63,11 +63,13 @@ type BlockDeviceMapping struct {
 // AWSLaunchTemplate defines the desired state of AWSLaunchTemplate.
 type AWSLaunchTemplate struct {
 	// The name of the launch template.
+	// +optional
 	Name string `json:"name,omitempty"`
 
 	// The name or the Amazon Resource Name (ARN) of the instance profile associated
 	// with the IAM role for the instance. The instance profile contains the IAM
 	// role.
+	// +optional
 	IamInstanceProfile string `json:"iamInstanceProfile,omitempty"`
 
 	// AMI is the reference to the AMI from which to create the machine instance.
@@ -89,13 +91,16 @@ type AWSLaunchTemplate struct {
 	ImageLookupFormat string `json:"imageLookupFormat,omitempty"`
 
 	// ImageLookupOrg is the AWS Organization ID to use for image lookup if AMI is not set.
+	// +optional
 	ImageLookupOrg string `json:"imageLookupOrg,omitempty"`
 
 	// ImageLookupBaseOS is the name of the base operating system to use for
 	// image lookup the AMI is not set.
+	// +optional
 	ImageLookupBaseOS string `json:"imageLookupBaseOS,omitempty"`
 
 	// InstanceType is the type of instance to create. Example: m4.xlarge
+	// +optional
 	InstanceType string `json:"instanceType,omitempty"`
 
 	// RootVolume encapsulates the configuration options for the root volume
@@ -112,6 +117,7 @@ type AWSLaunchTemplate struct {
 	// 1) A new launch template spec is applied.
 	// 2) One or more parameters in an existing template is changed.
 	// 3) A new AMI is discovered.
+	// +optional
 	VersionNumber *int64 `json:"versionNumber,omitempty"`
 
 	// AdditionalSecurityGroups is an array of references to security groups that should be applied to the
@@ -121,12 +127,14 @@ type AWSLaunchTemplate struct {
 	AdditionalSecurityGroups []infrav1.AWSResourceReference `json:"additionalSecurityGroups,omitempty"`
 
 	// SpotMarketOptions are options for configuring AWSMachinePool instances to be run using AWS Spot instances.
+	// +optional
 	SpotMarketOptions *infrav1.SpotMarketOptions `json:"spotMarketOptions,omitempty"`
 }
 
 // Overrides are used to override the instance type specified by the launch template with multiple
 // instance types that can be used to launch On-Demand Instances and Spot Instances.
 type Overrides struct {
+	// +required
 	InstanceType string `json:"instanceType"`
 }
 
@@ -157,22 +165,28 @@ var (
 type InstancesDistribution struct {
 	// +kubebuilder:validation:Enum=prioritized
 	// +kubebuilder:default=prioritized
+	// +optional
 	OnDemandAllocationStrategy OnDemandAllocationStrategy `json:"onDemandAllocationStrategy,omitempty"`
 
 	// +kubebuilder:validation:Enum=lowest-price;capacity-optimized
 	// +kubebuilder:default=lowest-price
+	// +optional
 	SpotAllocationStrategy SpotAllocationStrategy `json:"spotAllocationStrategy,omitempty"`
 
 	// +kubebuilder:default=0
+	// +optional
 	OnDemandBaseCapacity *int64 `json:"onDemandBaseCapacity,omitempty"`
 
 	// +kubebuilder:default=100
+	// +optional
 	OnDemandPercentageAboveBaseCapacity *int64 `json:"onDemandPercentageAboveBaseCapacity,omitempty"`
 }
 
 // MixedInstancesPolicy for an Auto Scaling group.
 type MixedInstancesPolicy struct {
+	// +optional
 	InstancesDistribution *InstancesDistribution `json:"instancesDistribution,omitempty"`
+	// +optional
 	Overrides             []Overrides            `json:"overrides,omitempty"`
 }
 
@@ -182,19 +196,32 @@ type Tags map[string]string
 // AutoScalingGroup describes an AWS autoscaling group.
 type AutoScalingGroup struct {
 	// The tags associated with the instance.
+	// +optional
 	ID                string          `json:"id,omitempty"`
+	// +optional
 	Tags              infrav1.Tags    `json:"tags,omitempty"`
+	// +optional
 	Name              string          `json:"name,omitempty"`
+	// +optional
 	DesiredCapacity   *int32          `json:"desiredCapacity,omitempty"`
+	// +optional
 	MaxSize           int32           `json:"maxSize,omitempty"`
+	// +optional
 	MinSize           int32           `json:"minSize,omitempty"`
+	// +optional
 	PlacementGroup    string          `json:"placementGroup,omitempty"`
+	// +optional
 	Subnets           []string        `json:"subnets,omitempty"`
+	// +optional
 	DefaultCoolDown   metav1.Duration `json:"defaultCoolDown,omitempty"`
+	// +optional
 	CapacityRebalance bool            `json:"capacityRebalance,omitempty"`
 
+	// +optional
 	MixedInstancesPolicy *MixedInstancesPolicy `json:"mixedInstancesPolicy,omitempty"`
+	// +optional
 	Status               ASGStatus
+	// +optional
 	Instances            []infrav1.Instance `json:"instances,omitempty"`
 }
 
@@ -225,14 +252,14 @@ var (
 // Taint defines the specs for a Kubernetes taint.
 type Taint struct {
 	// Effect specifies the effect for the taint
-	// +kubebuilder:validation:Required
+	// +required
 	// +kubebuilder:validation:Enum=no-schedule;no-execute;prefer-no-schedule
 	Effect TaintEffect `json:"effect"`
 	// Key is the key of the taint
-	// +kubebuilder:validation:Required
+	// +required
 	Key string `json:"key"`
 	// Value is the value of the taint
-	// +kubebuilder:validation:Required
+	// +required
 	Value string `json:"value"`
 }
 

@@ -53,15 +53,19 @@ const (
 // NetworkStatus encapsulates AWS networking resources.
 type NetworkStatus struct {
 	// SecurityGroups is a map from the role/kind of the security group to its unique name, if any.
+	// +optional
 	SecurityGroups map[SecurityGroupRole]SecurityGroup `json:"securityGroups,omitempty"`
 
 	// APIServerELB is the Kubernetes api server load balancer.
+	// +optional
 	APIServerELB LoadBalancer `json:"apiServerElb,omitempty"`
 
 	// SecondaryAPIServerELB is the secondary Kubernetes api server load balancer.
+	// +optional
 	SecondaryAPIServerELB LoadBalancer `json:"secondaryAPIServerELB,omitempty"`
 
 	// NatGatewaysIPs contains the public IPs of the NAT Gateways
+	// +optional
 	NatGatewaysIPs []string `json:"natGatewaysIPs,omitempty"`
 }
 
@@ -115,12 +119,19 @@ var (
 
 // TargetGroupHealthCheck defines health check settings for the target group.
 type TargetGroupHealthCheck struct {
+	// +optional
 	Protocol                *string `json:"protocol,omitempty"`
+	// +optional
 	Path                    *string `json:"path,omitempty"`
+	// +optional
 	Port                    *string `json:"port,omitempty"`
+	// +optional
 	IntervalSeconds         *int64  `json:"intervalSeconds,omitempty"`
+	// +optional
 	TimeoutSeconds          *int64  `json:"timeoutSeconds,omitempty"`
+	// +optional
 	ThresholdCount          *int64  `json:"thresholdCount,omitempty"`
+	// +optional
 	UnhealthyThresholdCount *int64  `json:"unhealthyThresholdCount,omitempty"`
 }
 
@@ -234,20 +245,28 @@ var (
 type TargetGroupSpec struct {
 	// Name of the TargetGroup. Must be unique over the same group of listeners.
 	// +kubebuilder:validation:MaxLength=32
+	// +required
 	Name string `json:"name"`
 	// Port is the exposed port
+	// +required
 	Port int64 `json:"port"`
 	// +kubebuilder:validation:Enum=tcp;tls;udp;TCP;TLS;UDP
+	// +required
 	Protocol ELBProtocol `json:"protocol"`
+	// +required
 	VpcID    string      `json:"vpcId"`
 	// HealthCheck is the elb health check associated with the load balancer.
+	// +optional
 	HealthCheck *TargetGroupHealthCheck `json:"targetGroupHealthCheck,omitempty"`
 }
 
 // Listener defines an AWS network load balancer listener.
 type Listener struct {
+	// +required
 	Protocol    ELBProtocol     `json:"protocol"`
+	// +required
 	Port        int64           `json:"port"`
+	// +required
 	TargetGroup TargetGroupSpec `json:"targetGroup"`
 }
 
@@ -255,6 +274,7 @@ type Listener struct {
 type LoadBalancer struct {
 	// ARN of the load balancer. Unlike the ClassicLB, ARN is used mostly
 	// to define and get it.
+	// +optional
 	ARN string `json:"arn,omitempty"`
 	// The name of the load balancer. It must be unique within the set of load balancers
 	// defined in the region. It also serves as identifier.
@@ -262,40 +282,52 @@ type LoadBalancer struct {
 	Name string `json:"name,omitempty"`
 
 	// DNSName is the dns name of the load balancer.
+	// +optional
 	DNSName string `json:"dnsName,omitempty"`
 
 	// Scheme is the load balancer scheme, either internet-facing or private.
+	// +optional
 	Scheme ELBScheme `json:"scheme,omitempty"`
 
 	// AvailabilityZones is an array of availability zones in the VPC attached to the load balancer.
+	// +optional
 	AvailabilityZones []string `json:"availabilityZones,omitempty"`
 
 	// SubnetIDs is an array of subnets in the VPC attached to the load balancer.
+	// +optional
 	SubnetIDs []string `json:"subnetIds,omitempty"`
 
 	// SecurityGroupIDs is an array of security groups assigned to the load balancer.
+	// +optional
 	SecurityGroupIDs []string `json:"securityGroupIds,omitempty"`
 
 	// ClassicELBListeners is an array of classic elb listeners associated with the load balancer. There must be at least one.
+	// +optional
 	ClassicELBListeners []ClassicELBListener `json:"listeners,omitempty"`
 
 	// HealthCheck is the classic elb health check associated with the load balancer.
+	// +optional
 	HealthCheck *ClassicELBHealthCheck `json:"healthChecks,omitempty"`
 
 	// ClassicElbAttributes defines extra attributes associated with the load balancer.
+	// +optional
 	ClassicElbAttributes ClassicELBAttributes `json:"attributes,omitempty"`
 
 	// Tags is a map of tags associated with the load balancer.
+	// +optional
 	Tags map[string]string `json:"tags,omitempty"`
 
 	// ELBListeners is an array of listeners associated with the load balancer. There must be at least one.
+	// +optional
 	ELBListeners []Listener `json:"elbListeners,omitempty"`
 
 	// ELBAttributes defines extra attributes associated with v2 load balancers.
+	// +optional
 	ELBAttributes map[string]*string `json:"elbAttributes,omitempty"`
 
 	// LoadBalancerType sets the type for a load balancer. The default type is classic.
 	// +kubebuilder:validation:Enum:=classic;elb;alb;nlb
+	// +optional
 	LoadBalancerType LoadBalancerType `json:"loadBalancerType,omitempty"`
 }
 
@@ -313,6 +345,7 @@ func (b *LoadBalancer) IsManaged(clusterName string) bool {
 type ClassicELBAttributes struct {
 	// IdleTimeout is time that the connection is allowed to be idle (no data
 	// has been sent over the connection) before it is closed by the load balancer.
+	// +optional
 	IdleTimeout time.Duration `json:"idleTimeout,omitempty"`
 
 	// CrossZoneLoadBalancing enables the classic load balancer load balancing.
@@ -322,18 +355,27 @@ type ClassicELBAttributes struct {
 
 // ClassicELBListener defines an AWS classic load balancer listener.
 type ClassicELBListener struct {
+	// +required
 	Protocol         ELBProtocol `json:"protocol"`
+	// +required
 	Port             int64       `json:"port"`
+	// +required
 	InstanceProtocol ELBProtocol `json:"instanceProtocol"`
+	// +required
 	InstancePort     int64       `json:"instancePort"`
 }
 
 // ClassicELBHealthCheck defines an AWS classic load balancer health check.
 type ClassicELBHealthCheck struct {
+	// +required
 	Target             string        `json:"target"`
+	// +required
 	Interval           time.Duration `json:"interval"`
+	// +required
 	Timeout            time.Duration `json:"timeout"`
+	// +required
 	HealthyThreshold   int64         `json:"healthyThreshold"`
+	// +required
 	UnhealthyThreshold int64         `json:"unhealthyThreshold"`
 }
 
@@ -396,12 +438,15 @@ type IPv6 struct {
 // IPAMPool defines the IPAM pool to be used for VPC.
 type IPAMPool struct {
 	// ID is the ID of the IPAM pool this provider should use to create VPC.
+	// +optional
 	ID string `json:"id,omitempty"`
 	// Name is the name of the IPAM pool this provider should use to create VPC.
+	// +optional
 	Name string `json:"name,omitempty"`
 	// The netmask length of the IPv4 CIDR you want to allocate to VPC from
 	// an Amazon VPC IP Address Manager (IPAM) pool.
 	// Defaults to /16 for IPv4 if not specified.
+	// +optional
 	NetmaskLength int64 `json:"netmaskLength,omitempty"`
 }
 
@@ -409,17 +454,20 @@ type IPAMPool struct {
 type VpcCidrBlock struct {
 	// IPv4CidrBlock is the IPv4 CIDR block to associate with the managed VPC.
 	// +kubebuilder:validation:MinLength=1
+	// +required
 	IPv4CidrBlock string `json:"ipv4CidrBlock"`
 }
 
 // VPCSpec configures an AWS VPC.
 type VPCSpec struct {
 	// ID is the vpc-id of the VPC this provider should use to create resources.
+	// +optional
 	ID string `json:"id,omitempty"`
 
 	// CidrBlock is the CIDR block to be used when the provider creates a managed VPC.
 	// Defaults to 10.0.0.0/16.
 	// Mutually exclusive with IPAMPool.
+	// +optional
 	CidrBlock string `json:"cidrBlock,omitempty"`
 
 	// SecondaryCidrBlocks are additional CIDR blocks to be associated when the provider creates a managed VPC.
@@ -430,6 +478,7 @@ type VPCSpec struct {
 
 	// IPAMPool defines the IPAMv4 pool to be used for VPC.
 	// Mutually exclusive with CidrBlock.
+	// +optional
 	IPAMPool *IPAMPool `json:"ipamPool,omitempty"`
 
 	// IPv6 contains ipv6 specific settings for the network. Supported only in managed clusters.
@@ -448,6 +497,7 @@ type VPCSpec struct {
 	CarrierGatewayID *string `json:"carrierGatewayId,omitempty"`
 
 	// Tags is a collection of tags describing the resource.
+	// +optional
 	Tags Tags `json:"tags,omitempty"`
 
 	// AvailabilityZoneUsageLimit specifies the maximum number of availability zones (AZ) that
@@ -456,6 +506,7 @@ type VPCSpec struct {
 	// default subnets. Defaults to 3
 	// +kubebuilder:default=3
 	// +kubebuilder:validation:Minimum=1
+	// +optional
 	AvailabilityZoneUsageLimit *int `json:"availabilityZoneUsageLimit,omitempty"`
 
 	// AvailabilityZoneSelection specifies how AZs should be selected if there are more AZs
@@ -465,6 +516,7 @@ type VPCSpec struct {
 	// Defaults to Ordered
 	// +kubebuilder:default=Ordered
 	// +kubebuilder:validation:Enum=Ordered;Random
+	// +optional
 	AvailabilityZoneSelection *AZSelectionScheme `json:"availabilityZoneSelection,omitempty"`
 
 	// EmptyRoutesDefaultVPCSecurityGroup specifies whether the default VPC security group ingress
@@ -549,6 +601,7 @@ type SubnetSpec struct {
 	// upon creation, the subnet AWS identifier will be populated in the `ResourceID` field and
 	// the `id` field is going to be used as the subnet name. If you specify a tag
 	// called `Name`, it takes precedence.
+	// +required
 	ID string `json:"id"`
 
 	// ResourceID is the subnet identifier from AWS, READ ONLY.
@@ -557,6 +610,7 @@ type SubnetSpec struct {
 	ResourceID string `json:"resourceID,omitempty"`
 
 	// CidrBlock is the CIDR block to be used when the provider creates a managed VPC.
+	// +optional
 	CidrBlock string `json:"cidrBlock,omitempty"`
 
 	// IPv6CidrBlock is the IPv6 CIDR block to be used when the provider creates a managed VPC.
@@ -566,6 +620,7 @@ type SubnetSpec struct {
 	IPv6CidrBlock string `json:"ipv6CidrBlock,omitempty"`
 
 	// AvailabilityZone defines the availability zone to use for this subnet in the cluster's region.
+	// +optional
 	AvailabilityZone string `json:"availabilityZone,omitempty"`
 
 	// IsPublic defines the subnet as a public subnet. A subnet is public when it is associated with a route table that has a route to an internet gateway.
@@ -587,6 +642,7 @@ type SubnetSpec struct {
 	NatGatewayID *string `json:"natGatewayId,omitempty"`
 
 	// Tags is a collection of tags describing the resource.
+	// +optional
 	Tags Tags `json:"tags,omitempty"`
 
 	// ZoneType defines the type of the zone where the subnet is created.
@@ -852,6 +908,7 @@ func (s Subnets) HasPublicSubnetWavelength() bool {
 type CNISpec struct {
 	// CNIIngressRules specify rules to apply to control plane and worker node security groups.
 	// The source for the rule will be set to control plane and worker security group IDs.
+	// +optional
 	CNIIngressRules CNIIngressRules `json:"cniIngressRules,omitempty"`
 }
 
@@ -860,14 +917,19 @@ type CNIIngressRules []CNIIngressRule
 
 // CNIIngressRule defines an AWS ingress rule for CNI requirements.
 type CNIIngressRule struct {
+	// +required
 	Description string                `json:"description"`
+	// +required
 	Protocol    SecurityGroupProtocol `json:"protocol"`
+	// +required
 	FromPort    int64                 `json:"fromPort"`
+	// +required
 	ToPort      int64                 `json:"toPort"`
 }
 
 // RouteTable defines an AWS routing table.
 type RouteTable struct {
+	// +required
 	ID string `json:"id"`
 }
 
@@ -898,9 +960,11 @@ var (
 // SecurityGroup defines an AWS security group.
 type SecurityGroup struct {
 	// ID is a unique identifier.
+	// +required
 	ID string `json:"id"`
 
 	// Name is the security group name.
+	// +required
 	Name string `json:"name"`
 
 	// IngressRules is the inbound rules associated with the security group.
@@ -908,6 +972,7 @@ type SecurityGroup struct {
 	IngressRules IngressRules `json:"ingressRule,omitempty"`
 
 	// Tags is a map of tags associated with the security group.
+	// +optional
 	Tags Tags `json:"tags,omitempty"`
 }
 
@@ -945,13 +1010,17 @@ var (
 // IngressRule defines an AWS ingress rule for security groups.
 type IngressRule struct {
 	// Description provides extended information about the ingress rule.
+	// +required
 	Description string `json:"description"`
 	// Protocol is the protocol for the ingress rule. Accepted values are "-1" (all), "4" (IP in IP),"tcp", "udp", "icmp", and "58" (ICMPv6), "50" (ESP).
 	// +kubebuilder:validation:Enum="-1";"4";tcp;udp;icmp;"58";"50"
+	// +required
 	Protocol SecurityGroupProtocol `json:"protocol"`
 	// FromPort is the start of port range.
+	// +required
 	FromPort int64 `json:"fromPort"`
 	// ToPort is the end of port range.
+	// +required
 	ToPort int64 `json:"toPort"`
 
 	// List of CIDR blocks to allow access from. Cannot be specified with SourceSecurityGroupID.

@@ -853,6 +853,7 @@ func TestDeleteRouteTable(t *testing.T) {
 }
 
 type routeTableInputMatcher struct {
+	// +optional
 	routeTableInput *ec2.CreateRouteTableInput
 }
 

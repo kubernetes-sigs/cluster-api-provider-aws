@@ -89,22 +89,31 @@ func init() {
 }
 
 type webhookConfiguration struct {
+	// +optional
 	tag              string
+	// +optional
 	relativeFilePath string
 }
 
 // TestEnvironmentConfiguration encapsulates the interim, mutable configuration of the Kubernetes local test environment.
 type TestEnvironmentConfiguration struct {
+	// +optional
 	env                   *envtest.Environment
+	// +optional
 	webhookConfigurations []webhookConfiguration
 }
 
 // TestEnvironment encapsulates a Kubernetes local test environment.
 type TestEnvironment struct {
+	// +optional
 	manager.Manager
+	// +optional
 	client.Client
+	// +optional
 	Config *rest.Config
+	// +optional
 	env    *envtest.Environment
+	// +optional
 	cancel context.CancelFunc
 }
 

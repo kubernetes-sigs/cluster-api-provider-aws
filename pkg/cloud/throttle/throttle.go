@@ -42,10 +42,15 @@ func NewMultiOperationMatch(strs ...string) string {
 
 // OperationLimiter defines the specs of an operation limiter.
 type OperationLimiter struct {
+	// +optional
 	Operation  string
+	// +optional
 	RefillRate rate.Limit
+	// +optional
 	Burst      int
+	// +optional
 	regexp     *regexp.Regexp
+	// +optional
 	limiter    *rate.Limiter
 }
 

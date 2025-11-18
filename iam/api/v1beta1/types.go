@@ -83,19 +83,29 @@ const (
 // PolicyDocument represents an AWS IAM policy document, and can be
 // converted into JSON using "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/converters".
 type PolicyDocument struct {
+	// +optional
 	Version   string     `json:"Version,omitempty"`
+	// +optional
 	Statement Statements `json:"Statement,omitempty"`
+	// +optional
 	ID        string     `json:"Id,omitempty"`
 }
 
 // StatementEntry represents each "statement" block in an AWS IAM policy document.
 type StatementEntry struct {
+	// +optional
 	Sid          string     `json:",omitempty"`
+	// +optional
 	Principal    Principals `json:",omitempty"`
+	// +optional
 	NotPrincipal Principals `json:",omitempty"`
+	// +required
 	Effect       Effect     `json:"Effect"`
+	// +required
 	Action       Actions    `json:"Action"`
+	// +optional
 	Resource     Resources  `json:",omitempty"`
+	// +optional
 	Condition    Conditions `json:"Condition,omitempty"`
 }
 

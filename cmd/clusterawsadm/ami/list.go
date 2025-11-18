@@ -33,9 +33,13 @@ import (
 
 // ListInput defines the specs required to construct an AWSAMIList.
 type ListInput struct {
+	// +optional
 	Region            string
+	// +optional
 	KubernetesVersion string
+	// +optional
 	OperatingSystem   string
+	// +optional
 	OwnerID           string
 }
 

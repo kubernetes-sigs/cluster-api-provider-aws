@@ -40,10 +40,15 @@ func NewPlan(clusterName string, desiredAddons, installedAddons []*EKSAddon, cli
 
 // Plan is a plan that will manage EKS addons.
 type plan struct {
+	// +optional
 	installedAddons           []*EKSAddon
+	// +optional
 	desiredAddons             []*EKSAddon
+	// +optional
 	eksClient                 eks.Client
+	// +optional
 	clusterName               string
+	// +optional
 	maxWaitActiveUpdateDelete time.Duration
 }
 

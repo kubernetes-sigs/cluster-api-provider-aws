@@ -61,8 +61,10 @@ type loader interface {
 type fsLoader struct {
 
 	// bootstrapCodecs is the scheme used to decode config files
+	// +optional
 	bootstrapCodecs *serializer.CodecFactory
 	// bootstrapFile is an absolute path to the file containing a serialized KubeletConfiguration
+	// +optional
 	bootstrapFile string
 }
 

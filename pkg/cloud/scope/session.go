@@ -56,13 +56,16 @@ var (
 )
 
 type sessionCacheEntry struct {
+	// +optional
 	session         *aws.Config
+	// +optional
 	serviceLimiters throttle.ServiceLimiters
 }
 
 // ChainCredentialsProvider defines custom CredentialsProvider chain
 // NewChainCredentialsProvider can be used to initialize this struct.
 type ChainCredentialsProvider struct {
+	// +optional
 	providers []aws.CredentialsProvider
 }
 

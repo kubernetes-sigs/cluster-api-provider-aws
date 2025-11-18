@@ -50,10 +50,15 @@ const Ec2InstanceStateLabelKey = "ec2-instance-state"
 
 // AwsInstanceStateReconciler reconciles a AwsInstanceState object.
 type AwsInstanceStateReconciler struct {
+	// +optional
 	client.Client
+	// +optional
 	Log               logr.Logger
+	// +optional
 	sqsServiceFactory func() instancestate.SQSAPI
+	// +optional
 	queueURLs         sync.Map
+	// +optional
 	WatchFilterValue  string
 }
 
@@ -238,17 +243,24 @@ func queueNotFoundError(err error) bool {
 }
 
 type queueParams struct {
+	// +optional
 	region string
+	// +optional
 	URL    string
 }
 
 type message struct {
+	// +required
 	Source        string         `json:"source"`
+	// +optional
 	DetailType    string         `json:"detail-type,omitempty"`
+	// +optional
 	MessageDetail *messageDetail `json:"detail,omitempty"`
 }
 
 type messageDetail struct {
+	// +optional
 	InstanceID string                `json:"instance-id,omitempty"`
+	// +optional
 	State      infrav1.InstanceState `json:"state,omitempty"`
 }

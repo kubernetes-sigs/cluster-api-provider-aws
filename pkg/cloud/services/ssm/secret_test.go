@@ -42,7 +42,9 @@ import (
 )
 
 type mockAPIError struct {
+	// +optional
 	Code    string
+	// +optional
 	Message string
 }
 

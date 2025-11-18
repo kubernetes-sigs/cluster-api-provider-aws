@@ -31,6 +31,7 @@ import (
 
 // Version provides the version information of clusterawsadm.
 type Version struct {
+	// +required
 	ClientVersion *version.Info `json:"awsProviderVersion"`
 }
 

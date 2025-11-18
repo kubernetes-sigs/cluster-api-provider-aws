@@ -29,26 +29,37 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 // ROSANetworkScopeParams defines the input parameters used to create a new ROSANetworkScope.
 type ROSANetworkScopeParams struct {
+	// +optional
 	Client         client.Client
+	// +optional
 	ControllerName string
+	// +optional
 	Logger         *logger.Logger
+	// +optional
 	ROSANetwork    *expinfrav1.ROSANetwork
 }
 
 // ROSANetworkScope defines the basic context for an actuator to operate upon.
 type ROSANetworkScope struct {
+	// +optional
 	logger.Logger
+	// +optional
 	Client          client.Client
+	// +optional
 	controllerName  string
-	patchHelper     *v1beta1patch.Helper
+	// +optional
+	patchHelper     *patch.Helper
+	// +optional
 	ROSANetwork     *expinfrav1.ROSANetwork
+	// +optional
 	serviceLimiters throttle.ServiceLimiters
+	// +optional
 	session         awsv2.Config
 }
 
@@ -72,7 +83,7 @@ func NewROSANetworkScope(params ROSANetworkScopeParams) (*ROSANetworkScope, erro
 		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
 	}
 
-	patchHelper, err := v1beta1patch.NewHelper(params.ROSANetwork, params.Client)
+	patchHelper, err := patch.NewHelper(params.ROSANetwork, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init patch helper")
 	}
@@ -130,7 +141,7 @@ func (s *ROSANetworkScope) PatchObject() error {
 	return s.patchHelper.Patch(
 		context.TODO(),
 		s.ROSANetwork,
-		v1beta1patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
+		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
 			expinfrav1.ROSANetworkReadyCondition,
 		}})
 }

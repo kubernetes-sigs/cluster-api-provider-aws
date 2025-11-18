@@ -21,6 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 )
 
@@ -92,6 +93,7 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="rosaClusterName is immutable"
 	// +kubebuilder:validation:MaxLength:=54
 	// +kubebuilder:validation:Pattern:=`^[a-z]([-a-z0-9]*[a-z0-9])?$`
+	// +required
 	RosaClusterName string `json:"rosaClusterName"`
 
 	// DomainPrefix is an optional prefix added to the cluster's domain name. It will be used
@@ -118,15 +120,18 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	AvailabilityZones []string `json:"availabilityZones,omitempty"`
 
 	// The AWS Region the cluster lives in.
+	// +required
 	Region string `json:"region"`
 
 	// OpenShift semantic version, for example "4.14.5".
+	// +required
 	Version string `json:"version"`
 
 	// OpenShift version channel group, default is stable.
 	//
 	// +kubebuilder:validation:Enum=stable;eus;fast;candidate;nightly
 	// +kubebuilder:default=stable
+	// +required
 	ChannelGroup ChannelGroupType `json:"channelGroup"`
 
 	// VersionGate requires acknowledgment when upgrading ROSA-HCP y-stream versions (e.g., from 4.15 to 4.16).
@@ -137,6 +142,7 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	//
 	// +kubebuilder:validation:Enum=Acknowledge;WaitForAcknowledge;AlwaysAcknowledge
 	// +kubebuilder:default=WaitForAcknowledge
+	// +required
 	VersionGate VersionGateAckType `json:"versionGate"`
 
 	// RosaRoleConfigRef is a reference to a RosaRoleConfig resource that contains account roles, operator roles and OIDC configuration.
@@ -172,6 +178,7 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// +listType=map
 	// +listMapKey=name
 	// +kubebuilder:validation:MaxItems=1
+	// +optional
 	ExternalAuthProviders []ExternalAuthProvider `json:"externalAuthProviders,omitempty"`
 
 	// InstallerRoleARN is an AWS IAM role that OpenShift Cluster Manager will assume to create the cluster.
@@ -192,7 +199,6 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// The cost of running each ROSA HCP cluster will be billed to the infrastructure account in which the cluster
 	// is running.
 	//
-	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="billingAccount is immutable"
 	// +kubebuilder:validation:XValidation:rule="self.matches('^[0-9]{12}$')", message="billingAccount must be a valid AWS account ID"
 	// +immutable
@@ -257,7 +263,7 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
-	ControlPlaneEndpoint clusterv1beta1.APIEndpoint `json:"controlPlaneEndpoint"`
+	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
 
 	// ClusterRegistryConfig represents registry config used with the cluster.
 	// +optional
@@ -398,8 +404,10 @@ type DefaultMachinePoolSpec struct {
 // AutoScaling specifies scaling options.
 type AutoScaling struct {
 	// +kubebuilder:validation:Minimum=1
+	// +optional
 	MinReplicas int `json:"minReplicas,omitempty"`
 	// +kubebuilder:validation:Minimum=1
+	// +optional
 	MaxReplicas int `json:"maxReplicas,omitempty"`
 }
 
@@ -454,6 +462,7 @@ type AWSRolesRef struct {
 	//		}
 	//	]
 	// }
+	// +required
 	IngressARN string `json:"ingressARN"`
 
 	// ImageRegistryARN is an ARN value referencing a role appropriate for the Image Registry Operator.
@@ -489,6 +498,7 @@ type AWSRolesRef struct {
 	//		}
 	//	]
 	// }
+	// +required
 	ImageRegistryARN string `json:"imageRegistryARN"`
 
 	// StorageARN is an ARN value referencing a role appropriate for the Storage Operator.
@@ -520,6 +530,7 @@ type AWSRolesRef struct {
 	//		}
 	//	]
 	// }
+	// +required
 	StorageARN string `json:"storageARN"`
 
 	// NetworkARN is an ARN value referencing a role appropriate for the Network Operator.
@@ -546,6 +557,7 @@ type AWSRolesRef struct {
 	//		}
 	//	]
 	// }
+	// +required
 	NetworkARN string `json:"networkARN"`
 
 	// KubeCloudControllerARN is an ARN value referencing a role appropriate for the KCM/KCC.
@@ -624,6 +636,7 @@ type AWSRolesRef struct {
 	//  ]
 	// }
 	// +immutable
+	// +required
 	KubeCloudControllerARN string `json:"kubeCloudControllerARN"`
 
 	// NodePoolManagementARN is an ARN value referencing a role appropriate for the CAPI Controller.
@@ -737,6 +750,7 @@ type AWSRolesRef struct {
 	// }
 	//
 	// +immutable
+	// +required
 	NodePoolManagementARN string `json:"nodePoolManagementARN"`
 
 	// ControlPlaneOperatorARN  is an ARN value referencing a role appropriate for the Control Plane Operator.
@@ -777,8 +791,10 @@ type AWSRolesRef struct {
 	//	]
 	// }
 	// +immutable
+	// +required
 	ControlPlaneOperatorARN string `json:"controlPlaneOperatorARN"`
-	KMSProviderARN          string `json:"kmsProviderARN"`
+	// +required
+	KMSProviderARN string `json:"kmsProviderARN"`
 }
 
 // RosaControlPlaneStatus defines the observed state of ROSAControlPlane.
@@ -786,6 +802,7 @@ type RosaControlPlaneStatus struct {
 	// ExternalManagedControlPlane indicates to cluster-api that the control plane
 	// is managed by an external service such as AKS, EKS, GKE, etc.
 	// +kubebuilder:default=true
+	// +optional
 	ExternalManagedControlPlane *bool `json:"externalManagedControlPlane,omitempty"`
 	// Initialized denotes whether or not the control plane has the
 	// uploaded kubernetes config-map.
@@ -793,6 +810,7 @@ type RosaControlPlaneStatus struct {
 	Initialized bool `json:"initialized"`
 	// Ready denotes that the ROSAControlPlane API Server is ready to receive requests.
 	// +kubebuilder:default=false
+	// +required
 	Ready bool `json:"ready"`
 	// FailureMessage will be set in the event that there is a terminal problem
 	// reconciling the state and will be set to a descriptive error message.
@@ -806,13 +824,17 @@ type RosaControlPlaneStatus struct {
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"`
 	// Conditions specifies the conditions for the managed control plane
-	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
+	// +optional
+	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 
 	// ID is the cluster ID given by ROSA.
+	// +optional
 	ID string `json:"id,omitempty"`
 	// ConsoleURL is the url for the openshift console.
+	// +optional
 	ConsoleURL string `json:"consoleURL,omitempty"`
 	// OIDCEndpointURL is the endpoint url for the managed OIDC provider.
+	// +optional
 	OIDCEndpointURL string `json:"oidcEndpointURL,omitempty"`
 
 	// OpenShift semantic version, for example "4.14.5".
@@ -820,6 +842,7 @@ type RosaControlPlaneStatus struct {
 	Version string `json:"version"`
 
 	// Available upgrades for the ROSA hosted control plane.
+	// +optional
 	AvailableUpgrades []string `json:"availableUpgrades,omitempty"`
 }
 
@@ -833,10 +856,13 @@ type RosaControlPlaneStatus struct {
 
 // ROSAControlPlane is the Schema for the ROSAControlPlanes API.
 type ROSAControlPlane struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   RosaControlPlaneSpec   `json:"spec,omitempty"`
+	// +optional
+	Spec RosaControlPlaneSpec `json:"spec,omitempty"`
+	// +optional
 	Status RosaControlPlaneStatus `json:"status,omitempty"`
 }
 
@@ -845,8 +871,10 @@ type ROSAControlPlane struct {
 // ROSAControlPlaneList contains a list of ROSAControlPlane.
 type ROSAControlPlaneList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []ROSAControlPlane `json:"items"`
+	// +required
+	Items []ROSAControlPlane `json:"items"`
 }
 
 // GetConditions returns the control planes conditions.

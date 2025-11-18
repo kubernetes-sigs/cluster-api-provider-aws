@@ -29,6 +29,7 @@ import (
 )
 
 type ocmclient struct {
+	// +optional
 	ocmClient *ocm.Client
 }
 

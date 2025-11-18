@@ -39,14 +39,17 @@ type AWSMachinePoolSpec struct {
 	// MinSize defines the minimum size of the group.
 	// +kubebuilder:default=1
 	// +kubebuilder:validation:Minimum=0
+	// +required
 	MinSize int32 `json:"minSize"`
 
 	// MaxSize defines the maximum size of the group.
 	// +kubebuilder:default=1
 	// +kubebuilder:validation:Minimum=1
+	// +required
 	MaxSize int32 `json:"maxSize"`
 
 	// AvailabilityZones is an array of availability zones instances can run in
+	// +optional
 	AvailabilityZones []string `json:"availabilityZones,omitempty"`
 
 	// Subnets is an array of subnet configurations
@@ -59,10 +62,11 @@ type AWSMachinePoolSpec struct {
 	AdditionalTags infrav1.Tags `json:"additionalTags,omitempty"`
 
 	// AWSLaunchTemplate specifies the launch template and version to use when an instance is launched.
-	// +kubebuilder:validation:Required
+	// +required
 	AWSLaunchTemplate AWSLaunchTemplate `json:"awsLaunchTemplate"`
 
 	// MixedInstancesPolicy describes how multiple instance types will be used by the ASG.
+	// +optional
 	MixedInstancesPolicy *MixedInstancesPolicy `json:"mixedInstancesPolicy,omitempty"`
 
 	// ProviderIDList are the identification IDs of machine instances provided by the provider.
@@ -123,6 +127,7 @@ type AWSMachinePoolStatus struct {
 	Instances []AWSMachinePoolInstanceStatus `json:"instances,omitempty"`
 
 	// The ID of the launch template
+	// +optional
 	LaunchTemplateID string `json:"launchTemplateID,omitempty"`
 
 	// The version of the launch template
@@ -167,6 +172,7 @@ type AWSMachinePoolStatus struct {
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"`
 
+	// +optional
 	ASGStatus *ASGStatus `json:"asgStatus,omitempty"`
 }
 
@@ -194,9 +200,12 @@ type AWSMachinePoolInstanceStatus struct {
 // AWSMachinePool is the Schema for the awsmachinepools API.
 type AWSMachinePool struct {
 	metav1.TypeMeta   `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// +optional
 	Spec   AWSMachinePoolSpec   `json:"spec,omitempty"`
+	// +optional
 	Status AWSMachinePoolStatus `json:"status,omitempty"`
 }
 
@@ -206,7 +215,9 @@ type AWSMachinePool struct {
 // AWSMachinePoolList contains a list of AWSMachinePool.
 type AWSMachinePoolList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
+	// +required
 	Items           []AWSMachinePool `json:"items"`
 }
 

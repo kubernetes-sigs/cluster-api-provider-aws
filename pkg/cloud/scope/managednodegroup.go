@@ -37,28 +37,39 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpoints"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
-	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 // ManagedMachinePoolScopeParams defines the input parameters used to create a new Scope.
 type ManagedMachinePoolScopeParams struct {
+	// +optional
 	Client                    client.Client
+	// +optional
 	Logger                    *logger.Logger
+	// +optional
 	Cluster                   *clusterv1.Cluster
+	// +optional
 	ControlPlane              *ekscontrolplanev1.AWSManagedControlPlane
+	// +optional
 	ManagedMachinePool        *expinfrav1.AWSManagedMachinePool
-	MachinePool               *clusterv1.MachinePool
+	// +optional
+	MachinePool               *expclusterv1.MachinePool
+	// +optional
 	ControllerName            string
+	// +optional
 	Session                   awsv2.Config
+	// +optional
 	MaxWaitActiveUpdateDelete time.Duration
 
+	// +optional
 	EnableIAM            bool
+	// +optional
 	AllowAdditionalRoles bool
 
+	// +optional
 	InfraCluster EC2Scope
 }
 
@@ -93,7 +104,7 @@ func NewManagedMachinePoolScope(params ManagedMachinePoolScopeParams) (*ManagedM
 		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
 	}
 
-	ammpHelper, err := v1beta1patch.NewHelper(params.ManagedMachinePool, params.Client)
+	ammpHelper, err := patch.NewHelper(params.ManagedMachinePool, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init AWSManagedMachinePool patch helper")
 	}
@@ -124,23 +135,38 @@ func NewManagedMachinePoolScope(params ManagedMachinePoolScopeParams) (*ManagedM
 
 // ManagedMachinePoolScope defines the basic context for an actuator to operate upon.
 type ManagedMachinePoolScope struct {
+	// +optional
 	logger.Logger
+	// +optional
 	client.Client
-	patchHelper                *v1beta1patch.Helper
+	// +optional
+	patchHelper                *patch.Helper
+	// +optional
 	capiMachinePoolPatchHelper *patch.Helper
 
+	// +optional
 	Cluster                   *clusterv1.Cluster
+	// +optional
 	ControlPlane              *ekscontrolplanev1.AWSManagedControlPlane
+	// +optional
 	ManagedMachinePool        *expinfrav1.AWSManagedMachinePool
-	MachinePool               *clusterv1.MachinePool
+	// +optional
+	MachinePool               *expclusterv1.MachinePool
+	// +optional
 	EC2Scope                  EC2Scope
+	// +optional
 	MaxWaitActiveUpdateDelete time.Duration
 
+	// +optional
 	session         awsv2.Config
+	// +optional
 	serviceLimiters throttle.ServiceLimiters
+	// +optional
 	controllerName  string
 
+	// +optional
 	enableIAM            bool
+	// +optional
 	allowAdditionalRoles bool
 }
 
@@ -202,10 +228,7 @@ func (s *ManagedMachinePoolScope) RoleName() string {
 
 // Version returns the nodegroup Kubernetes version.
 func (s *ManagedMachinePoolScope) Version() *string {
-	if s.MachinePool.Spec.Template.Spec.Version == "" {
-		return nil
-	}
-	return &s.MachinePool.Spec.Template.Spec.Version
+	return s.MachinePool.Spec.Template.Spec.Version
 }
 
 // ControlPlaneSubnets returns the control plane subnets.
@@ -232,11 +255,11 @@ func (s *ManagedMachinePoolScope) SubnetIDs() ([]string, error) {
 // NodegroupReadyFalse marks the ready condition false using warning if error isn't
 // empty.
 func (s *ManagedMachinePoolScope) NodegroupReadyFalse(reason string, err string) error {
-	severity := clusterv1beta1.ConditionSeverityWarning
+	severity := clusterv1.ConditionSeverityWarning
 	if err == "" {
-		severity = clusterv1beta1.ConditionSeverityInfo
+		severity = clusterv1.ConditionSeverityInfo
 	}
-	v1beta1conditions.MarkFalse(
+	conditions.MarkFalse(
 		s.ManagedMachinePool,
 		expinfrav1.EKSNodegroupReadyCondition,
 		reason,
@@ -253,11 +276,11 @@ func (s *ManagedMachinePoolScope) NodegroupReadyFalse(reason string, err string)
 // IAMReadyFalse marks the ready condition false using warning if error isn't
 // empty.
 func (s *ManagedMachinePoolScope) IAMReadyFalse(reason string, err string) error {
-	severity := clusterv1beta1.ConditionSeverityWarning
+	severity := clusterv1.ConditionSeverityWarning
 	if err == "" {
-		severity = clusterv1beta1.ConditionSeverityInfo
+		severity = clusterv1.ConditionSeverityInfo
 	}
-	v1beta1conditions.MarkFalse(
+	conditions.MarkFalse(
 		s.ManagedMachinePool,
 		expinfrav1.IAMNodegroupRolesReadyCondition,
 		reason,
@@ -276,7 +299,7 @@ func (s *ManagedMachinePoolScope) PatchObject() error {
 	return s.patchHelper.Patch(
 		context.TODO(),
 		s.ManagedMachinePool,
-		v1beta1patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
+		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
 			expinfrav1.EKSNodegroupReadyCondition,
 			expinfrav1.IAMNodegroupRolesReadyCondition,
 		}})
@@ -301,7 +324,7 @@ func (s *ManagedMachinePoolScope) InfraCluster() cloud.ClusterObject {
 }
 
 // ClusterObj returns the cluster object.
-func (s *ManagedMachinePoolScope) ClusterObj() *clusterv1.Cluster {
+func (s *ManagedMachinePoolScope) ClusterObj() cloud.ClusterObject {
 	return s.Cluster
 }
 
@@ -368,7 +391,7 @@ func (s *ManagedMachinePoolScope) GetObjectMeta() *metav1.ObjectMeta {
 }
 
 // GetSetter returns the condition setter.
-func (s *ManagedMachinePoolScope) GetSetter() v1beta1conditions.Setter {
+func (s *ManagedMachinePoolScope) GetSetter() conditions.Setter {
 	return s.ManagedMachinePool
 }
 
@@ -414,7 +437,7 @@ func (s *ManagedMachinePoolScope) GetLaunchTemplate() *expinfrav1.AWSLaunchTempl
 }
 
 // GetMachinePool returns the machine pool.
-func (s *ManagedMachinePoolScope) GetMachinePool() *clusterv1.MachinePool {
+func (s *ManagedMachinePoolScope) GetMachinePool() *expclusterv1.MachinePool {
 	return s.MachinePool
 }
 

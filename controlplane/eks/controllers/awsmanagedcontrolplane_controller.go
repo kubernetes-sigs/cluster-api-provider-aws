@@ -86,24 +86,41 @@ func securityGroupRolesForControlPlane(scope *scope.ManagedControlPlaneScope) []
 
 // AWSManagedControlPlaneReconciler reconciles a AWSManagedControlPlane object.
 type AWSManagedControlPlaneReconciler struct {
+	// +optional
 	client.Client
+	// +optional
 	Recorder record.EventRecorder
 
+	// +optional
 	awsNodeServiceFactory          func(scope.AWSNodeScope) services.AWSNodeInterface
+	// +optional
 	ec2ServiceFactory              func(scope.EC2Scope) services.EC2Interface
+	// +optional
 	eksServiceFactory              func(*scope.ManagedControlPlaneScope) *eks.Service
+	// +optional
 	iamAuthenticatorServiceFactory func(scope.IAMAuthScope, iamauth.BackendType, client.Client) services.IAMAuthenticatorInterface
+	// +optional
 	kubeProxyServiceFactory        func(scope.KubeProxyScope) services.KubeProxyInterface
+	// +optional
 	networkServiceFactory          func(scope.NetworkScope) services.NetworkInterface
+	// +optional
 	securityGroupServiceFactory    func(*scope.ManagedControlPlaneScope) services.SecurityGroupInterface
 
+	// +optional
 	EnableIAM                    bool
+	// +optional
 	AllowAdditionalRoles         bool
+	// +optional
 	WatchFilterValue             string
+	// +optional
 	ExternalResourceGC           bool
+	// +optional
 	AlternativeGCStrategy        bool
+	// +optional
 	WaitInfraPeriod              time.Duration
+	// +optional
 	MaxWaitActiveUpdateDelete    time.Duration
+	// +optional
 	TagUnmanagedNetworkResources bool
 }
 

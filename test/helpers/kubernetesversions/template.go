@@ -49,21 +49,27 @@ var (
 
 type GenerateCIArtifactsInjectedTemplateForDebianInput struct { //nolint:revive
 	// ArtifactsDirectory is where conformance suite output will go. Defaults to _artifacts
+	// +optional
 	ArtifactsDirectory string
 	// SourceTemplate is an input YAML clusterctl template which is to have
 	// the CI artifact script injection
+	// +optional
 	SourceTemplate []byte
 	// PlatformKustomization is an SMP (strategic-merge-style) patch for adding
 	// platform specific kustomizations required for use with CI, such as
 	// referencing a specific image
+	// +optional
 	PlatformKustomization []byte
 	// KubeadmConfigTemplateName is the name of the KubeadmConfigTemplate resource
 	// that needs to have the Debian install script injected. Defaults to "${CLUSTER_NAME}-md-0".
+	// +optional
 	KubeadmConfigTemplateName string
 	// KubeadmControlPlaneName is the name of the KubeadmControlPlane resource
 	// that needs to have the Debian install script injected. Defaults to "${CLUSTER_NAME}-control-plane".
+	// +optional
 	KubeadmControlPlaneName string
 	// KubeadmConfigName is the name of a KubeadmConfig that needs kustomizing. To be used in conjunction with MachinePools. Optional.
+	// +optional
 	KubeadmConfigName string
 }
 
@@ -140,8 +146,11 @@ func GenerateCIArtifactsInjectedTemplateForDebian(input GenerateCIArtifactsInjec
 }
 
 type jsonPatch struct {
+	// +required
 	Op    string      `json:"op"`
+	// +required
 	Path  string      `json:"path"`
+	// +required
 	Value interface{} `json:"value"`
 }
 

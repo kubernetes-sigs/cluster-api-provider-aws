@@ -258,8 +258,11 @@ func TestReconcileCniVpcCniValues(t *testing.T) {
 }
 
 type cachingClient struct {
+	// +optional
 	client.Client
+	// +optional
 	getValue    client.Object
+	// +optional
 	updateChain []client.Object
 }
 
@@ -281,11 +284,17 @@ func (c *cachingClient) List(_ context.Context, _ client.ObjectList, _ ...client
 }
 
 type mockScope struct {
+	// +optional
 	scope.AWSNodeScope
+	// +optional
 	client             client.Client
+	// +optional
 	cni                ekscontrolplanev1.VpcCni
+	// +optional
 	secondaryCidrBlock *string
+	// +optional
 	securityGroups     map[infrav1.SecurityGroupRole]infrav1.SecurityGroup
+	// +optional
 	subnets            infrav1.Subnets
 }
 

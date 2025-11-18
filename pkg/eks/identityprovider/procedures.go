@@ -31,6 +31,7 @@ var oidcType = aws.String("oidc")
 
 // WaitIdentityProviderAssociatedProcedure waits for the identity provider to be associated.
 type WaitIdentityProviderAssociatedProcedure struct {
+	// +optional
 	plan *plan
 }
 
@@ -68,6 +69,7 @@ func (w *WaitIdentityProviderAssociatedProcedure) Do(ctx context.Context) error 
 
 // DisassociateIdentityProviderConfig disassociates the identity provider.
 type DisassociateIdentityProviderConfig struct {
+	// +optional
 	plan *plan
 }
 
@@ -101,6 +103,7 @@ func (d *DisassociateIdentityProviderConfig) Do(ctx context.Context) error {
 
 // AssociateIdentityProviderProcedure associates the identity provider.
 type AssociateIdentityProviderProcedure struct {
+	// +optional
 	plan *plan
 }
 
@@ -140,6 +143,7 @@ func (a *AssociateIdentityProviderProcedure) Do(ctx context.Context) error {
 
 // UpdatedIdentityProviderTagsProcedure updates the tags for the identity provider.
 type UpdatedIdentityProviderTagsProcedure struct {
+	// +optional
 	plan *plan
 }
 
@@ -165,6 +169,7 @@ func (u *UpdatedIdentityProviderTagsProcedure) Do(ctx context.Context) error {
 
 // RemoveIdentityProviderTagsProcedure removes the tags from the identity provider.
 type RemoveIdentityProviderTagsProcedure struct {
+	// +optional
 	plan *plan
 }
 

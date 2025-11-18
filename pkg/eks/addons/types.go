@@ -24,14 +24,23 @@ import (
 
 // EKSAddon represents an EKS addon.
 type EKSAddon struct {
+	// +optional
 	Name                  *string
+	// +optional
 	Version               *string
+	// +optional
 	ServiceAccountRoleARN *string
+	// +optional
 	Configuration         *string
+	// +optional
 	Tags                  infrav1.Tags
+	// +optional
 	ResolveConflict       *string
+	// +optional
 	Preserve              bool
+	// +optional
 	ARN                   *string
+	// +optional
 	Status                *string
 }
 

@@ -35,15 +35,25 @@ var (
 
 // Info defines the version.
 type Info struct {
+	// +optional
 	Major         string `json:"major,omitempty"`
+	// +optional
 	Minor         string `json:"minor,omitempty"`
+	// +optional
 	GitVersion    string `json:"gitVersion,omitempty"`
+	// +optional
 	GitCommit     string `json:"gitCommit,omitempty"`
+	// +optional
 	GitTreeState  string `json:"gitTreeState,omitempty"`
+	// +optional
 	BuildDate     string `json:"buildDate,omitempty"`
+	// +optional
 	GoVersion     string `json:"goVersion,omitempty"`
+	// +optional
 	AwsSdkVersion string `json:"awsSdkVersion,omitempty"`
+	// +optional
 	Compiler      string `json:"compiler,omitempty"`
+	// +optional
 	Platform      string `json:"platform,omitempty"`
 }
 

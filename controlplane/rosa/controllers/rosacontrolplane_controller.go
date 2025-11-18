@@ -88,12 +88,18 @@ const (
 
 // ROSAControlPlaneReconciler reconciles a ROSAControlPlane object.
 type ROSAControlPlaneReconciler struct {
+	// +optional
 	client.Client
+	// +optional
 	WatchFilterValue string
+	// +optional
 	WaitInfraPeriod  time.Duration
+	// +optional
 	NewStsClient     func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsiface.STSClient
+	// +optional
 	NewOCMClient     func(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (rosa.OCMClient, error)
 	// Exposing the restClientConfig for integration test. No need to initialize.
+	// +optional
 	restClientConfig *restclient.Config
 }
 

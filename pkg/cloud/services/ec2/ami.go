@@ -99,7 +99,9 @@ const (
 
 // AMILookup contains the parameters used to template AMI names used for lookup.
 type AMILookup struct {
+	// +optional
 	BaseOS     string
+	// +optional
 	K8sVersion string
 }
 

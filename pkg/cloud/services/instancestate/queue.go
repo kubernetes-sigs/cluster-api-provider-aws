@@ -112,7 +112,10 @@ func queueNotFoundError(err error) bool {
 }
 
 type createPolicyForRuleInput struct {
+	// +optional
 	QueueArn string
+	// +optional
 	QueueURL string
+	// +optional
 	RuleArn  string
 }

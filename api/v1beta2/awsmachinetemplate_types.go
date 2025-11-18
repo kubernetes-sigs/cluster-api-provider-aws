@@ -20,7 +20,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 )
 
 // Architecture represents the CPU architecture of the node.
@@ -75,11 +75,12 @@ type AWSMachineTemplateStatus struct {
 
 	// Conditions defines current service state of the AWSMachineTemplate.
 	// +optional
-	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }
 
 // AWSMachineTemplateSpec defines the desired state of AWSMachineTemplate.
 type AWSMachineTemplateSpec struct {
+	// +required
 	Template AWSMachineTemplateResource `json:"template"`
 }
 
@@ -91,10 +92,13 @@ type AWSMachineTemplateSpec struct {
 
 // AWSMachineTemplate is the schema for the Amazon EC2 Machine Templates API.
 type AWSMachineTemplate struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   AWSMachineTemplateSpec   `json:"spec,omitempty"`
+	// +optional
+	Spec AWSMachineTemplateSpec `json:"spec,omitempty"`
+	// +optional
 	Status AWSMachineTemplateStatus `json:"status,omitempty"`
 }
 
@@ -103,8 +107,10 @@ type AWSMachineTemplate struct {
 // AWSMachineTemplateList contains a list of AWSMachineTemplate.
 type AWSMachineTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []AWSMachineTemplate `json:"items"`
+	// +required
+	Items []AWSMachineTemplate `json:"items"`
 }
 
 // AWSMachineTemplateResource describes the data needed to create am AWSMachine from a template.
@@ -112,19 +118,20 @@ type AWSMachineTemplateResource struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	ObjectMeta clusterv1beta1.ObjectMeta `json:"metadata,omitempty"`
+	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty"`
 
 	// Spec is the specification of the desired behavior of the machine.
+	// +required
 	Spec AWSMachineSpec `json:"spec"`
 }
 
 // GetConditions returns the observations of the operational state of the AWSMachineTemplate resource.
-func (r *AWSMachineTemplate) GetConditions() clusterv1beta1.Conditions {
+func (r *AWSMachineTemplate) GetConditions() clusterv1.Conditions {
 	return r.Status.Conditions
 }
 
-// SetConditions sets the underlying service state of the AWSMachineTemplate to the predescribed clusterv1beta1.Conditions.
-func (r *AWSMachineTemplate) SetConditions(conditions clusterv1beta1.Conditions) {
+// SetConditions sets the underlying service state of the AWSMachineTemplate to the predescribed clusterv1.Conditions.
+func (r *AWSMachineTemplate) SetConditions(conditions clusterv1.Conditions) {
 	r.Status.Conditions = conditions
 }
 

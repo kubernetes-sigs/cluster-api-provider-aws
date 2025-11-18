@@ -53,12 +53,19 @@ import (
 
 // AWSManagedMachinePoolReconciler reconciles a AWSManagedMachinePool object.
 type AWSManagedMachinePoolReconciler struct {
+	// +optional
 	client.Client
+	// +optional
 	Recorder                     record.EventRecorder
+	// +optional
 	EnableIAM                    bool
+	// +optional
 	AllowAdditionalRoles         bool
+	// +optional
 	WatchFilterValue             string
+	// +optional
 	TagUnmanagedNetworkResources bool
+	// +optional
 	MaxWaitActiveUpdateDelete    time.Duration
 }
 

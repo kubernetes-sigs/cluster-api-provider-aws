@@ -48,8 +48,11 @@ const (
 
 // IAMService defines the specs for an IAM service.
 type IAMService struct {
+	// +optional
 	logger.Wrapper
+	// +optional
 	IAMClient iamauth.IAMAPI
+	// +optional
 	Client    *http.Client
 }
 

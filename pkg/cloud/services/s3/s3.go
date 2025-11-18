@@ -50,9 +50,13 @@ const AWSDefaultRegion string = "us-east-1"
 // The interfaces are broken down like this to group functions together.
 // One alternative is to have a large list of functions from the ec2 client.
 type Service struct {
+	// +optional
 	scope           scope.S3Scope
+	// +optional
 	S3Client        S3API
+	// +optional
 	S3PresignClient *s3.PresignClient
+	// +optional
 	STSClient       stsservice.STSClient
 }
 

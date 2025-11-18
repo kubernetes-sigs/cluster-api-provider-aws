@@ -885,7 +885,9 @@ func TestDeleteObject(t *testing.T) {
 }
 
 type testServiceInput struct {
+	// +optional
 	Bucket *infrav1.S3Bucket
+	// +optional
 	Region string
 }
 

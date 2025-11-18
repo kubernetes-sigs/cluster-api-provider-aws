@@ -19,7 +19,7 @@ package v1beta1
 import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 )
 
 // AWSResourceReference is a reference to a specific AWS resource by ID or filters.
@@ -59,9 +59,11 @@ type AMIReference struct {
 // Filter is a filter used to identify an AWS resource.
 type Filter struct {
 	// Name of the filter. Filter names are case-sensitive.
+	// +required
 	Name string `json:"name"`
 
 	// Values includes one or more filter values. Filter values are case-sensitive.
+	// +required
 	Values []string `json:"values"`
 }
 
@@ -137,46 +139,58 @@ var (
 
 // Instance describes an AWS instance.
 type Instance struct {
+	// +required
 	ID string `json:"id"`
 
 	// The current state of the instance.
+	// +optional
 	State InstanceState `json:"instanceState,omitempty"`
 
 	// The instance type.
+	// +optional
 	Type string `json:"type,omitempty"`
 
 	// The ID of the subnet of the instance.
+	// +optional
 	SubnetID string `json:"subnetId,omitempty"`
 
 	// The ID of the AMI used to launch the instance.
+	// +optional
 	ImageID string `json:"imageId,omitempty"`
 
 	// The name of the SSH key pair.
+	// +optional
 	SSHKeyName *string `json:"sshKeyName,omitempty"`
 
 	// SecurityGroupIDs are one or more security group IDs this instance belongs to.
+	// +optional
 	SecurityGroupIDs []string `json:"securityGroupIds,omitempty"`
 
 	// UserData is the raw data script passed to the instance which is run upon bootstrap.
 	// This field must not be base64 encoded and should only be used when running a new instance.
+	// +optional
 	UserData *string `json:"userData,omitempty"`
 
 	// The name of the IAM instance profile associated with the instance, if applicable.
+	// +optional
 	IAMProfile string `json:"iamProfile,omitempty"`
 
 	// Addresses contains the AWS instance associated addresses.
-	Addresses []clusterv1beta1.MachineAddress `json:"addresses,omitempty"`
-
-	// The private IPv4 address assigned to the instance.
+	// +optional
+	Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"` // The private IPv4 address assigned to the instance.
+	// +optional
 	PrivateIP *string `json:"privateIp,omitempty"`
 
 	// The public IPv4 address assigned to the instance, if applicable.
+	// +optional
 	PublicIP *string `json:"publicIp,omitempty"`
 
 	// Specifies whether enhanced networking with ENA is enabled.
+	// +optional
 	ENASupport *bool `json:"enaSupport,omitempty"`
 
 	// Indicates whether the instance is optimized for Amazon EBS I/O.
+	// +optional
 	EBSOptimized *bool `json:"ebsOptimized,omitempty"`
 
 	// Configuration options for the root storage volume.
@@ -188,15 +202,19 @@ type Instance struct {
 	NonRootVolumes []Volume `json:"nonRootVolumes,omitempty"`
 
 	// Specifies ENIs attached to instance
+	// +optional
 	NetworkInterfaces []string `json:"networkInterfaces,omitempty"`
 
 	// The tags associated with the instance.
+	// +optional
 	Tags map[string]string `json:"tags,omitempty"`
 
 	// Availability zone of instance
+	// +optional
 	AvailabilityZone string `json:"availabilityZone,omitempty"`
 
 	// SpotMarketOptions option for configuring instances to be run using AWS Spot instances.
+	// +optional
 	SpotMarketOptions *SpotMarketOptions `json:"spotMarketOptions,omitempty"`
 
 	// Tenancy indicates if instance should run on shared or single-tenant hardware.
@@ -217,6 +235,7 @@ type Volume struct {
 	// Size specifies size (in Gi) of the storage device.
 	// Must be greater than the image snapshot size or 8 (whichever is greater).
 	// +kubebuilder:validation:Minimum=8
+	// +required
 	Size int64 `json:"size"`
 
 	// Type is the type of the volume (e.g. gp2, io1, etc...).

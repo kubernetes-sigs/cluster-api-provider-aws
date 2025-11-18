@@ -95,9 +95,11 @@ const (
 // ROSARoleConfigSpec defines the desired state of ROSARoleConfig
 type ROSARoleConfigSpec struct {
 	// AccountRoleConfig defines account-wide IAM roles before creating your ROSA cluster.
+	// +required
 	AccountRoleConfig AccountRoleConfig `json:"accountRoleConfig"`
 
 	// OperatorRoleConfig defines cluster-specific operator IAM roles based on your cluster configuration.
+	// +required
 	OperatorRoleConfig OperatorRoleConfig `json:"operatorRoleConfig"`
 
 	// IdentityRef is a reference to an identity to be used when reconciling the ROSA Role Config.
@@ -112,13 +114,14 @@ type ROSARoleConfigSpec struct {
 	// OIDC provider type values are Managed or UnManaged. When set to Unmanged OperatorRoleConfig OIDCID field must be provided.
 	// +kubebuilder:validation:Enum=Managed;Unmanaged
 	// +kubebuilder:default=Managed
+	// +required
 	OidcProviderType OidcProviderType `json:"oidcProviderType"`
 }
 
 // AccountRoleConfig defines account IAM roles before creating your ROSA cluster.
 type AccountRoleConfig struct {
 	// User-defined prefix for all generated AWS account role
-	// +kubebuilder:validation:Required
+	// +required
 	// +kubebuilder:validation:MaxLength:=4
 	// +kubebuilder:validation:Pattern:=`^[a-z]([-a-z0-9]*[a-z0-9])?$`
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="prefix is immutable"
@@ -134,7 +137,7 @@ type AccountRoleConfig struct {
 
 	// Version of OpenShift that will be used to the roles tag in formate of x.y.z example; "4.19.0"
 	// Setting the role OpenShift version tag does not affect the associated ROSAControlplane version.
-	// +kubebuilder:validation:Required
+	// +required
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="version is immutable"
 	Version string `json:"version"`
 
@@ -146,7 +149,7 @@ type AccountRoleConfig struct {
 // OperatorRoleConfig defines cluster-specific operator IAM roles based on your cluster configuration.
 type OperatorRoleConfig struct {
 	//  User-defined prefix for generated AWS operator roles.
-	// +kubebuilder:validation:Required
+	// +required
 	// +kubebuilder:validation:MaxLength:=4
 	// +kubebuilder:validation:Pattern:=`^[a-z]([-a-z0-9]*[a-z0-9])?$`
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="prefix is immutable"
@@ -170,40 +173,50 @@ type OperatorRoleConfig struct {
 // SharedVPCConfig is used to set up shared VPC.
 type SharedVPCConfig struct {
 	// Role ARN associated with the private hosted zone used for Hosted Control Plane cluster shared VPC, this role contains policies to be used with Route 53
+	// +optional
 	RouteRoleARN string `json:"routeRoleARN,omitempty"`
 
 	// Role ARN associated with the shared VPC used for Hosted Control Plane clusters, this role contains policies to be used with the VPC endpoint
+	// +optional
 	VPCEndpointRoleARN string `json:"vpcEndpointRoleArn,omitempty"`
 }
 
 // ROSARoleConfigStatus defines the observed state of ROSARoleConfig
 type ROSARoleConfigStatus struct {
 	// ID of created OIDC config
+	// +optional
 	OIDCID string `json:"oidcID,omitempty"`
 
 	// Create OIDC provider for operators to authenticate against in an STS cluster.
+	// +optional
 	OIDCProviderARN string `json:"oidcProviderARN,omitempty"`
 
 	// Created Account roles that can be used to
+	// +optional
 	AccountRolesRef AccountRolesRef `json:"accountRolesRef,omitempty"`
 
 	// AWS IAM roles used to perform credential requests by the openshift operators.
+	// +optional
 	OperatorRolesRef rosacontrolplanev1.AWSRolesRef `json:"operatorRolesRef,omitempty"`
 
 	// Conditions specifies the ROSARoleConfig conditions
-	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
+	// +optional
+	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }
 
 // AccountRolesRef defscribes ARNs used as Account roles.
 type AccountRolesRef struct {
 	// InstallerRoleARN is an AWS IAM role that OpenShift Cluster Manager will assume to create the cluster..
+	// +optional
 	InstallerRoleARN string `json:"installerRoleARN,omitempty"`
 
 	// SupportRoleARN is an AWS IAM role used by Red Hat SREs to enable
 	// access to the cluster account in order to provide support.
+	// +optional
 	SupportRoleARN string `json:"supportRoleARN,omitempty"`
 
 	// WorkerRoleARN is an AWS IAM role that will be attached to worker instances.
+	// +optional
 	WorkerRoleARN string `json:"workerRoleARN,omitempty"`
 }
 
@@ -213,10 +226,13 @@ type AccountRolesRef struct {
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 type ROSARoleConfig struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ROSARoleConfigSpec   `json:"spec,omitempty"`
+	// +optional
+	Spec ROSARoleConfigSpec `json:"spec,omitempty"`
+	// +optional
 	Status ROSARoleConfigStatus `json:"status,omitempty"`
 }
 
@@ -224,8 +240,10 @@ type ROSARoleConfig struct {
 // +kubebuilder:object:root=true
 type ROSARoleConfigList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []ROSARoleConfig `json:"items"`
+	// +required
+	Items []ROSARoleConfig `json:"items"`
 }
 
 // SetConditions sets the conditions of the ROSARoleConfig.

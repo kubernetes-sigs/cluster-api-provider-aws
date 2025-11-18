@@ -20,6 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 const (
@@ -34,9 +35,11 @@ const (
 // AWSClusterSpec defines the desired state of an EC2-based Kubernetes cluster.
 type AWSClusterSpec struct {
 	// NetworkSpec encapsulates all things related to AWS network.
+	// +optional
 	NetworkSpec NetworkSpec `json:"network,omitempty"`
 
 	// The AWS Region the cluster lives in.
+	// +optional
 	Region string `json:"region,omitempty"`
 
 	// SSHKeyName is the name of the ssh key to attach to the bastion host. Valid values are empty string (do not use SSH keys), a valid SSH key name, or omitted (use the default SSH key name)
@@ -45,7 +48,7 @@ type AWSClusterSpec struct {
 
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
-	ControlPlaneEndpoint clusterv1beta1.APIEndpoint `json:"controlPlaneEndpoint"`
+	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
 
 	// AdditionalTags is an optional set of tags to add to AWS resources managed by the AWS provider, in addition to the
 	// ones added by default.
@@ -81,6 +84,7 @@ type AWSClusterSpec struct {
 	// up machine images when a machine does not specify an AMI. When set, this
 	// will be used for all cluster machines unless a machine specifies a
 	// different ImageLookupBaseOS.
+	// +optional
 	ImageLookupBaseOS string `json:"imageLookupBaseOS,omitempty"`
 
 	// Bastion contains options to configure the bastion host.
@@ -91,6 +95,7 @@ type AWSClusterSpec struct {
 
 	// IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
 	// If no identity is specified, the default identity for this controller will be used.
+	// +optional
 	IdentityRef *AWSIdentityReference `json:"identityRef,omitempty"`
 
 	// S3Bucket contains options to configure a supporting S3 bucket for this
@@ -119,10 +124,12 @@ var (
 type AWSIdentityReference struct {
 	// Name of the identity.
 	// +kubebuilder:validation:MinLength=1
+	// +required
 	Name string `json:"name"`
 
 	// Kind of the identity.
 	// +kubebuilder:validation:Enum=AWSClusterControllerIdentity;AWSClusterRoleIdentity;AWSClusterStaticIdentity
+	// +required
 	Kind AWSIdentityKind `json:"kind"`
 }
 
@@ -146,6 +153,7 @@ type Bastion struct {
 	// InstanceType will use the specified instance type for the bastion. If not specified,
 	// Cluster API Provider AWS will use t3.micro for all regions except us-east-1, where t2.micro
 	// will be the default.
+	// +optional
 	InstanceType string `json:"instanceType,omitempty"`
 
 	// AMI will use the specified AMI to boot the bastion. If not specified,
@@ -200,27 +208,35 @@ type AWSLoadBalancerSpec struct {
 // AWSClusterStatus defines the observed state of AWSCluster.
 type AWSClusterStatus struct {
 	// +kubebuilder:default=false
-	Ready          bool                          `json:"ready"`
-	Network        NetworkStatus                 `json:"networkStatus,omitempty"`
+	// +required
+	Ready bool `json:"ready"`
+	// +optional
+	Network NetworkStatus `json:"networkStatus,omitempty"`
+	// +optional
 	FailureDomains clusterv1beta1.FailureDomains `json:"failureDomains,omitempty"`
-	Bastion        *Instance                     `json:"bastion,omitempty"`
-	Conditions     clusterv1beta1.Conditions     `json:"conditions,omitempty"`
+	// +optional
+	Bastion *Instance `json:"bastion,omitempty"`
+	// +optional
+	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }
 
 // S3Bucket defines a supporting S3 bucket for the cluster, currently can be optionally used for Ignition.
 type S3Bucket struct {
 	// ControlPlaneIAMInstanceProfile is a name of the IAMInstanceProfile, which will be allowed
 	// to read control-plane node bootstrap data from S3 Bucket.
+	// +required
 	ControlPlaneIAMInstanceProfile string `json:"controlPlaneIAMInstanceProfile"`
 
 	// NodesIAMInstanceProfiles is a list of IAM instance profiles, which will be allowed to read
 	// worker nodes bootstrap data from S3 Bucket.
+	// +required
 	NodesIAMInstanceProfiles []string `json:"nodesIAMInstanceProfiles"`
 
 	// Name defines name of S3 Bucket to be created.
 	// +kubebuilder:validation:MinLength:=3
 	// +kubebuilder:validation:MaxLength:=63
 	// +kubebuilder:validation:Pattern=`^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$`
+	// +required
 	Name string `json:"name"`
 }
 
@@ -236,10 +252,13 @@ type S3Bucket struct {
 
 // AWSCluster is the schema for Amazon EC2 based Kubernetes Cluster API.
 type AWSCluster struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   AWSClusterSpec   `json:"spec,omitempty"`
+	// +optional
+	Spec AWSClusterSpec `json:"spec,omitempty"`
+	// +optional
 	Status AWSClusterStatus `json:"status,omitempty"`
 }
 
@@ -249,8 +268,10 @@ type AWSCluster struct {
 // AWSClusterList contains a list of AWSCluster.
 type AWSClusterList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []AWSCluster `json:"items"`
+	// +required
+	Items []AWSCluster `json:"items"`
 }
 
 // GetConditions returns the observations of the operational state of the AWSCluster resource.

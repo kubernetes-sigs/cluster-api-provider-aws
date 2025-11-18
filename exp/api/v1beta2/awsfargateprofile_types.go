@@ -37,9 +37,11 @@ var (
 type FargateProfileSpec struct {
 	// ClusterName is the name of the Cluster this object belongs to.
 	// +kubebuilder:validation:MinLength=1
+	// +required
 	ClusterName string `json:"clusterName"`
 
 	// ProfileName specifies the profile name.
+	// +optional
 	ProfileName string `json:"profileName,omitempty"`
 
 	// SubnetIDs specifies which subnets are used for the
@@ -84,15 +86,18 @@ type FargateProfileSpec struct {
 	RolePermissionsBoundary string `json:"rolePermissionsBoundary,omitempty"`
 
 	// Selectors specify fargate pod selectors.
+	// +optional
 	Selectors []FargateSelector `json:"selectors,omitempty"`
 }
 
 // FargateSelector specifies a selector for pods that should run on this fargate pool.
 type FargateSelector struct {
 	// Labels specifies which pod labels this selector should match.
+	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
 
 	// Namespace specifies which namespace this selector should match.
+	// +optional
 	Namespace string `json:"namespace,omitempty"`
 }
 
@@ -100,6 +105,7 @@ type FargateSelector struct {
 type FargateProfileStatus struct {
 	// Ready denotes that the FargateProfile is available.
 	// +kubebuilder:default=false
+	// +required
 	Ready bool `json:"ready"`
 
 	// FailureReason will be set in the event that there is a terminal problem
@@ -156,9 +162,12 @@ type FargateProfileStatus struct {
 // AWSFargateProfile is the Schema for the awsfargateprofiles API.
 type AWSFargateProfile struct {
 	metav1.TypeMeta   `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// +optional
 	Spec   FargateProfileSpec   `json:"spec,omitempty"`
+	// +optional
 	Status FargateProfileStatus `json:"status,omitempty"`
 }
 
@@ -177,7 +186,9 @@ func (r *AWSFargateProfile) SetConditions(conditions clusterv1beta1.Conditions) 
 // AWSFargateProfileList contains a list of FargateProfiles.
 type AWSFargateProfileList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
+	// +required
 	Items           []AWSFargateProfile `json:"items"`
 }
 

@@ -5,12 +5,10 @@ type ExternalAuthProvider struct {
 	// Name of the OIDC provider
 	//
 	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:Required
 	// +required
 	Name string `json:"name"`
 	// Issuer describes attributes of the OIDC token issuer
 	//
-	// +kubebuilder:validation:Required
 	// +required
 	Issuer TokenIssuer `json:"issuer"`
 
@@ -32,6 +30,7 @@ type ExternalAuthProvider struct {
 	// ClaimValidationRules are rules that are applied to validate token claims to authenticate users.
 	//
 	// +listType=atomic
+	// +optional
 	ClaimValidationRules []TokenClaimValidationRule `json:"claimValidationRules,omitempty"`
 }
 
@@ -46,7 +45,6 @@ type TokenIssuer struct {
 	// Must use the https:// scheme.
 	//
 	// +kubebuilder:validation:Pattern=`^https:\/\/[^\s]`
-	// +kubebuilder:validation:Required
 	// +required
 	URL string `json:"issuerURL"`
 
@@ -56,7 +54,6 @@ type TokenIssuer struct {
 	// Must be set to exactly one value.
 	//
 	// +listType=set
-	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=10
 	// +required
@@ -66,6 +63,7 @@ type TokenIssuer struct {
 	// configuration namespace. The .data of the configMap must contain
 	// the "ca-bundle.crt" key.
 	// If unset, system trust is used instead.
+	// +optional
 	CertificateAuthority *LocalObjectReference `json:"issuerCertificateAuthority,omitempty"`
 }
 
@@ -77,7 +75,6 @@ type OIDCClientConfig struct {
 	//
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	// +kubebuilder:validation:Required
 	// +required
 	ComponentName string `json:"componentName"`
 
@@ -86,19 +83,18 @@ type OIDCClientConfig struct {
 	//
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
-	// +kubebuilder:validation:Required
 	// +required
 	ComponentNamespace string `json:"componentNamespace"`
 
 	// ClientID is the identifier of the OIDC client from the OIDC provider
 	//
 	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:Required
 	// +required
 	ClientID string `json:"clientID"`
 
 	// ClientSecret refers to a secret that
 	// contains the client secret in the `clientSecret` key of the `.data` field
+	// +required
 	ClientSecret LocalObjectReference `json:"clientSecret"`
 
 	// ExtraScopes is an optional set of scopes to request tokens with.
@@ -129,7 +125,6 @@ type TokenClaimMappings struct {
 type PrefixedClaimMapping struct {
 	// Claim is a JWT token claim to be used in the mapping
 	//
-	// +kubebuilder:validation:Required
 	// +required
 	Claim string `json:"claim"`
 
@@ -141,6 +136,7 @@ type PrefixedClaimMapping struct {
 	// Example: if `prefix` is set to "myoidc:"" and the `claim` in JWT contains
 	// an array of strings "a", "b" and  "c", the mapping will result in an
 	// array of string "myoidc:a", "myoidc:b" and "myoidc:c".
+	// +optional
 	Prefix string `json:"prefix,omitempty"`
 }
 
@@ -150,7 +146,6 @@ type PrefixedClaimMapping struct {
 type UsernameClaimMapping struct {
 	// Claim is a JWT token claim to be used in the mapping
 	//
-	// +kubebuilder:validation:Required
 	// +required
 	Claim string `json:"claim"`
 
@@ -214,10 +209,11 @@ type TokenClaimValidationRule struct {
 	//
 	// +kubebuilder:validation:Enum={"RequiredClaim"}
 	// +kubebuilder:default="RequiredClaim"
+	// +required
 	Type TokenValidationRuleType `json:"type"`
 
 	// RequiredClaim allows configuring a required claim name and its expected value
-	// +kubebuilder:validation:Required
+	// +required
 	RequiredClaim TokenRequiredClaim `json:"requiredClaim"`
 }
 
@@ -227,14 +223,12 @@ type TokenRequiredClaim struct {
 	// supported.
 	//
 	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:Required
 	// +required
 	Claim string `json:"claim"`
 
 	// RequiredValue is the required value for the claim.
 	//
 	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:Required
 	// +required
 	RequiredValue string `json:"requiredValue"`
 }
@@ -243,7 +237,6 @@ type TokenRequiredClaim struct {
 type LocalObjectReference struct {
 	// Name is the metadata.name of the referenced object.
 	//
-	// +kubebuilder:validation:Required
 	// +required
 	Name string `json:"name"`
 }

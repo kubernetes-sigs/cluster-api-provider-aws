@@ -21,7 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 )
 
 const (
@@ -44,9 +44,11 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 
 	// IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
 	// If no identity is specified, the default identity for this controller will be used.
+	// +optional
 	IdentityRef *infrav1.AWSIdentityReference `json:"identityRef,omitempty"`
 
 	// NetworkSpec encapsulates all things related to AWS network.
+	// +optional
 	NetworkSpec infrav1.NetworkSpec `json:"network,omitempty"`
 
 	// SecondaryCidrBlock is the additional CIDR range to use for pod IPs.
@@ -55,6 +57,7 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	SecondaryCidrBlock *string `json:"secondaryCidrBlock,omitempty"`
 
 	// The AWS Region the cluster lives in.
+	// +optional
 	Region string `json:"region,omitempty"`
 
 	// SSHKeyName is the name of the ssh key to attach to the bastion host. Valid values are empty string (do not use SSH keys), a valid SSH key name, or omitted (use the default SSH key name)
@@ -137,6 +140,7 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// up machine images when a machine does not specify an AMI. When set, this
 	// will be used for all cluster machines unless a machine specifies a
 	// different ImageLookupBaseOS.
+	// +optional
 	ImageLookupBaseOS string `json:"imageLookupBaseOS,omitempty"`
 
 	// Bastion contains options to configure the bastion host.
@@ -149,11 +153,13 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// Defaults to iam-authenticator
 	// +kubebuilder:default=iam-authenticator
 	// +kubebuilder:validation:Enum=iam-authenticator;aws-cli
+	// +optional
 	TokenMethod *EKSTokenMethod `json:"tokenMethod,omitempty"`
 
 	// AssociateOIDCProvider can be enabled to automatically create an identity
 	// provider for the controller for use with IAM roles for service accounts
 	// +kubebuilder:default=false
+	// +optional
 	AssociateOIDCProvider bool `json:"associateOIDCProvider,omitempty"`
 
 	// Addons defines the EKS addons to enable with the EKS cluster.
@@ -171,6 +177,7 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// should be deleted. You cannot set this to true if you are using the
 	// Amazon VPC CNI addon.
 	// +kubebuilder:default=false
+	// +optional
 	DisableVPCCNI bool `json:"disableVPCCNI,omitempty"`
 
 	// VpcCni is used to set configuration options for the VPC CNI plugin
@@ -178,6 +185,7 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	VpcCni VpcCni `json:"vpcCni,omitempty"`
 
 	// KubeProxy defines managed attributes of the kube-proxy daemonset
+	// +optional
 	KubeProxy KubeProxy `json:"kubeProxy,omitempty"`
 }
 
@@ -189,6 +197,7 @@ type KubeProxy struct {
 	// provides a way to specify that the kube-proxy daemonset should be deleted. You cannot
 	// set this to true if you are using the Amazon kube-proxy addon.
 	// +kubebuilder:default=false
+	// +optional
 	Disable bool `json:"disable,omitempty"`
 }
 
@@ -215,25 +224,31 @@ type EndpointAccess struct {
 // EncryptionConfig specifies the encryption configuration for the EKS clsuter.
 type EncryptionConfig struct {
 	// Provider specifies the ARN or alias of the CMK (in AWS KMS)
+	// +optional
 	Provider *string `json:"provider,omitempty"`
 	// Resources specifies the resources to be encrypted
+	// +optional
 	Resources []*string `json:"resources,omitempty"`
 }
 
 // OIDCProviderStatus holds the status of the AWS OIDC identity provider.
 type OIDCProviderStatus struct {
 	// ARN holds the ARN of the provider
+	// +optional
 	ARN string `json:"arn,omitempty"`
 	// TrustPolicy contains the boilerplate IAM trust policy to use for IRSA
+	// +optional
 	TrustPolicy string `json:"trustPolicy,omitempty"`
 }
 
 // IdentityProviderStatus holds the status for associated identity provider
 type IdentityProviderStatus struct {
 	// ARN holds the ARN of associated identity provider
+	// +optional
 	ARN string `json:"arn,omitempty"`
 
 	// Status holds current status of associated identity provider
+	// +optional
 	Status string `json:"status,omitempty"`
 }
 
@@ -254,6 +269,7 @@ type AWSManagedControlPlaneStatus struct {
 	// ExternalManagedControlPlane indicates to cluster-api that the control plane
 	// is managed by an external service such as AKS, EKS, GKE, etc.
 	// +kubebuilder:default=true
+	// +optional
 	ExternalManagedControlPlane *bool `json:"externalManagedControlPlane,omitempty"`
 	// Initialized denotes whether or not the control plane has the
 	// uploaded kubernetes config-map.
@@ -262,13 +278,15 @@ type AWSManagedControlPlaneStatus struct {
 	// Ready denotes that the AWSManagedControlPlane API Server is ready to
 	// receive requests and that the VPC infra is ready.
 	// +kubebuilder:default=false
+	// +required
 	Ready bool `json:"ready"`
 	// ErrorMessage indicates that there is a terminal problem reconciling the
 	// state, and will be set to a descriptive error message.
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"`
 	// Conditions specifies the cpnditions for the managed control plane
-	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
+	// +optional
+	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 	// Addons holds the current status of the EKS addons
 	// +optional
 	Addons []AddonState `json:"addons,omitempty"`
@@ -290,10 +308,13 @@ type AWSManagedControlPlaneStatus struct {
 
 // AWSManagedControlPlane is the schema for the Amazon EKS Managed Control Plane API.
 type AWSManagedControlPlane struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   AWSManagedControlPlaneSpec   `json:"spec,omitempty"`
+	// +optional
+	Spec AWSManagedControlPlaneSpec `json:"spec,omitempty"`
+	// +optional
 	Status AWSManagedControlPlaneStatus `json:"status,omitempty"`
 }
 
@@ -303,8 +324,10 @@ type AWSManagedControlPlane struct {
 // AWSManagedControlPlaneList contains a list of Amazon EKS Managed Control Planes.
 type AWSManagedControlPlaneList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []AWSManagedControlPlane `json:"items"`
+	// +required
+	Items []AWSManagedControlPlane `json:"items"`
 }
 
 // GetConditions returns the control planes conditions.

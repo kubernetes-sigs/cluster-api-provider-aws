@@ -46,14 +46,19 @@ func NewGlobalScope(params GlobalScopeParams) (*GlobalScope, error) {
 
 // GlobalScopeParams defines the parameters acceptable for GlobalScope.
 type GlobalScopeParams struct {
+	// +optional
 	ControllerName string
+	// +optional
 	Region         string
 }
 
 // GlobalScope defines the specs for the GlobalScope.
 type GlobalScope struct {
+	// +optional
 	session         awsv2.Config
+	// +optional
 	serviceLimiters throttle.ServiceLimiters
+	// +optional
 	controllerName  string
 }
 

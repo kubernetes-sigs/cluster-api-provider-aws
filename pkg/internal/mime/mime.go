@@ -47,9 +47,13 @@ var (
 )
 
 type scriptVariables struct {
+	// +optional
 	SecretPrefix string
+	// +optional
 	Chunks       int32
+	// +optional
 	Region       string
+	// +optional
 	Endpoint     string
 }
 

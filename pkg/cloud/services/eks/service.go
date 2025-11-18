@@ -78,6 +78,7 @@ type EKSAPI interface {
 
 // EKSClient is a wrapper over eks.Client for implementing custom methods of EKSAPI.
 type EKSClient struct {
+	// +optional
 	*eks.Client
 }
 
@@ -85,10 +86,15 @@ type EKSClient struct {
 // The interfaces are broken down like this to group functions together.
 // One alternative is to have a large list of functions from the ec2 client.
 type Service struct {
+	// +optional
 	scope     *scope.ManagedControlPlaneScope
+	// +optional
 	EC2Client common.EC2API
+	// +optional
 	EKSClient EKSAPI
+	// +optional
 	iam.IAMService
+	// +optional
 	STSClient stsservice.STSClient
 }
 
@@ -129,11 +135,17 @@ func NewService(controlPlaneScope *scope.ManagedControlPlaneScope, opts ...Servi
 // The interfaces are broken down like this to group functions together.
 // One alternative is to have a large list of functions from the ec2 client.
 type NodegroupService struct {
+	// +optional
 	scope             *scope.ManagedMachinePoolScope
+	// +optional
 	ASGService        services.ASGInterface
+	// +optional
 	AutoscalingClient *autoscaling.Client
+	// +optional
 	EKSClient         EKSAPI
+	// +optional
 	iam.IAMService
+	// +optional
 	STSClient stsservice.STSClient
 }
 
@@ -156,9 +168,13 @@ func NewNodegroupService(machinePoolScope *scope.ManagedMachinePoolScope) *Nodeg
 // FargateService holds a collection of interfaces.
 // The interfaces are broken down like this to group functions together.
 type FargateService struct {
+	// +optional
 	scope     *scope.FargateProfileScope
+	// +optional
 	EKSClient EKSAPI
+	// +optional
 	iam.IAMService
+	// +optional
 	STSClient stsservice.STSClient
 }
 

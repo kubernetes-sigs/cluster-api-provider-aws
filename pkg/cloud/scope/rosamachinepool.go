@@ -30,21 +30,27 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
-	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 // RosaMachinePoolScopeParams defines the input parameters used to create a new Scope.
 type RosaMachinePoolScopeParams struct {
+	// +optional
 	Client          client.Client
+	// +optional
 	Logger          *logger.Logger
+	// +optional
 	Cluster         *clusterv1.Cluster
+	// +optional
 	ControlPlane    *rosacontrolplanev1.ROSAControlPlane
+	// +optional
 	RosaMachinePool *expinfrav1.ROSAMachinePool
-	MachinePool     *clusterv1.MachinePool
+	// +optional
+	MachinePool     *expclusterv1.MachinePool
+	// +optional
 	ControllerName  string
 }
 
@@ -65,7 +71,7 @@ func NewRosaMachinePoolScope(params RosaMachinePoolScopeParams) (*RosaMachinePoo
 		params.Logger = logger.NewLogger(log)
 	}
 
-	ammpHelper, err := v1beta1patch.NewHelper(params.RosaMachinePool, params.Client)
+	ammpHelper, err := patch.NewHelper(params.RosaMachinePool, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init RosaMachinePool patch helper")
 	}
@@ -102,19 +108,30 @@ var _ cloud.SessionMetadata = &RosaMachinePoolScope{}
 
 // RosaMachinePoolScope defines the basic context for an actuator to operate upon.
 type RosaMachinePoolScope struct {
+	// +optional
 	logger.Logger
+	// +optional
 	client.Client
-	patchHelper                *v1beta1patch.Helper
+	// +optional
+	patchHelper                *patch.Helper
+	// +optional
 	capiMachinePoolPatchHelper *patch.Helper
 
+	// +optional
 	Cluster         *clusterv1.Cluster
+	// +optional
 	ControlPlane    *rosacontrolplanev1.ROSAControlPlane
+	// +optional
 	RosaMachinePool *expinfrav1.ROSAMachinePool
-	MachinePool     *clusterv1.MachinePool
+	// +optional
+	MachinePool     *expclusterv1.MachinePool
 
+	// +optional
 	session         awsv2.Config
+	// +optional
 	serviceLimiters throttle.ServiceLimiters
 
+	// +optional
 	controllerName string
 }
 
@@ -144,7 +161,7 @@ func (s *RosaMachinePoolScope) InfraCluster() cloud.ClusterObject {
 }
 
 // ClusterObj returns the cluster object.
-func (s *RosaMachinePoolScope) ClusterObj() *clusterv1.Cluster {
+func (s *RosaMachinePoolScope) ClusterObj() cloud.ClusterObject {
 	return s.Cluster
 }
 
@@ -155,7 +172,7 @@ func (s *RosaMachinePoolScope) ControllerName() string {
 }
 
 // GetSetter returns the condition setter for the RosaMachinePool.
-func (s *RosaMachinePoolScope) GetSetter() v1beta1conditions.Setter {
+func (s *RosaMachinePoolScope) GetSetter() conditions.Setter {
 	return s.RosaMachinePool
 }
 
@@ -190,11 +207,11 @@ func (s *RosaMachinePoolScope) Namespace() string {
 // RosaMachinePoolReadyFalse marks the ready condition false using warning if error isn't
 // empty.
 func (s *RosaMachinePoolScope) RosaMachinePoolReadyFalse(reason string, err string) error {
-	severity := clusterv1beta1.ConditionSeverityWarning
+	severity := clusterv1.ConditionSeverityWarning
 	if err == "" {
-		severity = clusterv1beta1.ConditionSeverityInfo
+		severity = clusterv1.ConditionSeverityInfo
 	}
-	v1beta1conditions.MarkFalse(
+	conditions.MarkFalse(
 		s.RosaMachinePool,
 		expinfrav1.RosaMachinePoolReadyCondition,
 		reason,
@@ -213,7 +230,7 @@ func (s *RosaMachinePoolScope) PatchObject() error {
 	return s.patchHelper.Patch(
 		context.TODO(),
 		s.RosaMachinePool,
-		v1beta1patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
+		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
 			expinfrav1.RosaMachinePoolReadyCondition,
 		}})
 }

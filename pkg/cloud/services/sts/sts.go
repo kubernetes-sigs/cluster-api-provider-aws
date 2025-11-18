@@ -33,7 +33,9 @@ type STSClient interface {
 
 // ClientWrapper wraps both the regular STS client and presign client to implement STSClient interface.
 type ClientWrapper struct {
+	// +optional
 	client        *sts.Client
+	// +optional
 	presignClient *sts.PresignClient
 }
 

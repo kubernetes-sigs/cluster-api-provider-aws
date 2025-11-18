@@ -45,26 +45,45 @@ runcmd:
 
 // NodeInput defines the context to generate a node user data.
 type NodeInput struct {
+	// +optional
 	ClusterName           string
+	// +optional
 	KubeletExtraArgs      map[string]string
+	// +optional
 	ContainerRuntime      *string
+	// +optional
 	DNSClusterIP          *string
+	// +optional
 	DockerConfigJSON      *string
+	// +optional
 	APIRetryAttempts      *int
+	// +optional
 	PauseContainerAccount *string
+	// +optional
 	PauseContainerVersion *string
+	// +optional
 	UseMaxPods            *bool
 	// NOTE: currently the IPFamily/ServiceIPV6Cidr isn't exposed to the user.
 	// TODO (richardcase): remove the above comment when IPV6 / dual stack is implemented.
+	// +optional
 	IPFamily                 *string
+	// +optional
 	ServiceIPV6Cidr          *string
+	// +optional
 	PreBootstrapCommands     []string
+	// +optional
 	PostBootstrapCommands    []string
+	// +optional
 	BootstrapCommandOverride *string
+	// +optional
 	Files                    []eksbootstrapv1.File
+	// +optional
 	DiskSetup                *eksbootstrapv1.DiskSetup
+	// +optional
 	Mounts                   []eksbootstrapv1.MountPoints
+	// +optional
 	Users                    []eksbootstrapv1.User
+	// +optional
 	NTP                      *eksbootstrapv1.NTP
 }
 

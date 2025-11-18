@@ -22,11 +22,13 @@ import (
 
 // EKSConfigTemplateSpec defines the desired state of templated EKSConfig Amazon EKS Bootstrap Configuration resources.
 type EKSConfigTemplateSpec struct {
+	// +required
 	Template EKSConfigTemplateResource `json:"template"`
 }
 
 // EKSConfigTemplateResource defines the Template structure.
 type EKSConfigTemplateResource struct {
+	// +optional
 	Spec EKSConfigSpec `json:"spec,omitempty"`
 }
 
@@ -37,8 +39,10 @@ type EKSConfigTemplateResource struct {
 // EKSConfigTemplate is the Amazon EKS Bootstrap Configuration Template API.
 type EKSConfigTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// +optional
 	Spec EKSConfigTemplateSpec `json:"spec,omitempty"`
 }
 
@@ -48,7 +52,9 @@ type EKSConfigTemplate struct {
 // EKSConfigTemplateList contains a list of Amazon EKS Bootstrap Configuration Templates.
 type EKSConfigTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
+	// +required
 	Items           []EKSConfigTemplate `json:"items"`
 }
 

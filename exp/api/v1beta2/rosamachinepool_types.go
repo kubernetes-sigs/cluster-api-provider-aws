@@ -35,6 +35,7 @@ type RosaMachinePoolSpec struct {
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="nodepoolName is immutable"
 	// +kubebuilder:validation:MaxLength:=15
 	// +kubebuilder:validation:Pattern:=`^[a-z]([-a-z0-9]*[a-z0-9])?$`
+	// +required
 	NodePoolName string `json:"nodePoolName"`
 
 	// Version specifies the OpenShift version of the nodes associated with this machinepool.
@@ -74,7 +75,7 @@ type RosaMachinePoolSpec struct {
 
 	// InstanceType specifies the AWS instance type
 	//
-	// +kubebuilder:validation:Required
+	// +required
 	InstanceType string `json:"instanceType"`
 
 	// Autoscaling specifies auto scaling behaviour for this MachinePool.
@@ -131,7 +132,7 @@ type RosaMachinePoolSpec struct {
 type RosaTaint struct {
 	// The taint key to be applied to a node.
 	//
-	// +kubebuilder:validation:Required
+	// +required
 	Key string `json:"key"`
 	// The taint value corresponding to the taint key.
 	//
@@ -141,7 +142,7 @@ type RosaTaint struct {
 	// The effect of the taint on pods that do not tolerate the taint.
 	// Valid effects are NoSchedule, PreferNoSchedule and NoExecute.
 	//
-	// +kubebuilder:validation:Required
+	// +required
 	// +kubebuilder:validation:Enum=NoSchedule;PreferNoSchedule;NoExecute
 	Effect corev1.TaintEffect `json:"effect"`
 }
@@ -200,6 +201,7 @@ type RosaMachinePoolStatus struct {
 	// Ready denotes that the RosaMachinePool nodepool has joined
 	// the cluster
 	// +kubebuilder:default=false
+	// +required
 	Ready bool `json:"ready"`
 	// Replicas is the most recently observed number of replicas.
 	// +optional
@@ -220,9 +222,11 @@ type RosaMachinePoolStatus struct {
 	FailureMessage *string `json:"failureMessage,omitempty"`
 
 	// ID is the ID given by ROSA.
+	// +optional
 	ID string `json:"id,omitempty"`
 
 	// Available upgrades for the ROSA MachinePool.
+	// +optional
 	AvailableUpgrades []string `json:"availableUpgrades,omitempty"`
 }
 
@@ -236,9 +240,12 @@ type RosaMachinePoolStatus struct {
 // ROSAMachinePool is the Schema for the rosamachinepools API.
 type ROSAMachinePool struct {
 	metav1.TypeMeta   `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// +optional
 	Spec   RosaMachinePoolSpec   `json:"spec,omitempty"`
+	// +optional
 	Status RosaMachinePoolStatus `json:"status,omitempty"`
 }
 
@@ -247,7 +254,9 @@ type ROSAMachinePool struct {
 // ROSAMachinePoolList contains a list of RosaMachinePools.
 type ROSAMachinePoolList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
+	// +required
 	Items           []ROSAMachinePool `json:"items"`
 }
 

@@ -51,16 +51,22 @@ func init() {
 
 // CmdProcessor handles the garbage collection commands.
 type CmdProcessor struct {
+	// +optional
 	client client.Client
 
+	// +optional
 	clusterName string
+	// +optional
 	namespace   string
 }
 
 // GCInput holds the configuration for the command processor.
 type GCInput struct {
+	// +optional
 	ClusterName    string
+	// +optional
 	Namespace      string
+	// +optional
 	KubeconfigPath string
 }
 

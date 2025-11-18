@@ -40,8 +40,11 @@ import (
 
 // AWSControllerIdentityReconciler reconciles a AWSClusterControllerIdentity object.
 type AWSControllerIdentityReconciler struct {
+	// +optional
 	client.Client
+	// +optional
 	Log              logr.Logger
+	// +optional
 	WatchFilterValue string
 }
 

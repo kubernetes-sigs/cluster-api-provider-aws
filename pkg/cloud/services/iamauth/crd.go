@@ -29,6 +29,7 @@ import (
 )
 
 type crdBackend struct {
+	// +optional
 	client crclient.Client
 }
 

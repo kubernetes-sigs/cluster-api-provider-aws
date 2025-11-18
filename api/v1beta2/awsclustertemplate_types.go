@@ -19,11 +19,12 @@ package v1beta2
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 )
 
 // AWSClusterTemplateSpec defines the desired state of AWSClusterTemplate.
 type AWSClusterTemplateSpec struct {
+	// +required
 	Template AWSClusterTemplateResource `json:"template"`
 }
 
@@ -35,9 +36,11 @@ type AWSClusterTemplateSpec struct {
 
 // AWSClusterTemplate is the schema for Amazon EC2 based Kubernetes Cluster Templates.
 type AWSClusterTemplate struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// +optional
 	Spec AWSClusterTemplateSpec `json:"spec,omitempty"`
 }
 
@@ -46,8 +49,10 @@ type AWSClusterTemplate struct {
 // AWSClusterTemplateList contains a list of AWSClusterTemplate.
 type AWSClusterTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []AWSClusterTemplate `json:"items"`
+	// +required
+	Items []AWSClusterTemplate `json:"items"`
 }
 
 func init() {
@@ -59,6 +64,7 @@ type AWSClusterTemplateResource struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	ObjectMeta clusterv1beta1.ObjectMeta `json:"metadata,omitempty"`
-	Spec       AWSClusterSpec            `json:"spec"`
+	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty"`
+	// +required
+	Spec AWSClusterSpec `json:"spec"`
 }

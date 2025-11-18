@@ -41,8 +41,11 @@ var (
 // ProviderID is a struct representation of a Kubernetes ProviderID.
 // Format: cloudProvider://optional/segments/etc/id
 type ProviderID struct {
+	// +optional
 	original      string
+	// +optional
 	cloudProvider string
+	// +optional
 	id            string
 }
 

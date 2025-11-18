@@ -25,9 +25,11 @@ import (
 // NetworkStatus encapsulates AWS networking resources.
 type NetworkStatus struct {
 	// SecurityGroups is a map from the role/kind of the security group to its unique name, if any.
+	// +optional
 	SecurityGroups map[SecurityGroupRole]SecurityGroup `json:"securityGroups,omitempty"`
 
 	// APIServerELB is the Kubernetes api server classic load balancer.
+	// +optional
 	APIServerELB ClassicELB `json:"apiServerElb,omitempty"`
 }
 
@@ -80,30 +82,39 @@ type ClassicELB struct {
 	Name string `json:"name,omitempty"`
 
 	// DNSName is the dns name of the load balancer.
+	// +optional
 	DNSName string `json:"dnsName,omitempty"`
 
 	// Scheme is the load balancer scheme, either internet-facing or private.
+	// +optional
 	Scheme ClassicELBScheme `json:"scheme,omitempty"`
 
 	// AvailabilityZones is an array of availability zones in the VPC attached to the load balancer.
+	// +optional
 	AvailabilityZones []string `json:"availabilityZones,omitempty"`
 
 	// SubnetIDs is an array of subnets in the VPC attached to the load balancer.
+	// +optional
 	SubnetIDs []string `json:"subnetIds,omitempty"`
 
 	// SecurityGroupIDs is an array of security groups assigned to the load balancer.
+	// +optional
 	SecurityGroupIDs []string `json:"securityGroupIds,omitempty"`
 
 	// Listeners is an array of classic elb listeners associated with the load balancer. There must be at least one.
+	// +optional
 	Listeners []ClassicELBListener `json:"listeners,omitempty"`
 
 	// HealthCheck is the classic elb health check associated with the load balancer.
+	// +optional
 	HealthCheck *ClassicELBHealthCheck `json:"healthChecks,omitempty"`
 
 	// Attributes defines extra attributes associated with the load balancer.
+	// +optional
 	Attributes ClassicELBAttributes `json:"attributes,omitempty"`
 
 	// Tags is a map of tags associated with the load balancer.
+	// +optional
 	Tags map[string]string `json:"tags,omitempty"`
 }
 
@@ -121,6 +132,7 @@ func (b *ClassicELB) IsManaged(clusterName string) bool {
 type ClassicELBAttributes struct {
 	// IdleTimeout is time that the connection is allowed to be idle (no data
 	// has been sent over the connection) before it is closed by the load balancer.
+	// +optional
 	IdleTimeout time.Duration `json:"idleTimeout,omitempty"`
 
 	// CrossZoneLoadBalancing enables the classic load balancer load balancing.
@@ -130,18 +142,27 @@ type ClassicELBAttributes struct {
 
 // ClassicELBListener defines an AWS classic load balancer listener.
 type ClassicELBListener struct {
+	// +required
 	Protocol         ClassicELBProtocol `json:"protocol"`
+	// +required
 	Port             int64              `json:"port"`
+	// +required
 	InstanceProtocol ClassicELBProtocol `json:"instanceProtocol"`
+	// +required
 	InstancePort     int64              `json:"instancePort"`
 }
 
 // ClassicELBHealthCheck defines an AWS classic load balancer health check.
 type ClassicELBHealthCheck struct {
+	// +required
 	Target             string        `json:"target"`
+	// +required
 	Interval           time.Duration `json:"interval"`
+	// +required
 	Timeout            time.Duration `json:"timeout"`
+	// +required
 	HealthyThreshold   int64         `json:"healthyThreshold"`
+	// +required
 	UnhealthyThreshold int64         `json:"unhealthyThreshold"`
 }
 
@@ -183,10 +204,12 @@ type IPv6 struct {
 // VPCSpec configures an AWS VPC.
 type VPCSpec struct {
 	// ID is the vpc-id of the VPC this provider should use to create resources.
+	// +optional
 	ID string `json:"id,omitempty"`
 
 	// CidrBlock is the CIDR block to be used when the provider creates a managed VPC.
 	// Defaults to 10.0.0.0/16.
+	// +optional
 	CidrBlock string `json:"cidrBlock,omitempty"`
 
 	// IPv6 contains ipv6 specific settings for the network. Supported only in managed clusters.
@@ -199,6 +222,7 @@ type VPCSpec struct {
 	InternetGatewayID *string `json:"internetGatewayId,omitempty"`
 
 	// Tags is a collection of tags describing the resource.
+	// +optional
 	Tags Tags `json:"tags,omitempty"`
 
 	// AvailabilityZoneUsageLimit specifies the maximum number of availability zones (AZ) that
@@ -207,6 +231,7 @@ type VPCSpec struct {
 	// default subnets. Defaults to 3
 	// +kubebuilder:default=3
 	// +kubebuilder:validation:Minimum=1
+	// +optional
 	AvailabilityZoneUsageLimit *int `json:"availabilityZoneUsageLimit,omitempty"`
 
 	// AvailabilityZoneSelection specifies how AZs should be selected if there are more AZs
@@ -216,6 +241,7 @@ type VPCSpec struct {
 	// Defaults to Ordered
 	// +kubebuilder:default=Ordered
 	// +kubebuilder:validation:Enum=Ordered;Random
+	// +optional
 	AvailabilityZoneSelection *AZSelectionScheme `json:"availabilityZoneSelection,omitempty"`
 }
 
@@ -242,9 +268,11 @@ func (v *VPCSpec) IsIPv6Enabled() bool {
 // SubnetSpec configures an AWS Subnet.
 type SubnetSpec struct {
 	// ID defines a unique identifier to reference this resource.
+	// +optional
 	ID string `json:"id,omitempty"`
 
 	// CidrBlock is the CIDR block to be used when the provider creates a managed VPC.
+	// +optional
 	CidrBlock string `json:"cidrBlock,omitempty"`
 
 	// IPv6CidrBlock is the IPv6 CIDR block to be used when the provider creates a managed VPC.
@@ -254,6 +282,7 @@ type SubnetSpec struct {
 	IPv6CidrBlock string `json:"ipv6CidrBlock,omitempty"`
 
 	// AvailabilityZone defines the availability zone to use for this subnet in the cluster's region.
+	// +optional
 	AvailabilityZone string `json:"availabilityZone,omitempty"`
 
 	// IsPublic defines the subnet as a public subnet. A subnet is public when it is associated with a route table that has a route to an internet gateway.
@@ -275,6 +304,7 @@ type SubnetSpec struct {
 	NatGatewayID *string `json:"natGatewayId,omitempty"`
 
 	// Tags is a collection of tags describing the resource.
+	// +optional
 	Tags Tags `json:"tags,omitempty"`
 }
 
@@ -375,6 +405,7 @@ func (s Subnets) GetUniqueZones() []string {
 type CNISpec struct {
 	// CNIIngressRules specify rules to apply to control plane and worker node security groups.
 	// The source for the rule will be set to control plane and worker security group IDs.
+	// +optional
 	CNIIngressRules CNIIngressRules `json:"cniIngressRules,omitempty"`
 }
 
@@ -383,14 +414,19 @@ type CNIIngressRules []CNIIngressRule
 
 // CNIIngressRule defines an AWS ingress rule for CNI requirements.
 type CNIIngressRule struct {
+	// +required
 	Description string                `json:"description"`
+	// +required
 	Protocol    SecurityGroupProtocol `json:"protocol"`
+	// +required
 	FromPort    int64                 `json:"fromPort"`
+	// +required
 	ToPort      int64                 `json:"toPort"`
 }
 
 // RouteTable defines an AWS routing table.
 type RouteTable struct {
+	// +required
 	ID string `json:"id"`
 }
 
@@ -420,9 +456,11 @@ var (
 // SecurityGroup defines an AWS security group.
 type SecurityGroup struct {
 	// ID is a unique identifier.
+	// +required
 	ID string `json:"id"`
 
 	// Name is the security group name.
+	// +required
 	Name string `json:"name"`
 
 	// IngressRules is the inbound rules associated with the security group.
@@ -430,6 +468,7 @@ type SecurityGroup struct {
 	IngressRules IngressRules `json:"ingressRule,omitempty"`
 
 	// Tags is a map of tags associated with the security group.
+	// +optional
 	Tags Tags `json:"tags,omitempty"`
 }
 
@@ -463,9 +502,13 @@ var (
 
 // IngressRule defines an AWS ingress rule for security groups.
 type IngressRule struct {
+	// +required
 	Description string                `json:"description"`
+	// +required
 	Protocol    SecurityGroupProtocol `json:"protocol"`
+	// +required
 	FromPort    int64                 `json:"fromPort"`
+	// +required
 	ToPort      int64                 `json:"toPort"`
 
 	// List of CIDR blocks to allow access from. Cannot be specified with SourceSecurityGroupID.

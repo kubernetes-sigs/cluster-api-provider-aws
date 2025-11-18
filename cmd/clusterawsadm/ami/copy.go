@@ -37,14 +37,23 @@ import (
 
 // CopyInput defines input that can be copied to create an AWSAMI.
 type CopyInput struct {
+	// +optional
 	SourceRegion      string
+	// +optional
 	DestinationRegion string
+	// +optional
 	OwnerID           string
+	// +optional
 	OperatingSystem   string
+	// +optional
 	KubernetesVersion string
+	// +optional
 	KmsKeyID          string
+	// +optional
 	DryRun            bool
+	// +optional
 	Encrypted         bool
+	// +optional
 	Log               logr.Logger
 }
 
@@ -115,10 +124,15 @@ func Copy(input CopyInput) (*amiv1.AWSAMI, error) {
 }
 
 type copyWithoutSnapshotInput struct {
+	// +optional
 	sourceRegion string
+	// +optional
 	dryRun       bool
+	// +optional
 	log          logr.Logger
+	// +optional
 	cfg          aws.Config
+	// +optional
 	image        *types.Image
 }
 
@@ -144,13 +158,21 @@ func copyWithoutSnapshot(input copyWithoutSnapshotInput) (string, string, error)
 }
 
 type copyWithSnapshotInput struct {
+	// +optional
 	sourceRegion      string
+	// +optional
 	destinationRegion string
+	// +optional
 	kmsKeyID          string
+	// +optional
 	dryRun            bool
+	// +optional
 	encrypted         bool
+	// +optional
 	log               logr.Logger
+	// +optional
 	image             *types.Image
+	// +optional
 	cfg               aws.Config
 }
 

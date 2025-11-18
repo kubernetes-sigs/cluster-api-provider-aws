@@ -42,10 +42,15 @@ var (
 )
 
 type placementInput struct {
+	// +optional
 	SpecSubnetIDs           []string
+	// +optional
 	SpecAvailabilityZones   []string
+	// +optional
 	ParentAvailabilityZones []string
+	// +optional
 	ControlplaneSubnets     infrav1.Subnets
+	// +optional
 	SubnetPlacementType     *expinfrav1.AZSubnetType
 }
 
@@ -65,6 +70,7 @@ func newDefaultSubnetPlacementStrategy(logger logger.Wrapper) (subnetsPlacementS
 
 // defaultSubnetPlacementStrategy is the default strategy for subnet placement.
 type defaultSubnetPlacementStrategy struct {
+	// +optional
 	logger logger.Wrapper
 }
 

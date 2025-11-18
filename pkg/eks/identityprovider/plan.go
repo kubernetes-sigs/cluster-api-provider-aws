@@ -40,10 +40,15 @@ func NewPlan(clusterName string, currentIdentityProvider, desiredIdentityProvide
 
 // Plan is a plan that will manage EKS OIDC identity provider association.
 type plan struct {
+	// +optional
 	currentIdentityProvider *OidcIdentityProviderConfig
+	// +optional
 	desiredIdentityProvider *OidcIdentityProviderConfig
+	// +optional
 	eksClient               eks.Client
+	// +optional
 	log                     logger.Wrapper
+	// +optional
 	clusterName             string
 }
 

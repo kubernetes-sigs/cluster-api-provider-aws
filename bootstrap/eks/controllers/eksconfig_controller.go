@@ -55,8 +55,11 @@ const eksConfigKind = "EKSConfig"
 
 // EKSConfigReconciler reconciles a EKSConfig object.
 type EKSConfigReconciler struct {
+	// +optional
 	client.Client
+	// +optional
 	Scheme           *runtime.Scheme
+	// +optional
 	WatchFilterValue string
 }
 

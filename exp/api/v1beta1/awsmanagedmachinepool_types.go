@@ -67,6 +67,7 @@ type AWSManagedMachinePoolSpec struct {
 	EKSNodegroupName string `json:"eksNodegroupName,omitempty"`
 
 	// AvailabilityZones is an array of availability zones instances can run in
+	// +optional
 	AvailabilityZones []string `json:"availabilityZones,omitempty"`
 
 	// SubnetIDs specifies which subnets are used for the
@@ -155,7 +156,9 @@ type AWSManagedMachinePoolSpec struct {
 
 // ManagedMachinePoolScaling specifies scaling options.
 type ManagedMachinePoolScaling struct {
+	// +optional
 	MinSize *int32 `json:"minSize,omitempty"`
+	// +optional
 	MaxSize *int32 `json:"maxSize,omitempty"`
 }
 
@@ -163,12 +166,15 @@ type ManagedMachinePoolScaling struct {
 type ManagedRemoteAccess struct {
 	// SSHKeyName specifies which EC2 SSH key can be used to access machines.
 	// If left empty, the key from the control plane is used.
+	// +optional
 	SSHKeyName *string `json:"sshKeyName,omitempty"`
 
 	// SourceSecurityGroups specifies which security groups are allowed access
+	// +optional
 	SourceSecurityGroups []string `json:"sourceSecurityGroups,omitempty"`
 
 	// Public specifies whether to open port 22 to the public internet
+	// +optional
 	Public bool `json:"public,omitempty"`
 }
 
@@ -177,6 +183,7 @@ type AWSManagedMachinePoolStatus struct {
 	// Ready denotes that the AWSManagedMachinePool nodegroup has joined
 	// the cluster
 	// +kubebuilder:default=false
+	// +required
 	Ready bool `json:"ready"`
 
 	// Replicas is the most recently observed number of replicas.
@@ -244,9 +251,12 @@ type AWSManagedMachinePoolStatus struct {
 // AWSManagedMachinePool is the Schema for the awsmanagedmachinepools API.
 type AWSManagedMachinePool struct {
 	metav1.TypeMeta   `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// +optional
 	Spec   AWSManagedMachinePoolSpec   `json:"spec,omitempty"`
+	// +optional
 	Status AWSManagedMachinePoolStatus `json:"status,omitempty"`
 }
 
@@ -266,7 +276,9 @@ func (r *AWSManagedMachinePool) SetConditions(conditions clusterv1beta1.Conditio
 // AWSManagedMachinePoolList contains a list of AWSManagedMachinePools.
 type AWSManagedMachinePoolList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
+	// +required
 	Items           []AWSManagedMachinePool `json:"items"`
 }
 

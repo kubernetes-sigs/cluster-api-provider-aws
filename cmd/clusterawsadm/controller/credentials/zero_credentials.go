@@ -18,8 +18,11 @@ package credentials
 
 // ZeroCredentialsInput defines the specs for zero credentials input.
 type ZeroCredentialsInput struct {
+	// +optional
 	KubeconfigPath    string
+	// +optional
 	KubeconfigContext string
+	// +optional
 	Namespace         string
 }
 

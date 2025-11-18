@@ -44,8 +44,11 @@ import (
 
 // AWSManagedClusterReconciler reconciles AWSManagedCluster.
 type AWSManagedClusterReconciler struct {
+	// +optional
 	client.Client
+	// +optional
 	Recorder         record.EventRecorder
+	// +optional
 	WatchFilterValue string
 }
 

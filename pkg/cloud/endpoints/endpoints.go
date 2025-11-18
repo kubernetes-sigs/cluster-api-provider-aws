@@ -62,8 +62,11 @@ var (
 
 // serviceEndpoint contains AWS Service resolution information for SDK V2.
 type serviceEndpoint struct {
+	// +optional
 	ServiceID     string
+	// +optional
 	URL           string
+	// +optional
 	SigningRegion string
 }
 
@@ -149,6 +152,7 @@ func GetPartitionFromRegion(region string) string {
 
 // MultiServiceEndpointResolver implements EndpointResolverV2 interface for services.
 type MultiServiceEndpointResolver struct {
+	// +optional
 	endpoints map[string]serviceEndpoint
 }
 
@@ -161,6 +165,7 @@ func NewMultiServiceEndpointResolver() *MultiServiceEndpointResolver {
 
 // S3EndpointResolver implements EndpointResolverV2 interface for S3.
 type S3EndpointResolver struct {
+	// +optional
 	*MultiServiceEndpointResolver
 }
 
@@ -183,6 +188,7 @@ func (s *S3EndpointResolver) ResolveEndpoint(ctx context.Context, params s3.Endp
 
 // ELBEndpointResolver implements EndpointResolverV2 interface for ELB.
 type ELBEndpointResolver struct {
+	// +optional
 	*MultiServiceEndpointResolver
 }
 
@@ -205,6 +211,7 @@ func (s *ELBEndpointResolver) ResolveEndpoint(ctx context.Context, params elb.En
 
 // ELBV2EndpointResolver implements EndpointResolverV2 interface for ELBV2.
 type ELBV2EndpointResolver struct {
+	// +optional
 	*MultiServiceEndpointResolver
 }
 
@@ -227,6 +234,7 @@ func (s *ELBV2EndpointResolver) ResolveEndpoint(ctx context.Context, params elbv
 
 // EC2EndpointResolver implements EndpointResolverV2 interface for EC2.
 type EC2EndpointResolver struct {
+	// +optional
 	*MultiServiceEndpointResolver
 }
 
@@ -249,6 +257,7 @@ func (s *EC2EndpointResolver) ResolveEndpoint(ctx context.Context, params ec2.En
 
 // RGAPIEndpointResolver implements EndpointResolverV2 interface for RGAPI.
 type RGAPIEndpointResolver struct {
+	// +optional
 	*MultiServiceEndpointResolver
 }
 
@@ -271,6 +280,7 @@ func (s *RGAPIEndpointResolver) ResolveEndpoint(ctx context.Context, params rgap
 
 // SQSEndpointResolver implements EndpointResolverV2 interface for SQS.
 type SQSEndpointResolver struct {
+	// +optional
 	*MultiServiceEndpointResolver
 }
 
@@ -293,6 +303,7 @@ func (s *SQSEndpointResolver) ResolveEndpoint(ctx context.Context, params sqs.En
 
 // EventBridgeEndpointResolver implements EndpointResolverV2 interface for EventBridge.
 type EventBridgeEndpointResolver struct {
+	// +optional
 	*MultiServiceEndpointResolver
 }
 
@@ -315,6 +326,7 @@ func (s *EventBridgeEndpointResolver) ResolveEndpoint(ctx context.Context, param
 
 // EKSEndpointResolver implements EndpointResolverV2 interface for EKS.
 type EKSEndpointResolver struct {
+	// +optional
 	*MultiServiceEndpointResolver
 }
 
@@ -337,6 +349,7 @@ func (s *EKSEndpointResolver) ResolveEndpoint(ctx context.Context, params eks.En
 
 // SSMEndpointResolver implements EndpointResolverV2 interface for SSM.
 type SSMEndpointResolver struct {
+	// +optional
 	*MultiServiceEndpointResolver
 }
 
@@ -359,6 +372,7 @@ func (s *SSMEndpointResolver) ResolveEndpoint(ctx context.Context, params ssm.En
 
 // STSEndpointResolver implements EndpointResolverV2 interface for STS.
 type STSEndpointResolver struct {
+	// +optional
 	*MultiServiceEndpointResolver
 }
 
@@ -381,6 +395,7 @@ func (s *STSEndpointResolver) ResolveEndpoint(ctx context.Context, params sts.En
 
 // SecretsManagerEndpointResolver implements EndpointResolverV2 interface for Secrets Manager.
 type SecretsManagerEndpointResolver struct {
+	// +optional
 	*MultiServiceEndpointResolver
 }
 

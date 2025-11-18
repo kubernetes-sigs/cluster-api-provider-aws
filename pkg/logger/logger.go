@@ -48,7 +48,9 @@ type Wrapper interface {
 
 // Logger is a concrete logger using logr underneath.
 type Logger struct {
+	// +optional
 	callStackHelper func()
+	// +optional
 	logger          logr.Logger
 }
 

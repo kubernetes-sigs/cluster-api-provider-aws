@@ -55,9 +55,12 @@ type ROSAClusterStatus struct {
 // ROSACluster is the Schema for the ROSAClusters API.
 type ROSACluster struct {
 	metav1.TypeMeta   `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// +optional
 	Spec   ROSAClusterSpec   `json:"spec,omitempty"`
+	// +optional
 	Status ROSAClusterStatus `json:"status,omitempty"`
 }
 
@@ -66,7 +69,9 @@ type ROSACluster struct {
 // ROSAClusterList contains a list of ROSACluster.
 type ROSAClusterList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
+	// +required
 	Items           []ROSACluster `json:"items"`
 }
 

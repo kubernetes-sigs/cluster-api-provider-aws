@@ -77,16 +77,27 @@ const (
 
 // AWSMachineReconciler reconciles a AwsMachine object.
 type AWSMachineReconciler struct {
+	// +optional
 	client.Client
+	// +optional
 	Log                          logr.Logger
+	// +optional
 	Recorder                     record.EventRecorder
+	// +optional
 	ec2ServiceFactory            func(scope.EC2Scope) services.EC2Interface
+	// +optional
 	elbServiceFactory            func(scope.ELBScope) services.ELBInterface
+	// +optional
 	secretsManagerServiceFactory func(cloud.ClusterScoper) services.SecretInterface
+	// +optional
 	SSMServiceFactory            func(cloud.ClusterScoper) services.SecretInterface
+	// +optional
 	objectStoreServiceFactory    func(cloud.ClusterScoper) services.ObjectStoreInterface
+	// +optional
 	WatchFilterValue             string
+	// +optional
 	TagUnmanagedNetworkResources bool
+	// +optional
 	MaxWaitActiveUpdateDelete    time.Duration
 }
 

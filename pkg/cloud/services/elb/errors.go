@@ -29,8 +29,10 @@ var _ error = &ELBError{}
 
 // ELBError is an error exposed to users of this library.
 type ELBError struct {
+	// +optional
 	msg string
 
+	// +optional
 	Code int
 }
 

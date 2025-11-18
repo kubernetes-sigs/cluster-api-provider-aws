@@ -19,7 +19,7 @@ package v1beta2
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 )
 
 const (
@@ -78,9 +78,11 @@ const (
 // +kubebuilder:validation:XValidation:rule="!has(self.capacityReservationId) || !has(self.spotMarketOptions)",message="capacityReservationId cannot be set when spotMarketOptions is specified"
 type AWSMachineSpec struct {
 	// ProviderID is the unique identifier as specified by the cloud provider.
+	// +optional
 	ProviderID *string `json:"providerID,omitempty"`
 
 	// InstanceID is the EC2 instance ID for this machine.
+	// +optional
 	InstanceID *string `json:"instanceID,omitempty"`
 
 	// InstanceMetadataOptions is the metadata options for the EC2 instance.
@@ -88,6 +90,7 @@ type AWSMachineSpec struct {
 	InstanceMetadataOptions *InstanceMetadataOptions `json:"instanceMetadataOptions,omitempty"`
 
 	// AMI is the reference to the AMI from which to create the machine instance.
+	// +optional
 	AMI AMIReference `json:"ami,omitempty"`
 
 	// ImageLookupFormat is the AMI naming format to look up the image for this
@@ -105,14 +108,16 @@ type AWSMachineSpec struct {
 	ImageLookupFormat string `json:"imageLookupFormat,omitempty"`
 
 	// ImageLookupOrg is the AWS Organization ID to use for image lookup if AMI is not set.
+	// +optional
 	ImageLookupOrg string `json:"imageLookupOrg,omitempty"`
 
 	// ImageLookupBaseOS is the name of the base operating system to use for
 	// image lookup the AMI is not set.
+	// +optional
 	ImageLookupBaseOS string `json:"imageLookupBaseOS,omitempty"`
 
 	// InstanceType is the type of instance to create. Example: m4.xlarge
-	// +kubebuilder:validation:Required
+	// +required
 	// +kubebuilder:validation:MinLength:=2
 	InstanceType string `json:"instanceType"`
 
@@ -290,6 +295,7 @@ type CloudInit struct {
 	// or AWS Systems Manager Parameter Store to ensure privacy of userdata.
 	// By default, a cloud-init boothook shell script is prepended to download
 	// the userdata from Secrets Manager and additionally delete the secret.
+	// +optional
 	InsecureSkipSecretsManager bool `json:"insecureSkipSecretsManager,omitempty"`
 
 	// SecretCount is the number of secrets used to form the complete secret
@@ -414,7 +420,8 @@ type AWSMachineStatus struct {
 	Interruptible bool `json:"interruptible,omitempty"`
 
 	// Addresses contains the AWS instance associated addresses.
-	Addresses []clusterv1beta1.MachineAddress `json:"addresses,omitempty"`
+	// +optional
+	Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
 
 	// InstanceState is the state of the AWS instance for this machine.
 	// +optional
@@ -460,7 +467,7 @@ type AWSMachineStatus struct {
 
 	// Conditions defines current service state of the AWSMachine.
 	// +optional
-	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 
 	// DedicatedHost tracks the dynamically allocated dedicated host.
 	// This field is populated when DynamicHostAllocation is used.
@@ -490,20 +497,23 @@ type DedicatedHostStatus struct {
 
 // AWSMachine is the schema for Amazon EC2 machines.
 type AWSMachine struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   AWSMachineSpec   `json:"spec,omitempty"`
+	// +optional
+	Spec AWSMachineSpec `json:"spec,omitempty"`
+	// +optional
 	Status AWSMachineStatus `json:"status,omitempty"`
 }
 
 // GetConditions returns the observations of the operational state of the AWSMachine resource.
-func (r *AWSMachine) GetConditions() clusterv1beta1.Conditions {
+func (r *AWSMachine) GetConditions() clusterv1.Conditions {
 	return r.Status.Conditions
 }
 
-// SetConditions sets the underlying service state of the AWSMachine to the predescribed clusterv1beta1.Conditions.
-func (r *AWSMachine) SetConditions(conditions clusterv1beta1.Conditions) {
+// SetConditions sets the underlying service state of the AWSMachine to the predescribed clusterv1.Conditions.
+func (r *AWSMachine) SetConditions(conditions clusterv1.Conditions) {
 	r.Status.Conditions = conditions
 }
 
@@ -512,8 +522,10 @@ func (r *AWSMachine) SetConditions(conditions clusterv1beta1.Conditions) {
 // AWSMachineList contains a list of Amazon EC2 machines.
 type AWSMachineList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []AWSMachine `json:"items"`
+	// +required
+	Items []AWSMachine `json:"items"`
 }
 
 func init() {

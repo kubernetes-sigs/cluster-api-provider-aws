@@ -67,13 +67,19 @@ func Every(interval time.Duration) Limit {
 //
 // The methods AllowN, ReserveN, and WaitN consume n tokens.
 type Limiter struct {
+	// +optional
 	mu     sync.Mutex
+	// +optional
 	limit  Limit
+	// +optional
 	burst  int
+	// +optional
 	tokens float64
 	// last is the last time the limiter's tokens field was updated
+	// +optional
 	last time.Time
 	// lastEvent is the latest time of a rate-limited event (past or future)
+	// +optional
 	lastEvent time.Time
 }
 
@@ -118,11 +124,16 @@ func (lim *Limiter) AllowN(now time.Time, n int) bool {
 // A Reservation holds information about events that are permitted by a Limiter to happen after a delay.
 // A Reservation may be canceled, which may enable the Limiter to permit additional events.
 type Reservation struct {
+	// +optional
 	ok        bool
+	// +optional
 	lim       *Limiter
+	// +optional
 	tokens    int
+	// +optional
 	timeToAct time.Time
 	// This is the Limit at reservation time, it can change later.
+	// +optional
 	limit Limit
 }
 

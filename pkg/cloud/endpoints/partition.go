@@ -26,9 +26,13 @@ import "regexp"
 
 // Partition provides the metadata describing an AWS partition.
 type Partition struct {
+	// +required
 	ID            string                     `json:"id"`
+	// +required
 	Regions       map[string]RegionOverrides `json:"regions"`
+	// +required
 	RegionRegex   string                     `json:"regionRegex"`
+	// +required
 	DefaultConfig PartitionConfig            `json:"outputs"`
 }
 
@@ -36,11 +40,17 @@ type Partition struct {
 //
 //nolint:revive
 type PartitionConfig struct {
+	// +required
 	Name                 string `json:"name"`
+	// +required
 	DnsSuffix            string `json:"dnsSuffix"`
+	// +required
 	DualStackDnsSuffix   string `json:"dualStackDnsSuffix"`
+	// +required
 	SupportsFIPS         bool   `json:"supportsFIPS"`
+	// +required
 	SupportsDualStack    bool   `json:"supportsDualStack"`
+	// +required
 	ImplicitGlobalRegion string `json:"implicitGlobalRegion"`
 }
 
@@ -48,10 +58,15 @@ type PartitionConfig struct {
 //
 //nolint:revive
 type RegionOverrides struct {
+	// +required
 	Name               *string `json:"name"`
+	// +required
 	DnsSuffix          *string `json:"dnsSuffix"`
+	// +required
 	DualStackDnsSuffix *string `json:"dualStackDnsSuffix"`
+	// +required
 	SupportsFIPS       *bool   `json:"supportsFIPS"`
+	// +required
 	SupportsDualStack  *bool   `json:"supportsDualStack"`
 }
 

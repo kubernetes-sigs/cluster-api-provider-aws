@@ -34,36 +34,49 @@ import (
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
+	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
-	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 // MachinePoolScope defines a scope defined around a machine and its cluster.
 type MachinePoolScope struct {
+	// +optional
 	logger.Logger
+	// +optional
 	client.Client
-	patchHelper                *v1beta1patch.Helper
+	// +optional
+	patchHelper                *patch.Helper
+	// +optional
 	capiMachinePoolPatchHelper *patch.Helper
 
+	// +optional
 	Cluster        *clusterv1.Cluster
-	MachinePool    *clusterv1.MachinePool
+	// +optional
+	MachinePool    *expclusterv1.MachinePool
+	// +optional
 	InfraCluster   EC2Scope
+	// +optional
 	AWSMachinePool *expinfrav1.AWSMachinePool
 }
 
 // MachinePoolScopeParams defines a scope defined around a machine and its cluster.
 type MachinePoolScopeParams struct {
+	// +optional
 	client.Client
+	// +optional
 	Logger *logger.Logger
 
+	// +optional
 	Cluster        *clusterv1.Cluster
-	MachinePool    *clusterv1.MachinePool
+	// +optional
+	MachinePool    *expclusterv1.MachinePool
+	// +optional
 	InfraCluster   EC2Scope
+	// +optional
 	AWSMachinePool *expinfrav1.AWSMachinePool
 }
 
@@ -99,7 +112,7 @@ func NewMachinePoolScope(params MachinePoolScopeParams) (*MachinePoolScope, erro
 		params.Logger = logger.NewLogger(log)
 	}
 
-	ampHelper, err := v1beta1patch.NewHelper(params.AWSMachinePool, params.Client)
+	ampHelper, err := patch.NewHelper(params.AWSMachinePool, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init AWSMachinePool patch helper")
 	}
@@ -176,7 +189,7 @@ func (m *MachinePoolScope) PatchObject() error {
 	return m.patchHelper.Patch(
 		context.TODO(),
 		m.AWSMachinePool,
-		v1beta1patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
+		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
 			expinfrav1.ASGReadyCondition,
 			expinfrav1.LaunchTemplateReadyCondition,
 		}})
@@ -239,7 +252,7 @@ func (m *MachinePoolScope) GetObjectMeta() *metav1.ObjectMeta {
 }
 
 // GetSetter returns the AWSMachinePool object setter.
-func (m *MachinePoolScope) GetSetter() v1beta1conditions.Setter {
+func (m *MachinePoolScope) GetSetter() conditions.Setter {
 	return m.AWSMachinePool
 }
 
@@ -294,7 +307,9 @@ func (m *MachinePoolScope) SubnetIDs(subnetIDs []string) ([]string, error) {
 
 // NodeStatus represents the status of a Kubernetes node.
 type NodeStatus struct {
+	// +optional
 	Ready   bool
+	// +optional
 	Version string
 }
 
@@ -381,7 +396,7 @@ func (m *MachinePoolScope) GetLaunchTemplate() *expinfrav1.AWSLaunchTemplate {
 }
 
 // GetMachinePool returns the machine pool object.
-func (m *MachinePoolScope) GetMachinePool() *clusterv1.MachinePool {
+func (m *MachinePoolScope) GetMachinePool() *expclusterv1.MachinePool {
 	return m.MachinePool
 }
 

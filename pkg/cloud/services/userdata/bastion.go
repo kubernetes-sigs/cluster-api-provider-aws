@@ -35,6 +35,7 @@ pip install --upgrade pip &> /dev/null
 
 // BastionInput defines the context to generate a bastion instance user data.
 type BastionInput struct {
+	// +optional
 	baseUserData
 }
 

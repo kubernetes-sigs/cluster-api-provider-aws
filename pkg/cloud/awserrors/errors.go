@@ -85,15 +85,20 @@ func Message(err error) string {
 
 // EC2Error is an error exposed to users of this library.
 type EC2Error struct {
+	// +optional
 	msg string
 
+	// +optional
 	Code int
 }
 
 // SmithyError holds parsed smithy errors from aws-sdk-go-v2 API calls.
 type SmithyError struct {
+	// +optional
 	errCode    string
+	// +optional
 	errMessage string
+	// +optional
 	statusCode int
 }
 

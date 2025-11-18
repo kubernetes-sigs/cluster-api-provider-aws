@@ -32,26 +32,38 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 // RosaRoleConfigScopeParams defines the input parameters used to create a new RosaRoleConfigScope.
 type RosaRoleConfigScopeParams struct {
+	// +optional
 	Client         client.Client
+	// +optional
 	ControllerName string
+	// +optional
 	Logger         *logger.Logger
+	// +optional
 	RosaRoleConfig *expinfrav1.ROSARoleConfig
 }
 
 // RosaRoleConfigScope defines the basic context for an actuator to operate upon.
 type RosaRoleConfigScope struct {
+	// +optional
 	logger.Logger
+	// +optional
 	Client          client.Client
+	// +optional
 	controllerName  string
-	patchHelper     *v1beta1patch.Helper
+	// +optional
+	patchHelper     *patch.Helper
+	// +optional
 	RosaRoleConfig  *expinfrav1.ROSARoleConfig
+	// +optional
 	serviceLimiters throttle.ServiceLimiters
+	// +optional
 	session         aws.Config
+	// +optional
 	iamClient       *iam.Client
 }
 
@@ -71,13 +83,14 @@ func NewRosaRoleConfigScope(params RosaRoleConfigScopeParams) (*RosaRoleConfigSc
 	}
 
 	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, RosaRoleConfigScope, "", params.Logger)
+
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
 	}
 
 	iamClient := iam.NewFromConfig(*session)
 
-	patchHelper, err := v1beta1patch.NewHelper(params.RosaRoleConfig, params.Client)
+	patchHelper, err := patch.NewHelper(params.RosaRoleConfig, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init patch helper")
 	}

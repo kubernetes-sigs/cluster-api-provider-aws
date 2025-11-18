@@ -71,16 +71,27 @@ var defaultAWSSecurityGroupRoles = []infrav1.SecurityGroupRole{
 
 // AWSClusterReconciler reconciles a AwsCluster object.
 type AWSClusterReconciler struct {
+	// +optional
 	client.Client
+	// +optional
 	Recorder                     record.EventRecorder
+	// +optional
 	ec2ServiceFactory            func(scope.EC2Scope) services.EC2Interface
+	// +optional
 	networkServiceFactory        func(scope.ClusterScope) services.NetworkInterface
+	// +optional
 	elbServiceFactory            func(scope.ELBScope) services.ELBInterface
+	// +optional
 	securityGroupFactory         func(scope.ClusterScope) services.SecurityGroupInterface
+	// +optional
 	WatchFilterValue             string
+	// +optional
 	ExternalResourceGC           bool
+	// +optional
 	AlternativeGCStrategy        bool
+	// +optional
 	TagUnmanagedNetworkResources bool
+	// +optional
 	MaxWaitActiveUpdateDelete    time.Duration
 }
 

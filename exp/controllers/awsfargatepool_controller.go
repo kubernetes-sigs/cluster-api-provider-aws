@@ -43,9 +43,13 @@ import (
 
 // AWSFargateProfileReconciler reconciles a AWSFargateProfile object.
 type AWSFargateProfileReconciler struct {
+	// +optional
 	client.Client
+	// +optional
 	Recorder         record.EventRecorder
+	// +optional
 	EnableIAM        bool
+	// +optional
 	WatchFilterValue string
 }
 

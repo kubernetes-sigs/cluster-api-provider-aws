@@ -16,7 +16,9 @@ import (
 
 // TokenResponse contains the access token and the duration until it expires.
 type TokenResponse struct {
+	// +optional
 	AccessToken string
+	// +optional
 	ExpiresIn   time.Duration
 }
 

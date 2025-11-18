@@ -41,14 +41,22 @@ import (
 
 // ClusterScopeParams defines the input parameters used to create a new Scope.
 type ClusterScopeParams struct {
-	Client                       client.Client
-	Logger                       *logger.Logger
-	Cluster                      *clusterv1.Cluster
-	AWSCluster                   *infrav1.AWSCluster
-	ControllerName               string
-	Session                      aws.Config
+	// +optional
+	Client client.Client
+	// +optional
+	Logger *logger.Logger
+	// +optional
+	Cluster *clusterv1.Cluster
+	// +optional
+	AWSCluster *infrav1.AWSCluster
+	// +optional
+	ControllerName string
+	// +optional
+	Session aws.Config
+	// +optional
 	TagUnmanagedNetworkResources bool
-	MaxWaitActiveUpdateDelete    time.Duration
+	// +optional
+	MaxWaitActiveUpdateDelete time.Duration
 }
 
 // NewClusterScope creates a new Scope from the supplied parameters.
@@ -95,19 +103,29 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 
 // ClusterScope defines the basic context for an actuator to operate upon.
 type ClusterScope struct {
+	// +optional
 	logger.Logger
-	client      client.Client
+	// +optional
+	client client.Client
+	// +optional
 	patchHelper *v1beta1patch.Helper
 
-	Cluster    *clusterv1.Cluster
+	// +optional
+	Cluster *clusterv1.Cluster
+	// +optional
 	AWSCluster *infrav1.AWSCluster
 
-	session         aws.Config
+	// +optional
+	session aws.Config
+	// +optional
 	serviceLimiters throttle.ServiceLimiters
-	controllerName  string
+	// +optional
+	controllerName string
 
+	// +optional
 	tagUnmanagedNetworkResources bool
-	maxWaitActiveUpdateDelete    time.Duration
+	// +optional
+	maxWaitActiveUpdateDelete time.Duration
 }
 
 // Network returns the cluster network object.

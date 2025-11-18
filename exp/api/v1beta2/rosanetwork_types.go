@@ -30,12 +30,12 @@ const ROSANetworkFinalizer = "rosanetwork.infrastructure.cluster.x-k8s.io"
 type ROSANetworkSpec struct {
 	// The name of the cloudformation stack under which the network infrastructure would be created
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="stackName is immutable"
-	// +kubebuilder:validation:Required
+	// +required
 	StackName string `json:"stackName"`
 
 	// The AWS region in which the components of ROSA network infrastruture are to be crated
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="region is immutable"
-	// +kubebuilder:validation:Required
+	// +required
 	Region string `json:"region"`
 
 	// The number of availability zones to be used for creation of the network infrastructure.
@@ -55,7 +55,7 @@ type ROSANetworkSpec struct {
 
 	// CIDR block to be used for the VPC
 	// +kubebuilder:validation:Format=cidr
-	// +kubebuilder:validation:Required
+	// +required
 	CIDRBlock string `json:"cidrBlock"`
 
 	// IdentityRef is a reference to an identity to be used when reconciling rosa network.
@@ -72,43 +72,54 @@ type ROSANetworkSpec struct {
 // ROSANetworkSubnet groups public and private subnet and the availability zone in which the two subnets got created
 type ROSANetworkSubnet struct {
 	// Availability zone of the subnet pair, for example us-west-2a
+	// +required
 	AvailabilityZone string `json:"availabilityZone"`
 
 	// ID of the public subnet, for example subnet-0f7e49a3ce68ff338
+	// +required
 	PublicSubnet string `json:"publicSubnet"`
 
 	// ID of the private subnet, for example subnet-07a20d6c41af2b725
+	// +required
 	PrivateSubnet string `json:"privateSubnet"`
 }
 
 // CFResource groups information pertaining to a resource created as a part of a cloudformation stack
 type CFResource struct {
 	// Type of the created resource: AWS::EC2::VPC, AWS::EC2::Subnet, ...
+	// +required
 	ResourceType string `json:"resource"`
 
 	// LogicalResourceID of the created resource.
+	// +required
 	LogicalID string `json:"logicalId"`
 
 	// PhysicalResourceID of the created resource.
+	// +required
 	PhysicalID string `json:"physicalId"`
 
 	// Status of the resource: CREATE_IN_PROGRESS, CREATE_COMPLETE, ...
+	// +required
 	Status string `json:"status"`
 
 	// Message pertaining to the status of the resource
+	// +required
 	Reason string `json:"reason"`
 }
 
 // ROSANetworkStatus defines the observed state of ROSANetwork
 type ROSANetworkStatus struct {
 	// Array of created private, public subnets and availability zones, grouped by availability zones
+	// +optional
 	Subnets []ROSANetworkSubnet `json:"subnets,omitempty"`
 
 	// Resources created in the cloudformation stack
+	// +optional
 	Resources []CFResource `json:"resources,omitempty"`
 
 	// Conditions specifies the conditions for ROSANetwork
-	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
+	// +optional
+	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -118,10 +129,13 @@ type ROSANetworkStatus struct {
 
 // ROSANetwork is the schema for the rosanetworks API
 type ROSANetwork struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ROSANetworkSpec   `json:"spec,omitempty"`
+	// +optional
+	Spec ROSANetworkSpec `json:"spec,omitempty"`
+	// +optional
 	Status ROSANetworkStatus `json:"status,omitempty"`
 }
 
@@ -130,8 +144,10 @@ type ROSANetwork struct {
 // ROSANetworkList contains a list of ROSANetwork
 type ROSANetworkList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []ROSANetwork `json:"items"`
+	// +required
+	Items []ROSANetwork `json:"items"`
 }
 
 // GetConditions returns the observations of the operational state of the ROSANetwork resource.

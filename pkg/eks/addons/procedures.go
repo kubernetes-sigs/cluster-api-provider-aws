@@ -40,8 +40,11 @@ var (
 
 // DeleteAddonProcedure is a procedure that will delete an EKS addon.
 type DeleteAddonProcedure struct {
+	// +optional
 	plan     *plan
+	// +optional
 	name     string
+	// +optional
 	preserve bool
 }
 
@@ -67,7 +70,9 @@ func (p *DeleteAddonProcedure) Name() string {
 
 // UpdateAddonProcedure is a procedure that will update an EKS addon.
 type UpdateAddonProcedure struct {
+	// +optional
 	plan *plan
+	// +optional
 	name string
 }
 
@@ -102,7 +107,9 @@ func (p *UpdateAddonProcedure) Name() string {
 
 // UpdateAddonTagsProcedure is a procedure that will update an EKS addon tags.
 type UpdateAddonTagsProcedure struct {
+	// +optional
 	plan *plan
+	// +optional
 	name string
 }
 
@@ -137,7 +144,9 @@ func (p *UpdateAddonTagsProcedure) Name() string {
 
 // CreateAddonProcedure is a procedure that will create an EKS addon for a cluster.
 type CreateAddonProcedure struct {
+	// +optional
 	plan *plan
+	// +optional
 	name string
 }
 
@@ -179,8 +188,11 @@ func (p *CreateAddonProcedure) Name() string {
 // to be active in a cluster. Abd optionally include the degraded state.
 // Note: addons may be degraded until there are worker nodes.
 type WaitAddonActiveProcedure struct {
+	// +optional
 	plan            *plan
+	// +optional
 	name            string
+	// +optional
 	includeDegraded bool
 }
 
@@ -221,7 +233,9 @@ func (p *WaitAddonActiveProcedure) Name() string {
 // WaitAddonDeleteProcedure is a procedure that will wait for an EKS addon
 // to be deleted from a cluster.
 type WaitAddonDeleteProcedure struct {
+	// +optional
 	plan *plan
+	// +optional
 	name string
 }
 

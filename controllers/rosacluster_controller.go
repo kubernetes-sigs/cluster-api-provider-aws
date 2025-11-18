@@ -55,10 +55,15 @@ import (
 
 // ROSAClusterReconciler reconciles ROSACluster.
 type ROSAClusterReconciler struct {
+	// +optional
 	client.Client
+	// +optional
 	Recorder         record.EventRecorder
+	// +optional
 	WatchFilterValue string
+	// +optional
 	NewStsClient     func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsservice.STSClient
+	// +optional
 	NewOCMClient     func(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (rosa.OCMClient, error)
 }
 

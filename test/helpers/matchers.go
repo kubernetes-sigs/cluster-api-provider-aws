@@ -38,7 +38,9 @@ func PartialMatchCreateTargetGroupInput(t *testing.T, i *elbv2.CreateTargetGroup
 // CreateTargetGroupInput expected value.
 // In particular, the TargetGroupName expected value is used as a prefix, in order to support generated names.
 type createTargetGroupInputPartialMatcher struct {
+	// +optional
 	in *elbv2.CreateTargetGroupInput
+	// +optional
 	t  *testing.T
 }
 

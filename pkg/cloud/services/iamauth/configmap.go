@@ -41,6 +41,7 @@ const (
 )
 
 type configMapBackend struct {
+	// +optional
 	client crclient.Client
 }
 

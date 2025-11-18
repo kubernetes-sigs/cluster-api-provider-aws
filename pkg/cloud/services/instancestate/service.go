@@ -28,8 +28,11 @@ import (
 
 // Service defines the specs for a service.
 type Service struct {
+	// +optional
 	scope             scope.EC2Scope
+	// +optional
 	EventBridgeClient EventBridgeAPI
+	// +optional
 	SQSClient         SQSAPI
 }
 

@@ -64,13 +64,21 @@ import (
 
 // AWSMachinePoolReconciler reconciles a AWSMachinePool object.
 type AWSMachinePoolReconciler struct {
+	// +optional
 	client.Client
+	// +optional
 	Recorder                     record.EventRecorder
+	// +optional
 	WatchFilterValue             string
+	// +optional
 	asgServiceFactory            func(cloud.ClusterScoper) services.ASGInterface
+	// +optional
 	ec2ServiceFactory            func(scope.EC2Scope) services.EC2Interface
+	// +optional
 	reconcileServiceFactory      func(scope.EC2Scope) services.MachinePoolReconcileInterface
+	// +optional
 	objectStoreServiceFactory    func(scope.S3Scope) services.ObjectStoreInterface
+	// +optional
 	TagUnmanagedNetworkResources bool
 }
 

@@ -56,7 +56,9 @@ type BuilderOption func(*Builder)
 
 // Builder is the interface for a tags builder.
 type Builder struct {
+	// +optional
 	params    *infrav1.BuildParams
+	// +optional
 	applyFunc func(params *infrav1.BuildParams) error
 }
 

@@ -49,7 +49,9 @@ set -o pipefail
 )
 
 type baseUserData struct {
+	// +optional
 	Header     string
+	// +optional
 	WriteFiles []Files
 }
 

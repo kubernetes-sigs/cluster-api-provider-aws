@@ -4559,6 +4559,7 @@ func NewClusterScope() *ClusterScopeBuilder {
 }
 
 type ClusterScopeBuilder struct {
+	// +optional
 	customizers []func(p *scope.ClusterScopeParams)
 }
 
@@ -4608,6 +4609,7 @@ func NewManagedControlPlaneScope() *ManagedControlPlaneScopeBuilder {
 }
 
 type ManagedControlPlaneScopeBuilder struct {
+	// +optional
 	customizers []func(p *scope.ManagedControlPlaneScopeParams)
 }
 

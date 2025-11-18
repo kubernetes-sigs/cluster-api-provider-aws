@@ -32,26 +32,33 @@ type BootstrapUser struct {
 	// This can be used to scope down the initial credentials used to bootstrap the
 	// cluster.
 	// Defaults to false.
+	// +required
 	Enable bool `json:"enable"`
 
 	// UserName controls the username of the bootstrap user. Defaults to
 	// "bootstrapper.cluster-api-provider-aws.sigs.k8s.io"
+	// +optional
 	UserName string `json:"userName,omitempty"`
 
 	// GroupName controls the group the user will belong to. Defaults to
 	// "bootstrapper.cluster-api-provider-aws.sigs.k8s.io"
+	// +optional
 	GroupName string `json:"groupName,omitempty"`
 
 	// ExtraPolicyAttachments is a list of additional policies to be attached to the IAM user.
+	// +optional
 	ExtraPolicyAttachments []string `json:"extraPolicyAttachments,omitempty"`
 
 	// ExtraGroups is a list of groups to add this user to.
+	// +optional
 	ExtraGroups []string `json:"extraGroups,omitempty"`
 
 	// ExtraStatements are additional AWS IAM policy document statements to be included inline for the user.
+	// +optional
 	ExtraStatements []iamv1.StatementEntry `json:"extraStatements,omitempty"`
 
 	// Tags is a map of tags to be applied to the AWS IAM user.
+	// +optional
 	Tags infrav1.Tags `json:"tags,omitempty"`
 }
 
@@ -62,12 +69,15 @@ type ControlPlane struct {
 
 	// DisableClusterAPIControllerPolicyAttachment, if set to true, will not attach the AWS IAM policy for Cluster
 	// API Provider AWS to the control plane role. Defaults to false.
+	// +optional
 	DisableClusterAPIControllerPolicyAttachment bool `json:"disableClusterAPIControllerPolicyAttachment,omitempty"`
 
 	// DisableCloudProviderPolicy if set to true, will not generate and attach the AWS IAM policy for the AWS Cloud Provider.
+	// +required
 	DisableCloudProviderPolicy bool `json:"disableCloudProviderPolicy"`
 
 	// EnableCSIPolicy if set to true, will generate and attach the AWS IAM policy for the EBS CSI Driver.
+	// +required
 	EnableCSIPolicy bool `json:"enableCSIPolicy"`
 }
 
@@ -75,12 +85,15 @@ type ControlPlane struct {
 // Kubernetes Cluster API Provider AWS.
 type AWSIAMRoleSpec struct {
 	// Disable if set to true will not create the AWS IAM role. Defaults to false.
+	// +required
 	Disable bool `json:"disable"` // default: false
 
 	// ExtraPolicyAttachments is a list of additional policies to be attached to the IAM role.
+	// +optional
 	ExtraPolicyAttachments []string `json:"extraPolicyAttachments,omitempty"`
 
 	// ExtraStatements are additional IAM statements to be included inline for the role.
+	// +optional
 	ExtraStatements []iamv1.StatementEntry `json:"extraStatements,omitempty"`
 
 	// Path sets the path to the role.
@@ -93,35 +106,44 @@ type AWSIAMRoleSpec struct {
 
 	// TrustStatements is an IAM PolicyDocument defining what identities are allowed to assume this role.
 	// See "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/api/iam/v1beta1" for more documentation.
+	// +optional
 	TrustStatements []iamv1.StatementEntry `json:"trustStatements,omitempty"`
 
 	// Tags is a map of tags to be applied to the AWS IAM role.
+	// +optional
 	Tags infrav1.Tags `json:"tags,omitempty"`
 }
 
 // EKSConfig represents the EKS related configuration config.
 type EKSConfig struct {
 	// Disable controls whether EKS-related permissions are granted
+	// +required
 	Disable bool `json:"disable"`
 	// AllowIAMRoleCreation controls whether the EKS controllers have permissions for creating IAM
 	// roles per cluster
+	// +optional
 	AllowIAMRoleCreation bool `json:"iamRoleCreation,omitempty"`
 	// EnableUserEKSConsolePolicy controls the creation of the policy to view EKS nodes and workloads.
+	// +optional
 	EnableUserEKSConsolePolicy bool `json:"enableUserEKSConsolePolicy,omitempty"`
 	// DefaultControlPlaneRole controls the configuration of the AWS IAM role for
 	// the EKS control plane. This is the default role that will be used if
 	// no role is included in the spec and automatic creation of the role
 	// isn't enabled
+	// +optional
 	DefaultControlPlaneRole AWSIAMRoleSpec `json:"defaultControlPlaneRole,omitempty"`
 	// ManagedMachinePool controls the configuration of the AWS IAM role for
 	// used by EKS managed machine pools.
+	// +optional
 	ManagedMachinePool *AWSIAMRoleSpec `json:"managedMachinePool,omitempty"`
 	// Fargate controls the configuration of the AWS IAM role for
 	// used by EKS managed machine pools.
+	// +optional
 	Fargate *AWSIAMRoleSpec `json:"fargate,omitempty"`
 	// KMSAliasPrefix is prefix to use to restrict permission to KMS keys to only those that have an alias
 	// name that is prefixed by this.
 	// Defaults to cluster-api-provider-aws-*
+	// +optional
 	KMSAliasPrefix string `json:"kmsAliasPrefix,omitempty"`
 }
 
@@ -129,6 +151,7 @@ type EKSConfig struct {
 // EventBridge EC2 events.
 type EventBridgeConfig struct {
 	// Enable controls whether permissions are granted to consume EC2 events
+	// +optional
 	Enable bool `json:"enable,omitempty"`
 }
 
@@ -139,6 +162,7 @@ type ClusterAPIControllers struct {
 	// AllowedEC2InstanceProfiles controls which EC2 roles are allowed to be
 	// consumed by Cluster API when creating an ec2 instance. Defaults to
 	// *.<suffix>, where suffix is defaulted to .cluster-api-provider-aws.sigs.k8s.io
+	// +optional
 	AllowedEC2InstanceProfiles []string `json:"allowedEC2InstanceProfiles,omitempty"`
 }
 
@@ -149,10 +173,12 @@ type Nodes struct {
 
 	// DisableCloudProviderPolicy if set to true, will not generate and attach the policy for the AWS Cloud Provider.
 	// Defaults to false.
+	// +required
 	DisableCloudProviderPolicy bool `json:"disableCloudProviderPolicy"`
 
 	// EC2ContainerRegistryReadOnly controls whether the node has read-only access to the
 	// EC2 container registry
+	// +required
 	EC2ContainerRegistryReadOnly bool `json:"ec2ContainerRegistryReadOnly"`
 }
 
@@ -164,6 +190,7 @@ type Nodes struct {
 type AWSIAMConfiguration struct {
 	metav1.TypeMeta `json:",inline"`
 
+	// +optional
 	Spec AWSIAMConfigurationSpec `json:"spec,omitempty"`
 }
 
@@ -171,36 +198,45 @@ type AWSIAMConfiguration struct {
 // which can be created for storing bootstrap data for nodes requiring it.
 type S3Buckets struct {
 	// Enable controls whether permissions are granted to manage S3 buckets.
+	// +required
 	Enable bool `json:"enable"`
 
 	// NamePrefix will be prepended to every AWS IAM role bucket name. Defaults to "cluster-api-provider-aws-".
 	// AWSCluster S3 Bucket name must be prefixed with the same prefix.
+	// +required
 	NamePrefix string `json:"namePrefix"`
 }
 
 // AWSIAMConfigurationSpec defines the specification of the AWSIAMConfiguration.
 type AWSIAMConfigurationSpec struct {
 	// NamePrefix will be prepended to every AWS IAM role, user and policy created by clusterawsadm. Defaults to "".
+	// +optional
 	NamePrefix string `json:"namePrefix,omitempty"`
 
 	// NameSuffix will be appended to every AWS IAM role, user and policy created by clusterawsadm. Defaults to
 	// ".cluster-api-provider-aws.sigs.k8s.io".
+	// +optional
 	NameSuffix *string `json:"nameSuffix,omitempty"`
 
 	// ControlPlane controls the configuration of the AWS IAM role for a Kubernetes cluster's control plane nodes.
+	// +optional
 	ControlPlane ControlPlane `json:"controlPlane,omitempty"`
 
 	// ClusterAPIControllers controls the configuration of an IAM role and policy specifically for Kubernetes Cluster API Provider AWS.
+	// +optional
 	ClusterAPIControllers ClusterAPIControllers `json:"clusterAPIControllers,omitempty"`
 
 	// Nodes controls the configuration of the AWS IAM role for all nodes in a Kubernetes cluster.
+	// +optional
 	Nodes Nodes `json:"nodes,omitempty"`
 
 	// BootstrapUser contains a list of elements that is specific
 	// to the configuration and enablement of an IAM user.
+	// +optional
 	BootstrapUser BootstrapUser `json:"bootstrapUser,omitempty"`
 
 	// StackName defines the name of the AWS CloudFormation stack.
+	// +optional
 	StackName string `json:"stackName,omitempty"`
 
 	// StackTags defines the tags of the AWS CloudFormation stack.
@@ -209,22 +245,27 @@ type AWSIAMConfigurationSpec struct {
 
 	// Region controls which region the control-plane is created in if not specified on the command line or
 	// via environment variables.
+	// +optional
 	Region string `json:"region,omitempty"`
 
 	// EKS controls the configuration related to EKS. Settings in here affect the control plane
 	// and nodes roles
+	// +optional
 	EKS *EKSConfig `json:"eks,omitempty"`
 
 	// EventBridge controls configuration for consuming EventBridge events
+	// +optional
 	EventBridge *EventBridgeConfig `json:"eventBridge,omitempty"`
 
 	// Partition is the AWS security partition being used. Defaults to "aws"
+	// +optional
 	Partition string `json:"partition,omitempty"`
 
 	// SecureSecretsBackend, when set to parameter-store will create AWS Systems Manager
 	// Parameter Storage policies. By default or with the value of secrets-manager,
 	// will generate AWS Secrets Manager policies instead.
 	// +kubebuilder:validation:Enum=secrets-manager;ssm-parameter-store
+	// +optional
 	SecureSecretsBackends []infrav1.SecretBackend `json:"secureSecretBackends,omitempty"`
 
 	// S3Buckets, when enabled, will add controller nodes permissions to
@@ -234,6 +275,7 @@ type AWSIAMConfigurationSpec struct {
 	S3Buckets S3Buckets `json:"s3Buckets,omitempty"`
 
 	// AllowAssumeRole enables the sts:AssumeRole permission within the CAPA policies
+	// +optional
 	AllowAssumeRole bool `json:"allowAssumeRole,omitempty"`
 }
 

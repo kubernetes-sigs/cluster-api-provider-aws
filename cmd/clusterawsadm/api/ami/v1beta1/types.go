@@ -32,9 +32,13 @@ const (
 
 // AWSAMISpec defines an AMI.
 type AWSAMISpec struct {
+	// +required
 	OS                string `json:"os"`
+	// +required
 	Region            string `json:"region"`
+	// +required
 	ImageID           string `json:"imageID"`
+	// +required
 	KubernetesVersion string `json:"kubernetesVersion"`
 }
 
@@ -44,7 +48,9 @@ type AWSAMISpec struct {
 // AWSAMI defines an AMI.
 type AWSAMI struct {
 	metav1.TypeMeta   `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
+	// +optional
 	Spec              AWSAMISpec `json:"spec,omitempty"`
 }
 
@@ -54,7 +60,9 @@ type AWSAMI struct {
 // AWSAMIList defines a list of AMIs.
 type AWSAMIList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
+	// +required
 	Items           []AWSAMI `json:"items"`
 }
 

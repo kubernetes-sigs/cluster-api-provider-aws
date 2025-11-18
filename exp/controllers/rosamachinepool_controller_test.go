@@ -738,6 +738,7 @@ func cleanupObject(g *WithT, obj client.Object) {
 }
 
 type replicasMatcher struct {
+	// +optional
 	replicas int
 }
 

@@ -53,7 +53,9 @@ type LaunchTemplateScope interface {
 
 // ResourceServiceToUpdate is a struct that contains the resource ID and the resource service to update.
 type ResourceServiceToUpdate struct {
+	// +optional
 	ResourceID      *string
+	// +optional
 	ResourceService ResourceService
 }
 

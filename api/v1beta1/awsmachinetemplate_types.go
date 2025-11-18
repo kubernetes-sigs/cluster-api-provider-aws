@@ -34,6 +34,7 @@ type AWSMachineTemplateStatus struct {
 
 // AWSMachineTemplateSpec defines the desired state of AWSMachineTemplate.
 type AWSMachineTemplateSpec struct {
+	// +required
 	Template AWSMachineTemplateResource `json:"template"`
 }
 
@@ -44,9 +45,12 @@ type AWSMachineTemplateSpec struct {
 // AWSMachineTemplate is the schema for the Amazon EC2 Machine Templates API.
 type AWSMachineTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// +optional
 	Spec   AWSMachineTemplateSpec   `json:"spec,omitempty"`
+	// +optional
 	Status AWSMachineTemplateStatus `json:"status,omitempty"`
 }
 
@@ -56,7 +60,9 @@ type AWSMachineTemplate struct {
 // AWSMachineTemplateList contains a list of AWSMachineTemplate.
 type AWSMachineTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
+	// +required
 	Items           []AWSMachineTemplate `json:"items"`
 }
 
@@ -68,6 +74,7 @@ type AWSMachineTemplateResource struct {
 	ObjectMeta clusterv1beta1.ObjectMeta `json:"metadata,omitempty"`
 
 	// Spec is the specification of the desired behavior of the machine.
+	// +required
 	Spec AWSMachineSpec `json:"spec"`
 }
 

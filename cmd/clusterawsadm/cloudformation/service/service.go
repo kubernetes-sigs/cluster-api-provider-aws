@@ -56,6 +56,7 @@ type CFNAPI interface {
 
 // CFNClient is a wrapper over cfn.Client for implementing custom methods of CFNAPI.
 type CFNClient struct {
+	// +optional
 	*cfn.Client
 }
 
@@ -63,6 +64,7 @@ type CFNClient struct {
 // The interfaces are broken down like this to group functions together.
 // One alternative is to have a large list of functions from the ec2 client.
 type Service struct {
+	// +optional
 	CFN CFNAPI
 }
 

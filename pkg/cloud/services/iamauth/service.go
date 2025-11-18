@@ -28,9 +28,13 @@ import (
 
 // Service defines the specs for a service.
 type Service struct {
+	// +optional
 	scope     scope.IAMAuthScope
+	// +optional
 	backend   BackendType
+	// +optional
 	client    client.Client
+	// +optional
 	IAMClient IAMAPI
 }
 

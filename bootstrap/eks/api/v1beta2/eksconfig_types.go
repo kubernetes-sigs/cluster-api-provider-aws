@@ -79,14 +79,17 @@ type EKSConfigSpec struct {
 // PauseContainer contains details of pause container.
 type PauseContainer struct {
 	//  AccountNumber is the AWS account number to pull the pause container from.
+	// +required
 	AccountNumber string `json:"accountNumber"`
 	// Version is the tag of the pause container to use.
+	// +required
 	Version string `json:"version"`
 }
 
 // EKSConfigStatus defines the observed state of the Amazon EKS Bootstrap Configuration.
 type EKSConfigStatus struct {
 	// Ready indicates the BootstrapData secret is ready to be consumed
+	// +optional
 	Ready bool `json:"ready,omitempty"`
 
 	// DataSecretName is the name of the secret that stores the bootstrap data script.
@@ -126,6 +129,7 @@ const (
 // File defines the input for generating write_files in cloud-init.
 type File struct {
 	// Path specifies the full path on disk where to store the file.
+	// +required
 	Path string `json:"path"`
 
 	// Owner specifies the ownership of the file, e.g. "root:root".
@@ -158,6 +162,7 @@ type File struct {
 // sources of data for target systems should add them here.
 type FileSource struct {
 	// Secret represents a secret that should populate this file.
+	// +required
 	Secret SecretFileSource `json:"secret"`
 }
 
@@ -167,9 +172,11 @@ type FileSource struct {
 // as files using the keys in the Data field as the file names.
 type SecretFileSource struct {
 	// Name of the secret in the KubeadmBootstrapConfig's namespace to use.
+	// +required
 	Name string `json:"name"`
 
 	// Key is the key in the secret's data map for this value.
+	// +required
 	Key string `json:"key"`
 }
 
@@ -178,6 +185,7 @@ type SecretFileSource struct {
 // sources of data for target systems should add them here.
 type PasswdSource struct {
 	// Secret represents a secret that should populate this password.
+	// +required
 	Secret SecretPasswdSource `json:"secret"`
 }
 
@@ -187,15 +195,18 @@ type PasswdSource struct {
 // as passwd using the keys in the Data field as the file names.
 type SecretPasswdSource struct {
 	// Name of the secret in the KubeadmBootstrapConfig's namespace to use.
+	// +required
 	Name string `json:"name"`
 
 	// Key is the key in the secret's data map for this value.
+	// +required
 	Key string `json:"key"`
 }
 
 // User defines the input for a generated user in cloud-init.
 type User struct {
 	// Name specifies the username
+	// +required
 	Name string `json:"name"`
 
 	// Gecos specifies the gecos to use for the user
@@ -268,10 +279,12 @@ type DiskSetup struct {
 // Partition defines how to create and layout a partition.
 type Partition struct {
 	// Device is the name of the device.
+	// +required
 	Device string `json:"device"`
 	// Layout specifies the device layout.
 	// If it is true, a single partition will be created for the entire device.
 	// When layout is false, it means don't partition or ignore existing partitioning.
+	// +required
 	Layout bool `json:"layout"`
 	// Overwrite describes whether to skip checks and create the partition if a partition or filesystem is found on the device.
 	// Use with caution. Default is 'false'.
@@ -287,10 +300,13 @@ type Partition struct {
 // Filesystem defines the file systems to be created.
 type Filesystem struct {
 	// Device specifies the device name
+	// +required
 	Device string `json:"device"`
 	// Filesystem specifies the file system type.
+	// +required
 	Filesystem string `json:"filesystem"`
 	// Label specifies the file system label to be used. If set to None, no label is used.
+	// +required
 	Label string `json:"label"`
 	// Partition specifies the partition to use. The valid options are: "auto|any", "auto", "any", "none", and <NUM>, where NUM is the actual partition number.
 	// +optional
@@ -317,9 +333,12 @@ type MountPoints []string
 // EKSConfig is the schema for the Amazon EKS Machine Bootstrap Configuration API.
 type EKSConfig struct {
 	metav1.TypeMeta   `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// +optional
 	Spec   EKSConfigSpec   `json:"spec,omitempty"`
+	// +optional
 	Status EKSConfigStatus `json:"status,omitempty"`
 }
 
@@ -338,7 +357,9 @@ func (r *EKSConfig) SetConditions(conditions clusterv1beta1.Conditions) {
 // EKSConfigList contains a list of EKSConfig.
 type EKSConfigList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
+	// +required
 	Items           []EKSConfig `json:"items"`
 }
 

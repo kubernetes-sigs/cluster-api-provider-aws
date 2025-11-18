@@ -31,18 +31,23 @@ import (
 type ControlPlaneLoggingSpec struct {
 	// APIServer indicates if the Kubernetes API Server log (kube-apiserver) shoulkd be enabled
 	// +kubebuilder:default=false
+	// +required
 	APIServer bool `json:"apiServer"`
 	// Audit indicates if the Kubernetes API audit log should be enabled
 	// +kubebuilder:default=false
+	// +required
 	Audit bool `json:"audit"`
 	// Authenticator indicates if the iam authenticator log should be enabled
 	// +kubebuilder:default=false
+	// +required
 	Authenticator bool `json:"authenticator"`
 	// ControllerManager indicates if the controller manager (kube-controller-manager) log should be enabled
 	// +kubebuilder:default=false
+	// +required
 	ControllerManager bool `json:"controllerManager"`
 	// Scheduler indicates if the Kubernetes scheduler (kube-scheduler) log should be enabled
 	// +kubebuilder:default=false
+	// +required
 	Scheduler bool `json:"scheduler"`
 }
 
@@ -120,8 +125,10 @@ type IAMAuthenticatorConfig struct {
 // KubernetesMapping represents the kubernetes RBAC mapping.
 type KubernetesMapping struct {
 	// UserName is a kubernetes RBAC user subject
+	// +required
 	UserName string `json:"username"`
 	// Groups is a list of kubernetes RBAC groups
+	// +required
 	Groups []string `json:"groups"`
 }
 
@@ -129,6 +136,7 @@ type KubernetesMapping struct {
 type RoleMapping struct {
 	// RoleARN is the AWS ARN for the role to map
 	// +kubebuilder:validation:MinLength:=31
+	// +required
 	RoleARN string `json:"rolearn"`
 	// KubernetesMapping holds the RBAC details for the mapping
 	KubernetesMapping `json:",inline"`
@@ -138,6 +146,7 @@ type RoleMapping struct {
 type UserMapping struct {
 	// UserARN is the AWS ARN for the user to map
 	// +kubebuilder:validation:MinLength:=31
+	// +required
 	UserARN string `json:"userarn"`
 	// KubernetesMapping holds the RBAC details for the mapping
 	KubernetesMapping `json:",inline"`
@@ -147,9 +156,10 @@ type UserMapping struct {
 type Addon struct {
 	// Name is the name of the addon
 	// +kubebuilder:validation:MinLength:=2
-	// +kubebuilder:validation:Required
+	// +required
 	Name string `json:"name"`
 	// Version is the version of the addon to use
+	// +required
 	Version string `json:"version"`
 	// Configuration of the EKS addon
 	// +optional
@@ -158,6 +168,7 @@ type Addon struct {
 	// are parameter conflicts. Defaults to overwrite
 	// +kubebuilder:default=overwrite
 	// +kubebuilder:validation:Enum=overwrite;none;preserve
+	// +optional
 	ConflictResolution *AddonResolution `json:"conflictResolution,omitempty"`
 	// ServiceAccountRoleArn is the ARN of an IAM role to bind to the addons service account
 	// +optional
@@ -214,30 +225,41 @@ var (
 // AddonState represents the state of an addon.
 type AddonState struct {
 	// Name is the name of the addon
+	// +required
 	Name string `json:"name"`
 	// Version is the version of the addon to use
+	// +required
 	Version string `json:"version"`
 	// ARN is the AWS ARN of the addon
+	// +required
 	ARN string `json:"arn"`
 	// ServiceAccountRoleArn is the ARN of the IAM role used for the service account
+	// +optional
 	ServiceAccountRoleArn *string `json:"serviceAccountRoleARN,omitempty"`
 	// CreatedAt is the date and time the addon was created at
+	// +optional
 	CreatedAt metav1.Time `json:"createdAt,omitempty"`
 	// ModifiedAt is the date and time the addon was last modified
+	// +optional
 	ModifiedAt metav1.Time `json:"modifiedAt,omitempty"`
 	// Status is the status of the addon
+	// +optional
 	Status *string `json:"status,omitempty"`
 	// Issues is a list of issue associated with the addon
+	// +optional
 	Issues []AddonIssue `json:"issues,omitempty"`
 }
 
 // AddonIssue represents an issue with an addon.
 type AddonIssue struct {
 	// Code is the issue code
+	// +optional
 	Code *string `json:"code,omitempty"`
 	// Message is the textual description of the issue
+	// +optional
 	Message *string `json:"message,omitempty"`
 	// ResourceIDs is a list of resource ids for the issue
+	// +optional
 	ResourceIDs []string `json:"resourceIds,omitempty"`
 }
 
@@ -269,7 +291,7 @@ const (
 type OIDCIdentityProviderConfig struct {
 	// This is also known as audience. The ID for the client application that makes
 	// authentication requests to the OpenID identity provider.
-	// +kubebuilder:validation:Required
+	// +required
 	ClientID string `json:"clientId,omitempty"`
 
 	// The JWT claim that the provider uses to return your groups.
@@ -285,7 +307,7 @@ type OIDCIdentityProviderConfig struct {
 	// The name of the OIDC provider configuration.
 	//
 	// IdentityProviderConfigName is a required field
-	// +kubebuilder:validation:Required
+	// +required
 	IdentityProviderConfigName string `json:"identityProviderConfigName,omitempty"`
 
 	// The URL of the OpenID identity provider that allows the API server to discover
@@ -296,7 +318,7 @@ type OIDCIdentityProviderConfig struct {
 	// or https://example.com. This URL should point to the level below .well-known/openid-configuration
 	// and must be publicly accessible over the internet.
 	//
-	// +kubebuilder:validation:Required
+	// +required
 	IssuerURL string `json:"issuerUrl,omitempty"`
 
 	// The key value pairs that describe required claims in the identity token.

@@ -23,6 +23,7 @@ import (
 
 // Service defines the spec for a service.
 type Service struct {
+	// +optional
 	scope scope.KubeProxyScope
 }
 

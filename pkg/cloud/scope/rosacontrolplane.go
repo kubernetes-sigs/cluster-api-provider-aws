@@ -35,18 +35,23 @@ import (
 	stsservice "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 // ROSAControlPlaneScopeParams defines the input parameters used to create a new ROSAControlPlaneScope.
 type ROSAControlPlaneScopeParams struct {
+	// +optional
 	Client         client.Client
+	// +optional
 	Logger         *logger.Logger
+	// +optional
 	Cluster        *clusterv1.Cluster
+	// +optional
 	ControlPlane   *rosacontrolplanev1.ROSAControlPlane
+	// +optional
 	ControllerName string
+	// +optional
 	NewStsClient   func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsservice.STSClient
 }
 
@@ -77,7 +82,7 @@ func NewROSAControlPlaneScope(params ROSAControlPlaneScopeParams) (*ROSAControlP
 		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
 	}
 
-	helper, err := v1beta1patch.NewHelper(params.ControlPlane, params.Client)
+	helper, err := patch.NewHelper(params.ControlPlane, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init patch helper")
 	}
@@ -98,16 +103,25 @@ func NewROSAControlPlaneScope(params ROSAControlPlaneScopeParams) (*ROSAControlP
 
 // ROSAControlPlaneScope defines the basic context for an actuator to operate upon.
 type ROSAControlPlaneScope struct {
+	// +optional
 	logger.Logger
+	// +optional
 	Client      client.Client
-	patchHelper *v1beta1patch.Helper
+	// +optional
+	patchHelper *patch.Helper
 
+	// +optional
 	Cluster      *clusterv1.Cluster
+	// +optional
 	ControlPlane *rosacontrolplanev1.ROSAControlPlane
 
+	// +optional
 	session         awsv2.Config
+	// +optional
 	serviceLimiters throttle.ServiceLimiters
+	// +optional
 	controllerName  string
+	// +optional
 	Identity        *stsv2.GetCallerIdentityOutput
 }
 
@@ -139,11 +153,9 @@ func (s *ROSAControlPlaneScope) ControllerName() string {
 	return s.controllerName
 }
 
-var (
-	_ cloud.ScopeUsage      = (*ROSAControlPlaneScope)(nil)
-	_ cloud.Session         = (*ROSAControlPlaneScope)(nil)
-	_ cloud.SessionMetadata = (*ROSAControlPlaneScope)(nil)
-)
+var _ cloud.ScopeUsage = (*ROSAControlPlaneScope)(nil)
+var _ cloud.Session = (*ROSAControlPlaneScope)(nil)
+var _ cloud.SessionMetadata = (*ROSAControlPlaneScope)(nil)
 
 // Name returns the CAPI cluster name.
 func (s *ROSAControlPlaneScope) Name() string {
@@ -215,7 +227,7 @@ func (s *ROSAControlPlaneScope) PatchObject() error {
 	return s.patchHelper.Patch(
 		context.TODO(),
 		s.ControlPlane,
-		v1beta1patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
+		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
 			rosacontrolplanev1.ROSAControlPlaneReadyCondition,
 			rosacontrolplanev1.ROSAControlPlaneValidCondition,
 			rosacontrolplanev1.ROSAControlPlaneUpgradingCondition,

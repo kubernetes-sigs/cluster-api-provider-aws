@@ -56,14 +56,17 @@ type EKSConfigSpec struct {
 // PauseContainer contains details of pause container.
 type PauseContainer struct {
 	//  AccountNumber is the AWS account number to pull the pause container from.
+	// +required
 	AccountNumber string `json:"accountNumber"`
 	// Version is the tag of the pause container to use.
+	// +required
 	Version string `json:"version"`
 }
 
 // EKSConfigStatus defines the observed state of the Amazon EKS Bootstrap Configuration.
 type EKSConfigStatus struct {
 	// Ready indicates the BootstrapData secret is ready to be consumed
+	// +optional
 	Ready bool `json:"ready,omitempty"`
 
 	// DataSecretName is the name of the secret that stores the bootstrap data script.
@@ -97,9 +100,12 @@ type EKSConfigStatus struct {
 // EKSConfig is the schema for the Amazon EKS Machine Bootstrap Configuration API.
 type EKSConfig struct {
 	metav1.TypeMeta   `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// +optional
 	Spec   EKSConfigSpec   `json:"spec,omitempty"`
+	// +optional
 	Status EKSConfigStatus `json:"status,omitempty"`
 }
 
@@ -119,7 +125,9 @@ func (r *EKSConfig) SetConditions(conditions clusterv1beta1.Conditions) {
 // EKSConfigList contains a list of EKSConfig.
 type EKSConfigList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
+	// +required
 	Items           []EKSConfig `json:"items"`
 }
 

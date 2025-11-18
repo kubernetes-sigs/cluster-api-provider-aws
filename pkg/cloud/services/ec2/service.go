@@ -28,15 +28,20 @@ import (
 // The interfaces are broken down like this to group functions together.
 // One alternative is to have a large list of functions from the ec2 client.
 type Service struct {
+	// +optional
 	scope      scope.EC2Scope
+	// +optional
 	EC2Client  common.EC2API
+	// +optional
 	netService *network.Service
 
 	// SSMClient is used to look up the official EKS AMI ID
+	// +optional
 	SSMClient ssm.SSMAPI
 
 	// RetryEC2Client is used for dedicated host operations with enhanced retry configuration
 	// If nil, a new retry client will be created as needed
+	// +optional
 	RetryEC2Client common.EC2API
 }
 

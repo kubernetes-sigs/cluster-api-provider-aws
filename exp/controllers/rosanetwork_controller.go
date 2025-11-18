@@ -50,11 +50,17 @@ import (
 
 // ROSANetworkReconciler reconciles a ROSANetwork object.
 type ROSANetworkReconciler struct {
+	// +optional
 	client.Client
+	// +optional
 	Log              logr.Logger
+	// +optional
 	Scheme           *runtime.Scheme
+	// +optional
 	awsClient        rosaAWSClient.Client
+	// +optional
 	cfStack          *cloudformationtypes.Stack
+	// +optional
 	WatchFilterValue string
 }
 

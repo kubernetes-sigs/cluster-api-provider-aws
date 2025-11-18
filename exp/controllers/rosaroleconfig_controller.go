@@ -58,11 +58,17 @@ import (
 
 // ROSARoleConfigReconciler reconciles a ROSARoleConfig object.
 type ROSARoleConfigReconciler struct {
+	// +optional
 	client.Client
+	// +optional
 	Recorder         record.EventRecorder
+	// +optional
 	WatchFilterValue string
+	// +optional
 	NewStsClient     func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsiface.STSClient
+	// +optional
 	NewOCMClient     func(ctx context.Context, scope rosa.OCMSecretsRetriever) (rosa.OCMClient, error)
+	// +optional
 	Runtime          *rosacli.Runtime
 }
 

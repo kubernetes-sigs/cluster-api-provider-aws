@@ -30,12 +30,19 @@ import (
 
 // Service is used to perform operations against a tenant/workload/child cluster.
 type Service struct {
+	// +optional
 	scope                 cloud.ClusterScoper
+	// +optional
 	elbClient             elb.ELBAPI
+	// +optional
 	elbv2Client           elb.ELBV2API
+	// +optional
 	resourceTaggingClient elb.ResourceGroupsTaggingAPIAPI
+	// +optional
 	ec2Client             common.EC2API
+	// +optional
 	cleanupFuncs          ResourceCleanupFuncs
+	// +optional
 	collectFuncs          ResourceCollectFuncs
 }
 
@@ -90,7 +97,9 @@ func addAlternativeCollectFuncs(s *Service) {
 
 // AWSResource represents a resource in AWS.
 type AWSResource struct {
+	// +optional
 	ARN  *arn.ARN
+	// +optional
 	Tags map[string]string
 }
 

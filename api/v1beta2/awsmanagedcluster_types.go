@@ -55,9 +55,12 @@ type AWSManagedClusterStatus struct {
 // AWSManagedCluster is the Schema for the awsmanagedclusters API
 type AWSManagedCluster struct {
 	metav1.TypeMeta   `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// +optional
 	Spec   AWSManagedClusterSpec   `json:"spec,omitempty"`
+	// +optional
 	Status AWSManagedClusterStatus `json:"status,omitempty"`
 }
 
@@ -66,7 +69,9 @@ type AWSManagedCluster struct {
 // AWSManagedClusterList contains a list of AWSManagedCluster.
 type AWSManagedClusterList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
+	// +required
 	Items           []AWSManagedCluster `json:"items"`
 }
 

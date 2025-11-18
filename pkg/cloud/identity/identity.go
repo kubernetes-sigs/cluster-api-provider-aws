@@ -106,11 +106,16 @@ func NewAWSRolePrincipalTypeProvider(identity *infrav1.AWSClusterRoleIdentity, s
 
 // AWSStaticPrincipalTypeProvider defines the specs for a static AWSPrincipalTypeProvider.
 type AWSStaticPrincipalTypeProvider struct {
+	// +optional
 	Principal   *infrav1.AWSClusterStaticIdentity
+	// +optional
 	credentials *aws.CredentialsCache
 	// these are for tests :/
+	// +optional
 	AccessKeyID     string
+	// +optional
 	SecretAccessKey string
+	// +optional
 	SessionToken    string
 }
 
@@ -137,11 +142,17 @@ func (p *AWSStaticPrincipalTypeProvider) Name() string {
 
 // AWSRolePrincipalTypeProvider defines the specs for a AWSPrincipalTypeProvider with a role.
 type AWSRolePrincipalTypeProvider struct {
+	// +optional
 	Principal      *infrav1.AWSClusterRoleIdentity
+	// +optional
 	credentials    *aws.CredentialsCache
+	// +optional
 	region         string
+	// +optional
 	sourceProvider AWSPrincipalTypeProvider
+	// +optional
 	log            logger.Wrapper
+	// +optional
 	stsClient      stsservice.STSClient
 }
 

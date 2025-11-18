@@ -30,9 +30,13 @@ import (
 
 // UpdateCredentialsInput defines the specs for update credentials input.
 type UpdateCredentialsInput struct {
+	// +optional
 	KubeconfigPath    string
+	// +optional
 	KubeconfigContext string
+	// +optional
 	Credentials       string
+	// +optional
 	Namespace         string
 }
 

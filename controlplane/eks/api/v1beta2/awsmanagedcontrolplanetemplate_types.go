@@ -22,6 +22,7 @@ import (
 
 // AWSManagedControlPlaneTemplateSpec defines the desired state of AWSManagedControlPlaneTemplate.
 type AWSManagedControlPlaneTemplateSpec struct {
+	// +required
 	Template AWSManagedControlPlaneTemplateResource `json:"template"`
 }
 
@@ -32,8 +33,10 @@ type AWSManagedControlPlaneTemplateSpec struct {
 // AWSManagedControlPlaneTemplate is the Schema for the AWSManagedControlPlaneTemplates API.
 type AWSManagedControlPlaneTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// +optional
 	Spec AWSManagedControlPlaneTemplateSpec `json:"spec,omitempty"`
 }
 
@@ -42,7 +45,9 @@ type AWSManagedControlPlaneTemplate struct {
 // AWSManagedControlPlaneTemplateList contains a list of AWSManagedControlPlaneTemplates.
 type AWSManagedControlPlaneTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
+	// +required
 	Items           []AWSManagedControlPlaneTemplate `json:"items"`
 }
 
@@ -52,5 +57,6 @@ func init() {
 
 // AWSManagedControlPlaneTemplateResource describes the data needed to create an AWSManagedCluster from a template.
 type AWSManagedControlPlaneTemplateResource struct {
+	// +required
 	Spec AWSManagedControlPlaneSpec `json:"spec"`
 }

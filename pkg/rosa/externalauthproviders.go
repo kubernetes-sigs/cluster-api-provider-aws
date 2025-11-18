@@ -13,6 +13,7 @@ import (
 
 // ExternalAuthClient handles externalAuth operations.
 type ExternalAuthClient struct {
+	// +optional
 	ocm *sdk.Connection
 }
 

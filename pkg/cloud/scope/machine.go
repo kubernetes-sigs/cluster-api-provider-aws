@@ -31,21 +31,26 @@ import (
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
-	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 // MachineScopeParams defines the input parameters used to create a new MachineScope.
 type MachineScopeParams struct {
+	// +optional
 	Client       client.Client
+	// +optional
 	Logger       *logger.Logger
+	// +optional
 	Cluster      *clusterv1.Cluster
+	// +optional
 	Machine      *clusterv1.Machine
+	// +optional
 	InfraCluster EC2Scope
+	// +optional
 	AWSMachine   *infrav1.AWSMachine
 }
 
@@ -73,7 +78,7 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 		params.Logger = logger.NewLogger(log)
 	}
 
-	helper, err := v1beta1patch.NewHelper(params.AWSMachine, params.Client)
+	helper, err := patch.NewHelper(params.AWSMachine, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init patch helper")
 	}
@@ -90,13 +95,20 @@ func NewMachineScope(params MachineScopeParams) (*MachineScope, error) {
 
 // MachineScope defines a scope defined around a machine and its cluster.
 type MachineScope struct {
+	// +optional
 	logger.Logger
+	// +optional
 	client      client.Client
-	patchHelper *v1beta1patch.Helper
+	// +optional
+	patchHelper *patch.Helper
 
+	// +optional
 	Cluster      *clusterv1.Cluster
+	// +optional
 	Machine      *clusterv1.Machine
+	// +optional
 	InfraCluster EC2Scope
+	// +optional
 	AWSMachine   *infrav1.AWSMachine
 }
 
@@ -259,7 +271,7 @@ func (m *MachineScope) SetSecretCount(i int32) {
 }
 
 // SetAddresses sets the AWSMachine address status.
-func (m *MachineScope) SetAddresses(addrs []clusterv1beta1.MachineAddress) {
+func (m *MachineScope) SetAddresses(addrs []clusterv1.MachineAddress) {
 	m.AWSMachine.Status.Addresses = addrs
 }
 
@@ -303,7 +315,7 @@ func (m *MachineScope) GetRawBootstrapDataWithFormat() ([]byte, string, error) {
 func (m *MachineScope) PatchObject() error {
 	// Always update the readyCondition by summarizing the state of other conditions.
 	// A step counter is added to represent progress during the provisioning process (instead we are hiding during the deletion process).
-	applicableConditions := []clusterv1beta1.ConditionType{
+	applicableConditions := []clusterv1.ConditionType{
 		infrav1.InstanceReadyCondition,
 		infrav1.SecurityGroupsReadyCondition,
 	}
@@ -312,17 +324,17 @@ func (m *MachineScope) PatchObject() error {
 		applicableConditions = append(applicableConditions, infrav1.ELBAttachedCondition)
 	}
 
-	v1beta1conditions.SetSummary(m.AWSMachine,
-		v1beta1conditions.WithConditions(applicableConditions...),
-		v1beta1conditions.WithStepCounterIf(m.AWSMachine.ObjectMeta.DeletionTimestamp.IsZero()),
-		v1beta1conditions.WithStepCounter(),
+	conditions.SetSummary(m.AWSMachine,
+		conditions.WithConditions(applicableConditions...),
+		conditions.WithStepCounterIf(m.AWSMachine.ObjectMeta.DeletionTimestamp.IsZero()),
+		conditions.WithStepCounter(),
 	)
 
 	return m.patchHelper.Patch(
 		context.TODO(),
 		m.AWSMachine,
-		v1beta1patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
-			clusterv1beta1.ReadyCondition,
+		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			clusterv1.ReadyCondition,
 			infrav1.InstanceReadyCondition,
 			infrav1.SecurityGroupsReadyCondition,
 			infrav1.ELBAttachedCondition,

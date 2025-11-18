@@ -34,11 +34,17 @@ import (
 // The interfaces are broken down like this to group functions together.
 // One alternative is to have a large list of functions from the ec2 client.
 type Service struct {
+	// +optional
 	scope                 scope.ELBScope
+	// +optional
 	EC2Client             common.EC2API
+	// +optional
 	ELBClient             ELBAPI
+	// +optional
 	ELBV2Client           ELBV2API
+	// +optional
 	ResourceTaggingClient ResourceGroupsTaggingAPIAPI
+	// +optional
 	netService            *network.Service
 }
 
@@ -102,16 +108,19 @@ type ResourceGroupsTaggingAPIAPI interface {
 
 // ELBClient is a wrapper over elb.Client for implementing custom methods of ELBAPI.
 type ELBClient struct {
+	// +optional
 	*elb.Client
 }
 
 // ELBV2Client is a wrapper over elbv2.Client for implementing custom methods of ELBV2API.
 type ELBV2Client struct {
+	// +optional
 	*elbv2.Client
 }
 
 // ResourceGroupsTaggingAPIClient is a wrapper over rgapi.Client for implementing custom methods of ResourceGroupsTaggingAPI.
 type ResourceGroupsTaggingAPIClient struct {
+	// +optional
 	*rgapi.Client
 }
 

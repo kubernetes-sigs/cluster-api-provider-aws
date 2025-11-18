@@ -26,16 +26,27 @@ import (
 // identity provider configuration. To reconcile the config we are going to get the version from EKS and
 // AWSManagedControlPlane and will need to have one consistent version of string values from each API.
 type OidcIdentityProviderConfig struct {
+	// +optional
 	ClientID                   string
+	// +optional
 	GroupsClaim                string
+	// +optional
 	GroupsPrefix               string
+	// +optional
 	IdentityProviderConfigArn  string
+	// +optional
 	IdentityProviderConfigName string
+	// +optional
 	IssuerURL                  string
+	// +optional
 	RequiredClaims             map[string]string
+	// +optional
 	Status                     string
+	// +optional
 	Tags                       infrav1.Tags
+	// +optional
 	UsernameClaim              string
+	// +optional
 	UsernamePrefix             string
 }
 

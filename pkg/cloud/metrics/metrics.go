@@ -80,15 +80,25 @@ type requestContextKey struct{}
 
 // RequestData holds information related to request metrics.
 type RequestData struct {
+	// +optional
 	RequestStartTime time.Time
+	// +optional
 	RequestEndTime   time.Time
+	// +optional
 	StatusCode       int
+	// +optional
 	ErrorCode        string
+	// +optional
 	Service          string
+	// +optional
 	OperationName    string
+	// +optional
 	Region           string
+	// +optional
 	Controller       string
+	// +optional
 	Target           runtime.Object
+	// +optional
 	Attempts         int
 }
 

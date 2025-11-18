@@ -50,9 +50,13 @@ var ErrNoAWSRegionConfigured = errors.New("no AWS region configured. Use --regio
 
 // AWSCredentials defines the specs for AWS credentials.
 type AWSCredentials struct {
+	// +optional
 	AccessKeyID     string
+	// +optional
 	SecretAccessKey string
+	// +optional
 	SessionToken    string
+	// +optional
 	Region          string
 }
 

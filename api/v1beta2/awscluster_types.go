@@ -19,7 +19,7 @@ package v1beta2
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 )
 
 const (
@@ -34,9 +34,11 @@ const (
 // AWSClusterSpec defines the desired state of an EC2-based Kubernetes cluster.
 type AWSClusterSpec struct {
 	// NetworkSpec encapsulates all things related to AWS network.
+	// +optional
 	NetworkSpec NetworkSpec `json:"network,omitempty"`
 
 	// The AWS Region the cluster lives in.
+	// +optional
 	Region string `json:"region,omitempty"`
 
 	// Partition is the AWS security partition being used. Defaults to "aws"
@@ -49,7 +51,7 @@ type AWSClusterSpec struct {
 
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
-	ControlPlaneEndpoint clusterv1beta1.APIEndpoint `json:"controlPlaneEndpoint"`
+	ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
 
 	// AdditionalTags is an optional set of tags to add to AWS resources managed by the AWS provider, in addition to the
 	// ones added by default.
@@ -93,6 +95,7 @@ type AWSClusterSpec struct {
 	// up machine images when a machine does not specify an AMI. When set, this
 	// will be used for all cluster machines unless a machine specifies a
 	// different ImageLookupBaseOS.
+	// +optional
 	ImageLookupBaseOS string `json:"imageLookupBaseOS,omitempty"`
 
 	// Bastion contains options to configure the bastion host.
@@ -103,6 +106,7 @@ type AWSClusterSpec struct {
 
 	// IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
 	// If no identity is specified, the default identity for this controller will be used.
+	// +optional
 	IdentityRef *AWSIdentityReference `json:"identityRef,omitempty"`
 
 	// S3Bucket contains options to configure a supporting S3 bucket for this
@@ -131,10 +135,12 @@ var (
 type AWSIdentityReference struct {
 	// Name of the identity.
 	// +kubebuilder:validation:MinLength=1
+	// +required
 	Name string `json:"name"`
 
 	// Kind of the identity.
 	// +kubebuilder:validation:Enum=AWSClusterControllerIdentity;AWSClusterRoleIdentity;AWSClusterStaticIdentity
+	// +required
 	Kind AWSIdentityKind `json:"kind"`
 }
 
@@ -158,6 +164,7 @@ type Bastion struct {
 	// InstanceType will use the specified instance type for the bastion. If not specified,
 	// Cluster API Provider AWS will use t3.micro for all regions except us-east-1, where t2.micro
 	// will be the default.
+	// +optional
 	InstanceType string `json:"instanceType,omitempty"`
 
 	// AMI will use the specified AMI to boot the bastion. If not specified,
@@ -243,14 +250,17 @@ type AWSLoadBalancerSpec struct {
 	// LoadBalancerType sets the type for a load balancer. The default type is classic.
 	// +kubebuilder:default=classic
 	// +kubebuilder:validation:Enum:=classic;elb;alb;nlb;disabled
+	// +optional
 	LoadBalancerType LoadBalancerType `json:"loadBalancerType,omitempty"`
 
 	// DisableHostsRewrite disabled the hair pinning issue solution that adds the NLB's address as 127.0.0.1 to the hosts
 	// file of each instance. This is by default, false.
+	// +optional
 	DisableHostsRewrite bool `json:"disableHostsRewrite,omitempty"`
 
 	// PreserveClientIP lets the user control if preservation of client ips must be retained or not.
 	// If this is enabled 6443 will be opened to 0.0.0.0/0.
+	// +optional
 	PreserveClientIP bool `json:"preserveClientIP,omitempty"`
 }
 
@@ -260,12 +270,14 @@ type AdditionalListenerSpec struct {
 	// Port sets the port for the additional listener.
 	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:validation:Maximum=65535
+	// +required
 	Port int64 `json:"port"`
 
 	// Protocol sets the protocol for the additional listener.
 	// Currently only TCP is supported.
 	// +kubebuilder:validation:Enum=TCP
 	// +kubebuilder:default=TCP
+	// +optional
 	Protocol ELBProtocol `json:"protocol,omitempty"`
 
 	// HealthCheck sets the optional custom health check configuration to the API target group.
@@ -276,11 +288,16 @@ type AdditionalListenerSpec struct {
 // AWSClusterStatus defines the observed state of AWSCluster.
 type AWSClusterStatus struct {
 	// +kubebuilder:default=false
-	Ready          bool                          `json:"ready"`
-	Network        NetworkStatus                 `json:"networkStatus,omitempty"`
-	FailureDomains clusterv1beta1.FailureDomains `json:"failureDomains,omitempty"`
-	Bastion        *Instance                     `json:"bastion,omitempty"`
-	Conditions     clusterv1beta1.Conditions     `json:"conditions,omitempty"`
+	// +required
+	Ready bool `json:"ready"`
+	// +optional
+	Network NetworkStatus `json:"networkStatus,omitempty"`
+	// +optional
+	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
+	// +optional
+	Bastion *Instance `json:"bastion,omitempty"`
+	// +optional
+	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }
 
 // S3Bucket defines a supporting S3 bucket for the cluster, currently can be optionally used for Ignition.
@@ -308,6 +325,7 @@ type S3Bucket struct {
 	// +kubebuilder:validation:MinLength:=3
 	// +kubebuilder:validation:MaxLength:=63
 	// +kubebuilder:validation:Pattern=`^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$`
+	// +required
 	Name string `json:"name"`
 
 	// BestEffortDeleteObjects defines whether access/permission errors during object deletion should be ignored.
@@ -328,10 +346,13 @@ type S3Bucket struct {
 
 // AWSCluster is the schema for Amazon EC2 based Kubernetes Cluster API.
 type AWSCluster struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   AWSClusterSpec   `json:"spec,omitempty"`
+	// +optional
+	Spec AWSClusterSpec `json:"spec,omitempty"`
+	// +optional
 	Status AWSClusterStatus `json:"status,omitempty"`
 }
 
@@ -341,17 +362,19 @@ type AWSCluster struct {
 // +k8s:defaulter-gen=true
 type AWSClusterList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []AWSCluster `json:"items"`
+	// +required
+	Items []AWSCluster `json:"items"`
 }
 
 // GetConditions returns the observations of the operational state of the AWSCluster resource.
-func (r *AWSCluster) GetConditions() clusterv1beta1.Conditions {
+func (r *AWSCluster) GetConditions() clusterv1.Conditions {
 	return r.Status.Conditions
 }
 
-// SetConditions sets the underlying service state of the AWSCluster to the predescribed clusterv1beta1.Conditions.
-func (r *AWSCluster) SetConditions(conditions clusterv1beta1.Conditions) {
+// SetConditions sets the underlying service state of the AWSCluster to the predescribed clusterv1.Conditions.
+func (r *AWSCluster) SetConditions(conditions clusterv1.Conditions) {
 	r.Status.Conditions = conditions
 }
 

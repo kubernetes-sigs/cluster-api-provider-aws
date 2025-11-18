@@ -99,6 +99,7 @@ type AWSManagedMachinePoolSpec struct {
 	EKSNodegroupName string `json:"eksNodegroupName,omitempty"`
 
 	// AvailabilityZones is an array of availability zones instances can run in
+	// +optional
 	AvailabilityZones []string `json:"availabilityZones,omitempty"`
 
 	// AvailabilityZoneSubnetType specifies which type of subnets to use when an availability zone is specified.
@@ -135,6 +136,7 @@ type AWSManagedMachinePoolSpec struct {
 	//
 	// This parameter is optional. If it is not included, it defaults to a slash
 	// (/).
+	// +optional
 	RolePath string `json:"rolePath,omitempty"`
 
 	// RolePermissionsBoundary sets the ARN of the managed policy that is used
@@ -149,6 +151,7 @@ type AWSManagedMachinePoolSpec struct {
 	//
 	// For more information about policy types, see Policy types (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html#access_policy-types)
 	// in the IAM User Guide.
+	// +optional
 	RolePermissionsBoundary string `json:"rolePermissionsBoundary,omitempty"`
 
 	// AMIVersion defines the desired AMI release version. If no version number
@@ -222,7 +225,9 @@ type AWSManagedMachinePoolSpec struct {
 
 // ManagedMachinePoolScaling specifies scaling options.
 type ManagedMachinePoolScaling struct {
+	// +optional
 	MinSize *int32 `json:"minSize,omitempty"`
+	// +optional
 	MaxSize *int32 `json:"maxSize,omitempty"`
 }
 
@@ -230,12 +235,15 @@ type ManagedMachinePoolScaling struct {
 type ManagedRemoteAccess struct {
 	// SSHKeyName specifies which EC2 SSH key can be used to access machines.
 	// If left empty, the key from the control plane is used.
+	// +optional
 	SSHKeyName *string `json:"sshKeyName,omitempty"`
 
 	// SourceSecurityGroups specifies which security groups are allowed access
+	// +optional
 	SourceSecurityGroups []string `json:"sourceSecurityGroups,omitempty"`
 
 	// Public specifies whether to open port 22 to the public internet
+	// +optional
 	Public bool `json:"public,omitempty"`
 }
 
@@ -244,6 +252,7 @@ type AWSManagedMachinePoolStatus struct {
 	// Ready denotes that the AWSManagedMachinePool nodegroup has joined
 	// the cluster
 	// +kubebuilder:default=false
+	// +required
 	Ready bool `json:"ready"`
 
 	// Replicas is the most recently observed number of replicas.
@@ -320,9 +329,12 @@ type NodeRepairConfig struct {
 // AWSManagedMachinePool is the Schema for the awsmanagedmachinepools API.
 type AWSManagedMachinePool struct {
 	metav1.TypeMeta   `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// +optional
 	Spec   AWSManagedMachinePoolSpec   `json:"spec,omitempty"`
+	// +optional
 	Status AWSManagedMachinePoolStatus `json:"status,omitempty"`
 }
 
@@ -341,7 +353,9 @@ func (r *AWSManagedMachinePool) SetConditions(conditions clusterv1beta1.Conditio
 // AWSManagedMachinePoolList contains a list of AWSManagedMachinePools.
 type AWSManagedMachinePoolList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
+	// +required
 	Items           []AWSManagedMachinePool `json:"items"`
 }
 

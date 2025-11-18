@@ -337,10 +337,16 @@ func NewS3Client(scopeUser cloud.ScopeUsage, session cloud.Session, logger logge
 
 // AWSClients contains all the aws clients used by the scopes.
 type AWSClients struct {
+	// +optional
 	ELB             *elb.Client
+	// +optional
 	SecretsManager  *secretsmanager.Client
+	// +optional
 	ResourceTagging *rgapi.Client
+	// +optional
 	ASG             *autoscaling.Client
+	// +optional
 	EC2             *ec2.Client
+	// +optional
 	ELBV2           *elbv2.Client
 }

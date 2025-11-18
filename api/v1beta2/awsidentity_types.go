@@ -53,19 +53,24 @@ type AllowedNamespaces struct {
 // AWSRoleSpec defines the specifications for all identities based around AWS roles.
 type AWSRoleSpec struct {
 	// The Amazon Resource Name (ARN) of the role to assume.
+	// +required
 	RoleArn string `json:"roleARN"`
 	// An identifier for the assumed role session
+	// +optional
 	SessionName string `json:"sessionName,omitempty"`
 	// The duration, in seconds, of the role session before it is renewed.
 	// +kubebuilder:validation:Minimum:=900
 	// +kubebuilder:validation:Maximum:=43200
+	// +optional
 	DurationSeconds int32 `json:"durationSeconds,omitempty"`
 	// An IAM policy as a JSON-encoded string that you want to use as an inline session policy.
+	// +optional
 	InlinePolicy string `json:"inlinePolicy,omitempty"`
 
 	// The Amazon Resource Names (ARNs) of the IAM managed policies that you want
 	// to use as managed session policies.
 	// The policies must exist in the same account as the role.
+	// +optional
 	PolicyARNs []string `json:"policyARNs,omitempty"`
 }
 
@@ -78,9 +83,11 @@ type AWSRoleSpec struct {
 // It represents a reference to an AWS access key ID and secret access key, stored in a secret.
 type AWSClusterStaticIdentity struct {
 	metav1.TypeMeta   `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// Spec for this AWSClusterStaticIdentity
+	// +optional
 	Spec AWSClusterStaticIdentitySpec `json:"spec,omitempty"`
 }
 
@@ -90,7 +97,9 @@ type AWSClusterStaticIdentity struct {
 // AWSClusterStaticIdentityList contains a list of AWSClusterStaticIdentity.
 type AWSClusterStaticIdentityList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
+	// +required
 	Items           []AWSClusterStaticIdentity `json:"items"`
 }
 
@@ -102,6 +111,7 @@ type AWSClusterStaticIdentitySpec struct {
 	//  AccessKeyID: AKIAIOSFODNN7EXAMPLE
 	//  SecretAccessKey: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
 	//  SessionToken: Optional
+	// +required
 	SecretRef string `json:"secretRef"`
 }
 
@@ -114,9 +124,11 @@ type AWSClusterStaticIdentitySpec struct {
 // It is used to assume a role using the provided sourceRef.
 type AWSClusterRoleIdentity struct {
 	metav1.TypeMeta   `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// Spec for this AWSClusterRoleIdentity.
+	// +optional
 	Spec AWSClusterRoleIdentitySpec `json:"spec,omitempty"`
 }
 
@@ -126,7 +138,9 @@ type AWSClusterRoleIdentity struct {
 // AWSClusterRoleIdentityList contains a list of AWSClusterRoleIdentity.
 type AWSClusterRoleIdentityList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
+	// +required
 	Items           []AWSClusterRoleIdentity `json:"items"`
 }
 
@@ -148,6 +162,7 @@ type AWSClusterRoleIdentitySpec struct {
 
 	// SourceIdentityRef is a reference to another identity which will be chained to do
 	// role assumption. All identity types are accepted.
+	// +optional
 	SourceIdentityRef *AWSIdentityReference `json:"sourceIdentityRef,omitempty"`
 }
 
@@ -160,9 +175,11 @@ type AWSClusterRoleIdentitySpec struct {
 // It is used to grant access to use Cluster API Provider AWS Controller credentials.
 type AWSClusterControllerIdentity struct {
 	metav1.TypeMeta   `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// Spec for this AWSClusterControllerIdentity.
+	// +optional
 	Spec AWSClusterControllerIdentitySpec `json:"spec,omitempty"`
 }
 
@@ -172,7 +189,9 @@ type AWSClusterControllerIdentity struct {
 // AWSClusterControllerIdentityList contains a list of AWSClusterControllerIdentity.
 type AWSClusterControllerIdentityList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
+	// +required
 	Items           []AWSClusterControllerIdentity `json:"items"`
 }
 

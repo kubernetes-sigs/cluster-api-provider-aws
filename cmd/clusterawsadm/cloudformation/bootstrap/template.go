@@ -56,6 +56,7 @@ const (
 // Template is an AWS CloudFormation template to bootstrap
 // IAM policies, users and roles for use by Cluster API Provider AWS.
 type Template struct {
+	// +optional
 	Spec *bootstrapv1.AWSIAMConfigurationSpec
 }
 

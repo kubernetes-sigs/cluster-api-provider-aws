@@ -37,8 +37,11 @@ const ControllerDeploymentName = "capa-controller-manager"
 
 // RolloutControllersInput defines the specs for rollout controllers input.
 type RolloutControllersInput struct {
+	// +optional
 	KubeconfigPath    string
+	// +optional
 	KubeconfigContext string
+	// +optional
 	Namespace         string
 }
 

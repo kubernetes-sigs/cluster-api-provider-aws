@@ -70,6 +70,7 @@ func New(printerType string, writer io.Writer) (Printer, error) {
 }
 
 type tablePrinter struct {
+	// +optional
 	writer io.Writer
 }
 
@@ -91,6 +92,7 @@ func (p *tablePrinter) Print(in interface{}) error {
 }
 
 type yamlPrinter struct {
+	// +optional
 	writer io.Writer
 }
 
@@ -104,6 +106,7 @@ func (p *yamlPrinter) Print(in interface{}) error {
 }
 
 type jsonPrinter struct {
+	// +optional
 	writer io.Writer
 }
 

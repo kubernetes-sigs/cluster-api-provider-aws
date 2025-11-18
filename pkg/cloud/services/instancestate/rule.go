@@ -262,12 +262,17 @@ func resourceNotFoundError(err error) bool {
 }
 
 type eventPattern struct {
+	// +required
 	Source      []string     `json:"source"`
+	// +optional
 	DetailType  []string     `json:"detail-type,omitempty"`
+	// +optional
 	EventDetail *eventDetail `json:"detail,omitempty"`
 }
 
 type eventDetail struct {
+	// +optional
 	InstanceIDs []string                `json:"instance-id,omitempty"`
+	// +optional
 	States      []infrav1.InstanceState `json:"state,omitempty"`
 }
