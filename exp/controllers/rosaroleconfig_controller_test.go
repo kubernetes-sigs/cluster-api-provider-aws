@@ -598,38 +598,40 @@ func TestROSARoleConfigReconcileExist(t *testing.T) {
 	// Assertions - since all resources exist, reconciliation should succeed
 	g.Expect(errReconcile).ToNot(HaveOccurred())
 
-	// Sleep to ensure the status is updated
-	time.Sleep(100 * time.Millisecond)
+	var updatedRoleConfig *expinfrav1.ROSARoleConfig
 
-	// Check the status of the ROSARoleConfig resource
-	updatedRoleConfig := &expinfrav1.ROSARoleConfig{}
-	err = reconciler.Client.Get(ctx, req.NamespacedName, updatedRoleConfig)
-	g.Expect(err).ToNot(HaveOccurred())
+	g.Eventually(func(g Gomega) {
+		// Check the status of the ROSARoleConfig resource
+		updatedRoleConfig = &expinfrav1.ROSARoleConfig{}
+		g.Expect(reconciler.Client.Get(ctx, req.NamespacedName, updatedRoleConfig)).ToNot(HaveOccurred())
 
-	// Verify that all existing account roles are preserved
-	g.Expect(updatedRoleConfig.Status.AccountRolesRef.InstallerRoleARN).To(Equal("arn:aws:iam::123456789012:role/test-HCP-ROSA-Installer-Role"))
-	g.Expect(updatedRoleConfig.Status.AccountRolesRef.SupportRoleARN).To(Equal("arn:aws:iam::123456789012:role/test-HCP-ROSA-Support-Role"))
-	g.Expect(updatedRoleConfig.Status.AccountRolesRef.WorkerRoleARN).To(Equal("arn:aws:iam::123456789012:role/test-HCP-ROSA-Worker-Role"))
+		// Verify that all existing account roles are preserved
+		g.Expect(updatedRoleConfig.Status.AccountRolesRef.InstallerRoleARN).To(Equal("arn:aws:iam::123456789012:role/test-HCP-ROSA-Installer-Role"))
+		g.Expect(updatedRoleConfig.Status.AccountRolesRef.SupportRoleARN).To(Equal("arn:aws:iam::123456789012:role/test-HCP-ROSA-Support-Role"))
+		g.Expect(updatedRoleConfig.Status.AccountRolesRef.WorkerRoleARN).To(Equal("arn:aws:iam::123456789012:role/test-HCP-ROSA-Worker-Role"))
 
-	// Verify OIDC config is preserved
-	g.Expect(updatedRoleConfig.Status.OIDCID).To(Equal("test-existing-oidc-id"))
-	g.Expect(updatedRoleConfig.Status.OIDCProviderARN).To(Equal("arn:aws:iam::123456789012:oidc-provider/test-existing-oidc-id"))
+		// Verify OIDC config is preserved
+		g.Expect(updatedRoleConfig.Status.OIDCID).To(Equal("test-existing-oidc-id"))
+		g.Expect(updatedRoleConfig.Status.OIDCProviderARN).To(Equal("arn:aws:iam::123456789012:oidc-provider/test-existing-oidc-id"))
 
-	// Verify operator roles are populated with existing roles
-	g.Expect(updatedRoleConfig.Status.OperatorRolesRef.IngressARN).To(Equal("arn:aws:iam::123456789012:role/test-openshift-ingress-operator-cloud-credentials"))
-	g.Expect(updatedRoleConfig.Status.OperatorRolesRef.ImageRegistryARN).To(Equal("arn:aws:iam::123456789012:role/test-openshift-image-registry-installer-cloud-credentials"))
-	g.Expect(updatedRoleConfig.Status.OperatorRolesRef.StorageARN).To(Equal("arn:aws:iam::123456789012:role/test-openshift-cluster-csi-drivers-ebs-cloud-credentials"))
-	g.Expect(updatedRoleConfig.Status.OperatorRolesRef.NetworkARN).To(Equal("arn:aws:iam::123456789012:role/test-openshift-cloud-network-config-controller-cloud-credentials"))
-	g.Expect(updatedRoleConfig.Status.OperatorRolesRef.KubeCloudControllerARN).To(Equal("arn:aws:iam::123456789012:role/test-kube-system-kube-controller-manager"))
-	g.Expect(updatedRoleConfig.Status.OperatorRolesRef.NodePoolManagementARN).To(Equal("arn:aws:iam::123456789012:role/test-kube-system-capa-controller-manager"))
-	g.Expect(updatedRoleConfig.Status.OperatorRolesRef.ControlPlaneOperatorARN).To(Equal("arn:aws:iam::123456789012:role/test-kube-system-control-plane-operator"))
-	g.Expect(updatedRoleConfig.Status.OperatorRolesRef.KMSProviderARN).To(Equal("arn:aws:iam::123456789012:role/test-kube-system-kms-provider"))
+		// Verify operator roles are populated with existing roles
+		g.Expect(updatedRoleConfig.Status.OperatorRolesRef.IngressARN).To(Equal("arn:aws:iam::123456789012:role/test-openshift-ingress-operator-cloud-credentials"))
+		g.Expect(updatedRoleConfig.Status.OperatorRolesRef.ImageRegistryARN).To(Equal("arn:aws:iam::123456789012:role/test-openshift-image-registry-installer-cloud-credentials"))
+		g.Expect(updatedRoleConfig.Status.OperatorRolesRef.StorageARN).To(Equal("arn:aws:iam::123456789012:role/test-openshift-cluster-csi-drivers-ebs-cloud-credentials"))
+		g.Expect(updatedRoleConfig.Status.OperatorRolesRef.NetworkARN).To(Equal("arn:aws:iam::123456789012:role/test-openshift-cloud-network-config-controller-cloud-credentials"))
+		g.Expect(updatedRoleConfig.Status.OperatorRolesRef.KubeCloudControllerARN).To(Equal("arn:aws:iam::123456789012:role/test-kube-system-kube-controller-manager"))
+		g.Expect(updatedRoleConfig.Status.OperatorRolesRef.NodePoolManagementARN).To(Equal("arn:aws:iam::123456789012:role/test-kube-system-capa-controller-manager"))
+		g.Expect(updatedRoleConfig.Status.OperatorRolesRef.ControlPlaneOperatorARN).To(Equal("arn:aws:iam::123456789012:role/test-kube-system-control-plane-operator"))
+		g.Expect(updatedRoleConfig.Status.OperatorRolesRef.KMSProviderARN).To(Equal("arn:aws:iam::123456789012:role/test-kube-system-kms-provider"))
+	}).Should(Succeed())
 
 	// Should have a condition indicating success - expect Ready condition to be True
-	readyCondition := v1beta1conditions.Get(updatedRoleConfig, expinfrav1.RosaRoleConfigReadyCondition)
-	g.Expect(readyCondition).ToNot(BeNil())
-	g.Expect(readyCondition.Status).To(Equal(corev1.ConditionTrue))
-	g.Expect(readyCondition.Reason).To(Equal(expinfrav1.RosaRoleConfigCreatedReason))
+	g.Eventually(func(g Gomega) {
+		readyCondition := v1beta1conditions.Get(updatedRoleConfig, expinfrav1.RosaRoleConfigReadyCondition)
+		g.Expect(readyCondition).ToNot(BeNil())
+		g.Expect(readyCondition.Status).To(Equal(corev1.ConditionTrue))
+		g.Expect(readyCondition.Reason).To(Equal(expinfrav1.RosaRoleConfigCreatedReason))
+	}).Should(Succeed())
 }
 
 func TestROSARoleConfigReconcileDelete(t *testing.T) {

@@ -117,7 +117,7 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework] [ClusterClass]", fun
 				// ControlPlaneTemplate of the ClusterClass after the initial Cluster creation.
 				// The test verifies that these fields are rolled out to the ControlPlane.
 				ModifyControlPlaneFields: map[string]interface{}{
-					"spec.machineTemplate.spec.deletion.nodeDrainTimeoutSeconds": ptr.To[int32](10),
+					"spec.machineTemplate.spec.deletion.nodeDrainTimeoutSeconds": int64(10),
 				},
 				// ModifyMachineDeploymentBootstrapConfigTemplateFields are the fields which will be set on the
 				// BootstrapConfigTemplate of all MachineDeploymentClasses of the ClusterClass after the initial Cluster creation.
