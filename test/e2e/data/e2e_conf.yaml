@@ -1,12 +1,11 @@
 ---
 # E2E test scenario using local dev images and manifests built from the source tree for following providers:
 # - cluster-api
-# - bootstrap kubeadm
-# - control-plane kubeadm
-# - aws
+# - infrastructure aws
 
 # To run tests, run the following from the root of this repository.
 # `AWS_REGION=eu-west-1 make e2e GINKGO_ARGS=-stream E2E_ARGS=-skip-cloudformation-deletion`
+# The -stream flag will make Ginkgo print results to the screen in real-time.
 # -skip-cloudformation-deletion reduces the time taken to set up AWS CloudFormation prior to cluster start.
 
 # AWS credentials must be present for running tests
@@ -42,7 +41,7 @@ providers:
         type: "url"
         contract: v1beta1
         files:
-          - sourcePath: "./shared/v1beta1/metadata.yaml"
+          - sourcePath: "./shared/capi/v1.2/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -53,7 +52,7 @@ providers:
         type: "url"
         contract: v1beta2
         files:
-          - sourcePath: "./shared/v1beta1/metadata.yaml"
+          - sourcePath: "./shared/capi/v1.11/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -62,14 +61,14 @@ providers:
   - name: kubeadm
     type: BootstrapProvider
     files:
-      - sourcePath: "./shared/v1beta1/metadata.yaml"
+      - sourcePath: "./shared/capi/v1.2/metadata.yaml"
     versions:
       - name: v1.2.0 # earliest published release in the v1beta1 series; this is used for v1beta1 old --> v1beta1 latest clusterctl upgrades test only.
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.0/bootstrap-components.yaml"
         type: "url"
         contract: v1beta1
         files:
-          - sourcePath: "./shared/v1beta1/metadata.yaml"
+          - sourcePath: "./shared/capi/v1.2/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -80,7 +79,7 @@ providers:
         type: "url"
         contract: v1beta2
         files:
-          - sourcePath: "./shared/v1beta1/metadata.yaml"
+          - sourcePath: "./shared/capi/v1.11/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -89,14 +88,14 @@ providers:
   - name: kubeadm
     type: ControlPlaneProvider
     files:
-      - sourcePath: "./shared/v1beta1/metadata.yaml"
+      - sourcePath: "./shared/capi/v1.2/metadata.yaml"
     versions:
       - name: v1.2.0 # earliest published release in the v1beta1 series; this is used for v1beta1 old --> main clusterctl upgrades test only.
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.0/control-plane-components.yaml"
         type: "url"
         contract: v1beta1
         files:
-          - sourcePath: "./shared/v1beta1/metadata.yaml"
+          - sourcePath: "./shared/capi/v1.2/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -107,7 +106,7 @@ providers:
         type: "url"
         contract: v1beta2
         files:
-          - sourcePath: "./shared/v1beta1/metadata.yaml"
+          - sourcePath: "./shared/capi/v1.11/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -136,7 +135,7 @@ providers:
       - name: v9.9.99
         # Use manifest from source files
         value: ../../../config/default
-        contract: v1beta2
+        contract: v1beta1
         files:
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-efs-support.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-external-csi.yaml"

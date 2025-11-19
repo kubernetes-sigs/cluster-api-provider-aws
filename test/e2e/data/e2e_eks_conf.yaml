@@ -16,7 +16,9 @@ images:
   - name: gcr.io/k8s-staging-cluster-api/capa-manager:e2e
     loadBehavior: mustLoad
 
-## PLEASE KEEP THESE UP TO DATE WITH THE COMPONENTS
+  ## PLEASE KEEP THESE UP TO DATE WITH THE COMPONENTS
+
+  # Cluster API v1beta1 Preloads
   - name: quay.io/jetstack/cert-manager-cainjector:v1.17.2
     loadBehavior: tryLoad
   - name: quay.io/jetstack/cert-manager-webhook:v1.17.2
@@ -39,7 +41,7 @@ providers:
         type: "url"
         contract: v1beta2
         files:
-          - sourcePath: "./shared/v1beta1/metadata.yaml"
+          - sourcePath: "./shared/capi/v1.11/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -55,7 +57,7 @@ providers:
         type: "url"
         contract: v1beta2
         files:
-          - sourcePath: "./shared/v1beta1/metadata.yaml"
+          - sourcePath: "./shared/capi/v1.11/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -64,14 +66,14 @@ providers:
   - name: kubeadm
     type: ControlPlaneProvider
     files:
-      - sourcePath: "./shared/v1beta1/metadata.yaml"
+      - sourcePath: "./shared/capi/v1.11/metadata.yaml"
     versions:
       - name: v1.11.1
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.11.1/control-plane-components.yaml"
         type: "url"
         contract: v1beta2
         files:
-          - sourcePath: "./shared/v1beta1/metadata.yaml"
+          - sourcePath: "./shared/capi/v1.11/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -83,7 +85,7 @@ providers:
       - name: v9.9.99
         # Use manifest from source files
         value: ../../../config/default
-        contract: v1beta2
+        contract: v1beta1
         files:
           - sourcePath: "./shared/v1beta2_provider/metadata.yaml"
         replacements:
