@@ -987,6 +987,17 @@ spec:
                   - name
                   type: object
                 type: array
+              nodeRepairConfig:
+                description: NodeRepairConfig specifies the node auto repair configuration
+                  for the managed node group.
+                properties:
+                  enabled:
+                    default: false
+                    description: |-
+                      Enabled specifies whether node auto repair is enabled for the node group.
+                      When enabled, EKS will automatically repair unhealthy nodes by replacing them.
+                    type: boolean
+                type: object
               providerIDList:
                 description: |-
                   ProviderIDList are the provider IDs of instances in the

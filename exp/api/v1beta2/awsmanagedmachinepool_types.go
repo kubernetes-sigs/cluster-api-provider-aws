@@ -214,6 +214,10 @@ type AWSManagedMachinePoolSpec struct {
 	// AWSLifecycleHooks specifies lifecycle hooks for the managed node group.
 	// +optional
 	AWSLifecycleHooks []AWSLifecycleHook `json:"lifecycleHooks,omitempty"`
+
+	// NodeRepairConfig specifies the node auto repair configuration for the managed node group.
+	// +optional
+	NodeRepairConfig *NodeRepairConfig `json:"nodeRepairConfig,omitempty"`
 }
 
 // ManagedMachinePoolScaling specifies scaling options.
@@ -295,6 +299,15 @@ type AWSManagedMachinePoolStatus struct {
 	// Conditions defines current service state of the managed machine pool
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+}
+
+// NodeRepairConfig defines the node auto repair configuration for managed node groups.
+type NodeRepairConfig struct {
+	// Enabled specifies whether node auto repair is enabled for the node group.
+	// When enabled, EKS will automatically repair unhealthy nodes by replacing them.
+	// +optional
+	// +kubebuilder:default=false
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // +kubebuilder:object:root=true
