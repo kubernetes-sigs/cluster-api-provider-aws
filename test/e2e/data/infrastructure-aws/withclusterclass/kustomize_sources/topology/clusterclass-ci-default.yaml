@@ -5,7 +5,7 @@ metadata:
 spec:
   controlPlane:
     ref:
-      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta2
       kind: KubeadmControlPlaneTemplate
       name: ci-default-control-plane
     machineInfrastructure:
@@ -205,7 +205,7 @@ spec:
     enabledIf: '{{ eq .selfHosted "yes" }}'
     definitions:
       - selector:
-          apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+          apiVersion: controlplane.cluster.x-k8s.io/v1beta2
           kind: KubeadmControlPlaneTemplate
           matchResources:
             controlPlane: true
@@ -278,7 +278,7 @@ spec:
         healthCheckProtocol: HTTPS
 ---
 kind: KubeadmControlPlaneTemplate
-apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 metadata:
   name: ci-default-control-plane
 spec:
@@ -288,20 +288,24 @@ spec:
         clusterConfiguration:
           apiServer:
             extraArgs:
-              cloud-provider: external
+            - name: cloud-provider
+              value: external
           controllerManager:
             extraArgs:
-              cloud-provider: external
+            - name: cloud-provider
+              value: external
         initConfiguration:
           nodeRegistration:
             name: '{{ ds.meta_data.local_hostname }}'
             kubeletExtraArgs:
-              cloud-provider: external
+            - name: cloud-provider
+              value: external
         joinConfiguration:
           nodeRegistration:
             name: '{{ ds.meta_data.local_hostname }}'
             kubeletExtraArgs:
-              cloud-provider: external
+            - name: cloud-provider
+              value: external
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSMachineTemplate
