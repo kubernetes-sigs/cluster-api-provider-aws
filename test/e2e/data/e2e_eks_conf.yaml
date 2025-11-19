@@ -50,7 +50,7 @@ providers:
   - name: kubeadm
     type: BootstrapProvider
     files:
-      - sourcePath: "./shared/v1beta1/metadata.yaml"
+      - sourcePath: "./shared/capi/v1.2/metadata.yaml"
     versions:
       - name: v1.11.1
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.11.1/bootstrap-components.yaml"
