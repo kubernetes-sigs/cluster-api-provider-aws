@@ -225,6 +225,7 @@ intervals:
   default/wait-cluster: ["35m", "10s"]
   default/wait-control-plane: ["35m", "10s"]
   default/wait-worker-nodes: ["30m", "10s"]
+  default/wait-machine-ready: ["5m", "10s"]
   conformance/wait-control-plane: ["35m", "10s"]
   conformance/wait-worker-nodes: ["35m", "10s"]
   default/wait-controllers: ["5m", "10s"]
@@ -242,3 +243,4 @@ intervals:
   default/wait-loadbalancer-ready: ["5m", "30s"]
   default/wait-classic-elb-health-check-short: ["1m", "10s"]
   default/wait-classic-elb-health-check-long: ["15m", "30s"]
+  clusterclass-changes/wait-machine-ready: ["30m", "10s"]

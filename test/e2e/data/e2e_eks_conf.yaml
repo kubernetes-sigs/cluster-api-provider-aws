@@ -154,6 +154,7 @@ intervals:
   default/wait-cluster: ["40m", "10s"]
   default/wait-control-plane: ["35m", "10s"]
   default/wait-worker-nodes: ["30m", "10s"]
+  default/wait-machine-ready: ["5m", "10s"]
   default/wait-controllers: ["5m", "10s"]
   default/wait-delete-cluster: ["35m", "30s"]
   default/wait-delete-machine: ["10m", "10s"]
@@ -167,3 +168,4 @@ intervals:
   default/wait-create-identity: ["1m", "10s"]
   default/wait-deployment-ready: ["5m", "10s"]
   default/wait-loadbalancer-ready: ["5m", "30s"]
+  clusterclass-changes/wait-machine-ready: ["30m", "10s"]
