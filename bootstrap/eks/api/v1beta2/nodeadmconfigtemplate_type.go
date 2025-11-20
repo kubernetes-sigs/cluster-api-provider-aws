@@ -27,6 +27,11 @@ type NodeadmConfigTemplateSpec struct {
 
 // NodeadmConfigTemplateResource defines the Template structure.
 type NodeadmConfigTemplateResource struct {
+	// Spec represents the NodeadmConfig each object created from the template will become.
+	// We are setting nullable to avoid this issue:
+	// https://github.com/kubernetes/kubernetes/issues/117447#issuecomment-2127733969
+	// where we cannot remove all fields with an SSA patch if they were previously set.
+	// +nullable
 	Spec NodeadmConfigSpec `json:"spec,omitempty"`
 }
 
