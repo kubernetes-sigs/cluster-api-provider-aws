@@ -49,7 +49,12 @@ spec:
                 description: NodeadmConfigTemplateResource defines the Template structure.
                 properties:
                   spec:
-                    description: NodeadmConfigSpec defines the desired state of NodeadmConfig.
+                    description: |-
+                      Spec represents the NodeadmConfig each object created from the template will become.
+                      We are setting nullable to avoid this issue:
+                      https://github.com/kubernetes/kubernetes/issues/117447#issuecomment-2127733969
+                      where we cannot remove all fields with an SSA patch if they were previously set.
+                    nullable: true
                     properties:
                       containerd:
                         description: Containerd contains options for containerd.
