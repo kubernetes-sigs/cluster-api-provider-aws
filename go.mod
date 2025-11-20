@@ -2,6 +2,9 @@ module sigs.k8s.io/cluster-api-provider-aws/v2
 
 go 1.24.0
 
+// Required to include https://github.com/kubernetes-sigs/cluster-api/pull/13022
+replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.11.4-0.20251120193233-79d030a36310
+
 require (
 	github.com/alessio/shellescape v1.4.2
 	github.com/apparentlymart/go-cidr v1.1.0
