@@ -2,6 +2,8 @@ module sigs.k8s.io/cluster-api-provider-aws/v2
 
 go 1.24.0
 
+replace sigs.k8s.io/cluster-api/test => github.com/chrischdi/cluster-api/test v1.11.2-0.20251120091940-8c59ea16517e
+
 require (
 	github.com/alessio/shellescape v1.4.2
 	github.com/apparentlymart/go-cidr v1.1.0

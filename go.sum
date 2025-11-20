@@ -140,6 +140,8 @@ github.com/cenkalti/backoff/v4 v4.3.0/go.mod h1:Y3VNntkOUPxTVeUxJ/G5vcM//AlwfmyY
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
+github.com/chrischdi/cluster-api/test v1.11.2-0.20251120091940-8c59ea16517e h1:vuTrntcBnDb/3khZBfkMrB7VtNG5CCBwShdw4RdgTeE=
+github.com/chrischdi/cluster-api/test v1.11.2-0.20251120091940-8c59ea16517e/go.mod h1:COviHWIKTcip0VADeIh8Rm5bjqzyZ1LuzKBW1EqjJRc=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/cloudflare/circl v1.1.0/go.mod h1:prBCrKB9DV4poKZY1l9zBXg2QJY7mvgRvtMxxK7fi4I=
 github.com/cloudflare/circl v1.6.1 h1:zqIqSPIndyBh1bjLVVDHMPpVKqp8Su/V+6MeDzzQBQ0=
@@ -866,8 +868,6 @@ sigs.k8s.io/aws-iam-authenticator v0.6.13 h1:QSQcAkpt/hF97Ogyoz6sj3WD2twTd2cmxFb
 sigs.k8s.io/aws-iam-authenticator v0.6.13/go.mod h1:CnvFyzR/xeLHmUY/BD0qW6q0wp6KIwXmFp4eTfrHdP8=
 sigs.k8s.io/cluster-api v1.11.1 h1:7CyGCTxv1p3Y2kRe1ljTj/w4TcdIdWNj0CTBc4i1aBo=
 sigs.k8s.io/cluster-api v1.11.1/go.mod h1:zyrjgJ5RbXhwKcAdUlGPNK5YOHpcmxXvur+5I8lkMUQ=
-sigs.k8s.io/cluster-api/test v1.11.1 h1:p9tT2HupKHW1URQDsZ3QNdEC/YPc8nrkiV6RCtNgi5k=
-sigs.k8s.io/cluster-api/test v1.11.1/go.mod h1:COviHWIKTcip0VADeIh8Rm5bjqzyZ1LuzKBW1EqjJRc=
 sigs.k8s.io/controller-runtime v0.21.0 h1:CYfjpEuicjUecRk+KAeyYh+ouUBn4llGyDYytIGcJS8=
 sigs.k8s.io/controller-runtime v0.21.0/go.mod h1:OSg14+F65eWqIu4DceX7k/+QRAbTTvxeQSNSOQpukWM=
 sigs.k8s.io/json v0.0.0-20241010143419-9aa6b5e7a4b3 h1:/Rv+M11QRah1itp8VhT6HoVx1Ray9eB4DBr+K+/sCJ8=
