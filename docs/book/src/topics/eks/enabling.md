@@ -56,3 +56,40 @@ clusterctl init --infrastructure aws
 ```
 
 NOTE: you will need to enable the creation of the default Fargate IAM role. The easiest way is using `clusterawsadm` and using the `fargate` configuration option, for instructions see the [prerequisites](../using-clusterawsadm-to-fulfill-prerequisites.md).
+
+### Amazon Linux 2023
+
+Amazon EKS will end support for EKS optimized AL2 AMIs on November 26, 2025.
+
+With AL2023, [nodeadm](https://github.com/awslabs/amazon-eks-ami/tree/main/nodeadm) is used to join EKS cluster.
+Starting with v2.9.0, it's possible to set the node type in `EKSConfig` and `EKSConfigTemplate` like this:
+
+```yaml
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+kind: EKSConfigTemplate
+metadata:
+  name: al2023
+spec:
+  template:
+    spec:
+      nodeType: al2023
+```
+
+AL2023 AMI can also be set in `AWSMAchineTemplate`.
+The use of Secrets Manager trick should be disabled because
+nodeadm expect the `NodeConfig` in plain text in EC2 instance's userdata.
+
+
+```yaml
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: AWSMachineTemplate
+metadata:
+  name: al2023
+spec:
+  template:
+    spec:
+      ami:
+        eksLookupType: AmazonLinux2023
+      cloudInit:
+        insecureSkipSecretsManager: true
+```
