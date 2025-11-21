@@ -353,6 +353,34 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			})
 			Expect(len(workerMachines)).To(Equal(1))
 			Expect(len(controlPlaneMachines)).To(Equal(1))
+
+			ginkgo.By("Verifying AWSMachineTemplate capacity is populated for autoscaling from zero")
+			awsMachineTemplateList := &infrav1.AWSMachineTemplateList{}
+			err := e2eCtx.Environment.BootstrapClusterProxy.GetClient().List(ctx, awsMachineTemplateList, client.InNamespace(namespace.Name))
+			Expect(err).To(BeNil())
+			Expect(len(awsMachineTemplateList.Items)).To(BeNumerically(">", 0), "Expected at least one AWSMachineTemplate")
+
+			foundTemplateWithCapacity := false
+			foundTemplateWithNodeInfo := false
+			for _, template := range awsMachineTemplateList.Items {
+				if len(template.Status.Capacity) > 0 {
+					foundTemplateWithCapacity = true
+					ginkgo.By(fmt.Sprintf("AWSMachineTemplate %s has capacity populated: %v", template.Name, template.Status.Capacity))
+					Expect(template.Status.Capacity).To(HaveKey(corev1.ResourceCPU), "Expected CPU to be set in capacity")
+					Expect(template.Status.Capacity).To(HaveKey(corev1.ResourceMemory), "Expected Memory to be set in capacity")
+				}
+				if template.Status.NodeInfo != nil {
+					foundTemplateWithNodeInfo = true
+					ginkgo.By(fmt.Sprintf("AWSMachineTemplate %s has nodeInfo populated: %v", template.Name, template.Status.NodeInfo))
+					// Verify architecture is set (should be either amd64 or arm64 for AWS)
+					Expect(template.Status.NodeInfo.Architecture).ToNot(BeEmpty(), "Expected architecture to be set in nodeInfo")
+					Expect(string(template.Status.NodeInfo.Architecture)).To(MatchRegexp("^(amd64|arm64)$"), "Expected architecture to be amd64 or arm64")
+					// Verify operating system is set
+					Expect(template.Status.NodeInfo.OperatingSystem).ToNot(BeEmpty(), "Expected operatingSystem to be set in nodeInfo")
+				}
+			}
+			Expect(foundTemplateWithCapacity).To(BeTrue(), "Expected at least one AWSMachineTemplate to have capacity populated")
+			Expect(foundTemplateWithNodeInfo).To(BeTrue(), "Expected at least one AWSMachineTemplate to have nodeInfo populated")
 		})
 	})
 

@@ -358,9 +358,19 @@ func setupReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager,
 			setupLog.Error(err, "unable to create controller", "controller", "AWSCluster")
 			os.Exit(1)
 		}
+
+		setupLog.Info("enabling AWSMachineTemplate controller")
+		if err := (&controllers.AWSMachineTemplateReconciler{
+			Client:           mgr.GetClient(),
+			WatchFilterValue: watchFilterValue,
+		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "AWSMachineTemplate")
+			os.Exit(1)
+		}
 	} else {
 		setupLog.Info("controller disabled", "controller", "AWSMachine", "controller-group", controllers.Unmanaged)
 		setupLog.Info("controller disabled", "controller", "AWSCluster", "controller-group", controllers.Unmanaged)
+		setupLog.Info("controller disabled", "controller", "AWSMachineTemplate", "controller-group", controllers.Unmanaged)
 	}
 
 	if feature.Gates.Enabled(feature.MachinePool) {
