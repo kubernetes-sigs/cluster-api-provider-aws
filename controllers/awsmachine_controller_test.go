@@ -147,7 +147,7 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateRunning
 		ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabel: ""}
 
-		ec2Svc := ec2Service.NewService(cs)
+		ec2Svc := ec2Service.NewService(cs).WithInstanceTypeArchitectureCache(nil)
 		ec2Svc.EC2Client = ec2Mock
 		reconciler.ec2ServiceFactory = func(scope scope.EC2Scope) services.EC2Interface {
 			return ec2Svc
