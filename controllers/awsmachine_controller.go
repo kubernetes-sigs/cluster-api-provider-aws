@@ -306,9 +306,11 @@ func (r *AWSMachineReconciler) reconcileDelete(ctx context.Context, machineScope
 
 	ec2Service := r.getEC2Service(ec2Scope)
 
-	if err := r.deleteBootstrapData(ctx, machineScope, clusterScope, objectStoreScope); err != nil {
-		machineScope.Error(err, "unable to delete machine")
-		return ctrl.Result{}, err
+	if !machineScope.IsMachinePoolMachine() {
+		if err := r.deleteBootstrapData(ctx, machineScope, clusterScope, objectStoreScope); err != nil {
+			machineScope.Error(err, "unable to delete AWSMachine bootstrap data")
+			return ctrl.Result{}, err
+		}
 	}
 
 	instance, err := r.findInstance(machineScope, ec2Service)
