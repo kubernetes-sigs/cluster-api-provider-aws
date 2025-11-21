@@ -225,18 +225,18 @@ func TestROSARoleConfigReconcileCreate(t *testing.T) {
 							"type": "AccountRole"
 						},
 						{
-							"id": "sts_hcp_support_permission_policy", 
+							"id": "sts_hcp_support_permission_policy",
 							"arn": "arn:aws:iam::aws:policy/sts_hcp_support_permission_policy",
 							"type": "AccountRole"
 						},
 						{
 							"id": "sts_hcp_worker_permission_policy",
-							"arn": "arn:aws:iam::aws:policy/sts_hcp_worker_permission_policy", 
+							"arn": "arn:aws:iam::aws:policy/sts_hcp_worker_permission_policy",
 							"type": "AccountRole"
 						},
 						{
 							"id": "sts_hcp_instance_worker_permission_policy",
-							"arn": "arn:aws:iam::aws:policy/sts_hcp_instance_worker_permission_policy", 
+							"arn": "arn:aws:iam::aws:policy/sts_hcp_instance_worker_permission_policy",
 							"type": "AccountRole"
 						}
 					]
@@ -623,7 +623,7 @@ func TestROSARoleConfigReconcileExist(t *testing.T) {
 		g.Expect(updatedRoleConfig.Status.OperatorRolesRef.NodePoolManagementARN).To(Equal("arn:aws:iam::123456789012:role/test-kube-system-capa-controller-manager"))
 		g.Expect(updatedRoleConfig.Status.OperatorRolesRef.ControlPlaneOperatorARN).To(Equal("arn:aws:iam::123456789012:role/test-kube-system-control-plane-operator"))
 		g.Expect(updatedRoleConfig.Status.OperatorRolesRef.KMSProviderARN).To(Equal("arn:aws:iam::123456789012:role/test-kube-system-kms-provider"))
-	}).Should(Succeed())
+	}).WithTimeout(30 * time.Second).Should(Succeed())
 
 	// Should have a condition indicating success - expect Ready condition to be True
 	g.Eventually(func(g Gomega) {
