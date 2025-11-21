@@ -43,7 +43,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 func TestInstanceIfExists(t *testing.T) {
@@ -435,7 +436,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					FailureDomain: aws.String("us-east-1c"),
+					FailureDomain: "us-east-1c",
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -569,7 +570,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: aws.String("bootstrap-data"),
 					},
-					FailureDomain: aws.String("us-east-1c"),
+					FailureDomain: "us-east-1c",
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -657,7 +658,8 @@ func TestCreateInstance(t *testing.T) {
 							Name:   aws.String("availability-zone"),
 							Values: []string{"us-east-1c"},
 						},
-					}})).Return(&ec2.DescribeSubnetsOutput{
+					},
+				})).Return(&ec2.DescribeSubnetsOutput{
 					Subnets: []types.Subnet{
 						{
 							VpcId:               aws.String("vpc-incorrect-1"),
@@ -829,7 +831,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: aws.String("bootstrap-data"),
 					},
-					FailureDomain: aws.String("us-east-1c"),
+					FailureDomain: "us-east-1c",
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -925,7 +927,8 @@ func TestCreateInstance(t *testing.T) {
 							Name:   aws.String("availability-zone"),
 							Values: []string{"us-east-1c"},
 						},
-					}})).Return(&ec2.DescribeSubnetsOutput{
+					},
+				})).Return(&ec2.DescribeSubnetsOutput{
 					Subnets: []types.Subnet{
 						{
 							VpcId:            aws.String("vpc-bar"),
@@ -1082,7 +1085,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: ptr.To[string]("v1.16.1"),
+					Version: "v1.16.1",
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -1235,7 +1238,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: ptr.To[string]("v1.16.1"),
+					Version: "v1.16.1",
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -1388,7 +1391,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: ptr.To[string]("v1.16.1"),
+					Version: "v1.16.1",
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -1542,7 +1545,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					FailureDomain: aws.String("us-east-1b"),
+					FailureDomain: "us-east-1b",
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -1687,7 +1690,7 @@ func TestCreateInstance(t *testing.T) {
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
 						},
-						Subnets: infrav1.Subnets{{
+						Subnets: infrav1.Subnets{infrav1.SubnetSpec{
 							ID: "matching-subnet",
 						}},
 					},
@@ -1813,7 +1816,7 @@ func TestCreateInstance(t *testing.T) {
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
 						},
-						Subnets: infrav1.Subnets{{
+						Subnets: infrav1.Subnets{infrav1.SubnetSpec{
 							ID: "subnet-1",
 						}},
 					},
@@ -1905,7 +1908,7 @@ func TestCreateInstance(t *testing.T) {
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
 						},
-						Subnets: infrav1.Subnets{{
+						Subnets: infrav1.Subnets{infrav1.SubnetSpec{
 							ID: "subnet-1",
 						}},
 					},
@@ -2012,7 +2015,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					FailureDomain: aws.String("us-east-1b"),
+					FailureDomain: "us-east-1b",
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -2031,7 +2034,7 @@ func TestCreateInstance(t *testing.T) {
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
 						},
-						Subnets: infrav1.Subnets{{
+						Subnets: infrav1.Subnets{infrav1.SubnetSpec{
 							ID:               "subnet-1",
 							AvailabilityZone: "us-west-1b",
 						}},
@@ -2109,7 +2112,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					FailureDomain: aws.String("us-east-1b"),
+					FailureDomain: "us-east-1b",
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -2126,7 +2129,7 @@ func TestCreateInstance(t *testing.T) {
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
 						},
-						Subnets: infrav1.Subnets{{
+						Subnets: infrav1.Subnets{infrav1.SubnetSpec{
 							ID:               "private-subnet-1",
 							AvailabilityZone: "us-east-1b",
 							IsPublic:         false,
@@ -2211,7 +2214,7 @@ func TestCreateInstance(t *testing.T) {
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
 						},
-						Subnets: infrav1.Subnets{{
+						Subnets: infrav1.Subnets{infrav1.SubnetSpec{
 							ID:       "public-subnet-1",
 							IsPublic: true,
 						}},
@@ -2340,7 +2343,7 @@ func TestCreateInstance(t *testing.T) {
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
 						},
-						Subnets: infrav1.Subnets{{
+						Subnets: infrav1.Subnets{infrav1.SubnetSpec{
 							ID:       "public-subnet-1",
 							IsPublic: true,
 						}},
@@ -2611,7 +2614,7 @@ func TestCreateInstance(t *testing.T) {
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
 						},
-						Subnets: infrav1.Subnets{{
+						Subnets: infrav1.Subnets{infrav1.SubnetSpec{
 							ID:       "private-subnet-1",
 							IsPublic: false,
 						}},
@@ -4381,7 +4384,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: ptr.To[string]("v1.16.1"),
+					Version: "v1.16.1",
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -4513,7 +4516,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: ptr.To[string]("v1.16.1"),
+					Version: "v1.16.1",
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -4646,7 +4649,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: ptr.To[string]("v1.16.1"),
+					Version: "v1.16.1",
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -4780,7 +4783,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: ptr.To[string]("v1.16.1"),
+					Version: "v1.16.1",
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -4911,7 +4914,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: ptr.To[string]("v1.16.1"),
+					Version: "v1.16.1",
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -5042,7 +5045,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: ptr.To[string]("v1.16.1"),
+					Version: "v1.16.1",
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -5319,11 +5322,11 @@ func TestCreateInstance(t *testing.T) {
 				g.Expect(len(instance.Addresses)).To(Equal(3))
 
 				for _, address := range instance.Addresses {
-					if address.Type == clusterv1.MachineInternalIP {
+					if address.Type == clusterv1beta1.MachineInternalIP {
 						g.Expect(address.Address).To(Equal("192.168.1.10"))
 					}
 
-					if address.Type == clusterv1.MachineInternalDNS {
+					if address.Type == clusterv1beta1.MachineInternalDNS {
 						g.Expect(address.Address).To(Or(Equal("ip-192-168-1-10.ec2.internal"), Equal("ip-192-168-1-10.example.com")))
 					}
 				}
@@ -5352,7 +5355,6 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
-
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
 							infrav1.SubnetSpec{
@@ -5557,7 +5559,6 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
-
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
 							infrav1.SubnetSpec{
@@ -5678,7 +5679,6 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
-
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
 							infrav1.SubnetSpec{
@@ -5921,12 +5921,12 @@ func TestCreateInstance(t *testing.T) {
 					Name: "test1",
 				},
 				Spec: clusterv1.ClusterSpec{
-					ClusterNetwork: &clusterv1.ClusterNetwork{
+					ClusterNetwork: clusterv1.ClusterNetwork{
 						ServiceDomain: "cluster.local",
-						Services: &clusterv1.NetworkRanges{
+						Services: clusterv1.NetworkRanges{
 							CIDRBlocks: []string{"192.168.0.0/16"},
 						},
-						Pods: &clusterv1.NetworkRanges{
+						Pods: clusterv1.NetworkRanges{
 							CIDRBlocks: []string{"192.168.0.0/16"},
 						},
 					},

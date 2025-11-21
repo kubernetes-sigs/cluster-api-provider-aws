@@ -27,7 +27,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/eks"
 	utildefaulting "sigs.k8s.io/cluster-api-provider-aws/v2/util/defaulting"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 )
 
 func TestAWSFargateProfileDefault(t *testing.T) {
@@ -40,7 +40,7 @@ func TestAWSFargateProfileDefault(t *testing.T) {
 	g := NewWithT(t)
 	err := (&awsFargateProfileWebhook{}).Default(context.Background(), fargate)
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(fargate.GetLabels()[clusterv1.ClusterNameLabel]).To(BeEquivalentTo(fargate.Spec.ClusterName))
+	g.Expect(fargate.GetLabels()[clusterv1beta1.ClusterNameLabel]).To(BeEquivalentTo(fargate.Spec.ClusterName))
 	name, err := eks.GenerateEKSName(fargate.Name, fargate.Namespace, maxProfileNameLength)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(fargate.Spec.ProfileName).To(BeEquivalentTo(name))

@@ -52,8 +52,9 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/mock_services"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	kubeadmv1beta1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	kubeadmv1beta1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -115,7 +116,9 @@ func TestAWSMachineReconciler(t *testing.T) {
 						Name: "test",
 					},
 					Status: clusterv1.ClusterStatus{
-						InfrastructureReady: true,
+						Initialization: clusterv1.ClusterInitializationStatus{
+							InfrastructureProvisioned: ptr.To(true),
+						},
 					},
 				},
 				Machine: &clusterv1.Machine{
@@ -124,6 +127,11 @@ func TestAWSMachineReconciler(t *testing.T) {
 					},
 					Spec: clusterv1.MachineSpec{
 						ClusterName: "capi-test",
+						InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+							Kind:     "AWSCluster",
+							Name:     "aws-cluster",
+							APIGroup: infrav1.GroupVersion.Group,
+						},
 						Bootstrap: clusterv1.Bootstrap{
 							DataSecretName: ptr.To[string]("bootstrap-data"),
 						},
@@ -155,12 +163,19 @@ func TestAWSMachineReconciler(t *testing.T) {
 				Client: client,
 				Cluster: &clusterv1.Cluster{
 					Status: clusterv1.ClusterStatus{
-						InfrastructureReady: true,
+						Initialization: clusterv1.ClusterInitializationStatus{
+							InfrastructureProvisioned: ptr.To(true),
+						},
 					},
 				},
 				Machine: &clusterv1.Machine{
 					Spec: clusterv1.MachineSpec{
 						ClusterName: "capi-test",
+						InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+							Kind:     "AWSCluster",
+							Name:     "aws-cluster",
+							APIGroup: infrav1.GroupVersion.Group,
+						},
 						Bootstrap: clusterv1.Bootstrap{
 							DataSecretName: ptr.To[string]("bootstrap-data"),
 						},
@@ -232,7 +247,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				setup(t, g, awsMachine)
 				defer teardown(t, g)
 				runningInstance(t, g)
-				ms.Cluster.Status.InfrastructureReady = false
+				ms.Cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(false)
 
 				buf := new(bytes.Buffer)
 				klog.SetOutput(buf)
@@ -240,7 +255,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 				g.Expect(err).To(BeNil())
 				g.Expect(buf.String()).To(ContainSubstring("Cluster infrastructure is not ready yet"))
-				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, infrav1.WaitingForClusterInfrastructureReason}})
+				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityInfo, infrav1.WaitingForClusterInfrastructureReason}})
 			})
 
 			t.Run("should exit immediately if bootstrap data secret reference isn't available", func(t *testing.T) {
@@ -258,7 +273,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				g.Expect(err).To(BeNil())
 				g.Expect(buf.String()).To(ContainSubstring("Bootstrap data secret reference is not yet available"))
-				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, infrav1.WaitingForBootstrapDataReason}})
+				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityInfo, infrav1.WaitingForBootstrapDataReason}})
 			})
 
 			t.Run("should return an error when we can't list instances by tags", func(t *testing.T) {
@@ -393,7 +408,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					g.Expect(ms.AWSMachine.Status.Ready).To(BeFalse())
 					g.Expect(buf.String()).To(ContainSubstring("EC2 instance state changed"))
 
-					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
+					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
 				})
 
 				t.Run("should set instance to running", func(t *testing.T) {
@@ -574,7 +589,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					g.Expect(ms.AWSMachine.Status.InstanceState).To(PointTo(Equal(infrav1.InstanceStateStopping)))
 					g.Expect(ms.AWSMachine.Status.Ready).To(BeFalse())
 					g.Expect(buf.String()).To(ContainSubstring("EC2 instance state changed"))
-					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityError, infrav1.InstanceStoppedReason}})
+					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityError, infrav1.InstanceStoppedReason}})
 				})
 
 				t.Run("should then set instance to stopped and unready", func(t *testing.T) {
@@ -590,7 +605,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					g.Expect(ms.AWSMachine.Status.InstanceState).To(PointTo(Equal(infrav1.InstanceStateStopped)))
 					g.Expect(ms.AWSMachine.Status.Ready).To(BeFalse())
 					g.Expect(buf.String()).To(ContainSubstring("EC2 instance state changed"))
-					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityError, infrav1.InstanceStoppedReason}})
+					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityError, infrav1.InstanceStoppedReason}})
 				})
 
 				t.Run("should then set instance to running and ready once it is restarted", func(t *testing.T) {
@@ -648,7 +663,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					g.Expect(buf.String()).To(ContainSubstring("Unexpected EC2 instance termination"))
 					g.Eventually(recorder.Events).Should(Receive(ContainSubstring("UnexpectedTermination")))
 					g.Expect(ms.AWSMachine.Status.FailureMessage).To(PointTo(Equal("EC2 instance state \"terminated\" is unexpected")))
-					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityError, infrav1.InstanceTerminatedReason}})
+					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityError, infrav1.InstanceTerminatedReason}})
 				})
 			})
 			t.Run("should not register if control plane ELB is already registered", func(t *testing.T) {
@@ -674,7 +689,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 				g.Expect(err).To(BeNil())
 				g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
-				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
+				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
 			})
 			t.Run("should attach control plane ELB to instance", func(t *testing.T) {
 				g := NewWithT(t)
@@ -701,7 +716,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				g.Expect(err).To(BeNil())
 				g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
 				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.ELBAttachedCondition, corev1.ConditionTrue, "", ""}})
-				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
+				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
 			})
 			t.Run("should store userdata for CloudInit using AWS Secrets Manager only when not skipped", func(t *testing.T) {
 				g := NewWithT(t)
@@ -721,7 +736,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 				g.Expect(err).To(BeNil())
-				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
+				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
 				g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
 			})
 			t.Run("should fail to delete bootstrap data secret if AWSMachine state is updated", func(t *testing.T) {
@@ -730,9 +745,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 				setup(t, g, awsMachine)
 				defer teardown(t, g)
 				instanceCreate(t, g)
-				ms.Machine.Status.NodeRef = &corev1.ObjectReference{
-					Namespace: "default",
-					Name:      "test",
+				ms.Machine.Status.NodeRef = clusterv1.MachineNodeReference{
+					Name: "test",
 				}
 
 				secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
@@ -740,7 +754,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				secretSvc.EXPECT().Delete(gomock.Any()).Return(errors.New("failed to delete entries from AWS Secret")).Times(1)
 
 				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
-				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
+				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
 				g.Expect(err).To(MatchError(ContainSubstring("failed to delete entries from AWS Secret")))
 			})
 		})
@@ -771,7 +785,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				g.Expect(err.Error()).To(ContainSubstring(expectedError))
 
 				g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
-				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityError, infrav1.InstanceProvisionFailedReason}})
+				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityError, infrav1.InstanceProvisionFailedReason}})
 			})
 			t.Run("should fail to determine the registration status of control plane ELB", func(t *testing.T) {
 				g := NewWithT(t)
@@ -797,7 +811,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				g.Expect(err.Error()).To(ContainSubstring("error describing ELB"))
 				g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
 				g.Eventually(recorder.Events).Should(Receive(ContainSubstring("FailedAttachControlPlaneELB")))
-				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
+				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
 			})
 			t.Run("should fail to attach control plane ELB to instance", func(t *testing.T) {
 				g := NewWithT(t)
@@ -823,7 +837,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				g.Expect(err).ToNot(BeNil())
 				g.Expect(err.Error()).To(ContainSubstring("failed to attach ELB"))
 				g.Eventually(recorder.Events).Should(Receive(ContainSubstring("FailedAttachControlPlaneELB")))
-				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
+				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
 				g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
 			})
 			t.Run("should fail to delete bootstrap data secret if AWSMachine is in failed state", func(t *testing.T) {
@@ -862,7 +876,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(err.Error()).To(ContainSubstring("json: cannot unmarshal number into Go value of type map[string]interface {}"))
 					g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
-					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
+					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
 				})
 				t.Run("Should fail to update resource tags after instance is created", func(t *testing.T) {
 					g := NewWithT(t)
@@ -881,7 +895,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(err).ToNot(BeNil())
 					g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
-					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
+					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
 				})
 			})
 			t.Run("While ensuring SecurityGroups", func(t *testing.T) {
@@ -912,7 +926,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(err).ToNot(BeNil())
 					g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
-					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.SecurityGroupsReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityError, infrav1.SecurityGroupsFailedReason}})
+					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.SecurityGroupsReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityError, infrav1.SecurityGroupsFailedReason}})
 				})
 				t.Run("Should fail to fetch core security groups", func(t *testing.T) {
 					g := NewWithT(t)
@@ -930,7 +944,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(err).ToNot(BeNil())
 					g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
-					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.SecurityGroupsReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityError, infrav1.SecurityGroupsFailedReason}})
+					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.SecurityGroupsReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityError, infrav1.SecurityGroupsFailedReason}})
 				})
 				t.Run("Should fail if ensureSecurityGroups fails to fetch additional security groups", func(t *testing.T) {
 					g := NewWithT(t)
@@ -960,7 +974,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(err).ToNot(BeNil())
 					g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
-					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.SecurityGroupsReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityError, infrav1.SecurityGroupsFailedReason}})
+					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.SecurityGroupsReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityError, infrav1.SecurityGroupsFailedReason}})
 				})
 				t.Run("Should fail to update security group", func(t *testing.T) {
 					g := NewWithT(t)
@@ -991,7 +1005,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 					g.Expect(err).ToNot(BeNil())
 					g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
-					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.SecurityGroupsReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityError, infrav1.SecurityGroupsFailedReason}})
+					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.SecurityGroupsReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityError, infrav1.SecurityGroupsFailedReason}})
 				})
 			})
 		})
@@ -1071,10 +1085,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 					ID: "myMachine",
 				}
 
-				ms.Machine.Status.NodeRef = &corev1.ObjectReference{
-					Kind:       "Node",
-					Name:       "myMachine",
-					APIVersion: "v1",
+				ms.Machine.Status.NodeRef = clusterv1.MachineNodeReference{
+					Name: "myMachine",
 				}
 
 				ms.AWSMachine.Spec.CloudInit = infrav1.CloudInit{
@@ -1416,10 +1428,8 @@ func TestAWSMachineReconciler(t *testing.T) {
 						ID: "myMachine",
 					}
 
-					ms.Machine.Status.NodeRef = &corev1.ObjectReference{
-						Kind:       "Node",
-						Name:       "myMachine",
-						APIVersion: "v1",
+					ms.Machine.Status.NodeRef = clusterv1.MachineNodeReference{
+						Name: "myMachine",
 					}
 
 					ec2Svc.EXPECT().GetRunningInstanceByTags(gomock.Any()).Return(instance, nil).AnyTimes()
@@ -1839,7 +1849,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					g.Expect(err.Error()).To(ContainSubstring("error describing ELB"))
 					g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(metav1.FinalizerDeleteDependents))
 					g.Eventually(recorder.Events).Should(Receive(ContainSubstring("FailedDetachControlPlaneELB")))
-					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, "DeletingFailed"}})
+					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, "DeletingFailed"}})
 				})
 
 				t.Run("should not do anything if control plane ELB is already detached from instance", func(t *testing.T) {
@@ -1862,7 +1872,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 					_, err := reconciler.reconcileDelete(context.TODO(), ms, cs, cs, cs, cs)
 					g.Expect(err).To(BeNil())
 					g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(metav1.FinalizerDeleteDependents))
-					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason}})
+					expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityInfo, clusterv1beta1.DeletedReason}})
 				})
 			})
 		})
@@ -1888,7 +1898,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				_, err := reconciler.reconcileDelete(context.TODO(), ms, cs, cs, cs, cs)
 				g.Expect(err).To(BeNil())
 				g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(metav1.FinalizerDeleteDependents))
-				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason}})
+				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityInfo, clusterv1beta1.DeletedReason}})
 			})
 			t.Run("should fail to detach control plane ELB from instance", func(t *testing.T) {
 				g := NewWithT(t)
@@ -1912,7 +1922,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				g.Expect(err).ToNot(BeNil())
 				g.Expect(err.Error()).To(ContainSubstring("Duplicate access point name for load balancer"))
 				g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(metav1.FinalizerDeleteDependents))
-				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, "DeletingFailed"}})
+				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, "DeletingFailed"}})
 			})
 			t.Run("should fail if secretPrefix present, but secretCount is not set", func(t *testing.T) {
 				g := NewWithT(t)
@@ -1966,8 +1976,17 @@ func TestAWSMachineReconcilerAWSClusterToAWSMachines(t *testing.T) {
 		requests     []reconcile.Request
 	}{
 		{
-			name:         "Should create reconcile request successfully",
-			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-6"}},
+			name: "Should create reconcile request successfully",
+			ownerCluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "capi-test-6"},
+				Spec: clusterv1.ClusterSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSCluster",
+						Name:     "aws-cluster-6",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+				},
+			},
 			awsMachine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "aws-test-6",
@@ -1977,10 +1996,17 @@ func TestAWSMachineReconcilerAWSClusterToAWSMachines(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "capi-test",
-					InfrastructureRef: corev1.ObjectReference{
-						Kind:       "AWSMachine",
-						Name:       "aws-machine-6",
-						APIVersion: infrav1.GroupVersion.String(),
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSMachine",
+						Name:     "aws-machine-6",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							Name:     "capi-test-6-config",
+							Kind:     "EKSConfig",
+							APIGroup: clusterv1.GroupVersion.Group,
+						},
 					},
 				},
 			},
@@ -2006,8 +2032,17 @@ func TestAWSMachineReconcilerAWSClusterToAWSMachines(t *testing.T) {
 			},
 		},
 		{
-			name:         "Should not create reconcile request for deleted clusters",
-			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1", DeletionTimestamp: &metav1.Time{Time: time.Now()}}},
+			name: "Should not create reconcile request for deleted clusters",
+			ownerCluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1", DeletionTimestamp: &metav1.Time{Time: time.Now()}},
+				Spec: clusterv1.ClusterSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSCluster",
+						Name:     "aws-cluster-1",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+				},
+			},
 			awsMachine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
@@ -2017,10 +2052,17 @@ func TestAWSMachineReconcilerAWSClusterToAWSMachines(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "capi-test",
-					InfrastructureRef: corev1.ObjectReference{
-						Kind:       "AWSMachine",
-						Name:       "aws-machine-1",
-						APIVersion: infrav1.GroupVersion.String(),
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSMachine",
+						Name:     "aws-machine-1",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							Name:     "capi-test-1-config",
+							Kind:     "EKSConfig",
+							APIGroup: clusterv1.GroupVersion.Group,
+						},
 					},
 				},
 			},
@@ -2049,10 +2091,17 @@ func TestAWSMachineReconcilerAWSClusterToAWSMachines(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "capi-test",
-					InfrastructureRef: corev1.ObjectReference{
-						Kind:       "AWSMachine",
-						Name:       "aws-machine-2",
-						APIVersion: infrav1.GroupVersion.String(),
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSMachine",
+						Name:     "aws-machine-2",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							Name:     "capi-test-2-config",
+							Kind:     "EKSConfig",
+							APIGroup: clusterv1.GroupVersion.Group,
+						},
 					},
 				},
 			},
@@ -2070,18 +2119,34 @@ func TestAWSMachineReconcilerAWSClusterToAWSMachines(t *testing.T) {
 			},
 		},
 		{
-			name:         "Should not create reconcile request if owned Machines not found",
-			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-3"}},
+			name: "Should not create reconcile request if owned Machines not found",
+			ownerCluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "capi-test-3"},
+				Spec: clusterv1.ClusterSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSCluster",
+						Name:     "aws-cluster-3",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+				},
+			},
 			awsMachine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "aws-test-3",
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "capi-test",
-					InfrastructureRef: corev1.ObjectReference{
-						Kind:       "AWSMachine",
-						Name:       "aws-machine-3",
-						APIVersion: infrav1.GroupVersion.String(),
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSMachine",
+						Name:     "aws-machine-3",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							Name:     "capi-test-6-config",
+							Kind:     "EKSConfig",
+							APIGroup: clusterv1.GroupVersion.Group,
+						},
 					},
 				},
 			},
@@ -2100,8 +2165,17 @@ func TestAWSMachineReconcilerAWSClusterToAWSMachines(t *testing.T) {
 			requests: []reconcile.Request{},
 		},
 		{
-			name:         "Should not create reconcile request if owned Machine type is not AWSMachine",
-			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-4"}},
+			name: "Should not create reconcile request if owned Machine type is not AWSMachine",
+			ownerCluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "capi-test-4"},
+				Spec: clusterv1.ClusterSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSCluster",
+						Name:     "aws-cluster-4",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+				},
+			},
 			awsMachine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
@@ -2115,10 +2189,17 @@ func TestAWSMachineReconcilerAWSClusterToAWSMachines(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "capi-test",
-					InfrastructureRef: corev1.ObjectReference{
-						Kind:       "Machine",
-						Name:       "aws-machine-4",
-						APIVersion: infrav1.GroupVersion.String(),
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "Machine",
+						Name:     "aws-machine-4",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							Name:     "capi-test-4-config",
+							Kind:     "EKSConfig",
+							APIGroup: clusterv1.GroupVersion.Group,
+						},
 					},
 				},
 			},
@@ -2136,9 +2217,19 @@ func TestAWSMachineReconcilerAWSClusterToAWSMachines(t *testing.T) {
 			},
 			requests: []reconcile.Request{},
 		},
+		// BONFIRE: probably need to delete this test
 		{
-			name:         "Should not create reconcile request if name for machine in infrastructure ref not found",
-			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-5"}},
+			name: "Should not create reconcile request if name for machine in infrastructure ref not found",
+			ownerCluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "capi-test-5"},
+				Spec: clusterv1.ClusterSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSCluster",
+						Name:     "aws-cluster-5",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+				},
+			},
 			awsMachine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "aws-test-5",
@@ -2148,9 +2239,17 @@ func TestAWSMachineReconcilerAWSClusterToAWSMachines(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "capi-test",
-					InfrastructureRef: corev1.ObjectReference{
-						Kind:       "AWSMachine",
-						APIVersion: infrav1.GroupVersion.String(),
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Name:     "capi-test-5",
+						Kind:     "AWSMachine",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							Name:     "capi-test-5-config",
+							Kind:     "EKSConfig",
+							APIGroup: clusterv1.GroupVersion.Group,
+						},
 					},
 				},
 			},
@@ -2159,7 +2258,7 @@ func TestAWSMachineReconcilerAWSClusterToAWSMachines(t *testing.T) {
 					Name: "aws-test-5",
 					OwnerReferences: []metav1.OwnerReference{
 						{
-							Name:       "capi-test-5",
+							Name:       "capi-test-not-5",
 							Kind:       "Cluster",
 							APIVersion: clusterv1.GroupVersion.String(),
 						},
@@ -2210,13 +2309,31 @@ func TestAWSMachineReconcilerRequeueAWSMachinesForUnpausedCluster(t *testing.T) 
 		requests     []reconcile.Request
 	}{
 		{
-			name:         "Should not create reconcile request for deleted clusters",
-			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1", Namespace: "default", DeletionTimestamp: &metav1.Time{Time: time.Now()}}},
+			name: "Should not create reconcile request for deleted clusters",
+			ownerCluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1", Namespace: "default", DeletionTimestamp: &metav1.Time{Time: time.Now()}},
+				Spec: clusterv1.ClusterSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSCluster",
+						Name:     "aws-cluster-1",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+				},
+			},
 		},
 		{
-			name:         "Should create reconcile request successfully",
-			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1", Namespace: "default"}},
-			requests:     []reconcile.Request{},
+			name: "Should create reconcile request successfully",
+			ownerCluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1", Namespace: "default"},
+				Spec: clusterv1.ClusterSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSCluster",
+						Name:     "aws-cluster-1",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+				},
+			},
+			requests: []reconcile.Request{},
 		},
 	}
 	for _, tc := range testCases {
@@ -2327,10 +2444,31 @@ func TestAWSMachineReconcilerReconcile(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "capi-test",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSMachine",
+						Name:     "aws-machine-6",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							Name:     "capi-test-6-config",
+							Kind:     "EKSConfig",
+							APIGroup: clusterv1.GroupVersion.Group,
+						},
+					},
 				},
 			},
-			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1"}},
-			expectError:  false,
+			ownerCluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1"},
+				Spec: clusterv1.ClusterSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSCluster",
+						Name:     "aws-cluster-1",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+				},
+			},
+			expectError: false,
 		},
 		{
 			name: "Should not Reconcile if cluster is paused",
@@ -2355,11 +2493,30 @@ func TestAWSMachineReconcilerReconcile(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "capi-test",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSMachine",
+						Name:     "aws-machine-6",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							Name:     "capi-test-6-config",
+							Kind:     "EKSConfig",
+							APIGroup: clusterv1.GroupVersion.Group,
+						},
+					},
 				},
 			},
-			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1"}, Spec: clusterv1.ClusterSpec{
-				InfrastructureRef: &corev1.ObjectReference{Name: "foo"},
-			}},
+			ownerCluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1"},
+				Spec: clusterv1.ClusterSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSCluster",
+						Name:     "aws-cluster-1",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+				},
+			},
 			expectError: false,
 		},
 		{
@@ -2382,14 +2539,36 @@ func TestAWSMachineReconcilerReconcile(t *testing.T) {
 						clusterv1.ClusterNameLabel: "capi-test-1",
 					},
 					Name: "capi-test-machine", Namespace: "default",
-				}, Spec: clusterv1.MachineSpec{
+				},
+				Spec: clusterv1.MachineSpec{
 					ClusterName: "capi-test",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSMachine",
+						Name:     "aws-machine-6",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							Name:     "capi-test-6-config",
+							Kind:     "EKSConfig",
+							APIGroup: clusterv1.GroupVersion.Group,
+						},
+					},
 				},
 			},
 			ownerCluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1"},
 				Spec: clusterv1.ClusterSpec{
-					ControlPlaneRef: &corev1.ObjectReference{Kind: AWSManagedControlPlaneRefKind},
+					ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+						Name:     "capi-test-1-cpref",
+						Kind:     AWSManagedControlPlaneRefKind,
+						APIGroup: clusterv1.GroupVersion.Group,
+					},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSCluster",
+						Name:     "aws-cluster-1",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
 				},
 			},
 			expectError: false,
@@ -2417,12 +2596,28 @@ func TestAWSMachineReconcilerReconcile(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "capi-test",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSMachine",
+						Name:     "aws-machine-6",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							Name:     "capi-test-6-config",
+							Kind:     "EKSConfig",
+							APIGroup: clusterv1.GroupVersion.Group,
+						},
+					},
 				},
 			},
 			ownerCluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1"},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{Name: "aws-test-5"},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSCluster",
+						Name:     "aws-cluster-1",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
 				},
 			},
 			expectError: false,
@@ -2450,12 +2645,28 @@ func TestAWSMachineReconcilerReconcile(t *testing.T) {
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "capi-test",
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSMachine",
+						Name:     "aws-machine-6",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							Name:     "capi-test-6-config",
+							Kind:     "EKSConfig",
+							APIGroup: clusterv1.GroupVersion.Group,
+						},
+					},
 				},
 			},
 			ownerCluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1"},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: &corev1.ObjectReference{Name: "aws-test-5"},
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSCluster",
+						Name:     "aws-test-5",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
 				},
 			},
 			awsCluster:  &infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "aws-test-5"}},
@@ -2541,21 +2752,21 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 	ownerCluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{Name: "capi-test-1", Namespace: ns},
 		Spec: clusterv1.ClusterSpec{
-			InfrastructureRef: &corev1.ObjectReference{
-				Kind:       "AWSCluster",
-				Name:       "capi-test-1", // assuming same name
-				Namespace:  ns,
-				APIVersion: infrav1.GroupVersion.String(),
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				Kind:     "AWSCluster",
+				Name:     "capi-test-1", // assuming same name
+				APIGroup: infrav1.GroupVersion.Group,
 			},
-			ControlPlaneRef: &corev1.ObjectReference{
-				Kind:       "KubeadmControlPlane",
-				Namespace:  cp.Namespace,
-				Name:       cp.Name,
-				APIVersion: kubeadmv1beta1.GroupVersion.String(),
+			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+				Kind:     "KubeadmControlPlane",
+				Name:     cp.Name,
+				APIGroup: kubeadmv1beta1.GroupVersion.Group,
 			},
 		},
 		Status: clusterv1.ClusterStatus{
-			InfrastructureReady: true,
+			Initialization: clusterv1.ClusterInitializationStatus{
+				InfrastructureProvisioned: ptr.To(true),
+			},
 		},
 	}
 
@@ -2618,6 +2829,11 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "capi-test",
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				Kind:     "AWSMachine",
+				Name:     "aws-machine-6",
+				APIGroup: infrav1.GroupVersion.Group,
+			},
 			Bootstrap: clusterv1.Bootstrap{
 				DataSecretName: aws.String("bootstrap-data"),
 			},
@@ -2647,7 +2863,7 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 			},
 		},
 		Status: infrav1.AWSMachineStatus{
-			Conditions: clusterv1.Conditions{
+			Conditions: clusterv1beta1.Conditions{
 				{
 					Type:   "Paused",
 					Status: corev1.ConditionFalse,

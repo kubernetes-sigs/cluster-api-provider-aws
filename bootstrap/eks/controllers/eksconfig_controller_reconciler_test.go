@@ -24,16 +24,15 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
 	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/internal/userdata"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 func TestEKSConfigReconciler(t *testing.T) {
@@ -85,7 +84,7 @@ func TestEKSConfigReconciler(t *testing.T) {
 		config.ObjectMeta.OwnerReferences = []metav1.OwnerReference{
 			{
 				Kind:       "MachinePool",
-				APIVersion: v1beta1.GroupVersion.String(),
+				APIVersion: clusterv1.GroupVersion.String(),
 				Name:       mp.Name,
 				UID:        types.UID(fmt.Sprintf("%s uid", mp.Name)),
 			},
@@ -284,17 +283,18 @@ func newCluster(name string) *clusterv1.Cluster {
 			Name:      name,
 		},
 		Spec: clusterv1.ClusterSpec{
-			ControlPlaneRef: &corev1.ObjectReference{
-				Name:      name,
-				Kind:      "AWSManagedControlPlane",
-				Namespace: "default",
+			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+				Name: name,
+				Kind: "AWSManagedControlPlane",
 			},
 		},
 		Status: clusterv1.ClusterStatus{
-			InfrastructureReady: true,
+			Initialization: clusterv1.ClusterInitializationStatus{
+				InfrastructureProvisioned: ptr.To(true),
+			},
 		},
 	}
-	conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
+	cluster.Status.Initialization.ControlPlaneInitialized = ptr.To(true)
 	return cluster
 }
 
@@ -317,9 +317,9 @@ func newMachine(cluster *clusterv1.Cluster, name string) *clusterv1.Machine {
 		},
 		Spec: clusterv1.MachineSpec{
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &corev1.ObjectReference{
-					Kind:       "EKSConfig",
-					APIVersion: eksbootstrapv1.GroupVersion.String(),
+				ConfigRef: clusterv1.ContractVersionedObjectReference{
+					Kind:     "EKSConfig",
+					APIGroup: eksbootstrapv1.GroupVersion.Group,
 				},
 			},
 		},
@@ -334,24 +334,24 @@ func newMachine(cluster *clusterv1.Cluster, name string) *clusterv1.Machine {
 }
 
 // newMachinePool returns a CAPI machine object; if cluster is not nil, the MachinePool  is linked to the cluster as well.
-func newMachinePool(cluster *clusterv1.Cluster, name string) *v1beta1.MachinePool {
+func newMachinePool(cluster *clusterv1.Cluster, name string) *clusterv1.MachinePool {
 	generatedName := fmt.Sprintf("%s-%s", name, util.RandomString(5))
-	mp := &v1beta1.MachinePool{
+	mp := &clusterv1.MachinePool{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "MachinePool",
-			APIVersion: v1beta1.GroupVersion.String(),
+			APIVersion: clusterv1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
 			Name:      generatedName,
 		},
-		Spec: v1beta1.MachinePoolSpec{
+		Spec: clusterv1.MachinePoolSpec{
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							Kind:       "EKSConfig",
-							APIVersion: eksbootstrapv1.GroupVersion.String(),
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							Kind:     "EKSConfig",
+							APIGroup: eksbootstrapv1.GroupVersion.Group,
 						},
 					},
 				},
@@ -397,7 +397,7 @@ func newEKSConfig(machine *clusterv1.Machine) *eksbootstrapv1.EKSConfig {
 		}
 		config.Status.DataSecretName = &machine.Name
 		machine.Spec.Bootstrap.ConfigRef.Name = config.Name
-		machine.Spec.Bootstrap.ConfigRef.Namespace = config.Namespace
+		machine.Namespace = config.Namespace
 	}
 	return config
 }

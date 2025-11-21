@@ -19,11 +19,11 @@ package v1beta1
 import (
 	"testing"
 
-	fuzz "github.com/google/gofuzz"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	"k8s.io/apimachinery/pkg/runtime"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	"sigs.k8s.io/randfill"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
@@ -35,8 +35,8 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	}
 }
 
-func AWSManagedControlPlaneFuzzer(obj *AWSManagedControlPlane, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
+func AWSManagedControlPlaneFuzzer(obj *AWSManagedControlPlane, c randfill.Continue) {
+	c.FillNoCustom(obj)
 	obj.Spec.DisableVPCCNI = false
 }
 

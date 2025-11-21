@@ -53,8 +53,9 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/rosa"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -330,7 +331,8 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "rosa-control-plane-1",
 			Namespace: ns.Name,
-			UID:       types.UID("rosa-control-plane-1")},
+			UID:       types.UID("rosa-control-plane-1"),
+		},
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ROSAControlPlane",
 			APIVersion: rosacontrolplanev1.GroupVersion.String(),
@@ -372,12 +374,13 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 		},
 		Status: rosacontrolplanev1.RosaControlPlaneStatus{
 			ID: "rosa-control-plane-1",
-			Conditions: clusterv1.Conditions{clusterv1.Condition{
-				Type:     "Paused",
-				Status:   "False",
-				Severity: "",
-				Reason:   "NotPaused",
-				Message:  "",
+			Conditions: clusterv1beta1.Conditions{clusterv1beta1.Condition{
+				Type:               "Paused",
+				Status:             "False",
+				Severity:           "",
+				Reason:             "NotPaused",
+				Message:            "",
+				LastTransitionTime: metav1.NewTime(time.Now()),
 			}},
 		},
 	}
@@ -389,10 +392,10 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 			UID:       types.UID("owner-cluster-1"),
 		},
 		Spec: clusterv1.ClusterSpec{
-			ControlPlaneRef: &corev1.ObjectReference{
-				Name:       rosaControlPlane.Name,
-				Kind:       "ROSAControlPlane",
-				APIVersion: rosacontrolplanev1.GroupVersion.String(),
+			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+				Name:     rosaControlPlane.Name,
+				Kind:     "ROSAControlPlane",
+				APIGroup: rosacontrolplanev1.GroupVersion.Group,
 			},
 		},
 	}
@@ -498,12 +501,13 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 	g.Expect(err).ShouldNot(HaveOccurred())
 	rosaControlPlane.Status = rosacontrolplanev1.RosaControlPlaneStatus{
 		ID: "rosa-control-plane-1",
-		Conditions: clusterv1.Conditions{clusterv1.Condition{
-			Type:     "Paused",
-			Status:   "False",
-			Severity: "",
-			Reason:   "NotPaused",
-			Message:  "",
+		Conditions: clusterv1beta1.Conditions{clusterv1beta1.Condition{
+			Type:               "Paused",
+			Status:             "False",
+			Severity:           "",
+			Reason:             "NotPaused",
+			Message:            "",
+			LastTransitionTime: metav1.NewTime(time.Now()),
 		}},
 	}
 
@@ -515,7 +519,7 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 	key := client.ObjectKey{Name: rosaControlPlane.Name, Namespace: rosaControlPlane.Namespace}
 	errGet := testEnv.Get(ctx, key, cp)
 	g.Expect(errGet).NotTo(HaveOccurred())
-	oldCondition := conditions.Get(cp, clusterv1.PausedV1Beta2Condition)
+	oldCondition := v1beta1conditions.Get(cp, clusterv1beta1.PausedV1Beta2Condition)
 	g.Expect(oldCondition).NotTo(BeNil())
 
 	r := ROSAControlPlaneReconciler{

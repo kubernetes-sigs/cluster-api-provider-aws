@@ -22,8 +22,9 @@ import (
 
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/utils/ptr"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	bsutil "sigs.k8s.io/cluster-api/bootstrap/util"
 )
 
@@ -35,7 +36,9 @@ func TestEKSConfigReconcilerReturnEarlyIfClusterInfraNotReady(t *testing.T) {
 	config := newEKSConfig(machine)
 
 	cluster.Status = clusterv1.ClusterStatus{
-		InfrastructureReady: false,
+		Initialization: clusterv1.ClusterInitializationStatus{
+			InfrastructureProvisioned: ptr.To(true),
+		},
 	}
 
 	reconciler := EKSConfigReconciler{
@@ -56,7 +59,9 @@ func TestEKSConfigReconcilerReturnEarlyIfClusterControlPlaneNotInitialized(t *te
 	config := newEKSConfig(machine)
 
 	cluster.Status = clusterv1.ClusterStatus{
-		InfrastructureReady: true,
+		Initialization: clusterv1.ClusterInitializationStatus{
+			InfrastructureProvisioned: ptr.To(true),
+		},
 	}
 
 	reconciler := EKSConfigReconciler{

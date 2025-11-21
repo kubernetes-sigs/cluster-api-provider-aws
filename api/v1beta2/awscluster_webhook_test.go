@@ -33,7 +33,7 @@ import (
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/util/defaulting"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 )
 
 func TestAWSClusterDefault(t *testing.T) {
@@ -945,7 +945,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 			name: "controlPlaneEndpoint is immutable",
 			oldCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
-					ControlPlaneEndpoint: clusterv1.APIEndpoint{
+					ControlPlaneEndpoint: clusterv1beta1.APIEndpoint{
 						Host: "example.com",
 						Port: int32(8000),
 					},
@@ -953,7 +953,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 			},
 			newCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
-					ControlPlaneEndpoint: clusterv1.APIEndpoint{
+					ControlPlaneEndpoint: clusterv1beta1.APIEndpoint{
 						Host: "foo.example.com",
 						Port: int32(9000),
 					},
@@ -965,12 +965,12 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 			name: "controlPlaneEndpoint can be updated if it is empty",
 			oldCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
-					ControlPlaneEndpoint: clusterv1.APIEndpoint{},
+					ControlPlaneEndpoint: clusterv1beta1.APIEndpoint{},
 				},
 			},
 			newCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
-					ControlPlaneEndpoint: clusterv1.APIEndpoint{
+					ControlPlaneEndpoint: clusterv1beta1.APIEndpoint{
 						Host: "example.com",
 						Port: int32(8000),
 					},
@@ -982,7 +982,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 			name: "removal of externally managed annotation is not allowed",
 			oldCluster: &AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{clusterv1.ManagedByAnnotation: ""},
+					Annotations: map[string]string{clusterv1beta1.ManagedByAnnotation: ""},
 				},
 			},
 			newCluster: &AWSCluster{},
@@ -993,7 +993,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 			oldCluster: &AWSCluster{},
 			newCluster: &AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{clusterv1.ManagedByAnnotation: ""},
+					Annotations: map[string]string{clusterv1beta1.ManagedByAnnotation: ""},
 				},
 			},
 			wantErr: false,

@@ -38,7 +38,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/mock_services"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -67,10 +68,19 @@ func TestAWSClusterReconcilerReconcile(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name:         "Should not Reconcile if cluster is paused",
-			awsCluster:   &infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{GenerateName: "aws-test-", Annotations: map[string]string{clusterv1.PausedAnnotation: ""}}},
-			ownerCluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{GenerateName: "capi-test-"}},
-			expectError:  false,
+			name:       "Should not Reconcile if cluster is paused",
+			awsCluster: &infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{GenerateName: "aws-test-", Annotations: map[string]string{clusterv1.PausedAnnotation: ""}}},
+			ownerCluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{GenerateName: "capi-test-"},
+				Spec: clusterv1.ClusterSpec{
+					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+						Kind:     "AWSCluster",
+						Name:     "aws-cluster",
+						APIGroup: infrav1.GroupVersion.Group,
+					},
+				},
+			},
+			expectError: false,
 		},
 		{
 			name:        "Should Reconcile successfully if no AWSCluster found",
@@ -320,7 +330,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 				g.Expect(err).To(BeNil())
 				_, err = reconciler.reconcileNormal(context.TODO(), cs)
 				g.Expect(err).ToNot(BeNil())
-				expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{{infrav1.ClusterSecurityGroupsReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, infrav1.ClusterSecurityGroupReconciliationFailedReason}})
+				expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{{infrav1.ClusterSecurityGroupsReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, infrav1.ClusterSecurityGroupReconciliationFailedReason}})
 			})
 			t.Run("Should fail AWSCluster create with BastionHostReadyCondition status false", func(t *testing.T) {
 				g := NewWithT(t)
@@ -343,7 +353,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 				g.Expect(err).To(BeNil())
 				_, err = reconciler.reconcileNormal(context.TODO(), cs)
 				g.Expect(err).ToNot(BeNil())
-				expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{{infrav1.BastionHostReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, infrav1.BastionHostFailedReason}})
+				expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{{infrav1.BastionHostReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, infrav1.BastionHostFailedReason}})
 			})
 			t.Run("Should fail AWSCluster create with failure in LoadBalancer reconciliation", func(t *testing.T) {
 				g := NewWithT(t)
@@ -367,7 +377,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 				g.Expect(err).To(BeNil())
 				_, err = reconciler.reconcileNormal(context.TODO(), cs)
 				g.Expect(err).ToNot(BeNil())
-				expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{{infrav1.LoadBalancerReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, infrav1.LoadBalancerFailedReason}})
+				expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{{infrav1.LoadBalancerReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, infrav1.LoadBalancerFailedReason}})
 			})
 			t.Run("Should fail AWSCluster create with LoadBalancer reconcile failure with WaitForDNSName condition as false", func(t *testing.T) {
 				g := NewWithT(t)
@@ -391,7 +401,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 				g.Expect(err).To(BeNil())
 				_, err = reconciler.reconcileNormal(context.TODO(), cs)
 				g.Expect(err).To(BeNil())
-				expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{{infrav1.LoadBalancerReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, infrav1.WaitForDNSNameReason}})
+				expectAWSClusterConditions(g, cs.AWSCluster, []conditionAssertion{{infrav1.LoadBalancerReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityInfo, infrav1.WaitForDNSNameReason}})
 			})
 		})
 	})

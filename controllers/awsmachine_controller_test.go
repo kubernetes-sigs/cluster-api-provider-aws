@@ -43,9 +43,10 @@ import (
 	elbService "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/elb"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/mock_services"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 )
 
 func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
@@ -140,7 +141,7 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		g.Expect(err).To(BeNil())
 
 		ms.Machine.Spec.Bootstrap.DataSecretName = aws.String("bootstrap-data")
-		ms.Machine.Spec.Version = aws.String("test")
+		ms.Machine.Spec.Version = "test"
 		ms.AWSMachine.Spec.Subnet = &infrav1.AWSResourceReference{ID: aws.String("subnet-1")}
 		ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateRunning
 		ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabel: ""}
@@ -241,8 +242,8 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		_, err = reconciler.reconcileDelete(context.TODO(), ms, cs, cs, cs, cs)
 		g.Expect(err).To(BeNil())
 		expectConditions(g, ms.AWSMachine, []conditionAssertion{
-			{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
-			{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
+			{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityInfo, clusterv1beta1.DeletedReason},
+			{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityInfo, clusterv1beta1.DeletedReason},
 		})
 		g.Expect(ms.AWSMachine.Finalizers).ShouldNot(ContainElement(infrav1.MachineFinalizer))
 	})
@@ -320,7 +321,7 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		g.Expect(err).To(BeNil())
 
 		ms.Machine.Spec.Bootstrap.DataSecretName = aws.String("bootstrap-data")
-		ms.Machine.Spec.Version = aws.String("test")
+		ms.Machine.Spec.Version = "test"
 		ms.AWSMachine.Spec.Subnet = &infrav1.AWSResourceReference{ID: aws.String("subnet-1")}
 		ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateRunning
 		ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabel: ""}
@@ -422,8 +423,8 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		_, err = reconciler.reconcileDelete(context.TODO(), ms, cs, cs, cs, cs)
 		g.Expect(err).Should(HaveOccurred())
 		expectConditions(g, ms.AWSMachine, []conditionAssertion{
-			{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, "DeletingFailed"},
-			{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
+			{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, "DeletingFailed"},
+			{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityInfo, clusterv1beta1.DeletedReason},
 		})
 		g.Expect(ms.AWSMachine.Finalizers).ShouldNot(ContainElement(infrav1.MachineFinalizer))
 	})
@@ -438,7 +439,9 @@ func getMachineScope(cs *scope.ClusterScope, awsMachine *infrav1.AWSMachine) (*s
 					Name: "test",
 				},
 				Status: clusterv1.ClusterStatus{
-					InfrastructureReady: true,
+					Initialization: clusterv1.ClusterInitializationStatus{
+						InfrastructureProvisioned: ptr.To(true),
+					},
 				},
 			},
 			Machine: &clusterv1.Machine{
@@ -528,16 +531,16 @@ func (p *pointsTo) String() string {
 }
 
 type conditionAssertion struct {
-	conditionType clusterv1.ConditionType
+	conditionType clusterv1beta1.ConditionType
 	status        corev1.ConditionStatus
-	severity      clusterv1.ConditionSeverity
+	severity      clusterv1beta1.ConditionSeverity
 	reason        string
 }
 
 func expectConditions(g *WithT, m *infrav1.AWSMachine, expected []conditionAssertion) {
 	g.Expect(len(m.Status.Conditions)).To(BeNumerically(">=", len(expected)), "number of conditions")
 	for _, c := range expected {
-		actual := conditions.Get(m, c.conditionType)
+		actual := v1beta1conditions.Get(m, c.conditionType)
 		g.Expect(actual).To(Not(BeNil()))
 		g.Expect(actual.Type).To(Equal(c.conditionType))
 		g.Expect(actual.Status).To(Equal(c.status))
