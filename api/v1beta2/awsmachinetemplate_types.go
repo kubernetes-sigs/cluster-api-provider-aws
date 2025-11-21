@@ -72,6 +72,10 @@ type AWSMachineTemplateStatus struct {
 	// https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20210310-opt-in-autoscaling-from-zero.md
 	// +optional
 	NodeInfo *NodeInfo `json:"nodeInfo,omitempty"`
+
+	// Conditions defines current service state of the AWSMachineTemplate.
+	// +optional
+	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
 }
 
 // AWSMachineTemplateSpec defines the desired state of AWSMachineTemplate.
@@ -112,6 +116,16 @@ type AWSMachineTemplateResource struct {
 
 	// Spec is the specification of the desired behavior of the machine.
 	Spec AWSMachineSpec `json:"spec"`
+}
+
+// GetConditions returns the observations of the operational state of the AWSMachineTemplate resource.
+func (r *AWSMachineTemplate) GetConditions() clusterv1beta1.Conditions {
+	return r.Status.Conditions
+}
+
+// SetConditions sets the underlying service state of the AWSMachineTemplate to the predescribed clusterv1beta1.Conditions.
+func (r *AWSMachineTemplate) SetConditions(conditions clusterv1beta1.Conditions) {
+	r.Status.Conditions = conditions
 }
 
 func init() {

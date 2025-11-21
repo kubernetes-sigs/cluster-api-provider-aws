@@ -40,8 +40,9 @@ import (
 	ec2service "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/util/paused"
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
@@ -101,8 +102,22 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, nil
 	}
 
+	// Get the owner cluster
+	cluster, err := util.GetOwnerCluster(ctx, r.Client, awsMachineTemplate.ObjectMeta)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if cluster == nil {
+		return ctrl.Result{}, nil
+	}
+
+	// Check if the resource is paused
+	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, awsMachineTemplate); err != nil || isPaused || conditionChanged {
+		return ctrl.Result{}, err
+	}
+
 	// Find the region by checking ownerReferences
-	region, err := r.getRegion(ctx, awsMachineTemplate)
+	region, err := r.getRegion(ctx, cluster)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -155,18 +170,13 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 }
 
 // getRegion finds the region by checking the template's owner cluster reference.
-func (r *AWSMachineTemplateReconciler) getRegion(ctx context.Context, template *infrav1.AWSMachineTemplate) (string, error) {
-	// Get the owner cluster
-	cluster, err := util.GetOwnerCluster(ctx, r.Client, template.ObjectMeta)
-	if err != nil {
-		return "", err
-	}
+func (r *AWSMachineTemplateReconciler) getRegion(ctx context.Context, cluster *clusterv1.Cluster) (string, error) {
 	if cluster == nil {
 		return "", errors.New("no owner cluster found")
 	}
 
 	// Get region from AWSCluster (standard EC2-based cluster)
-	if cluster.Spec.InfrastructureRef != nil && cluster.Spec.InfrastructureRef.Kind == "AWSCluster" {
+	if cluster.Spec.InfrastructureRef.IsDefined() && cluster.Spec.InfrastructureRef.Kind == "AWSCluster" {
 		awsCluster := &infrav1.AWSCluster{}
 		if err := r.Get(ctx, client.ObjectKey{
 			Namespace: cluster.Namespace,
@@ -181,7 +191,7 @@ func (r *AWSMachineTemplateReconciler) getRegion(ctx context.Context, template *
 	}
 
 	// Get region from AWSManagedControlPlane (EKS cluster)
-	if cluster.Spec.ControlPlaneRef != nil && cluster.Spec.ControlPlaneRef.Kind == "AWSManagedControlPlane" {
+	if cluster.Spec.ControlPlaneRef.IsDefined() && cluster.Spec.ControlPlaneRef.Kind == "AWSManagedControlPlane" {
 		awsManagedCP := &ekscontrolplanev1.AWSManagedControlPlane{}
 		if err := r.Get(ctx, client.ObjectKey{
 			Namespace: cluster.Namespace,
@@ -363,9 +373,10 @@ func (r *AWSMachineTemplateReconciler) getKubernetesVersion(ctx context.Context,
 
 	// Find MachineDeployments that reference this AWSMachineTemplate
 	for _, md := range machineDeploymentList.Items {
-		if version := ptr.Deref(md.Spec.Template.Spec.Version, ""); md.Spec.Template.Spec.InfrastructureRef.Kind == "AWSMachineTemplate" &&
-			md.Spec.Template.Spec.InfrastructureRef.Name == template.Name && version != "" {
-			return version, nil
+		if md.Spec.Template.Spec.InfrastructureRef.Kind == "AWSMachineTemplate" &&
+			md.Spec.Template.Spec.InfrastructureRef.Name == template.Name &&
+			md.Spec.Template.Spec.Version != "" {
+			return md.Spec.Template.Spec.Version, nil
 		}
 	}
 
@@ -377,8 +388,8 @@ func (r *AWSMachineTemplateReconciler) getKubernetesVersion(ctx context.Context,
 
 	// Find KubeadmControlPlanes that reference this AWSMachineTemplate
 	for _, kcp := range kcpList.Items {
-		if kcp.Spec.MachineTemplate.InfrastructureRef.Kind == "AWSMachineTemplate" &&
-			kcp.Spec.MachineTemplate.InfrastructureRef.Name == template.Name &&
+		if kcp.Spec.MachineTemplate.Spec.InfrastructureRef.Kind == "AWSMachineTemplate" &&
+			kcp.Spec.MachineTemplate.Spec.InfrastructureRef.Name == template.Name &&
 			kcp.Spec.Version != "" {
 			return kcp.Spec.Version, nil
 		}
