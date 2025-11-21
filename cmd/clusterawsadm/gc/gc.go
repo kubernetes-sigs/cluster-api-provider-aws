@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"strings"
 
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/exec" // import all auth plugins
@@ -32,7 +33,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/annotations"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -45,6 +46,7 @@ func init() {
 	_ = clusterv1.AddToScheme(scheme)
 	_ = infrav1.AddToScheme(scheme)
 	_ = ekscontrolplanev1.AddToScheme(scheme)
+	_ = apiextensionsv1.AddToScheme(scheme)
 }
 
 // CmdProcessor handles the garbage collection commands.
@@ -187,9 +189,9 @@ func (c *CmdProcessor) getInfraCluster(ctx context.Context) (*unstructured.Unstr
 	}
 
 	ref := cluster.Spec.InfrastructureRef
-	obj, err := external.Get(ctx, c.client, ref)
+	obj, err := external.GetObjectFromContractVersionedRef(ctx, c.client, ref, c.namespace)
 	if err != nil {
-		return nil, fmt.Errorf("getting infra cluster %s/%s: %w", ref.Namespace, ref.Name, err)
+		return nil, fmt.Errorf("getting infra cluster %s/%s: %w", c.namespace, ref.Name, err)
 	}
 
 	return obj, nil

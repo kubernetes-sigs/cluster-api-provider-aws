@@ -39,8 +39,8 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 )
 
 func TestROSANetworkReconciler_Reconcile(t *testing.T) {
@@ -66,7 +66,8 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 	rosaNetwork := &expinfrav1.ROSANetwork{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: ns.Name},
+			Namespace: ns.Name,
+		},
 		Spec: expinfrav1.ROSANetworkSpec{
 			StackName:             name,
 			CIDRBlock:             "10.0.0.0/8",
@@ -86,7 +87,8 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 	rosaNetworkDeleted := &expinfrav1.ROSANetwork{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      nameDeleted,
-			Namespace: ns.Name},
+			Namespace: ns.Name,
+		},
 		Spec: expinfrav1.ROSANetworkSpec{
 			StackName:             nameDeleted,
 			CIDRBlock:             "10.0.0.0/8",
@@ -110,7 +112,6 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		req.NamespacedName = types.NamespacedName{Name: "non-existent-object", Namespace: "non-existent-namespace"}
 		reqReconcile, errReconcile := reconciler.Reconcile(ctx, req)
 
-		g.Expect(reqReconcile.Requeue).To(BeFalse())
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(time.Duration(0)))
 		g.Expect(errReconcile).ToNot(HaveOccurred())
 	})
@@ -125,7 +126,6 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		req.NamespacedName = types.NamespacedName{Name: rosaNetwork.Name, Namespace: rosaNetwork.Namespace}
 		reqReconcile, errReconcile := reconciler.Reconcile(ctx, req)
 
-		g.Expect(reqReconcile.Requeue).To(BeFalse())
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(time.Duration(0)))
 		g.Expect(errReconcile).To(MatchError(ContainSubstring("error fetching CF stack details:")))
 	})
@@ -149,7 +149,6 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		req.NamespacedName = types.NamespacedName{Name: rosaNetwork.Name, Namespace: rosaNetwork.Namespace}
 		reqReconcile, errReconcile := reconciler.Reconcile(ctx, req)
 
-		g.Expect(reqReconcile.Requeue).To(BeFalse())
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(time.Duration(0)))
 		g.Expect(errReconcile).To(MatchError(ContainSubstring("failed to start CF stack creation:")))
 
@@ -157,7 +156,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(cnd).ToNot(BeNil())
 		g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkFailedReason))
-		g.Expect(cnd.Severity).To(Equal(clusterv1.ConditionSeverityError))
+		g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityError))
 		g.Expect(cnd.Message).To(Equal("test-error"))
 	})
 
@@ -180,7 +179,6 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		req.NamespacedName = types.NamespacedName{Name: rosaNetwork.Name, Namespace: rosaNetwork.Namespace}
 		reqReconcile, errReconcile := reconciler.Reconcile(ctx, req)
 
-		g.Expect(reqReconcile.Requeue).To(BeFalse())
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(time.Duration(0)))
 		g.Expect(errReconcile).ToNot(HaveOccurred())
 
@@ -188,7 +186,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(cnd).ToNot(BeNil())
 		g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkCreatingReason))
-		g.Expect(cnd.Severity).To(Equal(clusterv1.ConditionSeverityInfo))
+		g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityInfo))
 	})
 
 	t.Run("CF stack creation is in progress", func(t *testing.T) {
@@ -212,7 +210,6 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		req.NamespacedName = types.NamespacedName{Name: rosaNetwork.Name, Namespace: rosaNetwork.Namespace}
 		reqReconcile, errReconcile := reconciler.Reconcile(ctx, req)
 
-		g.Expect(reqReconcile.Requeue).To(BeFalse())
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(time.Second * 60))
 		g.Expect(errReconcile).ToNot(HaveOccurred())
 
@@ -220,7 +217,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(cnd).ToNot(BeNil())
 		g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkCreatingReason))
-		g.Expect(cnd.Severity).To(Equal(clusterv1.ConditionSeverityInfo))
+		g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityInfo))
 	})
 
 	t.Run("CF stack creation completed", func(t *testing.T) {
@@ -244,7 +241,6 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		req.NamespacedName = types.NamespacedName{Name: rosaNetwork.Name, Namespace: rosaNetwork.Namespace}
 		reqReconcile, errReconcile := reconciler.Reconcile(ctx, req)
 
-		g.Expect(reqReconcile.Requeue).To(BeFalse())
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(time.Duration(0)))
 		g.Expect(errReconcile).ToNot(HaveOccurred())
 
@@ -252,7 +248,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(cnd).ToNot(BeNil())
 		g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkCreatedReason))
-		g.Expect(cnd.Severity).To(Equal(clusterv1.ConditionSeverityInfo))
+		g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityInfo))
 	})
 
 	t.Run("CF stack creation failed", func(t *testing.T) {
@@ -276,7 +272,6 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		req.NamespacedName = types.NamespacedName{Name: rosaNetwork.Name, Namespace: rosaNetwork.Namespace}
 		reqReconcile, errReconcile := reconciler.Reconcile(ctx, req)
 
-		g.Expect(reqReconcile.Requeue).To(BeFalse())
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(time.Duration(0)))
 		g.Expect(errReconcile).To(MatchError(ContainSubstring("creation failed")))
 
@@ -284,7 +279,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(cnd).ToNot(BeNil())
 		g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkFailedReason))
-		g.Expect(cnd.Severity).To(Equal(clusterv1.ConditionSeverityError))
+		g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityError))
 	})
 
 	t.Run("CF stack deletion start failed", func(t *testing.T) {
@@ -310,7 +305,6 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		req.NamespacedName = types.NamespacedName{Name: nameDeleted, Namespace: rosaNetworkDeleted.Namespace}
 		reqReconcile, errReconcile := reconciler.Reconcile(ctx, req)
 
-		g.Expect(reqReconcile.Requeue).To(BeFalse())
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(time.Duration(0)))
 		g.Expect(errReconcile).To(MatchError(ContainSubstring("failed to start CF stack deletion:")))
 
@@ -318,7 +312,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(cnd).ToNot(BeNil())
 		g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkDeletionFailedReason))
-		g.Expect(cnd.Severity).To(Equal(clusterv1.ConditionSeverityError))
+		g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityError))
 	})
 
 	t.Run("CF stack deletion start succeeded", func(t *testing.T) {
@@ -344,7 +338,6 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		req.NamespacedName = types.NamespacedName{Name: nameDeleted, Namespace: rosaNetworkDeleted.Namespace}
 		reqReconcile, errReconcile := reconciler.Reconcile(ctx, req)
 
-		g.Expect(reqReconcile.Requeue).To(BeFalse())
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(60 * time.Second))
 		g.Expect(errReconcile).NotTo(HaveOccurred())
 
@@ -352,7 +345,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(cnd).ToNot(BeNil())
 		g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkDeletingReason))
-		g.Expect(cnd.Severity).To(Equal(clusterv1.ConditionSeverityInfo))
+		g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityInfo))
 	})
 
 	t.Run("CF stack deletion in progress", func(t *testing.T) {
@@ -376,7 +369,6 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		req.NamespacedName = types.NamespacedName{Name: nameDeleted, Namespace: rosaNetworkDeleted.Namespace}
 		reqReconcile, errReconcile := reconciler.Reconcile(ctx, req)
 
-		g.Expect(reqReconcile.Requeue).To(BeFalse())
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(60 * time.Second))
 		g.Expect(errReconcile).NotTo(HaveOccurred())
 	})
@@ -407,7 +399,6 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		req.NamespacedName = types.NamespacedName{Name: nameDeleted, Namespace: rosaNetworkDeleted.Namespace}
 		reqReconcile, errReconcile := reconciler.Reconcile(ctx, req)
 
-		g.Expect(reqReconcile.Requeue).To(BeFalse())
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(time.Duration(0)))
 		g.Expect(errReconcile).To(MatchError(ContainSubstring("CF stack deletion failed")))
 
@@ -415,7 +406,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(cnd).ToNot(BeNil())
 		g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkDeletionFailedReason))
-		g.Expect(cnd.Severity).To(Equal(clusterv1.ConditionSeverityError))
+		g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityError))
 	})
 
 	cleanupObject(g, rosaNetwork)
@@ -599,7 +590,8 @@ func mockDescribeStacksCall(mockCFClient *rosaMocks.MockCloudFormationApiClient,
 		DescribeStacks(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(_ context.Context,
 			_ *cloudformation.DescribeStacksInput,
-			_ ...func(*cloudformation.Options)) (*cloudformation.DescribeStacksOutput, error) {
+			_ ...func(*cloudformation.Options),
+		) (*cloudformation.DescribeStacksOutput, error) {
 			return output, err
 		}).
 		Times(times)
@@ -611,7 +603,8 @@ func mockCreateStackCall(mockCFClient *rosaMocks.MockCloudFormationApiClient, ou
 		CreateStack(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(_ context.Context,
 			_ *cloudformation.CreateStackInput,
-			_ ...func(*cloudformation.Options)) (*cloudformation.CreateStackOutput, error) {
+			_ ...func(*cloudformation.Options),
+		) (*cloudformation.CreateStackOutput, error) {
 			return output, err
 		}).
 		Times(times)
@@ -623,7 +616,8 @@ func mockDescribeStackResourcesCall(mockCFClient *rosaMocks.MockCloudFormationAp
 		DescribeStackResources(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(_ context.Context,
 			_ *cloudformation.DescribeStackResourcesInput,
-			_ ...func(*cloudformation.Options)) (*cloudformation.DescribeStackResourcesOutput, error) {
+			_ ...func(*cloudformation.Options),
+		) (*cloudformation.DescribeStackResourcesOutput, error) {
 			return output, err
 		}).
 		Times(times)
@@ -635,7 +629,8 @@ func mockDeleteStackCall(mockCFClient *rosaMocks.MockCloudFormationApiClient, ou
 		DeleteStack(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(_ context.Context,
 			_ *cloudformation.DeleteStackInput,
-			_ ...func(*cloudformation.Options)) (*cloudformation.DeleteStackOutput, error) {
+			_ ...func(*cloudformation.Options),
+		) (*cloudformation.DeleteStackOutput, error) {
 			return output, err
 		}).
 		Times(times)
@@ -647,7 +642,8 @@ func mockDescribeSubnetsCall(mockEc2Client *rosaMocks.MockEc2ApiClient, output *
 		DescribeSubnets(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(_ context.Context,
 			_ *ec2.DescribeSubnetsInput,
-			_ ...func(*ec2.Options)) (*ec2.DescribeSubnetsOutput, error) {
+			_ ...func(*ec2.Options),
+		) (*ec2.DescribeSubnetsOutput, error) {
 			return output, err
 		}).
 		Times(times)
@@ -681,12 +677,12 @@ func deleteROSANetwork(ctx context.Context, rosaNetwork *expinfrav1.ROSANetwork)
 	return nil
 }
 
-func getROSANetworkReadyCondition(reconciler *ROSANetworkReconciler, rosaNet *expinfrav1.ROSANetwork) (*clusterv1.Condition, error) {
+func getROSANetworkReadyCondition(reconciler *ROSANetworkReconciler, rosaNet *expinfrav1.ROSANetwork) (*clusterv1beta1.Condition, error) {
 	updatedROSANetwork := &expinfrav1.ROSANetwork{}
 
 	if err := reconciler.Client.Get(ctx, client.ObjectKeyFromObject(rosaNet), updatedROSANetwork); err != nil {
 		return nil, err
 	}
 
-	return conditions.Get(updatedROSANetwork, expinfrav1.ROSANetworkReadyCondition), nil
+	return v1beta1conditions.Get(updatedROSANetwork, expinfrav1.ROSANetworkReadyCondition), nil
 }

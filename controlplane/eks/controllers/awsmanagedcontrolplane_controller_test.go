@@ -39,6 +39,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -56,7 +57,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/securitygroup"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts/mock_stsiface"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -138,7 +139,8 @@ func TestAWSManagedControlPlaneReconcilerIntegrationTests(t *testing.T) {
 		mockedEKSCluster(ctx, g, eksMock.EXPECT(), iamMock.EXPECT(), ec2Mock.EXPECT(), stsMock.EXPECT(), awsNodeMock.EXPECT(), kubeProxyMock.EXPECT(), iamAuthenticatorMock.EXPECT())
 
 		g.Expect(testEnv.Create(ctx, &cluster)).To(Succeed())
-		cluster.Status.InfrastructureReady = true
+		cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+
 		g.Expect(testEnv.Client.Status().Update(ctx, &cluster)).To(Succeed())
 		g.Expect(testEnv.Create(ctx, &awsManagedCluster)).To(Succeed())
 		g.Expect(testEnv.Create(ctx, &awsManagedControlPlane)).To(Succeed())
@@ -158,11 +160,13 @@ func TestAWSManagedControlPlaneReconcilerIntegrationTests(t *testing.T) {
 
 		// patch the paused condition
 		awsManagedControlPlanePatcher, err := patch.NewHelper(&awsManagedControlPlane, testEnv)
-		awsManagedControlPlane.Status.Conditions = clusterv1.Conditions{
+		awsManagedControlPlane.Status.Conditions = clusterv1beta1.Conditions{
 			{
-				Type:   "Paused",
-				Status: corev1.ConditionFalse,
-				Reason: "NotPaused",
+				Type:               "Paused",
+				Status:             corev1.ConditionFalse,
+				Reason:             "NotPaused",
+				Message:            "",
+				LastTransitionTime: metav1.NewTime(time.Now()),
 			},
 		}
 
@@ -465,7 +469,8 @@ func mockedCallsForMissingEverything(ec2Rec *mocks.MockEC2APIMockRecorder, subne
 				Name:   aws.String("tag-key"),
 				Values: []string{"sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"},
 			},
-		}})).Return(&ec2.DescribeRouteTablesOutput{
+		},
+	})).Return(&ec2.DescribeRouteTablesOutput{
 		RouteTables: []ec2types.RouteTable{
 			{
 				Routes: []ec2types.Route{
@@ -525,7 +530,8 @@ func mockedCallsForMissingEverything(ec2Rec *mocks.MockEC2APIMockRecorder, subne
 				Name:   aws.String("state"),
 				Values: []string{string(ec2types.VpcStatePending), string(ec2types.VpcStateAvailable)},
 			},
-		}}), gomock.Any()).Return(&ec2.DescribeNatGatewaysOutput{}, nil).MinTimes(1).MaxTimes(2)
+		},
+	}), gomock.Any()).Return(&ec2.DescribeNatGatewaysOutput{}, nil).MinTimes(1).MaxTimes(2)
 
 	ec2Rec.DescribeAddresses(context.TODO(), gomock.Eq(&ec2.DescribeAddressesInput{
 		Filters: []ec2types.Filter{

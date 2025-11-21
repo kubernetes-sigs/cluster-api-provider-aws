@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -43,8 +44,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/rosa"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -145,19 +146,17 @@ func TestRosaClusterReconcile(t *testing.T) {
 				UID:       types.UID("capi-cluster-1"),
 			},
 			Spec: clusterv1.ClusterSpec{
-				InfrastructureRef: &corev1.ObjectReference{
-					Name:       rosaCluster.Name,
-					Kind:       "ROSACluster",
-					APIVersion: expinfrav1.GroupVersion.String(),
-					Namespace:  ns.Name,
+				InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+					Name:     rosaCluster.Name,
+					Kind:     "ROSACluster",
+					APIGroup: expinfrav1.GroupVersion.Group,
 				},
-				ControlPlaneRef: &corev1.ObjectReference{
-					Name:       rosaControlPlane.Name,
-					Kind:       "ROSAControlPlane",
-					APIVersion: rosacontrolplanev1.GroupVersion.String(),
-					Namespace:  ns.Name,
+				ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+					Name:     rosaControlPlane.Name,
+					Kind:     "ROSAControlPlane",
+					APIGroup: rosacontrolplanev1.GroupVersion.Group,
 				},
-				Paused: false,
+				Paused: ptr.To(false),
 			},
 		}
 
@@ -186,12 +185,13 @@ func TestRosaClusterReconcile(t *testing.T) {
 
 		// set rosaCluster pause conditions
 		rosaClsPatch, err := patch.NewHelper(rosaCluster, testEnv)
-		rosaCluster.Status.Conditions = clusterv1.Conditions{
-			clusterv1.Condition{
-				Type:    clusterv1.PausedV1Beta2Condition,
-				Status:  corev1.ConditionFalse,
-				Reason:  clusterv1.NotPausedV1Beta2Reason,
-				Message: "",
+		rosaCluster.Status.Conditions = clusterv1beta1.Conditions{
+			clusterv1beta1.Condition{
+				Type:               clusterv1beta1.PausedV1Beta2Condition,
+				Status:             corev1.ConditionFalse,
+				Reason:             clusterv1beta1.NotPausedV1Beta2Reason,
+				Message:            "",
+				LastTransitionTime: metav1.NewTime(time.Now()),
 			},
 		}
 		g.Expect(rosaClsPatch.Patch(ctx, rosaCluster)).To(Succeed())
@@ -199,12 +199,17 @@ func TestRosaClusterReconcile(t *testing.T) {
 
 		// set capiCluster pause condition
 		clsPatch, err := patch.NewHelper(capiCluster, testEnv)
-		capiCluster.Status.Conditions = clusterv1.Conditions{
-			clusterv1.Condition{
-				Type:    clusterv1.PausedV1Beta2Condition,
-				Status:  corev1.ConditionFalse,
-				Reason:  clusterv1.NotPausedV1Beta2Reason,
-				Message: "",
+		capiCluster.Status.Deprecated = &clusterv1.ClusterDeprecatedStatus{
+			V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
+				Conditions: clusterv1.Conditions{
+					clusterv1.Condition{
+						Type:               clusterv1beta1.PausedV1Beta2Condition,
+						Status:             corev1.ConditionFalse,
+						Reason:             clusterv1beta1.NotPausedV1Beta2Reason,
+						Message:            "",
+						LastTransitionTime: metav1.NewTime(time.Now()),
+					},
+				},
 			},
 		}
 		g.Expect(clsPatch.Patch(ctx, capiCluster)).To(Succeed())
@@ -291,7 +296,7 @@ func TestRosaClusterReconcile(t *testing.T) {
 		errRosaMP := testEnv.Get(ctx, keyRosaMP, rosaMachinePool)
 		g.Expect(errRosaMP).ToNot(HaveOccurred())
 
-		machinePool := &expclusterv1.MachinePool{}
+		machinePool := &clusterv1.MachinePool{}
 		keyMP := client.ObjectKey{Name: nodePoolName, Namespace: ns.Name}
 		errMP := testEnv.Get(ctx, keyMP, machinePool)
 		g.Expect(errMP).ToNot(HaveOccurred())

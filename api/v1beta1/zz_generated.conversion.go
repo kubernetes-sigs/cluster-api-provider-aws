@@ -29,7 +29,7 @@ import (
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	v1beta2 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
-	apiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	corev1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 )
 
 func init() {
@@ -1030,7 +1030,7 @@ func autoConvert_v1beta1_AWSClusterStatus_To_v1beta2_AWSClusterStatus(in *AWSClu
 	if err := Convert_v1beta1_NetworkStatus_To_v1beta2_NetworkStatus(&in.Network, &out.Network, s); err != nil {
 		return err
 	}
-	out.FailureDomains = *(*apiv1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
+	out.FailureDomains = *(*corev1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
 	if in.Bastion != nil {
 		in, out := &in.Bastion, &out.Bastion
 		*out = new(v1beta2.Instance)
@@ -1040,7 +1040,7 @@ func autoConvert_v1beta1_AWSClusterStatus_To_v1beta2_AWSClusterStatus(in *AWSClu
 	} else {
 		out.Bastion = nil
 	}
-	out.Conditions = *(*apiv1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
+	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 
@@ -1054,7 +1054,7 @@ func autoConvert_v1beta2_AWSClusterStatus_To_v1beta1_AWSClusterStatus(in *v1beta
 	if err := Convert_v1beta2_NetworkStatus_To_v1beta1_NetworkStatus(&in.Network, &out.Network, s); err != nil {
 		return err
 	}
-	out.FailureDomains = *(*apiv1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
+	out.FailureDomains = *(*corev1beta1.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
 	if in.Bastion != nil {
 		in, out := &in.Bastion, &out.Bastion
 		*out = new(Instance)
@@ -1064,7 +1064,7 @@ func autoConvert_v1beta2_AWSClusterStatus_To_v1beta1_AWSClusterStatus(in *v1beta
 	} else {
 		out.Bastion = nil
 	}
-	out.Conditions = *(*apiv1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
+	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 
@@ -1446,11 +1446,11 @@ func autoConvert_v1beta2_AWSMachineSpec_To_v1beta1_AWSMachineSpec(in *v1beta2.AW
 func autoConvert_v1beta1_AWSMachineStatus_To_v1beta2_AWSMachineStatus(in *AWSMachineStatus, out *v1beta2.AWSMachineStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
 	out.Interruptible = in.Interruptible
-	out.Addresses = *(*[]apiv1beta1.MachineAddress)(unsafe.Pointer(&in.Addresses))
+	out.Addresses = *(*[]corev1beta1.MachineAddress)(unsafe.Pointer(&in.Addresses))
 	out.InstanceState = (*v1beta2.InstanceState)(unsafe.Pointer(in.InstanceState))
 	out.FailureReason = (*string)(unsafe.Pointer(in.FailureReason))
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
-	out.Conditions = *(*apiv1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
+	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 
@@ -1462,11 +1462,11 @@ func Convert_v1beta1_AWSMachineStatus_To_v1beta2_AWSMachineStatus(in *AWSMachine
 func autoConvert_v1beta2_AWSMachineStatus_To_v1beta1_AWSMachineStatus(in *v1beta2.AWSMachineStatus, out *AWSMachineStatus, s conversion.Scope) error {
 	out.Ready = in.Ready
 	out.Interruptible = in.Interruptible
-	out.Addresses = *(*[]apiv1beta1.MachineAddress)(unsafe.Pointer(&in.Addresses))
+	out.Addresses = *(*[]corev1beta1.MachineAddress)(unsafe.Pointer(&in.Addresses))
 	out.InstanceState = (*InstanceState)(unsafe.Pointer(in.InstanceState))
 	out.FailureReason = (*string)(unsafe.Pointer(in.FailureReason))
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
-	out.Conditions = *(*apiv1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
+	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
 	// WARNING: in.DedicatedHost requires manual conversion: does not exist in peer-type
 	return nil
 }
@@ -1988,7 +1988,7 @@ func autoConvert_v1beta1_Instance_To_v1beta2_Instance(in *Instance, out *v1beta2
 	out.SecurityGroupIDs = *(*[]string)(unsafe.Pointer(&in.SecurityGroupIDs))
 	out.UserData = (*string)(unsafe.Pointer(in.UserData))
 	out.IAMProfile = in.IAMProfile
-	out.Addresses = *(*[]apiv1beta1.MachineAddress)(unsafe.Pointer(&in.Addresses))
+	out.Addresses = *(*[]corev1beta1.MachineAddress)(unsafe.Pointer(&in.Addresses))
 	out.PrivateIP = (*string)(unsafe.Pointer(in.PrivateIP))
 	out.PublicIP = (*string)(unsafe.Pointer(in.PublicIP))
 	out.ENASupport = (*bool)(unsafe.Pointer(in.ENASupport))
@@ -2019,7 +2019,7 @@ func autoConvert_v1beta2_Instance_To_v1beta1_Instance(in *v1beta2.Instance, out 
 	out.SecurityGroupIDs = *(*[]string)(unsafe.Pointer(&in.SecurityGroupIDs))
 	out.UserData = (*string)(unsafe.Pointer(in.UserData))
 	out.IAMProfile = in.IAMProfile
-	out.Addresses = *(*[]apiv1beta1.MachineAddress)(unsafe.Pointer(&in.Addresses))
+	out.Addresses = *(*[]corev1beta1.MachineAddress)(unsafe.Pointer(&in.Addresses))
 	out.PrivateIP = (*string)(unsafe.Pointer(in.PrivateIP))
 	out.PublicIP = (*string)(unsafe.Pointer(in.PublicIP))
 	out.ENASupport = (*bool)(unsafe.Pointer(in.ENASupport))
