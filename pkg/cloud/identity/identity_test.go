@@ -89,7 +89,7 @@ func TestAWSStaticPrincipalTypeProvider(t *testing.T) {
 		name      string
 		provider  AWSPrincipalTypeProvider
 		expect    func(m *mock_stsiface.MockSTSClientMockRecorder)
-		expectErr bool
+		expectErr bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		value     aws.Credentials
 	}{
 		{

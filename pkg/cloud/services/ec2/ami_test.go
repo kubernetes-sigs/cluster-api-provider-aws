@@ -301,7 +301,7 @@ func TestFormatVersionForEKS(t *testing.T) {
 		name    string
 		version string
 		want    string
-		wantErr bool
+		wantErr bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name:    "Should remove non zero patch from version",
@@ -402,7 +402,7 @@ func TestGetLatestImage(t *testing.T) {
 		name    string
 		imgs    []ec2types.Image
 		want    *ec2types.Image
-		wantErr bool
+		wantErr bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "Should return image with latest creation date",
@@ -489,7 +489,7 @@ func TestEKSAMILookUp(t *testing.T) {
 		amiType    *infrav1.EKSAMILookupType
 		expect     func(m *mock_ssmiface.MockSSMAPIMockRecorder)
 		want       string
-		wantErr    bool
+		wantErr    bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name:       "Should return an id corresponding to GPU if GPU based AMI type passed",

@@ -65,7 +65,7 @@ func TestEnsurePausedCondition(t *testing.T) {
 		name         string
 		cluster      *clusterv1.Cluster
 		object       ConditionSetter
-		wantIsPaused bool
+		wantIsPaused bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name:         "unpaused cluster and unpaused object",

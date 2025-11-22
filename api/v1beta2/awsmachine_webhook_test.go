@@ -44,7 +44,7 @@ func TestAWSMachineCreate(t *testing.T) {
 	tests := []struct {
 		name    string
 		machine *AWSMachine
-		wantErr bool
+		wantErr bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "ensure IOPS exists if type equal to io1",
@@ -620,7 +620,7 @@ func TestAWSMachineUpdate(t *testing.T) {
 		name       string
 		oldMachine *AWSMachine
 		newMachine *AWSMachine
-		wantErr    bool
+		wantErr    bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "change in providerid, cloudinit, tags, securitygroups",

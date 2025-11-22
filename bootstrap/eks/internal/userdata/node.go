@@ -53,7 +53,7 @@ type NodeInput struct {
 	APIRetryAttempts      *int
 	PauseContainerAccount *string
 	PauseContainerVersion *string
-	UseMaxPods            *bool
+	UseMaxPods            *bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	// NOTE: currently the IPFamily/ServiceIPV6Cidr isn't exposed to the user.
 	// TODO (richardcase): remove the above comment when IPV6 / dual stack is implemented.
 	IPFamily                 *string

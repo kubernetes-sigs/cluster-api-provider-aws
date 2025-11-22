@@ -35,7 +35,7 @@ func TestLifecycleHookNeedsUpdate(t *testing.T) {
 		name       string
 		existing   expinfrav1.AWSLifecycleHook
 		expected   expinfrav1.AWSLifecycleHook
-		wantUpdate bool
+		wantUpdate bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "exactly equal",

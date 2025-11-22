@@ -254,7 +254,7 @@ func TestSubnetSpec_IsEdge(t *testing.T) {
 	tests := []struct {
 		name string
 		spec *SubnetSpec
-		want bool
+		want bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "az without type is not edge",
@@ -296,7 +296,7 @@ func TestSubnetSpec_IsEdgeWavelength(t *testing.T) {
 	tests := []struct {
 		name string
 		spec *SubnetSpec
-		want bool
+		want bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "az without type is not edge wavelength",
@@ -805,7 +805,7 @@ func TestSubnets_HasPublicSubnetWavelength(t *testing.T) {
 	tests := []struct {
 		name    string
 		subnets Subnets
-		want    bool
+		want    bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name:    "no subnets",
