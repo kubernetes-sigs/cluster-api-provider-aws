@@ -67,7 +67,7 @@ type AWSMachinePoolSpec struct {
 
 	// AWSLaunchTemplate specifies the launch template and version to use when an instance is launched.
 	// +kubebuilder:validation:Required
-	AWSLaunchTemplate AWSLaunchTemplate `json:"awsLaunchTemplate"`
+	AWSLaunchTemplate AWSLaunchTemplate `json:"awsLaunchTemplate,omitzero"`
 
 	// MixedInstancesPolicy describes how multiple instance types will be used by the ASG.
 	MixedInstancesPolicy *MixedInstancesPolicy `json:"mixedInstancesPolicy,omitempty"`
