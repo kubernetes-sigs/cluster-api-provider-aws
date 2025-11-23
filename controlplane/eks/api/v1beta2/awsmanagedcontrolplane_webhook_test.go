@@ -168,18 +168,20 @@ func TestDefaultingWebhook(t *testing.T) {
 
 func TestWebhookCreate(t *testing.T) {
 	tests := []struct { //nolint:maligned
-		name                 string
-		eksClusterName       string
-		expectError          bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+		name           string
+		eksClusterName string
+		//nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+		expectError          bool
 		expectErrorToContain string // if non-empty, the error message must contain this substring
 		eksVersion           string
-		hasAddons            bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
-		vpcCNI               VpcCni
-		additionalTags       infrav1.Tags
-		secondaryCidr        *string
-		secondaryCidrBlocks  []infrav1.VpcCidrBlock
-		kubeProxy            KubeProxy
-		accessConfig         *AccessConfig
+		//nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+		hasAddons           bool
+		vpcCNI              VpcCni
+		additionalTags      infrav1.Tags
+		secondaryCidr       *string
+		secondaryCidrBlocks []infrav1.VpcCidrBlock
+		kubeProxy           KubeProxy
+		accessConfig        *AccessConfig
 	}{
 		{
 			name:           "ekscluster specified",

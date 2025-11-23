@@ -118,13 +118,17 @@ type SuspendProcessesTypes struct {
 
 // Processes defines the processes which can be enabled or disabled individually.
 type Processes struct {
-	Launch            *bool `json:"launch,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
-	Terminate         *bool `json:"terminate,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
-	AddToLoadBalancer *bool `json:"addToLoadBalancer,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
-	AlarmNotification *bool `json:"alarmNotification,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
-	AZRebalance       *bool `json:"azRebalance,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
-	HealthCheck       *bool `json:"healthCheck,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
-	InstanceRefresh   *bool `json:"instanceRefresh,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+	//nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+	Launch *bool `json:"launch,omitempty"`
+	//nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+	Terminate *bool `json:"terminate,omitempty"`
+	//nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+	AddToLoadBalancer *bool `json:"addToLoadBalancer,omitempty"`
+	//nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+	AlarmNotification *bool `json:"alarmNotification,omitempty"`
+	AZRebalance       *bool `json:"azRebalance,omitempty"`      //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+	HealthCheck       *bool `json:"healthCheck,omitempty"`      //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+	InstanceRefresh   *bool `json:"instanceRefresh,omitempty"`  //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	ReplaceUnhealthy  *bool `json:"replaceUnhealthy,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	ScheduledActions  *bool `json:"scheduledActions,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 }

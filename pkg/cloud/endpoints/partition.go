@@ -36,11 +36,13 @@ type Partition struct {
 //
 //nolint:revive
 type PartitionConfig struct {
-	Name                 string `json:"name"`
-	DnsSuffix            string `json:"dnsSuffix"`
-	DualStackDnsSuffix   string `json:"dualStackDnsSuffix"`
-	SupportsFIPS         bool   `json:"supportsFIPS"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
-	SupportsDualStack    bool   `json:"supportsDualStack"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+	Name               string `json:"name"`
+	DnsSuffix          string `json:"dnsSuffix"`
+	DualStackDnsSuffix string `json:"dualStackDnsSuffix"`
+	//nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+	SupportsFIPS bool `json:"supportsFIPS"`
+	//nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+	SupportsDualStack    bool   `json:"supportsDualStack"`
 	ImplicitGlobalRegion string `json:"implicitGlobalRegion"`
 }
 
@@ -51,7 +53,7 @@ type RegionOverrides struct {
 	Name               *string `json:"name"`
 	DnsSuffix          *string `json:"dnsSuffix"`
 	DualStackDnsSuffix *string `json:"dualStackDnsSuffix"`
-	SupportsFIPS       *bool   `json:"supportsFIPS"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+	SupportsFIPS       *bool   `json:"supportsFIPS"`      //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	SupportsDualStack  *bool   `json:"supportsDualStack"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 }
 
