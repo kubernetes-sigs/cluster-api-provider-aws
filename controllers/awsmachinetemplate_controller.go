@@ -33,6 +33,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
@@ -45,6 +46,11 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/predicates"
+)
+
+const (
+	// awsMachineTemplateKind is the Kind name for AWSMachineTemplate resources.
+	awsMachineTemplateKind = "AWSMachineTemplate"
 )
 
 // AWSMachineTemplateReconciler reconciles AWSMachineTemplate objects.
@@ -62,11 +68,27 @@ type AWSMachineTemplateReconciler struct {
 func (r *AWSMachineTemplateReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	log := logger.FromContext(ctx)
 
-	return ctrl.NewControllerManagedBy(mgr).
+	b := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.AWSMachineTemplate{}).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), log.GetLogger(), r.WatchFilterValue)).
-		Complete(r)
+		Watches(
+			&clusterv1.MachineDeployment{},
+			handler.EnqueueRequestsFromMapFunc(r.machineDeploymentToAWSMachineTemplate),
+		)
+
+	// Optionally watch KubeadmControlPlane if the CRD exists
+	if _, err := mgr.GetRESTMapper().RESTMapping(schema.GroupKind{Group: controlplanev1.GroupVersion.Group, Kind: "KubeadmControlPlane"}, controlplanev1.GroupVersion.Version); err == nil {
+		b = b.Watches(&controlplanev1.KubeadmControlPlane{},
+			handler.EnqueueRequestsFromMapFunc(r.kubeadmControlPlaneToAWSMachineTemplate))
+	}
+
+	_, err := b.Build(r)
+	if err != nil {
+		return errors.Wrap(err, "failed setting up with a controller manager")
+	}
+
+	return nil
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates,verbs=get;list;watch
@@ -373,7 +395,7 @@ func (r *AWSMachineTemplateReconciler) getKubernetesVersion(ctx context.Context,
 
 	// Find MachineDeployments that reference this AWSMachineTemplate
 	for _, md := range machineDeploymentList.Items {
-		if md.Spec.Template.Spec.InfrastructureRef.Kind == "AWSMachineTemplate" &&
+		if md.Spec.Template.Spec.InfrastructureRef.Kind == awsMachineTemplateKind &&
 			md.Spec.Template.Spec.InfrastructureRef.Name == template.Name &&
 			md.Spec.Template.Spec.Version != "" {
 			return md.Spec.Template.Spec.Version, nil
@@ -388,7 +410,7 @@ func (r *AWSMachineTemplateReconciler) getKubernetesVersion(ctx context.Context,
 
 	// Find KubeadmControlPlanes that reference this AWSMachineTemplate
 	for _, kcp := range kcpList.Items {
-		if kcp.Spec.MachineTemplate.Spec.InfrastructureRef.Kind == "AWSMachineTemplate" &&
+		if kcp.Spec.MachineTemplate.Spec.InfrastructureRef.Kind == awsMachineTemplateKind &&
 			kcp.Spec.MachineTemplate.Spec.InfrastructureRef.Name == template.Name &&
 			kcp.Spec.Version != "" {
 			return kcp.Spec.Version, nil
@@ -419,4 +441,54 @@ func getParentListOptions(obj metav1.ObjectMeta) ([]client.ListOption, error) {
 		}
 	}
 	return listOpts, nil
+}
+
+// kubeadmControlPlaneToAWSMachineTemplate maps KubeadmControlPlane to AWSMachineTemplate reconcile requests.
+// This enables the controller to reconcile AWSMachineTemplate when its owner KubeadmControlPlane is created or updated,
+// ensuring that nodeInfo can be populated even if the cache hasn't synced yet.
+func (r *AWSMachineTemplateReconciler) kubeadmControlPlaneToAWSMachineTemplate(ctx context.Context, o client.Object) []ctrl.Request {
+	kcp, ok := o.(*controlplanev1.KubeadmControlPlane)
+	if !ok {
+		return nil
+	}
+
+	// Check if it references an AWSMachineTemplate
+	if kcp.Spec.MachineTemplate.Spec.InfrastructureRef.Kind != awsMachineTemplateKind {
+		return nil
+	}
+
+	// Return reconcile request for the referenced AWSMachineTemplate
+	return []ctrl.Request{
+		{
+			NamespacedName: client.ObjectKey{
+				Namespace: kcp.Namespace,
+				Name:      kcp.Spec.MachineTemplate.Spec.InfrastructureRef.Name,
+			},
+		},
+	}
+}
+
+// machineDeploymentToAWSMachineTemplate maps MachineDeployment to AWSMachineTemplate reconcile requests.
+// This enables the controller to reconcile AWSMachineTemplate when its owner MachineDeployment is created or updated,
+// ensuring that nodeInfo can be populated even if the cache hasn't synced yet.
+func (r *AWSMachineTemplateReconciler) machineDeploymentToAWSMachineTemplate(ctx context.Context, o client.Object) []ctrl.Request {
+	md, ok := o.(*clusterv1.MachineDeployment)
+	if !ok {
+		return nil
+	}
+
+	// Check if it references an AWSMachineTemplate
+	if md.Spec.Template.Spec.InfrastructureRef.Kind != awsMachineTemplateKind {
+		return nil
+	}
+
+	// Return reconcile request for the referenced AWSMachineTemplate
+	return []ctrl.Request{
+		{
+			NamespacedName: client.ObjectKey{
+				Namespace: md.Namespace,
+				Name:      md.Spec.Template.Spec.InfrastructureRef.Name,
+			},
+		},
+	}
 }
