@@ -49,7 +49,6 @@ func TestNewNode(t *testing.T) {
 				},
 			},
 			expectedBytes: []byte(`#cloud-config
-write_files:
 runcmd:
   - /etc/eks/bootstrap.sh test-cluster
 `),
@@ -67,7 +66,6 @@ runcmd:
 				},
 			},
 			expectedBytes: []byte(`#cloud-config
-write_files:
 runcmd:
   - /etc/eks/bootstrap.sh test-cluster --kubelet-extra-args '--node-labels=node-role.undistro.io/infra=true --register-with-taints=dedicated=infra:NoSchedule'
 `),
@@ -81,7 +79,6 @@ runcmd:
 				},
 			},
 			expectedBytes: []byte(`#cloud-config
-write_files:
 runcmd:
   - /etc/eks/bootstrap.sh test-cluster --container-runtime containerd
 `),
@@ -99,7 +96,6 @@ runcmd:
 				},
 			},
 			expectedBytes: []byte(`#cloud-config
-write_files:
 runcmd:
   - /etc/eks/bootstrap.sh test-cluster --kubelet-extra-args '--node-labels=node-role.undistro.io/infra=true --register-with-taints=dedicated=infra:NoSchedule' --container-runtime containerd
 `),
@@ -114,7 +110,6 @@ runcmd:
 				},
 			},
 			expectedBytes: []byte(`#cloud-config
-write_files:
 runcmd:
   - /etc/eks/bootstrap.sh test-cluster --ip-family ipv6 --service-ipv6-cidr fe80:0000:0000:0000:0204:61ff:fe9d:f156/24
 `),
@@ -128,7 +123,6 @@ runcmd:
 				},
 			},
 			expectedBytes: []byte(`#cloud-config
-write_files:
 runcmd:
   - /etc/eks/bootstrap.sh test-cluster --use-max-pods false
 `),
@@ -142,7 +136,6 @@ runcmd:
 				},
 			},
 			expectedBytes: []byte(`#cloud-config
-write_files:
 runcmd:
   - /etc/eks/bootstrap.sh test-cluster --aws-api-retry-attempts 5
 `),
@@ -157,7 +150,6 @@ runcmd:
 				},
 			},
 			expectedBytes: []byte(`#cloud-config
-write_files:
 runcmd:
   - /etc/eks/bootstrap.sh test-cluster --pause-container-account 12345678 --pause-container-version v1
 `),
@@ -171,7 +163,6 @@ runcmd:
 				},
 			},
 			expectedBytes: []byte(`#cloud-config
-write_files:
 runcmd:
   - /etc/eks/bootstrap.sh test-cluster --dns-cluster-ip 192.168.0.1
 `),
@@ -185,7 +176,6 @@ runcmd:
 				},
 			},
 			expectedBytes: []byte(`#cloud-config
-write_files:
 runcmd:
   - /etc/eks/bootstrap.sh test-cluster --docker-config-json '{"debug":true}'
 `),
@@ -199,7 +189,6 @@ runcmd:
 				},
 			},
 			expectedBytes: []byte(`#cloud-config
-write_files:
 runcmd:
   - "date"
   - "echo \"testing\""
@@ -215,7 +204,6 @@ runcmd:
 				},
 			},
 			expectedBytes: []byte(`#cloud-config
-write_files:
 runcmd:
   - /etc/eks/bootstrap.sh test-cluster
   - "date"
@@ -232,7 +220,6 @@ runcmd:
 				},
 			},
 			expectedBytes: []byte(`#cloud-config
-write_files:
 runcmd:
   - "echo \"testing pre\""
   - /etc/eks/bootstrap.sh test-cluster
@@ -248,7 +235,6 @@ runcmd:
 				},
 			},
 			expectedBytes: []byte(`#cloud-config
-write_files:
 runcmd:
   - /custom/mybootstrap.sh test-cluster
 `),
@@ -280,7 +266,6 @@ runcmd:
 				},
 			},
 			expectedBytes: []byte(`#cloud-config
-write_files:
 runcmd:
   - /etc/eks/bootstrap.sh test-cluster
 disk_setup:
@@ -326,6 +311,31 @@ runcmd:
 `),
 		},
 		{
+			name: "with empty files",
+			args: args{
+				input: &NodeInput{
+					ClusterName: "test-cluster",
+					Files:       []eksbootstrapv1.File{},
+				},
+			},
+			expectedBytes: []byte(`#cloud-config
+runcmd:
+  - /etc/eks/bootstrap.sh test-cluster
+`),
+		},
+		{
+			name: "with nil files",
+			args: args{
+				input: &NodeInput{
+					ClusterName: "test-cluster",
+				},
+			},
+			expectedBytes: []byte(`#cloud-config
+runcmd:
+  - /etc/eks/bootstrap.sh test-cluster
+`),
+		},
+		{
 			name: "with ntp",
 			args: args{
 				input: &NodeInput{
@@ -337,7 +347,6 @@ runcmd:
 				},
 			},
 			expectedBytes: []byte(`#cloud-config
-write_files:
 runcmd:
   - /etc/eks/bootstrap.sh test-cluster
 ntp:
@@ -363,7 +372,6 @@ ntp:
 				},
 			},
 			expectedBytes: []byte(`#cloud-config
-write_files:
 runcmd:
   - /etc/eks/bootstrap.sh test-cluster
 users:
