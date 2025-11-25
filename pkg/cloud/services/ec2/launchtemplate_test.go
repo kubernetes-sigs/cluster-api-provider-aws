@@ -1444,6 +1444,7 @@ var LaunchTemplateVersionIgnoreUnexported = cmpopts.IgnoreUnexported(
 	ec2types.LaunchTemplateIamInstanceProfileSpecificationRequest{},
 	ec2types.LaunchTemplateSpotMarketOptionsRequest{},
 	ec2types.LaunchTemplateInstanceMarketOptionsRequest{},
+	ec2types.LaunchTemplatePlacementRequest{},
 	ec2types.Tag{},
 	ec2types.LaunchTemplateTagSpecificationRequest{},
 	ec2types.RequestLaunchTemplateData{},
@@ -1614,6 +1615,116 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 								CapacityReservationId: aws.String("cr-12345678901234567"),
 							},
 							CapacityReservationPreference: ec2types.CapacityReservationPreferenceCapacityReservationsOnly,
+						},
+						TagSpecifications: []ec2types.LaunchTemplateTagSpecificationRequest{
+							{
+								ResourceType: ec2types.ResourceTypeInstance,
+								Tags:         defaultEC2AndDataTags("aws-mp-name", "cluster-name", userDataSecretKey, testBootstrapDataHash),
+							},
+							{
+								ResourceType: ec2types.ResourceTypeVolume,
+								Tags:         defaultEC2Tags("aws-mp-name", "cluster-name"),
+							},
+						},
+					},
+					LaunchTemplateId: aws.String("launch-template-id"),
+				}
+				m.CreateLaunchTemplateVersion(context.TODO(), gomock.AssignableToTypeOf(expectedInput)).Return(&ec2.CreateLaunchTemplateVersionOutput{
+					LaunchTemplateVersion: &ec2types.LaunchTemplateVersion{
+						LaunchTemplateId: aws.String("launch-template-id"),
+					},
+				}, nil).Do(
+					func(ctx context.Context, arg *ec2.CreateLaunchTemplateVersionInput, requestOptions ...ec2.Options) {
+						// formatting added to match tags slice during cmp.Equal()
+						formatTagsInput(arg)
+						if !cmp.Equal(expectedInput, arg, LaunchTemplateVersionIgnoreUnexported) {
+							t.Fatalf("mismatch in input expected: %+v, but got %+v, diff: %s", expectedInput, arg, cmp.Diff(expectedInput, arg, LaunchTemplateVersionIgnoreUnexported))
+						}
+					})
+			},
+		},
+		{
+			name:                 "Should successfully create launch template version with placement group name",
+			awsResourceReference: []infrav1.AWSResourceReference{{ID: aws.String("1")}},
+			mpScopeUpdater: func(mps *scope.MachinePoolScope) {
+				spec := mps.AWSMachinePool.Spec
+				spec.AWSLaunchTemplate.PlacementGroupName = "my-placement-group"
+				spec.AWSLaunchTemplate.SpotMarketOptions = nil
+				mps.AWSMachinePool.Spec = spec
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				sgMap := make(map[infrav1.SecurityGroupRole]infrav1.SecurityGroup)
+				sgMap[infrav1.SecurityGroupNode] = infrav1.SecurityGroup{ID: "1"}
+				sgMap[infrav1.SecurityGroupLB] = infrav1.SecurityGroup{ID: "2"}
+
+				expectedInput := &ec2.CreateLaunchTemplateVersionInput{
+					LaunchTemplateData: &ec2types.RequestLaunchTemplateData{
+						InstanceType: ec2types.InstanceTypeT3Large,
+						IamInstanceProfile: &ec2types.LaunchTemplateIamInstanceProfileSpecificationRequest{
+							Name: aws.String("instance-profile"),
+						},
+						KeyName:          aws.String("default"),
+						UserData:         ptr.To[string](base64.StdEncoding.EncodeToString(userData)),
+						SecurityGroupIds: []string{"nodeSG", "lbSG", "1"},
+						ImageId:          aws.String("imageID"),
+						Placement: &ec2types.LaunchTemplatePlacementRequest{
+							GroupName: aws.String("my-placement-group"),
+						},
+						TagSpecifications: []ec2types.LaunchTemplateTagSpecificationRequest{
+							{
+								ResourceType: ec2types.ResourceTypeInstance,
+								Tags:         defaultEC2AndDataTags("aws-mp-name", "cluster-name", userDataSecretKey, testBootstrapDataHash),
+							},
+							{
+								ResourceType: ec2types.ResourceTypeVolume,
+								Tags:         defaultEC2Tags("aws-mp-name", "cluster-name"),
+							},
+						},
+					},
+					LaunchTemplateId: aws.String("launch-template-id"),
+				}
+				m.CreateLaunchTemplateVersion(context.TODO(), gomock.AssignableToTypeOf(expectedInput)).Return(&ec2.CreateLaunchTemplateVersionOutput{
+					LaunchTemplateVersion: &ec2types.LaunchTemplateVersion{
+						LaunchTemplateId: aws.String("launch-template-id"),
+					},
+				}, nil).Do(
+					func(ctx context.Context, arg *ec2.CreateLaunchTemplateVersionInput, requestOptions ...ec2.Options) {
+						// formatting added to match tags slice during cmp.Equal()
+						formatTagsInput(arg)
+						if !cmp.Equal(expectedInput, arg, LaunchTemplateVersionIgnoreUnexported) {
+							t.Fatalf("mismatch in input expected: %+v, but got %+v, diff: %s", expectedInput, arg, cmp.Diff(expectedInput, arg, LaunchTemplateVersionIgnoreUnexported))
+						}
+					})
+			},
+		},
+		{
+			name:                 "Should successfully create launch template version with placement group name and partition",
+			awsResourceReference: []infrav1.AWSResourceReference{{ID: aws.String("1")}},
+			mpScopeUpdater: func(mps *scope.MachinePoolScope) {
+				spec := mps.AWSMachinePool.Spec
+				spec.AWSLaunchTemplate.PlacementGroupName = "my-partition-placement-group"
+				spec.AWSLaunchTemplate.PlacementGroupPartition = 3
+				spec.AWSLaunchTemplate.SpotMarketOptions = nil
+				mps.AWSMachinePool.Spec = spec
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				sgMap := make(map[infrav1.SecurityGroupRole]infrav1.SecurityGroup)
+				sgMap[infrav1.SecurityGroupNode] = infrav1.SecurityGroup{ID: "1"}
+				sgMap[infrav1.SecurityGroupLB] = infrav1.SecurityGroup{ID: "2"}
+
+				expectedInput := &ec2.CreateLaunchTemplateVersionInput{
+					LaunchTemplateData: &ec2types.RequestLaunchTemplateData{
+						InstanceType: ec2types.InstanceTypeT3Large,
+						IamInstanceProfile: &ec2types.LaunchTemplateIamInstanceProfileSpecificationRequest{
+							Name: aws.String("instance-profile"),
+						},
+						KeyName:          aws.String("default"),
+						UserData:         ptr.To[string](base64.StdEncoding.EncodeToString(userData)),
+						SecurityGroupIds: []string{"nodeSG", "lbSG", "1"},
+						ImageId:          aws.String("imageID"),
+						Placement: &ec2types.LaunchTemplatePlacementRequest{
+							GroupName:       aws.String("my-partition-placement-group"),
+							PartitionNumber: aws.Int32(3),
 						},
 						TagSpecifications: []ec2types.LaunchTemplateTagSpecificationRequest{
 							{
@@ -2189,6 +2300,60 @@ func TestDeleteLaunchTemplateVersion(t *testing.T) {
 				return
 			}
 			g.Expect(s.deleteLaunchTemplateVersion(tc.args.id, tc.args.version)).NotTo(HaveOccurred())
+		})
+	}
+}
+
+func TestGetLaunchTemplatePlacementRequest(t *testing.T) {
+	testCases := []struct {
+		name     string
+		input    *expinfrav1.AWSLaunchTemplate
+		expected *ec2types.LaunchTemplatePlacementRequest
+	}{
+		{
+			name:     "nil launch template returns nil",
+			input:    nil,
+			expected: nil,
+		},
+		{
+			name:     "empty placement group name and partition returns nil",
+			input:    &expinfrav1.AWSLaunchTemplate{},
+			expected: nil,
+		},
+		{
+			name: "placement group partition without name returns nil",
+			input: &expinfrav1.AWSLaunchTemplate{
+				PlacementGroupPartition: 3,
+			},
+			expected: nil,
+		},
+		{
+			name: "placement group name only returns group name",
+			input: &expinfrav1.AWSLaunchTemplate{
+				PlacementGroupName: "my-placement-group",
+			},
+			expected: &ec2types.LaunchTemplatePlacementRequest{
+				GroupName: aws.String("my-placement-group"),
+			},
+		},
+		{
+			name: "placement group name with partition returns both",
+			input: &expinfrav1.AWSLaunchTemplate{
+				PlacementGroupName:      "my-partition-pg",
+				PlacementGroupPartition: 5,
+			},
+			expected: &ec2types.LaunchTemplatePlacementRequest{
+				GroupName:       aws.String("my-partition-pg"),
+				PartitionNumber: aws.Int32(5),
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			result := getLaunchTemplatePlacementRequest(tc.input)
+			g.Expect(result).To(Equal(tc.expected))
 		})
 	}
 }
