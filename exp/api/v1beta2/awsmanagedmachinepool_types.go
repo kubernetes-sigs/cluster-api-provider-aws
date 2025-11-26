@@ -188,7 +188,6 @@ type AWSManagedMachinePoolSpec struct {
 	// uses the order of instance types to determine which instance type to use first when fulfilling capacity.
 	// See AWS documentation https://docs.aws.amazon.com/eks/latest/userguide/managed-node-groups.html#managed-node-group-capacity-types
 	// for more information.
-	// At most one of InstanceType or InstanceTypes may be specified.
 	// +optional
 	InstanceTypes []string `json:"instanceTypes,omitempty"`
 
