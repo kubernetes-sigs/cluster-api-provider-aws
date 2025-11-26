@@ -221,6 +221,12 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// +kubebuilder:validation:Enum=extended;standard
 	// +optional
 	UpgradePolicy UpgradePolicy `json:"upgradePolicy,omitempty"`
+
+	// ControlPlaneScalingConfig specifies the scaling configuration for the EKS control plane.
+	// This allows you to select from a set of scaling tiers for predictable, high performance from the cluster's control plane.
+	// (Official AWS docs: https://docs.aws.amazon.com/eks/latest/userguide/eks-provisioned-control-plane.html)
+	// +optional
+	ControlPlaneScalingConfig *ControlPlaneScalingConfig `json:"controlPlaneScalingConfig,omitempty"`
 }
 
 // KubeProxy specifies how the kube-proxy daemonset is managed.

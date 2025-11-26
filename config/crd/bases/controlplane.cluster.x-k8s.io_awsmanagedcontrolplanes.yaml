@@ -2411,6 +2411,23 @@ spec:
                 - host
                 - port
                 type: object
+              controlPlaneScalingConfig:
+                description: |-
+                  ControlPlaneScalingConfig specifies the scaling configuration for the EKS control plane.
+                  This allows you to select from a set of scaling tiers for predictable, high performance from the cluster's control plane.
+                  (Official AWS docs: https://docs.aws.amazon.com/eks/latest/userguide/eks-provisioned-control-plane.html)
+                properties:
+                  tier:
+                    description: |-
+                      Tier specifies the tier for the EKS control plane.
+                      Valid values are: standard, tier-xl, tier-2xl, tier-4xl
+                    enum:
+                    - standard
+                    - tier-xl
+                    - tier-2xl
+                    - tier-4xl
+                    type: string
+                type: object
               eksClusterName:
                 description: |-
                   EKSClusterName allows you to specify the name of the EKS cluster in
