@@ -192,6 +192,7 @@ endif
 # GINKGO_FOCUS := "\\[smoke\\]"
 # For running CAPI e2e tests: GINKGO_FOCUS := "\\[Cluster API Framework\\]"
 # For running CAPI blocking e2e test: GINKGO_FOCUS := "\\[PR-Blocking\\]"
+GINKGO_FOCUS := "\\[nodeadm\\]"
 ifdef GINKGO_FOCUS
 	override GINKGO_ARGS += -focus="$(GINKGO_FOCUS)"
 endif
