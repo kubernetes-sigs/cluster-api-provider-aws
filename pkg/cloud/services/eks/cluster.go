@@ -504,6 +504,8 @@ func (s *Service) createCluster(ctx context.Context, eksClusterName string) (*ek
 		}
 	}
 
+	controlPlaneScalingConfig := converters.ControlPlaneScalingConfigToSDK(s.scope.ControlPlane.Spec.ControlPlaneScalingConfig)
+
 	bootstrapAddon := s.scope.BootstrapSelfManagedAddons()
 	input := &eks.CreateClusterInput{
 		Name:                       aws.String(eksClusterName),
@@ -517,6 +519,7 @@ func (s *Service) createCluster(ctx context.Context, eksClusterName string) (*ek
 		KubernetesNetworkConfig:    netConfig,
 		BootstrapSelfManagedAddons: bootstrapAddon,
 		UpgradePolicy:              upgradePolicy,
+		ControlPlaneScalingConfig:  controlPlaneScalingConfig,
 	}
 
 	var out *eks.CreateClusterOutput
@@ -575,6 +578,11 @@ func (s *Service) reconcileClusterConfig(ctx context.Context, cluster *ekstypes.
 	if updateUpgradePolicy := s.reconcileUpgradePolicy(cluster.UpgradePolicy); updateUpgradePolicy != nil {
 		needsUpdate = true
 		input.UpgradePolicy = updateUpgradePolicy
+	}
+
+	if updateScalingConfig := s.reconcileScalingConfig(cluster.ControlPlaneScalingConfig); updateScalingConfig != nil {
+		needsUpdate = true
+		input.ControlPlaneScalingConfig = updateScalingConfig
 	}
 
 	if needsUpdate {
@@ -832,6 +840,26 @@ func (s *Service) reconcileUpgradePolicy(upgradePolicy *ekstypes.UpgradePolicyRe
 	return &ekstypes.UpgradePolicyRequest{
 		SupportType: converters.SupportTypeToSDK(s.scope.ControlPlane.Spec.UpgradePolicy),
 	}
+}
+
+func (s *Service) reconcileScalingConfig(scalingConfig *ekstypes.ControlPlaneScalingConfig) *ekstypes.ControlPlaneScalingConfig {
+	// If no scaling config is specified in the spec, don't update
+	if s.scope.ControlPlane.Spec.ControlPlaneScalingConfig == nil {
+		return nil
+	}
+
+	// If the cluster doesn't have a scaling config yet, or if it differs from the spec, update it
+	desiredConfig := converters.ControlPlaneScalingConfigToSDK(s.scope.ControlPlane.Spec.ControlPlaneScalingConfig)
+	if desiredConfig == nil {
+		return nil
+	}
+
+	// If current config is nil or tier differs, update is needed
+	if scalingConfig == nil || scalingConfig.Tier != desiredConfig.Tier {
+		return desiredConfig
+	}
+
+	return nil
 }
 
 func (s *Service) describeEKSCluster(ctx context.Context, eksClusterName string) (*ekstypes.Cluster, error) {
