@@ -8,9 +8,11 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 
 	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 func TestNodeadmConfigReconcilerReturnEarlyIfClusterInfraNotReady(t *testing.T) {
@@ -21,7 +23,9 @@ func TestNodeadmConfigReconcilerReturnEarlyIfClusterInfraNotReady(t *testing.T) 
 	config := newNodeadmConfig(machine)
 
 	cluster.Status = clusterv1.ClusterStatus{
-		InfrastructureReady: false,
+		Initialization: clusterv1.ClusterInitializationStatus{
+			InfrastructureProvisioned: ptr.To(false),
+		},
 	}
 
 	reconciler := NodeadmConfigReconciler{
@@ -42,7 +46,9 @@ func TestNodeadmConfigReconcilerReturnEarlyIfClusterControlPlaneNotInitialized(t
 	config := newNodeadmConfig(machine)
 
 	cluster.Status = clusterv1.ClusterStatus{
-		InfrastructureReady: true,
+		Initialization: clusterv1.ClusterInitializationStatus{
+			InfrastructureProvisioned: ptr.To(true),
+		},
 	}
 
 	reconciler := NodeadmConfigReconciler{
@@ -71,14 +77,13 @@ func newNodeadmConfig(machine *clusterv1.Machine) *eksbootstrapv1.NodeadmConfig 
 		config.ObjectMeta.OwnerReferences = []metav1.OwnerReference{
 			{
 				Kind:       "Machine",
-				APIVersion: clusterv1.GroupVersion.String(),
+				APIVersion: clusterv1beta1.GroupVersion.String(),
 				Name:       machine.Name,
 				UID:        types.UID(fmt.Sprintf("%s uid", machine.Name)),
 			},
 		}
 		config.Status.DataSecretName = &machine.Name
 		machine.Spec.Bootstrap.ConfigRef.Name = config.Name
-		machine.Spec.Bootstrap.ConfigRef.Namespace = config.Namespace
 	}
 	if machine != nil {
 		config.ObjectMeta.Name = machine.Name
@@ -93,7 +98,6 @@ func newNodeadmConfig(machine *clusterv1.Machine) *eksbootstrapv1.NodeadmConfig 
 		}
 		config.Status.DataSecretName = &machine.Name
 		machine.Spec.Bootstrap.ConfigRef.Name = config.Name
-		machine.Spec.Bootstrap.ConfigRef.Namespace = config.Namespace
 	}
 	return config
 }

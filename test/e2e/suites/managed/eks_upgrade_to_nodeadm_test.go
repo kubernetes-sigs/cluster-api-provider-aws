@@ -28,13 +28,13 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	ref "k8s.io/client-go/tools/reference"
 	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/util"
 )
@@ -181,9 +181,11 @@ var _ = ginkgo.Describe("EKS Cluster upgrade test", func() {
 			WaitForMachinesToBeUpgraded: e2eCtx.E2EConfig.GetIntervals("", "wait-worker-nodes"),
 		}
 		if nodeadmConfigTemplate != nil {
-			nodeadmRef, err := ref.GetReference(initScheme(), nodeadmConfigTemplate)
-			Expect(err).To(BeNil(), "object should have ref")
-			input.UpgradeBootstrapTemplate = nodeadmRef
+			input.UpgradeBootstrapTemplate = clusterv1.ContractVersionedObjectReference{
+				Kind:     "NodeadmConfigTemplate",
+				APIGroup: eksbootstrapv1.GroupVersion.Group,
+				Name:     nodeadmConfigTemplate.Name,
+			}
 		}
 		if awsMT != nil {
 			input.UpgradeMachineTemplate = ptr.To(awsMT.Name)

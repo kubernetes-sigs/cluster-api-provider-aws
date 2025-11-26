@@ -286,19 +286,18 @@ func newCluster(name string) *clusterv1.Cluster {
 		},
 		Spec: clusterv1.ClusterSpec{
 			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
-				Name: name,
-				Kind: "AWSManagedControlPlane",
+				Name:     name,
+				Kind:     "AWSManagedControlPlane",
+				APIGroup: ekscontrolplanev1.GroupVersion.Group,
 			},
 		},
 		Status: clusterv1.ClusterStatus{
 			Initialization: clusterv1.ClusterInitializationStatus{
 				InfrastructureProvisioned: ptr.To(true),
+				ControlPlaneInitialized:   ptr.To(true),
 			},
 		},
 	}
-	cluster.Status.Initialization.ControlPlaneInitialized = ptr.To(true)
-	v1beta1conditions.MarkTrue(cluster, clusterv1.ControlPlaneReadyCondition)
-	v1beta1conditions.MarkTrue(cluster, clusterv1.InfrastructureReadyCondition)
 	return cluster
 }
 
