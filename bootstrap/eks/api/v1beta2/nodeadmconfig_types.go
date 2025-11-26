@@ -4,7 +4,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 )
 
 // NodeadmConfigSpec defines the desired state of NodeadmConfig.
@@ -82,12 +82,12 @@ const (
 )
 
 // GetConditions returns the observations of the operational state of the NodeadmConfig resource.
-func (r *NodeadmConfig) GetConditions() clusterv1.Conditions {
+func (r *NodeadmConfig) GetConditions() clusterv1beta1.Conditions {
 	return r.Status.Conditions
 }
 
 // SetConditions sets the underlying service state of the NodeadmConfig to the predescribed clusterv1.Conditions.
-func (r *NodeadmConfig) SetConditions(conditions clusterv1.Conditions) {
+func (r *NodeadmConfig) SetConditions(conditions clusterv1beta1.Conditions) {
 	r.Status.Conditions = conditions
 }
 
@@ -115,7 +115,7 @@ type NodeadmConfigStatus struct {
 
 	// Conditions defines current service state of the NodeadmConfig.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true

@@ -125,7 +125,7 @@ type UpgradeMachineDeploymentsAndWaitInput struct {
 	Cluster                     *clusterv1.Cluster
 	UpgradeVersion              string
 	UpgradeMachineTemplate      *string
-	UpgradeBootstrapTemplate    *corev1.ObjectReference
+	UpgradeBootstrapTemplate    clusterv1.ContractVersionedObjectReference
 	MachineDeployments          []*clusterv1.MachineDeployment
 	WaitForMachinesToBeUpgraded []interface{}
 }
@@ -146,11 +146,11 @@ func UpgradeMachineDeploymentsAndWait(ctx context.Context, input UpgradeMachineD
 		Expect(err).ToNot(HaveOccurred())
 
 		oldVersion := deployment.Spec.Template.Spec.Version
-		deployment.Spec.Template.Spec.Version = &input.UpgradeVersion
+		deployment.Spec.Template.Spec.Version = input.UpgradeVersion
 		if input.UpgradeMachineTemplate != nil {
 			deployment.Spec.Template.Spec.InfrastructureRef.Name = *input.UpgradeMachineTemplate
 		}
-		if input.UpgradeBootstrapTemplate != nil {
+		if input.UpgradeBootstrapTemplate.IsDefined() {
 			deployment.Spec.Template.Spec.Bootstrap.ConfigRef = input.UpgradeBootstrapTemplate
 		}
 		Eventually(func() error {
@@ -158,7 +158,7 @@ func UpgradeMachineDeploymentsAndWait(ctx context.Context, input UpgradeMachineD
 		}, time.Minute*3, time.Second*3).Should(Succeed(), "Failed to patch Kubernetes version on MachineDeployment %s", klog.KObj(deployment))
 
 		log.Logf("Waiting for Kubernetes versions of machines in MachineDeployment %s to be upgraded from %s to %s",
-			deployment.Name, *oldVersion, input.UpgradeVersion)
+			deployment.Name, oldVersion, input.UpgradeVersion)
 		framework.WaitForMachineDeploymentMachinesToBeUpgraded(ctx, framework.WaitForMachineDeploymentMachinesToBeUpgradedInput{
 			Lister:                   mgmtClient,
 			Cluster:                  input.Cluster,

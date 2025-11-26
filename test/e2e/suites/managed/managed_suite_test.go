@@ -92,7 +92,6 @@ func initScheme() *runtime.Scheme {
 	_ = expinfrav1.AddToScheme(sc)
 	_ = clusterv1.AddToScheme(sc)
 	_ = ekscontrolplanev1.AddToScheme(sc)
-	_ = expclusterv1.AddToScheme(sc)
 	_ = eksbootstrapv1.AddToScheme(sc)
 
 	return sc
