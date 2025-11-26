@@ -37,6 +37,8 @@ import (
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
+const nodeadmConfigKind = "NodeadmConfig"
+
 // NodeadmConfigReconciler reconciles a NodeadmConfig object.
 type NodeadmConfigReconciler struct {
 	client.Client
@@ -358,7 +360,7 @@ func (r *NodeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 
 	if feature.Gates.Enabled(feature.MachinePool) {
 		b = b.Watches(
-			&clusterv1beta1.MachinePool{},
+			&clusterv1.MachinePool{},
 			handler.EnqueueRequestsFromMapFunc(r.MachinePoolToBootstrapMapFunc),
 		)
 	}
@@ -388,7 +390,7 @@ func (r *NodeadmConfigReconciler) MachineToBootstrapMapFunc(_ context.Context, o
 	if !ok {
 		klog.Errorf("Expected a Machine but got a %T", o)
 	}
-	if m.Spec.Bootstrap.ConfigRef.IsDefined() && m.Spec.Bootstrap.ConfigRef.APIGroup == eksbootstrapv1.GroupVersion.Group && m.Spec.Bootstrap.ConfigRef.Kind == eksConfigKind {
+	if m.Spec.Bootstrap.ConfigRef.IsDefined() && m.Spec.Bootstrap.ConfigRef.APIGroup == eksbootstrapv1.GroupVersion.Group && m.Spec.Bootstrap.ConfigRef.Kind == nodeadmConfigKind {
 		name := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.Bootstrap.ConfigRef.Name}
 		result = append(result, ctrl.Request{NamespacedName: name})
 	}
@@ -400,12 +402,12 @@ func (r *NodeadmConfigReconciler) MachineToBootstrapMapFunc(_ context.Context, o
 func (r *NodeadmConfigReconciler) MachinePoolToBootstrapMapFunc(_ context.Context, o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 
-	m, ok := o.(*clusterv1beta1.MachinePool)
+	m, ok := o.(*clusterv1.MachinePool)
 	if !ok {
 		klog.Errorf("Expected a MachinePool but got a %T", o)
 	}
 	configRef := m.Spec.Template.Spec.Bootstrap.ConfigRef
-	if configRef != nil && configRef.GroupVersionKind().GroupKind() == eksbootstrapv1.GroupVersion.WithKind("NodeadmConfig").GroupKind() {
+	if configRef.IsDefined() && configRef.APIGroup == eksbootstrapv1.GroupVersion.Group && configRef.Kind == nodeadmConfigKind {
 		name := client.ObjectKey{Namespace: m.Namespace, Name: configRef.Name}
 		result = append(result, ctrl.Request{NamespacedName: name})
 	}
@@ -437,7 +439,8 @@ func (r *NodeadmConfigReconciler) ClusterToNodeadmConfigs(_ context.Context, o c
 
 	for _, m := range machineList.Items {
 		if m.Spec.Bootstrap.ConfigRef.IsDefined() &&
-			m.Spec.Bootstrap.ConfigRef.GroupKind() == eksbootstrapv1.GroupVersion.WithKind("NodeadmConfig").GroupKind() {
+			m.Spec.Bootstrap.ConfigRef.APIGroup == eksbootstrapv1.GroupVersion.Group &&
+			m.Spec.Bootstrap.ConfigRef.Kind == nodeadmConfigKind {
 			name := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.Bootstrap.ConfigRef.Name}
 			result = append(result, ctrl.Request{NamespacedName: name})
 		}
