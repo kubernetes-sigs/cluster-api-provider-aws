@@ -577,7 +577,7 @@ func (s *Service) reconcileClusterConfig(ctx context.Context, cluster *ekstypes.
 		input.UpgradePolicy = updateUpgradePolicy
 	}
 
-	if s.reconcileDeletionProtection(cluster, s.scope.ControlPlane.Spec.DeletionProtection) {
+	if ptr.Deref(cluster.DeletionProtection, false) != s.scope.ControlPlane.Spec.DeletionProtection {
 		needsUpdate = true
 		input.DeletionProtection = aws.Bool(s.scope.ControlPlane.Spec.DeletionProtection)
 	}
@@ -596,13 +596,6 @@ func (s *Service) reconcileClusterConfig(ctx context.Context, cluster *ekstypes.
 		}
 	}
 	return nil
-}
-
-func (s *Service) reconcileDeletionProtection(cluster *ekstypes.Cluster, specEnabled bool) bool {
-	if cluster.DeletionProtection == nil || *cluster.DeletionProtection != specEnabled {
-		return true
-	}
-	return false
 }
 
 func (s *Service) reconcileAccessConfig(ctx context.Context, accessConfig *ekstypes.AccessConfigResponse) error {
