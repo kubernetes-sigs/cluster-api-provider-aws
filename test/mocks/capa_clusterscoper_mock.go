@@ -33,7 +33,7 @@ import (
 	cloud "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	throttle "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	logger "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
-	v1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	v1beta20 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -103,10 +103,10 @@ func (mr *MockClusterScoperMockRecorder) Close() *gomock.Call {
 }
 
 // ClusterObj mocks base method.
-func (m *MockClusterScoper) ClusterObj() cloud.ClusterObject {
+func (m *MockClusterScoper) ClusterObj() *v1beta20.Cluster {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ClusterObj")
-	ret0, _ := ret[0].(cloud.ClusterObject)
+	ret0, _ := ret[0].(*v1beta20.Cluster)
 	return ret0
 }
 
@@ -378,7 +378,7 @@ func (mr *MockClusterScoperMockRecorder) Session() *gomock.Call {
 }
 
 // SetFailureDomain mocks base method.
-func (m *MockClusterScoper) SetFailureDomain(arg0 string, arg1 v1beta1.FailureDomainSpec) {
+func (m *MockClusterScoper) SetFailureDomain(arg0 string, arg1 v1beta20.FailureDomain) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "SetFailureDomain", arg0, arg1)
 }

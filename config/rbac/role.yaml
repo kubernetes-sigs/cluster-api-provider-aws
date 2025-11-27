@@ -37,6 +37,14 @@ rules:
   - list
   - watch
 - apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - authentication.k8s.io
   resources:
   - tokenreviews
@@ -175,12 +183,20 @@ rules:
   resources:
   - awsclusters/status
   - awsfargateprofiles/status
+  - awsmachinetemplates/status
   - rosaclusters/status
   - rosanetworks/status
   - rosaroleconfigs/status
   verbs:
   - get
   - patch
+  - update
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - awsmachinepools/finalizers
+  verbs:
+  - delete
   - update
 - apiGroups:
   - infrastructure.cluster.x-k8s.io

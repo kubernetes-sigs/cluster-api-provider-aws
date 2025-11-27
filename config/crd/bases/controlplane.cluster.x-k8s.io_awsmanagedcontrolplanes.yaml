@@ -1262,6 +1262,17 @@ spec:
                         - AMDEncryptedVirtualizationNestedPaging
                         type: string
                     type: object
+                  dynamicHostAllocation:
+                    description: |-
+                      DynamicHostAllocation enables automatic allocation of dedicated hosts.
+                      This field is mutually exclusive with HostID.
+                    properties:
+                      tags:
+                        additionalProperties:
+                          type: string
+                        description: Tags to apply to the allocated dedicated host.
+                        type: object
+                    type: object
                   ebsOptimized:
                     description: Indicates whether the instance is optimized for Amazon
                       EBS I/O.
@@ -3106,7 +3117,7 @@ spec:
                 type: object
               oidcIdentityProviderConfig:
                 description: |-
-                  IdentityProviderconfig is used to specify the oidc provider config
+                  OIDCIdentityProviderConfig is used to specify the OIDC provider config
                   to be attached with this eks cluster
                 properties:
                   clientId:
@@ -3544,6 +3555,17 @@ spec:
                         - Disabled
                         - AMDEncryptedVirtualizationNestedPaging
                         type: string
+                    type: object
+                  dynamicHostAllocation:
+                    description: |-
+                      DynamicHostAllocation enables automatic allocation of dedicated hosts.
+                      This field is mutually exclusive with HostID.
+                    properties:
+                      tags:
+                        additionalProperties:
+                          type: string
+                        description: Tags to apply to the allocated dedicated host.
+                        type: object
                     type: object
                   ebsOptimized:
                     description: Indicates whether the instance is optimized for Amazon
