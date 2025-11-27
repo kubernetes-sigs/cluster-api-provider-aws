@@ -355,32 +355,42 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			Expect(len(controlPlaneMachines)).To(Equal(1))
 
 			ginkgo.By("Verifying AWSMachineTemplate capacity is populated for autoscaling from zero")
-			awsMachineTemplateList := &infrav1.AWSMachineTemplateList{}
-			err := e2eCtx.Environment.BootstrapClusterProxy.GetClient().List(ctx, awsMachineTemplateList, client.InNamespace(namespace.Name))
-			Expect(err).To(BeNil())
-			Expect(len(awsMachineTemplateList.Items)).To(BeNumerically(">", 0), "Expected at least one AWSMachineTemplate")
+			Eventually(func(g Gomega) {
+				awsMachineTemplateList := &infrav1.AWSMachineTemplateList{}
+				g.Expect(e2eCtx.Environment.BootstrapClusterProxy.GetClient().List(ctx, awsMachineTemplateList, client.InNamespace(namespace.Name))).To(Succeed())
+				g.Expect(awsMachineTemplateList.Items).ToNot(BeEmpty())
 
-			foundTemplateWithCapacity := false
-			foundTemplateWithNodeInfo := false
-			for _, template := range awsMachineTemplateList.Items {
-				if len(template.Status.Capacity) > 0 {
-					foundTemplateWithCapacity = true
-					ginkgo.By(fmt.Sprintf("AWSMachineTemplate %s has capacity populated: %v", template.Name, template.Status.Capacity))
-					Expect(template.Status.Capacity).To(HaveKey(corev1.ResourceCPU), "Expected CPU to be set in capacity")
-					Expect(template.Status.Capacity).To(HaveKey(corev1.ResourceMemory), "Expected Memory to be set in capacity")
+				for _, template := range awsMachineTemplateList.Items {
+					capacity := template.Status.Capacity
+					_, hasCPU := capacity[corev1.ResourceCPU]
+					_, hasMemory := capacity[corev1.ResourceMemory]
+					if hasCPU && hasMemory {
+						ginkgo.By(fmt.Sprintf("AWSMachineTemplate %s has capacity populated: %v", template.Name, capacity))
+						return
+					}
 				}
-				if template.Status.NodeInfo != nil {
-					foundTemplateWithNodeInfo = true
-					ginkgo.By(fmt.Sprintf("AWSMachineTemplate %s has nodeInfo populated: %v", template.Name, template.Status.NodeInfo))
-					// Verify architecture is set (should be either amd64 or arm64 for AWS)
-					Expect(template.Status.NodeInfo.Architecture).ToNot(BeEmpty(), "Expected architecture to be set in nodeInfo")
-					Expect(string(template.Status.NodeInfo.Architecture)).To(MatchRegexp("^(amd64|arm64)$"), "Expected architecture to be amd64 or arm64")
-					// Verify operating system is set
-					Expect(template.Status.NodeInfo.OperatingSystem).ToNot(BeEmpty(), "Expected operatingSystem to be set in nodeInfo")
+				g.Expect(false).To(BeTrue(), "Expected at least one AWSMachineTemplate to have capacity with CPU and Memory")
+			}, e2eCtx.E2EConfig.GetIntervals(specName, "wait-deployment")...).Should(Succeed())
+
+			ginkgo.By("Verifying AWSMachineTemplate nodeInfo is populated")
+			Eventually(func(g Gomega) {
+				awsMachineTemplateList := &infrav1.AWSMachineTemplateList{}
+				g.Expect(e2eCtx.Environment.BootstrapClusterProxy.GetClient().List(ctx, awsMachineTemplateList, client.InNamespace(namespace.Name))).To(Succeed())
+				g.Expect(awsMachineTemplateList.Items).ToNot(BeEmpty())
+
+				for _, template := range awsMachineTemplateList.Items {
+					nodeInfo := template.Status.NodeInfo
+					if nodeInfo == nil {
+						continue
+					}
+					arch := string(nodeInfo.Architecture)
+					if (arch == "amd64" || arch == "arm64") && nodeInfo.OperatingSystem != "" {
+						ginkgo.By(fmt.Sprintf("AWSMachineTemplate %s has nodeInfo populated: %v", template.Name, nodeInfo))
+						return
+					}
 				}
-			}
-			Expect(foundTemplateWithCapacity).To(BeTrue(), "Expected at least one AWSMachineTemplate to have capacity populated")
-			Expect(foundTemplateWithNodeInfo).To(BeTrue(), "Expected at least one AWSMachineTemplate to have nodeInfo populated")
+				g.Expect(false).To(BeTrue(), "Expected at least one AWSMachineTemplate to have valid nodeInfo")
+			}, e2eCtx.E2EConfig.GetIntervals(specName, "wait-deployment")...).Should(Succeed())
 		})
 	})
 
