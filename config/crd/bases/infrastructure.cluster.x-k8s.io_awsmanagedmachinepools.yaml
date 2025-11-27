@@ -940,10 +940,9 @@ spec:
                   InstanceTypes specifies a list of AWS instance types for the node group.
                   The order of instance types specified determines priority of picking that instance type.
                   This is also influenced by the CapacityType. For On-Demand capacity, the allocation strategy
-                  uses the order of instance types to determine which instance type to use first when fulfilling capacity.
+                  uses the order of instance types to determine which instance type to use first when fulfilling capacity  for ex; c5.large, c4.large, and c3.large .
                   See AWS documentation https://docs.aws.amazon.com/eks/latest/userguide/managed-node-groups.html#managed-node-group-capacity-types
                   for more information.
-                  At most one of InstanceType or InstanceTypes may be specified.
                 items:
                   type: string
                 type: array
