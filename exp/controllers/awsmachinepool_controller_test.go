@@ -773,7 +773,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 					nil,
 					nil)
 				ec2Svc.EXPECT().DiscoverLaunchTemplateAMI(gomock.Any(), gomock.Any()).Return(ptr.To[string]("ami-existing"), nil) // no change
-				ec2Svc.EXPECT().LaunchTemplateNeedsUpdate(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
+				ec2Svc.EXPECT().LaunchTemplateNeedsUpdate(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, "", nil)
 
 				asgSvc.EXPECT().GetASGByName(gomock.Any()).DoAndReturn(func(scope *scope.MachinePoolScope) (*expinfrav1.AutoScalingGroup, error) {
 					g.Expect(scope.Name()).To(Equal("test"))
@@ -822,7 +822,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 					nil,
 					nil)
 				ec2Svc.EXPECT().DiscoverLaunchTemplateAMI(gomock.Any(), gomock.Any()).Return(ptr.To[string]("ami-different"), nil)
-				ec2Svc.EXPECT().LaunchTemplateNeedsUpdate(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
+				ec2Svc.EXPECT().LaunchTemplateNeedsUpdate(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, "", nil)
 				asgSvc.EXPECT().CanStartASGInstanceRefresh(gomock.Any()).Return(true, nil, nil)
 				ec2Svc.EXPECT().PruneLaunchTemplateVersions(gomock.Any()).Return(nil, nil)
 				ec2Svc.EXPECT().CreateLaunchTemplateVersion(gomock.Any(), gomock.Any(), gomock.Eq(ptr.To[string]("ami-different")), gomock.Eq(apimachinerytypes.NamespacedName{Namespace: "default", Name: "bootstrap-data"}), gomock.Any(), gomock.Any()).Return(nil)
@@ -878,7 +878,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 					nil,
 					nil)
 				ec2Svc.EXPECT().DiscoverLaunchTemplateAMI(gomock.Any(), gomock.Any()).Return(ptr.To[string]("ami-existing"), nil)
-				ec2Svc.EXPECT().LaunchTemplateNeedsUpdate(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
+				ec2Svc.EXPECT().LaunchTemplateNeedsUpdate(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, "", nil)
 				asgSvc.EXPECT().CanStartASGInstanceRefresh(gomock.Any()).Return(true, nil, nil)
 				ec2Svc.EXPECT().PruneLaunchTemplateVersions(gomock.Any()).Return(nil, nil)
 				ec2Svc.EXPECT().CreateLaunchTemplateVersion(gomock.Any(), gomock.Any(), gomock.Eq(ptr.To[string]("ami-existing")), gomock.Eq(apimachinerytypes.NamespacedName{Namespace: "default", Name: "bootstrap-data"}), gomock.Any(), gomock.Any()).Return(nil)
@@ -970,7 +970,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 					nil,
 					nil)
 				ec2Svc.EXPECT().DiscoverLaunchTemplateAMI(gomock.Any(), gomock.Any()).Return(ptr.To[string]("ami-existing"), nil)
-				ec2Svc.EXPECT().LaunchTemplateNeedsUpdate(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
+				ec2Svc.EXPECT().LaunchTemplateNeedsUpdate(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, "", nil)
 				asgSvc.EXPECT().CanStartASGInstanceRefresh(gomock.Any()).Return(true, nil, nil)
 				ec2Svc.EXPECT().PruneLaunchTemplateVersions(gomock.Any()).Return(nil, nil)
 				ec2Svc.EXPECT().CreateLaunchTemplateVersion(gomock.Any(), gomock.Any(), gomock.Eq(ptr.To[string]("ami-existing")), gomock.Eq(apimachinerytypes.NamespacedName{Namespace: "default", Name: "bootstrap-data-new"}), gomock.Any(), gomock.Any()).Return(nil)
@@ -1056,7 +1056,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 					nil,
 					nil)
 				ec2Svc.EXPECT().DiscoverLaunchTemplateAMI(gomock.Any(), gomock.Any()).Return(ptr.To[string]("ami-existing"), nil)
-				ec2Svc.EXPECT().LaunchTemplateNeedsUpdate(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
+				ec2Svc.EXPECT().LaunchTemplateNeedsUpdate(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, "", nil)
 
 				s3Mock.EXPECT().PutObject(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, input *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error) {
 					g.Expect(*input.Key).To(Equal(fmt.Sprintf("machine-pool/test/%s", userdata.ComputeHash([]byte("shell-script")))))
@@ -1106,7 +1106,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 					nil,
 					nil)
 				ec2Svc.EXPECT().DiscoverLaunchTemplateAMI(gomock.Any(), gomock.Any()).Return(ptr.To[string]("ami-existing"), nil)
-				ec2Svc.EXPECT().LaunchTemplateNeedsUpdate(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, nil)
+				ec2Svc.EXPECT().LaunchTemplateNeedsUpdate(gomock.Any(), gomock.Any(), gomock.Any()).Return(false, "", nil)
 
 				s3Mock.EXPECT().PutObject(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, input *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error) {
 					g.Expect(*input.Key).To(Equal(fmt.Sprintf("machine-pool/test/%s", userdata.ComputeHash([]byte("shell-script")))))
