@@ -35,6 +35,7 @@ import (
 	. "github.com/onsi/gomega"
 	v1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	rosaaws "github.com/openshift/rosa/pkg/aws"
+	"github.com/openshift/rosa/pkg/logforwarding"
 	"github.com/openshift/rosa/pkg/ocm"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -225,6 +226,48 @@ func TestUpdateOCMClusterSpec(t *testing.T) {
 		expectedOCMSpec := ocm.Spec{
 			AutoNodeMode:    "enabled",
 			AutoNodeRoleARN: "autoNodeARN",
+		}
+
+		reconciler := &ROSAControlPlaneReconciler{}
+		ocmSpec, updated := reconciler.updateOCMClusterSpec(rosaControlPlane, mockCluster)
+
+		g.Expect(updated).To(BeTrue())
+		g.Expect(ocmSpec).To(Equal(expectedOCMSpec))
+	})
+
+	// Test case 8: Log Forwarder update
+	t.Run("Update Log Forwarder", func(t *testing.T) {
+		rosaControlPlane := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				CloudWatchLogForwarder: &rosacontrolplanev1.CloudWatchLogForwarderConfig{
+					CloudWatchLogGroupName: "test",
+					CloudWatchLogRoleArn:   "cloudWatchARN",
+					Applications:           []string{"authn", "api-server"},
+					GroupsLogVersions:      []string{"v1", "v2"},
+				},
+				S3LogForwarder: &rosacontrolplanev1.S3LogForwarderConfig{
+					Applications:         []string{"authn", "api-server"},
+					GroupsLogVersions:    []string{"v1", "v2"},
+					S3ConfigBucketName:   "test",
+					S3ConfigBucketPrefix: "pre",
+				},
+			},
+		}
+
+		mockCluster, _ := v1.NewCluster().Build()
+		expectedOCMSpec := ocm.Spec{
+			CloudWatchLogForwarder: &logforwarding.CloudWatchLogForwarderConfig{
+				CloudWatchLogGroupName: "test",
+				CloudWatchLogRoleArn:   "cloudWatchARN",
+				Applications:           []string{"authn", "api-server"},
+				GroupsLogVersions:      []string{"v1", "v2"},
+			},
+			S3LogForwarder: &logforwarding.S3LogForwarderConfig{
+				Applications:         []string{"authn", "api-server"},
+				GroupsLogVersions:    []string{"v1", "v2"},
+				S3ConfigBucketName:   "test",
+				S3ConfigBucketPrefix: "pre",
+			},
 		}
 
 		reconciler := &ROSAControlPlaneReconciler{}
