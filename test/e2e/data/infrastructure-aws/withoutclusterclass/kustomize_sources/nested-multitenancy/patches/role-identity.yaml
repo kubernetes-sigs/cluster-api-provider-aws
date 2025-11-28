@@ -6,4 +6,4 @@ metadata:
 spec:
   identityRef:
     kind: AWSClusterRoleIdentity
-    name: "${MULTI_TENANCY_NESTED_IDENTITY_NAME}"
+    name: "${MULTI_TENANCY_NESTED_IDENTITY_NAME}-${CLUSTER_NAME}"

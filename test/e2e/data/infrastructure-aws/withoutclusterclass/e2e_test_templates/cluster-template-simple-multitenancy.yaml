@@ -1160,7 +1160,7 @@ spec:
   allowedNamespaces: {}
   durationSeconds: 900
   roleARN: ${MULTI_TENANCY_SIMPLE_ROLE_ARN}
-  sessionName: ${MULTI_TENANCY_SIMPLE_IDENTITY_NAME}-session
+  sessionName: ${MULTI_TENANCY_SIMPLE_IDENTITY_NAME}
   sourceIdentityRef:
     kind: AWSClusterControllerIdentity
     name: default
