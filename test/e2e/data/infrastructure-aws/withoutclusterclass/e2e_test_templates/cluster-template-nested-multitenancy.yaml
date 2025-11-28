@@ -29,7 +29,7 @@ spec:
     enabled: true
   identityRef:
     kind: AWSClusterRoleIdentity
-    name: ${MULTI_TENANCY_NESTED_IDENTITY_NAME}
+    name: ${MULTI_TENANCY_NESTED_IDENTITY_NAME}-${CLUSTER_NAME}
   network:
     vpc:
       availabilityZoneUsageLimit: 1
@@ -1165,12 +1165,12 @@ metadata:
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSClusterRoleIdentity
 metadata:
-  name: ${MULTI_TENANCY_JUMP_IDENTITY_NAME}
+  name: ${MULTI_TENANCY_JUMP_IDENTITY_NAME}-${CLUSTER_NAME}
 spec:
   allowedNamespaces: {}
   durationSeconds: 900
   roleARN: ${MULTI_TENANCY_JUMP_ROLE_ARN}
-  sessionName: ${MULTI_TENANCY_JUMP_IDENTITY_NAME}-session
+  sessionName: ${MULTI_TENANCY_JUMP_IDENTITY_NAME}-${CLUSTER_NAME}
   sourceIdentityRef:
     kind: AWSClusterControllerIdentity
     name: default
@@ -1178,11 +1178,11 @@ spec:
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSClusterRoleIdentity
 metadata:
-  name: ${MULTI_TENANCY_NESTED_IDENTITY_NAME}
+  name: ${MULTI_TENANCY_NESTED_IDENTITY_NAME}-${CLUSTER_NAME}
 spec:
   allowedNamespaces: {}
   roleARN: ${MULTI_TENANCY_NESTED_ROLE_ARN}
-  sessionName: ${MULTI_TENANCY_NESTED_IDENTITY_NAME}-session
+  sessionName: ${MULTI_TENANCY_NESTED_IDENTITY_NAME}-${CLUSTER_NAME}
   sourceIdentityRef:
     kind: AWSClusterRoleIdentity
-    name: ${MULTI_TENANCY_JUMP_IDENTITY_NAME}
+    name: ${MULTI_TENANCY_JUMP_IDENTITY_NAME}-${CLUSTER_NAME}
