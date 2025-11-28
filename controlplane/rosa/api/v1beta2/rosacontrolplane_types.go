@@ -271,6 +271,37 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// for the ROSA HCP cluster.
 	// +optional
 	ROSANetworkRef *corev1.LocalObjectReference `json:"rosaNetworkRef,omitempty"`
+
+	// logForwarder set the log forward config for applications, cloudWatch, S3 and groupsVersion.
+	// +optional
+	LogForwarder *LogForwarderConfig `json:"logForwarder,omitempty"`
+}
+
+// LogForwarderConfig present the log forward config for applications, cloudWatch, S3 and groupsVersion.
+type LogForwarderConfig struct {
+	// applications list included in the group versions.
+	// +optional
+	Applications []string `json:"applications,omitempty"`
+
+	// cloudWatchLogRoleArn is the ARN of the IAM CloudWatch role for log distribution.
+	// +optional
+	CloudWatchLogRoleArn string `json:"cloudWatchLogRoleArn,omitempty"`
+
+	// cloudWatchLogGroupName is the name of the CloudWatch log group.
+	// +optional
+	CloudWatchLogGroupName string `json:"cloudWatchLogGroupName,omitempty"`
+
+	// groupsLogVersion is list of available versions for a group
+	// +optional
+	GroupsLogVersion []string `json:"groupsLogVersion,omitempty"`
+
+	// s3ConfigBucketName is the name of the S3 bucket
+	// +optional
+	S3ConfigBucketName string `json:"s3ConfigBucketName,omitempty"`
+
+	// s3ConfigBucketPrefix is the prefix to use for objects stored in the S3 bucket.
+	// +optional
+	S3ConfigBucketPrefix string `json:"s3ConfigBucketPrefix,omitempty"`
 }
 
 // AutoNode set the AutoNode mode and AutoNode role ARN.

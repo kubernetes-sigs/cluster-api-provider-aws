@@ -660,6 +660,33 @@ func (r *ROSAControlPlaneReconciler) updateOCMClusterSpec(rosaControlPlane *rosa
 		}
 	}
 
+	if rosaControlPlane.Spec.LogForwarder != nil {
+		if !reflect.DeepEqual(ocmClusterSpec.LogForwarder.Applications, rosaControlPlane.Spec.LogForwarder.Applications) {
+			ocmClusterSpec.LogForwarder.Applications = rosaControlPlane.Spec.LogForwarder.Applications
+			updated = true
+		}
+		if ocmClusterSpec.LogForwarder.CloudWatchLogGroupName != rosaControlPlane.Spec.LogForwarder.CloudWatchLogGroupName {
+			ocmClusterSpec.LogForwarder.CloudWatchLogGroupName = rosaControlPlane.Spec.LogForwarder.CloudWatchLogGroupName
+			updated = true
+		}
+		if ocmClusterSpec.LogForwarder.CloudWatchLogRoleArn != rosaControlPlane.Spec.LogForwarder.CloudWatchLogRoleArn {
+			ocmClusterSpec.LogForwarder.CloudWatchLogRoleArn = rosaControlPlane.Spec.LogForwarder.CloudWatchLogRoleArn
+			updated = true
+		}
+		if ocmClusterSpec.LogForwarder.S3ConfigBucketName != rosaControlPlane.Spec.LogForwarder.S3ConfigBucketName {
+			ocmClusterSpec.LogForwarder.S3ConfigBucketName = rosaControlPlane.Spec.LogForwarder.S3ConfigBucketName
+			updated = true
+		}
+		if ocmClusterSpec.LogForwarder.S3ConfigBucketPrefix != rosaControlPlane.Spec.LogForwarder.S3ConfigBucketPrefix {
+			ocmClusterSpec.LogForwarder.S3ConfigBucketPrefix = rosaControlPlane.Spec.LogForwarder.S3ConfigBucketPrefix
+			updated = true
+		}
+		if !reflect.DeepEqual(ocmClusterSpec.LogForwarder.GroupsLogVersion, rosaControlPlane.Spec.LogForwarder.GroupsLogVersion) {
+			ocmClusterSpec.LogForwarder.GroupsLogVersion = rosaControlPlane.Spec.LogForwarder.GroupsLogVersion
+			updated = true
+		}
+	}
+
 	return ocmClusterSpec, updated
 }
 
@@ -1151,6 +1178,18 @@ func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpe
 	if controlPlaneSpec.AutoNode != nil {
 		ocmClusterSpec.AutoNodeMode = strings.ToLower(string(controlPlaneSpec.AutoNode.Mode))
 		ocmClusterSpec.AutoNodeRoleARN = controlPlaneSpec.AutoNode.RoleARN
+	}
+
+	// Set LogForward
+	if controlPlaneSpec.LogForwarder != nil {
+		ocmClusterSpec.LogForwarder = &ocm.LogForwarderConfig{
+			Applications:           controlPlaneSpec.LogForwarder.Applications,
+			CloudWatchLogRoleArn:   controlPlaneSpec.LogForwarder.CloudWatchLogRoleArn,
+			CloudWatchLogGroupName: controlPlaneSpec.LogForwarder.CloudWatchLogGroupName,
+			GroupsLogVersion:       controlPlaneSpec.LogForwarder.GroupsLogVersion,
+			S3ConfigBucketName:     controlPlaneSpec.LogForwarder.S3ConfigBucketName,
+			S3ConfigBucketPrefix:   controlPlaneSpec.LogForwarder.S3ConfigBucketPrefix,
+		}
 	}
 
 	return ocmClusterSpec, nil
