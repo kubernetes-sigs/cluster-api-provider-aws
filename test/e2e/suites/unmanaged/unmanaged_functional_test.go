@@ -354,7 +354,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			Expect(len(workerMachines)).To(Equal(1))
 			Expect(len(controlPlaneMachines)).To(Equal(1))
 
-			ginkgo.By("Verifying AWSMachineTemplate capacity is populated for autoscaling from zero")
+			ginkgo.By("Verifying AWSMachineTemplate capacity and nodeInfo is populated for autoscaling from zero")
 			Eventually(func(g Gomega) {
 				awsMachineTemplateList := &infrav1.AWSMachineTemplateList{}
 				g.Expect(e2eCtx.Environment.BootstrapClusterProxy.GetClient().List(ctx, awsMachineTemplateList, client.InNamespace(namespace.Name))).To(Succeed())
@@ -364,32 +364,12 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 					capacity := template.Status.Capacity
 					_, hasCPU := capacity[corev1.ResourceCPU]
 					_, hasMemory := capacity[corev1.ResourceMemory]
-					if hasCPU && hasMemory {
-						ginkgo.By(fmt.Sprintf("AWSMachineTemplate %s has capacity populated: %v", template.Name, capacity))
-						return
-					}
+					g.Expect(hasCPU).To(BeTrue(), "Expected AWSMachineTemplate %s to have .status.capacity for CPU set", template.Name)
+					g.Expect(hasMemory).To(BeTrue(), "Expected AWSMachineTemplate %s to have .status.capacity for memory set", template.Name)
+					g.Expect(template.Status.NodeInfo).ToNot(BeNil(), "Expected AWSMachineTemplate %s to have .status.nodeInfo set", template.Name)
+					g.Expect(template.Status.NodeInfo.Architecture).ToNot(BeEmpty(), "Expected AWSMachineTemplate %s to have .status.nodeInfo.architecture set", template.Name)
+					g.Expect(template.Status.NodeInfo.OperatingSystem).ToNot(BeEmpty(), "Expected AWSMachineTemplate %s to have .status.nodeInfo.operatingSystem set", template.Name)
 				}
-				g.Expect(false).To(BeTrue(), "Expected at least one AWSMachineTemplate to have capacity with CPU and Memory")
-			}, e2eCtx.E2EConfig.GetIntervals(specName, "wait-deployment")...).Should(Succeed())
-
-			ginkgo.By("Verifying AWSMachineTemplate nodeInfo is populated")
-			Eventually(func(g Gomega) {
-				awsMachineTemplateList := &infrav1.AWSMachineTemplateList{}
-				g.Expect(e2eCtx.Environment.BootstrapClusterProxy.GetClient().List(ctx, awsMachineTemplateList, client.InNamespace(namespace.Name))).To(Succeed())
-				g.Expect(awsMachineTemplateList.Items).ToNot(BeEmpty())
-
-				for _, template := range awsMachineTemplateList.Items {
-					nodeInfo := template.Status.NodeInfo
-					if nodeInfo == nil {
-						continue
-					}
-					arch := string(nodeInfo.Architecture)
-					if (arch == "amd64" || arch == "arm64") && nodeInfo.OperatingSystem != "" {
-						ginkgo.By(fmt.Sprintf("AWSMachineTemplate %s has nodeInfo populated: %v", template.Name, nodeInfo))
-						return
-					}
-				}
-				g.Expect(false).To(BeTrue(), "Expected at least one AWSMachineTemplate to have valid nodeInfo")
 			}, e2eCtx.E2EConfig.GetIntervals(specName, "wait-deployment")...).Should(Succeed())
 		})
 	})

@@ -31,9 +31,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
@@ -75,12 +78,23 @@ func (r *AWSMachineTemplateReconciler) SetupWithManager(ctx context.Context, mgr
 		Watches(
 			&clusterv1.MachineDeployment{},
 			handler.EnqueueRequestsFromMapFunc(r.machineDeploymentToAWSMachineTemplate),
+			// Only emit events for creation to reconcile in case the MachineDeployment got created after the AWSMachineTemplate was reconciled.
+			builder.WithPredicates(resourceCreatedPredicate),
+		).
+		Watches(
+			&clusterv1.MachineSet{},
+			handler.EnqueueRequestsFromMapFunc(r.machineSetToAWSMachineTemplate),
+			// Only emit events for creation to reconcile in case the MachineSet got created after the AWSMachineTemplate was reconciled.
+			builder.WithPredicates(resourceCreatedPredicate),
 		)
 
-	// Optionally watch KubeadmControlPlane if the CRD exists
+	// Watch KubeadmControlPlane if they exist.
 	if _, err := mgr.GetRESTMapper().RESTMapping(schema.GroupKind{Group: controlplanev1.GroupVersion.Group, Kind: "KubeadmControlPlane"}, controlplanev1.GroupVersion.Version); err == nil {
 		b = b.Watches(&controlplanev1.KubeadmControlPlane{},
-			handler.EnqueueRequestsFromMapFunc(r.kubeadmControlPlaneToAWSMachineTemplate))
+			handler.EnqueueRequestsFromMapFunc(r.kubeadmControlPlaneToAWSMachineTemplate),
+			// Only emit events for creation to reconcile in case the KubeadmControlPlane got created after the AWSMachineTemplate was reconciled.
+			builder.WithPredicates(resourceCreatedPredicate),
+		)
 	}
 
 	_, err := b.Build(r)
@@ -95,7 +109,7 @@ func (r *AWSMachineTemplateReconciler) SetupWithManager(ctx context.Context, mgr
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsmachinetemplates/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=awsclusters,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters,verbs=get;list;watch
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedeployments,verbs=get;list;watch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedeployments;machinesets,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 
 // Reconcile populates capacity information for AWSMachineTemplate.
@@ -387,7 +401,22 @@ func (r *AWSMachineTemplateReconciler) getKubernetesVersion(ctx context.Context,
 		return "", errors.Wrap(err, "failed to get parent list options")
 	}
 
-	// Try to find version from MachineDeployment first
+	// Try to find version from MachineSet first
+	machineSetList := &clusterv1.MachineSetList{}
+	if err := r.List(ctx, machineSetList, listOpts...); err != nil {
+		return "", errors.Wrap(err, "failed to list MachineSets")
+	}
+
+	// Find MachineSets that reference this AWSMachineTemplate
+	for _, ms := range machineSetList.Items {
+		if ms.Spec.Template.Spec.InfrastructureRef.Kind == awsMachineTemplateKind &&
+			ms.Spec.Template.Spec.InfrastructureRef.Name == template.Name &&
+			ms.Spec.Template.Spec.Version != "" {
+			return ms.Spec.Template.Spec.Version, nil
+		}
+	}
+
+	// If not found, try MachineDeployment.
 	machineDeploymentList := &clusterv1.MachineDeploymentList{}
 	if err := r.List(ctx, machineDeploymentList, listOpts...); err != nil {
 		return "", errors.Wrap(err, "failed to list MachineDeployments")
@@ -402,7 +431,7 @@ func (r *AWSMachineTemplateReconciler) getKubernetesVersion(ctx context.Context,
 		}
 	}
 
-	// If not found in MachineDeployment, try KubeadmControlPlane
+	// If not found, try KubeadmControlPlane
 	kcpList := &controlplanev1.KubeadmControlPlaneList{}
 	if err := r.List(ctx, kcpList, listOpts...); err != nil {
 		return "", errors.Wrap(err, "failed to list KubeadmControlPlanes")
@@ -491,4 +520,36 @@ func (r *AWSMachineTemplateReconciler) machineDeploymentToAWSMachineTemplate(ctx
 			},
 		},
 	}
+}
+
+// machineSetToAWSMachineTemplate maps MachineSet to AWSMachineTemplate reconcile requests.
+// This enables the controller to reconcile AWSMachineTemplate when its owner MachineSet is created or updated,
+// ensuring that nodeInfo can be populated even if the cache hasn't synced yet.
+func (r *AWSMachineTemplateReconciler) machineSetToAWSMachineTemplate(ctx context.Context, o client.Object) []ctrl.Request {
+	md, ok := o.(*clusterv1.MachineSet)
+	if !ok {
+		return nil
+	}
+
+	// Check if it references an AWSMachineTemplate
+	if md.Spec.Template.Spec.InfrastructureRef.Kind != awsMachineTemplateKind {
+		return nil
+	}
+
+	// Return reconcile request for the referenced AWSMachineTemplate
+	return []ctrl.Request{
+		{
+			NamespacedName: client.ObjectKey{
+				Namespace: md.Namespace,
+				Name:      md.Spec.Template.Spec.InfrastructureRef.Name,
+			},
+		},
+	}
+}
+
+var resourceCreatedPredicate = predicate.Funcs{
+	CreateFunc:  func(e event.CreateEvent) bool { return true },
+	UpdateFunc:  func(e event.UpdateEvent) bool { return false },
+	DeleteFunc:  func(e event.DeleteEvent) bool { return false },
+	GenericFunc: func(e event.GenericEvent) bool { return true },
 }
