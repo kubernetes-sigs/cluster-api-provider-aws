@@ -9,8 +9,8 @@ require (
 	github.com/goreleaser/goreleaser v1.26.2
 	github.com/itchyny/gojq v0.12.17
 	github.com/joelanford/go-apidiff v0.8.3
-	github.com/mikefarah/yq/v4 v4.48.1
-	k8s.io/apimachinery v0.34.1
+	github.com/mikefarah/yq/v4 v4.49.2
+	k8s.io/apimachinery v0.34.2
 	k8s.io/code-generator v0.34.0
 	sigs.k8s.io/cluster-api/hack/tools v0.0.0-20250520093716-525566440a77
 	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20240923090159-236e448db12c
@@ -328,6 +328,7 @@ require (
 	go.uber.org/zap v1.27.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
+	go.yaml.in/yaml/v4 v4.0.0-rc.3 // indirect
 	gocloud.dev v0.37.0 // indirect
 	golang.org/x/crypto v0.45.0 // indirect
 	golang.org/x/exp v0.0.0-20250506013437-ce4c2cf36ca6 // indirect
