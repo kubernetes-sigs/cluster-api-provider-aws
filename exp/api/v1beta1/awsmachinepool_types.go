@@ -81,7 +81,7 @@ type AWSMachinePoolSpec struct {
 
 	// Enable or disable the capacity rebalance autoscaling group feature
 	// +optional
-	CapacityRebalance bool `json:"capacityRebalance,omitempty"`
+	CapacityRebalance bool `json:"capacityRebalance,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 }
 
 // RefreshPreferences defines the specs for instance refreshing.
@@ -108,7 +108,7 @@ type RefreshPreferences struct {
 type AWSMachinePoolStatus struct {
 	// Ready is true when the provider resource is ready.
 	// +optional
-	Ready bool `json:"ready"`
+	Ready bool `json:"ready"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// Replicas is the most recently observed number of replicas
 	// +optional

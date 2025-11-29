@@ -667,7 +667,7 @@ func TestDeleteRouteTables(t *testing.T) {
 		name    string
 		input   *infrav1.NetworkSpec
 		expect  func(m *mocks.MockEC2APIMockRecorder)
-		wantErr bool
+		wantErr bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "Should skip deletion if vpc is unmanaged",
@@ -785,7 +785,7 @@ func TestDeleteRouteTable(t *testing.T) {
 		name    string
 		input   types.RouteTable
 		expect  func(m *mocks.MockEC2APIMockRecorder)
-		wantErr bool
+		wantErr bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name:  "Should delete route table successfully",
@@ -982,7 +982,7 @@ func TestService_getRoutesForSubnet(t *testing.T) {
 		specOverrideSubnets *infrav1.Subnets
 		inputSubnet         *infrav1.SubnetSpec
 		want                []*ec2.CreateRouteInput
-		wantErr             bool
+		wantErr             bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		wantErrMessage      string
 	}{
 		{

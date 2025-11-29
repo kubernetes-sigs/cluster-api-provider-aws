@@ -43,7 +43,7 @@ func TestServiceReleaseAddresses(t *testing.T) {
 	tests := []struct {
 		name    string
 		expect  func(m *mocks.MockEC2APIMockRecorder)
-		wantErr bool
+		wantErr bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "Should return error if failed to describe IP addresses",

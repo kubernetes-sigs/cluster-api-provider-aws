@@ -29,7 +29,7 @@ func Test_createCAPIKubeconfigSecret(t *testing.T) {
 		name        string
 		input       *ekstypes.Cluster
 		serviceFunc func() *Service
-		wantErr     bool
+		wantErr     bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "create kubeconfig secret",
@@ -113,7 +113,7 @@ func Test_updateCAPIKubeconfigSecret(t *testing.T) {
 		input       *ekstypes.Cluster
 		secret      *corev1.Secret
 		serviceFunc func(tc testCase) *Service
-		wantErr     bool
+		wantErr     bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}
 	testCases := []testCase{
 		{

@@ -2393,8 +2393,8 @@ func TestAWSMachineReconcilerReconcile(t *testing.T) {
 		ownerMachine *clusterv1.Machine
 		ownerCluster *clusterv1.Cluster
 		awsCluster   *infrav1.AWSCluster
-		expectError  bool
-		requeue      bool
+		expectError  bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+		requeue      bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name:        "Should Reconcile successfully if no AWSMachine found",
