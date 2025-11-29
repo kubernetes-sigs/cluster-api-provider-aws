@@ -89,6 +89,7 @@ spec:
                   AWSLaunchTemplate specifies the launch template to use to create the managed node group.
                   If AWSLaunchTemplate is specified, certain node group configuraions outside of launch template
                   are prohibited (https://docs.aws.amazon.com/eks/latest/userguide/launch-templates.html).
+                minProperties: 1
                 properties:
                   additionalSecurityGroups:
                     description: |-
@@ -349,9 +350,11 @@ spec:
                       type: string
                     key:
                       description: Key is the key of the taint
+                      minLength: 1
                       type: string
                     value:
                       description: Value is the value of the taint
+                      minLength: 1
                       type: string
                   required:
                   - effect
@@ -591,6 +594,7 @@ spec:
                   AWSLaunchTemplate specifies the launch template to use to create the managed node group.
                   If AWSLaunchTemplate is specified, certain node group configuraions outside of launch template
                   are prohibited (https://docs.aws.amazon.com/eks/latest/userguide/launch-templates.html).
+                minProperties: 1
                 properties:
                   additionalSecurityGroups:
                     description: |-
@@ -1096,9 +1100,11 @@ spec:
                       type: string
                     key:
                       description: Key is the key of the taint
+                      minLength: 1
                       type: string
                     value:
                       description: Value is the value of the taint
+                      minLength: 1
                       type: string
                   required:
                   - effect
