@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -25,6 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2"
@@ -127,6 +129,7 @@ func TestNodeadmConfigReconciler_UpdateSecret_ForMachinePool(t *testing.T) {
 	g.Eventually(func(gomega Gomega) {
 		gomega.Expect(testEnv.Client.Get(ctx, client.ObjectKey{Name: cfg.Name, Namespace: "default"}, secret)).To(Succeed())
 		gomega.Expect(secret.Data["value"]).NotTo(Equal(oldData))
+		gomega.Expect(string(secret.Data["value"])).To(ContainSubstring("--register-with-taints=dedicated=db:NoSchedule"))
 	}, time.Minute, time.Second*5).Should(Succeed())
 }
 
@@ -186,4 +189,73 @@ func TestNodeadmConfigReconciler_ResolvesSecretFileReference(t *testing.T) {
 	for _, s := range expectedContains {
 		g.Expect(string(got.Data["value"])).To(ContainSubstring(s), "userdata should contain %q", s)
 	}
+}
+
+func TestNodeadmConfigReconcilerReturnEarlyIfClusterInfraNotReady(t *testing.T) {
+	g := NewWithT(t)
+
+	cluster := newCluster("cluster")
+	machine := newMachine(cluster, "machine")
+	config := newNodeadmConfig(machine)
+
+	cluster.Status = clusterv1.ClusterStatus{
+		Initialization: clusterv1.ClusterInitializationStatus{
+			InfrastructureProvisioned: ptr.To(false),
+		},
+	}
+
+	reconciler := NodeadmConfigReconciler{
+		Client: testEnv.Client,
+	}
+
+	_, err := reconciler.joinWorker(context.Background(), cluster, config, configOwner("Machine"))
+	g.Expect(err).NotTo(HaveOccurred())
+}
+
+func TestNodeadmConfigReconcilerReturnEarlyIfClusterControlPlaneNotInitialized(t *testing.T) {
+	g := NewWithT(t)
+
+	cluster := newCluster("cluster")
+	machine := newMachine(cluster, "machine")
+	config := newNodeadmConfig(machine)
+
+	cluster.Status = clusterv1.ClusterStatus{
+		Initialization: clusterv1.ClusterInitializationStatus{
+			InfrastructureProvisioned: ptr.To(true),
+		},
+	}
+
+	reconciler := NodeadmConfigReconciler{
+		Client: testEnv.Client,
+	}
+
+	_, err := reconciler.joinWorker(context.Background(), cluster, config, configOwner("Machine"))
+	g.Expect(err).NotTo(HaveOccurred())
+}
+
+func newNodeadmConfig(machine *clusterv1.Machine) *eksbootstrapv1.NodeadmConfig {
+	config := &eksbootstrapv1.NodeadmConfig{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "NodeadmConfig",
+			APIVersion: eksbootstrapv1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+		},
+	}
+	if machine != nil {
+		config.ObjectMeta.Name = machine.Name
+		config.ObjectMeta.UID = types.UID(fmt.Sprintf("%s uid", machine.Name))
+		config.ObjectMeta.OwnerReferences = []metav1.OwnerReference{
+			{
+				Kind:       "Machine",
+				APIVersion: clusterv1.GroupVersion.String(),
+				Name:       machine.Name,
+				UID:        types.UID(fmt.Sprintf("%s uid", machine.Name)),
+			},
+		}
+		config.Status.DataSecretName = &machine.Name
+		machine.Spec.Bootstrap.ConfigRef.Name = config.Name
+	}
+	return config
 }
