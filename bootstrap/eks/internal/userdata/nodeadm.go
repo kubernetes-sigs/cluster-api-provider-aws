@@ -22,12 +22,12 @@ import (
 	"text/template"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/klog/v2"
 
 	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2"
 )
 
 const (
+	// boundary is the MIME multipart boundary used to separate sections in cloud-init userdata.
 	boundary = "//"
 
 	// this does not start with a boundary because it is the last item that is processed.
@@ -97,7 +97,7 @@ spec:
   kubelet:
     config:
 {{ Indent 6 (toYaml .KubeletConfig) }}
-    {{- end }}
+{{- end }}
     {{- if .KubeletFlags }}
     flags:
       {{- range $flag := .KubeletFlags }}
@@ -158,8 +158,6 @@ func validateNodeadmInput(input *NodeadmInput) error {
 		input.Boundary = boundary
 	}
 
-	klog.V(2).Infof("Nodeadm Userdata Generation %v", input)
-
 	return nil
 }
 
@@ -199,7 +197,9 @@ func NewNodeadmUserdata(input *NodeadmInput) ([]byte, error) {
 
 	// Write cloud-config part
 	tm := template.New("Node").Funcs(defaultTemplateFuncMap)
-	// if any of the input fields are set, we need to write the cloud-config part
+	// if any of the input fields are set, we need to write the cloud-config part.
+	// Each sub-template is parsed individually so that failures produce clear error messages
+	// indicating which specific section (files, ntp, users, etc.) failed to parse.
 	if input.NTP != nil || input.DiskSetup != nil || input.Mounts != nil || input.Users != nil || input.Files != nil {
 		if _, err := tm.Parse(filesTemplate); err != nil {
 			return nil, fmt.Errorf("failed to parse args template: %w", err)
@@ -233,7 +233,7 @@ func NewNodeadmUserdata(input *NodeadmInput) ([]byte, error) {
 			return nil, fmt.Errorf("failed to execute node user data template: %w", err)
 		}
 	}
-	// write the final boundary closing, all of the ones in the script use intermediate boundries
+	// write the final boundary closing, all of the ones in the script use intermediate boundaries
 	buf.Write([]byte("--"))
 	return buf.Bytes(), nil
 }

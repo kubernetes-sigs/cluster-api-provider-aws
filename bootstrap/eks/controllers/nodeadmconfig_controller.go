@@ -389,6 +389,7 @@ func (r *NodeadmConfigReconciler) MachineToBootstrapMapFunc(_ context.Context, o
 	m, ok := o.(*clusterv1.Machine)
 	if !ok {
 		klog.Errorf("Expected a Machine but got a %T", o)
+		return result
 	}
 	if m.Spec.Bootstrap.ConfigRef.IsDefined() && m.Spec.Bootstrap.ConfigRef.APIGroup == eksbootstrapv1.GroupVersion.Group && m.Spec.Bootstrap.ConfigRef.Kind == nodeadmConfigKind {
 		name := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.Bootstrap.ConfigRef.Name}
