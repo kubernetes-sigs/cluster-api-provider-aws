@@ -82,6 +82,25 @@ func TestNodeadmUserdata(t *testing.T) {
 			},
 		},
 		{
+			name: "kubelet flags without kubelet config produces valid NodeConfig with kubelet section",
+			args: args{
+				input: &NodeadmInput{
+					ClusterName:       "test-cluster",
+					APIServerEndpoint: "https://example.com",
+					CACert:            "test-ca-cert",
+					KubeletFlags: []string{
+						"--node-labels=foo=bar",
+					},
+				},
+			},
+			expectErr: false,
+			verifyOutput: func(output string) bool {
+				return strings.Contains(output, "kubelet:") &&
+					strings.Contains(output, "flags:") &&
+					strings.Contains(output, `"--node-labels=foo=bar"`)
+			},
+		},
+		{
 			name: "with kubelet config",
 			args: args{
 				input: &NodeadmInput{
