@@ -52,7 +52,7 @@ const (
 )
 
 func (s *Service) reconcileOIDCProvider(cluster *eks.Cluster) error {
-	if !s.scope.ControlPlane.Spec.AssociateOIDCProvider || s.scope.ControlPlane.Status.OIDCProvider.ARN != "" {
+	if !s.scope.ControlPlane.Spec.AssociateOIDCProvider || (s.scope.ControlPlane.Status.OIDCProvider.ARN != "" && s.isTrustPolicyConfigMapPresent()) {
 		return nil
 	}
 
