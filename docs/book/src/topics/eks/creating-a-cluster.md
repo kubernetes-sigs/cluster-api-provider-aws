@@ -35,6 +35,11 @@ The provider you must use depends on the Amazon Machine Image (AMI) and Kubernet
 
 When you generate a cluster, you will need to ensure your `MachineDeployment` or `MachinePool` references the correct bootstrap template `kind`.
 
+NOTE:
+
+- [The EKS team stopped publishing Al2 AMIs for Kubernetes versions 1.33 and higher.](https://awslabs.github.io/amazon-eks-ami/usage/al2/)
+- [Amazon Linux 2 end of support date (End of Life, or EOL) will be on 2026-06-30.](https://aws.amazon.com/amazon-linux-2/faqs/)
+
 **For AL2 / K8s $\le$ v1.32, use `EKSConfigTemplate`:**
 ```yaml
 apiVersion: cluster.x-k8s.io/v1beta1
@@ -54,7 +59,9 @@ spec:
 
 ### Secrets Manager
 
-Amazon Linux 2023 does not have the proper tooling to use the secrets manager flow for bootstrapping. Therefore, whenever creating `AWSMachineTemplate` objects  `insecureSkipSecretsManager` must be set to false
+Amazon Linux 2023 does not have the proper tooling to use the secrets manager flow for bootstrapping. CAPA uses a [custom cloud-init datasource](https://github.com/kubernetes-sigs/image-builder/pull/1583) to fetch the secure contents like the `kubeadm` tokens from secrets manager. Crucially, there is no current support for publishing CAPA-compatible AL2023 AMIs that include this necessary custom cloud-init datasource.
+
+Therefore, whenever creating `AWSMachineTemplate` objects  `insecureSkipSecretsManager` must be set to true.
 
 ```yaml
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
