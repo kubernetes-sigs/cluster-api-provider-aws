@@ -22,6 +22,7 @@ import (
 	"crypto"
 	"crypto/x509"
 	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/pkg/errors"
@@ -30,11 +31,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/secret"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
@@ -108,7 +110,10 @@ func CreateSecret(ctx context.Context, c client.Client, cluster *clusterv1.Clust
 
 // CreateSecretWithOwner creates the Kubeconfig secret for the given cluster name, namespace, endpoint, and owner reference.
 func CreateSecretWithOwner(ctx context.Context, c client.Client, clusterName client.ObjectKey, endpoint string, owner metav1.OwnerReference) error {
-	server := fmt.Sprintf("https://%s", endpoint)
+	server, err := url.JoinPath("https://", endpoint)
+	if err != nil {
+		return err
+	}
 	out, err := generateKubeconfig(ctx, c, clusterName, server)
 	if err != nil {
 		return err
@@ -135,7 +140,7 @@ func GenerateSecretWithOwner(clusterName client.ObjectKey, data []byte, owner me
 			Name:      secret.Name(clusterName.Name, secret.Kubeconfig),
 			Namespace: clusterName.Namespace,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: clusterName.Name,
+				clusterv1.ClusterNameLabel: clusterName.Name,
 			},
 			OwnerReferences: []metav1.OwnerReference{
 				owner,

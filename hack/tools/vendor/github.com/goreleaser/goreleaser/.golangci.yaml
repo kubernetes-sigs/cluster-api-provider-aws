@@ -1,0 +1,48 @@
+run:
+  go: "1.22"
+  timeout: 5m
+linters:
+  enable:
+    - copyloopvar
+    - thelper
+    - gofumpt
+    - bodyclose
+    - tparallel
+    - unconvert
+    - unparam
+    - wastedassign
+    - revive
+    - forbidigo
+    - tagliatelle
+    - misspell
+    - depguard
+    - testifylint
+    - gocritic
+    - nolintlint
+linters-settings:
+  gocritic:
+    disabled-checks:
+      - appendAssign
+  staticcheck:
+    checks:
+      - all
+      - "-SA1019"
+  forbidigo:
+    forbid:
+      - 'ioutil\.*'
+  tagliatelle:
+    case:
+      use-field-name: false
+      rules:
+        yaml: snake
+        json: snake
+  depguard:
+    rules:
+      main:
+        deny:
+          - pkg: "github.com/pkg/errors"
+            desc: "use stdlib instead"
+  testifylint:
+    enable-all: true
+    disable:
+      - error-is-as # false positive

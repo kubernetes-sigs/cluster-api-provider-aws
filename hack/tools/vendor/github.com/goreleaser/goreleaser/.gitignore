@@ -1,0 +1,17 @@
+dist/
+!internal/pipe/dist
+bin/
+coverage.txt
+goreleaser
+goreleaser.exe
+debug.test
+snap.login
+site/
+.vercel
+completions/
+.vscode/
+.task/
+.idea/
+manpages
+output.json
+.direnv
