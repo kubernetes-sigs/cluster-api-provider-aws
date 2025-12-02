@@ -223,7 +223,7 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	UpgradePolicy UpgradePolicy `json:"upgradePolicy,omitempty"`
 
 	// ControlPlaneScalingConfig specifies the scaling configuration for the EKS control plane.
-	// This allows you to select from a set of scaling tiers for predictable, high performance from the cluster's control plane.
+	// Enables selection of predefined scaling tiers to ensure consistent, high-performance operation of the cluster’s control plane.
 	// (Official AWS docs: https://docs.aws.amazon.com/eks/latest/userguide/eks-provisioned-control-plane.html)
 	// +optional
 	ControlPlaneScalingConfig *ControlPlaneScalingConfig `json:"controlPlaneScalingConfig,omitempty"`
