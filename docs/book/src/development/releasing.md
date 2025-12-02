@@ -24,6 +24,7 @@ This includes the nightly image push jobs, which can be found at https://testgri
 1. Make sure you have push permissions to the upstream CAPA repo. Push tag you've just created (`git push <upstream-repo-remote> $VERSION`). Pushing this tag will kick off a GitHub Action that will create the release and attach the binaries and YAML templates to it.
 1. A prow job will start running to push images to the staging repo, can be seen [here](https://testgrid.k8s.io/sig-cluster-lifecycle-image-pushes#post-cluster-api-provider-aws-push-images). The job is called "post-cluster-api-provider-aws-push-images," and is defined in <https://github.com/kubernetes/test-infra/blob/master/config/jobs/image-pushing/k8s-staging-cluster-api.yaml>. If this job fails due to Go versions being out of date, you may need to update the Google Cloud Builder (GCB) image used in [`cloudbuild.yaml`](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/cloudbuild.yaml) and [`cloudbuild-nightly.yaml`](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/cloudbuild-nightly.yaml).
 1. When the job is finished, wait for the images to be created: `docker pull gcr.io/k8s-staging-cluster-api-aws/cluster-api-aws-controller:$VERSION`. You can also wrap this with a command to retry periodically, until the job is complete, e.g. `watch --interval 30 --chgexit docker pull <...>`.
+1. Also pushing the tag will trigger a [GitHub Action](https://github.com/kubernetes-sigs/cluster-api-provider-aws/actions/workflows/release.yaml) to create a draft release.
 
 ## Promote container images from staging to production
 
@@ -108,3 +109,8 @@ If the release is for a new MAJOR.MINOR version (i.e. not a patch release) then 
 This is done by updating the [test-infra](https://github.com/kubernetes/test-infra) repo. For an example of PR see [this](https://github.com/kubernetes/test-infra/pull/33751) for the v2.7 release series.
 
 Consider removing jobs from an old release as well. We should only keep jobs for 2 release branches.
+
+### Prepare main for the next release
+
+1. Adjust `metadata.yaml` by adding the next release (for example if v2.7 has just been released add v2.8 here).
+1. Adjust `test/e2e/data/shared/v1beta2_provider/metadata.yaml` by adding the now released MAJOR.MINOR release (the new release will still be referred as `9.9`)
