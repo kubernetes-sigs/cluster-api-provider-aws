@@ -1,12 +1,11 @@
 ---
 # E2E test scenario using local dev images and manifests built from the source tree for following providers:
 # - cluster-api
-# - bootstrap kubeadm
-# - control-plane kubeadm
-# - aws
+# - infrastructure aws
 
 # To run tests, run the following from the root of this repository.
 # `AWS_REGION=eu-west-1 make e2e GINKGO_ARGS=-stream E2E_ARGS=-skip-cloudformation-deletion`
+# The -stream flag will make Ginkgo print results to the screen in real-time.
 # -skip-cloudformation-deletion reduces the time taken to set up AWS CloudFormation prior to cluster start.
 
 # AWS credentials must be present for running tests
@@ -26,11 +25,11 @@ images:
     loadBehavior: tryLoad
   - name: quay.io/jetstack/cert-manager-controller:v1.17.2
     loadBehavior: tryLoad
-  - name: registry.k8s.io/cluster-api/cluster-api-controller:v1.10.2
+  - name: registry.k8s.io/cluster-api/cluster-api-controller:v1.11.1
     loadBehavior: tryLoad
-  - name: registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:v1.10.2
+  - name: registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:v1.11.1
     loadBehavior: tryLoad
-  - name: registry.k8s.io/cluster-api/kubeadm-control-plane-controller:v1.10.2
+  - name: registry.k8s.io/cluster-api/kubeadm-control-plane-controller:v1.11.1
     loadBehavior: tryLoad
 
 providers:
@@ -42,18 +41,18 @@ providers:
         type: "url"
         contract: v1beta1
         files:
-          - sourcePath: "./shared/v1beta1/metadata.yaml"
+          - sourcePath: "./shared/capi/v1.2/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.10.2 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.10.2/core-components.yaml"
+      - name: v1.11.1 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.11.1/core-components.yaml"
         type: "url"
-        contract: v1beta1
+        contract: v1beta2
         files:
-          - sourcePath: "./shared/v1beta1/metadata.yaml"
+          - sourcePath: "./shared/capi/v1.11/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -62,25 +61,25 @@ providers:
   - name: kubeadm
     type: BootstrapProvider
     files:
-      - sourcePath: "./shared/v1beta1/metadata.yaml"
+      - sourcePath: "./shared/capi/v1.2/metadata.yaml"
     versions:
       - name: v1.2.0 # earliest published release in the v1beta1 series; this is used for v1beta1 old --> v1beta1 latest clusterctl upgrades test only.
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.0/bootstrap-components.yaml"
         type: "url"
         contract: v1beta1
         files:
-          - sourcePath: "./shared/v1beta1/metadata.yaml"
+          - sourcePath: "./shared/capi/v1.2/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.10.2 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.10.2/bootstrap-components.yaml"
+      - name: v1.11.1 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.11.1/bootstrap-components.yaml"
         type: "url"
-        contract: v1beta1
+        contract: v1beta2
         files:
-          - sourcePath: "./shared/v1beta1/metadata.yaml"
+          - sourcePath: "./shared/capi/v1.11/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -89,25 +88,25 @@ providers:
   - name: kubeadm
     type: ControlPlaneProvider
     files:
-      - sourcePath: "./shared/v1beta1/metadata.yaml"
+      - sourcePath: "./shared/capi/v1.2/metadata.yaml"
     versions:
       - name: v1.2.0 # earliest published release in the v1beta1 series; this is used for v1beta1 old --> main clusterctl upgrades test only.
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.0/control-plane-components.yaml"
         type: "url"
         contract: v1beta1
         files:
-          - sourcePath: "./shared/v1beta1/metadata.yaml"
+          - sourcePath: "./shared/capi/v1.2/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.10.2 # latest published release in the v1beta1 series; this is used for v1beta1 --> v1beta1 latest clusterctl upgrades test only.
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.10.2/control-plane-components.yaml"
+      - name: v1.11.1 # latest published release in the v1beta1 series; this is used for v1beta1 --> v1beta1 latest clusterctl upgrades test only.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.11.1/control-plane-components.yaml"
         type: "url"
-        contract: v1beta1
+        contract: v1beta2
         files:
-          - sourcePath: "./shared/v1beta1/metadata.yaml"
+          - sourcePath: "./shared/capi/v1.11/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -136,7 +135,7 @@ providers:
       - name: v9.9.99
         # Use manifest from source files
         value: ../../../config/default
-        # Do not add contract field for v1beta1 --> v1beta2 clusterctl upgrades test to work.
+        contract: v1beta1
         files:
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-efs-support.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-external-csi.yaml"

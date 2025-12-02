@@ -39,7 +39,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 func TestReconcileDelete(t *testing.T) {
@@ -938,11 +938,10 @@ func createEKSCluster() *clusterv1.Cluster {
 			Namespace: "default",
 		},
 		Spec: clusterv1.ClusterSpec{
-			InfrastructureRef: &corev1.ObjectReference{
-				Kind:       "AWSManagedControlPlane",
-				APIVersion: ekscontrolplanev1.GroupVersion.String(),
-				Name:       "cp1",
-				Namespace:  "default",
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				Kind:     "AWSManagedControlPlane",
+				APIGroup: ekscontrolplanev1.GroupVersion.Group,
+				Name:     "cp1",
 			},
 		},
 	}
@@ -1021,11 +1020,10 @@ func createUnmanagedCluster() *clusterv1.Cluster {
 			Namespace: "default",
 		},
 		Spec: clusterv1.ClusterSpec{
-			InfrastructureRef: &corev1.ObjectReference{
-				Kind:       "AWSCluster",
-				APIVersion: infrav1.GroupVersion.String(),
-				Name:       "cluster1",
-				Namespace:  "default",
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				Kind:     "AWSCluster",
+				APIGroup: infrav1.GroupVersion.Group,
+				Name:     "cluster1",
 			},
 		},
 	}

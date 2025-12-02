@@ -20,7 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 )
 
 // ROSANetworkFinalizer allows the controller to clean up resources on delete.
@@ -29,41 +29,42 @@ const ROSANetworkFinalizer = "rosanetwork.infrastructure.cluster.x-k8s.io"
 // ROSANetworkSpec defines the desired state of ROSANetwork
 type ROSANetworkSpec struct {
 	// The name of the cloudformation stack under which the network infrastructure would be created
-	// +immutable
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="stackName is immutable"
+	// +kubebuilder:validation:Required
 	StackName string `json:"stackName"`
 
 	// The AWS region in which the components of ROSA network infrastruture are to be crated
-	// +immutable
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="region is immutable"
+	// +kubebuilder:validation:Required
 	Region string `json:"region"`
 
 	// The number of availability zones to be used for creation of the network infrastructure.
 	// You can specify anything between one and four, depending on the chosen AWS region.
-	// +kubebuilder:default=1
+	// Either AvailabilityZoneCount OR AvailabilityZones must be set.
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="availabilityZoneCount is immutable"
 	// +optional
-	// +immutable
-	AvailabilityZoneCount int `json:"availabilityZoneCount"`
+	AvailabilityZoneCount int `json:"availabilityZoneCount,omitempty"`
 
 	// The list of availability zones to be used for creation of the network infrastructure.
 	// You can specify anything between one and four valid availability zones from a given region.
-	// Should you specify both the availabilityZoneCount and availabilityZones, the list of availability zones takes preference.
+	// Either AvailabilityZones OR AvailabilityZoneCount must be set.
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="availabilityZones is immutable"
 	// +optional
-	// +immutable
-	AvailabilityZones []string `json:"availabilityZones"`
+	AvailabilityZones []string `json:"availabilityZones,omitempty"`
 
 	// CIDR block to be used for the VPC
 	// +kubebuilder:validation:Format=cidr
-	// +immutable
+	// +kubebuilder:validation:Required
 	CIDRBlock string `json:"cidrBlock"`
 
 	// IdentityRef is a reference to an identity to be used when reconciling rosa network.
 	// If no identity is specified, the default identity for this controller will be used.
-	//
 	// +optional
 	IdentityRef *infrav1.AWSIdentityReference `json:"identityRef,omitempty"`
 
 	// StackTags is an optional set of tags to add to the created cloudformation stack.
 	// The stack tags will then be automatically applied to the supported AWS resources (VPC, subnets, ...).
-	//
 	// +optional
 	StackTags Tags `json:"stackTags,omitempty"`
 }
@@ -107,7 +108,7 @@ type ROSANetworkStatus struct {
 	Resources []CFResource `json:"resources,omitempty"`
 
 	// Conditions specifies the conditions for ROSANetwork
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -134,12 +135,12 @@ type ROSANetworkList struct {
 }
 
 // GetConditions returns the observations of the operational state of the ROSANetwork resource.
-func (r *ROSANetwork) GetConditions() clusterv1.Conditions {
+func (r *ROSANetwork) GetConditions() clusterv1beta1.Conditions {
 	return r.Status.Conditions
 }
 
-// SetConditions sets the underlying service state of the ROSANetwork to the predescribed clusterv1.Conditions.
-func (r *ROSANetwork) SetConditions(conditions clusterv1.Conditions) {
+// SetConditions sets the underlying service state of the ROSANetwork to the predescribed clusterv1beta1.Conditions.
+func (r *ROSANetwork) SetConditions(conditions clusterv1beta1.Conditions) {
 	r.Status.Conditions = conditions
 }
 

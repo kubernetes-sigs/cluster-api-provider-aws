@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.17.3
+    controller-gen.kubebuilder.io/version: v0.19.0
   name: awsmachinetemplates.infrastructure.cluster.x-k8s.io
 spec:
   group: infrastructure.cluster.x-k8s.io
@@ -611,6 +611,45 @@ spec:
                             - ssm-parameter-store
                             type: string
                         type: object
+                      cpuOptions:
+                        description: |-
+                          CPUOptions defines CPU-related settings for the instance, including the confidential computing policy.
+                          When omitted, this means no opinion and the AWS platform is left to choose a reasonable default.
+                        minProperties: 1
+                        properties:
+                          confidentialCompute:
+                            description: |-
+                              ConfidentialCompute specifies whether confidential computing should be enabled for the instance,
+                              and, if so, which confidential computing technology to use.
+                              Valid values are: Disabled, AMDEncryptedVirtualizationNestedPaging
+                              When set to Disabled, confidential computing will be disabled for the instance.
+                              When set to AMDEncryptedVirtualizationNestedPaging, AMD SEV-SNP will be used as the confidential computing technology for the instance.
+                              In this case, ensure the following conditions are met:
+                              1) The selected instance type supports AMD SEV-SNP.
+                              2) The selected AWS region supports AMD SEV-SNP.
+                              3) The selected AMI supports AMD SEV-SNP.
+                              More details can be checked at https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/sev-snp.html
+                              When omitted, this means no opinion and the AWS platform is left to choose a reasonable default,
+                              which is subject to change without notice. The current default is Disabled.
+                            enum:
+                            - Disabled
+                            - AMDEncryptedVirtualizationNestedPaging
+                            type: string
+                        type: object
+                      dynamicHostAllocation:
+                        description: |-
+                          DynamicHostAllocation enables automatic allocation of a single dedicated host.
+                          This field is mutually exclusive with HostID and always allocates exactly one host.
+                          Cost effectiveness of allocating a single instance on a dedicated host may vary
+                          depending on the instance type and the region.
+                        properties:
+                          tags:
+                            additionalProperties:
+                              type: string
+                            description: Tags to apply to the allocated dedicated
+                              host.
+                            type: object
+                        type: object
                       elasticIpPool:
                         description: ElasticIPPool is the configuration to allocate
                           Public IPv4 address (Elastic IP/EIP) from user-defined pool.
@@ -641,18 +680,22 @@ spec:
                               rule: self in ['none','amazon-pool']
                         type: object
                       hostAffinity:
+                        default: host
                         description: |-
                           HostAffinity specifies the dedicated host affinity setting for the instance.
-                          When hostAffinity is set to host, an instance started onto a specific host always restarts on the same host if stopped.
-                          When hostAffinity is set to default, and you stop and restart the instance, it can be restarted on any available host.
+                          When HostAffinity is set to host, an instance started onto a specific host always restarts on the same host if stopped.
+                          When HostAffinity is set to default, and you stop and restart the instance, it can be restarted on any available host.
                           When HostAffinity is defined, HostID is required.
                         enum:
                         - default
                         - host
                         type: string
                       hostID:
-                        description: HostID specifies the Dedicated Host on which
-                          the instance must be started.
+                        description: |-
+                          HostID specifies the Dedicated Host on which the instance must be started.
+                          This field is mutually exclusive with DynamicHostAllocation.
+                        maxLength: 19
+                        pattern: ^h-[0-9a-f]{17}$
                         type: string
                       iamInstanceProfile:
                         description: IAMInstanceProfile is a name of an IAM instance
@@ -1064,8 +1107,12 @@ spec:
                             type: string
                         type: object
                       tenancy:
-                        description: Tenancy indicates if instance should run on shared
-                          or single-tenant hardware.
+                        description: |-
+                          Tenancy indicates if instance should run on shared or single-tenant hardware.
+                          When Tenancy=host, AWS will attempt to find a suitable host from:
+                          - Preexisting allocated hosts that have auto-placement enabled
+                          - A specific host ID, if configured
+                          - Allocating a new dedicated host if DynamicHostAllocation is configured
                         enum:
                         - default
                         - dedicated
@@ -1109,7 +1156,84 @@ spec:
                   This value is used for autoscaling from zero operations as defined in:
                   https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20210310-opt-in-autoscaling-from-zero.md
                 type: object
+              conditions:
+                description: Conditions defines current service state of the AWSMachineTemplate.
+                items:
+                  description: Condition defines an observation of a Cluster API resource
+                    operational state.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed. If that is not known, then using the time when
+                        the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This field may be empty.
+                      maxLength: 10240
+                      minLength: 1
+                      type: string
+                    reason:
+                      description: |-
+                        reason is the reason for the condition's last transition in CamelCase.
+                        The specific API may choose whether or not this field is considered a guaranteed API.
+                        This field may be empty.
+                      maxLength: 256
+                      minLength: 1
+                      type: string
+                    severity:
+                      description: |-
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        understand the current situation and act accordingly.
+                        The Severity field MUST be set only when Status=False.
+                      maxLength: 32
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: |-
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
+                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
+                        can be useful (see .node.status.conditions), the ability to deconflict is important.
+                      maxLength: 256
+                      minLength: 1
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - status
+                  - type
+                  type: object
+                type: array
+              nodeInfo:
+                description: |-
+                  NodeInfo contains information about the node's architecture and operating system.
+                  This value is used for autoscaling from zero operations as defined in:
+                  https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20210310-opt-in-autoscaling-from-zero.md
+                properties:
+                  architecture:
+                    description: |-
+                      Architecture is the CPU architecture of the node.
+                      Its underlying type is a string and its value can be any of amd64, arm64.
+                    enum:
+                    - amd64
+                    - arm64
+                    type: string
+                  operatingSystem:
+                    description: |-
+                      OperatingSystem is the operating system of the node.
+                      Its underlying type is a string and its value can be any of linux, windows.
+                    enum:
+                    - linux
+                    - windows
+                    type: string
+                type: object
             type: object
         type: object
     served: true
     storage: true
+    subresources:
+      status: {}

@@ -43,7 +43,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/ssm/mock_ssmiface"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 const (
@@ -82,8 +82,10 @@ users:
 
 var testUserDataHash = userdata.ComputeHash([]byte(testUserData))
 
-var testBootstrapData = []byte("different from testUserData since bootstrap data may be in S3 while EC2 user data points to that S3 object")
-var testBootstrapDataHash = userdata.ComputeHash(testBootstrapData)
+var (
+	testBootstrapData     = []byte("different from testUserData since bootstrap data may be in S3 while EC2 user data points to that S3 object")
+	testBootstrapDataHash = userdata.ComputeHash(testBootstrapData)
+)
 
 func defaultEC2AndDataTags(name string, clusterName string, userDataSecretKey types.NamespacedName, bootstrapDataHash string) []ec2types.Tag {
 	tags := defaultEC2Tags(name, clusterName)
@@ -1800,7 +1802,7 @@ func TestDiscoverLaunchTemplateAMI(t *testing.T) {
 			},
 			machineTemplate: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
-					Version: aws.String(DefaultAmiNameFormat),
+					Version: DefaultAmiNameFormat,
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
@@ -1851,7 +1853,7 @@ func TestDiscoverLaunchTemplateAMI(t *testing.T) {
 			},
 			machineTemplate: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
-					Version: aws.String(DefaultAmiNameFormat),
+					Version: DefaultAmiNameFormat,
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
@@ -1902,7 +1904,7 @@ func TestDiscoverLaunchTemplateAMI(t *testing.T) {
 			},
 			machineTemplate: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
-					Version: aws.String(DefaultAmiNameFormat),
+					Version: DefaultAmiNameFormat,
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
@@ -1974,7 +1976,7 @@ func TestDiscoverLaunchTemplateAMI(t *testing.T) {
 			},
 			machineTemplate: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
-					Version: aws.String(DefaultAmiNameFormat),
+					Version: DefaultAmiNameFormat,
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {

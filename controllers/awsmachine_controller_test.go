@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
@@ -43,9 +44,10 @@ import (
 	elbService "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/elb"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/mock_services"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 )
 
 func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
@@ -140,7 +142,7 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		g.Expect(err).To(BeNil())
 
 		ms.Machine.Spec.Bootstrap.DataSecretName = aws.String("bootstrap-data")
-		ms.Machine.Spec.Version = aws.String("test")
+		ms.Machine.Spec.Version = "test"
 		ms.AWSMachine.Spec.Subnet = &infrav1.AWSResourceReference{ID: aws.String("subnet-1")}
 		ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateRunning
 		ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabel: ""}
@@ -241,8 +243,8 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		_, err = reconciler.reconcileDelete(context.TODO(), ms, cs, cs, cs, cs)
 		g.Expect(err).To(BeNil())
 		expectConditions(g, ms.AWSMachine, []conditionAssertion{
-			{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
-			{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
+			{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityInfo, clusterv1beta1.DeletedReason},
+			{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityInfo, clusterv1beta1.DeletedReason},
 		})
 		g.Expect(ms.AWSMachine.Finalizers).ShouldNot(ContainElement(infrav1.MachineFinalizer))
 	})
@@ -320,7 +322,7 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		g.Expect(err).To(BeNil())
 
 		ms.Machine.Spec.Bootstrap.DataSecretName = aws.String("bootstrap-data")
-		ms.Machine.Spec.Version = aws.String("test")
+		ms.Machine.Spec.Version = "test"
 		ms.AWSMachine.Spec.Subnet = &infrav1.AWSResourceReference{ID: aws.String("subnet-1")}
 		ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateRunning
 		ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabel: ""}
@@ -422,9 +424,108 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		_, err = reconciler.reconcileDelete(context.TODO(), ms, cs, cs, cs, cs)
 		g.Expect(err).Should(HaveOccurred())
 		expectConditions(g, ms.AWSMachine, []conditionAssertion{
-			{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityWarning, "DeletingFailed"},
-			{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1.ConditionSeverityInfo, clusterv1.DeletedReason},
+			{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, "DeletingFailed"},
+			{infrav1.ELBAttachedCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityInfo, clusterv1beta1.DeletedReason},
 		})
+		g.Expect(ms.AWSMachine.Finalizers).ShouldNot(ContainElement(infrav1.MachineFinalizer))
+	})
+	t.Run("Should successfully continue AWSMachinePool machine deletion if spec.cloudInit=={}", func(t *testing.T) {
+		g := NewWithT(t)
+		mockCtrl = gomock.NewController(t)
+		ec2Mock := mocks.NewMockEC2API(mockCtrl)
+
+		// Simulate terminated instance
+		ec2Mock.EXPECT().DescribeInstances(context.TODO(), gomock.Eq(&ec2.DescribeInstancesInput{
+			InstanceIds: []string{"myMachine"},
+		})).Return(&ec2.DescribeInstancesOutput{
+			Reservations: []ec2types.Reservation{{Instances: []ec2types.Instance{{Placement: &ec2types.Placement{AvailabilityZone: aws.String("us-east-1a")}, InstanceId: aws.String("i-mymachine"), State: &ec2types.InstanceState{Name: ec2types.InstanceStateNameTerminated, Code: aws.Int32(48)}}}}},
+		}, nil)
+
+		ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("integ-test-%s", util.RandomString(5)))
+		g.Expect(err).To(BeNil())
+
+		setup(t, g)
+		awsMachine := &infrav1.AWSMachine{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:    ns.Name,
+				GenerateName: "mypool-",
+				Labels: map[string]string{
+					clusterv1.MachinePoolNameLabel: "mypool",
+					clusterv1.ClusterNameLabel:     "test-cluster",
+				},
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion:         expinfrav1.GroupVersion.String(),
+						Kind:               "AWSMachinePool",
+						Name:               "mypool",
+						BlockOwnerDeletion: ptr.To(true),
+						UID:                "6d1e6238-045d-4297-8c7e-73df7a5cc998",
+					},
+				},
+			},
+			Spec: infrav1.AWSMachineSpec{
+				ProviderID: aws.String(providerID),
+				InstanceID: aws.String("i-mymachine"),
+				AMI: infrav1.AMIReference{
+					ID: aws.String("ami-alsodoesntmatter"),
+				},
+				InstanceType:            "foo",
+				PublicIP:                aws.Bool(false),
+				SSHKeyName:              aws.String("foo"),
+				InstanceMetadataOptions: &infrav1.InstanceMetadataOptions{
+					// ...
+				},
+				IAMInstanceProfile:       "foo",
+				AdditionalSecurityGroups: nil,
+				Subnet:                   &infrav1.AWSResourceReference{ID: aws.String("sub-doesntmatter")},
+				RootVolume: &infrav1.Volume{
+					Size: 8,
+					// ...
+				},
+				NonRootVolumes:    nil,
+				NetworkInterfaces: []string{"eni-foobar"},
+				CloudInit:         infrav1.CloudInit{},
+				SpotMarketOptions: nil,
+				Tenancy:           "host",
+			},
+		}
+		createAWSMachine(g, awsMachine)
+
+		defer teardown(g)
+		defer t.Cleanup(func() {
+			g.Expect(testEnv.Cleanup(ctx, awsMachine, ns)).To(Succeed())
+		})
+
+		cs, err := getClusterScope(infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}})
+		g.Expect(err).To(BeNil())
+		cs.Cluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"}}
+		ms, err := getMachineScope(cs, awsMachine)
+		g.Expect(err).To(BeNil())
+
+		// This case happened in a live object. It didn't get defaulted and actually was
+		// a machine pool AWSMachine managed via Ignition. The AWSMachine controller must
+		// not try to use this field or delete bootstrap data, as the object is managed
+		// by the AWSMachinePool controller.
+		ms.AWSMachine.Spec.CloudInit.SecureSecretsBackend = ""
+		now := metav1.Now()
+		ms.AWSMachine.DeletionTimestamp = &now
+		ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateTerminated
+
+		// Machine pool controlled Machine/AWSMachine
+		if ms.Machine.Labels == nil {
+			ms.Machine.Labels = map[string]string{}
+		}
+		ms.Machine.Labels[clusterv1.MachinePoolNameLabel] = ms.AWSMachine.Labels[clusterv1.MachinePoolNameLabel]
+		ms.Machine.Labels[clusterv1.ClusterNameLabel] = ms.AWSMachine.Labels[clusterv1.ClusterNameLabel]
+
+		ec2Svc := ec2Service.NewService(cs)
+		ec2Svc.EC2Client = ec2Mock
+		reconciler.ec2ServiceFactory = func(scope scope.EC2Scope) services.EC2Interface {
+			return ec2Svc
+		}
+
+		_, err = reconciler.reconcileDelete(context.TODO(), ms, cs, cs, cs, cs)
+		g.Expect(err).To(BeNil())
 		g.Expect(ms.AWSMachine.Finalizers).ShouldNot(ContainElement(infrav1.MachineFinalizer))
 	})
 }
@@ -438,7 +539,9 @@ func getMachineScope(cs *scope.ClusterScope, awsMachine *infrav1.AWSMachine) (*s
 					Name: "test",
 				},
 				Status: clusterv1.ClusterStatus{
-					InfrastructureReady: true,
+					Initialization: clusterv1.ClusterInitializationStatus{
+						InfrastructureProvisioned: ptr.To(true),
+					},
 				},
 			},
 			Machine: &clusterv1.Machine{
@@ -528,16 +631,16 @@ func (p *pointsTo) String() string {
 }
 
 type conditionAssertion struct {
-	conditionType clusterv1.ConditionType
+	conditionType clusterv1beta1.ConditionType
 	status        corev1.ConditionStatus
-	severity      clusterv1.ConditionSeverity
+	severity      clusterv1beta1.ConditionSeverity
 	reason        string
 }
 
 func expectConditions(g *WithT, m *infrav1.AWSMachine, expected []conditionAssertion) {
 	g.Expect(len(m.Status.Conditions)).To(BeNumerically(">=", len(expected)), "number of conditions")
 	for _, c := range expected {
-		actual := conditions.Get(m, c.conditionType)
+		actual := v1beta1conditions.Get(m, c.conditionType)
 		g.Expect(actual).To(Not(BeNil()))
 		g.Expect(actual.Type).To(Equal(c.conditionType))
 		g.Expect(actual.Status).To(Equal(c.status))

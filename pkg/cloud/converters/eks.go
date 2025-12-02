@@ -217,6 +217,20 @@ func NodegroupUpdateconfigFromSDK(ngUpdateConfig *ekstypes.NodegroupUpdateConfig
 	return converted
 }
 
+// NodeRepairConfigToSDK is used to convert a CAPA NodeRepairConfig to AWS SDK NodeRepairConfig.
+func NodeRepairConfigToSDK(repairConfig *expinfrav1.NodeRepairConfig) *ekstypes.NodeRepairConfig {
+	if repairConfig == nil {
+		// Default to disabled if not specified to avoid behavior changes
+		return &ekstypes.NodeRepairConfig{
+			Enabled: aws.Bool(false),
+		}
+	}
+
+	return &ekstypes.NodeRepairConfig{
+		Enabled: repairConfig.Enabled,
+	}
+}
+
 // AMITypeToSDK converts a CAPA ManagedMachineAMIType to AWS SDK AMIType.
 func AMITypeToSDK(amiType expinfrav1.ManagedMachineAMIType) ekstypes.AMITypes {
 	switch amiType {
@@ -277,4 +291,12 @@ func AddonConflictResolutionFromSDK(conflict ekstypes.ResolveConflicts) *string 
 		return aws.String(string(ekscontrolplanev1.AddonResolutionNone))
 	}
 	return aws.String(string(ekscontrolplanev1.AddonResolutionOverwrite))
+}
+
+// SupportTypeToSDK converts CAPA upgrade support policy types to SDK types.
+func SupportTypeToSDK(input ekscontrolplanev1.UpgradePolicy) ekstypes.SupportType {
+	if input == ekscontrolplanev1.UpgradePolicyStandard {
+		return ekstypes.SupportTypeStandard
+	}
+	return ekstypes.SupportTypeExtended
 }
