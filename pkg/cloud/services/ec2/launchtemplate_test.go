@@ -2028,7 +2028,7 @@ func TestDiscoverLaunchTemplateAMI(t *testing.T) {
 				tc.expect(ec2Mock.EXPECT())
 			}
 
-			s := NewService(cs)
+			s := NewService(cs).WithInstanceTypeArchitectureCache(nil)
 			s.EC2Client = ec2Mock
 
 			id, err := s.DiscoverLaunchTemplateAMI(context.TODO(), ms)
@@ -2104,7 +2104,7 @@ func TestDiscoverLaunchTemplateAMIForEKS(t *testing.T) {
 				tc.expectSSM(ssmMock.EXPECT())
 			}
 
-			s := NewService(mcps)
+			s := NewService(mcps).WithInstanceTypeArchitectureCache(nil)
 			s.EC2Client = ec2Mock
 			s.SSMClient = ssmMock
 
