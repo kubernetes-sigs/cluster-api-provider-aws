@@ -45,7 +45,7 @@ type EKSConfigSpec struct {
 	PauseContainer *PauseContainer `json:"pauseContainer,omitempty"`
 	// UseMaxPods  sets --max-pods for the kubelet when true.
 	// +optional
-	UseMaxPods *bool `json:"useMaxPods,omitempty"`
+	UseMaxPods *bool `json:"useMaxPods,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// ServiceIPV6Cidr is the ipv6 cidr range of the cluster. If this is specified then
 	// the ip family will be set to ipv6.
@@ -64,7 +64,7 @@ type PauseContainer struct {
 // EKSConfigStatus defines the observed state of the Amazon EKS Bootstrap Configuration.
 type EKSConfigStatus struct {
 	// Ready indicates the BootstrapData secret is ready to be consumed
-	Ready bool `json:"ready,omitempty"`
+	Ready bool `json:"ready,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// DataSecretName is the name of the secret that stores the bootstrap data script.
 	// +optional

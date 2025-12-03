@@ -50,8 +50,8 @@ func TestEKSAddonPlan(t *testing.T) {
 		desiredAddons     []*EKSAddon
 		installedAddons   []*EKSAddon
 		expect            func(m *mock_eksiface.MockEKSAPIMockRecorder)
-		expectCreateError bool
-		expectDoError     bool
+		expectCreateError bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+		expectDoError     bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "no desired and no installed",

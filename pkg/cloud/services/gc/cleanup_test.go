@@ -50,7 +50,7 @@ func TestReconcileDelete(t *testing.T) {
 		elbv2Mocks   func(m *mocks.MockELBV2APIMockRecorder)
 		rgAPIMocks   func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder)
 		ec2Mocks     func(m *mocks.MockEC2APIMockRecorder)
-		expectErr    bool
+		expectErr    bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name:         "eks with cluster opt-out",
