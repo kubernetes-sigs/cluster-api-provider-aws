@@ -548,6 +548,37 @@ spec:
                   InstallerRoleARN is an AWS IAM role that OpenShift Cluster Manager will assume to create the cluster.
                   Required if RosaRoleConfigRef is not specified.
                 type: string
+              logForwarder:
+                description: logForwarder set the log forward config for applications,
+                  cloudWatch, S3 and groupsVersion.
+                properties:
+                  applications:
+                    description: applications list included in the group versions.
+                    items:
+                      type: string
+                    type: array
+                  cloudWatchLogGroupName:
+                    description: cloudWatchLogGroupName is the name of the CloudWatch
+                      log group.
+                    type: string
+                  cloudWatchLogRoleArn:
+                    description: cloudWatchLogRoleArn is the ARN of the IAM CloudWatch
+                      role for log distribution.
+                    type: string
+                  groupsLogVersion:
+                    description: groupsLogVersion is list of available versions for
+                      a group
+                    items:
+                      type: string
+                    type: array
+                  s3ConfigBucketName:
+                    description: s3ConfigBucketName is the name of the S3 bucket
+                    type: string
+                  s3ConfigBucketPrefix:
+                    description: s3ConfigBucketPrefix is the prefix to use for objects
+                      stored in the S3 bucket.
+                    type: string
+                type: object
               network:
                 description: Network config for the ROSA HCP cluster.
                 properties:
