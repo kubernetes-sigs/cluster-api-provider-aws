@@ -144,4 +144,3 @@ func WaitForEKSClusterScalingTier(ctx context.Context, sess *aws.Config, eksClus
 		return nil
 	}, 5*time.Minute, 10*time.Second).Should(Succeed(), fmt.Sprintf("eventually failed checking EKS Cluster %q scaling tier is %s", eksClusterName, scalingTier))
 }
-
