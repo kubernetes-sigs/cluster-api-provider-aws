@@ -60,13 +60,13 @@ type awsManagedMachinePoolWebhook struct{}
 var _ webhook.CustomDefaulter = &awsManagedMachinePoolWebhook{}
 var _ webhook.CustomValidator = &awsManagedMachinePoolWebhook{}
 
-func (r *AWSManagedMachinePool) validateScaling() field.ErrorList {
+func validateScaling(r *AWSManagedMachinePoolSpec) field.ErrorList {
 	var allErrs field.ErrorList
-	if r.Spec.Scaling != nil { //nolint:nestif
+	if r.Scaling != nil { //nolint:nestif
 		minField := field.NewPath("spec", "scaling", "minSize")
 		maxField := field.NewPath("spec", "scaling", "maxSize")
-		minSize := r.Spec.Scaling.MinSize
-		maxSize := r.Spec.Scaling.MaxSize
+		minSize := r.Scaling.MinSize
+		maxSize := r.Scaling.MaxSize
 		if minSize != nil {
 			if *minSize < 0 {
 				allErrs = append(allErrs, field.Invalid(minField, *minSize, "must be greater or equal zero"))
@@ -85,18 +85,18 @@ func (r *AWSManagedMachinePool) validateScaling() field.ErrorList {
 	return allErrs
 }
 
-func (r *AWSManagedMachinePool) validateNodegroupUpdateConfig() field.ErrorList {
+func validateNodegroupUpdateConfig(r *AWSManagedMachinePoolSpec) field.ErrorList {
 	var allErrs field.ErrorList
 
-	if r.Spec.UpdateConfig != nil {
+	if r.UpdateConfig != nil {
 		nodegroupUpdateConfigField := field.NewPath("spec", "updateConfig")
 
-		if r.Spec.UpdateConfig.MaxUnavailable == nil && r.Spec.UpdateConfig.MaxUnavailablePercentage == nil {
-			allErrs = append(allErrs, field.Invalid(nodegroupUpdateConfigField, r.Spec.UpdateConfig, "must specify one of maxUnavailable or maxUnavailablePercentage when using nodegroup updateconfig"))
+		if r.UpdateConfig.MaxUnavailable == nil && r.UpdateConfig.MaxUnavailablePercentage == nil {
+			allErrs = append(allErrs, field.Invalid(nodegroupUpdateConfigField, r.UpdateConfig, "must specify one of maxUnavailable or maxUnavailablePercentage when using nodegroup updateconfig"))
 		}
 
-		if r.Spec.UpdateConfig.MaxUnavailable != nil && r.Spec.UpdateConfig.MaxUnavailablePercentage != nil {
-			allErrs = append(allErrs, field.Invalid(nodegroupUpdateConfigField, r.Spec.UpdateConfig, "cannot specify both maxUnavailable and maxUnavailablePercentage"))
+		if r.UpdateConfig.MaxUnavailable != nil && r.UpdateConfig.MaxUnavailablePercentage != nil {
+			allErrs = append(allErrs, field.Invalid(nodegroupUpdateConfigField, r.UpdateConfig, "cannot specify both maxUnavailable and maxUnavailablePercentage"))
 		}
 	}
 
@@ -106,15 +106,15 @@ func (r *AWSManagedMachinePool) validateNodegroupUpdateConfig() field.ErrorList 
 	return allErrs
 }
 
-func (r *AWSManagedMachinePool) validateRemoteAccess() field.ErrorList {
+func validateRemoteAccess(r *AWSManagedMachinePoolSpec) field.ErrorList {
 	var allErrs field.ErrorList
-	if r.Spec.RemoteAccess == nil {
+	if r.RemoteAccess == nil {
 		return allErrs
 	}
 	remoteAccessPath := field.NewPath("spec", "remoteAccess")
-	sourceSecurityGroups := r.Spec.RemoteAccess.SourceSecurityGroups
+	sourceSecurityGroups := r.RemoteAccess.SourceSecurityGroups
 
-	if public := r.Spec.RemoteAccess.Public; public && len(sourceSecurityGroups) > 0 {
+	if public := r.RemoteAccess.Public; public && len(sourceSecurityGroups) > 0 {
 		allErrs = append(
 			allErrs,
 			field.Invalid(remoteAccessPath.Child("sourceSecurityGroups"), sourceSecurityGroups, "must be empty if public is set"),
@@ -124,28 +124,28 @@ func (r *AWSManagedMachinePool) validateRemoteAccess() field.ErrorList {
 	return allErrs
 }
 
-func (r *AWSManagedMachinePool) validateLaunchTemplate() field.ErrorList {
+func validateLaunchTemplate(r *AWSManagedMachinePoolSpec) field.ErrorList {
 	var allErrs field.ErrorList
-	if r.Spec.AWSLaunchTemplate == nil {
+	if r.AWSLaunchTemplate == nil {
 		return allErrs
 	}
 
-	if r.Spec.InstanceType != nil {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "InstanceType"), r.Spec.InstanceType, "InstanceType cannot be specified when LaunchTemplate is specified"))
+	if r.InstanceType != nil {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "InstanceType"), r.InstanceType, "InstanceType cannot be specified when LaunchTemplate is specified"))
 	}
-	if r.Spec.DiskSize != nil {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "DiskSize"), r.Spec.DiskSize, "DiskSize cannot be specified when LaunchTemplate is specified"))
+	if r.DiskSize != nil {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "DiskSize"), r.DiskSize, "DiskSize cannot be specified when LaunchTemplate is specified"))
 	}
 
-	if r.Spec.AWSLaunchTemplate.IamInstanceProfile != "" {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "AWSLaunchTemplate", "IamInstanceProfile"), r.Spec.AWSLaunchTemplate.IamInstanceProfile, "IAM instance profile in launch template is prohibited in EKS managed node group"))
+	if r.AWSLaunchTemplate.IamInstanceProfile != "" {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "AWSLaunchTemplate", "IamInstanceProfile"), r.AWSLaunchTemplate.IamInstanceProfile, "IAM instance profile in launch template is prohibited in EKS managed node group"))
 	}
 
 	return allErrs
 }
 
-func (r *AWSManagedMachinePool) validateLifecycleHooks() field.ErrorList {
-	return validateLifecycleHooks(r.Spec.AWSLifecycleHooks)
+func (r *AWSManagedMachinePoolSpec) validateLifecycleHooks() field.ErrorList {
+	return validateLifecycleHooks(r.AWSLifecycleHooks)
 }
 
 // ValidateCreate will do any extra validation when creating a AWSManagedMachinePool.
@@ -162,19 +162,19 @@ func (*awsManagedMachinePoolWebhook) ValidateCreate(_ context.Context, obj runti
 	if r.Spec.EKSNodegroupName == "" {
 		allErrs = append(allErrs, field.Required(field.NewPath("spec.eksNodegroupName"), "eksNodegroupName is required"))
 	}
-	if errs := r.validateScaling(); errs != nil || len(errs) == 0 {
+	if errs := validateScaling(&r.Spec); errs != nil || len(errs) == 0 {
 		allErrs = append(allErrs, errs...)
 	}
-	if errs := r.validateRemoteAccess(); len(errs) > 0 {
+	if errs := validateRemoteAccess(&r.Spec); len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
 	}
-	if errs := r.validateNodegroupUpdateConfig(); len(errs) > 0 {
+	if errs := validateNodegroupUpdateConfig(&r.Spec); len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
 	}
-	if errs := r.validateLaunchTemplate(); len(errs) > 0 {
+	if errs := validateLaunchTemplate(&r.Spec); len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
 	}
-	if errs := r.validateLifecycleHooks(); len(errs) > 0 {
+	if errs := r.Spec.validateLifecycleHooks(); len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
 	}
 
@@ -207,19 +207,19 @@ func (*awsManagedMachinePoolWebhook) ValidateUpdate(_ context.Context, oldObj, n
 	}
 
 	var allErrs field.ErrorList
-	allErrs = append(allErrs, r.validateImmutable(oldPool)...)
+	allErrs = append(allErrs, validateAMPImmutable(&oldPool.Spec, &r.Spec)...)
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 
-	if errs := r.validateScaling(); errs != nil || len(errs) == 0 {
+	if errs := validateScaling(&r.Spec); errs != nil || len(errs) == 0 {
 		allErrs = append(allErrs, errs...)
 	}
-	if errs := r.validateNodegroupUpdateConfig(); len(errs) > 0 {
+	if errs := validateNodegroupUpdateConfig(&r.Spec); len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
 	}
-	if errs := r.validateLaunchTemplate(); len(errs) > 0 {
+	if errs := validateLaunchTemplate(&r.Spec); len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
 	}
-	if errs := r.validateLifecycleHooks(); len(errs) > 0 {
+	if errs := r.Spec.validateLifecycleHooks(); len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
 	}
 
@@ -239,7 +239,7 @@ func (*awsManagedMachinePoolWebhook) ValidateDelete(_ context.Context, _ runtime
 	return nil, nil
 }
 
-func (r *AWSManagedMachinePool) validateImmutable(old *AWSManagedMachinePool) field.ErrorList {
+func validateAMPImmutable(old *AWSManagedMachinePoolSpec, current *AWSManagedMachinePoolSpec) field.ErrorList {
 	var allErrs field.ErrorList
 
 	appendErrorIfMutated := func(old, update interface{}, name string) {
@@ -259,26 +259,26 @@ func (r *AWSManagedMachinePool) validateImmutable(old *AWSManagedMachinePool) fi
 		}
 	}
 
-	if old.Spec.EKSNodegroupName != "" {
-		appendErrorIfMutated(old.Spec.EKSNodegroupName, r.Spec.EKSNodegroupName, "eksNodegroupName")
+	if old.EKSNodegroupName != "" {
+		appendErrorIfMutated(old.EKSNodegroupName, current.EKSNodegroupName, "eksNodegroupName")
 	}
-	appendErrorIfMutated(old.Spec.SubnetIDs, r.Spec.SubnetIDs, "subnetIDs")
-	appendErrorIfSetAndMutated(old.Spec.RoleName, r.Spec.RoleName, "roleName")
-	appendErrorIfMutated(old.Spec.DiskSize, r.Spec.DiskSize, "diskSize")
-	appendErrorIfMutated(old.Spec.AMIType, r.Spec.AMIType, "amiType")
-	appendErrorIfMutated(old.Spec.RemoteAccess, r.Spec.RemoteAccess, "remoteAccess")
-	appendErrorIfSetAndMutated(old.Spec.CapacityType, r.Spec.CapacityType, "capacityType")
-	appendErrorIfMutated(old.Spec.AvailabilityZones, r.Spec.AvailabilityZones, "availabilityZones")
-	appendErrorIfMutated(old.Spec.AvailabilityZoneSubnetType, r.Spec.AvailabilityZoneSubnetType, "availabilityZoneSubnetType")
-	if (old.Spec.AWSLaunchTemplate != nil && r.Spec.AWSLaunchTemplate == nil) ||
-		(old.Spec.AWSLaunchTemplate == nil && r.Spec.AWSLaunchTemplate != nil) {
+	appendErrorIfMutated(old.SubnetIDs, current.SubnetIDs, "subnetIDs")
+	appendErrorIfSetAndMutated(old.RoleName, current.RoleName, "roleName")
+	appendErrorIfMutated(old.DiskSize, current.DiskSize, "diskSize")
+	appendErrorIfMutated(old.AMIType, current.AMIType, "amiType")
+	appendErrorIfMutated(old.RemoteAccess, current.RemoteAccess, "remoteAccess")
+	appendErrorIfSetAndMutated(old.CapacityType, current.CapacityType, "capacityType")
+	appendErrorIfMutated(old.AvailabilityZones, current.AvailabilityZones, "availabilityZones")
+	appendErrorIfMutated(old.AvailabilityZoneSubnetType, current.AvailabilityZoneSubnetType, "availabilityZoneSubnetType")
+	if (old.AWSLaunchTemplate != nil && current.AWSLaunchTemplate == nil) ||
+		(old.AWSLaunchTemplate == nil && current.AWSLaunchTemplate != nil) {
 		allErrs = append(
 			allErrs,
-			field.Invalid(field.NewPath("spec", "AWSLaunchTemplate"), old.Spec.AWSLaunchTemplate, "field is immutable"),
+			field.Invalid(field.NewPath("spec", "AWSLaunchTemplate"), old.AWSLaunchTemplate, "field is immutable"),
 		)
 	}
-	if old.Spec.AWSLaunchTemplate != nil && r.Spec.AWSLaunchTemplate != nil {
-		appendErrorIfMutated(old.Spec.AWSLaunchTemplate.Name, r.Spec.AWSLaunchTemplate.Name, "awsLaunchTemplate.name")
+	if old.AWSLaunchTemplate != nil && current.AWSLaunchTemplate != nil {
+		appendErrorIfMutated(old.AWSLaunchTemplate.Name, current.AWSLaunchTemplate.Name, "awsLaunchTemplate.name")
 	}
 
 	return allErrs
@@ -306,9 +306,13 @@ func (*awsManagedMachinePoolWebhook) Default(_ context.Context, obj runtime.Obje
 	}
 
 	if r.Spec.UpdateConfig == nil {
-		r.Spec.UpdateConfig = &UpdateConfig{
-			MaxUnavailable: ptr.To[int](1),
-		}
+		r.Spec.UpdateConfig = defaultManagedMachinePoolUpdateConfig()
 	}
 	return nil
+}
+
+func defaultManagedMachinePoolUpdateConfig() *UpdateConfig {
+	return &UpdateConfig{
+		MaxUnavailable: ptr.To[int](1),
+	}
 }
