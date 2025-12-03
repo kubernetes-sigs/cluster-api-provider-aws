@@ -38,6 +38,11 @@ func TestMachineDefault(t *testing.T) {
 	err := (&awsMachineWebhook{}).Default(context.Background(), machine)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(machine.Spec.CloudInit.SecureSecretsBackend).To(Equal(SecretBackendSecretsManager))
+	g.Expect(machine.Spec.InstanceMetadataOptions).NotTo(BeNil())
+	g.Expect(machine.Spec.InstanceMetadataOptions.HTTPEndpoint).To(Equal(InstanceMetadataEndpointStateEnabled))
+	g.Expect(machine.Spec.InstanceMetadataOptions.HTTPPutResponseHopLimit).To(Equal(int64(1)))
+	g.Expect(machine.Spec.InstanceMetadataOptions.HTTPTokens).To(Equal(HTTPTokensStateOptional))
+	g.Expect(machine.Spec.InstanceMetadataOptions.InstanceMetadataTags).To(Equal(InstanceMetadataEndpointStateDisabled))
 }
 
 func TestAWSMachineCreate(t *testing.T) {
