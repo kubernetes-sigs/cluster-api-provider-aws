@@ -6233,6 +6233,19 @@ func TestGetDHCPOptionSetDomainName(t *testing.T) {
 			expectedPrivateDNSName: nil,
 			mockCalls:              mockedGetPrivateDNSDomainNameFromDHCPOptionsEmptyCalls,
 		},
+		{
+			name:  "DescribeDhcpOptions call returns error, e.g. because it is denied by IAM policy",
+			vpcID: "vpc-exists",
+			dhcpOpt: &types.DhcpOptions{
+				DhcpConfigurations: []types.DhcpConfiguration{
+					{
+						Key: aws.String("domain-name"),
+					},
+				},
+			},
+			expectedPrivateDNSName: nil,
+			mockCalls:              mockedGetPrivateDNSDomainNameFromDHCPOptionsErrorCalls,
+		},
 	}
 	for _, tc := range testsCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -6336,6 +6349,25 @@ func mockedGetPrivateDNSDomainNameFromDHCPOptionsEmptyCalls(m *mocks.MockEC2APIM
 			},
 		},
 	}, nil)
+}
+
+func mockedGetPrivateDNSDomainNameFromDHCPOptionsErrorCalls(m *mocks.MockEC2APIMockRecorder) {
+	m.DescribeVpcs(context.TODO(), &ec2.DescribeVpcsInput{
+		VpcIds: []string{"vpc-exists"},
+	}).Return(&ec2.DescribeVpcsOutput{
+		Vpcs: []types.Vpc{
+			{
+				VpcId:         aws.String("vpc-exists"),
+				CidrBlock:     aws.String("10.0.0.0/16"),
+				IsDefault:     aws.Bool(false),
+				State:         types.VpcStateAvailable,
+				DhcpOptionsId: aws.String("dopt-12345678"),
+			},
+		},
+	}, nil)
+	m.DescribeDhcpOptions(context.TODO(), &ec2.DescribeDhcpOptionsInput{
+		DhcpOptionsIds: []string{"dopt-12345678"},
+	}).Return(nil, errors.New("some error"))
 }
 
 func TestGetCapacityReservationSpecification(t *testing.T) {
