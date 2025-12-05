@@ -1146,7 +1146,7 @@ func (s *Service) GetDHCPOptionSetDomainName(ec2client common.EC2API, vpcID *str
 
 	dhcpResult, err := ec2client.DescribeDhcpOptions(context.TODO(), dhcpInput)
 	if err != nil {
-		log.Error(err, "failed to describe DHCP Options Set", "DhcpOptionsSet", *dhcpResult)
+		log.Error(err, "failed to describe DHCP Options Set", "input", *dhcpInput)
 		return nil
 	}
 
