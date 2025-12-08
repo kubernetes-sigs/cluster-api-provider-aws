@@ -221,6 +221,59 @@ type AWSMachineSpec struct {
 	// If marketType is not specified and spotMarketOptions is provided, the marketType defaults to "Spot".
 	// +optional
 	MarketType MarketType `json:"marketType,omitempty"`
+
+	// HostID specifies the Dedicated Host on which the instance must be started.
+	// This field is mutually exclusive with DynamicHostAllocation.
+	// +kubebuilder:validation:Pattern=`^h-[0-9a-f]{17}$`
+	// +kubebuilder:validation:MaxLength=19
+	// +optional
+	HostID *string `json:"hostID,omitempty"`
+
+	// HostResourceGroupArn specifies the Dedicated Host Resource Group ARN on which the instance must be started.
+	// This field is mutually exclusive with DynamicHostAllocation and HostID.
+	// Note: The instance's AMI licenses must match the licenses associated with the host resource group.
+	// If the host resource group has no associated licenses, ensure the AMI also has no special licensing requirements.
+	// +kubebuilder:validation:Pattern=`^arn:aws[a-z\-]*:resource-groups:[a-z0-9\-]+:[0-9]{12}:group/[a-zA-Z0-9\-_]+$`
+	// +optional
+	HostResourceGroupArn *string `json:"hostResourceGroupArn,omitempty"`
+
+	// LicenseConfigurationArns specifies the License Configuration ARNs to associate with the instance.
+	// This field is required when HostResourceGroupArn is specified to ensure proper license compliance.
+	// +kubebuilder:validation:MaxItems=10
+	// +optional
+	LicenseConfigurationArns []string `json:"licenseConfigurationArns,omitempty"`
+
+	// HostAffinity specifies the dedicated host affinity setting for the instance.
+	// When HostAffinity is set to host, an instance started onto a specific host always restarts on the same host if stopped.
+	// When HostAffinity is set to default, and you stop and restart the instance, it can be restarted on any available host.
+	// When HostAffinity is defined, HostID is required.
+	// +optional
+	// +kubebuilder:validation:Enum:=default;host
+	// +kubebuilder:default=host
+	HostAffinity *string `json:"hostAffinity,omitempty"`
+
+	// DynamicHostAllocation enables automatic allocation of a single dedicated host.
+	// This field is mutually exclusive with HostID and always allocates exactly one host.
+	// Cost effectiveness of allocating a single instance on a dedicated host may vary
+	// depending on the instance type and the region.
+	// +optional
+	DynamicHostAllocation *DynamicHostAllocationSpec `json:"dynamicHostAllocation,omitempty"`
+
+	// CapacityReservationPreference specifies the preference for use of Capacity Reservations by the instance. Valid values include:
+	// "Open": The instance may make use of open Capacity Reservations that match its AZ and InstanceType
+	// "None": The instance may not make use of any Capacity Reservations. This is to conserve open reservations for desired workloads
+	// "CapacityReservationsOnly": The instance will only run if matched or targeted to a Capacity Reservation. Note that this is incompatible with a MarketType of `Spot`
+	// +kubebuilder:validation:Enum="";None;CapacityReservationsOnly;Open
+	// +optional
+	CapacityReservationPreference CapacityReservationPreference `json:"capacityReservationPreference,omitempty"`
+}
+
+// DynamicHostAllocationSpec defines the configuration for dynamic dedicated host allocation.
+// This specification always allocates exactly one dedicated host per machine.
+type DynamicHostAllocationSpec struct {
+	// Tags to apply to the allocated dedicated host.
+	// +optional
+	Tags map[string]string `json:"tags,omitempty"`
 }
 
 // CloudInit defines options related to the bootstrapping systems where
