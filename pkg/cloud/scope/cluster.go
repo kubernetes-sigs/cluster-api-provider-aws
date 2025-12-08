@@ -209,6 +209,7 @@ func (s *ClusterScope) ControlPlaneLoadBalancers() []*infrav1.AWSLoadBalancerSpe
 }
 
 // ControlPlaneLoadBalancerScheme returns the Classic ELB scheme (public or internal facing).
+//
 // Deprecated: This method is going to be removed in a future release. Use LoadBalancer.Scheme.
 func (s *ClusterScope) ControlPlaneLoadBalancerScheme() infrav1.ELBScheme {
 	if s.ControlPlaneLoadBalancer() != nil && s.ControlPlaneLoadBalancer().Scheme != nil {
