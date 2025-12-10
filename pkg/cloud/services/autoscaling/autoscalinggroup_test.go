@@ -42,8 +42,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/autoscaling/mock_autoscalingiface"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expclusterv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 func TestServiceGetASGByName(t *testing.T) {
@@ -1125,10 +1124,11 @@ func TestServiceCanStartASGInstanceRefresh(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	tests := []struct {
-		name     string
-		wantErr  bool
-		canStart bool
-		expect   func(m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder)
+		name                        string
+		wantErr                     bool
+		wantUnfinishedRefreshStatus *string
+		canStart                    bool
+		expect                      func(m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder)
 	}{
 		{
 			name:     "should return error if describe instance refresh failed",
@@ -1153,9 +1153,10 @@ func TestServiceCanStartASGInstanceRefresh(t *testing.T) {
 			},
 		},
 		{
-			name:     "should return false if some instances have unfinished refresh",
-			wantErr:  false,
-			canStart: false,
+			name:                        "should return false if some instances have unfinished refresh",
+			wantErr:                     false,
+			wantUnfinishedRefreshStatus: aws.String(string(autoscalingtypes.InstanceRefreshStatusInProgress)),
+			canStart:                    false,
 			expect: func(m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder) {
 				m.DescribeInstanceRefreshes(context.TODO(), gomock.Eq(&autoscaling.DescribeInstanceRefreshesInput{
 					AutoScalingGroupName: aws.String("machinePoolName"),
@@ -1187,13 +1188,14 @@ func TestServiceCanStartASGInstanceRefresh(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 			mps.AWSMachinePool.Name = "machinePoolName"
 
-			out, err := s.CanStartASGInstanceRefresh(mps)
+			out, unfinishedRefreshStatus, err := s.CanStartASGInstanceRefresh(mps)
 			checkErr(tt.wantErr, err, g)
 			if tt.canStart {
 				g.Expect(out).To(BeTrue())
-				return
+			} else {
+				g.Expect(out).To(BeFalse())
+				g.Expect(unfinishedRefreshStatus).To(BeEquivalentTo(tt.wantUnfinishedRefreshStatus))
 			}
-			g.Expect(out).To(BeFalse())
 		})
 	}
 }
@@ -1267,7 +1269,7 @@ func getFakeClient() client.Client {
 	scheme := runtime.NewScheme()
 	_ = infrav1.AddToScheme(scheme)
 	_ = expinfrav1.AddToScheme(scheme)
-	_ = expclusterv1.AddToScheme(scheme)
+	_ = clusterv1.AddToScheme(scheme)
 	return fake.NewClientBuilder().WithScheme(scheme).Build()
 }
 
@@ -1350,7 +1352,7 @@ func getMachinePoolScope(client client.Client, clusterScope *scope.ClusterScope)
 	mps, err := scope.NewMachinePoolScope(scope.MachinePoolScopeParams{
 		Client:         client,
 		Cluster:        clusterScope.Cluster,
-		MachinePool:    &expclusterv1.MachinePool{},
+		MachinePool:    &clusterv1.MachinePool{},
 		InfraCluster:   clusterScope,
 		AWSMachinePool: awsMachinePool,
 	})

@@ -83,6 +83,9 @@ end:
 }
 
 func parsePathDot(b *PathBuilder, buf []rune, cursor int) (*PathBuilder, []rune, int, error) {
+	if b.root == nil || b.node == nil {
+		return nil, nil, 0, fmt.Errorf("required '$' character at first: %w", ErrInvalidPathString)
+	}
 	length := len(buf)
 	if cursor+1 < length && buf[cursor+1] == '.' {
 		b, buf, c, err := parsePathRecursive(b, buf, cursor)
@@ -113,12 +116,16 @@ func parsePathDot(b *PathBuilder, buf []rune, cursor int) (*PathBuilder, []rune,
 	}
 end:
 	if start == cursor {
-		return nil, nil, 0, fmt.Errorf("cloud not find by empty key: %w", ErrInvalidPathString)
+		return nil, nil, 0, fmt.Errorf("could not find by empty key: %w", ErrInvalidPathString)
 	}
 	return b.child(string(buf[start:cursor])), buf, cursor, nil
 }
 
 func parseQuotedKey(b *PathBuilder, buf []rune, cursor int) (*PathBuilder, []rune, int, error) {
+	if b.root == nil || b.node == nil {
+		return nil, nil, 0, fmt.Errorf("required '$' character at first: %w", ErrInvalidPathString)
+	}
+
 	cursor++ // skip single quote
 	start := cursor
 	length := len(buf)
@@ -156,6 +163,10 @@ end:
 }
 
 func parsePathIndex(b *PathBuilder, buf []rune, cursor int) (*PathBuilder, []rune, int, error) {
+	if b.root == nil || b.node == nil {
+		return nil, nil, 0, fmt.Errorf("required '$' character at first: %w", ErrInvalidPathString)
+	}
+
 	length := len(buf)
 	cursor++ // skip '[' character
 	if length <= cursor {
@@ -260,6 +271,9 @@ func (p *Path) FilterFile(f *ast.File) (ast.Node, error) {
 
 // FilterNode filter from node by YAMLPath.
 func (p *Path) FilterNode(node ast.Node) (ast.Node, error) {
+	if node == nil {
+		return nil, nil
+	}
 	n, err := p.node.filter(node)
 	if err != nil {
 		return nil, err
@@ -615,7 +629,7 @@ func (n *indexNode) filter(node ast.Node) (ast.Node, error) {
 	}
 	sequence, _ := node.(*ast.SequenceNode)
 	if n.selector >= uint(len(sequence.Values)) {
-		return nil, fmt.Errorf("expected index is %d. but got sequences has %d items: %w", n.selector, sequence.Values, ErrInvalidQuery)
+		return nil, fmt.Errorf("expected index is %d. but got sequences has %d items: %w", n.selector, len(sequence.Values), ErrInvalidQuery)
 	}
 	value := sequence.Values[n.selector]
 	if n.child == nil {
@@ -634,7 +648,7 @@ func (n *indexNode) replace(node ast.Node, target ast.Node) error {
 	}
 	sequence, _ := node.(*ast.SequenceNode)
 	if n.selector >= uint(len(sequence.Values)) {
-		return fmt.Errorf("expected index is %d. but got sequences has %d items: %w", n.selector, sequence.Values, ErrInvalidQuery)
+		return fmt.Errorf("expected index is %d. but got sequences has %d items: %w", n.selector, len(sequence.Values), ErrInvalidQuery)
 	}
 	if n.child == nil {
 		if err := sequence.Replace(int(n.selector), target); err != nil {

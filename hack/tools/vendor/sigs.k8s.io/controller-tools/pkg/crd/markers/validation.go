@@ -31,6 +31,9 @@ const (
 
 	SchemalessName        = "kubebuilder:validation:Schemaless"
 	ValidationItemsPrefix = validationPrefix + "items:"
+
+	ValidationExactlyOneOfPrefix = validationPrefix + "ExactlyOneOf"
+	ValidationAtMostOneOfPrefix  = validationPrefix + "AtMostOneOf"
 )
 
 // ValidationMarkers lists all available markers that affect CRD schema generation,
@@ -75,6 +78,14 @@ var ValidationMarkers = mustMakeAllWithPrefix(validationPrefix, markers.Describe
 	XValidation{},
 )
 
+// TypeOnlyMarkers list type-specific validation markers (i.e. those markers that don't make sense on a field, and thus aren't in ValidationMarkers or FieldOnlyMarkers).
+var TypeOnlyMarkers = []*definitionWithHelp{
+	must(markers.MakeDefinition(ValidationAtMostOneOfPrefix, markers.DescribesType, AtMostOneOf(nil))).
+		WithHelp(markers.SimpleHelp("CRD validation", "specifies a list of field names that must conform to the AtMostOneOf constraint.")),
+	must(markers.MakeDefinition(ValidationExactlyOneOfPrefix, markers.DescribesType, ExactlyOneOf(nil))).
+		WithHelp(markers.SimpleHelp("CRD validation", "specifies a list of field names that must conform to the ExactlyOneOf constraint.")),
+}
+
 // FieldOnlyMarkers list field-specific validation markers (i.e. those markers that don't make
 // sense on a type, and thus aren't in ValidationMarkers).
 var FieldOnlyMarkers = []*definitionWithHelp{
@@ -103,6 +114,9 @@ var FieldOnlyMarkers = []*definitionWithHelp{
 
 	must(markers.MakeDefinition(SchemalessName, markers.DescribesField, Schemaless{})).
 		WithHelp(Schemaless{}.Help()),
+
+	must(markers.MakeAnyTypeDefinition("kubebuilder:title", markers.DescribesField, Title{})).
+		WithHelp(Title{}.Help()),
 }
 
 // ValidationIshMarkers are field-and-type markers that don't fall under the
@@ -138,6 +152,7 @@ func init() {
 	}
 
 	AllDefinitions = append(AllDefinitions, FieldOnlyMarkers...)
+	AllDefinitions = append(AllDefinitions, TypeOnlyMarkers...)
 	AllDefinitions = append(AllDefinitions, ValidationIshMarkers...)
 }
 
@@ -243,6 +258,17 @@ type Default struct {
 }
 
 // +controllertools:marker:generateHelp:category="CRD validation"
+// Title sets the title for this field.
+//
+// The title is metadata that makes the OpenAPI documentation more user-friendly,
+// making the schema more understandable when viewed in documentation tools.
+// It's a metadata field that doesn't affect validation but provides
+// important context about what the schema represents.
+type Title struct {
+	Value interface{}
+}
+
+// +controllertools:marker:generateHelp:category="CRD validation"
 // Default sets the default value for this field.
 //
 // A default value will be accepted as any value valid for the field.
@@ -337,6 +363,18 @@ type XValidation struct {
 	FieldPath         string `marker:"fieldPath,optional"`
 	OptionalOldSelf   *bool  `marker:"optionalOldSelf,optional"`
 }
+
+// +controllertools:marker:generateHelp:category="CRD validation"
+// AtMostOneOf adds a validation constraint that allows at most one of the specified fields.
+//
+// This marker may be repeated to specify multiple AtMostOneOf constraints that are mutually exclusive.
+type AtMostOneOf []string
+
+// +controllertools:marker:generateHelp:category="CRD validation"
+// ExactlyOneOf adds a validation constraint that allows at exactly one of the specified fields.
+//
+// This marker may be repeated to specify multiple ExactlyOneOf constraints that are mutually exclusive.
+type ExactlyOneOf []string
 
 func (m Maximum) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
 	if !hasNumericType(schema) {
@@ -527,6 +565,19 @@ func (m Default) ApplyPriority() ApplyPriority {
 	return 10
 }
 
+func (m Title) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
+	if m.Value == nil {
+		// only apply to the schema if we have a non-nil title
+		return nil
+	}
+	title, isStr := m.Value.(string)
+	if !isStr {
+		return fmt.Errorf("expected string, got %T", m.Value)
+	}
+	schema.Title = title
+	return nil
+}
+
 func (m *KubernetesDefault) ParseMarker(_ string, _ string, restFields string) error {
 	if strings.HasPrefix(strings.TrimSpace(restFields), "ref(") {
 		// Skip +default=ref(...) values for now, since we don't have a good way to evaluate go constant values via AST.
@@ -607,4 +658,59 @@ func (m XValidation) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
 		OptionalOldSelf:   m.OptionalOldSelf,
 	})
 	return nil
+}
+
+func (XValidation) ApplyPriority() ApplyPriority {
+	return ApplyPriorityDefault
+}
+
+func (fields AtMostOneOf) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
+	if len(fields) == 0 {
+		return nil
+	}
+	rule := fieldsToOneOfCelRuleStr(fields)
+	xvalidation := XValidation{
+		Rule:    fmt.Sprintf("%s <= 1", rule),
+		Message: fmt.Sprintf("at most one of the fields in %v may be set", fields),
+	}
+	return xvalidation.ApplyToSchema(schema)
+}
+
+func (AtMostOneOf) ApplyPriority() ApplyPriority {
+	// explicitly go after XValidation markers so that the ordering is deterministic
+	return XValidation{}.ApplyPriority() + 1
+}
+
+func (fields ExactlyOneOf) ApplyToSchema(schema *apiext.JSONSchemaProps) error {
+	if len(fields) == 0 {
+		return nil
+	}
+	rule := fieldsToOneOfCelRuleStr(fields)
+	xvalidation := XValidation{
+		Rule:    fmt.Sprintf("%s == 1", rule),
+		Message: fmt.Sprintf("exactly one of the fields in %v must be set", fields),
+	}
+	return xvalidation.ApplyToSchema(schema)
+}
+
+func (ExactlyOneOf) ApplyPriority() ApplyPriority {
+	// explicitly go after XValidation markers so that the ordering is deterministic
+	return XValidation{}.ApplyPriority() + 1
+}
+
+// fieldsToOneOfCelRuleStr converts a slice of field names to a string representation
+// [has(self.field1),has(self.field1),...].filter(x, x == true).size()
+func fieldsToOneOfCelRuleStr(fields []string) string {
+	var list strings.Builder
+	list.WriteString("[")
+	for i, f := range fields {
+		if i > 0 {
+			list.WriteString(",")
+		}
+		list.WriteString("has(self.")
+		list.WriteString(f)
+		list.WriteString(")")
+	}
+	list.WriteString("].filter(x,x==true).size()")
+	return list.String()
 }

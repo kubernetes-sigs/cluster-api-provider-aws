@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.17.3
+    controller-gen.kubebuilder.io/version: v0.19.0
   name: awsmanagedcontrolplanes.controlplane.cluster.x-k8s.io
 spec:
   group: controlplane.cluster.x-k8s.io
@@ -96,6 +96,11 @@ spec:
                       description: Name is the name of the addon
                       minLength: 2
                       type: string
+                    preserveOnDelete:
+                      description: |-
+                        PreserveOnDelete indicates that the addon resources should be
+                        preserved in the cluster on delete.
+                      type: boolean
                     serviceAccountRoleARN:
                       description: ServiceAccountRoleArn is the ARN of an IAM role
                         to bind to the addons service account
@@ -1232,6 +1237,42 @@ spec:
                       "None": The instance may not make use of any Capacity Reservations. This is to conserve open reservations for desired workloads
                       "CapacityReservationsOnly": The instance will only run if matched or targeted to a Capacity Reservation. Note that this is incompatible with a MarketType of `Spot`
                     type: string
+                  cpuOptions:
+                    description: |-
+                      CPUOptions defines CPU-related settings for the instance, including the confidential computing policy.
+                      When omitted, this means no opinion and the AWS platform is left to choose a reasonable default.
+                    minProperties: 1
+                    properties:
+                      confidentialCompute:
+                        description: |-
+                          ConfidentialCompute specifies whether confidential computing should be enabled for the instance,
+                          and, if so, which confidential computing technology to use.
+                          Valid values are: Disabled, AMDEncryptedVirtualizationNestedPaging
+                          When set to Disabled, confidential computing will be disabled for the instance.
+                          When set to AMDEncryptedVirtualizationNestedPaging, AMD SEV-SNP will be used as the confidential computing technology for the instance.
+                          In this case, ensure the following conditions are met:
+                          1) The selected instance type supports AMD SEV-SNP.
+                          2) The selected AWS region supports AMD SEV-SNP.
+                          3) The selected AMI supports AMD SEV-SNP.
+                          More details can be checked at https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/sev-snp.html
+                          When omitted, this means no opinion and the AWS platform is left to choose a reasonable default,
+                          which is subject to change without notice. The current default is Disabled.
+                        enum:
+                        - Disabled
+                        - AMDEncryptedVirtualizationNestedPaging
+                        type: string
+                    type: object
+                  dynamicHostAllocation:
+                    description: |-
+                      DynamicHostAllocation enables automatic allocation of dedicated hosts.
+                      This field is mutually exclusive with HostID.
+                    properties:
+                      tags:
+                        additionalProperties:
+                          type: string
+                        description: Tags to apply to the allocated dedicated host.
+                        type: object
+                    type: object
                   ebsOptimized:
                     description: Indicates whether the instance is optimized for Amazon
                       EBS I/O.
@@ -2240,6 +2281,28 @@ spec:
             description: AWSManagedControlPlaneSpec defines the desired state of an
               Amazon EKS Cluster.
             properties:
+              accessConfig:
+                description: AccessConfig specifies the access configuration information
+                  for the cluster
+                properties:
+                  authenticationMode:
+                    default: config_map
+                    description: |-
+                      AuthenticationMode specifies the desired authentication mode for the cluster
+                      Defaults to config_map
+                    enum:
+                    - config_map
+                    - api
+                    - api_and_config_map
+                    type: string
+                  bootstrapClusterCreatorAdminPermissions:
+                    default: true
+                    description: |-
+                      BootstrapClusterCreatorAdminPermissions grants cluster admin permissions
+                      to the IAM identity creating the cluster. Only applied during creation,
+                      ignored when updating existing clusters. Defaults to true.
+                    type: boolean
+                type: object
               additionalTags:
                 additionalProperties:
                   type: string
@@ -2270,6 +2333,11 @@ spec:
                       description: Name is the name of the addon
                       minLength: 2
                       type: string
+                    preserveOnDelete:
+                      description: |-
+                        PreserveOnDelete indicates that the addon resources should be
+                        preserved in the cluster on delete.
+                      type: boolean
                     serviceAccountRoleARN:
                       description: ServiceAccountRoleArn is the ARN of an IAM role
                         to bind to the addons service account
@@ -3043,7 +3111,7 @@ spec:
                 type: object
               oidcIdentityProviderConfig:
                 description: |-
-                  IdentityProviderconfig is used to specify the oidc provider config
+                  OIDCIdentityProviderConfig is used to specify the OIDC provider config
                   to be attached with this eks cluster
                 properties:
                   clientId:
@@ -3185,6 +3253,17 @@ spec:
                 enum:
                 - iam-authenticator
                 - aws-cli
+                type: string
+              upgradePolicy:
+                description: |-
+                  The cluster upgrade policy to use for the cluster.
+                  (Official AWS docs for this policy: https://docs.aws.amazon.com/eks/latest/userguide/view-upgrade-policy.html)
+                  `extended` upgrade policy indicates that the cluster will enter into extended support once the Kubernetes version reaches end of standard support. You will incur extended support charges with this setting. You can upgrade your cluster to a standard supported Kubernetes version to stop incurring extended support charges.
+                  `standard` upgrade policy indicates that the cluster is eligible for automatic upgrade at the end of standard support. You will not incur extended support charges with this setting but your EKS cluster will automatically upgrade to the next supported Kubernetes version in standard support.
+                  If omitted, new clusters will use the AWS default upgrade policy (which at the time of writing is "extended") and existing clusters will have their upgrade policy unchanged.
+                enum:
+                - extended
+                - standard
                 type: string
               version:
                 description: |-
@@ -3446,6 +3525,42 @@ spec:
                       "None": The instance may not make use of any Capacity Reservations. This is to conserve open reservations for desired workloads
                       "CapacityReservationsOnly": The instance will only run if matched or targeted to a Capacity Reservation. Note that this is incompatible with a MarketType of `Spot`
                     type: string
+                  cpuOptions:
+                    description: |-
+                      CPUOptions defines CPU-related settings for the instance, including the confidential computing policy.
+                      When omitted, this means no opinion and the AWS platform is left to choose a reasonable default.
+                    minProperties: 1
+                    properties:
+                      confidentialCompute:
+                        description: |-
+                          ConfidentialCompute specifies whether confidential computing should be enabled for the instance,
+                          and, if so, which confidential computing technology to use.
+                          Valid values are: Disabled, AMDEncryptedVirtualizationNestedPaging
+                          When set to Disabled, confidential computing will be disabled for the instance.
+                          When set to AMDEncryptedVirtualizationNestedPaging, AMD SEV-SNP will be used as the confidential computing technology for the instance.
+                          In this case, ensure the following conditions are met:
+                          1) The selected instance type supports AMD SEV-SNP.
+                          2) The selected AWS region supports AMD SEV-SNP.
+                          3) The selected AMI supports AMD SEV-SNP.
+                          More details can be checked at https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/sev-snp.html
+                          When omitted, this means no opinion and the AWS platform is left to choose a reasonable default,
+                          which is subject to change without notice. The current default is Disabled.
+                        enum:
+                        - Disabled
+                        - AMDEncryptedVirtualizationNestedPaging
+                        type: string
+                    type: object
+                  dynamicHostAllocation:
+                    description: |-
+                      DynamicHostAllocation enables automatic allocation of dedicated hosts.
+                      This field is mutually exclusive with HostID.
+                    properties:
+                      tags:
+                        additionalProperties:
+                          type: string
+                        description: Tags to apply to the allocated dedicated host.
+                        type: object
+                    type: object
                   ebsOptimized:
                     description: Indicates whether the instance is optimized for Amazon
                       EBS I/O.

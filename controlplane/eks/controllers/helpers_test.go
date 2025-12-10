@@ -16,7 +16,6 @@ limitations under the License.
 package controllers
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -25,7 +24,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 func getAWSManagedControlPlaneScope(cluster *clusterv1.Cluster, awsManagedControlPlane *ekscontrolplanev1.AWSManagedControlPlane) *scope.ManagedControlPlaneScope {
@@ -50,17 +49,15 @@ func getManagedClusterObjects(name, namespace string) (clusterv1.Cluster, infrav
 			UID:       "1",
 		},
 		Spec: clusterv1.ClusterSpec{
-			ControlPlaneRef: &corev1.ObjectReference{
-				APIVersion: ekscontrolplanev1.GroupVersion.String(),
-				Name:       name,
-				Kind:       "AWSManagedControlPlane",
-				Namespace:  namespace,
+			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: ekscontrolplanev1.GroupVersion.Group,
+				Name:     name,
+				Kind:     "AWSManagedControlPlane",
 			},
-			InfrastructureRef: &corev1.ObjectReference{
-				APIVersion: infrav1.GroupVersion.String(),
-				Name:       name,
-				Kind:       "AWSManagedCluster",
-				Namespace:  namespace,
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+				APIGroup: infrav1.GroupVersion.Group,
+				Name:     name,
+				Kind:     "AWSManagedCluster",
 			},
 		},
 	}

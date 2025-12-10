@@ -48,6 +48,10 @@ func (src *AWSMachine) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.HostAffinity = restored.Spec.HostAffinity
 	dst.Spec.CapacityReservationPreference = restored.Spec.CapacityReservationPreference
 	dst.Spec.NetworkInterfaceType = restored.Spec.NetworkInterfaceType
+	dst.Spec.CPUOptions = restored.Spec.CPUOptions
+	if restored.Spec.DynamicHostAllocation != nil {
+		dst.Spec.DynamicHostAllocation = restored.Spec.DynamicHostAllocation
+	}
 	if restored.Spec.ElasticIPPool != nil {
 		if dst.Spec.ElasticIPPool == nil {
 			dst.Spec.ElasticIPPool = &infrav1.ElasticIPPool{}
@@ -60,6 +64,7 @@ func (src *AWSMachine) ConvertTo(dstRaw conversion.Hub) error {
 		}
 	}
 
+	dst.Status.DedicatedHost = restored.Status.DedicatedHost
 	return nil
 }
 
@@ -115,6 +120,10 @@ func (r *AWSMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.Template.Spec.HostAffinity = restored.Spec.Template.Spec.HostAffinity
 	dst.Spec.Template.Spec.CapacityReservationPreference = restored.Spec.Template.Spec.CapacityReservationPreference
 	dst.Spec.Template.Spec.NetworkInterfaceType = restored.Spec.Template.Spec.NetworkInterfaceType
+	dst.Spec.Template.Spec.CPUOptions = restored.Spec.Template.Spec.CPUOptions
+	if restored.Spec.Template.Spec.DynamicHostAllocation != nil {
+		dst.Spec.Template.Spec.DynamicHostAllocation = restored.Spec.Template.Spec.DynamicHostAllocation
+	}
 	if restored.Spec.Template.Spec.ElasticIPPool != nil {
 		if dst.Spec.Template.Spec.ElasticIPPool == nil {
 			dst.Spec.Template.Spec.ElasticIPPool = &infrav1.ElasticIPPool{}
@@ -126,6 +135,10 @@ func (r *AWSMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 			dst.Spec.Template.Spec.ElasticIPPool.PublicIpv4PoolFallBackOrder = restored.Spec.Template.Spec.ElasticIPPool.PublicIpv4PoolFallBackOrder
 		}
 	}
+
+	// Restore Status fields that don't exist in v1beta1.
+	dst.Status.NodeInfo = restored.Status.NodeInfo
+	dst.Status.Conditions = restored.Status.Conditions
 
 	return nil
 }

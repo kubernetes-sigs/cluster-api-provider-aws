@@ -41,11 +41,12 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/exp/instancestate"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 )
 
 const TestSvc = "test-svc-"
@@ -255,7 +256,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			})
 			Expect(len(workerMachines)).To(Equal(1))
 
-			assertInstanceMetadataOptions(*workerMachines[0].Spec.ProviderID, *machineTempalte.Spec.Template.Spec.InstanceMetadataOptions)
+			assertInstanceMetadataOptions(workerMachines[0].Spec.ProviderID, *machineTempalte.Spec.Template.Spec.InstanceMetadataOptions)
 			ginkgo.By("PASSED!")
 		})
 	})
@@ -352,6 +353,24 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			})
 			Expect(len(workerMachines)).To(Equal(1))
 			Expect(len(controlPlaneMachines)).To(Equal(1))
+
+			ginkgo.By("Verifying AWSMachineTemplate capacity and nodeInfo is populated for autoscaling from zero")
+			Eventually(func(g Gomega) {
+				awsMachineTemplateList := &infrav1.AWSMachineTemplateList{}
+				g.Expect(e2eCtx.Environment.BootstrapClusterProxy.GetClient().List(ctx, awsMachineTemplateList, client.InNamespace(namespace.Name))).To(Succeed())
+				g.Expect(awsMachineTemplateList.Items).ToNot(BeEmpty())
+
+				for _, template := range awsMachineTemplateList.Items {
+					capacity := template.Status.Capacity
+					_, hasCPU := capacity[corev1.ResourceCPU]
+					_, hasMemory := capacity[corev1.ResourceMemory]
+					g.Expect(hasCPU).To(BeTrue(), "Expected AWSMachineTemplate %s to have .status.capacity for CPU set", template.Name)
+					g.Expect(hasMemory).To(BeTrue(), "Expected AWSMachineTemplate %s to have .status.capacity for memory set", template.Name)
+					g.Expect(template.Status.NodeInfo).ToNot(BeNil(), "Expected AWSMachineTemplate %s to have .status.nodeInfo set", template.Name)
+					g.Expect(template.Status.NodeInfo.Architecture).ToNot(BeEmpty(), "Expected AWSMachineTemplate %s to have .status.nodeInfo.architecture set", template.Name)
+					g.Expect(template.Status.NodeInfo.OperatingSystem).ToNot(BeEmpty(), "Expected AWSMachineTemplate %s to have .status.nodeInfo.operatingSystem set", template.Name)
+				}
+			}, e2eCtx.E2EConfig.GetIntervals(specName, "wait-deployment")...).Should(Succeed())
 		})
 	})
 
@@ -522,7 +541,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 					MachineDeployment: *md2[0],
 				})
 				Expect(len(machines)).Should(BeNumerically(">", 0))
-				terminateInstance(*machines[0].Spec.ProviderID)
+				terminateInstance(machines[0].Spec.ProviderID)
 
 				ginkgo.By("Waiting for AWSMachine to be labelled as terminated")
 				Eventually(func() bool {
@@ -532,7 +551,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				}, e2eCtx.E2EConfig.GetIntervals("", "wait-machine-status")...).Should(BeTrue(), "Eventually failed waiting for AWSMachine to be labelled as terminated")
 
 				ginkgo.By("Waiting for machine to reach Failed state")
-				statusChecks := []framework.MachineStatusCheck{framework.MachinePhaseCheck(string(clusterv1.MachinePhaseFailed))}
+				statusChecks := []framework.MachineStatusCheck{framework.MachinePhaseCheck(string(clusterv1.MachinePhaseFailed))} //nolint:staticcheck
 				machineStatusInput := framework.WaitForMachineStatusCheckInput{
 					Getter:       e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 					Machine:      &machines[0],
@@ -610,7 +629,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				Namespace:   namespace.Name,
 			})
 			Expect(len(workerMachines)).To(Equal(1))
-			assertSpotInstanceType(*workerMachines[0].Spec.ProviderID)
+			assertSpotInstanceType(workerMachines[0].Spec.ProviderID)
 			Expect(len(controlPlaneMachines)).To(Equal(1))
 		})
 	})
@@ -942,7 +961,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 			machineUserData, userDataFormat, err := getRawBootstrapDataWithFormat(e2eCtx.Environment.BootstrapClusterProxy.GetClient(), m)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(userDataFormat).To(Equal("ignition"))
-			assertUnencryptedUserDataIgnition(*m.Spec.ProviderID, string(machineUserData))
+			assertUnencryptedUserDataIgnition(m.Spec.ProviderID, string(machineUserData))
 
 			ginkgo.By("Validating the s3 endpoint was created")
 			vpc, err := shared.GetVPCByName(e2eCtx, clusterName+"-vpc")
@@ -967,8 +986,8 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 					return true
 				}
 				Expect(err).To(BeNil())
-				return conditions.IsFalse(awsCluster, infrav1.VpcEndpointsReadyCondition) &&
-					conditions.GetReason(awsCluster, infrav1.VpcEndpointsReadyCondition) == clusterv1.DeletedReason
+				return v1beta1conditions.IsFalse(awsCluster, infrav1.VpcEndpointsReadyCondition) &&
+					v1beta1conditions.GetReason(awsCluster, infrav1.VpcEndpointsReadyCondition) == clusterv1beta1.DeletedReason
 			}, e2eCtx.E2EConfig.GetIntervals("", "wait-delete-cluster")...).Should(BeTrue(),
 				"Eventually failed waiting for AWSCluster to show VPC endpoint as deleted in conditions")
 		})

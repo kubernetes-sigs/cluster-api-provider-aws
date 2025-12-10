@@ -48,8 +48,11 @@ const (
 	EKSManagedMachinePoolWithLaunchTemplateOnlyFlavor = "eks-managed-machinepool-with-launch-template-only"
 	EKSMachinePoolOnlyFlavor                          = "eks-machinepool-only"
 	EKSIPv6ClusterFlavor                              = "eks-ipv6-cluster"
+	EKSUpgradePolicyFlavor                            = "eks-upgrade-policy"
 	EKSControlPlaneOnlyLegacyFlavor                   = "eks-control-plane-only-legacy"
 	EKSClusterClassFlavor                             = "eks-clusterclass"
+	EKSAuthAPIAndConfigMapFlavor                      = "eks-auth-api-and-config-map"
+	EKSAuthBootstrapDisabledFlavor                    = "eks-auth-bootstrap-disabled"
 )
 
 const (
@@ -103,7 +106,26 @@ func getEKSCluster(ctx context.Context, eksClusterName string, sess *aws.Config)
 	}
 	result, err := eksClient.DescribeCluster(ctx, input)
 
+	if err != nil {
+		return nil, err
+	}
+
 	return result.Cluster, err
+}
+
+func verifyClusterAuthenticationMode(ctx context.Context, eksClusterName string, expectedAuthMode ekstypes.AuthenticationMode, sess *aws.Config) {
+	var (
+		cluster *ekstypes.Cluster
+		err     error
+	)
+	Eventually(func() error {
+		cluster, err = getEKSCluster(ctx, eksClusterName, sess)
+		return err
+	}, clientRequestTimeout, clientRequestCheckInterval).Should(Succeed(), fmt.Sprintf("eventually failed trying to get EKS Cluster %q", eksClusterName))
+
+	Expect(cluster.AccessConfig).ToNot(BeNil(), "expecting AccessConfig to be set on the cluster")
+	Expect(cluster.AccessConfig.AuthenticationMode).To(BeEquivalentTo(expectedAuthMode),
+		fmt.Sprintf("expecting authentication mode to be %s, got %s", expectedAuthMode, cluster.AccessConfig.AuthenticationMode))
 }
 
 func getEKSClusterAddon(ctx context.Context, eksClusterName, addonName string, sess *aws.Config) (*ekstypes.Addon, error) {

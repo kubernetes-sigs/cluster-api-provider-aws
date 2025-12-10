@@ -57,7 +57,6 @@ const (
 	NutanixProviderName        = "nutanix"
 	OCIProviderName            = "oci"
 	OpenStackProviderName      = "openstack"
-	PacketProviderName         = "packet"
 	TinkerbellProviderName     = "tinkerbell-tinkerbell"
 	SideroProviderName         = "sidero"
 	VCloudDirectorProviderName = "vcd"
@@ -73,6 +72,7 @@ const (
 	IonosCloudProviderName     = "ionoscloud-ionoscloud"
 	VultrProviderName          = "vultr-vultr"
 	OpenNebulaProviderName     = "opennebula"
+	ScalewayProviderName       = "scaleway"
 )
 
 // Bootstrap providers.
@@ -107,6 +107,7 @@ const (
 
 // Add-on providers.
 const (
+	Cdk8sAddonProviderName = "eitco-cdk8s"
 	HelmAddonProviderName  = "helm"
 	FleetAddonProviderName = "rancher-fleet"
 )
@@ -197,11 +198,6 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         GCPProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-gcp/releases/latest/infrastructure-components.yaml",
-			providerType: clusterctlv1.InfrastructureProviderType,
-		},
-		&provider{
-			name:         PacketProviderName,
-			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-packet/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{
@@ -321,7 +317,7 @@ func (p *providersClient) defaults() []Provider {
 		},
 		&provider{
 			name:         K0smotronProviderName,
-			url:          "https://github.com/k0smotron/k0smotron/releases/latest/infrastructure-components.yaml",
+			url:          "https://github.com/k0sproject/k0smotron/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{
@@ -337,6 +333,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         OpenNebulaProviderName,
 			url:          "https://github.com/OpenNebula/cluster-api-provider-opennebula/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         ScalewayProviderName,
+			url:          "https://github.com/scaleway/cluster-api-provider-scaleway/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 
@@ -368,7 +369,7 @@ func (p *providersClient) defaults() []Provider {
 		},
 		&provider{
 			name:         K0smotronBootstrapProviderName,
-			url:          "https://github.com/k0smotron/k0smotron/releases/latest/bootstrap-components.yaml",
+			url:          "https://github.com/k0sproject/k0smotron/releases/latest/bootstrap-components.yaml",
 			providerType: clusterctlv1.BootstrapProviderType,
 		},
 		&provider{
@@ -415,7 +416,7 @@ func (p *providersClient) defaults() []Provider {
 		},
 		&provider{
 			name:         K0smotronControlPlaneProviderName,
-			url:          "https://github.com/k0smotron/k0smotron/releases/latest/control-plane-components.yaml",
+			url:          "https://github.com/k0sproject/k0smotron/releases/latest/control-plane-components.yaml",
 			providerType: clusterctlv1.ControlPlaneProviderType,
 		},
 		&provider{
@@ -439,12 +440,17 @@ func (p *providersClient) defaults() []Provider {
 		// Add-on providers
 		&provider{
 			name:         FleetAddonProviderName,
-			url:          "https://github.com/rancher-sandbox/cluster-api-addon-provider-fleet/releases/latest/addon-components.yaml",
+			url:          "https://github.com/rancher/cluster-api-addon-provider-fleet/releases/latest/addon-components.yaml",
 			providerType: clusterctlv1.AddonProviderType,
 		},
 		&provider{
 			name:         HelmAddonProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-addon-provider-helm/releases/latest/addon-components.yaml",
+			providerType: clusterctlv1.AddonProviderType,
+		},
+		&provider{
+			name:         Cdk8sAddonProviderName,
+			url:          "https://github.com/eitco/cluster-api-addon-provider-cdk8s/releases/latest/addon-components.yaml",
 			providerType: clusterctlv1.AddonProviderType,
 		},
 
@@ -530,6 +536,10 @@ func (p *providersClient) Get(name string, providerType clusterctlv1.ProviderTyp
 func validateProvider(r Provider) error {
 	if r.Name() == "" {
 		return errors.New("name value cannot be empty")
+	}
+
+	if r.Name() != strings.ToLower(r.Name()) {
+		return errors.Errorf("provider name %s must be in lower case", r.Name())
 	}
 
 	if (r.Name() == ClusterAPIProviderName) != (r.Type() == clusterctlv1.CoreProviderType) {

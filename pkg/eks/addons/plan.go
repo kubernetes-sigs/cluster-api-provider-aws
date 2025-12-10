@@ -86,7 +86,7 @@ func (a *plan) Create(_ context.Context) ([]planner.Procedure, error) {
 		desired := a.getDesired(*installed.Name)
 		if desired == nil {
 			if *installed.Status != string(ekstypes.AddonStatusDeleting) {
-				procedures = append(procedures, &DeleteAddonProcedure{plan: a, name: *installed.Name})
+				procedures = append(procedures, &DeleteAddonProcedure{plan: a, name: *installed.Name, preserve: installed.Preserve})
 			}
 			procedures = append(procedures, &WaitAddonDeleteProcedure{plan: a, name: *installed.Name})
 		}

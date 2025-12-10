@@ -18,6 +18,7 @@ package v1beta2
 
 import (
 	"fmt"
+	"strings"
 
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -77,6 +78,26 @@ var (
 	// EKSTokenMethodAWSCli indicates that the AWS CLI will be used to get a token
 	// Version 1.16.156 or greater is required of the AWS CLI.
 	EKSTokenMethodAWSCli = EKSTokenMethod("aws-cli")
+)
+
+// EKSAuthenticationMode defines the authentication mode for the cluster
+type EKSAuthenticationMode string
+
+// APIValue returns the corresponding EKS API value for the authentication mode
+func (e EKSAuthenticationMode) APIValue() ekstypes.AuthenticationMode {
+	return ekstypes.AuthenticationMode(strings.ToUpper(string(e)))
+}
+
+var (
+	// EKSAuthenticationModeConfigMap indicates that only `aws-auth` ConfigMap will be used for authentication
+	EKSAuthenticationModeConfigMap = EKSAuthenticationMode("config_map")
+
+	// EKSAuthenticationModeAPI indicates that only AWS Access Entries will be used for authentication
+	EKSAuthenticationModeAPI = EKSAuthenticationMode("api")
+
+	// EKSAuthenticationModeAPIAndConfigMap indicates that both `aws-auth` ConfigMap and AWS Access Entries will
+	// be used for authentication
+	EKSAuthenticationModeAPIAndConfigMap = EKSAuthenticationMode("api_and_config_map")
 )
 
 var (
@@ -141,6 +162,10 @@ type Addon struct {
 	// ServiceAccountRoleArn is the ARN of an IAM role to bind to the addons service account
 	// +optional
 	ServiceAccountRoleArn *string `json:"serviceAccountRoleARN,omitempty"`
+	// PreserveOnDelete indicates that the addon resources should be
+	// preserved in the cluster on delete.
+	// +optional
+	PreserveOnDelete bool `json:"preserveOnDelete,omitempty"`
 }
 
 // AddonResolution defines the method for resolving parameter conflicts.
@@ -214,6 +239,24 @@ type AddonIssue struct {
 	Message *string `json:"message,omitempty"`
 	// ResourceIDs is a list of resource ids for the issue
 	ResourceIDs []string `json:"resourceIds,omitempty"`
+}
+
+// UpgradePolicy defines the support policy to use for the cluster.
+type UpgradePolicy string
+
+var (
+	// UpgradePolicyExtended indicates that the cluster will enter into extended support once the Kubernetes version reaches end of standard support.
+	// You will incur extended support charges with this setting.
+	// You can upgrade your cluster to a standard supported Kubernetes version to stop incurring extended support charges.
+	UpgradePolicyExtended = UpgradePolicy("extended")
+
+	// UpgradePolicyStandard indicates that the cluster is eligible for automatic upgrade at the end of standard support.
+	// You will not incur extended support charges with this setting but your EKS cluster will automatically upgrade to the next supported Kubernetes version in standard support.
+	UpgradePolicyStandard = UpgradePolicy("standard")
+)
+
+func (e UpgradePolicy) String() string {
+	return string(e)
 }
 
 const (

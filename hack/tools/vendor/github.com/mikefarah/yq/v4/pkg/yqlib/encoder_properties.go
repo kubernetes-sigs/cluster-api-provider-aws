@@ -1,3 +1,5 @@
+//go:build !yq_noprops
+
 package yqlib
 
 import (
@@ -107,7 +109,7 @@ func (pe *propertiesEncoder) doEncode(p *properties.Properties, node *CandidateN
 	case AliasNode:
 		return pe.doEncode(p, node.Alias, path, nil)
 	default:
-		return fmt.Errorf("Unsupported node %v", node.Tag)
+		return fmt.Errorf("unsupported node %v", node.Tag)
 	}
 }
 

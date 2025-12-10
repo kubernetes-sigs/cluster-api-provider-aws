@@ -22,6 +22,7 @@ _cgo_gotypes.go
 _cgo_export.*
 
 _testmain.go
+cover.out
 coverage.out
 coverage.html
 *.exe
@@ -44,6 +45,8 @@ test*.yml
 test*.xml
 test*.toml
 test*.yaml
+test_dir1/
+test_dir2/
 0.yml
 1.yml
 2.yml

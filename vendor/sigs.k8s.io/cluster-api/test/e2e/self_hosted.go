@@ -31,7 +31,7 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/e2e/internal/log"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -161,7 +161,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 		// controller images into the nodes.
 		if hasDockerInfrastructureProvider {
 			images := []string{}
-			if preloadList := strings.TrimSuffix(strings.TrimPrefix(clusterctlVariables["DOCKER_PRELOAD_IMAGES"], "["), "]"); preloadList != "" {
+			if preloadList := strings.TrimSuffix(strings.TrimPrefix(input.E2EConfig.GetVariableOrEmpty("DOCKER_PRELOAD_IMAGES"), "["), "]"); preloadList != "" {
 				images = strings.Split(preloadList, ",")
 			}
 			for _, image := range input.E2EConfig.Images {
@@ -240,6 +240,14 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 			kubeSystem := &corev1.Namespace{}
 			return selfHostedClusterProxy.GetClient().Get(ctx, client.ObjectKey{Name: "kube-system"}, kubeSystem)
 		}, "5s", "100ms").Should(Succeed(), "Failed to assert self-hosted API server stability")
+
+		By("Ensure all machines have NodeRef before doing move")
+		// Ensure all machines have NodeRef before attempting to move.
+		// This prevents clusterctl move failures when machines are still provisioning.
+		framework.WaitForClusterMachineNodeRefs(ctx, framework.WaitForClusterMachineNodeRefsInput{
+			GetLister: input.BootstrapClusterProxy.GetClient(),
+			Cluster:   cluster,
+		}, input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade")...)
 
 		// Get the machines of the workloadCluster before it is moved to become self-hosted to make sure that the move did not trigger
 		// any unexpected rollouts.
@@ -326,6 +334,20 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 		}, "3m", "30s").ShouldNot(HaveOccurred(), "MachineList should be available after move to self-hosted cluster")
 		Expect(validateMachineRollout(preMoveMachineList, postMoveMachineList)).To(BeTrue(), "Machines should not roll out after move to self-hosted cluster")
 
+		Byf("Verify Cluster Available condition is true")
+		framework.VerifyClusterAvailable(ctx, framework.VerifyClusterAvailableInput{
+			Getter:    selfHostedClusterProxy.GetClient(),
+			Name:      clusterResources.Cluster.Name,
+			Namespace: clusterResources.Cluster.Namespace,
+		})
+
+		Byf("Verify Machines Ready condition is true")
+		framework.VerifyMachinesReady(ctx, framework.VerifyMachinesReadyInput{
+			Lister:    selfHostedClusterProxy.GetClient(),
+			Name:      clusterResources.Cluster.Name,
+			Namespace: clusterResources.Cluster.Namespace,
+		})
+
 		if input.SkipUpgrade {
 			// Only do upgrade step if defined by test input.
 			return
@@ -339,7 +361,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 		}, input.E2EConfig.GetIntervals(specName, "wait-control-plane")...)
 
 		By("Upgrading the self-hosted Cluster")
-		if clusterResources.Cluster.Spec.Topology != nil {
+		if clusterResources.Cluster.Spec.Topology.IsDefined() {
 			// Cluster is using ClusterClass, upgrade via topology.
 			By("Upgrading the Cluster topology")
 			framework.UpgradeClusterTopologyAndWaitForUpgrade(ctx, framework.UpgradeClusterTopologyAndWaitForUpgradeInput{
@@ -421,6 +443,20 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 			WaitForNodesReady: input.E2EConfig.GetIntervals(specName, "wait-nodes-ready"),
 		})
 
+		Byf("Verify Cluster Available condition is true")
+		framework.VerifyClusterAvailable(ctx, framework.VerifyClusterAvailableInput{
+			Getter:    selfHostedClusterProxy.GetClient(),
+			Name:      clusterResources.Cluster.Name,
+			Namespace: clusterResources.Cluster.Namespace,
+		})
+
+		Byf("Verify Machines Ready condition is true")
+		framework.VerifyMachinesReady(ctx, framework.VerifyMachinesReadyInput{
+			Lister:    selfHostedClusterProxy.GetClient(),
+			Name:      clusterResources.Cluster.Name,
+			Namespace: clusterResources.Cluster.Namespace,
+		})
+
 		By("PASSED!")
 	})
 
@@ -442,6 +478,14 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 				kubeSystem := &corev1.Namespace{}
 				return selfHostedClusterProxy.GetClient().Get(ctx, client.ObjectKey{Name: "kube-system"}, kubeSystem)
 			}, "5s", "100ms").Should(Succeed(), "Failed to assert self-hosted API server stability")
+
+			By("Ensure all machines have NodeRef before doing move back")
+			// Ensure all machines have NodeRef before attempting to move back to bootstrap.
+			// This prevents clusterctl move failures when machines are still provisioning.
+			framework.WaitForClusterMachineNodeRefs(ctx, framework.WaitForClusterMachineNodeRefsInput{
+				GetLister: selfHostedClusterProxy.GetClient(),
+				Cluster:   selfHostedCluster,
+			}, input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade")...)
 
 			By("Moving the cluster back to bootstrap")
 			clusterctl.Move(ctx, clusterctl.MoveInput{

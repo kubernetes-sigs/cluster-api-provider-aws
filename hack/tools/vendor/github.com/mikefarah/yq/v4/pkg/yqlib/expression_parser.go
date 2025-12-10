@@ -9,6 +9,7 @@ type ExpressionNode struct {
 	Operation *Operation
 	LHS       *ExpressionNode
 	RHS       *ExpressionNode
+	Parent    *ExpressionNode
 }
 
 type ExpressionParserInterface interface {
@@ -50,20 +51,32 @@ func (p *expressionParserImpl) createExpressionTree(postFixPath []*Operation) (*
 		log.Debugf("pathTree %v ", Operation.toString())
 		if Operation.OperationType.NumArgs > 0 {
 			numArgs := Operation.OperationType.NumArgs
-			if numArgs == 1 {
+			switch numArgs {
+			case 1:
 				if len(stack) < 1 {
+					// Allow certain unary ops to accept zero args by interpreting missing RHS as nil
+					// TODO - make this more general on OperationType
+					if Operation.OperationType == firstOpType {
+						// no RHS provided; proceed without popping
+						break
+					}
 					return nil, fmt.Errorf("'%v' expects 1 arg but received none", strings.TrimSpace(Operation.StringValue))
 				}
 				remaining, rhs := stack[:len(stack)-1], stack[len(stack)-1]
 				newNode.RHS = rhs
+				rhs.Parent = &newNode
 				stack = remaining
-			} else if numArgs == 2 {
+			case 2:
 				if len(stack) < 2 {
 					return nil, fmt.Errorf("'%v' expects 2 args but there is %v", strings.TrimSpace(Operation.StringValue), len(stack))
 				}
 				remaining, lhs, rhs := stack[:len(stack)-2], stack[len(stack)-2], stack[len(stack)-1]
 				newNode.LHS = lhs
+				lhs.Parent = &newNode
+
 				newNode.RHS = rhs
+				rhs.Parent = &newNode
+
 				stack = remaining
 			}
 		}

@@ -208,6 +208,7 @@ Resources:
           - ec2:ModifyNetworkInterfaceAttribute
           - ec2:ModifySubnetAttribute
           - ec2:ReleaseAddress
+          - ec2:RevokeSecurityGroupEgress
           - ec2:RevokeSecurityGroupIngress
           - ec2:RunInstances
           - ec2:TerminateInstances
@@ -254,6 +255,7 @@ Resources:
           Resource:
           - '*'
         - Action:
+          - autoscaling:CancelInstanceRefresh
           - autoscaling:CreateAutoScalingGroup
           - autoscaling:UpdateAutoScalingGroup
           - autoscaling:CreateOrUpdateTags

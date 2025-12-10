@@ -39,7 +39,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/eks/mock_eksiface"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/iamauth/mock_iamauth"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 func TestMakeEKSEncryptionConfigs(t *testing.T) {
@@ -474,6 +474,123 @@ func TestReconcileClusterVersion(t *testing.T) {
 	}
 }
 
+func TestReconcileAccessConfig(t *testing.T) {
+	clusterName := "default.cluster"
+	tests := []struct {
+		name        string
+		expect      func(m *mock_eksiface.MockEKSAPIMockRecorder)
+		expectError bool
+	}{
+		{
+			name: "no upgrade necessary",
+			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
+				m.
+					DescribeCluster(gomock.Eq(context.TODO()), gomock.AssignableToTypeOf(&eks.DescribeClusterInput{})).
+					Return(&eks.DescribeClusterOutput{
+						Cluster: &ekstypes.Cluster{
+							Name: aws.String("default.cluster"),
+							AccessConfig: &ekstypes.AccessConfigResponse{
+								AuthenticationMode: ekstypes.AuthenticationModeApiAndConfigMap,
+							},
+						},
+					}, nil)
+			},
+			expectError: false,
+		},
+		{
+			name: "needs upgrade",
+			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
+				m.
+					DescribeCluster(gomock.Eq(context.TODO()), gomock.AssignableToTypeOf(&eks.DescribeClusterInput{})).
+					Return(&eks.DescribeClusterOutput{
+						Cluster: &ekstypes.Cluster{
+							Name: aws.String("default.cluster"),
+							AccessConfig: &ekstypes.AccessConfigResponse{
+								AuthenticationMode: ekstypes.AuthenticationModeConfigMap,
+							},
+						},
+					}, nil)
+				m.WaitUntilClusterUpdating(
+					gomock.Eq(context.TODO()),
+					gomock.AssignableToTypeOf(&eks.DescribeClusterInput{}),
+					gomock.Any(),
+				).Return(nil)
+				m.
+					UpdateClusterConfig(gomock.Eq(context.TODO()), gomock.AssignableToTypeOf(&eks.UpdateClusterConfigInput{})).
+					Return(&eks.UpdateClusterConfigOutput{}, nil)
+			},
+			expectError: false,
+		},
+		{
+			name: "api error",
+			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
+				m.
+					DescribeCluster(gomock.Eq(context.TODO()), gomock.AssignableToTypeOf(&eks.DescribeClusterInput{})).
+					Return(&eks.DescribeClusterOutput{
+						Cluster: &ekstypes.Cluster{
+							Name: aws.String("default.cluster"),
+							AccessConfig: &ekstypes.AccessConfigResponse{
+								AuthenticationMode: ekstypes.AuthenticationModeApi,
+							},
+						},
+					}, nil)
+				m.
+					UpdateClusterConfig(gomock.Eq(context.TODO()), gomock.AssignableToTypeOf(&eks.UpdateClusterConfigInput{})).
+					Return(&eks.UpdateClusterConfigOutput{}, errors.New("Unsupported authentication mode update"))
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			mockControl := gomock.NewController(t)
+			defer mockControl.Finish()
+
+			eksMock := mock_eksiface.NewMockEKSAPI(mockControl)
+
+			scheme := runtime.NewScheme()
+			_ = infrav1.AddToScheme(scheme)
+			_ = ekscontrolplanev1.AddToScheme(scheme)
+			client := fake.NewClientBuilder().WithScheme(scheme).Build()
+			scope, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
+				Client: client,
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns",
+						Name:      clusterName,
+					},
+				},
+				ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
+					Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+						EKSClusterName: clusterName,
+						AccessConfig: &ekscontrolplanev1.AccessConfig{
+							AuthenticationMode: ekscontrolplanev1.EKSAuthenticationModeAPIAndConfigMap,
+						},
+					},
+				},
+			})
+			g.Expect(err).To(BeNil())
+
+			tc.expect(eksMock.EXPECT())
+			s := NewService(scope)
+			s.EKSClient = eksMock
+
+			cluster, err := s.describeEKSCluster(context.TODO(), clusterName)
+			g.Expect(err).To(BeNil())
+
+			err = s.reconcileAccessConfig(context.TODO(), cluster.AccessConfig)
+			if tc.expectError {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).To(BeNil())
+		})
+	}
+}
+
 func TestCreateCluster(t *testing.T) {
 	clusterName := "cluster.default"
 	version := aws.String("1.24")
@@ -535,6 +652,7 @@ func TestCreateCluster(t *testing.T) {
 						RoleName:                   tc.role,
 						NetworkSpec:                infrav1.NetworkSpec{Subnets: tc.subnets},
 						BootstrapSelfManagedAddons: false,
+						UpgradePolicy:              ekscontrolplanev1.UpgradePolicyStandard,
 					},
 				},
 			})
@@ -557,6 +675,9 @@ func TestCreateCluster(t *testing.T) {
 					Tags:                       tc.tags,
 					Version:                    version,
 					BootstrapSelfManagedAddons: aws.Bool(false),
+					UpgradePolicy: &ekstypes.UpgradePolicyRequest{
+						SupportType: ekstypes.SupportTypeStandard,
+					},
 				}).Return(&eks.CreateClusterOutput{}, nil)
 			}
 			s := NewService(scope)
@@ -688,6 +809,91 @@ func TestReconcileEKSEncryptionConfig(t *testing.T) {
 	}
 }
 
+func TestReconcileUpgradePolicy(t *testing.T) {
+	clusterName := "default.cluster"
+	tests := []struct {
+		name             string
+		oldUpgradePolicy *ekstypes.UpgradePolicyResponse
+		newUpgradePolicy ekscontrolplanev1.UpgradePolicy
+		expect           *ekstypes.UpgradePolicyRequest
+		expectError      bool
+	}{
+		{
+			name: "no update necessary - upgrade policy omitted",
+			oldUpgradePolicy: &ekstypes.UpgradePolicyResponse{
+				SupportType: ekstypes.SupportTypeStandard,
+			},
+			expect:      nil,
+			expectError: false,
+		},
+		{
+			name:             "no update necessary - cannot get cluster upgrade policy",
+			newUpgradePolicy: ekscontrolplanev1.UpgradePolicyStandard,
+			expect:           nil,
+			expectError:      false,
+		},
+		{
+			name: "no update necessary - upgrade policy unchanged",
+			oldUpgradePolicy: &ekstypes.UpgradePolicyResponse{
+				SupportType: ekstypes.SupportTypeStandard,
+			},
+			newUpgradePolicy: ekscontrolplanev1.UpgradePolicyStandard,
+			expect:           nil,
+			expectError:      false,
+		},
+		{
+			name: "needs update",
+			oldUpgradePolicy: &ekstypes.UpgradePolicyResponse{
+				SupportType: ekstypes.SupportTypeStandard,
+			},
+			newUpgradePolicy: ekscontrolplanev1.UpgradePolicyExtended,
+			expect: &ekstypes.UpgradePolicyRequest{
+				SupportType: ekstypes.SupportTypeExtended,
+			},
+			expectError: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			mockControl := gomock.NewController(t)
+			defer mockControl.Finish()
+
+			scheme := runtime.NewScheme()
+			_ = infrav1.AddToScheme(scheme)
+			_ = ekscontrolplanev1.AddToScheme(scheme)
+			client := fake.NewClientBuilder().WithScheme(scheme).Build()
+			scope, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
+				Client: client,
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns",
+						Name:      clusterName,
+					},
+				},
+				ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
+					Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+						Version:       aws.String("1.16"),
+						UpgradePolicy: tc.newUpgradePolicy,
+					},
+				},
+			})
+			g.Expect(err).To(BeNil())
+
+			s := NewService(scope)
+
+			upgradePolicyRequest := s.reconcileUpgradePolicy(tc.oldUpgradePolicy)
+			if tc.expectError {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(upgradePolicyRequest).To(Equal(tc.expect))
+		})
+	}
+}
+
 func TestCreateIPv6Cluster(t *testing.T) {
 	g := NewWithT(t)
 
@@ -785,5 +991,76 @@ func TestCreateIPv6Cluster(t *testing.T) {
 	s.IAMClient = iamMock
 
 	_, err = s.createCluster(context.TODO(), "cluster-name")
+	g.Expect(err).To(BeNil())
+}
+
+func TestCreateClusterWithBootstrapClusterCreatorAdminPermissions(t *testing.T) {
+	g := NewWithT(t)
+
+	mockControl := gomock.NewController(t)
+	defer mockControl.Finish()
+
+	eksMock := mock_eksiface.NewMockEKSAPI(mockControl)
+	iamMock := mock_iamauth.NewMockIAMAPI(mockControl)
+
+	scheme := runtime.NewScheme()
+	_ = infrav1.AddToScheme(scheme)
+	_ = ekscontrolplanev1.AddToScheme(scheme)
+	client := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+	clusterName := "test-cluster"
+	scope, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
+		Client: client,
+		Cluster: &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "ns",
+				Name:      "capi-name",
+			},
+		},
+		ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
+			Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+				EKSClusterName: clusterName,
+				Version:        aws.String("1.24"),
+				RoleName:       aws.String("arn:role"),
+				NetworkSpec: infrav1.NetworkSpec{
+					Subnets: []infrav1.SubnetSpec{
+						{ID: "1", AvailabilityZone: "us-west-2a"},
+						{ID: "2", AvailabilityZone: "us-west-2b"},
+					},
+				},
+				AccessConfig: &ekscontrolplanev1.AccessConfig{
+					BootstrapClusterCreatorAdminPermissions: ptr.To(false),
+				},
+			},
+		},
+	})
+	g.Expect(err).To(BeNil())
+
+	eksMock.EXPECT().CreateCluster(context.TODO(), &eks.CreateClusterInput{
+		Name:    aws.String(clusterName),
+		Version: aws.String("1.24"),
+		ResourcesVpcConfig: &ekstypes.VpcConfigRequest{
+			SubnetIds: []string{"1", "2"},
+		},
+		RoleArn: aws.String("arn:role"),
+		Tags: map[string]string{
+			"kubernetes.io/cluster/test-cluster": "owned",
+		},
+		AccessConfig: &ekstypes.CreateAccessConfigRequest{
+			BootstrapClusterCreatorAdminPermissions: ptr.To(false),
+		},
+		EncryptionConfig:           []ekstypes.EncryptionConfig{},
+		BootstrapSelfManagedAddons: aws.Bool(false),
+	}).Return(&eks.CreateClusterOutput{}, nil)
+
+	iamMock.EXPECT().GetRole(gomock.Any(), gomock.Any()).Return(&iam.GetRoleOutput{
+		Role: &iamtypes.Role{Arn: aws.String("arn:role")},
+	}, nil)
+
+	s := NewService(scope)
+	s.EKSClient = eksMock
+	s.IAMClient = iamMock
+
+	_, err = s.createCluster(context.TODO(), clusterName)
 	g.Expect(err).To(BeNil())
 }

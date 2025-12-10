@@ -57,6 +57,16 @@ type InterfaceUnmarshalerContext interface {
 	UnmarshalYAML(context.Context, func(interface{}) error) error
 }
 
+// NodeUnmarshaler interface is similar to BytesUnmarshaler but provide related AST node instead of raw YAML source.
+type NodeUnmarshaler interface {
+	UnmarshalYAML(ast.Node) error
+}
+
+// NodeUnmarshalerContext interface is similar to BytesUnmarshaler but provide related AST node instead of raw YAML source.
+type NodeUnmarshalerContext interface {
+	UnmarshalYAML(context.Context, ast.Node) error
+}
+
 // MapItem is an item in a MapSlice.
 type MapItem struct {
 	Key, Value interface{}
@@ -98,6 +108,13 @@ func (s MapSlice) ToMap() map[interface{}]interface{} {
 //	             fields are zero, unless they implement an IsZero
 //	             method (see the IsZeroer interface type), in which
 //	             case the field will be included if that method returns true.
+//	             Note that this definition is slightly different from the Go's
+//	             encoding/json 'omitempty' definition. It combines some elements
+//	             of 'omitempty' and 'omitzero'. See https://github.com/goccy/go-yaml/issues/695.
+//
+//	omitzero      The omitzero tag behaves in the same way as the interpretation of the omitzero tag in the encoding/json library.
+//	              1) If the field type has an "IsZero() bool" method, that will be used to determine whether the value is zero.
+//	              2) Otherwise, the value is zero if it is the zero value for its type.
 //
 //	flow         Marshal using a flow style (useful for structs,
 //	             sequences and maps).
@@ -212,11 +229,9 @@ func NodeToValue(node ast.Node, v interface{}, opts ...DecodeOption) error {
 // If the third argument `inclSource` is true, the error message will
 // contain snippets of the YAML source that was used.
 func FormatError(e error, colored, inclSource bool) string {
-	var pp errors.PrettyPrinter
-	if errors.As(e, &pp) {
-		var buf bytes.Buffer
-		pp.PrettyPrint(&errors.Sink{Buffer: &buf}, colored, inclSource)
-		return buf.String()
+	var yamlErr Error
+	if errors.As(e, &yamlErr) {
+		return yamlErr.FormatError(colored, inclSource)
 	}
 
 	return e.Error()
@@ -251,8 +266,8 @@ func JSONToYAML(bytes []byte) ([]byte, error) {
 var (
 	globalCustomMarshalerMu    sync.Mutex
 	globalCustomUnmarshalerMu  sync.Mutex
-	globalCustomMarshalerMap   = map[reflect.Type]func(interface{}) ([]byte, error){}
-	globalCustomUnmarshalerMap = map[reflect.Type]func(interface{}, []byte) error{}
+	globalCustomMarshalerMap   = map[reflect.Type]func(context.Context, interface{}) ([]byte, error){}
+	globalCustomUnmarshalerMap = map[reflect.Type]func(context.Context, interface{}, []byte) error{}
 )
 
 // RegisterCustomMarshaler overrides any encoding process for the type specified in generics.
@@ -266,8 +281,20 @@ func RegisterCustomMarshaler[T any](marshaler func(T) ([]byte, error)) {
 	defer globalCustomMarshalerMu.Unlock()
 
 	var typ T
-	globalCustomMarshalerMap[reflect.TypeOf(typ)] = func(v interface{}) ([]byte, error) {
+	globalCustomMarshalerMap[reflect.TypeOf(typ)] = func(ctx context.Context, v interface{}) ([]byte, error) {
 		return marshaler(v.(T))
+	}
+}
+
+// RegisterCustomMarshalerContext overrides any encoding process for the type specified in generics.
+// Similar to RegisterCustomMarshalerContext, but allows passing a context to the unmarshaler function.
+func RegisterCustomMarshalerContext[T any](marshaler func(context.Context, T) ([]byte, error)) {
+	globalCustomMarshalerMu.Lock()
+	defer globalCustomMarshalerMu.Unlock()
+
+	var typ T
+	globalCustomMarshalerMap[reflect.TypeOf(typ)] = func(ctx context.Context, v interface{}) ([]byte, error) {
+		return marshaler(ctx, v.(T))
 	}
 }
 
@@ -281,7 +308,19 @@ func RegisterCustomUnmarshaler[T any](unmarshaler func(*T, []byte) error) {
 	defer globalCustomUnmarshalerMu.Unlock()
 
 	var typ *T
-	globalCustomUnmarshalerMap[reflect.TypeOf(typ)] = func(v interface{}, b []byte) error {
+	globalCustomUnmarshalerMap[reflect.TypeOf(typ)] = func(ctx context.Context, v interface{}, b []byte) error {
 		return unmarshaler(v.(*T), b)
+	}
+}
+
+// RegisterCustomUnmarshalerContext overrides any decoding process for the type specified in generics.
+// Similar to RegisterCustomUnmarshalerContext, but allows passing a context to the unmarshaler function.
+func RegisterCustomUnmarshalerContext[T any](unmarshaler func(context.Context, *T, []byte) error) {
+	globalCustomUnmarshalerMu.Lock()
+	defer globalCustomUnmarshalerMu.Unlock()
+
+	var typ *T
+	globalCustomUnmarshalerMap[reflect.TypeOf(typ)] = func(ctx context.Context, v interface{}, b []byte) error {
+		return unmarshaler(ctx, v.(*T), b)
 	}
 }

@@ -30,6 +30,9 @@ import (
 	cgscheme "k8s.io/client-go/kubernetes/scheme"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	bootstrapv1beta1 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta1"
+	controlplanev1beta1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 )
 
@@ -69,6 +72,7 @@ const (
 	MultiTenancy                         = "MULTI_TENANCY_"
 	EksUpgradeFromVersion                = "UPGRADE_FROM_VERSION"
 	EksUpgradeToVersion                  = "UPGRADE_TO_VERSION"
+	UpgradePolicy                        = "UPGRADE_POLICY"
 
 	ClassicElbTestKubernetesFrom = "CLASSICELB_TEST_KUBERNETES_VERSION_FROM"
 	ClassicElbTestKubernetesTo   = "CLASSICELB_TEST_KUBERNETES_VERSION_TO"
@@ -220,6 +224,12 @@ func getLimitedResources() map[string]*ServiceQuota {
 func DefaultScheme() *runtime.Scheme {
 	sc := runtime.NewScheme()
 	framework.TryAddDefaultSchemes(sc)
+
+	// Temporary add v1beta1 scheme as long as the e2e tests use v1beta1 templates
+	_ = clusterv1beta1.AddToScheme(sc)
+	_ = bootstrapv1beta1.AddToScheme(sc)
+	_ = controlplanev1beta1.AddToScheme(sc)
+
 	_ = infrav1.AddToScheme(sc)
 	_ = cgscheme.AddToScheme(sc)
 	return sc

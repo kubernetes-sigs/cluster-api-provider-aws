@@ -37,6 +37,7 @@ type Service struct {
 
 // AutoScalingAPI is an interface for the AWS AutoScaling API client.
 type AutoScalingAPI interface {
+	CancelInstanceRefresh(ctx context.Context, params *autoscaling.CancelInstanceRefreshInput, optFns ...func(*autoscaling.Options)) (*autoscaling.CancelInstanceRefreshOutput, error)
 	CreateAutoScalingGroup(ctx context.Context, params *autoscaling.CreateAutoScalingGroupInput, optFns ...func(*autoscaling.Options)) (*autoscaling.CreateAutoScalingGroupOutput, error)
 	DeleteAutoScalingGroup(ctx context.Context, params *autoscaling.DeleteAutoScalingGroupInput, optFns ...func(*autoscaling.Options)) (*autoscaling.DeleteAutoScalingGroupOutput, error)
 	DescribeAutoScalingGroups(ctx context.Context, params *autoscaling.DescribeAutoScalingGroupsInput, optFns ...func(*autoscaling.Options)) (*autoscaling.DescribeAutoScalingGroupsOutput, error)

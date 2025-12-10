@@ -35,13 +35,13 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
-	"sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 func setupNewManagedControlPlaneScope(cl client.Client) (*scope.ManagedControlPlaneScope, error) {
 	return scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
 		Client:  cl,
-		Cluster: &v1beta1.Cluster{},
+		Cluster: &clusterv1.Cluster{},
 		ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
 			Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
 				SecondaryCidrBlock: ptr.To[string]("secondary-cidr"),
@@ -101,7 +101,8 @@ func TestServiceAssociateSecondaryCidr(t *testing.T) {
 								{CidrBlock: aws.String("secondary-cidr")},
 							},
 						},
-					}}, nil)
+					},
+				}, nil)
 			},
 		},
 		{
@@ -123,7 +124,8 @@ func TestServiceAssociateSecondaryCidr(t *testing.T) {
 						{
 							CidrBlockAssociationSet: []types.VpcCidrBlockAssociation{},
 						},
-					}}, nil)
+					},
+				}, nil)
 				m.AssociateVpcCidrBlock(context.TODO(), gomock.AssignableToTypeOf(&ec2.AssociateVpcCidrBlockInput{})).Return(nil, awserrors.NewFailedDependency("dependency-failure"))
 			},
 			wantErr: true,
@@ -137,7 +139,8 @@ func TestServiceAssociateSecondaryCidr(t *testing.T) {
 						{
 							CidrBlockAssociationSet: []types.VpcCidrBlockAssociation{},
 						},
-					}}, nil)
+					},
+				}, nil)
 				m.AssociateVpcCidrBlock(context.TODO(), gomock.AssignableToTypeOf(&ec2.AssociateVpcCidrBlockInput{})).Return(&ec2.AssociateVpcCidrBlockOutput{
 					CidrBlockAssociation: &types.VpcCidrBlockAssociation{
 						AssociationId: ptr.To[string]("association-id-success"),
@@ -179,7 +182,8 @@ func TestServiceAssociateSecondaryCidr(t *testing.T) {
 								},
 							},
 						},
-					}}, nil)
+					},
+				}, nil)
 
 				// ...the other two should be created
 				m.AssociateVpcCidrBlock(context.TODO(), gomock.Eq(&ec2.AssociateVpcCidrBlockInput{
@@ -286,7 +290,8 @@ func TestServiceDiassociateSecondaryCidr(t *testing.T) {
 								{CidrBlock: aws.String("secondary-cidr")},
 							},
 						},
-					}}, nil)
+					},
+				}, nil)
 				m.DisassociateVpcCidrBlock(context.TODO(), gomock.AssignableToTypeOf(&ec2.DisassociateVpcCidrBlockInput{})).Return(nil, nil)
 			},
 		},
@@ -301,7 +306,8 @@ func TestServiceDiassociateSecondaryCidr(t *testing.T) {
 								{CidrBlock: aws.String("secondary-cidr")},
 							},
 						},
-					}}, nil)
+					},
+				}, nil)
 				m.DisassociateVpcCidrBlock(context.TODO(), gomock.AssignableToTypeOf(&ec2.DisassociateVpcCidrBlockInput{})).Return(nil, awserrors.NewFailedDependency("dependency-failure"))
 			},
 			wantErr: true,
@@ -315,7 +321,8 @@ func TestServiceDiassociateSecondaryCidr(t *testing.T) {
 						{
 							CidrBlockAssociationSet: []types.VpcCidrBlockAssociation{},
 						},
-					}}, nil)
+					},
+				}, nil)
 
 				// No calls expected
 				m.DisassociateVpcCidrBlock(context.TODO(), gomock.Any()).Times(0)
@@ -366,7 +373,8 @@ func TestServiceDiassociateSecondaryCidr(t *testing.T) {
 								},
 							},
 						},
-					}}, nil)
+					},
+				}, nil)
 
 				m.DisassociateVpcCidrBlock(context.TODO(), gomock.Eq(&ec2.DisassociateVpcCidrBlockInput{
 					AssociationId: ptr.To[string]("association-id-existing-1"), // 10.0.1.0/24 (see above)

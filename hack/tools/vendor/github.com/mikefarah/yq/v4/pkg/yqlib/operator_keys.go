@@ -45,12 +45,13 @@ func keysOperator(_ *dataTreeNavigator, context Context, _ *ExpressionNode) (Con
 		candidate := el.Value.(*CandidateNode)
 
 		var targetNode *CandidateNode
-		if candidate.Kind == MappingNode {
+		switch candidate.Kind {
+		case MappingNode:
 			targetNode = getMapKeys(candidate)
-		} else if candidate.Kind == SequenceNode {
+		case SequenceNode:
 			targetNode = getIndices(candidate)
-		} else {
-			return Context{}, fmt.Errorf("Cannot get keys of %v, keys only works for maps and arrays", candidate.Tag)
+		default:
+			return Context{}, fmt.Errorf("cannot get keys of %v, keys only works for maps and arrays", candidate.Tag)
 		}
 
 		results.PushBack(targetNode)
@@ -64,19 +65,20 @@ func getMapKeys(node *CandidateNode) *CandidateNode {
 	for index := 0; index < len(node.Content); index = index + 2 {
 		contents = append(contents, node.Content[index])
 	}
-	return &CandidateNode{Kind: SequenceNode, Tag: "!!seq", Content: contents}
+
+	seq := &CandidateNode{Kind: SequenceNode, Tag: "!!seq"}
+	seq.AddChildren(contents)
+	return seq
 }
 
 func getIndices(node *CandidateNode) *CandidateNode {
 	var contents = make([]*CandidateNode, len(node.Content))
 
 	for index := range node.Content {
-		contents[index] = &CandidateNode{
-			Kind:  ScalarNode,
-			Tag:   "!!int",
-			Value: fmt.Sprintf("%v", index),
-		}
+		contents[index] = createScalarNode(index, fmt.Sprintf("%v", index))
 	}
 
-	return &CandidateNode{Kind: SequenceNode, Tag: "!!seq", Content: contents}
+	seq := &CandidateNode{Kind: SequenceNode, Tag: "!!seq"}
+	seq.AddChildren(contents)
+	return seq
 }

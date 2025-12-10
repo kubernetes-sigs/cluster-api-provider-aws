@@ -109,11 +109,17 @@ func (m *OrderedMap) Back() *Element {
 // Copy returns a new OrderedMap with the same elements.
 // Using Copy while there are concurrent writes may mangle the result.
 func (m *OrderedMap) Copy() *OrderedMap {
-	m2 := NewOrderedMap()
+	m2 := NewOrderedMapWithCapacity(m.Len())
 
 	for el := m.Front(); el != nil; el = el.Next() {
 		m2.Set(el.Key, el.Value)
 	}
 
 	return m2
+}
+
+// Has checks if a key exists in the map.
+func (m *OrderedMap) Has(key interface{}) bool {
+	_, exists := m.kv[key]
+	return exists
 }

@@ -43,7 +43,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 func TestInstanceIfExists(t *testing.T) {
@@ -435,7 +436,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					FailureDomain: aws.String("us-east-1c"),
+					FailureDomain: "us-east-1c",
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -569,7 +570,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: aws.String("bootstrap-data"),
 					},
-					FailureDomain: aws.String("us-east-1c"),
+					FailureDomain: "us-east-1c",
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -657,7 +658,8 @@ func TestCreateInstance(t *testing.T) {
 							Name:   aws.String("availability-zone"),
 							Values: []string{"us-east-1c"},
 						},
-					}})).Return(&ec2.DescribeSubnetsOutput{
+					},
+				})).Return(&ec2.DescribeSubnetsOutput{
 					Subnets: []types.Subnet{
 						{
 							VpcId:               aws.String("vpc-incorrect-1"),
@@ -829,7 +831,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: aws.String("bootstrap-data"),
 					},
-					FailureDomain: aws.String("us-east-1c"),
+					FailureDomain: "us-east-1c",
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -925,7 +927,8 @@ func TestCreateInstance(t *testing.T) {
 							Name:   aws.String("availability-zone"),
 							Values: []string{"us-east-1c"},
 						},
-					}})).Return(&ec2.DescribeSubnetsOutput{
+					},
+				})).Return(&ec2.DescribeSubnetsOutput{
 					Subnets: []types.Subnet{
 						{
 							VpcId:            aws.String("vpc-bar"),
@@ -1082,7 +1085,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: ptr.To[string]("v1.16.1"),
+					Version: "v1.16.1",
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -1235,7 +1238,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: ptr.To[string]("v1.16.1"),
+					Version: "v1.16.1",
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -1388,7 +1391,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: ptr.To[string]("v1.16.1"),
+					Version: "v1.16.1",
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -1542,7 +1545,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					FailureDomain: aws.String("us-east-1b"),
+					FailureDomain: "us-east-1b",
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -1687,7 +1690,7 @@ func TestCreateInstance(t *testing.T) {
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
 						},
-						Subnets: infrav1.Subnets{{
+						Subnets: infrav1.Subnets{infrav1.SubnetSpec{
 							ID: "matching-subnet",
 						}},
 					},
@@ -1813,7 +1816,7 @@ func TestCreateInstance(t *testing.T) {
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
 						},
-						Subnets: infrav1.Subnets{{
+						Subnets: infrav1.Subnets{infrav1.SubnetSpec{
 							ID: "subnet-1",
 						}},
 					},
@@ -1905,7 +1908,7 @@ func TestCreateInstance(t *testing.T) {
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
 						},
-						Subnets: infrav1.Subnets{{
+						Subnets: infrav1.Subnets{infrav1.SubnetSpec{
 							ID: "subnet-1",
 						}},
 					},
@@ -2012,7 +2015,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					FailureDomain: aws.String("us-east-1b"),
+					FailureDomain: "us-east-1b",
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -2031,7 +2034,7 @@ func TestCreateInstance(t *testing.T) {
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
 						},
-						Subnets: infrav1.Subnets{{
+						Subnets: infrav1.Subnets{infrav1.SubnetSpec{
 							ID:               "subnet-1",
 							AvailabilityZone: "us-west-1b",
 						}},
@@ -2109,7 +2112,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					FailureDomain: aws.String("us-east-1b"),
+					FailureDomain: "us-east-1b",
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -2126,7 +2129,7 @@ func TestCreateInstance(t *testing.T) {
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
 						},
-						Subnets: infrav1.Subnets{{
+						Subnets: infrav1.Subnets{infrav1.SubnetSpec{
 							ID:               "private-subnet-1",
 							AvailabilityZone: "us-east-1b",
 							IsPublic:         false,
@@ -2211,7 +2214,7 @@ func TestCreateInstance(t *testing.T) {
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
 						},
-						Subnets: infrav1.Subnets{{
+						Subnets: infrav1.Subnets{infrav1.SubnetSpec{
 							ID:       "public-subnet-1",
 							IsPublic: true,
 						}},
@@ -2340,7 +2343,7 @@ func TestCreateInstance(t *testing.T) {
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
 						},
-						Subnets: infrav1.Subnets{{
+						Subnets: infrav1.Subnets{infrav1.SubnetSpec{
 							ID:       "public-subnet-1",
 							IsPublic: true,
 						}},
@@ -2611,7 +2614,7 @@ func TestCreateInstance(t *testing.T) {
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
 						},
-						Subnets: infrav1.Subnets{{
+						Subnets: infrav1.Subnets{infrav1.SubnetSpec{
 							ID:       "private-subnet-1",
 							IsPublic: false,
 						}},
@@ -4381,7 +4384,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: ptr.To[string]("v1.16.1"),
+					Version: "v1.16.1",
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -4513,7 +4516,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: ptr.To[string]("v1.16.1"),
+					Version: "v1.16.1",
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -4646,7 +4649,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: ptr.To[string]("v1.16.1"),
+					Version: "v1.16.1",
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -4780,7 +4783,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: ptr.To[string]("v1.16.1"),
+					Version: "v1.16.1",
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -4911,7 +4914,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: ptr.To[string]("v1.16.1"),
+					Version: "v1.16.1",
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -5042,7 +5045,7 @@ func TestCreateInstance(t *testing.T) {
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: ptr.To[string]("bootstrap-data"),
 					},
-					Version: ptr.To[string]("v1.16.1"),
+					Version: "v1.16.1",
 				},
 			},
 			machineConfig: &infrav1.AWSMachineSpec{
@@ -5319,11 +5322,11 @@ func TestCreateInstance(t *testing.T) {
 				g.Expect(len(instance.Addresses)).To(Equal(3))
 
 				for _, address := range instance.Addresses {
-					if address.Type == clusterv1.MachineInternalIP {
+					if address.Type == clusterv1beta1.MachineInternalIP {
 						g.Expect(address.Address).To(Equal("192.168.1.10"))
 					}
 
-					if address.Type == clusterv1.MachineInternalDNS {
+					if address.Type == clusterv1beta1.MachineInternalDNS {
 						g.Expect(address.Address).To(Or(Equal("ip-192-168-1-10.ec2.internal"), Equal("ip-192-168-1-10.example.com")))
 					}
 				}
@@ -5352,7 +5355,6 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
-
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
 							infrav1.SubnetSpec{
@@ -5557,7 +5559,6 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
-
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
 							infrav1.SubnetSpec{
@@ -5678,7 +5679,6 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
-
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
 							infrav1.SubnetSpec{
@@ -5779,6 +5779,132 @@ func TestCreateInstance(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "with AMD SEV-SNP enabled",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: ptr.To[string]("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AMIReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType: "m6a.large",
+				CPUOptions: infrav1.CPUOptions{
+					ConfidentialCompute: infrav1.AWSConfidentialComputePolicy("AMDEncryptedVirtualizationNestedPaging"),
+				},
+			},
+			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						Subnets: infrav1.Subnets{
+							infrav1.SubnetSpec{
+								ID:       "subnet-1",
+								IsPublic: false,
+							},
+							infrav1.SubnetSpec{
+								IsPublic: false,
+							},
+						},
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-test",
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.LoadBalancer{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM6aLarge,
+						},
+					})).
+					Return(&ec2.DescribeInstanceTypesOutput{
+						InstanceTypes: []types.InstanceTypeInfo{
+							{
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
+									},
+								},
+							},
+						},
+					}, nil)
+				m. // TODO: Restore these parameters, but with the tags as well
+					RunInstances(context.TODO(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, optFns ...func(*ec2.Options)) (*ec2.RunInstancesOutput, error) {
+						if input.CpuOptions == nil {
+							t.Fatalf("expected AMD SEV-SNP to be enabled, but got no CpuOptions")
+						} else if input.CpuOptions.AmdSevSnp != types.AmdSevSnpSpecificationEnabled {
+							t.Fatalf("expected AMD SEV-SNP to be enabled, but got %s", input.CpuOptions.AmdSevSnp)
+						}
+						return &ec2.RunInstancesOutput{
+							Instances: []types.Instance{
+								{
+									State: &types.InstanceState{
+										Name: types.InstanceStateNamePending,
+									},
+									IamInstanceProfile: &types.IamInstanceProfile{
+										Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+									},
+									InstanceId:     aws.String("two"),
+									InstanceType:   types.InstanceTypeM5Large,
+									SubnetId:       aws.String("subnet-1"),
+									ImageId:        aws.String("ami-1"),
+									RootDeviceName: aws.String("device-1"),
+									BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
+										{
+											DeviceName: aws.String("device-1"),
+											Ebs: &types.EbsInstanceBlockDevice{
+												VolumeId: aws.String("volume-1"),
+											},
+										},
+									},
+									Placement: &types.Placement{
+										AvailabilityZone: &az,
+									},
+								},
+							},
+						}, nil
+					})
+				m.
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []types.NetworkInterface{},
+						NextToken:         nil,
+					}, nil)
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+			},
+		},
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -5795,12 +5921,12 @@ func TestCreateInstance(t *testing.T) {
 					Name: "test1",
 				},
 				Spec: clusterv1.ClusterSpec{
-					ClusterNetwork: &clusterv1.ClusterNetwork{
+					ClusterNetwork: clusterv1.ClusterNetwork{
 						ServiceDomain: "cluster.local",
-						Services: &clusterv1.NetworkRanges{
+						Services: clusterv1.NetworkRanges{
 							CIDRBlocks: []string{"192.168.0.0/16"},
 						},
-						Pods: &clusterv1.NetworkRanges{
+						Pods: clusterv1.NetworkRanges{
 							CIDRBlocks: []string{"192.168.0.0/16"},
 						},
 					},
@@ -6387,6 +6513,48 @@ func TestGetCapacityReservationSpecification(t *testing.T) {
 			if !cmp.Equal(request, tc.expectedRequest, cmpopts.IgnoreUnexported(types.CapacityReservationSpecification{}, types.CapacityReservationTarget{})) {
 				t.Errorf("Case: %s. Got: %v, expected: %v", tc.name, request, tc.expectedRequest)
 			}
+		})
+	}
+}
+
+func TestGetInstanceCPUOptionsRequest(t *testing.T) {
+	testCases := []struct {
+		name            string
+		cpuOptions      infrav1.CPUOptions
+		expectedRequest *types.CpuOptionsRequest
+	}{
+		{
+			name: "with ConfidentialCompute set to AMD SEV-SNP",
+			cpuOptions: infrav1.CPUOptions{
+				ConfidentialCompute: infrav1.AWSConfidentialComputePolicy("AMDEncryptedVirtualizationNestedPaging"),
+			},
+			expectedRequest: &types.CpuOptionsRequest{
+				AmdSevSnp: types.AmdSevSnpSpecificationEnabled,
+			},
+		},
+		{
+			name: "with ConfidentialCompute disabled",
+			cpuOptions: infrav1.CPUOptions{
+				ConfidentialCompute: infrav1.AWSConfidentialComputePolicy("Disabled"),
+			},
+			expectedRequest: &types.CpuOptionsRequest{
+				AmdSevSnp: types.AmdSevSnpSpecificationDisabled,
+			},
+		},
+		{
+			name: "with ConfidentialCompute empty",
+			cpuOptions: infrav1.CPUOptions{
+				ConfidentialCompute: "",
+			},
+			expectedRequest: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			request := getInstanceCPUOptionsRequest(tc.cpuOptions)
+			g := NewWithT(t)
+			g.Expect(request).To(Equal(tc.expectedRequest))
 		})
 	}
 }

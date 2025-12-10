@@ -20,7 +20,8 @@ include $(ROOT_DIR_RELATIVE)/common.mk
 # https://suva.sh/posts/well-documented-makefiles
 
 # Go
-GO_VERSION ?=1.23.9
+GO_VERSION ?=1.24.7
+GO_DIRECTIVE_VERSION ?= 1.24.0
 GO_CONTAINER_IMAGE ?= golang:$(GO_VERSION)
 
 # Directories.
@@ -75,6 +76,7 @@ YQ := $(TOOLS_BIN_DIR)/yq
 KPROMO := $(TOOLS_BIN_DIR)/kpromo
 RELEASE_NOTES := $(TOOLS_BIN_DIR)/release-notes
 GORELEASER := $(TOOLS_BIN_DIR)/goreleaser
+PROWJOB_GEN := $(TOOLS_BIN_DIR)/prowjob-gen
 
 CLUSTERAWSADM_SRCS := $(call rwildcard,.,cmd/clusterawsadm/*.*)
 
@@ -169,7 +171,7 @@ ifeq ($(findstring \[PR-Blocking\],$(GINKGO_FOCUS)),\[PR-Blocking\])
 endif
 
 override E2E_ARGS += -artifacts-folder="$(ARTIFACTS)" --data-folder="$(E2E_DATA_DIR)" -use-existing-cluster=$(USE_EXISTING_CLUSTER)
-override GINKGO_ARGS += -v --trace --timeout=4h --output-dir="$(ARTIFACTS)" --junit-report="junit.e2e_suite.xml"
+override GINKGO_ARGS += -v --trace --timeout=5h --output-dir="$(ARTIFACTS)" --junit-report="junit.e2e_suite.xml"
 
 ifdef GINKGO_SKIP
 	override GINKGO_ARGS += -skip "$(GINKGO_SKIP)"
@@ -203,7 +205,7 @@ endif
 .PHONY: defaulters
 defaulters: $(DEFAULTER_GEN) ## Generate all Go types
 	$(DEFAULTER_GEN) \
-		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/v1beta1 \
+		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/core/v1beta2 \
 		--v=0 \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
 		--output-file=zz_generated.defaults.go \
@@ -261,7 +263,7 @@ generate-go-apis: ## Alias for .build/generate-go-apis
 	$(MAKE) defaulters
 
 	$(CONVERSION_GEN) \
-		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/v1beta1 \
+		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/core/v1beta2 \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
 		./api/v1beta1 \
@@ -269,28 +271,28 @@ generate-go-apis: ## Alias for .build/generate-go-apis
 
 	$(CONVERSION_GEN) \
 		--extra-peer-dirs=sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1 \
-		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/v1beta1 \
+		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/core/v1beta2 \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
 		./$(EXP_DIR)/api/v1beta1
 
 	$(CONVERSION_GEN) \
 		--extra-peer-dirs=sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1 \
-		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/v1beta1 \
+		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/core/v1beta2 \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
 		./bootstrap/eks/api/v1beta1
 
 	$(CONVERSION_GEN) \
 		--extra-peer-dirs=sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1 \
-		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/v1beta1 \
+		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/core/v1beta2 \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
 		./controlplane/eks/api/v1beta1
 
 	$(CONVERSION_GEN) \
 		--extra-peer-dirs=sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta1 \
-		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/v1beta1 \
+		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/core/v1beta2 \
 		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
 		./controlplane/rosa/api/v1beta2
@@ -328,7 +330,7 @@ modules: ## Runs go mod to ensure proper vendoring.
 	cd $(TOOLS_DIR); go mod tidy
 
 .PHONY: verify ## Verify ties together the rest of the verification targets into one target
-verify: verify-boilerplate verify-modules verify-gen verify-conversions verify-shellcheck verify-book-links release-manifests
+verify: verify-boilerplate verify-modules verify-gen verify-conversions verify-shellcheck verify-book-links release-manifests verify-go-directive
 
 .PHONY: verify-boilerplate
 verify-boilerplate: ## Verify boilerplate
@@ -365,6 +367,12 @@ verify-gen: generate ## Verify generated files
 .PHONY: verify-container-images
 verify-container-images: ## Verify container images
 	TRACE=$(TRACE) ./hack/verify-container-images.sh
+
+.PHONY: verify-go-directive
+verify-go-directive:
+	# use the core Cluster API script directly to verify the go directive matches the desired one.
+	# ref: https://github.com/kubernetes-sigs/cluster-api/blob/v1.10.7/hack/verify-go-directive.sh
+	curl --retry 3 -fsL https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/refs/tags/v1.10.7/hack/verify-go-directive.sh | bash -s -- -g $(GO_DIRECTIVE_VERSION)
 
 .PHONY: apidiff
 apidiff: APIDIFF_OLD_COMMIT ?= $(shell git rev-parse origin/main)
@@ -422,6 +430,14 @@ $(ARTIFACTS):
 generate-test-flavors: $(KUSTOMIZE)  ## Generate test template flavors
 	./hack/gen-test-flavors.sh withoutclusterclass
 	./hack/gen-test-flavors.sh withclusterclass
+
+.PHONY: generate-test-infra-prowjobs
+generate-test-infra-prowjobs: $(PROWJOB_GEN) ## Generates the prowjob configurations in test-infra
+	@if [ -z "${TEST_INFRA_DIR}" ]; then echo "TEST_INFRA_DIR is not set"; exit 1; fi
+	$(PROWJOB_GEN) \
+		-config "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-aws/cluster-api-provider-aws-prowjob-gen.yaml" \
+		-templates-dir "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-aws/templates" \
+		-output-dir "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api-provider-aws"
 
 .PHONY: e2e-image
 e2e-image: docker-pull-prerequisites $(TOOLS_BIN_DIR)/start.sh $(TOOLS_BIN_DIR)/restart.sh ## Build an e2e test image

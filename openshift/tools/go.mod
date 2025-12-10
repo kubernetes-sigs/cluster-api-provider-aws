@@ -2,9 +2,9 @@ module tools
 
 go 1.24.0
 
-toolchain go1.24.9
+toolchain go1.24.3
 
-require github.com/openshift/cluster-capi-operator/manifests-gen v0.0.0-20251013124505-9704b307de20
+require github.com/openshift/cluster-capi-operator/manifests-gen v0.0.0-20251128150503-3d0f9cd4dcdf
 
 require (
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect

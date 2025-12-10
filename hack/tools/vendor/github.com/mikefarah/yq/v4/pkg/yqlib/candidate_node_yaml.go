@@ -3,7 +3,7 @@ package yqlib
 import (
 	"fmt"
 
-	yaml "gopkg.in/yaml.v3"
+	yaml "go.yaml.in/yaml/v3"
 )
 
 func MapYamlStyle(original yaml.Style) Style {
@@ -77,9 +77,6 @@ func (o *CandidateNode) copyToYamlNode(node *yaml.Node) {
 	node.Tag = o.Tag
 	node.Value = o.Value
 	node.Anchor = o.Anchor
-
-	// node.Alias = TODO - find Alias in our own structure
-	// might need to be a post process thing
 
 	node.HeadComment = o.HeadComment
 

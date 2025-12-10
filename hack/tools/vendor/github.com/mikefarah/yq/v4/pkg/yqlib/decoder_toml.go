@@ -249,11 +249,12 @@ func (dec *tomlDecoder) processTopLevelNode(currentNode *toml.Node) (bool, error
 	var runAgainstCurrentExp bool
 	var err error
 	log.Debug("processTopLevelNode: Going to process %v state is current %v", currentNode.Kind, NodeToString(dec.rootMap))
-	if currentNode.Kind == toml.Table {
+	switch currentNode.Kind {
+	case toml.Table:
 		runAgainstCurrentExp, err = dec.processTable(currentNode)
-	} else if currentNode.Kind == toml.ArrayTable {
+	case toml.ArrayTable:
 		runAgainstCurrentExp, err = dec.processArrayTable(currentNode)
-	} else {
+	default:
 		runAgainstCurrentExp, err = dec.decodeKeyValuesIntoMap(dec.rootMap, currentNode)
 	}
 
@@ -281,13 +282,13 @@ func (dec *tomlDecoder) processTable(currentNode *toml.Node) (bool, error) {
 		tableValue = dec.parser.Expression()
 		// next expression is not table data, so we are done
 		if tableValue.Kind != toml.KeyValue {
-			log.Debug("got an empty table, returning")
-			return true, nil
-		}
-
-		runAgainstCurrentExp, err = dec.decodeKeyValuesIntoMap(tableNodeValue, tableValue)
-		if err != nil && !errors.Is(err, io.EOF) {
-			return false, err
+			log.Debug("got an empty table")
+			runAgainstCurrentExp = true
+		} else {
+			runAgainstCurrentExp, err = dec.decodeKeyValuesIntoMap(tableNodeValue, tableValue)
+			if err != nil && !errors.Is(err, io.EOF) {
+				return false, err
+			}
 		}
 	}
 
