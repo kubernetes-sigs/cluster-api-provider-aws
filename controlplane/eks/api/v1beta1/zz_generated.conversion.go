@@ -381,6 +381,7 @@ func autoConvert_v1beta2_AWSManagedControlPlaneSpec_To_v1beta1_AWSManagedControl
 		return err
 	}
 	// WARNING: in.UpgradePolicy requires manual conversion: does not exist in peer-type
+	// WARNING: in.ControlPlaneScalingConfig requires manual conversion: does not exist in peer-type
 	return nil
 }
 
