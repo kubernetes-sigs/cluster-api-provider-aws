@@ -427,6 +427,7 @@ Resources:
         Statement:
         - Action:
           - sts:AssumeRole
+          - sts:TagSession
           Effect: Allow
           Principal:
             Service:
@@ -454,6 +455,7 @@ Resources:
           Principal:
             Service:
             - ec2.amazonaws.com
+            - pods.eks.amazonaws.com
         Version: 2012-10-17
       Policies:
       - PolicyDocument:
