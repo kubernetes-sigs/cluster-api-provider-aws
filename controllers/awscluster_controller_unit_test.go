@@ -48,7 +48,7 @@ func TestAWSClusterReconcilerReconcile(t *testing.T) {
 		name         string
 		awsCluster   *infrav1.AWSCluster
 		ownerCluster *clusterv1.Cluster
-		expectError  bool
+		expectError  bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "Should fail Reconcile if owner cluster not found",
@@ -567,7 +567,7 @@ func cleanupCluster(g *WithT, awsCluster *infrav1.AWSCluster, namespace *corev1.
 func TestSecurityGroupRolesForCluster(t *testing.T) {
 	tests := []struct {
 		name           string
-		bastionEnabled bool
+		bastionEnabled bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		want           []infrav1.SecurityGroupRole
 	}{
 		{

@@ -30,7 +30,7 @@ type EKSAddon struct {
 	Configuration         *string
 	Tags                  infrav1.Tags
 	ResolveConflict       *string
-	Preserve              bool
+	Preserve              bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	ARN                   *string
 	Status                *string
 }

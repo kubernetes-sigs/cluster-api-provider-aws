@@ -45,7 +45,7 @@ import (
 type AWSFargateProfileReconciler struct {
 	client.Client
 	Recorder         record.EventRecorder
-	EnableIAM        bool
+	EnableIAM        bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	WatchFilterValue string
 }
 

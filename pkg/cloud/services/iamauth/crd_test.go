@@ -38,7 +38,7 @@ func TestAddRoleMappingCRD(t *testing.T) {
 		existingRoleMapping  *iamauthv1.IAMIdentityMapping
 		roleToMap            ekscontrolplanev1.RoleMapping
 		expectedRoleMapSpecs []iamauthv1.IAMIdentityMappingSpec
-		expectError          bool
+		expectError          bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "no existing mappings, add role mapping",
@@ -166,7 +166,7 @@ func TestAddUserMappingCRD(t *testing.T) {
 		existingUserMapping  *iamauthv1.IAMIdentityMapping
 		userToMap            ekscontrolplanev1.UserMapping
 		expectedUserMapSpecs []iamauthv1.IAMIdentityMappingSpec
-		expectError          bool
+		expectError          bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "no existing mappings, add user mapping",

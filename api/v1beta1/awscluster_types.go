@@ -131,12 +131,12 @@ type Bastion struct {
 	// Enabled allows this provider to create a bastion host instance
 	// with a public ip to access the VPC private network.
 	// +optional
-	Enabled bool `json:"enabled"`
+	Enabled bool `json:"enabled"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// DisableIngressRules will ensure there are no Ingress rules in the bastion host's security group.
 	// Requires AllowedCIDRBlocks to be empty.
 	// +optional
-	DisableIngressRules bool `json:"disableIngressRules,omitempty"`
+	DisableIngressRules bool `json:"disableIngressRules,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// AllowedCIDRBlocks is a list of CIDR blocks allowed to access the bastion host.
 	// They are set as ingress rules for the Bastion host's Security Group (defaults to 0.0.0.0/0).
@@ -180,7 +180,7 @@ type AWSLoadBalancerSpec struct {
 	//
 	// Defaults to false.
 	// +optional
-	CrossZoneLoadBalancing bool `json:"crossZoneLoadBalancing"`
+	CrossZoneLoadBalancing bool `json:"crossZoneLoadBalancing"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// Subnets sets the subnets that should be applied to the control plane load balancer (defaults to discovered subnets for managed VPCs or an empty set for unmanaged VPCs)
 	// +optional
@@ -200,7 +200,7 @@ type AWSLoadBalancerSpec struct {
 // AWSClusterStatus defines the observed state of AWSCluster.
 type AWSClusterStatus struct {
 	// +kubebuilder:default=false
-	Ready          bool                          `json:"ready"`
+	Ready          bool                          `json:"ready"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	Network        NetworkStatus                 `json:"networkStatus,omitempty"`
 	FailureDomains clusterv1beta1.FailureDomains `json:"failureDomains,omitempty"`
 	Bastion        *Instance                     `json:"bastion,omitempty"`

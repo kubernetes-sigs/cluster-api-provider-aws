@@ -51,8 +51,8 @@ func TestServiceGetASGByName(t *testing.T) {
 	tests := []struct {
 		name            string
 		machinePoolName string
-		wantErr         bool
-		wantASG         bool
+		wantErr         bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+		wantASG         bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		expect          func(m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder)
 	}{
 		{
@@ -138,7 +138,7 @@ func TestServiceSDKToAutoScalingGroup(t *testing.T) {
 		name    string
 		input   *autoscalingtypes.AutoScalingGroup
 		want    *expinfrav1.AutoScalingGroup
-		wantErr bool
+		wantErr bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "valid input - all required fields filled",
@@ -385,8 +385,8 @@ func TestServiceASGIfExists(t *testing.T) {
 	tests := []struct {
 		name    string
 		asgName *string
-		wantErr bool
-		wantASG bool
+		wantErr bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+		wantASG bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		expect  func(m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder)
 	}{
 		{
@@ -477,8 +477,8 @@ func TestServiceCreateASG(t *testing.T) {
 		name                  string
 		machinePoolName       string
 		setupMachinePoolScope func(*scope.MachinePoolScope)
-		wantErr               bool
-		wantASG               bool
+		wantErr               bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+		wantASG               bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		expect                func(m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder)
 	}{
 		{
@@ -709,7 +709,7 @@ func TestServiceUpdateASG(t *testing.T) {
 		name                  string
 		machinePoolName       string
 		setupMachinePoolScope func(*scope.MachinePoolScope)
-		wantErr               bool
+		wantErr               bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		expect                func(e *mocks.MockEC2APIMockRecorder, m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder, g *WithT)
 	}{
 		{
@@ -797,7 +797,7 @@ func TestServiceUpdateASGWithSubnetFilters(t *testing.T) {
 		name                 string
 		machinePoolName      string
 		awsResourceReference []infrav1.AWSResourceReference
-		wantErr              bool
+		wantErr              bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		expect               func(e *mocks.MockEC2APIMockRecorder, m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder)
 	}{
 		{
@@ -891,7 +891,7 @@ func TestServiceUpdateResourceTags(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		wantErr bool
+		wantErr bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		expect  func(m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder)
 	}{
 		{
@@ -1000,7 +1000,7 @@ func TestServiceDeleteASG(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		wantErr bool
+		wantErr bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		expect  func(m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder)
 	}{
 		{
@@ -1051,7 +1051,7 @@ func TestServiceDeleteASGAndWait(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		wantErr bool
+		wantErr bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		expect  func(m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder)
 	}{
 		{
@@ -1125,9 +1125,9 @@ func TestServiceCanStartASGInstanceRefresh(t *testing.T) {
 
 	tests := []struct {
 		name                        string
-		wantErr                     bool
+		wantErr                     bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		wantUnfinishedRefreshStatus *string
-		canStart                    bool
+		canStart                    bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		expect                      func(m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder)
 	}{
 		{
@@ -1206,7 +1206,7 @@ func TestServiceStartASGInstanceRefresh(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		wantErr bool
+		wantErr bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		expect  func(m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder)
 	}{
 		{
