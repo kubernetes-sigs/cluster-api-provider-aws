@@ -275,6 +275,8 @@ func (s *Service) CreateInstance(ctx context.Context, scope *scope.MachineScope,
 	} else {
 		// Use static host allocation if specified
 		input.HostID = scope.AWSMachine.Spec.HostID
+		input.HostResourceGroupArn = scope.AWSMachine.Spec.HostResourceGroupArn
+		input.LicenseConfigurationArns = scope.AWSMachine.Spec.LicenseConfigurationArns
 		input.HostAffinity = scope.AWSMachine.Spec.HostAffinity
 	}
 
@@ -729,10 +731,45 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 			Affinity: i.HostAffinity,
 			HostId:   i.HostID,
 		}
+	} else if i.HostResourceGroupArn != nil {
+		if i.HostAffinity == nil {
+			i.HostAffinity = aws.String(string(types.AffinityHost))
+		}
+		if len(i.Tenancy) == 0 {
+			i.Tenancy = string(types.TenancyHost)
+		}
+		s.scope.Debug("Running instance with host resource group placement",
+			"hostResourceGroupArn", i.HostResourceGroupArn,
+			"affinity", i.HostAffinity)
+		if input.Placement != nil {
+			s.scope.Warn("Placement already set for instance, overwriting with host resource group placement",
+				"hostResourceGroupArn", i.HostResourceGroupArn,
+				"affinity", i.HostAffinity,
+				"placement", input.Placement)
+		}
+
+		input.Placement = &types.Placement{
+			Tenancy:              types.Tenancy(i.Tenancy),
+			Affinity:             i.HostAffinity,
+			HostResourceGroupArn: i.HostResourceGroupArn,
+		}
+		if len(i.LicenseConfigurationArns) > 0 {
+			licenseSpecs := make([]types.LicenseConfigurationRequest, len(i.LicenseConfigurationArns))
+			for idx, arn := range i.LicenseConfigurationArns {
+				licenseSpecs[idx] = types.LicenseConfigurationRequest{
+					LicenseConfigurationArn: aws.String(arn),
+				}
+			}
+			input.LicenseSpecifications = licenseSpecs
+		}
 	}
 
 	out, err := s.EC2Client.RunInstances(context.TODO(), input)
 	if err != nil {
+		// Provide more helpful error message for host resource group licensing issues
+		if strings.Contains(err.Error(), "host resource group") && strings.Contains(err.Error(), "licenses") {
+			return nil, errors.Wrap(err, "failed to run instance: AMI licenses must match the licenses associated with the host resource group. Ensure the AMI and host resource group have compatible licensing")
+		}
 		return nil, errors.Wrap(err, "failed to run instance")
 	}
 
@@ -986,6 +1023,21 @@ func (s *Service) SDKToInstance(v types.Instance) (*infrav1.Instance, error) {
 			EnableResourceNameDNSAAAARecord: v.PrivateDnsNameOptions.EnableResourceNameDnsAAAARecord,
 			EnableResourceNameDNSARecord:    v.PrivateDnsNameOptions.EnableResourceNameDnsARecord,
 			HostnameType:                    aws.String(string(v.PrivateDnsNameOptions.HostnameType)),
+		}
+	}
+
+	// Extract host allocation information from placement
+	if v.Placement != nil {
+		i.HostID = v.Placement.HostId
+		i.HostResourceGroupArn = v.Placement.HostResourceGroupArn
+		i.HostAffinity = v.Placement.Affinity
+	}
+
+	// Extract license configuration ARNs from license specifications
+	if len(v.Licenses) > 0 {
+		i.LicenseConfigurationArns = make([]string, len(v.Licenses))
+		for idx, license := range v.Licenses {
+			i.LicenseConfigurationArns[idx] = aws.ToString(license.LicenseConfigurationArn)
 		}
 	}
 

@@ -178,12 +178,31 @@ func (r *AWSMachineTemplate) validateHostAllocation() field.ErrorList {
 
 	spec := r.Spec.Template.Spec
 
-	// Check if both hostID and dynamicHostAllocation are specified
+	// Check if multiple host allocation options are specified
 	hasHostID := spec.HostID != nil && len(*spec.HostID) > 0
+	hasHostResourceGroupArn := spec.HostResourceGroupArn != nil && len(*spec.HostResourceGroupArn) > 0
 	hasDynamicHostAllocation := spec.DynamicHostAllocation != nil
 
-	if hasHostID && hasDynamicHostAllocation {
-		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.template.spec.hostID"), "hostID and dynamicHostAllocation are mutually exclusive"), field.Forbidden(field.NewPath("spec.template.spec.dynamicHostAllocation"), "hostID and dynamicHostAllocation are mutually exclusive"))
+	count := 0
+	if hasHostID {
+		count++
+	}
+	if hasHostResourceGroupArn {
+		count++
+	}
+	if hasDynamicHostAllocation {
+		count++
+	}
+
+	if count > 1 {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.template.spec"), "hostID, hostResourceGroupArn, and dynamicHostAllocation are mutually exclusive"))
+	}
+
+	// Validate licenseConfigurationArns is required when hostResourceGroupArn is specified
+	if hasHostResourceGroupArn {
+		if len(spec.LicenseConfigurationArns) == 0 {
+			allErrs = append(allErrs, field.Required(field.NewPath("spec", "template", "spec", "licenseConfigurationArns"), "licenseConfigurationArns is required when hostResourceGroupArn is specified"))
+		}
 	}
 
 	return allErrs

@@ -1295,6 +1295,11 @@ spec:
                     description: HostID specifies the dedicated host on which the
                       instance should be started.
                     type: string
+                  hostResourceGroupArn:
+                    description: |-
+                      HostResourceGroupArn specifies the Dedicated Host Resource Group ARN on which the instance should be started.
+                      Note: The instance's AMI licenses must match the licenses associated with the host resource group.
+                    type: string
                   iamProfile:
                     description: The name of the IAM instance profile associated with
                       the instance, if applicable.
@@ -1369,6 +1374,13 @@ spec:
                   instanceState:
                     description: The current state of the instance.
                     type: string
+                  licenseConfigurationArns:
+                    description: |-
+                      LicenseConfigurationArns specifies the License Configuration ARNs to associate with the instance.
+                      This field is required when HostResourceGroupArn is specified to ensure proper license compliance.
+                    items:
+                      type: string
+                    type: array
                   marketType:
                     description: |-
                       MarketType specifies the type of market for the EC2 instance. Valid values include:
@@ -3583,6 +3595,11 @@ spec:
                     description: HostID specifies the dedicated host on which the
                       instance should be started.
                     type: string
+                  hostResourceGroupArn:
+                    description: |-
+                      HostResourceGroupArn specifies the Dedicated Host Resource Group ARN on which the instance should be started.
+                      Note: The instance's AMI licenses must match the licenses associated with the host resource group.
+                    type: string
                   iamProfile:
                     description: The name of the IAM instance profile associated with
                       the instance, if applicable.
@@ -3657,6 +3674,13 @@ spec:
                   instanceState:
                     description: The current state of the instance.
                     type: string
+                  licenseConfigurationArns:
+                    description: |-
+                      LicenseConfigurationArns specifies the License Configuration ARNs to associate with the instance.
+                      This field is required when HostResourceGroupArn is specified to ensure proper license compliance.
+                    items:
+                      type: string
+                    type: array
                   marketType:
                     description: |-
                       MarketType specifies the type of market for the EC2 instance. Valid values include:

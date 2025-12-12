@@ -596,6 +596,79 @@ func TestAWSMachineCreate(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "hostResourceGroupArn alone is valid",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType:         "test",
+					HostResourceGroupArn: aws.String("arn:aws:resource-groups:us-west-2:123456789012:group/test-group"),
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "hostID and hostResourceGroupArn are mutually exclusive",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType:         "test",
+					HostID:               aws.String("h-1234567890abcdef0"),
+					HostResourceGroupArn: aws.String("arn:aws:resource-groups:us-west-2:123456789012:group/test-group"),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "hostResourceGroupArn and dynamicHostAllocation are mutually exclusive",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType:         "test",
+					HostResourceGroupArn: aws.String("arn:aws:resource-groups:us-west-2:123456789012:group/test-group"),
+					DynamicHostAllocation: &DynamicHostAllocationSpec{
+						Tags: map[string]string{
+							"Environment": "test",
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "all three host allocation options are mutually exclusive",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType:         "test",
+					HostID:               aws.String("h-1234567890abcdef0"),
+					HostResourceGroupArn: aws.String("arn:aws:resource-groups:us-west-2:123456789012:group/test-group"),
+					DynamicHostAllocation: &DynamicHostAllocationSpec{
+						Tags: map[string]string{
+							"Environment": "test",
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "hostResourceGroupArn without licenseConfigurationArns should fail",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType:         "test",
+					HostResourceGroupArn: aws.String("arn:aws:resource-groups:us-west-2:123456789012:group/test-group"),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "hostResourceGroupArn with licenseConfigurationArns should succeed",
+			machine: &AWSMachine{
+				Spec: AWSMachineSpec{
+					InstanceType:             "test",
+					HostResourceGroupArn:     aws.String("arn:aws:resource-groups:us-west-2:123456789012:group/test-group"),
+					LicenseConfigurationArns: []string{"arn:aws:license-manager:us-west-2:259732043995:license-configuration:lic-4acd3f7c117b9e314cce36e46084d071"},
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

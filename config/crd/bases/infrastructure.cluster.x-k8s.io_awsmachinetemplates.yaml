@@ -699,6 +699,14 @@ spec:
                         maxLength: 19
                         pattern: ^h-[0-9a-f]{17}$
                         type: string
+                      hostResourceGroupArn:
+                        description: |-
+                          HostResourceGroupArn specifies the Dedicated Host Resource Group ARN on which the instance must be started.
+                          This field is mutually exclusive with DynamicHostAllocation and HostID.
+                          Note: The instance's AMI licenses must match the licenses associated with the host resource group.
+                          If the host resource group has no associated licenses, ensure the AMI also has no special licensing requirements.
+                        pattern: ^arn:aws[a-z\-]*:resource-groups:[a-z0-9\-]+:[0-9]{12}:group/[a-zA-Z0-9\-_]+$
+                        type: string
                       iamInstanceProfile:
                         description: IAMInstanceProfile is a name of an IAM instance
                           profile to assign to the instance
@@ -892,6 +900,14 @@ spec:
                           Example: m4.xlarge'
                         minLength: 2
                         type: string
+                      licenseConfigurationArns:
+                        description: |-
+                          LicenseConfigurationArns specifies the License Configuration ARNs to associate with the instance.
+                          This field is required when HostResourceGroupArn is specified to ensure proper license compliance.
+                        items:
+                          type: string
+                        maxItems: 10
+                        type: array
                       marketType:
                         description: |-
                           MarketType specifies the type of market for the EC2 instance. Valid values include:
