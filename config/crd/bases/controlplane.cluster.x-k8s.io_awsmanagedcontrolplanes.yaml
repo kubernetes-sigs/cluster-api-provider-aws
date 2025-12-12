@@ -827,6 +827,30 @@ spec:
                               Mutually exclusive with IPAMPool.
                             type: string
                         type: object
+                      natGatewayAvailabilityMode:
+                        default: Zonal
+                        description: |-
+                          NATGatewayAvailabilityMode specifies the availability mode for NAT Gateways in this VPC.
+                          Valid values are "zonal" and "regional".
+
+                          Zonal (default): Creates one NAT Gateway per Availability Zone in public subnets.
+                          Each private subnet routes traffic through the NAT Gateway in its own AZ.
+
+                          Regional: Creates a single NAT Gateway that automatically expands and contracts across
+                          all Availability Zones based on workload presence. Does not require public subnets.
+                          Provides automatic high availability with simplified setup and enhanced security.
+
+                          Regional NAT Gateways support up to 32 IP addresses per AZ (vs 8 for zonal)
+                          and are recommended for new deployments unless private connectivity is required.
+
+                          Note: Regional NAT Gateways are available in all commercial AWS Regions except
+                          AWS GovCloud (US) and China Regions.
+
+                          Defaults to Zonal for backward compatibility.
+                        enum:
+                        - Zonal
+                        - Regional
+                        type: string
                       privateDnsHostnameTypeOnLaunch:
                         description: |-
                           PrivateDNSHostnameTypeOnLaunch is the type of hostname to assign to instances in the subnet at launch.
@@ -3062,6 +3086,30 @@ spec:
                               Mutually exclusive with IPAMPool.
                             type: string
                         type: object
+                      natGatewayAvailabilityMode:
+                        default: Zonal
+                        description: |-
+                          NATGatewayAvailabilityMode specifies the availability mode for NAT Gateways in this VPC.
+                          Valid values are "zonal" and "regional".
+
+                          Zonal (default): Creates one NAT Gateway per Availability Zone in public subnets.
+                          Each private subnet routes traffic through the NAT Gateway in its own AZ.
+
+                          Regional: Creates a single NAT Gateway that automatically expands and contracts across
+                          all Availability Zones based on workload presence. Does not require public subnets.
+                          Provides automatic high availability with simplified setup and enhanced security.
+
+                          Regional NAT Gateways support up to 32 IP addresses per AZ (vs 8 for zonal)
+                          and are recommended for new deployments unless private connectivity is required.
+
+                          Note: Regional NAT Gateways are available in all commercial AWS Regions except
+                          AWS GovCloud (US) and China Regions.
+
+                          Defaults to Zonal for backward compatibility.
+                        enum:
+                        - Zonal
+                        - Regional
+                        type: string
                       privateDnsHostnameTypeOnLaunch:
                         description: |-
                           PrivateDNSHostnameTypeOnLaunch is the type of hostname to assign to instances in the subnet at launch.
