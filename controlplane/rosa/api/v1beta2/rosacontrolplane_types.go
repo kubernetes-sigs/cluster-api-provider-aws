@@ -271,6 +271,52 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// for the ROSA HCP cluster.
 	// +optional
 	ROSANetworkRef *corev1.LocalObjectReference `json:"rosaNetworkRef,omitempty"`
+
+	// cloudWatchlogForwarder set the cloudWatch log forward config for applications and groupVersions.
+	// +optional
+	CloudWatchLogForwarder *CloudWatchLogForwarderConfig `json:"cloudWatchlogForwarder,omitempty"`
+
+	// s3LogForwarder set the AWS S3 log forward config for applications and groupVersions.
+	// +optional
+	S3LogForwarder *S3LogForwarderConfig `json:"s3LogForwarder,omitempty"`
+}
+
+// CloudWatchLogForwarderConfig present the cloudWatch log forward config for applications and groupVersions.
+type CloudWatchLogForwarderConfig struct {
+	// applications list included in the group versions.
+	// +optional
+	Applications []string `json:"applications,omitempty"`
+
+	// groupsLogVersion is of available versions for a group
+	// +optional
+	GroupLogVersions []string `json:"groupLogVersions,omitempty"`
+
+	// cloudWatchLogRoleArn is the ARN of the IAM CloudWatch role for log distribution.
+	// +optional
+	CloudWatchLogRoleArn string `json:"cloudWatchLogRoleArn,omitempty"`
+
+	// cloudWatchLogGroupName is the name of the CloudWatch log group.
+	// +optional
+	CloudWatchLogGroupName string `json:"cloudWatchLogGroupName,omitempty"`
+}
+
+// S3LogForwarderConfig present the AWS S3 log forward config for applications and groupVersions.
+type S3LogForwarderConfig struct {
+	// applications list included in the group versions.
+	// +optional
+	Applications []string `json:"applications,omitempty"`
+
+	// groupsLogVersion is list of available versions for a group
+	// +optional
+	GroupLogVersions []string `json:"groupLogVersions,omitempty"`
+
+	// s3ConfigBucketName is the name of the S3 bucket
+	// +optional
+	S3ConfigBucketName string `json:"s3ConfigBucketName,omitempty"`
+
+	// s3ConfigBucketPrefix is the prefix to use for objects stored in the S3 bucket.
+	// +optional
+	S3ConfigBucketPrefix string `json:"s3ConfigBucketPrefix,omitempty"`
 }
 
 // AutoNode set the AutoNode mode and AutoNode role ARN.

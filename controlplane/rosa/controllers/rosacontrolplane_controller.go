@@ -34,6 +34,7 @@ import (
 	idputils "github.com/openshift-online/ocm-common/pkg/idp/utils"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	rosaaws "github.com/openshift/rosa/pkg/aws"
+	"github.com/openshift/rosa/pkg/logforwarding"
 	"github.com/openshift/rosa/pkg/ocm"
 	"github.com/zgalor/weberr"
 	corev1 "k8s.io/api/core/v1"
@@ -660,6 +661,68 @@ func (r *ROSAControlPlaneReconciler) updateOCMClusterSpec(rosaControlPlane *rosa
 		}
 	}
 
+	// Set CloudWatchLogForwarder config
+	if rosaControlPlane.Spec.CloudWatchLogForwarder != nil && ocmClusterSpec.CloudWatchLogForwarder != nil {
+		if !reflect.DeepEqual(ocmClusterSpec.CloudWatchLogForwarder.Applications, rosaControlPlane.Spec.CloudWatchLogForwarder.Applications) {
+			ocmClusterSpec.CloudWatchLogForwarder.Applications = rosaControlPlane.Spec.CloudWatchLogForwarder.Applications
+			updated = true
+		}
+		if ocmClusterSpec.CloudWatchLogForwarder.CloudWatchLogGroupName != rosaControlPlane.Spec.CloudWatchLogForwarder.CloudWatchLogGroupName {
+			ocmClusterSpec.CloudWatchLogForwarder.CloudWatchLogGroupName = rosaControlPlane.Spec.CloudWatchLogForwarder.CloudWatchLogGroupName
+			updated = true
+		}
+		if ocmClusterSpec.CloudWatchLogForwarder.CloudWatchLogRoleArn != rosaControlPlane.Spec.CloudWatchLogForwarder.CloudWatchLogRoleArn {
+			ocmClusterSpec.CloudWatchLogForwarder.CloudWatchLogRoleArn = rosaControlPlane.Spec.CloudWatchLogForwarder.CloudWatchLogRoleArn
+			updated = true
+		}
+		if !reflect.DeepEqual(ocmClusterSpec.CloudWatchLogForwarder.GroupsLogVersions, rosaControlPlane.Spec.CloudWatchLogForwarder.GroupLogVersions) {
+			ocmClusterSpec.CloudWatchLogForwarder.GroupsLogVersions = rosaControlPlane.Spec.CloudWatchLogForwarder.GroupLogVersions
+			updated = true
+		}
+	} else if rosaControlPlane.Spec.CloudWatchLogForwarder != nil && ocmClusterSpec.CloudWatchLogForwarder == nil {
+		ocmClusterSpec.CloudWatchLogForwarder = &logforwarding.CloudWatchLogForwarderConfig{
+			Applications:           rosaControlPlane.Spec.CloudWatchLogForwarder.Applications,
+			GroupsLogVersions:      rosaControlPlane.Spec.CloudWatchLogForwarder.GroupLogVersions,
+			CloudWatchLogRoleArn:   rosaControlPlane.Spec.CloudWatchLogForwarder.CloudWatchLogRoleArn,
+			CloudWatchLogGroupName: rosaControlPlane.Spec.CloudWatchLogForwarder.CloudWatchLogGroupName,
+		}
+		updated = true
+	} else if rosaControlPlane.Spec.CloudWatchLogForwarder == nil && ocmClusterSpec.CloudWatchLogForwarder != nil {
+		ocmClusterSpec.CloudWatchLogForwarder = nil
+		updated = true
+	}
+
+	// set S3LogForwarder config
+	if rosaControlPlane.Spec.S3LogForwarder != nil && ocmClusterSpec.S3LogForwarder != nil {
+		if !reflect.DeepEqual(ocmClusterSpec.S3LogForwarder.Applications, rosaControlPlane.Spec.S3LogForwarder.Applications) {
+			ocmClusterSpec.S3LogForwarder.Applications = rosaControlPlane.Spec.S3LogForwarder.Applications
+			updated = true
+		}
+		if ocmClusterSpec.S3LogForwarder.S3ConfigBucketName != rosaControlPlane.Spec.S3LogForwarder.S3ConfigBucketName {
+			ocmClusterSpec.S3LogForwarder.S3ConfigBucketName = rosaControlPlane.Spec.S3LogForwarder.S3ConfigBucketName
+			updated = true
+		}
+		if ocmClusterSpec.S3LogForwarder.S3ConfigBucketPrefix != rosaControlPlane.Spec.S3LogForwarder.S3ConfigBucketPrefix {
+			ocmClusterSpec.S3LogForwarder.S3ConfigBucketPrefix = rosaControlPlane.Spec.S3LogForwarder.S3ConfigBucketPrefix
+			updated = true
+		}
+		if !reflect.DeepEqual(ocmClusterSpec.S3LogForwarder.GroupsLogVersions, rosaControlPlane.Spec.S3LogForwarder.GroupLogVersions) {
+			ocmClusterSpec.S3LogForwarder.GroupsLogVersions = rosaControlPlane.Spec.S3LogForwarder.GroupLogVersions
+			updated = true
+		}
+	} else if rosaControlPlane.Spec.S3LogForwarder != nil && ocmClusterSpec.S3LogForwarder == nil {
+		ocmClusterSpec.S3LogForwarder = &logforwarding.S3LogForwarderConfig{
+			Applications:         rosaControlPlane.Spec.S3LogForwarder.Applications,
+			GroupsLogVersions:    rosaControlPlane.Spec.S3LogForwarder.GroupLogVersions,
+			S3ConfigBucketName:   rosaControlPlane.Spec.S3LogForwarder.S3ConfigBucketName,
+			S3ConfigBucketPrefix: rosaControlPlane.Spec.S3LogForwarder.S3ConfigBucketName,
+		}
+		updated = true
+	} else if rosaControlPlane.Spec.S3LogForwarder == nil && ocmClusterSpec.S3LogForwarder != nil {
+		ocmClusterSpec.S3LogForwarder = nil
+		updated = true
+	}
+
 	return ocmClusterSpec, updated
 }
 
@@ -1153,6 +1216,25 @@ func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpe
 		ocmClusterSpec.AutoNodeRoleARN = controlPlaneSpec.AutoNode.RoleARN
 	}
 
+	// Set CloudWatchLogForward
+	if controlPlaneSpec.CloudWatchLogForwarder != nil {
+		ocmClusterSpec.CloudWatchLogForwarder = &logforwarding.CloudWatchLogForwarderConfig{
+			Applications:           controlPlaneSpec.CloudWatchLogForwarder.Applications,
+			CloudWatchLogRoleArn:   controlPlaneSpec.CloudWatchLogForwarder.CloudWatchLogRoleArn,
+			CloudWatchLogGroupName: controlPlaneSpec.CloudWatchLogForwarder.CloudWatchLogGroupName,
+			GroupsLogVersions:      controlPlaneSpec.CloudWatchLogForwarder.GroupLogVersions,
+		}
+	}
+
+	// Set S3LogForward
+	if controlPlaneSpec.S3LogForwarder != nil {
+		ocmClusterSpec.S3LogForwarder = &logforwarding.S3LogForwarderConfig{
+			Applications:         controlPlaneSpec.S3LogForwarder.Applications,
+			GroupsLogVersions:    controlPlaneSpec.S3LogForwarder.GroupLogVersions,
+			S3ConfigBucketName:   controlPlaneSpec.S3LogForwarder.S3ConfigBucketName,
+			S3ConfigBucketPrefix: controlPlaneSpec.S3LogForwarder.S3ConfigBucketPrefix,
+		}
+	}
 	return ocmClusterSpec, nil
 }
 
