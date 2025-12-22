@@ -764,7 +764,7 @@ func ensureTestImageUploaded(ctx context.Context, e2eCtx *E2EContext) error {
 		return err
 	}
 
-	cmd := exec.Command("docker", "inspect", "--format='{{index .Id}}'", "gcr.io/k8s-staging-cluster-api/capa-manager:e2e")
+	cmd := exec.CommandContext(ctx, "docker", "inspect", "--format='{{index .Id}}'", "gcr.io/k8s-staging-cluster-api/capa-manager:e2e")
 	var stdOut bytes.Buffer
 	cmd.Stdout = &stdOut
 	err := cmd.Run()
@@ -775,7 +775,7 @@ func ensureTestImageUploaded(ctx context.Context, e2eCtx *E2EContext) error {
 	imageSha := strings.ReplaceAll(strings.TrimSuffix(stdOut.String(), "\n"), "'", "")
 
 	ecrImageName := repoName + ":e2e"
-	cmd = exec.Command("docker", "tag", imageSha, ecrImageName) //nolint:gosec
+	cmd = exec.CommandContext(ctx, "docker", "tag", imageSha, ecrImageName) //nolint:gosec
 	err = cmd.Run()
 	if err != nil {
 		return err
@@ -794,13 +794,13 @@ func ensureTestImageUploaded(ctx context.Context, e2eCtx *E2EContext) error {
 		return errors.New("failed to decode ECR authentication token")
 	}
 
-	cmd = exec.Command("docker", "login", "--username", strList[0], "--password", strList[1], "public.ecr.aws") //nolint:gosec
+	cmd = exec.CommandContext(ctx, "docker", "login", "--username", strList[0], "--password", strList[1], "public.ecr.aws") //nolint:gosec
 	err = cmd.Run()
 	if err != nil {
 		return err
 	}
 
-	cmd = exec.Command("docker", "push", ecrImageName)
+	cmd = exec.CommandContext(ctx, "docker", "push", ecrImageName)
 	err = cmd.Run()
 	if err != nil {
 		return err
