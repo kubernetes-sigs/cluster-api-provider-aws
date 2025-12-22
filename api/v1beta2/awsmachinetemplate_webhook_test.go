@@ -100,6 +100,70 @@ func TestAWSMachineTemplateValidateCreate(t *testing.T) {
 			},
 			wantError: true,
 		},
+		{
+			name: "hostAffinity=host requires hostID or dynamicHostAllocation",
+			inputTemplate: &AWSMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: AWSMachineTemplateSpec{
+					Template: AWSMachineTemplateResource{
+						Spec: AWSMachineSpec{
+							InstanceType: "test",
+							HostAffinity: ptr.To("host"),
+						},
+					},
+				},
+			},
+			wantError: true,
+		},
+		{
+			name: "hostAffinity=host with hostID is valid",
+			inputTemplate: &AWSMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: AWSMachineTemplateSpec{
+					Template: AWSMachineTemplateResource{
+						Spec: AWSMachineSpec{
+							InstanceType: "test",
+							HostAffinity: ptr.To("host"),
+							HostID:       ptr.To("h-09dcf61cb388b0149"),
+						},
+					},
+				},
+			},
+			wantError: false,
+		},
+		{
+			name: "hostAffinity=host with dynamicHostAllocation is valid",
+			inputTemplate: &AWSMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: AWSMachineTemplateSpec{
+					Template: AWSMachineTemplateResource{
+						Spec: AWSMachineSpec{
+							InstanceType: "test",
+							HostAffinity: ptr.To("host"),
+							DynamicHostAllocation: &DynamicHostAllocationSpec{
+								Tags: map[string]string{"env": "test"},
+							},
+						},
+					},
+				},
+			},
+			wantError: false,
+		},
+		{
+			name: "hostAffinity=default without hostID is valid",
+			inputTemplate: &AWSMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: AWSMachineTemplateSpec{
+					Template: AWSMachineTemplateResource{
+						Spec: AWSMachineSpec{
+							InstanceType: "test",
+							HostAffinity: ptr.To("default"),
+						},
+					},
+				},
+			},
+			wantError: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
