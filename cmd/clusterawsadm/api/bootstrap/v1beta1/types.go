@@ -32,7 +32,7 @@ type BootstrapUser struct {
 	// This can be used to scope down the initial credentials used to bootstrap the
 	// cluster.
 	// Defaults to false.
-	Enable bool `json:"enable"`
+	Enable bool `json:"enable"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// UserName controls the username of the bootstrap user. Defaults to
 	// "bootstrapper.cluster-api-provider-aws.sigs.k8s.io"
@@ -62,19 +62,20 @@ type ControlPlane struct {
 
 	// DisableClusterAPIControllerPolicyAttachment, if set to true, will not attach the AWS IAM policy for Cluster
 	// API Provider AWS to the control plane role. Defaults to false.
-	DisableClusterAPIControllerPolicyAttachment bool `json:"disableClusterAPIControllerPolicyAttachment,omitempty"`
+	DisableClusterAPIControllerPolicyAttachment bool `json:"disableClusterAPIControllerPolicyAttachment,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// DisableCloudProviderPolicy if set to true, will not generate and attach the AWS IAM policy for the AWS Cloud Provider.
-	DisableCloudProviderPolicy bool `json:"disableCloudProviderPolicy"`
+	DisableCloudProviderPolicy bool `json:"disableCloudProviderPolicy"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// EnableCSIPolicy if set to true, will generate and attach the AWS IAM policy for the EBS CSI Driver.
-	EnableCSIPolicy bool `json:"enableCSIPolicy"`
+	EnableCSIPolicy bool `json:"enableCSIPolicy"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 }
 
 // AWSIAMRoleSpec defines common configuration for AWS IAM roles created by
 // Kubernetes Cluster API Provider AWS.
 type AWSIAMRoleSpec struct {
 	// Disable if set to true will not create the AWS IAM role. Defaults to false.
+	//nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	Disable bool `json:"disable"` // default: false
 
 	// ExtraPolicyAttachments is a list of additional policies to be attached to the IAM role.
@@ -102,12 +103,12 @@ type AWSIAMRoleSpec struct {
 // EKSConfig represents the EKS related configuration config.
 type EKSConfig struct {
 	// Disable controls whether EKS-related permissions are granted
-	Disable bool `json:"disable"`
+	Disable bool `json:"disable"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	// AllowIAMRoleCreation controls whether the EKS controllers have permissions for creating IAM
 	// roles per cluster
-	AllowIAMRoleCreation bool `json:"iamRoleCreation,omitempty"`
+	AllowIAMRoleCreation bool `json:"iamRoleCreation,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	// EnableUserEKSConsolePolicy controls the creation of the policy to view EKS nodes and workloads.
-	EnableUserEKSConsolePolicy bool `json:"enableUserEKSConsolePolicy,omitempty"`
+	EnableUserEKSConsolePolicy bool `json:"enableUserEKSConsolePolicy,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	// DefaultControlPlaneRole controls the configuration of the AWS IAM role for
 	// the EKS control plane. This is the default role that will be used if
 	// no role is included in the spec and automatic creation of the role
@@ -129,7 +130,7 @@ type EKSConfig struct {
 // EventBridge EC2 events.
 type EventBridgeConfig struct {
 	// Enable controls whether permissions are granted to consume EC2 events
-	Enable bool `json:"enable,omitempty"`
+	Enable bool `json:"enable,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 }
 
 // ClusterAPIControllers controls the configuration of the AWS IAM role for
@@ -149,11 +150,11 @@ type Nodes struct {
 
 	// DisableCloudProviderPolicy if set to true, will not generate and attach the policy for the AWS Cloud Provider.
 	// Defaults to false.
-	DisableCloudProviderPolicy bool `json:"disableCloudProviderPolicy"`
+	DisableCloudProviderPolicy bool `json:"disableCloudProviderPolicy"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// EC2ContainerRegistryReadOnly controls whether the node has read-only access to the
 	// EC2 container registry
-	EC2ContainerRegistryReadOnly bool `json:"ec2ContainerRegistryReadOnly"`
+	EC2ContainerRegistryReadOnly bool `json:"ec2ContainerRegistryReadOnly"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 }
 
 // +kubebuilder:object:root=true
@@ -171,7 +172,7 @@ type AWSIAMConfiguration struct {
 // which can be created for storing bootstrap data for nodes requiring it.
 type S3Buckets struct {
 	// Enable controls whether permissions are granted to manage S3 buckets.
-	Enable bool `json:"enable"`
+	Enable bool `json:"enable"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// NamePrefix will be prepended to every AWS IAM role bucket name. Defaults to "cluster-api-provider-aws-".
 	// AWSCluster S3 Bucket name must be prefixed with the same prefix.
@@ -234,7 +235,7 @@ type AWSIAMConfigurationSpec struct {
 	S3Buckets S3Buckets `json:"s3Buckets,omitempty"`
 
 	// AllowAssumeRole enables the sts:AssumeRole permission within the CAPA policies
-	AllowAssumeRole bool `json:"allowAssumeRole,omitempty"`
+	AllowAssumeRole bool `json:"allowAssumeRole,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 }
 
 // GetObjectKind returns the AAWSIAMConfiguration's TypeMeta.

@@ -150,7 +150,7 @@ func TestMakeVPCConfig(t *testing.T) {
 	testCases := []struct {
 		name   string
 		input  input
-		err    bool
+		err    bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		expect *ekstypes.VpcConfigRequest
 	}{
 		{
@@ -286,7 +286,7 @@ func TestPublicAccessCIDRsEqual(t *testing.T) {
 		name   string
 		a      []string
 		b      []string
-		expect bool
+		expect bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name:   "no CIDRs",
@@ -371,7 +371,7 @@ func TestReconcileClusterVersion(t *testing.T) {
 	tests := []struct {
 		name        string
 		expect      func(m *mock_eksiface.MockEKSAPIMockRecorder)
-		expectError bool
+		expectError bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "no upgrade necessary",
@@ -479,7 +479,7 @@ func TestReconcileAccessConfig(t *testing.T) {
 	tests := []struct {
 		name        string
 		expect      func(m *mock_eksiface.MockEKSAPIMockRecorder)
-		expectError bool
+		expectError bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "no upgrade necessary",
@@ -597,7 +597,7 @@ func TestCreateCluster(t *testing.T) {
 	tests := []struct {
 		name        string
 		expectEKS   func(m *mock_eksiface.MockEKSAPIMockRecorder)
-		expectError bool
+		expectError bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		role        *string
 		tags        map[string]string
 		subnets     []infrav1.SubnetSpec
@@ -701,7 +701,7 @@ func TestReconcileEKSEncryptionConfig(t *testing.T) {
 		oldEncryptionConfig *ekscontrolplanev1.EncryptionConfig
 		newEncryptionConfig *ekscontrolplanev1.EncryptionConfig
 		expect              func(m *mock_eksiface.MockEKSAPIMockRecorder)
-		expectError         bool
+		expectError         bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name:                "no upgrade necessary - encryption disabled",
@@ -816,7 +816,7 @@ func TestReconcileUpgradePolicy(t *testing.T) {
 		oldUpgradePolicy *ekstypes.UpgradePolicyResponse
 		newUpgradePolicy ekscontrolplanev1.UpgradePolicy
 		expect           *ekstypes.UpgradePolicyRequest
-		expectError      bool
+		expectError      bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "no update necessary - upgrade policy omitted",

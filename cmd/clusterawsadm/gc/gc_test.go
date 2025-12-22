@@ -46,7 +46,7 @@ func TestEnableGC(t *testing.T) {
 		name         string
 		clusterName  string
 		existingObjs []client.Object
-		expectError  bool
+		expectError  bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name:         "no capi cluster",
@@ -123,7 +123,7 @@ func TestDisableGC(t *testing.T) {
 		name         string
 		clusterName  string
 		existingObjs []client.Object
-		expectError  bool
+		expectError  bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name:         "no capi cluster",
@@ -195,7 +195,7 @@ func TestConfigureGC(t *testing.T) {
 		clusterName  string
 		gcTasks      []string
 		existingObjs []client.Object
-		expectError  bool
+		expectError  bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name:         "no capi cluster",

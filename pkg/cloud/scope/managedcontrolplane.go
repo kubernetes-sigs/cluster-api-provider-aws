@@ -64,9 +64,9 @@ type ManagedControlPlaneScopeParams struct {
 	Session                   aws.Config
 	MaxWaitActiveUpdateDelete time.Duration
 
-	EnableIAM                    bool
-	AllowAdditionalRoles         bool
-	TagUnmanagedNetworkResources bool
+	EnableIAM                    bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+	AllowAdditionalRoles         bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+	TagUnmanagedNetworkResources bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 }
 
 // NewManagedControlPlaneScope creates a new Scope from the supplied parameters.
@@ -127,9 +127,9 @@ type ManagedControlPlaneScope struct {
 	serviceLimiters throttle.ServiceLimiters
 	controllerName  string
 
-	enableIAM                    bool
-	allowAdditionalRoles         bool
-	tagUnmanagedNetworkResources bool
+	enableIAM                    bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+	allowAdditionalRoles         bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+	tagUnmanagedNetworkResources bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 }
 
 // RemoteClient returns the Kubernetes client for connecting to the workload cluster.

@@ -3886,7 +3886,7 @@ func TestService_getAdditionalTargetGroupHealthCheck(t *testing.T) {
 		name     string
 		listener infrav1.AdditionalListenerSpec
 		want     *infrav1.TargetGroupHealthCheck
-		wantErr  bool
+		wantErr  bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "TCP defaults",

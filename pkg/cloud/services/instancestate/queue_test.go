@@ -41,7 +41,7 @@ func TestReconcileSQSQueue(t *testing.T) {
 	testCases := []struct {
 		name      string
 		expect    func(m *mock_sqsiface.MockSQSAPIMockRecorder)
-		expectErr bool
+		expectErr bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "successfully creates an SQS queue",
@@ -112,7 +112,7 @@ func TestDeleteSQSQueue(t *testing.T) {
 	testCases := []struct {
 		name      string
 		expect    func(m *mock_sqsiface.MockSQSAPIMockRecorder)
-		expectErr bool
+		expectErr bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "deletes queue successfully",
@@ -202,7 +202,7 @@ func TestCreatePolicyForRule(t *testing.T) {
 		name      string
 		input     *createPolicyForRuleInput
 		expect    func(m *mock_sqsiface.MockSQSAPIMockRecorder)
-		expectErr bool
+		expectErr bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "creates a policy for a given rule",
