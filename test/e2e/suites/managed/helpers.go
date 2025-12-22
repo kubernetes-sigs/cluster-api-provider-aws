@@ -265,14 +265,16 @@ func verifyAccessEntries(ctx context.Context, eksClusterName string, expectedEnt
 	})
 	Expect(err).ToNot(HaveOccurred(), "failed to list access entries")
 
-	expectedEntriesMap := make(map[string]ekscontrolplanev1.AccessEntry, len(expectedEntries))
-	for _, entry := range expectedEntries {
-		expectedEntriesMap[entry.PrincipalARN] = entry
+	existingEntries := make(map[string]bool, len(listOutput.AccessEntries))
+	for _, arn := range listOutput.AccessEntries {
+		existingEntries[arn] = true
 	}
 
-	for _, principalARN := range listOutput.AccessEntries {
-		expectedEntry, exists := expectedEntriesMap[principalARN]
-		Expect(exists).To(BeTrue(), fmt.Sprintf("unexpected access entry: %s", principalARN))
+	for _, expectedEntry := range expectedEntries {
+		principalARN := expectedEntry.PrincipalARN
+
+		_, exists := existingEntries[principalARN]
+		Expect(exists).To(BeTrue(), fmt.Sprintf("expected access entry not found: %s", principalARN))
 
 		describeOutput, err := eksClient.DescribeAccessEntry(ctx, &eks.DescribeAccessEntryInput{
 			ClusterName:  &eksClusterName,
@@ -317,7 +319,5 @@ func verifyAccessEntries(ctx context.Context, eksClusterName string, expectedEnt
 			}
 			Expect(expectedPolicies).To(BeEmpty(), "not all expected access policies were found")
 		}
-		delete(expectedEntriesMap, principalARN)
 	}
-	Expect(expectedEntriesMap).To(BeEmpty(), "not all expected access entries were found")
 }

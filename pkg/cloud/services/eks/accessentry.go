@@ -24,6 +24,7 @@ import (
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
 	"github.com/pkg/errors"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 )
@@ -42,17 +43,17 @@ func (s *Service) reconcileAccessEntries(ctx context.Context) error {
 		return nil
 	}
 
-	existingAccessEntries, err := s.getExistingAccessEntries(ctx)
+	managedAccessEntries, err := s.getManagedAccessEntries(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to list existing access entries")
 	}
 
 	for _, accessEntry := range s.scope.ControlPlane.Spec.AccessEntries {
-		if _, exists := existingAccessEntries[accessEntry.PrincipalARN]; exists {
+		if _, exists := managedAccessEntries[accessEntry.PrincipalARN]; exists {
 			if err := s.updateAccessEntry(ctx, accessEntry); err != nil {
 				return errors.Wrapf(err, "failed to update access entry for principal %s", accessEntry.PrincipalARN)
 			}
-			delete(existingAccessEntries, accessEntry.PrincipalARN)
+			delete(managedAccessEntries, accessEntry.PrincipalARN)
 		} else {
 			if err := s.createAccessEntry(ctx, accessEntry); err != nil {
 				return errors.Wrapf(err, "failed to create access entry for principal %s", accessEntry.PrincipalARN)
@@ -60,7 +61,7 @@ func (s *Service) reconcileAccessEntries(ctx context.Context) error {
 		}
 	}
 
-	for principalArn := range existingAccessEntries {
+	for principalArn := range managedAccessEntries {
 		if err := s.deleteAccessEntry(ctx, principalArn); err != nil {
 			return errors.Wrapf(err, "failed to delete access entry for principal %s", principalArn)
 		}
@@ -70,11 +71,13 @@ func (s *Service) reconcileAccessEntries(ctx context.Context) error {
 	return nil
 }
 
-func (s *Service) getExistingAccessEntries(ctx context.Context) (map[string]bool, error) {
+func (s *Service) getManagedAccessEntries(ctx context.Context) (map[string]bool, error) {
 	existingAccessEntries := make(map[string]bool)
 	var nextToken *string
 
 	clusterName := s.scope.KubernetesClusterName()
+	managedTag := infrav1.ClusterAWSCloudProviderTagKey(s.scope.Name())
+
 	for {
 		input := &eks.ListAccessEntriesInput{
 			ClusterName: &clusterName,
@@ -87,7 +90,20 @@ func (s *Service) getExistingAccessEntries(ctx context.Context) (map[string]bool
 		}
 
 		for _, principalArn := range output.AccessEntries {
-			existingAccessEntries[principalArn] = true
+			describeOutput, err := s.EKSClient.DescribeAccessEntry(ctx, &eks.DescribeAccessEntryInput{
+				ClusterName:  &clusterName,
+				PrincipalArn: &principalArn,
+			})
+			if err != nil {
+				s.scope.Error(err, "failed to describe access entry", "principalARN", principalArn)
+				continue
+			}
+
+			if describeOutput.AccessEntry.Tags != nil {
+				if _, managed := describeOutput.AccessEntry.Tags[managedTag]; managed {
+					existingAccessEntries[principalArn] = true
+				}
+			}
 		}
 
 		if output.NextToken == nil {
@@ -102,9 +118,18 @@ func (s *Service) getExistingAccessEntries(ctx context.Context) (map[string]bool
 
 func (s *Service) createAccessEntry(ctx context.Context, accessEntry ekscontrolplanev1.AccessEntry) error {
 	clusterName := s.scope.KubernetesClusterName()
+
+	additionalTags := s.scope.AdditionalTags()
+	additionalTags[infrav1.ClusterAWSCloudProviderTagKey(s.scope.Name())] = string(infrav1.ResourceLifecycleOwned)
+	tags := make(map[string]string)
+	for k, v := range additionalTags {
+		tags[k] = v
+	}
+
 	createInput := &eks.CreateAccessEntryInput{
 		ClusterName:  &clusterName,
 		PrincipalArn: &accessEntry.PrincipalARN,
+		Tags:         tags,
 	}
 
 	if len(accessEntry.KubernetesGroups) > 0 {
