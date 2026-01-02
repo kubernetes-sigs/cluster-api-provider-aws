@@ -102,6 +102,8 @@ providers:
         targetName: "cluster-template-eks-control-plane-only.yaml"
       - sourcePath: "./eks/cluster-template-eks-control-plane-only-withaddon.yaml"
         targetName: "cluster-template-eks-control-plane-only-withaddon.yaml"
+      - sourcePath: "./eks/cluster-template-eks-control-plane-only-with-accessentries.yaml"
+        targetName: "cluster-template-eks-control-plane-only-with-accessentries.yaml"
       - sourcePath: "./eks/cluster-template-eks-machine-deployment-only.yaml"
         targetName: "cluster-template-eks-machine-deployment-only.yaml"
       - sourcePath: "./eks/cluster-template-eks-managed-machinepool-only.yaml"
