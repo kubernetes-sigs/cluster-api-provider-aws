@@ -167,8 +167,13 @@ func (s *Service) updateAccessEntry(ctx context.Context, accessEntry ekscontrolp
 		return errors.Wrapf(err, "failed to describe access entry for principal %s", accessEntry.PrincipalARN)
 	}
 
-	// EKS requires recreate when changing type
-	if *accessEntry.Type.APIValue() != *describeOutput.AccessEntry.Type {
+	// EKS requires recreate when changing type or removing username
+	existingUsername := ""
+	if describeOutput.AccessEntry.Username != nil {
+		existingUsername = *describeOutput.AccessEntry.Username
+	}
+
+	if *accessEntry.Type.APIValue() != *describeOutput.AccessEntry.Type || accessEntry.Username != existingUsername {
 		if err = s.deleteAccessEntry(ctx, accessEntry.PrincipalARN); err != nil {
 			return errors.Wrapf(err, "failed to delete access entry for principal %s during recreation", accessEntry.PrincipalARN)
 		}
@@ -187,19 +192,8 @@ func (s *Service) updateAccessEntry(ctx context.Context, accessEntry ekscontrolp
 		PrincipalArn: &accessEntry.PrincipalARN,
 	}
 
-	needsUpdate := false
-
-	if accessEntry.Username != *describeOutput.AccessEntry.Username {
-		updateInput.Username = &accessEntry.Username
-		needsUpdate = true
-	}
-
 	if !slices.Equal(accessEntry.KubernetesGroups, describeOutput.AccessEntry.KubernetesGroups) {
 		updateInput.KubernetesGroups = accessEntry.KubernetesGroups
-		needsUpdate = true
-	}
-
-	if needsUpdate {
 		if _, err := s.EKSClient.UpdateAccessEntry(ctx, updateInput); err != nil {
 			return errors.Wrapf(err, "failed to update access entry for principal %s", accessEntry.PrincipalARN)
 		}

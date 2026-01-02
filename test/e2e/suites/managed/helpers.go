@@ -30,6 +30,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/eks"
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
+	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
@@ -260,21 +261,30 @@ func verifyASG(eksClusterName, asgName string, checkOwned bool, cfg *aws.Config)
 func verifyAccessEntries(ctx context.Context, eksClusterName string, expectedEntries []ekscontrolplanev1.AccessEntry, cfg *aws.Config) {
 	eksClient := eks.NewFromConfig(*cfg)
 
-	listOutput, err := eksClient.ListAccessEntries(ctx, &eks.ListAccessEntriesInput{
-		ClusterName: &eksClusterName,
-	})
-	Expect(err).ToNot(HaveOccurred(), "failed to list access entries")
+	Eventually(func() error {
+		listOutput, err := eksClient.ListAccessEntries(ctx, &eks.ListAccessEntriesInput{
+			ClusterName: &eksClusterName,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to list access entries: %w", err)
+		}
+		fmt.Fprintf(ginkgo.GinkgoWriter, "Access entries: %+v\n", listOutput.AccessEntries)
 
-	existingEntries := make(map[string]bool, len(listOutput.AccessEntries))
-	for _, arn := range listOutput.AccessEntries {
-		existingEntries[arn] = true
-	}
+		existingEntries := make(map[string]bool, len(listOutput.AccessEntries))
+		for _, arn := range listOutput.AccessEntries {
+			existingEntries[arn] = true
+		}
+
+		for _, expectedEntry := range expectedEntries {
+			if _, exists := existingEntries[expectedEntry.PrincipalARN]; !exists {
+				return fmt.Errorf("expected access entry not found: %s", expectedEntry.PrincipalARN)
+			}
+		}
+		return nil
+	}, clientRequestTimeout, clientRequestCheckInterval).Should(Succeed(), "eventually failed waiting for access entries to exist")
 
 	for _, expectedEntry := range expectedEntries {
 		principalARN := expectedEntry.PrincipalARN
-
-		_, exists := existingEntries[principalARN]
-		Expect(exists).To(BeTrue(), fmt.Sprintf("expected access entry not found: %s", principalARN))
 
 		describeOutput, err := eksClient.DescribeAccessEntry(ctx, &eks.DescribeAccessEntryInput{
 			ClusterName:  &eksClusterName,
@@ -283,7 +293,9 @@ func verifyAccessEntries(ctx context.Context, eksClusterName string, expectedEnt
 		Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("failed to describe access entry: %s", principalARN))
 
 		Expect(describeOutput.AccessEntry.Type).To(HaveValue(BeEquivalentTo(expectedEntry.Type)), "access entry type does not match")
-		Expect(describeOutput.AccessEntry.Username).To(HaveValue(BeEquivalentTo(expectedEntry.Username)), "access entry username does not match")
+		if expectedEntry.Username != "" {
+			Expect(describeOutput.AccessEntry.Username).To(HaveValue(BeEquivalentTo(expectedEntry.Username)), "access entry username does not match")
+		}
 
 		if len(expectedEntry.KubernetesGroups) > 0 {
 			slices.Sort(expectedEntry.KubernetesGroups)

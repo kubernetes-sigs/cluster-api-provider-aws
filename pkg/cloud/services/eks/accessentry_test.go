@@ -106,12 +106,12 @@ func TestReconcileAccessEntries(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "update existing access entry",
+			name: "update existing access entry groups only",
 			accessEntries: []ekscontrolplanev1.AccessEntry{
 				{
 					PrincipalARN:     principalARN,
 					Type:             ekscontrolplanev1.AccessEntryTypeStandard,
-					Username:         "admin-updated",
+					Username:         "admin",
 					KubernetesGroups: []string{"system:masters", "developers"},
 					AccessPolicies: []ekscontrolplanev1.AccessPolicyReference{
 						{
@@ -761,7 +761,7 @@ func TestUpdateAccessEntry(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "username update",
+			name: "username change requires recreate",
 			accessEntry: ekscontrolplanev1.AccessEntry{
 				PrincipalARN:     principalARN,
 				Type:             ekscontrolplanev1.AccessEntryTypeStandard,
@@ -778,11 +778,9 @@ func TestUpdateAccessEntry(t *testing.T) {
 					},
 				}, nil)
 
-				m.UpdateAccessEntry(gomock.Any(), &eks.UpdateAccessEntryInput{
-					ClusterName:  aws.String(clusterName),
-					PrincipalArn: aws.String(principalARN),
-					Username:     aws.String("new-admin"),
-				}).Return(&eks.UpdateAccessEntryOutput{}, nil)
+				m.DeleteAccessEntry(gomock.Any(), gomock.Any()).Return(&eks.DeleteAccessEntryOutput{}, nil)
+
+				m.CreateAccessEntry(gomock.Any(), gomock.Any()).Return(&eks.CreateAccessEntryOutput{}, nil)
 
 				m.ListAssociatedAccessPolicies(gomock.Any(), gomock.Any()).Return(&eks.ListAssociatedAccessPoliciesOutput{
 					AssociatedAccessPolicies: []ekstypes.AssociatedAccessPolicy{},
@@ -804,6 +802,92 @@ func TestUpdateAccessEntry(t *testing.T) {
 						PrincipalArn:     aws.String(principalARN),
 						Type:             ekscontrolplanev1.AccessEntryTypeStandard.APIValue(),
 						Username:         aws.String("admin"),
+						KubernetesGroups: []string{"system:masters"},
+					},
+				}, nil)
+
+				m.UpdateAccessEntry(gomock.Any(), &eks.UpdateAccessEntryInput{
+					ClusterName:      aws.String(clusterName),
+					PrincipalArn:     aws.String(principalARN),
+					KubernetesGroups: []string{"developers"},
+				}).Return(&eks.UpdateAccessEntryOutput{}, nil)
+
+				m.ListAssociatedAccessPolicies(gomock.Any(), gomock.Any()).Return(&eks.ListAssociatedAccessPoliciesOutput{
+					AssociatedAccessPolicies: []ekstypes.AssociatedAccessPolicy{},
+				}, nil)
+			},
+			expectError: false,
+		},
+		{
+			name: "username cleared requires recreate",
+			accessEntry: ekscontrolplanev1.AccessEntry{
+				PrincipalARN:     principalARN,
+				Type:             ekscontrolplanev1.AccessEntryTypeStandard,
+				Username:         "",
+				KubernetesGroups: []string{"developers"},
+			},
+			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
+				m.DescribeAccessEntry(gomock.Any(), gomock.Any()).Return(&eks.DescribeAccessEntryOutput{
+					AccessEntry: &ekstypes.AccessEntry{
+						PrincipalArn:     aws.String(principalARN),
+						Type:             ekscontrolplanev1.AccessEntryTypeStandard.APIValue(),
+						Username:         aws.String("developer"),
+						KubernetesGroups: []string{"developers"},
+					},
+				}, nil)
+
+				m.DeleteAccessEntry(gomock.Any(), gomock.Any()).Return(&eks.DeleteAccessEntryOutput{}, nil)
+
+				m.CreateAccessEntry(gomock.Any(), gomock.Any()).Return(&eks.CreateAccessEntryOutput{}, nil)
+
+				m.ListAssociatedAccessPolicies(gomock.Any(), gomock.Any()).Return(&eks.ListAssociatedAccessPoliciesOutput{
+					AssociatedAccessPolicies: []ekstypes.AssociatedAccessPolicy{},
+				}, nil)
+			},
+			expectError: false,
+		},
+		{
+			name: "username added requires recreate",
+			accessEntry: ekscontrolplanev1.AccessEntry{
+				PrincipalARN:     principalARN,
+				Type:             ekscontrolplanev1.AccessEntryTypeStandard,
+				Username:         "admin",
+				KubernetesGroups: []string{"system:masters"},
+			},
+			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
+				m.DescribeAccessEntry(gomock.Any(), gomock.Any()).Return(&eks.DescribeAccessEntryOutput{
+					AccessEntry: &ekstypes.AccessEntry{
+						PrincipalArn:     aws.String(principalARN),
+						Type:             ekscontrolplanev1.AccessEntryTypeStandard.APIValue(),
+						Username:         nil,
+						KubernetesGroups: []string{"system:masters"},
+					},
+				}, nil)
+
+				m.DeleteAccessEntry(gomock.Any(), gomock.Any()).Return(&eks.DeleteAccessEntryOutput{}, nil)
+
+				m.CreateAccessEntry(gomock.Any(), gomock.Any()).Return(&eks.CreateAccessEntryOutput{}, nil)
+
+				m.ListAssociatedAccessPolicies(gomock.Any(), gomock.Any()).Return(&eks.ListAssociatedAccessPoliciesOutput{
+					AssociatedAccessPolicies: []ekstypes.AssociatedAccessPolicy{},
+				}, nil)
+			},
+			expectError: false,
+		},
+		{
+			name: "nil username unchanged with group update",
+			accessEntry: ekscontrolplanev1.AccessEntry{
+				PrincipalARN:     principalARN,
+				Type:             ekscontrolplanev1.AccessEntryTypeStandard,
+				Username:         "",
+				KubernetesGroups: []string{"developers"},
+			},
+			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
+				m.DescribeAccessEntry(gomock.Any(), gomock.Any()).Return(&eks.DescribeAccessEntryOutput{
+					AccessEntry: &ekstypes.AccessEntry{
+						PrincipalArn:     aws.String(principalARN),
+						Type:             ekscontrolplanev1.AccessEntryTypeStandard.APIValue(),
+						Username:         nil,
 						KubernetesGroups: []string{"system:masters"},
 					},
 				}, nil)
