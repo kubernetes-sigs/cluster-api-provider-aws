@@ -30,7 +30,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/eks"
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
-	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apimachinerytypes "k8s.io/apimachinery/pkg/types"
@@ -268,7 +267,6 @@ func verifyAccessEntries(ctx context.Context, eksClusterName string, expectedEnt
 		if err != nil {
 			return fmt.Errorf("failed to list access entries: %w", err)
 		}
-		fmt.Fprintf(ginkgo.GinkgoWriter, "Access entries: %+v\n", listOutput.AccessEntries)
 
 		existingEntries := make(map[string]bool, len(listOutput.AccessEntries))
 		for _, arn := range listOutput.AccessEntries {

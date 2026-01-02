@@ -27,16 +27,13 @@ spec:
   accessConfig:
     authenticationMode: api
   accessEntries:
-    - principalARN: "arn:aws:iam::123456789012:role/KubernetesAdmin"
+    - principalARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/controllers.cluster-api-provider-aws.sigs.k8s.io"
       type: standard
-      username: kubernetes-admin
-      kubernetesGroups:
-        - system:masters
       accessPolicies:
         - policyARN: "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
           accessScope:
             type: cluster
-    - principalARN: "arn:aws:iam::123456789012:role/DeveloperRole"
+    - principalARN: "arn:aws:iam::${AWS_ACCOUNT_ID}:role/nodes.cluster-api-provider-aws.sigs.k8s.io"
       type: standard
       username: developer
       kubernetesGroups:

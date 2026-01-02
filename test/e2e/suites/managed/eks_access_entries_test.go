@@ -22,6 +22,7 @@ package managed
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -33,8 +34,8 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-// EKS authentication mode e2e tests.
-var _ = ginkgo.Describe("[managed] [auth] EKS authentication mode tests", func() {
+// EKS access entry e2e tests.
+var _ = ginkgo.Describe("[managed] [auth] EKS access entry tests", func() {
 	var (
 		namespace   *corev1.Namespace
 		ctx         context.Context
@@ -53,25 +54,7 @@ var _ = ginkgo.Describe("[managed] [auth] EKS authentication mode tests", func()
 		clusterName = fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 		eksClusterName := getEKSClusterName(namespace.Name, clusterName)
 
-		ginkgo.By("should create an EKS control plane with access entries enabled")
-		ManagedClusterSpec(ctx, func() ManagedClusterSpecInput {
-			return ManagedClusterSpecInput{
-				E2EConfig:                e2eCtx.E2EConfig,
-				ConfigClusterFn:          defaultConfigCluster,
-				BootstrapClusterProxy:    e2eCtx.Environment.BootstrapClusterProxy,
-				AWSSession:               e2eCtx.BootstrapUserAWSSession,
-				Namespace:                namespace,
-				ClusterName:              clusterName,
-				Flavour:                  EKSAuthAPIAndConfigMapFlavor,
-				ControlPlaneMachineCount: 1,
-				WorkerMachineCount:       0,
-			}
-		})
-
-		ginkgo.By("EKS cluster should be active")
-		verifyClusterActiveAndOwned(ctx, eksClusterName, e2eCtx.BootstrapUserAWSSession)
-
-		ginkgo.By("should create a cluster with access entries")
+		ginkgo.By("creating an EKS cluster with access entries")
 		ManagedClusterSpec(ctx, func() ManagedClusterSpecInput {
 			return ManagedClusterSpecInput{
 				E2EConfig:                e2eCtx.E2EConfig,
@@ -86,13 +69,14 @@ var _ = ginkgo.Describe("[managed] [auth] EKS authentication mode tests", func()
 			}
 		})
 
-		ginkgo.By("should have created the expected access entries")
+		ginkgo.By("verifying EKS cluster is active")
+		verifyClusterActiveAndOwned(ctx, eksClusterName, e2eCtx.BootstrapUserAWSSession)
+
+		ginkgo.By("verifying the expected access entries were created")
 		expectedEntries := []ekscontrolplanev1.AccessEntry{
 			{
-				PrincipalARN:     "arn:aws:iam::123456789012:role/KubernetesAdmin",
-				Type:             "STANDARD",
-				Username:         "kubernetes-admin",
-				KubernetesGroups: []string{"system:masters"},
+				PrincipalARN: fmt.Sprintf("arn:aws:iam::%s:role/controllers.cluster-api-provider-aws.sigs.k8s.io", os.Getenv(shared.AwsAccountID)),
+				Type:         "STANDARD",
 				AccessPolicies: []ekscontrolplanev1.AccessPolicyReference{
 					{
 						PolicyARN: "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy",
@@ -103,7 +87,7 @@ var _ = ginkgo.Describe("[managed] [auth] EKS authentication mode tests", func()
 				},
 			},
 			{
-				PrincipalARN:     "arn:aws:iam::123456789012:role/DeveloperRole",
+				PrincipalARN:     fmt.Sprintf("arn:aws:iam::%s:role/nodes.cluster-api-provider-aws.sigs.k8s.io", os.Getenv(shared.AwsAccountID)),
 				Type:             "STANDARD",
 				Username:         "developer",
 				KubernetesGroups: []string{"developers"},
@@ -119,9 +103,6 @@ var _ = ginkgo.Describe("[managed] [auth] EKS authentication mode tests", func()
 			},
 		}
 		verifyAccessEntries(ctx, eksClusterName, expectedEntries, e2eCtx.BootstrapUserAWSSession)
-
-		ginkgo.By("EKS cluster should be active")
-		verifyClusterActiveAndOwned(ctx, eksClusterName, e2eCtx.BootstrapUserAWSSession)
 
 		cluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
 			Getter:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),

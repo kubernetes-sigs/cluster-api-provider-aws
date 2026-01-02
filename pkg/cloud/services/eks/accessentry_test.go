@@ -124,7 +124,7 @@ func TestReconcileAccessEntries(t *testing.T) {
 				},
 			},
 			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
-m.ListAccessEntries(gomock.Any(), gomock.Any()).Return(&eks.ListAccessEntriesOutput{
+				m.ListAccessEntries(gomock.Any(), gomock.Any()).Return(&eks.ListAccessEntriesOutput{
 					AccessEntries: []string{principalARN},
 				}, nil)
 
@@ -220,7 +220,7 @@ m.ListAccessEntries(gomock.Any(), gomock.Any()).Return(&eks.ListAccessEntriesOut
 					},
 				}, nil)
 
-m.DescribeAccessEntry(gomock.Any(), &eks.DescribeAccessEntryInput{
+				m.DescribeAccessEntry(gomock.Any(), &eks.DescribeAccessEntryInput{
 					ClusterName:  aws.String(clusterName),
 					PrincipalArn: aws.String(secondPrincipalARN),
 				}).Return(&eks.DescribeAccessEntryOutput{
@@ -594,7 +594,7 @@ func TestCreateAccessEntry(t *testing.T) {
 				Username:     "admin",
 			},
 			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
-			m.CreateAccessEntry(gomock.Any(), &eks.CreateAccessEntryInput{
+				m.CreateAccessEntry(gomock.Any(), &eks.CreateAccessEntryInput{
 					ClusterName:  aws.String(clusterName),
 					PrincipalArn: aws.String(principalARN),
 					Type:         ekscontrolplanev1.AccessEntryTypeStandard.APIValue(),
@@ -619,7 +619,7 @@ func TestCreateAccessEntry(t *testing.T) {
 				KubernetesGroups: []string{"system:masters", "developers"},
 			},
 			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
-			m.CreateAccessEntry(gomock.Any(), &eks.CreateAccessEntryInput{
+				m.CreateAccessEntry(gomock.Any(), &eks.CreateAccessEntryInput{
 					ClusterName:      aws.String(clusterName),
 					PrincipalArn:     aws.String(principalARN),
 					Type:             ekscontrolplanev1.AccessEntryTypeStandard.APIValue(),
