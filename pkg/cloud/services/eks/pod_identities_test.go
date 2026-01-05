@@ -648,6 +648,28 @@ func TestUpdatePodIdentityAssociation(t *testing.T) {
 			expectError: false,
 		},
 		{
+			name: "removes target role ARN when cleared from spec",
+			association: ekscontrolplanev1.PodIdentityAssociation{
+				ServiceAccountName:      "my-sa",
+				ServiceAccountNamespace: "default",
+				RoleARN:                 "arn:aws:iam::123456789012:role/my-role",
+			},
+			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
+				m.DescribePodIdentityAssociation(gomock.Any(), gomock.Any()).
+					Return(&eks.DescribePodIdentityAssociationOutput{
+						Association: &ekstypes.PodIdentityAssociation{
+							Namespace:      aws.String("default"),
+							ServiceAccount: aws.String("my-sa"),
+							RoleArn:        aws.String("arn:aws:iam::123456789012:role/my-role"),
+							TargetRoleArn:  aws.String("arn:aws:iam::123456789012:role/old-target"),
+						},
+					}, nil)
+				m.UpdatePodIdentityAssociation(gomock.Any(), gomock.Any()).
+					Return(&eks.UpdatePodIdentityAssociationOutput{}, nil)
+			},
+			expectError: false,
+		},
+		{
 			name: "recreates when namespace changes",
 			association: ekscontrolplanev1.PodIdentityAssociation{
 				ServiceAccountName:      "my-sa",

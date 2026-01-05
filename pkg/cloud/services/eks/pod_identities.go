@@ -159,7 +159,7 @@ func (s *Service) updatePodIdentityAssociation(ctx context.Context, assocID stri
 			RoleArn:       &assoc.RoleARN,
 		}
 
-		if assoc.TargetRoleARN != "" {
+		if assoc.TargetRoleARN != "" || existingTargetRoleArn != "" {
 			updateInput.TargetRoleArn = &assoc.TargetRoleARN
 		}
 
