@@ -75,8 +75,7 @@ func (s *Service) getManagedPodIdentityAssociations(ctx context.Context, eksClus
 	associations := make(map[string]string)
 	var nextToken *string
 
-	clusterName := s.scope.KubernetesClusterName()
-	managedTag := v1beta2.ClusterAWSCloudProviderTagKey(clusterName)
+	managedTag := v1beta2.ClusterAWSCloudProviderTagKey(eksClusterName)
 
 	for {
 		input := &eks.ListPodIdentityAssociationsInput{
@@ -176,7 +175,7 @@ func (s *Service) createPodIdentityAssociation(ctx context.Context, assoc eksv1.
 	clusterName := s.scope.KubernetesClusterName()
 
 	additionalTags := s.scope.AdditionalTags()
-	additionalTags[v1beta2.ClusterAWSCloudProviderTagKey(s.scope.Name())] = string(v1beta2.ResourceLifecycleOwned)
+	additionalTags[v1beta2.ClusterAWSCloudProviderTagKey(s.scope.KubernetesClusterName())] = string(v1beta2.ResourceLifecycleOwned)
 
 	input := &eks.CreatePodIdentityAssociationInput{
 		ClusterName:    &clusterName,

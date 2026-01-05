@@ -64,7 +64,7 @@ func (s *Service) ReconcileControlPlane(ctx context.Context) error {
 	v1beta1conditions.MarkTrue(s.scope.ControlPlane, ekscontrolplanev1.EKSIdentityProviderConfiguredCondition)
 
 	if err := s.reconcilePodIdentityAssociations(ctx); err != nil {
-		v1beta1conditions.MarkFalse(s.scope.ControlPlane, ekscontrolplanev1.EKSPodIdentityAssociationConfiguredCondition, ekscontrolplanev1.EKSPodIdentityAssociationFailedReason, clusterv1beta1.ConditionSeverityError, err.Error())
+		v1beta1conditions.MarkFalse(s.scope.ControlPlane, ekscontrolplanev1.EKSPodIdentityAssociationConfiguredCondition, ekscontrolplanev1.EKSPodIdentityAssociationFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
 		return errors.Wrap(err, "failed reconciling eks pod identity associations")
 	}
 	v1beta1conditions.MarkTrue(s.scope.ControlPlane, ekscontrolplanev1.EKSPodIdentityAssociationConfiguredCondition)
