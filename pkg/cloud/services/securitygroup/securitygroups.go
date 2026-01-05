@@ -692,7 +692,10 @@ func (s *Service) getSecurityGroupIngressRules(role infrav1.SecurityGroupRole) (
 
 		return append(cniRules, rules...), nil
 	case infrav1.SecurityGroupEKSNodeAdditional:
-		ingressRules := s.scope.AdditionalControlPlaneIngressRules()
+		ingressRules, err := s.processIngressRulesSGs(s.scope.AdditionalControlPlaneIngressRules())
+		if err != nil {
+			return nil, err
+		}
 		if s.scope.Bastion().Enabled {
 			ingressRules = append(ingressRules, s.defaultSSHIngressRule(s.scope.SecurityGroups()[infrav1.SecurityGroupBastion].ID))
 		}
