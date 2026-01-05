@@ -24,7 +24,7 @@ import (
 	"github.com/pkg/errors"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
-	eksv1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 )
 
@@ -116,7 +116,7 @@ func (s *Service) getManagedPodIdentityAssociations(ctx context.Context, eksClus
 	return associations, nil
 }
 
-func (s *Service) updatePodIdentityAssociation(ctx context.Context, assocID string, assoc eksv1.PodIdentityAssociation) error {
+func (s *Service) updatePodIdentityAssociation(ctx context.Context, assocID string, assoc ekscontrolplanev1.PodIdentityAssociation) error {
 	clusterName := s.scope.KubernetesClusterName()
 	describeInput := &eks.DescribePodIdentityAssociationInput{
 		AssociationId: &assocID,
@@ -147,7 +147,7 @@ func (s *Service) updatePodIdentityAssociation(ctx context.Context, assocID stri
 	if describeOutput.Association.RoleArn != nil {
 		existingRoleArn = *describeOutput.Association.RoleArn
 	}
-	
+
 	if describeOutput.Association.TargetRoleArn != nil {
 		existingTargetRoleArn = *describeOutput.Association.TargetRoleArn
 	}
@@ -171,7 +171,7 @@ func (s *Service) updatePodIdentityAssociation(ctx context.Context, assocID stri
 	return nil
 }
 
-func (s *Service) createPodIdentityAssociation(ctx context.Context, assoc eksv1.PodIdentityAssociation) error {
+func (s *Service) createPodIdentityAssociation(ctx context.Context, assoc ekscontrolplanev1.PodIdentityAssociation) error {
 	clusterName := s.scope.KubernetesClusterName()
 
 	additionalTags := s.scope.AdditionalTags()
