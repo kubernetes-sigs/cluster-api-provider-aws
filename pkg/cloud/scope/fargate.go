@@ -47,7 +47,7 @@ type FargateProfileScopeParams struct {
 	ControllerName string
 	Session        aws.Config
 
-	EnableIAM bool
+	EnableIAM bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 }
 
 // NewFargateProfileScope creates a new Scope from the supplied parameters.
@@ -107,7 +107,7 @@ type FargateProfileScope struct {
 	serviceLimiters throttle.ServiceLimiters
 	controllerName  string
 
-	enableIAM bool
+	enableIAM bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 }
 
 // ManagedPoolName returns the managed machine pool name.
