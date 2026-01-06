@@ -61,7 +61,15 @@ func (s *Service) reconcileNatGateways() error {
 			clusterv1beta1.ConditionSeverityWarning,
 			"No private subnets available, skipping NAT gateways")
 		return nil
-	} else if len(s.scope.Subnets().FilterPublic().FilterNonCni()) == 0 {
+	}
+
+	// Check if Regional NAT Gateway is configured
+	if s.scope.VPC().IsRegionalNATGateway() {
+		return s.reconcileRegionalNatGateway()
+	}
+
+	// Original zonal NAT gateway logic
+	if len(s.scope.Subnets().FilterPublic().FilterNonCni()) == 0 {
 		s.scope.Debug("No public subnets available. Cannot create NAT gateways for private subnets, this might be a configuration error.")
 		v1beta1conditions.MarkFalse(
 			s.scope.InfraCluster(),
@@ -103,6 +111,78 @@ func (s *Service) reconcileNatGateways() error {
 		v1beta1conditions.MarkTrue(s.scope.InfraCluster(), infrav1.NatGatewaysReadyCondition)
 	}
 
+	return nil
+}
+
+func (s *Service) reconcileRegionalNatGateway() error {
+	s.scope.Debug("Reconciling regional NAT gateway")
+
+	// Check if a regional NAT gateway already exists
+	existing, err := s.describeNatGatewaysBySubnet()
+	if err != nil {
+		return err
+	}
+
+	// For regional NAT gateways, there should be only one
+	if len(existing) > 0 {
+		// Get the first (and should be only) NAT gateway
+		var ngw types.NatGateway
+		for _, gateway := range existing {
+			ngw = gateway
+			break
+		}
+
+		s.scope.Info("Regional NAT gateway already exists", "nat-gateway-id", *ngw.NatGatewayId, "vpc-id", s.scope.VPC().ID)
+
+		// Update tags if needed
+		if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+			buildParams := s.getNatGatewayTagParams(*ngw.NatGatewayId)
+			tagsBuilder := tags.New(&buildParams, tags.WithEC2(s.EC2Client))
+			if err := tagsBuilder.Ensure(converters.TagsToMap(ngw.Tags)); err != nil {
+				return false, err
+			}
+			return true, nil
+		}, awserrors.ResourceNotFound); err != nil {
+			record.Warnf(s.scope.InfraCluster(), "FailedTagRegionalNATGateway", "Failed to tag regional NAT Gateway %q: %v", *ngw.NatGatewayId, err)
+			return errors.Wrapf(err, "failed to tag regional nat gateway %q", *ngw.NatGatewayId)
+		}
+
+		// Store the regional NAT gateway ID in all private subnets for routing
+		subnets := s.scope.Subnets()
+		for i := range subnets {
+			if !subnets[i].IsPublic {
+				subnets[i].NatGatewayID = ngw.NatGatewayId
+			}
+		}
+		s.scope.SetSubnets(subnets)
+
+		v1beta1conditions.MarkTrue(s.scope.InfraCluster(), infrav1.NatGatewaysReadyCondition)
+		return nil
+	}
+
+	// No regional NAT gateway exists, create one
+	if !v1beta1conditions.Has(s.scope.InfraCluster(), infrav1.NatGatewaysReadyCondition) {
+		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.NatGatewaysReadyCondition, infrav1.NatGatewaysCreationStartedReason, clusterv1beta1.ConditionSeverityInfo, "")
+		if err := s.scope.PatchObject(); err != nil {
+			return errors.Wrap(err, "failed to patch conditions")
+		}
+	}
+
+	ngw, err := s.createRegionalNatGateway()
+	if err != nil {
+		return err
+	}
+
+	// Store the regional NAT gateway ID in all private subnets for routing
+	subnets := s.scope.Subnets()
+	for i := range subnets {
+		if !subnets[i].IsPublic {
+			subnets[i].NatGatewayID = ngw.NatGatewayId
+		}
+	}
+	s.scope.SetSubnets(subnets)
+
+	v1beta1conditions.MarkTrue(s.scope.InfraCluster(), infrav1.NatGatewaysReadyCondition)
 	return nil
 }
 
@@ -312,6 +392,37 @@ func (s *Service) createNatGateway(subnetID, ip string) (*types.NatGateway, erro
 	return out.NatGateway, nil
 }
 
+func (s *Service) createRegionalNatGateway() (*types.NatGateway, error) {
+	var out *ec2.CreateNatGatewayOutput
+	var err error
+
+	s.scope.Info("Creating regional NAT gateway", "vpc-id", s.scope.VPC().ID)
+
+	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+		if out, err = s.EC2Client.CreateNatGateway(context.TODO(), &ec2.CreateNatGatewayInput{
+			VpcId:             aws.String(s.scope.VPC().ID),
+			AvailabilityMode:  types.AvailabilityModeRegional,
+			TagSpecifications: []types.TagSpecification{tags.BuildParamsToTagSpecification(types.ResourceTypeNatgateway, s.getNatGatewayTagParams(services.TemporaryResourceID))},
+		}); err != nil {
+			return false, err
+		}
+		return true, nil
+	}, awserrors.InvalidSubnet); err != nil {
+		record.Warnf(s.scope.InfraCluster(), "FailedCreateRegionalNATGateway", "Failed to create regional NAT Gateway: %v", err)
+		return nil, errors.Wrapf(err, "failed to create regional NAT gateway for VPC %q", s.scope.VPC().ID)
+	}
+	record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateRegionalNATGateway", "Created regional NAT Gateway %q", *out.NatGateway.NatGatewayId)
+
+	if err := ec2.NewNatGatewayAvailableWaiter(s.EC2Client).Wait(context.TODO(), &ec2.DescribeNatGatewaysInput{
+		NatGatewayIds: []string{aws.ToString(out.NatGateway.NatGatewayId)},
+	}, time.Minute*2); err != nil {
+		return nil, errors.Wrapf(err, "failed to wait for regional nat gateway %q", *out.NatGateway.NatGatewayId)
+	}
+
+	s.scope.Info("Created regional NAT gateway", "nat-gateway-id", *out.NatGateway.NatGatewayId, "vpc-id", s.scope.VPC().ID)
+	return out.NatGateway, nil
+}
+
 func (s *Service) deleteNatGateway(id string) error {
 	_, err := s.EC2Client.DeleteNatGateway(context.TODO(), &ec2.DeleteNatGatewayInput{
 		NatGatewayId: aws.String(id),
@@ -361,11 +472,23 @@ func (s *Service) deleteNatGateway(id string) error {
 // NAT gateways in edge zones (Local Zones) are not globally supported,
 // private subnets in those locations uses Nat Gateways from the
 // Parent Zone or, when not available, the first zone in the Region.
+// For regional NAT gateways, returns the single regional NAT gateway ID.
 func (s *Service) getNatGatewayForSubnet(sn *infrav1.SubnetSpec) (string, error) {
 	if sn.IsPublic {
 		return "", errors.Errorf("cannot get NAT gateway for a public subnet, got id %q", sn.GetResourceID())
 	}
 
+	// If regional NAT gateway is configured, return the NAT gateway ID stored in the subnet
+	if s.scope.VPC().IsRegionalNATGateway() {
+		if sn.NatGatewayID != nil && *sn.NatGatewayID != "" {
+			s.scope.Debug("Using regional NAT gateway for subnet", "nat-gateway-id", *sn.NatGatewayID, "subnet-id", sn.GetResourceID())
+			return *sn.NatGatewayID, nil
+		}
+		s.scope.Debug("Regional NAT gateway not yet assigned to subnet", "subnet-id", sn.GetResourceID())
+		return "", errors.Errorf("regional NAT gateway not found for private subnet %q", sn.GetResourceID())
+	}
+
+	// Original zonal NAT gateway logic
 	// Check if public edge subnet in the edge zone has nat gateway
 	azGateways := make(map[string]string)
 	azNames := []string{}
