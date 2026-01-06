@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/eks"
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
+	"golang.org/x/mod/semver"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
@@ -53,6 +54,11 @@ func (s *Service) reconcileAddons(ctx context.Context) error {
 
 	// Get the addons from the spec we want for the cluster
 	desiredAddons := s.translateAPIToAddon(s.scope.Addons())
+
+	// Update the tags with the latest version if available
+	if desiredAddons, err = s.updateAddonTagsWithLatestVersion(ctx, desiredAddons); err != nil {
+		return fmt.Errorf("updating addon tags with latest version: %w", err)
+	}
 
 	// If there are no addons desired or installed then do nothing
 	if len(installed) == 0 && len(desiredAddons) == 0 {
@@ -247,4 +253,44 @@ func convertConfiguration(configuration string) *string {
 		return nil
 	}
 	return &configuration
+}
+
+func (s *Service) updateAddonTagsWithLatestVersion(ctx context.Context, addons []*eksaddons.EKSAddon) ([]*eksaddons.EKSAddon, error) {
+	s.Debug("Updating addon tags with the latest available version")
+
+	input := &eks.DescribeAddonVersionsInput{
+		KubernetesVersion: s.scope.ControlPlane.Spec.Version,
+	}
+
+	output, err := s.EKSClient.DescribeAddonVersions(ctx, input)
+	if err != nil {
+		return nil, fmt.Errorf("error describing addon versions: %w", err)
+	}
+	if len(output.Addons) == 0 {
+		s.Debug("No addons found for the specified Kubernetes version")
+		return addons, nil
+	}
+
+	latestVersions := make(map[string]string)
+	for _, addon := range output.Addons {
+		for _, version := range addon.AddonVersions {
+			current := latestVersions[*addon.AddonName]
+			if current == "" || semver.Compare(*version.AddonVersion, current) > 0 {
+				latestVersions[*addon.AddonName] = *version.AddonVersion
+			}
+		}
+	}
+
+	for _, addon := range addons {
+		if addon.Version == nil || *addon.Version != "latest" {
+			continue
+		}
+		latestVersion, ok := latestVersions[*addon.Name]
+		if !ok {
+			continue
+		}
+		addon.Version = &latestVersion
+	}
+
+	return addons, nil
 }
