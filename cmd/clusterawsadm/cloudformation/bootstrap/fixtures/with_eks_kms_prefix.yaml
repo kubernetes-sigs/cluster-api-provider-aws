@@ -251,6 +251,14 @@ Resources:
           - ec2:DeleteLaunchTemplateVersions
           - ec2:DescribeKeyPairs
           - ec2:ModifyInstanceMetadataOptions
+          - eks:CreateAccessEntry
+          - eks:DeleteAccessEntry
+          - eks:DescribeAccessEntry
+          - eks:UpdateAccessEntry
+          - eks:ListAccessEntries
+          - eks:AssociateAccessPolicy
+          - eks:DisassociateAccessPolicy
+          - eks:ListAssociatedAccessPolicies
           Effect: Allow
           Resource:
           - '*'
