@@ -293,6 +293,32 @@ func (e UpgradePolicy) String() string {
 	return string(e)
 }
 
+// ControlPlaneScalingConfig represents the configuration for EKS Control Plane scaling.
+type ControlPlaneScalingConfig struct {
+	// Tier specifies the tier for the EKS control plane.
+	// Valid values are: standard, tier-xl, tier-2xl, tier-4xl
+	// +optional
+	// +kubebuilder:validation:Enum=standard;tier-xl;tier-2xl;tier-4xl
+	Tier *ControlPlaneScalingTier `json:"tier,omitempty"`
+}
+
+// ControlPlaneScalingTier defines the scaling tier for the EKS control plane.
+type ControlPlaneScalingTier string
+
+var (
+	// ControlPlaneScalingTierStandard indicates standard scaling tier (default).
+	ControlPlaneScalingTierStandard = ControlPlaneScalingTier("standard")
+
+	// ControlPlaneScalingTierXL indicates XL tier.
+	ControlPlaneScalingTierXL = ControlPlaneScalingTier("tier-xl")
+
+	// ControlPlaneScalingTier2XL indicates 2XL tier.
+	ControlPlaneScalingTier2XL = ControlPlaneScalingTier("tier-2xl")
+
+	// ControlPlaneScalingTier4XL indicates 4XL tier.
+	ControlPlaneScalingTier4XL = ControlPlaneScalingTier("tier-4xl")
+)
+
 const (
 	// SecurityGroupCluster is the security group for communication between EKS
 	// control plane and managed node groups.
