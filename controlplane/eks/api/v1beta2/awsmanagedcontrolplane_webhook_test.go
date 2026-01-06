@@ -1215,7 +1215,7 @@ func TestValidatePodIdentityServiceAccountName(t *testing.T) {
 		expectErrorToContain string
 	}{
 		{
-			name: "valid service account name",
+			name: "valid association",
 			associations: []PodIdentityAssociation{
 				{
 					ServiceAccountName:      "my-service-account",
@@ -1238,42 +1238,46 @@ func TestValidatePodIdentityServiceAccountName(t *testing.T) {
 			expectErrorToContain: "serviceAccountName is required",
 		},
 		{
+			name: "invalid service account name",
+			associations: []PodIdentityAssociation{
+				{
+					ServiceAccountName:      "Invalid_Service_Account_Name!",
+					ServiceAccountNamespace: "default",
+					RoleARN:                 "arn:aws:iam::123456789012:role/my-role",
+				},
+			},
+			expectError: true,
+			expectErrorToContain: "serviceAccountName must be a valid DNS1123 subdomain",
+		},
+		{
+			name: "invalid namespace",
+			associations: []PodIdentityAssociation{
+				{
+					ServiceAccountName:      "my-service-account",
+					ServiceAccountNamespace: "invalid service account namespace",
+					RoleARN:                 "arn:aws:iam::123456789012:role/my-role",
+				},
+			},
+			expectError: true,
+			expectErrorToContain: "serviceAccountNamespace must be a valid DNS1123 subdomain",
+		},
+		{
+			name: "empty namespace",
+			associations: []PodIdentityAssociation{
+				{
+					ServiceAccountName:      "my-service-account",
+					ServiceAccountNamespace: "",
+					RoleARN:                 "arn:aws:iam::123456789012:role/my-role",
+				},
+			},
+			expectError: true,
+			expectErrorToContain: "serviceAccountNamespace is required",
+		},
+		{
 			name:         "nil pod identity associations",
 			associations: nil,
 			expectError:  false,
 		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			g := NewWithT(t)
-			mcp := &AWSManagedControlPlane{
-				Spec: AWSManagedControlPlaneSpec{
-					PodIdentityAssociations: tc.associations,
-				},
-			}
-
-			errs := mcp.validatePodIdentityServiceAccountName()
-
-			if tc.expectError {
-				g.Expect(errs).ToNot(BeEmpty())
-				if tc.expectErrorToContain != "" {
-					g.Expect(errs.ToAggregate().Error()).To(ContainSubstring(tc.expectErrorToContain))
-				}
-			} else {
-				g.Expect(errs).To(BeEmpty())
-			}
-		})
-	}
-}
-
-func TestValidatePodIdentityIAMRoles(t *testing.T) {
-	tests := []struct {
-		name                 string
-		associations         []PodIdentityAssociation
-		expectError          bool
-		expectErrorToContain string
-	}{
 		{
 			name: "no duplicate service accounts",
 			associations: []PodIdentityAssociation{
@@ -1344,11 +1348,6 @@ func TestValidatePodIdentityIAMRoles(t *testing.T) {
 			},
 			expectError: false,
 		},
-		{
-			name:         "nil pod identity associations",
-			associations: nil,
-			expectError:  false,
-		},
 	}
 
 	for _, tc := range tests {
@@ -1360,7 +1359,7 @@ func TestValidatePodIdentityIAMRoles(t *testing.T) {
 				},
 			}
 
-			errs := mcp.validatePodIdentityIAMRoles()
+			errs := mcp.validatePodIdentityAssociations()
 
 			if tc.expectError {
 				g.Expect(errs).ToNot(BeEmpty())

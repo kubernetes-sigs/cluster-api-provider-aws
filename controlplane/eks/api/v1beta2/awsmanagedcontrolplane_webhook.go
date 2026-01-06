@@ -113,8 +113,7 @@ func (*awsManagedControlPlaneWebhook) ValidateCreate(_ context.Context, obj runt
 	allErrs = append(allErrs, r.validatePrivateDNSHostnameTypeOnLaunch()...)
 	allErrs = append(allErrs, r.validateAccessConfigCreate()...)
 	allErrs = append(allErrs, r.validateAccessEntries()...)
-	allErrs = append(allErrs, r.validatePodIdentityServiceAccountName()...)
-	allErrs = append(allErrs, r.validatePodIdentityIAMRoles()...)
+	allErrs = append(allErrs, r.validatePodIdentityAssociations()...)
 
 	if len(allErrs) == 0 {
 		return nil, nil
@@ -158,8 +157,7 @@ func (*awsManagedControlPlaneWebhook) ValidateUpdate(ctx context.Context, oldObj
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 	allErrs = append(allErrs, r.validatePrivateDNSHostnameTypeOnLaunch()...)
 	allErrs = append(allErrs, r.validateAccessEntries()...)
-	allErrs = append(allErrs, r.validatePodIdentityServiceAccountName()...)
-	allErrs = append(allErrs, r.validatePodIdentityIAMRoles()...)
+	allErrs = append(allErrs, r.validatePodIdentityAssociations()...)
 
 	if r.Spec.Region != oldAWSManagedControlplane.Spec.Region {
 		allErrs = append(allErrs,
@@ -656,37 +654,31 @@ func validateNetwork(resourceName string, networkSpec infrav1.NetworkSpec, secon
 	return allErrs
 }
 
-func (r *AWSManagedControlPlane) validatePodIdentityIAMRoles() field.ErrorList {
+func (r *AWSManagedControlPlane) validatePodIdentityAssociations() field.ErrorList {
 	var allErrs field.ErrorList
+	nsRoles := []string{}
 
-	nsRoles := make(map[string][]string)
 	if r.Spec.PodIdentityAssociations != nil {
 		for i, assoc := range r.Spec.PodIdentityAssociations {
-			if slices.Contains(nsRoles[assoc.ServiceAccountNamespace], assoc.ServiceAccountName) {
-				path := field.NewPath("spec", "podIdentityAssociations").Index(i)
-				allErrs = append(allErrs, field.Invalid(path.Child("serviceAccountName"), assoc.ServiceAccountName, fmt.Sprintf("service account cannot be associated with more than one role: %s/%s", assoc.ServiceAccountNamespace, assoc.ServiceAccountName)))
-			}
-			nsRoles[assoc.ServiceAccountNamespace] = append(nsRoles[assoc.ServiceAccountNamespace], assoc.ServiceAccountName)
-		}
-	}
-
-	return allErrs
-}
-
-func (r *AWSManagedControlPlane) validatePodIdentityServiceAccountName() field.ErrorList {
-	var allErrs field.ErrorList
-
-	if r.Spec.PodIdentityAssociations != nil {
-		for i, association := range r.Spec.PodIdentityAssociations {
 			path := field.NewPath("spec", "podIdentityAssociations").Index(i)
-			if association.ServiceAccountName == "" {
+			if assoc.ServiceAccountName == "" {
 				allErrs = append(allErrs, field.Required(path.Child("serviceAccountName"), "serviceAccountName is required"))
 			}
-
-			// https://github.com/kubernetes/apimachinery/blob/d794766488ac2892197a7cc8d0b4b46b0edbda80/pkg/api/validation/generic.go#L68
-			if errs := validation.IsDNS1123Subdomain(association.ServiceAccountName); len(errs) > 0 {
-				allErrs = append(allErrs, field.Invalid(path.Child("serviceAccountName"), association.ServiceAccountName, fmt.Sprintf("serviceAccountName must be a valid DNS1123 subdomain: %v", errs)))
+			if assoc.ServiceAccountNamespace == "" {
+				allErrs = append(allErrs, field.Required(path.Child("serviceAccountNamespace"), "serviceAccountNamespace is required"))
 			}
+			// https://github.com/kubernetes/apimachinery/blob/d794766488ac2892197a7cc8d0b4b46b0edbda80/pkg/api/validation/generic.go#L68
+			if errs := validation.IsDNS1123Subdomain(assoc.ServiceAccountName); len(errs) > 0 {
+				allErrs = append(allErrs, field.Invalid(path.Child("serviceAccountName"), assoc.ServiceAccountName, fmt.Sprintf("serviceAccountName must be a valid DNS1123 subdomain: %v", errs)))
+			}
+			if errs := validation.IsDNS1123Subdomain(assoc.ServiceAccountNamespace); len(errs) > 0 {
+				allErrs = append(allErrs, field.Invalid(path.Child("serviceAccountNamespace"), assoc.ServiceAccountNamespace, fmt.Sprintf("serviceAccountNamespace must be a valid DNS1123 subdomain: %v", errs)))
+			}
+			namespacedName := fmt.Sprintf("%s/%s", assoc.ServiceAccountNamespace, assoc.ServiceAccountName)
+			if slices.Contains(nsRoles, namespacedName) {
+				allErrs = append(allErrs, field.Invalid(path.Child("serviceAccountName"), assoc.ServiceAccountName, fmt.Sprintf("service account cannot be associated with more than one role: %s", namespacedName)))
+			}
+			nsRoles = append(nsRoles, namespacedName)
 		}
 	}
 
