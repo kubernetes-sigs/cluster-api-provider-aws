@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/eks"
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
+	"golang.org/x/mod/semver"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
@@ -272,22 +273,23 @@ func (s *Service) updateAddonTagsWithLatestVersion(ctx context.Context, addons [
 
 	latestVersions := make(map[string]string)
 	for _, addon := range output.Addons {
-		if len(addon.AddonVersions) > 0 {
-			latestVersions[*addon.AddonName] = *addon.AddonVersions[0].AddonVersion
-			for _, version := range addon.AddonVersions[1:] {
-				if *version.AddonVersion > latestVersions[*addon.AddonName] {
-					latestVersions[*addon.AddonName] = *version.AddonVersion
-				}
+		for _, version := range addon.AddonVersions {
+			current := latestVersions[*addon.AddonName]
+			if current == "" || semver.Compare(*version.AddonVersion, current) > 0 {
+				latestVersions[*addon.AddonName] = *version.AddonVersion
 			}
 		}
 	}
 
 	for _, addon := range addons {
-		if addon.Version != nil && *addon.Version == "latest" {
-			if latestVersion, ok := latestVersions[*addon.Name]; ok {
-				addon.Version = &latestVersion
-			}
+		if addon.Version == nil || *addon.Version != "latest" {
+			continue
 		}
+		latestVersion, ok := latestVersions[*addon.Name]
+		if !ok {
+			continue
+		}
+		addon.Version = &latestVersion
 	}
 
 	return addons, nil
