@@ -244,13 +244,22 @@ func AWSServiceAssumeRolePolicy(identityID string) *iamv1.PolicyDocument {
 
 // AssumeRolePolicy will create a role session and pass session policies programmatically.
 func AssumeRolePolicy(identityType iamv1.PrincipalType, principalIDs []string) *iamv1.PolicyDocument {
+	actions := iamv1.Actions{"sts:AssumeRole"}
+
+	for _, principal := range principalIDs {
+		if principal == "pods.eks.amazonaws.com" {
+			actions = append(actions, "sts:TagSession")
+			break
+		}
+	}
+
 	return &iamv1.PolicyDocument{
 		Version: iamv1.CurrentVersion,
 		Statement: []iamv1.StatementEntry{
 			{
 				Effect:    iamv1.EffectAllow,
 				Principal: iamv1.Principals{identityType: principalIDs},
-				Action:    iamv1.Actions{"sts:AssumeRole"},
+				Action:    actions,
 			},
 		},
 	}

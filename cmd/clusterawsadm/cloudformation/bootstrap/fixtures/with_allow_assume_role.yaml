@@ -432,7 +432,6 @@ Resources:
         Statement:
         - Action:
           - sts:AssumeRole
-          - sts:TagSession
           Effect: Allow
           Principal:
             Service:
@@ -446,6 +445,7 @@ Resources:
         Statement:
         - Action:
           - sts:AssumeRole
+          - sts:TagSession
           Effect: Allow
           Principal:
             Service:
