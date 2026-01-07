@@ -22,6 +22,87 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
+func validateManagedMachinePoolScaling(scaling *ManagedMachinePoolScaling, path *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+	if scaling != nil { //nolint:nestif
+		minField := path.Child("minSize")
+		maxField := path.Child("maxSize")
+		minSize := scaling.MinSize
+		maxSize := scaling.MaxSize
+		if minSize != nil {
+			if *minSize < 0 {
+				allErrs = append(allErrs, field.Invalid(minField, *minSize, "must be greater or equal zero"))
+			}
+			if maxSize != nil && *maxSize < *minSize {
+				allErrs = append(allErrs, field.Invalid(maxField, *maxSize, fmt.Sprintf("must be greater than field %s", minField.String())))
+			}
+		}
+		if maxSize != nil && *maxSize < 0 {
+			allErrs = append(allErrs, field.Invalid(maxField, *maxSize, "must be greater than zero"))
+		}
+	}
+	if len(allErrs) == 0 {
+		return nil
+	}
+	return allErrs
+}
+
+func validateManagedMachinePoolUpdateConfig(config *UpdateConfig, path *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	if config != nil {
+		if config.MaxUnavailable == nil && config.MaxUnavailablePercentage == nil {
+			allErrs = append(allErrs, field.Invalid(path, config, "must specify one of maxUnavailable or maxUnavailablePercentage when using nodegroup updateconfig"))
+		}
+
+		if config.MaxUnavailable != nil && config.MaxUnavailablePercentage != nil {
+			allErrs = append(allErrs, field.Invalid(path, config, "cannot specify both maxUnavailable and maxUnavailablePercentage"))
+		}
+	}
+
+	if len(allErrs) == 0 {
+		return nil
+	}
+	return allErrs
+}
+
+func validateManagedMachinePoolRemoteAccess(access *ManagedRemoteAccess, path *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+	if access == nil {
+		return allErrs
+	}
+	sourceSecurityGroups := access.SourceSecurityGroups
+
+	if public := access.Public; public && len(sourceSecurityGroups) > 0 {
+		allErrs = append(
+			allErrs,
+			field.Invalid(path.Child("sourceSecurityGroups"), sourceSecurityGroups, "must be empty if public is set"),
+		)
+	}
+
+	return allErrs
+}
+
+func validateManagedMachinePoolLaunchTemplate(lt *AWSLaunchTemplate, instanceType *string, diskSize *int32, path *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+	if lt == nil {
+		return allErrs
+	}
+
+	if instanceType != nil {
+		allErrs = append(allErrs, field.Invalid(path.Child("InstanceType"), instanceType, "InstanceType cannot be specified when LaunchTemplate is specified"))
+	}
+	if diskSize != nil {
+		allErrs = append(allErrs, field.Invalid(path.Child("DiskSize"), diskSize, "DiskSize cannot be specified when LaunchTemplate is specified"))
+	}
+
+	if lt.IamInstanceProfile != "" {
+		allErrs = append(allErrs, field.Invalid(path.Child("AWSLaunchTemplate", "IamInstanceProfile"), lt.IamInstanceProfile, "IAM instance profile in launch template is prohibited in EKS managed node group"))
+	}
+
+	return allErrs
+}
+
 func validateLifecycleHooks(hooks []AWSLifecycleHook) field.ErrorList {
 	var allErrs field.ErrorList
 
