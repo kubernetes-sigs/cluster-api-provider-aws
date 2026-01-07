@@ -185,6 +185,18 @@ type AWSMachineSpec struct {
 	// +optional
 	NetworkInterfaceType NetworkInterfaceType `json:"networkInterfaceType,omitempty"`
 
+	// AssignPrimaryIPv6 specifies whether to enable assigning a primary IPv6 address to the primary network Interface.
+	// When set to enabled, the instance will be assigned a primary IPv6 address from the subnet's IPv6 CIDR block.
+	// This is required when registering instances by ID to IPv6 target groups of dual-stack load balancers.
+	//
+	// When not specified, the default value varies based on the subnet that the instance is launched in:
+	// - disabled if subnet is ipv4 only
+	// - enabled if subnet is ipv6 only or dual-stack
+	//
+	// +kubebuilder:validation:Enum=enabled;disabled
+	// +optional
+	AssignPrimaryIPv6 *PrimaryIPv6AssignmentState `json:"assignPrimaryIPv6,omitempty"`
+
 	// UncompressedUserData specify whether the user data is gzip-compressed before it is sent to ec2 instance.
 	// cloud-init has built-in support for gzip-compressed user data
 	// user data stored in aws secret manager is always gzip-compressed.

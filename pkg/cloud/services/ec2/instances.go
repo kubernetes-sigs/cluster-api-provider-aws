@@ -120,6 +120,7 @@ func (s *Service) CreateInstance(ctx context.Context, scope *scope.MachineScope,
 		RootVolume:           scope.AWSMachine.Spec.RootVolume.DeepCopy(),
 		NonRootVolumes:       scope.AWSMachine.Spec.NonRootVolumes,
 		NetworkInterfaces:    scope.AWSMachine.Spec.NetworkInterfaces,
+		AssignPrimaryIPv6:    scope.AWSMachine.Spec.AssignPrimaryIPv6,
 		NetworkInterfaceType: scope.AWSMachine.Spec.NetworkInterfaceType,
 	}
 
@@ -978,6 +979,17 @@ func (s *Service) SDKToInstance(v types.Instance) (*infrav1.Instance, error) {
 
 	i.Addresses = s.getInstanceAddresses(v)
 
+	// Extract whether the instance has a primary IPv6 assigned
+	for _, eni := range v.NetworkInterfaces {
+		for _, addr := range eni.Ipv6Addresses {
+			if aws.ToBool(addr.IsPrimaryIpv6) {
+				enabled := infrav1.PrimaryIPv6AssignmentStateEnabled
+				i.AssignPrimaryIPv6 = &enabled
+				break
+			}
+		}
+	}
+
 	i.AvailabilityZone = aws.ToString(v.Placement.AvailabilityZone)
 
 	for _, volume := range v.BlockDeviceMappings {
@@ -1400,21 +1412,28 @@ func getInstanceCPUOptionsRequest(cpuOptions infrav1.CPUOptions) *types.CpuOptio
 }
 
 // shouldEnablePrimaryIpv6 determines whether to enable a primary IPv6 address for an instance.
-// It returns true if both the VPC has IPv6 enabled and the instance's subnet has an IPv6 CIDR block.
 // This is required when registering instances by ID to IPv6 target groups.
 func (s *Service) shouldEnablePrimaryIpv6(i *infrav1.Instance) (bool, error) {
-	var enablePrimaryIpv6 bool
-
-	// We should enable IPv6 capabilities only when the users explicitly configure so.
+	// We ignore IPv6-related fields when the users do not explicitly enable IPv6 capabilities.
 	if !s.scope.VPC().IsIPv6Enabled() {
+		// If explicitly set to enabled but VPC doesn't have IPv6 enabled, return error.
+		if i.AssignPrimaryIPv6 != nil && *i.AssignPrimaryIPv6 == infrav1.PrimaryIPv6AssignmentStateEnabled {
+			return false, fmt.Errorf("cannot enable PrimaryIPv6: VPC does not have IPv6 enabled")
+		}
 		return false, nil
 	}
 
-	sn := s.scope.Subnets().FindByID(i.SubnetID)
-	if sn != nil {
-		enablePrimaryIpv6 = sn.IsIPv6
+	// If explicitly set to disabled, return early without checking subnet capabilities.
+	if i.AssignPrimaryIPv6 != nil && *i.AssignPrimaryIPv6 == infrav1.PrimaryIPv6AssignmentStateDisabled {
+		return false, nil
+	}
+
+	// We need to know whether the subnet has IPv6 enabled (i.e. IPv6 only or dual-stack subnet)
+	var hasIPv6CIDR bool
+	if sn := s.scope.Subnets().FindByID(i.SubnetID); sn != nil {
+		hasIPv6CIDR = sn.IsIPv6
 	} else {
-		// The subnet is in a different VPC than the cluster VPC. Then, we query AWS API.
+		// Subnet not in cluster VPC, query AWS API
 		sns, err := s.getFilteredSubnets(types.Filter{Name: aws.String("subnet-id"), Values: []string{i.SubnetID}})
 		if err != nil {
 			return false, fmt.Errorf("failed to find subnet info with id %q for instance: %w", i.SubnetID, err)
@@ -1429,13 +1448,27 @@ func (s *Service) shouldEnablePrimaryIpv6(i *infrav1.Instance) (bool, error) {
 			}
 			return false, fmt.Errorf("expected 1 subnet with id %q, but found %v: %v", i.SubnetID, len(sns), subnetIDs)
 		}
+
 		for _, set := range sns[0].Ipv6CidrBlockAssociationSet {
 			if set.Ipv6CidrBlockState.State == types.SubnetCidrBlockStateCodeAssociated {
-				enablePrimaryIpv6 = true
+				hasIPv6CIDR = true
 				break
 			}
 		}
 	}
 
-	return enablePrimaryIpv6, nil
+	// We should use the value provided by the users if any.
+	if i.AssignPrimaryIPv6 != nil {
+		// If explicitly set to enabled, validate subnet has IPv6.
+		enablePrimaryIPv6 := *i.AssignPrimaryIPv6 == infrav1.PrimaryIPv6AssignmentStateEnabled
+		if enablePrimaryIPv6 && !hasIPv6CIDR {
+			return false, fmt.Errorf("cannot enable PrimaryIPv6: subnet %s does not have IPv6 CIDR block", i.SubnetID)
+		}
+		return enablePrimaryIPv6, nil
+	}
+
+	// Otherwise, we define the default behavior as follows:
+	// - disabled if subnet is ipv4 only
+	// - enabled if subnet is ipv6 only or dual-stack
+	return hasIPv6CIDR, nil
 }
