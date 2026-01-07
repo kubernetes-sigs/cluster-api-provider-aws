@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-cmp/cmp"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -85,7 +84,7 @@ func (*awsManagedMachinePoolTemplateWebhook) ValidateCreate(_ context.Context, o
 }
 
 func (*awsManagedMachinePoolTemplateWebhook) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	old, ok := oldObj.(*AWSManagedMachinePoolTemplate)
+	oldTemplate, ok := oldObj.(*AWSManagedMachinePoolTemplate)
 	if !ok {
 		return nil, fmt.Errorf("expected an AWSManagedMachinePoolTemplate object but got %T", oldObj)
 	}
@@ -99,20 +98,15 @@ func (*awsManagedMachinePoolTemplateWebhook) ValidateUpdate(_ context.Context, o
 
 	var allErrs field.ErrorList
 
-	// All-or-nothing immutability for v0
-	// TODO: Consider nuanced immutability in future to allow updates to:
-	// - Scaling (minSize, maxSize)
-	// - UpdateConfig
-	// - Labels, Taints
-	// - LifecycleHooks
-	// See AWSManagedMachinePool.validateImmutable()
-	if !cmp.Equal(old.Spec, newTemplate.Spec) {
-		allErrs = append(allErrs, field.Invalid(
-			field.NewPath("spec"),
-			newTemplate.Spec,
-			"AWSManagedMachinePoolTemplate.Spec is immutable",
-		))
-	}
+	spec := newTemplate.Spec.Template.Spec
+	specPath := field.NewPath("spec", "template", "spec")
+
+	allErrs = append(allErrs, validateManagedMachinePoolSpecImmutable(&oldTemplate.Spec.Template.Spec, &spec, specPath)...)
+	allErrs = append(allErrs, validateManagedMachinePoolScaling(spec.Scaling, specPath.Child("scaling"))...)
+	allErrs = append(allErrs, validateManagedMachinePoolUpdateConfig(spec.UpdateConfig, specPath.Child("updateConfig"))...)
+	allErrs = append(allErrs, validateManagedMachinePoolLaunchTemplate(spec.AWSLaunchTemplate, spec.InstanceType, spec.DiskSize, specPath)...)
+	allErrs = append(allErrs, validateLifecycleHooks(spec.AWSLifecycleHooks)...)
+	allErrs = append(allErrs, spec.AdditionalTags.Validate()...)
 
 	if len(allErrs) > 0 {
 		return nil, apierrors.NewInvalid(

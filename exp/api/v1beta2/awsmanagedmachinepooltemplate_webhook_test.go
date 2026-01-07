@@ -105,8 +105,9 @@ func TestAWSManagedMachinePoolTemplateValidateUpdate(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		// Mutable fields - changes should be allowed
 		{
-			name: "spec changes are rejected - scaling",
+			name: "mutable field - scaling changes are allowed",
 			old: &AWSManagedMachinePoolTemplate{
 				Spec: AWSManagedMachinePoolTemplateSpec{
 					Template: AWSManagedMachinePoolTemplateResource{
@@ -131,10 +132,10 @@ func TestAWSManagedMachinePoolTemplateValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
-			name: "spec changes are rejected - updateConfig",
+			name: "mutable field - updateConfig changes are allowed",
 			old: &AWSManagedMachinePoolTemplate{
 				Spec: AWSManagedMachinePoolTemplateSpec{
 					Template: AWSManagedMachinePoolTemplateResource{
@@ -157,10 +158,10 @@ func TestAWSManagedMachinePoolTemplateValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
-			name: "spec changes are rejected - labels",
+			name: "mutable field - labels changes are allowed",
 			old: &AWSManagedMachinePoolTemplate{
 				Spec: AWSManagedMachinePoolTemplateSpec{
 					Template: AWSManagedMachinePoolTemplateResource{
@@ -183,10 +184,10 @@ func TestAWSManagedMachinePoolTemplateValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
-			name: "spec changes are rejected - taints",
+			name: "mutable field - taints changes are allowed",
 			old: &AWSManagedMachinePoolTemplate{
 				Spec: AWSManagedMachinePoolTemplateSpec{
 					Template: AWSManagedMachinePoolTemplateResource{
@@ -217,10 +218,10 @@ func TestAWSManagedMachinePoolTemplateValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
-			name: "spec changes are rejected - instanceType",
+			name: "mutable field - instanceType changes are allowed",
 			old: &AWSManagedMachinePoolTemplate{
 				Spec: AWSManagedMachinePoolTemplateSpec{
 					Template: AWSManagedMachinePoolTemplateResource{
@@ -239,10 +240,10 @@ func TestAWSManagedMachinePoolTemplateValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
-			name: "spec changes are rejected - lifecycleHooks",
+			name: "mutable field - lifecycleHooks changes are allowed",
 			old: &AWSManagedMachinePoolTemplate{
 				Spec: AWSManagedMachinePoolTemplateSpec{
 					Template: AWSManagedMachinePoolTemplateResource{
@@ -271,7 +272,308 @@ func TestAWSManagedMachinePoolTemplateValidateUpdate(t *testing.T) {
 					},
 				},
 			},
+			wantErr: false,
+		},
+		// Immutable fields - changes should be rejected
+		{
+			name: "immutable field - eksNodegroupName change is rejected",
+			old: &AWSManagedMachinePoolTemplate{
+				Spec: AWSManagedMachinePoolTemplateSpec{
+					Template: AWSManagedMachinePoolTemplateResource{
+						Spec: AWSManagedMachinePoolSpec{
+							EKSNodegroupName: "old-name",
+						},
+					},
+				},
+			},
+			new: &AWSManagedMachinePoolTemplate{
+				Spec: AWSManagedMachinePoolTemplateSpec{
+					Template: AWSManagedMachinePoolTemplateResource{
+						Spec: AWSManagedMachinePoolSpec{
+							EKSNodegroupName: "new-name",
+						},
+					},
+				},
+			},
 			wantErr: true,
+		},
+		{
+			name: "immutable field - subnetIDs change is rejected",
+			old: &AWSManagedMachinePoolTemplate{
+				Spec: AWSManagedMachinePoolTemplateSpec{
+					Template: AWSManagedMachinePoolTemplateResource{
+						Spec: AWSManagedMachinePoolSpec{
+							SubnetIDs: []string{"subnet-1"},
+						},
+					},
+				},
+			},
+			new: &AWSManagedMachinePoolTemplate{
+				Spec: AWSManagedMachinePoolTemplateSpec{
+					Template: AWSManagedMachinePoolTemplateResource{
+						Spec: AWSManagedMachinePoolSpec{
+							SubnetIDs: []string{"subnet-2"},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "immutable field - roleName change is rejected once set",
+			old: &AWSManagedMachinePoolTemplate{
+				Spec: AWSManagedMachinePoolTemplateSpec{
+					Template: AWSManagedMachinePoolTemplateResource{
+						Spec: AWSManagedMachinePoolSpec{
+							RoleName: "old-role",
+						},
+					},
+				},
+			},
+			new: &AWSManagedMachinePoolTemplate{
+				Spec: AWSManagedMachinePoolTemplateSpec{
+					Template: AWSManagedMachinePoolTemplateResource{
+						Spec: AWSManagedMachinePoolSpec{
+							RoleName: "new-role",
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "immutable field - diskSize change is rejected",
+			old: &AWSManagedMachinePoolTemplate{
+				Spec: AWSManagedMachinePoolTemplateSpec{
+					Template: AWSManagedMachinePoolTemplateResource{
+						Spec: AWSManagedMachinePoolSpec{
+							DiskSize: ptr.To[int32](100),
+						},
+					},
+				},
+			},
+			new: &AWSManagedMachinePoolTemplate{
+				Spec: AWSManagedMachinePoolTemplateSpec{
+					Template: AWSManagedMachinePoolTemplateResource{
+						Spec: AWSManagedMachinePoolSpec{
+							DiskSize: ptr.To[int32](200),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "immutable field - amiType change is rejected",
+			old: &AWSManagedMachinePoolTemplate{
+				Spec: AWSManagedMachinePoolTemplateSpec{
+					Template: AWSManagedMachinePoolTemplateResource{
+						Spec: AWSManagedMachinePoolSpec{
+							AMIType: ptr.To[ManagedMachineAMIType](Al2x86_64),
+						},
+					},
+				},
+			},
+			new: &AWSManagedMachinePoolTemplate{
+				Spec: AWSManagedMachinePoolTemplateSpec{
+					Template: AWSManagedMachinePoolTemplateResource{
+						Spec: AWSManagedMachinePoolSpec{
+							AMIType: ptr.To[ManagedMachineAMIType](Al2x86_64GPU),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "immutable field - remoteAccess change is rejected",
+			old: &AWSManagedMachinePoolTemplate{
+				Spec: AWSManagedMachinePoolTemplateSpec{
+					Template: AWSManagedMachinePoolTemplateResource{
+						Spec: AWSManagedMachinePoolSpec{
+							RemoteAccess: &ManagedRemoteAccess{
+								SSHKeyName: ptr.To[string]("key1"),
+							},
+						},
+					},
+				},
+			},
+			new: &AWSManagedMachinePoolTemplate{
+				Spec: AWSManagedMachinePoolTemplateSpec{
+					Template: AWSManagedMachinePoolTemplateResource{
+						Spec: AWSManagedMachinePoolSpec{
+							RemoteAccess: &ManagedRemoteAccess{
+								SSHKeyName: ptr.To[string]("key2"),
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "immutable field - capacityType change is rejected once set",
+			old: &AWSManagedMachinePoolTemplate{
+				Spec: AWSManagedMachinePoolTemplateSpec{
+					Template: AWSManagedMachinePoolTemplateResource{
+						Spec: AWSManagedMachinePoolSpec{
+							CapacityType: ptr.To[ManagedMachinePoolCapacityType](ManagedMachinePoolCapacityTypeOnDemand),
+						},
+					},
+				},
+			},
+			new: &AWSManagedMachinePoolTemplate{
+				Spec: AWSManagedMachinePoolTemplateSpec{
+					Template: AWSManagedMachinePoolTemplateResource{
+						Spec: AWSManagedMachinePoolSpec{
+							CapacityType: ptr.To[ManagedMachinePoolCapacityType](ManagedMachinePoolCapacityTypeSpot),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "immutable field - availabilityZones change is rejected",
+			old: &AWSManagedMachinePoolTemplate{
+				Spec: AWSManagedMachinePoolTemplateSpec{
+					Template: AWSManagedMachinePoolTemplateResource{
+						Spec: AWSManagedMachinePoolSpec{
+							AvailabilityZones: []string{"us-east-1a"},
+						},
+					},
+				},
+			},
+			new: &AWSManagedMachinePoolTemplate{
+				Spec: AWSManagedMachinePoolTemplateSpec{
+					Template: AWSManagedMachinePoolTemplateResource{
+						Spec: AWSManagedMachinePoolSpec{
+							AvailabilityZones: []string{"us-east-1b"},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "immutable field - availabilityZoneSubnetType change is rejected",
+			old: &AWSManagedMachinePoolTemplate{
+				Spec: AWSManagedMachinePoolTemplateSpec{
+					Template: AWSManagedMachinePoolTemplateResource{
+						Spec: AWSManagedMachinePoolSpec{
+							AvailabilityZoneSubnetType: ptr.To[AZSubnetType](AZSubnetTypePublic),
+						},
+					},
+				},
+			},
+			new: &AWSManagedMachinePoolTemplate{
+				Spec: AWSManagedMachinePoolTemplateSpec{
+					Template: AWSManagedMachinePoolTemplateResource{
+						Spec: AWSManagedMachinePoolSpec{
+							AvailabilityZoneSubnetType: ptr.To[AZSubnetType](AZSubnetTypePrivate),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "immutable field - adding awsLaunchTemplate is rejected",
+			old: &AWSManagedMachinePoolTemplate{
+				Spec: AWSManagedMachinePoolTemplateSpec{
+					Template: AWSManagedMachinePoolTemplateResource{
+						Spec: AWSManagedMachinePoolSpec{},
+					},
+				},
+			},
+			new: &AWSManagedMachinePoolTemplate{
+				Spec: AWSManagedMachinePoolTemplateSpec{
+					Template: AWSManagedMachinePoolTemplateResource{
+						Spec: AWSManagedMachinePoolSpec{
+							AWSLaunchTemplate: &AWSLaunchTemplate{
+								Name: "template",
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "immutable field - removing awsLaunchTemplate is rejected",
+			old: &AWSManagedMachinePoolTemplate{
+				Spec: AWSManagedMachinePoolTemplateSpec{
+					Template: AWSManagedMachinePoolTemplateResource{
+						Spec: AWSManagedMachinePoolSpec{
+							AWSLaunchTemplate: &AWSLaunchTemplate{
+								Name: "template",
+							},
+						},
+					},
+				},
+			},
+			new: &AWSManagedMachinePoolTemplate{
+				Spec: AWSManagedMachinePoolTemplateSpec{
+					Template: AWSManagedMachinePoolTemplateResource{
+						Spec: AWSManagedMachinePoolSpec{},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "immutable field - awsLaunchTemplate.name change is rejected",
+			old: &AWSManagedMachinePoolTemplate{
+				Spec: AWSManagedMachinePoolTemplateSpec{
+					Template: AWSManagedMachinePoolTemplateResource{
+						Spec: AWSManagedMachinePoolSpec{
+							AWSLaunchTemplate: &AWSLaunchTemplate{
+								Name: "old-template",
+							},
+						},
+					},
+				},
+			},
+			new: &AWSManagedMachinePoolTemplate{
+				Spec: AWSManagedMachinePoolTemplateSpec{
+					Template: AWSManagedMachinePoolTemplateResource{
+						Spec: AWSManagedMachinePoolSpec{
+							AWSLaunchTemplate: &AWSLaunchTemplate{
+								Name: "new-template",
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "mutable launchTemplate fields - other fields can change",
+			old: &AWSManagedMachinePoolTemplate{
+				Spec: AWSManagedMachinePoolTemplateSpec{
+					Template: AWSManagedMachinePoolTemplateResource{
+						Spec: AWSManagedMachinePoolSpec{
+							AWSLaunchTemplate: &AWSLaunchTemplate{
+								Name:          "template",
+								VersionNumber: ptr.To[int64](1),
+							},
+						},
+					},
+				},
+			},
+			new: &AWSManagedMachinePoolTemplate{
+				Spec: AWSManagedMachinePoolTemplateSpec{
+					Template: AWSManagedMachinePoolTemplateResource{
+						Spec: AWSManagedMachinePoolSpec{
+							AWSLaunchTemplate: &AWSLaunchTemplate{
+								Name:          "template",
+								VersionNumber: ptr.To[int64](2),
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
 		},
 	}
 
