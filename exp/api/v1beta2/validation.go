@@ -52,11 +52,11 @@ func validateManagedMachinePoolUpdateConfig(config *UpdateConfig, path *field.Pa
 
 	if config != nil {
 		if config.MaxUnavailable == nil && config.MaxUnavailablePercentage == nil {
-			allErrs = append(allErrs, field.Invalid(path, config, "must specify one of maxUnavailable or maxUnavailablePercentage when using nodegroup updateconfig"))
+			allErrs = append(allErrs, field.Invalid(path, "", "must specify one of maxUnavailable or maxUnavailablePercentage when using nodegroup updateconfig"))
 		}
 
 		if config.MaxUnavailable != nil && config.MaxUnavailablePercentage != nil {
-			allErrs = append(allErrs, field.Invalid(path, config, "cannot specify both maxUnavailable and maxUnavailablePercentage"))
+			allErrs = append(allErrs, field.Invalid(path, fmt.Sprintf("maxUnavailable=%d, maxUnavailablePercentage=%d", *config.MaxUnavailable, *config.MaxUnavailablePercentage), "cannot specify both maxUnavailable and maxUnavailablePercentage"))
 		}
 	}
 
