@@ -223,6 +223,9 @@ type Instance struct {
 	// NetworkInterfaceType is the interface type of the primary network Interface.
 	NetworkInterfaceType NetworkInterfaceType `json:"networkInterfaceType,omitempty"`
 
+	// AssignPrimaryIPv6 specifies whether to enable assigning a primary IPv6 address to the primary network Interface.
+	AssignPrimaryIPv6 *PrimaryIPv6AssignmentState `json:"assignPrimaryIPv6,omitempty"`
+
 	// The tags associated with the instance.
 	Tags map[string]string `json:"tags,omitempty"`
 
@@ -389,6 +392,17 @@ const (
 
 	// HTTPTokensStateRequired represents the required state (IMDSv2)
 	HTTPTokensStateRequired = HTTPTokensState("required")
+)
+
+// PrimaryIPv6AssignmentState describes whether to assign a primary IPv6 address to the primary network interface.
+type PrimaryIPv6AssignmentState string
+
+const (
+	// PrimaryIPv6AssignmentStateEnabled enables assigning a primary IPv6 address
+	PrimaryIPv6AssignmentStateEnabled = PrimaryIPv6AssignmentState("enabled")
+
+	// PrimaryIPv6AssignmentStateDisabled disables assigning a primary IPv6 address
+	PrimaryIPv6AssignmentStateDisabled = PrimaryIPv6AssignmentState("disabled")
 )
 
 // InstanceMetadataOptions describes metadata options for the EC2 instance.

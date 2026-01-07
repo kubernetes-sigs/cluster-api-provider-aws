@@ -751,6 +751,11 @@ func (in *AWSMachineSpec) DeepCopyInto(out *AWSMachineSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.AssignPrimaryIPv6 != nil {
+		in, out := &in.AssignPrimaryIPv6, &out.AssignPrimaryIPv6
+		*out = new(PrimaryIPv6AssignmentState)
+		**out = **in
+	}
 	if in.UncompressedUserData != nil {
 		in, out := &in.UncompressedUserData, &out.UncompressedUserData
 		*out = new(bool)
@@ -1808,6 +1813,11 @@ func (in *Instance) DeepCopyInto(out *Instance) {
 		in, out := &in.NetworkInterfaces, &out.NetworkInterfaces
 		*out = make([]string, len(*in))
 		copy(*out, *in)
+	}
+	if in.AssignPrimaryIPv6 != nil {
+		in, out := &in.AssignPrimaryIPv6, &out.AssignPrimaryIPv6
+		*out = new(PrimaryIPv6AssignmentState)
+		**out = **in
 	}
 	if in.Tags != nil {
 		in, out := &in.Tags, &out.Tags

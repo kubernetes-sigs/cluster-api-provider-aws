@@ -2233,6 +2233,10 @@ spec:
                       - type
                       type: object
                     type: array
+                  assignPrimaryIPv6:
+                    description: AssignPrimaryIPv6 specifies whether to enable assigning
+                      a primary IPv6 address to the primary network Interface.
+                    type: string
                   availabilityZone:
                     description: Availability zone of instance
                     type: string

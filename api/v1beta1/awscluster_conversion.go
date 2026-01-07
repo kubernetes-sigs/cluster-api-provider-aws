@@ -61,6 +61,7 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Status.Bastion.PrivateDNSName = restored.Status.Bastion.PrivateDNSName
 		dst.Status.Bastion.PublicIPOnLaunch = restored.Status.Bastion.PublicIPOnLaunch
 		dst.Status.Bastion.NetworkInterfaceType = restored.Status.Bastion.NetworkInterfaceType
+		dst.Status.Bastion.AssignPrimaryIPv6 = restored.Status.Bastion.AssignPrimaryIPv6
 		dst.Status.Bastion.CapacityReservationID = restored.Status.Bastion.CapacityReservationID
 		dst.Status.Bastion.MarketType = restored.Status.Bastion.MarketType
 		dst.Status.Bastion.HostAffinity = restored.Status.Bastion.HostAffinity
