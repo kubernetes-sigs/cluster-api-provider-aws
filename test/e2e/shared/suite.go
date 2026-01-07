@@ -89,7 +89,7 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 		templateDir := path.Join(e2eCtx.Settings.ArtifactFolder, "templates")
 		newTemplatePath := templateDir + "/" + ciTemplateForUpgradeName
 
-		err = exec.Command("cp", ciTemplateForUpgradePath, newTemplatePath).Run() //nolint:gosec
+		err = exec.CommandContext(context.TODO(), "cp", ciTemplateForUpgradePath, newTemplatePath).Run() //nolint:gosec
 		Expect(err).NotTo(HaveOccurred())
 
 		clusterctlCITemplateForUpgrade := clusterctl.Files{

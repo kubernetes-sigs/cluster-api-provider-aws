@@ -223,6 +223,9 @@ linters:
           - staticcheck
         text: 'QF1009: probably want to use time.Time.Equal instead'
       - linters:
+          - staticcheck
+        text: "s.scope.ControlPlaneLoadBalancer is deprecated"
+      - linters:
           - revive
         # Ignoring stylistic checks for generated code
         path: .*(api|types|test)\/.*\/.*conversion.*\.go$
@@ -293,6 +296,38 @@ linters:
         path: .*(api|types|test)\/.*\/.*conversion.*\.go$
         # This rule warns when initialism, variable or package naming conventions are not followed.
         text: 'var-naming: don''t use underscores in Go names'
+      - linters:
+          - revive
+        path: 'exp/utils/*'
+        text: 'var-naming: avoid meaningless package names'
+      - linters:
+          - revive
+        path: 'cmd/clusterawsadm/cmd/ami/common'
+        text: 'var-naming: avoid meaningless package names'
+      - linters:
+          - revive
+        path: 'cmd/clusterawsadm/cmd/util'
+        text: 'var-naming: avoid meaningless package names'
+      - linters:
+          - revive
+        path: 'pkg/utils'
+        text: 'var-naming: avoid meaningless package names'
+      - linters:
+          - revive
+        path: 'pkg/cloud/services/common/'
+        text: 'var-naming: avoid meaningless package names'
+      - linters:
+          - revive
+        path: 'test/e2e/shared/'
+        text: 'var-naming: avoid meaningless package names'
+      - linters:
+          - revive
+        text: 'avoid package names that conflict with Go standard library package names'
+        path: 'pkg/internal/bytes/'
+      - linters:
+          - revive
+        text: 'avoid package names that conflict with Go standard library package names'
+        path: 'pkg/hash/'
       - linters:
           - unparam
         text: always receives
