@@ -18,9 +18,92 @@ package v1beta2
 
 import (
 	"fmt"
+	"reflect"
 
+	"github.com/google/go-cmp/cmp"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
+
+func validateManagedMachinePoolScaling(scaling *ManagedMachinePoolScaling, path *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+	if scaling != nil { //nolint:nestif
+		minField := path.Child("minSize")
+		maxField := path.Child("maxSize")
+		minSize := scaling.MinSize
+		maxSize := scaling.MaxSize
+		if minSize != nil {
+			if *minSize < 0 {
+				allErrs = append(allErrs, field.Invalid(minField, *minSize, "must be greater or equal zero"))
+			}
+			if maxSize != nil && *maxSize < *minSize {
+				allErrs = append(allErrs, field.Invalid(maxField, *maxSize, fmt.Sprintf("must be greater than field %s", minField.String())))
+			}
+		}
+		if maxSize != nil && *maxSize < 0 {
+			allErrs = append(allErrs, field.Invalid(maxField, *maxSize, "must be greater than zero"))
+		}
+	}
+	if len(allErrs) == 0 {
+		return nil
+	}
+	return allErrs
+}
+
+func validateManagedMachinePoolUpdateConfig(config *UpdateConfig, path *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	if config != nil {
+		if config.MaxUnavailable == nil && config.MaxUnavailablePercentage == nil {
+			allErrs = append(allErrs, field.Invalid(path, "", "must specify one of maxUnavailable or maxUnavailablePercentage when using nodegroup updateconfig"))
+		}
+
+		if config.MaxUnavailable != nil && config.MaxUnavailablePercentage != nil {
+			allErrs = append(allErrs, field.Invalid(path, fmt.Sprintf("maxUnavailable=%d, maxUnavailablePercentage=%d", *config.MaxUnavailable, *config.MaxUnavailablePercentage), "cannot specify both maxUnavailable and maxUnavailablePercentage"))
+		}
+	}
+
+	if len(allErrs) == 0 {
+		return nil
+	}
+	return allErrs
+}
+
+func validateManagedMachinePoolRemoteAccess(access *ManagedRemoteAccess, path *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+	if access == nil {
+		return allErrs
+	}
+	sourceSecurityGroups := access.SourceSecurityGroups
+
+	if public := access.Public; public && len(sourceSecurityGroups) > 0 {
+		allErrs = append(
+			allErrs,
+			field.Invalid(path.Child("sourceSecurityGroups"), sourceSecurityGroups, "must be empty if public is set"),
+		)
+	}
+
+	return allErrs
+}
+
+func validateManagedMachinePoolLaunchTemplate(lt *AWSLaunchTemplate, instanceType *string, diskSize *int32, path *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+	if lt == nil {
+		return allErrs
+	}
+
+	if instanceType != nil {
+		allErrs = append(allErrs, field.Invalid(path.Child("InstanceType"), instanceType, "InstanceType cannot be specified when LaunchTemplate is specified"))
+	}
+	if diskSize != nil {
+		allErrs = append(allErrs, field.Invalid(path.Child("DiskSize"), diskSize, "DiskSize cannot be specified when LaunchTemplate is specified"))
+	}
+
+	if lt.IamInstanceProfile != "" {
+		allErrs = append(allErrs, field.Invalid(path.Child("AWSLaunchTemplate", "IamInstanceProfile"), lt.IamInstanceProfile, "IAM instance profile in launch template is prohibited in EKS managed node group"))
+	}
+
+	return allErrs
+}
 
 func validateLifecycleHooks(hooks []AWSLifecycleHook) field.ErrorList {
 	var allErrs field.ErrorList
@@ -44,6 +127,53 @@ func validateLifecycleHooks(hooks []AWSLifecycleHook) field.ErrorList {
 		if hook.HeartbeatTimeout != nil && (hook.HeartbeatTimeout.Seconds() < float64(30) || hook.HeartbeatTimeout.Seconds() > float64(172800)) {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("spec.lifecycleHooks.heartbeatTimeout"), *hook.HeartbeatTimeout, "HeartbeatTimeout must be between 30 and 172800 seconds"))
 		}
+	}
+
+	return allErrs
+}
+
+func validateManagedMachinePoolSpecImmutable(oldSpec, newSpec *AWSManagedMachinePoolSpec, path *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	appendErrorIfMutated := func(oldVal, newVal interface{}, name string) {
+		if !cmp.Equal(oldVal, newVal) {
+			allErrs = append(
+				allErrs,
+				field.Invalid(path.Child(name), newVal, "field is immutable"),
+			)
+		}
+	}
+
+	appendErrorIfSetAndMutated := func(oldVal, newVal interface{}, name string) {
+		if !reflect.ValueOf(oldVal).IsZero() && !cmp.Equal(oldVal, newVal) {
+			allErrs = append(
+				allErrs,
+				field.Invalid(path.Child(name), newVal, "field is immutable"),
+			)
+		}
+	}
+
+	if oldSpec.EKSNodegroupName != "" {
+		appendErrorIfMutated(oldSpec.EKSNodegroupName, newSpec.EKSNodegroupName, "eksNodegroupName")
+	}
+	appendErrorIfMutated(oldSpec.SubnetIDs, newSpec.SubnetIDs, "subnetIDs")
+	appendErrorIfSetAndMutated(oldSpec.RoleName, newSpec.RoleName, "roleName")
+	appendErrorIfMutated(oldSpec.DiskSize, newSpec.DiskSize, "diskSize")
+	appendErrorIfMutated(oldSpec.AMIType, newSpec.AMIType, "amiType")
+	appendErrorIfMutated(oldSpec.RemoteAccess, newSpec.RemoteAccess, "remoteAccess")
+	appendErrorIfSetAndMutated(oldSpec.CapacityType, newSpec.CapacityType, "capacityType")
+	appendErrorIfMutated(oldSpec.AvailabilityZones, newSpec.AvailabilityZones, "availabilityZones")
+	appendErrorIfMutated(oldSpec.AvailabilityZoneSubnetType, newSpec.AvailabilityZoneSubnetType, "availabilityZoneSubnetType")
+
+	if (oldSpec.AWSLaunchTemplate != nil && newSpec.AWSLaunchTemplate == nil) ||
+		(oldSpec.AWSLaunchTemplate == nil && newSpec.AWSLaunchTemplate != nil) {
+		allErrs = append(
+			allErrs,
+			field.Invalid(path.Child("awsLaunchTemplate"), newSpec.AWSLaunchTemplate, "field is immutable"),
+		)
+	}
+	if oldSpec.AWSLaunchTemplate != nil && newSpec.AWSLaunchTemplate != nil {
+		appendErrorIfMutated(oldSpec.AWSLaunchTemplate.Name, newSpec.AWSLaunchTemplate.Name, "awsLaunchTemplate.name")
 	}
 
 	return allErrs
