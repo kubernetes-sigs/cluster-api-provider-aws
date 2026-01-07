@@ -62,87 +62,19 @@ var _ webhook.CustomDefaulter = &AWSManagedMachinePool{}
 var _ webhook.CustomValidator = &AWSManagedMachinePool{}
 
 func (w *AWSManagedMachinePool) validateScaling(r *expinfrav1.AWSManagedMachinePool) field.ErrorList {
-	var allErrs field.ErrorList
-	if r.Spec.Scaling != nil { //nolint:nestif
-		minField := field.NewPath("spec", "scaling", "minSize")
-		maxField := field.NewPath("spec", "scaling", "maxSize")
-		minSize := r.Spec.Scaling.MinSize
-		maxSize := r.Spec.Scaling.MaxSize
-		if minSize != nil {
-			if *minSize < 0 {
-				allErrs = append(allErrs, field.Invalid(minField, *minSize, "must be greater or equal zero"))
-			}
-			if maxSize != nil && *maxSize < *minSize {
-				allErrs = append(allErrs, field.Invalid(maxField, *maxSize, fmt.Sprintf("must be greater than field %s", minField.String())))
-			}
-		}
-		if maxSize != nil && *maxSize < 0 {
-			allErrs = append(allErrs, field.Invalid(maxField, *maxSize, "must be greater than zero"))
-		}
-	}
-	if len(allErrs) == 0 {
-		return nil
-	}
-	return allErrs
+	return validateManagedMachinePoolScaling(r.Spec.Scaling, field.NewPath("spec", "scaling"))
 }
 
 func (w *AWSManagedMachinePool) validateNodegroupUpdateConfig(r *expinfrav1.AWSManagedMachinePool) field.ErrorList {
-	var allErrs field.ErrorList
-
-	if r.Spec.UpdateConfig != nil {
-		nodegroupUpdateConfigField := field.NewPath("spec", "updateConfig")
-
-		if r.Spec.UpdateConfig.MaxUnavailable == nil && r.Spec.UpdateConfig.MaxUnavailablePercentage == nil {
-			allErrs = append(allErrs, field.Invalid(nodegroupUpdateConfigField, r.Spec.UpdateConfig, "must specify one of maxUnavailable or maxUnavailablePercentage when using nodegroup updateconfig"))
-		}
-
-		if r.Spec.UpdateConfig.MaxUnavailable != nil && r.Spec.UpdateConfig.MaxUnavailablePercentage != nil {
-			allErrs = append(allErrs, field.Invalid(nodegroupUpdateConfigField, r.Spec.UpdateConfig, "cannot specify both maxUnavailable and maxUnavailablePercentage"))
-		}
-	}
-
-	if len(allErrs) == 0 {
-		return nil
-	}
-	return allErrs
+	return validateManagedMachinePoolUpdateConfig(r.Spec.UpdateConfig, field.NewPath("spec", "updateConfig"))
 }
 
 func (w *AWSManagedMachinePool) validateRemoteAccess(r *expinfrav1.AWSManagedMachinePool) field.ErrorList {
-	var allErrs field.ErrorList
-	if r.Spec.RemoteAccess == nil {
-		return allErrs
-	}
-	remoteAccessPath := field.NewPath("spec", "remoteAccess")
-	sourceSecurityGroups := r.Spec.RemoteAccess.SourceSecurityGroups
-
-	if public := r.Spec.RemoteAccess.Public; public && len(sourceSecurityGroups) > 0 {
-		allErrs = append(
-			allErrs,
-			field.Invalid(remoteAccessPath.Child("sourceSecurityGroups"), sourceSecurityGroups, "must be empty if public is set"),
-		)
-	}
-
-	return allErrs
+	return validateManagedMachinePoolRemoteAccess(r.Spec.RemoteAccess, field.NewPath("spec", "remoteAccess"))
 }
 
 func (w *AWSManagedMachinePool) validateLaunchTemplate(r *expinfrav1.AWSManagedMachinePool) field.ErrorList {
-	var allErrs field.ErrorList
-	if r.Spec.AWSLaunchTemplate == nil {
-		return allErrs
-	}
-
-	if r.Spec.InstanceType != nil {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "InstanceType"), r.Spec.InstanceType, "InstanceType cannot be specified when LaunchTemplate is specified"))
-	}
-	if r.Spec.DiskSize != nil {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "DiskSize"), r.Spec.DiskSize, "DiskSize cannot be specified when LaunchTemplate is specified"))
-	}
-
-	if r.Spec.AWSLaunchTemplate.IamInstanceProfile != "" {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "AWSLaunchTemplate", "IamInstanceProfile"), r.Spec.AWSLaunchTemplate.IamInstanceProfile, "IAM instance profile in launch template is prohibited in EKS managed node group"))
-	}
-
-	return allErrs
+	return validateManagedMachinePoolLaunchTemplate(r.Spec.AWSLaunchTemplate, r.Spec.InstanceType, r.Spec.DiskSize, field.NewPath("spec"))
 }
 
 func (w *AWSManagedMachinePool) validateLifecycleHooks(r *expinfrav1.AWSManagedMachinePool) field.ErrorList {
