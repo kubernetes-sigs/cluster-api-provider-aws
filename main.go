@@ -550,6 +550,11 @@ func setupEKSReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager,
 			setupLog.Error(err, "unable to create webhook", "webhook", "AWSManagedMachinePool")
 			os.Exit(1)
 		}
+
+		if err := (&expwebhooks.AWSManagedMachinePoolTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "AWSManagedMachinePoolTemplate")
+			os.Exit(1)
+		}
 	}
 
 	if err := (&ekswebhooks.AWSManagedControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
