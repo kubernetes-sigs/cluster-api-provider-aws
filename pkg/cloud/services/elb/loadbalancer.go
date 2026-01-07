@@ -307,29 +307,64 @@ func (s *Service) getAdditionalTargetGroupHealthCheck(ln infrav1.AdditionalListe
 }
 
 // getAPITargetGroupIPType determines the IP address type for the API server target group.
-// It defaults to IPv4, uses IPv6 if the VPC has IPv6 enabled, and can be overridden by the load balancer spec.
+// It examines the control plane subnets to determine if they have IPv4 and/or IPv6 addresses,
+// and can be overridden by the load balancer spec.
 func (s *Service) getAPITargetGroupIPType(lbSpec *infrav1.AWSLoadBalancerSpec) infrav1.TargetGroupIPType {
-	ipType := infrav1.TargetGroupIPTypeIPv4
-	if s.scope.VPC().IsIPv6Enabled() {
-		ipType = infrav1.TargetGroupIPTypeIPv6
-	}
+	// If explicitly set in spec, use that value
 	if lbSpec != nil && lbSpec.TargetGroupIPType != nil {
-		ipType = *lbSpec.TargetGroupIPType
+		return *lbSpec.TargetGroupIPType
 	}
-	return ipType
+	// Otherwise, determine based on control plane subnet addresses
+	return s.getTargetGroupIPAddressType()
 }
 
 // getAdditionalTargetGroupIPType determines the IP address type for an additional listener's target group.
-// It defaults to IPv4, uses IPv6 if the VPC has IPv6 enabled, and can be overridden by the listener spec.
+// It examines the control plane subnets to determine if they have IPv4 and/or IPv6 addresses,
+// and can be overridden by the listener spec.
 func (s *Service) getAdditionalTargetGroupIPType(ln infrav1.AdditionalListenerSpec) infrav1.TargetGroupIPType {
-	ipType := infrav1.TargetGroupIPTypeIPv4
-	if s.scope.VPC().IsIPv6Enabled() {
-		ipType = infrav1.TargetGroupIPTypeIPv6
-	}
+	// If explicitly set in spec, use that value
 	if ln.TargetGroupIPType != nil {
-		ipType = *ln.TargetGroupIPType
+		return *ln.TargetGroupIPType
 	}
-	return ipType
+	// Otherwise, determine based on control plane subnet addresses
+	return s.getTargetGroupIPAddressType()
+}
+
+// getTargetGroupIPAddressType determines the target group IP address type based on
+// control plane subnet configurations. It examines whether subnets have IPv4 and/or
+// IPv6 CIDR blocks and returns the appropriate IP type.
+func (s *Service) getTargetGroupIPAddressType() infrav1.TargetGroupIPType {
+	// We should only consider IPv6 features if the user explicitly enables IPv6 capabilities
+	// Thus, return IPv4 as IPv4 is the only IP family in use.
+	if !s.scope.VPC().IsIPv6Enabled() {
+		return infrav1.TargetGroupIPTypeIPv4
+	}
+
+	var hasIPv4OnlySn, hasIPv6OnlySn bool
+
+	cpSubnets := s.scope.Subnets().FilterPrivate().FilterNonCni()
+	for _, subnet := range cpSubnets {
+		if subnet.CidrBlock != "" && !subnet.IsIPv6 {
+			hasIPv4OnlySn = true
+		}
+		if subnet.CidrBlock == "" && subnet.IsIPv6 {
+			hasIPv6OnlySn = true
+		}
+	}
+
+	// CP nodes may only have IPv4 addresses
+	if hasIPv4OnlySn {
+		return infrav1.TargetGroupIPTypeIPv4
+	}
+
+	// CP nodes may only have IPv6 addresses
+	if hasIPv6OnlySn {
+		return infrav1.TargetGroupIPTypeIPv6
+	}
+
+	// Cluster subnets include only dual-stack subnets
+	// CP nodes may have both address types. Prefer IPv6.
+	return infrav1.TargetGroupIPTypeIPv6
 }
 
 func (s *Service) getAPIServerLBSpec(ctx context.Context, elbName string, lbSpec *infrav1.AWSLoadBalancerSpec) (*infrav1.LoadBalancer, error) {
