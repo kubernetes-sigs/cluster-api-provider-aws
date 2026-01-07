@@ -19,9 +19,7 @@ package webhooks
 import (
 	"context"
 	"fmt"
-	"reflect"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -173,48 +171,7 @@ func (w *AWSManagedMachinePool) ValidateDelete(_ context.Context, _ runtime.Obje
 }
 
 func (w *AWSManagedMachinePool) validateImmutable(r *expinfrav1.AWSManagedMachinePool, old *expinfrav1.AWSManagedMachinePool) field.ErrorList {
-	var allErrs field.ErrorList
-
-	appendErrorIfMutated := func(old, update interface{}, name string) {
-		if !cmp.Equal(old, update) {
-			allErrs = append(
-				allErrs,
-				field.Invalid(field.NewPath("spec", name), update, "field is immutable"),
-			)
-		}
-	}
-	appendErrorIfSetAndMutated := func(old, update interface{}, name string) {
-		if !reflect.ValueOf(old).IsZero() && !cmp.Equal(old, update) {
-			allErrs = append(
-				allErrs,
-				field.Invalid(field.NewPath("spec", name), update, "field is immutable"),
-			)
-		}
-	}
-
-	if old.Spec.EKSNodegroupName != "" {
-		appendErrorIfMutated(old.Spec.EKSNodegroupName, r.Spec.EKSNodegroupName, "eksNodegroupName")
-	}
-	appendErrorIfMutated(old.Spec.SubnetIDs, r.Spec.SubnetIDs, "subnetIDs")
-	appendErrorIfSetAndMutated(old.Spec.RoleName, r.Spec.RoleName, "roleName")
-	appendErrorIfMutated(old.Spec.DiskSize, r.Spec.DiskSize, "diskSize")
-	appendErrorIfMutated(old.Spec.AMIType, r.Spec.AMIType, "amiType")
-	appendErrorIfMutated(old.Spec.RemoteAccess, r.Spec.RemoteAccess, "remoteAccess")
-	appendErrorIfSetAndMutated(old.Spec.CapacityType, r.Spec.CapacityType, "capacityType")
-	appendErrorIfMutated(old.Spec.AvailabilityZones, r.Spec.AvailabilityZones, "availabilityZones")
-	appendErrorIfMutated(old.Spec.AvailabilityZoneSubnetType, r.Spec.AvailabilityZoneSubnetType, "availabilityZoneSubnetType")
-	if (old.Spec.AWSLaunchTemplate != nil && r.Spec.AWSLaunchTemplate == nil) ||
-		(old.Spec.AWSLaunchTemplate == nil && r.Spec.AWSLaunchTemplate != nil) {
-		allErrs = append(
-			allErrs,
-			field.Invalid(field.NewPath("spec", "AWSLaunchTemplate"), old.Spec.AWSLaunchTemplate, "field is immutable"),
-		)
-	}
-	if old.Spec.AWSLaunchTemplate != nil && r.Spec.AWSLaunchTemplate != nil {
-		appendErrorIfMutated(old.Spec.AWSLaunchTemplate.Name, r.Spec.AWSLaunchTemplate.Name, "awsLaunchTemplate.name")
-	}
-
-	return allErrs
+	return validateManagedMachinePoolSpecImmutable(&old.Spec, &r.Spec, field.NewPath("spec"))
 }
 
 // Default will set default values for the AWSManagedMachinePool.

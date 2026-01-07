@@ -18,7 +18,9 @@ package webhooks
 
 import (
 	"fmt"
+	"reflect"
 
+	"github.com/google/go-cmp/cmp"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
@@ -127,6 +129,53 @@ func validateLifecycleHooks(hooks []expinfrav1.AWSLifecycleHook) field.ErrorList
 		if hook.HeartbeatTimeout != nil && (hook.HeartbeatTimeout.Seconds() < float64(30) || hook.HeartbeatTimeout.Seconds() > float64(172800)) {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("spec.lifecycleHooks.heartbeatTimeout"), *hook.HeartbeatTimeout, "HeartbeatTimeout must be between 30 and 172800 seconds"))
 		}
+	}
+
+	return allErrs
+}
+
+func validateManagedMachinePoolSpecImmutable(oldSpec, newSpec *expinfrav1.AWSManagedMachinePoolSpec, path *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	appendErrorIfMutated := func(oldVal, newVal interface{}, name string) {
+		if !cmp.Equal(oldVal, newVal) {
+			allErrs = append(
+				allErrs,
+				field.Invalid(path.Child(name), newVal, "field is immutable"),
+			)
+		}
+	}
+
+	appendErrorIfSetAndMutated := func(oldVal, newVal interface{}, name string) {
+		if !reflect.ValueOf(oldVal).IsZero() && !cmp.Equal(oldVal, newVal) {
+			allErrs = append(
+				allErrs,
+				field.Invalid(path.Child(name), newVal, "field is immutable"),
+			)
+		}
+	}
+
+	if oldSpec.EKSNodegroupName != "" {
+		appendErrorIfMutated(oldSpec.EKSNodegroupName, newSpec.EKSNodegroupName, "eksNodegroupName")
+	}
+	appendErrorIfMutated(oldSpec.SubnetIDs, newSpec.SubnetIDs, "subnetIDs")
+	appendErrorIfSetAndMutated(oldSpec.RoleName, newSpec.RoleName, "roleName")
+	appendErrorIfMutated(oldSpec.DiskSize, newSpec.DiskSize, "diskSize")
+	appendErrorIfMutated(oldSpec.AMIType, newSpec.AMIType, "amiType")
+	appendErrorIfMutated(oldSpec.RemoteAccess, newSpec.RemoteAccess, "remoteAccess")
+	appendErrorIfSetAndMutated(oldSpec.CapacityType, newSpec.CapacityType, "capacityType")
+	appendErrorIfMutated(oldSpec.AvailabilityZones, newSpec.AvailabilityZones, "availabilityZones")
+	appendErrorIfMutated(oldSpec.AvailabilityZoneSubnetType, newSpec.AvailabilityZoneSubnetType, "availabilityZoneSubnetType")
+
+	if (oldSpec.AWSLaunchTemplate != nil && newSpec.AWSLaunchTemplate == nil) ||
+		(oldSpec.AWSLaunchTemplate == nil && newSpec.AWSLaunchTemplate != nil) {
+		allErrs = append(
+			allErrs,
+			field.Invalid(path.Child("awsLaunchTemplate"), newSpec.AWSLaunchTemplate, "field is immutable"),
+		)
+	}
+	if oldSpec.AWSLaunchTemplate != nil && newSpec.AWSLaunchTemplate != nil {
+		appendErrorIfMutated(oldSpec.AWSLaunchTemplate.Name, newSpec.AWSLaunchTemplate.Name, "awsLaunchTemplate.name")
 	}
 
 	return allErrs
