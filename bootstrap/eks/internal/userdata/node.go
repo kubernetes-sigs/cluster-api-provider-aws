@@ -402,7 +402,11 @@ func validateAL2023Input(input *NodeInput) error {
 		}
 	}
 	if input.DNSClusterIP == nil {
-		input.DNSClusterIP = ptr.To[string]("10.96.0.10")
+		if input.ClusterCIDR != "" {
+			input.DNSClusterIP = ptr.To(calculateDNSFromServiceCIDR(input.ClusterCIDR))
+		} else {
+			input.DNSClusterIP = ptr.To[string]("10.96.0.10")
+		}
 	}
 	input.ClusterDNS = *input.DNSClusterIP
 
@@ -414,4 +418,11 @@ func validateAL2023Input(input *NodeInput) error {
 		*input.MaxPods, *input.DNSClusterIP, input.AMIImageID, input.getCapacityTypeString())
 
 	return nil
+}
+
+// calculateDNSFromServiceCIDR calculates the DNS cluster IP by replacing the last octet with 10.
+func calculateDNSFromServiceCIDR(cidr string) string {
+	ipStr := strings.Split(strings.TrimSpace(cidr), "/")[0]
+	lastDotIdx := strings.LastIndex(ipStr, ".")
+	return ipStr[:lastDotIdx] + ".10"
 }

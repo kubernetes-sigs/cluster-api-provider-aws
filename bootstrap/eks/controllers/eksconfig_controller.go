@@ -287,7 +287,7 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 		DiskSetup:                config.Spec.DiskSetup,
 		Mounts:                   config.Spec.Mounts,
 		Files:                    files,
-		ClusterCIDR:              controlPlane.Spec.NetworkSpec.VPC.CidrBlock,
+		ClusterCIDR:              r.getClusterCidr(cluster, controlPlane),
 	}
 
 	if config.Spec.PauseContainer != nil {
@@ -586,4 +586,12 @@ func (r *EKSConfigReconciler) extractCAFromSecret(ctx context.Context, obj clien
 	}
 
 	return "", fmt.Errorf("no cluster with CA data found in kubeconfig")
+}
+
+func (r *EKSConfigReconciler) getClusterCidr(cluster *clusterv1.Cluster, controlPlane *ekscontrolplanev1.AWSManagedControlPlane) string {
+	if cluster.Spec.ClusterNetwork != nil && cluster.Spec.ClusterNetwork.Services != nil && len(cluster.Spec.ClusterNetwork.Services.CIDRBlocks) > 0 {
+		return cluster.Spec.ClusterNetwork.Services.CIDRBlocks[0]
+	}
+
+	return controlPlane.Spec.NetworkSpec.VPC.CidrBlock
 }
