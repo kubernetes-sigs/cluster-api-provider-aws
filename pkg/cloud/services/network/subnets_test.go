@@ -1782,14 +1782,6 @@ func TestReconcileSubnets(t *testing.T) {
 					After(firstSubnet)
 
 				m.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
-					AssignIpv6AddressOnCreation: &types.AttributeBooleanValue{
-						Value: aws.Bool(true),
-					},
-					SubnetId: aws.String("subnet-2"),
-				}).Return(&ec2.ModifySubnetAttributeOutput{}, nil).
-					After(firstSubnet)
-
-				m.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
 					MapPublicIpOnLaunch: &types.AttributeBooleanValue{
 						Value: aws.Bool(true),
 					},
@@ -1863,6 +1855,14 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					},
 				}, nil).
+					After(secondSubnet)
+
+				m.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
+					AssignIpv6AddressOnCreation: &types.AttributeBooleanValue{
+						Value: aws.Bool(true),
+					},
+					SubnetId: aws.String("subnet-2"),
+				}).Return(&ec2.ModifySubnetAttributeOutput{}, nil).
 					After(secondSubnet)
 
 				m.DescribeAvailabilityZones(context.TODO(), gomock.Any()).
@@ -3657,15 +3657,6 @@ func TestReconcileSubnets(t *testing.T) {
 					After(firstSubnet)
 
 				m.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
-					AssignIpv6AddressOnCreation: &types.AttributeBooleanValue{
-						Value: aws.Bool(true),
-					},
-					SubnetId: aws.String("subnet-2"),
-				}).
-					Return(&ec2.ModifySubnetAttributeOutput{}, nil).
-					After(firstSubnet)
-
-				m.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
 					MapPublicIpOnLaunch: &types.AttributeBooleanValue{
 						Value: aws.Bool(true),
 					},
@@ -3739,6 +3730,14 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					},
 				}, nil).
+					After(secondSubnet)
+
+				m.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
+					AssignIpv6AddressOnCreation: &types.AttributeBooleanValue{
+						Value: aws.Bool(true),
+					},
+					SubnetId: aws.String("subnet-2"),
+				}).Return(&ec2.ModifySubnetAttributeOutput{}, nil).
 					After(secondSubnet)
 
 				m.DescribeAvailabilityZones(context.TODO(), gomock.Any()).
@@ -3904,15 +3903,6 @@ func TestReconcileSubnets(t *testing.T) {
 					After(zone1PublicSubnet)
 
 				m.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
-					AssignIpv6AddressOnCreation: &types.AttributeBooleanValue{
-						Value: aws.Bool(true),
-					},
-					SubnetId: aws.String("subnet-2"),
-				}).
-					Return(&ec2.ModifySubnetAttributeOutput{}, nil).
-					After(zone1PublicSubnet)
-
-				m.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
 					MapPublicIpOnLaunch: &types.AttributeBooleanValue{
 						Value: aws.Bool(true),
 					},
@@ -3986,6 +3976,15 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					},
 				}, nil).
+					After(zone1PrivateSubnet)
+
+				m.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
+					AssignIpv6AddressOnCreation: &types.AttributeBooleanValue{
+						Value: aws.Bool(true),
+					},
+					SubnetId: aws.String("subnet-2"),
+				}).
+					Return(&ec2.ModifySubnetAttributeOutput{}, nil).
 					After(zone1PrivateSubnet)
 
 				// zone 2
@@ -4078,14 +4077,6 @@ func TestReconcileSubnets(t *testing.T) {
 					After(zone2PublicSubnet)
 
 				m.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
-					AssignIpv6AddressOnCreation: &types.AttributeBooleanValue{
-						Value: aws.Bool(true),
-					},
-					SubnetId: aws.String("subnet-2"),
-				}).
-					Return(&ec2.ModifySubnetAttributeOutput{}, nil).
-					After(zone2PublicSubnet)
-				m.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
 					MapPublicIpOnLaunch: &types.AttributeBooleanValue{
 						Value: aws.Bool(true),
 					},
@@ -4159,6 +4150,15 @@ func TestReconcileSubnets(t *testing.T) {
 						},
 					},
 				}, nil).
+					After(zone2PrivateSubnet)
+
+				m.ModifySubnetAttribute(context.TODO(), &ec2.ModifySubnetAttributeInput{
+					AssignIpv6AddressOnCreation: &types.AttributeBooleanValue{
+						Value: aws.Bool(true),
+					},
+					SubnetId: aws.String("subnet-2"),
+				}).
+					Return(&ec2.ModifySubnetAttributeOutput{}, nil).
 					After(zone2PrivateSubnet)
 			},
 		},
@@ -4541,6 +4541,449 @@ func TestDeleteSubnets(t *testing.T) {
 			}
 			if !tc.errorExpected && err != nil {
 				t.Fatalf("got an unexpected error: %v", err)
+			}
+		})
+	}
+}
+
+func TestReconcileSubnets_IPv6AutoAssignment(t *testing.T) {
+	testCases := []struct {
+		name                 string
+		input                ScopeBuilder
+		expect               func(m *mocks.MockEC2APIMockRecorder)
+		errorExpected        bool
+		errorMessageExpected string
+		validateSubnets      func(subnets infrav1.Subnets) error
+	}{
+		{
+			name: "Managed VPC with IPv6, new subnets with isIPv6=true and no IPv6CidrBlock should auto-assign IPv6 CIDRs",
+			input: NewClusterScope().WithNetwork(&infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					ID:        "vpc-ipv6-managed",
+					CidrBlock: "10.0.0.0/16",
+					IPv6: &infrav1.IPv6{
+						CidrBlock: "2001:db8:1234::/56",
+					},
+					Tags: infrav1.Tags{
+						infrav1.ClusterTagKey("test-cluster"): "owned",
+					},
+				},
+				Subnets: []infrav1.SubnetSpec{
+					{
+						ID:               "subnet-public-us-east-1a",
+						CidrBlock:        "10.0.1.0/24",
+						AvailabilityZone: "us-east-1a",
+						IsPublic:         true,
+						IsIPv6:           true,
+						// IPv6CidrBlock not specified - should be auto-assigned
+					},
+					{
+						ID:               "subnet-private-us-east-1a",
+						CidrBlock:        "10.0.2.0/24",
+						AvailabilityZone: "us-east-1a",
+						IsPublic:         false,
+						IsIPv6:           true,
+						// IPv6CidrBlock not specified - should be auto-assigned
+					},
+				},
+			}),
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				// Describe subnets - returns empty (no existing subnets)
+				m.DescribeSubnets(gomock.Any(), gomock.Eq(&ec2.DescribeSubnetsInput{
+					Filters: []types.Filter{
+						{
+							Name:   aws.String("state"),
+							Values: []string{"pending", "available"},
+						},
+						{
+							Name:   aws.String("vpc-id"),
+							Values: []string{"vpc-ipv6-managed"},
+						},
+					},
+				})).Return(&ec2.DescribeSubnetsOutput{}, nil)
+
+				m.DescribeRouteTables(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+					Return(&ec2.DescribeRouteTablesOutput{}, nil)
+
+				m.DescribeNatGateways(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeNatGatewaysInput{}), gomock.Any()).
+					Return(&ec2.DescribeNatGatewaysOutput{}, nil)
+
+				m.DescribeAvailabilityZones(context.TODO(), gomock.Eq(&ec2.DescribeAvailabilityZonesInput{
+					ZoneNames: []string{"us-east-1a"},
+				})).
+					Return(&ec2.DescribeAvailabilityZonesOutput{
+						AvailabilityZones: []types.AvailabilityZone{
+							{
+								ZoneName: aws.String("us-east-1a"),
+								ZoneType: aws.String("availability-zone"),
+							},
+						},
+					}, nil).AnyTimes()
+
+				// Create public subnet with IPv6 - verify IPv6CidrBlock is set in request
+				publicSubnet := m.CreateSubnet(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateSubnetInput{})).
+					Do(func(_ context.Context, input *ec2.CreateSubnetInput, _ ...func(*ec2.Options)) {
+						if aws.ToString(input.Ipv6CidrBlock) == "" {
+							t.Error("Expected CreateSubnetInput to have IPv6CidrBlock set for public subnet, got none")
+						}
+					}).
+					Return(&ec2.CreateSubnetOutput{
+						Subnet: &types.Subnet{
+							VpcId:            aws.String("vpc-ipv6-managed"),
+							SubnetId:         aws.String("subnet-public-us-east-1a"),
+							AvailabilityZone: aws.String("us-east-1a"),
+							CidrBlock:        aws.String("10.0.1.0/24"),
+							Ipv6CidrBlockAssociationSet: []types.SubnetIpv6CidrBlockAssociation{
+								{
+									Ipv6CidrBlock: aws.String("2001:db8:1234:0::/64"),
+									Ipv6CidrBlockState: &types.SubnetCidrBlockState{
+										State: types.SubnetCidrBlockStateCodeAssociated,
+									},
+								},
+							},
+						},
+					}, nil)
+
+				m.DescribeSubnets(gomock.Any(), gomock.AssignableToTypeOf(&ec2.DescribeSubnetsInput{}), gomock.Any()).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []types.Subnet{
+							{
+								SubnetId: aws.String("subnet-public-us-east-1a"),
+								State:    types.SubnetStateAvailable,
+								Ipv6CidrBlockAssociationSet: []types.SubnetIpv6CidrBlockAssociation{
+									{
+										Ipv6CidrBlockState: &types.SubnetCidrBlockState{
+											State: types.SubnetCidrBlockStateCodeAssociated,
+										},
+									},
+								},
+							},
+						},
+					}, nil)
+
+				// Create private subnet with IPv6 - verify IPv6CidrBlock is set in request
+				m.CreateSubnet(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateSubnetInput{})).
+					Do(func(_ context.Context, input *ec2.CreateSubnetInput, _ ...func(*ec2.Options)) {
+						if aws.ToString(input.Ipv6CidrBlock) == "" {
+							t.Error("Expected CreateSubnetInput to have IPv6CidrBlock set for private subnet, got none")
+						}
+					}).
+					Return(&ec2.CreateSubnetOutput{
+						Subnet: &types.Subnet{
+							VpcId:            aws.String("vpc-ipv6-managed"),
+							SubnetId:         aws.String("subnet-private-us-east-1a"),
+							AvailabilityZone: aws.String("us-east-1a"),
+							CidrBlock:        aws.String("10.0.2.0/24"),
+							Ipv6CidrBlockAssociationSet: []types.SubnetIpv6CidrBlockAssociation{
+								{
+									Ipv6CidrBlock: aws.String("2001:db8:1234:1::/64"),
+									Ipv6CidrBlockState: &types.SubnetCidrBlockState{
+										State: types.SubnetCidrBlockStateCodeAssociated,
+									},
+								},
+							},
+						},
+					}, nil)
+
+				m.DescribeSubnets(gomock.Any(), gomock.AssignableToTypeOf(&ec2.DescribeSubnetsInput{}), gomock.Any()).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []types.Subnet{
+							{
+								SubnetId: aws.String("subnet-private-us-east-1a"),
+								State:    types.SubnetStateAvailable,
+								Ipv6CidrBlockAssociationSet: []types.SubnetIpv6CidrBlockAssociation{
+									{
+										Ipv6CidrBlockState: &types.SubnetCidrBlockState{
+											State: types.SubnetCidrBlockStateCodeAssociated,
+										},
+									},
+								},
+							},
+						},
+					}, nil).After(publicSubnet)
+
+				// Modify subnet attributes (IPv6 assignment, DNS64, public IP)
+				m.ModifySubnetAttribute(context.TODO(), gomock.AssignableToTypeOf(&ec2.ModifySubnetAttributeInput{})).
+					Return(&ec2.ModifySubnetAttributeOutput{}, nil).AnyTimes()
+			},
+			validateSubnets: func(subnets infrav1.Subnets) error {
+				if len(subnets) != 2 {
+					return fmt.Errorf("expected 2 subnets, got %d", len(subnets))
+				}
+
+				publicSubnet := subnets.FindByID("subnet-public-us-east-1a")
+				if publicSubnet.IPv6CidrBlock == "" {
+					return fmt.Errorf("expected public subnet to have IPv6CidrBlock assigned")
+				}
+				if !publicSubnet.IsIPv6 {
+					return fmt.Errorf("expected public subnet to have IsIPv6=true")
+				}
+
+				privateSubnet := subnets.FindByID("subnet-private-us-east-1a")
+				if privateSubnet.IPv6CidrBlock == "" {
+					return fmt.Errorf("expected private subnet to have IPv6CidrBlock assigned")
+				}
+				if !privateSubnet.IsIPv6 {
+					return fmt.Errorf("expected private subnet to have IsIPv6=true")
+				}
+
+				// Verify IPv6 CIDRs are different
+				if publicSubnet.IPv6CidrBlock == privateSubnet.IPv6CidrBlock {
+					return fmt.Errorf("expected public and private subnets to have different IPv6 CIDRs, got %s", privateSubnet.IPv6CidrBlock)
+				}
+				return nil
+			},
+		},
+		{
+			name: "Managed VPC with IPv6, subnets with existing IPv6CidrBlock should not be overwritten",
+			input: NewClusterScope().WithNetwork(&infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					ID:        "vpc-ipv6-managed",
+					CidrBlock: "10.0.0.0/16",
+					IPv6: &infrav1.IPv6{
+						CidrBlock: "2001:db8:1234::/56",
+					},
+					Tags: infrav1.Tags{
+						infrav1.ClusterTagKey("test-cluster"): "owned",
+					},
+				},
+				Subnets: []infrav1.SubnetSpec{
+					{
+						ID:               "subnet-public-us-east-1a",
+						CidrBlock:        "10.0.1.0/24",
+						IPv6CidrBlock:    "2001:db8:1234:0::/64", // Explicitly specified
+						AvailabilityZone: "us-east-1a",
+						IsPublic:         true,
+						IsIPv6:           true,
+					},
+					{
+						ID:               "subnet-private-us-east-1a",
+						CidrBlock:        "10.0.2.0/24",
+						AvailabilityZone: "us-east-1a",
+						IsPublic:         false,
+						IsIPv6:           true,
+						// IPv6CidrBlock not specified - should be auto-assigned, but not conflict with existing
+					},
+				},
+			}),
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeSubnets(gomock.Any(), gomock.Eq(&ec2.DescribeSubnetsInput{
+					Filters: []types.Filter{
+						{
+							Name:   aws.String("state"),
+							Values: []string{"pending", "available"},
+						},
+						{
+							Name:   aws.String("vpc-id"),
+							Values: []string{"vpc-ipv6-managed"},
+						},
+					},
+				})).Return(&ec2.DescribeSubnetsOutput{}, nil)
+
+				m.DescribeRouteTables(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+					Return(&ec2.DescribeRouteTablesOutput{}, nil)
+
+				m.DescribeNatGateways(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeNatGatewaysInput{}), gomock.Any()).
+					Return(&ec2.DescribeNatGatewaysOutput{}, nil)
+
+				m.DescribeAvailabilityZones(context.TODO(), gomock.Eq(&ec2.DescribeAvailabilityZonesInput{
+					ZoneNames: []string{"us-east-1a"},
+				})).
+					Return(&ec2.DescribeAvailabilityZonesOutput{
+						AvailabilityZones: []types.AvailabilityZone{
+							{
+								ZoneName: aws.String("us-east-1a"),
+								ZoneType: aws.String("availability-zone"),
+							},
+						},
+					}, nil).AnyTimes()
+
+				// Create public subnet with explicitly specified IPv6 CIDR - verify IPv6CidrBlock is set in request
+				publicSubnet := m.CreateSubnet(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateSubnetInput{})).
+					Do(func(_ context.Context, input *ec2.CreateSubnetInput, _ ...func(*ec2.Options)) {
+						if aws.ToString(input.Ipv6CidrBlock) != "2001:db8:1234:0::/64" {
+							t.Errorf("Expected CreateSubnetInput to have IPv6CidrBlock=2001:db8:1234:0::/64, got %s", aws.ToString(input.Ipv6CidrBlock))
+						}
+					}).
+					Return(&ec2.CreateSubnetOutput{
+						Subnet: &types.Subnet{
+							VpcId:            aws.String("vpc-ipv6-managed"),
+							SubnetId:         aws.String("subnet-public-us-east-1a"),
+							AvailabilityZone: aws.String("us-east-1a"),
+							CidrBlock:        aws.String("10.0.1.0/24"),
+							Ipv6CidrBlockAssociationSet: []types.SubnetIpv6CidrBlockAssociation{
+								{
+									Ipv6CidrBlock: aws.String("2001:db8:1234:0::/64"),
+									Ipv6CidrBlockState: &types.SubnetCidrBlockState{
+										State: types.SubnetCidrBlockStateCodeAssociated,
+									},
+								},
+							},
+						},
+					}, nil)
+
+				m.DescribeSubnets(gomock.Any(), gomock.AssignableToTypeOf(&ec2.DescribeSubnetsInput{}), gomock.Any()).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []types.Subnet{
+							{
+								SubnetId: aws.String("subnet-public-us-east-1a"),
+								State:    types.SubnetStateAvailable,
+								Ipv6CidrBlockAssociationSet: []types.SubnetIpv6CidrBlockAssociation{
+									{
+										Ipv6CidrBlockState: &types.SubnetCidrBlockState{
+											State: types.SubnetCidrBlockStateCodeAssociated,
+										},
+									},
+								},
+							},
+						},
+					}, nil)
+
+				// Create private subnet with auto-assigned IPv6 CIDR - verify IPv6CidrBlock is set in request
+				m.CreateSubnet(context.TODO(), gomock.AssignableToTypeOf(&ec2.CreateSubnetInput{})).
+					Do(func(_ context.Context, input *ec2.CreateSubnetInput, _ ...func(*ec2.Options)) {
+						if aws.ToString(input.Ipv6CidrBlock) == "" {
+							t.Error("Expected CreateSubnetInput to have IPv6CidrBlock set for private subnet, got none")
+						}
+					}).
+					Return(&ec2.CreateSubnetOutput{
+						Subnet: &types.Subnet{
+							VpcId:            aws.String("vpc-ipv6-managed"),
+							SubnetId:         aws.String("subnet-private-us-east-1a"),
+							AvailabilityZone: aws.String("us-east-1a"),
+							CidrBlock:        aws.String("10.0.2.0/24"),
+							Ipv6CidrBlockAssociationSet: []types.SubnetIpv6CidrBlockAssociation{
+								{
+									Ipv6CidrBlock: aws.String("2001:db8:1234:1::/64"),
+									Ipv6CidrBlockState: &types.SubnetCidrBlockState{
+										State: types.SubnetCidrBlockStateCodeAssociated,
+									},
+								},
+							},
+						},
+					}, nil)
+
+				m.DescribeSubnets(gomock.Any(), gomock.AssignableToTypeOf(&ec2.DescribeSubnetsInput{}), gomock.Any()).
+					Return(&ec2.DescribeSubnetsOutput{
+						Subnets: []types.Subnet{
+							{
+								SubnetId: aws.String("subnet-private-us-east-1a"),
+								State:    types.SubnetStateAvailable,
+								Ipv6CidrBlockAssociationSet: []types.SubnetIpv6CidrBlockAssociation{
+									{
+										Ipv6CidrBlockState: &types.SubnetCidrBlockState{
+											State: types.SubnetCidrBlockStateCodeAssociated,
+										},
+									},
+								},
+							},
+						},
+					}, nil).After(publicSubnet)
+
+				m.ModifySubnetAttribute(context.TODO(), gomock.AssignableToTypeOf(&ec2.ModifySubnetAttributeInput{})).
+					Return(&ec2.ModifySubnetAttributeOutput{}, nil).AnyTimes()
+			},
+			validateSubnets: func(subnets infrav1.Subnets) error {
+				publicSubnet := subnets.FindByID("subnet-public-us-east-1a")
+				if publicSubnet.IPv6CidrBlock != "2001:db8:1234:0::/64" {
+					return fmt.Errorf("expected public subnet to keep explicitly specified IPv6 CIDR, got %s", publicSubnet.IPv6CidrBlock)
+				}
+
+				privateSubnet := subnets.FindByID("subnet-private-us-east-1a")
+				if privateSubnet.IPv6CidrBlock == "" {
+					return fmt.Errorf("expected private subnet to have auto-assigned IPv6 CIDR")
+				}
+				if privateSubnet.IPv6CidrBlock == publicSubnet.IPv6CidrBlock {
+					return fmt.Errorf("expected private subnet to have different IPv6 CIDR from public subnet, got %s", privateSubnet.IPv6CidrBlock)
+				}
+				return nil
+			},
+		},
+		{
+			name: "Managed VPC without IPv6, subnets with isIPv6=true should fail",
+			input: NewClusterScope().WithNetwork(&infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					ID:        "vpc-no-ipv6",
+					CidrBlock: "10.0.0.0/16",
+					// No IPv6 block
+					Tags: infrav1.Tags{
+						infrav1.ClusterTagKey("test-cluster"): "owned",
+					},
+				},
+				Subnets: []infrav1.SubnetSpec{
+					{
+						ID:               "subnet-public",
+						CidrBlock:        "10.0.1.0/24",
+						AvailabilityZone: "us-east-1a",
+						IsPublic:         true,
+						IsIPv6:           true,
+					},
+				},
+			}),
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeSubnets(gomock.Any(), gomock.Eq(&ec2.DescribeSubnetsInput{
+					Filters: []types.Filter{
+						{
+							Name:   aws.String("state"),
+							Values: []string{"pending", "available"},
+						},
+						{
+							Name:   aws.String("vpc-id"),
+							Values: []string{"vpc-no-ipv6"},
+						},
+					},
+				})).Return(&ec2.DescribeSubnetsOutput{}, nil)
+
+				m.DescribeRouteTables(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+					Return(&ec2.DescribeRouteTablesOutput{}, nil)
+
+				m.DescribeNatGateways(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeNatGatewaysInput{}), gomock.Any()).
+					Return(&ec2.DescribeNatGatewaysOutput{}, nil)
+
+				m.DescribeAvailabilityZones(context.TODO(), gomock.Eq(&ec2.DescribeAvailabilityZonesInput{
+					ZoneNames: []string{"us-east-1a"},
+				})).
+					Return(&ec2.DescribeAvailabilityZonesOutput{
+						AvailabilityZones: []types.AvailabilityZone{
+							{
+								ZoneName: aws.String("us-east-1a"),
+								ZoneType: aws.String("availability-zone"),
+							},
+						},
+					}, nil).AnyTimes()
+			},
+			errorExpected:        true,
+			errorMessageExpected: "IPv6 CIDR block is required when isIpv6 is set to true",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
+
+			scope, err := tc.input.Build()
+			g.Expect(err).NotTo(HaveOccurred())
+
+			tc.expect(ec2Mock.EXPECT())
+
+			s := NewService(scope)
+			s.EC2Client = ec2Mock
+
+			err = s.reconcileSubnets()
+			if tc.errorExpected {
+				g.Expect(err).To(HaveOccurred())
+				if tc.errorMessageExpected != "" {
+					g.Expect(err.Error()).To(Equal(tc.errorMessageExpected))
+				}
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+				if tc.validateSubnets != nil {
+					g.Expect(tc.validateSubnets(scope.Subnets())).To(Succeed())
+				}
 			}
 		})
 	}
