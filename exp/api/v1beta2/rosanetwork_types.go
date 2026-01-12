@@ -31,12 +31,12 @@ type ROSANetworkSpec struct {
 	// The name of the cloudformation stack under which the network infrastructure would be created
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="stackName is immutable"
 	// +kubebuilder:validation:Required
-	StackName string `json:"stackName"`
+	StackName *string `json:"stackName,omitempty"`
 
 	// The AWS region in which the components of ROSA network infrastruture are to be crated
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="region is immutable"
 	// +kubebuilder:validation:Required
-	Region string `json:"region"`
+	Region *string `json:"region,omitempty"`
 
 	// The number of availability zones to be used for creation of the network infrastructure.
 	// You can specify anything between one and four, depending on the chosen AWS region.
@@ -56,7 +56,7 @@ type ROSANetworkSpec struct {
 	// CIDR block to be used for the VPC
 	// +kubebuilder:validation:Format=cidr
 	// +kubebuilder:validation:Required
-	CIDRBlock string `json:"cidrBlock"`
+	CIDRBlock *string `json:"cidrBlock,omitempty"`
 
 	// IdentityRef is a reference to an identity to be used when reconciling rosa network.
 	// If no identity is specified, the default identity for this controller will be used.

@@ -285,7 +285,7 @@ type AccessConfig struct {
 type AccessEntry struct {
 	// PrincipalARN is the Amazon Resource Name (ARN) of the IAM principal
 	// +kubebuilder:validation:Required
-	PrincipalARN string `json:"principalARN"`
+	PrincipalARN *string `json:"principalARN,omitempty"`
 
 	// Type is the type of access entry. Defaults to standard if not specified.
 	// +kubebuilder:default=standard
@@ -313,11 +313,11 @@ type AccessEntry struct {
 type AccessPolicyReference struct {
 	// PolicyARN is the Amazon Resource Name (ARN) of the access policy
 	// +kubebuilder:validation:Required
-	PolicyARN string `json:"policyARN"`
+	PolicyARN *string `json:"policyARN,omitempty"`
 
 	// AccessScope specifies the scope for the policy
 	// +kubebuilder:validation:Required
-	AccessScope AccessScope `json:"accessScope"`
+	AccessScope AccessScope `json:"accessScope,omitzero"`
 }
 
 // AccessScope represents the scope for an access policy

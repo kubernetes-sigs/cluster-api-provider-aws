@@ -1060,7 +1060,7 @@ func TestWebhookValidateAccessEntries(t *testing.T) {
 			},
 			accessEntries: []AccessEntry{
 				{
-					PrincipalARN:     "arn:aws:iam::123456789012:role/EKSAdmin",
+					PrincipalARN:     aws.String("arn:aws:iam::123456789012:role/EKSAdmin"),
 					Type:             AccessEntryTypeStandard,
 					KubernetesGroups: []string{"system:masters"},
 				},
@@ -1074,7 +1074,7 @@ func TestWebhookValidateAccessEntries(t *testing.T) {
 			},
 			accessEntries: []AccessEntry{
 				{
-					PrincipalARN:     "arn:aws:iam::123456789012:role/EKSAdmin",
+					PrincipalARN:     aws.String("arn:aws:iam::123456789012:role/EKSAdmin"),
 					Type:             AccessEntryTypeStandard,
 					KubernetesGroups: []string{"system:masters"},
 				},
@@ -1088,7 +1088,7 @@ func TestWebhookValidateAccessEntries(t *testing.T) {
 			},
 			accessEntries: []AccessEntry{
 				{
-					PrincipalARN:     "arn:aws:iam::123456789012:role/EKSAdmin",
+					PrincipalARN:     aws.String("arn:aws:iam::123456789012:role/EKSAdmin"),
 					Type:             AccessEntryTypeStandard,
 					KubernetesGroups: []string{"system:masters"},
 				},
@@ -1103,7 +1103,7 @@ func TestWebhookValidateAccessEntries(t *testing.T) {
 			},
 			accessEntries: []AccessEntry{
 				{
-					PrincipalARN:     "arn:aws:iam::123456789012:role/EKSAdmin",
+					PrincipalARN:     aws.String("arn:aws:iam::123456789012:role/EKSAdmin"),
 					Type:             AccessEntryTypeEC2Linux,
 					KubernetesGroups: []string{"system:masters"},
 				},
@@ -1118,11 +1118,11 @@ func TestWebhookValidateAccessEntries(t *testing.T) {
 			},
 			accessEntries: []AccessEntry{
 				{
-					PrincipalARN: "arn:aws:iam::123456789012:role/EKSAdmin",
+					PrincipalARN: aws.String("arn:aws:iam::123456789012:role/EKSAdmin"),
 					Type:         AccessEntryTypeEC2Windows,
 					AccessPolicies: []AccessPolicyReference{
 						{
-							PolicyARN: "arn:aws:eks::aws:cluster-access-policy/AmazonEKSViewPolicy",
+							PolicyARN: aws.String("arn:aws:eks::aws:cluster-access-policy/AmazonEKSViewPolicy"),
 							AccessScope: AccessScope{
 								Type: AccessScopeTypeCluster,
 							},
@@ -1140,11 +1140,11 @@ func TestWebhookValidateAccessEntries(t *testing.T) {
 			},
 			accessEntries: []AccessEntry{
 				{
-					PrincipalARN: "arn:aws:iam::123456789012:role/EKSAdmin",
+					PrincipalARN: aws.String("arn:aws:iam::123456789012:role/EKSAdmin"),
 					Type:         AccessEntryTypeStandard,
 					AccessPolicies: []AccessPolicyReference{
 						{
-							PolicyARN: "arn:aws:eks::aws:cluster-access-policy/AmazonEKSViewPolicy",
+							PolicyARN: aws.String("arn:aws:eks::aws:cluster-access-policy/AmazonEKSViewPolicy"),
 							AccessScope: AccessScope{
 								Type: AccessScopeTypeNamespace,
 							},
@@ -1162,11 +1162,11 @@ func TestWebhookValidateAccessEntries(t *testing.T) {
 			},
 			accessEntries: []AccessEntry{
 				{
-					PrincipalARN: "arn:aws:iam::123456789012:role/EKSAdmin",
+					PrincipalARN: aws.String("arn:aws:iam::123456789012:role/EKSAdmin"),
 					Type:         AccessEntryTypeStandard,
 					AccessPolicies: []AccessPolicyReference{
 						{
-							PolicyARN: "arn:aws:eks::aws:cluster-access-policy/AmazonEKSViewPolicy",
+							PolicyARN: aws.String("arn:aws:eks::aws:cluster-access-policy/AmazonEKSViewPolicy"),
 							AccessScope: AccessScope{
 								Type:       AccessScopeTypeNamespace,
 								Namespaces: []string{"default", "kube-system"},

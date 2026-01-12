@@ -347,11 +347,11 @@ func TestROSARoleConfigReconcileCreate(t *testing.T) {
 		},
 		Spec: expinfrav1.ROSARoleConfigSpec{
 			AccountRoleConfig: expinfrav1.AccountRoleConfig{
-				Prefix:  "test",
-				Version: "4.15.0",
+				Prefix: awsSdk.String("test"),
+				Version: awsSdk.String("4.15.0"),
 			},
 			OperatorRoleConfig: expinfrav1.OperatorRoleConfig{
-				Prefix: "test",
+				Prefix: awsSdk.String("test"),
 			},
 			OidcProviderType: expinfrav1.Managed,
 		},
@@ -568,11 +568,11 @@ func TestROSARoleConfigReconcileExist(t *testing.T) {
 		},
 		Spec: expinfrav1.ROSARoleConfigSpec{
 			AccountRoleConfig: expinfrav1.AccountRoleConfig{
-				Prefix:  "test",
-				Version: "4.15.0",
+				Prefix: awsSdk.String("test"),
+				Version: awsSdk.String("4.15.0"),
 			},
 			OperatorRoleConfig: expinfrav1.OperatorRoleConfig{
-				Prefix: "test",
+				Prefix: awsSdk.String("test"),
 			},
 			OidcProviderType: expinfrav1.Managed,
 		},
@@ -832,11 +832,11 @@ func TestROSARoleConfigReconcileDelete(t *testing.T) {
 		},
 		Spec: expinfrav1.ROSARoleConfigSpec{
 			AccountRoleConfig: expinfrav1.AccountRoleConfig{
-				Prefix:  "test",
-				Version: "4.15.0",
+				Prefix: awsSdk.String("test"),
+				Version: awsSdk.String("4.15.0"),
 			},
 			OperatorRoleConfig: expinfrav1.OperatorRoleConfig{
-				Prefix: "test",
+				Prefix: awsSdk.String("test"),
 			},
 			OidcProviderType: expinfrav1.Managed,
 		},
