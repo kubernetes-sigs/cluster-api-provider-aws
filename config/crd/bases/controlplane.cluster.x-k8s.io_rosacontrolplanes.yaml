@@ -233,7 +233,7 @@ spec:
                         minimum: 1
                         type: integer
                       minReplicas:
-                        minimum: 1
+                        minimum: 0
                         type: integer
                     type: object
                   instanceType:
