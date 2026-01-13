@@ -678,11 +678,11 @@ func Convert_v1beta2_KubernetesMapping_To_v1beta1_KubernetesMapping(in *v1beta2.
 }
 
 func autoConvert_v1beta1_OIDCIdentityProviderConfig_To_v1beta2_OIDCIdentityProviderConfig(in *OIDCIdentityProviderConfig, out *v1beta2.OIDCIdentityProviderConfig, s conversion.Scope) error {
-	out.ClientID = in.ClientID
+	out.ClientID = (*string)(unsafe.Pointer(in.ClientID))
 	out.GroupsClaim = (*string)(unsafe.Pointer(in.GroupsClaim))
 	out.GroupsPrefix = (*string)(unsafe.Pointer(in.GroupsPrefix))
-	out.IdentityProviderConfigName = in.IdentityProviderConfigName
-	out.IssuerURL = in.IssuerURL
+	out.IdentityProviderConfigName = (*string)(unsafe.Pointer(in.IdentityProviderConfigName))
+	out.IssuerURL = (*string)(unsafe.Pointer(in.IssuerURL))
 	out.RequiredClaims = *(*map[string]string)(unsafe.Pointer(&in.RequiredClaims))
 	out.UsernameClaim = (*string)(unsafe.Pointer(in.UsernameClaim))
 	out.UsernamePrefix = (*string)(unsafe.Pointer(in.UsernamePrefix))
@@ -696,11 +696,11 @@ func Convert_v1beta1_OIDCIdentityProviderConfig_To_v1beta2_OIDCIdentityProviderC
 }
 
 func autoConvert_v1beta2_OIDCIdentityProviderConfig_To_v1beta1_OIDCIdentityProviderConfig(in *v1beta2.OIDCIdentityProviderConfig, out *OIDCIdentityProviderConfig, s conversion.Scope) error {
-	out.ClientID = in.ClientID
+	out.ClientID = (*string)(unsafe.Pointer(in.ClientID))
 	out.GroupsClaim = (*string)(unsafe.Pointer(in.GroupsClaim))
 	out.GroupsPrefix = (*string)(unsafe.Pointer(in.GroupsPrefix))
-	out.IdentityProviderConfigName = in.IdentityProviderConfigName
-	out.IssuerURL = in.IssuerURL
+	out.IdentityProviderConfigName = (*string)(unsafe.Pointer(in.IdentityProviderConfigName))
+	out.IssuerURL = (*string)(unsafe.Pointer(in.IssuerURL))
 	out.RequiredClaims = *(*map[string]string)(unsafe.Pointer(&in.RequiredClaims))
 	out.UsernameClaim = (*string)(unsafe.Pointer(in.UsernameClaim))
 	out.UsernamePrefix = (*string)(unsafe.Pointer(in.UsernamePrefix))

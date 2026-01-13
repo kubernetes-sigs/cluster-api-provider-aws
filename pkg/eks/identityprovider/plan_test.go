@@ -220,9 +220,9 @@ func createTags() infrav1.Tags {
 
 func createDesiredIdentityProvider(name string, tags infrav1.Tags) *OidcIdentityProviderConfig {
 	return &OidcIdentityProviderConfig{
-		ClientID:                   "clientId",
-		IdentityProviderConfigName: name,
-		IssuerURL:                  "http://IssuerURL.com",
+		ClientID:                   aws.String("clientId"),
+		IdentityProviderConfigName: aws.String(name),
+		IssuerURL:                  aws.String("http://IssuerURL.com"),
 		RequiredClaims:             make(map[string]string),
 		Tags:                       tags,
 	}
@@ -256,6 +256,6 @@ func createDesiredIdentityProviderRequest(name *string) *ekstypes.OidcIdentityPr
 
 func createDesiredIdentityProviderWithDifferentClientID(name string, tags infrav1.Tags) *OidcIdentityProviderConfig {
 	p := createDesiredIdentityProvider(name, tags)
-	p.ClientID = "clientId2"
+	p.ClientID = aws.String("clientId2")
 	return p
 }

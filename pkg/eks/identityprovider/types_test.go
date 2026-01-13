@@ -19,6 +19,7 @@ package identityprovider
 import (
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/onsi/gomega"
 )
 
@@ -30,14 +31,14 @@ func TestIdentityProviderEqual(t *testing.T) {
 	}{
 		{
 			orig: &OidcIdentityProviderConfig{
-				ClientID:                   "a",
-				IdentityProviderConfigName: "b",
-				IssuerURL:                  "c",
+				ClientID:                   aws.String("a"),
+				IdentityProviderConfigName: aws.String("b"),
+				IssuerURL:                  aws.String("c"),
 			},
 			other: &OidcIdentityProviderConfig{
-				ClientID:                   "a",
-				IdentityProviderConfigName: "b",
-				IssuerURL:                  "c",
+				ClientID:                   aws.String("a"),
+				IdentityProviderConfigName: aws.String("b"),
+				IssuerURL:                  aws.String("c"),
 				Status:                     "e",
 			},
 		},

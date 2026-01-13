@@ -128,12 +128,12 @@ func (s *Service) getAssociatedIdentityProvider(ctx context.Context, clusterName
 	config := providerconfig.IdentityProviderConfig.Oidc
 
 	return &identityprovider.OidcIdentityProviderConfig{
-		ClientID:                   aws.ToString(config.ClientId),
+		ClientID:                   config.ClientId,
 		GroupsClaim:                aws.ToString(config.GroupsClaim),
 		GroupsPrefix:               aws.ToString(config.GroupsPrefix),
 		IdentityProviderConfigArn:  aws.ToString(config.IdentityProviderConfigArn),
-		IdentityProviderConfigName: aws.ToString(config.IdentityProviderConfigName),
-		IssuerURL:                  aws.ToString(config.IssuerUrl),
+		IdentityProviderConfigName: config.IdentityProviderConfigName,
+		IssuerURL:                  config.IssuerUrl,
 		RequiredClaims:             config.RequiredClaims,
 		Status:                     string(config.Status),
 		Tags:                       converters.MapPtrToMap(config.Tags),

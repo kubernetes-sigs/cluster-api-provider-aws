@@ -304,8 +304,7 @@ type OIDCIdentityProviderConfig struct {
 	// This is also known as audience. The ID for the client application that makes
 	// authentication requests to the OpenID identity provider.
 	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinLength=1
-	ClientID string `json:"clientId,omitempty"`
+	ClientID *string `json:"clientId,omitempty"`
 
 	// The JWT claim that the provider uses to return your groups.
 	// +optional
@@ -321,8 +320,7 @@ type OIDCIdentityProviderConfig struct {
 	//
 	// IdentityProviderConfigName is a required field
 	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinLength=1
-	IdentityProviderConfigName string `json:"identityProviderConfigName,omitempty"`
+	IdentityProviderConfigName *string `json:"identityProviderConfigName,omitempty"`
 
 	// The URL of the OpenID identity provider that allows the API server to discover
 	// public signing keys for verifying tokens. The URL must begin with https://
@@ -333,9 +331,8 @@ type OIDCIdentityProviderConfig struct {
 	// and must be publicly accessible over the internet.
 	//
 	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:XValidation:rule="isURL(self) && url(self).getScheme() == 'https'"
-	IssuerURL string `json:"issuerUrl,omitempty"`
+	IssuerURL *string `json:"issuerUrl,omitempty"`
 
 	// The key value pairs that describe required claims in the identity token.
 	// If set, each claim is verified to be present in the token with a matching
