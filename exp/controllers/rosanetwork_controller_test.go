@@ -33,14 +33,13 @@ import (
 	gomock "go.uber.org/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 func TestROSANetworkReconciler_Reconcile(t *testing.T) {
@@ -69,10 +68,10 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 			Namespace: ns.Name,
 		},
 		Spec: expinfrav1.ROSANetworkSpec{
-			StackName: awsSdk.String(name),
-			CIDRBlock: awsSdk.String("10.0.0.0/8"),
+			StackName:             awsSdk.String(name),
+			CIDRBlock:             awsSdk.String("10.0.0.0/8"),
 			AvailabilityZoneCount: 1,
-			Region: awsSdk.String("test-region"),
+			Region:                awsSdk.String("test-region"),
 			IdentityRef: &infrav1.AWSIdentityReference{
 				Name: identity.Name,
 				Kind: infrav1.ControllerIdentityKind,
@@ -90,10 +89,10 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 			Namespace: ns.Name,
 		},
 		Spec: expinfrav1.ROSANetworkSpec{
-			StackName: awsSdk.String(nameDeleted),
-			CIDRBlock: awsSdk.String("10.0.0.0/8"),
+			StackName:             awsSdk.String(nameDeleted),
+			CIDRBlock:             awsSdk.String("10.0.0.0/8"),
 			AvailabilityZoneCount: 1,
-			Region: awsSdk.String("test-region"),
+			Region:                awsSdk.String("test-region"),
 			IdentityRef: &infrav1.AWSIdentityReference{
 				Name: identity.Name,
 				Kind: infrav1.ControllerIdentityKind,
@@ -197,7 +196,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		describeStacksOutput := &cloudformation.DescribeStacksOutput{
 			Stacks: []cloudformationtypes.Stack{
 				{
-					StackName: awsSdk.String(name),
+					StackName:   awsSdk.String(name),
 					StackStatus: cloudformationtypes.StackStatusCreateInProgress,
 				},
 			},
@@ -228,7 +227,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		describeStacksOutput := &cloudformation.DescribeStacksOutput{
 			Stacks: []cloudformationtypes.Stack{
 				{
-					StackName: awsSdk.String(name),
+					StackName:   awsSdk.String(name),
 					StackStatus: cloudformationtypes.StackStatusCreateComplete,
 				},
 			},
@@ -259,7 +258,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		describeStacksOutput := &cloudformation.DescribeStacksOutput{
 			Stacks: []cloudformationtypes.Stack{
 				{
-					StackName: awsSdk.String(name),
+					StackName:   awsSdk.String(name),
 					StackStatus: cloudformationtypes.StackStatusCreateFailed,
 				},
 			},
@@ -290,7 +289,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		describeStacksOutput := &cloudformation.DescribeStacksOutput{
 			Stacks: []cloudformationtypes.Stack{
 				{
-					StackName: awsSdk.String(nameDeleted),
+					StackName:   awsSdk.String(nameDeleted),
 					StackStatus: cloudformationtypes.StackStatusCreateComplete,
 				},
 			},
@@ -323,7 +322,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		describeStacksOutput := &cloudformation.DescribeStacksOutput{
 			Stacks: []cloudformationtypes.Stack{
 				{
-					StackName: awsSdk.String(nameDeleted),
+					StackName:   awsSdk.String(nameDeleted),
 					StackStatus: cloudformationtypes.StackStatusCreateComplete,
 				},
 			},
@@ -356,7 +355,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		describeStacksOutput := &cloudformation.DescribeStacksOutput{
 			Stacks: []cloudformationtypes.Stack{
 				{
-					StackName: awsSdk.String(nameDeleted),
+					StackName:   awsSdk.String(nameDeleted),
 					StackStatus: cloudformationtypes.StackStatusDeleteInProgress,
 				},
 			},
@@ -381,7 +380,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		describeStacksOutput := &cloudformation.DescribeStacksOutput{
 			Stacks: []cloudformationtypes.Stack{
 				{
-					StackName: awsSdk.String(nameDeleted),
+					StackName:   awsSdk.String(nameDeleted),
 					StackStatus: cloudformationtypes.StackStatusDeleteFailed,
 				},
 			},

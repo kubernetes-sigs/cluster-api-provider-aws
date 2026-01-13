@@ -42,11 +42,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
-
 	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 // generateTestID creates a unique identifier for test resources.
@@ -347,7 +346,7 @@ func TestROSARoleConfigReconcileCreate(t *testing.T) {
 		},
 		Spec: expinfrav1.ROSARoleConfigSpec{
 			AccountRoleConfig: expinfrav1.AccountRoleConfig{
-				Prefix: awsSdk.String("test"),
+				Prefix:  awsSdk.String("test"),
 				Version: awsSdk.String("4.15.0"),
 			},
 			OperatorRoleConfig: expinfrav1.OperatorRoleConfig{
@@ -568,7 +567,7 @@ func TestROSARoleConfigReconcileExist(t *testing.T) {
 		},
 		Spec: expinfrav1.ROSARoleConfigSpec{
 			AccountRoleConfig: expinfrav1.AccountRoleConfig{
-				Prefix: awsSdk.String("test"),
+				Prefix:  awsSdk.String("test"),
 				Version: awsSdk.String("4.15.0"),
 			},
 			OperatorRoleConfig: expinfrav1.OperatorRoleConfig{
@@ -832,7 +831,7 @@ func TestROSARoleConfigReconcileDelete(t *testing.T) {
 		},
 		Spec: expinfrav1.ROSARoleConfigSpec{
 			AccountRoleConfig: expinfrav1.AccountRoleConfig{
-				Prefix: awsSdk.String("test"),
+				Prefix:  awsSdk.String("test"),
 				Version: awsSdk.String("4.15.0"),
 			},
 			OperatorRoleConfig: expinfrav1.OperatorRoleConfig{

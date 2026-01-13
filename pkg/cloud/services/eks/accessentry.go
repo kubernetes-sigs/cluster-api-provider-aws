@@ -149,7 +149,7 @@ func (s *Service) createAccessEntry(ctx context.Context, accessEntry ekscontrolp
 	}
 
 	if err := s.reconcileAccessPolicies(ctx, accessEntry); err != nil {
-		return errors.Wrapf(err, "failed to reconcile access policies for principal %s", accessEntry.PrincipalARN)
+		return errors.Wrapf(err, "failed to reconcile access policies for principal %s", *accessEntry.PrincipalARN)
 	}
 
 	return nil
@@ -200,7 +200,7 @@ func (s *Service) updateAccessEntry(ctx context.Context, accessEntry ekscontrolp
 	}
 
 	if err := s.reconcileAccessPolicies(ctx, accessEntry); err != nil {
-		return errors.Wrapf(err, "failed to reconcile access policies for principal %s", accessEntry.PrincipalARN)
+		return errors.Wrapf(err, "failed to reconcile access policies for principal %s", *accessEntry.PrincipalARN)
 	}
 
 	return nil
