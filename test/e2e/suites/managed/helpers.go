@@ -274,8 +274,8 @@ func verifyAccessEntries(ctx context.Context, eksClusterName string, expectedEnt
 		}
 
 		for _, expectedEntry := range expectedEntries {
-			if _, exists := existingEntries[expectedEntry.PrincipalARN]; !exists {
-				return fmt.Errorf("expected access entry not found: %s", expectedEntry.PrincipalARN)
+			if _, exists := existingEntries[*expectedEntry.PrincipalARN]; !exists {
+				return fmt.Errorf("expected access entry not found: %s", *expectedEntry.PrincipalARN)
 			}
 		}
 		return nil
@@ -286,9 +286,9 @@ func verifyAccessEntries(ctx context.Context, eksClusterName string, expectedEnt
 
 		describeOutput, err := eksClient.DescribeAccessEntry(ctx, &eks.DescribeAccessEntryInput{
 			ClusterName:  &eksClusterName,
-			PrincipalArn: &principalARN,
+			PrincipalArn: principalARN,
 		})
-		Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("failed to describe access entry: %s", principalARN))
+		Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("failed to describe access entry: %s", *principalARN))
 
 		Expect(describeOutput.AccessEntry.Type).To(HaveValue(BeEquivalentTo(expectedEntry.Type)), "access entry type does not match")
 		if expectedEntry.Username != "" {
@@ -304,13 +304,13 @@ func verifyAccessEntries(ctx context.Context, eksClusterName string, expectedEnt
 		if len(expectedEntry.AccessPolicies) > 0 {
 			listOutput, err := eksClient.ListAssociatedAccessPolicies(ctx, &eks.ListAssociatedAccessPoliciesInput{
 				ClusterName:  &eksClusterName,
-				PrincipalArn: &principalARN,
+				PrincipalArn: principalARN,
 			})
 			Expect(err).ToNot(HaveOccurred(), "failed to list access policies")
 
 			expectedPolicies := make(map[string]ekscontrolplanev1.AccessPolicyReference, len(expectedEntry.AccessPolicies))
 			for _, policy := range expectedEntry.AccessPolicies {
-				expectedPolicies[policy.PolicyARN] = policy
+				expectedPolicies[*policy.PolicyARN] = policy
 			}
 
 			for _, policy := range listOutput.AssociatedAccessPolicies {
