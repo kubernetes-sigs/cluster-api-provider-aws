@@ -147,12 +147,13 @@ func TestAWSMachineReconciler(t *testing.T) {
 			scope.ClusterScopeParams{
 				Client:     fake.NewClientBuilder().WithObjects(awsMachine, secret).WithStatusSubresource(awsMachine).Build(),
 				Cluster:    &clusterv1.Cluster{},
-				AWSCluster: &infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}},
+				AWSCluster: &infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Spec: infrav1.AWSClusterSpec{Region: "us-west-2"}},
 			},
 		)
 		g.Expect(err).To(BeNil())
 		cs.AWSCluster = &infrav1.AWSCluster{
 			Spec: infrav1.AWSClusterSpec{
+				Region: "us-west-2",
 				ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
 					LoadBalancerType: infrav1.LoadBalancerTypeClassic,
 				},
@@ -2669,7 +2670,7 @@ func TestAWSMachineReconcilerReconcile(t *testing.T) {
 					},
 				},
 			},
-			awsCluster:  &infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "aws-test-5"}},
+			awsCluster:  &infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "aws-test-5"}, Spec: infrav1.AWSClusterSpec{Region: "us-west-2"}},
 			expectError: true,
 		},
 	}
@@ -2784,6 +2785,7 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 			},
 		},
 		Spec: infrav1.AWSClusterSpec{
+			Region: "us-west-2",
 			ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
 				Scheme: &infrav1.ELBSchemeInternetFacing,
 				// `LoadBalancerType` not set (i.e. empty string; must default to attaching instance to classic LB)

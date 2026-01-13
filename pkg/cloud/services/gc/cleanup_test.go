@@ -958,6 +958,7 @@ func createManagedControlPlane(gcAnnotationValue, gcTasksAnnotationValue string)
 			Namespace: "default",
 		},
 		Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+			Region:         "us-west-2",
 			EKSClusterName: "eks-test-cluster",
 		},
 	}
@@ -991,7 +992,9 @@ func createAWSCluser(gcAnnotationValue, gcTasksAnnotationValue string) *infrav1.
 			Name:      "cluster1",
 			Namespace: "default",
 		},
-		Spec: infrav1.AWSClusterSpec{},
+		Spec: infrav1.AWSClusterSpec{
+			Region: "us-west-2",
+		},
 	}
 
 	if gcAnnotationValue != "" {

@@ -85,52 +85,56 @@ func TestDefaultingWebhook(t *testing.T) {
 			resourceName: "cluster1",
 			resourceNS:   "default",
 			expectHash:   false,
-			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1", IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec, TokenMethod: &EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true},
+			spec:         AWSManagedControlPlaneSpec{Region: "us-west-2"},
+			expectSpec:   AWSManagedControlPlaneSpec{Region: "us-west-2", EKSClusterName: "default_cluster1", IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec, TokenMethod: &EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true},
 		},
 		{
 			name:         "less than 100 chars, dot in name",
 			resourceName: "team1.cluster1",
 			resourceNS:   "default",
 			expectHash:   false,
-			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "default_team1_cluster1", IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec, TokenMethod: &EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true},
+			spec:         AWSManagedControlPlaneSpec{Region: "us-west-2"},
+			expectSpec:   AWSManagedControlPlaneSpec{Region: "us-west-2", EKSClusterName: "default_team1_cluster1", IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec, TokenMethod: &EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true},
 		},
 		{
 			name:         "more than 100 chars",
 			resourceName: "abcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcde",
 			resourceNS:   "default",
 			expectHash:   true,
-			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "capi_", IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec, TokenMethod: &EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true},
+			spec:         AWSManagedControlPlaneSpec{Region: "us-west-2"},
+			expectSpec:   AWSManagedControlPlaneSpec{Region: "us-west-2", EKSClusterName: "capi_", IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec, TokenMethod: &EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true},
 		},
 		{
 			name:         "with patch",
 			resourceName: "cluster1",
 			resourceNS:   "default",
 			expectHash:   false,
-			spec:         AWSManagedControlPlaneSpec{Version: &vV1_17_1},
-			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1", Version: &vV1_17_1, IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec, TokenMethod: &EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true},
+			spec:         AWSManagedControlPlaneSpec{Region: "us-west-2", Version: &vV1_17_1},
+			expectSpec:   AWSManagedControlPlaneSpec{Region: "us-west-2", EKSClusterName: "default_cluster1", Version: &vV1_17_1, IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec, TokenMethod: &EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true},
 		},
 		{
 			name:         "with allowed ip on bastion",
 			resourceName: "cluster1",
 			resourceNS:   "default",
 			expectHash:   false,
-			spec:         AWSManagedControlPlaneSpec{Bastion: infrav1.Bastion{AllowedCIDRBlocks: []string{"100.100.100.100/0"}}},
-			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1", IdentityRef: defaultIdentityRef, Bastion: infrav1.Bastion{AllowedCIDRBlocks: []string{"100.100.100.100/0"}}, NetworkSpec: defaultNetworkSpec, TokenMethod: &EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true},
+			spec:         AWSManagedControlPlaneSpec{Region: "us-west-2", Bastion: infrav1.Bastion{AllowedCIDRBlocks: []string{"100.100.100.100/0"}}},
+			expectSpec:   AWSManagedControlPlaneSpec{Region: "us-west-2", EKSClusterName: "default_cluster1", IdentityRef: defaultIdentityRef, Bastion: infrav1.Bastion{AllowedCIDRBlocks: []string{"100.100.100.100/0"}}, NetworkSpec: defaultNetworkSpec, TokenMethod: &EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true},
 		},
 		{
 			name:         "with CNI on network",
 			resourceName: "cluster1",
 			resourceNS:   "default",
 			expectHash:   false,
-			spec:         AWSManagedControlPlaneSpec{NetworkSpec: infrav1.NetworkSpec{CNI: &infrav1.CNISpec{}}},
-			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1", IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: infrav1.NetworkSpec{CNI: &infrav1.CNISpec{}, VPC: defaultVPCSpec}, TokenMethod: &EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true},
+			spec:         AWSManagedControlPlaneSpec{Region: "us-west-2", NetworkSpec: infrav1.NetworkSpec{CNI: &infrav1.CNISpec{}}},
+			expectSpec:   AWSManagedControlPlaneSpec{Region: "us-west-2", EKSClusterName: "default_cluster1", IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: infrav1.NetworkSpec{CNI: &infrav1.CNISpec{}, VPC: defaultVPCSpec}, TokenMethod: &EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true},
 		},
 		{
 			name:         "secondary CIDR",
 			resourceName: "cluster1",
 			resourceNS:   "default",
 			expectHash:   false,
-			expectSpec:   AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1", IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec, SecondaryCidrBlock: nil, TokenMethod: &EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true},
+			spec:         AWSManagedControlPlaneSpec{Region: "us-west-2"},
+			expectSpec:   AWSManagedControlPlaneSpec{Region: "us-west-2", EKSClusterName: "default_cluster1", IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec, SecondaryCidrBlock: nil, TokenMethod: &EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true},
 		},
 	}
 
@@ -144,9 +148,9 @@ func TestDefaultingWebhook(t *testing.T) {
 					Name:      tc.resourceName,
 					Namespace: tc.resourceNS,
 				},
+				Spec: tc.spec,
 			}
 			t.Run("for AWSManagedMachinePool", utildefaulting.DefaultValidateTest(context.Background(), mcp, &awsManagedControlPlaneWebhook{}))
-			mcp.Spec = tc.spec
 
 			g.Expect(testEnv.Create(ctx, mcp)).To(Succeed())
 
@@ -377,6 +381,7 @@ func TestWebhookCreate(t *testing.T) {
 					Namespace:    "default",
 				},
 				Spec: AWSManagedControlPlaneSpec{
+					Region:         "us-west-2",
 					EKSClusterName: tc.eksClusterName,
 					KubeProxy:      tc.kubeProxy,
 					AdditionalTags: tc.additionalTags,
@@ -554,6 +559,7 @@ func TestWebhookCreateIPv6Details(t *testing.T) {
 					Namespace:    "default",
 				},
 				Spec: AWSManagedControlPlaneSpec{
+					Region:         "us-west-2",
 					EKSClusterName: "test-cluster",
 					Addons:         tc.addons,
 					NetworkSpec:    tc.networkSpec,
@@ -585,9 +591,11 @@ func TestWebhookUpdate(t *testing.T) {
 		{
 			name: "ekscluster specified, same cluster names",
 			oldClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 			},
 			expectError: false,
@@ -595,9 +603,11 @@ func TestWebhookUpdate(t *testing.T) {
 		{
 			name: "ekscluster specified, different cluster names",
 			oldClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster2",
 			},
 			expectError: true,
@@ -605,9 +615,11 @@ func TestWebhookUpdate(t *testing.T) {
 		{
 			name: "old ekscluster specified, no new cluster name",
 			oldClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "",
 			},
 			expectError: true,
@@ -615,10 +627,12 @@ func TestWebhookUpdate(t *testing.T) {
 		{
 			name: "older version",
 			oldClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 				Version:        &vV1_17,
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 				Version:        &vV1_16,
 			},
@@ -627,10 +641,12 @@ func TestWebhookUpdate(t *testing.T) {
 		{
 			name: "same version",
 			oldClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 				Version:        &vV1_17,
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 				Version:        &vV1_17,
 			},
@@ -639,10 +655,12 @@ func TestWebhookUpdate(t *testing.T) {
 		{
 			name: "newer version",
 			oldClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 				Version:        &vV1_16,
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 				Version:        &vV1_17,
 			},
@@ -651,12 +669,14 @@ func TestWebhookUpdate(t *testing.T) {
 		{
 			name: "no change in access config",
 			oldClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 				AccessConfig: &AccessConfig{
 					AuthenticationMode: EKSAuthenticationModeConfigMap,
 				},
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 				AccessConfig: &AccessConfig{
 					AuthenticationMode: EKSAuthenticationModeConfigMap,
@@ -667,12 +687,14 @@ func TestWebhookUpdate(t *testing.T) {
 		{
 			name: "change in access config to nil",
 			oldClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 				AccessConfig: &AccessConfig{
 					AuthenticationMode: EKSAuthenticationModeConfigMap,
 				},
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 			},
 			expectError: true,
@@ -680,9 +702,11 @@ func TestWebhookUpdate(t *testing.T) {
 		{
 			name: "change in access config from nil to valid",
 			oldClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 				AccessConfig: &AccessConfig{
 					AuthenticationMode: EKSAuthenticationModeConfigMap,
@@ -693,12 +717,14 @@ func TestWebhookUpdate(t *testing.T) {
 		{
 			name: "change in access config auth mode from ApiAndConfigMap to API is allowed",
 			oldClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 				AccessConfig: &AccessConfig{
 					AuthenticationMode: EKSAuthenticationModeAPIAndConfigMap,
 				},
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 				AccessConfig: &AccessConfig{
 					AuthenticationMode: EKSAuthenticationModeAPI,
@@ -709,12 +735,14 @@ func TestWebhookUpdate(t *testing.T) {
 		{
 			name: "change in access config auth mode from API to Config Map is denied",
 			oldClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 				AccessConfig: &AccessConfig{
 					AuthenticationMode: EKSAuthenticationModeAPI,
 				},
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 				AccessConfig: &AccessConfig{
 					AuthenticationMode: EKSAuthenticationModeConfigMap,
@@ -725,12 +753,14 @@ func TestWebhookUpdate(t *testing.T) {
 		{
 			name: "change in access config auth mode from APIAndConfigMap to Config Map is denied",
 			oldClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 				AccessConfig: &AccessConfig{
 					AuthenticationMode: EKSAuthenticationModeAPIAndConfigMap,
 				},
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 				AccessConfig: &AccessConfig{
 					AuthenticationMode: EKSAuthenticationModeConfigMap,
@@ -741,12 +771,14 @@ func TestWebhookUpdate(t *testing.T) {
 		{
 			name: "change in access config bootstrap admin permissions is ignored",
 			oldClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 				AccessConfig: &AccessConfig{
 					BootstrapClusterCreatorAdminPermissions: ptr.To(true),
 				},
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 				AccessConfig: &AccessConfig{
 					BootstrapClusterCreatorAdminPermissions: ptr.To(false),
@@ -757,6 +789,7 @@ func TestWebhookUpdate(t *testing.T) {
 		{
 			name: "change in encryption config to nil",
 			oldClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 				EncryptionConfig: &EncryptionConfig{
 					Provider:  ptr.To[string]("provider"),
@@ -764,6 +797,7 @@ func TestWebhookUpdate(t *testing.T) {
 				},
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 			},
 			expectError: true,
@@ -771,9 +805,11 @@ func TestWebhookUpdate(t *testing.T) {
 		{
 			name: "change in encryption config from nil to valid encryption-config",
 			oldClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 				EncryptionConfig: &EncryptionConfig{
 					Provider:  ptr.To[string]("provider"),
@@ -785,6 +821,7 @@ func TestWebhookUpdate(t *testing.T) {
 		{
 			name: "change in provider of encryption config",
 			oldClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 				EncryptionConfig: &EncryptionConfig{
 					Provider:  ptr.To[string]("provider"),
@@ -792,6 +829,7 @@ func TestWebhookUpdate(t *testing.T) {
 				},
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 				EncryptionConfig: &EncryptionConfig{
 					Provider:  ptr.To[string]("new-provider"),
@@ -803,12 +841,14 @@ func TestWebhookUpdate(t *testing.T) {
 		{
 			name: "no change in provider of encryption config",
 			oldClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 				EncryptionConfig: &EncryptionConfig{
 					Provider: ptr.To[string]("provider"),
 				},
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 				EncryptionConfig: &EncryptionConfig{
 					Provider: ptr.To[string]("provider"),
@@ -819,9 +859,11 @@ func TestWebhookUpdate(t *testing.T) {
 		{
 			name: "ekscluster specified, same name, invalid tags",
 			oldClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 				AdditionalTags: infrav1.Tags{
 					"key-1":                    "value-1",
@@ -835,6 +877,7 @@ func TestWebhookUpdate(t *testing.T) {
 		{
 			name: "changing ipv6 enabled is not allowed after it has been set - false, true",
 			oldClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 				NetworkSpec: infrav1.NetworkSpec{
 					VPC: infrav1.VPCSpec{},
@@ -842,6 +885,7 @@ func TestWebhookUpdate(t *testing.T) {
 				Version: ptr.To[string]("1.22"),
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 				NetworkSpec: infrav1.NetworkSpec{
 					VPC: infrav1.VPCSpec{
@@ -854,6 +898,7 @@ func TestWebhookUpdate(t *testing.T) {
 		{
 			name: "changing ipv6 enabled is not allowed after it has been set - true, false",
 			oldClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 				NetworkSpec: infrav1.NetworkSpec{
 					VPC: infrav1.VPCSpec{
@@ -869,6 +914,7 @@ func TestWebhookUpdate(t *testing.T) {
 				Version: ptr.To[string]("v1.22.0"),
 			},
 			newClusterSpec: AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: "default_cluster1",
 				NetworkSpec: infrav1.NetworkSpec{
 					VPC: infrav1.VPCSpec{},
@@ -952,6 +998,7 @@ func TestValidatingWebhookCreateSecondaryCidr(t *testing.T) {
 
 			mcp := &AWSManagedControlPlane{
 				Spec: AWSManagedControlPlaneSpec{
+					Region:         "us-west-2",
 					EKSClusterName: "default_cluster1",
 				},
 			}
@@ -1021,12 +1068,14 @@ func TestValidatingWebhookUpdateSecondaryCidr(t *testing.T) {
 
 			newMCP := &AWSManagedControlPlane{
 				Spec: AWSManagedControlPlaneSpec{
+					Region:             "us-west-2",
 					EKSClusterName:     "default_cluster1",
 					SecondaryCidrBlock: aws.String(tc.cidrRange),
 				},
 			}
 			oldMCP := &AWSManagedControlPlane{
 				Spec: AWSManagedControlPlaneSpec{
+					Region:             "us-west-2",
 					EKSClusterName:     "default_cluster1",
 					SecondaryCidrBlock: nil,
 				},
@@ -1185,6 +1234,7 @@ func TestWebhookValidateAccessEntries(t *testing.T) {
 
 			mcp := &AWSManagedControlPlane{
 				Spec: AWSManagedControlPlaneSpec{
+					Region:         "us-west-2",
 					EKSClusterName: "default_cluster1",
 					AccessConfig:   tc.accessConfig,
 					AccessEntries:  tc.accessEntries,
@@ -1203,6 +1253,97 @@ func TestWebhookValidateAccessEntries(t *testing.T) {
 			}
 			// Nothing emits warnings yet
 			g.Expect(warn).To(BeEmpty())
+		})
+	}
+}
+
+func TestAWSManagedControlPlaneValidateRegion(t *testing.T) {
+	tests := []struct {
+		name    string
+		mcp     *AWSManagedControlPlane
+		wantErr bool
+	}{
+		{
+			name: "valid us-east-1 region",
+			mcp: &AWSManagedControlPlane{
+				Spec: AWSManagedControlPlaneSpec{
+					EKSClusterName: "test-cluster",
+					Region:         "us-east-1",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid eu-west-1 region",
+			mcp: &AWSManagedControlPlane{
+				Spec: AWSManagedControlPlaneSpec{
+					EKSClusterName: "test-cluster",
+					Region:         "eu-west-1",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid cn-north-1 region (China partition)",
+			mcp: &AWSManagedControlPlane{
+				Spec: AWSManagedControlPlaneSpec{
+					EKSClusterName: "test-cluster",
+					Region:         "cn-north-1",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid us-gov-west-1 region (GovCloud)",
+			mcp: &AWSManagedControlPlane{
+				Spec: AWSManagedControlPlaneSpec{
+					EKSClusterName: "test-cluster",
+					Region:         "us-gov-west-1",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid region - nonexistent",
+			mcp: &AWSManagedControlPlane{
+				Spec: AWSManagedControlPlaneSpec{
+					EKSClusterName: "test-cluster",
+					Region:         "invalid-region-xyz",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid region - empty string",
+			mcp: &AWSManagedControlPlane{
+				Spec: AWSManagedControlPlaneSpec{
+					EKSClusterName: "test-cluster",
+					Region:         "",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid region - malformed",
+			mcp: &AWSManagedControlPlane{
+				Spec: AWSManagedControlPlaneSpec{
+					EKSClusterName: "test-cluster",
+					Region:         "us-12345",
+				},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			_, err := (&awsManagedControlPlaneWebhook{}).ValidateCreate(context.Background(), tt.mcp)
+			if tt.wantErr {
+				g.Expect(err).ToNot(BeNil())
+			} else {
+				g.Expect(err).To(BeNil())
+			}
 		})
 	}
 }

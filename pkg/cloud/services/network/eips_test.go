@@ -154,9 +154,13 @@ func TestServiceReleaseAddresses(t *testing.T) {
 			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 
 			cs, err := scope.NewClusterScope(scope.ClusterScopeParams{
-				Client:     client,
-				Cluster:    &clusterv1.Cluster{},
-				AWSCluster: &infrav1.AWSCluster{},
+				Client:  client,
+				Cluster: &clusterv1.Cluster{},
+				AWSCluster: &infrav1.AWSCluster{
+					Spec: infrav1.AWSClusterSpec{
+						Region: "us-west-2",
+					},
+				},
 			})
 			g.Expect(err).NotTo(HaveOccurred())
 

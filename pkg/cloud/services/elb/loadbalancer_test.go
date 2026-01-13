@@ -78,6 +78,9 @@ func TestELBName(t *testing.T) {
 					Name:      "example",
 					Namespace: metav1.NamespaceDefault,
 				},
+				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
+				},
 			},
 			expected: "example-apiserver",
 		},
@@ -89,7 +92,7 @@ func TestELBName(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Spec: infrav1.AWSClusterSpec{
-					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+					Region: "us-west-2", ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
 						Name: ptr.To[string]("myapiserver"),
 					},
 				},
@@ -298,7 +301,7 @@ func TestGetAPIServerClassicELBSpecControlPlaneLoadBalancer(t *testing.T) {
 				AWSCluster: &infrav1.AWSCluster{
 					ObjectMeta: metav1.ObjectMeta{Name: "test"},
 					Spec: infrav1.AWSClusterSpec{
-						ControlPlaneLoadBalancer: tc.lb,
+						Region: "us-west-2", ControlPlaneLoadBalancer: tc.lb,
 					},
 				},
 			})
@@ -460,7 +463,7 @@ func TestGetAPIServerV2ELBSpecControlPlaneLoadBalancer(t *testing.T) {
 				AWSCluster: &infrav1.AWSCluster{
 					ObjectMeta: metav1.ObjectMeta{Name: "test"},
 					Spec: infrav1.AWSClusterSpec{
-						ControlPlaneLoadBalancer: tc.lb,
+						Region: "us-west-2", ControlPlaneLoadBalancer: tc.lb,
 					},
 				},
 			})
@@ -509,7 +512,7 @@ func TestRegisterInstanceWithAPIServerELB(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: clusterName},
 				Spec: infrav1.AWSClusterSpec{
-					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+					Region: "us-west-2", ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
 						Name: aws.String(elbName),
 					},
 					NetworkSpec: infrav1.NetworkSpec{
@@ -577,7 +580,7 @@ func TestRegisterInstanceWithAPIServerELB(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: clusterName},
 				Spec: infrav1.AWSClusterSpec{
-					NetworkSpec: infrav1.NetworkSpec{
+					Region: "us-west-2", NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{infrav1.SubnetSpec{
 							ID:               clusterSubnetID,
 							AvailabilityZone: az,
@@ -660,7 +663,7 @@ func TestRegisterInstanceWithAPIServerELB(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: clusterName},
 				Spec: infrav1.AWSClusterSpec{
-					NetworkSpec: infrav1.NetworkSpec{
+					Region: "us-west-2", NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{infrav1.SubnetSpec{
 							ID:               clusterSubnetID,
 							AvailabilityZone: az,
@@ -812,7 +815,7 @@ func TestRegisterInstanceWithAPIServerNLB(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: clusterName},
 				Spec: infrav1.AWSClusterSpec{
-					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+					Region: "us-west-2", ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
 						Name:             aws.String(elbName),
 						LoadBalancerType: infrav1.LoadBalancerTypeNLB,
 					},
@@ -905,7 +908,7 @@ func TestRegisterInstanceWithAPIServerNLB(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: clusterName},
 				Spec: infrav1.AWSClusterSpec{
-					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+					Region: "us-west-2", ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
 						Name:             aws.String(elbName),
 						LoadBalancerType: infrav1.LoadBalancerTypeNLB,
 						AdditionalListeners: []infrav1.AdditionalListenerSpec{
@@ -1048,7 +1051,7 @@ func TestRegisterInstanceWithAPIServerNLB(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: clusterName},
 				Spec: infrav1.AWSClusterSpec{
-					NetworkSpec: infrav1.NetworkSpec{
+					Region: "us-west-2", NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{infrav1.SubnetSpec{
 							ID:               clusterSubnetID,
 							AvailabilityZone: az,
@@ -1410,7 +1413,7 @@ func TestCreateNLB(t *testing.T) {
 			awsCluster := &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: clusterName},
 				Spec: infrav1.AWSClusterSpec{
-					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+					Region: "us-west-2", ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
 						Name:             aws.String(elbName),
 						LoadBalancerType: infrav1.LoadBalancerTypeNLB,
 					},
@@ -2206,7 +2209,7 @@ func TestReconcileTargetGroupsAndListeners(t *testing.T) {
 			awsCluster := &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: clusterName},
 				Spec: infrav1.AWSClusterSpec{
-					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+					Region: "us-west-2", ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
 						Name:             aws.String(elbName),
 						LoadBalancerType: infrav1.LoadBalancerTypeNLB,
 					},
@@ -2590,7 +2593,7 @@ func TestReconcileV2LB(t *testing.T) {
 			awsCluster := &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: clusterName},
 				Spec: infrav1.AWSClusterSpec{
-					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+					Region: "us-west-2", ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
 						Name:             aws.String(elbName),
 						LoadBalancerType: infrav1.LoadBalancerTypeNLB,
 					},
@@ -2907,7 +2910,7 @@ func TestReconcileLoadbalancers(t *testing.T) {
 			awsCluster := &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: clusterName},
 				Spec: infrav1.AWSClusterSpec{
-					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+					Region: "us-west-2", ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
 						Name:             aws.String(elbName),
 						LoadBalancerType: infrav1.LoadBalancerTypeNLB,
 					},
@@ -3105,7 +3108,7 @@ func TestDeleteAPIServerELB(t *testing.T) {
 			awsCluster := &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
-					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+					Region: "us-west-2", ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
 						Name: aws.String(elbName),
 					},
 				},
@@ -3296,7 +3299,7 @@ func TestDeleteNLB(t *testing.T) {
 			awsCluster := &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
-					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+					Region: "us-west-2", ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
 						Name:             aws.String(elbName),
 						LoadBalancerType: infrav1.LoadBalancerTypeNLB,
 					},
@@ -3456,7 +3459,9 @@ func TestDeleteAWSCloudProviderELBs(t *testing.T) {
 
 			awsCluster := &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
-				Spec:       infrav1.AWSClusterSpec{},
+				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
+				},
 			}
 
 			client := fake.NewClientBuilder().WithScheme(scheme).Build()
@@ -3535,7 +3540,7 @@ func TestDescribeLoadbalancers(t *testing.T) {
 			}
 			awsCluster := &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
-				Spec: infrav1.AWSClusterSpec{ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+				Spec: infrav1.AWSClusterSpec{Region: "us-west-2", ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
 					Scheme: &infrav1.ELBSchemeInternetFacing,
 				}},
 			}
@@ -3610,7 +3615,7 @@ func TestDescribeV2Loadbalancers(t *testing.T) {
 			}
 			awsCluster := &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
-				Spec: infrav1.AWSClusterSpec{ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+				Spec: infrav1.AWSClusterSpec{Region: "us-west-2", ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
 					Scheme:           &infrav1.ELBSchemeInternetFacing,
 					LoadBalancerType: infrav1.LoadBalancerTypeNLB,
 				}},
@@ -3735,6 +3740,7 @@ func TestGetHealthCheckProtocol(t *testing.T) {
 				},
 				AWSCluster: &infrav1.AWSCluster{
 					Spec: infrav1.AWSClusterSpec{
+						Region:                   "us-west-2",
 						ControlPlaneLoadBalancer: tc.lbSpec,
 					},
 				},
@@ -3778,7 +3784,7 @@ func stubGetBaseService(t *testing.T, clusterName string) *Service {
 	}
 	awsCluster := &infrav1.AWSCluster{
 		ObjectMeta: metav1.ObjectMeta{Name: clusterName},
-		Spec: infrav1.AWSClusterSpec{ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+		Spec: infrav1.AWSClusterSpec{Region: "us-west-2", ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
 			Scheme:           &infrav1.ELBSchemeInternetFacing,
 			LoadBalancerType: infrav1.LoadBalancerTypeNLB,
 		}},

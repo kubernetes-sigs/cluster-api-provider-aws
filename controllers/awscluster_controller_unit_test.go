@@ -59,17 +59,21 @@ func TestAWSClusterReconcilerReconcile(t *testing.T) {
 					Name:       "capi-fail-test",
 					UID:        "1",
 				},
-			}}},
+			}},
+				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
+				},
+			},
 			expectError: true,
 		},
 		{
 			name:        "Should not reconcile if owner reference is not set",
-			awsCluster:  &infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{GenerateName: "aws-test-"}},
+			awsCluster:  &infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{GenerateName: "aws-test-"}, Spec: infrav1.AWSClusterSpec{Region: "us-west-2"}},
 			expectError: false,
 		},
 		{
 			name:       "Should not Reconcile if cluster is paused",
-			awsCluster: &infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{GenerateName: "aws-test-", Annotations: map[string]string{clusterv1.PausedAnnotation: ""}}},
+			awsCluster: &infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{GenerateName: "aws-test-", Annotations: map[string]string{clusterv1.PausedAnnotation: ""}}, Spec: infrav1.AWSClusterSpec{Region: "us-west-2"}},
 			ownerCluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{GenerateName: "capi-test-"},
 				Spec: clusterv1.ClusterSpec{

@@ -1136,7 +1136,7 @@ func TestReconcileSecurityGroups(t *testing.T) {
 			cluster := &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
-					NetworkSpec: *tc.input,
+					Region: "us-west-2", NetworkSpec: *tc.input,
 				},
 			}
 			awsCluster := tc.awsCluster(*cluster)
@@ -1176,7 +1176,11 @@ func TestControlPlaneSecurityGroupNotOpenToAnyCIDR(t *testing.T) {
 		Cluster: &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
 		},
-		AWSCluster: &infrav1.AWSCluster{},
+		AWSCluster: &infrav1.AWSCluster{
+			Spec: infrav1.AWSClusterSpec{
+				Region: "us-west-2",
+			},
+		},
 	})
 	if err != nil {
 		t.Fatalf("Failed to create test context: %v", err)
@@ -1418,6 +1422,7 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 				},
 				AWSCluster: &infrav1.AWSCluster{
 					Spec: infrav1.AWSClusterSpec{
+						Region:      "us-west-2",
 						NetworkSpec: tc.networkSpec,
 					},
 					Status: infrav1.AWSClusterStatus{
@@ -1530,6 +1535,7 @@ func TestAdditionalManagedControlPlaneSecurityGroup(t *testing.T) {
 				},
 				ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
 					Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+						Region:      "us-west-2",
 						NetworkSpec: tc.networkSpec,
 					},
 					Status: ekscontrolplanev1.AWSManagedControlPlaneStatus{
@@ -1587,7 +1593,7 @@ func TestControlPlaneLoadBalancerIngressRules(t *testing.T) {
 			name: "when no ingress rules are passed and nat gateway IPs are not available, the default is set",
 			awsCluster: &infrav1.AWSCluster{
 				Spec: infrav1.AWSClusterSpec{
-					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{},
+					Region: "us-west-2", ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{},
 					NetworkSpec: infrav1.NetworkSpec{
 						VPC: infrav1.VPCSpec{
 							CidrBlock: "10.0.0.0/16",
@@ -1610,7 +1616,7 @@ func TestControlPlaneLoadBalancerIngressRules(t *testing.T) {
 			name: "when no ingress rules are passed and nat gateway IPs are not available, the default for IPv6 is set",
 			awsCluster: &infrav1.AWSCluster{
 				Spec: infrav1.AWSClusterSpec{
-					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{},
+					Region: "us-west-2", ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{},
 					NetworkSpec: infrav1.NetworkSpec{
 						VPC: infrav1.VPCSpec{
 							CidrBlock: "10.0.0.0/16",
@@ -1634,7 +1640,7 @@ func TestControlPlaneLoadBalancerIngressRules(t *testing.T) {
 			name: "when no ingress rules are passed, allow the Nat Gateway IPs and default to allow all",
 			awsCluster: &infrav1.AWSCluster{
 				Spec: infrav1.AWSClusterSpec{
-					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{},
+					Region: "us-west-2", ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{},
 					NetworkSpec: infrav1.NetworkSpec{
 						VPC: infrav1.VPCSpec{
 							CidrBlock: "10.0.0.0/16",
@@ -1668,7 +1674,7 @@ func TestControlPlaneLoadBalancerIngressRules(t *testing.T) {
 			name: "defined rules are used",
 			awsCluster: &infrav1.AWSCluster{
 				Spec: infrav1.AWSClusterSpec{
-					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+					Region: "us-west-2", ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
 						IngressRules: infrav1.IngressRules{
 							{
 								Description: "My custom ingress rule",
@@ -1712,7 +1718,7 @@ func TestControlPlaneLoadBalancerIngressRules(t *testing.T) {
 			name: "when no ingress rules are passed while using internal LB",
 			awsCluster: &infrav1.AWSCluster{
 				Spec: infrav1.AWSClusterSpec{
-					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+					Region: "us-west-2", ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
 						Scheme: &infrav1.ELBSchemeInternal,
 					},
 					NetworkSpec: infrav1.NetworkSpec{
@@ -1743,7 +1749,7 @@ func TestControlPlaneLoadBalancerIngressRules(t *testing.T) {
 			name: "when no ingress rules are passed while using internal LB and IPv6",
 			awsCluster: &infrav1.AWSCluster{
 				Spec: infrav1.AWSClusterSpec{
-					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+					Region: "us-west-2", ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
 						Scheme: &infrav1.ELBSchemeInternal,
 					},
 					NetworkSpec: infrav1.NetworkSpec{
@@ -1776,7 +1782,7 @@ func TestControlPlaneLoadBalancerIngressRules(t *testing.T) {
 			name: "defined rules are used while using internal LB",
 			awsCluster: &infrav1.AWSCluster{
 				Spec: infrav1.AWSClusterSpec{
-					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+					Region: "us-west-2", ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
 						IngressRules: infrav1.IngressRules{
 							{
 								Description: "My custom ingress rule",
@@ -1816,7 +1822,7 @@ func TestControlPlaneLoadBalancerIngressRules(t *testing.T) {
 			name: "defined rules are used when using internal and external LB",
 			awsCluster: &infrav1.AWSCluster{
 				Spec: infrav1.AWSClusterSpec{
-					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+					Region: "us-west-2", ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
 						IngressRules: []infrav1.IngressRule{
 							{
 								Description: "My custom ingress rule",
@@ -2047,6 +2053,7 @@ func TestDeleteSecurityGroups(t *testing.T) {
 			awsCluster := &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region:      "us-west-2",
 					NetworkSpec: *tc.input,
 				},
 			}
@@ -2398,6 +2405,7 @@ func TestNodePortServicesIngressRules(t *testing.T) {
 				},
 				AWSCluster: &infrav1.AWSCluster{
 					Spec: infrav1.AWSClusterSpec{
+						Region:                   "us-west-2",
 						ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{},
 						NetworkSpec: infrav1.NetworkSpec{
 							VPC: infrav1.VPCSpec{

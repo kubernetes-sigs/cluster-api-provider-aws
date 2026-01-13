@@ -137,7 +137,7 @@ func TestReconcileBucket(t *testing.T) {
 			},
 			AWSCluster: &infrav1.AWSCluster{
 				Spec: infrav1.AWSClusterSpec{
-					S3Bucket: &infrav1.S3Bucket{},
+					Region: "us-west-2", S3Bucket: &infrav1.S3Bucket{},
 				},
 			},
 		})

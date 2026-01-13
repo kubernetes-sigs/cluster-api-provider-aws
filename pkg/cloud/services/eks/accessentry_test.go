@@ -381,6 +381,7 @@ func TestReconcileAccessEntries(t *testing.T) {
 					Name:      clusterName,
 				},
 				Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+					Region:         "us-west-2",
 					EKSClusterName: clusterName,
 					AccessConfig: &ekscontrolplanev1.AccessConfig{
 						AuthenticationMode: ekscontrolplanev1.EKSAuthenticationModeAPIAndConfigMap,
@@ -559,6 +560,7 @@ func TestReconcileAccessPolicies(t *testing.T) {
 						Name:      clusterName,
 					},
 					Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+						Region:         "us-west-2",
 						EKSClusterName: clusterName,
 					},
 				},
@@ -681,6 +683,7 @@ func TestCreateAccessEntry(t *testing.T) {
 						Name:      clusterName,
 					},
 					Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+						Region:         "us-west-2",
 						EKSClusterName: clusterName,
 					},
 				},
@@ -934,6 +937,7 @@ func TestUpdateAccessEntry(t *testing.T) {
 						Name:      clusterName,
 					},
 					Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+						Region:         "us-west-2",
 						EKSClusterName: clusterName,
 					},
 				},
@@ -1009,6 +1013,7 @@ func TestDeleteAccessEntry(t *testing.T) {
 						Name:      clusterName,
 					},
 					Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+						Region:         "us-west-2",
 						EKSClusterName: clusterName,
 					},
 				},

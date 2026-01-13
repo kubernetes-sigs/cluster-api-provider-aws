@@ -667,6 +667,7 @@ func getClusterScope(vpcSpec *infrav1.VPCSpec, additionalTags map[string]string)
 	awsCluster := &infrav1.AWSCluster{
 		ObjectMeta: metav1.ObjectMeta{Name: "test"},
 		Spec: infrav1.AWSClusterSpec{
+			Region: "us-west-2",
 			NetworkSpec: infrav1.NetworkSpec{
 				VPC: *vpcSpec,
 			},

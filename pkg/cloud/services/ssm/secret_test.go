@@ -334,9 +334,13 @@ func getClusterScope(client client.Client) (*scope.ClusterScope, error) {
 		},
 	}
 	return scope.NewClusterScope(scope.ClusterScopeParams{
-		Client:     client,
-		Cluster:    cluster,
-		AWSCluster: &infrav1.AWSCluster{},
+		Client:  client,
+		Cluster: cluster,
+		AWSCluster: &infrav1.AWSCluster{
+			Spec: infrav1.AWSClusterSpec{
+				Region: "us-west-2",
+			},
+		},
 	})
 }
 

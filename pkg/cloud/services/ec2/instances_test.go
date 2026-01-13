@@ -185,6 +185,7 @@ func TestInstanceIfExists(t *testing.T) {
 				AWSCluster: &infrav1.AWSCluster{
 					ObjectMeta: metav1.ObjectMeta{Name: "test"},
 					Spec: infrav1.AWSClusterSpec{
+						Region: "us-west-2",
 						NetworkSpec: infrav1.NetworkSpec{
 							VPC: infrav1.VPCSpec{
 								ID: "test-vpc",
@@ -260,9 +261,13 @@ func TestTerminateInstance(t *testing.T) {
 			_ = infrav1.AddToScheme(scheme)
 			client := fake.NewClientBuilder().WithScheme(scheme).Build()
 			scope, err := scope.NewClusterScope(scope.ClusterScopeParams{
-				Client:     client,
-				Cluster:    &clusterv1.Cluster{},
-				AWSCluster: &infrav1.AWSCluster{},
+				Client:  client,
+				Cluster: &clusterv1.Cluster{},
+				AWSCluster: &infrav1.AWSCluster{
+					Spec: infrav1.AWSClusterSpec{
+						Region: "us-west-2",
+					},
+				},
 			})
 			if err != nil {
 				t.Fatalf("Failed to create test context: %v", err)
@@ -331,6 +336,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
 							infrav1.SubnetSpec{
@@ -448,6 +454,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
 							infrav1.SubnetSpec{
@@ -591,6 +598,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-foo",
@@ -859,6 +867,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-foo",
@@ -1095,6 +1104,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
 							infrav1.SubnetSpec{
@@ -1247,6 +1257,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
 							infrav1.SubnetSpec{
@@ -1401,6 +1412,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
 							infrav1.SubnetSpec{
@@ -1563,6 +1575,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
@@ -1686,6 +1699,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
@@ -1812,6 +1826,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
@@ -1904,6 +1919,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
@@ -2030,6 +2046,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
@@ -2125,6 +2142,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
@@ -2210,6 +2228,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
@@ -2339,6 +2358,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
@@ -2479,6 +2499,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
 							infrav1.SubnetSpec{
@@ -2610,6 +2631,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
@@ -2711,6 +2733,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
@@ -2848,6 +2871,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
@@ -2993,6 +3017,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
@@ -3111,6 +3136,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
@@ -3243,6 +3269,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						VPC: infrav1.VPCSpec{
 							ID: "vpc-id",
@@ -3329,6 +3356,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
 							infrav1.SubnetSpec{
@@ -3454,6 +3482,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 			awsCluster: &infrav1.AWSCluster{
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
 							infrav1.SubnetSpec{
@@ -3668,6 +3697,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 			awsCluster: &infrav1.AWSCluster{
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
 							infrav1.SubnetSpec{
@@ -3885,6 +3915,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
 							infrav1.SubnetSpec{
@@ -4101,6 +4132,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 			awsCluster: &infrav1.AWSCluster{
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
 							infrav1.SubnetSpec{
@@ -4314,6 +4346,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 			awsCluster: &infrav1.AWSCluster{
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
 							infrav1.SubnetSpec{
@@ -4393,6 +4426,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
 							infrav1.SubnetSpec{
@@ -4525,6 +4559,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
 							infrav1.SubnetSpec{
@@ -4659,6 +4694,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
 							infrav1.SubnetSpec{
@@ -4793,6 +4829,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
 							infrav1.SubnetSpec{
@@ -4924,6 +4961,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
 							infrav1.SubnetSpec{
@@ -5055,6 +5093,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
 							infrav1.SubnetSpec{
@@ -5187,6 +5226,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
 							infrav1.SubnetSpec{
@@ -5355,6 +5395,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
 							infrav1.SubnetSpec{
@@ -5477,6 +5518,7 @@ func TestCreateInstance(t *testing.T) {
 			},
 			awsCluster: &infrav1.AWSCluster{
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
 							infrav1.SubnetSpec{
@@ -5559,6 +5601,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
 							infrav1.SubnetSpec{
@@ -5679,6 +5722,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
 							infrav1.SubnetSpec{
@@ -5803,6 +5847,7 @@ func TestCreateInstance(t *testing.T) {
 			awsCluster: &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						Subnets: infrav1.Subnets{
 							infrav1.SubnetSpec{
@@ -6395,6 +6440,7 @@ func TestGetDHCPOptionSetDomainName(t *testing.T) {
 					AWSCluster: &infrav1.AWSCluster{
 						ObjectMeta: metav1.ObjectMeta{Name: "test"},
 						Spec: infrav1.AWSClusterSpec{
+							Region: "us-west-2",
 							NetworkSpec: infrav1.NetworkSpec{
 								VPC: infrav1.VPCSpec{
 									ID: tc.vpcID,

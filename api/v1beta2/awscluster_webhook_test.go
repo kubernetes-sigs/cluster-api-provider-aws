@@ -37,7 +37,12 @@ import (
 )
 
 func TestAWSClusterDefault(t *testing.T) {
-	cluster := &AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
+	cluster := &AWSCluster{
+		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
+		Spec: AWSClusterSpec{
+			Region: "us-west-2",
+		},
+	}
 	t.Run("for AWSCluster", defaultValidateTest(context.Background(), cluster, &awsClusterWebhook{}, true))
 	cluster.Default()
 	g := NewWithT(t)
@@ -61,6 +66,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 						LoadBalancerType: LoadBalancerTypeDisabled,
 						Name:             ptr.To("name"),
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -73,6 +79,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 						CrossZoneLoadBalancing: true,
 						LoadBalancerType:       LoadBalancerTypeDisabled,
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -85,6 +92,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 						Subnets:          []string{"foo", "bar"},
 						LoadBalancerType: LoadBalancerTypeDisabled,
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -97,6 +105,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 						HealthCheckProtocol: &ELBProtocolTCP,
 						LoadBalancerType:    LoadBalancerTypeDisabled,
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -109,6 +118,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 						AdditionalSecurityGroups: []string{"foo", "bar"},
 						LoadBalancerType:         LoadBalancerTypeDisabled,
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -126,6 +136,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 						},
 						LoadBalancerType: LoadBalancerTypeDisabled,
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -145,6 +156,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 						},
 						LoadBalancerType: LoadBalancerTypeDisabled,
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -157,6 +169,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 						DisableHostsRewrite: true,
 						LoadBalancerType:    LoadBalancerTypeDisabled,
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -169,6 +182,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 						PreserveClientIP: true,
 						LoadBalancerType: LoadBalancerTypeDisabled,
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -179,6 +193,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{Scheme: &unsupportedIncorrectScheme},
+					Region:                   "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -193,6 +208,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 						strings.Repeat("CAPI", 33): "value-3",
 						"key-4":                    strings.Repeat("CAPI", 65),
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -201,6 +217,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 			name: "accepts bucket name with acceptable characters",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
+					Region: "us-west-2",
 					S3Bucket: &S3Bucket{
 						Name:                           "abcdefghijklmnoprstuwxyz-0123456789",
 						ControlPlaneIAMInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io",
@@ -213,6 +230,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 			name: "rejects empty bucket name",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
+					Region:   "us-west-2",
 					S3Bucket: &S3Bucket{},
 				},
 			},
@@ -222,6 +240,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 			name: "rejects bucket name shorter than 3 characters",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
+					Region: "us-west-2",
 					S3Bucket: &S3Bucket{
 						Name: "fo",
 					},
@@ -233,6 +252,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 			name: "rejects bucket name longer than 63 characters",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
+					Region: "us-west-2",
 					S3Bucket: &S3Bucket{
 						Name: strings.Repeat("a", 64),
 					},
@@ -244,6 +264,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 			name: "rejects bucket name starting with not letter or number",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
+					Region: "us-west-2",
 					S3Bucket: &S3Bucket{
 						Name: "-foo",
 					},
@@ -255,6 +276,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 			name: "rejects bucket name ending with not letter or number",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
+					Region: "us-west-2",
 					S3Bucket: &S3Bucket{
 						Name: "foo-",
 					},
@@ -266,6 +288,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 			name: "rejects bucket name formatted as IP address",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
+					Region: "us-west-2",
 					S3Bucket: &S3Bucket{
 						Name: "8.8.8.8",
 					},
@@ -277,6 +300,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 			name: "requires bucket control plane IAM instance profile to be not empty",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
+					Region: "us-west-2",
 					S3Bucket: &S3Bucket{
 						Name:                           "foo",
 						ControlPlaneIAMInstanceProfile: "",
@@ -289,6 +313,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 			name: "requires at least one bucket node IAM instance profile",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
+					Region: "us-west-2",
 					S3Bucket: &S3Bucket{
 						Name:                           "foo",
 						ControlPlaneIAMInstanceProfile: "foo",
@@ -301,6 +326,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 			name: "requires all bucket node IAM instance profiles to be not empty",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
+					Region: "us-west-2",
 					S3Bucket: &S3Bucket{
 						Name:                           "foo",
 						ControlPlaneIAMInstanceProfile: "foo",
@@ -314,6 +340,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 			name: "does not return error when all IAM instance profiles are populated",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
+					Region: "us-west-2",
 					S3Bucket: &S3Bucket{
 						Name:                           "foo",
 						ControlPlaneIAMInstanceProfile: "foo",
@@ -335,6 +362,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 							},
 						},
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -354,6 +382,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 							},
 						},
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -370,6 +399,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 							},
 						},
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -387,6 +417,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 							},
 						},
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -405,6 +436,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 							},
 						},
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -424,6 +456,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 							},
 						},
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -441,6 +474,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 							},
 						},
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -458,6 +492,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 							},
 						},
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -474,6 +509,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 							},
 						},
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: false,
@@ -490,6 +526,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 							},
 						},
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: false,
@@ -506,6 +543,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 							},
 						},
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: false,
@@ -523,6 +561,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 							},
 						},
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: false,
@@ -536,6 +575,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 							IPAMPool: &IPAMPool{},
 						},
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -550,6 +590,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 							IPAMPool:  &IPAMPool{},
 						},
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -567,6 +608,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 							},
 						},
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: false,
@@ -584,6 +626,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 							},
 						},
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -602,6 +645,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 							},
 						},
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -618,6 +662,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 							},
 						},
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: false,
@@ -635,6 +680,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 							},
 						},
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: false,
@@ -652,6 +698,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 							},
 						},
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: false,
@@ -669,6 +716,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 							},
 						},
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -687,6 +735,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 							},
 						},
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -703,6 +752,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 							},
 						},
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: false,
@@ -720,6 +770,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 							},
 						},
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: false,
@@ -731,6 +782,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 					NetworkSpec: NetworkSpec{
 						NodePortIngressRuleCidrBlocks: []string{"10.0.0.0/16"},
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: false,
@@ -742,6 +794,7 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 					NetworkSpec: NetworkSpec{
 						NodePortIngressRuleCidrBlocks: []string{"10.0.0.0"},
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -798,6 +851,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
 						LoadBalancerType: LoadBalancerTypeDisabled,
 					},
+					Region: "us-west-2",
 				},
 			},
 			newCluster: &AWSCluster{
@@ -805,6 +859,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
 						LoadBalancerType: LoadBalancerTypeClassic,
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -816,6 +871,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
 						LoadBalancerType: LoadBalancerTypeClassic,
 					},
+					Region: "us-west-2",
 				},
 			},
 			newCluster: &AWSCluster{
@@ -823,6 +879,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
 						LoadBalancerType: LoadBalancerTypeDisabled,
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -848,6 +905,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
 						Name: aws.String("old-apiserver"),
 					},
+					Region: "us-west-2",
 				},
 			},
 			newCluster: &AWSCluster{
@@ -855,6 +913,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
 						Name: aws.String("new-apiserver"),
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -866,6 +925,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
 						Name: nil,
 					},
+					Region: "us-west-2",
 				},
 			},
 			newCluster: &AWSCluster{
@@ -873,6 +933,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
 						Name: aws.String("example-apiserver"),
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -884,6 +945,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
 						Scheme: &ELBSchemeInternal,
 					},
+					Region: "us-west-2",
 				},
 			},
 			newCluster: &AWSCluster{
@@ -891,6 +953,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
 						Scheme: &ELBSchemeInternetFacing,
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -898,13 +961,16 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 		{
 			name: "controlPlaneLoadBalancer scheme is immutable when left empty",
 			oldCluster: &AWSCluster{
-				Spec: AWSClusterSpec{},
+				Spec: AWSClusterSpec{
+					Region: "us-west-2",
+				},
 			},
 			newCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
 						Scheme: &ELBSchemeInternal,
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -912,13 +978,16 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 		{
 			name: "controlPlaneLoadBalancer scheme can be set to default when left empty",
 			oldCluster: &AWSCluster{
-				Spec: AWSClusterSpec{},
+				Spec: AWSClusterSpec{
+					Region: "us-west-2",
+				},
 			},
 			newCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
 						Scheme: &ELBSchemeInternetFacing,
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: false,
@@ -930,6 +999,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
 						CrossZoneLoadBalancing: false,
 					},
+					Region: "us-west-2",
 				},
 			},
 			newCluster: &AWSCluster{
@@ -937,6 +1007,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
 						CrossZoneLoadBalancing: true,
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: false,
@@ -949,6 +1020,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 						Host: "example.com",
 						Port: int32(8000),
 					},
+					Region: "us-west-2",
 				},
 			},
 			newCluster: &AWSCluster{
@@ -957,6 +1029,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 						Host: "foo.example.com",
 						Port: int32(9000),
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -966,6 +1039,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 			oldCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					ControlPlaneEndpoint: clusterv1beta1.APIEndpoint{},
+					Region:               "us-west-2",
 				},
 			},
 			newCluster: &AWSCluster{
@@ -974,6 +1048,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 						Host: "example.com",
 						Port: int32(8000),
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: false,
@@ -984,16 +1059,30 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{clusterv1beta1.ManagedByAnnotation: ""},
 				},
+				Spec: AWSClusterSpec{
+					Region: "us-west-2",
+				},
 			},
-			newCluster: &AWSCluster{},
-			wantErr:    true,
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					Region: "us-west-2",
+				},
+			},
+			wantErr: true,
 		},
 		{
-			name:       "adding externally managed annotation is allowed",
-			oldCluster: &AWSCluster{},
+			name: "adding externally managed annotation is allowed",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					Region: "us-west-2",
+				},
+			},
 			newCluster: &AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{clusterv1beta1.ManagedByAnnotation: ""},
+				},
+				Spec: AWSClusterSpec{
+					Region: "us-west-2",
 				},
 			},
 			wantErr: false,
@@ -1005,10 +1094,13 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 					NetworkSpec: NetworkSpec{
 						VPC: VPCSpec{ID: "managed-or-unmanaged-vpc"},
 					},
+					Region: "us-west-2",
 				},
 			},
 			newCluster: &AWSCluster{
-				Spec: AWSClusterSpec{},
+				Spec: AWSClusterSpec{
+					Region: "us-west-2",
+				},
 			},
 			wantErr: true,
 		},
@@ -1019,6 +1111,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 					NetworkSpec: NetworkSpec{
 						VPC: VPCSpec{ID: "managed-or-unmanaged-vpc"},
 					},
+					Region: "us-west-2",
 				},
 			},
 			newCluster: &AWSCluster{
@@ -1026,6 +1119,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 					NetworkSpec: NetworkSpec{
 						VPC: VPCSpec{ID: "a-new-vpc"},
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -1038,6 +1132,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 						"key-1": "value-1",
 						"key-2": "value-2",
 					},
+					Region: "us-west-2",
 				},
 			},
 			newCluster: &AWSCluster{
@@ -1048,6 +1143,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 						strings.Repeat("CAPI", 33): "value-3",
 						"key-4":                    strings.Repeat("CAPI", 65),
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -1060,6 +1156,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 						LoadBalancerType:    LoadBalancerTypeNLB,
 						HealthCheckProtocol: &ELBProtocolTCP,
 					},
+					Region: "us-west-2",
 				},
 			},
 			newCluster: &AWSCluster{
@@ -1068,6 +1165,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 						LoadBalancerType:    LoadBalancerTypeNLB,
 						HealthCheckProtocol: &ELBProtocolSSL,
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -1080,6 +1178,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 						LoadBalancerType:    LoadBalancerTypeClassic,
 						HealthCheckProtocol: &ELBProtocolSSL,
 					},
+					Region: "us-west-2",
 				},
 			},
 			newCluster: &AWSCluster{
@@ -1088,6 +1187,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 						LoadBalancerType:    LoadBalancerTypeClassic,
 						HealthCheckProtocol: &ELBProtocolTCP,
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: false,
@@ -1095,10 +1195,13 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 		{
 			name: "Should pass if old secondary lb is absent",
 			oldCluster: &AWSCluster{
-				Spec: AWSClusterSpec{},
+				Spec: AWSClusterSpec{
+					Region: "us-west-2",
+				},
 			},
 			newCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
+					Region: "us-west-2",
 					SecondaryControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
 						Name: ptr.To("test-lb"),
 					},
@@ -1113,6 +1216,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
 						HealthCheckProtocol: &ELBProtocolTCP,
 					},
+					Region: "us-west-2",
 				},
 			},
 			newCluster: &AWSCluster{
@@ -1120,6 +1224,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
 						HealthCheckProtocol: &ELBProtocolTCP,
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: false,
@@ -1131,6 +1236,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
 						LoadBalancerType: LoadBalancerTypeNLB,
 					},
+					Region: "us-west-2",
 				},
 			},
 			newCluster: &AWSCluster{
@@ -1139,6 +1245,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 						LoadBalancerType:    LoadBalancerTypeNLB,
 						HealthCheckProtocol: &ELBProtocolTCP,
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -1150,6 +1257,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
 						LoadBalancerType: LoadBalancerTypeClassic,
 					},
+					Region: "us-west-2",
 				},
 			},
 			newCluster: &AWSCluster{
@@ -1158,6 +1266,7 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 						LoadBalancerType:    LoadBalancerTypeNLB,
 						HealthCheckProtocol: &ELBProtocolTCP,
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: false,
@@ -1165,7 +1274,9 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 		{
 			name: "correct GC tasks annotation",
 			oldCluster: &AWSCluster{
-				Spec: AWSClusterSpec{},
+				Spec: AWSClusterSpec{
+					Region: "us-west-2",
+				},
 			},
 			newCluster: &AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1173,13 +1284,18 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 						ExternalResourceGCTasksAnnotation: "load-balancer,target-group,security-group",
 					},
 				},
+				Spec: AWSClusterSpec{
+					Region: "us-west-2",
+				},
 			},
 			wantErr: false,
 		},
 		{
 			name: "empty GC tasks annotation",
 			oldCluster: &AWSCluster{
-				Spec: AWSClusterSpec{},
+				Spec: AWSClusterSpec{
+					Region: "us-west-2",
+				},
 			},
 			newCluster: &AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1187,19 +1303,27 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 						ExternalResourceGCTasksAnnotation: "",
 					},
 				},
+				Spec: AWSClusterSpec{
+					Region: "us-west-2",
+				},
 			},
 			wantErr: false,
 		},
 		{
 			name: "incorrect GC tasks annotation",
 			oldCluster: &AWSCluster{
-				Spec: AWSClusterSpec{},
+				Spec: AWSClusterSpec{
+					Region: "us-west-2",
+				},
 			},
 			newCluster: &AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						ExternalResourceGCTasksAnnotation: "load-balancer,INVALID,security-group",
 					},
+				},
+				Spec: AWSClusterSpec{
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -1241,7 +1365,9 @@ func TestAWSClusterDefaultCNIIngressRules(t *testing.T) {
 		{
 			name: "CNI ingressRules are updated cni spec undefined",
 			beforeCluster: &AWSCluster{
-				Spec: AWSClusterSpec{},
+				Spec: AWSClusterSpec{
+					Region: "us-west-2",
+				},
 			},
 			afterCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
@@ -1264,6 +1390,7 @@ func TestAWSClusterDefaultCNIIngressRules(t *testing.T) {
 							},
 						},
 					},
+					Region: "us-west-2",
 				},
 			},
 		},
@@ -1275,6 +1402,7 @@ func TestAWSClusterDefaultCNIIngressRules(t *testing.T) {
 						VPC: defaultVPCSpec,
 						CNI: &CNISpec{},
 					},
+					Region: "us-west-2",
 				},
 			},
 			afterCluster: &AWSCluster{
@@ -1283,6 +1411,7 @@ func TestAWSClusterDefaultCNIIngressRules(t *testing.T) {
 						VPC: defaultVPCSpec,
 						CNI: &CNISpec{},
 					},
+					Region: "us-west-2",
 				},
 			},
 		},
@@ -1303,6 +1432,7 @@ func TestAWSClusterDefaultCNIIngressRules(t *testing.T) {
 							},
 						},
 					},
+					Region: "us-west-2",
 				},
 			},
 			afterCluster: &AWSCluster{
@@ -1320,6 +1450,7 @@ func TestAWSClusterDefaultCNIIngressRules(t *testing.T) {
 							},
 						},
 					},
+					Region: "us-west-2",
 				},
 			},
 		},
@@ -1355,6 +1486,7 @@ func TestAWSClusterValidateAllowedCIDRBlocks(t *testing.T) {
 							"192.168.0.1/32",
 						},
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: false,
@@ -1367,6 +1499,7 @@ func TestAWSClusterValidateAllowedCIDRBlocks(t *testing.T) {
 						AllowedCIDRBlocks:   []string{},
 						DisableIngressRules: true,
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: false,
@@ -1382,6 +1515,7 @@ func TestAWSClusterValidateAllowedCIDRBlocks(t *testing.T) {
 						},
 						DisableIngressRules: true,
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -1395,6 +1529,7 @@ func TestAWSClusterValidateAllowedCIDRBlocks(t *testing.T) {
 							"100.200.300.400/99",
 						},
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -1408,6 +1543,7 @@ func TestAWSClusterValidateAllowedCIDRBlocks(t *testing.T) {
 							"abcdefg",
 						},
 					},
+					Region: "us-west-2",
 				},
 			},
 			wantErr: true,
@@ -1447,6 +1583,7 @@ func TestAWSClusterDefaultAllowedCIDRBlocks(t *testing.T) {
 							"0.0.0.0/0",
 						},
 					},
+					Region: "us-west-2",
 				},
 			},
 		},
@@ -1459,6 +1596,7 @@ func TestAWSClusterDefaultAllowedCIDRBlocks(t *testing.T) {
 						DisableIngressRules: true,
 						Enabled:             true,
 					},
+					Region: "us-west-2",
 				},
 			},
 			afterCluster: &AWSCluster{
@@ -1467,6 +1605,7 @@ func TestAWSClusterDefaultAllowedCIDRBlocks(t *testing.T) {
 						DisableIngressRules: true,
 						Enabled:             true,
 					},
+					Region: "us-west-2",
 				},
 			},
 		},
@@ -1485,6 +1624,197 @@ func TestAWSClusterDefaultAllowedCIDRBlocks(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(cluster.Spec.Bastion).To(Equal(tt.afterCluster.Spec.Bastion))
+			}
+		})
+	}
+}
+
+func TestAWSClusterValidateRegion(t *testing.T) {
+	tests := []struct {
+		name    string
+		cluster *AWSCluster
+		wantErr bool
+	}{
+		{
+			name: "valid us-east-1 region",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					Region: "us-east-1",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid us-west-2 region",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					Region: "us-west-2",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid eu-west-1 region",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					Region: "eu-west-1",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid ap-northeast-1 region",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					Region: "ap-northeast-1",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid cn-north-1 region (China partition)",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					Region: "cn-north-1",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid us-gov-west-1 region (GovCloud partition)",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					Region: "us-gov-west-1",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid region - nonexistent",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					Region: "invalid-region-xyz",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid region - empty string",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					Region: "",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid region - malformed",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					Region: "us-12345",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid region - random string",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					Region: "notaregion",
+				},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.TODO()
+			cluster := tt.cluster.DeepCopy()
+			cluster.ObjectMeta = metav1.ObjectMeta{
+				GenerateName: "cluster-",
+				Namespace:    "default",
+			}
+			if cluster.Spec.Region == "" && !tt.wantErr {
+				cluster.Spec.Region = "us-west-2"
+			}
+			if err := testEnv.Create(ctx, cluster); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateCreate() with region validation error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestAWSClusterValidateRegionUpdate(t *testing.T) {
+	tests := []struct {
+		name       string
+		oldCluster *AWSCluster
+		newCluster *AWSCluster
+		wantErr    bool
+	}{
+		{
+			name: "region change should fail - immutable field",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					Region: "us-east-1",
+				},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					Region: "us-west-2",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "region stays same - should pass",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					Region: "us-east-1",
+				},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					Region: "us-east-1",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "update with invalid region should fail",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					Region: "us-east-1",
+				},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					Region: "invalid-region",
+				},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.TODO()
+			cluster := tt.oldCluster.DeepCopy()
+			cluster.ObjectMeta = metav1.ObjectMeta{
+				GenerateName: "cluster-",
+				Namespace:    "default",
+			}
+			if cluster.Spec.Region == "" {
+				cluster.Spec.Region = "us-west-2"
+			}
+
+			if err := testEnv.Create(ctx, cluster); err != nil {
+				t.Errorf("failed to create cluster: %v", err)
+			}
+
+			cluster.Spec.Region = tt.newCluster.Spec.Region
+			if err := testEnv.Update(ctx, cluster); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateUpdate() with region validation error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

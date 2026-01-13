@@ -69,6 +69,7 @@ func Test_createCAPIKubeconfigSecret(t *testing.T) {
 							UID:       types.UID("1"),
 						},
 						Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+							Region:         "us-west-2",
 							EKSClusterName: "cluster-foo",
 						},
 					},
@@ -170,6 +171,7 @@ func Test_updateCAPIKubeconfigSecret(t *testing.T) {
 							UID:       "1",
 						},
 						Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+							Region:         "us-west-2",
 							EKSClusterName: "cluster-foo",
 						},
 					},
@@ -216,6 +218,7 @@ func Test_updateCAPIKubeconfigSecret(t *testing.T) {
 							UID:       "1",
 						},
 						Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+							Region:         "us-west-2",
 							EKSClusterName: "cluster-foo",
 						},
 					},

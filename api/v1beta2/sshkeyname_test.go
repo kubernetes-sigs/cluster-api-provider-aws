@@ -71,6 +71,7 @@ func TestSSHKeyName(t *testing.T) {
 				},
 				Spec: AWSClusterSpec{
 					SSHKeyName: tt.sshKeyName,
+					Region:     "us-west-2",
 				},
 			}
 			machine := &AWSMachine{
