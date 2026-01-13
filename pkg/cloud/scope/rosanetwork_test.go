@@ -89,6 +89,7 @@ func TestNewROSANetworkScope(t *testing.T) {
 			Namespace: "test-namespace",
 		},
 		Spec: expinfrav1.ROSANetworkSpec{
+			Region: "us-west-2",
 			IdentityRef: &infrav1.AWSIdentityReference{
 				Name: "default",
 				Kind: "AWSClusterControllerIdentity",

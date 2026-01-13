@@ -109,14 +109,16 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 			g.Expect(testEnv.Cleanup(ctx, awsMachine, ns, secret)).To(Succeed())
 		})
 
-		cs, err := getClusterScope(infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Spec: infrav1.AWSClusterSpec{NetworkSpec: infrav1.NetworkSpec{
-			Subnets: []infrav1.SubnetSpec{
-				{
-					ID:               "subnet-1",
-					AvailabilityZone: "us-east-1a",
+		cs, err := getClusterScope(infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Spec: infrav1.AWSClusterSpec{
+			Region: "us-west-2",
+			NetworkSpec: infrav1.NetworkSpec{
+				Subnets: []infrav1.SubnetSpec{
+					{
+						ID:               "subnet-1",
+						AvailabilityZone: "us-east-1a",
+					},
 				},
-			},
-		}}})
+			}}})
 		g.Expect(err).To(BeNil())
 		cs.Cluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"}}
 		cs.AWSCluster.Spec.NetworkSpec.VPC = infrav1.VPCSpec{
@@ -213,7 +215,7 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 			g.Expect(testEnv.Cleanup(ctx, awsMachine, ns)).To(Succeed())
 		})
 
-		cs, err := getClusterScope(infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}})
+		cs, err := getClusterScope(infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Spec: infrav1.AWSClusterSpec{Region: "us-west-2"}})
 		g.Expect(err).To(BeNil())
 		cs.Cluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"}}
 		cs.AWSCluster.Spec.ControlPlaneLoadBalancer = &infrav1.AWSLoadBalancerSpec{
@@ -289,14 +291,16 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 			g.Expect(testEnv.Cleanup(ctx, awsMachine, ns, secret)).To(Succeed())
 		})
 
-		cs, err := getClusterScope(infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Spec: infrav1.AWSClusterSpec{NetworkSpec: infrav1.NetworkSpec{
-			Subnets: []infrav1.SubnetSpec{
-				{
-					ID:               "subnet-1",
-					AvailabilityZone: "us-east-1a",
+		cs, err := getClusterScope(infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Spec: infrav1.AWSClusterSpec{
+			Region: "us-west-2",
+			NetworkSpec: infrav1.NetworkSpec{
+				Subnets: []infrav1.SubnetSpec{
+					{
+						ID:               "subnet-1",
+						AvailabilityZone: "us-east-1a",
+					},
 				},
-			},
-		}}})
+			}}})
 		g.Expect(err).To(BeNil())
 		cs.Cluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"}}
 		cs.AWSCluster.Status.Network.APIServerELB.DNSName = DNSName
@@ -394,7 +398,7 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 			g.Expect(testEnv.Cleanup(ctx, awsMachine, ns)).To(Succeed())
 		})
 
-		cs, err := getClusterScope(infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}})
+		cs, err := getClusterScope(infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Spec: infrav1.AWSClusterSpec{Region: "us-west-2"}})
 		g.Expect(err).To(BeNil())
 		cs.Cluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"}}
 		cs.AWSCluster.Spec.ControlPlaneLoadBalancer = &infrav1.AWSLoadBalancerSpec{
@@ -496,7 +500,7 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 			g.Expect(testEnv.Cleanup(ctx, awsMachine, ns)).To(Succeed())
 		})
 
-		cs, err := getClusterScope(infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}})
+		cs, err := getClusterScope(infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Spec: infrav1.AWSClusterSpec{Region: "us-west-2"}})
 		g.Expect(err).To(BeNil())
 		cs.Cluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"}}
 		ms, err := getMachineScope(cs, awsMachine)

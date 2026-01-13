@@ -38,6 +38,9 @@ func createAWSCluster(name string) *infrav1.AWSCluster {
 			Name:      name,
 			Namespace: "default",
 		},
+		Spec: infrav1.AWSClusterSpec{
+			Region: "us-west-2",
+		},
 	}
 }
 

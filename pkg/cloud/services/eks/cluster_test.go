@@ -451,6 +451,7 @@ func TestReconcileClusterVersion(t *testing.T) {
 				},
 				ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
 					Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+						Region:  "us-west-2",
 						Version: aws.String("1.16"),
 					},
 				},
@@ -565,6 +566,7 @@ func TestReconcileAccessConfig(t *testing.T) {
 				},
 				ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
 					Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+						Region:         "us-west-2",
 						EKSClusterName: clusterName,
 						AccessConfig: &ekscontrolplanev1.AccessConfig{
 							AuthenticationMode: ekscontrolplanev1.EKSAuthenticationModeAPIAndConfigMap,
@@ -647,6 +649,7 @@ func TestCreateCluster(t *testing.T) {
 				},
 				ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
 					Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+						Region:                     "us-west-2",
 						EKSClusterName:             clusterName,
 						Version:                    version,
 						RoleName:                   tc.role,
@@ -788,6 +791,7 @@ func TestReconcileEKSEncryptionConfig(t *testing.T) {
 				},
 				ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
 					Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+						Region:           "us-west-2",
 						Version:          aws.String("1.16"),
 						EncryptionConfig: tc.newEncryptionConfig,
 					},
@@ -875,6 +879,7 @@ func TestReconcileUpgradePolicy(t *testing.T) {
 				},
 				ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
 					Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+						Region:        "us-west-2",
 						Version:       aws.String("1.16"),
 						UpgradePolicy: tc.newUpgradePolicy,
 					},
@@ -926,6 +931,7 @@ func TestCreateIPv6Cluster(t *testing.T) {
 		},
 		ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
 			Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+				Region:   "us-west-2",
 				RoleName: ptr.To[string]("arn-role"),
 				Version:  aws.String("1.22"),
 				NetworkSpec: infrav1.NetworkSpec{
@@ -1019,6 +1025,7 @@ func TestCreateClusterWithBootstrapClusterCreatorAdminPermissions(t *testing.T) 
 		},
 		ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
 			Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+				Region:         "us-west-2",
 				EKSClusterName: clusterName,
 				Version:        aws.String("1.24"),
 				RoleName:       aws.String("arn:role"),

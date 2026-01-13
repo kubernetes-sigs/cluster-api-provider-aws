@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpoints"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	"sigs.k8s.io/cluster-api/util/annotations"
 )
@@ -70,6 +71,10 @@ func (*awsClusterWebhook) ValidateCreate(_ context.Context, obj runtime.Object) 
 
 	var allErrs field.ErrorList
 	var allWarnings admission.Warnings
+
+	if err := r.validateRegion(); err != nil {
+		allErrs = append(allErrs, err)
+	}
 
 	allErrs = append(allErrs, r.Spec.Bastion.Validate()...)
 	allErrs = append(allErrs, r.validateSSHKeyName()...)
@@ -163,6 +168,10 @@ func (*awsClusterWebhook) ValidateUpdate(_ context.Context, oldObj, newObj runti
 			field.Invalid(field.NewPath("metadata", "annotations"),
 				r.Annotations, "removal of externally managed annotation is not allowed"),
 		)
+	}
+
+	if err := r.validateRegion(); err != nil {
+		allErrs = append(allErrs, err)
 	}
 
 	allErrs = append(allErrs, r.Spec.Bastion.Validate()...)
@@ -297,6 +306,20 @@ func (r *AWSCluster) validateGCTasksAnnotation() field.ErrorList {
 
 func (r *AWSCluster) validateSSHKeyName() field.ErrorList {
 	return validateSSHKeyName(r.Spec.SSHKeyName)
+}
+
+func (r *AWSCluster) validateRegion() *field.Error {
+	if r.Spec.Region == "" {
+		return field.Required(field.NewPath("spec", "region"), "region is required")
+	}
+
+	// Validate region against all AWS partitions
+	if !endpoints.IsValidRegion(r.Spec.Region) {
+		return field.Invalid(field.NewPath("spec", "region"), r.Spec.Region,
+			"region is not a valid AWS region")
+	}
+
+	return nil
 }
 
 func (r *AWSCluster) validateNetwork() field.ErrorList {

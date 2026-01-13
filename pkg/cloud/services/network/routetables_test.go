@@ -577,6 +577,7 @@ func TestReconcileRouteTables(t *testing.T) {
 				AWSCluster: &infrav1.AWSCluster{
 					ObjectMeta: metav1.ObjectMeta{Name: "test"},
 					Spec: infrav1.AWSClusterSpec{
+						Region:      "us-west-2",
 						NetworkSpec: *tc.input,
 					},
 				},
@@ -755,6 +756,7 @@ func TestDeleteRouteTables(t *testing.T) {
 				AWSCluster: &infrav1.AWSCluster{
 					ObjectMeta: metav1.ObjectMeta{Name: "test"},
 					Spec: infrav1.AWSClusterSpec{
+						Region:      "us-west-2",
 						NetworkSpec: *tc.input,
 					},
 				},
@@ -831,7 +833,9 @@ func TestDeleteRouteTable(t *testing.T) {
 				},
 				AWSCluster: &infrav1.AWSCluster{
 					ObjectMeta: metav1.ObjectMeta{Name: "test"},
-					Spec:       infrav1.AWSClusterSpec{},
+					Spec: infrav1.AWSClusterSpec{
+						Region: "us-west-2",
+					},
 				},
 			})
 			g.Expect(err).NotTo(HaveOccurred())
@@ -1316,7 +1320,9 @@ func TestService_getRoutesForSubnet(t *testing.T) {
 				},
 				AWSCluster: &infrav1.AWSCluster{
 					ObjectMeta: metav1.ObjectMeta{Name: "test"},
-					Spec:       infrav1.AWSClusterSpec{},
+					Spec: infrav1.AWSClusterSpec{
+						Region: "us-west-2",
+					},
 				},
 			}
 			cluster.AWSCluster.Spec.NetworkSpec = defaultNetwork

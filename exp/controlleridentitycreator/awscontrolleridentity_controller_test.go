@@ -34,7 +34,7 @@ func TestAWSControllerIdentityController(t *testing.T) {
 		g := NewWithT(t)
 		ctx := context.Background()
 
-		instance := &infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
+		instance := &infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}, Spec: infrav1.AWSClusterSpec{Region: "us-west-2"}}
 		instance.Default()
 
 		// Create the AWSCluster object and expect the Reconcile and Deployment to be created

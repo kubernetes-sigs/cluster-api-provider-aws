@@ -72,7 +72,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 			StackName:             name,
 			CIDRBlock:             "10.0.0.0/8",
 			AvailabilityZoneCount: 1,
-			Region:                "test-region",
+			Region:                "us-west-2",
 			IdentityRef: &infrav1.AWSIdentityReference{
 				Name: identity.Name,
 				Kind: infrav1.ControllerIdentityKind,
@@ -93,7 +93,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 			StackName:             nameDeleted,
 			CIDRBlock:             "10.0.0.0/8",
 			AvailabilityZoneCount: 1,
-			Region:                "test-region",
+			Region:                "us-west-2",
 			IdentityRef: &infrav1.AWSIdentityReference{
 				Name: identity.Name,
 				Kind: infrav1.ControllerIdentityKind,

@@ -36,6 +36,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpoints"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/identity"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
@@ -66,7 +67,28 @@ type ChainCredentialsProvider struct {
 	providers []aws.CredentialsProvider
 }
 
+// validateRegion validates that the provided region is a valid AWS region.
+func validateRegion(region string) error {
+	if region == "" {
+		return errors.New("region cannot be empty")
+	}
+
+	// Validate region against all AWS partitions
+	// We cannot rely on GetPartition() == nil because it returns the default partition as a fallback
+	// Instead, we check if the region is explicitly listed in any partition's regions map
+	if !endpoints.IsValidRegion(region) {
+		return errors.Errorf("region %q is not a valid AWS region", region)
+	}
+
+	return nil
+}
+
 func sessionForRegion(region string) (*aws.Config, throttle.ServiceLimiters, error) {
+	// Validate region before using as cache key
+	if err := validateRegion(region); err != nil {
+		return nil, nil, errors.Wrap(err, "invalid region")
+	}
+
 	if s, ok := sessionCache.Load(region); ok {
 		entry := s.(*sessionCacheEntry)
 		return entry.session, entry.serviceLimiters, nil
@@ -88,6 +110,12 @@ func sessionForRegion(region string) (*aws.Config, throttle.ServiceLimiters, err
 func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.SessionMetadata, region string, log logger.Wrapper) (*aws.Config, throttle.ServiceLimiters, error) {
 	log = log.WithName("identity")
 	log.Trace("Creating an AWS Session")
+
+	// Validate region before using as cache key
+	if err := validateRegion(region); err != nil {
+		v1beta1conditions.MarkFalse(clusterScoper.InfraCluster(), infrav1.PrincipalCredentialRetrievedCondition, infrav1.PrincipalCredentialRetrievalFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
+		return nil, nil, errors.Wrap(err, "invalid region")
+	}
 
 	providers, err := getProvidersForCluster(context.Background(), k8sClient, clusterScoper, region, log)
 	if err != nil {
