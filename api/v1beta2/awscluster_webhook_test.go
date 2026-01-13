@@ -324,6 +324,151 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "accepts valid additional IAM instance profile",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: &S3Bucket{
+						Name:                           "foo",
+						ControlPlaneIAMInstanceProfile: "foo",
+						NodesIAMInstanceProfiles:       []string{"bar"},
+						AdditionalIAMInstanceProfiles: []AdditionalIAMInstanceProfile{
+							{Name: "karpenter-nodes", Prefix: "karpenter-nodes/*"},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "accepts valid additional IAM instance profile with nested prefix",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: &S3Bucket{
+						Name:                           "foo",
+						ControlPlaneIAMInstanceProfile: "foo",
+						NodesIAMInstanceProfiles:       []string{"bar"},
+						AdditionalIAMInstanceProfiles: []AdditionalIAMInstanceProfile{
+							{Name: "custom", Prefix: "custom/deep/path/*"},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "accepts wildcard-only prefix for additional IAM instance profile",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: &S3Bucket{
+						Name:                           "foo",
+						ControlPlaneIAMInstanceProfile: "foo",
+						NodesIAMInstanceProfiles:       []string{"bar"},
+						AdditionalIAMInstanceProfiles: []AdditionalIAMInstanceProfile{
+							{Name: "wildcard-profile", Prefix: "*"},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "accepts overlap with standard prefixes for additional IAM instance profile",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: &S3Bucket{
+						Name:                           "foo",
+						ControlPlaneIAMInstanceProfile: "foo",
+						NodesIAMInstanceProfiles:       []string{"bar"},
+						AdditionalIAMInstanceProfiles: []AdditionalIAMInstanceProfile{
+							{Name: "overlap-profile", Prefix: "node/*"},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "rejects empty name in additional IAM instance profile",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: &S3Bucket{
+						Name:                           "foo",
+						ControlPlaneIAMInstanceProfile: "foo",
+						NodesIAMInstanceProfiles:       []string{"bar"},
+						AdditionalIAMInstanceProfiles: []AdditionalIAMInstanceProfile{
+							{Name: "", Prefix: "test/*"},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects empty prefix in additional IAM instance profile",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: &S3Bucket{
+						Name:                           "foo",
+						ControlPlaneIAMInstanceProfile: "foo",
+						NodesIAMInstanceProfiles:       []string{"bar"},
+						AdditionalIAMInstanceProfiles: []AdditionalIAMInstanceProfile{
+							{Name: "test", Prefix: ""},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects prefix without /* suffix in additional IAM instance profile",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: &S3Bucket{
+						Name:                           "foo",
+						ControlPlaneIAMInstanceProfile: "foo",
+						NodesIAMInstanceProfiles:       []string{"bar"},
+						AdditionalIAMInstanceProfiles: []AdditionalIAMInstanceProfile{
+							{Name: "test", Prefix: "test/path"},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects prefix starting with / in additional IAM instance profile",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: &S3Bucket{
+						Name:                           "foo",
+						ControlPlaneIAMInstanceProfile: "foo",
+						NodesIAMInstanceProfiles:       []string{"bar"},
+						AdditionalIAMInstanceProfiles: []AdditionalIAMInstanceProfile{
+							{Name: "test", Prefix: "/test/*"},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects duplicate names in additional IAM instance profiles",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					S3Bucket: &S3Bucket{
+						Name:                           "foo",
+						ControlPlaneIAMInstanceProfile: "foo",
+						NodesIAMInstanceProfiles:       []string{"bar"},
+						AdditionalIAMInstanceProfiles: []AdditionalIAMInstanceProfile{
+							{Name: "duplicate", Prefix: "path1/*"},
+							{Name: "duplicate", Prefix: "path2/*"},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name: "rejects ipv6",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{

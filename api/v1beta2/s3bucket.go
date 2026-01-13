@@ -19,6 +19,7 @@ package v1beta2
 import (
 	"fmt"
 	"net"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
@@ -59,6 +60,44 @@ func (b *S3Bucket) Validate() []*field.Error {
 				errs = append(errs,
 					field.Required(field.NewPath("spec", "s3Bucket", fmt.Sprintf("nodesIAMInstanceProfiles[%d]", i)), "can't be empty"))
 			}
+		}
+	}
+
+	// Validate additional IAM instance profiles
+	for i, profile := range b.AdditionalIAMInstanceProfiles {
+		profilePath := field.NewPath("spec", "s3Bucket", fmt.Sprintf("additionalIAMInstanceProfiles[%d]", i))
+
+		if profile.Name == "" {
+			errs = append(errs, field.Required(profilePath.Child("name"), "can't be empty"))
+		}
+
+		if profile.Prefix == "" {
+			errs = append(errs, field.Required(profilePath.Child("prefix"), "can't be empty"))
+		}
+
+		// Must end with /* or be exactly * for wildcard-only access
+		if profile.Prefix != "" && profile.Prefix != "*" && !strings.HasSuffix(profile.Prefix, "/*") {
+			errs = append(errs, field.Invalid(profilePath.Child("prefix"), profile.Prefix,
+				"must end with /* for wildcard access or be * for full bucket access"))
+		}
+
+		// Must not start with /
+		if profile.Prefix != "" && strings.HasPrefix(profile.Prefix, "/") {
+			errs = append(errs, field.Invalid(profilePath.Child("prefix"), profile.Prefix,
+				"must not start with /"))
+		}
+	}
+
+	// Check for duplicate names
+	seenNames := make(map[string]bool)
+	for i, profile := range b.AdditionalIAMInstanceProfiles {
+		if profile.Name != "" {
+			if seenNames[profile.Name] {
+				errs = append(errs, field.Duplicate(
+					field.NewPath("spec", "s3Bucket", fmt.Sprintf("additionalIAMInstanceProfiles[%d]", i), "name"),
+					profile.Name))
+			}
+			seenNames[profile.Name] = true
 		}
 	}
 
