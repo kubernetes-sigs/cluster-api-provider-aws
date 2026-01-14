@@ -16,10 +16,18 @@
 
 import argparse
 import json
+import logging
 import os
+import sys
 
 import requests
 import time
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    stream=sys.stderr
+)
 
 BOSKOS_HOST = os.environ.get("BOSKOS_HOST", "boskos")
 BOSKOS_RESOURCE_NAME = os.environ.get('BOSKOS_RESOURCE_NAME')
@@ -44,7 +52,9 @@ def checkout_account(resource_type, user, input_state="free", tries=1):
     # The http API has two possible meanings of 404s - the named resource type cannot be found or there no available resources of the type.
     # For our purposes, we don't need to differentiate.
     elif r.status_code == 404:
-        print(f"could not find available host, retrying in {RETRY_WAIT}s")
+        response_body = r.content.decode() if r.content else "empty response"
+        logging.warning(f"got 404 response for {resource_type}: {response_body}")
+        logging.warning(f"could not find available host, retrying in {RETRY_WAIT}s (attempt {tries}/{MAX_RETRIES})")
         if tries > MAX_RETRIES:
             raise Exception(f"could not allocate host after {MAX_RETRIES} tries")
         tries = tries + 1
