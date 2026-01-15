@@ -1,8 +1,8 @@
 # Summary
 
 - [Introduction](./introduction.md)
-- [Quick Start](quick-start.md)
-- [Quick Start Operator](quick-start-operator.md)
+- [Quick Start](./user/quick-start.md)
+- [Quick Start Operator](./user/quick-start-operator.md)
 - [AMIs](./topics/images/amis.md)
   - [Published AMIs](./topics/images/built-amis.md)
   - [Custom AMIs](./topics/images/custom-amis.md)
@@ -38,7 +38,7 @@
     - [Control planes](./topics/failure-domains/control-planes.md)
     - [Worker nodes](./topics/failure-domains/worker-nodes.md)
   - [Userdata Privacy](./topics/userdata-privacy.md)
-  - [Troubleshooting](./topics/troubleshooting.md)
+  - [Troubleshooting](./user/troubleshooting.md)
   - [IAM Permissions Used](./topics/iam-permissions.md)
   - [Ignition support](./topics/ignition-support.md)
   - [External Resource Garbage Collection](./topics/external-resource-gc.md)
