@@ -38,6 +38,11 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
 )
 
+const (
+	hostTenancy  = "host"
+	hostAffinity = "host"
+)
+
 // log is for logging in this package.
 var log = ctrl.Log.WithName("awsmachine-resource")
 
@@ -484,6 +489,19 @@ func (r *AWSMachine) validateHostAllocation() field.ErrorList {
 	// If both hostID and dynamicHostAllocation are specified, return an error
 	if hasHostID && hasDynamicHostAllocation {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.hostID"), "hostID and dynamicHostAllocation are mutually exclusive"), field.Forbidden(field.NewPath("spec.dynamicHostAllocation"), "hostID and dynamicHostAllocation are mutually exclusive"))
+	}
+
+	// HostID, HostAffinity, and DynamicHostAllocation can only be set when Tenancy is "host"
+	if hasHostID && r.Spec.Tenancy != hostTenancy {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.hostID"), "hostID can only be set when tenancy is 'host'"))
+	}
+
+	if r.Spec.HostAffinity != nil && *r.Spec.HostAffinity == hostAffinity && r.Spec.Tenancy != hostTenancy {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.hostAffinity"), "hostAffinity can only be set to 'host' when tenancy is 'host'"))
+	}
+
+	if hasDynamicHostAllocation && r.Spec.Tenancy != hostTenancy {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.dynamicHostAllocation"), "dynamicHostAllocation can only be set when tenancy is 'host'"))
 	}
 
 	return allErrs
