@@ -16,6 +16,7 @@
   - [EKS Support](./topics/eks/index.md)
     - [Prerequisites](./topics/eks/prerequisites.md)
     - [Enabling EKS Support](./topics/eks/enabling.md)
+    - [Disabling EKS Support](./topics/eks/disabling.md)
     - [Pod Networking](./topics/eks/pod-networking.md)
     - [Creating a cluster](./topics/eks/creating-a-cluster.md)
     - [Using EKS Console](./topics/eks/eks-console.md)
