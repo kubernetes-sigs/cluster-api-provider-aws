@@ -456,7 +456,7 @@ type VPCSpec struct {
 	// default subnets. Defaults to 3
 	// +kubebuilder:default=3
 	// +kubebuilder:validation:Minimum=1
-	AvailabilityZoneUsageLimit *int `json:"availabilityZoneUsageLimit,omitempty"`
+	AvailabilityZoneUsageLimit *int32 `json:"availabilityZoneUsageLimit,omitempty"`
 
 	// AvailabilityZoneSelection specifies how AZs should be selected if there are more AZs
 	// in a region than specified by AvailabilityZoneUsageLimit. There are 2 selection schemes:

@@ -367,7 +367,7 @@ type NetworkSpec struct {
 	// Network host prefix which is defaulted to `23` if not specified.
 	// +kubebuilder:default=23
 	// +optional
-	HostPrefix int `json:"hostPrefix,omitempty"`
+	HostPrefix int32 `json:"hostPrefix,omitempty"`
 
 	// The CNI network type default is OVNKubernetes.
 	// +kubebuilder:validation:Enum=OVNKubernetes;Other
@@ -392,15 +392,15 @@ type DefaultMachinePoolSpec struct {
 	// +kubebuilder:validation:Maximum=16384
 	// +immutable
 	// +optional
-	VolumeSize int `json:"volumeSize,omitempty"`
+	VolumeSize int32 `json:"volumeSize,omitempty"`
 }
 
 // AutoScaling specifies scaling options.
 type AutoScaling struct {
 	// +kubebuilder:validation:Minimum=1
-	MinReplicas int `json:"minReplicas,omitempty"`
+	MinReplicas int32 `json:"minReplicas,omitempty"`
 	// +kubebuilder:validation:Minimum=1
-	MaxReplicas int `json:"maxReplicas,omitempty"`
+	MaxReplicas int32 `json:"maxReplicas,omitempty"`
 }
 
 // AWSRolesRef contains references to various AWS IAM roles required for operators to make calls against the AWS API.
