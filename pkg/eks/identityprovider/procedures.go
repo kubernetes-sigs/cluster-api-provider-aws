@@ -45,7 +45,7 @@ func (w *WaitIdentityProviderAssociatedProcedure) Do(ctx context.Context) error 
 		out, err := w.plan.eksClient.DescribeIdentityProviderConfig(ctx, &eks.DescribeIdentityProviderConfigInput{
 			ClusterName: aws.String(w.plan.clusterName),
 			IdentityProviderConfig: &ekstypes.IdentityProviderConfig{
-				Name: w.plan.currentIdentityProvider.IdentityProviderConfigName,
+				Name: aws.String(w.plan.currentIdentityProvider.IdentityProviderConfigName),
 				Type: oidcType,
 			},
 		})
@@ -82,7 +82,7 @@ func (d *DisassociateIdentityProviderConfig) Do(ctx context.Context) error {
 		_, err := d.plan.eksClient.DisassociateIdentityProviderConfig(ctx, &eks.DisassociateIdentityProviderConfigInput{
 			ClusterName: aws.String(d.plan.clusterName),
 			IdentityProviderConfig: &ekstypes.IdentityProviderConfig{
-				Name: d.plan.currentIdentityProvider.IdentityProviderConfigName,
+				Name: aws.String(d.plan.currentIdentityProvider.IdentityProviderConfigName),
 				Type: oidcType,
 			},
 		})
@@ -115,11 +115,11 @@ func (a *AssociateIdentityProviderProcedure) Do(ctx context.Context) error {
 	input := &eks.AssociateIdentityProviderConfigInput{
 		ClusterName: aws.String(a.plan.clusterName),
 		Oidc: &ekstypes.OidcIdentityProviderConfigRequest{
-			ClientId:                   oidc.ClientID,
+			ClientId:                   aws.String(oidc.ClientID),
 			GroupsClaim:                aws.String(oidc.GroupsClaim),
 			GroupsPrefix:               aws.String(oidc.GroupsPrefix),
-			IdentityProviderConfigName: oidc.IdentityProviderConfigName,
-			IssuerUrl:                  oidc.IssuerURL,
+			IdentityProviderConfigName: aws.String(oidc.IdentityProviderConfigName),
+			IssuerUrl:                  aws.String(oidc.IssuerURL),
 			RequiredClaims:             oidc.RequiredClaims,
 			UsernameClaim:              aws.String(oidc.UsernameClaim),
 			UsernamePrefix:             aws.String(oidc.UsernamePrefix),

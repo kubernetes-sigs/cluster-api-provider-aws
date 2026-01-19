@@ -24,7 +24,8 @@ package v1beta1
 import (
 	unsafe "unsafe"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	apiv1beta2 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -331,7 +332,15 @@ func autoConvert_v1beta1_AWSManagedControlPlaneSpec_To_v1beta2_AWSManagedControl
 	out.TokenMethod = (*v1beta2.EKSTokenMethod)(unsafe.Pointer(in.TokenMethod))
 	out.AssociateOIDCProvider = in.AssociateOIDCProvider
 	out.Addons = (*[]v1beta2.Addon)(unsafe.Pointer(in.Addons))
-	out.OIDCIdentityProviderConfig = (*v1beta2.OIDCIdentityProviderConfig)(unsafe.Pointer(in.OIDCIdentityProviderConfig))
+	if in.OIDCIdentityProviderConfig != nil {
+		in, out := &in.OIDCIdentityProviderConfig, &out.OIDCIdentityProviderConfig
+		*out = new(v1beta2.OIDCIdentityProviderConfig)
+		if err := Convert_v1beta1_OIDCIdentityProviderConfig_To_v1beta2_OIDCIdentityProviderConfig(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.OIDCIdentityProviderConfig = nil
+	}
 	// WARNING: in.DisableVPCCNI requires manual conversion: does not exist in peer-type
 	if err := Convert_v1beta1_VpcCni_To_v1beta2_VpcCni(&in.VpcCni, &out.VpcCni, s); err != nil {
 		return err
@@ -370,7 +379,15 @@ func autoConvert_v1beta2_AWSManagedControlPlaneSpec_To_v1beta1_AWSManagedControl
 	out.TokenMethod = (*EKSTokenMethod)(unsafe.Pointer(in.TokenMethod))
 	out.AssociateOIDCProvider = in.AssociateOIDCProvider
 	out.Addons = (*[]Addon)(unsafe.Pointer(in.Addons))
-	out.OIDCIdentityProviderConfig = (*OIDCIdentityProviderConfig)(unsafe.Pointer(in.OIDCIdentityProviderConfig))
+	if in.OIDCIdentityProviderConfig != nil {
+		in, out := &in.OIDCIdentityProviderConfig, &out.OIDCIdentityProviderConfig
+		*out = new(OIDCIdentityProviderConfig)
+		if err := Convert_v1beta2_OIDCIdentityProviderConfig_To_v1beta1_OIDCIdentityProviderConfig(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.OIDCIdentityProviderConfig = nil
+	}
 	// WARNING: in.AccessConfig requires manual conversion: does not exist in peer-type
 	// WARNING: in.AccessEntries requires manual conversion: does not exist in peer-type
 	if err := Convert_v1beta2_VpcCni_To_v1beta1_VpcCni(&in.VpcCni, &out.VpcCni, s); err != nil {
@@ -678,11 +695,17 @@ func Convert_v1beta2_KubernetesMapping_To_v1beta1_KubernetesMapping(in *v1beta2.
 }
 
 func autoConvert_v1beta1_OIDCIdentityProviderConfig_To_v1beta2_OIDCIdentityProviderConfig(in *OIDCIdentityProviderConfig, out *v1beta2.OIDCIdentityProviderConfig, s conversion.Scope) error {
-	out.ClientID = (*string)(unsafe.Pointer(in.ClientID))
+	if err := v1.Convert_Pointer_string_To_string(&in.ClientID, &out.ClientID, s); err != nil {
+		return err
+	}
 	out.GroupsClaim = (*string)(unsafe.Pointer(in.GroupsClaim))
 	out.GroupsPrefix = (*string)(unsafe.Pointer(in.GroupsPrefix))
-	out.IdentityProviderConfigName = (*string)(unsafe.Pointer(in.IdentityProviderConfigName))
-	out.IssuerURL = (*string)(unsafe.Pointer(in.IssuerURL))
+	if err := v1.Convert_Pointer_string_To_string(&in.IdentityProviderConfigName, &out.IdentityProviderConfigName, s); err != nil {
+		return err
+	}
+	if err := v1.Convert_Pointer_string_To_string(&in.IssuerURL, &out.IssuerURL, s); err != nil {
+		return err
+	}
 	out.RequiredClaims = *(*map[string]string)(unsafe.Pointer(&in.RequiredClaims))
 	out.UsernameClaim = (*string)(unsafe.Pointer(in.UsernameClaim))
 	out.UsernamePrefix = (*string)(unsafe.Pointer(in.UsernamePrefix))
@@ -696,11 +719,17 @@ func Convert_v1beta1_OIDCIdentityProviderConfig_To_v1beta2_OIDCIdentityProviderC
 }
 
 func autoConvert_v1beta2_OIDCIdentityProviderConfig_To_v1beta1_OIDCIdentityProviderConfig(in *v1beta2.OIDCIdentityProviderConfig, out *OIDCIdentityProviderConfig, s conversion.Scope) error {
-	out.ClientID = (*string)(unsafe.Pointer(in.ClientID))
+	if err := v1.Convert_string_To_Pointer_string(&in.ClientID, &out.ClientID, s); err != nil {
+		return err
+	}
 	out.GroupsClaim = (*string)(unsafe.Pointer(in.GroupsClaim))
 	out.GroupsPrefix = (*string)(unsafe.Pointer(in.GroupsPrefix))
-	out.IdentityProviderConfigName = (*string)(unsafe.Pointer(in.IdentityProviderConfigName))
-	out.IssuerURL = (*string)(unsafe.Pointer(in.IssuerURL))
+	if err := v1.Convert_string_To_Pointer_string(&in.IdentityProviderConfigName, &out.IdentityProviderConfigName, s); err != nil {
+		return err
+	}
+	if err := v1.Convert_string_To_Pointer_string(&in.IssuerURL, &out.IssuerURL, s); err != nil {
+		return err
+	}
 	out.RequiredClaims = *(*map[string]string)(unsafe.Pointer(&in.RequiredClaims))
 	out.UsernameClaim = (*string)(unsafe.Pointer(in.UsernameClaim))
 	out.UsernamePrefix = (*string)(unsafe.Pointer(in.UsernamePrefix))
@@ -788,7 +817,7 @@ func Convert_v1beta2_UserMapping_To_v1beta1_UserMapping(in *v1beta2.UserMapping,
 }
 
 func autoConvert_v1beta1_VpcCni_To_v1beta2_VpcCni(in *VpcCni, out *v1beta2.VpcCni, s conversion.Scope) error {
-	out.Env = *(*[]v1.EnvVar)(unsafe.Pointer(&in.Env))
+	out.Env = *(*[]corev1.EnvVar)(unsafe.Pointer(&in.Env))
 	return nil
 }
 
@@ -799,6 +828,6 @@ func Convert_v1beta1_VpcCni_To_v1beta2_VpcCni(in *VpcCni, out *v1beta2.VpcCni, s
 
 func autoConvert_v1beta2_VpcCni_To_v1beta1_VpcCni(in *v1beta2.VpcCni, out *VpcCni, s conversion.Scope) error {
 	// WARNING: in.Disable requires manual conversion: does not exist in peer-type
-	out.Env = *(*[]v1.EnvVar)(unsafe.Pointer(&in.Env))
+	out.Env = *(*[]corev1.EnvVar)(unsafe.Pointer(&in.Env))
 	return nil
 }
