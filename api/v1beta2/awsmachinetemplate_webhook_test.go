@@ -88,6 +88,7 @@ func TestAWSMachineTemplateValidateCreate(t *testing.T) {
 					Template: AWSMachineTemplateResource{
 						Spec: AWSMachineSpec{
 							InstanceType: "test",
+							Tenancy:      "host",
 							HostID:       aws.String("h-1234567890abcdef0"),
 							DynamicHostAllocation: &DynamicHostAllocationSpec{
 								Tags: map[string]string{
@@ -108,6 +109,7 @@ func TestAWSMachineTemplateValidateCreate(t *testing.T) {
 					Template: AWSMachineTemplateResource{
 						Spec: AWSMachineSpec{
 							InstanceType: "test",
+							Tenancy:      "host",
 							HostAffinity: ptr.To("host"),
 						},
 					},
@@ -123,6 +125,7 @@ func TestAWSMachineTemplateValidateCreate(t *testing.T) {
 					Template: AWSMachineTemplateResource{
 						Spec: AWSMachineSpec{
 							InstanceType: "test",
+							Tenancy:      "host",
 							HostAffinity: ptr.To("host"),
 							HostID:       ptr.To("h-09dcf61cb388b0149"),
 						},
@@ -139,6 +142,7 @@ func TestAWSMachineTemplateValidateCreate(t *testing.T) {
 					Template: AWSMachineTemplateResource{
 						Spec: AWSMachineSpec{
 							InstanceType: "test",
+							Tenancy:      "host",
 							HostAffinity: ptr.To("host"),
 							DynamicHostAllocation: &DynamicHostAllocationSpec{
 								Tags: map[string]string{"env": "test"},
@@ -163,6 +167,57 @@ func TestAWSMachineTemplateValidateCreate(t *testing.T) {
 				},
 			},
 			wantError: false,
+		},
+		{
+			name: "hostID without tenancy=host is invalid",
+			inputTemplate: &AWSMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: AWSMachineTemplateSpec{
+					Template: AWSMachineTemplateResource{
+						Spec: AWSMachineSpec{
+							InstanceType: "test",
+							Tenancy:      "default",
+							HostID:       ptr.To("h-09dcf61cb388b0149"),
+						},
+					},
+				},
+			},
+			wantError: true,
+		},
+		{
+			name: "hostAffinity=host without tenancy=host is invalid",
+			inputTemplate: &AWSMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: AWSMachineTemplateSpec{
+					Template: AWSMachineTemplateResource{
+						Spec: AWSMachineSpec{
+							InstanceType: "test",
+							Tenancy:      "default",
+							HostAffinity: ptr.To("host"),
+							HostID:       ptr.To("h-09dcf61cb388b0149"),
+						},
+					},
+				},
+			},
+			wantError: true,
+		},
+		{
+			name: "dynamicHostAllocation without tenancy=host is invalid",
+			inputTemplate: &AWSMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: AWSMachineTemplateSpec{
+					Template: AWSMachineTemplateResource{
+						Spec: AWSMachineSpec{
+							InstanceType: "test",
+							Tenancy:      "dedicated",
+							DynamicHostAllocation: &DynamicHostAllocationSpec{
+								Tags: map[string]string{"env": "test"},
+							},
+						},
+					},
+				},
+			},
+			wantError: true,
 		},
 	}
 	for _, tt := range tests {
