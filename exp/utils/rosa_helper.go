@@ -43,7 +43,7 @@ func NodePoolToRosaMachinePoolSpec(nodePool *cmv1.NodePool) expinfrav1.RosaMachi
 		InstanceType:             nodePool.AWSNodePool().InstanceType(),
 		TuningConfigs:            nodePool.TuningConfigs(),
 		AdditionalSecurityGroups: nodePool.AWSNodePool().AdditionalSecurityGroupIds(),
-		VolumeSize:               nodePool.AWSNodePool().RootVolume().Size(),
+		VolumeSize:               int32(nodePool.AWSNodePool().RootVolume().Size()),
 		CapacityReservationID:    nodePool.AWSNodePool().CapacityReservation().Id(),
 		// nodePool.AWSNodePool().Tags() returns all tags including "system" tags if "fetchUserTagsOnly" parameter is not specified.
 		// TODO: enable when AdditionalTags day2 changes is supported.
@@ -52,8 +52,8 @@ func NodePoolToRosaMachinePoolSpec(nodePool *cmv1.NodePool) expinfrav1.RosaMachi
 
 	if nodePool.Autoscaling() != nil {
 		spec.Autoscaling = &rosacontrolplanev1.AutoScaling{
-			MinReplicas: nodePool.Autoscaling().MinReplica(),
-			MaxReplicas: nodePool.Autoscaling().MaxReplica(),
+			MinReplicas: int32(nodePool.Autoscaling().MinReplica()),
+			MaxReplicas: int32(nodePool.Autoscaling().MaxReplica()),
 		}
 	}
 	if nodePool.Taints() != nil {

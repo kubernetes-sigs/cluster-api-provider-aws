@@ -488,8 +488,8 @@ func nodePoolBuilder(rosaMachinePoolSpec expinfrav1.RosaMachinePoolSpec, machine
 	if rosaMachinePoolSpec.Autoscaling != nil {
 		npBuilder = npBuilder.Autoscaling(
 			cmv1.NewNodePoolAutoscaling().
-				MinReplica(rosaMachinePoolSpec.Autoscaling.MinReplicas).
-				MaxReplica(rosaMachinePoolSpec.Autoscaling.MaxReplicas))
+				MinReplica(int(rosaMachinePoolSpec.Autoscaling.MinReplicas)).
+				MaxReplica(int(rosaMachinePoolSpec.Autoscaling.MaxReplicas)))
 	} else {
 		replicas := 1
 		if machinePoolSpec.Replicas != nil {
@@ -510,7 +510,7 @@ func nodePoolBuilder(rosaMachinePoolSpec expinfrav1.RosaMachinePoolSpec, machine
 		awsNodePool = awsNodePool.Tags(rosaMachinePoolSpec.AdditionalTags)
 	}
 	if rosaMachinePoolSpec.VolumeSize > 75 {
-		awsNodePool = awsNodePool.RootVolume(cmv1.NewAWSVolume().Size(rosaMachinePoolSpec.VolumeSize))
+		awsNodePool = awsNodePool.RootVolume(cmv1.NewAWSVolume().Size(int(rosaMachinePoolSpec.VolumeSize)))
 	}
 	if rosaMachinePoolSpec.CapacityReservationID != "" {
 		capacityReservation := cmv1.NewAWSCapacityReservation().Id(rosaMachinePoolSpec.CapacityReservationID)

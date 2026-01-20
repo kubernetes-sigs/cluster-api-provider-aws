@@ -141,7 +141,7 @@ func (r *ROSANetworkReconciler) reconcileNormal(ctx context.Context, rosaNetScop
 
 		zoneCount := 1
 		if rosaNetScope.ROSANetwork.Spec.AvailabilityZoneCount > 0 {
-			zoneCount = rosaNetScope.ROSANetwork.Spec.AvailabilityZoneCount
+			zoneCount = int(rosaNetScope.ROSANetwork.Spec.AvailabilityZoneCount)
 		}
 		cfParams := map[string]string{
 			"AvailabilityZoneCount": strconv.Itoa(zoneCount),

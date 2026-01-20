@@ -1101,20 +1101,16 @@ func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpe
 			ocmClusterSpec.ServiceCIDR = *serviceCIDR
 		}
 
-		ocmClusterSpec.HostPrefix = networkSpec.HostPrefix
-		ocmClusterSpec.NetworkType = networkSpec.NetworkType
-	}
-
-	if controlPlaneSpec.DefaultMachinePoolSpec.VolumeSize >= 75 {
-		ocmClusterSpec.MachinePoolRootDisk = &ocm.Volume{Size: controlPlaneSpec.DefaultMachinePoolSpec.VolumeSize}
+	ocmClusterSpec.HostPrefix = int(networkSpec.HostPrefix)
+		ocmClusterSpec.MachinePoolRootDisk = &ocm.Volume{Size: int(controlPlaneSpec.DefaultMachinePoolSpec.VolumeSize)}
 	}
 
 	// Set cluster compute autoscaling replicas
 	// In case autoscaling is not defined and multiple zones defined, set the compute nodes equal to the zones count.
 	if computeAutoscaling := controlPlaneSpec.DefaultMachinePoolSpec.Autoscaling; computeAutoscaling != nil {
 		ocmClusterSpec.Autoscaling = true
-		ocmClusterSpec.MaxReplicas = computeAutoscaling.MaxReplicas
-		ocmClusterSpec.MinReplicas = computeAutoscaling.MinReplicas
+		ocmClusterSpec.MaxReplicas = int(computeAutoscaling.MaxReplicas)
+		ocmClusterSpec.MinReplicas = int(computeAutoscaling.MinReplicas)
 	} else if len(ocmClusterSpec.AvailabilityZones) > 1 {
 		ocmClusterSpec.ComputeNodes = len(ocmClusterSpec.AvailabilityZones)
 	}

@@ -99,7 +99,7 @@ type RosaMachinePoolSpec struct {
 	// +kubebuilder:validation:Maximum=16384
 	// +immutable
 	// +optional
-	VolumeSize int `json:"volumeSize,omitempty"`
+	VolumeSize int32 `json:"volumeSize,omitempty"`
 
 	// ProviderIDList contain a ProviderID for each machine instance that's currently managed by this machine pool.
 	// +optional
