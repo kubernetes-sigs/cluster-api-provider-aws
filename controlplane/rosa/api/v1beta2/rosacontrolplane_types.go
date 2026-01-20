@@ -397,7 +397,7 @@ type DefaultMachinePoolSpec struct {
 
 // AutoScaling specifies scaling options.
 type AutoScaling struct {
-	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Minimum=0
 	MinReplicas int `json:"minReplicas,omitempty"`
 	// +kubebuilder:validation:Minimum=1
 	MaxReplicas int `json:"maxReplicas,omitempty"`
