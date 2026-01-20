@@ -447,6 +447,10 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 				Build()
 			return mockCluster, nil
 		}).Times(1)
+		m.GetLogForwarders(gomock.Any()).DoAndReturn(func(clusterID string) ([]*v1.LogForwarder, error) {
+			logs := []*v1.LogForwarder{}
+			return logs, nil
+		}).Times(1)
 		m.UpdateCluster(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(clusterKey string, creator *rosaaws.Creator, config ocm.Spec) error {
 			return nil
 		}).Times(1)
@@ -549,6 +553,210 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 	for _, obj := range objects {
 		cleanupObject(g, obj)
 	}
+}
+
+func TestBuildLogForwarders(t *testing.T) {
+	tests := []struct {
+		name                string
+		cwConfig            *rosacontrolplanev1.CloudWatchLogForwarderConfig
+		s3Config            *rosacontrolplanev1.S3LogForwarderConfig
+		expectCW            bool
+		expectS3            bool
+		expectCWGroupsCount int
+		expectS3GroupsCount int
+		expectCWApps        []string
+		expectS3Apps        []string
+	}{
+		{
+			name:     "both configs nil",
+			expectCW: false,
+			expectS3: false,
+		},
+		{
+			name: "cloudwatch only",
+			cwConfig: &rosacontrolplanev1.CloudWatchLogForwarderConfig{
+				CloudWatchLogRoleArn:   "arn:aws:iam::123456789012:role/test",
+				CloudWatchLogGroupName: "cw-log-group",
+				Applications:           []string{"kube-apiserver", "openshift-apiserver"},
+				GroupLogIDs:            []string{"audit", "infrastructure"},
+			},
+			expectCW:            true,
+			expectCWGroupsCount: 2,
+			expectCWApps:        []string{"kube-apiserver", "openshift-apiserver"},
+		},
+		{
+			name: "s3 only",
+			s3Config: &rosacontrolplanev1.S3LogForwarderConfig{
+				S3ConfigBucketName:   "my-bucket",
+				S3ConfigBucketPrefix: "logs/",
+				Applications:         []string{"machine-config-daemon"},
+				GroupLogIDs:          []string{"audit"},
+			},
+			expectS3:            true,
+			expectS3GroupsCount: 1,
+			expectS3Apps:        []string{"machine-config-daemon"},
+		},
+		{
+			name: "cloudwatch and s3",
+			cwConfig: &rosacontrolplanev1.CloudWatchLogForwarderConfig{
+				CloudWatchLogRoleArn:   "arn:aws:iam::123456789012:role/test",
+				CloudWatchLogGroupName: "cw-log-group",
+				Applications:           []string{"kube-apiserver"},
+			},
+			s3Config: &rosacontrolplanev1.S3LogForwarderConfig{
+				S3ConfigBucketName:   "my-bucket",
+				S3ConfigBucketPrefix: "logs/",
+				Applications:         []string{"machine-config-daemon"},
+			},
+			expectCW: true,
+			expectS3: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			cwForwarder, s3Forwarder, err :=
+				buildlogForwarders(tt.cwConfig, tt.s3Config)
+
+			g.Expect(err).ToNot(HaveOccurred())
+
+			// CloudWatch assertions
+			if tt.expectCW {
+				g.Expect(cwForwarder).ToNot(BeNil())
+				g.Expect(cwForwarder.Cloudwatch()).ToNot(BeNil())
+
+				if len(tt.expectCWApps) > 0 {
+					g.Expect(cwForwarder.Applications()).
+						To(ConsistOf(tt.expectCWApps))
+				}
+
+				if tt.expectCWGroupsCount > 0 {
+					g.Expect(cwForwarder.Groups()).
+						To(HaveLen(tt.expectCWGroupsCount))
+				}
+			} else {
+				g.Expect(cwForwarder).To(BeNil())
+			}
+
+			// S3 assertions
+			if tt.expectS3 {
+				g.Expect(s3Forwarder).ToNot(BeNil())
+				g.Expect(s3Forwarder.S3()).ToNot(BeNil())
+
+				if len(tt.expectS3Apps) > 0 {
+					g.Expect(s3Forwarder.Applications()).
+						To(ConsistOf(tt.expectS3Apps))
+				}
+
+				if tt.expectS3GroupsCount > 0 {
+					g.Expect(s3Forwarder.Groups()).
+						To(HaveLen(tt.expectS3GroupsCount))
+				}
+			} else {
+				g.Expect(s3Forwarder).To(BeNil())
+			}
+		})
+	}
+}
+
+func TestReconcileLogForwarders_CreateCloudWatchAndS3(t *testing.T) {
+	g := NewWithT(t)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockOCM := mocks.NewMockOCMClient(ctrl)
+
+	clusterID := "cluster-123"
+	cluster, _ := v1.NewCluster().ID(clusterID).Name("test-cluster").Build()
+
+	rosaScope := &scope.ROSAControlPlaneScope{
+		ControlPlane: &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				CloudWatchLogForwarder: &rosacontrolplanev1.CloudWatchLogForwarderConfig{
+					CloudWatchLogRoleArn:   "arn:aws:iam::123:role/test",
+					CloudWatchLogGroupName: "cw-group",
+					Applications:           []string{"kube-apiserver"},
+				},
+				S3LogForwarder: &rosacontrolplanev1.S3LogForwarderConfig{
+					S3ConfigBucketName:   "bucket",
+					S3ConfigBucketPrefix: "logs/",
+					Applications:         []string{"machine-config-daemon"},
+				},
+			},
+		},
+		Logger: *logger.FromContext(context.TODO()),
+	}
+
+	// No existing log forwarders
+	mockOCM.
+		EXPECT().
+		GetLogForwarders(clusterID).
+		Return([]*v1.LogForwarder{}, nil)
+
+	// Expect creation of both
+	mockOCM.
+		EXPECT().
+		SetLogForwarder(clusterID, gomock.Any()).
+		Times(2)
+
+	reconciler := &ROSAControlPlaneReconciler{}
+
+	err := reconciler.reconcileLogForwarders(rosaScope, mockOCM, cluster)
+	g.Expect(err).ToNot(HaveOccurred())
+}
+
+func TestReconcileLogForwarders_UpdateCW_DeleteS3(t *testing.T) {
+	g := NewWithT(t)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockOCM := mocks.NewMockOCMClient(ctrl)
+
+	clusterID := "cluster-123"
+	cluster, _ := v1.NewCluster().ID(clusterID).Name("test-cluster").Build()
+
+	existingCW, _ := v1.NewLogForwarder().
+		ID("cw-id").
+		Cloudwatch(v1.NewLogForwarderCloudWatchConfig()).Build()
+
+	existingS3, _ := v1.NewLogForwarder().
+		ID("s3-id").
+		S3(v1.NewLogForwarderS3Config()).Build()
+
+	rosaScope := &scope.ROSAControlPlaneScope{
+		ControlPlane: &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				CloudWatchLogForwarder: &rosacontrolplanev1.CloudWatchLogForwarderConfig{
+					CloudWatchLogRoleArn:   "arn:aws:iam::123:role/test",
+					CloudWatchLogGroupName: "cw-group",
+				},
+				S3LogForwarder: nil, // removed
+			},
+		},
+		Logger: *logger.FromContext(context.TODO()),
+	}
+
+	mockOCM.
+		EXPECT().
+		GetLogForwarders(clusterID).
+		Return([]*v1.LogForwarder{existingCW, existingS3}, nil)
+
+	mockOCM.
+		EXPECT().
+		UpdateLogForwarder(gomock.Any(), "cw-id", clusterID).
+		Return(nil)
+
+	mockOCM.
+		EXPECT().
+		DeleteLogForwarder(clusterID, "s3-id").
+		Return(nil)
+
+	reconciler := &ROSAControlPlaneReconciler{}
+
+	err := reconciler.reconcileLogForwarders(rosaScope, mockOCM, cluster)
+	g.Expect(err).ToNot(HaveOccurred())
 }
 
 func createObject(g *WithT, obj client.Object, namespace string) {
