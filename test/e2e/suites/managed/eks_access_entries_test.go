@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -75,11 +76,11 @@ var _ = ginkgo.Describe("[managed] [auth] EKS access entry tests", func() {
 		ginkgo.By("verifying the expected access entries were created")
 		expectedEntries := []ekscontrolplanev1.AccessEntry{
 			{
-				PrincipalARN: fmt.Sprintf("arn:aws:iam::%s:role/controllers.cluster-api-provider-aws.sigs.k8s.io", os.Getenv(shared.AwsAccountID)),
+				PrincipalARN: aws.String(fmt.Sprintf("arn:aws:iam::%s:role/controllers.cluster-api-provider-aws.sigs.k8s.io", os.Getenv(shared.AwsAccountID))),
 				Type:         "STANDARD",
 				AccessPolicies: []ekscontrolplanev1.AccessPolicyReference{
 					{
-						PolicyARN: "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy",
+						PolicyARN: aws.String("arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"),
 						AccessScope: ekscontrolplanev1.AccessScope{
 							Type: "cluster",
 						},
@@ -87,13 +88,13 @@ var _ = ginkgo.Describe("[managed] [auth] EKS access entry tests", func() {
 				},
 			},
 			{
-				PrincipalARN:     fmt.Sprintf("arn:aws:iam::%s:role/nodes.cluster-api-provider-aws.sigs.k8s.io", os.Getenv(shared.AwsAccountID)),
+				PrincipalARN:     aws.String(fmt.Sprintf("arn:aws:iam::%s:role/nodes.cluster-api-provider-aws.sigs.k8s.io", os.Getenv(shared.AwsAccountID))),
 				Type:             "STANDARD",
 				Username:         "developer",
 				KubernetesGroups: []string{"developers"},
 				AccessPolicies: []ekscontrolplanev1.AccessPolicyReference{
 					{
-						PolicyARN: "arn:aws:eks::aws:cluster-access-policy/AmazonEKSViewPolicy",
+						PolicyARN: aws.String("arn:aws:eks::aws:cluster-access-policy/AmazonEKSViewPolicy"),
 						AccessScope: ekscontrolplanev1.AccessScope{
 							Type:       "namespace",
 							Namespaces: []string{"default"},

@@ -67,7 +67,7 @@ func NewROSANetworkScope(params ROSANetworkScopeParams) (*ROSANetworkScope, erro
 		ROSANetwork:    params.ROSANetwork,
 	}
 
-	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, rosaNetworkScope, params.ROSANetwork.Spec.Region, params.Logger)
+	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, rosaNetworkScope, awsv2.ToString(params.ROSANetwork.Spec.Region), params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
 	}

@@ -60,13 +60,13 @@ func TestReconcileAccessEntries(t *testing.T) {
 			name: "create new access entry",
 			accessEntries: []ekscontrolplanev1.AccessEntry{
 				{
-					PrincipalARN:     principalARN,
+					PrincipalARN:     aws.String(principalARN),
 					Type:             ekscontrolplanev1.AccessEntryTypeStandard,
 					Username:         "admin",
 					KubernetesGroups: []string{"system:masters"},
 					AccessPolicies: []ekscontrolplanev1.AccessPolicyReference{
 						{
-							PolicyARN: policyARN,
+							PolicyARN: aws.String(policyARN),
 							AccessScope: ekscontrolplanev1.AccessScope{
 								Type: ekscontrolplanev1.AccessScopeTypeCluster,
 							},
@@ -109,13 +109,13 @@ func TestReconcileAccessEntries(t *testing.T) {
 			name: "update existing access entry groups only",
 			accessEntries: []ekscontrolplanev1.AccessEntry{
 				{
-					PrincipalARN:     principalARN,
+					PrincipalARN:     aws.String(principalARN),
 					Type:             ekscontrolplanev1.AccessEntryTypeStandard,
 					Username:         "admin",
 					KubernetesGroups: []string{"system:masters", "developers"},
 					AccessPolicies: []ekscontrolplanev1.AccessPolicyReference{
 						{
-							PolicyARN: policyARN,
+							PolicyARN: aws.String(policyARN),
 							AccessScope: ekscontrolplanev1.AccessScope{
 								Type: ekscontrolplanev1.AccessScopeTypeCluster,
 							},
@@ -186,13 +186,13 @@ func TestReconcileAccessEntries(t *testing.T) {
 			name: "delete access entry",
 			accessEntries: []ekscontrolplanev1.AccessEntry{
 				{
-					PrincipalARN:     principalARN,
+					PrincipalARN:     aws.String(principalARN),
 					Type:             "STANDARD",
 					Username:         "admin",
 					KubernetesGroups: []string{"system:masters"},
 					AccessPolicies: []ekscontrolplanev1.AccessPolicyReference{
 						{
-							PolicyARN: policyARN,
+							PolicyARN: aws.String(policyARN),
 							AccessScope: ekscontrolplanev1.AccessScope{
 								Type: "cluster",
 							},
@@ -278,13 +278,13 @@ func TestReconcileAccessEntries(t *testing.T) {
 			name: "should ignore untagged entries",
 			accessEntries: []ekscontrolplanev1.AccessEntry{
 				{
-					PrincipalARN:     principalARN,
+					PrincipalARN:     aws.String(principalARN),
 					Type:             ekscontrolplanev1.AccessEntryTypeStandard,
 					Username:         "admin",
 					KubernetesGroups: []string{"system:masters"},
 					AccessPolicies: []ekscontrolplanev1.AccessPolicyReference{
 						{
-							PolicyARN: policyARN,
+							PolicyARN: aws.String(policyARN),
 							AccessScope: ekscontrolplanev1.AccessScope{
 								Type: ekscontrolplanev1.AccessScopeTypeCluster,
 							},
@@ -425,7 +425,7 @@ func TestReconcileAccessPolicies(t *testing.T) {
 		{
 			name: "ec2_linux Type skips policy reconciliation",
 			accessEntry: ekscontrolplanev1.AccessEntry{
-				PrincipalARN: principalARN,
+				PrincipalARN: aws.String(principalARN),
 				Type:         ekscontrolplanev1.AccessEntryTypeEC2Linux,
 			},
 			expect:      func(m *mock_eksiface.MockEKSAPIMockRecorder) {},
@@ -434,7 +434,7 @@ func TestReconcileAccessPolicies(t *testing.T) {
 		{
 			name: "ec2_windows Type skips policy reconciliation",
 			accessEntry: ekscontrolplanev1.AccessEntry{
-				PrincipalARN: principalARN,
+				PrincipalARN: aws.String(principalARN),
 				Type:         ekscontrolplanev1.AccessEntryTypeEC2Windows,
 			},
 			expect:      func(m *mock_eksiface.MockEKSAPIMockRecorder) {},
@@ -443,11 +443,11 @@ func TestReconcileAccessPolicies(t *testing.T) {
 		{
 			name: "associate new policy",
 			accessEntry: ekscontrolplanev1.AccessEntry{
-				PrincipalARN: principalARN,
+				PrincipalARN: aws.String(principalARN),
 				Type:         ekscontrolplanev1.AccessEntryTypeStandard,
 				AccessPolicies: []ekscontrolplanev1.AccessPolicyReference{
 					{
-						PolicyARN: policyARN,
+						PolicyARN: aws.String(policyARN),
 						AccessScope: ekscontrolplanev1.AccessScope{
 							Type: ekscontrolplanev1.AccessScopeTypeCluster,
 						},
@@ -473,7 +473,7 @@ func TestReconcileAccessPolicies(t *testing.T) {
 		{
 			name: "disassociate policy",
 			accessEntry: ekscontrolplanev1.AccessEntry{
-				PrincipalARN:   principalARN,
+				PrincipalARN:   aws.String(principalARN),
 				Type:           ekscontrolplanev1.AccessEntryTypeStandard,
 				AccessPolicies: []ekscontrolplanev1.AccessPolicyReference{},
 			},
@@ -500,11 +500,11 @@ func TestReconcileAccessPolicies(t *testing.T) {
 		{
 			name: "namespace scoped policy",
 			accessEntry: ekscontrolplanev1.AccessEntry{
-				PrincipalARN: principalARN,
+				PrincipalARN: aws.String(principalARN),
 				Type:         ekscontrolplanev1.AccessEntryTypeStandard,
 				AccessPolicies: []ekscontrolplanev1.AccessPolicyReference{
 					{
-						PolicyARN: policyARN,
+						PolicyARN: aws.String(policyARN),
 						AccessScope: ekscontrolplanev1.AccessScope{
 							Type:       ekscontrolplanev1.AccessScopeTypeNamespace,
 							Namespaces: []string{"kube-system", "default"},
@@ -589,7 +589,7 @@ func TestCreateAccessEntry(t *testing.T) {
 		{
 			name: "basic access entry",
 			accessEntry: ekscontrolplanev1.AccessEntry{
-				PrincipalARN: principalARN,
+				PrincipalARN: aws.String(principalARN),
 				Type:         ekscontrolplanev1.AccessEntryTypeStandard,
 				Username:     "admin",
 			},
@@ -613,7 +613,7 @@ func TestCreateAccessEntry(t *testing.T) {
 		{
 			name: "access entry with groups",
 			accessEntry: ekscontrolplanev1.AccessEntry{
-				PrincipalARN:     principalARN,
+				PrincipalARN:     aws.String(principalARN),
 				Type:             ekscontrolplanev1.AccessEntryTypeStandard,
 				Username:         "admin",
 				KubernetesGroups: []string{"system:masters", "developers"},
@@ -639,7 +639,7 @@ func TestCreateAccessEntry(t *testing.T) {
 		{
 			name: "api error",
 			accessEntry: ekscontrolplanev1.AccessEntry{
-				PrincipalARN:     principalARN,
+				PrincipalARN:     aws.String(principalARN),
 				Type:             ekscontrolplanev1.AccessEntryTypeStandard,
 				Username:         "admin",
 				KubernetesGroups: []string{"system:masters"},
@@ -711,7 +711,7 @@ func TestUpdateAccessEntry(t *testing.T) {
 		{
 			name: "no updates needed",
 			accessEntry: ekscontrolplanev1.AccessEntry{
-				PrincipalARN:     principalARN,
+				PrincipalARN:     aws.String(principalARN),
 				Type:             ekscontrolplanev1.AccessEntryTypeStandard,
 				Username:         "admin",
 				KubernetesGroups: []string{"system:masters"},
@@ -735,7 +735,7 @@ func TestUpdateAccessEntry(t *testing.T) {
 		{
 			name: "type change requires recreate",
 			accessEntry: ekscontrolplanev1.AccessEntry{
-				PrincipalARN:     principalARN,
+				PrincipalARN:     aws.String(principalARN),
 				Type:             ekscontrolplanev1.AccessEntryTypeFargateLinux,
 				Username:         "admin",
 				KubernetesGroups: []string{"system:masters"},
@@ -763,7 +763,7 @@ func TestUpdateAccessEntry(t *testing.T) {
 		{
 			name: "username change requires recreate",
 			accessEntry: ekscontrolplanev1.AccessEntry{
-				PrincipalARN:     principalARN,
+				PrincipalARN:     aws.String(principalARN),
 				Type:             ekscontrolplanev1.AccessEntryTypeStandard,
 				Username:         "new-admin",
 				KubernetesGroups: []string{"system:masters"},
@@ -791,7 +791,7 @@ func TestUpdateAccessEntry(t *testing.T) {
 		{
 			name: "kubernetes groups update",
 			accessEntry: ekscontrolplanev1.AccessEntry{
-				PrincipalARN:     principalARN,
+				PrincipalARN:     aws.String(principalARN),
 				Type:             ekscontrolplanev1.AccessEntryTypeStandard,
 				Username:         "admin",
 				KubernetesGroups: []string{"developers"},
@@ -821,7 +821,7 @@ func TestUpdateAccessEntry(t *testing.T) {
 		{
 			name: "username cleared requires recreate",
 			accessEntry: ekscontrolplanev1.AccessEntry{
-				PrincipalARN:     principalARN,
+				PrincipalARN:     aws.String(principalARN),
 				Type:             ekscontrolplanev1.AccessEntryTypeStandard,
 				Username:         "",
 				KubernetesGroups: []string{"developers"},
@@ -849,7 +849,7 @@ func TestUpdateAccessEntry(t *testing.T) {
 		{
 			name: "username added requires recreate",
 			accessEntry: ekscontrolplanev1.AccessEntry{
-				PrincipalARN:     principalARN,
+				PrincipalARN:     aws.String(principalARN),
 				Type:             ekscontrolplanev1.AccessEntryTypeStandard,
 				Username:         "admin",
 				KubernetesGroups: []string{"system:masters"},
@@ -877,7 +877,7 @@ func TestUpdateAccessEntry(t *testing.T) {
 		{
 			name: "nil username unchanged with group update",
 			accessEntry: ekscontrolplanev1.AccessEntry{
-				PrincipalARN:     principalARN,
+				PrincipalARN:     aws.String(principalARN),
 				Type:             ekscontrolplanev1.AccessEntryTypeStandard,
 				Username:         "",
 				KubernetesGroups: []string{"developers"},

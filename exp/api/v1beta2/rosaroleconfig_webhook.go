@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/blang/semver"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	runtime "k8s.io/apimachinery/pkg/runtime"
@@ -47,7 +48,7 @@ func (r *rosaRoleConfigWebhook) ValidateCreate(ctx context.Context, obj runtime.
 		allErrs = append(allErrs, err)
 	}
 
-	_, vErr := semver.Parse(roleConfig.Spec.AccountRoleConfig.Version)
+	_, vErr := semver.Parse(aws.ToString(roleConfig.Spec.AccountRoleConfig.Version))
 	if vErr != nil {
 		err := field.Invalid(field.NewPath("spec.accountRoleConfig.version"), roleConfig.Spec.AccountRoleConfig.Version, "must be a valid semantic version")
 		allErrs = append(allErrs, err)

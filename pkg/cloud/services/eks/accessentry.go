@@ -49,14 +49,14 @@ func (s *Service) reconcileAccessEntries(ctx context.Context) error {
 	}
 
 	for _, accessEntry := range s.scope.ControlPlane.Spec.AccessEntries {
-		if _, exists := managedAccessEntries[accessEntry.PrincipalARN]; exists {
+		if _, exists := managedAccessEntries[*accessEntry.PrincipalARN]; exists {
 			if err := s.updateAccessEntry(ctx, accessEntry); err != nil {
-				return errors.Wrapf(err, "failed to update access entry for principal %s", accessEntry.PrincipalARN)
+				return errors.Wrapf(err, "failed to update access entry for principal %s", *accessEntry.PrincipalARN)
 			}
-			delete(managedAccessEntries, accessEntry.PrincipalARN)
+			delete(managedAccessEntries, *accessEntry.PrincipalARN)
 		} else {
 			if err := s.createAccessEntry(ctx, accessEntry); err != nil {
-				return errors.Wrapf(err, "failed to create access entry for principal %s", accessEntry.PrincipalARN)
+				return errors.Wrapf(err, "failed to create access entry for principal %s", *accessEntry.PrincipalARN)
 			}
 		}
 	}
@@ -128,7 +128,7 @@ func (s *Service) createAccessEntry(ctx context.Context, accessEntry ekscontrolp
 
 	createInput := &eks.CreateAccessEntryInput{
 		ClusterName:  &clusterName,
-		PrincipalArn: &accessEntry.PrincipalARN,
+		PrincipalArn: accessEntry.PrincipalARN,
 		Tags:         tags,
 	}
 
@@ -145,11 +145,11 @@ func (s *Service) createAccessEntry(ctx context.Context, accessEntry ekscontrolp
 	}
 
 	if _, err := s.EKSClient.CreateAccessEntry(ctx, createInput); err != nil {
-		return errors.Wrapf(err, "failed to create access entry for principal %s", accessEntry.PrincipalARN)
+		return errors.Wrapf(err, "failed to create access entry for principal %s", *accessEntry.PrincipalARN)
 	}
 
 	if err := s.reconcileAccessPolicies(ctx, accessEntry); err != nil {
-		return errors.Wrapf(err, "failed to reconcile access policies for principal %s", accessEntry.PrincipalARN)
+		return errors.Wrapf(err, "failed to reconcile access policies for principal %s", *accessEntry.PrincipalARN)
 	}
 
 	return nil
@@ -159,12 +159,12 @@ func (s *Service) updateAccessEntry(ctx context.Context, accessEntry ekscontrolp
 	clusterName := s.scope.KubernetesClusterName()
 	describeInput := &eks.DescribeAccessEntryInput{
 		ClusterName:  &clusterName,
-		PrincipalArn: &accessEntry.PrincipalARN,
+		PrincipalArn: accessEntry.PrincipalARN,
 	}
 
 	describeOutput, err := s.EKSClient.DescribeAccessEntry(ctx, describeInput)
 	if err != nil {
-		return errors.Wrapf(err, "failed to describe access entry for principal %s", accessEntry.PrincipalARN)
+		return errors.Wrapf(err, "failed to describe access entry for principal %s", *accessEntry.PrincipalARN)
 	}
 
 	// EKS requires recreate when changing type or removing username
@@ -174,12 +174,12 @@ func (s *Service) updateAccessEntry(ctx context.Context, accessEntry ekscontrolp
 	}
 
 	if *accessEntry.Type.APIValue() != *describeOutput.AccessEntry.Type || accessEntry.Username != existingUsername {
-		if err = s.deleteAccessEntry(ctx, accessEntry.PrincipalARN); err != nil {
-			return errors.Wrapf(err, "failed to delete access entry for principal %s during recreation", accessEntry.PrincipalARN)
+		if err = s.deleteAccessEntry(ctx, *accessEntry.PrincipalARN); err != nil {
+			return errors.Wrapf(err, "failed to delete access entry for principal %s during recreation", *accessEntry.PrincipalARN)
 		}
 
 		if err = s.createAccessEntry(ctx, accessEntry); err != nil {
-			return errors.Wrapf(err, "failed to recreate access entry for principal %s", accessEntry.PrincipalARN)
+			return errors.Wrapf(err, "failed to recreate access entry for principal %s", *accessEntry.PrincipalARN)
 		}
 		return nil
 	}
@@ -189,18 +189,18 @@ func (s *Service) updateAccessEntry(ctx context.Context, accessEntry ekscontrolp
 
 	updateInput := &eks.UpdateAccessEntryInput{
 		ClusterName:  &clusterName,
-		PrincipalArn: &accessEntry.PrincipalARN,
+		PrincipalArn: accessEntry.PrincipalARN,
 	}
 
 	if !slices.Equal(accessEntry.KubernetesGroups, describeOutput.AccessEntry.KubernetesGroups) {
 		updateInput.KubernetesGroups = accessEntry.KubernetesGroups
 		if _, err := s.EKSClient.UpdateAccessEntry(ctx, updateInput); err != nil {
-			return errors.Wrapf(err, "failed to update access entry for principal %s", accessEntry.PrincipalARN)
+			return errors.Wrapf(err, "failed to update access entry for principal %s", *accessEntry.PrincipalARN)
 		}
 	}
 
 	if err := s.reconcileAccessPolicies(ctx, accessEntry); err != nil {
-		return errors.Wrapf(err, "failed to reconcile access policies for principal %s", accessEntry.PrincipalARN)
+		return errors.Wrapf(err, "failed to reconcile access policies for principal %s", *accessEntry.PrincipalARN)
 	}
 
 	return nil
@@ -221,13 +221,13 @@ func (s *Service) deleteAccessEntry(ctx context.Context, principalArn string) er
 
 func (s *Service) reconcileAccessPolicies(ctx context.Context, accessEntry ekscontrolplanev1.AccessEntry) error {
 	if accessEntry.Type == ekscontrolplanev1.AccessEntryTypeEC2Linux || accessEntry.Type == ekscontrolplanev1.AccessEntryTypeEC2Windows {
-		s.scope.Info("Skipping access policy reconciliation for EC2 access type", "principalARN", accessEntry.PrincipalARN)
+		s.scope.Info("Skipping access policy reconciliation for EC2 access type", "principalARN", *accessEntry.PrincipalARN)
 		return nil
 	}
 
-	existingPolicies, err := s.getExistingAccessPolicies(ctx, accessEntry.PrincipalARN)
+	existingPolicies, err := s.getExistingAccessPolicies(ctx, *accessEntry.PrincipalARN)
 	if err != nil {
-		return errors.Wrapf(err, "failed to get existing access policies for principal %s", accessEntry.PrincipalARN)
+		return errors.Wrapf(err, "failed to get existing access policies for principal %s", *accessEntry.PrincipalARN)
 	}
 
 	clusterName := s.scope.KubernetesClusterName()
@@ -235,8 +235,8 @@ func (s *Service) reconcileAccessPolicies(ctx context.Context, accessEntry eksco
 	for _, policy := range accessEntry.AccessPolicies {
 		input := &eks.AssociateAccessPolicyInput{
 			ClusterName:  &clusterName,
-			PrincipalArn: &accessEntry.PrincipalARN,
-			PolicyArn:    &policy.PolicyARN,
+			PrincipalArn: accessEntry.PrincipalARN,
+			PolicyArn:    policy.PolicyARN,
 			AccessScope: &ekstypes.AccessScope{
 				Type: ekstypes.AccessScopeType(policy.AccessScope.Type),
 			},
@@ -247,16 +247,16 @@ func (s *Service) reconcileAccessPolicies(ctx context.Context, accessEntry eksco
 		}
 
 		if _, err := s.EKSClient.AssociateAccessPolicy(ctx, input); err != nil {
-			return errors.Wrapf(err, "failed to associate access policy %s", policy.PolicyARN)
+			return errors.Wrapf(err, "failed to associate access policy %s", *policy.PolicyARN)
 		}
 
-		delete(existingPolicies, policy.PolicyARN)
+		delete(existingPolicies, *policy.PolicyARN)
 	}
 
 	for policyARN := range existingPolicies {
 		if _, err := s.EKSClient.DisassociateAccessPolicy(ctx, &eks.DisassociateAccessPolicyInput{
 			ClusterName:  &clusterName,
-			PrincipalArn: &accessEntry.PrincipalARN,
+			PrincipalArn: accessEntry.PrincipalARN,
 			PolicyArn:    &policyARN,
 		}); err != nil {
 			return errors.Wrapf(err, "failed to disassociate access policy %s", policyARN)

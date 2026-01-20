@@ -101,7 +101,7 @@ func (r *ROSANetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 
 	// Try to fetch CF stack with a given name
-	r.cfStack, err = r.awsClient.GetCFStack(ctx, rosaNetworkScope.ROSANetwork.Spec.StackName)
+	r.cfStack, err = r.awsClient.GetCFStack(ctx, aws.ToString(rosaNetworkScope.ROSANetwork.Spec.StackName))
 	if err != nil {
 		var apiErr smithy.APIError // in case the stack does not exist, AWS returns ValidationError
 		if errors.As(err, &apiErr) && apiErr.ErrorCode() == "ValidationError" {
@@ -145,9 +145,9 @@ func (r *ROSANetworkReconciler) reconcileNormal(ctx context.Context, rosaNetScop
 		}
 		cfParams := map[string]string{
 			"AvailabilityZoneCount": strconv.Itoa(zoneCount),
-			"Region":                rosaNetScope.ROSANetwork.Spec.Region,
-			"Name":                  rosaNetScope.ROSANetwork.Spec.StackName,
-			"VpcCidr":               rosaNetScope.ROSANetwork.Spec.CIDRBlock,
+			"Region":                aws.ToString(rosaNetScope.ROSANetwork.Spec.Region),
+			"Name":                  aws.ToString(rosaNetScope.ROSANetwork.Spec.StackName),
+			"VpcCidr":               aws.ToString(rosaNetScope.ROSANetwork.Spec.CIDRBlock),
 		}
 		// Explicitly specified AZs
 		for idx, zone := range rosaNetScope.ROSANetwork.Spec.AvailabilityZones {
@@ -155,7 +155,7 @@ func (r *ROSANetworkReconciler) reconcileNormal(ctx context.Context, rosaNetScop
 		}
 
 		// Call the AWS CF stack create API
-		_, err := r.awsClient.CreateStackWithParamsTags(ctx, templateBody, rosaNetScope.ROSANetwork.Spec.StackName, cfParams, rosaNetScope.ROSANetwork.Spec.StackTags)
+		_, err := r.awsClient.CreateStackWithParamsTags(ctx, templateBody, aws.ToString(rosaNetScope.ROSANetwork.Spec.StackName), cfParams, rosaNetScope.ROSANetwork.Spec.StackTags)
 		if err != nil {
 			v1beta1conditions.MarkFalse(rosaNetScope.ROSANetwork,
 				expinfrav1.ROSANetworkReadyCondition,
@@ -235,7 +235,7 @@ func (r *ROSANetworkReconciler) reconcileDelete(ctx context.Context, rosaNetScop
 				"")
 			return ctrl.Result{}, fmt.Errorf("CF stack deletion failed")
 		default: // All the other states
-			err := r.awsClient.DeleteCFStack(ctx, rosaNetScope.ROSANetwork.Spec.StackName)
+			err := r.awsClient.DeleteCFStack(ctx, aws.ToString(rosaNetScope.ROSANetwork.Spec.StackName))
 			if err != nil {
 				v1beta1conditions.MarkFalse(rosaNetScope.ROSANetwork,
 					expinfrav1.ROSANetworkReadyCondition,
@@ -260,7 +260,7 @@ func (r *ROSANetworkReconciler) reconcileDelete(ctx context.Context, rosaNetScop
 }
 
 func (r *ROSANetworkReconciler) updateROSANetworkResources(ctx context.Context, rosaNet *expinfrav1.ROSANetwork) error {
-	resources, err := r.awsClient.DescribeCFStackResources(ctx, rosaNet.Spec.StackName)
+	resources, err := r.awsClient.DescribeCFStackResources(ctx, aws.ToString(rosaNet.Spec.StackName))
 	if err != nil {
 		return fmt.Errorf("error calling AWS DescribeStackResources(): %w", err)
 	}

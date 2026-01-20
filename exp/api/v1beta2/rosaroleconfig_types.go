@@ -122,7 +122,7 @@ type AccountRoleConfig struct {
 	// +kubebuilder:validation:MaxLength:=4
 	// +kubebuilder:validation:Pattern:=`^[a-z]([-a-z0-9]*[a-z0-9])?$`
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="prefix is immutable"
-	Prefix string `json:"prefix"`
+	Prefix *string `json:"prefix,omitempty"`
 
 	// The ARN of the policy that is used to set the permissions boundary for the account roles.
 	// +optional
@@ -136,7 +136,7 @@ type AccountRoleConfig struct {
 	// Setting the role OpenShift version tag does not affect the associated ROSAControlplane version.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="version is immutable"
-	Version string `json:"version"`
+	Version *string `json:"version,omitempty"`
 
 	// SharedVPCConfig is used to set up shared VPC.
 	// +optional
@@ -150,7 +150,7 @@ type OperatorRoleConfig struct {
 	// +kubebuilder:validation:MaxLength:=4
 	// +kubebuilder:validation:Pattern:=`^[a-z]([-a-z0-9]*[a-z0-9])?$`
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="prefix is immutable"
-	Prefix string `json:"prefix"`
+	Prefix *string `json:"prefix,omitempty"`
 
 	// The ARN of the policy that is used to set the permissions boundary for the operator roles.
 	// +optional

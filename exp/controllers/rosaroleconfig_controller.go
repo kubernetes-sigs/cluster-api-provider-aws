@@ -23,6 +23,7 @@ import (
 	"maps"
 	"strings"
 
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
 	accountroles "github.com/openshift/rosa/cmd/create/accountroles"
 	oidcconfig "github.com/openshift/rosa/cmd/create/oidcconfig"
 	oidcprovider "github.com/openshift/rosa/cmd/create/oidcprovider"
@@ -192,13 +193,13 @@ func (r *ROSARoleConfigReconciler) reconcileDelete(scope *scope.RosaRoleConfigSc
 }
 
 func (r *ROSARoleConfigReconciler) reconcileOperatorRoles(scope *scope.RosaRoleConfigScope) error {
-	operatorRoles, err := r.Runtime.AWSClient.ListOperatorRoles("", "", scope.RosaRoleConfig.Spec.OperatorRoleConfig.Prefix)
+	operatorRoles, err := r.Runtime.AWSClient.ListOperatorRoles("", "", awsv2.ToString(scope.RosaRoleConfig.Spec.OperatorRoleConfig.Prefix))
 	if err != nil {
 		return err
 	}
 
 	operatorRolesRef := v1beta2.AWSRolesRef{}
-	for _, role := range operatorRoles[scope.RosaRoleConfig.Spec.OperatorRoleConfig.Prefix] {
+	for _, role := range operatorRoles[awsv2.ToString(scope.RosaRoleConfig.Spec.OperatorRoleConfig.Prefix)] {
 		if strings.Contains(role.RoleName, expinfrav1.IngressOperatorARNSuffix) {
 			operatorRolesRef.IngressARN = role.RoleARN
 		} else if strings.Contains(role.RoleName, expinfrav1.ImageRegistryARNSuffix) {
@@ -242,7 +243,7 @@ func (r *ROSARoleConfigReconciler) reconcileOperatorRoles(scope *scope.RosaRoleC
 	// create operator roles
 	config := scope.RosaRoleConfig.Spec.OperatorRoleConfig
 	return operatorroles.CreateOperatorRoles(r.Runtime, rosa.GetOCMClientEnv(r.Runtime.OCMClient), config.PermissionsBoundaryARN,
-		interactive.ModeAuto, policies, "", config.SharedVPCConfig.IsSharedVPC(), config.Prefix, true, installerRoleArn,
+		interactive.ModeAuto, policies, "", config.SharedVPCConfig.IsSharedVPC(), awsv2.ToString(config.Prefix), true, installerRoleArn,
 		true, oidcConfigID, config.SharedVPCConfig.RouteRoleARN, ocm.DefaultChannelGroup,
 		config.SharedVPCConfig.VPCEndpointRoleARN)
 }
@@ -302,7 +303,7 @@ func (r *ROSARoleConfigReconciler) reconcileOIDC(scope *scope.RosaRoleConfigScop
 }
 
 func (r *ROSARoleConfigReconciler) reconcileAccountRoles(scope *scope.RosaRoleConfigScope) error {
-	accountRoles, err := r.Runtime.AWSClient.ListAccountRoles(scope.RosaRoleConfig.Spec.AccountRoleConfig.Version)
+	accountRoles, err := r.Runtime.AWSClient.ListAccountRoles(awsv2.ToString(scope.RosaRoleConfig.Spec.AccountRoleConfig.Version))
 	if err != nil {
 		// ListAccountRoles return error if roles does not exist. return for any other error
 		if !strings.Contains(err.Error(), "no account roles found") {
@@ -312,11 +313,11 @@ func (r *ROSARoleConfigReconciler) reconcileAccountRoles(scope *scope.RosaRoleCo
 
 	accountRolesRef := expinfrav1.AccountRolesRef{}
 	for _, role := range accountRoles {
-		if role.RoleName == fmt.Sprintf("%s%s", scope.RosaRoleConfig.Spec.AccountRoleConfig.Prefix, expinfrav1.HCPROSAInstallerRole) {
+		if role.RoleName == fmt.Sprintf("%s%s", awsv2.ToString(scope.RosaRoleConfig.Spec.AccountRoleConfig.Prefix), expinfrav1.HCPROSAInstallerRole) {
 			accountRolesRef.InstallerRoleARN = role.RoleARN
-		} else if role.RoleName == fmt.Sprintf("%s%s", scope.RosaRoleConfig.Spec.AccountRoleConfig.Prefix, expinfrav1.HCPROSASupportRole) {
+		} else if role.RoleName == fmt.Sprintf("%s%s", awsv2.ToString(scope.RosaRoleConfig.Spec.AccountRoleConfig.Prefix), expinfrav1.HCPROSASupportRole) {
 			accountRolesRef.SupportRoleARN = role.RoleARN
-		} else if role.RoleName == fmt.Sprintf("%s%s", scope.RosaRoleConfig.Spec.AccountRoleConfig.Prefix, expinfrav1.HCPROSAWorkerRole) {
+		} else if role.RoleName == fmt.Sprintf("%s%s", awsv2.ToString(scope.RosaRoleConfig.Spec.AccountRoleConfig.Prefix), expinfrav1.HCPROSAWorkerRole) {
 			accountRolesRef.WorkerRoleARN = role.RoleARN
 		}
 	}
@@ -332,15 +333,15 @@ func (r *ROSARoleConfigReconciler) reconcileAccountRoles(scope *scope.RosaRoleCo
 		return err
 	}
 
-	return accountroles.CreateHCPRoles(r.Runtime, scope.RosaRoleConfig.Spec.AccountRoleConfig.Prefix, true, scope.RosaRoleConfig.Spec.AccountRoleConfig.PermissionsBoundaryARN,
-		rosa.GetOCMClientEnv(r.Runtime.OCMClient), policies, scope.RosaRoleConfig.Spec.AccountRoleConfig.Version, scope.RosaRoleConfig.Spec.AccountRoleConfig.Path,
+	return accountroles.CreateHCPRoles(r.Runtime, awsv2.ToString(scope.RosaRoleConfig.Spec.AccountRoleConfig.Prefix), true, scope.RosaRoleConfig.Spec.AccountRoleConfig.PermissionsBoundaryARN,
+		rosa.GetOCMClientEnv(r.Runtime.OCMClient), policies, awsv2.ToString(scope.RosaRoleConfig.Spec.AccountRoleConfig.Version), scope.RosaRoleConfig.Spec.AccountRoleConfig.Path,
 		scope.RosaRoleConfig.Spec.AccountRoleConfig.SharedVPCConfig.IsSharedVPC(), scope.RosaRoleConfig.Spec.AccountRoleConfig.SharedVPCConfig.RouteRoleARN,
 		scope.RosaRoleConfig.Spec.AccountRoleConfig.SharedVPCConfig.VPCEndpointRoleARN)
 }
 
 func (r *ROSARoleConfigReconciler) deleteAccountRoles(scope *scope.RosaRoleConfigScope) error {
 	// list all account role names.
-	prefix := scope.RosaRoleConfig.Spec.AccountRoleConfig.Prefix
+	prefix := awsv2.ToString(scope.RosaRoleConfig.Spec.AccountRoleConfig.Prefix)
 	hasSharedVpcPolicies := scope.RosaRoleConfig.Spec.AccountRoleConfig.SharedVPCConfig.IsSharedVPC()
 	roleNames := []string{
 		fmt.Sprintf("%s%s", prefix, expinfrav1.HCPROSAInstallerRole),
@@ -384,7 +385,7 @@ func (r *ROSARoleConfigReconciler) deleteOIDC(scope *scope.RosaRoleConfigScope) 
 }
 
 func (r *ROSARoleConfigReconciler) deleteOperatorRoles(scope *scope.RosaRoleConfigScope) error {
-	prefix := scope.RosaRoleConfig.Spec.OperatorRoleConfig.Prefix
+	prefix := awsv2.ToString(scope.RosaRoleConfig.Spec.OperatorRoleConfig.Prefix)
 	if usedOperatorRoles, err := r.Runtime.OCMClient.HasAClusterUsingOperatorRolesPrefix(prefix); err != nil {
 		return err
 	} else if usedOperatorRoles {

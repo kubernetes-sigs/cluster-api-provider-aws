@@ -1015,6 +1015,8 @@ spec:
                               or https://example.com. This URL should point to the level below .well-known/openid-configuration
                               and must be publicly accessible over the internet.
                             type: string
+                            x-kubernetes-validations:
+                            - rule: isURL(self) && url(self).getScheme() == 'https'
                           requiredClaims:
                             additionalProperties:
                               type: string
