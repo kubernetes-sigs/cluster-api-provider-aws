@@ -242,7 +242,7 @@ var _ = ginkgo.Context("[unmanaged] [scaling]", func() {
 
 			for _, machine := range workerMachines {
 
-				Expect(machine.Status.Phase).To(Equal(clusterv1.MachinePhaseRunning))
+				Expect(machine.Status.Phase).To(BeEquivalentTo(clusterv1.MachinePhaseRunning))
 
 			}
 
@@ -344,7 +344,7 @@ var _ = ginkgo.Context("[unmanaged] [scaling]", func() {
 
 			for _, machine := range workerMachines {
 
-				Expect(machine.Status.Phase).To(Equal(clusterv1.MachinePhaseRunning))
+				Expect(machine.Status.Phase).To(BeEquivalentTo(clusterv1.MachinePhaseRunning))
 
 			}
 
