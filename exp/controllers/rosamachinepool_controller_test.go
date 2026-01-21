@@ -71,6 +71,7 @@ func TestNodePoolToRosaMachinePoolSpec(t *testing.T) {
 			},
 		},
 		CapacityReservationID: "capacity-reservation-id",
+		ImageType:             string(cmv1.ImageTypeWindows),
 	}
 
 	machinePoolSpec := clusterv1.MachinePoolSpec{
