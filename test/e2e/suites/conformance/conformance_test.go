@@ -65,7 +65,6 @@ var _ = ginkgo.Describe("[unmanaged] [conformance] tests", func() {
 		experiment := gmeasure.NewExperiment(name)
 		ginkgo.AddReportEntry(experiment.Name, experiment)
 		experiment.Sample(func(idx int) {
-			shared.SetEnvVar("USE_CI_ARTIFACTS", "true", false)
 			kubernetesVersion := e2eCtx.E2EConfig.MustGetVariable(shared.KubernetesVersion)
 			flavor := clusterctl.DefaultFlavor
 			if e2eCtx.Settings.UseCIArtifacts {
@@ -125,7 +124,6 @@ var _ = ginkgo.Describe("[unmanaged] [conformance] tests", func() {
 	})
 
 	ginkgo.AfterEach(func() {
-		shared.SetEnvVar("USE_CI_ARTIFACTS", "false", false)
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 		shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
 	})
