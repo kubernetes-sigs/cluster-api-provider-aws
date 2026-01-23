@@ -144,7 +144,7 @@ func main() {
 	}
 	ctrl.SetLogger(klog.Background())
 
-	_, metricsOptions, err := flags.GetManagerOptions(managerOptions)
+	tlsOptions, metricsOptions, err := flags.GetManagerOptions(managerOptions)
 	if err != nil {
 		setupLog.Error(err, "Unable to start manager: invalid flags")
 	}
@@ -198,6 +198,7 @@ func main() {
 		WebhookServer: webhook.NewServer(webhook.Options{
 			Port:    webhookPort,
 			CertDir: webhookCertDir,
+			TLSOpts: tlsOptions,
 		}),
 		EventBroadcaster:       broadcaster,
 		HealthProbeBindAddress: healthAddr,
