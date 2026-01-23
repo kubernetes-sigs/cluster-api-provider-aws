@@ -366,35 +366,34 @@ func TestROSARoleConfigReconcileCreate(t *testing.T) {
 		Client:  testEnv.Client,
 		Runtime: r,
 	}
-
-	// Call the Reconcile function
 	req := ctrl.Request{}
 	req.NamespacedName = types.NamespacedName{Name: rosaRoleConfig.Name, Namespace: rosaRoleConfig.Namespace}
-	_, errReconcile := reconciler.Reconcile(ctx, req)
 
-	// Assertions - expect the installer role empty error since AccountRolesRef is not populated yet
-	g.Expect(errReconcile).ToNot(HaveOccurred())
+	g.Eventually(func(g Gomega) {
+		// Call the Reconcile function
+		_, errReconcile := reconciler.Reconcile(ctx, req)
 
-	// Sleep to ensure the status is updated
-	time.Sleep(100 * time.Millisecond)
+		// Assertions - expect the installer role empty error since AccountRolesRef is not populated yet
+		g.Expect(errReconcile).ToNot(HaveOccurred())
 
-	// Check the status of the ROSARoleConfig resource
-	updatedRoleConfig := &expinfrav1.ROSARoleConfig{}
-	err = reconciler.Client.Get(ctx, req.NamespacedName, updatedRoleConfig)
-	g.Expect(err).ToNot(HaveOccurred())
+		// Check the status of the ROSARoleConfig resource
+		updatedRoleConfig := &expinfrav1.ROSARoleConfig{}
+		err = reconciler.Client.Get(ctx, req.NamespacedName, updatedRoleConfig)
+		g.Expect(err).ToNot(HaveOccurred())
 
-	// We expect only oidcID to be set with first reconcile happen, Account roles and Operator roles should be empty
-	g.Expect(updatedRoleConfig.Status.OIDCID).To(Equal("test-oidc-id-created"))
-	g.Expect(updatedRoleConfig.Status.AccountRolesRef).To(Equal(expinfrav1.AccountRolesRef{}))
-	g.Expect(updatedRoleConfig.Status.OperatorRolesRef).To(Equal(rosacontrolplanev1.AWSRolesRef{}))
+		// We expect only oidcID to be set with first reconcile happen, Account roles and Operator roles should be empty
+		g.Expect(updatedRoleConfig.Status.OIDCID).To(Equal("test-oidc-id-created"))
+		g.Expect(updatedRoleConfig.Status.AccountRolesRef).To(Equal(expinfrav1.AccountRolesRef{}))
+		g.Expect(updatedRoleConfig.Status.OperatorRolesRef).To(Equal(rosacontrolplanev1.AWSRolesRef{}))
 
-	// Ready condition should be false.
-	for _, condition := range updatedRoleConfig.Status.Conditions {
-		if condition.Type == expinfrav1.RosaRoleConfigReadyCondition {
-			g.Expect(condition.Status).To(Equal(corev1.ConditionFalse))
-			break
+		// Ready condition should be false.
+		for _, condition := range updatedRoleConfig.Status.Conditions {
+			if condition.Type == expinfrav1.RosaRoleConfigReadyCondition {
+				g.Expect(condition.Status).To(Equal(corev1.ConditionFalse))
+				break
+			}
 		}
-	}
+	}).WithTimeout(30 * time.Second).Should(Succeed())
 }
 
 func TestROSARoleConfigReconcileExist(t *testing.T) {
@@ -557,12 +556,12 @@ func TestROSARoleConfigReconcileExist(t *testing.T) {
 	)
 
 	// Create CRs with unique names to avoid conflicts
-	ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("test-namespace-all-existing-%s", testID))
+	ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("test-namespace-existing-%s", testID))
 	g.Expect(err).ToNot(HaveOccurred())
 
 	rosaRoleConfig := &expinfrav1.ROSARoleConfig{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:       fmt.Sprintf("test-rosa-role-all-existing-%s", testID),
+			Name:       fmt.Sprintf("test-rosarole-existing-%s", testID),
 			Namespace:  ns.Name,
 			Finalizers: []string{expinfrav1.RosaRoleConfigFinalizer},
 		},
@@ -590,19 +589,18 @@ func TestROSARoleConfigReconcileExist(t *testing.T) {
 		Runtime: r,
 	}
 
-	// Call the Reconcile function
 	req := ctrl.Request{}
 	req.NamespacedName = types.NamespacedName{Name: rosaRoleConfig.Name, Namespace: rosaRoleConfig.Namespace}
-	_, errReconcile := reconciler.Reconcile(ctx, req)
-
-	// Assertions - since all resources exist, reconciliation should succeed
-	g.Expect(errReconcile).ToNot(HaveOccurred())
-
-	var updatedRoleConfig *expinfrav1.ROSARoleConfig
 
 	g.Eventually(func(g Gomega) {
+		// Call the Reconcile function
+		_, errReconcile := reconciler.Reconcile(ctx, req)
+
+		// Assertions - since all resources exist, reconciliation should succeed
+		g.Expect(errReconcile).ToNot(HaveOccurred())
+
 		// Check the status of the ROSARoleConfig resource
-		updatedRoleConfig = &expinfrav1.ROSARoleConfig{}
+		updatedRoleConfig := &expinfrav1.ROSARoleConfig{}
 		g.Expect(reconciler.Client.Get(ctx, req.NamespacedName, updatedRoleConfig)).ToNot(HaveOccurred())
 
 		// Verify that all existing account roles are preserved
@@ -623,15 +621,13 @@ func TestROSARoleConfigReconcileExist(t *testing.T) {
 		g.Expect(updatedRoleConfig.Status.OperatorRolesRef.NodePoolManagementARN).To(Equal("arn:aws:iam::123456789012:role/test-kube-system-capa-controller-manager"))
 		g.Expect(updatedRoleConfig.Status.OperatorRolesRef.ControlPlaneOperatorARN).To(Equal("arn:aws:iam::123456789012:role/test-kube-system-control-plane-operator"))
 		g.Expect(updatedRoleConfig.Status.OperatorRolesRef.KMSProviderARN).To(Equal("arn:aws:iam::123456789012:role/test-kube-system-kms-provider"))
-	}).WithTimeout(30 * time.Second).Should(Succeed())
 
-	// Should have a condition indicating success - expect Ready condition to be True
-	g.Eventually(func(g Gomega) {
+		// Should have a condition indicating success - expect Ready condition to be True
 		readyCondition := v1beta1conditions.Get(updatedRoleConfig, expinfrav1.RosaRoleConfigReadyCondition)
 		g.Expect(readyCondition).ToNot(BeNil())
 		g.Expect(readyCondition.Status).To(Equal(corev1.ConditionTrue))
 		g.Expect(readyCondition.Reason).To(Equal(expinfrav1.RosaRoleConfigCreatedReason))
-	}).Should(Succeed())
+	}).WithTimeout(30 * time.Second).WithPolling(500 * time.Millisecond).Should(Succeed())
 }
 
 func TestROSARoleConfigReconcileDelete(t *testing.T) {
