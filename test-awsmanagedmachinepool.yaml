@@ -1,0 +1,39 @@
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: AWSManagedMachinePool
+metadata:
+  name: test-pool-multiple-instance-types
+  namespace: default
+spec:
+  eksNodegroupName: test-nodegroup
+  # Use instanceTypes (plural) to specify multiple instance types
+  # This enhances availability when using Spot instances
+  instanceTypes:
+    - t3.medium
+    - t3a.medium
+    - t2.medium
+  capacityType: spot
+  scaling:
+    minSize: 1
+    maxSize: 10
+  updateConfig:
+    maxUnavailable: 1
+  tags:
+    usage: test
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: AWSManagedMachinePool
+metadata:
+  name: test-pool-single-instance-type
+  namespace: default
+spec:
+  eksNodegroupName: test-nodegroup-single
+  # Use instanceType (singular) for a single instance type (backward compatible)
+  instanceType: t3.medium
+  capacityType: on-demand
+  scaling:
+    minSize: 1
+    maxSize: 5
+  updateConfig:
+    maxUnavailable: 1
+  tags:
+    usage: test
