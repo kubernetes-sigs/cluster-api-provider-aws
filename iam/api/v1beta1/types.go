@@ -82,21 +82,23 @@ const (
 
 // PolicyDocument represents an AWS IAM policy document, and can be
 // converted into JSON using "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/converters".
+// Note: JSON field names must be capitalized to match AWS IAM policy format.
 type PolicyDocument struct {
-	Version   string     `json:"version,omitempty"`
-	Statement Statements `json:"statement,omitempty"`
-	ID        string     `json:"id,omitempty"`
+	Version   string     `json:"Version,omitempty"` //nolint:kubeapilinter
+	Statement Statements `json:"Statement,omitempty"` //nolint:kubeapilinter
+	ID        string     `json:"Id,omitempty"` //nolint:kubeapilinter
 }
 
 // StatementEntry represents each "statement" block in an AWS IAM policy document.
+// Note: JSON field names must be capitalized to match AWS IAM policy format.
 type StatementEntry struct {
-	Sid          string     `json:"sid,omitempty"`
-	Principal    Principals `json:"principal,omitempty"`
-	NotPrincipal Principals `json:"notPrincipal,omitempty"`
-	Effect       Effect     `json:"effect"`
-	Action       Actions    `json:"action"`
-	Resource     Resources  `json:"resource,omitempty"`
-	Condition    Conditions `json:"condition,omitempty"`
+	Sid          string     `json:"Sid,omitempty"` //nolint:kubeapilinter
+	Principal    Principals `json:"Principal,omitempty"` //nolint:kubeapilinter
+	NotPrincipal Principals `json:"NotPrincipal,omitempty"` //nolint:kubeapilinter
+	Effect       Effect     `json:"Effect"` //nolint:kubeapilinter
+	Action       Actions    `json:"Action"` //nolint:kubeapilinter
+	Resource     Resources  `json:"Resource,omitempty"` //nolint:kubeapilinter
+	Condition    Conditions `json:"Condition,omitempty"` //nolint:kubeapilinter
 }
 
 // Statements is the list of StatementEntries.
