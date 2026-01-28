@@ -254,8 +254,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		})
 	})
 
-	// // TODO: @sedefsavas: Requires env var logic to be removed
-	ginkgo.PDescribe("[Serial] Upgrade to main branch Kubernetes", func() {
+	ginkgo.Describe("[Serial] Upgrade to main branch Kubernetes", func() {
 		ginkgo.Context("in same namespace", func() {
 			ginkgo.It("should create the clusters", func() {
 				specName := "upgrade-to-main-branch-k8s"
@@ -269,11 +268,11 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
 				ginkgo.By("Creating first cluster with single control plane")
 				cluster1Name := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
-				shared.SetEnvVar("USE_CI_ARTIFACTS", "true", false)
 				tagPrefix := "v"
 				searchSemVer, err := semver.Make(strings.TrimPrefix(e2eCtx.E2EConfig.MustGetVariable(shared.KubernetesVersion), tagPrefix))
 				Expect(err).NotTo(HaveOccurred())
 
+				shared.SetEnvVar("USE_CI_ARTIFACTS", "true", false)
 				shared.SetEnvVar(shared.KubernetesVersion, "v"+searchSemVer.String(), false)
 				configCluster := defaultConfigCluster(cluster1Name, namespace.Name)
 
