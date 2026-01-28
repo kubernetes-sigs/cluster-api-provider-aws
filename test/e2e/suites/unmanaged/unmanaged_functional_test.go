@@ -119,7 +119,6 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 
 	ginkgo.Describe("GPU-enabled cluster test", func() {
 		ginkgo.It("should create cluster with single worker", func() {
-			ginkgo.Skip("Args field of clusterctl.ApplyClusterTemplateAndWaitInput was removed, need to add support for server-side filtering.")
 			specName := "functional-gpu-cluster"
 			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
 			if !e2eCtx.Settings.SkipQuotas {
@@ -151,13 +150,8 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				WaitForClusterIntervals:      e2eCtx.E2EConfig.GetIntervals(specName, "wait-cluster"),
 				WaitForControlPlaneIntervals: e2eCtx.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 				WaitForMachineDeployments:    e2eCtx.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
-				// nvidia-gpu flavor creates a config map as part of a crs, that exceeds the annotations size limit when we do kubectl apply.
-				// This is because the entire config map is stored in `last-applied` annotation for tracking.
-				// The workaround is to use server side apply by passing `--server-side` flag to kubectl apply.
-				// More on server side apply here: https://kubernetes.io/docs/reference/using-api/server-side-apply/
-				// TODO: Need a PR to re-add argument support to this type.
-				// It was removed in https://github.com/kubernetes-sigs/cluster-api/commit/b4349fecaa626865e71b058a8b01e0377fb9e444
-				// Args: []string{"--server-side"},
+				// GPU operator components are deployed via ClusterResourceSet which handles large ConfigMaps
+				// without the kubectl annotation size limit issues that occur with client-side apply.
 			}, result)
 
 			shared.AWSGPUSpec(ctx, e2eCtx, shared.AWSGPUSpecInput{
