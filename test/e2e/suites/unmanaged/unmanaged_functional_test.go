@@ -278,6 +278,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				searchSemVer, err := semver.Make(strings.TrimPrefix(e2eCtx.E2EConfig.MustGetVariable(shared.KubernetesVersion), tagPrefix))
 				Expect(err).NotTo(HaveOccurred())
 
+				shared.SetEnvVar("USE_CI_ARTIFACTS", "true", false)
 				shared.SetEnvVar(shared.KubernetesVersion, "v"+searchSemVer.String(), false)
 				configCluster := defaultConfigCluster(cluster1Name, namespace.Name)
 
@@ -311,6 +312,7 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				}, e2eCtx.E2EConfig.GetIntervals(specName, "wait-machine-upgrade")...)
 
 				ginkgo.By("Deleting the Clusters")
+				shared.SetEnvVar("USE_CI_ARTIFACTS", "false", false)
 				deleteCluster(ctx, cluster2)
 			})
 		})
