@@ -1206,3 +1206,95 @@ func TestWebhookValidateAccessEntries(t *testing.T) {
 		})
 	}
 }
+
+func TestAWSManagedControlPlane_Default_Deletion(t *testing.T) {
+	g := NewWithT(t)
+	webhook := &awsManagedControlPlaneWebhook{}
+
+	t.Run("skips defaulting when DeletionTimestamp is set", func(t *testing.T) {
+		now := metav1.Now()
+		mcp := &AWSManagedControlPlane{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:              "test-cluster",
+				Namespace:         "default",
+				DeletionTimestamp: &now,
+			},
+			Spec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "existing-cluster",
+			},
+		}
+
+		err := webhook.Default(context.Background(), mcp)
+		g.Expect(err).To(BeNil())
+		g.Expect(mcp.Spec.BootstrapSelfManagedAddons).To(BeFalse())
+		g.Expect(mcp.Spec.EKSClusterName).To(Equal("existing-cluster"))
+		g.Expect(mcp.Spec.IdentityRef).To(BeNil())
+	})
+
+	t.Run("applies defaults when DeletionTimestamp is not set", func(t *testing.T) {
+		mcp := &AWSManagedControlPlane{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-cluster",
+				Namespace: "default",
+			},
+			Spec: AWSManagedControlPlaneSpec{},
+		}
+
+		err := webhook.Default(context.Background(), mcp)
+		g.Expect(err).To(BeNil())
+		g.Expect(mcp.Spec.BootstrapSelfManagedAddons).To(BeTrue())
+		g.Expect(mcp.Spec.EKSClusterName).NotTo(BeEmpty())
+		g.Expect(mcp.Spec.IdentityRef).NotTo(BeNil())
+	})
+}
+
+func TestAWSManagedControlPlane_Default_BootstrapSelfManagedAddons(t *testing.T) {
+	g := NewWithT(t)
+	webhook := &awsManagedControlPlaneWebhook{}
+
+	t.Run("sets BootstrapSelfManagedAddons on CREATE (empty ResourceVersion)", func(t *testing.T) {
+		mcp := &AWSManagedControlPlane{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-cluster",
+				Namespace: "default",
+			},
+			Spec: AWSManagedControlPlaneSpec{},
+		}
+
+		err := webhook.Default(context.Background(), mcp)
+		g.Expect(err).To(BeNil())
+		g.Expect(mcp.Spec.BootstrapSelfManagedAddons).To(BeTrue())
+	})
+
+	t.Run("does NOT set BootstrapSelfManagedAddons on UPDATE (ResourceVersion set)", func(t *testing.T) {
+		mcp := &AWSManagedControlPlane{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:            "test-cluster",
+				Namespace:       "default",
+				ResourceVersion: "12345",
+			},
+			Spec: AWSManagedControlPlaneSpec{},
+		}
+
+		err := webhook.Default(context.Background(), mcp)
+		g.Expect(err).To(BeNil())
+		g.Expect(mcp.Spec.BootstrapSelfManagedAddons).To(BeFalse())
+	})
+
+	t.Run("preserves existing BootstrapSelfManagedAddons value on UPDATE", func(t *testing.T) {
+		mcp := &AWSManagedControlPlane{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:            "test-cluster",
+				Namespace:       "default",
+				ResourceVersion: "12345",
+			},
+			Spec: AWSManagedControlPlaneSpec{
+				BootstrapSelfManagedAddons: true,
+			},
+		}
+
+		err := webhook.Default(context.Background(), mcp)
+		g.Expect(err).To(BeNil())
+		g.Expect(mcp.Spec.BootstrapSelfManagedAddons).To(BeTrue())
+	})
+}
