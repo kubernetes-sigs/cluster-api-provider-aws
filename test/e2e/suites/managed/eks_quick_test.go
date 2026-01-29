@@ -2,7 +2,7 @@
 // +build e2e
 
 /*
-Copyright 2026 The Kubernetes Authors.
+Copyright 2020 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -48,10 +48,7 @@ var _ = ginkgo.Describe("[managed] [EKS] [smoke] [PR-Blocking]", func() {
 		ctx = context.TODO()
 		namespace = shared.SetupSpecNamespace(ctx, specName, e2eCtx)
 		clusterName = fmt.Sprintf("%s-%s", specName, util.RandomString(6))
-	})
-
-	ginkgo.BeforeEach(func() {
-		requiredResources = &shared.TestResource{EC2Normal: 1 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1}
+		requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1}
 		requiredResources.WriteRequestedResources(e2eCtx, "eks-quick-start-test")
 		Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
 	})
@@ -60,18 +57,21 @@ var _ = ginkgo.Describe("[managed] [EKS] [smoke] [PR-Blocking]", func() {
 		eksClusterName := getEKSClusterName(namespace.Name, clusterName)
 
 		ginkgo.By("default iam role should exist")
-		VerifyRoleExistsAndOwned(ctx, ekscontrolplanev1.DefaultEKSControlPlaneRole, eksClusterName, false, e2eCtx.AWSSession)
-		
+		Expect(func() error {
+			VerifyRoleExistsAndOwned(ctx, ekscontrolplanev1.DefaultEKSControlPlaneRole, eksClusterName, false, e2eCtx.AWSSession)
+			return nil
+		}()).To(Succeed())
+
 		ginkgo.By("should create an EKS control plane")
 		ManagedClusterSpec(ctx, func() ManagedClusterSpecInput {
 			return ManagedClusterSpecInput{
-				E2EConfig:                e2eCtx.E2EConfig,
-				ConfigClusterFn:          defaultConfigCluster,
-				BootstrapClusterProxy:    e2eCtx.Environment.BootstrapClusterProxy,
-				AWSSession:               e2eCtx.BootstrapUserAWSSession,
-				Namespace:                namespace,
-				ClusterName:              clusterName,
-				Flavour:                  EKSManagedClusterFlavor,
+				E2EConfig:             e2eCtx.E2EConfig,
+				ConfigClusterFn:       defaultConfigCluster,
+				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
+				AWSSession:            e2eCtx.BootstrapUserAWSSession,
+				Namespace:             namespace,
+				ClusterName:           clusterName,
+				Flavour:               EKSManagedPoolFlavor,
 			}
 		})
 
