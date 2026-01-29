@@ -17,6 +17,8 @@ no-section-label = true
 "/agenda/2023.html" = "https://docs.google.com/document/u/0/d/1hwgA0h5OmlLbbamvdH_KgyM2GPad-CK2CQQNMr-c0W8"
 "/agenda/2021.html" = "https://docs.google.com/document/d/1iW-kqcX-IhzVGFrRKTSPGBPOc-0aUvygOVoJ5ETfEZU"
 
+[output.markdown]
+
 [preprocessor.tabulate]
 command = "mdbook-tabulate"
 
