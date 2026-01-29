@@ -200,10 +200,8 @@ const (
 	DedicatedHostReleaseFailedReason = "DedicatedHostReleaseFailed"
 )
 
-// =============================================================================
 // AWSCluster's v1beta2 conditions and corresponding reasons.
 // These will be used with the V1Beta2 API version.
-// =============================================================================
 
 // AWSCluster's Ready condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
