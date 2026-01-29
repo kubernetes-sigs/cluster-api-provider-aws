@@ -1425,6 +1425,44 @@ spec:
                           (https://coreos.github.io/ignition/) for bootstrapping (requires
                           BootstrapFormatIgnition feature flag to be enabled).
                         properties:
+                          additionalIAMInstanceProfiles:
+                            description: |-
+                              AdditionalIAMInstanceProfiles is a list of additional IAM instance profiles
+                              with custom S3 prefixes for accessing bootstrap data.
+                              This is useful for custom node pools (e.g., Karpenter) that need access
+                              to bootstrap data stored under custom prefixes.
+                            items:
+                              description: |-
+                                AdditionalIAMInstanceProfile defines an additional IAM instance profile
+                                with a custom S3 prefix for accessing bootstrap data from S3 Bucket.
+                                This enables support for custom node pools (e.g., Karpenter) that need
+                                access to bootstrap data with custom S3 prefixes.
+                              properties:
+                                name:
+                                  description: |-
+                                    Name is the name of the IAM instance profile that will be granted access.
+                                    This should match the IAM role name (not the ARN).
+                                  maxLength: 128
+                                  minLength: 1
+                                  type: string
+                                prefix:
+                                  description: |-
+                                    Prefix is the S3 object prefix (path) that this profile can access.
+                                    Must end with /* to allow wildcard access (e.g., "karpenter-nodes/*", "path/to/data/*").
+                                    Can also be "*" for wildcard-only access to the entire bucket.
+                                    The prefix should not start with a leading slash.
+                                  maxLength: 512
+                                  minLength: 1
+                                  pattern: ^(\*|[a-zA-Z0-9!_.*'()-]+(/[a-zA-Z0-9!_.*'()-]+)*/\*)$
+                                  type: string
+                              required:
+                              - name
+                              - prefix
+                              type: object
+                            type: array
+                            x-kubernetes-list-map-keys:
+                            - name
+                            x-kubernetes-list-type: map
                           bestEffortDeleteObjects:
                             description: BestEffortDeleteObjects defines whether access/permission
                               errors during object deletion should be ignored.
