@@ -29,7 +29,7 @@ func TestAWSMachineTemplateValidateCreate(t *testing.T) {
 	tests := []struct {
 		name          string
 		inputTemplate *AWSMachineTemplate
-		wantError     bool
+		wantError     bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "don't allow providerID",
@@ -239,7 +239,7 @@ func TestAWSMachineTemplateValidateUpdate(t *testing.T) {
 	tests := []struct {
 		name             string
 		modifiedTemplate *AWSMachineTemplate
-		wantError        bool
+		wantError        bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "don't allow updates",

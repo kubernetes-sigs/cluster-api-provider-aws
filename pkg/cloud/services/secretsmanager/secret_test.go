@@ -88,7 +88,7 @@ func TestServiceCreate(t *testing.T) {
 		bytesCount     int64
 		secretPrefix   string
 		expectedPrefix string
-		wantErr        bool
+		wantErr        bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		expect         func(g *WithT, m *mocks.MockSecretsManagerAPIMockRecorder)
 	}{
 		{

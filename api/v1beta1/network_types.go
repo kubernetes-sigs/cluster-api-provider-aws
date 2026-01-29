@@ -125,7 +125,7 @@ type ClassicELBAttributes struct {
 
 	// CrossZoneLoadBalancing enables the classic load balancer load balancing.
 	// +optional
-	CrossZoneLoadBalancing bool `json:"crossZoneLoadBalancing,omitempty"`
+	CrossZoneLoadBalancing bool `json:"crossZoneLoadBalancing,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 }
 
 // ClassicELBListener defines an AWS classic load balancer listener.
@@ -258,12 +258,12 @@ type SubnetSpec struct {
 
 	// IsPublic defines the subnet as a public subnet. A subnet is public when it is associated with a route table that has a route to an internet gateway.
 	// +optional
-	IsPublic bool `json:"isPublic"`
+	IsPublic bool `json:"isPublic"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// IsIPv6 defines the subnet as an IPv6 subnet. A subnet is IPv6 when it is associated with a VPC that has IPv6 enabled.
 	// IPv6 is only supported in managed clusters, this field cannot be set on AWSCluster object.
 	// +optional
-	IsIPv6 bool `json:"isIpv6,omitempty"`
+	IsIPv6 bool `json:"isIpv6,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// RouteTableID is the routing table id associated with the subnet.
 	// +optional

@@ -1204,7 +1204,7 @@ func TestAdditionalControlPlaneSecurityGroup(t *testing.T) {
 		networkSpec                   infrav1.NetworkSpec
 		networkStatus                 infrav1.NetworkStatus
 		expectedAdditionalIngressRule infrav1.IngressRule
-		wantErr                       bool
+		wantErr                       bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "default control plane security group is used",
@@ -1905,7 +1905,7 @@ func TestDeleteSecurityGroups(t *testing.T) {
 		name    string
 		input   *infrav1.NetworkSpec
 		expect  func(m *mocks.MockEC2APIMockRecorder)
-		wantErr bool
+		wantErr bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "do not delete security groups provided as overrides",

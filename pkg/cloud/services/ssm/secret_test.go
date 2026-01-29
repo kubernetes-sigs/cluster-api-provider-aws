@@ -128,7 +128,7 @@ func TestServiceCreate(t *testing.T) {
 		bytesCount     int64
 		secretPrefix   string
 		expectedPrefix string
-		wantErr        bool
+		wantErr        bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		expect         func(m *mock_ssmiface.MockSSMAPIMockRecorder)
 	}{
 		{
@@ -252,7 +252,7 @@ func TestServiceDelete(t *testing.T) {
 		name        string
 		secretCount int32
 		expect      func(m *mock_ssmiface.MockSSMAPIMockRecorder)
-		wantErr     bool
+		wantErr     bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		check       func(error)
 	}{
 		{

@@ -30,7 +30,7 @@ func TestAWSClusterRoleValidateCreate(t *testing.T) {
 	tests := []struct {
 		name      string
 		identity  *AWSClusterRoleIdentity
-		wantError bool
+		wantError bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "do not allow nil sourceIdentityRef",
@@ -77,7 +77,7 @@ func TestCreateAWSClusterRoleIdentityLabelSelectorAsSelectorValidation(t *testin
 	tests := []struct {
 		name      string
 		selectors map[string]string
-		wantError bool
+		wantError bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name:      "should not return error for valid selector",
@@ -184,7 +184,7 @@ func TestAWSClusterRoleIdentityUpdateValidation(t *testing.T) {
 	tests := []struct {
 		name      string
 		identity  *AWSClusterRoleIdentity
-		wantError bool
+		wantError bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name:      "should not return error for valid selector",
