@@ -130,6 +130,7 @@ func TestReconcileCarrierGateway(t *testing.T) {
 				AWSCluster: &infrav1.AWSCluster{
 					ObjectMeta: metav1.ObjectMeta{Name: "test"},
 					Spec: infrav1.AWSClusterSpec{
+						Region:      "us-west-2",
 						NetworkSpec: *tc.input,
 					},
 				},
@@ -236,6 +237,7 @@ func TestDeleteCarrierGateway(t *testing.T) {
 				AWSCluster: &infrav1.AWSCluster{
 					ObjectMeta: metav1.ObjectMeta{Name: "test"},
 					Spec: infrav1.AWSClusterSpec{
+						Region:      "us-west-2",
 						NetworkSpec: *tc.input,
 					},
 				},

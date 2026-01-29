@@ -224,7 +224,7 @@ func TestServiceDeleteBastion(t *testing.T) {
 				awsCluster := &infrav1.AWSCluster{
 					ObjectMeta: metav1.ObjectMeta{Name: "test"},
 					Spec: infrav1.AWSClusterSpec{
-						NetworkSpec: infrav1.NetworkSpec{
+						Region: "us-west-2", NetworkSpec: infrav1.NetworkSpec{
 							VPC: infrav1.VPCSpec{
 								ID: "vpcID",
 							},
@@ -446,7 +446,7 @@ func TestServiceReconcileBastion(t *testing.T) {
 				awsCluster := &infrav1.AWSCluster{
 					ObjectMeta: metav1.ObjectMeta{Name: "test"},
 					Spec: infrav1.AWSClusterSpec{
-						NetworkSpec: infrav1.NetworkSpec{
+						Region: "us-west-2", NetworkSpec: infrav1.NetworkSpec{
 							VPC: infrav1.VPCSpec{
 								ID: "vpcID",
 							},

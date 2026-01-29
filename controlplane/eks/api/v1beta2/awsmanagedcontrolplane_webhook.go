@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpoints"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/eks"
 )
 
@@ -95,6 +96,10 @@ func (*awsManagedControlPlaneWebhook) ValidateCreate(_ context.Context, obj runt
 		allErrs = append(allErrs, field.Required(field.NewPath("spec.eksClusterName"), "eksClusterName is required"))
 	}
 
+	if err := r.validateRegion(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+
 	// TODO: Add ipv6 validation things in these validations.
 	allErrs = append(allErrs, r.validateEKSVersion(nil)...)
 	allErrs = append(allErrs, r.Spec.Bastion.Validate()...)
@@ -138,6 +143,11 @@ func (*awsManagedControlPlaneWebhook) ValidateUpdate(ctx context.Context, oldObj
 	}
 
 	var allErrs field.ErrorList
+
+	if err := r.validateRegion(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+
 	allErrs = append(allErrs, r.validateEKSClusterName()...)
 	allErrs = append(allErrs, r.validateEKSClusterNameSame(oldAWSManagedControlplane)...)
 	allErrs = append(allErrs, r.validateEKSVersion(oldAWSManagedControlplane)...)
@@ -564,6 +574,20 @@ func validatePrivateDNSHostnameTypeOnLaunch(networkSpec infrav1.NetworkSpec, pat
 	}
 
 	return allErrs
+}
+
+func (r *AWSManagedControlPlane) validateRegion() *field.Error {
+	if r.Spec.Region == "" {
+		return field.Required(field.NewPath("spec", "region"), "region is required")
+	}
+
+	// Validate region against all AWS partitions
+	if !endpoints.IsValidRegion(r.Spec.Region) {
+		return field.Invalid(field.NewPath("spec", "region"), r.Spec.Region,
+			"region is not a valid AWS region")
+	}
+
+	return nil
 }
 
 func (r *AWSManagedControlPlane) validateNetwork() field.ErrorList {

@@ -47,6 +47,7 @@ func createTestClusterScope(t *testing.T) *scope.ClusterScope {
 		AWSCluster: &infrav1.AWSCluster{
 			ObjectMeta: metav1.ObjectMeta{Name: "test"},
 			Spec: infrav1.AWSClusterSpec{
+				Region: "us-west-2",
 				NetworkSpec: infrav1.NetworkSpec{
 					VPC: infrav1.VPCSpec{
 						ID: "test-vpc",

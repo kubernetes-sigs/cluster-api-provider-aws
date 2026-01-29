@@ -449,6 +449,7 @@ func TestReconcileNatGateways(t *testing.T) {
 			awsCluster := &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						VPC: infrav1.VPCSpec{
 							ID: subnetsVPCID,
@@ -791,6 +792,7 @@ func TestDeleteNatGateways(t *testing.T) {
 			awsCluster := &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						VPC: infrav1.VPCSpec{
 							ID: "managed-vpc",
@@ -1053,6 +1055,7 @@ func TestGetdNatGatewayForEdgeSubnet(t *testing.T) {
 			awsCluster := &infrav1.AWSCluster{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 				Spec: infrav1.AWSClusterSpec{
+					Region: "us-west-2",
 					NetworkSpec: infrav1.NetworkSpec{
 						VPC: infrav1.VPCSpec{
 							ID: subnetsVPCID,

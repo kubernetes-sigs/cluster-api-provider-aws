@@ -125,7 +125,9 @@ func createEKSCluster(name, namespace string) *ekscontrolplanev1.AWSManagedContr
 				clusterv1.ClusterNameLabel: name,
 			},
 		},
-		Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{},
+		Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+			Region: "us-west-2",
+		},
 	}
 	return eksCluster
 }

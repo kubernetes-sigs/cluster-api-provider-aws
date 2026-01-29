@@ -101,3 +101,14 @@ func mergeOverrides(into PartitionConfig, from RegionOverrides) PartitionConfig 
 	}
 	return into
 }
+
+// IsValidRegion checks if the given region string is a valid AWS region
+// by checking if it exists in any partition's region map.
+func IsValidRegion(region string) bool {
+	for _, partition := range partitions {
+		if _, ok := partition.Regions[region]; ok {
+			return true
+		}
+	}
+	return false
+}
