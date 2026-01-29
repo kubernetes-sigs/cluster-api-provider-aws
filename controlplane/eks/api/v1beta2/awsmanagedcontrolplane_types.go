@@ -211,6 +211,9 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// +kubebuilder:default=true
 	BootstrapSelfManagedAddons bool `json:"bootstrapSelfManagedAddons,omitempty"`
 
+	// +optional
+	AutoMode *AutoMode `json:"autoMode,omitempty"`
+
 	// RestrictPrivateSubnets indicates that the EKS control plane should only use private subnets.
 	// +kubebuilder:default=false
 	RestrictPrivateSubnets bool `json:"restrictPrivateSubnets,omitempty"`
@@ -237,6 +240,30 @@ type KubeProxy struct {
 	// set this to true if you are using the Amazon kube-proxy addon.
 	// +kubebuilder:default=false
 	Disable bool `json:"disable,omitempty"`
+}
+
+// AutoMode is the EKS Auto Mode.
+// allows to create cluster with aws compute, ebs, elb capabilities.
+type AutoMode struct {
+	// Enabled will enable EKS Auto Mode.
+	// +kubebuilder:default=false
+	Enabled bool `json:"enabled,omitempty"`
+	// Compute capability configuration for EKS Auto Mode.
+	// +optional
+	Compute Compute `json:"compute,omitempty"`
+}
+
+// Compute allows to run compute capability with EKS AutoMode.
+type Compute struct {
+	// NodePools that defines the compute resources for your EKS Auto Mode cluster.
+	// +kubebuilder:validation:items:Enum=system;general-purpose
+	NodePools []string `json:"nodePools,omitempty"`
+	// NodeRoleArn the ARN of the IAM Role EKS will assign to EC2 Managed Instances in your EKS
+	// Auto Mode cluster. This value cannot be changed after the compute capability of
+	// EKS Auto Mode is enabled. For more information, see the IAM Reference in the
+	// Amazon EKS User Guide.
+	// +optional
+	NodeRoleArn *string `json:"nodeRoleArn,omitempty"`
 }
 
 // VpcCni specifies configuration related to the VPC CNI.

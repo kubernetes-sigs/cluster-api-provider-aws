@@ -102,6 +102,7 @@ func (*awsManagedControlPlaneWebhook) ValidateCreate(_ context.Context, obj runt
 	allErrs = append(allErrs, r.validateSecondaryCIDR()...)
 	allErrs = append(allErrs, r.validateEKSAddons()...)
 	allErrs = append(allErrs, r.validateDisableVPCCNI()...)
+	allErrs = append(allErrs, r.validateAutoMode(nil)...)
 	allErrs = append(allErrs, r.validateRestrictPrivateSubnets()...)
 	allErrs = append(allErrs, r.validateKubeProxy()...)
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
@@ -145,6 +146,7 @@ func (*awsManagedControlPlaneWebhook) ValidateUpdate(ctx context.Context, oldObj
 	allErrs = append(allErrs, r.validateAccessConfigUpdate(oldAWSManagedControlplane)...)
 	allErrs = append(allErrs, r.validateIAMAuthConfig()...)
 	allErrs = append(allErrs, r.validateSecondaryCIDR()...)
+	allErrs = append(allErrs, r.validateAutoMode(oldAWSManagedControlplane)...)
 	allErrs = append(allErrs, r.validateEKSAddons()...)
 	allErrs = append(allErrs, r.validateDisableVPCCNI()...)
 	allErrs = append(allErrs, r.validateRestrictPrivateSubnets()...)
@@ -531,6 +533,44 @@ func validateDisableVPCCNI(vpcCni VpcCni, addons *[]Addon, path *field.Path) fie
 	return allErrs
 }
 
+func (r *AWSManagedControlPlane) validateAutoMode(old *AWSManagedControlPlane) field.ErrorList {
+	return validateAutoMode(r.Spec, old, field.NewPath("spec"))
+}
+
+func validateAutoMode(spec AWSManagedControlPlaneSpec, old *AWSManagedControlPlane, path *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	if spec.AutoMode == nil {
+		return nil
+	}
+
+	if spec.AutoMode.Enabled {
+		// EKS Auto mode is not compatible with configmap AuthenticationMode.
+		if spec.AccessConfig.AuthenticationMode == EKSAuthenticationModeConfigMap {
+			authConfigField := path.Child("accessConfig", "authenticationMode")
+			allErrs = append(allErrs, field.Invalid(authConfigField, spec.AccessConfig.AuthenticationMode, "authenticationMode CONFIG_MAP couldn't be used with autoMode"))
+		}
+
+		if old != nil {
+			// nodeRoleArn cannot be changed after the compute capability of EKS Auto Mode is enabled.
+			if old.Spec.AutoMode.Compute.NodeRoleArn != spec.AutoMode.Compute.NodeRoleArn {
+				nodeRoleArnField := path.Child("autoMode", "compute", "nodeRoleArn")
+				allErrs = append(allErrs, field.Invalid(nodeRoleArnField, spec.AutoMode.Compute.NodeRoleArn, "nodeRoleArn could not be changed"))
+			}
+		}
+
+		if len(spec.AutoMode.Compute.NodePools) > 0 {
+			// nodeRoleArn should be always defined with node pools.
+			if spec.AutoMode.Compute.NodeRoleArn == nil {
+				nodeRoleArnField := path.Child("autoMode", "compute", "nodeRoleArn")
+				allErrs = append(allErrs, field.Invalid(nodeRoleArnField, spec.AutoMode.Compute.NodeRoleArn, "nodeRoleArn is required when nodePools specified"))
+			}
+		}
+	}
+
+	return allErrs
+}
+
 func (r *AWSManagedControlPlane) validateRestrictPrivateSubnets() field.ErrorList {
 	return validateRestrictPrivateSubnets(r.Spec.RestrictPrivateSubnets, r.Spec.NetworkSpec, r.Spec.EKSClusterName, field.NewPath("spec"))
 }
@@ -679,7 +719,5 @@ func (*awsManagedControlPlaneWebhook) Default(_ context.Context, obj runtime.Obj
 	infrav1.SetDefaults_Bastion(&r.Spec.Bastion)
 	infrav1.SetDefaults_NetworkSpec(&r.Spec.NetworkSpec)
 
-	// Set default value for BootstrapSelfManagedAddons
-	r.Spec.BootstrapSelfManagedAddons = true
 	return nil
 }
