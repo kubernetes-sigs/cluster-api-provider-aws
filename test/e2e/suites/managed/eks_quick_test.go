@@ -57,10 +57,7 @@ var _ = ginkgo.Describe("[managed] [EKS] [smoke] [PR-Blocking]", func() {
 		eksClusterName := getEKSClusterName(namespace.Name, clusterName)
 
 		ginkgo.By("default iam role should exist")
-		Expect(func() error {
-			VerifyRoleExistsAndOwned(ctx, ekscontrolplanev1.DefaultEKSControlPlaneRole, eksClusterName, false, e2eCtx.AWSSession)
-			return nil
-		}()).To(Succeed())
+		VerifyRoleExistsAndOwned(ctx, ekscontrolplanev1.DefaultEKSControlPlaneRole, eksClusterName, false, e2eCtx.AWSSession)
 
 		ginkgo.By("should create an EKS control plane")
 		ManagedClusterSpec(ctx, func() ManagedClusterSpecInput {
