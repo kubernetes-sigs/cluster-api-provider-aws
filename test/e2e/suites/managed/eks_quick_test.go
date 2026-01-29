@@ -45,19 +45,14 @@ var _ = ginkgo.Describe("[managed] [EKS] [smoke] [PR-Blocking]", func() {
 
 	ginkgo.BeforeEach(func() {
 		Expect(e2eCtx.Environment.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. BootstrapClusterProxy can't be nil")
-
 		ctx = context.TODO()
-
 		namespace = shared.SetupSpecNamespace(ctx, specName, e2eCtx)
-
 		clusterName = fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 	})
 
 	ginkgo.BeforeEach(func() {
-		requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 3, EventBridgeRules: 50}
-
+		requiredResources = &shared.TestResource{EC2Normal: 1 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1}
 		requiredResources.WriteRequestedResources(e2eCtx, "eks-quick-start-test")
-
 		Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
 	})
 
@@ -66,7 +61,7 @@ var _ = ginkgo.Describe("[managed] [EKS] [smoke] [PR-Blocking]", func() {
 
 		ginkgo.By("default iam role should exist")
 		VerifyRoleExistsAndOwned(ctx, ekscontrolplanev1.DefaultEKSControlPlaneRole, eksClusterName, false, e2eCtx.AWSSession)
-
+		
 		ginkgo.By("should create an EKS control plane")
 		ManagedClusterSpec(ctx, func() ManagedClusterSpecInput {
 			return ManagedClusterSpecInput{
@@ -76,25 +71,7 @@ var _ = ginkgo.Describe("[managed] [EKS] [smoke] [PR-Blocking]", func() {
 				AWSSession:               e2eCtx.BootstrapUserAWSSession,
 				Namespace:                namespace,
 				ClusterName:              clusterName,
-				Flavour:                  EKSControlPlaneOnlyFlavor,
-				ControlPlaneMachineCount: 1,
-				WorkerMachineCount:       0,
-			}
-		})
-
-		ginkgo.By("should create a managed node pool")
-		MachinePoolSpec(ctx, func() MachinePoolSpecInput {
-			return MachinePoolSpecInput{
-				E2EConfig:             e2eCtx.E2EConfig,
-				ConfigClusterFn:       defaultConfigCluster,
-				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
-				AWSSession:            e2eCtx.BootstrapUserAWSSession,
-				Namespace:             namespace,
-				ClusterName:           clusterName,
-				IncludeScaling:        false,
-				Cleanup:               false,
-				ManagedMachinePool:    true,
-				Flavor:                EKSManagedMachinePoolOnlyFlavor,
+				Flavour:                  EKSManagedClusterFlavor,
 			}
 		})
 
