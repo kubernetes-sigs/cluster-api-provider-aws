@@ -4,6 +4,15 @@ Publishing new AMIs is done via manually invoking a GitHub Actions workflow.
 
 > NOTE: the plan is to ultimately fully automate the process in the future (see [this issue](https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/1982) for progress).
 
+## Automated Detection and Build
+
+A workflow `auto-ami-detection.yml` runs periodically (every 6 hours) to check for new stable Kubernetes releases.
+It compares found releases against `.github/processed-k8s-versions.json`.
+For any new release, it:
+1. Calculates the required build inputs using `scripts/find-ami-publishing-inputs.sh`.
+2. Triggers the `build-and-publish-ami` workflow.
+3. Updates `.github/processed-k8s-versions.json` to prevent duplicate builds.
+
 > NOTE: there are some issues with the RHEL based images at present.
 
 ## Get build inputs
