@@ -1,0 +1,148 @@
+name: Auto AMI Detection
+
+on:
+  schedule:
+    - cron: '0 */6 * * *' # Run every 6 hours
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  check-releases:
+    runs-on: ubuntu-latest
+    outputs:
+      new_versions: ${{ steps.fetch-releases.outputs.new_versions }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fetch and Filter Releases
+        id: fetch-releases
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Fetch releases from Kubernetes repo
+          releases=$(curl -s -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/kubernetes/kubernetes/releases)
+          
+          # Check if we got valid JSON
+          if ! echo "$releases" | jq -e . >/dev/null 2>&1; then
+            echo "Error: Failed to fetch releases or invalid JSON"
+            exit 1
+          fi
+
+          # Filter for stable releases (no pre-release), get tag_name
+          # We only take the top 5 most recent stable releases to avoid processing too many at once
+          stable_releases=$(echo "$releases" | jq -r '.[] | select(.prerelease == false) | .tag_name' | head -n 5)
+          
+          # Read processed versions
+          if [ -f .github/processed-k8s-versions.json ]; then
+            processed=$(jq -r '.processed_versions[]' .github/processed-k8s-versions.json)
+          else
+            processed=""
+          fi
+          
+          new_versions=""
+          echo "### Release Detection Summary 🔍" >> $GITHUB_STEP_SUMMARY
+          
+          for version in $stable_releases; do
+            # Check if version is already processed
+            if echo "$processed" | grep -q "^$version$"; then
+               echo "- $version: Already processed" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "New version detected: $version"
+              new_versions="$new_versions $version"
+              echo "- **$version**: NEW - Will trigger build 🚀" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          
+          # Clean up whitespace
+          new_versions=$(echo $new_versions | xargs)
+          
+          if [ -z "$new_versions" ]; then
+             echo "No new versions found." >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Export to next step
+          echo "new_versions=$new_versions" >> $GITHUB_OUTPUT
+
+  trigger-builds:
+    needs: check-releases
+    if: needs.check-releases.outputs.new_versions != ''
+    runs-on: ubuntu-latest
+    environment: ami-production
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Process New Versions
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEW_VERSIONS: ${{ needs.check-releases.outputs.new_versions }}
+        run: |
+          # Configure git for committing the tracking file update
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          echo "### AMI Build Trigger Summary 🏗️" >> $GITHUB_STEP_SUMMARY
+          
+          for version in $NEW_VERSIONS; do
+            echo "Processing version: $version"
+            
+            # Run the script and capture output
+            script_output=$(./scripts/find-ami-publishing-inputs.sh "$version") || {
+                echo "Error converting version $version to inputs"
+                echo "- $version: ❌ Script Failed" >> $GITHUB_STEP_SUMMARY
+                continue
+            }
+            
+            # Parse variables
+            k8s_semver=$(echo "$script_output" | grep "K8s Semver" | awk -F ':' '{print $2}' | xargs)
+            k8s_series=$(echo "$script_output" | grep "K8s Release Series" | awk -F ':' '{print $2}' | xargs)
+            k8s_rpm=$(echo "$script_output" | grep "K8s RPM Package Version" | awk -F ':' '{print $2}' | xargs)
+            k8s_deb=$(echo "$script_output" | grep "K8s Deb Package Version" | awk -F ':' '{print $2}' | xargs)
+            cni_semver=$(echo "$script_output" | grep "CNI Semver" | awk -F ':' '{print $2}' | xargs)
+            cni_deb=$(echo "$script_output" | grep "CNI Deb Package Version" | awk -F ':' '{print $2}' | xargs)
+            crictl_ver=$(echo "$script_output" | grep "CRICTL Version" | awk -F ':' '{print $2}' | xargs)
+            
+            if [[ -z "$k8s_semver" || -z "$k8s_rpm" ]]; then
+               echo "Failed to parse inputs for $version. Skipping."
+               echo "- $version: ❌ Input Parsing Failed" >> $GITHUB_STEP_SUMMARY
+               continue
+            fi
+            
+            echo "Triggering build-and-publish-ami workflow for $version..."
+            
+            # Reduced regions list for cost optimization
+            # us-east-1, us-west-2, eu-west-1, ap-southeast-1
+            # We can expand this list later by updating this workflow file
+            COST_OPTIMIZED_REGIONS="us-east-1,us-west-2,eu-west-1,ap-southeast-1"
+            
+            # Trigger the workflow
+            gh workflow run build-ami.yml \
+              -f k8s_semver="$k8s_semver" \
+              -f k8s_series="$k8s_series" \
+              -f k8s_rpm_version="$k8s_rpm" \
+              -f k8s_deb_version="$k8s_deb" \
+              -f cni_semver="$cni_semver" \
+              -f cni_deb_version="$cni_deb" \
+              -f crictl_version="$crictl_ver" \
+              -f regions="$COST_OPTIMIZED_REGIONS"
+            
+            echo "- **$version**: Triggered ✅" >> $GITHUB_STEP_SUMMARY
+            
+            # Update tracking file
+            tmp=$(mktemp)
+            jq --arg v "$version" '.processed_versions += [$v]' .github/processed-k8s-versions.json > "$tmp" && mv "$tmp" .github/processed-k8s-versions.json
+            
+          done
+          
+          # Commit and push changes to tracking file
+          git add .github/processed-k8s-versions.json
+          git commit -m "Update processed K8s versions [skip ci]" || echo "No changes to commit"
+          git push
