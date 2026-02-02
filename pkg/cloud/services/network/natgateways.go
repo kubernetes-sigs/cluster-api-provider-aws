@@ -276,7 +276,7 @@ func (s *Service) createNatGateways(subnetIDs []string) (natgateways []*types.Na
 	for range subnetIDs {
 		ngwResult := <-c
 		if ngwResult.error != nil {
-			return nil, err
+			return nil, ngwResult.error
 		}
 		natgateways = append(natgateways, ngwResult.natGateway)
 	}
