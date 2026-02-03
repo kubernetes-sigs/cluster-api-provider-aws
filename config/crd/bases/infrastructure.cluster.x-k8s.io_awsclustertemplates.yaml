@@ -135,9 +135,6 @@ spec:
                               is serving.
                             format: int32
                             type: integer
-                        required:
-                        - host
-                        - port
                         type: object
                       controlPlaneLoadBalancer:
                         description: ControlPlaneLoadBalancer is optional configuration
@@ -564,9 +561,6 @@ spec:
                               is serving.
                             format: int32
                             type: integer
-                        required:
-                        - host
-                        - port
                         type: object
                       controlPlaneLoadBalancer:
                         description: ControlPlaneLoadBalancer is optional configuration
