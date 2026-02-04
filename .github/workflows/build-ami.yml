@@ -6,7 +6,7 @@ on:
       image_builder_version:
         description: "Image builder version"
         required: true
-        default: 'v0.1.38'
+        default: 'v0.1.48'
       regions:
         description: 'Publication regions'
         required: true
