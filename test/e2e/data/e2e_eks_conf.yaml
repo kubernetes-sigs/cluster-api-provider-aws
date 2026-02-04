@@ -130,10 +130,10 @@ providers:
       - sourcePath: "./infrastructure-aws/withclusterclass/generated/cluster-template-eks-clusterclass.yaml"
 
 variables:
-  KUBERNETES_VERSION: "v1.34.0"
-  KUBERNETES_VERSION_MANAGEMENT: "v1.34.0" # Kind bootstrap
-  UPGRADE_TO_VERSION: "v1.34.0"
-  UPGRADE_FROM_VERSION: "v1.33.0"
+  KUBERNETES_VERSION: "v1.34.3"
+  KUBERNETES_VERSION_MANAGEMENT: "v1.34.3" # Kind bootstrap
+  UPGRADE_TO_VERSION: "v1.34.3"
+  UPGRADE_FROM_VERSION: "v1.33.4"
   EXP_MACHINE_POOL: "true"
   EXP_MACHINE_POOL_MACHINES: "true"
   EXP_CLUSTER_RESOURCE_SET: "true"
@@ -146,7 +146,7 @@ variables:
   EXP_EKS_ADD_ROLES: "false"
   VPC_ADDON_VERSION: "v1.19.5-eksbuild.3"
   KUBE_PROXY_ADDON_VERSION: "v1.32.0-eksbuild.2"
-  CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "v1.34.0"
+  CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "v1.34.3"
   IP_FAMILY: "IPv4"
   CAPA_LOGLEVEL: "4"
   GC_WORKLOAD: "../../data/gcworkload.yaml"
