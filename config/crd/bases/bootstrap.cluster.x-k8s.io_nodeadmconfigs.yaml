@@ -372,14 +372,26 @@ spec:
               failureReason:
                 description: FailureReason will be set on non-retryable errors.
                 type: string
+              initialization:
+                description: |-
+                  Initialization provides observations of the NodeadmConfig initialization process.
+                  NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.
+                properties:
+                  dataSecretCreated:
+                    description: |-
+                      DataSecretCreated is true when the Machine's bootstrap secret is created.
+                      NOTE: This field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.
+                    type: boolean
+                type: object
               observedGeneration:
                 description: ObservedGeneration is the latest generation observed
                   by the controller.
                 format: int64
                 type: integer
               ready:
-                description: Ready indicates the BootstrapData secret is ready to
-                  be consumed.
+                description: |-
+                  Deprecated: This field will be removed with the CAPI v1beta2 transition
+                  Ready indicates the BootstrapData secret is ready to be consumed.
                 type: boolean
             type: object
         type: object

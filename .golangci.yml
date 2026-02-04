@@ -330,6 +330,13 @@ linters:
       - linters:
           - staticcheck
         text: 'SA1019: "sigs.k8s.io/cluster-api/(.*)" is deprecated: This package is deprecated and is going to be removed when support for v1beta1 will be dropped.'
+      - linters:
+          - staticcheck
+        text: "s.scope.ControlPlaneLoadBalancer is deprecated"
+      - linters:
+          - staticcheck
+        path: bootstrap/eks/
+        text: 'SA1019: (.*)EKSConfig is deprecated'
     paths:
       - third_party$
       - builtin$

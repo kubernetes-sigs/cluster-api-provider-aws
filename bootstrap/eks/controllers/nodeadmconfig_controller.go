@@ -1,3 +1,19 @@
+/*
+Copyright 2026 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package controllers
 
 import (
@@ -36,8 +52,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
-
-const nodeadmConfigKind = "NodeadmConfig"
 
 // NodeadmConfigReconciler reconciles a NodeadmConfig object.
 type NodeadmConfigReconciler struct {
@@ -143,15 +157,14 @@ func (r *NodeadmConfigReconciler) joinWorker(ctx context.Context, cluster *clust
 		log = log.WithValues("data-secret-name", secretKey.Name)
 		existingSecret := &corev1.Secret{}
 
-		// No error here means the Secret exists and we have no
-		// reason to proceed.
 		err := r.Client.Get(ctx, secretKey, existingSecret)
-		switch {
-		case err == nil:
-			return ctrl.Result{}, nil
-		case !apierrors.IsNotFound(err):
+		if err != nil && !apierrors.IsNotFound(err) {
 			log.Error(err, "unable to check for existing bootstrap secret")
 			return ctrl.Result{}, err
+		}
+		if err == nil {
+			// We already have a secret that we don't need to regenerate
+			return ctrl.Result{}, nil
 		}
 	}
 
@@ -304,6 +317,8 @@ func (r *NodeadmConfigReconciler) storeBootstrapData(ctx context.Context, cluste
 	}
 
 	config.Status.DataSecretName = ptr.To(secret.Name)
+	config.Status.Initialization.DataSecretCreated = ptr.To(true)
+	//nolint:staticcheck // we will support this implementation until CAPA is v1beta2 compliant
 	config.Status.Ready = true
 	v1beta1conditions.MarkTrue(config, eksbootstrapv1.DataSecretAvailableCondition)
 	return nil
@@ -391,7 +406,7 @@ func (r *NodeadmConfigReconciler) MachineToBootstrapMapFunc(_ context.Context, o
 		klog.Errorf("Expected a Machine but got a %T", o)
 		return result
 	}
-	if m.Spec.Bootstrap.ConfigRef.IsDefined() && m.Spec.Bootstrap.ConfigRef.APIGroup == eksbootstrapv1.GroupVersion.Group && m.Spec.Bootstrap.ConfigRef.Kind == nodeadmConfigKind {
+	if m.Spec.Bootstrap.ConfigRef.IsDefined() && m.Spec.Bootstrap.ConfigRef.APIGroup == eksbootstrapv1.GroupVersion.Group && m.Spec.Bootstrap.ConfigRef.Kind == eksbootstrapv1.NodeadmConfigKind {
 		name := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.Bootstrap.ConfigRef.Name}
 		result = append(result, ctrl.Request{NamespacedName: name})
 	}
@@ -406,9 +421,10 @@ func (r *NodeadmConfigReconciler) MachinePoolToBootstrapMapFunc(_ context.Contex
 	m, ok := o.(*clusterv1.MachinePool)
 	if !ok {
 		klog.Errorf("Expected a MachinePool but got a %T", o)
+		return result
 	}
 	configRef := m.Spec.Template.Spec.Bootstrap.ConfigRef
-	if configRef.IsDefined() && configRef.APIGroup == eksbootstrapv1.GroupVersion.Group && configRef.Kind == nodeadmConfigKind {
+	if configRef.IsDefined() && configRef.APIGroup == eksbootstrapv1.GroupVersion.Group && configRef.Kind == eksbootstrapv1.NodeadmConfigKind {
 		name := client.ObjectKey{Namespace: m.Namespace, Name: configRef.Name}
 		result = append(result, ctrl.Request{NamespacedName: name})
 	}
@@ -424,6 +440,7 @@ func (r *NodeadmConfigReconciler) ClusterToNodeadmConfigs(_ context.Context, o c
 	c, ok := o.(*clusterv1.Cluster)
 	if !ok {
 		klog.Errorf("Expected a Cluster but got a %T", o)
+		return result
 	}
 
 	selectors := []client.ListOption{
@@ -441,7 +458,7 @@ func (r *NodeadmConfigReconciler) ClusterToNodeadmConfigs(_ context.Context, o c
 	for _, m := range machineList.Items {
 		if m.Spec.Bootstrap.ConfigRef.IsDefined() &&
 			m.Spec.Bootstrap.ConfigRef.APIGroup == eksbootstrapv1.GroupVersion.Group &&
-			m.Spec.Bootstrap.ConfigRef.Kind == nodeadmConfigKind {
+			m.Spec.Bootstrap.ConfigRef.Kind == eksbootstrapv1.NodeadmConfigKind {
 			name := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.Bootstrap.ConfigRef.Name}
 			result = append(result, ctrl.Request{NamespacedName: name})
 		}
