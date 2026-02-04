@@ -10,7 +10,7 @@ require (
 	github.com/itchyny/gojq v0.12.17
 	github.com/joelanford/go-apidiff v0.8.3
 	github.com/mikefarah/yq/v4 v4.48.1
-	k8s.io/apimachinery v0.34.1
+	k8s.io/apimachinery v0.34.3
 	k8s.io/code-generator v0.34.0
 	sigs.k8s.io/cluster-api/hack/tools v0.0.0-20250520093716-525566440a77
 	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20240923090159-236e448db12c
