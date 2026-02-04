@@ -2385,9 +2385,7 @@ int64
 <td>
 <code>conditions</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.Conditions
-</a>
+Cluster API api/core/v1beta1.Conditions
 </em>
 </td>
 <td>
@@ -3277,9 +3275,7 @@ int64
 <td>
 <code>conditions</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.Conditions
-</a>
+Cluster API api/core/v1beta1.Conditions
 </em>
 </td>
 <td>
@@ -4553,9 +4549,7 @@ EndpointAccess
 <td>
 <code>controlPlaneEndpoint</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.APIEndpoint
-</a>
+Cluster API api/core/v1beta1.APIEndpoint
 </em>
 </td>
 <td>
@@ -4959,9 +4953,7 @@ EndpointAccess
 <td>
 <code>controlPlaneEndpoint</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.APIEndpoint
-</a>
+Cluster API api/core/v1beta1.APIEndpoint
 </em>
 </td>
 <td>
@@ -5169,9 +5161,7 @@ NetworkStatus
 <td>
 <code>failureDomains</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.FailureDomains
-</a>
+Cluster API api/core/v1beta1.FailureDomains
 </em>
 </td>
 <td>
@@ -5261,9 +5251,7 @@ state, and will be set to a descriptive error message.</p>
 <td>
 <code>conditions</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.Conditions
-</a>
+Cluster API api/core/v1beta1.Conditions
 </em>
 </td>
 <td>
@@ -5372,6 +5360,19 @@ string
 <td>
 <em>(Optional)</em>
 <p>ServiceAccountRoleArn is the ARN of an IAM role to bind to the addons service account</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>preserveOnDelete</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PreserveOnDelete indicates that the addon resources should be
+preserved in the cluster on delete.</p>
 </td>
 </tr>
 </tbody>
@@ -6265,6 +6266,7 @@ AWSIdentityReference
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
 If no identity is specified, the default identity for this controller will be used.</p>
 </td>
@@ -6489,9 +6491,7 @@ EndpointAccess
 <td>
 <code>controlPlaneEndpoint</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.APIEndpoint
-</a>
+Cluster API api/core/v1beta1.APIEndpoint
 </em>
 </td>
 <td>
@@ -6617,8 +6617,37 @@ OIDCIdentityProviderConfig
 </td>
 <td>
 <em>(Optional)</em>
-<p>IdentityProviderconfig is used to specify the oidc provider config
+<p>OIDCIdentityProviderConfig is used to specify the OIDC provider config
 to be attached with this eks cluster</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>accessConfig</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.AccessConfig">
+AccessConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AccessConfig specifies the access configuration information for the cluster</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>accessEntries</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.AccessEntry">
+[]AccessEntry
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AccessEntries specifies the access entries for the cluster
+Access entries require AuthenticationMode to be either &ldquo;api&rdquo; or &ldquo;api_and_config_map&rdquo;</p>
 </td>
 </tr>
 <tr>
@@ -6672,6 +6701,24 @@ KubeProxy
 <p>KubeProxy defines managed attributes of the kube-proxy daemonset</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>upgradePolicy</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.UpgradePolicy">
+UpgradePolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The cluster upgrade policy to use for the cluster.
+(Official AWS docs for this policy: <a href="https://docs.aws.amazon.com/eks/latest/userguide/view-upgrade-policy.html">https://docs.aws.amazon.com/eks/latest/userguide/view-upgrade-policy.html</a>)
+<code>extended</code> upgrade policy indicates that the cluster will enter into extended support once the Kubernetes version reaches end of standard support. You will incur extended support charges with this setting. You can upgrade your cluster to a standard supported Kubernetes version to stop incurring extended support charges.
+<code>standard</code> upgrade policy indicates that the cluster is eligible for automatic upgrade at the end of standard support. You will not incur extended support charges with this setting but your EKS cluster will automatically upgrade to the next supported Kubernetes version in standard support.
+If omitted, new clusters will use the AWS default upgrade policy (which at the time of writing is &ldquo;extended&rdquo;) and existing clusters will have their upgrade policy unchanged.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -6692,7 +6739,7 @@ AWSManagedControlPlaneStatus
 <h3 id="controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec
 </h3>
 <p>
-(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlane">AWSManagedControlPlane</a>)
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlane">AWSManagedControlPlane</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneTemplateResource">AWSManagedControlPlaneTemplateResource</a>)
 </p>
 <p>
 <p>AWSManagedControlPlaneSpec defines the desired state of an Amazon EKS Cluster.</p>
@@ -6729,6 +6776,7 @@ AWSIdentityReference
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
 If no identity is specified, the default identity for this controller will be used.</p>
 </td>
@@ -6953,9 +7001,7 @@ EndpointAccess
 <td>
 <code>controlPlaneEndpoint</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.APIEndpoint
-</a>
+Cluster API api/core/v1beta1.APIEndpoint
 </em>
 </td>
 <td>
@@ -7081,8 +7127,37 @@ OIDCIdentityProviderConfig
 </td>
 <td>
 <em>(Optional)</em>
-<p>IdentityProviderconfig is used to specify the oidc provider config
+<p>OIDCIdentityProviderConfig is used to specify the OIDC provider config
 to be attached with this eks cluster</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>accessConfig</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.AccessConfig">
+AccessConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AccessConfig specifies the access configuration information for the cluster</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>accessEntries</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.AccessEntry">
+[]AccessEntry
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AccessEntries specifies the access entries for the cluster
+Access entries require AuthenticationMode to be either &ldquo;api&rdquo; or &ldquo;api_and_config_map&rdquo;</p>
 </td>
 </tr>
 <tr>
@@ -7134,6 +7209,24 @@ KubeProxy
 </td>
 <td>
 <p>KubeProxy defines managed attributes of the kube-proxy daemonset</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>upgradePolicy</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.UpgradePolicy">
+UpgradePolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The cluster upgrade policy to use for the cluster.
+(Official AWS docs for this policy: <a href="https://docs.aws.amazon.com/eks/latest/userguide/view-upgrade-policy.html">https://docs.aws.amazon.com/eks/latest/userguide/view-upgrade-policy.html</a>)
+<code>extended</code> upgrade policy indicates that the cluster will enter into extended support once the Kubernetes version reaches end of standard support. You will incur extended support charges with this setting. You can upgrade your cluster to a standard supported Kubernetes version to stop incurring extended support charges.
+<code>standard</code> upgrade policy indicates that the cluster is eligible for automatic upgrade at the end of standard support. You will not incur extended support charges with this setting but your EKS cluster will automatically upgrade to the next supported Kubernetes version in standard support.
+If omitted, new clusters will use the AWS default upgrade policy (which at the time of writing is &ldquo;extended&rdquo;) and existing clusters will have their upgrade policy unchanged.</p>
 </td>
 </tr>
 </tbody>
@@ -7172,9 +7265,7 @@ NetworkStatus
 <td>
 <code>failureDomains</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.FailureDomains
-</a>
+Cluster API api/core/v1beta1.FailureDomains
 </em>
 </td>
 <td>
@@ -7264,9 +7355,7 @@ state, and will be set to a descriptive error message.</p>
 <td>
 <code>conditions</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.Conditions
-</a>
+Cluster API api/core/v1beta1.Conditions
 </em>
 </td>
 <td>
@@ -7317,6 +7406,834 @@ in the cluster.</p>
 </tr>
 </tbody>
 </table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneTemplate">AWSManagedControlPlaneTemplate
+</h3>
+<p>
+<p>AWSManagedControlPlaneTemplate is the Schema for the AWSManagedControlPlaneTemplates API.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneTemplateSpec">
+AWSManagedControlPlaneTemplateSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>template</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneTemplateResource">
+AWSManagedControlPlaneTemplateResource
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneTemplateResource">AWSManagedControlPlaneTemplateResource
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneTemplateSpec">AWSManagedControlPlaneTemplateSpec</a>)
+</p>
+<p>
+<p>AWSManagedControlPlaneTemplateResource describes the data needed to create an AWSManagedCluster from a template.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>spec</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneSpec">
+AWSManagedControlPlaneSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>eksClusterName</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>EKSClusterName allows you to specify the name of the EKS cluster in
+AWS. If you don&rsquo;t specify a name then a default name will be created
+based on the namespace and name of the managed control plane.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>identityRef</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSIdentityReference">
+AWSIdentityReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
+If no identity is specified, the default identity for this controller will be used.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>network</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.NetworkSpec">
+NetworkSpec
+</a>
+</em>
+</td>
+<td>
+<p>NetworkSpec encapsulates all things related to AWS network.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secondaryCidrBlock</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecondaryCidrBlock is the additional CIDR range to use for pod IPs.
+Must be within the 100.64.0.0/10 or 198.19.0.0/16 range.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>region</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The AWS Region the cluster lives in.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>partition</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Partition is the AWS security partition being used. Defaults to &ldquo;aws&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>sshKeyName</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SSHKeyName is the name of the ssh key to attach to the bastion host. Valid values are empty string (do not use SSH keys), a valid SSH key name, or omitted (use the default SSH key name)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>version</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Version defines the desired Kubernetes version. If no version number
+is supplied then the latest version of Kubernetes that EKS supports
+will be used.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>roleName</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RoleName specifies the name of IAM role that gives EKS
+permission to make API calls. If the role is pre-existing
+we will treat it as unmanaged and not delete it on
+deletion. If the EKSEnableIAM feature flag is true
+and no name is supplied then a role is created.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>roleAdditionalPolicies</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RoleAdditionalPolicies allows you to attach additional polices to
+the control plane role. You must enable the EKSAllowAddRoles
+feature flag to incorporate these into the created role.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>rolePath</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RolePath sets the path to the role. For more information about paths, see IAM Identifiers
+(<a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html">https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html</a>)
+in the IAM User Guide.</p>
+<p>This parameter is optional. If it is not included, it defaults to a slash
+(/).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>rolePermissionsBoundary</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RolePermissionsBoundary sets the ARN of the managed policy that is used
+to set the permissions boundary for the role.</p>
+<p>A permissions boundary policy defines the maximum permissions that identity-based
+policies can grant to an entity, but does not grant permissions. Permissions
+boundaries do not define the maximum permissions that a resource-based policy
+can grant to an entity. To learn more, see Permissions boundaries for IAM
+entities (<a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html">https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html</a>)
+in the IAM User Guide.</p>
+<p>For more information about policy types, see Policy types (<a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html#access_policy-types">https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html#access_policy-types</a>)
+in the IAM User Guide.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logging</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.ControlPlaneLoggingSpec">
+ControlPlaneLoggingSpec
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Logging specifies which EKS Cluster logs should be enabled. Entries for
+each of the enabled logs will be sent to CloudWatch</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>encryptionConfig</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.EncryptionConfig">
+EncryptionConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>EncryptionConfig specifies the encryption configuration for the cluster</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>additionalTags</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.Tags">
+Tags
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AdditionalTags is an optional set of tags to add to AWS resources managed by the AWS provider, in addition to the
+ones added by default.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>iamAuthenticatorConfig</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.IAMAuthenticatorConfig">
+IAMAuthenticatorConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>IAMAuthenticatorConfig allows the specification of any additional user or role mappings
+for use when generating the aws-iam-authenticator configuration. If this is nil the
+default configuration is still generated for the cluster.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>endpointAccess</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.EndpointAccess">
+EndpointAccess
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Endpoints specifies access to this cluster&rsquo;s control plane endpoints</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>controlPlaneEndpoint</code><br/>
+<em>
+Cluster API api/core/v1beta1.APIEndpoint
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imageLookupFormat</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ImageLookupFormat is the AMI naming format to look up machine images when
+a machine does not specify an AMI. When set, this will be used for all
+cluster machines unless a machine specifies a different ImageLookupOrg.
+Supports substitutions for {{.BaseOS}} and {{.K8sVersion}} with the base
+OS and kubernetes version, respectively. The BaseOS will be the value in
+ImageLookupBaseOS or ubuntu (the default), and the kubernetes version as
+defined by the packages produced by kubernetes/release without v as a
+prefix: 1.13.0, 1.12.5-mybuild.1, or 1.17.3. For example, the default
+image format of capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-* will end up
+searching for AMIs that match the pattern capa-ami-ubuntu-?1.18.0-* for a
+Machine that is targeting kubernetes v1.18.0 and the ubuntu base OS. See
+also: <a href="https://golang.org/pkg/text/template/">https://golang.org/pkg/text/template/</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imageLookupOrg</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ImageLookupOrg is the AWS Organization ID to look up machine images when a
+machine does not specify an AMI. When set, this will be used for all
+cluster machines unless a machine specifies a different ImageLookupOrg.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imageLookupBaseOS</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ImageLookupBaseOS is the name of the base operating system used to look
+up machine images when a machine does not specify an AMI. When set, this
+will be used for all cluster machines unless a machine specifies a
+different ImageLookupBaseOS.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>bastion</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.Bastion">
+Bastion
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Bastion contains options to configure the bastion host.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tokenMethod</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.EKSTokenMethod">
+EKSTokenMethod
+</a>
+</em>
+</td>
+<td>
+<p>TokenMethod is used to specify the method for obtaining a client token for communicating with EKS
+iam-authenticator - obtains a client token using iam-authentictor
+aws-cli - obtains a client token using the AWS CLI
+Defaults to iam-authenticator</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>associateOIDCProvider</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>AssociateOIDCProvider can be enabled to automatically create an identity
+provider for the controller for use with IAM roles for service accounts</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>addons</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.[]sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2.Addon">
+[]sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2.Addon
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Addons defines the EKS addons to enable with the EKS cluster.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>oidcIdentityProviderConfig</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.OIDCIdentityProviderConfig">
+OIDCIdentityProviderConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OIDCIdentityProviderConfig is used to specify the OIDC provider config
+to be attached with this eks cluster</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>accessConfig</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.AccessConfig">
+AccessConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AccessConfig specifies the access configuration information for the cluster</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>accessEntries</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.AccessEntry">
+[]AccessEntry
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AccessEntries specifies the access entries for the cluster
+Access entries require AuthenticationMode to be either &ldquo;api&rdquo; or &ldquo;api_and_config_map&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>vpcCni</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.VpcCni">
+VpcCni
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>VpcCni is used to set configuration options for the VPC CNI plugin</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>bootstrapSelfManagedAddons</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>BootstrapSelfManagedAddons is used to set configuration options for
+bare EKS cluster without EKS default networking addons
+If you set this value to false when creating a cluster, the default networking add-ons will not be installed</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>restrictPrivateSubnets</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>RestrictPrivateSubnets indicates that the EKS control plane should only use private subnets.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kubeProxy</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.KubeProxy">
+KubeProxy
+</a>
+</em>
+</td>
+<td>
+<p>KubeProxy defines managed attributes of the kube-proxy daemonset</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>upgradePolicy</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.UpgradePolicy">
+UpgradePolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The cluster upgrade policy to use for the cluster.
+(Official AWS docs for this policy: <a href="https://docs.aws.amazon.com/eks/latest/userguide/view-upgrade-policy.html">https://docs.aws.amazon.com/eks/latest/userguide/view-upgrade-policy.html</a>)
+<code>extended</code> upgrade policy indicates that the cluster will enter into extended support once the Kubernetes version reaches end of standard support. You will incur extended support charges with this setting. You can upgrade your cluster to a standard supported Kubernetes version to stop incurring extended support charges.
+<code>standard</code> upgrade policy indicates that the cluster is eligible for automatic upgrade at the end of standard support. You will not incur extended support charges with this setting but your EKS cluster will automatically upgrade to the next supported Kubernetes version in standard support.
+If omitted, new clusters will use the AWS default upgrade policy (which at the time of writing is &ldquo;extended&rdquo;) and existing clusters will have their upgrade policy unchanged.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneTemplateSpec">AWSManagedControlPlaneTemplateSpec
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneTemplate">AWSManagedControlPlaneTemplate</a>)
+</p>
+<p>
+<p>AWSManagedControlPlaneTemplateSpec defines the desired state of AWSManagedControlPlaneTemplate.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>template</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneTemplateResource">
+AWSManagedControlPlaneTemplateResource
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.AccessConfig">AccessConfig
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>)
+</p>
+<p>
+<p>AccessConfig represents the access configuration information for the cluster</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>authenticationMode</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.EKSAuthenticationMode">
+EKSAuthenticationMode
+</a>
+</em>
+</td>
+<td>
+<p>AuthenticationMode specifies the desired authentication mode for the cluster
+Defaults to config_map</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>bootstrapClusterCreatorAdminPermissions</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>BootstrapClusterCreatorAdminPermissions grants cluster admin permissions
+to the IAM identity creating the cluster. Only applied during creation,
+ignored when updating existing clusters. Defaults to true.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.AccessEntry">AccessEntry
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>)
+</p>
+<p>
+<p>AccessEntry represents an AWS EKS access entry for IAM principals</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>principalARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>PrincipalARN is the Amazon Resource Name (ARN) of the IAM principal</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>type</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.AccessEntryType">
+AccessEntryType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Type is the type of access entry. Defaults to standard if not specified.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kubernetesGroups</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>KubernetesGroups represents the Kubernetes groups for the access entry
+Cannot be specified if Type is &ldquo;ec2_linux&rdquo; or &ldquo;ec2_windows&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>username</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Username is the username for the access entry</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>accessPolicies</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.AccessPolicyReference">
+[]AccessPolicyReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AccessPolicies specifies the policies to associate with this access entry
+Cannot be specified if Type is &ldquo;ec2_linux&rdquo; or &ldquo;ec2_windows&rdquo;</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.AccessEntryType">AccessEntryType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.AccessEntry">AccessEntry</a>)
+</p>
+<p>
+<p>AccessEntryType represents the different types of access entries that can be used in an Amazon EKS cluster</p>
+</p>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.AccessPolicyReference">AccessPolicyReference
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.AccessEntry">AccessEntry</a>)
+</p>
+<p>
+<p>AccessPolicyReference represents a reference to an AWS EKS access policy</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>policyARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>PolicyARN is the Amazon Resource Name (ARN) of the access policy</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>accessScope</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.AccessScope">
+AccessScope
+</a>
+</em>
+</td>
+<td>
+<p>AccessScope specifies the scope for the policy</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.AccessScope">AccessScope
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.AccessPolicyReference">AccessPolicyReference</a>)
+</p>
+<p>
+<p>AccessScope represents the scope for an access policy</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>type</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.AccessScopeType">
+AccessScopeType
+</a>
+</em>
+</td>
+<td>
+<p>Type is the type of access scope. Defaults to &ldquo;cluster&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespaces</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Namespaces are the namespaces for the access scope
+Only valid when Type is namespace</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.AccessScopeType">AccessScopeType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.AccessScope">AccessScope</a>)
+</p>
+<p>
+<p>AccessScopeType defines the scope type for an access policy</p>
+</p>
 <h3 id="controlplane.cluster.x-k8s.io/v1beta2.Addon">Addon
 </h3>
 <p>
@@ -7375,7 +8292,7 @@ AddonResolution
 </td>
 <td>
 <p>ConflictResolution is used to declare what should happen if there
-are parameter conflicts. Defaults to none</p>
+are parameter conflicts. Defaults to overwrite</p>
 </td>
 </tr>
 <tr>
@@ -7388,6 +8305,19 @@ string
 <td>
 <em>(Optional)</em>
 <p>ServiceAccountRoleArn is the ARN of an IAM role to bind to the addons service account</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>preserveOnDelete</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PreserveOnDelete indicates that the addon resources should be
+preserved in the cluster on delete.</p>
 </td>
 </tr>
 </tbody>
@@ -7641,6 +8571,14 @@ bool
 </tr>
 </tbody>
 </table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.EKSAuthenticationMode">EKSAuthenticationMode
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.AccessConfig">AccessConfig</a>)
+</p>
+<p>
+<p>EKSAuthenticationMode defines the authentication mode for the cluster</p>
+</p>
 <h3 id="controlplane.cluster.x-k8s.io/v1beta2.EKSTokenMethod">EKSTokenMethod
 (<code>string</code> alias)</p></h3>
 <p>
@@ -8133,6 +9071,14 @@ KubernetesMapping
 </tr>
 </tbody>
 </table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.UpgradePolicy">UpgradePolicy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>)
+</p>
+<p>
+<p>UpgradePolicy defines the support policy to use for the cluster.</p>
+</p>
 <h3 id="controlplane.cluster.x-k8s.io/v1beta2.UserMapping">UserMapping
 </h3>
 <p>
@@ -8228,7 +9174,7 @@ Amazon VPC CNI addon.</p>
 <h3 id="controlplane.cluster.x-k8s.io/v1beta2.AWSRolesRef">AWSRolesRef
 </h3>
 <p>
-(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>)
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSARoleConfigStatus">ROSARoleConfigStatus</a>)
 </p>
 <p>
 <p>AWSRolesRef contains references to various AWS IAM roles required for operators to make calls against the AWS API.</p>
@@ -8664,6 +9610,112 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.AutoNode">AutoNode
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>)
+</p>
+<p>
+<p>AutoNode set the AutoNode mode and AutoNode role ARN.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>mode</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.AutoNodeMode">
+AutoNodeMode
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>mode specifies the mode for the AutoNode. Setting Enable/Disable mode will allows/disallow karpenter AutoNode scaling.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>roleARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>roleARN sets the autoNode role ARN, which includes the IAM policy and cluster-specific role that grant the necessary permissions to the Karpenter controller.
+The role must be attached with the same OIDC-ID that is used with the ROSA-HCP cluster.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.AutoNodeMode">AutoNodeMode
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.AutoNode">AutoNode</a>)
+</p>
+<p>
+<p>AutoNodeMode specifies the AutoNode mode for the ROSA Control Plane.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Disabled&#34;</p></td>
+<td><p>AutoNodeModeDisabled Disabled AutoNode</p>
+</td>
+</tr><tr><td><p>&#34;Enabled&#34;</p></td>
+<td><p>AutoNodeModeEnabled enable AutoNode</p>
+</td>
+</tr></tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.AutoScaling">AutoScaling
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.DefaultMachinePoolSpec">DefaultMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolSpec">RosaMachinePoolSpec</a>)
+</p>
+<p>
+<p>AutoScaling specifies scaling options.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>minReplicas</code><br/>
+<em>
+int
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>maxReplicas</code><br/>
+<em>
+int
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="controlplane.cluster.x-k8s.io/v1beta2.ChannelGroupType">ChannelGroupType
 (<code>string</code> alias)</p></h3>
 <p>
@@ -8682,6 +9734,12 @@ string
 <tbody><tr><td><p>&#34;candidate&#34;</p></td>
 <td><p>Candidate channel group is for testing candidate builds.</p>
 </td>
+</tr><tr><td><p>&#34;eus&#34;</p></td>
+<td><p>Eus channel group is for eus channel releases.</p>
+</td>
+</tr><tr><td><p>&#34;fast&#34;</p></td>
+<td><p>Fast channel group is for fast channel releases.</p>
+</td>
 </tr><tr><td><p>&#34;nightly&#34;</p></td>
 <td><p>Nightly channel group is for testing nigtly builds.</p>
 </td>
@@ -8689,6 +9747,72 @@ string
 <td><p>Stable channel group is the default channel group for stable releases.</p>
 </td>
 </tr></tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.CloudWatchLogForwarderConfig">CloudWatchLogForwarderConfig
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>)
+</p>
+<p>
+<p>CloudWatchLogForwarderConfig present the cloudWatch log forward config for applications and groupVersions.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>applications</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>applications list included in the groupLog Ids ex; for groupLog api allowed applications as audit-webhook.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>groupLogIDs</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>groupLogIDs is list of available groupLog Ids ex; api, authentication, controller manager, scheduler</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>cloudWatchLogRoleArn</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>cloudWatchLogRoleArn is the ARN of the IAM CloudWatch role for log distribution.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>cloudWatchLogGroupName</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>cloudWatchLogGroupName is the name of the CloudWatch log group.</p>
+</td>
+</tr>
+</tbody>
 </table>
 <h3 id="controlplane.cluster.x-k8s.io/v1beta2.DefaultMachinePoolSpec">DefaultMachinePoolSpec
 </h3>
@@ -8722,8 +9846,8 @@ string
 <td>
 <code>autoscaling</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolAutoScaling">
-RosaMachinePoolAutoScaling
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.AutoScaling">
+AutoScaling
 </a>
 </em>
 </td>
@@ -9140,6 +10264,7 @@ end with an alphanumeric character and have a max length of 15 characters.</p>
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>The Subnet IDs to use when installing the cluster.
 SubnetIDs should come in pairs; two per availability zone, one private and one public.</p>
 </td>
@@ -9152,6 +10277,7 @@ SubnetIDs should come in pairs; two per availability zone, one private and one p
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>AvailabilityZones describe AWS AvailabilityZones of the worker nodes.
 should match the AvailabilityZones of the provided Subnets.
 a machinepool will be created for each availabilityZone.</p>
@@ -9211,6 +10337,21 @@ AlwaysAcknowledge: If acknowledgment is required, apply it and proceed with the 
 </tr>
 <tr>
 <td>
+<code>rosaRoleConfigRef</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#localobjectreference-v1-core">
+Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RosaRoleConfigRef is a reference to a RosaRoleConfig resource that contains account roles, operator roles and OIDC configuration.
+RosaRoleConfigRef and role fields such as installerRoleARN, supportRoleARN, workerRoleARN, rolesRef and oidcID are mutually exclusive.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>rolesRef</code><br/>
 <em>
 <a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSRolesRef">
@@ -9219,7 +10360,9 @@ AWSRolesRef
 </em>
 </td>
 <td>
-<p>AWS IAM roles used to perform credential requests by the openshift operators.</p>
+<em>(Optional)</em>
+<p>AWS IAM roles used to perform credential requests by the openshift operators.
+Required if RosaRoleConfigRef is not specified.</p>
 </td>
 </tr>
 <tr>
@@ -9230,7 +10373,9 @@ string
 </em>
 </td>
 <td>
-<p>The ID of the internal OpenID Connect Provider.</p>
+<em>(Optional)</em>
+<p>The ID of the internal OpenID Connect Provider.
+Required if RosaRoleConfigRef is not specified.</p>
 </td>
 </tr>
 <tr>
@@ -9268,7 +10413,9 @@ string
 </em>
 </td>
 <td>
-<p>InstallerRoleARN is an AWS IAM role that OpenShift Cluster Manager will assume to create the cluster..</p>
+<em>(Optional)</em>
+<p>InstallerRoleARN is an AWS IAM role that OpenShift Cluster Manager will assume to create the cluster.
+Required if RosaRoleConfigRef is not specified.</p>
 </td>
 </tr>
 <tr>
@@ -9279,8 +10426,10 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>SupportRoleARN is an AWS IAM role used by Red Hat SREs to enable
-access to the cluster account in order to provide support.</p>
+access to the cluster account in order to provide support.
+Required if RosaRoleConfigRef is not specified.</p>
 </td>
 </tr>
 <tr>
@@ -9291,7 +10440,9 @@ string
 </em>
 </td>
 <td>
-<p>WorkerRoleARN is an AWS IAM role that will be attached to worker instances.</p>
+<em>(Optional)</em>
+<p>WorkerRoleARN is an AWS IAM role that will be attached to worker instances.
+Required if RosaRoleConfigRef is not specified.</p>
 </td>
 </tr>
 <tr>
@@ -9444,9 +10595,7 @@ If no identity is specified, the default identity for this controller will be us
 <td>
 <code>controlPlaneEndpoint</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.APIEndpoint
-</a>
+Cluster API api/core/v1beta1.APIEndpoint
 </em>
 </td>
 <td>
@@ -9466,6 +10615,63 @@ RegistryConfig
 <td>
 <em>(Optional)</em>
 <p>ClusterRegistryConfig represents registry config used with the cluster.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>autoNode</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.AutoNode">
+AutoNode
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>autoNode set the autoNode mode and roleARN.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>rosaNetworkRef</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#localobjectreference-v1-core">
+Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ROSANetworkRef references ROSANetwork custom resource that contains the networking infrastructure
+for the ROSA HCP cluster.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>cloudWatchlogForwarder</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.CloudWatchLogForwarderConfig">
+CloudWatchLogForwarderConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>cloudWatchlogForwarder set the cloudWatch log forward config for applications and groupVersions.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>s3LogForwarder</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.S3LogForwarderConfig">
+S3LogForwarderConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>s3LogForwarder set the AWS S3 log forward config for applications and groupVersions.</p>
 </td>
 </tr>
 </table>
@@ -9708,6 +10914,7 @@ end with an alphanumeric character and have a max length of 15 characters.</p>
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>The Subnet IDs to use when installing the cluster.
 SubnetIDs should come in pairs; two per availability zone, one private and one public.</p>
 </td>
@@ -9720,6 +10927,7 @@ SubnetIDs should come in pairs; two per availability zone, one private and one p
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>AvailabilityZones describe AWS AvailabilityZones of the worker nodes.
 should match the AvailabilityZones of the provided Subnets.
 a machinepool will be created for each availabilityZone.</p>
@@ -9779,6 +10987,21 @@ AlwaysAcknowledge: If acknowledgment is required, apply it and proceed with the 
 </tr>
 <tr>
 <td>
+<code>rosaRoleConfigRef</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#localobjectreference-v1-core">
+Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RosaRoleConfigRef is a reference to a RosaRoleConfig resource that contains account roles, operator roles and OIDC configuration.
+RosaRoleConfigRef and role fields such as installerRoleARN, supportRoleARN, workerRoleARN, rolesRef and oidcID are mutually exclusive.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>rolesRef</code><br/>
 <em>
 <a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSRolesRef">
@@ -9787,7 +11010,9 @@ AWSRolesRef
 </em>
 </td>
 <td>
-<p>AWS IAM roles used to perform credential requests by the openshift operators.</p>
+<em>(Optional)</em>
+<p>AWS IAM roles used to perform credential requests by the openshift operators.
+Required if RosaRoleConfigRef is not specified.</p>
 </td>
 </tr>
 <tr>
@@ -9798,7 +11023,9 @@ string
 </em>
 </td>
 <td>
-<p>The ID of the internal OpenID Connect Provider.</p>
+<em>(Optional)</em>
+<p>The ID of the internal OpenID Connect Provider.
+Required if RosaRoleConfigRef is not specified.</p>
 </td>
 </tr>
 <tr>
@@ -9836,7 +11063,9 @@ string
 </em>
 </td>
 <td>
-<p>InstallerRoleARN is an AWS IAM role that OpenShift Cluster Manager will assume to create the cluster..</p>
+<em>(Optional)</em>
+<p>InstallerRoleARN is an AWS IAM role that OpenShift Cluster Manager will assume to create the cluster.
+Required if RosaRoleConfigRef is not specified.</p>
 </td>
 </tr>
 <tr>
@@ -9847,8 +11076,10 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>SupportRoleARN is an AWS IAM role used by Red Hat SREs to enable
-access to the cluster account in order to provide support.</p>
+access to the cluster account in order to provide support.
+Required if RosaRoleConfigRef is not specified.</p>
 </td>
 </tr>
 <tr>
@@ -9859,7 +11090,9 @@ string
 </em>
 </td>
 <td>
-<p>WorkerRoleARN is an AWS IAM role that will be attached to worker instances.</p>
+<em>(Optional)</em>
+<p>WorkerRoleARN is an AWS IAM role that will be attached to worker instances.
+Required if RosaRoleConfigRef is not specified.</p>
 </td>
 </tr>
 <tr>
@@ -10012,9 +11245,7 @@ If no identity is specified, the default identity for this controller will be us
 <td>
 <code>controlPlaneEndpoint</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.APIEndpoint
-</a>
+Cluster API api/core/v1beta1.APIEndpoint
 </em>
 </td>
 <td>
@@ -10034,6 +11265,63 @@ RegistryConfig
 <td>
 <em>(Optional)</em>
 <p>ClusterRegistryConfig represents registry config used with the cluster.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>autoNode</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.AutoNode">
+AutoNode
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>autoNode set the autoNode mode and roleARN.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>rosaNetworkRef</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#localobjectreference-v1-core">
+Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ROSANetworkRef references ROSANetwork custom resource that contains the networking infrastructure
+for the ROSA HCP cluster.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>cloudWatchlogForwarder</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.CloudWatchLogForwarderConfig">
+CloudWatchLogForwarderConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>cloudWatchlogForwarder set the cloudWatch log forward config for applications and groupVersions.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>s3LogForwarder</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.S3LogForwarderConfig">
+S3LogForwarderConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>s3LogForwarder set the AWS S3 log forward config for applications and groupVersions.</p>
 </td>
 </tr>
 </tbody>
@@ -10112,9 +11400,7 @@ the controller, and that manual intervention is required.</p>
 <td>
 <code>conditions</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.Conditions
-</a>
+Cluster API api/core/v1beta1.Conditions
 </em>
 </td>
 <td>
@@ -10203,6 +11489,72 @@ node communication with the control plane.</p>
 private node communication with the control plane.</p>
 </td>
 </tr></tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.S3LogForwarderConfig">S3LogForwarderConfig
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>)
+</p>
+<p>
+<p>S3LogForwarderConfig present the AWS S3 log forward config for applications and groupVersions.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>applications</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>applications list included in the groupLog Ids ex; for groupLog api allowed applications as audit-webhook.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>groupLogIDs</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>groupLogIDs is list of available groupLog Ids ex; api, authentication, controller manager, scheduler</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>s3ConfigBucketName</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>s3ConfigBucketName is the name of the S3 bucket</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>s3ConfigBucketPrefix</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>s3ConfigBucketPrefix is the prefix to use for objects stored in the S3 bucket.</p>
+</td>
+</tr>
+</tbody>
 </table>
 <h3 id="controlplane.cluster.x-k8s.io/v1beta2.TokenAudience">TokenAudience
 (<code>string</code> alias)</p></h3>
@@ -10686,9 +12038,7 @@ string
 <td>
 <code>controlPlaneEndpoint</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.APIEndpoint
-</a>
+Cluster API api/core/v1beta1.APIEndpoint
 </em>
 </td>
 <td>
@@ -11218,9 +12568,7 @@ string
 <td>
 <code>controlPlaneEndpoint</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.APIEndpoint
-</a>
+Cluster API api/core/v1beta1.APIEndpoint
 </em>
 </td>
 <td>
@@ -11522,9 +12870,7 @@ NetworkStatus
 <td>
 <code>failureDomains</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.FailureDomains
-</a>
+Cluster API api/core/v1beta1.FailureDomains
 </em>
 </td>
 <td>
@@ -11546,9 +12892,7 @@ Instance
 <td>
 <code>conditions</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.Conditions
-</a>
+Cluster API api/core/v1beta1.Conditions
 </em>
 </td>
 <td>
@@ -11633,9 +12977,7 @@ AWSClusterTemplateResource
 <td>
 <code>metadata</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.ObjectMeta
-</a>
+Cluster API api/core/v1beta1.ObjectMeta
 </em>
 </td>
 <td>
@@ -11699,9 +13041,7 @@ string
 <td>
 <code>controlPlaneEndpoint</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.APIEndpoint
-</a>
+Cluster API api/core/v1beta1.APIEndpoint
 </em>
 </td>
 <td>
@@ -12752,9 +14092,7 @@ This will be set to true when SpotMarketOptions is not nil (i.e. this machine is
 <td>
 <code>addresses</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-[]Cluster API api/v1beta1.MachineAddress
-</a>
+[]Cluster API api/core/v1beta1.MachineAddress
 </em>
 </td>
 <td>
@@ -12829,9 +14167,7 @@ controller&rsquo;s output.</p>
 <td>
 <code>conditions</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.Conditions
-</a>
+Cluster API api/core/v1beta1.Conditions
 </em>
 </td>
 <td>
@@ -12930,9 +14266,7 @@ AWSMachineTemplateStatus
 <td>
 <code>metadata</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.ObjectMeta
-</a>
+Cluster API api/core/v1beta1.ObjectMeta
 </em>
 </td>
 <td>
@@ -13367,8 +14701,8 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>ARN of resource.
-Deprecated: This field has no function and is going to be removed in the next release.</p>
+<p>ARN of resource.</p>
+<p>Deprecated: This field has no function and is going to be removed in the next release.</p>
 </td>
 </tr>
 <tr>
@@ -14549,9 +15883,7 @@ string
 <td>
 <code>addresses</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-[]Cluster API api/v1beta1.MachineAddress
-</a>
+[]Cluster API api/core/v1beta1.MachineAddress
 </em>
 </td>
 <td>
@@ -15078,8 +16410,7 @@ string
 <td>
 <em>(Optional)</em>
 <p>IPv6CidrBlock is the IPv6 CIDR block to be used when the provider creates a managed VPC.
-A subnet can have an IPv4 and an IPv6 address.
-IPv6 is only supported in managed clusters, this field cannot be set on AWSCluster object.</p>
+A subnet can have an IPv4 and an IPv6 address.</p>
 </td>
 </tr>
 <tr>
@@ -15114,8 +16445,7 @@ bool
 </td>
 <td>
 <em>(Optional)</em>
-<p>IsIPv6 defines the subnet as an IPv6 subnet. A subnet is IPv6 when it is associated with a VPC that has IPv6 enabled.
-IPv6 is only supported in managed clusters, this field cannot be set on AWSCluster object.</p>
+<p>IsIPv6 defines the subnet as an IPv6 subnet. A subnet is IPv6 when it is associated with an IPv6 CIDR.</p>
 </td>
 </tr>
 <tr>
@@ -15224,8 +16554,7 @@ IPv6
 </td>
 <td>
 <em>(Optional)</em>
-<p>IPv6 contains ipv6 specific settings for the network. Supported only in managed clusters.
-This field cannot be set on AWSCluster object.</p>
+<p>IPv6 contains ipv6 specific settings for the network.</p>
 </td>
 </tr>
 <tr>
@@ -16196,9 +17525,7 @@ int32
 <td>
 <code>conditions</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.Conditions
-</a>
+Cluster API api/core/v1beta1.Conditions
 </em>
 </td>
 <td>
@@ -16996,9 +18323,7 @@ controller&rsquo;s output.</p>
 <td>
 <code>conditions</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.Conditions
-</a>
+Cluster API api/core/v1beta1.Conditions
 </em>
 </td>
 <td>
@@ -17440,9 +18765,7 @@ object and/or logged in the controller&rsquo;s output.</p>
 <td>
 <code>conditions</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.Conditions
-</a>
+Cluster API api/core/v1beta1.Conditions
 </em>
 </td>
 <td>
@@ -18106,9 +19429,7 @@ string
 <td>
 <code>controlPlaneEndpoint</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.APIEndpoint
-</a>
+Cluster API api/core/v1beta1.APIEndpoint
 </em>
 </td>
 <td>
@@ -18666,9 +19987,7 @@ string
 <td>
 <code>controlPlaneEndpoint</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.APIEndpoint
-</a>
+Cluster API api/core/v1beta1.APIEndpoint
 </em>
 </td>
 <td>
@@ -18986,9 +20305,7 @@ NetworkStatus
 <td>
 <code>failureDomains</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.FailureDomains
-</a>
+Cluster API api/core/v1beta1.FailureDomains
 </em>
 </td>
 <td>
@@ -19010,9 +20327,7 @@ Instance
 <td>
 <code>conditions</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.Conditions
-</a>
+Cluster API api/core/v1beta1.Conditions
 </em>
 </td>
 <td>
@@ -19097,9 +20412,7 @@ AWSClusterTemplateResource
 <td>
 <code>metadata</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.ObjectMeta
-</a>
+Cluster API api/core/v1beta1.ObjectMeta
 </em>
 </td>
 <td>
@@ -19175,9 +20488,7 @@ string
 <td>
 <code>controlPlaneEndpoint</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.APIEndpoint
-</a>
+Cluster API api/core/v1beta1.APIEndpoint
 </em>
 </td>
 <td>
@@ -19361,6 +20672,14 @@ AWSClusterTemplateResource
 </tr>
 </tbody>
 </table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSConfidentialComputePolicy">AWSConfidentialComputePolicy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.CPUOptions">CPUOptions</a>)
+</p>
+<p>
+<p>AWSConfidentialComputePolicy represents the confidential compute configuration for the instance.</p>
+</p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSIdentityKind">AWSIdentityKind
 (<code>string</code> alias)</p></h3>
 <p>
@@ -19372,7 +20691,7 @@ AWSClusterTemplateResource
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSIdentityReference">AWSIdentityReference
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSClusterRoleIdentitySpec">AWSClusterRoleIdentitySpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSClusterSpec">AWSClusterSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSClusterRoleIdentitySpec">AWSClusterRoleIdentitySpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSClusterSpec">AWSClusterSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSANetworkSpec">ROSANetworkSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSARoleConfigSpec">ROSARoleConfigSpec</a>)
 </p>
 <p>
 <p>AWSIdentityReference specifies a identity.</p>
@@ -19593,6 +20912,24 @@ bool
 If this is enabled 6443 will be opened to 0.0.0.0/0.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>targetGroupIPType</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.TargetGroupIPType">
+TargetGroupIPType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>TargetGroupIPType sets the IP address type for the target group.
+Valid values are ipv4 and ipv6. If not specified, defaults to ipv4 unless
+the VPC has IPv6 enabled, in which case it defaults to ipv6.
+This applies to the API server target group.
+This field cannot be set if LoadBalancerType is classic or disabled.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSMachine">AWSMachine
@@ -19742,6 +21079,21 @@ string
 </tr>
 <tr>
 <td>
+<code>cpuOptions,omitempty,omitzero</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.CPUOptions">
+CPUOptions
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CPUOptions defines CPU-related settings for the instance, including the confidential computing policy.
+When omitted, this means no opinion and the AWS platform is left to choose a reasonable default.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>additionalTags</code><br/>
 <em>
 <a href="#infrastructure.cluster.x-k8s.io/v1beta2.Tags">
@@ -19913,6 +21265,25 @@ If not specified, AWS applies a default value.</p>
 </tr>
 <tr>
 <td>
+<code>assignPrimaryIPv6</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.PrimaryIPv6AssignmentState">
+PrimaryIPv6AssignmentState
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AssignPrimaryIPv6 specifies whether to enable assigning a primary IPv6 address to the primary network Interface.
+When set to enabled, the instance will be assigned a primary IPv6 address from the subnet&rsquo;s IPv6 CIDR block.
+This is required when registering instances by ID to IPv6 target groups of dual-stack load balancers.</p>
+<p>When not specified, the default value varies based on the subnet that the instance is launched in:
+- disabled if subnet is ipv4 only
+- enabled if subnet is ipv6 only or dual-stack</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>uncompressedUserData</code><br/>
 <em>
 bool
@@ -20003,7 +21374,11 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Tenancy indicates if instance should run on shared or single-tenant hardware.</p>
+<p>Tenancy indicates if instance should run on shared or single-tenant hardware.
+When Tenancy=host, AWS will attempt to find a suitable host from:
+- Preexisting allocated hosts that have auto-placement enabled
+- A specific host ID, if configured
+- Allocating a new dedicated host if DynamicHostAllocation is configured</p>
 </td>
 </tr>
 <tr>
@@ -20049,6 +21424,72 @@ MarketType
 &ldquo;CapacityBlock&rdquo;: The instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
 If this value is selected, CapacityReservationID must be specified to identify the target reservation.
 If marketType is not specified and spotMarketOptions is provided, the marketType defaults to &ldquo;Spot&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>hostID</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>HostID specifies the Dedicated Host on which the instance must be started.
+This field is mutually exclusive with DynamicHostAllocation.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>hostAffinity</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>HostAffinity specifies the dedicated host affinity setting for the instance.
+When HostAffinity is set to &ldquo;host&rdquo;, an instance started onto a specific host always restarts on the same host if stopped:
+- If HostID is set, the instance launches on the specific host and must return to that same host after any stop/start (Targeted &amp; Pinned).
+- If HostID is not set, the instance gets launched on any available and must returns to the same host after any stop/start (Auto-placed &amp; Pinned).
+When HostAffinity is set to &ldquo;default&rdquo; (the default value), the instance (when restarted) can return on any available host:
+- If HostID is set, the instance launches on the specified host now, but (when restarted) can return to any available hosts (Targeted &amp; Flexible).
+- If HostID is not set, the instance launches on any available host now, and (when restarted) can return to any available hosts (Auto-placed &amp; Flexible).
+If HostAffinity is not specified, it defaults to &ldquo;default&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dynamicHostAllocation</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.DynamicHostAllocationSpec">
+DynamicHostAllocationSpec
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DynamicHostAllocation enables automatic allocation of a single dedicated host.
+Cost effectiveness of allocating a single instance on a dedicated host may vary
+depending on the instance type and the region.
+This field is mutually exclusive with HostID and always allocates exactly one host.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>capacityReservationPreference</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.CapacityReservationPreference">
+CapacityReservationPreference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CapacityReservationPreference specifies the preference for use of Capacity Reservations by the instance. Valid values include:
+&ldquo;Open&rdquo;: The instance may make use of open Capacity Reservations that match its AZ and InstanceType
+&ldquo;None&rdquo;: The instance may not make use of any Capacity Reservations. This is to conserve open reservations for desired workloads
+&ldquo;CapacityReservationsOnly&rdquo;: The instance will only run if matched or targeted to a Capacity Reservation. Note that this is incompatible with a MarketType of <code>Spot</code></p>
 </td>
 </tr>
 </table>
@@ -20196,6 +21637,21 @@ string
 </tr>
 <tr>
 <td>
+<code>cpuOptions,omitempty,omitzero</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.CPUOptions">
+CPUOptions
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CPUOptions defines CPU-related settings for the instance, including the confidential computing policy.
+When omitted, this means no opinion and the AWS platform is left to choose a reasonable default.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>additionalTags</code><br/>
 <em>
 <a href="#infrastructure.cluster.x-k8s.io/v1beta2.Tags">
@@ -20367,6 +21823,25 @@ If not specified, AWS applies a default value.</p>
 </tr>
 <tr>
 <td>
+<code>assignPrimaryIPv6</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.PrimaryIPv6AssignmentState">
+PrimaryIPv6AssignmentState
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AssignPrimaryIPv6 specifies whether to enable assigning a primary IPv6 address to the primary network Interface.
+When set to enabled, the instance will be assigned a primary IPv6 address from the subnet&rsquo;s IPv6 CIDR block.
+This is required when registering instances by ID to IPv6 target groups of dual-stack load balancers.</p>
+<p>When not specified, the default value varies based on the subnet that the instance is launched in:
+- disabled if subnet is ipv4 only
+- enabled if subnet is ipv6 only or dual-stack</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>uncompressedUserData</code><br/>
 <em>
 bool
@@ -20457,7 +21932,11 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Tenancy indicates if instance should run on shared or single-tenant hardware.</p>
+<p>Tenancy indicates if instance should run on shared or single-tenant hardware.
+When Tenancy=host, AWS will attempt to find a suitable host from:
+- Preexisting allocated hosts that have auto-placement enabled
+- A specific host ID, if configured
+- Allocating a new dedicated host if DynamicHostAllocation is configured</p>
 </td>
 </tr>
 <tr>
@@ -20503,6 +21982,72 @@ MarketType
 &ldquo;CapacityBlock&rdquo;: The instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
 If this value is selected, CapacityReservationID must be specified to identify the target reservation.
 If marketType is not specified and spotMarketOptions is provided, the marketType defaults to &ldquo;Spot&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>hostID</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>HostID specifies the Dedicated Host on which the instance must be started.
+This field is mutually exclusive with DynamicHostAllocation.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>hostAffinity</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>HostAffinity specifies the dedicated host affinity setting for the instance.
+When HostAffinity is set to &ldquo;host&rdquo;, an instance started onto a specific host always restarts on the same host if stopped:
+- If HostID is set, the instance launches on the specific host and must return to that same host after any stop/start (Targeted &amp; Pinned).
+- If HostID is not set, the instance gets launched on any available and must returns to the same host after any stop/start (Auto-placed &amp; Pinned).
+When HostAffinity is set to &ldquo;default&rdquo; (the default value), the instance (when restarted) can return on any available host:
+- If HostID is set, the instance launches on the specified host now, but (when restarted) can return to any available hosts (Targeted &amp; Flexible).
+- If HostID is not set, the instance launches on any available host now, and (when restarted) can return to any available hosts (Auto-placed &amp; Flexible).
+If HostAffinity is not specified, it defaults to &ldquo;default&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dynamicHostAllocation</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.DynamicHostAllocationSpec">
+DynamicHostAllocationSpec
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DynamicHostAllocation enables automatic allocation of a single dedicated host.
+Cost effectiveness of allocating a single instance on a dedicated host may vary
+depending on the instance type and the region.
+This field is mutually exclusive with HostID and always allocates exactly one host.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>capacityReservationPreference</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.CapacityReservationPreference">
+CapacityReservationPreference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CapacityReservationPreference specifies the preference for use of Capacity Reservations by the instance. Valid values include:
+&ldquo;Open&rdquo;: The instance may make use of open Capacity Reservations that match its AZ and InstanceType
+&ldquo;None&rdquo;: The instance may not make use of any Capacity Reservations. This is to conserve open reservations for desired workloads
+&ldquo;CapacityReservationsOnly&rdquo;: The instance will only run if matched or targeted to a Capacity Reservation. Note that this is incompatible with a MarketType of <code>Spot</code></p>
 </td>
 </tr>
 </tbody>
@@ -20552,9 +22097,7 @@ This will be set to true when SpotMarketOptions is not nil (i.e. this machine is
 <td>
 <code>addresses</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-[]Cluster API api/v1beta1.MachineAddress
-</a>
+[]Cluster API api/core/v1beta1.MachineAddress
 </em>
 </td>
 <td>
@@ -20629,14 +22172,27 @@ controller&rsquo;s output.</p>
 <td>
 <code>conditions</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.Conditions
-</a>
+Cluster API api/core/v1beta1.Conditions
 </em>
 </td>
 <td>
 <em>(Optional)</em>
 <p>Conditions defines current service state of the AWSMachine.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dedicatedHost</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.DedicatedHostStatus">
+DedicatedHostStatus
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DedicatedHost tracks the dynamically allocated dedicated host.
+This field is populated when DynamicHostAllocation is used.</p>
 </td>
 </tr>
 </tbody>
@@ -20730,9 +22286,7 @@ AWSMachineTemplateStatus
 <td>
 <code>metadata</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.ObjectMeta
-</a>
+Cluster API api/core/v1beta1.ObjectMeta
 </em>
 </td>
 <td>
@@ -20864,6 +22418,21 @@ string
 </tr>
 <tr>
 <td>
+<code>cpuOptions,omitempty,omitzero</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.CPUOptions">
+CPUOptions
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CPUOptions defines CPU-related settings for the instance, including the confidential computing policy.
+When omitted, this means no opinion and the AWS platform is left to choose a reasonable default.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>additionalTags</code><br/>
 <em>
 <a href="#infrastructure.cluster.x-k8s.io/v1beta2.Tags">
@@ -21035,6 +22604,25 @@ If not specified, AWS applies a default value.</p>
 </tr>
 <tr>
 <td>
+<code>assignPrimaryIPv6</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.PrimaryIPv6AssignmentState">
+PrimaryIPv6AssignmentState
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AssignPrimaryIPv6 specifies whether to enable assigning a primary IPv6 address to the primary network Interface.
+When set to enabled, the instance will be assigned a primary IPv6 address from the subnet&rsquo;s IPv6 CIDR block.
+This is required when registering instances by ID to IPv6 target groups of dual-stack load balancers.</p>
+<p>When not specified, the default value varies based on the subnet that the instance is launched in:
+- disabled if subnet is ipv4 only
+- enabled if subnet is ipv6 only or dual-stack</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>uncompressedUserData</code><br/>
 <em>
 bool
@@ -21125,7 +22713,11 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Tenancy indicates if instance should run on shared or single-tenant hardware.</p>
+<p>Tenancy indicates if instance should run on shared or single-tenant hardware.
+When Tenancy=host, AWS will attempt to find a suitable host from:
+- Preexisting allocated hosts that have auto-placement enabled
+- A specific host ID, if configured
+- Allocating a new dedicated host if DynamicHostAllocation is configured</p>
 </td>
 </tr>
 <tr>
@@ -21171,6 +22763,72 @@ MarketType
 &ldquo;CapacityBlock&rdquo;: The instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
 If this value is selected, CapacityReservationID must be specified to identify the target reservation.
 If marketType is not specified and spotMarketOptions is provided, the marketType defaults to &ldquo;Spot&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>hostID</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>HostID specifies the Dedicated Host on which the instance must be started.
+This field is mutually exclusive with DynamicHostAllocation.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>hostAffinity</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>HostAffinity specifies the dedicated host affinity setting for the instance.
+When HostAffinity is set to &ldquo;host&rdquo;, an instance started onto a specific host always restarts on the same host if stopped:
+- If HostID is set, the instance launches on the specific host and must return to that same host after any stop/start (Targeted &amp; Pinned).
+- If HostID is not set, the instance gets launched on any available and must returns to the same host after any stop/start (Auto-placed &amp; Pinned).
+When HostAffinity is set to &ldquo;default&rdquo; (the default value), the instance (when restarted) can return on any available host:
+- If HostID is set, the instance launches on the specified host now, but (when restarted) can return to any available hosts (Targeted &amp; Flexible).
+- If HostID is not set, the instance launches on any available host now, and (when restarted) can return to any available hosts (Auto-placed &amp; Flexible).
+If HostAffinity is not specified, it defaults to &ldquo;default&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dynamicHostAllocation</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.DynamicHostAllocationSpec">
+DynamicHostAllocationSpec
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DynamicHostAllocation enables automatic allocation of a single dedicated host.
+Cost effectiveness of allocating a single instance on a dedicated host may vary
+depending on the instance type and the region.
+This field is mutually exclusive with HostID and always allocates exactly one host.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>capacityReservationPreference</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.CapacityReservationPreference">
+CapacityReservationPreference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CapacityReservationPreference specifies the preference for use of Capacity Reservations by the instance. Valid values include:
+&ldquo;Open&rdquo;: The instance may make use of open Capacity Reservations that match its AZ and InstanceType
+&ldquo;None&rdquo;: The instance may not make use of any Capacity Reservations. This is to conserve open reservations for desired workloads
+&ldquo;CapacityReservationsOnly&rdquo;: The instance will only run if matched or targeted to a Capacity Reservation. Note that this is incompatible with a MarketType of <code>Spot</code></p>
 </td>
 </tr>
 </table>
@@ -21240,6 +22898,34 @@ This value is used for autoscaling from zero operations as defined in:
 <a href="https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20210310-opt-in-autoscaling-from-zero.md">https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20210310-opt-in-autoscaling-from-zero.md</a></p>
 </td>
 </tr>
+<tr>
+<td>
+<code>nodeInfo</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.NodeInfo">
+NodeInfo
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>NodeInfo contains information about the node&rsquo;s architecture and operating system.
+This value is used for autoscaling from zero operations as defined in:
+<a href="https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20210310-opt-in-autoscaling-from-zero.md">https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20210310-opt-in-autoscaling-from-zero.md</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>conditions</code><br/>
+<em>
+Cluster API api/core/v1beta1.Conditions
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Conditions defines current service state of the AWSMachineTemplate.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSMachineTemplateWebhook">AWSMachineTemplateWebhook
@@ -21292,9 +22978,7 @@ AWSManagedClusterSpec
 <td>
 <code>controlPlaneEndpoint</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.APIEndpoint
-</a>
+Cluster API api/core/v1beta1.APIEndpoint
 </em>
 </td>
 <td>
@@ -21322,7 +23006,7 @@ AWSManagedClusterStatus
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedClusterSpec">AWSManagedClusterSpec
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedCluster">AWSManagedCluster</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedCluster">AWSManagedCluster</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedClusterTemplateResource">AWSManagedClusterTemplateResource</a>)
 </p>
 <p>
 <p>AWSManagedClusterSpec defines the desired state of AWSManagedCluster</p>
@@ -21339,9 +23023,7 @@ AWSManagedClusterStatus
 <td>
 <code>controlPlaneEndpoint</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.APIEndpoint
-</a>
+Cluster API api/core/v1beta1.APIEndpoint
 </em>
 </td>
 <td>
@@ -21383,9 +23065,7 @@ bool
 <td>
 <code>failureDomains</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.FailureDomains
-</a>
+Cluster API api/core/v1beta1.FailureDomains
 </em>
 </td>
 <td>
@@ -21397,14 +23077,145 @@ Cluster API api/v1beta1.FailureDomains
 <td>
 <code>conditions</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.Conditions
-</a>
+Cluster API api/core/v1beta1.Conditions
 </em>
 </td>
 <td>
 <em>(Optional)</em>
 <p>Conditions defines current service state of the AWSManagedCluster.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedClusterTemplate">AWSManagedClusterTemplate
+</h3>
+<p>
+<p>AWSManagedClusterTemplate is the Schema for the AWSManagedClusterTemplates API.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedClusterTemplateSpec">
+AWSManagedClusterTemplateSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>template</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedClusterTemplateResource">
+AWSManagedClusterTemplateResource
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedClusterTemplateResource">AWSManagedClusterTemplateResource
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedClusterTemplateSpec">AWSManagedClusterTemplateSpec</a>)
+</p>
+<p>
+<p>AWSManagedClusterTemplateResource describes the data needed to create an AWSManagedCluster from a template.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>spec</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedClusterSpec">
+AWSManagedClusterSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>controlPlaneEndpoint</code><br/>
+<em>
+Cluster API api/core/v1beta1.APIEndpoint
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedClusterTemplateSpec">AWSManagedClusterTemplateSpec
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedClusterTemplate">AWSManagedClusterTemplate</a>)
+</p>
+<p>
+<p>AWSManagedClusterTemplateSpec defines the desired state of AWSManagedClusterTemplate.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>template</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedClusterTemplateResource">
+AWSManagedClusterTemplateResource
+</a>
+</em>
+</td>
+<td>
 </td>
 </tr>
 </tbody>
@@ -21596,6 +23407,23 @@ TargetGroupHealthCheckAdditionalSpec
 <p>HealthCheck sets the optional custom health check configuration to the API target group.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>targetGroupIPType</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.TargetGroupIPType">
+TargetGroupIPType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>TargetGroupIPType sets the IP address type for the target group.
+Valid values are ipv4 and ipv6. If not specified, defaults to ipv4 unless
+the VPC has IPv6 enabled, in which case it defaults to ipv6.
+This field cannot be set if LoadBalancerType is classic or disabled.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AllowedNamespaces">AllowedNamespaces
@@ -21646,6 +23474,15 @@ AWSClusterIdentity from any namespace.</p>
 </tr>
 </tbody>
 </table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.Architecture">Architecture
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.NodeInfo">NodeInfo</a>)
+</p>
+<p>
+<p>Architecture represents the CPU architecture of the node.
+Its underlying type is a string and its value can be any of amd64, arm64.</p>
+</p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.Bastion">Bastion
 </h3>
 <p>
@@ -21692,13 +23529,16 @@ Requires AllowedCIDRBlocks to be empty.</p>
 <td>
 <code>allowedCIDRBlocks</code><br/>
 <em>
-[]string
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.CidrBlocks">
+CidrBlocks
+</a>
 </em>
 </td>
 <td>
 <em>(Optional)</em>
 <p>AllowedCIDRBlocks is a list of CIDR blocks allowed to access the bastion host.
-They are set as ingress rules for the Bastion host&rsquo;s Security Group (defaults to 0.0.0.0/0).</p>
+They are set as ingress rules for the Bastion host&rsquo;s Security Group (defaults to 0.0.0.0/0).
+If the cluster has IPv6 enabled, defaults to ::/0 and 0.0.0.0/0.</p>
 </td>
 </tr>
 <tr>
@@ -21914,6 +23754,66 @@ The source for the rule will be set to control plane and worker security group I
 </tr>
 </tbody>
 </table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.CPUOptions">CPUOptions
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.Instance">Instance</a>)
+</p>
+<p>
+<p>CPUOptions defines CPU-related settings for the instance, including the confidential computing policy.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>confidentialCompute</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSConfidentialComputePolicy">
+AWSConfidentialComputePolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ConfidentialCompute specifies whether confidential computing should be enabled for the instance,
+and, if so, which confidential computing technology to use.
+Valid values are: Disabled, AMDEncryptedVirtualizationNestedPaging
+When set to Disabled, confidential computing will be disabled for the instance.
+When set to AMDEncryptedVirtualizationNestedPaging, AMD SEV-SNP will be used as the confidential computing technology for the instance.
+In this case, ensure the following conditions are met:
+1) The selected instance type supports AMD SEV-SNP.
+2) The selected AWS region supports AMD SEV-SNP.
+3) The selected AMI supports AMD SEV-SNP.
+More details can be checked at <a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/sev-snp.html">https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/sev-snp.html</a>
+When omitted, this means no opinion and the AWS platform is left to choose a reasonable default,
+which is subject to change without notice. The current default is Disabled.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.CapacityReservationPreference">CapacityReservationPreference
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.Instance">Instance</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSLaunchTemplate">AWSLaunchTemplate</a>)
+</p>
+<p>
+<p>CapacityReservationPreference describes the preferred use of capacity reservations
+of an instance</p>
+</p>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.CidrBlocks">CidrBlocks
+(<code>[]string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.Bastion">Bastion</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.NetworkSpec">NetworkSpec</a>)
+</p>
+<p>
+<p>CidrBlocks defines a set of CIDR blocks.</p>
+</p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.ClassicELBAttributes">ClassicELBAttributes
 </h3>
 <p>
@@ -22167,6 +24067,172 @@ will use AWS Secrets Manager instead.</p>
 </tr>
 </tbody>
 </table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.DedicatedHostInfo">DedicatedHostInfo
+</h3>
+<p>
+<p>DedicatedHostInfo contains information about a dedicated host.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>hostID</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>HostID is the ID of the dedicated host.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>instanceFamily</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>InstanceFamily is the instance family supported by the host.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>instanceType</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>InstanceType is the instance type supported by the host.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>availabilityZone</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>AvailabilityZone is the AZ where the host is located.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>state</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>State is the current state of the dedicated host.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>totalCapacity</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>TotalCapacity is the total number of instances that can be launched on the host.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>availableCapacity</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>AvailableCapacity is the number of instances that can still be launched on the host.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tags</code><br/>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<p>Tags associated with the dedicated host.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.DedicatedHostStatus">DedicatedHostStatus
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachineStatus">AWSMachineStatus</a>)
+</p>
+<p>
+<p>DedicatedHostStatus defines the observed state of a dynamically allocated dedicated host
+associated with an AWSMachine. This struct is used to track the ID of the dedicated host.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>id</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ID tracks the dynamically allocated dedicated host ID.
+This field is populated when DynamicHostAllocation is used.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.DynamicHostAllocationSpec">DynamicHostAllocationSpec
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.Instance">Instance</a>)
+</p>
+<p>
+<p>DynamicHostAllocationSpec defines the configuration for dynamic dedicated host allocation.
+This specification always allocates exactly one dedicated host per machine.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>tags</code><br/>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Tags to apply to the allocated dedicated host.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.EKSAMILookupType">EKSAMILookupType
 (<code>string</code> alias)</p></h3>
 <p>
@@ -22344,7 +24410,8 @@ int64
 <td>
 <p>The netmask length of the IPv4 CIDR you want to allocate to VPC from
 an Amazon VPC IP Address Manager (IPAM) pool.
-Defaults to /16 for IPv4 if not specified.</p>
+Defaults to /16 for IPv4 if not specified.
+Defaults to /56 for IPv6 if not specified.</p>
 </td>
 </tr>
 </tbody>
@@ -22447,7 +24514,9 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Version defines which version of Ignition will be used to generate bootstrap data.</p>
+<p>Version defines which version of Ignition will be used to generate bootstrap data.
+Defaults to <code>2.3</code> if storageType is set to <code>ClusterObjectStore</code>.
+It will be ignored if storageType is set to <code>UnencryptedUserData</code>, as the userdata defines its own version.</p>
 </td>
 </tr>
 <tr>
@@ -22889,9 +24958,7 @@ string
 <td>
 <code>addresses</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-[]Cluster API api/v1beta1.MachineAddress
-</a>
+[]Cluster API api/core/v1beta1.MachineAddress
 </em>
 </td>
 <td>
@@ -22907,6 +24974,17 @@ string
 </td>
 <td>
 <p>The private IPv4 address assigned to the instance.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ipv6Address</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The IPv6 address assigned to the instance.</p>
 </td>
 </tr>
 <tr>
@@ -22992,6 +25070,19 @@ NetworkInterfaceType
 </td>
 <td>
 <p>NetworkInterfaceType is the interface type of the primary network Interface.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>assignPrimaryIPv6</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.PrimaryIPv6AssignmentState">
+PrimaryIPv6AssignmentState
+</a>
+</em>
+</td>
+<td>
+<p>AssignPrimaryIPv6 specifies whether to enable assigning a primary IPv6 address to the primary network Interface.</p>
 </td>
 </tr>
 <tr>
@@ -23150,6 +25241,83 @@ If this value is selected, CapacityReservationID must be specified to identify t
 If marketType is not specified and spotMarketOptions is provided, the marketType defaults to &ldquo;Spot&rdquo;.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>hostAffinity</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>HostAffinity specifies the dedicated host affinity setting for the instance.
+When HostAffinity is set to &ldquo;host&rdquo;, an instance started onto a specific host always restarts on the same host if stopped:
+- If HostID is set, the instance launches on the specific host and must return to that same host after any stop/start (Targeted &amp; Pinned).
+- If HostID is not set, the instance gets launched on any available and must returns to the same host after any stop/start (Auto-placed &amp; Pinned).
+When HostAffinity is set to &ldquo;default&rdquo; (the default value), the instance (when restarted) can return on any available host:
+- If HostID is set, the instance launches on the specified host now, but (when restarted) can return to any available hosts (Targeted &amp; Flexible).
+- If HostID is not set, the instance launches on any available host now, and (when restarted) can return to any available hosts (Auto-placed &amp; Flexible).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>hostID</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>HostID specifies the dedicated host on which the instance should be started.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dynamicHostAllocation</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.DynamicHostAllocationSpec">
+DynamicHostAllocationSpec
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DynamicHostAllocation enables automatic allocation of dedicated hosts.
+This field is mutually exclusive with HostID.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>capacityReservationPreference</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.CapacityReservationPreference">
+CapacityReservationPreference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CapacityReservationPreference specifies the preference for use of Capacity Reservations by the instance. Valid values include:
+&ldquo;Open&rdquo;: The instance may make use of open Capacity Reservations that match its AZ and InstanceType
+&ldquo;None&rdquo;: The instance may not make use of any Capacity Reservations. This is to conserve open reservations for desired workloads
+&ldquo;CapacityReservationsOnly&rdquo;: The instance will only run if matched or targeted to a Capacity Reservation. Note that this is incompatible with a MarketType of <code>Spot</code></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>cpuOptions,omitempty,omitzero</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.CPUOptions">
+CPUOptions
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CPUOptions defines CPU-related settings for the instance, including the confidential computing policy.
+When omitted, this means no opinion and the AWS platform is left to choose a reasonable default.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.InstanceMetadataOptions">InstanceMetadataOptions
@@ -23181,6 +25349,21 @@ InstanceMetadataState
 <p>Enables or disables the HTTP metadata endpoint on your instances.</p>
 <p>If you specify a value of disabled, you cannot access your instance metadata.</p>
 <p>Default: enabled</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>httpProtocolIpv6</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.InstanceMetadataState">
+InstanceMetadataState
+</a>
+</em>
+</td>
+<td>
+<p>Enables or disables the IPv6 endpoint for the instance metadata service.
+This applies only if you enabled the HTTP metadata endpoint.</p>
+<p>Default: disabled</p>
 </td>
 </tr>
 <tr>
@@ -23491,12 +25674,33 @@ LoadBalancerType
 <p>LoadBalancerType sets the type for a load balancer. The default type is classic.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>loadBalancerIPAddressType</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.LoadBalancerIPAddressType">
+LoadBalancerIPAddressType
+</a>
+</em>
+</td>
+<td>
+<p>LoadBalancerIPAddressType specifies the IP address type for the load balancer.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.LoadBalancerAttribute">LoadBalancerAttribute
 (<code>string</code> alias)</p></h3>
 <p>
 <p>LoadBalancerAttribute defines a set of attributes for a V2 load balancer.</p>
+</p>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.LoadBalancerIPAddressType">LoadBalancerIPAddressType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.LoadBalancer">LoadBalancer</a>)
+</p>
+<p>
+<p>LoadBalancerIPAddressType defines the IP address type for load balancers.</p>
 </p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.LoadBalancerType">LoadBalancerType
 (<code>string</code> alias)</p></h3>
@@ -23625,7 +25829,9 @@ This is optional - if not provided new security groups will be created for the c
 <td>
 <code>nodePortIngressRuleCidrBlocks</code><br/>
 <em>
-[]string
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.CidrBlocks">
+CidrBlocks
+</a>
 </em>
 </td>
 <td>
@@ -23704,6 +25910,71 @@ LoadBalancer
 </tr>
 </tbody>
 </table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.NodeInfo">NodeInfo
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachineTemplateStatus">AWSMachineTemplateStatus</a>)
+</p>
+<p>
+<p>NodeInfo contains information about the node&rsquo;s architecture and operating system.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>architecture</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.Architecture">
+Architecture
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Architecture is the CPU architecture of the node.
+Its underlying type is a string and its value can be any of amd64, arm64.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>operatingSystem</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.OperatingSystem">
+OperatingSystem
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OperatingSystem is the operating system of the node.
+Its underlying type is a string and its value can be any of linux, windows.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.OperatingSystem">OperatingSystem
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.NodeInfo">NodeInfo</a>)
+</p>
+<p>
+<p>OperatingSystem represents the operating system of the node.
+Its underlying type is a string and its value can be any of linux, windows.</p>
+</p>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.PrimaryIPv6AssignmentState">PrimaryIPv6AssignmentState
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.Instance">Instance</a>)
+</p>
+<p>
+<p>PrimaryIPv6AssignmentState describes whether to assign a primary IPv6 address to the primary network interface.</p>
+</p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.PrivateDNSName">PrivateDNSName
 </h3>
 <p>
@@ -24081,8 +26352,7 @@ string
 <td>
 <em>(Optional)</em>
 <p>IPv6CidrBlock is the IPv6 CIDR block to be used when the provider creates a managed VPC.
-A subnet can have an IPv4 and an IPv6 address.
-IPv6 is only supported in managed clusters, this field cannot be set on AWSCluster object.</p>
+A subnet can have an IPv4 and an IPv6 address.</p>
 </td>
 </tr>
 <tr>
@@ -24117,8 +26387,7 @@ bool
 </td>
 <td>
 <em>(Optional)</em>
-<p>IsIPv6 defines the subnet as an IPv6 subnet. A subnet is IPv6 when it is associated with a VPC that has IPv6 enabled.
-IPv6 is only supported in managed clusters, this field cannot be set on AWSCluster object.</p>
+<p>IsIPv6 defines the subnet as an IPv6 subnet. A subnet is IPv6 when it is associated with an IPv6 CIDR.</p>
 </td>
 </tr>
 <tr>
@@ -24492,6 +26761,14 @@ a target unhealthy.</p>
 </tr>
 </tbody>
 </table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.TargetGroupIPType">TargetGroupIPType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSLoadBalancerSpec">AWSLoadBalancerSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AdditionalListenerSpec">AdditionalListenerSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.TargetGroupSpec">TargetGroupSpec</a>)
+</p>
+<p>
+<p>TargetGroupIPType defines the IP address type for target groups.</p>
+</p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.TargetGroupSpec">TargetGroupSpec
 </h3>
 <p>
@@ -24564,6 +26841,19 @@ TargetGroupHealthCheck
 </td>
 <td>
 <p>HealthCheck is the elb health check associated with the load balancer.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ipType</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.TargetGroupIPType">
+TargetGroupIPType
+</a>
+</em>
+</td>
+<td>
+<p>IPType is the IP address type for the target group.</p>
 </td>
 </tr>
 </tbody>
@@ -24649,8 +26939,7 @@ IPv6
 </td>
 <td>
 <em>(Optional)</em>
-<p>IPv6 contains ipv6 specific settings for the network. Supported only in managed clusters.
-This field cannot be set on AWSCluster object.</p>
+<p>IPv6 contains ipv6 specific settings for the network.</p>
 </td>
 </tr>
 <tr>
@@ -25373,6 +27662,23 @@ MarketType
 &ldquo;CapacityBlock&rdquo;: The instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
 If this value is selected, CapacityReservationID must be specified to identify the target reservation.
 If marketType is not specified and spotMarketOptions is provided, the marketType defaults to &ldquo;Spot&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>capacityReservationPreference</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.CapacityReservationPreference">
+CapacityReservationPreference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CapacityReservationPreference specifies the preference for use of Capacity Reservations by the instance. Valid values include:
+&ldquo;Open&rdquo;: The instance may make use of open Capacity Reservations that match its AZ and InstanceType
+&ldquo;None&rdquo;: The instance may not make use of any Capacity Reservations. This is to conserve open reservations for desired workloads
+&ldquo;CapacityReservationsOnly&rdquo;: The instance will only run if matched or targeted to a Capacity Reservation</p>
 </td>
 </tr>
 </tbody>
@@ -26102,9 +28408,7 @@ int32
 <td>
 <code>conditions</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.Conditions
-</a>
+Cluster API api/core/v1beta1.Conditions
 </em>
 </td>
 <td>
@@ -26225,6 +28529,11 @@ ASGStatus
 </tr>
 </tbody>
 </table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSMachinePoolWebhook">AWSMachinePoolWebhook
+</h3>
+<p>
+<p>AWSMachinePoolWebhook implements a custom validation webhook for AWSMachinePool.</p>
+</p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedMachinePool">AWSManagedMachinePool
 </h3>
 <p>
@@ -26576,6 +28885,20 @@ are prohibited (<a href="https://docs.aws.amazon.com/eks/latest/userguide/launch
 <p>AWSLifecycleHooks specifies lifecycle hooks for the managed node group.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>nodeRepairConfig</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.NodeRepairConfig">
+NodeRepairConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>NodeRepairConfig specifies the node auto repair configuration for the managed node group.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -26920,6 +29243,20 @@ are prohibited (<a href="https://docs.aws.amazon.com/eks/latest/userguide/launch
 <p>AWSLifecycleHooks specifies lifecycle hooks for the managed node group.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>nodeRepairConfig</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.NodeRepairConfig">
+NodeRepairConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>NodeRepairConfig specifies the node auto repair configuration for the managed node group.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedMachinePoolStatus">AWSManagedMachinePoolStatus
@@ -27040,9 +29377,7 @@ controller&rsquo;s output.</p>
 <td>
 <code>conditions</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.Conditions
-</a>
+Cluster API api/core/v1beta1.Conditions
 </em>
 </td>
 <td>
@@ -27077,6 +29412,137 @@ Cluster API api/v1beta1.Conditions
 <td><p>AZSubnetTypePublic is a public subnet.</p>
 </td>
 </tr></tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AccountRoleConfig">AccountRoleConfig
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSARoleConfigSpec">ROSARoleConfigSpec</a>)
+</p>
+<p>
+<p>AccountRoleConfig defines account IAM roles before creating your ROSA cluster.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>prefix</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>User-defined prefix for all generated AWS account role</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>permissionsBoundaryARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The ARN of the policy that is used to set the permissions boundary for the account roles.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>path</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The arn path for the account/operator roles as well as their policies.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>version</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Version of OpenShift that will be used to the roles tag in formate of x.y.z example; &ldquo;4.19.0&rdquo;
+Setting the role OpenShift version tag does not affect the associated ROSAControlplane version.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>sharedVPCConfig</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.SharedVPCConfig">
+SharedVPCConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SharedVPCConfig is used to set up shared VPC.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AccountRolesRef">AccountRolesRef
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSARoleConfigStatus">ROSARoleConfigStatus</a>)
+</p>
+<p>
+<p>AccountRolesRef defscribes ARNs used as Account roles.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>installerRoleARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>InstallerRoleARN is an AWS IAM role that OpenShift Cluster Manager will assume to create the cluster..</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>supportRoleARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>SupportRoleARN is an AWS IAM role used by Red Hat SREs to enable
+access to the cluster account in order to provide support.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>workerRoleARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>WorkerRoleARN is an AWS IAM role that will be attached to worker instances.</p>
+</td>
+</tr>
+</tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AutoScalingGroup">AutoScalingGroup
 </h3>
@@ -27293,6 +29759,79 @@ EBS
 <td>
 <em>(Optional)</em>
 <p>You can specify either VirtualName or Ebs, but not both.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.CFResource">CFResource
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSANetworkStatus">ROSANetworkStatus</a>)
+</p>
+<p>
+<p>CFResource groups information pertaining to a resource created as a part of a cloudformation stack</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>resource</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Type of the created resource: AWS::EC2::VPC, AWS::EC2::Subnet, &hellip;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>logicalId</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>LogicalResourceID of the created resource.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>physicalId</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>PhysicalResourceID of the created resource.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Status of the resource: CREATE_IN_PROGRESS, CREATE_COMPLETE, &hellip;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>reason</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Message pertaining to the status of the resource</p>
 </td>
 </tr>
 </tbody>
@@ -27569,9 +30108,7 @@ object and/or logged in the controller&rsquo;s output.</p>
 <td>
 <code>conditions</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.Conditions
-</a>
+Cluster API api/core/v1beta1.Conditions
 </em>
 </td>
 <td>
@@ -27735,7 +30272,9 @@ int64
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedMachinePoolSpec">AWSManagedMachinePoolSpec</a>)
 </p>
 <p>
-<p>ManagedMachineAMIType specifies which AWS AMI to use for a managed MachinePool.</p>
+<p>ManagedMachineAMIType specifies which AWS AMI to use for a managed MachinePool.
+Source of truth can be found using the link below:
+<a href="https://docs.aws.amazon.com/eks/latest/APIReference/API_CreateNodegroup.html#AmazonEKS-CreateNodegroup-request-amiType">https://docs.aws.amazon.com/eks/latest/APIReference/API_CreateNodegroup.html#AmazonEKS-CreateNodegroup-request-amiType</a></p>
 </p>
 <table>
 <thead>
@@ -27747,8 +30286,17 @@ int64
 <tbody><tr><td><p>&#34;AL2023_ARM_64_STANDARD&#34;</p></td>
 <td><p>Al2023Arm64 is the AL2023 Arm AMI type.</p>
 </td>
+</tr><tr><td><p>&#34;AL2023_ARM_64_NVIDIA&#34;</p></td>
+<td><p>Al2023Arm64Nvidia is the AL2023 Arm Nvidia AMI type.</p>
+</td>
 </tr><tr><td><p>&#34;AL2023_x86_64_STANDARD&#34;</p></td>
 <td><p>Al2023x86_64 is the AL2023 x86-64 AMI type.</p>
+</td>
+</tr><tr><td><p>&#34;AL2023_x86_64_NEURON&#34;</p></td>
+<td><p>Al2023x86_64Neuron is the AL2023 x86-64 Neuron AMI type.</p>
+</td>
+</tr><tr><td><p>&#34;AL2023_x86_64_NVIDIA&#34;</p></td>
+<td><p>Al2023x86_64Nvidia is the AL2023 x86-64 Nvidia AMI type.</p>
 </td>
 </tr><tr><td><p>&#34;AL2_ARM_64&#34;</p></td>
 <td><p>Al2Arm64 is the Arm AMI type.</p>
@@ -27758,6 +30306,39 @@ int64
 </td>
 </tr><tr><td><p>&#34;AL2_x86_64_GPU&#34;</p></td>
 <td><p>Al2x86_64GPU is the x86-64 GPU AMI type.</p>
+</td>
+</tr><tr><td><p>&#34;BOTTLEROCKET_ARM_64&#34;</p></td>
+<td><p>BottleRocketArm64 is the Arm AMI type.</p>
+</td>
+</tr><tr><td><p>&#34;BOTTLEROCKET_ARM_64_FIPS&#34;</p></td>
+<td><p>BottleRocketArm64Fips is the BottleRocket Arm Fips AMI type.</p>
+</td>
+</tr><tr><td><p>&#34;BOTTLEROCKET_ARM_64_NVIDIA&#34;</p></td>
+<td><p>BottleRocketArm64Nvidia is the BottleRocket Arm Nvidia AMI type.</p>
+</td>
+</tr><tr><td><p>&#34;BOTTLEROCKET_x86_64&#34;</p></td>
+<td><p>BottleRocketx86_64 is the BottleRocket x86-64 AMI type.</p>
+</td>
+</tr><tr><td><p>&#34;BOTTLEROCKET_x86_64_FIPS&#34;</p></td>
+<td><p>BottleRocketx86_64Fips is the BottleRocket x86-64 Fips AMI type.</p>
+</td>
+</tr><tr><td><p>&#34;BOTTLEROCKET_x86_64_NVIDIA&#34;</p></td>
+<td><p>BottleRocketx86_64Nvidia is the BottleRocket x86-64 Nvidia AMI type.</p>
+</td>
+</tr><tr><td><p>&#34;CUSTOM&#34;</p></td>
+<td><p>Custom is the custom AMI type.</p>
+</td>
+</tr><tr><td><p>&#34;WINDOWS_CORE_2019_x86_64&#34;</p></td>
+<td><p>WindowsCore2019x86_64 is the Windows Core 2019 x86-64 AMI type.</p>
+</td>
+</tr><tr><td><p>&#34;WINDOWS_CORE_2022_x86_64&#34;</p></td>
+<td><p>WindowsCore2022x86_64 is the Windows Core 2022 x86-64 AMI type.</p>
+</td>
+</tr><tr><td><p>&#34;WINDOWS_FULL_2019_x86_64&#34;</p></td>
+<td><p>WindowsFull2019x86_64 is the Windows Full 2019 x86-64 AMI type.</p>
+</td>
+</tr><tr><td><p>&#34;WINDOWS_FULL_2022_x86_64&#34;</p></td>
+<td><p>WindowsFull2022x86_64 is the Windows Full 2022 x86-64 AMI type.</p>
 </td>
 </tr></tbody>
 </table>
@@ -27916,6 +30497,60 @@ InstancesDistribution
 </tr>
 </tbody>
 </table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.NodeRepairConfig">NodeRepairConfig
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedMachinePoolSpec">AWSManagedMachinePoolSpec</a>)
+</p>
+<p>
+<p>NodeRepairConfig defines the node auto repair configuration for managed node groups.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>enabled</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Enabled specifies whether node auto repair is enabled for the node group.
+When enabled, EKS will automatically repair unhealthy nodes by replacing them.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.OidcProviderType">OidcProviderType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSARoleConfigSpec">ROSARoleConfigSpec</a>)
+</p>
+<p>
+<p>OidcProviderType set to Managed or UnManaged</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Managed&#34;</p></td>
+<td><p>Managed OIDC Provider type</p>
+</td>
+</tr><tr><td><p>&#34;Unmanaged&#34;</p></td>
+<td><p>Unmanaged OIDC Provider type</p>
+</td>
+</tr></tbody>
+</table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.OnDemandAllocationStrategy">OnDemandAllocationStrategy
 (<code>string</code> alias)</p></h3>
 <p>
@@ -27924,6 +30559,74 @@ InstancesDistribution
 <p>
 <p>OnDemandAllocationStrategy indicates how to allocate instance types to fulfill On-Demand capacity.</p>
 </p>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.OperatorRoleConfig">OperatorRoleConfig
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSARoleConfigSpec">ROSARoleConfigSpec</a>)
+</p>
+<p>
+<p>OperatorRoleConfig defines cluster-specific operator IAM roles based on your cluster configuration.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>prefix</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>User-defined prefix for generated AWS operator roles.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>permissionsBoundaryARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The ARN of the policy that is used to set the permissions boundary for the operator roles.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>sharedVPCConfig</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.SharedVPCConfig">
+SharedVPCConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SharedVPCConfig is used to set up shared VPC.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>oidcID</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OIDCID is the ID of the OIDC config that will be used to create the operator roles.
+Cannot be set when OidcProviderType set to Managed</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.Overrides">Overrides
 </h3>
 <p>
@@ -28105,9 +30808,7 @@ ROSAClusterSpec
 <td>
 <code>controlPlaneEndpoint</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.APIEndpoint
-</a>
+Cluster API api/core/v1beta1.APIEndpoint
 </em>
 </td>
 <td>
@@ -28152,9 +30853,7 @@ ROSAClusterStatus
 <td>
 <code>controlPlaneEndpoint</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.APIEndpoint
-</a>
+Cluster API api/core/v1beta1.APIEndpoint
 </em>
 </td>
 <td>
@@ -28196,9 +30895,7 @@ bool
 <td>
 <code>failureDomains</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.FailureDomains
-</a>
+Cluster API api/core/v1beta1.FailureDomains
 </em>
 </td>
 <td>
@@ -28210,9 +30907,7 @@ Cluster API api/v1beta1.FailureDomains
 <td>
 <code>conditions</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.Conditions
-</a>
+Cluster API api/core/v1beta1.Conditions
 </em>
 </td>
 <td>
@@ -28372,15 +31067,27 @@ string
 </em>
 </td>
 <td>
-<p>InstanceType specifies the AWS instance type</p>
+<p>InstanceType specifies the AWS instance type, for example <code>r5.xlarge</code>. Instance type ref; <a href="https://aws.amazon.com/ec2/instance-types/">https://aws.amazon.com/ec2/instance-types/</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imageType</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ImageType is the AMI (Amazon Machine Image) to use for running the associated NodePool (i.e. Windows or Default/Linux).</p>
 </td>
 </tr>
 <tr>
 <td>
 <code>autoscaling</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolAutoScaling">
-RosaMachinePoolAutoScaling
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.AutoScaling">
+AutoScaling
 </a>
 </em>
 </td>
@@ -28472,6 +31179,19 @@ RosaUpdateConfig
 <p>UpdateConfig specifies update configurations.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>capacityReservationID</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CapacityReservationID specifies the ID of an AWS On-Demand Capacity Reservation and Capacity Blocks for ML.
+The CapacityReservationID must be pre-created in advance, before creating a NodePool.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -28485,6 +31205,657 @@ RosaMachinePoolStatus
 </em>
 </td>
 <td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.ROSANetwork">ROSANetwork
+</h3>
+<p>
+<p>ROSANetwork is the schema for the rosanetworks API</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSANetworkSpec">
+ROSANetworkSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>stackName</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The name of the cloudformation stack under which the network infrastructure would be created</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>region</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The AWS region in which the components of ROSA network infrastruture are to be crated</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>availabilityZoneCount</code><br/>
+<em>
+int
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The number of availability zones to be used for creation of the network infrastructure.
+You can specify anything between one and four, depending on the chosen AWS region.
+Either AvailabilityZoneCount OR AvailabilityZones must be set.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>availabilityZones</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The list of availability zones to be used for creation of the network infrastructure.
+You can specify anything between one and four valid availability zones from a given region.
+Either AvailabilityZones OR AvailabilityZoneCount must be set.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>cidrBlock</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>CIDR block to be used for the VPC</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>identityRef</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSIdentityReference">
+AWSIdentityReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>IdentityRef is a reference to an identity to be used when reconciling rosa network.
+If no identity is specified, the default identity for this controller will be used.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>stackTags</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.Tags">
+Tags
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>StackTags is an optional set of tags to add to the created cloudformation stack.
+The stack tags will then be automatically applied to the supported AWS resources (VPC, subnets, &hellip;).</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSANetworkStatus">
+ROSANetworkStatus
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.ROSANetworkSpec">ROSANetworkSpec
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSANetwork">ROSANetwork</a>)
+</p>
+<p>
+<p>ROSANetworkSpec defines the desired state of ROSANetwork</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>stackName</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The name of the cloudformation stack under which the network infrastructure would be created</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>region</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The AWS region in which the components of ROSA network infrastruture are to be crated</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>availabilityZoneCount</code><br/>
+<em>
+int
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The number of availability zones to be used for creation of the network infrastructure.
+You can specify anything between one and four, depending on the chosen AWS region.
+Either AvailabilityZoneCount OR AvailabilityZones must be set.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>availabilityZones</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The list of availability zones to be used for creation of the network infrastructure.
+You can specify anything between one and four valid availability zones from a given region.
+Either AvailabilityZones OR AvailabilityZoneCount must be set.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>cidrBlock</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>CIDR block to be used for the VPC</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>identityRef</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSIdentityReference">
+AWSIdentityReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>IdentityRef is a reference to an identity to be used when reconciling rosa network.
+If no identity is specified, the default identity for this controller will be used.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>stackTags</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.Tags">
+Tags
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>StackTags is an optional set of tags to add to the created cloudformation stack.
+The stack tags will then be automatically applied to the supported AWS resources (VPC, subnets, &hellip;).</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.ROSANetworkStatus">ROSANetworkStatus
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSANetwork">ROSANetwork</a>)
+</p>
+<p>
+<p>ROSANetworkStatus defines the observed state of ROSANetwork</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>subnets</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSANetworkSubnet">
+[]ROSANetworkSubnet
+</a>
+</em>
+</td>
+<td>
+<p>Array of created private, public subnets and availability zones, grouped by availability zones</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resources</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.CFResource">
+[]CFResource
+</a>
+</em>
+</td>
+<td>
+<p>Resources created in the cloudformation stack</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>conditions</code><br/>
+<em>
+Cluster API api/core/v1beta1.Conditions
+</em>
+</td>
+<td>
+<p>Conditions specifies the conditions for ROSANetwork</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.ROSANetworkSubnet">ROSANetworkSubnet
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSANetworkStatus">ROSANetworkStatus</a>)
+</p>
+<p>
+<p>ROSANetworkSubnet groups public and private subnet and the availability zone in which the two subnets got created</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>availabilityZone</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Availability zone of the subnet pair, for example us-west-2a</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>publicSubnet</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ID of the public subnet, for example subnet-0f7e49a3ce68ff338</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>privateSubnet</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ID of the private subnet, for example subnet-07a20d6c41af2b725</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.ROSARoleConfig">ROSARoleConfig
+</h3>
+<p>
+<p>ROSARoleConfig is the Schema for the rosaroleconfigs API</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSARoleConfigSpec">
+ROSARoleConfigSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>accountRoleConfig</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AccountRoleConfig">
+AccountRoleConfig
+</a>
+</em>
+</td>
+<td>
+<p>AccountRoleConfig defines account-wide IAM roles before creating your ROSA cluster.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>operatorRoleConfig</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.OperatorRoleConfig">
+OperatorRoleConfig
+</a>
+</em>
+</td>
+<td>
+<p>OperatorRoleConfig defines cluster-specific operator IAM roles based on your cluster configuration.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>identityRef</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSIdentityReference">
+AWSIdentityReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>IdentityRef is a reference to an identity to be used when reconciling the ROSA Role Config.
+If no identity is specified, the default identity for this controller will be used.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>credentialsSecretRef</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#localobjectreference-v1-core">
+Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CredentialsSecretRef references a secret with necessary credentials to connect to the OCM API.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>oidcProviderType</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.OidcProviderType">
+OidcProviderType
+</a>
+</em>
+</td>
+<td>
+<p>OIDC provider type values are Managed or UnManaged. When set to Unmanged OperatorRoleConfig OIDCID field must be provided.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSARoleConfigStatus">
+ROSARoleConfigStatus
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.ROSARoleConfigSpec">ROSARoleConfigSpec
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSARoleConfig">ROSARoleConfig</a>)
+</p>
+<p>
+<p>ROSARoleConfigSpec defines the desired state of ROSARoleConfig</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>accountRoleConfig</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AccountRoleConfig">
+AccountRoleConfig
+</a>
+</em>
+</td>
+<td>
+<p>AccountRoleConfig defines account-wide IAM roles before creating your ROSA cluster.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>operatorRoleConfig</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.OperatorRoleConfig">
+OperatorRoleConfig
+</a>
+</em>
+</td>
+<td>
+<p>OperatorRoleConfig defines cluster-specific operator IAM roles based on your cluster configuration.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>identityRef</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSIdentityReference">
+AWSIdentityReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>IdentityRef is a reference to an identity to be used when reconciling the ROSA Role Config.
+If no identity is specified, the default identity for this controller will be used.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>credentialsSecretRef</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#localobjectreference-v1-core">
+Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CredentialsSecretRef references a secret with necessary credentials to connect to the OCM API.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>oidcProviderType</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.OidcProviderType">
+OidcProviderType
+</a>
+</em>
+</td>
+<td>
+<p>OIDC provider type values are Managed or UnManaged. When set to Unmanged OperatorRoleConfig OIDCID field must be provided.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.ROSARoleConfigStatus">ROSARoleConfigStatus
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSARoleConfig">ROSARoleConfig</a>)
+</p>
+<p>
+<p>ROSARoleConfigStatus defines the observed state of ROSARoleConfig</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>oidcID</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ID of created OIDC config</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>oidcProviderARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Create OIDC provider for operators to authenticate against in an STS cluster.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>accountRolesRef</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AccountRolesRef">
+AccountRolesRef
+</a>
+</em>
+</td>
+<td>
+<p>Created Account roles that can be used to</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>operatorRolesRef</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSRolesRef">
+AWSRolesRef
+</a>
+</em>
+</td>
+<td>
+<p>AWS IAM roles used to perform credential requests by the openshift operators.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>conditions</code><br/>
+<em>
+Cluster API api/core/v1beta1.Conditions
+</em>
+</td>
+<td>
+<p>Conditions specifies the ROSARoleConfig conditions</p>
 </td>
 </tr>
 </tbody>
@@ -28638,44 +32009,6 @@ running at any time during the update is at most 130% of desired nodes.</p>
 </tr>
 </tbody>
 </table>
-<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolAutoScaling">RosaMachinePoolAutoScaling
-</h3>
-<p>
-(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.DefaultMachinePoolSpec">DefaultMachinePoolSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolSpec">RosaMachinePoolSpec</a>)
-</p>
-<p>
-<p>RosaMachinePoolAutoScaling specifies scaling options.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>minReplicas</code><br/>
-<em>
-int
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>maxReplicas</code><br/>
-<em>
-int
-</em>
-</td>
-<td>
-</td>
-</tr>
-</tbody>
-</table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolSpec">RosaMachinePoolSpec
 </h3>
 <p>
@@ -28802,15 +32135,27 @@ string
 </em>
 </td>
 <td>
-<p>InstanceType specifies the AWS instance type</p>
+<p>InstanceType specifies the AWS instance type, for example <code>r5.xlarge</code>. Instance type ref; <a href="https://aws.amazon.com/ec2/instance-types/">https://aws.amazon.com/ec2/instance-types/</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imageType</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ImageType is the AMI (Amazon Machine Image) to use for running the associated NodePool (i.e. Windows or Default/Linux).</p>
 </td>
 </tr>
 <tr>
 <td>
 <code>autoscaling</code><br/>
 <em>
-<a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolAutoScaling">
-RosaMachinePoolAutoScaling
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.AutoScaling">
+AutoScaling
 </a>
 </em>
 </td>
@@ -28902,6 +32247,19 @@ RosaUpdateConfig
 <p>UpdateConfig specifies update configurations.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>capacityReservationID</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CapacityReservationID specifies the ID of an AWS On-Demand Capacity Reservation and Capacity Blocks for ML.
+The CapacityReservationID must be pre-created in advance, before creating a NodePool.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolStatus">RosaMachinePoolStatus
@@ -28948,9 +32306,7 @@ int32
 <td>
 <code>conditions</code><br/>
 <em>
-<a href="https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@v1.0.0">
-Cluster API api/v1beta1.Conditions
-</a>
+Cluster API api/core/v1beta1.Conditions
 </em>
 </td>
 <td>
@@ -29087,6 +32443,46 @@ RollingUpdate
 </tr>
 </tbody>
 </table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.SharedVPCConfig">SharedVPCConfig
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AccountRoleConfig">AccountRoleConfig</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.OperatorRoleConfig">OperatorRoleConfig</a>)
+</p>
+<p>
+<p>SharedVPCConfig is used to set up shared VPC.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>routeRoleARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Role ARN associated with the private hosted zone used for Hosted Control Plane cluster shared VPC, this role contains policies to be used with Route 53</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>vpcEndpointRoleArn</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Role ARN associated with the shared VPC used for Hosted Control Plane clusters, this role contains policies to be used with the VPC endpoint</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.SpotAllocationStrategy">SpotAllocationStrategy
 (<code>string</code> alias)</p></h3>
 <p>
@@ -29137,6 +32533,9 @@ Processes
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.Tags">Tags
 (<code>map[string]string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSANetworkSpec">ROSANetworkSpec</a>)
+</p>
 <p>
 <p>Tags is a mapping for tags.</p>
 </p>
