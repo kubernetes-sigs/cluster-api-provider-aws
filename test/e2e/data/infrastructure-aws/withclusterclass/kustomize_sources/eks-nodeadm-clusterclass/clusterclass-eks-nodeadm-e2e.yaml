@@ -68,6 +68,3 @@ metadata:
   name: "${CLUSTER_NAME}-md-0"
 spec:
   template: {}
-
-
-
