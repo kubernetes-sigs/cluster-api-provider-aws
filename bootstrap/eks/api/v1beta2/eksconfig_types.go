@@ -1,5 +1,5 @@
 /*
-Copyright 2022 The Kubernetes Authors.
+Copyright 2026 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -118,6 +118,10 @@ type EKSConfigStatus struct {
 // +kubebuilder:printcolumn:name="DataSecretName",type="string",JSONPath=".status.dataSecretName",description="Name of Secret containing bootstrap data"
 
 // EKSConfig is the schema for the Amazon EKS Machine Bootstrap Configuration API.
+//
+// Deprecated: EKSConfig is deprecated and will be removed in a future release.
+// Amazon Linux 2 (AL2) reaches end-of-life in June 2026 see: https://aws.amazon.com/amazon-linux-2/faqs/
+// Please use NodeadmConfig with Amazon Linux 2023 (AL2023) instead.
 type EKSConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

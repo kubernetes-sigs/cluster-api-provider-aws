@@ -194,8 +194,12 @@ spec:
     name: v1beta2
     schema:
       openAPIV3Schema:
-        description: EKSConfig is the schema for the Amazon EKS Machine Bootstrap
-          Configuration API.
+        description: |-
+          EKSConfig is the schema for the Amazon EKS Machine Bootstrap Configuration API.
+
+          Deprecated: EKSConfig is deprecated and will be removed in a future release.
+          Amazon Linux 2 (AL2) reaches end-of-life in June 2026 see: https://aws.amazon.com/amazon-linux-2/faqs/
+          Please use NodeadmConfig with Amazon Linux 2023 (AL2023) instead.
         properties:
           apiVersion:
             description: |-
