@@ -290,7 +290,7 @@ type AWSClusterStatus struct {
 // AWSClusterV1Beta3Status groups all the fields that will be added or modified in AWSClusterStatus with the V1Beta3 version.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type AWSClusterV1Beta3Status struct {
-	// conditions represents the observations of an AWSCluster's current state.
+	// Conditions represents the observations of an AWSCluster's current state.
 	// Known condition types are Ready, VpcReady, SubnetsReady, InternetGatewayReady, NatGatewaysReady,
 	// RouteTablesReady, ClusterSecurityGroupsReady, BastionHostReady, LoadBalancerReady, and Paused.
 	// +optional

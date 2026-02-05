@@ -3165,7 +3165,7 @@ spec:
                 properties:
                   conditions:
                     description: |-
-                      conditions represents the observations of an AWSCluster's current state.
+                      Conditions represents the observations of an AWSCluster's current state.
                       Known condition types are Ready, VpcReady, SubnetsReady, InternetGatewayReady, NatGatewaysReady,
                       RouteTablesReady, ClusterSecurityGroupsReady, BastionHostReady, LoadBalancerReady, and Paused.
                     items:
