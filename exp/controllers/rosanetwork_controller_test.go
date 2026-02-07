@@ -106,6 +106,8 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 
 	t.Run("Empty result when ROSANetwork object not found", func(t *testing.T) {
+		g := NewWithT(t)
+
 		_, _, _, reconciler := createMockClients(mockCtrl)
 
 		req := ctrl.Request{}
@@ -117,6 +119,8 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 	})
 
 	t.Run("Error result when CF stack GET returns error", func(t *testing.T) {
+		g := NewWithT(t)
+
 		_, mockCFClient, mockSTSClient, reconciler := createMockClients(mockCtrl)
 
 		mockSTSIdentity(mockSTSClient)
@@ -131,6 +135,8 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 	})
 
 	t.Run("Initial CF stack creation fails", func(t *testing.T) {
+		g := NewWithT(t)
+
 		_, mockCFClient, mockSTSClient, reconciler := createMockClients(mockCtrl)
 
 		mockSTSIdentity(mockSTSClient)
@@ -152,15 +158,30 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(time.Duration(0)))
 		g.Expect(errReconcile).To(MatchError(ContainSubstring("failed to start CF stack creation:")))
 
-		cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetwork)
-		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(cnd).ToNot(BeNil())
-		g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkFailedReason))
-		g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityError))
-		g.Expect(cnd.Message).To(Equal("test-error"))
+		g.Eventually(func() error {
+			cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetwork)
+			if err != nil {
+				return err
+			}
+			if cnd == nil {
+				return fmt.Errorf("condition is nil")
+			}
+			if cnd.Reason != expinfrav1.ROSANetworkFailedReason {
+				return fmt.Errorf("reason mismatch: got %s, want %s", cnd.Reason, expinfrav1.ROSANetworkFailedReason)
+			}
+			if cnd.Severity != clusterv1beta1.ConditionSeverityError {
+				return fmt.Errorf("severity mismatch: got %s, want %s", cnd.Severity, clusterv1beta1.ConditionSeverityError)
+			}
+			if cnd.Message != "test-error" {
+				return fmt.Errorf("message mismatch: got %s, want %s", cnd.Message, "test-error")
+			}
+			return nil
+		}).Should(Succeed())
 	})
 
 	t.Run("Initial CF stack creation succeeds", func(t *testing.T) {
+		g := NewWithT(t)
+
 		_, mockCFClient, mockSTSClient, reconciler := createMockClients(mockCtrl)
 
 		mockSTSIdentity(mockSTSClient)
@@ -182,14 +203,27 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(time.Duration(0)))
 		g.Expect(errReconcile).ToNot(HaveOccurred())
 
-		cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetwork)
-		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(cnd).ToNot(BeNil())
-		g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkCreatingReason))
-		g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityInfo))
+		g.Eventually(func() error {
+			cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetwork)
+			if err != nil {
+				return err
+			}
+			if cnd == nil {
+				return fmt.Errorf("condition is nil")
+			}
+			if cnd.Reason != expinfrav1.ROSANetworkCreatingReason {
+				return fmt.Errorf("reason mismatch: got %s, want %s", cnd.Reason, expinfrav1.ROSANetworkCreatingReason)
+			}
+			if cnd.Severity != clusterv1beta1.ConditionSeverityInfo {
+				return fmt.Errorf("severity mismatch: got %s, want %s", cnd.Severity, clusterv1beta1.ConditionSeverityInfo)
+			}
+			return nil
+		}).Should(Succeed())
 	})
 
 	t.Run("CF stack creation is in progress", func(t *testing.T) {
+		g := NewWithT(t)
+
 		_, mockCFClient, mockSTSClient, reconciler := createMockClients(mockCtrl)
 
 		mockSTSIdentity(mockSTSClient)
@@ -213,14 +247,27 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(time.Second * 60))
 		g.Expect(errReconcile).ToNot(HaveOccurred())
 
-		cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetwork)
-		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(cnd).ToNot(BeNil())
-		g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkCreatingReason))
-		g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityInfo))
+		g.Eventually(func() error {
+			cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetwork)
+			if err != nil {
+				return err
+			}
+			if cnd == nil {
+				return fmt.Errorf("condition is nil")
+			}
+			if cnd.Reason != expinfrav1.ROSANetworkCreatingReason {
+				return fmt.Errorf("reason mismatch: got %s, want %s", cnd.Reason, expinfrav1.ROSANetworkCreatingReason)
+			}
+			if cnd.Severity != clusterv1beta1.ConditionSeverityInfo {
+				return fmt.Errorf("severity mismatch: got %s, want %s", cnd.Severity, clusterv1beta1.ConditionSeverityInfo)
+			}
+			return nil
+		}).Should(Succeed())
 	})
 
 	t.Run("CF stack creation completed", func(t *testing.T) {
+		g := NewWithT(t)
+
 		_, mockCFClient, mockSTSClient, reconciler := createMockClients(mockCtrl)
 
 		mockSTSIdentity(mockSTSClient)
@@ -244,14 +291,27 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(time.Duration(0)))
 		g.Expect(errReconcile).ToNot(HaveOccurred())
 
-		cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetwork)
-		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(cnd).ToNot(BeNil())
-		g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkCreatedReason))
-		g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityInfo))
+		g.Eventually(func() error {
+			cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetwork)
+			if err != nil {
+				return err
+			}
+			if cnd == nil {
+				return fmt.Errorf("condition is nil")
+			}
+			if cnd.Reason != expinfrav1.ROSANetworkCreatedReason {
+				return fmt.Errorf("reason mismatch: got %s, want %s", cnd.Reason, expinfrav1.ROSANetworkCreatedReason)
+			}
+			if cnd.Severity != clusterv1beta1.ConditionSeverityInfo {
+				return fmt.Errorf("severity mismatch: got %s, want %s", cnd.Severity, clusterv1beta1.ConditionSeverityInfo)
+			}
+			return nil
+		}).Should(Succeed())
 	})
 
 	t.Run("CF stack creation failed", func(t *testing.T) {
+		g := NewWithT(t)
+
 		_, mockCFClient, mockSTSClient, reconciler := createMockClients(mockCtrl)
 
 		mockSTSIdentity(mockSTSClient)
@@ -275,14 +335,27 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(time.Duration(0)))
 		g.Expect(errReconcile).To(MatchError(ContainSubstring("creation failed")))
 
-		cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetwork)
-		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(cnd).ToNot(BeNil())
-		g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkFailedReason))
-		g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityError))
+		g.Eventually(func() error {
+			cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetwork)
+			if err != nil {
+				return err
+			}
+			if cnd == nil {
+				return fmt.Errorf("condition is nil")
+			}
+			if cnd.Reason != expinfrav1.ROSANetworkFailedReason {
+				return fmt.Errorf("reason mismatch: got %s, want %s", cnd.Reason, expinfrav1.ROSANetworkFailedReason)
+			}
+			if cnd.Severity != clusterv1beta1.ConditionSeverityError {
+				return fmt.Errorf("severity mismatch: got %s, want %s", cnd.Severity, clusterv1beta1.ConditionSeverityError)
+			}
+			return nil
+		}).Should(Succeed())
 	})
 
 	t.Run("CF stack deletion start failed", func(t *testing.T) {
+		g := NewWithT(t)
+
 		_, mockCFClient, mockSTSClient, reconciler := createMockClients(mockCtrl)
 
 		mockSTSIdentity(mockSTSClient)
@@ -308,14 +381,27 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(time.Duration(0)))
 		g.Expect(errReconcile).To(MatchError(ContainSubstring("failed to start CF stack deletion:")))
 
-		cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetworkDeleted)
-		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(cnd).ToNot(BeNil())
-		g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkDeletionFailedReason))
-		g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityError))
+		g.Eventually(func() error {
+			cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetworkDeleted)
+			if err != nil {
+				return err
+			}
+			if cnd == nil {
+				return fmt.Errorf("condition is nil")
+			}
+			if cnd.Reason != expinfrav1.ROSANetworkDeletionFailedReason {
+				return fmt.Errorf("reason mismatch: got %s, want %s", cnd.Reason, expinfrav1.ROSANetworkDeletionFailedReason)
+			}
+			if cnd.Severity != clusterv1beta1.ConditionSeverityError {
+				return fmt.Errorf("severity mismatch: got %s, want %s", cnd.Severity, clusterv1beta1.ConditionSeverityError)
+			}
+			return nil
+		}).Should(Succeed())
 	})
 
 	t.Run("CF stack deletion start succeeded", func(t *testing.T) {
+		g := NewWithT(t)
+
 		_, mockCFClient, mockSTSClient, reconciler := createMockClients(mockCtrl)
 
 		mockSTSIdentity(mockSTSClient)
@@ -341,14 +427,27 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(60 * time.Second))
 		g.Expect(errReconcile).NotTo(HaveOccurred())
 
-		cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetworkDeleted)
-		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(cnd).ToNot(BeNil())
-		g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkDeletingReason))
-		g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityInfo))
+		g.Eventually(func() error {
+			cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetworkDeleted)
+			if err != nil {
+				return err
+			}
+			if cnd == nil {
+				return fmt.Errorf("condition is nil")
+			}
+			if cnd.Reason != expinfrav1.ROSANetworkDeletingReason {
+				return fmt.Errorf("reason mismatch: got %s, want %s", cnd.Reason, expinfrav1.ROSANetworkDeletingReason)
+			}
+			if cnd.Severity != clusterv1beta1.ConditionSeverityInfo {
+				return fmt.Errorf("severity mismatch: got %s, want %s", cnd.Severity, clusterv1beta1.ConditionSeverityInfo)
+			}
+			return nil
+		}).Should(Succeed())
 	})
 
 	t.Run("CF stack deletion in progress", func(t *testing.T) {
+		g := NewWithT(t)
+
 		_, mockCFClient, mockSTSClient, reconciler := createMockClients(mockCtrl)
 
 		mockSTSIdentity(mockSTSClient)
@@ -374,6 +473,8 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 	})
 
 	t.Run("CF stack deletion failed", func(t *testing.T) {
+		g := NewWithT(t)
+
 		_, mockCFClient, mockSTSClient, reconciler := createMockClients(mockCtrl)
 
 		mockSTSIdentity(mockSTSClient)
@@ -402,11 +503,22 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(time.Duration(0)))
 		g.Expect(errReconcile).To(MatchError(ContainSubstring("CF stack deletion failed")))
 
-		cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetworkDeleted)
-		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(cnd).ToNot(BeNil())
-		g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkDeletionFailedReason))
-		g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityError))
+		g.Eventually(func() error {
+			cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetworkDeleted)
+			if err != nil {
+				return err
+			}
+			if cnd == nil {
+				return fmt.Errorf("condition is nil")
+			}
+			if cnd.Reason != expinfrav1.ROSANetworkDeletionFailedReason {
+				return fmt.Errorf("reason mismatch: got %s, want %s", cnd.Reason, expinfrav1.ROSANetworkDeletionFailedReason)
+			}
+			if cnd.Severity != clusterv1beta1.ConditionSeverityError {
+				return fmt.Errorf("severity mismatch: got %s, want %s", cnd.Severity, clusterv1beta1.ConditionSeverityError)
+			}
+			return nil
+		}).Should(Succeed())
 	})
 
 	cleanupObject(g, rosaNetwork)
