@@ -158,8 +158,7 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	e2eCtx.Environment.BootstrapAccessKey = newUserAccessKey(context.TODO(), e2eCtx.AWSSession, bootstrapTemplate.Spec.BootstrapUser.UserName)
 	e2eCtx.BootstrapUserAWSSession = NewAWSSessionWithKey(e2eCtx.Environment.BootstrapAccessKey)
 
-	By("Waiting for access key to propagate...")
-	time.Sleep(10 * time.Second)
+	waitForAccessKeyPropagation(e2eCtx.BootstrapUserAWSSession)
 
 	Expect(ensureTestImageUploaded(context.TODO(), e2eCtx)).NotTo(HaveOccurred())
 
