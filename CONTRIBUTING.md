@@ -4,6 +4,10 @@
 
 Kubernetes projects require that you sign a Contributor License Agreement (CLA) before we can accept your pull requests.  Please see https://git.k8s.io/community/CLA.md for more info
 
+### AI Usage
+
+Please ensure you have ready the projects [AI policy](./AI_POLICY.md).
+
 ### Contributing A Patch
 
 1. Submit an issue describing your proposed change to the repo in question.
