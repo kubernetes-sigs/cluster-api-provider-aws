@@ -902,10 +902,10 @@ func newUserAccessKey(ctx context.Context, cfg *aws.Config, userName string) *ia
 }
 
 // waitForAccessKeyPropagation actively polls AWS STS until the new access key
-// is recognized, replacing a static time.Sleep. IAM credentials are eventually
-// consistent, so a newly created key may not be immediately usable across all
-// AWS services. STS GetCallerIdentity is a lightweight call that validates the
-// credential without requiring any IAM permissions.
+// is recognized. IAM credentials are eventually consistent, so a newly created
+// key may not be immediately usable across all AWS services. STS GetCallerIdentity
+// is a lightweight call that validates the credential without requiring any IAM
+// permissions.
 func waitForAccessKeyPropagation(cfg *aws.Config) {
 	By("Waiting for access key to propagate via STS GetCallerIdentity...")
 	stsSvc := sts.NewFromConfig(*cfg)
