@@ -8,11 +8,9 @@ This document explains how to create a CAPA cluster with external CSI/CCM plugin
 
 ## Creating clusters with external CSI/CCM and validating
 For clusters that will use external CCM, `cloud-provider: external` flag needs to be set in KubeadmConfig resources in both `KubeadmControlPlane` and `MachineDeployment` resources.
+> NOTE: Starting with Kubernetes 1.31, the `cloud-provider` flag has no effect in apirserver configurations and has been removed in Kubernetes 1.33. Providing this argument to the apiserver will cause a hard crash.
 
     clusterConfiguration:
-      apiServer:
-        extraArgs:
-          cloud-provider: external
       controllerManager:
         extraArgs:
           cloud-provider: external
@@ -164,9 +162,6 @@ external CSI drivers works with in-tree CCM (Warning: using in-tree CSI with ext
 **KubeadmConfig in the upgraded cluster for scenario 1:**
 
     clusterConfiguration:
-      apiServer:
-        extraArgs:
-          cloud-provider: aws
       controllerManager:
         extraArgs:
           cloud-provider: aws
