@@ -21,6 +21,7 @@ import (
 	"encoding/base64"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
@@ -6122,6 +6123,40 @@ func TestGetInstanceMarketOptionsRequest(t *testing.T) {
 			expectedRequest: nil,
 			expectedError:   errors.New("can't create spot capacity-blocks, remove spot market request"),
 		},
+		{
+			name: "with WaitingTimeout specified",
+			instance: &infrav1.Instance{
+				SpotMarketOptions: &infrav1.SpotMarketOptions{
+					WaitingTimeout: &metav1.Duration{Duration: 10 * time.Minute},
+				},
+			},
+			expectedRequest: &types.InstanceMarketOptionsRequest{
+				MarketType: types.MarketTypeSpot,
+				SpotOptions: &types.SpotMarketOptions{
+					InstanceInterruptionBehavior: types.InstanceInterruptionBehaviorTerminate,
+					SpotInstanceType:             types.SpotInstanceTypeOneTime,
+				},
+			},
+			expectedError: nil,
+		},
+		{
+			name: "with WaitingTimeout and MaxPrice specified",
+			instance: &infrav1.Instance{
+				SpotMarketOptions: &infrav1.SpotMarketOptions{
+					MaxPrice:       aws.String("0.05"),
+					WaitingTimeout: &metav1.Duration{Duration: 5 * time.Minute},
+				},
+			},
+			expectedRequest: &types.InstanceMarketOptionsRequest{
+				MarketType: types.MarketTypeSpot,
+				SpotOptions: &types.SpotMarketOptions{
+					InstanceInterruptionBehavior: types.InstanceInterruptionBehaviorTerminate,
+					SpotInstanceType:             types.SpotInstanceTypeOneTime,
+					MaxPrice:                     aws.String("0.05"),
+				},
+			},
+			expectedError: nil,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -6134,6 +6169,73 @@ func TestGetInstanceMarketOptionsRequest(t *testing.T) {
 				g.Expect(err).To(BeNil())
 			}
 			g.Expect(request).To(Equal(tc.expectedRequest))
+		})
+	}
+}
+
+func TestIsSpotCapacityError(t *testing.T) {
+	testCases := []struct {
+		name     string
+		err      error
+		expected bool
+	}{
+		{
+			name:     "nil error",
+			err:      nil,
+			expected: false,
+		},
+		{
+			name:     "generic error",
+			err:      errors.New("something went wrong"),
+			expected: false,
+		},
+		{
+			name: "InsufficientInstanceCapacity error",
+			err: &smithy.GenericAPIError{
+				Code:    "InsufficientInstanceCapacity",
+				Message: "There is no Spot capacity available that matches your request.",
+			},
+			expected: true,
+		},
+		{
+			name: "MaxSpotInstanceCountExceeded error",
+			err: &smithy.GenericAPIError{
+				Code:    "MaxSpotInstanceCountExceeded",
+				Message: "Max spot instance count exceeded",
+			},
+			expected: true,
+		},
+		{
+			name: "InstanceLimitExceeded error",
+			err: &smithy.GenericAPIError{
+				Code:    "InstanceLimitExceeded",
+				Message: "You have exceeded your maximum limit of instances",
+			},
+			expected: true,
+		},
+		{
+			name: "InsufficientInstanceCapacity error",
+			err: &smithy.GenericAPIError{
+				Code:    "InsufficientInstanceCapacity",
+				Message: "There is no Spot capacity available that matches your request.",
+			},
+			expected: true,
+		},
+		{
+			name: "non-spot error code",
+			err: &smithy.GenericAPIError{
+				Code:    "InvalidParameterValue",
+				Message: "Invalid parameter",
+			},
+			expected: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			result := isSpotCapacityError(tc.err)
+			g.Expect(result).To(Equal(tc.expected))
 		})
 	}
 }

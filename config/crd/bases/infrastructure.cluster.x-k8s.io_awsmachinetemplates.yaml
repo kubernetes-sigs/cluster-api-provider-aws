@@ -1072,6 +1072,13 @@ spec:
                             description: MaxPrice defines the maximum price the user
                               is willing to pay for Spot VM instances
                             type: string
+                          waitingTimeout:
+                            description: |-
+                              WaitingTimeout defines the maximum time to wait for a Spot instance to become available.
+                              If the timeout is reached and no Spot instance is available, the controller will fall back
+                              to creating an On-Demand instance instead.
+                              If not specified, the controller will wait indefinitely for a Spot instance (default behavior).
+                            type: string
                         type: object
                       sshKeyName:
                         description: SSHKeyName is the name of the ssh key to attach
