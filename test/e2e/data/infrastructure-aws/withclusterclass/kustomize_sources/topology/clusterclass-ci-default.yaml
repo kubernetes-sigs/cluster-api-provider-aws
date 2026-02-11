@@ -286,10 +286,6 @@ spec:
     spec:
       kubeadmConfigSpec:
         clusterConfiguration:
-          apiServer:
-            extraArgs:
-            - name: cloud-provider
-              value: external
           controllerManager:
             extraArgs:
             - name: cloud-provider

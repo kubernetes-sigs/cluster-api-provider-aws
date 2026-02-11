@@ -34,9 +34,6 @@ metadata:
 spec:
   kubeadmConfigSpec:
     clusterConfiguration:
-      apiServer:
-        extraArgs:
-          cloud-provider: aws
       controllerManager:
         extraArgs:
           cloud-provider: aws
