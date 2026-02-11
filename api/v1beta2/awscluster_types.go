@@ -282,14 +282,14 @@ type AWSClusterStatus struct {
 	Bastion        *Instance                     `json:"bastion,omitempty"`
 	Conditions     clusterv1beta1.Conditions     `json:"conditions,omitempty"`
 
-	// v1beta3 groups all the fields that will be added or modified in AWSCluster's status with the V1Beta3 version.
+	// v1beta2 groups all the fields that will be added or modified in AWSCluster's status with the V1Beta2 version.
 	// +optional
-	V1Beta3 *AWSClusterV1Beta3Status `json:"v1beta3,omitempty"`
+	V1Beta2 *AWSClusterV1Beta2Status `json:"v1beta2,omitempty"`
 }
 
-// AWSClusterV1Beta3Status groups all the fields that will be added or modified in AWSClusterStatus with the V1Beta3 version.
+// AWSClusterV1Beta2Status groups all the fields that will be added or modified in AWSCluster with the V1Beta2 version.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
-type AWSClusterV1Beta3Status struct {
+type AWSClusterV1Beta2Status struct {
 	// Conditions represents the observations of an AWSCluster's current state.
 	// Known condition types are Ready, VpcReady, SubnetsReady, InternetGatewayReady, NatGatewaysReady,
 	// RouteTablesReady, ClusterSecurityGroupsReady, BastionHostReady, LoadBalancerReady, and Paused.
@@ -372,20 +372,22 @@ func (r *AWSCluster) SetConditions(conditions clusterv1beta1.Conditions) {
 	r.Status.Conditions = conditions
 }
 
-// GetV1Beta3Conditions returns the set of conditions for this object.
-func (r *AWSCluster) GetV1Beta3Conditions() []metav1.Condition {
-	if r.Status.V1Beta3 == nil {
+// GetV1Beta2Conditions returns the set of conditions for this object.
+// Note: GetV1Beta2Conditions will be renamed to GetConditions in a later stage of the transition to V1Beta2.
+func (r *AWSCluster) GetV1Beta2Conditions() []metav1.Condition {
+	if r.Status.V1Beta2 == nil {
 		return nil
 	}
-	return r.Status.V1Beta3.Conditions
+	return r.Status.V1Beta2.Conditions
 }
 
-// SetV1Beta3Conditions sets conditions for an API object.
-func (r *AWSCluster) SetV1Beta3Conditions(conditions []metav1.Condition) {
-	if r.Status.V1Beta3 == nil {
-		r.Status.V1Beta3 = &AWSClusterV1Beta3Status{}
+// SetV1Beta2Conditions sets conditions for an API object.
+// Note: SetV1Beta2Conditions will be renamed to SetConditions in a later stage of the transition to V1Beta2.
+func (r *AWSCluster) SetV1Beta2Conditions(conditions []metav1.Condition) {
+	if r.Status.V1Beta2 == nil {
+		r.Status.V1Beta2 = &AWSClusterV1Beta2Status{}
 	}
-	r.Status.V1Beta3.Conditions = conditions
+	r.Status.V1Beta2.Conditions = conditions
 }
 
 func init() {

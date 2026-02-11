@@ -1065,7 +1065,7 @@ func autoConvert_v1beta2_AWSClusterStatus_To_v1beta1_AWSClusterStatus(in *v1beta
 		out.Bastion = nil
 	}
 	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
-	// WARNING: in.V1Beta3 requires manual conversion: does not exist in peer-type
+	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type
 	return nil
 }
 

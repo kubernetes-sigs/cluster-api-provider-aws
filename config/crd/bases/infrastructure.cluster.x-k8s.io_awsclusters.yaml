@@ -3159,9 +3159,9 @@ spec:
               ready:
                 default: false
                 type: boolean
-              v1beta3:
-                description: v1beta3 groups all the fields that will be added or modified
-                  in AWSCluster's status with the V1Beta3 version.
+              v1beta2:
+                description: v1beta2 groups all the fields that will be added or modified
+                  in AWSCluster's status with the V1Beta2 version.
                 properties:
                   conditions:
                     description: |-
