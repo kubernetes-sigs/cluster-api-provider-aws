@@ -215,7 +215,7 @@ data:
           serviceAccountName: cloud-controller-manager
           containers:
             - name: aws-cloud-controller-manager
-              image: gcr.io/k8s-staging-provider-aws/cloud-controller-manager:v1.20.0-alpha.0
+              image: gcr.io/k8s-staging-provider-aws/cloud-controller-manager:${KUBERNETES_AWS_CCM_VERSION:-v1.32.5}
               args:
                 - --v=2
               resources:
