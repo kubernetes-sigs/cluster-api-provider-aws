@@ -3161,7 +3161,7 @@ spec:
                 type: boolean
               v1beta2:
                 description: v1beta2 groups all the fields that will be added or modified
-                  in AWSCluster's status with the V1Beta2 version.
+                  in AWSCluster's status with the V1Beta2 CAPI contract version.
                 properties:
                   conditions:
                     description: |-

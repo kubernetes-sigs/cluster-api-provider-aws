@@ -282,12 +282,12 @@ type AWSClusterStatus struct {
 	Bastion        *Instance                     `json:"bastion,omitempty"`
 	Conditions     clusterv1beta1.Conditions     `json:"conditions,omitempty"`
 
-	// v1beta2 groups all the fields that will be added or modified in AWSCluster's status with the V1Beta2 version.
+	// v1beta2 groups all the fields that will be added or modified in AWSCluster's status with the V1Beta2 CAPI contract version.
 	// +optional
 	V1Beta2 *AWSClusterV1Beta2Status `json:"v1beta2,omitempty"`
 }
 
-// AWSClusterV1Beta2Status groups all the fields that will be added or modified in AWSCluster with the V1Beta2 version.
+// AWSClusterV1Beta2Status groups all the fields that will be added or modified in AWSCluster with the V1Beta2 CAPI contract version.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type AWSClusterV1Beta2Status struct {
 	// Conditions represents the observations of an AWSCluster's current state.
@@ -373,7 +373,7 @@ func (r *AWSCluster) SetConditions(conditions clusterv1beta1.Conditions) {
 }
 
 // GetV1Beta2Conditions returns the set of conditions for this object.
-// Note: GetV1Beta2Conditions will be renamed to GetConditions in a later stage of the transition to V1Beta2.
+// Note: GetV1Beta2Conditions will be renamed to GetConditions in a later stage of the transition to CAPI contract V1Beta2.
 func (r *AWSCluster) GetV1Beta2Conditions() []metav1.Condition {
 	if r.Status.V1Beta2 == nil {
 		return nil
@@ -382,7 +382,7 @@ func (r *AWSCluster) GetV1Beta2Conditions() []metav1.Condition {
 }
 
 // SetV1Beta2Conditions sets conditions for an API object.
-// Note: SetV1Beta2Conditions will be renamed to SetConditions in a later stage of the transition to V1Beta2.
+// Note: SetV1Beta2Conditions will be renamed to SetConditions in a later stage of the transition to CAPI contract V1Beta2.
 func (r *AWSCluster) SetV1Beta2Conditions(conditions []metav1.Condition) {
 	if r.Status.V1Beta2 == nil {
 		r.Status.V1Beta2 = &AWSClusterV1Beta2Status{}
