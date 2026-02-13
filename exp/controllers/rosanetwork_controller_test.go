@@ -158,24 +158,13 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(time.Duration(0)))
 		g.Expect(errReconcile).To(MatchError(ContainSubstring("failed to start CF stack creation:")))
 
-		g.Eventually(func() error {
+		g.Eventually(func(g Gomega) {
 			cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetwork)
-			if err != nil {
-				return err
-			}
-			if cnd == nil {
-				return fmt.Errorf("condition is nil")
-			}
-			if cnd.Reason != expinfrav1.ROSANetworkFailedReason {
-				return fmt.Errorf("reason mismatch: got %s, want %s", cnd.Reason, expinfrav1.ROSANetworkFailedReason)
-			}
-			if cnd.Severity != clusterv1beta1.ConditionSeverityError {
-				return fmt.Errorf("severity mismatch: got %s, want %s", cnd.Severity, clusterv1beta1.ConditionSeverityError)
-			}
-			if cnd.Message != "test-error" {
-				return fmt.Errorf("message mismatch: got %s, want %s", cnd.Message, "test-error")
-			}
-			return nil
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(cnd).ToNot(BeNil())
+			g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkFailedReason))
+			g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityError))
+			g.Expect(cnd.Message).To(Equal("test-error"))
 		}).Should(Succeed())
 	})
 
@@ -203,21 +192,12 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(time.Duration(0)))
 		g.Expect(errReconcile).ToNot(HaveOccurred())
 
-		g.Eventually(func() error {
+		g.Eventually(func(g Gomega) {
 			cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetwork)
-			if err != nil {
-				return err
-			}
-			if cnd == nil {
-				return fmt.Errorf("condition is nil")
-			}
-			if cnd.Reason != expinfrav1.ROSANetworkCreatingReason {
-				return fmt.Errorf("reason mismatch: got %s, want %s", cnd.Reason, expinfrav1.ROSANetworkCreatingReason)
-			}
-			if cnd.Severity != clusterv1beta1.ConditionSeverityInfo {
-				return fmt.Errorf("severity mismatch: got %s, want %s", cnd.Severity, clusterv1beta1.ConditionSeverityInfo)
-			}
-			return nil
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(cnd).ToNot(BeNil())
+			g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkCreatingReason))
+			g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityInfo))
 		}).Should(Succeed())
 	})
 
@@ -247,21 +227,12 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(time.Second * 60))
 		g.Expect(errReconcile).ToNot(HaveOccurred())
 
-		g.Eventually(func() error {
+		g.Eventually(func(g Gomega) {
 			cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetwork)
-			if err != nil {
-				return err
-			}
-			if cnd == nil {
-				return fmt.Errorf("condition is nil")
-			}
-			if cnd.Reason != expinfrav1.ROSANetworkCreatingReason {
-				return fmt.Errorf("reason mismatch: got %s, want %s", cnd.Reason, expinfrav1.ROSANetworkCreatingReason)
-			}
-			if cnd.Severity != clusterv1beta1.ConditionSeverityInfo {
-				return fmt.Errorf("severity mismatch: got %s, want %s", cnd.Severity, clusterv1beta1.ConditionSeverityInfo)
-			}
-			return nil
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(cnd).ToNot(BeNil())
+			g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkCreatingReason))
+			g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityInfo))
 		}).Should(Succeed())
 	})
 
@@ -291,21 +262,12 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(time.Duration(0)))
 		g.Expect(errReconcile).ToNot(HaveOccurred())
 
-		g.Eventually(func() error {
+		g.Eventually(func(g Gomega) {
 			cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetwork)
-			if err != nil {
-				return err
-			}
-			if cnd == nil {
-				return fmt.Errorf("condition is nil")
-			}
-			if cnd.Reason != expinfrav1.ROSANetworkCreatedReason {
-				return fmt.Errorf("reason mismatch: got %s, want %s", cnd.Reason, expinfrav1.ROSANetworkCreatedReason)
-			}
-			if cnd.Severity != clusterv1beta1.ConditionSeverityInfo {
-				return fmt.Errorf("severity mismatch: got %s, want %s", cnd.Severity, clusterv1beta1.ConditionSeverityInfo)
-			}
-			return nil
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(cnd).ToNot(BeNil())
+			g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkCreatedReason))
+			g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityInfo))
 		}).Should(Succeed())
 	})
 
@@ -335,21 +297,12 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(time.Duration(0)))
 		g.Expect(errReconcile).To(MatchError(ContainSubstring("creation failed")))
 
-		g.Eventually(func() error {
+		g.Eventually(func(g Gomega) {
 			cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetwork)
-			if err != nil {
-				return err
-			}
-			if cnd == nil {
-				return fmt.Errorf("condition is nil")
-			}
-			if cnd.Reason != expinfrav1.ROSANetworkFailedReason {
-				return fmt.Errorf("reason mismatch: got %s, want %s", cnd.Reason, expinfrav1.ROSANetworkFailedReason)
-			}
-			if cnd.Severity != clusterv1beta1.ConditionSeverityError {
-				return fmt.Errorf("severity mismatch: got %s, want %s", cnd.Severity, clusterv1beta1.ConditionSeverityError)
-			}
-			return nil
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(cnd).ToNot(BeNil())
+			g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkFailedReason))
+			g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityError))
 		}).Should(Succeed())
 	})
 
@@ -381,21 +334,12 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(time.Duration(0)))
 		g.Expect(errReconcile).To(MatchError(ContainSubstring("failed to start CF stack deletion:")))
 
-		g.Eventually(func() error {
+		g.Eventually(func(g Gomega) {
 			cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetworkDeleted)
-			if err != nil {
-				return err
-			}
-			if cnd == nil {
-				return fmt.Errorf("condition is nil")
-			}
-			if cnd.Reason != expinfrav1.ROSANetworkDeletionFailedReason {
-				return fmt.Errorf("reason mismatch: got %s, want %s", cnd.Reason, expinfrav1.ROSANetworkDeletionFailedReason)
-			}
-			if cnd.Severity != clusterv1beta1.ConditionSeverityError {
-				return fmt.Errorf("severity mismatch: got %s, want %s", cnd.Severity, clusterv1beta1.ConditionSeverityError)
-			}
-			return nil
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(cnd).ToNot(BeNil())
+			g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkDeletionFailedReason))
+			g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityError))
 		}).Should(Succeed())
 	})
 
@@ -427,21 +371,12 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(60 * time.Second))
 		g.Expect(errReconcile).NotTo(HaveOccurred())
 
-		g.Eventually(func() error {
+		g.Eventually(func(g Gomega) {
 			cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetworkDeleted)
-			if err != nil {
-				return err
-			}
-			if cnd == nil {
-				return fmt.Errorf("condition is nil")
-			}
-			if cnd.Reason != expinfrav1.ROSANetworkDeletingReason {
-				return fmt.Errorf("reason mismatch: got %s, want %s", cnd.Reason, expinfrav1.ROSANetworkDeletingReason)
-			}
-			if cnd.Severity != clusterv1beta1.ConditionSeverityInfo {
-				return fmt.Errorf("severity mismatch: got %s, want %s", cnd.Severity, clusterv1beta1.ConditionSeverityInfo)
-			}
-			return nil
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(cnd).ToNot(BeNil())
+			g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkDeletingReason))
+			g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityInfo))
 		}).Should(Succeed())
 	})
 
@@ -503,21 +438,12 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		g.Expect(reqReconcile.RequeueAfter).To(Equal(time.Duration(0)))
 		g.Expect(errReconcile).To(MatchError(ContainSubstring("CF stack deletion failed")))
 
-		g.Eventually(func() error {
+		g.Eventually(func(g Gomega) {
 			cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetworkDeleted)
-			if err != nil {
-				return err
-			}
-			if cnd == nil {
-				return fmt.Errorf("condition is nil")
-			}
-			if cnd.Reason != expinfrav1.ROSANetworkDeletionFailedReason {
-				return fmt.Errorf("reason mismatch: got %s, want %s", cnd.Reason, expinfrav1.ROSANetworkDeletionFailedReason)
-			}
-			if cnd.Severity != clusterv1beta1.ConditionSeverityError {
-				return fmt.Errorf("severity mismatch: got %s, want %s", cnd.Severity, clusterv1beta1.ConditionSeverityError)
-			}
-			return nil
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(cnd).ToNot(BeNil())
+			g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkDeletionFailedReason))
+			g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityError))
 		}).Should(Succeed())
 	})
 
