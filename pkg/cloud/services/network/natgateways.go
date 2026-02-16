@@ -255,11 +255,12 @@ func (s *Service) getNatGatewayTagParams(id string) infrav1.BuildParams {
 	}
 }
 
-func (s *Service) createNatGateways(subnetIDs []string) (natgateways []*types.NatGateway, err error) {
+func (s *Service) createNatGateways(subnetIDs []string) ([]*types.NatGateway, error) {
 	eips, err := s.getOrAllocateAddresses(len(subnetIDs), infrav1.CommonRoleTagValue, s.scope.VPC().GetElasticIPPool())
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create one or more IP addresses for NAT gateways")
 	}
+
 	type ngwCreation struct {
 		natGateway *types.NatGateway
 		error      error
@@ -273,14 +274,18 @@ func (s *Service) createNatGateways(subnetIDs []string) (natgateways []*types.Na
 		}(c, sn, eips[i])
 	}
 
+	var natgateways []*types.NatGateway
+	var errs []error
 	for range subnetIDs {
 		ngwResult := <-c
 		if ngwResult.error != nil {
-			return nil, ngwResult.error
+			errs = append(errs, ngwResult.error)
+			continue
 		}
 		natgateways = append(natgateways, ngwResult.natGateway)
 	}
-	return natgateways, nil
+
+	return natgateways, kerrors.NewAggregate(errs)
 }
 
 func (s *Service) createNatGateway(subnetID, ip string) (*types.NatGateway, error) {
