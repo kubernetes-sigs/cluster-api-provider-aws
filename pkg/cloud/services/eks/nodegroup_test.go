@@ -30,24 +30,24 @@ import (
 
 func TestScalingConfig(t *testing.T) {
 	tests := []struct {
-		name                       string
-		replicas                   *int32
-		minSize                    *int32
-		maxSize                    *int32
-		externalAutoscalerManaged  bool
-		expectDesiredSize          *int32
-		expectMinSize              *int32
-		expectMaxSize              *int32
+		name                      string
+		replicas                  *int32
+		minSize                   *int32
+		maxSize                   *int32
+		externalAutoscalerManaged bool
+		expectDesiredSize         *int32
+		expectMinSize             *int32
+		expectMaxSize             *int32
 	}{
 		{
-			name:              "external autoscaler",
-			replicas:          aws.Int32(3),
-			minSize:           aws.Int32(1),
-			maxSize:           aws.Int32(5),
+			name:                      "external autoscaler",
+			replicas:                  aws.Int32(3),
+			minSize:                   aws.Int32(1),
+			maxSize:                   aws.Int32(5),
 			externalAutoscalerManaged: true,
-			expectDesiredSize: nil,
-			expectMinSize:     aws.Int32(1),
-			expectMaxSize:     aws.Int32(5),
+			expectDesiredSize:         nil,
+			expectMinSize:             aws.Int32(1),
+			expectMaxSize:             aws.Int32(5),
 		},
 		{
 			name:              "replicas within bounds",
