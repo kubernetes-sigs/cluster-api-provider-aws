@@ -70,7 +70,7 @@ type RosaMachinePoolSpec struct {
 	// in the NodePool. The default is true.
 	// +kubebuilder:default=true
 	// +optional
-	AutoRepair bool `json:"autoRepair,omitempty"`
+	AutoRepair bool `json:"autoRepair,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// InstanceType specifies the AWS instance type, for example `r5.xlarge`. Instance type ref; https://aws.amazon.com/ec2/instance-types/
 	//
@@ -206,7 +206,7 @@ type RosaMachinePoolStatus struct {
 	// Ready denotes that the RosaMachinePool nodepool has joined
 	// the cluster
 	// +kubebuilder:default=false
-	Ready bool `json:"ready"`
+	Ready bool `json:"ready"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	// Replicas is the most recently observed number of replicas.
 	// +optional
 	Replicas int32 `json:"replicas"`

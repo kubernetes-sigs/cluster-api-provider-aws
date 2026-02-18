@@ -181,7 +181,7 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// AssociateOIDCProvider can be enabled to automatically create an identity
 	// provider for the controller for use with IAM roles for service accounts
 	// +kubebuilder:default=false
-	AssociateOIDCProvider bool `json:"associateOIDCProvider,omitempty"`
+	AssociateOIDCProvider bool `json:"associateOIDCProvider,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// Addons defines the EKS addons to enable with the EKS cluster.
 	// +optional
@@ -209,11 +209,11 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// bare EKS cluster without EKS default networking addons
 	// If you set this value to false when creating a cluster, the default networking add-ons will not be installed
 	// +kubebuilder:default=true
-	BootstrapSelfManagedAddons bool `json:"bootstrapSelfManagedAddons,omitempty"`
+	BootstrapSelfManagedAddons bool `json:"bootstrapSelfManagedAddons,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// RestrictPrivateSubnets indicates that the EKS control plane should only use private subnets.
 	// +kubebuilder:default=false
-	RestrictPrivateSubnets bool `json:"restrictPrivateSubnets,omitempty"`
+	RestrictPrivateSubnets bool `json:"restrictPrivateSubnets,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// KubeProxy defines managed attributes of the kube-proxy daemonset
 	KubeProxy KubeProxy `json:"kubeProxy,omitempty"`
@@ -236,7 +236,7 @@ type KubeProxy struct {
 	// provides a way to specify that the kube-proxy daemonset should be deleted. You cannot
 	// set this to true if you are using the Amazon kube-proxy addon.
 	// +kubebuilder:default=false
-	Disable bool `json:"disable,omitempty"`
+	Disable bool `json:"disable,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 }
 
 // VpcCni specifies configuration related to the VPC CNI.
@@ -247,7 +247,7 @@ type VpcCni struct {
 	// should be deleted. You cannot set this to true if you are using the
 	// Amazon VPC CNI addon.
 	// +kubebuilder:default=false
-	Disable bool `json:"disable,omitempty"`
+	Disable bool `json:"disable,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	// Env defines a list of environment variables to apply to the `aws-node` DaemonSet
 	// +optional
 	Env []corev1.EnvVar `json:"env,omitempty"`
@@ -257,13 +257,13 @@ type VpcCni struct {
 type EndpointAccess struct {
 	// Public controls whether control plane endpoints are publicly accessible
 	// +optional
-	Public *bool `json:"public,omitempty"`
+	Public *bool `json:"public,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	// PublicCIDRs specifies which blocks can access the public endpoint
 	// +optional
 	PublicCIDRs []*string `json:"publicCIDRs,omitempty"`
 	// Private points VPC-internal control plane access to the private endpoint
 	// +optional
-	Private *bool `json:"private,omitempty"`
+	Private *bool `json:"private,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 }
 
 // AccessConfig represents the access configuration information for the cluster
@@ -278,7 +278,7 @@ type AccessConfig struct {
 	// to the IAM identity creating the cluster. Only applied during creation,
 	// ignored when updating existing clusters. Defaults to true.
 	// +kubebuilder:default=true
-	BootstrapClusterCreatorAdminPermissions *bool `json:"bootstrapClusterCreatorAdminPermissions,omitempty"`
+	BootstrapClusterCreatorAdminPermissions *bool `json:"bootstrapClusterCreatorAdminPermissions,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 }
 
 // AccessEntry represents an AWS EKS access entry for IAM principals
@@ -376,15 +376,15 @@ type AWSManagedControlPlaneStatus struct {
 	// ExternalManagedControlPlane indicates to cluster-api that the control plane
 	// is managed by an external service such as AKS, EKS, GKE, etc.
 	// +kubebuilder:default=true
-	ExternalManagedControlPlane *bool `json:"externalManagedControlPlane,omitempty"`
+	ExternalManagedControlPlane *bool `json:"externalManagedControlPlane,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	// Initialized denotes whether or not the control plane has the
 	// uploaded kubernetes config-map.
 	// +optional
-	Initialized bool `json:"initialized"`
+	Initialized bool `json:"initialized"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	// Ready denotes that the AWSManagedControlPlane API Server is ready to
 	// receive requests and that the VPC infra is ready.
 	// +kubebuilder:default=false
-	Ready bool `json:"ready"`
+	Ready bool `json:"ready"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	// ErrorMessage indicates that there is a terminal problem reconciling the
 	// state, and will be set to a descriptive error message.
 	// +optional

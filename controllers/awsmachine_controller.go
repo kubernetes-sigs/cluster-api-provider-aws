@@ -86,7 +86,7 @@ type AWSMachineReconciler struct {
 	SSMServiceFactory            func(cloud.ClusterScoper) services.SecretInterface
 	objectStoreServiceFactory    func(cloud.ClusterScoper) services.ObjectStoreInterface
 	WatchFilterValue             string
-	TagUnmanagedNetworkResources bool
+	TagUnmanagedNetworkResources bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	MaxWaitActiveUpdateDelete    time.Duration
 }
 

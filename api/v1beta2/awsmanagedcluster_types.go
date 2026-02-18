@@ -33,7 +33,7 @@ type AWSManagedClusterSpec struct {
 type AWSManagedClusterStatus struct {
 	// Ready is when the AWSManagedControlPlane has a API server URL.
 	// +optional
-	Ready bool `json:"ready,omitempty"`
+	Ready bool `json:"ready,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// FailureDomains specifies a list fo available availability zones that can be used
 	// +optional

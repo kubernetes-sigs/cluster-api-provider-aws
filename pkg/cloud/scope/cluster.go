@@ -47,7 +47,7 @@ type ClusterScopeParams struct {
 	AWSCluster                   *infrav1.AWSCluster
 	ControllerName               string
 	Session                      aws.Config
-	TagUnmanagedNetworkResources bool
+	TagUnmanagedNetworkResources bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	MaxWaitActiveUpdateDelete    time.Duration
 }
 
@@ -106,7 +106,7 @@ type ClusterScope struct {
 	serviceLimiters throttle.ServiceLimiters
 	controllerName  string
 
-	tagUnmanagedNetworkResources bool
+	tagUnmanagedNetworkResources bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	maxWaitActiveUpdateDelete    time.Duration
 }
 

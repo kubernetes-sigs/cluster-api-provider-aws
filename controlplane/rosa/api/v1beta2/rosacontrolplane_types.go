@@ -162,7 +162,7 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// +kubebuilder:default=false
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="enableExternalAuthProviders is immutable"
 	// +optional
-	EnableExternalAuthProviders bool `json:"enableExternalAuthProviders,omitempty"`
+	EnableExternalAuthProviders bool `json:"enableExternalAuthProviders,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// ExternalAuthProviders are external OIDC identity providers that can issue tokens for this cluster.
 	// Can only be set if "enableExternalAuthProviders" is set to "True".
@@ -364,7 +364,7 @@ type RegistryLocation struct {
 	// insecure indicates whether the registry is secure (https) or insecure (http), default is secured.
 	// +kubebuilder:default=false
 	// +optional
-	Insecure bool `json:"insecure,omitempty"`
+	Insecure bool `json:"insecure,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 }
 
 // RegistrySources contains registries configuration.
@@ -832,14 +832,14 @@ type RosaControlPlaneStatus struct {
 	// ExternalManagedControlPlane indicates to cluster-api that the control plane
 	// is managed by an external service such as AKS, EKS, GKE, etc.
 	// +kubebuilder:default=true
-	ExternalManagedControlPlane *bool `json:"externalManagedControlPlane,omitempty"`
+	ExternalManagedControlPlane *bool `json:"externalManagedControlPlane,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	// Initialized denotes whether or not the control plane has the
 	// uploaded kubernetes config-map.
 	// +optional
-	Initialized bool `json:"initialized"`
+	Initialized bool `json:"initialized"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	// Ready denotes that the ROSAControlPlane API Server is ready to receive requests.
 	// +kubebuilder:default=false
-	Ready bool `json:"ready"`
+	Ready bool `json:"ready"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	// FailureMessage will be set in the event that there is a terminal problem
 	// reconciling the state and will be set to a descriptive error message.
 	//

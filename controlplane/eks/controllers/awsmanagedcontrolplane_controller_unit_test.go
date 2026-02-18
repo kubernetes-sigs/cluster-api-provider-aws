@@ -27,7 +27,7 @@ import (
 func TestSecurityGroupRolesForCluster(t *testing.T) {
 	tests := []struct {
 		name           string
-		bastionEnabled bool
+		bastionEnabled bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name:           "Should use bastion security group when bastion is enabled",

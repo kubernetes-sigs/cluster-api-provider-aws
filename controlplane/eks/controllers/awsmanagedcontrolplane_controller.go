@@ -97,14 +97,14 @@ type AWSManagedControlPlaneReconciler struct {
 	networkServiceFactory          func(scope.NetworkScope) services.NetworkInterface
 	securityGroupServiceFactory    func(*scope.ManagedControlPlaneScope) services.SecurityGroupInterface
 
-	EnableIAM                    bool
-	AllowAdditionalRoles         bool
+	EnableIAM                    bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+	AllowAdditionalRoles         bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	WatchFilterValue             string
-	ExternalResourceGC           bool
-	AlternativeGCStrategy        bool
+	ExternalResourceGC           bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+	AlternativeGCStrategy        bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	WaitInfraPeriod              time.Duration
 	MaxWaitActiveUpdateDelete    time.Duration
-	TagUnmanagedNetworkResources bool
+	TagUnmanagedNetworkResources bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 }
 
 // getAWSNodeService factory func is added for testing purpose so that we can inject mocked AWSNodeInterface to the AWSManagedControlPlaneReconciler.

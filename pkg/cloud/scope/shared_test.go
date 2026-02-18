@@ -37,7 +37,7 @@ func TestSubnetPlacement(t *testing.T) {
 		controlPlaneSubnets infrav1.Subnets
 		logger              *logger.Logger
 		expectedSubnetIDs   []string
-		expectError         bool
+		expectError         bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name:                "spec subnets expected",

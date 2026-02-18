@@ -57,7 +57,7 @@ func TestAWSManagedMachinePoolValidateCreate(t *testing.T) {
 	tests := []struct {
 		name    string
 		pool    *AWSManagedMachinePool
-		wantErr bool
+		wantErr bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "pool requires a EKS Node group name",
@@ -177,7 +177,7 @@ func TestAWSManagedMachinePoolValidateUpdate(t *testing.T) {
 		name    string
 		new     *AWSManagedMachinePool
 		old     *AWSManagedMachinePool
-		wantErr bool
+		wantErr bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "update EKS node groups name is rejected",

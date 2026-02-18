@@ -45,7 +45,7 @@ type EKSConfigSpec struct {
 	PauseContainer *PauseContainer `json:"pauseContainer,omitempty"`
 	// UseMaxPods  sets --max-pods for the kubelet when true.
 	// +optional
-	UseMaxPods *bool `json:"useMaxPods,omitempty"`
+	UseMaxPods *bool `json:"useMaxPods,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	// ServiceIPV6Cidr is the ipv6 cidr range of the cluster. If this is specified then
 	// the ip family will be set to ipv6.
 	// +optional
@@ -87,7 +87,7 @@ type PauseContainer struct {
 // EKSConfigStatus defines the observed state of the Amazon EKS Bootstrap Configuration.
 type EKSConfigStatus struct {
 	// Ready indicates the BootstrapData secret is ready to be consumed
-	Ready bool `json:"ready,omitempty"`
+	Ready bool `json:"ready,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// DataSecretName is the name of the secret that stores the bootstrap data script.
 	// +optional
@@ -142,7 +142,7 @@ type File struct {
 
 	// Append specifies whether to append Content to existing file if Path exists.
 	// +optional
-	Append bool `json:"append,omitempty"`
+	Append bool `json:"append,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// Content is the actual content of the file.
 	// +optional
@@ -212,7 +212,7 @@ type User struct {
 
 	// Inactive specifies whether to mark the user as inactive
 	// +optional
-	Inactive *bool `json:"inactive,omitempty"`
+	Inactive *bool `json:"inactive,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// Shell specifies the user's shell
 	// +optional
@@ -232,7 +232,7 @@ type User struct {
 
 	// LockPassword specifies if password login should be disabled
 	// +optional
-	LockPassword *bool `json:"lockPassword,omitempty"`
+	LockPassword *bool `json:"lockPassword,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// Sudo specifies a sudo role for the user
 	// +optional
@@ -251,7 +251,7 @@ type NTP struct {
 
 	// Enabled specifies whether NTP should be enabled
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	Enabled *bool `json:"enabled,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 }
 
 // DiskSetup defines input for generated disk_setup and fs_setup in cloud-init.
@@ -272,11 +272,11 @@ type Partition struct {
 	// Layout specifies the device layout.
 	// If it is true, a single partition will be created for the entire device.
 	// When layout is false, it means don't partition or ignore existing partitioning.
-	Layout bool `json:"layout"`
+	Layout bool `json:"layout"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	// Overwrite describes whether to skip checks and create the partition if a partition or filesystem is found on the device.
 	// Use with caution. Default is 'false'.
 	// +optional
-	Overwrite *bool `json:"overwrite,omitempty"`
+	Overwrite *bool `json:"overwrite,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	// TableType specifies the tupe of partition table. The following are supported:
 	// 'mbr': default and setups a MS-DOS partition table
 	// 'gpt': setups a GPT partition table
@@ -298,7 +298,7 @@ type Filesystem struct {
 	// Overwrite defines whether or not to overwrite any existing filesystem.
 	// If true, any pre-existing file system will be destroyed. Use with Caution.
 	// +optional
-	Overwrite *bool `json:"overwrite,omitempty"`
+	Overwrite *bool `json:"overwrite,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	// ExtraOpts defined extra options to add to the command for creating the file system.
 	// +optional
 	ExtraOpts []string `json:"extraOpts,omitempty"`

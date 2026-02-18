@@ -175,10 +175,10 @@ type Instance struct {
 	PublicIP *string `json:"publicIp,omitempty"`
 
 	// Specifies whether enhanced networking with ENA is enabled.
-	ENASupport *bool `json:"enaSupport,omitempty"`
+	ENASupport *bool `json:"enaSupport,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// Indicates whether the instance is optimized for Amazon EBS I/O.
-	EBSOptimized *bool `json:"ebsOptimized,omitempty"`
+	EBSOptimized *bool `json:"ebsOptimized,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// Configuration options for the root storage volume.
 	// +optional
@@ -234,7 +234,7 @@ type Volume struct {
 
 	// Encrypted is whether the volume should be encrypted or not.
 	// +optional
-	Encrypted *bool `json:"encrypted,omitempty"`
+	Encrypted *bool `json:"encrypted,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// EncryptionKey is the KMS key to use to encrypt the volume. Can be either a KMS key ID or ARN.
 	// If Encrypted is set and this is omitted, the default AWS key will be used.

@@ -56,8 +56,8 @@ type ManagedMachinePoolScopeParams struct {
 	Session                   awsv2.Config
 	MaxWaitActiveUpdateDelete time.Duration
 
-	EnableIAM            bool
-	AllowAdditionalRoles bool
+	EnableIAM            bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+	AllowAdditionalRoles bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	InfraCluster EC2Scope
 }
@@ -140,8 +140,8 @@ type ManagedMachinePoolScope struct {
 	serviceLimiters throttle.ServiceLimiters
 	controllerName  string
 
-	enableIAM            bool
-	allowAdditionalRoles bool
+	enableIAM            bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+	allowAdditionalRoles bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 }
 
 // ManagedPoolName returns the managed machine pool name.

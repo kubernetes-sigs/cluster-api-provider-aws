@@ -71,7 +71,7 @@ type AWSMachinePoolReconciler struct {
 	ec2ServiceFactory            func(scope.EC2Scope) services.EC2Interface
 	reconcileServiceFactory      func(scope.EC2Scope) services.MachinePoolReconcileInterface
 	objectStoreServiceFactory    func(scope.S3Scope) services.ObjectStoreInterface
-	TagUnmanagedNetworkResources bool
+	TagUnmanagedNetworkResources bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 }
 
 func (r *AWSMachinePoolReconciler) getASGService(scope cloud.ClusterScoper) services.ASGInterface {

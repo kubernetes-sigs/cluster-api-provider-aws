@@ -317,7 +317,7 @@ type ClassicELBAttributes struct {
 
 	// CrossZoneLoadBalancing enables the classic load balancer load balancing.
 	// +optional
-	CrossZoneLoadBalancing bool `json:"crossZoneLoadBalancing,omitempty"`
+	CrossZoneLoadBalancing bool `json:"crossZoneLoadBalancing,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 }
 
 // ClassicELBListener defines an AWS classic load balancer listener.
@@ -477,7 +477,7 @@ type VPCSpec struct {
 	// NOTE: This only applies when the VPC is managed by the Cluster API AWS controller.
 	//
 	// +optional
-	EmptyRoutesDefaultVPCSecurityGroup bool `json:"emptyRoutesDefaultVPCSecurityGroup,omitempty"`
+	EmptyRoutesDefaultVPCSecurityGroup bool `json:"emptyRoutesDefaultVPCSecurityGroup,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// PrivateDNSHostnameTypeOnLaunch is the type of hostname to assign to instances in the subnet at launch.
 	// For IPv4-only and dual-stack (IPv4 and IPv6) subnets, an instance DNS name can be based on the instance IPv4 address (ip-name)
@@ -570,12 +570,12 @@ type SubnetSpec struct {
 
 	// IsPublic defines the subnet as a public subnet. A subnet is public when it is associated with a route table that has a route to an internet gateway.
 	// +optional
-	IsPublic bool `json:"isPublic"`
+	IsPublic bool `json:"isPublic"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// IsIPv6 defines the subnet as an IPv6 subnet. A subnet is IPv6 when it is associated with a VPC that has IPv6 enabled.
 	// IPv6 is only supported in managed clusters, this field cannot be set on AWSCluster object.
 	// +optional
-	IsIPv6 bool `json:"isIpv6,omitempty"`
+	IsIPv6 bool `json:"isIpv6,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// RouteTableID is the routing table id associated with the subnet.
 	// +optional
@@ -973,7 +973,7 @@ type IngressRule struct {
 
 	// NatGatewaysIPsSource use the NAT gateways IPs as the source for the ingress rule.
 	// +optional
-	NatGatewaysIPsSource bool `json:"natGatewaysIPsSource,omitempty"`
+	NatGatewaysIPsSource bool `json:"natGatewaysIPsSource,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 }
 
 // String returns a string representation of the ingress rule.

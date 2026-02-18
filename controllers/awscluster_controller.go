@@ -78,9 +78,9 @@ type AWSClusterReconciler struct {
 	elbServiceFactory            func(scope.ELBScope) services.ELBInterface
 	securityGroupFactory         func(scope.ClusterScope) services.SecurityGroupInterface
 	WatchFilterValue             string
-	ExternalResourceGC           bool
-	AlternativeGCStrategy        bool
-	TagUnmanagedNetworkResources bool
+	ExternalResourceGC           bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+	AlternativeGCStrategy        bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+	TagUnmanagedNetworkResources bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	MaxWaitActiveUpdateDelete    time.Duration
 }
 

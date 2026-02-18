@@ -169,7 +169,7 @@ type ManagedRemoteAccess struct {
 	SourceSecurityGroups []string `json:"sourceSecurityGroups,omitempty"`
 
 	// Public specifies whether to open port 22 to the public internet
-	Public bool `json:"public,omitempty"`
+	Public bool `json:"public,omitempty"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 }
 
 // AWSManagedMachinePoolStatus defines the observed state of AWSManagedMachinePool.
@@ -177,7 +177,7 @@ type AWSManagedMachinePoolStatus struct {
 	// Ready denotes that the AWSManagedMachinePool nodegroup has joined
 	// the cluster
 	// +kubebuilder:default=false
-	Ready bool `json:"ready"`
+	Ready bool `json:"ready"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 
 	// Replicas is the most recently observed number of replicas.
 	// +optional

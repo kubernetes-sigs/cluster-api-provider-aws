@@ -43,8 +43,8 @@ type CopyInput struct {
 	OperatingSystem   string
 	KubernetesVersion string
 	KmsKeyID          string
-	DryRun            bool
-	Encrypted         bool
+	DryRun            bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+	Encrypted         bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	Log               logr.Logger
 }
 
@@ -116,7 +116,7 @@ func Copy(input CopyInput) (*amiv1.AWSAMI, error) {
 
 type copyWithoutSnapshotInput struct {
 	sourceRegion string
-	dryRun       bool
+	dryRun       bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	log          logr.Logger
 	cfg          aws.Config
 	image        *types.Image
@@ -147,8 +147,8 @@ type copyWithSnapshotInput struct {
 	sourceRegion      string
 	destinationRegion string
 	kmsKeyID          string
-	dryRun            bool
-	encrypted         bool
+	dryRun            bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+	encrypted         bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	log               logr.Logger
 	image             *types.Image
 	cfg               aws.Config

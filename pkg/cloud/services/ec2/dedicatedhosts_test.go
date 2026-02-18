@@ -110,7 +110,7 @@ func TestAllocateDedicatedHost(t *testing.T) {
 		name                  string
 		dynamicAllocationSpec *infrav1.DynamicHostAllocationSpec
 		availabilityZone      string
-		expectError           bool
+		expectError           bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		instanceType          string
 		setupMocks            func(m *mocks.MockEC2API)
 	}{

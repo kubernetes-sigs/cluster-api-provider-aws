@@ -159,7 +159,7 @@ func TestDeleteCarrierGateway(t *testing.T) {
 		name    string
 		input   *infrav1.NetworkSpec
 		expect  func(m *mocks.MockEC2APIMockRecorder)
-		wantErr bool
+		wantErr bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "Should ignore deletion if vpc is unmanaged",

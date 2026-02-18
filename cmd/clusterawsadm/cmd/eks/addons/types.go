@@ -34,7 +34,7 @@ type availableAddon struct {
 
 type compatibility struct {
 	ClusterVersion   string   `json:"clusterVersion"`
-	DefaultVersion   bool     `json:"defaultVersion"`
+	DefaultVersion   bool     `json:"defaultVersion"` //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	PlatformVersions []string `json:"platformVersions"`
 }
 

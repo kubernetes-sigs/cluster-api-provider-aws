@@ -82,7 +82,7 @@ func TestAWSFargateProfileValidateRoleNameUpdate(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		expectErr      bool
+		expectErr      bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		before         *AWSFargateProfile
 		fargateProfile *AWSFargateProfile
 	}{
@@ -138,7 +138,7 @@ func TestAWSFargateProfileValidateCreate(t *testing.T) {
 	tests := []struct {
 		name    string
 		profile *AWSFargateProfile
-		wantErr bool
+		wantErr bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "profile with name is accepted",

@@ -322,7 +322,7 @@ func TestServiceSDKToLaunchTemplate(t *testing.T) {
 		wantUserDataHash      string
 		wantDataSecretKey     *types.NamespacedName
 		wantBootstrapDataHash *string
-		wantErr               bool
+		wantErr               bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "lots of input",
@@ -592,8 +592,8 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 		incoming *expinfrav1.AWSLaunchTemplate
 		existing *expinfrav1.AWSLaunchTemplate
 		expect   func(m *mocks.MockEC2APIMockRecorder)
-		want     bool
-		wantErr  bool
+		want     bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
+		wantErr  bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name: "only core security groups, order shouldn't matter",
@@ -1102,7 +1102,7 @@ func TestDeleteLaunchTemplate(t *testing.T) {
 		name      string
 		versionID string
 		expect    func(m *mocks.MockEC2APIMockRecorder)
-		wantErr   bool
+		wantErr   bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name:      "Should not return error if successfully deletes given launch template ID",
@@ -1469,7 +1469,7 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 		imageID              *string
 		awsResourceReference []infrav1.AWSResourceReference
 		expect               func(m *mocks.MockEC2APIMockRecorder)
-		wantErr              bool
+		wantErr              bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 		mpScopeUpdater       func(*scope.MachinePoolScope)
 		marketType           ec2types.MarketType
 	}{
@@ -2126,7 +2126,7 @@ func TestDeleteLaunchTemplateVersion(t *testing.T) {
 		name    string
 		args    args
 		expect  func(m *mocks.MockEC2APIMockRecorder)
-		wantErr bool
+		wantErr bool //nolint:kubeapilinter // nobools: Existing API field, not changing to preserve backwards compatibility.
 	}{
 		{
 			name:    "Should return error if version is nil",
