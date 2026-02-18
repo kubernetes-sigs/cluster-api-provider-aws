@@ -116,6 +116,12 @@ if [[ "$${KUBERNETES_VERSION}" != "" ]]; then
     $${SUDO} ctr -n k8s.io images tag "$${IMAGE_REGISTRY_PREFIX}/$${CI_CONTAINER}-amd64:$${KUBERNETES_VERSION//+/_}" "$${IMAGE_REGISTRY_PREFIX}/$${CI_CONTAINER}:$${KUBERNETES_VERSION//+/_}"
     $${SUDO} ctr -n k8s.io images tag "$${IMAGE_REGISTRY_PREFIX}/$${CI_CONTAINER}-amd64:$${KUBERNETES_VERSION//+/_}" "gcr.io/k8s-staging-ci-images/$${CI_CONTAINER}:$${KUBERNETES_VERSION//+/_}"
   done
+
+  # TODO: remove once we use k8s v1.35 image-builder templates.
+  # Note: This is a temporary fix to ensure the flag --pod-infra-container-image is not set which was removed in k8s v1.35 and deprecated for a long time.        
+  echo "Clearing --pod-infra-container-image in /etc/sysconfig/kubelet and/or /etc/default/kubelet if they exist"
+  sed -i -E 's/--pod-infra-container-image[= ][a-zA-Z0-9._/-]+(:[a-zA-Z0-9._-]+ *)?//' /etc/sysconfig/kubelet || true
+  sed -i -E 's/--pod-infra-container-image[= ][a-zA-Z0-9._/-]+(:[a-zA-Z0-9._-]+ *)?//' /etc/default/kubelet || true
 fi
 echo "* checking binary versions"
 echo "ctr version: " "$(ctr version)"
