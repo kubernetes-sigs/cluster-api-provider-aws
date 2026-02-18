@@ -179,6 +179,7 @@ func TestWebhookCreate(t *testing.T) {
 		secondaryCidr        *string
 		secondaryCidrBlocks  []infrav1.VpcCidrBlock
 		kubeProxy            KubeProxy
+		AutoMode             *AutoMode
 		accessConfig         *AccessConfig
 	}{
 		{
@@ -364,6 +365,30 @@ func TestWebhookCreate(t *testing.T) {
 				BootstrapClusterCreatorAdminPermissions: ptr.To(false),
 			},
 		},
+		{
+			name:           "autoMode compute not allowed with authenticationMode CONFIG_MAP",
+			eksClusterName: "default_cluster1",
+			eksVersion:     "v1.19",
+			expectError:    true,
+			vpcCNI:         VpcCni{Disable: false},
+			AutoMode:       &AutoMode{Enabled: true},
+		},
+		{
+			name:           "autoMode compute nodeRoleArn should be defined with nodePools",
+			eksClusterName: "default_cluster1",
+			eksVersion:     "v1.19",
+			expectError:    true,
+			vpcCNI:         VpcCni{Disable: false},
+			AutoMode:       &AutoMode{Enabled: true, Compute: Compute{NodePools: []string{"system", "general-purpose"}}},
+		},
+		{
+			name:           "autoMode compute nodeRoleArn defined with nodePools",
+			eksClusterName: "default_cluster1",
+			eksVersion:     "v1.19",
+			expectError:    false,
+			vpcCNI:         VpcCni{Disable: false},
+			AutoMode:       &AutoMode{Enabled: true, Compute: Compute{NodePools: []string{"system", "general-purpose"}, NodeRoleArn: aws.String("foo")}},
+		},
 	}
 
 	for _, tc := range tests {
@@ -409,6 +434,10 @@ func TestWebhookCreate(t *testing.T) {
 			}
 			if tc.accessConfig != nil {
 				mcp.Spec.AccessConfig = tc.accessConfig
+			}
+
+			if tc.AutoMode != nil {
+				mcp.Spec.AutoMode = tc.AutoMode
 			}
 
 			err := testEnv.Create(ctx, mcp)
@@ -874,6 +903,38 @@ func TestWebhookUpdate(t *testing.T) {
 					VPC: infrav1.VPCSpec{},
 				},
 				Version: ptr.To[string]("v1.22.0"),
+			},
+			expectError: true,
+		},
+		{
+			name: "changing noderolearn is not allowed after it has been set",
+			oldClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				NetworkSpec: infrav1.NetworkSpec{
+					VPC: infrav1.VPCSpec{},
+				},
+				Version: ptr.To[string]("1.22"),
+				AutoMode: &AutoMode{
+					Enabled: true,
+					Compute: Compute{
+						NodeRoleArn: aws.String("fooarn"),
+						NodePools:   []string{"system", "general-purpose"},
+					},
+				},
+			},
+			newClusterSpec: AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				NetworkSpec: infrav1.NetworkSpec{
+					VPC: infrav1.VPCSpec{},
+				},
+				Version: ptr.To[string]("1.22"),
+				AutoMode: &AutoMode{
+					Enabled: true,
+					Compute: Compute{
+						NodeRoleArn: aws.String("bararn"),
+						NodePools:   []string{"system", "general-purpose"},
+					},
+				},
 			},
 			expectError: true,
 		},

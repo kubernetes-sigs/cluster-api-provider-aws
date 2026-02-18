@@ -2438,6 +2438,36 @@ spec:
                   AssociateOIDCProvider can be enabled to automatically create an identity
                   provider for the controller for use with IAM roles for service accounts
                 type: boolean
+              autoMode:
+                description: |-
+                  AutoMode is the EKS Auto Mode.
+                  allows to create cluster with aws compute, ebs, elb capabilities.
+                properties:
+                  compute:
+                    description: Compute capability configuration for EKS Auto Mode.
+                    properties:
+                      nodePools:
+                        description: NodePools that defines the compute resources
+                          for your EKS Auto Mode cluster.
+                        items:
+                          enum:
+                          - system
+                          - general-purpose
+                          type: string
+                        type: array
+                      nodeRoleArn:
+                        description: |-
+                          NodeRoleArn the ARN of the IAM Role EKS will assign to EC2 Managed Instances in your EKS
+                          Auto Mode cluster. This value cannot be changed after the compute capability of
+                          EKS Auto Mode is enabled. For more information, see the IAM Reference in the
+                          Amazon EKS User Guide.
+                        type: string
+                    type: object
+                  enabled:
+                    default: false
+                    description: Enabled will enable EKS Auto Mode.
+                    type: boolean
+                type: object
               bastion:
                 description: Bastion contains options to configure the bastion host.
                 properties:
