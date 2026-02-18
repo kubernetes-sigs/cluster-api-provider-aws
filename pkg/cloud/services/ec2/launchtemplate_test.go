@@ -912,6 +912,82 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 			want:    true,
 			wantErr: false,
 		},
+		{
+			name: "Should return true if PlacementGroupName changes",
+			incoming: &expinfrav1.AWSLaunchTemplate{
+				PlacementGroupName: "new-placement-group",
+			},
+			existing: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+					{ID: aws.String("sg-111")},
+					{ID: aws.String("sg-222")},
+				},
+				PlacementGroupName: "old-placement-group",
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "Should return true if PlacementGroupName is added",
+			incoming: &expinfrav1.AWSLaunchTemplate{
+				PlacementGroupName: "my-placement-group",
+			},
+			existing: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+					{ID: aws.String("sg-111")},
+					{ID: aws.String("sg-222")},
+				},
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name:     "Should return true if PlacementGroupName is removed",
+			incoming: &expinfrav1.AWSLaunchTemplate{},
+			existing: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+					{ID: aws.String("sg-111")},
+					{ID: aws.String("sg-222")},
+				},
+				PlacementGroupName: "my-placement-group",
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "Should return true if PlacementGroupPartition changes",
+			incoming: &expinfrav1.AWSLaunchTemplate{
+				PlacementGroupName:      "my-placement-group",
+				PlacementGroupPartition: 2,
+			},
+			existing: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+					{ID: aws.String("sg-111")},
+					{ID: aws.String("sg-222")},
+				},
+				PlacementGroupName:      "my-placement-group",
+				PlacementGroupPartition: 3,
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "Should return false if PlacementGroupName and PlacementGroupPartition are unchanged",
+			incoming: &expinfrav1.AWSLaunchTemplate{
+				PlacementGroupName:      "my-placement-group",
+				PlacementGroupPartition: 2,
+			},
+			existing: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+					{ID: aws.String("sg-111")},
+					{ID: aws.String("sg-222")},
+				},
+				PlacementGroupName:      "my-placement-group",
+				PlacementGroupPartition: 2,
+			},
+			want:    false,
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

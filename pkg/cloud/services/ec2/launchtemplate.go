@@ -1049,6 +1049,14 @@ func (s *Service) LaunchTemplateNeedsUpdate(scope scope.LaunchTemplateScope, inc
 		return true, nil
 	}
 
+	if incoming.PlacementGroupName != existing.PlacementGroupName {
+		return true, nil
+	}
+
+	if incoming.PlacementGroupPartition != existing.PlacementGroupPartition {
+		return true, nil
+	}
+
 	if !cmp.Equal(incoming.SSHKeyName, existing.SSHKeyName) {
 		return true, nil
 	}

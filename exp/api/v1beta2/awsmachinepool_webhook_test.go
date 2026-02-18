@@ -362,6 +362,40 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 			},
 			wantErrToContain: nil,
 		},
+		{
+			name: "Should fail if PlacementGroupPartition is set without PlacementGroupName",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AWSLaunchTemplate: AWSLaunchTemplate{
+						PlacementGroupPartition: 2,
+					},
+				},
+			},
+			wantErrToContain: ptr.To[string]("placementGroupPartition"),
+		},
+		{
+			name: "Should pass if PlacementGroupName is set without PlacementGroupPartition",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AWSLaunchTemplate: AWSLaunchTemplate{
+						PlacementGroupName: "my-placement-group",
+					},
+				},
+			},
+			wantErrToContain: nil,
+		},
+		{
+			name: "Should pass if both PlacementGroupName and PlacementGroupPartition are set",
+			pool: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AWSLaunchTemplate: AWSLaunchTemplate{
+						PlacementGroupName:      "my-partition-pg",
+						PlacementGroupPartition: 3,
+					},
+				},
+			},
+			wantErrToContain: nil,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -519,6 +553,18 @@ func TestAWSMachinePoolValidateUpdate(t *testing.T) {
 				},
 			},
 			wantErrToContain: ptr.To[string]("minHealthyPercentage"),
+		},
+		{
+			name: "Should fail update if PlacementGroupPartition is set without PlacementGroupName",
+			old:  &AWSMachinePool{},
+			new: &AWSMachinePool{
+				Spec: AWSMachinePoolSpec{
+					AWSLaunchTemplate: AWSLaunchTemplate{
+						PlacementGroupPartition: 2,
+					},
+				},
+			},
+			wantErrToContain: ptr.To[string]("placementGroupPartition"),
 		},
 	}
 	for _, tt := range tests {

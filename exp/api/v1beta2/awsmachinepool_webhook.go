@@ -175,6 +175,14 @@ func (r *AWSMachinePool) validateLifecycleHooks() field.ErrorList {
 	return validateLifecycleHooks(r.Spec.AWSLifecycleHooks)
 }
 
+func (r *AWSMachinePool) validatePlacementGroupConfig() field.ErrorList {
+	var allErrs field.ErrorList
+	if r.Spec.AWSLaunchTemplate.PlacementGroupPartition != 0 && r.Spec.AWSLaunchTemplate.PlacementGroupName == "" {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "awsLaunchTemplate", "placementGroupPartition"), "placementGroupPartition requires placementGroupName to be set"))
+	}
+	return allErrs
+}
+
 func (r *AWSMachinePool) ignitionEnabled() bool {
 	return r.Spec.Ignition != nil
 }
@@ -214,6 +222,7 @@ func (*AWSMachinePoolWebhook) ValidateCreate(_ context.Context, obj runtime.Obje
 	allErrs = append(allErrs, r.validateCapacityReservation()...)
 	allErrs = append(allErrs, r.validateLifecycleHooks()...)
 	allErrs = append(allErrs, r.validateIgnition()...)
+	allErrs = append(allErrs, r.validatePlacementGroupConfig()...)
 
 	if len(allErrs) == 0 {
 		return nil, nil
@@ -280,6 +289,7 @@ func (*AWSMachinePoolWebhook) ValidateUpdate(_ context.Context, oldObj, newObj r
 	allErrs = append(allErrs, r.validateSpotInstances()...)
 	allErrs = append(allErrs, r.validateRefreshPreferences()...)
 	allErrs = append(allErrs, r.validateLifecycleHooks()...)
+	allErrs = append(allErrs, r.validatePlacementGroupConfig()...)
 
 	if len(allErrs) == 0 {
 		return nil, nil
