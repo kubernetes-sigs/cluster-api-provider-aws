@@ -48,7 +48,15 @@ const (
 	ZoneTypeLocalZone ZoneType = "local-zone"
 	// ZoneTypeWavelengthZone defines the AWS zone type in Wavelength infrastructure.
 	ZoneTypeWavelengthZone ZoneType = "wavelength-zone"
+
+	// NATGatewayAvailabilityModeZonal creates one NAT Gateway per Availability Zone.
+	NATGatewayAvailabilityModeZonal NATGatewayAvailabilityMode = "Zonal"
+	// NATGatewayAvailabilityModeRegional creates a single regional NAT Gateway.
+	NATGatewayAvailabilityModeRegional NATGatewayAvailabilityMode = "Regional"
 )
+
+// NATGatewayAvailabilityMode defines the availability mode for NAT Gateways.
+type NATGatewayAvailabilityMode string
 
 // NetworkStatus encapsulates AWS networking resources.
 type NetworkStatus struct {
@@ -501,6 +509,28 @@ type VPCSpec struct {
 	// +kubebuilder:default=PreferPrivate
 	// +kubebuilder:validation:Enum=PreferPrivate;PreferPublic
 	SubnetSchema *SubnetSchemaType `json:"subnetSchema,omitempty"`
+
+	// NATGatewayAvailabilityMode specifies the availability mode for NAT Gateways in this VPC.
+	// Valid values are "zonal" and "regional".
+	//
+	// Zonal (default): Creates one NAT Gateway per Availability Zone in public subnets.
+	// Each private subnet routes traffic through the NAT Gateway in its own AZ.
+	//
+	// Regional: Creates a single NAT Gateway that automatically expands and contracts across
+	// all Availability Zones based on workload presence. Does not require public subnets.
+	// Provides automatic high availability with simplified setup and enhanced security.
+	//
+	// Regional NAT Gateways support up to 32 IP addresses per AZ (vs 8 for zonal)
+	// and are recommended for new deployments unless private connectivity is required.
+	//
+	// Note: Regional NAT Gateways are available in all commercial AWS Regions except
+	// AWS GovCloud (US) and China Regions.
+	//
+	// Defaults to Zonal for backward compatibility.
+	// +optional
+	// +kubebuilder:default=Zonal
+	// +kubebuilder:validation:Enum=Zonal;Regional
+	NATGatewayAvailabilityMode *NATGatewayAvailabilityMode `json:"natGatewayAvailabilityMode,omitempty"`
 }
 
 // String returns a string representation of the VPC.
@@ -537,6 +567,19 @@ func (v *VPCSpec) GetPublicIpv4Pool() *string {
 		return v.ElasticIPPool.PublicIpv4Pool
 	}
 	return nil
+}
+
+// IsRegionalNATGateway returns true if the NAT Gateway availability mode is Regional.
+func (v *VPCSpec) IsRegionalNATGateway() bool {
+	return v.NATGatewayAvailabilityMode != nil && *v.NATGatewayAvailabilityMode == NATGatewayAvailabilityModeRegional
+}
+
+// GetNATGatewayAvailabilityMode returns the NAT Gateway availability mode, defaulting to Zonal.
+func (v *VPCSpec) GetNATGatewayAvailabilityMode() NATGatewayAvailabilityMode {
+	if v.NATGatewayAvailabilityMode == nil {
+		return NATGatewayAvailabilityModeZonal
+	}
+	return *v.NATGatewayAvailabilityMode
 }
 
 // SubnetSpec configures an AWS Subnet.
