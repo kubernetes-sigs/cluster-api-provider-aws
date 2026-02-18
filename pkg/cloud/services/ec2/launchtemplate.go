@@ -674,6 +674,7 @@ func (s *Service) createLaunchTemplateData(scope scope.LaunchTemplateScope, imag
 	data.InstanceMarketOptions = instanceMarketOptions
 	data.PrivateDnsNameOptions = getLaunchTemplatePrivateDNSNameOptionsRequest(scope.GetLaunchTemplate().PrivateDNSName)
 	data.CapacityReservationSpecification = getLaunchTemplateCapacityReservationSpecification(scope.GetLaunchTemplate())
+	data.Placement = getLaunchTemplatePlacementRequest(scope.GetLaunchTemplate())
 
 	blockDeviceMappings := []types.LaunchTemplateBlockDeviceMappingRequest{}
 
@@ -722,6 +723,30 @@ func getLaunchTemplateCapacityReservationSpecification(awsLaunchTemplate *expinf
 		}
 	}
 	return spec
+}
+
+func getLaunchTemplatePlacementRequest(awsLaunchTemplate *expinfrav1.AWSLaunchTemplate) *types.LaunchTemplatePlacementRequest {
+	if awsLaunchTemplate == nil {
+		return nil
+	}
+	if awsLaunchTemplate.PlacementGroupName == "" && awsLaunchTemplate.PlacementGroupPartition == 0 {
+		return nil
+	}
+
+	// PlacementGroupPartition without PlacementGroupName is invalid
+	if awsLaunchTemplate.PlacementGroupName == "" && awsLaunchTemplate.PlacementGroupPartition != 0 {
+		return nil
+	}
+
+	placement := &types.LaunchTemplatePlacementRequest{
+		GroupName: aws.String(awsLaunchTemplate.PlacementGroupName),
+	}
+
+	if awsLaunchTemplate.PlacementGroupPartition != 0 {
+		placement.PartitionNumber = utils.ToInt32Pointer(&awsLaunchTemplate.PlacementGroupPartition)
+	}
+
+	return placement
 }
 
 func volumeToLaunchTemplateBlockDeviceMappingRequest(v *infrav1.Volume) *types.LaunchTemplateBlockDeviceMappingRequest {
@@ -1021,6 +1046,14 @@ func (s *Service) LaunchTemplateNeedsUpdate(scope scope.LaunchTemplateScope, inc
 	}
 
 	if !cmp.Equal(incoming.PrivateDNSName, existing.PrivateDNSName) {
+		return true, nil
+	}
+
+	if incoming.PlacementGroupName != existing.PlacementGroupName {
+		return true, nil
+	}
+
+	if incoming.PlacementGroupPartition != existing.PlacementGroupPartition {
 		return true, nil
 	}
 
