@@ -81,10 +81,10 @@ endif
 
 # Release variables
 
-STAGING_REGISTRY ?= cf-registry.nr-ops.net/container-fabric
+STAGING_REGISTRY ?= gcr.io/k8s-staging-cluster-api-aws
 STAGING_BUCKET ?= artifacts.k8s-staging-cluster-api-aws.appspot.com
 BUCKET ?= $(STAGING_BUCKET)
-PROD_REGISTRY := cf-registry.nr-ops.net/container-fabric
+PROD_REGISTRY := registry.k8s.io/cluster-api-aws
 REGISTRY ?= $(STAGING_REGISTRY)
 RELEASE_TAG ?= $(shell git describe --abbrev=0 2>/dev/null)
 PULL_BASE_REF ?= $(RELEASE_TAG) # PULL_BASE_REF will be provided by Prow
