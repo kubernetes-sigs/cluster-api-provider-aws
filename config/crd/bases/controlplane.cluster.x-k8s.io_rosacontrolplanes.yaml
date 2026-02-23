@@ -549,17 +549,14 @@ spec:
                 - name
                 x-kubernetes-list-type: map
               fips:
-                default: ""
+                default: Disabled
                 description: |-
                   FIPS configures FIPS-validated / Modules in Process cryptographic libraries.
                   When set to "Enabled", the cluster will use FIPS-compliant cryptographic modules.
                   This setting cannot be changed after cluster creation.
-                  Valid values are:
-                  - "" (empty string, default): FIPS mode disabled
-                  - "Enabled": FIPS mode enabled
                 enum:
-                - ""
                 - Enabled
+                - Disabled
                 type: string
                 x-kubernetes-validations:
                 - message: fips is immutable
