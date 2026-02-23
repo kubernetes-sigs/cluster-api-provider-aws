@@ -293,6 +293,11 @@ type Instance struct {
 	// +kubebuilder:validation:Enum="";None;CapacityReservationsOnly;Open
 	// +optional
 	CapacityReservationPreference CapacityReservationPreference `json:"capacityReservationPreference,omitempty"`
+
+	// CPUOptions defines CPU-related settings for the instance, including the confidential computing policy.
+	// When omitted, this means no opinion and the AWS platform is left to choose a reasonable default.
+	// +optional
+	CPUOptions CPUOptions `json:"cpuOptions,omitempty"`
 }
 
 // CapacityReservationPreference describes the preferred use of capacity reservations
@@ -534,3 +539,41 @@ var (
 	// SubnetSchemaPreferPublic allocates more subnets in the VPC to public subnets.
 	SubnetSchemaPreferPublic = SubnetSchemaType("PreferPublic")
 )
+
+// AWSConfidentialComputePolicy represents the confidential compute configuration for the instance.
+// +kubebuilder:validation:Enum=Disabled;AMDEncryptedVirtualizationNestedPaging
+type AWSConfidentialComputePolicy string
+
+const (
+	// AWSConfidentialComputePolicyDisabled disables confidential computing for the instance.
+	AWSConfidentialComputePolicyDisabled AWSConfidentialComputePolicy = "Disabled"
+	// AWSConfidentialComputePolicySEVSNP enables AMD SEV-SNP as the confidential computing technology for the instance.
+	AWSConfidentialComputePolicySEVSNP AWSConfidentialComputePolicy = "AMDEncryptedVirtualizationNestedPaging"
+)
+
+// NestedVirtualizationPolicy represents the nested virtualization configuration for the instance.
+// +kubebuilder:validation:Enum=enabled;disabled
+type NestedVirtualizationPolicy string
+
+const (
+	// NestedVirtualizationPolicyEnabled enables nested virtualization for the instance.
+	NestedVirtualizationPolicyEnabled NestedVirtualizationPolicy = "enabled"
+	// NestedVirtualizationPolicyDisabled disables nested virtualization for the instance.
+	NestedVirtualizationPolicyDisabled NestedVirtualizationPolicy = "disabled"
+)
+
+// CPUOptions defines CPU-related settings for the instance.
+// +kubebuilder:validation:MinProperties=1
+type CPUOptions struct {
+	// ConfidentialCompute specifies whether confidential computing should be enabled for the instance.
+	// Valid values are: Disabled, AMDEncryptedVirtualizationNestedPaging
+	// +optional
+	ConfidentialCompute AWSConfidentialComputePolicy `json:"confidentialCompute,omitempty"`
+
+	// NestedVirtualization specifies whether to enable nested virtualization on the instance.
+	// Nested virtualization is supported on C8i, M8i, and R8i instance types.
+	// Valid values are: enabled, disabled
+	// +kubebuilder:validation:Enum=enabled;disabled
+	// +optional
+	NestedVirtualization NestedVirtualizationPolicy `json:"nestedVirtualization,omitempty"`
+}

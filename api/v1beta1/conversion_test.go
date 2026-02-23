@@ -68,6 +68,50 @@ func AWSMachineTemplateFuzzer(obj *AWSMachineTemplate, c fuzz.Continue) {
 	obj.Spec.Template.Spec.FailureDomain = nil
 }
 
+func TestCPUOptionsConversionRoundTrip(t *testing.T) {
+	tests := []struct {
+		name       string
+		cpuOptions CPUOptions
+	}{
+		{
+			name: "with NestedVirtualization and ConfidentialCompute set",
+			cpuOptions: CPUOptions{
+				NestedVirtualization: NestedVirtualizationPolicyEnabled,
+				ConfidentialCompute:  AWSConfidentialComputePolicyDisabled,
+			},
+		},
+		{
+			name:       "with zero-value CPUOptions (upgrade from older release)",
+			cpuOptions: CPUOptions{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			src := &AWSMachine{
+				Spec: AWSMachineSpec{
+					CPUOptions: tt.cpuOptions,
+				},
+			}
+
+			// Convert v1beta1 → v1beta2.
+			dst := &v1beta2.AWSMachine{}
+			g.Expect(src.ConvertTo(dst)).To(Succeed())
+
+			g.Expect(dst.Spec.CPUOptions.NestedVirtualization).To(Equal(v1beta2.NestedVirtualizationPolicy(tt.cpuOptions.NestedVirtualization)))
+			g.Expect(dst.Spec.CPUOptions.ConfidentialCompute).To(Equal(v1beta2.AWSConfidentialComputePolicy(tt.cpuOptions.ConfidentialCompute)))
+
+			// Convert v1beta2 → v1beta1 (round-trip).
+			roundTripped := &AWSMachine{}
+			g.Expect(roundTripped.ConvertFrom(dst)).To(Succeed())
+
+			g.Expect(roundTripped.Spec.CPUOptions).To(Equal(tt.cpuOptions))
+		})
+	}
+}
+
 func TestFuzzyConversion(t *testing.T) {
 	g := NewWithT(t)
 	scheme := runtime.NewScheme()
