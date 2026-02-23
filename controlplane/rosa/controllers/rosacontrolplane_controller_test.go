@@ -46,6 +46,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	stsiface "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts"
@@ -770,4 +771,102 @@ func cleanupObject(g *WithT, obj client.Object) {
 	if obj.DeepCopyObject() != nil {
 		g.Expect(testEnv.Cleanup(ctx, obj)).To(Succeed())
 	}
+}
+
+func TestBuildOCMClusterSpec(t *testing.T) {
+	// Mock AWS Creator
+	mockCreator := &rosaaws.Creator{
+		AccountID: "123456789012",
+		ARN:       "arn:aws:iam::123456789012:user/test-user",
+	}
+
+	// Mock ROSARoleConfig
+	mockRoleConfig := &expinfrav1.ROSARoleConfig{
+		Status: expinfrav1.ROSARoleConfigStatus{
+			OIDCID: "test-oidc-id",
+			AccountRolesRef: expinfrav1.AccountRolesRef{
+				InstallerRoleARN: "arn:aws:iam::123456789012:role/installer",
+				SupportRoleARN:   "arn:aws:iam::123456789012:role/support",
+				WorkerRoleARN:    "arn:aws:iam::123456789012:role/worker",
+			},
+			OperatorRolesRef: rosacontrolplanev1.AWSRolesRef{
+				IngressARN:              "arn:aws:iam::123456789012:role/ingress",
+				ImageRegistryARN:        "arn:aws:iam::123456789012:role/image-registry",
+				StorageARN:              "arn:aws:iam::123456789012:role/storage",
+				NetworkARN:              "arn:aws:iam::123456789012:role/network",
+				KubeCloudControllerARN:  "arn:aws:iam::123456789012:role/kube-cloud-controller",
+				KMSProviderARN:          "arn:aws:iam::123456789012:role/kms-provider",
+				ControlPlaneOperatorARN: "arn:aws:iam::123456789012:role/control-plane-operator",
+				NodePoolManagementARN:   "arn:aws:iam::123456789012:role/nodepool-management",
+			},
+		},
+	}
+
+	// Test case 1: FIPS enabled
+	t.Run("FIPS Enabled", func(t *testing.T) {
+		g := NewWithT(t)
+		controlPlaneSpec := rosacontrolplanev1.RosaControlPlaneSpec{
+			RosaClusterName:   "test-cluster",
+			Region:            "us-west-2",
+			Version:           "4.14.5",
+			FIPS:              rosacontrolplanev1.Enabled, // FIPS enabled
+			Subnets:           []string{"subnet-1", "subnet-2"},
+			AvailabilityZones: []string{"us-west-2a"},
+			DefaultMachinePoolSpec: rosacontrolplanev1.DefaultMachinePoolSpec{
+				InstanceType: "m5.xlarge",
+			},
+		}
+
+		ocmSpec, err := buildOCMClusterSpec(controlPlaneSpec, mockRoleConfig, nil, mockCreator)
+
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ocmSpec.FIPS).To(BeTrue())
+		g.Expect(ocmSpec.Name).To(Equal("test-cluster"))
+		g.Expect(ocmSpec.Region).To(Equal("us-west-2"))
+	})
+
+	// Test case 2: FIPS explicitly disabled
+	t.Run("FIPS Disabled (Explicit)", func(t *testing.T) {
+		g := NewWithT(t)
+		controlPlaneSpec := rosacontrolplanev1.RosaControlPlaneSpec{
+			RosaClusterName:   "test-cluster-no-fips",
+			Region:            "us-east-1",
+			Version:           "4.14.5",
+			FIPS:              rosacontrolplanev1.Disabled, // FIPS explicitly disabled
+			Subnets:           []string{"subnet-1", "subnet-2"},
+			AvailabilityZones: []string{"us-east-1a"},
+			DefaultMachinePoolSpec: rosacontrolplanev1.DefaultMachinePoolSpec{
+				InstanceType: "m5.xlarge",
+			},
+		}
+
+		ocmSpec, err := buildOCMClusterSpec(controlPlaneSpec, mockRoleConfig, nil, mockCreator)
+
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ocmSpec.FIPS).To(BeFalse())
+		g.Expect(ocmSpec.Name).To(Equal("test-cluster-no-fips"))
+		g.Expect(ocmSpec.Region).To(Equal("us-east-1"))
+	})
+
+	// Test case 3: Zero value FIPS (should be false)
+	t.Run("FIPS Zero Value", func(t *testing.T) {
+		g := NewWithT(t)
+		controlPlaneSpec := rosacontrolplanev1.RosaControlPlaneSpec{
+			RosaClusterName: "test-cluster-zero-fips",
+			Region:          "us-west-1",
+			Version:         "4.14.5",
+			// FIPS field not explicitly set (zero value)
+			Subnets:           []string{"subnet-1", "subnet-2"},
+			AvailabilityZones: []string{"us-west-1a"},
+			DefaultMachinePoolSpec: rosacontrolplanev1.DefaultMachinePoolSpec{
+				InstanceType: "m5.xlarge",
+			},
+		}
+
+		ocmSpec, err := buildOCMClusterSpec(controlPlaneSpec, mockRoleConfig, nil, mockCreator)
+
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ocmSpec.FIPS).To(BeFalse())
+		g.Expect(ocmSpec.Name).To(Equal("test-cluster-zero-fips"))
+	})
 }

@@ -1170,7 +1170,7 @@ func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpe
 		ComputeMachineType:        controlPlaneSpec.DefaultMachinePoolSpec.InstanceType,
 		AvailabilityZones:         availabilityZones,
 		Tags:                      controlPlaneSpec.AdditionalTags,
-		EtcdEncryption:            controlPlaneSpec.EtcdEncryptionKMSARN != "",
+		EtcdEncryption:            controlPlaneSpec.EtcdEncryptionKMSARN != "" || controlPlaneSpec.FIPS == rosacontrolplanev1.Enabled,
 		EtcdEncryptionKMSArn:      controlPlaneSpec.EtcdEncryptionKMSARN,
 
 		SubnetIds:        subnetIDs,
@@ -1188,6 +1188,7 @@ func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpe
 		AWSCreator:                   creator,
 		AuditLogRoleARN:              ptr.To(controlPlaneSpec.AuditLogRoleARN),
 		ExternalAuthProvidersEnabled: controlPlaneSpec.EnableExternalAuthProviders,
+		FIPS:                         controlPlaneSpec.FIPS == rosacontrolplanev1.Enabled,
 	}
 
 	if controlPlaneSpec.EndpointAccess == rosacontrolplanev1.Private {
