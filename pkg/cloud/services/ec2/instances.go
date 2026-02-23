@@ -1404,6 +1404,14 @@ func getInstanceCPUOptionsRequest(cpuOptions infrav1.CPUOptions) *types.CpuOptio
 	default:
 	}
 
+	switch cpuOptions.NestedVirtualization {
+	case infrav1.NestedVirtualizationPolicyEnabled:
+		request.NestedVirtualization = types.NestedVirtualizationSpecificationEnabled
+	case infrav1.NestedVirtualizationPolicyDisabled:
+		request.NestedVirtualization = types.NestedVirtualizationSpecificationDisabled
+	default:
+	}
+
 	if *request == (types.CpuOptionsRequest{}) {
 		return nil
 	}
