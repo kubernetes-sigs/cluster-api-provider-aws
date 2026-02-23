@@ -253,6 +253,10 @@ type AWSMachineSpec struct {
 	// +kubebuilder:validation:Enum="";None;CapacityReservationsOnly;Open
 	// +optional
 	CapacityReservationPreference CapacityReservationPreference `json:"capacityReservationPreference,omitempty"`
+
+	// CPUOptions defines CPU-related settings for the instance.
+	// +optional
+	CPUOptions CPUOptions `json:"cpuOptions,omitempty"`
 }
 
 // CloudInit defines options related to the bootstrapping systems where
