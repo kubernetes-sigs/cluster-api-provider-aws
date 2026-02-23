@@ -66,6 +66,10 @@ func (*rosaControlPlaneWebhook) ValidateCreate(_ context.Context, obj runtime.Ob
 		allErrs = append(allErrs, err)
 	}
 
+	if err := r.validateFIPS(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+
 	if err := r.validateExternalAuthProviders(); err != nil {
 		allErrs = append(allErrs, err)
 	}
@@ -193,6 +197,15 @@ func (r *ROSAControlPlane) validateEtcdEncryptionKMSArn() *field.Error {
 	err := kmsArnRegexpValidator.ValidateKMSKeyARN(&r.Spec.EtcdEncryptionKMSARN)
 	if err != nil {
 		return field.Invalid(field.NewPath("spec.etcdEncryptionKMSARN"), r.Spec.EtcdEncryptionKMSARN, err.Error())
+	}
+
+	return nil
+}
+
+func (r *ROSAControlPlane) validateFIPS() *field.Error {
+	if r.Spec.FIPS == Enabled && r.Spec.EtcdEncryptionKMSARN == "" {
+		return field.Invalid(field.NewPath("spec.etcdEncryptionKMSARN"), r.Spec.EtcdEncryptionKMSARN,
+			"etcdEncryptionKMSARN is required when fips is Enabled. Create a KMS key, tag it with 'red-hat:true', and provide the ARN.")
 	}
 
 	return nil
