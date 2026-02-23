@@ -129,6 +129,18 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// +kubebuilder:default=stable
 	ChannelGroup ChannelGroupType `json:"channelGroup"`
 
+	// FIPS configures FIPS-validated / Modules in Process cryptographic libraries.
+	// When set to "Enabled", the cluster will use FIPS-compliant cryptographic modules.
+	// This setting cannot be changed after cluster creation.
+	// Valid values are:
+	// - "" (empty string, default): FIPS mode disabled
+	// - "Enabled": FIPS mode enabled
+	// +optional
+	// +kubebuilder:default=""
+	// +kubebuilder:validation:Enum="";Enabled
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="fips is immutable"
+	FIPS string `json:"fips,omitempty"`
+
 	// VersionGate requires acknowledgment when upgrading ROSA-HCP y-stream versions (e.g., from 4.15 to 4.16).
 	// Default is WaitForAcknowledge.
 	// WaitForAcknowledge: If acknowledgment is required, the upgrade will not proceed until VersionGate is set to Acknowledge or AlwaysAcknowledge.

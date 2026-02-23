@@ -548,6 +548,22 @@ spec:
                 x-kubernetes-list-map-keys:
                 - name
                 x-kubernetes-list-type: map
+              fips:
+                default: ""
+                description: |-
+                  FIPS configures FIPS-validated / Modules in Process cryptographic libraries.
+                  When set to "Enabled", the cluster will use FIPS-compliant cryptographic modules.
+                  This setting cannot be changed after cluster creation.
+                  Valid values are:
+                  - "" (empty string, default): FIPS mode disabled
+                  - "Enabled": FIPS mode enabled
+                enum:
+                - ""
+                - Enabled
+                type: string
+                x-kubernetes-validations:
+                - message: fips is immutable
+                  rule: self == oldSelf
               identityRef:
                 description: |-
                   IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
