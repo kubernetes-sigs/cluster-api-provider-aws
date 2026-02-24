@@ -808,7 +808,7 @@ func TestBuildOCMClusterSpec(t *testing.T) {
 			},
 		}
 
-		ocmSpec, err := buildOCMClusterSpec(controlPlaneSpec, mockCreator)
+		ocmSpec, err := buildOCMClusterSpec(controlPlaneSpec, nil, nil, mockCreator)
 
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(ocmSpec.FIPS).To(BeTrue())
@@ -843,7 +843,7 @@ func TestBuildOCMClusterSpec(t *testing.T) {
 			},
 		}
 
-		ocmSpec, err := buildOCMClusterSpec(controlPlaneSpec, mockCreator)
+		ocmSpec, err := buildOCMClusterSpec(controlPlaneSpec, nil, nil, mockCreator)
 
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(ocmSpec.FIPS).To(BeFalse())
@@ -878,7 +878,7 @@ func TestBuildOCMClusterSpec(t *testing.T) {
 			},
 		}
 
-		ocmSpec, err := buildOCMClusterSpec(controlPlaneSpec, mockCreator)
+		ocmSpec, err := buildOCMClusterSpec(controlPlaneSpec, nil, nil, mockCreator)
 
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(ocmSpec.FIPS).To(BeFalse())
