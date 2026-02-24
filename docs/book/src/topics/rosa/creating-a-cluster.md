@@ -172,4 +172,26 @@ Note; Skip the "Create the required IAM roles and OpenID Connect configuration" 
     kubectl apply -f rosa-capi-cluster.yaml
     ```
 
+## Optional Configuration
+
+### Enable FIPS mode
+
+ROSA HCP clusters can be configured to use FIPS-validated cryptographic modules. This setting is immutable and must be configured during cluster creation.
+
+To enable FIPS mode, add the `fips` field to your `ROSAControlPlane` spec:
+
+```yaml
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+kind: ROSAControlPlane
+metadata:
+  name: "capi-rosa-quickstart-control-plane"
+spec:
+  fips: Enabled  # Valid values: Enabled, Disabled (default)
+  ...
+```
+
+**Note:** The FIPS setting cannot be changed after cluster creation.
+
+---
+
 see [ROSAControlPlane CRD Reference](https://cluster-api-aws.sigs.k8s.io/crd/#controlplane.cluster.x-k8s.io/v1beta2.ROSAControlPlane) for all possible configurations.
