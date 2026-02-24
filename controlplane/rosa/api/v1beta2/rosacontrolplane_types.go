@@ -71,15 +71,17 @@ const (
 	Nightly ChannelGroupType = "nightly"
 )
 
-// FIPS specifies the FIPS mode for the ROSA Control Plane.
-type FIPS string
+// State represents a binary enabled/disabled state for feature flags.
+// This type provides a reusable pattern for boolean-like configuration options
+// across the ROSA control plane, ensuring consistency in how features are toggled.
+type State string
 
 const (
-	// FIPSEnabled enables FIPS-validated cryptographic modules
-	FIPSEnabled FIPS = "Enabled"
+	// Enabled indicates the feature is enabled
+	Enabled State = "Enabled"
 
-	// FIPSDisabled disables FIPS mode (default)
-	FIPSDisabled FIPS = "Disabled"
+	// Disabled indicates the feature is disabled
+	Disabled State = "Disabled"
 )
 
 // AutoNodeMode specifies the AutoNode mode for the ROSA Control Plane.
@@ -141,13 +143,17 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	ChannelGroup ChannelGroupType `json:"channelGroup"`
 
 	// FIPS configures FIPS-validated / Modules in Process cryptographic libraries.
-	// When set to "Enabled", the cluster will use FIPS-compliant cryptographic modules.
-	// This setting cannot be changed after cluster creation.
+	// FIPS (Federal Information Processing Standard) 140-2 is a U.S. government standard
+	// that validates cryptographic modules used to protect sensitive information.
+	//
+	// When set to "Enabled", the cluster will use FIPS 140-2 validated cryptographic modules.
+	// This setting is immutable and cannot be changed after cluster creation.
+	//
 	// +optional
 	// +kubebuilder:default=Disabled
 	// +kubebuilder:validation:Enum=Enabled;Disabled
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="fips is immutable"
-	FIPS FIPS `json:"fips,omitempty"`
+	FIPS State `json:"fips,omitempty"`
 
 	// VersionGate requires acknowledgment when upgrading ROSA-HCP y-stream versions (e.g., from 4.15 to 4.16).
 	// Default is WaitForAcknowledge.

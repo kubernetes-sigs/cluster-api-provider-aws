@@ -787,7 +787,7 @@ func TestBuildOCMClusterSpec(t *testing.T) {
 			RosaClusterName: "test-cluster",
 			Region:          "us-west-2",
 			Version:         "4.14.5",
-			FIPS:            "Enabled", // FIPS enabled
+			FIPS:            rosacontrolplanev1.Enabled, // FIPS enabled
 			Subnets:         []string{"subnet-1", "subnet-2"},
 			InstallerRoleARN: "arn:aws:iam::123456789012:role/installer",
 			SupportRoleARN:   "arn:aws:iam::123456789012:role/support",
@@ -816,13 +816,13 @@ func TestBuildOCMClusterSpec(t *testing.T) {
 		g.Expect(ocmSpec.Region).To(Equal("us-west-2"))
 	})
 
-	// Test case 2: FIPS disabled (default)
-	t.Run("FIPS Disabled (Default)", func(t *testing.T) {
+	// Test case 2: FIPS explicitly disabled
+	t.Run("FIPS Disabled (Explicit)", func(t *testing.T) {
 		controlPlaneSpec := rosacontrolplanev1.RosaControlPlaneSpec{
 			RosaClusterName: "test-cluster-no-fips",
 			Region:          "us-east-1",
 			Version:         "4.14.5",
-			FIPS:            "", // FIPS disabled (empty string)
+			FIPS:            rosacontrolplanev1.Disabled, // FIPS explicitly disabled
 			Subnets:         []string{"subnet-1", "subnet-2"},
 			InstallerRoleARN: "arn:aws:iam::123456789012:role/installer",
 			SupportRoleARN:   "arn:aws:iam::123456789012:role/support",
