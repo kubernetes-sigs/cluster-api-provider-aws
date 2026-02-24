@@ -71,7 +71,7 @@ func TestAWSMachineCreate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "ensure root volume throughput is nonnegative",
+			name: "ensure root volume throughput is within range",
 			machine: &AWSMachine{
 				Spec: AWSMachineSpec{
 					RootVolume: &Volume{
