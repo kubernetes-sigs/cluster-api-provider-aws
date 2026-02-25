@@ -283,6 +283,27 @@ type AWSClusterStatus struct {
 	Conditions     clusterv1beta1.Conditions     `json:"conditions,omitempty"`
 }
 
+// AdditionalIAMInstanceProfile defines an additional IAM instance profile
+// with a custom S3 prefix for accessing bootstrap data from S3 Bucket.
+// This enables support for custom node pools (e.g., Karpenter) that need
+// access to bootstrap data with custom S3 prefixes.
+type AdditionalIAMInstanceProfile struct {
+	// Name is the name of the IAM instance profile that will be granted access.
+	// This should match the IAM role name (not the ARN).
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=128
+	Name string `json:"name"`
+
+	// Prefix is the S3 object prefix (path) that this profile can access.
+	// Must end with /* to allow wildcard access (e.g., "karpenter-nodes/*", "path/to/data/*").
+	// Can also be "*" for wildcard-only access to the entire bucket.
+	// The prefix should not start with a leading slash.
+	// +kubebuilder:validation:Pattern=`^(\*|[a-zA-Z0-9!_.*'()-]+(/[a-zA-Z0-9!_.*'()-]+)*/\*)$`
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	Prefix string `json:"prefix"`
+}
+
 // S3Bucket defines a supporting S3 bucket for the cluster, currently can be optionally used for Ignition.
 type S3Bucket struct {
 	// ControlPlaneIAMInstanceProfile is a name of the IAMInstanceProfile, which will be allowed
@@ -294,6 +315,15 @@ type S3Bucket struct {
 	// worker nodes bootstrap data from S3 Bucket.
 	// +optional
 	NodesIAMInstanceProfiles []string `json:"nodesIAMInstanceProfiles,omitempty"`
+
+	// AdditionalIAMInstanceProfiles is a list of additional IAM instance profiles
+	// with custom S3 prefixes for accessing bootstrap data.
+	// This is useful for custom node pools (e.g., Karpenter) that need access
+	// to bootstrap data stored under custom prefixes.
+	// +optional
+	// +listType=map
+	// +listMapKey=name
+	AdditionalIAMInstanceProfiles []AdditionalIAMInstanceProfile `json:"additionalIAMInstanceProfiles,omitempty"`
 
 	// PresignedURLDuration defines the duration for which presigned URLs are valid.
 	//
