@@ -349,8 +349,9 @@ func (r *AWSMachine) validateRootVolume() field.ErrorList {
 		if r.Spec.RootVolume.Type != VolumeTypeGP3 {
 			allErrs = append(allErrs, field.Required(field.NewPath("spec.rootVolume.throughput"), "throughput is valid only for type 'gp3'"))
 		}
-		if *r.Spec.RootVolume.Throughput < 0 {
-			allErrs = append(allErrs, field.Required(field.NewPath("spec.rootVolume.throughput"), "throughput must be nonnegative"))
+		// See https://aws.amazon.com/ebs/general-purpose/ for gp3 limits
+		if *r.Spec.RootVolume.Throughput < 125 || *r.Spec.RootVolume.Throughput > 2000 {
+			allErrs = append(allErrs, field.Required(field.NewPath("spec.awsLaunchTemplate.rootVolume.throughput"), "throughput must be between 125 Mib/s and 2000 MiB/s"))
 		}
 	}
 
