@@ -59,7 +59,8 @@ RUN  --mount=type=cache,target=/root/.cache/go-build \
     fi
 RUN if [ "${CRYPTO_LIB}" ]; then assert-static.sh manager; fi
 RUN if [ "${CRYPTO_LIB}" ]; then assert-fips.sh manager; fi
-#RUN scan-govulncheck.sh manager
+# Vulnerability scan disabled to avoid CI/build failures; re-enable when govulncheck is stable in pipeline
+# RUN scan-govulncheck.sh manager
 ENTRYPOINT [ "/start.sh", "/workspace/manager" ]
 
 # Copy the controller-manager into a thin image
