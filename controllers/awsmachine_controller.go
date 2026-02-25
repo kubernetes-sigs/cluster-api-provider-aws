@@ -197,8 +197,6 @@ func (r *AWSMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, nil
 	}
 
-	infrav1.SetDefaults_AWSMachineSpec(&awsMachine.Spec)
-
 	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, awsMachine); err != nil || isPaused || conditionChanged {
 		return ctrl.Result{}, err
 	}
@@ -722,12 +720,6 @@ func (r *AWSMachineReconciler) reconcileOperationalState(ec2svc services.EC2Inte
 		return err
 	}
 	v1beta1conditions.MarkTrue(machineScope.AWSMachine, infrav1.SecurityGroupsReadyCondition)
-
-	err = r.ensureInstanceMetadataOptions(ec2svc, instance, machineScope.AWSMachine)
-	if err != nil {
-		machineScope.Error(err, "failed to ensure instance metadata options")
-		return err
-	}
 
 	return nil
 }
@@ -1321,12 +1313,4 @@ func (r *AWSMachineReconciler) ensureStorageTags(ec2svc services.EC2Interface, i
 			r.Log.Error(err, "Failed to fetch the changed volume tags in EC2 instance")
 		}
 	}
-}
-
-func (r *AWSMachineReconciler) ensureInstanceMetadataOptions(ec2svc services.EC2Interface, instance *infrav1.Instance, machine *infrav1.AWSMachine) error {
-	if cmp.Equal(machine.Spec.InstanceMetadataOptions, instance.InstanceMetadataOptions) {
-		return nil
-	}
-
-	return ec2svc.ModifyInstanceMetadataOptions(instance.ID, machine.Spec.InstanceMetadataOptions)
 }

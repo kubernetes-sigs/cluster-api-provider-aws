@@ -466,6 +466,11 @@ func (*awsMachineWebhook) Default(_ context.Context, obj runtime.Object) error {
 		r.Spec.Ignition.Version = DefaultIgnitionVersion
 	}
 
+	if r.Spec.InstanceMetadataOptions == nil {
+		r.Spec.InstanceMetadataOptions = &InstanceMetadataOptions{}
+	}
+	r.Spec.InstanceMetadataOptions.SetDefaults()
+
 	return nil
 }
 
