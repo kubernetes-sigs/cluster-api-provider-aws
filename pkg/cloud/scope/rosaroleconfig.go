@@ -70,7 +70,9 @@ func NewRosaRoleConfigScope(params RosaRoleConfigScopeParams) (*RosaRoleConfigSc
 		RosaRoleConfig: params.RosaRoleConfig,
 	}
 
-	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, RosaRoleConfigScope, "", params.Logger)
+	// IAM is a global service, but AWS SDK still requires a region.
+	// Use us-east-1 as the default region for IAM operations.
+	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, RosaRoleConfigScope, "us-east-1", params.Logger)
 	if err != nil {
 		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
 	}

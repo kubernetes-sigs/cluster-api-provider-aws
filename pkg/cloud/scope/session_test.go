@@ -502,3 +502,56 @@ func TestPrincipalParsing(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateRegion(t *testing.T) {
+	tests := []struct {
+		name    string
+		region  string
+		wantErr bool
+	}{
+		{name: "valid us-east-1", region: "us-east-1", wantErr: false},
+		{name: "valid us-west-2", region: "us-west-2", wantErr: false},
+		{name: "valid eu-west-1", region: "eu-west-1", wantErr: false},
+		{name: "valid ap-northeast-1", region: "ap-northeast-1", wantErr: false},
+		{name: "valid cn-north-1", region: "cn-north-1", wantErr: false},
+		{name: "valid us-gov-west-1", region: "us-gov-west-1", wantErr: false},
+		{name: "invalid region", region: "invalid-region-xyz", wantErr: true},
+		{name: "empty region", region: "", wantErr: true},
+		{name: "malformed region", region: "us-12345", wantErr: true},
+		{name: "random string", region: "notaregion", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateRegion(tt.region)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validateRegion() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestSessionForRegionWithInvalidRegion(t *testing.T) {
+	g := NewWithT(t)
+
+	// Test that invalid regions are rejected
+	_, _, err := sessionForRegion("invalid-region-xyz")
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.Error()).To(ContainSubstring("invalid region"))
+
+	// Test that empty region is rejected
+	_, _, err = sessionForRegion("")
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.Error()).To(ContainSubstring("region cannot be empty"))
+}
+
+func TestSessionForRegionWithValidRegion(t *testing.T) {
+	g := NewWithT(t)
+
+	// Test that valid regions are accepted
+	validRegions := []string{"us-east-1", "us-west-2", "eu-west-1", "ap-northeast-1"}
+	for _, region := range validRegions {
+		_, _, err := sessionForRegion(region)
+		g.Expect(err).ToNot(HaveOccurred())
+	}
+}

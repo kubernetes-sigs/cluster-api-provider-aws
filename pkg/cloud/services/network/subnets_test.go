@@ -4383,7 +4383,7 @@ func TestDiscoverSubnets(t *testing.T) {
 				AWSCluster: &infrav1.AWSCluster{
 					ObjectMeta: metav1.ObjectMeta{Name: "test"},
 					Spec: infrav1.AWSClusterSpec{
-						NetworkSpec: *tc.input,
+						Region: "us-west-2", NetworkSpec: *tc.input,
 					},
 				},
 			})
@@ -4522,7 +4522,7 @@ func TestDeleteSubnets(t *testing.T) {
 				AWSCluster: &infrav1.AWSCluster{
 					ObjectMeta: metav1.ObjectMeta{Name: "test"},
 					Spec: infrav1.AWSClusterSpec{
-						NetworkSpec: *tc.input,
+						Region: "us-west-2", NetworkSpec: *tc.input,
 					},
 				},
 			})
@@ -4590,7 +4590,9 @@ func (b *ClusterScopeBuilder) Build() (scope.NetworkScope, error) {
 		},
 		AWSCluster: &infrav1.AWSCluster{
 			ObjectMeta: metav1.ObjectMeta{Name: "test"},
-			Spec:       infrav1.AWSClusterSpec{},
+			Spec: infrav1.AWSClusterSpec{
+				Region: "us-west-2",
+			},
 		},
 	}
 
@@ -4640,7 +4642,9 @@ func (b *ManagedControlPlaneScopeBuilder) Build() (scope.NetworkScope, error) {
 		},
 		ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
 			ObjectMeta: metav1.ObjectMeta{Name: "test"},
-			Spec:       ekscontrolplanev1.AWSManagedControlPlaneSpec{},
+			Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+				Region: "us-west-2",
+			},
 		},
 	}
 
@@ -4857,7 +4861,9 @@ func TestService_retrieveZoneInfo(t *testing.T) {
 				},
 				AWSCluster: &infrav1.AWSCluster{
 					ObjectMeta: metav1.ObjectMeta{Name: "test"},
-					Spec:       infrav1.AWSClusterSpec{},
+					Spec: infrav1.AWSClusterSpec{
+						Region: "us-west-2",
+					},
 				},
 			})
 			g.Expect(err).NotTo(HaveOccurred())

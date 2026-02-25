@@ -1300,6 +1300,7 @@ func getClusterScope(client client.Client) (*scope.ClusterScope, error) {
 		Cluster: cluster,
 		AWSCluster: &infrav1.AWSCluster{
 			Spec: infrav1.AWSClusterSpec{
+				Region: "us-west-2",
 				NetworkSpec: infrav1.NetworkSpec{
 					Subnets: []infrav1.SubnetSpec{
 						{

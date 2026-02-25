@@ -133,6 +133,7 @@ func newAWSCluster() *infrav1.AWSCluster {
 			Namespace: "aws-cluster-ns",
 		},
 		Spec: infrav1.AWSClusterSpec{
+			Region:            "us-west-2",
 			ImageLookupFormat: "img-lookup-format",
 			ImageLookupBaseOS: "img-lookup-os",
 			ImageLookupOrg:    "img-lookup-org",
@@ -158,6 +159,9 @@ func newAWSManagedControlPlane() *ekscontrolplanev1.AWSManagedControlPlane {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "aws-cluster-name",
 			Namespace: "aws-cluster-ns",
+		},
+		Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+			Region: "us-west-2",
 		},
 	}
 }
