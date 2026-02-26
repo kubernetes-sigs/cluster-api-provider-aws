@@ -90,7 +90,9 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 		ginkgo.BeforeEach(func() {
 			if !e2eCtx.Settings.SkipQuotas {
 				// As the resources cannot be defined by the It() clause in CAPI tests, using the largest values required for all It() tests in this CAPI test.
-				requiredResources = &shared.TestResource{EC2Normal: 2 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, EventBridgeRules: 50}
+				// Using 3 control plane nodes to ensure controller pods can be rescheduled during upgrades,
+				// preventing webhook unavailability when a single control plane node is drained.
+				requiredResources = &shared.TestResource{EC2Normal: 6 * e2eCtx.Settings.InstanceVCPU, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, EventBridgeRules: 50}
 				requiredResources.WriteRequestedResources(e2eCtx, "capi-clusterctl-self-hosted-test")
 				Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
 			}
@@ -104,6 +106,11 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 				ArtifactFolder:        e2eCtx.Settings.ArtifactFolder,
 				SkipCleanup:           e2eCtx.Settings.SkipCleanup,
 				Flavor:                "remote-management-cluster",
+				// Use 3 control plane nodes to prevent flakiness during self-hosted upgrades.
+				// With a single CP node, controller pods (CAPA, KCP) get evicted when the node
+				// is drained during upgrade, causing webhook unavailability and blocking the
+				// pre-terminate hook completion.
+				ControlPlaneMachineCount: ptr.To[int64](3),
 			}
 		})
 		ginkgo.AfterEach(func() {
