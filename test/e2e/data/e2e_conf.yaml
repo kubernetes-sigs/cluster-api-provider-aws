@@ -190,6 +190,7 @@ variables:
   KUBERNETES_VERSION: "v1.32.0"
   KUBERNETES_VERSION_UPGRADE_TO: "v1.32.0"
   KUBERNETES_VERSION_UPGRADE_FROM: "v1.31.0"
+  KUBERNETES_AWS_CCM_VERSION: "v1.32.5"
   CNI: "../../data/cni/calico.yaml"
   KUBETEST_CONFIGURATION: "../../data/kubetest/conformance.yaml"
   EVENT_BRIDGE_INSTANCE_STATE: "true"
