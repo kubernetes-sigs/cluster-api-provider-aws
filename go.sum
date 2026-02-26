@@ -48,8 +48,8 @@ github.com/aws/amazon-vpc-cni-k8s v1.15.5 h1:/mqTXB4HoGYg4CiU4Gco9iEvZ+V/309Na4H
 github.com/aws/amazon-vpc-cni-k8s v1.15.5/go.mod h1:jV4wNtmgT2Ra1/oZU99DPOFsCUKnf0mYfIyzDyAUVAY=
 github.com/aws/aws-lambda-go v1.41.0 h1:l/5fyVb6Ud9uYd411xdHZzSf2n86TakxzpvIoz7l+3Y=
 github.com/aws/aws-lambda-go v1.41.0/go.mod h1:jwFe2KmMsHmffA1X2R09hH6lFzJQxzI8qK17ewzbQMM=
-github.com/aws/aws-sdk-go-v2 v1.39.2 h1:EJLg8IdbzgeD7xgvZ+I8M1e0fL0ptn/M47lianzth0I=
-github.com/aws/aws-sdk-go-v2 v1.39.2/go.mod h1:sDioUELIUO9Znk23YVmIk86/9DOpkbyyVb1i/gUNFXY=
+github.com/aws/aws-sdk-go-v2 v1.40.0 h1:/WMUA0kjhZExjOQN2z3oLALDREea1A7TobfuiBrKlwc=
+github.com/aws/aws-sdk-go-v2 v1.40.0/go.mod h1:c9pm7VwuW0UPxAEYGyTmyurVcNrbF6Rt/wixFqDhcjE=
 github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.1 h1:i8p8P4diljCr60PpJp6qZXNlgX4m2yQFpYk+9ZT+J4E=
 github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.1/go.mod h1:ddqbooRZYNoJ2dsTwOty16rM+/Aqmk/GOXrK8cg7V00=
 github.com/aws/aws-sdk-go-v2/config v1.31.12 h1:pYM1Qgy0dKZLHX2cXslNacbcEFMkDMl+Bcj5ROuS6p8=
@@ -60,10 +60,10 @@ github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.9 h1:Mv4Bc0mWmv6oDuSWTKnk+wg
 github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.9/go.mod h1:IKlKfRppK2a1y0gy1yH6zD+yX5uplJ6UuPlgd48dJiQ=
 github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.19.12 h1:ofHawDLJTI6ytDIji+g4dXQ6u2idzTb04tDlN9AS614=
 github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.19.12/go.mod h1:f5pL4iLDfbcxj1SZcdRdIokBB5eHbuYPS/Fs9DwUPRQ=
-github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.9 h1:se2vOWGD3dWQUtfn4wEjRQJb1HK1XsNIt825gskZ970=
-github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.9/go.mod h1:hijCGH2VfbZQxqCDN7bwz/4dzxV+hkyhjawAtdPWKZA=
-github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.9 h1:6RBnKZLkJM4hQ+kN6E7yWFveOTg8NLPHAkqrs4ZPlTU=
-github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.9/go.mod h1:V9rQKRmK7AWuEsOMnHzKj8WyrIir1yUJbZxDuZLFvXI=
+github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.14 h1:PZHqQACxYb8mYgms4RZbhZG0a7dPW06xOjmaH0EJC/I=
+github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.14/go.mod h1:VymhrMJUWs69D8u0/lZ7jSB6WgaG/NqHi3gX0aYf6U0=
+github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.14 h1:bOS19y6zlJwagBfHxs0ESzr1XCOU2KXJCWcq3E2vfjY=
+github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.14/go.mod h1:1ipeGBMAxZ0xcTm6y6paC2C/J6f6OO7LBODV9afuAyM=
 github.com/aws/aws-sdk-go-v2/internal/ini v1.8.3 h1:bIqFDwgGXXN1Kpp99pDOdKMTTb5d2KyU5X/BZxjOkRo=
 github.com/aws/aws-sdk-go-v2/internal/ini v1.8.3/go.mod h1:H5O/EsxDWyU+LP/V8i5sm8cxoZgc2fdNR9bxlOFrQTo=
 github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.9 h1:w9LnHqTq8MEdlnyhV4Bwfizd65lfNCNgdlNC6mM5paE=
@@ -82,8 +82,8 @@ github.com/aws/aws-sdk-go-v2/service/ecrpublic v1.36.0 h1:8GcatvIKYx5WkwjwY4H+K7
 github.com/aws/aws-sdk-go-v2/service/ecrpublic v1.36.0/go.mod h1:yz4NeCWotlbHoT41Vc9NofCbKEyiNlKYZFT4SiqVQCY=
 github.com/aws/aws-sdk-go-v2/service/efs v1.39.0 h1:nxn7P1nAd7ThB1B0WASAKvjddJQcvLzaOo9iN4tp3ZU=
 github.com/aws/aws-sdk-go-v2/service/efs v1.39.0/go.mod h1:8Ij4/TIExqfWWjcyQy82/V/aec2kQruuyndljE+Vuo0=
-github.com/aws/aws-sdk-go-v2/service/eks v1.64.0 h1:EYeOThTRysemFtC6J6h6b7dNg3jN03QuO5cg92ojIQE=
-github.com/aws/aws-sdk-go-v2/service/eks v1.64.0/go.mod h1:v1xXy6ea0PHtWkjFUvAUh6B/5wv7UF909Nru0dOIJDk=
+github.com/aws/aws-sdk-go-v2/service/eks v1.75.1 h1:WFcSYWHNNdnRnN8H2jyokrn3Yz5T1DMg+D3CWog4luk=
+github.com/aws/aws-sdk-go-v2/service/eks v1.75.1/go.mod h1:lrJRZkSj6nIXH/SN3gbGQp4i4AtNyha0wT7VgYZ3KDw=
 github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing v1.29.6 h1:9grU/+HRwLXJV8XUjEPThJj/H+0oHkeNBFpSSfZekeg=
 github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing v1.29.6/go.mod h1:N4fs285CsnBHlAkzBpQapefR/noggTyF09fWs72EzB4=
 github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.45.2 h1:vX70Z4lNSr7XsioU0uJq5yvxgI50sB66MvD+V/3buS4=
@@ -120,8 +120,8 @@ github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.1 h1:5fm5RTONng73/QA73LhCNR7U
 github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.1/go.mod h1:xBEjWD13h+6nq+z4AkqSfSvqRKFgDIQeaMguAJndOWo=
 github.com/aws/aws-sdk-go-v2/service/sts v1.38.6 h1:p3jIvqYwUZgu/XYeI48bJxOhvm47hZb5HUQ0tn6Q9kA=
 github.com/aws/aws-sdk-go-v2/service/sts v1.38.6/go.mod h1:WtKK+ppze5yKPkZ0XwqIVWD4beCwv056ZbPQNoeHqM8=
-github.com/aws/smithy-go v1.23.0 h1:8n6I3gXzWJB2DxBDnfxgBaSX6oe0d/t10qGz7OKqMCE=
-github.com/aws/smithy-go v1.23.0/go.mod h1:t1ufH5HMublsJYulve2RKmHDC15xu1f26kHCp/HgceI=
+github.com/aws/smithy-go v1.23.2 h1:Crv0eatJUQhaManss33hS5r40CG3ZFH+21XSkqMrIUM=
+github.com/aws/smithy-go v1.23.2/go.mod h1:LEj2LM3rBRQJxPZTB4KuzZkaZYnZPnvgIhb4pu07mx0=
 github.com/awslabs/goformation/v4 v4.19.5 h1:Y+Tzh01tWg8gf//AgGKUamaja7Wx9NPiJf1FpZu4/iU=
 github.com/awslabs/goformation/v4 v4.19.5/go.mod h1:JoNpnVCBOUtEz9bFxc9sjy8uBUCLF5c4D1L7RhRTVM8=
 github.com/aymerick/douceur v0.2.0 h1:Mv+mAeH1Q+n9Fr+oyamOlAkUNPWPlA8PPGR0QAaYuPk=
