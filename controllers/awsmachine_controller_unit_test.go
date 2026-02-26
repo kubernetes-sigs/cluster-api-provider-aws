@@ -2949,6 +2949,7 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 						},
 						MetadataOptions: &ec2types.InstanceMetadataOptionsResponse{
 							HttpEndpoint:            ec2types.InstanceMetadataEndpointState(string(infrav1.InstanceMetadataEndpointStateEnabled)),
+							HttpProtocolIpv6:        ec2types.InstanceMetadataProtocolState(string(infrav1.InstanceMetadataEndpointStateDisabled)),
 							HttpPutResponseHopLimit: aws.Int32(1),
 							HttpTokens:              ec2types.HttpTokensState(string(infrav1.HTTPTokensStateOptional)),
 							InstanceMetadataTags:    ec2types.InstanceMetadataTagsState(string(infrav1.InstanceMetadataEndpointStateDisabled)),

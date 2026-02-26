@@ -442,6 +442,6 @@ func (s *ClusterScope) UnstructuredControlPlane() (*unstructured.Unstructured, e
 }
 
 // NodePortIngressRuleCidrBlocks returns the CIDR blocks for the node NodePort ingress rules.
-func (s *ClusterScope) NodePortIngressRuleCidrBlocks() []string {
+func (s *ClusterScope) NodePortIngressRuleCidrBlocks() infrav1.CidrBlocks {
 	return s.AWSCluster.Spec.NetworkSpec.DeepCopy().NodePortIngressRuleCidrBlocks
 }
