@@ -324,7 +324,87 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "rejects ipv6",
+			name: "accepts vpc cidr",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						VPC: VPCSpec{
+							CidrBlock: "10.0.0.0/16",
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "rejects invalid vpc cidr",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						VPC: VPCSpec{
+							CidrBlock: "10.0.0.0",
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "accepts vpc secondary cidr",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						VPC: VPCSpec{
+							CidrBlock: "10.0.0.0/16",
+							SecondaryCidrBlocks: []VpcCidrBlock{
+								{
+									IPv4CidrBlock: "10.0.1.0/24",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "rejects invalid vpc secondary cidr",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						VPC: VPCSpec{
+							CidrBlock: "10.0.0.0/16",
+							SecondaryCidrBlocks: []VpcCidrBlock{
+								{
+									IPv4CidrBlock: "10.0.1.0",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects vpc secondary cidr duplicate with vpc primary cidr",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						VPC: VPCSpec{
+							CidrBlock: "10.0.0.0/16",
+							SecondaryCidrBlocks: []VpcCidrBlock{
+								{
+									IPv4CidrBlock: "10.0.0.0/16",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "accepts vpc ipv6 cidr",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					NetworkSpec: NetworkSpec{
@@ -337,10 +417,26 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 					},
 				},
 			},
+			wantErr: false,
+		},
+		{
+			name: "reject invalid vpc ipv6 cidr",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						VPC: VPCSpec{
+							IPv6: &IPv6{
+								CidrBlock: "2001:2345:5678::",
+								PoolID:    "pool-id",
+							},
+						},
+					},
+				},
+			},
 			wantErr: true,
 		},
 		{
-			name: "rejects ipv6 enabled subnet",
+			name: "accepts ipv6 enabled subnet",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					NetworkSpec: NetworkSpec{
@@ -356,10 +452,42 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 					},
 				},
 			},
+			wantErr: false,
+		},
+		{
+			name: "accepts cidr block for subnets",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						Subnets: []SubnetSpec{
+							{
+								ID:        "sub-1",
+								CidrBlock: "10.0.10.0/24",
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "rejects invalid cidr block for subnets",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						Subnets: []SubnetSpec{
+							{
+								ID:        "sub-1",
+								CidrBlock: "10.0.10.0",
+							},
+						},
+					},
+				},
+			},
 			wantErr: true,
 		},
 		{
-			name: "rejects ipv6 cidr block for subnets",
+			name: "accepts ipv6 cidr block for subnets",
 			cluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					NetworkSpec: NetworkSpec{
@@ -367,6 +495,22 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 							{
 								ID:            "sub-1",
 								IPv6CidrBlock: "2022:1234:5678:9101::/64",
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "rejects invalid ipv6 cidr block for subnets",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					NetworkSpec: NetworkSpec{
+						Subnets: []SubnetSpec{
+							{
+								ID:            "sub-1",
+								IPv6CidrBlock: "2022:1234:5678:9101::",
 							},
 						},
 					},
@@ -742,6 +886,111 @@ func TestAWSClusterValidateCreate(t *testing.T) {
 					NetworkSpec: NetworkSpec{
 						NodePortIngressRuleCidrBlocks: []string{"10.0.0.0"},
 					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects targetGroupIPType when LoadBalancer is disabled",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						TargetGroupIPType: &TargetGroupIPTypeIPv4,
+						LoadBalancerType:  LoadBalancerTypeDisabled,
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects targetGroupIPType with Classic Load Balancer",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:  LoadBalancerTypeClassic,
+						TargetGroupIPType: &TargetGroupIPTypeIPv4,
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "accepts targetGroupIPType IPv4 with Network Load Balancer",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:  LoadBalancerTypeNLB,
+						TargetGroupIPType: &TargetGroupIPTypeIPv4,
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "rejects targetGroupIPType IPv6 with VPC IPv6 disabled",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:  LoadBalancerTypeNLB,
+						TargetGroupIPType: &TargetGroupIPTypeIPv6,
+					},
+					NetworkSpec: NetworkSpec{},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "accepts targetGroupIPType IPv6 with NLB and VPC IPv6 enabled",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:  LoadBalancerTypeNLB,
+						TargetGroupIPType: &TargetGroupIPTypeIPv6,
+					},
+					NetworkSpec: NetworkSpec{
+						VPC: VPCSpec{
+							IPv6: &IPv6{
+								CidrBlock: "2001:db8::/56",
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "rejects additionalListener targetGroupIPType with Classic Load Balancer",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType: LoadBalancerTypeClassic,
+						AdditionalListeners: []AdditionalListenerSpec{
+							{
+								Port:              22623,
+								Protocol:          ELBProtocolTCP,
+								TargetGroupIPType: &TargetGroupIPTypeIPv4,
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "rejects additionalListener targetGroupIPType IPv6 with VPC IPv6 disabled",
+			cluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType: LoadBalancerTypeNLB,
+						AdditionalListeners: []AdditionalListenerSpec{
+							{
+								Port:              8443,
+								Protocol:          ELBProtocolTCP,
+								TargetGroupIPType: &TargetGroupIPTypeIPv6,
+							},
+						},
+					},
+					NetworkSpec: NetworkSpec{},
 				},
 			},
 			wantErr: true,
@@ -1204,6 +1453,53 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "should failed if controlPlaneLoadBalancer targetGroupIPType is changed",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:  LoadBalancerTypeNLB,
+						TargetGroupIPType: &TargetGroupIPTypeIPv4,
+					},
+				},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:  LoadBalancerTypeNLB,
+						TargetGroupIPType: &TargetGroupIPTypeIPv6,
+					},
+					NetworkSpec: NetworkSpec{
+						VPC: VPCSpec{
+							IPv6: &IPv6{
+								CidrBlock: "2001:db8::/56",
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "should pass controlPlaneLoadBalancer targetGroupIPType is the same on update",
+			oldCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:  LoadBalancerTypeNLB,
+						TargetGroupIPType: &TargetGroupIPTypeIPv4,
+					},
+				},
+			},
+			newCluster: &AWSCluster{
+				Spec: AWSClusterSpec{
+					ControlPlaneLoadBalancer: &AWSLoadBalancerSpec{
+						LoadBalancerType:  LoadBalancerTypeNLB,
+						TargetGroupIPType: &TargetGroupIPTypeIPv4,
+					},
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1353,6 +1649,7 @@ func TestAWSClusterValidateAllowedCIDRBlocks(t *testing.T) {
 						AllowedCIDRBlocks: []string{
 							"192.168.0.0/16",
 							"192.168.0.1/32",
+							"2001:1234:5678:9a40::/56",
 						},
 					},
 				},
@@ -1379,6 +1676,7 @@ func TestAWSClusterValidateAllowedCIDRBlocks(t *testing.T) {
 						AllowedCIDRBlocks: []string{
 							"192.168.0.0/16",
 							"192.168.0.1/32",
+							"2001:1234:5678:9a40::/56",
 						},
 						DisableIngressRules: true,
 					},
@@ -1393,6 +1691,7 @@ func TestAWSClusterValidateAllowedCIDRBlocks(t *testing.T) {
 					Bastion: Bastion{
 						AllowedCIDRBlocks: []string{
 							"100.200.300.400/99",
+							"2001:1234:5678:9a40::/129",
 						},
 					},
 				},
@@ -1445,6 +1744,7 @@ func TestAWSClusterDefaultAllowedCIDRBlocks(t *testing.T) {
 					Bastion: Bastion{
 						AllowedCIDRBlocks: []string{
 							"0.0.0.0/0",
+							"::/0",
 						},
 					},
 				},
@@ -1455,7 +1755,7 @@ func TestAWSClusterDefaultAllowedCIDRBlocks(t *testing.T) {
 			beforeCluster: &AWSCluster{
 				Spec: AWSClusterSpec{
 					Bastion: Bastion{
-						AllowedCIDRBlocks:   []string{"0.0.0.0/0"},
+						AllowedCIDRBlocks:   []string{"0.0.0.0/0", "::/0"},
 						DisableIngressRules: true,
 						Enabled:             true,
 					},

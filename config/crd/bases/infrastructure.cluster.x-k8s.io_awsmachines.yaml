@@ -639,6 +639,19 @@ spec:
                     description: ID of resource
                     type: string
                 type: object
+              assignPrimaryIPv6:
+                description: |-
+                  AssignPrimaryIPv6 specifies whether to enable assigning a primary IPv6 address to the primary network Interface.
+                  When set to enabled, the instance will be assigned a primary IPv6 address from the subnet's IPv6 CIDR block.
+                  This is required when registering instances by ID to IPv6 target groups of dual-stack load balancers.
+
+                  When not specified, the default value varies based on the subnet that the instance is launched in:
+                  - disabled if subnet is ipv4 only
+                  - enabled if subnet is ipv6 only or dual-stack
+                enum:
+                - enabled
+                - disabled
+                type: string
               capacityReservationId:
                 description: CapacityReservationID specifies the target Capacity Reservation
                   into which the instance should be launched.
@@ -921,6 +934,17 @@ spec:
                       If you specify a value of disabled, you cannot access your instance metadata.
 
                       Default: enabled
+                    enum:
+                    - enabled
+                    - disabled
+                    type: string
+                  httpProtocolIpv6:
+                    default: disabled
+                    description: |-
+                      Enables or disables the IPv6 endpoint for the instance metadata service.
+                      This applies only if you enabled the HTTP metadata endpoint.
+
+                      Default: disabled
                     enum:
                     - enabled
                     - disabled

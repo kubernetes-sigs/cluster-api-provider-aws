@@ -65,5 +65,5 @@ type SGScope interface {
 	ControlPlaneLoadBalancers() []*infrav1.AWSLoadBalancerSpec
 
 	// NodePortIngressRuleCidrBlocks returns the CIDR blocks for the node NodePort ingress rules.
-	NodePortIngressRuleCidrBlocks() []string
+	NodePortIngressRuleCidrBlocks() infrav1.CidrBlocks
 }
