@@ -764,6 +764,42 @@ func TestServiceUpdateASG(t *testing.T) {
 				})
 			},
 		},
+		{
+			name:            "replicas below minSize",
+			machinePoolName: "update-asg-replicas-below-min",
+			wantErr:         false,
+			setupMachinePoolScope: func(mps *scope.MachinePoolScope) {
+				mps.MachinePool.Spec.Replicas = ptr.To[int32](0)
+				mps.AWSMachinePool.Spec.MinSize = 2
+				mps.AWSMachinePool.Spec.MaxSize = 5
+			},
+			expect: func(e *mocks.MockEC2APIMockRecorder, m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder, g *WithT) {
+				m.UpdateAutoScalingGroup(context.TODO(), gomock.AssignableToTypeOf(&autoscaling.UpdateAutoScalingGroupInput{})).DoAndReturn(func(ctx context.Context, input *autoscaling.UpdateAutoScalingGroupInput, options ...autoscaling.Options) (*autoscaling.UpdateAutoScalingGroupOutput, error) {
+					g.Expect(input.MinSize).To(BeComparableTo(ptr.To[int32](2)))
+					g.Expect(input.MaxSize).To(BeComparableTo(ptr.To[int32](5)))
+					g.Expect(input.DesiredCapacity).To(BeComparableTo(ptr.To[int32](2)))
+					return &autoscaling.UpdateAutoScalingGroupOutput{}, nil
+				})
+			},
+		},
+		{
+			name:            "replicas above maxSize",
+			machinePoolName: "update-asg-replicas-above-max",
+			wantErr:         false,
+			setupMachinePoolScope: func(mps *scope.MachinePoolScope) {
+				mps.MachinePool.Spec.Replicas = ptr.To[int32](10)
+				mps.AWSMachinePool.Spec.MinSize = 1
+				mps.AWSMachinePool.Spec.MaxSize = 5
+			},
+			expect: func(e *mocks.MockEC2APIMockRecorder, m *mock_autoscalingiface.MockAutoScalingAPIMockRecorder, g *WithT) {
+				m.UpdateAutoScalingGroup(context.TODO(), gomock.AssignableToTypeOf(&autoscaling.UpdateAutoScalingGroupInput{})).DoAndReturn(func(ctx context.Context, input *autoscaling.UpdateAutoScalingGroupInput, options ...autoscaling.Options) (*autoscaling.UpdateAutoScalingGroupOutput, error) {
+					g.Expect(input.MinSize).To(BeComparableTo(ptr.To[int32](1)))
+					g.Expect(input.MaxSize).To(BeComparableTo(ptr.To[int32](5)))
+					g.Expect(input.DesiredCapacity).To(BeComparableTo(ptr.To[int32](5)))
+					return &autoscaling.UpdateAutoScalingGroupOutput{}, nil
+				})
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
