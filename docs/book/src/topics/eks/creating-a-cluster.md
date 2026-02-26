@@ -17,6 +17,68 @@ NOTE: When creating an EKS cluster only the **MAJOR.MINOR** of the `-kubernetes-
 By default CAPA relies on the default EKS cluster upgrade policy, which at the moment of writing is EXTENDED support.
 See more info about [cluster upgrade policy](https://docs.aws.amazon.com/eks/latest/userguide/view-upgrade-policy.html)
 
+## Choosing a Bootstrap Provider: EKSConfig vs. NodeadmConfig
+
+With the introduction of Amazon Linux 2023 (AL2023), the bootstrapping method for EKS nodes has changed. Cluster API Provider AWS (CAPA) supports two bootstrap providers for EKS:
+
+1.  **`EKSConfig`**: The original bootstrap provider. It uses the legacy `bootstrap.sh` script and is intended for use with **Amazon Linux 2 (AL2)** AMIs.
+2.  **`NodeadmConfig`**: The new bootstrap provider. It uses the modern `nodeadm` tool and is **required** for **Amazon Linux 2023 (AL2023)** AMIs.
+
+### When to use which provider
+
+The provider you must use depends on the Amazon Machine Image (AMI) and Kubernetes version you are targeting. Amazon Linux 2 AMIs are only supported for Kubernetes v1.32 and older.
+
+| Bootstrap Provider | AMI Type | Kubernetes Version |
+| --- | --- | --- |
+| `EKSConfig` | Amazon Linux 2 (AL2) | $\le$ v1.32 |
+| `NodeadmConfig` | Amazon Linux 2023 (AL2023) | $\ge$ v1.33 |
+
+When you generate a cluster, you will need to ensure your `MachineDeployment` or `MachinePool` references the correct bootstrap template `kind`.
+
+NOTE:
+
+- [The EKS team stopped publishing Al2 AMIs for Kubernetes versions 1.33 and higher.](https://awslabs.github.io/amazon-eks-ami/usage/al2/)
+- [Amazon Linux 2 end of support date (End of Life, or EOL) will be on 2026-06-30.](https://aws.amazon.com/amazon-linux-2/faqs/)
+
+**For AL2 / K8s $\le$ v1.32, use `EKSConfigTemplate`:**
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachineDeployment
+metadata:
+  name: default
+spec:
+  template:
+    spec:
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+          kind: EKSConfigTemplate  # <-- Uses bootstrap.sh
+          name: default-132
+      version: v1.32.0
+```
+
+### Secrets Manager
+
+Amazon Linux 2023 does not have the proper tooling to use the secrets manager flow for bootstrapping. CAPA uses a [custom cloud-init datasource](https://github.com/kubernetes-sigs/image-builder/pull/1583) to fetch the secure contents like the `kubeadm` tokens from secrets manager. Crucially, there is no current support for publishing CAPA-compatible AL2023 AMIs that include this necessary custom cloud-init datasource.
+
+Therefore, whenever creating `AWSMachineTemplate` objects  `insecureSkipSecretsManager` must be set to true.
+
+```yaml
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: AWSMachineTemplate
+metadata:
+  name: default
+spec:
+  template:
+    spec:
+      cloudInit:
+        insecureSkipSecretsManager: true
+      ami:
+        eksLookupType: AmazonLinux2023
+      iamInstanceProfile: nodes.cluster-api-provider-aws.sigs.k8s.io
+      instanceType: m5a.16xlarge
+```
+
 ## Kubeconfig
 
 When creating an EKS cluster 2 kubeconfigs are generated and stored as secrets in the management cluster. This is different to when you create a non-managed cluster using the AWS provider.
