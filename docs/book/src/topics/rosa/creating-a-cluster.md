@@ -178,7 +178,25 @@ Note; Skip the "Create the required IAM roles and OpenID Connect configuration" 
 
 ROSA HCP clusters can be configured to use FIPS-validated cryptographic modules. This setting is immutable and must be configured during cluster creation.
 
-To enable FIPS mode, add the `fips` field to your `ROSAControlPlane` spec:
+**Important:** When FIPS is enabled, etcd encryption with a KMS key is required. You must provide the `etcdEncryptionKMSARN` field.
+
+#### Prerequisites for FIPS
+
+1. Create a KMS key in AWS:
+   ```bash
+   aws kms create-key --region <your-region> --description "ROSA FIPS etcd encryption key"
+   ```
+
+2. Tag the KMS key with `red-hat:true`:
+   ```bash
+   aws kms tag-resource --key-id <key-id> --tags TagKey=red-hat,TagValue=true
+   ```
+
+3. Note the KMS key ARN from the output.
+
+#### Enable FIPS in your cluster
+
+To enable FIPS mode, add the `fips` and `etcdEncryptionKMSARN` fields to your `ROSAControlPlane` spec:
 
 ```yaml
 apiVersion: controlplane.cluster.x-k8s.io/v1beta2
@@ -187,10 +205,14 @@ metadata:
   name: "capi-rosa-quickstart-control-plane"
 spec:
   fips: Enabled  # Valid values: Enabled, Disabled (default)
+  etcdEncryptionKMSARN: "arn:aws:kms:us-west-2:123456789012:key/12345678-1234-1234-1234-123456789012"
   ...
 ```
 
-**Note:** The FIPS setting cannot be changed after cluster creation.
+**Notes:**
+- The FIPS setting cannot be changed after cluster creation.
+- The KMS key must be tagged with `red-hat:true` for ROSA to use it.
+- When FIPS is enabled without providing `etcdEncryptionKMSARN`, cluster creation will fail with a validation error.
 
 ---
 

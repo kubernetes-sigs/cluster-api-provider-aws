@@ -149,6 +149,9 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// When set to "Enabled", the cluster will use FIPS 140-2 validated cryptographic modules.
 	// This setting is immutable and cannot be changed after cluster creation.
 	//
+	// IMPORTANT: When FIPS is enabled, etcdEncryptionKMSARN must be provided.
+	// The KMS key must be tagged with 'red-hat:true'.
+	//
 	// +optional
 	// +kubebuilder:default=Disabled
 	// +kubebuilder:validation:Enum=Enabled;Disabled

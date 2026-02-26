@@ -1127,6 +1127,11 @@ func validateControlPlaneSpec(ocmClient rosa.OCMClient, rosaControlPlane *rosaco
 		}
 	}
 
+	// Validate FIPS requirements
+	if rosaControlPlane.Spec.FIPS == rosacontrolplanev1.Enabled && rosaControlPlane.Spec.EtcdEncryptionKMSARN == "" {
+		return "etcdEncryptionKMSARN is required when fips is Enabled. Create a KMS key, tag it with 'red-hat:true', and provide the ARN.", nil
+	}
+
 	// TODO: add more input validations
 	return "", nil
 }
@@ -1170,7 +1175,7 @@ func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpe
 		ComputeMachineType:        controlPlaneSpec.DefaultMachinePoolSpec.InstanceType,
 		AvailabilityZones:         availabilityZones,
 		Tags:                      controlPlaneSpec.AdditionalTags,
-		EtcdEncryption:            controlPlaneSpec.EtcdEncryptionKMSARN != "",
+		EtcdEncryption:            controlPlaneSpec.EtcdEncryptionKMSARN != "" || controlPlaneSpec.FIPS == rosacontrolplanev1.Enabled,
 		EtcdEncryptionKMSArn:      controlPlaneSpec.EtcdEncryptionKMSARN,
 
 		SubnetIds:        subnetIDs,
