@@ -155,6 +155,37 @@ func TestAWSManagedMachinePoolValidateCreate(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "both instanceType and instanceTypes are specified",
+			pool: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-4",
+					InstanceTypes:    []string{"m5.xlarge", "m5.2xlarge"},
+					InstanceType:     ptr.To("m5.xlarge"),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "only instanceTypes is accepted",
+			pool: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-5",
+					InstanceTypes:    []string{"m5.xlarge", "m5.2xlarge"},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "only instanceType is accepted",
+			pool: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-6",
+					InstanceType:     ptr.To("m5.xlarge"),
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -692,6 +723,114 @@ func TestAWSManagedMachinePoolValidateUpdate(t *testing.T) {
 				},
 			},
 			wantErr: false,
+		},
+		{
+			name: "adding instanceType is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					InstanceType:     ptr.To("m5.xlarge"),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "removing instanceType is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					InstanceType:     ptr.To("m5.xlarge"),
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "changing instanceType is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					InstanceType:     ptr.To("m5.xlarge"),
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					InstanceType:     ptr.To("m5.2xlarge"),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "adding instanceTypes is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					InstanceTypes:    []string{"m5.xlarge", "m5.2xlarge"},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "removing instanceTypes is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					InstanceTypes:    []string{"m5.xlarge", "m5.2xlarge"},
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "changing instanceTypes is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					InstanceTypes:    []string{"m5.xlarge", "m5.2xlarge"},
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					InstanceTypes:    []string{"m5.xlarge", "m6.xlarge"},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "adding both instanceType and instanceTypes is rejected",
+			old: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+				},
+			},
+			new: &AWSManagedMachinePool{
+				Spec: AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					InstanceType:     ptr.To("m5.xlarge"),
+					InstanceTypes:    []string{"m5.xlarge", "m6.xlarge"},
+				},
+			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {

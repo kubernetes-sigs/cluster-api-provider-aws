@@ -231,7 +231,11 @@ func (s *NodegroupService) createNodegroup(ctx context.Context) (*ekstypes.Nodeg
 	if managedPool.DiskSize != nil {
 		input.DiskSize = managedPool.DiskSize
 	}
-	if managedPool.InstanceType != nil {
+	// Support both InstanceTypes (preferred for multiple types) and InstanceType (for single type)
+	// Webhook validation ensures they are mutually exclusive
+	if len(managedPool.InstanceTypes) > 0 {
+		input.InstanceTypes = managedPool.InstanceTypes
+	} else if managedPool.InstanceType != nil {
 		input.InstanceTypes = []string{aws.ToString(managedPool.InstanceType)}
 	}
 	if len(managedPool.Taints) > 0 {

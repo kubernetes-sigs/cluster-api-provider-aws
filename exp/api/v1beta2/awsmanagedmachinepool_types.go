@@ -176,9 +176,20 @@ type AWSManagedMachinePoolSpec struct {
 	// +optional
 	DiskSize *int32 `json:"diskSize,omitempty"`
 
-	// InstanceType specifies the AWS instance type
+	// InstanceType specifies the AWS instance type.
+	// Deprecated: Use InstanceTypes instead.
 	// +optional
+	// +kubebuilder:validation:Deprecated
 	InstanceType *string `json:"instanceType,omitempty"`
+
+	// InstanceTypes specifies a list of AWS instance types for the node group.
+	// The order of instance types specified determines priority of picking that instance type.
+	// This is also influenced by the CapacityType. For On-Demand capacity, the allocation strategy
+	// uses the order of instance types to determine which instance type to use first when fulfilling capacity  for ex; c5.large, c4.large, and c3.large .
+	// See AWS documentation https://docs.aws.amazon.com/eks/latest/userguide/managed-node-groups.html#managed-node-group-capacity-types
+	// for more information.
+	// +optional
+	InstanceTypes []string `json:"instanceTypes,omitempty"`
 
 	// Scaling specifies scaling for the ASG behind this pool
 	// +optional
