@@ -19,9 +19,7 @@ package v1beta2
 import (
 	"context"
 	"fmt"
-	"reflect"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -61,87 +59,19 @@ var _ webhook.CustomDefaulter = &awsManagedMachinePoolWebhook{}
 var _ webhook.CustomValidator = &awsManagedMachinePoolWebhook{}
 
 func (r *AWSManagedMachinePool) validateScaling() field.ErrorList {
-	var allErrs field.ErrorList
-	if r.Spec.Scaling != nil { //nolint:nestif
-		minField := field.NewPath("spec", "scaling", "minSize")
-		maxField := field.NewPath("spec", "scaling", "maxSize")
-		minSize := r.Spec.Scaling.MinSize
-		maxSize := r.Spec.Scaling.MaxSize
-		if minSize != nil {
-			if *minSize < 0 {
-				allErrs = append(allErrs, field.Invalid(minField, *minSize, "must be greater or equal zero"))
-			}
-			if maxSize != nil && *maxSize < *minSize {
-				allErrs = append(allErrs, field.Invalid(maxField, *maxSize, fmt.Sprintf("must be greater than field %s", minField.String())))
-			}
-		}
-		if maxSize != nil && *maxSize < 0 {
-			allErrs = append(allErrs, field.Invalid(maxField, *maxSize, "must be greater than zero"))
-		}
-	}
-	if len(allErrs) == 0 {
-		return nil
-	}
-	return allErrs
+	return validateManagedMachinePoolScaling(r.Spec.Scaling, field.NewPath("spec", "scaling"))
 }
 
 func (r *AWSManagedMachinePool) validateNodegroupUpdateConfig() field.ErrorList {
-	var allErrs field.ErrorList
-
-	if r.Spec.UpdateConfig != nil {
-		nodegroupUpdateConfigField := field.NewPath("spec", "updateConfig")
-
-		if r.Spec.UpdateConfig.MaxUnavailable == nil && r.Spec.UpdateConfig.MaxUnavailablePercentage == nil {
-			allErrs = append(allErrs, field.Invalid(nodegroupUpdateConfigField, r.Spec.UpdateConfig, "must specify one of maxUnavailable or maxUnavailablePercentage when using nodegroup updateconfig"))
-		}
-
-		if r.Spec.UpdateConfig.MaxUnavailable != nil && r.Spec.UpdateConfig.MaxUnavailablePercentage != nil {
-			allErrs = append(allErrs, field.Invalid(nodegroupUpdateConfigField, r.Spec.UpdateConfig, "cannot specify both maxUnavailable and maxUnavailablePercentage"))
-		}
-	}
-
-	if len(allErrs) == 0 {
-		return nil
-	}
-	return allErrs
+	return validateManagedMachinePoolUpdateConfig(r.Spec.UpdateConfig, field.NewPath("spec", "updateConfig"))
 }
 
 func (r *AWSManagedMachinePool) validateRemoteAccess() field.ErrorList {
-	var allErrs field.ErrorList
-	if r.Spec.RemoteAccess == nil {
-		return allErrs
-	}
-	remoteAccessPath := field.NewPath("spec", "remoteAccess")
-	sourceSecurityGroups := r.Spec.RemoteAccess.SourceSecurityGroups
-
-	if public := r.Spec.RemoteAccess.Public; public && len(sourceSecurityGroups) > 0 {
-		allErrs = append(
-			allErrs,
-			field.Invalid(remoteAccessPath.Child("sourceSecurityGroups"), sourceSecurityGroups, "must be empty if public is set"),
-		)
-	}
-
-	return allErrs
+	return validateManagedMachinePoolRemoteAccess(r.Spec.RemoteAccess, field.NewPath("spec", "remoteAccess"))
 }
 
 func (r *AWSManagedMachinePool) validateLaunchTemplate() field.ErrorList {
-	var allErrs field.ErrorList
-	if r.Spec.AWSLaunchTemplate == nil {
-		return allErrs
-	}
-
-	if r.Spec.InstanceType != nil {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "InstanceType"), r.Spec.InstanceType, "InstanceType cannot be specified when LaunchTemplate is specified"))
-	}
-	if r.Spec.DiskSize != nil {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "DiskSize"), r.Spec.DiskSize, "DiskSize cannot be specified when LaunchTemplate is specified"))
-	}
-
-	if r.Spec.AWSLaunchTemplate.IamInstanceProfile != "" {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "AWSLaunchTemplate", "IamInstanceProfile"), r.Spec.AWSLaunchTemplate.IamInstanceProfile, "IAM instance profile in launch template is prohibited in EKS managed node group"))
-	}
-
-	return allErrs
+	return validateManagedMachinePoolLaunchTemplate(r.Spec.AWSLaunchTemplate, r.Spec.InstanceType, r.Spec.DiskSize, field.NewPath("spec"))
 }
 
 func (r *AWSManagedMachinePool) validateLifecycleHooks() field.ErrorList {
@@ -240,48 +170,7 @@ func (*awsManagedMachinePoolWebhook) ValidateDelete(_ context.Context, _ runtime
 }
 
 func (r *AWSManagedMachinePool) validateImmutable(old *AWSManagedMachinePool) field.ErrorList {
-	var allErrs field.ErrorList
-
-	appendErrorIfMutated := func(old, update interface{}, name string) {
-		if !cmp.Equal(old, update) {
-			allErrs = append(
-				allErrs,
-				field.Invalid(field.NewPath("spec", name), update, "field is immutable"),
-			)
-		}
-	}
-	appendErrorIfSetAndMutated := func(old, update interface{}, name string) {
-		if !reflect.ValueOf(old).IsZero() && !cmp.Equal(old, update) {
-			allErrs = append(
-				allErrs,
-				field.Invalid(field.NewPath("spec", name), update, "field is immutable"),
-			)
-		}
-	}
-
-	if old.Spec.EKSNodegroupName != "" {
-		appendErrorIfMutated(old.Spec.EKSNodegroupName, r.Spec.EKSNodegroupName, "eksNodegroupName")
-	}
-	appendErrorIfMutated(old.Spec.SubnetIDs, r.Spec.SubnetIDs, "subnetIDs")
-	appendErrorIfSetAndMutated(old.Spec.RoleName, r.Spec.RoleName, "roleName")
-	appendErrorIfMutated(old.Spec.DiskSize, r.Spec.DiskSize, "diskSize")
-	appendErrorIfMutated(old.Spec.AMIType, r.Spec.AMIType, "amiType")
-	appendErrorIfMutated(old.Spec.RemoteAccess, r.Spec.RemoteAccess, "remoteAccess")
-	appendErrorIfSetAndMutated(old.Spec.CapacityType, r.Spec.CapacityType, "capacityType")
-	appendErrorIfMutated(old.Spec.AvailabilityZones, r.Spec.AvailabilityZones, "availabilityZones")
-	appendErrorIfMutated(old.Spec.AvailabilityZoneSubnetType, r.Spec.AvailabilityZoneSubnetType, "availabilityZoneSubnetType")
-	if (old.Spec.AWSLaunchTemplate != nil && r.Spec.AWSLaunchTemplate == nil) ||
-		(old.Spec.AWSLaunchTemplate == nil && r.Spec.AWSLaunchTemplate != nil) {
-		allErrs = append(
-			allErrs,
-			field.Invalid(field.NewPath("spec", "AWSLaunchTemplate"), old.Spec.AWSLaunchTemplate, "field is immutable"),
-		)
-	}
-	if old.Spec.AWSLaunchTemplate != nil && r.Spec.AWSLaunchTemplate != nil {
-		appendErrorIfMutated(old.Spec.AWSLaunchTemplate.Name, r.Spec.AWSLaunchTemplate.Name, "awsLaunchTemplate.name")
-	}
-
-	return allErrs
+	return validateManagedMachinePoolSpecImmutable(&old.Spec, &r.Spec, field.NewPath("spec"))
 }
 
 // Default will set default values for the AWSManagedMachinePool.
