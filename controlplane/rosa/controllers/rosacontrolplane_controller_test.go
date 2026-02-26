@@ -784,16 +784,16 @@ func TestBuildOCMClusterSpec(t *testing.T) {
 	// Test case 1: FIPS enabled
 	t.Run("FIPS Enabled", func(t *testing.T) {
 		controlPlaneSpec := rosacontrolplanev1.RosaControlPlaneSpec{
-			RosaClusterName: "test-cluster",
-			Region:          "us-west-2",
-			Version:         "4.14.5",
-			FIPS:            rosacontrolplanev1.Enabled, // FIPS enabled
-			Subnets:         []string{"subnet-1", "subnet-2"},
+			RosaClusterName:   "test-cluster",
+			Region:            "us-west-2",
+			Version:           "4.14.5",
+			FIPS:              rosacontrolplanev1.Enabled, // FIPS enabled
+			Subnets:           []string{"subnet-1", "subnet-2"},
 			AvailabilityZones: []string{"us-west-2a"},
-			InstallerRoleARN: "arn:aws:iam::123456789012:role/installer",
-			SupportRoleARN:   "arn:aws:iam::123456789012:role/support",
-			WorkerRoleARN:    "arn:aws:iam::123456789012:role/worker",
-			OIDCID:          "test-oidc-id",
+			InstallerRoleARN:  "arn:aws:iam::123456789012:role/installer",
+			SupportRoleARN:    "arn:aws:iam::123456789012:role/support",
+			WorkerRoleARN:     "arn:aws:iam::123456789012:role/worker",
+			OIDCID:            "test-oidc-id",
 			RolesRef: rosacontrolplanev1.AWSRolesRef{
 				IngressARN:              "arn:aws:iam::123456789012:role/ingress",
 				ImageRegistryARN:        "arn:aws:iam::123456789012:role/image-registry",
@@ -820,16 +820,16 @@ func TestBuildOCMClusterSpec(t *testing.T) {
 	// Test case 2: FIPS explicitly disabled
 	t.Run("FIPS Disabled (Explicit)", func(t *testing.T) {
 		controlPlaneSpec := rosacontrolplanev1.RosaControlPlaneSpec{
-			RosaClusterName: "test-cluster-no-fips",
-			Region:          "us-east-1",
-			Version:         "4.14.5",
-			FIPS:            rosacontrolplanev1.Disabled, // FIPS explicitly disabled
-			Subnets:         []string{"subnet-1", "subnet-2"},
+			RosaClusterName:   "test-cluster-no-fips",
+			Region:            "us-east-1",
+			Version:           "4.14.5",
+			FIPS:              rosacontrolplanev1.Disabled, // FIPS explicitly disabled
+			Subnets:           []string{"subnet-1", "subnet-2"},
 			AvailabilityZones: []string{"us-east-1a"},
-			InstallerRoleARN: "arn:aws:iam::123456789012:role/installer",
-			SupportRoleARN:   "arn:aws:iam::123456789012:role/support",
-			WorkerRoleARN:    "arn:aws:iam::123456789012:role/worker",
-			OIDCID:          "test-oidc-id",
+			InstallerRoleARN:  "arn:aws:iam::123456789012:role/installer",
+			SupportRoleARN:    "arn:aws:iam::123456789012:role/support",
+			WorkerRoleARN:     "arn:aws:iam::123456789012:role/worker",
+			OIDCID:            "test-oidc-id",
 			RolesRef: rosacontrolplanev1.AWSRolesRef{
 				IngressARN:              "arn:aws:iam::123456789012:role/ingress",
 				ImageRegistryARN:        "arn:aws:iam::123456789012:role/image-registry",
@@ -860,12 +860,12 @@ func TestBuildOCMClusterSpec(t *testing.T) {
 			Region:          "us-west-1",
 			Version:         "4.14.5",
 			// FIPS field not explicitly set (zero value)
-			Subnets:         []string{"subnet-1", "subnet-2"},
+			Subnets:           []string{"subnet-1", "subnet-2"},
 			AvailabilityZones: []string{"us-west-1a"},
-			InstallerRoleARN: "arn:aws:iam::123456789012:role/installer",
-			SupportRoleARN:   "arn:aws:iam::123456789012:role/support",
-			WorkerRoleARN:    "arn:aws:iam::123456789012:role/worker",
-			OIDCID:          "test-oidc-id",
+			InstallerRoleARN:  "arn:aws:iam::123456789012:role/installer",
+			SupportRoleARN:    "arn:aws:iam::123456789012:role/support",
+			WorkerRoleARN:     "arn:aws:iam::123456789012:role/worker",
+			OIDCID:            "test-oidc-id",
 			RolesRef: rosacontrolplanev1.AWSRolesRef{
 				IngressARN:              "arn:aws:iam::123456789012:role/ingress",
 				ImageRegistryARN:        "arn:aws:iam::123456789012:role/image-registry",
