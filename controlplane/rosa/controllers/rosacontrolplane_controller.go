@@ -1162,6 +1162,26 @@ func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpe
 		}
 	}
 
+	// Determine role ARNs source - either from RoleConfig or manual configuration
+	var installerRoleARN, supportRoleARN, workerRoleARN, oidcConfigId string
+	var operatorRoles []ocm.OperatorIAMRole
+
+	if roleConfig != nil {
+		// Use ROSARoleConfig
+		installerRoleARN = roleConfig.Status.AccountRolesRef.InstallerRoleARN
+		supportRoleARN = roleConfig.Status.AccountRolesRef.SupportRoleARN
+		workerRoleARN = roleConfig.Status.AccountRolesRef.WorkerRoleARN
+		operatorRoles = operatorIAMRoles(roleConfig.Status.OperatorRolesRef)
+		oidcConfigId = roleConfig.Status.OIDCID
+	} else {
+		// Use manual configuration from controlPlaneSpec
+		installerRoleARN = controlPlaneSpec.InstallerRoleARN
+		supportRoleARN = controlPlaneSpec.SupportRoleARN
+		workerRoleARN = controlPlaneSpec.WorkerRoleARN
+		operatorRoles = operatorIAMRoles(controlPlaneSpec.RolesRef)
+		oidcConfigId = controlPlaneSpec.OIDCID
+	}
+
 	ocmClusterSpec := ocm.Spec{
 		DryRun:                    ptr.To(false),
 		Name:                      controlPlaneSpec.RosaClusterName,
@@ -1180,11 +1200,11 @@ func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpe
 
 		SubnetIds:        subnetIDs,
 		IsSTS:            true,
-		RoleARN:          roleConfig.Status.AccountRolesRef.InstallerRoleARN,
-		SupportRoleARN:   roleConfig.Status.AccountRolesRef.SupportRoleARN,
-		WorkerRoleARN:    roleConfig.Status.AccountRolesRef.WorkerRoleARN,
-		OperatorIAMRoles: operatorIAMRoles(roleConfig.Status.OperatorRolesRef),
-		OidcConfigId:     roleConfig.Status.OIDCID,
+		RoleARN:          installerRoleARN,
+		SupportRoleARN:   supportRoleARN,
+		WorkerRoleARN:    workerRoleARN,
+		OperatorIAMRoles: operatorRoles,
+		OidcConfigId:     oidcConfigId,
 		Mode:             "auto",
 		Hypershift: ocm.Hypershift{
 			Enabled: true,

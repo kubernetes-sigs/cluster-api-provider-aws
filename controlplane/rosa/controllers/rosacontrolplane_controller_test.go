@@ -789,6 +789,7 @@ func TestBuildOCMClusterSpec(t *testing.T) {
 			Version:         "4.14.5",
 			FIPS:            rosacontrolplanev1.Enabled, // FIPS enabled
 			Subnets:         []string{"subnet-1", "subnet-2"},
+			AvailabilityZones: []string{"us-west-2a"},
 			InstallerRoleARN: "arn:aws:iam::123456789012:role/installer",
 			SupportRoleARN:   "arn:aws:iam::123456789012:role/support",
 			WorkerRoleARN:    "arn:aws:iam::123456789012:role/worker",
@@ -824,6 +825,7 @@ func TestBuildOCMClusterSpec(t *testing.T) {
 			Version:         "4.14.5",
 			FIPS:            rosacontrolplanev1.Disabled, // FIPS explicitly disabled
 			Subnets:         []string{"subnet-1", "subnet-2"},
+			AvailabilityZones: []string{"us-east-1a"},
 			InstallerRoleARN: "arn:aws:iam::123456789012:role/installer",
 			SupportRoleARN:   "arn:aws:iam::123456789012:role/support",
 			WorkerRoleARN:    "arn:aws:iam::123456789012:role/worker",
@@ -859,6 +861,7 @@ func TestBuildOCMClusterSpec(t *testing.T) {
 			Version:         "4.14.5",
 			// FIPS field not explicitly set (zero value)
 			Subnets:         []string{"subnet-1", "subnet-2"},
+			AvailabilityZones: []string{"us-west-1a"},
 			InstallerRoleARN: "arn:aws:iam::123456789012:role/installer",
 			SupportRoleARN:   "arn:aws:iam::123456789012:role/support",
 			WorkerRoleARN:    "arn:aws:iam::123456789012:role/worker",
