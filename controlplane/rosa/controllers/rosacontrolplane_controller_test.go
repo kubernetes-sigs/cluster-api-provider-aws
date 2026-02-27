@@ -773,8 +773,6 @@ func cleanupObject(g *WithT, obj client.Object) {
 }
 
 func TestBuildOCMClusterSpec(t *testing.T) {
-	g := NewWithT(t)
-
 	// Mock AWS Creator
 	mockCreator := &rosaaws.Creator{
 		AccountID: "123456789012",
@@ -783,6 +781,7 @@ func TestBuildOCMClusterSpec(t *testing.T) {
 
 	// Test case 1: FIPS enabled
 	t.Run("FIPS Enabled", func(t *testing.T) {
+		g := NewWithT(t)
 		controlPlaneSpec := rosacontrolplanev1.RosaControlPlaneSpec{
 			RosaClusterName:   "test-cluster",
 			Region:            "us-west-2",
@@ -819,6 +818,7 @@ func TestBuildOCMClusterSpec(t *testing.T) {
 
 	// Test case 2: FIPS explicitly disabled
 	t.Run("FIPS Disabled (Explicit)", func(t *testing.T) {
+		g := NewWithT(t)
 		controlPlaneSpec := rosacontrolplanev1.RosaControlPlaneSpec{
 			RosaClusterName:   "test-cluster-no-fips",
 			Region:            "us-east-1",
@@ -855,6 +855,7 @@ func TestBuildOCMClusterSpec(t *testing.T) {
 
 	// Test case 3: Zero value FIPS (should be false)
 	t.Run("FIPS Zero Value", func(t *testing.T) {
+		g := NewWithT(t)
 		controlPlaneSpec := rosacontrolplanev1.RosaControlPlaneSpec{
 			RosaClusterName: "test-cluster-zero-fips",
 			Region:          "us-west-1",
