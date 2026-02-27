@@ -1127,6 +1127,11 @@ func validateControlPlaneSpec(ocmClient rosa.OCMClient, rosaControlPlane *rosaco
 		}
 	}
 
+	// Validate FIPS requirements
+	if rosaControlPlane.Spec.FIPS == rosacontrolplanev1.Enabled && rosaControlPlane.Spec.EtcdEncryptionKMSARN == "" {
+		return "etcdEncryptionKMSARN is required when fips is Enabled. Create a KMS key, tag it with 'red-hat:true', and provide the ARN.", nil
+	}
+
 	// TODO: add more input validations
 	return "", nil
 }
@@ -1157,6 +1162,26 @@ func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpe
 		}
 	}
 
+	// Determine role ARNs source - either from RoleConfig or manual configuration
+	var installerRoleARN, supportRoleARN, workerRoleARN, oidcConfigID string
+	var operatorRoles []ocm.OperatorIAMRole
+
+	if roleConfig != nil {
+		// Use ROSARoleConfig
+		installerRoleARN = roleConfig.Status.AccountRolesRef.InstallerRoleARN
+		supportRoleARN = roleConfig.Status.AccountRolesRef.SupportRoleARN
+		workerRoleARN = roleConfig.Status.AccountRolesRef.WorkerRoleARN
+		operatorRoles = operatorIAMRoles(roleConfig.Status.OperatorRolesRef)
+		oidcConfigID = roleConfig.Status.OIDCID
+	} else {
+		// Use manual configuration from controlPlaneSpec
+		installerRoleARN = controlPlaneSpec.InstallerRoleARN
+		supportRoleARN = controlPlaneSpec.SupportRoleARN
+		workerRoleARN = controlPlaneSpec.WorkerRoleARN
+		operatorRoles = operatorIAMRoles(controlPlaneSpec.RolesRef)
+		oidcConfigID = controlPlaneSpec.OIDCID
+	}
+
 	ocmClusterSpec := ocm.Spec{
 		DryRun:                    ptr.To(false),
 		Name:                      controlPlaneSpec.RosaClusterName,
@@ -1170,16 +1195,16 @@ func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpe
 		ComputeMachineType:        controlPlaneSpec.DefaultMachinePoolSpec.InstanceType,
 		AvailabilityZones:         availabilityZones,
 		Tags:                      controlPlaneSpec.AdditionalTags,
-		EtcdEncryption:            controlPlaneSpec.EtcdEncryptionKMSARN != "",
+		EtcdEncryption:            controlPlaneSpec.EtcdEncryptionKMSARN != "" || controlPlaneSpec.FIPS == rosacontrolplanev1.Enabled,
 		EtcdEncryptionKMSArn:      controlPlaneSpec.EtcdEncryptionKMSARN,
 
 		SubnetIds:        subnetIDs,
 		IsSTS:            true,
-		RoleARN:          roleConfig.Status.AccountRolesRef.InstallerRoleARN,
-		SupportRoleARN:   roleConfig.Status.AccountRolesRef.SupportRoleARN,
-		WorkerRoleARN:    roleConfig.Status.AccountRolesRef.WorkerRoleARN,
-		OperatorIAMRoles: operatorIAMRoles(roleConfig.Status.OperatorRolesRef),
-		OidcConfigId:     roleConfig.Status.OIDCID,
+		RoleARN:          installerRoleARN,
+		SupportRoleARN:   supportRoleARN,
+		WorkerRoleARN:    workerRoleARN,
+		OperatorIAMRoles: operatorRoles,
+		OidcConfigId:     oidcConfigID,
 		Mode:             "auto",
 		Hypershift: ocm.Hypershift{
 			Enabled: true,
@@ -1188,6 +1213,7 @@ func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpe
 		AWSCreator:                   creator,
 		AuditLogRoleARN:              ptr.To(controlPlaneSpec.AuditLogRoleARN),
 		ExternalAuthProvidersEnabled: controlPlaneSpec.EnableExternalAuthProviders,
+		FIPS:                         controlPlaneSpec.FIPS == rosacontrolplanev1.Enabled,
 	}
 
 	if controlPlaneSpec.EndpointAccess == rosacontrolplanev1.Private {
