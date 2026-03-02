@@ -229,6 +229,7 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 
 	// ControlPlaneScalingConfig specifies the scaling configuration for the EKS control plane.
 	// Enables selection of predefined scaling tiers to ensure consistent, high-performance operation of the cluster’s control plane.
+	// When omitted, EKS uses Standard mode (automatic scaling). See ControlPlaneScalingConfig in types.go for tier defaults.
 	// (Official AWS docs: https://docs.aws.amazon.com/eks/latest/userguide/eks-provisioned-control-plane.html)
 	// +optional
 	ControlPlaneScalingConfig *ControlPlaneScalingConfig `json:"controlPlaneScalingConfig,omitempty"`

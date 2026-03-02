@@ -294,9 +294,11 @@ func (e UpgradePolicy) String() string {
 }
 
 // ControlPlaneScalingConfig represents the configuration for EKS Control Plane scaling.
+// When omitted, EKS uses Standard mode (automatic scaling); no provisioning or tier selection is applied.
 type ControlPlaneScalingConfig struct {
 	// Tier specifies the tier for the EKS control plane.
-	// Valid values are: standard, tier-xl, tier-2xl, tier-4xl
+	// Valid values are: standard, tier-xl, tier-2xl, tier-4xl.
+	// When this field is not set, EKS defaults to the standard tier (automatic control plane scaling).
 	// +optional
 	// +kubebuilder:validation:Enum=standard;tier-xl;tier-2xl;tier-4xl
 	Tier *ControlPlaneScalingTier `json:"tier,omitempty"`
