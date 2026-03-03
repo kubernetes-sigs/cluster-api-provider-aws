@@ -45,6 +45,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	expwebhooks "sigs.k8s.io/cluster-api-provider-aws/v2/exp/webhooks"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
@@ -1025,7 +1026,7 @@ func TestAWSMachinePoolReconciler(t *testing.T) {
 					StorageType: infrav1.IgnitionStorageTypeOptionClusterObjectStore,
 				}
 				// simulate webhook that sets default ignition version
-				g.Expect((&expinfrav1.AWSMachinePoolWebhook{}).Default(context.TODO(), ms.AWSMachinePool)).To(BeNil())
+				g.Expect((&expwebhooks.AWSMachinePool{}).Default(context.TODO(), ms.AWSMachinePool)).To(BeNil())
 
 				asgSvc.EXPECT().GetASGByName(gomock.Any()).DoAndReturn(func(scope *scope.MachinePoolScope) (*expinfrav1.AutoScalingGroup, error) {
 					g.Expect(scope.Name()).To(Equal("test"))
