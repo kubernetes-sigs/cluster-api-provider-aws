@@ -1064,3 +1064,118 @@ func TestCreateClusterWithBootstrapClusterCreatorAdminPermissions(t *testing.T) 
 	_, err = s.createCluster(context.TODO(), clusterName)
 	g.Expect(err).To(BeNil())
 }
+
+func TestReconcileScalingConfig(t *testing.T) {
+	testCases := []struct {
+		name           string
+		specConfig     *ekscontrolplanev1.ControlPlaneScalingConfig
+		clusterConfig  *ekstypes.ControlPlaneScalingConfig
+		expectUpdate   bool
+		expectedConfig *ekstypes.ControlPlaneScalingConfig
+	}{
+		{
+			name:           "spec has no scaling config - no update",
+			specConfig:     nil,
+			clusterConfig:  nil,
+			expectUpdate:   false,
+			expectedConfig: nil,
+		},
+		{
+			name: "spec has nil tier - no update",
+			specConfig: &ekscontrolplanev1.ControlPlaneScalingConfig{
+				Tier: nil,
+			},
+			clusterConfig:  nil,
+			expectUpdate:   false,
+			expectedConfig: nil,
+		},
+		{
+			name: "cluster has no scaling config but spec does - update needed",
+			specConfig: &ekscontrolplanev1.ControlPlaneScalingConfig{
+				Tier: ptr.To(ekscontrolplanev1.ControlPlaneScalingTier2XL),
+			},
+			clusterConfig: nil,
+			expectUpdate:  true,
+			expectedConfig: &ekstypes.ControlPlaneScalingConfig{
+				Tier: ekstypes.ProvisionedControlPlaneTier("tier-2xl"),
+			},
+		},
+		{
+			name: "tier differs - update needed",
+			specConfig: &ekscontrolplanev1.ControlPlaneScalingConfig{
+				Tier: ptr.To(ekscontrolplanev1.ControlPlaneScalingTier4XL),
+			},
+			clusterConfig: &ekstypes.ControlPlaneScalingConfig{
+				Tier: ekstypes.ProvisionedControlPlaneTier("tier-2xl"),
+			},
+			expectUpdate: true,
+			expectedConfig: &ekstypes.ControlPlaneScalingConfig{
+				Tier: ekstypes.ProvisionedControlPlaneTier("tier-4xl"),
+			},
+		},
+		{
+			name: "tier is same - no update",
+			specConfig: &ekscontrolplanev1.ControlPlaneScalingConfig{
+				Tier: ptr.To(ekscontrolplanev1.ControlPlaneScalingTier2XL),
+			},
+			clusterConfig: &ekstypes.ControlPlaneScalingConfig{
+				Tier: ekstypes.ProvisionedControlPlaneTier("tier-2xl"),
+			},
+			expectUpdate:   false,
+			expectedConfig: nil,
+		},
+		{
+			name: "changing from standard to xl - update needed",
+			specConfig: &ekscontrolplanev1.ControlPlaneScalingConfig{
+				Tier: ptr.To(ekscontrolplanev1.ControlPlaneScalingTierXL),
+			},
+			clusterConfig: &ekstypes.ControlPlaneScalingConfig{
+				Tier: ekstypes.ProvisionedControlPlaneTierStandard,
+			},
+			expectUpdate: true,
+			expectedConfig: &ekstypes.ControlPlaneScalingConfig{
+				Tier: ekstypes.ProvisionedControlPlaneTier("tier-xl"),
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			mockControl := gomock.NewController(t)
+			defer mockControl.Finish()
+
+			scheme := runtime.NewScheme()
+			_ = infrav1.AddToScheme(scheme)
+			_ = ekscontrolplanev1.AddToScheme(scheme)
+			client := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+			scope, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
+				Client: client,
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns",
+						Name:      "capi-name",
+					},
+				},
+				ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
+					Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+						EKSClusterName:            "test-cluster",
+						ControlPlaneScalingConfig: tc.specConfig,
+					},
+				},
+			})
+			g.Expect(err).To(BeNil())
+
+			s := NewService(scope)
+			result := s.reconcileScalingConfig(tc.clusterConfig)
+
+			if tc.expectUpdate {
+				g.Expect(result).ToNot(BeNil(), "expected update config to be returned")
+				g.Expect(result.Tier).To(Equal(tc.expectedConfig.Tier))
+			} else {
+				g.Expect(result).To(BeNil(), "expected no update")
+			}
+		})
+	}
+}
