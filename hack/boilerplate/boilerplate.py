@@ -134,10 +134,6 @@ def file_passes(filename, refs, regexs):
             if found != 0:
                 break
 
-    # Normalize license URL line: accept tab or spaces before http:// (reference uses tab)
-    if extension == "go" and len(data) > 7 and "http://www.apache.org" in data[7]:
-        data[7] = "\thttp://www.apache.org/licenses/LICENSE-2.0"
-
     # if we don't match the reference at this point, fail
     if ref != data:
         print("Header in %s does not match reference, diff:" % filename, file=verbose_out)
@@ -212,7 +208,7 @@ def get_regexs():
     # strip // +build \n\n build constraints
     regexs["go_build_constraints_old"] = re.compile(r"^(// \+build.*\n)+\n", re.MULTILINE)
     # strip // +build \n\n build constraints
-    regexs["go_build_constraints"] = re.compile(r"^(//go:build.*\n)\n?", re.MULTILINE)
+    regexs["go_build_constraints"] = re.compile(r"^(//go.build.*\n)", re.MULTILINE)
     # strip #!.* from shell scripts
     regexs["shebang"] = re.compile(r"^(#!.*\n)\n*", re.MULTILINE)
     # Search for generated files
