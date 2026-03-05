@@ -653,6 +653,9 @@ func (*awsManagedControlPlaneWebhook) Default(_ context.Context, obj runtime.Obj
 	r, ok := obj.(*AWSManagedControlPlane)
 	if !ok {
 		return fmt.Errorf("expected an AWSManagedControlPlane object but got %T", r)
+	} else if r.DeletionTimestamp != nil {
+		mcpLog.Info("AWSManagedControlPlane is being deleted, skipping defaults", "control-plane", klog.KObj(r))
+		return nil
 	}
 
 	mcpLog.Info("AWSManagedControlPlane setting defaults", "control-plane", klog.KObj(r))
@@ -679,7 +682,8 @@ func (*awsManagedControlPlaneWebhook) Default(_ context.Context, obj runtime.Obj
 	infrav1.SetDefaults_Bastion(&r.Spec.Bastion)
 	infrav1.SetDefaults_NetworkSpec(&r.Spec.NetworkSpec)
 
-	// Set default value for BootstrapSelfManagedAddons
-	r.Spec.BootstrapSelfManagedAddons = true
+	if r.ResourceVersion == "" {
+		r.Spec.BootstrapSelfManagedAddons = true
+	}
 	return nil
 }
