@@ -74,6 +74,14 @@ func (src *AWSMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.AWSLaunchTemplate.CapacityReservationPreference = preference
 	}
 
+	if restored.Spec.AWSLaunchTemplate.PlacementGroupName != "" {
+		dst.Spec.AWSLaunchTemplate.PlacementGroupName = restored.Spec.AWSLaunchTemplate.PlacementGroupName
+	}
+
+	if restored.Spec.AWSLaunchTemplate.PlacementGroupPartition != 0 {
+		dst.Spec.AWSLaunchTemplate.PlacementGroupPartition = restored.Spec.AWSLaunchTemplate.PlacementGroupPartition
+	}
+
 	dst.Spec.DefaultInstanceWarmup = restored.Spec.DefaultInstanceWarmup
 	dst.Spec.AWSLaunchTemplate.NonRootVolumes = restored.Spec.AWSLaunchTemplate.NonRootVolumes
 	return nil
@@ -135,6 +143,14 @@ func (src *AWSManagedMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 
 		if preference := restored.Spec.AWSLaunchTemplate.CapacityReservationPreference; preference != "" {
 			dst.Spec.AWSLaunchTemplate.CapacityReservationPreference = preference
+		}
+
+		if restored.Spec.AWSLaunchTemplate.PlacementGroupName != "" {
+			dst.Spec.AWSLaunchTemplate.PlacementGroupName = restored.Spec.AWSLaunchTemplate.PlacementGroupName
+		}
+
+		if restored.Spec.AWSLaunchTemplate.PlacementGroupPartition != 0 {
+			dst.Spec.AWSLaunchTemplate.PlacementGroupPartition = restored.Spec.AWSLaunchTemplate.PlacementGroupPartition
 		}
 	}
 	if restored.Spec.AvailabilityZoneSubnetType != nil {
