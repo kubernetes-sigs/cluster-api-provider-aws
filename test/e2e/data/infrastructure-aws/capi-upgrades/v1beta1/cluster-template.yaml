@@ -67,6 +67,8 @@ metadata:
 spec:
   template:
     spec:
+      imageLookupBaseOS: ubuntu-22.04
+      imageLookupOrg: "819546954734"
       iamInstanceProfile: control-plane.cluster-api-provider-aws.sigs.k8s.io
       instanceType: ${AWS_CONTROL_PLANE_MACHINE_TYPE}
       sshKeyName: ${AWS_SSH_KEY_NAME}
@@ -101,6 +103,8 @@ metadata:
 spec:
   template:
     spec:
+      imageLookupBaseOS: ubuntu-22.04
+      imageLookupOrg: "819546954734"
       iamInstanceProfile: nodes.cluster-api-provider-aws.sigs.k8s.io
       instanceType: ${AWS_NODE_MACHINE_TYPE}
       sshKeyName: ${AWS_SSH_KEY_NAME}
