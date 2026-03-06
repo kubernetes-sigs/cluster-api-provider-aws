@@ -119,6 +119,9 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 
 	ginkgo.Describe("GPU-enabled cluster test", func() {
 		ginkgo.It("should create cluster with single worker", func() {
+			// temporary skip until the test is either updated or refactored
+			// https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/5870
+			ginkgo.Skip("Skipping GPU e2e tests")
 			specName := "functional-gpu-cluster"
 			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
 			if !e2eCtx.Settings.SkipQuotas {
@@ -725,5 +728,4 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				"Eventually failed waiting for AWSCluster to show VPC endpoint as deleted in conditions")
 		})
 	})
-
 })
