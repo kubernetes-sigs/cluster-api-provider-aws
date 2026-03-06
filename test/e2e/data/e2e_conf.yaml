@@ -47,7 +47,18 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.11.1 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+      - name: v1.10.10 # latest core CAPI published release in the v1beta1 series; needed so clusterctl v1.2 can resolve the latest v1beta1 version.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.10.10/core-components.yaml"
+        type: "url"
+        contract: v1beta1
+        files:
+          - sourcePath: "./shared/capi/v1.2/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
+      - name: v1.11.1 # earliest core CAPI published release in the v1beta2 series; this is used for v1beta1 --> main clusterctl upgrades test only.
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.11.1/core-components.yaml"
         type: "url"
         contract: v1beta2
@@ -74,7 +85,18 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.11.1 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+      - name: v1.10.10 # latest core CAPI published release in the v1beta1 series; needed so clusterctl v1.2 can resolve the latest v1beta1 version.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.10.10/bootstrap-components.yaml"
+        type: "url"
+        contract: v1beta1
+        files:
+          - sourcePath: "./shared/capi/v1.2/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
+      - name: v1.11.1 # earliest core CAPI published release in the v1beta2 series; this is used for v1beta1 --> main clusterctl upgrades test only.
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.11.1/bootstrap-components.yaml"
         type: "url"
         contract: v1beta2
@@ -101,7 +123,18 @@ providers:
             new: "imagePullPolicy: IfNotPresent"
           - old: --metrics-bind-addr=127.0.0.1:8080
             new: --metrics-bind-addr=:8080
-      - name: v1.11.1 # latest published release in the v1beta1 series; this is used for v1beta1 --> v1beta1 latest clusterctl upgrades test only.
+      - name: v1.10.10 # latest core CAPI published release in the v1beta1 series; needed so clusterctl v1.2 can resolve the latest v1beta1 version.
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.10.10/control-plane-components.yaml"
+        type: "url"
+        contract: v1beta1
+        files:
+          - sourcePath: "./shared/capi/v1.2/metadata.yaml"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+          - old: --metrics-bind-addr=127.0.0.1:8080
+            new: --metrics-bind-addr=:8080
+      - name: v1.11.1 # earliest core CAPI published release in the v1beta2 series; this is used for v1beta1 --> main clusterctl upgrades test only.
         value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.11.1/control-plane-components.yaml"
         type: "url"
         contract: v1beta2
