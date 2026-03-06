@@ -87,7 +87,8 @@ if grep -iqF "$(echo "${AWS_ACCESS_KEY_ID-}" |
   exit 1
 fi
 
-make test-e2e ARTIFACTS=$ARTIFACTS
+# TODO: remove GINKGO_FOCUS override before merging - temporary focus for CI validation
+GINKGO_FOCUS="${GINKGO_FOCUS:-Clusterctl Upgrade Spec.*v1beta1 release to v1beta2}" make test-e2e ARTIFACTS=$ARTIFACTS
 
 test_status="${?}"
 
