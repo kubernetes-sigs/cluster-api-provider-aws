@@ -45,9 +45,6 @@ spec:
         kubeletExtraArgs:
           cloud-provider: aws
     clusterConfiguration:
-      apiServer:
-        extraArgs:
-          cloud-provider: aws
       controllerManager:
         extraArgs:
           cloud-provider: aws
