@@ -1,5 +1,5 @@
 /*
-Copyright 2021 The Kubernetes Authors.
+Copyright 2026 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,34 +14,33 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controlleridentitycreator
+package webhooks
 
 import (
 	"fmt"
 	"path"
 	"testing"
 
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 
-	// +kubebuilder:scaffold:imports
-	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
-	ekswebhooks "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/webhooks"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/helpers"
-	capawebhooks "sigs.k8s.io/cluster-api-provider-aws/v2/webhooks"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
-
-// These tests use Ginkgo (BDD-style Go testing framework). Refer to
-// http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
 var (
 	testEnv *helpers.TestEnvironment
 	ctx     = ctrl.SetupSignalHandler()
 )
+
+func TestAPIs(t *testing.T) {
+	RegisterFailHandler(Fail)
+
+	RunSpecs(t, "EKS Webhooks Suite")
+}
 
 func TestMain(m *testing.M) {
 	setup()
@@ -50,38 +49,18 @@ func TestMain(m *testing.M) {
 }
 
 func setup() {
-	utilruntime.Must(infrav1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(ekscontrolplanev1.AddToScheme(scheme.Scheme))
-
 	testEnvConfig := helpers.NewTestEnvironmentConfiguration([]string{
 		path.Join("config", "crd", "bases"),
 	},
-	).WithWebhookConfiguration("unmanaged", path.Join("config", "webhook", "manifests.yaml"))
+	).WithWebhookConfiguration("managed", path.Join("config", "webhook", "manifests.yaml"))
 	var err error
 	testEnv, err = testEnvConfig.Build()
 	if err != nil {
 		panic(err)
 	}
-	if err := (&capawebhooks.AWSCluster{}).SetupWebhookWithManager(testEnv); err != nil {
-		panic(fmt.Sprintf("Unable to setup AWSCluster webhook: %v", err))
-	}
-	if err := (&capawebhooks.AWSClusterControllerIdentity{}).SetupWebhookWithManager(testEnv); err != nil {
-		panic(fmt.Sprintf("Unable to setup AWSClusterControllerIdentity webhook: %v", err))
-	}
-	if err = (&capawebhooks.AWSClusterRoleIdentity{}).SetupWebhookWithManager(testEnv); err != nil {
-		panic(fmt.Sprintf("Unable to setup AWSClusterRoleIdentity webhook: %v", err))
-	}
-	if err := (&ekswebhooks.AWSManagedControlPlane{}).SetupWebhookWithManager(testEnv); err != nil {
+	if err := (&AWSManagedControlPlane{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup AWSManagedControlPlane webhook: %v", err))
-	}
-
-	err = (&AWSControllerIdentityReconciler{
-		Client: testEnv,
-		Log:    ctrl.Log,
-	}).SetupWithManager(ctx, testEnv.Manager, controller.Options{})
-	if err != nil {
-		panic(fmt.Sprintf("Failed to add AWSControllerIdentityReconciler to the envtest manager: %v", err))
 	}
 
 	go func() {

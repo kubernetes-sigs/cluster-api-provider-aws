@@ -29,8 +29,11 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
+	rosawebhooks "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/webhooks"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	expwebhooks "sigs.k8s.io/cluster-api-provider-aws/v2/exp/webhooks"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/helpers"
+	capawebhooks "sigs.k8s.io/cluster-api-provider-aws/v2/webhooks"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
@@ -64,22 +67,22 @@ func setup() {
 	if err != nil {
 		panic(err)
 	}
-	if err := (&infrav1.AWSCluster{}).SetupWebhookWithManager(testEnv); err != nil {
+	if err := (&capawebhooks.AWSCluster{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup AWSCluster webhook: %v", err))
 	}
-	if err := (&infrav1.AWSMachine{}).SetupWebhookWithManager(testEnv); err != nil {
+	if err := (&capawebhooks.AWSMachine{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup AWSMachine webhook: %v", err))
 	}
-	if err := (&infrav1.AWSMachineTemplate{}).SetupWebhookWithManager(testEnv); err != nil {
+	if err := (&capawebhooks.AWSMachineTemplate{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup AWSMachineTemplate webhook: %v", err))
 	}
-	if err := (&infrav1.AWSClusterControllerIdentity{}).SetupWebhookWithManager(testEnv); err != nil {
+	if err := (&capawebhooks.AWSClusterControllerIdentity{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup AWSClusterControllerIdentity webhook: %v", err))
 	}
-	if err := (&expinfrav1.ROSAMachinePool{}).SetupWebhookWithManager(testEnv); err != nil {
+	if err := (&expwebhooks.ROSAMachinePool{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup ROSAMachinePool webhook: %v", err))
 	}
-	if err := (&rosacontrolplanev1.ROSAControlPlane{}).SetupWebhookWithManager(testEnv); err != nil {
+	if err := (&rosawebhooks.ROSAControlPlane{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup ROSAControlPlane webhook: %v", err))
 	}
 	go func() {

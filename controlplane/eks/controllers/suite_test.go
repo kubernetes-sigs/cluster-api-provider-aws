@@ -28,7 +28,9 @@ import (
 	// +kubebuilder:scaffold:imports
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	ekswebhooks "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/webhooks"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/helpers"
+	capawebhooks "sigs.k8s.io/cluster-api-provider-aws/v2/webhooks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
@@ -56,10 +58,10 @@ func setup() {
 	if err != nil {
 		panic(err)
 	}
-	if err := (&ekscontrolplanev1.AWSManagedControlPlane{}).SetupWebhookWithManager(testEnv); err != nil {
+	if err := (&ekswebhooks.AWSManagedControlPlane{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup AWSManagedControlPlane webhook: %v", err))
 	}
-	if err := (&infrav1.AWSClusterControllerIdentity{}).SetupWebhookWithManager(testEnv); err != nil {
+	if err := (&capawebhooks.AWSClusterControllerIdentity{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup AWSClusterControllerIdentity webhook: %v", err))
 	}
 	go func() {
