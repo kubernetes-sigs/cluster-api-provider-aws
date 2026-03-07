@@ -242,7 +242,7 @@ type AutoScalingGroup struct {
 	CapacityRebalance     bool            `json:"capacityRebalance,omitempty"`
 
 	MixedInstancesPolicy      *MixedInstancesPolicy `json:"mixedInstancesPolicy,omitempty"`
-	Status                    ASGStatus
+	Status                    ASGStatus          `json:"status,omitempty"`
 	Instances                 []infrav1.Instance `json:"instances,omitempty"`
 	CurrentlySuspendProcesses []string           `json:"currentlySuspendProcesses,omitempty"`
 }
