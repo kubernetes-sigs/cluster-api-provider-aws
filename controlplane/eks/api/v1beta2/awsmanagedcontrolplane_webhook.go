@@ -20,11 +20,13 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"slices"
 
 	"github.com/apparentlymart/go-cidr/cidr"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/klog/v2"
@@ -69,8 +71,10 @@ func (r *AWSManagedControlPlane) SetupWebhookWithManager(mgr ctrl.Manager) error
 
 type awsManagedControlPlaneWebhook struct{}
 
-var _ webhook.CustomDefaulter = &awsManagedControlPlaneWebhook{}
-var _ webhook.CustomValidator = &awsManagedControlPlaneWebhook{}
+var (
+	_ webhook.CustomDefaulter = &awsManagedControlPlaneWebhook{}
+	_ webhook.CustomValidator = &awsManagedControlPlaneWebhook{}
+)
 
 func parseEKSVersion(raw string) (*version.Version, error) {
 	v, err := version.ParseGeneric(raw)
@@ -109,6 +113,7 @@ func (*awsManagedControlPlaneWebhook) ValidateCreate(_ context.Context, obj runt
 	allErrs = append(allErrs, r.validatePrivateDNSHostnameTypeOnLaunch()...)
 	allErrs = append(allErrs, r.validateAccessConfigCreate()...)
 	allErrs = append(allErrs, r.validateAccessEntries()...)
+	allErrs = append(allErrs, r.validatePodIdentityAssociations()...)
 
 	if len(allErrs) == 0 {
 		return nil, nil
@@ -152,6 +157,7 @@ func (*awsManagedControlPlaneWebhook) ValidateUpdate(ctx context.Context, oldObj
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 	allErrs = append(allErrs, r.validatePrivateDNSHostnameTypeOnLaunch()...)
 	allErrs = append(allErrs, r.validateAccessEntries()...)
+	allErrs = append(allErrs, r.validatePodIdentityAssociations()...)
 
 	if r.Spec.Region != oldAWSManagedControlplane.Spec.Region {
 		allErrs = append(allErrs,
@@ -642,6 +648,37 @@ func validateNetwork(resourceName string, networkSpec infrav1.NetworkSpec, secon
 				ipv6Path.Child("ipamPool"), networkSpec.VPC.IPv6.IPAMPool,
 				"ipamPool must have either id or name",
 			))
+		}
+	}
+
+	return allErrs
+}
+
+func (r *AWSManagedControlPlane) validatePodIdentityAssociations() field.ErrorList {
+	var allErrs field.ErrorList
+	nsRoles := []string{}
+
+	if r.Spec.PodIdentityAssociations != nil {
+		for i, assoc := range r.Spec.PodIdentityAssociations {
+			path := field.NewPath("spec", "podIdentityAssociations").Index(i)
+			if assoc.ServiceAccountName == "" {
+				allErrs = append(allErrs, field.Required(path.Child("serviceAccountName"), "serviceAccountName is required"))
+			}
+			if assoc.ServiceAccountNamespace == "" {
+				allErrs = append(allErrs, field.Required(path.Child("serviceAccountNamespace"), "serviceAccountNamespace is required"))
+			}
+			// https://github.com/kubernetes/apimachinery/blob/d794766488ac2892197a7cc8d0b4b46b0edbda80/pkg/api/validation/generic.go#L68
+			if errs := validation.IsDNS1123Subdomain(assoc.ServiceAccountName); len(errs) > 0 {
+				allErrs = append(allErrs, field.Invalid(path.Child("serviceAccountName"), assoc.ServiceAccountName, fmt.Sprintf("serviceAccountName must be a valid DNS1123 subdomain: %v", errs)))
+			}
+			if errs := validation.IsDNS1123Subdomain(assoc.ServiceAccountNamespace); len(errs) > 0 {
+				allErrs = append(allErrs, field.Invalid(path.Child("serviceAccountNamespace"), assoc.ServiceAccountNamespace, fmt.Sprintf("serviceAccountNamespace must be a valid DNS1123 subdomain: %v", errs)))
+			}
+			namespacedName := fmt.Sprintf("%s/%s", assoc.ServiceAccountNamespace, assoc.ServiceAccountName)
+			if slices.Contains(nsRoles, namespacedName) {
+				allErrs = append(allErrs, field.Invalid(path.Child("serviceAccountName"), assoc.ServiceAccountName, fmt.Sprintf("service account cannot be associated with more than one role: %s", namespacedName)))
+			}
+			nsRoles = append(nsRoles, namespacedName)
 		}
 	}
 
