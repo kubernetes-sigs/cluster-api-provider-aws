@@ -156,6 +156,10 @@ type AWSMachineSpec struct {
 	// +optional
 	// +kubebuilder:validation:Enum:=default;dedicated;host
 	Tenancy string `json:"tenancy,omitempty"`
+
+	// CPUOptions defines CPU-related settings for the instance.
+	// +optional
+	CPUOptions CPUOptions `json:"cpuOptions,omitempty,omitzero"`
 }
 
 // CloudInit defines options related to the bootstrapping systems where

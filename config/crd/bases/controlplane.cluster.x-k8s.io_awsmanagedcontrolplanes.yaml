@@ -1265,6 +1265,19 @@ spec:
                         - Disabled
                         - AMDEncryptedVirtualizationNestedPaging
                         type: string
+                      nestedVirtualization:
+                        allOf:
+                        - enum:
+                          - enabled
+                          - disabled
+                        - enum:
+                          - enabled
+                          - disabled
+                        description: |-
+                          NestedVirtualization specifies whether to enable nested virtualization on the instance.
+                          Nested virtualization is supported on C8i, M8i, and R8i instance types.
+                          Valid values are: enabled, disabled
+                        type: string
                     type: object
                   dynamicHostAllocation:
                     description: |-
@@ -3676,6 +3689,19 @@ spec:
                         enum:
                         - Disabled
                         - AMDEncryptedVirtualizationNestedPaging
+                        type: string
+                      nestedVirtualization:
+                        allOf:
+                        - enum:
+                          - enabled
+                          - disabled
+                        - enum:
+                          - enabled
+                          - disabled
+                        description: |-
+                          NestedVirtualization specifies whether to enable nested virtualization on the instance.
+                          Nested virtualization is supported on C8i, M8i, and R8i instance types.
+                          Valid values are: enabled, disabled
                         type: string
                     type: object
                   dynamicHostAllocation:
