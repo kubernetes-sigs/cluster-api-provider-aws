@@ -27,6 +27,15 @@ Fixes #
 
 **Special notes for your reviewer**:
 
+**AI Usage**:
+<!-- Declare if this PR has benefited from AI assistance in any way. Whether thats Cursor, Claude, Copilot, Codex, local LLM or another other AI assistance. If AI has been used please try to provide as much information as possible.
+
+NOTE: basic autocompletion doesn't need to be declared.
+
+If no AI assistance was used then use state "None".
+
+-->
+
 **Checklist**:
 <!-- Put an "X" character inside the brackets of each completed task. Some may be optional depending on the PR in which case these can be deleted 
 
