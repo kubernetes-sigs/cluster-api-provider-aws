@@ -172,7 +172,10 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	e2eCtx.Environment.ClusterctlConfigPath = createClusterctlLocalRepository(e2eCtx, filepath.Join(e2eCtx.Settings.ArtifactFolder, "repository"))
 
 	By("Setting up the bootstrap cluster")
-	e2eCtx.Environment.BootstrapClusterProvider, e2eCtx.Environment.BootstrapClusterProxy = setupBootstrapCluster(e2eCtx.E2EConfig, e2eCtx.Environment.Scheme, e2eCtx.Settings.UseExistingCluster)
+	e2eCtx.Environment.BootstrapClusterProvider, e2eCtx.Environment.BootstrapClusterProxy = setupBootstrapCluster(
+		e2eCtx.E2EConfig, e2eCtx.Environment.Scheme, e2eCtx.Settings.UseExistingCluster,
+		framework.WithMachineLogCollector(AWSStackLogCollector{E2EContext: e2eCtx}),
+	)
 
 	base64EncodedCredentials := encodeCredentials(e2eCtx.Environment.BootstrapAccessKey, bootstrapTemplate.Spec.Region)
 	SetEnvVar("AWS_B64ENCODED_CREDENTIALS", base64EncodedCredentials, true)
@@ -226,7 +229,9 @@ func AllNodesBeforeSuite(e2eCtx *E2EContext, data []byte) {
 	e2eCtx.Settings.ArtifactFolder = conf.ArtifactFolder
 	e2eCtx.Settings.ConfigPath = conf.ConfigPath
 	e2eCtx.Environment.ClusterctlConfigPath = conf.ClusterctlConfigPath
-	e2eCtx.Environment.BootstrapClusterProxy = framework.NewClusterProxy("bootstrap", conf.KubeconfigPath, e2eCtx.Environment.Scheme)
+	e2eCtx.Environment.BootstrapClusterProxy = framework.NewClusterProxy("bootstrap", conf.KubeconfigPath, e2eCtx.Environment.Scheme,
+		framework.WithMachineLogCollector(AWSStackLogCollector{E2EContext: e2eCtx}),
+	)
 	e2eCtx.E2EConfig = &conf.E2EConfig
 	e2eCtx.BootstrapUserAWSSession = NewAWSSessionWithKey(conf.BootstrapAccessKey)
 	e2eCtx.Settings.FileLock = flock.New(ResourceQuotaFilePath)
