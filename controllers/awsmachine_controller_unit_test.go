@@ -1160,7 +1160,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				ms.AWSMachine.Spec.CloudInit = infrav1.CloudInit{}
 				ms.AWSMachine.Spec.Ignition = &infrav1.Ignition{
-					Version:     "2.3",
+					Version:     "3.4",
 					StorageType: infrav1.IgnitionStorageTypeOptionClusterObjectStore,
 				}
 
@@ -1182,7 +1182,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 
 				ms.AWSMachine.Spec.CloudInit = infrav1.CloudInit{}
 				ms.AWSMachine.Spec.Ignition = &infrav1.Ignition{
-					Version:     "2.3",
+					Version:     "3.4",
 					StorageType: infrav1.IgnitionStorageTypeOptionUnencryptedUserData,
 				}
 
@@ -1328,7 +1328,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				ms.AWSMachine.Spec.CloudInit.SecretCount = 0
 				ms.AWSMachine.Spec.CloudInit.SecretPrefix = ""
 				ms.AWSMachine.Spec.Ignition = &infrav1.Ignition{
-					Version:     "2.3",
+					Version:     "3.4",
 					StorageType: infrav1.IgnitionStorageTypeOptionClusterObjectStore,
 				}
 			}
@@ -1583,7 +1583,7 @@ func TestAWSMachineReconciler(t *testing.T) {
 				ms.AWSMachine.Spec.CloudInit.SecretCount = 0
 				ms.AWSMachine.Spec.CloudInit.SecretPrefix = ""
 				ms.AWSMachine.Spec.Ignition = &infrav1.Ignition{
-					Version:     "2.3",
+					Version:     "3.4",
 					StorageType: infrav1.IgnitionStorageTypeOptionUnencryptedUserData,
 				}
 			}

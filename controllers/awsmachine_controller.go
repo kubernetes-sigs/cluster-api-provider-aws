@@ -24,7 +24,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/blang/semver"
-	ignTypes "github.com/coreos/ignition/config/v2_3/types"
 	ignV3Types "github.com/coreos/ignition/v2/config/v3_4/types"
 	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
@@ -809,59 +808,43 @@ func (r *AWSMachineReconciler) generateIgnitionWithRemoteStorage(scope *scope.Ma
 		return nil, errors.Wrapf(err, "failed to parse ignition version %q", ignVersion)
 	}
 
-	switch semver.Major {
-	case 2:
-		ignData := &ignTypes.Config{
-			Ignition: ignTypes.Ignition{
-				Version: semver.String(),
-				Config: ignTypes.IgnitionConfig{
-					Append: []ignTypes.ConfigReference{
-						{
-							Source: objectURL,
-						},
-					},
-				},
-			},
-		}
-
-		return json.Marshal(ignData)
-	case 3:
-		ignData := &ignV3Types.Config{
-			Ignition: ignV3Types.Ignition{
-				Version: semver.String(),
-				Config: ignV3Types.IgnitionConfig{
-					Merge: []ignV3Types.Resource{
-						{
-							Source: aws.String(objectURL),
-						},
-					},
-				},
-			},
-		}
-
-		if scope.AWSMachine.Spec.Ignition.Proxy != nil {
-			ignData.Ignition.Proxy = ignV3Types.Proxy{
-				HTTPProxy:  scope.AWSMachine.Spec.Ignition.Proxy.HTTPProxy,
-				HTTPSProxy: scope.AWSMachine.Spec.Ignition.Proxy.HTTPSProxy,
-			}
-			for _, noProxy := range scope.AWSMachine.Spec.Ignition.Proxy.NoProxy {
-				ignData.Ignition.Proxy.NoProxy = append(ignData.Ignition.Proxy.NoProxy, ignV3Types.NoProxyItem(noProxy))
-			}
-		}
-
-		if scope.AWSMachine.Spec.Ignition.TLS != nil {
-			for _, cert := range scope.AWSMachine.Spec.Ignition.TLS.CASources {
-				ignData.Ignition.Security.TLS.CertificateAuthorities = append(
-					ignData.Ignition.Security.TLS.CertificateAuthorities,
-					ignV3Types.Resource{Source: aws.String(string(cert))},
-				)
-			}
-		}
-
-		return json.Marshal(ignData)
-	default:
-		return nil, errors.Errorf("unsupported ignition version %q", ignVersion)
+	if semver.Major != 3 {
+		return nil, errors.Errorf("unsupported ignition version %q, only version 3.x is supported", ignVersion)
 	}
+
+	ignData := &ignV3Types.Config{
+		Ignition: ignV3Types.Ignition{
+			Version: semver.String(),
+			Config: ignV3Types.IgnitionConfig{
+				Merge: []ignV3Types.Resource{
+					{
+						Source: aws.String(objectURL),
+					},
+				},
+			},
+		},
+	}
+
+	if scope.AWSMachine.Spec.Ignition.Proxy != nil {
+		ignData.Ignition.Proxy = ignV3Types.Proxy{
+			HTTPProxy:  scope.AWSMachine.Spec.Ignition.Proxy.HTTPProxy,
+			HTTPSProxy: scope.AWSMachine.Spec.Ignition.Proxy.HTTPSProxy,
+		}
+		for _, noProxy := range scope.AWSMachine.Spec.Ignition.Proxy.NoProxy {
+			ignData.Ignition.Proxy.NoProxy = append(ignData.Ignition.Proxy.NoProxy, ignV3Types.NoProxyItem(noProxy))
+		}
+	}
+
+	if scope.AWSMachine.Spec.Ignition.TLS != nil {
+		for _, cert := range scope.AWSMachine.Spec.Ignition.TLS.CASources {
+			ignData.Ignition.Security.TLS.CertificateAuthorities = append(
+				ignData.Ignition.Security.TLS.CertificateAuthorities,
+				ignV3Types.Resource{Source: aws.String(string(cert))},
+			)
+		}
+	}
+
+	return json.Marshal(ignData)
 }
 
 func getIgnitionVersion(scope *scope.MachineScope) string {

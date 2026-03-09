@@ -24,6 +24,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/blang/semver"
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -210,13 +211,21 @@ func (r *AWSMachine) validateIgnitionAndCloudInit() field.ErrorList {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "cloudInit"), "cannot be set if spec.ignition is set"))
 	}
 
+	// Only Ignition version 3.x is supported.
+	semver, err := semver.ParseTolerant(r.Spec.Ignition.Version)
+	if err != nil {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "ignition", "version"), r.Spec.Ignition.Version, "invalid ignition version"))
+	} else if semver.Major != 3 {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "ignition", "version"), r.Spec.Ignition.Version, "only ignition version 3.x is supported"))
+	}
+
 	// Proxy and TLS are only valid for Ignition versions >= 3.1.
-	if r.Spec.Ignition.Version == "2.3" || r.Spec.Ignition.Version == "3.0" {
+	if r.Spec.Ignition.Version == "3.0" {
 		if r.Spec.Ignition.Proxy != nil {
-			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "ignition", "proxy"), "cannot be set if spec.ignition.version is 2.3 or 3.0"))
+			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "ignition", "proxy"), "cannot be set if spec.ignition.version is 3.0"))
 		}
 		if r.Spec.Ignition.TLS != nil {
-			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "ignition", "tls"), "cannot be set if spec.ignition.version is 2.3 or 3.0"))
+			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "ignition", "tls"), "cannot be set if spec.ignition.version is 3.0"))
 		}
 	}
 
