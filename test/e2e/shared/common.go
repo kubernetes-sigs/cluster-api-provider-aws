@@ -102,6 +102,52 @@ type AWSStackLogCollector struct {
 	E2EContext *E2EContext
 }
 
+// CollectMachineLog collects logs from a machine using AWS SSM.
+func (k AWSStackLogCollector) CollectMachineLog(ctx context.Context, managementClusterClient crclient.Client, m *clusterv1.Machine, outputPath string) error {
+	if k.E2EContext == nil {
+		return fmt.Errorf("E2EContext is nil, cannot collect machine logs")
+	}
+
+	awsMachine := &infrav1.AWSMachine{}
+	key := crclient.ObjectKey{
+		Namespace: m.Namespace,
+		Name:      m.Spec.InfrastructureRef.Name,
+	}
+	if err := managementClusterClient.Get(ctx, key, awsMachine); err != nil {
+		return fmt.Errorf("getting AWSMachine %s: %w", key, err)
+	}
+
+	if awsMachine.Spec.InstanceID == nil || *awsMachine.Spec.InstanceID == "" {
+		return fmt.Errorf("AWSMachine %s has no instance ID set", key)
+	}
+	instanceID := *awsMachine.Spec.InstanceID
+
+	if err := os.MkdirAll(outputPath, 0o750); err != nil {
+		return fmt.Errorf("creating directory %q: %w", outputPath, err)
+	}
+
+	metaLog := path.Join(outputPath, "instance.log")
+	f, err := os.OpenFile(metaLog, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644) //nolint:gosec
+	if err != nil {
+		return fmt.Errorf("creating log file %q: %w", metaLog, err)
+	}
+	defer f.Close()
+
+	fmt.Fprintf(f, "instance found: instance-id=%q\n", instanceID)
+	commandsForMachine(ctx, k.E2EContext, f, instanceID, machineLogCommands())
+
+	if err := postProcessBase64LogData(outputPath, "pod-logs.log", "pod-logs.tar.gz"); err != nil {
+		fmt.Fprintf(GinkgoWriter, "Failed to post-process pod-logs for machine %s: %v\n", m.Name, err)
+	}
+
+	return nil
+}
+
+// CollectMachinePoolLog collects logs from a machine pool.
+func (k AWSStackLogCollector) CollectMachinePoolLog(_ context.Context, _ crclient.Client, _ *clusterv1.MachinePool, _ string) error {
+	return nil
+}
+
 // CollectInfrastructureLogs collects log from the infrastructure.
 func (k AWSStackLogCollector) CollectInfrastructureLogs(_ context.Context, _ crclient.Client, _ *clusterv1.Cluster, _ string) error {
 	return nil
@@ -176,47 +222,43 @@ func DumpMachine(ctx context.Context, e2eCtx *E2EContext, machine infrav1.AWSMac
 	}
 	defer f.Close()
 	fmt.Fprintf(f, "instance found: instance-id=%q\n", instanceID)
-	commandsForMachine(
-		ctx,
-		e2eCtx,
-		f,
-		instanceID,
-		[]command{
-			{
-				title: "systemd",
-				cmd:   "journalctl --no-pager --output=short-precise | grep -v  'audit:\\|audit\\['",
-			},
-			{
-				title: "kern",
-				cmd:   "journalctl --no-pager --output=short-precise -k",
-			},
-			{
-				title: "containerd-info",
-				cmd:   "crictl info",
-			},
-			{
-				title: "cloud-final",
-				cmd:   "journalctl --no-pager -u cloud-final",
-			},
-			{
-				title: "kubelet",
-				cmd:   "journalctl --no-pager -u kubelet.service",
-			},
-			{
-				title: "containerd",
-				cmd:   "journalctl --no-pager -u containerd.service",
-			},
-			{
-				title: "pod-logs",
-				cmd:   "sudo tar -czf - -C /var/log pods | base64 -w0",
-			},
-		},
-	)
+	commandsForMachine(ctx, e2eCtx, f, instanceID, machineLogCommands())
 
-	// Post-process pod-logs to have a tar.gz file instead of base64 date encoded in the log file.
-	// Note: It is not possible to directly output the raw tar.gz data because something truncates it.
 	if err := postProcessBase64LogData(filepath.Dir(f.Name()), "pod-logs.log", "pod-logs.tar.gz"); err != nil {
 		fmt.Fprintf(GinkgoWriter, "Failed to post-process pod-logs: %v\n", err)
+	}
+}
+
+func machineLogCommands() []command {
+	return []command{
+		{
+			title: "systemd",
+			cmd:   "journalctl --no-pager --output=short-precise | grep -v  'audit:\\|audit\\['",
+		},
+		{
+			title: "kern",
+			cmd:   "journalctl --no-pager --output=short-precise -k",
+		},
+		{
+			title: "containerd-info",
+			cmd:   "crictl info",
+		},
+		{
+			title: "cloud-final",
+			cmd:   "journalctl --no-pager -u cloud-final",
+		},
+		{
+			title: "kubelet",
+			cmd:   "journalctl --no-pager -u kubelet.service",
+		},
+		{
+			title: "containerd",
+			cmd:   "journalctl --no-pager -u containerd.service",
+		},
+		{
+			title: "pod-logs",
+			cmd:   "sudo tar -czf - -C /var/log pods | base64 -w0",
+		},
 	}
 }
 
