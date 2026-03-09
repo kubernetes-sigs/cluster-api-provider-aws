@@ -131,9 +131,12 @@ data:
           serviceAccountName: cloud-controller-manager
           containers:
             - name: aws-cloud-controller-manager
-              image: gcr.io/k8s-staging-provider-aws/cloud-controller-manager:v1.20.0-alpha.0
+              image: registry.k8s.io/provider-aws/cloud-controller-manager:${KUBERNETES_AWS_CCM_VERSION:-v1.32.5}
               args:
                 - --v=2
+                - --cloud-provider=aws
+                - --use-service-account-credentials=true
+                - --configure-cloud-routes=false
               resources:
                 requests:
                   cpu: 200m
@@ -209,6 +212,9 @@ data:
           - serviceaccounts
         verbs:
           - create
+          - get
+          - list
+          - watch
       - apiGroups:
           - ""
         resources:
@@ -245,6 +251,12 @@ data:
           - list
           - watch
           - update
+      - apiGroups:
+          - ""
+        resources:
+          - serviceaccounts/token
+        verbs:
+          - create
     ---
     kind: ClusterRoleBinding
     apiVersion: rbac.authorization.k8s.io/v1
