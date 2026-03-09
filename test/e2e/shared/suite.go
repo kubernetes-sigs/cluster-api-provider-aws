@@ -262,7 +262,12 @@ func AllNodesBeforeSuite(e2eCtx *E2EContext, data []byte) {
 				return
 			case <-e2eCtx.Environment.ResourceTicker.C:
 				for k := range e2eCtx.Environment.Namespaces {
-					DumpSpecResources(resourceCtx, e2eCtx, k)
+					// Warn instead of error when dumping resources fails due to a cluster being deleted.
+					if err := InterceptGomegaFailure(func() {
+						DumpSpecResources(resourceCtx, e2eCtx, k)
+					}); err != nil {
+						fmt.Fprintf(GinkgoWriter, "WARNING: periodic DumpSpecResources for namespace %q failed (can occur when a cluster is being deleted): %v\n", k.Name, err)
+					}
 				}
 			}
 		}
@@ -278,7 +283,12 @@ func AllNodesBeforeSuite(e2eCtx *E2EContext, data []byte) {
 				return
 			case <-e2eCtx.Environment.MachineTicker.C:
 				for k := range e2eCtx.Environment.Namespaces {
-					DumpMachines(machineCtx, e2eCtx, k)
+					// Warn instead of error when dumping machines fails due to a cluster being deleted.
+					if err := InterceptGomegaFailure(func() {
+						DumpMachines(machineCtx, e2eCtx, k)
+					}); err != nil {
+						fmt.Fprintf(GinkgoWriter, "WARNING: periodic DumpMachines for namespace %q failed (can occur when a cluster is being deleted): %v\n", k.Name, err)
+					}
 				}
 			}
 		}
