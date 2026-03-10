@@ -28,7 +28,9 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strconv"
+	"sync"
 	"time"
 
 	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
@@ -42,6 +44,25 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
+
+// diagnosticGoroutines tracks goroutine IDs of background diagnostic dump
+// goroutines so the custom fail handler can intercept their assertion failures
+// without affecting test goroutines.
+var diagnosticGoroutines sync.Map
+
+func currentGoroutineID() int64 {
+	var buf [64]byte
+	n := runtime.Stack(buf[:], false)
+	// Format: "goroutine NNN [...]"
+	i := len("goroutine ")
+	for j := i; j < n; j++ {
+		if buf[j] == ' ' {
+			id, _ := strconv.ParseInt(string(buf[i:j]), 10, 64)
+			return id
+		}
+	}
+	return -1
+}
 
 type synchronizedBeforeTestSuiteConfig struct {
 	ArtifactFolder           string               `json:"artifactFolder,omitempty"`
@@ -257,9 +278,26 @@ func AllNodesBeforeSuite(e2eCtx *E2EContext, data []byte) {
 	e2eCtx.Environment.MachineTickerDone = make(chan bool)
 	resourceCtx, resourceCancel := context.WithCancel(context.Background())
 	machineCtx, machineCancel := context.WithCancel(context.Background())
+
+	// Register a goroutine-aware fail handler so diagnostic dump goroutines
+	// don't mark specs as failed when they encounter transient errors
+	// (e.g. cluster not found during deletion). This is goroutine-safe unlike
+	// InterceptGomegaFailure which replaces the global fail handler.
+	RegisterFailHandler(func(message string, callerSkip ...int) {
+		if _, ok := diagnosticGoroutines.Load(currentGoroutineID()); ok {
+			panic("diagnostic dump failure: " + message)
+		}
+		skip := 0
+		if len(callerSkip) > 0 {
+			skip = callerSkip[0]
+		}
+		Fail(message, skip+1)
+	})
+
 	// Dump resources every 5 seconds
 	go func() {
-		defer GinkgoRecover()
+		diagnosticGoroutines.Store(currentGoroutineID(), true)
+		defer diagnosticGoroutines.Delete(currentGoroutineID())
 		for {
 			select {
 			case <-e2eCtx.Environment.ResourceTickerDone:
@@ -267,12 +305,14 @@ func AllNodesBeforeSuite(e2eCtx *E2EContext, data []byte) {
 				return
 			case <-e2eCtx.Environment.ResourceTicker.C:
 				for k := range e2eCtx.Environment.Namespaces {
-					// Warn instead of error when dumping resources fails due to a cluster being deleted.
-					if err := InterceptGomegaFailure(func() {
+					func() {
+						defer func() {
+							if r := recover(); r != nil {
+								fmt.Fprintf(GinkgoWriter, "WARNING: periodic DumpSpecResources for namespace %q failed (can occur when a cluster is being deleted): %v\n", k.Name, r)
+							}
+						}()
 						DumpSpecResources(resourceCtx, e2eCtx, k)
-					}); err != nil {
-						fmt.Fprintf(GinkgoWriter, "WARNING: periodic DumpSpecResources for namespace %q failed (can occur when a cluster is being deleted): %v\n", k.Name, err)
-					}
+					}()
 				}
 			}
 		}
@@ -280,7 +320,8 @@ func AllNodesBeforeSuite(e2eCtx *E2EContext, data []byte) {
 
 	// Dump machine logs every 60 seconds
 	go func() {
-		defer GinkgoRecover()
+		diagnosticGoroutines.Store(currentGoroutineID(), true)
+		defer diagnosticGoroutines.Delete(currentGoroutineID())
 		for {
 			select {
 			case <-e2eCtx.Environment.MachineTickerDone:
@@ -288,12 +329,14 @@ func AllNodesBeforeSuite(e2eCtx *E2EContext, data []byte) {
 				return
 			case <-e2eCtx.Environment.MachineTicker.C:
 				for k := range e2eCtx.Environment.Namespaces {
-					// Warn instead of error when dumping machines fails due to a cluster being deleted.
-					if err := InterceptGomegaFailure(func() {
+					func() {
+						defer func() {
+							if r := recover(); r != nil {
+								fmt.Fprintf(GinkgoWriter, "WARNING: periodic DumpMachines for namespace %q failed (can occur when a cluster is being deleted): %v\n", k.Name, r)
+							}
+						}()
 						DumpMachines(machineCtx, e2eCtx, k)
-					}); err != nil {
-						fmt.Fprintf(GinkgoWriter, "WARNING: periodic DumpMachines for namespace %q failed (can occur when a cluster is being deleted): %v\n", k.Name, err)
-					}
+					}()
 				}
 			}
 		}
