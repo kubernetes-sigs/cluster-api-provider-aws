@@ -152,6 +152,9 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 		}
 	}
 
+	// Restore V1Beta2 status from annotations.
+	dst.Status.V1Beta2 = restored.Status.V1Beta2
+
 	return nil
 }
 
@@ -233,4 +236,11 @@ func (r *AWSClusterList) ConvertFrom(srcRaw conversion.Hub) error {
 
 func Convert_v1beta2_SubnetSpec_To_v1beta1_SubnetSpec(in *infrav1.SubnetSpec, out *SubnetSpec, s apiconversion.Scope) error {
 	return autoConvert_v1beta2_SubnetSpec_To_v1beta1_SubnetSpec(in, out, s)
+}
+
+// Convert_v1beta2_AWSClusterStatus_To_v1beta1_AWSClusterStatus handles the V1Beta2 field
+// that doesn't exist in v1beta1. The V1Beta2 conditions are dropped during down-conversion
+// and will be restored from annotations during up-conversion.
+func Convert_v1beta2_AWSClusterStatus_To_v1beta1_AWSClusterStatus(in *infrav1.AWSClusterStatus, out *AWSClusterStatus, s apiconversion.Scope) error {
+	return autoConvert_v1beta2_AWSClusterStatus_To_v1beta1_AWSClusterStatus(in, out, s)
 }
