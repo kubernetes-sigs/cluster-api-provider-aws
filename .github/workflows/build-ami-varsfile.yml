@@ -6,7 +6,7 @@ on:
       image_builder_version:
         description: "Image builder version"
         required: true
-        default: 'v0.1.48'
+        default: '990737c79abb37fd56faca64f46e5a385dd1a982' # post-v0.1.48, includes fix https://github.com/kubernetes-sigs/image-builder/pull/1919
       target:
         description: "target os"
         required: true
