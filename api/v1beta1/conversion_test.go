@@ -18,9 +18,11 @@ package v1beta1
 
 import (
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"sigs.k8s.io/randfill"
@@ -33,6 +35,7 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		AWSMachineFuzzer,
 		AWSMachineTemplateFuzzer,
+		AWSMachineV1Beta2Fuzzer,
 	}
 }
 
@@ -66,6 +69,14 @@ func AWSMachineTemplateFuzzer(obj *AWSMachineTemplate, c randfill.Continue) {
 	}
 	obj.Spec.Template.Spec.AdditionalSecurityGroups = restored
 	obj.Spec.Template.Spec.FailureDomain = nil
+}
+
+func AWSMachineV1Beta2Fuzzer(obj *v1beta2.AWSMachine, c randfill.Continue) {
+	c.FillNoCustom(obj)
+
+	if obj.Status.SpotRequestStartTime != nil && obj.Status.SpotRequestStartTime.Time.IsZero() {
+		obj.Status.SpotRequestStartTime = &metav1.Time{Time: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)}
+	}
 }
 
 func TestFuzzyConversion(t *testing.T) {

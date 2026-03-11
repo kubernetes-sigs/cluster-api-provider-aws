@@ -35,6 +35,30 @@ spec:
       maxPrice: 0.02 # Price in USD per hour (up to 5 decimal places)
 ```
 
+### Fallback to On-Demand with WaitingTimeout
+
+Users may also add a `waitingTimeout` to the options to define a maximum time to wait for Spot instance availability. If no Spot instance is available within the timeout period, the controller will automatically fall back to creating an On-Demand instance instead.
+
+This is useful for scenarios where you want to try to get the cost benefits of Spot instances, but need to ensure that your workload gets provisioned within a reasonable timeframe.
+
+```yaml
+spec:
+  template:
+    spotMarketOptions:
+      waitingTimeout: 10m # Wait up to 10 minutes for a Spot instance
+```
+
+You can combine `waitingTimeout` with `maxPrice`:
+```yaml
+spec:
+  template:
+    spotMarketOptions:
+      maxPrice: "0.05"
+      waitingTimeout: 5m
+```
+
+If `waitingTimeout` is not specified, the controller will not fall back to On-Demand and will continue to attempt acquiring a Spot instance (default behavior).
+
 ## Using Spot Instances with AWSManagedMachinePool
 To use spot instance in EKS managed node groups for a EKS cluster, set `capacityType` to `spot` in `AWSManagedMachinePool`.
 ```yaml
