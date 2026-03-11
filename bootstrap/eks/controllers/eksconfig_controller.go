@@ -23,6 +23,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -309,6 +310,17 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 		nodeInput.IPFamily = ptr.To[string]("ipv6")
 	}
 
+	// Check if this is a Sequoia emulator environment by reading the CAPA credentials secret.
+	isEmulator := false
+	capaSecret := &corev1.Secret{}
+	if err := r.Client.Get(ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: "capa-manager-bootstrap-credentials"}, capaSecret); err != nil {
+		if !apierrors.IsNotFound(err) {
+			log.Info("Error getting CAPA credentials secret", "error", err)
+		}
+	} else if string(capaSecret.Data["sequoia-emulator"]) == "true" {
+		isEmulator = true
+	}
+
 	// Set AMI family type and AL2023-specific fields if needed
 	if config.Spec.NodeType == NodeTypeAL2023 {
 		log.Info("Processing AL2023 node type")
@@ -317,6 +329,18 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 		// Set AL2023-specific fields
 		nodeInput.APIServerEndpoint = controlPlane.Spec.ControlPlaneEndpoint.Host
 		nodeInput.NodeGroupName = config.Name
+
+		// Emulator only: transform commercial endpoint to Secret region endpoint
+		if isEmulator {
+			transformed := transformEndpointForSecretRegion(nodeInput.APIServerEndpoint, controlPlane.Spec.Region)
+			if transformed != nodeInput.APIServerEndpoint {
+				log.Info("Transformed AL2023 API Server Endpoint for emulated Secret region",
+					"original", nodeInput.APIServerEndpoint,
+					"transformed", transformed,
+					"region", controlPlane.Spec.Region)
+				nodeInput.APIServerEndpoint = transformed
+			}
+		}
 
 		// In test environments, provide a mock CA certificate
 		if os.Getenv("TEST_ENV") == "true" {
@@ -368,6 +392,20 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 			"endpoint", nodeInput.APIServerEndpoint)
 	} else {
 		nodeInput.AMIFamilyType = userdata.AMIFamilyAL2
+
+		// Emulator only: set and transform endpoint for AL2
+		if isEmulator {
+			nodeInput.APIServerEndpoint = controlPlane.Spec.ControlPlaneEndpoint.Host
+			transformed := transformEndpointForSecretRegion(nodeInput.APIServerEndpoint, controlPlane.Spec.Region)
+			if transformed != nodeInput.APIServerEndpoint {
+				log.Info("Transformed AL2 API Server Endpoint for emulated Secret region",
+					"original", nodeInput.APIServerEndpoint,
+					"transformed", transformed,
+					"region", controlPlane.Spec.Region)
+				nodeInput.APIServerEndpoint = transformed
+			}
+		}
+
 		log.Info("Generating standard userdata for node type", "type", config.Spec.NodeType)
 	}
 
@@ -594,4 +632,25 @@ func (r *EKSConfigReconciler) getClusterCidr(cluster *clusterv1.Cluster, control
 	}
 
 	return controlPlane.Spec.NetworkSpec.VPC.CidrBlock
+}
+
+// transformEndpointForSecretRegion transforms commercial AWS endpoint to Secret region endpoint if needed.
+// Example transformation:
+//
+//	Input:  https://XXXXX.gr7.us-east-1.eks.amazonaws.com
+//	Output: https://XXXXX.gr7.us-isob-east-1.eks.sc2s.sgov.gov
+func transformEndpointForSecretRegion(endpoint string, region string) string {
+	// Only transform for Secret region us-isob-east-1
+	if region != "us-isob-east-1" {
+		return endpoint
+	}
+
+	// Transform commercial endpoint suffix to Secret region suffix
+	// Pattern: .gr7.us-east-1.eks.amazonaws.com -> .gr7.us-isob-east-1.eks.sc2s.sgov.gov
+	if strings.Contains(endpoint, ".eks.amazonaws.com") {
+		transformed := strings.Replace(endpoint, ".gr7.us-east-1.eks.amazonaws.com", ".gr7.us-isob-east-1.eks.sc2s.sgov.gov", 1)
+		return transformed
+	}
+
+	return endpoint
 }
