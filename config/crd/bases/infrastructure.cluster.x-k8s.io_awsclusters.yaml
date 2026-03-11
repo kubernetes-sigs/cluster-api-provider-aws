@@ -447,6 +447,33 @@ spec:
                   availabilityZone:
                     description: Availability zone of instance
                     type: string
+                  cpuOptions:
+                    description: CPUOptions specifies CPU-related settings for the
+                      instance.
+                    minProperties: 1
+                    properties:
+                      confidentialCompute:
+                        description: |-
+                          ConfidentialCompute specifies whether confidential computing should be enabled for the instance.
+                          Valid values are: Disabled, AMDEncryptedVirtualizationNestedPaging
+                        enum:
+                        - Disabled
+                        - AMDEncryptedVirtualizationNestedPaging
+                        type: string
+                      nestedVirtualization:
+                        allOf:
+                        - enum:
+                          - enabled
+                          - disabled
+                        - enum:
+                          - enabled
+                          - disabled
+                        description: |-
+                          NestedVirtualization specifies whether to enable nested virtualization on the instance.
+                          Nested virtualization is supported on C8i, M8i, and R8i instance types.
+                          Valid values are: enabled, disabled
+                        type: string
+                    type: object
                   ebsOptimized:
                     description: Indicates whether the instance is optimized for Amazon
                       EBS I/O.
@@ -2285,6 +2312,19 @@ spec:
                         enum:
                         - Disabled
                         - AMDEncryptedVirtualizationNestedPaging
+                        type: string
+                      nestedVirtualization:
+                        allOf:
+                        - enum:
+                          - enabled
+                          - disabled
+                        - enum:
+                          - enabled
+                          - disabled
+                        description: |-
+                          NestedVirtualization specifies whether to enable nested virtualization on the instance.
+                          Nested virtualization is supported on C8i, M8i, and R8i instance types.
+                          Valid values are: enabled, disabled
                         type: string
                     type: object
                   dynamicHostAllocation:
