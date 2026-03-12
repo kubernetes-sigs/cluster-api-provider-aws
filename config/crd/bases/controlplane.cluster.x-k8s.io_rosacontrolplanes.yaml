@@ -101,8 +101,17 @@ spec:
                   rule: self == oldSelf
                 - message: billingAccount must be a valid AWS account ID
                   rule: self.matches('^[0-9]{12}$')
+              channel:
+                description: |-
+                  Channel is the Y-stream OpenShift channel to use for this cluster, for example "stable-4.16" or "eus-4.16".
+                  This determines which Y-stream versions are available for upgrades.
+                  When not specified, defaults to "stable-{versionY}" where versionY is derived from the Version field.
+
+                  NOTE: This field replaces the internal channelGroup approach. The channelGroup (e.g., "stable", "eus")
+                  is automatically derived from this Y-stream channel and will be deprecated in a future release.
+                pattern: ^(stable|eus|fast|candidate|nightly)-[0-9]+\.[0-9]+$
+                type: string
               channelGroup:
-                default: stable
                 description: OpenShift version channel group, default is stable.
                 enum:
                 - stable
@@ -916,7 +925,6 @@ spec:
                   Required if RosaRoleConfigRef is not specified.
                 type: string
             required:
-            - channelGroup
             - region
             - rosaClusterName
             - version
@@ -925,6 +933,11 @@ spec:
           status:
             description: RosaControlPlaneStatus defines the observed state of ROSAControlPlane.
             properties:
+              availableChannels:
+                description: Available channels for the ROSA hosted control plane.
+                items:
+                  type: string
+                type: array
               availableUpgrades:
                 description: Available upgrades for the ROSA hosted control plane.
                 items:

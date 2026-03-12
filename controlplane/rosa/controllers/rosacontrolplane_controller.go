@@ -630,6 +630,9 @@ func (r *ROSAControlPlaneReconciler) reconcileClusterVersion(rosaScope *scope.RO
 
 		if cluster.Version() != nil {
 			rosaScope.ControlPlane.Status.AvailableUpgrades = cluster.Version().AvailableUpgrades()
+			if availableChannels, ok := cluster.Version().GetAvailableChannels(); ok {
+				rosaScope.ControlPlane.Status.AvailableChannels = availableChannels
+			}
 		}
 
 		// Set the version gate to WaitForAcknowledge as the previous upgrade is applied.
@@ -758,13 +761,71 @@ func (r *ROSAControlPlaneReconciler) updateOCMClusterSpec(rosaControlPlane *rosa
 		updated = true
 	}
 
-	if rosaControlPlane.Spec.ChannelGroup != "" {
-		channelGroup := string(rosaControlPlane.Spec.ChannelGroup)
-		if cluster.Version() == nil || cluster.Version().ChannelGroup() != channelGroup {
-			ocmClusterSpec.ChannelGroup = channelGroup
+	// Handle channel and channelGroup updates following the rosa-enhancements logic:
+	// https://github.com/openshift-online/rosa-enhancements/blob/main/enhancements/managed_openshift_supports_y%2B1.md
+	if rosaControlPlane.Spec.Channel != "" {
+		// Case 1: If request sets channel - Store directly, derive channel_group for response
+		currentChannel := ""
+		if cluster.Version() != nil && cluster.Version().ChannelGroup() != "" {
+			versionID := cluster.Version().ID()
+			versionParts := strings.Split(versionID, ".")
+			if len(versionParts) >= 2 {
+				currentChannel = fmt.Sprintf("%s-%s.%s", cluster.Version().ChannelGroup(), versionParts[0], versionParts[1])
+			}
+		}
+
+		if rosaControlPlane.Spec.Channel != currentChannel {
+			ocmClusterSpec.Channel = rosaControlPlane.Spec.Channel
+			ocmClusterSpec.ChannelGroup = getChannelGroupFromChannel(rosaControlPlane.Spec.Channel)
 			updated = true
 		}
+	} else if rosaControlPlane.Spec.ChannelGroup != "" {
+		// Case 2 & 3: If request sets channel_group
+		currentChannelGroup := ""
+		currentChannel := ""
+		if cluster.Version() != nil {
+			currentChannelGroup = cluster.Version().ChannelGroup()
+			versionID := cluster.Version().ID()
+			versionParts := strings.Split(versionID, ".")
+			if len(versionParts) >= 2 {
+				currentChannel = fmt.Sprintf("%s-%s.%s", currentChannelGroup, versionParts[0], versionParts[1])
+			}
+		}
+
+		requestedChannelGroup := string(rosaControlPlane.Spec.ChannelGroup)
+
+		// Case 2: channelGroup matches existing - nothing changes
+		if requestedChannelGroup == currentChannelGroup {
+			// No update needed
+		} else {
+			// Case 3: New channel_group - Update database intelligently
+			// Try: ${channel_group}-${current_channel_Y}
+			// Fallback: ${channel_group}-${current_target_version_Y}
+			var newChannel string
+			if currentChannel != "" {
+				// Extract Y-stream from current channel
+				parts := strings.Split(currentChannel, "-")
+				if len(parts) == 2 {
+					newChannel = fmt.Sprintf("%s-%s", requestedChannelGroup, parts[1])
+				}
+			}
+
+			// Fallback to version-based channel if we couldn't derive from current
+			if newChannel == "" {
+				versionParts := strings.Split(rosaControlPlane.Spec.Version, ".")
+				if len(versionParts) >= 2 {
+					newChannel = fmt.Sprintf("%s-%s.%s", requestedChannelGroup, versionParts[0], versionParts[1])
+				}
+			}
+
+			if newChannel != "" {
+				ocmClusterSpec.Channel = newChannel
+				ocmClusterSpec.ChannelGroup = requestedChannelGroup
+				updated = true
+			}
+		}
 	}
+	// Case 4: If neither channel nor channelGroup is set, OCM will set channel = stable-{version}
 
 	if rosaControlPlane.Spec.AutoNode != nil {
 		autoNodeMode := strings.ToLower(string(rosaControlPlane.Spec.AutoNode.Mode))
@@ -1112,7 +1173,8 @@ func (r *ROSAControlPlaneReconciler) reconcileClusterAdminPassword(ctx context.C
 
 func validateControlPlaneSpec(ocmClient rosa.OCMClient, rosaControlPlane *rosacontrolplanev1.ROSAControlPlane) (string, error) {
 	version := rosaControlPlane.Spec.Version
-	channelGroup := string(rosaControlPlane.Spec.ChannelGroup)
+	channel := getEffectiveChannel(rosaControlPlane.Spec)
+	channelGroup := getChannelGroupFromChannel(channel)
 	valid, err := ocmClient.ValidateHypershiftVersion(version, channelGroup)
 	if err != nil {
 		return "", fmt.Errorf("error validating version in this channelGroup : %w", err)
@@ -1157,14 +1219,19 @@ func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpe
 		}
 	}
 
+	// CreateVersionID expects a non-empty channelGroup. If not specified, default to "stable".
+	channelGroupForVersion := string(controlPlaneSpec.ChannelGroup)
+	if channelGroupForVersion == "" {
+		channelGroupForVersion = "stable"
+	}
+
 	ocmClusterSpec := ocm.Spec{
 		DryRun:                    ptr.To(false),
 		Name:                      controlPlaneSpec.RosaClusterName,
 		DomainPrefix:              controlPlaneSpec.DomainPrefix,
 		Region:                    controlPlaneSpec.Region,
 		MultiAZ:                   true,
-		Version:                   ocm.CreateVersionID(controlPlaneSpec.Version, string(controlPlaneSpec.ChannelGroup)),
-		ChannelGroup:              string(controlPlaneSpec.ChannelGroup),
+		Version:                   ocm.CreateVersionID(controlPlaneSpec.Version, channelGroupForVersion),
 		DisableWorkloadMonitoring: ptr.To(true),
 		DefaultIngress:            ocm.NewDefaultIngressSpec(), // n.b. this is a no-op when it's set to the default value
 		ComputeMachineType:        controlPlaneSpec.DefaultMachinePoolSpec.InstanceType,
@@ -1291,6 +1358,22 @@ func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpe
 			S3ConfigBucketPrefix: controlPlaneSpec.S3LogForwarder.S3ConfigBucketPrefix,
 		}
 	}
+
+	// Set channel and channelGroup only if explicitly provided by the user.
+	// If neither is set, OCM will default to stable-{version} (rosa-enhancements Case 4).
+	if controlPlaneSpec.Channel != "" {
+		ocmClusterSpec.Channel = controlPlaneSpec.Channel
+		ocmClusterSpec.ChannelGroup = getChannelGroupFromChannel(controlPlaneSpec.Channel)
+	} else if controlPlaneSpec.ChannelGroup != "" {
+		// Derive Y-stream channel from channelGroup and version
+		versionParts := strings.Split(controlPlaneSpec.Version, ".")
+		if len(versionParts) >= 2 {
+			ocmClusterSpec.Channel = fmt.Sprintf("%s-%s.%s", controlPlaneSpec.ChannelGroup, versionParts[0], versionParts[1])
+			ocmClusterSpec.ChannelGroup = string(controlPlaneSpec.ChannelGroup)
+		}
+	}
+	// If neither channel nor channelGroup is set, leave them empty and let OCM set defaults
+
 	return ocmClusterSpec, nil
 }
 
@@ -1398,4 +1481,46 @@ func buildAPIEndpoint(cluster *cmv1.Cluster) (*clusterv1beta1.APIEndpoint, error
 		Host: host,
 		Port: int32(port), //#nosec G109 G115
 	}, nil
+}
+
+// getEffectiveChannel returns the channel to use for the cluster.
+// If channel is specified, it returns that. Otherwise, it derives it from channelGroup and version.
+// If channelGroup is not specified, defaults to "stable".
+func getEffectiveChannel(spec rosacontrolplanev1.RosaControlPlaneSpec) string {
+	if spec.Channel != "" {
+		return spec.Channel
+	}
+
+	// Derive channel from channelGroup and version
+	// Parse version to extract Y-stream (e.g., "4.16.5" -> "4.16")
+	versionParts := strings.Split(spec.Version, ".")
+	if len(versionParts) >= 2 {
+		channelGroup := string(spec.ChannelGroup)
+		if channelGroup == "" {
+			channelGroup = "stable"
+		}
+		return fmt.Sprintf("%s-%s.%s", channelGroup, versionParts[0], versionParts[1])
+	}
+
+	// Fallback to channelGroup if we can't parse the version
+	channelGroup := string(spec.ChannelGroup)
+	if channelGroup == "" {
+		channelGroup = "stable"
+	}
+	return channelGroup
+}
+
+// getChannelGroupFromChannel extracts the channel group from a Y-stream channel.
+// For example: "stable-4.16" -> "stable", "eus-4.16" -> "eus"
+// Returns empty string if channel group cannot be determined.
+//
+// NOTE: This function exists to maintain compatibility with the OCM API's channelGroup field.
+// The channelGroup approach is being deprecated in favor of Y-stream channels (e.g., "stable-4.16").
+// In a future release, the OCM API will only use the channel field and this function will be removed.
+func getChannelGroupFromChannel(channel string) string {
+	parts := strings.Split(channel, "-")
+	if len(parts) >= 1 && parts[0] != "" {
+		return parts[0]
+	}
+	return ""
 }

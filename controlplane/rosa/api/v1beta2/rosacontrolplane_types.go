@@ -125,9 +125,20 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 
 	// OpenShift version channel group, default is stable.
 	//
+	// +optional
 	// +kubebuilder:validation:Enum=stable;eus;fast;candidate;nightly
-	// +kubebuilder:default=stable
-	ChannelGroup ChannelGroupType `json:"channelGroup"`
+	ChannelGroup ChannelGroupType `json:"channelGroup,omitempty"`
+
+	// Channel is the Y-stream OpenShift channel to use for this cluster, for example "stable-4.16" or "eus-4.16".
+	// This determines which Y-stream versions are available for upgrades.
+	// When not specified, defaults to "stable-{versionY}" where versionY is derived from the Version field.
+	//
+	// NOTE: This field replaces the internal channelGroup approach. The channelGroup (e.g., "stable", "eus")
+	// is automatically derived from this Y-stream channel and will be deprecated in a future release.
+	//
+	// +optional
+	// +kubebuilder:validation:Pattern:=`^(stable|eus|fast|candidate|nightly)-[0-9]+\.[0-9]+$`
+	Channel string `json:"channel,omitempty"`
 
 	// VersionGate requires acknowledgment when upgrading ROSA-HCP y-stream versions (e.g., from 4.15 to 4.16).
 	// Default is WaitForAcknowledge.
@@ -867,6 +878,9 @@ type RosaControlPlaneStatus struct {
 
 	// Available upgrades for the ROSA hosted control plane.
 	AvailableUpgrades []string `json:"availableUpgrades,omitempty"`
+
+	// Available channels for the ROSA hosted control plane.
+	AvailableChannels []string `json:"availableChannels,omitempty"`
 }
 
 // +kubebuilder:object:root=true

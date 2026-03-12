@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/blang/semver"
 	kmsArnRegexpValidator "github.com/openshift-online/ocm-common/pkg/resource/validations"
@@ -61,6 +62,10 @@ func (w *ROSAControlPlane) ValidateCreate(_ context.Context, obj runtime.Object)
 	var allErrs field.ErrorList
 
 	if err := w.validateVersion(r); err != nil {
+		allErrs = append(allErrs, err)
+	}
+
+	if err := w.validateChannel(r); err != nil {
 		allErrs = append(allErrs, err)
 	}
 
@@ -120,6 +125,10 @@ func (w *ROSAControlPlane) ValidateUpdate(_ context.Context, oldObj, newObj runt
 	var allErrs field.ErrorList
 
 	if err := w.validateVersion(r); err != nil {
+		allErrs = append(allErrs, err)
+	}
+
+	if err := w.validateChannel(r); err != nil {
 		allErrs = append(allErrs, err)
 	}
 
@@ -277,6 +286,59 @@ func (w *ROSAControlPlane) validateROSANetworkRef(r *rosacontrolplanev1.ROSACont
 
 	if r.Spec.ROSANetworkRef == nil && r.Spec.AvailabilityZones == nil {
 		return field.Required(field.NewPath("spec.availabilityZones"), "spec.availabilityZones cannot be empty when spec.rosaNetworkRef is unspecified")
+	}
+
+	return nil
+}
+
+func (w *ROSAControlPlane) validateChannel(r *rosacontrolplanev1.ROSAControlPlane) *field.Error {
+	// If channel is not specified, it will be defaulted from version, so no validation needed
+	if r.Spec.Channel == "" {
+		return nil
+	}
+
+	// Validate channel format: must be "<channelGroup>-<major>.<minor>"
+	parts := strings.Split(r.Spec.Channel, "-")
+	if len(parts) != 2 {
+		return field.Invalid(field.NewPath("spec.channel"), r.Spec.Channel,
+			"must be in format '<channelGroup>-<major>.<minor>', for example 'stable-4.16' or 'eus-4.16'")
+	}
+
+	channelGroup := parts[0]
+	yStream := parts[1]
+
+	// Validate channel group
+	validChannelGroups := []string{"stable", "eus", "fast", "candidate", "nightly"}
+	validGroup := false
+	for _, valid := range validChannelGroups {
+		if channelGroup == valid {
+			validGroup = true
+			break
+		}
+	}
+	if !validGroup {
+		return field.Invalid(field.NewPath("spec.channel"), r.Spec.Channel,
+			fmt.Sprintf("channel group must be one of: %s", strings.Join(validChannelGroups, ", ")))
+	}
+
+	// Validate Y-stream format (e.g., "4.16")
+	yStreamParts := strings.Split(yStream, ".")
+	if len(yStreamParts) != 2 {
+		return field.Invalid(field.NewPath("spec.channel"), r.Spec.Channel,
+			"Y-stream must be in format '<major>.<minor>', for example '4.16'")
+	}
+
+	// If version is specified, validate that channel Y-stream matches version Y-stream
+	if r.Spec.Version != "" {
+		versionParts := strings.Split(r.Spec.Version, ".")
+		if len(versionParts) >= 2 {
+			versionYStream := fmt.Sprintf("%s.%s", versionParts[0], versionParts[1])
+			if yStream != versionYStream {
+				return field.Invalid(field.NewPath("spec.channel"), r.Spec.Channel,
+					fmt.Sprintf("channel Y-stream '%s' must match version Y-stream '%s' from spec.version '%s'",
+						yStream, versionYStream, r.Spec.Version))
+			}
+		}
 	}
 
 	return nil

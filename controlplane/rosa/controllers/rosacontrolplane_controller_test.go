@@ -233,6 +233,96 @@ func TestUpdateOCMClusterSpec(t *testing.T) {
 		g.Expect(updated).To(BeTrue())
 		g.Expect(ocmSpec).To(Equal(expectedOCMSpec))
 	})
+
+	// Test case 8: Channel explicitly set - use it directly
+	t.Run("Channel explicitly set", func(t *testing.T) {
+		rosaControlPlane := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				Channel:      "eus-4.18",
+				ChannelGroup: rosacontrolplanev1.Stable, // Different from channel, but channel takes precedence
+				Version:      "4.16.5",
+			},
+		}
+
+		mockCluster, _ := v1.NewCluster().
+			Version(v1.NewVersion().
+				ID("4.16.5").
+				ChannelGroup("stable")).
+			Build()
+
+		reconciler := &ROSAControlPlaneReconciler{}
+		ocmSpec, updated := reconciler.updateOCMClusterSpec(rosaControlPlane, mockCluster)
+
+		g.Expect(updated).To(BeTrue())
+		g.Expect(ocmSpec.Channel).To(Equal("eus-4.18"))
+		g.Expect(ocmSpec.ChannelGroup).To(Equal("eus"))
+	})
+
+	// Test case 9: ChannelGroup matches current - no update
+	t.Run("ChannelGroup matches current channel group - no update", func(t *testing.T) {
+		rosaControlPlane := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				ChannelGroup: rosacontrolplanev1.Stable,
+				Version:      "4.16.5",
+			},
+		}
+
+		mockCluster, _ := v1.NewCluster().
+			Version(v1.NewVersion().
+				ID("4.18.3").
+				ChannelGroup("stable")).
+			Build()
+
+		reconciler := &ROSAControlPlaneReconciler{}
+		ocmSpec, updated := reconciler.updateOCMClusterSpec(rosaControlPlane, mockCluster)
+
+		g.Expect(updated).To(BeFalse())
+		g.Expect(ocmSpec.Channel).To(Equal(""))
+	})
+
+	// Test case 10: New channelGroup - preserve Y-stream
+	t.Run("New channelGroup preserves current Y-stream", func(t *testing.T) {
+		rosaControlPlane := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				ChannelGroup: rosacontrolplanev1.Eus, // Changing from stable to eus
+				Version:      "4.16.5",
+			},
+		}
+
+		// Current cluster is on stable-4.18
+		mockCluster, _ := v1.NewCluster().
+			Version(v1.NewVersion().
+				ID("4.18.3").
+				ChannelGroup("stable")).
+			Build()
+
+		reconciler := &ROSAControlPlaneReconciler{}
+		ocmSpec, updated := reconciler.updateOCMClusterSpec(rosaControlPlane, mockCluster)
+
+		g.Expect(updated).To(BeTrue())
+		g.Expect(ocmSpec.Channel).To(Equal("eus-4.18"))
+		g.Expect(ocmSpec.ChannelGroup).To(Equal("eus"))
+	})
+
+	// Test case 11: New channelGroup, no current channel - derive from version
+	t.Run("New channelGroup with no current channel - derive from version", func(t *testing.T) {
+		rosaControlPlane := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				ChannelGroup: rosacontrolplanev1.Eus,
+				Version:      "4.16.5",
+			},
+		}
+
+		// Cluster has no version info (edge case)
+		mockCluster, _ := v1.NewCluster().Build()
+
+		reconciler := &ROSAControlPlaneReconciler{}
+		ocmSpec, updated := reconciler.updateOCMClusterSpec(rosaControlPlane, mockCluster)
+
+		g.Expect(updated).To(BeTrue())
+		g.Expect(ocmSpec.Channel).To(Equal("eus-4.16"))
+		g.Expect(ocmSpec.ChannelGroup).To(Equal("eus"))
+	})
 }
 
 func TestValidateControlPlaneSpec(t *testing.T) {
@@ -770,4 +860,84 @@ func cleanupObject(g *WithT, obj client.Object) {
 	if obj.DeepCopyObject() != nil {
 		g.Expect(testEnv.Cleanup(ctx, obj)).To(Succeed())
 	}
+}
+
+func TestGetEffectiveChannel(t *testing.T) {
+	g := NewWithT(t)
+
+	t.Run("Returns channel when specified", func(t *testing.T) {
+		spec := rosacontrolplanev1.RosaControlPlaneSpec{
+			Channel: "stable-4.16",
+			Version: "4.16.5",
+		}
+		result := getEffectiveChannel(spec)
+		g.Expect(result).To(Equal("stable-4.16"))
+	})
+
+	t.Run("Returns EUS channel when specified", func(t *testing.T) {
+		spec := rosacontrolplanev1.RosaControlPlaneSpec{
+			Channel: "eus-4.16",
+			Version: "4.16.5",
+		}
+		result := getEffectiveChannel(spec)
+		g.Expect(result).To(Equal("eus-4.16"))
+	})
+
+	t.Run("Derives channel from version when not specified", func(t *testing.T) {
+		spec := rosacontrolplanev1.RosaControlPlaneSpec{
+			Version: "4.16.5",
+		}
+		result := getEffectiveChannel(spec)
+		g.Expect(result).To(Equal("stable-4.16"))
+	})
+
+	t.Run("Derives channel for different version", func(t *testing.T) {
+		spec := rosacontrolplanev1.RosaControlPlaneSpec{
+			Version: "4.15.10",
+		}
+		result := getEffectiveChannel(spec)
+		g.Expect(result).To(Equal("stable-4.15"))
+	})
+
+	t.Run("Fallback to stable for invalid version format", func(t *testing.T) {
+		spec := rosacontrolplanev1.RosaControlPlaneSpec{
+			Version: "invalid",
+		}
+		result := getEffectiveChannel(spec)
+		g.Expect(result).To(Equal("stable"))
+	})
+}
+
+func TestGetChannelGroupFromChannel(t *testing.T) {
+	g := NewWithT(t)
+
+	t.Run("Extracts stable from stable-4.16", func(t *testing.T) {
+		result := getChannelGroupFromChannel("stable-4.16")
+		g.Expect(result).To(Equal("stable"))
+	})
+
+	t.Run("Extracts eus from eus-4.16", func(t *testing.T) {
+		result := getChannelGroupFromChannel("eus-4.16")
+		g.Expect(result).To(Equal("eus"))
+	})
+
+	t.Run("Extracts fast from fast-4.16", func(t *testing.T) {
+		result := getChannelGroupFromChannel("fast-4.16")
+		g.Expect(result).To(Equal("fast"))
+	})
+
+	t.Run("Extracts candidate from candidate-4.16", func(t *testing.T) {
+		result := getChannelGroupFromChannel("candidate-4.16")
+		g.Expect(result).To(Equal("candidate"))
+	})
+
+	t.Run("Extracts nightly from nightly-4.16", func(t *testing.T) {
+		result := getChannelGroupFromChannel("nightly-4.16")
+		g.Expect(result).To(Equal("nightly"))
+	})
+
+	t.Run("Returns empty string for invalid channel format", func(t *testing.T) {
+		result := getChannelGroupFromChannel("")
+		g.Expect(result).To(Equal(""))
+	})
 }
