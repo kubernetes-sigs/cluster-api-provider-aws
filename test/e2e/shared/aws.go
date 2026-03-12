@@ -60,6 +60,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/yaml"
 
 	cfn_bootstrap "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cloudformation/bootstrap"
@@ -733,6 +734,8 @@ func deleteCloudFormationStack(cfg *aws.Config, t *cfn_bootstrap.Template) {
 	Expect(err).NotTo(HaveOccurred())
 }
 
+const localE2EImage = "gcr.io/k8s-staging-cluster-api/capa-manager:e2e"
+
 func ensureTestImageUploaded(ctx context.Context, e2eCtx *E2EContext) error {
 	sessionForRepo := NewAWSSessionRepoWithKey(e2eCtx.Environment.BootstrapAccessKey)
 
@@ -764,7 +767,7 @@ func ensureTestImageUploaded(ctx context.Context, e2eCtx *E2EContext) error {
 		return err
 	}
 
-	cmd := exec.CommandContext(ctx, "docker", "inspect", "--format='{{index .Id}}'", "gcr.io/k8s-staging-cluster-api/capa-manager:e2e")
+	cmd := exec.CommandContext(ctx, "docker", "inspect", "--format='{{index .Id}}'", localE2EImage)
 	var stdOut bytes.Buffer
 	cmd.Stdout = &stdOut
 	err := cmd.Run()
@@ -807,7 +810,35 @@ func ensureTestImageUploaded(ctx context.Context, e2eCtx *E2EContext) error {
 	}
 	e2eCtx.E2EConfig.Variables["CAPI_IMAGES_REGISTRY"] = repoName
 	e2eCtx.E2EConfig.Variables["E2E_IMAGE_TAG"] = "e2e"
+
+	// Update the CAPA infrastructure provider's component replacements to reference the
+	// ECR image URL directly instead of the non-pullable gcr.io staging reference.
+	// This ensures the CAPA controller Deployment can re-pull the image from ECR Public
+	// if the local copy gets garbage-collected by the kubelet (e.g. during self-hosted
+	// cluster upgrades when the pod is rescheduled to a different node).
+	updateCAPAProviderImageReplacement(e2eCtx, ecrImageName)
+
 	return nil
+}
+
+func updateCAPAProviderImageReplacement(e2eCtx *E2EContext, ecrImageRef string) {
+	for i, provider := range e2eCtx.E2EConfig.Providers {
+		if provider.Name != "aws" {
+			continue
+		}
+		for j, version := range provider.Versions {
+			for k, replacement := range version.Replacements {
+				if replacement.New == localE2EImage {
+					e2eCtx.E2EConfig.Providers[i].Versions[j].Replacements[k].New = ecrImageRef
+				}
+			}
+		}
+	}
+
+	e2eCtx.E2EConfig.Images = append(e2eCtx.E2EConfig.Images, clusterctl.ContainerImage{
+		Name:         ecrImageRef,
+		LoadBehavior: clusterctl.MustLoadImage,
+	})
 }
 
 // ensureNoServiceLinkedRoles removes an auto-created IAM role, and tests
