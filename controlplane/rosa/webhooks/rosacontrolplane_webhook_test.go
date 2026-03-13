@@ -83,3 +83,89 @@ func TestValidateROSANetwork(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 	})
 }
+
+func TestValidateChannel(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	w := &ROSAControlPlane{}
+
+	t.Run("Validation succeeds when channel is not specified", func(t *testing.T) {
+		rosaCP := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				Version: "4.16.5",
+			},
+		}
+		err := w.validateChannel(rosaCP)
+		g.Expect(err).NotTo(HaveOccurred())
+	})
+
+	t.Run("Validation succeeds for valid stable channel", func(t *testing.T) {
+		rosaCP := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				Channel: "stable-4.16",
+				Version: "4.16.5",
+			},
+		}
+		err := w.validateChannel(rosaCP)
+		g.Expect(err).NotTo(HaveOccurred())
+	})
+
+	t.Run("Validation succeeds for valid eus channel", func(t *testing.T) {
+		rosaCP := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				Channel: "eus-4.16",
+				Version: "4.16.5",
+			},
+		}
+		err := w.validateChannel(rosaCP)
+		g.Expect(err).NotTo(HaveOccurred())
+	})
+
+	t.Run("Validation error for invalid channel format", func(t *testing.T) {
+		rosaCP := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				Channel: "invalid",
+				Version: "4.16.5",
+			},
+		}
+		err := w.validateChannel(rosaCP)
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(err.Error()).To(ContainSubstring("must be in format '<channelGroup>-<major>.<minor>'"))
+	})
+
+	t.Run("Validation error for invalid channel group", func(t *testing.T) {
+		rosaCP := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				Channel: "invalid-4.16",
+				Version: "4.16.5",
+			},
+		}
+		err := w.validateChannel(rosaCP)
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(err.Error()).To(ContainSubstring("channel group must be one of"))
+	})
+
+	t.Run("Validation error for invalid Y-stream format", func(t *testing.T) {
+		rosaCP := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				Channel: "stable-4",
+				Version: "4.16.5",
+			},
+		}
+		err := w.validateChannel(rosaCP)
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(err.Error()).To(ContainSubstring("Y-stream must be in format '<major>.<minor>'"))
+	})
+
+	t.Run("Validation error when channel Y-stream doesn't match version Y-stream", func(t *testing.T) {
+		rosaCP := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				Channel: "stable-4.16",
+				Version: "4.15.5",
+			},
+		}
+		err := w.validateChannel(rosaCP)
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(err.Error()).To(ContainSubstring("channel Y-stream '4.16' must match version Y-stream '4.15'"))
+	})
+}
