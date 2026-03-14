@@ -3,6 +3,10 @@ name: build-and-publish-ami
 on:
   workflow_dispatch:
     inputs:
+      image_builder_repo:
+        description: "Image builder repository (format: user/repo-name)"
+        required: true
+        default: 'kubernetes-sigs/image-builder'
       image_builder_version:
         description: "Image builder version"
         required: true
@@ -50,7 +54,7 @@ jobs:
       - name: checkout code
         uses: actions/checkout@v5
         with:
-          repository: kubernetes-sigs/image-builder
+          repository: ${{ inputs.image_builder_repo }}
           ref: ${{ inputs.image_builder_version }}
           fetch-depth: 0
       - name: Configure AWS credentials
