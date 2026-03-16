@@ -1,0 +1,37 @@
+name: detect-k8s-releases
+
+on:
+  schedule:
+    # Run on the 1st and 15th of each month (fortnightly)
+    - cron: '0 0 1,15 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-versions:
+    name: Update K8s supported versions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Update K8s supported versions
+        run: ./scripts/update-k8s-supported-versions.sh
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: k8s-versions-update
+          delete-branch: true
+          add-paths: hack/k8s-supported-versions.json
+          title: "chore: update K8s supported versions"
+          body: |
+            Automated update of the K8s supported versions file.
+
+            This PR updates `hack/k8s-supported-versions.json` with the current supported Kubernetes release series (from kubernetes/kubernetes release-1.* branches) and the latest patch version per series.
+          commit-message: "chore: update K8s supported versions"
