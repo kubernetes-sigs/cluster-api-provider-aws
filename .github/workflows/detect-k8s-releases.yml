@@ -2,8 +2,7 @@ name: detect-k8s-releases
 
 on:
   schedule:
-    # Run on the 1st and 15th of each month (fortnightly)
-    - cron: '0 0 1,15 * *'
+    - cron: '0 0 15 * *' # the workflow scheduled to run on the 15th of each month based on patch release calendar: https://kubernetes.io/releases/patch-releases/
   workflow_dispatch:
 
 permissions:
@@ -29,9 +28,9 @@ jobs:
           branch: k8s-versions-update
           delete-branch: true
           add-paths: hack/k8s-supported-versions.json
-          title: "chore: update K8s supported versions"
+          title: "🌱 chore: update K8s supported versions"
           body: |
             Automated update of the K8s supported versions file.
 
-            This PR updates `hack/k8s-supported-versions.json` with the current supported Kubernetes release series (from kubernetes/kubernetes release-1.* branches) and the latest patch version per series.
+            This PR updates `hack/k8s-supported-versions.json` with the current supported Kubernetes release series and the latest patch version per series.
           commit-message: "chore: update K8s supported versions"
