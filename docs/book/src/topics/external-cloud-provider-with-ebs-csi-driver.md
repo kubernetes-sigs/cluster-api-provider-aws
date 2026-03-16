@@ -208,9 +208,6 @@ When `CSIMigrationAWS=true`, installed external CSI driver will be used while re
 
 
     clusterConfiguration:
-      apiServer:
-        extraArgs:
-          cloud-provider: external
       controllerManager:
         extraArgs:
           cloud-provider: external
