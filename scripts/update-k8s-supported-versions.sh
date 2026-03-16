@@ -1,13 +1,4 @@
 #!/bin/bash
-#
-# Updates hack/k8s-supported-versions.json by fetching all patch releases
-# for the 3 latest Kubernetes series from GitHub. Runs fortnightly via workflow.
-#
-# Prerequisites: curl, jq
-#
-# Usage: ./scripts/update-k8s-supported-versions.sh [output_path]
-#        output_path defaults to hack/k8s-supported-versions.json
-#
 
 set -euo pipefail
 
@@ -26,7 +17,6 @@ for tool in curl jq; do
 done
 
 # --- Step 1: Fetch supported series from release-1.* branches ---
-echo "Fetching release branches from kubernetes/kubernetes..."
 BRANCHES_JSON=$(curl -sSL "${GITHUB_API}/branches?per_page=100")
 
 SUPPORTED_SERIES=()
