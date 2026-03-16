@@ -89,6 +89,8 @@ spec:
                   AWSLaunchTemplate specifies the launch template to use to create the managed node group.
                   If AWSLaunchTemplate is specified, certain node group configuraions outside of launch template
                   are prohibited (https://docs.aws.amazon.com/eks/latest/userguide/launch-templates.html).
+                  When AWSLaunchTemplate.ID is set, CAPA treats the template as BYO and does not create or
+                  delete the launch template.
                 properties:
                   additionalSecurityGroups:
                     description: |-
@@ -152,6 +154,11 @@ spec:
                       The name or the Amazon Resource Name (ARN) of the instance profile associated
                       with the IAM role for the instance. The instance profile contains the IAM
                       role.
+                    type: string
+                  id:
+                    description: |-
+                      ID is the ID of an existing launch template (e.g. lt-xxxx). When set, CAPA will
+                      not create or manage the launch template and will use the referenced one directly.
                     type: string
                   imageLookupBaseOS:
                     description: |-
@@ -591,6 +598,8 @@ spec:
                   AWSLaunchTemplate specifies the launch template to use to create the managed node group.
                   If AWSLaunchTemplate is specified, certain node group configuraions outside of launch template
                   are prohibited (https://docs.aws.amazon.com/eks/latest/userguide/launch-templates.html).
+                  When AWSLaunchTemplate.ID is set, CAPA treats the template as BYO and does not create or
+                  delete the launch template.
                 properties:
                   additionalSecurityGroups:
                     description: |-
@@ -676,6 +685,11 @@ spec:
                       The name or the Amazon Resource Name (ARN) of the instance profile associated
                       with the IAM role for the instance. The instance profile contains the IAM
                       role.
+                    type: string
+                  id:
+                    description: |-
+                      ID is the ID of an existing launch template (e.g. lt-xxxx). When set, CAPA will
+                      not create or manage the launch template and will use the referenced one directly.
                     type: string
                   imageLookupBaseOS:
                     description: |-

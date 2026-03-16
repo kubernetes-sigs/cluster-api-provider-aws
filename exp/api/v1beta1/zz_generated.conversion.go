@@ -376,6 +376,7 @@ func Convert_v1beta2_AWSFargateProfileList_To_v1beta1_AWSFargateProfileList(in *
 }
 
 func autoConvert_v1beta1_AWSLaunchTemplate_To_v1beta2_AWSLaunchTemplate(in *AWSLaunchTemplate, out *v1beta2.AWSLaunchTemplate, s conversion.Scope) error {
+	out.ID = (*string)(unsafe.Pointer(in.ID))
 	out.Name = in.Name
 	out.IamInstanceProfile = in.IamInstanceProfile
 	out.AMI = in.AMI
@@ -397,6 +398,7 @@ func Convert_v1beta1_AWSLaunchTemplate_To_v1beta2_AWSLaunchTemplate(in *AWSLaunc
 }
 
 func autoConvert_v1beta2_AWSLaunchTemplate_To_v1beta1_AWSLaunchTemplate(in *v1beta2.AWSLaunchTemplate, out *AWSLaunchTemplate, s conversion.Scope) error {
+	out.ID = (*string)(unsafe.Pointer(in.ID))
 	out.Name = in.Name
 	out.IamInstanceProfile = in.IamInstanceProfile
 	out.AMI = in.AMI

@@ -144,6 +144,11 @@ spec:
                       with the IAM role for the instance. The instance profile contains the IAM
                       role.
                     type: string
+                  id:
+                    description: |-
+                      ID is the ID of an existing launch template (e.g. lt-xxxx). When set, CAPA will
+                      not create or manage the launch template and will use the referenced one directly.
+                    type: string
                   imageLookupBaseOS:
                     description: |-
                       ImageLookupBaseOS is the name of the base operating system to use for
@@ -667,6 +672,11 @@ spec:
                       The name or the Amazon Resource Name (ARN) of the instance profile associated
                       with the IAM role for the instance. The instance profile contains the IAM
                       role.
+                    type: string
+                  id:
+                    description: |-
+                      ID is the ID of an existing launch template (e.g. lt-xxxx). When set, CAPA will
+                      not create or manage the launch template and will use the referenced one directly.
                     type: string
                   imageLookupBaseOS:
                     description: |-

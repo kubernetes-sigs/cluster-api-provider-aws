@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	autoscalingtypes "github.com/aws/aws-sdk-go-v2/service/autoscaling/types"
@@ -212,7 +213,15 @@ func (r *AWSManagedMachinePoolReconciler) reconcileNormal(
 	ec2svc := r.getEC2Service(ec2Scope)
 	reconSvc := r.getReconcileService(ec2Scope)
 
-	if machinePoolScope.ManagedMachinePool.Spec.AWSLaunchTemplate != nil {
+	// BYO launch template: use existing LT; do not create, update, or delete it.
+	if machinePoolScope.IsBYOLaunchTemplate() {
+		lt := machinePoolScope.ManagedMachinePool.Spec.AWSLaunchTemplate
+		machinePoolScope.SetLaunchTemplateIDStatus(*lt.ID)
+		if lt.VersionNumber != nil {
+			machinePoolScope.SetLaunchTemplateLatestVersionStatus(strconv.FormatInt(*lt.VersionNumber, 10))
+		}
+		v1beta1conditions.MarkTrue(machinePoolScope.ManagedMachinePool, expinfrav1.LaunchTemplateReadyCondition)
+	} else if machinePoolScope.ManagedMachinePool.Spec.AWSLaunchTemplate != nil {
 		canStartInstanceRefresh := func() (bool, *autoscalingtypes.InstanceRefreshStatus, error) {
 			return true, nil, nil
 		}
@@ -268,7 +277,8 @@ func (r *AWSManagedMachinePoolReconciler) reconcileDelete(
 		return errors.Wrapf(err, "failed to reconcile machine pool deletion for AWSManagedMachinePool %s/%s", machinePoolScope.ManagedMachinePool.Namespace, machinePoolScope.ManagedMachinePool.Name)
 	}
 
-	if machinePoolScope.ManagedMachinePool.Spec.AWSLaunchTemplate != nil {
+	// Only delete the launch template when it is CAPA-managed (not BYO).
+	if machinePoolScope.ManagedMachinePool.Spec.AWSLaunchTemplate != nil && !machinePoolScope.IsBYOLaunchTemplate() {
 		launchTemplateID := machinePoolScope.ManagedMachinePool.Status.LaunchTemplateID
 		launchTemplate, _, _, _, err := ec2Svc.GetLaunchTemplate(machinePoolScope.LaunchTemplateName())
 		if err != nil {
