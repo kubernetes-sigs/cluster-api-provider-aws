@@ -630,6 +630,9 @@ func (r *ROSAControlPlaneReconciler) reconcileClusterVersion(rosaScope *scope.RO
 
 		if cluster.Version() != nil {
 			rosaScope.ControlPlane.Status.AvailableUpgrades = cluster.Version().AvailableUpgrades()
+			if availableChannels, ok := cluster.Version().GetAvailableChannels(); ok {
+				rosaScope.ControlPlane.Status.AvailableChannels = availableChannels
+			}
 		}
 
 		// Set the version gate to WaitForAcknowledge as the previous upgrade is applied.
@@ -758,12 +761,16 @@ func (r *ROSAControlPlaneReconciler) updateOCMClusterSpec(rosaControlPlane *rosa
 		updated = true
 	}
 
-	if rosaControlPlane.Spec.ChannelGroup != "" {
-		channelGroup := string(rosaControlPlane.Spec.ChannelGroup)
-		if cluster.Version() == nil || cluster.Version().ChannelGroup() != channelGroup {
-			ocmClusterSpec.ChannelGroup = channelGroup
-			updated = true
-		}
+	// Handle channel and channelGroup updates.
+	// If neither is set, OCM will set the channel and channelGroup based on cluster version.
+	if rosaControlPlane.Spec.Channel != "" && cluster.Channel() != rosaControlPlane.Spec.Channel {
+		// Set channel and ignore channelGroup changes
+		ocmClusterSpec.Channel = rosaControlPlane.Spec.Channel
+		updated = true
+	} else if rosaControlPlane.Spec.ChannelGroup != "" && (cluster.Version() == nil || cluster.Version().ChannelGroup() != string(rosaControlPlane.Spec.ChannelGroup)) {
+		// Set channelGroup (legacy field)
+		ocmClusterSpec.ChannelGroup = string(rosaControlPlane.Spec.ChannelGroup)
+		updated = true
 	}
 
 	if rosaControlPlane.Spec.AutoNode != nil {
@@ -1164,7 +1171,6 @@ func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpe
 		Region:                    controlPlaneSpec.Region,
 		MultiAZ:                   true,
 		Version:                   ocm.CreateVersionID(controlPlaneSpec.Version, string(controlPlaneSpec.ChannelGroup)),
-		ChannelGroup:              string(controlPlaneSpec.ChannelGroup),
 		DisableWorkloadMonitoring: ptr.To(true),
 		DefaultIngress:            ocm.NewDefaultIngressSpec(), // n.b. this is a no-op when it's set to the default value
 		ComputeMachineType:        controlPlaneSpec.DefaultMachinePoolSpec.InstanceType,
@@ -1291,6 +1297,17 @@ func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpe
 			S3ConfigBucketPrefix: controlPlaneSpec.S3LogForwarder.S3ConfigBucketPrefix,
 		}
 	}
+
+	// Handle channel and channelGroup.
+	if controlPlaneSpec.Channel != "" {
+		// Set channel and ignore channelGroup
+		ocmClusterSpec.Channel = controlPlaneSpec.Channel
+	} else if controlPlaneSpec.ChannelGroup != "" {
+		// Set channelGroup (legacy field)
+		ocmClusterSpec.ChannelGroup = string(controlPlaneSpec.ChannelGroup)
+	}
+	// If neither is set, OCM will set the channel and channelGroup based on cluster version
+
 	return ocmClusterSpec, nil
 }
 

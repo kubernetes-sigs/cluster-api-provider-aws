@@ -41,10 +41,10 @@ require (
 	github.com/google/goexpect v0.0.0-20210430020637-ab937bf7fd6f
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.38.0
-	github.com/openshift-online/ocm-api-model/clientapi v0.0.440
-	github.com/openshift-online/ocm-common v0.0.31
-	github.com/openshift-online/ocm-sdk-go v0.1.486
-	github.com/openshift/rosa v1.99.9-testing.0.20260119170238-86bcc988bb87
+	github.com/openshift-online/ocm-api-model/clientapi v0.0.452
+	github.com/openshift-online/ocm-common v0.0.32
+	github.com/openshift-online/ocm-sdk-go v0.1.497
+	github.com/openshift/rosa v1.99.9-testing.0.20260304182407-775ca373425a
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.23.2
 	github.com/sergi/go-diff v1.3.1
@@ -93,7 +93,7 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
-	github.com/openshift-online/ocm-api-model/model v0.0.440 // indirect
+	github.com/openshift-online/ocm-api-model/model v0.0.452 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/vincent-petithory/dataurl v1.0.0 // indirect
