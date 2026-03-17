@@ -1120,6 +1120,10 @@ func (r *ROSAControlPlaneReconciler) reconcileClusterAdminPassword(ctx context.C
 func validateControlPlaneSpec(ocmClient rosa.OCMClient, rosaControlPlane *rosacontrolplanev1.ROSAControlPlane) (string, error) {
 	version := rosaControlPlane.Spec.Version
 	channelGroup := string(rosaControlPlane.Spec.ChannelGroup)
+	if rosaControlPlane.Spec.Channel != "" {
+		parts := strings.SplitN(rosaControlPlane.Spec.Channel, "-", 2)
+		channelGroup = parts[0]
+	}
 	valid, err := ocmClient.ValidateHypershiftVersion(version, channelGroup)
 	if err != nil {
 		return "", fmt.Errorf("error validating version in this channelGroup : %w", err)
@@ -1164,13 +1168,21 @@ func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpe
 		}
 	}
 
+	// Derive channelGroup from channel if set (e.g., "stable" from "stable-4.16").
+	// Channel takes priority over channelGroup.
+	channelGroup := string(controlPlaneSpec.ChannelGroup)
+	if controlPlaneSpec.Channel != "" {
+		parts := strings.SplitN(controlPlaneSpec.Channel, "-", 2)
+		channelGroup = parts[0]
+	}
+
 	ocmClusterSpec := ocm.Spec{
 		DryRun:                    ptr.To(false),
 		Name:                      controlPlaneSpec.RosaClusterName,
 		DomainPrefix:              controlPlaneSpec.DomainPrefix,
 		Region:                    controlPlaneSpec.Region,
 		MultiAZ:                   true,
-		Version:                   ocm.CreateVersionID(controlPlaneSpec.Version, string(controlPlaneSpec.ChannelGroup)),
+		Version:                   ocm.CreateVersionID(controlPlaneSpec.Version, channelGroup),
 		DisableWorkloadMonitoring: ptr.To(true),
 		DefaultIngress:            ocm.NewDefaultIngressSpec(), // n.b. this is a no-op when it's set to the default value
 		ComputeMachineType:        controlPlaneSpec.DefaultMachinePoolSpec.InstanceType,
