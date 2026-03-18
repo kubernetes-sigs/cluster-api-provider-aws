@@ -506,6 +506,11 @@ func (w *AWSMachine) validateHostAllocation(r *infrav1.AWSMachine) field.ErrorLi
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.dynamicHostAllocation"), "dynamicHostAllocation can only be set when tenancy is 'host'"))
 	}
 
+	// DHA needs to have hostAffinity set to "host" to make sure it does not drift off its allocated host when the instance is restarted, otherwise there will be a host not in use still allocated.
+	if hasDynamicHostAllocation && (r.Spec.HostAffinity == nil || *r.Spec.HostAffinity != hostAffinity) {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.dynamicHostAllocation"), "dynamicHostAllocation can only be set when hostAffinity is 'host'"))
+	}
+
 	return allErrs
 }
 
