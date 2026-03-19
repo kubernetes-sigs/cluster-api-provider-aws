@@ -99,7 +99,7 @@ require (
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/bluesky-social/indigo v0.0.0-20240411170459-440932307e0d // indirect
-	github.com/buger/jsonparser v1.1.1 // indirect
+	github.com/buger/jsonparser v1.1.2 // indirect
 	github.com/caarlos0/ctrlc v1.2.0 // indirect
 	github.com/caarlos0/env/v11 v11.0.1 // indirect
 	github.com/caarlos0/go-reddit/v3 v3.0.1 // indirect
