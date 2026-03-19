@@ -35,5 +35,6 @@ spec:
                   # To make metadata environment variables available for pre-kubeadm commands.
                   EnvironmentFile=/run/metadata/*
     preKubeadmCommands:
+    - 'sed -i ''/^timeouts:/a\  kubernetesAPICall: 5m0s'' /run/kubeadm/kubeadm.yaml || true'
     - envsubst < /etc/kubeadm.yml > /etc/kubeadm.yml.tmp
     - mv /etc/kubeadm.yml.tmp /etc/kubeadm.yml

@@ -39,6 +39,8 @@ spec:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
       name: "${CLUSTER_NAME}-control-plane"
   kubeadmConfigSpec:
+    preKubeadmCommands:
+    - 'sed -i ''/^timeouts:/a\  kubernetesAPICall: 5m0s'' /run/kubeadm/kubeadm.yaml || true'
     initConfiguration:
       nodeRegistration:
         name: '{{ ds.meta_data.local_hostname }}'

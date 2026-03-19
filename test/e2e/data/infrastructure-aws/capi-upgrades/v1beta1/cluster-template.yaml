@@ -35,6 +35,8 @@ metadata:
   name: ${CLUSTER_NAME}-control-plane
 spec:
   kubeadmConfigSpec:
+    preKubeadmCommands:
+    - 'sed -i ''/^timeouts:/a\  kubernetesAPICall: 5m0s'' /run/kubeadm/kubeadm.yaml || true'
     clusterConfiguration:
       controllerManager:
         extraArgs:

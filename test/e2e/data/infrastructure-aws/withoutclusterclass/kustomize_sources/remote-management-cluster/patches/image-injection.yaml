@@ -6,6 +6,7 @@ metadata:
 spec:
   kubeadmConfigSpec:
     preKubeadmCommands:
+    - 'sed -i ''/^timeouts:/a\  kubernetesAPICall: 5m0s'' /run/kubeadm/kubeadm.yaml || true'
     - mkdir -p /opt/cluster-api
     - ctr -n k8s.io images pull "${CAPI_IMAGES_REGISTRY}:${E2E_IMAGE_TAG}"
     - ctr -n k8s.io images tag "${CAPI_IMAGES_REGISTRY}:${E2E_IMAGE_TAG}" gcr.io/k8s-staging-cluster-api/capa-manager:e2e
