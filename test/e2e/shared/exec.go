@@ -107,7 +107,9 @@ func commandsForMachine(ctx context.Context, e2eCtx *E2EContext, f *os.File, ins
 		return
 	}
 	defer e.Close()
-	shellStart := regexp.MustCompile(`\n\$`)
+	// Match common shell prompts: "$ " covers both minimal prompts and
+	// versioned ones like Flatcar's "sh-5.2$ ".
+	shellStart := regexp.MustCompile(`\$ `)
 	if result, _, err := e.Expect(shellStart, 10*time.Second); err != nil {
 		fmt.Fprintf(f, "did not find shell: err=%s, output=%s", err, result)
 		return
