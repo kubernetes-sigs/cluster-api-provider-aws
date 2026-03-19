@@ -1,8 +1,8 @@
 name: PR verify
 
 on:
-  pull_request_target:
-    types: [opened, edited, synchronize, reopened]
+  pull_request:
+    types: [opened, synchronize, reopened]
 
 jobs:
   verify:
@@ -10,6 +10,8 @@ jobs:
     name: verify PR contents
     steps:
     - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # tag=v4.2.2
+      with:
+        persist-credentials: false
 
     - name: Check if PR title is valid
       env:

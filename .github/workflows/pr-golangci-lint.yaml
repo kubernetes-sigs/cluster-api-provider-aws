@@ -2,7 +2,7 @@ name: PR golangci-lint
 
 on:
   pull_request:
-    types: [opened, edited, synchronize, reopened]
+    types: [opened, synchronize, reopened]
 
 # Remove all permissions from GITHUB_TOKEN except metadata.
 permissions: {}
@@ -18,6 +18,8 @@ jobs:
           - ""
     steps:
       - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # tag=v4.2.2
+        with:
+          persist-credentials: false
       - name: Calculate go version
         id: vars
         run: echo "go_version=$(make go-version)" >> $GITHUB_OUTPUT

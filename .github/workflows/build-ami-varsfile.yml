@@ -33,11 +33,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # tag=v5
         with:
           repository: ${{ inputs.image_builder_repo }}
           ref: ${{ inputs.image_builder_version }}
           fetch-depth: 0
+          persist-credentials: false
       - name: Create packer vars file
         if: inputs.packer_vars != ''
         env:
