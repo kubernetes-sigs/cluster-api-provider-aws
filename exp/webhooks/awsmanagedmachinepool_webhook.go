@@ -138,8 +138,46 @@ func (w *AWSManagedMachinePool) validateLaunchTemplate(r *expinfrav1.AWSManagedM
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "DiskSize"), r.Spec.DiskSize, "DiskSize cannot be specified when LaunchTemplate is specified"))
 	}
 
-	if r.Spec.AWSLaunchTemplate.IamInstanceProfile != "" {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "AWSLaunchTemplate", "IamInstanceProfile"), r.Spec.AWSLaunchTemplate.IamInstanceProfile, "IAM instance profile in launch template is prohibited in EKS managed node group"))
+	lt := r.Spec.AWSLaunchTemplate
+	ltPath := field.NewPath("spec", "awsLaunchTemplate")
+
+	if lt.IamInstanceProfile != "" {
+		allErrs = append(allErrs, field.Invalid(ltPath.Child("iamInstanceProfile"), lt.IamInstanceProfile, "IAM instance profile in launch template is prohibited in EKS managed node group"))
+	}
+
+	// When using a BYO launch template (ID is set), versionNumber is required and
+	// CAPA-managed fields must not be specified.
+	if lt.ID != nil && *lt.ID != "" {
+		if lt.VersionNumber == nil {
+			allErrs = append(allErrs, field.Required(ltPath.Child("versionNumber"), "versionNumber is required when using a BYO launch template (id is set)"))
+		}
+		if lt.AMI.ID != nil || lt.AMI.EKSOptimizedLookupType != nil {
+			allErrs = append(allErrs, field.Forbidden(ltPath.Child("ami"), "ami cannot be specified with a BYO launch template (id is set)"))
+		}
+		if lt.InstanceType != "" {
+			allErrs = append(allErrs, field.Forbidden(ltPath.Child("instanceType"), "instanceType cannot be specified with a BYO launch template (id is set)"))
+		}
+		if lt.RootVolume != nil {
+			allErrs = append(allErrs, field.Forbidden(ltPath.Child("rootVolume"), "rootVolume cannot be specified with a BYO launch template (id is set)"))
+		}
+		if len(lt.NonRootVolumes) > 0 {
+			allErrs = append(allErrs, field.Forbidden(ltPath.Child("nonRootVolumes"), "nonRootVolumes cannot be specified with a BYO launch template (id is set)"))
+		}
+		if lt.SSHKeyName != nil {
+			allErrs = append(allErrs, field.Forbidden(ltPath.Child("sshKeyName"), "sshKeyName cannot be specified with a BYO launch template (id is set)"))
+		}
+		if lt.ImageLookupFormat != "" {
+			allErrs = append(allErrs, field.Forbidden(ltPath.Child("imageLookupFormat"), "imageLookupFormat cannot be specified with a BYO launch template (id is set)"))
+		}
+		if lt.ImageLookupOrg != "" {
+			allErrs = append(allErrs, field.Forbidden(ltPath.Child("imageLookupOrg"), "imageLookupOrg cannot be specified with a BYO launch template (id is set)"))
+		}
+		if lt.ImageLookupBaseOS != "" {
+			allErrs = append(allErrs, field.Forbidden(ltPath.Child("imageLookupBaseOS"), "imageLookupBaseOS cannot be specified with a BYO launch template (id is set)"))
+		}
+		if len(lt.AdditionalSecurityGroups) > 0 {
+			allErrs = append(allErrs, field.Forbidden(ltPath.Child("additionalSecurityGroups"), "additionalSecurityGroups cannot be specified with a BYO launch template (id is set)"))
+		}
 	}
 
 	return allErrs
@@ -280,6 +318,9 @@ func (w *AWSManagedMachinePool) validateImmutable(r *expinfrav1.AWSManagedMachin
 	}
 	if old.Spec.AWSLaunchTemplate != nil && r.Spec.AWSLaunchTemplate != nil {
 		appendErrorIfMutated(old.Spec.AWSLaunchTemplate.Name, r.Spec.AWSLaunchTemplate.Name, "awsLaunchTemplate.name")
+		appendErrorIfMutated(ptr.Deref(old.Spec.AWSLaunchTemplate.ID, ""), ptr.Deref(r.Spec.AWSLaunchTemplate.ID, ""), "awsLaunchTemplate.id")
+		// VersionNumber is intentionally mutable: users may update it to roll out a new
+		// launch template version to the nodegroup.
 	}
 
 	return allErrs

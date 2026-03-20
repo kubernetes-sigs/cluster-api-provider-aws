@@ -62,6 +62,11 @@ type BlockDeviceMapping struct {
 
 // AWSLaunchTemplate defines the desired state of AWSLaunchTemplate.
 type AWSLaunchTemplate struct {
+	// ID is the ID of an existing launch template (e.g. lt-xxxx). When set, CAPA will
+	// not create or manage the launch template and will use the referenced one directly.
+	// +optional
+	ID *string `json:"id,omitempty"`
+
 	// The name of the launch template.
 	Name string `json:"name,omitempty"`
 

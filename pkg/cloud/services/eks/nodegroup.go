@@ -225,13 +225,15 @@ func (s *NodegroupService) createNodegroup(ctx context.Context) (*ekstypes.Nodeg
 		RemoteAccess:  remoteAccess,
 		UpdateConfig:  updatedConfig,
 	}
-	if managedPool.AMIType != nil && (managedPool.AWSLaunchTemplate == nil || managedPool.AWSLaunchTemplate.AMI.ID == nil) {
+	useLaunchTemplate := managedPool.AWSLaunchTemplate != nil
+	isBYO := useLaunchTemplate && managedPool.AWSLaunchTemplate.ID != nil && *managedPool.AWSLaunchTemplate.ID != ""
+	if managedPool.AMIType != nil && !isBYO && (managedPool.AWSLaunchTemplate == nil || managedPool.AWSLaunchTemplate.AMI.ID == nil) {
 		input.AmiType = converters.AMITypeToSDK(*managedPool.AMIType)
 	}
-	if managedPool.DiskSize != nil {
+	if managedPool.DiskSize != nil && !useLaunchTemplate {
 		input.DiskSize = managedPool.DiskSize
 	}
-	if managedPool.InstanceType != nil {
+	if managedPool.InstanceType != nil && !useLaunchTemplate {
 		input.InstanceTypes = []string{aws.ToString(managedPool.InstanceType)}
 	}
 	if len(managedPool.Taints) > 0 {
@@ -249,7 +251,7 @@ func (s *NodegroupService) createNodegroup(ctx context.Context) (*ekstypes.Nodeg
 		}
 		input.CapacityType = capacityType
 	}
-	if managedPool.AWSLaunchTemplate != nil {
+	if useLaunchTemplate {
 		input.LaunchTemplate = &ekstypes.LaunchTemplateSpecification{
 			Id:      s.scope.ManagedMachinePool.Status.LaunchTemplateID,
 			Version: s.scope.ManagedMachinePool.Status.LaunchTemplateVersion,
@@ -317,6 +319,14 @@ func (s *NodegroupService) deleteNodegroupAndWait(ctx context.Context) (reterr e
 	return nil
 }
 
+// isSymbolicLaunchTemplateVersion returns true for AWS symbolic version aliases
+// ("$Latest", "$Default") that resolve to a concrete version number at apply time.
+// When comparing a symbolic spec version against the nodegroup's resolved version,
+// we skip the comparison to avoid an endless update loop.
+func isSymbolicLaunchTemplateVersion(v string) bool {
+	return v == "$Latest" || v == "$Default"
+}
+
 func (s *NodegroupService) reconcileNodegroupVersion(ctx context.Context, ng *ekstypes.Nodegroup) error {
 	var specVersion *version.Version
 	if s.scope.Version() != nil {
@@ -334,28 +344,49 @@ func (s *NodegroupService) reconcileNodegroupVersion(ctx context.Context, ng *ek
 	ngVersion := version.MustParseGeneric(*ng.Version)
 	specAMI := s.scope.ManagedMachinePool.Spec.AMIVersion
 	ngAMI := *ng.ReleaseVersion
+
+	statusLaunchTemplateID := s.scope.ManagedMachinePool.Status.LaunchTemplateID
 	statusLaunchTemplateVersion := s.scope.ManagedMachinePool.Status.LaunchTemplateVersion
+	var ngLaunchTemplateID *string
 	var ngLaunchTemplateVersion *string
 	if ng.LaunchTemplate != nil {
+		ngLaunchTemplateID = ng.LaunchTemplate.Id
 		ngLaunchTemplateVersion = ng.LaunchTemplate.Version
 	}
 
+	// launchTemplateIDChanged detects when the desired launch template ID in the
+	// status differs from what the nodegroup currently uses (e.g. transitioning
+	// from no launch template to a BYO one, or switching template IDs).
+	launchTemplateIDChanged := statusLaunchTemplateID != nil &&
+		(ngLaunchTemplateID == nil || *statusLaunchTemplateID != *ngLaunchTemplateID)
+
+	// launchTemplateVersionChanged detects a concrete (non-symbolic) version
+	// change. Symbolic versions like "$Latest" are intentionally skipped to
+	// avoid an endless reconcile loop (AWS stores the resolved number but the
+	// spec retains the alias).
+	launchTemplateVersionChanged := statusLaunchTemplateVersion != nil &&
+		ngLaunchTemplateVersion != nil &&
+		!isSymbolicLaunchTemplateVersion(*statusLaunchTemplateVersion) &&
+		*statusLaunchTemplateVersion != *ngLaunchTemplateVersion
+
+	launchTemplateChanged := launchTemplateIDChanged || launchTemplateVersionChanged
+
 	eksClusterName := s.scope.KubernetesClusterName()
-	if (specVersion != nil && ngVersion.LessThan(specVersion)) || (specAMI != nil && *specAMI != ngAMI) || (statusLaunchTemplateVersion != nil && *statusLaunchTemplateVersion != *ngLaunchTemplateVersion) {
+	if (specVersion != nil && ngVersion.LessThan(specVersion)) || (specAMI != nil && *specAMI != ngAMI) || launchTemplateChanged {
 		input := &eks.UpdateNodegroupVersionInput{
 			ClusterName:   aws.String(eksClusterName),
 			NodegroupName: aws.String(s.scope.NodegroupName()),
 		}
 
 		var updateMsg string
-		// Either update k8s version or AMI version
+		// Either update launch template, k8s version, or AMI version (in that priority order)
 		switch {
-		case statusLaunchTemplateVersion != nil && *statusLaunchTemplateVersion != *ngLaunchTemplateVersion:
+		case launchTemplateChanged:
 			input.LaunchTemplate = &ekstypes.LaunchTemplateSpecification{
-				Id:      s.scope.ManagedMachinePool.Status.LaunchTemplateID,
+				Id:      statusLaunchTemplateID,
 				Version: statusLaunchTemplateVersion,
 			}
-			updateMsg = fmt.Sprintf("to launch template version %s", *statusLaunchTemplateVersion)
+			updateMsg = fmt.Sprintf("to launch template %s version %s", aws.ToString(statusLaunchTemplateID), aws.ToString(statusLaunchTemplateVersion))
 		case specVersion != nil && ngVersion.LessThan(specVersion):
 			// NOTE: you can only upgrade increments of minor versions. If you want to upgrade 1.14 to 1.16 we
 			// need to go 1.14-> 1.15 and then 1.15 -> 1.16.
@@ -533,6 +564,12 @@ func (s *NodegroupService) reconcileNodegroup(ctx context.Context) error {
 
 	if err := s.setStatus(ctx, ng); err != nil {
 		return errors.Wrap(err, "failed to set status")
+	}
+
+	// A failed nodegroup has nil Version/ReleaseVersion and cannot be updated;
+	// return early so the FailureMessage set above surfaces to the user.
+	if ng.Status == ekstypes.NodegroupStatusCreateFailed || ng.Status == ekstypes.NodegroupStatusDeleteFailed {
+		return nil
 	}
 
 	switch ng.Status {
