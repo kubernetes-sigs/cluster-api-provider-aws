@@ -630,6 +630,9 @@ func (r *ROSAControlPlaneReconciler) reconcileClusterVersion(rosaScope *scope.RO
 
 		if cluster.Version() != nil {
 			rosaScope.ControlPlane.Status.AvailableUpgrades = cluster.Version().AvailableUpgrades()
+			if availableChannels, ok := cluster.Version().GetAvailableChannels(); ok {
+				rosaScope.ControlPlane.Status.AvailableChannels = availableChannels
+			}
 		}
 
 		// Set the version gate to WaitForAcknowledge as the previous upgrade is applied.
@@ -758,12 +761,16 @@ func (r *ROSAControlPlaneReconciler) updateOCMClusterSpec(rosaControlPlane *rosa
 		updated = true
 	}
 
-	if rosaControlPlane.Spec.ChannelGroup != "" {
-		channelGroup := string(rosaControlPlane.Spec.ChannelGroup)
-		if cluster.Version() == nil || cluster.Version().ChannelGroup() != channelGroup {
-			ocmClusterSpec.ChannelGroup = channelGroup
-			updated = true
-		}
+	// Handle channel and channelGroup updates.
+	// If neither is set, OCM will set the channel and channelGroup based on cluster version.
+	if rosaControlPlane.Spec.Channel != "" && cluster.Channel() != rosaControlPlane.Spec.Channel {
+		// Set channel and ignore channelGroup changes
+		ocmClusterSpec.Channel = rosaControlPlane.Spec.Channel
+		updated = true
+	} else if rosaControlPlane.Spec.ChannelGroup != "" && (cluster.Version() == nil || cluster.Version().ChannelGroup() != string(rosaControlPlane.Spec.ChannelGroup)) {
+		// Set channelGroup (legacy field)
+		ocmClusterSpec.ChannelGroup = string(rosaControlPlane.Spec.ChannelGroup)
+		updated = true
 	}
 
 	if rosaControlPlane.Spec.AutoNode != nil {
@@ -1113,6 +1120,10 @@ func (r *ROSAControlPlaneReconciler) reconcileClusterAdminPassword(ctx context.C
 func validateControlPlaneSpec(ocmClient rosa.OCMClient, rosaControlPlane *rosacontrolplanev1.ROSAControlPlane) (string, error) {
 	version := rosaControlPlane.Spec.Version
 	channelGroup := string(rosaControlPlane.Spec.ChannelGroup)
+	if rosaControlPlane.Spec.Channel != "" {
+		parts := strings.SplitN(rosaControlPlane.Spec.Channel, "-", 2)
+		channelGroup = parts[0]
+	}
 	valid, err := ocmClient.ValidateHypershiftVersion(version, channelGroup)
 	if err != nil {
 		return "", fmt.Errorf("error validating version in this channelGroup : %w", err)
@@ -1157,14 +1168,21 @@ func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpe
 		}
 	}
 
+	// Derive channelGroup from channel if set (e.g., "stable" from "stable-4.16").
+	// Channel takes priority over channelGroup.
+	channelGroup := string(controlPlaneSpec.ChannelGroup)
+	if controlPlaneSpec.Channel != "" {
+		parts := strings.SplitN(controlPlaneSpec.Channel, "-", 2)
+		channelGroup = parts[0]
+	}
+
 	ocmClusterSpec := ocm.Spec{
 		DryRun:                    ptr.To(false),
 		Name:                      controlPlaneSpec.RosaClusterName,
 		DomainPrefix:              controlPlaneSpec.DomainPrefix,
 		Region:                    controlPlaneSpec.Region,
 		MultiAZ:                   true,
-		Version:                   ocm.CreateVersionID(controlPlaneSpec.Version, string(controlPlaneSpec.ChannelGroup)),
-		ChannelGroup:              string(controlPlaneSpec.ChannelGroup),
+		Version:                   ocm.CreateVersionID(controlPlaneSpec.Version, channelGroup),
 		DisableWorkloadMonitoring: ptr.To(true),
 		DefaultIngress:            ocm.NewDefaultIngressSpec(), // n.b. this is a no-op when it's set to the default value
 		ComputeMachineType:        controlPlaneSpec.DefaultMachinePoolSpec.InstanceType,
@@ -1291,6 +1309,17 @@ func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpe
 			S3ConfigBucketPrefix: controlPlaneSpec.S3LogForwarder.S3ConfigBucketPrefix,
 		}
 	}
+
+	// Handle channel and channelGroup.
+	if controlPlaneSpec.Channel != "" {
+		// Set channel and ignore channelGroup
+		ocmClusterSpec.Channel = controlPlaneSpec.Channel
+	} else if controlPlaneSpec.ChannelGroup != "" {
+		// Set channelGroup (legacy field)
+		ocmClusterSpec.ChannelGroup = string(controlPlaneSpec.ChannelGroup)
+	}
+	// If neither is set, OCM will set the channel and channelGroup based on cluster version
+
 	return ocmClusterSpec, nil
 }
 
