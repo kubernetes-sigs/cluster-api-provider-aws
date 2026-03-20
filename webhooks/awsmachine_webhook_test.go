@@ -539,7 +539,7 @@ func TestAWSMachineCreate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "hostAffinity=default with dynamicHostAllocation is valid",
+			name: "hostAffinity=default with dynamicHostAllocation is invalid (DHA requires hostAffinity=host)",
 			machine: &infrav1.AWSMachine{
 				Spec: infrav1.AWSMachineSpec{
 					InstanceType: "test",
@@ -550,7 +550,7 @@ func TestAWSMachineCreate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: false,
+			wantErr: true,
 		},
 		{
 			name: "hostAffinity omitted (=default) without hostID and dynamicHostAllocation is valid",
@@ -573,7 +573,7 @@ func TestAWSMachineCreate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "hostAffinity omitted (=default) with dynamicHostAllocation is valid",
+			name: "hostAffinity omitted (=default) with dynamicHostAllocation is invalid (DHA requires hostAffinity=host)",
 			machine: &infrav1.AWSMachine{
 				Spec: infrav1.AWSMachineSpec{
 					InstanceType: "test",
@@ -583,7 +583,7 @@ func TestAWSMachineCreate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: false,
+			wantErr: true,
 		},
 		{
 			name: "hostAffinity=host with both hostID and dynamicHostAllocation is not valid (mutually exclusive)",
@@ -603,7 +603,7 @@ func TestAWSMachineCreate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "hostAffinity=default with both hostID and dynamicHostAllocation is not valid (mutually exclusive)",
+			name: "hostAffinity=default with both hostID and dynamicHostAllocation is not valid (mutually exclusive + DHA requires hostAffinity=host)",
 			machine: &infrav1.AWSMachine{
 				Spec: infrav1.AWSMachineSpec{
 					InstanceType: "test",

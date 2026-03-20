@@ -16,8 +16,11 @@ spec:
     Owner: "platform-team"
     CostCenter: "engineering"
 
-  # Dynamic dedicated host allocation configuration
+  # Dynamic dedicated host allocation (DHA) configuration
   # This will allocate a single dedicated host automatically
+  # DHA must have tenancy=host and hostAffinity=host
+  tenancy: "host"
+  hostAffinity: "host"
   dynamicHostAllocation:    
     # Tags to apply to the allocated dedicated host (optional)
     # These tags take precedence over additionalTags above
