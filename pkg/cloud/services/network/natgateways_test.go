@@ -1100,3 +1100,434 @@ func TestGetdNatGatewayForEdgeSubnet(t *testing.T) {
 		})
 	}
 }
+
+func TestReconcileRegionalNatGateway(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	testCases := []struct {
+		name   string
+		input  infrav1.NetworkSpec
+		expect func(m *mocks.MockEC2APIMockRecorder)
+	}{
+		{
+			name: "no existing regional NAT gateway, should create one",
+			input: infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					ID:                         subnetsVPCID,
+					NATGatewayAvailabilityMode: ptr.To(infrav1.NATGatewayAvailabilityModeRegional),
+					Tags: infrav1.Tags{
+						infrav1.ClusterTagKey("test-cluster"): "owned",
+					},
+				},
+				Subnets: []infrav1.SubnetSpec{
+					{
+						ID:               "subnet-private-1",
+						AvailabilityZone: "us-east-1a",
+						CidrBlock:        "10.0.10.0/24",
+						IsPublic:         false,
+					},
+					{
+						ID:               "subnet-private-2",
+						AvailabilityZone: "us-east-1b",
+						CidrBlock:        "10.0.11.0/24",
+						IsPublic:         false,
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeNatGateways(context.TODO(),
+					gomock.Eq(&ec2.DescribeNatGatewaysInput{
+						Filter: []types.Filter{
+							{
+								Name:   aws.String("vpc-id"),
+								Values: []string{subnetsVPCID},
+							},
+							{
+								Name:   aws.String("state"),
+								Values: []string{"pending", "available"},
+							},
+						},
+					}),
+					gomock.Any()).Return(&ec2.DescribeNatGatewaysOutput{}, nil)
+
+				m.CreateNatGateway(context.TODO(), &ec2.CreateNatGatewayInput{
+					VpcId:            aws.String(subnetsVPCID),
+					AvailabilityMode: types.AvailabilityModeRegional,
+					TagSpecifications: []types.TagSpecification{
+						{
+							ResourceType: types.ResourceTypeNatgateway,
+							Tags: []types.Tag{
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-nat"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("common"),
+								},
+							},
+						},
+					},
+				}).Return(&ec2.CreateNatGatewayOutput{
+					NatGateway: &types.NatGateway{
+						NatGatewayId: aws.String("regional-natgateway"),
+						VpcId:        aws.String(subnetsVPCID),
+					},
+				}, nil)
+
+				m.DescribeNatGateways(gomock.Any(), &ec2.DescribeNatGatewaysInput{
+					NatGatewayIds: []string{"regional-natgateway"},
+				}, gomock.Any()).Return(&ec2.DescribeNatGatewaysOutput{
+					NatGateways: []types.NatGateway{
+						{
+							State:        types.NatGatewayStateAvailable,
+							NatGatewayId: aws.String("regional-natgateway"),
+							VpcId:        aws.String(subnetsVPCID),
+						},
+					},
+				}, nil)
+			},
+		},
+		{
+			name: "existing regional NAT gateway, should not create another",
+			input: infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					ID:                         subnetsVPCID,
+					NATGatewayAvailabilityMode: ptr.To(infrav1.NATGatewayAvailabilityModeRegional),
+					Tags: infrav1.Tags{
+						infrav1.ClusterTagKey("test-cluster"): "owned",
+					},
+				},
+				Subnets: []infrav1.SubnetSpec{
+					{
+						ID:               "subnet-private-1",
+						AvailabilityZone: "us-east-1a",
+						CidrBlock:        "10.0.10.0/24",
+						IsPublic:         false,
+					},
+					{
+						ID:               "subnet-private-2",
+						AvailabilityZone: "us-east-1b",
+						CidrBlock:        "10.0.11.0/24",
+						IsPublic:         false,
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeNatGateways(context.TODO(),
+					gomock.Eq(&ec2.DescribeNatGatewaysInput{
+						Filter: []types.Filter{
+							{
+								Name:   aws.String("vpc-id"),
+								Values: []string{subnetsVPCID},
+							},
+							{
+								Name:   aws.String("state"),
+								Values: []string{"pending", "available"},
+							},
+						},
+					}),
+					gomock.Any()).Return(&ec2.DescribeNatGatewaysOutput{
+					NatGateways: []types.NatGateway{
+						{
+							NatGatewayId: aws.String("existing-regional-natgateway"),
+							VpcId:        aws.String(subnetsVPCID),
+							Tags: []types.Tag{
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("common"),
+								},
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-nat"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+							},
+						},
+					},
+				}, nil)
+
+				m.CreateNatGateway(context.TODO(), gomock.Any()).Times(0)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
+
+			scheme := runtime.NewScheme()
+			_ = infrav1.AddToScheme(scheme)
+			_ = clusterv1.AddToScheme(scheme)
+			awsCluster := &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: tc.input,
+				},
+			}
+			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(awsCluster).WithStatusSubresource(awsCluster).Build()
+
+			clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
+				},
+				AWSCluster: awsCluster,
+				Client:     client,
+			})
+			if err != nil {
+				t.Fatalf("Failed to create test context: %v", err)
+			}
+
+			tc.expect(ec2Mock.EXPECT())
+
+			s := &Service{
+				scope:     clusterScope,
+				EC2Client: ec2Mock,
+			}
+
+			err = s.reconcileRegionalNatGateway()
+			if err != nil {
+				t.Fatalf("got an unexpected error: %v", err)
+			}
+		})
+	}
+}
+
+func TestCreateRegionalNatGateway(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	testCases := []struct {
+		name      string
+		vpcID     string
+		expect    func(m *mocks.MockEC2APIMockRecorder)
+		expectErr bool
+	}{
+		{
+			name:  "successfully create regional NAT gateway",
+			vpcID: subnetsVPCID,
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.CreateNatGateway(context.TODO(), &ec2.CreateNatGatewayInput{
+					VpcId:            aws.String(subnetsVPCID),
+					AvailabilityMode: types.AvailabilityModeRegional,
+					TagSpecifications: []types.TagSpecification{
+						{
+							ResourceType: types.ResourceTypeNatgateway,
+							Tags: []types.Tag{
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-nat"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("common"),
+								},
+							},
+						},
+					},
+				}).Return(&ec2.CreateNatGatewayOutput{
+					NatGateway: &types.NatGateway{
+						NatGatewayId: aws.String("regional-natgateway"),
+						VpcId:        aws.String(subnetsVPCID),
+					},
+				}, nil)
+
+				m.DescribeNatGateways(gomock.Any(), &ec2.DescribeNatGatewaysInput{
+					NatGatewayIds: []string{"regional-natgateway"},
+				}, gomock.Any()).Return(&ec2.DescribeNatGatewaysOutput{
+					NatGateways: []types.NatGateway{
+						{
+							State:        types.NatGatewayStateAvailable,
+							NatGatewayId: aws.String("regional-natgateway"),
+							VpcId:        aws.String(subnetsVPCID),
+						},
+					},
+				}, nil)
+			},
+			expectErr: false,
+		},
+		{
+			name:  "create regional NAT gateway fails",
+			vpcID: subnetsVPCID,
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.CreateNatGateway(context.TODO(), gomock.Any()).
+					Return(nil, awserrors.NewFailedDependency("dependency-violation"))
+			},
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
+
+			scheme := runtime.NewScheme()
+			_ = infrav1.AddToScheme(scheme)
+			_ = clusterv1.AddToScheme(scheme)
+			awsCluster := &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							ID: tc.vpcID,
+							Tags: infrav1.Tags{
+								infrav1.ClusterTagKey("test-cluster"): "owned",
+							},
+						},
+					},
+				},
+			}
+			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(awsCluster).WithStatusSubresource(awsCluster).Build()
+
+			clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
+				},
+				AWSCluster: awsCluster,
+				Client:     client,
+			})
+			if err != nil {
+				t.Fatalf("Failed to create test context: %v", err)
+			}
+
+			tc.expect(ec2Mock.EXPECT())
+
+			s := &Service{
+				scope:     clusterScope,
+				EC2Client: ec2Mock,
+			}
+
+			ngw, err := s.createRegionalNatGateway()
+			if tc.expectErr && err == nil {
+				t.Fatal("expected error but got no error")
+			}
+			if !tc.expectErr && err != nil {
+				t.Fatalf("got an unexpected error: %v", err)
+			}
+			if !tc.expectErr && ngw == nil {
+				t.Fatal("expected NAT gateway but got nil")
+			}
+		})
+	}
+}
+
+func TestGetNatGatewayForSubnetRegional(t *testing.T) {
+	g := NewWithT(t)
+
+	testCases := []struct {
+		name             string
+		input            infrav1.SubnetSpec
+		vpcSpec          infrav1.VPCSpec
+		expect           string
+		expectErr        bool
+		expectErrMessage string
+	}{
+		{
+			name: "regional NAT gateway assigned to private subnet",
+			input: infrav1.SubnetSpec{
+				ID:           "subnet-private-1",
+				CidrBlock:    "10.0.10.0/24",
+				IsPublic:     false,
+				NatGatewayID: aws.String("regional-natgateway"),
+			},
+			vpcSpec: infrav1.VPCSpec{
+				ID:                         subnetsVPCID,
+				NATGatewayAvailabilityMode: ptr.To(infrav1.NATGatewayAvailabilityModeRegional),
+			},
+			expect:    "regional-natgateway",
+			expectErr: false,
+		},
+		{
+			name: "regional NAT gateway not assigned to private subnet",
+			input: infrav1.SubnetSpec{
+				ID:           "subnet-private-1",
+				CidrBlock:    "10.0.10.0/24",
+				IsPublic:     false,
+				NatGatewayID: nil,
+			},
+			vpcSpec: infrav1.VPCSpec{
+				ID:                         subnetsVPCID,
+				NATGatewayAvailabilityMode: ptr.To(infrav1.NATGatewayAvailabilityModeRegional),
+			},
+			expect:           "",
+			expectErr:        true,
+			expectErrMessage: "regional NAT gateway not found for private subnet \"subnet-private-1\"",
+		},
+		{
+			name: "public subnet with regional NAT gateway should fail",
+			input: infrav1.SubnetSpec{
+				ID:           "subnet-public-1",
+				CidrBlock:    "10.0.1.0/24",
+				IsPublic:     true,
+				NatGatewayID: aws.String("regional-natgateway"),
+			},
+			vpcSpec: infrav1.VPCSpec{
+				ID:                         subnetsVPCID,
+				NATGatewayAvailabilityMode: ptr.To(infrav1.NATGatewayAvailabilityModeRegional),
+			},
+			expect:           "",
+			expectErr:        true,
+			expectErrMessage: "cannot get NAT gateway for a public subnet, got id \"subnet-public-1\"",
+		},
+	}
+
+	for idx, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			scheme := runtime.NewScheme()
+			_ = infrav1.AddToScheme(scheme)
+			awsCluster := &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: tc.vpcSpec,
+					},
+				},
+			}
+
+			client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(awsCluster).WithStatusSubresource(awsCluster).Build()
+
+			clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
+				},
+				AWSCluster: awsCluster,
+				Client:     client,
+			})
+			if err != nil {
+				t.Fatalf("Failed to create test context: %v", err)
+				return
+			}
+
+			s := NewService(clusterScope)
+
+			id, err := s.getNatGatewayForSubnet(&testCases[idx].input)
+
+			if tc.expectErr && err == nil {
+				t.Fatal("expected error but got no error")
+			}
+			if err != nil && len(tc.expectErrMessage) > 0 {
+				if err.Error() != tc.expectErrMessage {
+					t.Fatalf("got an unexpected error message:\nwant: %v\n got: %v\n", tc.expectErrMessage, err.Error())
+				}
+			}
+			if !tc.expectErr && err != nil {
+				t.Fatalf("got an unexpected error: %v", err)
+			}
+			if len(tc.expect) > 0 {
+				g.Expect(id).To(Equal(tc.expect))
+			}
+		})
+	}
+}
