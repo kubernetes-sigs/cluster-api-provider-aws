@@ -42,7 +42,7 @@ jobs:
       run: make modules
     - name: Update generated code
       run: make generate
-    - uses: EndBug/add-and-commit@v9
+    - uses: EndBug/add-and-commit@v10
       name: Commit changes
       with:
         author_name: dependabot[bot]
