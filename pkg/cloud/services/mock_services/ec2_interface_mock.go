@@ -30,6 +30,7 @@ import (
 	v1beta2 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	v1beta20 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	scope "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	services "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
 )
 
 // MockEC2Interface is a mock of EC2Interface interface.
@@ -310,12 +311,13 @@ func (mr *MockEC2InterfaceMockRecorder) InstanceIfExists(arg0 interface{}) *gomo
 }
 
 // LaunchTemplateNeedsUpdate mocks base method.
-func (m *MockEC2Interface) LaunchTemplateNeedsUpdate(arg0 scope.LaunchTemplateScope, arg1, arg2 *v1beta20.AWSLaunchTemplate) (bool, error) {
+func (m *MockEC2Interface) LaunchTemplateNeedsUpdate(arg0 scope.LaunchTemplateScope, arg1, arg2 *v1beta20.AWSLaunchTemplate) (bool, services.LaunchTemplateNeedsUpdateReason, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "LaunchTemplateNeedsUpdate", arg0, arg1, arg2)
 	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret1, _ := ret[1].(services.LaunchTemplateNeedsUpdateReason)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
 }
 
 // LaunchTemplateNeedsUpdate indicates an expected call of LaunchTemplateNeedsUpdate.
