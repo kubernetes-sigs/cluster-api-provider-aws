@@ -15,7 +15,7 @@ spec:
         configRef:
           name: "${CLUSTER_NAME}-md-0"
           apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
-          kind: EKSConfigTemplate
+          kind: NodeadmConfigTemplate
       infrastructureRef:
         name: "${CLUSTER_NAME}-md-0"
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
@@ -35,7 +35,7 @@ spec:
       sshKeyName: "${AWS_SSH_KEY_NAME}"
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
-kind: EKSConfigTemplate
+kind: NodeadmConfigTemplate
 metadata:
   name: "${CLUSTER_NAME}-md-0"
 spec:
