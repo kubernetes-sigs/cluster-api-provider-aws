@@ -233,6 +233,97 @@ func TestUpdateOCMClusterSpec(t *testing.T) {
 		g.Expect(updated).To(BeTrue())
 		g.Expect(ocmSpec).To(Equal(expectedOCMSpec))
 	})
+
+	// Test case 8: Channel explicitly set - use it directly
+	t.Run("Channel explicitly set", func(t *testing.T) {
+		rosaControlPlane := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				Channel:      "eus-4.18",
+				ChannelGroup: rosacontrolplanev1.Stable, // Different from channel, but channel takes precedence
+				Version:      "4.16.5",
+			},
+		}
+
+		mockCluster, _ := v1.NewCluster().
+			Version(v1.NewVersion().
+				ID("4.16.5").
+				ChannelGroup("stable")).
+			Build()
+
+		reconciler := &ROSAControlPlaneReconciler{}
+		ocmSpec, updated := reconciler.updateOCMClusterSpec(rosaControlPlane, mockCluster)
+
+		g.Expect(updated).To(BeTrue())
+		g.Expect(ocmSpec.Channel).To(Equal("eus-4.18"))
+		g.Expect(ocmSpec.ChannelGroup).To(BeEmpty())
+	})
+
+	// Test case 9: ChannelGroup matches current - no update
+	t.Run("ChannelGroup matches current channel group - no update", func(t *testing.T) {
+		rosaControlPlane := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				ChannelGroup: rosacontrolplanev1.Stable,
+				Version:      "4.16.5",
+			},
+		}
+
+		mockCluster, _ := v1.NewCluster().
+			Version(v1.NewVersion().
+				ID("4.18.3").
+				ChannelGroup("stable")).
+			Build()
+
+		reconciler := &ROSAControlPlaneReconciler{}
+		ocmSpec, updated := reconciler.updateOCMClusterSpec(rosaControlPlane, mockCluster)
+
+		g.Expect(updated).To(BeFalse())
+		g.Expect(ocmSpec.Channel).To(BeEmpty())
+		g.Expect(ocmSpec.ChannelGroup).To(BeEmpty())
+	})
+
+	// Test case 10: ChannelGroup changes - update channelGroup
+	t.Run("ChannelGroup changes from stable to eus", func(t *testing.T) {
+		rosaControlPlane := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				ChannelGroup: rosacontrolplanev1.Eus, // Changing from stable to eus
+				Version:      "4.16.5",
+			},
+		}
+
+		mockCluster, _ := v1.NewCluster().
+			Version(v1.NewVersion().
+				ID("4.18.3").
+				ChannelGroup("stable")).
+			Build()
+
+		reconciler := &ROSAControlPlaneReconciler{}
+		ocmSpec, updated := reconciler.updateOCMClusterSpec(rosaControlPlane, mockCluster)
+
+		g.Expect(updated).To(BeTrue())
+		g.Expect(ocmSpec.ChannelGroup).To(Equal("eus"))
+		g.Expect(ocmSpec.Channel).To(BeEmpty())
+	})
+
+	// Test case 11: ChannelGroup set, no current version info
+	t.Run("ChannelGroup set with no current version info", func(t *testing.T) {
+		rosaControlPlane := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				ChannelGroup: rosacontrolplanev1.Eus,
+				Version:      "4.16.5",
+			},
+		}
+
+		// Cluster has no version info (edge case)
+		// When version is nil, we skip the channelGroup update
+		mockCluster, _ := v1.NewCluster().Build()
+
+		reconciler := &ROSAControlPlaneReconciler{}
+		ocmSpec, updated := reconciler.updateOCMClusterSpec(rosaControlPlane, mockCluster)
+
+		g.Expect(updated).To(BeFalse())
+		g.Expect(ocmSpec.ChannelGroup).To(BeEmpty())
+		g.Expect(ocmSpec.Channel).To(BeEmpty())
+	})
 }
 
 func TestValidateControlPlaneSpec(t *testing.T) {
@@ -453,6 +544,9 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 		}).Times(1)
 		m.UpdateCluster(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(clusterKey string, creator *rosaaws.Creator, config ocm.Spec) error {
 			return nil
+		}).Times(1)
+		m.GetAvailableChannels(gomock.Any()).DoAndReturn(func(versionID string) ([]string, error) {
+			return []string{"stable-4.15"}, nil
 		}).Times(1)
 		m.GetIdentityProviders(gomock.Any()).DoAndReturn(func(cclusterID string) ([]*v1.IdentityProvider, error) {
 			ip := []*v1.IdentityProvider{}
