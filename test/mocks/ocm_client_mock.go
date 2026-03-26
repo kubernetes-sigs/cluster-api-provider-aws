@@ -197,6 +197,21 @@ func (mr *MockOCMClientMockRecorder) DeleteUser(arg0, arg1, arg2 interface{}) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUser", reflect.TypeOf((*MockOCMClient)(nil).DeleteUser), arg0, arg1, arg2)
 }
 
+// GetAvailableChannels mocks base method.
+func (m *MockOCMClient) GetAvailableChannels(arg0 string) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAvailableChannels", arg0)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAvailableChannels indicates an expected call of GetAvailableChannels.
+func (mr *MockOCMClientMockRecorder) GetAvailableChannels(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAvailableChannels", reflect.TypeOf((*MockOCMClient)(nil).GetAvailableChannels), arg0)
+}
+
 // GetCluster mocks base method.
 func (m *MockOCMClient) GetCluster(arg0 string, arg1 *aws.Creator) (*v1.Cluster, error) {
 	m.ctrl.T.Helper()
