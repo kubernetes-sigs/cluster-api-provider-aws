@@ -131,6 +131,10 @@ func (w *ROSAControlPlane) ValidateUpdate(_ context.Context, oldObj, newObj runt
 		allErrs = append(allErrs, err)
 	}
 
+	if err := w.validateChannel(r); err != nil {
+		allErrs = append(allErrs, err)
+	}
+
 	allErrs = append(allErrs, w.validateROSANetwork(r)...)
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 
@@ -259,6 +263,22 @@ func (w *ROSAControlPlane) validateRosaRoleConfig(r *rosacontrolplanev1.ROSACont
 		return field.Invalid(field.NewPath("spec.rolesRef.kmsProviderARN"), r.Spec.RolesRef.KMSProviderARN, "must be specified")
 	}
 	return nil
+}
+
+// validateChannel validates that the specified channel exists in the available channels list.
+func (w *ROSAControlPlane) validateChannel(r *rosacontrolplanev1.ROSAControlPlane) *field.Error {
+	if r.Spec.Channel == "" || len(r.Status.AvailableChannels) == 0 {
+		return nil
+	}
+
+	for _, ch := range r.Status.AvailableChannels {
+		if ch == r.Spec.Channel {
+			return nil
+		}
+	}
+
+	return field.Invalid(field.NewPath("spec.channel"), r.Spec.Channel,
+		fmt.Sprintf("channel must be one of the available channels: %v", r.Status.AvailableChannels))
 }
 
 func (w *ROSAControlPlane) validateROSANetworkRef(r *rosacontrolplanev1.ROSAControlPlane) *field.Error {
