@@ -56,6 +56,8 @@ spec:
     spec:
       ami:
         eksLookupType: AmazonLinux2023
+      cloudInit:
+        insecureSkipSecretsManager: true
       instanceType: "${AWS_NODE_MACHINE_TYPE}"
       iamInstanceProfile: "nodes.cluster-api-provider-aws.sigs.k8s.io"
       sshKeyName: "${AWS_SSH_KEY_NAME}"
