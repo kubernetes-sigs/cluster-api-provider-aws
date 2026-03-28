@@ -26,6 +26,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/blang/semver"
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -75,15 +76,26 @@ func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolSpecInpu
 	configCluster.Flavor = input.Flavor
 	configCluster.WorkerMachineCount = ptr.To[int64](1)
 	workloadClusterTemplate := shared.GetTemplate(ctx, configCluster)
+
+	// For AL2 AMIs (Kubernetes < 1.33), the launch template requires a bash script
+	// calling bootstrap.sh with a USER_DATA placeholder in the template Secret.
+	// For AL2023 (Kubernetes >= 1.33), the template uses a NodeadmConfig bootstrap
+	// provider instead, which generates nodeadm MIME multipart userdata automatically.
 	if input.UsesLaunchTemplate {
-		userDataTemplate := `#!/bin/bash
+		kubeVersion, err := semver.ParseTolerant(configCluster.KubernetesVersion)
+		Expect(err).NotTo(HaveOccurred(), "failed to parse Kubernetes version %q", configCluster.KubernetesVersion)
+
+		useNodeadm := kubeVersion.GTE(semver.MustParse("1.33.0"))
+		if !useNodeadm {
+			userDataTemplate := `#!/bin/bash
 /etc/eks/bootstrap.sh %s \
   --container-runtime containerd
 `
-		eksClusterName := getEKSClusterName(input.Namespace.Name, input.ClusterName)
-		userData := fmt.Sprintf(userDataTemplate, eksClusterName)
-		userDataEncoded := base64.StdEncoding.EncodeToString([]byte(userData))
-		workloadClusterTemplate = []byte(strings.ReplaceAll(string(workloadClusterTemplate), "USER_DATA", userDataEncoded))
+			eksClusterName := getEKSClusterName(input.Namespace.Name, input.ClusterName)
+			userData := fmt.Sprintf(userDataTemplate, eksClusterName)
+			userDataEncoded := base64.StdEncoding.EncodeToString([]byte(userData))
+			workloadClusterTemplate = []byte(strings.ReplaceAll(string(workloadClusterTemplate), "USER_DATA", userDataEncoded))
+		}
 	}
 	ginkgo.By(string(workloadClusterTemplate))
 	ginkgo.By(fmt.Sprintf("Applying the %s cluster template yaml to the cluster", configCluster.Flavor))
