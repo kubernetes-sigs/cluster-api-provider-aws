@@ -11,6 +11,7 @@ spec:
     spec:
       clusterName: "${CLUSTER_NAME}"
       version: "${KUBERNETES_VERSION}"
+      nodeDrainTimeout: 2m
       bootstrap:
         configRef:
           name: "${CLUSTER_NAME}-md-0"
