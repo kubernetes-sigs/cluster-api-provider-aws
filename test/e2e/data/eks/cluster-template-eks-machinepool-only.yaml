@@ -10,7 +10,7 @@ spec:
       bootstrap:
         configRef:
           apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
-          kind: EKSConfig
+          kind: NodeadmConfig
           name: "${CLUSTER_NAME}-mp-0"
       clusterName: "${CLUSTER_NAME}"
       infrastructureRef:
@@ -29,8 +29,6 @@ spec:
   awsLaunchTemplate:
     ami:
       eksLookupType: AmazonLinux2023
-    cloudInit:
-      insecureSkipSecretsManager: true
     iamInstanceProfile: nodes.cluster-api-provider-aws.sigs.k8s.io
     instanceType: "${AWS_NODE_MACHINE_TYPE}"
     sshKeyName: "${AWS_SSH_KEY_NAME}"
