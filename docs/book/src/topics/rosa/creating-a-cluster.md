@@ -46,7 +46,19 @@ If you already have a service account, you can skip these steps.
 
 ## Creating the cluster
 
-1. Save the following to a file `rosa-role-network.yaml`:
+1. Create the `ROSARoleConfig` and `ROSANetwork` resources.
+
+    The `ROSARoleConfig` automates the creation of the AWS IAM resources required by ROSA HCP clusters:
+    - **Account roles**: Installer, Support, and Worker IAM roles (e.g. `<prefix>-HCP-ROSA-Installer-Role`)
+    - **Operator roles**: IAM roles for cluster operators including ingress, image registry, storage, network, kube cloud controller, node pool management, control plane operator, and KMS provider
+    - **OIDC provider**: A managed OpenID Connect provider used for operator role authentication
+
+    The `ROSANetwork` automates the creation of the VPC networking infrastructure via an AWS CloudFormation stack, including:
+    - A VPC with the specified CIDR block
+    - Public and private subnet pairs for each availability zone
+    - Associated networking resources (internet gateway, NAT gateways, route tables)
+
+    Save the following to a file `rosa-role-network.yaml`:
 
     ```yaml
     apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
@@ -89,10 +101,63 @@ If you already have a service account, you can skip these steps.
     kubectl get rosaroleconfig role-config -o yaml
     ```
 
+    Example expected status:
+
+    ```yaml
+    status:
+      accountRolesRef:
+        installerRoleARN: arn:aws:iam::123456789012:role/rosa-HCP-ROSA-Installer-Role
+        supportRoleARN: arn:aws:iam::123456789012:role/rosa-HCP-ROSA-Support-Role
+        workerRoleARN: arn:aws:iam::123456789012:role/rosa-HCP-ROSA-Worker-Role
+      conditions:
+      - lastTransitionTime: "2025-11-03T18:12:09Z"
+        status: "True"
+        type: Ready
+      - lastTransitionTime: "2025-11-03T18:12:09Z"
+        message: RosaRoleConfig is ready
+        reason: Created
+        severity: Info
+        status: "True"
+        type: RosaRoleConfigReady
+      oidcID: anyoidcanyoidctuq4b
+      oidcProviderARN: arn:aws:iam::123456789012:oidc-provider/oidc.os1.devshift.org/anyoidcanyoidctuq4b
+      operatorRolesRef:
+        controlPlaneOperatorARN: arn:aws:iam::123456789012:role/rosa-kube-system-control-plane-operator
+        imageRegistryARN: arn:aws:iam::123456789012:role/rosa-openshift-image-registry-installer-cloud-credentials
+        ingressARN: arn:aws:iam::123456789012:role/rosa-openshift-ingress-operator-cloud-credentials
+        kmsProviderARN: arn:aws:iam::123456789012:role/rosa-kube-system-kms-provider
+        kubeCloudControllerARN: arn:aws:iam::123456789012:role/rosa-kube-system-kube-controller-manager
+        networkARN: arn:aws:iam::123456789012:role/rosa-openshift-cloud-network-config-controller-cloud-credentials
+        nodePoolManagementARN: arn:aws:iam::123456789012:role/rosa-kube-system-capa-controller-manager
+        storageARN: arn:aws:iam::123456789012:role/rosa-openshift-cluster-csi-drivers-ebs-cloud-credentials
+    ```
+
     Verify the `ROSANetwork` was successfully created. The status should contain the created subnets:
 
     ```shell
     kubectl get rosanetwork rosa-vpc -o yaml
+    ```
+
+    Example expected status:
+
+    ```yaml
+    status:
+      conditions:
+      - lastTransitionTime: "2025-11-03T18:15:05Z"
+        reason: Created
+        severity: Info
+        status: "True"
+        type: ROSANetworkReady
+      subnets:
+      - availabilityZone: us-west-2a
+        privateSubnet: subnet-084ebac3893fc14ff
+        publicSubnet: subnet-0ec9fa706a26519ee
+      - availabilityZone: us-west-2b
+        privateSubnet: subnet-07727689065612f6e
+        publicSubnet: subnet-0bb2220505b16f606
+      - availabilityZone: us-west-2c
+        privateSubnet: subnet-002e071b9624727f3
+        publicSubnet: subnet-049fa2a528d896356
     ```
 
 1. Save the following to a file `rosa-cluster.yaml`:
