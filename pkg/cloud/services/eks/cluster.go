@@ -521,6 +521,7 @@ func (s *Service) createCluster(ctx context.Context, eksClusterName string) (*ek
 		KubernetesNetworkConfig:    netConfig,
 		BootstrapSelfManagedAddons: bootstrapAddon,
 		UpgradePolicy:              upgradePolicy,
+		DeletionProtection:         aws.Bool(s.scope.ControlPlane.Spec.DeletionProtection),
 	}
 
 	var out *eks.CreateClusterOutput
@@ -579,6 +580,11 @@ func (s *Service) reconcileClusterConfig(ctx context.Context, cluster *ekstypes.
 	if updateUpgradePolicy := s.reconcileUpgradePolicy(cluster.UpgradePolicy); updateUpgradePolicy != nil {
 		needsUpdate = true
 		input.UpgradePolicy = updateUpgradePolicy
+	}
+
+	if ptr.Deref(cluster.DeletionProtection, false) != s.scope.ControlPlane.Spec.DeletionProtection {
+		needsUpdate = true
+		input.DeletionProtection = aws.Bool(s.scope.ControlPlane.Spec.DeletionProtection)
 	}
 
 	if needsUpdate {

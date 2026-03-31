@@ -94,9 +94,9 @@ func TestROSARoleConfigReconcileCreate(t *testing.T) {
 	defer mockCtrl.Finish()
 	// mock iam client to expect ListRoles call
 	mockIamClient := rosaMocks.NewMockIamApiClient(mockCtrl)
-	mockIamClient.EXPECT().ListRoles(gomock.Any(), gomock.Any()).Return(&iamv2.ListRolesOutput{
-		Roles: []iamTypes.Role{},
-	}, nil).AnyTimes()
+	mockIamClient.EXPECT().ListRoles(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(&iamv2.ListRolesOutput{Roles: []iamTypes.Role{}}, nil).
+		AnyTimes()
 
 	mockIamClient.EXPECT().ListOpenIDConnectProviders(gomock.Any(), gomock.Any()).Return(&iamv2.ListOpenIDConnectProvidersOutput{
 		OpenIDConnectProviderList: []iamTypes.OpenIDConnectProviderListEntry{},

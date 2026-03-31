@@ -675,6 +675,7 @@ func TestCreateCluster(t *testing.T) {
 					Tags:                       tc.tags,
 					Version:                    version,
 					BootstrapSelfManagedAddons: aws.Bool(false),
+					DeletionProtection:         aws.Bool(false),
 					UpgradePolicy: &ekstypes.UpgradePolicyRequest{
 						SupportType: ekstypes.SupportTypeStandard,
 					},
@@ -977,6 +978,7 @@ func TestCreateIPv6Cluster(t *testing.T) {
 			"kubernetes.io/cluster/cluster-name": "owned",
 		},
 		BootstrapSelfManagedAddons: aws.Bool(false),
+		DeletionProtection:         aws.Bool(false),
 	}).Return(&eks.CreateClusterOutput{}, nil)
 	iamMock.EXPECT().GetRole(gomock.Any(), &iam.GetRoleInput{
 		RoleName: aws.String("arn-role"),
@@ -1051,6 +1053,7 @@ func TestCreateClusterWithBootstrapClusterCreatorAdminPermissions(t *testing.T) 
 		},
 		EncryptionConfig:           []ekstypes.EncryptionConfig{},
 		BootstrapSelfManagedAddons: aws.Bool(false),
+		DeletionProtection:         aws.Bool(false),
 	}).Return(&eks.CreateClusterOutput{}, nil)
 
 	iamMock.EXPECT().GetRole(gomock.Any(), gomock.Any()).Return(&iam.GetRoleOutput{
@@ -1062,5 +1065,109 @@ func TestCreateClusterWithBootstrapClusterCreatorAdminPermissions(t *testing.T) 
 	s.IAMClient = iamMock
 
 	_, err = s.createCluster(context.TODO(), clusterName)
+	g.Expect(err).To(BeNil())
+}
+
+func TestCreateClusterWithDeletionProtectionTrue(t *testing.T) {
+	g := NewWithT(t)
+
+	mockControl := gomock.NewController(t)
+	defer mockControl.Finish()
+
+	eksMock := mock_eksiface.NewMockEKSAPI(mockControl)
+	iamMock := mock_iamauth.NewMockIAMAPI(mockControl)
+
+	scheme := runtime.NewScheme()
+	_ = infrav1.AddToScheme(scheme)
+	_ = ekscontrolplanev1.AddToScheme(scheme)
+	client := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+	clusterName := "dp-enabled"
+	scope, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
+		Client:  client,
+		Cluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Namespace: "ns", Name: "capi-name"}},
+		ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
+			Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+				EKSClusterName:     clusterName,
+				Version:            aws.String("1.24"),
+				RoleName:           aws.String("arn:role"),
+				NetworkSpec:        infrav1.NetworkSpec{Subnets: []infrav1.SubnetSpec{{ID: "1", AvailabilityZone: "us-west-2a"}, {ID: "2", AvailabilityZone: "us-west-2b"}}},
+				DeletionProtection: true,
+			},
+		},
+	})
+	g.Expect(err).To(BeNil())
+
+	// Removed strict equality expectation; using relaxed matcher below
+	// Relax matcher and assert key fields only
+	eksMock.EXPECT().CreateCluster(gomock.Eq(context.TODO()), gomock.AssignableToTypeOf(&eks.CreateClusterInput{})).DoAndReturn(
+		func(_ context.Context, in *eks.CreateClusterInput, _ ...func(*eks.Options)) (*eks.CreateClusterOutput, error) {
+			g.Expect(aws.ToString(in.Name)).To(Equal(clusterName))
+			g.Expect(aws.ToString(in.Version)).To(Equal("1.24"))
+			g.Expect(in.ResourcesVpcConfig).NotTo(BeNil())
+			g.Expect(in.ResourcesVpcConfig.SubnetIds).To(Equal([]string{"1", "2"}))
+			g.Expect(aws.ToString(in.RoleArn)).To(Equal("arn:role"))
+			g.Expect(in.Tags["kubernetes.io/cluster/dp-enabled"]).To(Equal("owned"))
+			g.Expect(in.DeletionProtection).NotTo(BeNil())
+			g.Expect(aws.ToBool(in.DeletionProtection)).To(BeTrue())
+			return &eks.CreateClusterOutput{}, nil
+		},
+	)
+
+	iamMock.EXPECT().GetRole(gomock.Any(), gomock.Any()).Return(&iam.GetRoleOutput{Role: &iamtypes.Role{Arn: aws.String("arn:role")}}, nil)
+
+	s := NewService(scope)
+	s.EKSClient = eksMock
+	s.IAMClient = iamMock
+
+	_, err = s.createCluster(context.TODO(), clusterName)
+	g.Expect(err).To(BeNil())
+}
+
+func TestReconcileDeletionProtection(t *testing.T) {
+	g := NewWithT(t)
+
+	mockControl := gomock.NewController(t)
+	defer mockControl.Finish()
+
+	eksMock := mock_eksiface.NewMockEKSAPI(mockControl)
+
+	scheme := runtime.NewScheme()
+	_ = infrav1.AddToScheme(scheme)
+	_ = ekscontrolplanev1.AddToScheme(scheme)
+	client := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+	clusterName := "default.cluster"
+	scope, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
+		Client:  client,
+		Cluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Namespace: "ns", Name: clusterName}},
+		ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
+			Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+				DeletionProtection: true,
+				NetworkSpec: infrav1.NetworkSpec{
+					Subnets: []infrav1.SubnetSpec{{ID: "1", AvailabilityZone: "us-west-2a"}, {ID: "2", AvailabilityZone: "us-west-2b"}},
+				},
+			},
+		},
+	})
+	g.Expect(err).To(BeNil())
+
+	cluster := &ekstypes.Cluster{
+		DeletionProtection: aws.Bool(false),
+		ResourcesVpcConfig: &ekstypes.VpcConfigResponse{SubnetIds: []string{"1", "2"}},
+	}
+
+	eksMock.EXPECT().UpdateClusterConfig(gomock.Eq(context.TODO()), gomock.AssignableToTypeOf(&eks.UpdateClusterConfigInput{})).DoAndReturn(
+		func(_ context.Context, in *eks.UpdateClusterConfigInput, _ ...func(*eks.Options)) (*eks.UpdateClusterConfigOutput, error) {
+			g.Expect(in.DeletionProtection).NotTo(BeNil())
+			g.Expect(aws.ToBool(in.DeletionProtection)).To(BeTrue())
+			return &eks.UpdateClusterConfigOutput{}, nil
+		},
+	)
+
+	s := NewService(scope)
+	s.EKSClient = eksMock
+
+	err = s.reconcileClusterConfig(context.TODO(), cluster)
 	g.Expect(err).To(BeNil())
 }
