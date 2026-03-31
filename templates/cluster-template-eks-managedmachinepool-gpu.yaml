@@ -48,7 +48,10 @@ spec:
     spec:
       clusterName: "${CLUSTER_NAME}"
       bootstrap:
-        dataSecretName: ""
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+          kind: NodeadmConfig
+          name: "${CLUSTER_NAME}-pool-0"
       infrastructureRef:
         name: "${CLUSTER_NAME}-pool-0"
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
@@ -59,8 +62,14 @@ kind: AWSManagedMachinePool
 metadata:
   name: "${CLUSTER_NAME}-pool-0"
 spec:
-  amiType: "AL2_x86_64_GPU"
+  amiType: "AL2023_x86_64_NVIDIA"
   instanceType: "g4dn.xlarge"
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+kind: NodeadmConfig
+metadata:
+  name: "${CLUSTER_NAME}-pool-0"
+spec: {}
 ---
 apiVersion: addons.cluster.x-k8s.io/v1beta1
 kind: ClusterResourceSet
