@@ -191,7 +191,6 @@ func getRecordAWSPermissionsIssueMiddleware(target runtime.Object) middleware.Fi
 		if err != nil {
 			request := getContext(ctx)
 			if request != nil {
-				var errMessage string
 				smithyErr := awserrors.ParseSmithyError(err)
 				request.ErrorCode = smithyErr.ErrorCode()
 				switch request.ErrorCode {
@@ -200,7 +199,7 @@ func getRecordAWSPermissionsIssueMiddleware(target runtime.Object) middleware.Fi
 					record.Warnf(target, request.ErrorCode,
 						"Operation %s failed with a credentials or permission issue: %s",
 						request.OperationName,
-						errMessage,
+						smithyErr.ErrorMessage(),
 					)
 				}
 			}
