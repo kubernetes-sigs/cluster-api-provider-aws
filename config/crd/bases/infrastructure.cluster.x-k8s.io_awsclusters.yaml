@@ -1107,6 +1107,15 @@ spec:
                       DisableHostsRewrite disabled the hair pinning issue solution that adds the NLB's address as 127.0.0.1 to the hosts
                       file of each instance. This is by default, false.
                     type: boolean
+                  dnsResolutionCheck:
+                    description: |-
+                      DNSResolutionCheck configures the behavior for checking the load balancer DNS resolution.
+                      Set to "None" to disable the check.
+                      If omitted, the provider will pick a reasonable default which may change over time.
+                    enum:
+                    - None
+                    - Enabled
+                    type: string
                   healthCheck:
                     description: HealthCheck sets custom health check configuration
                       to the API target group.
@@ -2011,6 +2020,15 @@ spec:
                       DisableHostsRewrite disabled the hair pinning issue solution that adds the NLB's address as 127.0.0.1 to the hosts
                       file of each instance. This is by default, false.
                     type: boolean
+                  dnsResolutionCheck:
+                    description: |-
+                      DNSResolutionCheck configures the behavior for checking the load balancer DNS resolution.
+                      Set to "None" to disable the check.
+                      If omitted, the provider will pick a reasonable default which may change over time.
+                    enum:
+                    - None
+                    - Enabled
+                    type: string
                   healthCheck:
                     description: HealthCheck sets custom health check configuration
                       to the API target group.
