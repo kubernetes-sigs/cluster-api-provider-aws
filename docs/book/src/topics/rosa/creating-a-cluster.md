@@ -12,7 +12,7 @@ Once these steps are complete, you are ready to create a ROSA HCP cluster.
 
 ## Authentication
 The CAPA controller requires service account credentials to provision ROSA HCP clusters.  
-If you already have a service account, you can skip these steps.
+**Note:** If you already have a service account, you can skip these steps.
 1. Create a service account by visiting [https://console.redhat.com/iam/service-accounts](https://console.redhat.com/iam/service-accounts).
 
 
@@ -104,6 +104,12 @@ If you already have a service account, you can skip these steps.
     Example expected status:
 
     ```yaml
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+    kind: ROSARoleConfig
+    metadata:
+      name: "role-config"
+    spec:
+      ...
     status:
       accountRolesRef:
         installerRoleARN: arn:aws:iam::123456789012:role/rosa-HCP-ROSA-Installer-Role
@@ -141,6 +147,12 @@ If you already have a service account, you can skip these steps.
     Example expected status:
 
     ```yaml
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+    kind: ROSANetwork
+    metadata:
+      name: "rosa-vpc"
+    spec:
+       ...
     status:
       conditions:
       - lastTransitionTime: "2025-11-03T18:15:05Z"
@@ -196,11 +208,11 @@ If you already have a service account, you can skip these steps.
       rosaClusterName: rosa-hcp-1
       domainPrefix: rosa-hcp
       rosaRoleConfigRef:
-        name: role-config
+        name: role-config  # reference to the ROSARoleConfig created above
       version: "4.19.0"
       region: "us-west-2"
       rosaNetworkRef:
-        name: "rosa-vpc"
+        name: "rosa-vpc" # reference to the ROSANetwork created above
       network:
         machineCIDR: "10.0.0.0/16"
         podCIDR: "10.128.0.0/14"
@@ -274,5 +286,55 @@ If you already have a service account, you can skip these steps.
     ```
 
     **Note:** The number of default `ROSAMachinePool` resources corresponds to the number of availability zones configured.
+
+1. To add an additional `ROSAMachinePool`, save the following to a file `rosa-machinepool-extra.yaml`:
+
+    ```yaml
+    apiVersion: cluster.x-k8s.io/v1beta1
+    kind: MachinePool
+    metadata:
+      name: "rosa-hcp-1-workers-extra"
+    spec:
+      clusterName: "rosa-hcp-1"
+      replicas: 2
+      template:
+        spec:
+          clusterName: "rosa-hcp-1"
+          bootstrap:
+            dataSecretName: ""
+          infrastructureRef:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+            kind: ROSAMachinePool
+            name: "workers-extra"
+    ---
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+    kind: ROSAMachinePool
+    metadata:
+      name: "workers-extra"
+    spec:
+      nodePoolName: "workers-extra"
+      version: "4.19.0"
+      instanceType: "m5.xlarge"
+      autoRepair: true
+    ```
+
+    ```shell
+    kubectl apply -f rosa-machinepool-extra.yaml
+    ```
+
+## Deleting a ROSA HCP cluster
+
+To delete a ROSA HCP cluster, delete the `Cluster` resource. This will cascade and delete all associated resources including the `ROSAControlPlane`, `ROSACluster`, and `ROSAMachinePool` resources:
+
+```shell
+kubectl delete cluster rosa-hcp-1
+```
+
+After the cluster has been fully deleted, you can clean up the `ROSARoleConfig` and `ROSANetwork` resources:
+
+```shell
+kubectl delete rosaroleconfig role-config
+kubectl delete rosanetwork rosa-vpc
+```
 
 see [ROSAControlPlane CRD Reference](https://cluster-api-aws.sigs.k8s.io/crd/#controlplane.cluster.x-k8s.io/v1beta2.ROSAControlPlane) for all possible configurations.
