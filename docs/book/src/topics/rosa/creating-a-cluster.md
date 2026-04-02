@@ -324,10 +324,11 @@ The CAPA controller requires service account credentials to provision ROSA HCP c
 
 ## Deleting a ROSA HCP cluster
 
-To delete a ROSA HCP cluster, delete the `Cluster` resource. This will cascade and delete all associated resources including the `ROSAControlPlane`, `ROSACluster`, and `ROSAMachinePool` resources:
+To delete a ROSA HCP cluster, delete the `Cluster` and `ROSAControlPlane` resources. This will also clean up the associated `ROSACluster`, `MachinePool`, and `ROSAMachinePool` resources:
 
 ```shell
-kubectl delete cluster rosa-hcp-1
+kubectl delete -n <namespace> cluster/rosa-hcp-1 --wait=false
+kubectl delete -n <namespace> rosacontrolplane/rosa-hcp-1-control-plane
 ```
 
 After the cluster has been fully deleted, you can clean up the `ROSARoleConfig` and `ROSANetwork` resources:
