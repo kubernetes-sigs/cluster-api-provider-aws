@@ -45,6 +45,7 @@
   - [Ignition support](./topics/ignition-support.md)
   - [External Resource Garbage Collection](./topics/external-resource-gc.md)
   - [Instance Metadata](./topics/instance-metadata.md)
+  - [Nitro Enclaves](./topics/nitro-enclaves.md)
   - [Network Load Balancers](./topics/network-load-balancer-with-awscluster.md)
   - [Secondary Control Plane Load Balancer](./topics/secondary-load-balancer.md)
   - [Provision AWS Local Zone subnets](./topics/provision-edge-zones.md)

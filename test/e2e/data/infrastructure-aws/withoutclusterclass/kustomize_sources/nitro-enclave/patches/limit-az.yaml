@@ -1,0 +1,12 @@
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: AWSCluster
+metadata:
+  name: "${CLUSTER_NAME}"
+spec:
+  network:
+    vpc:
+      # Limit to one AZ to reduce NAT gateway cost, compensating for the
+      # higher per-instance cost of c5.xlarge (the minimum Nitro
+      # Enclave-capable instance type).
+      availabilityZoneUsageLimit: 1

@@ -644,6 +644,12 @@ func (s *Service) createLaunchTemplateData(scope scope.LaunchTemplateScope, imag
 		}
 	}
 
+	if lt.EnclaveOptions != nil {
+		data.EnclaveOptions = &types.LaunchTemplateEnclaveOptionsRequest{
+			Enabled: lt.EnclaveOptions.Enabled,
+		}
+	}
+
 	if len(lt.IamInstanceProfile) > 0 {
 		data.IamInstanceProfile = &types.LaunchTemplateIamInstanceProfileSpecificationRequest{
 			Name: aws.String(lt.IamInstanceProfile),
@@ -940,6 +946,10 @@ func (s *Service) SDKToLaunchTemplate(d types.LaunchTemplateVersion) (*expinfrav
 		}
 	}
 
+	if v.EnclaveOptions != nil && aws.ToBool(v.EnclaveOptions.Enabled) {
+		i.EnclaveOptions = &infrav1.EnclaveOptions{Enabled: aws.Bool(true)}
+	}
+
 	if v.PrivateDnsNameOptions != nil {
 		i.PrivateDNSName = &infrav1.PrivateDNSName{
 			EnableResourceNameDNSAAAARecord: v.PrivateDnsNameOptions.EnableResourceNameDnsAAAARecord,
@@ -1014,6 +1024,10 @@ func (s *Service) LaunchTemplateNeedsUpdate(scope scope.LaunchTemplateScope, inc
 
 	if !cmp.Equal(incoming.InstanceMetadataOptions, existing.InstanceMetadataOptions) {
 		return true, services.LaunchTemplateNeedsUpdateReasonInstanceMetadataOptions, nil
+	}
+
+	if !cmp.Equal(incoming.EnclaveOptions, existing.EnclaveOptions) {
+		return true, services.LaunchTemplateNeedsUpdateReasonEnclaveOptions, nil
 	}
 
 	if !cmp.Equal(incoming.SpotMarketOptions, existing.SpotMarketOptions) {

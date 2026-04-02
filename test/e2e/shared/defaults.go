@@ -67,6 +67,7 @@ const (
 	IgnitionFlavor                       = "ignition"
 	StorageClassOutTreeZoneLabel         = "topology.ebs.csi.aws.com/zone"
 	GPUFlavor                            = "gpu"
+	NitroEnclaveFlavor                   = "nitro-enclave"
 	InstanceVcpu                         = "AWS_MACHINE_TYPE_VCPU_USAGE"
 	EFSSupport                           = "efs-support"
 	IntreeCloudProvider                  = "intree-cloud-provider"

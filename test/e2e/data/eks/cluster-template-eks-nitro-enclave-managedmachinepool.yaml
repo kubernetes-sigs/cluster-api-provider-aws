@@ -1,0 +1,82 @@
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: "${CLUSTER_NAME}"
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks: ["192.168.0.0/16"]
+  infrastructureRef:
+    kind: AWSManagedCluster
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+    name: "${CLUSTER_NAME}"
+  controlPlaneRef:
+    kind: AWSManagedControlPlane
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+    name: "${CLUSTER_NAME}-control-plane"
+---
+kind: AWSManagedCluster
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+metadata:
+  name: "${CLUSTER_NAME}"
+spec: {}
+---
+kind: AWSManagedControlPlane
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+metadata:
+  name: "${CLUSTER_NAME}-control-plane"
+spec:
+  region: "${AWS_REGION}"
+  sshKeyName: "${AWS_SSH_KEY_NAME}"
+  version: "${KUBERNETES_VERSION}"
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachinePool
+metadata:
+  name: "${CLUSTER_NAME}-pool-0"
+spec:
+  clusterName: "${CLUSTER_NAME}"
+  replicas: ${WORKER_MACHINE_COUNT}
+  template:
+    spec:
+      clusterName: "${CLUSTER_NAME}"
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+          kind: NodeadmConfig
+          name: "${CLUSTER_NAME}-pool-0"
+      infrastructureRef:
+        name: "${CLUSTER_NAME}-pool-0"
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+        kind: AWSManagedMachinePool
+      version: "${KUBERNETES_VERSION}"
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: AWSManagedMachinePool
+metadata:
+  name: "${CLUSTER_NAME}-pool-0"
+spec:
+  amiType: CUSTOM
+  labels:
+    aws-nitro-enclaves-k8s-dp: enabled
+  scaling:
+    minSize: 1
+    maxSize: 2
+  awsLaunchTemplate:
+    instanceType: "c6i.xlarge"
+    ami:
+      eksLookupType: AmazonLinux2023
+    enclaveOptions:
+      enabled: true
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+kind: NodeadmConfig
+metadata:
+  name: "${CLUSTER_NAME}-pool-0"
+spec:
+  preNodeadmCommands:
+    - dnf install -y aws-nitro-enclaves-cli
+    - 'sed -i "s/cpu_count:.*/cpu_count: 2/" /etc/nitro_enclaves/allocator.yaml'
+    - 'sed -i "s/memory_mib:.*/memory_mib: 768/" /etc/nitro_enclaves/allocator.yaml'
+    - systemctl enable --now nitro-enclaves-allocator.service

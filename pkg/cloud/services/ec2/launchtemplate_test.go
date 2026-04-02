@@ -561,6 +561,35 @@ func TestServiceSDKToLaunchTemplate(t *testing.T) {
 			wantDataSecretKey:     &types.NamespacedName{Namespace: "bootstrap-secret-ns", Name: "bootstrap-secret"},
 			wantBootstrapDataHash: &testBootstrapDataHash,
 		},
+		{
+			name: "enclave options enabled",
+			input: ec2types.LaunchTemplateVersion{
+				LaunchTemplateId:   aws.String("lt-12345"),
+				LaunchTemplateName: aws.String("foo"),
+				LaunchTemplateData: &ec2types.ResponseLaunchTemplateData{
+					ImageId: aws.String("foo-image"),
+					IamInstanceProfile: &ec2types.LaunchTemplateIamInstanceProfileSpecification{
+						Arn: aws.String("instance-profile/foo-profile"),
+					},
+					KeyName:        aws.String("foo-keyname"),
+					UserData:       aws.String(base64.StdEncoding.EncodeToString([]byte(testUserData))),
+					EnclaveOptions: &ec2types.LaunchTemplateEnclaveOptions{Enabled: aws.Bool(true)},
+				},
+				VersionNumber: aws.Int64(1),
+			},
+			wantLT: &expinfrav1.AWSLaunchTemplate{
+				Name: "foo",
+				AMI: infrav1.AMIReference{
+					ID: aws.String("foo-image"),
+				},
+				IamInstanceProfile: "foo-profile",
+				SSHKeyName:         aws.String("foo-keyname"),
+				VersionNumber:      aws.Int64(1),
+				EnclaveOptions:     &infrav1.EnclaveOptions{Enabled: aws.Bool(true)},
+			},
+			wantUserDataHash:  testUserDataHash,
+			wantDataSecretKey: nil,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -745,6 +774,26 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 			},
 			want:                  true,
 			wantNeedsUpdateReason: services.LaunchTemplateNeedsUpdateReasonInstanceMetadataOptions,
+			wantErr:               false,
+		},
+		{
+			name: "new enclave options, enabling Nitro Enclaves",
+			incoming: &expinfrav1.AWSLaunchTemplate{
+				EnclaveOptions: &infrav1.EnclaveOptions{Enabled: aws.Bool(true)},
+			},
+			existing:              &expinfrav1.AWSLaunchTemplate{},
+			want:                  true,
+			wantNeedsUpdateReason: services.LaunchTemplateNeedsUpdateReasonEnclaveOptions,
+			wantErr:               false,
+		},
+		{
+			name:     "removing enclave options",
+			incoming: &expinfrav1.AWSLaunchTemplate{},
+			existing: &expinfrav1.AWSLaunchTemplate{
+				EnclaveOptions: &infrav1.EnclaveOptions{Enabled: aws.Bool(true)},
+			},
+			want:                  true,
+			wantNeedsUpdateReason: services.LaunchTemplateNeedsUpdateReasonEnclaveOptions,
 			wantErr:               false,
 		},
 		{
