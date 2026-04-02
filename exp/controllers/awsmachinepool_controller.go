@@ -293,6 +293,11 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 		return ctrl.Result{}, nil
 	}
 
+	if err := validateEnclaveOptionsForEdgeZones(machinePoolScope); err != nil {
+		v1beta1conditions.MarkFalse(machinePoolScope.AWSMachinePool, expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateNitroEnclaveEdgeZoneReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
+		return ctrl.Result{}, err
+	}
+
 	ec2Svc := r.getEC2Service(ec2Scope)
 	asgsvc := r.getASGService(clusterScope)
 	reconSvc := r.getReconcileService(ec2Scope)
@@ -457,6 +462,41 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 	}
 
 	return ctrl.Result{}, nil
+}
+
+// validateEnclaveOptionsForEdgeZones returns an error if enclaveOptions is enabled
+// and any explicitly specified subnet or availability zone resolves to a Local Zone
+// or Wavelength Zone. AWS does not support Nitro Enclaves in edge zones.
+func validateEnclaveOptionsForEdgeZones(machinePoolScope *scope.MachinePoolScope) error {
+	lt := machinePoolScope.AWSMachinePool.Spec.AWSLaunchTemplate
+	if lt.EnclaveOptions == nil || !ptr.Deref(lt.EnclaveOptions.Enabled, false) {
+		return nil
+	}
+
+	clusterSubnets := machinePoolScope.InfraCluster.Subnets()
+	byID := make(map[string]infrav1.SubnetSpec, len(clusterSubnets))
+	byAZ := make(map[string]infrav1.SubnetSpec, len(clusterSubnets))
+	for _, s := range clusterSubnets {
+		byID[s.GetResourceID()] = s
+		byAZ[s.AvailabilityZone] = s
+	}
+
+	for _, ref := range machinePoolScope.AWSMachinePool.Spec.Subnets {
+		if ref.ID == nil {
+			continue
+		}
+		if s, ok := byID[*ref.ID]; ok && s.IsEdge() {
+			return errors.New("Nitro Enclaves are not supported in Local Zones or Wavelength Zones")
+		}
+	}
+
+	for _, az := range machinePoolScope.AWSMachinePool.Spec.AvailabilityZones {
+		if s, ok := byAZ[az]; ok && s.IsEdge() {
+			return errors.New("Nitro Enclaves are not supported in Local Zones or Wavelength Zones")
+		}
+	}
+
+	return nil
 }
 
 func (r *AWSMachinePoolReconciler) reconcileDelete(ctx context.Context, machinePoolScope *scope.MachinePoolScope, clusterScope cloud.ClusterScoper, ec2Scope scope.EC2Scope) error {
