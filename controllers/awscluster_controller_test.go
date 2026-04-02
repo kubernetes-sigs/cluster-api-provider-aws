@@ -823,6 +823,7 @@ func mockedVPCCallsForExistingVPCAndSubnets(m *mocks.MockEC2APIMockRecorder) {
 			},
 		},
 	}, nil)
+	// subnet-1 has no existing tags, so both new tags are applied
 	m.CreateTags(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
 		Resources: []string{"subnet-1"},
 		Tags: []ec2types.Tag{
@@ -836,13 +837,10 @@ func mockedVPCCallsForExistingVPCAndSubnets(m *mocks.MockEC2APIMockRecorder) {
 			},
 		},
 	})).Return(&ec2.CreateTagsOutput{}, nil)
+	// subnet-2 already has `kubernetes.io/cluster/test-cluster=shared`, so only the ELB role tag is new
 	m.CreateTags(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
 		Resources: []string{"subnet-2"},
 		Tags: []ec2types.Tag{
-			{
-				Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-				Value: aws.String("shared"),
-			},
 			{
 				Key:   aws.String("kubernetes.io/role/elb"),
 				Value: aws.String("1"),
