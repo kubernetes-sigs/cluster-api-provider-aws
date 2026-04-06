@@ -205,7 +205,7 @@ func (w *ROSAControlPlane) validateEtcdEncryptionKMSArn(r *rosacontrolplanev1.RO
 }
 
 func (w *ROSAControlPlane) validateFIPS(r *rosacontrolplanev1.ROSAControlPlane) *field.Error {
-	if r.Spec.FIPS == rosacontrolplanev1.Enabled && r.Spec.EtcdEncryptionKMSARN == "" {
+	if r.Spec.FIPS == rosacontrolplanev1.FIPSEnabled && r.Spec.EtcdEncryptionKMSARN == "" {
 		return field.Invalid(field.NewPath("spec.etcdEncryptionKMSARN"), r.Spec.EtcdEncryptionKMSARN,
 			"etcdEncryptionKMSARN is required when fips is Enabled. Create a KMS key, tag it with 'red-hat:true', and provide the ARN.")
 	}

@@ -71,17 +71,15 @@ const (
 	Nightly ChannelGroupType = "nightly"
 )
 
-// State represents a binary enabled/disabled state for feature flags.
-// This type provides a reusable pattern for boolean-like configuration options
-// across the ROSA control plane, ensuring consistency in how features are toggled.
-type State string
+// FIPSState represents the FIPS mode for the ROSA Control Plane.
+type FIPSState string
 
 const (
-	// Enabled indicates the feature is enabled
-	Enabled State = "Enabled"
+	// FIPSEnabled indicates FIPS is enabled
+	FIPSEnabled FIPSState = "Enabled"
 
-	// Disabled indicates the feature is disabled
-	Disabled State = "Disabled"
+	// FIPSDisabled indicates FIPS is disabled
+	FIPSDisabled FIPSState = "Disabled"
 )
 
 // AutoNodeMode specifies the AutoNode mode for the ROSA Control Plane.
@@ -156,7 +154,7 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// +kubebuilder:default=Disabled
 	// +kubebuilder:validation:Enum=Enabled;Disabled
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="fips is immutable"
-	FIPS State `json:"fips,omitempty"`
+	FIPS FIPSState `json:"fips,omitempty"`
 
 	// VersionGate requires acknowledgment when upgrading ROSA-HCP y-stream versions (e.g., from 4.15 to 4.16).
 	// Default is WaitForAcknowledge.

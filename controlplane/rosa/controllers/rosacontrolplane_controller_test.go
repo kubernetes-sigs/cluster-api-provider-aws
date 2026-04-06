@@ -809,7 +809,7 @@ func TestBuildOCMClusterSpec(t *testing.T) {
 			RosaClusterName:   "test-cluster",
 			Region:            "us-west-2",
 			Version:           "4.14.5",
-			FIPS:              rosacontrolplanev1.Enabled, // FIPS enabled
+			FIPS:              rosacontrolplanev1.FIPSEnabled, // FIPS enabled
 			Subnets:           []string{"subnet-1", "subnet-2"},
 			AvailabilityZones: []string{"us-west-2a"},
 			DefaultMachinePoolSpec: rosacontrolplanev1.DefaultMachinePoolSpec{
@@ -832,7 +832,7 @@ func TestBuildOCMClusterSpec(t *testing.T) {
 			RosaClusterName:   "test-cluster-no-fips",
 			Region:            "us-east-1",
 			Version:           "4.14.5",
-			FIPS:              rosacontrolplanev1.Disabled, // FIPS explicitly disabled
+			FIPS:              rosacontrolplanev1.FIPSDisabled, // FIPS explicitly disabled
 			Subnets:           []string{"subnet-1", "subnet-2"},
 			AvailabilityZones: []string{"us-east-1a"},
 			DefaultMachinePoolSpec: rosacontrolplanev1.DefaultMachinePoolSpec{
