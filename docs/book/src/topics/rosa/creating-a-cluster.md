@@ -2,29 +2,32 @@
 
 ## Prerequisites
 
-1. Create a management cluster using the [Quick Start Guide.](https://cluster-api-aws.sigs.k8s.io/quick-start) 
+1. Install the required tools and set up the prerequisite infrastructure using the [ROSA Setup guide](https://docs.aws.amazon.com/rosa/latest/userguide/set-up.html).
 
 
-2. Install the required tools and set up the prerequisite infrastructure using the [ROSA Setup guide](https://docs.aws.amazon.com/rosa/latest/userguide/set-up.html).
-   
-Once these steps are complete, you are ready to create a ROSA HCP cluster.
+2. Create a management cluster using the [Quick Start Guide.](https://cluster-api-aws.sigs.k8s.io/quick-start)
 
+
+## IAM Role Configuration
+
+Configure the IAM role authentication for the CAPA controller following the directions [here](specify-management-iam-role.md).
 
 ## Authentication
-The CAPA controller requires service account credentials to provision ROSA HCP clusters.  
+
+The CAPA controller requires service account credentials to provision ROSA HCP clusters.
+
 **Note:** If you already have a service account, you can skip these steps.
+
 1. Create a service account by visiting [https://console.redhat.com/iam/service-accounts](https://console.redhat.com/iam/service-accounts).
-
-
-2.   For every newly created service account, make sure to activate the account using the [ROSA command line tool](https://github.com/openshift/rosa). 
-     First, log in using your newly created service account:
-      ```shell
-      rosa login --client-id ... --client-secret ...
-      ```
-3.   Then activate your service account:
-      ```shell
-      rosa whoami
-      ```
+2. For every newly created service account, make sure to activate the account using the [ROSA command line tool](https://github.com/openshift/rosa).
+   First, log in using your newly created service account:
+    ```shell
+    rosa login --client-id ... --client-secret ...
+    ```
+3. Then activate your service account:
+    ```shell
+    rosa whoami
+    ```
 ## Permissions
 
 
@@ -45,6 +48,15 @@ The CAPA controller requires service account credentials to provision ROSA HCP c
 
 
 ## Creating the cluster
+
+1. Prepare the environment:
+    ```bash
+    export OPENSHIFT_VERSION="4.19.0"
+    export AWS_REGION="us-west-2"
+    export AWS_AVAILABILITY_ZONE="us-west-2a"
+    export AWS_ACCOUNT_ID="<account_id>"
+    export AWS_CREATOR_ARN="<user_arn>" # can be retrieved e.g. using `aws sts get-caller-identity`
+    ```
 
 1. Create the `ROSARoleConfig` and `ROSANetwork` resources.
 
