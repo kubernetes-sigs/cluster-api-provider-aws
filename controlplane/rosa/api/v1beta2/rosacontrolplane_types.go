@@ -134,11 +134,22 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// OpenShift semantic version, for example "4.14.5".
 	Version string `json:"version"`
 
-	// OpenShift version channel group, default is stable.
+	// OpenShift version channel group.
+	// When not specified, OCM will determine the appropriate channel group based on the cluster version.
+	// This field will be deprecated in a future release in favor of the Channel field.
 	//
+	// +optional
 	// +kubebuilder:validation:Enum=stable;eus;fast;candidate;nightly
-	// +kubebuilder:default=stable
-	ChannelGroup ChannelGroupType `json:"channelGroup"`
+	ChannelGroup ChannelGroupType `json:"channelGroup,omitempty"`
+
+	// Channel is the Y-stream OpenShift channel to use for this cluster, for example "stable-4.16" or "eus-4.16".
+	// This determines which Y-stream versions are available for upgrades.
+	// When not specified, OCM will determine the appropriate channel based on the cluster version.
+	// If Channel is set, ChannelGroup will be ignored.
+	//
+	// +optional
+	// +kubebuilder:validation:Pattern:=`^(stable|eus|fast|candidate|nightly)-[0-9]+\.[0-9]+$`
+	Channel string `json:"channel,omitempty"`
 
 	// FIPS configures FIPS-validated / Modules in Process cryptographic libraries.
 	// FIPS (Federal Information Processing Standard) 140-2 is a U.S. government standard
@@ -894,6 +905,9 @@ type RosaControlPlaneStatus struct {
 
 	// Available upgrades for the ROSA hosted control plane.
 	AvailableUpgrades []string `json:"availableUpgrades,omitempty"`
+
+	// Available channels for the ROSA hosted control plane.
+	AvailableChannels []string `json:"availableChannels,omitempty"`
 }
 
 // +kubebuilder:object:root=true
