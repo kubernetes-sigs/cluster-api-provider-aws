@@ -548,6 +548,25 @@ spec:
                 x-kubernetes-list-map-keys:
                 - name
                 x-kubernetes-list-type: map
+              fips:
+                default: Disabled
+                description: |-
+                  FIPS configures FIPS-validated / Modules in Process cryptographic libraries.
+                  FIPS (Federal Information Processing Standard) 140-2 is a U.S. government standard
+                  that validates cryptographic modules used to protect sensitive information.
+
+                  When set to "Enabled", the cluster will use FIPS 140-2 validated cryptographic modules.
+                  This setting is immutable and cannot be changed after cluster creation.
+
+                  IMPORTANT: When FIPS is enabled, etcdEncryptionKMSARN must be provided.
+                  The KMS key must be tagged with 'red-hat:true'.
+                enum:
+                - Enabled
+                - Disabled
+                type: string
+                x-kubernetes-validations:
+                - message: fips is immutable
+                  rule: self == oldSelf
               identityRef:
                 description: |-
                   IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
