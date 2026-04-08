@@ -5,7 +5,13 @@
 1. Install the required tools and set up the prerequisite infrastructure using the [ROSA Setup guide](https://docs.aws.amazon.com/rosa/latest/userguide/set-up.html).
 
 
-2. Create a management cluster using the [Quick Start Guide.](https://cluster-api-aws.sigs.k8s.io/quick-start)
+2. Export the following: 
+    ```shell
+    export EXP_ROSA=true
+    export EXP_MACHINE_POOL=true
+    ```
+   
+3. Create a management cluster using the [Quick Start Guide.](https://cluster-api-aws.sigs.k8s.io/quick-start)
 
 
 ## IAM Role Configuration
@@ -38,7 +44,7 @@ The CAPA controller requires service account credentials to provision ROSA HCP c
       --from-literal=ocmClientSecret='eyJhbGciOiJIUzI1NiIsI....' \
       --from-literal=ocmApiUrl='https://api.openshift.com'
     ```
-    Note: to consume the secret without the need to reference it from your `ROSAControlPlane`, name your secret `rosa-creds-secret` and create it in the CAPA manager namespace (usually `capa-system`)
+    **Note:** The secret must be created in the same namespace where your ROSA resources will be deployed. Alternatively, to consume the secret without the need to reference it from your `ROSAControlPlane`, name your secret `rosa-creds-secret` and create it in the CAPA manager namespace (usually `capa-system`)
     ```shell
     kubectl -n capa-system create secret generic rosa-creds-secret \
       --from-literal=ocmClientID='....' \
@@ -51,7 +57,7 @@ The CAPA controller requires service account credentials to provision ROSA HCP c
 
 1. Prepare the environment:
     ```bash
-    export OPENSHIFT_VERSION="4.19.0"
+    export OPENSHIFT_VERSION="4.20.11"  # check available versions with: rosa list versions --hosted-cp
     export AWS_REGION="us-west-2"
     export AWS_AVAILABILITY_ZONE="us-west-2a"
     export AWS_ACCOUNT_ID="<account_id>"
@@ -70,6 +76,8 @@ The CAPA controller requires service account credentials to provision ROSA HCP c
     - Public and private subnet pairs for each availability zone
     - Associated networking resources (internet gateway, NAT gateways, route tables)
 
+    **Note:** The `prefix` field has a maximum length of 4 characters.
+
     Save the following to a file `rosa-role-network.yaml`:
 
     ```yaml
@@ -80,7 +88,7 @@ The CAPA controller requires service account credentials to provision ROSA HCP c
     spec:
       accountRoleConfig:
         prefix: "rosa"
-        version: "4.19.0"
+        version: "4.20.11"
       operatorRoleConfig:
         prefix: "rosa"
       credentialsSecretRef:
@@ -187,7 +195,7 @@ The CAPA controller requires service account credentials to provision ROSA HCP c
 1. Save the following to a file `rosa-cluster.yaml`:
 
     ```yaml
-    apiVersion: cluster.x-k8s.io/v1beta1
+    apiVersion: cluster.x-k8s.io/v1beta2
     kind: Cluster
     metadata:
       name: "rosa-hcp-1"
@@ -196,11 +204,11 @@ The CAPA controller requires service account credentials to provision ROSA HCP c
         pods:
           cidrBlocks: ["192.168.0.0/16"]
       infrastructureRef:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+        apiGroup: infrastructure.cluster.x-k8s.io
         kind: ROSACluster
         name: "rosa-hcp-1"
       controlPlaneRef:
-        apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+        apiGroup: controlplane.cluster.x-k8s.io
         kind: ROSAControlPlane
         name: "rosa-hcp-1-control-plane"
     ---
@@ -221,7 +229,7 @@ The CAPA controller requires service account credentials to provision ROSA HCP c
       domainPrefix: rosa-hcp
       rosaRoleConfigRef:
         name: role-config  # reference to the ROSARoleConfig created above
-      version: "4.19.0"
+      version: "4.20.11"
       region: "us-west-2"
       rosaNetworkRef:
         name: "rosa-vpc" # reference to the ROSANetwork created above
@@ -302,7 +310,7 @@ The CAPA controller requires service account credentials to provision ROSA HCP c
 1. To add an additional `ROSAMachinePool`, save the following to a file `rosa-machinepool-extra.yaml`:
 
     ```yaml
-    apiVersion: cluster.x-k8s.io/v1beta1
+    apiVersion: cluster.x-k8s.io/v1beta2
     kind: MachinePool
     metadata:
       name: "rosa-hcp-1-workers-extra"
@@ -315,7 +323,7 @@ The CAPA controller requires service account credentials to provision ROSA HCP c
           bootstrap:
             dataSecretName: ""
           infrastructureRef:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+            apiGroup: infrastructure.cluster.x-k8s.io
             kind: ROSAMachinePool
             name: "workers-extra"
     ---
@@ -325,7 +333,7 @@ The CAPA controller requires service account credentials to provision ROSA HCP c
       name: "workers-extra"
     spec:
       nodePoolName: "workers-extra"
-      version: "4.19.0"
+      version: "4.20.11"
       instanceType: "m5.xlarge"
       autoRepair: true
     ```

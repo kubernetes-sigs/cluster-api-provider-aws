@@ -60,7 +60,12 @@ When using a management cluster (OCP or ROSA-HCP) created using AWS credentials 
 
     aws iam attach-role-policy --role-name capa-manager-role \
       --policy-arn arn:aws:iam::aws:policy/AmazonVPCFullAccess
+
+    aws iam attach-role-policy --role-name capa-manager-role \
+      --policy-arn arn:aws:iam::aws:policy/IAMFullAccess
     ```
+
+    **Note:** The `IAMFullAccess` policy is required for the CAPA controller to create and manage the ROSA account roles, operator roles, and OIDC providers via the `ROSARoleConfig` resource.
 
 ## Annotate the Service Account
 
@@ -77,10 +82,20 @@ When using a management cluster (OCP or ROSA-HCP) created using AWS credentials 
       eks.amazonaws.com/role-arn=$APP_IAM_ROLE_ARN
     ```
 
-3. Restart the CAPA controller to pick up the new role:
+3. Remove the bootstrap AWS credentials from the CAPA controller so it uses the IAM role instead of static credentials. First, delete the secret:
 
     ```shell
-    kubectl rollout restart deployment capa-controller-manager -n capa-system
+    kubectl delete secret -n capa-system capa-manager-bootstrap-credentials
     ```
+
+    Then remove the credentials volume and volume mount from the deployment:
+
+    ```shell
+    kubectl patch deployment capa-controller-manager -n capa-system --type='json' \
+      -p='[{"op": "remove", "path": "/spec/template/spec/volumes/1"},
+           {"op": "remove", "path": "/spec/template/spec/containers/0/volumeMounts/1"}]'
+    ```
+
+    **Note:** The volume indices above (`/1`) assume the default deployment configuration. Verify the correct indices by inspecting the deployment if you have customized it.
 
 After this configuration, the CAPA controller will use the IAM role to manage AWS resources, and you can provision ROSA HCP clusters without storing AWS credentials in the management cluster.
