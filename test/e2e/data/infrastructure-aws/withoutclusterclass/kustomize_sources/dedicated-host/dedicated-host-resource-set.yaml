@@ -32,6 +32,8 @@ spec:
       instanceType: "${AWS_NODE_MACHINE_TYPE}"
       iamInstanceProfile: "nodes.cluster-api-provider-aws.sigs.k8s.io"
       sshKeyName: "${AWS_SSH_KEY_NAME}"
+      rootVolume:
+        size: 10
       hostID: "${HOST_ID}"
       hostAffinity: "${HOST_AFFINITY}"
 ---
