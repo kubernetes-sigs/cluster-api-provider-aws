@@ -138,8 +138,46 @@ func (w *AWSManagedMachinePool) validateLaunchTemplate(r *expinfrav1.AWSManagedM
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "DiskSize"), r.Spec.DiskSize, "DiskSize cannot be specified when LaunchTemplate is specified"))
 	}
 
-	if r.Spec.AWSLaunchTemplate.IamInstanceProfile != "" {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "AWSLaunchTemplate", "IamInstanceProfile"), r.Spec.AWSLaunchTemplate.IamInstanceProfile, "IAM instance profile in launch template is prohibited in EKS managed node group"))
+	lt := r.Spec.AWSLaunchTemplate
+	ltPath := field.NewPath("spec", "awsLaunchTemplate")
+
+	if lt.IamInstanceProfile != "" {
+		allErrs = append(allErrs, field.Invalid(ltPath.Child("iamInstanceProfile"), lt.IamInstanceProfile, "IAM instance profile in launch template is prohibited in EKS managed node group"))
+	}
+
+	// When using a BYO launch template (ID is set), versionNumber is required and
+	// CAPA-managed fields must not be specified.
+	if lt.ID != nil && *lt.ID != "" {
+		if lt.VersionNumber == nil {
+			allErrs = append(allErrs, field.Required(ltPath.Child("versionNumber"), "versionNumber is required when using a BYO launch template (id is set)"))
+		}
+		if lt.AMI.ID != nil || lt.AMI.EKSOptimizedLookupType != nil {
+			allErrs = append(allErrs, field.Forbidden(ltPath.Child("ami"), "ami cannot be specified with a BYO launch template (id is set)"))
+		}
+		if lt.InstanceType != "" {
+			allErrs = append(allErrs, field.Forbidden(ltPath.Child("instanceType"), "instanceType cannot be specified with a BYO launch template (id is set)"))
+		}
+		if lt.RootVolume != nil {
+			allErrs = append(allErrs, field.Forbidden(ltPath.Child("rootVolume"), "rootVolume cannot be specified with a BYO launch template (id is set)"))
+		}
+		if len(lt.NonRootVolumes) > 0 {
+			allErrs = append(allErrs, field.Forbidden(ltPath.Child("nonRootVolumes"), "nonRootVolumes cannot be specified with a BYO launch template (id is set)"))
+		}
+		if lt.SSHKeyName != nil {
+			allErrs = append(allErrs, field.Forbidden(ltPath.Child("sshKeyName"), "sshKeyName cannot be specified with a BYO launch template (id is set)"))
+		}
+		if lt.ImageLookupFormat != "" {
+			allErrs = append(allErrs, field.Forbidden(ltPath.Child("imageLookupFormat"), "imageLookupFormat cannot be specified with a BYO launch template (id is set)"))
+		}
+		if lt.ImageLookupOrg != "" {
+			allErrs = append(allErrs, field.Forbidden(ltPath.Child("imageLookupOrg"), "imageLookupOrg cannot be specified with a BYO launch template (id is set)"))
+		}
+		if lt.ImageLookupBaseOS != "" {
+			allErrs = append(allErrs, field.Forbidden(ltPath.Child("imageLookupBaseOS"), "imageLookupBaseOS cannot be specified with a BYO launch template (id is set)"))
+		}
+		if len(lt.AdditionalSecurityGroups) > 0 {
+			allErrs = append(allErrs, field.Forbidden(ltPath.Child("additionalSecurityGroups"), "additionalSecurityGroups cannot be specified with a BYO launch template (id is set)"))
+		}
 	}
 
 	return allErrs
@@ -278,8 +316,31 @@ func (w *AWSManagedMachinePool) validateImmutable(r *expinfrav1.AWSManagedMachin
 			field.Invalid(field.NewPath("spec", "AWSLaunchTemplate"), old.Spec.AWSLaunchTemplate, "field is immutable"),
 		)
 	}
-	if old.Spec.AWSLaunchTemplate != nil && r.Spec.AWSLaunchTemplate != nil {
-		appendErrorIfMutated(old.Spec.AWSLaunchTemplate.Name, r.Spec.AWSLaunchTemplate.Name, "awsLaunchTemplate.name")
+	allErrs = append(allErrs, w.validateLaunchTemplateImmutability(r, old)...)
+
+	return allErrs
+}
+
+// validateLaunchTemplateImmutability ensures that immutable fields within AWSLaunchTemplate
+// (ID and Name) are not modified after creation. VersionNumber is intentionally excluded
+// as it may be updated to roll out a new launch template version to the nodegroup.
+func (w *AWSManagedMachinePool) validateLaunchTemplateImmutability(r *expinfrav1.AWSManagedMachinePool, old *expinfrav1.AWSManagedMachinePool) field.ErrorList {
+	var allErrs field.ErrorList
+
+	oldLT := old.Spec.AWSLaunchTemplate
+	newLT := r.Spec.AWSLaunchTemplate
+
+	if oldLT == nil || newLT == nil {
+		return allErrs
+	}
+
+	ltPath := field.NewPath("spec", "awsLaunchTemplate")
+
+	if !reflect.DeepEqual(oldLT.ID, newLT.ID) {
+		allErrs = append(allErrs, field.Forbidden(ltPath.Child("id"), "id is immutable"))
+	}
+	if !reflect.DeepEqual(oldLT.Name, newLT.Name) {
+		allErrs = append(allErrs, field.Forbidden(ltPath.Child("name"), "name is immutable"))
 	}
 
 	return allErrs
