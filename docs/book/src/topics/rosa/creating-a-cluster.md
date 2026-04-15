@@ -13,11 +13,6 @@
    
 3. Create a management cluster using the [Quick Start Guide.](https://cluster-api-aws.sigs.k8s.io/quick-start)
 
-
-## IAM Role Configuration
-
-Configure the IAM role authentication for the CAPA controller following the directions [here](specify-management-iam-role.md).
-
 ## Authentication
 
 The CAPA controller requires service account credentials to provision ROSA HCP clusters.
@@ -34,17 +29,21 @@ The CAPA controller requires service account credentials to provision ROSA HCP c
     ```shell
     rosa whoami
     ```
+
 ## Permissions
 
 
 1. Create a new kubernetes secret with the service account credentials to be referenced later by the `ROSAControlPlane`
+
     ```shell
     kubectl create secret generic rosa-creds-secret \
       --from-literal=ocmClientID='....' \
       --from-literal=ocmClientSecret='eyJhbGciOiJIUzI1NiIsI....' \
       --from-literal=ocmApiUrl='https://api.openshift.com'
     ```
+
     **Note:** The secret must be created in the same namespace where your ROSA resources will be deployed. Alternatively, to consume the secret without the need to reference it from your `ROSAControlPlane`, name your secret `rosa-creds-secret` and create it in the CAPA manager namespace (usually `capa-system`)
+
     ```shell
     kubectl -n capa-system create secret generic rosa-creds-secret \
       --from-literal=ocmClientID='....' \
@@ -72,19 +71,22 @@ The CAPA controller requires service account credentials to provision ROSA HCP c
     - **OIDC provider**: A managed OpenID Connect provider used for operator role authentication
 
     The `ROSANetwork` automates the creation of the VPC networking infrastructure via an AWS CloudFormation stack, including:
+
     - A VPC with the specified CIDR block
     - Public and private subnet pairs for each availability zone
     - Associated networking resources (internet gateway, NAT gateways, route tables)
 
     **Note:** The `prefix` field has a maximum length of 4 characters.
 
-    Save the following to a file `rosa-role-network.yaml`:
+
+    Save the following to a file named `rosa-role-network.yaml`:
 
     ```yaml
     apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
     kind: ROSARoleConfig
     metadata:
       name: "role-config"
+      namespace: "capa-system"
     spec:
       accountRoleConfig:
         prefix: "rosa"
@@ -94,11 +96,11 @@ The CAPA controller requires service account credentials to provision ROSA HCP c
       credentialsSecretRef:
         name: rosa-creds-secret
       oidcProviderType: Managed
-    ---
     apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
     kind: ROSANetwork
     metadata:
       name: "rosa-vpc"
+      namespace: "capa-system"
     spec:
       region: "us-west-2"
       stackName: "rosa-hcp-net"
@@ -128,6 +130,7 @@ The CAPA controller requires service account credentials to provision ROSA HCP c
     kind: ROSARoleConfig
     metadata:
       name: "role-config"
+      namespace: "capa-system"
     spec:
       ...
     status:
@@ -171,6 +174,7 @@ The CAPA controller requires service account credentials to provision ROSA HCP c
     kind: ROSANetwork
     metadata:
       name: "rosa-vpc"
+      namespace: "capa-system"
     spec:
        ...
     status:
@@ -192,7 +196,24 @@ The CAPA controller requires service account credentials to provision ROSA HCP c
         publicSubnet: subnet-049fa2a528d896356
     ```
 
-1. Save the following to a file `rosa-cluster.yaml`:
+1. Save the following to a file named `aws-cluster-controller-identity.yaml`
+
+    ```yaml
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+    kind: AWSClusterControllerIdentity
+    metadata:
+      name: "default"
+    spec:
+      allowedNamespaces: {}  # matches all namespaces
+    ```
+    Apply the manifest:
+
+    ```shell
+    kubectl apply -f aws-cluster-controller-identity.yaml
+    ```
+
+1. Save the following to a file named `rosa-cluster.yaml`:
+
 
     ```yaml
     apiVersion: cluster.x-k8s.io/v1beta2
@@ -211,13 +232,11 @@ The CAPA controller requires service account credentials to provision ROSA HCP c
         apiGroup: controlplane.cluster.x-k8s.io
         kind: ROSAControlPlane
         name: "rosa-hcp-1-control-plane"
-    ---
     apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
     kind: ROSACluster
     metadata:
       name: "rosa-hcp-1"
     spec: {}
-    ---
     apiVersion: controlplane.cluster.x-k8s.io/v1beta2
     kind: ROSAControlPlane
     metadata:
@@ -246,42 +265,15 @@ The CAPA controller requires service account credentials to provision ROSA HCP c
         env: "demo"
     ```
 
+
+
     Apply the manifest:
 
     ```shell
     kubectl apply -f rosa-cluster.yaml
     ```
 
-1. Provide an AWS identity reference by adding an `identityRef` to the `ROSAControlPlane` spec:
 
-    ```yaml
-    apiVersion: controlplane.cluster.x-k8s.io/v1beta2
-    kind: ROSAControlPlane
-    metadata:
-      name: "rosa-hcp-1-control-plane"
-    spec:
-      identityRef:
-        kind: <IdentityType>
-        name: <IdentityName>
-    ...
-    ```
-
-    Otherwise, make sure the following `AWSClusterControllerIdentity` singleton exists in your management cluster. Save it to a file and apply it:
-
-    ```yaml
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
-    kind: AWSClusterControllerIdentity
-    metadata:
-      name: "default"
-    spec:
-      allowedNamespaces: {}  # matches all namespaces
-    ```
-
-    ```shell
-    kubectl apply -f <filename>.yaml
-    ```
-
-    see [Multi-tenancy](../multitenancy.md) for more details
 
 1. Check the `ROSAControlPlane` status:
 
@@ -326,7 +318,6 @@ The CAPA controller requires service account credentials to provision ROSA HCP c
             apiGroup: infrastructure.cluster.x-k8s.io
             kind: ROSAMachinePool
             name: "workers-extra"
-    ---
     apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
     kind: ROSAMachinePool
     metadata:
