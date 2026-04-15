@@ -47,6 +47,10 @@ func (src *AWSMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	if restored.Spec.AWSLaunchTemplate.InstanceMetadataOptions != nil {
 		dst.Spec.AWSLaunchTemplate.InstanceMetadataOptions = restored.Spec.AWSLaunchTemplate.InstanceMetadataOptions
 	}
+	// ID is a v1beta2-only field; restore it from the annotation.
+	if restored.Spec.AWSLaunchTemplate.ID != nil {
+		dst.Spec.AWSLaunchTemplate.ID = restored.Spec.AWSLaunchTemplate.ID
+	}
 	if restored.Spec.AvailabilityZoneSubnetType != nil {
 		dst.Spec.AvailabilityZoneSubnetType = restored.Spec.AvailabilityZoneSubnetType
 	}
@@ -117,6 +121,10 @@ func (src *AWSManagedMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	if restored.Spec.AWSLaunchTemplate != nil {
 		if dst.Spec.AWSLaunchTemplate == nil {
 			dst.Spec.AWSLaunchTemplate = restored.Spec.AWSLaunchTemplate
+		}
+		// ID is a v1beta2-only field (BYO launch template); restore it from the annotation.
+		if restored.Spec.AWSLaunchTemplate.ID != nil {
+			dst.Spec.AWSLaunchTemplate.ID = restored.Spec.AWSLaunchTemplate.ID
 		}
 		dst.Spec.AWSLaunchTemplate.InstanceMetadataOptions = restored.Spec.AWSLaunchTemplate.InstanceMetadataOptions
 		dst.Spec.AWSLaunchTemplate.NonRootVolumes = restored.Spec.AWSLaunchTemplate.NonRootVolumes
@@ -233,6 +241,8 @@ func (r *AWSFargateProfileList) ConvertFrom(srcRaw conversion.Hub) error {
 }
 
 // Convert_v1beta2_AWSLaunchTemplate_To_v1beta1_AWSLaunchTemplate converts the v1beta2 AWSLaunchTemplate receiver to a v1beta1 AWSLaunchTemplate.
+// AWSLaunchTemplate.ID (BYO launch template) is a v1beta2-only field and is intentionally dropped on downgrade;
+// v1beta1 is deprecated and will not gain new fields.
 func Convert_v1beta2_AWSLaunchTemplate_To_v1beta1_AWSLaunchTemplate(in *expinfrav1.AWSLaunchTemplate, out *AWSLaunchTemplate, s apiconversion.Scope) error {
 	return autoConvert_v1beta2_AWSLaunchTemplate_To_v1beta1_AWSLaunchTemplate(in, out, s)
 }

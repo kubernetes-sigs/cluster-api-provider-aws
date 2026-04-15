@@ -413,13 +413,26 @@ func (s *ManagedMachinePoolScope) GetLaunchTemplate() *expinfrav1.AWSLaunchTempl
 	return s.ManagedMachinePool.Spec.AWSLaunchTemplate
 }
 
+// IsBYOLaunchTemplate returns true when the pool uses an existing (user-provided) launch template.
+func (s *ManagedMachinePoolScope) IsBYOLaunchTemplate() bool {
+	lt := s.ManagedMachinePool.Spec.AWSLaunchTemplate
+	return lt != nil && lt.ID != nil && *lt.ID != ""
+}
+
 // GetMachinePool returns the machine pool.
 func (s *ManagedMachinePoolScope) GetMachinePool() *clusterv1.MachinePool {
 	return s.MachinePool
 }
 
 // LaunchTemplateName returns the launch template name.
+// When using a BYO launch template with a user-provided name, it returns that name
+// to prevent drift between user-provided and derived names.
 func (s *ManagedMachinePoolScope) LaunchTemplateName() string {
+	if s.IsBYOLaunchTemplate() {
+		if name := s.ManagedMachinePool.Spec.AWSLaunchTemplate.Name; name != "" {
+			return name
+		}
+	}
 	return fmt.Sprintf("%s-%s", s.ControlPlane.Name, s.ManagedMachinePool.Name)
 }
 

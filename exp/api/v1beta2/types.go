@@ -61,7 +61,16 @@ type BlockDeviceMapping struct {
 
 // AWSLaunchTemplate defines the desired state of AWSLaunchTemplate.
 type AWSLaunchTemplate struct {
+	// ID is the ID of an existing launch template (e.g. lt-xxxx). When set, CAPA will
+	// not create or manage the launch template and will use the referenced one directly.
+	// +optional
+	// +immutable
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="ID is immutable"
+	ID *string `json:"id,omitempty"`
+
 	// The name of the launch template.
+	// +immutable
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Name is immutable once set"
 	Name string `json:"name,omitempty"`
 
 	// The name or the Amazon Resource Name (ARN) of the instance profile associated

@@ -27,6 +27,8 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/eks"
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
@@ -42,21 +44,22 @@ import (
 
 // EKS related constants.
 const (
-	EKSManagedPoolFlavor                              = "eks-managedmachinepool"
-	EKSControlPlaneOnlyFlavor                         = "eks-control-plane-only"
-	EKSControlPlaneOnlyWithAddonFlavor                = "eks-control-plane-only-withaddon"
-	EKSMachineDeployOnlyFlavor                        = "eks-machine-deployment-only"
-	EKSManagedMachinePoolOnlyFlavor                   = "eks-managed-machinepool-only"
-	EKSManagedMachinePoolWithLaunchTemplateOnlyFlavor = "eks-managed-machinepool-with-launch-template-only"
-	EKSMachinePoolOnlyFlavor                          = "eks-machinepool-only"
-	EKSIPv6ClusterFlavor                              = "eks-ipv6-cluster"
-	EKSUpgradePolicyFlavor                            = "eks-upgrade-policy"
-	EKSControlPlaneOnlyLegacyFlavor                   = "eks-control-plane-only-legacy"
-	EKSClusterClassFlavor                             = "eks-clusterclass"
-	EKSAuthAPIAndConfigMapFlavor                      = "eks-auth-api-and-config-map"
-	EKSAuthBootstrapDisabledFlavor                    = "eks-auth-bootstrap-disabled"
-	EKSControlPlaneOnlyWithAccessEntriesFlavor        = "eks-control-plane-only-with-accessentries"
-	EKSNodeadmClusterClassFlavor                      = "eks-nodeadm-clusterclass"
+	EKSManagedPoolFlavor                                 = "eks-managedmachinepool"
+	EKSControlPlaneOnlyFlavor                            = "eks-control-plane-only"
+	EKSControlPlaneOnlyWithAddonFlavor                   = "eks-control-plane-only-withaddon"
+	EKSMachineDeployOnlyFlavor                           = "eks-machine-deployment-only"
+	EKSManagedMachinePoolOnlyFlavor                      = "eks-managed-machinepool-only"
+	EKSManagedMachinePoolWithLaunchTemplateOnlyFlavor    = "eks-managed-machinepool-with-launch-template-only"
+	EKSManagedMachinePoolWithBYOLaunchTemplateOnlyFlavor = "eks-managed-machinepool-with-byo-launch-template-only"
+	EKSMachinePoolOnlyFlavor                             = "eks-machinepool-only"
+	EKSIPv6ClusterFlavor                                 = "eks-ipv6-cluster"
+	EKSUpgradePolicyFlavor                               = "eks-upgrade-policy"
+	EKSControlPlaneOnlyLegacyFlavor                      = "eks-control-plane-only-legacy"
+	EKSClusterClassFlavor                                = "eks-clusterclass"
+	EKSAuthAPIAndConfigMapFlavor                         = "eks-auth-api-and-config-map"
+	EKSAuthBootstrapDisabledFlavor                       = "eks-auth-bootstrap-disabled"
+	EKSControlPlaneOnlyWithAccessEntriesFlavor           = "eks-control-plane-only-with-accessentries"
+	EKSNodeadmClusterClassFlavor                         = "eks-nodeadm-clusterclass"
 )
 
 const (
@@ -76,6 +79,10 @@ func getEKSNodegroupName(namespace, clusterName string) string {
 
 func getEKSNodegroupWithLaunchTemplateName(namespace, clusterName string) string {
 	return fmt.Sprintf("%s_%s-pool-lt-0", namespace, clusterName)
+}
+
+func getEKSNodegroupWithBYOLaunchTemplateName(namespace, clusterName string) string {
+	return fmt.Sprintf("%s_%s-pool-byo-lt-0", namespace, clusterName)
 }
 
 func getControlPlaneName(clusterName string) string {
@@ -331,4 +338,66 @@ func verifyAccessEntries(ctx context.Context, eksClusterName string, expectedEnt
 			Expect(expectedPolicies).To(BeEmpty(), "not all expected access policies were found")
 		}
 	}
+}
+
+// BYOLaunchTemplate holds the ID and version of a launch template created for BYO tests.
+type BYOLaunchTemplate struct {
+	ID      string
+	Version int64
+}
+
+// CreateBYOLaunchTemplate creates a minimal EC2 launch template for use in BYO nodegroup tests.
+// The template has no instance type or AMI so that EKS can resolve the defaults for the nodegroup.
+// Callers must call DeleteBYOLaunchTemplate when done.
+func CreateBYOLaunchTemplate(ctx context.Context, name string, sess *aws.Config) BYOLaunchTemplate {
+	ec2Client := ec2.NewFromConfig(*sess)
+	out, err := ec2Client.CreateLaunchTemplate(ctx, &ec2.CreateLaunchTemplateInput{
+		LaunchTemplateName: aws.String(name),
+		LaunchTemplateData: &ec2types.RequestLaunchTemplateData{
+			// Minimal data — EKS will supply instance type and AMI from the nodegroup spec.
+			MetadataOptions: &ec2types.LaunchTemplateInstanceMetadataOptionsRequest{
+				HttpTokens: ec2types.LaunchTemplateHttpTokensStateRequired,
+			},
+		},
+	})
+	Expect(err).NotTo(HaveOccurred(), "failed to create BYO launch template")
+	Expect(out.LaunchTemplate).NotTo(BeNil())
+	return BYOLaunchTemplate{
+		ID:      aws.ToString(out.LaunchTemplate.LaunchTemplateId),
+		Version: aws.ToInt64(out.LaunchTemplate.LatestVersionNumber),
+	}
+}
+
+// DeleteBYOLaunchTemplate deletes the EC2 launch template created by CreateBYOLaunchTemplate.
+func DeleteBYOLaunchTemplate(ctx context.Context, id string, sess *aws.Config) {
+	ec2Client := ec2.NewFromConfig(*sess)
+	_, err := ec2Client.DeleteLaunchTemplate(ctx, &ec2.DeleteLaunchTemplateInput{
+		LaunchTemplateId: aws.String(id),
+	})
+	Expect(err).NotTo(HaveOccurred(), "failed to delete BYO launch template %s", id)
+}
+
+// verifyManagedNodeGroupUsesBYOLaunchTemplate asserts that the given nodegroup is ACTIVE and that
+// its launch template ID matches the expected BYO launch template ID.
+func verifyManagedNodeGroupUsesBYOLaunchTemplate(ctx context.Context, eksClusterName, nodeGroupName, expectedLaunchTemplateID string, sess *aws.Config) {
+	eksClient := eks.NewFromConfig(*sess)
+	var result *eks.DescribeNodegroupOutput
+	Eventually(func() error {
+		var err error
+		result, err = eksClient.DescribeNodegroup(ctx, &eks.DescribeNodegroupInput{
+			ClusterName:   aws.String(eksClusterName),
+			NodegroupName: aws.String(nodeGroupName),
+		})
+		if err != nil {
+			return fmt.Errorf("error describing nodegroup: %w", err)
+		}
+		if result.Nodegroup.Status != ekstypes.NodegroupStatusActive {
+			return fmt.Errorf("expected nodegroup status %q, got %q", ekstypes.NodegroupStatusActive, result.Nodegroup.Status)
+		}
+		return nil
+	}, clientRequestTimeout, clientRequestCheckInterval).Should(Succeed(), "nodegroup did not become ACTIVE")
+
+	Expect(result.Nodegroup.LaunchTemplate).NotTo(BeNil(), "expected nodegroup to have a launch template")
+	Expect(aws.ToString(result.Nodegroup.LaunchTemplate.Id)).To(Equal(expectedLaunchTemplateID),
+		"nodegroup launch template ID does not match the BYO template ID")
 }
