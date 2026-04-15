@@ -208,6 +208,8 @@ type AWSManagedMachinePoolSpec struct {
 	// AWSLaunchTemplate specifies the launch template to use to create the managed node group.
 	// If AWSLaunchTemplate is specified, certain node group configuraions outside of launch template
 	// are prohibited (https://docs.aws.amazon.com/eks/latest/userguide/launch-templates.html).
+	// When AWSLaunchTemplate.ID is set, CAPA treats the template as BYO and does not create or
+	// delete the launch template.
 	// +optional
 	AWSLaunchTemplate *AWSLaunchTemplate `json:"awsLaunchTemplate,omitempty"`
 
