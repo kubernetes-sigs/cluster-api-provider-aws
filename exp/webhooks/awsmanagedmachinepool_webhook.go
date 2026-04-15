@@ -131,15 +131,20 @@ func (w *AWSManagedMachinePool) validateLaunchTemplate(r *expinfrav1.AWSManagedM
 		return allErrs
 	}
 
-	if r.Spec.InstanceType != nil {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "InstanceType"), r.Spec.InstanceType, "InstanceType cannot be specified when LaunchTemplate is specified"))
-	}
-	if r.Spec.DiskSize != nil {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "DiskSize"), r.Spec.DiskSize, "DiskSize cannot be specified when LaunchTemplate is specified"))
-	}
-
 	lt := r.Spec.AWSLaunchTemplate
 	ltPath := field.NewPath("spec", "awsLaunchTemplate")
+	isBYO := lt.ID != nil && *lt.ID != ""
+
+	// For CAPA-managed LTs (no id), spec.instanceType is forbidden because the instance type
+	// must be configured inside the launch template itself. For BYO LTs (id is set), the AWS
+	// CreateNodegroup API allows InstanceTypes to be specified alongside the launch template
+	// when the launch template itself does not specify an instance type.
+	if r.Spec.InstanceType != nil && !isBYO {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "instanceType"), r.Spec.InstanceType, "instanceType cannot be specified with a CAPA-managed launch template; set spec.awsLaunchTemplate.instanceType instead"))
+	}
+	if r.Spec.DiskSize != nil {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "diskSize"), r.Spec.DiskSize, "diskSize cannot be specified when LaunchTemplate is specified"))
+	}
 
 	if lt.IamInstanceProfile != "" {
 		allErrs = append(allErrs, field.Invalid(ltPath.Child("iamInstanceProfile"), lt.IamInstanceProfile, "IAM instance profile in launch template is prohibited in EKS managed node group"))
@@ -147,7 +152,7 @@ func (w *AWSManagedMachinePool) validateLaunchTemplate(r *expinfrav1.AWSManagedM
 
 	// When using a BYO launch template (ID is set), versionNumber is required and
 	// CAPA-managed fields must not be specified.
-	if lt.ID != nil && *lt.ID != "" {
+	if isBYO {
 		if lt.VersionNumber == nil {
 			allErrs = append(allErrs, field.Required(ltPath.Child("versionNumber"), "versionNumber is required when using a BYO launch template (id is set)"))
 		}
@@ -177,6 +182,11 @@ func (w *AWSManagedMachinePool) validateLaunchTemplate(r *expinfrav1.AWSManagedM
 		}
 		if len(lt.AdditionalSecurityGroups) > 0 {
 			allErrs = append(allErrs, field.Forbidden(ltPath.Child("additionalSecurityGroups"), "additionalSecurityGroups cannot be specified with a BYO launch template (id is set)"))
+		}
+		// amiType is silently ignored at the service layer for BYO LTs; the AMI type is
+		// determined entirely by the referenced launch template.
+		if r.Spec.AMIType != nil {
+			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "amiType"), "amiType cannot be specified with a BYO launch template; the AMI type is determined by the launch template"))
 		}
 	}
 

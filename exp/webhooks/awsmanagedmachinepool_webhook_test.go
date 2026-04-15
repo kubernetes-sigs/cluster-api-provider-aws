@@ -197,11 +197,38 @@ func TestAWSManagedMachinePoolValidateCreate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "BYO launch template with instanceType is rejected",
+			name: "BYO launch template with spec.instanceType is accepted",
 			pool: &expinfrav1.AWSManagedMachinePool{
 				Spec: expinfrav1.AWSManagedMachinePoolSpec{
 					EKSNodegroupName: "eks-node-group-byo",
 					InstanceType:     aws.String("m5.large"),
+					AWSLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
+						ID:            aws.String("lt-12345"),
+						VersionNumber: aws.Int64(1),
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "CAPA-managed launch template with spec.instanceType is rejected",
+			pool: &expinfrav1.AWSManagedMachinePool{
+				Spec: expinfrav1.AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group",
+					InstanceType:     aws.String("m5.large"),
+					AWSLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
+						Name: "my-lt",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "BYO launch template with amiType is rejected",
+			pool: &expinfrav1.AWSManagedMachinePool{
+				Spec: expinfrav1.AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-byo",
+					AMIType:          ptr.To(expinfrav1.Al2023x86_64),
 					AWSLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
 						ID:            aws.String("lt-12345"),
 						VersionNumber: aws.Int64(1),
