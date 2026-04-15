@@ -233,7 +233,9 @@ func (s *NodegroupService) createNodegroup(ctx context.Context) (*ekstypes.Nodeg
 	if managedPool.DiskSize != nil && !useLaunchTemplate {
 		input.DiskSize = managedPool.DiskSize
 	}
-	if managedPool.InstanceType != nil && !useLaunchTemplate {
+	// InstanceTypes may be specified without a launch template, or alongside a BYO launch
+	// template when the launch template itself does not specify an instance type.
+	if managedPool.InstanceType != nil && (!useLaunchTemplate || isBYO) {
 		input.InstanceTypes = []string{aws.ToString(managedPool.InstanceType)}
 	}
 	if len(managedPool.Taints) > 0 {
