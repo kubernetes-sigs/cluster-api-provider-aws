@@ -13,6 +13,12 @@
    
 3. Create a management cluster using the [Quick Start Guide.](https://cluster-api-aws.sigs.k8s.io/quick-start)
 
+## IAM Role Configuration
+
+**Note:** This step is only required when using a ROSA HCP or OCP cluster as the management cluster.
+
+Configure the IAM role authentication for the CAPA controller following the directions [here](specify-management-iam-role.md).
+
 ## Authentication
 
 The CAPA controller requires service account credentials to provision ROSA HCP clusters.
