@@ -186,7 +186,7 @@ require (
 	github.com/microcosm-cc/bluemonday v1.0.27 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
-	github.com/moby/spdystream v0.5.0 // indirect
+	github.com/moby/spdystream v0.5.1 // indirect
 	github.com/moby/sys/sequential v0.6.0 // indirect
 	github.com/moby/term v0.5.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
