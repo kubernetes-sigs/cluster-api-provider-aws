@@ -38,9 +38,9 @@ import (
 
 const (
 	metricAWSSubsystem       = "aws"
-	metricRequestCountKey    = "api_requests_total_v2"
-	metricRequestDurationKey = "api_request_duration_seconds_v2"
-	metricAPICallRetries     = "api_call_retries_v2"
+	metricRequestCountKey    = "api_requests_total"
+	metricRequestDurationKey = "api_request_duration_seconds"
+	metricAPICallRetries     = "api_call_retries"
 	metricServiceLabel       = "service"
 	metricRegionLabel        = "region"
 	metricOperationLabel     = "operation"
@@ -229,7 +229,7 @@ func getContext(ctx context.Context) *RequestData {
 
 // CaptureRequestMetrics will monitor and capture request metrics.
 func (r *RequestData) CaptureRequestMetrics() {
-	if !r.IsIncomplete() {
+	if r.IsIncomplete() {
 		return
 	}
 
