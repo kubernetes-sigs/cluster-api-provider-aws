@@ -65,18 +65,19 @@ func TestReconcileDelete(t *testing.T) {
 			name:         "eks with no Service load balancers",
 			clusterScope: createManageScope(t, "", ""),
 			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
-				m.GetResources(gomock.Any(), &rgapi.GetResourcesInput{
+				m.GetResourcesPages(gomock.Any(), &rgapi.GetResourcesInput{
 					TagFilters: []rgapitypes.TagFilter{
 						{
 							Key:    aws.String("kubernetes.io/cluster/eks-test-cluster"),
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
-					return &rgapi.GetResourcesOutput{
+				}, gomock.Any()).Do(func(_, _, y interface{}) {
+					funct := y.(func(output *rgapi.GetResourcesOutput))
+					funct(&rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{},
-					}, nil
-				})
+					})
+				}).Return(nil)
 			},
 			elbMocks:   func(m *mocks.MockELBAPIMockRecorder) {},
 			elbv2Mocks: func(m *mocks.MockELBV2APIMockRecorder) {},
@@ -87,18 +88,19 @@ func TestReconcileDelete(t *testing.T) {
 			name:         "eks with no Service load balancers and explicit opt-in",
 			clusterScope: createManageScope(t, "true", ""),
 			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
-				m.GetResources(gomock.Any(), &rgapi.GetResourcesInput{
+				m.GetResourcesPages(gomock.Any(), &rgapi.GetResourcesInput{
 					TagFilters: []rgapitypes.TagFilter{
 						{
 							Key:    aws.String("kubernetes.io/cluster/eks-test-cluster"),
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
-					return &rgapi.GetResourcesOutput{
+				}, gomock.Any()).Do(func(_, _, y interface{}) {
+					funct := y.(func(output *rgapi.GetResourcesOutput))
+					funct(&rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{},
-					}, nil
-				})
+					})
+				}).Return(nil)
 			},
 			elbMocks:   func(m *mocks.MockELBAPIMockRecorder) {},
 			elbv2Mocks: func(m *mocks.MockELBV2APIMockRecorder) {},
@@ -109,18 +111,19 @@ func TestReconcileDelete(t *testing.T) {
 			name:         "ec2 cluster with no Service load balancers",
 			clusterScope: createUnManageScope(t, "", ""),
 			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
-				m.GetResources(gomock.Any(), &rgapi.GetResourcesInput{
+				m.GetResourcesPages(gomock.Any(), &rgapi.GetResourcesInput{
 					TagFilters: []rgapitypes.TagFilter{
 						{
 							Key:    aws.String("kubernetes.io/cluster/cluster1"),
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
-					return &rgapi.GetResourcesOutput{
+				}, gomock.Any()).Do(func(_, _, y interface{}) {
+					funct := y.(func(output *rgapi.GetResourcesOutput))
+					funct(&rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{},
-					}, nil
-				})
+					})
+				}).Return(nil)
 			},
 			elbMocks:   func(m *mocks.MockELBAPIMockRecorder) {},
 			elbv2Mocks: func(m *mocks.MockELBV2APIMockRecorder) {},
@@ -131,15 +134,16 @@ func TestReconcileDelete(t *testing.T) {
 			name:         "eks with non-Service load balancer",
 			clusterScope: createManageScope(t, "", ""),
 			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
-				m.GetResources(gomock.Any(), &rgapi.GetResourcesInput{
+				m.GetResourcesPages(gomock.Any(), &rgapi.GetResourcesInput{
 					TagFilters: []rgapitypes.TagFilter{
 						{
 							Key:    aws.String("kubernetes.io/cluster/eks-test-cluster"),
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
-					return &rgapi.GetResourcesOutput{
+				}, gomock.Any()).Do(func(_, _, y interface{}) {
+					funct := y.(func(output *rgapi.GetResourcesOutput))
+					funct(&rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{
 							{
 								ResourceARN: aws.String("arn:aws:elasticloadbalancing:eu-west-2:1234567890:loadbalancer/aec24434cd2ce4630bd14a955413ee37"),
@@ -151,8 +155,8 @@ func TestReconcileDelete(t *testing.T) {
 								},
 							},
 						},
-					}, nil
-				})
+					})
+				}).Return(nil)
 			},
 			elbMocks:   func(m *mocks.MockELBAPIMockRecorder) {},
 			elbv2Mocks: func(m *mocks.MockELBV2APIMockRecorder) {},
@@ -163,15 +167,16 @@ func TestReconcileDelete(t *testing.T) {
 			name:         "ec2 cluster with non-Service load balancer",
 			clusterScope: createUnManageScope(t, "", ""),
 			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
-				m.GetResources(gomock.Any(), &rgapi.GetResourcesInput{
+				m.GetResourcesPages(gomock.Any(), &rgapi.GetResourcesInput{
 					TagFilters: []rgapitypes.TagFilter{
 						{
 							Key:    aws.String("kubernetes.io/cluster/cluster1"),
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
-					return &rgapi.GetResourcesOutput{
+				}, gomock.Any()).Do(func(_, _, y interface{}) {
+					funct := y.(func(output *rgapi.GetResourcesOutput))
+					funct(&rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{
 							{
 								ResourceARN: aws.String("arn:aws:elasticloadbalancing:eu-west-2:1234567890:loadbalancer/aec24434cd2ce4630bd14a955413ee37"),
@@ -183,8 +188,8 @@ func TestReconcileDelete(t *testing.T) {
 								},
 							},
 						},
-					}, nil
-				})
+					})
+				}).Return(nil)
 			},
 			elbMocks:   func(m *mocks.MockELBAPIMockRecorder) {},
 			elbv2Mocks: func(m *mocks.MockELBV2APIMockRecorder) {},
@@ -195,15 +200,16 @@ func TestReconcileDelete(t *testing.T) {
 			name:         "eks with ELB Service load balancer",
 			clusterScope: createManageScope(t, "", ""),
 			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
-				m.GetResources(gomock.Any(), &rgapi.GetResourcesInput{
+				m.GetResourcesPages(gomock.Any(), &rgapi.GetResourcesInput{
 					TagFilters: []rgapitypes.TagFilter{
 						{
 							Key:    aws.String("kubernetes.io/cluster/eks-test-cluster"),
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
-					return &rgapi.GetResourcesOutput{
+				}, gomock.Any()).Do(func(_, _, y interface{}) {
+					funct := y.(func(output *rgapi.GetResourcesOutput))
+					funct(&rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{
 							{
 								ResourceARN: aws.String("arn:aws:elasticloadbalancing:eu-west-2:1234567890:loadbalancer/aec24434cd2ce4630bd14a955413ee37"),
@@ -219,8 +225,8 @@ func TestReconcileDelete(t *testing.T) {
 								},
 							},
 						},
-					}, nil
-				})
+					})
+				}).Return(nil)
 			},
 			elbMocks: func(m *mocks.MockELBAPIMockRecorder) {
 				m.DeleteLoadBalancer(gomock.Any(), &elb.DeleteLoadBalancerInput{
@@ -235,15 +241,16 @@ func TestReconcileDelete(t *testing.T) {
 			name:         "ec2 cluster with ELB Service load balancer",
 			clusterScope: createUnManageScope(t, "", ""),
 			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
-				m.GetResources(gomock.Any(), &rgapi.GetResourcesInput{
+				m.GetResourcesPages(gomock.Any(), &rgapi.GetResourcesInput{
 					TagFilters: []rgapitypes.TagFilter{
 						{
 							Key:    aws.String("kubernetes.io/cluster/cluster1"),
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
-					return &rgapi.GetResourcesOutput{
+				}, gomock.Any()).Do(func(_, _, y interface{}) {
+					funct := y.(func(output *rgapi.GetResourcesOutput))
+					funct(&rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{
 							{
 								ResourceARN: aws.String("arn:aws:elasticloadbalancing:eu-west-2:1234567890:loadbalancer/aec24434cd2ce4630bd14a955413ee37"),
@@ -259,8 +266,8 @@ func TestReconcileDelete(t *testing.T) {
 								},
 							},
 						},
-					}, nil
-				})
+					})
+				}).Return(nil)
 			},
 			elbMocks: func(m *mocks.MockELBAPIMockRecorder) {
 				m.DeleteLoadBalancer(gomock.Any(), &elb.DeleteLoadBalancerInput{
@@ -275,15 +282,16 @@ func TestReconcileDelete(t *testing.T) {
 			name:         "eks with NLB Service load balancer",
 			clusterScope: createManageScope(t, "", ""),
 			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
-				m.GetResources(gomock.Any(), &rgapi.GetResourcesInput{
+				m.GetResourcesPages(gomock.Any(), &rgapi.GetResourcesInput{
 					TagFilters: []rgapitypes.TagFilter{
 						{
 							Key:    aws.String("kubernetes.io/cluster/eks-test-cluster"),
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
-					return &rgapi.GetResourcesOutput{
+				}, gomock.Any()).Do(func(_, _, y interface{}) {
+					funct := y.(func(output *rgapi.GetResourcesOutput))
+					funct(&rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{
 							{
 								ResourceARN: aws.String("arn:aws:elasticloadbalancing:eu-west-2:1234567890:loadbalancer/net/aec24434cd2ce4630bd14a955413ee37"),
@@ -299,8 +307,8 @@ func TestReconcileDelete(t *testing.T) {
 								},
 							},
 						},
-					}, nil
-				})
+					})
+				}).Return(nil)
 			},
 			elbMocks: func(m *mocks.MockELBAPIMockRecorder) {},
 			elbv2Mocks: func(m *mocks.MockELBV2APIMockRecorder) {
@@ -315,15 +323,16 @@ func TestReconcileDelete(t *testing.T) {
 			name:         "ec2 cluster with NLB Service load balancer",
 			clusterScope: createUnManageScope(t, "", ""),
 			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
-				m.GetResources(gomock.Any(), &rgapi.GetResourcesInput{
+				m.GetResourcesPages(gomock.Any(), &rgapi.GetResourcesInput{
 					TagFilters: []rgapitypes.TagFilter{
 						{
 							Key:    aws.String("kubernetes.io/cluster/cluster1"),
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
-					return &rgapi.GetResourcesOutput{
+				}, gomock.Any()).Do(func(_, _, y interface{}) {
+					funct := y.(func(output *rgapi.GetResourcesOutput))
+					funct(&rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{
 							{
 								ResourceARN: aws.String("arn:aws:elasticloadbalancing:eu-west-2:1234567890:loadbalancer/net/aec24434cd2ce4630bd14a955413ee37"),
@@ -339,8 +348,8 @@ func TestReconcileDelete(t *testing.T) {
 								},
 							},
 						},
-					}, nil
-				})
+					})
+				}).Return(nil)
 			},
 			elbMocks: func(m *mocks.MockELBAPIMockRecorder) {},
 			elbv2Mocks: func(m *mocks.MockELBV2APIMockRecorder) {
@@ -355,15 +364,16 @@ func TestReconcileDelete(t *testing.T) {
 			name:         "eks with ALB Service load balancer",
 			clusterScope: createManageScope(t, "", ""),
 			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
-				m.GetResources(gomock.Any(), &rgapi.GetResourcesInput{
+				m.GetResourcesPages(gomock.Any(), &rgapi.GetResourcesInput{
 					TagFilters: []rgapitypes.TagFilter{
 						{
 							Key:    aws.String("kubernetes.io/cluster/eks-test-cluster"),
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
-					return &rgapi.GetResourcesOutput{
+				}, gomock.Any()).Do(func(_, _, y interface{}) {
+					funct := y.(func(output *rgapi.GetResourcesOutput))
+					funct(&rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{
 							{
 								ResourceARN: aws.String("arn:aws:elasticloadbalancing:eu-west-2:1234567890:loadbalancer/app/aec24434cd2ce4630bd14a955413ee37"),
@@ -379,8 +389,8 @@ func TestReconcileDelete(t *testing.T) {
 								},
 							},
 						},
-					}, nil
-				})
+					})
+				}).Return(nil)
 			},
 			elbMocks: func(m *mocks.MockELBAPIMockRecorder) {},
 			elbv2Mocks: func(m *mocks.MockELBV2APIMockRecorder) {
@@ -395,15 +405,16 @@ func TestReconcileDelete(t *testing.T) {
 			name:         "eks with ALB Service load balancer",
 			clusterScope: createManageScope(t, "", ""),
 			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
-				m.GetResources(gomock.Any(), &rgapi.GetResourcesInput{
+				m.GetResourcesPages(gomock.Any(), &rgapi.GetResourcesInput{
 					TagFilters: []rgapitypes.TagFilter{
 						{
 							Key:    aws.String("kubernetes.io/cluster/eks-test-cluster"),
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
-					return &rgapi.GetResourcesOutput{
+				}, gomock.Any()).Do(func(_, _, y interface{}) {
+					funct := y.(func(output *rgapi.GetResourcesOutput))
+					funct(&rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{
 							{
 								ResourceARN: aws.String("arn:aws:elasticloadbalancing:eu-west-2:1234567890:loadbalancer/app/aec24434cd2ce4630bd14a955413ee37"),
@@ -419,8 +430,8 @@ func TestReconcileDelete(t *testing.T) {
 								},
 							},
 						},
-					}, nil
-				})
+					})
+				}).Return(nil)
 			},
 			elbMocks: func(m *mocks.MockELBAPIMockRecorder) {},
 			elbv2Mocks: func(m *mocks.MockELBV2APIMockRecorder) {
@@ -435,15 +446,16 @@ func TestReconcileDelete(t *testing.T) {
 			name:         "ec2 cluster with ALB Service load balancer",
 			clusterScope: createUnManageScope(t, "", ""),
 			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
-				m.GetResources(gomock.Any(), &rgapi.GetResourcesInput{
+				m.GetResourcesPages(gomock.Any(), &rgapi.GetResourcesInput{
 					TagFilters: []rgapitypes.TagFilter{
 						{
 							Key:    aws.String("kubernetes.io/cluster/cluster1"),
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
-					return &rgapi.GetResourcesOutput{
+				}, gomock.Any()).Do(func(_, _, y interface{}) {
+					funct := y.(func(output *rgapi.GetResourcesOutput))
+					funct(&rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{
 							{
 								ResourceARN: aws.String("arn:aws:elasticloadbalancing:eu-west-2:1234567890:loadbalancer/app/aec24434cd2ce4630bd14a955413ee37"),
@@ -459,8 +471,8 @@ func TestReconcileDelete(t *testing.T) {
 								},
 							},
 						},
-					}, nil
-				})
+					})
+				}).Return(nil)
 			},
 			elbMocks: func(m *mocks.MockELBAPIMockRecorder) {},
 			elbv2Mocks: func(m *mocks.MockELBV2APIMockRecorder) {
@@ -475,15 +487,16 @@ func TestReconcileDelete(t *testing.T) {
 			name:         "eks cluster with different resource types",
 			clusterScope: createManageScope(t, "", ""),
 			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
-				m.GetResources(gomock.Any(), &rgapi.GetResourcesInput{
+				m.GetResourcesPages(gomock.Any(), &rgapi.GetResourcesInput{
 					TagFilters: []rgapitypes.TagFilter{
 						{
 							Key:    aws.String("kubernetes.io/cluster/eks-test-cluster"),
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
-					return &rgapi.GetResourcesOutput{
+				}, gomock.Any()).Do(func(_, _, y interface{}) {
+					funct := y.(func(output *rgapi.GetResourcesOutput))
+					funct(&rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{
 							{
 								ResourceARN: aws.String("arn:aws:elasticloadbalancing:eu-west-2:1234567890:targetgroup/k8s-default-podinfo-2c868b281a/e979fe9bd6825433"),
@@ -525,8 +538,8 @@ func TestReconcileDelete(t *testing.T) {
 								},
 							},
 						},
-					}, nil
-				})
+					})
+				}).Return(nil)
 			},
 			elbMocks: func(m *mocks.MockELBAPIMockRecorder) {
 				m.DeleteLoadBalancer(gomock.Any(), &elb.DeleteLoadBalancerInput{
@@ -550,15 +563,16 @@ func TestReconcileDelete(t *testing.T) {
 			name:         "eks should ignore unhandled resources",
 			clusterScope: createManageScope(t, "", ""),
 			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
-				m.GetResources(gomock.Any(), &rgapi.GetResourcesInput{
+				m.GetResourcesPages(gomock.Any(), &rgapi.GetResourcesInput{
 					TagFilters: []rgapitypes.TagFilter{
 						{
 							Key:    aws.String("kubernetes.io/cluster/eks-test-cluster"),
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
-					return &rgapi.GetResourcesOutput{
+				}, gomock.Any()).Do(func(_, _, y interface{}) {
+					funct := y.(func(output *rgapi.GetResourcesOutput))
+					funct(&rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{
 							{
 								ResourceARN: aws.String("arn:aws:ec2:eu-west-2:217426147237:s3/somebucket"),
@@ -578,8 +592,8 @@ func TestReconcileDelete(t *testing.T) {
 								},
 							},
 						},
-					}, nil
-				})
+					})
+				}).Return(nil)
 			},
 			elbMocks:   func(m *mocks.MockELBAPIMockRecorder) {},
 			elbv2Mocks: func(m *mocks.MockELBV2APIMockRecorder) {},
@@ -590,15 +604,16 @@ func TestReconcileDelete(t *testing.T) {
 			name:         "eks with security group created by EKS",
 			clusterScope: createManageScope(t, "", ""),
 			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
-				m.GetResources(gomock.Any(), &rgapi.GetResourcesInput{
+				m.GetResourcesPages(gomock.Any(), &rgapi.GetResourcesInput{
 					TagFilters: []rgapitypes.TagFilter{
 						{
 							Key:    aws.String("kubernetes.io/cluster/eks-test-cluster"),
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
-					return &rgapi.GetResourcesOutput{
+				}, gomock.Any()).Do(func(_, _, y interface{}) {
+					funct := y.(func(output *rgapi.GetResourcesOutput))
+					funct(&rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{
 							{
 								ResourceARN: aws.String("arn:aws:ec2:eu-west-2:1234567890:security-group/sg-123456"),
@@ -618,8 +633,8 @@ func TestReconcileDelete(t *testing.T) {
 								},
 							},
 						},
-					}, nil
-				})
+					})
+				}).Return(nil)
 			},
 			elbMocks:   func(m *mocks.MockELBAPIMockRecorder) {},
 			elbv2Mocks: func(m *mocks.MockELBV2APIMockRecorder) {},
@@ -630,15 +645,16 @@ func TestReconcileDelete(t *testing.T) {
 			name:         "eks cluster with all clean-up funcs explicitly enabled",
 			clusterScope: createManageScope(t, "", "load-balancer,target-group,security-group"),
 			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
-				m.GetResources(gomock.Any(), &rgapi.GetResourcesInput{
+				m.GetResourcesPages(gomock.Any(), &rgapi.GetResourcesInput{
 					TagFilters: []rgapitypes.TagFilter{
 						{
 							Key:    aws.String("kubernetes.io/cluster/eks-test-cluster"),
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
-					return &rgapi.GetResourcesOutput{
+				}, gomock.Any()).Do(func(_, _, y interface{}) {
+					funct := y.(func(output *rgapi.GetResourcesOutput))
+					funct(&rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{
 							{
 								ResourceARN: aws.String("arn:aws:elasticloadbalancing:eu-west-2:1234567890:targetgroup/k8s-default-podinfo-2c868b281a/e979fe9bd6825433"),
@@ -680,8 +696,8 @@ func TestReconcileDelete(t *testing.T) {
 								},
 							},
 						},
-					}, nil
-				})
+					})
+				}).Return(nil)
 			},
 			elbMocks: func(m *mocks.MockELBAPIMockRecorder) {
 				m.DeleteLoadBalancer(gomock.Any(), &elb.DeleteLoadBalancerInput{
@@ -705,15 +721,16 @@ func TestReconcileDelete(t *testing.T) {
 			name:         "eks cluster with skipped security groups clean-up func",
 			clusterScope: createManageScope(t, "", "load-balancer,target-group"),
 			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
-				m.GetResources(gomock.Any(), &rgapi.GetResourcesInput{
+				m.GetResourcesPages(gomock.Any(), &rgapi.GetResourcesInput{
 					TagFilters: []rgapitypes.TagFilter{
 						{
 							Key:    aws.String("kubernetes.io/cluster/eks-test-cluster"),
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
-					return &rgapi.GetResourcesOutput{
+				}, gomock.Any()).Do(func(_, _, y interface{}) {
+					funct := y.(func(output *rgapi.GetResourcesOutput))
+					funct(&rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{
 							{
 								ResourceARN: aws.String("arn:aws:elasticloadbalancing:eu-west-2:1234567890:targetgroup/k8s-default-podinfo-2c868b281a/e979fe9bd6825433"),
@@ -755,8 +772,8 @@ func TestReconcileDelete(t *testing.T) {
 								},
 							},
 						},
-					}, nil
-				})
+					})
+				}).Return(nil)
 			},
 			elbMocks: func(m *mocks.MockELBAPIMockRecorder) {
 				m.DeleteLoadBalancer(gomock.Any(), &elb.DeleteLoadBalancerInput{
@@ -775,15 +792,17 @@ func TestReconcileDelete(t *testing.T) {
 			name:         "eks cluster with skipped security and target groups clean-up funcs",
 			clusterScope: createManageScope(t, "", "load-balancer"),
 			rgAPIMocks: func(m *mocks.MockResourceGroupsTaggingAPIAPIMockRecorder) {
-				m.GetResources(gomock.Any(), &rgapi.GetResourcesInput{
+				m.GetResourcesPages(gomock.Any(), &rgapi.GetResourcesInput{
 					TagFilters: []rgapitypes.TagFilter{
 						{
 							Key:    aws.String("kubernetes.io/cluster/eks-test-cluster"),
 							Values: []string{"owned"},
 						},
 					},
-				}).DoAndReturn(func(awsCtx context.Context, input *rgapi.GetResourcesInput, opts ...rgapi.Options) (*rgapi.GetResourcesOutput, error) {
-					return &rgapi.GetResourcesOutput{
+				}, gomock.Any()).Do(func(_, _, y interface{}) {
+					funct := y.(func(output *rgapi.GetResourcesOutput))
+					// Make multiple calls to simulate response paging
+					funct(&rgapi.GetResourcesOutput{
 						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{
 							{
 								ResourceARN: aws.String("arn:aws:elasticloadbalancing:eu-west-2:1234567890:targetgroup/k8s-default-podinfo-2c868b281a/e979fe9bd6825433"),
@@ -798,6 +817,11 @@ func TestReconcileDelete(t *testing.T) {
 									},
 								},
 							},
+						},
+					})
+
+					funct(&rgapi.GetResourcesOutput{
+						ResourceTagMappingList: []rgapitypes.ResourceTagMapping{
 							{
 								ResourceARN: aws.String("arn:aws:elasticloadbalancing:eu-west-2:1234567890:loadbalancer/aec24434cd2ce4630bd14a955413ee37"),
 								Tags: []rgapitypes.Tag{
@@ -825,8 +849,8 @@ func TestReconcileDelete(t *testing.T) {
 								},
 							},
 						},
-					}, nil
-				})
+					})
+				}).Return(nil)
 			},
 			elbMocks: func(m *mocks.MockELBAPIMockRecorder) {
 				m.DeleteLoadBalancer(gomock.Any(), &elb.DeleteLoadBalancerInput{
