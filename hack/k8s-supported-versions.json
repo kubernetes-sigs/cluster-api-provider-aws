@@ -1,5 +1,106 @@
 {
-  "lastUpdated": "",
-  "supported_kubernetes_series": [],
-  "latest_releases": []
+  "lastUpdated": "2026-03-16T08:25:25Z",
+  "supported_kubernetes_series": [
+    "v1.35",
+    "v1.34",
+    "v1.33"
+  ],
+  "latest_releases": [
+    {
+      "version": "v1.35.2",
+      "release_date": "2026-02-27T00:09:07Z",
+      
+      "series": "v1.35"
+    },
+    {
+      "version": "v1.35.1",
+      "release_date": "2026-02-10T19:03:38Z",
+      "series": "v1.35"
+    },
+    {
+      "version": "v1.35.0",
+      "release_date": "2025-12-17T20:01:55Z",
+      "series": "v1.35"
+    },
+    {
+      "version": "v1.34.5",
+      "release_date": "2026-02-26T23:56:38Z",
+      "series": "v1.34"
+    },
+    {
+      "version": "v1.34.4",
+      "release_date": "2026-02-10T19:04:56Z",
+      "series": "v1.34"
+    },
+    {
+      "version": "v1.34.3",
+      "release_date": "2025-12-10T01:13:53Z",
+      "series": "v1.34"
+    },
+    {
+      "version": "v1.34.2",
+      "release_date": "2025-11-12T09:26:08Z",
+      "series": "v1.34"
+    },
+    {
+      "version": "v1.34.1",
+      "release_date": "2025-09-10T03:28:09Z",
+      "series": "v1.34"
+    },
+    {
+      "version": "v1.34.0",
+      "release_date": "2025-08-27T17:19:17Z",
+      "series": "v1.34"
+    },
+    {
+      "version": "v1.33.9",
+      "release_date": "2026-02-26T23:57:29Z",
+      "series": "v1.33"
+    },
+    {
+      "version": "v1.33.8",
+      "release_date": "2026-02-10T19:05:31Z",
+      "series": "v1.33"
+    },
+    {
+      "version": "v1.33.7",
+      "release_date": "2025-12-10T01:15:27Z",
+      "series": "v1.33"
+    },
+    {
+      "version": "v1.33.6",
+      "release_date": "2025-11-12T09:48:48Z",
+      "series": "v1.33"
+    },
+    {
+      "version": "v1.33.5",
+      "release_date": "2025-09-10T01:38:50Z",
+      "series": "v1.33"
+    },
+    {
+      "version": "v1.33.4",
+      "release_date": "2025-08-13T19:46:26Z",
+      "series": "v1.33"
+    },
+    {
+      "version": "v1.33.3",
+      "release_date": "2025-07-15T22:19:31Z",
+      "series": "v1.33"
+    },
+    {
+      "version": "v1.33.2",
+      "release_date": "2025-06-18T17:54:54Z",
+      "series": "v1.33"
+    },
+    {
+      "version": "v1.33.1",
+      "release_date": "2025-05-15T17:49:01Z",
+      "series": "v1.33"
+    },
+    {
+      "version": "v1.33.0",
+      "release_date": "2025-04-23T17:44:49Z",
+      "series": "v1.33"
+    }
+  ]
 }
