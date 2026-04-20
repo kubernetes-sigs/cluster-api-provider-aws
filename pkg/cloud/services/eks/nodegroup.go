@@ -94,23 +94,35 @@ func (s *NodegroupService) describeASGs(ctx context.Context, ng *ekstypes.Nodegr
 }
 
 func (s *NodegroupService) scalingConfig() *ekstypes.NodegroupScalingConfig {
-	var replicas int32 = 1
+	cfg := ekstypes.NodegroupScalingConfig{}
+
+	scaling := s.scope.ManagedMachinePool.Spec.Scaling
+	if scaling != nil {
+		if scaling.MaxSize != nil {
+			cfg.MaxSize = aws.Int32(*scaling.MaxSize)
+		}
+		if scaling.MinSize != nil {
+			cfg.MinSize = aws.Int32(*scaling.MinSize)
+		}
+	}
+
+	if annotations.ReplicasManagedByExternalAutoscaler(s.scope.MachinePool) {
+		return &cfg
+	}
+
+	replicas := int32(1)
 	if s.scope.MachinePool.Spec.Replicas != nil {
 		replicas = *s.scope.MachinePool.Spec.Replicas
 	}
-	cfg := ekstypes.NodegroupScalingConfig{
-		DesiredSize: aws.Int32(replicas),
+
+	if cfg.MinSize != nil && replicas < *cfg.MinSize {
+		replicas = *cfg.MinSize
 	}
-	scaling := s.scope.ManagedMachinePool.Spec.Scaling
-	if scaling == nil {
-		return &cfg
+	if cfg.MaxSize != nil && replicas > *cfg.MaxSize {
+		replicas = *cfg.MaxSize
 	}
-	if scaling.MaxSize != nil {
-		cfg.MaxSize = aws.Int32(*scaling.MaxSize)
-	}
-	if scaling.MaxSize != nil {
-		cfg.MinSize = aws.Int32(*scaling.MinSize)
-	}
+
+	cfg.DesiredSize = aws.Int32(replicas)
 	return &cfg
 }
 
