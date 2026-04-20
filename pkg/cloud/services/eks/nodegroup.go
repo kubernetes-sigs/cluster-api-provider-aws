@@ -222,13 +222,25 @@ func (s *NodegroupService) createNodegroup(ctx context.Context) (*ekstypes.Nodeg
 		NodeRole:      roleArn,
 		Labels:        managedPool.Labels,
 		Tags:          tags,
-		RemoteAccess:  remoteAccess,
 		UpdateConfig:  updatedConfig,
 	}
 	useLaunchTemplate := managedPool.AWSLaunchTemplate != nil
 	isBYO := useLaunchTemplate && managedPool.AWSLaunchTemplate.ID != nil && *managedPool.AWSLaunchTemplate.ID != ""
-	if managedPool.AMIType != nil && !isBYO && (managedPool.AWSLaunchTemplate == nil || managedPool.AWSLaunchTemplate.AMI.ID == nil) {
-		input.AmiType = converters.AMITypeToSDK(*managedPool.AMIType)
+	// RemoteAccess is rejected by EKS when a launch template is specified; key pair and
+	// source security groups must live in the launch template. Webhook validation also
+	// enforces this, but guard the service layer for defence in depth.
+	if !useLaunchTemplate {
+		input.RemoteAccess = remoteAccess
+	}
+	// AmiType can be passed alongside a launch template as long as the template does not
+	// pin a custom AMI. For CAPA-managed LTs, a custom AMI is indicated by LT.AMI.ID.
+	// For BYO LTs we cannot introspect the referenced template, so the value flows through
+	// and AWS rejects it if the template already specifies an AMI type (custom AMI).
+	if managedPool.AMIType != nil {
+		ltHasCustomAMI := useLaunchTemplate && !isBYO && managedPool.AWSLaunchTemplate.AMI.ID != nil
+		if !ltHasCustomAMI {
+			input.AmiType = converters.AMITypeToSDK(*managedPool.AMIType)
+		}
 	}
 	if managedPool.DiskSize != nil && !useLaunchTemplate {
 		input.DiskSize = managedPool.DiskSize

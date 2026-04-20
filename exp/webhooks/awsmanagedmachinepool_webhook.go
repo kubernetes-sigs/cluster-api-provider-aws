@@ -145,6 +145,12 @@ func (w *AWSManagedMachinePool) validateLaunchTemplate(r *expinfrav1.AWSManagedM
 	if r.Spec.DiskSize != nil {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "diskSize"), r.Spec.DiskSize, "diskSize cannot be specified when LaunchTemplate is specified"))
 	}
+	// remoteAccess is rejected by the EKS CreateNodegroup API whenever a launch template
+	// is specified, regardless of the template contents. SSH key and source security groups
+	// must be configured inside the launch template instead.
+	if r.Spec.RemoteAccess != nil {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "remoteAccess"), "remoteAccess cannot be specified when a launch template is specified; configure KeyName and security groups in the launch template instead"))
+	}
 
 	if lt.IamInstanceProfile != "" {
 		allErrs = append(allErrs, field.Invalid(ltPath.Child("iamInstanceProfile"), lt.IamInstanceProfile, "IAM instance profile in launch template is prohibited in EKS managed node group"))
@@ -183,11 +189,11 @@ func (w *AWSManagedMachinePool) validateLaunchTemplate(r *expinfrav1.AWSManagedM
 		if len(lt.AdditionalSecurityGroups) > 0 {
 			allErrs = append(allErrs, field.Forbidden(ltPath.Child("additionalSecurityGroups"), "additionalSecurityGroups cannot be specified with a BYO launch template (id is set)"))
 		}
-		// amiType is silently ignored at the service layer for BYO LTs; the AMI type is
-		// determined entirely by the referenced launch template.
-		if r.Spec.AMIType != nil {
-			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "amiType"), "amiType cannot be specified with a BYO launch template; the AMI type is determined by the launch template"))
-		}
+		// spec.amiType and spec.amiVersion are intentionally allowed alongside a BYO launch
+		// template: the AWS CreateNodegroup API accepts them as long as the launch template
+		// does not pin a custom AMI. CAPA cannot introspect user-owned launch templates, so
+		// any conflict between these fields and the referenced template is surfaced by the
+		// EKS API at create time rather than at admission.
 	}
 
 	return allErrs
