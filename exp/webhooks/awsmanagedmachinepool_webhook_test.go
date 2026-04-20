@@ -224,7 +224,7 @@ func TestAWSManagedMachinePoolValidateCreate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "BYO launch template with amiType is rejected",
+			name: "BYO launch template with spec.amiType is accepted",
 			pool: &expinfrav1.AWSManagedMachinePool{
 				Spec: expinfrav1.AWSManagedMachinePoolSpec{
 					EKSNodegroupName: "eks-node-group-byo",
@@ -232,6 +232,51 @@ func TestAWSManagedMachinePoolValidateCreate(t *testing.T) {
 					AWSLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
 						ID:            aws.String("lt-12345"),
 						VersionNumber: aws.Int64(1),
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "BYO launch template with spec.amiVersion is accepted",
+			pool: &expinfrav1.AWSManagedMachinePool{
+				Spec: expinfrav1.AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-byo",
+					AMIVersion:       aws.String("1.29.0-20240110"),
+					AWSLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
+						ID:            aws.String("lt-12345"),
+						VersionNumber: aws.Int64(1),
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "BYO launch template with spec.remoteAccess is rejected",
+			pool: &expinfrav1.AWSManagedMachinePool{
+				Spec: expinfrav1.AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-byo",
+					RemoteAccess: &expinfrav1.ManagedRemoteAccess{
+						Public: true,
+					},
+					AWSLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
+						ID:            aws.String("lt-12345"),
+						VersionNumber: aws.Int64(1),
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "CAPA-managed launch template with spec.remoteAccess is rejected",
+			pool: &expinfrav1.AWSManagedMachinePool{
+				Spec: expinfrav1.AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group",
+					RemoteAccess: &expinfrav1.ManagedRemoteAccess{
+						Public: true,
+					},
+					AWSLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
+						Name: "my-lt",
 					},
 				},
 			},
