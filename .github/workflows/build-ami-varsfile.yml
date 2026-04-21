@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           repository: kubernetes-sigs/image-builder
           ref: ${{ inputs.image_builder_version }}
@@ -42,7 +42,7 @@ jobs:
           echo "$PACKER_VARS" | jq -r > ./images/capi/vars.json
           cat ./images/capi/vars.json
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v5
+        uses: aws-actions/configure-aws-credentials@61815dcd50bd041e203e49132bacad1fd04d2708 # v5.1.1
         with:
           aws-region: us-east-2
           role-to-assume: arn:aws:iam::819546954734:role/gh-image-builder
