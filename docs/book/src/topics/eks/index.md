@@ -29,11 +29,12 @@ And a number of new templates are available in the templates folder for creating
 
 ## SEE ALSO
 
-* [Prerequisites](prerequisites.md)
-* [Enabling EKS Support](enabling.md)
-* [Disabling EKS Support](disabling.md)
-* [Creating a cluster](creating-a-cluster.md)
-* [Using EKS Console](eks-console.md)
-* [Using EKS Addons](addons.md)
-* [Enabling Encryption](encryption.md)
-* [Cluster Upgrades](cluster-upgrades.md)
+- [Prerequisites](prerequisites.md)
+- [Enabling EKS Support](enabling.md)
+- [Disabling EKS Support](disabling.md)
+- [Creating a cluster](creating-a-cluster.md)
+- [Using EKS Console](eks-console.md)
+- [Using EKS Addons](addons.md)
+- [Enabling Encryption](encryption.md)
+- [Cluster Upgrades](cluster-upgrades.md)
+- [Using EKS Pod Identity for controller credentials](eks-pod-identity.md)
