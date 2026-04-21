@@ -860,7 +860,7 @@ func SDKToSpotMarketOptions(instanceMarketOptions *types.LaunchTemplateInstanceM
 	}
 
 	if instanceMarketOptions.SpotOptions == nil {
-		return &infrav1.SpotMarketOptions{}
+		return nil
 	}
 
 	result := &infrav1.SpotMarketOptions{}
