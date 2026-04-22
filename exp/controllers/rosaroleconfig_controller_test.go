@@ -637,6 +637,14 @@ func TestROSARoleConfigSetUpRuntimeWithExpiredAWSCredentials(t *testing.T) {
 	g := NewWithT(t)
 	ctx := context.TODO()
 
+	// Mock empty AWS credentials
+	t.Setenv("AWS_ACCESS_KEY_ID", "")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "")
+	t.Setenv("AWS_SESSION_TOKEN", "")
+	t.Setenv("AWS_PROFILE", "")
+	t.Setenv("AWS_SHARED_CREDENTIALS_FILE", "/dev/null")
+	t.Setenv("AWS_CONFIG_FILE", "/dev/null")
+
 	// Create a miniaml scope for testing
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -702,8 +710,6 @@ func TestROSARoleConfigSetUpRuntimeWithExpiredAWSCredentials(t *testing.T) {
 		},
 		Runtime: nil, // Start with nil Runtime
 	}
-
-	// AWS credentials are not set by default in the test env
 
 	// ==================== FIRST RECONCILIATION ====================
 	t.Log("First reconciliation: AWS credentials are missing/expired")
