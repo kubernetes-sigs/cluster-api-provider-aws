@@ -4,7 +4,14 @@ When using an OpenShift or ROSA-HCP cluster as the management cluster, you can c
 
 ## Prerequisites
 
-- A management cluster (OpenShift or ROSA-HCP) with CAPI and CAPA installed
+- A management cluster (OpenShift or ROSA-HCP) with CAPI and CAPA installed.
+  Follow the [Quick Start Guide](https://cluster-api-aws.sigs.k8s.io/quick-start) to install CAPI and CAPA using `clusterctl init --infrastructure aws`. For the initial installation, you can use temporary AWS credentials (e.g. via `aws sts get-session-token` or environment variables). Once the IAM role is configured below, the CAPA controller will use the role instead of stored credentials.
+
+    **Note:** The ROSA and MachinePool feature gates must be enabled before running `clusterctl init`:
+    ```shell
+    export EXP_ROSA=true
+    export EXP_MACHINE_POOL=true
+    ```
 - The management cluster must have an OIDC provider configured
 
 ## Retrieve the OIDC Provider
