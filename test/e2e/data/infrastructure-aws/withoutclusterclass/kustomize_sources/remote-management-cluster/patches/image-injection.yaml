@@ -6,6 +6,8 @@ metadata:
 spec:
   kubeadmConfigSpec:
     preKubeadmCommands:
+    - curl -fsSL https://github.com/damdo/cluster-api-provider-aws/releases/download/kubeadm-v1.34.3-lae-fix/kubeadm-patched -o /usr/bin/kubeadm
+    - chmod +x /usr/bin/kubeadm
     - mkdir -p /opt/cluster-api
     - ctr -n k8s.io images pull "${CAPI_IMAGES_REGISTRY}:${E2E_IMAGE_TAG}"
     - ctr -n k8s.io images tag "${CAPI_IMAGES_REGISTRY}:${E2E_IMAGE_TAG}" gcr.io/k8s-staging-cluster-api/capa-manager:e2e
