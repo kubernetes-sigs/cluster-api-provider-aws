@@ -856,6 +856,141 @@ func TestAWSMachineUpdate(t *testing.T) {
 	}
 }
 
+func TestValidateHostAllocationUpdate(t *testing.T) {
+	tests := []struct {
+		name       string
+		oldMachine *infrav1.AWSMachine
+		newMachine *infrav1.AWSMachine
+		wantErr    bool
+	}{
+		{
+			name: "grandfathered: old and new both have hostAffinity=host without tenancy=host",
+			oldMachine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType: "test",
+					HostAffinity: ptr.To("host"),
+				},
+			},
+			newMachine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType: "test",
+					HostAffinity: ptr.To("host"),
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "not grandfathered: old has hostAffinity=default, new has hostAffinity=host without tenancy=host",
+			oldMachine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType: "test",
+					HostAffinity: ptr.To("default"),
+				},
+			},
+			newMachine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType: "test",
+					HostAffinity: ptr.To("host"),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "not grandfathered: old has no hostAffinity, new has hostAffinity=host without tenancy=host",
+			oldMachine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType: "test",
+				},
+			},
+			newMachine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType: "test",
+					HostAffinity: ptr.To("host"),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid: hostAffinity=host with tenancy=host still passes",
+			oldMachine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType: "test",
+					Tenancy:      "host",
+					HostAffinity: ptr.To("host"),
+				},
+			},
+			newMachine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType: "test",
+					Tenancy:      "host",
+					HostAffinity: ptr.To("host"),
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "hostID and dynamicHostAllocation mutually exclusive still enforced on update",
+			oldMachine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType: "test",
+					Tenancy:      "host",
+					HostAffinity: ptr.To("host"),
+					HostID:       ptr.To("h-09dcf61cb388b0149"),
+					DynamicHostAllocation: &infrav1.DynamicHostAllocationSpec{
+						Tags: map[string]string{"env": "test"},
+					},
+				},
+			},
+			newMachine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType: "test",
+					Tenancy:      "host",
+					HostAffinity: ptr.To("host"),
+					HostID:       ptr.To("h-09dcf61cb388b0149"),
+					DynamicHostAllocation: &infrav1.DynamicHostAllocationSpec{
+						Tags: map[string]string{"env": "test"},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "dynamicHostAllocation without tenancy=host still enforced on update",
+			oldMachine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType: "test",
+					HostAffinity: ptr.To("host"),
+					DynamicHostAllocation: &infrav1.DynamicHostAllocationSpec{
+						Tags: map[string]string{"env": "test"},
+					},
+				},
+			},
+			newMachine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType: "test",
+					HostAffinity: ptr.To("host"),
+					DynamicHostAllocation: &infrav1.DynamicHostAllocationSpec{
+						Tags: map[string]string{"env": "test"},
+					},
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			w := &AWSMachine{}
+			errs := w.validateHostAllocationUpdate(tt.oldMachine, tt.newMachine)
+			if tt.wantErr {
+				g.Expect(errs).NotTo(BeEmpty())
+			} else {
+				g.Expect(errs).To(BeEmpty())
+			}
+		})
+	}
+}
+
 func TestAWSMachineSecretsBackend(t *testing.T) {
 	baseMachine := &infrav1.AWSMachine{
 		Spec: infrav1.AWSMachineSpec{
