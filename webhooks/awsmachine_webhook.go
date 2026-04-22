@@ -112,10 +112,15 @@ func (w *AWSMachine) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.
 
 	var allErrs field.ErrorList
 
+	old, ok := oldObj.(*infrav1.AWSMachine)
+	if !ok {
+		return nil, fmt.Errorf("expected an AWSMachine object but got %T", oldObj)
+	}
+
 	allErrs = append(allErrs, w.validateCloudInitSecret(r)...)
 	allErrs = append(allErrs, w.validateAdditionalSecurityGroups(r)...)
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
-	allErrs = append(allErrs, w.validateHostAllocation(r)...)
+	allErrs = append(allErrs, w.validateHostAllocationUpdate(old, r)...)
 
 	newAWSMachineSpec := newAWSMachine["spec"].(map[string]interface{})
 	oldAWSMachineSpec := oldAWSMachine["spec"].(map[string]interface{})
@@ -508,6 +513,66 @@ func (w *AWSMachine) validateHostAllocation(r *infrav1.AWSMachine) field.ErrorLi
 
 	// DHA needs to have hostAffinity set to "host" to make sure it does not drift off its allocated host when the instance is restarted, otherwise there will be a host not in use still allocated.
 	if hasDynamicHostAllocation && (r.Spec.HostAffinity == nil || *r.Spec.HostAffinity != hostAffinity) {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.dynamicHostAllocation"), "dynamicHostAllocation can only be set when hostAffinity is 'host'"))
+	}
+
+	return allErrs
+}
+
+// validateHostAllocationUpdate runs the same checks as validateHostAllocation but
+// grandfathers the hostAffinity vs tenancy check for pre-existing invalid objects.
+//
+// Background: PR #5631 (v2.10.0) introduced the hostAffinity field with a default
+// of "host". PR #5801 (v2.10.1) corrected the default to "default". PR #5825 and
+// its cherry-pick PR #5871 (v2.10.2) then added webhook validation requiring
+// tenancy="host" when hostAffinity="host".
+//
+// This created a backward-compatibility issue: AWSMachines created under v2.10.0
+// were defaulted to hostAffinity="host" even when not using dedicated hosts
+// (tenancy != "host"). After upgrading to v2.10.2+ or v2.11.0+, those objects
+// fail the new validation on any update, effectively becoming unmodifiable.
+//
+// This function solves the problem by skipping the hostAffinity vs tenancy check
+// on update when the old object already had the same invalid combination, so when
+// the invalid state was inherited, not newly introduced. All other host allocation
+// validations remain fully enforced on update.
+func (w *AWSMachine) validateHostAllocationUpdate(oldMachine, newMachine *infrav1.AWSMachine) field.ErrorList {
+	var allErrs field.ErrorList
+
+	// Check if both hostID and dynamicHostAllocation are specified.
+	hasHostID := newMachine.Spec.HostID != nil && len(*newMachine.Spec.HostID) > 0
+	hasDynamicHostAllocation := newMachine.Spec.DynamicHostAllocation != nil
+
+	// If both hostID and dynamicHostAllocation are specified, return an error.
+	if hasHostID && hasDynamicHostAllocation {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.hostID"), "hostID and dynamicHostAllocation are mutually exclusive"), field.Forbidden(field.NewPath("spec.dynamicHostAllocation"), "hostID and dynamicHostAllocation are mutually exclusive"))
+	}
+
+	// HostID, HostAffinity, and DynamicHostAllocation can only be set when Tenancy is "host".
+	if hasHostID && newMachine.Spec.Tenancy != hostTenancy {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.hostID"), "hostID can only be set when tenancy is 'host'"))
+	}
+
+	// Grandfather the hostAffinity vs tenancy check: if the old object already carried
+	// hostAffinity="host" without tenancy="host" (the v2.10.0 default combination),
+	// allow the update to proceed without rejecting it. This only applies when the new
+	// object preserves the same pre-existing invalid state, it does not allow a user to
+	// newly introduce this combination on update (that is still rejected).
+	if newMachine.Spec.HostAffinity != nil && *newMachine.Spec.HostAffinity == hostAffinity && newMachine.Spec.Tenancy != hostTenancy {
+		oldHadSameInvalidCombo := oldMachine.Spec.HostAffinity != nil && *oldMachine.Spec.HostAffinity == hostAffinity && oldMachine.Spec.Tenancy != hostTenancy
+		if !oldHadSameInvalidCombo {
+			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.hostAffinity"), "hostAffinity can only be set to 'host' when tenancy is 'host'"))
+		}
+	}
+
+	if hasDynamicHostAllocation && newMachine.Spec.Tenancy != hostTenancy {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.dynamicHostAllocation"), "dynamicHostAllocation can only be set when tenancy is 'host'"))
+	}
+
+	// DHA needs to have hostAffinity set to "host" to make sure it does not drift off
+	// its allocated host when the instance is restarted, otherwise there will be a host
+	// not in use still allocated.
+	if hasDynamicHostAllocation && (newMachine.Spec.HostAffinity == nil || *newMachine.Spec.HostAffinity != hostAffinity) {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.dynamicHostAllocation"), "dynamicHostAllocation can only be set when hostAffinity is 'host'"))
 	}
 
