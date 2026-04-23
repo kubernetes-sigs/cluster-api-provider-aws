@@ -318,8 +318,16 @@ lint-fix: $(GOLANGCI_LINT) ## Lint the codebase and run auto-fixers if supported
 	GOLANGCI_LINT_EXTRA_ARGS=--fix $(MAKE) lint
 
 .PHONY: lint-api
-lint-api: $(GOLANGCI_LINT_KAL)
-	$(GOLANGCI_LINT_KAL) run -v --config $(REPO_ROOT)/.golangci-kal.yml $(GOLANGCI_LINT_EXTRA_ARGS)
+lint-api: $(GOLANGCI_LINT_KAL) ## Lint Kubernetes API types in api/ directories
+	$(GOLANGCI_LINT_KAL) run -v --config $(REPO_ROOT)/.golangci-kal.yml \
+		./api/... \
+		./bootstrap/eks/api/... \
+		./controlplane/eks/api/... \
+		./controlplane/rosa/api/... \
+		./exp/api/... \
+		./iam/api/... \
+		./cmd/clusterawsadm/api/... \
+		$(GOLANGCI_LINT_EXTRA_ARGS)
 
 .PHONY: lint-api-fix
 lint-api-fix: $(GOLANGCI_LINT_KAL)
