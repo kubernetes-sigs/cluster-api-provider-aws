@@ -135,7 +135,7 @@ This ensures a balance between observability and system performance.
  
 ### Tracing AWS API Calls
 
-AWS API calls can be traced using OpenTelemetry instrumentation for AWS SDK (`otelaws` middleware). This enables automatic creation of spans for all outgoing AWS API requests. Each AWS API span will be a child of the reconciliation span.
+AWS API calls can be traced using OpenTelemetry instrumentation for AWS SDK (`otelaws` middleware). This enables automatic creation of spans for all outgoing AWS API requests. Each AWS API span will be a child of the reconciliation span. it will be optional to trace AWS API call and can be enabled by flags.
 
 However, this approach may generate excessive spans and introduce noise. Instead we can also create spans for important AWS API Calls For Ex- `CreateInstance`
 
@@ -211,6 +211,7 @@ Further investigation is required to finalize this approach.
 | `--otel-enabled`        | Enable/disable tracing    |
 | `--otel-endpoint`       | OTLP endpoint (collector or backend)   |
 | `--otel-sampling-rate`  | Sampling ratio            |
+| `--otelaws-enabled`     | Enable/disable aws api calls |
 
 ## Documentation Updates
 To ensure usability and adoption, documentation will be updated to cover tracing setup and usage.
