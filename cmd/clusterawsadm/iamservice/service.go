@@ -51,13 +51,30 @@ type Service interface {
 }
 
 type serviceImpl struct {
-	IAM *iam.Client
+	IAM IAMAPI
+}
+
+type IAMAPI interface {
+	AddRoleToInstanceProfile(ctx context.Context, params *iam.AddRoleToInstanceProfileInput, optFns ...func(*iam.Options)) (*iam.AddRoleToInstanceProfileOutput, error)
+	AttachRolePolicy(ctx context.Context, params *iam.AttachRolePolicyInput, optFns ...func(*iam.Options)) (*iam.AttachRolePolicyOutput, error)
+	CreateInstanceProfile(ctx context.Context, params *iam.CreateInstanceProfileInput, optFns ...func(*iam.Options)) (*iam.CreateInstanceProfileOutput, error)
+	CreatePolicy(ctx context.Context, params *iam.CreatePolicyInput, optFns ...func(*iam.Options)) (*iam.CreatePolicyOutput, error)
+	CreateRole(ctx context.Context, params *iam.CreateRoleInput, optFns ...func(*iam.Options)) (*iam.CreateRoleOutput, error)
+	DeleteInstanceProfile(ctx context.Context, params *iam.DeleteInstanceProfileInput, optFns ...func(*iam.Options)) (*iam.DeleteInstanceProfileOutput, error)
+	DeletePolicy(ctx context.Context, params *iam.DeletePolicyInput, optFns ...func(*iam.Options)) (*iam.DeletePolicyOutput, error)
+	DeleteRole(ctx context.Context, params *iam.DeleteRoleInput, optFns ...func(*iam.Options)) (*iam.DeleteRoleOutput, error)
+	DetachRolePolicy(ctx context.Context, params *iam.DetachRolePolicyInput, optFns ...func(*iam.Options)) (*iam.DetachRolePolicyOutput, error)
+	GetInstanceProfile(ctx context.Context, params *iam.GetInstanceProfileInput, optFns ...func(*iam.Options)) (*iam.GetInstanceProfileOutput, error)
+	GetRole(ctx context.Context, params *iam.GetRoleInput, optFns ...func(*iam.Options)) (*iam.GetRoleOutput, error)
+	ListAttachedRolePolicies(ctx context.Context, params *iam.ListAttachedRolePoliciesInput, optFns ...func(*iam.Options)) (*iam.ListAttachedRolePoliciesOutput, error)
+	ListPolicies(ctx context.Context, params *iam.ListPoliciesInput, optFns ...func(*iam.Options)) (*iam.ListPoliciesOutput, error)
+	RemoveRoleFromInstanceProfile(ctx context.Context, params *iam.RemoveRoleFromInstanceProfileInput, optFns ...func(*iam.Options)) (*iam.RemoveRoleFromInstanceProfileOutput, error)
 }
 
 // New creates a new IAM service object to interact with the AWS SDK.
-func New(iamSvc *iam.Client) Service {
+func New(client IAMAPI) Service {
 	return &serviceImpl{
-		IAM: iamSvc,
+		IAM: client,
 	}
 }
 
@@ -140,7 +157,7 @@ func (s *serviceImpl) CreateRole(ctx context.Context, resource go_cfn.Resource, 
 			return errors.Wrapf(err, "unexpected error occurred")
 		}
 	}
-	err = attachPoliciesToRole(ctx, &res.RoleName, res.ManagedPolicyArns, s.IAM)
+	err = s.attachPoliciesToRole(ctx, &res.RoleName, res.ManagedPolicyArns)
 	if err != nil {
 		return err
 	}
@@ -176,7 +193,7 @@ func (s *serviceImpl) CreateInstanceProfile(ctx context.Context, resource go_cfn
 			return errors.Wrapf(err, "unexpected error occurred")
 		}
 	}
-	err = attachRoleToInstanceProf(ctx, resource, s.IAM)
+	err = s.attachRoleToInstanceProfile(ctx, resource)
 	if err != nil {
 		return err
 	}
@@ -212,13 +229,13 @@ func (s *serviceImpl) CreatePolicy(ctx context.Context, resource go_cfn.Resource
 			switch apiErr.ErrorCode() {
 			case EntityAlreadyExists:
 				klog.Warningf("policy \"%s\" already exists", res.ManagedPolicyName)
-				policies, err := listpolicies(ctx, s.IAM)
+				policies, err := s.listpolicies(ctx)
 				if err != nil {
 					return err
 				}
 				for _, policy := range policies {
 					if *policy.PolicyName == res.ManagedPolicyName {
-						return attachRolesToPolicy(ctx, &policy, res.Roles, s.IAM)
+						return s.attachRolesToPolicy(ctx, &policy, res.Roles)
 					}
 				}
 			default:
@@ -228,7 +245,7 @@ func (s *serviceImpl) CreatePolicy(ctx context.Context, resource go_cfn.Resource
 			return errors.Wrapf(err, "unexpected error occurred")
 		}
 	}
-	err = attachRolesToPolicy(ctx, create.Policy, res.Roles, s.IAM)
+	err = s.attachRolesToPolicy(ctx, create.Policy, res.Roles)
 	if err != nil {
 		return err
 	}
@@ -236,13 +253,13 @@ func (s *serviceImpl) CreatePolicy(ctx context.Context, resource go_cfn.Resource
 	return nil
 }
 
-func attachRoleToInstanceProf(ctx context.Context, resource go_cfn.Resource, client *iam.Client) error {
+func (s *serviceImpl) attachRoleToInstanceProfile(ctx context.Context, resource go_cfn.Resource) error {
 	res := resource.(*cfn_iam.InstanceProfile)
 	roleName, err := getRoleName(res.Roles[0])
 	if err != nil {
 		return err
 	}
-	_, err = client.AddRoleToInstanceProfile(ctx, &iam.AddRoleToInstanceProfileInput{
+	_, err = s.IAM.AddRoleToInstanceProfile(ctx, &iam.AddRoleToInstanceProfileInput{
 		InstanceProfileName: &res.InstanceProfileName,
 		RoleName:            &roleName,
 	})
@@ -262,7 +279,7 @@ func attachRoleToInstanceProf(ctx context.Context, resource go_cfn.Resource, cli
 	return nil
 }
 
-func attachPoliciesToRole(ctx context.Context, rolename *string, awsManagedPolicies []string, client *iam.Client) error {
+func (s *serviceImpl) attachPoliciesToRole(ctx context.Context, rolename *string, awsManagedPolicies []string) error {
 	if awsManagedPolicies == nil {
 		// klog.Warningf("no policies defined to attach to the IAM role \"%s\"", *rolename) // TODO
 		return nil
@@ -270,7 +287,7 @@ func attachPoliciesToRole(ctx context.Context, rolename *string, awsManagedPolic
 	for _, policy := range awsManagedPolicies {
 		// making a copy of policyArn to avoid implicit memory aliasing
 		policyArn := policy
-		_, err := client.AttachRolePolicy(ctx, &iam.AttachRolePolicyInput{
+		_, err := s.IAM.AttachRolePolicy(ctx, &iam.AttachRolePolicyInput{
 			RoleName:  rolename,
 			PolicyArn: &policyArn,
 		})
@@ -291,7 +308,7 @@ func attachPoliciesToRole(ctx context.Context, rolename *string, awsManagedPolic
 	return nil
 }
 
-func attachRolesToPolicy(ctx context.Context, policy *iamtypes.Policy, roles []string, client *iam.Client) error {
+func (s *serviceImpl) attachRolesToPolicy(ctx context.Context, policy *iamtypes.Policy, roles []string) error {
 	if roles == nil {
 		// klog.Warningf("no IAM roles defined to attach to the policy \"%s\"", *policy.PolicyName) //TODO
 		return nil
@@ -302,7 +319,7 @@ func attachRolesToPolicy(ctx context.Context, policy *iamtypes.Policy, roles []s
 		if err != nil {
 			return err
 		}
-		_, err = client.AttachRolePolicy(ctx, &iam.AttachRolePolicyInput{
+		_, err = s.IAM.AttachRolePolicy(ctx, &iam.AttachRolePolicyInput{
 			PolicyArn: policyarn,
 			RoleName:  &roleName,
 		})
@@ -345,8 +362,8 @@ func getRoleName(encodedRole string) (string, error) {
 	return roleName, nil
 }
 
-func listpolicies(ctx context.Context, client *iam.Client) ([]iamtypes.Policy, error) {
-	list, err := client.ListPolicies(ctx, &iam.ListPoliciesInput{
+func (s *serviceImpl) listpolicies(ctx context.Context) ([]iamtypes.Policy, error) {
+	list, err := s.IAM.ListPolicies(ctx, &iam.ListPoliciesInput{
 		OnlyAttached: false,
 		Scope:        iamtypes.PolicyScopeType("Local"),
 	})
@@ -367,18 +384,18 @@ func (s *serviceImpl) DeleteResources(ctx context.Context, t go_cfn.Template, ta
 		return err
 	}
 	for _, resource := range rmap["instanceProfiles"] {
-		err := DeleteInstanceProfile(ctx, resource, s.IAM)
+		err := s.DeleteInstanceProfile(ctx, resource)
 		if err != nil {
 			return err
 		}
 	}
 	for _, resource := range rmap["roles"] {
-		err := DeleteRole(ctx, resource, s.IAM)
+		err := s.DeleteRole(ctx, resource)
 		if err != nil {
 			return err
 		}
 	}
-	policies, err := listpolicies(ctx, s.IAM)
+	policies, err := s.listpolicies(ctx)
 	if err != nil {
 		return err
 	}
@@ -386,7 +403,7 @@ func (s *serviceImpl) DeleteResources(ctx context.Context, t go_cfn.Template, ta
 		templatePolicy := resource.(*cfn_iam.ManagedPolicy)
 		for _, policy := range policies {
 			if templatePolicy.ManagedPolicyName == *policy.PolicyName {
-				err := DeletePolicy(ctx, &policy, s.IAM)
+				err := s.DeletePolicy(ctx, &policy)
 				if err != nil {
 					return err
 				}
@@ -398,9 +415,9 @@ func (s *serviceImpl) DeleteResources(ctx context.Context, t go_cfn.Template, ta
 }
 
 // DeleteRole securely deletes CAPA Managed IAM Role.
-func DeleteRole(ctx context.Context, resource go_cfn.Resource, client *iam.Client) error {
+func (s *serviceImpl) DeleteRole(ctx context.Context, resource go_cfn.Resource) error {
 	res := resource.(*cfn_iam.Role)
-	_, err := client.GetRole(ctx, &iam.GetRoleInput{
+	_, err := s.IAM.GetRole(ctx, &iam.GetRoleInput{
 		RoleName: &res.RoleName,
 	})
 	if err != nil {
@@ -417,7 +434,7 @@ func DeleteRole(ctx context.Context, resource go_cfn.Resource, client *iam.Clien
 			return errors.Wrapf(err, "unexpected error occurred")
 		}
 	}
-	rolePolicies, err := client.ListAttachedRolePolicies(ctx, &iam.ListAttachedRolePoliciesInput{
+	rolePolicies, err := s.IAM.ListAttachedRolePolicies(ctx, &iam.ListAttachedRolePoliciesInput{
 		RoleName: &res.RoleName,
 	})
 	if err != nil {
@@ -425,7 +442,7 @@ func DeleteRole(ctx context.Context, resource go_cfn.Resource, client *iam.Clien
 	}
 	if rolePolicies.AttachedPolicies != nil {
 		for _, policy := range rolePolicies.AttachedPolicies {
-			_, err := client.DetachRolePolicy(ctx, &iam.DetachRolePolicyInput{
+			_, err := s.IAM.DetachRolePolicy(ctx, &iam.DetachRolePolicyInput{
 				RoleName:  &res.RoleName,
 				PolicyArn: policy.PolicyArn,
 			})
@@ -434,7 +451,7 @@ func DeleteRole(ctx context.Context, resource go_cfn.Resource, client *iam.Clien
 			}
 		}
 	}
-	_, err = client.DeleteRole(ctx, &iam.DeleteRoleInput{
+	_, err = s.IAM.DeleteRole(ctx, &iam.DeleteRoleInput{
 		RoleName: &res.RoleName,
 	})
 	if err != nil {
@@ -455,9 +472,9 @@ func DeleteRole(ctx context.Context, resource go_cfn.Resource, client *iam.Clien
 }
 
 // DeleteInstanceProfile securely deletes CAPA Managed IAM Instance Profile.
-func DeleteInstanceProfile(ctx context.Context, resource go_cfn.Resource, client *iam.Client) error {
+func (s *serviceImpl) DeleteInstanceProfile(ctx context.Context, resource go_cfn.Resource) error {
 	res := resource.(*cfn_iam.InstanceProfile)
-	instanceProfileExists, err := client.GetInstanceProfile(ctx, &iam.GetInstanceProfileInput{
+	instanceProfileExists, err := s.IAM.GetInstanceProfile(ctx, &iam.GetInstanceProfileInput{
 		InstanceProfileName: &res.InstanceProfileName,
 	})
 	if err != nil {
@@ -474,14 +491,14 @@ func DeleteInstanceProfile(ctx context.Context, resource go_cfn.Resource, client
 			return errors.Wrapf(err, "unexpected error occurred")
 		}
 	}
-	_, err = client.RemoveRoleFromInstanceProfile(ctx, &iam.RemoveRoleFromInstanceProfileInput{
+	_, err = s.IAM.RemoveRoleFromInstanceProfile(ctx, &iam.RemoveRoleFromInstanceProfileInput{
 		InstanceProfileName: instanceProfileExists.InstanceProfile.InstanceProfileName,
 		RoleName:            &res.InstanceProfileName,
 	})
 	if err != nil {
 		return errors.Wrapf(err, "failed to detach \"%s\" IAM role from \"%s\" instance profile", res.InstanceProfileName, res.InstanceProfileName)
 	}
-	_, err = client.DeleteInstanceProfile(ctx, &iam.DeleteInstanceProfileInput{
+	_, err = s.IAM.DeleteInstanceProfile(ctx, &iam.DeleteInstanceProfileInput{
 		InstanceProfileName: &res.InstanceProfileName,
 	})
 	if err != nil {
@@ -503,8 +520,8 @@ func DeleteInstanceProfile(ctx context.Context, resource go_cfn.Resource, client
 }
 
 // DeletePolicy securely deletes CAPA Managed IAM Policy.
-func DeletePolicy(ctx context.Context, policy *iamtypes.Policy, client *iam.Client) error {
-	_, err := client.DeletePolicy(ctx, &iam.DeletePolicyInput{
+func (s *serviceImpl) DeletePolicy(ctx context.Context, policy *iamtypes.Policy) error {
+	_, err := s.IAM.DeletePolicy(ctx, &iam.DeletePolicyInput{
 		PolicyArn: policy.Arn,
 	})
 	if err != nil {

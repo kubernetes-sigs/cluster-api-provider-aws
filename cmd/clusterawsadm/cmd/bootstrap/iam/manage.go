@@ -43,8 +43,8 @@ func createResources() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			iamSvc := iam.NewFromConfig(cfg)
-			svc := iamservice.New(iamSvc)
+			client := iam.NewFromConfig(cfg)
+			svc := iamservice.New(client)
 			err = svc.CreateResources(ctx, *t.RenderCloudFormation(), t.Spec.StackTags)
 			if err != nil {
 				return err
@@ -85,8 +85,8 @@ func deleteResources() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			iamsvc := iam.NewFromConfig(cfg)
-			svc := iamservice.New(iamsvc)
+			client := iam.NewFromConfig(cfg)
+			svc := iamservice.New(client)
 			err = svc.DeleteResources(ctx, *t.RenderCloudFormation(), t.Spec.StackTags)
 			if err != nil {
 				return err
