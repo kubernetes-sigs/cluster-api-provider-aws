@@ -804,6 +804,60 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 			wantErr:               false,
 		},
 		{
+			name: "Should return false if incoming has empty-string MaxPrice and existing has nil MaxPrice",
+			incoming: &expinfrav1.AWSLaunchTemplate{
+				SpotMarketOptions: &infrav1.SpotMarketOptions{
+					MaxPrice: aws.String(""),
+				},
+			},
+			existing: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+					{ID: aws.String("sg-111")},
+					{ID: aws.String("sg-222")},
+				},
+				SpotMarketOptions: &infrav1.SpotMarketOptions{},
+			},
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name: "Should return false if both have empty-string MaxPrice",
+			incoming: &expinfrav1.AWSLaunchTemplate{
+				SpotMarketOptions: &infrav1.SpotMarketOptions{
+					MaxPrice: aws.String(""),
+				},
+			},
+			existing: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+					{ID: aws.String("sg-111")},
+					{ID: aws.String("sg-222")},
+				},
+				SpotMarketOptions: &infrav1.SpotMarketOptions{
+					MaxPrice: aws.String(""),
+				},
+			},
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name: "Should return true if incoming has empty-string MaxPrice and existing has no SpotMarketOptions",
+			incoming: &expinfrav1.AWSLaunchTemplate{
+				SpotMarketOptions: &infrav1.SpotMarketOptions{
+					MaxPrice: aws.String(""),
+				},
+			},
+			existing: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+					{ID: aws.String("sg-111")},
+					{ID: aws.String("sg-222")},
+				},
+				SpotMarketOptions: nil,
+			},
+			want:                  true,
+			wantNeedsUpdateReason: services.LaunchTemplateNeedsUpdateReasonSpotMarketOptions,
+			wantErr:               false,
+		},
+		{
 			name: "Should return true if SSH key names are different",
 			incoming: &expinfrav1.AWSLaunchTemplate{
 				SSHKeyName: aws.String("new-key"),

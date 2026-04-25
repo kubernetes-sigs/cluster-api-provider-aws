@@ -163,6 +163,9 @@ spec:
   template:
     spec:
       kubeadmConfigSpec:
+        preKubeadmCommands:
+          - curl -fsSL https://github.com/damdo/cluster-api-provider-aws/releases/download/kubeadm-v1.34.3-lae-fix/kubeadm-patched -o /usr/bin/kubeadm
+          - chmod +x /usr/bin/kubeadm
         clusterConfiguration:
           controllerManager:
             extraArgs:

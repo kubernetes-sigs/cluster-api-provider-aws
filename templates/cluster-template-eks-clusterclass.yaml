@@ -21,7 +21,7 @@ spec:
             ref:
               name: "${CLUSTER_CLASS_NAME}-md-0"
               apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
-              kind: EKSConfigTemplate
+              kind: NodeadmConfigTemplate
           infrastructure:
             ref:
               name: "${CLUSTER_CLASS_NAME}-md-0"
@@ -54,12 +54,16 @@ metadata:
 spec:
   template:
     spec:
+      ami:
+        eksLookupType: AmazonLinux2023
+      cloudInit:
+        insecureSkipSecretsManager: true
       instanceType: "${AWS_NODE_MACHINE_TYPE}"
       iamInstanceProfile: "nodes.cluster-api-provider-aws.sigs.k8s.io"
       sshKeyName: "${AWS_SSH_KEY_NAME}"
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
-kind: EKSConfigTemplate
+kind: NodeadmConfigTemplate
 metadata:
   name: "${CLUSTER_CLASS_NAME}-md-0"
 spec:

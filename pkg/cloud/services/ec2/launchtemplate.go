@@ -1016,7 +1016,7 @@ func (s *Service) LaunchTemplateNeedsUpdate(scope scope.LaunchTemplateScope, inc
 		return true, services.LaunchTemplateNeedsUpdateReasonInstanceMetadataOptions, nil
 	}
 
-	if !cmp.Equal(incoming.SpotMarketOptions, existing.SpotMarketOptions) {
+	if !spotMarketOptionsEqual(incoming.SpotMarketOptions, existing.SpotMarketOptions) {
 		return true, services.LaunchTemplateNeedsUpdateReasonSpotMarketOptions, nil
 	}
 
@@ -1056,6 +1056,27 @@ func (s *Service) LaunchTemplateNeedsUpdate(scope scope.LaunchTemplateScope, inc
 	}
 
 	return false, services.LaunchTemplateNeedsUpdateReasonNone, nil
+}
+
+// spotMarketOptionsEqual compares two SpotMarketOptions, treating an empty-string
+// MaxPrice as equivalent to nil. The AWS EC2 API does not preserve empty-string
+// MaxPrice values, so a round-trip through the API converts ptr.To("") into nil.
+// Without this normalization the controller enters an infinite reconciliation loop.
+func spotMarketOptionsEqual(a, b *infrav1.SpotMarketOptions) bool {
+	na := normalizeSpotMarketOptions(a)
+	nb := normalizeSpotMarketOptions(b)
+	return cmp.Equal(na, nb)
+}
+
+func normalizeSpotMarketOptions(o *infrav1.SpotMarketOptions) *infrav1.SpotMarketOptions {
+	if o == nil {
+		return nil
+	}
+	out := *o
+	if out.MaxPrice != nil && *out.MaxPrice == "" {
+		out.MaxPrice = nil
+	}
+	return &out
 }
 
 // DiscoverLaunchTemplateAMI will discover the AMI launch template.
