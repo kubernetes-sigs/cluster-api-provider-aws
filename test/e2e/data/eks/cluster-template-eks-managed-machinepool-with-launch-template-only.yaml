@@ -10,7 +10,10 @@ spec:
       version: "${KUBERNETES_VERSION}"
       clusterName: "${CLUSTER_NAME}"
       bootstrap:
-        dataSecretName: "${CLUSTER_NAME}-pool-lt-0-userdata"
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+          kind: NodeadmConfig
+          name: "${CLUSTER_NAME}-pool-lt-0"
       infrastructureRef:
         name: "${CLUSTER_NAME}-pool-lt-0"
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
@@ -23,15 +26,14 @@ metadata:
 spec:
   amiType: CUSTOM
   awsLaunchTemplate:
-    ami: {}
+    ami:
+      eksLookupType: AmazonLinux2023
   scaling:
     minSize: 1
     maxSize: 2
 ---
-apiVersion: v1
-kind: Secret
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+kind: NodeadmConfig
 metadata:
-  name: "${CLUSTER_NAME}-pool-lt-0-userdata"
-data:
-  value: "USER_DATA"
-type: Opaque
+  name: "${CLUSTER_NAME}-pool-lt-0"
+spec: {}
