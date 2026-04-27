@@ -183,16 +183,18 @@ func BYOMachinePoolSpec(ctx context.Context, inputGetter func() BYOMachinePoolSp
 	ginkgo.By(fmt.Sprintf("applying the %s template with BYO launch template %s@v%d",
 		EKSManagedMachinePoolWithBYOLaunchTemplateOnlyFlavor,
 		input.BYOLaunchTemplate.ID, input.BYOLaunchTemplate.Version))
+
+	// clusterctl.ConfigCluster (used by shared.GetTemplate) performs strict variable
+	// substitution and fails when ${BYO_LAUNCH_TEMPLATE_ID} / ${BYO_LAUNCH_TEMPLATE_VERSION}
+	// are not resolvable. Export them so the flavor's YAML can be rendered correctly.
+	shared.SetEnvVar(shared.BYOLaunchTemplateID, input.BYOLaunchTemplate.ID, false)
+	shared.SetEnvVar(shared.BYOLaunchTemplateVersion,
+		strconv.FormatInt(input.BYOLaunchTemplate.Version, 10), false)
+
 	configCluster := input.ConfigClusterFn(input.ClusterName, input.Namespace.Name)
 	configCluster.Flavor = EKSManagedMachinePoolWithBYOLaunchTemplateOnlyFlavor
 	configCluster.WorkerMachineCount = ptr.To[int64](1)
 	workloadClusterTemplate := shared.GetTemplate(ctx, configCluster)
-
-	// Substitute the BYO launch template placeholders in the cluster template.
-	workloadClusterTemplate = []byte(strings.ReplaceAll(string(workloadClusterTemplate),
-		"${BYO_LAUNCH_TEMPLATE_ID}", input.BYOLaunchTemplate.ID))
-	workloadClusterTemplate = []byte(strings.ReplaceAll(string(workloadClusterTemplate),
-		"${BYO_LAUNCH_TEMPLATE_VERSION}", strconv.FormatInt(input.BYOLaunchTemplate.Version, 10)))
 
 	ginkgo.By(fmt.Sprintf("Applying the %s cluster template yaml to the cluster", configCluster.Flavor))
 	err := input.BootstrapClusterProxy.CreateOrUpdate(ctx, workloadClusterTemplate)

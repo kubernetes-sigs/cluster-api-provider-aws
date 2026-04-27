@@ -74,6 +74,8 @@ const (
 	EksUpgradeFromVersion                = "UPGRADE_FROM_VERSION"
 	EksUpgradeToVersion                  = "UPGRADE_TO_VERSION"
 	UpgradePolicy                        = "UPGRADE_POLICY"
+	BYOLaunchTemplateID                  = "BYO_LAUNCH_TEMPLATE_ID"
+	BYOLaunchTemplateVersion             = "BYO_LAUNCH_TEMPLATE_VERSION"
 
 	ClassicElbTestKubernetesFrom = "CLASSICELB_TEST_KUBERNETES_VERSION_FROM"
 	ClassicElbTestKubernetesTo   = "CLASSICELB_TEST_KUBERNETES_VERSION_TO"
