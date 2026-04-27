@@ -795,6 +795,28 @@ func (r *AWSMachineReconciler) resolveUserData(ctx context.Context, machineScope
 		return nil, "", err
 	}
 
+	if !machineScope.IsControlPlane() {
+		endpoint := machineScope.Cluster.Spec.ControlPlaneEndpoint
+		if endpoint.Host != "" {
+			port := endpoint.Port
+			if port == 0 {
+				port = infrav1.DefaultAPIServerPort
+			}
+			var injected []byte
+			var injectErr error
+			if machineScope.UseIgnition(userDataFormat) {
+				injected, injectErr = injectNLBReadinessCheckIgnition(userData, endpoint.Host, port)
+			} else {
+				injected, injectErr = injectNLBReadinessCheck(userData, endpoint.Host, port)
+			}
+			if injectErr != nil {
+				machineScope.Info("Failed to inject NLB readiness check, proceeding without it", "error", injectErr)
+			} else {
+				userData = injected
+			}
+		}
+	}
+
 	if machineScope.UseSecretsManager(userDataFormat) {
 		userData, err = r.cloudInitUserData(machineScope, clusterScope, userData)
 	}
@@ -1337,3 +1359,4 @@ func (r *AWSMachineReconciler) ensureInstanceMetadataOptions(ec2svc services.EC2
 
 	return ec2svc.ModifyInstanceMetadataOptions(instance.ID, machine.Spec.InstanceMetadataOptions)
 }
+

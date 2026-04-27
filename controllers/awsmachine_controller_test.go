@@ -785,3 +785,4 @@ func mockedDescribeInstanceCalls(m *mocks.MockEC2APIMockRecorder) {
 		Reservations: []ec2types.Reservation{{Instances: []ec2types.Instance{{Placement: &ec2types.Placement{AvailabilityZone: aws.String("us-east-1a")}, InstanceId: aws.String("id-1"), State: &ec2types.InstanceState{Name: "id-1", Code: aws.Int32(16)}}}}},
 	}, nil)
 }
+
