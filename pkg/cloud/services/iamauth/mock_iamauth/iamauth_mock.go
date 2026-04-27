@@ -350,3 +350,23 @@ func (mr *MockIAMAPIMockRecorder) UpdateAssumeRolePolicy(arg0, arg1 interface{},
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAssumeRolePolicy", reflect.TypeOf((*MockIAMAPI)(nil).UpdateAssumeRolePolicy), varargs...)
 }
+
+// UpdateOpenIDConnectProviderThumbprint mocks base method.
+func (m *MockIAMAPI) UpdateOpenIDConnectProviderThumbprint(arg0 context.Context, arg1 *iam.UpdateOpenIDConnectProviderThumbprintInput, arg2 ...func(*iam.Options)) (*iam.UpdateOpenIDConnectProviderThumbprintOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "UpdateOpenIDConnectProviderThumbprint", varargs...)
+	ret0, _ := ret[0].(*iam.UpdateOpenIDConnectProviderThumbprintOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateOpenIDConnectProviderThumbprint indicates an expected call of UpdateOpenIDConnectProviderThumbprint.
+func (mr *MockIAMAPIMockRecorder) UpdateOpenIDConnectProviderThumbprint(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateOpenIDConnectProviderThumbprint", reflect.TypeOf((*MockIAMAPI)(nil).UpdateOpenIDConnectProviderThumbprint), varargs...)
+}
