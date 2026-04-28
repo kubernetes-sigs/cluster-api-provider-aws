@@ -34,10 +34,13 @@ import (
 )
 
 const (
+	// GitHubTagsURL is the endpoint used to fetch Kubernetes release tags.
 	GitHubTagsURL = "https://api.github.com/repos/kubernetes/kubernetes/tags"
 	// LatestVersionCount is the number of minor versions tracked per the CAPA AMI
 	// publication policy: https://cluster-api-aws.sigs.k8s.io/topics/images/built-amis#ami-publication-policy
 	LatestVersionCount = 3
+	// CapaModeToken is the CLI token selecting CAPA policy mode.
+	CapaModeToken = "capa"
 )
 
 // StableTagRe matches only stable release tags like v1.35.1.
@@ -61,23 +64,106 @@ type SupportedVersions struct {
 	Versions    []MinorVersion `json:"versions"`
 }
 
-// DetectVersionsForMinor detects all stable patch releases for one Kubernetes minor version.
+// DetectK8sVersions returns stable patch releases for CAPA mode or explicit minor inputs.
 //
 // Arguments:
-// minor: Target Kubernetes minor version in MAJOR.MINOR format (for example, "1.36").
 // token: GitHub token used to query Kubernetes tags API.
+// requestedMinors: Either "capa" or one/more MAJOR.MINOR values (for example, 1.36).
 //
 // Returns:
-// *MinorVersion with the requested minor and sorted patch versions, or an error.
-func DetectVersionsForMinor(minor, token string) (*MinorVersion, error) {
-	result, err := DetectK8sVersions(token, minor)
+// Supported minor-to-patch mappings with generation timestamp, or an error.
+func DetectK8sVersions(token string, requestedMinors ...string) (*SupportedVersions, error) {
+	if len(requestedMinors) == 0 {
+		return nil, fmt.Errorf("at least one requested minor is required")
+	}
+	allTags, err := FetchAllTags(token)
+	if err != nil {
+		return nil, fmt.Errorf("fetching tags: %w", err)
+	}
+	stableTags := FilterStableTags(allTags)
+	if len(stableTags) == 0 {
+		return nil, fmt.Errorf("no stable tags found")
+	}
+	patchesByMinor := GroupByMinor(stableTags)
+	resolvedMinors, err := ResolveRequestedMinors(patchesByMinor, requestedMinors)
 	if err != nil {
 		return nil, err
 	}
-	if len(result.Versions) == 0 {
-		return nil, fmt.Errorf("no stable releases found for Kubernetes %s", minor)
+	return BuildSupportedVersions(patchesByMinor, resolvedMinors), nil
+}
+
+// ResolveRequestedMinors resolves requested minor inputs into final MAJOR.MINOR keys.
+//
+// Arguments:
+// patchesByMinor: Map keyed by MAJOR.MINOR to stable patches.
+// requestedMinors: User-requested values where first arg may be "capa".
+//
+// Returns:
+// Ordered minor keys to render, or an error for invalid/unknown/duplicate inputs.
+func ResolveRequestedMinors(patchesByMinor map[string][]string, requestedMinors []string) ([]string, error) {
+	if requestedMinors[0] == CapaModeToken {
+		if len(requestedMinors) > 1 {
+			return nil, fmt.Errorf("invalid inputs to detect k8s releases version(s)")
+		}
+		return TopMinors(patchesByMinor, LatestVersionCount), nil
 	}
-	return &result.Versions[0], nil
+	seen := make(map[string]struct{}, len(requestedMinors))
+	resolved := make([]string, 0, len(requestedMinors))
+	for _, raw := range requestedMinors {
+		minor, err := ParseMinorInput(raw)
+		if err != nil {
+			return nil, err
+		}
+		if _, exists := patchesByMinor[minor]; !exists {
+			return nil, fmt.Errorf("unknown Kubernetes version %q", minor)
+		}
+		if _, duplicate := seen[minor]; duplicate {
+			return nil, fmt.Errorf("invalid inputs to detect k8s releases version(s)")
+		}
+		seen[minor] = struct{}{}
+		resolved = append(resolved, minor)
+	}
+	return resolved, nil
+}
+
+// ParseMinorInput normalizes and validates one MAJOR.MINOR input.
+//
+// Arguments:
+// raw: Raw user-provided minor version, optionally with "v" prefix.
+//
+// Returns:
+// Normalized MAJOR.MINOR value (without "v"), or an error.
+func ParseMinorInput(raw string) (string, error) {
+	normalized := strings.TrimPrefix(strings.TrimSpace(raw), "v")
+	parts := strings.SplitN(normalized, ".", 3)
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		return "", fmt.Errorf("invalid version %q: expected format MAJOR.MINOR (e.g. 1.6) or %q", raw, CapaModeToken)
+	}
+	return normalized, nil
+}
+
+// BuildSupportedVersions builds a SupportedVersions struct from the given patches by minor.
+//
+// Arguments:
+// patchesByMinor: Map keyed by MAJOR.MINOR to stable patches.
+// minors: List of MAJOR.MINOR values to include in the result.
+//
+// Returns:
+// *SupportedVersions: a list of minor-to-patches version mapping, or an error.
+func BuildSupportedVersions(patchesByMinor map[string][]string, minors []string) *SupportedVersions {
+	versions := make([]MinorVersion, 0, len(minors))
+	for _, minor := range minors {
+		patches := append([]string(nil), patchesByMinor[minor]...)
+		SortPatchesDesc(patches)
+		versions = append(versions, MinorVersion{
+			Minor:   minor,
+			Patches: patches,
+		})
+	}
+	return &SupportedVersions{
+		GeneratedAt: time.Now().UTC().Format(time.RFC3339),
+		Versions:    versions,
+	}
 }
 
 // ToTable converts SupportedVersions to a table representation for CLI output.
@@ -200,6 +286,26 @@ func GroupByMinor(tags []string) map[string][]string {
 	return groups
 }
 
+func versionGreater(a, b string, parts int) bool {
+	aParts := strings.SplitN(a, ".", parts)
+	bParts := strings.SplitN(b, ".", parts)
+
+	if len(aParts) != parts || len(bParts) != parts {
+		// fallback to string comparison if format is unexpected
+		return a > b
+	}
+
+	for i := range parts {
+		av, _ := strconv.Atoi(aParts[i])
+		bv, _ := strconv.Atoi(bParts[i])
+
+		if av != bv {
+			return av > bv
+		}
+	}
+
+	return false
+}
 
 // MinorGreater compares two MAJOR.MINOR versions and reports whether a is newer than b.
 //
@@ -210,22 +316,22 @@ func GroupByMinor(tags []string) map[string][]string {
 // Returns:
 // true when version a is greater than version b; otherwise false.
 func MinorGreater(a, b string) bool {
-	aParts := strings.SplitN(a, ".", 2)
-	bParts := strings.SplitN(b, ".", 2)
-	if len(aParts) != 2 || len(bParts) != 2 {
-		return a > b
-	}
-	aMaj, _ := strconv.Atoi(aParts[0])
-	bMaj, _ := strconv.Atoi(bParts[0])
-	if aMaj != bMaj {
-		return aMaj > bMaj
-	}
-	aMin, _ := strconv.Atoi(aParts[1])
-	bMin, _ := strconv.Atoi(bParts[1])
-	return aMin > bMin
+	return versionGreater(a, b, 2)
 }
 
-// TopMinors selects the highest minor versions and returns them in descending order.
+// PatchGreater compares two MAJOR.MINOR.PATCH versions and reports whether a is newer than b.
+//
+// Arguments:
+// a: Left patch version in MAJOR.MINOR.PATCH format.
+// b: Right patch version in MAJOR.MINOR.PATCH format.
+//
+// Returns:
+// true when version a is greater than version b; otherwise false.
+func PatchGreater(a, b string) bool {
+	return versionGreater(a, b, 3)
+}
+
+// TopMinors selects the latest/highest minor versions and returns them in descending order.
 //
 // Arguments:
 // groups: Map keyed by MAJOR.MINOR containing grouped patch versions.
@@ -245,30 +351,6 @@ func TopMinors(groups map[string][]string, n int) []string {
 		n = len(minors)
 	}
 	return minors[:n]
-}
-
-// PatchGreater compares two MAJOR.MINOR.PATCH versions and reports whether a is newer than b.
-//
-// Arguments:
-// a: Left patch version in MAJOR.MINOR.PATCH format.
-// b: Right patch version in MAJOR.MINOR.PATCH format.
-//
-// Returns:
-// true when version a is greater than version b; otherwise false.
-func PatchGreater(a, b string) bool {
-	aParts := strings.SplitN(a, ".", 3)
-	bParts := strings.SplitN(b, ".", 3)
-	if len(aParts) != 3 || len(bParts) != 3 {
-		return a > b
-	}
-	for i := range 3 {
-		av, _ := strconv.Atoi(aParts[i])
-		bv, _ := strconv.Atoi(bParts[i])
-		if av != bv {
-			return av > bv
-		}
-	}
-	return false
 }
 
 // SortPatchesDesc sorts patch versions in-place from newest to oldest.
