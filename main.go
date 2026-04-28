@@ -66,6 +66,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpoints"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	otel "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/otel/tracing"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/version"
 	capawebhooks "sigs.k8s.io/cluster-api-provider-aws/v2/webhooks"
@@ -182,6 +183,13 @@ func main() {
 	})
 
 	ctx := ctrl.SetupSignalHandler()
+
+	// Setup OpenTelemetry Tracing
+	tp, err := otel.InitTracer(ctx)
+	if err != nil {
+		setupLog.Error(err, "failed to initialize tracer")
+	}
+	defer tp.Shutdown(context.Background())
 
 	restConfig := ctrl.GetConfigOrDie()
 	restConfig.UserAgent = "cluster-api-provider-aws-controller"

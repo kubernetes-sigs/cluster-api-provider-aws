@@ -22,6 +22,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -137,6 +139,13 @@ func (r *AWSClusterReconciler) getSecurityGroupService(scope scope.ClusterScope)
 func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := logger.FromContext(ctx)
 
+	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
+
+	//creating span using OpenTelemetry SDK
+	tr := otel.Tracer("order-service")
+	ctx, span := tr.Start(ctx, "Reconcile() awscluster_controller.go")
+	defer span.End()
+
 	// Fetch the AWSCluster instance
 	awsCluster := &infrav1.AWSCluster{}
 	err := r.Get(ctx, req.NamespacedName, awsCluster)
@@ -202,6 +211,13 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 }
 
 func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope *scope.ClusterScope) (ctrl.Result, error) {
+	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
+
+	//creating span using OpenTelemetry SDK
+	tr := otel.Tracer("order-service")
+	ctx, span := tr.Start(ctx, "reconcileDelete() awscluster_controller.go")
+	defer span.End()
+
 	if !controllerutil.ContainsFinalizer(clusterScope.AWSCluster, infrav1.ClusterFinalizer) {
 		clusterScope.Info("No finalizer on AWSCluster, skipping deletion reconciliation")
 		return reconcile.Result{}, nil
@@ -282,6 +298,13 @@ func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope
 }
 
 func (r *AWSClusterReconciler) reconcileLoadBalancer(ctx context.Context, clusterScope *scope.ClusterScope, awsCluster *infrav1.AWSCluster) (*time.Duration, error) {
+	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
+
+	//creating span using OpenTelemetry SDK
+	tr := otel.Tracer("order-service")
+	ctx, span := tr.Start(ctx, "reconcileLoadBalancer() awscluster_controller.go")
+	defer span.End()
+
 	retryAfterDuration := 15 * time.Second
 	if clusterScope.AWSCluster.Spec.ControlPlaneLoadBalancer.LoadBalancerType == infrav1.LoadBalancerTypeDisabled {
 		clusterScope.Debug("load balancer reconciliation shifted to external provider, checking external endpoint")
@@ -314,6 +337,12 @@ func (r *AWSClusterReconciler) reconcileLoadBalancer(ctx context.Context, cluste
 }
 
 func (r *AWSClusterReconciler) reconcileNormal(ctx context.Context, clusterScope *scope.ClusterScope) (reconcile.Result, error) {
+	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
+
+	//creating span using OpenTelemetry SDK
+	tr := otel.Tracer("order-service")
+	ctx, span := tr.Start(ctx, "reconcileNormal() awscluster_controller.go")
+	defer span.End()
 	clusterScope.Info("Reconciling AWSCluster")
 
 	awsCluster := clusterScope.AWSCluster
