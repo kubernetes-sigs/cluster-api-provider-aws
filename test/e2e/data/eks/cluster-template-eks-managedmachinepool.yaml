@@ -51,5 +51,6 @@ spec:
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSManagedMachinePool
 metadata:
+  amiType: AL2023_x86_64_STANDARD
   name: "${CLUSTER_NAME}-pool-0"
 spec: {}

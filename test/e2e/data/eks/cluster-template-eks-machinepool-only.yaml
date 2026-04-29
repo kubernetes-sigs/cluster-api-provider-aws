@@ -28,7 +28,7 @@ spec:
   maxSize: 3
   awsLaunchTemplate:
     ami:
-        eksLookupType: AmazonLinux2023
+      eksLookupType: AmazonLinux2023
     # TODO DO NOT MERGE UNTIL CLARIFIED Do we need this? It's not a field for AWSMachinePool.
     # cloudInit:
     #   insecureSkipSecretsManager: true
