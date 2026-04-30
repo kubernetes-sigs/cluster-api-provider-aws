@@ -23,6 +23,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -139,6 +140,84 @@ func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolSpecInpu
 			MachinePool: mp[0],
 		})
 
+		waitForMachinePoolDeleted(ctx, waitForMachinePoolDeletedInput{
+			Getter:      input.BootstrapClusterProxy.GetClient(),
+			MachinePool: mp[0],
+		}, input.E2EConfig.GetIntervals("", "wait-delete-machine-pool")...)
+	}
+}
+
+// BYOMachinePoolSpecInput is the input for BYOMachinePoolSpec.
+type BYOMachinePoolSpecInput struct {
+	E2EConfig             *clusterctl.E2EConfig
+	ConfigClusterFn       DefaultConfigClusterFn
+	BootstrapClusterProxy framework.ClusterProxy
+	AWSSession            *aws.Config
+	Namespace             *corev1.Namespace
+	ClusterName           string
+	Cleanup               bool
+	// BYOLaunchTemplate is a pre-created launch template to reference.
+	BYOLaunchTemplate BYOLaunchTemplate
+}
+
+// BYOMachinePoolSpec tests creating an EKS managed node group that references a user-provided
+// (BYO) launch template. CAPA must not create, update, or delete the launch template.
+func BYOMachinePoolSpec(ctx context.Context, inputGetter func() BYOMachinePoolSpecInput) {
+	input := inputGetter()
+	Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil")
+	Expect(input.ConfigClusterFn).ToNot(BeNil(), "Invalid argument. input.ConfigClusterFn can't be nil")
+	Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil")
+	Expect(input.AWSSession).ToNot(BeNil(), "Invalid argument. input.AWSSession can't be nil")
+	Expect(input.Namespace).NotTo(BeNil(), "Invalid argument. input.Namespace can't be nil")
+	Expect(input.ClusterName).ShouldNot(BeEmpty(), "Invalid argument. input.ClusterName can't be empty")
+	Expect(input.BYOLaunchTemplate.ID).ShouldNot(BeEmpty(), "Invalid argument. BYOLaunchTemplate.ID can't be empty")
+
+	ginkgo.By(fmt.Sprintf("getting cluster with name %s", input.ClusterName))
+	cluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
+		Getter:    input.BootstrapClusterProxy.GetClient(),
+		Namespace: input.Namespace.Name,
+		Name:      input.ClusterName,
+	})
+	Expect(cluster).NotTo(BeNil(), "couldn't find CAPI cluster")
+
+	ginkgo.By(fmt.Sprintf("applying the %s template with BYO launch template %s@v%d",
+		EKSManagedMachinePoolWithBYOLaunchTemplateOnlyFlavor,
+		input.BYOLaunchTemplate.ID, input.BYOLaunchTemplate.Version))
+
+	// clusterctl.ConfigCluster (used by shared.GetTemplate) performs strict variable
+	// substitution and fails when ${BYO_LAUNCH_TEMPLATE_ID} / ${BYO_LAUNCH_TEMPLATE_VERSION}
+	// are not resolvable. Export them so the flavor's YAML can be rendered correctly.
+	shared.SetEnvVar(shared.BYOLaunchTemplateID, input.BYOLaunchTemplate.ID, false)
+	shared.SetEnvVar(shared.BYOLaunchTemplateVersion,
+		strconv.FormatInt(input.BYOLaunchTemplate.Version, 10), false)
+
+	configCluster := input.ConfigClusterFn(input.ClusterName, input.Namespace.Name)
+	configCluster.Flavor = EKSManagedMachinePoolWithBYOLaunchTemplateOnlyFlavor
+	configCluster.WorkerMachineCount = ptr.To[int64](1)
+	workloadClusterTemplate := shared.GetTemplate(ctx, configCluster)
+
+	ginkgo.By(fmt.Sprintf("Applying the %s cluster template yaml to the cluster", configCluster.Flavor))
+	err := input.BootstrapClusterProxy.CreateOrUpdate(ctx, workloadClusterTemplate)
+	Expect(err).ShouldNot(HaveOccurred())
+
+	ginkgo.By("Waiting for the machine pool to be running")
+	mp := framework.DiscoveryAndWaitForMachinePools(ctx, framework.DiscoveryAndWaitForMachinePoolsInput{
+		Lister:  input.BootstrapClusterProxy.GetClient(),
+		Getter:  input.BootstrapClusterProxy.GetClient(),
+		Cluster: cluster,
+	}, input.E2EConfig.GetIntervals("", "wait-worker-nodes")...)
+	Expect(len(mp)).To(Equal(1))
+
+	ginkgo.By("Verifying the node group uses the BYO launch template")
+	eksClusterName := getEKSClusterName(input.Namespace.Name, input.ClusterName)
+	nodeGroupName := getEKSNodegroupWithBYOLaunchTemplateName(input.Namespace.Name, input.ClusterName)
+	verifyManagedNodeGroupUsesBYOLaunchTemplate(ctx, eksClusterName, nodeGroupName, input.BYOLaunchTemplate.ID, input.AWSSession)
+
+	if input.Cleanup {
+		deleteMachinePool(ctx, deleteMachinePoolInput{
+			Deleter:     input.BootstrapClusterProxy.GetClient(),
+			MachinePool: mp[0],
+		})
 		waitForMachinePoolDeleted(ctx, waitForMachinePoolDeletedInput{
 			Getter:      input.BootstrapClusterProxy.GetClient(),
 			MachinePool: mp[0],

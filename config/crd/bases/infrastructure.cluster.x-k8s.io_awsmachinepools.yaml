@@ -668,6 +668,14 @@ spec:
                       with the IAM role for the instance. The instance profile contains the IAM
                       role.
                     type: string
+                  id:
+                    description: |-
+                      ID is the ID of an existing launch template (e.g. lt-xxxx). When set, CAPA will
+                      not create or manage the launch template and will use the referenced one directly.
+                    type: string
+                    x-kubernetes-validations:
+                    - message: ID is immutable
+                      rule: self == oldSelf
                   imageLookupBaseOS:
                     description: |-
                       ImageLookupBaseOS is the name of the base operating system to use for
@@ -784,6 +792,9 @@ spec:
                   name:
                     description: The name of the launch template.
                     type: string
+                    x-kubernetes-validations:
+                    - message: Name is immutable once set
+                      rule: self == oldSelf
                   nonRootVolumes:
                     description: Configuration options for the non root storage volumes.
                     items:
