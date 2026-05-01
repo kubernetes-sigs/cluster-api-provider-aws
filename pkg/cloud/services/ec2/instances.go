@@ -1072,12 +1072,13 @@ func (s *Service) getInstanceAddresses(instance types.Instance) []clusterv1beta1
 
 		for _, ipv6 := range eni.Ipv6Addresses {
 			if addr := aws.ToString(ipv6.Ipv6Address); addr != "" {
-				if ip := net.ParseIP(addr); ip != nil && ip.IsLinkLocalUnicast() {
+				ip := net.ParseIP(addr)
+				if ip == nil || ip.IsLinkLocalUnicast() {
 					continue
 				}
 				ipv6Address := clusterv1beta1.MachineAddress{
-					Type:    clusterv1beta1.MachineExternalIP,
-					Address: addr,
+					Type:    clusterv1beta1.MachineInternalIP,
+					Address: ip.String(),
 				}
 				addresses = append(addresses, ipv6Address)
 			}

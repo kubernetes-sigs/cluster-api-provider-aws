@@ -6574,7 +6574,7 @@ func TestGetInstanceAddresses(t *testing.T) {
 				},
 			},
 			expectedAddresses: []clusterv1beta1.MachineAddress{
-				{Type: clusterv1beta1.MachineExternalIP, Address: "2600:1f13:abc:de00::1"},
+				{Type: clusterv1beta1.MachineInternalIP, Address: "2600:1f13:abc:de00::1"},
 			},
 		},
 		{
@@ -6591,11 +6591,11 @@ func TestGetInstanceAddresses(t *testing.T) {
 			expectedAddresses: []clusterv1beta1.MachineAddress{
 				{Type: clusterv1beta1.MachineInternalDNS, Address: "ip-10-0-1-5.us-west-2.compute.internal"},
 				{Type: clusterv1beta1.MachineInternalIP, Address: "10.0.1.5"},
-				{Type: clusterv1beta1.MachineExternalIP, Address: "2600:1f13:abc:de00::1"},
+				{Type: clusterv1beta1.MachineInternalIP, Address: "2600:1f13:abc:de00::1"},
 			},
 		},
 		{
-			name: "multiple IPv6 addresses are all included",
+			name: "multiple IPv6 addresses in the same ENI are all included",
 			networkInterfaces: []types.InstanceNetworkInterface{
 				{
 					Ipv6Addresses: []types.InstanceIpv6Address{
@@ -6605,8 +6605,8 @@ func TestGetInstanceAddresses(t *testing.T) {
 				},
 			},
 			expectedAddresses: []clusterv1beta1.MachineAddress{
-				{Type: clusterv1beta1.MachineExternalIP, Address: "2600:1f13:abc:de00::1"},
-				{Type: clusterv1beta1.MachineExternalIP, Address: "2600:1f13:abc:de00::2"},
+				{Type: clusterv1beta1.MachineInternalIP, Address: "2600:1f13:abc:de00::1"},
+				{Type: clusterv1beta1.MachineInternalIP, Address: "2600:1f13:abc:de00::2"},
 			},
 		},
 		{
@@ -6616,6 +6616,20 @@ func TestGetInstanceAddresses(t *testing.T) {
 					PrivateIpAddress: aws.String("10.0.1.5"),
 					Ipv6Addresses: []types.InstanceIpv6Address{
 						{Ipv6Address: aws.String("fe80::1")},
+					},
+				},
+			},
+			expectedAddresses: []clusterv1beta1.MachineAddress{
+				{Type: clusterv1beta1.MachineInternalIP, Address: "10.0.1.5"},
+			},
+		},
+		{
+			name: "invalid IPv6 address is skipped",
+			networkInterfaces: []types.InstanceNetworkInterface{
+				{
+					PrivateIpAddress: aws.String("10.0.1.5"),
+					Ipv6Addresses: []types.InstanceIpv6Address{
+						{Ipv6Address: aws.String("not-an-ip")},
 					},
 				},
 			},
@@ -6645,7 +6659,48 @@ func TestGetInstanceAddresses(t *testing.T) {
 				},
 			},
 			expectedAddresses: []clusterv1beta1.MachineAddress{
-				{Type: clusterv1beta1.MachineExternalIP, Address: "2600:1f13:abc:de00::1"},
+				{Type: clusterv1beta1.MachineInternalIP, Address: "2600:1f13:abc:de00::1"},
+			},
+		},
+		{
+			name: "empty IPv6 address in ENI is skipped",
+			networkInterfaces: []types.InstanceNetworkInterface{
+				{
+					PrivateIpAddress: aws.String("10.0.1.5"),
+					Ipv6Addresses: []types.InstanceIpv6Address{
+						{Ipv6Address: aws.String("")},
+					},
+				},
+			},
+			expectedAddresses: []clusterv1beta1.MachineAddress{
+				{Type: clusterv1beta1.MachineInternalIP, Address: "10.0.1.5"},
+			},
+		},
+		{
+			name: "multiple ENIs with IPv6 addresses",
+			networkInterfaces: []types.InstanceNetworkInterface{
+				{
+					PrivateDnsName:   aws.String("ip-10-0-1-5.us-west-2.compute.internal"),
+					PrivateIpAddress: aws.String("10.0.1.5"),
+					Ipv6Addresses: []types.InstanceIpv6Address{
+						{Ipv6Address: aws.String("2600:1f13:abc:de00::1")},
+					},
+				},
+				{
+					PrivateDnsName:   aws.String("ip-10-0-2-5.us-west-2.compute.internal"),
+					PrivateIpAddress: aws.String("10.0.2.5"),
+					Ipv6Addresses: []types.InstanceIpv6Address{
+						{Ipv6Address: aws.String("2600:1f13:abc:de00::2")},
+					},
+				},
+			},
+			expectedAddresses: []clusterv1beta1.MachineAddress{
+				{Type: clusterv1beta1.MachineInternalDNS, Address: "ip-10-0-1-5.us-west-2.compute.internal"},
+				{Type: clusterv1beta1.MachineInternalIP, Address: "10.0.1.5"},
+				{Type: clusterv1beta1.MachineInternalIP, Address: "2600:1f13:abc:de00::1"},
+				{Type: clusterv1beta1.MachineInternalDNS, Address: "ip-10-0-2-5.us-west-2.compute.internal"},
+				{Type: clusterv1beta1.MachineInternalIP, Address: "10.0.2.5"},
+				{Type: clusterv1beta1.MachineInternalIP, Address: "2600:1f13:abc:de00::2"},
 			},
 		},
 	}
