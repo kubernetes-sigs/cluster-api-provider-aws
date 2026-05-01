@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"net"
 	"sort"
 	"strings"
 	"time"
@@ -1066,6 +1067,20 @@ func (s *Service) getInstanceAddresses(instance types.Instance) []clusterv1beta1
 					Address: addr,
 				}
 				addresses = append(addresses, publicIPAddress)
+			}
+		}
+
+		for _, ipv6 := range eni.Ipv6Addresses {
+			if addr := aws.ToString(ipv6.Ipv6Address); addr != "" {
+				ip := net.ParseIP(addr)
+				if ip == nil || ip.IsLinkLocalUnicast() {
+					continue
+				}
+				ipv6Address := clusterv1beta1.MachineAddress{
+					Type:    clusterv1beta1.MachineInternalIP,
+					Address: ip.String(),
+				}
+				addresses = append(addresses, ipv6Address)
 			}
 		}
 	}

@@ -6539,6 +6539,203 @@ func TestGetDHCPOptionSetDomainName(t *testing.T) {
 	}
 }
 
+func TestGetInstanceAddresses(t *testing.T) {
+	testCases := []struct {
+		name              string
+		networkInterfaces []types.InstanceNetworkInterface
+		expectedAddresses []clusterv1beta1.MachineAddress
+	}{
+		{
+			name: "IPv4 only instance returns IPv4 internal and external addresses",
+			networkInterfaces: []types.InstanceNetworkInterface{
+				{
+					PrivateDnsName:   aws.String("ip-10-0-1-5.us-west-2.compute.internal"),
+					PrivateIpAddress: aws.String("10.0.1.5"),
+					Association: &types.InstanceNetworkInterfaceAssociation{
+						PublicDnsName: aws.String("ec2-1-2-3-4.us-west-2.compute.amazonaws.com"),
+						PublicIp:      aws.String("1.2.3.4"),
+					},
+				},
+			},
+			expectedAddresses: []clusterv1beta1.MachineAddress{
+				{Type: clusterv1beta1.MachineInternalDNS, Address: "ip-10-0-1-5.us-west-2.compute.internal"},
+				{Type: clusterv1beta1.MachineInternalIP, Address: "10.0.1.5"},
+				{Type: clusterv1beta1.MachineExternalDNS, Address: "ec2-1-2-3-4.us-west-2.compute.amazonaws.com"},
+				{Type: clusterv1beta1.MachineExternalIP, Address: "1.2.3.4"},
+			},
+		},
+		{
+			name: "IPv6-only instance returns IPv6 address as ExternalIP",
+			networkInterfaces: []types.InstanceNetworkInterface{
+				{
+					Ipv6Addresses: []types.InstanceIpv6Address{
+						{Ipv6Address: aws.String("2600:1f13:abc:de00::1")},
+					},
+				},
+			},
+			expectedAddresses: []clusterv1beta1.MachineAddress{
+				{Type: clusterv1beta1.MachineInternalIP, Address: "2600:1f13:abc:de00::1"},
+			},
+		},
+		{
+			name: "dual-stack instance returns both IPv4 and IPv6 addresses",
+			networkInterfaces: []types.InstanceNetworkInterface{
+				{
+					PrivateDnsName:   aws.String("ip-10-0-1-5.us-west-2.compute.internal"),
+					PrivateIpAddress: aws.String("10.0.1.5"),
+					Ipv6Addresses: []types.InstanceIpv6Address{
+						{Ipv6Address: aws.String("2600:1f13:abc:de00::1")},
+					},
+				},
+			},
+			expectedAddresses: []clusterv1beta1.MachineAddress{
+				{Type: clusterv1beta1.MachineInternalDNS, Address: "ip-10-0-1-5.us-west-2.compute.internal"},
+				{Type: clusterv1beta1.MachineInternalIP, Address: "10.0.1.5"},
+				{Type: clusterv1beta1.MachineInternalIP, Address: "2600:1f13:abc:de00::1"},
+			},
+		},
+		{
+			name: "multiple IPv6 addresses in the same ENI are all included",
+			networkInterfaces: []types.InstanceNetworkInterface{
+				{
+					Ipv6Addresses: []types.InstanceIpv6Address{
+						{Ipv6Address: aws.String("2600:1f13:abc:de00::1")},
+						{Ipv6Address: aws.String("2600:1f13:abc:de00::2")},
+					},
+				},
+			},
+			expectedAddresses: []clusterv1beta1.MachineAddress{
+				{Type: clusterv1beta1.MachineInternalIP, Address: "2600:1f13:abc:de00::1"},
+				{Type: clusterv1beta1.MachineInternalIP, Address: "2600:1f13:abc:de00::2"},
+			},
+		},
+		{
+			name: "link-local unicast IPv6 address is skipped",
+			networkInterfaces: []types.InstanceNetworkInterface{
+				{
+					PrivateIpAddress: aws.String("10.0.1.5"),
+					Ipv6Addresses: []types.InstanceIpv6Address{
+						{Ipv6Address: aws.String("fe80::1")},
+					},
+				},
+			},
+			expectedAddresses: []clusterv1beta1.MachineAddress{
+				{Type: clusterv1beta1.MachineInternalIP, Address: "10.0.1.5"},
+			},
+		},
+		{
+			name: "invalid IPv6 address is skipped",
+			networkInterfaces: []types.InstanceNetworkInterface{
+				{
+					PrivateIpAddress: aws.String("10.0.1.5"),
+					Ipv6Addresses: []types.InstanceIpv6Address{
+						{Ipv6Address: aws.String("not-an-ip")},
+					},
+				},
+			},
+			expectedAddresses: []clusterv1beta1.MachineAddress{
+				{Type: clusterv1beta1.MachineInternalIP, Address: "10.0.1.5"},
+			},
+		},
+		{
+			name: "only link-local IPv6 address present yields no IPv6 entry",
+			networkInterfaces: []types.InstanceNetworkInterface{
+				{
+					Ipv6Addresses: []types.InstanceIpv6Address{
+						{Ipv6Address: aws.String("fe80::abcd:ef01")},
+					},
+				},
+			},
+			expectedAddresses: []clusterv1beta1.MachineAddress{},
+		},
+		{
+			name: "mix of link-local and global IPv6 addresses: only global is included",
+			networkInterfaces: []types.InstanceNetworkInterface{
+				{
+					Ipv6Addresses: []types.InstanceIpv6Address{
+						{Ipv6Address: aws.String("fe80::1")},
+						{Ipv6Address: aws.String("2600:1f13:abc:de00::1")},
+					},
+				},
+			},
+			expectedAddresses: []clusterv1beta1.MachineAddress{
+				{Type: clusterv1beta1.MachineInternalIP, Address: "2600:1f13:abc:de00::1"},
+			},
+		},
+		{
+			name: "empty IPv6 address in ENI is skipped",
+			networkInterfaces: []types.InstanceNetworkInterface{
+				{
+					PrivateIpAddress: aws.String("10.0.1.5"),
+					Ipv6Addresses: []types.InstanceIpv6Address{
+						{Ipv6Address: aws.String("")},
+					},
+				},
+			},
+			expectedAddresses: []clusterv1beta1.MachineAddress{
+				{Type: clusterv1beta1.MachineInternalIP, Address: "10.0.1.5"},
+			},
+		},
+		{
+			name: "multiple ENIs with IPv6 addresses",
+			networkInterfaces: []types.InstanceNetworkInterface{
+				{
+					PrivateDnsName:   aws.String("ip-10-0-1-5.us-west-2.compute.internal"),
+					PrivateIpAddress: aws.String("10.0.1.5"),
+					Ipv6Addresses: []types.InstanceIpv6Address{
+						{Ipv6Address: aws.String("2600:1f13:abc:de00::1")},
+					},
+				},
+				{
+					PrivateDnsName:   aws.String("ip-10-0-2-5.us-west-2.compute.internal"),
+					PrivateIpAddress: aws.String("10.0.2.5"),
+					Ipv6Addresses: []types.InstanceIpv6Address{
+						{Ipv6Address: aws.String("2600:1f13:abc:de00::2")},
+					},
+				},
+			},
+			expectedAddresses: []clusterv1beta1.MachineAddress{
+				{Type: clusterv1beta1.MachineInternalDNS, Address: "ip-10-0-1-5.us-west-2.compute.internal"},
+				{Type: clusterv1beta1.MachineInternalIP, Address: "10.0.1.5"},
+				{Type: clusterv1beta1.MachineInternalIP, Address: "2600:1f13:abc:de00::1"},
+				{Type: clusterv1beta1.MachineInternalDNS, Address: "ip-10-0-2-5.us-west-2.compute.internal"},
+				{Type: clusterv1beta1.MachineInternalIP, Address: "10.0.2.5"},
+				{Type: clusterv1beta1.MachineInternalIP, Address: "2600:1f13:abc:de00::2"},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
+			scheme, err := setupScheme()
+			g.Expect(err).ToNot(HaveOccurred())
+
+			client := fake.NewClientBuilder().WithScheme(scheme).Build()
+			cs, err := scope.NewClusterScope(scope.ClusterScopeParams{
+				Client:  client,
+				Cluster: &clusterv1.Cluster{},
+				AWSCluster: &infrav1.AWSCluster{
+					ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				},
+			})
+			g.Expect(err).ToNot(HaveOccurred())
+
+			ec2Svc := NewService(cs)
+			ec2Svc.EC2Client = ec2Mock
+
+			instance := types.Instance{
+				NetworkInterfaces: tc.networkInterfaces,
+			}
+			addresses := ec2Svc.getInstanceAddresses(instance)
+			g.Expect(addresses).To(ConsistOf(tc.expectedAddresses))
+		})
+	}
+}
+
 func mockedGetPrivateDNSDomainNameFromDHCPOptionsCalls(m *mocks.MockEC2APIMockRecorder) {
 	m.DescribeVpcs(context.TODO(), &ec2.DescribeVpcsInput{
 		VpcIds: []string{"vpc-exists"},
