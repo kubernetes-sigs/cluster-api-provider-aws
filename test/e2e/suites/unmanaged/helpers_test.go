@@ -389,6 +389,44 @@ func terminateInstance(instanceID string) {
 	Expect(utils.ToInt64Value(result.TerminatingInstances[0].CurrentState.Code)).To(Equal(termCode))
 }
 
+func assertNitroEnclaveEnabled(ctx context.Context, clusterName string) {
+	ginkgo.By(fmt.Sprintf("Verifying Nitro Enclave enabled on instances in cluster: %s", clusterName))
+	ec2Client := ec2.NewFromConfig(*e2eCtx.AWSSession)
+	// Filter only worker (node) instances — control plane uses AWSMachineTemplate, not AWSLaunchTemplate,
+	// so enclaveOptions does not apply to it.
+	input := &ec2.DescribeInstancesInput{
+		Filters: []types.Filter{
+			{
+				Name:   aws.String("tag:sigs.k8s.io/cluster-api-provider-aws/cluster/" + clusterName),
+				Values: []string{"owned"},
+			},
+			{
+				Name:   aws.String("tag:sigs.k8s.io/cluster-api-provider-aws/role"),
+				Values: []string{"node"},
+			},
+			{
+				Name:   aws.String("instance-state-name"),
+				Values: []string{"running"},
+			},
+		},
+	}
+	// Use Eventually because MachinePool instances may not yet be running immediately
+	// after createCluster returns (ApplyClusterTemplateAndWait waits for MachineDeployments,
+	// not MachinePools).
+	Eventually(func(g Gomega) {
+		result, err := ec2Client.DescribeInstances(ctx, input)
+		g.Expect(err).To(BeNil())
+		g.Expect(result.Reservations).ToNot(BeEmpty())
+		for _, r := range result.Reservations {
+			for _, inst := range r.Instances {
+				g.Expect(inst.EnclaveOptions).ToNot(BeNil())
+				g.Expect(aws.ToBool(inst.EnclaveOptions.Enabled)).To(BeTrue(),
+					"expected instance %s to have EnclaveOptions.Enabled=true", aws.ToString(inst.InstanceId))
+			}
+		}
+	}, e2eCtx.E2EConfig.GetIntervals("", "wait-machine-pool-nodes")...).Should(Succeed())
+}
+
 // LatestCIReleaseForVersion returns the latest ci release of a specific version.
 func LatestCIReleaseForVersion(searchVersion string) (string, error) {
 	ciVersionURL := "https://dl.k8s.io/ci/latest-%d.%d.txt"

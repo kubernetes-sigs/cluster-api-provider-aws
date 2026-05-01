@@ -64,6 +64,8 @@ const (
 	LaunchTemplateNeedsUpdateReasonSSHKeyName LaunchTemplateNeedsUpdateReason = "SSHKeyName"
 	// LaunchTemplateNeedsUpdateReasonAdditionalSecurityGroupIDs means a difference in the additional security group IDs was found.
 	LaunchTemplateNeedsUpdateReasonAdditionalSecurityGroupIDs LaunchTemplateNeedsUpdateReason = "AdditionalSecurityGroupIDs"
+	// LaunchTemplateNeedsUpdateReasonEnclaveOptions means a difference in the enclave options was found.
+	LaunchTemplateNeedsUpdateReasonEnclaveOptions LaunchTemplateNeedsUpdateReason = "EnclaveOptions"
 )
 
 // ASGInterface encapsulates the methods exposed to the machinepool

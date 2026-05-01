@@ -1844,3 +1844,100 @@ func TestDiffASG(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateEnclaveOptionsForEdgeZones(t *testing.T) {
+	zoneTypeAZ := infrav1.ZoneTypeAvailabilityZone
+	zoneTypeLocal := infrav1.ZoneTypeLocalZone
+	zoneTypeWavelength := infrav1.ZoneTypeWavelengthZone
+
+	tests := []struct {
+		name           string
+		enclaveOptions *infrav1.EnclaveOptions
+		specSubnetIDs  []string
+		specAZs        []string
+		clusterSubnets infrav1.Subnets
+		wantErr        bool
+	}{
+		{
+			name:           "enclaves disabled, edge-zone subnet present",
+			enclaveOptions: nil,
+			specSubnetIDs:  []string{"subnet-localzone"},
+			clusterSubnets: infrav1.Subnets{{ResourceID: "subnet-localzone", AvailabilityZone: "us-east-1-nyc-1a", ZoneType: &zoneTypeLocal}},
+			wantErr:        false,
+		},
+		{
+			name:           "enclaves enabled, standard AZ subnet by ID",
+			enclaveOptions: &infrav1.EnclaveOptions{Enabled: ptr.To(true)},
+			specSubnetIDs:  []string{"subnet-standard"},
+			clusterSubnets: infrav1.Subnets{{ResourceID: "subnet-standard", AvailabilityZone: "us-east-1a", ZoneType: &zoneTypeAZ}},
+			wantErr:        false,
+		},
+		{
+			name:           "enclaves enabled, local-zone subnet by ID",
+			enclaveOptions: &infrav1.EnclaveOptions{Enabled: ptr.To(true)},
+			specSubnetIDs:  []string{"subnet-localzone"},
+			clusterSubnets: infrav1.Subnets{{ResourceID: "subnet-localzone", AvailabilityZone: "us-east-1-nyc-1a", ZoneType: &zoneTypeLocal}},
+			wantErr:        true,
+		},
+		{
+			name:           "enclaves enabled, wavelength-zone subnet by ID",
+			enclaveOptions: &infrav1.EnclaveOptions{Enabled: ptr.To(true)},
+			specSubnetIDs:  []string{"subnet-wlz"},
+			clusterSubnets: infrav1.Subnets{{ResourceID: "subnet-wlz", AvailabilityZone: "us-east-1-wl1-bos-wlz-1", ZoneType: &zoneTypeWavelength}},
+			wantErr:        true,
+		},
+		{
+			name:           "enclaves enabled, local-zone by AZ name",
+			enclaveOptions: &infrav1.EnclaveOptions{Enabled: ptr.To(true)},
+			specAZs:        []string{"us-east-1-nyc-1a"},
+			clusterSubnets: infrav1.Subnets{{ResourceID: "subnet-localzone", AvailabilityZone: "us-east-1-nyc-1a", ZoneType: &zoneTypeLocal}},
+			wantErr:        true,
+		},
+		{
+			name:           "enclaves enabled, no explicit subnets or AZs",
+			enclaveOptions: &infrav1.EnclaveOptions{Enabled: ptr.To(true)},
+			clusterSubnets: infrav1.Subnets{{ResourceID: "subnet-standard", AvailabilityZone: "us-east-1a", ZoneType: &zoneTypeAZ}},
+			wantErr:        false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			subnets := make([]infrav1.AWSResourceReference, 0, len(tt.specSubnetIDs))
+			for _, id := range tt.specSubnetIDs {
+				idCopy := id
+				subnets = append(subnets, infrav1.AWSResourceReference{ID: &idCopy})
+			}
+
+			ms := &scope.MachinePoolScope{
+				InfraCluster: &scope.ClusterScope{
+					AWSCluster: &infrav1.AWSCluster{
+						Spec: infrav1.AWSClusterSpec{
+							NetworkSpec: infrav1.NetworkSpec{
+								Subnets: tt.clusterSubnets,
+							},
+						},
+					},
+				},
+				AWSMachinePool: &expinfrav1.AWSMachinePool{
+					Spec: expinfrav1.AWSMachinePoolSpec{
+						Subnets:           subnets,
+						AvailabilityZones: tt.specAZs,
+						AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+							EnclaveOptions: tt.enclaveOptions,
+						},
+					},
+				},
+			}
+
+			err := validateEnclaveOptionsForEdgeZones(ms)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+			}
+		})
+	}
+}
