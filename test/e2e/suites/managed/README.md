@@ -14,3 +14,13 @@ For example, in [eks_test.go](eks_test.go) we perform the following steps:
 6. Perform tests against the machine pool
 7. Apply a AWSMachinePool
 8. Perform tests against the machine pool
+
+## EKS Quick Test
+
+The [eks_quick_test.go](eks_quick_test.go) implements a minimalist quick test for EKS clusters that is designed to run on every PR as a sanity check. This test is tagged with `[PR-Blocking]` and `[smoke]` labels.
+
+This test creates a basic EKS cluster with:
+1. An EKS control plane
+2. A single managed node group
+
+The test validates basic cluster provisioning and then performs cleanup. It is designed to be fast and provide quick feedback on PRs without running the full test suite.
