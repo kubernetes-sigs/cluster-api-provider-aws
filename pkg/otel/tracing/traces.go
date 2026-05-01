@@ -13,7 +13,8 @@ import (
 )
 
 func InitTracer(ctx context.Context) (*sdktrace.TracerProvider, error) {
-	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")
+	endpoint := "host.docker.internal:4317"
+
 	if endpoint == "" {
 		endpoint = os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 	}
