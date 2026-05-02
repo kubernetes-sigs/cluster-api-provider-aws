@@ -23,7 +23,8 @@ metadata:
 spec:
   amiType: CUSTOM
   awsLaunchTemplate:
-    ami: {}
+    ami:
+      eksLookupType: AmazonLinux2023
   scaling:
     minSize: 1
     maxSize: 2
