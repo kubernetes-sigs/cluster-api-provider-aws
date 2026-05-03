@@ -79,9 +79,7 @@ to request multiple minors, pass them as a comma-separated list.`,
 				return fmt.Errorf("--version and --latest-version-count are mutually exclusive")
 			}
 
-			// Fall back to $GITHUB_TOKEN when --token isn't supplied. The flag's
-			// default is intentionally empty so the token does not leak into
-			// `--help` output or other places cobra prints flag defaults.
+			// Fall back to $GITHUB_TOKEN when --token isn't supplied.
 			if token == "" {
 				token = os.Getenv("GITHUB_TOKEN")
 			}
