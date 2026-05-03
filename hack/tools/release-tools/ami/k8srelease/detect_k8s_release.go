@@ -268,12 +268,9 @@ func TopMinors(groups map[string][]string, n int) []string {
 		minors = append(minors, m)
 	}
 	sort.Slice(minors, func(i, j int) bool {
-		a, errA := parseSemver(minors[i])
-		b, errB := parseSemver(minors[j])
-		if errA != nil || errB != nil {
-			return minors[i] > minors[j]
-		}
-		return a.GT(b)
+		a, _ := parseSemver(minors[i])
+		b, _ := parseSemver(minors[j])
+		return a.Compare(b) > 0
 	})
 	if n > len(minors) {
 		n = len(minors)
@@ -290,11 +287,8 @@ func TopMinors(groups map[string][]string, n int) []string {
 // None. The input slice is modified in place.
 func SortPatchesDesc(patches []string) {
 	sort.Slice(patches, func(i, j int) bool {
-		a, errA := parseSemver(patches[i])
-		b, errB := parseSemver(patches[j])
-		if errA != nil || errB != nil {
-			return patches[i] > patches[j]
-		}
-		return a.GT(b)
+		a, _ := parseSemver(patches[i])
+		b, _ := parseSemver(patches[j])
+		return a.Compare(b) > 0
 	})
 }
