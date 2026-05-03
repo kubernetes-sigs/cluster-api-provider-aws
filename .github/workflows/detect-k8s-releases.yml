@@ -34,7 +34,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p hack/tools/release-tools/ami/k8srelease/data
-          ./bin/release-tool ami detect-k8s-release --token "$GITHUB_TOKEN" --output json > hack/tools/release-tools/ami/k8srelease/data/AMIBuildConfig.json
+          ./bin/release-tool ami detect-k8s-release --output json > hack/tools/release-tools/ami/k8srelease/data/AMIBuildConfig.json
 
       - name: Open PR if versions changed
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
