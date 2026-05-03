@@ -34,7 +34,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/controller"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/eks"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/gc"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/k8srelease"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/resource"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/version"
 )
@@ -76,7 +75,6 @@ func RootCmd() *cobra.Command {
 	newCmd.AddCommand(controller.RootCmd())
 	newCmd.AddCommand(resource.RootCmd())
 	newCmd.AddCommand(gc.RootCmd())
-	newCmd.AddCommand(k8srelease.Cmd())
 
 	return newCmd
 }
