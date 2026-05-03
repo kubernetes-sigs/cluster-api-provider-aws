@@ -53,14 +53,18 @@ By default returns the latest 3 minor Kubernetes versions (the CAPA AMI build
 policy). Use --latest-version-count to change the count, or --version to
 request specific minors. The --version flag may be specified at most once;
 to request multiple minors, pass them as a comma-separated list.`,
-		Example: `  # Default: latest 3 minor versions, table output
-  release-tool ami detect-k8s-release --token "$GITHUB_TOKEN"
+		Example: `  
+  # Set GITHUB_TOKEN environment variable
+  export GITHUB_TOKEN=ghp_xxx
+
+  # Default: latest 3 minor versions, table output
+  release-tool ami detect-k8s-release
 
   # Latest 4 minor versions, JSON output
-  release-tool ami detect-k8s-release --token "$GITHUB_TOKEN" --latest-version-count 4 -o json
+  release-tool ami detect-k8s-release --latest-version-count 4 -o json
 
   # Specific minors (comma-separated, single --version flag)
-  release-tool ami detect-k8s-release --token "$GITHUB_TOKEN" --version 1.34,1.30`,
+  release-tool ami detect-k8s-release --version 1.34,1.30`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if err := assertNoDuplicateFlags(os.Args,
 				[]string{"version"},
@@ -73,6 +77,13 @@ to request multiple minors, pass them as a comma-separated list.`,
 			minors := splitVersions(version)
 			if len(minors) > 0 && cmd.Flags().Changed("latest-version-count") {
 				return fmt.Errorf("--version and --latest-version-count are mutually exclusive")
+			}
+
+			// Fall back to $GITHUB_TOKEN when --token isn't supplied. The flag's
+			// default is intentionally empty so the token does not leak into
+			// `--help` output or other places cobra prints flag defaults.
+			if token == "" {
+				token = os.Getenv("GITHUB_TOKEN")
 			}
 
 			result, err := detect.DetectK8sVersions(cmd.Context(), token, latestVersionCount, minors)
@@ -89,7 +100,8 @@ to request multiple minors, pass them as a comma-separated list.`,
 		},
 	}
 
-	cmd.Flags().StringVar(&token, "token", "", "GitHub personal access token (increases API rate limit)")
+	cmd.Flags().StringVar(&token, "token", "",
+		"GitHub personal access token; defaults to the GITHUB_TOKEN environment variable")
 	cmd.Flags().IntVar(&latestVersionCount, "latest-version-count", defaultLatestVersionCount,
 		"Number of latest minor Kubernetes versions to return (ignored when --version is set)")
 	cmd.Flags().StringVar(&version, "version", "",
