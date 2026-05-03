@@ -1,13 +1,10 @@
 name: detect-k8s-releases
 
 on:
-  # schedule:
+  schedule:
     # Runs at midnight UTC on the 1st and 15th of each month,
     # aligned with the Kubernetes monthly patch release cadence.
-    # - cron: '0 0 1,15 * *'
-  push:
-    branches:
-      - '*'
+    - cron: '0 0 1,15 * *'
   workflow_dispatch: {}
 
 permissions:
