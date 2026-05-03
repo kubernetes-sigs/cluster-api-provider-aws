@@ -150,16 +150,26 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 			}
 			return success
 		}, 45*time.Minute, 30*time.Second).Should(BeTrue(), "Should've eventually succeeded creating an AWS CloudFormation stack")
+
+		ensureStackTags(e2eCtx.AWSSession, bootstrapTemplate.Spec.StackName, bootstrapTags)
+	} else {
+		By("Skipping CloudFormation stack tag verification because -skip-cloudformation-creation is set")
 	}
 
-	ensureStackTags(e2eCtx.AWSSession, bootstrapTemplate.Spec.StackName, bootstrapTags)
 	ensureNoServiceLinkedRoles(context.TODO(), e2eCtx.AWSSession)
 	ensureSSHKeyPair(*e2eCtx.AWSSession, DefaultSSHKeyPairName)
-	e2eCtx.Environment.BootstrapAccessKey = newUserAccessKey(context.TODO(), e2eCtx.AWSSession, bootstrapTemplate.Spec.BootstrapUser.UserName)
-	e2eCtx.BootstrapUserAWSSession = NewAWSSessionWithKey(e2eCtx.Environment.BootstrapAccessKey)
 
-	By("Waiting for access key to propagate...")
-	time.Sleep(10 * time.Second)
+	if !e2eCtx.Settings.SkipCloudFormationCreation {
+		e2eCtx.Environment.BootstrapAccessKey = newUserAccessKey(context.TODO(), e2eCtx.AWSSession, bootstrapTemplate.Spec.BootstrapUser.UserName)
+		e2eCtx.BootstrapUserAWSSession = NewAWSSessionWithKey(e2eCtx.Environment.BootstrapAccessKey)
+
+		By("Waiting for access key to propagate...")
+		time.Sleep(10 * time.Second)
+	} else {
+		By("Skipping bootstrap user access key creation; reusing the calling session credentials")
+		e2eCtx.Environment.BootstrapAccessKey = accessKeyFromSession(context.TODO(), e2eCtx.AWSSession)
+		e2eCtx.BootstrapUserAWSSession = e2eCtx.AWSSession
+	}
 
 	Expect(ensureTestImageUploaded(context.TODO(), e2eCtx)).NotTo(HaveOccurred())
 
