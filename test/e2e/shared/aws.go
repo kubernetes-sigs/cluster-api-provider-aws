@@ -872,14 +872,31 @@ func encodeCredentials(accessKey *iamtypes.AccessKey, region string) string {
 	return encCreds
 }
 
+// accessKeyFromSession returns an iamtypes.AccessKey populated from the
+// caller's resolved AWS credentials. It is used when -skip-cloudformation-creation
+// is set so that downstream consumers of BootstrapAccessKey (e.g. encodeCredentials
+// and NewAWSSessionWithKey) keep working without needing the CloudFormation
+// bootstrap user to exist.
+func accessKeyFromSession(ctx context.Context, cfg *aws.Config) *iamtypes.AccessKey {
+	creds, err := cfg.Credentials.Retrieve(ctx)
+	Expect(err).NotTo(HaveOccurred(), "should be able to resolve AWS credentials from the calling session when skipping CloudFormation creation")
+	Expect(creds.AccessKeyID).NotTo(BeEmpty(), "calling session must have a non-empty access key id when skipping CloudFormation creation")
+	Expect(creds.SecretAccessKey).NotTo(BeEmpty(), "calling session must have a non-empty secret access key when skipping CloudFormation creation")
+	return &iamtypes.AccessKey{
+		AccessKeyId:     aws.String(creds.AccessKeyID),
+		SecretAccessKey: aws.String(creds.SecretAccessKey),
+	}
+}
+
 // newUserAccessKey generates a new AWS Access Key pair based off of the
 // bootstrap user. This tests that the CloudFormation policy is correct.
 func newUserAccessKey(ctx context.Context, cfg *aws.Config, userName string) *iamtypes.AccessKey {
 	iamSvc := iam.NewFromConfig(*cfg)
 
-	keyOuts, _ := iamSvc.ListAccessKeys(ctx, &iam.ListAccessKeysInput{
+	keyOuts, err := iamSvc.ListAccessKeys(ctx, &iam.ListAccessKeysInput{
 		UserName: aws.String(userName),
 	})
+	Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("listing access keys for bootstrap user %q", userName))
 	for i := range keyOuts.AccessKeyMetadata {
 		By(fmt.Sprintf("Deleting an existing access key: user-name=%s", userName))
 		_, err := iamSvc.DeleteAccessKey(ctx, &iam.DeleteAccessKeyInput{
