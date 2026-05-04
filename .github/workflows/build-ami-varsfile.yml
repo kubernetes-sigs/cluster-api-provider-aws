@@ -38,6 +38,7 @@ jobs:
           repository: ${{ inputs.image_builder_repo }}
           ref: ${{ inputs.image_builder_version }}
           fetch-depth: 0
+          persist-credentials: false
       - name: Create packer vars file
         if: inputs.packer_vars != ''
         env:
