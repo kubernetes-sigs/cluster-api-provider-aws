@@ -3,10 +3,14 @@ name: build-and-publish-ami-with-vars
 on:
   workflow_dispatch:
     inputs:
+      image_builder_repo:
+        description: "Image builder repository (format: user/repo-name)"
+        required: true
+        default: 'kubernetes-sigs/image-builder'
       image_builder_version:
         description: "Image builder version"
         required: true
-        default: 'v0.1.48'
+        default: '990737c79abb37fd56faca64f46e5a385dd1a982' # post-v0.1.48, includes fix https://github.com/kubernetes-sigs/image-builder/pull/1919
       target:
         description: "target os"
         required: true
@@ -29,9 +33,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout code
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # tag=v5
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          repository: kubernetes-sigs/image-builder
+          repository: ${{ inputs.image_builder_repo }}
           ref: ${{ inputs.image_builder_version }}
           fetch-depth: 0
           persist-credentials: false
@@ -43,7 +47,7 @@ jobs:
           echo "$PACKER_VARS" | jq -r > ./images/capi/vars.json
           cat ./images/capi/vars.json
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6
+        uses: aws-actions/configure-aws-credentials@ec61189d14ec14c8efccab744f656cffd0e33f37 # v6.1.0
         with:
           aws-region: us-east-2
           role-to-assume: arn:aws:iam::819546954734:role/gh-image-builder

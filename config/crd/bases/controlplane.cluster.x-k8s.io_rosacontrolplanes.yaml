@@ -101,9 +101,19 @@ spec:
                   rule: self == oldSelf
                 - message: billingAccount must be a valid AWS account ID
                   rule: self.matches('^[0-9]{12}$')
+              channel:
+                description: |-
+                  Channel is the Y-stream OpenShift channel to use for this cluster, for example "stable-4.16" or "eus-4.16".
+                  This determines which Y-stream versions are available for upgrades.
+                  When not specified, OCM will determine the appropriate channel based on the cluster version.
+                  If Channel is set, ChannelGroup will be ignored.
+                pattern: ^(stable|eus|fast|candidate|nightly)-[0-9]+\.[0-9]+$
+                type: string
               channelGroup:
-                default: stable
-                description: OpenShift version channel group, default is stable.
+                description: |-
+                  OpenShift version channel group.
+                  When not specified, OCM will determine the appropriate channel group based on the cluster version.
+                  This field will be deprecated in a future release in favor of the Channel field.
                 enum:
                 - stable
                 - eus
@@ -548,6 +558,25 @@ spec:
                 x-kubernetes-list-map-keys:
                 - name
                 x-kubernetes-list-type: map
+              fips:
+                default: Disabled
+                description: |-
+                  FIPS configures FIPS-validated / Modules in Process cryptographic libraries.
+                  FIPS (Federal Information Processing Standard) 140-2 is a U.S. government standard
+                  that validates cryptographic modules used to protect sensitive information.
+
+                  When set to "Enabled", the cluster will use FIPS 140-2 validated cryptographic modules.
+                  This setting is immutable and cannot be changed after cluster creation.
+
+                  IMPORTANT: When FIPS is enabled, etcdEncryptionKMSARN must be provided.
+                  The KMS key must be tagged with 'red-hat:true'.
+                enum:
+                - Enabled
+                - Disabled
+                type: string
+                x-kubernetes-validations:
+                - message: fips is immutable
+                  rule: self == oldSelf
               identityRef:
                 description: |-
                   IdentityRef is a reference to an identity to be used when reconciling the managed control plane.
@@ -916,7 +945,6 @@ spec:
                   Required if RosaRoleConfigRef is not specified.
                 type: string
             required:
-            - channelGroup
             - region
             - rosaClusterName
             - version
@@ -925,6 +953,11 @@ spec:
           status:
             description: RosaControlPlaneStatus defines the observed state of ROSAControlPlane.
             properties:
+              availableChannels:
+                description: Available channels for the ROSA hosted control plane.
+                items:
+                  type: string
+                type: array
               availableUpgrades:
                 description: Available upgrades for the ROSA hosted control plane.
                 items:

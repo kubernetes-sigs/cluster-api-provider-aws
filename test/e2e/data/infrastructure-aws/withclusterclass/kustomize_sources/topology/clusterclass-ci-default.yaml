@@ -286,10 +286,6 @@ spec:
     spec:
       kubeadmConfigSpec:
         clusterConfiguration:
-          apiServer:
-            extraArgs:
-            - name: cloud-provider
-              value: external
           controllerManager:
             extraArgs:
             - name: cloud-provider
@@ -318,6 +314,8 @@ spec:
       instanceType: REPLACEME
       iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
       cloudInit: {}
+      rootVolume:
+        size: 10
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSMachineTemplate
@@ -330,6 +328,8 @@ spec:
       instanceType: REPLACEME
       iamInstanceProfile: "nodes.cluster-api-provider-aws.sigs.k8s.io"
       cloudInit: {}
+      rootVolume:
+        size: 10
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate

@@ -22,28 +22,42 @@ Add one of the following kinds:
 
 <!-- Enter a description of the change and why this change is needed -->
 
-**Which issue(s) this PR fixes** *(optional, in `fixes #<issue number>(, fixes #<issue_number>, ...)` format, will close the issue(s) when PR gets merged)*:
+**Which issue(s) this PR fixes** _(optional, in `fixes #<issue number>(, fixes #<issue_number>, ...)` format, will close the issue(s) when PR gets merged)_:
 Fixes #
 
 **Special notes for your reviewer**:
 
-**Checklist**:
-<!-- Put an "X" character inside the brackets of each completed task. Some may be optional depending on the PR in which case these can be deleted 
+**AI Usage**:
 
- Please add an icon to the title of this PR, the icon will be either ⚠️ (:warning:, major or breaking changes), ✨ (:sparkles:, feature additions), 🐛 (:bug:, patch and bugfixes), 📖 (:book:, documentation or proposals), or 🌱 (:seedling:, minor or other) 
+<!-- Declare if this PR has benefited from AI assistance in any way. Whether that's Cursor, Claude, Copilot, Codex, a local LLM, or another other AI assistant. If AI has been used please try to provide as much information as possible.
+
+NOTE: basic autocompletion doesn't need to be declared.
+
+If no AI assistance was used then used, write "None".
+
+-->
+
+**Checklist**:
+
+<!-- Put an "X" character inside the brackets of each completed task. Some may be optional depending on the PR in which case these can be deleted
+
+ Please add an icon to the title of this PR, the icon will be either ⚠️ (:warning:, major or breaking changes), ✨ (:sparkles:, feature additions), 🐛 (:bug:, patch and bugfixes), 📖 (:book:, documentation or proposals), or 🌱 (:seedling:, minor or other)
 -->
 
 - [ ] squashed commits
 - [ ] includes documentation
-- [ ] includes emoji in title 
+- [ ] includes AI generated content
+- [ ] includes emoji in title
 - [ ] adds unit tests
 - [ ] adds or updates e2e tests
 
 **Release note**:
+
 <!--  Write your release note:
 1. Enter your extended release note in the below block. If the PR requires additional action from users switching to the new release, include the string "action required".
 2. If no release note is required, just write "NONE".
 -->
+
 ```release-note
 
 ```

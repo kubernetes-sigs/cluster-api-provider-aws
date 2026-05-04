@@ -164,9 +164,6 @@ spec:
     spec:
       kubeadmConfigSpec:
         clusterConfiguration:
-          apiServer:
-            extraArgs:
-              cloud-provider: external
           controllerManager:
             extraArgs:
               cloud-provider: external
@@ -191,6 +188,8 @@ spec:
       # instanceType is a required field (OpenAPI schema).
       instanceType: REPLACEME
       iamInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io"
+      rootVolume:
+        size: 10
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSMachineTemplate
@@ -202,6 +201,8 @@ spec:
       # instanceType is a required field (OpenAPI schema).
       instanceType: REPLACEME
       iamInstanceProfile: "nodes.cluster-api-provider-aws.sigs.k8s.io"
+      rootVolume:
+        size: 10
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate

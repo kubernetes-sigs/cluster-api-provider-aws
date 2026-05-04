@@ -46,6 +46,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
+	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	stsiface "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts"
@@ -232,6 +233,97 @@ func TestUpdateOCMClusterSpec(t *testing.T) {
 
 		g.Expect(updated).To(BeTrue())
 		g.Expect(ocmSpec).To(Equal(expectedOCMSpec))
+	})
+
+	// Test case 8: Channel explicitly set - use it directly
+	t.Run("Channel explicitly set", func(t *testing.T) {
+		rosaControlPlane := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				Channel:      "eus-4.18",
+				ChannelGroup: rosacontrolplanev1.Stable, // Different from channel, but channel takes precedence
+				Version:      "4.16.5",
+			},
+		}
+
+		mockCluster, _ := v1.NewCluster().
+			Version(v1.NewVersion().
+				ID("4.16.5").
+				ChannelGroup("stable")).
+			Build()
+
+		reconciler := &ROSAControlPlaneReconciler{}
+		ocmSpec, updated := reconciler.updateOCMClusterSpec(rosaControlPlane, mockCluster)
+
+		g.Expect(updated).To(BeTrue())
+		g.Expect(ocmSpec.Channel).To(Equal("eus-4.18"))
+		g.Expect(ocmSpec.ChannelGroup).To(BeEmpty())
+	})
+
+	// Test case 9: ChannelGroup matches current - no update
+	t.Run("ChannelGroup matches current channel group - no update", func(t *testing.T) {
+		rosaControlPlane := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				ChannelGroup: rosacontrolplanev1.Stable,
+				Version:      "4.16.5",
+			},
+		}
+
+		mockCluster, _ := v1.NewCluster().
+			Version(v1.NewVersion().
+				ID("4.18.3").
+				ChannelGroup("stable")).
+			Build()
+
+		reconciler := &ROSAControlPlaneReconciler{}
+		ocmSpec, updated := reconciler.updateOCMClusterSpec(rosaControlPlane, mockCluster)
+
+		g.Expect(updated).To(BeFalse())
+		g.Expect(ocmSpec.Channel).To(BeEmpty())
+		g.Expect(ocmSpec.ChannelGroup).To(BeEmpty())
+	})
+
+	// Test case 10: ChannelGroup changes - update channelGroup
+	t.Run("ChannelGroup changes from stable to eus", func(t *testing.T) {
+		rosaControlPlane := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				ChannelGroup: rosacontrolplanev1.Eus, // Changing from stable to eus
+				Version:      "4.16.5",
+			},
+		}
+
+		mockCluster, _ := v1.NewCluster().
+			Version(v1.NewVersion().
+				ID("4.18.3").
+				ChannelGroup("stable")).
+			Build()
+
+		reconciler := &ROSAControlPlaneReconciler{}
+		ocmSpec, updated := reconciler.updateOCMClusterSpec(rosaControlPlane, mockCluster)
+
+		g.Expect(updated).To(BeTrue())
+		g.Expect(ocmSpec.ChannelGroup).To(Equal("eus"))
+		g.Expect(ocmSpec.Channel).To(BeEmpty())
+	})
+
+	// Test case 11: ChannelGroup set, no current version info
+	t.Run("ChannelGroup set with no current version info", func(t *testing.T) {
+		rosaControlPlane := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				ChannelGroup: rosacontrolplanev1.Eus,
+				Version:      "4.16.5",
+			},
+		}
+
+		// Cluster has no version info (edge case)
+		// When version is nil, we skip the channelGroup update
+		mockCluster, _ := v1.NewCluster().Build()
+
+		reconciler := &ROSAControlPlaneReconciler{}
+		ocmSpec, updated := reconciler.updateOCMClusterSpec(rosaControlPlane, mockCluster)
+
+		g.Expect(updated).To(BeFalse())
+		g.Expect(ocmSpec.ChannelGroup).To(BeEmpty())
+		g.Expect(ocmSpec.Channel).To(BeEmpty())
 	})
 }
 
@@ -453,6 +545,9 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 		}).Times(1)
 		m.UpdateCluster(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(clusterKey string, creator *rosaaws.Creator, config ocm.Spec) error {
 			return nil
+		}).Times(1)
+		m.GetAvailableChannels(gomock.Any()).DoAndReturn(func(versionID string) ([]string, error) {
+			return []string{"stable-4.15"}, nil
 		}).Times(1)
 		m.GetIdentityProviders(gomock.Any()).DoAndReturn(func(cclusterID string) ([]*v1.IdentityProvider, error) {
 			ip := []*v1.IdentityProvider{}
@@ -770,4 +865,102 @@ func cleanupObject(g *WithT, obj client.Object) {
 	if obj.DeepCopyObject() != nil {
 		g.Expect(testEnv.Cleanup(ctx, obj)).To(Succeed())
 	}
+}
+
+func TestBuildOCMClusterSpec(t *testing.T) {
+	// Mock AWS Creator
+	mockCreator := &rosaaws.Creator{
+		AccountID: "123456789012",
+		ARN:       "arn:aws:iam::123456789012:user/test-user",
+	}
+
+	// Mock ROSARoleConfig
+	mockRoleConfig := &expinfrav1.ROSARoleConfig{
+		Status: expinfrav1.ROSARoleConfigStatus{
+			OIDCID: "test-oidc-id",
+			AccountRolesRef: expinfrav1.AccountRolesRef{
+				InstallerRoleARN: "arn:aws:iam::123456789012:role/installer",
+				SupportRoleARN:   "arn:aws:iam::123456789012:role/support",
+				WorkerRoleARN:    "arn:aws:iam::123456789012:role/worker",
+			},
+			OperatorRolesRef: rosacontrolplanev1.AWSRolesRef{
+				IngressARN:              "arn:aws:iam::123456789012:role/ingress",
+				ImageRegistryARN:        "arn:aws:iam::123456789012:role/image-registry",
+				StorageARN:              "arn:aws:iam::123456789012:role/storage",
+				NetworkARN:              "arn:aws:iam::123456789012:role/network",
+				KubeCloudControllerARN:  "arn:aws:iam::123456789012:role/kube-cloud-controller",
+				KMSProviderARN:          "arn:aws:iam::123456789012:role/kms-provider",
+				ControlPlaneOperatorARN: "arn:aws:iam::123456789012:role/control-plane-operator",
+				NodePoolManagementARN:   "arn:aws:iam::123456789012:role/nodepool-management",
+			},
+		},
+	}
+
+	// Test case 1: FIPS enabled
+	t.Run("FIPS Enabled", func(t *testing.T) {
+		g := NewWithT(t)
+		controlPlaneSpec := rosacontrolplanev1.RosaControlPlaneSpec{
+			RosaClusterName:   "test-cluster",
+			Region:            "us-west-2",
+			Version:           "4.14.5",
+			FIPS:              rosacontrolplanev1.FIPSEnabled, // FIPS enabled
+			Subnets:           []string{"subnet-1", "subnet-2"},
+			AvailabilityZones: []string{"us-west-2a"},
+			DefaultMachinePoolSpec: rosacontrolplanev1.DefaultMachinePoolSpec{
+				InstanceType: "m5.xlarge",
+			},
+		}
+
+		ocmSpec, err := buildOCMClusterSpec(controlPlaneSpec, mockRoleConfig, nil, mockCreator)
+
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ocmSpec.FIPS).To(BeTrue())
+		g.Expect(ocmSpec.Name).To(Equal("test-cluster"))
+		g.Expect(ocmSpec.Region).To(Equal("us-west-2"))
+	})
+
+	// Test case 2: FIPS explicitly disabled
+	t.Run("FIPS Disabled (Explicit)", func(t *testing.T) {
+		g := NewWithT(t)
+		controlPlaneSpec := rosacontrolplanev1.RosaControlPlaneSpec{
+			RosaClusterName:   "test-cluster-no-fips",
+			Region:            "us-east-1",
+			Version:           "4.14.5",
+			FIPS:              rosacontrolplanev1.FIPSDisabled, // FIPS explicitly disabled
+			Subnets:           []string{"subnet-1", "subnet-2"},
+			AvailabilityZones: []string{"us-east-1a"},
+			DefaultMachinePoolSpec: rosacontrolplanev1.DefaultMachinePoolSpec{
+				InstanceType: "m5.xlarge",
+			},
+		}
+
+		ocmSpec, err := buildOCMClusterSpec(controlPlaneSpec, mockRoleConfig, nil, mockCreator)
+
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ocmSpec.FIPS).To(BeFalse())
+		g.Expect(ocmSpec.Name).To(Equal("test-cluster-no-fips"))
+		g.Expect(ocmSpec.Region).To(Equal("us-east-1"))
+	})
+
+	// Test case 3: Zero value FIPS (should be false)
+	t.Run("FIPS Zero Value", func(t *testing.T) {
+		g := NewWithT(t)
+		controlPlaneSpec := rosacontrolplanev1.RosaControlPlaneSpec{
+			RosaClusterName: "test-cluster-zero-fips",
+			Region:          "us-west-1",
+			Version:         "4.14.5",
+			// FIPS field not explicitly set (zero value)
+			Subnets:           []string{"subnet-1", "subnet-2"},
+			AvailabilityZones: []string{"us-west-1a"},
+			DefaultMachinePoolSpec: rosacontrolplanev1.DefaultMachinePoolSpec{
+				InstanceType: "m5.xlarge",
+			},
+		}
+
+		ocmSpec, err := buildOCMClusterSpec(controlPlaneSpec, mockRoleConfig, nil, mockCreator)
+
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ocmSpec.FIPS).To(BeFalse())
+		g.Expect(ocmSpec.Name).To(Equal("test-cluster-zero-fips"))
+	})
 }

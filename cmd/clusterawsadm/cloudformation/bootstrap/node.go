@@ -39,7 +39,7 @@ func (t Template) nodePolicies() []cfn_iam.Role_Policy {
 }
 
 func (t Template) nodeTrustPolicy() *iamv1.PolicyDocument {
-	policyDocument := ec2AssumeRolePolicy()
+	policyDocument := ec2AssumeRolePolicy(false)
 	policyDocument.Statement = append(policyDocument.Statement, t.Spec.Nodes.TrustStatements...)
 	return policyDocument
 }

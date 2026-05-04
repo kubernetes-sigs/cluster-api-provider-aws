@@ -28,8 +28,10 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	expwebhooks "sigs.k8s.io/cluster-api-provider-aws/v2/exp/webhooks"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/instancestate/mock_sqsiface"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/helpers"
+	capawebhooks "sigs.k8s.io/cluster-api-provider-aws/v2/webhooks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
@@ -63,19 +65,19 @@ func setup() {
 	if err != nil {
 		panic(err)
 	}
-	if err := (&infrav1.AWSCluster{}).SetupWebhookWithManager(testEnv); err != nil {
+	if err := (&capawebhooks.AWSCluster{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup AWSCluster webhook: %v", err))
 	}
-	if err := (&infrav1.AWSMachine{}).SetupWebhookWithManager(testEnv); err != nil {
+	if err := (&capawebhooks.AWSMachine{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup AWSMachine webhook: %v", err))
 	}
-	if err := (&infrav1.AWSMachineTemplate{}).SetupWebhookWithManager(testEnv); err != nil {
+	if err := (&capawebhooks.AWSMachineTemplate{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup AWSMachineTemplate webhook: %v", err))
 	}
-	if err := (&expinfrav1.AWSMachinePool{}).SetupWebhookWithManager(testEnv); err != nil {
+	if err := (&expwebhooks.AWSMachinePool{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup AWSMachinePool webhook: %v", err))
 	}
-	if err := (&expinfrav1.AWSManagedMachinePool{}).SetupWebhookWithManager(testEnv); err != nil {
+	if err := (&expwebhooks.AWSManagedMachinePool{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup AWSManagedMachinePool webhook: %v", err))
 	}
 }
