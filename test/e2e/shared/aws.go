@@ -872,20 +872,42 @@ func encodeCredentials(accessKey *iamtypes.AccessKey, region string) string {
 	return encCreds
 }
 
-// accessKeyFromSession returns an iamtypes.AccessKey populated from the
-// caller's resolved AWS credentials. It is used when -skip-cloudformation-creation
-// is set so that downstream consumers of BootstrapAccessKey (e.g. encodeCredentials
-// and NewAWSSessionWithKey) keep working without needing the CloudFormation
-// bootstrap user to exist.
-func accessKeyFromSession(ctx context.Context, cfg *aws.Config) *iamtypes.AccessKey {
-	creds, err := cfg.Credentials.Retrieve(ctx)
-	Expect(err).NotTo(HaveOccurred(), "should be able to resolve AWS credentials from the calling session when skipping CloudFormation creation")
-	Expect(creds.AccessKeyID).NotTo(BeEmpty(), "calling session must have a non-empty access key id when skipping CloudFormation creation")
-	Expect(creds.SecretAccessKey).NotTo(BeEmpty(), "calling session must have a non-empty secret access key when skipping CloudFormation creation")
-	return &iamtypes.AccessKey{
-		AccessKeyId:     aws.String(creds.AccessKeyID),
-		SecretAccessKey: aws.String(creds.SecretAccessKey),
+// iamUserExists reports whether the named IAM user exists. Used by the
+// -skip-cloudformation-creation path: the bootstrap user might still exist
+// (deployed manually, or in a previous suite run) even when CF creation is
+// skipped, in which case we rotate its access key as usual.
+func iamUserExists(ctx context.Context, cfg *aws.Config, userName string) bool {
+	iamSvc := iam.NewFromConfig(*cfg)
+	_, err := iamSvc.GetUser(ctx, &iam.GetUserInput{UserName: aws.String(userName)})
+	if err != nil {
+		var nse *iamtypes.NoSuchEntityException
+		if errors.As(err, &nse) {
+			return false
+		}
+		Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("checking whether bootstrap user %q exists", userName))
 	}
+	return true
+}
+
+// encodeCredentialsFromSession encodes the calling session's credentials into
+// the base64 AWS-default-profile string used by clusterctl. It preserves any
+// SessionToken so STS-based principals (assumed roles, SSO, instance profiles)
+// continue to work when -skip-cloudformation-creation is set and there is no
+// bootstrap IAM user to mint long-lived keys for.
+func encodeCredentialsFromSession(ctx context.Context, cfg *aws.Config, region string) string {
+	retrieved, err := cfg.Credentials.Retrieve(ctx)
+	Expect(err).NotTo(HaveOccurred(), "should be able to resolve AWS credentials from the calling session when skipping CloudFormation creation")
+	Expect(retrieved.AccessKeyID).NotTo(BeEmpty(), "calling session must have a non-empty access key id when skipping CloudFormation creation")
+	Expect(retrieved.SecretAccessKey).NotTo(BeEmpty(), "calling session must have a non-empty secret access key when skipping CloudFormation creation")
+	creds := credentials.AWSCredentials{
+		Region:          region,
+		AccessKeyID:     retrieved.AccessKeyID,
+		SecretAccessKey: retrieved.SecretAccessKey,
+		SessionToken:    retrieved.SessionToken,
+	}
+	encCreds, err := creds.RenderBase64EncodedAWSDefaultProfile()
+	Expect(err).NotTo(HaveOccurred())
+	return encCreds
 }
 
 // newUserAccessKey generates a new AWS Access Key pair based off of the
