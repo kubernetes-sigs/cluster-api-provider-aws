@@ -662,6 +662,14 @@ spec:
                       "None": The instance may not make use of any Capacity Reservations. This is to conserve open reservations for desired workloads
                       "CapacityReservationsOnly": The instance will only run if matched or targeted to a Capacity Reservation
                     type: string
+                  enclaveOptions:
+                    description: EnclaveOptions defines the options for Nitro Enclave
+                      support on the instance.
+                    properties:
+                      enabled:
+                        description: Enabled enables the instance for AWS Nitro Enclaves.
+                        type: boolean
+                    type: object
                   iamInstanceProfile:
                     description: |-
                       The name or the Amazon Resource Name (ARN) of the instance profile associated

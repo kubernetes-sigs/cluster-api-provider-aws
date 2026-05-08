@@ -630,6 +630,29 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		})
 	})
 
+	ginkgo.PDescribe("Workload cluster with Nitro Enclave enabled", func() {
+		ginkgo.It("should create instances with EnclaveOptions enabled", func() {
+			specName := "functional-test-nitro-enclave"
+			if !e2eCtx.Settings.SkipQuotas {
+				// c5.xlarge = 4 vCPUs hardcoded in flavor
+				requiredResources = &shared.TestResource{EC2Normal: 4, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, EventBridgeRules: 50}
+				requiredResources.WriteRequestedResources(e2eCtx, specName)
+				Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
+				defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
+			}
+			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
+			defer shared.DumpSpecResourcesAndCleanup(ctx, "", namespace, e2eCtx)
+			ginkgo.By("Creating a cluster")
+			clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
+			configCluster := defaultConfigCluster(clusterName, namespace.Name)
+			configCluster.WorkerMachineCount = ptr.To[int64](1)
+			configCluster.Flavor = shared.NitroEnclaveFlavor
+			createCluster(ctx, configCluster, result)
+
+			assertNitroEnclaveEnabled(ctx, clusterName)
+		})
+	})
+
 	ginkgo.Describe("Workload cluster with AWS S3 and Ignition parameter", func() {
 		ginkgo.It("It should be creatable and deletable", func() {
 			specName := "functional-test-ignition"

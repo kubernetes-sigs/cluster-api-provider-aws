@@ -132,6 +132,11 @@ func (in *AWSLaunchTemplate) DeepCopyInto(out *AWSLaunchTemplate) {
 		*out = new(apiv1beta2.InstanceMetadataOptions)
 		**out = **in
 	}
+	if in.EnclaveOptions != nil {
+		in, out := &in.EnclaveOptions, &out.EnclaveOptions
+		*out = new(apiv1beta2.EnclaveOptions)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.PrivateDNSName != nil {
 		in, out := &in.PrivateDNSName, &out.PrivateDNSName
 		*out = new(apiv1beta2.PrivateDNSName)

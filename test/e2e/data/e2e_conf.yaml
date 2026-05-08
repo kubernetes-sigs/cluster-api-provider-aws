@@ -168,6 +168,7 @@ providers:
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-ignition.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-upgrade-to-external-cloud-provider.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-dedicated-host.yaml"
+          - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-nitro-enclave.yaml"
         replacements:
           # To allow bugs to be catched.
           - old: "failureThreshold: 3"
@@ -235,7 +236,6 @@ intervals:
   default/wait-machine-status: ["25m", "10s"]
   default/wait-failed-machine-status: ["2m", "10s"]
   default/wait-infra-subnets: ["5m", "30s"]
-  default/wait-machine-pool-nodes: ["40m", "10s"]
   default/wait-machine-pool-upgrade: ["50m", "10s"]
   default/wait-create-identity: ["1m", "10s"]
   default/wait-job: ["10m", "10s"]

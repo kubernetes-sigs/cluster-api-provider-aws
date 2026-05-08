@@ -405,6 +405,13 @@ const (
 	PrimaryIPv6AssignmentStateDisabled = PrimaryIPv6AssignmentState("disabled")
 )
 
+// EnclaveOptions defines the options for Nitro Enclave support on the instance.
+type EnclaveOptions struct {
+	// Enabled enables the instance for AWS Nitro Enclaves.
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+}
+
 // InstanceMetadataOptions describes metadata options for the EC2 instance.
 type InstanceMetadataOptions struct {
 	// Enables or disables the HTTP metadata endpoint on your instances.
