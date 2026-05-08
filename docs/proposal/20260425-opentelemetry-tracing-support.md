@@ -208,10 +208,9 @@ Further investigation is required to finalize this approach.
 
 | Flag                    | Description               |
 |-------------------------|---------------------------|
-| `--otel-enabled`        | Enable/disable tracing    |
-| `--otel-endpoint`       | OTLP endpoint (collector or backend)   |
-| `--otel-sampling-rate`  | Sampling ratio            |
-| `--otelaws-enabled`     | Enable/disable aws api calls |
+| `--tracing-endpoint`       | Trace endpoint (collector or backend)   |
+| `--tracing-sampling-rate`  | Sampling ratio            |
+| `--tracing-aws-services`     | Enable/disable aws api calls |
 
 ## Documentation Updates
 To ensure usability and adoption, documentation will be updated to cover tracing setup and usage.
