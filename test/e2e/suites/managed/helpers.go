@@ -58,6 +58,7 @@ const (
 	EKSControlPlaneOnlyWithAccessEntriesFlavor        = "eks-control-plane-only-with-accessentries"
 	EKSNodeadmClusterClassFlavor                      = "eks-nodeadm-clusterclass"
 	EKSNitroEnclaveManagedMachinePoolFlavor           = "eks-nitro-enclave-managedmachinepool"
+	EKSControlPlaneOnlyWithPodIdentitiesFlavor        = "eks-control-plane-only-with-podidentities"
 )
 
 const (
@@ -330,6 +331,66 @@ func verifyAccessEntries(ctx context.Context, eksClusterName string, expectedEnt
 				delete(expectedPolicies, *policy.PolicyArn)
 			}
 			Expect(expectedPolicies).To(BeEmpty(), "not all expected access policies were found")
+		}
+	}
+}
+
+func verifyPodIdentityAssociations(ctx context.Context, eksClusterName string, expected []ekscontrolplanev1.PodIdentityAssociation, cfg *aws.Config) {
+	eksClient := eks.NewFromConfig(*cfg)
+
+	type key struct {
+		namespace      string
+		serviceAccount string
+	}
+	expectedByKey := make(map[key]ekscontrolplanev1.PodIdentityAssociation, len(expected))
+	for _, e := range expected {
+		expectedByKey[key{e.ServiceAccountNamespace, e.ServiceAccountName}] = e
+	}
+
+	var summaries []ekstypes.PodIdentityAssociationSummary
+	Eventually(func() error {
+		summaries = nil
+		var nextToken *string
+		for {
+			out, err := eksClient.ListPodIdentityAssociations(ctx, &eks.ListPodIdentityAssociationsInput{
+				ClusterName: &eksClusterName,
+				NextToken:   nextToken,
+			})
+			if err != nil {
+				return fmt.Errorf("failed to list pod identity associations: %w", err)
+			}
+			summaries = append(summaries, out.Associations...)
+			if out.NextToken == nil {
+				break
+			}
+			nextToken = out.NextToken
+		}
+
+		if len(summaries) != len(expectedByKey) {
+			return fmt.Errorf("expected %d pod identity associations, found %d", len(expectedByKey), len(summaries))
+		}
+		for _, s := range summaries {
+			k := key{*s.Namespace, *s.ServiceAccount}
+			if _, ok := expectedByKey[k]; !ok {
+				return fmt.Errorf("unexpected pod identity association: %s/%s", k.namespace, k.serviceAccount)
+			}
+		}
+		return nil
+	}, clientRequestTimeout, clientRequestCheckInterval).Should(Succeed(), "eventually failed waiting for pod identity associations to exist")
+
+	for _, s := range summaries {
+		describeOutput, err := eksClient.DescribePodIdentityAssociation(ctx, &eks.DescribePodIdentityAssociationInput{
+			ClusterName:   &eksClusterName,
+			AssociationId: s.AssociationId,
+		})
+		Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("failed to describe pod identity association: %s", *s.AssociationId))
+
+		exp := expectedByKey[key{*s.Namespace, *s.ServiceAccount}]
+		Expect(describeOutput.Association.RoleArn).To(HaveValue(Equal(exp.RoleARN)), "pod identity association roleARN does not match")
+		if exp.TargetRoleARN != "" {
+			Expect(describeOutput.Association.TargetRoleArn).To(HaveValue(Equal(exp.TargetRoleARN)), "pod identity association targetRoleARN does not match")
+		} else {
+			Expect(describeOutput.Association.TargetRoleArn).To(BeNil(), "pod identity association targetRoleARN should be unset")
 		}
 	}
 }
