@@ -24,9 +24,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
-	utildefaulting "sigs.k8s.io/cluster-api-provider-aws/v2/util/defaulting"
-
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	utildefaulting "sigs.k8s.io/cluster-api-provider-aws/v2/util/defaulting"
 )
 
 func TestAWSManagedMachinePoolTemplateDefault(t *testing.T) {

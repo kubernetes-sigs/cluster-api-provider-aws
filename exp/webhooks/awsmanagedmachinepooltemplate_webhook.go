@@ -53,7 +53,7 @@ func (w *AWSManagedMachinePoolTemplate) SetupWebhookWithManager(mgr ctrl.Manager
 var _ webhook.CustomDefaulter = &AWSManagedMachinePoolTemplate{}
 var _ webhook.CustomValidator = &AWSManagedMachinePoolTemplate{}
 
-// ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type.
+// ValidateCreate will do any extra validation when creating a AWSManagedMachinePoolTemplate.
 func (w *AWSManagedMachinePoolTemplate) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
 	r, ok := obj.(*expinfrav1.AWSManagedMachinePoolTemplate)
 	if !ok {
@@ -85,6 +85,7 @@ func (w *AWSManagedMachinePoolTemplate) ValidateCreate(_ context.Context, obj ru
 	)
 }
 
+// ValidateUpdate will do any extra validation when updating a AWSManagedMachinePoolTemplate.
 func (w *AWSManagedMachinePoolTemplate) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
 	oldTemplate, ok := oldObj.(*expinfrav1.AWSManagedMachinePoolTemplate)
 	if !ok {
@@ -121,6 +122,7 @@ func (w *AWSManagedMachinePoolTemplate) ValidateUpdate(_ context.Context, oldObj
 	return nil, nil
 }
 
+// ValidateDelete allows you to add any extra validation when deleting.
 func (w *AWSManagedMachinePoolTemplate) ValidateDelete(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
 	r, ok := obj.(*expinfrav1.AWSManagedMachinePoolTemplate)
 	if !ok {
@@ -132,7 +134,7 @@ func (w *AWSManagedMachinePoolTemplate) ValidateDelete(_ context.Context, obj ru
 	return nil, nil
 }
 
-// Default implements webhook.CustomDefaulter so a webhook will be registered for the type.
+// Default will set default values for the AWSManagedMachinePoolTemplate.
 func (w *AWSManagedMachinePoolTemplate) Default(_ context.Context, obj runtime.Object) error {
 	r, ok := obj.(*expinfrav1.AWSManagedMachinePoolTemplate)
 	if !ok {
