@@ -160,7 +160,7 @@ func (r *AWSMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	//creating span using OpenTelemetry SDK
 	tr := otel.Tracer("awsmachine_controller")
-	ctx, span := tr.Start(ctx, "reconcileNormal() awsmachine_controller.go")
+	ctx, span := tr.Start(ctx, "AWSMachineReconciler.Reconcile")
 	defer span.End()
 
 	// Fetch the AWSMachine instance.
@@ -312,7 +312,7 @@ func (r *AWSMachineReconciler) reconcileDelete(ctx context.Context, machineScope
 
 	//creating span using OpenTelemetry SDK
 	tr := otel.Tracer("awsmachine_controller")
-	ctx, span := tr.Start(ctx, "reconcileDelete() awsmachine_controller.go")
+	ctx, span := tr.Start(ctx, "AWSMachineReconciler.reconcileDelete")
 	defer span.End()
 
 	ec2Service := r.getEC2Service(ec2Scope)
@@ -511,7 +511,7 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 	machineScope.Trace("Reconciling AWSMachine")
 	//creating span using OpenTelemetry SDK
 	tr := otel.Tracer("awsmachine_controller")
-	ctx, span := tr.Start(ctx, "reconcileNormal() awsmachine_controller.go")
+	ctx, span := tr.Start(ctx, "AWSMachineReconciler.reconcileNormal")
 	defer span.End()
 
 	// If the AWSMachine is in an error state, return early.

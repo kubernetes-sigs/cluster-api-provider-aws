@@ -3,7 +3,6 @@ package otel
 import (
 	"context"
 	"log/slog"
-	"os"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -12,14 +11,13 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
 )
 
-func InitTracer(ctx context.Context, traceSamplingRatio float64) (*sdktrace.TracerProvider, error) {
-	endpoint := "host.docker.internal:4317"
+func InitTracer(ctx context.Context, traceSamplingRatio float64, tracingEndPoint string) (*sdktrace.TracerProvider, error) {
 
-	if endpoint == "" {
-		endpoint = os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	if tracingEndPoint == "" {
+		return nil, nil
 	}
 	exporter, err := otlptracegrpc.New(ctx,
-		otlptracegrpc.WithEndpoint(endpoint),
+		otlptracegrpc.WithEndpoint(tracingEndPoint),
 		otlptracegrpc.WithInsecure(),
 	)
 	if err != nil {

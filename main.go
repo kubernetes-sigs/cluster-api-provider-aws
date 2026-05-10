@@ -105,6 +105,7 @@ var (
 	watchNamespace              string
 	watchFilterValue            string
 	profilerAddress             string
+	tracingEndPoint             string
 	awsClusterConcurrency       int
 	instanceStateConcurrency    int
 	awsMachineConcurrency       int
@@ -186,7 +187,7 @@ func main() {
 	ctx := ctrl.SetupSignalHandler()
 
 	// Setup OpenTelemetry Tracing
-	tp, err := otel.InitTracer(ctx, traceSamplingRatio)
+	tp, err := otel.InitTracer(ctx, traceSamplingRatio, tracingEndPoint)
 	if err != nil {
 		setupLog.Error(err, "failed to initialize tracer")
 	}
@@ -645,6 +646,13 @@ func initFlags(fs *pflag.FlagSet) {
 		"trace-sampling-ratio",
 		0.1,
 		"OpenTelemetry trace sampling ratio between 0 and 1",
+	)
+
+	fs.StringVar(
+		&tracingEndPoint,
+		"otel-endpoint",
+		"",
+		"OpenTelemetry trace collection endpoint",
 	)
 
 	fs.DurationVar(&waitInfraPeriod,
