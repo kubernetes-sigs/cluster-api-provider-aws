@@ -12,7 +12,7 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
 )
 
-func InitTracer(ctx context.Context) (*sdktrace.TracerProvider, error) {
+func InitTracer(ctx context.Context, traceSamplingRatio float64) (*sdktrace.TracerProvider, error) {
 	endpoint := "host.docker.internal:4317"
 
 	if endpoint == "" {
@@ -36,6 +36,11 @@ func InitTracer(ctx context.Context) (*sdktrace.TracerProvider, error) {
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(exporter),
 		sdktrace.WithResource(res),
+		sdktrace.WithSampler(
+			sdktrace.ParentBased(
+				sdktrace.TraceIDRatioBased(traceSamplingRatio),
+			),
+		),
 	)
 
 	otel.SetTracerProvider(tp)

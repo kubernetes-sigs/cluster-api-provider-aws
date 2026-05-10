@@ -108,6 +108,7 @@ var (
 	awsClusterConcurrency       int
 	instanceStateConcurrency    int
 	awsMachineConcurrency       int
+	traceSamplingRatio          float64
 	waitInfraPeriod             time.Duration
 	maxWaitActiveUpdateDelete   time.Duration
 	syncPeriod                  time.Duration
@@ -185,7 +186,7 @@ func main() {
 	ctx := ctrl.SetupSignalHandler()
 
 	// Setup OpenTelemetry Tracing
-	tp, err := otel.InitTracer(ctx)
+	tp, err := otel.InitTracer(ctx, traceSamplingRatio)
 	if err != nil {
 		setupLog.Error(err, "failed to initialize tracer")
 	}
@@ -637,6 +638,13 @@ func initFlags(fs *pflag.FlagSet) {
 		"awsmachine-concurrency",
 		10,
 		"Number of AWSMachines to process simultaneously",
+	)
+
+	fs.Float64Var(
+		&traceSamplingRatio,
+		"trace-sampling-ratio",
+		0.1,
+		"OpenTelemetry trace sampling ratio between 0 and 1",
 	)
 
 	fs.DurationVar(&waitInfraPeriod,
