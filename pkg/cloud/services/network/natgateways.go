@@ -184,6 +184,9 @@ func (s *Service) describeNatGatewaysBySubnet() (map[string]*ec2.NatGateway, err
 	err := s.EC2Client.DescribeNatGatewaysPages(describeNatGatewayInput,
 		func(page *ec2.DescribeNatGatewaysOutput, lastPage bool) bool {
 			for _, r := range page.NatGateways {
+				if r.SubnetId == nil {
+					continue
+				}
 				gateways[*r.SubnetId] = r
 			}
 			return !lastPage
