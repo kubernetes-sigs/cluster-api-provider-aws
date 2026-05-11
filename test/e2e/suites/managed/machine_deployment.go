@@ -89,7 +89,7 @@ func MachineDeploymentSpec(ctx context.Context, inputGetter func() MachineDeploy
 		MachineDeployment: *md[0],
 	})
 
-	Expect(len(workerMachines)).To(Equal(1))
+	Expect(len(workerMachines)).To(BeNumerically("==", input.Replicas))
 
 	statusChecks := []framework.MachineStatusCheck{framework.MachinePhaseCheck(string(clusterv1.MachinePhaseRunning))}
 	machineStatusInput := framework.WaitForMachineStatusCheckInput{
