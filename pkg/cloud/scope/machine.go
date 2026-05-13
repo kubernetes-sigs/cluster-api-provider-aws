@@ -408,6 +408,19 @@ func (m *MachineScope) IsExternallyManaged() bool {
 	return annotations.IsExternallyManaged(m.InfraCluster.InfraCluster())
 }
 
+// IsControlPlaneLBDisabled returns true when the AWSCluster spec sets the control-plane
+// load balancer type to "disabled".  In that case the caller is responsible for
+// providing spec.controlPlaneEndpoint and CAPA must not block instance creation
+// because APIServerELB.DNSName is empty.
+func (m *MachineScope) IsControlPlaneLBDisabled() bool {
+	awsCluster, ok := m.InfraCluster.InfraCluster().(*infrav1.AWSCluster)
+	if !ok {
+		return false
+	}
+	return awsCluster.Spec.ControlPlaneLoadBalancer != nil &&
+		awsCluster.Spec.ControlPlaneLoadBalancer.LoadBalancerType == infrav1.LoadBalancerTypeDisabled
+}
+
 // SetInterruptible sets the AWSMachine status Interruptible.
 func (m *MachineScope) SetInterruptible() {
 	if m.AWSMachine.Spec.SpotMarketOptions != nil {
