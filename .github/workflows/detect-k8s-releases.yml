@@ -55,9 +55,10 @@ jobs:
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          base: main
           branch: automation/update-k8s-supported-versions
-          commit-message: "feat: update latest K8s version for CAPA AMIs build"
-          title: "🤖 feat: Update latest K8s version for CAPA AMIs build"
+          commit-message: "feat: update latest K8s version for CAPA AMI build"
+          title: "🤖 feat: Update latest K8s version for CAPA AMI build"
           body: |
             This is an automated pull request to update the latest K8s version for CAPA AMIs build.
             - [Kubernetes latest release](https://github.com/kubernetes/kubernetes/releases)
