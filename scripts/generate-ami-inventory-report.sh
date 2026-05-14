@@ -24,9 +24,9 @@ set -euo pipefail
 
 # --- Constants --- 
 
-AWS_ACCOUNT_ID="027487054958"
-DEFAULT_REGIONS="ap-southeast-2"
-DEFAULT_OS="ubuntu-24.04,ubuntu-22.04"
+AWS_ACCOUNT_ID="819546954734"
+DEFAULT_REGIONS="us-east-2"
+DEFAULT_OS="ubuntu-24.04,ubuntu-22.04,flatcar-stable"
 
 TARGET_FILE="docs/book/src/development/ami-inventory.md"
 
