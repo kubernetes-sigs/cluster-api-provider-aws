@@ -69,7 +69,7 @@ replace_section() {
 
 REPORT_DATE="$(date -u +%Y-%m-%d)"
 info "Setting report date to ${REPORT_DATE}..."
-sed -i.bak "s/^# CAPA AMIs Inventory .*/# CAPA AMIs Inventory ${REPORT_DATE}/" "${TARGET_FILE}" \
+sed -i.bak "s/^# CAPA AMIs Inventory Report .*/# CAPA AMIs Inventory Report ${REPORT_DATE}/" "${TARGET_FILE}" \
   && rm -f "${TARGET_FILE}.bak"
 
 # --- 2. Defaults sections --- 
