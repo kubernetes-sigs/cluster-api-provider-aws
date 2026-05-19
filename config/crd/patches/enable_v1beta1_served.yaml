@@ -1,0 +1,44 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: awsmachinepools.infrastructure.cluster.x-k8s.io
+spec:
+  versions:
+    - name: v1beta1
+      served: true
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: eksconfigs.bootstrap.cluster.x-k8s.io
+spec:
+  versions:
+    - name: v1beta1
+      served: true
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: awsmachinetemplates.infrastructure.cluster.x-k8s.io
+spec:
+  versions:
+    - name: v1beta1
+      served: true
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: eksconfigtemplates.bootstrap.cluster.x-k8s.io
+spec:
+  versions:
+    - name: v1beta1
+      served: true
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: awsmanagedcontrolplanes.controlplane.cluster.x-k8s.io
+spec:
+  versions:
+    - name: v1beta1
+      served: true
