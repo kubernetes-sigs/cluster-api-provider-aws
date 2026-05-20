@@ -418,6 +418,69 @@ func TestReconcileNatGateways(t *testing.T) {
 			},
 		},
 		{
+			name: "regional NAT gateway with nil SubnetId exists alongside valid gateway, should not panic",
+			input: []infrav1.SubnetSpec{
+				{
+					ID:               "subnet-1",
+					AvailabilityZone: "us-east-1a",
+					CidrBlock:        "10.0.10.0/24",
+					IsPublic:         true,
+				},
+				{
+					ID:               "subnet-2",
+					AvailabilityZone: "us-east-1a",
+					CidrBlock:        "10.0.12.0/24",
+					IsPublic:         false,
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeNatGateways(context.TODO(),
+					gomock.Eq(&ec2.DescribeNatGatewaysInput{
+						Filter: []types.Filter{
+							{
+								Name:   aws.String("vpc-id"),
+								Values: []string{subnetsVPCID},
+							},
+							{
+								Name:   aws.String("state"),
+								Values: []string{"pending", "available"},
+							},
+						},
+					}),
+					gomock.Any()).Return(&ec2.DescribeNatGatewaysOutput{
+					NatGateways: []types.NatGateway{
+						{
+							// Regional NAT gateway — no SubnetId, should be skipped
+							NatGatewayId: aws.String("regional-gateway"),
+							SubnetId:     nil,
+						},
+						{
+							NatGatewayId: aws.String("gateway"),
+							SubnetId:     aws.String("subnet-1"),
+							Tags: []types.Tag{
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+									Value: aws.String("common"),
+								},
+								{
+									Key:   aws.String("Name"),
+									Value: aws.String("test-cluster-nat"),
+								},
+								{
+									Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+									Value: aws.String("owned"),
+								},
+							},
+						},
+					},
+				}, nil)
+
+				m.DescribeAddresses(context.TODO(), gomock.Any()).Times(0)
+				m.AllocateAddress(context.TODO(), gomock.Any()).Times(0)
+				m.CreateNatGateway(context.TODO(), gomock.Any()).Times(0)
+			},
+		},
+		{
 			name: "public & private subnet declared, but don't exist yet",
 			input: []infrav1.SubnetSpec{
 				{

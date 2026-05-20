@@ -235,6 +235,9 @@ func (s *Service) describeNatGatewaysBySubnet() (map[string]types.NatGateway, er
 			return nil, errors.Wrapf(err, "failed to describe NAT gateways with VPC ID %q", s.scope.VPC().ID)
 		}
 		for _, r := range output.NatGateways {
+			if r.SubnetId == nil {
+				continue
+			}
 			gateways[aws.ToString(r.SubnetId)] = r
 		}
 	}
