@@ -1,0 +1,8 @@
+# JSON6902 patch: flip v1beta1.served from false to true on chart-written CRDs.
+# Targets index 0 of spec.versions (verified: v1beta1 is index 0 in all 5 CRDs at v2.11.1).
+# Strategic-merge would silently replace the entire versions array on these CRDs because
+# spec.versions has no registered merge-by-name strategy in CRD's OpenAPI; JSON6902 op=replace
+# at an explicit path is precise and safe.
+- op: replace
+  path: /spec/versions/0/served
+  value: true
