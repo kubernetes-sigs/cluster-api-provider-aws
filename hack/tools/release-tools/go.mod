@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/google/go-github/v85 v85.0.0
+	github.com/google/go-github/v83 v83.0.0
 	github.com/spf13/cobra v1.9.1
 	golang.org/x/oauth2 v0.34.0
 	sigs.k8s.io/yaml v1.6.0
