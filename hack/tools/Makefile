@@ -167,7 +167,7 @@ $(RELEASE_NOTES): ## Build release notes from tools folders.
 
 GORELEASER_BIN := goreleaser
 GORELEASER := $(BIN_DIR)/$(GORELEASER_BIN)
-GORELEASER_PKG := github.com/goreleaser/goreleaser
+GORELEASER_PKG := github.com/goreleaser/goreleaser/v2
 .PHONY: $(GORELEASER_BIN)
 $(GORELEASER_BIN): $(GORELEASER)
 
