@@ -36,16 +36,18 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/eks/mock_eksiface"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 )
 
 func TestReconcilePodIdentityAssociations(t *testing.T) {
 	clusterName := "test-cluster"
 
 	tests := []struct {
-		name         string
-		associations []ekscontrolplanev1.PodIdentityAssociation
-		expect       func(m *mock_eksiface.MockEKSAPIMockRecorder)
-		expectError  bool
+		name                 string
+		associations         []ekscontrolplanev1.PodIdentityAssociation
+		previouslyReconciled bool
+		expect               func(m *mock_eksiface.MockEKSAPIMockRecorder)
+		expectError          bool
 	}{
 		{
 			name: "creates new association",
@@ -141,8 +143,9 @@ func TestReconcilePodIdentityAssociations(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name:         "deletes orphaned association",
-			associations: []ekscontrolplanev1.PodIdentityAssociation{},
+			name:                 "deletes orphaned association after spec emptied",
+			associations:         []ekscontrolplanev1.PodIdentityAssociation{},
+			previouslyReconciled: true,
 			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
 				m.ListPodIdentityAssociations(gomock.Any(), gomock.Any()).
 					Return(&eks.ListPodIdentityAssociationsOutput{
@@ -204,8 +207,16 @@ func TestReconcilePodIdentityAssociations(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name:         "empty spec and no existing associations",
+			name:         "empty spec without prior reconcile skips AWS calls",
 			associations: []ekscontrolplanev1.PodIdentityAssociation{},
+			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
+			},
+			expectError: false,
+		},
+		{
+			name:                 "empty spec after prior reconcile still lists in case of orphans",
+			associations:         []ekscontrolplanev1.PodIdentityAssociation{},
+			previouslyReconciled: true,
 			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
 				m.ListPodIdentityAssociations(gomock.Any(), gomock.Any()).
 					Return(&eks.ListPodIdentityAssociationsOutput{
@@ -263,18 +274,23 @@ func TestReconcilePodIdentityAssociations(t *testing.T) {
 			_ = ekscontrolplanev1.AddToScheme(scheme)
 			client := fake.NewClientBuilder().WithScheme(scheme).Build()
 
+			cp := &ekscontrolplanev1.AWSManagedControlPlane{
+				ObjectMeta: metav1.ObjectMeta{Name: clusterName, Namespace: "default"},
+				Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+					EKSClusterName:          clusterName,
+					PodIdentityAssociations: tc.associations,
+				},
+			}
+			if tc.previouslyReconciled {
+				v1beta1conditions.MarkTrue(cp, ekscontrolplanev1.EKSPodIdentityAssociationConfiguredCondition)
+			}
+
 			scope, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
 				Client: client,
 				Cluster: &clusterv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{Name: clusterName, Namespace: "default"},
 				},
-				ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
-					ObjectMeta: metav1.ObjectMeta{Name: clusterName, Namespace: "default"},
-					Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
-						EKSClusterName:          clusterName,
-						PodIdentityAssociations: tc.associations,
-					},
-				},
+				ControlPlane: cp,
 			})
 			g.Expect(err).To(BeNil())
 

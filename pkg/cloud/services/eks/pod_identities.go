@@ -28,10 +28,20 @@ import (
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	awserrors "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 )
 
 func (s *Service) reconcilePodIdentityAssociations(ctx context.Context) error {
 	s.scope.Info("Reconciling EKS Pod Identities")
+
+	// If EKSPodIdentityAssociationConfiguredCondition is present, we've at least attempted
+	// to add associations before and still need to make this API call in case there are
+	// orphans to clean up.
+	if len(s.scope.ControlPlane.Spec.PodIdentityAssociations) == 0 &&
+		!v1beta1conditions.Has(s.scope.ControlPlane, ekscontrolplanev1.EKSPodIdentityAssociationConfiguredCondition) {
+		s.scope.Debug("no eks pod identity associations desired or previously configured, skipping reconciliation")
+		return nil
+	}
 
 	eksClusterName := s.scope.KubernetesClusterName()
 
