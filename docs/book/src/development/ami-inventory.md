@@ -1,4 +1,4 @@
-# CAPA AMIs Inventory Report 2026-05-13
+# CAPA AMIs Inventory Report
 
 This report captures the current state of AMI publishing for the
 Cluster API Provider for AWS, including:
