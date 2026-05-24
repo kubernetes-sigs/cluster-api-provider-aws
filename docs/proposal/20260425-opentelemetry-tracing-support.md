@@ -139,8 +139,6 @@ AWS API calls can be traced using OpenTelemetry instrumentation for AWS SDK (`ot
 
 However, this approach may generate excessive spans and introduce noise. Instead we can also create spans for important AWS API Calls For Ex- `CreateInstance`
 
-To address this we can manually trace instrument important AWS operations such as CreateInstance or DeleteLoadBalancer etc.
-
 ### Functions to Trace
 We start tracing our controllers from Reconcile function and then trace function which are most relevant for us
 
@@ -248,6 +246,7 @@ Tracing introduces additional runtime overhead.
 - use configurable sampling
 - allow tracing to be disabled through configuration
 - ensure spans remain lightweight
+- avoid tail-based sampling in the initial implementation to reduce collector-side buffering, memory overhead, and operational complexity
 
 ### Complexity of Integration
 Adding telemetry may increase code complexity.
