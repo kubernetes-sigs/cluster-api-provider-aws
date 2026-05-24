@@ -347,9 +347,8 @@ func verifyPodIdentityAssociations(ctx context.Context, eksClusterName string, e
 		expectedByKey[key{e.ServiceAccountNamespace, e.ServiceAccountName}] = e
 	}
 
-	var summaries []ekstypes.PodIdentityAssociationSummary
 	Eventually(func() error {
-		summaries = nil
+		var summaries []ekstypes.PodIdentityAssociationSummary
 		var nextToken *string
 		for {
 			out, err := eksClient.ListPodIdentityAssociations(ctx, &eks.ListPodIdentityAssociationsInput{
@@ -375,22 +374,28 @@ func verifyPodIdentityAssociations(ctx context.Context, eksClusterName string, e
 				return fmt.Errorf("unexpected pod identity association: %s/%s", k.namespace, k.serviceAccount)
 			}
 		}
-		return nil
-	}, clientRequestTimeout, clientRequestCheckInterval).Should(Succeed(), "eventually failed waiting for pod identity associations to exist")
 
-	for _, s := range summaries {
-		describeOutput, err := eksClient.DescribePodIdentityAssociation(ctx, &eks.DescribePodIdentityAssociationInput{
-			ClusterName:   &eksClusterName,
-			AssociationId: s.AssociationId,
-		})
-		Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("failed to describe pod identity association: %s", *s.AssociationId))
+		for _, s := range summaries {
+			describeOutput, err := eksClient.DescribePodIdentityAssociation(ctx, &eks.DescribePodIdentityAssociationInput{
+				ClusterName:   &eksClusterName,
+				AssociationId: s.AssociationId,
+			})
+			if err != nil {
+				return fmt.Errorf("failed to describe pod identity association %s: %w", *s.AssociationId, err)
+			}
 
-		exp := expectedByKey[key{*s.Namespace, *s.ServiceAccount}]
-		Expect(describeOutput.Association.RoleArn).To(HaveValue(Equal(exp.RoleARN)), "pod identity association roleARN does not match")
-		if exp.TargetRoleARN != "" {
-			Expect(describeOutput.Association.TargetRoleArn).To(HaveValue(Equal(exp.TargetRoleARN)), "pod identity association targetRoleARN does not match")
-		} else {
-			Expect(describeOutput.Association.TargetRoleArn).To(BeNil(), "pod identity association targetRoleARN should be unset")
+			exp := expectedByKey[key{*s.Namespace, *s.ServiceAccount}]
+			if describeOutput.Association.RoleArn == nil || *describeOutput.Association.RoleArn != exp.RoleARN {
+				return fmt.Errorf("association %s roleARN mismatch: want %q, got %v", *s.AssociationId, exp.RoleARN, describeOutput.Association.RoleArn)
+			}
+			if exp.TargetRoleARN != "" {
+				if describeOutput.Association.TargetRoleArn == nil || *describeOutput.Association.TargetRoleArn != exp.TargetRoleARN {
+					return fmt.Errorf("association %s targetRoleARN mismatch: want %q, got %v", *s.AssociationId, exp.TargetRoleARN, describeOutput.Association.TargetRoleArn)
+				}
+			} else if describeOutput.Association.TargetRoleArn != nil {
+				return fmt.Errorf("association %s targetRoleARN should be unset, got %q", *s.AssociationId, *describeOutput.Association.TargetRoleArn)
+			}
 		}
-	}
+		return nil
+	}, clientRequestTimeout, clientRequestCheckInterval).Should(Succeed(), "eventually failed verifying pod identity associations")
 }
