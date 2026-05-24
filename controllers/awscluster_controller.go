@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"go.opentelemetry.io/otel"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -49,6 +48,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/s3"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/securitygroup"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	otel "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/otel/tracing"
 	infrautilconditions "sigs.k8s.io/cluster-api-provider-aws/v2/util/conditions"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/util/paused"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
@@ -138,9 +138,12 @@ func (r *AWSClusterReconciler) getSecurityGroupService(scope scope.ClusterScope)
 func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := logger.FromContext(ctx)
 
-	//creating span using OpenTelemetry SDK
-	tr := otel.Tracer("awscluster_controller")
-	ctx, span := tr.Start(ctx, "AWSClusterReconciler.Reconcile")
+	// creating span using OpenTelemetry SDK
+	ctx, span := otel.StartSpan(
+		ctx,
+		"awscluster_controller",
+		"AWSClusterReconciler.Reconcile",
+	)
 	defer span.End()
 
 	// Fetch the AWSCluster instance
@@ -208,10 +211,12 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 }
 
 func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope *scope.ClusterScope) (ctrl.Result, error) {
-
-	//creating span using OpenTelemetry SDK
-	tr := otel.Tracer("awscluster_controller")
-	ctx, span := tr.Start(ctx, "AWSClusterReconciler.reconcileDelete")
+	// creating span using OpenTelemetry SDK
+	ctx, span := otel.StartSpan(
+		ctx,
+		"awscluster_controller",
+		"AWSClusterReconciler.reconcileDelete",
+	)
 	defer span.End()
 
 	if !controllerutil.ContainsFinalizer(clusterScope.AWSCluster, infrav1.ClusterFinalizer) {
@@ -294,10 +299,12 @@ func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope
 }
 
 func (r *AWSClusterReconciler) reconcileLoadBalancer(ctx context.Context, clusterScope *scope.ClusterScope, awsCluster *infrav1.AWSCluster) (*time.Duration, error) {
-
-	//creating span using OpenTelemetry SDK
-	tr := otel.Tracer("awscluster_controller")
-	ctx, span := tr.Start(ctx, "AWSClusterReconciler.reconcileLoadBalancer")
+	// creating span using OpenTelemetry SDK
+	ctx, span := otel.StartSpan(
+		ctx,
+		"awscluster_controller",
+		"AWSClusterReconciler.reconcileLoadBalancer",
+	)
 	defer span.End()
 
 	retryAfterDuration := 15 * time.Second
@@ -332,10 +339,12 @@ func (r *AWSClusterReconciler) reconcileLoadBalancer(ctx context.Context, cluste
 }
 
 func (r *AWSClusterReconciler) reconcileNormal(ctx context.Context, clusterScope *scope.ClusterScope) (reconcile.Result, error) {
-
-	//creating span using OpenTelemetry SDK
-	tr := otel.Tracer("awscluster_controller")
-	ctx, span := tr.Start(ctx, "AWSClusterReconciler.reconcileNormal")
+	// creating span using OpenTelemetry SDK
+	ctx, span := otel.StartSpan(
+		ctx,
+		"awscluster_controller",
+		"AWSClusterReconciler.reconcileNormal",
+	)
 	defer span.End()
 	clusterScope.Info("Reconciling AWSCluster")
 

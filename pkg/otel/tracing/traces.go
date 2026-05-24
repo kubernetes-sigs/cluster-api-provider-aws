@@ -9,8 +9,11 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
+	"go.opentelemetry.io/otel/trace"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/version"
 )
 
+// function to initialize tracer
 func InitTracer(ctx context.Context, traceSamplingRatio float64, tracingEndPoint string) (*sdktrace.TracerProvider, error) {
 
 	if tracingEndPoint == "" {
@@ -29,6 +32,7 @@ func InitTracer(ctx context.Context, traceSamplingRatio float64, tracingEndPoint
 	res := resource.NewWithAttributes(
 		semconv.SchemaURL,
 		semconv.ServiceNameKey.String("cluster-api-provider-aws"),
+		semconv.ServiceVersionKey.String(version.Get().String()),
 	)
 
 	tp := sdktrace.NewTracerProvider(
@@ -43,4 +47,11 @@ func InitTracer(ctx context.Context, traceSamplingRatio float64, tracingEndPoint
 
 	otel.SetTracerProvider(tp)
 	return tp, nil
+}
+
+// function to start span for given context
+func StartSpan(ctx context.Context, tracerName string, spanName string) (context.Context, trace.Span) {
+
+	tr := otel.Tracer(tracerName)
+	return tr.Start(ctx, spanName)
 }

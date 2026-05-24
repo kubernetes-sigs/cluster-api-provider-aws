@@ -191,7 +191,11 @@ func main() {
 	if err != nil {
 		setupLog.Error(err, "failed to initialize tracer")
 	}
-	defer tp.Shutdown(context.Background())
+	shutdownTracer := func() {
+		if err := tp.Shutdown(context.Background()); err != nil {
+			setupLog.Error(err, "failed to shutdown tracer provider")
+		}
+	}
 
 	restConfig := ctrl.GetConfigOrDie()
 	restConfig.UserAgent = "cluster-api-provider-aws-controller"
@@ -219,6 +223,7 @@ func main() {
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
+		shutdownTracer()
 		os.Exit(1)
 	}
 
