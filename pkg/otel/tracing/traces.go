@@ -1,3 +1,20 @@
+/*
+Copyright 2026 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+// Package otel provides OpenTelemetry tracing initialization and helper.
 package otel
 
 import (
@@ -10,12 +27,12 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
 	"go.opentelemetry.io/otel/trace"
+
 	"sigs.k8s.io/cluster-api-provider-aws/v2/version"
 )
 
-// function to initialize tracer
+// InitTracer initializes the OpenTelemetry tracer provider.
 func InitTracer(ctx context.Context, traceSamplingRatio float64, tracingEndPoint string) (*sdktrace.TracerProvider, error) {
-
 	if tracingEndPoint == "" {
 		return nil, nil
 	}
@@ -46,12 +63,13 @@ func InitTracer(ctx context.Context, traceSamplingRatio float64, tracingEndPoint
 	)
 
 	otel.SetTracerProvider(tp)
+
 	return tp, nil
 }
 
-// function to start span for given context
+// StartSpan starts a new OpenTelemetry span for the given context.
 func StartSpan(ctx context.Context, tracerName string, spanName string) (context.Context, trace.Span) {
-
 	tr := otel.Tracer(tracerName)
+
 	return tr.Start(ctx, spanName)
 }

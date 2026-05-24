@@ -655,7 +655,7 @@ func initFlags(fs *pflag.FlagSet) {
 
 	fs.StringVar(
 		&tracingEndPoint,
-		"otel-endpoint",
+		"trace-endpoint",
 		"",
 		"OpenTelemetry trace collection endpoint",
 	)
