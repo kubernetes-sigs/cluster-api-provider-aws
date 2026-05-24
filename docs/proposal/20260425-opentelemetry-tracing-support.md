@@ -121,7 +121,7 @@ The configured endpoint may be:
 ### Sampling Strategy
 
 To control the volume of traces and reduce performance overhead, sampling will be applied.
-Sampling will be implemented using a ParentBased TraceIDRatioBased sampler, with the sampling ratio configurable via flags. It balances risk of OOM (which is a very possible risk in case of multiple large traces), operational visibility and system performance.
+Sampling will be implemented using a ParentBased TraceIDRatioBased sampler, with the sampling ratio configurable via flags. It balances the risk of exceeding memory limits, which is possible in case of multiple large traces, operational visibility, and system performance.
 
 Sampling will be:
 - Configurable via controller flags
