@@ -137,7 +137,7 @@ This ensures a balance between observability and system performance.
 
 AWS API calls can be traced using OpenTelemetry instrumentation for AWS SDK (`otelaws` middleware). This enables automatic creation of spans for all outgoing AWS API requests. Each AWS API span will be a child of the reconciliation span. it will be optional to trace AWS API call and can be enabled by flags.
 
-However, this approach may generate excessive spans and introduce noise. Instead we can also create spans for important AWS API Calls For Ex- `CreateInstance`
+However, this approach may generate excessive spans and introduce noise. Instead we can also create spans for important AWS API Calls, e.g.,  `CreateInstance`.
 
 ### Functions to Trace
 We start tracing our controllers from Reconcile function and then trace function which are most relevant for us
