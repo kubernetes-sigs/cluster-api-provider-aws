@@ -19,7 +19,7 @@ on:
         required: false
         default: ""
 
-# id-token:write is required because the called build-and-publish-ami.yml
+# id-token:write is required because the called build-ami-v2.yml
 # uses OIDC (aws-actions/configure-aws-credentials) for AWS auth.
 permissions:
   contents: read
