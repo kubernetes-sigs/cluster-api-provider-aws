@@ -28,8 +28,8 @@ permissions:
   contents: read
 
 env:
-  DEFAULT_REGIONS: "ap-southeast-2"
-  AWS_ACCOUNT_ID: "027487054958"
+  DEFAULT_REGIONS: "us-east-2"
+  AWS_ACCOUNT_ID: "819546954734"
 
 jobs:
   buildandpublish:
