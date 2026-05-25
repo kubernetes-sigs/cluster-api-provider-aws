@@ -231,7 +231,7 @@ jobs:
       fail-fast: false
       matrix:
         version: ${{ fromJson(needs.derive.outputs.matrix) }}
-    uses: ./.github/workflows/build-and-publish-ami.yml
+    uses: ./.github/workflows/build-ami-v2.yml
     with:
       k8s_semver:      ${{ matrix.version.k8s_semver }}
       k8s_series:      ${{ matrix.version.k8s_series }}
