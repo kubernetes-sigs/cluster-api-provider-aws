@@ -114,7 +114,7 @@ this window returns an error.`,
 		"Comma-separated MAJOR.MINOR versions to check (e.g. 1.36,1.35). Must be within the CAPA AMI publication policy.")
 	cmd.Flags().StringVar(&osFlag, "os", "ubuntu-24.04,ubuntu-22.04,flatcar-stable",
 		"Comma-separated list of operating systems to check")
-	cmd.Flags().StringVar(&region, "region", "us-east-2",
+	cmd.Flags().StringVar(&region, "region", "ap-southeast-2",
 		"Comma-separated list of AWS regions to check")
 	cmd.Flags().StringVarP(&output, "output", "o", string(printer.TypeTable),
 		"Output format: table, json, or yaml")
