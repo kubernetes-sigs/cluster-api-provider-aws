@@ -42,6 +42,19 @@ type MissingAMIReport struct {
 	Items []MissingAMI `json:"items"`
 }
 
+// amiLookupKey uniquely identifies a (version, OS, region) triple used to
+// check for already-published AMIs without repeating the key format.
+type amiLookupKey struct {
+	version string
+	os      string
+	region  string
+}
+
+// String returns a canonical "version/os/region" representation of the key.
+func (k amiLookupKey) String() string {
+	return k.version + "/" + k.os + "/" + k.region
+}
+
 // FindMissingAMIs returns the combinations of (k8s patch version × OS × region)
 // that are expected based on k8sVersions but absent from published.
 //
@@ -62,7 +75,7 @@ func FindMissingAMIs(
 	// Build a lookup set of published AMIs keyed by "v<version>/<os>/<region>".
 	lookup := make(map[string]struct{}, len(published))
 	for _, p := range published {
-		lookup[normalizeVersion(p.KubernetesVersion)+"/"+p.OS+"/"+p.Region] = struct{}{}
+		lookup[amiLookupKey{normalizeVersion(p.KubernetesVersion), p.OS, p.Region}.String()] = struct{}{}
 	}
 
 	var missing []MissingAMI
@@ -71,7 +84,7 @@ func FindMissingAMIs(
 			ver := normalizeVersion(patch)
 			for _, osName := range osList {
 				for _, region := range regions {
-					if _, ok := lookup[ver+"/"+osName+"/"+region]; !ok {
+					if _, ok := lookup[amiLookupKey{ver, osName, region}.String()]; !ok {
 						missing = append(missing, MissingAMI{
 							KubernetesVersion: ver,
 							OS:                osName,
