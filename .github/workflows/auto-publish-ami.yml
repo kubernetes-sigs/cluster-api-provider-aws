@@ -27,7 +27,6 @@ permissions:
 
 jobs:
   derive:
-  # 1st: run the missing amis command to get json file of missing amis /tmp/
     name: Derive packer inputs
     runs-on: ubuntu-latest
     outputs:
