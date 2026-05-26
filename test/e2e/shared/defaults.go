@@ -75,6 +75,7 @@ const (
 	EksUpgradeFromVersion                = "UPGRADE_FROM_VERSION"
 	EksUpgradeToVersion                  = "UPGRADE_TO_VERSION"
 	UpgradePolicy                        = "UPGRADE_POLICY"
+	ScalingTier                          = "SCALING_TIER"
 )
 
 // ResourceQuotaFilePath is the path to the file that contains the resource usage.
