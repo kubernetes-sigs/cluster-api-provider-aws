@@ -18,15 +18,14 @@ spec:
   workers:
     machineDeployments:
     - class: default-worker
-      template:
-        bootstrap:
-          templateRef:
-            kind: KubeadmConfigTemplate
-            name: multi-tenancy-worker-bootstraptemplate
-        infrastructure:
-          templateRef:
-            kind: AWSMachineTemplate
-            name: multi-tenancy-worker-machinetemplate
+      bootstrap:
+        templateRef:
+          kind: KubeadmConfigTemplate
+          name: multi-tenancy-worker-bootstraptemplate
+      infrastructure:
+        templateRef:
+          kind: AWSMachineTemplate
+          name: multi-tenancy-worker-machinetemplate
   variables:
     - name: region
       required: true

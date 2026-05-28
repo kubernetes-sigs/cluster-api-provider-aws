@@ -14,15 +14,14 @@ spec:
   workers:
     machineDeployments:
       - class: default-worker
-        template:
-          bootstrap:
-            templateRef:
-              kind: NodeadmConfigTemplate
-              name: "${CLUSTER_NAME}-md-0"
-          infrastructure:
-            templateRef:
-              kind: AWSMachineTemplate
-              name: "${CLUSTER_NAME}-md-0"
+        bootstrap:
+          templateRef:
+            kind: NodeadmConfigTemplate
+            name: "${CLUSTER_NAME}-md-0"
+        infrastructure:
+          templateRef:
+            kind: AWSMachineTemplate
+            name: "${CLUSTER_NAME}-md-0"
 ---
 kind: AWSManagedClusterTemplate
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
