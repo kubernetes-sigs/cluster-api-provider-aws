@@ -18,15 +18,14 @@ spec:
   workers:
     machineDeployments:
     - class: default-worker
-      template:
-        bootstrap:
-          templateRef:
-            kind: KubeadmConfigTemplate
-            name: ci-default-worker-bootstraptemplate
-        infrastructure:
-          templateRef:
-            kind: AWSMachineTemplate
-            name: ci-default-worker-machinetemplate
+      bootstrap:
+        templateRef:
+          kind: KubeadmConfigTemplate
+          name: ci-default-worker-bootstraptemplate
+      infrastructure:
+        templateRef:
+          kind: AWSMachineTemplate
+          name: ci-default-worker-machinetemplate
   variables:
   - name: region
     required: true
