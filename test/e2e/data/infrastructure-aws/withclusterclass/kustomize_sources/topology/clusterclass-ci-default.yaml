@@ -4,18 +4,15 @@ metadata:
   name: ci-default
 spec:
   controlPlane:
-    ref:
-      apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+    templateRef:
       kind: KubeadmControlPlaneTemplate
       name: ci-default-control-plane
     machineInfrastructure:
-      ref:
+      templateRef:
         kind: AWSMachineTemplate
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         name: ci-default-control-plane
   infrastructure:
-    ref:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+    templateRef:
       kind: AWSClusterTemplate
       name: ci-default
   workers:
@@ -23,13 +20,11 @@ spec:
     - class: default-worker
       template:
         bootstrap:
-          ref:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+          templateRef:
             kind: KubeadmConfigTemplate
             name: ci-default-worker-bootstraptemplate
         infrastructure:
-          ref:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+          templateRef:
             kind: AWSMachineTemplate
             name: ci-default-worker-machinetemplate
   variables:

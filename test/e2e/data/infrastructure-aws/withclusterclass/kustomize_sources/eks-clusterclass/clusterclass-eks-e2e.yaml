@@ -4,13 +4,11 @@ metadata:
   name: eks-e2e
 spec:
   controlPlane:
-    ref:
-      apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+    templateRef:
       kind: AWSManagedControlPlaneTemplate
       name: "${CLUSTER_NAME}-control-plane"
   infrastructure:
-    ref:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+    templateRef:
       kind: AWSManagedClusterTemplate
       name: "${CLUSTER_NAME}"
   workers:
@@ -18,15 +16,13 @@ spec:
       - class: default-worker
         template:
           bootstrap:
-            ref:
-              name: "${CLUSTER_NAME}-md-0"
-              apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+            templateRef:
               kind: NodeadmConfigTemplate
-          infrastructure:
-            ref:
               name: "${CLUSTER_NAME}-md-0"
-              apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+          infrastructure:
+            templateRef:
               kind: AWSMachineTemplate
+              name: "${CLUSTER_NAME}-md-0"
 ---
 kind: AWSManagedClusterTemplate
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2

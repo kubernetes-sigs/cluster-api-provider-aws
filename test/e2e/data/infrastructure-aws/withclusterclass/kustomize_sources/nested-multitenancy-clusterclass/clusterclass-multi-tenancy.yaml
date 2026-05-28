@@ -4,18 +4,15 @@ metadata:
   name: multi-tenancy
 spec:
   controlPlane:
-    ref:
-      apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+    templateRef:
       kind: KubeadmControlPlaneTemplate
       name: multi-tenancy-control-plane
     machineInfrastructure:
-      ref:
+      templateRef:
         kind: AWSMachineTemplate
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
         name: multi-tenancy-control-plane
   infrastructure:
-    ref:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+    templateRef:
       kind: AWSClusterTemplate
       name: multi-tenancy
   workers:
@@ -23,13 +20,11 @@ spec:
     - class: default-worker
       template:
         bootstrap:
-          ref:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+          templateRef:
             kind: KubeadmConfigTemplate
             name: multi-tenancy-worker-bootstraptemplate
         infrastructure:
-          ref:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+          templateRef:
             kind: AWSMachineTemplate
             name: multi-tenancy-worker-machinetemplate
   variables:
