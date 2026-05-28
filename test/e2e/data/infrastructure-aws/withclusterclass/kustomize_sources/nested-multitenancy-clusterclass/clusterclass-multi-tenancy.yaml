@@ -1,11 +1,11 @@
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: ClusterClass
 metadata:
   name: multi-tenancy
 spec:
   controlPlane:
     ref:
-      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta2
       kind: KubeadmControlPlaneTemplate
       name: multi-tenancy-control-plane
     machineInfrastructure:
@@ -24,7 +24,7 @@ spec:
       template:
         bootstrap:
           ref:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
             kind: KubeadmConfigTemplate
             name: multi-tenancy-worker-bootstraptemplate
         infrastructure:
@@ -156,7 +156,7 @@ spec:
         healthCheckProtocol: HTTPS
 ---
 kind: KubeadmControlPlaneTemplate
-apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 metadata:
   name: multi-tenancy-control-plane
 spec:
@@ -166,17 +166,20 @@ spec:
         clusterConfiguration:
           controllerManager:
             extraArgs:
-              cloud-provider: external
+            - name: cloud-provider
+              value: external
         initConfiguration:
           nodeRegistration:
             name: '{{ ds.meta_data.local_hostname }}'
             kubeletExtraArgs:
-              cloud-provider: external
+            - name: cloud-provider
+              value: external
         joinConfiguration:
           nodeRegistration:
             name: '{{ ds.meta_data.local_hostname }}'
             kubeletExtraArgs:
-              cloud-provider: external
+            - name: cloud-provider
+              value: external
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSMachineTemplate
@@ -204,7 +207,7 @@ spec:
       rootVolume:
         size: 10
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfigTemplate
 metadata:
   name: "multi-tenancy-worker-bootstraptemplate"
@@ -215,4 +218,5 @@ spec:
         nodeRegistration:
           name: '{{ ds.meta_data.local_hostname }}'
           kubeletExtraArgs:
-            cloud-provider: external
+          - name: cloud-provider
+            value: external
