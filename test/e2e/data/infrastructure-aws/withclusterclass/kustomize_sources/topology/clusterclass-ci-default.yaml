@@ -1,4 +1,4 @@
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: ClusterClass
 metadata:
   name: ci-default
@@ -24,7 +24,7 @@ spec:
       template:
         bootstrap:
           ref:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
             kind: KubeadmConfigTemplate
             name: ci-default-worker-bootstraptemplate
         infrastructure:
@@ -218,7 +218,7 @@ spec:
                 - ctr -n k8s.io images pull "${CAPI_IMAGES_REGISTRY}:${E2E_IMAGE_TAG}"
                 - ctr -n k8s.io images tag "${CAPI_IMAGES_REGISTRY}:${E2E_IMAGE_TAG}" gcr.io/k8s-staging-cluster-api/capa-manager:e2e
       - selector:
-          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
           kind: KubeadmConfigTemplate
           matchResources:
             machineDeploymentClass:
@@ -331,7 +331,7 @@ spec:
       rootVolume:
         size: 10
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfigTemplate
 metadata:
   name: ci-default-worker-bootstraptemplate
@@ -342,4 +342,5 @@ spec:
         nodeRegistration:
           name: '{{ ds.meta_data.local_hostname }}'
           kubeletExtraArgs:
-            cloud-provider: external
+          - name: cloud-provider
+            value: external
