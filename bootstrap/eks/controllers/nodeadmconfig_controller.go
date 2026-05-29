@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -34,12 +35,17 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/internal/userdata"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/ssm"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/util/paused"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
@@ -53,11 +59,29 @@ import (
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
+const (
+	// ssmActivationFinalizer is the finalizer for SSM activations created by the controller.
+	ssmActivationFinalizer = "nodeadmconfig.bootstrap.cluster.x-k8s.io/ssm-activation"
+
+	// ssmActivationSecretSuffix is the suffix for the secret storing SSM activation credentials.
+	ssmActivationSecretSuffix = "-ssm-activation"
+
+	// SSM activation secret keys.
+	ssmActivationIDKey   = "activationId"
+	ssmActivationCodeKey = "activationCode"
+)
+
+// SSMServiceFactory is a function that creates an SSM service from a cluster scope.
+type SSMServiceFactory func(cloud.ClusterScoper) *ssm.Service
+
 // NodeadmConfigReconciler reconciles a NodeadmConfig object.
 type NodeadmConfigReconciler struct {
 	client.Client
 	Scheme           *runtime.Scheme
 	WatchFilterValue string
+
+	// SSMServiceFactory creates SSM services. Used for test injection.
+	SSMServiceFactory SSMServiceFactory
 }
 
 // +kubebuilder:rbac:groups=bootstrap.cluster.x-k8s.io,resources=nodeadmconfigs,verbs=get;list;watch;create;update;patch;delete
@@ -126,10 +150,15 @@ func (r *NodeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// set up defer block for updating config
 	defer func() {
+		conditions := []clusterv1beta1.ConditionType{
+			eksbootstrapv1.DataSecretAvailableCondition,
+		}
+		// Include SSM condition in summary for hybrid nodes
+		if config.Spec.Hybrid != nil && config.Spec.Hybrid.SSM != nil && config.Spec.Hybrid.SSM.ActivationConfig != nil {
+			conditions = append(conditions, eksbootstrapv1.SSMActivationReadyCondition)
+		}
 		v1beta1conditions.SetSummary(config,
-			v1beta1conditions.WithConditions(
-				eksbootstrapv1.DataSecretAvailableCondition,
-			),
+			v1beta1conditions.WithConditions(conditions...),
 			v1beta1conditions.WithStepCounter(),
 		)
 
@@ -144,6 +173,23 @@ func (r *NodeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			}
 		}
 	}()
+
+	// Handle deletion for hybrid nodes with auto-created SSM activations
+	if !config.DeletionTimestamp.IsZero() {
+		return r.reconcileDelete(ctx, cluster, config)
+	}
+
+	// Add finalizer for hybrid nodes with auto-created activations
+	if config.Spec.Hybrid != nil && config.Spec.Hybrid.SSM != nil && config.Spec.Hybrid.SSM.ActivationConfig != nil {
+		if !controllerutil.ContainsFinalizer(config, ssmActivationFinalizer) {
+			controllerutil.AddFinalizer(config, ssmActivationFinalizer)
+		}
+	}
+
+	// Route to appropriate reconciliation based on hybrid mode
+	if config.Spec.Hybrid != nil {
+		return r.reconcileHybridNode(ctx, cluster, config, configOwner)
+	}
 
 	return r.joinWorker(ctx, cluster, config, configOwner)
 }
@@ -282,6 +328,458 @@ func (r *NodeadmConfigReconciler) joinWorker(ctx context.Context, cluster *clust
 
 	v1beta1conditions.MarkTrue(config, eksbootstrapv1.DataSecretAvailableCondition)
 	return ctrl.Result{}, nil
+}
+
+// reconcileHybridNode handles bootstrap data generation for hybrid nodes.
+func (r *NodeadmConfigReconciler) reconcileHybridNode(ctx context.Context, cluster *clusterv1.Cluster, config *eksbootstrapv1.NodeadmConfig, configOwner *bsutil.ConfigOwner) (ctrl.Result, error) {
+	log := logger.FromContext(ctx)
+
+	// Skip if already ready
+	if config.Status.DataSecretName != nil && configOwner.GetKind() == "Machine" {
+		secretKey := client.ObjectKey{Namespace: config.Namespace, Name: *config.Status.DataSecretName}
+		existingSecret := &corev1.Secret{}
+		err := r.Client.Get(ctx, secretKey, existingSecret)
+		switch {
+		case err == nil:
+			return ctrl.Result{}, nil
+		case !apierrors.IsNotFound(err):
+			log.Error(err, "unable to check for existing bootstrap secret")
+			return ctrl.Result{}, err
+		}
+	}
+
+	// Validate control plane reference
+	if cluster.Spec.ControlPlaneRef.Kind != "AWSManagedControlPlane" {
+		return ctrl.Result{}, errors.New("Cluster's controlPlaneRef needs to be an AWSManagedControlPlane in order to use the EKS bootstrap provider")
+	}
+
+	// Check cluster infrastructure readiness
+	if !ptr.Deref(cluster.Status.Initialization.InfrastructureProvisioned, false) {
+		log.Info("Cluster infrastructure is not ready")
+		v1beta1conditions.MarkFalse(config,
+			eksbootstrapv1.DataSecretAvailableCondition,
+			eksbootstrapv1.WaitingForClusterInfrastructureReason,
+			clusterv1beta1.ConditionSeverityInfo, "")
+		return ctrl.Result{}, nil
+	}
+
+	// Check control plane initialization
+	if !ptr.Deref(cluster.Status.Initialization.ControlPlaneInitialized, false) {
+		log.Info("Control Plane has not yet been initialized")
+		v1beta1conditions.MarkFalse(config,
+			eksbootstrapv1.DataSecretAvailableCondition,
+			eksbootstrapv1.WaitingForControlPlaneInitializationReason,
+			clusterv1beta1.ConditionSeverityInfo, "")
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	}
+
+	// Get control plane
+	controlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
+	if err := r.Get(ctx, client.ObjectKey{Name: cluster.Spec.ControlPlaneRef.Name, Namespace: cluster.Namespace}, controlPlane); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to get control plane")
+	}
+
+	// Check if control plane is ready
+	if !v1beta1conditions.IsTrue(controlPlane, ekscontrolplanev1.EKSControlPlaneReadyCondition) {
+		log.Info("Waiting for control plane to be ready")
+		v1beta1conditions.MarkFalse(
+			config,
+			eksbootstrapv1.DataSecretAvailableCondition,
+			eksbootstrapv1.DataSecretGenerationFailedReason,
+			clusterv1beta1.ConditionSeverityInfo,
+			"Control plane is not initialized yet",
+		)
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	}
+
+	log.Info("Control plane is ready, proceeding with hybrid node userdata generation")
+
+	// Get or create SSM activation
+	activationID, activationCode, err := r.getOrCreateSSMActivation(ctx, cluster, controlPlane, config, configOwner)
+	if err != nil {
+		log.Error(err, "Failed to get or create SSM activation")
+		v1beta1conditions.MarkFalse(config,
+			eksbootstrapv1.DataSecretAvailableCondition,
+			eksbootstrapv1.DataSecretGenerationFailedReason,
+			clusterv1beta1.ConditionSeverityWarning,
+			"Failed to get SSM activation: %v", err)
+		return ctrl.Result{}, err
+	}
+
+	// Determine which userdata generation path to use
+	var userDataScript []byte
+
+	if config.Spec.Hybrid.CustomUserData != nil {
+		// Custom template mode - user provides their own template
+		log.Info("Generating custom hybrid userdata from user-provided template",
+			"cluster", controlPlane.Spec.EKSClusterName,
+			"region", controlPlane.Spec.Region)
+		userDataScript, err = r.generateCustomHybridUserdata(config, controlPlane, activationID, activationCode)
+	} else {
+		// Default nodeadm mode - generate MIME multipart userdata
+		log.Info("Generating hybrid nodeadm userdata",
+			"cluster", controlPlane.Spec.EKSClusterName,
+			"region", controlPlane.Spec.Region)
+		userDataScript, err = r.generateNodeadmHybridUserdata(ctx, config, controlPlane, activationID, activationCode)
+	}
+
+	if err != nil {
+		log.Error(err, "Failed to create hybrid node join configuration")
+		v1beta1conditions.MarkFalse(config,
+			eksbootstrapv1.DataSecretAvailableCondition,
+			eksbootstrapv1.DataSecretGenerationFailedReason,
+			clusterv1beta1.ConditionSeverityWarning, "")
+		return ctrl.Result{}, err
+	}
+
+	// Store userdata as secret
+	if err := r.storeBootstrapData(ctx, cluster, config, userDataScript); err != nil {
+		log.Error(err, "Failed to store bootstrap data")
+		v1beta1conditions.MarkFalse(config,
+			eksbootstrapv1.DataSecretAvailableCondition,
+			eksbootstrapv1.DataSecretGenerationFailedReason,
+			clusterv1beta1.ConditionSeverityWarning, "")
+		return ctrl.Result{}, err
+	}
+
+	v1beta1conditions.MarkTrue(config, eksbootstrapv1.DataSecretAvailableCondition)
+	return ctrl.Result{}, nil
+}
+
+// generateCustomHybridUserdata generates userdata from a user-provided template.
+// This completely replaces the default nodeadm MIME multipart userdata generation.
+func (r *NodeadmConfigReconciler) generateCustomHybridUserdata(
+	config *eksbootstrapv1.NodeadmConfig,
+	controlPlane *ekscontrolplanev1.AWSManagedControlPlane,
+	activationID, activationCode string,
+) ([]byte, error) {
+	customInput := &userdata.CustomHybridInput{
+		ClusterName:    controlPlane.Spec.EKSClusterName,
+		Region:         controlPlane.Spec.Region,
+		ActivationID:   activationID,
+		ActivationCode: activationCode,
+	}
+
+	// Add Kubernetes version if specified
+	if controlPlane.Spec.Version != nil {
+		customInput.KubernetesVersion = *controlPlane.Spec.Version
+	}
+
+	// Add optional kubelet configuration
+	if config.Spec.Kubelet != nil {
+		customInput.KubeletFlags = config.Spec.Kubelet.Flags
+		customInput.KubeletConfig = config.Spec.Kubelet.Config
+	}
+
+	// Add optional containerd configuration
+	if config.Spec.Containerd != nil {
+		customInput.ContainerdConfig = config.Spec.Containerd.Config
+	}
+
+	return userdata.NewCustomHybridUserdata(
+		config.Spec.Hybrid.CustomUserData.Template,
+		customInput,
+	)
+}
+
+// generateNodeadmHybridUserdata generates the default nodeadm MIME multipart userdata.
+func (r *NodeadmConfigReconciler) generateNodeadmHybridUserdata(
+	ctx context.Context,
+	config *eksbootstrapv1.NodeadmConfig,
+	controlPlane *ekscontrolplanev1.AWSManagedControlPlane,
+	activationID, activationCode string,
+) ([]byte, error) {
+	// Resolve files from secrets if needed
+	fileResolver := FileResolver{Client: r.Client}
+	files, err := fileResolver.ResolveFiles(ctx, config.Namespace, config.Spec.Files)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve files for user data: %w", err)
+	}
+
+	// Build hybrid node input
+	nodeInput := &userdata.NodeadmInput{
+		ClusterName:        controlPlane.Spec.EKSClusterName,
+		Region:             controlPlane.Spec.Region,
+		ActivationID:       activationID,
+		ActivationCode:     activationCode,
+		PreNodeadmCommands: config.Spec.PreNodeadmCommands,
+		Files:              files,
+		DiskSetup:          config.Spec.DiskSetup,
+		Mounts:             config.Spec.Mounts,
+		Users:              config.Spec.Users,
+		NTP:                config.Spec.NTP,
+	}
+
+	// Add kubelet configuration
+	if config.Spec.Kubelet != nil {
+		nodeInput.KubeletFlags = config.Spec.Kubelet.Flags
+		if config.Spec.Kubelet.Config != nil {
+			nodeInput.KubeletConfig = config.Spec.Kubelet.Config
+		}
+	}
+
+	// Add containerd configuration
+	if config.Spec.Containerd != nil {
+		nodeInput.ContainerdConfig = config.Spec.Containerd.Config
+	}
+
+	return userdata.NewNodeadmUserdata(nodeInput)
+}
+
+// getOrCreateSSMActivation retrieves or creates SSM activation credentials.
+func (r *NodeadmConfigReconciler) getOrCreateSSMActivation(
+	ctx context.Context,
+	cluster *clusterv1.Cluster,
+	controlPlane *ekscontrolplanev1.AWSManagedControlPlane,
+	config *eksbootstrapv1.NodeadmConfig,
+	configOwner *bsutil.ConfigOwner,
+) (string, string, error) {
+	log := logger.FromContext(ctx)
+
+	if config.Spec.Hybrid == nil || config.Spec.Hybrid.SSM == nil {
+		return "", "", errors.New("hybrid SSM configuration is required")
+	}
+
+	ssmOpts := config.Spec.Hybrid.SSM
+
+	// Option 1: Use pre-created activation secret
+	if ssmOpts.ActivationRef != nil {
+		log.Info("Using referenced SSM activation secret", "secretName", ssmOpts.ActivationRef.Name)
+		return r.getActivationFromSecret(ctx, config.Namespace, ssmOpts.ActivationRef.Name, config)
+	}
+
+	// Option 2: Auto-create activation
+	if ssmOpts.ActivationConfig == nil {
+		return "", "", errors.New("either activationRef or activationConfig must be specified")
+	}
+
+	// Check if we already have an activation stored
+	if config.Status.SSMActivation != nil && config.Status.SSMActivation.SecretName != nil {
+		secretName := *config.Status.SSMActivation.SecretName
+		activationID, activationCode, err := r.getActivationFromSecret(ctx, config.Namespace, secretName, config)
+		if err == nil {
+			log.Info("Using existing auto-created SSM activation", "secretName", secretName)
+			return activationID, activationCode, nil
+		}
+		// If secret not found, we need to create a new activation
+		if !apierrors.IsNotFound(errors.Cause(err)) {
+			return "", "", err
+		}
+		log.Info("SSM activation secret not found, creating new activation")
+	}
+
+	// Create SSM service
+	ssmService, err := r.getSSMService(ctx, cluster, controlPlane)
+	if err != nil {
+		return "", "", errors.Wrap(err, "failed to create SSM service")
+	}
+
+	// Prepare activation parameters
+	registrationLimit := int32(1)
+	if ssmOpts.ActivationConfig.RegistrationLimit != nil {
+		registrationLimit = *ssmOpts.ActivationConfig.RegistrationLimit
+	}
+
+	expirationHours := int32(24)
+	if ssmOpts.ActivationConfig.ExpirationHours != nil {
+		expirationHours = *ssmOpts.ActivationConfig.ExpirationHours
+	}
+
+	// Convert tags to infrav1.Tags
+	tags := make(infrav1.Tags)
+	for k, v := range ssmOpts.ActivationConfig.Tags {
+		tags[k] = v
+	}
+
+	params := &ssm.HybridActivationParams{
+		IAMRoleName:       ssmOpts.ActivationConfig.IAMRoleName,
+		RegistrationLimit: registrationLimit,
+		ExpirationHours:   expirationHours,
+		Tags:              tags,
+		ClusterName:       cluster.Name,
+		Namespace:         config.Namespace,
+		ConfigName:        config.Name,
+		MachineName:       configOwner.GetName(),
+		Description:       fmt.Sprintf("CAPA hybrid node activation for %s/%s", config.Namespace, config.Name),
+	}
+
+	log.Info("Creating SSM activation",
+		"iamRoleName", params.IAMRoleName,
+		"registrationLimit", params.RegistrationLimit,
+		"expirationHours", params.ExpirationHours)
+
+	// Create activation
+	result, err := ssmService.CreateHybridActivation(ctx, params)
+	if err != nil {
+		v1beta1conditions.MarkFalse(config,
+			eksbootstrapv1.SSMActivationReadyCondition,
+			eksbootstrapv1.SSMActivationCreationFailedReason,
+			clusterv1beta1.ConditionSeverityError,
+			"Failed to create SSM activation: %v", err)
+		return "", "", errors.Wrap(err, "failed to create SSM activation")
+	}
+
+	log.Info("Created SSM activation", "activationID", result.ActivationID)
+
+	// Store activation in secret
+	secretName := config.Name + ssmActivationSecretSuffix
+	if err := r.storeActivationSecret(ctx, cluster, config, secretName, result.ActivationID, result.ActivationCode); err != nil {
+		// Try to delete the activation since we couldn't store the secret
+		if delErr := ssmService.DeleteHybridActivation(ctx, result.ActivationID); delErr != nil {
+			log.Error(delErr, "Failed to cleanup SSM activation after secret creation failure")
+		}
+		return "", "", errors.Wrap(err, "failed to store SSM activation secret")
+	}
+
+	// Update status
+	config.Status.SSMActivation = &eksbootstrapv1.SSMActivationStatus{
+		ActivationID:   aws.String(result.ActivationID),
+		SecretName:     aws.String(secretName),
+		ExpirationTime: &metav1.Time{Time: result.ExpirationTime},
+	}
+
+	v1beta1conditions.MarkTrue(config, eksbootstrapv1.SSMActivationReadyCondition)
+	return result.ActivationID, result.ActivationCode, nil
+}
+
+// getActivationFromSecret retrieves SSM activation credentials from a secret.
+func (r *NodeadmConfigReconciler) getActivationFromSecret(ctx context.Context, namespace, secretName string, config *eksbootstrapv1.NodeadmConfig) (string, string, error) {
+	secret := &corev1.Secret{}
+	if err := r.Client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: secretName}, secret); err != nil {
+		if apierrors.IsNotFound(err) {
+			v1beta1conditions.MarkFalse(config,
+				eksbootstrapv1.SSMActivationReadyCondition,
+				eksbootstrapv1.SSMActivationSecretNotFoundReason,
+				clusterv1beta1.ConditionSeverityError,
+				"SSM activation secret %s not found", secretName)
+		}
+		return "", "", errors.Wrapf(err, "failed to get SSM activation secret %s", secretName)
+	}
+
+	activationID, ok := secret.Data[ssmActivationIDKey]
+	if !ok || len(activationID) == 0 {
+		return "", "", fmt.Errorf("SSM activation secret %s missing %s key", secretName, ssmActivationIDKey)
+	}
+
+	activationCode, ok := secret.Data[ssmActivationCodeKey]
+	if !ok || len(activationCode) == 0 {
+		return "", "", fmt.Errorf("SSM activation secret %s missing %s key", secretName, ssmActivationCodeKey)
+	}
+
+	v1beta1conditions.MarkTrue(config, eksbootstrapv1.SSMActivationReadyCondition)
+	return string(activationID), string(activationCode), nil
+}
+
+// storeActivationSecret creates a secret containing SSM activation credentials.
+func (r *NodeadmConfigReconciler) storeActivationSecret(ctx context.Context, cluster *clusterv1.Cluster, config *eksbootstrapv1.NodeadmConfig, secretName, activationID, activationCode string) error {
+	log := logger.FromContext(ctx)
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: config.Namespace,
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel: cluster.Name,
+			},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: eksbootstrapv1.GroupVersion.String(),
+					Kind:       "NodeadmConfig",
+					Name:       config.Name,
+					UID:        config.UID,
+					Controller: ptr.To(true),
+				},
+			},
+		},
+		Type: corev1.SecretTypeOpaque,
+		Data: map[string][]byte{
+			ssmActivationIDKey:   []byte(activationID),
+			ssmActivationCodeKey: []byte(activationCode),
+		},
+	}
+
+	if err := r.Client.Create(ctx, secret); err != nil {
+		if apierrors.IsAlreadyExists(err) {
+			// Update existing secret
+			existing := &corev1.Secret{}
+			if err := r.Client.Get(ctx, client.ObjectKey{Namespace: config.Namespace, Name: secretName}, existing); err != nil {
+				return errors.Wrap(err, "failed to get existing activation secret")
+			}
+			existing.Data = secret.Data
+			existing.Labels = secret.Labels
+			existing.OwnerReferences = secret.OwnerReferences
+			if err := r.Client.Update(ctx, existing); err != nil {
+				return errors.Wrap(err, "failed to update activation secret")
+			}
+			log.Info("Updated SSM activation secret", "secret", secretName)
+			return nil
+		}
+		return errors.Wrap(err, "failed to create activation secret")
+	}
+
+	log.Info("Created SSM activation secret", "secret", secretName)
+	return nil
+}
+
+// reconcileDelete handles cleanup when a NodeadmConfig is being deleted.
+func (r *NodeadmConfigReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, config *eksbootstrapv1.NodeadmConfig) (ctrl.Result, error) {
+	log := logger.FromContext(ctx)
+
+	// Only process deletion for hybrid nodes with auto-created activations
+	if !controllerutil.ContainsFinalizer(config, ssmActivationFinalizer) {
+		return ctrl.Result{}, nil
+	}
+
+	// Check if we have an activation to clean up
+	if config.Status.SSMActivation != nil && config.Status.SSMActivation.ActivationID != nil {
+		activationID := *config.Status.SSMActivation.ActivationID
+		log.Info("Deleting SSM activation", "activationID", activationID)
+
+		// Get control plane for AWS credentials
+		controlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
+		if err := r.Get(ctx, client.ObjectKey{Name: cluster.Spec.ControlPlaneRef.Name, Namespace: cluster.Namespace}, controlPlane); err != nil {
+			if !apierrors.IsNotFound(err) {
+				return ctrl.Result{}, errors.Wrap(err, "failed to get control plane")
+			}
+			// Control plane already deleted, can't delete SSM activation
+			log.Info("Control plane not found, skipping SSM activation deletion", "activationID", activationID)
+		} else {
+			// Create SSM service and delete activation
+			ssmService, err := r.getSSMService(ctx, cluster, controlPlane)
+			if err != nil {
+				return ctrl.Result{}, errors.Wrap(err, "failed to create SSM service for cleanup")
+			}
+
+			if err := ssmService.DeleteHybridActivation(ctx, activationID); err != nil {
+				log.Error(err, "Failed to delete SSM activation", "activationID", activationID)
+				return ctrl.Result{}, errors.Wrap(err, "failed to delete SSM activation")
+			}
+			log.Info("Deleted SSM activation", "activationID", activationID)
+		}
+	}
+
+	// Remove finalizer
+	controllerutil.RemoveFinalizer(config, ssmActivationFinalizer)
+	return ctrl.Result{}, nil
+}
+
+// getSSMService creates an SSM service using control plane credentials.
+func (r *NodeadmConfigReconciler) getSSMService(ctx context.Context, cluster *clusterv1.Cluster, controlPlane *ekscontrolplanev1.AWSManagedControlPlane) (*ssm.Service, error) {
+	// Create managed control plane scope for AWS credentials
+	managedScope, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
+		Client:         r.Client,
+		Cluster:        cluster,
+		ControlPlane:   controlPlane,
+		ControllerName: "nodeadmconfig",
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create managed control plane scope")
+	}
+
+	if r.SSMServiceFactory != nil {
+		return r.SSMServiceFactory(managedScope), nil
+	}
+	return ssm.NewService(managedScope), nil
 }
 
 // storeBootstrapData creates a new secret with the data passed in as input,
