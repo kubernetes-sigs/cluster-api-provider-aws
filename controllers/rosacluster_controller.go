@@ -137,7 +137,6 @@ func (r *ROSAClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		ControlPlane:   controlPlane,
 		ControllerName: "",
 		Logger:         log,
-		NewStsClient:   r.NewStsClient,
 	})
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to create rosa controlplane scope: %w", err)

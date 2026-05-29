@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -44,16 +45,24 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/rosa"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 )
 
 // generateTestID creates a unique identifier for test resources.
 func generateTestID() string {
 	return fmt.Sprintf("%d-%d", time.Now().UnixNano(), rand.Intn(10000))
+}
+
+// makeRuntimeFactory returns a runtimeFactory that always returns the given pre-built runtime.
+// This replaces the old pattern of setting reconciler.Runtime directly.
+func makeRuntimeFactory(rt *rosacli.Runtime) func(context.Context, *scope.RosaRoleConfigScope) (*rosacli.Runtime, error) {
+	return func(_ context.Context, _ *scope.RosaRoleConfigScope) (*rosacli.Runtime, error) {
+		return rt, nil
+	}
 }
 
 func TestROSARoleConfigReconcileCreate(t *testing.T) {
@@ -205,10 +214,10 @@ func TestROSARoleConfigReconcileCreate(t *testing.T) {
 		false,
 	)
 
-	r := rosacli.NewRuntime()
-	r.OCMClient = ocmClient
-	r.AWSClient = awsClient
-	r.Creator = &aws.Creator{
+	rt := rosacli.NewRuntime()
+	rt.OCMClient = ocmClient
+	rt.AWSClient = awsClient
+	rt.Creator = &aws.Creator{
 		ARN:       "fake",
 		AccountID: "123",
 		IsSTS:     false,
@@ -363,10 +372,10 @@ func TestROSARoleConfigReconcileCreate(t *testing.T) {
 	createObject(g, rosaRoleConfig, ns.Name)
 	defer cleanupObject(g, rosaRoleConfig)
 
-	// Setup the reconciler with these mocks
+	// Setup the reconciler using runtimeFactory to inject mock clients per reconciliation.
 	reconciler := &ROSARoleConfigReconciler{
-		Client:  testEnv.Client,
-		Runtime: r,
+		Client:         testEnv.Client,
+		runtimeFactory: makeRuntimeFactory(rt),
 	}
 	req := ctrl.Request{}
 	req.NamespacedName = types.NamespacedName{Name: rosaRoleConfig.Name, Namespace: rosaRoleConfig.Namespace}
@@ -442,65 +451,35 @@ func TestROSARoleConfigReconcileExist(t *testing.T) {
 	mockAWSClient.EXPECT().HasManagedPolicies(gomock.Any()).Return(false, nil).AnyTimes()
 	mockAWSClient.EXPECT().HasHostedCPPolicies(gomock.Any()).Return(true, nil).AnyTimes()
 
-	// Return existing account roles
-	mockAWSClient.EXPECT().ListAccountRoles(gomock.Any()).Return([]aws.Role{
-		{
-			RoleName: "test-HCP-ROSA-Installer-Role",
-			RoleARN:  "arn:aws:iam::123456789012:role/test-HCP-ROSA-Installer-Role",
-		},
-		{
-			RoleName: "test-HCP-ROSA-Support-Role",
-			RoleARN:  "arn:aws:iam::123456789012:role/test-HCP-ROSA-Support-Role",
-		},
-		{
-			RoleName: "test-HCP-ROSA-Worker-Role",
-			RoleARN:  "arn:aws:iam::123456789012:role/test-HCP-ROSA-Worker-Role",
-		},
-	}, nil).AnyTimes()
+	// Return existing account roles by exact name (avoids ListAccountRoles → ListRoleTags throttling).
+	mockAWSClient.EXPECT().GetRoleByName("test-HCP-ROSA-Installer-Role").Return(
+		iamTypes.Role{Arn: awsSdk.String("arn:aws:iam::123456789012:role/test-HCP-ROSA-Installer-Role")}, nil).AnyTimes()
+	mockAWSClient.EXPECT().GetRoleByName("test-HCP-ROSA-Support-Role").Return(
+		iamTypes.Role{Arn: awsSdk.String("arn:aws:iam::123456789012:role/test-HCP-ROSA-Support-Role")}, nil).AnyTimes()
+	mockAWSClient.EXPECT().GetRoleByName("test-HCP-ROSA-Worker-Role").Return(
+		iamTypes.Role{Arn: awsSdk.String("arn:aws:iam::123456789012:role/test-HCP-ROSA-Worker-Role")}, nil).AnyTimes()
 
-	// Return existing operator roles
-	mockAWSClient.EXPECT().ListOperatorRoles(gomock.Any(), gomock.Any(), gomock.Any()).Return(map[string][]aws.OperatorRoleDetail{
-		"test": {
-			{
-				RoleName: "test-openshift-ingress-operator-cloud-credentials",
-				RoleARN:  "arn:aws:iam::123456789012:role/test-openshift-ingress-operator-cloud-credentials",
-			},
-			{
-				RoleName: "test-openshift-image-registry-installer-cloud-credentials",
-				RoleARN:  "arn:aws:iam::123456789012:role/test-openshift-image-registry-installer-cloud-credentials",
-			},
-			{
-				RoleName: "test-openshift-cluster-csi-drivers-ebs-cloud-credentials",
-				RoleARN:  "arn:aws:iam::123456789012:role/test-openshift-cluster-csi-drivers-ebs-cloud-credentials",
-			},
-			{
-				RoleName: "test-openshift-cloud-network-config-controller-cloud-credentials",
-				RoleARN:  "arn:aws:iam::123456789012:role/test-openshift-cloud-network-config-controller-cloud-credentials",
-			},
-			{
-				RoleName: "test-kube-system-kube-controller-manager",
-				RoleARN:  "arn:aws:iam::123456789012:role/test-kube-system-kube-controller-manager",
-			},
-			{
-				RoleName: "test-kube-system-capa-controller-manager",
-				RoleARN:  "arn:aws:iam::123456789012:role/test-kube-system-capa-controller-manager",
-			},
-			{
-				RoleName: "test-kube-system-control-plane-operator",
-				RoleARN:  "arn:aws:iam::123456789012:role/test-kube-system-control-plane-operator",
-			},
-			{
-				RoleName: "test-kube-system-kms-provider",
-				RoleARN:  "arn:aws:iam::123456789012:role/test-kube-system-kms-provider",
-			},
-		},
-	}, nil).AnyTimes()
-	// Return existing OIDC providers
-	mockAWSClient.EXPECT().ListOidcProviders(gomock.Any(), gomock.Any()).Return([]aws.OidcProviderOutput{
-		{
-			Arn: "arn:aws:iam::123456789012:oidc-provider/test-existing-oidc-id",
-		},
-	}, nil).AnyTimes()
+	// Return existing operator roles by exact name (avoids ListOperatorRoles → ListRoleTags throttling).
+	mockAWSClient.EXPECT().GetRoleByName("test-openshift-ingress-operator-cloud-credentials").Return(
+		iamTypes.Role{Arn: awsSdk.String("arn:aws:iam::123456789012:role/test-openshift-ingress-operator-cloud-credentials")}, nil).AnyTimes()
+	mockAWSClient.EXPECT().GetRoleByName("test-openshift-image-registry-installer-cloud-credentials").Return(
+		iamTypes.Role{Arn: awsSdk.String("arn:aws:iam::123456789012:role/test-openshift-image-registry-installer-cloud-credentials")}, nil).AnyTimes()
+	mockAWSClient.EXPECT().GetRoleByName("test-openshift-cluster-csi-drivers-ebs-cloud-credentials").Return(
+		iamTypes.Role{Arn: awsSdk.String("arn:aws:iam::123456789012:role/test-openshift-cluster-csi-drivers-ebs-cloud-credentials")}, nil).AnyTimes()
+	mockAWSClient.EXPECT().GetRoleByName("test-openshift-cloud-network-config-controller-cloud-credentials").Return(
+		iamTypes.Role{Arn: awsSdk.String("arn:aws:iam::123456789012:role/test-openshift-cloud-network-config-controller-cloud-credentials")}, nil).AnyTimes()
+	mockAWSClient.EXPECT().GetRoleByName("test-kube-system-kube-controller-manager").Return(
+		iamTypes.Role{Arn: awsSdk.String("arn:aws:iam::123456789012:role/test-kube-system-kube-controller-manager")}, nil).AnyTimes()
+	mockAWSClient.EXPECT().GetRoleByName("test-kube-system-capa-controller-manager").Return(
+		iamTypes.Role{Arn: awsSdk.String("arn:aws:iam::123456789012:role/test-kube-system-capa-controller-manager")}, nil).AnyTimes()
+	mockAWSClient.EXPECT().GetRoleByName("test-kube-system-control-plane-operator").Return(
+		iamTypes.Role{Arn: awsSdk.String("arn:aws:iam::123456789012:role/test-kube-system-control-plane-operator")}, nil).AnyTimes()
+	mockAWSClient.EXPECT().GetRoleByName("test-kube-system-kms-provider").Return(
+		iamTypes.Role{Arn: awsSdk.String("arn:aws:iam::123456789012:role/test-kube-system-kms-provider")}, nil).AnyTimes()
+
+	// Return existing OIDC provider ARN by issuer URL (avoids ListOpenIDConnectProviderTags throttling).
+	mockAWSClient.EXPECT().GetOpenIDConnectProviderByOidcEndpointUrl("https://test.existing.oidc.url").Return(
+		"arn:aws:iam::123456789012:oidc-provider/test-existing-oidc-id", nil).AnyTimes()
 
 	mockAWSClient.EXPECT().GetCreator().Return(&aws.Creator{
 		ARN:       "arn:aws:iam::123456789012:user/test-user",
@@ -508,12 +487,10 @@ func TestROSARoleConfigReconcileExist(t *testing.T) {
 		IsSTS:     false,
 	}, nil).AnyTimes()
 
-	awsClient := mockAWSClient
-
-	r := rosacli.NewRuntime()
-	r.OCMClient = ocmClient
-	r.AWSClient = awsClient
-	r.Creator = &aws.Creator{
+	rt := rosacli.NewRuntime()
+	rt.OCMClient = ocmClient
+	rt.AWSClient = mockAWSClient
+	rt.Creator = &aws.Creator{
 		ARN:       "arn:aws:iam::123456789012:user/test-user",
 		AccountID: "123456789012",
 		IsSTS:     false,
@@ -585,10 +562,10 @@ func TestROSARoleConfigReconcileExist(t *testing.T) {
 	createObject(g, rosaRoleConfig, ns.Name)
 	defer cleanupObject(g, rosaRoleConfig)
 
-	// Setup the reconciler with these mocks
+	// Setup the reconciler using runtimeFactory to inject mock clients per reconciliation.
 	reconciler := &ROSARoleConfigReconciler{
-		Client:  testEnv.Client,
-		Runtime: r,
+		Client:         testEnv.Client,
+		runtimeFactory: makeRuntimeFactory(rt),
 	}
 
 	req := ctrl.Request{}
@@ -632,200 +609,91 @@ func TestROSARoleConfigReconcileExist(t *testing.T) {
 	}).WithTimeout(30 * time.Second).WithPolling(500 * time.Millisecond).Should(Succeed())
 }
 
-func TestROSARoleConfigSetUpRuntimeWithExpiredAWSCredentials(t *testing.T) {
+// TestROSARoleConfigSetUpRuntimePerReconciliation verifies that setUpRuntime always invokes
+// runtimeFactory on every call — i.e. no singleton caching across reconciliations.
+// This is the regression test for the bug where the first reconciliation's AWSClient was
+// reused for all subsequent ones regardless of identityRef.
+//
+// The test calls setUpRuntime directly with two distinct stub scopes so it doesn't depend
+// on the reconciler's Get/scope-creation path, avoiding any environment-specific flakiness.
+func TestROSARoleConfigSetUpRuntimePerReconciliation(t *testing.T) {
+	g := NewWithT(t)
+	ctx := context.TODO()
+
+	callCount := 0
+	var capturedScopes []*scope.RosaRoleConfigScope
+
+	reconciler := &ROSARoleConfigReconciler{
+		runtimeFactory: func(_ context.Context, s *scope.RosaRoleConfigScope) (*rosacli.Runtime, error) {
+			callCount++
+			capturedScopes = append(capturedScopes, s)
+			return rosacli.NewRuntime(), nil
+		},
+	}
+
+	scope1 := &scope.RosaRoleConfigScope{}
+	scope2 := &scope.RosaRoleConfigScope{}
+
+	_, err := reconciler.setUpRuntime(ctx, scope1)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	_, err = reconciler.setUpRuntime(ctx, scope2)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// runtimeFactory must be called once per setUpRuntime call — no early-return caching.
+	g.Expect(callCount).To(Equal(2), "runtimeFactory must be called for every reconciliation")
+
+	// Each call received the scope it was given, not a shared/cached one.
+	g.Expect(capturedScopes).To(HaveLen(2))
+	g.Expect(capturedScopes[0]).To(BeIdenticalTo(scope1))
+	g.Expect(capturedScopes[1]).To(BeIdenticalTo(scope2))
+}
+
+// TestROSARoleConfigSetUpRuntimeError verifies that when runtimeFactory fails, the error
+// propagates and no stale runtime leaks into subsequent reconciliations.
+func TestROSARoleConfigSetUpRuntimeError(t *testing.T) {
 	RegisterTestingT(t)
 	g := NewWithT(t)
 	ctx := context.TODO()
 
-	// Mock empty AWS credentials
-	t.Setenv("AWS_ACCESS_KEY_ID", "")
-	t.Setenv("AWS_SECRET_ACCESS_KEY", "")
-	t.Setenv("AWS_SESSION_TOKEN", "")
-	t.Setenv("AWS_PROFILE", "")
-	t.Setenv("AWS_SHARED_CREDENTIALS_FILE", "/dev/null")
-	t.Setenv("AWS_CONFIG_FILE", "/dev/null")
-
-	// Create a miniaml scope for testing
-	ns := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("test-ns-%s", generateTestID()),
-		},
-	}
-	createObject(g, ns, "")
-	defer cleanupObject(g, ns)
-
-	rosaRoleConfig := &expinfrav1.ROSARoleConfig{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-role-config",
-			Namespace: ns.Namespace,
-		},
-		Spec: expinfrav1.ROSARoleConfigSpec{
-			AccountRoleConfig: expinfrav1.AccountRoleConfig{
-				Prefix:  "test",
-				Version: "4.15.0",
-			},
-			OperatorRoleConfig: expinfrav1.OperatorRoleConfig{
-				Prefix: "test",
-			},
-			OidcProviderType: expinfrav1.Managed,
-		},
-	}
-	createObject(g, rosaRoleConfig, ns.Name)
-	defer cleanupObject(g, rosaRoleConfig)
-
-	scope, err := scope.NewRosaRoleConfigScope(scope.RosaRoleConfigScopeParams{
-		Client:         testEnv.Client,
-		RosaRoleConfig: rosaRoleConfig,
-		ControllerName: "rosaroleconfig",
-	})
-	g.Expect(err).ToNot(HaveOccurred())
-
-	ssoServer := ocmsdk.MakeTCPServer()
-	apiServer := ocmsdk.MakeTCPServer()
-	defer ssoServer.Close()
-	defer apiServer.Close()
-
-	accessToken := ocmsdk.MakeTokenString("Bearer", 15*time.Minute)
-	ssoServer.AppendHandlers(ocmsdk.RespondWithAccessToken(accessToken))
-
-	logger, err := ocmlogging.NewGoLoggerBuilder().Debug(false).Build()
-	Expect(err).ToNot(HaveOccurred())
-	connection, err := sdk.NewConnectionBuilder().
-		Logger(logger).
-		Tokens(accessToken).
-		URL(apiServer.URL()).
-		Build()
-	Expect(err).To(BeNil())
-
-	ocmClient := ocm.NewClientWithConnection(connection)
-
-	// Track NewOCMClient call count to verify retry behavior
-	ocmClientCallCount := 0
-
-	reconciler := &ROSARoleConfigReconciler{
-		Client: testEnv.Client,
-		NewOCMClient: func(ctx context.Context, scope rosa.OCMSecretsRetriever) (rosa.OCMClient, error) {
-			ocmClientCallCount++
-			return ocmClient, nil
-		},
-		Runtime: nil, // Start with nil Runtime
-	}
-
-	// ==================== FIRST RECONCILIATION ====================
-	t.Log("First reconciliation: AWS credentials are missing/expired")
-
-	err = reconciler.setUpRuntime(ctx, scope)
-
-	g.Expect(err).To(HaveOccurred(),
-		"setUpRuntime should return error when AWS client creation fails")
-	g.Expect(err.Error()).To(ContainSubstring("failed to create aws client"),
-		"Error should indicate AWS client failure")
-
-	g.Expect(reconciler.Runtime).To(BeNil(),
-		"Runtime MUST be nil after failed initialization (atomic assignment fix)")
-
-	g.Expect(ocmClientCallCount).To(Equal(1),
-		"NewOCMClient should be called once on first attempt")
-
-	// ==================== SECOND RECONCILIATION ====================
-	t.Log("Second reconciliation: Retry with still-missing AWS credentials")
-
-	err = reconciler.setUpRuntime(ctx, scope)
-
-	g.Expect(err).To(HaveOccurred(),
-		"setUpRuntime should still fail with missing AWS credentials")
-
-	g.Expect(reconciler.Runtime).To(BeNil(),
-		"Runtime should still be nil after second failed attempt")
-
-	// NewOCMClient was called AGAIN (proves no early return)
-	g.Expect(ocmClientCallCount).To(Equal(2),
-		"NewOCMClient should be called twice - proves guard clause allows retry when Runtime is nil")
-}
-
-// TestSetUpRuntimeIdempotency verifies that setUpRuntime returns early
-// when Runtime is already fully initialized.
-func TestROSARoleConfigSetUpRuntimeIdempotency(t *testing.T) {
-	RegisterTestingT(t)
-	g := NewWithT(t)
-
-	ssoServer := ocmsdk.MakeTCPServer()
-	apiServer := ocmsdk.MakeTCPServer()
-	defer ssoServer.Close()
-	defer apiServer.Close()
-
-	accessToken := ocmsdk.MakeTokenString("Bearer", 15*time.Minute)
-	ssoServer.AppendHandlers(ocmsdk.RespondWithAccessToken(accessToken))
-
-	logger, err := ocmlogging.NewGoLoggerBuilder().Debug(false).Build()
-	Expect(err).ToNot(HaveOccurred())
-	connection, err := sdk.NewConnectionBuilder().
-		Logger(logger).
-		Tokens(accessToken).
-		URL(apiServer.URL()).
-		Build()
-	Expect(err).To(BeNil())
-
-	ocmClient := ocm.NewClientWithConnection(connection)
-
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockIamClient := rosaMocks.NewMockIamApiClient(mockCtrl)
-	mockSTSClient := rosaMocks.NewMockStsApiClient(mockCtrl)
-
-	awsClient := aws.New(
-		awsSdk.Config{},
-		aws.NewLoggerWrapper(logrus.New(), nil),
-		mockIamClient,
-		rosaMocks.NewMockEc2ApiClient(mockCtrl),
-		rosaMocks.NewMockOrganizationsApiClient(mockCtrl),
-		rosaMocks.NewMockS3ApiClient(mockCtrl),
-		rosaMocks.NewMockSecretsManagerApiClient(mockCtrl),
-		mockSTSClient,
-		rosaMocks.NewMockCloudFormationApiClient(mockCtrl),
-		rosaMocks.NewMockServiceQuotasApiClient(mockCtrl),
-		rosaMocks.NewMockServiceQuotasApiClient(mockCtrl),
-		&aws.AccessKey{},
-		false,
-	)
-
-	runtime := rosacli.NewRuntime()
-	runtime.OCMClient = ocmClient
-	runtime.AWSClient = awsClient
-	runtime.Creator = &aws.Creator{
-		ARN:       "arn:aws:iam:123456789012:user/test",
-		AccountID: "123456789012",
-		IsSTS:     false,
-	}
-
 	callCount := 0
 	reconciler := &ROSARoleConfigReconciler{
-		Runtime: runtime, // already initialized
-		NewOCMClient: func(ctx context.Context, scope rosa.OCMSecretsRetriever) (rosa.OCMClient, error) {
+		Client: testEnv.Client,
+		runtimeFactory: func(c context.Context, s *scope.RosaRoleConfigScope) (*rosacli.Runtime, error) {
 			callCount++
-			return ocmClient, nil
+			return nil, fmt.Errorf("simulated AWS credential failure (call %d)", callCount)
 		},
 	}
 
-	scope := &scope.RosaRoleConfigScope{}
-
-	// Call setUpRuntime - should return early
-	err = reconciler.setUpRuntime(ctx, scope)
+	ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("test-ns-err-%s", generateTestID()))
 	g.Expect(err).ToNot(HaveOccurred())
 
-	// Runtime should be unchanged (same instance)
-	g.Expect(reconciler.Runtime).To(BeIdenticalTo(runtime),
-		"Runtime should not be recreated when already initialized")
+	rc := &expinfrav1.ROSARoleConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("rc-err-%s", generateTestID()),
+			Namespace: ns.Name,
+		},
+		Spec: expinfrav1.ROSARoleConfigSpec{
+			AccountRoleConfig:  expinfrav1.AccountRoleConfig{Prefix: "err", Version: "4.15.0"},
+			OperatorRoleConfig: expinfrav1.OperatorRoleConfig{Prefix: "err"},
+			OidcProviderType:   expinfrav1.Managed,
+		},
+	}
+	createObject(g, rc, ns.Name)
+	defer cleanupObject(g, rc)
 
-	// NewOCMClient should NOT be called (early return)
-	g.Expect(callCount).To(Equal(0),
-		"NewOCMClient should not be called when Runtime already exists")
+	req := ctrl.Request{NamespacedName: types.NamespacedName{Name: rc.Name, Namespace: rc.Namespace}}
 
-	// Call again - should still return early
-	err = reconciler.setUpRuntime(ctx, scope)
-	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(callCount).To(Equal(0), "Still should not call NewOCMClient")
+	// First reconciliation: runtimeFactory fails.
+	_, err1 := reconciler.Reconcile(ctx, req)
+	g.Expect(err1).To(HaveOccurred())
+	g.Expect(err1.Error()).To(ContainSubstring("failed to set up runtime"))
+	g.Expect(callCount).To(Equal(1))
+
+	// Second reconciliation: runtimeFactory is called again (no early-return / stale runtime).
+	_, err2 := reconciler.Reconcile(ctx, req)
+	g.Expect(err2).To(HaveOccurred())
+	g.Expect(callCount).To(Equal(2), "runtimeFactory must be called on every reconciliation, even after a previous failure")
 }
 
 func TestROSARoleConfigReconcileDelete(t *testing.T) {
@@ -880,66 +748,6 @@ func TestROSARoleConfigReconcileDelete(t *testing.T) {
 		"test-kube-system-kms-provider",
 	}, nil).AnyTimes()
 
-	// Return existing account roles that will be deleted
-	mockAWSClient.EXPECT().ListAccountRoles(gomock.Any()).Return([]aws.Role{
-		{
-			RoleName: "test-HCP-ROSA-Installer-Role",
-			RoleARN:  "arn:aws:iam::123456789012:role/test-HCP-ROSA-Installer-Role",
-		},
-		{
-			RoleName: "test-HCP-ROSA-Support-Role",
-			RoleARN:  "arn:aws:iam::123456789012:role/test-HCP-ROSA-Support-Role",
-		},
-		{
-			RoleName: "test-HCP-ROSA-Worker-Role",
-			RoleARN:  "arn:aws:iam::123456789012:role/test-HCP-ROSA-Worker-Role",
-		},
-	}, nil).AnyTimes()
-
-	mockAWSClient.EXPECT().ListOperatorRoles(gomock.Any(), gomock.Any(), gomock.Any()).Return(map[string][]aws.OperatorRoleDetail{
-		"test": {
-			{
-				RoleName: "test-openshift-ingress-operator-cloud-credentials",
-				RoleARN:  "arn:aws:iam::123456789012:role/test-openshift-ingress-operator-cloud-credentials",
-			},
-			{
-				RoleName: "test-openshift-image-registry-installer-cloud-credentials",
-				RoleARN:  "arn:aws:iam::123456789012:role/test-openshift-image-registry-installer-cloud-credentials",
-			},
-			{
-				RoleName: "test-openshift-cluster-csi-drivers-ebs-cloud-credentials",
-				RoleARN:  "arn:aws:iam::123456789012:role/test-openshift-cluster-csi-drivers-ebs-cloud-credentials",
-			},
-			{
-				RoleName: "test-openshift-cloud-network-config-controller-cloud-credentials",
-				RoleARN:  "arn:aws:iam::123456789012:role/test-openshift-cloud-network-config-controller-cloud-credentials",
-			},
-			{
-				RoleName: "test-kube-system-kube-controller-manager",
-				RoleARN:  "arn:aws:iam::123456789012:role/test-kube-system-kube-controller-manager",
-			},
-			{
-				RoleName: "test-kube-system-capa-controller-manager",
-				RoleARN:  "arn:aws:iam::123456789012:role/test-kube-system-capa-controller-manager",
-			},
-			{
-				RoleName: "test-kube-system-control-plane-operator",
-				RoleARN:  "arn:aws:iam::123456789012:role/test-kube-system-control-plane-operator",
-			},
-			{
-				RoleName: "test-kube-system-kms-provider",
-				RoleARN:  "arn:aws:iam::123456789012:role/test-kube-system-kms-provider",
-			},
-		},
-	}, nil).AnyTimes()
-
-	// Return existing OIDC providers that will be deleted
-	mockAWSClient.EXPECT().ListOidcProviders(gomock.Any(), gomock.Any()).Return([]aws.OidcProviderOutput{
-		{
-			Arn: "arn:aws:iam::123456789012:oidc-provider/test-existing-oidc-id",
-		},
-	}, nil).AnyTimes()
-
 	// Delete operator roles (called individually for each role)
 	mockAWSClient.EXPECT().DeleteOperatorRole(gomock.Any(), gomock.Any(), true).Return(map[string]bool{}, nil).AnyTimes()
 
@@ -955,12 +763,10 @@ func TestROSARoleConfigReconcileDelete(t *testing.T) {
 		IsSTS:     false,
 	}, nil).AnyTimes()
 
-	awsClient := mockAWSClient
-
-	r := rosacli.NewRuntime()
-	r.OCMClient = ocmClient
-	r.AWSClient = awsClient
-	r.Creator = &aws.Creator{
+	rt := rosacli.NewRuntime()
+	rt.OCMClient = ocmClient
+	rt.AWSClient = mockAWSClient
+	rt.Creator = &aws.Creator{
 		ARN:       "arn:aws:iam::123456789012:user/test-user",
 		AccountID: "123456789012",
 		IsSTS:     false,
@@ -1058,10 +864,10 @@ func TestROSARoleConfigReconcileDelete(t *testing.T) {
 	createObject(g, rosaRoleConfig, ns.Name)
 	defer cleanupObject(g, rosaRoleConfig)
 
-	// Setup the reconciler with these mocks
+	// Setup the reconciler using runtimeFactory to inject mock clients per reconciliation.
 	reconciler := &ROSARoleConfigReconciler{
-		Client:  testEnv.Client,
-		Runtime: r,
+		Client:         testEnv.Client,
+		runtimeFactory: makeRuntimeFactory(rt),
 	}
 
 	// Call the Reconcile function
@@ -1092,4 +898,250 @@ func TestROSARoleConfigReconcileDelete(t *testing.T) {
 		// If object still exists, verify finalizers are removed
 		g.Expect(deletedRoleConfig.Finalizers).To(BeEmpty(), "Finalizers should be removed after successful deletion")
 	}
+}
+
+// fakeSTSAssumeRoleResponse returns valid STS AssumeRole XML for the fake STS httptest server.
+func fakeSTSAssumeRoleResponse(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "text/xml")
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, `<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
+  <AssumeRoleResult>
+    <Credentials>
+      <AccessKeyId>ASIAIOSFODNN7EXAMPLE</AccessKeyId>
+      <SecretAccessKey>wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY</SecretAccessKey>
+      <SessionToken>AQoXnyc4MCrrlandlJKwBQ==</SessionToken>
+      <Expiration>2030-01-01T00:00:00Z</Expiration>
+    </Credentials>
+    <AssumedRoleUser>
+      <Arn>arn:aws:sts::123456789012:assumed-role/fake-rosa-role/test</Arn>
+      <AssumedRoleId>ARO123EXAMPLE123:test</AssumedRoleId>
+    </AssumedRoleUser>
+  </AssumeRoleResult>
+  <ResponseMetadata>
+    <RequestId>12345678-1234-1234-1234-123456789012</RequestId>
+  </ResponseMetadata>
+</AssumeRoleResponse>`)
+}
+
+// TestROSARoleConfigReconcilerWithRoleIdentity verifies that ROSARoleConfigReconciler can
+// create its scope (resolving credentials) when the ROSARoleConfig's IdentityRef points
+// to an AWSClusterRoleIdentity backed by a fake IAM role.
+//
+// The fake STS server satisfies the AssumeRole call that happens during scope creation.
+// The runtimeFactory is used as a canary: if it is called, scope creation (including
+// credential resolution via AWSClusterRoleIdentity) succeeded.
+func TestROSARoleConfigReconcilerWithRoleIdentity(t *testing.T) {
+	RegisterTestingT(t)
+	g := NewWithT(t)
+	ctx := context.TODO()
+
+	// Start a local STS server that returns fake AssumeRole credentials.
+	stsServer := httptest.NewServer(http.HandlerFunc(fakeSTSAssumeRoleResponse))
+	defer stsServer.Close()
+
+	// Point the AWS SDK at the fake STS server and supply dummy source credentials so
+	// config.LoadDefaultConfig has something to work with when building the STS client.
+	t.Setenv("AWS_ENDPOINT_URL_STS", stsServer.URL)
+	t.Setenv("AWS_ACCESS_KEY_ID", "fake-access-key-id")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "fake-secret-access-key")
+	t.Setenv("AWS_REGION", "us-east-1")
+
+	testID := generateTestID()
+
+	ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("test-ns-roleident-%s", testID))
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// AWSClusterControllerIdentity is the source for the role identity.
+	// The webhook requires sourceIdentityRef to be non-nil, so we use the controller
+	// identity as a source — it returns no providers of its own, causing the role
+	// provider to fall back to the env-var credentials when calling STS.
+	controllerIdentity := &infrav1.AWSClusterControllerIdentity{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "default",
+		},
+		Spec: infrav1.AWSClusterControllerIdentitySpec{
+			AWSClusterIdentitySpec: infrav1.AWSClusterIdentitySpec{
+				AllowedNamespaces: &infrav1.AllowedNamespaces{},
+			},
+		},
+	}
+	createObject(g, controllerIdentity, ns.Name)
+	defer cleanupObject(g, controllerIdentity)
+
+	// AWSClusterRoleIdentity with a fake IAM role ARN — AllowedNamespaces is empty,
+	// meaning every namespace may use this identity.
+	roleIdentity := &infrav1.AWSClusterRoleIdentity{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: fmt.Sprintf("fake-role-identity-%s", testID),
+		},
+		Spec: infrav1.AWSClusterRoleIdentitySpec{
+			AWSRoleSpec: infrav1.AWSRoleSpec{
+				RoleArn:     fmt.Sprintf("arn:aws:iam::123456789012:role/fake-rosa-role-%s", testID),
+				SessionName: "test-session",
+			},
+			AWSClusterIdentitySpec: infrav1.AWSClusterIdentitySpec{
+				AllowedNamespaces: &infrav1.AllowedNamespaces{},
+			},
+			SourceIdentityRef: &infrav1.AWSIdentityReference{
+				Name: controllerIdentity.Name,
+				Kind: infrav1.ControllerIdentityKind,
+			},
+		},
+	}
+	roleIdentity.SetGroupVersionKind(infrav1.GroupVersion.WithKind("AWSClusterRoleIdentity"))
+	createObject(g, roleIdentity, ns.Name)
+	defer cleanupObject(g, roleIdentity)
+
+	rosaRoleConfig := &expinfrav1.ROSARoleConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       fmt.Sprintf("test-role-config-%s", testID),
+			Namespace:  ns.Name,
+			Finalizers: []string{expinfrav1.RosaRoleConfigFinalizer},
+		},
+		Spec: expinfrav1.ROSARoleConfigSpec{
+			AccountRoleConfig: expinfrav1.AccountRoleConfig{
+				Prefix:  "test",
+				Version: "4.15.0",
+			},
+			OperatorRoleConfig: expinfrav1.OperatorRoleConfig{
+				Prefix: "test",
+			},
+			OidcProviderType: expinfrav1.Managed,
+			IdentityRef: &infrav1.AWSIdentityReference{
+				Name: roleIdentity.Name,
+				Kind: infrav1.ClusterRoleIdentityKind,
+			},
+		},
+	}
+	createObject(g, rosaRoleConfig, ns.Name)
+	defer cleanupObject(g, rosaRoleConfig)
+
+	runtimeCalled := false
+	reconciler := &ROSARoleConfigReconciler{
+		Client: testEnv.Client,
+		// runtimeFactory acts as a canary: if it is invoked, scope creation (and
+		// therefore AWSClusterRoleIdentity credential resolution) succeeded.
+		runtimeFactory: func(_ context.Context, _ *scope.RosaRoleConfigScope) (*rosacli.Runtime, error) {
+			runtimeCalled = true
+			return nil, fmt.Errorf("sentinel: runtimeFactory reached after role-identity scope creation")
+		},
+	}
+
+	req := ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: rosaRoleConfig.Name, Namespace: rosaRoleConfig.Namespace},
+	}
+
+	g.Eventually(func(g Gomega) {
+		_, errReconcile := reconciler.Reconcile(ctx, req)
+
+		// The reconciler must have advanced past scope creation and reached runtimeFactory.
+		// A "failed to create rosaroleconfig scope" error here would mean credential
+		// resolution via AWSClusterRoleIdentity failed.
+		g.Expect(errReconcile).To(HaveOccurred())
+		g.Expect(errReconcile.Error()).To(ContainSubstring("failed to set up runtime"))
+		g.Expect(errReconcile.Error()).NotTo(ContainSubstring("failed to create rosaroleconfig scope"))
+		g.Expect(runtimeCalled).To(BeTrue())
+	}).WithTimeout(30 * time.Second).WithPolling(500 * time.Millisecond).Should(Succeed())
+}
+
+// TestROSARoleConfigReconcilerWithRoleIdentityNamespaceNotAllowed verifies that when the
+// AWSClusterRoleIdentity's AllowedNamespaces does not include the ROSARoleConfig's namespace,
+// scope creation fails with a credential error and the runtimeFactory is never called.
+func TestROSARoleConfigReconcilerWithRoleIdentityNamespaceNotAllowed(t *testing.T) {
+	RegisterTestingT(t)
+	g := NewWithT(t)
+	ctx := context.TODO()
+
+	stsServer := httptest.NewServer(http.HandlerFunc(fakeSTSAssumeRoleResponse))
+	defer stsServer.Close()
+
+	t.Setenv("AWS_ENDPOINT_URL_STS", stsServer.URL)
+	t.Setenv("AWS_ACCESS_KEY_ID", "fake-access-key-id")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "fake-secret-access-key")
+	t.Setenv("AWS_REGION", "us-east-1")
+
+	testID := generateTestID()
+
+	ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("test-ns-roleident-denied-%s", testID))
+	g.Expect(err).ToNot(HaveOccurred())
+
+	controllerIdentity := &infrav1.AWSClusterControllerIdentity{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "default",
+		},
+		Spec: infrav1.AWSClusterControllerIdentitySpec{
+			AWSClusterIdentitySpec: infrav1.AWSClusterIdentitySpec{
+				AllowedNamespaces: &infrav1.AllowedNamespaces{},
+			},
+		},
+	}
+	createObject(g, controllerIdentity, ns.Name)
+	defer cleanupObject(g, controllerIdentity)
+
+	// AllowedNamespaces lists only "other-namespace", so ns.Name is not permitted.
+	roleIdentity := &infrav1.AWSClusterRoleIdentity{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: fmt.Sprintf("restricted-role-identity-%s", testID),
+		},
+		Spec: infrav1.AWSClusterRoleIdentitySpec{
+			AWSRoleSpec: infrav1.AWSRoleSpec{
+				RoleArn:     fmt.Sprintf("arn:aws:iam::123456789012:role/restricted-rosa-role-%s", testID),
+				SessionName: "test-session",
+			},
+			AWSClusterIdentitySpec: infrav1.AWSClusterIdentitySpec{
+				AllowedNamespaces: &infrav1.AllowedNamespaces{
+					NamespaceList: []string{"other-namespace"},
+				},
+			},
+			SourceIdentityRef: &infrav1.AWSIdentityReference{
+				Name: controllerIdentity.Name,
+				Kind: infrav1.ControllerIdentityKind,
+			},
+		},
+	}
+	roleIdentity.SetGroupVersionKind(infrav1.GroupVersion.WithKind("AWSClusterRoleIdentity"))
+	createObject(g, roleIdentity, ns.Name)
+	defer cleanupObject(g, roleIdentity)
+
+	rosaRoleConfig := &expinfrav1.ROSARoleConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       fmt.Sprintf("test-role-config-denied-%s", testID),
+			Namespace:  ns.Name,
+			Finalizers: []string{expinfrav1.RosaRoleConfigFinalizer},
+		},
+		Spec: expinfrav1.ROSARoleConfigSpec{
+			AccountRoleConfig: expinfrav1.AccountRoleConfig{
+				Prefix:  "test",
+				Version: "4.15.0",
+			},
+			OperatorRoleConfig: expinfrav1.OperatorRoleConfig{Prefix: "test"},
+			OidcProviderType:   expinfrav1.Managed,
+			IdentityRef: &infrav1.AWSIdentityReference{
+				Name: roleIdentity.Name,
+				Kind: infrav1.ClusterRoleIdentityKind,
+			},
+		},
+	}
+	createObject(g, rosaRoleConfig, ns.Name)
+	defer cleanupObject(g, rosaRoleConfig)
+
+	runtimeCalled := false
+	reconciler := &ROSARoleConfigReconciler{
+		Client: testEnv.Client,
+		runtimeFactory: func(_ context.Context, _ *scope.RosaRoleConfigScope) (*rosacli.Runtime, error) {
+			runtimeCalled = true
+			return nil, nil
+		},
+	}
+
+	req := ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: rosaRoleConfig.Name, Namespace: rosaRoleConfig.Namespace},
+	}
+
+	_, errReconcile := reconciler.Reconcile(ctx, req)
+
+	// Scope creation must fail because the namespace is not in AllowedNamespaces.
+	g.Expect(errReconcile).To(HaveOccurred())
+	g.Expect(errReconcile.Error()).To(ContainSubstring("failed to create rosaroleconfig scope"))
+	g.Expect(runtimeCalled).To(BeFalse())
 }
