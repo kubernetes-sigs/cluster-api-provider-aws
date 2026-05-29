@@ -30,15 +30,16 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	stsv2 "github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	v1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	rosaaws "github.com/openshift/rosa/pkg/aws"
 	"github.com/openshift/rosa/pkg/ocm"
+	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	restclient "k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -47,10 +48,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
-	stsiface "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts/mock_stsiface"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/rosa"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
@@ -59,6 +57,46 @@ import (
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
+
+// fakeStsAPIClient is a minimal implementation of rosaaws.StsApiClient for use in tests.
+// It returns a fixed caller identity without needing a mock framework.
+type fakeStsAPIClient struct {
+	account string
+	arn     string
+	userID  string
+}
+
+func (f *fakeStsAPIClient) GetCallerIdentity(_ context.Context, _ *stsv2.GetCallerIdentityInput, _ ...func(*stsv2.Options)) (*stsv2.GetCallerIdentityOutput, error) {
+	return &stsv2.GetCallerIdentityOutput{
+		Account: aws.String(f.account),
+		Arn:     aws.String(f.arn),
+		UserId:  aws.String(f.userID),
+	}, nil
+}
+
+func (f *fakeStsAPIClient) AssumeRole(_ context.Context, _ *stsv2.AssumeRoleInput, _ ...func(*stsv2.Options)) (*stsv2.AssumeRoleOutput, error) {
+	return nil, nil
+}
+
+func (f *fakeStsAPIClient) AssumeRoleWithWebIdentity(_ context.Context, _ *stsv2.AssumeRoleWithWebIdentityInput, _ ...func(*stsv2.Options)) (*stsv2.AssumeRoleWithWebIdentityOutput, error) {
+	return nil, nil
+}
+
+// newFakeAWSClientFactory returns an awsClientFactory that injects a rosaaws.Client backed by
+// the given fakeStsAPIClient. GetCreator() on the returned client will use that STS stub.
+func newFakeAWSClientFactory(fakeSts *fakeStsAPIClient) func(*scope.ROSAControlPlaneScope) (rosaaws.Client, error) {
+	return func(_ *scope.ROSAControlPlaneScope) (rosaaws.Client, error) {
+		return rosaaws.New(
+			aws.Config{},
+			rosaaws.NewLoggerWrapper(logrus.New(), nil),
+			nil, nil, nil, nil, nil,
+			fakeSts,
+			nil, nil, nil,
+			&rosaaws.AccessKey{},
+			false,
+		), nil
+	}
+}
 
 func TestUpdateOCMClusterSpec(t *testing.T) {
 	g := NewWithT(t)
@@ -452,9 +490,9 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 				KMSProviderARN:          "op-arn8",
 			},
 			OIDCID:           "iodcid1",
-			InstallerRoleARN: "arn1",
-			WorkerRoleARN:    "arn2",
-			SupportRoleARN:   "arn3",
+			InstallerRoleARN: "arn:aws:iam::123456789012:role/installer",
+			WorkerRoleARN:    "arn:aws:iam::123456789012:role/worker",
+			SupportRoleARN:   "arn:aws:iam::123456789012:role/support",
 			CredentialsSecretRef: &corev1.LocalObjectReference{
 				Name: secret.Name,
 			},
@@ -514,10 +552,12 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	ctx := context.TODO()
 	ocmMock := mocks.NewMockOCMClient(mockCtrl)
-	stsMock := mock_stsiface.NewMockSTSClient(mockCtrl)
 
-	getCallerIdentityResult := &stsv2.GetCallerIdentityOutput{Account: aws.String("foo"), Arn: aws.String("arn:aws:iam::123456789012:rosa/foo")}
-	stsMock.EXPECT().GetCallerIdentity(gomock.Any(), gomock.Any()).Return(getCallerIdentityResult, nil).Times(1)
+	fakeSts := &fakeStsAPIClient{
+		account: "foo",
+		arn:     "arn:aws:iam::123456789012:rosa/foo",
+		userID:  "user-id",
+	}
 
 	expect := func(m *mocks.MockOCMClientMockRecorder) {
 		m.ValidateHypershiftVersion(gomock.Any(), gomock.Any()).DoAndReturn(func(clusterId string, nodePoolID string) (bool, error) {
@@ -625,9 +665,7 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 		WatchFilterValue: "",
 		Client:           testEnv,
 		restClientConfig: cfg,
-		NewStsClient: func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsiface.STSClient {
-			return stsMock
-		},
+		awsClientFactory: newFakeAWSClientFactory(fakeSts),
 		NewOCMClient: func(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (rosa.OCMClient, error) {
 			return ocmMock, nil
 		},
@@ -865,6 +903,598 @@ func cleanupObject(g *WithT, obj client.Object) {
 	if obj.DeepCopyObject() != nil {
 		g.Expect(testEnv.Cleanup(ctx, obj)).To(Succeed())
 	}
+}
+
+// generateTestID returns a unique suffix for test object names.
+func generateTestID() string {
+	return fmt.Sprintf("%d", time.Now().UnixNano())
+}
+
+// fakeStsHTTPResponse writes a valid STS AssumeRole XML response for use in httptest servers.
+func fakeStsHTTPResponse(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "text/xml")
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, `<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
+  <AssumeRoleResult>
+    <Credentials>
+      <AccessKeyId>ASIAIOSFODNN7EXAMPLE</AccessKeyId>
+      <SecretAccessKey>wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY</SecretAccessKey>
+      <SessionToken>AQoXnyc4MCrrlandlJKwBQ==</SessionToken>
+      <Expiration>2030-01-01T00:00:00Z</Expiration>
+    </Credentials>
+    <AssumedRoleUser>
+      <Arn>arn:aws:sts::123456789012:assumed-role/fake-rosa-role/test</Arn>
+      <AssumedRoleId>ARO123EXAMPLE123:test</AssumedRoleId>
+    </AssumedRoleUser>
+  </AssumeRoleResult>
+  <ResponseMetadata>
+    <RequestId>12345678-1234-1234-1234-123456789012</RequestId>
+  </ResponseMetadata>
+</AssumeRoleResponse>`)
+}
+
+// TestROSAControlPlaneReconcilerWithRoleIdentity verifies that when an AWSClusterRoleIdentity
+// (with AllowedNamespaces permitting all namespaces) is referenced as the identity, the
+// ROSAControlPlaneReconciler successfully resolves credentials and reaches the AWS client
+// factory (our canary), rather than failing at scope creation.
+func TestROSAControlPlaneReconcilerWithRoleIdentity(t *testing.T) {
+	RegisterTestingT(t)
+	g := NewWithT(t)
+	ctx := context.TODO()
+
+	stsServer := httptest.NewServer(http.HandlerFunc(fakeStsHTTPResponse))
+	defer stsServer.Close()
+
+	t.Setenv("AWS_ENDPOINT_URL_STS", stsServer.URL)
+	t.Setenv("AWS_ACCESS_KEY_ID", "fake-access-key-id")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "fake-secret-access-key")
+	t.Setenv("AWS_REGION", "us-east-1")
+
+	testID := generateTestID()
+
+	ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("test-ns-cp-ri-%s", testID[:12]))
+	g.Expect(err).ToNot(HaveOccurred())
+
+	controllerIdentity := &infrav1.AWSClusterControllerIdentity{
+		ObjectMeta: metav1.ObjectMeta{Name: "default"},
+		Spec: infrav1.AWSClusterControllerIdentitySpec{
+			AWSClusterIdentitySpec: infrav1.AWSClusterIdentitySpec{
+				AllowedNamespaces: &infrav1.AllowedNamespaces{},
+			},
+		},
+	}
+	controllerIdentity.SetGroupVersionKind(infrav1.GroupVersion.WithKind("AWSClusterControllerIdentity"))
+	createObject(g, controllerIdentity, ns.Name)
+	defer cleanupObject(g, controllerIdentity)
+
+	roleIdentity := &infrav1.AWSClusterRoleIdentity{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: fmt.Sprintf("fake-role-%s", testID[:12]),
+		},
+		Spec: infrav1.AWSClusterRoleIdentitySpec{
+			AWSRoleSpec: infrav1.AWSRoleSpec{
+				RoleArn:     fmt.Sprintf("arn:aws:iam::123456789012:role/fake-cp-role-%s", testID[:12]),
+				SessionName: "test-session",
+			},
+			AWSClusterIdentitySpec: infrav1.AWSClusterIdentitySpec{
+				AllowedNamespaces: &infrav1.AllowedNamespaces{},
+			},
+			SourceIdentityRef: &infrav1.AWSIdentityReference{
+				Name: controllerIdentity.Name,
+				Kind: infrav1.ControllerIdentityKind,
+			},
+		},
+	}
+	roleIdentity.SetGroupVersionKind(infrav1.GroupVersion.WithKind("AWSClusterRoleIdentity"))
+	createObject(g, roleIdentity, ns.Name)
+	defer cleanupObject(g, roleIdentity)
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("rosa-secret-%s", testID[:12]),
+			Namespace: ns.Name,
+		},
+		Data: map[string][]byte{"ocmToken": []byte("fake-token")},
+	}
+	createObject(g, secret, ns.Name)
+	defer cleanupObject(g, secret)
+
+	cpName := fmt.Sprintf("rosa-cp-%s", testID[:12])
+	rosaControlPlane := &rosacontrolplanev1.ROSAControlPlane{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cpName,
+			Namespace: ns.Name,
+			UID:       types.UID(cpName),
+		},
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ROSAControlPlane",
+			APIVersion: rosacontrolplanev1.GroupVersion.String(),
+		},
+		Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+			RosaClusterName:   cpName,
+			Subnets:           []string{"subnet-0ac99a6230b408813"},
+			AvailabilityZones: []string{"us-east-1a"},
+			Network: &rosacontrolplanev1.NetworkSpec{
+				MachineCIDR: "10.0.0.0/16",
+				PodCIDR:     "10.128.0.0/14",
+				ServiceCIDR: "172.30.0.0/16",
+			},
+			Region:           "us-east-1",
+			Version:          "4.15.0",
+			ChannelGroup:     "stable",
+			OIDCID:           "oidcid-test",
+			InstallerRoleARN: "arn:aws:iam::123456789012:role/installer",
+			WorkerRoleARN:    "arn:aws:iam::123456789012:role/worker",
+			SupportRoleARN:   "arn:aws:iam::123456789012:role/support",
+			RolesRef: rosacontrolplanev1.AWSRolesRef{
+				IngressARN:              "op-arn1",
+				ImageRegistryARN:        "op-arn2",
+				StorageARN:              "op-arn3",
+				NetworkARN:              "op-arn4",
+				KubeCloudControllerARN:  "op-arn5",
+				NodePoolManagementARN:   "op-arn6",
+				ControlPlaneOperatorARN: "op-arn7",
+				KMSProviderARN:          "op-arn8",
+			},
+			CredentialsSecretRef: &corev1.LocalObjectReference{Name: secret.Name},
+			VersionGate:          "Acknowledge",
+			IdentityRef: &infrav1.AWSIdentityReference{
+				Name: roleIdentity.Name,
+				Kind: infrav1.ClusterRoleIdentityKind,
+			},
+		},
+	}
+
+	ownerCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("owner-cluster-%s", testID[:12]),
+			Namespace: ns.Name,
+			UID:       types.UID(fmt.Sprintf("owner-cluster-%s", testID[:12])),
+		},
+		Spec: clusterv1.ClusterSpec{
+			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+				Name:     rosaControlPlane.Name,
+				Kind:     "ROSAControlPlane",
+				APIGroup: rosacontrolplanev1.GroupVersion.Group,
+			},
+		},
+	}
+
+	rosaControlPlane.OwnerReferences = []metav1.OwnerReference{
+		{
+			Name:       ownerCluster.Name,
+			UID:        ownerCluster.UID,
+			Kind:       "Cluster",
+			APIVersion: clusterv1.GroupVersion.String(),
+		},
+	}
+
+	for _, obj := range []client.Object{ownerCluster, rosaControlPlane} {
+		createObject(g, obj, ns.Name)
+	}
+	defer cleanupObject(g, rosaControlPlane)
+	defer cleanupObject(g, ownerCluster)
+
+	awsClientCalled := false
+	reconciler := &ROSAControlPlaneReconciler{
+		Client: testEnv,
+		// awsClientFactory is the canary: it is called only when scope creation
+		// (including AWSClusterRoleIdentity credential resolution) succeeds.
+		awsClientFactory: func(_ *scope.ROSAControlPlaneScope) (rosaaws.Client, error) {
+			awsClientCalled = true
+			return nil, fmt.Errorf("sentinel: awsClientFactory reached after role-identity scope creation")
+		},
+	}
+
+	req := ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: rosaControlPlane.Name, Namespace: rosaControlPlane.Namespace},
+	}
+
+	// EnsurePausedCondition on first call returns early (conditionChanged=true).
+	// Retry until scope creation succeeds and awsClientFactory is reached.
+	g.Eventually(func(g Gomega) {
+		_, errReconcile := reconciler.Reconcile(ctx, req)
+		g.Expect(errReconcile).To(HaveOccurred())
+		g.Expect(errReconcile.Error()).To(ContainSubstring("failed to create AWS client"))
+		g.Expect(errReconcile.Error()).NotTo(ContainSubstring("failed to create scope"))
+		g.Expect(awsClientCalled).To(BeTrue())
+	}).WithTimeout(30 * time.Second).WithPolling(500 * time.Millisecond).Should(Succeed())
+}
+
+// TestROSAControlPlaneReconcilerWithRoleIdentityNamespaceNotAllowed verifies that when an
+// AWSClusterRoleIdentity restricts usage to a namespace that does not contain the
+// ROSAControlPlane, scope creation is rejected before the AWS client factory is reached.
+func TestROSAControlPlaneReconcilerWithRoleIdentityNamespaceNotAllowed(t *testing.T) {
+	RegisterTestingT(t)
+	g := NewWithT(t)
+	ctx := context.TODO()
+
+	stsServer := httptest.NewServer(http.HandlerFunc(fakeStsHTTPResponse))
+	defer stsServer.Close()
+
+	t.Setenv("AWS_ENDPOINT_URL_STS", stsServer.URL)
+	t.Setenv("AWS_ACCESS_KEY_ID", "fake-access-key-id")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "fake-secret-access-key")
+	t.Setenv("AWS_REGION", "us-east-1")
+
+	testID := generateTestID()
+
+	ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("test-ns-cp-ri-denied-%s", testID[:12]))
+	g.Expect(err).ToNot(HaveOccurred())
+
+	controllerIdentity := &infrav1.AWSClusterControllerIdentity{
+		ObjectMeta: metav1.ObjectMeta{Name: "default"},
+		Spec: infrav1.AWSClusterControllerIdentitySpec{
+			AWSClusterIdentitySpec: infrav1.AWSClusterIdentitySpec{
+				AllowedNamespaces: &infrav1.AllowedNamespaces{},
+			},
+		},
+	}
+	controllerIdentity.SetGroupVersionKind(infrav1.GroupVersion.WithKind("AWSClusterControllerIdentity"))
+	createObject(g, controllerIdentity, ns.Name)
+	defer cleanupObject(g, controllerIdentity)
+
+	// AllowedNamespaces permits only "other-namespace" — the control plane's namespace is excluded.
+	roleIdentity := &infrav1.AWSClusterRoleIdentity{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: fmt.Sprintf("restricted-role-%s", testID[:12]),
+		},
+		Spec: infrav1.AWSClusterRoleIdentitySpec{
+			AWSRoleSpec: infrav1.AWSRoleSpec{
+				RoleArn:     fmt.Sprintf("arn:aws:iam::123456789012:role/restricted-cp-role-%s", testID[:12]),
+				SessionName: "test-session",
+			},
+			AWSClusterIdentitySpec: infrav1.AWSClusterIdentitySpec{
+				AllowedNamespaces: &infrav1.AllowedNamespaces{
+					NamespaceList: []string{"other-namespace"},
+				},
+			},
+			SourceIdentityRef: &infrav1.AWSIdentityReference{
+				Name: controllerIdentity.Name,
+				Kind: infrav1.ControllerIdentityKind,
+			},
+		},
+	}
+	roleIdentity.SetGroupVersionKind(infrav1.GroupVersion.WithKind("AWSClusterRoleIdentity"))
+	createObject(g, roleIdentity, ns.Name)
+	defer cleanupObject(g, roleIdentity)
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("rosa-secret-denied-%s", testID[:12]),
+			Namespace: ns.Name,
+		},
+		Data: map[string][]byte{"ocmToken": []byte("fake-token")},
+	}
+	createObject(g, secret, ns.Name)
+	defer cleanupObject(g, secret)
+
+	cpName := fmt.Sprintf("rosa-cp-denied-%s", testID[:12])
+	rosaControlPlane := &rosacontrolplanev1.ROSAControlPlane{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cpName,
+			Namespace: ns.Name,
+			UID:       types.UID(cpName),
+		},
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ROSAControlPlane",
+			APIVersion: rosacontrolplanev1.GroupVersion.String(),
+		},
+		Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+			RosaClusterName:   cpName,
+			Subnets:           []string{"subnet-0ac99a6230b408813"},
+			AvailabilityZones: []string{"us-east-1a"},
+			Network: &rosacontrolplanev1.NetworkSpec{
+				MachineCIDR: "10.0.0.0/16",
+				PodCIDR:     "10.128.0.0/14",
+				ServiceCIDR: "172.30.0.0/16",
+			},
+			Region:           "us-east-1",
+			Version:          "4.15.0",
+			ChannelGroup:     "stable",
+			OIDCID:           "oidcid-test",
+			InstallerRoleARN: "arn:aws:iam::123456789012:role/installer",
+			WorkerRoleARN:    "arn:aws:iam::123456789012:role/worker",
+			SupportRoleARN:   "arn:aws:iam::123456789012:role/support",
+			RolesRef: rosacontrolplanev1.AWSRolesRef{
+				IngressARN:              "op-arn1",
+				ImageRegistryARN:        "op-arn2",
+				StorageARN:              "op-arn3",
+				NetworkARN:              "op-arn4",
+				KubeCloudControllerARN:  "op-arn5",
+				NodePoolManagementARN:   "op-arn6",
+				ControlPlaneOperatorARN: "op-arn7",
+				KMSProviderARN:          "op-arn8",
+			},
+			CredentialsSecretRef: &corev1.LocalObjectReference{Name: secret.Name},
+			VersionGate:          "Acknowledge",
+			IdentityRef: &infrav1.AWSIdentityReference{
+				Name: roleIdentity.Name,
+				Kind: infrav1.ClusterRoleIdentityKind,
+			},
+		},
+	}
+
+	ownerCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("owner-cluster-denied-%s", testID[:12]),
+			Namespace: ns.Name,
+			UID:       types.UID(fmt.Sprintf("owner-cluster-denied-%s", testID[:12])),
+		},
+		Spec: clusterv1.ClusterSpec{
+			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+				Name:     rosaControlPlane.Name,
+				Kind:     "ROSAControlPlane",
+				APIGroup: rosacontrolplanev1.GroupVersion.Group,
+			},
+		},
+	}
+
+	rosaControlPlane.OwnerReferences = []metav1.OwnerReference{
+		{
+			Name:       ownerCluster.Name,
+			UID:        ownerCluster.UID,
+			Kind:       "Cluster",
+			APIVersion: clusterv1.GroupVersion.String(),
+		},
+	}
+
+	for _, obj := range []client.Object{ownerCluster, rosaControlPlane} {
+		createObject(g, obj, ns.Name)
+	}
+	defer cleanupObject(g, rosaControlPlane)
+	defer cleanupObject(g, ownerCluster)
+
+	awsClientCalled := false
+	reconciler := &ROSAControlPlaneReconciler{
+		Client: testEnv,
+		awsClientFactory: func(_ *scope.ROSAControlPlaneScope) (rosaaws.Client, error) {
+			awsClientCalled = true
+			return nil, nil
+		},
+	}
+
+	req := ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: rosaControlPlane.Name, Namespace: rosaControlPlane.Namespace},
+	}
+
+	// Retry until the informer cache has indexed the control plane and the namespace
+	// restriction is enforced, causing scope creation to fail.
+	g.Eventually(func(g Gomega) {
+		_, errReconcile := reconciler.Reconcile(ctx, req)
+		g.Expect(errReconcile).To(HaveOccurred())
+		g.Expect(errReconcile.Error()).To(ContainSubstring("failed to create scope"))
+		g.Expect(awsClientCalled).To(BeFalse())
+	}).WithTimeout(30 * time.Second).WithPolling(500 * time.Millisecond).Should(Succeed())
+}
+
+// fakeMultiActionStsHandler handles both AssumeRole and GetCallerIdentity STS requests.
+// It dispatches based on the Action form value, returning canned XML responses so that
+// cross-account creator resolution can be exercised without real AWS credentials.
+func fakeMultiActionStsHandler(targetAccount, targetARN string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			return
+		}
+		action := r.FormValue("Action")
+		w.Header().Set("Content-Type", "text/xml")
+		switch action {
+		case "AssumeRole":
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprintf(w, `<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
+  <AssumeRoleResult>
+    <Credentials>
+      <AccessKeyId>ASIAIOSFODNN7EXAMPLE</AccessKeyId>
+      <SecretAccessKey>wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY</SecretAccessKey>
+      <SessionToken>AQoXnyc4MCrrlandlJKwBQ==</SessionToken>
+      <Expiration>2030-01-01T00:00:00Z</Expiration>
+    </Credentials>
+    <AssumedRoleUser>
+      <Arn>%s</Arn>
+      <AssumedRoleId>ARO123EXAMPLE123:capa-session</AssumedRoleId>
+    </AssumedRoleUser>
+  </AssumeRoleResult>
+  <ResponseMetadata><RequestId>12345678-1234-1234-1234-123456789012</RequestId></ResponseMetadata>
+</AssumeRoleResponse>`, targetARN)
+		case "GetCallerIdentity":
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprintf(w, `<GetCallerIdentityResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
+  <GetCallerIdentityResult>
+    <Account>%s</Account>
+    <Arn>%s</Arn>
+    <UserId>ARO123EXAMPLE123:capa-session</UserId>
+  </GetCallerIdentityResult>
+  <ResponseMetadata><RequestId>12345678-1234-1234-1234-123456789012</RequestId></ResponseMetadata>
+</GetCallerIdentityResponse>`, targetAccount, targetARN)
+		default:
+			http.Error(w, "unknown action", http.StatusBadRequest)
+		}
+	}
+}
+
+func TestResolveCreatorForTargetAccount(t *testing.T) {
+	const (
+		sourceAccount   = "111111111111"
+		targetAccount   = "999999999999"
+		rosaClusterName = "test-cluster"
+		// targetARN reflects the actual RoleSessionName generated by resolveCreatorForTargetAccount:
+		// "capa-session-<RosaClusterName>"
+		targetARN          = "arn:aws:sts::999999999999:assumed-role/installer/capa-session-" + rosaClusterName
+		expectedCreatorARN = "arn:aws:iam::999999999999:role/installer" // ROSA normalizes assumed-role ARNs to the base IAM role ARN
+	)
+
+	sourceCreator := &rosaaws.Creator{
+		AccountID: sourceAccount,
+		ARN:       "arn:aws:iam::111111111111:user/management-user",
+	}
+
+	t.Run("EmptyInstallerRoleARN_returnsCreatorUnchanged", func(t *testing.T) {
+		g := NewWithT(t)
+		rosaScope := &scope.ROSAControlPlaneScope{
+			ControlPlane: &rosacontrolplanev1.ROSAControlPlane{
+				Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+					InstallerRoleARN: "",
+				},
+			},
+			Logger: *logger.FromContext(context.TODO()),
+		}
+		reconciler := &ROSAControlPlaneReconciler{}
+		result, err := reconciler.resolveCreatorForTargetAccount(context.TODO(), rosaScope, sourceCreator)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(result).To(Equal(sourceCreator))
+	})
+
+	t.Run("SameAccountInstallerRoleARN_returnsCreatorUnchanged", func(t *testing.T) {
+		g := NewWithT(t)
+		rosaScope := &scope.ROSAControlPlaneScope{
+			ControlPlane: &rosacontrolplanev1.ROSAControlPlane{
+				Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+					// Same account as sourceCreator
+					InstallerRoleARN: "arn:aws:iam::111111111111:role/installer",
+				},
+			},
+			Logger: *logger.FromContext(context.TODO()),
+		}
+		reconciler := &ROSAControlPlaneReconciler{}
+		result, err := reconciler.resolveCreatorForTargetAccount(context.TODO(), rosaScope, sourceCreator)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(result).To(Equal(sourceCreator))
+	})
+
+	t.Run("InvalidInstallerRoleARN_returnsError", func(t *testing.T) {
+		g := NewWithT(t)
+		rosaScope := &scope.ROSAControlPlaneScope{
+			ControlPlane: &rosacontrolplanev1.ROSAControlPlane{
+				Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+					InstallerRoleARN: "not-a-valid-arn",
+				},
+			},
+			Logger: *logger.FromContext(context.TODO()),
+		}
+		reconciler := &ROSAControlPlaneReconciler{}
+		result, err := reconciler.resolveCreatorForTargetAccount(context.TODO(), rosaScope, sourceCreator)
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(err.Error()).To(ContainSubstring("failed to parse account ID from InstallerRoleARN"))
+		g.Expect(result).To(BeNil())
+	})
+
+	t.Run("RosaRoleConfigRef_NotFound_returnsError", func(t *testing.T) {
+		g := NewWithT(t)
+		ns, err := testEnv.CreateNamespace(ctx, "test-resolve-creator-notfound")
+		g.Expect(err).ToNot(HaveOccurred())
+
+		rosaScope := &scope.ROSAControlPlaneScope{
+			ControlPlane: &rosacontrolplanev1.ROSAControlPlane{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: ns.Name,
+				},
+				Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+					RosaRoleConfigRef: &corev1.LocalObjectReference{
+						Name: "non-existent-role-config",
+					},
+				},
+			},
+			Logger: *logger.FromContext(context.TODO()),
+		}
+		reconciler := &ROSAControlPlaneReconciler{Client: testEnv}
+		result, err := reconciler.resolveCreatorForTargetAccount(context.TODO(), rosaScope, sourceCreator)
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(result).To(BeNil())
+	})
+
+	t.Run("RosaRoleConfigRef_SameAccount_returnsCreatorUnchanged", func(t *testing.T) {
+		g := NewWithT(t)
+		ns, err := testEnv.CreateNamespace(ctx, "test-resolve-creator-sameaccount")
+		g.Expect(err).ToNot(HaveOccurred())
+
+		roleConfig := &expinfrav1.ROSARoleConfig{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "role-config-same-account",
+				Namespace: ns.Name,
+			},
+			Spec: expinfrav1.ROSARoleConfigSpec{
+				OidcProviderType: "Managed",
+				AccountRoleConfig: expinfrav1.AccountRoleConfig{
+					Prefix:  "test",
+					Version: "4.19.0",
+				},
+				OperatorRoleConfig: expinfrav1.OperatorRoleConfig{
+					Prefix: "test",
+				},
+			},
+		}
+		createObject(g, roleConfig, ns.Name)
+		defer cleanupObject(g, roleConfig)
+
+		// Patch status to set InstallerRoleARN to the same account as sourceCreator
+		roleConfig.Status = expinfrav1.ROSARoleConfigStatus{
+			AccountRolesRef: expinfrav1.AccountRolesRef{
+				InstallerRoleARN: "arn:aws:iam::111111111111:role/installer",
+			},
+		}
+		g.Expect(testEnv.Status().Update(ctx, roleConfig)).To(Succeed())
+
+		// The cached client is updated asynchronously after a status write. Wait for
+		// the cache to reflect the new InstallerRoleARN before calling into the function
+		// under test, otherwise it may see an empty status and return "not ready".
+		g.Eventually(func(g Gomega) {
+			fresh := &expinfrav1.ROSARoleConfig{}
+			g.Expect(testEnv.Get(ctx, client.ObjectKeyFromObject(roleConfig), fresh)).To(Succeed())
+			g.Expect(fresh.Status.AccountRolesRef.InstallerRoleARN).ToNot(BeEmpty())
+		}).WithTimeout(10 * time.Second).WithPolling(100 * time.Millisecond).Should(Succeed())
+
+		rosaScope := &scope.ROSAControlPlaneScope{
+			ControlPlane: &rosacontrolplanev1.ROSAControlPlane{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: ns.Name,
+				},
+				Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+					RosaRoleConfigRef: &corev1.LocalObjectReference{
+						Name: roleConfig.Name,
+					},
+				},
+			},
+			Logger: *logger.FromContext(context.TODO()),
+		}
+		reconciler := &ROSAControlPlaneReconciler{Client: testEnv}
+		result, err := reconciler.resolveCreatorForTargetAccount(context.TODO(), rosaScope, sourceCreator)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(result).To(Equal(sourceCreator))
+	})
+
+	t.Run("CrossAccountInstallerRoleARN_assumesRoleAndReturnsTargetCreator", func(t *testing.T) {
+		g := NewWithT(t)
+
+		stsServer := httptest.NewServer(fakeMultiActionStsHandler(targetAccount, targetARN))
+		defer stsServer.Close()
+
+		t.Setenv("AWS_ENDPOINT_URL_STS", stsServer.URL)
+		t.Setenv("AWS_ACCESS_KEY_ID", "fake-access-key-id")
+		t.Setenv("AWS_SECRET_ACCESS_KEY", "fake-secret-access-key")
+
+		fakeSession, err := awsconfig.LoadDefaultConfig(context.TODO(), awsconfig.WithRegion("us-east-1"))
+		g.Expect(err).ToNot(HaveOccurred())
+
+		rosaScope := &scope.ROSAControlPlaneScope{
+			ControlPlane: &rosacontrolplanev1.ROSAControlPlane{
+				Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+					RosaClusterName:  rosaClusterName,
+					Region:           "us-east-1",
+					InstallerRoleARN: "arn:aws:iam::999999999999:role/installer",
+				},
+			},
+			Logger: *logger.FromContext(context.TODO()),
+		}
+		rosaScope.SetSession(fakeSession)
+
+		reconciler := &ROSAControlPlaneReconciler{}
+		result, err := reconciler.resolveCreatorForTargetAccount(context.TODO(), rosaScope, sourceCreator)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(result).ToNot(BeNil())
+		g.Expect(result.AccountID).To(Equal(targetAccount))
+		g.Expect(result.ARN).To(Equal(expectedCreatorARN))
+	})
 }
 
 func TestBuildOCMClusterSpec(t *testing.T) {

@@ -29,7 +29,10 @@ import (
 	"strings"
 	"time"
 
-	stsv2 "github.com/aws/aws-sdk-go-v2/service/sts"
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
+	stsv2sdk "github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/google/go-cmp/cmp"
 	idputils "github.com/openshift-online/ocm-common/pkg/idp/utils"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -40,7 +43,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/storage/names"
@@ -59,9 +61,7 @@ import (
 	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/annotations"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
-	stsiface "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/rosa"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/utils"
@@ -92,8 +92,9 @@ type ROSAControlPlaneReconciler struct {
 	client.Client
 	WatchFilterValue string
 	WaitInfraPeriod  time.Duration
-	NewStsClient     func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsiface.STSClient
 	NewOCMClient     func(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (rosa.OCMClient, error)
+	// awsClientFactory overrides AWS client creation per reconciliation. Used in tests to inject mock clients.
+	awsClientFactory func(scope *scope.ROSAControlPlaneScope) (rosaaws.Client, error)
 	// Exposing the restClientConfig for integration test. No need to initialize.
 	restClientConfig *restclient.Config
 }
@@ -102,7 +103,6 @@ type ROSAControlPlaneReconciler struct {
 func (r *ROSAControlPlaneReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	log := logger.FromContext(ctx)
 	r.NewOCMClient = rosa.NewWrappedOCMClient
-	r.NewStsClient = scope.NewSTSClient
 
 	rosaControlPlane := &rosacontrolplanev1.ROSAControlPlane{}
 	c, err := ctrl.NewControllerManagedBy(mgr).
@@ -180,10 +180,33 @@ func (r *ROSAControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		ControlPlane:   rosaControlPlane,
 		ControllerName: strings.ToLower(rosaControlPlaneKind),
 		Logger:         log,
-		NewStsClient:   r.NewStsClient,
 	})
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to create scope: %w", err)
+	}
+
+	// Create a new ROSA AWS client per reconciliation from the scope's session so that the
+	// credentials always reflect the identityRef (including any cross-account role assumption).
+	awsClient, err := r.newAWSClient(rosaScope)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to create AWS client: %w", err)
+	}
+
+	// Derive the creator from the live AWS session.This ensures the creator's AccountID and ARN
+	// are both from the identity that the session credentials resolve to
+	// (e.g. a cross-account assumed role in the target account).
+	creator, err := awsClient.GetCreator()
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to get AWS creator: %w", err)
+	}
+
+	// In cross-account deployments the management-cluster identity is in a different account than
+	// the target account (where the role ARNs live). OCM validates that creator.AccountID, the
+	// account in creator.ARN, and every role ARN account are all the same. When they differ,
+	// assume the InstallerRoleARN so we get a real STS identity in the target account.
+	creator, err = r.resolveCreatorForTargetAccount(ctx, rosaScope, creator)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to resolve creator for target account: %w", err)
 	}
 
 	// Always close the scope
@@ -195,14 +218,14 @@ func (r *ROSAControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	if !rosaControlPlane.ObjectMeta.DeletionTimestamp.IsZero() {
 		// Handle deletion reconciliation loop.
-		return r.reconcileDelete(ctx, rosaScope)
+		return r.reconcileDelete(ctx, rosaScope, creator)
 	}
 
 	// Handle normal reconciliation loop.
-	return r.reconcileNormal(ctx, rosaScope)
+	return r.reconcileNormal(ctx, rosaScope, creator)
 }
 
-func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (res ctrl.Result, reterr error) {
+func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope, creator *rosaaws.Creator) (res ctrl.Result, reterr error) {
 	rosaScope.Info("Reconciling ROSAControlPlane")
 
 	if controllerutil.AddFinalizer(rosaScope.ControlPlane, ROSAControlPlaneFinalizer) {
@@ -218,15 +241,6 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 	if err != nil || ocmClient == nil {
 		// TODO: need to expose in status, as likely the credentials are invalid
 		return ctrl.Result{}, fmt.Errorf("failed to create OCM client: %w", err)
-	}
-
-	creator, err := rosaaws.CreatorForCallerIdentity(&stsv2.GetCallerIdentityOutput{
-		Account: rosaScope.Identity.Account,
-		Arn:     rosaScope.Identity.Arn,
-		UserId:  rosaScope.Identity.UserId,
-	})
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to transform caller identity to creator: %w", err)
 	}
 
 	rosaRoleConfig, err := r.reconcileRosaRoleConfig(ctx, rosaScope)
@@ -411,7 +425,7 @@ func (r *ROSAControlPlaneReconciler) reconcileRosaRoleConfig(ctx context.Context
 	return rosaRoleConfig, nil
 }
 
-func (r *ROSAControlPlaneReconciler) reconcileDelete(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (res ctrl.Result, reterr error) {
+func (r *ROSAControlPlaneReconciler) reconcileDelete(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope, creator *rosaaws.Creator) (res ctrl.Result, reterr error) {
 	rosaScope.Info("Reconciling ROSAControlPlane delete")
 
 	// Deleting MachinePools first.
@@ -424,19 +438,10 @@ func (r *ROSAControlPlaneReconciler) reconcileDelete(ctx context.Context, rosaSc
 		return ctrl.Result{RequeueAfter: time.Minute}, nil
 	}
 
-	ocmClient, err := rosa.NewOCMClient(ctx, rosaScope)
+	ocmClient, err := r.NewOCMClient(ctx, rosaScope)
 	if err != nil || ocmClient == nil {
 		// TODO: need to expose in status, as likely the credentials are invalid
 		return ctrl.Result{}, fmt.Errorf("failed to create OCM client: %w", err)
-	}
-
-	creator, err := rosaaws.CreatorForCallerIdentity(&stsv2.GetCallerIdentityOutput{
-		Account: rosaScope.Identity.Account,
-		Arn:     rosaScope.Identity.Arn,
-		UserId:  rosaScope.Identity.UserId,
-	})
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to transform caller identity to creator: %w", err)
 	}
 
 	cluster, err := ocmClient.GetCluster(rosaScope.ControlPlane.Spec.RosaClusterName, creator)
@@ -1361,6 +1366,101 @@ func operatorIAMRoles(rolesRef rosacontrolplanev1.AWSRolesRef) []ocm.OperatorIAM
 			RoleARN:   rolesRef.NodePoolManagementARN,
 		},
 	}
+}
+
+// resolveCreatorForTargetAccount handles cross-account deployments: when the management-cluster
+// identity is in a different AWS account than the target account (where the InstallerRoleARN and
+// other role ARNs reside), it assumes the InstallerRoleARN using the current session credentials
+// and calls GetCreator() on the resulting client to obtain a real STS identity in the target account.
+//
+// OCM requires that creator.AccountID, the account parsed from creator.ARN, and every role ARN
+// account are all the same (target) account. Assuming the InstallerRole gives a genuine
+// sts:assumed-role ARN in the target account, satisfying both OCM validations.
+func (r *ROSAControlPlaneReconciler) resolveCreatorForTargetAccount(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope, creator *rosaaws.Creator) (*rosaaws.Creator, error) {
+	installerRoleARN := rosaScope.ControlPlane.Spec.InstallerRoleARN
+	if rosaScope.ControlPlane.Spec.RosaRoleConfigRef != nil {
+		rosaRoleConfig := &expinfrav1.ROSARoleConfig{}
+		if err := r.Client.Get(ctx, client.ObjectKey{
+			Name:      rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name,
+			Namespace: rosaScope.ControlPlane.Namespace,
+		}, rosaRoleConfig); err != nil {
+			return nil, err
+		}
+		if rosaRoleConfig.Status.AccountRolesRef.InstallerRoleARN == "" {
+			return nil, fmt.Errorf("RosaRoleConfig %s/%s is not ready", rosaScope.ControlPlane.Namespace, rosaScope.ControlPlane.Spec.RosaRoleConfigRef.Name)
+		}
+		installerRoleARN = rosaRoleConfig.Status.AccountRolesRef.InstallerRoleARN
+	}
+
+	if installerRoleARN == "" {
+		return creator, nil
+	}
+
+	targetAccountID, err := accountIDFromRoleARN(installerRoleARN)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse account ID from InstallerRoleARN %q: %w", installerRoleARN, err)
+	}
+	if targetAccountID == creator.AccountID {
+		return creator, nil // same account — no cross-account assumption needed
+	}
+
+	session := rosaScope.Session()
+	// Fall back to the control plane spec region when the session carries no region
+	// (e.g. when the scope is constructed without a full AWS session in tests).
+	if session.Region == "" {
+		session.Region = rosaScope.ControlPlane.Spec.Region
+	}
+
+	stsSvc := stsv2sdk.NewFromConfig(session)
+	assumeRoleProvider := stscreds.NewAssumeRoleProvider(stsSvc, installerRoleARN, func(o *stscreds.AssumeRoleOptions) {
+		o.RoleSessionName = fmt.Sprintf("%s-%s", "capa-session", rosaScope.ControlPlane.Spec.RosaClusterName)
+	})
+
+	rosaScope.Info("Assuming cross-account deployment", "targetAccount", targetAccountID, "installerRoleARN", installerRoleARN)
+
+	// Build targetSession based on old session default values and load the new credential.
+	targetSession := session.Copy()
+	targetSession.Credentials = awsv2.NewCredentialsCache(assumeRoleProvider)
+
+	log := rosaScope.Logger.GetLogger()
+	targetClient, err := rosaaws.NewClient().
+		CapaLogger(&log).
+		ExternalConfig(&targetSession).
+		Build()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build AWS client for target account %s: %w", targetAccountID, err)
+	}
+
+	targetCreator, err := targetClient.GetCreator()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get creator for target account %s via role %s: %w", targetAccountID, installerRoleARN, err)
+	}
+
+	return targetCreator, nil
+}
+
+// accountIDFromRoleARN parses the AWS account ID from a role ARN.
+func accountIDFromRoleARN(roleARN string) (string, error) {
+	parsed, err := arn.Parse(roleARN)
+	if err != nil {
+		return "", err
+	}
+	return parsed.AccountID, nil
+}
+
+// newAWSClient creates a ROSA AWS client per reconciliation using the scope's session so that
+// credentials always reflect the identityRef (including cross-account role assumption).
+// Tests inject via awsClientFactory.
+func (r *ROSAControlPlaneReconciler) newAWSClient(rosaScope *scope.ROSAControlPlaneScope) (rosaaws.Client, error) {
+	if r.awsClientFactory != nil {
+		return r.awsClientFactory(rosaScope)
+	}
+	session := rosaScope.Session()
+	log := rosaScope.Logger.GetLogger()
+	return rosaaws.NewClient().
+		CapaLogger(&log).
+		ExternalConfig(&session).
+		Build()
 }
 
 func (r *ROSAControlPlaneReconciler) rosaClusterToROSAControlPlane(log *logger.Logger) handler.MapFunc {
