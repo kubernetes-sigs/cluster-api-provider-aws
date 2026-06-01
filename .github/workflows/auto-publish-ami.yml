@@ -1,0 +1,263 @@
+name: auto-publish-ami
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - hack/tools/release-tools/internal/ami/k8srelease/data/AMIK8sBuildConfig.json
+
+  workflow_dispatch:
+    inputs:
+      versions:
+        description: >-
+          Optional comma-separated list of K8s patch versions to force-build
+          (e.g. v1.36.0,v1.35.4). When empty, the workflow auto-detects target
+          versions by comparing AMIBuildConfig.json against AMIs already
+          published in the configured AWS account/region/OS via
+          `clusterawsadm ami list`.
+        required: false
+        default: ""
+
+jobs:
+  derive:
+    name: Derive packer inputs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      count: ${{ steps.matrix.outputs.count }}
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      failures: ${{ steps.matrix.outputs.failures }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Go
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version-file: go.mod
+
+      - name: Build clusterawsadm
+        run: go build -o bin/clusterawsadm ./cmd/clusterawsadm
+
+      - name: Build release-tool
+        # release-tools is a separate Go module, so it must be built from its
+        # own directory. The output path is relative to that directory.
+        run: go build -C hack/tools/release-tools -o ../../../bin/release-tool .
+
+      - name: Configure AWS credentials
+        # Required for `clusterawsadm ami list` to call ec2:DescribeImages.
+        # Reuses the same role as the build job; that role must have
+        # ec2:DescribeImages on AMIs owned by ${OWNER_ID} (CAPA AMIs are public,
+        # so DescribeImages on any role with the action allowed is sufficient).
+        uses: aws-actions/configure-aws-credentials@ec61189d14ec14c8efccab744f656cffd0e33f37 # v6.1.0
+        with:
+          aws-region: us-east-2
+          role-to-assume: arn:aws:iam::819546954734:role/gh-image-builder
+
+      - name: Determine target K8s versions
+        id: versions
+        env:
+          MANUAL_VERSIONS: ${{ inputs.versions }}
+          OWNER_ID: '819546954734'
+          REGION: us-east-2
+          # clusterawsadm uses dotted OS slugs (ubuntu-22.04, ubuntu-24.04),
+          # image-builder uses hyphenated ones (ubuntu-2204, ubuntu-2404).
+          # flatcar is identical in both conventions.
+          # Keep this list aligned with the target matrix in build-ami-v2.yml.
+          OS_LIST: "ubuntu-22.04,ubuntu-24.04,flatcar"
+          # Region used to query already-published AMIs. image-builder publishes
+          # to every region in REGION_LIST atomically, so checking a single
+          # region is sufficient to determine whether an AMI was ever built.
+          CHECK_REGION: us-east-2
+          # Regions the AMIs must be published to. Aligned with the default
+          # `regions` input of build-ami-v2.yml.
+          REGION_LIST: "ap-south-1,eu-west-3,eu-west-2,eu-west-1,ap-northeast-2,ap-northeast-1,sa-east-1,ca-central-1,ap-southeast-1,ap-southeast-2,eu-central-1,us-east-1,us-east-2,us-west-1,us-west-2"
+        run: |
+          set -euo pipefail
+          if [ -n "${MANUAL_VERSIONS}" ]; then
+            # Manual override: build exactly these versions, skip the
+            # already-published check entirely.
+            tr ',' '\n' <<< "${MANUAL_VERSIONS}" \
+              | sed -E 's/^[[:space:]]+|[[:space:]]+$//g; /^$/d; s/^([0-9])/v\1/' \
+              | sort -u > /tmp/target-versions.txt
+          else
+            # Pipe published AMIs directly into find-missing-ami to compute
+            # which (k8s version × OS × region) combinations are absent.
+            # GITHUB_TOKEN is injected automatically by the Actions runner and
+            # is used by find-missing-ami to query the Kubernetes release API.
+            ./bin/clusterawsadm ami list \
+              --owner-id "${OWNER_ID}" \
+              --region "${CHECK_REGION}" \
+              --os "${OS_LIST}" \
+              -o json \
+            | ./bin/release-tool ami find-missing-ami \
+              --os "${OS_LIST}" \
+              --region "${CHECK_REGION}" \
+              -o json > /tmp/missing-amis.json
+
+            echo "Missing AMIs:"
+            cat /tmp/missing-amis.json
+
+            # Extract unique Kubernetes versions from the missing AMIs report.
+            jq -r '.items[].kubernetesVersion' /tmp/missing-amis.json \
+              | sort -u > /tmp/target-versions.txt
+          fi
+          count=$(wc -l < /tmp/target-versions.txt | tr -d ' ')
+          echo "count=${count}" >> "${GITHUB_OUTPUT}"
+          echo "Target versions to build (${count}):"
+          cat /tmp/target-versions.txt || true
+
+      - name: Build matrix from packer inputs
+        id: matrix
+        if: steps.versions.outputs.count != '0'
+        run: |
+          set -euo pipefail
+
+          # parse_inputs reads the trailing 'Key : Value' block printed by
+          # find-ami-publishing-inputs.sh and emits KEY=value pairs suitable
+          # for `export`. Matching is anchored on the script's exact labels.
+          parse_inputs() {
+            awk -F' *: *' '
+              /^K8s Semver/               { print "K8S_SEMVER="      $2 }
+              /^K8s Release Series/       { print "K8S_SERIES="      $2 }
+              /^K8s RPM Package Version/  { print "K8S_RPM_VERSION=" $2 }
+              /^K8s Deb Package Version/  { print "K8S_DEB_VERSION=" $2 }
+              /^CNI Semver/               { print "CNI_SEMVER="      $2 }
+              /^CNI Deb Package Version/  { print "CNI_DEB_VERSION=" $2 }
+              /^CRICTL Version/           { print "CRICTL_VERSION="  $2 }
+            ' <<< "$1"
+          }
+
+          entries=()
+          failures=()
+          while IFS= read -r v; do
+            [ -z "$v" ] && continue
+
+            echo "::group::Derive inputs for ${v}"
+            if ! out=$(./scripts/find-ami-publishing-inputs.sh "${v}" 2>&1); then
+              echo "${out}"
+              echo "::endgroup::"
+              echo "::error::find-ami-publishing-inputs.sh failed for ${v}"
+              failures+=("${v}")
+              continue
+            fi
+            echo "${out}"
+            echo "::endgroup::"
+
+            # Reset before each iteration so a partial parse can't leak
+            # values from the previous version into the dispatch call.
+            unset K8S_SEMVER K8S_SERIES K8S_RPM_VERSION K8S_DEB_VERSION \
+                  CNI_SEMVER CNI_DEB_VERSION CRICTL_VERSION
+            while IFS= read -r line; do
+              # shellcheck disable=SC2163
+              export "$line"
+            done < <(parse_inputs "${out}")
+
+            missing=0
+            for var in K8S_SEMVER K8S_SERIES K8S_RPM_VERSION K8S_DEB_VERSION \
+                       CNI_SEMVER CNI_DEB_VERSION CRICTL_VERSION; do
+              if [ -z "${!var:-}" ]; then
+                echo "::error::missing ${var} after parsing script output for ${v}"
+                missing=1
+              fi
+            done
+            if [ "${missing}" -ne 0 ]; then
+              failures+=("${v}")
+              continue
+            fi
+
+            entries+=("$(jq -nc \
+              --arg k8s_semver       "${K8S_SEMVER}" \
+              --arg k8s_series       "${K8S_SERIES}" \
+              --arg k8s_rpm_version  "${K8S_RPM_VERSION}" \
+              --arg k8s_deb_version  "${K8S_DEB_VERSION}" \
+              --arg cni_semver       "${CNI_SEMVER}" \
+              --arg cni_deb_version  "${CNI_DEB_VERSION}" \
+              --arg crictl_version   "${CRICTL_VERSION}" \
+              '{k8s_semver:$k8s_semver, k8s_series:$k8s_series, k8s_rpm_version:$k8s_rpm_version, k8s_deb_version:$k8s_deb_version, cni_semver:$cni_semver, cni_deb_version:$cni_deb_version, crictl_version:$crictl_version}')")
+          done < /tmp/target-versions.txt
+
+          if [ "${#entries[@]}" -eq 0 ]; then
+            matrix='[]'
+          else
+            matrix=$(printf '%s\n' "${entries[@]}" | jq -cs '.')
+          fi
+          if [ "${#failures[@]}" -eq 0 ]; then
+            failures_json='[]'
+          else
+            failures_json=$(printf '%s\n' "${failures[@]}" | jq -Rcs 'split("\n") | map(select(length > 0))')
+          fi
+          echo "matrix=${matrix}" >> "${GITHUB_OUTPUT}"
+          echo "count=${#entries[@]}" >> "${GITHUB_OUTPUT}"
+          echo "failures=${failures_json}" >> "${GITHUB_OUTPUT}"
+          echo "matrix: ${matrix}"
+          echo "failures: ${failures_json}"
+
+          # Best-effort: never fail this step on individual derivation errors.
+          # The 'report' job downstream fails the workflow if any version
+          # could not be derived, after successful versions have built.
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### auto-publish-ami summary"
+            echo
+            echo "- Target versions detected: ${{ steps.versions.outputs.count }}"
+            echo "- Versions queued for build: ${{ steps.matrix.outputs.count || '0' }}"
+            if [ -f /tmp/target-versions.txt ]; then
+              echo
+              echo '```'
+              cat /tmp/target-versions.txt
+              echo '```'
+            fi
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Clean up temporary files
+        if: always()
+        run: rm -f /tmp/missing-amis.json /tmp/target-versions.txt
+
+  build:
+    name: Build AMI (${{ matrix.version.k8s_semver }})
+    needs: derive
+    if: ${{ needs.derive.outputs.count != '' && needs.derive.outputs.count != '0' }}
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ${{ fromJson(needs.derive.outputs.matrix) }}
+    uses: ./.github/workflows/build-ami-v2.yml
+    with:
+      k8s_semver:      ${{ matrix.version.k8s_semver }}
+      k8s_series:      ${{ matrix.version.k8s_series }}
+      k8s_rpm_version: ${{ matrix.version.k8s_rpm_version }}
+      k8s_deb_version: ${{ matrix.version.k8s_deb_version }}
+      cni_semver:      ${{ matrix.version.cni_semver }}
+      cni_deb_version: ${{ matrix.version.cni_deb_version }}
+      crictl_version:  ${{ matrix.version.crictl_version }}
+      regions:         "ap-south-1,eu-west-3,eu-west-2,eu-west-1,ap-northeast-2,ap-northeast-1,sa-east-1,ca-central-1,ap-southeast-1,ap-southeast-2,eu-central-1,us-east-1,us-east-2,us-west-1,us-west-2"
+    secrets: inherit
+
+  report:
+    name: Report derivation failures
+    needs: [derive, build]
+    if: always() && needs.derive.result == 'success'
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Fail if any version failed to derive packer inputs
+        env:
+          FAILURES: ${{ needs.derive.outputs.failures }}
+        run: |
+          set -euo pipefail
+          if [ -z "${FAILURES}" ] || [ "${FAILURES}" = "[]" ]; then
+            echo "All target versions derived successfully."
+            exit 0
+          fi
+          echo "::error::failed to derive packer inputs for: ${FAILURES}"
+          exit 1
