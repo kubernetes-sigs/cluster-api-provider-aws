@@ -26,8 +26,9 @@ import (
 func Cmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "ami",
-		Short: "AMI-related release helpers",
+		Short: "AMIs-related release helpers",
 	}
 	cmd.AddCommand(detectK8sReleaseCmd())
+	cmd.AddCommand(findMissingAmiCmd())
 	return cmd
 }

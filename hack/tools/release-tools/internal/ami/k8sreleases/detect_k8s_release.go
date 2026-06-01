@@ -100,7 +100,7 @@ func resolveRequestedMinors(patchesByMinor map[string][]string, latestN int, req
 	seen := make(map[string]struct{}, len(requestedMinors))
 	resolved := make([]string, 0, len(requestedMinors))
 	for _, raw := range requestedMinors {
-		minor, err := parseMinorInput(raw)
+		minor, err := ParseMinorInput(raw)
 		if err != nil {
 			return nil, err
 		}
@@ -116,14 +116,14 @@ func resolveRequestedMinors(patchesByMinor map[string][]string, latestN int, req
 	return resolved, nil
 }
 
-// parseMinorInput normalizes and validates one MAJOR.MINOR input.
+// ParseMinorInput normalizes and validates one MAJOR.MINOR input.
 //
 // Arguments:
 // raw: Raw user-provided minor version, optionally with "v" prefix.
 //
 // Returns:
 // Normalized MAJOR.MINOR value (without "v"), or an error.
-func parseMinorInput(raw string) (string, error) {
+func ParseMinorInput(raw string) (string, error) {
 	normalized := strings.TrimPrefix(strings.TrimSpace(raw), "v")
 	parts := strings.SplitN(normalized, ".", 3)
 	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
