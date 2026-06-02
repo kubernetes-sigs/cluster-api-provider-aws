@@ -52,7 +52,7 @@ jobs:
         # Reuses the same role as the build job; that role must have
         # ec2:DescribeImages on AMIs owned by ${OWNER_ID} (CAPA AMIs are public,
         # so DescribeImages on any role with the action allowed is sufficient).
-        uses: aws-actions/configure-aws-credentials@ec61189d14ec14c8efccab744f656cffd0e33f37 # v6.1.0
+        uses: aws-actions/configure-aws-credentials@e7f100cf4c008499ea8adda475de1042d6975c7b # v6.2.0
         with:
           aws-region: us-east-2
           role-to-assume: arn:aws:iam::819546954734:role/gh-image-builder
