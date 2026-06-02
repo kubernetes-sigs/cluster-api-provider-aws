@@ -96,4 +96,3 @@ jobs:
       - name: Build AMI
         working-directory: ./images/capi
         run: PACKER_VAR_FILES=vars.json make build-ami-${{ matrix.target }}
-
