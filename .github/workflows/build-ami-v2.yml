@@ -62,7 +62,7 @@ jobs:
           ref: ${{ inputs.image_builder_version }}
           fetch-depth: 0
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@ec61189d14ec14c8efccab744f656cffd0e33f37 # v6.1.0
+        uses: aws-actions/configure-aws-credentials@e7f100cf4c008499ea8adda475de1042d6975c7b # v6.2.0
         with:
           aws-region: ${{ env.DEFAULT_REGIONS }}
           role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/gh-image-builder
