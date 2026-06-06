@@ -13,6 +13,7 @@ resources:
 - bases/infrastructure.cluster.x-k8s.io_awsmachinetemplates.yaml
 - bases/infrastructure.cluster.x-k8s.io_awsmachinepools.yaml
 - bases/infrastructure.cluster.x-k8s.io_awsmanagedmachinepools.yaml
+- bases/infrastructure.cluster.x-k8s.io_awsmanagedmachinepooltemplates.yaml
 - bases/infrastructure.cluster.x-k8s.io_awsclusterroleidentities.yaml
 - bases/infrastructure.cluster.x-k8s.io_awsclusterstaticidentities.yaml
 - bases/infrastructure.cluster.x-k8s.io_awsclustercontrolleridentities.yaml
