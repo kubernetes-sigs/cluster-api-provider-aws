@@ -980,6 +980,8 @@ func mockedEKSCluster(ctx context.Context, g *WithT, eksRec *mock_eksiface.MockE
 
 	eksRec.UpdateClusterConfig(ctx, gomock.AssignableToTypeOf(&eks.UpdateClusterConfigInput{})).After(waitUntilClusterActiveCall).Return(&eks.UpdateClusterConfigOutput{}, nil)
 
+	eksRec.DescribeAddonVersions(ctx, &eks.DescribeAddonVersionsInput{}).Return(&eks.DescribeAddonVersionsOutput{}, nil)
+
 	awsNodeRec.ReconcileCNI(gomock.Any()).Return(nil)
 	kubeProxyRec.ReconcileKubeProxy(gomock.Any()).Return(nil)
 	iamAuthenticatorRec.ReconcileIAMAuthenticator(gomock.Any()).Return(nil)

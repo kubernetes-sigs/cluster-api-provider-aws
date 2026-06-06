@@ -183,8 +183,21 @@ type Addon struct {
 	// +kubebuilder:validation:MinLength:=2
 	// +kubebuilder:validation:Required
 	Name string `json:"name"`
-	// Version is the version of the addon to use
+	// Version is the version of the addon to use.
+	// Use `default` to use the current default version for the
+	// cluster's Kubernetes version.
+	// Use `latest` to use the latest version for the cluster's
+	// Kubernetes version (which may be newer than the default.)
 	Version string `json:"version"`
+	// UpdatePolicy determines the behavior on subsequent reconcilies when
+	// the addon version is `default` or `latest`.
+	// `ifAvailable` will update the addon to the newest default or latest
+	// version, if it has changed since the last reconciliation.
+	// `never` will not update the addon version after the initial
+	// installation, even if the default or latest version changes.
+	// +kubebuilder:validation:Enum=ifAvailable;never
+	// +kubebuilder:default=never
+	UpdatePolicy string `json:"updatePolicy,omitempty"`
 	// Configuration of the EKS addon
 	// +optional
 	Configuration string `json:"configuration,omitempty"`

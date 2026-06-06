@@ -55,6 +55,7 @@ require (
 	github.com/zgalor/weberr v0.8.2
 	go.uber.org/mock v0.5.2
 	golang.org/x/crypto v0.46.0
+	golang.org/x/mod v0.30.0
 	golang.org/x/text v0.32.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.33.4
