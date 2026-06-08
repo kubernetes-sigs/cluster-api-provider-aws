@@ -64,6 +64,8 @@ type OCMClient interface {
 	UpdateLogForwarder(logForwarder *v1.LogForwarder, logForwarderID string, clusterID string) error
 	DeleteLogForwarder(clusterID string, logForwarderID string) error
 	GetLogForwarders(clusterID string) ([]*v1.LogForwarder, error)
+	LinkOrgToRole(orgID string, roleARN string) (bool, error)
+	CheckRoleExists(orgID, roleName, accountID string) (bool, string, string, error)
 }
 
 func (c *ocmclient) AckVersionGate(clusterID string, gateID string) error {
@@ -177,6 +179,14 @@ func (c *ocmclient) DeleteLogForwarder(clusterID string, logForwarderID string) 
 
 func (c *ocmclient) GetLogForwarders(clusterID string) ([]*v1.LogForwarder, error) {
 	return c.ocmClient.GetLogForwarders(clusterID)
+}
+
+func (c *ocmclient) LinkOrgToRole(orgID string, roleARN string) (bool, error) {
+	return c.ocmClient.LinkOrgToRole(orgID, roleARN)
+}
+
+func (c *ocmclient) CheckRoleExists(orgID, roleName, accountID string) (bool, string, string, error) {
+	return c.ocmClient.CheckRoleExists(orgID, roleName, accountID)
 }
 
 // NewMockOCMClient creates a new empty ocm.Client without any real connection.
