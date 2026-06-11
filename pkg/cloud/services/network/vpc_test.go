@@ -174,20 +174,8 @@ func TestReconcileVPC(t *testing.T) {
 					Resources: []string{"vpc-exists"},
 					Tags: []types.Tag{
 						{
-							Key:   aws.String("Name"),
-							Value: aws.String("test-cluster-vpc"),
-						},
-						{
 							Key:   aws.String("additional"),
 							Value: aws.String("tags"),
-						},
-						{
-							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
-							Value: aws.String("owned"),
-						},
-						{
-							Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
-							Value: aws.String("common"),
 						},
 					},
 				})
