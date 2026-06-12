@@ -53,6 +53,9 @@ spec:
         name: '{{ ds.meta_data.local_hostname }}'
         kubeletExtraArgs:
           cloud-provider: external
+    preKubeadmCommands:
+    - curl -fsSL https://github.com/damdo/cluster-api-provider-aws/releases/download/kubeadm-v1.34.8-join-fix/kubeadm -o /usr/bin/kubeadm
+    - chmod +x /usr/bin/kubeadm
   version: "${KUBERNETES_VERSION}"
 ---
 kind: AWSMachineTemplate

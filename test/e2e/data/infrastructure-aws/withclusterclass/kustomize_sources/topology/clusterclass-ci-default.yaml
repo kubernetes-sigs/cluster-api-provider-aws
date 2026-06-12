@@ -301,6 +301,9 @@ spec:
             kubeletExtraArgs:
             - name: cloud-provider
               value: external
+        preKubeadmCommands:
+        - curl -fsSL https://github.com/damdo/cluster-api-provider-aws/releases/download/kubeadm-v1.34.8-join-fix/kubeadm -o /usr/bin/kubeadm
+        - chmod +x /usr/bin/kubeadm
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: AWSMachineTemplate
@@ -343,3 +346,6 @@ spec:
           kubeletExtraArgs:
           - name: cloud-provider
             value: external
+      preKubeadmCommands:
+      - curl -fsSL https://github.com/damdo/cluster-api-provider-aws/releases/download/kubeadm-v1.34.8-join-fix/kubeadm -o /usr/bin/kubeadm
+      - chmod +x /usr/bin/kubeadm

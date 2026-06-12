@@ -31,5 +31,7 @@ spec:
                     # To make metadata environment variables available for pre-kubeadm commands.
                     EnvironmentFile=/run/metadata/*
       preKubeadmCommands:
+      - curl -fsSL https://github.com/damdo/cluster-api-provider-aws/releases/download/kubeadm-v1.34.8-join-fix/kubeadm -o /opt/bin/kubeadm
+      - chmod +x /opt/bin/kubeadm
       - envsubst < /etc/kubeadm.yml > /etc/kubeadm.yml.tmp
       - mv /etc/kubeadm.yml.tmp /etc/kubeadm.yml
