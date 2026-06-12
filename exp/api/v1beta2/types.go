@@ -27,6 +27,17 @@ const (
 	KindMachinePool string = "MachinePool"
 )
 
+// SecretReference references a secret by name and namespace.
+type SecretReference struct {
+	// Name is the name of the secret.
+	// +kubebuilder:validation:Required
+	Name string `json:"name"`
+
+	// Namespace is the namespace of the secret.
+	// +kubebuilder:validation:Required
+	Namespace string `json:"namespace"`
+}
+
 // EBS can be used to automatically set up EBS volumes when an instance is launched.
 type EBS struct {
 	// Encrypted is whether the volume should be encrypted or not.

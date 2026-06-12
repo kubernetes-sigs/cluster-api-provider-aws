@@ -21611,7 +21611,7 @@ AWSClusterTemplateResource
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSIdentityReference">AWSIdentityReference
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSClusterRoleIdentitySpec">AWSClusterRoleIdentitySpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSClusterSpec">AWSClusterSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSANetworkSpec">ROSANetworkSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSARoleConfigSpec">ROSARoleConfigSpec</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSClusterRoleIdentitySpec">AWSClusterRoleIdentitySpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSClusterSpec">AWSClusterSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta1.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>, <a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSANetworkSpec">ROSANetworkSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSAOCMRoleConfigSpec">ROSAOCMRoleConfigSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSARoleConfigSpec">ROSARoleConfigSpec</a>)
 </p>
 <p>
 <p>AWSIdentityReference specifies a identity.</p>
@@ -32548,6 +32548,373 @@ string
 </td>
 </tr>
 </tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.ROSAOCMRoleConfig">ROSAOCMRoleConfig
+</h3>
+<p>
+<p>ROSAOCMRoleConfig is the Schema for the rosaocmroleconfigs API</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSAOCMRoleConfigSpec">
+ROSAOCMRoleConfigSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>rolePrefix</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>RolePrefix is the user-defined prefix for the OCM role name.
+The final role name will be: {RolePrefix}-OCM-Role-{ExternalID}
+where ExternalID is the organization&rsquo;s external identifier from OCM.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>profile</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSAOCMRoleProfile">
+ROSAOCMRoleProfile
+</a>
+</em>
+</td>
+<td>
+<p>Profile defines the permission level for the OCM role.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>permissionsBoundaryARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PermissionsBoundaryARN is the ARN of the policy that is used to set the permissions boundary for the OCM role.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>path</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Path is the IAM path for the OCM role.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>identityRef</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSIdentityReference">
+AWSIdentityReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>IdentityRef is a reference to an identity to be used when reconciling the OCM Role Config.
+If no identity is specified, the default identity for this controller will be used.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>credentialsSecretRef</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#localobjectreference-v1-core">
+Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CredentialsSecretRef references a secret with necessary credentials to connect to the OCM API.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>deletionPolicy</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSAOCMRoleDeletionPolicy">
+ROSAOCMRoleDeletionPolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DeletionPolicy determines what happens to the OCM role when this CR is deleted.
+Delete will unlink and delete the OCM role.
+Retain will keep the OCM role intact.
+This is useful when reprovisioning management clusters to avoid disrupting users in the same organization.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSAOCMRoleConfigStatus">
+ROSAOCMRoleConfigStatus
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.ROSAOCMRoleConfigSpec">ROSAOCMRoleConfigSpec
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSAOCMRoleConfig">ROSAOCMRoleConfig</a>)
+</p>
+<p>
+<p>ROSAOCMRoleConfigSpec defines the desired state of ROSAOCMRoleConfig</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>rolePrefix</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>RolePrefix is the user-defined prefix for the OCM role name.
+The final role name will be: {RolePrefix}-OCM-Role-{ExternalID}
+where ExternalID is the organization&rsquo;s external identifier from OCM.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>profile</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSAOCMRoleProfile">
+ROSAOCMRoleProfile
+</a>
+</em>
+</td>
+<td>
+<p>Profile defines the permission level for the OCM role.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>permissionsBoundaryARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PermissionsBoundaryARN is the ARN of the policy that is used to set the permissions boundary for the OCM role.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>path</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Path is the IAM path for the OCM role.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>identityRef</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSIdentityReference">
+AWSIdentityReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>IdentityRef is a reference to an identity to be used when reconciling the OCM Role Config.
+If no identity is specified, the default identity for this controller will be used.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>credentialsSecretRef</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#localobjectreference-v1-core">
+Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CredentialsSecretRef references a secret with necessary credentials to connect to the OCM API.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>deletionPolicy</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSAOCMRoleDeletionPolicy">
+ROSAOCMRoleDeletionPolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DeletionPolicy determines what happens to the OCM role when this CR is deleted.
+Delete will unlink and delete the OCM role.
+Retain will keep the OCM role intact.
+This is useful when reprovisioning management clusters to avoid disrupting users in the same organization.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.ROSAOCMRoleConfigStatus">ROSAOCMRoleConfigStatus
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSAOCMRoleConfig">ROSAOCMRoleConfig</a>)
+</p>
+<p>
+<p>ROSAOCMRoleConfigStatus defines the observed state of ROSAOCMRoleConfig</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>roleARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>RoleARN is the ARN of the created OCM role.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>organizationID</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>OrganizationID is the OCM organization ID that this role is linked to.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>conditions</code><br/>
+<em>
+Cluster API api/core/v1beta1.Conditions
+</em>
+</td>
+<td>
+<p>Conditions specifies the ROSAOCMRoleConfig conditions</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.ROSAOCMRoleDeletionPolicy">ROSAOCMRoleDeletionPolicy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSAOCMRoleConfigSpec">ROSAOCMRoleConfigSpec</a>)
+</p>
+<p>
+<p>ROSAOCMRoleDeletionPolicy defines what happens to the OCM role when the CR is deleted.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Delete&#34;</p></td>
+<td><p>ROSAOCMRoleDeletionPolicyDelete unlinks and deletes the OCM role when the CR is deleted.</p>
+</td>
+</tr><tr><td><p>&#34;Retain&#34;</p></td>
+<td><p>ROSAOCMRoleDeletionPolicyRetain keeps the OCM role intact when the CR is deleted.</p>
+</td>
+</tr></tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.ROSAOCMRoleProfile">ROSAOCMRoleProfile
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSAOCMRoleConfigSpec">ROSAOCMRoleConfigSpec</a>)
+</p>
+<p>
+<p>ROSAOCMRoleProfile defines the permission level for the OCM role</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Admin&#34;</p></td>
+<td><p>ROSAOCMRoleProfileAdmin provides admin OCM permissions</p>
+</td>
+</tr><tr><td><p>&#34;NoConsole&#34;</p></td>
+<td><p>ROSAOCMRoleProfileNoConsole provides minimal OCM permissions (cannot use console.redhat.com)</p>
+</td>
+</tr><tr><td><p>&#34;Standard&#34;</p></td>
+<td><p>ROSAOCMRoleProfileStandard provides standard OCM permissions</p>
+</td>
+</tr></tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.ROSARoleConfig">ROSARoleConfig
 </h3>
