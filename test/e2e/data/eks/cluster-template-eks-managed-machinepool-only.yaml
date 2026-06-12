@@ -20,6 +20,7 @@ kind: AWSManagedMachinePool
 metadata:
   name: "${CLUSTER_NAME}-pool-0"
 spec:
+  amiType: AL2023_x86_64_STANDARD
   scaling:
     minSize: 1
     maxSize: 2
