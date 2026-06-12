@@ -1,0 +1,192 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  name: rosaocmroleconfigs.infrastructure.cluster.x-k8s.io
+spec:
+  group: infrastructure.cluster.x-k8s.io
+  names:
+    categories:
+    - cluster-api
+    kind: ROSAOCMRoleConfig
+    listKind: ROSAOCMRoleConfigList
+    plural: rosaocmroleconfigs
+    shortNames:
+    - rosaocmrole
+    singular: rosaocmroleconfig
+  scope: Cluster
+  versions:
+  - name: v1beta2
+    schema:
+      openAPIV3Schema:
+        description: ROSAOCMRoleConfig is the Schema for the rosaocmroleconfigs API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ROSAOCMRoleConfigSpec defines the desired state of ROSAOCMRoleConfig
+            properties:
+              credentialsSecretRef:
+                description: CredentialsSecretRef references a secret with necessary
+                  credentials to connect to the OCM API.
+                properties:
+                  name:
+                    description: name is unique within a namespace to reference a
+                      secret resource.
+                    type: string
+                  namespace:
+                    description: namespace defines the space within which the secret
+                      name must be unique.
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              deletionPolicy:
+                default: Delete
+                description: |-
+                  DeletionPolicy determines what happens to the OCM role when this CR is deleted.
+                  Delete will unlink and delete the OCM role.
+                  Retain will keep the OCM role intact.
+                  This is useful when reprovisioning management clusters to avoid disrupting users in the same organization.
+                enum:
+                - Delete
+                - Retain
+                type: string
+              identityRef:
+                description: |-
+                  IdentityRef is a reference to an identity to be used when reconciling the OCM Role Config.
+                  If no identity is specified, the default identity for this controller will be used.
+                properties:
+                  kind:
+                    description: Kind of the identity.
+                    enum:
+                    - AWSClusterControllerIdentity
+                    - AWSClusterRoleIdentity
+                    - AWSClusterStaticIdentity
+                    type: string
+                  name:
+                    description: Name of the identity.
+                    minLength: 1
+                    type: string
+                required:
+                - kind
+                - name
+                type: object
+              path:
+                description: Path is the IAM path for the OCM role.
+                pattern: ^\/.*\/$
+                type: string
+              permissionsBoundaryARN:
+                description: PermissionsBoundaryARN is the ARN of the policy that
+                  is used to set the permissions boundary for the OCM role.
+                type: string
+              profile:
+                default: Standard
+                description: Profile defines the permission level for the OCM role.
+                enum:
+                - Standard
+                - Admin
+                - NoConsole
+                type: string
+                x-kubernetes-validations:
+                - message: profile is immutable
+                  rule: self == oldSelf
+              rolePrefix:
+                description: |-
+                  RolePrefix is the user-defined prefix for the OCM role name.
+                  The final role name will be: {RolePrefix}-OCM-Role-{ExternalID}
+                  where ExternalID is the organization's external identifier from OCM.
+                maxLength: 12
+                pattern: ^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$
+                type: string
+                x-kubernetes-validations:
+                - message: rolePrefix is immutable
+                  rule: self == oldSelf
+            required:
+            - profile
+            - rolePrefix
+            type: object
+          status:
+            description: ROSAOCMRoleConfigStatus defines the observed state of ROSAOCMRoleConfig
+            properties:
+              conditions:
+                description: Conditions specifies the ROSAOCMRoleConfig conditions
+                items:
+                  description: Condition defines an observation of a Cluster API resource
+                    operational state.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed. If that is not known, then using the time when
+                        the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This field may be empty.
+                      maxLength: 10240
+                      minLength: 1
+                      type: string
+                    reason:
+                      description: |-
+                        reason is the reason for the condition's last transition in CamelCase.
+                        The specific API may choose whether or not this field is considered a guaranteed API.
+                        This field may be empty.
+                      maxLength: 256
+                      minLength: 1
+                      type: string
+                    severity:
+                      description: |-
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        understand the current situation and act accordingly.
+                        The Severity field MUST be set only when Status=False.
+                      maxLength: 32
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: |-
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
+                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
+                        can be useful (see .node.status.conditions), the ability to deconflict is important.
+                      maxLength: 256
+                      minLength: 1
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - status
+                  - type
+                  type: object
+                type: array
+              organizationID:
+                description: OrganizationID is the OCM organization ID that this role
+                  is linked to.
+                type: string
+              roleARN:
+                description: RoleARN is the ARN of the created OCM role.
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
