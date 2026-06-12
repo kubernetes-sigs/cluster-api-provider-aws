@@ -2663,10 +2663,52 @@ string
 </p>
 Resource Types:
 <ul></ul>
+<h3 id="bootstrap.cluster.x-k8s.io/v1beta2.ContainerdOptions">ContainerdOptions
+</h3>
+<p>
+(<em>Appears on:</em><a href="#bootstrap.cluster.x-k8s.io/v1beta2.NodeadmConfigSpec">NodeadmConfigSpec</a>)
+</p>
+<p>
+<p>ContainerdOptions are additional parameters passed to containerd.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>config</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Config is an inline containerd configuration TOML that will be merged with the defaults.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>baseRuntimeSpec</code><br/>
+<em>
+k8s.io/apimachinery/pkg/runtime.RawExtension
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>BaseRuntimeSpec is the OCI runtime specification upon which all containers will be based.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="bootstrap.cluster.x-k8s.io/v1beta2.DiskSetup">DiskSetup
 </h3>
 <p>
-(<em>Appears on:</em><a href="#bootstrap.cluster.x-k8s.io/v1beta2.EKSConfigSpec">EKSConfigSpec</a>)
+(<em>Appears on:</em><a href="#bootstrap.cluster.x-k8s.io/v1beta2.EKSConfigSpec">EKSConfigSpec</a>, <a href="#bootstrap.cluster.x-k8s.io/v1beta2.NodeadmConfigSpec">NodeadmConfigSpec</a>)
 </p>
 <p>
 <p>DiskSetup defines input for generated disk_setup and fs_setup in cloud-init.</p>
@@ -2713,6 +2755,9 @@ Resource Types:
 </h3>
 <p>
 <p>EKSConfig is the schema for the Amazon EKS Machine Bootstrap Configuration API.</p>
+<p>Deprecated: EKSConfig is deprecated and will be removed in a future release.
+Amazon Linux 2 (AL2) reaches end-of-life in June 2026 see: <a href="https://aws.amazon.com/amazon-linux-2/faqs/">https://aws.amazon.com/amazon-linux-2/faqs/</a>
+Please use NodeadmConfig with Amazon Linux 2023 (AL2023) instead.</p>
 </p>
 <table>
 <thead>
@@ -3638,10 +3683,30 @@ EKSConfigTemplateResource
 </td>
 </tr></tbody>
 </table>
+<h3 id="bootstrap.cluster.x-k8s.io/v1beta2.Feature">Feature
+(<code>string</code> alias)</p></h3>
+<p>
+<p>Feature specifies which feature gate should be toggled.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;FastImagePull&#34;</p></td>
+<td><p>FeatureFastImagePull enables a parallel image pull for container images.</p>
+</td>
+</tr><tr><td><p>&#34;InstanceIdNodeName&#34;</p></td>
+<td><p>FeatureInstanceIDNodeName  will use EC2 instance ID as node name.</p>
+</td>
+</tr></tbody>
+</table>
 <h3 id="bootstrap.cluster.x-k8s.io/v1beta2.File">File
 </h3>
 <p>
-(<em>Appears on:</em><a href="#bootstrap.cluster.x-k8s.io/v1beta2.EKSConfigSpec">EKSConfigSpec</a>)
+(<em>Appears on:</em><a href="#bootstrap.cluster.x-k8s.io/v1beta2.EKSConfigSpec">EKSConfigSpec</a>, <a href="#bootstrap.cluster.x-k8s.io/v1beta2.NodeadmConfigSpec">NodeadmConfigSpec</a>)
 </p>
 <p>
 <p>File defines the input for generating write_files in cloud-init.</p>
@@ -3864,10 +3929,52 @@ If true, any pre-existing file system will be destroyed. Use with Caution.</p>
 </tr>
 </tbody>
 </table>
+<h3 id="bootstrap.cluster.x-k8s.io/v1beta2.KubeletOptions">KubeletOptions
+</h3>
+<p>
+(<em>Appears on:</em><a href="#bootstrap.cluster.x-k8s.io/v1beta2.NodeadmConfigSpec">NodeadmConfigSpec</a>)
+</p>
+<p>
+<p>KubeletOptions are additional parameters passed to kubelet.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>config</code><br/>
+<em>
+k8s.io/apimachinery/pkg/runtime.RawExtension
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Config is a KubeletConfiguration that will be merged with the defaults.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>flags</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Flags are command-line kubelet arguments that will be appended to the defaults.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="bootstrap.cluster.x-k8s.io/v1beta2.MountPoints">MountPoints
 (<code>[]string</code> alias)</p></h3>
 <p>
-(<em>Appears on:</em><a href="#bootstrap.cluster.x-k8s.io/v1beta2.EKSConfigSpec">EKSConfigSpec</a>)
+(<em>Appears on:</em><a href="#bootstrap.cluster.x-k8s.io/v1beta2.EKSConfigSpec">EKSConfigSpec</a>, <a href="#bootstrap.cluster.x-k8s.io/v1beta2.NodeadmConfigSpec">NodeadmConfigSpec</a>)
 </p>
 <p>
 <p>MountPoints defines input for generated mounts in cloud-init.</p>
@@ -3875,7 +3982,7 @@ If true, any pre-existing file system will be destroyed. Use with Caution.</p>
 <h3 id="bootstrap.cluster.x-k8s.io/v1beta2.NTP">NTP
 </h3>
 <p>
-(<em>Appears on:</em><a href="#bootstrap.cluster.x-k8s.io/v1beta2.EKSConfigSpec">EKSConfigSpec</a>)
+(<em>Appears on:</em><a href="#bootstrap.cluster.x-k8s.io/v1beta2.EKSConfigSpec">EKSConfigSpec</a>, <a href="#bootstrap.cluster.x-k8s.io/v1beta2.NodeadmConfigSpec">NodeadmConfigSpec</a>)
 </p>
 <p>
 <p>NTP defines input for generated ntp in cloud-init.</p>
@@ -3910,6 +4017,709 @@ bool
 <td>
 <em>(Optional)</em>
 <p>Enabled specifies whether NTP should be enabled</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bootstrap.cluster.x-k8s.io/v1beta2.NodeadmConfig">NodeadmConfig
+</h3>
+<p>
+<p>NodeadmConfig is the Schema for the nodeadmconfigs API.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.NodeadmConfigSpec">
+NodeadmConfigSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>kubelet</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.KubeletOptions">
+KubeletOptions
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Kubelet contains options for kubelet.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>containerd</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.ContainerdOptions">
+ContainerdOptions
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Containerd contains options for containerd.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>featureGates</code><br/>
+<em>
+map[sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2.Feature]bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>FeatureGates holds key-value pairs to enable or disable application features.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>preNodeadmCommands</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PreNodeadmCommands specifies extra commands to run before bootstrapping nodes.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>files</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.File">
+[]File
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Files specifies extra files to be passed to user_data upon creation.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>users</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.User">
+[]User
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Users specifies extra users to add.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ntp</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.NTP">
+NTP
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>NTP specifies NTP configuration.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>diskSetup</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.DiskSetup">
+DiskSetup
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DiskSetup specifies options for the creation of partition tables and file systems on devices.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>mounts</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.MountPoints">
+[]MountPoints
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Mounts specifies a list of mount points to be setup.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.NodeadmConfigStatus">
+NodeadmConfigStatus
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bootstrap.cluster.x-k8s.io/v1beta2.NodeadmConfigInitializationStatus">NodeadmConfigInitializationStatus
+</h3>
+<p>
+(<em>Appears on:</em><a href="#bootstrap.cluster.x-k8s.io/v1beta2.NodeadmConfigStatus">NodeadmConfigStatus</a>)
+</p>
+<p>
+<p>NodeadmConfigInitializationStatus provides observations of the NodeadmConfig initialization process.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>dataSecretCreated</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DataSecretCreated is true when the Machine&rsquo;s bootstrap secret is created.
+NOTE: This field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bootstrap.cluster.x-k8s.io/v1beta2.NodeadmConfigSpec">NodeadmConfigSpec
+</h3>
+<p>
+(<em>Appears on:</em><a href="#bootstrap.cluster.x-k8s.io/v1beta2.NodeadmConfig">NodeadmConfig</a>, <a href="#bootstrap.cluster.x-k8s.io/v1beta2.NodeadmConfigTemplateResource">NodeadmConfigTemplateResource</a>)
+</p>
+<p>
+<p>NodeadmConfigSpec defines the desired state of NodeadmConfig.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>kubelet</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.KubeletOptions">
+KubeletOptions
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Kubelet contains options for kubelet.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>containerd</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.ContainerdOptions">
+ContainerdOptions
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Containerd contains options for containerd.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>featureGates</code><br/>
+<em>
+map[sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2.Feature]bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>FeatureGates holds key-value pairs to enable or disable application features.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>preNodeadmCommands</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PreNodeadmCommands specifies extra commands to run before bootstrapping nodes.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>files</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.File">
+[]File
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Files specifies extra files to be passed to user_data upon creation.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>users</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.User">
+[]User
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Users specifies extra users to add.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ntp</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.NTP">
+NTP
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>NTP specifies NTP configuration.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>diskSetup</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.DiskSetup">
+DiskSetup
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DiskSetup specifies options for the creation of partition tables and file systems on devices.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>mounts</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.MountPoints">
+[]MountPoints
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Mounts specifies a list of mount points to be setup.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bootstrap.cluster.x-k8s.io/v1beta2.NodeadmConfigStatus">NodeadmConfigStatus
+</h3>
+<p>
+(<em>Appears on:</em><a href="#bootstrap.cluster.x-k8s.io/v1beta2.NodeadmConfig">NodeadmConfig</a>)
+</p>
+<p>
+<p>NodeadmConfigStatus defines the observed state of NodeadmConfig.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>ready</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Deprecated: This field will be removed with the CAPI v1beta2 transition
+Ready indicates the BootstrapData secret is ready to be consumed.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>initialization</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.NodeadmConfigInitializationStatus">
+NodeadmConfigInitializationStatus
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Initialization provides observations of the NodeadmConfig initialization process.
+NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dataSecretName</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DataSecretName is the name of the secret that stores the bootstrap data script.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>failureReason</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>FailureReason will be set on non-retryable errors.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>failureMessage</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>FailureMessage will be set on non-retryable errors.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>observedGeneration</code><br/>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ObservedGeneration is the latest generation observed by the controller.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>conditions</code><br/>
+<em>
+Cluster API api/core/v1beta1.Conditions
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Conditions defines current service state of the NodeadmConfig.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bootstrap.cluster.x-k8s.io/v1beta2.NodeadmConfigTemplate">NodeadmConfigTemplate
+</h3>
+<p>
+<p>NodeadmConfigTemplate is the Amazon EKS Bootstrap Configuration Template API.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.NodeadmConfigTemplateSpec">
+NodeadmConfigTemplateSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>template</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.NodeadmConfigTemplateResource">
+NodeadmConfigTemplateResource
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bootstrap.cluster.x-k8s.io/v1beta2.NodeadmConfigTemplateResource">NodeadmConfigTemplateResource
+</h3>
+<p>
+(<em>Appears on:</em><a href="#bootstrap.cluster.x-k8s.io/v1beta2.NodeadmConfigTemplateSpec">NodeadmConfigTemplateSpec</a>)
+</p>
+<p>
+<p>NodeadmConfigTemplateResource defines the Template structure.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>spec</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.NodeadmConfigSpec">
+NodeadmConfigSpec
+</a>
+</em>
+</td>
+<td>
+<p>Spec represents the NodeadmConfig each object created from the template will become.
+We are setting nullable to avoid this issue:
+<a href="https://github.com/kubernetes/kubernetes/issues/117447#issuecomment-2127733969">https://github.com/kubernetes/kubernetes/issues/117447#issuecomment-2127733969</a>
+where we cannot remove all fields with an SSA patch if they were previously set.</p>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>kubelet</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.KubeletOptions">
+KubeletOptions
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Kubelet contains options for kubelet.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>containerd</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.ContainerdOptions">
+ContainerdOptions
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Containerd contains options for containerd.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>featureGates</code><br/>
+<em>
+map[sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2.Feature]bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>FeatureGates holds key-value pairs to enable or disable application features.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>preNodeadmCommands</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PreNodeadmCommands specifies extra commands to run before bootstrapping nodes.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>files</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.File">
+[]File
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Files specifies extra files to be passed to user_data upon creation.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>users</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.User">
+[]User
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Users specifies extra users to add.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ntp</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.NTP">
+NTP
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>NTP specifies NTP configuration.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>diskSetup</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.DiskSetup">
+DiskSetup
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DiskSetup specifies options for the creation of partition tables and file systems on devices.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>mounts</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.MountPoints">
+[]MountPoints
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Mounts specifies a list of mount points to be setup.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bootstrap.cluster.x-k8s.io/v1beta2.NodeadmConfigTemplateSpec">NodeadmConfigTemplateSpec
+</h3>
+<p>
+(<em>Appears on:</em><a href="#bootstrap.cluster.x-k8s.io/v1beta2.NodeadmConfigTemplate">NodeadmConfigTemplate</a>)
+</p>
+<p>
+<p>NodeadmConfigTemplateSpec defines the desired state of templated NodeadmConfig Amazon EKS Configuration resources.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>template</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.NodeadmConfigTemplateResource">
+NodeadmConfigTemplateResource
+</a>
+</em>
+</td>
+<td>
 </td>
 </tr>
 </tbody>
@@ -4143,7 +4953,7 @@ string
 <h3 id="bootstrap.cluster.x-k8s.io/v1beta2.User">User
 </h3>
 <p>
-(<em>Appears on:</em><a href="#bootstrap.cluster.x-k8s.io/v1beta2.EKSConfigSpec">EKSConfigSpec</a>)
+(<em>Appears on:</em><a href="#bootstrap.cluster.x-k8s.io/v1beta2.EKSConfigSpec">EKSConfigSpec</a>, <a href="#bootstrap.cluster.x-k8s.io/v1beta2.NodeadmConfigSpec">NodeadmConfigSpec</a>)
 </p>
 <p>
 <p>User defines the input for a generated user in cloud-init.</p>
@@ -9956,6 +10766,29 @@ ID token into a cluster identity</p>
 </tr>
 </tbody>
 </table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.FIPSState">FIPSState
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>)
+</p>
+<p>
+<p>FIPSState represents the FIPS mode for the ROSA Control Plane.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Disabled&#34;</p></td>
+<td><p>FIPSDisabled indicates FIPS is disabled</p>
+</td>
+</tr><tr><td><p>&#34;Enabled&#34;</p></td>
+<td><p>FIPSEnabled indicates FIPS is enabled</p>
+</td>
+</tr></tbody>
+</table>
 <h3 id="controlplane.cluster.x-k8s.io/v1beta2.LocalObjectReference">LocalObjectReference
 </h3>
 <p>
@@ -10315,7 +11148,45 @@ ChannelGroupType
 </em>
 </td>
 <td>
-<p>OpenShift version channel group, default is stable.</p>
+<em>(Optional)</em>
+<p>OpenShift version channel group.
+When not specified, OCM will determine the appropriate channel group based on the cluster version.
+This field will be deprecated in a future release in favor of the Channel field.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>channel</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Channel is the Y-stream OpenShift channel to use for this cluster, for example &ldquo;stable-4.16&rdquo; or &ldquo;eus-4.16&rdquo;.
+This determines which Y-stream versions are available for upgrades.
+When not specified, OCM will determine the appropriate channel based on the cluster version.
+If Channel is set, ChannelGroup will be ignored.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>fips</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.FIPSState">
+FIPSState
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>FIPS configures FIPS-validated / Modules in Process cryptographic libraries.
+FIPS (Federal Information Processing Standard) 140-2 is a U.S. government standard
+that validates cryptographic modules used to protect sensitive information.</p>
+<p>When set to &ldquo;Enabled&rdquo;, the cluster will use FIPS 140-2 validated cryptographic modules.
+This setting is immutable and cannot be changed after cluster creation.</p>
+<p>IMPORTANT: When FIPS is enabled, etcdEncryptionKMSARN must be provided.
+The KMS key must be tagged with &lsquo;red-hat:true&rsquo;.</p>
 </td>
 </tr>
 <tr>
@@ -10965,7 +11836,45 @@ ChannelGroupType
 </em>
 </td>
 <td>
-<p>OpenShift version channel group, default is stable.</p>
+<em>(Optional)</em>
+<p>OpenShift version channel group.
+When not specified, OCM will determine the appropriate channel group based on the cluster version.
+This field will be deprecated in a future release in favor of the Channel field.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>channel</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Channel is the Y-stream OpenShift channel to use for this cluster, for example &ldquo;stable-4.16&rdquo; or &ldquo;eus-4.16&rdquo;.
+This determines which Y-stream versions are available for upgrades.
+When not specified, OCM will determine the appropriate channel based on the cluster version.
+If Channel is set, ChannelGroup will be ignored.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>fips</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.FIPSState">
+FIPSState
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>FIPS configures FIPS-validated / Modules in Process cryptographic libraries.
+FIPS (Federal Information Processing Standard) 140-2 is a U.S. government standard
+that validates cryptographic modules used to protect sensitive information.</p>
+<p>When set to &ldquo;Enabled&rdquo;, the cluster will use FIPS 140-2 validated cryptographic modules.
+This setting is immutable and cannot be changed after cluster creation.</p>
+<p>IMPORTANT: When FIPS is enabled, etcdEncryptionKMSARN must be provided.
+The KMS key must be tagged with &lsquo;red-hat:true&rsquo;.</p>
 </td>
 </tr>
 <tr>
@@ -11461,6 +12370,17 @@ string
 </td>
 <td>
 <p>Available upgrades for the ROSA hosted control plane.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>availableChannels</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Available channels for the ROSA hosted control plane.</p>
 </td>
 </tr>
 </tbody>
@@ -22928,12 +23848,6 @@ Cluster API api/core/v1beta1.Conditions
 </tr>
 </tbody>
 </table>
-<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSMachineTemplateWebhook">AWSMachineTemplateWebhook
-</h3>
-<p>
-<p>AWSMachineTemplateWebhook implements a custom validation webhook for AWSMachineTemplate.
-Note: we use a custom validator to access the request context for SSA of AWSMachineTemplate.</p>
-</p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedCluster">AWSManagedCluster
 </h3>
 <p>
@@ -23795,6 +24709,22 @@ When omitted, this means no opinion and the AWS platform is left to choose a rea
 which is subject to change without notice. The current default is Disabled.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>nestedVirtualization</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.NestedVirtualizationPolicy">
+NestedVirtualizationPolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>NestedVirtualization specifies whether to enable nested virtualization on the instance.
+Nested virtualization is supported on C8i, M8i, and R8i instance types.
+Valid values are: enabled, disabled</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.CapacityReservationPreference">CapacityReservationPreference
@@ -24305,6 +25235,36 @@ no more IPv4 address available in the pool.</p>
 <p>When set to &lsquo;amazon-pool&rsquo;, the controller check if the pool has available IPv4 address, when pool has reached the
 IPv4 limit, the address will be claimed from Amazon-pool (default).</p>
 <p>When set to &lsquo;none&rsquo;, the controller will fail the Elastic IP allocation when the publicIpv4Pool is exhausted.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.EnclaveOptions">EnclaveOptions
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSLaunchTemplate">AWSLaunchTemplate</a>)
+</p>
+<p>
+<p>EnclaveOptions defines the options for Nitro Enclave support on the instance.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>enabled</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Enabled enables the instance for AWS Nitro Enclaves.</p>
 </td>
 </tr>
 </tbody>
@@ -25717,6 +26677,14 @@ LoadBalancerIPAddressType
 </p>
 <p>
 <p>MarketType describes the market type of an Instance</p>
+</p>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.NestedVirtualizationPolicy">NestedVirtualizationPolicy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.CPUOptions">CPUOptions</a>)
+</p>
+<p>
+<p>NestedVirtualizationPolicy represents the nested virtualization configuration for the instance.</p>
 </p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.NetworkInterfaceType">NetworkInterfaceType
 (<code>string</code> alias)</p></h3>
@@ -27621,6 +28589,20 @@ InstanceMetadataOptions
 </tr>
 <tr>
 <td>
+<code>enclaveOptions</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.EnclaveOptions">
+EnclaveOptions
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>EnclaveOptions defines the options for Nitro Enclave support on the instance.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>privateDnsName</code><br/>
 <em>
 <a href="#infrastructure.cluster.x-k8s.io/v1beta2.PrivateDNSName">
@@ -28529,11 +29511,6 @@ ASGStatus
 </tr>
 </tbody>
 </table>
-<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSMachinePoolWebhook">AWSMachinePoolWebhook
-</h3>
-<p>
-<p>AWSMachinePoolWebhook implements a custom validation webhook for AWSMachinePool.</p>
-</p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedMachinePool">AWSManagedMachinePool
 </h3>
 <p>

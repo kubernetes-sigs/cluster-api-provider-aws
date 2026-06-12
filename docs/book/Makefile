@@ -25,7 +25,7 @@ GENCRDAPIREFERENCEDOCS_SRCS := $(call rwildcard,.,gen-crd-api-reference-docs/*.*
 CRD_DOCS := src/crd/cluster-api-aws.md src/crd/experimental.md src/crd/eks-control-plane.md
 BOOK_SRCS :=  $(filter-out $(CRD_DOCS), $(call rwildcard,.,*.*))
 
-API_DIRS := cmd/clusterawsadm/api/bootstrap/v1beta1 api/v1beta1 exp/api/v1beta1 controlplane/eks/api/v1beta1 bootstrap/eks/api/v1beta1 iam/api/v1beta1
+API_DIRS := cmd/clusterawsadm/api/bootstrap/v1beta1 api/v1beta1 api/v1beta2 exp/api/v1beta1 exp/api/v1beta2 controlplane/eks/api/v1beta1 controlplane/rosa/api/v1beta2 bootstrap/eks/api/v1beta1 bootstrap/eks/api/v1beta2 iam/api/v1beta1
 API_SRCS := $(foreach dir, $(API_DIRS), $(call rwildcard,../../$(dir),*.go))
 GENERATED_SRCS := $(foreach dir, $(API_DIRS),../../$(dir)/zz_generated.deepcopy.go ../../$(dir)/zz_generated.conversion.go ../../$(dir)/zz_generated.defaults.go)
 API_FILTERED_SRCS := $(filter-out $(GENERATED_SRCS), $(API_SRCS))
