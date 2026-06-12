@@ -360,3 +360,24 @@ type OIDCIdentityProviderConfig struct {
 	// +optional
 	Tags infrav1.Tags `json:"tags,omitempty"`
 }
+
+// PodIdentityAssociation represents an association between a Kubernetes
+// Service Account in a namespace, and an AWS IAM role. This role must
+// allow the service principal `pods.eks.amazonaws.com` in its trust policy.
+type PodIdentityAssociation struct {
+	// ServiceAccountName is the name of the kubernetes Service Account
+	// within the namespace
+	// +kubebuilder:validation:Required
+	ServiceAccountName string `json:"serviceAccountName"`
+	// ServiceAccountNamespace is the kubernetes namespace, which the
+	// kubernetes Service Account resides in. Defaults to "default" namespace.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:default=default
+	ServiceAccountNamespace string `json:"serviceAccountNamespace"`
+	// RoleARN is the ARN of an IAM role which the Service Account can assume.
+	// +kubebuilder:validation:Required
+	RoleARN string `json:"roleARN"`
+	// TargetRoleARN will be assumed by the IAM role specified in RoleARN,
+	// allowing workloads to inherit the permissions attached to the target IAM role.
+	TargetRoleARN string `json:"targetRoleARN,omitempty"`
+}

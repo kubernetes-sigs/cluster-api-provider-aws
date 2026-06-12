@@ -58,6 +58,7 @@ const (
 	EKSControlPlaneOnlyWithAccessEntriesFlavor        = "eks-control-plane-only-with-accessentries"
 	EKSNodeadmClusterClassFlavor                      = "eks-nodeadm-clusterclass"
 	EKSNitroEnclaveManagedMachinePoolFlavor           = "eks-nitro-enclave-managedmachinepool"
+	EKSControlPlaneOnlyWithPodIdentitiesFlavor        = "eks-control-plane-only-with-podidentities"
 )
 
 const (
@@ -263,15 +264,15 @@ func verifyAccessEntries(ctx context.Context, eksClusterName string, expectedEnt
 	eksClient := eks.NewFromConfig(*cfg)
 
 	Eventually(func() error {
-		listOutput, err := eksClient.ListAccessEntries(ctx, &eks.ListAccessEntriesInput{
+		listed, err := eksClient.ListAccessEntries(ctx, &eks.ListAccessEntriesInput{
 			ClusterName: &eksClusterName,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to list access entries: %w", err)
 		}
 
-		existingEntries := make(map[string]bool, len(listOutput.AccessEntries))
-		for _, arn := range listOutput.AccessEntries {
+		existingEntries := make(map[string]bool, len(listed.AccessEntries))
+		for _, arn := range listed.AccessEntries {
 			existingEntries[arn] = true
 		}
 
@@ -280,56 +281,140 @@ func verifyAccessEntries(ctx context.Context, eksClusterName string, expectedEnt
 				return fmt.Errorf("expected access entry not found: %s", expectedEntry.PrincipalARN)
 			}
 		}
-		return nil
-	}, clientRequestTimeout, clientRequestCheckInterval).Should(Succeed(), "eventually failed waiting for access entries to exist")
 
-	for _, expectedEntry := range expectedEntries {
-		principalARN := expectedEntry.PrincipalARN
+		for _, expectedEntry := range expectedEntries {
+			principalARN := expectedEntry.PrincipalARN
 
-		describeOutput, err := eksClient.DescribeAccessEntry(ctx, &eks.DescribeAccessEntryInput{
-			ClusterName:  &eksClusterName,
-			PrincipalArn: &principalARN,
-		})
-		Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("failed to describe access entry: %s", principalARN))
-
-		Expect(describeOutput.AccessEntry.Type).To(HaveValue(BeEquivalentTo(expectedEntry.Type)), "access entry type does not match")
-		if expectedEntry.Username != "" {
-			Expect(describeOutput.AccessEntry.Username).To(HaveValue(BeEquivalentTo(expectedEntry.Username)), "access entry username does not match")
-		}
-
-		if len(expectedEntry.KubernetesGroups) > 0 {
-			slices.Sort(expectedEntry.KubernetesGroups)
-			slices.Sort(describeOutput.AccessEntry.KubernetesGroups)
-			Expect(describeOutput.AccessEntry.KubernetesGroups).To(Equal(expectedEntry.KubernetesGroups), "access entry kubernetes groups do not match")
-		}
-
-		if len(expectedEntry.AccessPolicies) > 0 {
-			listOutput, err := eksClient.ListAssociatedAccessPolicies(ctx, &eks.ListAssociatedAccessPoliciesInput{
+			describeOutput, err := eksClient.DescribeAccessEntry(ctx, &eks.DescribeAccessEntryInput{
 				ClusterName:  &eksClusterName,
 				PrincipalArn: &principalARN,
 			})
-			Expect(err).ToNot(HaveOccurred(), "failed to list access policies")
-
-			expectedPolicies := make(map[string]ekscontrolplanev1.AccessPolicyReference, len(expectedEntry.AccessPolicies))
-			for _, policy := range expectedEntry.AccessPolicies {
-				expectedPolicies[policy.PolicyARN] = policy
+			if err != nil {
+				return fmt.Errorf("failed to describe access entry %s: %w", principalARN, err)
 			}
 
-			for _, policy := range listOutput.AssociatedAccessPolicies {
-				expectedPolicy, exists := expectedPolicies[*policy.PolicyArn]
-				Expect(exists).To(BeTrue(), fmt.Sprintf("unexpected access policy: %s", *policy.PolicyArn))
+			if describeOutput.AccessEntry.Type == nil || *describeOutput.AccessEntry.Type != string(expectedEntry.Type) {
+				return fmt.Errorf("access entry %s type mismatch: want %q, got %v", principalARN, expectedEntry.Type, describeOutput.AccessEntry.Type)
+			}
+			if expectedEntry.Username != "" {
+				if describeOutput.AccessEntry.Username == nil || *describeOutput.AccessEntry.Username != expectedEntry.Username {
+					return fmt.Errorf("access entry %s username mismatch: want %q, got %v", principalARN, expectedEntry.Username, describeOutput.AccessEntry.Username)
+				}
+			}
 
-				Expect(policy.AccessScope.Type).To(BeEquivalentTo(expectedPolicy.AccessScope.Type), "access policy scope type does not match")
+			if len(expectedEntry.KubernetesGroups) > 0 {
+				expectedGroups := slices.Clone(expectedEntry.KubernetesGroups)
+				slices.Sort(expectedGroups)
+				actualGroups := slices.Clone(describeOutput.AccessEntry.KubernetesGroups)
+				slices.Sort(actualGroups)
+				if !slices.Equal(actualGroups, expectedGroups) {
+					return fmt.Errorf("access entry %s kubernetes groups mismatch: want %v, got %v", principalARN, expectedGroups, actualGroups)
+				}
+			}
 
-				if expectedPolicy.AccessScope.Type == "namespace" {
-					slices.Sort(expectedPolicy.AccessScope.Namespaces)
-					slices.Sort(policy.AccessScope.Namespaces)
-					Expect(policy.AccessScope.Namespaces).To(Equal(expectedPolicy.AccessScope.Namespaces), "access policy scope namespaces do not match")
+			if len(expectedEntry.AccessPolicies) > 0 {
+				policies, err := eksClient.ListAssociatedAccessPolicies(ctx, &eks.ListAssociatedAccessPoliciesInput{
+					ClusterName:  &eksClusterName,
+					PrincipalArn: &principalARN,
+				})
+				if err != nil {
+					return fmt.Errorf("failed to list associated access policies for %s: %w", principalARN, err)
 				}
 
-				delete(expectedPolicies, *policy.PolicyArn)
+				expectedPolicies := make(map[string]ekscontrolplanev1.AccessPolicyReference, len(expectedEntry.AccessPolicies))
+				for _, policy := range expectedEntry.AccessPolicies {
+					expectedPolicies[policy.PolicyARN] = policy
+				}
+
+				for _, policy := range policies.AssociatedAccessPolicies {
+					expectedPolicy, exists := expectedPolicies[*policy.PolicyArn]
+					if !exists {
+						return fmt.Errorf("unexpected access policy %s on principal %s", *policy.PolicyArn, principalARN)
+					}
+					if string(policy.AccessScope.Type) != string(expectedPolicy.AccessScope.Type) {
+						return fmt.Errorf("access policy %s scope type mismatch: want %q, got %q", *policy.PolicyArn, expectedPolicy.AccessScope.Type, policy.AccessScope.Type)
+					}
+					if expectedPolicy.AccessScope.Type == "namespace" {
+						expectedNs := slices.Clone(expectedPolicy.AccessScope.Namespaces)
+						slices.Sort(expectedNs)
+						actualNs := slices.Clone(policy.AccessScope.Namespaces)
+						slices.Sort(actualNs)
+						if !slices.Equal(actualNs, expectedNs) {
+							return fmt.Errorf("access policy %s namespaces mismatch: want %v, got %v", *policy.PolicyArn, expectedNs, actualNs)
+						}
+					}
+					delete(expectedPolicies, *policy.PolicyArn)
+				}
+				if len(expectedPolicies) > 0 {
+					return fmt.Errorf("not all expected access policies found for %s: %v", principalARN, expectedPolicies)
+				}
 			}
-			Expect(expectedPolicies).To(BeEmpty(), "not all expected access policies were found")
 		}
+		return nil
+	}, clientRequestTimeout, clientRequestCheckInterval).Should(Succeed(), "eventually failed verifying access entries")
+}
+
+func verifyPodIdentityAssociations(ctx context.Context, eksClusterName string, expected []ekscontrolplanev1.PodIdentityAssociation, cfg *aws.Config) {
+	eksClient := eks.NewFromConfig(*cfg)
+
+	type key struct {
+		namespace      string
+		serviceAccount string
 	}
+	expectedByKey := make(map[key]ekscontrolplanev1.PodIdentityAssociation, len(expected))
+	for _, e := range expected {
+		expectedByKey[key{e.ServiceAccountNamespace, e.ServiceAccountName}] = e
+	}
+
+	Eventually(func() error {
+		var summaries []ekstypes.PodIdentityAssociationSummary
+		var nextToken *string
+		for {
+			out, err := eksClient.ListPodIdentityAssociations(ctx, &eks.ListPodIdentityAssociationsInput{
+				ClusterName: &eksClusterName,
+				NextToken:   nextToken,
+			})
+			if err != nil {
+				return fmt.Errorf("failed to list pod identity associations: %w", err)
+			}
+			summaries = append(summaries, out.Associations...)
+			if out.NextToken == nil {
+				break
+			}
+			nextToken = out.NextToken
+		}
+
+		if len(summaries) != len(expectedByKey) {
+			return fmt.Errorf("expected %d pod identity associations, found %d", len(expectedByKey), len(summaries))
+		}
+		for _, s := range summaries {
+			k := key{*s.Namespace, *s.ServiceAccount}
+			if _, ok := expectedByKey[k]; !ok {
+				return fmt.Errorf("unexpected pod identity association: %s/%s", k.namespace, k.serviceAccount)
+			}
+		}
+
+		for _, s := range summaries {
+			describeOutput, err := eksClient.DescribePodIdentityAssociation(ctx, &eks.DescribePodIdentityAssociationInput{
+				ClusterName:   &eksClusterName,
+				AssociationId: s.AssociationId,
+			})
+			if err != nil {
+				return fmt.Errorf("failed to describe pod identity association %s: %w", *s.AssociationId, err)
+			}
+
+			exp := expectedByKey[key{*s.Namespace, *s.ServiceAccount}]
+			if describeOutput.Association.RoleArn == nil || *describeOutput.Association.RoleArn != exp.RoleARN {
+				return fmt.Errorf("association %s roleARN mismatch: want %q, got %v", *s.AssociationId, exp.RoleARN, describeOutput.Association.RoleArn)
+			}
+			if exp.TargetRoleARN != "" {
+				if describeOutput.Association.TargetRoleArn == nil || *describeOutput.Association.TargetRoleArn != exp.TargetRoleARN {
+					return fmt.Errorf("association %s targetRoleARN mismatch: want %q, got %v", *s.AssociationId, exp.TargetRoleARN, describeOutput.Association.TargetRoleArn)
+				}
+			} else if describeOutput.Association.TargetRoleArn != nil {
+				return fmt.Errorf("association %s targetRoleARN should be unset, got %q", *s.AssociationId, *describeOutput.Association.TargetRoleArn)
+			}
+		}
+		return nil
+	}, clientRequestTimeout, clientRequestCheckInterval).Should(Succeed(), "eventually failed verifying pod identity associations")
 }
