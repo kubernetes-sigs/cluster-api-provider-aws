@@ -80,6 +80,23 @@ func (mr *MockOCMClientMockRecorder) AddHTPasswdUser(arg0, arg1, arg2, arg3 inte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddHTPasswdUser", reflect.TypeOf((*MockOCMClient)(nil).AddHTPasswdUser), arg0, arg1, arg2, arg3)
 }
 
+// CheckRoleExists mocks base method.
+func (m *MockOCMClient) CheckRoleExists(arg0, arg1, arg2 string) (bool, string, string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CheckRoleExists", arg0, arg1, arg2)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(string)
+	ret2, _ := ret[2].(string)
+	ret3, _ := ret[3].(error)
+	return ret0, ret1, ret2, ret3
+}
+
+// CheckRoleExists indicates an expected call of CheckRoleExists.
+func (mr *MockOCMClientMockRecorder) CheckRoleExists(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckRoleExists", reflect.TypeOf((*MockOCMClient)(nil).CheckRoleExists), arg0, arg1, arg2)
+}
+
 // CreateCluster mocks base method.
 func (m *MockOCMClient) CreateCluster(arg0 ocm.Spec) (*v1.Cluster, error) {
 	m.ctrl.T.Helper()
@@ -377,6 +394,21 @@ func (m *MockOCMClient) GetUser(arg0, arg1, arg2 string) (*v1.User, error) {
 func (mr *MockOCMClientMockRecorder) GetUser(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUser", reflect.TypeOf((*MockOCMClient)(nil).GetUser), arg0, arg1, arg2)
+}
+
+// LinkOrgToRole mocks base method.
+func (m *MockOCMClient) LinkOrgToRole(arg0, arg1 string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LinkOrgToRole", arg0, arg1)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LinkOrgToRole indicates an expected call of LinkOrgToRole.
+func (mr *MockOCMClientMockRecorder) LinkOrgToRole(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LinkOrgToRole", reflect.TypeOf((*MockOCMClient)(nil).LinkOrgToRole), arg0, arg1)
 }
 
 // ScheduleHypershiftControlPlaneUpgrade mocks base method.
