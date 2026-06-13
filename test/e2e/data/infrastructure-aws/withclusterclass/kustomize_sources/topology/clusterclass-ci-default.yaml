@@ -284,6 +284,7 @@ spec:
   template:
     spec:
       kubeadmConfigSpec:
+        verbosity: 5
         clusterConfiguration:
           controllerManager:
             extraArgs:
@@ -337,6 +338,7 @@ metadata:
 spec:
   template:
     spec:
+      verbosity: 5
       joinConfiguration:
         nodeRegistration:
           name: '{{ ds.meta_data.local_hostname }}'
