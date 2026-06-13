@@ -167,13 +167,19 @@ func (s *Service) updateAccessEntry(ctx context.Context, accessEntry ekscontrolp
 		return errors.Wrapf(err, "failed to describe access entry for principal %s", accessEntry.PrincipalARN)
 	}
 
+	// Use the actual type from AWS when not specified in spec (defaults to STANDARD on EKS)
+	desiredType := accessEntry.Type
+	if desiredType == "" {
+		desiredType = ekscontrolplanev1.AccessEntryTypeStandard
+	}
+
 	// EKS requires recreate when changing type or removing username
 	existingUsername := ""
 	if describeOutput.AccessEntry.Username != nil {
 		existingUsername = *describeOutput.AccessEntry.Username
 	}
 
-	if *accessEntry.Type.APIValue() != *describeOutput.AccessEntry.Type || accessEntry.Username != existingUsername {
+	if *desiredType.APIValue() != *describeOutput.AccessEntry.Type || accessEntry.Username != existingUsername {
 		if err = s.deleteAccessEntry(ctx, accessEntry.PrincipalARN); err != nil {
 			return errors.Wrapf(err, "failed to delete access entry for principal %s during recreation", accessEntry.PrincipalARN)
 		}
@@ -220,7 +226,12 @@ func (s *Service) deleteAccessEntry(ctx context.Context, principalArn string) er
 }
 
 func (s *Service) reconcileAccessPolicies(ctx context.Context, accessEntry ekscontrolplanev1.AccessEntry) error {
-	if accessEntry.Type == ekscontrolplanev1.AccessEntryTypeEC2Linux || accessEntry.Type == ekscontrolplanev1.AccessEntryTypeEC2Windows {
+	// Normalize type: empty means STANDARD, which needs policy reconciliation
+	entryType := accessEntry.Type
+	if entryType == "" {
+		entryType = ekscontrolplanev1.AccessEntryTypeStandard
+	}
+	if entryType == ekscontrolplanev1.AccessEntryTypeEC2Linux || entryType == ekscontrolplanev1.AccessEntryTypeEC2Windows {
 		s.scope.Info("Skipping access policy reconciliation for EC2 access type", "principalARN", accessEntry.PrincipalARN)
 		return nil
 	}
@@ -233,6 +244,12 @@ func (s *Service) reconcileAccessPolicies(ctx context.Context, accessEntry eksco
 	clusterName := s.scope.KubernetesClusterName()
 
 	for _, policy := range accessEntry.AccessPolicies {
+		existing, alreadyAssociated := existingPolicies[policy.PolicyARN]
+		if alreadyAssociated && s.policyScopeMatches(policy.AccessScope, existing.AccessScope) {
+			delete(existingPolicies, policy.PolicyARN)
+			continue
+		}
+
 		input := &eks.AssociateAccessPolicyInput{
 			ClusterName:  &clusterName,
 			PrincipalArn: &accessEntry.PrincipalARN,
@@ -264,6 +281,19 @@ func (s *Service) reconcileAccessPolicies(ctx context.Context, accessEntry eksco
 	}
 
 	return nil
+}
+
+func (s *Service) policyScopeMatches(desired ekscontrolplanev1.AccessScope, existing *ekstypes.AccessScope) bool {
+	if existing == nil {
+		return false
+	}
+	if string(desired.Type) != string(existing.Type) {
+		return false
+	}
+	if desired.Type == ekscontrolplanev1.AccessScopeTypeNamespace {
+		return slices.Equal(desired.Namespaces, existing.Namespaces)
+	}
+	return true
 }
 
 func (s *Service) getExistingAccessPolicies(ctx context.Context, principalARN string) (map[string]ekstypes.AssociatedAccessPolicy, error) {
