@@ -78,6 +78,21 @@ spec:
                           to be used with the VPC endpoint
                         type: string
                     type: object
+                  trustPolicyExternalID:
+                    description: |-
+                      TrustPolicyExternalID is an optional STS external ID that OCM will use when assuming
+                      the installer and support account roles. When set, the controller embeds an
+                      sts:ExternalId condition in the installer and support roles' trust policies, and
+                      passes the value to OCM for cluster creation.
+                      Worker roles are not affected.
+                      Must be 2–1224 characters matching [a-zA-Z0-9=,.@:/-]+ per AWS STS requirements.
+                    maxLength: 1224
+                    minLength: 2
+                    pattern: ^[a-zA-Z0-9=,.@:\/-]+$
+                    type: string
+                    x-kubernetes-validations:
+                    - message: trustPolicyExternalID is immutable
+                      rule: self == oldSelf
                   version:
                     description: |-
                       Version of OpenShift that will be used to the roles tag in formate of x.y.z example; "4.19.0"

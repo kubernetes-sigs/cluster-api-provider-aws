@@ -405,6 +405,7 @@ func (r *ROSAControlPlaneReconciler) reconcileRosaRoleConfig(ctx context.Context
 		rosaRoleConfig.Status.AccountRolesRef.SupportRoleARN = rosaScope.ControlPlane.Spec.SupportRoleARN
 		rosaRoleConfig.Status.AccountRolesRef.WorkerRoleARN = rosaScope.ControlPlane.Spec.WorkerRoleARN
 		rosaRoleConfig.Status.OperatorRolesRef = rosaScope.ControlPlane.Spec.RolesRef
+		rosaRoleConfig.Spec.AccountRoleConfig.TrustPolicyExternalID = rosaScope.ControlPlane.Spec.TrustPolicyExternalID
 	}
 
 	return rosaRoleConfig, nil
@@ -1199,6 +1200,7 @@ func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpe
 		AuditLogRoleARN:              ptr.To(controlPlaneSpec.AuditLogRoleARN),
 		ExternalAuthProvidersEnabled: controlPlaneSpec.EnableExternalAuthProviders,
 		FIPS:                         controlPlaneSpec.FIPS == rosacontrolplanev1.FIPSEnabled,
+		ExternalID:                   roleConfig.Spec.AccountRoleConfig.TrustPolicyExternalID,
 	}
 
 	if controlPlaneSpec.EndpointAccess == rosacontrolplanev1.Private {

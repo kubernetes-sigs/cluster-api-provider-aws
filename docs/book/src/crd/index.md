@@ -11318,6 +11318,19 @@ Required if RosaRoleConfigRef is not specified.</p>
 </tr>
 <tr>
 <td>
+<code>trustPolicyExternalID</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>TrustPolicyExternalID is an optional STS external ID that OCM uses when assuming the installer
+and support account roles. Must match the sts:ExternalId condition in those roles&rsquo; trust policies.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>billingAccount</code><br/>
 <em>
 string
@@ -12002,6 +12015,19 @@ string
 <em>(Optional)</em>
 <p>WorkerRoleARN is an AWS IAM role that will be attached to worker instances.
 Required if RosaRoleConfigRef is not specified.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>trustPolicyExternalID</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>TrustPolicyExternalID is an optional STS external ID that OCM uses when assuming the installer
+and support account roles. Must match the sts:ExternalId condition in those roles&rsquo; trust policies.</p>
 </td>
 </tr>
 <tr>
@@ -30465,6 +30491,20 @@ SharedVPCConfig
 <td>
 <em>(Optional)</em>
 <p>SharedVPCConfig is used to set up shared VPC.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>trustPolicyExternalID</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>TrustPolicyExternalID is an optional STS external ID to embed in installer and support
+account role trust policies. When set, new roles will include an sts:ExternalId condition.
+Worker roles are not affected. Must be 2–1224 characters matching [a-zA-Z0-9=,.@:/-]+.</p>
 </td>
 </tr>
 </tbody>

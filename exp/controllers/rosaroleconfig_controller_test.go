@@ -1093,3 +1093,169 @@ func TestROSARoleConfigReconcileDelete(t *testing.T) {
 		g.Expect(deletedRoleConfig.Finalizers).To(BeEmpty(), "Finalizers should be removed after successful deletion")
 	}
 }
+
+func TestROSARoleConfigReconcileExistWithTrustPolicyExternalID(t *testing.T) {
+	RegisterTestingT(t)
+	g := NewWithT(t)
+
+	testID := generateTestID()
+
+	ssoServer := ocmsdk.MakeTCPServer()
+	apiServer := ocmsdk.MakeTCPServer()
+	defer ssoServer.Close()
+	defer apiServer.Close()
+	apiServer.SetAllowUnhandledRequests(true)
+	apiServer.SetUnhandledRequestStatusCode(http.StatusInternalServerError)
+	ctx := context.TODO()
+
+	accessToken := ocmsdk.MakeTokenString("Bearer", 15*time.Minute)
+	ssoServer.AppendHandlers(
+		ocmsdk.RespondWithAccessToken(accessToken),
+	)
+	logger, err := ocmlogging.NewGoLoggerBuilder().
+		Debug(false).
+		Build()
+	Expect(err).ToNot(HaveOccurred())
+	connection, err := sdk.NewConnectionBuilder().
+		Logger(logger).
+		Tokens(accessToken).
+		URL(apiServer.URL()).
+		Build()
+	Expect(err).To(BeNil())
+	ocmClient := ocm.NewClientWithConnection(connection)
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockAWSClient := aws.NewMockClient(mockCtrl)
+	mockAWSClient.EXPECT().HasManagedPolicies(gomock.Any()).Return(false, nil).AnyTimes()
+	mockAWSClient.EXPECT().HasHostedCPPolicies(gomock.Any()).Return(true, nil).AnyTimes()
+
+	mockAWSClient.EXPECT().ListAccountRoles(gomock.Any()).Return([]aws.Role{
+		{
+			RoleName: "test-HCP-ROSA-Installer-Role",
+			RoleARN:  "arn:aws:iam::123456789012:role/test-HCP-ROSA-Installer-Role",
+		},
+		{
+			RoleName: "test-HCP-ROSA-Support-Role",
+			RoleARN:  "arn:aws:iam::123456789012:role/test-HCP-ROSA-Support-Role",
+		},
+		{
+			RoleName: "test-HCP-ROSA-Worker-Role",
+			RoleARN:  "arn:aws:iam::123456789012:role/test-HCP-ROSA-Worker-Role",
+		},
+	}, nil).AnyTimes()
+
+	mockAWSClient.EXPECT().ListOperatorRoles(gomock.Any(), gomock.Any(), gomock.Any()).Return(map[string][]aws.OperatorRoleDetail{
+		"test": {
+			{RoleName: "test-openshift-ingress-operator-cloud-credentials", RoleARN: "arn:aws:iam::123456789012:role/test-openshift-ingress-operator-cloud-credentials"},
+			{RoleName: "test-openshift-image-registry-installer-cloud-credentials", RoleARN: "arn:aws:iam::123456789012:role/test-openshift-image-registry-installer-cloud-credentials"},
+			{RoleName: "test-openshift-cluster-csi-drivers-ebs-cloud-credentials", RoleARN: "arn:aws:iam::123456789012:role/test-openshift-cluster-csi-drivers-ebs-cloud-credentials"},
+			{RoleName: "test-openshift-cloud-network-config-controller-cloud-credentials", RoleARN: "arn:aws:iam::123456789012:role/test-openshift-cloud-network-config-controller-cloud-credentials"},
+			{RoleName: "test-kube-system-kube-controller-manager", RoleARN: "arn:aws:iam::123456789012:role/test-kube-system-kube-controller-manager"},
+			{RoleName: "test-kube-system-capa-controller-manager", RoleARN: "arn:aws:iam::123456789012:role/test-kube-system-capa-controller-manager"},
+			{RoleName: "test-kube-system-control-plane-operator", RoleARN: "arn:aws:iam::123456789012:role/test-kube-system-control-plane-operator"},
+			{RoleName: "test-kube-system-kms-provider", RoleARN: "arn:aws:iam::123456789012:role/test-kube-system-kms-provider"},
+		},
+	}, nil).AnyTimes()
+
+	mockAWSClient.EXPECT().ListOidcProviders(gomock.Any(), gomock.Any()).Return([]aws.OidcProviderOutput{
+		{Arn: "arn:aws:iam::123456789012:oidc-provider/test-existing-oidc-id"},
+	}, nil).AnyTimes()
+
+	mockAWSClient.EXPECT().GetCreator().Return(&aws.Creator{
+		ARN:       "arn:aws:iam::123456789012:user/test-user",
+		AccountID: "123456789012",
+		IsSTS:     false,
+	}, nil).AnyTimes()
+
+	r := rosacli.NewRuntime()
+	r.OCMClient = ocmClient
+	r.AWSClient = mockAWSClient
+	r.Creator = &aws.Creator{
+		ARN:       "arn:aws:iam::123456789012:user/test-user",
+		AccountID: "123456789012",
+		IsSTS:     false,
+	}
+
+	// Mock OCM API calls in order: initial call, GetOidcConfig, GetAllClusters, GetAllCredRequests, HasAClusterUsingOperatorRolesPrefix
+	apiServer.AppendHandlers(
+		ocmsdk.RespondWithJSON(http.StatusOK, ""),
+	)
+	apiServer.AppendHandlers(
+		ocmsdk.RespondWithJSON(http.StatusOK, `{"id": "test-existing-oidc-id", "issuer_url": "https://test.existing.oidc.url"}`),
+	)
+	apiServer.AppendHandlers(
+		ocmsdk.RespondWithJSON(http.StatusOK, `{"items": []}`),
+	)
+	apiServer.AppendHandlers(
+		ocmsdk.RespondWithJSON(http.StatusOK, `{}`),
+	)
+	apiServer.AppendHandlers(
+		ocmsdk.RespondWithJSON(http.StatusOK, `false`),
+	)
+
+	apiServer.RouteToHandler("GET", "/api/clusters_mgmt/v1/oidc_configs/test-existing-oidc-id",
+		ocmsdk.RespondWithJSON(http.StatusOK, `{"id": "test-existing-oidc-id", "issuer_url": "https://test.existing.oidc.url"}`),
+	)
+
+	ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("test-ns-extid-%s", testID))
+	g.Expect(err).ToNot(HaveOccurred())
+
+	rosaRoleConfig := &expinfrav1.ROSARoleConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       fmt.Sprintf("test-rosarole-extid-%s", testID),
+			Namespace:  ns.Name,
+			Finalizers: []string{expinfrav1.RosaRoleConfigFinalizer},
+		},
+		Spec: expinfrav1.ROSARoleConfigSpec{
+			AccountRoleConfig: expinfrav1.AccountRoleConfig{
+				Prefix:                "test",
+				Version:               "4.15.0",
+				TrustPolicyExternalID: "223B9588-36A5-ECA4-BE8D-7C673B77CEC1",
+			},
+			OperatorRoleConfig: expinfrav1.OperatorRoleConfig{
+				Prefix: "test",
+			},
+			OidcProviderType: expinfrav1.Managed,
+		},
+		Status: expinfrav1.ROSARoleConfigStatus{
+			OIDCID: "test-existing-oidc-id",
+		},
+	}
+
+	createObject(g, rosaRoleConfig, ns.Name)
+	defer cleanupObject(g, rosaRoleConfig)
+
+	reconciler := &ROSARoleConfigReconciler{
+		Client:  testEnv.Client,
+		Runtime: r,
+	}
+
+	req := ctrl.Request{}
+	req.NamespacedName = types.NamespacedName{Name: rosaRoleConfig.Name, Namespace: rosaRoleConfig.Namespace}
+
+	g.Eventually(func(g Gomega) {
+		_, errReconcile := reconciler.Reconcile(ctx, req)
+		// Trust policy application requires real IAM access which is unavailable in envtest.
+		// The reconciliation will fail at that step, but account roles should still be populated
+		// and the spec field preserved.
+		g.Expect(errReconcile).To(HaveOccurred())
+		g.Expect(errReconcile.Error()).To(ContainSubstring("trust policy external ID"))
+
+		updatedRoleConfig := &expinfrav1.ROSARoleConfig{}
+		g.Expect(reconciler.Client.Get(ctx, req.NamespacedName, updatedRoleConfig)).ToNot(HaveOccurred())
+
+		g.Expect(updatedRoleConfig.Status.AccountRolesRef.InstallerRoleARN).To(Equal("arn:aws:iam::123456789012:role/test-HCP-ROSA-Installer-Role"))
+		g.Expect(updatedRoleConfig.Status.AccountRolesRef.SupportRoleARN).To(Equal("arn:aws:iam::123456789012:role/test-HCP-ROSA-Support-Role"))
+		g.Expect(updatedRoleConfig.Status.AccountRolesRef.WorkerRoleARN).To(Equal("arn:aws:iam::123456789012:role/test-HCP-ROSA-Worker-Role"))
+
+		// TrustPolicyExternalID on spec is preserved
+		g.Expect(updatedRoleConfig.Spec.AccountRoleConfig.TrustPolicyExternalID).To(Equal("223B9588-36A5-ECA4-BE8D-7C673B77CEC1"))
+
+		readyCondition := v1beta1conditions.Get(updatedRoleConfig, expinfrav1.RosaRoleConfigReadyCondition)
+		g.Expect(readyCondition).ToNot(BeNil())
+		g.Expect(readyCondition.Status).To(Equal(corev1.ConditionFalse))
+		g.Expect(readyCondition.Reason).To(Equal(expinfrav1.RosaRoleConfigReconciliationFailedReason))
+	}).WithTimeout(30 * time.Second).WithPolling(500 * time.Millisecond).Should(Succeed())
+}

@@ -139,6 +139,17 @@ func (r *ROSARoleConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, fmt.Errorf("account Roles: %w", err)
 	}
 
+	if externalID := scope.RosaRoleConfig.Spec.AccountRoleConfig.TrustPolicyExternalID; externalID != "" {
+		prefix := scope.RosaRoleConfig.Spec.AccountRoleConfig.Prefix
+		for _, suffix := range []string{expinfrav1.HCPROSAInstallerRole, expinfrav1.HCPROSASupportRole} {
+			roleName := prefix + suffix
+			if err := rosa.ApplyTrustPolicyExternalID(ctx, scope.IAMClient(), roleName, externalID); err != nil {
+				v1beta1conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1.RosaRoleConfigReadyCondition, expinfrav1.RosaRoleConfigReconciliationFailedReason, clusterv1beta1.ConditionSeverityError, "Trust policy external ID failure: %v", err)
+				return ctrl.Result{}, fmt.Errorf("trust policy external ID: %w", err)
+			}
+		}
+	}
+
 	if err := r.reconcileOIDC(scope); err != nil {
 		v1beta1conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1.RosaRoleConfigReadyCondition, expinfrav1.RosaRoleConfigReconciliationFailedReason, clusterv1beta1.ConditionSeverityError, "OIDC Config/provider failure: %v", err)
 		return ctrl.Result{}, fmt.Errorf("oicd Config: %w", err)

@@ -923,6 +923,24 @@ spec:
                   access to the cluster account in order to provide support.
                   Required if RosaRoleConfigRef is not specified.
                 type: string
+              trustPolicyExternalID:
+                description: |-
+                  TrustPolicyExternalID is an optional STS external ID that OCM will use when assuming
+                  the installer and support account roles.
+                  When using RosaRoleConfigRef, this field is ignored, the value is always read from
+                  the ROSARoleConfig, which owns the trust policies.
+                  When providing role ARNs directly (no RosaRoleConfigRef), the user is responsible for
+                  including the sts:ExternalId condition in the roles' trust policies; this field only
+                  tells OCM which external ID to present when assuming the roles.
+                  Worker roles are not affected.
+                  Must be 2–1224 characters matching [a-zA-Z0-9=,.@:/-]+ per AWS STS requirements.
+                maxLength: 1224
+                minLength: 2
+                pattern: ^[a-zA-Z0-9=,.@:\/-]+$
+                type: string
+                x-kubernetes-validations:
+                - message: trustPolicyExternalID is immutable
+                  rule: self == oldSelf
               version:
                 description: OpenShift semantic version, for example "4.14.5".
                 type: string

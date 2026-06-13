@@ -963,4 +963,96 @@ func TestBuildOCMClusterSpec(t *testing.T) {
 		g.Expect(ocmSpec.FIPS).To(BeFalse())
 		g.Expect(ocmSpec.Name).To(Equal("test-cluster-zero-fips"))
 	})
+
+	// Test case 4: TrustPolicyExternalID set on ROSARoleConfig (takes precedence)
+	t.Run("TrustPolicyExternalID Set", func(t *testing.T) {
+		g := NewWithT(t)
+		roleConfigWithExtID := mockRoleConfig.DeepCopy()
+		roleConfigWithExtID.Spec.AccountRoleConfig.TrustPolicyExternalID = "223B9588-36A5-ECA4-BE8D-7C673B77CEC1"
+
+		controlPlaneSpec := rosacontrolplanev1.RosaControlPlaneSpec{
+			RosaClusterName:   "test-cluster-extid",
+			Region:            "us-west-2",
+			Version:           "4.14.5",
+			Subnets:           []string{"subnet-1", "subnet-2"},
+			AvailabilityZones: []string{"us-west-2a"},
+			DefaultMachinePoolSpec: rosacontrolplanev1.DefaultMachinePoolSpec{
+				InstanceType: "m5.xlarge",
+			},
+		}
+
+		ocmSpec, err := buildOCMClusterSpec(controlPlaneSpec, roleConfigWithExtID, nil, mockCreator)
+
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ocmSpec.ExternalID).To(Equal("223B9588-36A5-ECA4-BE8D-7C673B77CEC1"))
+		g.Expect(ocmSpec.Name).To(Equal("test-cluster-extid"))
+	})
+
+	// Test case 5: TrustPolicyExternalID empty (should remain empty)
+	t.Run("TrustPolicyExternalID Empty", func(t *testing.T) {
+		g := NewWithT(t)
+		controlPlaneSpec := rosacontrolplanev1.RosaControlPlaneSpec{
+			RosaClusterName:   "test-cluster-no-extid",
+			Region:            "us-west-2",
+			Version:           "4.14.5",
+			Subnets:           []string{"subnet-1", "subnet-2"},
+			AvailabilityZones: []string{"us-west-2a"},
+			DefaultMachinePoolSpec: rosacontrolplanev1.DefaultMachinePoolSpec{
+				InstanceType: "m5.xlarge",
+			},
+		}
+
+		ocmSpec, err := buildOCMClusterSpec(controlPlaneSpec, mockRoleConfig, nil, mockCreator)
+
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ocmSpec.ExternalID).To(BeEmpty())
+	})
+
+	// Test case 6: TrustPolicyExternalID on controlPlane is ignored when ROSARoleConfig is present
+	t.Run("TrustPolicyExternalID ControlPlane Ignored With RoleConfig", func(t *testing.T) {
+		g := NewWithT(t)
+		controlPlaneSpec := rosacontrolplanev1.RosaControlPlaneSpec{
+			RosaClusterName:       "test-cluster-cp-extid",
+			Region:                "us-west-2",
+			Version:               "4.14.5",
+			TrustPolicyExternalID: "should-be-ignored",
+			Subnets:               []string{"subnet-1", "subnet-2"},
+			AvailabilityZones:     []string{"us-west-2a"},
+			DefaultMachinePoolSpec: rosacontrolplanev1.DefaultMachinePoolSpec{
+				InstanceType: "m5.xlarge",
+			},
+		}
+
+		ocmSpec, err := buildOCMClusterSpec(controlPlaneSpec, mockRoleConfig, nil, mockCreator)
+
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ocmSpec.ExternalID).To(BeEmpty())
+	})
+
+	// Test case 7: TrustPolicyExternalID from controlPlane propagated via synthesized roleConfig
+	// (simulates direct-role-ARN flow where reconcileRosaRoleConfig copies the value)
+	t.Run("TrustPolicyExternalID ControlPlane Without RoleConfig", func(t *testing.T) {
+		g := NewWithT(t)
+		controlPlaneSpec := rosacontrolplanev1.RosaControlPlaneSpec{
+			RosaClusterName:       "test-cluster-direct",
+			Region:                "us-west-2",
+			Version:               "4.14.5",
+			TrustPolicyExternalID: "direct-external-id",
+			Subnets:               []string{"subnet-1", "subnet-2"},
+			AvailabilityZones:     []string{"us-west-2a"},
+			DefaultMachinePoolSpec: rosacontrolplanev1.DefaultMachinePoolSpec{
+				InstanceType: "m5.xlarge",
+			},
+		}
+
+		// Simulate what reconcileRosaRoleConfig does in the else branch:
+		// it copies TrustPolicyExternalID from the control plane spec onto the roleConfig
+		synthesizedRoleConfig := mockRoleConfig.DeepCopy()
+		synthesizedRoleConfig.Spec.AccountRoleConfig.TrustPolicyExternalID = controlPlaneSpec.TrustPolicyExternalID
+
+		ocmSpec, err := buildOCMClusterSpec(controlPlaneSpec, synthesizedRoleConfig, nil, mockCreator)
+
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ocmSpec.ExternalID).To(Equal("direct-external-id"))
+	})
 }
