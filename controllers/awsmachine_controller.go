@@ -59,6 +59,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/ssm"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/userdata"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	otel "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/otel/tracing"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/util/paused"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -156,6 +157,14 @@ func (r *AWSMachineReconciler) getObjectStoreService(scope scope.S3Scope) servic
 
 func (r *AWSMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := logger.FromContext(ctx)
+
+	// creating span using OpenTelemetry SDK
+	ctx, span := otel.StartSpan(
+		ctx,
+		"awsmachine_controller",
+		"AWSMachineReconciler.Reconcile",
+	)
+	defer span.End()
 
 	// Fetch the AWSMachine instance.
 	awsMachine := &infrav1.AWSMachine{}
@@ -303,6 +312,14 @@ func (r *AWSMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 
 func (r *AWSMachineReconciler) reconcileDelete(ctx context.Context, machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper, ec2Scope scope.EC2Scope, elbScope scope.ELBScope, objectStoreScope scope.S3Scope) (ctrl.Result, error) {
 	machineScope.Info("Handling deleted AWSMachine")
+
+	// creating span using OpenTelemetry SDK
+	ctx, span := otel.StartSpan(
+		ctx,
+		"awsmachine_controller",
+		"AWSMachineReconciler.reconcileDelete",
+	)
+	defer span.End()
 
 	ec2Service := r.getEC2Service(ec2Scope)
 
@@ -498,6 +515,13 @@ func (r *AWSMachineReconciler) findInstance(machineScope *scope.MachineScope, ec
 //nolint:gocyclo
 func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper, ec2Scope scope.EC2Scope, elbScope scope.ELBScope, objectStoreScope scope.S3Scope) (ctrl.Result, error) {
 	machineScope.Trace("Reconciling AWSMachine")
+	// creating span using OpenTelemetry SDK
+	ctx, span := otel.StartSpan(
+		ctx,
+		"awsmachine_controller",
+		"AWSMachineReconciler.reconcileNormal",
+	)
+	defer span.End()
 
 	// If the AWSMachine is in an error state, return early.
 	if machineScope.HasFailed() {

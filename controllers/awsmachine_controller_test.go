@@ -258,7 +258,7 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 		expect := func(m *mocks.MockEC2APIMockRecorder, s *mock_services.MockSecretInterfaceMockRecorder, e *mocks.MockELBAPIMockRecorder) {
 			mockedCreateInstanceCalls(m)
 			mockedCreateSecretCall(s)
-			e.DescribeLoadBalancers(ctx, gomock.Eq(&elb.DescribeLoadBalancersInput{
+			e.DescribeLoadBalancers(gomock.Any(), gomock.Eq(&elb.DescribeLoadBalancersInput{
 				LoadBalancerNames: []string{"test-cluster-apiserver"},
 			})).
 				Return(&elb.DescribeLoadBalancersOutput{}, nil)
