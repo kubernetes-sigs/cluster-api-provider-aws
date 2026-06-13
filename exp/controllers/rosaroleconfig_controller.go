@@ -134,7 +134,7 @@ func (r *ROSARoleConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
-	if err := r.reconcileAccountRoles(scope); err != nil {
+	if err := r.reconcileAccountRoles(ctx, scope); err != nil {
 		v1beta1conditions.MarkFalse(scope.RosaRoleConfig, expinfrav1.RosaRoleConfigReadyCondition, expinfrav1.RosaRoleConfigReconciliationFailedReason, clusterv1beta1.ConditionSeverityError, "Account Roles failure: %v", err)
 		return ctrl.Result{}, fmt.Errorf("account Roles: %w", err)
 	}
@@ -301,7 +301,7 @@ func (r *ROSARoleConfigReconciler) reconcileOIDC(scope *scope.RosaRoleConfigScop
 	return nil
 }
 
-func (r *ROSARoleConfigReconciler) reconcileAccountRoles(scope *scope.RosaRoleConfigScope) error {
+func (r *ROSARoleConfigReconciler) reconcileAccountRoles(ctx context.Context, scope *scope.RosaRoleConfigScope) error {
 	accountRoles, err := r.Runtime.AWSClient.ListAccountRoles(scope.RosaRoleConfig.Spec.AccountRoleConfig.Version)
 	if err != nil {
 		// ListAccountRoles return error if roles does not exist. return for any other error
@@ -332,10 +332,24 @@ func (r *ROSARoleConfigReconciler) reconcileAccountRoles(scope *scope.RosaRoleCo
 		return err
 	}
 
-	return accountroles.CreateHCPRoles(r.Runtime, scope.RosaRoleConfig.Spec.AccountRoleConfig.Prefix, true, scope.RosaRoleConfig.Spec.AccountRoleConfig.PermissionsBoundaryARN,
+	if err := accountroles.CreateHCPRoles(r.Runtime, scope.RosaRoleConfig.Spec.AccountRoleConfig.Prefix, true, scope.RosaRoleConfig.Spec.AccountRoleConfig.PermissionsBoundaryARN,
 		rosa.GetOCMClientEnv(r.Runtime.OCMClient), policies, scope.RosaRoleConfig.Spec.AccountRoleConfig.Version, scope.RosaRoleConfig.Spec.AccountRoleConfig.Path,
 		scope.RosaRoleConfig.Spec.AccountRoleConfig.SharedVPCConfig.IsSharedVPC(), scope.RosaRoleConfig.Spec.AccountRoleConfig.SharedVPCConfig.RouteRoleARN,
-		scope.RosaRoleConfig.Spec.AccountRoleConfig.SharedVPCConfig.VPCEndpointRoleARN)
+		scope.RosaRoleConfig.Spec.AccountRoleConfig.SharedVPCConfig.VPCEndpointRoleARN); err != nil {
+		return err
+	}
+
+	if externalID := scope.RosaRoleConfig.Spec.AccountRoleConfig.TrustPolicyExternalID; externalID != "" {
+		prefix := scope.RosaRoleConfig.Spec.AccountRoleConfig.Prefix
+		for _, suffix := range []string{expinfrav1.HCPROSAInstallerRole, expinfrav1.HCPROSASupportRole} {
+			roleName := prefix + suffix
+			if err := applyTrustPolicyExternalID(ctx, scope.IAMClient(), roleName, externalID); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func (r *ROSARoleConfigReconciler) deleteAccountRoles(scope *scope.RosaRoleConfigScope) error {

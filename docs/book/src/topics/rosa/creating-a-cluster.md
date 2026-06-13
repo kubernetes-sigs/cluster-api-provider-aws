@@ -84,6 +84,7 @@ The CAPA controller requires service account credentials to provision ROSA HCP c
 
     **Note:** The `prefix` field has a maximum length of 4 characters.
 
+    Optionally, you can set `trustPolicyExternalID` in `accountRoleConfig` to embed an `sts:ExternalId` condition in the installer and support role trust policies. This adds an additional layer of cross-account protection when OCM assumes those roles.
 
     ```shell
     cat <<EOF > rosa-role-network.yaml
@@ -96,6 +97,7 @@ The CAPA controller requires service account credentials to provision ROSA HCP c
       accountRoleConfig:
         prefix: "rosa"
         version: "4.20.11"
+        # trustPolicyExternalID: "my-external-id"  # optional
       operatorRoleConfig:
         prefix: "rosa"
       credentialsSecretRef:
@@ -256,6 +258,7 @@ The CAPA controller requires service account credentials to provision ROSA HCP c
       domainPrefix: rosa-hcp
       rosaRoleConfigRef:
         name: role-config  # reference to the ROSARoleConfig created above
+      # trustPolicyExternalID: "my-external-id"  # optional, must match the ROSARoleConfig value
       version: "4.20.11"
       region: "us-west-2"
       rosaNetworkRef:

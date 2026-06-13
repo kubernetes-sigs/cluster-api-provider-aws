@@ -226,6 +226,16 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// +optional
 	WorkerRoleARN string `json:"workerRoleARN,omitempty"`
 
+	// TrustPolicyExternalID is an optional STS external ID that OCM uses when assuming the installer
+	// and support account roles. Must match the sts:ExternalId condition in those roles' trust policies.
+	//
+	// +kubebuilder:validation:MinLength=2
+	// +kubebuilder:validation:MaxLength=1224
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9=,.@:\/-]+$`
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="trustPolicyExternalID is immutable"
+	// +optional
+	TrustPolicyExternalID string `json:"trustPolicyExternalID,omitempty"`
+
 	// BillingAccount is an optional AWS account to use for billing the subscription fees for ROSA HCP clusters.
 	// The cost of running each ROSA HCP cluster will be billed to the infrastructure account in which the cluster
 	// is running.

@@ -963,4 +963,46 @@ func TestBuildOCMClusterSpec(t *testing.T) {
 		g.Expect(ocmSpec.FIPS).To(BeFalse())
 		g.Expect(ocmSpec.Name).To(Equal("test-cluster-zero-fips"))
 	})
+
+	// Test case 4: TrustPolicyExternalID is set
+	t.Run("TrustPolicyExternalID Set", func(t *testing.T) {
+		g := NewWithT(t)
+		controlPlaneSpec := rosacontrolplanev1.RosaControlPlaneSpec{
+			RosaClusterName:       "test-cluster-extid",
+			Region:                "us-west-2",
+			Version:               "4.14.5",
+			TrustPolicyExternalID: "223B9588-36A5-ECA4-BE8D-7C673B77CEC1",
+			Subnets:               []string{"subnet-1", "subnet-2"},
+			AvailabilityZones:     []string{"us-west-2a"},
+			DefaultMachinePoolSpec: rosacontrolplanev1.DefaultMachinePoolSpec{
+				InstanceType: "m5.xlarge",
+			},
+		}
+
+		ocmSpec, err := buildOCMClusterSpec(controlPlaneSpec, mockRoleConfig, nil, mockCreator)
+
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ocmSpec.ExternalID).To(Equal("223B9588-36A5-ECA4-BE8D-7C673B77CEC1"))
+		g.Expect(ocmSpec.Name).To(Equal("test-cluster-extid"))
+	})
+
+	// Test case 5: TrustPolicyExternalID empty (should remain empty)
+	t.Run("TrustPolicyExternalID Empty", func(t *testing.T) {
+		g := NewWithT(t)
+		controlPlaneSpec := rosacontrolplanev1.RosaControlPlaneSpec{
+			RosaClusterName:   "test-cluster-no-extid",
+			Region:            "us-west-2",
+			Version:           "4.14.5",
+			Subnets:           []string{"subnet-1", "subnet-2"},
+			AvailabilityZones: []string{"us-west-2a"},
+			DefaultMachinePoolSpec: rosacontrolplanev1.DefaultMachinePoolSpec{
+				InstanceType: "m5.xlarge",
+			},
+		}
+
+		ocmSpec, err := buildOCMClusterSpec(controlPlaneSpec, mockRoleConfig, nil, mockCreator)
+
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ocmSpec.ExternalID).To(BeEmpty())
+	})
 }

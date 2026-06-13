@@ -1199,6 +1199,7 @@ func buildOCMClusterSpec(controlPlaneSpec rosacontrolplanev1.RosaControlPlaneSpe
 		AuditLogRoleARN:              ptr.To(controlPlaneSpec.AuditLogRoleARN),
 		ExternalAuthProvidersEnabled: controlPlaneSpec.EnableExternalAuthProviders,
 		FIPS:                         controlPlaneSpec.FIPS == rosacontrolplanev1.FIPSEnabled,
+		ExternalID:                   controlPlaneSpec.TrustPolicyExternalID,
 	}
 
 	if controlPlaneSpec.EndpointAccess == rosacontrolplanev1.Private {
