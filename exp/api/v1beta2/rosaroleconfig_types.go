@@ -141,6 +141,17 @@ type AccountRoleConfig struct {
 	// SharedVPCConfig is used to set up shared VPC.
 	// +optional
 	SharedVPCConfig SharedVPCConfig `json:"sharedVPCConfig,omitempty"`
+
+	// TrustPolicyExternalID is an optional STS external ID to embed in installer and support
+	// account role trust policies. When set, new roles will include an sts:ExternalId condition.
+	// Worker roles are not affected. Must be 2–1224 characters matching [a-zA-Z0-9=,.@:/-]+.
+	//
+	// +kubebuilder:validation:MinLength=2
+	// +kubebuilder:validation:MaxLength=1224
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9=,.@:\/-]+$`
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="trustPolicyExternalID is immutable"
+	// +optional
+	TrustPolicyExternalID string `json:"trustPolicyExternalID,omitempty"`
 }
 
 // OperatorRoleConfig defines cluster-specific operator IAM roles based on your cluster configuration.

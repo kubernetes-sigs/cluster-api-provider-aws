@@ -78,6 +78,18 @@ spec:
                           to be used with the VPC endpoint
                         type: string
                     type: object
+                  trustPolicyExternalID:
+                    description: |-
+                      TrustPolicyExternalID is an optional STS external ID to embed in installer and support
+                      account role trust policies. When set, new roles will include an sts:ExternalId condition.
+                      Worker roles are not affected. Must be 2–1224 characters matching [a-zA-Z0-9=,.@:/-]+.
+                    maxLength: 1224
+                    minLength: 2
+                    pattern: ^[a-zA-Z0-9=,.@:\/-]+$
+                    type: string
+                    x-kubernetes-validations:
+                    - message: trustPolicyExternalID is immutable
+                      rule: self == oldSelf
                   version:
                     description: |-
                       Version of OpenShift that will be used to the roles tag in formate of x.y.z example; "4.19.0"
