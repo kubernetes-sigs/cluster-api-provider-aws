@@ -58,6 +58,7 @@ const (
 	EKSControlPlaneOnlyWithAccessEntriesFlavor        = "eks-control-plane-only-with-accessentries"
 	EKSNodeadmClusterClassFlavor                      = "eks-nodeadm-clusterclass"
 	EKSNitroEnclaveManagedMachinePoolFlavor           = "eks-nitro-enclave-managedmachinepool"
+	EKSExternallyManagedFlavor                        = "eks-externally-managed"
 )
 
 const (
