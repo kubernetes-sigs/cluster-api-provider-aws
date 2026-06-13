@@ -1485,10 +1485,10 @@ func mockedCallsForMissingEverything(m *mocks.MockEC2APIMockRecorder, e *mocks.M
 		LoadBalancerName: aws.String("test-cluster-apiserver"),
 		HealthCheck: &elbtypes.HealthCheck{
 			Target:             aws.String("TCP:6443"),
-			Interval:           aws.Int32(10),
-			Timeout:            aws.Int32(5),
-			HealthyThreshold:   aws.Int32(5),
-			UnhealthyThreshold: aws.Int32(3),
+			Interval:           aws.Int32(5),
+			Timeout:            aws.Int32(4),
+			HealthyThreshold:   aws.Int32(2),
+			UnhealthyThreshold: aws.Int32(6),
 		},
 	})).Return(&elb.ConfigureHealthCheckOutput{}, nil)
 }

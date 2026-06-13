@@ -39,20 +39,21 @@ spec:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
       name: "${CLUSTER_NAME}-control-plane"
   kubeadmConfigSpec:
+    verbosity: 5
     initConfiguration:
       nodeRegistration:
         name: '{{ ds.meta_data.local_hostname }}'
         kubeletExtraArgs:
-          cloud-provider: aws
+          cloud-provider: external
     clusterConfiguration:
       controllerManager:
         extraArgs:
-          cloud-provider: aws
+          cloud-provider: external
     joinConfiguration:
       nodeRegistration:
         name: '{{ ds.meta_data.local_hostname }}'
         kubeletExtraArgs:
-          cloud-provider: aws
+          cloud-provider: external
   version: "${KUBERNETES_VERSION}"
 ---
 kind: AWSMachineTemplate
