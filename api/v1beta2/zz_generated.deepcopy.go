@@ -782,6 +782,11 @@ func (in *AWSMachineSpec) DeepCopyInto(out *AWSMachineSpec) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.CapacityReservationResourceGroupARN != nil {
+		in, out := &in.CapacityReservationResourceGroupARN, &out.CapacityReservationResourceGroupARN
+		*out = new(string)
+		**out = **in
+	}
 	if in.HostID != nil {
 		in, out := &in.HostID, &out.HostID
 		*out = new(string)
@@ -1873,6 +1878,11 @@ func (in *Instance) DeepCopyInto(out *Instance) {
 	}
 	if in.CapacityReservationID != nil {
 		in, out := &in.CapacityReservationID, &out.CapacityReservationID
+		*out = new(string)
+		**out = **in
+	}
+	if in.CapacityReservationResourceGroupARN != nil {
+		in, out := &in.CapacityReservationResourceGroupARN, &out.CapacityReservationResourceGroupARN
 		*out = new(string)
 		**out = **in
 	}

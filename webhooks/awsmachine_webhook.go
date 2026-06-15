@@ -395,14 +395,24 @@ func (w *AWSMachine) validateNetworkElasticIPPool(r *infrav1.AWSMachine) field.E
 
 func (w *AWSMachine) validateCapacityReservation(r *infrav1.AWSMachine) field.ErrorList {
 	var allErrs field.ErrorList
-	if r.Spec.CapacityReservationID != nil && r.Spec.CapacityReservationPreference != infrav1.CapacityReservationPreferenceOnly && r.Spec.CapacityReservationPreference != "" {
-		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "capacityReservationPreference"), "when capacityReservationId is specified, capacityReservationPreference may only be 'CapacityReservationsOnly' or empty"))
+	hasCapacityReservationTarget := infrav1.HasCapacityReservationTarget(r.Spec.CapacityReservationID, r.Spec.CapacityReservationResourceGroupARN)
+	if infrav1.HasConflictingCapacityReservationTargets(r.Spec.CapacityReservationID, r.Spec.CapacityReservationResourceGroupARN) {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "capacityReservationResourceGroupARN"), "capacityReservationId and capacityReservationResourceGroupARN are mutually exclusive"))
+	}
+	if hasCapacityReservationTarget && r.Spec.CapacityReservationPreference != infrav1.CapacityReservationPreferenceOnly && r.Spec.CapacityReservationPreference != "" {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "capacityReservationPreference"), "when a capacity reservation target is specified, capacityReservationPreference may only be 'CapacityReservationsOnly' or empty"))
 	}
 	if r.Spec.CapacityReservationPreference == infrav1.CapacityReservationPreferenceOnly && r.Spec.MarketType == infrav1.MarketTypeSpot {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "capacityReservationPreference"), "when marketType is set to 'Spot', capacityReservationPreference cannot be set to 'CapacityReservationsOnly'"))
 	}
 	if r.Spec.CapacityReservationPreference == infrav1.CapacityReservationPreferenceOnly && r.Spec.SpotMarketOptions != nil {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "capacityReservationPreference"), "when capacityReservationPreference is 'CapacityReservationsOnly', spotMarketOptions cannot be set (which implies marketType: 'Spot')"))
+	}
+	if hasCapacityReservationTarget && r.Spec.MarketType == infrav1.MarketTypeSpot {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "marketType"), "cannot be set to 'Spot' when a capacity reservation target is specified"))
+	}
+	if hasCapacityReservationTarget && r.Spec.SpotMarketOptions != nil {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "spotMarketOptions"), "cannot be set when a capacity reservation target is specified"))
 	}
 	return allErrs
 }
@@ -415,8 +425,8 @@ func (w *AWSMachine) validateInstanceMarketType(r *infrav1.AWSMachine) field.Err
 	if r.Spec.MarketType == infrav1.MarketTypeOnDemand && r.Spec.SpotMarketOptions != nil {
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "marketType"), "setting marketType to OnDemand and spotMarketOptions cannot be used together"))
 	}
-	if r.Spec.MarketType == infrav1.MarketTypeCapacityBlock && r.Spec.CapacityReservationID == nil {
-		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "capacityReservationID"), "is required when CapacityBlock is provided"))
+	if r.Spec.MarketType == infrav1.MarketTypeCapacityBlock && !infrav1.HasCapacityReservationTarget(r.Spec.CapacityReservationID, r.Spec.CapacityReservationResourceGroupARN) {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "capacityReservationID"), "capacityReservationID or capacityReservationResourceGroupARN is required when CapacityBlock is provided"))
 	}
 	return allErrs
 }

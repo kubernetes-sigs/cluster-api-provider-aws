@@ -679,7 +679,11 @@ func (s *Service) createLaunchTemplateData(scope scope.LaunchTemplateScope, imag
 	}
 	data.InstanceMarketOptions = instanceMarketOptions
 	data.PrivateDnsNameOptions = getLaunchTemplatePrivateDNSNameOptionsRequest(scope.GetLaunchTemplate().PrivateDNSName)
-	data.CapacityReservationSpecification = getLaunchTemplateCapacityReservationSpecification(scope.GetLaunchTemplate())
+	capacityReservationSpecification, err := getLaunchTemplateCapacityReservationSpecification(scope.GetLaunchTemplate())
+	if err != nil {
+		return nil, err
+	}
+	data.CapacityReservationSpecification = capacityReservationSpecification
 
 	blockDeviceMappings := []types.LaunchTemplateBlockDeviceMappingRequest{}
 
@@ -712,12 +716,15 @@ func (s *Service) createLaunchTemplateData(scope scope.LaunchTemplateScope, imag
 	return data, nil
 }
 
-func getLaunchTemplateCapacityReservationSpecification(awsLaunchTemplate *expinfrav1.AWSLaunchTemplate) *types.LaunchTemplateCapacityReservationSpecificationRequest {
+func getLaunchTemplateCapacityReservationSpecification(awsLaunchTemplate *expinfrav1.AWSLaunchTemplate) (*types.LaunchTemplateCapacityReservationSpecificationRequest, error) {
 	if awsLaunchTemplate == nil {
-		return nil
+		return nil, nil
 	}
-	if awsLaunchTemplate.CapacityReservationID == nil && awsLaunchTemplate.CapacityReservationPreference == "" {
-		return nil
+	if infrav1.HasConflictingCapacityReservationTargets(awsLaunchTemplate.CapacityReservationID, awsLaunchTemplate.CapacityReservationResourceGroupARN) {
+		return nil, errors.New("capacityReservationID and capacityReservationResourceGroupARN are mutually exclusive")
+	}
+	if !infrav1.HasCapacityReservationTarget(awsLaunchTemplate.CapacityReservationID, awsLaunchTemplate.CapacityReservationResourceGroupARN) && awsLaunchTemplate.CapacityReservationPreference == "" {
+		return nil, nil
 	}
 	spec := &types.LaunchTemplateCapacityReservationSpecificationRequest{
 		CapacityReservationPreference: CapacityReservationPreferenceToSDK(awsLaunchTemplate.CapacityReservationPreference),
@@ -726,8 +733,12 @@ func getLaunchTemplateCapacityReservationSpecification(awsLaunchTemplate *expinf
 		spec.CapacityReservationTarget = &types.CapacityReservationTarget{
 			CapacityReservationId: awsLaunchTemplate.CapacityReservationID,
 		}
+	} else if awsLaunchTemplate.CapacityReservationResourceGroupARN != nil {
+		spec.CapacityReservationTarget = &types.CapacityReservationTarget{
+			CapacityReservationResourceGroupArn: awsLaunchTemplate.CapacityReservationResourceGroupARN,
+		}
 	}
-	return spec
+	return spec, nil
 }
 
 func volumeToLaunchTemplateBlockDeviceMappingRequest(v *infrav1.Volume) *types.LaunchTemplateBlockDeviceMappingRequest {
@@ -926,6 +937,14 @@ func (s *Service) SDKToLaunchTemplate(d types.LaunchTemplateVersion) (*expinfrav
 		v.CapacityReservationSpecification.CapacityReservationTarget.CapacityReservationId != nil {
 		i.CapacityReservationID = v.CapacityReservationSpecification.CapacityReservationTarget.CapacityReservationId
 	}
+	if v.CapacityReservationSpecification != nil &&
+		v.CapacityReservationSpecification.CapacityReservationTarget != nil &&
+		v.CapacityReservationSpecification.CapacityReservationTarget.CapacityReservationResourceGroupArn != nil {
+		i.CapacityReservationResourceGroupARN = v.CapacityReservationSpecification.CapacityReservationTarget.CapacityReservationResourceGroupArn
+	}
+	if v.CapacityReservationSpecification != nil {
+		i.CapacityReservationPreference = SDKToCapacityReservationPreference(v.CapacityReservationSpecification.CapacityReservationPreference)
+	}
 
 	if v.MetadataOptions != nil {
 		i.InstanceMetadataOptions = &infrav1.InstanceMetadataOptions{
@@ -1036,6 +1055,14 @@ func (s *Service) LaunchTemplateNeedsUpdate(scope scope.LaunchTemplateScope, inc
 
 	if !cmp.Equal(incoming.CapacityReservationID, existing.CapacityReservationID) {
 		return true, services.LaunchTemplateNeedsUpdateReasonCapacityReservationID, nil
+	}
+
+	if !cmp.Equal(incoming.CapacityReservationResourceGroupARN, existing.CapacityReservationResourceGroupARN) {
+		return true, services.LaunchTemplateNeedsUpdateReasonCapacityReservationResourceGroupARN, nil
+	}
+
+	if !cmp.Equal(incoming.CapacityReservationPreference, existing.CapacityReservationPreference) {
+		return true, services.LaunchTemplateNeedsUpdateReasonCapacityReservationPreference, nil
 	}
 
 	if !cmp.Equal(incoming.PrivateDNSName, existing.PrivateDNSName) {
@@ -1242,6 +1269,11 @@ func getLaunchTemplateInstanceMarketOptionsRequest(i *expinfrav1.AWSLaunchTempla
 		return nil, errors.New("can't create spot capacity-blocks, remove spot market request")
 	}
 
+	hasCapacityReservationTarget := infrav1.HasCapacityReservationTarget(i.CapacityReservationID, i.CapacityReservationResourceGroupARN)
+	if infrav1.HasConflictingCapacityReservationTargets(i.CapacityReservationID, i.CapacityReservationResourceGroupARN) {
+		return nil, errors.New("capacityReservationID and capacityReservationResourceGroupARN are mutually exclusive")
+	}
+
 	// Infer MarketType if not explicitly set and SpotMarketOptions specified
 	if i.SpotMarketOptions != nil && i.MarketType == "" {
 		i.MarketType = infrav1.MarketTypeSpot
@@ -1255,14 +1287,18 @@ func getLaunchTemplateInstanceMarketOptionsRequest(i *expinfrav1.AWSLaunchTempla
 	switch i.MarketType {
 	case infrav1.MarketTypeCapacityBlock:
 		// Handle Capacity Block case.
-		if i.CapacityReservationID == nil {
-			return nil, errors.Errorf("capacityReservationID is required when CapacityBlock is enabled")
+		if !hasCapacityReservationTarget {
+			return nil, errors.Errorf("capacityReservationID or capacityReservationResourceGroupARN is required when CapacityBlock is enabled")
 		}
 		return &types.LaunchTemplateInstanceMarketOptionsRequest{
 			MarketType: types.MarketTypeCapacityBlock,
 		}, nil
 
 	case infrav1.MarketTypeSpot:
+		if hasCapacityReservationTarget {
+			return nil, errors.New("unable to generate marketOptions for spot instance, capacity reservation targets are incompatible with marketType spot and spotMarketOptions")
+		}
+
 		// Set required values for Spot instances
 		spotOptions := &types.LaunchTemplateSpotMarketOptionsRequest{}
 

@@ -1437,6 +1437,7 @@ func autoConvert_v1beta2_AWSMachineSpec_To_v1beta1_AWSMachineSpec(in *v1beta2.AW
 	out.Tenancy = in.Tenancy
 	// WARNING: in.PrivateDNSName requires manual conversion: does not exist in peer-type
 	// WARNING: in.CapacityReservationID requires manual conversion: does not exist in peer-type
+	// WARNING: in.CapacityReservationResourceGroupARN requires manual conversion: does not exist in peer-type
 	// WARNING: in.MarketType requires manual conversion: does not exist in peer-type
 	// WARNING: in.HostID requires manual conversion: does not exist in peer-type
 	// WARNING: in.HostAffinity requires manual conversion: does not exist in peer-type
@@ -2040,6 +2041,7 @@ func autoConvert_v1beta2_Instance_To_v1beta1_Instance(in *v1beta2.Instance, out 
 	// WARNING: in.PrivateDNSName requires manual conversion: does not exist in peer-type
 	// WARNING: in.PublicIPOnLaunch requires manual conversion: does not exist in peer-type
 	// WARNING: in.CapacityReservationID requires manual conversion: does not exist in peer-type
+	// WARNING: in.CapacityReservationResourceGroupARN requires manual conversion: does not exist in peer-type
 	// WARNING: in.MarketType requires manual conversion: does not exist in peer-type
 	// WARNING: in.HostAffinity requires manual conversion: does not exist in peer-type
 	// WARNING: in.HostID requires manual conversion: does not exist in peer-type

@@ -257,6 +257,7 @@ func (s *Service) CreateInstance(ctx context.Context, scope *scope.MachineScope,
 	input.PrivateDNSName = scope.AWSMachine.Spec.PrivateDNSName
 
 	input.CapacityReservationID = scope.AWSMachine.Spec.CapacityReservationID
+	input.CapacityReservationResourceGroupARN = scope.AWSMachine.Spec.CapacityReservationResourceGroupARN
 
 	input.MarketType = scope.AWSMachine.Spec.MarketType
 
@@ -697,7 +698,11 @@ func (s *Service) runInstance(role string, i *infrav1.Instance) (*infrav1.Instan
 	}
 	input.MetadataOptions = getInstanceMetadataOptionsRequest(i.InstanceMetadataOptions)
 	input.PrivateDnsNameOptions = getPrivateDNSNameOptionsRequest(i.PrivateDNSName)
-	input.CapacityReservationSpecification = getCapacityReservationSpecification(i.CapacityReservationID, i.CapacityReservationPreference)
+	capacityReservationSpecification, err := getCapacityReservationSpecification(i.CapacityReservationID, i.CapacityReservationResourceGroupARN, i.CapacityReservationPreference)
+	if err != nil {
+		return nil, err
+	}
+	input.CapacityReservationSpecification = capacityReservationSpecification
 	input.CpuOptions = getInstanceCPUOptionsRequest(i.CPUOptions)
 
 	if i.Tenancy != "" {
@@ -1242,18 +1247,26 @@ func filterGroups(list []string, strToFilter string) (newList []string) {
 	return
 }
 
-func getCapacityReservationSpecification(capacityReservationID *string, capacityReservationPreference infrav1.CapacityReservationPreference) *types.CapacityReservationSpecification {
-	if capacityReservationID == nil && capacityReservationPreference == "" {
-		return nil
+func getCapacityReservationSpecification(capacityReservationID, capacityReservationResourceGroupARN *string, capacityReservationPreference infrav1.CapacityReservationPreference) (*types.CapacityReservationSpecification, error) {
+	if infrav1.HasConflictingCapacityReservationTargets(capacityReservationID, capacityReservationResourceGroupARN) {
+		return nil, errors.New("capacityReservationID and capacityReservationResourceGroupARN are mutually exclusive")
+	}
+
+	if !infrav1.HasCapacityReservationTarget(capacityReservationID, capacityReservationResourceGroupARN) && capacityReservationPreference == "" {
+		return nil, nil
 	}
 	var spec types.CapacityReservationSpecification
 	if capacityReservationID != nil {
 		spec.CapacityReservationTarget = &types.CapacityReservationTarget{
 			CapacityReservationId: capacityReservationID,
 		}
+	} else if capacityReservationResourceGroupARN != nil {
+		spec.CapacityReservationTarget = &types.CapacityReservationTarget{
+			CapacityReservationResourceGroupArn: capacityReservationResourceGroupARN,
+		}
 	}
 	spec.CapacityReservationPreference = CapacityReservationPreferenceToSDK(capacityReservationPreference)
-	return &spec
+	return &spec, nil
 }
 
 func getInstanceMarketOptionsRequest(i *infrav1.Instance) (*types.InstanceMarketOptionsRequest, error) {
@@ -1261,8 +1274,13 @@ func getInstanceMarketOptionsRequest(i *infrav1.Instance) (*types.InstanceMarket
 		return nil, errors.New("can't create spot capacity-blocks, remove spot market request")
 	}
 
-	if (i.MarketType == infrav1.MarketTypeSpot || i.SpotMarketOptions != nil) && i.CapacityReservationID != nil {
-		return nil, errors.New("unable to generate marketOptions for spot instance, capacityReservationID is incompatible with marketType spot and spotMarketOptions")
+	hasCapacityReservationTarget := infrav1.HasCapacityReservationTarget(i.CapacityReservationID, i.CapacityReservationResourceGroupARN)
+	if infrav1.HasConflictingCapacityReservationTargets(i.CapacityReservationID, i.CapacityReservationResourceGroupARN) {
+		return nil, errors.New("capacityReservationID and capacityReservationResourceGroupARN are mutually exclusive")
+	}
+
+	if (i.MarketType == infrav1.MarketTypeSpot || i.SpotMarketOptions != nil) && hasCapacityReservationTarget {
+		return nil, errors.New("unable to generate marketOptions for spot instance, capacity reservation targets are incompatible with marketType spot and spotMarketOptions")
 	}
 
 	// Infer MarketType if not explicitly set
@@ -1280,8 +1298,8 @@ func getInstanceMarketOptionsRequest(i *infrav1.Instance) (*types.InstanceMarket
 
 	switch i.MarketType {
 	case infrav1.MarketTypeCapacityBlock:
-		if i.CapacityReservationID == nil {
-			return nil, errors.Errorf("capacityReservationID is required when CapacityBlock is enabled")
+		if !hasCapacityReservationTarget {
+			return nil, errors.Errorf("capacityReservationID or capacityReservationResourceGroupARN is required when CapacityBlock is enabled")
 		}
 		return &types.InstanceMarketOptionsRequest{
 			MarketType: types.MarketTypeCapacityBlock,

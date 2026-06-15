@@ -68,6 +68,9 @@ func (src *AWSMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	if restored.Spec.AWSLaunchTemplate.CapacityReservationID != nil {
 		dst.Spec.AWSLaunchTemplate.CapacityReservationID = restored.Spec.AWSLaunchTemplate.CapacityReservationID
 	}
+	if restored.Spec.AWSLaunchTemplate.CapacityReservationResourceGroupARN != nil {
+		dst.Spec.AWSLaunchTemplate.CapacityReservationResourceGroupARN = restored.Spec.AWSLaunchTemplate.CapacityReservationResourceGroupARN
+	}
 
 	if restored.Spec.AWSLaunchTemplate.MarketType != "" {
 		dst.Spec.AWSLaunchTemplate.MarketType = restored.Spec.AWSLaunchTemplate.MarketType
@@ -134,6 +137,9 @@ func (src *AWSManagedMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 
 		if restored.Spec.AWSLaunchTemplate.CapacityReservationID != nil {
 			dst.Spec.AWSLaunchTemplate.CapacityReservationID = restored.Spec.AWSLaunchTemplate.CapacityReservationID
+		}
+		if restored.Spec.AWSLaunchTemplate.CapacityReservationResourceGroupARN != nil {
+			dst.Spec.AWSLaunchTemplate.CapacityReservationResourceGroupARN = restored.Spec.AWSLaunchTemplate.CapacityReservationResourceGroupARN
 		}
 
 		if restored.Spec.AWSLaunchTemplate.MarketType != "" {
