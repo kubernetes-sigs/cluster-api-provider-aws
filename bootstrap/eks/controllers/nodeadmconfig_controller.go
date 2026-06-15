@@ -334,6 +334,11 @@ func (r *NodeadmConfigReconciler) joinWorker(ctx context.Context, cluster *clust
 func (r *NodeadmConfigReconciler) reconcileHybridNode(ctx context.Context, cluster *clusterv1.Cluster, config *eksbootstrapv1.NodeadmConfig, configOwner *bsutil.ConfigOwner) (ctrl.Result, error) {
 	log := logger.FromContext(ctx)
 
+	// Validate control plane reference
+	if cluster.Spec.ControlPlaneRef.Kind != "AWSManagedControlPlane" {
+		return ctrl.Result{}, errors.New("Cluster's controlPlaneRef needs to be an AWSManagedControlPlane in order to use the EKS bootstrap provider")
+	}
+
 	// Skip if already ready
 	if config.Status.DataSecretName != nil && configOwner.GetKind() == "Machine" {
 		secretKey := client.ObjectKey{Namespace: config.Namespace, Name: *config.Status.DataSecretName}
@@ -346,11 +351,6 @@ func (r *NodeadmConfigReconciler) reconcileHybridNode(ctx context.Context, clust
 			log.Error(err, "unable to check for existing bootstrap secret")
 			return ctrl.Result{}, err
 		}
-	}
-
-	// Validate control plane reference
-	if cluster.Spec.ControlPlaneRef.Kind != "AWSManagedControlPlane" {
-		return ctrl.Result{}, errors.New("Cluster's controlPlaneRef needs to be an AWSManagedControlPlane in order to use the EKS bootstrap provider")
 	}
 
 	// Check cluster infrastructure readiness
