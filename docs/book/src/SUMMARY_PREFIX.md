@@ -26,6 +26,7 @@
   - [ROSA Support](./topics/rosa/index.md)
     - [Enabling ROSA Support](./topics/rosa/enabling.md)
     - [Creating a cluster](./topics/rosa/creating-a-cluster.md)
+      - [Specifying the IAM Role for Management Components](./topics/rosa/specify-management-iam-role.md)
     - [Creating MachinePools](./topics/rosa/creating-rosa-machinepools.md)
     - [Upgrades](./topics/rosa/upgrades.md)
     - [External Auth Providers](./topics/rosa/external-auth.md)
