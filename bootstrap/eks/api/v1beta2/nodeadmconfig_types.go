@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta2
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -144,22 +145,13 @@ type HybridSSMOptions struct {
 	// The Secret must contain 'activationId' and 'activationCode' keys.
 	// When specified, the controller will not create or manage SSM activations.
 	// +optional
-	ActivationRef *SSMActivationReference `json:"activationRef,omitempty"`
+	ActivationRef *corev1.LocalObjectReference `json:"activationRef,omitempty"`
 
 	// ActivationConfig specifies parameters for automatically creating an SSM activation.
 	// The controller will create the activation and store credentials in a Secret.
 	// The activation will be deleted when the NodeadmConfig is deleted.
 	// +optional
 	ActivationConfig *SSMActivationConfig `json:"activationConfig,omitempty"`
-}
-
-// SSMActivationReference references a Secret containing pre-created SSM activation credentials.
-type SSMActivationReference struct {
-	// Name is the name of the Secret in the same namespace as the NodeadmConfig.
-	// The Secret must contain 'activationId' and 'activationCode' keys.
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinLength=1
-	Name string `json:"name"`
 }
 
 // SSMActivationConfig specifies parameters for creating an SSM hybrid activation.
