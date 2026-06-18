@@ -154,7 +154,7 @@ func (r *NodeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			eksbootstrapv1.DataSecretAvailableCondition,
 		}
 		// Include SSM condition in summary for hybrid nodes
-		if config.Spec.Hybrid != nil && config.Spec.Hybrid.SSM != nil && config.Spec.Hybrid.SSM.ActivationConfig != nil {
+		if hasManagedHybridSSMActivation(config) {
 			conditions = append(conditions, eksbootstrapv1.SSMActivationReadyCondition)
 		}
 		v1beta1conditions.SetSummary(config,
@@ -180,7 +180,7 @@ func (r *NodeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	// Add finalizer for hybrid nodes with auto-created activations
-	if config.Spec.Hybrid != nil && config.Spec.Hybrid.SSM != nil && config.Spec.Hybrid.SSM.ActivationConfig != nil {
+	if hasManagedHybridSSMActivation(config) {
 		if !controllerutil.ContainsFinalizer(config, ssmActivationFinalizer) {
 			controllerutil.AddFinalizer(config, ssmActivationFinalizer)
 		}
@@ -192,6 +192,10 @@ func (r *NodeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	return r.joinWorker(ctx, cluster, config, configOwner)
+}
+
+func hasManagedHybridSSMActivation(config *eksbootstrapv1.NodeadmConfig) bool {
+	return config.Spec.Hybrid != nil && config.Spec.Hybrid.SSM != nil && config.Spec.Hybrid.SSM.ActivationConfig != nil
 }
 
 func (r *NodeadmConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1.Cluster, config *eksbootstrapv1.NodeadmConfig, configOwner *bsutil.ConfigOwner) (ctrl.Result, error) {
