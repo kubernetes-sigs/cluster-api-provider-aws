@@ -135,6 +135,7 @@ spec:
 // It supports both EC2 worker nodes and EKS hybrid nodes.
 type NodeadmInput struct {
 	ClusterName               string
+	KubernetesVersion         string
 	KubeletFlags              []string
 	KubeletConfig             *runtime.RawExtension
 	ContainerdConfig          string

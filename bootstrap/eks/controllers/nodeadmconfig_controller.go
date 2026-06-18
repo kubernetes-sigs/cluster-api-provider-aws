@@ -418,7 +418,7 @@ func (r *NodeadmConfigReconciler) reconcileHybridNode(ctx context.Context, clust
 		log.Info("Generating custom hybrid userdata from user-provided template",
 			"cluster", controlPlane.Spec.EKSClusterName,
 			"region", controlPlane.Spec.Region)
-		userDataScript, err = r.generateCustomHybridUserdata(config, controlPlane, activationID, activationCode)
+		userDataScript, err = r.generateCustomHybridUserdata(ctx, config, controlPlane, activationID, activationCode)
 	} else {
 		// Default nodeadm mode - generate MIME multipart userdata
 		log.Info("Generating hybrid nodeadm userdata",
@@ -453,15 +453,30 @@ func (r *NodeadmConfigReconciler) reconcileHybridNode(ctx context.Context, clust
 // generateCustomHybridUserdata generates userdata from a user-provided template.
 // This completely replaces the default nodeadm MIME multipart userdata generation.
 func (r *NodeadmConfigReconciler) generateCustomHybridUserdata(
+	ctx context.Context,
 	config *eksbootstrapv1.NodeadmConfig,
 	controlPlane *ekscontrolplanev1.AWSManagedControlPlane,
 	activationID, activationCode string,
 ) ([]byte, error) {
-	customInput := &userdata.CustomHybridInput{
-		ClusterName:    controlPlane.Spec.EKSClusterName,
-		Region:         controlPlane.Spec.Region,
-		ActivationID:   activationID,
-		ActivationCode: activationCode,
+	fileResolver := FileResolver{Client: r.Client}
+	files, err := fileResolver.ResolveFiles(ctx, config.Namespace, config.Spec.Files)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve files for user data: %w", err)
+	}
+
+	customInput := &userdata.NodeadmInput{
+		Hybrid:             true,
+		ClusterName:        controlPlane.Spec.EKSClusterName,
+		Region:             controlPlane.Spec.Region,
+		ActivationID:       activationID,
+		ActivationCode:     activationCode,
+		FeatureGates:       config.Spec.FeatureGates,
+		PreNodeadmCommands: config.Spec.PreNodeadmCommands,
+		Files:              files,
+		DiskSetup:          config.Spec.DiskSetup,
+		Mounts:             config.Spec.Mounts,
+		Users:              config.Spec.Users,
+		NTP:                config.Spec.NTP,
 	}
 
 	// Add Kubernetes version if specified
@@ -478,6 +493,7 @@ func (r *NodeadmConfigReconciler) generateCustomHybridUserdata(
 	// Add optional containerd configuration
 	if config.Spec.Containerd != nil {
 		customInput.ContainerdConfig = config.Spec.Containerd.Config
+		customInput.ContainerdBaseRuntimeSpec = config.Spec.Containerd.BaseRuntimeSpec
 	}
 
 	return userdata.NewCustomHybridUserdata(
@@ -526,6 +542,7 @@ func (r *NodeadmConfigReconciler) generateNodeadmHybridUserdata(
 	// Add containerd configuration
 	if config.Spec.Containerd != nil {
 		nodeInput.ContainerdConfig = config.Spec.Containerd.Config
+		nodeInput.ContainerdBaseRuntimeSpec = config.Spec.Containerd.BaseRuntimeSpec
 	}
 
 	return userdata.NewNodeadmUserdata(nodeInput)

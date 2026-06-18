@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
@@ -40,7 +41,54 @@ func setupScheme() *runtime.Scheme {
 	_ = clusterv1.AddToScheme(scheme)
 	_ = clusterv1beta1.AddToScheme(scheme)
 	_ = eksbootstrapv1.AddToScheme(scheme)
+	_ = ekscontrolplanev1.AddToScheme(scheme)
 	return scheme
+}
+
+func TestGenerateCustomHybridUserdataResolvesFiles(t *testing.T) {
+	g := NewWithT(t)
+	ctx := context.Background()
+
+	version := "1.29"
+	config := &eksbootstrapv1.NodeadmConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-config",
+			Namespace: "default",
+		},
+		Spec: eksbootstrapv1.NodeadmConfigSpec{
+			Files: []eksbootstrapv1.File{
+				{
+					Path: "/etc/resolved-file",
+					ContentFrom: &eksbootstrapv1.FileSource{
+						Secret: eksbootstrapv1.SecretFileSource{Name: "file-secret", Key: "content"},
+					},
+				},
+			},
+			Hybrid: &eksbootstrapv1.HybridOptions{
+				CustomUserData: &eksbootstrapv1.CustomUserDataOptions{
+					Template: `{{ range .Files }}{{.Path}}={{.Content}}{{ end }}`,
+				},
+			},
+		},
+	}
+	controlPlane := &ekscontrolplanev1.AWSManagedControlPlane{
+		Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+			EKSClusterName: "test-cluster",
+			Region:         "us-west-2",
+			Version:        &version,
+		},
+	}
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "file-secret", Namespace: "default"},
+		Data:       map[string][]byte{"content": []byte("resolved-content")},
+	}
+	r := &NodeadmConfigReconciler{
+		Client: fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(secret).Build(),
+	}
+
+	data, err := r.generateCustomHybridUserdata(ctx, config, controlPlane, "activation-id", "activation-code")
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(string(data)).To(ContainSubstring("/etc/resolved-file=resolved-content"))
 }
 
 func TestGetActivationFromSecret(t *testing.T) {

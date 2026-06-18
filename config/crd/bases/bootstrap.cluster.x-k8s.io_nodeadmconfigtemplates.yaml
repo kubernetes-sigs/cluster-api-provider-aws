@@ -235,14 +235,22 @@ spec:
                                   available runtime variables. The output is stored as-is in the bootstrap secret.
 
                                   Available template variables:
-                                    - {{.ClusterName}}        - EKS cluster name
-                                    - {{.Region}}             - AWS region
-                                    - {{.KubernetesVersion}}  - Kubernetes version (e.g., "1.34")
-                                    - {{.ActivationID}}       - SSM activation ID
-                                    - {{.ActivationCode}}     - SSM activation code
-                                    - {{.KubeletFlags}}       - []string of kubelet flags (if configured)
-                                    - {{.KubeletConfig}}      - string of kubelet config YAML (if configured)
-                                    - {{.ContainerdConfig}}   - string of containerd config (if configured)
+                                    - {{.ClusterName}}                 - EKS cluster name
+                                    - {{.Region}}                      - AWS region
+                                    - {{.KubernetesVersion}}           - Kubernetes version (e.g., "1.34")
+                                    - {{.ActivationID}}                - SSM activation ID
+                                    - {{.ActivationCode}}              - SSM activation code
+                                    - {{.KubeletFlags}}                - []string of kubelet flags (if configured)
+                                    - {{.KubeletConfig}}               - string of kubelet config YAML (if configured)
+                                    - {{.ContainerdConfig}}            - string of containerd config (if configured)
+                                    - {{.ContainerdBaseRuntimeSpec}}   - string of containerd base runtime spec YAML (if configured)
+                                    - {{.FeatureGates}}                - map[Feature]bool of feature gates (if configured)
+                                    - {{.PreNodeadmCommands}}          - []string of commands to run before nodeadm (if configured)
+                                    - {{.Files}}                       - []File with resolved content (if configured)
+                                    - {{.Users}}                       - []User to create (if configured)
+                                    - {{.NTP}}                         - NTP configuration (if configured)
+                                    - {{.DiskSetup}}                   - disk setup configuration (if configured)
+                                    - {{.Mounts}}                      - []MountPoints to mount (if configured)
 
                                   Template functions available:
                                     - {{Indent N .Content}}      - Indent content by N spaces

@@ -23,6 +23,9 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/format"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/ptr"
+
+	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2"
 )
 
 func TestNewCustomHybridUserdata(t *testing.T) {
@@ -32,7 +35,7 @@ func TestNewCustomHybridUserdata(t *testing.T) {
 	tests := []struct {
 		name         string
 		template     string
-		input        *CustomHybridInput
+		input        *NodeadmInput
 		expectErr    bool
 		errContains  string
 		verifyOutput func(output string) bool
@@ -45,7 +48,8 @@ REGION={{.Region}}
 ACTIVATION_ID={{.ActivationID}}
 ACTIVATION_CODE={{.ActivationCode}}
 `,
-			input: &CustomHybridInput{
+			input: &NodeadmInput{
+				Hybrid:            true,
 				ClusterName:       "test-cluster",
 				Region:            "us-west-2",
 				KubernetesVersion: "1.29",
@@ -67,7 +71,8 @@ CLUSTER={{.ClusterName}}
 REGION={{.Region}}
 K8S_VERSION={{.KubernetesVersion}}
 `,
-			input: &CustomHybridInput{
+			input: &NodeadmInput{
+				Hybrid:            true,
 				ClusterName:       "test-cluster",
 				Region:            "us-west-2",
 				ActivationID:      "act-123456",
@@ -88,7 +93,8 @@ K8S_VERSION={{.KubernetesVersion}}
 KUBELET_FLAGS="{{join .KubeletFlags " "}}"
 {{- end }}
 `,
-			input: &CustomHybridInput{
+			input: &NodeadmInput{
+				Hybrid:            true,
 				ClusterName:       "test-cluster",
 				Region:            "us-west-2",
 				KubernetesVersion: "1.29",
@@ -111,7 +117,8 @@ cat <<EOF > /etc/kubelet-config.yaml
 {{.KubeletConfig}}
 EOF
 `,
-			input: &CustomHybridInput{
+			input: &NodeadmInput{
+				Hybrid:            true,
 				ClusterName:       "test-cluster",
 				Region:            "us-west-2",
 				KubernetesVersion: "1.29",
@@ -135,7 +142,8 @@ cat <<EOF > /etc/containerd/config.toml
 {{.ContainerdConfig}}
 EOF
 `,
-			input: &CustomHybridInput{
+			input: &NodeadmInput{
+				Hybrid:            true,
 				ClusterName:       "test-cluster",
 				Region:            "us-west-2",
 				KubernetesVersion: "1.29",
@@ -153,7 +161,8 @@ EOF
 			template: `config:
 {{ Indent 2 .KubeletConfig }}
 `,
-			input: &CustomHybridInput{
+			input: &NodeadmInput{
+				Hybrid:            true,
 				ClusterName:       "test-cluster",
 				Region:            "us-west-2",
 				KubernetesVersion: "1.29",
@@ -174,7 +183,8 @@ EOF
 			template: `#!/bin/bash
 ENCODED={{base64Encode .ActivationCode}}
 `,
-			input: &CustomHybridInput{
+			input: &NodeadmInput{
+				Hybrid:            true,
 				ClusterName:       "test-cluster",
 				Region:            "us-west-2",
 				KubernetesVersion: "1.29",
@@ -192,7 +202,8 @@ ENCODED={{base64Encode .ActivationCode}}
 			template: `#!/bin/bash
 CONFIG={{default "default-config" .ContainerdConfig}}
 `,
-			input: &CustomHybridInput{
+			input: &NodeadmInput{
+				Hybrid:            true,
 				ClusterName:       "test-cluster",
 				Region:            "us-west-2",
 				KubernetesVersion: "1.29",
@@ -208,7 +219,8 @@ CONFIG={{default "default-config" .ContainerdConfig}}
 		{
 			name:     "template with trimSpace function",
 			template: `TRIMMED={{trimSpace "  hello world  "}}`,
-			input: &CustomHybridInput{
+			input: &NodeadmInput{
+				Hybrid:            true,
 				ClusterName:       "test-cluster",
 				Region:            "us-west-2",
 				KubernetesVersion: "1.29",
@@ -227,7 +239,8 @@ LOWER={{lower .ClusterName}}
 UPPER={{upper .Region}}
 REPLACED={{replace .ClusterName "-" "_"}}
 `,
-			input: &CustomHybridInput{
+			input: &NodeadmInput{
+				Hybrid:            true,
 				ClusterName:       "Test-Cluster",
 				Region:            "us-west-2",
 				KubernetesVersion: "1.29",
@@ -250,7 +263,8 @@ HAS_FLAGS=true
 HAS_FLAGS=false
 {{- end }}
 `,
-			input: &CustomHybridInput{
+			input: &NodeadmInput{
+				Hybrid:            true,
 				ClusterName:       "test-cluster",
 				Region:            "us-west-2",
 				KubernetesVersion: "1.29",
@@ -270,7 +284,8 @@ HAS_FLAGS=false
 echo "Flag: {{.}}"
 {{- end }}
 `,
-			input: &CustomHybridInput{
+			input: &NodeadmInput{
+				Hybrid:            true,
 				ClusterName:       "test-cluster",
 				Region:            "us-west-2",
 				KubernetesVersion: "1.29",
@@ -317,7 +332,8 @@ NODECONFIG
 # Run nodeadm
 /usr/local/bin/nodeadm init -c file:///etc/nodeadm/config.yaml
 `,
-			input: &CustomHybridInput{
+			input: &NodeadmInput{
+				Hybrid:            true,
 				ClusterName:       "prod-cluster",
 				Region:            "eu-west-1",
 				KubernetesVersion: "1.29",
@@ -352,7 +368,8 @@ IS_US=true
 IS_AZ2=true
 {{- end }}
 `,
-			input: &CustomHybridInput{
+			input: &NodeadmInput{
+				Hybrid:            true,
 				ClusterName:       "my-prod-cluster",
 				Region:            "us-west-2",
 				KubernetesVersion: "1.29",
@@ -366,11 +383,87 @@ IS_AZ2=true
 					strings.Contains(output, "IS_AZ2=true")
 			},
 		},
+		{
+			name: "template with all NodeadmConfigSpec fields",
+			template: `#!/bin/bash
+{{- range .PreNodeadmCommands }}
+PRE={{.}}
+{{- end }}
+{{- range .Files }}
+FILE={{.Path}}:{{.Content}}
+{{- end }}
+{{- range .Users }}
+USER={{.Name}}
+{{- end }}
+{{- if .NTP }}
+NTP={{join .NTP.Servers ","}}
+{{- end }}
+{{- if .DiskSetup }}
+{{- range .DiskSetup.Filesystems }}
+FS={{.Device}}:{{.Filesystem}}
+{{- end }}
+{{- end }}
+{{- range .Mounts }}
+MOUNT={{index . 0}}:{{index . 1}}
+{{- end }}
+{{- range $gate, $enabled := .FeatureGates }}
+FEATURE={{$gate}}:{{$enabled}}
+{{- end }}
+{{- if .ContainerdBaseRuntimeSpec }}
+BASE_RUNTIME={{.ContainerdBaseRuntimeSpec}}
+{{- end }}
+`,
+			input: &NodeadmInput{
+				Hybrid:            true,
+				ClusterName:       "test-cluster",
+				Region:            "us-west-2",
+				KubernetesVersion: "1.29",
+				ActivationID:      "act-123456",
+				ActivationCode:    "code-abcdef",
+				FeatureGates: map[eksbootstrapv1.Feature]bool{
+					eksbootstrapv1.FeatureFastImagePull: true,
+				},
+				PreNodeadmCommands: []string{"echo pre-nodeadm"},
+				Files: []eksbootstrapv1.File{
+					{Path: "/etc/example", Content: "file-content"},
+				},
+				Users: []eksbootstrapv1.User{
+					{Name: "test-user"},
+				},
+				NTP: &eksbootstrapv1.NTP{
+					Enabled: ptr.To(true),
+					Servers: []string{"time.example.com"},
+				},
+				DiskSetup: &eksbootstrapv1.DiskSetup{
+					Filesystems: []eksbootstrapv1.Filesystem{
+						{Device: "/dev/xvdb", Filesystem: "ext4", Label: "data"},
+					},
+				},
+				Mounts: []eksbootstrapv1.MountPoints{
+					{"/dev/xvdb", "/data"},
+				},
+				ContainerdBaseRuntimeSpec: &runtime.RawExtension{
+					Raw: []byte(`{"process":{"terminal":false}}`),
+				},
+			},
+			expectErr: false,
+			verifyOutput: func(output string) bool {
+				return strings.Contains(output, "PRE=echo pre-nodeadm") &&
+					strings.Contains(output, "FILE=/etc/example:file-content") &&
+					strings.Contains(output, "USER=test-user") &&
+					strings.Contains(output, "NTP=time.example.com") &&
+					strings.Contains(output, "FS=/dev/xvdb:ext4") &&
+					strings.Contains(output, "MOUNT=/dev/xvdb:/data") &&
+					strings.Contains(output, "FEATURE=FastImagePull:true") &&
+					strings.Contains(output, "terminal: false")
+			},
+		},
 		// Error cases
 		{
 			name:     "missing cluster name",
 			template: `{{.ClusterName}}`,
-			input: &CustomHybridInput{
+			input: &NodeadmInput{
+				Hybrid:            true,
 				Region:            "us-west-2",
 				KubernetesVersion: "1.29",
 				ActivationID:      "act-123456",
@@ -382,7 +475,8 @@ IS_AZ2=true
 		{
 			name:     "missing region",
 			template: `{{.Region}}`,
-			input: &CustomHybridInput{
+			input: &NodeadmInput{
+				Hybrid:            true,
 				ClusterName:       "test-cluster",
 				KubernetesVersion: "1.29",
 				ActivationID:      "act-123456",
@@ -394,7 +488,8 @@ IS_AZ2=true
 		{
 			name:     "missing kubernetes version",
 			template: `{{.KubernetesVersion}}`,
-			input: &CustomHybridInput{
+			input: &NodeadmInput{
+				Hybrid:         true,
 				ClusterName:    "test-cluster",
 				Region:         "us-west-2",
 				ActivationID:   "act-123456",
@@ -406,7 +501,8 @@ IS_AZ2=true
 		{
 			name:     "missing activation ID",
 			template: `{{.ActivationID}}`,
-			input: &CustomHybridInput{
+			input: &NodeadmInput{
+				Hybrid:            true,
 				ClusterName:       "test-cluster",
 				Region:            "us-west-2",
 				KubernetesVersion: "1.29",
@@ -418,7 +514,8 @@ IS_AZ2=true
 		{
 			name:     "missing activation code",
 			template: `{{.ActivationCode}}`,
-			input: &CustomHybridInput{
+			input: &NodeadmInput{
+				Hybrid:            true,
 				ClusterName:       "test-cluster",
 				Region:            "us-west-2",
 				KubernetesVersion: "1.29",
@@ -437,7 +534,8 @@ IS_AZ2=true
 		{
 			name:     "empty template",
 			template: "",
-			input: &CustomHybridInput{
+			input: &NodeadmInput{
+				Hybrid:            true,
 				ClusterName:       "test-cluster",
 				Region:            "us-west-2",
 				KubernetesVersion: "1.29",
@@ -450,7 +548,8 @@ IS_AZ2=true
 		{
 			name:     "invalid template syntax",
 			template: `{{.ClusterName`,
-			input: &CustomHybridInput{
+			input: &NodeadmInput{
+				Hybrid:            true,
 				ClusterName:       "test-cluster",
 				Region:            "us-west-2",
 				KubernetesVersion: "1.29",
@@ -463,7 +562,8 @@ IS_AZ2=true
 		{
 			name:     "unknown field in template",
 			template: `{{.UnknownField}}`,
-			input: &CustomHybridInput{
+			input: &NodeadmInput{
+				Hybrid:            true,
 				ClusterName:       "test-cluster",
 				Region:            "us-west-2",
 				KubernetesVersion: "1.29",
@@ -511,7 +611,8 @@ CONFIG={{.KubeletConfig}}
 CONTAINERD={{.ContainerdConfig}}
 {{- end }}
 `
-	input := &CustomHybridInput{
+	input := &NodeadmInput{
+		Hybrid:            true,
 		ClusterName:       "test-cluster",
 		Region:            "us-west-2",
 		KubernetesVersion: "1.29",
@@ -597,7 +698,8 @@ fi
 echo "Bootstrap complete for {{.ClusterName}}"
 `
 
-	input := &CustomHybridInput{
+	input := &NodeadmInput{
+		Hybrid:            true,
 		ClusterName:       "test-clusterprod",
 		Region:            "eu-central-1",
 		KubernetesVersion: "1.29",

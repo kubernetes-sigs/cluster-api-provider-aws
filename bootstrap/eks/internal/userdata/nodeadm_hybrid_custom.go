@@ -21,68 +21,31 @@ import (
 	"fmt"
 	texttemplate "text/template"
 
-	"k8s.io/apimachinery/pkg/runtime"
-
+	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2"
 	bootstraptemplate "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/internal/template"
 )
 
-// CustomHybridInput contains all runtime variables available for custom template interpolation.
-// These variables are populated at runtime and made available to user-provided templates.
-type CustomHybridInput struct {
-	// ClusterName is the EKS cluster name (required).
-	ClusterName string
-
-	// Region is the AWS region where the cluster is located (required).
-	Region string
-
-	// KubernetesVersion is the Kubernetes version of the cluster (required).
-	// Examples: "1.29", "v1.29.0"
-	KubernetesVersion string
-
-	// ActivationID is the SSM activation ID for hybrid node registration (required).
-	ActivationID string
-
-	// ActivationCode is the SSM activation code for hybrid node registration (required).
-	ActivationCode string
-
-	// KubeletFlags contains additional kubelet command-line flags (optional).
-	KubeletFlags []string
-
-	// KubeletConfig contains the kubelet configuration as a RawExtension (optional).
-	// It will be converted to a YAML string before template rendering.
-	KubeletConfig *runtime.RawExtension
-
-	// ContainerdConfig contains the containerd configuration (optional).
-	ContainerdConfig string
-}
-
-// validateCustomHybridInput validates the required fields for custom hybrid userdata generation.
-func validateCustomHybridInput(input *CustomHybridInput) error {
+// validateCustomHybridNodeadmInput validates fields required for custom hybrid userdata generation.
+func validateCustomHybridNodeadmInput(input *NodeadmInput) error {
 	if input == nil {
 		return fmt.Errorf("custom hybrid input is required")
 	}
-	if input.ClusterName == "" {
-		return fmt.Errorf("cluster name is required for custom hybrid userdata")
+	if !input.Hybrid {
+		return fmt.Errorf("hybrid mode is required for custom hybrid userdata")
 	}
-	if input.Region == "" {
-		return fmt.Errorf("region is required for custom hybrid userdata")
+	if err := validateNodeadmInput(input); err != nil {
+		return err
 	}
 	if input.KubernetesVersion == "" {
 		return fmt.Errorf("kubernetes version is required for custom hybrid userdata")
-	}
-	if input.ActivationID == "" {
-		return fmt.Errorf("SSM activation ID is required for custom hybrid userdata")
-	}
-	if input.ActivationCode == "" {
-		return fmt.Errorf("SSM activation code is required for custom hybrid userdata")
 	}
 	return nil
 }
 
 // NewCustomHybridUserdata generates a generic userdata from a user-provided template
 // with runtime variable interpolation. The template uses Go text/template syntax.
-func NewCustomHybridUserdata(templateStr string, input *CustomHybridInput) ([]byte, error) {
-	if err := validateCustomHybridInput(input); err != nil {
+func NewCustomHybridUserdata(templateStr string, input *NodeadmInput) ([]byte, error) {
+	if err := validateCustomHybridNodeadmInput(input); err != nil {
 		return nil, err
 	}
 
@@ -99,26 +62,50 @@ func NewCustomHybridUserdata(templateStr string, input *CustomHybridInput) ([]by
 			return nil, fmt.Errorf("failed to convert kubelet config to YAML: %w", err)
 		}
 	}
+	containerdBaseRuntimeSpecStr := ""
+	if input.ContainerdBaseRuntimeSpec != nil {
+		var err error
+		containerdBaseRuntimeSpecStr, err = bootstraptemplate.ToYAML(input.ContainerdBaseRuntimeSpec)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert containerd base runtime spec to YAML: %w", err)
+		}
+	}
 
 	// Build template data with KubeletConfig as a rendered string
 	templateData := struct {
-		ClusterName       string
-		Region            string
-		KubernetesVersion string
-		ActivationID      string
-		ActivationCode    string
-		KubeletFlags      []string
-		KubeletConfig     string
-		ContainerdConfig  string
+		ClusterName               string
+		Region                    string
+		KubernetesVersion         string
+		ActivationID              string
+		ActivationCode            string
+		KubeletFlags              []string
+		KubeletConfig             string
+		ContainerdConfig          string
+		ContainerdBaseRuntimeSpec string
+		FeatureGates              map[eksbootstrapv1.Feature]bool
+		PreNodeadmCommands        []string
+		Files                     []eksbootstrapv1.File
+		Users                     []eksbootstrapv1.User
+		NTP                       *eksbootstrapv1.NTP
+		DiskSetup                 *eksbootstrapv1.DiskSetup
+		Mounts                    []eksbootstrapv1.MountPoints
 	}{
-		ClusterName:       input.ClusterName,
-		Region:            input.Region,
-		KubernetesVersion: input.KubernetesVersion,
-		ActivationID:      input.ActivationID,
-		ActivationCode:    input.ActivationCode,
-		KubeletFlags:      input.KubeletFlags,
-		KubeletConfig:     kubeletConfigStr,
-		ContainerdConfig:  input.ContainerdConfig,
+		ClusterName:               input.ClusterName,
+		Region:                    input.Region,
+		KubernetesVersion:         input.KubernetesVersion,
+		ActivationID:              input.ActivationID,
+		ActivationCode:            input.ActivationCode,
+		KubeletFlags:              input.KubeletFlags,
+		KubeletConfig:             kubeletConfigStr,
+		ContainerdConfig:          input.ContainerdConfig,
+		ContainerdBaseRuntimeSpec: containerdBaseRuntimeSpecStr,
+		FeatureGates:              input.FeatureGates,
+		PreNodeadmCommands:        input.PreNodeadmCommands,
+		Files:                     input.Files,
+		Users:                     input.Users,
+		NTP:                       input.NTP,
+		DiskSetup:                 input.DiskSetup,
+		Mounts:                    input.Mounts,
 	}
 
 	// Parse the user-provided template
