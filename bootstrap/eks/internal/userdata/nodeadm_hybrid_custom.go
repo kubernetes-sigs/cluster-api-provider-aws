@@ -18,12 +18,12 @@ package userdata
 
 import (
 	"bytes"
-	"encoding/base64"
 	"fmt"
-	"strings"
-	"text/template"
+	texttemplate "text/template"
 
 	"k8s.io/apimachinery/pkg/runtime"
+
+	bootstraptemplate "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/internal/template"
 )
 
 // CustomHybridInput contains all runtime variables available for custom template interpolation.
@@ -54,40 +54,6 @@ type CustomHybridInput struct {
 
 	// ContainerdConfig contains the containerd configuration (optional).
 	ContainerdConfig string
-}
-
-// customTemplateFuncMap provides template functions for custom userdata templates.
-// These functions enable common operations within user-provided templates.
-var customTemplateFuncMap = template.FuncMap{
-	// Indent adds indentation to each line of content
-	"Indent": templateYAMLIndent,
-	// join concatenates slice elements with a separator
-	"join": strings.Join,
-	// base64Encode encodes a string to base64
-	"base64Encode": func(s string) string {
-		return base64.StdEncoding.EncodeToString([]byte(s))
-	},
-	// default returns the default value if the given value is empty
-	"default": func(def, val string) string {
-		if val == "" {
-			return def
-		}
-		return val
-	},
-	// trimSpace removes leading and trailing whitespace
-	"trimSpace": strings.TrimSpace,
-	// contains checks if a string contains a substring
-	"contains": strings.Contains,
-	// hasPrefix checks if a string has a prefix
-	"hasPrefix": strings.HasPrefix,
-	// hasSuffix checks if a string has a suffix
-	"hasSuffix": strings.HasSuffix,
-	// replace replaces all occurrences of old with new in s
-	"replace": strings.ReplaceAll,
-	// lower converts a string to lowercase
-	"lower": strings.ToLower,
-	// upper converts a string to uppercase
-	"upper": strings.ToUpper,
 }
 
 // validateCustomHybridInput validates the required fields for custom hybrid userdata generation.
@@ -128,7 +94,7 @@ func NewCustomHybridUserdata(templateStr string, input *CustomHybridInput) ([]by
 	kubeletConfigStr := ""
 	if input.KubeletConfig != nil {
 		var err error
-		kubeletConfigStr, err = templateToYAML(input.KubeletConfig)
+		kubeletConfigStr, err = bootstraptemplate.ToYAML(input.KubeletConfig)
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert kubelet config to YAML: %w", err)
 		}
@@ -156,8 +122,8 @@ func NewCustomHybridUserdata(templateStr string, input *CustomHybridInput) ([]by
 	}
 
 	// Parse the user-provided template
-	tmpl, err := template.New("customHybridUserdata").
-		Funcs(customTemplateFuncMap).
+	tmpl, err := texttemplate.New("customHybridUserdata").
+		Funcs(bootstraptemplate.FuncMap()).
 		Option("missingkey=error"). // Fail on missing keys for better error messages
 		Parse(templateStr)
 	if err != nil {
