@@ -195,7 +195,7 @@ func (r *NodeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 }
 
 func hasManagedHybridSSMActivation(config *eksbootstrapv1.NodeadmConfig) bool {
-	return config.Spec.Hybrid != nil && config.Spec.Hybrid.SSM != nil && config.Spec.Hybrid.SSM.ActivationConfig != nil
+	return config.Spec.Hybrid != nil && config.Spec.Hybrid.SSM.ActivationConfig != nil
 }
 
 func (r *NodeadmConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1.Cluster, config *eksbootstrapv1.NodeadmConfig, configOwner *bsutil.ConfigOwner) (ctrl.Result, error) {
@@ -540,11 +540,11 @@ func (r *NodeadmConfigReconciler) getOrCreateSSMActivation(
 ) (string, string, error) {
 	log := logger.FromContext(ctx)
 
-	if config.Spec.Hybrid == nil || config.Spec.Hybrid.SSM == nil {
+	if config.Spec.Hybrid == nil {
 		return "", "", errors.New("hybrid SSM configuration is required")
 	}
 
-	ssmOpts := config.Spec.Hybrid.SSM
+	ssmOpts := &config.Spec.Hybrid.SSM
 
 	// Option 1: Use pre-created activation secret
 	if ssmOpts.ActivationRef != nil {

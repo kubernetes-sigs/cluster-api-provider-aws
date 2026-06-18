@@ -82,7 +82,7 @@ type HybridOptions struct {
 	// SSM configures SSM-based authentication for hybrid nodes.
 	// This is required for hybrid node support.
 	// +kubebuilder:validation:Required
-	SSM *HybridSSMOptions `json:"ssm"`
+	SSM HybridSSMOptions `json:"ssm"`
 
 	// CustomUserData allows providing a custom userdata template with variable interpolation.
 	// When specified, the default nodeadm MIME multipart userdata generation is completely
