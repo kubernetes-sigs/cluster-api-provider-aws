@@ -197,7 +197,6 @@ spec:
                   Hybrid contains configuration for EKS Hybrid Nodes.
                   When specified, the NodeadmConfig generates userdata for hybrid node
                   bootstrapping instead of standard EC2 node bootstrapping.
-                  Hybrid mode is mutually exclusive with EC2-specific options.
                 properties:
                   customUserData:
                     description: |-

@@ -70,7 +70,6 @@ type NodeadmConfigSpec struct {
 	// Hybrid contains configuration for EKS Hybrid Nodes.
 	// When specified, the NodeadmConfig generates userdata for hybrid node
 	// bootstrapping instead of standard EC2 node bootstrapping.
-	// Hybrid mode is mutually exclusive with EC2-specific options.
 	// +optional
 	Hybrid *HybridOptions `json:"hybrid,omitempty"`
 }
