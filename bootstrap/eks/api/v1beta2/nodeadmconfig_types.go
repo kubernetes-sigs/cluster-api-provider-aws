@@ -140,6 +140,8 @@ type CustomUserDataOptions struct {
 
 // HybridSSMOptions configures SSM activation-based authentication for hybrid nodes.
 // Either ActivationRef or ActivationConfig must be specified, but not both.
+// +kubebuilder:validation:XValidation:rule="has(self.activationRef) || has(self.activationConfig)",message="one of activationRef or activationConfig must be specified"
+// +kubebuilder:validation:XValidation:rule="!has(self.activationRef) || !has(self.activationConfig)",message="activationRef and activationConfig are mutually exclusive"
 type HybridSSMOptions struct {
 	// ActivationRef references an existing Secret containing SSM activation credentials.
 	// The Secret must contain 'activationId' and 'activationCode' keys.

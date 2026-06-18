@@ -340,6 +340,13 @@ spec:
                                 type: object
                                 x-kubernetes-map-type: atomic
                             type: object
+                            x-kubernetes-validations:
+                            - message: one of activationRef or activationConfig must
+                                be specified
+                              rule: has(self.activationRef) || has(self.activationConfig)
+                            - message: activationRef and activationConfig are mutually
+                                exclusive
+                              rule: '!has(self.activationRef) || !has(self.activationConfig)'
                         required:
                         - ssm
                         type: object
