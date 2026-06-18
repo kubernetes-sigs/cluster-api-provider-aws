@@ -502,6 +502,7 @@ func (r *NodeadmConfigReconciler) generateNodeadmHybridUserdata(
 
 	// Build hybrid node input
 	nodeInput := &userdata.NodeadmInput{
+		Hybrid:             true,
 		ClusterName:        controlPlane.Spec.EKSClusterName,
 		Region:             controlPlane.Spec.Region,
 		ActivationID:       activationID,

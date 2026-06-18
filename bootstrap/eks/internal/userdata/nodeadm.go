@@ -84,7 +84,7 @@ kind: NodeConfig
 spec:
   cluster:
     name: {{.ClusterName}}
-{{- if .Region }}
+{{- if .Hybrid }}
     region: {{.Region}}
 {{- else }}
     apiServerEndpoint: {{.APIServerEndpoint}}
@@ -121,7 +121,7 @@ spec:
 {{ Indent 6 (toYaml .ContainerdBaseRuntimeSpec) }}
     {{- end }}
 {{- end }}
-{{- if .ActivationID }}
+{{- if .Hybrid }}
   hybrid:
     ssm:
       activationId: {{.ActivationID}}
@@ -132,10 +132,7 @@ spec:
 )
 
 // NodeadmInput contains all the information required to generate user data for a node.
-// It supports both EC2 worker nodes and EKS hybrid nodes. The mode is determined by
-// which fields are populated:
-//   - EC2 mode: APIServerEndpoint, CACert, ServiceCIDR are set
-//   - Hybrid mode: Region, ActivationID, ActivationCode are set
+// It supports both EC2 worker nodes and EKS hybrid nodes.
 type NodeadmInput struct {
 	ClusterName               string
 	KubeletFlags              []string
@@ -150,6 +147,9 @@ type NodeadmInput struct {
 	Mounts             []eksbootstrapv1.MountPoints
 	Users              []eksbootstrapv1.User
 	NTP                *eksbootstrapv1.NTP
+
+	// Hybrid indicates this input is for hybrid node generation.
+	Hybrid bool
 
 	// EC2-specific fields (unused in hybrid mode)
 	AMIImageID        string
@@ -167,18 +167,12 @@ type NodeadmInput struct {
 	Boundary string
 }
 
-// isHybridMode returns true if the input is configured for hybrid node generation.
-// Hybrid mode is indicated by the presence of Region or SSM activation fields.
-func (input *NodeadmInput) isHybridMode() bool {
-	return input.Region != "" || input.ActivationID != "" || input.ActivationCode != ""
-}
-
 // validateNodeadmInput validates the input for nodeadm user data generation.
 func validateNodeadmInput(input *NodeadmInput) error {
 	if input.ClusterName == "" {
 		return fmt.Errorf("cluster name is required for nodeadm")
 	}
-	if input.isHybridMode() {
+	if input.Hybrid {
 		if input.Region == "" {
 			return fmt.Errorf("region is required for hybrid nodeadm")
 		}

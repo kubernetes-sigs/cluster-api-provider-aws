@@ -417,6 +417,7 @@ func TestHybridNodeadmUserdata(t *testing.T) {
 			name: "basic hybrid nodeadm userdata",
 			args: args{
 				input: &NodeadmInput{
+					Hybrid:         true,
 					ClusterName:    "test-cluster",
 					Region:         "us-west-2",
 					ActivationID:   "test-activation-id",
@@ -439,6 +440,7 @@ func TestHybridNodeadmUserdata(t *testing.T) {
 			name: "hybrid userdata does NOT contain apiServerEndpoint or certificateAuthority",
 			args: args{
 				input: &NodeadmInput{
+					Hybrid:         true,
 					ClusterName:    "test-cluster",
 					Region:         "us-west-2",
 					ActivationID:   "test-activation-id",
@@ -457,6 +459,7 @@ func TestHybridNodeadmUserdata(t *testing.T) {
 			name: "hybrid full configuration - all options",
 			args: args{
 				input: &NodeadmInput{
+					Hybrid:         true,
 					ClusterName:    "production-cluster",
 					Region:         "eu-west-1",
 					ActivationID:   "prod-activation-id",
@@ -494,6 +497,7 @@ func TestHybridNodeadmUserdata(t *testing.T) {
 			name: "hybrid missing cluster name",
 			args: args{
 				input: &NodeadmInput{
+					Hybrid:         true,
 					Region:         "us-west-2",
 					ActivationID:   "test-activation-id",
 					ActivationCode: "test-activation-code",
@@ -506,6 +510,7 @@ func TestHybridNodeadmUserdata(t *testing.T) {
 			name: "hybrid missing region",
 			args: args{
 				input: &NodeadmInput{
+					Hybrid:         true,
 					ClusterName:    "test-cluster",
 					ActivationID:   "test-activation-id",
 					ActivationCode: "test-activation-code",
@@ -518,6 +523,7 @@ func TestHybridNodeadmUserdata(t *testing.T) {
 			name: "hybrid missing activation ID",
 			args: args{
 				input: &NodeadmInput{
+					Hybrid:         true,
 					ClusterName:    "test-cluster",
 					Region:         "us-west-2",
 					ActivationCode: "test-activation-code",
@@ -530,6 +536,7 @@ func TestHybridNodeadmUserdata(t *testing.T) {
 			name: "hybrid missing activation code",
 			args: args{
 				input: &NodeadmInput{
+					Hybrid:       true,
 					ClusterName:  "test-cluster",
 					Region:       "us-west-2",
 					ActivationID: "test-activation-id",
@@ -537,6 +544,19 @@ func TestHybridNodeadmUserdata(t *testing.T) {
 			},
 			expectErr:   true,
 			errContains: "SSM activation code is required",
+		},
+		{
+			name: "hybrid fields do not imply hybrid mode",
+			args: args{
+				input: &NodeadmInput{
+					ClusterName:    "test-cluster",
+					Region:         "us-west-2",
+					ActivationID:   "test-activation-id",
+					ActivationCode: "test-activation-code",
+				},
+			},
+			expectErr:   true,
+			errContains: "API server endpoint is required",
 		},
 	}
 
