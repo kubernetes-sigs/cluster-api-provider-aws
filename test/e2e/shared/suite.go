@@ -150,16 +150,25 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 			}
 			return success
 		}, 45*time.Minute, 30*time.Second).Should(BeTrue(), "Should've eventually succeeded creating an AWS CloudFormation stack")
+
+		ensureStackTags(e2eCtx.AWSSession, bootstrapTemplate.Spec.StackName, bootstrapTags)
+	} else {
+		By("Skipping CloudFormation stack tag verification because -skip-cloudformation-creation is set")
 	}
 
-	ensureStackTags(e2eCtx.AWSSession, bootstrapTemplate.Spec.StackName, bootstrapTags)
 	ensureNoServiceLinkedRoles(context.TODO(), e2eCtx.AWSSession)
 	ensureSSHKeyPair(*e2eCtx.AWSSession, DefaultSSHKeyPairName)
-	e2eCtx.Environment.BootstrapAccessKey = newUserAccessKey(context.TODO(), e2eCtx.AWSSession, bootstrapTemplate.Spec.BootstrapUser.UserName)
-	e2eCtx.BootstrapUserAWSSession = NewAWSSessionWithKey(e2eCtx.Environment.BootstrapAccessKey)
 
-	By("Waiting for access key to propagate...")
-	time.Sleep(10 * time.Second)
+	if iamUserExists(context.TODO(), e2eCtx.AWSSession, bootstrapTemplate.Spec.BootstrapUser.UserName) {
+		e2eCtx.Environment.BootstrapAccessKey = newUserAccessKey(context.TODO(), e2eCtx.AWSSession, bootstrapTemplate.Spec.BootstrapUser.UserName)
+		e2eCtx.BootstrapUserAWSSession = NewAWSSessionWithKey(e2eCtx.Environment.BootstrapAccessKey)
+
+		By("Waiting for access key to propagate...")
+		time.Sleep(10 * time.Second)
+	} else {
+		By("Bootstrap user does not exist; reusing the calling session credentials")
+		e2eCtx.BootstrapUserAWSSession = e2eCtx.AWSSession
+	}
 
 	Expect(ensureTestImageUploaded(context.TODO(), e2eCtx)).NotTo(HaveOccurred())
 
@@ -177,7 +186,12 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 		framework.WithMachineLogCollector(AWSStackLogCollector{E2EContext: e2eCtx}),
 	)
 
-	base64EncodedCredentials := encodeCredentials(e2eCtx.Environment.BootstrapAccessKey, bootstrapTemplate.Spec.Region)
+	var base64EncodedCredentials string
+	if e2eCtx.Environment.BootstrapAccessKey != nil {
+		base64EncodedCredentials = encodeCredentials(e2eCtx.Environment.BootstrapAccessKey, bootstrapTemplate.Spec.Region)
+	} else {
+		base64EncodedCredentials = encodeCredentialsFromSession(context.TODO(), e2eCtx.AWSSession, bootstrapTemplate.Spec.Region)
+	}
 	SetEnvVar("AWS_B64ENCODED_CREDENTIALS", base64EncodedCredentials, true)
 
 	if !e2eCtx.Settings.SkipQuotas {
@@ -233,7 +247,11 @@ func AllNodesBeforeSuite(e2eCtx *E2EContext, data []byte) {
 		framework.WithMachineLogCollector(AWSStackLogCollector{E2EContext: e2eCtx}),
 	)
 	e2eCtx.E2EConfig = &conf.E2EConfig
-	e2eCtx.BootstrapUserAWSSession = NewAWSSessionWithKey(conf.BootstrapAccessKey)
+	if conf.BootstrapAccessKey != nil {
+		e2eCtx.BootstrapUserAWSSession = NewAWSSessionWithKey(conf.BootstrapAccessKey)
+	} else {
+		e2eCtx.BootstrapUserAWSSession = NewAWSSession()
+	}
 	e2eCtx.Settings.FileLock = flock.New(ResourceQuotaFilePath)
 	e2eCtx.Settings.KubetestConfigFilePath = conf.KubetestConfigFilePath
 	e2eCtx.Settings.UseCIArtifacts = conf.UseCIArtifacts
