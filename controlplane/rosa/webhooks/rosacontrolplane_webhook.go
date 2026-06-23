@@ -230,7 +230,8 @@ func (w *ROSAControlPlane) validateRosaRoleConfig(r *rosacontrolplanev1.ROSACont
 	hasRoleFields := r.Spec.OIDCID != "" || r.Spec.InstallerRoleARN != "" || r.Spec.SupportRoleARN != "" || r.Spec.WorkerRoleARN != "" ||
 		r.Spec.RolesRef.IngressARN != "" || r.Spec.RolesRef.ImageRegistryARN != "" || r.Spec.RolesRef.StorageARN != "" ||
 		r.Spec.RolesRef.NetworkARN != "" || r.Spec.RolesRef.KubeCloudControllerARN != "" || r.Spec.RolesRef.NodePoolManagementARN != "" ||
-		r.Spec.RolesRef.ControlPlaneOperatorARN != "" || r.Spec.RolesRef.KMSProviderARN != ""
+		r.Spec.RolesRef.ControlPlaneOperatorARN != "" || r.Spec.RolesRef.KMSProviderARN != "" ||
+		r.Spec.TrustPolicyExternalID != ""
 
 	if r.Spec.RosaRoleConfigRef != nil {
 		if hasRoleFields {
