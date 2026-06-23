@@ -2529,6 +2529,16 @@ spec:
                   bare EKS cluster without EKS default networking addons
                   If you set this value to false when creating a cluster, the default networking add-ons will not be installed
                 type: boolean
+              controlPlaneEgressMode:
+                default: aws-managed
+                description: |-
+                  ControlPlaneEgressMode specifies how traffic should leave the control plane. It defaults to aws-managed.
+                  You can change the mode from aws-managed to customer-routed. But once set to customer-routed it cannot
+                  be changed at a later date.
+                enum:
+                - aws-managed
+                - customer-routed
+                type: string
               controlPlaneEndpoint:
                 description: ControlPlaneEndpoint represents the endpoint used to
                   communicate with the control plane.
