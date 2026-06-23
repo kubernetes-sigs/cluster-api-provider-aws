@@ -360,3 +360,15 @@ type OIDCIdentityProviderConfig struct {
 	// +optional
 	Tags infrav1.Tags `json:"tags,omitempty"`
 }
+
+// ControlPlaneEgressMode represents the different ways traffic can leave the control plane.
+type ControlPlaneEgressMode string
+
+var (
+	// ControlPlaneEgressModeAwsManaged specifies that the control plane routes customer-controllable traffic
+	// (such as admission webhooks) through AWS managed networking.
+	ControlPlaneEgressModeAwsManaged = ControlPlaneEgressMode("aws-managed")
+	// ControlPlaneEgressModeCustomerRouted specifies that the control plane routes customer-controllable traffic
+	// (such as admission webhooks) through your VPC instead of AWS managed networking.
+	ControlPlaneEgressModeCustomerRouted = ControlPlaneEgressMode("customer-routed")
+)

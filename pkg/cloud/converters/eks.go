@@ -36,6 +36,9 @@ var (
 
 	// ErrUnknownCapacityType is an error when a unknown CapacityType is used.
 	ErrUnknownCapacityType = errors.New("unknown capacity type")
+
+	// ErrUnknownEgressMode is an error when a unknown EgressMode is used.
+	ErrUnknownEgressMode = errors.New("unknown control plane egress mode")
 )
 
 // AddonSDKToAddonState is used to convert an AWS SDK Addon to a control plane AddonState.
@@ -167,6 +170,18 @@ func ConvertSDKToIdentityProvider(in *ekscontrolplanev1.OIDCIdentityProviderConf
 	}
 
 	return nil
+}
+
+// EgressModeToSDK is used to convert a EgressMode to the AWS SDK egress mode value.
+func EgressModeToSDK(egressMode ekscontrolplanev1.ControlPlaneEgressMode) (ekstypes.ControlPlaneEgressModeType, error) {
+	switch egressMode {
+	case ekscontrolplanev1.ControlPlaneEgressModeAwsManaged:
+		return ekstypes.ControlPlaneEgressModeTypeAwsManaged, nil
+	case ekscontrolplanev1.ControlPlaneEgressModeCustomerRouted:
+		return ekstypes.ControlPlaneEgressModeTypeCustomerRouted, nil
+	default:
+		return "", ErrUnknownEgressMode
+	}
 }
 
 // CapacityTypeToSDK is used to convert a CapacityType to the AWS SDK capacity type value.

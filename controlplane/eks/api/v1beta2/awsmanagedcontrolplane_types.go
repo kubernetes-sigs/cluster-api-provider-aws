@@ -226,6 +226,13 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// +kubebuilder:validation:Enum=extended;standard
 	// +optional
 	UpgradePolicy UpgradePolicy `json:"upgradePolicy,omitempty"`
+
+	// ControlPlaneEgressMode specifies how traffic should leave the control plane. It defaults to aws-managed.
+	// You can change the mode from aws-managed to customer-routed. But once set to customer-routed it cannot
+	// be changed at a later date.
+	// +kubebuilder:default=aws-managed
+	// +kubebuilder:validation:Enum=aws-managed;customer-routed
+	ControlPlaneEgressMode ControlPlaneEgressMode `json:"controlPlaneEgressMode,omitempty"`
 }
 
 // KubeProxy specifies how the kube-proxy daemonset is managed.
