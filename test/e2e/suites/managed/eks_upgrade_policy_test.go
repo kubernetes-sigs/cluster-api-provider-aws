@@ -29,6 +29,7 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
@@ -36,6 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/e2e/shared"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 // EKS upgrade policy test.
@@ -92,10 +94,28 @@ var _ = ginkgo.Describe("EKS upgrade policy test", func() {
 
 		changedUpgradePolicy := ekscontrolplanev1.UpgradePolicyExtended
 		ginkgo.By(fmt.Sprintf("Changing the UpgradePolicy from %s to %s", upgradePolicy, changedUpgradePolicy))
-		shared.SetEnvVar(shared.UpgradePolicy, changedUpgradePolicy.String(), false)
-		ManagedClusterSpec(ctx, getManagedClusterSpec)
+
+		mgmtClient := e2eCtx.Environment.BootstrapClusterProxy.GetClient()
+		controlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
+
+		// Get the AWSManagedControlPlane.
+		Eventually(func() error {
+			return mgmtClient.Get(ctx, crclient.ObjectKey{Namespace: namespace.Name, Name: getControlPlaneName(clusterName)}, controlPlane)
+		}, e2eCtx.E2EConfig.GetIntervals("", "wait-client-request")...).Should(Succeed(), "eventually failed trying to get the AWSManagedControlPlane")
+
+		// Patch the AWSManagedControlPlane with the new upgrade policy.
+		patchHelper, err := patch.NewHelper(controlPlane, mgmtClient)
+		Expect(err).ToNot(HaveOccurred())
+		controlPlane.Spec.UpgradePolicy = changedUpgradePolicy
+
+		Eventually(func() error {
+			return patchHelper.Patch(ctx, controlPlane)
+		}, e2eCtx.E2EConfig.GetIntervals("", "wait-client-request")...).Should(Succeed(), "eventually failed patching the AWSManagedControlPlane")
+
+		// Wait for the upgrade policy to be reflected in AWS EKS.
 		WaitForEKSClusterUpgradePolicy(ctx, e2eCtx.BootstrapUserAWSSession, eksClusterName, changedUpgradePolicy)
 
+		// Clean up the cluster.
 		framework.DeleteCluster(ctx, framework.DeleteClusterInput{
 			Deleter: e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 			Cluster: cluster,
@@ -109,6 +129,8 @@ var _ = ginkgo.Describe("EKS upgrade policy test", func() {
 	})
 })
 
+// WaitForEKSClusterUpgradePolicy polls the AWS EKS API until the cluster's upgrade policy
+// matches the expected value, failing early if the cluster is not found.
 func WaitForEKSClusterUpgradePolicy(ctx context.Context, sess *aws.Config, eksClusterName string, upgradePolicy ekscontrolplanev1.UpgradePolicy) {
 	ginkgo.By(fmt.Sprintf("Checking EKS control plane upgrade policy matches %s", upgradePolicy))
 	Eventually(func() error {
