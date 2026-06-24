@@ -25,6 +25,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	s3svc "github.com/aws/aws-sdk-go-v2/service/s3"
@@ -336,6 +337,136 @@ func TestReconcileBucket(t *testing.T) {
 			s3Mock.EXPECT().CreateBucket(gomock.Any(), gomock.Eq(input)).Return(nil, nil).Times(1)
 			s3Mock.EXPECT().PutBucketTagging(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 			s3Mock.EXPECT().PutBucketPolicy(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			s3Mock.EXPECT().PutBucketLifecycleConfiguration(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+
+			if err := svc.ReconcileBucket(context.TODO()); err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+		})
+
+		t.Run("creates_bucket_with_single_additional_iam_profile", func(t *testing.T) {
+			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
+
+			expectedBucketName := "test-bucket"
+			expectedProfileName := "karpenter-nodes"
+			expectedPrefix := "karpenter-nodes/*"
+
+			svc, s3Mock := testService(t, &testServiceInput{
+				Bucket: &infrav1.S3Bucket{
+					Name:                           expectedBucketName,
+					ControlPlaneIAMInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io",
+					NodesIAMInstanceProfiles:       []string{"nodes.cluster-api-provider-aws.sigs.k8s.io"},
+					AdditionalIAMInstanceProfiles: []infrav1.AdditionalIAMInstanceProfile{
+						{
+							Name:   expectedProfileName,
+							Prefix: expectedPrefix,
+						},
+					},
+				},
+			})
+
+			s3Mock.EXPECT().CreateBucket(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			s3Mock.EXPECT().PutBucketTagging(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			s3Mock.EXPECT().PutBucketPolicy(gomock.Any(), gomock.Any()).Do(func(ctx context.Context, input *s3svc.PutBucketPolicyInput, optFns ...func(*s3svc.Options)) {
+				policy := *input.Policy
+
+				if !strings.Contains(policy, expectedProfileName) {
+					t.Errorf("Policy should reference additional profile %q, got: %v", expectedProfileName, policy)
+				}
+
+				if !strings.Contains(policy, fmt.Sprintf("%s/%s", expectedBucketName, expectedPrefix)) {
+					t.Errorf("Policy should apply for objects with custom prefix %q, got: %v", expectedPrefix, policy)
+				}
+
+				if !strings.Contains(policy, fmt.Sprintf("arn:aws:iam::foo:role/%s", expectedProfileName)) {
+					t.Errorf("Expected arn to contain the additional profile principal; got: %v", policy)
+				}
+
+				if !strings.Contains(policy, "additional-") {
+					t.Errorf("Expected statement ID to be prefixed with 'additional-'; got: %v", policy)
+				}
+			}).Return(nil, nil).Times(1)
+			s3Mock.EXPECT().PutBucketLifecycleConfiguration(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+
+			if err := svc.ReconcileBucket(context.TODO()); err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+		})
+
+		t.Run("creates_bucket_with_multiple_additional_iam_profiles", func(t *testing.T) {
+			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
+
+			expectedBucketName := "test-bucket"
+
+			svc, s3Mock := testService(t, &testServiceInput{
+				Bucket: &infrav1.S3Bucket{
+					Name:                           expectedBucketName,
+					ControlPlaneIAMInstanceProfile: "control-plane.cluster-api-provider-aws.sigs.k8s.io",
+					NodesIAMInstanceProfiles:       []string{"nodes.cluster-api-provider-aws.sigs.k8s.io"},
+					AdditionalIAMInstanceProfiles: []infrav1.AdditionalIAMInstanceProfile{
+						{Name: "karpenter-nodes", Prefix: "karpenter-nodes/*"},
+						{Name: "custom-workload", Prefix: "custom/workload/*"},
+					},
+				},
+			})
+
+			s3Mock.EXPECT().CreateBucket(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			s3Mock.EXPECT().PutBucketTagging(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			s3Mock.EXPECT().PutBucketPolicy(gomock.Any(), gomock.Any()).Do(func(ctx context.Context, input *s3svc.PutBucketPolicyInput, optFns ...func(*s3svc.Options)) {
+				policy := *input.Policy
+
+				// Verify both profiles are in policy
+				for _, profile := range []string{"karpenter-nodes", "custom-workload"} {
+					if !strings.Contains(policy, profile) {
+						t.Errorf("Policy should reference additional profile %q, got: %v", profile, policy)
+					}
+				}
+
+				// Verify both prefixes are in policy
+				if !strings.Contains(policy, fmt.Sprintf("%s/karpenter-nodes/*", expectedBucketName)) {
+					t.Errorf("Policy should include karpenter-nodes prefix")
+				}
+				if !strings.Contains(policy, fmt.Sprintf("%s/custom/workload/*", expectedBucketName)) {
+					t.Errorf("Policy should include custom/workload prefix")
+				}
+			}).Return(nil, nil).Times(1)
+			s3Mock.EXPECT().PutBucketLifecycleConfiguration(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+
+			if err := svc.ReconcileBucket(context.TODO()); err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+		})
+
+		t.Run("ignores_additional_iam_profiles_when_presigned_urls_enabled", func(t *testing.T) {
+			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)
+
+			duration := metav1.Duration{Duration: 10 * time.Minute}
+
+			svc, s3Mock := testService(t, &testServiceInput{
+				Bucket: &infrav1.S3Bucket{
+					Name:                 "test-bucket",
+					PresignedURLDuration: &duration,
+					AdditionalIAMInstanceProfiles: []infrav1.AdditionalIAMInstanceProfile{
+						{Name: "should-be-ignored", Prefix: "ignored/*"},
+					},
+				},
+			})
+
+			s3Mock.EXPECT().CreateBucket(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			s3Mock.EXPECT().PutBucketTagging(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			s3Mock.EXPECT().PutBucketPolicy(gomock.Any(), gomock.Any()).Do(func(ctx context.Context, input *s3svc.PutBucketPolicyInput, optFns ...func(*s3svc.Options)) {
+				policy := *input.Policy
+
+				// Should NOT contain additional profile when presigned URLs are enabled
+				if strings.Contains(policy, "should-be-ignored") {
+					t.Errorf("Policy should not reference additional profiles when presigned URLs are enabled, got: %v", policy)
+				}
+
+				// Should only contain ForceSSLOnlyAccess statement
+				if !strings.Contains(policy, "ForceSSLOnlyAccess") {
+					t.Errorf("Policy should still contain SSL enforcement")
+				}
+			}).Return(nil, nil).Times(1)
 			s3Mock.EXPECT().PutBucketLifecycleConfiguration(gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 
 			if err := svc.ReconcileBucket(context.TODO()); err != nil {

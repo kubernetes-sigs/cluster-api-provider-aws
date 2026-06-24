@@ -572,6 +572,25 @@ func (s *Service) bucketPolicy(bucketName string) (string, error) {
 					Resource: []string{fmt.Sprintf("arn:%s:s3:::%s/machine-pool/*", partition, bucketName)},
 				})
 		}
+
+		// Add statements for additional IAM instance profiles with custom prefixes
+		for _, additionalProfile := range bucket.AdditionalIAMInstanceProfiles {
+			statements = append(statements, iam.StatementEntry{
+				Sid:    fmt.Sprintf("additional-%s", additionalProfile.Name),
+				Effect: iam.EffectAllow,
+				Principal: map[iam.PrincipalType]iam.PrincipalID{
+					iam.PrincipalAWS: []string{
+						fmt.Sprintf("arn:%s:iam::%s:role/%s",
+							partition, *accountID.Account, additionalProfile.Name),
+					},
+				},
+				Action: []string{"s3:GetObject"},
+				Resource: []string{
+					fmt.Sprintf("arn:%s:s3:::%s/%s",
+						partition, bucketName, additionalProfile.Prefix),
+				},
+			})
+		}
 	}
 
 	policy := iam.PolicyDocument{
