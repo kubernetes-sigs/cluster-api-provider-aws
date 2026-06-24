@@ -221,7 +221,7 @@ func (r *AWSManagedMachinePoolReconciler) reconcileNormal(
 			machinePoolScope.SetLaunchTemplateLatestVersionStatus(strconv.FormatInt(*lt.VersionNumber, 10))
 		}
 		v1beta1conditions.MarkTrue(machinePoolScope.ManagedMachinePool, expinfrav1.LaunchTemplateReadyCondition)
-	} else if machinePoolScope.ManagedMachinePool.Spec.AWSLaunchTemplate != nil {
+	} else if machinePoolScope.IsCAPAManagedLaunchTemplate() {
 		lt := machinePoolScope.ManagedMachinePool.Spec.AWSLaunchTemplate
 		if err := validateEnclaveEdgeZones(
 			lt.EnclaveOptions,
@@ -289,7 +289,7 @@ func (r *AWSManagedMachinePoolReconciler) reconcileDelete(
 	}
 
 	// Only delete the launch template when it is CAPA-managed (not BYO).
-	if machinePoolScope.ManagedMachinePool.Spec.AWSLaunchTemplate != nil && !machinePoolScope.IsBYOLaunchTemplate() {
+	if machinePoolScope.IsCAPAManagedLaunchTemplate() {
 		launchTemplateID := machinePoolScope.ManagedMachinePool.Status.LaunchTemplateID
 		launchTemplate, _, _, _, err := ec2Svc.GetLaunchTemplate(machinePoolScope.LaunchTemplateName())
 		if err != nil {

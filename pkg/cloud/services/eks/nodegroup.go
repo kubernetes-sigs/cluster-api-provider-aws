@@ -225,7 +225,7 @@ func (s *NodegroupService) createNodegroup(ctx context.Context) (*ekstypes.Nodeg
 		UpdateConfig:  updatedConfig,
 	}
 	useLaunchTemplate := managedPool.AWSLaunchTemplate != nil
-	isBYO := useLaunchTemplate && managedPool.AWSLaunchTemplate.ID != nil && *managedPool.AWSLaunchTemplate.ID != ""
+	isBYO := s.scope.IsBYOLaunchTemplate()
 	// RemoteAccess is rejected by EKS when a launch template is specified; key pair and
 	// source security groups must live in the launch template. Webhook validation also
 	// enforces this, but guard the service layer for defence in depth.

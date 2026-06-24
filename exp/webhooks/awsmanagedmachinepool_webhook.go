@@ -156,45 +156,59 @@ func (w *AWSManagedMachinePool) validateLaunchTemplate(r *expinfrav1.AWSManagedM
 		allErrs = append(allErrs, field.Invalid(ltPath.Child("iamInstanceProfile"), lt.IamInstanceProfile, "IAM instance profile in launch template is prohibited in EKS managed node group"))
 	}
 
-	// When using a BYO launch template (ID is set), versionNumber is required and
-	// CAPA-managed fields must not be specified.
+	// When using a BYO launch template (ID is set), enforce BYO-specific invariants.
 	if isBYO {
-		if lt.VersionNumber == nil {
-			allErrs = append(allErrs, field.Required(ltPath.Child("versionNumber"), "versionNumber is required when using a BYO launch template (id is set)"))
-		}
-		if lt.AMI.ID != nil || lt.AMI.EKSOptimizedLookupType != nil {
-			allErrs = append(allErrs, field.Forbidden(ltPath.Child("ami"), "ami cannot be specified with a BYO launch template (id is set)"))
-		}
-		if lt.InstanceType != "" {
-			allErrs = append(allErrs, field.Forbidden(ltPath.Child("instanceType"), "instanceType cannot be specified with a BYO launch template (id is set)"))
-		}
-		if lt.RootVolume != nil {
-			allErrs = append(allErrs, field.Forbidden(ltPath.Child("rootVolume"), "rootVolume cannot be specified with a BYO launch template (id is set)"))
-		}
-		if len(lt.NonRootVolumes) > 0 {
-			allErrs = append(allErrs, field.Forbidden(ltPath.Child("nonRootVolumes"), "nonRootVolumes cannot be specified with a BYO launch template (id is set)"))
-		}
-		if lt.SSHKeyName != nil {
-			allErrs = append(allErrs, field.Forbidden(ltPath.Child("sshKeyName"), "sshKeyName cannot be specified with a BYO launch template (id is set)"))
-		}
-		if lt.ImageLookupFormat != "" {
-			allErrs = append(allErrs, field.Forbidden(ltPath.Child("imageLookupFormat"), "imageLookupFormat cannot be specified with a BYO launch template (id is set)"))
-		}
-		if lt.ImageLookupOrg != "" {
-			allErrs = append(allErrs, field.Forbidden(ltPath.Child("imageLookupOrg"), "imageLookupOrg cannot be specified with a BYO launch template (id is set)"))
-		}
-		if lt.ImageLookupBaseOS != "" {
-			allErrs = append(allErrs, field.Forbidden(ltPath.Child("imageLookupBaseOS"), "imageLookupBaseOS cannot be specified with a BYO launch template (id is set)"))
-		}
-		if len(lt.AdditionalSecurityGroups) > 0 {
-			allErrs = append(allErrs, field.Forbidden(ltPath.Child("additionalSecurityGroups"), "additionalSecurityGroups cannot be specified with a BYO launch template (id is set)"))
-		}
-		// spec.amiType and spec.amiVersion are intentionally allowed alongside a BYO launch
-		// template: the AWS CreateNodegroup API accepts them as long as the launch template
-		// does not pin a custom AMI. CAPA cannot introspect user-owned launch templates, so
-		// any conflict between these fields and the referenced template is surfaced by the
-		// EKS API at create time rather than at admission.
+		allErrs = append(allErrs, w.validateBYOLaunchTemplate(lt, ltPath)...)
 	}
+
+	return allErrs
+}
+
+// validateBYOLaunchTemplate validates the invariants that apply when an existing
+// (user-provided) launch template is referenced via spec.awsLaunchTemplate.id. CAPA
+// neither introspects nor manages the referenced template, so versionNumber is required
+// and the CAPA-managed launch template fields must not be set.
+func (w *AWSManagedMachinePool) validateBYOLaunchTemplate(lt *expinfrav1.AWSLaunchTemplate, ltPath *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	if lt.VersionNumber == nil {
+		allErrs = append(allErrs, field.Required(ltPath.Child("versionNumber"), "versionNumber is required when using a BYO launch template (id is set)"))
+	}
+	if lt.AMI.ID != nil {
+		allErrs = append(allErrs, field.Forbidden(ltPath.Child("ami", "id"), "ami.id cannot be specified with a BYO launch template (id is set)"))
+	}
+	if lt.AMI.EKSOptimizedLookupType != nil {
+		allErrs = append(allErrs, field.Forbidden(ltPath.Child("ami", "eksLookupType"), "ami.eksLookupType cannot be specified with a BYO launch template (id is set)"))
+	}
+	if lt.InstanceType != "" {
+		allErrs = append(allErrs, field.Forbidden(ltPath.Child("instanceType"), "instanceType cannot be specified with a BYO launch template (id is set)"))
+	}
+	if lt.RootVolume != nil {
+		allErrs = append(allErrs, field.Forbidden(ltPath.Child("rootVolume"), "rootVolume cannot be specified with a BYO launch template (id is set)"))
+	}
+	if len(lt.NonRootVolumes) > 0 {
+		allErrs = append(allErrs, field.Forbidden(ltPath.Child("nonRootVolumes"), "nonRootVolumes cannot be specified with a BYO launch template (id is set)"))
+	}
+	if lt.SSHKeyName != nil {
+		allErrs = append(allErrs, field.Forbidden(ltPath.Child("sshKeyName"), "sshKeyName cannot be specified with a BYO launch template (id is set)"))
+	}
+	if lt.ImageLookupFormat != "" {
+		allErrs = append(allErrs, field.Forbidden(ltPath.Child("imageLookupFormat"), "imageLookupFormat cannot be specified with a BYO launch template (id is set)"))
+	}
+	if lt.ImageLookupOrg != "" {
+		allErrs = append(allErrs, field.Forbidden(ltPath.Child("imageLookupOrg"), "imageLookupOrg cannot be specified with a BYO launch template (id is set)"))
+	}
+	if lt.ImageLookupBaseOS != "" {
+		allErrs = append(allErrs, field.Forbidden(ltPath.Child("imageLookupBaseOS"), "imageLookupBaseOS cannot be specified with a BYO launch template (id is set)"))
+	}
+	if len(lt.AdditionalSecurityGroups) > 0 {
+		allErrs = append(allErrs, field.Forbidden(ltPath.Child("additionalSecurityGroups"), "additionalSecurityGroups cannot be specified with a BYO launch template (id is set)"))
+	}
+	// spec.amiType and spec.amiVersion are intentionally allowed alongside a BYO launch
+	// template: the AWS CreateNodegroup API accepts them as long as the launch template
+	// does not pin a custom AMI. CAPA cannot introspect user-owned launch templates, so
+	// any conflict between these fields and the referenced template is surfaced by the
+	// EKS API at create time rather than at admission.
 
 	return allErrs
 }
@@ -332,31 +346,13 @@ func (w *AWSManagedMachinePool) validateImmutable(r *expinfrav1.AWSManagedMachin
 			field.Invalid(field.NewPath("spec", "AWSLaunchTemplate"), old.Spec.AWSLaunchTemplate, "field is immutable"),
 		)
 	}
-	allErrs = append(allErrs, w.validateLaunchTemplateImmutability(r, old)...)
-
-	return allErrs
-}
-
-// validateLaunchTemplateImmutability ensures that immutable fields within AWSLaunchTemplate
-// (ID and Name) are not modified after creation. VersionNumber is intentionally excluded
-// as it may be updated to roll out a new launch template version to the nodegroup.
-func (w *AWSManagedMachinePool) validateLaunchTemplateImmutability(r *expinfrav1.AWSManagedMachinePool, old *expinfrav1.AWSManagedMachinePool) field.ErrorList {
-	var allErrs field.ErrorList
-
-	oldLT := old.Spec.AWSLaunchTemplate
-	newLT := r.Spec.AWSLaunchTemplate
-
-	if oldLT == nil || newLT == nil {
-		return allErrs
-	}
-
-	ltPath := field.NewPath("spec", "awsLaunchTemplate")
-
-	if !reflect.DeepEqual(oldLT.ID, newLT.ID) {
-		allErrs = append(allErrs, field.Forbidden(ltPath.Child("id"), "id is immutable"))
-	}
-	if !reflect.DeepEqual(oldLT.Name, newLT.Name) {
-		allErrs = append(allErrs, field.Forbidden(ltPath.Child("name"), "name is immutable"))
+	if old.Spec.AWSLaunchTemplate != nil && r.Spec.AWSLaunchTemplate != nil {
+		// Name immutability is pre-existing behaviour for AWSManagedMachinePool.
+		appendErrorIfMutated(old.Spec.AWSLaunchTemplate.Name, r.Spec.AWSLaunchTemplate.Name, "awsLaunchTemplate.name")
+		// ID is a new BYO field and is immutable once set.
+		appendErrorIfMutated(old.Spec.AWSLaunchTemplate.ID, r.Spec.AWSLaunchTemplate.ID, "awsLaunchTemplate.id")
+		// VersionNumber is intentionally mutable so users can roll out a new launch
+		// template version to the nodegroup.
 	}
 
 	return allErrs

@@ -51,9 +51,7 @@ func (src *AWSMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.AWSLaunchTemplate.EnclaveOptions = restored.Spec.AWSLaunchTemplate.EnclaveOptions
 	}
 	// ID is a v1beta2-only field; restore it from the annotation.
-	if restored.Spec.AWSLaunchTemplate.ID != nil {
-		dst.Spec.AWSLaunchTemplate.ID = restored.Spec.AWSLaunchTemplate.ID
-	}
+	dst.Spec.AWSLaunchTemplate.ID = restored.Spec.AWSLaunchTemplate.ID
 	if restored.Spec.AvailabilityZoneSubnetType != nil {
 		dst.Spec.AvailabilityZoneSubnetType = restored.Spec.AvailabilityZoneSubnetType
 	}
@@ -126,9 +124,7 @@ func (src *AWSManagedMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 			dst.Spec.AWSLaunchTemplate = restored.Spec.AWSLaunchTemplate
 		}
 		// ID is a v1beta2-only field (BYO launch template); restore it from the annotation.
-		if restored.Spec.AWSLaunchTemplate.ID != nil {
-			dst.Spec.AWSLaunchTemplate.ID = restored.Spec.AWSLaunchTemplate.ID
-		}
+		dst.Spec.AWSLaunchTemplate.ID = restored.Spec.AWSLaunchTemplate.ID
 		dst.Spec.AWSLaunchTemplate.InstanceMetadataOptions = restored.Spec.AWSLaunchTemplate.InstanceMetadataOptions
 		dst.Spec.AWSLaunchTemplate.NonRootVolumes = restored.Spec.AWSLaunchTemplate.NonRootVolumes
 

@@ -800,9 +800,6 @@ spec:
                   name:
                     description: The name of the launch template.
                     type: string
-                    x-kubernetes-validations:
-                    - message: Name is immutable once set
-                      rule: self == oldSelf
                   nonRootVolumes:
                     description: Configuration options for the non root storage volumes.
                     items:
