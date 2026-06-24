@@ -18,6 +18,8 @@ limitations under the License.
 package iam
 
 import (
+	"os"
+
 	"github.com/spf13/cobra"
 	"k8s.io/kubectl/pkg/util/templates"
 )
@@ -43,5 +45,9 @@ func RootCmd() *cobra.Command {
 	newCmd.AddCommand(printCloudFormationTemplateCmd())
 	newCmd.AddCommand(createCloudFormationStackCmd())
 	newCmd.AddCommand(deleteCloudFormationStackCmd())
+	if os.Getenv("CLUSTERAWSADM_ALPHA") == "true" {
+		newCmd.AddCommand(createResources())
+		newCmd.AddCommand(deleteResources())
+	}
 	return newCmd
 }
