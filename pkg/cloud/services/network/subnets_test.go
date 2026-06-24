@@ -2779,15 +2779,11 @@ func TestReconcileSubnets(t *testing.T) {
 					},
 				}), gomock.Any()).Return(&ec2.DescribeNatGatewaysOutput{}, nil)
 
-				// Public subnet
+				// Public subnet - only new or changed tags
 				expectedAppliedAwsTagsForSubnet1 := []types.Tag{
 					{
 						Key:   aws.String("Name"),
 						Value: aws.String("test-cluster-subnet-public-us-east-1a"),
-					},
-					{
-						Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-						Value: aws.String("owned"),
 					},
 					{
 						Key:   aws.String("kubernetes.io/role/elb"),
@@ -2796,10 +2792,6 @@ func TestReconcileSubnets(t *testing.T) {
 					{
 						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 						Value: aws.String("owned"),
-					},
-					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
-						Value: aws.String("public"),
 					},
 					{
 						Key:   aws.String("this-tag-is-in-the-spec"),
@@ -2811,15 +2803,11 @@ func TestReconcileSubnets(t *testing.T) {
 				})).
 					Return(nil, nil)
 
-				// Private subnet
+				// Private subnet - only new or changed tags
 				expectedAppliedAwsTagsForSubnet2 := []types.Tag{
 					{
 						Key:   aws.String("Name"),
 						Value: aws.String("test-cluster-subnet-private-us-east-1a"),
-					},
-					{
-						Key:   aws.String("kubernetes.io/cluster/test-cluster"),
-						Value: aws.String("owned"),
 					},
 					{
 						Key:   aws.String("kubernetes.io/role/internal-elb"),
@@ -2828,10 +2816,6 @@ func TestReconcileSubnets(t *testing.T) {
 					{
 						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
 						Value: aws.String("owned"),
-					},
-					{
-						Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
-						Value: aws.String("private"),
 					},
 					{
 						Key:   aws.String("subnet-2-this-tag-is-in-the-spec"),
