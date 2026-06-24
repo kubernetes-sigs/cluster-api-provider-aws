@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -416,7 +417,13 @@ func (s *ManagedMachinePoolScope) GetLaunchTemplate() *expinfrav1.AWSLaunchTempl
 // IsBYOLaunchTemplate returns true when the pool uses an existing (user-provided) launch template.
 func (s *ManagedMachinePoolScope) IsBYOLaunchTemplate() bool {
 	lt := s.ManagedMachinePool.Spec.AWSLaunchTemplate
-	return lt != nil && lt.ID != nil && *lt.ID != ""
+	return lt != nil && ptr.Deref(lt.ID, "") != ""
+}
+
+// IsCAPAManagedLaunchTemplate returns true when a launch template is set and CAPA owns
+// its lifecycle (i.e. it is not a BYO launch template).
+func (s *ManagedMachinePoolScope) IsCAPAManagedLaunchTemplate() bool {
+	return s.ManagedMachinePool.Spec.AWSLaunchTemplate != nil && !s.IsBYOLaunchTemplate()
 }
 
 // GetMachinePool returns the machine pool.

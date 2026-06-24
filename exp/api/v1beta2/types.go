@@ -69,8 +69,6 @@ type AWSLaunchTemplate struct {
 	ID *string `json:"id,omitempty"`
 
 	// The name of the launch template.
-	// +immutable
-	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Name is immutable once set"
 	Name string `json:"name,omitempty"`
 
 	// The name or the Amazon Resource Name (ARN) of the instance profile associated
