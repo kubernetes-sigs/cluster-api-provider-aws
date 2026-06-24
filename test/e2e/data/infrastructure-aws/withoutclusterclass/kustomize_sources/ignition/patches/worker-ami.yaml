@@ -6,3 +6,5 @@ spec:
   template:
     spec:
       imageLookupBaseOS: flatcar-stable
+      rootVolume:
+        size: 16
