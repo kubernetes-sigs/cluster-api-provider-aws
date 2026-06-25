@@ -106,4 +106,6 @@ type SessionMetadata interface {
 	IdentityRef() *infrav1.AWSIdentityReference
 	// ControllerName returns the controller name
 	ControllerName() string
+	// IsClusterScoped returns true if the resource is cluster-scoped, false if namespace-scoped.
+	IsClusterScoped() bool
 }

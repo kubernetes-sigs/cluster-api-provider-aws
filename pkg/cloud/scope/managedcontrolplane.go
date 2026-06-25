@@ -500,3 +500,8 @@ func (s *ManagedControlPlaneScope) NodePortIngressRuleCidrBlocks() infrav1.CidrB
 func (s *ManagedControlPlaneScope) MaxWaitDuration() time.Duration {
 	return s.MaxWaitActiveUpdateDelete
 }
+
+// IsClusterScoped returns false as ManagedControlPlane is namespace-scoped.
+func (s *ManagedControlPlaneScope) IsClusterScoped() bool {
+	return false
+}

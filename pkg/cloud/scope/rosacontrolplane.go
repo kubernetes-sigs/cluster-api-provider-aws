@@ -226,3 +226,8 @@ func (s *ROSAControlPlaneScope) PatchObject() error {
 func (s *ROSAControlPlaneScope) Close() error {
 	return s.PatchObject()
 }
+
+// IsClusterScoped returns false as ROSAControlPlane is namespace-scoped.
+func (s *ROSAControlPlaneScope) IsClusterScoped() bool {
+	return false
+}

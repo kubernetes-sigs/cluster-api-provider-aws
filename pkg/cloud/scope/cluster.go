@@ -445,3 +445,8 @@ func (s *ClusterScope) UnstructuredControlPlane() (*unstructured.Unstructured, e
 func (s *ClusterScope) NodePortIngressRuleCidrBlocks() infrav1.CidrBlocks {
 	return s.AWSCluster.Spec.NetworkSpec.DeepCopy().NodePortIngressRuleCidrBlocks
 }
+
+// IsClusterScoped returns false as Cluster is namespace-scoped.
+func (s *ClusterScope) IsClusterScoped() bool {
+	return false
+}
