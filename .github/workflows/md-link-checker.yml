@@ -9,6 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
       - uses: artyom/mdlinks@3d49483ce078798ed3aee5abc1c65476040654dd # v0.4.2
         with:
           dir: 'docs/book'

@@ -61,6 +61,7 @@ jobs:
           repository: ${{ inputs.image_builder_repo }}
           ref: ${{ inputs.image_builder_version }}
           fetch-depth: 0
+          persist-credentials: false
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@e7f100cf4c008499ea8adda475de1042d6975c7b # v6.2.0
         with:
