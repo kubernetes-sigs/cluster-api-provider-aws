@@ -112,6 +112,8 @@ providers:
         targetName: "cluster-template-eks-machinepool-only.yaml"
       - sourcePath: "./eks/cluster-template-eks-managed-machinepool-with-launch-template-only.yaml"
         targetName: "cluster-template-eks-managed-machinepool-with-launch-template-only.yaml"
+      - sourcePath: "./eks/cluster-template-eks-managed-machinepool-with-byo-launch-template-only.yaml"
+        targetName: "cluster-template-eks-managed-machinepool-with-byo-launch-template-only.yaml"
       - sourcePath: "./eks/cluster-template-eks-managedmachinepool.yaml"
         targetName: "cluster-template-eks-managedmachinepool.yaml"
       - sourcePath: "./eks/cluster-template-eks-ipv6-cluster.yaml"

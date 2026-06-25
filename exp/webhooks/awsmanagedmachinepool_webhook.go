@@ -131,16 +131,84 @@ func (w *AWSManagedMachinePool) validateLaunchTemplate(r *expinfrav1.AWSManagedM
 		return allErrs
 	}
 
-	if r.Spec.InstanceType != nil {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "InstanceType"), r.Spec.InstanceType, "InstanceType cannot be specified when LaunchTemplate is specified"))
+	lt := r.Spec.AWSLaunchTemplate
+	ltPath := field.NewPath("spec", "awsLaunchTemplate")
+	isBYO := lt.ID != nil && *lt.ID != ""
+
+	// For CAPA-managed LTs (no id), spec.instanceType is forbidden because the instance type
+	// must be configured inside the launch template itself. For BYO LTs (id is set), the AWS
+	// CreateNodegroup API allows InstanceTypes to be specified alongside the launch template
+	// when the launch template itself does not specify an instance type.
+	if r.Spec.InstanceType != nil && !isBYO {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "instanceType"), r.Spec.InstanceType, "instanceType cannot be specified with a CAPA-managed launch template; set spec.awsLaunchTemplate.instanceType instead"))
 	}
 	if r.Spec.DiskSize != nil {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "DiskSize"), r.Spec.DiskSize, "DiskSize cannot be specified when LaunchTemplate is specified"))
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "diskSize"), r.Spec.DiskSize, "diskSize cannot be specified when LaunchTemplate is specified"))
+	}
+	// remoteAccess is rejected by the EKS CreateNodegroup API whenever a launch template
+	// is specified, regardless of the template contents. SSH key and source security groups
+	// must be configured inside the launch template instead.
+	if r.Spec.RemoteAccess != nil {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "remoteAccess"), "remoteAccess cannot be specified when a launch template is specified; configure KeyName and security groups in the launch template instead"))
 	}
 
-	if r.Spec.AWSLaunchTemplate.IamInstanceProfile != "" {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "AWSLaunchTemplate", "IamInstanceProfile"), r.Spec.AWSLaunchTemplate.IamInstanceProfile, "IAM instance profile in launch template is prohibited in EKS managed node group"))
+	if lt.IamInstanceProfile != "" {
+		allErrs = append(allErrs, field.Invalid(ltPath.Child("iamInstanceProfile"), lt.IamInstanceProfile, "IAM instance profile in launch template is prohibited in EKS managed node group"))
 	}
+
+	// When using a BYO launch template (ID is set), enforce BYO-specific invariants.
+	if isBYO {
+		allErrs = append(allErrs, w.validateBYOLaunchTemplate(lt, ltPath)...)
+	}
+
+	return allErrs
+}
+
+// validateBYOLaunchTemplate validates the invariants that apply when an existing
+// (user-provided) launch template is referenced via spec.awsLaunchTemplate.id. CAPA
+// neither introspects nor manages the referenced template, so versionNumber is required
+// and the CAPA-managed launch template fields must not be set.
+func (w *AWSManagedMachinePool) validateBYOLaunchTemplate(lt *expinfrav1.AWSLaunchTemplate, ltPath *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	if lt.VersionNumber == nil {
+		allErrs = append(allErrs, field.Required(ltPath.Child("versionNumber"), "versionNumber is required when using a BYO launch template (id is set)"))
+	}
+	if lt.AMI.ID != nil {
+		allErrs = append(allErrs, field.Forbidden(ltPath.Child("ami", "id"), "ami.id cannot be specified with a BYO launch template (id is set)"))
+	}
+	if lt.AMI.EKSOptimizedLookupType != nil {
+		allErrs = append(allErrs, field.Forbidden(ltPath.Child("ami", "eksLookupType"), "ami.eksLookupType cannot be specified with a BYO launch template (id is set)"))
+	}
+	if lt.InstanceType != "" {
+		allErrs = append(allErrs, field.Forbidden(ltPath.Child("instanceType"), "instanceType cannot be specified with a BYO launch template (id is set)"))
+	}
+	if lt.RootVolume != nil {
+		allErrs = append(allErrs, field.Forbidden(ltPath.Child("rootVolume"), "rootVolume cannot be specified with a BYO launch template (id is set)"))
+	}
+	if len(lt.NonRootVolumes) > 0 {
+		allErrs = append(allErrs, field.Forbidden(ltPath.Child("nonRootVolumes"), "nonRootVolumes cannot be specified with a BYO launch template (id is set)"))
+	}
+	if lt.SSHKeyName != nil {
+		allErrs = append(allErrs, field.Forbidden(ltPath.Child("sshKeyName"), "sshKeyName cannot be specified with a BYO launch template (id is set)"))
+	}
+	if lt.ImageLookupFormat != "" {
+		allErrs = append(allErrs, field.Forbidden(ltPath.Child("imageLookupFormat"), "imageLookupFormat cannot be specified with a BYO launch template (id is set)"))
+	}
+	if lt.ImageLookupOrg != "" {
+		allErrs = append(allErrs, field.Forbidden(ltPath.Child("imageLookupOrg"), "imageLookupOrg cannot be specified with a BYO launch template (id is set)"))
+	}
+	if lt.ImageLookupBaseOS != "" {
+		allErrs = append(allErrs, field.Forbidden(ltPath.Child("imageLookupBaseOS"), "imageLookupBaseOS cannot be specified with a BYO launch template (id is set)"))
+	}
+	if len(lt.AdditionalSecurityGroups) > 0 {
+		allErrs = append(allErrs, field.Forbidden(ltPath.Child("additionalSecurityGroups"), "additionalSecurityGroups cannot be specified with a BYO launch template (id is set)"))
+	}
+	// spec.amiType and spec.amiVersion are intentionally allowed alongside a BYO launch
+	// template: the AWS CreateNodegroup API accepts them as long as the launch template
+	// does not pin a custom AMI. CAPA cannot introspect user-owned launch templates, so
+	// any conflict between these fields and the referenced template is surfaced by the
+	// EKS API at create time rather than at admission.
 
 	return allErrs
 }
@@ -279,7 +347,12 @@ func (w *AWSManagedMachinePool) validateImmutable(r *expinfrav1.AWSManagedMachin
 		)
 	}
 	if old.Spec.AWSLaunchTemplate != nil && r.Spec.AWSLaunchTemplate != nil {
+		// Name immutability is pre-existing behaviour for AWSManagedMachinePool.
 		appendErrorIfMutated(old.Spec.AWSLaunchTemplate.Name, r.Spec.AWSLaunchTemplate.Name, "awsLaunchTemplate.name")
+		// ID is a new BYO field and is immutable once set.
+		appendErrorIfMutated(old.Spec.AWSLaunchTemplate.ID, r.Spec.AWSLaunchTemplate.ID, "awsLaunchTemplate.id")
+		// VersionNumber is intentionally mutable so users can roll out a new launch
+		// template version to the nodegroup.
 	}
 
 	return allErrs
