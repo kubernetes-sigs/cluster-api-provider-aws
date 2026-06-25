@@ -160,6 +160,7 @@ func TestReconcileAccessEntries(t *testing.T) {
 
 				m.UpdateAccessEntry(gomock.Any(), gomock.Any()).Return(&eks.UpdateAccessEntryOutput{}, nil)
 
+				// Policy already matches, should NOT re-associate
 				m.ListAssociatedAccessPolicies(gomock.Any(), gomock.Any()).Return(&eks.ListAssociatedAccessPoliciesOutput{
 					AssociatedAccessPolicies: []ekstypes.AssociatedAccessPolicy{
 						{
@@ -170,15 +171,137 @@ func TestReconcileAccessEntries(t *testing.T) {
 						},
 					},
 				}, nil)
+			},
+			expectError: false,
+		},
+		{
+			name: "no drift - skip reconciliation when entry matches",
+			accessEntries: []ekscontrolplanev1.AccessEntry{
+				{
+					PrincipalARN: principalARN,
+					Type:         ekscontrolplanev1.AccessEntryTypeStandard,
+					Username:     "admin",
+					AccessPolicies: []ekscontrolplanev1.AccessPolicyReference{
+						{
+							PolicyARN: policyARN,
+							AccessScope: ekscontrolplanev1.AccessScope{
+								Type: ekscontrolplanev1.AccessScopeTypeCluster,
+							},
+						},
+					},
+				},
+			},
+			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
+				m.ListAccessEntries(gomock.Any(), gomock.Any()).Return(&eks.ListAccessEntriesOutput{
+					AccessEntries: []string{principalARN},
+				}, nil)
 
-				m.AssociateAccessPolicy(gomock.Any(), &eks.AssociateAccessPolicyInput{
+				// First DescribeAccessEntry in getManagedAccessEntries
+				m.DescribeAccessEntry(gomock.Any(), &eks.DescribeAccessEntryInput{
 					ClusterName:  aws.String(clusterName),
 					PrincipalArn: aws.String(principalARN),
-					PolicyArn:    aws.String(policyARN),
-					AccessScope: &ekstypes.AccessScope{
-						Type: ekstypes.AccessScopeTypeCluster,
+				}).Return(&eks.DescribeAccessEntryOutput{
+					AccessEntry: &ekstypes.AccessEntry{
+						PrincipalArn: aws.String(principalARN),
+						Username:     aws.String("admin"),
+						Type:         ekscontrolplanev1.AccessEntryTypeStandard.APIValue(),
+						Tags: map[string]string{
+							"kubernetes.io/cluster/test-cluster": "owned",
+						},
 					},
-				}).Return(&eks.AssociateAccessPolicyOutput{}, nil)
+				}, nil)
+
+				// Second DescribeAccessEntry in updateAccessEntry
+				m.DescribeAccessEntry(gomock.Any(), &eks.DescribeAccessEntryInput{
+					ClusterName:  aws.String(clusterName),
+					PrincipalArn: aws.String(principalARN),
+				}).Return(&eks.DescribeAccessEntryOutput{
+					AccessEntry: &ekstypes.AccessEntry{
+						PrincipalArn: aws.String(principalARN),
+						Username:     aws.String("admin"),
+						Type:         ekscontrolplanev1.AccessEntryTypeStandard.APIValue(),
+						Tags: map[string]string{
+							"kubernetes.io/cluster/test-cluster": "owned",
+						},
+					},
+				}, nil)
+
+				// Policy already matches, no AssociateAccessPolicy call
+				m.ListAssociatedAccessPolicies(gomock.Any(), gomock.Any()).Return(&eks.ListAssociatedAccessPoliciesOutput{
+					AssociatedAccessPolicies: []ekstypes.AssociatedAccessPolicy{
+						{
+							PolicyArn: aws.String(policyARN),
+							AccessScope: &ekstypes.AccessScope{
+								Type: ekstypes.AccessScopeTypeCluster,
+							},
+						},
+					},
+				}, nil)
+			},
+			expectError: false,
+		},
+		{
+			name: "no drift with empty type - should treat as STANDARD",
+			accessEntries: []ekscontrolplanev1.AccessEntry{
+				{
+					PrincipalARN: principalARN,
+					Username:     "admin",
+					AccessPolicies: []ekscontrolplanev1.AccessPolicyReference{
+						{
+							PolicyARN: policyARN,
+							AccessScope: ekscontrolplanev1.AccessScope{
+								Type: ekscontrolplanev1.AccessScopeTypeCluster,
+							},
+						},
+					},
+				},
+			},
+			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
+				m.ListAccessEntries(gomock.Any(), gomock.Any()).Return(&eks.ListAccessEntriesOutput{
+					AccessEntries: []string{principalARN},
+				}, nil)
+
+				// First DescribeAccessEntry in getManagedAccessEntries
+				m.DescribeAccessEntry(gomock.Any(), &eks.DescribeAccessEntryInput{
+					ClusterName:  aws.String(clusterName),
+					PrincipalArn: aws.String(principalARN),
+				}).Return(&eks.DescribeAccessEntryOutput{
+					AccessEntry: &ekstypes.AccessEntry{
+						PrincipalArn: aws.String(principalARN),
+						Username:     aws.String("admin"),
+						Type:         ekscontrolplanev1.AccessEntryTypeStandard.APIValue(),
+						Tags: map[string]string{
+							"kubernetes.io/cluster/test-cluster": "owned",
+						},
+					},
+				}, nil)
+
+				// Second DescribeAccessEntry in updateAccessEntry
+				m.DescribeAccessEntry(gomock.Any(), &eks.DescribeAccessEntryInput{
+					ClusterName:  aws.String(clusterName),
+					PrincipalArn: aws.String(principalARN),
+				}).Return(&eks.DescribeAccessEntryOutput{
+					AccessEntry: &ekstypes.AccessEntry{
+						PrincipalArn: aws.String(principalARN),
+						Username:     aws.String("admin"),
+						Type:         ekscontrolplanev1.AccessEntryTypeStandard.APIValue(),
+						Tags: map[string]string{
+							"kubernetes.io/cluster/test-cluster": "owned",
+						},
+					},
+				}, nil)
+
+				// Policy already matches, no AssociateAccessPolicy call
+				m.ListAssociatedAccessPolicies(gomock.Any(), gomock.Any()).Return(&eks.ListAssociatedAccessPoliciesOutput{
+					AssociatedAccessPolicies: []ekstypes.AssociatedAccessPolicy{
+						{
+							PolicyArn: aws.String(policyARN),
+							AccessScope: &ekstypes.AccessScope{
+								Type: ekstypes.AccessScopeTypeCluster,
+							},
+						},
+					},
+				}, nil)
 			},
 			expectError: false,
 		},
@@ -258,15 +381,7 @@ func TestReconcileAccessEntries(t *testing.T) {
 					},
 				}, nil)
 
-				m.AssociateAccessPolicy(gomock.Any(), &eks.AssociateAccessPolicyInput{
-					ClusterName:  aws.String(clusterName),
-					PrincipalArn: aws.String(principalARN),
-					PolicyArn:    aws.String(policyARN),
-					AccessScope: &ekstypes.AccessScope{
-						Type: ekstypes.AccessScopeTypeCluster,
-					},
-				}).Return(&eks.AssociateAccessPolicyOutput{}, nil)
-
+				// Policy already matches, should NOT re-associate
 				m.DeleteAccessEntry(gomock.Any(), &eks.DeleteAccessEntryInput{
 					ClusterName:  aws.String(clusterName),
 					PrincipalArn: aws.String(secondPrincipalARN),
@@ -347,15 +462,7 @@ func TestReconcileAccessEntries(t *testing.T) {
 						},
 					},
 				}, nil)
-
-				m.AssociateAccessPolicy(gomock.Any(), &eks.AssociateAccessPolicyInput{
-					ClusterName:  aws.String(clusterName),
-					PrincipalArn: aws.String(principalARN),
-					PolicyArn:    aws.String(policyARN),
-					AccessScope: &ekstypes.AccessScope{
-						Type: ekstypes.AccessScopeTypeCluster,
-					},
-				}).Return(&eks.AssociateAccessPolicyOutput{}, nil)
+				// Policy already matches, should NOT re-associate
 			},
 			expectError: false,
 		},
@@ -524,6 +631,74 @@ func TestReconcileAccessPolicies(t *testing.T) {
 					AccessScope: &ekstypes.AccessScope{
 						Type:       ekstypes.AccessScopeTypeNamespace,
 						Namespaces: []string{"kube-system", "default"},
+					},
+				}).Return(&eks.AssociateAccessPolicyOutput{}, nil)
+			},
+			expectError: false,
+		},
+		{
+			name: "policy already matches - skip association",
+			accessEntry: ekscontrolplanev1.AccessEntry{
+				PrincipalARN: principalARN,
+				Type:         ekscontrolplanev1.AccessEntryTypeStandard,
+				AccessPolicies: []ekscontrolplanev1.AccessPolicyReference{
+					{
+						PolicyARN: policyARN,
+						AccessScope: ekscontrolplanev1.AccessScope{
+							Type: ekscontrolplanev1.AccessScopeTypeCluster,
+						},
+					},
+				},
+			},
+			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
+				m.ListAssociatedAccessPolicies(gomock.Any(), gomock.Any()).Return(&eks.ListAssociatedAccessPoliciesOutput{
+					AssociatedAccessPolicies: []ekstypes.AssociatedAccessPolicy{
+						{
+							PolicyArn: aws.String(policyARN),
+							AccessScope: &ekstypes.AccessScope{
+								Type: ekstypes.AccessScopeTypeCluster,
+							},
+						},
+					},
+				}, nil)
+				// Should NOT call AssociateAccessPolicy when policy already matches
+			},
+			expectError: false,
+		},
+		{
+			name: "policy scope changed - re-associate",
+			accessEntry: ekscontrolplanev1.AccessEntry{
+				PrincipalARN: principalARN,
+				Type:         ekscontrolplanev1.AccessEntryTypeStandard,
+				AccessPolicies: []ekscontrolplanev1.AccessPolicyReference{
+					{
+						PolicyARN: policyARN,
+						AccessScope: ekscontrolplanev1.AccessScope{
+							Type:       ekscontrolplanev1.AccessScopeTypeNamespace,
+							Namespaces: []string{"kube-system"},
+						},
+					},
+				},
+			},
+			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
+				m.ListAssociatedAccessPolicies(gomock.Any(), gomock.Any()).Return(&eks.ListAssociatedAccessPoliciesOutput{
+					AssociatedAccessPolicies: []ekstypes.AssociatedAccessPolicy{
+						{
+							PolicyArn: aws.String(policyARN),
+							AccessScope: &ekstypes.AccessScope{
+								Type: ekstypes.AccessScopeTypeCluster,
+							},
+						},
+					},
+				}, nil)
+
+				m.AssociateAccessPolicy(gomock.Any(), &eks.AssociateAccessPolicyInput{
+					ClusterName:  aws.String(clusterName),
+					PrincipalArn: aws.String(principalARN),
+					PolicyArn:    aws.String(policyARN),
+					AccessScope: &ekstypes.AccessScope{
+						Type:       ekstypes.AccessScopeTypeNamespace,
+						Namespaces: []string{"kube-system"},
 					},
 				}).Return(&eks.AssociateAccessPolicyOutput{}, nil)
 			},
