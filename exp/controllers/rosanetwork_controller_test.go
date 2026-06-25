@@ -16,6 +16,8 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -39,6 +41,7 @@ import (
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 )
@@ -108,7 +111,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 	t.Run("Empty result when ROSANetwork object not found", func(t *testing.T) {
 		g := NewWithT(t)
 
-		_, _, _, reconciler := createMockClients(mockCtrl)
+		_, _, _, _, reconciler := createMockClients(mockCtrl)
 
 		req := ctrl.Request{}
 		req.NamespacedName = types.NamespacedName{Name: "non-existent-object", Namespace: "non-existent-namespace"}
@@ -121,7 +124,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 	t.Run("Error result when CF stack GET returns error", func(t *testing.T) {
 		g := NewWithT(t)
 
-		_, mockCFClient, mockSTSClient, reconciler := createMockClients(mockCtrl)
+		_, mockCFClient, mockSTSClient, _, reconciler := createMockClients(mockCtrl)
 
 		mockSTSIdentity(mockSTSClient)
 		mockDescribeStacksCall(mockCFClient, &cloudformation.DescribeStacksOutput{}, fmt.Errorf("test-error"), 1)
@@ -137,7 +140,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 	t.Run("Initial CF stack creation fails", func(t *testing.T) {
 		g := NewWithT(t)
 
-		_, mockCFClient, mockSTSClient, reconciler := createMockClients(mockCtrl)
+		_, mockCFClient, mockSTSClient, _, reconciler := createMockClients(mockCtrl)
 
 		mockSTSIdentity(mockSTSClient)
 
@@ -171,7 +174,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 	t.Run("Initial CF stack creation succeeds", func(t *testing.T) {
 		g := NewWithT(t)
 
-		_, mockCFClient, mockSTSClient, reconciler := createMockClients(mockCtrl)
+		_, mockCFClient, mockSTSClient, _, reconciler := createMockClients(mockCtrl)
 
 		mockSTSIdentity(mockSTSClient)
 
@@ -204,7 +207,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 	t.Run("CF stack creation is in progress", func(t *testing.T) {
 		g := NewWithT(t)
 
-		_, mockCFClient, mockSTSClient, reconciler := createMockClients(mockCtrl)
+		_, mockCFClient, mockSTSClient, _, reconciler := createMockClients(mockCtrl)
 
 		mockSTSIdentity(mockSTSClient)
 
@@ -239,7 +242,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 	t.Run("CF stack creation completed", func(t *testing.T) {
 		g := NewWithT(t)
 
-		_, mockCFClient, mockSTSClient, reconciler := createMockClients(mockCtrl)
+		_, mockCFClient, mockSTSClient, _, reconciler := createMockClients(mockCtrl)
 
 		mockSTSIdentity(mockSTSClient)
 
@@ -274,7 +277,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 	t.Run("CF stack creation failed", func(t *testing.T) {
 		g := NewWithT(t)
 
-		_, mockCFClient, mockSTSClient, reconciler := createMockClients(mockCtrl)
+		_, mockCFClient, mockSTSClient, _, reconciler := createMockClients(mockCtrl)
 
 		mockSTSIdentity(mockSTSClient)
 
@@ -309,7 +312,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 	t.Run("CF stack deletion start failed", func(t *testing.T) {
 		g := NewWithT(t)
 
-		_, mockCFClient, mockSTSClient, reconciler := createMockClients(mockCtrl)
+		_, mockCFClient, mockSTSClient, _, reconciler := createMockClients(mockCtrl)
 
 		mockSTSIdentity(mockSTSClient)
 
@@ -346,7 +349,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 	t.Run("CF stack deletion start succeeded", func(t *testing.T) {
 		g := NewWithT(t)
 
-		_, mockCFClient, mockSTSClient, reconciler := createMockClients(mockCtrl)
+		_, mockCFClient, mockSTSClient, _, reconciler := createMockClients(mockCtrl)
 
 		mockSTSIdentity(mockSTSClient)
 
@@ -383,7 +386,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 	t.Run("CF stack deletion in progress", func(t *testing.T) {
 		g := NewWithT(t)
 
-		_, mockCFClient, mockSTSClient, reconciler := createMockClients(mockCtrl)
+		_, mockCFClient, mockSTSClient, _, reconciler := createMockClients(mockCtrl)
 
 		mockSTSIdentity(mockSTSClient)
 
@@ -410,7 +413,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 	t.Run("CF stack deletion failed", func(t *testing.T) {
 		g := NewWithT(t)
 
-		_, mockCFClient, mockSTSClient, reconciler := createMockClients(mockCtrl)
+		_, mockCFClient, mockSTSClient, _, reconciler := createMockClients(mockCtrl)
 
 		mockSTSIdentity(mockSTSClient)
 
@@ -467,17 +470,17 @@ func TestROSANetworkReconciler_updateROSANetworkResources(t *testing.T) {
 	}
 
 	t.Run("Handle cloudformation client error", func(t *testing.T) {
-		_, mockCFClient, _, reconciler := createMockClients(mockCtrl)
+		_, mockCFClient, _, awsClient, reconciler := createMockClients(mockCtrl)
 
 		mockDescribeStackResourcesCall(mockCFClient, &cloudformation.DescribeStackResourcesOutput{}, fmt.Errorf("test-error"), 1)
 
-		err := reconciler.updateROSANetworkResources(ctx, rosaNetwork)
+		err := reconciler.updateROSANetworkResources(ctx, rosaNetwork, awsClient)
 		g.Expect(err).To(HaveOccurred())
 		g.Expect(len(rosaNetwork.Status.Resources)).To(Equal(0))
 	})
 
 	t.Run("Update ROSANetwork.Status.Resources", func(t *testing.T) {
-		_, mockCFClient, _, reconciler := createMockClients(mockCtrl)
+		_, mockCFClient, _, awsClient, reconciler := createMockClients(mockCtrl)
 
 		logicalResourceID := "logical-resource-id"
 		resourceStatus := cloudformationtypes.ResourceStatusCreateComplete
@@ -499,7 +502,7 @@ func TestROSANetworkReconciler_updateROSANetworkResources(t *testing.T) {
 
 		mockDescribeStackResourcesCall(mockCFClient, describeStackResourcesOutput, nil, 1)
 
-		err := reconciler.updateROSANetworkResources(ctx, rosaNetwork)
+		err := reconciler.updateROSANetworkResources(ctx, rosaNetwork, awsClient)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(rosaNetwork.Status.Resources[0].LogicalID).To(Equal(logicalResourceID))
 		g.Expect(rosaNetwork.Status.Resources[0].Status).To(Equal(string(resourceStatus)))
@@ -550,17 +553,17 @@ func TestROSANetworkReconciler_parseSubnets(t *testing.T) {
 	}
 
 	t.Run("Handle EC2 client error", func(t *testing.T) {
-		mockEC2Client, _, _, reconciler := createMockClients(mockCtrl)
+		mockEC2Client, _, _, awsClient, reconciler := createMockClients(mockCtrl)
 
 		mockDescribeSubnetsCall(mockEC2Client, &ec2.DescribeSubnetsOutput{}, nil, 1)
 
-		err := reconciler.parseSubnets(rosaNetwork)
+		err := reconciler.parseSubnets(rosaNetwork, awsClient)
 		g.Expect(err).To(HaveOccurred())
 		g.Expect(len(rosaNetwork.Status.Subnets)).To(Equal(0))
 	})
 
 	t.Run("Update ROSANetwork.Status.Subnets", func(t *testing.T) {
-		mockEC2Client, _, _, reconciler := createMockClients(mockCtrl)
+		mockEC2Client, _, _, awsClient, reconciler := createMockClients(mockCtrl)
 
 		az := "az01"
 
@@ -574,7 +577,7 @@ func TestROSANetworkReconciler_parseSubnets(t *testing.T) {
 
 		mockDescribeSubnetsCall(mockEC2Client, describeSubnetsOutput, nil, 2)
 
-		err := reconciler.parseSubnets(rosaNetwork)
+		err := reconciler.parseSubnets(rosaNetwork, awsClient)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(rosaNetwork.Status.Subnets[0].AvailabilityZone).To(Equal(az))
 		g.Expect(rosaNetwork.Status.Subnets[0].PrivateSubnet).To(Equal(subnet1Id))
@@ -582,7 +585,7 @@ func TestROSANetworkReconciler_parseSubnets(t *testing.T) {
 	})
 }
 
-func createMockClients(mockCtrl *gomock.Controller) (*rosaMocks.MockEc2ApiClient, *rosaMocks.MockCloudFormationApiClient, *rosaMocks.MockStsApiClient, *ROSANetworkReconciler) {
+func createMockClients(mockCtrl *gomock.Controller) (*rosaMocks.MockEc2ApiClient, *rosaMocks.MockCloudFormationApiClient, *rosaMocks.MockStsApiClient, rosaAWSClient.Client, *ROSANetworkReconciler) {
 	mockEC2Client := rosaMocks.NewMockEc2ApiClient(mockCtrl)
 	mockCFClient := rosaMocks.NewMockCloudFormationApiClient(mockCtrl)
 	mockSTSClient := rosaMocks.NewMockStsApiClient(mockCtrl)
@@ -603,11 +606,13 @@ func createMockClients(mockCtrl *gomock.Controller) (*rosaMocks.MockEc2ApiClient
 	)
 
 	reconciler := &ROSANetworkReconciler{
-		Client:    testEnv.Client,
-		awsClient: awsClient,
+		Client: testEnv.Client,
+		awsClientFactory: func(_ *scope.ROSANetworkScope) (rosaAWSClient.Client, error) {
+			return awsClient, nil
+		},
 	}
 
-	return mockEC2Client, mockCFClient, mockSTSClient, reconciler
+	return mockEC2Client, mockCFClient, mockSTSClient, awsClient, reconciler
 }
 
 func mockSTSIdentity(mockSTSClient *rosaMocks.MockStsApiClient) {
@@ -723,4 +728,217 @@ func getROSANetworkReadyCondition(reconciler *ROSANetworkReconciler, rosaNet *ex
 	}
 
 	return v1beta1conditions.Get(updatedROSANetwork, expinfrav1.ROSANetworkReadyCondition), nil
+}
+
+// TestROSANetworkReconcilerWithRoleIdentity verifies that ROSANetworkReconciler can create its
+// scope (resolving credentials) when the ROSANetwork's IdentityRef points to an
+// AWSClusterRoleIdentity backed by a fake IAM role.
+//
+// The fake STS server satisfies the AssumeRole call that happens during scope creation.
+// The awsClientFactory is used as a canary: if it is called, scope creation (including
+// credential resolution via AWSClusterRoleIdentity) succeeded.
+func TestROSANetworkReconcilerWithRoleIdentity(t *testing.T) {
+	RegisterTestingT(t)
+	g := NewWithT(t)
+	ctx := context.TODO()
+
+	// Start a local STS server that returns fake AssumeRole credentials.
+	stsServer := httptest.NewServer(http.HandlerFunc(fakeSTSAssumeRoleResponse))
+	defer stsServer.Close()
+
+	// Point the AWS SDK at the fake STS server and supply dummy source credentials so
+	// config.LoadDefaultConfig has something to work with when building the STS client.
+	t.Setenv("AWS_ENDPOINT_URL_STS", stsServer.URL)
+	t.Setenv("AWS_ACCESS_KEY_ID", "fake-access-key-id")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "fake-secret-access-key")
+	t.Setenv("AWS_REGION", "us-east-1")
+
+	testID := generateTestID()
+
+	ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("test-ns-net-roleident-%s", testID))
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// AWSClusterControllerIdentity is required as the SourceIdentityRef — the webhook
+	// rejects AWSClusterRoleIdentity with a nil sourceIdentityRef.
+	controllerIdentity := &infrav1.AWSClusterControllerIdentity{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "default",
+		},
+		Spec: infrav1.AWSClusterControllerIdentitySpec{
+			AWSClusterIdentitySpec: infrav1.AWSClusterIdentitySpec{
+				AllowedNamespaces: &infrav1.AllowedNamespaces{},
+			},
+		},
+	}
+	createObject(g, controllerIdentity, ns.Name)
+	defer cleanupObject(g, controllerIdentity)
+
+	roleIdentity := &infrav1.AWSClusterRoleIdentity{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: fmt.Sprintf("fake-role-identity-%s", testID),
+		},
+		Spec: infrav1.AWSClusterRoleIdentitySpec{
+			AWSRoleSpec: infrav1.AWSRoleSpec{
+				RoleArn:     fmt.Sprintf("arn:aws:iam::123456789012:role/fake-rosa-net-role-%s", testID),
+				SessionName: "test-session",
+			},
+			AWSClusterIdentitySpec: infrav1.AWSClusterIdentitySpec{
+				AllowedNamespaces: &infrav1.AllowedNamespaces{},
+			},
+			SourceIdentityRef: &infrav1.AWSIdentityReference{
+				Name: controllerIdentity.Name,
+				Kind: infrav1.ControllerIdentityKind,
+			},
+		},
+	}
+	roleIdentity.SetGroupVersionKind(infrav1.GroupVersion.WithKind("AWSClusterRoleIdentity"))
+	createObject(g, roleIdentity, ns.Name)
+	defer cleanupObject(g, roleIdentity)
+
+	rosaNetwork := &expinfrav1.ROSANetwork{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("test-rosa-network-%s", testID),
+			Namespace: ns.Name,
+		},
+		Spec: expinfrav1.ROSANetworkSpec{
+			StackName:             fmt.Sprintf("test-stack-%s", testID),
+			CIDRBlock:             "10.0.0.0/8",
+			AvailabilityZoneCount: 1,
+			Region:                "us-east-1",
+			IdentityRef: &infrav1.AWSIdentityReference{
+				Name: roleIdentity.Name,
+				Kind: infrav1.ClusterRoleIdentityKind,
+			},
+		},
+	}
+	createObject(g, rosaNetwork, ns.Name)
+	defer cleanupObject(g, rosaNetwork)
+
+	awsClientCalled := false
+	reconciler := &ROSANetworkReconciler{
+		Client: testEnv.Client,
+		// awsClientFactory acts as a canary: if it is invoked, scope creation (and
+		// therefore AWSClusterRoleIdentity credential resolution) succeeded.
+		awsClientFactory: func(_ *scope.ROSANetworkScope) (rosaAWSClient.Client, error) {
+			awsClientCalled = true
+			return nil, fmt.Errorf("sentinel: awsClientFactory reached after role-identity scope creation")
+		},
+	}
+
+	req := ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: rosaNetwork.Name, Namespace: rosaNetwork.Namespace},
+	}
+
+	g.Eventually(func(g Gomega) {
+		_, errReconcile := reconciler.Reconcile(ctx, req)
+
+		// The reconciler must have advanced past scope creation and reached awsClientFactory.
+		// A "failed to create rosanetwork scope" error would mean credential resolution failed.
+		g.Expect(errReconcile).To(HaveOccurred())
+		g.Expect(errReconcile.Error()).To(ContainSubstring("failed to create AWS Client"))
+		g.Expect(errReconcile.Error()).NotTo(ContainSubstring("failed to create rosanetwork scope"))
+		g.Expect(awsClientCalled).To(BeTrue())
+	}).WithTimeout(30 * time.Second).WithPolling(500 * time.Millisecond).Should(Succeed())
+}
+
+// TestROSANetworkReconcilerWithRoleIdentityNamespaceNotAllowed verifies that when the
+// AWSClusterRoleIdentity's AllowedNamespaces does not include the ROSANetwork's namespace,
+// scope creation fails with a credential error and awsClientFactory is never called.
+func TestROSANetworkReconcilerWithRoleIdentityNamespaceNotAllowed(t *testing.T) {
+	RegisterTestingT(t)
+	g := NewWithT(t)
+	ctx := context.TODO()
+
+	stsServer := httptest.NewServer(http.HandlerFunc(fakeSTSAssumeRoleResponse))
+	defer stsServer.Close()
+
+	t.Setenv("AWS_ENDPOINT_URL_STS", stsServer.URL)
+	t.Setenv("AWS_ACCESS_KEY_ID", "fake-access-key-id")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "fake-secret-access-key")
+	t.Setenv("AWS_REGION", "us-east-1")
+
+	testID := generateTestID()
+
+	ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("test-ns-net-roleident-denied-%s", testID))
+	g.Expect(err).ToNot(HaveOccurred())
+
+	controllerIdentity := &infrav1.AWSClusterControllerIdentity{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "default",
+		},
+		Spec: infrav1.AWSClusterControllerIdentitySpec{
+			AWSClusterIdentitySpec: infrav1.AWSClusterIdentitySpec{
+				AllowedNamespaces: &infrav1.AllowedNamespaces{},
+			},
+		},
+	}
+	createObject(g, controllerIdentity, ns.Name)
+	defer cleanupObject(g, controllerIdentity)
+
+	// AllowedNamespaces lists only "other-namespace", so ns.Name is not permitted.
+	roleIdentity := &infrav1.AWSClusterRoleIdentity{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: fmt.Sprintf("restricted-role-identity-%s", testID),
+		},
+		Spec: infrav1.AWSClusterRoleIdentitySpec{
+			AWSRoleSpec: infrav1.AWSRoleSpec{
+				RoleArn:     fmt.Sprintf("arn:aws:iam::123456789012:role/restricted-rosa-net-role-%s", testID),
+				SessionName: "test-session",
+			},
+			AWSClusterIdentitySpec: infrav1.AWSClusterIdentitySpec{
+				AllowedNamespaces: &infrav1.AllowedNamespaces{
+					NamespaceList: []string{"other-namespace"},
+				},
+			},
+			SourceIdentityRef: &infrav1.AWSIdentityReference{
+				Name: controllerIdentity.Name,
+				Kind: infrav1.ControllerIdentityKind,
+			},
+		},
+	}
+	roleIdentity.SetGroupVersionKind(infrav1.GroupVersion.WithKind("AWSClusterRoleIdentity"))
+	createObject(g, roleIdentity, ns.Name)
+	defer cleanupObject(g, roleIdentity)
+
+	rosaNetwork := &expinfrav1.ROSANetwork{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("test-rosa-network-denied-%s", testID),
+			Namespace: ns.Name,
+		},
+		Spec: expinfrav1.ROSANetworkSpec{
+			StackName:             fmt.Sprintf("test-stack-denied-%s", testID),
+			CIDRBlock:             "10.0.0.0/8",
+			AvailabilityZoneCount: 1,
+			Region:                "us-east-1",
+			IdentityRef: &infrav1.AWSIdentityReference{
+				Name: roleIdentity.Name,
+				Kind: infrav1.ClusterRoleIdentityKind,
+			},
+		},
+	}
+	createObject(g, rosaNetwork, ns.Name)
+	defer cleanupObject(g, rosaNetwork)
+
+	awsClientCalled := false
+	reconciler := &ROSANetworkReconciler{
+		Client: testEnv.Client,
+		awsClientFactory: func(_ *scope.ROSANetworkScope) (rosaAWSClient.Client, error) {
+			awsClientCalled = true
+			return nil, nil
+		},
+	}
+
+	req := ctrl.Request{
+		NamespacedName: types.NamespacedName{Name: rosaNetwork.Name, Namespace: rosaNetwork.Namespace},
+	}
+
+	// Use Eventually so the reconcile is retried until the informer cache has indexed
+	// the newly created ROSANetwork. Once it is found, scope creation must fail because
+	// the namespace is not in AllowedNamespaces.
+	g.Eventually(func(g Gomega) {
+		_, errReconcile := reconciler.Reconcile(ctx, req)
+		g.Expect(errReconcile).To(HaveOccurred())
+		g.Expect(errReconcile.Error()).To(ContainSubstring("failed to create rosanetwork scope"))
+		g.Expect(awsClientCalled).To(BeFalse())
+	}).WithTimeout(30 * time.Second).WithPolling(500 * time.Millisecond).Should(Succeed())
 }
