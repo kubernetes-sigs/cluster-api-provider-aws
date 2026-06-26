@@ -278,7 +278,7 @@ type AWSLoadBalancerSpec struct {
 
 	// DNSResolutionCheck configures the behavior for checking the load balancer DNS resolution.
 	// Set to "None" to disable the check.
-	// If omitted, the provider will pick a reasonable default which may change over time.
+	// If omitted, the DNS resolution check is enabled.
 	// +kubebuilder:validation:Enum=None;Enabled
 	// +optional
 	DNSResolutionCheck *AWSLoadBalancerDNSResolutionCheck `json:"dnsResolutionCheck,omitempty"`
