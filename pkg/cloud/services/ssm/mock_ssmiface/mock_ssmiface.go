@@ -51,6 +51,46 @@ func (m *MockSSMAPI) EXPECT() *MockSSMAPIMockRecorder {
 	return m.recorder
 }
 
+// CreateActivation mocks base method.
+func (m *MockSSMAPI) CreateActivation(arg0 context.Context, arg1 *ssm.CreateActivationInput, arg2 ...func(*ssm.Options)) (*ssm.CreateActivationOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "CreateActivation", varargs...)
+	ret0, _ := ret[0].(*ssm.CreateActivationOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateActivation indicates an expected call of CreateActivation.
+func (mr *MockSSMAPIMockRecorder) CreateActivation(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateActivation", reflect.TypeOf((*MockSSMAPI)(nil).CreateActivation), varargs...)
+}
+
+// DeleteActivation mocks base method.
+func (m *MockSSMAPI) DeleteActivation(arg0 context.Context, arg1 *ssm.DeleteActivationInput, arg2 ...func(*ssm.Options)) (*ssm.DeleteActivationOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "DeleteActivation", varargs...)
+	ret0, _ := ret[0].(*ssm.DeleteActivationOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteActivation indicates an expected call of DeleteActivation.
+func (mr *MockSSMAPIMockRecorder) DeleteActivation(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteActivation", reflect.TypeOf((*MockSSMAPI)(nil).DeleteActivation), varargs...)
+}
+
 // DeleteParameter mocks base method.
 func (m *MockSSMAPI) DeleteParameter(arg0 context.Context, arg1 *ssm.DeleteParameterInput, arg2 ...func(*ssm.Options)) (*ssm.DeleteParameterOutput, error) {
 	m.ctrl.T.Helper()

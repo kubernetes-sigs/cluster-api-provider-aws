@@ -84,15 +84,19 @@ kind: NodeConfig
 spec:
   cluster:
     name: {{.ClusterName}}
+{{- if .Hybrid }}
+    region: {{.Region}}
+{{- else }}
     apiServerEndpoint: {{.APIServerEndpoint}}
     certificateAuthority: {{.CACert}}
     cidr: {{if .ServiceCIDR}}{{.ServiceCIDR}}{{else}}172.20.0.0/16{{end}}
-  {{- if .FeatureGates }}
+{{- end }}
+{{- if .FeatureGates }}
   featureGates:
   {{- range $k, $v := .FeatureGates }}
     {{$k}}: {{$v}}
   {{- end }}
-  {{- end }}
+{{- end }}
 {{- if or .KubeletConfig .KubeletFlags }}
   kubelet:
     {{- if .KubeletConfig }}
@@ -106,7 +110,7 @@ spec:
       {{- end }}
     {{- end }}
 {{- end }}
-  {{- if or .ContainerdConfig .ContainerdBaseRuntimeSpec }}
+{{- if or .ContainerdConfig .ContainerdBaseRuntimeSpec }}
   containerd:
     {{- if .ContainerdConfig }}
     config:
@@ -116,14 +120,22 @@ spec:
     baseRuntimeSpec:
 {{ Indent 6 (toYaml .ContainerdBaseRuntimeSpec) }}
     {{- end }}
-  {{- end }}
+{{- end }}
+{{- if .Hybrid }}
+  hybrid:
+    ssm:
+      activationId: {{.ActivationID}}
+      activationCode: {{.ActivationCode}}
+{{- end }}
 
 --{{.Boundary}}`
 )
 
 // NodeadmInput contains all the information required to generate user data for a node.
+// It supports both EC2 worker nodes and EKS hybrid nodes.
 type NodeadmInput struct {
 	ClusterName               string
+	KubernetesVersion         string
 	KubeletFlags              []string
 	KubeletConfig             *runtime.RawExtension
 	ContainerdConfig          string
@@ -137,24 +149,47 @@ type NodeadmInput struct {
 	Users              []eksbootstrapv1.User
 	NTP                *eksbootstrapv1.NTP
 
+	// Hybrid indicates this input is for hybrid node generation.
+	Hybrid bool
+
+	// EC2-specific fields (unused in hybrid mode)
 	AMIImageID        string
 	APIServerEndpoint string
-	Boundary          string
 	CACert            string
-	ServiceCIDR       string // Service CIDR range for the cluster
+	ServiceCIDR       string
 	ClusterDNS        string
+
+	// Hybrid-specific fields (unused in EC2 mode)
+	Region         string
+	ActivationID   string
+	ActivationCode string
+
+	// MIME boundary
+	Boundary string
 }
 
-// validateNodeInput validates the input for nodeadm user data generation.
+// validateNodeadmInput validates the input for nodeadm user data generation.
 func validateNodeadmInput(input *NodeadmInput) error {
-	if input.APIServerEndpoint == "" {
-		return fmt.Errorf("API server endpoint is required for nodeadm")
-	}
-	if input.CACert == "" {
-		return fmt.Errorf("CA certificate is required for nodeadm")
-	}
 	if input.ClusterName == "" {
 		return fmt.Errorf("cluster name is required for nodeadm")
+	}
+	if input.Hybrid {
+		if input.Region == "" {
+			return fmt.Errorf("region is required for hybrid nodeadm")
+		}
+		if input.ActivationID == "" {
+			return fmt.Errorf("SSM activation ID is required for hybrid nodeadm")
+		}
+		if input.ActivationCode == "" {
+			return fmt.Errorf("SSM activation code is required for hybrid nodeadm")
+		}
+	} else {
+		if input.APIServerEndpoint == "" {
+			return fmt.Errorf("API server endpoint is required for nodeadm")
+		}
+		if input.CACert == "" {
+			return fmt.Errorf("CA certificate is required for nodeadm")
+		}
 	}
 	if input.Boundary == "" {
 		input.Boundary = boundary
@@ -164,6 +199,8 @@ func validateNodeadmInput(input *NodeadmInput) error {
 }
 
 // NewNodeadmUserdata returns the user data string to be used on a node instance.
+// It generates a MIME multipart document compatible with cloud-init, supporting
+// both EC2 worker nodes and EKS hybrid nodes depending on which fields are populated.
 func NewNodeadmUserdata(input *NodeadmInput) ([]byte, error) {
 	if err := validateNodeadmInput(input); err != nil {
 		return nil, err
