@@ -6031,6 +6031,118 @@ func TestCreateInstance(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "disabled load balancer with custom control plane endpoint should allow instance creation",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: ptr.To[string]("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AMIReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType: "m5.large",
+			},
+			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+					// User sets their own endpoint; CAPA must not block on APIServerELB.DNSName.
+					ControlPlaneEndpoint: clusterv1beta1.APIEndpoint{
+						Host: "my-internal-lb.example.com",
+						Port: 6443,
+					},
+					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+						LoadBalancerType: infrav1.LoadBalancerTypeDisabled,
+					},
+					NetworkSpec: infrav1.NetworkSpec{
+						Subnets: infrav1.Subnets{
+							infrav1.SubnetSpec{
+								ID:       "subnet-1",
+								IsPublic: false,
+							},
+						},
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-test",
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {ID: "1"},
+							infrav1.SecurityGroupNode:         {ID: "2"},
+							infrav1.SecurityGroupLB:           {ID: "3"},
+						},
+						// APIServerELB.DNSName is intentionally empty: no LB is managed by CAPA.
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{types.InstanceTypeM5Large},
+					})).
+					Return(&ec2.DescribeInstanceTypesOutput{
+						InstanceTypes: []types.InstanceTypeInfo{
+							{
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{types.ArchitectureTypeX8664},
+								},
+							},
+						},
+					}, nil)
+				m.
+					RunInstances(context.TODO(), gomock.Any()).
+					Return(&ec2.RunInstancesOutput{
+						Instances: []types.Instance{
+							{
+								State: &types.InstanceState{
+									Name: types.InstanceStateNamePending,
+								},
+								IamInstanceProfile: &types.IamInstanceProfile{
+									Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+								},
+								InstanceId:     aws.String("two"),
+								InstanceType:   types.InstanceTypeM5Large,
+								SubnetId:       aws.String("subnet-1"),
+								ImageId:        aws.String("ami-1"),
+								RootDeviceName: aws.String("device-1"),
+								BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
+									{
+										DeviceName: aws.String("device-1"),
+										Ebs: &types.EbsInstanceBlockDevice{
+											VolumeId: aws.String("volume-1"),
+										},
+									},
+								},
+								Placement: &types.Placement{
+									AvailabilityZone: &az,
+								},
+							},
+						},
+					}, nil)
+				m.
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []types.NetworkInterface{},
+						NextToken:         nil,
+					}, nil)
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("expected no error with disabled LB and custom endpoint, got: %v", err)
+				}
+				if instance == nil {
+					t.Fatal("expected an instance to be created")
+				}
+			},
+		},
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
