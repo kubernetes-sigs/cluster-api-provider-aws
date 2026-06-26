@@ -27,7 +27,6 @@ import (
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
@@ -37,11 +36,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
-	stsiface "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts/mock_stsiface"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/rosa"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
@@ -222,8 +217,6 @@ func TestRosaClusterReconcile(t *testing.T) {
 		recorder := record.NewFakeRecorder(10)
 		ctx := context.TODO()
 		ocmMock := mocks.NewMockOCMClient(mockCtrl)
-		stsMock := mock_stsiface.NewMockSTSClient(mockCtrl)
-		stsMock.EXPECT().GetCallerIdentity(gomock.Any(), gomock.Any()).AnyTimes()
 
 		nodePoolName := "nodepool-1"
 		expect := func(m *mocks.MockOCMClientMockRecorder) {
@@ -272,9 +265,6 @@ func TestRosaClusterReconcile(t *testing.T) {
 			Recorder:         recorder,
 			WatchFilterValue: "",
 			Client:           testEnv,
-			NewStsClient: func(cloud.ScopeUsage, cloud.Session, logger.Wrapper, runtime.Object) stsiface.STSClient {
-				return stsMock
-			},
 			NewOCMClient: func(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (rosa.OCMClient, error) {
 				return ocmMock, nil
 			},

@@ -73,8 +73,14 @@ func setup() {
 	if err := (&capawebhooks.AWSClusterControllerIdentity{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup AWSClusterControllerIdentity webhook: %v", err))
 	}
+	if err := (&capawebhooks.AWSClusterRoleIdentity{}).SetupWebhookWithManager(testEnv); err != nil {
+		panic(fmt.Sprintf("Unable to setup AWSClusterRoleIdentity webhook: %v", err))
+	}
 	if err := (&expwebhooks.ROSAMachinePool{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup ROSAMachinePool webhook: %v", err))
+	}
+	if err := (&expwebhooks.ROSARoleConfig{}).SetupWebhookWithManager(testEnv); err != nil {
+		panic(fmt.Sprintf("Unable to setup ROSARoleConfig webhook: %v", err))
 	}
 	if err := (&rosawebhooks.ROSAControlPlane{}).SetupWebhookWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Unable to setup ROSAMachinePool webhook: %v", err))
