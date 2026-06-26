@@ -342,7 +342,11 @@ func makeKubernetesNetworkConfig(serviceCidrs *clusterv1.NetworkRanges) (*ekstyp
 	}, nil
 }
 
-func makeVpcConfig(subnets infrav1.Subnets, endpointAccess ekscontrolplanev1.EndpointAccess, securityGroups map[infrav1.SecurityGroupRole]infrav1.SecurityGroup) (*ekstypes.VpcConfigRequest, error) {
+func makeVpcConfig(subnets infrav1.Subnets,
+	endpointAccess ekscontrolplanev1.EndpointAccess,
+	securityGroups map[infrav1.SecurityGroupRole]infrav1.SecurityGroup,
+	egressMode ekscontrolplanev1.ControlPlaneEgressMode,
+) (*ekstypes.VpcConfigRequest, error) {
 	// TODO: Do we need to just add the private subnets?
 	if len(subnets) < 2 {
 		return nil, awserrors.NewFailedDependency("at least 2 subnets is required")
@@ -359,6 +363,11 @@ func makeVpcConfig(subnets infrav1.Subnets, endpointAccess ekscontrolplanev1.End
 		subnetIDs = append(subnetIDs, subnetID)
 	}
 
+	sdkEgressMode, err := converters.EgressModeToSDK(egressMode)
+	if err != nil {
+		return nil, fmt.Errorf("converting egress mode %s: %w", egressMode, err)
+	}
+
 	cidrs := make([]string, 0)
 	for _, cidr := range endpointAccess.PublicCIDRs {
 		_, ipNet, err := net.ParseCIDR(*cidr)
@@ -370,9 +379,10 @@ func makeVpcConfig(subnets infrav1.Subnets, endpointAccess ekscontrolplanev1.End
 	}
 
 	vpcConfig := &ekstypes.VpcConfigRequest{
-		EndpointPublicAccess:  endpointAccess.Public,
-		EndpointPrivateAccess: endpointAccess.Private,
-		SubnetIds:             subnetIDs,
+		EndpointPublicAccess:   endpointAccess.Public,
+		EndpointPrivateAccess:  endpointAccess.Private,
+		SubnetIds:              subnetIDs,
+		ControlPlaneEgressMode: sdkEgressMode,
 	}
 
 	if len(cidrs) > 0 {
@@ -440,9 +450,9 @@ func (s *Service) createCluster(ctx context.Context, eksClusterName string) (*ek
 	encryptionConfigs := makeEksEncryptionConfigs(s.scope.ControlPlane.Spec.EncryptionConfig)
 	if s.scope.ControlPlane.Spec.RestrictPrivateSubnets {
 		s.scope.Info("Filtering private subnets")
-		vpcConfig, err = makeVpcConfig(s.scope.Subnets().FilterPrivate(), s.scope.ControlPlane.Spec.EndpointAccess, s.scope.SecurityGroups())
+		vpcConfig, err = makeVpcConfig(s.scope.Subnets().FilterPrivate(), s.scope.ControlPlane.Spec.EndpointAccess, s.scope.SecurityGroups(), s.scope.ControlPlane.Spec.ControlPlaneEgressMode)
 	} else {
-		vpcConfig, err = makeVpcConfig(s.scope.Subnets(), s.scope.ControlPlane.Spec.EndpointAccess, s.scope.SecurityGroups())
+		vpcConfig, err = makeVpcConfig(s.scope.Subnets(), s.scope.ControlPlane.Spec.EndpointAccess, s.scope.SecurityGroups(), s.scope.ControlPlane.Spec.ControlPlaneEgressMode)
 	}
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't create vpc config for cluster")
@@ -708,9 +718,9 @@ func (s *Service) reconcileVpcConfig(vpcConfig *ekstypes.VpcConfigResponse) (*ek
 	)
 	endpointAccess := s.scope.ControlPlane.Spec.EndpointAccess
 	if s.scope.ControlPlane.Spec.RestrictPrivateSubnets {
-		updatedVpcConfig, err = makeVpcConfig(s.scope.Subnets().FilterPrivate(), endpointAccess, s.scope.SecurityGroups())
+		updatedVpcConfig, err = makeVpcConfig(s.scope.Subnets().FilterPrivate(), endpointAccess, s.scope.SecurityGroups(), s.scope.ControlPlane.Spec.ControlPlaneEgressMode)
 	} else {
-		updatedVpcConfig, err = makeVpcConfig(s.scope.Subnets(), endpointAccess, s.scope.SecurityGroups())
+		updatedVpcConfig, err = makeVpcConfig(s.scope.Subnets(), endpointAccess, s.scope.SecurityGroups(), s.scope.ControlPlane.Spec.ControlPlaneEgressMode)
 	}
 	if err != nil {
 		return nil, err

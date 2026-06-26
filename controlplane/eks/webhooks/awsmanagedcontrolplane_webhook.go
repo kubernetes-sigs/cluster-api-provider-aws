@@ -70,8 +70,10 @@ func (w *AWSManagedControlPlane) SetupWebhookWithManager(mgr ctrl.Manager) error
 // +kubebuilder:webhook:verbs=create;update,path=/validate-controlplane-cluster-x-k8s-io-v1beta2-awsmanagedcontrolplane,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=controlplane.cluster.x-k8s.io,resources=awsmanagedcontrolplanes,versions=v1beta2,name=validation.awsmanagedcontrolplanes.controlplane.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-controlplane-cluster-x-k8s-io-v1beta2-awsmanagedcontrolplane,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=controlplane.cluster.x-k8s.io,resources=awsmanagedcontrolplanes,versions=v1beta2,name=default.awsmanagedcontrolplanes.controlplane.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.CustomDefaulter = &AWSManagedControlPlane{}
-var _ webhook.CustomValidator = &AWSManagedControlPlane{}
+var (
+	_ webhook.CustomDefaulter = &AWSManagedControlPlane{}
+	_ webhook.CustomValidator = &AWSManagedControlPlane{}
+)
 
 func parseEKSVersion(raw string) (*version.Version, error) {
 	v, err := version.ParseGeneric(raw)
@@ -189,6 +191,12 @@ func (w *AWSManagedControlPlane) ValidateUpdate(ctx context.Context, oldObj, new
 	if oldAWSManagedControlplane.Spec.NetworkSpec.VPC.IsIPv6Enabled() != r.Spec.NetworkSpec.VPC.IsIPv6Enabled() {
 		allErrs = append(allErrs,
 			field.Invalid(field.NewPath("spec", "network", "vpc", "enableIPv6"), r.Spec.NetworkSpec.VPC.IsIPv6Enabled(), "changing IP family is not allowed after it has been set"))
+	}
+
+	if oldAWSManagedControlplane.Spec.ControlPlaneEgressMode == ekscontrolplanev1.ControlPlaneEgressModeCustomerRouted &&
+		r.Spec.ControlPlaneEgressMode != ekscontrolplanev1.ControlPlaneEgressModeCustomerRouted {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec", "controlPlaneEgressMode"), r.Spec.ControlPlaneEgressMode, "cannot change egress mode from customer routed"))
 	}
 
 	if len(allErrs) == 0 {

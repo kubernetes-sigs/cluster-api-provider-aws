@@ -143,6 +143,7 @@ func TestMakeVPCConfig(t *testing.T) {
 		subnets        infrav1.Subnets
 		endpointAccess ekscontrolplanev1.EndpointAccess
 		securityGroups map[infrav1.SecurityGroupRole]infrav1.SecurityGroup
+		egressMode     ekscontrolplanev1.ControlPlaneEgressMode
 	}
 
 	idOne := "one"
@@ -180,9 +181,11 @@ func TestMakeVPCConfig(t *testing.T) {
 					},
 				},
 				endpointAccess: ekscontrolplanev1.EndpointAccess{},
+				egressMode:     ekscontrolplanev1.ControlPlaneEgressModeAwsManaged,
 			},
 			expect: &ekstypes.VpcConfigRequest{
-				SubnetIds: []string{idOne, idTwo},
+				SubnetIds:              []string{idOne, idTwo},
+				ControlPlaneEgressMode: ekstypes.ControlPlaneEgressModeTypeAwsManaged,
 			},
 		},
 		{
@@ -207,9 +210,11 @@ func TestMakeVPCConfig(t *testing.T) {
 					},
 				},
 				endpointAccess: ekscontrolplanev1.EndpointAccess{},
+				egressMode:     ekscontrolplanev1.ControlPlaneEgressModeAwsManaged,
 			},
 			expect: &ekstypes.VpcConfigRequest{
-				SubnetIds: []string{idOne, idTwo},
+				SubnetIds:              []string{idOne, idTwo},
+				ControlPlaneEgressMode: ekstypes.ControlPlaneEgressModeTypeAwsManaged,
 			},
 		},
 		{
@@ -235,10 +240,12 @@ func TestMakeVPCConfig(t *testing.T) {
 						ID: idOne,
 					},
 				},
+				egressMode: ekscontrolplanev1.ControlPlaneEgressModeAwsManaged,
 			},
 			expect: &ekstypes.VpcConfigRequest{
-				SubnetIds:        []string{idOne, idTwo},
-				SecurityGroupIds: []string{idOne},
+				SubnetIds:              []string{idOne, idTwo},
+				SecurityGroupIds:       []string{idOne},
+				ControlPlaneEgressMode: ekstypes.ControlPlaneEgressModeTypeAwsManaged,
 			},
 		},
 		{
@@ -261,17 +268,67 @@ func TestMakeVPCConfig(t *testing.T) {
 				endpointAccess: ekscontrolplanev1.EndpointAccess{
 					PublicCIDRs: []*string{aws.String("10.0.0.1/24")},
 				},
+				egressMode: ekscontrolplanev1.ControlPlaneEgressModeAwsManaged,
 			},
 			expect: &ekstypes.VpcConfigRequest{
-				SubnetIds:         []string{idOne, idTwo},
-				PublicAccessCidrs: []string{"10.0.0.0/24"},
+				SubnetIds:              []string{idOne, idTwo},
+				PublicAccessCidrs:      []string{"10.0.0.0/24"},
+				ControlPlaneEgressMode: ekstypes.ControlPlaneEgressModeTypeAwsManaged,
 			},
+		},
+		{
+			name: "customer-routed egress mode",
+			input: input{
+				subnets: []infrav1.SubnetSpec{
+					{
+						ID:               idOne,
+						CidrBlock:        "10.0.10.0/24",
+						AvailabilityZone: "us-west-2a",
+						IsPublic:         true,
+					},
+					{
+						ID:               idTwo,
+						CidrBlock:        "10.0.10.0/24",
+						AvailabilityZone: "us-west-2b",
+						IsPublic:         false,
+					},
+				},
+				endpointAccess: ekscontrolplanev1.EndpointAccess{},
+				egressMode:     ekscontrolplanev1.ControlPlaneEgressModeCustomerRouted,
+			},
+			expect: &ekstypes.VpcConfigRequest{
+				SubnetIds:              []string{idOne, idTwo},
+				ControlPlaneEgressMode: ekstypes.ControlPlaneEgressModeTypeCustomerRouted,
+			},
+		},
+		{
+			name: "unknown egress mode",
+			input: input{
+				subnets: []infrav1.SubnetSpec{
+					{
+						ID:               idOne,
+						CidrBlock:        "10.0.10.0/24",
+						AvailabilityZone: "us-west-2a",
+						IsPublic:         true,
+					},
+					{
+						ID:               idTwo,
+						CidrBlock:        "10.0.10.0/24",
+						AvailabilityZone: "us-west-2b",
+						IsPublic:         false,
+					},
+				},
+				endpointAccess: ekscontrolplanev1.EndpointAccess{},
+				egressMode:     ekscontrolplanev1.ControlPlaneEgressMode("invalid"),
+			},
+			err:    true,
+			expect: nil,
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
-			config, err := makeVpcConfig(tc.input.subnets, tc.input.endpointAccess, tc.input.securityGroups)
+			config, err := makeVpcConfig(tc.input.subnets, tc.input.endpointAccess, tc.input.securityGroups, tc.input.egressMode)
 			if tc.err {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -653,6 +710,7 @@ func TestCreateCluster(t *testing.T) {
 						NetworkSpec:                infrav1.NetworkSpec{Subnets: tc.subnets},
 						BootstrapSelfManagedAddons: false,
 						UpgradePolicy:              ekscontrolplanev1.UpgradePolicyStandard,
+						ControlPlaneEgressMode:     ekscontrolplanev1.ControlPlaneEgressModeAwsManaged,
 					},
 				},
 			})
@@ -669,7 +727,8 @@ func TestCreateCluster(t *testing.T) {
 					Name:             aws.String(clusterName),
 					EncryptionConfig: []ekstypes.EncryptionConfig{},
 					ResourcesVpcConfig: &ekstypes.VpcConfigRequest{
-						SubnetIds: subnetIDs,
+						SubnetIds:              subnetIDs,
+						ControlPlaneEgressMode: ekstypes.ControlPlaneEgressModeTypeAwsManaged,
 					},
 					RoleArn:                    tc.role,
 					Tags:                       tc.tags,
@@ -951,6 +1010,7 @@ func TestCreateIPv6Cluster(t *testing.T) {
 				},
 				EncryptionConfig:           encryptionConfig,
 				BootstrapSelfManagedAddons: false,
+				ControlPlaneEgressMode:     ekscontrolplanev1.ControlPlaneEgressModeAwsManaged,
 			},
 		},
 	})
@@ -968,7 +1028,8 @@ func TestCreateIPv6Cluster(t *testing.T) {
 			},
 		},
 		ResourcesVpcConfig: &ekstypes.VpcConfigRequest{
-			SubnetIds: []string{"sub-1", "sub-2"},
+			SubnetIds:              []string{"sub-1", "sub-2"},
+			ControlPlaneEgressMode: ekstypes.ControlPlaneEgressModeTypeAwsManaged,
 		},
 		KubernetesNetworkConfig: &ekstypes.KubernetesNetworkConfigRequest{
 			IpFamily: ekstypes.IpFamilyIpv6,
@@ -1031,6 +1092,7 @@ func TestCreateClusterWithBootstrapClusterCreatorAdminPermissions(t *testing.T) 
 				AccessConfig: &ekscontrolplanev1.AccessConfig{
 					BootstrapClusterCreatorAdminPermissions: ptr.To(false),
 				},
+				ControlPlaneEgressMode: ekscontrolplanev1.ControlPlaneEgressModeAwsManaged,
 			},
 		},
 	})
@@ -1040,7 +1102,8 @@ func TestCreateClusterWithBootstrapClusterCreatorAdminPermissions(t *testing.T) 
 		Name:    aws.String(clusterName),
 		Version: aws.String("1.24"),
 		ResourcesVpcConfig: &ekstypes.VpcConfigRequest{
-			SubnetIds: []string{"1", "2"},
+			SubnetIds:              []string{"1", "2"},
+			ControlPlaneEgressMode: ekstypes.ControlPlaneEgressModeTypeAwsManaged,
 		},
 		RoleArn: aws.String("arn:role"),
 		Tags: map[string]string{
