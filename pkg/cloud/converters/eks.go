@@ -300,3 +300,25 @@ func SupportTypeToSDK(input ekscontrolplanev1.UpgradePolicy) ekstypes.SupportTyp
 	}
 	return ekstypes.SupportTypeExtended
 }
+
+// ControlPlaneScalingConfigToSDK converts CAPA ControlPlaneScalingConfig to AWS SDK ControlPlaneScalingConfig.
+func ControlPlaneScalingConfigToSDK(config *ekscontrolplanev1.ControlPlaneScalingConfig) *ekstypes.ControlPlaneScalingConfig {
+	if config == nil {
+		return nil
+	}
+
+	return &ekstypes.ControlPlaneScalingConfig{
+		Tier: ekstypes.ProvisionedControlPlaneTier(config.Tier),
+	}
+}
+
+// ControlPlaneScalingConfigFromSDK converts AWS SDK ControlPlaneScalingConfig to CAPA ControlPlaneScalingConfig.
+func ControlPlaneScalingConfigFromSDK(config *ekstypes.ControlPlaneScalingConfig) *ekscontrolplanev1.ControlPlaneScalingConfig {
+	if config == nil {
+		return nil
+	}
+
+	return &ekscontrolplanev1.ControlPlaneScalingConfig{
+		Tier: ekscontrolplanev1.ControlPlaneScalingTier(config.Tier),
+	}
+}
