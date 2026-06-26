@@ -162,3 +162,8 @@ func (s *RosaRoleConfigScope) CredentialsSecret() *corev1.Secret {
 func (s *RosaRoleConfigScope) IAMClient() *iam.Client {
 	return s.iamClient
 }
+
+// IsClusterScoped returns false as ROSARoleConfig is namespace-scoped.
+func (s *RosaRoleConfigScope) IsClusterScoped() bool {
+	return false
+}

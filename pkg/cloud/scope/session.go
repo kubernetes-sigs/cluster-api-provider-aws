@@ -260,10 +260,17 @@ func buildProvidersForRef(
 			return providers, err
 		}
 		log.Trace("Principal retrieved")
-		canUse, err := isClusterPermittedToUsePrincipal(k8sClient, roleIdentity.Spec.AllowedNamespaces, clusterScoper.Namespace())
-		if err != nil {
-			return providers, err
+
+		// Cluster-scoped resources bypass allowedNamespaces checks.
+		// Namespace-scoped resources must check allowedNamespaces.
+		canUse := clusterScoper.IsClusterScoped()
+		if !canUse {
+			canUse, err = isClusterPermittedToUsePrincipal(k8sClient, roleIdentity.Spec.AllowedNamespaces, clusterScoper.Namespace())
+			if err != nil {
+				return providers, err
+			}
 		}
+
 		if !canUse {
 			setPrincipalUsageNotAllowedCondition(infrav1.ClusterRoleIdentityKind, identityObjectKey, clusterScoper)
 			return providers, errors.Errorf(notPermittedError, infrav1.ClusterRoleIdentityKind, roleIdentity.Name)
@@ -337,10 +344,16 @@ func buildAWSClusterStaticIdentity(ctx context.Context, identityObjectKey client
 		return nil, errors.Wrapf(err, "failed to patch secret name:%s namespace:%s", secret.Name, secret.Namespace)
 	}
 
-	canUse, err := isClusterPermittedToUsePrincipal(k8sClient, staticPrincipal.Spec.AllowedNamespaces, clusterScoper.Namespace())
-	if err != nil {
-		return nil, err
+	// Cluster-scoped resources bypass allowedNamespaces checks.
+	// Namespace-scoped resources must check allowedNamespaces.
+	canUse := clusterScoper.IsClusterScoped()
+	if !canUse {
+		canUse, err = isClusterPermittedToUsePrincipal(k8sClient, staticPrincipal.Spec.AllowedNamespaces, clusterScoper.Namespace())
+		if err != nil {
+			return nil, err
+		}
 	}
+
 	if !canUse {
 		setPrincipalUsageNotAllowedCondition(infrav1.ClusterStaticIdentityKind, identityObjectKey, clusterScoper)
 		return nil, errors.Errorf(notPermittedError, infrav1.ClusterStaticIdentityKind, identityObjectKey.Name)
@@ -364,10 +377,16 @@ func buildAWSClusterControllerIdentity(ctx context.Context, identityObjectKey cl
 		return err
 	}
 
-	canUse, err := isClusterPermittedToUsePrincipal(k8sClient, controllerIdentity.Spec.AllowedNamespaces, clusterScoper.Namespace())
-	if err != nil {
-		return err
+	// Cluster-scoped resources bypass allowedNamespaces checks.
+	// Namespace-scoped resources must check allowedNamespaces.
+	canUse := clusterScoper.IsClusterScoped()
+	if !canUse {
+		canUse, err = isClusterPermittedToUsePrincipal(k8sClient, controllerIdentity.Spec.AllowedNamespaces, clusterScoper.Namespace())
+		if err != nil {
+			return err
+		}
 	}
+
 	if !canUse {
 		setPrincipalUsageNotAllowedCondition(infrav1.ControllerIdentityKind, identityObjectKey, clusterScoper)
 		return errors.Errorf(notPermittedError, infrav1.ControllerIdentityKind, controllerIdentity.Name)

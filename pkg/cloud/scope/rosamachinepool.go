@@ -230,3 +230,8 @@ func (s *RosaMachinePoolScope) PatchCAPIMachinePoolObject(ctx context.Context) e
 func (s *RosaMachinePoolScope) Close() error {
 	return s.PatchObject()
 }
+
+// IsClusterScoped returns false as ROSAMachinePool is namespace-scoped.
+func (s *RosaMachinePoolScope) IsClusterScoped() bool {
+	return false
+}

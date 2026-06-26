@@ -134,3 +134,8 @@ func (s *ROSANetworkScope) PatchObject() error {
 			expinfrav1.ROSANetworkReadyCondition,
 		}})
 }
+
+// IsClusterScoped returns false as ROSANetwork is namespace-scoped.
+func (s *ROSANetworkScope) IsClusterScoped() bool {
+	return false
+}

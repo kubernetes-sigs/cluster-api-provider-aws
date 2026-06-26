@@ -432,3 +432,8 @@ func (s *ManagedMachinePoolScope) GetRuntimeObject() runtime.Object {
 func (s *ManagedMachinePoolScope) GetLifecycleHooks() []expinfrav1.AWSLifecycleHook {
 	return s.ManagedMachinePool.Spec.AWSLifecycleHooks
 }
+
+// IsClusterScoped returns false as ManagedMachinePool is namespace-scoped.
+func (s *ManagedMachinePoolScope) IsClusterScoped() bool {
+	return false
+}
