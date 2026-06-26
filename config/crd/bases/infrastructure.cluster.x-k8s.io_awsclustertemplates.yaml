@@ -689,7 +689,7 @@ spec:
                             description: |-
                               DNSResolutionCheck configures the behavior for checking the load balancer DNS resolution.
                               Set to "None" to disable the check.
-                              If omitted, the provider will pick a reasonable default which may change over time.
+                              If omitted, the DNS resolution check is enabled.
                             enum:
                             - None
                             - Enabled
@@ -1613,7 +1613,7 @@ spec:
                             description: |-
                               DNSResolutionCheck configures the behavior for checking the load balancer DNS resolution.
                               Set to "None" to disable the check.
-                              If omitted, the provider will pick a reasonable default which may change over time.
+                              If omitted, the DNS resolution check is enabled.
                             enum:
                             - None
                             - Enabled
