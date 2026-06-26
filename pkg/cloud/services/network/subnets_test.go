@@ -5013,6 +5013,14 @@ func (b *ClusterScopeBuilder) WithNetwork(n *infrav1.NetworkSpec) *ClusterScopeB
 	return b
 }
 
+func (b *ClusterScopeBuilder) WithSecurityGroups(sgs map[infrav1.SecurityGroupRole]infrav1.SecurityGroup) *ClusterScopeBuilder {
+	b.customizers = append(b.customizers, func(p *scope.ClusterScopeParams) {
+		p.AWSCluster.Status.Network.SecurityGroups = sgs
+	})
+
+	return b
+}
+
 func (b *ClusterScopeBuilder) WithTagUnmanagedNetworkResources(value bool) *ClusterScopeBuilder {
 	b.customizers = append(b.customizers, func(p *scope.ClusterScopeParams) {
 		p.TagUnmanagedNetworkResources = value

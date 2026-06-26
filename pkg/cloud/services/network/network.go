@@ -193,6 +193,12 @@ func (s *Service) DeleteNetwork() (err error) {
 	}
 	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.EgressOnlyInternetGatewayReadyCondition, clusterv1beta1.DeletedReason, clusterv1beta1.ConditionSeverityInfo, "")
 
+	// Orphaned ENIs — clean up detached network interfaces that reference
+	// cluster security groups before attempting subnet deletion.
+	if err := s.deleteOrphanedENIs(); err != nil {
+		s.scope.Debug("Non-fatal: failed to delete orphaned ENIs", "error", err)
+	}
+
 	// Subnets.
 	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.SubnetsReadyCondition, clusterv1beta1.DeletingReason, clusterv1beta1.ConditionSeverityInfo, "")
 	if err := s.scope.PatchObject(); err != nil {
