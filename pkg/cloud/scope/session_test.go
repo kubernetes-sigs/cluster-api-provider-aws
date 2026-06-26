@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/identity"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/util/system"
@@ -499,6 +500,116 @@ func TestPrincipalParsing(t *testing.T) {
 				}
 				tc.expect(providers)
 			}
+		})
+	}
+}
+
+type mockScopeWithIdentityNamespace struct {
+	namespace                   string
+	identityPermissionNamespace string
+}
+
+func (m *mockScopeWithIdentityNamespace) Namespace() string {
+	return m.namespace
+}
+
+func (m *mockScopeWithIdentityNamespace) InfraClusterName() string {
+	return "test-cluster"
+}
+
+func (m *mockScopeWithIdentityNamespace) InfraCluster() cloud.ClusterObject {
+	return nil
+}
+
+func (m *mockScopeWithIdentityNamespace) IdentityRef() *infrav1.AWSIdentityReference {
+	return nil
+}
+
+func (m *mockScopeWithIdentityNamespace) ControllerName() string {
+	return "test-controller"
+}
+
+func (m *mockScopeWithIdentityNamespace) IdentityPermissionNamespace() string {
+	return m.identityPermissionNamespace
+}
+
+type mockScopeWithoutIdentityNamespace struct {
+	namespace string
+}
+
+func (m *mockScopeWithoutIdentityNamespace) Namespace() string {
+	return m.namespace
+}
+
+func (m *mockScopeWithoutIdentityNamespace) InfraClusterName() string {
+	return "test-cluster"
+}
+
+func (m *mockScopeWithoutIdentityNamespace) InfraCluster() cloud.ClusterObject {
+	return nil
+}
+
+func (m *mockScopeWithoutIdentityNamespace) IdentityRef() *infrav1.AWSIdentityReference {
+	return nil
+}
+
+func (m *mockScopeWithoutIdentityNamespace) ControllerName() string {
+	return "test-controller"
+}
+
+func TestGetNamespaceForIdentityPermissionCheck(t *testing.T) {
+	RegisterTestingT(t)
+
+	testCases := []struct {
+		name     string
+		scope    cloud.SessionMetadata
+		expected string
+	}{
+		{
+			name: "Returns Namespace() when scope does not implement IdentityPermissionNamespaceProvider",
+			scope: &mockScopeWithoutIdentityNamespace{
+				namespace: "default",
+			},
+			expected: "default",
+		},
+		{
+			name: "Returns Namespace() when scope does not implement IdentityPermissionNamespaceProvider (empty namespace)",
+			scope: &mockScopeWithoutIdentityNamespace{
+				namespace: "",
+			},
+			expected: "",
+		},
+		{
+			name: "Returns IdentityPermissionNamespace() when scope implements IdentityPermissionNamespaceProvider",
+			scope: &mockScopeWithIdentityNamespace{
+				namespace:                   "",
+				identityPermissionNamespace: "capa-system",
+			},
+			expected: "capa-system",
+		},
+		{
+			name: "Ignores IdentityPermissionNamespace() when Namespace() is non-empty (namespace-scoped resource)",
+			scope: &mockScopeWithIdentityNamespace{
+				namespace:                   "natural-namespace",
+				identityPermissionNamespace: "explicit-namespace",
+			},
+			expected: "natural-namespace",
+		},
+		{
+			name: "Falls back to Namespace() when IdentityPermissionNamespace() returns empty",
+			scope: &mockScopeWithIdentityNamespace{
+				namespace:                   "fallback-namespace",
+				identityPermissionNamespace: "",
+			},
+			expected: "fallback-namespace",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			result := getNamespaceForIdentityPermissionCheck(tc.scope)
+			g.Expect(result).To(Equal(tc.expected))
 		})
 	}
 }

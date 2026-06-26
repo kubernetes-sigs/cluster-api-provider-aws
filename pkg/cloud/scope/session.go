@@ -260,7 +260,8 @@ func buildProvidersForRef(
 			return providers, err
 		}
 		log.Trace("Principal retrieved")
-		canUse, err := isClusterPermittedToUsePrincipal(k8sClient, roleIdentity.Spec.AllowedNamespaces, clusterScoper.Namespace())
+		namespaceToCheck := getNamespaceForIdentityPermissionCheck(clusterScoper)
+		canUse, err := isClusterPermittedToUsePrincipal(k8sClient, roleIdentity.Spec.AllowedNamespaces, namespaceToCheck)
 		if err != nil {
 			return providers, err
 		}
@@ -337,7 +338,8 @@ func buildAWSClusterStaticIdentity(ctx context.Context, identityObjectKey client
 		return nil, errors.Wrapf(err, "failed to patch secret name:%s namespace:%s", secret.Name, secret.Namespace)
 	}
 
-	canUse, err := isClusterPermittedToUsePrincipal(k8sClient, staticPrincipal.Spec.AllowedNamespaces, clusterScoper.Namespace())
+	namespaceToCheck := getNamespaceForIdentityPermissionCheck(clusterScoper)
+	canUse, err := isClusterPermittedToUsePrincipal(k8sClient, staticPrincipal.Spec.AllowedNamespaces, namespaceToCheck)
 	if err != nil {
 		return nil, err
 	}
@@ -364,7 +366,8 @@ func buildAWSClusterControllerIdentity(ctx context.Context, identityObjectKey cl
 		return err
 	}
 
-	canUse, err := isClusterPermittedToUsePrincipal(k8sClient, controllerIdentity.Spec.AllowedNamespaces, clusterScoper.Namespace())
+	namespaceToCheck := getNamespaceForIdentityPermissionCheck(clusterScoper)
+	canUse, err := isClusterPermittedToUsePrincipal(k8sClient, controllerIdentity.Spec.AllowedNamespaces, namespaceToCheck)
 	if err != nil {
 		return err
 	}
@@ -386,6 +389,25 @@ func getProvidersForCluster(ctx context.Context, k8sClient client.Client, cluste
 	return providers, nil
 }
 
+// getNamespaceForIdentityPermissionCheck returns the namespace to use for identity permission checks.
+// For namespace-scoped resources, it uses the scope's Namespace() method.
+// For cluster-scoped resources (Namespace() returns ""), it checks if they implement
+// IdentityPermissionNamespaceProvider to provide an explicit namespace.
+func getNamespaceForIdentityPermissionCheck(clusterScoper cloud.SessionMetadata) string {
+	ns := clusterScoper.Namespace()
+	// For namespace-scoped resources, always use their namespace
+	if ns != "" {
+		return ns
+	}
+	// For cluster-scoped resources, check if they provide an explicit namespace
+	if provider, ok := clusterScoper.(cloud.IdentityPermissionNamespaceProvider); ok {
+		if explicitNs := provider.IdentityPermissionNamespace(); explicitNs != "" {
+			return explicitNs
+		}
+	}
+	return ns
+}
+
 func isClusterPermittedToUsePrincipal(k8sClient client.Client, allowedNs *infrav1.AllowedNamespaces, clusterNamespace string) (bool, error) {
 	// nil value does not match with any namespaces
 	if allowedNs == nil {
@@ -395,6 +417,11 @@ func isClusterPermittedToUsePrincipal(k8sClient client.Client, allowedNs *infrav
 	// empty value matches with all namespaces
 	if cmp.Equal(*allowedNs, infrav1.AllowedNamespaces{}) {
 		return true, nil
+	}
+
+	// Cluster-scoped resources must provide an explicit namespace when identity has restrictions
+	if clusterNamespace == "" {
+		return false, errors.New("identity has allowedNamespaces restrictions but no namespace provided for permission check (cluster-scoped resources must set identityNamespace field)")
 	}
 
 	for _, v := range allowedNs.NamespaceList {

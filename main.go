@@ -315,6 +315,16 @@ func main() {
 			setupLog.Error(err, "unable to create webhook", "webhook", "ROSARoleConfig")
 			os.Exit(1)
 		}
+
+		setupLog.Debug("enabling OCM role config controller")
+		if err = (&expcontrollers.ROSAOCMRoleConfigReconciler{
+			Client:           mgr.GetClient(),
+			Recorder:         mgr.GetEventRecorderFor("rosaocmroleconfig-controller"),
+			WatchFilterValue: watchFilterValue,
+		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: awsClusterConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "ROSAOCMRoleConfig")
+			os.Exit(1)
+		}
 	}
 	// +kubebuilder:scaffold:builder
 

@@ -107,3 +107,12 @@ type SessionMetadata interface {
 	// ControllerName returns the controller name
 	ControllerName() string
 }
+
+// IdentityPermissionNamespaceProvider is an optional interface that scopes can implement
+// to provide an explicit namespace for identity permission checks.
+// This is used by cluster-scoped resources that need to specify which namespace
+// should be checked against an identity's allowedNamespaces configuration.
+type IdentityPermissionNamespaceProvider interface {
+	// IdentityPermissionNamespace returns the namespace to use for identity permission checks.
+	IdentityPermissionNamespace() string
+}
