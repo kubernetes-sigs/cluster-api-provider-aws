@@ -275,6 +275,65 @@ Once the user has created externally managed AWSCluster, it is not allowed to co
 
 User should only use this feature if their cluster infrastructure lifecycle management has constraints that the reference implementation does not support. See [user stories](https://github.com/kubernetes-sigs/cluster-api/blob/10d89ceca938e4d3d94a1d1c2b60515bcdf39829/docs/proposals/20210203-externally-managed-cluster-infrastructure.md#user-stories) for more details.
 
+## Using Externally Managed AWSManagedControlPlane (EKS)
+
+### Overview
+
+Similarly to `AWSCluster`, CAPA supports externally managing `AWSManagedControlPlane` resources. This is useful when an EKS cluster's control plane is provisioned and managed by an external system (e.g., Terraform, Crossplane, or a custom controller) while still using CAPI for machine/node management.
+
+### How to use externally managed AWSManagedControlPlane?
+
+Add the `cluster.x-k8s.io/managed-by` annotation to the `AWSManagedControlPlane` resource:
+
+```yaml
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+kind: AWSManagedControlPlane
+metadata:
+  name: my-eks-control-plane
+  namespace: default
+  annotations:
+    cluster.x-k8s.io/managed-by: "my-external-system"
+spec:
+  region: us-west-2
+  eksClusterName: my-eks-cluster
+  controlPlaneEndpoint:
+    host: "ABCDEF1234567890.gr7.us-west-2.eks.amazonaws.com"
+    port: 443
+  # ... other fields as required
+```
+
+### Requirements for the external system
+
+The external system must populate the following fields for the cluster and its downstream controllers to function correctly.
+
+#### Spec fields (must be set on the object):
+
+- `spec.controlPlaneEndpoint` (host and port) — required for the `AWSManagedCluster` controller to propagate the endpoint to CAPI, and for worker nodes to discover the API server.
+- `spec.eksClusterName` — required by the EKS bootstrap controllers to generate worker node userdata.
+
+#### Status fields (must be patched via the status subresource):
+
+- `status.ready: true`
+- `status.initialized: true`
+- `status.failureDomains`
+
+#### Conditions (must be patched via the status subresource):
+
+- `EKSControlPlaneReady = True`
+
+#### Additional resources:
+
+- **Kubeconfig Secret** — a secret named `<cluster-name>-kubeconfig` in the cluster's namespace must be created.
+
+#### Conditional requirements:
+
+- `status.network.securityGroups` - required if using EKS managed nodegroups.
+
+### Caveats
+
+- Once created with the externally managed annotation, the external system is fully responsible for the lifecycle of the resource and it's dependencies.
+- The `AWSManagedCluster` resource will still be reconciled normally (unless also marked as externally managed).
+- Converting from externally managed back to CAPA-managed is not supported and may result in unexpected behavior.
 
 ## Bring your own (BYO) Public IPv4 addresses
 

@@ -57,6 +57,7 @@ const (
 	EKSAuthBootstrapDisabledFlavor                    = "eks-auth-bootstrap-disabled"
 	EKSControlPlaneOnlyWithAccessEntriesFlavor        = "eks-control-plane-only-with-accessentries"
 	EKSNitroEnclaveManagedMachinePoolFlavor           = "eks-nitro-enclave-managedmachinepool"
+	EKSExternallyManagedFlavor                        = "eks-externally-managed"
 )
 
 const (

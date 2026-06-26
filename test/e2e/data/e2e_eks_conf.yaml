@@ -130,6 +130,8 @@ providers:
       - sourcePath: "./infrastructure-aws/withclusterclass/generated/cluster-template-eks-clusterclass.yaml"
       - sourcePath: "./eks/cluster-template-eks-nitro-enclave-managedmachinepool.yaml"
         targetName: "cluster-template-eks-nitro-enclave-managedmachinepool.yaml"
+      - sourcePath: "./eks/cluster-template-eks-externally-managed.yaml"
+        targetName: "cluster-template-eks-externally-managed.yaml"
 
 variables:
   KUBERNETES_VERSION: "v1.34.8"
