@@ -387,6 +387,13 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 		})
 	}
 
+	if awsManagedControlPlane.Status.ObservedGeneration < awsManagedControlPlane.Generation {
+		managedScope.Info("Observed generation behind current generation, requeueing",
+			"observedGeneration", awsManagedControlPlane.Status.ObservedGeneration,
+			"generation", awsManagedControlPlane.Generation)
+		return reconcile.Result{RequeueAfter: r.WaitInfraPeriod}, nil
+	}
+
 	return reconcile.Result{}, nil
 }
 
