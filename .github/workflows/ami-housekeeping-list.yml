@@ -1,0 +1,49 @@
+name: List AMIs by kubernetes_version
+
+on:
+    workflow_dispatch:
+        inputs:
+            kubernetes_version:
+                description: "Substring to match against the kubernetes_version tag (e.g. 1.28)"
+                required: true
+                type: string
+            regions:
+                description: "Comma-separated list of AWS regions (overrides default)"
+                required: true
+                type: string
+                default: 'ap-south-1,eu-west-3,eu-west-2,eu-west-1,ap-northeast-2,ap-northeast-1,sa-east-1,ca-central-1,ap-southeast-1,ap-southeast-2,eu-central-1,us-east-1,us-east-2,us-west-1,us-west-2'
+
+permissions:
+    id-token: write
+    contents: read
+
+jobs:
+    list-amis:
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: ./hack/tools/ami
+        steps:
+            - name: Checkout
+              uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+            - name: Set up uv
+              uses: astral-sh/setup-uv@38f3f104447c67c051c4a08e39b64a148898af3a # v4.2.0
+
+            - name: Install dependencies
+              run: uv sync --frozen
+
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@e7f100cf4c008499ea8adda475de1042d6975c7b # v6.2.0
+              with:
+                aws-region: us-east-2
+                role-to-assume: arn:aws:iam::819546954734:role/gh-image-builder
+
+            - name: Run list-amis
+              env:
+                  REGIONS: ${{ inputs.regions }}
+                  K8S_VERSION: ${{ inputs.kubernetes_version }}
+              run: |
+                  uv run python3 list_amis.py \
+                    --regions "$REGIONS" \
+                    --version-contains "$K8S_VERSION"
