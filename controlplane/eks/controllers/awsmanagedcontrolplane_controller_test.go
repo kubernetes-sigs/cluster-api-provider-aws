@@ -87,9 +87,10 @@ func TestAWSManagedControlPlaneReconcilerIntegrationTests(t *testing.T) {
 		mockCtrl = gomock.NewController(t)
 		recorder = record.NewFakeRecorder(10)
 		reconciler = AWSManagedControlPlaneReconciler{
-			Client:    testEnv.Client,
-			Recorder:  recorder,
-			EnableIAM: true,
+			Client:          testEnv.Client,
+			Recorder:        recorder,
+			EnableIAM:       true,
+			WaitInfraPeriod: 1 * time.Minute,
 		}
 		ctx = context.TODO()
 
@@ -218,13 +219,14 @@ func TestAWSManagedControlPlaneReconcilerIntegrationTests(t *testing.T) {
 			return sgSvc
 		}
 
-		_, err = reconciler.Reconcile(ctx, ctrl.Request{
+		result, err := reconciler.Reconcile(ctx, ctrl.Request{
 			NamespacedName: client.ObjectKey{
 				Namespace: awsManagedControlPlane.Namespace,
 				Name:      awsManagedControlPlane.Name,
 			},
 		})
 		g.Expect(err).To(BeNil())
+		g.Expect(result.RequeueAfter).To(Equal(reconciler.WaitInfraPeriod))
 
 		g.Expect(testEnv.Get(ctx, client.ObjectKeyFromObject(&awsManagedControlPlane), &awsManagedControlPlane)).To(Succeed())
 		g.Expect(awsManagedControlPlane.Finalizers).To(ContainElement(ekscontrolplanev1.ManagedControlPlaneFinalizer))
