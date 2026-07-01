@@ -387,10 +387,16 @@ Resources:
           - eks:AssociateIdentityProviderConfig
           - eks:DescribeIdentityProviderConfig
           - eks:DisassociateIdentityProviderConfig
+          - eks:ListPodIdentityAssociations
+          - eks:DescribePodIdentityAssociation
+          - eks:CreatePodIdentityAssociation
+          - eks:UpdatePodIdentityAssociation
+          - eks:DeletePodIdentityAssociation
           Effect: Allow
           Resource:
           - arn:*:eks:*:*:cluster/*
           - arn:*:eks:*:*:nodegroup/*/*/*
+          - arn:*:eks:*:*:podidentityassociation/*/*
         - Action:
           - ec2:AssociateVpcCidrBlock
           - ec2:DisassociateVpcCidrBlock
@@ -411,7 +417,9 @@ Resources:
           - iam:PassRole
           Condition:
             StringEquals:
-              iam:PassedToService: eks.amazonaws.com
+              iam:PassedToService:
+              - eks.amazonaws.com
+              - pods.eks.amazonaws.com
           Effect: Allow
           Resource:
           - '*'
