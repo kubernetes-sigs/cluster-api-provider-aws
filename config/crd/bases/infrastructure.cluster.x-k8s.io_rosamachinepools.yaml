@@ -233,6 +233,9 @@ spec:
                 maximum: 16384
                 minimum: 75
                 type: integer
+                x-kubernetes-validations:
+                - message: volumeSize is immutable
+                  rule: self == oldSelf
             required:
             - instanceType
             - nodePoolName
