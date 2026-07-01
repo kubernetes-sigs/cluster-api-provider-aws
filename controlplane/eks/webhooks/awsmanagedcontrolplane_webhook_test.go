@@ -866,6 +866,64 @@ func TestWebhookUpdate(t *testing.T) {
 			expectError: true,
 		},
 		{
+			name: "egress mode customer-routed unchanged is allowed",
+			oldClusterSpec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+				EKSClusterName:         "default_cluster1",
+				ControlPlaneEgressMode: ekscontrolplanev1.ControlPlaneEgressModeCustomerRouted,
+			},
+			newClusterSpec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+				EKSClusterName:         "default_cluster1",
+				ControlPlaneEgressMode: ekscontrolplanev1.ControlPlaneEgressModeCustomerRouted,
+			},
+			expectError: false,
+		},
+		{
+			name: "changing egress mode from customer-routed to aws-managed is denied",
+			oldClusterSpec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+				EKSClusterName:         "default_cluster1",
+				ControlPlaneEgressMode: ekscontrolplanev1.ControlPlaneEgressModeCustomerRouted,
+			},
+			newClusterSpec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+				EKSClusterName:         "default_cluster1",
+				ControlPlaneEgressMode: ekscontrolplanev1.ControlPlaneEgressModeAwsManaged,
+			},
+			expectError: true,
+		},
+		{
+			name: "changing egress mode from customer-routed to unset is denied",
+			oldClusterSpec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+				EKSClusterName:         "default_cluster1",
+				ControlPlaneEgressMode: ekscontrolplanev1.ControlPlaneEgressModeCustomerRouted,
+			},
+			newClusterSpec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+			},
+			expectError: true,
+		},
+		{
+			name: "changing egress mode from aws-managed to customer-routed is allowed",
+			oldClusterSpec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+				EKSClusterName:         "default_cluster1",
+				ControlPlaneEgressMode: ekscontrolplanev1.ControlPlaneEgressModeAwsManaged,
+			},
+			newClusterSpec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+				EKSClusterName:         "default_cluster1",
+				ControlPlaneEgressMode: ekscontrolplanev1.ControlPlaneEgressModeCustomerRouted,
+			},
+			expectError: false,
+		},
+		{
+			name: "setting egress mode from unset to customer-routed is allowed",
+			oldClusterSpec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+			},
+			newClusterSpec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+				EKSClusterName:         "default_cluster1",
+				ControlPlaneEgressMode: ekscontrolplanev1.ControlPlaneEgressModeCustomerRouted,
+			},
+			expectError: false,
+		},
+		{
 			name: "changing ipv6 enabled is not allowed after it has been set - true, false",
 			oldClusterSpec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
