@@ -547,7 +547,8 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 				}, e2eCtx.E2EConfig.GetIntervals("", "wait-machine-status")...).Should(BeTrue(), "Eventually failed waiting for AWSMachine to be labelled as terminated")
 
 				ginkgo.By("Waiting for machine to reach Failed state")
-				statusChecks := []framework.MachineStatusCheck{framework.MachinePhaseCheck(string(clusterv1.MachinePhaseFailed))} //nolint:staticcheck
+				//nolint:staticcheck // SA1019: MachinePhaseFailed is deprecated but still needed for v1beta1 compatibility
+				statusChecks := []framework.MachineStatusCheck{framework.MachinePhaseCheck(string(clusterv1.MachinePhaseFailed))}
 				machineStatusInput := framework.WaitForMachineStatusCheckInput{
 					Getter:       e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
 					Machine:      &machines[0],
