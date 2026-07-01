@@ -54,7 +54,7 @@ func TestDeleteOrphanedENIs(t *testing.T) {
 					infrav1.SecurityGroupNode: {ID: "sg-node"},
 				}),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
+				m.DescribeNetworkInterfaces(gomock.Any(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
 						NetworkInterfaces: []types.NetworkInterface{},
 					}, nil)
@@ -77,17 +77,17 @@ func TestDeleteOrphanedENIs(t *testing.T) {
 					infrav1.SecurityGroupNode: {ID: "sg-node"},
 				}),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
+				m.DescribeNetworkInterfaces(gomock.Any(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
 						NetworkInterfaces: []types.NetworkInterface{
 							{NetworkInterfaceId: aws.String("eni-111")},
 							{NetworkInterfaceId: aws.String("eni-222")},
 						},
 					}, nil)
-				m.DeleteNetworkInterface(context.TODO(), &ec2.DeleteNetworkInterfaceInput{
+				m.DeleteNetworkInterface(gomock.Any(), &ec2.DeleteNetworkInterfaceInput{
 					NetworkInterfaceId: aws.String("eni-111"),
 				}).Return(&ec2.DeleteNetworkInterfaceOutput{}, nil)
-				m.DeleteNetworkInterface(context.TODO(), &ec2.DeleteNetworkInterfaceInput{
+				m.DeleteNetworkInterface(gomock.Any(), &ec2.DeleteNetworkInterfaceInput{
 					NetworkInterfaceId: aws.String("eni-222"),
 				}).Return(&ec2.DeleteNetworkInterfaceOutput{}, nil)
 			},
@@ -108,17 +108,17 @@ func TestDeleteOrphanedENIs(t *testing.T) {
 					infrav1.SecurityGroupLB: {ID: "sg-lb"},
 				}),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
+				m.DescribeNetworkInterfaces(gomock.Any(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
 						NetworkInterfaces: []types.NetworkInterface{
 							{NetworkInterfaceId: aws.String("eni-111")},
 							{NetworkInterfaceId: aws.String("eni-222")},
 						},
 					}, nil)
-				m.DeleteNetworkInterface(context.TODO(), &ec2.DeleteNetworkInterfaceInput{
+				m.DeleteNetworkInterface(gomock.Any(), &ec2.DeleteNetworkInterfaceInput{
 					NetworkInterfaceId: aws.String("eni-111"),
 				}).Return(nil, fmt.Errorf("InvalidNetworkInterfaceID.NotFound"))
-				m.DeleteNetworkInterface(context.TODO(), &ec2.DeleteNetworkInterfaceInput{
+				m.DeleteNetworkInterface(gomock.Any(), &ec2.DeleteNetworkInterfaceInput{
 					NetworkInterfaceId: aws.String("eni-222"),
 				}).Return(&ec2.DeleteNetworkInterfaceOutput{}, nil)
 			},
@@ -167,7 +167,7 @@ func TestDeleteOrphanedENIs(t *testing.T) {
 					infrav1.SecurityGroupLB: {ID: "sg-lb"},
 				}),
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				m.DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
+				m.DescribeNetworkInterfaces(gomock.Any(), gomock.Any()).
 					Return(nil, fmt.Errorf("aws api error"))
 			},
 			errorExpected: true,
@@ -189,7 +189,7 @@ func TestDeleteOrphanedENIs(t *testing.T) {
 			s.EC2Client = ec2Mock
 
 			tc.expect(ec2Mock.EXPECT())
-			err = s.deleteOrphanedENIs()
+			err = s.deleteOrphanedENIs(context.Background())
 
 			if tc.errorExpected {
 				g.Expect(err).To(HaveOccurred())

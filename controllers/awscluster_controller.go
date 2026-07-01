@@ -266,7 +266,7 @@ func (r *AWSClusterReconciler) reconcileDelete(ctx context.Context, clusterScope
 		}
 	}
 
-	if err := networkSvc.DeleteNetwork(); err != nil {
+	if err := networkSvc.DeleteNetwork(ctx); err != nil {
 		allErrs = append(allErrs, errors.Wrap(err, "error deleting network"))
 	}
 

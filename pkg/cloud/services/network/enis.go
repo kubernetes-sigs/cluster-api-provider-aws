@@ -30,7 +30,7 @@ import (
 // in "available" state (not attached to any instance or service) and reference
 // one of the cluster's security groups. These are typically left behind by NLBs
 // whose cross-AZ ENIs are cleaned up asynchronously by AWS after LB deletion.
-func (s *Service) deleteOrphanedENIs() error {
+func (s *Service) deleteOrphanedENIs(ctx context.Context) error {
 	if s.scope.VPC().IsUnmanaged(s.scope.Name()) {
 		s.scope.Trace("Skipping orphaned ENI cleanup in unmanaged mode")
 		return nil
@@ -59,7 +59,7 @@ func (s *Service) deleteOrphanedENIs() error {
 		},
 	}
 
-	out, err := s.EC2Client.DescribeNetworkInterfaces(context.TODO(), input)
+	out, err := s.EC2Client.DescribeNetworkInterfaces(ctx, input)
 	if err != nil {
 		return fmt.Errorf("describing orphaned network interfaces: %w", err)
 	}
