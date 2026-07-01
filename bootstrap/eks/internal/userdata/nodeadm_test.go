@@ -397,3 +397,184 @@ evictionHard:
 		})
 	}
 }
+
+func TestHybridNodeadmUserdata(t *testing.T) {
+	format.TruncatedDiff = false
+	g := NewWithT(t)
+
+	type args struct {
+		input *NodeadmInput
+	}
+
+	tests := []struct {
+		name         string
+		args         args
+		expectErr    bool
+		errContains  string
+		verifyOutput func(output string) bool
+	}{
+		{
+			name: "basic hybrid nodeadm userdata",
+			args: args{
+				input: &NodeadmInput{
+					Hybrid:         true,
+					ClusterName:    "test-cluster",
+					Region:         "us-west-2",
+					ActivationID:   "test-activation-id",
+					ActivationCode: "test-activation-code",
+				},
+			},
+			expectErr: false,
+			verifyOutput: func(output string) bool {
+				return strings.Contains(output, "MIME-Version: 1.0") &&
+					strings.Contains(output, "name: test-cluster") &&
+					strings.Contains(output, "region: us-west-2") &&
+					strings.Contains(output, "activationId: test-activation-id") &&
+					strings.Contains(output, "activationCode: test-activation-code") &&
+					strings.Contains(output, "apiVersion: node.eks.aws/v1alpha1") &&
+					strings.Contains(output, "hybrid:") &&
+					strings.Contains(output, "ssm:")
+			},
+		},
+		{
+			name: "hybrid userdata does NOT contain apiServerEndpoint or certificateAuthority",
+			args: args{
+				input: &NodeadmInput{
+					Hybrid:         true,
+					ClusterName:    "test-cluster",
+					Region:         "us-west-2",
+					ActivationID:   "test-activation-id",
+					ActivationCode: "test-activation-code",
+				},
+			},
+			expectErr: false,
+			verifyOutput: func(output string) bool {
+				// Hybrid nodes use region-based discovery, NOT explicit endpoints
+				return !strings.Contains(output, "apiServerEndpoint") &&
+					!strings.Contains(output, "certificateAuthority") &&
+					strings.Contains(output, "region: us-west-2")
+			},
+		},
+		{
+			name: "hybrid full configuration - all options",
+			args: args{
+				input: &NodeadmInput{
+					Hybrid:         true,
+					ClusterName:    "production-cluster",
+					Region:         "eu-west-1",
+					ActivationID:   "prod-activation-id",
+					ActivationCode: "prod-activation-code",
+					KubeletFlags: []string{
+						"--node-labels=env=production",
+					},
+					KubeletConfig: &runtime.RawExtension{
+						Raw: []byte(`maxPods: 250`),
+					},
+					ContainerdConfig: `[plugins]
+  config = "value"`,
+					PreNodeadmCommands: []string{"echo 'setup'"},
+					NTP: &eksbootstrapv1.NTP{
+						Enabled: ptr.To(true),
+						Servers: []string{"ntp.example.com"},
+					},
+				},
+			},
+			expectErr: false,
+			verifyOutput: func(output string) bool {
+				return strings.Contains(output, "production-cluster") &&
+					strings.Contains(output, "eu-west-1") &&
+					strings.Contains(output, "prod-activation-id") &&
+					strings.Contains(output, "prod-activation-code") &&
+					strings.Contains(output, "env=production") &&
+					strings.Contains(output, "maxPods: 250") &&
+					strings.Contains(output, "containerd:") &&
+					strings.Contains(output, "echo 'setup'") &&
+					strings.Contains(output, "ntp.example.com")
+			},
+		},
+		// Hybrid error cases
+		{
+			name: "hybrid missing cluster name",
+			args: args{
+				input: &NodeadmInput{
+					Hybrid:         true,
+					Region:         "us-west-2",
+					ActivationID:   "test-activation-id",
+					ActivationCode: "test-activation-code",
+				},
+			},
+			expectErr:   true,
+			errContains: "cluster name is required",
+		},
+		{
+			name: "hybrid missing region",
+			args: args{
+				input: &NodeadmInput{
+					Hybrid:         true,
+					ClusterName:    "test-cluster",
+					ActivationID:   "test-activation-id",
+					ActivationCode: "test-activation-code",
+				},
+			},
+			expectErr:   true,
+			errContains: "region is required",
+		},
+		{
+			name: "hybrid missing activation ID",
+			args: args{
+				input: &NodeadmInput{
+					Hybrid:         true,
+					ClusterName:    "test-cluster",
+					Region:         "us-west-2",
+					ActivationCode: "test-activation-code",
+				},
+			},
+			expectErr:   true,
+			errContains: "SSM activation ID is required",
+		},
+		{
+			name: "hybrid missing activation code",
+			args: args{
+				input: &NodeadmInput{
+					Hybrid:       true,
+					ClusterName:  "test-cluster",
+					Region:       "us-west-2",
+					ActivationID: "test-activation-id",
+				},
+			},
+			expectErr:   true,
+			errContains: "SSM activation code is required",
+		},
+		{
+			name: "hybrid fields do not imply hybrid mode",
+			args: args{
+				input: &NodeadmInput{
+					ClusterName:    "test-cluster",
+					Region:         "us-west-2",
+					ActivationID:   "test-activation-id",
+					ActivationCode: "test-activation-code",
+				},
+			},
+			expectErr:   true,
+			errContains: "API server endpoint is required",
+		},
+	}
+
+	for _, testcase := range tests {
+		t.Run(testcase.name, func(t *testing.T) {
+			bytes, err := NewNodeadmUserdata(testcase.args.input)
+			if testcase.expectErr {
+				g.Expect(err).To(HaveOccurred())
+				if testcase.errContains != "" {
+					g.Expect(err.Error()).To(ContainSubstring(testcase.errContains))
+				}
+				return
+			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+			if testcase.verifyOutput != nil {
+				g.Expect(testcase.verifyOutput(string(bytes))).To(BeTrue(), "Output verification failed for: %s\n\nActual output:\n%s", testcase.name, string(bytes))
+			}
+		})
+	}
+}
