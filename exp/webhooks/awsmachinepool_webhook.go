@@ -229,10 +229,14 @@ func (w *AWSMachinePool) ValidateCreate(_ context.Context, obj runtime.Object) (
 
 func (w *AWSMachinePool) validateCapacityReservation(r *expinfrav1.AWSMachinePool) field.ErrorList {
 	var allErrs field.ErrorList
-	if r.Spec.AWSLaunchTemplate.CapacityReservationID != nil &&
+	hasCapacityReservationTarget := infrav1.HasCapacityReservationTarget(r.Spec.AWSLaunchTemplate.CapacityReservationID, r.Spec.AWSLaunchTemplate.CapacityReservationResourceGroupARN)
+	if infrav1.HasConflictingCapacityReservationTargets(r.Spec.AWSLaunchTemplate.CapacityReservationID, r.Spec.AWSLaunchTemplate.CapacityReservationResourceGroupARN) {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "awsLaunchTemplate", "capacityReservationResourceGroupARN"), "capacityReservationId and capacityReservationResourceGroupARN are mutually exclusive"))
+	}
+	if hasCapacityReservationTarget &&
 		r.Spec.AWSLaunchTemplate.CapacityReservationPreference != infrav1.CapacityReservationPreferenceOnly &&
 		r.Spec.AWSLaunchTemplate.CapacityReservationPreference != "" {
-		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "capacityReservationPreference"), "when capacityReservationId is specified, capacityReservationPreference may only be `CapacityReservationsOnly` or empty"))
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "awsLaunchTemplate", "capacityReservationPreference"), "when a capacity reservation target is specified, capacityReservationPreference may only be `CapacityReservationsOnly` or empty"))
 	}
 	return allErrs
 }
@@ -246,20 +250,22 @@ func (w *AWSMachinePool) validateInstanceMarketType(r *expinfrav1.AWSMachinePool
 		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.awsLaunchTemplate.marketType"), "setting marketType to OnDemand and spotMarketOptions cannot be used together"))
 	}
 
-	if r.Spec.AWSLaunchTemplate.MarketType == infrav1.MarketTypeCapacityBlock && r.Spec.AWSLaunchTemplate.CapacityReservationID == nil {
-		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.awsLaunchTemplate.capacityReservationID"), "is required when CapacityBlock is provided"))
+	if r.Spec.AWSLaunchTemplate.MarketType == infrav1.MarketTypeCapacityBlock &&
+		!infrav1.HasCapacityReservationTarget(r.Spec.AWSLaunchTemplate.CapacityReservationID, r.Spec.AWSLaunchTemplate.CapacityReservationResourceGroupARN) {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.awsLaunchTemplate.capacityReservationID"), "capacityReservationID or capacityReservationResourceGroupARN is required when CapacityBlock is provided"))
 	}
 	switch r.Spec.AWSLaunchTemplate.MarketType {
 	case "", infrav1.MarketTypeOnDemand, infrav1.MarketTypeSpot, infrav1.MarketTypeCapacityBlock:
 	default:
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec.awsLaunchTemplate.marketType"), r.Spec.AWSLaunchTemplate.MarketType, fmt.Sprintf("Valid values are: %s, %s, %s and omitted", infrav1.MarketTypeOnDemand, infrav1.MarketTypeSpot, infrav1.MarketTypeCapacityBlock)))
 	}
-	if r.Spec.AWSLaunchTemplate.MarketType == infrav1.MarketTypeSpot && r.Spec.AWSLaunchTemplate.CapacityReservationID != nil {
-		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.awsLaunchTemplate.marketType"), "cannot be set to 'Spot' when CapacityReservationID is specified"))
+	if r.Spec.AWSLaunchTemplate.MarketType == infrav1.MarketTypeSpot &&
+		infrav1.HasCapacityReservationTarget(r.Spec.AWSLaunchTemplate.CapacityReservationID, r.Spec.AWSLaunchTemplate.CapacityReservationResourceGroupARN) {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.awsLaunchTemplate.marketType"), "cannot be set to 'Spot' when a capacity reservation target is specified"))
 	}
 
-	if r.Spec.AWSLaunchTemplate.CapacityReservationID != nil && r.Spec.AWSLaunchTemplate.SpotMarketOptions != nil {
-		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.awsLaunchTemplate.spotMarketOptions"), "cannot be set to when CapacityReservationID is specified"))
+	if infrav1.HasCapacityReservationTarget(r.Spec.AWSLaunchTemplate.CapacityReservationID, r.Spec.AWSLaunchTemplate.CapacityReservationResourceGroupARN) && r.Spec.AWSLaunchTemplate.SpotMarketOptions != nil {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec.awsLaunchTemplate.spotMarketOptions"), "cannot be set when a capacity reservation target is specified"))
 	}
 
 	return allErrs
@@ -280,6 +286,8 @@ func (w *AWSMachinePool) ValidateUpdate(_ context.Context, oldObj, newObj runtim
 	allErrs = append(allErrs, w.validateAdditionalSecurityGroups(r)...)
 	allErrs = append(allErrs, w.validateSpotInstances(r)...)
 	allErrs = append(allErrs, w.validateRefreshPreferences(r)...)
+	allErrs = append(allErrs, w.validateInstanceMarketType(r)...)
+	allErrs = append(allErrs, w.validateCapacityReservation(r)...)
 	allErrs = append(allErrs, w.validateLifecycleHooks(r)...)
 
 	if len(allErrs) == 0 {

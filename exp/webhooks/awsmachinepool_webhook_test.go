@@ -290,7 +290,19 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 					},
 				},
 			},
-			wantErrToContain: ptr.To("cannot be set to 'Spot' when CapacityReservationID is specified"),
+			wantErrToContain: ptr.To("cannot be set to 'Spot' when a capacity reservation target is specified"),
+		},
+		{
+			name: "with MarketType Spot and CapacityReservationResourceGroupARN value provided",
+			pool: &expinfrav1.AWSMachinePool{
+				Spec: expinfrav1.AWSMachinePoolSpec{
+					AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+						MarketType:                          infrav1.MarketTypeSpot,
+						CapacityReservationResourceGroupARN: aws.String("arn:aws:resource-groups:us-east-1:123456789012:group/capacity-reservation-group"),
+					},
+				},
+			},
+			wantErrToContain: ptr.To("cannot be set to 'Spot' when a capacity reservation target is specified"),
 		},
 		{
 			name: "with CapacityReservationID and SpotMarketOptions value provided",
@@ -302,7 +314,19 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 					},
 				},
 			},
-			wantErrToContain: ptr.To("cannot be set to when CapacityReservationID is specified"),
+			wantErrToContain: ptr.To("cannot be set when a capacity reservation target is specified"),
+		},
+		{
+			name: "with CapacityReservationResourceGroupARN and SpotMarketOptions value provided",
+			pool: &expinfrav1.AWSMachinePool{
+				Spec: expinfrav1.AWSMachinePoolSpec{
+					AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+						SpotMarketOptions:                   &infrav1.SpotMarketOptions{},
+						CapacityReservationResourceGroupARN: aws.String("arn:aws:resource-groups:us-east-1:123456789012:group/capacity-reservation-group"),
+					},
+				},
+			},
+			wantErrToContain: ptr.To("cannot be set when a capacity reservation target is specified"),
 		},
 		{
 			name: "with CapacityReservationPreference of `none` and CapacityReservationID is specified",
@@ -314,7 +338,19 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 					},
 				},
 			},
-			wantErrToContain: ptr.To("when capacityReservationId is specified, capacityReservationPreference may only be `CapacityReservationsOnly` or empty"),
+			wantErrToContain: ptr.To("when a capacity reservation target is specified, capacityReservationPreference may only be `CapacityReservationsOnly` or empty"),
+		},
+		{
+			name: "with CapacityReservationID and CapacityReservationResourceGroupARN values provided",
+			pool: &expinfrav1.AWSMachinePool{
+				Spec: expinfrav1.AWSMachinePoolSpec{
+					AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+						CapacityReservationID:               aws.String("cr-123"),
+						CapacityReservationResourceGroupARN: aws.String("arn:aws:resource-groups:us-east-1:123456789012:group/capacity-reservation-group"),
+					},
+				},
+			},
+			wantErrToContain: ptr.To("capacityReservationId and capacityReservationResourceGroupARN are mutually exclusive"),
 		},
 		{
 			name: "invalid, MarketType set to MarketTypeCapacityBlock and spotMarketOptions are specified",
@@ -349,7 +385,7 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 					},
 				},
 			},
-			wantErrToContain: ptr.To[string]("capacityReservationID: Forbidden: is required when CapacityBlock is provided"),
+			wantErrToContain: ptr.To[string]("capacityReservationID: Forbidden: capacityReservationID or capacityReservationResourceGroupARN is required when CapacityBlock is provided"),
 		},
 		{
 			name: "valid MarketType set to MarketTypeCapacityBlock and CapacityReservationId are specified",
@@ -358,6 +394,18 @@ func TestAWSMachinePoolValidateCreate(t *testing.T) {
 					AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{
 						MarketType:            infrav1.MarketTypeCapacityBlock,
 						CapacityReservationID: aws.String("cr-12345678901234567"),
+					},
+				},
+			},
+			wantErrToContain: nil,
+		},
+		{
+			name: "valid MarketType set to MarketTypeCapacityBlock and CapacityReservationResourceGroupARN are specified",
+			pool: &expinfrav1.AWSMachinePool{
+				Spec: expinfrav1.AWSMachinePoolSpec{
+					AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+						MarketType:                          infrav1.MarketTypeCapacityBlock,
+						CapacityReservationResourceGroupARN: aws.String("arn:aws:resource-groups:us-east-1:123456789012:group/capacity-reservation-group"),
 					},
 				},
 			},
@@ -499,6 +547,44 @@ func TestAWSMachinePoolValidateUpdate(t *testing.T) {
 				},
 			},
 			wantErrToContain: ptr.To[string]("spotMarketOptions"),
+		},
+		{
+			name: "Should fail update if CapacityReservationID and CapacityReservationResourceGroupARN are both set",
+			old:  &expinfrav1.AWSMachinePool{},
+			new: &expinfrav1.AWSMachinePool{
+				Spec: expinfrav1.AWSMachinePoolSpec{
+					AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+						CapacityReservationID:               aws.String("cr-123"),
+						CapacityReservationResourceGroupARN: aws.String("arn:aws:resource-groups:us-east-1:123456789012:group/capacity-reservation-group"),
+					},
+				},
+			},
+			wantErrToContain: ptr.To[string]("capacityReservationId and capacityReservationResourceGroupARN are mutually exclusive"),
+		},
+		{
+			name: "Should fail update if Spot market type is used with a capacity reservation target",
+			old:  &expinfrav1.AWSMachinePool{},
+			new: &expinfrav1.AWSMachinePool{
+				Spec: expinfrav1.AWSMachinePoolSpec{
+					AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+						MarketType:                          infrav1.MarketTypeSpot,
+						CapacityReservationResourceGroupARN: aws.String("arn:aws:resource-groups:us-east-1:123456789012:group/capacity-reservation-group"),
+					},
+				},
+			},
+			wantErrToContain: ptr.To[string]("cannot be set to 'Spot' when a capacity reservation target is specified"),
+		},
+		{
+			name: "Should fail update if CapacityBlock is used without a capacity reservation target",
+			old:  &expinfrav1.AWSMachinePool{},
+			new: &expinfrav1.AWSMachinePool{
+				Spec: expinfrav1.AWSMachinePoolSpec{
+					AWSLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+						MarketType: infrav1.MarketTypeCapacityBlock,
+					},
+				},
+			},
+			wantErrToContain: ptr.To[string]("capacityReservationID or capacityReservationResourceGroupARN is required when CapacityBlock is provided"),
 		},
 		{
 			name: "Should fail if MaxHealthyPercentage is set, but MinHealthyPercentage is not set",
