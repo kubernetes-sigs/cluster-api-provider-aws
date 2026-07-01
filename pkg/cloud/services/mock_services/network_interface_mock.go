@@ -21,6 +21,7 @@ limitations under the License.
 package mock_services
 
 import (
+	context "context"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -50,17 +51,17 @@ func (m *MockNetworkInterface) EXPECT() *MockNetworkInterfaceMockRecorder {
 }
 
 // DeleteNetwork mocks base method.
-func (m *MockNetworkInterface) DeleteNetwork() error {
+func (m *MockNetworkInterface) DeleteNetwork(arg0 context.Context) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteNetwork")
+	ret := m.ctrl.Call(m, "DeleteNetwork", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteNetwork indicates an expected call of DeleteNetwork.
-func (mr *MockNetworkInterfaceMockRecorder) DeleteNetwork() *gomock.Call {
+func (mr *MockNetworkInterfaceMockRecorder) DeleteNetwork(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNetwork", reflect.TypeOf((*MockNetworkInterface)(nil).DeleteNetwork))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNetwork", reflect.TypeOf((*MockNetworkInterface)(nil).DeleteNetwork), arg0)
 }
 
 // ReconcileNetwork mocks base method.

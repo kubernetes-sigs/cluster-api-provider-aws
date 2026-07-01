@@ -435,7 +435,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 			deleteCluster := func() {
 				ec2Svc.EXPECT().DeleteBastion().Return(nil)
 				elbSvc.EXPECT().DeleteLoadbalancers(gomock.Any()).Return(nil)
-				networkSvc.EXPECT().DeleteNetwork().Return(nil)
+				networkSvc.EXPECT().DeleteNetwork(gomock.Any()).Return(nil)
 				sgSvc.EXPECT().DeleteSecurityGroups().Return(nil)
 			}
 			t.Run("Should successfully delete AWSCluster with Cluster Finalizer removed", func(t *testing.T) {
@@ -466,7 +466,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 					t.Helper()
 					elbSvc.EXPECT().DeleteLoadbalancers(gomock.Any()).Return(expectedErr)
 					ec2Svc.EXPECT().DeleteBastion().Return(nil)
-					networkSvc.EXPECT().DeleteNetwork().Return(nil)
+					networkSvc.EXPECT().DeleteNetwork(gomock.Any()).Return(nil)
 					sgSvc.EXPECT().DeleteSecurityGroups().Return(nil)
 				}
 				awsCluster := getAWSCluster("test", "test")
@@ -491,7 +491,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 				deleteCluster := func() {
 					ec2Svc.EXPECT().DeleteBastion().Return(expectedErr)
 					elbSvc.EXPECT().DeleteLoadbalancers(gomock.Any()).Return(nil)
-					networkSvc.EXPECT().DeleteNetwork().Return(nil)
+					networkSvc.EXPECT().DeleteNetwork(gomock.Any()).Return(nil)
 					sgSvc.EXPECT().DeleteSecurityGroups().Return(nil)
 				}
 				awsCluster := getAWSCluster("test", "test")
@@ -517,7 +517,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 					ec2Svc.EXPECT().DeleteBastion().Return(nil)
 					elbSvc.EXPECT().DeleteLoadbalancers(gomock.Any()).Return(nil)
 					sgSvc.EXPECT().DeleteSecurityGroups().Return(expectedErr)
-					networkSvc.EXPECT().DeleteNetwork().Return(nil)
+					networkSvc.EXPECT().DeleteNetwork(gomock.Any()).Return(nil)
 				}
 				awsCluster := getAWSCluster("test", "test")
 				awsCluster.Finalizers = []string{infrav1.ClusterFinalizer}
@@ -542,7 +542,7 @@ func TestAWSClusterReconcileOperations(t *testing.T) {
 					ec2Svc.EXPECT().DeleteBastion().Return(nil)
 					elbSvc.EXPECT().DeleteLoadbalancers(gomock.Any()).Return(nil)
 					sgSvc.EXPECT().DeleteSecurityGroups().Return(nil)
-					networkSvc.EXPECT().DeleteNetwork().Return(expectedErr)
+					networkSvc.EXPECT().DeleteNetwork(gomock.Any()).Return(expectedErr)
 				}
 				awsCluster := getAWSCluster("test", "test")
 				awsCluster.Finalizers = []string{infrav1.ClusterFinalizer}
