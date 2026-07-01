@@ -11,6 +11,8 @@ spec:
     spec:
       clusterName: "${CLUSTER_NAME}"
       version: "${KUBERNETES_VERSION}"
+      # Force node drain to give up quickly so the EKS-managed coredns PDB
+      # cannot stall MachineDeployment teardown past the test timeout.
       nodeDrainTimeout: 2m
       bootstrap:
         configRef:
