@@ -93,6 +93,9 @@ spec:
                   CapacityReservationID specifies the ID of an AWS On-Demand Capacity Reservation and Capacity Blocks for ML.
                   The CapacityReservationID must be pre-created in advance, before creating a NodePool.
                 type: string
+                x-kubernetes-validations:
+                - message: capacityReservationID is immutable
+                  rule: self == oldSelf
               imageType:
                 description: ImageType is the AMI (Amazon Machine Image) to use for
                   running the associated NodePool (i.e. Windows or Default/Linux).

@@ -130,6 +130,8 @@ type RosaMachinePoolSpec struct {
 	// CapacityReservationID specifies the ID of an AWS On-Demand Capacity Reservation and Capacity Blocks for ML.
 	// The CapacityReservationID must be pre-created in advance, before creating a NodePool.
 	//
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="capacityReservationID is immutable"
+	// +immutable
 	// +optional
 	CapacityReservationID string `json:"capacityReservationID,omitempty"`
 }

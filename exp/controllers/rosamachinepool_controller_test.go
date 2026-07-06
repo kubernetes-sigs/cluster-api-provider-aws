@@ -756,6 +756,54 @@ func TestVolumeSizeZeroedBeforeUpdate(t *testing.T) {
 	g.Expect(nodePoolSpec.AWSNodePool().RootVolume()).To(BeNil(), "RootVolume should not be set when volumeSize is 0")
 }
 
+func TestCapacityReservationIDIgnoredInDiff(t *testing.T) {
+	g := NewWithT(t)
+
+	rosaMachinePoolSpec := expinfrav1.RosaMachinePoolSpec{
+		NodePoolName:          "test-nodepool",
+		Version:               "4.14.5",
+		Subnet:                "subnet-id",
+		AutoRepair:            true,
+		InstanceType:          "m5.large",
+		CapacityReservationID: "cr-12345",
+	}
+
+	// Create a NodePool with different capacityReservationID
+	nodePool, err := cmv1.NewNodePool().
+		ID("test-nodepool").
+		Version(cmv1.NewVersion().ID("openshift-v4.14.5")).
+		Subnet("subnet-id").
+		AutoRepair(true).
+		AWSNodePool(cmv1.NewAWSNodePool().
+			InstanceType("m5.large").
+			CapacityReservation(cmv1.NewAWSCapacityReservation().Id("cr-67890"))).
+		Build()
+	g.Expect(err).ToNot(HaveOccurred())
+
+	diff := computeSpecDiff(rosaMachinePoolSpec, nodePool)
+	g.Expect(diff).To(BeEmpty(), "capacityReservationID should be ignored in diff computation")
+}
+
+func TestCapacityReservationIDZeroedBeforeUpdate(t *testing.T) {
+	g := NewWithT(t)
+
+	desiredSpec := expinfrav1.RosaMachinePoolSpec{
+		NodePoolName:          "test-nodepool",
+		InstanceType:          "m5.large",
+		CapacityReservationID: "",
+	}
+
+	machinePoolSpec := clusterv1.MachinePoolSpec{
+		Replicas: ptr.To[int32](2),
+	}
+	nodePoolBuilder := nodePoolBuilder(desiredSpec, machinePoolSpec, rosacontrolplanev1.Stable, "")
+	nodePoolSpec, err := nodePoolBuilder.Build()
+	g.Expect(err).ToNot(HaveOccurred())
+
+	g.Expect(nodePoolSpec.AWSNodePool()).ToNot(BeNil())
+	g.Expect(nodePoolSpec.AWSNodePool().CapacityReservation()).To(BeNil(), "CapacityReservation should not be set when capacityReservationID is empty")
+}
+
 func createObject(g *WithT, obj client.Object, namespace string) {
 	if obj.DeepCopyObject() != nil {
 		obj.SetNamespace(namespace)
