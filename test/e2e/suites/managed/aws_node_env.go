@@ -39,6 +39,8 @@ import (
 const (
 	// awsNodeName is the name of the aws-node DaemonSet.
 	awsNodeName = "aws-node"
+	// kubeSystemNamespace is the namespace where cluster add-ons run.
+	kubeSystemNamespace = "kube-system"
 )
 
 type UpdateAwsNodeVersionSpecInput struct {
@@ -76,7 +78,7 @@ func CheckAwsNodeEnvVarsSet(ctx context.Context, inputGetter func() UpdateAwsNod
 	clusterClient := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, input.Namespace.Name, input.ClusterName).GetClient()
 
 	Eventually(func() error {
-		if err := clusterClient.Get(ctx, crclient.ObjectKey{Namespace: "kube-system", Name: awsNodeName}, daemonSet); err != nil {
+		if err := clusterClient.Get(ctx, crclient.ObjectKey{Namespace: kubeSystemNamespace, Name: awsNodeName}, daemonSet); err != nil {
 			return fmt.Errorf("unable to get aws-node: %w", err)
 		}
 

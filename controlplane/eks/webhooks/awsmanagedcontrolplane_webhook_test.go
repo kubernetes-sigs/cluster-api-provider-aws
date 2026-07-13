@@ -1220,3 +1220,375 @@ func TestWebhookValidateAccessEntries(t *testing.T) {
 		})
 	}
 }
+
+func TestValidatePodIdentityServiceAccountName(t *testing.T) {
+	tests := []struct {
+		name                 string
+		associations         []ekscontrolplanev1.PodIdentityAssociation
+		expectError          bool
+		expectErrorToContain string
+	}{
+		{
+			name: "valid association",
+			associations: []ekscontrolplanev1.PodIdentityAssociation{
+				{
+					ServiceAccountName:      "my-service-account",
+					ServiceAccountNamespace: "default",
+					RoleARN:                 "arn:aws:iam::123456789012:role/my-role",
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "empty service account name",
+			associations: []ekscontrolplanev1.PodIdentityAssociation{
+				{
+					ServiceAccountName:      "",
+					ServiceAccountNamespace: "default",
+					RoleARN:                 "arn:aws:iam::123456789012:role/my-role",
+				},
+			},
+			expectError:          true,
+			expectErrorToContain: "serviceAccountName is required",
+		},
+		{
+			name: "invalid service account name",
+			associations: []ekscontrolplanev1.PodIdentityAssociation{
+				{
+					ServiceAccountName:      "Invalid_Service_Account_Name!",
+					ServiceAccountNamespace: "default",
+					RoleARN:                 "arn:aws:iam::123456789012:role/my-role",
+				},
+			},
+			expectError:          true,
+			expectErrorToContain: "serviceAccountName must be a valid DNS1123 subdomain",
+		},
+		{
+			name: "invalid namespace",
+			associations: []ekscontrolplanev1.PodIdentityAssociation{
+				{
+					ServiceAccountName:      "my-service-account",
+					ServiceAccountNamespace: "invalid service account namespace",
+					RoleARN:                 "arn:aws:iam::123456789012:role/my-role",
+				},
+			},
+			expectError:          true,
+			expectErrorToContain: "serviceAccountNamespace must be a valid DNS1123 subdomain",
+		},
+		{
+			name: "empty namespace",
+			associations: []ekscontrolplanev1.PodIdentityAssociation{
+				{
+					ServiceAccountName:      "my-service-account",
+					ServiceAccountNamespace: "",
+					RoleARN:                 "arn:aws:iam::123456789012:role/my-role",
+				},
+			},
+			expectError:          true,
+			expectErrorToContain: "serviceAccountNamespace is required",
+		},
+		{
+			name:         "nil pod identity associations",
+			associations: nil,
+			expectError:  false,
+		},
+		{
+			name: "no duplicate service accounts",
+			associations: []ekscontrolplanev1.PodIdentityAssociation{
+				{
+					ServiceAccountName:      "sa1",
+					ServiceAccountNamespace: "default",
+					RoleARN:                 "arn:aws:iam::123456789012:role/role1",
+				},
+				{
+					ServiceAccountName:      "sa2",
+					ServiceAccountNamespace: "default",
+					RoleARN:                 "arn:aws:iam::123456789012:role/role2",
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "duplicate service account in same namespace",
+			associations: []ekscontrolplanev1.PodIdentityAssociation{
+				{
+					ServiceAccountName:      "my-sa",
+					ServiceAccountNamespace: "default",
+					RoleARN:                 "arn:aws:iam::123456789012:role/role1",
+				},
+				{
+					ServiceAccountName:      "my-sa",
+					ServiceAccountNamespace: "default",
+					RoleARN:                 "arn:aws:iam::123456789012:role/role2",
+				},
+			},
+			expectError:          true,
+			expectErrorToContain: "service account cannot be associated with more than one role",
+		},
+		{
+			name: "same service account name in different namespaces",
+			associations: []ekscontrolplanev1.PodIdentityAssociation{
+				{
+					ServiceAccountName:      "my-sa",
+					ServiceAccountNamespace: "namespace1",
+					RoleARN:                 "arn:aws:iam::123456789012:role/role1",
+				},
+				{
+					ServiceAccountName:      "my-sa",
+					ServiceAccountNamespace: "namespace2",
+					RoleARN:                 "arn:aws:iam::123456789012:role/role2",
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "multiple associations with different service accounts",
+			associations: []ekscontrolplanev1.PodIdentityAssociation{
+				{
+					ServiceAccountName:      "sa1",
+					ServiceAccountNamespace: "ns1",
+					RoleARN:                 "arn:aws:iam::123456789012:role/role1",
+				},
+				{
+					ServiceAccountName:      "sa2",
+					ServiceAccountNamespace: "ns1",
+					RoleARN:                 "arn:aws:iam::123456789012:role/role2",
+				},
+				{
+					ServiceAccountName:      "sa3",
+					ServiceAccountNamespace: "ns2",
+					RoleARN:                 "arn:aws:iam::123456789012:role/role3",
+				},
+			},
+			expectError: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			mcp := &ekscontrolplanev1.AWSManagedControlPlane{
+				Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+					PodIdentityAssociations: tc.associations,
+				},
+			}
+
+			errs := (&AWSManagedControlPlane{}).validatePodIdentityAssociations(mcp)
+
+			if tc.expectError {
+				g.Expect(errs).ToNot(BeEmpty())
+				if tc.expectErrorToContain != "" {
+					g.Expect(errs.ToAggregate().Error()).To(ContainSubstring(tc.expectErrorToContain))
+				}
+			} else {
+				g.Expect(errs).To(BeEmpty())
+			}
+		})
+	}
+}
+
+func TestWebhookCreateWithPodIdentity(t *testing.T) {
+	tests := []struct {
+		name                 string
+		eksClusterName       string
+		associations         []ekscontrolplanev1.PodIdentityAssociation
+		expectError          bool
+		expectErrorToContain string
+	}{
+		{
+			name:           "create with valid pod identity associations",
+			eksClusterName: "cluster-test",
+			associations: []ekscontrolplanev1.PodIdentityAssociation{
+				{
+					ServiceAccountName:      "my-sa",
+					ServiceAccountNamespace: "default",
+					RoleARN:                 "arn:aws:iam::123456789012:role/my-role",
+				},
+			},
+			expectError: false,
+		},
+		{
+			name:           "create with invalid service account name",
+			eksClusterName: "cluster-test",
+			associations: []ekscontrolplanev1.PodIdentityAssociation{
+				{
+					ServiceAccountName:      "",
+					ServiceAccountNamespace: "default",
+					RoleARN:                 "arn:aws:iam::123456789012:role/my-role",
+				},
+			},
+			expectError:          true,
+			expectErrorToContain: "serviceAccountName is required",
+		},
+		{
+			name:           "create with duplicate service account",
+			eksClusterName: "cluster-test",
+			associations: []ekscontrolplanev1.PodIdentityAssociation{
+				{
+					ServiceAccountName:      "my-sa",
+					ServiceAccountNamespace: "default",
+					RoleARN:                 "arn:aws:iam::123456789012:role/role1",
+				},
+				{
+					ServiceAccountName:      "my-sa",
+					ServiceAccountNamespace: "default",
+					RoleARN:                 "arn:aws:iam::123456789012:role/role2",
+				},
+			},
+			expectError:          true,
+			expectErrorToContain: "service account cannot be associated with more than one role",
+		},
+		{
+			name:           "create with empty pod identity associations",
+			eksClusterName: "cluster-test",
+			associations:   []ekscontrolplanev1.PodIdentityAssociation{},
+			expectError:    false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			ctx := context.TODO()
+
+			mcp := &ekscontrolplanev1.AWSManagedControlPlane{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "test-",
+					Namespace:    "default",
+				},
+				Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+					EKSClusterName:          tc.eksClusterName,
+					PodIdentityAssociations: tc.associations,
+				},
+			}
+
+			err := testEnv.Create(ctx, mcp)
+
+			if tc.expectError {
+				g.Expect(err).ToNot(BeNil())
+				if tc.expectErrorToContain != "" {
+					g.Expect(err.Error()).To(ContainSubstring(tc.expectErrorToContain))
+				}
+			} else {
+				g.Expect(err).To(BeNil())
+				// Clean up
+				_ = testEnv.Delete(ctx, mcp)
+			}
+		})
+	}
+}
+
+func TestWebhookUpdateWithPodIdentity(t *testing.T) {
+	tests := []struct {
+		name                 string
+		oldAssociations      []ekscontrolplanev1.PodIdentityAssociation
+		newAssociations      []ekscontrolplanev1.PodIdentityAssociation
+		expectError          bool
+		expectErrorToContain string
+	}{
+		{
+			name:            "add new pod identity association on update",
+			oldAssociations: []ekscontrolplanev1.PodIdentityAssociation{},
+			newAssociations: []ekscontrolplanev1.PodIdentityAssociation{
+				{
+					ServiceAccountName:      "my-sa",
+					ServiceAccountNamespace: "default",
+					RoleARN:                 "arn:aws:iam::123456789012:role/my-role",
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "remove pod identity association on update",
+			oldAssociations: []ekscontrolplanev1.PodIdentityAssociation{
+				{
+					ServiceAccountName:      "my-sa",
+					ServiceAccountNamespace: "default",
+					RoleARN:                 "arn:aws:iam::123456789012:role/my-role",
+				},
+			},
+			newAssociations: []ekscontrolplanev1.PodIdentityAssociation{},
+			expectError:     false,
+		},
+		{
+			name: "update to create duplicate service account",
+			oldAssociations: []ekscontrolplanev1.PodIdentityAssociation{
+				{
+					ServiceAccountName:      "sa1",
+					ServiceAccountNamespace: "default",
+					RoleARN:                 "arn:aws:iam::123456789012:role/role1",
+				},
+			},
+			newAssociations: []ekscontrolplanev1.PodIdentityAssociation{
+				{
+					ServiceAccountName:      "sa1",
+					ServiceAccountNamespace: "default",
+					RoleARN:                 "arn:aws:iam::123456789012:role/role1",
+				},
+				{
+					ServiceAccountName:      "sa1",
+					ServiceAccountNamespace: "default",
+					RoleARN:                 "arn:aws:iam::123456789012:role/role2",
+				},
+			},
+			expectError:          true,
+			expectErrorToContain: "service account cannot be associated with more than one role",
+		},
+		{
+			name: "update pod identity associations to change role",
+			oldAssociations: []ekscontrolplanev1.PodIdentityAssociation{
+				{
+					ServiceAccountName:      "my-sa",
+					ServiceAccountNamespace: "default",
+					RoleARN:                 "arn:aws:iam::123456789012:role/old-role",
+				},
+			},
+			newAssociations: []ekscontrolplanev1.PodIdentityAssociation{
+				{
+					ServiceAccountName:      "my-sa",
+					ServiceAccountNamespace: "default",
+					RoleARN:                 "arn:aws:iam::123456789012:role/new-role",
+				},
+			},
+			expectError: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			ctx := context.TODO()
+
+			oldMCP := &ekscontrolplanev1.AWSManagedControlPlane{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "test-",
+					Namespace:    "default",
+				},
+				Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+					EKSClusterName:          "cluster-test",
+					PodIdentityAssociations: tc.oldAssociations,
+				},
+			}
+
+			err := testEnv.Create(ctx, oldMCP)
+			g.Expect(err).To(BeNil())
+
+			newMCP := oldMCP.DeepCopy()
+			newMCP.Spec.PodIdentityAssociations = tc.newAssociations
+
+			err = testEnv.Update(ctx, newMCP)
+
+			if tc.expectError {
+				g.Expect(err).ToNot(BeNil())
+				if tc.expectErrorToContain != "" {
+					g.Expect(err.Error()).To(ContainSubstring(tc.expectErrorToContain))
+				}
+			} else {
+				g.Expect(err).To(BeNil())
+			}
+
+			// Clean up
+			_ = testEnv.Delete(ctx, oldMCP)
+		})
+	}
+}
