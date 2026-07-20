@@ -573,6 +573,11 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 			v1beta1conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, infrav1.InstanceProvisionFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
 			return ctrl.Result{}, err
 		}
+
+		if patchErr := machineScope.PatchObject(); patchErr != nil {
+			machineScope.Error(patchErr, "failed to patch providerID")
+			return ctrl.Result{}, patchErr
+		}
 	}
 
 	// BYO Public IPv4 Pool feature: allocates and associates an EIP to machine when PublicIP and

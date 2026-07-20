@@ -174,6 +174,11 @@ func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
 			{infrav1.ELBAttachedCondition, corev1.ConditionTrue, "", ""},
 		})
 		g.Expect(ms.AWSMachine.Finalizers).Should(ContainElement(infrav1.MachineFinalizer))
+
+		persisted := &infrav1.AWSMachine{}
+		g.Expect(testEnv.Get(ctx, client.ObjectKeyFromObject(ms.AWSMachine), persisted)).To(Succeed())
+		g.Expect(persisted.Spec.ProviderID).ToNot(BeNil())
+		g.Expect(persisted.Spec.InstanceID).ToNot(BeNil())
 	})
 	t.Run("Should successfully reconcile control plane machine deletion", func(t *testing.T) {
 		g := NewWithT(t)
