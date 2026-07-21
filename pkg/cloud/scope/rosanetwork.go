@@ -131,6 +131,6 @@ func (s *ROSANetworkScope) PatchObject() error {
 		context.TODO(),
 		s.ROSANetwork,
 		v1beta1patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
-			expinfrav1.ROSANetworkReadyCondition,
+			expinfrav1.ROSANetworkReadyV1Beta1Condition,
 		}})
 }

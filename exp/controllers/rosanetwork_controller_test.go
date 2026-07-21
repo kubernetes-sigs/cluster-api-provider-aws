@@ -162,10 +162,10 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		g.Expect(errReconcile).To(MatchError(ContainSubstring("failed to start CF stack creation:")))
 
 		g.Eventually(func(g Gomega) {
-			cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetwork)
+			cnd, err := getROSANetworkReadyV1Beta1Condition(reconciler, rosaNetwork)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(cnd).ToNot(BeNil())
-			g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkFailedReason))
+			g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkFailedV1Beta1Reason))
 			g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityError))
 			g.Expect(cnd.Message).To(Equal("test-error"))
 		}).Should(Succeed())
@@ -196,10 +196,10 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		g.Expect(errReconcile).ToNot(HaveOccurred())
 
 		g.Eventually(func(g Gomega) {
-			cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetwork)
+			cnd, err := getROSANetworkReadyV1Beta1Condition(reconciler, rosaNetwork)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(cnd).ToNot(BeNil())
-			g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkCreatingReason))
+			g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkCreatingV1Beta1Reason))
 			g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityInfo))
 		}).Should(Succeed())
 	})
@@ -231,10 +231,10 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		g.Expect(errReconcile).ToNot(HaveOccurred())
 
 		g.Eventually(func(g Gomega) {
-			cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetwork)
+			cnd, err := getROSANetworkReadyV1Beta1Condition(reconciler, rosaNetwork)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(cnd).ToNot(BeNil())
-			g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkCreatingReason))
+			g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkCreatingV1Beta1Reason))
 			g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityInfo))
 		}).Should(Succeed())
 	})
@@ -266,10 +266,10 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		g.Expect(errReconcile).ToNot(HaveOccurred())
 
 		g.Eventually(func(g Gomega) {
-			cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetwork)
+			cnd, err := getROSANetworkReadyV1Beta1Condition(reconciler, rosaNetwork)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(cnd).ToNot(BeNil())
-			g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkCreatedReason))
+			g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkCreatedV1Beta1Reason))
 			g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityInfo))
 		}).Should(Succeed())
 	})
@@ -301,10 +301,10 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		g.Expect(errReconcile).To(MatchError(ContainSubstring("creation failed")))
 
 		g.Eventually(func(g Gomega) {
-			cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetwork)
+			cnd, err := getROSANetworkReadyV1Beta1Condition(reconciler, rosaNetwork)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(cnd).ToNot(BeNil())
-			g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkFailedReason))
+			g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkFailedV1Beta1Reason))
 			g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityError))
 		}).Should(Succeed())
 	})
@@ -338,10 +338,10 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		g.Expect(errReconcile).To(MatchError(ContainSubstring("failed to start CF stack deletion:")))
 
 		g.Eventually(func(g Gomega) {
-			cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetworkDeleted)
+			cnd, err := getROSANetworkReadyV1Beta1Condition(reconciler, rosaNetworkDeleted)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(cnd).ToNot(BeNil())
-			g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkDeletionFailedReason))
+			g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkDeletionFailedV1Beta1Reason))
 			g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityError))
 		}).Should(Succeed())
 	})
@@ -375,10 +375,10 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		g.Expect(errReconcile).NotTo(HaveOccurred())
 
 		g.Eventually(func(g Gomega) {
-			cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetworkDeleted)
+			cnd, err := getROSANetworkReadyV1Beta1Condition(reconciler, rosaNetworkDeleted)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(cnd).ToNot(BeNil())
-			g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkDeletingReason))
+			g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkDeletingV1Beta1Reason))
 			g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityInfo))
 		}).Should(Succeed())
 	})
@@ -442,10 +442,10 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		g.Expect(errReconcile).To(MatchError(ContainSubstring("CF stack deletion failed")))
 
 		g.Eventually(func(g Gomega) {
-			cnd, err := getROSANetworkReadyCondition(reconciler, rosaNetworkDeleted)
+			cnd, err := getROSANetworkReadyV1Beta1Condition(reconciler, rosaNetworkDeleted)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(cnd).ToNot(BeNil())
-			g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkDeletionFailedReason))
+			g.Expect(cnd.Reason).To(Equal(expinfrav1.ROSANetworkDeletionFailedV1Beta1Reason))
 			g.Expect(cnd.Severity).To(Equal(clusterv1beta1.ConditionSeverityError))
 		}).Should(Succeed())
 	})
@@ -720,14 +720,14 @@ func deleteROSANetwork(ctx context.Context, rosaNetwork *expinfrav1.ROSANetwork)
 	return nil
 }
 
-func getROSANetworkReadyCondition(reconciler *ROSANetworkReconciler, rosaNet *expinfrav1.ROSANetwork) (*clusterv1beta1.Condition, error) {
+func getROSANetworkReadyV1Beta1Condition(reconciler *ROSANetworkReconciler, rosaNet *expinfrav1.ROSANetwork) (*clusterv1beta1.Condition, error) {
 	updatedROSANetwork := &expinfrav1.ROSANetwork{}
 
 	if err := reconciler.Client.Get(ctx, client.ObjectKeyFromObject(rosaNet), updatedROSANetwork); err != nil {
 		return nil, err
 	}
 
-	return v1beta1conditions.Get(updatedROSANetwork, expinfrav1.ROSANetworkReadyCondition), nil
+	return v1beta1conditions.Get(updatedROSANetwork, expinfrav1.ROSANetworkReadyV1Beta1Condition), nil
 }
 
 // TestROSANetworkReconcilerWithRoleIdentity verifies that ROSANetworkReconciler can create its

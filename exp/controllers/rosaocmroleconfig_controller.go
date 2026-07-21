@@ -100,7 +100,7 @@ func (r *ROSAOCMRoleConfigReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	// Always close scope and set summary condition
 	defer func() {
 		v1beta1conditions.SetSummary(scope.ROSAOCMRoleConfig,
-			v1beta1conditions.WithConditions(expinfrav1.ROSAOCMRoleConfigReadyCondition),
+			v1beta1conditions.WithConditions(expinfrav1.ROSAOCMRoleConfigReadyV1Beta1Condition),
 			v1beta1conditions.WithStepCounter())
 		if err := scope.PatchObject(); err != nil {
 			reterr = errors.Join(reterr, err)
@@ -114,11 +114,11 @@ func (r *ROSAOCMRoleConfigReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	if !scope.ROSAOCMRoleConfig.DeletionTimestamp.IsZero() {
 		scope.Info("Deleting ROSAOCMRoleConfig.")
-		v1beta1conditions.MarkFalse(scope.ROSAOCMRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyCondition, expinfrav1.ROSAOCMRoleConfigDeletionStarted, clusterv1beta1.ConditionSeverityInfo, "Deletion of ROSAOCMRoleConfig started")
+		v1beta1conditions.MarkFalse(scope.ROSAOCMRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyV1Beta1Condition, expinfrav1.ROSAOCMRoleConfigDeletionStartedV1Beta1, clusterv1beta1.ConditionSeverityInfo, "Deletion of ROSAOCMRoleConfig started")
 		err = r.reconcileDelete(ctx, scope, rt)
 		if err != nil {
-			v1beta1conditions.MarkFalse(scope.ROSAOCMRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyCondition,
-				expinfrav1.ROSAOCMRoleConfigDeletionFailedReason, clusterv1beta1.ConditionSeverityError,
+			v1beta1conditions.MarkFalse(scope.ROSAOCMRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyV1Beta1Condition,
+				expinfrav1.ROSAOCMRoleConfigDeletionFailedV1Beta1Reason, clusterv1beta1.ConditionSeverityError,
 				"Failed to delete ROSAOCMRoleConfig: %s", err.Error())
 			return ctrl.Result{}, err
 		}
@@ -138,8 +138,8 @@ func (r *ROSAOCMRoleConfigReconciler) reconcileOCMRole(_ context.Context, scope 
 
 	orgID, externalID, err := rt.OCMClient.GetCurrentOrganization()
 	if err != nil {
-		v1beta1conditions.MarkFalse(ocmRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyCondition,
-			expinfrav1.ROSAOCMRoleConfigReconciliationFailedReason, clusterv1beta1.ConditionSeverityError,
+		v1beta1conditions.MarkFalse(ocmRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyV1Beta1Condition,
+			expinfrav1.ROSAOCMRoleConfigReconciliationFailedV1Beta1Reason, clusterv1beta1.ConditionSeverityError,
 			"Failed to get organization: %s", err.Error())
 		return ctrl.Result{}, fmt.Errorf("failed to get organization: %w", err)
 	}
@@ -147,8 +147,8 @@ func (r *ROSAOCMRoleConfigReconciler) reconcileOCMRole(_ context.Context, scope 
 	roleName := rosaaws.GetOCMRoleName(ocmRoleConfig.Spec.RolePrefix, rosaaws.OCMRole, externalID)
 	roleExists, existingRoleARN, err := rt.AWSClient.CheckRoleExists(roleName)
 	if err != nil {
-		v1beta1conditions.MarkFalse(ocmRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyCondition,
-			expinfrav1.ROSAOCMRoleConfigReconciliationFailedReason, clusterv1beta1.ConditionSeverityError,
+		v1beta1conditions.MarkFalse(ocmRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyV1Beta1Condition,
+			expinfrav1.ROSAOCMRoleConfigReconciliationFailedV1Beta1Reason, clusterv1beta1.ConditionSeverityError,
 			"Failed to check role existence: %s", err.Error())
 		return ctrl.Result{}, fmt.Errorf("failed to check role existence: %w", err)
 	}
@@ -161,8 +161,8 @@ func (r *ROSAOCMRoleConfigReconciler) reconcileOCMRole(_ context.Context, scope 
 		// Check if role is already linked to organization
 		existsOnOCM, _, linkedARN, err := rt.OCMClient.CheckIfAWSAccountExists(orgID, rt.Creator.AccountID)
 		if err != nil {
-			v1beta1conditions.MarkFalse(ocmRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyCondition,
-				expinfrav1.ROSAOCMRoleConfigReconciliationFailedReason, clusterv1beta1.ConditionSeverityError,
+			v1beta1conditions.MarkFalse(ocmRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyV1Beta1Condition,
+				expinfrav1.ROSAOCMRoleConfigReconciliationFailedV1Beta1Reason, clusterv1beta1.ConditionSeverityError,
 				"Failed to check OCM link status: %s", err.Error())
 			return ctrl.Result{}, fmt.Errorf("failed to check OCM link status: %w", err)
 		}
@@ -172,22 +172,22 @@ func (r *ROSAOCMRoleConfigReconciler) reconcileOCMRole(_ context.Context, scope 
 			// Ensure the existing linked role's profile matches the requested profile
 			existingProfile, err := r.detectRoleProfile(rt.AWSClient, roleName)
 			if err != nil {
-				v1beta1conditions.MarkFalse(ocmRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyCondition,
-					expinfrav1.ROSAOCMRoleConfigReconciliationFailedReason, clusterv1beta1.ConditionSeverityError,
+				v1beta1conditions.MarkFalse(ocmRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyV1Beta1Condition,
+					expinfrav1.ROSAOCMRoleConfigReconciliationFailedV1Beta1Reason, clusterv1beta1.ConditionSeverityError,
 					"Failed to detect role profile: %s", err.Error())
 				return ctrl.Result{}, fmt.Errorf("failed to detect role profile: %w", err)
 			}
 
 			requestedProfile := string(ocmRoleConfig.Spec.Profile)
 			if existingProfile != requestedProfile {
-				v1beta1conditions.MarkFalse(ocmRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyCondition,
-					expinfrav1.ROSAOCMRoleConfigReconciliationFailedReason, clusterv1beta1.ConditionSeverityError,
+				v1beta1conditions.MarkFalse(ocmRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyV1Beta1Condition,
+					expinfrav1.ROSAOCMRoleConfigReconciliationFailedV1Beta1Reason, clusterv1beta1.ConditionSeverityError,
 					"Profile mismatch: role has %s profile but %s was requested", existingProfile, requestedProfile)
 				return ctrl.Result{}, fmt.Errorf("profile mismatch: role %s has %s profile but %s was requested",
 					roleName, existingProfile, requestedProfile)
 			}
 
-			v1beta1conditions.MarkTrue(ocmRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyCondition)
+			v1beta1conditions.MarkTrue(ocmRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyV1Beta1Condition)
 			return ctrl.Result{}, nil
 		}
 
@@ -198,8 +198,8 @@ func (r *ROSAOCMRoleConfigReconciler) reconcileOCMRole(_ context.Context, scope 
 	// Convert profile from CRD enum to extracted code enum
 	extractedProfile, err := r.convertProfile(ocmRoleConfig.Spec.Profile)
 	if err != nil {
-		v1beta1conditions.MarkFalse(ocmRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyCondition,
-			expinfrav1.ROSAOCMRoleConfigReconciliationFailedReason, clusterv1beta1.ConditionSeverityError,
+		v1beta1conditions.MarkFalse(ocmRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyV1Beta1Condition,
+			expinfrav1.ROSAOCMRoleConfigReconciliationFailedV1Beta1Reason, clusterv1beta1.ConditionSeverityError,
 			"Invalid profile: %s", err.Error())
 		return ctrl.Result{}, err
 	}
@@ -213,8 +213,8 @@ func (r *ROSAOCMRoleConfigReconciler) reconcileOCMRole(_ context.Context, scope 
 		ocmRoleConfig.Spec.Path,
 	)
 	if err != nil {
-		v1beta1conditions.MarkFalse(ocmRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyCondition,
-			expinfrav1.ROSAOCMRoleConfigReconciliationFailedReason, clusterv1beta1.ConditionSeverityError,
+		v1beta1conditions.MarkFalse(ocmRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyV1Beta1Condition,
+			expinfrav1.ROSAOCMRoleConfigReconciliationFailedV1Beta1Reason, clusterv1beta1.ConditionSeverityError,
 			"Failed to get or create OCM role: %s", err.Error())
 		return ctrl.Result{}, fmt.Errorf("failed to get or create OCM role: %w", err)
 	}
@@ -235,14 +235,14 @@ func (r *ROSAOCMRoleConfigReconciler) reconcileOCMRole(_ context.Context, scope 
 	// - Different role already linked: returns (false, error)
 	_, err = rt.OCMClient.LinkOrgToRole(orgID, roleARN)
 	if err != nil {
-		v1beta1conditions.MarkFalse(ocmRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyCondition,
-			expinfrav1.ROSAOCMRoleConfigReconciliationFailedReason, clusterv1beta1.ConditionSeverityError,
+		v1beta1conditions.MarkFalse(ocmRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyV1Beta1Condition,
+			expinfrav1.ROSAOCMRoleConfigReconciliationFailedV1Beta1Reason, clusterv1beta1.ConditionSeverityError,
 			"Failed to link OCM role: %s", err.Error())
 		return ctrl.Result{}, fmt.Errorf("failed to link OCM role to organization: %w", err)
 	}
 
 	// Set ready condition
-	v1beta1conditions.MarkTrue(ocmRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyCondition)
+	v1beta1conditions.MarkTrue(ocmRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyV1Beta1Condition)
 
 	return ctrl.Result{}, nil
 }
