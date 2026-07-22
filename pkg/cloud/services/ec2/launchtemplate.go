@@ -626,6 +626,7 @@ func (s *Service) createLaunchTemplateData(scope scope.LaunchTemplateScope, imag
 
 	data := &types.RequestLaunchTemplateData{
 		InstanceType: types.InstanceType(lt.InstanceType),
+		CpuOptions:   getLaunchTemplateCPUOptionsRequest(lt.CPUOptions),
 		KeyName:      sshKeyNamePtr,
 		UserData:     ptr.To[string](base64.StdEncoding.EncodeToString(userDataForLaunchTemplate)),
 	}
@@ -710,6 +711,29 @@ func (s *Service) createLaunchTemplateData(scope scope.LaunchTemplateScope, imag
 	data.TagSpecifications = s.buildLaunchTemplateTagSpecificationRequest(scope, userDataSecretKey, bootstrapDataHash)
 
 	return data, nil
+}
+
+func getLaunchTemplateCPUOptionsRequest(cpuOptions infrav1.CPUOptions) *types.LaunchTemplateCpuOptionsRequest {
+	request := &types.LaunchTemplateCpuOptionsRequest{}
+	switch cpuOptions.ConfidentialCompute {
+	case infrav1.AWSConfidentialComputePolicySEVSNP:
+		request.AmdSevSnp = types.AmdSevSnpSpecificationEnabled
+	case infrav1.AWSConfidentialComputePolicyDisabled:
+		request.AmdSevSnp = types.AmdSevSnpSpecificationDisabled
+	}
+
+	switch cpuOptions.NestedVirtualization {
+	case infrav1.NestedVirtualizationPolicyEnabled:
+		request.NestedVirtualization = types.NestedVirtualizationSpecificationEnabled
+	case infrav1.NestedVirtualizationPolicyDisabled:
+		request.NestedVirtualization = types.NestedVirtualizationSpecificationDisabled
+	}
+
+	if *request == (types.LaunchTemplateCpuOptionsRequest{}) {
+		return nil
+	}
+
+	return request
 }
 
 func getLaunchTemplateCapacityReservationSpecification(awsLaunchTemplate *expinfrav1.AWSLaunchTemplate) *types.LaunchTemplateCapacityReservationSpecificationRequest {
@@ -916,6 +940,7 @@ func (s *Service) SDKToLaunchTemplate(d types.LaunchTemplateVersion) (*expinfrav
 			ID: v.ImageId,
 		},
 		InstanceType:      string(v.InstanceType),
+		CPUOptions:        launchTemplateCPUOptionsFromSDK(v.CpuOptions),
 		SSHKeyName:        v.KeyName,
 		SpotMarketOptions: SDKToSpotMarketOptions(v.InstanceMarketOptions),
 		VersionNumber:     d.VersionNumber,
@@ -1009,6 +1034,29 @@ func (s *Service) SDKToLaunchTemplate(d types.LaunchTemplateVersion) (*expinfrav
 	return i, decodedUserDataHash, launchTemplateUserDataSecretKey, bootstrapDataHash, nil
 }
 
+func launchTemplateCPUOptionsFromSDK(cpuOptions *types.LaunchTemplateCpuOptions) infrav1.CPUOptions {
+	if cpuOptions == nil {
+		return infrav1.CPUOptions{}
+	}
+
+	result := infrav1.CPUOptions{}
+	switch cpuOptions.AmdSevSnp {
+	case types.AmdSevSnpSpecificationEnabled:
+		result.ConfidentialCompute = infrav1.AWSConfidentialComputePolicySEVSNP
+	case types.AmdSevSnpSpecificationDisabled:
+		result.ConfidentialCompute = infrav1.AWSConfidentialComputePolicyDisabled
+	}
+
+	switch cpuOptions.NestedVirtualization {
+	case types.NestedVirtualizationSpecificationEnabled:
+		result.NestedVirtualization = infrav1.NestedVirtualizationPolicyEnabled
+	case types.NestedVirtualizationSpecificationDisabled:
+		result.NestedVirtualization = infrav1.NestedVirtualizationPolicyDisabled
+	}
+
+	return result
+}
+
 // LaunchTemplateNeedsUpdate checks if a new launch template version is needed.
 //
 // FIXME(dlipovetsky): This check should account for changed userdata, but does not yet do so.
@@ -1020,6 +1068,10 @@ func (s *Service) LaunchTemplateNeedsUpdate(scope scope.LaunchTemplateScope, inc
 
 	if incoming.InstanceType != existing.InstanceType {
 		return true, services.LaunchTemplateNeedsUpdateReasonInstanceType, nil
+	}
+
+	if !cmp.Equal(incoming.CPUOptions, existing.CPUOptions) {
+		return true, services.LaunchTemplateNeedsUpdateReasonCPUOptions, nil
 	}
 
 	if !cmp.Equal(incoming.InstanceMetadataOptions, existing.InstanceMetadataOptions) {

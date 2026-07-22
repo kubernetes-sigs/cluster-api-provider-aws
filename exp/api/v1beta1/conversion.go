@@ -76,6 +76,7 @@ func (src *AWSMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	if preference := restored.Spec.AWSLaunchTemplate.CapacityReservationPreference; preference != "" {
 		dst.Spec.AWSLaunchTemplate.CapacityReservationPreference = preference
 	}
+	dst.Spec.AWSLaunchTemplate.CPUOptions = restored.Spec.AWSLaunchTemplate.CPUOptions
 
 	dst.Spec.DefaultInstanceWarmup = restored.Spec.DefaultInstanceWarmup
 	dst.Spec.AWSLaunchTemplate.NonRootVolumes = restored.Spec.AWSLaunchTemplate.NonRootVolumes
@@ -143,6 +144,8 @@ func (src *AWSManagedMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 		if preference := restored.Spec.AWSLaunchTemplate.CapacityReservationPreference; preference != "" {
 			dst.Spec.AWSLaunchTemplate.CapacityReservationPreference = preference
 		}
+
+		dst.Spec.AWSLaunchTemplate.CPUOptions = restored.Spec.AWSLaunchTemplate.CPUOptions
 	}
 	if restored.Spec.AvailabilityZoneSubnetType != nil {
 		dst.Spec.AvailabilityZoneSubnetType = restored.Spec.AvailabilityZoneSubnetType
