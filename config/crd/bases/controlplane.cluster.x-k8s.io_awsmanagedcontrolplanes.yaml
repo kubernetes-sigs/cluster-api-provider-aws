@@ -2260,6 +2260,11 @@ spec:
                       security group to its unique name, if any.
                     type: object
                 type: object
+              observedGeneration:
+                description: ObservedGeneration is the latest generation observed
+                  by the controller.
+                format: int64
+                type: integer
               oidcProvider:
                 description: OIDCProvider holds the status of the identity provider
                   for this cluster
@@ -4681,6 +4686,11 @@ spec:
                       security group to its unique name, if any.
                     type: object
                 type: object
+              observedGeneration:
+                description: ObservedGeneration is the latest generation observed
+                  by the controller.
+                format: int64
+                type: integer
               oidcProvider:
                 description: OIDCProvider holds the status of the identity provider
                   for this cluster
