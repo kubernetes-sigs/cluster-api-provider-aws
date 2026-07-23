@@ -48,10 +48,9 @@ const (
 var log = ctrl.Log.WithName("awsmachine-resource")
 
 func (w *AWSMachine) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&infrav1.AWSMachine{}).
-		WithValidator(w).
-		WithDefaulter(w).
+	return ctrl.NewWebhookManagedBy(mgr, &infrav1.AWSMachine{}).
+		WithCustomValidator(w).
+		WithCustomDefaulter(w).
 		Complete()
 }
 

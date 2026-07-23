@@ -41,10 +41,9 @@ const (
 )
 
 func (w *AWSCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&infrav1.AWSCluster{}).
-		WithValidator(w).
-		WithDefaulter(w).
+	return ctrl.NewWebhookManagedBy(mgr, &infrav1.AWSCluster{}).
+		WithCustomValidator(w).
+		WithCustomDefaulter(w).
 		Complete()
 }
 

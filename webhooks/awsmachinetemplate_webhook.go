@@ -34,9 +34,8 @@ import (
 )
 
 func (w *AWSMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&infrav1.AWSMachineTemplate{}).
-		WithValidator(w).
+	return ctrl.NewWebhookManagedBy(mgr, &infrav1.AWSMachineTemplate{}).
+		WithCustomValidator(w).
 		Complete()
 }
 

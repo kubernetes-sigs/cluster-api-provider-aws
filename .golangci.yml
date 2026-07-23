@@ -400,6 +400,27 @@ linters:
           - staticcheck
         path: bootstrap/eks/
         text: 'SA1019: (.*)EKSConfig is deprecated'
+      - linters:
+          - staticcheck
+        text: 'SA1019: (.*)CustomValidator is deprecated'
+      - linters:
+          - staticcheck
+        text: 'SA1019: (.*)CustomDefaulter is deprecated'
+      - linters:
+          - staticcheck
+        text: 'SA1019: (.*)WithCustomValidator is deprecated'
+      - linters:
+          - staticcheck
+        text: 'SA1019: (.*)WithCustomDefaulter is deprecated'
+      - linters:
+          - staticcheck
+        text: 'SA1019: ctrl\.NewWebhookManagedBy'
+      - linters:
+          - staticcheck
+        text: 'SA1019: clusterv1\.(Condition|Conditions|ConditionType) is deprecated'
+      - linters:
+          - staticcheck
+        text: 'SA1019: mgr\.GetEventRecorderFor is deprecated'
     paths:
       - third_party$
       - builtin$

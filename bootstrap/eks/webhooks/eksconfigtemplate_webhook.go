@@ -32,10 +32,9 @@ type EKSConfigTemplate struct{}
 
 // SetupWebhookWithManager will setup the webhooks for the EKSConfigTemplate.
 func (w *EKSConfigTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&eksbootstrapv1.EKSConfigTemplate{}).
-		WithValidator(w).
-		WithDefaulter(w).
+	return ctrl.NewWebhookManagedBy(mgr, &eksbootstrapv1.EKSConfigTemplate{}).
+		WithCustomValidator(w).
+		WithCustomDefaulter(w).
 		Complete()
 }
 
