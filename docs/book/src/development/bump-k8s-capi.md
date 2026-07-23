@@ -281,10 +281,22 @@ Apply the same version updates as above where the variables appear.
 
 ### test/e2e/data/shared/capi/ metadata files
 
-Add a new CAPI release series entry. If a new directory is needed (e.g.
-`test/e2e/data/shared/capi/v1.13/metadata.yaml`), create it with the
-appropriate release series entries. Also update existing metadata files (e.g.
-`v1.2/metadata.yaml`) to include the new release series.
+Each CAPI minor version gets its own metadata directory named after that version
+(e.g. `capi/v1.13/` for CAPI v1.13). This follows the same convention used by
+cluster-api-provider-vsphere.
+
+The metadata file lists all known CAPI release series up to and including that
+minor, mapping each to its contract version (`v1beta1` or `v1beta2`).
+
+When bumping to a new CAPI minor N:
+1. Create `test/e2e/data/shared/capi/v{N}/metadata.yaml` with all release
+   series up to minor N
+2. Point the new CAPI version entries in both `e2e_conf.yaml` and
+   `e2e_eks_conf.yaml` at `./shared/capi/v{N}/metadata.yaml`
+3. Delete the oldest `capi/v{old}/` directory if it is no longer referenced
+4. Update `capi/v1.2/metadata.yaml` to include the new release series (this
+   catch-all file is used for v1.2.0 upgrade test entries and provider-level
+   defaults)
 
 ## Step 5: Apply migration-guide-driven changes
 
