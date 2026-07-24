@@ -189,7 +189,13 @@ CNI_SEMVER="v$(echo "$CNI_DEB_VERSION" | cut -d'-' -f1)"
 # --- Determine CRICTL Version ---
 # Always based on the K8S_RELEASE_SERIES (vX.Y)
 echo "INFO: Fetching crictl release tags from GitHub API for series ${K8S_RELEASE_SERIES}..."
-CRICTL_RAW_TAG=$(curl -s https://api.github.com/repos/kubernetes-sigs/cri-tools/releases \
+# Authenticate when GITHUB_TOKEN is set (e.g. in CI) to avoid the shared
+# per-IP rate limit on unauthenticated GitHub API requests.
+GITHUB_AUTH_HEADER=()
+if [ -n "${GITHUB_TOKEN:-}" ]; then
+  GITHUB_AUTH_HEADER=(-H "Authorization: Bearer ${GITHUB_TOKEN}")
+fi
+CRICTL_RAW_TAG=$(curl -s ${GITHUB_AUTH_HEADER[@]+"${GITHUB_AUTH_HEADER[@]}"} https://api.github.com/repos/kubernetes-sigs/cri-tools/releases \
   | grep '"tag_name":' \
   | grep "\"${K8S_RELEASE_SERIES}." \
   | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/' \
