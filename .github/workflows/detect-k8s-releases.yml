@@ -57,6 +57,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: automation/update-k8s-supported-versions
+          delete-branch: true
           commit-message: "feat: update latest K8s version for CAPA AMIs build"
           title: "🤖 feat: Update latest K8s version for CAPA AMIs build"
           body: |
