@@ -25,6 +25,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	. "github.com/onsi/gomega"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilfeature "k8s.io/component-base/featuregate/testing"
@@ -1519,6 +1520,31 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "Should fail if the secondary control plane load balancer is removed",
+			oldCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+						Name:   ptr.To("primary-lb"),
+						Scheme: &infrav1.ELBSchemeInternetFacing,
+					},
+					SecondaryControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+						Name:             ptr.To("secondary-lb"),
+						Scheme:           &infrav1.ELBSchemeInternal,
+						LoadBalancerType: infrav1.LoadBalancerTypeNLB,
+					},
+				},
+			},
+			newCluster: &infrav1.AWSCluster{
+				Spec: infrav1.AWSClusterSpec{
+					ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+						Name:   ptr.To("primary-lb"),
+						Scheme: &infrav1.ELBSchemeInternetFacing,
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name: "Should pass if controlPlaneLoadBalancer healthcheckprotocol is same after update",
 			oldCluster: &infrav1.AWSCluster{
 				Spec: infrav1.AWSClusterSpec{
@@ -1682,6 +1708,45 @@ func TestAWSClusterValidateUpdate(t *testing.T) {
 		},
 		)
 	}
+}
+
+func TestAWSClusterValidateUpdateSecondaryControlPlaneLoadBalancerRemovalIsRejected(t *testing.T) {
+	g := NewWithT(t)
+	ctx := context.Background()
+	primaryScheme := infrav1.ELBSchemeInternetFacing
+	secondaryScheme := infrav1.ELBSchemeInternal
+
+	oldCluster := &infrav1.AWSCluster{
+		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
+		Spec: infrav1.AWSClusterSpec{
+			ControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+				Name:   ptr.To("primary-lb"),
+				Scheme: &primaryScheme,
+			},
+			SecondaryControlPlaneLoadBalancer: &infrav1.AWSLoadBalancerSpec{
+				Name:             ptr.To("secondary-lb"),
+				Scheme:           &secondaryScheme,
+				LoadBalancerType: infrav1.LoadBalancerTypeNLB,
+			},
+		},
+	}
+	newCluster := oldCluster.DeepCopy()
+	newCluster.Spec.SecondaryControlPlaneLoadBalancer = nil
+
+	var err error
+	g.Expect(func() {
+		_, err = (&AWSCluster{}).ValidateUpdate(ctx, oldCluster, newCluster)
+	}).ToNot(Panic())
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(apierrors.IsInvalid(err)).To(BeTrue())
+
+	statusErr, ok := err.(apierrors.APIStatus)
+	g.Expect(ok).To(BeTrue())
+	invalidFields := make([]string, 0)
+	for _, cause := range statusErr.Status().Details.Causes {
+		invalidFields = append(invalidFields, cause.Field)
+	}
+	g.Expect(invalidFields).To(ContainElement("spec.secondaryControlPlaneLoadBalancer"))
 }
 
 func TestAWSClusterDefaultCNIIngressRules(t *testing.T) {
