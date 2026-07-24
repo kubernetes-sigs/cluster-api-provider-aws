@@ -52,7 +52,7 @@ reports the target Go minor or newer. Call this `GOLANGCI_VERSION` (e.g.
 
 ## Step 2: Update files
 
-### go.mod (root) and hack/tools/go.mod
+### go.mod (root), hack/tools/go.mod, and hack/tools/release-tools/go.mod
 
 Update the `go` directive:
 
@@ -137,11 +137,12 @@ digest than what this repo already has. If they match, skip this file.
 
 ## Step 3: go mod tidy
 
-Run in both module directories:
+Run in all module directories:
 
 ```bash
 go mod tidy
 cd hack/tools && go mod tidy
+cd release-tools && go mod tidy
 ```
 
 ## Step 4: Lint and test
@@ -181,7 +182,8 @@ Create **three separate commits** in this order:
      `.github/workflows/pr-golangci-lint.yaml`, and `.golangci.yml` if
      exclusion rules were added
 3. **Go version bump**: `chore(bump): bump Go to FULL_VERSION`
-   - All remaining files: `go.mod`, `hack/tools/go.mod`, `Makefile`,
+   - All remaining files: `go.mod`, `hack/tools/go.mod`,
+     `hack/tools/release-tools/go.mod`, `Makefile`,
      `.golangci-kal.yml`, `.github/workflows/dependabot.yml`,
      `.github/workflows/release.yaml`, `netlify.toml`,
      `cloudbuild.yaml`, `cloudbuild-nightly.yaml`
