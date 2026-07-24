@@ -60,6 +60,10 @@ jobs:
       - name: Determine target K8s versions
         id: versions
         env:
+          # Used by find-missing-ami to query the Kubernetes release API;
+          # unauthenticated requests share a per-IP rate limit across all
+          # jobs on the runner and get throttled with 403s.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MANUAL_VERSIONS: ${{ inputs.versions }}
           OWNER_ID: '819546954734'
           REGION: us-east-2
@@ -86,8 +90,8 @@ jobs:
           else
             # Pipe published AMIs directly into find-missing-ami to compute
             # which (k8s version × OS × region) combinations are absent.
-            # GITHUB_TOKEN is injected automatically by the Actions runner and
-            # is used by find-missing-ami to query the Kubernetes release API.
+            # find-missing-ami authenticates to the Kubernetes release API
+            # with the GITHUB_TOKEN set in this step's env.
             ./bin/clusterawsadm ami list \
               --owner-id "${OWNER_ID}" \
               --region "${CHECK_REGION}" \
@@ -113,6 +117,10 @@ jobs:
       - name: Build matrix from packer inputs
         id: matrix
         if: steps.versions.outputs.count != '0'
+        env:
+          # find-ami-publishing-inputs.sh uses this to authenticate its
+          # GitHub API lookup of crictl release tags.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
 
