@@ -6,19 +6,19 @@ on:
       image_builder_repo:
         description: "Image builder repository (format: user/repo-name)"
         required: true
-        default: 'kubernetes-sigs/image-builder'
+        default: "kubernetes-sigs/image-builder"
       image_builder_version:
         description: "Image builder version"
         required: true
-        default: 'v0.1.52'
+        default: "v0.1.55"
       target:
         description: "target os"
         required: true
         type: choice
         options:
-        - ubuntu-2204
-        - ubuntu-2404
-        - flatcar
+          - ubuntu-2204
+          - ubuntu-2404
+          - flatcar
       packer_vars:
         description: "Packer vars (json)"
         type: string
@@ -64,4 +64,3 @@ jobs:
         if: inputs.packer_vars == ''
         working-directory: ./images/capi
         run: make build-ami-${{ inputs.target }}
-
