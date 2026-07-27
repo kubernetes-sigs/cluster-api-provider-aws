@@ -22,8 +22,11 @@ metadata:
   name: "${CLUSTER_NAME}-pool-byo-lt-0"
 spec:
   eksNodegroupName: "${CLUSTER_NAME}-pool-byo-lt-0"
-  # instanceType must not be set when using a BYO launch template — EKS uses
-  # the type configured inside the launch template itself.
+  # The BYO launch template created by the test does not pin an AMI or an
+  # instance type, so amiType and instanceType are set here to exercise the BYO
+  # path where these are supplied alongside a user-provided launch template.
+  amiType: AL2023_x86_64_STANDARD
+  instanceType: "${AWS_NODE_MACHINE_TYPE}"
   awsLaunchTemplate:
     id: "${BYO_LAUNCH_TEMPLATE_ID}"
     versionNumber: ${BYO_LAUNCH_TEMPLATE_VERSION}
