@@ -19,12 +19,14 @@ package list
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/spf13/cobra"
 	"k8s.io/kubectl/pkg/util/templates"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/ami"
+	amiv1 "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/api/ami/v1beta1"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/cmd/flags"
 	cmdout "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/printers"
 )
@@ -60,11 +62,6 @@ func ListAMICmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			region, _ := flags.GetRegion(cmd)
 
-			printer, err := cmdout.New(outputPrinter, os.Stdout)
-			if err != nil {
-				return fmt.Errorf("failed creating output printer: %w", err)
-			}
-
 			listByVersion, err := ami.List(ami.ListInput{
 				Region:            region,
 				KubernetesVersion: kubernetesVersion,
@@ -74,19 +71,8 @@ func ListAMICmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if len(listByVersion.Items) == 0 {
-				fmt.Println("No AMIs found")
-				return nil
-			}
 
-			if outputPrinter == string(cmdout.PrinterTypeTable) {
-				table := listByVersion.ToTable()
-				printer.Print(table)
-			} else {
-				printer.Print(listByVersion)
-			}
-
-			return nil
+			return printAMIList(os.Stdout, outputPrinter, listByVersion)
 		},
 	}
 
@@ -96,6 +82,26 @@ func ListAMICmd() *cobra.Command {
 	addOutputFlag(newCmd)
 	addOwnerIDFlag(newCmd)
 	return newCmd
+}
+
+// printAMIList writes the AMI list to out in the requested format. The
+// human-friendly "No AMIs found" message is limited to table output so that
+// json/yaml output is always machine-parseable, even when the list is empty.
+func printAMIList(out io.Writer, format string, list *amiv1.AWSAMIList) error {
+	printer, err := cmdout.New(format, out)
+	if err != nil {
+		return fmt.Errorf("failed creating output printer: %w", err)
+	}
+
+	if format == string(cmdout.PrinterTypeTable) {
+		if len(list.Items) == 0 {
+			_, err := fmt.Fprintln(out, "No AMIs found")
+			return err
+		}
+		return printer.Print(list.ToTable())
+	}
+
+	return printer.Print(list)
 }
 
 func addOsFlag(c *cobra.Command) {
