@@ -41,6 +41,9 @@ func (src *AWSMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.SuspendProcesses = restored.Spec.SuspendProcesses
 	}
 	if restored.Spec.RefreshPreferences != nil {
+		if dst.Spec.RefreshPreferences == nil {
+			dst.Spec.RefreshPreferences = &expinfrav1.RefreshPreferences{}
+		}
 		dst.Spec.RefreshPreferences.Disable = restored.Spec.RefreshPreferences.Disable
 		dst.Spec.RefreshPreferences.MaxHealthyPercentage = restored.Spec.RefreshPreferences.MaxHealthyPercentage
 	}

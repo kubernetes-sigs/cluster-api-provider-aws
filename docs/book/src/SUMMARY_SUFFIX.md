@@ -5,6 +5,7 @@
   - [Try unreleased changes with Nightly Builds](./development/nightlies.md)
   - [Publishing AMIs](./development/amis.md)
   - [Bumping Go](./development/bump-go.md)
+  - [Bumping Kubernetes and CAPI](./development/bump-k8s-capi.md)
 - [CRD Reference](./crd/index.md)
 - [Reference](./topics/reference/reference.md)
   - [Glossary](./topics/reference/glossary.md)

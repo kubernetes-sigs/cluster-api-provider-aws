@@ -38,10 +38,9 @@ type ROSAControlPlane struct{}
 
 // SetupWebhookWithManager will setup the webhooks for the ROSAControlPlane.
 func (w *ROSAControlPlane) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&rosacontrolplanev1.ROSAControlPlane{}).
-		WithValidator(w).
-		WithDefaulter(w).
+	return ctrl.NewWebhookManagedBy(mgr, &rosacontrolplanev1.ROSAControlPlane{}).
+		WithCustomValidator(w).
+		WithCustomDefaulter(w).
 		Complete()
 }
 
