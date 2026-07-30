@@ -20,8 +20,8 @@ include $(ROOT_DIR_RELATIVE)/common.mk
 # https://suva.sh/posts/well-documented-makefiles
 
 # Go
-GO_VERSION ?=1.25.12
-GO_DIRECTIVE_VERSION ?= 1.25.0
+GO_VERSION ?=1.26.5
+GO_DIRECTIVE_VERSION ?= 1.26.0
 GO_CONTAINER_IMAGE ?= golang:$(GO_VERSION)
 
 # Directories.
