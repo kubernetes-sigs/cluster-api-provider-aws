@@ -45,7 +45,7 @@ ifeq ($(OS), windows)
 	MDBOOK_EXTRACT_COMMAND := unzip -d /tmp
 endif
 
-# Use a golangci-lint built with Go >= 1.25 to match repo go.mod
+# Use a golangci-lint built with Go >= 1.26 to match repo go.mod
 GOLANGCI_LINT_VERSION := v2.12.2
 ## --------------------------------------
 ## Tooling Binaries
