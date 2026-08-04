@@ -38,3 +38,4 @@ And a number of new templates are available in the templates folder for creating
 - [Enabling Encryption](encryption.md)
 - [Cluster Upgrades](cluster-upgrades.md)
 - [Using EKS Pod Identity for controller credentials](eks-pod-identity.md)
+- [Control Plane Egress Traffic](controlplane-egress.md)

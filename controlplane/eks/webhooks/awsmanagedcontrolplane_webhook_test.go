@@ -86,21 +86,21 @@ func TestDefaultingWebhook(t *testing.T) {
 			resourceName: "cluster1",
 			resourceNS:   "default",
 			expectHash:   false,
-			expectSpec:   ekscontrolplanev1.AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1", IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec, TokenMethod: &ekscontrolplanev1.EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true},
+			expectSpec:   ekscontrolplanev1.AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1", IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec, TokenMethod: &ekscontrolplanev1.EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true, ControlPlaneEgressMode: ekscontrolplanev1.ControlPlaneEgressModeAwsManaged},
 		},
 		{
 			name:         "less than 100 chars, dot in name",
 			resourceName: "team1.cluster1",
 			resourceNS:   "default",
 			expectHash:   false,
-			expectSpec:   ekscontrolplanev1.AWSManagedControlPlaneSpec{EKSClusterName: "default_team1_cluster1", IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec, TokenMethod: &ekscontrolplanev1.EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true},
+			expectSpec:   ekscontrolplanev1.AWSManagedControlPlaneSpec{EKSClusterName: "default_team1_cluster1", IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec, TokenMethod: &ekscontrolplanev1.EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true, ControlPlaneEgressMode: ekscontrolplanev1.ControlPlaneEgressModeAwsManaged},
 		},
 		{
 			name:         "more than 100 chars",
 			resourceName: "abcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcde",
 			resourceNS:   "default",
 			expectHash:   true,
-			expectSpec:   ekscontrolplanev1.AWSManagedControlPlaneSpec{EKSClusterName: "capi_", IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec, TokenMethod: &ekscontrolplanev1.EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true},
+			expectSpec:   ekscontrolplanev1.AWSManagedControlPlaneSpec{EKSClusterName: "capi_", IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec, TokenMethod: &ekscontrolplanev1.EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true, ControlPlaneEgressMode: ekscontrolplanev1.ControlPlaneEgressModeAwsManaged},
 		},
 		{
 			name:         "with patch",
@@ -108,7 +108,7 @@ func TestDefaultingWebhook(t *testing.T) {
 			resourceNS:   "default",
 			expectHash:   false,
 			spec:         ekscontrolplanev1.AWSManagedControlPlaneSpec{Version: &vV1_17_1},
-			expectSpec:   ekscontrolplanev1.AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1", Version: &vV1_17_1, IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec, TokenMethod: &ekscontrolplanev1.EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true},
+			expectSpec:   ekscontrolplanev1.AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1", Version: &vV1_17_1, IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec, TokenMethod: &ekscontrolplanev1.EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true, ControlPlaneEgressMode: ekscontrolplanev1.ControlPlaneEgressModeAwsManaged},
 		},
 		{
 			name:         "with allowed ip on bastion",
@@ -129,6 +129,7 @@ func TestDefaultingWebhook(t *testing.T) {
 				NetworkSpec:                defaultNetworkSpec,
 				TokenMethod:                &ekscontrolplanev1.EKSTokenMethodIAMAuthenticator,
 				BootstrapSelfManagedAddons: true,
+				ControlPlaneEgressMode:     ekscontrolplanev1.ControlPlaneEgressModeAwsManaged,
 			},
 		},
 		{
@@ -137,14 +138,14 @@ func TestDefaultingWebhook(t *testing.T) {
 			resourceNS:   "default",
 			expectHash:   false,
 			spec:         ekscontrolplanev1.AWSManagedControlPlaneSpec{NetworkSpec: infrav1.NetworkSpec{CNI: &infrav1.CNISpec{}}},
-			expectSpec:   ekscontrolplanev1.AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1", IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: infrav1.NetworkSpec{CNI: &infrav1.CNISpec{}, VPC: defaultVPCSpec}, TokenMethod: &ekscontrolplanev1.EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true},
+			expectSpec:   ekscontrolplanev1.AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1", IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: infrav1.NetworkSpec{CNI: &infrav1.CNISpec{}, VPC: defaultVPCSpec}, TokenMethod: &ekscontrolplanev1.EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true, ControlPlaneEgressMode: ekscontrolplanev1.ControlPlaneEgressModeAwsManaged},
 		},
 		{
 			name:         "secondary CIDR",
 			resourceName: "cluster1",
 			resourceNS:   "default",
 			expectHash:   false,
-			expectSpec:   ekscontrolplanev1.AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1", IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec, SecondaryCidrBlock: nil, TokenMethod: &ekscontrolplanev1.EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true},
+			expectSpec:   ekscontrolplanev1.AWSManagedControlPlaneSpec{EKSClusterName: "default_cluster1", IdentityRef: defaultIdentityRef, Bastion: defaultTestBastion, NetworkSpec: defaultNetworkSpec, SecondaryCidrBlock: nil, TokenMethod: &ekscontrolplanev1.EKSTokenMethodIAMAuthenticator, BootstrapSelfManagedAddons: true, ControlPlaneEgressMode: ekscontrolplanev1.ControlPlaneEgressModeAwsManaged},
 		},
 	}
 
@@ -864,6 +865,64 @@ func TestWebhookUpdate(t *testing.T) {
 				},
 			},
 			expectError: true,
+		},
+		{
+			name: "egress mode customer-routed unchanged is allowed",
+			oldClusterSpec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+				EKSClusterName:         "default_cluster1",
+				ControlPlaneEgressMode: ekscontrolplanev1.ControlPlaneEgressModeCustomerRouted,
+			},
+			newClusterSpec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+				EKSClusterName:         "default_cluster1",
+				ControlPlaneEgressMode: ekscontrolplanev1.ControlPlaneEgressModeCustomerRouted,
+			},
+			expectError: false,
+		},
+		{
+			name: "changing egress mode from customer-routed to aws-managed is denied",
+			oldClusterSpec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+				EKSClusterName:         "default_cluster1",
+				ControlPlaneEgressMode: ekscontrolplanev1.ControlPlaneEgressModeCustomerRouted,
+			},
+			newClusterSpec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+				EKSClusterName:         "default_cluster1",
+				ControlPlaneEgressMode: ekscontrolplanev1.ControlPlaneEgressModeAwsManaged,
+			},
+			expectError: true,
+		},
+		{
+			name: "changing egress mode from customer-routed to unset is denied",
+			oldClusterSpec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+				EKSClusterName:         "default_cluster1",
+				ControlPlaneEgressMode: ekscontrolplanev1.ControlPlaneEgressModeCustomerRouted,
+			},
+			newClusterSpec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+			},
+			expectError: true,
+		},
+		{
+			name: "changing egress mode from aws-managed to customer-routed is allowed",
+			oldClusterSpec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+				EKSClusterName:         "default_cluster1",
+				ControlPlaneEgressMode: ekscontrolplanev1.ControlPlaneEgressModeAwsManaged,
+			},
+			newClusterSpec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+				EKSClusterName:         "default_cluster1",
+				ControlPlaneEgressMode: ekscontrolplanev1.ControlPlaneEgressModeCustomerRouted,
+			},
+			expectError: false,
+		},
+		{
+			name: "setting egress mode from unset to customer-routed is allowed",
+			oldClusterSpec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+			},
+			newClusterSpec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+				EKSClusterName:         "default_cluster1",
+				ControlPlaneEgressMode: ekscontrolplanev1.ControlPlaneEgressModeCustomerRouted,
+			},
+			expectError: false,
 		},
 		{
 			name: "changing ipv6 enabled is not allowed after it has been set - true, false",
