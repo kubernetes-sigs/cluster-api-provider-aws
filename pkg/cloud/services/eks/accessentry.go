@@ -167,13 +167,9 @@ func (s *Service) updateAccessEntry(ctx context.Context, accessEntry ekscontrolp
 		return errors.Wrapf(err, "failed to describe access entry for principal %s", accessEntry.PrincipalARN)
 	}
 
-	// EKS requires recreate when changing type or removing username
-	existingUsername := ""
-	if describeOutput.AccessEntry.Username != nil {
-		existingUsername = *describeOutput.AccessEntry.Username
-	}
-
-	if *accessEntry.Type.APIValue() != *describeOutput.AccessEntry.Type || accessEntry.Username != existingUsername {
+	// Type is the only immutable field, so it is the only one requiring a recreate.
+	// UpdateAccessEntry accepts username and Kubernetes groups.
+	if *accessEntry.Type.APIValue() != *describeOutput.AccessEntry.Type {
 		if err = s.deleteAccessEntry(ctx, accessEntry.PrincipalARN); err != nil {
 			return errors.Wrapf(err, "failed to delete access entry for principal %s during recreation", accessEntry.PrincipalARN)
 		}
@@ -191,9 +187,25 @@ func (s *Service) updateAccessEntry(ctx context.Context, accessEntry ekscontrolp
 		ClusterName:  &clusterName,
 		PrincipalArn: &accessEntry.PrincipalARN,
 	}
+	needsUpdate := false
 
 	if !slices.Equal(accessEntry.KubernetesGroups, describeOutput.AccessEntry.KubernetesGroups) {
 		updateInput.KubernetesGroups = accessEntry.KubernetesGroups
+		needsUpdate = true
+	}
+
+	// An unset username means EKS generates one, so the generated value is not drift.
+	existingUsername := ""
+	if describeOutput.AccessEntry.Username != nil {
+		existingUsername = *describeOutput.AccessEntry.Username
+	}
+
+	if accessEntry.Username != "" && accessEntry.Username != existingUsername {
+		updateInput.Username = &accessEntry.Username
+		needsUpdate = true
+	}
+
+	if needsUpdate {
 		if _, err := s.EKSClient.UpdateAccessEntry(ctx, updateInput); err != nil {
 			return errors.Wrapf(err, "failed to update access entry for principal %s", accessEntry.PrincipalARN)
 		}

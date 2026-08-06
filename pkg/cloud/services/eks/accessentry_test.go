@@ -761,7 +761,7 @@ func TestUpdateAccessEntry(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "username change requires recreate",
+			name: "username change is applied in place",
 			accessEntry: ekscontrolplanev1.AccessEntry{
 				PrincipalARN:     principalARN,
 				Type:             ekscontrolplanev1.AccessEntryTypeStandard,
@@ -778,9 +778,11 @@ func TestUpdateAccessEntry(t *testing.T) {
 					},
 				}, nil)
 
-				m.DeleteAccessEntry(gomock.Any(), gomock.Any()).Return(&eks.DeleteAccessEntryOutput{}, nil)
-
-				m.CreateAccessEntry(gomock.Any(), gomock.Any()).Return(&eks.CreateAccessEntryOutput{}, nil)
+				m.UpdateAccessEntry(gomock.Any(), &eks.UpdateAccessEntryInput{
+					ClusterName:  aws.String(clusterName),
+					PrincipalArn: aws.String(principalARN),
+					Username:     aws.String("new-admin"),
+				}).Return(&eks.UpdateAccessEntryOutput{}, nil)
 
 				m.ListAssociatedAccessPolicies(gomock.Any(), gomock.Any()).Return(&eks.ListAssociatedAccessPoliciesOutput{
 					AssociatedAccessPolicies: []ekstypes.AssociatedAccessPolicy{},
@@ -819,7 +821,7 @@ func TestUpdateAccessEntry(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "username cleared requires recreate",
+			name: "empty username in spec does not trigger a recreate",
 			accessEntry: ekscontrolplanev1.AccessEntry{
 				PrincipalARN:     principalARN,
 				Type:             ekscontrolplanev1.AccessEntryTypeStandard,
@@ -836,10 +838,6 @@ func TestUpdateAccessEntry(t *testing.T) {
 					},
 				}, nil)
 
-				m.DeleteAccessEntry(gomock.Any(), gomock.Any()).Return(&eks.DeleteAccessEntryOutput{}, nil)
-
-				m.CreateAccessEntry(gomock.Any(), gomock.Any()).Return(&eks.CreateAccessEntryOutput{}, nil)
-
 				m.ListAssociatedAccessPolicies(gomock.Any(), gomock.Any()).Return(&eks.ListAssociatedAccessPoliciesOutput{
 					AssociatedAccessPolicies: []ekstypes.AssociatedAccessPolicy{},
 				}, nil)
@@ -847,7 +845,7 @@ func TestUpdateAccessEntry(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "username added requires recreate",
+			name: "username added is applied in place",
 			accessEntry: ekscontrolplanev1.AccessEntry{
 				PrincipalARN:     principalARN,
 				Type:             ekscontrolplanev1.AccessEntryTypeStandard,
@@ -864,9 +862,42 @@ func TestUpdateAccessEntry(t *testing.T) {
 					},
 				}, nil)
 
-				m.DeleteAccessEntry(gomock.Any(), gomock.Any()).Return(&eks.DeleteAccessEntryOutput{}, nil)
+				m.UpdateAccessEntry(gomock.Any(), &eks.UpdateAccessEntryInput{
+					ClusterName:  aws.String(clusterName),
+					PrincipalArn: aws.String(principalARN),
+					Username:     aws.String("admin"),
+				}).Return(&eks.UpdateAccessEntryOutput{}, nil)
 
-				m.CreateAccessEntry(gomock.Any(), gomock.Any()).Return(&eks.CreateAccessEntryOutput{}, nil)
+				m.ListAssociatedAccessPolicies(gomock.Any(), gomock.Any()).Return(&eks.ListAssociatedAccessPoliciesOutput{
+					AssociatedAccessPolicies: []ekstypes.AssociatedAccessPolicy{},
+				}, nil)
+			},
+			expectError: false,
+		},
+		{
+			name: "username and groups change in a single update",
+			accessEntry: ekscontrolplanev1.AccessEntry{
+				PrincipalARN:     principalARN,
+				Type:             ekscontrolplanev1.AccessEntryTypeStandard,
+				Username:         "new-admin",
+				KubernetesGroups: []string{"developers"},
+			},
+			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
+				m.DescribeAccessEntry(gomock.Any(), gomock.Any()).Return(&eks.DescribeAccessEntryOutput{
+					AccessEntry: &ekstypes.AccessEntry{
+						PrincipalArn:     aws.String(principalARN),
+						Type:             ekscontrolplanev1.AccessEntryTypeStandard.APIValue(),
+						Username:         aws.String("admin"),
+						KubernetesGroups: []string{"system:masters"},
+					},
+				}, nil)
+
+				m.UpdateAccessEntry(gomock.Any(), &eks.UpdateAccessEntryInput{
+					ClusterName:      aws.String(clusterName),
+					PrincipalArn:     aws.String(principalARN),
+					KubernetesGroups: []string{"developers"},
+					Username:         aws.String("new-admin"),
+				}).Return(&eks.UpdateAccessEntryOutput{}, nil)
 
 				m.ListAssociatedAccessPolicies(gomock.Any(), gomock.Any()).Return(&eks.ListAssociatedAccessPoliciesOutput{
 					AssociatedAccessPolicies: []ekstypes.AssociatedAccessPolicy{},
