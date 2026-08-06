@@ -217,7 +217,7 @@ func (s *Service) setByoPublicIpv4(pool *infrav1.ElasticIPPool, alloc *ec2.Alloc
 	// check if pool has free IP.
 	ok, err := s.publicIpv4PoolHasAtLeastNFreeIPs(pool, 1)
 	if err != nil {
-		record.Warnf(s.scope.InfraCluster(), "FailedAllocateEIP", "Failed to allocate Elastic IP from Public IPv4 pool %q: %w", *pool.PublicIpv4Pool, err)
+		record.Warnf(s.scope.InfraCluster(), "FailedAllocateEIP", "Failed to allocate Elastic IP from Public IPv4 pool %q: %v", *pool.PublicIpv4Pool, err)
 		return fmt.Errorf("failed to update Elastic IP: %w", err)
 	}
 
