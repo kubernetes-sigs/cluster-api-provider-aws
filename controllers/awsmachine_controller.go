@@ -820,7 +820,7 @@ func (r *AWSMachineReconciler) createInstance(ctx context.Context, ec2svc servic
 func (r *AWSMachineReconciler) resolveUserData(ctx context.Context, machineScope *scope.MachineScope, clusterScope cloud.ClusterScoper, objectStoreSvc services.ObjectStoreInterface) ([]byte, string, error) {
 	userData, userDataFormat, err := machineScope.GetRawBootstrapDataWithFormat()
 	if err != nil {
-		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedGetBootstrapData", err.Error())
+		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedGetBootstrapData", "%s", err.Error())
 		return nil, "", err
 	}
 
@@ -871,13 +871,13 @@ func (r *AWSMachineReconciler) cloudInitUserData(machineScope *scope.MachineScop
 		return nil, err
 	}
 	if serviceErr != nil {
-		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedCreateAWSSecrets", serviceErr.Error())
+		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedCreateAWSSecrets", "%s", serviceErr.Error())
 		machineScope.Error(serviceErr, "Failed to create AWS Secret entry", "secretPrefix", prefix)
 		return nil, serviceErr
 	}
 	encryptedCloudInit, err := secretSvc.UserData(machineScope.GetSecretPrefix(), machineScope.GetSecretCount(), machineScope.InfraCluster.Region())
 	if err != nil {
-		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedGenerateAWSSecretsCloudInit", err.Error())
+		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedGenerateAWSSecretsCloudInit", "%s", err.Error())
 		return nil, err
 	}
 	return encryptedCloudInit, nil
@@ -1006,7 +1006,7 @@ func (r *AWSMachineReconciler) deleteIgnitionBootstrapDataFromS3(ctx context.Con
 
 	_, userDataFormat, err := machineScope.GetRawBootstrapDataWithFormat()
 	if err != nil && !apierrors.IsNotFound(err) {
-		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedGetBootstrapData", err.Error())
+		r.Recorder.Eventf(machineScope.AWSMachine, corev1.EventTypeWarning, "FailedGetBootstrapData", "%s", err.Error())
 		return err
 	}
 

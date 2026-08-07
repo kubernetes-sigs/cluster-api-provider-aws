@@ -285,14 +285,14 @@ func (s *Service) createRouteTableWithRoutes(routes []*ec2.CreateRouteInput, isP
 			}
 			return true, nil
 		}, awserrors.RouteTableNotFound, awserrors.NATGatewayNotFound, awserrors.GatewayNotFound); err != nil {
-			record.Warnf(s.scope.InfraCluster(), "FailedCreateRoute", "Failed to create route %s for RouteTable %q: %v", route, aws.ToString(out.RouteTable.RouteTableId), err)
+			record.Warnf(s.scope.InfraCluster(), "FailedCreateRoute", "Failed to create route %v for RouteTable %q: %v", route, aws.ToString(out.RouteTable.RouteTableId), err)
 			errDel := s.deleteRouteTable(*out.RouteTable)
 			if errDel != nil {
 				record.Warnf(s.scope.InfraCluster(), "FailedDeleteRouteTable", "Failed to delete managed RouteTable %q: %v", aws.ToString(out.RouteTable.RouteTableId), errDel)
 			}
 			return nil, errors.Wrapf(err, "failed to create route in route table %q: %v", aws.ToString(out.RouteTable.RouteTableId), route)
 		}
-		record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateRoute", "Created route %s for RouteTable %q", route, aws.ToString(out.RouteTable.RouteTableId))
+		record.Eventf(s.scope.InfraCluster(), "SuccessfulCreateRoute", "Created route %v for RouteTable %q", route, aws.ToString(out.RouteTable.RouteTableId))
 	}
 
 	return &infrav1.RouteTable{

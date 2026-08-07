@@ -372,7 +372,7 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 		if len(subnets) == 0 {
 			errMessage := fmt.Sprintf("failed to run machine %q, no subnets available matching criteria %v",
 				scope.Name(), criteria)
-			record.Warnf(scope.AWSMachine, "FailedCreate", errMessage)
+			record.Warnf(scope.AWSMachine, "FailedCreate", "%s", errMessage)
 			return "", awserrors.NewFailedDependency(errMessage)
 		}
 
@@ -415,7 +415,7 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 		if len(filtered) == 0 {
 			errMessage = fmt.Sprintf("failed to run machine %q, found %d subnets matching criteria but post-filtering failed.",
 				scope.Name(), len(subnets)) + errMessage
-			record.Warnf(scope.AWSMachine, "FailedCreate", errMessage)
+			record.Warnf(scope.AWSMachine, "FailedCreate", "%s", errMessage)
 			return "", awserrors.NewFailedDependency(errMessage)
 		}
 		return *filtered[0].SubnetId, nil
@@ -425,7 +425,7 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 			if len(subnets) == 0 {
 				errMessage := fmt.Sprintf("failed to run machine %q with public IP, no public subnets available in availability zone %q",
 					scope.Name(), failureDomain)
-				record.Warnf(scope.AWSMachine, "FailedCreate", errMessage)
+				record.Warnf(scope.AWSMachine, "FailedCreate", "%s", errMessage)
 				return "", awserrors.NewFailedDependency(errMessage)
 			}
 			return subnets[0].GetResourceID(), nil
@@ -435,7 +435,7 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 		if len(subnets) == 0 {
 			errMessage := fmt.Sprintf("failed to run machine %q, no subnets available in availability zone %q",
 				scope.Name(), failureDomain)
-			record.Warnf(scope.AWSMachine, "FailedCreate", errMessage)
+			record.Warnf(scope.AWSMachine, "FailedCreate", "%s", errMessage)
 			return "", awserrors.NewFailedDependency(errMessage)
 		}
 		return subnets[0].GetResourceID(), nil
@@ -443,7 +443,7 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 		subnets := s.scope.Subnets().FilterPublic().FilterNonCni()
 		if len(subnets) == 0 {
 			errMessage := fmt.Sprintf("failed to run machine %q with public IP, no public subnets available", scope.Name())
-			record.Eventf(scope.AWSMachine, "FailedCreate", errMessage)
+			record.Eventf(scope.AWSMachine, "FailedCreate", "%s", errMessage)
 			return "", awserrors.NewFailedDependency(errMessage)
 		}
 		return subnets[0].GetResourceID(), nil
@@ -455,7 +455,7 @@ func (s *Service) findSubnet(scope *scope.MachineScope) (string, error) {
 		sns := s.scope.Subnets().FilterPrivate().FilterNonCni()
 		if len(sns) == 0 {
 			errMessage := fmt.Sprintf("failed to run machine %q, no subnets available", scope.Name())
-			record.Eventf(s.scope.InfraCluster(), "FailedCreateInstance", errMessage)
+			record.Eventf(s.scope.InfraCluster(), "FailedCreateInstance", "%s", errMessage)
 			return "", awserrors.NewFailedDependency(errMessage)
 		}
 		return sns[0].GetResourceID(), nil

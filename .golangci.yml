@@ -421,6 +421,13 @@ linters:
       - linters:
           - staticcheck
         text: 'SA1019: mgr\.GetEventRecorderFor is deprecated'
+      - linters:
+          - staticcheck
+        text: 'SA1019: scheme\.Builder is deprecated'
+      - linters:
+          - staticcheck
+        path: docs/book/cmd/amilist/
+        text: 'SA1019: .* is deprecated: superceded by feature/s3/transfermanager'
     paths:
       - third_party$
       - builtin$
