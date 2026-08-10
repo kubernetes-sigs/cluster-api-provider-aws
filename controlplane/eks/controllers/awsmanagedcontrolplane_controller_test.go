@@ -58,6 +58,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts/mock_stsiface"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -65,6 +66,123 @@ import (
 const (
 	maxActiveUpdateDeleteWait = 30 * time.Minute
 )
+
+func TestAWSManagedControlPlaneReconcilerExternallyManaged(t *testing.T) {
+	var (
+		reconciler AWSManagedControlPlaneReconciler
+		recorder   *record.FakeRecorder
+	)
+
+	setup := func(t *testing.T) {
+		t.Helper()
+		recorder = record.NewFakeRecorder(10)
+		reconciler = AWSManagedControlPlaneReconciler{
+			Client:    testEnv.Client,
+			Recorder:  recorder,
+			EnableIAM: true,
+		}
+	}
+
+	t.Run("Should skip reconciliation when AWSManagedControlPlane is externally managed", func(t *testing.T) {
+		g := NewWithT(t)
+		setup(t)
+
+		controllerIdentity := createControllerIdentity(g)
+		ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("integ-test-%s", util.RandomString(5)))
+		g.Expect(err).To(BeNil())
+
+		cluster, awsManagedCluster, awsManagedControlPlane := getManagedClusterObjects("test-ext-managed", ns.Name)
+
+		// Add the externally managed annotation
+		awsManagedControlPlane.Annotations = map[string]string{
+			clusterv1.ManagedByAnnotation: "external-system",
+		}
+
+		g.Expect(testEnv.Create(ctx, &cluster)).To(Succeed())
+		cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+		g.Expect(testEnv.Client.Status().Update(ctx, &cluster)).To(Succeed())
+		g.Expect(testEnv.Create(ctx, &awsManagedCluster)).To(Succeed())
+		g.Expect(testEnv.Create(ctx, &awsManagedControlPlane)).To(Succeed())
+		g.Eventually(func() bool {
+			controlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
+			key := client.ObjectKey{
+				Name:      awsManagedControlPlane.Name,
+				Namespace: ns.Name,
+			}
+			err := testEnv.Get(ctx, key, controlPlane)
+			return err == nil
+		}, 10*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed getting the newly created AWSManagedControlPlane %q", awsManagedControlPlane.Name))
+
+		defer t.Cleanup(func() {
+			g.Expect(testEnv.Cleanup(ctx, &cluster, &awsManagedCluster, &awsManagedControlPlane, controllerIdentity, ns)).To(Succeed())
+		})
+
+		// Reconcile with the externally managed annotation - should return
+		// immediately without performing any reconciliation.
+		result, err := reconciler.Reconcile(ctx, ctrl.Request{
+			NamespacedName: client.ObjectKey{
+				Namespace: awsManagedControlPlane.Namespace,
+				Name:      awsManagedControlPlane.Name,
+			},
+		})
+		g.Expect(err).To(BeNil())
+		g.Expect(result).To(Equal(ctrl.Result{}))
+
+		// Verify that reconciliation was skipped: no status conditions
+		// should have been set, since the externally managed check returns
+		// before any reconciliation logic modifies the object.
+		g.Expect(testEnv.Get(ctx, client.ObjectKeyFromObject(&awsManagedControlPlane), &awsManagedControlPlane)).To(Succeed())
+		g.Expect(awsManagedControlPlane.Finalizers).To(BeEmpty())
+		g.Expect(awsManagedControlPlane.Status.Conditions).To(BeEmpty(), "no status conditions should be set when externally managed annotation is present, as side effect of reconciliation being skipped")
+	})
+
+	t.Run("Should reconcile when AWSManagedControlPlane is not externally managed", func(t *testing.T) {
+		g := NewWithT(t)
+		setup(t)
+
+		controllerIdentity := createControllerIdentity(g)
+		ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("integ-test-%s", util.RandomString(5)))
+		g.Expect(err).To(BeNil())
+
+		cluster, awsManagedCluster, awsManagedControlPlane := getManagedClusterObjects("test-no-ext", ns.Name)
+
+		// No externally managed annotation
+		g.Expect(testEnv.Create(ctx, &cluster)).To(Succeed())
+		cluster.Status.Initialization.InfrastructureProvisioned = ptr.To(true)
+		g.Expect(testEnv.Client.Status().Update(ctx, &cluster)).To(Succeed())
+		g.Expect(testEnv.Create(ctx, &awsManagedCluster)).To(Succeed())
+		g.Expect(testEnv.Create(ctx, &awsManagedControlPlane)).To(Succeed())
+		g.Eventually(func() bool {
+			controlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
+			key := client.ObjectKey{
+				Name:      awsManagedControlPlane.Name,
+				Namespace: ns.Name,
+			}
+			err := testEnv.Get(ctx, key, controlPlane)
+			return err == nil
+		}, 10*time.Second).Should(BeTrue(), fmt.Sprintf("Eventually failed getting the newly created AWSManagedControlPlane %q", awsManagedControlPlane.Name))
+
+		defer t.Cleanup(func() {
+			g.Expect(testEnv.Cleanup(ctx, &cluster, &awsManagedCluster, &awsManagedControlPlane, controllerIdentity, ns)).To(Succeed())
+		})
+
+		// Reconcile without the externally managed annotation - reconciliation
+		// should proceed past the annotation check and modify status conditions.
+		_, err = reconciler.Reconcile(ctx, ctrl.Request{
+			NamespacedName: client.ObjectKey{
+				Namespace: awsManagedControlPlane.Namespace,
+				Name:      awsManagedControlPlane.Name,
+			},
+		})
+		// err may or may not be nil depending on how far reconciliation gets
+		_ = err
+
+		// Verify that reconciliation proceeded: status conditions should have
+		// been set, proving the reconciler did NOT skip at the annotation check.
+		g.Expect(testEnv.Get(ctx, client.ObjectKeyFromObject(&awsManagedControlPlane), &awsManagedControlPlane)).To(Succeed())
+		g.Expect(awsManagedControlPlane.Status.Conditions).ToNot(BeEmpty(), "status conditions should be set when externally managed annotation is absent, proving reconciliation proceeded past the annotation check")
+	})
+}
 
 func TestAWSManagedControlPlaneReconcilerIntegrationTests(t *testing.T) {
 	var (
