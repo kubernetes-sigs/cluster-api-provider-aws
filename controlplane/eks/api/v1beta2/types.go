@@ -406,10 +406,14 @@ type PodIdentityAssociation struct {
 	// ServiceAccountName is the name of the kubernetes Service Account
 	// within the namespace
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
 	ServiceAccountName string `json:"serviceAccountName"`
 	// ServiceAccountNamespace is the kubernetes namespace, which the
 	// kubernetes Service Account resides in. Defaults to "default" namespace.
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=63
 	// +kubebuilder:default=default
 	ServiceAccountNamespace string `json:"serviceAccountNamespace"`
 	// RoleARN is the ARN of an IAM role which the Service Account can assume.

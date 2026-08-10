@@ -1091,12 +1091,16 @@ spec:
                               description: |-
                                 ServiceAccountName is the name of the kubernetes Service Account
                                 within the namespace
+                              maxLength: 253
+                              minLength: 1
                               type: string
                             serviceAccountNamespace:
                               default: default
                               description: |-
                                 ServiceAccountNamespace is the kubernetes namespace, which the
                                 kubernetes Service Account resides in. Defaults to "default" namespace.
+                              maxLength: 63
+                              minLength: 1
                               type: string
                             targetRoleARN:
                               description: |-

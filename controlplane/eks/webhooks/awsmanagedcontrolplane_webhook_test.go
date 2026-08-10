@@ -1418,7 +1418,7 @@ func TestWebhookCreateWithPodIdentity(t *testing.T) {
 				},
 			},
 			expectError:          true,
-			expectErrorToContain: "serviceAccountName is required",
+			expectErrorToContain: "spec.podIdentityAssociations[0].serviceAccountName in body should be at least 1 chars long",
 		},
 		{
 			name:           "create with duplicate service account",
