@@ -104,6 +104,17 @@ const (
 	AutoNodeModeDisabled AutoNodeMode = "Disabled"
 )
 
+// ComponentRouteKey specifies the name of a component route.
+type ComponentRouteKey string
+
+const (
+	// ComponentRouteConsole is the console component route.
+	ComponentRouteConsole ComponentRouteKey = "console"
+
+	// ComponentRouteDownloads is the downloads component route.
+	ComponentRouteDownloads ComponentRouteKey = "downloads"
+)
+
 // RosaControlPlaneSpec defines the desired state of ROSAControlPlane.
 type RosaControlPlaneSpec struct { //nolint: maligned
 	// Cluster name must be valid DNS-1035 label, so it must consist of lower case alphanumeric
@@ -354,6 +365,11 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// s3LogForwarder set the AWS S3 log forward config for applications and groupVersions.
 	// +optional
 	S3LogForwarder *S3LogForwarderConfig `json:"s3LogForwarder,omitempty"`
+
+	// componentRoutes allows customizing the hostname and TLS certificate for console and downloads routes.
+	// +optional
+	// +kubebuilder:validation:MaxItems=2
+	ComponentRoutes []ComponentRouteSpec `json:"componentRoutes,omitempty"`
 }
 
 // CloudWatchLogForwarderConfig present the cloudWatch log forward config for applications and groupVersions.
@@ -392,6 +408,24 @@ type S3LogForwarderConfig struct {
 	// s3ConfigBucketPrefix is the prefix to use for objects stored in the S3 bucket.
 	// +optional
 	S3ConfigBucketPrefix string `json:"s3ConfigBucketPrefix,omitempty"`
+}
+
+// ComponentRouteSpec defines a custom hostname and TLS secret for a component route.
+type ComponentRouteSpec struct {
+	// name is the component route name. Valid values are "console" and "downloads".
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Enum=console;downloads
+	Name ComponentRouteKey `json:"name"`
+
+	// hostname is the custom domain for the component route (e.g. console.example.com).
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	Hostname string `json:"hostname"`
+
+	// tlsSecretRef is the name of the TLS secret in the openshift-config namespace on the hosted cluster.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	TLSSecretRef string `json:"tlsSecretRef"`
 }
 
 // AutoNode set the AutoNode mode and AutoNode role ARN.

@@ -288,6 +288,21 @@ func (mr *MockOCMClientMockRecorder) GetIdentityProviders(arg0 interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIdentityProviders", reflect.TypeOf((*MockOCMClient)(nil).GetIdentityProviders), arg0)
 }
 
+// GetIngresses mocks base method.
+func (m *MockOCMClient) GetIngresses(arg0 string) ([]*v1.Ingress, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetIngresses", arg0)
+	ret0, _ := ret[0].([]*v1.Ingress)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetIngresses indicates an expected call of GetIngresses.
+func (mr *MockOCMClientMockRecorder) GetIngresses(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIngresses", reflect.TypeOf((*MockOCMClient)(nil).GetIngresses), arg0)
+}
+
 // GetLogForwarders mocks base method.
 func (m *MockOCMClient) GetLogForwarders(arg0 string) ([]*v1.LogForwarder, error) {
 	m.ctrl.T.Helper()
@@ -450,6 +465,21 @@ func (m *MockOCMClient) UpdateClusterDeletionProtection(arg0 string, arg1 bool) 
 func (mr *MockOCMClientMockRecorder) UpdateClusterDeletionProtection(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterDeletionProtection", reflect.TypeOf((*MockOCMClient)(nil).UpdateClusterDeletionProtection), arg0, arg1)
+}
+
+// UpdateIngress mocks base method.
+func (m *MockOCMClient) UpdateIngress(arg0 string, arg1 *v1.Ingress) (*v1.Ingress, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateIngress", arg0, arg1)
+	ret0, _ := ret[0].(*v1.Ingress)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateIngress indicates an expected call of UpdateIngress.
+func (mr *MockOCMClientMockRecorder) UpdateIngress(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateIngress", reflect.TypeOf((*MockOCMClient)(nil).UpdateIngress), arg0, arg1)
 }
 
 // UpdateLogForwarder mocks base method.

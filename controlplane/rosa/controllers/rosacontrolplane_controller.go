@@ -333,6 +333,10 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 				return ctrl.Result{RequeueAfter: time.Second * 60}, fmt.Errorf("failed to reconcile logForwarders: %w", err)
 			}
 
+			if err := r.reconcileComponentRoutes(rosaScope, ocmClient, cluster); err != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to reconcile componentRoutes: %w", err)
+			}
+
 			if err := r.updateOCMCluster(rosaScope, ocmClient, cluster, creator); err != nil {
 				return ctrl.Result{}, fmt.Errorf("failed to update rosa control plane: %w", err)
 			}
@@ -686,6 +690,88 @@ func buildGroups(ids []string) []*cmv1.LogForwarderGroupBuilder {
 		groups = append(groups, cmv1.NewLogForwarderGroup().ID(id))
 	}
 	return groups
+}
+
+func (r *ROSAControlPlaneReconciler) reconcileComponentRoutes(rosaScope *scope.ROSAControlPlaneScope, ocmClient rosa.OCMClient, cluster *cmv1.Cluster) error {
+	desiredRoutes := rosaScope.ControlPlane.Spec.ComponentRoutes
+
+	rosaScope.Info("reconcile componentRoutes")
+
+	ingresses, err := ocmClient.GetIngresses(cluster.ID())
+	if err != nil {
+		return fmt.Errorf("failed to get ingresses: %w", err)
+	}
+
+	var defaultIngress *cmv1.Ingress
+	for _, ing := range ingresses {
+		if ing.Default() {
+			defaultIngress = ing
+			break
+		}
+	}
+	if defaultIngress == nil {
+		return fmt.Errorf("default ingress not found for cluster %s", cluster.ID())
+	}
+
+	if componentRoutesEqual(defaultIngress.ComponentRoutes(), desiredRoutes) {
+		return nil
+	}
+
+	componentRoutes := resetComponentRoutes()
+	for _, route := range desiredRoutes {
+		componentRoutes[string(route.Name)] = cmv1.NewComponentRoute().
+			Hostname(route.Hostname).
+			TlsSecretRef(route.TLSSecretRef)
+	}
+
+	updatedIngress, err := cmv1.NewIngress().
+		ID(defaultIngress.ID()).
+		ComponentRoutes(componentRoutes).
+		Build()
+	if err != nil {
+		return fmt.Errorf("failed to build ingress: %w", err)
+	}
+
+	rosaScope.Info(fmt.Sprintf("updating ingress %s componentRoutes on cluster %s",
+		defaultIngress.ID(), cluster.ID()))
+	_, err = ocmClient.UpdateIngress(cluster.ID(), updatedIngress)
+	return err
+}
+
+func resetComponentRoutes() map[string]*cmv1.ComponentRouteBuilder {
+	keys := []rosacontrolplanev1.ComponentRouteKey{rosacontrolplanev1.ComponentRouteConsole, rosacontrolplanev1.ComponentRouteDownloads}
+	routes := make(map[string]*cmv1.ComponentRouteBuilder, len(keys))
+	for _, key := range keys {
+		routes[string(key)] = cmv1.NewComponentRoute().Hostname("").TlsSecretRef("")
+	}
+	return routes
+}
+
+func componentRoutesEqual(current map[string]*cmv1.ComponentRoute, desired []rosacontrolplanev1.ComponentRouteSpec) bool {
+	desiredMap := make(map[string]rosacontrolplanev1.ComponentRouteSpec, len(desired))
+	for _, route := range desired {
+		desiredMap[string(route.Name)] = route
+	}
+
+	keys := []rosacontrolplanev1.ComponentRouteKey{rosacontrolplanev1.ComponentRouteConsole, rosacontrolplanev1.ComponentRouteDownloads}
+	for _, key := range keys {
+		k := string(key)
+		desiredRoute, desiredExists := desiredMap[k]
+		currentRoute, currentExists := current[k]
+
+		if desiredExists {
+			if !currentExists {
+				return false
+			}
+			if currentRoute.Hostname() != desiredRoute.Hostname ||
+				currentRoute.TlsSecretRef() != desiredRoute.TLSSecretRef {
+				return false
+			}
+		} else if currentExists && (currentRoute.Hostname() != "" || currentRoute.TlsSecretRef() != "") {
+			return false
+		}
+	}
+	return true
 }
 
 func (r *ROSAControlPlaneReconciler) reconcileClusterVersion(rosaScope *scope.ROSAControlPlaneScope, ocmClient rosa.OCMClient, cluster *cmv1.Cluster) error {

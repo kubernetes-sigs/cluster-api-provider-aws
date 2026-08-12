@@ -21,6 +21,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
 )
@@ -81,5 +82,61 @@ func TestValidateROSANetwork(t *testing.T) {
 		rosaCP.Spec.Subnets = nil
 		err := w.validateROSANetworkRef(rosaCP)
 		g.Expect(err).NotTo(HaveOccurred())
+	})
+}
+
+func TestValidateComponentRoutes(t *testing.T) {
+	w := &ROSAControlPlane{}
+
+	t.Run("valid console and downloads", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+		rosaCP := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				//nolint:gosec // G101: test fixture, not real credentials
+				ComponentRoutes: []rosacontrolplanev1.ComponentRouteSpec{
+					{Name: rosacontrolplanev1.ComponentRouteConsole, Hostname: "console.example.com", TLSSecretRef: "console-tls"},
+					{Name: rosacontrolplanev1.ComponentRouteDownloads, Hostname: "downloads.example.com", TLSSecretRef: "downloads-tls"},
+				},
+			},
+		}
+		errs := w.validateComponentRoutes(rosaCP)
+		g.Expect(errs).To(BeEmpty())
+	})
+
+	t.Run("valid console only", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+		rosaCP := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				ComponentRoutes: []rosacontrolplanev1.ComponentRouteSpec{
+					{Name: rosacontrolplanev1.ComponentRouteConsole, Hostname: "console.example.com", TLSSecretRef: "console-tls"},
+				},
+			},
+		}
+		errs := w.validateComponentRoutes(rosaCP)
+		g.Expect(errs).To(BeEmpty())
+	})
+
+	t.Run("no componentRoutes", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+		rosaCP := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{},
+		}
+		errs := w.validateComponentRoutes(rosaCP)
+		g.Expect(errs).To(BeEmpty())
+	})
+
+	t.Run("duplicate console key", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+		rosaCP := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				ComponentRoutes: []rosacontrolplanev1.ComponentRouteSpec{
+					{Name: rosacontrolplanev1.ComponentRouteConsole, Hostname: "console1.example.com", TLSSecretRef: "tls1"},
+					{Name: rosacontrolplanev1.ComponentRouteConsole, Hostname: "console2.example.com", TLSSecretRef: "tls2"},
+				},
+			},
+		}
+		errs := w.validateComponentRoutes(rosaCP)
+		g.Expect(errs).ToNot(BeEmpty())
+		g.Expect(errs[0].Type).To(Equal(field.ErrorTypeDuplicate))
 	})
 }
