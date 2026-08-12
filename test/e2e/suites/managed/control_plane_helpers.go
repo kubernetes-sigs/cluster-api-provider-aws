@@ -162,7 +162,7 @@ func waitForControlPlaneReady(ctx context.Context, client crclient.Client, key c
 func waitForWorkloadClusterReachable(ctx context.Context, client crclient.Client, intervals ...interface{}) {
 	Eventually(func(g Gomega) {
 		ns := &corev1.Namespace{}
-		g.Expect(client.Get(ctx, crclient.ObjectKey{Name: "kube-system"}, ns)).
+		g.Expect(client.Get(ctx, crclient.ObjectKey{Name: kubeSystemNamespace}, ns)).
 			To(Succeed(), "workload API server not yet reachable")
 	}, intervals...).Should(Succeed())
 }

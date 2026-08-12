@@ -463,10 +463,16 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 				"eks:AssociateIdentityProviderConfig",
 				"eks:DescribeIdentityProviderConfig",
 				"eks:DisassociateIdentityProviderConfig",
+				"eks:ListPodIdentityAssociations",
+				"eks:DescribePodIdentityAssociation",
+				"eks:CreatePodIdentityAssociation",
+				"eks:UpdatePodIdentityAssociation",
+				"eks:DeletePodIdentityAssociation",
 			},
 			Resource: iamv1.Resources{
 				"arn:*:eks:*:*:cluster/*",
 				"arn:*:eks:*:*:nodegroup/*/*/*",
+				"arn:*:eks:*:*:podidentityassociation/*/*",
 			},
 			Effect: iamv1.EffectAllow,
 		},
@@ -498,8 +504,8 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 				"*",
 			},
 			Condition: iamv1.Conditions{
-				"StringEquals": map[string]string{
-					"iam:PassedToService": "eks.amazonaws.com",
+				"StringEquals": map[string][]string{
+					"iam:PassedToService": {"eks.amazonaws.com", "pods.eks.amazonaws.com"},
 				},
 			},
 			Effect: iamv1.EffectAllow,
