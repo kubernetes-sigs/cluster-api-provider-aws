@@ -32,7 +32,9 @@ TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 
 
 API_DIRS := cmd/clusterawsadm/api api exp/api controlplane/eks/api bootstrap/eks/api iam/api controlplane/rosa/api
+WEBHOOK_DIRS := webhooks exp/webhooks bootstrap/eks/webhooks controlplane/eks/webhooks controlplane/rosa/webhooks
 API_FILES := $(foreach dir, $(API_DIRS), $(call rwildcard,../../$(dir),*.go))
+WEBHOOK_FILES := $(foreach dir, $(WEBHOOK_DIRS), $(call rwildcard,../../$(dir),*.go))
 
 BIN_DIR := bin
 REPO_ROOT := $(shell git rev-parse --show-toplevel)
@@ -236,7 +238,7 @@ generate-go-apis: ## Alias for .build/generate-go-apis
 .build: ## Create the .build folder
 	mkdir -p .build
 
-.build/generate-go-apis: .build $(API_FILES) $(CONTROLLER_GEN) $(DEFAULTER_GEN) $(CONVERSION_GEN) ## Generate all Go api files
+.build/generate-go-apis: .build $(API_FILES) $(WEBHOOK_FILES) $(CONTROLLER_GEN) $(DEFAULTER_GEN) $(CONVERSION_GEN) ## Generate all Go api files
 	$(CONTROLLER_GEN) \
 		paths=./ \
 		paths=./api/... \
@@ -250,6 +252,11 @@ generate-go-apis: ## Alias for .build/generate-go-apis
 		paths=./bootstrap/eks/controllers/... \
 		paths=./controlplane/eks/controllers/... \
 		paths=./controlplane/rosa/controllers/... \
+		paths=./webhooks/... \
+		paths=./$(EXP_DIR)/webhooks/... \
+		paths=./bootstrap/eks/webhooks/... \
+		paths=./controlplane/eks/webhooks/... \
+		paths=./controlplane/rosa/webhooks/... \
 		output:crd:dir=config/crd/bases \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
 		crd:crdVersions=v1 \

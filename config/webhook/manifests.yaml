@@ -121,27 +121,6 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta2-awsmachine
-  failurePolicy: Fail
-  name: mutation.awsmachine.infrastructure.cluster.x-k8s.io
-  rules:
-  - apiGroups:
-    - infrastructure.cluster.x-k8s.io
-    apiVersions:
-    - v1beta2
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - awsmachines
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  - v1beta1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
       path: /mutate-infrastructure-cluster-x-k8s-io-v1beta2-awsfargateprofile
   failurePolicy: Fail
   matchPolicy: Equivalent
@@ -186,6 +165,50 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /mutate-controlplane-cluster-x-k8s-io-v1beta2-awsmanagedcontrolplane
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: default.awsmanagedcontrolplanes.controlplane.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - controlplane.cluster.x-k8s.io
+    apiVersions:
+    - v1beta2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - awsmanagedcontrolplanes
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-controlplane-cluster-x-k8s-io-v1beta2-awsmanagedcontrolplanetemplate
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: default.awsmanagedcontrolplanetemplates.controlplane.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - controlplane.cluster.x-k8s.io
+    apiVersions:
+    - v1beta2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - awsmanagedcontrolplanetemplates
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /mutate-infrastructure-cluster-x-k8s-io-v1beta2-awsmanagedmachinepool
   failurePolicy: Fail
   matchPolicy: Equivalent
@@ -200,6 +223,72 @@ webhooks:
     - UPDATE
     resources:
     - awsmanagedmachinepools
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-bootstrap-cluster-x-k8s-io-v1beta2-eksconfig
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: default.eksconfigs.bootstrap.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - bootstrap.cluster.x-k8s.io
+    apiVersions:
+    - v1beta2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - eksconfig
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-bootstrap-cluster-x-k8s-io-v1beta2-eksconfigtemplate
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: default.eksconfigtemplates.bootstrap.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - bootstrap.cluster.x-k8s.io
+    apiVersions:
+    - v1beta2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - eksconfigtemplate
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-controlplane-cluster-x-k8s-io-v1beta2-rosacontrolplane
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: default.rosacontrolplanes.controlplane.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - controlplane.cluster.x-k8s.io
+    apiVersions:
+    - v1beta2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - rosacontrolplanes
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -274,108 +363,19 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-bootstrap-cluster-x-k8s-io-v1beta2-eksconfig
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta2-awsmachine
   failurePolicy: Fail
-  matchPolicy: Equivalent
-  name: default.eksconfigs.bootstrap.cluster.x-k8s.io
+  name: mutation.awsmachine.infrastructure.cluster.x-k8s.io
   rules:
   - apiGroups:
-    - bootstrap.cluster.x-k8s.io
+    - infrastructure.cluster.x-k8s.io
     apiVersions:
     - v1beta2
     operations:
     - CREATE
     - UPDATE
     resources:
-    - eksconfig
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  - v1beta1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /mutate-bootstrap-cluster-x-k8s-io-v1beta2-eksconfigtemplate
-  failurePolicy: Fail
-  matchPolicy: Equivalent
-  name: default.eksconfigtemplates.bootstrap.cluster.x-k8s.io
-  rules:
-  - apiGroups:
-    - bootstrap.cluster.x-k8s.io
-    apiVersions:
-    - v1beta2
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - eksconfigtemplate
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  - v1beta1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /mutate-controlplane-cluster-x-k8s-io-v1beta2-awsmanagedcontrolplane
-  failurePolicy: Fail
-  matchPolicy: Equivalent
-  name: default.awsmanagedcontrolplanes.controlplane.cluster.x-k8s.io
-  rules:
-  - apiGroups:
-    - controlplane.cluster.x-k8s.io
-    apiVersions:
-    - v1beta2
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - awsmanagedcontrolplanes
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  - v1beta1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /mutate-controlplane-cluster-x-k8s-io-v1beta2-awsmanagedcontrolplanetemplate
-  failurePolicy: Fail
-  matchPolicy: Equivalent
-  name: default.awsmanagedcontrolplanetemplates.controlplane.cluster.x-k8s.io
-  rules:
-  - apiGroups:
-    - controlplane.cluster.x-k8s.io
-    apiVersions:
-    - v1beta2
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - awsmanagedcontrolplanetemplates
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  - v1beta1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /mutate-controlplane-cluster-x-k8s-io-v1beta2-rosacontrolplane
-  failurePolicy: Fail
-  matchPolicy: Equivalent
-  name: default.rosacontrolplanes.controlplane.cluster.x-k8s.io
-  rules:
-  - apiGroups:
-    - controlplane.cluster.x-k8s.io
-    apiVersions:
-    - v1beta2
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - rosacontrolplanes
+    - awsmachines
   sideEffects: None
 ---
 apiVersion: admissionregistration.k8s.io/v1
@@ -500,50 +500,6 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1beta2-awsmachine
-  failurePolicy: Fail
-  matchPolicy: Equivalent
-  name: validation.awsmachine.infrastructure.cluster.x-k8s.io
-  rules:
-  - apiGroups:
-    - infrastructure.cluster.x-k8s.io
-    apiVersions:
-    - v1beta2
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - awsmachines
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  - v1beta1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1beta2-awsmachinetemplate
-  failurePolicy: Fail
-  matchPolicy: Equivalent
-  name: validation.awsmachinetemplate.infrastructure.cluster.x-k8s.io
-  rules:
-  - apiGroups:
-    - infrastructure.cluster.x-k8s.io
-    apiVersions:
-    - v1beta2
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - awsmachinetemplates
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  - v1beta1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
       path: /validate-infrastructure-cluster-x-k8s-io-v1beta2-awsfargateprofile
   failurePolicy: Fail
   matchPolicy: Equivalent
@@ -558,6 +514,28 @@ webhooks:
     - UPDATE
     resources:
     - awsfargateprofiles
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-infrastructure-cluster-x-k8s-io-v1beta2-awsmachine
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.awsmachine.infrastructure.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1beta2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - awsmachines
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -588,6 +566,72 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /validate-infrastructure-cluster-x-k8s-io-v1beta2-awsmachinetemplate
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.awsmachinetemplate.infrastructure.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1beta2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - awsmachinetemplates
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-controlplane-cluster-x-k8s-io-v1beta2-awsmanagedcontrolplane
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.awsmanagedcontrolplanes.controlplane.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - controlplane.cluster.x-k8s.io
+    apiVersions:
+    - v1beta2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - awsmanagedcontrolplanes
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-controlplane-cluster-x-k8s-io-v1beta2-awsmanagedcontrolplanetemplate
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.awsmanagedcontrolplanetemplates.controlplane.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - controlplane.cluster.x-k8s.io
+    apiVersions:
+    - v1beta2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - awsmanagedcontrolplanetemplates
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /validate-infrastructure-cluster-x-k8s-io-v1beta2-awsmanagedmachinepool
   failurePolicy: Fail
   matchPolicy: Equivalent
@@ -602,6 +646,72 @@ webhooks:
     - UPDATE
     resources:
     - awsmanagedmachinepools
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-bootstrap-cluster-x-k8s-io-v1beta2-eksconfig
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.eksconfigs.bootstrap.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - bootstrap.cluster.x-k8s.io
+    apiVersions:
+    - v1beta2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - eksconfig
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-bootstrap-cluster-x-k8s-io-v1beta2-eksconfigtemplate
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.eksconfigtemplates.bootstrap.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - bootstrap.cluster.x-k8s.io
+    apiVersions:
+    - v1beta2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - eksconfigtemplate
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-controlplane-cluster-x-k8s-io-v1beta2-rosacontrolplane
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.rosacontrolplanes.controlplane.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - controlplane.cluster.x-k8s.io
+    apiVersions:
+    - v1beta2
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - rosacontrolplanes
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -668,114 +778,4 @@ webhooks:
     - UPDATE
     resources:
     - rosaroleconfigs
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  - v1beta1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /validate-bootstrap-cluster-x-k8s-io-v1beta2-eksconfig
-  failurePolicy: Fail
-  matchPolicy: Equivalent
-  name: validation.eksconfigs.bootstrap.cluster.x-k8s.io
-  rules:
-  - apiGroups:
-    - bootstrap.cluster.x-k8s.io
-    apiVersions:
-    - v1beta2
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - eksconfig
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  - v1beta1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /validate-bootstrap-cluster-x-k8s-io-v1beta2-eksconfigtemplate
-  failurePolicy: Fail
-  matchPolicy: Equivalent
-  name: validation.eksconfigtemplates.bootstrap.cluster.x-k8s.io
-  rules:
-  - apiGroups:
-    - bootstrap.cluster.x-k8s.io
-    apiVersions:
-    - v1beta2
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - eksconfigtemplate
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  - v1beta1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /validate-controlplane-cluster-x-k8s-io-v1beta2-awsmanagedcontrolplane
-  failurePolicy: Fail
-  matchPolicy: Equivalent
-  name: validation.awsmanagedcontrolplanes.controlplane.cluster.x-k8s.io
-  rules:
-  - apiGroups:
-    - controlplane.cluster.x-k8s.io
-    apiVersions:
-    - v1beta2
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - awsmanagedcontrolplanes
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  - v1beta1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /validate-controlplane-cluster-x-k8s-io-v1beta2-awsmanagedcontrolplanetemplate
-  failurePolicy: Fail
-  matchPolicy: Equivalent
-  name: validation.awsmanagedcontrolplanetemplates.controlplane.cluster.x-k8s.io
-  rules:
-  - apiGroups:
-    - controlplane.cluster.x-k8s.io
-    apiVersions:
-    - v1beta2
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - awsmanagedcontrolplanetemplates
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  - v1beta1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /validate-controlplane-cluster-x-k8s-io-v1beta2-rosacontrolplane
-  failurePolicy: Fail
-  matchPolicy: Equivalent
-  name: validation.rosacontrolplanes.controlplane.cluster.x-k8s.io
-  rules:
-  - apiGroups:
-    - controlplane.cluster.x-k8s.io
-    apiVersions:
-    - v1beta2
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - rosacontrolplanes
   sideEffects: None
