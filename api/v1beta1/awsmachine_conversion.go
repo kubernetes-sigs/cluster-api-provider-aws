@@ -43,6 +43,7 @@ func (src *AWSMachine) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.PrivateDNSName = restored.Spec.PrivateDNSName
 	dst.Spec.SecurityGroupOverrides = restored.Spec.SecurityGroupOverrides
 	dst.Spec.CapacityReservationID = restored.Spec.CapacityReservationID
+	dst.Spec.CapacityReservationResourceGroupARN = restored.Spec.CapacityReservationResourceGroupARN
 	dst.Spec.MarketType = restored.Spec.MarketType
 	dst.Spec.HostID = restored.Spec.HostID
 	dst.Spec.HostAffinity = restored.Spec.HostAffinity
@@ -116,6 +117,7 @@ func (r *AWSMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.Template.Spec.PrivateDNSName = restored.Spec.Template.Spec.PrivateDNSName
 	dst.Spec.Template.Spec.SecurityGroupOverrides = restored.Spec.Template.Spec.SecurityGroupOverrides
 	dst.Spec.Template.Spec.CapacityReservationID = restored.Spec.Template.Spec.CapacityReservationID
+	dst.Spec.Template.Spec.CapacityReservationResourceGroupARN = restored.Spec.Template.Spec.CapacityReservationResourceGroupARN
 	dst.Spec.Template.Spec.MarketType = restored.Spec.Template.Spec.MarketType
 	dst.Spec.Template.Spec.HostID = restored.Spec.Template.Spec.HostID
 	dst.Spec.Template.Spec.HostAffinity = restored.Spec.Template.Spec.HostAffinity
