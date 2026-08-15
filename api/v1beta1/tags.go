@@ -212,25 +212,25 @@ func ClusterAWSCloudProviderTagKey(name string) string {
 // BuildParams is used to build tags around an aws resource.
 type BuildParams struct {
 	// Lifecycle determines the resource lifecycle.
-	Lifecycle ResourceLifecycle
+	Lifecycle ResourceLifecycle `json:"lifecycle,omitempty"`
 
 	// ClusterName is the cluster associated with the resource.
-	ClusterName string
+	ClusterName string `json:"clusterName,omitempty"`
 
 	// ResourceID is the unique identifier of the resource to be tagged.
-	ResourceID string
+	ResourceID string `json:"resourceID,omitempty"`
 
 	// Name is the name of the resource, it's applied as the tag "Name" on AWS.
 	// +optional
-	Name *string
+	Name *string `json:"name,omitempty"`
 
 	// Role is the role associated to the resource.
 	// +optional
-	Role *string
+	Role *string `json:"role,omitempty"`
 
 	// Any additional tags to be added to the resource.
 	// +optional
-	Additional Tags
+	Additional Tags `json:"additional,omitempty"`
 }
 
 // WithMachineName tags the namespaced machine name
