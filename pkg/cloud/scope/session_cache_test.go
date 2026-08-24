@@ -95,7 +95,7 @@ func TestSessionRebuiltPerControllerAfterCredentialRotation(t *testing.T) {
 			AWSClusterIdentitySpec: infrav1.AWSClusterIdentitySpec{
 				AllowedNamespaces: &infrav1.AllowedNamespaces{},
 			},
-			SecretRef: "rotating-credentials",
+			SecretRef: "source-secret-ref",
 		},
 	}
 	secret := &corev1.Secret{

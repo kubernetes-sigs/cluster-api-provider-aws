@@ -44,7 +44,7 @@ func TestRolePrincipalHashCoversSourceCredentials(t *testing.T) {
 		sourceProvider := NewAWSStaticPrincipalTypeProvider(
 			&infrav1.AWSClusterStaticIdentity{
 				ObjectMeta: metav1.ObjectMeta{Name: "source-identity"},
-				Spec:       infrav1.AWSClusterStaticIdentitySpec{SecretRef: "source-credentials"},
+				Spec:       infrav1.AWSClusterStaticIdentitySpec{SecretRef: "source-secret-ref"},
 			},
 			&corev1.Secret{
 				Data: map[string][]byte{
