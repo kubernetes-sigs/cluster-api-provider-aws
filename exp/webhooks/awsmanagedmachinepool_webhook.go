@@ -132,7 +132,7 @@ func (w *AWSManagedMachinePool) validateLaunchTemplate(r *expinfrav1.AWSManagedM
 
 	lt := r.Spec.AWSLaunchTemplate
 	ltPath := field.NewPath("spec", "awsLaunchTemplate")
-	isBYO := lt.ID != nil && *lt.ID != ""
+	isBYO := ptr.Deref(lt.ID, "") != ""
 
 	// For CAPA-managed LTs (no id), spec.instanceType is forbidden because the instance type
 	// must be configured inside the launch template itself. For BYO LTs (id is set), the AWS
