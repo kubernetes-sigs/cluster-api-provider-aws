@@ -33,7 +33,12 @@ func TestIsSymbolicLaunchTemplateVersion(t *testing.T) {
 		{name: "concrete version 1", version: "1", want: false},
 		{name: "concrete version 42", version: "42", want: false},
 		{name: "empty string", version: "", want: false},
-		{name: "lowercase $latest is not symbolic", version: "$latest", want: false},
+		// Any "$"-prefixed value is treated as symbolic, even one AWS doesn't
+		// currently define: a concrete version number never starts with "$", so
+		// treating unrecognised "$..." values as symbolic (i.e. skip the
+		// comparison) is safer than treating them as a mismatched concrete
+		// version, which would otherwise trigger a doomed, endless update loop.
+		{name: "lowercase $latest is treated as symbolic", version: "$latest", want: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

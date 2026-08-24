@@ -19,6 +19,7 @@ package eks
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -334,11 +335,13 @@ func (s *NodegroupService) deleteNodegroupAndWait(ctx context.Context) (reterr e
 }
 
 // isSymbolicLaunchTemplateVersion returns true for AWS symbolic version aliases
-// ("$Latest", "$Default") that resolve to a concrete version number at apply time.
-// When comparing a symbolic spec version against the nodegroup's resolved version,
-// we skip the comparison to avoid an endless update loop.
+// (e.g. "$Latest", "$Default") that resolve to a concrete version number at apply
+// time. AWS launch template version numbers are plain digits and never start with
+// "$", so a prefix check covers all current and future symbolic aliases. When
+// comparing a symbolic spec version against the nodegroup's resolved version, we
+// skip the comparison to avoid an endless update loop.
 func isSymbolicLaunchTemplateVersion(v string) bool {
-	return v == "$Latest" || v == "$Default"
+	return strings.HasPrefix(v, "$")
 }
 
 // launchTemplateNeedsUpdate returns true when either the launch template ID or
