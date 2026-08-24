@@ -100,7 +100,7 @@ func TestSessionRebuiltPerControllerAfterCredentialRotation(t *testing.T) {
 	}
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "rotating-credentials",
+			Name:      "source-secret-ref",
 			Namespace: system.GetManagerNamespace(),
 		},
 		Data: map[string][]byte{
