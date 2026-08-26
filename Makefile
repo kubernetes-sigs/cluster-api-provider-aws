@@ -301,6 +301,18 @@ generate-go-apis: ## Alias for .build/generate-go-apis
 
 ##@ lint and verify:
 
+.PHONY: bootstrap
+bootstrap: ## Bootstrap a self-managed AWS management cluster for e2e testing
+	./test/e2e/management-cluster/bootstrap.sh $(MANAGEMENT_CLUSTER_ARGS)
+
+.PHONY: teardown
+teardown: ## Tear down the self-managed AWS management cluster used for e2e testing
+	./test/e2e/management-cluster/teardown.sh $(MANAGEMENT_CLUSTER_ARGS)
+
+.PHONY: test-management-cluster
+test-management-cluster: ## Test management cluster lifecycle scripts
+	./test/e2e/management-cluster/test.sh
+
 .PHONY: modules
 
 $(GOLANGCI_LINT): # Build golangci-lint from tools folder.
@@ -454,7 +466,7 @@ setup-envtest: install-setup-envtest # Build setup-envtest from tools folder.
 	echo "kube-builder assets: $(KUBEBUILDER_ASSETS)"
 
 .PHONY: test
-test: setup-envtest ## Run tests
+test: setup-envtest test-management-cluster ## Run tests
 	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./...
 
 .PHONY: test-verbose
