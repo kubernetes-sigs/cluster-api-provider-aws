@@ -1079,6 +1079,14 @@ func (s *Service) DiscoverLaunchTemplateAMI(ctx context.Context, scope scope.Lau
 		return lt.AMI.ID, nil
 	}
 
+	if len(lt.AMI.Filters) > 0 {
+		img, err := AMILookupByFilters(ctx, s.EC2Client, lt.AMI.Filters)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to find AMI by filters for launch template")
+		}
+		return img.ImageId, nil
+	}
+
 	templateVersion := scope.GetMachinePool().Spec.Template.Spec.Version
 	if templateVersion == "" {
 		err := errors.New("Either AWSMachinePool's spec.awslaunchtemplate.ami.id or MachinePool's spec.template.spec.version must be defined")

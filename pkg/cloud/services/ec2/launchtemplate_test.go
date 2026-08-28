@@ -2044,6 +2044,45 @@ func TestDiscoverLaunchTemplateAMI(t *testing.T) {
 			},
 		},
 		{
+			name: "Should return the latest AMI resolved from filters if provided",
+			awsLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+				Name: "aws-launch-tmpl",
+				AMI: infrav1.AMIReference{
+					Filters: []infrav1.Filter{
+						{Name: "name", Values: []string{"my-ami-*"}},
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				// AMI filters take precedence over image lookup, so only the
+				// user-supplied filters are passed through to DescribeImages.
+				m.DescribeImages(context.TODO(), gomock.Eq(&ec2.DescribeImagesInput{
+					Filters: []ec2types.Filter{
+						{
+							Name:   aws.String("name"),
+							Values: []string{"my-ami-*"},
+						},
+					},
+				})).
+					Return(&ec2.DescribeImagesOutput{
+						Images: []ec2types.Image{
+							{
+								ImageId:      aws.String("ancient"),
+								CreationDate: aws.String("2011-02-08T17:02:31.000Z"),
+							},
+							{
+								ImageId:      aws.String("latest"),
+								CreationDate: aws.String("2019-02-08T17:02:31.000Z"),
+							},
+						},
+					}, nil)
+			},
+			check: func(g *WithT, res *string, err error) {
+				g.Expect(res).Should(Equal(aws.String("latest")))
+				g.Expect(err).NotTo(HaveOccurred())
+			},
+		},
+		{
 			name: "Should return with error if both AWSlaunchtemplate ID and machinePool version is not provided",
 			awsLaunchTemplate: expinfrav1.AWSLaunchTemplate{
 				Name: "aws-launch-tmpl",
