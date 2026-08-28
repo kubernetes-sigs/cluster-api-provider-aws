@@ -113,3 +113,7 @@ func Convert_v1beta2_AWSMachineTemplateStatus_To_v1beta1_AWSMachineTemplateStatu
 	// NodeInfo and Conditions fields are ignored (dropped) as they don't exist in v1beta1
 	return autoConvert_v1beta2_AWSMachineTemplateStatus_To_v1beta1_AWSMachineTemplateStatus(in, out, s)
 }
+
+func Convert_v1beta2_AMIReference_To_v1beta1_AMIReference(in *v1beta2.AMIReference, out *AMIReference, s conversion.Scope) error {
+	return autoConvert_v1beta2_AMIReference_To_v1beta1_AMIReference(in, out, s)
+}
