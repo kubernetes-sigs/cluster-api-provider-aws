@@ -151,6 +151,13 @@ func (s *Service) CreateInstance(ctx context.Context, scope *scope.MachineScope,
 	// Pick image from the machine configuration, or use a default one.
 	if scope.AWSMachine.Spec.AMI.ID != nil { //nolint:nestif
 		input.ImageID = *scope.AWSMachine.Spec.AMI.ID
+	} else if len(scope.AWSMachine.Spec.AMI.Filters) > 0 {
+		img, err := AMILookupByFilters(ctx, s.EC2Client, scope.AWSMachine.Spec.AMI.Filters)
+		if err != nil {
+			record.Eventf(s.scope.InfraCluster(), "FailedDescribeImages", "Failed to find AMI with filters: %v", err)
+			return nil, errors.Wrap(err, "failed to find AMI by filters")
+		}
+		input.ImageID = aws.ToString(img.ImageId)
 	} else {
 		if scope.Machine.Spec.Version == "" {
 			err := errors.New("Either AWSMachine's spec.ami.id or Machine's spec.version must be defined")
