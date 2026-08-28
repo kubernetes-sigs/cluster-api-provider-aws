@@ -20762,12 +20762,24 @@ They are applied according to the rules defined by the AWS API:
 is selected. The result is therefore not pinned and may change as new
 matching images are published; set ID instead when a stable, reproducible
 image is required.</p>
-<p>Warning: unless the filters restrict ownership (for example an &ldquo;owner-id&rdquo;
-filter), they may match public AMIs published by untrusted accounts, which
-could allow a third party to influence the selected image. Always scope
-filters to accounts you trust.</p>
 <p>Filters is mutually exclusive with id, eksLookupType, imageLookupFormat,
 imageLookupOrg, and imageLookupBaseOS.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ownerIDs</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OwnerIDs is a list of AWS account IDs that own the AMI. When omitted,
+all AMIs visible to the caller&rsquo;s credentials are searched. Set to
+[&ldquo;self&rdquo;] to restrict the search to the current account, or list specific
+account IDs to search across accounts.
+Only used when Filters is non-empty; ignored when ID is set.</p>
 </td>
 </tr>
 </tbody>
