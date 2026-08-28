@@ -134,10 +134,54 @@ spec:
                         - AmazonLinux2023
                         - AmazonLinux2023GPU
                         type: string
+                      filters:
+                        description: |-
+                          Filters is a set of key/value pairs used to identify an AMI.
+                          They are applied according to the rules defined by the AWS API:
+                          https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Filtering.html
+
+                          When multiple AMIs match, the most recently created one (by CreationDate)
+                          is selected. The result is therefore not pinned and may change as new
+                          matching images are published; set ID instead when a stable, reproducible
+                          image is required.
+
+                          Warning: unless the filters restrict ownership (for example an "owner-id"
+                          filter), they may match public AMIs published by untrusted accounts, which
+                          could allow a third party to influence the selected image. Always scope
+                          filters to accounts you trust.
+
+                          Filters is mutually exclusive with id, eksLookupType, imageLookupFormat,
+                          imageLookupOrg, and imageLookupBaseOS.
+                        items:
+                          description: Filter is a filter used to identify an AWS
+                            resource.
+                          properties:
+                            name:
+                              description: Name of the filter. Filter names are case-sensitive.
+                              type: string
+                            values:
+                              description: Values includes one or more filter values.
+                                Filter values are case-sensitive.
+                              items:
+                                type: string
+                              type: array
+                          required:
+                          - name
+                          - values
+                          type: object
+                        type: array
                       id:
                         description: ID of resource
                         type: string
                     type: object
+                    x-kubernetes-validations:
+                    - message: only one of id, eksLookupType, or filters may be specified
+                      rule: '[has(self.id), has(self.eksLookupType), has(self.filters)
+                        && size(self.filters) > 0].filter(x, x).size() <= 1'
+                    - message: each ami.filters entry must have a non-empty name and
+                        at least one value
+                      rule: '!has(self.filters) || self.filters.all(f, size(f.name)
+                        > 0 && size(f.values) > 0)'
                   iamInstanceProfile:
                     description: |-
                       The name or the Amazon Resource Name (ARN) of the instance profile associated
@@ -636,10 +680,54 @@ spec:
                         - AmazonLinux2023
                         - AmazonLinux2023GPU
                         type: string
+                      filters:
+                        description: |-
+                          Filters is a set of key/value pairs used to identify an AMI.
+                          They are applied according to the rules defined by the AWS API:
+                          https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Filtering.html
+
+                          When multiple AMIs match, the most recently created one (by CreationDate)
+                          is selected. The result is therefore not pinned and may change as new
+                          matching images are published; set ID instead when a stable, reproducible
+                          image is required.
+
+                          Warning: unless the filters restrict ownership (for example an "owner-id"
+                          filter), they may match public AMIs published by untrusted accounts, which
+                          could allow a third party to influence the selected image. Always scope
+                          filters to accounts you trust.
+
+                          Filters is mutually exclusive with id, eksLookupType, imageLookupFormat,
+                          imageLookupOrg, and imageLookupBaseOS.
+                        items:
+                          description: Filter is a filter used to identify an AWS
+                            resource.
+                          properties:
+                            name:
+                              description: Name of the filter. Filter names are case-sensitive.
+                              type: string
+                            values:
+                              description: Values includes one or more filter values.
+                                Filter values are case-sensitive.
+                              items:
+                                type: string
+                              type: array
+                          required:
+                          - name
+                          - values
+                          type: object
+                        type: array
                       id:
                         description: ID of resource
                         type: string
                     type: object
+                    x-kubernetes-validations:
+                    - message: only one of id, eksLookupType, or filters may be specified
+                      rule: '[has(self.id), has(self.eksLookupType), has(self.filters)
+                        && size(self.filters) > 0].filter(x, x).size() <= 1'
+                    - message: each ami.filters entry must have a non-empty name and
+                        at least one value
+                      rule: '!has(self.filters) || self.filters.all(f, size(f.name)
+                        > 0 && size(f.values) > 0)'
                   capacityReservationId:
                     description: CapacityReservationID specifies the target Capacity
                       Reservation into which the instance should be launched.
@@ -915,6 +1003,12 @@ spec:
                     format: int64
                     type: integer
                 type: object
+                x-kubernetes-validations:
+                - message: ami.filters is mutually exclusive with imageLookupFormat,
+                    imageLookupOrg, and imageLookupBaseOS
+                  rule: '!(has(self.ami) && has(self.ami.filters) && size(self.ami.filters)
+                    > 0) || (!has(self.imageLookupFormat) && !has(self.imageLookupOrg)
+                    && !has(self.imageLookupBaseOS))'
               capacityRebalance:
                 description: Enable or disable the capacity rebalance autoscaling
                   group feature
