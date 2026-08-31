@@ -32,6 +32,18 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
+// nameKind tracks whether a name discovered from a CRD field is an IAM
+// instance profile name or an IAM role name. AWSMachinePool and
+// AWSMachineTemplate expose an instance profile name; AWSManagedMachinePool
+// exposes a role name. The two require different IAM API calls to resolve to
+// a role ARN, so we tag each entry at discovery time and dispatch on the tag.
+type nameKind int
+
+const (
+	asInstanceProfile nameKind = iota
+	asRole
+)
+
 // ReconcileIAMAuthenticator is used to create the aws-iam-authenticator in a cluster.
 func (s *Service) ReconcileIAMAuthenticator(ctx context.Context) error {
 	s.scope.Info("Reconciling aws-iam-authenticator configuration", "cluster", klog.KRef(s.scope.Namespace(), s.scope.Name()))
@@ -51,10 +63,10 @@ func (s *Service) ReconcileIAMAuthenticator(ctx context.Context) error {
 		s.scope.Error(err, "getting roles for remote workers")
 		return fmt.Errorf("getting roles for remote workers: %w", err)
 	}
-	for roleName := range nodeRoles {
-		roleARN, err := s.getARNForRole(ctx, roleName)
+	for name, kind := range nodeRoles {
+		roleARN, err := s.resolveRoleARN(ctx, name, kind)
 		if err != nil {
-			return fmt.Errorf("failed to get ARN for role %s: %w", roleName, err)
+			return fmt.Errorf("failed to resolve role ARN for %s: %w", name, err)
 		}
 		nodesRoleMapping := ekscontrolplanev1.RoleMapping{
 			RoleARN: roleARN,
@@ -90,6 +102,23 @@ func (s *Service) ReconcileIAMAuthenticator(ctx context.Context) error {
 	return nil
 }
 
+// resolveRoleARN returns the ARN of the IAM role represented by `name`,
+// dispatching on `kind` to call the matching IAM API. Names sourced from
+// AWSMachinePool / AWSMachineTemplate are instance profile names and are
+// resolved via GetInstanceProfile (the resulting role ARN is taken from the
+// instance profile's attached role). Names sourced from AWSManagedMachinePool
+// are role names and are resolved via GetRole.
+func (s *Service) resolveRoleARN(ctx context.Context, name string, kind nameKind) (string, error) {
+	switch kind {
+	case asRole:
+		return s.getARNForRole(ctx, name)
+	case asInstanceProfile:
+		return s.getARNForInstanceProfile(ctx, name)
+	default:
+		return "", fmt.Errorf("unknown name kind %d for %s", kind, name)
+	}
+}
+
 func (s *Service) getARNForRole(ctx context.Context, role string) (string, error) {
 	input := &iam.GetRoleInput{
 		RoleName: aws.String(role),
@@ -104,8 +133,30 @@ func (s *Service) getARNForRole(ctx context.Context, role string) (string, error
 	return *out.Role.Arn, nil
 }
 
-func (s *Service) getRolesForWorkers(ctx context.Context) (map[string]struct{}, error) {
-	allRoles := map[string]struct{}{}
+// getARNForInstanceProfile returns the ARN of the IAM role attached to the
+// named instance profile. AWS limits an instance profile to one attached role
+// (the Roles list in the GetInstanceProfile response is a schema artifact),
+// so we read Roles[0]. An instance profile with no role attached is treated
+// as an error.
+func (s *Service) getARNForInstanceProfile(ctx context.Context, name string) (string, error) {
+	input := &iam.GetInstanceProfileInput{
+		InstanceProfileName: aws.String(name),
+	}
+	out, err := s.IAMClient.GetInstanceProfile(ctx, input)
+	if err != nil {
+		return "", errors.Wrap(err, "unable to get instance profile")
+	}
+	if out.InstanceProfile == nil || len(out.InstanceProfile.Roles) == 0 {
+		return "", fmt.Errorf("instance profile %s has no role attached", name)
+	}
+	if out.InstanceProfile.Roles[0].Arn == nil {
+		return "", fmt.Errorf("role attached to instance profile %s has no ARN", name)
+	}
+	return aws.ToString(out.InstanceProfile.Roles[0].Arn), nil
+}
+
+func (s *Service) getRolesForWorkers(ctx context.Context) (map[string]nameKind, error) {
+	allRoles := map[string]nameKind{}
 	if err := s.getRolesForMachineDeployments(ctx, allRoles); err != nil {
 		return nil, fmt.Errorf("failed to get roles from machine deployments %w", err)
 	}
@@ -115,7 +166,7 @@ func (s *Service) getRolesForWorkers(ctx context.Context) (map[string]struct{}, 
 	return allRoles, nil
 }
 
-func (s *Service) getRolesForMachineDeployments(ctx context.Context, allRoles map[string]struct{}) error {
+func (s *Service) getRolesForMachineDeployments(ctx context.Context, allRoles map[string]nameKind) error {
 	deploymentList := &clusterv1.MachineDeploymentList{}
 	selectors := []client.ListOption{
 		client.InNamespace(s.scope.Namespace()),
@@ -143,13 +194,13 @@ func (s *Service) getRolesForMachineDeployments(ctx context.Context, allRoles ma
 		}
 		instanceProfile := awsMachineTemplate.Spec.Template.Spec.IAMInstanceProfile
 		if _, ok := allRoles[instanceProfile]; !ok && instanceProfile != "" {
-			allRoles[instanceProfile] = struct{}{}
+			allRoles[instanceProfile] = asInstanceProfile
 		}
 	}
 	return nil
 }
 
-func (s *Service) getRolesForMachinePools(ctx context.Context, allRoles map[string]struct{}) error {
+func (s *Service) getRolesForMachinePools(ctx context.Context, allRoles map[string]nameKind) error {
 	machinePoolList := &clusterv1.MachinePoolList{}
 	selectors := []client.ListOption{
 		client.InNamespace(s.scope.Namespace()),
@@ -178,7 +229,7 @@ func (s *Service) getRolesForMachinePools(ctx context.Context, allRoles map[stri
 	return nil
 }
 
-func (s *Service) getRolesForAWSMachinePool(ctx context.Context, ref clusterv1.ContractVersionedObjectReference, allRoles map[string]struct{}) error {
+func (s *Service) getRolesForAWSMachinePool(ctx context.Context, ref clusterv1.ContractVersionedObjectReference, allRoles map[string]nameKind) error {
 	awsMachinePool := &expinfrav1.AWSMachinePool{}
 	err := s.client.Get(ctx, client.ObjectKey{
 		Name:      ref.Name,
@@ -189,12 +240,12 @@ func (s *Service) getRolesForAWSMachinePool(ctx context.Context, ref clusterv1.C
 	}
 	instanceProfile := awsMachinePool.Spec.AWSLaunchTemplate.IamInstanceProfile
 	if _, ok := allRoles[instanceProfile]; !ok && instanceProfile != "" {
-		allRoles[instanceProfile] = struct{}{}
+		allRoles[instanceProfile] = asInstanceProfile
 	}
 	return nil
 }
 
-func (s *Service) getRolesForAWSManagedMachinePool(ctx context.Context, ref clusterv1.ContractVersionedObjectReference, allRoles map[string]struct{}) error {
+func (s *Service) getRolesForAWSManagedMachinePool(ctx context.Context, ref clusterv1.ContractVersionedObjectReference, allRoles map[string]nameKind) error {
 	awsManagedMachinePool := &expinfrav1.AWSManagedMachinePool{}
 	err := s.client.Get(ctx, client.ObjectKey{
 		Name:      ref.Name,
@@ -203,9 +254,9 @@ func (s *Service) getRolesForAWSManagedMachinePool(ctx context.Context, ref clus
 	if err != nil {
 		return fmt.Errorf("failed to get AWSMachine %s/%s: %w", s.scope.Namespace(), ref.Name, err)
 	}
-	instanceProfile := awsManagedMachinePool.Spec.RoleName
-	if _, ok := allRoles[instanceProfile]; !ok && instanceProfile != "" {
-		allRoles[instanceProfile] = struct{}{}
+	roleName := awsManagedMachinePool.Spec.RoleName
+	if _, ok := allRoles[roleName]; !ok && roleName != "" {
+		allRoles[roleName] = asRole
 	}
 	return nil
 }
