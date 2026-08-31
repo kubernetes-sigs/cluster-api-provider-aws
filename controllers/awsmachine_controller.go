@@ -270,18 +270,29 @@ func (r *AWSMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 				// Avoid reconciling if the event triggering the reconciliation is related to incremental status updates
 				// for AWSMachine resources only
 				UpdateFunc: func(e event.UpdateEvent) bool {
-					if e.ObjectOld.GetObjectKind().GroupVersionKind().Kind != kindAWSMachine {
+					// Objects in watch events have no `TypeMeta`, so the kind can only be told from the Go type
+					oldAWSMachine, ok := e.ObjectOld.(*infrav1.AWSMachine)
+					if !ok {
+						return true
+					}
+					newAWSMachine, ok := e.ObjectNew.(*infrav1.AWSMachine)
+					if !ok {
 						return true
 					}
 
-					oldMachine := e.ObjectOld.(*infrav1.AWSMachine).DeepCopy()
-					newMachine := e.ObjectNew.(*infrav1.AWSMachine).DeepCopy()
+					oldMachine := oldAWSMachine.DeepCopy()
+					newMachine := newAWSMachine.DeepCopy()
 
 					oldMachine.Status = infrav1.AWSMachineStatus{}
 					newMachine.Status = infrav1.AWSMachineStatus{}
 
 					oldMachine.ObjectMeta.ResourceVersion = ""
 					newMachine.ObjectMeta.ResourceVersion = ""
+
+					// A status write refreshes the timestamp of the writer's `managedFields` entry, so the metadata
+					// would otherwise always differ.
+					oldMachine.ObjectMeta.ManagedFields = nil
+					newMachine.ObjectMeta.ManagedFields = nil
 
 					return !cmp.Equal(oldMachine, newMachine)
 				},
