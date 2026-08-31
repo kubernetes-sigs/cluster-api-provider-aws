@@ -21,6 +21,8 @@ aliases:
   # OWNER_ALIASES for ROSA Work
   # -----------------------------------------------------------
   cluster-api-aws-rosa-maintainers:
+    - andclt
     - serngawy
   cluster-api-aws-rosa-reviewers:
+    - andclt
     - serngawy
