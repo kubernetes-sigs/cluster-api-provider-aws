@@ -74,6 +74,6 @@ metadata:
   name: "${CLUSTER_NAME}-pool-0"
 spec:
   nodePoolName: "nodepool-0"
-  instanceType: "m5.xlarge"
+  instanceType: "m7i.xlarge"
   subnet: "${PRIVATE_SUBNET_ID}"
   version: "${OPENSHIFT_VERSION}"

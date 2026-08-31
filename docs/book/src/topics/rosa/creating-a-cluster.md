@@ -267,7 +267,6 @@ The CAPA controller requires service account credentials to provision ROSA HCP c
         podCIDR: "10.128.0.0/14"
         serviceCIDR: "172.30.0.0/16"
       defaultMachinePoolSpec:
-        instanceType: "m5.xlarge"
         autoscaling:
           maxReplicas: 6
           minReplicas: 3
@@ -279,6 +278,8 @@ The CAPA controller requires service account credentials to provision ROSA HCP c
     ```shell
     kubectl apply -f rosa-cluster.yaml
     ```
+
+    **Note:** `instanceType` is omitted from `defaultMachinePoolSpec` so the ROSA service applies its flavour default. You can set it explicitly if you need a specific instance type.
 
     **Note:** If you are providing pre-created role ARNs directly on `ROSAControlPlane` (without `rosaRoleConfigRef`) and your roles require an STS external ID, set `trustPolicyExternalID` on the `ROSAControlPlane` spec. In this case, you are responsible for ensuring the roles' trust policies already include the `sts:ExternalId` condition; CAPA will only pass the value to OCM, not modify the trust policies.
 
@@ -334,10 +335,12 @@ The CAPA controller requires service account credentials to provision ROSA HCP c
     spec:
       nodePoolName: "workers-extra"
       version: "4.20.11"
-      instanceType: "m5.xlarge"
+      instanceType: "m7i.xlarge"
       autoRepair: true
     EOF
     ```
+
+    **Note:** `m7i.xlarge` is not available in all AWS regions. Choose an instance type available in your target region.
 
     ```shell
     kubectl apply -f rosa-machinepool-extra.yaml
