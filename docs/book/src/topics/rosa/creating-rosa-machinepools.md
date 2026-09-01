@@ -41,9 +41,11 @@ metadata:
   name: "${CLUSTER_NAME}-pool-0"
 spec:
   nodePoolName: "nodepool-0"
-  instanceType: "m5.xlarge"
+  instanceType: "m7i.xlarge"
   subnet: "${PRIVATE_SUBNET_ID}"
   version: "${OPENSHIFT_VERSION}"
 ```
+
+**Note:** `m7i.xlarge` is not available in all AWS regions. Choose an instance type available in your target region.
 
 see [ROSAMachinePool CRD Reference](https://cluster-api-aws.sigs.k8s.io/crd/#infrastructure.cluster.x-k8s.io/v1beta2.ROSAMachinePool) for all possible configurations.
