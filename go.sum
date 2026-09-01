@@ -38,8 +38,8 @@ github.com/antlr4-go/antlr/v4 v4.13.1 h1:SqQKkuVZ+zWkMMNkjy5FZe5mr5WURWnlpmOuzYW
 github.com/antlr4-go/antlr/v4 v4.13.1/go.mod h1:GKmUxMtwp6ZgGwZSva4eWPC5mS6vUAmOABFgjdkM7Nw=
 github.com/apparentlymart/go-cidr v1.1.1 h1:oEEk8CE0HP0YpHxsegk/TaOtR2FLHdWv4p3eM4ceUwg=
 github.com/apparentlymart/go-cidr v1.1.1/go.mod h1:EBcsNrHc3zQeuaeCeCtQruQm+n9/YjEn/vI25Lg7Gwc=
-github.com/aws/amazon-vpc-cni-k8s v1.23.0 h1:CHzQTrQgSw73qiTZLWXqzHvQOS5BRyTA2Xys5L361YY=
-github.com/aws/amazon-vpc-cni-k8s v1.23.0/go.mod h1:iDDQx3vUIiQNv2wES6S+8N87Eb65993SMog2usoCTO0=
+github.com/aws/amazon-vpc-cni-k8s v1.22.4 h1:040AzVL94vW4i9f8d5vz4tI83sKaxUM2KjB4nwyRw9M=
+github.com/aws/amazon-vpc-cni-k8s v1.22.4/go.mod h1:H9f69VZbroA/1ns5LtTnoMA4vAdPghcgU0tIH5FX4+s=
 github.com/aws/aws-lambda-go v1.55.0 h1:D+AUkk49hTldMnv+Ydt+/jdWVXWPsp8hlwY6Enob2FM=
 github.com/aws/aws-lambda-go v1.55.0/go.mod h1:V+NzkHNR6vBC8C1PDloqSLE+7jYWFiPvJJFiCiTm8nE=
 github.com/aws/aws-sdk-go-v2 v1.45.1 h1:iIoG3NaLhV6UZpPXyPXlDj2I9oS8tV/nMcMnITCC6Ks=

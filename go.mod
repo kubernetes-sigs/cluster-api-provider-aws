@@ -1,11 +1,11 @@
 module sigs.k8s.io/cluster-api-provider-aws/v2
 
-go 1.26.4
+go 1.26.0
 
 require (
 	github.com/alessio/shellescape v1.4.2
 	github.com/apparentlymart/go-cidr v1.1.1
-	github.com/aws/amazon-vpc-cni-k8s v1.23.0
+	github.com/aws/amazon-vpc-cni-k8s v1.22.4
 	github.com/aws/aws-lambda-go v1.55.0
 	github.com/aws/aws-sdk-go-v2 v1.45.1
 	github.com/aws/aws-sdk-go-v2/config v1.33.1
