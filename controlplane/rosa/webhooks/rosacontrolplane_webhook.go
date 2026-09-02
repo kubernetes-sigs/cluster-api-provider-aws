@@ -122,6 +122,11 @@ func (w *ROSAControlPlane) ValidateUpdate(_ context.Context, oldObj, newObj runt
 		return nil, fmt.Errorf("expected an ROSAControlPlane object but got %T", r)
 	}
 
+	oldRosaCP, ok := oldObj.(*rosacontrolplanev1.ROSAControlPlane)
+	if !ok {
+		return nil, fmt.Errorf("expected an ROSAControlPlane object but got %T", oldObj)
+	}
+
 	var allErrs field.ErrorList
 
 	if err := w.validateVersion(r); err != nil {
@@ -137,6 +142,10 @@ func (w *ROSAControlPlane) ValidateUpdate(_ context.Context, oldObj, newObj runt
 	}
 
 	if err := w.validateChannel(r); err != nil {
+		allErrs = append(allErrs, err)
+	}
+
+	if err := w.validateEc2MetadataHTTPTokensImmutability(oldRosaCP, r); err != nil {
 		allErrs = append(allErrs, err)
 	}
 
@@ -334,6 +343,14 @@ func (w *ROSAControlPlane) validateComponentRoutes(r *rosacontrolplanev1.ROSACon
 		routeNames[route.Name] = true
 	}
 	return errs
+}
+
+func (w *ROSAControlPlane) validateEc2MetadataHTTPTokensImmutability(oldRosaCP, newRosaCP *rosacontrolplanev1.ROSAControlPlane) *field.Error {
+	if oldRosaCP.Spec.Ec2MetadataHTTPTokens != newRosaCP.Spec.Ec2MetadataHTTPTokens {
+		return field.Invalid(field.NewPath("spec.ec2MetadataHttpTokens"), newRosaCP.Spec.Ec2MetadataHTTPTokens,
+			"ec2MetadataHttpTokens is immutable and must be set at creation time")
+	}
+	return nil
 }
 
 // Default implements admission.Defaulter.

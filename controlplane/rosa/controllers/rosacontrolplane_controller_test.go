@@ -1695,6 +1695,68 @@ func TestBuildOCMClusterSpec(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(ocmSpec.ExternalID).To(Equal("direct-external-id"))
 	})
+
+	// Test case 8: Ec2MetadataHTTPTokens set to required
+	t.Run("Ec2MetadataHTTPTokens Required", func(t *testing.T) {
+		g := NewWithT(t)
+		controlPlaneSpec := rosacontrolplanev1.RosaControlPlaneSpec{
+			RosaClusterName:       "test-cluster-imdsv2",
+			Region:                "us-west-2",
+			Version:               "4.14.5",
+			Ec2MetadataHTTPTokens: rosacontrolplanev1.Ec2MetadataHTTPTokensRequired,
+			Subnets:               []string{"subnet-1", "subnet-2"},
+			AvailabilityZones:     []string{"us-west-2a"},
+			DefaultMachinePoolSpec: rosacontrolplanev1.DefaultMachinePoolSpec{
+				InstanceType: "m5.xlarge",
+			},
+		}
+
+		ocmSpec, err := buildOCMClusterSpec(controlPlaneSpec, mockRoleConfig, nil, mockCreator)
+
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ocmSpec.Ec2MetadataHttpTokens).To(Equal(v1.Ec2MetadataHttpTokensRequired))
+	})
+
+	// Test case 9: Ec2MetadataHTTPTokens set to optional
+	t.Run("Ec2MetadataHTTPTokens Optional", func(t *testing.T) {
+		g := NewWithT(t)
+		controlPlaneSpec := rosacontrolplanev1.RosaControlPlaneSpec{
+			RosaClusterName:       "test-cluster-imdsv1",
+			Region:                "us-west-2",
+			Version:               "4.14.5",
+			Ec2MetadataHTTPTokens: rosacontrolplanev1.Ec2MetadataHTTPTokensOptional,
+			Subnets:               []string{"subnet-1", "subnet-2"},
+			AvailabilityZones:     []string{"us-west-2a"},
+			DefaultMachinePoolSpec: rosacontrolplanev1.DefaultMachinePoolSpec{
+				InstanceType: "m5.xlarge",
+			},
+		}
+
+		ocmSpec, err := buildOCMClusterSpec(controlPlaneSpec, mockRoleConfig, nil, mockCreator)
+
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ocmSpec.Ec2MetadataHttpTokens).To(Equal(v1.Ec2MetadataHttpTokensOptional))
+	})
+
+	// Test case 10: Ec2MetadataHTTPTokens not set (zero value, should not be sent to OCM)
+	t.Run("Ec2MetadataHTTPTokens Not Set", func(t *testing.T) {
+		g := NewWithT(t)
+		controlPlaneSpec := rosacontrolplanev1.RosaControlPlaneSpec{
+			RosaClusterName:   "test-cluster-no-imds",
+			Region:            "us-west-2",
+			Version:           "4.14.5",
+			Subnets:           []string{"subnet-1", "subnet-2"},
+			AvailabilityZones: []string{"us-west-2a"},
+			DefaultMachinePoolSpec: rosacontrolplanev1.DefaultMachinePoolSpec{
+				InstanceType: "m5.xlarge",
+			},
+		}
+
+		ocmSpec, err := buildOCMClusterSpec(controlPlaneSpec, mockRoleConfig, nil, mockCreator)
+
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ocmSpec.Ec2MetadataHttpTokens).To(BeEmpty())
+	})
 }
 
 func TestReconcileExternalAuthKubeconfigSecrets(t *testing.T) {
