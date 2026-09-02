@@ -19,6 +19,7 @@ package scope
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -60,6 +61,10 @@ var (
 type sessionCacheEntry struct {
 	session         *aws.Config
 	serviceLimiters throttle.ServiceLimiters
+	// providerHashes records the principal provider hashes this session was built
+	// from, so a cached session is only reused when the underlying credentials are
+	// unchanged.
+	providerHashes []string
 }
 
 // ChainCredentialsProvider defines custom CredentialsProvider chain
@@ -98,28 +103,33 @@ func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.Se
 		return nil, nil, errors.Wrap(err, "Failed to get providers for cluster")
 	}
 
-	isChanged := false
 	awsProviders := make([]aws.CredentialsProvider, len(providers))
+	providerHashes := make([]string, len(providers))
 	for i, provider := range providers {
 		// load an existing matching providers from the cache if such a providers exists
 		providerHash, err := provider.Hash()
 		if err != nil {
 			return nil, nil, errors.Wrap(err, "Failed to calculate provider hash")
 		}
+		providerHashes[i] = providerHash
 		cachedProvider, ok := providerCache.Load(providerHash)
 		if ok {
 			provider = cachedProvider.(identity.AWSPrincipalTypeProvider)
 		} else {
-			isChanged = true
 			// add this provider to the cache
 			providerCache.Store(providerHash, provider)
 		}
 		awsProviders[i] = provider.(aws.CredentialsProvider)
 	}
 
-	if !isChanged {
-		if s, ok := sessionCache.Load(getSessionName(region, clusterScoper)); ok {
-			entry := s.(*sessionCacheEntry)
+	// Only reuse a cached session when it was built from exactly these principal
+	// providers. providerCache is global while sessionCache is per-controller, so
+	// gating this on a providerCache miss meant that whichever controller populated
+	// providerCache first suppressed the session rebuild in every other controller,
+	// which then kept serving a session holding credentials that no longer exist.
+	if s, ok := sessionCache.Load(getSessionName(region, clusterScoper)); ok {
+		entry := s.(*sessionCacheEntry)
+		if slices.Equal(entry.providerHashes, providerHashes) {
 			return entry.session, entry.serviceLimiters, nil
 		}
 	}
@@ -153,6 +163,7 @@ func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.Se
 	sessionCache.Store(getSessionName(region, clusterScoper), &sessionCacheEntry{
 		session:         &ns,
 		serviceLimiters: sl,
+		providerHashes:  providerHashes,
 	})
 
 	return &ns, sl, nil
