@@ -414,7 +414,7 @@ func TestROSAOCMRoleConfigReconcileCreate(t *testing.T) {
 		g.Expect(updatedRoleConfig.Status.RoleARN).To(Equal(fmt.Sprintf("arn:aws:iam::%s:role/test-OCM-Role-%s", h.accountID, h.externalID)))
 		g.Expect(updatedRoleConfig.Status.OrganizationID).To(Equal(h.orgID))
 
-		readyCondition := v1beta1conditions.Get(updatedRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyCondition)
+		readyCondition := v1beta1conditions.Get(updatedRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyV1Beta1Condition)
 		g.Expect(readyCondition).ToNot(BeNil())
 		g.Expect(readyCondition.Status).To(Equal(corev1.ConditionTrue))
 	}).WithTimeout(30 * time.Second).Should(Succeed())
@@ -459,7 +459,7 @@ func TestROSAOCMRoleConfigReconcileExist(t *testing.T) {
 		g.Expect(updatedRoleConfig.Status.RoleARN).To(Equal(fmt.Sprintf("arn:aws:iam::%s:role/test-OCM-Role-%s", h.accountID, h.externalID)))
 		g.Expect(updatedRoleConfig.Status.OrganizationID).To(Equal(h.orgID))
 
-		readyCondition := v1beta1conditions.Get(updatedRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyCondition)
+		readyCondition := v1beta1conditions.Get(updatedRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyV1Beta1Condition)
 		g.Expect(readyCondition).ToNot(BeNil())
 		g.Expect(readyCondition.Status).To(Equal(corev1.ConditionTrue))
 	}).WithTimeout(30 * time.Second).WithPolling(500 * time.Millisecond).Should(Succeed())
@@ -647,7 +647,7 @@ func TestROSAOCMRoleConfigRoleConflict(t *testing.T) {
 		updatedRoleConfig := &expinfrav1.ROSAOCMRoleConfig{}
 		g.Expect(reconciler.Client.Get(h.testCtx, req.NamespacedName, updatedRoleConfig)).ToNot(HaveOccurred())
 
-		readyCondition := v1beta1conditions.Get(updatedRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyCondition)
+		readyCondition := v1beta1conditions.Get(updatedRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyV1Beta1Condition)
 		g.Expect(readyCondition).ToNot(BeNil())
 		g.Expect(readyCondition.Status).To(Equal(corev1.ConditionFalse))
 		g.Expect(readyCondition.Message).To(ContainSubstring("Only one role can be linked per AWS account per organization"))
@@ -730,7 +730,7 @@ func TestROSAOCMRoleConfigNoConsoleTagPolicyMismatch(t *testing.T) {
 		updatedRoleConfig := &expinfrav1.ROSAOCMRoleConfig{}
 		g.Expect(reconciler.Client.Get(h.testCtx, req.NamespacedName, updatedRoleConfig)).ToNot(HaveOccurred())
 
-		readyCondition := v1beta1conditions.Get(updatedRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyCondition)
+		readyCondition := v1beta1conditions.Get(updatedRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyV1Beta1Condition)
 		g.Expect(readyCondition).ToNot(BeNil())
 		g.Expect(readyCondition.Status).To(Equal(corev1.ConditionTrue), "should be ready after self-healing policy")
 	}).WithTimeout(5 * time.Second).Should(Succeed())
@@ -776,7 +776,7 @@ func TestROSAOCMRoleConfigAdminProfile(t *testing.T) {
 		g.Expect(updatedRoleConfig.Status.RoleARN).To(Equal(fmt.Sprintf("arn:aws:iam::%s:role/test-OCM-Role-%s", h.accountID, h.externalID)))
 		g.Expect(updatedRoleConfig.Status.OrganizationID).To(Equal(h.orgID))
 
-		readyCondition := v1beta1conditions.Get(updatedRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyCondition)
+		readyCondition := v1beta1conditions.Get(updatedRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyV1Beta1Condition)
 		g.Expect(readyCondition).ToNot(BeNil())
 		g.Expect(readyCondition.Status).To(Equal(corev1.ConditionTrue))
 	}).WithTimeout(30 * time.Second).Should(Succeed())
@@ -826,7 +826,7 @@ func TestROSAOCMRoleConfigAdminTagSelfHealing(t *testing.T) {
 		g.Expect(updatedRoleConfig.Status.RoleARN).To(Equal(fmt.Sprintf("arn:aws:iam::%s:role/test-OCM-Role-%s", h.accountID, h.externalID)))
 		g.Expect(updatedRoleConfig.Status.OrganizationID).To(Equal(h.orgID))
 
-		readyCondition := v1beta1conditions.Get(updatedRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyCondition)
+		readyCondition := v1beta1conditions.Get(updatedRoleConfig, expinfrav1.ROSAOCMRoleConfigReadyV1Beta1Condition)
 		g.Expect(readyCondition).ToNot(BeNil())
 		g.Expect(readyCondition.Status).To(Equal(corev1.ConditionTrue))
 	}).WithTimeout(30 * time.Second).Should(Succeed())

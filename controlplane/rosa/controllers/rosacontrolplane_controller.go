@@ -288,11 +288,11 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		return ctrl.Result{}, fmt.Errorf("failed to validate ROSAControlPlane.spec: %w", err)
 	}
 
-	v1beta1conditions.MarkTrue(rosaScope.ControlPlane, rosacontrolplanev1.ROSAControlPlaneValidCondition)
+	v1beta1conditions.MarkTrue(rosaScope.ControlPlane, rosacontrolplanev1.ROSAControlPlaneValidV1Beta1Condition)
 	if validationMessage != "" {
 		v1beta1conditions.MarkFalse(rosaScope.ControlPlane,
-			rosacontrolplanev1.ROSAControlPlaneValidCondition,
-			rosacontrolplanev1.ROSAControlPlaneInvalidConfigurationReason,
+			rosacontrolplanev1.ROSAControlPlaneValidV1Beta1Condition,
+			rosacontrolplanev1.ROSAControlPlaneInvalidConfigurationV1Beta1Reason,
 			clusterv1beta1.ConditionSeverityError,
 			"%s",
 			validationMessage)
@@ -320,7 +320,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 
 		switch cluster.Status().State() {
 		case cmv1.ClusterStateReady:
-			v1beta1conditions.MarkTrue(rosaScope.ControlPlane, rosacontrolplanev1.ROSAControlPlaneReadyCondition)
+			v1beta1conditions.MarkTrue(rosaScope.ControlPlane, rosacontrolplanev1.ROSAControlPlaneReadyV1Beta1Condition)
 			rosaScope.ControlPlane.Status.Ready = true
 
 			apiEndpoint, err := buildAPIEndpoint(cluster)
@@ -362,7 +362,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 			rosaScope.ControlPlane.Status.FailureMessage = &errorMessage
 
 			v1beta1conditions.MarkFalse(rosaScope.ControlPlane,
-				rosacontrolplanev1.ROSAControlPlaneReadyCondition,
+				rosacontrolplanev1.ROSAControlPlaneReadyV1Beta1Condition,
 				string(cluster.Status().State()),
 				clusterv1beta1.ConditionSeverityError,
 				"%s",
@@ -372,7 +372,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		}
 
 		v1beta1conditions.MarkFalse(rosaScope.ControlPlane,
-			rosacontrolplanev1.ROSAControlPlaneReadyCondition,
+			rosacontrolplanev1.ROSAControlPlaneReadyV1Beta1Condition,
 			string(cluster.Status().State()),
 			clusterv1beta1.ConditionSeverityInfo,
 			"%s",
@@ -397,7 +397,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		}
 
 		// Is the referenced ROSANetwork ready yet?
-		if !v1beta1conditions.IsTrue(rosaNet, expinfrav1.ROSANetworkReadyCondition) {
+		if !v1beta1conditions.IsTrue(rosaNet, expinfrav1.ROSANetworkReadyV1Beta1Condition) {
 			rosaScope.Info(fmt.Sprintf("referenced ROSANetwork %s is not ready", rosaNet.Name))
 			return ctrl.Result{RequeueAfter: time.Minute}, nil
 		}
@@ -411,7 +411,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 	cluster, err = ocmClient.CreateCluster(ocmClusterSpec)
 	if err != nil {
 		v1beta1conditions.MarkFalse(rosaScope.ControlPlane,
-			rosacontrolplanev1.ROSAControlPlaneReadyCondition,
+			rosacontrolplanev1.ROSAControlPlaneReadyV1Beta1Condition,
 			rosacontrolplanev1.ReconciliationFailedReason,
 			clusterv1beta1.ConditionSeverityError,
 			"%s",
@@ -526,8 +526,8 @@ func (r *ROSAControlPlaneReconciler) reconcileDelete(ctx context.Context, rosaSc
 	if cluster.Status().State() != cmv1.ClusterStateUninstalling {
 		if _, err := ocmClient.DeleteCluster(cluster.ID(), bestEffort, creator); err != nil {
 			v1beta1conditions.MarkFalse(rosaScope.ControlPlane,
-				rosacontrolplanev1.ROSAControlPlaneReadyCondition,
-				rosacontrolplanev1.ROSAControlPlaneDeletionFailedReason,
+				rosacontrolplanev1.ROSAControlPlaneReadyV1Beta1Condition,
+				rosacontrolplanev1.ROSAControlPlaneDeletionFailedV1Beta1Reason,
 				clusterv1beta1.ConditionSeverityError,
 				"failed to delete ROSAControlPlane: %s; if the error can't be resolved, set '%s' annotation to force the deletion",
 				err.Error(),
@@ -537,7 +537,7 @@ func (r *ROSAControlPlaneReconciler) reconcileDelete(ctx context.Context, rosaSc
 	}
 
 	v1beta1conditions.MarkFalse(rosaScope.ControlPlane,
-		rosacontrolplanev1.ROSAControlPlaneReadyCondition,
+		rosacontrolplanev1.ROSAControlPlaneReadyV1Beta1Condition,
 		string(cluster.Status().State()),
 		clusterv1beta1.ConditionSeverityInfo,
 		"deleting")
@@ -777,7 +777,7 @@ func componentRoutesEqual(current map[string]*cmv1.ComponentRoute, desired []ros
 func (r *ROSAControlPlaneReconciler) reconcileClusterVersion(rosaScope *scope.ROSAControlPlaneScope, ocmClient rosa.OCMClient, cluster *cmv1.Cluster) error {
 	version := rosaScope.ControlPlane.Spec.Version
 	if version == rosa.RawVersionID(cluster.Version()) {
-		v1beta1conditions.MarkFalse(rosaScope.ControlPlane, rosacontrolplanev1.ROSAControlPlaneUpgradingCondition, "upgraded", clusterv1beta1.ConditionSeverityInfo, "")
+		v1beta1conditions.MarkFalse(rosaScope.ControlPlane, rosacontrolplanev1.ROSAControlPlaneUpgradingV1Beta1Condition, "upgraded", clusterv1beta1.ConditionSeverityInfo, "")
 
 		if cluster.Version() != nil {
 			rosaScope.ControlPlane.Status.AvailableUpgrades = cluster.Version().AvailableUpgrades()
@@ -806,7 +806,7 @@ func (r *ROSAControlPlaneReconciler) reconcileClusterVersion(rosaScope *scope.RO
 		scheduledUpgrade, err = rosa.ScheduleControlPlaneUpgrade(ocmClient, cluster, version, time.Now(), ack)
 		if err != nil {
 			condition := &clusterv1beta1.Condition{
-				Type:    rosacontrolplanev1.ROSAControlPlaneUpgradingCondition,
+				Type:    rosacontrolplanev1.ROSAControlPlaneUpgradingV1Beta1Condition,
 				Status:  corev1.ConditionFalse,
 				Reason:  "failed",
 				Message: fmt.Sprintf("failed to schedule upgrade to version %s: %v", version, err),
@@ -818,7 +818,7 @@ func (r *ROSAControlPlaneReconciler) reconcileClusterVersion(rosaScope *scope.RO
 	}
 
 	condition := &clusterv1beta1.Condition{
-		Type:    rosacontrolplanev1.ROSAControlPlaneUpgradingCondition,
+		Type:    rosacontrolplanev1.ROSAControlPlaneUpgradingV1Beta1Condition,
 		Status:  corev1.ConditionTrue,
 		Reason:  string(scheduledUpgrade.State().Value()),
 		Message: fmt.Sprintf("Upgrading to version %s", scheduledUpgrade.Version()),
@@ -841,8 +841,8 @@ func (r *ROSAControlPlaneReconciler) updateOCMCluster(rosaScope *scope.ROSAContr
 		rosaScope.Info("Updating cluster")
 		if err := ocmClient.UpdateCluster(cluster.ID(), creator, ocmClusterSpec); err != nil {
 			v1beta1conditions.MarkFalse(rosaScope.ControlPlane,
-				rosacontrolplanev1.ROSAControlPlaneValidCondition,
-				rosacontrolplanev1.ROSAControlPlaneInvalidConfigurationReason,
+				rosacontrolplanev1.ROSAControlPlaneValidV1Beta1Condition,
+				rosacontrolplanev1.ROSAControlPlaneInvalidConfigurationV1Beta1Reason,
 				clusterv1beta1.ConditionSeverityError,
 				"%s",
 				err.Error())
