@@ -6097,6 +6097,18 @@ IdentityProviderStatus
 associated identity provider</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>observedGeneration</code><br/>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ObservedGeneration is the latest generation observed by the controller.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="controlplane.cluster.x-k8s.io/v1beta1.Addon">Addon
@@ -7462,6 +7474,21 @@ Access entries require AuthenticationMode to be either &ldquo;api&rdquo; or &ldq
 </tr>
 <tr>
 <td>
+<code>podIdentityAssociations</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.PodIdentityAssociation">
+[]PodIdentityAssociation
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PodIdentityAssociations map IAM roles to Kubernetes Service Accounts using EKS Pod Identities.
+The AWS EKS addon for Pod Identity must be installed in the cluster to use this feature.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>vpcCni</code><br/>
 <em>
 <a href="#controlplane.cluster.x-k8s.io/v1beta2.VpcCni">
@@ -7527,6 +7554,23 @@ UpgradePolicy
 <code>extended</code> upgrade policy indicates that the cluster will enter into extended support once the Kubernetes version reaches end of standard support. You will incur extended support charges with this setting. You can upgrade your cluster to a standard supported Kubernetes version to stop incurring extended support charges.
 <code>standard</code> upgrade policy indicates that the cluster is eligible for automatic upgrade at the end of standard support. You will not incur extended support charges with this setting but your EKS cluster will automatically upgrade to the next supported Kubernetes version in standard support.
 If omitted, new clusters will use the AWS default upgrade policy (which at the time of writing is &ldquo;extended&rdquo;) and existing clusters will have their upgrade policy unchanged.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>controlPlaneScalingConfig</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.ControlPlaneScalingConfig">
+ControlPlaneScalingConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ControlPlaneScalingConfig specifies the scaling configuration for the EKS control plane.
+Enables selection of predefined scaling tiers to ensure consistent, high-performance operation of the cluster’s control plane.
+When omitted, EKS uses Standard mode (automatic scaling). See ControlPlaneScalingConfig in types.go for tier defaults.
+(Official AWS docs: <a href="https://docs.aws.amazon.com/eks/latest/userguide/eks-provisioned-control-plane.html">https://docs.aws.amazon.com/eks/latest/userguide/eks-provisioned-control-plane.html</a>)</p>
 </td>
 </tr>
 </table>
@@ -7972,6 +8016,21 @@ Access entries require AuthenticationMode to be either &ldquo;api&rdquo; or &ldq
 </tr>
 <tr>
 <td>
+<code>podIdentityAssociations</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.PodIdentityAssociation">
+[]PodIdentityAssociation
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PodIdentityAssociations map IAM roles to Kubernetes Service Accounts using EKS Pod Identities.
+The AWS EKS addon for Pod Identity must be installed in the cluster to use this feature.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>vpcCni</code><br/>
 <em>
 <a href="#controlplane.cluster.x-k8s.io/v1beta2.VpcCni">
@@ -8037,6 +8096,23 @@ UpgradePolicy
 <code>extended</code> upgrade policy indicates that the cluster will enter into extended support once the Kubernetes version reaches end of standard support. You will incur extended support charges with this setting. You can upgrade your cluster to a standard supported Kubernetes version to stop incurring extended support charges.
 <code>standard</code> upgrade policy indicates that the cluster is eligible for automatic upgrade at the end of standard support. You will not incur extended support charges with this setting but your EKS cluster will automatically upgrade to the next supported Kubernetes version in standard support.
 If omitted, new clusters will use the AWS default upgrade policy (which at the time of writing is &ldquo;extended&rdquo;) and existing clusters will have their upgrade policy unchanged.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>controlPlaneScalingConfig</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.ControlPlaneScalingConfig">
+ControlPlaneScalingConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ControlPlaneScalingConfig specifies the scaling configuration for the EKS control plane.
+Enables selection of predefined scaling tiers to ensure consistent, high-performance operation of the cluster’s control plane.
+When omitted, EKS uses Standard mode (automatic scaling). See ControlPlaneScalingConfig in types.go for tier defaults.
+(Official AWS docs: <a href="https://docs.aws.amazon.com/eks/latest/userguide/eks-provisioned-control-plane.html">https://docs.aws.amazon.com/eks/latest/userguide/eks-provisioned-control-plane.html</a>)</p>
 </td>
 </tr>
 </tbody>
@@ -8212,6 +8288,18 @@ string
 <em>(Optional)</em>
 <p>Version represents the minimum Kubernetes version for the control plane machines
 in the cluster.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>observedGeneration</code><br/>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ObservedGeneration is the latest generation observed by the controller.</p>
 </td>
 </tr>
 </tbody>
@@ -8712,6 +8800,21 @@ Access entries require AuthenticationMode to be either &ldquo;api&rdquo; or &ldq
 </tr>
 <tr>
 <td>
+<code>podIdentityAssociations</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.PodIdentityAssociation">
+[]PodIdentityAssociation
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PodIdentityAssociations map IAM roles to Kubernetes Service Accounts using EKS Pod Identities.
+The AWS EKS addon for Pod Identity must be installed in the cluster to use this feature.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>vpcCni</code><br/>
 <em>
 <a href="#controlplane.cluster.x-k8s.io/v1beta2.VpcCni">
@@ -8777,6 +8880,23 @@ UpgradePolicy
 <code>extended</code> upgrade policy indicates that the cluster will enter into extended support once the Kubernetes version reaches end of standard support. You will incur extended support charges with this setting. You can upgrade your cluster to a standard supported Kubernetes version to stop incurring extended support charges.
 <code>standard</code> upgrade policy indicates that the cluster is eligible for automatic upgrade at the end of standard support. You will not incur extended support charges with this setting but your EKS cluster will automatically upgrade to the next supported Kubernetes version in standard support.
 If omitted, new clusters will use the AWS default upgrade policy (which at the time of writing is &ldquo;extended&rdquo;) and existing clusters will have their upgrade policy unchanged.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>controlPlaneScalingConfig</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.ControlPlaneScalingConfig">
+ControlPlaneScalingConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ControlPlaneScalingConfig specifies the scaling configuration for the EKS control plane.
+Enables selection of predefined scaling tiers to ensure consistent, high-performance operation of the cluster’s control plane.
+When omitted, EKS uses Standard mode (automatic scaling). See ControlPlaneScalingConfig in types.go for tier defaults.
+(Official AWS docs: <a href="https://docs.aws.amazon.com/eks/latest/userguide/eks-provisioned-control-plane.html">https://docs.aws.amazon.com/eks/latest/userguide/eks-provisioned-control-plane.html</a>)</p>
 </td>
 </tr>
 </table>
@@ -8922,7 +9042,8 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Username is the username for the access entry</p>
+<p>Username is the username for the access entry
+If left empty, EKS generates one and it is left unmanaged</p>
 </td>
 </tr>
 <tr>
@@ -9381,6 +9502,47 @@ bool
 </tr>
 </tbody>
 </table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.ControlPlaneScalingConfig">ControlPlaneScalingConfig
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>)
+</p>
+<p>
+<p>ControlPlaneScalingConfig represents the configuration for EKS Control Plane scaling.
+When omitted, EKS uses Standard mode (automatic scaling); no provisioning or tier selection is applied.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>tier</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.ControlPlaneScalingTier">
+ControlPlaneScalingTier
+</a>
+</em>
+</td>
+<td>
+<p>Tier specifies the tier for the EKS control plane.
+Valid values are: standard, tier-xl, tier-2xl, tier-4xl.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.ControlPlaneScalingTier">ControlPlaneScalingTier
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.ControlPlaneScalingConfig">ControlPlaneScalingConfig</a>)
+</p>
+<p>
+<p>ControlPlaneScalingTier defines the scaling tier for the EKS control plane.</p>
+</p>
 <h3 id="controlplane.cluster.x-k8s.io/v1beta2.EKSAuthenticationMode">EKSAuthenticationMode
 (<code>string</code> alias)</p></h3>
 <p>
@@ -9832,6 +9994,73 @@ string
 </td>
 <td>
 <p>TrustPolicy contains the boilerplate IAM trust policy to use for IRSA</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.PodIdentityAssociation">PodIdentityAssociation
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>)
+</p>
+<p>
+<p>PodIdentityAssociation represents an association between a Kubernetes
+Service Account in a namespace, and an AWS IAM role. This role must
+allow the service principal <code>pods.eks.amazonaws.com</code> in its trust policy.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>serviceAccountName</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ServiceAccountName is the name of the kubernetes Service Account
+within the namespace</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountNamespace</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ServiceAccountNamespace is the kubernetes namespace, which the
+kubernetes Service Account resides in. Defaults to &ldquo;default&rdquo; namespace.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>roleARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>RoleARN is the ARN of an IAM role which the Service Account can assume.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>targetRoleARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>TargetRoleARN will be assumed by the IAM role specified in RoleARN,
+allowing workloads to inherit the permissions attached to the target IAM role.</p>
 </td>
 </tr>
 </tbody>
@@ -10624,6 +10853,82 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.ComponentRouteKey">ComponentRouteKey
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.ComponentRouteSpec">ComponentRouteSpec</a>)
+</p>
+<p>
+<p>ComponentRouteKey specifies the name of a component route.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;console&#34;</p></td>
+<td><p>ComponentRouteConsole is the console component route.</p>
+</td>
+</tr><tr><td><p>&#34;downloads&#34;</p></td>
+<td><p>ComponentRouteDownloads is the downloads component route.</p>
+</td>
+</tr></tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.ComponentRouteSpec">ComponentRouteSpec
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>)
+</p>
+<p>
+<p>ComponentRouteSpec defines a custom hostname and TLS secret for a component route.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.ComponentRouteKey">
+ComponentRouteKey
+</a>
+</em>
+</td>
+<td>
+<p>name is the component route name. Valid values are &ldquo;console&rdquo; and &ldquo;downloads&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>hostname</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>hostname is the custom domain for the component route (e.g. console.example.com).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tlsSecretRef</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>tlsSecretRef is the name of the TLS secret in the openshift-config namespace on the hosted cluster.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="controlplane.cluster.x-k8s.io/v1beta2.DefaultMachinePoolSpec">DefaultMachinePoolSpec
 </h3>
 <p>
@@ -10680,6 +10985,29 @@ int
 </td>
 </tr>
 </tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.DeleteProtectionState">DeleteProtectionState
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>)
+</p>
+<p>
+<p>DeleteProtectionState represents whether delete protection is enabled for the ROSA cluster.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Disabled&#34;</p></td>
+<td><p>DeleteProtectionDisabled indicates delete protection is disabled.</p>
+</td>
+</tr><tr><td><p>&#34;Enabled&#34;</p></td>
+<td><p>DeleteProtectionEnabled indicates delete protection is enabled.</p>
+</td>
+</tr></tbody>
 </table>
 <h3 id="controlplane.cluster.x-k8s.io/v1beta2.ExternalAuthProvider">ExternalAuthProvider
 </h3>
@@ -11263,6 +11591,22 @@ bool
 </tr>
 <tr>
 <td>
+<code>deleteProtection</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.DeleteProtectionState">
+DeleteProtectionState
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DeleteProtection prevents accidental ROSA cluster deletion.
+When set to &ldquo;Enabled&rdquo;, the ROSA cluster cannot be deleted through OCM.
+Defaults to &ldquo;Disabled&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>externalAuthProviders</code><br/>
 <em>
 <a href="#controlplane.cluster.x-k8s.io/v1beta2.ExternalAuthProvider">
@@ -11325,8 +11669,15 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>TrustPolicyExternalID is an optional STS external ID that OCM uses when assuming the installer
-and support account roles. Must match the sts:ExternalId condition in those roles&rsquo; trust policies.</p>
+<p>TrustPolicyExternalID is an optional STS external ID that OCM will use when assuming
+the installer and support account roles.
+When using RosaRoleConfigRef, this field is ignored, the value is always read from
+the ROSARoleConfig, which owns the trust policies.
+When providing role ARNs directly (no RosaRoleConfigRef), the user is responsible for
+including the sts:ExternalId condition in the roles&rsquo; trust policies; this field only
+tells OCM which external ID to present when assuming the roles.
+Worker roles are not affected.
+Must be 2–1224 characters matching [a-zA-Z0-9=,.@:/-]+ per AWS STS requirements.</p>
 </td>
 </tr>
 <tr>
@@ -11556,6 +11907,20 @@ S3LogForwarderConfig
 <td>
 <em>(Optional)</em>
 <p>s3LogForwarder set the AWS S3 log forward config for applications and groupVersions.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>componentRoutes</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.ComponentRouteSpec">
+[]ComponentRouteSpec
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>componentRoutes allows customizing the hostname and TLS certificate for console and downloads routes.</p>
 </td>
 </tr>
 </table>
@@ -11964,6 +12329,22 @@ bool
 </tr>
 <tr>
 <td>
+<code>deleteProtection</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.DeleteProtectionState">
+DeleteProtectionState
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DeleteProtection prevents accidental ROSA cluster deletion.
+When set to &ldquo;Enabled&rdquo;, the ROSA cluster cannot be deleted through OCM.
+Defaults to &ldquo;Disabled&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>externalAuthProviders</code><br/>
 <em>
 <a href="#controlplane.cluster.x-k8s.io/v1beta2.ExternalAuthProvider">
@@ -12026,8 +12407,15 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>TrustPolicyExternalID is an optional STS external ID that OCM uses when assuming the installer
-and support account roles. Must match the sts:ExternalId condition in those roles&rsquo; trust policies.</p>
+<p>TrustPolicyExternalID is an optional STS external ID that OCM will use when assuming
+the installer and support account roles.
+When using RosaRoleConfigRef, this field is ignored, the value is always read from
+the ROSARoleConfig, which owns the trust policies.
+When providing role ARNs directly (no RosaRoleConfigRef), the user is responsible for
+including the sts:ExternalId condition in the roles&rsquo; trust policies; this field only
+tells OCM which external ID to present when assuming the roles.
+Worker roles are not affected.
+Must be 2–1224 characters matching [a-zA-Z0-9=,.@:/-]+ per AWS STS requirements.</p>
 </td>
 </tr>
 <tr>
@@ -12257,6 +12645,20 @@ S3LogForwarderConfig
 <td>
 <em>(Optional)</em>
 <p>s3LogForwarder set the AWS S3 log forward config for applications and groupVersions.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>componentRoutes</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.ComponentRouteSpec">
+[]ComponentRouteSpec
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>componentRoutes allows customizing the hostname and TLS certificate for console and downloads routes.</p>
 </td>
 </tr>
 </tbody>
@@ -21676,6 +22078,15 @@ AWSIdentityKind
 </tr>
 </tbody>
 </table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSLoadBalancerDNSResolutionCheck">AWSLoadBalancerDNSResolutionCheck
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSLoadBalancerSpec">AWSLoadBalancerSpec</a>)
+</p>
+<p>
+<p>AWSLoadBalancerDNSResolutionCheck specifies the behavior for checking that the load balancer&rsquo;s
+DNS name is resolvable.</p>
+</p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSLoadBalancerSpec">AWSLoadBalancerSpec
 </h3>
 <p>
@@ -21874,6 +22285,22 @@ Valid values are ipv4 and ipv6. If not specified, defaults to ipv4 unless
 the VPC has IPv6 enabled, in which case it defaults to ipv6.
 This applies to the API server target group.
 This field cannot be set if LoadBalancerType is classic or disabled.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>dnsResolutionCheck</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSLoadBalancerDNSResolutionCheck">
+AWSLoadBalancerDNSResolutionCheck
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DNSResolutionCheck configures the behavior for checking the load balancer DNS resolution.
+Set to &ldquo;None&rdquo; to disable the check.
+If omitted, the DNS resolution check is enabled.</p>
 </td>
 </tr>
 </tbody>
@@ -24291,6 +24718,52 @@ The policies must exist in the same account as the role.</p>
 <p>
 <p>AZSelectionScheme defines the scheme of selecting AZs.</p>
 </p>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AdditionalIAMRole">AdditionalIAMRole
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.S3Bucket">S3Bucket</a>)
+</p>
+<p>
+<p>AdditionalIAMRole defines an additional IAM role
+with a custom S3 prefix for accessing bootstrap data from S3 Bucket.
+This enables support for custom node pools (e.g., Karpenter) that need
+access to bootstrap data with custom S3 prefixes.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name is the name of the IAM role that will be granted access.
+This must match the IAM role name (not the ARN).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>prefix</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Prefix is the S3 object key prefix (path) this role is granted access to.
+It is appended to the bucket in the policy&rsquo;s resource ARN, so use a trailing &ldquo;/<em>&rdquo;
+for wildcard access to a path (e.g. &ldquo;karpenter-nodes/</em>&rdquo;) or &ldquo;*&rdquo; for the whole bucket.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AdditionalListenerSpec">AdditionalListenerSpec
 </h3>
 <p>
@@ -27106,6 +27579,23 @@ to read control-plane node bootstrap data from S3 Bucket.</p>
 <em>(Optional)</em>
 <p>NodesIAMInstanceProfiles is a list of IAM instance profiles, which will be allowed to read
 worker nodes bootstrap data from S3 Bucket.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>additionalIAMRoles</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AdditionalIAMRole">
+[]AdditionalIAMRole
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AdditionalIAMRoles is a list of additional IAM roles
+with custom S3 prefixes for accessing bootstrap data.
+This is useful for custom node pools (e.g., Karpenter) that need access
+to bootstrap data stored under custom prefixes.</p>
 </td>
 </tr>
 <tr>
@@ -30502,9 +30992,12 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>TrustPolicyExternalID is an optional STS external ID to embed in installer and support
-account role trust policies. When set, new roles will include an sts:ExternalId condition.
-Worker roles are not affected. Must be 2–1224 characters matching [a-zA-Z0-9=,.@:/-]+.</p>
+<p>TrustPolicyExternalID is an optional STS external ID that OCM will use when assuming
+the installer and support account roles. When set, the controller embeds an
+sts:ExternalId condition in the installer and support roles&rsquo; trust policies, and
+passes the value to OCM for cluster creation.
+Worker roles are not affected.
+Must be 2–1224 characters matching [a-zA-Z0-9=,.@:/-]+ per AWS STS requirements.</p>
 </td>
 </tr>
 </tbody>
@@ -32698,8 +33191,8 @@ If no identity is specified, the default identity for this controller will be us
 <td>
 <code>credentialsSecretRef</code><br/>
 <em>
-<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#localobjectreference-v1-core">
-Kubernetes core/v1.LocalObjectReference
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#secretreference-v1-core">
+Kubernetes core/v1.SecretReference
 </a>
 </em>
 </td>
@@ -32827,8 +33320,8 @@ If no identity is specified, the default identity for this controller will be us
 <td>
 <code>credentialsSecretRef</code><br/>
 <em>
-<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#localobjectreference-v1-core">
-Kubernetes core/v1.LocalObjectReference
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#secretreference-v1-core">
+Kubernetes core/v1.SecretReference
 </a>
 </em>
 </td>
