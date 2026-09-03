@@ -49,3 +49,41 @@ spec:
 **Note:** `m7i.xlarge` is not available in all AWS regions. Choose an instance type available in your target region.
 
 see [ROSAMachinePool CRD Reference](https://cluster-api-aws.sigs.k8s.io/crd/#infrastructure.cluster.x-k8s.io/v1beta2.ROSAMachinePool) for all possible configurations.
+
+## Spot instances
+
+A ROSA MachinePool can be backed by [AWS Spot instances](../spot-instances.md) by setting the `spotMarketOptions` field. Provide an empty struct (`{}`) to request Spot instances with no maximum price, or set `maxPrice` to cap the hourly bid.
+
+```yaml
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: ROSAMachinePool
+metadata:
+  name: "${CLUSTER_NAME}-pool-spot"
+spec:
+  nodePoolName: "nodepool-spot"
+  instanceType: "m5.xlarge"
+  subnet: "${PRIVATE_SUBNET_ID}"
+  version: "${OPENSHIFT_VERSION}"
+  # Request Spot instances with no maximum price.
+  spotMarketOptions: {}
+```
+
+```yaml
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: ROSAMachinePool
+metadata:
+  name: "${CLUSTER_NAME}-pool-spot"
+spec:
+  nodePoolName: "nodepool-spot"
+  instanceType: "m5.xlarge"
+  subnet: "${PRIVATE_SUBNET_ID}"
+  version: "${OPENSHIFT_VERSION}"
+  spotMarketOptions:
+    # Maximum hourly price you are willing to pay for a Spot instance.
+    maxPrice: "0.05"
+```
+
+Notes:
+
+- `spotMarketOptions` is a Day-1 only setting and is **immutable**; it cannot be added, removed, or changed after the MachinePool is created.
+- It is incompatible with `capacityReservationID`; setting both is rejected by the validating webhook.
