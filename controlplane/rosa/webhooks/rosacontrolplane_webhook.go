@@ -90,6 +90,8 @@ func (w *ROSAControlPlane) ValidateCreate(_ context.Context, obj runtime.Object)
 		allErrs = append(allErrs, err)
 	}
 
+	allErrs = append(allErrs, w.validateComponentRoutes(r)...)
+
 	if len(allErrs) == 0 {
 		return nil, nil
 	}
@@ -140,6 +142,7 @@ func (w *ROSAControlPlane) ValidateUpdate(_ context.Context, oldObj, newObj runt
 
 	allErrs = append(allErrs, w.validateROSANetwork(r)...)
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
+	allErrs = append(allErrs, w.validateComponentRoutes(r)...)
 
 	if len(allErrs) == 0 {
 		return nil, nil
@@ -313,6 +316,24 @@ func (w *ROSAControlPlane) validateROSANetworkRef(r *rosacontrolplanev1.ROSACont
 	}
 
 	return nil
+}
+
+func (w *ROSAControlPlane) validateComponentRoutes(r *rosacontrolplanev1.ROSAControlPlane) field.ErrorList {
+	var errs field.ErrorList
+	basePath := field.NewPath("spec.componentRoutes")
+
+	routeNames := make(map[rosacontrolplanev1.ComponentRouteKey]bool)
+	for i, route := range r.Spec.ComponentRoutes {
+		indexPath := basePath.Index(i)
+		if routeNames[route.Name] {
+			errs = append(errs, field.Duplicate(
+				indexPath.Child("name"),
+				route.Name,
+			))
+		}
+		routeNames[route.Name] = true
+	}
+	return errs
 }
 
 // Default implements admission.Defaulter.

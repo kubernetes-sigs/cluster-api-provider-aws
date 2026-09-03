@@ -589,6 +589,10 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 			logs := []*v1.LogForwarder{}
 			return logs, nil
 		}).Times(1)
+		m.GetIngresses(gomock.Any()).DoAndReturn(func(clusterID string) ([]*v1.Ingress, error) {
+			defaultIngress, _ := v1.NewIngress().ID("d6z2").Default(true).Build()
+			return []*v1.Ingress{defaultIngress}, nil
+		}).Times(1)
 		m.UpdateCluster(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(clusterKey string, creator *rosaaws.Creator, config ocm.Spec) error {
 			return nil
 		}).Times(1)
@@ -2068,6 +2072,242 @@ func TestROSAControlPlaneUpdatePredicate(t *testing.T) {
 			})
 			g.Expect(got).To(Equal(tc.wantProcess),
 				"predicate.Update() = %v, want %v", got, tc.wantProcess)
+		})
+	}
+}
+
+func TestReconcileComponentRoutes_SetComponentRoutes(t *testing.T) {
+	g := NewWithT(t)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockOCM := mocks.NewMockOCMClient(ctrl)
+
+	clusterID := "cluster-123"
+	cluster, _ := v1.NewCluster().ID(clusterID).Name("test-cluster").Build()
+
+	rosaScope := &scope.ROSAControlPlaneScope{
+		ControlPlane: &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				ComponentRoutes: []rosacontrolplanev1.ComponentRouteSpec{
+					{Name: rosacontrolplanev1.ComponentRouteConsole, Hostname: "console.example.com", TLSSecretRef: "console-tls"},
+				},
+			},
+		},
+		Logger: *logger.FromContext(context.TODO()),
+	}
+
+	defaultIngress, _ := v1.NewIngress().ID("d6z2").Default(true).Build()
+
+	mockOCM.
+		EXPECT().
+		GetIngresses(clusterID).
+		Return([]*v1.Ingress{defaultIngress}, nil)
+
+	mockOCM.
+		EXPECT().
+		UpdateIngress(clusterID, gomock.Any()).
+		DoAndReturn(func(clusterID string, ingress *v1.Ingress) (*v1.Ingress, error) {
+			routes := ingress.ComponentRoutes()
+			g.Expect(routes).To(HaveKey("console"))
+			g.Expect(routes["console"].Hostname()).To(Equal("console.example.com"))
+			g.Expect(routes["console"].TlsSecretRef()).To(Equal("console-tls"))
+			g.Expect(routes).To(HaveKey("downloads"))
+			g.Expect(routes["downloads"].Hostname()).To(Equal(""))
+			g.Expect(routes["downloads"].TlsSecretRef()).To(Equal(""))
+			return ingress, nil
+		})
+
+	reconciler := &ROSAControlPlaneReconciler{}
+	err := reconciler.reconcileComponentRoutes(rosaScope, mockOCM, cluster)
+	g.Expect(err).ToNot(HaveOccurred())
+}
+
+func TestReconcileComponentRoutes_NoChangeWhenEqual(t *testing.T) {
+	g := NewWithT(t)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockOCM := mocks.NewMockOCMClient(ctrl)
+
+	clusterID := "cluster-123"
+	cluster, _ := v1.NewCluster().ID(clusterID).Name("test-cluster").Build()
+
+	rosaScope := &scope.ROSAControlPlaneScope{
+		ControlPlane: &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				ComponentRoutes: []rosacontrolplanev1.ComponentRouteSpec{
+					{Name: rosacontrolplanev1.ComponentRouteConsole, Hostname: "console.example.com", TLSSecretRef: "console-tls"},
+				},
+			},
+		},
+		Logger: *logger.FromContext(context.TODO()),
+	}
+
+	defaultIngress, _ := v1.NewIngress().
+		ID("d6z2").
+		Default(true).
+		ComponentRoutes(map[string]*v1.ComponentRouteBuilder{
+			"console": v1.NewComponentRoute().Hostname("console.example.com").TlsSecretRef("console-tls"),
+		}).
+		Build()
+
+	mockOCM.
+		EXPECT().
+		GetIngresses(clusterID).
+		Return([]*v1.Ingress{defaultIngress}, nil)
+
+	mockOCM.
+		EXPECT().
+		UpdateIngress(gomock.Any(), gomock.Any()).
+		Times(0)
+
+	reconciler := &ROSAControlPlaneReconciler{}
+	err := reconciler.reconcileComponentRoutes(rosaScope, mockOCM, cluster)
+	g.Expect(err).ToNot(HaveOccurred())
+}
+
+func TestReconcileComponentRoutes_NoChangeWhenNoRoutesAndNoneExist(t *testing.T) {
+	g := NewWithT(t)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockOCM := mocks.NewMockOCMClient(ctrl)
+
+	clusterID := "cluster-123"
+	cluster, _ := v1.NewCluster().ID(clusterID).Name("test-cluster").Build()
+
+	rosaScope := &scope.ROSAControlPlaneScope{
+		ControlPlane: &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{},
+		},
+		Logger: *logger.FromContext(context.TODO()),
+	}
+
+	defaultIngress, _ := v1.NewIngress().ID("d6z2").Default(true).Build()
+
+	mockOCM.
+		EXPECT().
+		GetIngresses(clusterID).
+		Return([]*v1.Ingress{defaultIngress}, nil)
+
+	mockOCM.
+		EXPECT().
+		UpdateIngress(gomock.Any(), gomock.Any()).
+		Times(0)
+
+	reconciler := &ROSAControlPlaneReconciler{}
+	err := reconciler.reconcileComponentRoutes(rosaScope, mockOCM, cluster)
+	g.Expect(err).ToNot(HaveOccurred())
+}
+
+func TestReconcileComponentRoutes_ClearExistingWhenNoDesiredRoutes(t *testing.T) {
+	g := NewWithT(t)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockOCM := mocks.NewMockOCMClient(ctrl)
+
+	clusterID := "cluster-123"
+	cluster, _ := v1.NewCluster().ID(clusterID).Name("test-cluster").Build()
+
+	rosaScope := &scope.ROSAControlPlaneScope{
+		ControlPlane: &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{},
+		},
+		Logger: *logger.FromContext(context.TODO()),
+	}
+
+	defaultIngress, _ := v1.NewIngress().
+		ID("d6z2").
+		Default(true).
+		ComponentRoutes(map[string]*v1.ComponentRouteBuilder{
+			"console": v1.NewComponentRoute().Hostname("console.example.com").TlsSecretRef("console-tls"),
+		}).
+		Build()
+
+	mockOCM.
+		EXPECT().
+		GetIngresses(clusterID).
+		Return([]*v1.Ingress{defaultIngress}, nil)
+
+	mockOCM.
+		EXPECT().
+		UpdateIngress(clusterID, gomock.Any()).
+		DoAndReturn(func(clusterID string, ingress *v1.Ingress) (*v1.Ingress, error) {
+			routes := ingress.ComponentRoutes()
+			g.Expect(routes).To(HaveKey("console"))
+			g.Expect(routes["console"].Hostname()).To(Equal(""))
+			g.Expect(routes["console"].TlsSecretRef()).To(Equal(""))
+			g.Expect(routes).To(HaveKey("downloads"))
+			g.Expect(routes["downloads"].Hostname()).To(Equal(""))
+			g.Expect(routes["downloads"].TlsSecretRef()).To(Equal(""))
+			return ingress, nil
+		})
+
+	reconciler := &ROSAControlPlaneReconciler{}
+	err := reconciler.reconcileComponentRoutes(rosaScope, mockOCM, cluster)
+	g.Expect(err).ToNot(HaveOccurred())
+}
+
+func TestComponentRoutesEqual(t *testing.T) {
+	tests := []struct {
+		name    string
+		current map[string]*v1.ComponentRoute
+		desired []rosacontrolplanev1.ComponentRouteSpec
+		want    bool
+	}{
+		{
+			name:    "both empty",
+			current: map[string]*v1.ComponentRoute{},
+			desired: []rosacontrolplanev1.ComponentRouteSpec{},
+			want:    true,
+		},
+		{
+			name: "equal console",
+			current: func() map[string]*v1.ComponentRoute {
+				r, _ := v1.NewComponentRoute().Hostname("console.example.com").TlsSecretRef("tls").Build()
+				return map[string]*v1.ComponentRoute{"console": r}
+			}(),
+			desired: []rosacontrolplanev1.ComponentRouteSpec{
+				{Name: rosacontrolplanev1.ComponentRouteConsole, Hostname: "console.example.com", TLSSecretRef: "tls"},
+			},
+			want: true,
+		},
+		{
+			name:    "desired has console but current does not",
+			current: map[string]*v1.ComponentRoute{},
+			desired: []rosacontrolplanev1.ComponentRouteSpec{
+				{Name: rosacontrolplanev1.ComponentRouteConsole, Hostname: "console.example.com", TLSSecretRef: "tls"},
+			},
+			want: false,
+		},
+		{
+			name: "hostname differs",
+			current: func() map[string]*v1.ComponentRoute {
+				r, _ := v1.NewComponentRoute().Hostname("old.example.com").TlsSecretRef("tls").Build()
+				return map[string]*v1.ComponentRoute{"console": r}
+			}(),
+			desired: []rosacontrolplanev1.ComponentRouteSpec{
+				{Name: rosacontrolplanev1.ComponentRouteConsole, Hostname: "new.example.com", TLSSecretRef: "tls"},
+			},
+			want: false,
+		},
+		{
+			name: "current has route but desired does not",
+			current: func() map[string]*v1.ComponentRoute {
+				r, _ := v1.NewComponentRoute().Hostname("console.example.com").TlsSecretRef("tls").Build()
+				return map[string]*v1.ComponentRoute{"console": r}
+			}(),
+			desired: []rosacontrolplanev1.ComponentRouteSpec{},
+			want:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect(componentRoutesEqual(tt.current, tt.desired)).To(Equal(tt.want))
 		})
 	}
 }

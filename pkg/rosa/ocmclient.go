@@ -65,6 +65,8 @@ type OCMClient interface {
 	DeleteLogForwarder(clusterID string, logForwarderID string) error
 	GetLogForwarders(clusterID string) ([]*v1.LogForwarder, error)
 	UpdateClusterDeletionProtection(clusterID string, enabled bool) error
+	GetIngresses(clusterID string) ([]*v1.Ingress, error)
+	UpdateIngress(clusterID string, ingress *v1.Ingress) (*v1.Ingress, error)
 }
 
 func (c *ocmclient) AckVersionGate(clusterID string, gateID string) error {
@@ -189,6 +191,14 @@ func (c *ocmclient) UpdateClusterDeletionProtection(clusterID string, enabled bo
 		return fmt.Errorf("failed to build delete protection: %w", err)
 	}
 	return c.ocmClient.UpdateClusterDeletionProtection(clusterID, body)
+}
+
+func (c *ocmclient) GetIngresses(clusterID string) ([]*v1.Ingress, error) {
+	return c.ocmClient.GetIngresses(clusterID)
+}
+
+func (c *ocmclient) UpdateIngress(clusterID string, ingress *v1.Ingress) (*v1.Ingress, error) {
+	return c.ocmClient.UpdateIngress(clusterID, ingress)
 }
 
 // NewOCMClientFromRosaClient wraps a rosa ocm.Client as an OCMClient.

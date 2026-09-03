@@ -215,6 +215,37 @@ spec:
                         type: array
                     type: object
                 type: object
+              componentRoutes:
+                description: componentRoutes allows customizing the hostname and TLS
+                  certificate for console and downloads routes.
+                items:
+                  description: ComponentRouteSpec defines a custom hostname and TLS
+                    secret for a component route.
+                  properties:
+                    hostname:
+                      description: hostname is the custom domain for the component
+                        route (e.g. console.example.com).
+                      minLength: 1
+                      type: string
+                    name:
+                      description: name is the component route name. Valid values
+                        are "console" and "downloads".
+                      enum:
+                      - console
+                      - downloads
+                      type: string
+                    tlsSecretRef:
+                      description: tlsSecretRef is the name of the TLS secret in the
+                        openshift-config namespace on the hosted cluster.
+                      minLength: 1
+                      type: string
+                  required:
+                  - hostname
+                  - name
+                  - tlsSecretRef
+                  type: object
+                maxItems: 2
+                type: array
               controlPlaneEndpoint:
                 description: ControlPlaneEndpoint represents the endpoint used to
                   communicate with the control plane.
