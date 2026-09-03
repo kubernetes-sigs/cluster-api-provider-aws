@@ -19,6 +19,7 @@
     - [Disabling EKS Support](./topics/eks/disabling.md)
     - [Pod Networking](./topics/eks/pod-networking.md)
     - [Creating a cluster](./topics/eks/creating-a-cluster.md)
+    - [Cross-account role assumption with IRSA](./topics/eks/cross-account-role-assumption.md)
     - [Using EKS Console](./topics/eks/eks-console.md)
     - [Using EKS Addons](./topics/eks/addons.md)
     - [Enabling Encryption](./topics/eks/encryption.md)
