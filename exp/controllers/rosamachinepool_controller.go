@@ -244,6 +244,13 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 		return ctrl.Result{}, fmt.Errorf("failed to validate ROSAMachinePool.spec: %w", err)
 	}
 	if failureMessage != nil {
+		// Surface the validation failure so it is observable to the user.
+		machinePoolScope.RosaMachinePool.Status.FailureMessage = failureMessage
+		v1beta1conditions.MarkFalse(machinePoolScope.RosaMachinePool,
+			expinfrav1.RosaMachinePoolReadyCondition,
+			expinfrav1.RosaMachinePoolReconciliationFailedReason,
+			clusterv1beta1.ConditionSeverityError,
+			"%s", *failureMessage)
 		// dont' requeue because input is invalid and manual intervention is needed.
 		return ctrl.Result{}, nil
 	}
@@ -435,6 +442,7 @@ func (r *ROSAMachinePoolReconciler) updateNodePool(machinePoolScope *scope.RosaM
 	desiredSpec.AdditionalSecurityGroups = nil
 	desiredSpec.AdditionalTags = nil
 	desiredSpec.VolumeSize = 0
+	desiredSpec.SpotMarketOptions = nil
 
 	npBuilder := nodePoolBuilder(desiredSpec, machinePoolScope.MachinePool.Spec, machinePoolScope.ControlPlane.Spec.ChannelGroup, machinePoolScope.ControlPlane.Spec.Channel)
 	nodePoolSpec, err := npBuilder.Build()
@@ -464,6 +472,7 @@ func computeSpecDiff(desiredSpec expinfrav1.RosaMachinePoolSpec, nodePool *cmv1.
 		"AdditionalTags",           // AdditionalTags day2 changes not supported.
 		"AdditionalSecurityGroups", // AdditionalSecurityGroups day2 changes not supported.
 		"VolumeSize",               // VolumeSize is immutable after creation.
+		"SpotMarketOptions",        // SpotMarketOptions is immutable, Day 1 only.
 	}
 
 	return cmp.Diff(desiredSpec, currentSpec,
@@ -542,6 +551,13 @@ func nodePoolBuilder(rosaMachinePoolSpec expinfrav1.RosaMachinePoolSpec, machine
 	if rosaMachinePoolSpec.CapacityReservationID != "" {
 		capacityReservation := cmv1.NewAWSCapacityReservation().Id(rosaMachinePoolSpec.CapacityReservationID)
 		awsNodePool = awsNodePool.CapacityReservation(capacityReservation)
+	}
+	if rosaMachinePoolSpec.SpotMarketOptions != nil {
+		spotOpts := cmv1.NewAwsNodePoolSpotMarketOptions()
+		if rosaMachinePoolSpec.SpotMarketOptions.MaxPrice != nil {
+			spotOpts = spotOpts.MaxPrice(*rosaMachinePoolSpec.SpotMarketOptions.MaxPrice)
+		}
+		awsNodePool = awsNodePool.SpotMarketOptions(spotOpts)
 	}
 	npBuilder.AWSNodePool(awsNodePool)
 

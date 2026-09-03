@@ -132,6 +132,32 @@ type RosaMachinePoolSpec struct {
 	//
 	// +optional
 	CapacityReservationID string `json:"capacityReservationID,omitempty"`
+
+	// SpotMarketOptions configures the node pool to use AWS Spot instances.
+	// Providing an empty struct ({}) requests Spot with no max price.
+	// Providing MaxPrice limits the bid to that amount per hour.
+	//
+	// Setting both spotMarketOptions and capacityReservationID is not allowed
+	// and is rejected by the validating webhook.
+	//
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="spotMarketOptions is immutable"
+	// +immutable
+	// +optional
+	SpotMarketOptions *SpotMarketOptions `json:"spotMarketOptions,omitempty"`
+}
+
+// SpotMarketOptions defines the options for configuring AWS Spot instances on a
+// ROSA machine pool.
+//
+// Setting both spotMarketOptions and capacityReservationID is not allowed and is
+// rejected by the validating webhook.
+type SpotMarketOptions struct {
+	// MaxPrice defines the maximum price the user is willing to pay for Spot VM instances,
+	// as an hourly rate. When omitted, Spot instances are requested with no maximum price.
+	//
+	// +optional
+	// +kubebuilder:validation:Pattern=`^[0-9]+(\.[0-9]+)?$`
+	MaxPrice *string `json:"maxPrice,omitempty"`
 }
 
 // RosaTaint represents a taint to be applied to a node.

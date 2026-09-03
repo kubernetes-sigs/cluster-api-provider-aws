@@ -85,5 +85,13 @@ func NodePoolToRosaMachinePoolSpec(nodePool *cmv1.NodePool) expinfrav1.RosaMachi
 		}
 	}
 
+	if spotOpts := nodePool.AWSNodePool().SpotMarketOptions(); spotOpts != nil {
+		capaSpotOpts := &expinfrav1.SpotMarketOptions{}
+		if maxPrice, ok := spotOpts.GetMaxPrice(); ok {
+			capaSpotOpts.MaxPrice = &maxPrice
+		}
+		spec.SpotMarketOptions = capaSpotOpts
+	}
+
 	return spec
 }
