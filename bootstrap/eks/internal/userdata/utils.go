@@ -17,49 +17,15 @@ limitations under the License.
 package userdata
 
 import (
-	"fmt"
-	"strings"
 	"text/template"
 
-	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/yaml"
+	bootstraptemplate "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/internal/template"
 )
 
 var (
-	defaultTemplateFuncMap = template.FuncMap{
-		"Indent": templateYAMLIndent,
-		"toYaml": templateToYAML,
-	}
+	defaultTemplateFuncMap = func() template.FuncMap {
+		funcMap := bootstraptemplate.FuncMap()
+		funcMap["toYaml"] = bootstraptemplate.ToYAML
+		return funcMap
+	}()
 )
-
-func templateYAMLIndent(i int, input string) string {
-	split := strings.Split(input, "\n")
-	ident := "\n" + strings.Repeat(" ", i)
-	return strings.Repeat(" ", i) + strings.Join(split, ident)
-}
-
-func templateToYAML(r *runtime.RawExtension) (string, error) {
-	if r == nil {
-		return "", nil
-	}
-	if r.Object != nil {
-		b, err := yaml.Marshal(r.Object)
-		if err != nil {
-			return "", errors.Wrap(err, "failed to convert to yaml")
-		}
-		return string(b), nil
-	}
-	if len(r.Raw) == 0 {
-		return "", nil
-	}
-	if yb, err := yaml.JSONToYAML(r.Raw); err == nil {
-		return string(yb), nil
-	}
-	var temp interface{}
-	err := yaml.Unmarshal(r.Raw, &temp)
-	if err == nil {
-		return string(r.Raw), nil
-	}
-	return "", fmt.Errorf("runtime object raw is neither json nor yaml %s", string(r.Raw))
-}

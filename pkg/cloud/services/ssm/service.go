@@ -33,12 +33,16 @@ type Service struct {
 	SSMClient SSMAPI
 }
 
-// SSMAPI defines the interface for interacting with AWS SSM Parameter Store.
+// SSMAPI defines the interface for interacting with AWS SSM.
 type SSMAPI interface {
+	// Parameter Store operations
 	PutParameter(ctx context.Context, input *ssm.PutParameterInput, optFns ...func(*ssm.Options)) (*ssm.PutParameterOutput, error)
 	DeleteParameter(ctx context.Context, input *ssm.DeleteParameterInput, optFns ...func(*ssm.Options)) (*ssm.DeleteParameterOutput, error)
 	GetParameter(ctx context.Context, input *ssm.GetParameterInput, optFns ...func(*ssm.Options)) (*ssm.GetParameterOutput, error)
-	// Add more methods as needed
+
+	// Hybrid activation operations (for EKS Hybrid Nodes)
+	CreateActivation(ctx context.Context, input *ssm.CreateActivationInput, optFns ...func(*ssm.Options)) (*ssm.CreateActivationOutput, error)
+	DeleteActivation(ctx context.Context, input *ssm.DeleteActivationInput, optFns ...func(*ssm.Options)) (*ssm.DeleteActivationOutput, error)
 }
 
 // Ensure ssm.Client satisfies the SSMAPI interface.

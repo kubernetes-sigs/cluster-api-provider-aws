@@ -49,4 +49,17 @@ const (
 	// NOTE: This is a pre-condition for starting to create machines;
 	// the EKSConfig controller ensure this pre-condition is satisfied.
 	WaitingForControlPlaneInitializationReason = "WaitingForControlPlaneInitialization"
+
+	// SSMActivationReadyCondition indicates the SSM activation is ready.
+	// Only applicable when hybrid mode is enabled with auto-created activations.
+	SSMActivationReadyCondition clusterv1beta1.ConditionType = "SSMActivationReady"
+
+	// SSMActivationCreationFailedReason indicates SSM activation creation failed.
+	SSMActivationCreationFailedReason = "SSMActivationCreationFailed"
+
+	// SSMActivationSecretNotFoundReason indicates the referenced activation secret was not found.
+	SSMActivationSecretNotFoundReason = "SSMActivationSecretNotFound"
+
+	// WaitingForSSMActivationReason indicates waiting for SSM activation to be ready.
+	WaitingForSSMActivationReason = "WaitingForSSMActivation"
 )

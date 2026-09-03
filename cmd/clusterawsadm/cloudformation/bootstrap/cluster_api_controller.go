@@ -199,6 +199,8 @@ func (t Template) ControllersPolicy() *iamv1.PolicyDocument {
 				"eks:AssociateAccessPolicy",
 				"eks:DisassociateAccessPolicy",
 				"eks:ListAssociatedAccessPolicies",
+				"ssm:CreateActivation",
+				"ssm:DeleteActivation",
 			},
 		},
 		{
