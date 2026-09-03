@@ -321,6 +321,171 @@ func TestPublicAccessCIDRsEqual(t *testing.T) {
 	}
 }
 
+func TestReconcileVpcConfig(t *testing.T) {
+	subnets := infrav1.Subnets{
+		{
+			ID:               "subnet-1",
+			CidrBlock:        "10.0.10.0/24",
+			AvailabilityZone: "us-west-2a",
+		},
+		{
+			ID:               "subnet-2",
+			CidrBlock:        "10.0.11.0/24",
+			AvailabilityZone: "us-west-2b",
+		},
+	}
+	// The CIDRs EKS reports for a cluster whose public endpoint has since been disabled.
+	retainedCIDRs := []string{"1.2.3.4/32", "5.6.7.8/32"}
+
+	testCases := []struct {
+		name           string
+		current        *ekstypes.VpcConfigResponse
+		endpointAccess ekscontrolplanev1.EndpointAccess
+		expect         *ekstypes.VpcConfigRequest
+	}{
+		{
+			name: "public access disabled and EKS retains the previous CIDRs",
+			current: &ekstypes.VpcConfigResponse{
+				EndpointPublicAccess:  false,
+				EndpointPrivateAccess: true,
+				PublicAccessCidrs:     retainedCIDRs,
+			},
+			endpointAccess: ekscontrolplanev1.EndpointAccess{
+				Public:  aws.Bool(false),
+				Private: aws.Bool(true),
+			},
+			expect: nil,
+		},
+		{
+			name: "public access disabled and the spec still lists CIDRs",
+			current: &ekstypes.VpcConfigResponse{
+				EndpointPublicAccess:  false,
+				EndpointPrivateAccess: true,
+				PublicAccessCidrs:     retainedCIDRs,
+			},
+			endpointAccess: ekscontrolplanev1.EndpointAccess{
+				Public:      aws.Bool(false),
+				Private:     aws.Bool(true),
+				PublicCIDRs: []*string{aws.String("9.9.9.9/32")},
+			},
+			expect: nil,
+		},
+		{
+			name: "private access enabled while public access stays disabled",
+			current: &ekstypes.VpcConfigResponse{
+				EndpointPublicAccess:  false,
+				EndpointPrivateAccess: false,
+				PublicAccessCidrs:     retainedCIDRs,
+			},
+			endpointAccess: ekscontrolplanev1.EndpointAccess{
+				Public:  aws.Bool(false),
+				Private: aws.Bool(true),
+			},
+			expect: &ekstypes.VpcConfigRequest{
+				EndpointPublicAccess:  aws.Bool(false),
+				EndpointPrivateAccess: aws.Bool(true),
+			},
+		},
+		{
+			name: "public access being disabled",
+			current: &ekstypes.VpcConfigResponse{
+				EndpointPublicAccess:  true,
+				EndpointPrivateAccess: true,
+				PublicAccessCidrs:     retainedCIDRs,
+			},
+			endpointAccess: ekscontrolplanev1.EndpointAccess{
+				Public:  aws.Bool(false),
+				Private: aws.Bool(true),
+			},
+			expect: &ekstypes.VpcConfigRequest{
+				EndpointPublicAccess:  aws.Bool(false),
+				EndpointPrivateAccess: aws.Bool(true),
+			},
+		},
+		{
+			name: "public access being enabled with restricted CIDRs",
+			current: &ekstypes.VpcConfigResponse{
+				EndpointPublicAccess:  false,
+				EndpointPrivateAccess: true,
+				PublicAccessCidrs:     retainedCIDRs,
+			},
+			endpointAccess: ekscontrolplanev1.EndpointAccess{
+				Public:      aws.Bool(true),
+				Private:     aws.Bool(true),
+				PublicCIDRs: []*string{aws.String("9.9.9.9/32")},
+			},
+			expect: &ekstypes.VpcConfigRequest{
+				EndpointPublicAccess:  aws.Bool(true),
+				EndpointPrivateAccess: aws.Bool(true),
+				PublicAccessCidrs:     []string{"9.9.9.9/32"},
+			},
+		},
+		{
+			name: "public access enabled and the CIDRs differ",
+			current: &ekstypes.VpcConfigResponse{
+				EndpointPublicAccess:  true,
+				EndpointPrivateAccess: true,
+				PublicAccessCidrs:     retainedCIDRs,
+			},
+			endpointAccess: ekscontrolplanev1.EndpointAccess{
+				Public:      aws.Bool(true),
+				Private:     aws.Bool(true),
+				PublicCIDRs: []*string{aws.String("9.9.9.9/32")},
+			},
+			expect: &ekstypes.VpcConfigRequest{
+				EndpointPublicAccess:  aws.Bool(true),
+				EndpointPrivateAccess: aws.Bool(true),
+				PublicAccessCidrs:     []string{"9.9.9.9/32"},
+			},
+		},
+		{
+			name: "public access enabled and the CIDRs match",
+			current: &ekstypes.VpcConfigResponse{
+				EndpointPublicAccess:  true,
+				EndpointPrivateAccess: true,
+				PublicAccessCidrs:     retainedCIDRs,
+			},
+			endpointAccess: ekscontrolplanev1.EndpointAccess{
+				Public:      aws.Bool(true),
+				Private:     aws.Bool(true),
+				PublicCIDRs: []*string{aws.String("1.2.3.4/32"), aws.String("5.6.7.8/32")},
+			},
+			expect: nil,
+		},
+		{
+			name: "endpoint access left at its defaults",
+			current: &ekstypes.VpcConfigResponse{
+				EndpointPublicAccess:  true,
+				EndpointPrivateAccess: false,
+			},
+			endpointAccess: ekscontrolplanev1.EndpointAccess{},
+			expect:         nil,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			s := &Service{
+				scope: &scope.ManagedControlPlaneScope{
+					ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
+						Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+							EndpointAccess: tc.endpointAccess,
+							NetworkSpec:    infrav1.NetworkSpec{Subnets: subnets},
+						},
+					},
+				},
+			}
+			got, err := s.reconcileVpcConfig(tc.current)
+			g.Expect(err).NotTo(HaveOccurred())
+			if tc.expect == nil {
+				g.Expect(got).To(BeNil())
+			} else {
+				g.Expect(got).To(Equal(tc.expect))
+			}
+		})
+	}
+}
+
 func TestMakeEKSLogging(t *testing.T) {
 	testCases := []struct {
 		name   string
