@@ -221,6 +221,191 @@ func TestAWSMachineTemplateValidateCreate(t *testing.T) {
 			},
 			wantError: true,
 		},
+		{
+			name: "no AMI identification method is allowed",
+			inputTemplate: &infrav1.AWSMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: infrav1.AWSMachineTemplateSpec{
+					Template: infrav1.AWSMachineTemplateResource{
+						Spec: infrav1.AWSMachineSpec{
+							InstanceType: "test",
+						},
+					},
+				},
+			},
+			wantError: false,
+		},
+		{
+			name: "AMI ID only is allowed",
+			inputTemplate: &infrav1.AWSMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: infrav1.AWSMachineTemplateSpec{
+					Template: infrav1.AWSMachineTemplateResource{
+						Spec: infrav1.AWSMachineSpec{
+							InstanceType: "test",
+							AMI:          infrav1.AMIReference{ID: aws.String("ami-0123456789abcdef0")},
+						},
+					},
+				},
+			},
+			wantError: false,
+		},
+		{
+			name: "AMI EKS optimized lookup only is allowed",
+			inputTemplate: &infrav1.AWSMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: infrav1.AWSMachineTemplateSpec{
+					Template: infrav1.AWSMachineTemplateResource{
+						Spec: infrav1.AWSMachineSpec{
+							InstanceType: "test",
+							AMI:          infrav1.AMIReference{EKSOptimizedLookupType: ptr.To(infrav1.AmazonLinux)},
+						},
+					},
+				},
+			},
+			wantError: false,
+		},
+		{
+			name: "AMI filters only are allowed",
+			inputTemplate: &infrav1.AWSMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: infrav1.AWSMachineTemplateSpec{
+					Template: infrav1.AWSMachineTemplateResource{
+						Spec: infrav1.AWSMachineSpec{
+							InstanceType: "test",
+							AMI: infrav1.AMIReference{
+								Filters: []infrav1.Filter{{Name: "name", Values: []string{"my-ami-*"}}},
+							},
+						},
+					},
+				},
+			},
+			wantError: false,
+		},
+		{
+			name: "AMI ID with empty filters is allowed",
+			inputTemplate: &infrav1.AWSMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: infrav1.AWSMachineTemplateSpec{
+					Template: infrav1.AWSMachineTemplateResource{
+						Spec: infrav1.AWSMachineSpec{
+							InstanceType: "test",
+							AMI: infrav1.AMIReference{
+								ID:      aws.String("ami-0123456789abcdef0"),
+								Filters: []infrav1.Filter{},
+							},
+						},
+					},
+				},
+			},
+			wantError: false,
+		},
+		{
+			name: "error when AMI ID and filters are both set",
+			inputTemplate: &infrav1.AWSMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: infrav1.AWSMachineTemplateSpec{
+					Template: infrav1.AWSMachineTemplateResource{
+						Spec: infrav1.AWSMachineSpec{
+							InstanceType: "test",
+							AMI: infrav1.AMIReference{
+								ID:      aws.String("ami-0123456789abcdef0"),
+								Filters: []infrav1.Filter{{Name: "name", Values: []string{"my-ami-*"}}},
+							},
+						},
+					},
+				},
+			},
+			wantError: true,
+		},
+		{
+			name: "error when AMI ID and EKS optimized lookup are both set",
+			inputTemplate: &infrav1.AWSMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: infrav1.AWSMachineTemplateSpec{
+					Template: infrav1.AWSMachineTemplateResource{
+						Spec: infrav1.AWSMachineSpec{
+							InstanceType: "test",
+							AMI: infrav1.AMIReference{
+								ID:                     aws.String("ami-0123456789abcdef0"),
+								EKSOptimizedLookupType: ptr.To(infrav1.AmazonLinux),
+							},
+						},
+					},
+				},
+			},
+			wantError: true,
+		},
+		{
+			name: "error when all three AMI identification methods are set",
+			inputTemplate: &infrav1.AWSMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: infrav1.AWSMachineTemplateSpec{
+					Template: infrav1.AWSMachineTemplateResource{
+						Spec: infrav1.AWSMachineSpec{
+							InstanceType: "test",
+							AMI: infrav1.AMIReference{
+								ID:                     aws.String("ami-0123456789abcdef0"),
+								EKSOptimizedLookupType: ptr.To(infrav1.AmazonLinux),
+								Filters:                []infrav1.Filter{{Name: "name", Values: []string{"my-ami-*"}}},
+							},
+						},
+					},
+				},
+			},
+			wantError: true,
+		},
+		{
+			name: "image lookup fields without AMI filters are allowed",
+			inputTemplate: &infrav1.AWSMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: infrav1.AWSMachineTemplateSpec{
+					Template: infrav1.AWSMachineTemplateResource{
+						Spec: infrav1.AWSMachineSpec{
+							InstanceType:   "test",
+							ImageLookupOrg: "12345",
+						},
+					},
+				},
+			},
+			wantError: false,
+		},
+		{
+			name: "error when AMI filters and imageLookupOrg are both set",
+			inputTemplate: &infrav1.AWSMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: infrav1.AWSMachineTemplateSpec{
+					Template: infrav1.AWSMachineTemplateResource{
+						Spec: infrav1.AWSMachineSpec{
+							InstanceType: "test",
+							AMI: infrav1.AMIReference{
+								Filters: []infrav1.Filter{{Name: "name", Values: []string{"my-ami-*"}}},
+							},
+							ImageLookupOrg: "12345",
+						},
+					},
+				},
+			},
+			wantError: true,
+		},
+		{
+			name: "error when AMI filters and imageLookupFormat are both set",
+			inputTemplate: &infrav1.AWSMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: infrav1.AWSMachineTemplateSpec{
+					Template: infrav1.AWSMachineTemplateResource{
+						Spec: infrav1.AWSMachineSpec{
+							InstanceType: "test",
+							AMI: infrav1.AMIReference{
+								Filters: []infrav1.Filter{{Name: "name", Values: []string{"my-ami-*"}}},
+							},
+							ImageLookupFormat: "capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*",
+						},
+					},
+				},
+			},
+			wantError: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

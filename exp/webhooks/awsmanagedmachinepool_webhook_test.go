@@ -156,6 +156,34 @@ func TestAWSManagedMachinePoolValidateCreate(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "AMI filters in launch template are rejected",
+			pool: &expinfrav1.AWSManagedMachinePool{
+				Spec: expinfrav1.AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-4",
+					AWSLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
+						AMI: infrav1.AMIReference{
+							Filters: []infrav1.Filter{{Name: "name", Values: []string{"my-ami-*"}}},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "AMI ID in launch template is accepted",
+			pool: &expinfrav1.AWSManagedMachinePool{
+				Spec: expinfrav1.AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-5",
+					AWSLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
+						AMI: infrav1.AMIReference{
+							ID: ptr.To[string]("ami-0123456789abcdef0"),
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
