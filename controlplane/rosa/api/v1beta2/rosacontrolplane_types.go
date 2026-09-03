@@ -93,6 +93,19 @@ const (
 	DeleteProtectionDisabled DeleteProtectionState = "Disabled"
 )
 
+// Ec2MetadataHTTPTokens describes the state of the EC2 instance metadata service (IMDS) token requirement.
+// When set to "required", IMDSv2 is enforced and the older IMDSv1 is disabled, providing enhanced
+// security against SSRF attacks. When set to "optional", both IMDSv1 and IMDSv2 are allowed.
+type Ec2MetadataHTTPTokens string
+
+const (
+	// Ec2MetadataHTTPTokensOptional allows both IMDSv1 and IMDSv2.
+	Ec2MetadataHTTPTokensOptional Ec2MetadataHTTPTokens = "optional"
+
+	// Ec2MetadataHTTPTokensRequired enforces IMDSv2 only, disabling IMDSv1.
+	Ec2MetadataHTTPTokensRequired Ec2MetadataHTTPTokens = "required"
+)
+
 // AutoNodeMode specifies the AutoNode mode for the ROSA Control Plane.
 type AutoNodeMode string
 
@@ -316,6 +329,18 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// created out-of-band by the user and tagged with `red-hat:true`.
 	// +optional
 	EtcdEncryptionKMSARN string `json:"etcdEncryptionKMSARN,omitempty"`
+
+	// Ec2MetadataHTTPTokens configures the use of IMDSv2 for EC2 instances.
+	// When set to "required", IMDSv2 is enforced and the older IMDSv1 is disabled.
+	// When set to "optional", both IMDSv1 and IMDSv2 are allowed.
+	// When omitted, the OCM default is used.
+	// This field is immutable and cannot be changed after cluster creation.
+	//
+	// +immutable
+	// +kubebuilder:validation:Enum=optional;required
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="ec2MetadataHttpTokens is immutable"
+	// +optional
+	Ec2MetadataHTTPTokens Ec2MetadataHTTPTokens `json:"ec2MetadataHttpTokens,omitempty"`
 
 	// AuditLogRoleARN defines the role that is used to forward audit logs to AWS CloudWatch.
 	// If not set, audit log forwarding is disabled.
