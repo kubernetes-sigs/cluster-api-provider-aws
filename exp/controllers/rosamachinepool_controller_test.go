@@ -112,8 +112,8 @@ func TestNodePoolBuilderSpotMarketOptions(t *testing.T) {
 		_, ok := spotOpts.GetMaxPrice()
 		g.Expect(ok).To(BeFalse())
 
-		// SpotMarketOptions is Day-1 only / immutable, so it must be ignored by the diff.
-		g.Expect(computeSpecDiff(rosaMachinePoolSpec, nodePool)).To(BeEmpty())
+		// SpotMarketOptions changes are now supported, so diffs should be propagated.
+		g.Expect(computeSpecDiff(rosaMachinePoolSpec, nodePool)).ToNot(BeEmpty())
 	})
 
 	t.Run("spotMarketOptions with maxPrice sets the bid", func(t *testing.T) {
@@ -131,8 +131,8 @@ func TestNodePoolBuilderSpotMarketOptions(t *testing.T) {
 		g.Expect(ok).To(BeTrue())
 		g.Expect(maxPrice).To(Equal("0.05"))
 
-		// SpotMarketOptions is Day-1 only / immutable, so it must be ignored by the diff.
-		g.Expect(computeSpecDiff(rosaMachinePoolSpec, nodePool)).To(BeEmpty())
+		// SpotMarketOptions changes are now supported, so diffs should be propagated.
+		g.Expect(computeSpecDiff(rosaMachinePoolSpec, nodePool)).ToNot(BeEmpty())
 	})
 }
 

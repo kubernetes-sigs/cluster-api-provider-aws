@@ -132,7 +132,7 @@ func TestROSAMachinePoolValidateUpdate(t *testing.T) {
 			wantErrToContain: nil,
 		},
 		{
-			name: "adding spotMarketOptions (nil -> set) is rejected as immutable",
+			name: "adding spotMarketOptions (nil -> set) is now allowed",
 			old: &expinfrav1.ROSAMachinePool{
 				Spec: expinfrav1.RosaMachinePoolSpec{},
 			},
@@ -141,10 +141,10 @@ func TestROSAMachinePoolValidateUpdate(t *testing.T) {
 					SpotMarketOptions: &expinfrav1.SpotMarketOptions{},
 				},
 			},
-			wantErrToContain: ptr.To[string]("spec.spotMarketOptions"),
+			wantErrToContain: nil,
 		},
 		{
-			name: "removing spotMarketOptions (set -> nil) is rejected as immutable",
+			name: "removing spotMarketOptions (set -> nil) is now allowed",
 			old: &expinfrav1.ROSAMachinePool{
 				Spec: expinfrav1.RosaMachinePoolSpec{
 					SpotMarketOptions: &expinfrav1.SpotMarketOptions{},
@@ -153,10 +153,10 @@ func TestROSAMachinePoolValidateUpdate(t *testing.T) {
 			new: &expinfrav1.ROSAMachinePool{
 				Spec: expinfrav1.RosaMachinePoolSpec{},
 			},
-			wantErrToContain: ptr.To[string]("spec.spotMarketOptions"),
+			wantErrToContain: nil,
 		},
 		{
-			name: "changing spotMarketOptions maxPrice is rejected as immutable",
+			name: "changing spotMarketOptions maxPrice is now allowed",
 			old: &expinfrav1.ROSAMachinePool{
 				Spec: expinfrav1.RosaMachinePoolSpec{
 					SpotMarketOptions: &expinfrav1.SpotMarketOptions{MaxPrice: ptr.To("0.05")},
@@ -167,10 +167,10 @@ func TestROSAMachinePoolValidateUpdate(t *testing.T) {
 					SpotMarketOptions: &expinfrav1.SpotMarketOptions{MaxPrice: ptr.To("0.10")},
 				},
 			},
-			wantErrToContain: ptr.To[string]("spec.spotMarketOptions"),
+			wantErrToContain: nil,
 		},
 		{
-			name: "typed-nil vs empty struct is treated as a change (immutable)",
+			name: "typed-nil vs empty struct is now allowed",
 			old: &expinfrav1.ROSAMachinePool{
 				Spec: expinfrav1.RosaMachinePoolSpec{
 					SpotMarketOptions: nil,
@@ -181,7 +181,7 @@ func TestROSAMachinePoolValidateUpdate(t *testing.T) {
 					SpotMarketOptions: &expinfrav1.SpotMarketOptions{},
 				},
 			},
-			wantErrToContain: ptr.To[string]("spec.spotMarketOptions"),
+			wantErrToContain: nil,
 		},
 		{
 			name: "adding spotMarketOptions with capacityReservationID is rejected",
