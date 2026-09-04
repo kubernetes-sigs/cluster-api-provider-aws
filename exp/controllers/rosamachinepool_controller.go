@@ -472,7 +472,6 @@ func computeSpecDiff(desiredSpec expinfrav1.RosaMachinePoolSpec, nodePool *cmv1.
 		"AdditionalTags",           // AdditionalTags day2 changes not supported.
 		"AdditionalSecurityGroups", // AdditionalSecurityGroups day2 changes not supported.
 		"VolumeSize",               // VolumeSize is immutable after creation.
-		"SpotMarketOptions",        // SpotMarketOptions is immutable, Day 1 only.
 	}
 
 	return cmp.Diff(desiredSpec, currentSpec,
