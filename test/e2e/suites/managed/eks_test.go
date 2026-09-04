@@ -161,6 +161,24 @@ var _ = ginkgo.Describe("[managed] [general] EKS cluster tests", func() {
 			}
 		})
 
+		ginkgo.By("should create a managed node pool with a BYO (user-provided) launch template")
+		byoLaunchTemplateName := fmt.Sprintf("%s-%s-byo-lt", namespace.Name, clusterName)
+		byoLT := CreateBYOLaunchTemplate(ctx, byoLaunchTemplateName, e2eCtx.BootstrapUserAWSSession)
+		defer DeleteBYOLaunchTemplate(ctx, byoLT.ID, e2eCtx.BootstrapUserAWSSession)
+
+		BYOMachinePoolSpec(ctx, func() BYOMachinePoolSpecInput {
+			return BYOMachinePoolSpecInput{
+				E2EConfig:             e2eCtx.E2EConfig,
+				ConfigClusterFn:       defaultConfigCluster,
+				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
+				AWSSession:            e2eCtx.BootstrapUserAWSSession,
+				Namespace:             namespace,
+				ClusterName:           clusterName,
+				Cleanup:               true,
+				BYOLaunchTemplate:     byoLT,
+			}
+		})
+
 		ginkgo.By(fmt.Sprintf("getting cluster with name %s", clusterName))
 		cluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
 			Getter:    e2eCtx.Environment.BootstrapClusterProxy.GetClient(),
