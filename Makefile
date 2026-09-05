@@ -145,6 +145,10 @@ LDFLAGS := $(shell source ./hack/version.sh; version::ldflags)
 # Set USE_EXISTING_CLUSTER to use an existing kubernetes context
 USE_EXISTING_CLUSTER ?= "false"
 
+# Set PROVISION_SELF_HOSTED_MANAGEMENT_CLUSTER to provision a self-managed AWS cluster without running e2e specs.
+PROVISION_SELF_HOSTED_MANAGEMENT_CLUSTER ?= "false"
+TEARDOWN_SELF_HOSTED_MANAGEMENT_CLUSTER ?= "false"
+
 # GORELEASER_PARALLELISM restricts the number of tasks goreleaser will run
 # concurrently. The primary reason to do this is to ensure its memory usage
 # remains within the resource limits of the
@@ -170,7 +174,7 @@ ifeq ($(findstring \[PR-Blocking\],$(GINKGO_FOCUS)),\[PR-Blocking\])
   override undefine GINKGO_SKIP
 endif
 
-override E2E_ARGS += -artifacts-folder="$(ARTIFACTS)" --data-folder="$(E2E_DATA_DIR)" -use-existing-cluster=$(USE_EXISTING_CLUSTER)
+override E2E_ARGS += -artifacts-folder="$(ARTIFACTS)" --data-folder="$(E2E_DATA_DIR)" -use-existing-cluster=$(USE_EXISTING_CLUSTER) -provision-self-hosted-management-cluster=$(PROVISION_SELF_HOSTED_MANAGEMENT_CLUSTER) -teardown-self-hosted-management-cluster=$(TEARDOWN_SELF_HOSTED_MANAGEMENT_CLUSTER)
 override GINKGO_ARGS += -v --trace --timeout=5h --output-dir="$(ARTIFACTS)" --junit-report="junit.e2e_suite.xml"
 
 ifdef GINKGO_SKIP
@@ -463,6 +467,24 @@ test-verbose: setup-envtest ## Run tests with verbose settings.
 
 .PHONY: test-e2e ## Run e2e tests using clusterctl
 test-e2e: $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) generate-test-flavors e2e-image ## Run e2e tests
+	time go run github.com/onsi/ginkgo/v2/ginkgo -tags=e2e $(GINKGO_ARGS) -p ./test/e2e/suites/unmanaged/... -- -config-path="$(E2E_CONF_PATH)" $(E2E_ARGS)
+
+.PHONY: provision-self-hosted-management-cluster
+provision-self-hosted-management-cluster: PROVISION_SELF_HOSTED_MANAGEMENT_CLUSTER="true"
+provision-self-hosted-management-cluster: GINKGO_ARGS += -nodes=1
+provision-self-hosted-management-cluster: $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) generate-test-flavors e2e-image ## Provision and retain kind and a self-hosted AWS management cluster
+	time go run github.com/onsi/ginkgo/v2/ginkgo -tags=e2e $(GINKGO_ARGS) -p ./test/e2e/suites/unmanaged/... -- -config-path="$(E2E_CONF_PATH)" $(E2E_ARGS)
+
+.PHONY: test-self-hosted-management-cluster
+test-self-hosted-management-cluster: USE_EXISTING_CLUSTER="true"
+test-self-hosted-management-cluster: export KUBECONFIG := $(abspath $(ARTIFACTS)/self-hosted-management-cluster.kubeconfig)
+test-self-hosted-management-cluster: $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) generate-test-flavors e2e-image ## Run e2e tests against the retained self-hosted AWS management cluster
+	time go run github.com/onsi/ginkgo/v2/ginkgo -tags=e2e $(GINKGO_ARGS) -p ./test/e2e/suites/unmanaged/... -- -config-path="$(E2E_CONF_PATH)" $(E2E_ARGS)
+
+.PHONY: teardown-self-hosted-management-cluster
+teardown-self-hosted-management-cluster: TEARDOWN_SELF_HOSTED_MANAGEMENT_CLUSTER="true"
+teardown-self-hosted-management-cluster: GINKGO_ARGS += -nodes=1
+teardown-self-hosted-management-cluster: $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) generate-test-flavors e2e-image ## Delete the self-hosted AWS management cluster and kind bootstrap cluster
 	time go run github.com/onsi/ginkgo/v2/ginkgo -tags=e2e $(GINKGO_ARGS) -p ./test/e2e/suites/unmanaged/... -- -config-path="$(E2E_CONF_PATH)" $(E2E_ARGS)
 
 .PHONY: test-e2e-eks ## Run EKS e2e tests using clusterctl
