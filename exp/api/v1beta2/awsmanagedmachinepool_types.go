@@ -208,7 +208,13 @@ type AWSManagedMachinePoolSpec struct {
 	// AWSLaunchTemplate specifies the launch template to use to create the managed node group.
 	// If AWSLaunchTemplate is specified, certain node group configuraions outside of launch template
 	// are prohibited (https://docs.aws.amazon.com/eks/latest/userguide/launch-templates.html).
+	// When AWSLaunchTemplate.ID is set, CAPA treats the template as BYO and does not create or
+	// delete the launch template.
+	// awsLaunchTemplate.name is immutable; this is also enforced by the AWSManagedMachinePool
+	// webhook. The rule is scoped to this field (rather than the shared AWSLaunchTemplate type)
+	// because AWSMachinePool ignores awsLaunchTemplate.name and does not treat it as immutable.
 	// +optional
+	// +kubebuilder:validation:XValidation:rule="(!has(self.name) && !has(oldSelf.name)) || (has(self.name) && has(oldSelf.name) && self.name == oldSelf.name)",message="awsLaunchTemplate.name is immutable"
 	AWSLaunchTemplate *AWSLaunchTemplate `json:"awsLaunchTemplate,omitempty"`
 
 	// AWSLifecycleHooks specifies lifecycle hooks for the managed node group.
