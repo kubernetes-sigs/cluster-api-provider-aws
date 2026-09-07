@@ -71,7 +71,7 @@ jobs:
           # image-builder uses hyphenated ones (ubuntu-2204, ubuntu-2404).
           # flatcar is identical in both conventions.
           # Keep this list aligned with the target matrix in build-ami-v2.yml.
-          OS_LIST: "ubuntu-22.04,ubuntu-24.04,flatcar"
+          OS_LIST: "ubuntu-22.04,ubuntu-24.04,flatcar-stable"
           # Region used to query already-published AMIs. image-builder publishes
           # to every region in REGION_LIST atomically, so checking a single
           # region is sufficient to determine whether an AMI was ever built.
