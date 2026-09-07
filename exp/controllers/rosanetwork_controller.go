@@ -344,6 +344,12 @@ func (r *ROSANetworkReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 					newNet.Status = expinfrav1.ROSANetworkStatus{}
 					oldNet.ObjectMeta.ResourceVersion = ""
 					newNet.ObjectMeta.ResourceVersion = ""
+
+					// A status write refreshes the timestamp of the writer's `managedFields` entry, so the metadata
+					// would otherwise always differ.
+					oldNet.ObjectMeta.ManagedFields = nil
+					newNet.ObjectMeta.ManagedFields = nil
+
 					return !cmp.Equal(oldNet, newNet)
 				},
 			},
