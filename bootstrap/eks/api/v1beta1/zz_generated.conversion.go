@@ -27,7 +27,6 @@ import (
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	v1beta2 "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2"
-	corev1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 )
 
 func init() {
@@ -242,12 +241,7 @@ func autoConvert_v1beta2_EKSConfigSpec_To_v1beta1_EKSConfigSpec(in *v1beta2.EKSC
 }
 
 func autoConvert_v1beta1_EKSConfigStatus_To_v1beta2_EKSConfigStatus(in *EKSConfigStatus, out *v1beta2.EKSConfigStatus, s conversion.Scope) error {
-	out.Ready = in.Ready
-	out.DataSecretName = (*string)(unsafe.Pointer(in.DataSecretName))
-	out.FailureReason = in.FailureReason
-	out.FailureMessage = in.FailureMessage
-	out.ObservedGeneration = in.ObservedGeneration
-	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
+	*out = *(*v1beta2.EKSConfigStatus)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -257,12 +251,7 @@ func Convert_v1beta1_EKSConfigStatus_To_v1beta2_EKSConfigStatus(in *EKSConfigSta
 }
 
 func autoConvert_v1beta2_EKSConfigStatus_To_v1beta1_EKSConfigStatus(in *v1beta2.EKSConfigStatus, out *EKSConfigStatus, s conversion.Scope) error {
-	out.Ready = in.Ready
-	out.DataSecretName = (*string)(unsafe.Pointer(in.DataSecretName))
-	out.FailureReason = in.FailureReason
-	out.FailureMessage = in.FailureMessage
-	out.ObservedGeneration = in.ObservedGeneration
-	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
+	*out = *(*EKSConfigStatus)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -388,8 +377,7 @@ func Convert_v1beta2_EKSConfigTemplateSpec_To_v1beta1_EKSConfigTemplateSpec(in *
 }
 
 func autoConvert_v1beta1_PauseContainer_To_v1beta2_PauseContainer(in *PauseContainer, out *v1beta2.PauseContainer, s conversion.Scope) error {
-	out.AccountNumber = in.AccountNumber
-	out.Version = in.Version
+	*out = *(*v1beta2.PauseContainer)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -399,8 +387,7 @@ func Convert_v1beta1_PauseContainer_To_v1beta2_PauseContainer(in *PauseContainer
 }
 
 func autoConvert_v1beta2_PauseContainer_To_v1beta1_PauseContainer(in *v1beta2.PauseContainer, out *PauseContainer, s conversion.Scope) error {
-	out.AccountNumber = in.AccountNumber
-	out.Version = in.Version
+	*out = *(*PauseContainer)(unsafe.Pointer(in))
 	return nil
 }
 
