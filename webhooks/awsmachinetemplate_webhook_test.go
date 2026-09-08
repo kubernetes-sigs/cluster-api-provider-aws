@@ -83,6 +83,78 @@ func TestAWSMachineTemplateValidateCreate(t *testing.T) {
 			wantError: false,
 		},
 		{
+			name: "reject root volume gp3 throughput below the supported range",
+			inputTemplate: &infrav1.AWSMachineTemplate{
+				Spec: infrav1.AWSMachineTemplateSpec{
+					Template: infrav1.AWSMachineTemplateResource{
+						Spec: infrav1.AWSMachineSpec{
+							InstanceType: "test",
+							RootVolume: &infrav1.Volume{
+								Type:       infrav1.VolumeTypeGP3,
+								Size:       *aws.Int64(8),
+								Throughput: aws.Int64(124),
+							},
+						},
+					},
+				},
+			},
+			wantError: true,
+		},
+		{
+			name: "accept root volume gp3 throughput at the supported range boundaries",
+			inputTemplate: &infrav1.AWSMachineTemplate{
+				Spec: infrav1.AWSMachineTemplateSpec{
+					Template: infrav1.AWSMachineTemplateResource{
+						Spec: infrav1.AWSMachineSpec{
+							InstanceType: "test",
+							RootVolume: &infrav1.Volume{
+								Type:       infrav1.VolumeTypeGP3,
+								Size:       *aws.Int64(8),
+								Throughput: aws.Int64(125),
+							},
+						},
+					},
+				},
+			},
+			wantError: false,
+		},
+		{
+			name: "accept root volume gp3 throughput at the maximum supported value",
+			inputTemplate: &infrav1.AWSMachineTemplate{
+				Spec: infrav1.AWSMachineTemplateSpec{
+					Template: infrav1.AWSMachineTemplateResource{
+						Spec: infrav1.AWSMachineSpec{
+							InstanceType: "test",
+							RootVolume: &infrav1.Volume{
+								Type:       infrav1.VolumeTypeGP3,
+								Size:       *aws.Int64(8),
+								Throughput: aws.Int64(2000),
+							},
+						},
+					},
+				},
+			},
+			wantError: false,
+		},
+		{
+			name: "reject root volume gp3 throughput above the supported range",
+			inputTemplate: &infrav1.AWSMachineTemplate{
+				Spec: infrav1.AWSMachineTemplateSpec{
+					Template: infrav1.AWSMachineTemplateResource{
+						Spec: infrav1.AWSMachineSpec{
+							InstanceType: "test",
+							RootVolume: &infrav1.Volume{
+								Type:       infrav1.VolumeTypeGP3,
+								Size:       *aws.Int64(8),
+								Throughput: aws.Int64(2001),
+							},
+						},
+					},
+				},
+			},
+			wantError: true,
+		},
+		{
 			name: "hostID and dynamicHostAllocation are mutually exclusive",
 			inputTemplate: &infrav1.AWSMachineTemplate{
 				ObjectMeta: metav1.ObjectMeta{},
