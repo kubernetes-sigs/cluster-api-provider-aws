@@ -45,6 +45,17 @@ var defaultAMIRegions = []string{
 	"us-east-1", "us-east-2", "us-west-1", "us-west-2",
 }
 
+// ec2API is the subset of the EC2 client this command depends on. It exists
+// so tests can inject a fake instead of making real AWS calls; *ec2.Client
+// satisfies it.
+type ec2API interface {
+	DescribeImages(ctx context.Context, params *ec2.DescribeImagesInput, optFns ...func(*ec2.Options)) (*ec2.DescribeImagesOutput, error)
+	DeregisterImage(ctx context.Context, params *ec2.DeregisterImageInput, optFns ...func(*ec2.Options)) (*ec2.DeregisterImageOutput, error)
+}
+
+// ec2ClientFactory returns an ec2API client configured for region.
+type ec2ClientFactory func(ctx context.Context, region string) (ec2API, error)
+
 // removeDuplicatesCmd returns the `remove-duplicates` cobra command.
 func removeDuplicatesCmd() *cobra.Command {
 	var (
@@ -62,6 +73,10 @@ func removeDuplicatesCmd() *cobra.Command {
 kubernetes_version tags within a region. For each such group, the AMI with
 the highest build_timestamp tag is kept and the rest are reported as
 duplicates.
+
+Only AMIs tagged with kubernetes_version are considered, and only if they
+are x86_64, available, and hvm - the properties every CAPA AMI build has.
+This keeps unrelated images in the same AWS account out of scope entirely.
 
 By default this command is dry-run: it reports every AMI (kept, duplicate,
 and ungroupable) and previews what removal would do, without changing
@@ -98,7 +113,7 @@ or more (comma-separated).`,
 				regions = requested
 			}
 
-			amis, err := describeOwnedAMIs(cmd.Context(), regions, ownerID)
+			amis, err := describeOwnedAMIs(cmd.Context(), newEC2Client, regions, ownerID)
 			if err != nil {
 				return err
 			}
@@ -114,11 +129,8 @@ or more (comma-separated).`,
 			}
 
 			targets := removalTargets(entries, includeUngroupable)
-			failed := removeAMIs(cmd.Context(), cmd.OutOrStdout(), targets, !deleteFlag)
-			if failed > 0 {
-				return fmt.Errorf("%d AMI(s) failed to remove", failed)
-			}
-			return nil
+			failed := removeAMIs(cmd.Context(), cmd.OutOrStdout(), newEC2Client, targets, !deleteFlag)
+			return removalError(failed)
 		},
 	}
 
@@ -134,6 +146,15 @@ or more (comma-separated).`,
 		"Also remove AMIs that couldn't be evaluated for duplication (default: only DUPLICATE)")
 
 	return cmd
+}
+
+// removalError turns a removeAMIs failure count into an error, so the
+// command exits non-zero when any AMI failed to be removed.
+func removalError(failed int) error {
+	if failed > 0 {
+		return fmt.Errorf("%d AMI(s) failed to remove", failed)
+	}
+	return nil
 }
 
 // removalTargets returns the entries eligible for removal: always
@@ -158,7 +179,9 @@ func removalTargets(entries []duplicates.Entry, includeUngroupable bool) []dupli
 // deregistering it and deleting its backing snapshots in one call. Failures
 // are printed and skipped rather than aborting the run; the number of
 // failures is returned so the caller can decide whether to exit non-zero.
-func removeAMIs(ctx context.Context, w io.Writer, targets []duplicates.Entry, dryRun bool) int {
+// One client is created per distinct target region and reused across its
+// targets.
+func removeAMIs(ctx context.Context, w io.Writer, newClient ec2ClientFactory, targets []duplicates.Entry, dryRun bool) int {
 	if len(targets) == 0 {
 		fmt.Fprintln(w, "\nNo AMIs to remove")
 		return 0
@@ -170,7 +193,7 @@ func removeAMIs(ctx context.Context, w io.Writer, targets []duplicates.Entry, dr
 	}
 	fmt.Fprintf(w, "\n%s %d AMI(s):\n", verb, len(targets))
 
-	clients := make(map[string]*ec2.Client)
+	clients := make(map[string]ec2API)
 	failed := 0
 	for _, target := range targets {
 		label := fmt.Sprintf("%s %s (%s)", target.Region, target.AMI.ID, target.Status)
@@ -183,7 +206,7 @@ func removeAMIs(ctx context.Context, w io.Writer, targets []duplicates.Entry, dr
 		client, ok := clients[target.Region]
 		if !ok {
 			var err error
-			client, err = newEC2Client(ctx, target.Region)
+			client, err = newClient(ctx, target.Region)
 			if err != nil {
 				fmt.Fprintf(w, "  ERROR %s: %v\n", label, err)
 				failed++
@@ -210,8 +233,9 @@ func removeAMIs(ctx context.Context, w io.Writer, targets []duplicates.Entry, dr
 	return failed
 }
 
-// newEC2Client returns an EC2 client configured for region.
-func newEC2Client(ctx context.Context, region string) (*ec2.Client, error) {
+// newEC2Client is the production ec2ClientFactory: it returns a real EC2
+// client configured for region.
+func newEC2Client(ctx context.Context, region string) (ec2API, error) {
 	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
 	if err != nil {
 		return nil, fmt.Errorf("loading AWS config for region %q: %w", region, err)
@@ -220,12 +244,15 @@ func newEC2Client(ctx context.Context, region string) (*ec2.Client, error) {
 }
 
 // describeOwnedAMIs fetches all available x86_64/hvm AMIs owned by ownerID
-// across regions, tagged with their originating region.
-func describeOwnedAMIs(ctx context.Context, regions []string, ownerID string) ([]duplicates.AMI, error) {
+// across regions, tagged with their originating region. The tag-key filter
+// restricts results to images carrying the kubernetes_version tag that
+// every CAPA AMI build sets, so images unrelated to the CAPA pipeline (but
+// owned by the same account) are never returned in the first place.
+func describeOwnedAMIs(ctx context.Context, newClient ec2ClientFactory, regions []string, ownerID string) ([]duplicates.AMI, error) {
 	var amis []duplicates.AMI
 
 	for _, region := range regions {
-		client, err := newEC2Client(ctx, region)
+		client, err := newClient(ctx, region)
 		if err != nil {
 			return nil, err
 		}
@@ -233,6 +260,7 @@ func describeOwnedAMIs(ctx context.Context, regions []string, ownerID string) ([
 		out, err := client.DescribeImages(ctx, &ec2.DescribeImagesInput{
 			Filters: []types.Filter{
 				{Name: aws.String("owner-id"), Values: []string{ownerID}},
+				{Name: aws.String("tag-key"), Values: []string{duplicates.TagKubernetesVersion}},
 				{Name: aws.String("architecture"), Values: []string{"x86_64"}},
 				{Name: aws.String("state"), Values: []string{"available"}},
 				{Name: aws.String("virtualization-type"), Values: []string{"hvm"}},

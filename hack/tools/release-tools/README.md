@@ -29,7 +29,9 @@ Computes the AMIs that should be published (k8s versions × OS × regions) but a
 
 Finds — and optionally removes — duplicate AMIs owned by the CAPA AMI build pipeline.
 
-AMIs are grouped per-region by their `distribution`, `distribution_version` and `kubernetes_version` tags. Within each group, the AMI with the highest `build_timestamp` tag is **kept**; the rest are **duplicates**. An AMI missing one of the grouping tags, or with a missing/invalid `build_timestamp` tag, is **ungroupable** rather than silently skipped.
+Discovery is scoped to CAPA-built AMIs only: the command queries EC2 for images owned by `--owner-id` that carry a `kubernetes_version` tag (every CAPA AMI build sets one) and are `x86_64`, `available`, and `hvm` (also true of every CAPA AMI build). An image without that tag, such as an unrelated AMI that happens to live in the same account, is never fetched, so it can never be classified or removed.
+
+Of the images returned, AMIs are grouped per-region by their `distribution`, `distribution_version` and `kubernetes_version` tags. Within each group, the AMI with the highest `build_timestamp` tag is **kept**; the rest are **duplicates**. An AMI missing one of the grouping tags, or with a missing/invalid `build_timestamp` tag, is **ungroupable** rather than silently skipped.
 
 This command is **dry-run by default**: it always prints the full report (kept, duplicate, and ungroupable AMIs), then previews what removal would do. Pass `--delete` to actually deregister the targeted AMIs.
 
@@ -79,7 +81,7 @@ Dry run — nothing removed. Pass --delete to remove them.
 
 #### GitHub Actions
 
-See `.github/workflows/remove-duplicate-amis.yml` for a manual (`workflow_dispatch`) workflow that accepts `region`, `include_ungroupable`, and `delete` inputs, all with defaults.
+See `.github/workflows/ami-housekeeping-remove-duplicates.yml` for a manual (`workflow_dispatch`) workflow that accepts `region`, `include_ungroupable`, and `delete` inputs, all with defaults.
 
 Authentication is via OIDC (no stored credentials/secrets) — the workflow assumes `arn:aws:iam::819546954734:role/gh-image-builder`. That role needs:
 

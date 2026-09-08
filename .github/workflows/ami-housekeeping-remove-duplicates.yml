@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
     inputs:
       region:
-        description: "Comma-separated list of AWS regions (overrides default: all CAPA regions)"
+        description: "Comma-separated list of AWS regions (leave empty for all CAPA regions, the release-tool default)"
         required: false
         type: string
-        default: 'ap-south-1,eu-west-3,eu-west-2,eu-west-1,ap-northeast-2,ap-northeast-1,sa-east-1,ca-central-1,ap-southeast-1,ap-southeast-2,eu-central-1,us-east-1,us-east-2,us-west-1,us-west-2'
+        default: ''
       include_ungroupable:
         description: "Also remove AMIs that couldn't be evaluated for duplication (missing tags)"
         required: true

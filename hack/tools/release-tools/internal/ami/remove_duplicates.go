@@ -117,17 +117,34 @@ func (r *DuplicatesReport) Entries() []Entry {
 	return entries
 }
 
+// groupIdentity is the comparable identity of a duplicate-detection group:
+// one region's AMIs sharing the same distribution, distribution_version and
+// kubernetes_version tags.
+type groupIdentity struct {
+	region              string
+	distribution        string
+	distributionVersion string
+	kubernetesVersion   string
+}
+
+// String returns the canonical "distribution|distribution_version|kubernetes_version"
+// display form used for DuplicateGroup.GroupKey and Entry.GroupKey.
+func (k groupIdentity) String() string {
+	return k.distribution + "|" + k.distributionVersion + "|" + k.kubernetesVersion
+}
+
 // FindDuplicateAMIs groups amis by region and by their distribution,
 // distribution_version and kubernetes_version tags, keeping only the AMI
-// with the highest build_timestamp tag in each group. Any AMI that can't be
-// grouped (missing tags, or a missing/invalid build_timestamp) is returned
+// with the highest build_timestamp tag in each group. A group with only one
+// AMI is still reported, with that AMI kept. Any AMI that can't be grouped
+// (missing tags, or a missing/invalid build_timestamp) is returned
 // separately rather than silently dropped.
 func FindDuplicateAMIs(amis []AMI) *DuplicatesReport {
-	buckets := make(map[string][]AMI)
+	buckets := make(map[groupIdentity][]AMI)
 	var ungroupable []UngroupableAMI
 
 	for _, a := range amis {
-		key, ok, reason := groupKey(a)
+		id, ok, reason := groupKey(a)
 		if !ok {
 			ungroupable = append(ungroupable, UngroupableAMI{AMI: a, Reason: reason})
 			continue
@@ -141,15 +158,11 @@ func FindDuplicateAMIs(amis []AMI) *DuplicatesReport {
 			continue
 		}
 
-		buckets[a.Region+"|"+key] = append(buckets[a.Region+"|"+key], a)
+		buckets[id] = append(buckets[id], a)
 	}
 
-	var groups []DuplicateGroup
-	for _, bucketImages := range buckets {
-		if len(bucketImages) < 2 {
-			continue
-		}
-
+	groups := make([]DuplicateGroup, 0, len(buckets))
+	for id, bucketImages := range buckets {
 		keep := bucketImages[0]
 		keepTs, _ := buildTimestamp(keep)
 		duplicates := make([]AMI, 0, len(bucketImages)-1)
@@ -163,31 +176,35 @@ func FindDuplicateAMIs(amis []AMI) *DuplicatesReport {
 			}
 		}
 
-		key, _, _ := groupKey(keep)
-		groups = append(groups, DuplicateGroup{Region: keep.Region, GroupKey: key, Keep: keep, Duplicates: duplicates})
+		groups = append(groups, DuplicateGroup{Region: id.region, GroupKey: id.String(), Keep: keep, Duplicates: duplicates})
 	}
 
 	return &DuplicatesReport{Groups: groups, Ungroupable: ungroupable}
 }
 
-// groupKey returns the dedup group key for an AMI, built from its
+// groupKey returns the dedup group identity for an AMI, built from its
 // distribution, distribution_version and kubernetes_version tags. ok is
 // false if any of those tags is missing, in which case reason explains why.
-func groupKey(a AMI) (key string, ok bool, reason string) {
+func groupKey(a AMI) (id groupIdentity, ok bool, reason string) {
 	distribution, found := a.Tags[TagDistribution]
 	if !found {
-		return "", false, fmt.Sprintf("missing %q tag", TagDistribution)
+		return groupIdentity{}, false, fmt.Sprintf("missing %q tag", TagDistribution)
 	}
 	distributionVersion, found := a.Tags[TagDistributionVersion]
 	if !found {
-		return "", false, fmt.Sprintf("missing %q tag", TagDistributionVersion)
+		return groupIdentity{}, false, fmt.Sprintf("missing %q tag", TagDistributionVersion)
 	}
 	kubernetesVersion, found := a.Tags[TagKubernetesVersion]
 	if !found {
-		return "", false, fmt.Sprintf("missing %q tag", TagKubernetesVersion)
+		return groupIdentity{}, false, fmt.Sprintf("missing %q tag", TagKubernetesVersion)
 	}
 
-	return distribution + "|" + distributionVersion + "|" + kubernetesVersion, true, ""
+	return groupIdentity{
+		region:              a.Region,
+		distribution:        distribution,
+		distributionVersion: distributionVersion,
+		kubernetesVersion:   kubernetesVersion,
+	}, true, ""
 }
 
 // buildTimestamp parses the AMI's build_timestamp tag as an integer.

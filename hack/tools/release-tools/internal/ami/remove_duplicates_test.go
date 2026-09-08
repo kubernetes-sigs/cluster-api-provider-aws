@@ -21,13 +21,17 @@ import "testing"
 func TestGroupKey(t *testing.T) {
 	tests := []struct {
 		name    string
+		region  string
 		tags    map[string]string
+		wantID  groupIdentity
 		wantKey string
 		wantOK  bool
 	}{
 		{
 			name:    "all tags present",
+			region:  "us-east-1",
 			tags:    map[string]string{"distribution": "ubuntu", "distribution_version": "22.04", "kubernetes_version": "v1.36.3"},
+			wantID:  groupIdentity{region: "us-east-1", distribution: "ubuntu", distributionVersion: "22.04", kubernetesVersion: "v1.36.3"},
 			wantKey: "ubuntu|22.04|v1.36.3",
 			wantOK:  true,
 		},
@@ -45,12 +49,15 @@ func TestGroupKey(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			key, ok, reason := groupKey(AMI{ID: "ami-1", Tags: tt.tags})
+			id, ok, reason := groupKey(AMI{ID: "ami-1", Region: tt.region, Tags: tt.tags})
 			if ok != tt.wantOK {
 				t.Fatalf("groupKey() ok = %v, want %v (reason: %q)", ok, tt.wantOK, reason)
 			}
-			if ok && key != tt.wantKey {
-				t.Errorf("groupKey() = %q, want %q", key, tt.wantKey)
+			if ok && id != tt.wantID {
+				t.Errorf("groupKey() = %+v, want %+v", id, tt.wantID)
+			}
+			if ok && id.String() != tt.wantKey {
+				t.Errorf("groupKey().String() = %q, want %q", id.String(), tt.wantKey)
 			}
 			if !ok && reason == "" {
 				t.Errorf("groupKey() reason is empty when ok = false")
@@ -111,18 +118,50 @@ func TestFindDuplicateAMIs(t *testing.T) {
 
 	report := FindDuplicateAMIs(amis)
 
-	if len(report.Groups) != 1 {
-		t.Fatalf("got %d groups, want 1", len(report.Groups))
+	// 3 groups: the us-east-1 ubuntu duplicate group, the us-east-1 flatcar
+	// singleton, and the eu-west-1 ubuntu singleton (same tags as the
+	// us-east-1 group, but a different region so it must not be merged).
+	if len(report.Groups) != 3 {
+		t.Fatalf("got %d groups, want 3", len(report.Groups))
 	}
-	got := report.Groups[0]
-	if got.Region != "us-east-1" {
-		t.Errorf("group region = %q, want %q", got.Region, "us-east-1")
+
+	type regionKey struct{ region, groupKey string }
+	groupsByRegionKey := make(map[regionKey]DuplicateGroup, len(report.Groups))
+	for _, g := range report.Groups {
+		groupsByRegionKey[regionKey{g.Region, g.GroupKey}] = g
+	}
+
+	got, ok := groupsByRegionKey[regionKey{"us-east-1", "ubuntu|22.04|v1.36.3"}]
+	if !ok {
+		t.Fatalf("no group for us-east-1/ubuntu|22.04|v1.36.3, got groups: %+v", report.Groups)
 	}
 	if got.Keep.ID != "ami-newer" {
 		t.Errorf("Keep = %q, want %q", got.Keep.ID, "ami-newer")
 	}
 	if len(got.Duplicates) != 2 {
 		t.Fatalf("Duplicates has %d entries, want 2", len(got.Duplicates))
+	}
+
+	singleton, ok := groupsByRegionKey[regionKey{"us-east-1", "flatcar|stable|v1.36.3"}]
+	if !ok {
+		t.Fatalf("no group for us-east-1/flatcar|stable|v1.36.3 (singleton), got groups: %+v", report.Groups)
+	}
+	if singleton.Keep.ID != "ami-singleton" {
+		t.Errorf("singleton Keep = %q, want %q", singleton.Keep.ID, "ami-singleton")
+	}
+	if len(singleton.Duplicates) != 0 {
+		t.Errorf("singleton Duplicates has %d entries, want 0", len(singleton.Duplicates))
+	}
+
+	otherRegion, ok := groupsByRegionKey[regionKey{"eu-west-1", "ubuntu|22.04|v1.36.3"}]
+	if !ok {
+		t.Fatalf("no group for eu-west-1/ubuntu|22.04|v1.36.3 (singleton, distinct region), got groups: %+v", report.Groups)
+	}
+	if otherRegion.Keep.ID != "ami-other-region" {
+		t.Errorf("eu-west-1 singleton Keep = %q, want %q", otherRegion.Keep.ID, "ami-other-region")
+	}
+	if len(otherRegion.Duplicates) != 0 {
+		t.Errorf("eu-west-1 singleton Duplicates has %d entries, want 0", len(otherRegion.Duplicates))
 	}
 
 	wantUngroupableIDs := map[string]bool{"ami-missing-tag": true, "ami-missing-ts": true}
@@ -151,6 +190,12 @@ func TestEntries(t *testing.T) {
 					{ID: "ami-oldest", Tags: map[string]string{"build_timestamp": "50"}},
 				},
 			},
+			{
+				Region:     "us-east-1",
+				GroupKey:   "flatcar|stable|v1.36.3",
+				Keep:       AMI{ID: "ami-singleton", Tags: map[string]string{"build_timestamp": "1"}},
+				Duplicates: nil,
+			},
 		},
 		Ungroupable: []UngroupableAMI{
 			{AMI: AMI{ID: "ami-missing-tag"}, Reason: `missing "distribution" tag`},
@@ -158,8 +203,8 @@ func TestEntries(t *testing.T) {
 	}
 
 	entries := report.Entries()
-	if len(entries) != 4 {
-		t.Fatalf("got %d entries, want 4", len(entries))
+	if len(entries) != 5 {
+		t.Fatalf("got %d entries, want 5", len(entries))
 	}
 
 	byID := make(map[string]Entry, len(entries))
@@ -178,5 +223,8 @@ func TestEntries(t *testing.T) {
 	}
 	if got := byID["ami-missing-tag"]; got.Status != StatusUngroupable || got.Reason == "" {
 		t.Errorf("ami-missing-tag entry = %+v, want Status=UNGROUPABLE with a reason", got)
+	}
+	if got := byID["ami-singleton"]; got.Status != StatusKeep || got.GroupKey != "flatcar|stable|v1.36.3" {
+		t.Errorf("ami-singleton entry = %+v, want Status=KEEP GroupKey=flatcar|stable|v1.36.3", got)
 	}
 }
