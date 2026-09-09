@@ -281,6 +281,270 @@ func TestTagsEnsureWithEKS(t *testing.T) {
 	}
 }
 
+func TestEnsureOnlyAppliesDiffTagsEC2(t *testing.T) {
+	pName := "test"
+	pRole := "testrole"
+	params := &infrav1.BuildParams{
+		Lifecycle:   infrav1.ResourceLifecycleOwned,
+		ClusterName: "testcluster",
+		ResourceID:  "res-123",
+		Name:        &pName,
+		Role:        &pRole,
+		Additional:  map[string]string{"k1": "v1"},
+	}
+
+	tests := []struct {
+		name         string
+		current      infrav1.Tags
+		expectedTags []ec2types.Tag
+		expect       func(m *mocks.MockEC2APIMockRecorder, expectedTags []ec2types.Tag)
+	}{
+		{
+			name:    "no current tags, all tags are new",
+			current: nil,
+			expectedTags: []ec2types.Tag{
+				{Key: aws.String("Name"), Value: aws.String(pName)},
+				{Key: aws.String("k1"), Value: aws.String("v1")},
+				{Key: aws.String(infrav1.ClusterTagKey("testcluster")), Value: aws.String(string(infrav1.ResourceLifecycleOwned))},
+				{Key: aws.String(infrav1.NameAWSClusterAPIRole), Value: aws.String(pRole)},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder, expectedTags []ec2types.Tag) {
+				m.CreateTags(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
+					Resources: []string{"res-123"},
+					Tags:      expectedTags,
+				})).Return(nil, nil)
+			},
+		},
+		{
+			name: "all tags match, no apply call",
+			current: infrav1.Tags{
+				"Name":                               pName,
+				"k1":                                 "v1",
+				infrav1.ClusterTagKey("testcluster"): string(infrav1.ResourceLifecycleOwned),
+				infrav1.NameAWSClusterAPIRole:        pRole,
+			},
+		},
+		{
+			name: "only changed tags are passed to apply",
+			current: infrav1.Tags{
+				"Name":                               pName,
+				"k1":                                 "old-value",
+				infrav1.ClusterTagKey("testcluster"): string(infrav1.ResourceLifecycleOwned),
+				infrav1.NameAWSClusterAPIRole:        pRole,
+			},
+			expectedTags: []ec2types.Tag{
+				{Key: aws.String("k1"), Value: aws.String("v1")},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder, expectedTags []ec2types.Tag) {
+				m.CreateTags(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
+					Resources: []string{"res-123"},
+					Tags:      expectedTags,
+				})).Return(nil, nil)
+			},
+		},
+		{
+			name: "only missing tags are passed to apply",
+			current: infrav1.Tags{
+				"Name":                               pName,
+				infrav1.ClusterTagKey("testcluster"): string(infrav1.ResourceLifecycleOwned),
+				infrav1.NameAWSClusterAPIRole:        pRole,
+			},
+			expectedTags: []ec2types.Tag{
+				{Key: aws.String("k1"), Value: aws.String("v1")},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder, expectedTags []ec2types.Tag) {
+				m.CreateTags(context.TODO(), gomock.Eq(&ec2.CreateTagsInput{
+					Resources: []string{"res-123"},
+					Tags:      expectedTags,
+				})).Return(nil, nil)
+			},
+		},
+		{
+			name: "external tags do not cause apply",
+			current: infrav1.Tags{
+				"Name":                               pName,
+				"k1":                                 "v1",
+				infrav1.ClusterTagKey("testcluster"): string(infrav1.ResourceLifecycleOwned),
+				infrav1.NameAWSClusterAPIRole:        pRole,
+				"external-tag":                       "external-value",
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			// The `diff` parameter should equal the test case's `expectedTags`.
+			// This is to show better error messages than with mocking.
+			var actualDiff infrav1.Tags
+			builder := New(params, func(b *Builder) {
+				b.applyFunc = func(_ *infrav1.BuildParams, diff infrav1.Tags) error {
+					actualDiff = diff
+					return nil
+				}
+			})
+			err := builder.Ensure(tc.current)
+			g.Expect(err).To(BeNil())
+			var expectedTagsAsInfraType infrav1.Tags
+			for _, tag := range tc.expectedTags {
+				if expectedTagsAsInfraType == nil {
+					expectedTagsAsInfraType = infrav1.Tags{}
+				}
+				expectedTagsAsInfraType[*tag.Key] = *tag.Value
+			}
+			g.Expect(actualDiff).To(Equal(expectedTagsAsInfraType), "Diff calculation is wrong, or the test case has a wrong expectedTags")
+
+			// Now check with mocking since the actual AWS API calls are most important.
+			// This ensures that the `diff` is used, and not all tags (incl. unchanged ones)
+			// get sent in the AWS request.
+			mockCtrl := gomock.NewController(t)
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
+
+			if tc.expect != nil {
+				tc.expect(ec2Mock.EXPECT(), tc.expectedTags)
+			}
+
+			builder = New(params, WithEC2(ec2Mock))
+
+			err = builder.Ensure(tc.current)
+			g.Expect(err).To(BeNil())
+		})
+	}
+}
+
+func TestEnsureOnlyAppliesDiffTagsEKS(t *testing.T) {
+	pName := "test"
+	pRole := "testrole"
+	params := &infrav1.BuildParams{
+		Lifecycle:   infrav1.ResourceLifecycleOwned,
+		ClusterName: "testcluster",
+		ResourceID:  "res-123",
+		Name:        &pName,
+		Role:        &pRole,
+		Additional:  map[string]string{"k1": "v1"},
+	}
+
+	tests := []struct {
+		name         string
+		current      infrav1.Tags
+		expectedTags map[string]string
+		expect       func(m *mock_eksiface.MockEKSAPIMockRecorder, expectedTags map[string]string)
+	}{
+		{
+			name:    "no current tags, all tags are new",
+			current: nil,
+			expectedTags: map[string]string{
+				"Name":                               pName,
+				"k1":                                 "v1",
+				infrav1.ClusterTagKey("testcluster"): string(infrav1.ResourceLifecycleOwned),
+				infrav1.NameAWSClusterAPIRole:        pRole,
+			},
+			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder, expectedTags map[string]string) {
+				m.TagResource(gomock.Eq(context.TODO()), gomock.Eq(&eks.TagResourceInput{
+					ResourceArn: aws.String("res-123"),
+					Tags:        expectedTags,
+				})).Return(nil, nil)
+			},
+		},
+		{
+			name: "all tags match, no apply call",
+			current: infrav1.Tags{
+				"Name":                               pName,
+				"k1":                                 "v1",
+				infrav1.ClusterTagKey("testcluster"): string(infrav1.ResourceLifecycleOwned),
+				infrav1.NameAWSClusterAPIRole:        pRole,
+			},
+		},
+		{
+			name: "only changed tags are passed to apply",
+			current: infrav1.Tags{
+				"Name":                               pName,
+				"k1":                                 "old-value",
+				infrav1.ClusterTagKey("testcluster"): string(infrav1.ResourceLifecycleOwned),
+				infrav1.NameAWSClusterAPIRole:        pRole,
+			},
+			expectedTags: map[string]string{
+				"k1": "v1",
+			},
+			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder, expectedTags map[string]string) {
+				m.TagResource(gomock.Eq(context.TODO()), gomock.Eq(&eks.TagResourceInput{
+					ResourceArn: aws.String("res-123"),
+					Tags:        expectedTags,
+				})).Return(nil, nil)
+			},
+		},
+		{
+			name: "only missing tags are passed to apply",
+			current: infrav1.Tags{
+				"Name":                               pName,
+				infrav1.ClusterTagKey("testcluster"): string(infrav1.ResourceLifecycleOwned),
+				infrav1.NameAWSClusterAPIRole:        pRole,
+			},
+			expectedTags: map[string]string{
+				"k1": "v1",
+			},
+			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder, expectedTags map[string]string) {
+				m.TagResource(gomock.Eq(context.TODO()), gomock.Eq(&eks.TagResourceInput{
+					ResourceArn: aws.String("res-123"),
+					Tags:        expectedTags,
+				})).Return(nil, nil)
+			},
+		},
+		{
+			name: "external tags do not cause apply",
+			current: infrav1.Tags{
+				"Name":                               pName,
+				"k1":                                 "v1",
+				infrav1.ClusterTagKey("testcluster"): string(infrav1.ResourceLifecycleOwned),
+				infrav1.NameAWSClusterAPIRole:        pRole,
+				"external-tag":                       "external-value",
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			// The `diff` parameter should equal the test case's `expectedTags`.
+			// This is to show better error messages than with mocking.
+			var actualDiff infrav1.Tags
+			builder := New(params, func(b *Builder) {
+				b.applyFunc = func(_ *infrav1.BuildParams, diff infrav1.Tags) error {
+					actualDiff = diff
+					return nil
+				}
+			})
+			err := builder.Ensure(tc.current)
+			g.Expect(err).To(BeNil())
+			var expectedTagsAsInfraType infrav1.Tags
+			for k, v := range tc.expectedTags {
+				if expectedTagsAsInfraType == nil {
+					expectedTagsAsInfraType = infrav1.Tags{}
+				}
+				expectedTagsAsInfraType[k] = v
+			}
+			g.Expect(actualDiff).To(Equal(expectedTagsAsInfraType), "Diff calculation is wrong, or the test case has a wrong expectedTags")
+
+			// Now check with mocking since the actual AWS API calls are most important.
+			// This ensures that the `diff` is used, and not all tags (incl. unchanged ones)
+			// get sent in the AWS request.
+			mockCtrl := gomock.NewController(t)
+			eksMock := mock_eksiface.NewMockEKSAPI(mockCtrl)
+
+			if tc.expect != nil {
+				tc.expect(eksMock.EXPECT(), tc.expectedTags)
+			}
+
+			builder = New(params, WithEKS(context.TODO(), eksMock))
+
+			err = builder.Ensure(tc.current)
+			g.Expect(err).To(BeNil())
+		})
+	}
+}
+
 func TestTagsBuildParamsToTagSpecification(t *testing.T) {
 	g := NewWithT(t)
 	tagSpec := BuildParamsToTagSpecification("test-resource", infrav1.BuildParams{
