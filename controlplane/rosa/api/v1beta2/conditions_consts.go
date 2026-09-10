@@ -19,14 +19,17 @@ package v1beta2
 import clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 
 const (
-	// ROSAControlPlaneReadyCondition condition reports on the successful reconciliation of ROSAControlPlane.
-	ROSAControlPlaneReadyCondition clusterv1beta1.ConditionType = "ROSAControlPlaneReady"
+	// ROSAControlPlaneReadyV1Beta1Condition condition reports on the successful reconciliation of ROSAControlPlane.
+	// Use ROSAControlPlaneReadyCondition from v1beta2_condition_consts.go instead.
+	ROSAControlPlaneReadyV1Beta1Condition clusterv1beta1.ConditionType = "ROSAControlPlaneReady"
 
-	// ROSAControlPlaneValidCondition condition reports whether ROSAControlPlane configuration is valid.
-	ROSAControlPlaneValidCondition clusterv1beta1.ConditionType = "ROSAControlPlaneValid"
+	// ROSAControlPlaneValidV1Beta1Condition condition reports whether ROSAControlPlane configuration is valid.
+	// Use ROSAControlPlaneValidCondition from v1beta2_condition_consts.go instead.
+	ROSAControlPlaneValidV1Beta1Condition clusterv1beta1.ConditionType = "ROSAControlPlaneValid"
 
-	// ROSAControlPlaneUpgradingCondition condition reports whether ROSAControlPlane is upgrading or not.
-	ROSAControlPlaneUpgradingCondition clusterv1beta1.ConditionType = "ROSAControlPlaneUpgrading"
+	// ROSAControlPlaneUpgradingV1Beta1Condition condition reports whether ROSAControlPlane is upgrading or not.
+	// Use ROSAControlPlaneUpgradingCondition from v1beta2_condition_consts.go instead.
+	ROSAControlPlaneUpgradingV1Beta1Condition clusterv1beta1.ConditionType = "ROSAControlPlaneUpgrading"
 
 	// ExternalAuthConfiguredCondition condition reports whether external auth has beed correctly configured.
 	ExternalAuthConfiguredCondition clusterv1beta1.ConditionType = "ExternalAuthConfigured"
@@ -37,11 +40,13 @@ const (
 	// ReconciliationFailedReason used to report reconciliation failures.
 	ReconciliationFailedReason = "ReconciliationFailed"
 
-	// ROSAControlPlaneDeletionFailedReason used to report failures while deleting ROSAControlPlane.
-	ROSAControlPlaneDeletionFailedReason = "DeletionFailed"
+	// ROSAControlPlaneDeletionFailedV1Beta1Reason used to report failures while deleting ROSAControlPlane.
+	// Use ROSAControlPlaneDeletionFailedReason from v1beta2_condition_consts.go instead.
+	ROSAControlPlaneDeletionFailedV1Beta1Reason = "DeletionFailed"
 
-	// ROSAControlPlaneInvalidConfigurationReason used to report invalid user input.
-	ROSAControlPlaneInvalidConfigurationReason = "InvalidConfiguration"
+	// ROSAControlPlaneInvalidConfigurationV1Beta1Reason used to report invalid user input.
+	// Use ROSAControlPlaneInvalidConfigurationReason from v1beta2_condition_consts.go instead.
+	ROSAControlPlaneInvalidConfigurationV1Beta1Reason = "InvalidConfiguration"
 
 	// ROSARoleConfigNotReadyReason used to report when referenced RosaRoleConfig is not ready.
 	ROSARoleConfigNotReadyReason = "ROSARoleConfigNotReady"

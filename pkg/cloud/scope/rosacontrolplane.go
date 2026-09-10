@@ -209,9 +209,9 @@ func (s *ROSAControlPlaneScope) PatchObject() error {
 		context.TODO(),
 		s.ControlPlane,
 		v1beta1patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
-			rosacontrolplanev1.ROSAControlPlaneReadyCondition,
-			rosacontrolplanev1.ROSAControlPlaneValidCondition,
-			rosacontrolplanev1.ROSAControlPlaneUpgradingCondition,
+			rosacontrolplanev1.ROSAControlPlaneReadyV1Beta1Condition,
+			rosacontrolplanev1.ROSAControlPlaneValidV1Beta1Condition,
+			rosacontrolplanev1.ROSAControlPlaneUpgradingV1Beta1Condition,
 		}})
 }
 
