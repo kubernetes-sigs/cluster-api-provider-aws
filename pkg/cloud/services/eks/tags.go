@@ -19,6 +19,8 @@ package eks
 import (
 	"context"
 	"fmt"
+	"slices"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
@@ -63,15 +65,15 @@ func (s *Service) getEKSTagParams(id string) *infrav1.BuildParams {
 	}
 }
 
-func getTagUpdates(currentTags map[string]string, tags map[string]string) (untagKeys []string, newTags map[string]string) {
+func getTagUpdates(currentTags map[string]string, desiredTags map[string]string) (untagKeys []string, newTags map[string]string) {
 	untagKeys = []string{}
 	newTags = make(map[string]string)
 	for key := range currentTags {
-		if _, ok := tags[key]; !ok {
+		if _, ok := desiredTags[key]; !ok && !strings.HasPrefix(key, tags.AwsInternalTagPrefix) {
 			untagKeys = append(untagKeys, key)
 		}
 	}
-	for key, value := range tags {
+	for key, value := range desiredTags {
 		if currentV, ok := currentTags[key]; !ok || value != currentV {
 			newTags[key] = value
 		}
@@ -79,7 +81,7 @@ func getTagUpdates(currentTags map[string]string, tags map[string]string) (untag
 	return untagKeys, newTags
 }
 
-func getASGTagUpdates(clusterName string, currentTags map[string]string, tags map[string]string) (tagsToDelete map[string]string, tagsToAdd map[string]string) {
+func getASGTagUpdates(clusterName string, currentTags, desiredTags map[string]string) (tagsToDelete, tagsToAdd map[string]string) {
 	officialASGTagsByEKS := []string{
 		eksClusterNameTag,
 		eksNodeGroupNameTag,
@@ -90,20 +92,11 @@ func getASGTagUpdates(clusterName string, currentTags map[string]string, tags ma
 	tagsToDelete = make(map[string]string)
 	tagsToAdd = make(map[string]string)
 	for k, v := range currentTags {
-		if _, ok := tags[k]; !ok {
-			isOfficialTag := false
-			for _, tag := range officialASGTagsByEKS {
-				if tag == k {
-					isOfficialTag = true
-					break
-				}
-			}
-			if !isOfficialTag {
-				tagsToDelete[k] = v
-			}
+		if _, ok := desiredTags[k]; !ok && !slices.Contains(officialASGTagsByEKS, k) {
+			tagsToDelete[k] = v
 		}
 	}
-	for key, value := range tags {
+	for key, value := range desiredTags {
 		if currentV, ok := currentTags[key]; !ok || value != currentV {
 			tagsToAdd[key] = value
 		}
@@ -137,16 +130,12 @@ func (s *NodegroupService) reconcileASGTags(ctx context.Context, ng *ekstypes.No
 	if len(tagsToAdd) > 0 {
 		input := &autoscaling.CreateOrUpdateTagsInput{}
 		for k, v := range tagsToAdd {
-			// The k/vCopy is used to address the "Implicit memory aliasing in for loop" issue
-			// https://stackoverflow.com/questions/62446118/implicit-memory-aliasing-in-for-loop
-			kCopy := k
-			vCopy := v
 			input.Tags = append(input.Tags, autoscalingtypes.Tag{
-				Key:               &kCopy,
+				Key:               ptr.To(k),
 				PropagateAtLaunch: aws.Bool(true),
 				ResourceId:        asg.AutoScalingGroupName,
-				ResourceType:      ptr.To[string]("auto-scaling-group"),
-				Value:             &vCopy,
+				ResourceType:      ptr.To("auto-scaling-group"),
+				Value:             ptr.To(v),
 			})
 		}
 		_, err = s.AutoscalingClient.CreateOrUpdateTags(ctx, input)
@@ -158,13 +147,10 @@ func (s *NodegroupService) reconcileASGTags(ctx context.Context, ng *ekstypes.No
 	if len(tagsToDelete) > 0 {
 		input := &autoscaling.DeleteTagsInput{}
 		for k := range tagsToDelete {
-			// The k/vCopy is used to address the "Implicit memory aliasing in for loop" issue
-			// https://stackoverflow.com/questions/62446118/implicit-memory-aliasing-in-for-loop
-			kCopy := k
 			input.Tags = append(input.Tags, autoscalingtypes.Tag{
-				Key:          &kCopy,
+				Key:          ptr.To(k),
 				ResourceId:   asg.AutoScalingGroupName,
-				ResourceType: ptr.To[string]("auto-scaling-group"),
+				ResourceType: ptr.To("auto-scaling-group"),
 			})
 		}
 		_, err = s.AutoscalingClient.DeleteTags(ctx, input)
