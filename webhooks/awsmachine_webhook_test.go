@@ -263,12 +263,45 @@ func TestAWSMachineCreate(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "valid MarketType set to MarketTypeCapacityBlock and CapacityReservationResourceGroupARN are specified",
+			machine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					MarketType:                          infrav1.MarketTypeCapacityBlock,
+					CapacityReservationResourceGroupARN: aws.String("arn:aws:resource-groups:us-east-1:123456789012:group/capacity-reservation-group"),
+					InstanceType:                        "test",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid case, CapacityReservationId and CapacityReservationResourceGroupARN are both set",
+			machine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType:                        "test",
+					CapacityReservationID:               aws.String("cr-12345678901234567"),
+					CapacityReservationResourceGroupARN: aws.String("arn:aws:resource-groups:us-east-1:123456789012:group/capacity-reservation-group"),
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name: "invalid case, CapacityReservationId is set and CapacityReservationPreference is not `capacity-reservation-only`",
 			machine: &infrav1.AWSMachine{
 				Spec: infrav1.AWSMachineSpec{
 					InstanceType:                  "test",
 					CapacityReservationID:         aws.String("cr-12345678901234567"),
 					CapacityReservationPreference: infrav1.CapacityReservationPreferenceNone,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid case, CapacityReservationResourceGroupARN is set and CapacityReservationPreference is not `capacity-reservation-only`",
+			machine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType:                        "test",
+					CapacityReservationResourceGroupARN: aws.String("arn:aws:resource-groups:us-east-1:123456789012:group/capacity-reservation-group"),
+					CapacityReservationPreference:       infrav1.CapacityReservationPreferenceNone,
 				},
 			},
 			wantErr: true,
@@ -307,6 +340,17 @@ func TestAWSMachineCreate(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "invalid CapacityReservationResourceGroupARN is set and MarketType is `Spot`",
+			machine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType:                        "test",
+					CapacityReservationResourceGroupARN: aws.String("arn:aws:resource-groups:us-east-1:123456789012:group/capacity-reservation-group"),
+					MarketType:                          infrav1.MarketTypeSpot,
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name: "invalid CapacityReservationPreference is `CapacityReservationsOnly` and SpotMarketOptions is non-nil",
 			machine: &infrav1.AWSMachine{
 				Spec: infrav1.AWSMachineSpec{
@@ -314,6 +358,17 @@ func TestAWSMachineCreate(t *testing.T) {
 					CapacityReservationID:         aws.String("cr-12345678901234567"),
 					CapacityReservationPreference: infrav1.CapacityReservationPreferenceOnly,
 					SpotMarketOptions:             &infrav1.SpotMarketOptions{},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid CapacityReservationResourceGroupARN is set and SpotMarketOptions is non-nil",
+			machine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType:                        "test",
+					CapacityReservationResourceGroupARN: aws.String("arn:aws:resource-groups:us-east-1:123456789012:group/capacity-reservation-group"),
+					SpotMarketOptions:                   &infrav1.SpotMarketOptions{},
 				},
 			},
 			wantErr: true,

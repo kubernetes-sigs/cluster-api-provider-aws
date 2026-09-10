@@ -74,8 +74,9 @@ const (
 )
 
 // AWSMachineSpec defines the desired state of an Amazon EC2 instance.
-// +kubebuilder:validation:XValidation:rule="!has(self.capacityReservationId) || !has(self.marketType) || self.marketType != 'Spot'",message="capacityReservationId may not be set when marketType is Spot"
-// +kubebuilder:validation:XValidation:rule="!has(self.capacityReservationId) || !has(self.spotMarketOptions)",message="capacityReservationId cannot be set when spotMarketOptions is specified"
+// +kubebuilder:validation:XValidation:rule="!has(self.capacityReservationId) || !has(self.capacityReservationResourceGroupARN)",message="capacityReservationId and capacityReservationResourceGroupARN are mutually exclusive"
+// +kubebuilder:validation:XValidation:rule="!(has(self.capacityReservationId) || has(self.capacityReservationResourceGroupARN)) || !has(self.marketType) || self.marketType != 'Spot'",message="capacity reservation targets may not be set when marketType is Spot"
+// +kubebuilder:validation:XValidation:rule="!(has(self.capacityReservationId) || has(self.capacityReservationResourceGroupARN)) || !has(self.spotMarketOptions)",message="capacity reservation targets cannot be set when spotMarketOptions is specified"
 type AWSMachineSpec struct {
 	// ProviderID is the unique identifier as specified by the cloud provider.
 	ProviderID *string `json:"providerID,omitempty"`
@@ -246,11 +247,15 @@ type AWSMachineSpec struct {
 	// +optional
 	CapacityReservationID *string `json:"capacityReservationId,omitempty"`
 
+	// CapacityReservationResourceGroupARN specifies the ARN of the target Capacity Reservation resource group in which to launch the instance.
+	// +optional
+	CapacityReservationResourceGroupARN *string `json:"capacityReservationResourceGroupARN,omitempty"`
+
 	// MarketType specifies the type of market for the EC2 instance. Valid values include:
 	// "OnDemand" (default): The instance runs as a standard OnDemand instance.
 	// "Spot": The instance runs as a Spot instance. When SpotMarketOptions is provided, the marketType defaults to "Spot".
 	// "CapacityBlock": The instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
-	//  If this value is selected, CapacityReservationID must be specified to identify the target reservation.
+	//  If this value is selected, either CapacityReservationID or CapacityReservationResourceGroupARN must be specified to identify the target reservation.
 	// If marketType is not specified and spotMarketOptions is provided, the marketType defaults to "Spot".
 	// +optional
 	MarketType MarketType `json:"marketType,omitempty"`

@@ -22355,6 +22355,18 @@ string
 </tr>
 <tr>
 <td>
+<code>capacityReservationResourceGroupARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CapacityReservationResourceGroupARN specifies the ARN of the target Capacity Reservation resource group in which to launch the instance.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>marketType</code><br/>
 <em>
 <a href="#infrastructure.cluster.x-k8s.io/v1beta2.MarketType">
@@ -22368,7 +22380,7 @@ MarketType
 &ldquo;OnDemand&rdquo; (default): The instance runs as a standard OnDemand instance.
 &ldquo;Spot&rdquo;: The instance runs as a Spot instance. When SpotMarketOptions is provided, the marketType defaults to &ldquo;Spot&rdquo;.
 &ldquo;CapacityBlock&rdquo;: The instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
-If this value is selected, CapacityReservationID must be specified to identify the target reservation.
+If this value is selected, either CapacityReservationID or CapacityReservationResourceGroupARN must be specified to identify the target reservation.
 If marketType is not specified and spotMarketOptions is provided, the marketType defaults to &ldquo;Spot&rdquo;.</p>
 </td>
 </tr>
@@ -22913,6 +22925,18 @@ string
 </tr>
 <tr>
 <td>
+<code>capacityReservationResourceGroupARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CapacityReservationResourceGroupARN specifies the ARN of the target Capacity Reservation resource group in which to launch the instance.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>marketType</code><br/>
 <em>
 <a href="#infrastructure.cluster.x-k8s.io/v1beta2.MarketType">
@@ -22926,7 +22950,7 @@ MarketType
 &ldquo;OnDemand&rdquo; (default): The instance runs as a standard OnDemand instance.
 &ldquo;Spot&rdquo;: The instance runs as a Spot instance. When SpotMarketOptions is provided, the marketType defaults to &ldquo;Spot&rdquo;.
 &ldquo;CapacityBlock&rdquo;: The instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
-If this value is selected, CapacityReservationID must be specified to identify the target reservation.
+If this value is selected, either CapacityReservationID or CapacityReservationResourceGroupARN must be specified to identify the target reservation.
 If marketType is not specified and spotMarketOptions is provided, the marketType defaults to &ldquo;Spot&rdquo;.</p>
 </td>
 </tr>
@@ -23694,6 +23718,18 @@ string
 </tr>
 <tr>
 <td>
+<code>capacityReservationResourceGroupARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CapacityReservationResourceGroupARN specifies the ARN of the target Capacity Reservation resource group in which to launch the instance.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>marketType</code><br/>
 <em>
 <a href="#infrastructure.cluster.x-k8s.io/v1beta2.MarketType">
@@ -23707,7 +23743,7 @@ MarketType
 &ldquo;OnDemand&rdquo; (default): The instance runs as a standard OnDemand instance.
 &ldquo;Spot&rdquo;: The instance runs as a Spot instance. When SpotMarketOptions is provided, the marketType defaults to &ldquo;Spot&rdquo;.
 &ldquo;CapacityBlock&rdquo;: The instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
-If this value is selected, CapacityReservationID must be specified to identify the target reservation.
+If this value is selected, either CapacityReservationID or CapacityReservationResourceGroupARN must be specified to identify the target reservation.
 If marketType is not specified and spotMarketOptions is provided, the marketType defaults to &ldquo;Spot&rdquo;.</p>
 </td>
 </tr>
@@ -26210,6 +26246,18 @@ string
 </tr>
 <tr>
 <td>
+<code>capacityReservationResourceGroupARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CapacityReservationResourceGroupARN specifies the ARN of the target Capacity Reservation resource group in which to launch the instance.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>marketType</code><br/>
 <em>
 <a href="#infrastructure.cluster.x-k8s.io/v1beta2.MarketType">
@@ -26223,7 +26271,7 @@ MarketType
 &ldquo;OnDemand&rdquo; (default): The instance runs as a standard OnDemand instance.
 &ldquo;Spot&rdquo;: The instance runs as a Spot instance. When SpotMarketOptions is provided, the marketType defaults to &ldquo;Spot&rdquo;.
 &ldquo;CapacityBlock&rdquo;: The instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
-If this value is selected, CapacityReservationID must be specified to identify the target reservation.
+If this value is selected, either CapacityReservationID or CapacityReservationResourceGroupARN must be specified to identify the target reservation.
 If marketType is not specified and spotMarketOptions is provided, the marketType defaults to &ldquo;Spot&rdquo;.</p>
 </td>
 </tr>
@@ -28655,6 +28703,18 @@ string
 </tr>
 <tr>
 <td>
+<code>capacityReservationResourceGroupARN</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CapacityReservationResourceGroupARN specifies the ARN of the target Capacity Reservation resource group in which to launch the instance.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>marketType</code><br/>
 <em>
 <a href="#infrastructure.cluster.x-k8s.io/v1beta2.MarketType">
@@ -28668,7 +28728,7 @@ MarketType
 &ldquo;OnDemand&rdquo; (default): The instance runs as a standard OnDemand instance.
 &ldquo;Spot&rdquo;: The instance runs as a Spot instance. When SpotMarketOptions is provided, the marketType defaults to &ldquo;Spot&rdquo;.
 &ldquo;CapacityBlock&rdquo;: The instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
-If this value is selected, CapacityReservationID must be specified to identify the target reservation.
+If this value is selected, either CapacityReservationID or CapacityReservationResourceGroupARN must be specified to identify the target reservation.
 If marketType is not specified and spotMarketOptions is provided, the marketType defaults to &ldquo;Spot&rdquo;.</p>
 </td>
 </tr>
