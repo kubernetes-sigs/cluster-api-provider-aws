@@ -112,6 +112,17 @@ var _ = ginkgo.Describe("EKS upgrade policy test", func() {
 			return patchHelper.Patch(ctx, controlPlane)
 		}, e2eCtx.E2EConfig.GetIntervals("", "wait-client-request")...).Should(Succeed(), "eventually failed patching the AWSManagedControlPlane")
 
+		// Verify the spec change was persisted before polling EKS.
+		ginkgo.By("Verifying the upgrade policy spec change was persisted")
+		Eventually(func() ekscontrolplanev1.UpgradePolicy {
+			updatedCP := &ekscontrolplanev1.AWSManagedControlPlane{}
+			if err := mgmtClient.Get(ctx, crclient.ObjectKey{Namespace: namespace.Name, Name: getControlPlaneName(clusterName)}, updatedCP); err != nil {
+				return ""
+			}
+			return updatedCP.Spec.UpgradePolicy
+		}, e2eCtx.E2EConfig.GetIntervals("", "wait-client-request")...).Should(Equal(changedUpgradePolicy),
+			"upgrade policy spec change should be persisted")
+
 		// Wait for the upgrade policy to be reflected in AWS EKS.
 		WaitForEKSClusterUpgradePolicy(ctx, e2eCtx.BootstrapUserAWSSession, eksClusterName, changedUpgradePolicy)
 
@@ -155,5 +166,5 @@ func WaitForEKSClusterUpgradePolicy(ctx context.Context, sess *aws.Config, eksCl
 
 		// Success in finding the change has been reflected in EKS.
 		return nil
-	}, 5*time.Minute, 10*time.Second).Should(Succeed(), fmt.Sprintf("eventually failed checking EKS Cluster %q upgrade policy is %s", eksClusterName, upgradePolicy))
+	}, 10*time.Minute, 10*time.Second).Should(Succeed(), fmt.Sprintf("eventually failed checking EKS Cluster %q upgrade policy is %s", eksClusterName, upgradePolicy))
 }
