@@ -139,6 +139,12 @@ func (r *ROSAControlPlaneReconciler) SetupWithManager(ctx context.Context, mgr c
 					newCP.Status = rosacontrolplanev1.RosaControlPlaneStatus{}
 					oldCP.ObjectMeta.ResourceVersion = ""
 					newCP.ObjectMeta.ResourceVersion = ""
+
+					// A status write refreshes the timestamp of the writer's `managedFields` entry, so the metadata
+					// would otherwise always differ.
+					oldCP.ObjectMeta.ManagedFields = nil
+					newCP.ObjectMeta.ManagedFields = nil
+
 					return !cmp.Equal(oldCP, newCP)
 				},
 			},
