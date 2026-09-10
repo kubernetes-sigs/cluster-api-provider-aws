@@ -86,6 +86,12 @@ func (r *ROSAMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ct
 					newPool.Status = expinfrav1.RosaMachinePoolStatus{}
 					oldPool.ObjectMeta.ResourceVersion = ""
 					newPool.ObjectMeta.ResourceVersion = ""
+
+					// A status write refreshes the timestamp of the writer's `managedFields` entry, so the metadata
+					// would otherwise always differ.
+					oldPool.ObjectMeta.ManagedFields = nil
+					newPool.ObjectMeta.ManagedFields = nil
+
 					return !cmp.Equal(oldPool, newPool)
 				},
 			},
