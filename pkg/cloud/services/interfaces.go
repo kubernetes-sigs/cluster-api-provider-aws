@@ -52,6 +52,8 @@ const (
 	LaunchTemplateNeedsUpdateReasonIamInstanceProfile LaunchTemplateNeedsUpdateReason = "IamInstanceProfile"
 	// LaunchTemplateNeedsUpdateReasonInstanceType means a difference in the instance type was found.
 	LaunchTemplateNeedsUpdateReasonInstanceType LaunchTemplateNeedsUpdateReason = "InstanceType"
+	// LaunchTemplateNeedsUpdateReasonCPUOptions means a difference in the CPU options was found.
+	LaunchTemplateNeedsUpdateReasonCPUOptions LaunchTemplateNeedsUpdateReason = "CPUOptions"
 	// LaunchTemplateNeedsUpdateReasonInstanceMetadataOptions means a difference in the instance metadata options was found.
 	LaunchTemplateNeedsUpdateReasonInstanceMetadataOptions LaunchTemplateNeedsUpdateReason = "InstanceMetadataOptions"
 	// LaunchTemplateNeedsUpdateReasonSpotMarketOptions means a difference in the spot market options was found.

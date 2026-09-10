@@ -97,6 +97,11 @@ type AWSLaunchTemplate struct {
 	// InstanceType is the type of instance to create. Example: m4.xlarge
 	InstanceType string `json:"instanceType,omitempty"`
 
+	// CPUOptions defines CPU-related settings for the instance, including the confidential computing policy.
+	// When omitted, this means no opinion and the AWS platform is left to choose a reasonable default.
+	// +optional
+	CPUOptions infrav1.CPUOptions `json:"cpuOptions,omitempty,omitzero"`
+
 	// RootVolume encapsulates the configuration options for the root volume
 	// +optional
 	RootVolume *infrav1.Volume `json:"rootVolume,omitempty"`
