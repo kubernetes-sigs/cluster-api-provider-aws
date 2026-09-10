@@ -27,7 +27,9 @@
 # 	${IMAGE_TAG} \
 # 	-v /figures/*.plantuml
 
-FROM maven:3-openjdk-18-slim
+# Use the maintained Eclipse Temurin image instead of the retired OpenJDK 18
+# image, whose Debian Bullseye repositories can contain expired metadata.
+FROM maven:3.9-eclipse-temurin-17
 ARG PLANTUML_VERSION
 
 RUN apt-get update && apt-get install -y --no-install-recommends wget graphviz fonts-symbola fonts-wqy-zenhei && rm -rf /var/lib/apt/lists/*
