@@ -39,6 +39,12 @@ func TestMachineDefault(t *testing.T) {
 	err := (&AWSMachine{}).Default(context.Background(), machine)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(machine.Spec.CloudInit.SecureSecretsBackend).To(Equal(infrav1.SecretBackendSecretsManager))
+	g.Expect(machine.Spec.InstanceMetadataOptions).NotTo(BeNil())
+	g.Expect(machine.Spec.InstanceMetadataOptions.HTTPEndpoint).To(Equal(infrav1.InstanceMetadataEndpointStateEnabled))
+	g.Expect(machine.Spec.InstanceMetadataOptions.HTTPProtocolIPv6).To(Equal(infrav1.InstanceMetadataEndpointStateDisabled))
+	g.Expect(machine.Spec.InstanceMetadataOptions.HTTPPutResponseHopLimit).To(Equal(int64(1)))
+	g.Expect(machine.Spec.InstanceMetadataOptions.HTTPTokens).To(Equal(infrav1.HTTPTokensStateOptional))
+	g.Expect(machine.Spec.InstanceMetadataOptions.InstanceMetadataTags).To(Equal(infrav1.InstanceMetadataEndpointStateDisabled))
 }
 
 func TestAWSMachineCreate(t *testing.T) {
