@@ -152,6 +152,17 @@ func (p *AWSRolePrincipalTypeProvider) Hash() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	// gob only encodes exported fields, so the source provider holding the
+	// credentials used to assume this role is not covered by the encoding above.
+	// Without mixing it in, rotating those credentials leaves the hash unchanged
+	// and a cached provider built from the previous credentials is reused.
+	if p.sourceProvider != nil {
+		sourceHash, err := p.sourceProvider.Hash()
+		if err != nil {
+			return "", err
+		}
+		roleIdentityValue.WriteString(sourceHash)
+	}
 	hash := sha256.New()
 	return string(hash.Sum(roleIdentityValue.Bytes())), nil
 }
