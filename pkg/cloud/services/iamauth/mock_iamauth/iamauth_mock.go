@@ -171,6 +171,26 @@ func (mr *MockIAMAPIMockRecorder) DetachRolePolicy(arg0, arg1 interface{}, arg2 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DetachRolePolicy", reflect.TypeOf((*MockIAMAPI)(nil).DetachRolePolicy), varargs...)
 }
 
+// GetInstanceProfile mocks base method.
+func (m *MockIAMAPI) GetInstanceProfile(arg0 context.Context, arg1 *iam.GetInstanceProfileInput, arg2 ...func(*iam.Options)) (*iam.GetInstanceProfileOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetInstanceProfile", varargs...)
+	ret0, _ := ret[0].(*iam.GetInstanceProfileOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetInstanceProfile indicates an expected call of GetInstanceProfile.
+func (mr *MockIAMAPIMockRecorder) GetInstanceProfile(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstanceProfile", reflect.TypeOf((*MockIAMAPI)(nil).GetInstanceProfile), varargs...)
+}
+
 // GetOpenIDConnectProvider mocks base method.
 func (m *MockIAMAPI) GetOpenIDConnectProvider(arg0 context.Context, arg1 *iam.GetOpenIDConnectProviderInput, arg2 ...func(*iam.Options)) (*iam.GetOpenIDConnectProviderOutput, error) {
 	m.ctrl.T.Helper()
