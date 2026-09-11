@@ -253,13 +253,7 @@ func autoConvert_v1beta1_AWSIAMRoleSpec_To_v1alpha1_AWSIAMRoleSpec(in *v1beta1.A
 }
 
 func autoConvert_v1alpha1_BootstrapUser_To_v1beta1_BootstrapUser(in *BootstrapUser, out *v1beta1.BootstrapUser, s conversion.Scope) error {
-	out.Enable = in.Enable
-	out.UserName = in.UserName
-	out.GroupName = in.GroupName
-	out.ExtraPolicyAttachments = *(*[]string)(unsafe.Pointer(&in.ExtraPolicyAttachments))
-	out.ExtraGroups = *(*[]string)(unsafe.Pointer(&in.ExtraGroups))
-	out.ExtraStatements = *(*[]apiv1beta1.StatementEntry)(unsafe.Pointer(&in.ExtraStatements))
-	out.Tags = *(*v1beta2.Tags)(unsafe.Pointer(&in.Tags))
+	*out = *(*v1beta1.BootstrapUser)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -269,13 +263,7 @@ func Convert_v1alpha1_BootstrapUser_To_v1beta1_BootstrapUser(in *BootstrapUser, 
 }
 
 func autoConvert_v1beta1_BootstrapUser_To_v1alpha1_BootstrapUser(in *v1beta1.BootstrapUser, out *BootstrapUser, s conversion.Scope) error {
-	out.Enable = in.Enable
-	out.UserName = in.UserName
-	out.GroupName = in.GroupName
-	out.ExtraPolicyAttachments = *(*[]string)(unsafe.Pointer(&in.ExtraPolicyAttachments))
-	out.ExtraGroups = *(*[]string)(unsafe.Pointer(&in.ExtraGroups))
-	out.ExtraStatements = *(*[]apiv1beta1.StatementEntry)(unsafe.Pointer(&in.ExtraStatements))
-	out.Tags = *(*v1beta2.Tags)(unsafe.Pointer(&in.Tags))
+	*out = *(*BootstrapUser)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -409,7 +397,7 @@ func Convert_v1beta1_EKSConfig_To_v1alpha1_EKSConfig(in *v1beta1.EKSConfig, out 
 }
 
 func autoConvert_v1alpha1_EventBridgeConfig_To_v1beta1_EventBridgeConfig(in *EventBridgeConfig, out *v1beta1.EventBridgeConfig, s conversion.Scope) error {
-	out.Enable = in.Enable
+	*out = *(*v1beta1.EventBridgeConfig)(unsafe.Pointer(in))
 	return nil
 }
 
@@ -419,7 +407,7 @@ func Convert_v1alpha1_EventBridgeConfig_To_v1beta1_EventBridgeConfig(in *EventBr
 }
 
 func autoConvert_v1beta1_EventBridgeConfig_To_v1alpha1_EventBridgeConfig(in *v1beta1.EventBridgeConfig, out *EventBridgeConfig, s conversion.Scope) error {
-	out.Enable = in.Enable
+	*out = *(*EventBridgeConfig)(unsafe.Pointer(in))
 	return nil
 }
 
