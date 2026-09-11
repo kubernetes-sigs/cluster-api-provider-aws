@@ -250,6 +250,17 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 		return ctrl.Result{}, fmt.Errorf("failed to validate ROSAMachinePool.spec: %w", err)
 	}
 	if failureMessage != nil {
+		// Surface the reason. Without this the reconcile returns silently -- no
+		// error, no log, no condition, no requeue -- and the ROSAMachinePool sits
+		// with an empty status forever while the MachinePool waits on it.
+		machinePoolScope.RosaMachinePool.Status.FailureMessage = failureMessage
+		v1beta1conditions.MarkFalse(machinePoolScope.RosaMachinePool,
+			expinfrav1.RosaMachinePoolReadyCondition,
+			expinfrav1.RosaMachinePoolReconciliationFailedReason,
+			clusterv1beta1.ConditionSeverityError,
+			"%s", *failureMessage)
+		machinePoolScope.Info("Invalid ROSAMachinePool spec", "failureMessage", *failureMessage)
+
 		// dont' requeue because input is invalid and manual intervention is needed.
 		return ctrl.Result{}, nil
 	}
@@ -491,7 +502,11 @@ func validateMachinePoolSpec(machinePoolScope *scope.RosaMachinePoolScope) (*str
 		return nil, fmt.Errorf("failed to get supported machinePool versions range: %w", err)
 	}
 
-	if version.GT(*maxSupportedVersion) || version.LT(*minSupportedVersion) {
+	// The bounds are core versions, so the candidate has to be compared as one
+	// too -- a prerelease sorts below its own release and would otherwise be
+	// rejected against a range derived from that same release.
+	coreVersion := rosa.CoreVersion(version)
+	if coreVersion.GT(*maxSupportedVersion) || coreVersion.LT(*minSupportedVersion) {
 		message := fmt.Sprintf("version %s is not supported, should be in the range: >= %s and <= %s", version, minSupportedVersion, maxSupportedVersion)
 		return &message, nil
 	}

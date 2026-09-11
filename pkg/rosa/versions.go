@@ -103,17 +103,32 @@ func ScheduleNodePoolUpgrade(client OCMClient, clusterID string, nodePool *cmv1.
 // machinepools can be created with a minimal of two minor versions from the control plane.
 const minorVersionsAllowedDeviation = 2
 
+// CoreVersion strips any prerelease and build qualifiers, leaving major.minor.patch.
+// The machine pool skew policy is expressed purely in terms of minor versions, and
+// semver sorts a prerelease below its own release ("5.0.0-rc.0" < "5.0.0"), so the
+// qualifiers have to be dropped before any range comparison -- otherwise a
+// prerelease control plane falls outside the range derived from itself.
+func CoreVersion(version semver.Version) semver.Version {
+	return semver.Version{Major: version.Major, Minor: version.Minor, Patch: version.Patch}
+}
+
 // MachinePoolSupportedVersionsRange returns the supported range of versions
-// for a machine pool based on the control plane version.
+// for a machine pool based on the control plane version. Both bounds are core
+// versions; compare candidates with CoreVersion.
 func MachinePoolSupportedVersionsRange(controlPlaneVersion string) (*semver.Version, *semver.Version, error) {
-	maxVersion, err := semver.Parse(controlPlaneVersion)
+	parsed, err := semver.Parse(controlPlaneVersion)
 	if err != nil {
 		return nil, nil, err
 	}
+	maxVersion := CoreVersion(parsed)
 
+	// Minor is a uint64, so subtracting the allowed deviation from a minor
+	// version below it wraps around instead of clamping -- max() cannot undo
+	// that, because the value is already enormous by the time it is applied.
+	// Clamp the subtrahend instead so x.0 and x.1 control planes floor at x.0.
 	minVersion := semver.Version{
 		Major: maxVersion.Major,
-		Minor: max(0, maxVersion.Minor-minorVersionsAllowedDeviation),
+		Minor: maxVersion.Minor - min(maxVersion.Minor, minorVersionsAllowedDeviation),
 		Patch: 0,
 	}
 
