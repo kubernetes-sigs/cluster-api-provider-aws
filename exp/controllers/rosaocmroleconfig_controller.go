@@ -88,6 +88,12 @@ func (r *ROSAOCMRoleConfigReconciler) SetupWithManager(ctx context.Context, mgr 
 					newRC.Status = expinfrav1.ROSAOCMRoleConfigStatus{}
 					oldRC.ObjectMeta.ResourceVersion = ""
 					newRC.ObjectMeta.ResourceVersion = ""
+
+					// A status write refreshes the timestamp of the writer's `managedFields` entry, so the metadata
+					// would otherwise always differ.
+					oldRC.ObjectMeta.ManagedFields = nil
+					newRC.ObjectMeta.ManagedFields = nil
+
 					return !cmp.Equal(oldRC, newRC)
 				},
 			},
