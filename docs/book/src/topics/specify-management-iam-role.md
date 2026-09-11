@@ -23,6 +23,10 @@ clusterctl init --infrastructure=aws
 
 ### IAM Roles for Service Accounts
 
+For an end-to-end example that uses this role to manage EKS clusters in a
+different AWS account, see [Cross-account role assumption with
+IRSA](eks/cross-account-role-assumption.md).
+
 When creating the IAM role, the following trust policy will need to be used with the `AWS_ACCOUNT_ID`, `AWS_REGION` and `OIDC_PROVIDER_ID` environment variables replaced.
 
 ```json
