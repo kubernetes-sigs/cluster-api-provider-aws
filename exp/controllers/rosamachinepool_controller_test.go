@@ -714,14 +714,17 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 func TestVolumeSizeIgnoredInDiff(t *testing.T) {
 	g := NewWithT(t)
 
-	rosaMachinePoolSpec := expinfrav1.RosaMachinePoolSpec{
-		NodePoolName: "test-nodepool",
-		Version:      "4.14.5",
-		Subnet:       "subnet-id",
-		AutoRepair:   true,
-		InstanceType: "m5.large",
-		VolumeSize:   300,
+	rosaMachinePool := &expinfrav1.ROSAMachinePool{
+		Spec: expinfrav1.RosaMachinePoolSpec{
+			NodePoolName: "test-nodepool",
+			Version:      "4.14.5",
+			Subnet:       "subnet-id",
+			AutoRepair:   true,
+			InstanceType: "m5.large",
+			VolumeSize:   300,
+		},
 	}
+	rosaMachinePool.Default()
 
 	// Create a NodePool with different volumeSize
 	nodePool, err := cmv1.NewNodePool().
@@ -735,7 +738,7 @@ func TestVolumeSizeIgnoredInDiff(t *testing.T) {
 		Build()
 	g.Expect(err).ToNot(HaveOccurred())
 
-	diff := computeSpecDiff(rosaMachinePoolSpec, nodePool)
+	diff := computeSpecDiff(rosaMachinePool.Spec, nodePool)
 	g.Expect(diff).To(BeEmpty(), "volumeSize should be ignored in diff computation")
 }
 
