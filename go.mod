@@ -38,9 +38,9 @@ require (
 	github.com/google/goexpect v0.0.0-20210430020637-ab937bf7fd6f
 	github.com/onsi/ginkgo/v2 v2.32.1
 	github.com/onsi/gomega v1.42.1
-	github.com/openshift-online/ocm-api-model/clientapi v0.0.453
+	github.com/openshift-online/ocm-api-model/clientapi v0.0.465
 	github.com/openshift-online/ocm-common v0.0.32
-	github.com/openshift-online/ocm-sdk-go v0.1.499
+	github.com/openshift-online/ocm-sdk-go v0.1.510
 	github.com/openshift/rosa v1.99.9-testing.0.20260331163240-71a820e0a117
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.24.1
@@ -111,7 +111,7 @@ require (
 	github.com/olekukonko/cat v0.0.0-20250911104152-50322a0618f6 // indirect
 	github.com/olekukonko/errors v1.1.0 // indirect
 	github.com/olekukonko/ll v0.1.1 // indirect
-	github.com/openshift-online/ocm-api-model/model v0.0.453 // indirect
+	github.com/openshift-online/ocm-api-model/model v0.0.465 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
