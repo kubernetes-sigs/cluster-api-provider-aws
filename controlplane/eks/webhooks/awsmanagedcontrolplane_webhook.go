@@ -252,8 +252,15 @@ func validateEKSVersion(eksVersion *string, oldVersion *string, networkSpec infr
 
 	if oldVersion != nil {
 		oldV, err := parseEKSVersion(*oldVersion)
-		if err == nil && (v.Major() < oldV.Major() || v.Minor() < oldV.Minor()) {
-			allErrs = append(allErrs, field.Invalid(path, *eksVersion, "new version less than old version"))
+		if err == nil {
+			// AWS EKS supports rolling a cluster's control plane back by a single
+			// minor version (N to N-1).
+			switch {
+			case v.Major() < oldV.Major():
+				allErrs = append(allErrs, field.Invalid(path, *eksVersion, "cannot roll back across a major version"))
+			case v.Major() == oldV.Major() && v.Minor() < oldV.Minor() && oldV.Minor()-v.Minor() > 1:
+				allErrs = append(allErrs, field.Invalid(path, *eksVersion, "can only roll back to the immediately previous minor version (N-1)"))
+			}
 		}
 	}
 

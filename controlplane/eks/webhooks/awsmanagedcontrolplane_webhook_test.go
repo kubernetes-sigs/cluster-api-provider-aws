@@ -36,6 +36,8 @@ var (
 	vV1_17_1 = "v1.17.1"
 	vV1_17   = "v1.17"
 	vV1_16   = "v1.16"
+	vV1_15   = "v1.15"
+	vV2_17   = "v2.17"
 )
 
 func TestDefaultingWebhook(t *testing.T) {
@@ -627,7 +629,7 @@ func TestWebhookUpdate(t *testing.T) {
 			expectError: true,
 		},
 		{
-			name: "older version",
+			name: "rollback one minor version is allowed",
 			oldClusterSpec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
 				Version:        &vV1_17,
@@ -635,6 +637,30 @@ func TestWebhookUpdate(t *testing.T) {
 			newClusterSpec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
 				EKSClusterName: "default_cluster1",
 				Version:        &vV1_16,
+			},
+			expectError: false,
+		},
+		{
+			name: "rollback more than one minor version is rejected",
+			oldClusterSpec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				Version:        &vV1_17,
+			},
+			newClusterSpec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				Version:        &vV1_15,
+			},
+			expectError: true,
+		},
+		{
+			name: "downgrade across a major version is rejected",
+			oldClusterSpec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				Version:        &vV2_17,
+			},
+			newClusterSpec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+				EKSClusterName: "default_cluster1",
+				Version:        &vV1_17,
 			},
 			expectError: true,
 		},
