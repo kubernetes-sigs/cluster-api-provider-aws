@@ -286,7 +286,7 @@ func (r *AWSMachineTemplateReconciler) getInstanceTypeCapacity(ctx context.Conte
 //  2. From default AMI lookup (requires Kubernetes version from owner MachineDeployment/KubeadmControlPlane)
 //  3. From instance type architecture (OS cannot be determined, only architecture)
 func (r *AWSMachineTemplateReconciler) getNodeInfo(ctx context.Context, ec2Client *ec2.Client, template *infrav1.AWSMachineTemplate, instanceType string) (*infrav1.NodeInfo, error) {
-	// Strategy 1: Extract nodeInfo from the AMI if an ID is set.
+	// Strategy 1: Extract nodeInfo from the AMI if an ID is set or filters are defined.
 	if amiID := ptr.Deref(template.Spec.Template.Spec.AMI.ID, ""); amiID != "" {
 		result, err := ec2Client.DescribeImages(ctx, &ec2.DescribeImagesInput{
 			ImageIds: []string{amiID},
@@ -299,6 +299,14 @@ func (r *AWSMachineTemplateReconciler) getNodeInfo(ctx context.Context, ec2Clien
 		}
 		// Extract nodeInfo directly from the image object (no additional API call needed)
 		return r.extractNodeInfoFromImage(result.Images[0]), nil
+	}
+
+	if len(template.Spec.Template.Spec.AMI.Filters) > 0 {
+		img, err := ec2service.AMILookupByFilters(ctx, ec2Client, template.Spec.Template.Spec.AMI.Filters)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to resolve AMI from filters")
+		}
+		return r.extractNodeInfoFromImage(*img), nil
 	}
 
 	// No explicit AMI ID specified, query instance type to determine architecture

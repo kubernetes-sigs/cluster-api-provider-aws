@@ -722,6 +722,160 @@ func TestAWSMachineCreate(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "no AMI identification method is allowed",
+			machine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType: "type",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "AMI ID only is allowed",
+			machine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType: "type",
+					AMI:          infrav1.AMIReference{ID: aws.String("ami-0123456789abcdef0")},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "AMI EKS optimized lookup only is allowed",
+			machine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType: "type",
+					AMI:          infrav1.AMIReference{EKSOptimizedLookupType: ptr.To(infrav1.AmazonLinux)},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "AMI filters only are allowed",
+			machine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType: "type",
+					AMI: infrav1.AMIReference{
+						Filters: []infrav1.Filter{{Name: "name", Values: []string{"my-ami-*"}}},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "AMI ID with empty filters is allowed",
+			machine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType: "type",
+					AMI: infrav1.AMIReference{
+						ID:      aws.String("ami-0123456789abcdef0"),
+						Filters: []infrav1.Filter{},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "error when AMI ID and filters are both set",
+			machine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType: "type",
+					AMI: infrav1.AMIReference{
+						ID:      aws.String("ami-0123456789abcdef0"),
+						Filters: []infrav1.Filter{{Name: "name", Values: []string{"my-ami-*"}}},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "error when AMI ID and EKS optimized lookup are both set",
+			machine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType: "type",
+					AMI: infrav1.AMIReference{
+						ID:                     aws.String("ami-0123456789abcdef0"),
+						EKSOptimizedLookupType: ptr.To(infrav1.AmazonLinux),
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "error when all three AMI identification methods are set",
+			machine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType: "type",
+					AMI: infrav1.AMIReference{
+						ID:                     aws.String("ami-0123456789abcdef0"),
+						EKSOptimizedLookupType: ptr.To(infrav1.AmazonLinux),
+						Filters:                []infrav1.Filter{{Name: "name", Values: []string{"my-ami-*"}}},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "image lookup fields without AMI filters are allowed",
+			machine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType:   "type",
+					ImageLookupOrg: "12345",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "error when AMI filters and imageLookupOrg are both set",
+			machine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType: "type",
+					AMI: infrav1.AMIReference{
+						Filters: []infrav1.Filter{{Name: "name", Values: []string{"my-ami-*"}}},
+					},
+					ImageLookupOrg: "12345",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "error when AMI filters and imageLookupFormat are both set",
+			machine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType: "type",
+					AMI: infrav1.AMIReference{
+						Filters: []infrav1.Filter{{Name: "name", Values: []string{"my-ami-*"}}},
+					},
+					ImageLookupFormat: "capa-ami-{{.BaseOS}}-?{{.K8sVersion}}-*",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "error when an AMI filter has an empty name",
+			machine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType: "type",
+					AMI: infrav1.AMIReference{
+						Filters: []infrav1.Filter{{Name: "", Values: []string{"my-ami-*"}}},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "error when an AMI filter has no values",
+			machine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType: "type",
+					AMI: infrav1.AMIReference{
+						Filters: []infrav1.Filter{{Name: "name", Values: []string{}}},
+					},
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

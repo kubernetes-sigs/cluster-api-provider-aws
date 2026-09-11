@@ -45,9 +45,11 @@ type AWSResourceReference struct {
 	Filters []Filter `json:"filters,omitempty"`
 }
 
-// AMIReference is a reference to a specific AWS resource by ID, ARN, or filters.
-// Only one of ID, ARN or Filters may be specified. Specifying more than one will result in
+// AMIReference is a reference to a specific AWS resource by ID, EKS optimized lookup, or filters.
+// Only one of ID, EKSOptimizedLookupType, or Filters may be specified. Specifying more than one will result in
 // a validation error.
+// +kubebuilder:validation:XValidation:rule="[has(self.id), has(self.eksLookupType), has(self.filters) && size(self.filters) > 0].filter(x, x).size() <= 1",message="only one of id, eksLookupType, or filters may be specified"
+// +kubebuilder:validation:XValidation:rule="!has(self.filters) || self.filters.all(f, size(f.name) > 0 && size(f.values) > 0)",message="each ami.filters entry must have a non-empty name and at least one value"
 type AMIReference struct {
 	// ID of resource
 	// +optional
@@ -57,6 +59,25 @@ type AMIReference struct {
 	// +kubebuilder:validation:Enum:=AmazonLinux;AmazonLinuxGPU;AmazonLinux2023;AmazonLinux2023GPU
 	// +optional
 	EKSOptimizedLookupType *EKSAMILookupType `json:"eksLookupType,omitempty"`
+
+	// Filters is a set of key/value pairs used to identify an AMI.
+	// They are applied according to the rules defined by the AWS API:
+	// https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Filtering.html
+	//
+	// When multiple AMIs match, the most recently created one (by CreationDate)
+	// is selected. The result is therefore not pinned and may change as new
+	// matching images are published; set ID instead when a stable, reproducible
+	// image is required.
+	//
+	// Warning: unless the filters restrict ownership (for example an "owner-id"
+	// filter), they may match public AMIs published by untrusted accounts, which
+	// could allow a third party to influence the selected image. Always scope
+	// filters to accounts you trust.
+	//
+	// Filters is mutually exclusive with id, eksLookupType, imageLookupFormat,
+	// imageLookupOrg, and imageLookupBaseOS.
+	// +optional
+	Filters []Filter `json:"filters,omitempty"`
 }
 
 // Filter is a filter used to identify an AWS resource.

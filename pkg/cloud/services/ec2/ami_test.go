@@ -296,6 +296,154 @@ func TestAMIs(t *testing.T) {
 	}
 }
 
+func TestAMILookupByFilters(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	testCases := []struct {
+		name    string
+		filters []infrav1.Filter
+		expect  func(m *mocks.MockEC2APIMockRecorder)
+		check   func(g *WithT, img *ec2types.Image, err error)
+	}{
+		{
+			name: "Should return latest AMI matching the provided filters",
+			filters: []infrav1.Filter{
+				{Name: "name", Values: []string{"my-ami-*"}},
+				{Name: "owner-id", Values: []string{"12345"}},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeImages(context.TODO(), gomock.Eq(&ec2.DescribeImagesInput{
+					Filters: []ec2types.Filter{
+						{Name: aws.String("name"), Values: []string{"my-ami-*"}},
+						{Name: aws.String("owner-id"), Values: []string{"12345"}},
+					},
+				})).
+					Return(&ec2.DescribeImagesOutput{
+						Images: []ec2types.Image{
+							{
+								ImageId:      aws.String("ancient"),
+								CreationDate: aws.String("2011-02-08T17:02:31.000Z"),
+							},
+							{
+								ImageId:      aws.String("latest"),
+								CreationDate: aws.String("2019-02-08T17:02:31.000Z"),
+							},
+							{
+								ImageId:      aws.String("oldest"),
+								CreationDate: aws.String("2014-02-08T17:02:31.000Z"),
+							},
+						},
+					}, nil)
+			},
+			check: func(g *WithT, img *ec2types.Image, err error) {
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(*img.ImageId).Should(Equal("latest"))
+			},
+		},
+		{
+			name:    "Should return an error if the DescribeImages call fails",
+			filters: []infrav1.Filter{{Name: "name", Values: []string{"my-ami-*"}}},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeImages(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+					Return(nil, awserrors.NewFailedDependency("dependency failure"))
+			},
+			check: func(g *WithT, img *ec2types.Image, err error) {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(img).To(BeNil())
+			},
+		},
+		{
+			name:    "Should return an error if no images match the provided filters",
+			filters: []infrav1.Filter{{Name: "name", Values: []string{"my-ami-*"}}},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeImages(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+					Return(&ec2.DescribeImagesOutput{}, nil)
+			},
+			check: func(g *WithT, img *ec2types.Image, err error) {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(err.Error()).To(ContainSubstring("no AMIs found matching the provided filters"))
+				g.Expect(img).To(BeNil())
+			},
+		},
+		{
+			name:    "Should return an error if a matching image has an invalid creation date",
+			filters: []infrav1.Filter{{Name: "name", Values: []string{"my-ami-*"}}},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeImages(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
+					Return(&ec2.DescribeImagesOutput{
+						Images: []ec2types.Image{
+							{
+								ImageId:      aws.String("invalid"),
+								CreationDate: aws.String("invalid creation date"),
+							},
+						},
+					}, nil)
+			},
+			check: func(g *WithT, img *ec2types.Image, err error) {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(img).To(BeNil())
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
+			tc.expect(ec2Mock.EXPECT())
+
+			img, err := AMILookupByFilters(context.TODO(), ec2Mock, tc.filters)
+			tc.check(g, img, err)
+		})
+	}
+}
+
+func TestBuildEC2Filters(t *testing.T) {
+	tests := []struct {
+		name         string
+		inputFilters []infrav1.Filter
+		want         []ec2types.Filter
+	}{
+		{
+			name:         "Should return an empty slice for nil input",
+			inputFilters: nil,
+			want:         []ec2types.Filter{},
+		},
+		{
+			name:         "Should return an empty slice for empty input",
+			inputFilters: []infrav1.Filter{},
+			want:         []ec2types.Filter{},
+		},
+		{
+			name:         "Should convert a single filter",
+			inputFilters: []infrav1.Filter{{Name: "name", Values: []string{"my-ami-*"}}},
+			want: []ec2types.Filter{
+				{Name: aws.String("name"), Values: []string{"my-ami-*"}},
+			},
+		},
+		{
+			name: "Should convert multiple filters preserving order",
+			inputFilters: []infrav1.Filter{
+				{Name: "name", Values: []string{"my-ami-*"}},
+				{Name: "owner-id", Values: []string{"12345", "67890"}},
+			},
+			want: []ec2types.Filter{
+				{Name: aws.String("name"), Values: []string{"my-ami-*"}},
+				{Name: aws.String("owner-id"), Values: []string{"12345", "67890"}},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			got := BuildEC2Filters(tt.inputFilters)
+			g.Expect(got).To(Equal(tt.want))
+		})
+	}
+}
+
 func TestFormatVersionForEKS(t *testing.T) {
 	tests := []struct {
 		name    string

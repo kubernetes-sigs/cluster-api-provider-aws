@@ -141,6 +141,13 @@ func (w *AWSManagedMachinePool) validateLaunchTemplate(r *expinfrav1.AWSManagedM
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "AWSLaunchTemplate", "IamInstanceProfile"), r.Spec.AWSLaunchTemplate.IamInstanceProfile, "IAM instance profile in launch template is prohibited in EKS managed node group"))
 	}
 
+	// AMI filters are only resolved for self-managed pools. For EKS managed node groups the
+	// AMI is selected by the EKS service, so the field would have no effect and is rejected
+	// here rather than being silently ignored.
+	if len(r.Spec.AWSLaunchTemplate.AMI.Filters) > 0 {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "AWSLaunchTemplate", "ami", "filters"), "AMI filters are not supported for EKS managed node groups"))
+	}
+
 	return allErrs
 }
 

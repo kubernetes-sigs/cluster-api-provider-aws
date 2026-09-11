@@ -20645,8 +20645,8 @@ Resource Types:
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSLaunchTemplate">AWSLaunchTemplate</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSLaunchTemplate">AWSLaunchTemplate</a>)
 </p>
 <p>
-<p>AMIReference is a reference to a specific AWS resource by ID, ARN, or filters.
-Only one of ID, ARN or Filters may be specified. Specifying more than one will result in
+<p>AMIReference is a reference to a specific AWS resource by ID, EKS optimized lookup, or filters.
+Only one of ID, EKSOptimizedLookupType, or Filters may be specified. Specifying more than one will result in
 a validation error.</p>
 </p>
 <table>
@@ -20681,6 +20681,32 @@ EKSAMILookupType
 <td>
 <em>(Optional)</em>
 <p>EKSOptimizedLookupType If specified, will look up an EKS Optimized image in SSM Parameter store</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>filters</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.Filter">
+[]Filter
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Filters is a set of key/value pairs used to identify an AMI.
+They are applied according to the rules defined by the AWS API:
+<a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Filtering.html">https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Filtering.html</a></p>
+<p>When multiple AMIs match, the most recently created one (by CreationDate)
+is selected. The result is therefore not pinned and may change as new
+matching images are published; set ID instead when a stable, reproducible
+image is required.</p>
+<p>Warning: unless the filters restrict ownership (for example an &ldquo;owner-id&rdquo;
+filter), they may match public AMIs published by untrusted accounts, which
+could allow a third party to influence the selected image. Always scope
+filters to accounts you trust.</p>
+<p>Filters is mutually exclusive with id, eksLookupType, imageLookupFormat,
+imageLookupOrg, and imageLookupBaseOS.</p>
 </td>
 </tr>
 </tbody>
@@ -25771,7 +25797,7 @@ bool
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.Filter">Filter
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSResourceReference">AWSResourceReference</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AMIReference">AMIReference</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSResourceReference">AWSResourceReference</a>)
 </p>
 <p>
 <p>Filter is a filter used to identify an AWS resource.</p>
