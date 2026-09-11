@@ -20,7 +20,7 @@ linters:
               #- "commentstart" # Ensure comments start with the serialized version of the field name.
               #- "conditions" # Ensure conditions have the correct json tags and markers.
               #- "integers" # Ensure only int32 and int64 are used for integers.
-              #- "jsontags" # Ensure every field has a json tag.
+              - "jsontags" # Ensure every field has a json tag.
               #- "maxlength" # Ensure all strings and arrays have maximum lengths/maximum items.
               #- "nobools" # Bools do not evolve over time, should use enums instead.
               #- "nofloats" # Ensure floats are not used.
@@ -46,14 +46,9 @@ linters:
 
 exclusions:
     generated: strict
-    paths:
-      - zz_generated.*\.go$
-      - ".*_test.go"  # Exclude test files.
+    # NOTE: Path-based exclusions via config don't work reliably in this golangci-lint version.
+    # Instead, we use command-line path arguments in the Makefile to limit linting to API directories only.
     rules:
-    # KAL should only run on API folders.
-    - path-except: "api//*"
-      linters:
-        - kubeapilinter
     - path: "api/v1beta1/*|api/v1alpha1/*"
       text: "Conditions field must be a slice of metav1.Condition"
       linters:
