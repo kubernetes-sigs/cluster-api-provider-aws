@@ -29,6 +29,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -43,6 +44,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	"sigs.k8s.io/cluster-api/util/kubeconfig"
 )
 
 var scheme = runtime.NewScheme()
@@ -134,15 +136,26 @@ type ManagedControlPlaneScope struct {
 
 // RemoteClient returns the Kubernetes client for connecting to the workload cluster.
 func (s *ManagedControlPlaneScope) RemoteClient() (client.Client, error) {
+	// Build the workload client directly because this scope does not own a
+	// ClusterCache; the deprecated remote.RESTConfig helper did the same work.
 	clusterKey := client.ObjectKey{
 		Name:      s.Name(),
 		Namespace: s.Namespace(),
 	}
 
-	restConfig, err := remote.RESTConfig(context.Background(), s.ControlPlane.Name, s.Client, clusterKey)
+	kubeConfig, err := kubeconfig.FromSecret(context.Background(), s.Client, clusterKey)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"getting remote rest config for %s/%s: failed to retrieve kubeconfig secret for Cluster %s/%s: %w",
+			s.Namespace(), s.Name(), clusterKey.Namespace, clusterKey.Name, err,
+		)
+	}
+
+	restConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeConfig)
 	if err != nil {
 		return nil, fmt.Errorf("getting remote rest config for %s/%s: %w", s.Namespace(), s.Name(), err)
 	}
+	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent(s.ControlPlane.Name)
 	restConfig.Timeout = 1 * time.Minute
 
 	return client.New(restConfig, client.Options{Scheme: scheme})

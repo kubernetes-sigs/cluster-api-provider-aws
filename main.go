@@ -72,6 +72,8 @@ import (
 	capawebhooks "sigs.k8s.io/cluster-api-provider-aws/v2/webhooks"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
+	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util/flags"
 )
 
@@ -407,11 +409,30 @@ func setupReconcilersAndWebhooks(ctx context.Context, mgr ctrl.Manager,
 
 	if feature.Gates.Enabled(feature.MachinePool) {
 		setupLog.Debug("enabling machine pool controller and webhook")
+		// ClusterCache provides clients for workload clusters and notifies the
+		// MachinePool controller when a workload cluster becomes available.
+		machinePoolClusterCache, err := clustercache.SetupWithManager(ctx, mgr, clustercache.Options{
+			SecretClient: mgr.GetClient(),
+			Client: clustercache.ClientOptions{
+				UserAgent: remote.DefaultClusterAPIUserAgent("cluster-api-provider-aws-controller"),
+			},
+			WatchFilterValue: watchFilterValue,
+		}, controller.Options{
+			MaxConcurrentReconciles: instanceStateConcurrency,
+			RecoverPanic:            ptr.To[bool](true),
+		})
+		if err != nil {
+			err = fmt.Errorf("setting up MachinePool ClusterCache: %w", err)
+			setupLog.Error(err, "unable to create cluster cache", "controller", "AWSMachinePool")
+			os.Exit(1)
+		}
+
 		if err := (&expcontrollers.AWSMachinePoolReconciler{
 			Client:                       mgr.GetClient(),
 			Recorder:                     mgr.GetEventRecorderFor("awsmachinepool-controller"),
 			WatchFilterValue:             watchFilterValue,
 			TagUnmanagedNetworkResources: feature.Gates.Enabled(feature.TagUnmanagedNetworkResources),
+			ClusterCache:                 machinePoolClusterCache,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: instanceStateConcurrency, RecoverPanic: ptr.To[bool](true)}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "AWSMachinePool")
 			os.Exit(1)
