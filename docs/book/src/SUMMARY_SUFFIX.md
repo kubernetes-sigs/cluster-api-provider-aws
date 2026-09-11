@@ -1,5 +1,6 @@
 - [Developer Guide](./development/development.md)
   - [Development with Tilt](./development/tilt-setup.md)
+  - [Test a self-hosted management cluster](./development/aws-management-cluster.md)
   - [Developing E2E tests](./development/e2e.md)
   - [Coding Conventions](./development/conventions.md)
   - [Try unreleased changes with Nightly Builds](./development/nightlies.md)

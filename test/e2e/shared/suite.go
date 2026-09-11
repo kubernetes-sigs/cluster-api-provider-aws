@@ -77,15 +77,32 @@ type synchronizedBeforeTestSuiteConfig struct {
 	GinkgoNodes              int                  `json:"ginkgoNodes,omitempty"`
 	GinkgoSlowSpecThreshold  int                  `json:"ginkgoSlowSpecThreshold,omitempty"`
 	Base64EncodedCredentials string               `json:"base64EncodedCredentials,omitempty"`
+	ProvisionOnly            bool                 `json:"provisionOnly,omitempty"`
+	TeardownOnly             bool                 `json:"teardownOnly,omitempty"`
 }
 
-// Node1BeforeSuite is the common setup down on the first ginkgo node before the test suite runs.
-func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
+// ProvisionTestEnvironment provisions the shared environment on the first Ginkgo process.
+func ProvisionTestEnvironment(e2eCtx *E2EContext) []byte {
 	flag.Parse()
+	Expect(validateManagementClusterSettings(e2eCtx.Settings)).To(Succeed())
 	Expect(e2eCtx.Settings.ConfigPath).To(BeAnExistingFile(), "Invalid test suite argument. configPath should be an existing file.")
 	Expect(os.MkdirAll(e2eCtx.Settings.ArtifactFolder, 0o750)).To(Succeed(), "Invalid test suite argument. Can't create artifacts-folder %q", e2eCtx.Settings.ArtifactFolder)
 	By(fmt.Sprintf("Loading the e2e test configuration from %q", e2eCtx.Settings.ConfigPath))
 	e2eCtx.E2EConfig = LoadE2EConfig(e2eCtx.Settings.ConfigPath)
+	if e2eCtx.Settings.TeardownSelfHostedManagementCluster {
+		e2eCtx.Environment.BootstrapClusterProvider, e2eCtx.Environment.BootstrapClusterProxy = loadSelfHostedManagementCluster(e2eCtx)
+		provider := e2eCtx.Environment.BootstrapClusterProvider.(*selfHostedManagementClusterProvider)
+		data, err := yaml.Marshal(synchronizedBeforeTestSuiteConfig{
+			ArtifactFolder:       e2eCtx.Settings.ArtifactFolder,
+			ConfigPath:           e2eCtx.Settings.ConfigPath,
+			ClusterctlConfigPath: provider.clusterctlConfig,
+			KubeconfigPath:       provider.GetKubeconfigPath(),
+			E2EConfig:            *e2eCtx.E2EConfig,
+			TeardownOnly:         true,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		return data
+	}
 	sourceTemplate, err := os.ReadFile(filepath.Join(e2eCtx.Settings.DataFolder, e2eCtx.Settings.SourceTemplate))
 	Expect(err).NotTo(HaveOccurred())
 	e2eCtx.StartOfSuite = time.Now()
@@ -216,6 +233,11 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 
 	CreateAWSClusterControllerIdentity(e2eCtx.Environment.BootstrapClusterProxy.GetClient())
 
+	if e2eCtx.Settings.ProvisionSelfHostedManagementCluster {
+		By("Promoting an AWS workload cluster to the suite management cluster")
+		e2eCtx.Environment.BootstrapClusterProvider, e2eCtx.Environment.BootstrapClusterProxy = setupSelfHostedManagementCluster(e2eCtx)
+	}
+
 	if e2eCtx.IsManaged {
 		By("Setting up AWS static credentials")
 		SetupStaticCredentials(e2eCtx)
@@ -234,6 +256,8 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 		GinkgoNodes:              e2eCtx.Settings.GinkgoNodes,
 		GinkgoSlowSpecThreshold:  e2eCtx.Settings.GinkgoSlowSpecThreshold,
 		Base64EncodedCredentials: base64EncodedCredentials,
+		ProvisionOnly:            e2eCtx.Settings.ProvisionSelfHostedManagementCluster,
+		TeardownOnly:             e2eCtx.Settings.TeardownSelfHostedManagementCluster,
 	}
 
 	data, err := yaml.Marshal(conf)
@@ -241,8 +265,8 @@ func Node1BeforeSuite(e2eCtx *E2EContext) []byte {
 	return data
 }
 
-// AllNodesBeforeSuite is the common setup down on each ginkgo parallel node before the test suite runs.
-func AllNodesBeforeSuite(e2eCtx *E2EContext, data []byte) {
+// PrepareTestExecution connects every Ginkgo process to the provisioned environment.
+func PrepareTestExecution(e2eCtx *E2EContext, data []byte) {
 	conf := &synchronizedBeforeTestSuiteConfig{}
 	err := yaml.UnmarshalStrict(data, conf)
 	Expect(err).NotTo(HaveOccurred())
@@ -259,6 +283,11 @@ func AllNodesBeforeSuite(e2eCtx *E2EContext, data []byte) {
 	e2eCtx.Settings.UseCIArtifacts = conf.UseCIArtifacts
 	e2eCtx.Settings.GinkgoNodes = conf.GinkgoNodes
 	e2eCtx.Settings.GinkgoSlowSpecThreshold = conf.GinkgoSlowSpecThreshold
+	e2eCtx.Settings.ProvisionSelfHostedManagementCluster = conf.ProvisionOnly
+	e2eCtx.Settings.TeardownSelfHostedManagementCluster = conf.TeardownOnly
+	if conf.ProvisionOnly || conf.TeardownOnly {
+		return
+	}
 	e2eCtx.AWSSession = NewAWSSession()
 	azs := GetAvailabilityZones(*e2eCtx.AWSSession)
 	SetEnvVar(AwsAvailabilityZone1, *azs[0].ZoneName, false)
@@ -342,8 +371,17 @@ func AllNodesBeforeSuite(e2eCtx *E2EContext, data []byte) {
 	}()
 }
 
-// Node1AfterSuite is cleanup that runs on the first ginkgo node after the test suite finishes.
-func Node1AfterSuite(e2eCtx *E2EContext) {
+// TeardownTestEnvironment deletes the shared environment on the first Ginkgo process.
+func TeardownTestEnvironment(e2eCtx *E2EContext) {
+	if e2eCtx.Settings.TeardownSelfHostedManagementCluster {
+		By("Tearing down the self-hosted AWS management cluster and kind bootstrap cluster")
+		e2eCtx.Environment.BootstrapClusterProvider.Dispose(context.TODO())
+		return
+	}
+	if e2eCtx.Settings.ProvisionSelfHostedManagementCluster {
+		By("Leaving the self-hosted AWS management cluster and kind bootstrap cluster running")
+		return
+	}
 	ctx, cancel := context.WithTimeout(context.TODO(), 15*time.Minute)
 	DumpEKSClusters(ctx, e2eCtx)
 	DumpCloudTrailEvents(e2eCtx)
@@ -363,8 +401,8 @@ func Node1AfterSuite(e2eCtx *E2EContext) {
 	}
 }
 
-// AllNodesAfterSuite is cleanup that runs on all ginkgo parallel nodes after the test suite finishes.
-func AllNodesAfterSuite(e2eCtx *E2EContext) {
+// FinishTestExecution stops per-process diagnostics and cleans resources created by test specs.
+func FinishTestExecution(e2eCtx *E2EContext) {
 	if e2eCtx.Environment.ResourceTickerDone != nil {
 		e2eCtx.Environment.ResourceTickerDone <- true
 	}
