@@ -267,6 +267,35 @@ func TestMakeVPCConfig(t *testing.T) {
 				PublicAccessCidrs: []string{"10.0.0.0/24"},
 			},
 		},
+		{
+			name: "cni subnets are excluded",
+			input: input{
+				subnets: []infrav1.SubnetSpec{
+					{
+						ID:               idOne,
+						CidrBlock:        "10.0.10.0/24",
+						AvailabilityZone: "us-west-2a",
+					},
+					{
+						ID:               idTwo,
+						CidrBlock:        "10.0.11.0/24",
+						AvailabilityZone: "us-west-2b",
+					},
+					{
+						ID:               "cni-subnet",
+						CidrBlock:        "100.64.0.0/18",
+						AvailabilityZone: "us-west-2a",
+						Tags: infrav1.Tags{
+							infrav1.NameAWSSubnetAssociation: infrav1.SecondarySubnetTagValue,
+						},
+					},
+				},
+				endpointAccess: ekscontrolplanev1.EndpointAccess{},
+			},
+			expect: &ekstypes.VpcConfigRequest{
+				SubnetIds: []string{idOne, idTwo},
+			},
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
