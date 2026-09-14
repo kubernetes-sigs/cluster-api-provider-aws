@@ -5528,7 +5528,7 @@ func TestCreateInstance(t *testing.T) {
 					}, nil)
 			},
 			check: func(instance *infrav1.Instance, err error) {
-				expectedErrMsg := "capacityReservationID is required when CapacityBlock is enabled"
+				expectedErrMsg := "capacityReservationID or capacityReservationResourceGroupARN is required when CapacityBlock is enabled"
 				if err == nil {
 					t.Fatalf("Expected error, but got nil")
 				}
@@ -5766,6 +5766,140 @@ func TestCreateInstance(t *testing.T) {
 							},
 						},
 					}, nil)
+				m.
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []types.NetworkInterface{},
+						NextToken:         nil,
+					}, nil)
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+			},
+		},
+		{
+			name: "Simple, setting CapacityReservationResourceGroupARN and CapacityReservationPreference",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: ptr.To[string]("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AMIReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType:                        "m5.large",
+				CapacityReservationResourceGroupARN: aws.String("arn:aws:resource-groups:us-east-1:123456789012:group/capacity-reservation-group"),
+				CapacityReservationPreference:       infrav1.CapacityReservationPreferenceOnly,
+			},
+			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						Subnets: infrav1.Subnets{
+							infrav1.SubnetSpec{
+								ID:       "subnet-1",
+								IsPublic: false,
+							},
+							infrav1.SubnetSpec{
+								IsPublic: false,
+							},
+						},
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-test",
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {
+								ID: "1",
+							},
+							infrav1.SecurityGroupNode: {
+								ID: "2",
+							},
+							infrav1.SecurityGroupLB: {
+								ID: "3",
+							},
+						},
+						APIServerELB: infrav1.LoadBalancer{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.
+					DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+						InstanceTypes: []types.InstanceType{
+							types.InstanceTypeM5Large,
+						},
+					})).
+					Return(&ec2.DescribeInstanceTypesOutput{
+						InstanceTypes: []types.InstanceTypeInfo{
+							{
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
+									},
+								},
+							},
+						},
+					}, nil)
+				m.
+					RunInstances(context.TODO(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, input *ec2.RunInstancesInput, optFns ...func(*ec2.Options)) (*ec2.RunInstancesOutput, error) {
+						if input.CapacityReservationSpecification == nil ||
+							input.CapacityReservationSpecification.CapacityReservationTarget == nil ||
+							aws.ToString(input.CapacityReservationSpecification.CapacityReservationTarget.CapacityReservationResourceGroupArn) != "arn:aws:resource-groups:us-east-1:123456789012:group/capacity-reservation-group" ||
+							input.CapacityReservationSpecification.CapacityReservationPreference != types.CapacityReservationPreferenceCapacityReservationsOnly {
+							t.Fatalf("unexpected capacity reservation specification: %#v", input.CapacityReservationSpecification)
+						}
+
+						return &ec2.RunInstancesOutput{
+							Instances: []types.Instance{
+								{
+									State: &types.InstanceState{
+										Name: types.InstanceStateNamePending,
+									},
+									IamInstanceProfile: &types.IamInstanceProfile{
+										Arn: aws.String("arn:aws:iam::123456789012:instance-profile/foo"),
+									},
+									InstanceId:     aws.String("two"),
+									InstanceType:   types.InstanceTypeM5Large,
+									SubnetId:       aws.String("subnet-1"),
+									ImageId:        aws.String("ami-1"),
+									RootDeviceName: aws.String("device-1"),
+									BlockDeviceMappings: []types.InstanceBlockDeviceMapping{
+										{
+											DeviceName: aws.String("device-1"),
+											Ebs: &types.EbsInstanceBlockDevice{
+												VolumeId: aws.String("volume-1"),
+											},
+										},
+									},
+									Placement: &types.Placement{
+										AvailabilityZone: &az,
+									},
+									CapacityReservationSpecification: &types.CapacityReservationSpecificationResponse{
+										CapacityReservationPreference: types.CapacityReservationPreferenceCapacityReservationsOnly,
+										CapacityReservationTarget: &types.CapacityReservationTargetResponse{
+											CapacityReservationResourceGroupArn: aws.String("arn:aws:resource-groups:us-east-1:123456789012:group/capacity-reservation-group"),
+										},
+									},
+									InstanceLifecycle: types.InstanceLifecycleTypeScheduled,
+								},
+							},
+						}, nil
+					})
 				m.
 					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
 					Return(&ec2.DescribeNetworkInterfacesOutput{
@@ -6108,6 +6242,7 @@ func TestCreateInstance(t *testing.T) {
 
 func TestGetInstanceMarketOptionsRequest(t *testing.T) {
 	mockCapacityReservationID := ptr.To[string]("cr-123")
+	mockCapacityReservationResourceGroupARN := ptr.To[string]("arn:aws:resource-groups:us-east-1:123456789012:group/capacity-reservation-group")
 	testCases := []struct {
 		name            string
 		instance        *infrav1.Instance
@@ -6169,7 +6304,7 @@ func TestGetInstanceMarketOptionsRequest(t *testing.T) {
 				MarketType:            infrav1.MarketTypeSpot,
 				CapacityReservationID: mockCapacityReservationID,
 			},
-			expectedError: errors.Errorf("unable to generate marketOptions for spot instance, capacityReservationID is incompatible with marketType spot and spotMarketOptions"),
+			expectedError: errors.Errorf("unable to generate marketOptions for spot instance, capacity reservation targets are incompatible with marketType spot and spotMarketOptions"),
 		},
 		{
 			name: "with spotMarketOptions and capacityRerservationID specified",
@@ -6177,7 +6312,23 @@ func TestGetInstanceMarketOptionsRequest(t *testing.T) {
 				SpotMarketOptions:     &infrav1.SpotMarketOptions{},
 				CapacityReservationID: mockCapacityReservationID,
 			},
-			expectedError: errors.Errorf("unable to generate marketOptions for spot instance, capacityReservationID is incompatible with marketType spot and spotMarketOptions"),
+			expectedError: errors.Errorf("unable to generate marketOptions for spot instance, capacity reservation targets are incompatible with marketType spot and spotMarketOptions"),
+		},
+		{
+			name: "with marketType Spot and capacityReservationResourceGroupARN specified",
+			instance: &infrav1.Instance{
+				MarketType:                          infrav1.MarketTypeSpot,
+				CapacityReservationResourceGroupARN: mockCapacityReservationResourceGroupARN,
+			},
+			expectedError: errors.Errorf("unable to generate marketOptions for spot instance, capacity reservation targets are incompatible with marketType spot and spotMarketOptions"),
+		},
+		{
+			name: "with capacityReservationID and capacityReservationResourceGroupARN specified",
+			instance: &infrav1.Instance{
+				CapacityReservationID:               mockCapacityReservationID,
+				CapacityReservationResourceGroupARN: mockCapacityReservationResourceGroupARN,
+			},
+			expectedError: errors.Errorf("capacityReservationID and capacityReservationResourceGroupARN are mutually exclusive"),
 		},
 		{
 			name: "with an empty MaxPrice specified",
@@ -6225,13 +6376,24 @@ func TestGetInstanceMarketOptionsRequest(t *testing.T) {
 				CapacityReservationID: nil,
 			},
 			expectedRequest: nil,
-			expectedError:   errors.Errorf("capacityReservationID is required when CapacityBlock is enabled"),
+			expectedError:   errors.Errorf("capacityReservationID or capacityReservationResourceGroupARN is required when CapacityBlock is enabled"),
 		},
 		{
 			name: "with a MarketType to MarketTypeCapacityBlock with capacityReservationID set to nil",
 			instance: &infrav1.Instance{
 				MarketType:            infrav1.MarketTypeCapacityBlock,
 				CapacityReservationID: mockCapacityReservationID,
+			},
+			expectedRequest: &types.InstanceMarketOptionsRequest{
+				MarketType: types.MarketTypeCapacityBlock,
+			},
+			expectedError: nil,
+		},
+		{
+			name: "with a MarketType to MarketTypeCapacityBlock with capacityReservationResourceGroupARN set",
+			instance: &infrav1.Instance{
+				MarketType:                          infrav1.MarketTypeCapacityBlock,
+				CapacityReservationResourceGroupARN: mockCapacityReservationResourceGroupARN,
 			},
 			expectedRequest: &types.InstanceMarketOptionsRequest{
 				MarketType: types.MarketTypeCapacityBlock,
@@ -6822,11 +6984,15 @@ func mockedGetPrivateDNSDomainNameFromDHCPOptionsErrorCalls(m *mocks.MockEC2APIM
 func TestGetCapacityReservationSpecification(t *testing.T) {
 	mockCapacityReservationID := "cr-123"
 	mockCapacityReservationIDPtr := &mockCapacityReservationID
+	mockCapacityReservationResourceGroupARN := "arn:aws:resource-groups:us-east-1:123456789012:group/capacity-reservation-group"
+	mockCapacityReservationResourceGroupARNPtr := &mockCapacityReservationResourceGroupARN
 	testCases := []struct {
-		name                          string
-		capacityReservationID         *string
-		capacityReservationPreference infrav1.CapacityReservationPreference
-		expectedRequest               *types.CapacityReservationSpecification
+		name                                string
+		capacityReservationID               *string
+		capacityReservationResourceGroupARN *string
+		capacityReservationPreference       infrav1.CapacityReservationPreference
+		expectedRequest                     *types.CapacityReservationSpecification
+		expectedError                       error
 	}{
 		{
 			name:                  "with no CapacityReservationID options specified",
@@ -6840,6 +7006,26 @@ func TestGetCapacityReservationSpecification(t *testing.T) {
 				CapacityReservationTarget: &types.CapacityReservationTarget{
 					CapacityReservationId: aws.String(mockCapacityReservationID),
 				},
+			},
+		},
+		{
+			name:                                "with a valid reservation resource group ARN specified",
+			capacityReservationResourceGroupARN: mockCapacityReservationResourceGroupARNPtr,
+			expectedRequest: &types.CapacityReservationSpecification{
+				CapacityReservationTarget: &types.CapacityReservationTarget{
+					CapacityReservationResourceGroupArn: aws.String(mockCapacityReservationResourceGroupARN),
+				},
+			},
+		},
+		{
+			name:                                "with a valid reservation resource group ARN and a preference",
+			capacityReservationResourceGroupARN: mockCapacityReservationResourceGroupARNPtr,
+			capacityReservationPreference:       infrav1.CapacityReservationPreferenceOnly,
+			expectedRequest: &types.CapacityReservationSpecification{
+				CapacityReservationTarget: &types.CapacityReservationTarget{
+					CapacityReservationResourceGroupArn: aws.String(mockCapacityReservationResourceGroupARN),
+				},
+				CapacityReservationPreference: types.CapacityReservationPreferenceCapacityReservationsOnly,
 			},
 		},
 		{
@@ -6861,10 +7047,27 @@ func TestGetCapacityReservationSpecification(t *testing.T) {
 				CapacityReservationPreference: types.CapacityReservationPreferenceNone,
 			},
 		},
+		{
+			name:                                "with both reservation target types",
+			capacityReservationID:               mockCapacityReservationIDPtr,
+			capacityReservationResourceGroupARN: mockCapacityReservationResourceGroupARNPtr,
+			expectedError:                       errors.New("capacityReservationID and capacityReservationResourceGroupARN are mutually exclusive"),
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			request := getCapacityReservationSpecification(tc.capacityReservationID, tc.capacityReservationPreference)
+			request, err := getCapacityReservationSpecification(tc.capacityReservationID, tc.capacityReservationResourceGroupARN, tc.capacityReservationPreference)
+			if tc.expectedError == nil && err != nil {
+				t.Fatalf("Case: %s. Got error: %v, expected: %v", tc.name, err, tc.expectedError)
+			}
+			if tc.expectedError != nil {
+				if err == nil {
+					t.Fatalf("Case: %s. Got error: %v, expected: %v", tc.name, err, tc.expectedError)
+				}
+				if err.Error() != tc.expectedError.Error() {
+					t.Fatalf("Case: %s. Got error: %v, expected: %v", tc.name, err, tc.expectedError)
+				}
+			}
 			if !cmp.Equal(request, tc.expectedRequest, cmpopts.IgnoreUnexported(types.CapacityReservationSpecification{}, types.CapacityReservationTarget{})) {
 				t.Errorf("Case: %s. Got: %v, expected: %v", tc.name, request, tc.expectedRequest)
 			}

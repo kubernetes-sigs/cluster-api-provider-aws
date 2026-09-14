@@ -58,6 +58,10 @@ const (
 	LaunchTemplateNeedsUpdateReasonSpotMarketOptions LaunchTemplateNeedsUpdateReason = "SpotMarketOptions"
 	// LaunchTemplateNeedsUpdateReasonCapacityReservationID means a difference in the capacity reservation ID was found.
 	LaunchTemplateNeedsUpdateReasonCapacityReservationID LaunchTemplateNeedsUpdateReason = "CapacityReservationID"
+	// LaunchTemplateNeedsUpdateReasonCapacityReservationResourceGroupARN means a difference in the capacity reservation resource group ARN was found.
+	LaunchTemplateNeedsUpdateReasonCapacityReservationResourceGroupARN LaunchTemplateNeedsUpdateReason = "CapacityReservationResourceGroupARN"
+	// LaunchTemplateNeedsUpdateReasonCapacityReservationPreference means a difference in the capacity reservation preference was found.
+	LaunchTemplateNeedsUpdateReasonCapacityReservationPreference LaunchTemplateNeedsUpdateReason = "CapacityReservationPreference"
 	// LaunchTemplateNeedsUpdateReasonPrivateDNSName means a difference in the private DNS name was found.
 	LaunchTemplateNeedsUpdateReasonPrivateDNSName LaunchTemplateNeedsUpdateReason = "PrivateDNSName"
 	// LaunchTemplateNeedsUpdateReasonSSHKeyName means a difference in the SSH key name was found.
