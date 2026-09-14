@@ -152,7 +152,13 @@ Running cluster-api and cluster-api-provider-aws controllers in a kind cluster:
 1. Create a local kind cluster
    - `kind create cluster`
 2. Install core cluster-api controllers (the version must match the cluster-api version in [go.mod][go.mod])
-   - `clusterctl init --core cluster-api:v0.3.16 --bootstrap kubeadm:v0.3.16 --control-plane kubeadm:v0.3.16`
+
+   ```bash
+   CAPI_VERSION=$(go list -m -f '{{.Version}}' sigs.k8s.io/cluster-api)
+   clusterctl init --core cluster-api:${CAPI_VERSION} \
+     --bootstrap kubeadm:${CAPI_VERSION} \
+     --control-plane kubeadm:${CAPI_VERSION}
+   ```
 3. Build cluster-api-provider-aws docker images
    - `make e2e-image`
 4. Release manifests under `./out` directory
