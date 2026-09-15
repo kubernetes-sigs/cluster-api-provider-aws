@@ -267,7 +267,7 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 					ID:    rosaMachinePool(0).Spec.NodePoolName,
 				},
 			},
-			result: ctrl.Result{},
+			result: ctrl.Result{RequeueAfter: defaultRequeueInterval},
 			expect: func(m *mocks.MockOCMClientMockRecorder) {
 				m.GetNodePool(gomock.Any(), gomock.Any()).DoAndReturn(func(clusterId string, nodePoolID string) (*cmv1.NodePool, bool, error) {
 					return nil, false, nil
@@ -302,7 +302,7 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 					Replicas: 0,
 				},
 			},
-			result: ctrl.Result{RequeueAfter: time.Second * 60},
+			result: ctrl.Result{RequeueAfter: defaultRequeueInterval},
 			expect: func(m *mocks.MockOCMClientMockRecorder) {
 				m.GetNodePool(gomock.Any(), gomock.Any()).DoAndReturn(func(clusterId string, nodePoolID string) (*cmv1.NodePool, bool, error) {
 					nodePoolBuilder := nodePoolBuilder(rosaMachinePool(1).Spec, ownerMachinePool(1).Spec, rosacontrolplanev1.Stable, "")
@@ -421,7 +421,7 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 					ID:    rosaMachinePool(3).Spec.NodePoolName,
 				},
 			},
-			result: ctrl.Result{},
+			result: ctrl.Result{RequeueAfter: defaultRequeueInterval},
 			expect: func(m *mocks.MockOCMClientMockRecorder) {
 				m.GetNodePool(gomock.Any(), gomock.Any()).DoAndReturn(func(clusterId string, nodePoolID string) (*cmv1.NodePool, bool, error) {
 					return nil, false, nil
