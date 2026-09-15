@@ -30,6 +30,8 @@ import (
 // Limit defines the maximum frequency of some events.
 // Limit is represented as number of events per second.
 // A zero Limit allows no events.
+//
+//nolint:kubeapilinter // This is an internal rate limiter implementation, not a Kubernetes API
 type Limit float64
 
 // Inf is the infinite rate limit; it allows all events (even if burst is zero).
@@ -66,6 +68,8 @@ func Every(interval time.Duration) Limit {
 // or its associated context.Context is canceled.
 //
 // The methods AllowN, ReserveN, and WaitN consume n tokens.
+//
+//nolint:kubeapilinter // This is an internal rate limiter implementation, not a Kubernetes API
 type Limiter struct {
 	mu     sync.Mutex
 	limit  Limit
@@ -117,6 +121,8 @@ func (lim *Limiter) AllowN(now time.Time, n int) bool {
 
 // A Reservation holds information about events that are permitted by a Limiter to happen after a delay.
 // A Reservation may be canceled, which may enable the Limiter to permit additional events.
+//
+//nolint:kubeapilinter // This is an internal rate limiter implementation, not a Kubernetes API
 type Reservation struct {
 	ok        bool
 	lim       *Limiter
