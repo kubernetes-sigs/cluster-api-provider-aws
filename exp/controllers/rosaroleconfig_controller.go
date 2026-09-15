@@ -206,18 +206,18 @@ func (r *ROSARoleConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				Severity: clusterv1beta1.ConditionSeverityInfo,
 				Message:  "RosaRoleConfig is ready",
 			})
-	} else {
-		v1beta1conditions.Set(scope.RosaRoleConfig,
-			&clusterv1beta1.Condition{
-				Type:     expinfrav1.RosaRoleConfigReadyCondition,
-				Status:   corev1.ConditionFalse,
-				Reason:   expinfrav1.RosaRoleConfigCreatedReason,
-				Severity: clusterv1beta1.ConditionSeverityInfo,
-				Message:  "RosaRoleConfig not ready",
-			})
+		return ctrl.Result{}, nil
 	}
 
-	return ctrl.Result{}, nil
+	v1beta1conditions.Set(scope.RosaRoleConfig,
+		&clusterv1beta1.Condition{
+			Type:     expinfrav1.RosaRoleConfigReadyCondition,
+			Status:   corev1.ConditionFalse,
+			Reason:   expinfrav1.RosaRoleConfigCreatedReason,
+			Severity: clusterv1beta1.ConditionSeverityInfo,
+			Message:  "RosaRoleConfig not ready",
+		})
+	return ctrl.Result{RequeueAfter: defaultRequeueInterval}, nil
 }
 
 func (r *ROSARoleConfigReconciler) reconcileDelete(scope *scope.RosaRoleConfigScope, rt *rosacli.Runtime) error {
@@ -271,10 +271,20 @@ func (r *ROSARoleConfigReconciler) reconcileOperatorRoles(scope *scope.RosaRoleC
 	}
 
 	config := scope.RosaRoleConfig.Spec.OperatorRoleConfig
-	return operatorroles.CreateOperatorRoles(rt, rosa.GetOCMClientEnv(rt.OCMClient), config.PermissionsBoundaryARN,
+	if err := operatorroles.CreateOperatorRoles(rt, rosa.GetOCMClientEnv(rt.OCMClient), config.PermissionsBoundaryARN,
 		interactive.ModeAuto, policies, "", config.SharedVPCConfig.IsSharedVPC(), config.Prefix, true, installerRoleArn,
 		true, oidcConfigID, config.SharedVPCConfig.RouteRoleARN, ocm.DefaultChannelGroup,
-		config.SharedVPCConfig.VPCEndpointRoleARN)
+		config.SharedVPCConfig.VPCEndpointRoleARN); err != nil {
+		return err
+	}
+
+	operatorRolesRef, err = r.lookupOperatorRolesRef(rt, prefix)
+	if err != nil {
+		return err
+	}
+	scope.RosaRoleConfig.Status.OperatorRolesRef = operatorRolesRef
+
+	return nil
 }
 
 // lookupOperatorRolesRef fetches each operator role ARN by its exact name using GetRoleByName.
@@ -375,10 +385,20 @@ func (r *ROSARoleConfigReconciler) reconcileAccountRoles(scope *scope.RosaRoleCo
 		return err
 	}
 
-	return accountroles.CreateHCPRoles(rt, prefix, true, scope.RosaRoleConfig.Spec.AccountRoleConfig.PermissionsBoundaryARN,
+	if err := accountroles.CreateHCPRoles(rt, prefix, true, scope.RosaRoleConfig.Spec.AccountRoleConfig.PermissionsBoundaryARN,
 		rosa.GetOCMClientEnv(rt.OCMClient), policies, scope.RosaRoleConfig.Spec.AccountRoleConfig.Version, scope.RosaRoleConfig.Spec.AccountRoleConfig.Path,
 		scope.RosaRoleConfig.Spec.AccountRoleConfig.SharedVPCConfig.IsSharedVPC(), scope.RosaRoleConfig.Spec.AccountRoleConfig.SharedVPCConfig.RouteRoleARN,
-		scope.RosaRoleConfig.Spec.AccountRoleConfig.SharedVPCConfig.VPCEndpointRoleARN)
+		scope.RosaRoleConfig.Spec.AccountRoleConfig.SharedVPCConfig.VPCEndpointRoleARN); err != nil {
+		return err
+	}
+
+	accountRolesRef, err = r.lookupAccountRolesRef(rt, prefix)
+	if err != nil {
+		return err
+	}
+	scope.RosaRoleConfig.Status.AccountRolesRef = accountRolesRef
+
+	return nil
 }
 
 // lookupAccountRolesRef fetches each account role ARN by its exact name using GetRoleByName.
