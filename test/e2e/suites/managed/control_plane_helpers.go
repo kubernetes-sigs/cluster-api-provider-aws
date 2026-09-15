@@ -49,7 +49,7 @@ func waitForControlPlaneToBeUpgraded(ctx context.Context, input waitForControlPl
 	Expect(input.AWSSession).ToNot(BeNil(), "Invalid argument. input.AWSSession can't be nil")
 	Expect(input.UpgradeVersion).ToNot(BeNil(), "Invalid argument. input.UpgradeVersion can't be nil")
 
-	By(fmt.Sprintf("Ensuring EKS control-plane has been upgraded to kubernetes version %s", input.UpgradeVersion))
+	By(fmt.Sprintf("Ensuring EKS control-plane has been updated to kubernetes version %s", input.UpgradeVersion))
 	v, err := version.ParseGeneric(input.UpgradeVersion)
 	Expect(err).NotTo(HaveOccurred())
 	expectedVersion := fmt.Sprintf("%d.%d", v.Major(), v.Minor())
@@ -71,7 +71,7 @@ func waitForControlPlaneToBeUpgraded(ctx context.Context, input waitForControlPl
 		default:
 			return false, nil
 		}
-	}, intervals...).Should(BeTrue(), fmt.Sprintf("Eventually failed waiting for EKS control-plane to be upgraded to kubernetes version %q", input.UpgradeVersion))
+	}, intervals...).Should(BeTrue(), fmt.Sprintf("Eventually failed waiting for EKS control-plane to be updated to kubernetes version %q", input.UpgradeVersion))
 }
 
 type GetControlPlaneByNameInput struct {
