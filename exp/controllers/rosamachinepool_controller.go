@@ -245,15 +245,20 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 		return ctrl.Result{}, fmt.Errorf("failed to create OCM client: %w", err)
 	}
 
-	failureMessage, err := validateMachinePoolSpec(machinePoolScope)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to validate ROSAMachinePool.spec: %w", err)
-	}
-	if failureMessage != nil {
-		// dont' requeue because input is invalid and manual intervention is needed.
+	if err := validateMachinePoolSpec(machinePoolScope); err != nil {
+		// Surface the error to the condition; Status.FailureMessage is avoided
+		// intentionally as writing it panics CAPI's MachinePool controller.
+		machinePoolScope.RosaMachinePool.Status.Ready = false
+		v1beta1conditions.MarkFalse(machinePoolScope.RosaMachinePool,
+			expinfrav1.RosaMachinePoolReadyCondition,
+			expinfrav1.RosaMachinePoolReconciliationFailedReason,
+			clusterv1beta1.ConditionSeverityError,
+			"%s", err)
+		machinePoolScope.Info("Invalid ROSAMachinePool spec", "error", err)
+
+		// Don't requeue because input is invalid and manual intervention is needed.
 		return ctrl.Result{}, nil
 	}
-	machinePoolScope.RosaMachinePool.Status.FailureMessage = nil
 
 	rosaMachinePool := machinePoolScope.RosaMachinePool
 	machinePool := machinePoolScope.MachinePool
@@ -306,6 +311,15 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 			rosaMachinePool.Status.Ready = true
 
 			if err := r.reconcileMachinePoolVersion(machinePoolScope, ocmClient, nodePool); err != nil {
+				// The pool was just marked Ready=True above; if the upgrade scheduling
+				// fails (e.g. OCM rejects the requested version), clear that so the
+				// error is visible in status rather than only in controller logs.
+				rosaMachinePool.Status.Ready = false
+				v1beta1conditions.MarkFalse(rosaMachinePool,
+					expinfrav1.RosaMachinePoolReadyCondition,
+					expinfrav1.RosaMachinePoolReconciliationFailedReason,
+					clusterv1beta1.ConditionSeverityError,
+					"%s", err.Error())
 				return ctrl.Result{}, err
 			}
 
@@ -471,27 +485,33 @@ func computeSpecDiff(desiredSpec expinfrav1.RosaMachinePoolSpec, nodePool *cmv1.
 		cmpopts.IgnoreFields(currentSpec, ignoredFields...))
 }
 
-func validateMachinePoolSpec(machinePoolScope *scope.RosaMachinePoolScope) (*string, error) {
+func validateMachinePoolSpec(machinePoolScope *scope.RosaMachinePoolScope) error {
 	if machinePoolScope.RosaMachinePool.Spec.Version == "" {
-		return nil, nil
+		return nil
 	}
 
 	version, err := semver.Parse(machinePoolScope.RosaMachinePool.Spec.Version)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse MachinePool version: %w", err)
+		return fmt.Errorf("failed to parse MachinePool version: %w", err)
 	}
 	minSupportedVersion, maxSupportedVersion, err := rosa.MachinePoolSupportedVersionsRange(machinePoolScope.ControlPlane.Spec.Version)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get supported machinePool versions range: %w", err)
+		return fmt.Errorf("failed to get supported machinePool versions range: %w", err)
 	}
 
-	if version.GT(*maxSupportedVersion) || version.LT(*minSupportedVersion) {
-		message := fmt.Sprintf("version %s is not supported, should be in the range: >= %s and <= %s", version, minSupportedVersion, maxSupportedVersion)
-		return &message, nil
+	// The lower bound is a core version, so strip prerelease from the pool
+	// version before comparing -- a prerelease pool should not be rejected
+	// purely because it sorts below its own release.
+	// The upper bound preserves the control plane's prerelease qualifier, so
+	// compare the pool version as-is: a GA pool must not be accepted against a
+	// prerelease control plane of the same release.
+	coreVersion := rosa.CoreVersion(version)
+	if version.GT(*maxSupportedVersion) || coreVersion.LT(*minSupportedVersion) {
+		return fmt.Errorf("version %s is not supported, should be in the range: >= %s and <= %s", version, minSupportedVersion, maxSupportedVersion)
 	}
 
 	// TODO: add more input validations
-	return nil, nil
+	return nil
 }
 
 func nodePoolBuilder(rosaMachinePoolSpec expinfrav1.RosaMachinePoolSpec, machinePoolSpec clusterv1.MachinePoolSpec, controlPlaneChannelGroup rosacontrolplanev1.ChannelGroupType, controlPlaneChannel string) *cmv1.NodePoolBuilder {
