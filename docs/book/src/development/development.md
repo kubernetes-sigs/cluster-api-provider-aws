@@ -5,13 +5,13 @@
 ### Install prerequisites
 
 1. Install [go][go]
-    - Get the latest patch version for go v1.22.
+    - Use the version reported by `make go-version`.
 2. Install [jq][jq]
     - `brew install jq` on macOS.
     - `chocolatey install jq` on Windows.
     - `sudo apt install jq` on Ubuntu Linux.
 3. Install [KIND][kind]
-    - `GO111MODULE="on" go get sigs.k8s.io/kind@v0.12.0`.
+    - `cd hack/tools && go install sigs.k8s.io/kind`
 4. Install [Kustomize][kustomize]
     - [install instructions](https://kubectl.docs.kubernetes.io/installation/kustomize/)
 5. Install [envsubst][envsubst]
@@ -161,10 +161,27 @@ Running cluster-api and cluster-api-provider-aws controllers in a kind cluster:
    ```
 3. Build cluster-api-provider-aws docker images
    - `make e2e-image`
-4. Release manifests under `./out` directory
-   - `RELEASE_TAG="e2e" make release-manifests`
-5. Apply the manifests
-   - `kubectl apply -f ./out/infrastructure.yaml`
+4. Load the image into the kind cluster
+   - `kind load docker-image gcr.io/k8s-staging-cluster-api/capa-manager:e2e`
+5. Release manifests under `./out` directory, pointing them at that image
+
+   ```bash
+   RELEASE_TAG=e2e \
+     CORE_CONTROLLER_IMG=gcr.io/k8s-staging-cluster-api/capa-manager \
+     make release-manifests
+   ```
+6. Expand the variables in `out/infrastructure-components.yaml` and apply it.
+   `AWS_B64ENCODED_CREDENTIALS` must be exported; every other variable has a
+   default, so export only the ones you want to override, e.g.
+   `EXP_MACHINE_POOL=true`.
+
+   ```bash
+   clusterctl generate yaml --from out/infrastructure-components.yaml \
+     > out/infrastructure-components-subst.yaml
+   kubectl apply -f out/infrastructure-components-subst.yaml
+   ```
+7. Check the controller is running
+   - `kubectl -n capa-system get pods`
 
 [go]: https://golang.org/doc/install
 [jq]: https://stedolan.github.io/jq/download/
