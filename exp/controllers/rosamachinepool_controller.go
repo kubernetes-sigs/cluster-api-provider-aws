@@ -254,10 +254,9 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 			expinfrav1.RosaMachinePoolReconciliationFailedReason,
 			clusterv1beta1.ConditionSeverityError,
 			"%s", err)
-		machinePoolScope.Info("Invalid ROSAMachinePool spec", "error", err)
+		machinePoolScope.Error(err, "Invalid ROSAMachinePool spec")
 
-		// Don't requeue because input is invalid and manual intervention is needed.
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, err
 	}
 
 	rosaMachinePool := machinePoolScope.RosaMachinePool
@@ -311,15 +310,6 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 			rosaMachinePool.Status.Ready = true
 
 			if err := r.reconcileMachinePoolVersion(machinePoolScope, ocmClient, nodePool); err != nil {
-				// The pool was just marked Ready=True above; if the upgrade scheduling
-				// fails (e.g. OCM rejects the requested version), clear that so the
-				// error is visible in status rather than only in controller logs.
-				rosaMachinePool.Status.Ready = false
-				v1beta1conditions.MarkFalse(rosaMachinePool,
-					expinfrav1.RosaMachinePoolReadyCondition,
-					expinfrav1.RosaMachinePoolReconciliationFailedReason,
-					clusterv1beta1.ConditionSeverityError,
-					"%s", err.Error())
 				return ctrl.Result{}, err
 			}
 
