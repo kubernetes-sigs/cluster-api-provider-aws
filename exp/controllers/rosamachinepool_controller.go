@@ -250,7 +250,7 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 		// intentionally as writing it panics CAPI's MachinePool controller.
 		machinePoolScope.RosaMachinePool.Status.Ready = false
 		v1beta1conditions.MarkFalse(machinePoolScope.RosaMachinePool,
-			expinfrav1.RosaMachinePoolReadyCondition,
+			expinfrav1.RosaMachinePoolUpgradingCondition,
 			expinfrav1.RosaMachinePoolReconciliationFailedReason,
 			clusterv1beta1.ConditionSeverityError,
 			"%s", err)
