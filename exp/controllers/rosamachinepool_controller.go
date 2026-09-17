@@ -248,7 +248,6 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 	if err := validateMachinePoolSpec(machinePoolScope); err != nil {
 		// Surface the error to the condition; Status.FailureMessage is avoided
 		// intentionally as writing it panics CAPI's MachinePool controller.
-		machinePoolScope.RosaMachinePool.Status.Ready = false
 		v1beta1conditions.MarkFalse(machinePoolScope.RosaMachinePool,
 			expinfrav1.RosaMachinePoolUpgradingCondition,
 			expinfrav1.RosaMachinePoolReconciliationFailedReason,
