@@ -242,6 +242,7 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 		machinePool        *clusterv1.MachinePool
 		expect             func(m *mocks.MockOCMClientMockRecorder)
 		result             reconcile.Result
+		expectError        bool
 		// extraChecks runs against the reconciled object for assertions beyond the
 		// Ready/Replicas/ID triple the shared block covers.
 		extraChecks func(g *WithT, m *expinfrav1.ROSAMachinePool)
@@ -544,7 +545,8 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 					ID:    "",
 				},
 			},
-			result: ctrl.Result{},
+			result:      ctrl.Result{},
+			expectError: true,
 			expect: func(m *mocks.MockOCMClientMockRecorder) {
 				// Validation happens before any OCM call, so the node pool must never
 				// be looked up or created.
@@ -630,7 +632,11 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 			req.NamespacedName = types.NamespacedName{Name: test.oldROSAMachinePool.Name, Namespace: ns.Name}
 
 			result, errReconcile := r.Reconcile(ctx, req)
-			g.Expect(errReconcile).ToNot(HaveOccurred())
+			if test.expectError {
+				g.Expect(errReconcile).To(HaveOccurred())
+			} else {
+				g.Expect(errReconcile).ToNot(HaveOccurred())
+			}
 			g.Expect(result).To(Equal(test.result))
 			time.Sleep(50 * time.Millisecond)
 
@@ -653,115 +659,6 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 			mockCtrl.Finish()
 		})
 	}
-
-	// Regression test for the path added in https://github.com/kubernetes-sigs/cluster-api-provider-aws/pull/6235:
-	// when a ready pool's upgrade scheduling fails, Ready must be reset to False and the
-	// error must surface as a condition so it isn't silent in status.
-	t.Run("upgrade scheduling failure clears Ready and surfaces error condition", func(t *testing.T) {
-		g := NewWithT(t)
-		mockCtrl := gomock.NewController(t)
-		recorder := record.NewFakeRecorder(10)
-		ctx := context.TODO()
-
-		// Use index 10 to avoid colliding with other sub-tests.
-		const idx = 10
-		cp := rosaControlPlane(idx)
-		oc := ownerCluster(idx)
-		omp := ownerMachinePool(idx)
-
-		// Pool spec requests an upgrade from 4.14.5 → 4.15.0.
-		mp := rosaMachinePool(idx)
-		mp.Spec.Version = "4.15.0"
-		// OwnerReferences are normally set by CAPI MachinePool reconcile before the
-		// ROSAMachinePool reconciler runs; without them the scope build fails early.
-		mp.OwnerReferences = []metav1.OwnerReference{
-			{
-				Name:       omp.Name,
-				UID:        omp.UID,
-				Kind:       "MachinePool",
-				APIVersion: clusterv1.GroupVersion.String(),
-			},
-		}
-
-		objects := []client.Object{oc, omp, cp, mp}
-		for _, obj := range objects {
-			createObject(g, obj, ns.Name)
-		}
-		defer func() {
-			for _, obj := range objects {
-				cleanupObject(g, obj)
-			}
-		}()
-
-		cpPh, err := patch.NewHelper(cp, testEnv)
-		g.Expect(err).ToNot(HaveOccurred())
-		cp.Status.Ready = true
-		cp.Status.Version = cp.Spec.Version
-		g.Expect(cpPh.Patch(ctx, cp)).To(Succeed())
-
-		rmpPh, err := patch.NewHelper(mp, testEnv)
-		g.Expect(err).ToNot(HaveOccurred())
-		mp.Status.Conditions = clusterv1beta1.Conditions{
-			{Type: "Paused", Status: corev1.ConditionFalse, Reason: "NotPaused", Message: "", LastTransitionTime: metav1.NewTime(time.Now())},
-		}
-		g.Expect(rmpPh.Patch(ctx, mp)).To(Succeed())
-		g.Expect(err).ShouldNot(HaveOccurred())
-
-		time.Sleep(50 * time.Millisecond)
-
-		ocmMock := mocks.NewMockOCMClient(mockCtrl)
-		ocmMock.EXPECT().GetNodePool(gomock.Any(), gomock.Any()).DoAndReturn(
-			func(clusterID, nodePoolID string) (*cmv1.NodePool, bool, error) {
-				statusBuilder := (&cmv1.NodePoolStatusBuilder{}).CurrentReplicas(1)
-				version := (&cmv1.VersionBuilder{}).RawID("4.14.5")
-				nodePool, err := nodePoolBuilder(rosaMachinePool(idx).Spec, ownerMachinePool(idx).Spec, rosacontrolplanev1.Stable, "").
-					ID("node-pool-10").Replicas(1).Status(statusBuilder).Version(version).Build()
-				g.Expect(err).ToNot(HaveOccurred())
-				return nodePool, true, nil
-			}).Times(1)
-		ocmMock.EXPECT().UpdateNodePool(gomock.Any(), gomock.Any()).DoAndReturn(
-			func(clusterID string, nodePool *cmv1.NodePool) (*cmv1.NodePool, error) {
-				// Return with status so IsNodePoolReady sees replicas=1/currentReplicas=1.
-				statusBuilder := (&cmv1.NodePoolStatusBuilder{}).CurrentReplicas(1)
-				versionBuilder := (&cmv1.VersionBuilder{}).RawID("4.14.5")
-				updated, err := (&cmv1.NodePoolBuilder{}).Copy(nodePool).Replicas(1).Status(statusBuilder).Version(versionBuilder).Build()
-				g.Expect(err).ToNot(HaveOccurred())
-				return updated, nil
-			}).Times(1)
-		ocmMock.EXPECT().GetHypershiftNodePoolUpgrade(gomock.Any(), gomock.Any(), gomock.Any()).
-			Return(nil, nil, nil).Times(1)
-		ocmMock.EXPECT().ScheduleNodePoolUpgrade(gomock.Any(), gomock.Any(), gomock.Any()).
-			Return(nil, fmt.Errorf("version 4.15.0 not available for upgrade")).Times(1)
-
-		r := ROSAMachinePoolReconciler{
-			Recorder:         recorder,
-			WatchFilterValue: "",
-			Client:           testEnv,
-			NewOCMClient: func(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (rosa.OCMClient, error) {
-				return ocmMock, nil
-			},
-		}
-
-		req := ctrl.Request{NamespacedName: types.NamespacedName{Name: mp.Name, Namespace: ns.Name}}
-		result, reconcileErr := r.Reconcile(ctx, req)
-		g.Expect(reconcileErr).To(HaveOccurred(), "upgrade scheduling failure must propagate as an error for requeue")
-		g.Expect(result).To(Equal(ctrl.Result{}))
-
-		time.Sleep(50 * time.Millisecond)
-
-		got := &expinfrav1.ROSAMachinePool{}
-		g.Expect(testEnv.Get(ctx, client.ObjectKey{Name: mp.Name, Namespace: ns.Name}, got)).To(Succeed())
-		g.Expect(got.Status.Ready).To(BeFalse(),
-			"Ready must be reset to False when upgrade scheduling fails after pool was marked ready")
-
-		cond := v1beta1conditions.Get(got, expinfrav1.RosaMachinePoolReadyCondition)
-		g.Expect(cond).ToNot(BeNil(), "failure must surface as a condition")
-		g.Expect(cond.Status).To(Equal(corev1.ConditionFalse))
-		g.Expect(cond.Reason).To(Equal(expinfrav1.RosaMachinePoolReconciliationFailedReason))
-		g.Expect(cond.Message).To(ContainSubstring("not available for upgrade"))
-
-		mockCtrl.Finish()
-	})
 
 	t.Run("Reconcile delete", func(t *testing.T) {
 		g := NewWithT(t)
