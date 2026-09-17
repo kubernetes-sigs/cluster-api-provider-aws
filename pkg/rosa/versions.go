@@ -106,7 +106,7 @@ const minorVersionsAllowedDeviation = 2
 // CoreVersion strips any prerelease and build qualifiers, leaving major.minor.patch.
 // The machine pool skew policy is expressed purely in terms of minor versions, and
 // semver sorts a prerelease below its own release ("5.0.0-rc.0" < "5.0.0"), so the
-// qualifiers have to be dropped before any range comparison -- otherwise a
+// qualifiers have to be dropped before the lower-bound/skew comparison -- otherwise a
 // prerelease control plane falls outside the range derived from itself.
 func CoreVersion(version semver.Version) semver.Version {
 	return semver.Version{Major: version.Major, Minor: version.Minor, Patch: version.Patch}
