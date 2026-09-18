@@ -230,7 +230,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		req.NamespacedName = types.NamespacedName{Name: rosaNetwork.Name, Namespace: rosaNetwork.Namespace}
 		reqReconcile, errReconcile := reconciler.Reconcile(ctx, req)
 
-		g.Expect(reqReconcile.RequeueAfter).To(Equal(time.Second * 60))
+		g.Expect(reqReconcile.RequeueAfter).To(Equal(defaultRequeueInterval))
 		g.Expect(errReconcile).ToNot(HaveOccurred())
 
 		g.Eventually(func(g Gomega) {
@@ -374,7 +374,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		req.NamespacedName = types.NamespacedName{Name: nameDeleted, Namespace: rosaNetworkDeleted.Namespace}
 		reqReconcile, errReconcile := reconciler.Reconcile(ctx, req)
 
-		g.Expect(reqReconcile.RequeueAfter).To(Equal(60 * time.Second))
+		g.Expect(reqReconcile.RequeueAfter).To(Equal(defaultRequeueInterval))
 		g.Expect(errReconcile).NotTo(HaveOccurred())
 
 		g.Eventually(func(g Gomega) {
@@ -409,7 +409,7 @@ func TestROSANetworkReconciler_Reconcile(t *testing.T) {
 		req.NamespacedName = types.NamespacedName{Name: nameDeleted, Namespace: rosaNetworkDeleted.Namespace}
 		reqReconcile, errReconcile := reconciler.Reconcile(ctx, req)
 
-		g.Expect(reqReconcile.RequeueAfter).To(Equal(60 * time.Second))
+		g.Expect(reqReconcile.RequeueAfter).To(Equal(defaultRequeueInterval))
 		g.Expect(errReconcile).NotTo(HaveOccurred())
 	})
 
