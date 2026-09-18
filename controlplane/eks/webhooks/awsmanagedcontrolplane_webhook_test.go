@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	. "github.com/onsi/gomega"
@@ -1055,6 +1056,65 @@ func TestValidatingWebhookUpdateSecondaryCidr(t *testing.T) {
 			}
 			// Nothing emits warnings yet
 			g.Expect(warn).To(BeEmpty())
+		})
+	}
+}
+
+func TestWebhookUpdateSkipsValidationWhenDeleted(t *testing.T) {
+	tests := []struct {
+		name              string
+		deletionTimestamp *metav1.Time
+		expectError       bool
+	}{
+		{
+			name:              "object is being deleted, otherwise-invalid change is allowed",
+			deletionTimestamp: &metav1.Time{Time: time.Now()},
+			expectError:       false,
+		},
+		{
+			name:              "object is not being deleted, invalid change is rejected",
+			deletionTimestamp: nil,
+			expectError:       true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			// Toggling IPv6 after it has been set is normally rejected by
+			// ValidateUpdate - see TestWebhookUpdate above. This reproduces the
+			// scenario from #6170, where CAPA's own deletion flow patches the
+			// object with the VPC's real IPv6 state discovered from AWS.
+			oldMCP := &ekscontrolplanev1.AWSManagedControlPlane{
+				Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+					EKSClusterName: "default_cluster1",
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{},
+					},
+				},
+			}
+			newMCP := &ekscontrolplanev1.AWSManagedControlPlane{
+				ObjectMeta: metav1.ObjectMeta{
+					DeletionTimestamp: tc.deletionTimestamp,
+				},
+				Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+					EKSClusterName: "default_cluster1",
+					NetworkSpec: infrav1.NetworkSpec{
+						VPC: infrav1.VPCSpec{
+							IPv6: &infrav1.IPv6{},
+						},
+					},
+				},
+			}
+
+			_, err := (&AWSManagedControlPlane{}).ValidateUpdate(context.Background(), oldMCP, newMCP)
+
+			if tc.expectError {
+				g.Expect(err).ToNot(BeNil())
+			} else {
+				g.Expect(err).To(BeNil())
+			}
 		})
 	}
 }
