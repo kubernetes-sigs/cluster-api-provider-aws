@@ -85,6 +85,37 @@ func TestNodePoolToRosaMachinePoolSpec(t *testing.T) {
 	g.Expect(computeSpecDiff(rosaMachinePoolSpec, nodePoolSpec)).To(BeEmpty())
 }
 
+func TestComputeSpecDiff_SubnetOmitted(t *testing.T) {
+	g := NewWithT(t)
+
+	// Simulate the common case: user creates a ROSAMachinePool without
+	// specifying a subnet, OCM auto-assigns one and always returns it.
+	// The diff should be empty so no phantom UpdateNodePool call is made.
+	desiredSpec := expinfrav1.RosaMachinePoolSpec{
+		NodePoolName: "test-nodepool",
+		AutoRepair:   true,
+		InstanceType: "m5.large",
+		// Subnet intentionally omitted — user did not set it.
+	}
+
+	nodePool, err := cmv1.NewNodePool().
+		ID("test-nodepool").
+		AutoRepair(true).
+		AWSNodePool(cmv1.NewAWSNodePool().InstanceType("m5.large")).
+		Subnet("subnet-07a64c1700185c3c0").                                                       // OCM auto-assigned subnet
+		NodeDrainGracePeriod(cmv1.NewValue().Value(0)).                                           // OCM always returns this even at zero
+		ManagementUpgrade(cmv1.NewNodePoolManagementUpgrade().MaxSurge("1").MaxUnavailable("0")). // OCM default upgrade config
+		Build()
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// Default the desired spec the same way updateNodePool does.
+	pool := &expinfrav1.ROSAMachinePool{Spec: desiredSpec}
+	pool.Default()
+
+	g.Expect(computeSpecDiff(pool.Spec, nodePool)).To(BeEmpty(),
+		"phantom diff detected: OCM-auto-assigned subnet should not trigger an update when user did not specify one")
+}
+
 func TestRosaMachinePoolReconcile(t *testing.T) {
 	g := NewWithT(t)
 	ns, err := testEnv.CreateNamespace(ctx, "test-namespace")
