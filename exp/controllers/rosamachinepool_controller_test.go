@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -241,6 +242,10 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 		machinePool        *clusterv1.MachinePool
 		expect             func(m *mocks.MockOCMClientMockRecorder)
 		result             reconcile.Result
+		expectError        bool
+		// extraChecks runs against the reconciled object for assertions beyond the
+		// Ready/Replicas/ID triple the shared block covers.
+		extraChecks func(g *WithT, m *expinfrav1.ROSAMachinePool)
 	}{
 		{
 			name:               "create node pool, nodepool doesn't exist",
@@ -519,6 +524,46 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 				m.CreateNodePool(gomock.Any(), gomock.Any()).Times(0)
 			},
 		},
+		{
+			// An out-of-range version must report the reason rather than returning
+			// silently, and must do it without writing Status.FailureMessage: CAPI's
+			// MachinePool controller dereferences an uninitialized Status.Deprecated
+			// when it reads that field off the infra object, panicking its reconcile
+			// loop. See the comment in reconcileNormal.
+			name:        "invalid version reports the failure without Status.FailureMessage",
+			machinePool: ownerMachinePool(5),
+			oldROSAMachinePool: func() *expinfrav1.ROSAMachinePool {
+				// 4.13.0 is below MinSupportedVersion, so it is out of range for the
+				// 4.15.20 control plane these cases run against.
+				mp := rosaMachinePool(5)
+				mp.Spec.Version = "4.13.0"
+				return mp
+			}(),
+			newROSAMachinePool: &expinfrav1.ROSAMachinePool{
+				Status: expinfrav1.RosaMachinePoolStatus{
+					Ready: false,
+					ID:    "",
+				},
+			},
+			result:      ctrl.Result{},
+			expectError: true,
+			expect: func(m *mocks.MockOCMClientMockRecorder) {
+				// Validation happens before any OCM call, so the node pool must never
+				// be looked up or created.
+				m.GetNodePool(gomock.Any(), gomock.Any()).Times(0)
+				m.CreateNodePool(gomock.Any(), gomock.Any()).Times(0)
+			},
+			extraChecks: func(g *WithT, m *expinfrav1.ROSAMachinePool) {
+				g.Expect(m.Status.FailureMessage).To(BeNil(),
+					"Status.FailureMessage panics CAPI's MachinePool controller and must stay unset")
+
+				cond := v1beta1conditions.Get(m, expinfrav1.RosaMachinePoolUpgradingCondition)
+				g.Expect(cond).ToNot(BeNil(), "the failure must surface as a condition")
+				g.Expect(cond.Status).To(Equal(corev1.ConditionFalse))
+				g.Expect(cond.Reason).To(Equal(expinfrav1.RosaMachinePoolReconciliationFailedReason))
+				g.Expect(cond.Message).To(ContainSubstring("is not supported"))
+			},
+		},
 	}
 
 	createObject(g, secret, ns.Name)
@@ -587,7 +632,11 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 			req.NamespacedName = types.NamespacedName{Name: test.oldROSAMachinePool.Name, Namespace: ns.Name}
 
 			result, errReconcile := r.Reconcile(ctx, req)
-			g.Expect(errReconcile).ToNot(HaveOccurred())
+			if test.expectError {
+				g.Expect(errReconcile).To(HaveOccurred())
+			} else {
+				g.Expect(errReconcile).ToNot(HaveOccurred())
+			}
 			g.Expect(result).To(Equal(test.result))
 			time.Sleep(50 * time.Millisecond)
 
@@ -598,6 +647,10 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 			g.Expect(m.Status.Ready).To(Equal(test.newROSAMachinePool.Status.Ready))
 			g.Expect(m.Status.Replicas).To(Equal(test.newROSAMachinePool.Status.Replicas))
 			g.Expect(m.Status.ID).To(Equal(test.newROSAMachinePool.Status.ID))
+
+			if test.extraChecks != nil {
+				test.extraChecks(g, m)
+			}
 
 			// cleanup
 			for _, obj := range objects {
@@ -760,6 +813,118 @@ func TestVolumeSizeZeroedBeforeUpdate(t *testing.T) {
 
 	g.Expect(nodePoolSpec.AWSNodePool()).ToNot(BeNil())
 	g.Expect(nodePoolSpec.AWSNodePool().RootVolume()).To(BeNil(), "RootVolume should not be set when volumeSize is 0")
+}
+
+// versionScope builds the minimum scope validateMachinePoolSpec reads: it only
+// consults the control plane version and the machine pool version, so the AWS
+// session the full constructor sets up is not needed here.
+func versionScope(controlPlaneVersion, machinePoolVersion string) *scope.RosaMachinePoolScope {
+	return &scope.RosaMachinePoolScope{
+		ControlPlane: &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{Version: controlPlaneVersion},
+		},
+		RosaMachinePool: &expinfrav1.ROSAMachinePool{
+			Spec: expinfrav1.RosaMachinePoolSpec{Version: machinePoolVersion},
+		},
+	}
+}
+
+// TestValidateMachinePoolSpecVersion exercises the production validation path
+// rather than a hand-rolled copy of its comparison, covering the major boundary
+// where a 5.x control plane still has to admit 4.x node pools.
+func TestValidateMachinePoolSpecVersion(t *testing.T) {
+	tests := []struct {
+		name                string
+		controlPlaneVersion string
+		machinePoolVersion  string
+		expectSupported     bool
+	}{
+		{
+			name:                "4.22 pool under a 5.1 control plane",
+			controlPlaneVersion: "5.1.0",
+			machinePoolVersion:  "4.22.9",
+			expectSupported:     true,
+		},
+		{
+			name:                "4.23 pool under a 5.1 control plane",
+			controlPlaneVersion: "5.1.0",
+			machinePoolVersion:  "4.23.0",
+			expectSupported:     true,
+		},
+		{
+			name:                "4.22 pool under a 5.0 control plane",
+			controlPlaneVersion: "5.0.0",
+			machinePoolVersion:  "4.22.9",
+			expectSupported:     true,
+		},
+		{
+			name:                "4.22 pool under a 5.0 release candidate control plane",
+			controlPlaneVersion: "5.0.0-rc.0",
+			machinePoolVersion:  "4.22.9",
+			expectSupported:     true,
+		},
+		{
+			name:                "4.22 pool under a 4.23 control plane",
+			controlPlaneVersion: "4.23.0",
+			machinePoolVersion:  "4.22.9",
+			expectSupported:     true,
+		},
+		{
+			name:                "pool three minors behind a 4.23 control plane",
+			controlPlaneVersion: "4.23.0",
+			machinePoolVersion:  "4.20.9",
+			expectSupported:     false,
+		},
+		{
+			name:                "pool below the minimum supported version",
+			controlPlaneVersion: "5.1.0",
+			machinePoolVersion:  "4.13.9",
+			expectSupported:     false,
+		},
+		{
+			name:                "pool ahead of the control plane",
+			controlPlaneVersion: "4.22.9",
+			machinePoolVersion:  "4.23.0",
+			expectSupported:     false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			err := validateMachinePoolSpec(versionScope(tc.controlPlaneVersion, tc.machinePoolVersion))
+
+			if tc.expectSupported {
+				g.Expect(err).ToNot(HaveOccurred(),
+					"machine pool %s should be supported by control plane %s",
+					tc.machinePoolVersion, tc.controlPlaneVersion)
+				return
+			}
+
+			g.Expect(err).To(HaveOccurred(),
+				"machine pool %s should be rejected by control plane %s",
+				tc.machinePoolVersion, tc.controlPlaneVersion)
+			g.Expect(err.Error()).To(ContainSubstring("is not supported"))
+		})
+	}
+}
+
+// TestValidateMachinePoolSpecUpgradeTransition covers a node pool upgrade, which is
+// just a change to spec.Version: both the version being left and the version being
+// moved to are validated against the same control plane, so an upgrade only succeeds
+// if every version it passes through is in range.
+func TestValidateMachinePoolSpecUpgradeTransition(t *testing.T) {
+	g := NewWithT(t)
+
+	const controlPlaneVersion = "5.1.0"
+
+	for _, version := range []string{"4.22.9", "4.23.0"} {
+		err := validateMachinePoolSpec(versionScope(controlPlaneVersion, version))
+		g.Expect(err).ToNot(HaveOccurred(),
+			"upgrading a node pool from 4.22 to 4.23 under a %s control plane must not reject %s",
+			controlPlaneVersion, version)
+	}
 }
 
 // TestROSAMachinePoolUpdatePredicate verifies that the WithEventFilter predicate
