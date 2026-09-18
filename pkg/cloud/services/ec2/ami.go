@@ -294,6 +294,37 @@ func GetLatestImage(imgs []ec2types.Image) (*ec2types.Image, error) {
 	return &imgs[len(imgs)-1], nil
 }
 
+// BuildEC2Filters converts CAPA Filter types to AWS SDK EC2 filter types.
+func BuildEC2Filters(inputFilters []infrav1.Filter) []ec2types.Filter {
+	filters := make([]ec2types.Filter, len(inputFilters))
+	for i, f := range inputFilters {
+		filters[i] = ec2types.Filter{
+			Name:   aws.String(f.Name),
+			Values: f.Values,
+		}
+	}
+	return filters
+}
+
+// AMILookupByFilters looks up an AMI using the provided filters and returns the latest image.
+func AMILookupByFilters(ctx context.Context, ec2Client common.EC2API, filters []infrav1.Filter) (*ec2types.Image, error) {
+	describeImageInput := &ec2.DescribeImagesInput{
+		Filters: BuildEC2Filters(filters),
+	}
+	out, err := ec2Client.DescribeImages(ctx, describeImageInput)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to describe images with filters")
+	}
+	if out == nil || len(out.Images) == 0 {
+		return nil, errors.New("no AMIs found matching the provided filters")
+	}
+	latestImage, err := GetLatestImage(out.Images)
+	if err != nil {
+		return nil, err
+	}
+	return latestImage, nil
+}
+
 func (s *Service) defaultBastionAMILookup() (string, error) {
 	describeImageInput := &ec2.DescribeImagesInput{
 		Filters: []ec2types.Filter{
