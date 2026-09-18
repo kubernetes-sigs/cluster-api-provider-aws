@@ -140,3 +140,67 @@ func TestValidateComponentRoutes(t *testing.T) {
 		g.Expect(errs[0].Type).To(Equal(field.ErrorTypeDuplicate))
 	})
 }
+
+func TestValidateEc2MetadataHttpTokensImmutability(t *testing.T) {
+	w := &ROSAControlPlane{}
+
+	t.Run("Update blocked when changing required to optional", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+		oldCP := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				Ec2MetadataHTTPTokens: rosacontrolplanev1.Ec2MetadataHTTPTokensRequired,
+			},
+		}
+		newCP := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				Ec2MetadataHTTPTokens: rosacontrolplanev1.Ec2MetadataHTTPTokensOptional,
+			},
+		}
+		err := w.validateEc2MetadataHTTPTokensImmutability(oldCP, newCP)
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(err.Error()).To(ContainSubstring("ec2MetadataHttpTokens is immutable"))
+	})
+
+	t.Run("Update blocked when adding field to object that was created without it", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+		oldCP := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{},
+		}
+		newCP := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				Ec2MetadataHTTPTokens: rosacontrolplanev1.Ec2MetadataHTTPTokensRequired,
+			},
+		}
+		err := w.validateEc2MetadataHTTPTokensImmutability(oldCP, newCP)
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(err.Error()).To(ContainSubstring("ec2MetadataHttpTokens is immutable"))
+	})
+
+	t.Run("Update allowed when value unchanged", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+		oldCP := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				Ec2MetadataHTTPTokens: rosacontrolplanev1.Ec2MetadataHTTPTokensRequired,
+			},
+		}
+		newCP := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				Ec2MetadataHTTPTokens: rosacontrolplanev1.Ec2MetadataHTTPTokensRequired,
+			},
+		}
+		err := w.validateEc2MetadataHTTPTokensImmutability(oldCP, newCP)
+		g.Expect(err).NotTo(HaveOccurred())
+	})
+
+	t.Run("Update allowed when both old and new have no value", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+		oldCP := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{},
+		}
+		newCP := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{},
+		}
+		err := w.validateEc2MetadataHTTPTokensImmutability(oldCP, newCP)
+		g.Expect(err).NotTo(HaveOccurred())
+	})
+}
