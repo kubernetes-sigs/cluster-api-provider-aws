@@ -728,15 +728,23 @@ func (s *Service) reconcileVpcConfig(vpcConfig *ekstypes.VpcConfigResponse) (*ek
 	if err != nil {
 		return nil, err
 	}
+	// Public access CIDRs only restrict the public endpoint, so they are
+	// meaningless while it is disabled. EKS also retains the CIDRs last set on the
+	// cluster and rejects any update that repeats them, so comparing them here
+	// would request an update that can never converge.
+	publicAccess := tristate.WithDefault(true, updatedVpcConfig.EndpointPublicAccess)
 	needsUpdate := !tristate.EqualWithDefault(false, &vpcConfig.EndpointPrivateAccess, updatedVpcConfig.EndpointPrivateAccess) ||
 		!tristate.EqualWithDefault(true, &vpcConfig.EndpointPublicAccess, updatedVpcConfig.EndpointPublicAccess) ||
-		!publicAccessCIDRsEqual(vpcConfig.PublicAccessCidrs, updatedVpcConfig.PublicAccessCidrs)
+		(publicAccess && !publicAccessCIDRsEqual(vpcConfig.PublicAccessCidrs, updatedVpcConfig.PublicAccessCidrs))
 	if needsUpdate {
-		return &ekstypes.VpcConfigRequest{
+		updateRequest := &ekstypes.VpcConfigRequest{
 			EndpointPublicAccess:  updatedVpcConfig.EndpointPublicAccess,
 			EndpointPrivateAccess: updatedVpcConfig.EndpointPrivateAccess,
-			PublicAccessCidrs:     updatedVpcConfig.PublicAccessCidrs,
-		}, nil
+		}
+		if publicAccess {
+			updateRequest.PublicAccessCidrs = updatedVpcConfig.PublicAccessCidrs
+		}
+		return updateRequest, nil
 	}
 	return nil, nil
 }
