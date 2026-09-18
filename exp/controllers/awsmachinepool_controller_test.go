@@ -42,6 +42,7 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
@@ -62,6 +63,56 @@ import (
 	"sigs.k8s.io/cluster-api/util/labels/format"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
+
+func TestClusterToAWSMachinePoolsMapFunc(t *testing.T) {
+	g := NewWithT(t)
+	testScheme := runtime.NewScheme()
+	g.Expect(clusterv1.AddToScheme(testScheme)).To(Succeed())
+
+	newMachinePool := func(name, clusterName, infrastructureKind string) *clusterv1.MachinePool {
+		return &clusterv1.MachinePool{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      name,
+				Namespace: "default",
+				Labels: map[string]string{
+					clusterv1.ClusterNameLabel: clusterName,
+				},
+			},
+			Spec: clusterv1.MachinePoolSpec{
+				ClusterName: clusterName,
+				Template: clusterv1.MachineTemplateSpec{
+					Spec: clusterv1.MachineSpec{
+						ClusterName: clusterName,
+						InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+							APIGroup: expinfrav1.GroupVersion.Group,
+							Kind:     infrastructureKind,
+							Name:     name + "-infra",
+						},
+					},
+				},
+			},
+		}
+	}
+
+	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		newMachinePool("aws", "cluster", "AWSMachinePool"),
+		newMachinePool("managed", "cluster", "AWSManagedMachinePool"),
+		newMachinePool("other", "other-cluster", "AWSMachinePool"),
+	).Build()
+	mapFunc := clusterToAWSMachinePoolsMapFunc(c, "blue")
+
+	cluster := &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{
+		Name:      "cluster",
+		Namespace: "default",
+		Labels:    map[string]string{clusterv1.WatchLabel: "blue"},
+	}}
+	g.Expect(mapFunc(context.Background(), cluster)).To(Equal([]reconcile.Request{{
+		NamespacedName: client.ObjectKey{Namespace: "default", Name: "aws-infra"},
+	}}))
+
+	cluster.Labels[clusterv1.WatchLabel] = "green"
+	g.Expect(mapFunc(context.Background(), cluster)).To(BeEmpty())
+}
 
 func TestAWSMachinePoolReconciler(t *testing.T) {
 	var (

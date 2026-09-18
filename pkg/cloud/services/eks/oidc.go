@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
@@ -29,12 +30,14 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/converters"
 	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
 	tagConverter "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/util/kubeconfig"
 )
 
 var (
@@ -93,15 +96,27 @@ func (s *Service) reconcileOIDCProvider(ctx context.Context, cluster *ekstypes.C
 }
 
 func (s *Service) reconcileTrustPolicy(ctx context.Context) error {
+	// This is a one-off workload request, so construct the client from the
+	// kubeconfig secret instead of maintaining a ClusterCache for the service.
 	clusterKey := client.ObjectKey{
 		Name:      s.scope.Name(),
 		Namespace: s.scope.Namespace(),
 	}
 
-	restConfig, err := remote.RESTConfig(ctx, s.scope.ControlPlane.Name, s.scope.Client, clusterKey)
+	kubeConfig, err := kubeconfig.FromSecret(ctx, s.scope.Client, clusterKey)
+	if err != nil {
+		return fmt.Errorf(
+			"getting remote client for %s/%s: failed to retrieve kubeconfig secret for Cluster %s/%s: %w",
+			s.scope.Namespace(), s.scope.Name(), clusterKey.Namespace, clusterKey.Name, err,
+		)
+	}
+
+	restConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeConfig)
 	if err != nil {
 		return fmt.Errorf("getting remote client for %s/%s: %w", s.scope.Namespace(), s.scope.Name(), err)
 	}
+	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent(s.scope.ControlPlane.Name)
+	restConfig.Timeout = 10 * time.Second
 
 	remoteClient, err := client.New(restConfig, client.Options{})
 	if err != nil {

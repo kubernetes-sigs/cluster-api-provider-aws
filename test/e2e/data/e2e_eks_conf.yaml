@@ -25,23 +25,23 @@ images:
     loadBehavior: tryLoad
   - name: quay.io/jetstack/cert-manager-controller:v1.20.3
     loadBehavior: tryLoad
-  - name: registry.k8s.io/cluster-api/cluster-api-controller:v1.13.4
+  - name: registry.k8s.io/cluster-api/cluster-api-controller:v1.14.1
     loadBehavior: tryLoad
-  - name: registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:v1.13.4
+  - name: registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:v1.14.1
     loadBehavior: tryLoad
-  - name: registry.k8s.io/cluster-api/kubeadm-control-plane-controller:v1.13.4
+  - name: registry.k8s.io/cluster-api/kubeadm-control-plane-controller:v1.14.1
     loadBehavior: tryLoad
 
 providers:
   - name: cluster-api
     type: CoreProvider
     versions:
-      - name: v1.13.4
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.13.4/core-components.yaml"
+      - name: v1.14.1
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.14.1/core-components.yaml"
         type: "url"
         contract: v1beta2
         files:
-          - sourcePath: "./shared/capi/v1.13/metadata.yaml"
+          - sourcePath: "./shared/capi/v1.14/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -52,12 +52,12 @@ providers:
     files:
       - sourcePath: "./shared/capi/v1.2/metadata.yaml"
     versions:
-      - name: v1.13.4
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.13.4/bootstrap-components.yaml"
+      - name: v1.14.1
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.14.1/bootstrap-components.yaml"
         type: "url"
         contract: v1beta2
         files:
-          - sourcePath: "./shared/capi/v1.13/metadata.yaml"
+          - sourcePath: "./shared/capi/v1.14/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -66,14 +66,14 @@ providers:
   - name: kubeadm
     type: ControlPlaneProvider
     files:
-      - sourcePath: "./shared/capi/v1.13/metadata.yaml"
+      - sourcePath: "./shared/capi/v1.14/metadata.yaml"
     versions:
-      - name: v1.13.4
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.13.4/control-plane-components.yaml"
+      - name: v1.14.1
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.14.1/control-plane-components.yaml"
         type: "url"
         contract: v1beta2
         files:
-          - sourcePath: "./shared/capi/v1.13/metadata.yaml"
+          - sourcePath: "./shared/capi/v1.14/metadata.yaml"
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
@@ -134,10 +134,10 @@ providers:
         targetName: "cluster-template-eks-nitro-enclave-managedmachinepool.yaml"
 
 variables:
-  KUBERNETES_VERSION: "v1.35.7"
-  KUBERNETES_VERSION_MANAGEMENT: "v1.35.5" # Kind bootstrap
-  UPGRADE_TO_VERSION: "v1.35.7"
-  UPGRADE_FROM_VERSION: "v1.34.10"
+  KUBERNETES_VERSION: "v1.36.3"
+  KUBERNETES_VERSION_MANAGEMENT: "v1.36.4" # Kind bootstrap
+  UPGRADE_TO_VERSION: "v1.36.3"
+  UPGRADE_FROM_VERSION: "v1.35.7"
   EXP_MACHINE_POOL: "true"
   EXP_MACHINE_POOL_MACHINES: "true"
   EXP_CLUSTER_RESOURCE_SET: "true"
@@ -150,7 +150,7 @@ variables:
   EXP_EKS_ADD_ROLES: "false"
   VPC_ADDON_VERSION: "v1.21.1-eksbuild.7"
   KUBE_PROXY_ADDON_VERSION: "v1.34.6-eksbuild.2"
-  CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "v1.35.7"
+  CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION: "v1.36.3"
   IP_FAMILY: "IPv4"
   CAPA_LOGLEVEL: "4"
   GC_WORKLOAD: "../../data/gcworkload.yaml"
