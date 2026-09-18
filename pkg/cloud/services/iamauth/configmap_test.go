@@ -315,6 +315,198 @@ func TestAddUserMappingCM(t *testing.T) {
 	}
 }
 
+// TestReconcileMappingsCM exercises the desired-state semantics of
+// configMapBackend.ReconcileMappings. Unlike the append-only MapRole / MapUser
+// methods, ReconcileMappings must replace the aws-auth ConfigMap contents
+// wholesale — including deleting entries that are absent from the input.
+//
+// Scenarios:
+//  1. Empty desired set on a populated backend removes everything.
+//  2. Add a user to an empty backend.
+//  3. Replace {alice, bob} with {alice} — bob must be removed.
+//  4. Node roles preserved when included in the desired set.
+//  5. Idempotency: second call with the same input yields the same state.
+//  6. Invalid ARN fails without mutating state.
+func TestReconcileMappingsCM(t *testing.T) {
+	alice := ekscontrolplanev1.UserMapping{
+		UserARN: "arn:aws:iam::000000000000:user/Alice",
+		KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+			UserName: "alice",
+			Groups:   []string{"system:masters"},
+		},
+	}
+	bob := ekscontrolplanev1.UserMapping{
+		UserARN: "arn:aws:iam::000000000000:user/Bob",
+		KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+			UserName: "bob",
+			Groups:   []string{"system:masters"},
+		},
+	}
+	nodeRole := ekscontrolplanev1.RoleMapping{
+		RoleARN: "arn:aws:iam::000000000000:role/KubernetesNode",
+		KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+			UserName: "system:node:{{EC2PrivateDNSName}}",
+			Groups:   []string{"system:bootstrappers", "system:nodes"},
+		},
+	}
+
+	tests := []struct {
+		name        string
+		existing    *corev1.ConfigMap
+		roles       []ekscontrolplanev1.RoleMapping
+		users       []ekscontrolplanev1.UserMapping
+		wantRoles   []ekscontrolplanev1.RoleMapping
+		wantUsers   []ekscontrolplanev1.UserMapping
+		expectError bool
+	}{
+		{
+			name:      "empty desired set on populated backend removes everything",
+			existing:  cmWith(nil, []ekscontrolplanev1.UserMapping{alice, bob}),
+			roles:     []ekscontrolplanev1.RoleMapping{},
+			users:     []ekscontrolplanev1.UserMapping{},
+			wantRoles: nil,
+			wantUsers: nil,
+		},
+		{
+			name:      "add user to empty backend",
+			existing:  nil,
+			roles:     nil,
+			users:     []ekscontrolplanev1.UserMapping{alice},
+			wantRoles: nil,
+			wantUsers: []ekscontrolplanev1.UserMapping{alice},
+		},
+		{
+			name:      "replace {alice,bob} with {alice} removes bob",
+			existing:  cmWith(nil, []ekscontrolplanev1.UserMapping{alice, bob}),
+			roles:     nil,
+			users:     []ekscontrolplanev1.UserMapping{alice},
+			wantRoles: nil,
+			wantUsers: []ekscontrolplanev1.UserMapping{alice},
+		},
+		{
+			name:      "node role preserved when included in desired set",
+			existing:  nil,
+			roles:     []ekscontrolplanev1.RoleMapping{nodeRole},
+			users:     []ekscontrolplanev1.UserMapping{alice},
+			wantRoles: []ekscontrolplanev1.RoleMapping{nodeRole},
+			wantUsers: []ekscontrolplanev1.UserMapping{alice},
+		},
+		{
+			name:      "idempotent — second call with same input produces same state",
+			existing:  cmWith([]ekscontrolplanev1.RoleMapping{nodeRole}, []ekscontrolplanev1.UserMapping{alice}),
+			roles:     []ekscontrolplanev1.RoleMapping{nodeRole},
+			users:     []ekscontrolplanev1.UserMapping{alice},
+			wantRoles: []ekscontrolplanev1.RoleMapping{nodeRole},
+			wantUsers: []ekscontrolplanev1.UserMapping{alice},
+		},
+		{
+			name:     "invalid ARN in role mapping fails without mutating state",
+			existing: cmWith(nil, []ekscontrolplanev1.UserMapping{alice}),
+			roles: []ekscontrolplanev1.RoleMapping{{
+				RoleARN: "bogus",
+				KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+					UserName: "x", Groups: []string{"g"},
+				},
+			}},
+			users:       nil,
+			expectError: true,
+			// State on failure remains unchanged: alice user only.
+			wantRoles: nil,
+			wantUsers: []ekscontrolplanev1.UserMapping{alice},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewGomegaWithT(t)
+
+			builder := fake.NewClientBuilder()
+			if tc.existing != nil {
+				builder = builder.WithObjects(tc.existing)
+			}
+			c := builder.Build()
+
+			backend, err := NewBackend(BackendTypeConfigMap, c)
+			g.Expect(err).To(BeNil())
+
+			err = backend.ReconcileMappings(tc.roles, tc.users)
+			if tc.expectError {
+				g.Expect(err).ToNot(BeNil())
+			} else {
+				g.Expect(err).To(BeNil())
+			}
+
+			gotRoles, gotUsers := readAuthCM(t, c)
+			// nil vs empty slice: normalize before compare.
+			if len(tc.wantRoles) == 0 {
+				g.Expect(gotRoles).To(BeEmpty())
+			} else {
+				g.Expect(gotRoles).To(Equal(tc.wantRoles))
+			}
+			if len(tc.wantUsers) == 0 {
+				g.Expect(gotUsers).To(BeEmpty())
+			} else {
+				g.Expect(gotUsers).To(Equal(tc.wantUsers))
+			}
+		})
+	}
+}
+
+// cmWith builds a fake aws-auth ConfigMap seeded with the given mappings.
+// Empty / nil slices produce a ConfigMap without the corresponding YAML key,
+// mirroring what saveAuthConfig produces at runtime.
+func cmWith(roles []ekscontrolplanev1.RoleMapping, users []ekscontrolplanev1.UserMapping) *corev1.ConfigMap {
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      configMapName,
+			Namespace: configMapNS,
+			UID:       "1234567",
+		},
+		Data: map[string]string{},
+	}
+	if len(roles) > 0 {
+		b, err := yaml.Marshal(roles)
+		if err != nil {
+			panic(err)
+		}
+		cm.Data[roleKey] = string(b)
+	}
+	if len(users) > 0 {
+		b, err := yaml.Marshal(users)
+		if err != nil {
+			panic(err)
+		}
+		cm.Data[usersKey] = string(b)
+	}
+	return cm
+}
+
+// readAuthCM reads the aws-auth ConfigMap from the fake client and returns the
+// deserialized role and user mapping slices. Returns empty slices if the
+// ConfigMap does not exist or the keys are absent.
+func readAuthCM(t *testing.T, c crclient.Client) ([]ekscontrolplanev1.RoleMapping, []ekscontrolplanev1.UserMapping) {
+	t.Helper()
+	cm := &corev1.ConfigMap{}
+	err := c.Get(context.TODO(), types.NamespacedName{Name: configMapName, Namespace: configMapNS}, cm)
+	if err != nil {
+		// Missing ConfigMap → nothing configured.
+		return nil, nil
+	}
+	var roles []ekscontrolplanev1.RoleMapping
+	if v, ok := cm.Data[roleKey]; ok {
+		if err := yaml.Unmarshal([]byte(v), &roles); err != nil {
+			t.Fatalf("unmarshalling roles: %v", err)
+		}
+	}
+	var users []ekscontrolplanev1.UserMapping
+	if v, ok := cm.Data[usersKey]; ok {
+		if err := yaml.Unmarshal([]byte(v), &users); err != nil {
+			t.Fatalf("unmarshalling users: %v", err)
+		}
+	}
+	return roles, users
+}
+
 func createFakeConfigMap(roleMappings string, userMappings string) *corev1.ConfigMap {
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
