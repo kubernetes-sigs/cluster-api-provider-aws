@@ -24,7 +24,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	cloudformationtypes "github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
@@ -170,7 +169,7 @@ func (r *ROSANetworkReconciler) reconcileNormal(ctx context.Context, rosaNetScop
 	// The cloudformation stack already exists
 	if err := r.updateROSANetworkResources(ctx, rosaNetScope.ROSANetwork, awsClient); err != nil {
 		rosaNetScope.Info("error fetching CF stack resources: %w", err)
-		return ctrl.Result{RequeueAfter: time.Second * 60}, nil
+		return ctrl.Result{RequeueAfter: defaultRequeueInterval}, nil
 	}
 
 	switch cfStack.StackStatus {
@@ -181,7 +180,7 @@ func (r *ROSANetworkReconciler) reconcileNormal(ctx context.Context, rosaNetScop
 			expinfrav1.ROSANetworkCreatingReason,
 			clusterv1beta1.ConditionSeverityInfo,
 			"")
-		return ctrl.Result{RequeueAfter: time.Second * 60}, nil
+		return ctrl.Result{RequeueAfter: defaultRequeueInterval}, nil
 	case cloudformationtypes.StackStatusCreateComplete: // Create complete
 		if err := r.parseSubnets(rosaNetScope.ROSANetwork, awsClient); err != nil {
 			return ctrl.Result{}, fmt.Errorf("parsing stack subnets failed: %w", err)
@@ -216,12 +215,12 @@ func (r *ROSANetworkReconciler) reconcileDelete(ctx context.Context, rosaNetScop
 	if cfStack != nil { // The CF stack still exists
 		if err := r.updateROSANetworkResources(ctx, rosaNetScope.ROSANetwork, awsClient); err != nil {
 			rosaNetScope.Info("error fetching CF stack resources: %w", err)
-			return ctrl.Result{RequeueAfter: time.Second * 60}, nil
+			return ctrl.Result{RequeueAfter: defaultRequeueInterval}, nil
 		}
 
 		switch cfStack.StackStatus {
 		case cloudformationtypes.StackStatusDeleteInProgress: // Deletion in progress
-			return ctrl.Result{RequeueAfter: time.Second * 60}, nil
+			return ctrl.Result{RequeueAfter: defaultRequeueInterval}, nil
 		case cloudformationtypes.StackStatusDeleteFailed: // Deletion failed
 			v1beta1conditions.MarkFalse(rosaNetScope.ROSANetwork,
 				expinfrav1.ROSANetworkReadyCondition,
@@ -245,7 +244,7 @@ func (r *ROSANetworkReconciler) reconcileDelete(ctx context.Context, rosaNetScop
 				expinfrav1.ROSANetworkDeletingReason,
 				clusterv1beta1.ConditionSeverityInfo,
 				"")
-			return ctrl.Result{RequeueAfter: time.Second * 60}, nil
+			return ctrl.Result{RequeueAfter: defaultRequeueInterval}, nil
 		}
 	} else {
 		controllerutil.RemoveFinalizer(rosaNetScope.ROSANetwork, expinfrav1.ROSANetworkFinalizer)
