@@ -30,5 +30,6 @@ func Cmd() *cobra.Command {
 	}
 	cmd.AddCommand(detectK8sReleaseCmd())
 	cmd.AddCommand(findMissingAmiCmd())
+	cmd.AddCommand(removeDuplicatesCmd())
 	return cmd
 }

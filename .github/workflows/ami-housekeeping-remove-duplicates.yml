@@ -1,0 +1,65 @@
+name: Remove duplicate AMIs
+
+on:
+  workflow_dispatch:
+    inputs:
+      region:
+        description: "Comma-separated list of AWS regions (leave empty for all CAPA regions, the release-tool default)"
+        required: false
+        type: string
+        default: ''
+      include_ungroupable:
+        description: "Also remove AMIs that couldn't be evaluated for duplication (missing tags)"
+        required: true
+        type: boolean
+        default: false
+      delete:
+        description: "Actually remove AMIs? (leave unchecked for dry-run preview)"
+        required: true
+        type: boolean
+        default: false
+
+env:
+  AWS_ACCOUNT_ID: "819546954734"
+  AWS_REGION: "us-east-2" # single region used for OIDC authentication
+
+permissions:
+  id-token: write # required for OIDC authentication to AWS
+  contents: read
+
+jobs:
+  remove-duplicates:
+    name: Remove duplicate AMIs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: hack/tools/release-tools/go.sum
+
+      - name: Build release-tool
+        working-directory: hack/tools/release-tools
+        run: go build -o ../../../bin/release-tool .
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c # v6.2.4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/gh-image-builder
+
+      - name: Run remove-duplicates
+        env:
+          REGION: ${{ inputs.region }}
+        run: |
+          FLAGS=()
+          if [ "${{ inputs.include_ungroupable }}" = "true" ]; then
+            FLAGS+=("--include-ungroupable")
+          fi
+          if [ "${{ inputs.delete }}" = "true" ]; then
+            FLAGS+=("--delete")
+          fi
+          ./bin/release-tool ami remove-duplicates --region "$REGION" "${FLAGS[@]}"
