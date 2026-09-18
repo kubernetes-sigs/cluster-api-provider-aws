@@ -134,6 +134,22 @@ spec:
                 items:
                   type: string
                 type: array
+              spotMarketOptions:
+                description: |-
+                  SpotMarketOptions configures the node pool to use AWS Spot instances.
+                  Providing an empty struct ({}) requests Spot with no max price.
+                  Providing MaxPrice limits the bid to that amount per hour.
+
+                  Setting both spotMarketOptions and capacityReservationID is not allowed
+                  and is rejected by the validating webhook.
+                properties:
+                  maxPrice:
+                    description: |-
+                      MaxPrice defines the maximum price the user is willing to pay for Spot VM instances,
+                      as an hourly rate. When omitted, Spot instances are requested with no maximum price.
+                    pattern: ^[0-9]+(\.[0-9]+)?$
+                    type: string
+                type: object
               subnet:
                 type: string
                 x-kubernetes-validations:
