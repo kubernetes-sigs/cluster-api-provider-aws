@@ -45,7 +45,7 @@ type UpgradeControlPlaneVersionSpecInput struct {
 	UpgradeVersion        string
 }
 
-// UpgradeControlPlaneVersionSpec updates the EKS control plane version and waits for the upgrade.
+// UpgradeControlPlaneVersionSpec updates the EKS control plane version and waits for the update.
 func UpgradeControlPlaneVersionSpec(ctx context.Context, inputGetter func() UpgradeControlPlaneVersionSpecInput) {
 	input := inputGetter()
 	Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil")
@@ -69,7 +69,7 @@ func UpgradeControlPlaneVersionSpec(ctx context.Context, inputGetter func() Upgr
 	controlPlane.Spec.Version = &input.UpgradeVersion
 	Expect(patchHelper.Patch(ctx, controlPlane)).To(Succeed())
 
-	ginkgo.By("Waiting for EKS control-plane to be upgraded to new version")
+	ginkgo.By("Waiting for EKS control-plane version to be updated")
 	waitForControlPlaneToBeUpgraded(ctx, waitForControlPlaneToBeUpgradedInput{
 		ControlPlane:   controlPlane,
 		AWSSession:     input.AWSSession,
