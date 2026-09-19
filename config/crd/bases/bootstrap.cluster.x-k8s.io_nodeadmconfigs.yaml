@@ -192,6 +192,147 @@ spec:
                   - path
                   type: object
                 type: array
+              hybrid:
+                description: |-
+                  Hybrid contains configuration for EKS Hybrid Nodes.
+                  When specified, the NodeadmConfig generates userdata for hybrid node
+                  bootstrapping instead of standard EC2 node bootstrapping.
+                properties:
+                  customUserData:
+                    description: |-
+                      CustomUserData allows providing a custom userdata template with variable interpolation.
+                      When specified, the default nodeadm MIME multipart userdata generation is completely
+                      replaced with the user-provided template. The template uses Go text/template syntax.
+                      This is useful for hybrid nodes in environments where cloud-init or the standard
+                      bootstrap approach is not suitable.
+                    properties:
+                      template:
+                        description: |-
+                          Template is a Go text/template format string that will be rendered with
+                          available runtime variables. The output is stored as-is in the bootstrap secret.
+
+                          Available template variables:
+                            - {{.ClusterName}}                 - EKS cluster name
+                            - {{.Region}}                      - AWS region
+                            - {{.KubernetesVersion}}           - Kubernetes version (e.g., "1.34")
+                            - {{.ActivationID}}                - SSM activation ID
+                            - {{.ActivationCode}}              - SSM activation code
+                            - {{.KubeletFlags}}                - []string of kubelet flags (if configured)
+                            - {{.KubeletConfig}}               - string of kubelet config YAML (if configured)
+                            - {{.ContainerdConfig}}            - string of containerd config (if configured)
+                            - {{.ContainerdBaseRuntimeSpec}}   - string of containerd base runtime spec YAML (if configured)
+                            - {{.FeatureGates}}                - map[Feature]bool of feature gates (if configured)
+                            - {{.PreNodeadmCommands}}          - []string of commands to run before nodeadm (if configured)
+                            - {{.Files}}                       - []File with resolved content (if configured)
+                            - {{.Users}}                       - []User to create (if configured)
+                            - {{.NTP}}                         - NTP configuration (if configured)
+                            - {{.DiskSetup}}                   - disk setup configuration (if configured)
+                            - {{.Mounts}}                      - []MountPoints to mount (if configured)
+
+                          Template functions available:
+                            - {{Indent N .Content}}      - Indent content by N spaces
+                            - {{join .Slice ","}}        - Join slice with delimiter
+                            - {{base64Encode .Data}}     - Base64 encode data
+                            - {{default "val" .Var}}     - Return default if Var is empty
+                            - {{trimSpace .Content}}     - Trim leading/trailing whitespace
+
+                          Example template:
+                            #!/bin/bash
+                            cat <<EOF > /etc/nodeadm/config.yaml
+                            apiVersion: node.eks.aws/v1alpha1
+                            kind: NodeConfig
+                            spec:
+                              cluster:
+                                name: {{.ClusterName}}
+                                region: {{.Region}}
+                              hybrid:
+                                ssm:
+                                  activationId: {{.ActivationID}}
+                                  activationCode: {{.ActivationCode}}
+                            EOF
+                            /usr/local/bin/nodeadm init -c file:///etc/nodeadm/config.yaml
+                        minLength: 1
+                        type: string
+                    required:
+                    - template
+                    type: object
+                  ssm:
+                    description: |-
+                      SSM configures SSM-based authentication for hybrid nodes.
+                      This is required for hybrid node support.
+                    properties:
+                      activationConfig:
+                        description: |-
+                          ActivationConfig specifies parameters for automatically creating an SSM activation.
+                          The controller will create the activation and store credentials in a Secret.
+                          The activation will be deleted when the NodeadmConfig is deleted.
+                        properties:
+                          expirationHours:
+                            default: 24
+                            description: |-
+                              ExpirationHours is the number of hours until the activation expires.
+                              After expiration, no new nodes can register using this activation,
+                              but already-registered nodes are unaffected.
+                              Minimum: 1, Maximum: 720 (30 days), Default: 24
+                            format: int32
+                            maximum: 720
+                            minimum: 1
+                            type: integer
+                          iamRoleName:
+                            description: |-
+                              IAMRoleName is the name of the IAM role that hybrid nodes will assume.
+                              This role must have the necessary permissions for EKS hybrid nodes
+                              and trust policy allowing ssm.amazonaws.com to assume it.
+                              See: https://docs.aws.amazon.com/eks/latest/userguide/hybrid-nodes-creds.html
+                            minLength: 1
+                            type: string
+                          registrationLimit:
+                            default: 1
+                            description: |-
+                              RegistrationLimit is the maximum number of hybrid nodes that can register
+                              using this activation. Each NodeadmConfig creates its own activation,
+                              so this typically corresponds to the number of nodes using this config.
+                              Minimum: 1, Maximum: 1000, Default: 1
+                            format: int32
+                            maximum: 1000
+                            minimum: 1
+                            type: integer
+                          tags:
+                            additionalProperties:
+                              type: string
+                            description: |-
+                              Tags are key-value pairs to apply to the SSM activation.
+                              These tags help identify and manage activations in the AWS console.
+                            type: object
+                        required:
+                        - iamRoleName
+                        type: object
+                      activationRef:
+                        description: |-
+                          ActivationRef references an existing Secret containing SSM activation credentials.
+                          The Secret must contain 'activationId' and 'activationCode' keys.
+                          When specified, the controller will not create or manage SSM activations.
+                        properties:
+                          name:
+                            default: ""
+                            description: |-
+                              Name of the referent.
+                              This field is effectively required, but due to backwards compatibility is
+                              allowed to be empty. Instances of this type with an empty value here are
+                              almost certainly wrong.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            type: string
+                        type: object
+                        x-kubernetes-map-type: atomic
+                    type: object
+                    x-kubernetes-validations:
+                    - message: one of activationRef or activationConfig must be specified
+                      rule: has(self.activationRef) || has(self.activationConfig)
+                    - message: activationRef and activationConfig are mutually exclusive
+                      rule: '!has(self.activationRef) || !has(self.activationConfig)'
+                required:
+                - ssm
+                type: object
               kubelet:
                 description: Kubelet contains options for kubelet.
                 properties:
@@ -393,6 +534,23 @@ spec:
                   Deprecated: This field will be removed with the CAPI v1beta2 transition
                   Ready indicates the BootstrapData secret is ready to be consumed.
                 type: boolean
+              ssmActivation:
+                description: |-
+                  SSMActivation contains status information about the SSM activation
+                  when hybrid mode is enabled with auto-created activations.
+                properties:
+                  activationID:
+                    description: ActivationID is the ID of the SSM activation.
+                    type: string
+                  expirationTime:
+                    description: ExpirationTime is when the activation expires.
+                    format: date-time
+                    type: string
+                  secretName:
+                    description: SecretName is the name of the Secret containing activation
+                      credentials.
+                    type: string
+                type: object
             type: object
         type: object
     served: true
