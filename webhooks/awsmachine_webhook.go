@@ -471,6 +471,11 @@ func (w *AWSMachine) Default(_ context.Context, obj runtime.Object) error {
 		r.Spec.Ignition.Version = infrav1.DefaultIgnitionVersion
 	}
 
+	if r.Spec.InstanceMetadataOptions == nil {
+		r.Spec.InstanceMetadataOptions = &infrav1.InstanceMetadataOptions{}
+	}
+	r.Spec.InstanceMetadataOptions.SetDefaults()
+
 	return nil
 }
 
