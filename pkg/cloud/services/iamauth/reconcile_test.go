@@ -21,6 +21,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/iam"
+	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,6 +33,7 @@ import (
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/iamauth/mock_iamauth"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 )
@@ -87,9 +91,12 @@ func TestReconcileIAMAuth(t *testing.T) {
 		md := createMachineDeploymentForCluster(name, ns, eksCluster.Name, infraRefForMD, configRefForMD)
 		g.Expect(testEnv.Create(ctx, md)).To(Succeed())
 
-		expectedRoles := map[string]struct{}{
-			"nodes.cluster-api-provider-aws.sigs.k8s.io":     {},
-			"eks-nodes.cluster-api-provider-aws.sigs.k8s.io": {},
+		// Both fixtures use instance-profile-bearing CRDs (AWSMachinePool +
+		// AWSMachineTemplate), so both discovered names are tagged as instance
+		// profile names.
+		expectedRoles := map[string]nameKind{
+			"nodes.cluster-api-provider-aws.sigs.k8s.io":     asInstanceProfile,
+			"eks-nodes.cluster-api-provider-aws.sigs.k8s.io": asInstanceProfile,
 		}
 
 		controllerIdentity := createControllerIdentity()
@@ -230,6 +237,140 @@ func createMachineDeploymentForCluster(name, namespace, clusterName string, infr
 		},
 	}
 	return md
+}
+
+func TestGetARNForInstanceProfile(t *testing.T) {
+	const (
+		profileName = "iam_profile-node-cell-test-weak-yak"
+		roleName    = "cell-test-weak-yak-node.sigs.k8s.io"
+		roleARN     = "arn:aws:iam::138736084239:role/cell-test-weak-yak-node.sigs.k8s.io"
+	)
+
+	t.Run("returns the underlying role ARN when the instance profile has a role", func(t *testing.T) {
+		g := NewWithT(t)
+		mockCtrl := gomock.NewController(t)
+		defer mockCtrl.Finish()
+
+		iamMock := mock_iamauth.NewMockIAMAPI(mockCtrl)
+		iamMock.EXPECT().GetInstanceProfile(gomock.Any(), &iam.GetInstanceProfileInput{
+			InstanceProfileName: aws.String(profileName),
+		}).Return(&iam.GetInstanceProfileOutput{
+			InstanceProfile: &iamtypes.InstanceProfile{
+				InstanceProfileName: aws.String(profileName),
+				Roles: []iamtypes.Role{
+					{RoleName: aws.String(roleName), Arn: aws.String(roleARN)},
+				},
+			},
+		}, nil)
+
+		s := &Service{IAMClient: iamMock}
+		arn, err := s.getARNForInstanceProfile(context.TODO(), profileName)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(arn).To(Equal(roleARN))
+	})
+
+	t.Run("returns an error when AWS reports the instance profile does not exist", func(t *testing.T) {
+		g := NewWithT(t)
+		mockCtrl := gomock.NewController(t)
+		defer mockCtrl.Finish()
+
+		iamMock := mock_iamauth.NewMockIAMAPI(mockCtrl)
+		iamMock.EXPECT().GetInstanceProfile(gomock.Any(), gomock.Any()).
+			Return(nil, &iamtypes.NoSuchEntityException{Message: aws.String("not found")})
+
+		s := &Service{IAMClient: iamMock}
+		_, err := s.getARNForInstanceProfile(context.TODO(), profileName)
+		g.Expect(err).To(HaveOccurred())
+	})
+
+	t.Run("returns an error when the instance profile exists but has no role attached", func(t *testing.T) {
+		g := NewWithT(t)
+		mockCtrl := gomock.NewController(t)
+		defer mockCtrl.Finish()
+
+		iamMock := mock_iamauth.NewMockIAMAPI(mockCtrl)
+		iamMock.EXPECT().GetInstanceProfile(gomock.Any(), gomock.Any()).Return(&iam.GetInstanceProfileOutput{
+			InstanceProfile: &iamtypes.InstanceProfile{
+				InstanceProfileName: aws.String(profileName),
+				Roles:               []iamtypes.Role{},
+			},
+		}, nil)
+
+		s := &Service{IAMClient: iamMock}
+		_, err := s.getARNForInstanceProfile(context.TODO(), profileName)
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(err.Error()).To(ContainSubstring("no role attached"))
+	})
+
+	t.Run("returns an error when the attached role has no ARN", func(t *testing.T) {
+		g := NewWithT(t)
+		mockCtrl := gomock.NewController(t)
+		defer mockCtrl.Finish()
+
+		iamMock := mock_iamauth.NewMockIAMAPI(mockCtrl)
+		iamMock.EXPECT().GetInstanceProfile(gomock.Any(), gomock.Any()).Return(&iam.GetInstanceProfileOutput{
+			InstanceProfile: &iamtypes.InstanceProfile{
+				InstanceProfileName: aws.String(profileName),
+				Roles: []iamtypes.Role{
+					{RoleName: aws.String(roleName)},
+				},
+			},
+		}, nil)
+
+		s := &Service{IAMClient: iamMock}
+		_, err := s.getARNForInstanceProfile(context.TODO(), profileName)
+		g.Expect(err).To(HaveOccurred())
+	})
+}
+
+func TestResolveRoleARN(t *testing.T) {
+	const (
+		profileName = "iam_profile-node-cell-test-weak-yak"
+		profileRole = "arn:aws:iam::138736084239:role/cell-test-weak-yak-node.sigs.k8s.io"
+		roleName    = "capa_managed_role"
+		roleARN     = "arn:aws:iam::138736084239:role/capa_managed_role"
+	)
+
+	t.Run("dispatches to GetInstanceProfile for asInstanceProfile names", func(t *testing.T) {
+		g := NewWithT(t)
+		mockCtrl := gomock.NewController(t)
+		defer mockCtrl.Finish()
+
+		iamMock := mock_iamauth.NewMockIAMAPI(mockCtrl)
+		iamMock.EXPECT().GetInstanceProfile(gomock.Any(), &iam.GetInstanceProfileInput{
+			InstanceProfileName: aws.String(profileName),
+		}).Return(&iam.GetInstanceProfileOutput{
+			InstanceProfile: &iamtypes.InstanceProfile{
+				InstanceProfileName: aws.String(profileName),
+				Roles: []iamtypes.Role{
+					{Arn: aws.String(profileRole)},
+				},
+			},
+		}, nil)
+
+		s := &Service{IAMClient: iamMock}
+		arn, err := s.resolveRoleARN(context.TODO(), profileName, asInstanceProfile)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(arn).To(Equal(profileRole))
+	})
+
+	t.Run("dispatches to GetRole for asRole names", func(t *testing.T) {
+		g := NewWithT(t)
+		mockCtrl := gomock.NewController(t)
+		defer mockCtrl.Finish()
+
+		iamMock := mock_iamauth.NewMockIAMAPI(mockCtrl)
+		iamMock.EXPECT().GetRole(gomock.Any(), &iam.GetRoleInput{
+			RoleName: aws.String(roleName),
+		}).Return(&iam.GetRoleOutput{
+			Role: &iamtypes.Role{Arn: aws.String(roleARN)},
+		}, nil)
+
+		s := &Service{IAMClient: iamMock}
+		arn, err := s.resolveRoleARN(context.TODO(), roleName, asRole)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(arn).To(Equal(roleARN))
+	})
 }
 
 func createControllerIdentity() *infrav1.AWSClusterControllerIdentity {

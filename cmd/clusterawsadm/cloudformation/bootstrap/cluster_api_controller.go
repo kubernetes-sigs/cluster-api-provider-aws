@@ -350,6 +350,7 @@ func (t Template) ControllersPolicyEKS() *iamv1.PolicyDocument {
 
 	allowedIAMActions := iamv1.Actions{
 		"iam:GetRole",
+		"iam:GetInstanceProfile",
 		"iam:ListAttachedRolePolicies",
 	}
 	statements = append(statements,
