@@ -25,6 +25,7 @@ import (
 	"encoding/pem"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -50,9 +51,10 @@ func TestOIDCReconcile(t *testing.T) {
 	testCertThumbprint := getTestcertTumbprint(t)
 
 	tests := []struct {
-		name    string
-		expect  func(m *mock_iamauth.MockIAMAPIMockRecorder, url string)
-		cluster func(url string) ekstypes.Cluster
+		name        string
+		expect      func(m *mock_iamauth.MockIAMAPIMockRecorder, url string)
+		cluster     func(url string) ekstypes.Cluster
+		expectError string
 	}{
 		{
 			name: "cluster create with no OIDC provider present yet should create one",
@@ -121,6 +123,77 @@ func TestOIDCReconcile(t *testing.T) {
 				}).Return(&iam.TagOpenIDConnectProviderOutput{}, nil)
 			},
 		},
+		{
+			name: "existing OIDC provider with EKS domain and mismatched thumbprint should update",
+			cluster: func(url string) ekstypes.Cluster {
+				return ekstypes.Cluster{
+					Name:    aws.String("cluster-test"),
+					Arn:     aws.String("arn:arn"),
+					RoleArn: aws.String("arn:role"),
+					Identity: &ekstypes.Identity{
+						Oidc: &ekstypes.OIDC{
+							Issuer: aws.String("https://oidc.eks.us-west-2.amazonaws.com/id/test123"),
+						},
+					},
+				}
+			},
+			expect: func(m *mock_iamauth.MockIAMAPIMockRecorder, url string) {
+				m.ListOpenIDConnectProviders(gomock.Any(), &iam.ListOpenIDConnectProvidersInput{}).Return(&iam.ListOpenIDConnectProvidersOutput{
+					OpenIDConnectProviderList: []iamtypes.OpenIDConnectProviderListEntry{
+						{
+							Arn: aws.String("arn::oidc"),
+						},
+					},
+				}, nil)
+				m.GetOpenIDConnectProvider(gomock.Any(), &iam.GetOpenIDConnectProviderInput{
+					OpenIDConnectProviderArn: aws.String("arn::oidc"),
+				}).Return(&iam.GetOpenIDConnectProviderOutput{
+					ClientIDList:   []string{"sts.amazonaws.com"},
+					ThumbprintList: []string{"oldthumbprint"},
+					Url:            aws.String("https://oidc.eks.us-west-2.amazonaws.com/id/test123"),
+				}, nil)
+				m.UpdateOpenIDConnectProviderThumbprint(gomock.Any(), &iam.UpdateOpenIDConnectProviderThumbprintInput{
+					OpenIDConnectProviderArn: aws.String("arn::oidc"),
+					ThumbprintList:           []string{testCertThumbprint},
+				}).Return(&iam.UpdateOpenIDConnectProviderThumbprintOutput{}, nil)
+				m.TagOpenIDConnectProvider(gomock.Any(), &iam.TagOpenIDConnectProviderInput{
+					OpenIDConnectProviderArn: aws.String("arn::oidc"),
+					Tags:                     []iamtypes.Tag{},
+				}).Return(&iam.TagOpenIDConnectProviderOutput{}, nil)
+			},
+		},
+		{
+			name: "existing OIDC provider with non-EKS domain and mismatched thumbprint should error",
+			cluster: func(url string) ekstypes.Cluster {
+				return ekstypes.Cluster{
+					Name:    aws.String("cluster-test"),
+					Arn:     aws.String("arn:arn"),
+					RoleArn: aws.String("arn:role"),
+					Identity: &ekstypes.Identity{
+						Oidc: &ekstypes.OIDC{
+							Issuer: aws.String(url),
+						},
+					},
+				}
+			},
+			expect: func(m *mock_iamauth.MockIAMAPIMockRecorder, url string) {
+				m.ListOpenIDConnectProviders(gomock.Any(), &iam.ListOpenIDConnectProvidersInput{}).Return(&iam.ListOpenIDConnectProvidersOutput{
+					OpenIDConnectProviderList: []iamtypes.OpenIDConnectProviderListEntry{
+						{
+							Arn: aws.String("arn::oidc"),
+						},
+					},
+				}, nil)
+				m.GetOpenIDConnectProvider(gomock.Any(), &iam.GetOpenIDConnectProviderInput{
+					OpenIDConnectProviderArn: aws.String("arn::oidc"),
+				}).Return(&iam.GetOpenIDConnectProviderOutput{
+					ClientIDList:   []string{"sts.amazonaws.com"},
+					ThumbprintList: []string{"oldthumbprint"},
+					Url:            aws.String(url),
+				}, nil)
+			},
+			expectError: "found provider with matching issuerURL but non-matching thumbprint",
+		},
 	}
 
 	for _, tc := range tests {
@@ -172,16 +245,44 @@ func TestOIDCReconcile(t *testing.T) {
 
 			iamMock := mock_iamauth.NewMockIAMAPI(mockControl)
 			tc.expect(iamMock.EXPECT(), ts.URL)
-			s := NewService(scope, WithIAMClient(ts.Client()))
+
+			httpClient := ts.Client()
+			if tc.name == "existing OIDC provider with EKS domain and mismatched thumbprint should update" {
+				httpClient = &http.Client{
+					Transport: &testTransport{
+						testServerURL: ts.URL,
+						baseTransport: ts.Client().Transport,
+					},
+				}
+			}
+
+			s := NewService(scope, WithIAMClient(httpClient))
 			s.IAMClient = iamMock
 
 			cluster := tc.cluster(ts.URL)
 			err := s.reconcileOIDCProvider(context.TODO(), &cluster)
-			// We reached the trusted policy reconcile which will fail because it tries to connect to the server.
-			// But at this point, we already know that the critical area has been covered.
-			g.Expect(err).To(MatchError(ContainSubstring("dial tcp: lookup test-cluster-api.nodomain.example.com")))
+			if tc.expectError != "" {
+				g.Expect(err).To(MatchError(ContainSubstring(tc.expectError)))
+			} else {
+				// We reached the trusted policy reconcile which will fail because it tries to connect to the server.
+				// But at this point, we already know that the critical area has been covered.
+				g.Expect(err).To(MatchError(ContainSubstring("dial tcp: lookup test-cluster-api.nodomain.example.com")))
+			}
 		})
 	}
+}
+
+type testTransport struct {
+	testServerURL string
+	baseTransport http.RoundTripper
+}
+
+func (t *testTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if strings.Contains(req.URL.Host, "oidc.eks.") && strings.Contains(req.URL.Host, ".amazonaws.com") {
+		req.URL.Scheme = "https"
+		req.URL.Host = strings.TrimPrefix(t.testServerURL, "https://")
+	}
+	return t.baseTransport.RoundTrip(req)
 }
 
 func getTestcertTumbprint(t *testing.T) string {
