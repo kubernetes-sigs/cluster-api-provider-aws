@@ -50,23 +50,29 @@ const (
 )
 
 const (
-	// ROSAOCMRoleConfigReadyCondition condition reports on the successful reconciliation of ROSAOCMRoleConfig.
-	ROSAOCMRoleConfigReadyCondition = "ROSAOCMRoleConfigReady"
+	// ROSAOCMRoleConfigReadyV1Beta1Condition condition reports on the successful reconciliation of ROSAOCMRoleConfig.
+	// Use ROSAOCMRoleConfigReadyCondition from v1beta2_condition_consts.go instead.
+	ROSAOCMRoleConfigReadyV1Beta1Condition = "ROSAOCMRoleConfigReady"
 
-	// ROSAOCMRoleConfigDeletionFailedReason used to report failures while deleting ROSAOCMRoleConfig.
-	ROSAOCMRoleConfigDeletionFailedReason = "DeletionFailed"
+	// ROSAOCMRoleConfigDeletionFailedV1Beta1Reason used to report failures while deleting ROSAOCMRoleConfig.
+	// Use ROSAOCMRoleConfigDeletionFailedReason from v1beta2_condition_consts.go instead.
+	ROSAOCMRoleConfigDeletionFailedV1Beta1Reason = "DeletionFailed"
 
-	// ROSAOCMRoleConfigReconciliationFailedReason used to report reconciliation failures.
-	ROSAOCMRoleConfigReconciliationFailedReason = "ReconciliationFailed"
+	// ROSAOCMRoleConfigReconciliationFailedV1Beta1Reason used to report reconciliation failures.
+	// Use ROSAOCMRoleConfigReconciliationFailedReason from v1beta2_condition_consts.go instead.
+	ROSAOCMRoleConfigReconciliationFailedV1Beta1Reason = "ReconciliationFailed"
 
-	// ROSAOCMRoleConfigDeletionStarted used to indicate that the deletion of ROSAOCMRoleConfig has started.
-	ROSAOCMRoleConfigDeletionStarted = "DeletionStarted"
+	// ROSAOCMRoleConfigDeletionStartedV1Beta1 used to indicate that the deletion of ROSAOCMRoleConfig has started.
+	// Use ROSAOCMRoleConfigDeletionStartedReason from v1beta2_condition_consts.go instead.
+	ROSAOCMRoleConfigDeletionStartedV1Beta1 = "DeletionStarted"
 
-	// ROSAOCMRoleConfigCreatedReason used to indicate that the ROSAOCMRoleConfig has been created.
-	ROSAOCMRoleConfigCreatedReason = "Created"
+	// ROSAOCMRoleConfigCreatedV1Beta1Reason used to indicate that the ROSAOCMRoleConfig has been created.
+	// Use ROSAOCMRoleConfigCreatedReason from v1beta2_condition_consts.go instead.
+	ROSAOCMRoleConfigCreatedV1Beta1Reason = "Created"
 
-	// ROSAOCMRoleConfigLinkedReason used to indicate that the OCM role has been linked to the organization.
-	ROSAOCMRoleConfigLinkedReason = "Linked"
+	// ROSAOCMRoleConfigLinkedV1Beta1Reason used to indicate that the OCM role has been linked to the organization.
+	// Use ROSAOCMRoleConfigLinkedReason from v1beta2_condition_consts.go instead.
+	ROSAOCMRoleConfigLinkedV1Beta1Reason = "Linked"
 )
 
 // ROSAOCMRoleConfigSpec defines the desired state of ROSAOCMRoleConfig
