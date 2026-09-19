@@ -18,19 +18,23 @@ package identity
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	ststypes "github.com/aws/aws-sdk-go-v2/service/sts/types"
+	"github.com/aws/smithy-go"
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/klog/v2"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts/mock_stsiface"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 )
 
 func TestAWSStaticPrincipalTypeProvider(t *testing.T) {
@@ -190,6 +194,115 @@ func TestAWSStaticPrincipalTypeProvider(t *testing.T) {
 			if !cmp.Equal(tc.value, value) {
 				t.Fatal("Did not get expected result")
 			}
+		})
+	}
+}
+
+func TestAWSRolePrincipalTypeProvider_ClearsCredentialCacheOnInvalidClientTokenId(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	g := NewWithT(t)
+
+	secret := &corev1.Secret{
+		Data: map[string][]byte{
+			"AccessKeyID":     []byte("test-key"),
+			"SecretAccessKey": []byte("test-secret"),
+		},
+	}
+	staticProvider := NewAWSStaticPrincipalTypeProvider(&infrav1.AWSClusterStaticIdentity{}, secret)
+
+	stsMock := mock_stsiface.NewMockSTSClient(mockCtrl)
+	roleIdentity := &infrav1.AWSClusterRoleIdentity{
+		Spec: infrav1.AWSClusterRoleIdentitySpec{
+			AWSRoleSpec: infrav1.AWSRoleSpec{
+				RoleArn:         "arn:aws:iam::123456789012:role/test-role",
+				SessionName:     "test-session",
+				DurationSeconds: 900,
+			},
+		},
+	}
+
+	testLog := logger.NewLogger(klog.NewKlogr())
+	roleProvider := &AWSRolePrincipalTypeProvider{
+		credentials:    nil,
+		Principal:      roleIdentity,
+		region:         "us-east-1",
+		sourceProvider: staticProvider,
+		stsClient:      stsMock,
+		log:            testLog.WithName("test"),
+	}
+
+	// First call: return InvalidClientTokenId error
+	invalidTokenErr := &smithy.GenericAPIError{
+		Code:    "InvalidClientTokenId",
+		Message: "The security token included in the request is invalid",
+	}
+	stsMock.EXPECT().AssumeRole(gomock.Any(), gomock.Any()).Return(nil, invalidTokenErr)
+
+	_, err := roleProvider.Retrieve(context.TODO())
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.Error()).To(ContainSubstring("InvalidClientTokenId"))
+	// Credentials cache should be cleared
+	g.Expect(roleProvider.credentials).To(BeNil())
+
+	// Second call: succeed — proves the cache was cleared and a fresh attempt is made
+	stsMock.EXPECT().AssumeRole(gomock.Any(), gomock.Any()).Return(&sts.AssumeRoleOutput{
+		Credentials: &ststypes.Credentials{
+			AccessKeyId:     aws.String("new-key"),
+			SecretAccessKey: aws.String("new-secret"),
+			SessionToken:    aws.String("new-token"),
+			Expiration:      aws.Time(time.Now().Add(1 * time.Hour)),
+		},
+	}, nil)
+
+	creds, err := roleProvider.Retrieve(context.TODO())
+	g.Expect(err).To(BeNil())
+	g.Expect(creds.AccessKeyID).To(Equal("new-key"))
+}
+
+func TestIsInvalidClientTokenIDError(t *testing.T) {
+	tests := []struct {
+		name   string
+		err    error
+		expect bool
+	}{
+		{
+			name:   "nil error",
+			err:    nil,
+			expect: false,
+		},
+		{
+			name: "typed smithy APIError with InvalidClientTokenId",
+			err: &smithy.GenericAPIError{
+				Code:    "InvalidClientTokenId",
+				Message: "The security token included in the request is invalid",
+			},
+			expect: true,
+		},
+		{
+			name:   "error containing InvalidClientTokenId in message",
+			err:    fmt.Errorf("operation failed: InvalidClientTokenId: token not valid"),
+			expect: true,
+		},
+		{
+			name:   "unrelated error",
+			err:    fmt.Errorf("connection timeout"),
+			expect: false,
+		},
+		{
+			name: "different API error code",
+			err: &smithy.GenericAPIError{
+				Code:    "AccessDenied",
+				Message: "not authorized",
+			},
+			expect: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect(IsInvalidClientTokenIDError(tt.err)).To(Equal(tt.expect))
 		})
 	}
 }
