@@ -1,0 +1,63 @@
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: ClusterClass
+metadata:
+  name: eks-mmp-e2e
+spec:
+  controlPlane:
+    templateRef:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+      kind: AWSManagedControlPlaneTemplate
+      name: "${CLUSTER_NAME}-control-plane"
+  infrastructure:
+    templateRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+      kind: AWSManagedClusterTemplate
+      name: "${CLUSTER_NAME}"
+  workers:
+    machinePools:
+      - class: default-pool
+        bootstrap:
+          templateRef:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+            kind: NodeadmConfigTemplate
+            name: "${CLUSTER_NAME}-pool-0"
+        infrastructure:
+          templateRef:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+            kind: AWSManagedMachinePoolTemplate
+            name: "${CLUSTER_NAME}-pool-0"
+---
+kind: AWSManagedClusterTemplate
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+metadata:
+  name: "${CLUSTER_NAME}"
+spec:
+  template:
+    spec: {}
+---
+kind: AWSManagedControlPlaneTemplate
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+metadata:
+  name: "${CLUSTER_NAME}-control-plane"
+spec:
+  template:
+    spec:
+      region: "${AWS_REGION}"
+      sshKeyName: "${AWS_SSH_KEY_NAME}"
+      version: "${KUBERNETES_VERSION}"
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: AWSManagedMachinePoolTemplate
+metadata:
+  name: "${CLUSTER_NAME}-pool-0"
+spec:
+  template:
+    spec:
+      amiType: AL2023_x86_64_STANDARD
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+kind: NodeadmConfigTemplate
+metadata:
+  name: "${CLUSTER_NAME}-pool-0"
+spec:
+  template: {}
