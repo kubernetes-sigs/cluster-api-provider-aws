@@ -344,6 +344,7 @@ func makeKubernetesNetworkConfig(serviceCidrs *clusterv1.NetworkRanges) (*ekstyp
 
 func makeVpcConfig(subnets infrav1.Subnets, endpointAccess ekscontrolplanev1.EndpointAccess, securityGroups map[infrav1.SecurityGroupRole]infrav1.SecurityGroup) (*ekstypes.VpcConfigRequest, error) {
 	// TODO: Do we need to just add the private subnets?
+	subnets = subnets.FilterNonCni()
 	if len(subnets) < 2 {
 		return nil, awserrors.NewFailedDependency("at least 2 subnets is required")
 	}
