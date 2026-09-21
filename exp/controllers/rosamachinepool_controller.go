@@ -560,6 +560,13 @@ func nodePoolBuilder(rosaMachinePoolSpec expinfrav1.RosaMachinePoolSpec, machine
 		capacityReservation := cmv1.NewAWSCapacityReservation().Id(rosaMachinePoolSpec.CapacityReservationID)
 		awsNodePool = awsNodePool.CapacityReservation(capacityReservation)
 	}
+	if rosaMachinePoolSpec.SpotMarketOptions != nil {
+		spotOpts := cmv1.NewAwsNodePoolSpotMarketOptions()
+		if rosaMachinePoolSpec.SpotMarketOptions.MaxPrice != nil {
+			spotOpts = spotOpts.MaxPrice(*rosaMachinePoolSpec.SpotMarketOptions.MaxPrice)
+		}
+		awsNodePool = awsNodePool.SpotMarketOptions(spotOpts)
+	}
 	npBuilder.AWSNodePool(awsNodePool)
 
 	if rosaMachinePoolSpec.Version != "" {
