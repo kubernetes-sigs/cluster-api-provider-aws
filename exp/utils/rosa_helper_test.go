@@ -47,7 +47,8 @@ func TestNodePoolToRosaMachinePoolSpec(t *testing.T) {
 			cmv1.NewAWSNodePool().
 				InstanceType("m5.large").
 				AdditionalSecurityGroupIds("sg-123", "sg-456").
-				RootVolume(cmv1.NewAWSVolume().Size(120)),
+				RootVolume(cmv1.NewAWSVolume().Size(120)).
+				SpotMarketOptions(cmv1.NewAwsNodePoolSpotMarketOptions().MaxPrice("0.05")),
 		).
 		Autoscaling(
 			cmv1.NewNodePoolAutoscaling().
@@ -100,7 +101,236 @@ func TestNodePoolToRosaMachinePoolSpec(t *testing.T) {
 				MaxUnavailable: ptr.To(intstr.FromInt32(2)),
 			},
 		},
+		SpotMarketOptions: &expinfrav1.SpotMarketOptions{MaxPrice: ptr.To("0.05")},
 	}
 
 	g.Expect(expectedSpec).To(Equal(actualSpec))
 }
+<<<<<<< HEAD
+=======
+
+func TestNodePoolToRosaMachinePoolSpec_DefaultsWhenOCMFieldsAbsent(t *testing.T) {
+	tests := []struct {
+		name     string
+		builder  *cmv1.NodePoolBuilder
+		expected expinfrav1.RosaMachinePoolSpec
+	}{
+		{
+			name: "no NodeDrainGracePeriod or ManagementUpgrade from OCM",
+			builder: cmv1.NewNodePool().
+				ID("test-nodepool").
+				AutoRepair(true).
+				AWSNodePool(cmv1.NewAWSNodePool().InstanceType("m5.large")),
+			expected: expinfrav1.RosaMachinePoolSpec{
+				NodePoolName:         "test-nodepool",
+				AutoRepair:           true,
+				InstanceType:         "m5.large",
+				NodeDrainGracePeriod: &metav1.Duration{},
+				UpdateConfig: &expinfrav1.RosaUpdateConfig{
+					RollingUpdate: &expinfrav1.RollingUpdate{
+						MaxUnavailable: ptr.To(intstr.FromInt32(0)),
+						MaxSurge:       ptr.To(intstr.FromInt32(1)),
+					},
+				},
+			},
+		},
+		{
+			name: "ManagementUpgrade present but MaxSurge and MaxUnavailable empty",
+			builder: cmv1.NewNodePool().
+				ID("test-nodepool").
+				AutoRepair(true).
+				AWSNodePool(cmv1.NewAWSNodePool().InstanceType("m5.large")).
+				ManagementUpgrade(cmv1.NewNodePoolManagementUpgrade()),
+			expected: expinfrav1.RosaMachinePoolSpec{
+				NodePoolName:         "test-nodepool",
+				AutoRepair:           true,
+				InstanceType:         "m5.large",
+				NodeDrainGracePeriod: &metav1.Duration{},
+				UpdateConfig: &expinfrav1.RosaUpdateConfig{
+					RollingUpdate: &expinfrav1.RollingUpdate{
+						MaxUnavailable: ptr.To(intstr.FromInt32(0)),
+						MaxSurge:       ptr.To(intstr.FromInt32(1)),
+					},
+				},
+			},
+		},
+		{
+			name: "ManagementUpgrade with only MaxSurge set",
+			builder: cmv1.NewNodePool().
+				ID("test-nodepool").
+				AutoRepair(true).
+				AWSNodePool(cmv1.NewAWSNodePool().InstanceType("m5.large")).
+				ManagementUpgrade(
+					cmv1.NewNodePoolManagementUpgrade().MaxSurge("3"),
+				),
+			expected: expinfrav1.RosaMachinePoolSpec{
+				NodePoolName:         "test-nodepool",
+				AutoRepair:           true,
+				InstanceType:         "m5.large",
+				NodeDrainGracePeriod: &metav1.Duration{},
+				UpdateConfig: &expinfrav1.RosaUpdateConfig{
+					RollingUpdate: &expinfrav1.RollingUpdate{
+						MaxUnavailable: ptr.To(intstr.FromInt32(0)),
+						MaxSurge:       ptr.To(intstr.FromInt32(3)),
+					},
+				},
+			},
+		},
+		{
+			name: "ManagementUpgrade with only MaxUnavailable set",
+			builder: cmv1.NewNodePool().
+				ID("test-nodepool").
+				AutoRepair(true).
+				AWSNodePool(cmv1.NewAWSNodePool().InstanceType("m5.large")).
+				ManagementUpgrade(
+					cmv1.NewNodePoolManagementUpgrade().MaxUnavailable("2"),
+				),
+			expected: expinfrav1.RosaMachinePoolSpec{
+				NodePoolName:         "test-nodepool",
+				AutoRepair:           true,
+				InstanceType:         "m5.large",
+				NodeDrainGracePeriod: &metav1.Duration{},
+				UpdateConfig: &expinfrav1.RosaUpdateConfig{
+					RollingUpdate: &expinfrav1.RollingUpdate{
+						MaxUnavailable: ptr.To(intstr.FromInt32(2)),
+						MaxSurge:       ptr.To(intstr.FromInt32(1)),
+					},
+				},
+			},
+		},
+		{
+			name: "NodeDrainGracePeriod with zero value from OCM",
+			builder: cmv1.NewNodePool().
+				ID("test-nodepool").
+				AutoRepair(true).
+				AWSNodePool(cmv1.NewAWSNodePool().InstanceType("m5.large")).
+				NodeDrainGracePeriod(cmv1.NewValue().Value(0)),
+			expected: expinfrav1.RosaMachinePoolSpec{
+				NodePoolName:         "test-nodepool",
+				AutoRepair:           true,
+				InstanceType:         "m5.large",
+				NodeDrainGracePeriod: &metav1.Duration{},
+				UpdateConfig: &expinfrav1.RosaUpdateConfig{
+					RollingUpdate: &expinfrav1.RollingUpdate{
+						MaxUnavailable: ptr.To(intstr.FromInt32(0)),
+						MaxSurge:       ptr.To(intstr.FromInt32(1)),
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			nodePool, err := tt.builder.Build()
+			g.Expect(err).ToNot(HaveOccurred())
+
+			actualSpec := NodePoolToRosaMachinePoolSpec(nodePool)
+			g.Expect(actualSpec).To(Equal(tt.expected))
+		})
+	}
+}
+
+func TestNodePoolToRosaMachinePoolSpec_NoPhantomDiff(t *testing.T) {
+	tests := []struct {
+		name    string
+		builder *cmv1.NodePoolBuilder
+	}{
+		{
+			name: "OCM returns no NodeDrainGracePeriod or ManagementUpgrade",
+			builder: cmv1.NewNodePool().
+				ID("test-nodepool").
+				AutoRepair(true).
+				AWSNodePool(cmv1.NewAWSNodePool().InstanceType("m5.large")),
+		},
+		{
+			name: "OCM returns ManagementUpgrade with empty MaxSurge/MaxUnavailable",
+			builder: cmv1.NewNodePool().
+				ID("test-nodepool").
+				AutoRepair(true).
+				AWSNodePool(cmv1.NewAWSNodePool().InstanceType("m5.large")).
+				ManagementUpgrade(cmv1.NewNodePoolManagementUpgrade()),
+		},
+		{
+			name: "OCM returns NodeDrainGracePeriod with zero value",
+			builder: cmv1.NewNodePool().
+				ID("test-nodepool").
+				AutoRepair(true).
+				AWSNodePool(cmv1.NewAWSNodePool().InstanceType("m5.large")).
+				NodeDrainGracePeriod(cmv1.NewValue().Value(0)),
+		},
+		{
+			name: "OCM returns ManagementUpgrade with default values",
+			builder: cmv1.NewNodePool().
+				ID("test-nodepool").
+				AutoRepair(true).
+				AWSNodePool(cmv1.NewAWSNodePool().InstanceType("m5.large")).
+				ManagementUpgrade(
+					cmv1.NewNodePoolManagementUpgrade().MaxSurge("1").MaxUnavailable("0"),
+				),
+		},
+		{
+			name: "fully populated OCM response",
+			builder: cmv1.NewNodePool().
+				ID("test-nodepool").
+				AutoRepair(true).
+				AWSNodePool(cmv1.NewAWSNodePool().InstanceType("m5.large")).
+				NodeDrainGracePeriod(cmv1.NewValue().Value(10)).
+				ManagementUpgrade(
+					cmv1.NewNodePoolManagementUpgrade().MaxSurge("3").MaxUnavailable("1"),
+				),
+		},
+	}
+
+	ignoredFields := []string{
+		"ProviderIDList",
+		"Version",
+		"AdditionalTags",
+		"AdditionalSecurityGroups",
+		"VolumeSize",
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			nodePool, err := tt.builder.Build()
+			g.Expect(err).ToNot(HaveOccurred())
+
+			currentSpec := NodePoolToRosaMachinePoolSpec(nodePool)
+
+			desiredPool := &expinfrav1.ROSAMachinePool{
+				Spec: currentSpec,
+			}
+			desiredPool.Default()
+			desiredSpec := desiredPool.Spec
+
+			diff := cmp.Diff(desiredSpec, currentSpec,
+				cmpopts.EquateEmpty(),
+				cmpopts.IgnoreFields(currentSpec, ignoredFields...))
+			g.Expect(diff).To(BeEmpty(), "phantom diff detected between defaulted spec and OCM conversion: %s", diff)
+		})
+	}
+}
+
+func TestNodePoolToRosaMachinePoolSpecSpotMarketOptionsNoMaxPrice(t *testing.T) {
+	g := NewWithT(t)
+
+	// A Spot node pool with no max price exercises the GetMaxPrice() ok=false branch.
+	nodePool, err := cmv1.NewNodePool().
+		ID("test-nodepool").
+		AWSNodePool(
+			cmv1.NewAWSNodePool().
+				InstanceType("m5.large").
+				SpotMarketOptions(cmv1.NewAwsNodePoolSpotMarketOptions()),
+		).
+		Build()
+	g.Expect(err).ToNot(HaveOccurred())
+
+	actualSpec := NodePoolToRosaMachinePoolSpec(nodePool)
+	g.Expect(actualSpec.SpotMarketOptions).ToNot(BeNil())
+	g.Expect(actualSpec.SpotMarketOptions.MaxPrice).To(BeNil())
+}
+>>>>>>> ceae97539 (feat: Add AWS SpotMarketOptions support to ROSA HCP MachinePools)
