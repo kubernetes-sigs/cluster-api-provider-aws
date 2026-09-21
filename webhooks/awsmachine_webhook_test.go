@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 
@@ -989,6 +990,30 @@ func TestValidateHostAllocationUpdate(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestValidateIgnitionTLS(t *testing.T) {
+	g := NewWithT(t)
+	caSourcesPath := field.NewPath("spec", "ignition", "tls", "caSources")
+
+	machine := &infrav1.AWSMachine{
+		Spec: infrav1.AWSMachineSpec{
+			Ignition: &infrav1.Ignition{
+				TLS: &infrav1.IgnitionTLS{
+					CASources: []infrav1.IgnitionCASource{
+						"s3://example.com/ca.pem",
+						"https://example.com/ca.pem\n",
+						"ftp://example.com/ca.pem",
+					},
+				},
+			},
+		},
+	}
+
+	g.Expect((&AWSMachine{}).validateIgnitionTLS(machine)).To(Equal(field.ErrorList{
+		field.Invalid(caSourcesPath, infrav1.IgnitionCASource("https://example.com/ca.pem\n"), "invalid URL"),
+		field.Invalid(caSourcesPath, infrav1.IgnitionCASource("ftp://example.com/ca.pem"), "unsupported URL scheme"),
+	}))
 }
 
 func TestAWSMachineSecretsBackend(t *testing.T) {

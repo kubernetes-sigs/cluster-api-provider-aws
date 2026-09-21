@@ -316,6 +316,7 @@ func (w *AWSMachine) validateIgnitionTLS(r *infrav1.AWSMachine) field.ErrorList 
 		u, err := url.Parse(string(source))
 		if err != nil {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "ignition", "tls", "caSources"), source, "invalid URL"))
+			continue
 		}
 
 		switch u.Scheme {
