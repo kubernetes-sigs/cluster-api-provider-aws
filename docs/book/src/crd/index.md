@@ -32702,6 +32702,24 @@ string
 The CapacityReservationID must be pre-created in advance, before creating a NodePool.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>spotMarketOptions</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.SpotMarketOptions">
+SpotMarketOptions
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SpotMarketOptions configures the node pool to use AWS Spot instances.
+Providing an empty struct ({}) requests Spot with no max price.
+Providing MaxPrice limits the bid to that amount per hour.</p>
+<p>Setting both spotMarketOptions and capacityReservationID is not allowed
+and is rejected by the validating webhook.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -34137,6 +34155,24 @@ string
 The CapacityReservationID must be pre-created in advance, before creating a NodePool.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>spotMarketOptions</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.SpotMarketOptions">
+SpotMarketOptions
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SpotMarketOptions configures the node pool to use AWS Spot instances.
+Providing an empty struct ({}) requests Spot with no max price.
+Providing MaxPrice limits the bid to that amount per hour.</p>
+<p>Setting both spotMarketOptions and capacityReservationID is not allowed
+and is rejected by the validating webhook.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolStatus">RosaMachinePoolStatus
@@ -34368,6 +34404,40 @@ string
 <p>
 <p>SpotAllocationStrategy indicates how to allocate instances across Spot Instance pools.</p>
 </p>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.SpotMarketOptions">SpotMarketOptions
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolSpec">RosaMachinePoolSpec</a>)
+</p>
+<p>
+<p>SpotMarketOptions defines the options for configuring AWS Spot instances on a
+ROSA machine pool.</p>
+<p>Setting both spotMarketOptions and capacityReservationID is not allowed and is
+rejected by the validating webhook.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>maxPrice</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>MaxPrice defines the maximum price the user is willing to pay for Spot VM instances,
+as an hourly rate. When omitted, Spot instances are requested with no maximum price.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.SuspendProcessesTypes">SuspendProcessesTypes
 </h3>
 <p>
