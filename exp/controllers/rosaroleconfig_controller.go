@@ -204,6 +204,7 @@ func (r *ROSARoleConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				Severity: clusterv1beta1.ConditionSeverityInfo,
 				Message:  "RosaRoleConfig not ready",
 			})
+		return ctrl.Result{RequeueAfter: defaultRequeueInterval}, nil
 	}
 
 	return ctrl.Result{}, nil
