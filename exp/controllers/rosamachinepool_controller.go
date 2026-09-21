@@ -144,8 +144,10 @@ func (r *ROSAMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, nil
 	}
 
-	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, rosaMachinePool); err != nil || isPaused || conditionChanged {
+	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, rosaMachinePool); err != nil || isPaused {
 		return ctrl.Result{}, err
+	} else if conditionChanged {
+		return ctrl.Result{RequeueAfter: conditionRequeueInterval}, nil
 	}
 
 	log = log.WithValues("cluster", klog.KObj(cluster))
@@ -323,7 +325,7 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 
 		machinePoolScope.Info("waiting for NodePool to become ready", "state", nodePool.Status().Message())
 		// Requeue so that status.ready is set to true when the nodepool is fully created.
-		return ctrl.Result{RequeueAfter: time.Second * 60}, nil
+		return ctrl.Result{RequeueAfter: defaultRequeueInterval}, nil
 	}
 
 	npBuilder := nodePoolBuilder(rosaMachinePool.Spec, machinePool.Spec, machinePoolScope.ControlPlane.Spec.ChannelGroup, machinePoolScope.ControlPlane.Spec.Channel)
@@ -343,7 +345,7 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 	}
 
 	machinePoolScope.RosaMachinePool.Status.ID = nodePool.ID()
-	return ctrl.Result{}, nil
+	return ctrl.Result{RequeueAfter: defaultRequeueInterval}, nil
 }
 
 func (r *ROSAMachinePoolReconciler) reconcileDelete(
