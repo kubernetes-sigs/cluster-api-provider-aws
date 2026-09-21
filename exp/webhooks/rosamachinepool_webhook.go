@@ -53,6 +53,8 @@ func (w *ROSAMachinePool) ValidateCreate(_ context.Context, obj runtime.Object) 
 
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 
+	allErrs = append(allErrs, w.validateSpotMarketOptions(r)...)
+
 	if len(allErrs) == 0 {
 		return nil, nil
 	}
@@ -89,6 +91,8 @@ func (w *ROSAMachinePool) ValidateUpdate(_ context.Context, oldObj, newObj runti
 
 	allErrs = append(allErrs, validateImmutable(oldPool.Spec.AdditionalSecurityGroups, r.Spec.AdditionalSecurityGroups, "additionalSecurityGroups")...)
 	allErrs = append(allErrs, validateImmutable(oldPool.Spec.AdditionalTags, r.Spec.AdditionalTags, "additionalTags")...)
+
+	allErrs = append(allErrs, w.validateSpotMarketOptions(r)...)
 
 	if len(allErrs) == 0 {
 		return nil, nil
@@ -129,6 +133,20 @@ func (w *ROSAMachinePool) validateNodeDrainGracePeriod(r *expinfrav1.ROSAMachine
 	}
 
 	return nil
+}
+
+func (w *ROSAMachinePool) validateSpotMarketOptions(r *expinfrav1.ROSAMachinePool) field.ErrorList {
+	var allErrs field.ErrorList
+	if r.Spec.SpotMarketOptions == nil {
+		return allErrs
+	}
+	if r.Spec.CapacityReservationID != "" {
+		allErrs = append(allErrs, field.Forbidden(
+			field.NewPath("spec", "spotMarketOptions"),
+			"spotMarketOptions is incompatible with capacityReservationID",
+		))
+	}
+	return allErrs
 }
 
 func validateImmutable(old, updated interface{}, name string) field.ErrorList {
