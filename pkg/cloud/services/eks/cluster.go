@@ -793,10 +793,14 @@ func (s *Service) reconcileClusterVersion(ctx context.Context, cluster *ekstypes
 
 	clusterVersion := version.MustParseGeneric(*cluster.Version)
 
-	if specVersion != nil && clusterVersion.LessThan(specVersion) {
-		// NOTE: you can only upgrade increments of minor versions. If you want to upgrade 1.14 to 1.16 we
-		// need to go 1.14-> 1.15 and then 1.15 -> 1.16.
-		nextVersionString := versionToEKS(clusterVersion.WithMinor(clusterVersion.Minor() + 1))
+	if specVersion != nil && !clusterVersion.EqualTo(specVersion) {
+		nextVersion := specVersion
+		if clusterVersion.LessThan(specVersion) {
+			// NOTE: you can only upgrade increments of minor versions. If you want to upgrade 1.14 to 1.16 we
+			// need to go 1.14-> 1.15 and then 1.15 -> 1.16.
+			nextVersion = clusterVersion.WithMinor(clusterVersion.Minor() + 1)
+		}
+		nextVersionString := versionToEKS(nextVersion)
 
 		input := &eks.UpdateClusterVersionInput{
 			Name:    aws.String(s.scope.KubernetesClusterName()),

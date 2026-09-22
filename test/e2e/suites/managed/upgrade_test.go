@@ -44,7 +44,7 @@ var _ = ginkgo.Describe("EKS Cluster upgrade test", func() {
 		upgradeToVersion string
 	)
 
-	shared.ConditionalIt(runUpgradeTests, "[managed] [upgrade] should create a cluster and upgrade the kubernetes version", func() {
+	shared.ConditionalIt(runUpgradeTests, "[managed] [upgrade] should create a cluster, upgrade and roll back the kubernetes version", func() {
 		ginkgo.By("should have a valid test configuration")
 		Expect(e2eCtx.Environment.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. BootstrapClusterProxy can't be nil")
 		Expect(e2eCtx.E2EConfig).ToNot(BeNil(), "Invalid argument. e2eConfig can't be nil when calling %s spec", specName)
@@ -104,6 +104,18 @@ var _ = ginkgo.Describe("EKS Cluster upgrade test", func() {
 				ClusterName:           clusterName,
 				Namespace:             namespace,
 				UpgradeVersion:        upgradeToVersion,
+			}
+		})
+
+		ginkgo.By(fmt.Sprintf("should roll back control plane to version %s", initialVersion))
+		UpgradeControlPlaneVersionSpec(ctx, func() UpgradeControlPlaneVersionSpecInput {
+			return UpgradeControlPlaneVersionSpecInput{
+				E2EConfig:             e2eCtx.E2EConfig,
+				AWSSession:            e2eCtx.BootstrapUserAWSSession,
+				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
+				ClusterName:           clusterName,
+				Namespace:             namespace,
+				UpgradeVersion:        initialVersion,
 			}
 		})
 

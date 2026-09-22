@@ -369,62 +369,40 @@ func TestMakeEKSLogging(t *testing.T) {
 func TestReconcileClusterVersion(t *testing.T) {
 	clusterName := "default.cluster"
 	tests := []struct {
-		name        string
-		expect      func(m *mock_eksiface.MockEKSAPIMockRecorder)
-		expectError bool
+		name                  string
+		clusterVersion        string
+		desiredVersion        string
+		expectedUpdateVersion string
+		updateError           error
+		expectError           bool
 	}{
 		{
-			name: "no upgrade necessary",
-			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
-				m.
-					DescribeCluster(gomock.Eq(context.TODO()), gomock.AssignableToTypeOf(&eks.DescribeClusterInput{})).
-					Return(&eks.DescribeClusterOutput{
-						Cluster: &ekstypes.Cluster{
-							Name:    aws.String("default.cluster"),
-							Version: aws.String("1.16"),
-						},
-					}, nil)
-			},
-			expectError: false,
+			name:           "no version update necessary",
+			clusterVersion: "1.16",
+			desiredVersion: "1.16",
+			expectError:    false,
 		},
 		{
-			name: "needs upgrade",
-			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
-				m.
-					DescribeCluster(gomock.Eq(context.TODO()), gomock.AssignableToTypeOf(&eks.DescribeClusterInput{})).
-					Return(&eks.DescribeClusterOutput{
-						Cluster: &ekstypes.Cluster{
-							Name:    aws.String("default.cluster"),
-							Version: aws.String("1.14"),
-						},
-					}, nil)
-				m.WaitUntilClusterUpdating(
-					gomock.Eq(context.TODO()),
-					gomock.AssignableToTypeOf(&eks.DescribeClusterInput{}),
-					gomock.Any(),
-				).Return(nil)
-				m.
-					UpdateClusterVersion(gomock.Eq(context.TODO()), gomock.AssignableToTypeOf(&eks.UpdateClusterVersionInput{})).
-					Return(&eks.UpdateClusterVersionOutput{}, nil)
-			},
-			expectError: false,
+			name:                  "multi-minor upgrade targets the next minor version",
+			clusterVersion:        "1.14",
+			desiredVersion:        "1.16",
+			expectedUpdateVersion: "1.15",
+			expectError:           false,
 		},
 		{
-			name: "api error",
-			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
-				m.
-					DescribeCluster(gomock.Eq(context.TODO()), gomock.AssignableToTypeOf(&eks.DescribeClusterInput{})).
-					Return(&eks.DescribeClusterOutput{
-						Cluster: &ekstypes.Cluster{
-							Name:    aws.String("default.cluster"),
-							Version: aws.String("1.14"),
-						},
-					}, nil)
-				m.
-					UpdateClusterVersion(gomock.Eq(context.TODO()), gomock.AssignableToTypeOf(&eks.UpdateClusterVersionInput{})).
-					Return(&eks.UpdateClusterVersionOutput{}, errors.New(""))
-			},
-			expectError: true,
+			name:                  "rollback targets the desired previous minor version",
+			clusterVersion:        "1.16",
+			desiredVersion:        "1.15",
+			expectedUpdateVersion: "1.15",
+			expectError:           false,
+		},
+		{
+			name:                  "api error",
+			clusterVersion:        "1.14",
+			desiredVersion:        "1.16",
+			expectedUpdateVersion: "1.15",
+			updateError:           errors.New(""),
+			expectError:           true,
 		},
 	}
 
@@ -451,13 +429,40 @@ func TestReconcileClusterVersion(t *testing.T) {
 				},
 				ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
 					Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
-						Version: aws.String("1.16"),
+						EKSClusterName: clusterName,
+						Version:        aws.String(tc.desiredVersion),
 					},
 				},
 			})
 			g.Expect(err).To(BeNil())
 
-			tc.expect(eksMock.EXPECT())
+			eksMock.EXPECT().
+				DescribeCluster(gomock.Eq(context.TODO()), gomock.AssignableToTypeOf(&eks.DescribeClusterInput{})).
+				Return(&eks.DescribeClusterOutput{
+					Cluster: &ekstypes.Cluster{
+						Name:    aws.String(clusterName),
+						Version: aws.String(tc.clusterVersion),
+					},
+				}, nil)
+
+			if tc.expectedUpdateVersion != "" {
+				eksMock.EXPECT().
+					UpdateClusterVersion(gomock.Eq(context.TODO()), gomock.Eq(&eks.UpdateClusterVersionInput{
+						Name:    aws.String(clusterName),
+						Version: aws.String(tc.expectedUpdateVersion),
+					})).
+					Return(&eks.UpdateClusterVersionOutput{}, tc.updateError)
+				if tc.updateError == nil {
+					eksMock.EXPECT().
+						WaitUntilClusterUpdating(
+							gomock.Eq(context.TODO()),
+							gomock.Eq(&eks.DescribeClusterInput{Name: aws.String(clusterName)}),
+							gomock.Any(),
+						).
+						Return(nil)
+				}
+			}
+
 			s := NewService(scope)
 			s.EKSClient = eksMock
 
