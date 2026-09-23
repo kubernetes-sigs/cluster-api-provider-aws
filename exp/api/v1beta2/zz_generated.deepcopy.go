@@ -93,6 +93,7 @@ func (in *AWSFargateProfileList) DeepCopyObject() runtime.Object {
 func (in *AWSLaunchTemplate) DeepCopyInto(out *AWSLaunchTemplate) {
 	*out = *in
 	in.AMI.DeepCopyInto(&out.AMI)
+	out.CPUOptions = in.CPUOptions
 	if in.RootVolume != nil {
 		in, out := &in.RootVolume, &out.RootVolume
 		*out = new(apiv1beta2.Volume)
