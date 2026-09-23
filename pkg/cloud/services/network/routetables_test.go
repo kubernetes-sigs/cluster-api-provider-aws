@@ -437,6 +437,114 @@ func TestReconcileRouteTables(t *testing.T) {
 			},
 		},
 		{
+			// Public subnet's IPv4 default route points at an outdated internet gateway,
+			// so ReplaceRoute must be called with the correct DestinationCidrBlock and GatewayId
+			name: "ipv4 route exists, but the internet gateway ID is incorrect, replace it",
+			input: &infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					InternetGatewayID: aws.String("igw-01"),
+					ID:                "vpc-routetables",
+					Tags: infrav1.Tags{
+						infrav1.ClusterTagKey("test-cluster"): "owned",
+					},
+				},
+				Subnets: infrav1.Subnets{
+					infrav1.SubnetSpec{
+						ID:               "subnet-routetables-private",
+						IsPublic:         false,
+						AvailabilityZone: "us-east-1a",
+					},
+					infrav1.SubnetSpec{
+						ID:               "subnet-routetables-public",
+						IsPublic:         true,
+						NatGatewayID:     aws.String("nat-01"),
+						AvailabilityZone: "us-east-1a",
+						RouteTableID:     aws.String("route-table-1"),
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeRouteTables(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+					Return(&ec2.DescribeRouteTablesOutput{
+						RouteTables: []types.RouteTable{
+							{
+								RouteTableId: aws.String("route-table-private"),
+								Associations: []types.RouteTableAssociation{
+									{
+										SubnetId: aws.String("subnet-routetables-private"),
+									},
+								},
+								Routes: []types.Route{
+									{
+										DestinationCidrBlock: aws.String("0.0.0.0/0"),
+										NatGatewayId:         aws.String("nat-01"),
+									},
+								},
+								Tags: []types.Tag{
+									{
+										Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Value: aws.String("common"),
+									},
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("test-cluster-rt-private-us-east-1a"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+										Value: aws.String("owned"),
+									},
+								},
+							},
+							{
+								RouteTableId: aws.String("route-table-public"),
+								Associations: []types.RouteTableAssociation{
+									{
+										SubnetId: aws.String("subnet-routetables-public"),
+									},
+								},
+								Routes: []types.Route{
+									{
+										DestinationCidrBlock: aws.String("0.0.0.0/0"),
+										GatewayId:            aws.String("outdated-igw-01"),
+									},
+								},
+								Tags: []types.Tag{
+									{
+										Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Value: aws.String("common"),
+									},
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("test-cluster-rt-public-us-east-1a"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+										Value: aws.String("owned"),
+									},
+								},
+							},
+						},
+					}, nil)
+
+				m.ReplaceRoute(context.TODO(), gomock.Eq(
+					&ec2.ReplaceRouteInput{
+						DestinationCidrBlock: aws.String("0.0.0.0/0"),
+						RouteTableId:         aws.String("route-table-public"),
+						GatewayId:            aws.String("igw-01"),
+					},
+				)).
+					Return(nil, nil)
+			},
+		},
+		{
 			name: "extra routes exist, do nothing",
 			input: &infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
@@ -534,6 +642,115 @@ func TestReconcileRouteTables(t *testing.T) {
 							},
 						},
 					}, nil)
+			},
+		},
+		{
+			// A bring-your-own VPC was taken over by CAPA, but the private route table had no
+			// 0.0.0.0/0 route. CAPA must add desired routes that are missing.
+			name: "route exists but desired default route is missing, add it",
+			input: &infrav1.NetworkSpec{
+				VPC: infrav1.VPCSpec{
+					InternetGatewayID: aws.String("igw-01"),
+					ID:                "vpc-routetables",
+					Tags: infrav1.Tags{
+						infrav1.ClusterTagKey("test-cluster"): "owned",
+					},
+				},
+				Subnets: infrav1.Subnets{
+					infrav1.SubnetSpec{
+						ID:               "subnet-routetables-private",
+						IsPublic:         false,
+						AvailabilityZone: "us-east-1a",
+					},
+					infrav1.SubnetSpec{
+						ID:               "subnet-routetables-public",
+						IsPublic:         true,
+						NatGatewayID:     aws.String("nat-01"),
+						AvailabilityZone: "us-east-1a",
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeRouteTables(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeRouteTablesInput{})).
+					Return(&ec2.DescribeRouteTablesOutput{
+						RouteTables: []types.RouteTable{
+							{
+								RouteTableId: aws.String("route-table-private"),
+								Associations: []types.RouteTableAssociation{
+									{
+										SubnetId: aws.String("subnet-routetables-private"),
+									},
+								},
+								// The prepared VPC's route table has no 0.0.0.0/0 route at all, but a
+								// custom route which must be preserved for backward compatibility (the implementation
+								// never did full reconciliation i.e. create/update/delete according to the manifest,
+								// so keep it that way to not accidentally delete desired routes).
+								Routes: []types.Route{
+									{
+										DestinationCidrBlock: aws.String("1.2.3.4/32"),
+										GatewayId:            aws.String("igw-01"),
+									},
+								},
+								Tags: []types.Tag{
+									{
+										Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Value: aws.String("common"),
+									},
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("test-cluster-rt-private-us-east-1a"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+										Value: aws.String("owned"),
+									},
+								},
+							},
+							{
+								RouteTableId: aws.String("route-table-public"),
+								Associations: []types.RouteTableAssociation{
+									{
+										SubnetId: aws.String("subnet-routetables-public"),
+									},
+								},
+								Routes: []types.Route{
+									{
+										DestinationCidrBlock: aws.String("0.0.0.0/0"),
+										GatewayId:            aws.String("igw-01"),
+									},
+								},
+								Tags: []types.Tag{
+									{
+										Key:   aws.String("kubernetes.io/cluster/test-cluster"),
+										Value: aws.String("owned"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/role"),
+										Value: aws.String("common"),
+									},
+									{
+										Key:   aws.String("Name"),
+										Value: aws.String("test-cluster-rt-public-us-east-1a"),
+									},
+									{
+										Key:   aws.String("sigs.k8s.io/cluster-api-provider-aws/cluster/test-cluster"),
+										Value: aws.String("owned"),
+									},
+								},
+							},
+						},
+					}, nil)
+
+				m.CreateRoute(context.TODO(), gomock.Eq(&ec2.CreateRouteInput{
+					NatGatewayId:         aws.String("nat-01"),
+					DestinationCidrBlock: aws.String("0.0.0.0/0"),
+					RouteTableId:         aws.String("route-table-private"),
+				})).
+					Return(&ec2.CreateRouteOutput{}, nil)
 			},
 		},
 		{
@@ -1372,6 +1589,57 @@ func TestService_getRoutesForSubnet(t *testing.T) {
 				if !cmp.Equal(got, tc.want, cmp.AllowUnexported(ec2.CreateRouteInput{})) {
 					t.Errorf("got unexpect routes:\n%v", cmp.Diff(got, tc.want))
 				}
+			}
+		})
+	}
+}
+
+func TestDescribeRoute(t *testing.T) {
+	tests := []struct {
+		name  string
+		route *ec2.CreateRouteInput
+		want  string
+	}{
+		{
+			name:  "nil input",
+			route: nil,
+			want:  "<nil>",
+		},
+		{
+			name:  "empty input",
+			route: &ec2.CreateRouteInput{},
+			want:  "{}",
+		},
+		{
+			name: "ipv4 route via NAT gateway",
+			route: &ec2.CreateRouteInput{
+				DestinationCidrBlock: aws.String("0.0.0.0/0"),
+				NatGatewayId:         aws.String("nat-1234567890abcdef0"),
+			},
+			want: "{destinationCidrBlock=0.0.0.0/0, natGatewayId=nat-1234567890abcdef0}",
+		},
+		{
+			name: "ipv6 route via egress-only internet gateway",
+			route: &ec2.CreateRouteInput{
+				DestinationIpv6CidrBlock:    aws.String("::/0"),
+				EgressOnlyInternetGatewayId: aws.String("eigw-1234567890abcdef0"),
+			},
+			want: "{destinationIpv6CidrBlock=::/0, egressOnlyInternetGatewayId=eigw-1234567890abcdef0}",
+		},
+		{
+			name: "skips empty string pointers",
+			route: &ec2.CreateRouteInput{
+				DestinationCidrBlock: aws.String("0.0.0.0/0"),
+				GatewayId:            aws.String("igw-1234567890abcdef0"),
+				NatGatewayId:         aws.String(""),
+			},
+			want: "{destinationCidrBlock=0.0.0.0/0, gatewayId=igw-1234567890abcdef0}",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := describeRoute(tc.route); got != tc.want {
+				t.Errorf("describeRoute() = %q, want %q", got, tc.want)
 			}
 		})
 	}
