@@ -124,6 +124,8 @@ func (r *AWSManagedControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.UpgradePolicy = restored.Spec.UpgradePolicy
 	dst.Spec.ControlPlaneScalingConfig = restored.Spec.ControlPlaneScalingConfig
 	dst.Spec.PodIdentityAssociations = restored.Spec.PodIdentityAssociations
+	dst.Status.V1Beta2 = restored.Status.V1Beta2
+
 	return nil
 }
 

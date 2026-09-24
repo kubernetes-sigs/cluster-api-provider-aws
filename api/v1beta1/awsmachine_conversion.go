@@ -66,6 +66,8 @@ func (src *AWSMachine) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	dst.Status.DedicatedHost = restored.Status.DedicatedHost
+	dst.Status.V1Beta2 = restored.Status.V1Beta2
+
 	return nil
 }
 

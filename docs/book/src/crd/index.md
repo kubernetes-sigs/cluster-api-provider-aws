@@ -3328,6 +3328,20 @@ Cluster API api/core/v1beta1.Conditions
 <p>Conditions defines current service state of the EKSConfig.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>v1beta2</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.EKSConfigV1Beta2Status">
+EKSConfigV1Beta2Status
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>v1beta2 groups all the fields that will be added or modified in EKSConfig&rsquo;s status with the V1Beta2 version.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="bootstrap.cluster.x-k8s.io/v1beta2.EKSConfigTemplate">EKSConfigTemplate
@@ -3653,6 +3667,39 @@ EKSConfigTemplateResource
 </em>
 </td>
 <td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bootstrap.cluster.x-k8s.io/v1beta2.EKSConfigV1Beta2Status">EKSConfigV1Beta2Status
+</h3>
+<p>
+(<em>Appears on:</em><a href="#bootstrap.cluster.x-k8s.io/v1beta2.EKSConfigStatus">EKSConfigStatus</a>)
+</p>
+<p>
+<p>EKSConfigV1Beta2Status groups all the fields that will be added or modified in EKSConfig with the V1Beta2 version.
+See <a href="https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md">https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md</a> for more context.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>conditions</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#condition-v1-meta">
+[]Kubernetes meta/v1.Condition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>conditions represents the observations of an EKSConfig&rsquo;s current state.</p>
 </td>
 </tr>
 </tbody>
@@ -8302,6 +8349,20 @@ int64
 <p>ObservedGeneration is the latest generation observed by the controller.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>v1beta2</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneV1Beta2Status">
+AWSManagedControlPlaneV1Beta2Status
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>v1beta2 groups all the fields that will be added or modified in AWSManagedControlPlane&rsquo;s status with the V1Beta2 version.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneTemplate">AWSManagedControlPlaneTemplate
@@ -8930,6 +8991,39 @@ AWSManagedControlPlaneTemplateResource
 </em>
 </td>
 <td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneV1Beta2Status">AWSManagedControlPlaneV1Beta2Status
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneStatus">AWSManagedControlPlaneStatus</a>)
+</p>
+<p>
+<p>AWSManagedControlPlaneV1Beta2Status groups all the fields that will be added or modified in AWSManagedControlPlane with the V1Beta2 version.
+See <a href="https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md">https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md</a> for more context.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>conditions</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#condition-v1-meta">
+[]Kubernetes meta/v1.Condition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>conditions represents the observations of an AWSManagedControlPlane&rsquo;s current state.</p>
 </td>
 </tr>
 </tbody>
@@ -12870,6 +12964,53 @@ string
 </td>
 <td>
 <p>Available channels for the ROSA hosted control plane.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>v1beta2</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneV1Beta2Status">
+RosaControlPlaneV1Beta2Status
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>v1beta2 groups all the fields that will be added or modified in ROSAControlPlane&rsquo;s status with the V1Beta2 version.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneV1Beta2Status">RosaControlPlaneV1Beta2Status
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneStatus">RosaControlPlaneStatus</a>)
+</p>
+<p>
+<p>RosaControlPlaneV1Beta2Status groups all the fields that will be added or modified in ROSAControlPlane with the V1Beta2 version.
+See <a href="https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md">https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md</a> for more context.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>conditions</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#condition-v1-meta">
+[]Kubernetes meta/v1.Condition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>conditions represents the observations of a ROSAControlPlane&rsquo;s current state.</p>
 </td>
 </tr>
 </tbody>
@@ -21742,6 +21883,20 @@ Cluster API api/core/v1beta1.Conditions
 <td>
 </td>
 </tr>
+<tr>
+<td>
+<code>v1beta2</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSClusterV1Beta2Status">
+AWSClusterV1Beta2Status
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>v1beta2 groups all the fields that will be added or modified in AWSCluster&rsquo;s status with the V1Beta2 version.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSClusterTemplate">AWSClusterTemplate
@@ -22077,6 +22232,39 @@ AWSClusterTemplateResource
 </em>
 </td>
 <td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSClusterV1Beta2Status">AWSClusterV1Beta2Status
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSClusterStatus">AWSClusterStatus</a>)
+</p>
+<p>
+<p>AWSClusterV1Beta2Status groups all the fields that will be added or modified in AWSCluster with the V1Beta2 version.
+See <a href="https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md">https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md</a> for more context.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>conditions</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#condition-v1-meta">
+[]Kubernetes meta/v1.Condition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>conditions represents the observations of an AWSCluster&rsquo;s current state.</p>
 </td>
 </tr>
 </tbody>
@@ -23629,6 +23817,20 @@ DedicatedHostStatus
 This field is populated when DynamicHostAllocation is used.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>v1beta2</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachineV1Beta2Status">
+AWSMachineV1Beta2Status
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>v1beta2 groups all the fields that will be added or modified in AWSMachine&rsquo;s status with the V1Beta2 version.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSMachineTemplate">AWSMachineTemplate
@@ -24362,6 +24564,39 @@ Cluster API api/core/v1beta1.Conditions
 </tr>
 </tbody>
 </table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSMachineV1Beta2Status">AWSMachineV1Beta2Status
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachineStatus">AWSMachineStatus</a>)
+</p>
+<p>
+<p>AWSMachineV1Beta2Status groups all the fields that will be added or modified in AWSMachine with the V1Beta2 version.
+See <a href="https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md">https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md</a> for more context.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>conditions</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#condition-v1-meta">
+[]Kubernetes meta/v1.Condition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>conditions represents the observations of an AWSMachine&rsquo;s current state.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedCluster">AWSManagedCluster
 </h3>
 <p>
@@ -24513,6 +24748,20 @@ Cluster API api/core/v1beta1.Conditions
 <p>Conditions defines current service state of the AWSManagedCluster.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>v1beta2</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedClusterV1Beta2Status">
+AWSManagedClusterV1Beta2Status
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>v1beta2 groups all the fields that will be added or modified in AWSManagedCluster&rsquo;s status with the V1Beta2 version.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedClusterTemplate">AWSManagedClusterTemplate
@@ -24644,6 +24893,39 @@ AWSManagedClusterTemplateResource
 </em>
 </td>
 <td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedClusterV1Beta2Status">AWSManagedClusterV1Beta2Status
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedClusterStatus">AWSManagedClusterStatus</a>)
+</p>
+<p>
+<p>AWSManagedClusterV1Beta2Status groups all the fields that will be added or modified in AWSManagedCluster with the V1Beta2 version.
+See <a href="https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md">https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md</a> for more context.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>conditions</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#condition-v1-meta">
+[]Kubernetes meta/v1.Condition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>conditions represents the observations of an AWSManagedCluster&rsquo;s current state.</p>
 </td>
 </tr>
 </tbody>
@@ -30086,6 +30368,53 @@ ASGStatus
 <td>
 </td>
 </tr>
+<tr>
+<td>
+<code>v1beta2</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachinePoolV1Beta2Status">
+AWSMachinePoolV1Beta2Status
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>v1beta2 groups all the fields that will be added or modified in AWSMachinePool&rsquo;s status with the V1Beta2 version.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSMachinePoolV1Beta2Status">AWSMachinePoolV1Beta2Status
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachinePoolStatus">AWSMachinePoolStatus</a>)
+</p>
+<p>
+<p>AWSMachinePoolV1Beta2Status groups all the fields that will be added or modified in AWSMachinePool with the V1Beta2 version.
+See <a href="https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md">https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md</a> for more context.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>conditions</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#condition-v1-meta">
+[]Kubernetes meta/v1.Condition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>conditions represents the observations of an AWSMachinePool&rsquo;s current state.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedMachinePool">AWSManagedMachinePool
@@ -30937,6 +31266,53 @@ Cluster API api/core/v1beta1.Conditions
 <td>
 <em>(Optional)</em>
 <p>Conditions defines current service state of the managed machine pool</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>v1beta2</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedMachinePoolV1Beta2Status">
+AWSManagedMachinePoolV1Beta2Status
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>v1beta2 groups all the fields that will be added or modified in AWSManagedMachinePool&rsquo;s status with the V1Beta2 version.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedMachinePoolV1Beta2Status">AWSManagedMachinePoolV1Beta2Status
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedMachinePoolStatus">AWSManagedMachinePoolStatus</a>)
+</p>
+<p>
+<p>AWSManagedMachinePoolV1Beta2Status groups all the fields that will be added or modified in AWSManagedMachinePool with the V1Beta2 version.
+See <a href="https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md">https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md</a> for more context.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>conditions</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#condition-v1-meta">
+[]Kubernetes meta/v1.Condition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>conditions represents the observations of an AWSManagedMachinePool&rsquo;s current state.</p>
 </td>
 </tr>
 </tbody>
@@ -32484,6 +32860,53 @@ Cluster API api/core/v1beta1.Conditions
 <td>
 <em>(Optional)</em>
 <p>Conditions defines current service state of the ROSACluster.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>v1beta2</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSAClusterV1Beta2Status">
+ROSAClusterV1Beta2Status
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>v1beta2 groups all the fields that will be added or modified in ROSACluster&rsquo;s status with the V1Beta2 version.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.ROSAClusterV1Beta2Status">ROSAClusterV1Beta2Status
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.ROSAClusterStatus">ROSAClusterStatus</a>)
+</p>
+<p>
+<p>ROSAClusterV1Beta2Status groups all the fields that will be added or modified in ROSACluster with the V1Beta2 version.
+See <a href="https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md">https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md</a> for more context.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>conditions</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#condition-v1-meta">
+[]Kubernetes meta/v1.Condition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>conditions represents the observations of a ROSACluster&rsquo;s current state.</p>
 </td>
 </tr>
 </tbody>
@@ -34290,6 +34713,53 @@ string
 </td>
 <td>
 <p>Available upgrades for the ROSA MachinePool.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>v1beta2</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolV1Beta2Status">
+RosaMachinePoolV1Beta2Status
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>v1beta2 groups all the fields that will be added or modified in RosaMachinePool&rsquo;s status with the V1Beta2 version.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolV1Beta2Status">RosaMachinePoolV1Beta2Status
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolStatus">RosaMachinePoolStatus</a>)
+</p>
+<p>
+<p>RosaMachinePoolV1Beta2Status groups all the fields that will be added or modified in ROSAMachinePool with the V1Beta2 version.
+See <a href="https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md">https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md</a> for more context.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>conditions</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#condition-v1-meta">
+[]Kubernetes meta/v1.Condition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>conditions represents the observations of a ROSAMachinePool&rsquo;s current state.</p>
 </td>
 </tr>
 </tbody>
