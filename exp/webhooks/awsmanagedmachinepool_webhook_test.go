@@ -156,6 +156,158 @@ func TestAWSManagedMachinePoolValidateCreate(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		// BYO launch template tests (AWSLaunchTemplate with ID set)
+		{
+			name: "valid BYO launch template with ID",
+			pool: &expinfrav1.AWSManagedMachinePool{
+				Spec: expinfrav1.AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-byo",
+					AWSLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
+						ID:            aws.String("lt-12345"),
+						VersionNumber: aws.Int64(1),
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "BYO launch template without versionNumber is rejected",
+			pool: &expinfrav1.AWSManagedMachinePool{
+				Spec: expinfrav1.AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-byo",
+					AWSLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
+						ID: aws.String("lt-12345"),
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "BYO launch template with diskSize is rejected",
+			pool: &expinfrav1.AWSManagedMachinePool{
+				Spec: expinfrav1.AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-byo",
+					DiskSize:         &oldDiskSize,
+					AWSLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
+						ID:            aws.String("lt-12345"),
+						VersionNumber: aws.Int64(1),
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "BYO launch template with spec.instanceType is accepted",
+			pool: &expinfrav1.AWSManagedMachinePool{
+				Spec: expinfrav1.AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-byo",
+					InstanceType:     aws.String("m5.large"),
+					AWSLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
+						ID:            aws.String("lt-12345"),
+						VersionNumber: aws.Int64(1),
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "CAPA-managed launch template with spec.instanceType is rejected",
+			pool: &expinfrav1.AWSManagedMachinePool{
+				Spec: expinfrav1.AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group",
+					InstanceType:     aws.String("m5.large"),
+					AWSLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
+						Name: "my-lt",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "BYO launch template with spec.amiType is accepted",
+			pool: &expinfrav1.AWSManagedMachinePool{
+				Spec: expinfrav1.AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-byo",
+					AMIType:          ptr.To(expinfrav1.Al2023x86_64),
+					AWSLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
+						ID:            aws.String("lt-12345"),
+						VersionNumber: aws.Int64(1),
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "BYO launch template with spec.amiVersion is accepted",
+			pool: &expinfrav1.AWSManagedMachinePool{
+				Spec: expinfrav1.AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-byo",
+					AMIVersion:       aws.String("1.29.0-20240110"),
+					AWSLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
+						ID:            aws.String("lt-12345"),
+						VersionNumber: aws.Int64(1),
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "BYO launch template with spec.remoteAccess is rejected",
+			pool: &expinfrav1.AWSManagedMachinePool{
+				Spec: expinfrav1.AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-byo",
+					RemoteAccess: &expinfrav1.ManagedRemoteAccess{
+						Public: true,
+					},
+					AWSLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
+						ID:            aws.String("lt-12345"),
+						VersionNumber: aws.Int64(1),
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "CAPA-managed launch template with spec.remoteAccess is rejected",
+			pool: &expinfrav1.AWSManagedMachinePool{
+				Spec: expinfrav1.AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group",
+					RemoteAccess: &expinfrav1.ManagedRemoteAccess{
+						Public: true,
+					},
+					AWSLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
+						Name: "my-lt",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "BYO launch template with AMI is rejected",
+			pool: &expinfrav1.AWSManagedMachinePool{
+				Spec: expinfrav1.AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-byo",
+					AWSLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
+						ID:  aws.String("lt-12345"),
+						AMI: infrav1.AMIReference{ID: aws.String("ami-123")},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "BYO launch template with instanceType in LT is rejected",
+			pool: &expinfrav1.AWSManagedMachinePool{
+				Spec: expinfrav1.AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-byo",
+					AWSLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
+						ID:           aws.String("lt-12345"),
+						InstanceType: "m5.large",
+					},
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -689,6 +841,94 @@ func TestAWSManagedMachinePoolValidateUpdate(t *testing.T) {
 					AWSLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
 						Name:              "test",
 						ImageLookupFormat: "test2",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		// BYO launch template (AWSLaunchTemplate.ID) immutability tests
+		{
+			name: "changing BYO launch template ID is rejected",
+			old: &expinfrav1.AWSManagedMachinePool{
+				Spec: expinfrav1.AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					AWSLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
+						ID:            aws.String("lt-12345"),
+						VersionNumber: aws.Int64(1),
+					},
+				},
+			},
+			new: &expinfrav1.AWSManagedMachinePool{
+				Spec: expinfrav1.AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					AWSLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
+						ID:            aws.String("lt-99999"),
+						VersionNumber: aws.Int64(1),
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "setting BYO launch template ID on CAPA-managed LT is rejected",
+			old: &expinfrav1.AWSManagedMachinePool{
+				Spec: expinfrav1.AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					AWSLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
+						Name: "my-lt",
+					},
+				},
+			},
+			new: &expinfrav1.AWSManagedMachinePool{
+				Spec: expinfrav1.AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					AWSLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
+						Name:          "my-lt",
+						ID:            aws.String("lt-12345"),
+						VersionNumber: aws.Int64(1),
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "removing BYO launch template ID is rejected",
+			old: &expinfrav1.AWSManagedMachinePool{
+				Spec: expinfrav1.AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					AWSLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
+						ID:            aws.String("lt-12345"),
+						VersionNumber: aws.Int64(1),
+					},
+				},
+			},
+			new: &expinfrav1.AWSManagedMachinePool{
+				Spec: expinfrav1.AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					AWSLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
+						Name: "my-lt",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "changing BYO launch template version is accepted",
+			old: &expinfrav1.AWSManagedMachinePool{
+				Spec: expinfrav1.AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					AWSLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
+						ID:            aws.String("lt-12345"),
+						VersionNumber: aws.Int64(1),
+					},
+				},
+			},
+			new: &expinfrav1.AWSManagedMachinePool{
+				Spec: expinfrav1.AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					AWSLaunchTemplate: &expinfrav1.AWSLaunchTemplate{
+						ID:            aws.String("lt-12345"),
+						VersionNumber: aws.Int64(3),
 					},
 				},
 			},
