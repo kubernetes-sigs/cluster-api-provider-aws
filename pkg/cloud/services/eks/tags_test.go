@@ -42,6 +42,18 @@ func TestGetTagUpdates(t *testing.T) {
 				"x": "2",
 			},
 		},
+		{
+			current: map[string]string{
+				"kubernetes.io/cluster/foo":     "owned",
+				"aws:cloudformation:stack-name": "eks-stack",
+				"nodegroup-name":                "ng1",
+			},
+			next: map[string]string{
+				"kubernetes.io/cluster/foo": "owned",
+			},
+			expectUntag: []string{"nodegroup-name"},
+			expectTag:   map[string]string{},
+		},
 	}
 	for i, tc := range testCases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
