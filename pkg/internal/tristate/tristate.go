@@ -17,8 +17,8 @@ limitations under the License.
 // Package tristate provides a helper for working with bool pointers.
 package tristate
 
-// withDefault evaluates a pointer to a bool with a default value.
-func withDefault(def bool, b *bool) bool {
+// WithDefault evaluates a pointer to a bool with a default value.
+func WithDefault(def bool, b *bool) bool {
 	if b == nil {
 		return def
 	}
@@ -27,5 +27,5 @@ func withDefault(def bool, b *bool) bool {
 
 // EqualWithDefault compares two bool pointers using a default value.
 func EqualWithDefault(def bool, a *bool, b *bool) bool {
-	return withDefault(def, a) == withDefault(def, b)
+	return WithDefault(def, a) == WithDefault(def, b)
 }
