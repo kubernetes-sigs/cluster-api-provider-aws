@@ -359,6 +359,7 @@ Resources:
           - arn:aws:iam::*:role/aws-service-role/eks-fargate-pods.amazonaws.com/AWSServiceRoleForAmazonEKSForFargate
         - Action:
           - iam:GetRole
+          - iam:GetInstanceProfile
           - iam:ListAttachedRolePolicies
           Effect: Allow
           Resource:
