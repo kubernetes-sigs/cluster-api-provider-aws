@@ -10681,6 +10681,54 @@ int
 </tr>
 </tbody>
 </table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.DeleteProtectionState">DeleteProtectionState
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>)
+</p>
+<p>
+<p>DeleteProtectionState represents whether delete protection is enabled for the ROSA cluster.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Disabled&#34;</p></td>
+<td><p>DeleteProtectionDisabled indicates delete protection is disabled.</p>
+</td>
+</tr><tr><td><p>&#34;Enabled&#34;</p></td>
+<td><p>DeleteProtectionEnabled indicates delete protection is enabled.</p>
+</td>
+</tr></tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.Ec2MetadataHTTPTokens">Ec2MetadataHTTPTokens
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>)
+</p>
+<p>
+<p>Ec2MetadataHTTPTokens describes the state of the EC2 instance metadata service (IMDS) token requirement.
+When set to &ldquo;required&rdquo;, IMDSv2 is enforced and the older IMDSv1 is disabled, providing enhanced
+security against SSRF attacks. When set to &ldquo;optional&rdquo;, both IMDSv1 and IMDSv2 are allowed.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;optional&#34;</p></td>
+<td><p>Ec2MetadataHTTPTokensOptional allows both IMDSv1 and IMDSv2.</p>
+</td>
+</tr><tr><td><p>&#34;required&#34;</p></td>
+<td><p>Ec2MetadataHTTPTokensRequired enforces IMDSv2 only, disabling IMDSv1.</p>
+</td>
+</tr></tbody>
+</table>
 <h3 id="controlplane.cluster.x-k8s.io/v1beta2.ExternalAuthProvider">ExternalAuthProvider
 </h3>
 <p>
@@ -11420,6 +11468,24 @@ created out-of-band by the user and tagged with <code>red-hat:true</code>.</p>
 </tr>
 <tr>
 <td>
+<code>ec2MetadataHttpTokens</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.Ec2MetadataHTTPTokens">
+Ec2MetadataHTTPTokens
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Ec2MetadataHTTPTokens configures the use of IMDSv2 for EC2 instances.
+When set to &ldquo;required&rdquo;, IMDSv2 is enforced and the older IMDSv1 is disabled.
+When set to &ldquo;optional&rdquo;, both IMDSv1 and IMDSv2 are allowed.
+When omitted, the OCM default (&ldquo;optional&rdquo;) is used.
+This field is immutable and cannot be changed after cluster creation.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>auditLogRoleARN</code><br/>
 <em>
 string
@@ -12117,6 +12183,24 @@ string
 <em>(Optional)</em>
 <p>EtcdEncryptionKMSARN is the ARN of the KMS key used to encrypt etcd. The key itself needs to be
 created out-of-band by the user and tagged with <code>red-hat:true</code>.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ec2MetadataHttpTokens</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.Ec2MetadataHTTPTokens">
+Ec2MetadataHTTPTokens
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Ec2MetadataHTTPTokens configures the use of IMDSv2 for EC2 instances.
+When set to &ldquo;required&rdquo;, IMDSv2 is enforced and the older IMDSv1 is disabled.
+When set to &ldquo;optional&rdquo;, both IMDSv1 and IMDSv2 are allowed.
+When omitted, the OCM default (&ldquo;optional&rdquo;) is used.
+This field is immutable and cannot be changed after cluster creation.</p>
 </td>
 </tr>
 <tr>
