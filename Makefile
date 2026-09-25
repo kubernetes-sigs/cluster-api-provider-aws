@@ -76,6 +76,7 @@ YQ := $(TOOLS_BIN_DIR)/yq
 KPROMO := $(TOOLS_BIN_DIR)/kpromo
 RELEASE_NOTES := $(TOOLS_BIN_DIR)/release-notes
 GORELEASER := $(TOOLS_BIN_DIR)/goreleaser
+RELEASE_TOOL := $(TOOLS_BIN_DIR)/release-tool
 PROWJOB_GEN := $(TOOLS_BIN_DIR)/prowjob-gen
 
 CLUSTERAWSADM_SRCS := $(call rwildcard,.,cmd/clusterawsadm/*.*)
@@ -619,8 +620,27 @@ release-manifests: ## Release manifest files
 	cp metadata.yaml $(RELEASE_DIR)/metadata.yaml
 
 .PHONY: release-changelog
-release-changelog: $(RELEASE_NOTES) check-release-tag check-previous-release-tag check-github-token $(RELEASE_DIR)
+release-changelog: $(RELEASE_TOOL) check-release-tag $(RELEASE_DIR) ## Populate $(RELEASE_DIR)/CHANGELOG.md, reusing the committed CHANGELOG/$(RELEASE_TAG).md from the release-trigger PR if present.
+	@if [ -f CHANGELOG/$(RELEASE_TAG).md ]; then \
+		echo "Reusing committed CHANGELOG/$(RELEASE_TAG).md"; \
+		$(RELEASE_TOOL) changelog body --input CHANGELOG/$(RELEASE_TAG).md > $(RELEASE_DIR)/CHANGELOG.md; \
+	else \
+		$(MAKE) release-changelog-generate; \
+	fi
+
+.PHONY: release-changelog-generate
+release-changelog-generate: $(RELEASE_NOTES) check-release-tag check-previous-release-tag check-github-token $(RELEASE_DIR) ## Regenerate the changelog from commit history (fallback when no CHANGELOG/$(RELEASE_TAG).md was committed).
 	$(RELEASE_NOTES) --debug --org $(GH_ORG_NAME) --repo $(GH_REPO_NAME) --start-sha $(shell git rev-list -n 1 ${PREVIOUS_VERSION}) --end-sha $(shell git rev-list -n 1 ${RELEASE_TAG}) --output $(RELEASE_DIR)/CHANGELOG.md --go-template go-template:$(REPO_ROOT)/hack/changelog.tpl --dependencies=true --branch=${RELEASE_BRANCH} --required-author=""
+
+.PHONY: release-notes-pr
+release-notes-pr: $(RELEASE_NOTES) $(RELEASE_TOOL) check-github-token ## Generate CHANGELOG/$(VERSION).md for a release-trigger PR. Usage: make release-notes-pr VERSION=v2.10.0
+	@if [ -z "$(VERSION)" ]; then echo "VERSION is not set, e.g. make release-notes-pr VERSION=v2.10.0"; exit 1; fi
+	@mkdir -p CHANGELOG
+	previous_version=$$(git tag -l 'v*' | $(RELEASE_TOOL) changelog previous-version --version $(VERSION)); \
+	release_branch=release-$$(echo $(VERSION) | grep -Eo '[0-9]+\.[0-9]+'); \
+	$(RELEASE_NOTES) --debug --org $(GH_ORG_NAME) --repo $(GH_REPO_NAME) --start-sha $$(git rev-list -n 1 $$previous_version) --end-sha $$(git rev-parse HEAD) --output CHANGELOG/$(VERSION).md --go-template go-template:$(REPO_ROOT)/hack/changelog.tpl --dependencies=true --branch=$$release_branch --required-author=""
+	$(RELEASE_TOOL) changelog notes-pr --input CHANGELOG/$(VERSION).md --version $(VERSION) --metadata metadata.yaml
+	@echo "Generated CHANGELOG/$(VERSION).md - review it (edit the 'contract' front-matter if this release changes it). If this is a major/minor release, metadata.yaml was also updated - commit both files together and open a PR."
 
 .PHONY: promote-images
 promote-images: $(KPROMO) $(YQ)
