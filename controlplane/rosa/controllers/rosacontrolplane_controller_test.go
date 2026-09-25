@@ -40,6 +40,7 @@ import (
 	"github.com/openshift/rosa/pkg/ocm"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	restclient "k8s.io/client-go/rest"
@@ -2370,6 +2371,86 @@ func TestComponentRoutesEqual(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			g.Expect(componentRoutesEqual(tt.current, tt.desired)).To(Equal(tt.want))
+		})
+	}
+}
+
+// TestROSAControlPlaneNotificationContactsAPIValidation verifies the CRD schema
+// for spec.notificationContacts against the API server.
+func TestROSAControlPlaneNotificationContactsAPIValidation(t *testing.T) {
+	g := NewWithT(t)
+	ctx := context.TODO()
+
+	ns, err := testEnv.CreateNamespace(ctx, fmt.Sprintf("test-ns-notif-%s", generateTestID()))
+	g.Expect(err).ToNot(HaveOccurred())
+
+	newControlPlane := func(name string, contacts []string) *rosacontrolplanev1.ROSAControlPlane {
+		return &rosacontrolplanev1.ROSAControlPlane{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      name,
+				Namespace: ns.Name,
+			},
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				RosaClusterName:   name,
+				Subnets:           []string{"subnet-0ac99a6230b408813"},
+				AvailabilityZones: []string{"us-east-1a"},
+				Network: &rosacontrolplanev1.NetworkSpec{
+					MachineCIDR: "10.0.0.0/16",
+					PodCIDR:     "10.128.0.0/14",
+					ServiceCIDR: "172.30.0.0/16",
+				},
+				Region:           "us-east-1",
+				Version:          "4.15.0",
+				ChannelGroup:     "stable",
+				OIDCID:           "oidcid-test",
+				InstallerRoleARN: "arn:aws:iam::123456789012:role/installer",
+				WorkerRoleARN:    "arn:aws:iam::123456789012:role/worker",
+				SupportRoleARN:   "arn:aws:iam::123456789012:role/support",
+				RolesRef: rosacontrolplanev1.AWSRolesRef{
+					IngressARN:              "op-arn1",
+					ImageRegistryARN:        "op-arn2",
+					StorageARN:              "op-arn3",
+					NetworkARN:              "op-arn4",
+					KubeCloudControllerARN:  "op-arn5",
+					NodePoolManagementARN:   "op-arn6",
+					ControlPlaneOperatorARN: "op-arn7",
+					KMSProviderARN:          "op-arn8",
+				},
+				VersionGate:          "Acknowledge",
+				NotificationContacts: contacts,
+			},
+		}
+	}
+
+	t.Run("accepts usernames", func(t *testing.T) {
+		g := NewWithT(t)
+		cp := newControlPlane("notif-valid", []string{"user-a", "user@example.com"})
+		g.Expect(testEnv.Create(ctx, cp)).To(Succeed())
+		defer cleanupObject(g, cp)
+	})
+
+	t.Run("persists an explicitly empty list", func(t *testing.T) {
+		g := NewWithT(t)
+		cp := newControlPlane("notif-empty", []string{})
+		g.Expect(testEnv.Create(ctx, cp)).To(Succeed())
+		defer cleanupObject(g, cp)
+
+		got := &rosacontrolplanev1.ROSAControlPlane{}
+		g.Eventually(func() error {
+			return testEnv.Get(ctx, client.ObjectKeyFromObject(cp), got)
+		}, 10*time.Second).Should(Succeed())
+		g.Expect(got.Spec.NotificationContacts).NotTo(BeNil())
+		g.Expect(got.Spec.NotificationContacts).To(BeEmpty())
+	})
+
+	for _, contact := range []string{"user a", " user-a", "user-a ", "\tuser-a"} {
+		t.Run(fmt.Sprintf("rejects %q", contact), func(t *testing.T) {
+			g := NewWithT(t)
+			cp := newControlPlane("notif-invalid", []string{contact})
+			err := testEnv.Create(ctx, cp)
+			g.Expect(apierrors.IsInvalid(err)).To(BeTrue(), "expected invalid error, got %v", err)
+			g.Expect(err.Error()).To(ContainSubstring("spec.notificationContacts[0]"))
+			g.Expect(err.Error()).To(ContainSubstring(`should match '^\S+$'`))
 		})
 	}
 }

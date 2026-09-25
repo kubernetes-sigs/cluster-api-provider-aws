@@ -17,10 +17,13 @@ limitations under the License.
 package webhooks
 
 import (
+	"encoding/json"
 	"testing"
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
@@ -139,6 +142,153 @@ func TestValidateComponentRoutes(t *testing.T) {
 		g.Expect(errs).ToNot(BeEmpty())
 		g.Expect(errs[0].Type).To(Equal(field.ErrorTypeDuplicate))
 	})
+}
+
+func TestValidateNotificationContacts(t *testing.T) {
+	w := &ROSAControlPlane{}
+
+	t.Run("unset is valid", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+		rosaCP := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{},
+		}
+		errs := w.validateNotificationContacts(rosaCP)
+		g.Expect(errs).To(BeEmpty())
+	})
+
+	t.Run("usernames including email-shaped are valid", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+		contacts := []string{"user1", "user@example.com"}
+		rosaCP := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				NotificationContacts: contacts,
+			},
+		}
+		errs := w.validateNotificationContacts(rosaCP)
+		g.Expect(errs).To(BeEmpty())
+	})
+
+	t.Run("blank entry is invalid", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+		contacts := []string{"user1", "  "}
+		rosaCP := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				NotificationContacts: contacts,
+			},
+		}
+		errs := w.validateNotificationContacts(rosaCP)
+		g.Expect(errs).ToNot(BeEmpty())
+		g.Expect(errs[0].Type).To(Equal(field.ErrorTypeInvalid))
+		g.Expect(errs[0].Error()).To(ContainSubstring("must not be blank"))
+	})
+
+	t.Run("explicitly empty list is valid", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+		rosaCP := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				NotificationContacts: []string{},
+			},
+		}
+		errs := w.validateNotificationContacts(rosaCP)
+		g.Expect(errs).To(BeEmpty())
+	})
+
+	t.Run("surrounding whitespace is invalid", func(t *testing.T) {
+		for _, contact := range []string{" user-a", "user-a ", " user-a ", "\tuser-a\n"} {
+			g := NewGomegaWithT(t)
+			rosaCP := &rosacontrolplanev1.ROSAControlPlane{
+				Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+					NotificationContacts: []string{"user1", contact},
+				},
+			}
+			errs := w.validateNotificationContacts(rosaCP)
+			g.Expect(errs).To(HaveLen(1), "contact %q", contact)
+			g.Expect(errs[0].Type).To(Equal(field.ErrorTypeInvalid))
+			g.Expect(errs[0].Field).To(Equal("spec.notificationContacts[1]"))
+			g.Expect(errs[0].Error()).To(ContainSubstring("must not contain leading or trailing whitespace"))
+		}
+	})
+}
+
+// TestNotificationContactsJSONRoundTrip verifies that an explicitly empty
+// notificationContacts list survives serialization, so it is not mistaken for unset.
+func TestNotificationContactsJSONRoundTrip(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := rosacontrolplanev1.AddToScheme(scheme); err != nil {
+		t.Fatal(err)
+	}
+	codecs := serializer.NewCodecFactory(scheme)
+
+	tests := []struct {
+		name         string
+		contacts     []string
+		wantInJSON   bool
+		wantNil      bool
+		wantContacts []string
+	}{
+		{
+			name:       "unset is omitted and decodes as nil",
+			contacts:   nil,
+			wantInJSON: false,
+			wantNil:    true,
+		},
+		{
+			name:         "explicitly empty is preserved",
+			contacts:     []string{},
+			wantInJSON:   true,
+			wantNil:      false,
+			wantContacts: []string{},
+		},
+		{
+			name:         "populated is preserved",
+			contacts:     []string{"user-a", "user-b"},
+			wantInJSON:   true,
+			wantNil:      false,
+			wantContacts: []string{"user-a", "user-b"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			in := &rosacontrolplanev1.ROSAControlPlane{
+				Spec: rosacontrolplanev1.RosaControlPlaneSpec{NotificationContacts: tt.contacts},
+			}
+			in.SetGroupVersionKind(rosacontrolplanev1.GroupVersion.WithKind("ROSAControlPlane"))
+
+			// encoding/json round trip.
+			data, err := json.Marshal(in)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			var raw struct {
+				Spec map[string]json.RawMessage `json:"spec"`
+			}
+			g.Expect(json.Unmarshal(data, &raw)).To(Succeed())
+			_, found := raw.Spec["notificationContacts"]
+			g.Expect(found).To(Equal(tt.wantInJSON))
+
+			out := &rosacontrolplanev1.ROSAControlPlane{}
+			g.Expect(json.Unmarshal(data, out)).To(Succeed())
+			g.Expect(out.Spec.NotificationContacts == nil).To(Equal(tt.wantNil))
+			if !tt.wantNil {
+				g.Expect(out.Spec.NotificationContacts).To(Equal(tt.wantContacts))
+			}
+
+			// Kubernetes codec round trip, as used by typed clients.
+			codec := codecs.LegacyCodec(rosacontrolplanev1.GroupVersion)
+			encoded, err := runtime.Encode(codec, in)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			decoded := &rosacontrolplanev1.ROSAControlPlane{}
+			_, _, err = codecs.UniversalDeserializer().Decode(encoded, nil, decoded)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(decoded.Spec.NotificationContacts == nil).To(Equal(tt.wantNil))
+			if !tt.wantNil {
+				g.Expect(decoded.Spec.NotificationContacts).To(Equal(tt.wantContacts))
+			}
+		})
+	}
 }
 
 func TestValidateEc2MetadataHttpTokensImmutability(t *testing.T) {
