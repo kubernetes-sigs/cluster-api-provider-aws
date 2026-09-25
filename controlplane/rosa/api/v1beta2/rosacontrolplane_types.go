@@ -1004,6 +1004,21 @@ type RosaControlPlaneStatus struct {
 
 	// Available channels for the ROSA hosted control plane.
 	AvailableChannels []string `json:"availableChannels,omitempty"`
+
+	// v1beta2 groups all the fields that will be added or modified in ROSAControlPlane's status with the V1Beta2 version.
+	// +optional
+	V1Beta2 *RosaControlPlaneV1Beta2Status `json:"v1beta2,omitempty"`
+}
+
+// RosaControlPlaneV1Beta2Status groups all the fields that will be added or modified in ROSAControlPlane with the V1Beta2 version.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type RosaControlPlaneV1Beta2Status struct {
+	// conditions represents the observations of a ROSAControlPlane's current state.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -1040,6 +1055,22 @@ func (r *ROSAControlPlane) GetConditions() clusterv1beta1.Conditions {
 // SetConditions sets the status conditions for the AWSManagedControlPlane.
 func (r *ROSAControlPlane) SetConditions(conditions clusterv1beta1.Conditions) {
 	r.Status.Conditions = conditions
+}
+
+// GetV1Beta2Conditions returns the set of conditions for this object.
+func (r *ROSAControlPlane) GetV1Beta2Conditions() []metav1.Condition {
+	if r.Status.V1Beta2 == nil {
+		return nil
+	}
+	return r.Status.V1Beta2.Conditions
+}
+
+// SetV1Beta2Conditions sets conditions for an API object.
+func (r *ROSAControlPlane) SetV1Beta2Conditions(conditions []metav1.Condition) {
+	if r.Status.V1Beta2 == nil {
+		r.Status.V1Beta2 = &RosaControlPlaneV1Beta2Status{}
+	}
+	r.Status.V1Beta2.Conditions = conditions
 }
 
 func init() {

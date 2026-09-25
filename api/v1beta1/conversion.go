@@ -113,3 +113,8 @@ func Convert_v1beta2_AWSMachineTemplateStatus_To_v1beta1_AWSMachineTemplateStatu
 	// NodeInfo and Conditions fields are ignored (dropped) as they don't exist in v1beta1
 	return autoConvert_v1beta2_AWSMachineTemplateStatus_To_v1beta1_AWSMachineTemplateStatus(in, out, s)
 }
+
+func Convert_v1beta2_AWSClusterStatus_To_v1beta1_AWSClusterStatus(in *v1beta2.AWSClusterStatus, out *AWSClusterStatus, s conversion.Scope) error {
+	// V1Beta2 field is not present in v1beta1, so it will be dropped during conversion
+	return autoConvert_v1beta2_AWSClusterStatus_To_v1beta1_AWSClusterStatus(in, out, s)
+}
