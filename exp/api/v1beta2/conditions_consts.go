@@ -136,21 +136,27 @@ const (
 )
 
 const (
-	// ROSANetworkReadyCondition condition reports on the successful reconciliation of ROSANetwork.
-	ROSANetworkReadyCondition clusterv1beta1.ConditionType = "ROSANetworkReady"
+	// ROSANetworkReadyV1Beta1Condition condition reports on the successful reconciliation of ROSANetwork.
+	// Use ROSANetworkReadyCondition from v1beta2_condition_consts.go instead.
+	ROSANetworkReadyV1Beta1Condition clusterv1beta1.ConditionType = "ROSANetworkReady"
 
-	// ROSANetworkCreatingReason used when ROSANetwork is being created.
-	ROSANetworkCreatingReason = "Creating"
+	// ROSANetworkCreatingV1Beta1Reason used when ROSANetwork is being created.
+	// Use ROSANetworkCreatingReason from v1beta2_condition_consts.go instead.
+	ROSANetworkCreatingV1Beta1Reason = "Creating"
 
-	// ROSANetworkCreatedReason used when ROSANetwork is created.
-	ROSANetworkCreatedReason = "Created"
+	// ROSANetworkCreatedV1Beta1Reason used when ROSANetwork is created.
+	// Use ROSANetworkCreatedReason from v1beta2_condition_consts.go instead.
+	ROSANetworkCreatedV1Beta1Reason = "Created"
 
-	// ROSANetworkFailedReason used when rosaNetwork creation failed.
-	ROSANetworkFailedReason = "Failed"
+	// ROSANetworkFailedV1Beta1Reason used when rosaNetwork creation failed.
+	// Use ROSANetworkFailedReason from v1beta2_condition_consts.go instead.
+	ROSANetworkFailedV1Beta1Reason = "Failed"
 
-	// ROSANetworkDeletingReason used when ROSANetwork is being deleted.
-	ROSANetworkDeletingReason = "Deleting"
+	// ROSANetworkDeletingV1Beta1Reason used when ROSANetwork is being deleted.
+	// Use ROSANetworkDeletingReason from v1beta2_condition_consts.go instead.
+	ROSANetworkDeletingV1Beta1Reason = "Deleting"
 
-	// ROSANetworkDeletionFailedReason used to report failures while deleting ROSANetwork.
-	ROSANetworkDeletionFailedReason = "DeletionFailed"
+	// ROSANetworkDeletionFailedV1Beta1Reason used to report failures while deleting ROSANetwork.
+	// Use ROSANetworkDeletionFailedReason from v1beta2_condition_consts.go instead.
+	ROSANetworkDeletionFailedV1Beta1Reason = "DeletionFailed"
 )
