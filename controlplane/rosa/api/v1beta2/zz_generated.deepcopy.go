@@ -386,6 +386,11 @@ func (in *RosaControlPlaneSpec) DeepCopyInto(out *RosaControlPlaneSpec) {
 		**out = **in
 	}
 	out.RolesRef = in.RolesRef
+	if in.NotificationContacts != nil {
+		in, out := &in.NotificationContacts, &out.NotificationContacts
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.ExternalAuthProviders != nil {
 		in, out := &in.ExternalAuthProviders, &out.ExternalAuthProviders
 		*out = make([]ExternalAuthProvider, len(*in))

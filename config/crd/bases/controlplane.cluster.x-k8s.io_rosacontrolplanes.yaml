@@ -685,6 +685,18 @@ spec:
                     format: cidr
                     type: string
                 type: object
+              notificationContacts:
+                description: |-
+                  NotificationContacts is the set of OCM account usernames that receive cluster
+                  notification emails. All contacts must belong to the same Red Hat organization
+                  as the cluster. Values must be OCM usernames; using other identifiers such as
+                  email addresses can cause errors during reconcile.
+                  When unset, contacts are not managed. When set (including empty), the
+                  controller reconciles the subscription to exactly this set.
+                items:
+                  type: string
+                type: array
+                x-kubernetes-list-type: set
               oidcID:
                 description: |-
                   The ID of the internal OpenID Connect Provider.

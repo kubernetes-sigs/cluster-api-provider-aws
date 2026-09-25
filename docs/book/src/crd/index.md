@@ -11632,6 +11632,23 @@ Defaults to &ldquo;Disabled&rdquo;.</p>
 </tr>
 <tr>
 <td>
+<code>notificationContacts</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>NotificationContacts is the set of OCM account usernames that receive cluster
+notification emails. All contacts must belong to the same Red Hat organization
+as the cluster. Values must be OCM usernames; using other identifiers such as
+email addresses can cause errors during reconcile.
+When unset, contacts are not managed. When set (including empty), the
+controller reconciles the subscription to exactly this set.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>externalAuthProviders</code><br/>
 <em>
 <a href="#controlplane.cluster.x-k8s.io/v1beta2.ExternalAuthProvider">
@@ -12384,6 +12401,23 @@ DeleteProtectionState
 <p>DeleteProtection prevents accidental ROSA cluster deletion.
 When set to &ldquo;Enabled&rdquo;, the ROSA cluster cannot be deleted through OCM.
 Defaults to &ldquo;Disabled&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>notificationContacts</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>NotificationContacts is the set of OCM account usernames that receive cluster
+notification emails. All contacts must belong to the same Red Hat organization
+as the cluster. Values must be OCM usernames; using other identifiers such as
+email addresses can cause errors during reconcile.
+When unset, contacts are not managed. When set (including empty), the
+controller reconciles the subscription to exactly this set.</p>
 </td>
 </tr>
 <tr>
