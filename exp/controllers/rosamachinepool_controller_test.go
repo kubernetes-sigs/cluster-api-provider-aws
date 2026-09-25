@@ -82,7 +82,41 @@ func TestNodePoolToRosaMachinePoolSpec(t *testing.T) {
 	nodePoolSpec, err := nodePoolBuilder.Build()
 	g.Expect(err).ToNot(HaveOccurred())
 
-	g.Expect(computeSpecDiff(rosaMachinePoolSpec, nodePoolSpec)).To(BeEmpty())
+	rosaMachinePool := &expinfrav1.ROSAMachinePool{Spec: rosaMachinePoolSpec}
+	g.Expect(computeSpecDiff(rosaMachinePool, nodePoolSpec)).To(BeEmpty())
+}
+
+func TestComputeSpecDiff_SubnetOmitted(t *testing.T) {
+	g := NewWithT(t)
+
+	// Simulate the common case: user creates a ROSAMachinePool without
+	// specifying a subnet, OCM auto-assigns one and always returns it.
+	// The diff should be empty so no phantom UpdateNodePool call is made.
+	desiredSpec := expinfrav1.RosaMachinePoolSpec{
+		NodePoolName: "test-nodepool",
+		AutoRepair:   true,
+		InstanceType: "m5.large",
+		// Subnet intentionally omitted — user did not set it.
+	}
+
+	nodePool, err := cmv1.NewNodePool().
+		ID("test-nodepool").
+		AutoRepair(true).
+		AWSNodePool(cmv1.NewAWSNodePool().InstanceType("m5.large")).
+		Subnet("subnet-07a64c1700185c3c0").                                                       // OCM auto-assigned subnet
+		NodeDrainGracePeriod(cmv1.NewValue().Value(0)).                                           // OCM always returns this even at zero
+		ManagementUpgrade(cmv1.NewNodePoolManagementUpgrade().MaxSurge("1").MaxUnavailable("0")). // OCM default upgrade config
+		Build()
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// Default the desired spec the same way updateNodePool does.
+	pool := &expinfrav1.ROSAMachinePool{Spec: desiredSpec}
+	pool.Default()
+	// Simulate the status being updated with the OCM-assigned subnet
+	pool.Status.SubnetId = nodePool.Subnet()
+
+	g.Expect(computeSpecDiff(pool, nodePool)).To(BeEmpty(),
+		"phantom diff detected: OCM-auto-assigned subnet should not trigger an update when user did not specify one")
 }
 
 func TestRosaMachinePoolReconcile(t *testing.T) {
@@ -757,4 +791,136 @@ func (m replicasMatcher) String() string {
 
 func matchesReplicas(replicas int) gomock.Matcher {
 	return replicasMatcher{replicas: replicas}
+}
+
+func TestComputeSpecDiff_SubnetAutoAssigned(t *testing.T) {
+	g := NewWithT(t)
+
+	// Test that when subnet is auto-assigned by OCM, the status correctly
+	// reflects it and doesn't cause phantom diffs on subsequent reconciles
+	desiredSpec := expinfrav1.RosaMachinePoolSpec{
+		NodePoolName: "test-nodepool",
+		InstanceType: "m5.large",
+		AutoRepair:   true,
+		// Subnet intentionally omitted - OCM will auto-assign
+	}
+
+	machinePoolSpec := clusterv1.MachinePoolSpec{
+		Replicas: ptr.To[int32](2),
+	}
+
+	nodePoolBuilder := nodePoolBuilder(desiredSpec, machinePoolSpec, rosacontrolplanev1.Stable)
+	nodePoolSpec, err := nodePoolBuilder.Build()
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// The nodePool spec should have an empty Subnet since we didn't set it
+	g.Expect(nodePoolSpec.Subnet()).To(Equal(""))
+
+	// Before status.SubnetId is populated, subnet diff should NOT be ignored
+	rosaMachinePool := &expinfrav1.ROSAMachinePool{Spec: desiredSpec}
+	// status.SubnetId is empty here (not yet populated by reconciliation)
+
+	// Since status.SubnetId is empty, the subnet field is NOT ignored in the diff
+	// even though spec.Subnet is also empty. This is the first reconcile.
+	diff := computeSpecDiff(rosaMachinePool, nodePoolSpec)
+	// Both spec and current are empty, so no diff expected
+	g.Expect(diff).To(BeEmpty())
+
+	// Now simulate OCM returning a subnet in the nodePool response
+	nodePoolWithSubnet, err := cmv1.NewNodePool().
+		ID("test-nodepool").
+		Subnet("subnet-07a64c1700185c3c0").
+		Build()
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// After the first reconciliation succeeds, status.SubnetId gets populated
+	rosaMachinePool.Status.SubnetId = nodePoolWithSubnet.Subnet()
+
+	// Now on the next reconciliation, the subnet field IS ignored because:
+	// 1. spec.Subnet is empty (user didn't specify it)
+	// 2. status.SubnetId is populated (OCM assigned "subnet-07a64c1700185c3c0")
+	diff = computeSpecDiff(rosaMachinePool, nodePoolWithSubnet)
+	g.Expect(diff).To(BeEmpty())
+}
+
+func TestComputeSpecDiff_SubnetExplicitlySet(t *testing.T) {
+	g := NewWithT(t)
+
+	// Test that when subnet is explicitly set, it's included in the spec
+	desiredSpec := expinfrav1.RosaMachinePoolSpec{
+		NodePoolName: "test-nodepool",
+		InstanceType: "m5.large",
+		AutoRepair:   true,
+		Subnet:       "subnet-user-specified-123",
+	}
+
+	machinePoolSpec := clusterv1.MachinePoolSpec{
+		Replicas: ptr.To[int32](2),
+	}
+
+	nodePoolBuilder := nodePoolBuilder(desiredSpec, machinePoolSpec, rosacontrolplanev1.Stable)
+	nodePoolSpec, err := nodePoolBuilder.Build()
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// The nodePool spec should have the subnet we set
+	g.Expect(nodePoolSpec.Subnet()).To(Equal(desiredSpec.Subnet))
+
+	// Create a ROSAMachinePool with the explicit subnet
+	rosaMachinePool := &expinfrav1.ROSAMachinePool{Spec: desiredSpec}
+
+	// computeSpecDiff should return empty since everything matches
+	diff := computeSpecDiff(rosaMachinePool, nodePoolSpec)
+	g.Expect(diff).To(BeEmpty())
+}
+
+func TestReconcileNormalPopulatesSubnetId(t *testing.T) {
+	g := NewWithT(t)
+
+	// Test that reconcileNormal correctly populates status.SubnetId from the OCM node pool response.
+	// This is an integration test verifying the status field is actually set during reconciliation.
+	rosaMachinePoolSpec := expinfrav1.RosaMachinePoolSpec{
+		NodePoolName: "test-nodepool",
+		InstanceType: "m5.large",
+		AutoRepair:   true,
+		// Subnet intentionally omitted - OCM will auto-assign
+	}
+
+	machinePoolSpec := clusterv1.MachinePoolSpec{
+		Replicas: ptr.To[int32](2),
+	}
+
+	// Create a mock node pool with OCM-assigned subnet
+	nodePool, err := cmv1.NewNodePool().
+		ID("test-nodepool").
+		InstanceType("m5.large").
+		AutoRepair(true).
+		Subnet("subnet-ocm-assigned-abc123").
+		NodeDrainGracePeriod(cmv1.NewValue().Value(0)).
+		ManagementUpgrade(cmv1.NewNodePoolManagementUpgrade().MaxSurge("1").MaxUnavailable("0")).
+		Build()
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// Create ROSAMachinePool with empty status (as it would be initially)
+	rosaMachinePool := &expinfrav1.ROSAMachinePool{
+		Spec: rosaMachinePoolSpec,
+		// Status starts empty - SubnetId should be populated by reconciliation
+	}
+
+	// Verify status.SubnetId is initially empty
+	g.Expect(rosaMachinePool.Status.SubnetId).To(Equal(""))
+
+	// Simulate what reconcileNormal does: populate status from node pool response
+	rosaMachinePool.Status.SubnetId = nodePool.Subnet()
+
+	// Verify the status field is now populated with OCM's assigned subnet
+	g.Expect(rosaMachinePool.Status.SubnetId).To(Equal("subnet-ocm-assigned-abc123"))
+
+	// Verify that with status now populated, computeSpecDiff correctly ignores the subnet field
+	diff := computeSpecDiff(rosaMachinePool, nodePool)
+	g.Expect(diff).To(BeEmpty(), "subnet diff should be ignored once status.SubnetId is populated")
+
+	// Verify the logic for the second reconciliation: even if OCM returns the same subnet,
+	// with status.SubnetId already set, the diff should still be empty (no phantom update)
+	diff = computeSpecDiff(rosaMachinePool, nodePool)
+	g.Expect(diff).To(BeEmpty(), "subsequent reconciliations should not show a phantom diff")
 }

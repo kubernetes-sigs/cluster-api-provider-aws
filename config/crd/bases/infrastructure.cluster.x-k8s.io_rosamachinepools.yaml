@@ -322,6 +322,12 @@ spec:
                 description: Replicas is the most recently observed number of replicas.
                 format: int32
                 type: integer
+              subnetId:
+                description: |-
+                  SubnetId is the ID of the subnet where this machine pool's nodes are running.
+                  This is populated from the OCM-assigned subnet when spec.subnet is not specified,
+                  allowing users to see which subnet was actually provisioned.
+                type: string
             required:
             - ready
             type: object

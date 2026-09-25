@@ -228,6 +228,12 @@ type RosaMachinePoolStatus struct {
 	// ID is the ID given by ROSA.
 	ID string `json:"id,omitempty"`
 
+	// SubnetId is the ID of the subnet where this machine pool's nodes are running.
+	// This is populated from the OCM-assigned subnet when spec.subnet is not specified,
+	// allowing users to see which subnet was actually provisioned.
+	// +optional
+	SubnetId string `json:"subnetId,omitempty"`
+
 	// Available upgrades for the ROSA MachinePool.
 	AvailableUpgrades []string `json:"availableUpgrades,omitempty"`
 }
