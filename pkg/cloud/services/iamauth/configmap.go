@@ -88,6 +88,45 @@ func (b *configMapBackend) MapUser(mapping ekscontrolplanev1.UserMapping) error 
 	return b.saveAuthConfig(authConfig)
 }
 
+// ReconcileMappings replaces the full aws-auth ConfigMap mapRoles/mapUsers with
+// the desired set. Node role mappings MUST be included by the caller — this
+// backend does not discover node roles on its own.
+func (b *configMapBackend) ReconcileMappings(
+	roles []ekscontrolplanev1.RoleMapping,
+	users []ekscontrolplanev1.UserMapping,
+) error {
+	// Validate all inputs before touching state so an invalid entry cannot
+	// leave the backend partially updated.
+	for _, m := range roles {
+		if errs := m.Validate(); errs != nil {
+			return kerrors.NewAggregate(errs)
+		}
+	}
+	for _, m := range users {
+		if errs := m.Validate(); errs != nil {
+			return kerrors.NewAggregate(errs)
+		}
+	}
+
+	authConfig, err := b.getAuthConfig()
+	if err != nil {
+		return fmt.Errorf("getting auth config: %w", err)
+	}
+
+	// Full replace. saveAuthConfig deletes the yaml keys when the slice is
+	// empty, so passing nil / empty slices removes the corresponding section.
+	if roles == nil {
+		roles = []ekscontrolplanev1.RoleMapping{}
+	}
+	if users == nil {
+		users = []ekscontrolplanev1.UserMapping{}
+	}
+	authConfig.RoleMappings = roles
+	authConfig.UserMappings = users
+
+	return b.saveAuthConfig(authConfig)
+}
+
 func (b *configMapBackend) getAuthConfig() (*ekscontrolplanev1.IAMAuthenticatorConfig, error) {
 	ctx := context.Background()
 
