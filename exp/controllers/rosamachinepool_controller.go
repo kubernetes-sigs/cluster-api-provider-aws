@@ -292,7 +292,7 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 			expinfrav1.RosaMachinePoolReadyCondition,
 			"WaitingForNodePool",
 			clusterv1beta1.ConditionSeverityInfo,
-			nodePool.Status().Message())
+			"%s", nodePool.Status().Message())
 
 		machinePoolScope.Info("waiting for NodePool to become ready", "state", nodePool.Status().Message())
 		// Requeue so that status.ready is set to true when the nodepool is fully created.

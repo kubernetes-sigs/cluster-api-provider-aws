@@ -885,14 +885,10 @@ func TestReconcileNormalPopulatesSubnetId(t *testing.T) {
 		// Subnet intentionally omitted - OCM will auto-assign
 	}
 
-	machinePoolSpec := clusterv1.MachinePoolSpec{
-		Replicas: ptr.To[int32](2),
-	}
-
 	// Create a mock node pool with OCM-assigned subnet
 	nodePool, err := cmv1.NewNodePool().
 		ID("test-nodepool").
-		InstanceType("m5.large").
+		AWSNodePool(cmv1.NewAWSNodePool().InstanceType("m5.large")).
 		AutoRepair(true).
 		Subnet("subnet-ocm-assigned-abc123").
 		NodeDrainGracePeriod(cmv1.NewValue().Value(0)).
