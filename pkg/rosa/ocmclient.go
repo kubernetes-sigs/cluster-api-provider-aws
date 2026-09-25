@@ -67,6 +67,8 @@ type OCMClient interface {
 	UpdateClusterDeletionProtection(clusterID string, enabled bool) error
 	GetIngresses(clusterID string) ([]*v1.Ingress, error)
 	UpdateIngress(clusterID string, ingress *v1.Ingress) (*v1.Ingress, error)
+	GetSubscriptionNotificationContacts(ctx context.Context, subscriptionID string) ([]string, error)
+	UpdateSubscriptionNotificationContacts(ctx context.Context, subscriptionID string, contacts []string) error
 }
 
 func (c *ocmclient) AckVersionGate(clusterID string, gateID string) error {
@@ -190,7 +192,7 @@ func (c *ocmclient) UpdateClusterDeletionProtection(clusterID string, enabled bo
 	if err != nil {
 		return fmt.Errorf("failed to build delete protection: %w", err)
 	}
-	return c.ocmClient.UpdateClusterDeletionProtection(clusterID, body)
+	return c.ocmClient.UpdateClusterDeleteProtection(clusterID, body)
 }
 
 func (c *ocmclient) GetIngresses(clusterID string) ([]*v1.Ingress, error) {
@@ -199,6 +201,14 @@ func (c *ocmclient) GetIngresses(clusterID string) ([]*v1.Ingress, error) {
 
 func (c *ocmclient) UpdateIngress(clusterID string, ingress *v1.Ingress) (*v1.Ingress, error) {
 	return c.ocmClient.UpdateIngress(clusterID, ingress)
+}
+
+func (c *ocmclient) GetSubscriptionNotificationContacts(ctx context.Context, subscriptionID string) ([]string, error) {
+	return c.ocmClient.GetSubscriptionNotificationContacts(ctx, subscriptionID)
+}
+
+func (c *ocmclient) UpdateSubscriptionNotificationContacts(ctx context.Context, subscriptionID string, contacts []string) error {
+	return c.ocmClient.UpdateSubscriptionNotificationContacts(ctx, subscriptionID, contacts)
 }
 
 // NewOCMClientFromRosaClient wraps a rosa ocm.Client as an OCMClient.

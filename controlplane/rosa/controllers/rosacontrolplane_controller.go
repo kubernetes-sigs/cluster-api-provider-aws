@@ -329,6 +329,15 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 			return ctrl.Result{RequeueAfter: time.Minute}, nil
 		}
 
+		var notificationContactsErr error
+		if err := rosa.ReconcileNotificationContacts(ctx, rosaScope, ocmClient, cluster); err != nil {
+			rosaScope.Error(err, "failed to reconcile notification contacts")
+			v1beta1conditions.MarkFalse(rosaScope.ControlPlane, rosacontrolplanev1.ROSANotificationContactsReadyCondition, rosacontrolplanev1.ReconciliationFailedReason, clusterv1beta1.ConditionSeverityWarning, err.Error())
+			notificationContactsErr = err
+		} else {
+			v1beta1conditions.MarkTrue(rosaScope.ControlPlane, rosacontrolplanev1.ROSANotificationContactsReadyCondition)
+		}
+
 		switch cluster.Status().State() {
 		case cmv1.ClusterStateReady:
 			v1beta1conditions.MarkTrue(rosaScope.ControlPlane, rosacontrolplanev1.ROSAControlPlaneReadyCondition)
@@ -367,6 +376,9 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 				}
 			}
 
+			if notificationContactsErr != nil {
+				return ctrl.Result{RequeueAfter: time.Minute}, nil
+			}
 			return ctrl.Result{}, nil
 		case cmv1.ClusterStateError:
 			errorMessage := cluster.Status().ProvisionErrorMessage()

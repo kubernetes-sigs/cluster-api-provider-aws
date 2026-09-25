@@ -36,12 +36,12 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/goexpect v0.0.0-20210430020637-ab937bf7fd6f
-	github.com/onsi/ginkgo/v2 v2.32.2
-	github.com/onsi/gomega v1.43.0
-	github.com/openshift-online/ocm-api-model/clientapi v0.0.453
-	github.com/openshift-online/ocm-common v0.0.32
-	github.com/openshift-online/ocm-sdk-go v0.1.499
-	github.com/openshift/rosa v1.99.9-testing.0.20260331163240-71a820e0a117
+	github.com/onsi/ginkgo/v2 v2.33.0
+	github.com/onsi/gomega v1.43.1
+	github.com/openshift-online/ocm-api-model/clientapi v0.0.468
+	github.com/openshift-online/ocm-common v0.0.45
+	github.com/openshift-online/ocm-sdk-go v0.1.514
+	github.com/openshift/rosa v1.99.9-testing.0.20260925195607-2e4d4d02d579
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.24.1
 	github.com/sergi/go-diff v1.4.0
@@ -56,13 +56,13 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.36.4
 	k8s.io/apiextensions-apiserver v0.36.4
-	k8s.io/apimachinery v0.36.4
+	k8s.io/apimachinery v0.37.0
 	k8s.io/cli-runtime v0.36.4
 	k8s.io/client-go v0.36.4
 	k8s.io/component-base v0.36.4
 	k8s.io/klog/v2 v2.140.0
 	k8s.io/kubectl v0.36.4
-	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2
+	k8s.io/utils v0.0.0-20260707023825-cf1189d6abe3
 	sigs.k8s.io/aws-iam-authenticator v0.6.31
 	sigs.k8s.io/cluster-api v1.13.6
 	sigs.k8s.io/cluster-api/test v1.13.6
@@ -72,7 +72,7 @@ require (
 
 require (
 	dario.cat/mergo v1.0.1 // indirect
-	github.com/AlecAivazis/survey/v2 v2.2.15 // indirect
+	github.com/AlecAivazis/survey/v2 v2.3.7 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.5.0 // indirect
 	github.com/Masterminds/sprig/v3 v3.3.0 // indirect
@@ -111,16 +111,16 @@ require (
 	github.com/olekukonko/cat v0.0.0-20250911104152-50322a0618f6 // indirect
 	github.com/olekukonko/errors v1.1.0 // indirect
 	github.com/olekukonko/ll v0.1.1 // indirect
-	github.com/openshift-online/ocm-api-model/model v0.0.453 // indirect
+	github.com/openshift-online/ocm-api-model/model v0.0.468 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/valyala/fastjson v1.6.10 // indirect
 	github.com/vincent-petithory/dataurl v1.0.0 // indirect
 	golang.org/x/mod v0.41.0 // indirect
-	golang.org/x/net v0.58.0 // indirect
+	golang.org/x/net v0.59.0 // indirect
 	k8s.io/streaming v0.36.4 // indirect
-	sigs.k8s.io/structured-merge-diff/v6 v6.4.0 // indirect
+	sigs.k8s.io/structured-merge-diff/v6 v6.4.2 // indirect
 )
 
 require (
@@ -146,7 +146,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.11.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.14.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.20.3 // indirect
-	github.com/aws/aws-sdk-go-v2/service/organizations v1.27.3 // indirect
+	github.com/aws/aws-sdk-go-v2/service/organizations v1.52.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/servicequotas v1.43.0
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.52.0
 	github.com/aws/aws-sdk-go-v2/service/sso v1.38.0 // indirect
@@ -154,7 +154,7 @@ require (
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
-	github.com/briandowns/spinner v1.11.1 // indirect
+	github.com/briandowns/spinner v1.23.2 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/containerd/errdefs v1.0.0 // indirect
@@ -172,7 +172,7 @@ require (
 	github.com/fatih/color v1.19.0 // indirect
 	github.com/felixge/httpsnoop v1.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
-	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
+	github.com/fxamacker/cbor/v2 v2.9.1 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-logr/zapr v1.3.0 // indirect
 	github.com/go-openapi/jsonpointer v1.0.0 // indirect
@@ -194,7 +194,7 @@ require (
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.30.0 // indirect
 	github.com/gsterjov/go-libsecret v0.0.0-20161001094733-a6f4afe4910c // indirect
-	github.com/hashicorp/go-version v1.6.0 // indirect
+	github.com/hashicorp/go-version v1.9.0 // indirect
 	github.com/imdario/mergo v0.3.13 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
@@ -232,7 +232,6 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/zalando/go-keyring v0.2.3 // indirect
-	gitlab.com/c0b/go-ordered-json v0.0.0-20201030195603-febf46534d5a // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.70.0 // indirect
 	go.opentelemetry.io/otel v1.46.0
@@ -263,9 +262,14 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/apiserver v0.36.4
 	k8s.io/cluster-bootstrap v0.35.4 // indirect
-	k8s.io/kube-openapi v0.0.0-20260317180543-43fb72c5454a // indirect
+	k8s.io/kube-openapi v0.0.0-20260721132016-d427ff9ee9ad // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.34.0 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/kind v0.33.0 // indirect
 	sigs.k8s.io/randfill v1.0.0
+)
+
+replace (
+	k8s.io/apimachinery => k8s.io/apimachinery v0.36.4
+	k8s.io/streaming => k8s.io/streaming v0.36.4
 )

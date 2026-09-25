@@ -141,6 +141,45 @@ func TestValidateComponentRoutes(t *testing.T) {
 	})
 }
 
+func TestValidateNotificationContacts(t *testing.T) {
+	w := &ROSAControlPlane{}
+
+	t.Run("unset is valid", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+		rosaCP := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{},
+		}
+		errs := w.validateNotificationContacts(rosaCP)
+		g.Expect(errs).To(BeEmpty())
+	})
+
+	t.Run("usernames including email-shaped are valid", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+		contacts := []string{"user1", "user@example.com"}
+		rosaCP := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				NotificationContacts: contacts,
+			},
+		}
+		errs := w.validateNotificationContacts(rosaCP)
+		g.Expect(errs).To(BeEmpty())
+	})
+
+	t.Run("blank entry is invalid", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+		contacts := []string{"user1", "  "}
+		rosaCP := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				NotificationContacts: contacts,
+			},
+		}
+		errs := w.validateNotificationContacts(rosaCP)
+		g.Expect(errs).ToNot(BeEmpty())
+		g.Expect(errs[0].Type).To(Equal(field.ErrorTypeInvalid))
+		g.Expect(errs[0].Error()).To(ContainSubstring("must not be blank"))
+	})
+}
+
 func TestValidateEc2MetadataHttpTokensImmutability(t *testing.T) {
 	w := &ROSAControlPlane{}
 
