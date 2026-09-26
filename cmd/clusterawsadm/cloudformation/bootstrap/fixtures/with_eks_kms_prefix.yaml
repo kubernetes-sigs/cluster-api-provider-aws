@@ -259,6 +259,8 @@ Resources:
           - eks:AssociateAccessPolicy
           - eks:DisassociateAccessPolicy
           - eks:ListAssociatedAccessPolicies
+          - ssm:CreateActivation
+          - ssm:DeleteActivation
           Effect: Allow
           Resource:
           - '*'
