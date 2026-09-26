@@ -246,6 +246,17 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// +optional
 	DeleteProtection DeleteProtectionState `json:"deleteProtection,omitempty"`
 
+	// NotificationContacts is the set of OCM account usernames that receive cluster
+	// notification emails. All contacts must belong to the same Red Hat organization
+	// as the cluster. Values must be OCM usernames; using other identifiers such as
+	// email addresses can cause errors during reconcile.
+	// When unset, contacts are not managed. When set (including empty), the
+	// controller reconciles the subscription to exactly this set.
+	//
+	// +optional
+	// +listType=set
+	NotificationContacts []string `json:"notificationContacts,omitempty"`
+
 	// ExternalAuthProviders are external OIDC identity providers that can issue tokens for this cluster.
 	// Can only be set if "enableExternalAuthProviders" is set to "True".
 	//

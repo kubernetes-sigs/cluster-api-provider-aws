@@ -21,6 +21,7 @@ limitations under the License.
 package mocks
 
 import (
+	context "context"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -379,6 +380,21 @@ func (mr *MockOCMClientMockRecorder) GetPolicies(arg0 interface{}) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPolicies", reflect.TypeOf((*MockOCMClient)(nil).GetPolicies), arg0)
 }
 
+// GetSubscriptionNotificationContacts mocks base method.
+func (m *MockOCMClient) GetSubscriptionNotificationContacts(arg0 context.Context, arg1 string) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSubscriptionNotificationContacts", arg0, arg1)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSubscriptionNotificationContacts indicates an expected call of GetSubscriptionNotificationContacts.
+func (mr *MockOCMClientMockRecorder) GetSubscriptionNotificationContacts(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSubscriptionNotificationContacts", reflect.TypeOf((*MockOCMClient)(nil).GetSubscriptionNotificationContacts), arg0, arg1)
+}
+
 // GetUser mocks base method.
 func (m *MockOCMClient) GetUser(arg0, arg1, arg2 string) (*v1.User, error) {
 	m.ctrl.T.Helper()
@@ -509,6 +525,20 @@ func (m *MockOCMClient) UpdateNodePool(arg0 string, arg1 *v1.NodePool) (*v1.Node
 func (mr *MockOCMClientMockRecorder) UpdateNodePool(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNodePool", reflect.TypeOf((*MockOCMClient)(nil).UpdateNodePool), arg0, arg1)
+}
+
+// UpdateSubscriptionNotificationContacts mocks base method.
+func (m *MockOCMClient) UpdateSubscriptionNotificationContacts(arg0 context.Context, arg1 string, arg2 []string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateSubscriptionNotificationContacts", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateSubscriptionNotificationContacts indicates an expected call of UpdateSubscriptionNotificationContacts.
+func (mr *MockOCMClientMockRecorder) UpdateSubscriptionNotificationContacts(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSubscriptionNotificationContacts", reflect.TypeOf((*MockOCMClient)(nil).UpdateSubscriptionNotificationContacts), arg0, arg1, arg2)
 }
 
 // ValidateHypershiftVersion mocks base method.
