@@ -1304,7 +1304,7 @@ func TestCreateInstance(t *testing.T) {
 							},
 						},
 					}, nil)
-				// verify that the AMI filters are passed through unmodified to DescribeImages
+				// verify that the AMI filters are passed through to DescribeImages with no owner restriction
 				m.
 					DescribeImages(context.TODO(), gomock.Eq(&ec2.DescribeImagesInput{
 						Filters: []types.Filter{

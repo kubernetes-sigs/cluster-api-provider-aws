@@ -301,23 +301,24 @@ func TestAMILookupByFilters(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	testCases := []struct {
-		name    string
-		filters []infrav1.Filter
-		expect  func(m *mocks.MockEC2APIMockRecorder)
-		check   func(g *WithT, img *ec2types.Image, err error)
+		name     string
+		filters  []infrav1.Filter
+		ownerIDs []string
+		expect   func(m *mocks.MockEC2APIMockRecorder)
+		check    func(g *WithT, img *ec2types.Image, err error)
 	}{
 		{
 			name: "Should return latest AMI matching the provided filters",
 			filters: []infrav1.Filter{
 				{Name: "name", Values: []string{"my-ami-*"}},
-				{Name: "owner-id", Values: []string{"12345"}},
 			},
+			ownerIDs: []string{"123456789012"},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeImages(context.TODO(), gomock.Eq(&ec2.DescribeImagesInput{
 					Filters: []ec2types.Filter{
 						{Name: aws.String("name"), Values: []string{"my-ami-*"}},
-						{Name: aws.String("owner-id"), Values: []string{"12345"}},
 					},
+					Owners: []string{"123456789012"},
 				})).
 					Return(&ec2.DescribeImagesOutput{
 						Images: []ec2types.Image{
@@ -342,8 +343,32 @@ func TestAMILookupByFilters(t *testing.T) {
 			},
 		},
 		{
-			name:    "Should return an error if the DescribeImages call fails",
+			name:    "Should search all visible AMIs when ownerIDs is not specified",
 			filters: []infrav1.Filter{{Name: "name", Values: []string{"my-ami-*"}}},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeImages(context.TODO(), gomock.Eq(&ec2.DescribeImagesInput{
+					Filters: []ec2types.Filter{
+						{Name: aws.String("name"), Values: []string{"my-ami-*"}},
+					},
+				})).
+					Return(&ec2.DescribeImagesOutput{
+						Images: []ec2types.Image{
+							{
+								ImageId:      aws.String("ami-found"),
+								CreationDate: aws.String("2023-01-01T00:00:00.000Z"),
+							},
+						},
+					}, nil)
+			},
+			check: func(g *WithT, img *ec2types.Image, err error) {
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(*img.ImageId).Should(Equal("ami-found"))
+			},
+		},
+		{
+			name:     "Should return an error if the DescribeImages call fails",
+			filters:  []infrav1.Filter{{Name: "name", Values: []string{"my-ami-*"}}},
+			ownerIDs: []string{"self"},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeImages(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(nil, awserrors.NewFailedDependency("dependency failure"))
@@ -354,8 +379,9 @@ func TestAMILookupByFilters(t *testing.T) {
 			},
 		},
 		{
-			name:    "Should return an error if no images match the provided filters",
-			filters: []infrav1.Filter{{Name: "name", Values: []string{"my-ami-*"}}},
+			name:     "Should return an error if no images match the provided filters",
+			filters:  []infrav1.Filter{{Name: "name", Values: []string{"my-ami-*"}}},
+			ownerIDs: []string{"self"},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeImages(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(&ec2.DescribeImagesOutput{}, nil)
@@ -367,8 +393,9 @@ func TestAMILookupByFilters(t *testing.T) {
 			},
 		},
 		{
-			name:    "Should return an error if a matching image has an invalid creation date",
-			filters: []infrav1.Filter{{Name: "name", Values: []string{"my-ami-*"}}},
+			name:     "Should return an error if a matching image has an invalid creation date",
+			filters:  []infrav1.Filter{{Name: "name", Values: []string{"my-ami-*"}}},
+			ownerIDs: []string{"self"},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				m.DescribeImages(context.TODO(), gomock.AssignableToTypeOf(&ec2.DescribeImagesInput{})).
 					Return(&ec2.DescribeImagesOutput{
@@ -394,7 +421,7 @@ func TestAMILookupByFilters(t *testing.T) {
 			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 			tc.expect(ec2Mock.EXPECT())
 
-			img, err := AMILookupByFilters(context.TODO(), ec2Mock, tc.filters)
+			img, err := AMILookupByFilters(context.TODO(), ec2Mock, tc.filters, tc.ownerIDs)
 			tc.check(g, img, err)
 		})
 	}
@@ -427,11 +454,11 @@ func TestBuildEC2Filters(t *testing.T) {
 			name: "Should convert multiple filters preserving order",
 			inputFilters: []infrav1.Filter{
 				{Name: "name", Values: []string{"my-ami-*"}},
-				{Name: "owner-id", Values: []string{"12345", "67890"}},
+				{Name: "owner-id", Values: []string{"123456789012", "210987654321"}},
 			},
 			want: []ec2types.Filter{
 				{Name: aws.String("name"), Values: []string{"my-ami-*"}},
-				{Name: aws.String("owner-id"), Values: []string{"12345", "67890"}},
+				{Name: aws.String("owner-id"), Values: []string{"123456789012", "210987654321"}},
 			},
 		},
 	}
