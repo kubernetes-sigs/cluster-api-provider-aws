@@ -39,7 +39,6 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/converters"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/internal/cidr"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/internal/cmp"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/internal/tristate"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
@@ -930,9 +929,6 @@ func compareEncryptionConfig(updatedEncryptionConfig, existingEncryptionConfig [
 		encryptionConfig := updatedEncryptionConfig[index]
 
 		if getKeyArn(encryptionConfig) != getKeyArn(existingEncryptionConfig[index]) {
-			return false
-		}
-		if !cmp.Equals(aws.StringSlice(encryptionConfig.Resources), aws.StringSlice(existingEncryptionConfig[index].Resources)) {
 			return false
 		}
 	}

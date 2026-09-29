@@ -76,6 +76,21 @@ func TestMakeEKSEncryptionConfigs(t *testing.T) {
 	}
 }
 
+func TestCompareEncryptionConfigIgnoresResources(t *testing.T) {
+	g := NewWithT(t)
+	// EKS encrypts all Kubernetes API data by default, so Resources no longer
+	// determines which resources are encrypted and is not useful for comparison.
+	updated := []ekstypes.EncryptionConfig{{
+		Provider:  &ekstypes.Provider{KeyArn: ptr.To("key")},
+		Resources: []string{"secrets"},
+	}}
+	existing := []ekstypes.EncryptionConfig{{
+		Provider: &ekstypes.Provider{KeyArn: ptr.To("key")},
+	}}
+
+	g.Expect(compareEncryptionConfig(updated, existing)).To(BeTrue())
+}
+
 func TestParseEKSVersion(t *testing.T) {
 	testCases := []struct {
 		name   string
