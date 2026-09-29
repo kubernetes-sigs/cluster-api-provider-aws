@@ -2054,8 +2054,7 @@ func TestDiscoverLaunchTemplateAMI(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				// AMI filters take precedence over image lookup, so only the
-				// user-supplied filters are passed through to DescribeImages.
+				// AMI filters take precedence over image lookup; no owner restriction applied.
 				m.DescribeImages(context.TODO(), gomock.Eq(&ec2.DescribeImagesInput{
 					Filters: []ec2types.Filter{
 						{

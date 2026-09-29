@@ -82,7 +82,6 @@ func (src *AWSMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 
 	dst.Spec.DefaultInstanceWarmup = restored.Spec.DefaultInstanceWarmup
 	dst.Spec.AWSLaunchTemplate.NonRootVolumes = restored.Spec.AWSLaunchTemplate.NonRootVolumes
-	dst.Spec.AWSLaunchTemplate.AMI.Filters = restored.Spec.AWSLaunchTemplate.AMI.Filters
 	return nil
 }
 
@@ -127,7 +126,6 @@ func (src *AWSManagedMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 		}
 		dst.Spec.AWSLaunchTemplate.InstanceMetadataOptions = restored.Spec.AWSLaunchTemplate.InstanceMetadataOptions
 		dst.Spec.AWSLaunchTemplate.NonRootVolumes = restored.Spec.AWSLaunchTemplate.NonRootVolumes
-		dst.Spec.AWSLaunchTemplate.AMI.Filters = restored.Spec.AWSLaunchTemplate.AMI.Filters
 
 		if restored.Spec.AWSLaunchTemplate.EnclaveOptions != nil {
 			dst.Spec.AWSLaunchTemplate.EnclaveOptions = restored.Spec.AWSLaunchTemplate.EnclaveOptions

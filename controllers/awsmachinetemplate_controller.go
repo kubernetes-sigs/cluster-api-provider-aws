@@ -287,6 +287,7 @@ func (r *AWSMachineTemplateReconciler) getInstanceTypeCapacity(ctx context.Conte
 //  3. From instance type architecture (OS cannot be determined, only architecture)
 func (r *AWSMachineTemplateReconciler) getNodeInfo(ctx context.Context, ec2Client *ec2.Client, template *infrav1.AWSMachineTemplate, instanceType string) (*infrav1.NodeInfo, error) {
 	// Strategy 1: Extract nodeInfo from the AMI if an ID is set or filters are defined.
+	// Strategy 1a: resolve by explicit AMI ID.
 	if amiID := ptr.Deref(template.Spec.Template.Spec.AMI.ID, ""); amiID != "" {
 		result, err := ec2Client.DescribeImages(ctx, &ec2.DescribeImagesInput{
 			ImageIds: []string{amiID},
@@ -301,8 +302,9 @@ func (r *AWSMachineTemplateReconciler) getNodeInfo(ctx context.Context, ec2Clien
 		return r.extractNodeInfoFromImage(result.Images[0]), nil
 	}
 
+	// Strategy 1b: resolve by filters.
 	if len(template.Spec.Template.Spec.AMI.Filters) > 0 {
-		img, err := ec2service.AMILookupByFilters(ctx, ec2Client, template.Spec.Template.Spec.AMI.Filters)
+		img, err := ec2service.AMILookupByFilters(ctx, ec2Client, template.Spec.Template.Spec.AMI.Filters, template.Spec.Template.Spec.AMI.OwnerIDs)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to resolve AMI from filters")
 		}

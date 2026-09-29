@@ -616,6 +616,7 @@ func autoConvert_v1beta2_AMIReference_To_v1beta1_AMIReference(in *v1beta2.AMIRef
 	out.ID = (*string)(unsafe.Pointer(in.ID))
 	out.EKSOptimizedLookupType = (*EKSAMILookupType)(unsafe.Pointer(in.EKSOptimizedLookupType))
 	// WARNING: in.Filters requires manual conversion: does not exist in peer-type
+	// WARNING: in.OwnerIDs requires manual conversion: does not exist in peer-type
 	return nil
 }
 

@@ -69,15 +69,18 @@ type AMIReference struct {
 	// matching images are published; set ID instead when a stable, reproducible
 	// image is required.
 	//
-	// Warning: unless the filters restrict ownership (for example an "owner-id"
-	// filter), they may match public AMIs published by untrusted accounts, which
-	// could allow a third party to influence the selected image. Always scope
-	// filters to accounts you trust.
-	//
 	// Filters is mutually exclusive with id, eksLookupType, imageLookupFormat,
 	// imageLookupOrg, and imageLookupBaseOS.
 	// +optional
 	Filters []Filter `json:"filters,omitempty"`
+
+	// OwnerIDs is a list of AWS account IDs that own the AMI. When omitted,
+	// all AMIs visible to the caller's credentials are searched. Set to
+	// ["self"] to restrict the search to the current account, or list specific
+	// account IDs to search across accounts.
+	// Only used when Filters is non-empty; ignored when ID is set.
+	// +optional
+	OwnerIDs []string `json:"ownerIDs,omitempty"`
 }
 
 // Filter is a filter used to identify an AWS resource.

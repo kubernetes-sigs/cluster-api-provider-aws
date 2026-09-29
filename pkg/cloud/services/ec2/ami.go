@@ -307,9 +307,12 @@ func BuildEC2Filters(inputFilters []infrav1.Filter) []ec2types.Filter {
 }
 
 // AMILookupByFilters looks up an AMI using the provided filters and returns the latest image.
-func AMILookupByFilters(ctx context.Context, ec2Client common.EC2API, filters []infrav1.Filter) (*ec2types.Image, error) {
+// ownerIDs restricts the search to AMIs owned by those accounts; when empty, no owner filter
+// is applied and all AMIs visible to the caller's credentials are searched.
+func AMILookupByFilters(ctx context.Context, ec2Client common.EC2API, filters []infrav1.Filter, ownerIDs []string) (*ec2types.Image, error) {
 	describeImageInput := &ec2.DescribeImagesInput{
 		Filters: BuildEC2Filters(filters),
+		Owners:  ownerIDs,
 	}
 	out, err := ec2Client.DescribeImages(ctx, describeImageInput)
 	if err != nil {
