@@ -6942,3 +6942,90 @@ func TestGetInstanceCPUOptionsRequest(t *testing.T) {
 		})
 	}
 }
+
+func TestSDKToInstance_InstanceMetadataOptions(t *testing.T) {
+	testCases := []struct {
+		name            string
+		metadataOptions *types.InstanceMetadataOptionsResponse
+		expected        *infrav1.InstanceMetadataOptions
+	}{
+		{
+			name:            "nil MetadataOptions yields nil on instance",
+			metadataOptions: nil,
+			expected:        nil,
+		},
+		{
+			name: "all fields populated",
+			metadataOptions: &types.InstanceMetadataOptionsResponse{
+				HttpEndpoint:            types.InstanceMetadataEndpointStateEnabled,
+				HttpTokens:              types.HttpTokensStateRequired,
+				HttpProtocolIpv6:        types.InstanceMetadataProtocolStateEnabled,
+				HttpPutResponseHopLimit: aws.Int32(2),
+				InstanceMetadataTags:    types.InstanceMetadataTagsStateEnabled,
+			},
+			expected: &infrav1.InstanceMetadataOptions{
+				HTTPEndpoint:            infrav1.InstanceMetadataEndpointStateEnabled,
+				HTTPTokens:              infrav1.HTTPTokensStateRequired,
+				HTTPProtocolIPv6:        infrav1.InstanceMetadataEndpointStateEnabled,
+				HTTPPutResponseHopLimit: 2,
+				InstanceMetadataTags:    infrav1.InstanceMetadataEndpointStateEnabled,
+			},
+		},
+		{
+			// AWS EUSC does not support IPv6 IMDS and omits HttpProtocolIpv6 from
+			// the DescribeInstances response; the empty string must be normalised to
+			// "disabled" so the equality check in ensureInstanceMetadataOptions does
+			// not trigger a spurious ModifyInstanceMetadataOptions on every reconcile.
+			name: "EUSC: empty HttpProtocolIpv6 normalised to disabled",
+			metadataOptions: &types.InstanceMetadataOptionsResponse{
+				HttpEndpoint:            types.InstanceMetadataEndpointStateEnabled,
+				HttpTokens:              types.HttpTokensStateOptional,
+				HttpProtocolIpv6:        "",
+				HttpPutResponseHopLimit: aws.Int32(1),
+				InstanceMetadataTags:    types.InstanceMetadataTagsStateDisabled,
+			},
+			expected: &infrav1.InstanceMetadataOptions{
+				HTTPEndpoint:            infrav1.InstanceMetadataEndpointStateEnabled,
+				HTTPTokens:              infrav1.HTTPTokensStateOptional,
+				HTTPProtocolIPv6:        infrav1.InstanceMetadataEndpointStateDisabled,
+				HTTPPutResponseHopLimit: 1,
+				InstanceMetadataTags:    infrav1.InstanceMetadataEndpointStateDisabled,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
+			scheme, err := setupScheme()
+			g.Expect(err).ToNot(HaveOccurred())
+
+			client := fake.NewClientBuilder().WithScheme(scheme).Build()
+			cs, err := scope.NewClusterScope(scope.ClusterScopeParams{
+				Client:  client,
+				Cluster: &clusterv1.Cluster{},
+				AWSCluster: &infrav1.AWSCluster{
+					ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				},
+			})
+			g.Expect(err).ToNot(HaveOccurred())
+
+			ec2Svc := NewService(cs)
+			ec2Svc.EC2Client = ec2Mock
+
+			sdkInstance := types.Instance{
+				InstanceId:      aws.String("i-test"),
+				State:           &types.InstanceState{Name: types.InstanceStateNameRunning},
+				Placement:       &types.Placement{},
+				MetadataOptions: tc.metadataOptions,
+			}
+
+			instance, err := ec2Svc.SDKToInstance(sdkInstance)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(instance.InstanceMetadataOptions).To(Equal(tc.expected))
+		})
+	}
+}
