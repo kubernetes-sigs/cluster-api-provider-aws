@@ -133,11 +133,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.AWSManagedMachinePoolStatus)(nil), (*AWSManagedMachinePoolStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_AWSManagedMachinePoolStatus_To_v1beta1_AWSManagedMachinePoolStatus(a.(*v1beta2.AWSManagedMachinePoolStatus), b.(*AWSManagedMachinePoolStatus), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*AutoScalingGroup)(nil), (*v1beta2.AutoScalingGroup)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_AutoScalingGroup_To_v1beta2_AutoScalingGroup(a.(*AutoScalingGroup), b.(*v1beta2.AutoScalingGroup), scope)
 	}); err != nil {
@@ -170,11 +165,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*FargateProfileStatus)(nil), (*v1beta2.FargateProfileStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_FargateProfileStatus_To_v1beta2_FargateProfileStatus(a.(*FargateProfileStatus), b.(*v1beta2.FargateProfileStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.FargateProfileStatus)(nil), (*FargateProfileStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_FargateProfileStatus_To_v1beta1_FargateProfileStatus(a.(*v1beta2.FargateProfileStatus), b.(*FargateProfileStatus), scope)
 	}); err != nil {
 		return err
 	}
@@ -283,6 +273,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*v1beta2.AWSManagedMachinePoolStatus)(nil), (*AWSManagedMachinePoolStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_AWSManagedMachinePoolStatus_To_v1beta1_AWSManagedMachinePoolStatus(a.(*v1beta2.AWSManagedMachinePoolStatus), b.(*AWSManagedMachinePoolStatus), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*v1beta2.AutoScalingGroup)(nil), (*AutoScalingGroup)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_AutoScalingGroup_To_v1beta1_AutoScalingGroup(a.(*v1beta2.AutoScalingGroup), b.(*AutoScalingGroup), scope)
 	}); err != nil {
@@ -290,6 +285,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta2.FargateProfileSpec)(nil), (*FargateProfileSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_FargateProfileSpec_To_v1beta1_FargateProfileSpec(a.(*v1beta2.FargateProfileSpec), b.(*FargateProfileSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.FargateProfileStatus)(nil), (*FargateProfileStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_FargateProfileStatus_To_v1beta1_FargateProfileStatus(a.(*v1beta2.FargateProfileStatus), b.(*FargateProfileStatus), scope)
 	}); err != nil {
 		return err
 	}
@@ -604,6 +604,7 @@ func autoConvert_v1beta2_AWSMachinePoolStatus_To_v1beta1_AWSMachinePoolStatus(in
 	out.FailureReason = (*string)(unsafe.Pointer(in.FailureReason))
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
 	out.ASGStatus = (*ASGStatus)(unsafe.Pointer(in.ASGStatus))
+	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type
 	return nil
 }
 
@@ -752,7 +753,13 @@ func autoConvert_v1beta2_AWSManagedMachinePoolSpec_To_v1beta1_AWSManagedMachineP
 }
 
 func autoConvert_v1beta1_AWSManagedMachinePoolStatus_To_v1beta2_AWSManagedMachinePoolStatus(in *AWSManagedMachinePoolStatus, out *v1beta2.AWSManagedMachinePoolStatus, s conversion.Scope) error {
-	*out = *(*v1beta2.AWSManagedMachinePoolStatus)(unsafe.Pointer(in))
+	out.Ready = in.Ready
+	out.Replicas = in.Replicas
+	out.LaunchTemplateID = (*string)(unsafe.Pointer(in.LaunchTemplateID))
+	out.LaunchTemplateVersion = (*string)(unsafe.Pointer(in.LaunchTemplateVersion))
+	out.FailureReason = (*string)(unsafe.Pointer(in.FailureReason))
+	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
+	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 
@@ -762,13 +769,15 @@ func Convert_v1beta1_AWSManagedMachinePoolStatus_To_v1beta2_AWSManagedMachinePoo
 }
 
 func autoConvert_v1beta2_AWSManagedMachinePoolStatus_To_v1beta1_AWSManagedMachinePoolStatus(in *v1beta2.AWSManagedMachinePoolStatus, out *AWSManagedMachinePoolStatus, s conversion.Scope) error {
-	*out = *(*AWSManagedMachinePoolStatus)(unsafe.Pointer(in))
+	out.Ready = in.Ready
+	out.Replicas = in.Replicas
+	out.LaunchTemplateID = (*string)(unsafe.Pointer(in.LaunchTemplateID))
+	out.LaunchTemplateVersion = (*string)(unsafe.Pointer(in.LaunchTemplateVersion))
+	out.FailureReason = (*string)(unsafe.Pointer(in.FailureReason))
+	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
+	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
+	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta2_AWSManagedMachinePoolStatus_To_v1beta1_AWSManagedMachinePoolStatus is an autogenerated conversion function.
-func Convert_v1beta2_AWSManagedMachinePoolStatus_To_v1beta1_AWSManagedMachinePoolStatus(in *v1beta2.AWSManagedMachinePoolStatus, out *AWSManagedMachinePoolStatus, s conversion.Scope) error {
-	return autoConvert_v1beta2_AWSManagedMachinePoolStatus_To_v1beta1_AWSManagedMachinePoolStatus(in, out, s)
 }
 
 func autoConvert_v1beta1_AutoScalingGroup_To_v1beta2_AutoScalingGroup(in *AutoScalingGroup, out *v1beta2.AutoScalingGroup, s conversion.Scope) error {
@@ -880,7 +889,10 @@ func autoConvert_v1beta2_FargateProfileSpec_To_v1beta1_FargateProfileSpec(in *v1
 }
 
 func autoConvert_v1beta1_FargateProfileStatus_To_v1beta2_FargateProfileStatus(in *FargateProfileStatus, out *v1beta2.FargateProfileStatus, s conversion.Scope) error {
-	*out = *(*v1beta2.FargateProfileStatus)(unsafe.Pointer(in))
+	out.Ready = in.Ready
+	out.FailureReason = (*string)(unsafe.Pointer(in.FailureReason))
+	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
+	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 
@@ -890,13 +902,12 @@ func Convert_v1beta1_FargateProfileStatus_To_v1beta2_FargateProfileStatus(in *Fa
 }
 
 func autoConvert_v1beta2_FargateProfileStatus_To_v1beta1_FargateProfileStatus(in *v1beta2.FargateProfileStatus, out *FargateProfileStatus, s conversion.Scope) error {
-	*out = *(*FargateProfileStatus)(unsafe.Pointer(in))
+	out.Ready = in.Ready
+	out.FailureReason = (*string)(unsafe.Pointer(in.FailureReason))
+	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
+	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
+	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta2_FargateProfileStatus_To_v1beta1_FargateProfileStatus is an autogenerated conversion function.
-func Convert_v1beta2_FargateProfileStatus_To_v1beta1_FargateProfileStatus(in *v1beta2.FargateProfileStatus, out *FargateProfileStatus, s conversion.Scope) error {
-	return autoConvert_v1beta2_FargateProfileStatus_To_v1beta1_FargateProfileStatus(in, out, s)
 }
 
 func autoConvert_v1beta1_FargateSelector_To_v1beta2_FargateSelector(in *FargateSelector, out *v1beta2.FargateSelector, s conversion.Scope) error {

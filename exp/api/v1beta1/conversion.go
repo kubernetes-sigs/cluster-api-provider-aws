@@ -82,6 +82,8 @@ func (src *AWSMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 
 	dst.Spec.DefaultInstanceWarmup = restored.Spec.DefaultInstanceWarmup
 	dst.Spec.AWSLaunchTemplate.NonRootVolumes = restored.Spec.AWSLaunchTemplate.NonRootVolumes
+	dst.Status.V1Beta2 = restored.Status.V1Beta2
+
 	return nil
 }
 
@@ -161,6 +163,8 @@ func (src *AWSManagedMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.NodeRepairConfig = restored.Spec.NodeRepairConfig
 	}
 
+	dst.Status.V1Beta2 = restored.Status.V1Beta2
+
 	return nil
 }
 
@@ -213,6 +217,7 @@ func (src *AWSFargateProfile) ConvertTo(dstRaw conversion.Hub) error {
 
 	dst.Spec.RolePath = restored.Spec.RolePath
 	dst.Spec.RolePermissionsBoundary = restored.Spec.RolePermissionsBoundary
+	dst.Status.V1Beta2 = restored.Status.V1Beta2
 
 	return nil
 }
@@ -227,6 +232,12 @@ func (r *AWSFargateProfile) ConvertFrom(srcRaw conversion.Hub) error {
 
 	// Preserve Hub data on down-conversion.
 	return utilconversion.MarshalData(src, r)
+}
+
+// Convert_v1beta2_FargateProfileStatus_To_v1beta1_FargateProfileStatus converts v1beta2 FargateProfileStatus to v1beta1.
+func Convert_v1beta2_FargateProfileStatus_To_v1beta1_FargateProfileStatus(in *expinfrav1.FargateProfileStatus, out *FargateProfileStatus, s apiconversion.Scope) error {
+	// V1Beta2 is preserved in conversion data because it does not exist in v1beta1.
+	return autoConvert_v1beta2_FargateProfileStatus_To_v1beta1_FargateProfileStatus(in, out, s)
 }
 
 // ConvertTo converts the v1beta1 AWSFargateProfileList receiver to a v1beta2 AWSFargateProfileList.
@@ -264,4 +275,10 @@ func Convert_v1beta2_RefreshPreferences_To_v1beta1_RefreshPreferences(in *expinf
 
 func Convert_v1beta2_FargateProfileSpec_To_v1beta1_FargateProfileSpec(in *expinfrav1.FargateProfileSpec, out *FargateProfileSpec, s apiconversion.Scope) error {
 	return autoConvert_v1beta2_FargateProfileSpec_To_v1beta1_FargateProfileSpec(in, out, s)
+}
+
+// Convert_v1beta2_AWSManagedMachinePoolStatus_To_v1beta1_AWSManagedMachinePoolStatus converts v1beta2 AWSManagedMachinePoolStatus to v1beta1.
+func Convert_v1beta2_AWSManagedMachinePoolStatus_To_v1beta1_AWSManagedMachinePoolStatus(in *expinfrav1.AWSManagedMachinePoolStatus, out *AWSManagedMachinePoolStatus, s apiconversion.Scope) error {
+	// V1Beta2 field is not present in v1beta1, so it will be dropped during conversion
+	return autoConvert_v1beta2_AWSManagedMachinePoolStatus_To_v1beta1_AWSManagedMachinePoolStatus(in, out, s)
 }

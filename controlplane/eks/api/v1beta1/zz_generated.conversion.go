@@ -430,6 +430,7 @@ func autoConvert_v1beta2_AWSManagedControlPlaneStatus_To_v1beta1_AWSManagedContr
 	}
 	// WARNING: in.Version requires manual conversion: does not exist in peer-type
 	out.ObservedGeneration = in.ObservedGeneration
+	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type
 	return nil
 }
 
