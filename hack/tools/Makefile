@@ -154,7 +154,7 @@ $(KPROMO): # Build kpromo into the tools folder
 YQ_BIN := yq
 YQ :=  $(BIN_DIR)/$(YQ_BIN)
 $(YQ):
-	CGO_ENABLED=0 go build -tags=tools -o $@ github.com/mikefarah/yq/v4
+	CGO_ENABLED=0 go build -o $@ github.com/mikefarah/yq/v4
 
 RELEASE_NOTES_BIN := release-notes
 RELEASE_NOTES := $(BIN_DIR)/$(RELEASE_NOTES_BIN)
