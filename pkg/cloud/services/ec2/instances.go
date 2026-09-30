@@ -1015,7 +1015,13 @@ func (s *Service) SDKToInstance(v types.Instance) (*infrav1.Instance, error) {
 		metadataOptions.HTTPEndpoint = infrav1.InstanceMetadataState(string(v.MetadataOptions.HttpEndpoint))
 		metadataOptions.HTTPTokens = infrav1.HTTPTokensState(string(v.MetadataOptions.HttpTokens))
 		metadataOptions.InstanceMetadataTags = infrav1.InstanceMetadataState(string(v.MetadataOptions.InstanceMetadataTags))
-		metadataOptions.HTTPProtocolIPv6 = infrav1.InstanceMetadataState(v.MetadataOptions.HttpProtocolIpv6)
+		// AWS EUSC does not support IPv6 IMDS and omits this field entirely,
+		// so treat an empty value as disabled to match the spec default.
+		if v.MetadataOptions.HttpProtocolIpv6 == "" {
+			metadataOptions.HTTPProtocolIPv6 = infrav1.InstanceMetadataEndpointStateDisabled
+		} else {
+			metadataOptions.HTTPProtocolIPv6 = infrav1.InstanceMetadataState(v.MetadataOptions.HttpProtocolIpv6)
+		}
 		if v.MetadataOptions.HttpPutResponseHopLimit != nil {
 			metadataOptions.HTTPPutResponseHopLimit = int64(*v.MetadataOptions.HttpPutResponseHopLimit)
 		}
