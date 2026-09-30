@@ -288,6 +288,206 @@ func TestAddUserMappingCRD(t *testing.T) {
 	}
 }
 
+// TestReconcileMappingsCRD exercises the desired-state semantics of
+// crdBackend.ReconcileMappings. It must:
+//   - delete stale CAPA-managed CRs when the desired set shrinks
+//   - preserve out-of-band CRs (no capa-iamauth- GenerateName prefix)
+//   - create missing entries
+//   - be idempotent on repeated calls
+//
+// Scenarios:
+//  1. Deletes stale CAPA-managed CR when a user is removed.
+//  2. Preserves out-of-band CR (no CAPA GenerateName prefix).
+//  3. Node role preserved when included in the desired set.
+//  4. Idempotency: state unchanged on repeated calls.
+func TestReconcileMappingsCRD(t *testing.T) {
+	alice := ekscontrolplanev1.UserMapping{
+		UserARN: "arn:aws:iam::000000000000:user/Alice",
+		KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+			UserName: "alice",
+			Groups:   []string{"system:masters"},
+		},
+	}
+	bob := ekscontrolplanev1.UserMapping{
+		UserARN: "arn:aws:iam::000000000000:user/Bob",
+		KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+			UserName: "bob",
+			Groups:   []string{"system:masters"},
+		},
+	}
+	nodeRole := ekscontrolplanev1.RoleMapping{
+		RoleARN: "arn:aws:iam::000000000000:role/KubernetesNode",
+		KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+			UserName: "system:node:{{EC2PrivateDNSName}}",
+			Groups:   []string{"system:bootstrappers", "system:nodes"},
+		},
+	}
+	outOfBandCR := &iamauthv1.IAMIdentityMapping{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "operator-hand-crafted",
+			Namespace: metav1.NamespaceSystem,
+			// Note: no capa-iamauth- GenerateName prefix — this simulates an
+			// entry a cluster operator created by hand.
+		},
+		Spec: iamauthv1.IAMIdentityMappingSpec{
+			ARN:      "arn:aws:iam::000000000000:user/OpsAdmin",
+			Username: "opsadmin",
+			Groups:   []string{"system:masters"},
+		},
+	}
+	capaBobCR := &iamauthv1.IAMIdentityMapping{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:         "capa-iamauth-abc123",
+			Namespace:    metav1.NamespaceSystem,
+			GenerateName: capaGenerateName,
+		},
+		Spec: iamauthv1.IAMIdentityMappingSpec{
+			ARN:      bob.UserARN,
+			Username: bob.UserName,
+			Groups:   bob.Groups,
+		},
+	}
+
+	tests := []struct {
+		name           string
+		preexisting    []crclient.Object
+		roles          []ekscontrolplanev1.RoleMapping
+		users          []ekscontrolplanev1.UserMapping
+		wantARNs       []string
+		wantARNsAbsent []string
+	}{
+		{
+			name:           "deletes stale CAPA-managed CR when user removed",
+			preexisting:    []crclient.Object{capaBobCR},
+			users:          []ekscontrolplanev1.UserMapping{alice},
+			wantARNs:       []string{alice.UserARN},
+			wantARNsAbsent: []string{bob.UserARN},
+		},
+		{
+			name:        "preserves out-of-band CR (no CAPA GenerateName prefix)",
+			preexisting: []crclient.Object{outOfBandCR},
+			users:       []ekscontrolplanev1.UserMapping{alice},
+			wantARNs:    []string{alice.UserARN, outOfBandCR.Spec.ARN},
+		},
+		{
+			name:     "node role preserved when included in desired set",
+			roles:    []ekscontrolplanev1.RoleMapping{nodeRole},
+			users:    []ekscontrolplanev1.UserMapping{alice},
+			wantARNs: []string{nodeRole.RoleARN, alice.UserARN},
+		},
+		{
+			name:        "idempotent — existing matching CR is kept, no new CR created",
+			preexisting: []crclient.Object{capaBobCR},
+			users:       []ekscontrolplanev1.UserMapping{bob},
+			wantARNs:    []string{bob.UserARN},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewGomegaWithT(t)
+
+			scheme := runtime.NewScheme()
+			_ = iamauthv1.AddToScheme(scheme)
+
+			c := fake.NewClientBuilder().WithScheme(scheme).
+				WithObjects(tc.preexisting...).Build()
+
+			backend, err := NewBackend(BackendTypeCRD, c)
+			g.Expect(err).To(BeNil())
+
+			g.Expect(backend.ReconcileMappings(tc.roles, tc.users)).To(Succeed())
+
+			list := &iamauthv1.IAMIdentityMappingList{}
+			g.Expect(c.List(context.TODO(), list)).To(Succeed())
+
+			gotARNs := make([]string, 0, len(list.Items))
+			for _, cr := range list.Items {
+				gotARNs = append(gotARNs, cr.Spec.ARN)
+			}
+			for _, arn := range tc.wantARNs {
+				g.Expect(gotARNs).To(ContainElement(arn), "expected ARN %s to be present", arn)
+			}
+			for _, arn := range tc.wantARNsAbsent {
+				g.Expect(gotARNs).ToNot(ContainElement(arn), "expected ARN %s to be absent", arn)
+			}
+		})
+	}
+}
+
+// TestReconcileMappingsCRDIdempotent proves that calling ReconcileMappings
+// twice with the same input does not create duplicate CRs. This complements
+// the sub-case above by asserting the exact count after a second call.
+func TestReconcileMappingsCRDIdempotent(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	alice := ekscontrolplanev1.UserMapping{
+		UserARN: "arn:aws:iam::000000000000:user/Alice",
+		KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+			UserName: "alice",
+			Groups:   []string{"system:masters"},
+		},
+	}
+
+	scheme := runtime.NewScheme()
+	_ = iamauthv1.AddToScheme(scheme)
+	c := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+	backend, err := NewBackend(BackendTypeCRD, c)
+	g.Expect(err).To(BeNil())
+
+	g.Expect(backend.ReconcileMappings(nil, []ekscontrolplanev1.UserMapping{alice})).To(Succeed())
+	g.Expect(backend.ReconcileMappings(nil, []ekscontrolplanev1.UserMapping{alice})).To(Succeed())
+
+	list := &iamauthv1.IAMIdentityMappingList{}
+	g.Expect(c.List(context.TODO(), list)).To(Succeed())
+	g.Expect(list.Items).To(HaveLen(1))
+	g.Expect(list.Items[0].Spec.ARN).To(Equal(alice.UserARN))
+}
+
+// TestReconcileMappingsCRDInvalidARN proves the validate-before-mutate
+// contract: an invalid input returns an error and the pre-existing CRs remain
+// untouched.
+func TestReconcileMappingsCRDInvalidARN(t *testing.T) {
+	g := NewGomegaWithT(t)
+
+	scheme := runtime.NewScheme()
+	_ = iamauthv1.AddToScheme(scheme)
+
+	existing := &iamauthv1.IAMIdentityMapping{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:         "capa-iamauth-preexisting",
+			Namespace:    metav1.NamespaceSystem,
+			GenerateName: capaGenerateName,
+		},
+		Spec: iamauthv1.IAMIdentityMappingSpec{
+			ARN:      "arn:aws:iam::000000000000:user/Alice",
+			Username: "alice",
+			Groups:   []string{"system:masters"},
+		},
+	}
+	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(existing).Build()
+
+	backend, err := NewBackend(BackendTypeCRD, c)
+	g.Expect(err).To(BeNil())
+
+	bogus := []ekscontrolplanev1.RoleMapping{{
+		RoleARN: "not-a-valid-arn",
+		KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+			UserName: "x",
+			Groups:   []string{"g"},
+		},
+	}}
+	err = backend.ReconcileMappings(bogus, nil)
+	g.Expect(err).To(HaveOccurred())
+
+	// Pre-existing CR still there — validation failure must not mutate state.
+	list := &iamauthv1.IAMIdentityMappingList{}
+	g.Expect(c.List(context.TODO(), list)).To(Succeed())
+	g.Expect(list.Items).To(HaveLen(1))
+	g.Expect(list.Items[0].Name).To(Equal("capa-iamauth-preexisting"))
+}
+
 func createIAMAuthMapping(arn string, username string, groups []string) *iamauthv1.IAMIdentityMapping {
 	return &iamauthv1.IAMIdentityMapping{
 		ObjectMeta: metav1.ObjectMeta{
