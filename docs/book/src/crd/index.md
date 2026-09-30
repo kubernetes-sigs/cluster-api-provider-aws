@@ -4522,6 +4522,20 @@ Cluster API api/core/v1beta1.Conditions
 <p>Conditions defines current service state of the NodeadmConfig.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>v1beta2</code><br/>
+<em>
+<a href="#bootstrap.cluster.x-k8s.io/v1beta2.NodeadmConfigV1Beta2Status">
+NodeadmConfigV1Beta2Status
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>v1beta2 groups all the fields that will be added or modified in NodeadmConfig&rsquo;s status with the V1Beta2 version.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="bootstrap.cluster.x-k8s.io/v1beta2.NodeadmConfigTemplate">NodeadmConfigTemplate
@@ -4767,6 +4781,39 @@ NodeadmConfigTemplateResource
 </em>
 </td>
 <td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bootstrap.cluster.x-k8s.io/v1beta2.NodeadmConfigV1Beta2Status">NodeadmConfigV1Beta2Status
+</h3>
+<p>
+(<em>Appears on:</em><a href="#bootstrap.cluster.x-k8s.io/v1beta2.NodeadmConfigStatus">NodeadmConfigStatus</a>)
+</p>
+<p>
+<p>NodeadmConfigV1Beta2Status groups all the fields that will be added or modified in NodeadmConfig with the V1Beta2 version.
+See <a href="https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md">https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md</a> for more context.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>conditions</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#condition-v1-meta">
+[]Kubernetes meta/v1.Condition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>conditions represents the observations of a NodeadmConfig&rsquo;s current state.</p>
 </td>
 </tr>
 </tbody>
@@ -24560,6 +24607,53 @@ Cluster API api/core/v1beta1.Conditions
 <td>
 <em>(Optional)</em>
 <p>Conditions defines current service state of the AWSMachineTemplate.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>v1beta2</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachineTemplateV1Beta2Status">
+AWSMachineTemplateV1Beta2Status
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>v1beta2 groups all the fields that will be added or modified in AWSMachineTemplate&rsquo;s status with the V1Beta2 version.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSMachineTemplateV1Beta2Status">AWSMachineTemplateV1Beta2Status
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachineTemplateStatus">AWSMachineTemplateStatus</a>)
+</p>
+<p>
+<p>AWSMachineTemplateV1Beta2Status groups all the fields that will be added or modified in AWSMachineTemplate with the V1Beta2 version.
+See <a href="https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md">https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md</a> for more context.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>conditions</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#condition-v1-meta">
+[]Kubernetes meta/v1.Condition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>conditions represents the observations of an AWSMachineTemplate&rsquo;s current state.</p>
 </td>
 </tr>
 </tbody>

@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 
 	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2"
@@ -43,4 +44,16 @@ func TestFuzzyConversion(t *testing.T) {
 		Hub:    &eksbootstrapv1.EKSConfigTemplate{},
 		Spoke:  &EKSConfigTemplate{},
 	}))
+}
+
+func TestEKSConfigV1Beta2ConditionsRoundTrip(t *testing.T) {
+	g := NewWithT(t)
+	hub := &eksbootstrapv1.EKSConfig{}
+	hub.SetV1Beta2Conditions([]metav1.Condition{{Type: "Ready", Status: metav1.ConditionTrue, Reason: "Available"}})
+
+	spoke := &EKSConfig{}
+	g.Expect(spoke.ConvertFrom(hub)).To(Succeed())
+	restored := &eksbootstrapv1.EKSConfig{}
+	g.Expect(spoke.ConvertTo(restored)).To(Succeed())
+	g.Expect(restored.GetV1Beta2Conditions()).To(Equal(hub.GetV1Beta2Conditions()))
 }

@@ -178,11 +178,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.AWSClusterStatus)(nil), (*AWSClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_AWSClusterStatus_To_v1beta1_AWSClusterStatus(a.(*v1beta2.AWSClusterStatus), b.(*AWSClusterStatus), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*AWSClusterTemplate)(nil), (*v1beta2.AWSClusterTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_AWSClusterTemplate_To_v1beta2_AWSClusterTemplate(a.(*AWSClusterTemplate), b.(*v1beta2.AWSClusterTemplate), scope)
 	}); err != nil {
@@ -525,6 +520,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta2.AWSClusterSpec)(nil), (*AWSClusterSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_AWSClusterSpec_To_v1beta1_AWSClusterSpec(a.(*v1beta2.AWSClusterSpec), b.(*AWSClusterSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.AWSClusterStatus)(nil), (*AWSClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_AWSClusterStatus_To_v1beta1_AWSClusterStatus(a.(*v1beta2.AWSClusterStatus), b.(*AWSClusterStatus), scope)
 	}); err != nil {
 		return err
 	}
@@ -1580,6 +1580,7 @@ func autoConvert_v1beta2_AWSMachineTemplateStatus_To_v1beta1_AWSMachineTemplateS
 	out.Capacity = *(*v1.ResourceList)(unsafe.Pointer(&in.Capacity))
 	// WARNING: in.NodeInfo requires manual conversion: does not exist in peer-type
 	// WARNING: in.Conditions requires manual conversion: does not exist in peer-type
+	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type
 	return nil
 }
 
