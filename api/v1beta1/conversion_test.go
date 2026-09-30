@@ -21,6 +21,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"sigs.k8s.io/randfill"
@@ -111,4 +112,16 @@ func TestFuzzyConversion(t *testing.T) {
 		Hub:    &v1beta2.AWSClusterRoleIdentity{},
 		Spoke:  &AWSClusterRoleIdentity{},
 	}))
+}
+
+func TestAWSMachineTemplateV1Beta2ConditionsRoundTrip(t *testing.T) {
+	g := NewWithT(t)
+	hub := &v1beta2.AWSMachineTemplate{}
+	hub.SetV1Beta2Conditions([]metav1.Condition{{Type: "Ready", Status: metav1.ConditionTrue, Reason: "Available"}})
+
+	spoke := &AWSMachineTemplate{}
+	g.Expect(spoke.ConvertFrom(hub)).To(Succeed())
+	restored := &v1beta2.AWSMachineTemplate{}
+	g.Expect(spoke.ConvertTo(restored)).To(Succeed())
+	g.Expect(restored.GetV1Beta2Conditions()).To(Equal(hub.GetV1Beta2Conditions()))
 }

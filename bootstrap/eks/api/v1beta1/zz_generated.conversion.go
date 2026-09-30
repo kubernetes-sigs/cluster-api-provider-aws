@@ -67,11 +67,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.EKSConfigStatus)(nil), (*EKSConfigStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_EKSConfigStatus_To_v1beta1_EKSConfigStatus(a.(*v1beta2.EKSConfigStatus), b.(*EKSConfigStatus), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*EKSConfigTemplate)(nil), (*v1beta2.EKSConfigTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_EKSConfigTemplate_To_v1beta2_EKSConfigTemplate(a.(*EKSConfigTemplate), b.(*v1beta2.EKSConfigTemplate), scope)
 	}); err != nil {
@@ -124,6 +119,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta2.EKSConfigSpec)(nil), (*EKSConfigSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_EKSConfigSpec_To_v1beta1_EKSConfigSpec(a.(*v1beta2.EKSConfigSpec), b.(*EKSConfigSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.EKSConfigStatus)(nil), (*EKSConfigStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_EKSConfigStatus_To_v1beta1_EKSConfigStatus(a.(*v1beta2.EKSConfigStatus), b.(*EKSConfigStatus), scope)
 	}); err != nil {
 		return err
 	}

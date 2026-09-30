@@ -124,6 +124,21 @@ type ROSAOCMRoleConfigStatus struct {
 
 	// Conditions specifies the ROSAOCMRoleConfig conditions
 	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
+
+	// v1beta2 groups all the fields that will be added or modified in ROSAOCMRoleConfig's status with the V1Beta2 version.
+	// +optional
+	V1Beta2 *ROSAOCMRoleConfigV1Beta2Status `json:"v1beta2,omitempty"`
+}
+
+// ROSAOCMRoleConfigV1Beta2Status groups all the fields that will be added or modified in ROSAOCMRoleConfig with the V1Beta2 version.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type ROSAOCMRoleConfigV1Beta2Status struct {
+	// conditions represents the observations of a ROSAOCMRoleConfig's current state.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // ROSAOCMRoleConfig is the Schema for the rosaocmroleconfigs API
@@ -155,6 +170,22 @@ func (r *ROSAOCMRoleConfig) SetConditions(conditions clusterv1beta1.Conditions) 
 // GetConditions returns the observations of the operational state of the ROSAOCMRoleConfig resource.
 func (r *ROSAOCMRoleConfig) GetConditions() clusterv1beta1.Conditions {
 	return r.Status.Conditions
+}
+
+// GetV1Beta2Conditions returns the set of conditions for this object.
+func (r *ROSAOCMRoleConfig) GetV1Beta2Conditions() []metav1.Condition {
+	if r.Status.V1Beta2 == nil {
+		return nil
+	}
+	return r.Status.V1Beta2.Conditions
+}
+
+// SetV1Beta2Conditions sets conditions for an API object.
+func (r *ROSAOCMRoleConfig) SetV1Beta2Conditions(conditions []metav1.Condition) {
+	if r.Status.V1Beta2 == nil {
+		r.Status.V1Beta2 = &ROSAOCMRoleConfigV1Beta2Status{}
+	}
+	r.Status.V1Beta2.Conditions = conditions
 }
 
 func init() {

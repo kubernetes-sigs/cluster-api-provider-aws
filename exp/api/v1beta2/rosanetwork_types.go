@@ -109,6 +109,21 @@ type ROSANetworkStatus struct {
 
 	// Conditions specifies the conditions for ROSANetwork
 	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
+
+	// v1beta2 groups all the fields that will be added or modified in ROSANetwork's status with the V1Beta2 version.
+	// +optional
+	V1Beta2 *ROSANetworkV1Beta2Status `json:"v1beta2,omitempty"`
+}
+
+// ROSANetworkV1Beta2Status groups all the fields that will be added or modified in ROSANetwork with the V1Beta2 version.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type ROSANetworkV1Beta2Status struct {
+	// conditions represents the observations of a ROSANetwork's current state.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -142,6 +157,22 @@ func (r *ROSANetwork) GetConditions() clusterv1beta1.Conditions {
 // SetConditions sets the underlying service state of the ROSANetwork to the predescribed clusterv1beta1.Conditions.
 func (r *ROSANetwork) SetConditions(conditions clusterv1beta1.Conditions) {
 	r.Status.Conditions = conditions
+}
+
+// GetV1Beta2Conditions returns the set of conditions for this object.
+func (r *ROSANetwork) GetV1Beta2Conditions() []metav1.Condition {
+	if r.Status.V1Beta2 == nil {
+		return nil
+	}
+	return r.Status.V1Beta2.Conditions
+}
+
+// SetV1Beta2Conditions sets conditions for an API object.
+func (r *ROSANetwork) SetV1Beta2Conditions(conditions []metav1.Condition) {
+	if r.Status.V1Beta2 == nil {
+		r.Status.V1Beta2 = &ROSANetworkV1Beta2Status{}
+	}
+	r.Status.V1Beta2.Conditions = conditions
 }
 
 func init() {

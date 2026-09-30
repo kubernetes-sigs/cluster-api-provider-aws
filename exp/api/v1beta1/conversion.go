@@ -217,6 +217,7 @@ func (src *AWSFargateProfile) ConvertTo(dstRaw conversion.Hub) error {
 
 	dst.Spec.RolePath = restored.Spec.RolePath
 	dst.Spec.RolePermissionsBoundary = restored.Spec.RolePermissionsBoundary
+	dst.Status.V1Beta2 = restored.Status.V1Beta2
 
 	return nil
 }
@@ -231,6 +232,12 @@ func (r *AWSFargateProfile) ConvertFrom(srcRaw conversion.Hub) error {
 
 	// Preserve Hub data on down-conversion.
 	return utilconversion.MarshalData(src, r)
+}
+
+// Convert_v1beta2_FargateProfileStatus_To_v1beta1_FargateProfileStatus converts v1beta2 FargateProfileStatus to v1beta1.
+func Convert_v1beta2_FargateProfileStatus_To_v1beta1_FargateProfileStatus(in *expinfrav1.FargateProfileStatus, out *FargateProfileStatus, s apiconversion.Scope) error {
+	// V1Beta2 is preserved in conversion data because it does not exist in v1beta1.
+	return autoConvert_v1beta2_FargateProfileStatus_To_v1beta1_FargateProfileStatus(in, out, s)
 }
 
 // ConvertTo converts the v1beta1 AWSFargateProfileList receiver to a v1beta2 AWSFargateProfileList.

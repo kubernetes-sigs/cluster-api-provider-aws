@@ -143,6 +143,7 @@ func (r *AWSMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	// Restore Status fields that don't exist in v1beta1.
 	dst.Status.NodeInfo = restored.Status.NodeInfo
 	dst.Status.Conditions = restored.Status.Conditions
+	dst.Status.V1Beta2 = restored.Status.V1Beta2
 
 	return nil
 }
