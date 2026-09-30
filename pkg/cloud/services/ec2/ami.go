@@ -309,12 +309,17 @@ func BuildEC2Filters(inputFilters []infrav1.Filter) []ec2types.Filter {
 // AMILookupByFilters looks up an AMI using the provided filters and returns the latest image.
 // ownerIDs restricts the search to AMIs owned by those accounts; when empty, no owner filter
 // is applied and all AMIs visible to the caller's credentials are searched.
-func AMILookupByFilters(ctx context.Context, ec2Client common.EC2API, filters []infrav1.Filter, ownerIDs []string) (*ec2types.Image, error) {
-	describeImageInput := &ec2.DescribeImagesInput{
-		Filters: BuildEC2Filters(filters),
+// Note: The architecture filter is implicitly added so that only images for the correct CPU
+// architecture are considered; callers should not include an architecture filter themselves.
+func AMILookupByFilters(ctx context.Context, ec2Client common.EC2API, filters []infrav1.Filter, ownerIDs []string, architecture string) (*ec2types.Image, error) {
+	ec2Filters := append(BuildEC2Filters(filters), ec2types.Filter{
+		Name:   aws.String("architecture"),
+		Values: []string{architecture},
+	})
+	out, err := ec2Client.DescribeImages(ctx, &ec2.DescribeImagesInput{
+		Filters: ec2Filters,
 		Owners:  ownerIDs,
-	}
-	out, err := ec2Client.DescribeImages(ctx, describeImageInput)
+	})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to describe images with filters")
 	}

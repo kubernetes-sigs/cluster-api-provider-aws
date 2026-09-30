@@ -2054,13 +2054,11 @@ func TestDiscoverLaunchTemplateAMI(t *testing.T) {
 				},
 			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
-				// AMI filters take precedence over image lookup; no owner restriction applied.
+				// No instance type set; architecture defaults to x86_64 without a DescribeInstanceTypes call.
 				m.DescribeImages(context.TODO(), gomock.Eq(&ec2.DescribeImagesInput{
 					Filters: []ec2types.Filter{
-						{
-							Name:   aws.String("name"),
-							Values: []string{"my-ami-*"},
-						},
+						{Name: aws.String("name"), Values: []string{"my-ami-*"}},
+						{Name: aws.String("architecture"), Values: []string{"x86_64"}},
 					},
 				})).
 					Return(&ec2.DescribeImagesOutput{
@@ -2079,6 +2077,90 @@ func TestDiscoverLaunchTemplateAMI(t *testing.T) {
 			check: func(g *WithT, res *string, err error) {
 				g.Expect(res).Should(Equal(aws.String("latest")))
 				g.Expect(err).NotTo(HaveOccurred())
+			},
+		},
+		{
+			name: "Should inject arm64 architecture filter from instance type when using AMI filters",
+			awsLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+				Name:         "aws-launch-tmpl",
+				InstanceType: "m6g.large",
+				AMI: infrav1.AMIReference{
+					Filters: []infrav1.Filter{
+						{Name: "name", Values: []string{"my-ami-*"}},
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					InstanceTypes: []ec2types.InstanceType{ec2types.InstanceTypeM6gLarge},
+				})).Return(&ec2.DescribeInstanceTypesOutput{
+					InstanceTypes: []ec2types.InstanceTypeInfo{
+						{
+							ProcessorInfo: &ec2types.ProcessorInfo{
+								SupportedArchitectures: []ec2types.ArchitectureType{ec2types.ArchitectureTypeArm64},
+							},
+						},
+					},
+				}, nil)
+				m.DescribeImages(context.TODO(), gomock.Eq(&ec2.DescribeImagesInput{
+					Filters: []ec2types.Filter{
+						{Name: aws.String("name"), Values: []string{"my-ami-*"}},
+						{Name: aws.String("architecture"), Values: []string{"arm64"}},
+					},
+				})).Return(&ec2.DescribeImagesOutput{
+					Images: []ec2types.Image{
+						{
+							ImageId:      aws.String("ami-arm64"),
+							CreationDate: aws.String("2023-01-01T00:00:00.000Z"),
+						},
+					},
+				}, nil)
+			},
+			check: func(g *WithT, res *string, err error) {
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(res).Should(Equal(aws.String("ami-arm64")))
+			},
+		},
+		{
+			name: "Should inject x86_64 architecture filter from instance type when using AMI filters",
+			awsLaunchTemplate: expinfrav1.AWSLaunchTemplate{
+				Name:         "aws-launch-tmpl",
+				InstanceType: "m5.large",
+				AMI: infrav1.AMIReference{
+					Filters: []infrav1.Filter{
+						{Name: "name", Values: []string{"my-ami-*"}},
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DescribeInstanceTypes(context.TODO(), gomock.Eq(&ec2.DescribeInstanceTypesInput{
+					InstanceTypes: []ec2types.InstanceType{ec2types.InstanceTypeM5Large},
+				})).Return(&ec2.DescribeInstanceTypesOutput{
+					InstanceTypes: []ec2types.InstanceTypeInfo{
+						{
+							ProcessorInfo: &ec2types.ProcessorInfo{
+								SupportedArchitectures: []ec2types.ArchitectureType{ec2types.ArchitectureTypeX8664},
+							},
+						},
+					},
+				}, nil)
+				m.DescribeImages(context.TODO(), gomock.Eq(&ec2.DescribeImagesInput{
+					Filters: []ec2types.Filter{
+						{Name: aws.String("name"), Values: []string{"my-ami-*"}},
+						{Name: aws.String("architecture"), Values: []string{"x86_64"}},
+					},
+				})).Return(&ec2.DescribeImagesOutput{
+					Images: []ec2types.Image{
+						{
+							ImageId:      aws.String("ami-x86"),
+							CreationDate: aws.String("2023-01-01T00:00:00.000Z"),
+						},
+					},
+				}, nil)
+			},
+			check: func(g *WithT, res *string, err error) {
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(res).Should(Equal(aws.String("ami-x86")))
 			},
 		},
 		{

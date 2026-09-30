@@ -87,6 +87,7 @@ Additional caveats:
   Use `ami.id` when you need a stable, reproducible image.
 - **Mutually exclusive.** `ami.filters` cannot be combined with `ami.id`, `ami.eksLookupType`, or the `imageLookupFormat`, `imageLookupOrg`, and `imageLookupBaseOS` fields. The `imageLookup*` fields on `AWSCluster` or `AWSManagedControlPlane` are still accepted but are ignored for machines that use `ami.filters`.
 - **`ami.ownerIDs` is used only if `ami.filters` is set. `imageLookupOrg` does not apply to `ami.filters`.**
+- **Architecture is implicit.** The provider derives the architecture from the instance type and adds it as an implicit filter, so only AMIs matching the instance architecture are considered. You do not need to include an `architecture` filter yourself; doing so may conflict with the inferred value and produce no results.
 
 [capi-images]: https://image-builder.sigs.k8s.io/capi/capi.html
 [image-builder]: https://github.com/kubernetes-sigs/image-builder
