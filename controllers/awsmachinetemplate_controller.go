@@ -302,36 +302,24 @@ func (r *AWSMachineTemplateReconciler) getNodeInfo(ctx context.Context, ec2Clien
 		return r.extractNodeInfoFromImage(result.Images[0]), nil
 	}
 
-	// Strategy 1b: resolve by filters.
-	if len(template.Spec.Template.Spec.AMI.Filters) > 0 {
-		img, err := ec2service.AMILookupByFilters(ctx, ec2Client, template.Spec.Template.Spec.AMI.Filters, template.Spec.Template.Spec.AMI.OwnerIDs)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to resolve AMI from filters")
-		}
-		return r.extractNodeInfoFromImage(*img), nil
-	}
-
-	// No explicit AMI ID specified, query instance type to determine architecture
-	// This architecture will be used to lookup default AMI (Strategy 2) or as fallback (Strategy 3)
-	result, err := ec2Client.DescribeInstanceTypes(ctx, &ec2.DescribeInstanceTypesInput{
+	itResult, err := ec2Client.DescribeInstanceTypes(ctx, &ec2.DescribeInstanceTypesInput{
 		InstanceTypes: []ec2types.InstanceType{ec2types.InstanceType(instanceType)},
 	})
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to describe instance type %q", instanceType)
 	}
-
-	if len(result.InstanceTypes) == 0 {
-		return nil, errors.Errorf("no information found for instance type %q", instanceType)
+	if len(itResult.InstanceTypes) != 1 {
+		return nil, errors.Errorf("expected exactly one result for instance type %q, got %d", instanceType, len(itResult.InstanceTypes))
 	}
-
-	instanceTypeInfo := result.InstanceTypes[0]
-
 	// Instance type must support exactly one architecture
+	instanceTypeInfo := itResult.InstanceTypes[0]
 	if instanceTypeInfo.ProcessorInfo == nil || len(instanceTypeInfo.ProcessorInfo.SupportedArchitectures) != 1 {
-		return nil, errors.Errorf("instance type must support exactly one architecture, got %d", len(instanceTypeInfo.ProcessorInfo.SupportedArchitectures))
+		archs := 0
+		if instanceTypeInfo.ProcessorInfo != nil {
+			archs = len(instanceTypeInfo.ProcessorInfo.SupportedArchitectures)
+		}
+		return nil, errors.Errorf("instance type %q must support exactly one architecture, got %d", instanceType, archs)
 	}
-
-	// Map EC2 architecture type to architecture tag for AMI lookup
 	var architecture string
 	var nodeInfoArch infrav1.Architecture
 	switch instanceTypeInfo.ProcessorInfo.SupportedArchitectures[0] {
@@ -342,7 +330,16 @@ func (r *AWSMachineTemplateReconciler) getNodeInfo(ctx context.Context, ec2Clien
 		architecture = ec2service.Arm64ArchitectureTag
 		nodeInfoArch = infrav1.ArchitectureArm64
 	default:
-		return nil, errors.Errorf("unsupported architecture: %v", instanceTypeInfo.ProcessorInfo.SupportedArchitectures[0])
+		return nil, errors.Errorf("unsupported architecture %q for instance type %q", instanceTypeInfo.ProcessorInfo.SupportedArchitectures[0], instanceType)
+	}
+
+	// Strategy 1b: resolve by filters.
+	if len(template.Spec.Template.Spec.AMI.Filters) > 0 {
+		img, err := ec2service.AMILookupByFilters(ctx, ec2Client, template.Spec.Template.Spec.AMI.Filters, template.Spec.Template.Spec.AMI.OwnerIDs, architecture)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to resolve AMI from filters")
+		}
+		return r.extractNodeInfoFromImage(*img), nil
 	}
 
 	// Strategy 2: Try to get Kubernetes version and lookup default AMI

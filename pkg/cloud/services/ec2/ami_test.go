@@ -317,6 +317,7 @@ func TestAMILookupByFilters(t *testing.T) {
 				m.DescribeImages(context.TODO(), gomock.Eq(&ec2.DescribeImagesInput{
 					Filters: []ec2types.Filter{
 						{Name: aws.String("name"), Values: []string{"my-ami-*"}},
+						{Name: aws.String("architecture"), Values: []string{Amd64ArchitectureTag}},
 					},
 					Owners: []string{"123456789012"},
 				})).
@@ -349,6 +350,7 @@ func TestAMILookupByFilters(t *testing.T) {
 				m.DescribeImages(context.TODO(), gomock.Eq(&ec2.DescribeImagesInput{
 					Filters: []ec2types.Filter{
 						{Name: aws.String("name"), Values: []string{"my-ami-*"}},
+						{Name: aws.String("architecture"), Values: []string{Amd64ArchitectureTag}},
 					},
 				})).
 					Return(&ec2.DescribeImagesOutput{
@@ -421,7 +423,7 @@ func TestAMILookupByFilters(t *testing.T) {
 			ec2Mock := mocks.NewMockEC2API(mockCtrl)
 			tc.expect(ec2Mock.EXPECT())
 
-			img, err := AMILookupByFilters(context.TODO(), ec2Mock, tc.filters, tc.ownerIDs)
+			img, err := AMILookupByFilters(context.TODO(), ec2Mock, tc.filters, tc.ownerIDs, Amd64ArchitectureTag)
 			tc.check(g, img, err)
 		})
 	}
