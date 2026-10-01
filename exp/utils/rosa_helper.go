@@ -34,18 +34,19 @@ import (
 // NodePoolToRosaMachinePoolSpec convert ocm nodePool to rosaMachinePool spec.
 func NodePoolToRosaMachinePoolSpec(nodePool *cmv1.NodePool) expinfrav1.RosaMachinePoolSpec {
 	spec := expinfrav1.RosaMachinePoolSpec{
-		NodePoolName:             nodePool.ID(),
-		Version:                  rosa.RawVersionID(nodePool.Version()),
-		AvailabilityZone:         nodePool.AvailabilityZone(),
-		Subnet:                   nodePool.Subnet(),
-		Labels:                   nodePool.Labels(),
-		AutoRepair:               nodePool.AutoRepair(),
-		InstanceType:             nodePool.AWSNodePool().InstanceType(),
-		TuningConfigs:            nodePool.TuningConfigs(),
-		AdditionalSecurityGroups: nodePool.AWSNodePool().AdditionalSecurityGroupIds(),
-		VolumeSize:               nodePool.AWSNodePool().RootVolume().Size(),
-		CapacityReservationID:    nodePool.AWSNodePool().CapacityReservation().Id(),
-		ImageType:                string(nodePool.ImageType()),
+		NodePoolName:              nodePool.ID(),
+		Version:                   rosa.RawVersionID(nodePool.Version()),
+		AvailabilityZone:          nodePool.AvailabilityZone(),
+		Subnet:                    nodePool.Subnet(),
+		Labels:                    nodePool.Labels(),
+		AutoRepair:                nodePool.AutoRepair(),
+		InstanceType:              nodePool.AWSNodePool().InstanceType(),
+		TuningConfigs:             nodePool.TuningConfigs(),
+		AdditionalSecurityGroups:  nodePool.AWSNodePool().AdditionalSecurityGroupIds(),
+		VolumeSize:                nodePool.AWSNodePool().RootVolume().Size(),
+		CapacityReservationID:     nodePool.AWSNodePool().CapacityReservation().Id(),
+		Ec2MetadataHTTPTokens:     rosacontrolplanev1.Ec2MetadataHTTPTokens(nodePool.AWSNodePool().Ec2MetadataHttpTokens()),
+		ImageType:                 string(nodePool.ImageType()),
 		// nodePool.AWSNodePool().Tags() returns all tags including "system" tags if "fetchUserTagsOnly" parameter is not specified.
 		// TODO: enable when AdditionalTags day2 changes is supported.
 		// AdditionalTags:           nodePool.AWSNodePool().Tags(),
