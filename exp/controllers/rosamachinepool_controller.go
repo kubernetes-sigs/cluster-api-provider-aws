@@ -306,6 +306,7 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 		}
 
 		rosaMachinePool.Status.Replicas = currentReplicas
+		rosaMachinePool.Status.SubnetId = nodePool.Subnet()
 		if rosa.IsNodePoolReady(nodePool) {
 			v1beta1conditions.MarkTrue(rosaMachinePool, expinfrav1.RosaMachinePoolReadyCondition)
 			rosaMachinePool.Status.Ready = true
@@ -319,9 +320,9 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 
 		v1beta1conditions.MarkFalse(rosaMachinePool,
 			expinfrav1.RosaMachinePoolReadyCondition,
-			nodePool.Status().Message(),
+			"WaitingForNodePool",
 			clusterv1beta1.ConditionSeverityInfo,
-			"")
+			"%s", nodePool.Status().Message())
 
 		machinePoolScope.Info("waiting for NodePool to become ready", "state", nodePool.Status().Message())
 		// Requeue so that status.ready is set to true when the nodepool is fully created.
@@ -433,7 +434,7 @@ func (r *ROSAMachinePoolReconciler) updateNodePool(machinePoolScope *scope.RosaM
 	machinePool.Default()
 	desiredSpec := machinePool.Spec
 
-	specDiff := computeSpecDiff(desiredSpec, nodePool)
+	specDiff := computeSpecDiff(machinePool, nodePool)
 	// Replicas are not part of RosaMachinePoolSpec
 	if specDiff == "" && !r.shouldUpdateRosaReplicas(machinePoolScope, nodePool) {
 		// no changes detected.
@@ -466,7 +467,8 @@ func (r *ROSAMachinePoolReconciler) updateNodePool(machinePoolScope *scope.RosaM
 	return updatedNodePool, nil
 }
 
-func computeSpecDiff(desiredSpec expinfrav1.RosaMachinePoolSpec, nodePool *cmv1.NodePool) string {
+func computeSpecDiff(rosaMachinePool *expinfrav1.ROSAMachinePool, nodePool *cmv1.NodePool) string {
+	desiredSpec := rosaMachinePool.Spec
 	currentSpec := utils.NodePoolToRosaMachinePoolSpec(nodePool)
 
 	ignoredFields := []string{
@@ -475,6 +477,13 @@ func computeSpecDiff(desiredSpec expinfrav1.RosaMachinePoolSpec, nodePool *cmv1.
 		"AdditionalTags",           // AdditionalTags day2 changes not supported.
 		"AdditionalSecurityGroups", // AdditionalSecurityGroups day2 changes not supported.
 		"VolumeSize",               // VolumeSize is immutable after creation.
+	}
+
+	// When the user did not specify a subnet and OCM has auto-assigned one (reflected
+	// in status), ignore the subnet field to avoid a phantom diff that triggers
+	// a no-op UpdateNodePool call on every reconcile.
+	if desiredSpec.Subnet == "" && rosaMachinePool.Status.SubnetId != "" {
+		ignoredFields = append(ignoredFields, "Subnet")
 	}
 
 	return cmp.Diff(desiredSpec, currentSpec,
