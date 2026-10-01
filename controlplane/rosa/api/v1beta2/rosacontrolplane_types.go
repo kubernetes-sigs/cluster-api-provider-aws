@@ -333,7 +333,7 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// Ec2MetadataHTTPTokens configures the use of IMDSv2 for EC2 instances.
 	// When set to "required", IMDSv2 is enforced and the older IMDSv1 is disabled.
 	// When set to "optional", both IMDSv1 and IMDSv2 are allowed.
-	// When omitted, the OCM default ("optional") is used.
+	// When omitted, the API default is used (currently "required").
 	// This field is immutable and cannot be changed after cluster creation.
 	//
 	// +immutable

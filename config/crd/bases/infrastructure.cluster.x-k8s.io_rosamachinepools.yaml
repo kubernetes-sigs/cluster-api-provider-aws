@@ -93,6 +93,20 @@ spec:
                   CapacityReservationID specifies the ID of an AWS On-Demand Capacity Reservation and Capacity Blocks for ML.
                   The CapacityReservationID must be pre-created in advance, before creating a NodePool.
                 type: string
+              ec2MetadataHttpTokens:
+                description: |-
+                  Ec2MetadataHTTPTokens configures the use of IMDSv2 for EC2 instances in the node pool.
+                  When set to "required", IMDSv2 is enforced and the older IMDSv1 is disabled.
+                  When set to "optional", both IMDSv1 and IMDSv2 are allowed.
+                  When omitted, the API default is used (currently "required").
+                  This field is immutable and cannot be changed after node pool creation.
+                enum:
+                - optional
+                - required
+                type: string
+                x-kubernetes-validations:
+                - message: ec2MetadataHttpTokens is immutable
+                  rule: self == oldSelf
               imageType:
                 description: ImageType is the AMI (Amazon Machine Image) to use for
                   running the associated NodePool (i.e. Windows or Default/Linux).

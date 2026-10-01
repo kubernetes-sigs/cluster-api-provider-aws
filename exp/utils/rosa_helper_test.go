@@ -105,6 +105,51 @@ func TestNodePoolToRosaMachinePoolSpec(t *testing.T) {
 	g.Expect(expectedSpec).To(Equal(actualSpec))
 }
 
+func TestNodePoolToRosaMachinePoolSpec_Ec2MetadataHTTPTokens(t *testing.T) {
+	t.Run("converts Ec2MetadataHttpTokens when set on AWSNodePool", func(t *testing.T) {
+		g := NewWithT(t)
+		nodePool, err := cmv1.NewNodePool().
+			ID("test-nodepool").
+			AutoRepair(true).
+			AWSNodePool(cmv1.NewAWSNodePool().
+				InstanceType("m5.large").
+				Ec2MetadataHttpTokens(cmv1.Ec2MetadataHttpTokensRequired)).
+			Build()
+		g.Expect(err).ToNot(HaveOccurred())
+
+		spec := NodePoolToRosaMachinePoolSpec(nodePool)
+		g.Expect(spec.Ec2MetadataHTTPTokens).To(Equal(rosacontrolplanev1.Ec2MetadataHTTPTokensRequired))
+	})
+
+	t.Run("converts Ec2MetadataHttpTokens optional", func(t *testing.T) {
+		g := NewWithT(t)
+		nodePool, err := cmv1.NewNodePool().
+			ID("test-nodepool").
+			AutoRepair(true).
+			AWSNodePool(cmv1.NewAWSNodePool().
+				InstanceType("m5.large").
+				Ec2MetadataHttpTokens(cmv1.Ec2MetadataHttpTokensOptional)).
+			Build()
+		g.Expect(err).ToNot(HaveOccurred())
+
+		spec := NodePoolToRosaMachinePoolSpec(nodePool)
+		g.Expect(spec.Ec2MetadataHTTPTokens).To(Equal(rosacontrolplanev1.Ec2MetadataHTTPTokensOptional))
+	})
+
+	t.Run("Ec2MetadataHTTPTokens is empty when not set on AWSNodePool", func(t *testing.T) {
+		g := NewWithT(t)
+		nodePool, err := cmv1.NewNodePool().
+			ID("test-nodepool").
+			AutoRepair(true).
+			AWSNodePool(cmv1.NewAWSNodePool().InstanceType("m5.large")).
+			Build()
+		g.Expect(err).ToNot(HaveOccurred())
+
+		spec := NodePoolToRosaMachinePoolSpec(nodePool)
+		g.Expect(spec.Ec2MetadataHTTPTokens).To(BeEmpty())
+	})
+}
+
 func TestNodePoolToRosaMachinePoolSpec_DefaultsWhenOCMFieldsAbsent(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -286,6 +331,7 @@ func TestNodePoolToRosaMachinePoolSpec_NoPhantomDiff(t *testing.T) {
 		"AdditionalTags",
 		"AdditionalSecurityGroups",
 		"VolumeSize",
+		"Ec2MetadataHTTPTokens",
 	}
 
 	for _, tt := range tests {
