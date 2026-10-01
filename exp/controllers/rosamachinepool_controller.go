@@ -441,6 +441,19 @@ func (r *ROSAMachinePoolReconciler) updateNodePool(machinePoolScope *scope.RosaM
 	}
 	machinePoolScope.Info("MachinePool spec diff detected", "diff", specDiff)
 
+	// OCM PATCH semantics omit absent fields rather than clearing them, so removing
+	// spotMarketOptions cannot switch a Spot node pool back to on-demand. Surface this
+	// as a condition warning so the user knows the change was not applied.
+	currentSpec := utils.NodePoolToRosaMachinePoolSpec(nodePool)
+	if desiredSpec.SpotMarketOptions == nil && currentSpec.SpotMarketOptions != nil {
+		v1beta1conditions.MarkFalse(machinePoolScope.RosaMachinePool,
+			expinfrav1.RosaMachinePoolReadyCondition,
+			expinfrav1.RosaMachinePoolReconciliationFailedReason,
+			clusterv1beta1.ConditionSeverityWarning,
+			"spotMarketOptions cannot be removed after creation; the node pool will continue using Spot instances")
+		return nodePool, nil
+	}
+
 	// zero-out fields that shouldn't be part of the update call.
 	desiredSpec.Version = ""
 	desiredSpec.AdditionalSecurityGroups = nil
@@ -475,6 +488,14 @@ func computeSpecDiff(desiredSpec expinfrav1.RosaMachinePoolSpec, nodePool *cmv1.
 		"AdditionalTags",           // AdditionalTags day2 changes not supported.
 		"AdditionalSecurityGroups", // AdditionalSecurityGroups day2 changes not supported.
 		"VolumeSize",               // VolumeSize is immutable after creation.
+	}
+
+	// OCM PATCH semantics omit absent fields rather than clearing them, so a nil
+	// desired SpotMarketOptions cannot remove an existing Spot configuration from OCM.
+	// Copy current into desired for the diff so removal does not appear as a change;
+	// the caller surfaces a condition warning when this case is detected.
+	if desiredSpec.SpotMarketOptions == nil && currentSpec.SpotMarketOptions != nil {
+		desiredSpec.SpotMarketOptions = currentSpec.SpotMarketOptions
 	}
 
 	return cmp.Diff(desiredSpec, currentSpec,

@@ -155,7 +155,7 @@ type SpotMarketOptions struct {
 	// as an hourly rate. When omitted, Spot instances are requested with no maximum price.
 	//
 	// +optional
-	// +kubebuilder:validation:Pattern=`^[0-9]+(\.[0-9]+)?$`
+	// +kubebuilder:validation:Pattern=`^(0*[1-9][0-9]*(\.[0-9]+)?|0+\.[0-9]*[1-9][0-9]*)$`
 	MaxPrice *string `json:"maxPrice,omitempty"`
 }
 
