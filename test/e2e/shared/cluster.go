@@ -25,6 +25,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"time"
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -42,6 +43,10 @@ import (
 const selfHostedManagementClusterNamespace = "self-hosted-management-cluster"
 const selfHostedManagementClusterStateFile = "self-hosted-management-cluster.json"
 const selfHostedManagementClusterKubeconfigFile = "self-hosted-management-cluster.kubeconfig"
+
+// selfHostedManagementClusterTeardownTimeout is the timeout for tearing down the self-hosted management cluster.
+// Must exceed the sum of wait-cluster and wait-delete-cluster intervals (up to 35m for EKS) plus clusterctl move.
+const selfHostedManagementClusterTeardownTimeout = 60 * time.Minute
 
 type selfHostedManagementClusterState struct {
 	KindClusterName          string `json:"kindClusterName"`
@@ -62,6 +67,10 @@ func validateManagementClusterSettings(settings Settings) error {
 	return nil
 }
 
+func managementClusterLifecycleOnly(settings Settings) bool {
+	return settings.ProvisionSelfHostedManagementCluster || settings.TeardownSelfHostedManagementCluster
+}
+
 type selfHostedManagementClusterProvider struct {
 	kindProvider        bootstrap.ClusterProvider
 	kindProxy           framework.ClusterProxy
@@ -77,6 +86,7 @@ type selfHostedManagementClusterProvider struct {
 	intervals           func(string, string) []interface{}
 }
 
+// Create is a no-op; the AWS cluster is provisioned in setupSelfHostedManagementCluster.
 func (p *selfHostedManagementClusterProvider) Create(context.Context) {}
 
 func (p *selfHostedManagementClusterProvider) GetKubeconfigPath() string {
@@ -84,11 +94,13 @@ func (p *selfHostedManagementClusterProvider) GetKubeconfigPath() string {
 }
 
 func (p *selfHostedManagementClusterProvider) Dispose(ctx context.Context) {
+	kindKubeconfigPath := p.kindProxy.GetKubeconfigPath()
+
 	clusterctl.Move(ctx, clusterctl.MoveInput{
 		LogFolder:            filepath.Join(p.artifactFolder, "clusters", p.cluster.Name),
 		ClusterctlConfigPath: p.clusterctlConfig,
 		FromKubeconfigPath:   p.managementProxy.GetKubeconfigPath(),
-		ToKubeconfigPath:     p.kindProxy.GetKubeconfigPath(),
+		ToKubeconfigPath:     kindKubeconfigPath,
 		Namespace:            p.namespace.Name,
 	})
 
@@ -116,7 +128,7 @@ func (p *selfHostedManagementClusterProvider) Dispose(ctx context.Context) {
 	if p.kindProvider != nil {
 		p.kindProvider.Dispose(ctx)
 	} else {
-		Expect(kindcluster.NewProvider().Delete(p.kindClusterName, p.kindProxy.GetKubeconfigPath())).To(Succeed())
+		Expect(kindcluster.NewProvider().Delete(p.kindClusterName, kindKubeconfigPath)).To(Succeed())
 	}
 	Expect(os.Remove(filepath.Join(p.artifactFolder, selfHostedManagementClusterKubeconfigFile))).To(Succeed())
 	Expect(os.Remove(p.statePath)).To(Succeed())
@@ -310,15 +322,15 @@ func setupSelfHostedManagementCluster(e2eCtx *E2EContext) (bootstrap.ClusterProv
 }
 
 // tearDown the bootstrap kind cluster.
-func tearDown(bootstrapClusterProvider bootstrap.ClusterProvider, bootstrapClusterProxy framework.ClusterProxy) {
+func tearDown(ctx context.Context, bootstrapClusterProvider bootstrap.ClusterProvider, bootstrapClusterProxy framework.ClusterProxy) {
 	if provider, ok := bootstrapClusterProvider.(*selfHostedManagementClusterProvider); ok {
-		provider.Dispose(context.TODO())
+		provider.Dispose(ctx)
 		return
 	}
 	if bootstrapClusterProxy != nil {
-		bootstrapClusterProxy.Dispose(context.TODO())
+		bootstrapClusterProxy.Dispose(ctx)
 	}
 	if bootstrapClusterProvider != nil {
-		bootstrapClusterProvider.Dispose(context.TODO())
+		bootstrapClusterProvider.Dispose(ctx)
 	}
 }

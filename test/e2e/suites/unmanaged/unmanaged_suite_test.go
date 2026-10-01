@@ -38,6 +38,7 @@ var (
 func init() {
 	e2eCtx = shared.NewE2EContext()
 	shared.CreateDefaultFlags(e2eCtx)
+	shared.RegisterManagementClusterLifecycleSkip(e2eCtx)
 	SetDefaultEventuallyTimeout(20 * time.Minute)
 	SetDefaultEventuallyPollingInterval(10 * time.Second)
 }

@@ -48,6 +48,7 @@ func init() {
 	e2eCtx = shared.NewE2EContext(shared.WithManaged(), shared.WithSchemeInit(initScheme))
 
 	shared.CreateDefaultFlags(e2eCtx)
+	shared.RegisterManagementClusterLifecycleSkip(e2eCtx)
 	flag.BoolVar(&skipGeneralTests, "skip-eks-general-tests", false, "if true, the general EKS tests will be skipped")
 	flag.BoolVar(&skipUpgradeTests, "skip-eks-upgrade-tests", false, "if true, the EKS upgrade tests will be skipped")
 	flag.BoolVar(&skipLegacyTests, "skip-eks-legacy-tests", false, "if true, the EKS legacy tests will be skipped")

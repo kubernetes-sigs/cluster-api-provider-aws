@@ -64,6 +64,18 @@ func currentGoroutineID() int64 {
 	return -1
 }
 
+// RegisterManagementClusterLifecycleSkip registers a BeforeEach that skips every spec
+// when the suite is only provisioning or tearing down the self-hosted management cluster.
+// Must be called during spec tree construction (e.g. from a suite's init()), not from
+// inside SynchronizedBeforeSuite.
+func RegisterManagementClusterLifecycleSkip(e2eCtx *E2EContext) {
+	BeforeEach(func() {
+		if managementClusterLifecycleOnly(e2eCtx.Settings) {
+			Skip("management-cluster lifecycle operation selected; test execution disabled")
+		}
+	})
+}
+
 type synchronizedBeforeTestSuiteConfig struct {
 	ArtifactFolder           string               `json:"artifactFolder,omitempty"`
 	ConfigPath               string               `json:"configPath,omitempty"`
@@ -375,7 +387,9 @@ func PrepareTestExecution(e2eCtx *E2EContext, data []byte) {
 func TeardownTestEnvironment(e2eCtx *E2EContext) {
 	if e2eCtx.Settings.TeardownSelfHostedManagementCluster {
 		By("Tearing down the self-hosted AWS management cluster and kind bootstrap cluster")
-		e2eCtx.Environment.BootstrapClusterProvider.Dispose(context.TODO())
+		teardownCtx, teardownCancel := context.WithTimeout(context.Background(), selfHostedManagementClusterTeardownTimeout)
+		defer teardownCancel()
+		e2eCtx.Environment.BootstrapClusterProvider.Dispose(teardownCtx)
 		return
 	}
 	if e2eCtx.Settings.ProvisionSelfHostedManagementCluster {
@@ -394,7 +408,7 @@ func TeardownTestEnvironment(e2eCtx *E2EContext) {
 	defer cancel()
 	By("Tearing down the management cluster")
 	if !e2eCtx.Settings.SkipCleanup {
-		tearDown(e2eCtx.Environment.BootstrapClusterProvider, e2eCtx.Environment.BootstrapClusterProxy)
+		tearDown(ctx, e2eCtx.Environment.BootstrapClusterProvider, e2eCtx.Environment.BootstrapClusterProxy)
 		if !e2eCtx.Settings.SkipCloudFormationDeletion {
 			deleteCloudFormationStack(e2eCtx.AWSSession, getBootstrapTemplate(e2eCtx))
 		}

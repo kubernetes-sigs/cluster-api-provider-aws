@@ -84,3 +84,24 @@ func TestPersistSelfHostedManagementClusterKubeconfig(t *testing.T) {
 		t.Fatalf("persisted kubeconfig contents = %q", contents)
 	}
 }
+
+func TestManagementClusterLifecycleOnly(t *testing.T) {
+	tests := []struct {
+		name     string
+		settings Settings
+		want     bool
+	}{
+		{name: "zero settings", settings: Settings{}, want: false},
+		{name: "provision only", settings: Settings{ProvisionSelfHostedManagementCluster: true}, want: true},
+		{name: "teardown only", settings: Settings{TeardownSelfHostedManagementCluster: true}, want: true},
+		{name: "use existing cluster", settings: Settings{UseExistingCluster: true}, want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := managementClusterLifecycleOnly(tt.settings)
+			if got != tt.want {
+				t.Fatalf("managementClusterLifecycleOnly() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

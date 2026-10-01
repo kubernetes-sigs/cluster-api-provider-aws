@@ -466,7 +466,7 @@ setup-envtest: install-setup-envtest # Build setup-envtest from tools folder.
 	echo "kube-builder assets: $(KUBEBUILDER_ASSETS)"
 
 .PHONY: test
-test: setup-envtest test-management-cluster ## Run tests
+test: setup-envtest ## Run tests
 	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./...
 
 .PHONY: test-verbose

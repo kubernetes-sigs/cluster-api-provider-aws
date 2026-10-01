@@ -37,6 +37,7 @@ var (
 func init() {
 	e2eCtx = shared.NewE2EContext()
 	shared.CreateDefaultFlags(e2eCtx)
+	shared.RegisterManagementClusterLifecycleSkip(e2eCtx)
 }
 
 func TestE2EConformance(t *testing.T) {

@@ -43,5 +43,4 @@ make teardown
 
 Teardown pivots the objects back to a temporary kind cluster before deleting
 the AWS Cluster object. This keeps the controllers available until AWS
-infrastructure cleanup finishes. The lifecycle-script README documents all
-configuration options.
+infrastructure cleanup finishes. Configuration variables and their defaults are listed in `.env.template` at the repository root. The underlying e2e flags (`-provision-self-hosted-management-cluster` and `-teardown-self-hosted-management-cluster`) are defined in `test/e2e/shared/defaults.go`.
