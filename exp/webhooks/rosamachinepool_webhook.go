@@ -92,6 +92,13 @@ func (w *ROSAMachinePool) ValidateUpdate(_ context.Context, oldObj, newObj runti
 	allErrs = append(allErrs, validateImmutable(oldPool.Spec.AdditionalSecurityGroups, r.Spec.AdditionalSecurityGroups, "additionalSecurityGroups")...)
 	allErrs = append(allErrs, validateImmutable(oldPool.Spec.AdditionalTags, r.Spec.AdditionalTags, "additionalTags")...)
 
+	if oldPool.Spec.SpotMarketOptions != nil && r.Spec.SpotMarketOptions == nil {
+		allErrs = append(allErrs, field.Forbidden(
+			field.NewPath("spec", "spotMarketOptions"),
+			"spotMarketOptions cannot be removed after creation",
+		))
+	}
+
 	allErrs = append(allErrs, w.validateSpotMarketOptions(r)...)
 
 	if len(allErrs) == 0 {

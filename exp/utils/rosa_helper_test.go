@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 )
@@ -101,7 +102,7 @@ func TestNodePoolToRosaMachinePoolSpec(t *testing.T) {
 				MaxUnavailable: ptr.To(intstr.FromInt32(2)),
 			},
 		},
-		SpotMarketOptions: &expinfrav1.SpotMarketOptions{MaxPrice: ptr.To("0.05")},
+		SpotMarketOptions: &infrav1.SpotMarketOptions{MaxPrice: ptr.To("0.05")},
 	}
 
 	g.Expect(expectedSpec).To(Equal(actualSpec))

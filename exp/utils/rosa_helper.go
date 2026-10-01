@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/rosa"
@@ -89,7 +90,7 @@ func NodePoolToRosaMachinePoolSpec(nodePool *cmv1.NodePool) expinfrav1.RosaMachi
 	}
 
 	if spotOpts := nodePool.AWSNodePool().SpotMarketOptions(); spotOpts != nil {
-		capaSpotOpts := &expinfrav1.SpotMarketOptions{}
+		capaSpotOpts := &infrav1.SpotMarketOptions{}
 		if maxPrice, ok := spotOpts.GetMaxPrice(); ok {
 			capaSpotOpts.MaxPrice = &maxPrice
 		}

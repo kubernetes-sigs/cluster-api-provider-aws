@@ -85,5 +85,5 @@ spec:
 
 Notes:
 
-- `spotMarketOptions` can be added, removed, or modified after the MachinePool is created.
+- `spotMarketOptions` can be added or modified after the MachinePool is created, but cannot be removed once set.
 - It is incompatible with `capacityReservationID`; setting both is rejected by the validating webhook.

@@ -103,7 +103,7 @@ func TestNodePoolBuilderSpotMarketOptions(t *testing.T) {
 		g := NewWithT(t)
 
 		rosaMachinePoolSpec := baseSpec()
-		rosaMachinePoolSpec.SpotMarketOptions = &expinfrav1.SpotMarketOptions{}
+		rosaMachinePoolSpec.SpotMarketOptions = &infrav1.SpotMarketOptions{}
 
 		nodePool, err := nodePoolBuilder(rosaMachinePoolSpec, machinePoolSpec, rosacontrolplanev1.Stable, "").Build()
 		g.Expect(err).ToNot(HaveOccurred())
@@ -114,14 +114,16 @@ func TestNodePoolBuilderSpotMarketOptions(t *testing.T) {
 		g.Expect(ok).To(BeFalse())
 
 		// SpotMarketOptions changes are now supported, so diffs should be propagated.
-		g.Expect(computeSpecDiff(rosaMachinePoolSpec, nodePool)).ToNot(BeEmpty())
+		diff := computeSpecDiff(rosaMachinePoolSpec, nodePool)
+		g.Expect(diff).ToNot(BeEmpty())
+		g.Expect(diff).To(ContainSubstring("SpotMarketOptions"))
 	})
 
 	t.Run("spotMarketOptions with maxPrice sets the bid", func(t *testing.T) {
 		g := NewWithT(t)
 
 		rosaMachinePoolSpec := baseSpec()
-		rosaMachinePoolSpec.SpotMarketOptions = &expinfrav1.SpotMarketOptions{MaxPrice: ptr.To("0.05")}
+		rosaMachinePoolSpec.SpotMarketOptions = &infrav1.SpotMarketOptions{MaxPrice: ptr.To("0.05")}
 
 		nodePool, err := nodePoolBuilder(rosaMachinePoolSpec, machinePoolSpec, rosacontrolplanev1.Stable, "").Build()
 		g.Expect(err).ToNot(HaveOccurred())
@@ -133,7 +135,9 @@ func TestNodePoolBuilderSpotMarketOptions(t *testing.T) {
 		g.Expect(maxPrice).To(Equal("0.05"))
 
 		// SpotMarketOptions changes are now supported, so diffs should be propagated.
-		g.Expect(computeSpecDiff(rosaMachinePoolSpec, nodePool)).ToNot(BeEmpty())
+		diff := computeSpecDiff(rosaMachinePoolSpec, nodePool)
+		g.Expect(diff).ToNot(BeEmpty())
+		g.Expect(diff).To(ContainSubstring("SpotMarketOptions"))
 	})
 }
 
