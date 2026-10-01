@@ -764,6 +764,81 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 	})
 }
 
+func TestNodePoolBuilderEc2MetadataHTTPTokens(t *testing.T) {
+	t.Run("sets Ec2MetadataHttpTokens when specified", func(t *testing.T) {
+		g := NewWithT(t)
+		spec := expinfrav1.RosaMachinePoolSpec{
+			NodePoolName:          "test-nodepool",
+			InstanceType:          "m5.large",
+			Ec2MetadataHTTPTokens: rosacontrolplanev1.Ec2MetadataHTTPTokensRequired,
+		}
+		machinePoolSpec := clusterv1.MachinePoolSpec{Replicas: ptr.To[int32](1)}
+
+		npBuilder := nodePoolBuilder(spec, machinePoolSpec, rosacontrolplanev1.Stable, "")
+		nodePool, err := npBuilder.Build()
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(string(nodePool.AWSNodePool().Ec2MetadataHttpTokens())).To(Equal("required"))
+	})
+
+	t.Run("sets Ec2MetadataHttpTokens to optional when specified", func(t *testing.T) {
+		g := NewWithT(t)
+		spec := expinfrav1.RosaMachinePoolSpec{
+			NodePoolName:          "test-nodepool",
+			InstanceType:          "m5.large",
+			Ec2MetadataHTTPTokens: rosacontrolplanev1.Ec2MetadataHTTPTokensOptional,
+		}
+		machinePoolSpec := clusterv1.MachinePoolSpec{Replicas: ptr.To[int32](1)}
+
+		npBuilder := nodePoolBuilder(spec, machinePoolSpec, rosacontrolplanev1.Stable, "")
+		nodePool, err := npBuilder.Build()
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(string(nodePool.AWSNodePool().Ec2MetadataHttpTokens())).To(Equal("optional"))
+	})
+
+	t.Run("omits Ec2MetadataHttpTokens when not specified", func(t *testing.T) {
+		g := NewWithT(t)
+		spec := expinfrav1.RosaMachinePoolSpec{
+			NodePoolName: "test-nodepool",
+			InstanceType: "m5.large",
+		}
+		machinePoolSpec := clusterv1.MachinePoolSpec{Replicas: ptr.To[int32](1)}
+
+		npBuilder := nodePoolBuilder(spec, machinePoolSpec, rosacontrolplanev1.Stable, "")
+		nodePool, err := npBuilder.Build()
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(string(nodePool.AWSNodePool().Ec2MetadataHttpTokens())).To(BeEmpty())
+	})
+}
+
+func TestEc2MetadataHTTPTokensIgnoredInDiff(t *testing.T) {
+	g := NewWithT(t)
+
+	rosaMachinePool := &expinfrav1.ROSAMachinePool{
+		Spec: expinfrav1.RosaMachinePoolSpec{
+			NodePoolName: "test-nodepool",
+			Version:      "4.14.5",
+			Subnet:       "subnet-id",
+			AutoRepair:   true,
+			InstanceType: "m5.large",
+		},
+	}
+	rosaMachinePool.Default()
+
+	nodePool, err := cmv1.NewNodePool().
+		ID("test-nodepool").
+		Version(cmv1.NewVersion().ID("openshift-v4.14.5")).
+		Subnet("subnet-id").
+		AutoRepair(true).
+		AWSNodePool(cmv1.NewAWSNodePool().
+			InstanceType("m5.large").
+			Ec2MetadataHttpTokens(cmv1.Ec2MetadataHttpTokensRequired)).
+		Build()
+	g.Expect(err).ToNot(HaveOccurred())
+
+	diff := computeSpecDiff(rosaMachinePool.Spec, nodePool)
+	g.Expect(diff).To(BeEmpty(), "Ec2MetadataHTTPTokens should be ignored in diff computation")
+}
+
 func TestVolumeSizeIgnoredInDiff(t *testing.T) {
 	g := NewWithT(t)
 

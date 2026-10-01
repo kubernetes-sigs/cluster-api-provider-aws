@@ -11012,7 +11012,7 @@ int
 <h3 id="controlplane.cluster.x-k8s.io/v1beta2.Ec2MetadataHTTPTokens">Ec2MetadataHTTPTokens
 (<code>string</code> alias)</p></h3>
 <p>
-(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>)
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolSpec">RosaMachinePoolSpec</a>)
 </p>
 <p>
 <p>Ec2MetadataHTTPTokens describes the state of the EC2 instance metadata service (IMDS) token requirement.
@@ -11808,7 +11808,7 @@ Ec2MetadataHTTPTokens
 <p>Ec2MetadataHTTPTokens configures the use of IMDSv2 for EC2 instances.
 When set to &ldquo;required&rdquo;, IMDSv2 is enforced and the older IMDSv1 is disabled.
 When set to &ldquo;optional&rdquo;, both IMDSv1 and IMDSv2 are allowed.
-When omitted, the OCM default (&ldquo;optional&rdquo;) is used.
+When omitted, the API default is used (currently &ldquo;required&rdquo;).
 This field is immutable and cannot be changed after cluster creation.</p>
 </td>
 </tr>
@@ -12564,7 +12564,7 @@ Ec2MetadataHTTPTokens
 <p>Ec2MetadataHTTPTokens configures the use of IMDSv2 for EC2 instances.
 When set to &ldquo;required&rdquo;, IMDSv2 is enforced and the older IMDSv1 is disabled.
 When set to &ldquo;optional&rdquo;, both IMDSv1 and IMDSv2 are allowed.
-When omitted, the OCM default (&ldquo;optional&rdquo;) is used.
+When omitted, the API default is used (currently &ldquo;required&rdquo;).
 This field is immutable and cannot be changed after cluster creation.</p>
 </td>
 </tr>
@@ -32763,6 +32763,24 @@ string
 The CapacityReservationID must be pre-created in advance, before creating a NodePool.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>ec2MetadataHttpTokens</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.Ec2MetadataHTTPTokens">
+Ec2MetadataHTTPTokens
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Ec2MetadataHTTPTokens configures the use of IMDSv2 for EC2 instances in the node pool.
+When set to &ldquo;required&rdquo;, IMDSv2 is enforced and the older IMDSv1 is disabled.
+When set to &ldquo;optional&rdquo;, both IMDSv1 and IMDSv2 are allowed.
+When omitted, the API default is used (currently &ldquo;required&rdquo;).
+This field is immutable and cannot be changed after node pool creation.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -34196,6 +34214,24 @@ string
 <em>(Optional)</em>
 <p>CapacityReservationID specifies the ID of an AWS On-Demand Capacity Reservation and Capacity Blocks for ML.
 The CapacityReservationID must be pre-created in advance, before creating a NodePool.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ec2MetadataHttpTokens</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.Ec2MetadataHTTPTokens">
+Ec2MetadataHTTPTokens
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Ec2MetadataHTTPTokens configures the use of IMDSv2 for EC2 instances in the node pool.
+When set to &ldquo;required&rdquo;, IMDSv2 is enforced and the older IMDSv1 is disabled.
+When set to &ldquo;optional&rdquo;, both IMDSv1 and IMDSv2 are allowed.
+When omitted, the API default is used (currently &ldquo;required&rdquo;).
+This field is immutable and cannot be changed after node pool creation.</p>
 </td>
 </tr>
 </tbody>
