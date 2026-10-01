@@ -144,7 +144,7 @@ func TestROSAMachinePoolValidateUpdate(t *testing.T) {
 			wantErrToContain: nil,
 		},
 		{
-			name: "removing spotMarketOptions (set -> nil) is now allowed",
+			name: "removing spotMarketOptions (set -> nil) is rejected",
 			old: &expinfrav1.ROSAMachinePool{
 				Spec: expinfrav1.RosaMachinePoolSpec{
 					SpotMarketOptions: &expinfrav1.SpotMarketOptions{},
@@ -153,7 +153,19 @@ func TestROSAMachinePoolValidateUpdate(t *testing.T) {
 			new: &expinfrav1.ROSAMachinePool{
 				Spec: expinfrav1.RosaMachinePoolSpec{},
 			},
-			wantErrToContain: nil,
+			wantErrToContain: ptr.To[string]("spec.spotMarketOptions"),
+		},
+		{
+			name: "removing spotMarketOptions with maxPrice (set -> nil) is rejected",
+			old: &expinfrav1.ROSAMachinePool{
+				Spec: expinfrav1.RosaMachinePoolSpec{
+					SpotMarketOptions: &expinfrav1.SpotMarketOptions{MaxPrice: ptr.To("0.05")},
+				},
+			},
+			new: &expinfrav1.ROSAMachinePool{
+				Spec: expinfrav1.RosaMachinePoolSpec{},
+			},
+			wantErrToContain: ptr.To[string]("spec.spotMarketOptions"),
 		},
 		{
 			name: "changing spotMarketOptions maxPrice is now allowed",
@@ -165,6 +177,20 @@ func TestROSAMachinePoolValidateUpdate(t *testing.T) {
 			new: &expinfrav1.ROSAMachinePool{
 				Spec: expinfrav1.RosaMachinePoolSpec{
 					SpotMarketOptions: &expinfrav1.SpotMarketOptions{MaxPrice: ptr.To("0.10")},
+				},
+			},
+			wantErrToContain: nil,
+		},
+		{
+			name: "removing maxPrice from spotMarketOptions (keeping struct) is allowed",
+			old: &expinfrav1.ROSAMachinePool{
+				Spec: expinfrav1.RosaMachinePoolSpec{
+					SpotMarketOptions: &expinfrav1.SpotMarketOptions{MaxPrice: ptr.To("0.05")},
+				},
+			},
+			new: &expinfrav1.ROSAMachinePool{
+				Spec: expinfrav1.RosaMachinePoolSpec{
+					SpotMarketOptions: &expinfrav1.SpotMarketOptions{},
 				},
 			},
 			wantErrToContain: nil,

@@ -32775,8 +32775,9 @@ SpotMarketOptions
 <td>
 <em>(Optional)</em>
 <p>SpotMarketOptions configures the node pool to use AWS Spot instances.
-Providing an empty struct ({}) requests Spot with no max price.
-Providing MaxPrice limits the bid to that amount per hour.</p>
+Omit this field to use on-demand instances (default).
+Provide an empty struct ({}) to request Spot instances with no maximum price.
+Provide maxPrice to cap the hourly bid for Spot instances.</p>
 <p>Setting both spotMarketOptions and capacityReservationID is not allowed
 and is rejected by the validating webhook.</p>
 </td>
@@ -34228,8 +34229,9 @@ SpotMarketOptions
 <td>
 <em>(Optional)</em>
 <p>SpotMarketOptions configures the node pool to use AWS Spot instances.
-Providing an empty struct ({}) requests Spot with no max price.
-Providing MaxPrice limits the bid to that amount per hour.</p>
+Omit this field to use on-demand instances (default).
+Provide an empty struct ({}) to request Spot instances with no maximum price.
+Provide maxPrice to cap the hourly bid for Spot instances.</p>
 <p>Setting both spotMarketOptions and capacityReservationID is not allowed
 and is rejected by the validating webhook.</p>
 </td>

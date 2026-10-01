@@ -148,7 +148,7 @@ spec:
                     description: |-
                       MaxPrice defines the maximum price the user is willing to pay for Spot VM instances,
                       as an hourly rate. When omitted, Spot instances are requested with no maximum price.
-                    pattern: ^[0-9]+(\.[0-9]+)?$
+                    pattern: ^(0*[1-9][0-9]*(\.[0-9]+)?|0+\.[0-9]*[1-9][0-9]*)$
                     type: string
                 type: object
               subnet:
