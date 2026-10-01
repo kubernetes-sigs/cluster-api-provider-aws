@@ -9,6 +9,119 @@ This includes the nightly image push jobs, which can be found at https://testgri
 
 ## Create tag, and build staging container images
 
+### Primary flow: trigger via a CHANGELOG PR
+
+Anyone in the `cluster-api-provider-aws-release-team` group can kick off a
+release this way; it still requires a CAPA maintainer to review and merge
+the PR before anything happens.
+
+1. Make sure your repo is clean by git standards, and set `VERSION` to the
+   release you're making, e.g. `export VERSION=v2.10.0` (major/minor) or
+   `export VERSION=v2.9.4` (patch). _**Note**_: the version MUST contain a
+   `v` in front.
+1. Check out the branch this release targets:
+   - Major/minor release (patch must be `0`): `git checkout main`.
+   - Patch release: check out the existing release branch, e.g.
+     `git checkout release-2.9`. The version's `major.minor` MUST match this
+     branch.
+1. Generate the changelog: `make release-notes-pr VERSION=$VERSION`. This
+   writes `CHANGELOG/$VERSION.md`, with a `contract:` front-matter value
+   defaulted from the latest entry in `metadata.yaml`. If this release
+   changes the contract version, edit that field before continuing. **For
+   a `vX.Y.0` release, updating `metadata.yaml` with the new release-series
+   entry is required** — `make release-notes-pr` does this for you in your
+   working tree; do not skip committing it. (Patch releases MUST NOT touch
+   `metadata.yaml`.)
+1. Commit `CHANGELOG/$VERSION.md` and open a PR against the branch you
+   checked out in step 2. **For a `vX.Y.0` release, this PR MUST also
+   include the `metadata.yaml` change** from the previous step — a PR
+   missing it will be rejected (see step 5).
+1. Get the PR reviewed and merged by a CAPA maintainer. A required
+   `verify-changelog` check **enforces** this: for a `vX.Y.0` release, the
+   PR cannot merge unless `metadata.yaml` already has the matching entry;
+   it also re-validates the version against the target branch.
+
+Merging the PR triggers the
+[`release-trigger`](https://github.com/kubernetes-sigs/cluster-api-provider-aws/actions/workflows/release-trigger.yaml)
+GitHub Action, which:
+
+- Validates the version against the branch it was merged into (major/minor
+  only on `main`, patch-only with a matching `major.minor` on a
+  `release-X.Y` branch) and that the tag doesn't already exist.
+- For a major/minor release on `main`: creates the new `release-X.Y` branch
+  from the merge commit and pushes it. Because `metadata.yaml` was already
+  updated as part of the merged PR, the new branch inherits the correct
+  content automatically — no further edit is needed here.
+- Creates and pushes the `$VERSION` tag (on the new `release-X.Y` branch for
+  a major/minor release, or directly on the target `release-X.Y` branch for
+  a patch release).
+- Runs the release build directly (as a
+  [`workflow_call`](https://github.com/kubernetes-sigs/cluster-api-provider-aws/actions/workflows/release.yaml)
+  within the same run), rather than relying on the tag push to separately
+  trigger it — pushes authenticated with the workflow's own token don't
+  trigger other workflow runs, so calling it directly avoids that.
+
+From here the process is unchanged: a prow job will start running to push
+images to the staging repo, can be seen
+[here](https://testgrid.k8s.io/sig-cluster-lifecycle-image-pushes#post-cluster-api-provider-aws-push-images).
+The job is called "post-cluster-api-provider-aws-push-images," and is
+defined in
+<https://github.com/kubernetes/test-infra/blob/master/config/jobs/image-pushing/k8s-staging-cluster-api.yaml>.
+If this job fails due to Go versions being out of date, you may need to
+update the Google Cloud Builder (GCB) image used in
+[`cloudbuild.yaml`](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/cloudbuild.yaml)
+and
+[`cloudbuild-nightly.yaml`](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/cloudbuild-nightly.yaml).
+When the job is finished, wait for the images to be created: `docker pull
+gcr.io/k8s-staging-cluster-api-aws/cluster-api-aws-controller:$VERSION`. You
+can also wrap this with a command to retry periodically, until the job is
+complete, e.g. `watch --interval 30 --chgexit docker pull <...>`.
+
+**Prerequisites**:
+- The `release-trigger` workflow pushes directly to `release-*` branches
+  and tags, bypassing PR review for those specific pushes. Since branch
+  protection for this repo is managed via `kubernetes/test-infra`'s org
+  config (not native GitHub settings), this requires an exception there
+  for the workflow's push identity under the `release-.*`
+  branch-protection block — see the `kubernetes/test-infra` PR that added
+  it before relying on this flow.
+- The `verify-changelog` workflow needs to be added to this repo's
+  required status checks (also via `kubernetes/test-infra`'s org config)
+  so that a main-targeted CHANGELOG PR can't merge without the matching
+  `metadata.yaml` update.
+
+### Maintaining the release-team group
+
+Membership of `cluster-api-provider-aws-release-team` is controlled entirely
+by that alias in
+[`OWNERS_ALIASES`](https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/OWNERS_ALIASES).
+There's also a GitHub team of the same name, but it's used purely for
+administrative purposes and isn't what `CHANGELOG/OWNERS` or
+`hack/tools/release-tools/OWNERS` resolve against. Both of those `OWNERS`
+files also list `cluster-api-aws-maintainers` directly under `reviewers:`,
+so maintainers don't need to be members of the release-team alias itself.
+
+To add or remove someone, edit the members list and get the change reviewed
+and merged like any other PR; no separate process is needed, since
+`OWNERS_ALIASES` is already covered by the existing maintainer OWNERS
+approval.
+
+For example, to add a new member, only the list under
+`cluster-api-provider-aws-release-team:` changes:
+
+```diff
+   cluster-api-provider-aws-release-team:
+     - serngawy
++    - new-member-handle
+```
+
+Removing someone works the same way: delete their line instead of adding one.
+
+### Fallback: manual tag creation
+
+If the automated flow above is unavailable, or a signed tag is required, a
+maintainer can still cut the release manually:
+
 1. Please fork <https://github.com/kubernetes-sigs/cluster-api-provider-aws> and clone your own repository with e.g. `git clone git@github.com:YourGitHubUsername/cluster-api-provider-aws.git`. `kpromo` uses the fork to build images from.
 1. Add a git remote to the upstream project. `git remote add upstream git@github.com:kubernetes-sigs/cluster-api-provider-aws.git`
 1. If this is a major or minor release, create a new release branch and push to GitHub, otherwise switch to it, e.g. `git checkout release-2.7`.
