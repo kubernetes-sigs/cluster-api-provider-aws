@@ -340,8 +340,20 @@ func (s *NodegroupService) reconcileNodegroupVersion(ctx context.Context, ng *ek
 		ngLaunchTemplateVersion = ng.LaunchTemplate.Version
 	}
 
+	// For CUSTOM AMI nodegroups the k8s version is baked into the AMI; AWS rejects
+	// UpdateNodegroupVersion without launch template details for these nodegroups, and a
+	// version-only bump is meaningless because the actual kubelet version is determined by
+	// the AMI, not the EKS version field. CAPI propagates the cluster control-plane version
+	// (e.g. 1.34) to all MachinePools, so there is always a perceived version mismatch when
+	// a CUSTOM AMI carries an older kubelet — leading to a 100k+ failure event loop on scale.
+	// Version upgrades for CUSTOM AMI pools happen implicitly when the user updates the launch
+	// template with a compatible AMI; that change is handled by the launchTemplateChanged path
+	// which correctly passes the launch template to UpdateNodegroupVersion.
+	ngIsCustomAMI := ng.AmiType == ekstypes.AMITypesCustom
+	versionUpgradeNeeded := specVersion != nil && ngVersion.LessThan(specVersion) && !ngIsCustomAMI
+
 	eksClusterName := s.scope.KubernetesClusterName()
-	if (specVersion != nil && ngVersion.LessThan(specVersion)) || (specAMI != nil && *specAMI != ngAMI) || (statusLaunchTemplateVersion != nil && *statusLaunchTemplateVersion != *ngLaunchTemplateVersion) {
+	if versionUpgradeNeeded || (specAMI != nil && *specAMI != ngAMI) || (statusLaunchTemplateVersion != nil && *statusLaunchTemplateVersion != *ngLaunchTemplateVersion) {
 		input := &eks.UpdateNodegroupVersionInput{
 			ClusterName:   aws.String(eksClusterName),
 			NodegroupName: aws.String(s.scope.NodegroupName()),
@@ -356,7 +368,7 @@ func (s *NodegroupService) reconcileNodegroupVersion(ctx context.Context, ng *ek
 				Version: statusLaunchTemplateVersion,
 			}
 			updateMsg = fmt.Sprintf("to launch template version %s", *statusLaunchTemplateVersion)
-		case specVersion != nil && ngVersion.LessThan(specVersion):
+		case versionUpgradeNeeded:
 			// NOTE: you can only upgrade increments of minor versions. If you want to upgrade 1.14 to 1.16 we
 			// need to go 1.14-> 1.15 and then 1.15 -> 1.16.
 			input.Version = aws.String(versionToEKS(ngVersion.WithMinor(ngVersion.Minor() + 1)))
