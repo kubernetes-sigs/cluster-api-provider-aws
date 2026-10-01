@@ -397,6 +397,7 @@ func Convert_v1beta1_AWSLaunchTemplate_To_v1beta2_AWSLaunchTemplate(in *AWSLaunc
 }
 
 func autoConvert_v1beta2_AWSLaunchTemplate_To_v1beta1_AWSLaunchTemplate(in *v1beta2.AWSLaunchTemplate, out *AWSLaunchTemplate, s conversion.Scope) error {
+	// WARNING: in.ID requires manual conversion: does not exist in peer-type
 	out.Name = in.Name
 	out.IamInstanceProfile = in.IamInstanceProfile
 	out.AMI = in.AMI
