@@ -88,6 +88,7 @@ Additional caveats:
 - **Mutually exclusive.** `ami.filters` cannot be combined with `ami.id`, `ami.eksLookupType`, or the `imageLookupFormat`, `imageLookupOrg`, and `imageLookupBaseOS` fields. The `imageLookup*` fields on `AWSCluster` or `AWSManagedControlPlane` are still accepted but are ignored for machines that use `ami.filters`.
 - **`ami.ownerIDs` is used only if `ami.filters` is set. `imageLookupOrg` does not apply to `ami.filters`.**
 - **Architecture is implicit.** The provider derives the architecture from the instance type and adds it as an implicit filter, so only AMIs matching the instance architecture are considered. You do not need to include an `architecture` filter yourself; doing so may conflict with the inferred value and produce no results.
+- **Multi-account `ownerIDs` limitation.** Machine creation uses the workload cluster's credentials, so `ownerIDs: ["self"]` resolves correctly. However, `AWSMachineTemplate` node-info pre-population (`status.nodeInfo`) uses the management cluster's credentials, so `"self"` resolves to the management account instead. In a multi-account setup, specify the workload account ID explicitly to ensure private AMIs are found in both paths.
 
 [capi-images]: https://image-builder.sigs.k8s.io/capi/capi.html
 [image-builder]: https://github.com/kubernetes-sigs/image-builder
