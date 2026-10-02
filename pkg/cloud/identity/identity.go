@@ -166,11 +166,7 @@ func (p *AWSRolePrincipalTypeProvider) Retrieve(ctx context.Context) (aws.Creden
 	if p.credentials == nil {
 		optFns := []func(*config.LoadOptions) error{config.WithRegion(p.region)}
 		if p.sourceProvider != nil {
-			sourceCreds, err := p.sourceProvider.Retrieve(ctx)
-			if err != nil {
-				return aws.Credentials{}, err
-			}
-			optFns = append(optFns, config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(sourceCreds.AccessKeyID, sourceCreds.SecretAccessKey, sourceCreds.SessionToken)))
+			optFns = append(optFns, config.WithCredentialsProvider(p.sourceProvider))
 		}
 
 		creds, err := GetAssumeRoleCredentialsCache(ctx, p, optFns)
