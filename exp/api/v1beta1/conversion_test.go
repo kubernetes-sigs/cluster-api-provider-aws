@@ -17,14 +17,38 @@ limitations under the License.
 package v1beta1
 
 import (
+	"os"
+	"path/filepath"
+	"reflect"
 	"testing"
 
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/util/conversiontest"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
+
+func fuzzCases(scheme *runtime.Scheme) []utilconversion.FuzzTestFuncInput {
+	return []utilconversion.FuzzTestFuncInput{
+		{
+			Scheme: scheme,
+			Hub:    &v1beta2.AWSMachinePool{},
+			Spoke:  &AWSMachinePool{},
+		},
+		{
+			Scheme: scheme,
+			Hub:    &v1beta2.AWSManagedMachinePool{},
+			Spoke:  &AWSManagedMachinePool{},
+		},
+		{
+			Scheme: scheme,
+			Hub:    &v1beta2.AWSFargateProfile{},
+			Spoke:  &AWSFargateProfile{},
+		},
+	}
+}
 
 func TestFuzzyConversion(t *testing.T) {
 	g := NewWithT(t)
@@ -32,21 +56,53 @@ func TestFuzzyConversion(t *testing.T) {
 	g.Expect(AddToScheme(scheme)).To(Succeed())
 	g.Expect(v1beta2.AddToScheme(scheme)).To(Succeed())
 
-	t.Run("for AWSMachinePool", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &v1beta2.AWSMachinePool{},
-		Spoke:  &AWSMachinePool{},
-	}))
+	for _, c := range fuzzCases(scheme) {
+		t.Run("for "+reflect.TypeOf(c.Spoke).Elem().Name(), utilconversion.FuzzTestFunc(c))
+	}
+}
 
-	t.Run("for AWSManagedMachinePool", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &v1beta2.AWSManagedMachinePool{},
-		Spoke:  &AWSManagedMachinePool{},
-	}))
+func TestFuzzyConversionCoverage(t *testing.T) {
+	g := NewWithT(t)
+	scheme := runtime.NewScheme()
+	g.Expect(AddToScheme(scheme)).To(Succeed())
+	g.Expect(v1beta2.AddToScheme(scheme)).To(Succeed())
 
-	t.Run("for AWSFargateProfile", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Scheme: scheme,
-		Hub:    &v1beta2.AWSFargateProfile{},
-		Spoke:  &AWSFargateProfile{},
-	}))
+	conversiontest.RequireFuzzCoverage(t, scheme, GroupVersion, fuzzCases(scheme), map[string]string{})
+}
+
+func TestGeneratedUnsafeConversions(t *testing.T) {
+	scheme := runtime.NewScheme()
+	g := NewWithT(t)
+	g.Expect(AddToScheme(scheme)).To(Succeed())
+	g.Expect(v1beta2.AddToScheme(scheme)).To(Succeed())
+
+	root, err := filepath.Abs(".")
+	g.Expect(err).NotTo(HaveOccurred())
+	// Walk up until we find the repo root (contains go.mod)
+	for {
+		if _, err := os.Stat(filepath.Join(root, "go.mod")); err == nil {
+			break
+		}
+		parent := filepath.Dir(root)
+		if parent == root {
+			t.Fatal("could not find repo root")
+		}
+		root = parent
+	}
+
+	conversiontest.CheckUnsafeStructCasts(t, conversiontest.UnsafeCastInput{
+		Scheme:        scheme,
+		PackagePath:   "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta1",
+		GeneratedFile: filepath.Join(root, "exp", "api", "v1beta1", "zz_generated.conversion.go"),
+		ManualConversionDirs: []string{
+			filepath.Join(root, "exp", "api", "v1beta1"),
+			filepath.Join(root, "api", "v1beta1"),
+		},
+		ExtraTypes: []any{
+			BlockDeviceMapping{},
+			v1beta2.BlockDeviceMapping{},
+			EBS{},
+			v1beta2.EBS{},
+		},
+	})
 }
