@@ -147,6 +147,20 @@ func MachinePoolSupportedVersionsRange(controlPlaneVersion string) (*semver.Vers
 	return &minVersion, &maxVersion, nil
 }
 
+// ValidateMachinePoolVersion returns an error if machinePoolVersion is outside the
+// range MachinePoolSupportedVersionsRange derives from controlPlaneVersion.
+func ValidateMachinePoolVersion(controlPlaneVersion string, machinePoolVersion semver.Version) error {
+	minVersion, maxVersion, err := MachinePoolSupportedVersionsRange(controlPlaneVersion)
+	if err != nil {
+		return fmt.Errorf("failed to get supported machinePool versions range: %w", err)
+	}
+	coreVersion := CoreVersion(machinePoolVersion)
+	if machinePoolVersion.GT(*maxVersion) || coreVersion.LT(*minVersion) {
+		return fmt.Errorf("version %s is not supported, should be in the range: >= %s and <= %s", machinePoolVersion, minVersion, maxVersion)
+	}
+	return nil
+}
+
 // RawVersionID returns the rawID from the provided OCM version object.
 func RawVersionID(version *cmv1.Version) string {
 	rawID := version.RawID()

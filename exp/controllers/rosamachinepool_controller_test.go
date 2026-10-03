@@ -546,7 +546,7 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 				},
 			},
 			result:      ctrl.Result{},
-			expectError: true,
+			expectError: false,
 			expect: func(m *mocks.MockOCMClientMockRecorder) {
 				// Validation happens before any OCM call, so the node pool must never
 				// be looked up or created.
@@ -557,11 +557,13 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 				g.Expect(m.Status.FailureMessage).To(BeNil(),
 					"Status.FailureMessage panics CAPI's MachinePool controller and must stay unset")
 
-				cond := v1beta1conditions.Get(m, expinfrav1.RosaMachinePoolUpgradingCondition)
+				cond := v1beta1conditions.Get(m, expinfrav1.RosaMachinePoolReadyCondition)
 				g.Expect(cond).ToNot(BeNil(), "the failure must surface as a condition")
 				g.Expect(cond.Status).To(Equal(corev1.ConditionFalse))
 				g.Expect(cond.Reason).To(Equal(expinfrav1.RosaMachinePoolReconciliationFailedReason))
 				g.Expect(cond.Message).To(ContainSubstring("is not supported"))
+
+				g.Expect(v1beta1conditions.Get(m, expinfrav1.RosaMachinePoolUpgradingCondition)).To(BeNil())
 			},
 		},
 	}
