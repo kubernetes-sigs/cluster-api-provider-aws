@@ -248,16 +248,18 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 	}
 
 	if err := validateMachinePoolSpec(machinePoolScope); err != nil {
-		// Surface the error to the condition; Status.FailureMessage is avoided
-		// intentionally as writing it panics CAPI's MachinePool controller.
+		// Surface the error via the Ready condition and logs. Status.FailureMessage is
+		// avoided as writing it panics CAPI's MachinePool controller. Don't requeue:
+		// the spec is invalid and needs manual intervention; spec or control plane
+		// changes re-trigger reconcile via watches.
 		v1beta1conditions.MarkFalse(machinePoolScope.RosaMachinePool,
-			expinfrav1.RosaMachinePoolUpgradingCondition,
+			expinfrav1.RosaMachinePoolReadyCondition,
 			expinfrav1.RosaMachinePoolReconciliationFailedReason,
 			clusterv1beta1.ConditionSeverityError,
 			"%s", err)
 		machinePoolScope.Error(err, "Invalid ROSAMachinePool spec")
 
-		return ctrl.Result{}, err
+		return ctrl.Result{}, nil
 	}
 
 	rosaMachinePool := machinePoolScope.RosaMachinePool
@@ -491,20 +493,9 @@ func validateMachinePoolSpec(machinePoolScope *scope.RosaMachinePoolScope) error
 	if err != nil {
 		return fmt.Errorf("failed to parse MachinePool version: %w", err)
 	}
-	minSupportedVersion, maxSupportedVersion, err := rosa.MachinePoolSupportedVersionsRange(machinePoolScope.ControlPlane.Spec.Version)
-	if err != nil {
-		return fmt.Errorf("failed to get supported machinePool versions range: %w", err)
-	}
 
-	// The lower bound is a core version, so strip prerelease from the pool
-	// version before comparing -- a prerelease pool should not be rejected
-	// purely because it sorts below its own release.
-	// The upper bound preserves the control plane's prerelease qualifier, so
-	// compare the pool version as-is: a GA pool must not be accepted against a
-	// prerelease control plane of the same release.
-	coreVersion := rosa.CoreVersion(version)
-	if version.GT(*maxSupportedVersion) || coreVersion.LT(*minSupportedVersion) {
-		return fmt.Errorf("version %s is not supported, should be in the range: >= %s and <= %s", version, minSupportedVersion, maxSupportedVersion)
+	if err := rosa.ValidateMachinePoolVersion(machinePoolScope.ControlPlane.Spec.Version, version); err != nil {
+		return err
 	}
 
 	// TODO: add more input validations
