@@ -96,6 +96,9 @@ const (
 	// credentialRefreshThreshold is how long before expiry a break-glass credential should be refreshed.
 	credentialRefreshThreshold = 1 * time.Hour
 
+	// conditionRequeueInterval and defaultRequeueInterval are duplicated in
+	// exp/controllers/rosa_constants.go. Keep both declarations in sync when
+	// changing either value.
 	conditionRequeueInterval = 10 * time.Second
 	defaultRequeueInterval   = 60 * time.Second
 )
