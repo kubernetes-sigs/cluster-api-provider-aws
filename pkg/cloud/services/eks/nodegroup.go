@@ -340,6 +340,13 @@ func (s *NodegroupService) reconcileNodegroupVersion(ctx context.Context, ng *ek
 		ngLaunchTemplateVersion = ng.LaunchTemplate.Version
 	}
 
+	// EKS cannot attach a launch template to an existing nodegroup that was created without one,
+	// so there is nothing to update. Return an error rather than dereferencing a nil version below.
+	if statusLaunchTemplateVersion != nil && ngLaunchTemplateVersion == nil {
+		return errors.Errorf("nodegroup %s has no launch template version, but the AWSManagedMachinePool status expects version %s",
+			s.scope.NodegroupName(), *statusLaunchTemplateVersion)
+	}
+
 	eksClusterName := s.scope.KubernetesClusterName()
 	if (specVersion != nil && ngVersion.LessThan(specVersion)) || (specAMI != nil && *specAMI != ngAMI) || (statusLaunchTemplateVersion != nil && *statusLaunchTemplateVersion != *ngLaunchTemplateVersion) {
 		input := &eks.UpdateNodegroupVersionInput{
