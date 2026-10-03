@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,6 +18,9 @@ package controllers
 
 import "time"
 
+// conditionRequeueInterval and defaultRequeueInterval are duplicated in
+// controlplane/rosa/controllers/rosacontrolplane_controller.go. Keep both
+// declarations in sync when changing either value.
 const (
 	conditionRequeueInterval = 10 * time.Second
 	defaultRequeueInterval   = 60 * time.Second

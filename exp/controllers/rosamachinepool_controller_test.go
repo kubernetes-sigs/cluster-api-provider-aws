@@ -762,6 +762,94 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 		}
 		mockCtrl.Finish()
 	})
+
+	t.Run("Paused condition change requeues after conditionRequeueInterval", func(t *testing.T) {
+		g := NewWithT(t)
+		index := 10
+		recorder := record.NewFakeRecorder(10)
+		ctx := context.TODO()
+
+		// Create a non-paused Cluster, MachinePool, and ROSAMachinePool
+		cluster := ownerCluster(index)
+		machinePool := ownerMachinePool(index)
+		rmp := rosaMachinePool(index)
+		cp := rosaControlPlane(index)
+
+		// Set OwnerReferences on ROSAMachinePool pointing to the MachinePool
+		rmp.OwnerReferences = []metav1.OwnerReference{
+			{
+				Name:       machinePool.Name,
+				UID:        machinePool.UID,
+				Kind:       "MachinePool",
+				APIVersion: clusterv1.GroupVersion.String(),
+			},
+		}
+
+		objects := []client.Object{cluster, machinePool, cp, rmp}
+		for _, obj := range objects {
+			createObject(g, obj, ns.Name)
+		}
+
+		// Make Control Plane ready
+		cpPh, err := patch.NewHelper(cp, testEnv)
+		g.Expect(err).ShouldNot(HaveOccurred())
+		cp.Status.Ready = true
+		cp.Status.Version = cp.Spec.Version
+		cp.Status.ID = rmp.Name
+		g.Expect(cpPh.Patch(ctx, cp)).To(Succeed())
+
+		// Wait until all objects are visible in the cache
+		g.Eventually(func() error {
+			return testEnv.Get(ctx, client.ObjectKey{Name: rmp.Name, Namespace: ns.Name}, rmp)
+		}, time.Second*5).Should(Succeed())
+
+		// Create a reconciler with a NewOCMClient sentinel that tracks calls and returns error
+		ocmClientCalled := false
+		mockCtrl := gomock.NewController(t)
+
+		r := ROSAMachinePoolReconciler{
+			Recorder:         recorder,
+			WatchFilterValue: "",
+			Client:           testEnv,
+			NewOCMClient: func(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (rosa.OCMClient, error) {
+				ocmClientCalled = true
+				return nil, fmt.Errorf("sentinel error - should not be called during paused gate")
+			},
+		}
+
+		// Call Reconcile
+		result, errReconcile := r.Reconcile(ctx, ctrl.Request{NamespacedName: client.ObjectKeyFromObject(rmp)})
+
+		// Assert: err == nil, result == ctrl.Result{RequeueAfter: conditionRequeueInterval}, ocmClientCalled == false
+		g.Expect(errReconcile).To(BeNil())
+		g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: conditionRequeueInterval}))
+		g.Expect(ocmClientCalled).To(BeFalse())
+
+		// Assert (via Eventually): ROSAMachinePool has Paused condition set to False/NotPaused
+		g.Eventually(func() error {
+			updatedRmp := &expinfrav1.ROSAMachinePool{}
+			if err := testEnv.Get(ctx, client.ObjectKey{Name: rmp.Name, Namespace: ns.Name}, updatedRmp); err != nil {
+				return err
+			}
+			pausedCond := v1beta1conditions.Get(updatedRmp, clusterv1beta1.PausedV1Beta2Condition)
+			if pausedCond == nil {
+				return fmt.Errorf("Paused condition not found")
+			}
+			if pausedCond.Status != corev1.ConditionFalse {
+				return fmt.Errorf("expected Paused condition status False, got %s", pausedCond.Status)
+			}
+			if pausedCond.Reason != "NotPaused" {
+				return fmt.Errorf("expected Paused condition reason NotPaused, got %s", pausedCond.Reason)
+			}
+			return nil
+		}, time.Second*5).Should(Succeed())
+
+		// cleanup
+		for _, obj := range objects {
+			cleanupObject(g, obj)
+		}
+		mockCtrl.Finish()
+	})
 }
 
 func TestVolumeSizeIgnoredInDiff(t *testing.T) {
