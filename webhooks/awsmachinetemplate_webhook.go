@@ -216,6 +216,13 @@ func (w *AWSMachineTemplate) validateSSHKeyName(r *infrav1.AWSMachineTemplate) f
 	return validateSSHKeyName(r.Spec.Template.Spec.SSHKeyName)
 }
 
+func (w *AWSMachineTemplate) validateIgnitionTLS(r *infrav1.AWSMachineTemplate) field.ErrorList {
+	if r.Spec.Template.Spec.Ignition == nil {
+		return field.ErrorList{}
+	}
+	return validateIgnitionTLS(r.Spec.Template.Spec.Ignition.TLS, field.NewPath("spec", "template", "spec", "ignition"))
+}
+
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (w *AWSMachineTemplate) ValidateCreate(_ context.Context, raw runtime.Object) (admission.Warnings, error) {
 	var allErrs field.ErrorList
@@ -240,6 +247,7 @@ func (w *AWSMachineTemplate) ValidateCreate(_ context.Context, raw runtime.Objec
 
 	allErrs = append(allErrs, w.validateCloudInitSecret(obj)...)
 	allErrs = append(allErrs, w.validateIgnitionAndCloudInit(obj)...)
+	allErrs = append(allErrs, w.validateIgnitionTLS(obj)...)
 	allErrs = append(allErrs, w.validateRootVolume(obj)...)
 	allErrs = append(allErrs, w.validateNonRootVolumes(obj)...)
 	allErrs = append(allErrs, w.validateSSHKeyName(obj)...)
