@@ -24,7 +24,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 
@@ -993,27 +992,202 @@ func TestValidateHostAllocationUpdate(t *testing.T) {
 }
 
 func TestValidateIgnitionTLS(t *testing.T) {
-	g := NewWithT(t)
-	caSourcesPath := field.NewPath("spec", "ignition", "tls", "caSources")
-
-	machine := &infrav1.AWSMachine{
-		Spec: infrav1.AWSMachineSpec{
-			Ignition: &infrav1.Ignition{
-				TLS: &infrav1.IgnitionTLS{
-					CASources: []infrav1.IgnitionCASource{
-						"s3://example.com/ca.pem",
-						"https://example.com/ca.pem\n",
-						"ftp://example.com/ca.pem",
-					},
+	tests := []struct {
+		name      string
+		tls       *infrav1.IgnitionTLS
+		wantErrs  int
+		wantField string
+	}{
+		{
+			name: "s3, https with trailing newline, ftp URLs - expects 2 errors",
+			tls: &infrav1.IgnitionTLS{
+				CASources: []infrav1.IgnitionCASource{
+					"s3://bucket/ca.pem",
+					"https://example.com/ca.pem\n",
+					"ftp://example.com/ca.pem",
 				},
 			},
+			wantErrs:  2,
+			wantField: "spec.ignition.tls.certificateAuthorities",
+		},
+		{
+			name: "data:abc - invalid data URL",
+			tls: &infrav1.IgnitionTLS{
+				CASources: []infrav1.IgnitionCASource{"data:abc"},
+			},
+			wantErrs:  1,
+			wantField: "spec.ignition.tls.certificateAuthorities[0]",
+		},
+		{
+			name: "data:;base64,!!! - invalid base64",
+			tls: &infrav1.IgnitionTLS{
+				CASources: []infrav1.IgnitionCASource{"data:;base64,!!!"},
+			},
+			wantErrs:  1,
+			wantField: "spec.ignition.tls.certificateAuthorities[0]",
+		},
+		{
+			name: "data:,-----BEGIN CERTIFICATE----- - valid percent-encoded data URL",
+			tls: &infrav1.IgnitionTLS{
+				CASources: []infrav1.IgnitionCASource{
+					"data:,-----BEGIN%20CERTIFICATE-----%0AMIIB%0A-----END%20CERTIFICATE-----",
+				},
+			},
+			wantErrs: 0,
+		},
+		{
+			name: "data:text/plain;base64,Zm9v - valid base64 data URL",
+			tls: &infrav1.IgnitionTLS{
+				CASources: []infrav1.IgnitionCASource{
+					"data:text/plain;base64,Zm9v",
+				},
+			},
+			wantErrs: 0,
+		},
+		{
+			name: "data:,%zz - invalid percent-encoded data URL",
+			tls: &infrav1.IgnitionTLS{
+				CASources: []infrav1.IgnitionCASource{
+					"data:,%zz",
+				},
+			},
+			wantErrs:  1,
+			wantField: "spec.ignition.tls.certificateAuthorities[0]",
+		},
+		{
+			name:      "TLS == nil - no errors",
+			tls:       nil,
+			wantErrs:  0,
+			wantField: "",
 		},
 	}
 
-	g.Expect((&AWSMachine{}).validateIgnitionTLS(machine)).To(Equal(field.ErrorList{
-		field.Invalid(caSourcesPath, infrav1.IgnitionCASource("https://example.com/ca.pem\n"), "invalid URL"),
-		field.Invalid(caSourcesPath, infrav1.IgnitionCASource("ftp://example.com/ca.pem"), "unsupported URL scheme"),
-	}))
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			machine := &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					Ignition: &infrav1.Ignition{
+						TLS: tt.tls,
+					},
+				},
+			}
+			errs := (&AWSMachine{}).validateIgnitionTLS(machine)
+			g.Expect(errs).To(HaveLen(tt.wantErrs))
+			if tt.wantErrs > 0 && tt.wantField != "" {
+				g.Expect(errs[0].Field).To(ContainSubstring(tt.wantField))
+			}
+		})
+	}
+}
+
+func TestAWSMachineUpdateIgnitionNotRevalidated(t *testing.T) {
+	tests := []struct {
+		name           string
+		oldMachine     *infrav1.AWSMachine
+		newMachine     *infrav1.AWSMachine
+		wantErr        bool
+		errContains    string
+		errNotContains string
+	}{
+		{
+			name: "stored invalid ignition TLS does not block unrelated mutable updates",
+			oldMachine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType: "test",
+					Ignition: &infrav1.Ignition{
+						Version: "3.1",
+						TLS: &infrav1.IgnitionTLS{
+							CASources: []infrav1.IgnitionCASource{"ftp://example.com/ca.pem"},
+						},
+					},
+				},
+			},
+			newMachine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType: "test",
+					Ignition: &infrav1.Ignition{
+						Version: "3.1",
+						TLS: &infrav1.IgnitionTLS{
+							CASources: []infrav1.IgnitionCASource{"ftp://example.com/ca.pem"},
+						},
+					},
+					AdditionalTags: infrav1.Tags{"key-1": "value-1"},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "ignition machine accepts controller providerID/instanceID patch",
+			oldMachine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType: "test",
+					Ignition: &infrav1.Ignition{
+						Version: "3.1",
+						TLS: &infrav1.IgnitionTLS{
+							CASources: []infrav1.IgnitionCASource{"https://example.com/ca.pem"},
+						},
+					},
+				},
+			},
+			newMachine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType: "test",
+					Ignition: &infrav1.Ignition{
+						Version: "3.1",
+						TLS: &infrav1.IgnitionTLS{
+							CASources: []infrav1.IgnitionCASource{"https://example.com/ca.pem"},
+						},
+					},
+					ProviderID: ptr.To("aws:///us-east-1a/i-123"),
+					InstanceID: ptr.To("i-123"),
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "changing ignition TLS to invalid source is rejected by spec immutability",
+			oldMachine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType: "test",
+					Ignition: &infrav1.Ignition{
+						Version: "3.1",
+						TLS: &infrav1.IgnitionTLS{
+							CASources: []infrav1.IgnitionCASource{"https://example.com/ca.pem"},
+						},
+					},
+				},
+			},
+			newMachine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType: "test",
+					Ignition: &infrav1.Ignition{
+						Version: "3.1",
+						TLS: &infrav1.IgnitionTLS{
+							CASources: []infrav1.IgnitionCASource{"ftp://example.com/ca.pem"},
+						},
+					},
+				},
+			},
+			wantErr:        true,
+			errContains:    "spec: Forbidden: cannot be modified",
+			errNotContains: "certificateAuthorities",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			_, err := (&AWSMachine{}).ValidateUpdate(context.TODO(), tt.oldMachine, tt.newMachine)
+			if tt.wantErr {
+				g.Expect(err).To(MatchError(ContainSubstring(tt.errContains)))
+				if tt.errNotContains != "" {
+					g.Expect(err.Error()).NotTo(ContainSubstring(tt.errNotContains))
+				}
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+			}
+		})
+	}
 }
 
 func TestAWSMachineSecretsBackend(t *testing.T) {
