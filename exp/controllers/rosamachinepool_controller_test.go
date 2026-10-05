@@ -812,7 +812,11 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 			},
 		}
 		g.Expect(mpPh.Patch(ctx, mp)).To(Succeed())
-		time.Sleep(50 * time.Millisecond)
+		patched := &expinfrav1.ROSAMachinePool{}
+		g.Eventually(func(g Gomega) {
+			g.Expect(testEnv.Get(ctx, client.ObjectKeyFromObject(mp), patched)).To(Succeed())
+			g.Expect(patched.Status.Conditions).NotTo(BeEmpty())
+		}).WithTimeout(10 * time.Second).WithPolling(100 * time.Millisecond).Should(Succeed())
 
 		mockCtrl := gomock.NewController(t)
 		defer mockCtrl.Finish()
@@ -852,19 +856,18 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 		g.Expect(reconcileErr).NotTo(HaveOccurred())
 		g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: time.Second * 60}))
 
-		time.Sleep(50 * time.Millisecond)
-
 		fetched := &expinfrav1.ROSAMachinePool{}
-		g.Expect(testEnv.Get(ctx, req.NamespacedName, fetched)).To(Succeed())
-
-		cond := v1beta1conditions.Get(fetched, expinfrav1.RosaMachinePoolReadyCondition)
-		g.Expect(cond).NotTo(BeNil(), "RosaMachinePoolReadyCondition should be set")
-		g.Expect(cond.Reason).To(Equal(expinfrav1.WaitingForNodePoolReason),
-			"reason must use the short constant, not the verbose nodepool message")
-		g.Expect(len(cond.Reason)).To(BeNumerically("<", 256),
-			"reason must stay within Kubernetes 256-byte limit")
-		g.Expect(cond.Message).To(ContainSubstring("CreateInProgress"),
-			"verbose details must appear in message, not reason")
+		g.Eventually(func(g Gomega) {
+			g.Expect(testEnv.Get(ctx, req.NamespacedName, fetched)).To(Succeed())
+			cond := v1beta1conditions.Get(fetched, expinfrav1.RosaMachinePoolReadyCondition)
+			g.Expect(cond).NotTo(BeNil(), "RosaMachinePoolReadyCondition should be set")
+			g.Expect(cond.Reason).To(Equal(expinfrav1.WaitingForNodePoolReason),
+				"reason must use the short constant, not the verbose nodepool message")
+			g.Expect(len(cond.Reason)).To(BeNumerically("<", 256),
+				"reason must stay within Kubernetes 256-byte limit")
+			g.Expect(cond.Message).To(ContainSubstring("CreateInProgress"),
+				"verbose details must appear in message, not reason")
+		}).WithTimeout(10 * time.Second).WithPolling(100 * time.Millisecond).Should(Succeed())
 	})
 }
 
