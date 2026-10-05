@@ -21,10 +21,13 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
 )
 
 func TestAWSMachineTemplateValidateCreate(t *testing.T) {
@@ -379,5 +382,83 @@ func TestAWSMachineTemplateValidateUpdate(t *testing.T) {
 			}
 		},
 		)
+	}
+}
+
+func TestAWSMachineTemplateValidateCreateIgnitionTLS(t *testing.T) {
+	tests := []struct {
+		name          string
+		inputTemplate *infrav1.AWSMachineTemplate
+		wantError     bool
+		errContains   string
+	}{
+		{
+			name: "template with invalid TLS source (ftp) is rejected",
+			inputTemplate: &infrav1.AWSMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: infrav1.AWSMachineTemplateSpec{
+					Template: infrav1.AWSMachineTemplateResource{
+						Spec: infrav1.AWSMachineSpec{
+							InstanceType: "test",
+							Ignition: &infrav1.Ignition{
+								Version: "3.1",
+								TLS: &infrav1.IgnitionTLS{
+									CASources: []infrav1.IgnitionCASource{
+										"https://example.com/ca.pem",
+										"ftp://example.com/ca.pem",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantError:   true,
+			errContains: "spec.template.spec.ignition.tls.certificateAuthorities[1]",
+		},
+		{
+			name: "template with valid TLS source (https only) is accepted",
+			inputTemplate: &infrav1.AWSMachineTemplate{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: infrav1.AWSMachineTemplateSpec{
+					Template: infrav1.AWSMachineTemplateResource{
+						Spec: infrav1.AWSMachineSpec{
+							InstanceType: "test",
+							Ignition: &infrav1.Ignition{
+								Version: "3.1",
+								TLS: &infrav1.IgnitionTLS{
+									CASources: []infrav1.IgnitionCASource{
+										"https://example.com/ca.pem",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Enable the feature gate
+			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.BootstrapFormatIgnition, true)
+
+			template := tt.inputTemplate.DeepCopy()
+			template.ObjectMeta = metav1.ObjectMeta{
+				GenerateName: "template-",
+				Namespace:    "default",
+			}
+			ctx := context.TODO()
+			err := testEnv.Create(ctx, template)
+			if (err != nil) != tt.wantError {
+				t.Errorf("ValidateCreate() error = %v, wantErr %v", err, tt.wantError)
+			}
+			if tt.wantError && tt.errContains != "" {
+				g := NewWithT(t)
+				g.Expect(err.Error()).To(ContainSubstring(tt.errContains))
+			}
+		})
 	}
 }
