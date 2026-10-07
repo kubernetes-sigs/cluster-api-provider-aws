@@ -370,6 +370,26 @@ func TestServiceSDKToLaunchTemplate(t *testing.T) {
 			wantBootstrapDataHash: nil, // respective tag is not given
 		},
 		{
+			name: "CPU options",
+			input: ec2types.LaunchTemplateVersion{
+				LaunchTemplateName: aws.String("foo"),
+				LaunchTemplateData: &ec2types.ResponseLaunchTemplateData{
+					CpuOptions: &ec2types.LaunchTemplateCpuOptions{
+						AmdSevSnp:            ec2types.AmdSevSnpSpecificationEnabled,
+						NestedVirtualization: ec2types.NestedVirtualizationSpecificationEnabled,
+					},
+				},
+			},
+			wantLT: &expinfrav1.AWSLaunchTemplate{
+				Name: "foo",
+				CPUOptions: infrav1.CPUOptions{
+					ConfidentialCompute:  infrav1.AWSConfidentialComputePolicySEVSNP,
+					NestedVirtualization: infrav1.NestedVirtualizationPolicyEnabled,
+				},
+			},
+			wantUserDataHash: userdata.ComputeHash(nil),
+		},
+		{
 			name: "spot market options",
 			input: ec2types.LaunchTemplateVersion{
 				LaunchTemplateId:   aws.String("lt-12345"),
@@ -722,6 +742,32 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 			},
 			want:                  true,
 			wantNeedsUpdateReason: services.LaunchTemplateNeedsUpdateReasonInstanceType,
+		},
+		{
+			name: "Should return true if incoming CPUOptions differ from existing CPUOptions",
+			incoming: &expinfrav1.AWSLaunchTemplate{
+				CPUOptions: infrav1.CPUOptions{
+					NestedVirtualization: infrav1.NestedVirtualizationPolicyEnabled,
+				},
+			},
+			existing: &expinfrav1.AWSLaunchTemplate{
+				CPUOptions: infrav1.CPUOptions{
+					NestedVirtualization: infrav1.NestedVirtualizationPolicyDisabled,
+				},
+			},
+			want:                  true,
+			wantNeedsUpdateReason: services.LaunchTemplateNeedsUpdateReasonCPUOptions,
+		},
+		{
+			name:     "Should return true if incoming CPUOptions remove existing CPUOptions",
+			incoming: &expinfrav1.AWSLaunchTemplate{},
+			existing: &expinfrav1.AWSLaunchTemplate{
+				CPUOptions: infrav1.CPUOptions{
+					NestedVirtualization: infrav1.NestedVirtualizationPolicyEnabled,
+				},
+			},
+			want:                  true,
+			wantNeedsUpdateReason: services.LaunchTemplateNeedsUpdateReasonCPUOptions,
 		},
 		{
 			name: "new additional security group with filters",
@@ -1529,11 +1575,61 @@ var LaunchTemplateVersionIgnoreUnexported = cmpopts.IgnoreUnexported(
 	ec2types.LaunchTemplateIamInstanceProfileSpecificationRequest{},
 	ec2types.LaunchTemplateSpotMarketOptionsRequest{},
 	ec2types.LaunchTemplateInstanceMarketOptionsRequest{},
+	ec2types.LaunchTemplateCpuOptionsRequest{},
 	ec2types.Tag{},
 	ec2types.LaunchTemplateTagSpecificationRequest{},
 	ec2types.RequestLaunchTemplateData{},
 	ec2.CreateLaunchTemplateVersionInput{},
 )
+
+func TestGetLaunchTemplateCPUOptionsRequest(t *testing.T) {
+	testCases := []struct {
+		name            string
+		cpuOptions      infrav1.CPUOptions
+		expectedRequest *ec2types.LaunchTemplateCpuOptionsRequest
+	}{
+		{
+			name:            "empty",
+			expectedRequest: nil,
+		},
+		{
+			name: "enabled nested virtualization",
+			cpuOptions: infrav1.CPUOptions{
+				NestedVirtualization: infrav1.NestedVirtualizationPolicyEnabled,
+			},
+			expectedRequest: &ec2types.LaunchTemplateCpuOptionsRequest{
+				NestedVirtualization: ec2types.NestedVirtualizationSpecificationEnabled,
+			},
+		},
+		{
+			name: "disabled nested virtualization",
+			cpuOptions: infrav1.CPUOptions{
+				NestedVirtualization: infrav1.NestedVirtualizationPolicyDisabled,
+			},
+			expectedRequest: &ec2types.LaunchTemplateCpuOptionsRequest{
+				NestedVirtualization: ec2types.NestedVirtualizationSpecificationDisabled,
+			},
+		},
+		{
+			name: "confidential compute and nested virtualization",
+			cpuOptions: infrav1.CPUOptions{
+				ConfidentialCompute:  infrav1.AWSConfidentialComputePolicySEVSNP,
+				NestedVirtualization: infrav1.NestedVirtualizationPolicyEnabled,
+			},
+			expectedRequest: &ec2types.LaunchTemplateCpuOptionsRequest{
+				AmdSevSnp:            ec2types.AmdSevSnpSpecificationEnabled,
+				NestedVirtualization: ec2types.NestedVirtualizationSpecificationEnabled,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect(getLaunchTemplateCPUOptionsRequest(tc.cpuOptions)).To(Equal(tc.expectedRequest))
+		})
+	}
+}
 
 func TestCreateLaunchTemplateVersion(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
@@ -1559,8 +1655,15 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 		marketType           ec2types.MarketType
 	}{
 		{
-			name:                 "Should successfully creates launch template version",
+			name:                 "Should successfully create launch template version with CPU options",
 			awsResourceReference: []infrav1.AWSResourceReference{{ID: aws.String("1")}},
+			mpScopeUpdater: func(mps *scope.MachinePoolScope) {
+				spec := mps.AWSMachinePool.Spec
+				spec.AWSLaunchTemplate.CPUOptions = infrav1.CPUOptions{
+					NestedVirtualization: infrav1.NestedVirtualizationPolicyEnabled,
+				}
+				mps.AWSMachinePool.Spec = spec
+			},
 			expect: func(m *mocks.MockEC2APIMockRecorder) {
 				sgMap := make(map[infrav1.SecurityGroupRole]infrav1.SecurityGroup)
 				sgMap[infrav1.SecurityGroupNode] = infrav1.SecurityGroup{ID: "1"}
@@ -1569,6 +1672,9 @@ func TestCreateLaunchTemplateVersion(t *testing.T) {
 				expectedInput := &ec2.CreateLaunchTemplateVersionInput{
 					LaunchTemplateData: &ec2types.RequestLaunchTemplateData{
 						InstanceType: ec2types.InstanceTypeT3Large,
+						CpuOptions: &ec2types.LaunchTemplateCpuOptionsRequest{
+							NestedVirtualization: ec2types.NestedVirtualizationSpecificationEnabled,
+						},
 						IamInstanceProfile: &ec2types.LaunchTemplateIamInstanceProfileSpecificationRequest{
 							Name: aws.String("instance-profile"),
 						},
