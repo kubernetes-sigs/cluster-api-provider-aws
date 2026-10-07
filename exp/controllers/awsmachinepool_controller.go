@@ -56,9 +56,11 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	capilabels "sigs.k8s.io/cluster-api/util/labels"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -74,6 +76,7 @@ type AWSMachinePoolReconciler struct {
 	reconcileServiceFactory      func(scope.EC2Scope) services.MachinePoolReconcileInterface
 	objectStoreServiceFactory    func(scope.S3Scope) services.ObjectStoreInterface
 	TagUnmanagedNetworkResources bool
+	ClusterCache                 clustercache.ClusterCache
 }
 
 func (r *AWSMachinePoolReconciler) getASGService(scope cloud.ClusterScoper) services.ASGInterface {
@@ -177,6 +180,7 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		MachinePool:    machinePool,
 		InfraCluster:   infraCluster,
 		AWSMachinePool: awsMachinePool,
+		ClusterCache:   r.ClusterCache,
 	})
 	if err != nil {
 		log.Error(err, "failed to create scope")
@@ -229,6 +233,10 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 }
 
 func (r *AWSMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	if r.ClusterCache == nil {
+		return errors.New("ClusterCache must not be nil")
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(options).
 		For(&expinfrav1.AWSMachinePool{}).
@@ -236,6 +244,7 @@ func (r *AWSMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctr
 			&clusterv1.MachinePool{},
 			handler.EnqueueRequestsFromMapFunc(machinePoolToInfrastructureMapFunc(expinfrav1.GroupVersion.WithKind("AWSMachinePool"))),
 		).
+		WatchesRawSource(r.ClusterCache.GetClusterSource("awsmachinepool", clusterToAWSMachinePoolsMapFunc(r.Client, r.WatchFilterValue))).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), logger.FromContext(ctx).GetLogger(), r.WatchFilterValue)).
 		WithEventFilter(
 			predicate.Funcs{
@@ -271,6 +280,36 @@ func (r *AWSMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctr
 			},
 		).
 		Complete(r)
+}
+
+func clusterToAWSMachinePoolsMapFunc(c client.Client, watchFilterValue string) handler.MapFunc {
+	// A workload Cluster event can affect every MachinePool belonging to that
+	// Cluster, so enqueue all matching infrastructure objects.
+	return func(ctx context.Context, o client.Object) []reconcile.Request {
+		cluster, ok := o.(*clusterv1.Cluster)
+		if !ok {
+			return nil
+		}
+		if watchFilterValue != "" && !capilabels.HasWatchLabel(cluster, watchFilterValue) {
+			return nil
+		}
+
+		machinePools := &clusterv1.MachinePoolList{}
+		if err := c.List(ctx, machinePools,
+			client.InNamespace(cluster.Namespace),
+			client.MatchingLabels{clusterv1.ClusterNameLabel: cluster.Name},
+		); err != nil {
+			klog.Errorf("Failed to list MachinePools for Cluster %s/%s: %v", cluster.Namespace, cluster.Name, err)
+			return nil
+		}
+
+		mapFunc := machinePoolToInfrastructureMapFunc(expinfrav1.GroupVersion.WithKind("AWSMachinePool"))
+		requests := []reconcile.Request{}
+		for i := range machinePools.Items {
+			requests = append(requests, mapFunc(ctx, &machinePools.Items[i])...)
+		}
+		return requests
+	}
 }
 
 func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machinePoolScope *scope.MachinePoolScope, clusterScope cloud.ClusterScoper, ec2Scope scope.EC2Scope, s3Scope scope.S3Scope) (ctrl.Result, error) {
