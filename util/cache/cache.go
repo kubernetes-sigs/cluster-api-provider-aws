@@ -18,6 +18,7 @@ limitations under the License.
 package cache
 
 import (
+	"context"
 	"time"
 
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
@@ -42,5 +43,5 @@ type InstanceTypeArchitectureCache = capicache.Cache[InstanceTypeArchitectureCac
 var (
 	// InstanceTypeArchitectureCacheSingleton is the singleton cache for InstanceTypeArchitectureCacheEntry items.
 	// It should be used in all relevant controllers (and possibly disabled for unit tests).
-	InstanceTypeArchitectureCacheSingleton InstanceTypeArchitectureCache = capicache.New[InstanceTypeArchitectureCacheEntry](2 * time.Hour)
+	InstanceTypeArchitectureCacheSingleton InstanceTypeArchitectureCache = capicache.New[InstanceTypeArchitectureCacheEntry](context.Background(), 2*time.Hour)
 )

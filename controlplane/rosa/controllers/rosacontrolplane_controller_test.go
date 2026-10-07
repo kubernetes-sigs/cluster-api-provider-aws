@@ -1902,11 +1902,12 @@ func TestReconcileExternalAuthKubeconfigSecrets(t *testing.T) {
 
 		// Verify CAPI contract secret
 		capiSecret := &corev1.Secret{}
-		err = testEnv.Get(ctx, client.ObjectKey{
-			Name:      fmt.Sprintf("%s-kubeconfig", ownerCluster.Name),
-			Namespace: ns.Name,
-		}, capiSecret)
-		g.Expect(err).ToNot(HaveOccurred())
+		g.Eventually(func(g Gomega) {
+			g.Expect(testEnv.Get(ctx, client.ObjectKey{
+				Name:      fmt.Sprintf("%s-kubeconfig", ownerCluster.Name),
+				Namespace: ns.Name,
+			}, capiSecret)).To(Succeed())
+		}).Should(Succeed())
 		g.Expect(capiSecret.Data).To(HaveKey(secret.KubeconfigDataName))
 		g.Expect(string(capiSecret.Data[secret.KubeconfigDataName])).To(Equal(kubeconfigData))
 		g.Expect(capiSecret.Annotations).To(HaveKey(ROSAControlPlaneCredentialExpiryAnnotation))
@@ -1931,11 +1932,12 @@ func TestReconcileExternalAuthKubeconfigSecrets(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 
 		existingCAPI := &corev1.Secret{}
-		err = testEnv.Get(ctx, client.ObjectKey{
-			Name:      fmt.Sprintf("%s-kubeconfig", ownerCluster.Name),
-			Namespace: ns.Name,
-		}, existingCAPI)
-		g.Expect(err).ToNot(HaveOccurred())
+		g.Eventually(func(g Gomega) {
+			g.Expect(testEnv.Get(ctx, client.ObjectKey{
+				Name:      fmt.Sprintf("%s-kubeconfig", ownerCluster.Name),
+				Namespace: ns.Name,
+			}, existingCAPI)).To(Succeed())
+		}).Should(Succeed())
 
 		err = reconciler.reconcileKubeconfigSecret(ctx, newKubeconfigData, newAnnotations, existingBootstrap, nil)
 		g.Expect(err).ToNot(HaveOccurred())
