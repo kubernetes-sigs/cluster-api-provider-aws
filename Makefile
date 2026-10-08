@@ -330,7 +330,7 @@ modules: ## Runs go mod to ensure proper vendoring.
 	cd $(TOOLS_DIR); go mod tidy
 
 .PHONY: verify ## Verify ties together the rest of the verification targets into one target
-verify: verify-boilerplate verify-modules verify-gen verify-conversions verify-shellcheck verify-book-links release-manifests verify-go-directive
+verify: verify-boilerplate verify-modules verify-tools-mod verify-gen verify-conversions verify-shellcheck verify-book-links release-manifests verify-go-directive
 
 .PHONY: verify-boilerplate
 verify-boilerplate: ## Verify boilerplate
@@ -343,6 +343,10 @@ verify-modules: modules ## Verify go modules integrity
 		git diff; \
 		echo "go module files are out of date"; exit 1; \
 	fi
+
+.PHONY: verify-tools-mod
+verify-tools-mod: ## Verify hack/tools k8s.io/* versions are >= root go.mod
+	./hack/verify-tools-mod.sh
 
 .PHONY: verify-conversions
 verify-conversions: $(CONVERSION_VERIFIER)  ## Verifies expected API conversion are in place
