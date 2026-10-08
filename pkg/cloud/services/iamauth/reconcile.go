@@ -19,6 +19,7 @@ package iamauth
 import (
 	"context"
 	"fmt"
+	"sort"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
@@ -34,7 +35,10 @@ import (
 
 // ReconcileIAMAuthenticator is used to create the aws-iam-authenticator in a cluster.
 func (s *Service) ReconcileIAMAuthenticator(ctx context.Context) error {
-	s.scope.Info("Reconciling aws-iam-authenticator configuration", "cluster", klog.KRef(s.scope.Namespace(), s.scope.Name()))
+	s.scope.Info(
+		"Reconciling aws-iam-authenticator configuration",
+		"cluster", klog.KRef(s.scope.Namespace(), s.scope.Name()),
+	)
 
 	remoteClient, err := s.scope.RemoteClient()
 	if err != nil {
@@ -46,46 +50,57 @@ func (s *Service) ReconcileIAMAuthenticator(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("getting aws-iam-authenticator backend: %w", err)
 	}
+
+	// Discover node roles from worker templates.
 	nodeRoles, err := s.getRolesForWorkers(ctx)
 	if err != nil {
 		s.scope.Error(err, "getting roles for remote workers")
 		return fmt.Errorf("getting roles for remote workers: %w", err)
 	}
+
+	iamCfg := s.scope.IAMAuthConfig()
+
+	// Compose the desired role set: node roles ∪ iamCfg.RoleMappings.
+	// Node roles MUST be included — the reconcile is a full replace of the
+	// aws-auth backend, so omitting them would revoke kubelet auth on all
+	// worker nodes.
+	desiredRoles := make([]ekscontrolplanev1.RoleMapping, 0, len(nodeRoles)+len(iamCfg.RoleMappings))
 	for roleName := range nodeRoles {
 		roleARN, err := s.getARNForRole(ctx, roleName)
 		if err != nil {
 			return fmt.Errorf("failed to get ARN for role %s: %w", roleName, err)
 		}
-		nodesRoleMapping := ekscontrolplanev1.RoleMapping{
+		desiredRoles = append(desiredRoles, ekscontrolplanev1.RoleMapping{
 			RoleARN: roleARN,
 			KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
 				UserName: EC2NodeUserName,
 				Groups:   NodeGroups,
 			},
-		}
-		s.scope.Debug("Mapping node IAM role", "iam-role", nodesRoleMapping.RoleARN, "user", nodesRoleMapping.UserName)
-		if err := authBackend.MapRole(nodesRoleMapping); err != nil {
-			return fmt.Errorf("mapping iam node role: %w", err)
-		}
+		})
+	}
+	desiredRoles = append(desiredRoles, iamCfg.RoleMappings...)
+
+	// Dedup by ARN and sort deterministically. nodeRoles is a map (unordered)
+	// and a user-configured RoleMapping may collide with a discovered node
+	// role's ARN; without dedup+sort the CM backend would churn the aws-auth
+	// ConfigMap on every reconcile and the CRD backend would create duplicate
+	// IAMIdentityMapping CRs. User-configured mappings are appended after node
+	// roles so they win on ARN collision (explicit intent overrides discovery).
+	desiredRoles = dedupAndSortRoles(desiredRoles)
+	desiredUsers := dedupAndSortUsers(iamCfg.UserMappings)
+
+	s.scope.Debug(
+		"Reconciling IAM authenticator mappings",
+		"node-roles", len(nodeRoles),
+		"user-roles", len(iamCfg.RoleMappings),
+		"user-mappings", len(desiredUsers),
+	)
+
+	if err := authBackend.ReconcileMappings(desiredRoles, desiredUsers); err != nil {
+		return fmt.Errorf("reconciling iam mappings: %w", err)
 	}
 
-	s.scope.Debug("Mapping additional IAM roles and users")
-	iamCfg := s.scope.IAMAuthConfig()
-	for _, roleMapping := range iamCfg.RoleMappings {
-		s.scope.Debug("Mapping IAM role", "iam-role", roleMapping.RoleARN, "user", roleMapping.UserName)
-		if err := authBackend.MapRole(roleMapping); err != nil {
-			return fmt.Errorf("mapping iam role: %w", err)
-		}
-	}
-
-	for _, userMapping := range iamCfg.UserMappings {
-		s.scope.Debug("Mapping IAM user", "iam-user", userMapping.UserARN, "user", userMapping.UserName)
-		if err := authBackend.MapUser(userMapping); err != nil {
-			return fmt.Errorf("mapping iam user: %w", err)
-		}
-	}
-
-	s.scope.Info("Reconciled aws-iam-authenticator configuration", "cluster", klog.KRef("", s.scope.Name()))
+	s.scope.Info("Reconciled aws-iam-authenticator configuration", "cluster", klog.KRef(s.scope.Namespace(), s.scope.Name()))
 
 	return nil
 }
@@ -208,4 +223,37 @@ func (s *Service) getRolesForAWSManagedMachinePool(ctx context.Context, ref clus
 		allRoles[instanceProfile] = struct{}{}
 	}
 	return nil
+}
+
+// dedupAndSortRoles collapses RoleMapping entries with duplicate RoleARNs and
+// returns the result sorted by RoleARN. Later entries win on collision, which
+// makes user-configured mappings from iamCfg.RoleMappings override any
+// same-ARN entry that came from node-role discovery.
+func dedupAndSortRoles(in []ekscontrolplanev1.RoleMapping) []ekscontrolplanev1.RoleMapping {
+	byARN := make(map[string]ekscontrolplanev1.RoleMapping, len(in))
+	for _, m := range in {
+		byARN[m.RoleARN] = m
+	}
+	out := make([]ekscontrolplanev1.RoleMapping, 0, len(byARN))
+	for _, m := range byARN {
+		out = append(out, m)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].RoleARN < out[j].RoleARN })
+	return out
+}
+
+// dedupAndSortUsers is the UserMapping analog of dedupAndSortRoles. It
+// collapses duplicate UserARNs (later wins) and returns entries sorted by
+// UserARN.
+func dedupAndSortUsers(in []ekscontrolplanev1.UserMapping) []ekscontrolplanev1.UserMapping {
+	byARN := make(map[string]ekscontrolplanev1.UserMapping, len(in))
+	for _, m := range in {
+		byARN[m.UserARN] = m
+	}
+	out := make([]ekscontrolplanev1.UserMapping, 0, len(byARN))
+	for _, m := range byARN {
+		out = append(out, m)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].UserARN < out[j].UserARN })
+	return out
 }
