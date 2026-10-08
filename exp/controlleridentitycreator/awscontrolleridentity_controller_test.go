@@ -39,6 +39,11 @@ func TestAWSControllerIdentityController(t *testing.T) {
 
 		// Create the AWSCluster object and expect the Reconcile and Deployment to be created
 		g.Expect(testEnv.Create(ctx, instance)).To(Succeed())
+		t.Cleanup(func() {
+			g.Expect(client.IgnoreNotFound(testEnv.Delete(ctx, instance))).To(Succeed())
+			identity := &infrav1.AWSClusterControllerIdentity{ObjectMeta: metav1.ObjectMeta{Name: infrav1.AWSClusterControllerIdentityName}}
+			g.Expect(client.IgnoreNotFound(testEnv.Delete(ctx, identity))).To(Succeed())
+		})
 
 		t.Log("Ensuring AWSClusterControllerIdentity instance is created")
 		g.Eventually(func() bool {
