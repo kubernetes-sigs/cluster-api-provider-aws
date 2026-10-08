@@ -718,6 +718,33 @@ func TestAWSMachineReconciler(t *testing.T) {
 				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.ELBAttachedCondition, corev1.ConditionTrue, "", ""}})
 				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
 			})
+			t.Run("should not attempt to attach a disabled control plane load balancer", func(t *testing.T) {
+				g := NewWithT(t)
+				awsMachine := getAWSMachine()
+				setup(t, g, awsMachine)
+				defer teardown(t, g)
+				instanceCreate(t, g)
+
+				ms.Machine.Labels = map[string]string{clusterv1.MachineControlPlaneLabel: ""}
+				ms.AWSMachine.Status.InstanceState = &infrav1.InstanceStateStopping
+				cs.AWSCluster.Spec.ControlPlaneLoadBalancer.LoadBalancerType = infrav1.LoadBalancerTypeDisabled
+				reconciler.elbServiceFactory = func(elbScope scope.ELBScope) services.ELBInterface {
+					return elbSvc
+				}
+
+				// No calls on elbSvc are expected: the mock controller fails the test
+				// if reconcileLBAttachment reaches registerInstanceToLBs for a disabled LB.
+				secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return("test", int32(1), nil).Times(1)
+				ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil).Times(1)
+				ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
+				ec2Svc.EXPECT().GetAdditionalSecurityGroupsIDs(gomock.Any()).Return(nil, nil)
+
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
+				g.Expect(err).To(BeNil())
+				g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
+				expectConditions(g, ms.AWSMachine, []conditionAssertion{{infrav1.InstanceReadyCondition, corev1.ConditionFalse, clusterv1beta1.ConditionSeverityWarning, infrav1.InstanceNotReadyReason}})
+			})
 			t.Run("should store userdata for CloudInit using AWS Secrets Manager only when not skipped", func(t *testing.T) {
 				g := NewWithT(t)
 				awsMachine := getAWSMachine()
