@@ -452,7 +452,8 @@ func Convert_v1beta2_AWSMachinePool_To_v1beta1_AWSMachinePool(in *v1beta2.AWSMac
 }
 
 func autoConvert_v1beta1_AWSMachinePoolInstanceStatus_To_v1beta2_AWSMachinePoolInstanceStatus(in *AWSMachinePoolInstanceStatus, out *v1beta2.AWSMachinePoolInstanceStatus, s conversion.Scope) error {
-	*out = *(*v1beta2.AWSMachinePoolInstanceStatus)(unsafe.Pointer(in))
+	out.InstanceID = in.InstanceID
+	out.Version = (*string)(unsafe.Pointer(in.Version))
 	return nil
 }
 
@@ -462,7 +463,8 @@ func Convert_v1beta1_AWSMachinePoolInstanceStatus_To_v1beta2_AWSMachinePoolInsta
 }
 
 func autoConvert_v1beta2_AWSMachinePoolInstanceStatus_To_v1beta1_AWSMachinePoolInstanceStatus(in *v1beta2.AWSMachinePoolInstanceStatus, out *AWSMachinePoolInstanceStatus, s conversion.Scope) error {
-	*out = *(*AWSMachinePoolInstanceStatus)(unsafe.Pointer(in))
+	out.InstanceID = in.InstanceID
+	out.Version = (*string)(unsafe.Pointer(in.Version))
 	return nil
 }
 
@@ -752,7 +754,13 @@ func autoConvert_v1beta2_AWSManagedMachinePoolSpec_To_v1beta1_AWSManagedMachineP
 }
 
 func autoConvert_v1beta1_AWSManagedMachinePoolStatus_To_v1beta2_AWSManagedMachinePoolStatus(in *AWSManagedMachinePoolStatus, out *v1beta2.AWSManagedMachinePoolStatus, s conversion.Scope) error {
-	*out = *(*v1beta2.AWSManagedMachinePoolStatus)(unsafe.Pointer(in))
+	out.Ready = in.Ready
+	out.Replicas = in.Replicas
+	out.LaunchTemplateID = (*string)(unsafe.Pointer(in.LaunchTemplateID))
+	out.LaunchTemplateVersion = (*string)(unsafe.Pointer(in.LaunchTemplateVersion))
+	out.FailureReason = (*string)(unsafe.Pointer(in.FailureReason))
+	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
+	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 
@@ -762,7 +770,13 @@ func Convert_v1beta1_AWSManagedMachinePoolStatus_To_v1beta2_AWSManagedMachinePoo
 }
 
 func autoConvert_v1beta2_AWSManagedMachinePoolStatus_To_v1beta1_AWSManagedMachinePoolStatus(in *v1beta2.AWSManagedMachinePoolStatus, out *AWSManagedMachinePoolStatus, s conversion.Scope) error {
-	*out = *(*AWSManagedMachinePoolStatus)(unsafe.Pointer(in))
+	out.Ready = in.Ready
+	out.Replicas = in.Replicas
+	out.LaunchTemplateID = (*string)(unsafe.Pointer(in.LaunchTemplateID))
+	out.LaunchTemplateVersion = (*string)(unsafe.Pointer(in.LaunchTemplateVersion))
+	out.FailureReason = (*string)(unsafe.Pointer(in.FailureReason))
+	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
+	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 
@@ -813,7 +827,10 @@ func autoConvert_v1beta2_AutoScalingGroup_To_v1beta1_AutoScalingGroup(in *v1beta
 }
 
 func autoConvert_v1beta1_BlockDeviceMapping_To_v1beta2_BlockDeviceMapping(in *BlockDeviceMapping, out *v1beta2.BlockDeviceMapping, s conversion.Scope) error {
-	*out = *(*v1beta2.BlockDeviceMapping)(unsafe.Pointer(in))
+	out.DeviceName = in.DeviceName
+	if err := Convert_v1beta1_EBS_To_v1beta2_EBS(&in.Ebs, &out.Ebs, s); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -823,7 +840,10 @@ func Convert_v1beta1_BlockDeviceMapping_To_v1beta2_BlockDeviceMapping(in *BlockD
 }
 
 func autoConvert_v1beta2_BlockDeviceMapping_To_v1beta1_BlockDeviceMapping(in *v1beta2.BlockDeviceMapping, out *BlockDeviceMapping, s conversion.Scope) error {
-	*out = *(*BlockDeviceMapping)(unsafe.Pointer(in))
+	out.DeviceName = in.DeviceName
+	if err := Convert_v1beta2_EBS_To_v1beta1_EBS(&in.Ebs, &out.Ebs, s); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -833,7 +853,9 @@ func Convert_v1beta2_BlockDeviceMapping_To_v1beta1_BlockDeviceMapping(in *v1beta
 }
 
 func autoConvert_v1beta1_EBS_To_v1beta2_EBS(in *EBS, out *v1beta2.EBS, s conversion.Scope) error {
-	*out = *(*v1beta2.EBS)(unsafe.Pointer(in))
+	out.Encrypted = in.Encrypted
+	out.VolumeSize = in.VolumeSize
+	out.VolumeType = in.VolumeType
 	return nil
 }
 
@@ -843,7 +865,9 @@ func Convert_v1beta1_EBS_To_v1beta2_EBS(in *EBS, out *v1beta2.EBS, s conversion.
 }
 
 func autoConvert_v1beta2_EBS_To_v1beta1_EBS(in *v1beta2.EBS, out *EBS, s conversion.Scope) error {
-	*out = *(*EBS)(unsafe.Pointer(in))
+	out.Encrypted = in.Encrypted
+	out.VolumeSize = in.VolumeSize
+	out.VolumeType = in.VolumeType
 	return nil
 }
 
@@ -880,7 +904,10 @@ func autoConvert_v1beta2_FargateProfileSpec_To_v1beta1_FargateProfileSpec(in *v1
 }
 
 func autoConvert_v1beta1_FargateProfileStatus_To_v1beta2_FargateProfileStatus(in *FargateProfileStatus, out *v1beta2.FargateProfileStatus, s conversion.Scope) error {
-	*out = *(*v1beta2.FargateProfileStatus)(unsafe.Pointer(in))
+	out.Ready = in.Ready
+	out.FailureReason = (*string)(unsafe.Pointer(in.FailureReason))
+	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
+	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 
@@ -890,7 +917,10 @@ func Convert_v1beta1_FargateProfileStatus_To_v1beta2_FargateProfileStatus(in *Fa
 }
 
 func autoConvert_v1beta2_FargateProfileStatus_To_v1beta1_FargateProfileStatus(in *v1beta2.FargateProfileStatus, out *FargateProfileStatus, s conversion.Scope) error {
-	*out = *(*FargateProfileStatus)(unsafe.Pointer(in))
+	out.Ready = in.Ready
+	out.FailureReason = (*string)(unsafe.Pointer(in.FailureReason))
+	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
+	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
 	return nil
 }
 
@@ -900,7 +930,8 @@ func Convert_v1beta2_FargateProfileStatus_To_v1beta1_FargateProfileStatus(in *v1
 }
 
 func autoConvert_v1beta1_FargateSelector_To_v1beta2_FargateSelector(in *FargateSelector, out *v1beta2.FargateSelector, s conversion.Scope) error {
-	*out = *(*v1beta2.FargateSelector)(unsafe.Pointer(in))
+	out.Labels = *(*map[string]string)(unsafe.Pointer(&in.Labels))
+	out.Namespace = in.Namespace
 	return nil
 }
 
@@ -910,7 +941,8 @@ func Convert_v1beta1_FargateSelector_To_v1beta2_FargateSelector(in *FargateSelec
 }
 
 func autoConvert_v1beta2_FargateSelector_To_v1beta1_FargateSelector(in *v1beta2.FargateSelector, out *FargateSelector, s conversion.Scope) error {
-	*out = *(*FargateSelector)(unsafe.Pointer(in))
+	out.Labels = *(*map[string]string)(unsafe.Pointer(&in.Labels))
+	out.Namespace = in.Namespace
 	return nil
 }
 
@@ -920,7 +952,10 @@ func Convert_v1beta2_FargateSelector_To_v1beta1_FargateSelector(in *v1beta2.Farg
 }
 
 func autoConvert_v1beta1_InstancesDistribution_To_v1beta2_InstancesDistribution(in *InstancesDistribution, out *v1beta2.InstancesDistribution, s conversion.Scope) error {
-	*out = *(*v1beta2.InstancesDistribution)(unsafe.Pointer(in))
+	out.OnDemandAllocationStrategy = v1beta2.OnDemandAllocationStrategy(in.OnDemandAllocationStrategy)
+	out.SpotAllocationStrategy = v1beta2.SpotAllocationStrategy(in.SpotAllocationStrategy)
+	out.OnDemandBaseCapacity = (*int64)(unsafe.Pointer(in.OnDemandBaseCapacity))
+	out.OnDemandPercentageAboveBaseCapacity = (*int64)(unsafe.Pointer(in.OnDemandPercentageAboveBaseCapacity))
 	return nil
 }
 
@@ -930,7 +965,10 @@ func Convert_v1beta1_InstancesDistribution_To_v1beta2_InstancesDistribution(in *
 }
 
 func autoConvert_v1beta2_InstancesDistribution_To_v1beta1_InstancesDistribution(in *v1beta2.InstancesDistribution, out *InstancesDistribution, s conversion.Scope) error {
-	*out = *(*InstancesDistribution)(unsafe.Pointer(in))
+	out.OnDemandAllocationStrategy = OnDemandAllocationStrategy(in.OnDemandAllocationStrategy)
+	out.SpotAllocationStrategy = SpotAllocationStrategy(in.SpotAllocationStrategy)
+	out.OnDemandBaseCapacity = (*int64)(unsafe.Pointer(in.OnDemandBaseCapacity))
+	out.OnDemandPercentageAboveBaseCapacity = (*int64)(unsafe.Pointer(in.OnDemandPercentageAboveBaseCapacity))
 	return nil
 }
 
@@ -940,7 +978,8 @@ func Convert_v1beta2_InstancesDistribution_To_v1beta1_InstancesDistribution(in *
 }
 
 func autoConvert_v1beta1_ManagedMachinePoolScaling_To_v1beta2_ManagedMachinePoolScaling(in *ManagedMachinePoolScaling, out *v1beta2.ManagedMachinePoolScaling, s conversion.Scope) error {
-	*out = *(*v1beta2.ManagedMachinePoolScaling)(unsafe.Pointer(in))
+	out.MinSize = (*int32)(unsafe.Pointer(in.MinSize))
+	out.MaxSize = (*int32)(unsafe.Pointer(in.MaxSize))
 	return nil
 }
 
@@ -950,7 +989,8 @@ func Convert_v1beta1_ManagedMachinePoolScaling_To_v1beta2_ManagedMachinePoolScal
 }
 
 func autoConvert_v1beta2_ManagedMachinePoolScaling_To_v1beta1_ManagedMachinePoolScaling(in *v1beta2.ManagedMachinePoolScaling, out *ManagedMachinePoolScaling, s conversion.Scope) error {
-	*out = *(*ManagedMachinePoolScaling)(unsafe.Pointer(in))
+	out.MinSize = (*int32)(unsafe.Pointer(in.MinSize))
+	out.MaxSize = (*int32)(unsafe.Pointer(in.MaxSize))
 	return nil
 }
 
@@ -960,7 +1000,9 @@ func Convert_v1beta2_ManagedMachinePoolScaling_To_v1beta1_ManagedMachinePoolScal
 }
 
 func autoConvert_v1beta1_ManagedRemoteAccess_To_v1beta2_ManagedRemoteAccess(in *ManagedRemoteAccess, out *v1beta2.ManagedRemoteAccess, s conversion.Scope) error {
-	*out = *(*v1beta2.ManagedRemoteAccess)(unsafe.Pointer(in))
+	out.SSHKeyName = (*string)(unsafe.Pointer(in.SSHKeyName))
+	out.SourceSecurityGroups = *(*[]string)(unsafe.Pointer(&in.SourceSecurityGroups))
+	out.Public = in.Public
 	return nil
 }
 
@@ -970,7 +1012,9 @@ func Convert_v1beta1_ManagedRemoteAccess_To_v1beta2_ManagedRemoteAccess(in *Mana
 }
 
 func autoConvert_v1beta2_ManagedRemoteAccess_To_v1beta1_ManagedRemoteAccess(in *v1beta2.ManagedRemoteAccess, out *ManagedRemoteAccess, s conversion.Scope) error {
-	*out = *(*ManagedRemoteAccess)(unsafe.Pointer(in))
+	out.SSHKeyName = (*string)(unsafe.Pointer(in.SSHKeyName))
+	out.SourceSecurityGroups = *(*[]string)(unsafe.Pointer(&in.SourceSecurityGroups))
+	out.Public = in.Public
 	return nil
 }
 
@@ -980,7 +1024,8 @@ func Convert_v1beta2_ManagedRemoteAccess_To_v1beta1_ManagedRemoteAccess(in *v1be
 }
 
 func autoConvert_v1beta1_MixedInstancesPolicy_To_v1beta2_MixedInstancesPolicy(in *MixedInstancesPolicy, out *v1beta2.MixedInstancesPolicy, s conversion.Scope) error {
-	*out = *(*v1beta2.MixedInstancesPolicy)(unsafe.Pointer(in))
+	out.InstancesDistribution = (*v1beta2.InstancesDistribution)(unsafe.Pointer(in.InstancesDistribution))
+	out.Overrides = *(*[]v1beta2.Overrides)(unsafe.Pointer(&in.Overrides))
 	return nil
 }
 
@@ -990,7 +1035,8 @@ func Convert_v1beta1_MixedInstancesPolicy_To_v1beta2_MixedInstancesPolicy(in *Mi
 }
 
 func autoConvert_v1beta2_MixedInstancesPolicy_To_v1beta1_MixedInstancesPolicy(in *v1beta2.MixedInstancesPolicy, out *MixedInstancesPolicy, s conversion.Scope) error {
-	*out = *(*MixedInstancesPolicy)(unsafe.Pointer(in))
+	out.InstancesDistribution = (*InstancesDistribution)(unsafe.Pointer(in.InstancesDistribution))
+	out.Overrides = *(*[]Overrides)(unsafe.Pointer(&in.Overrides))
 	return nil
 }
 
@@ -1000,7 +1046,7 @@ func Convert_v1beta2_MixedInstancesPolicy_To_v1beta1_MixedInstancesPolicy(in *v1
 }
 
 func autoConvert_v1beta1_Overrides_To_v1beta2_Overrides(in *Overrides, out *v1beta2.Overrides, s conversion.Scope) error {
-	*out = *(*v1beta2.Overrides)(unsafe.Pointer(in))
+	out.InstanceType = in.InstanceType
 	return nil
 }
 
@@ -1010,7 +1056,7 @@ func Convert_v1beta1_Overrides_To_v1beta2_Overrides(in *Overrides, out *v1beta2.
 }
 
 func autoConvert_v1beta2_Overrides_To_v1beta1_Overrides(in *v1beta2.Overrides, out *Overrides, s conversion.Scope) error {
-	*out = *(*Overrides)(unsafe.Pointer(in))
+	out.InstanceType = in.InstanceType
 	return nil
 }
 
@@ -1041,7 +1087,9 @@ func autoConvert_v1beta2_RefreshPreferences_To_v1beta1_RefreshPreferences(in *v1
 }
 
 func autoConvert_v1beta1_Taint_To_v1beta2_Taint(in *Taint, out *v1beta2.Taint, s conversion.Scope) error {
-	*out = *(*v1beta2.Taint)(unsafe.Pointer(in))
+	out.Effect = v1beta2.TaintEffect(in.Effect)
+	out.Key = in.Key
+	out.Value = in.Value
 	return nil
 }
 
@@ -1051,7 +1099,9 @@ func Convert_v1beta1_Taint_To_v1beta2_Taint(in *Taint, out *v1beta2.Taint, s con
 }
 
 func autoConvert_v1beta2_Taint_To_v1beta1_Taint(in *v1beta2.Taint, out *Taint, s conversion.Scope) error {
-	*out = *(*Taint)(unsafe.Pointer(in))
+	out.Effect = TaintEffect(in.Effect)
+	out.Key = in.Key
+	out.Value = in.Value
 	return nil
 }
 
@@ -1061,7 +1111,8 @@ func Convert_v1beta2_Taint_To_v1beta1_Taint(in *v1beta2.Taint, out *Taint, s con
 }
 
 func autoConvert_v1beta1_UpdateConfig_To_v1beta2_UpdateConfig(in *UpdateConfig, out *v1beta2.UpdateConfig, s conversion.Scope) error {
-	*out = *(*v1beta2.UpdateConfig)(unsafe.Pointer(in))
+	out.MaxUnavailable = (*int)(unsafe.Pointer(in.MaxUnavailable))
+	out.MaxUnavailablePercentage = (*int)(unsafe.Pointer(in.MaxUnavailablePercentage))
 	return nil
 }
 
@@ -1071,7 +1122,8 @@ func Convert_v1beta1_UpdateConfig_To_v1beta2_UpdateConfig(in *UpdateConfig, out 
 }
 
 func autoConvert_v1beta2_UpdateConfig_To_v1beta1_UpdateConfig(in *v1beta2.UpdateConfig, out *UpdateConfig, s conversion.Scope) error {
-	*out = *(*UpdateConfig)(unsafe.Pointer(in))
+	out.MaxUnavailable = (*int)(unsafe.Pointer(in.MaxUnavailable))
+	out.MaxUnavailablePercentage = (*int)(unsafe.Pointer(in.MaxUnavailablePercentage))
 	return nil
 }
 
