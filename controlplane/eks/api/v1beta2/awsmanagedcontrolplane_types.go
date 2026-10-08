@@ -238,6 +238,24 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// (Official AWS docs: https://docs.aws.amazon.com/eks/latest/userguide/eks-provisioned-control-plane.html)
 	// +optional
 	ControlPlaneScalingConfig *ControlPlaneScalingConfig `json:"controlPlaneScalingConfig,omitempty"`
+
+	// KubeSchedulerConfig specifies the configuration for the Kubernetes scheduler of the EKS control plane.
+	// When omitted, CAPA does not manage the scheduler configuration and EKS defaults apply.
+	// (Official AWS docs: https://docs.aws.amazon.com/eks/latest/userguide/control-plane-configuration.html)
+	// +optional
+	KubeSchedulerConfig *KubeSchedulerConfig `json:"kubeSchedulerConfig,omitempty"`
+
+	// KubeAPIServerConfig specifies the configuration for the Kubernetes API server of the EKS control plane.
+	// When omitted, CAPA does not manage the API server configuration and EKS defaults apply.
+	// +optional
+	KubeAPIServerConfig *KubeAPIServerConfig `json:"kubeAPIServerConfig,omitempty"`
+
+	// KubeControllerManagerConfig specifies the configuration for the Kubernetes controller manager of the EKS control plane.
+	// When omitted, CAPA does not manage the controller manager configuration and EKS defaults apply.
+	// Some parameters, such as the horizontal pod autoscaler sync period, require a provisioned control plane tier
+	// (see ControlPlaneScalingConfig).
+	// +optional
+	KubeControllerManagerConfig *KubeControllerManagerConfig `json:"kubeControllerManagerConfig,omitempty"`
 }
 
 // KubeProxy specifies how the kube-proxy daemonset is managed.

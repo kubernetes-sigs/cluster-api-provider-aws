@@ -1190,3 +1190,364 @@ func TestReconcileScalingConfig(t *testing.T) {
 		})
 	}
 }
+
+func newComponentConfigTestService(t *testing.T, spec ekscontrolplanev1.AWSManagedControlPlaneSpec) *Service {
+	t.Helper()
+
+	scheme := runtime.NewScheme()
+	_ = infrav1.AddToScheme(scheme)
+	_ = ekscontrolplanev1.AddToScheme(scheme)
+	client := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+	if spec.EKSClusterName == "" {
+		spec.EKSClusterName = "test-cluster"
+	}
+
+	managedScope, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
+		Client: client,
+		Cluster: &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "ns",
+				Name:      "capi-name",
+			},
+		},
+		ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
+			Spec: spec,
+		},
+	})
+	if err != nil {
+		t.Fatalf("failed to create managed control plane scope: %v", err)
+	}
+
+	return NewService(managedScope)
+}
+
+func schedulerResponse(strategyType ekstypes.ScoringStrategyType, weights ...ekstypes.ResourceWeight) *ekstypes.KubeSchedulerConfigResponse {
+	return &ekstypes.KubeSchedulerConfigResponse{
+		NodeResourcesFit: &ekstypes.NodeResourcesFitConfig{
+			ScoringStrategy: &ekstypes.ScoringStrategy{
+				Type:      strategyType,
+				Resources: weights,
+			},
+		},
+	}
+}
+
+func TestReconcileKubeSchedulerConfig(t *testing.T) {
+	defaultWeights := []ekstypes.ResourceWeight{
+		{Name: aws.String("cpu"), Weight: aws.Int32(1)},
+		{Name: aws.String("memory"), Weight: aws.Int32(1)},
+	}
+	mostAllocated := func(weights ...ekscontrolplanev1.ResourceWeight) *ekscontrolplanev1.KubeSchedulerConfig {
+		return &ekscontrolplanev1.KubeSchedulerConfig{
+			NodeResourcesFit: &ekscontrolplanev1.NodeResourcesFitConfig{
+				ScoringStrategy: &ekscontrolplanev1.ScoringStrategy{
+					Type:      ekscontrolplanev1.ScoringStrategyTypeMostAllocated,
+					Resources: weights,
+				},
+			},
+		}
+	}
+
+	testCases := []struct {
+		name          string
+		specConfig    *ekscontrolplanev1.KubeSchedulerConfig
+		clusterConfig *ekstypes.KubeSchedulerConfigResponse
+		expectUpdate  bool
+	}{
+		{
+			name:          "spec has no scheduler config - no update",
+			specConfig:    nil,
+			clusterConfig: schedulerResponse(ekstypes.ScoringStrategyTypeLeastAllocated, defaultWeights...),
+			expectUpdate:  false,
+		},
+		{
+			name:          "cluster reports no scheduler config - update needed",
+			specConfig:    mostAllocated(),
+			clusterConfig: nil,
+			expectUpdate:  true,
+		},
+		{
+			name:          "strategy type differs - update needed",
+			specConfig:    mostAllocated(),
+			clusterConfig: schedulerResponse(ekstypes.ScoringStrategyTypeLeastAllocated, defaultWeights...),
+			expectUpdate:  true,
+		},
+		{
+			name:          "strategy type matches and spec has no resources - no update",
+			specConfig:    mostAllocated(),
+			clusterConfig: schedulerResponse(ekstypes.ScoringStrategyTypeMostAllocated, defaultWeights...),
+			expectUpdate:  false,
+		},
+		{
+			name:          "resource weights differ - update needed",
+			specConfig:    mostAllocated(ekscontrolplanev1.ResourceWeight{Name: "cpu", Weight: 2}, ekscontrolplanev1.ResourceWeight{Name: "memory", Weight: 2}),
+			clusterConfig: schedulerResponse(ekstypes.ScoringStrategyTypeMostAllocated, defaultWeights...),
+			expectUpdate:  true,
+		},
+		{
+			name:       "resource weights match in a different order - no update",
+			specConfig: mostAllocated(ekscontrolplanev1.ResourceWeight{Name: "memory", Weight: 2}, ekscontrolplanev1.ResourceWeight{Name: "cpu", Weight: 2}),
+			clusterConfig: schedulerResponse(ekstypes.ScoringStrategyTypeMostAllocated,
+				ekstypes.ResourceWeight{Name: aws.String("cpu"), Weight: aws.Int32(2)},
+				ekstypes.ResourceWeight{Name: aws.String("memory"), Weight: aws.Int32(2)},
+			),
+			expectUpdate: false,
+		},
+		{
+			name:          "spec lists fewer resources than the cluster - update needed",
+			specConfig:    mostAllocated(ekscontrolplanev1.ResourceWeight{Name: "cpu", Weight: 1}),
+			clusterConfig: schedulerResponse(ekstypes.ScoringStrategyTypeMostAllocated, defaultWeights...),
+			expectUpdate:  true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			s := newComponentConfigTestService(t, ekscontrolplanev1.AWSManagedControlPlaneSpec{KubeSchedulerConfig: tc.specConfig})
+
+			result := s.reconcileKubeSchedulerConfig(tc.clusterConfig)
+			if tc.expectUpdate {
+				g.Expect(result).ToNot(BeNil(), "expected update config to be returned")
+				g.Expect(result.NodeResourcesFit.ScoringStrategy.Type).To(Equal(ekstypes.ScoringStrategyType(tc.specConfig.NodeResourcesFit.ScoringStrategy.Type)))
+				g.Expect(result.NodeResourcesFit.ScoringStrategy.Resources).To(HaveLen(len(tc.specConfig.NodeResourcesFit.ScoringStrategy.Resources)))
+			} else {
+				g.Expect(result).To(BeNil(), "expected no update")
+			}
+		})
+	}
+}
+
+func TestReconcileKubeAPIServerConfig(t *testing.T) {
+	testCases := []struct {
+		name          string
+		specConfig    *ekscontrolplanev1.KubeAPIServerConfig
+		clusterConfig *ekstypes.KubeApiServerConfigResponse
+		expectUpdate  bool
+	}{
+		{
+			name:          "spec has no api server config - no update",
+			specConfig:    nil,
+			clusterConfig: &ekstypes.KubeApiServerConfigResponse{EventTtl: aws.String("60m")},
+			expectUpdate:  false,
+		},
+		{
+			name:          "cluster reports no api server config - update needed",
+			specConfig:    &ekscontrolplanev1.KubeAPIServerConfig{EventTTL: "15m"},
+			clusterConfig: nil,
+			expectUpdate:  true,
+		},
+		{
+			name:          "event ttl differs - update needed",
+			specConfig:    &ekscontrolplanev1.KubeAPIServerConfig{EventTTL: "15m"},
+			clusterConfig: &ekstypes.KubeApiServerConfigResponse{EventTtl: aws.String("60m")},
+			expectUpdate:  true,
+		},
+		{
+			name:          "event ttl is equal in a different unit - no update",
+			specConfig:    &ekscontrolplanev1.KubeAPIServerConfig{EventTTL: "60m"},
+			clusterConfig: &ekstypes.KubeApiServerConfigResponse{EventTtl: aws.String("1h")},
+			expectUpdate:  false,
+		},
+		{
+			name:       "service node port range matches and event ttl is not set - no update",
+			specConfig: &ekscontrolplanev1.KubeAPIServerConfig{ServiceNodePortRange: &ekscontrolplanev1.ServiceNodePortRange{MinPort: 30000, MaxPort: 32767}},
+			clusterConfig: &ekstypes.KubeApiServerConfigResponse{
+				EventTtl:             aws.String("60m"),
+				ServiceNodePortRange: &ekstypes.ServiceNodePortRange{MinPort: 30000, MaxPort: 32767},
+			},
+			expectUpdate: false,
+		},
+		{
+			name:       "service node port range differs - update needed",
+			specConfig: &ekscontrolplanev1.KubeAPIServerConfig{ServiceNodePortRange: &ekscontrolplanev1.ServiceNodePortRange{MinPort: 20000, MaxPort: 32767}},
+			clusterConfig: &ekstypes.KubeApiServerConfigResponse{
+				ServiceNodePortRange: &ekstypes.ServiceNodePortRange{MinPort: 30000, MaxPort: 32767},
+			},
+			expectUpdate: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			s := newComponentConfigTestService(t, ekscontrolplanev1.AWSManagedControlPlaneSpec{KubeAPIServerConfig: tc.specConfig})
+
+			result := s.reconcileKubeAPIServerConfig(tc.clusterConfig)
+			if tc.expectUpdate {
+				g.Expect(result).ToNot(BeNil(), "expected update config to be returned")
+				if tc.specConfig.EventTTL != "" {
+					g.Expect(aws.ToString(result.EventTtl)).To(Equal(tc.specConfig.EventTTL))
+				}
+			} else {
+				g.Expect(result).To(BeNil(), "expected no update")
+			}
+		})
+	}
+}
+
+func TestReconcileKubeControllerManagerConfig(t *testing.T) {
+	testCases := []struct {
+		name          string
+		specConfig    *ekscontrolplanev1.KubeControllerManagerConfig
+		clusterConfig *ekstypes.KubeControllerManagerConfigResponse
+		expectUpdate  bool
+	}{
+		{
+			name:         "spec has no controller manager config - no update",
+			specConfig:   nil,
+			expectUpdate: false,
+		},
+		{
+			name: "sync period differs - update needed",
+			specConfig: &ekscontrolplanev1.KubeControllerManagerConfig{
+				HorizontalPodAutoscalerControllerConfig: &ekscontrolplanev1.HorizontalPodAutoscalerControllerConfig{HorizontalPodAutoscalerSyncPeriod: "10s"},
+			},
+			clusterConfig: &ekstypes.KubeControllerManagerConfigResponse{
+				HorizontalPodAutoscalerControllerConfig: &ekstypes.HorizontalPodAutoscalerControllerConfigResponse{HorizontalPodAutoscalerSyncPeriod: aws.String("15s")},
+			},
+			expectUpdate: true,
+		},
+		{
+			name: "terminated pod gc threshold differs - update needed",
+			specConfig: &ekscontrolplanev1.KubeControllerManagerConfig{
+				PodGCControllerConfig: &ekscontrolplanev1.PodGCControllerConfig{TerminatedPodGCThreshold: aws.Int32(10000)},
+			},
+			clusterConfig: &ekstypes.KubeControllerManagerConfigResponse{
+				PodGcControllerConfig: &ekstypes.PodGcControllerConfigResponse{TerminatedPodGcThreshold: aws.Int32(12500)},
+			},
+			expectUpdate: true,
+		},
+		{
+			name: "all parameters match - no update",
+			specConfig: &ekscontrolplanev1.KubeControllerManagerConfig{
+				HorizontalPodAutoscalerControllerConfig: &ekscontrolplanev1.HorizontalPodAutoscalerControllerConfig{HorizontalPodAutoscalerSyncPeriod: "10s"},
+				PodGCControllerConfig:                   &ekscontrolplanev1.PodGCControllerConfig{TerminatedPodGCThreshold: aws.Int32(10000)},
+			},
+			clusterConfig: &ekstypes.KubeControllerManagerConfigResponse{
+				HorizontalPodAutoscalerControllerConfig: &ekstypes.HorizontalPodAutoscalerControllerConfigResponse{HorizontalPodAutoscalerSyncPeriod: aws.String("10s")},
+				PodGcControllerConfig:                   &ekstypes.PodGcControllerConfigResponse{TerminatedPodGcThreshold: aws.Int32(10000)},
+			},
+			expectUpdate: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			s := newComponentConfigTestService(t, ekscontrolplanev1.AWSManagedControlPlaneSpec{KubeControllerManagerConfig: tc.specConfig})
+
+			result := s.reconcileKubeControllerManagerConfig(tc.clusterConfig)
+			if tc.expectUpdate {
+				g.Expect(result).ToNot(BeNil(), "expected update config to be returned")
+			} else {
+				g.Expect(result).To(BeNil(), "expected no update")
+			}
+		})
+	}
+}
+
+func TestReconcileControlPlaneComponentConfig(t *testing.T) {
+	spec := ekscontrolplanev1.AWSManagedControlPlaneSpec{
+		KubeSchedulerConfig: &ekscontrolplanev1.KubeSchedulerConfig{
+			NodeResourcesFit: &ekscontrolplanev1.NodeResourcesFitConfig{
+				ScoringStrategy: &ekscontrolplanev1.ScoringStrategy{Type: ekscontrolplanev1.ScoringStrategyTypeMostAllocated},
+			},
+		},
+		KubeAPIServerConfig: &ekscontrolplanev1.KubeAPIServerConfig{EventTTL: "15m"},
+	}
+
+	tests := []struct {
+		name        string
+		cluster     *ekstypes.Cluster
+		expect      func(m *mock_eksiface.MockEKSAPIMockRecorder)
+		expectError bool
+	}{
+		{
+			name: "no update necessary",
+			cluster: &ekstypes.Cluster{
+				KubeSchedulerConfig: schedulerResponse(ekstypes.ScoringStrategyTypeMostAllocated),
+				KubeApiServerConfig: &ekstypes.KubeApiServerConfigResponse{EventTtl: aws.String("15m")},
+			},
+			expect:      func(_ *mock_eksiface.MockEKSAPIMockRecorder) {},
+			expectError: false,
+		},
+		{
+			name: "only the api server config differs",
+			cluster: &ekstypes.Cluster{
+				KubeSchedulerConfig: schedulerResponse(ekstypes.ScoringStrategyTypeMostAllocated),
+				KubeApiServerConfig: &ekstypes.KubeApiServerConfigResponse{EventTtl: aws.String("60m")},
+			},
+			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
+				m.
+					UpdateClusterConfig(gomock.Eq(context.TODO()), gomock.Eq(&eks.UpdateClusterConfigInput{
+						Name:                aws.String("test-cluster"),
+						KubeApiServerConfig: &ekstypes.KubeApiServerConfigRequest{EventTtl: aws.String("15m")},
+					})).
+					Return(&eks.UpdateClusterConfigOutput{}, nil)
+				m.WaitUntilClusterUpdating(
+					gomock.Eq(context.TODO()),
+					gomock.AssignableToTypeOf(&eks.DescribeClusterInput{}),
+					gomock.Any(),
+				).Return(nil)
+			},
+			expectError: false,
+		},
+		{
+			name: "api error",
+			cluster: &ekstypes.Cluster{
+				KubeSchedulerConfig: schedulerResponse(ekstypes.ScoringStrategyTypeLeastAllocated),
+				KubeApiServerConfig: &ekstypes.KubeApiServerConfigResponse{EventTtl: aws.String("60m")},
+			},
+			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
+				m.
+					UpdateClusterConfig(gomock.Eq(context.TODO()), gomock.AssignableToTypeOf(&eks.UpdateClusterConfigInput{})).
+					Return(nil, errors.New("invalid parameter"))
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			mockControl := gomock.NewController(t)
+			defer mockControl.Finish()
+
+			eksMock := mock_eksiface.NewMockEKSAPI(mockControl)
+			tc.expect(eksMock.EXPECT())
+
+			s := newComponentConfigTestService(t, spec)
+			s.EKSClient = eksMock
+
+			err := s.reconcileControlPlaneComponentConfig(context.TODO(), tc.cluster)
+			if tc.expectError {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).To(BeNil())
+		})
+	}
+}
+
+func TestDurationsEqual(t *testing.T) {
+	testCases := []struct {
+		a, b     string
+		expected bool
+	}{
+		{a: "15m", b: "15m", expected: true},
+		{a: "60m", b: "1h", expected: true},
+		{a: "15s", b: "10s", expected: false},
+		{a: "15m", b: "", expected: false},
+		{a: "invalid", b: "invalid", expected: true},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.a+"/"+tc.b, func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect(durationsEqual(tc.a, tc.b)).To(Equal(tc.expected))
+		})
+	}
+}

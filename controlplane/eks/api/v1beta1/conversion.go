@@ -123,6 +123,9 @@ func (r *AWSManagedControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.BootstrapSelfManagedAddons = restored.Spec.BootstrapSelfManagedAddons
 	dst.Spec.UpgradePolicy = restored.Spec.UpgradePolicy
 	dst.Spec.ControlPlaneScalingConfig = restored.Spec.ControlPlaneScalingConfig
+	dst.Spec.KubeSchedulerConfig = restored.Spec.KubeSchedulerConfig
+	dst.Spec.KubeAPIServerConfig = restored.Spec.KubeAPIServerConfig
+	dst.Spec.KubeControllerManagerConfig = restored.Spec.KubeControllerManagerConfig
 	dst.Spec.PodIdentityAssociations = restored.Spec.PodIdentityAssociations
 	return nil
 }

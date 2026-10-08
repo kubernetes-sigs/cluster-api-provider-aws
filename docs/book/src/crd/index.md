@@ -7573,6 +7573,54 @@ When omitted, EKS uses Standard mode (automatic scaling). See ControlPlaneScalin
 (Official AWS docs: <a href="https://docs.aws.amazon.com/eks/latest/userguide/eks-provisioned-control-plane.html">https://docs.aws.amazon.com/eks/latest/userguide/eks-provisioned-control-plane.html</a>)</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>kubeSchedulerConfig</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.KubeSchedulerConfig">
+KubeSchedulerConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>KubeSchedulerConfig specifies the configuration for the Kubernetes scheduler of the EKS control plane.
+When omitted, CAPA does not manage the scheduler configuration and EKS defaults apply.
+(Official AWS docs: <a href="https://docs.aws.amazon.com/eks/latest/userguide/control-plane-configuration.html">https://docs.aws.amazon.com/eks/latest/userguide/control-plane-configuration.html</a>)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kubeAPIServerConfig</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.KubeAPIServerConfig">
+KubeAPIServerConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>KubeAPIServerConfig specifies the configuration for the Kubernetes API server of the EKS control plane.
+When omitted, CAPA does not manage the API server configuration and EKS defaults apply.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kubeControllerManagerConfig</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.KubeControllerManagerConfig">
+KubeControllerManagerConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>KubeControllerManagerConfig specifies the configuration for the Kubernetes controller manager of the EKS control plane.
+When omitted, CAPA does not manage the controller manager configuration and EKS defaults apply.
+Some parameters, such as the horizontal pod autoscaler sync period, require a provisioned control plane tier
+(see ControlPlaneScalingConfig).</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -8113,6 +8161,54 @@ ControlPlaneScalingConfig
 Enables selection of predefined scaling tiers to ensure consistent, high-performance operation of the cluster’s control plane.
 When omitted, EKS uses Standard mode (automatic scaling). See ControlPlaneScalingConfig in types.go for tier defaults.
 (Official AWS docs: <a href="https://docs.aws.amazon.com/eks/latest/userguide/eks-provisioned-control-plane.html">https://docs.aws.amazon.com/eks/latest/userguide/eks-provisioned-control-plane.html</a>)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kubeSchedulerConfig</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.KubeSchedulerConfig">
+KubeSchedulerConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>KubeSchedulerConfig specifies the configuration for the Kubernetes scheduler of the EKS control plane.
+When omitted, CAPA does not manage the scheduler configuration and EKS defaults apply.
+(Official AWS docs: <a href="https://docs.aws.amazon.com/eks/latest/userguide/control-plane-configuration.html">https://docs.aws.amazon.com/eks/latest/userguide/control-plane-configuration.html</a>)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kubeAPIServerConfig</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.KubeAPIServerConfig">
+KubeAPIServerConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>KubeAPIServerConfig specifies the configuration for the Kubernetes API server of the EKS control plane.
+When omitted, CAPA does not manage the API server configuration and EKS defaults apply.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kubeControllerManagerConfig</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.KubeControllerManagerConfig">
+KubeControllerManagerConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>KubeControllerManagerConfig specifies the configuration for the Kubernetes controller manager of the EKS control plane.
+When omitted, CAPA does not manage the controller manager configuration and EKS defaults apply.
+Some parameters, such as the horizontal pod autoscaler sync period, require a provisioned control plane tier
+(see ControlPlaneScalingConfig).</p>
 </td>
 </tr>
 </tbody>
@@ -8899,6 +8995,54 @@ When omitted, EKS uses Standard mode (automatic scaling). See ControlPlaneScalin
 (Official AWS docs: <a href="https://docs.aws.amazon.com/eks/latest/userguide/eks-provisioned-control-plane.html">https://docs.aws.amazon.com/eks/latest/userguide/eks-provisioned-control-plane.html</a>)</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>kubeSchedulerConfig</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.KubeSchedulerConfig">
+KubeSchedulerConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>KubeSchedulerConfig specifies the configuration for the Kubernetes scheduler of the EKS control plane.
+When omitted, CAPA does not manage the scheduler configuration and EKS defaults apply.
+(Official AWS docs: <a href="https://docs.aws.amazon.com/eks/latest/userguide/control-plane-configuration.html">https://docs.aws.amazon.com/eks/latest/userguide/control-plane-configuration.html</a>)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kubeAPIServerConfig</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.KubeAPIServerConfig">
+KubeAPIServerConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>KubeAPIServerConfig specifies the configuration for the Kubernetes API server of the EKS control plane.
+When omitted, CAPA does not manage the API server configuration and EKS defaults apply.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kubeControllerManagerConfig</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.KubeControllerManagerConfig">
+KubeControllerManagerConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>KubeControllerManagerConfig specifies the configuration for the Kubernetes controller manager of the EKS control plane.
+When omitted, CAPA does not manage the controller manager configuration and EKS defaults apply.
+Some parameters, such as the horizontal pod autoscaler sync period, require a provisioned control plane tier
+(see ControlPlaneScalingConfig).</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -9653,6 +9797,37 @@ bool
 </tr>
 </tbody>
 </table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.HorizontalPodAutoscalerControllerConfig">HorizontalPodAutoscalerControllerConfig
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.KubeControllerManagerConfig">KubeControllerManagerConfig</a>)
+</p>
+<p>
+<p>HorizontalPodAutoscalerControllerConfig specifies the configuration of the horizontal pod autoscaler controller.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>horizontalPodAutoscalerSyncPeriod</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>HorizontalPodAutoscalerSyncPeriod is how often the horizontal pod autoscaler evaluates metrics,
+as a single-unit duration such as 15s.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="controlplane.cluster.x-k8s.io/v1beta2.IAMAuthenticatorConfig">IAMAuthenticatorConfig
 </h3>
 <p>
@@ -9739,6 +9914,99 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.KubeAPIServerConfig">KubeAPIServerConfig
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>)
+</p>
+<p>
+<p>KubeAPIServerConfig specifies the configuration for the Kubernetes API server of an EKS control plane.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>eventTTL</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>EventTTL is the duration that Kubernetes events are retained, as a single-unit duration such as 30m or 1h.
+EKS validates the supported range for the Kubernetes version of the cluster.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceNodePortRange</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.ServiceNodePortRange">
+ServiceNodePortRange
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ServiceNodePortRange is the port range for NodePort services.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.KubeControllerManagerConfig">KubeControllerManagerConfig
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>)
+</p>
+<p>
+<p>KubeControllerManagerConfig specifies the configuration for the Kubernetes controller manager of an EKS control plane.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>horizontalPodAutoscalerControllerConfig</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.HorizontalPodAutoscalerControllerConfig">
+HorizontalPodAutoscalerControllerConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>HorizontalPodAutoscalerControllerConfig specifies the configuration of the horizontal pod autoscaler controller.
+Requires a provisioned control plane tier.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>podGCControllerConfig</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.PodGCControllerConfig">
+PodGCControllerConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PodGCControllerConfig specifies the configuration of the pod garbage collection controller.
+Requires a provisioned control plane tier.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="controlplane.cluster.x-k8s.io/v1beta2.KubeProxy">KubeProxy
 </h3>
 <p>
@@ -9768,6 +10036,38 @@ kube-proxy is automatically installed into the cluster. For clusters where you w
 to use kube-proxy functionality that is provided with an alternate CNI, this option
 provides a way to specify that the kube-proxy daemonset should be deleted. You cannot
 set this to true if you are using the Amazon kube-proxy addon.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.KubeSchedulerConfig">KubeSchedulerConfig
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.AWSManagedControlPlaneSpec">AWSManagedControlPlaneSpec</a>)
+</p>
+<p>
+<p>KubeSchedulerConfig specifies the configuration for the Kubernetes scheduler of an EKS control plane.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>nodeResourcesFit</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.NodeResourcesFitConfig">
+NodeResourcesFitConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>NodeResourcesFit specifies the configuration of the NodeResourcesFit scheduler plugin.</p>
 </td>
 </tr>
 </tbody>
@@ -9808,6 +10108,38 @@ string
 </td>
 <td>
 <p>Groups is a list of kubernetes RBAC groups</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.NodeResourcesFitConfig">NodeResourcesFitConfig
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.KubeSchedulerConfig">KubeSchedulerConfig</a>)
+</p>
+<p>
+<p>NodeResourcesFitConfig specifies the configuration of the NodeResourcesFit scheduler plugin.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>scoringStrategy</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.ScoringStrategy">
+ScoringStrategy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ScoringStrategy specifies how the scheduler scores nodes based on resource allocation.</p>
 </td>
 </tr>
 </tbody>
@@ -9998,6 +10330,37 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.PodGCControllerConfig">PodGCControllerConfig
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.KubeControllerManagerConfig">KubeControllerManagerConfig</a>)
+</p>
+<p>
+<p>PodGCControllerConfig specifies the configuration of the pod garbage collection controller.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>terminatedPodGCThreshold</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>TerminatedPodGCThreshold is the number of terminated pods that can exist before the garbage collector
+starts deleting them.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="controlplane.cluster.x-k8s.io/v1beta2.PodIdentityAssociation">PodIdentityAssociation
 </h3>
 <p>
@@ -10065,6 +10428,46 @@ allowing workloads to inherit the permissions attached to the target IAM role.</
 </tr>
 </tbody>
 </table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.ResourceWeight">ResourceWeight
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.ScoringStrategy">ScoringStrategy</a>)
+</p>
+<p>
+<p>ResourceWeight specifies the weight of a resource for the scheduler scoring strategy.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name is the name of the resource, for example cpu or memory.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>weight</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>Weight is the relative weight of the resource.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="controlplane.cluster.x-k8s.io/v1beta2.RoleMapping">RoleMapping
 </h3>
 <p>
@@ -10106,6 +10509,102 @@ KubernetesMapping
 (Members of <code>KubernetesMapping</code> are embedded into this type.)
 </p>
 <p>KubernetesMapping holds the RBAC details for the mapping</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.ScoringStrategy">ScoringStrategy
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.NodeResourcesFitConfig">NodeResourcesFitConfig</a>)
+</p>
+<p>
+<p>ScoringStrategy specifies the scoring strategy of the NodeResourcesFit scheduler plugin.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>type</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.ScoringStrategyType">
+ScoringStrategyType
+</a>
+</em>
+</td>
+<td>
+<p>Type is the scoring strategy type.
+LeastAllocated favors nodes with lower resource allocation, MostAllocated favors nodes with higher resource allocation.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resources</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.ResourceWeight">
+[]ResourceWeight
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Resources are the resources considered when scoring nodes, each with a relative weight.
+When set, only the listed resources are scored.
+Supported resources include cpu, memory, nvidia.com/gpu, aws.amazon.com/neuron and aws.amazon.com/neuroncore.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.ScoringStrategyType">ScoringStrategyType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.ScoringStrategy">ScoringStrategy</a>)
+</p>
+<p>
+<p>ScoringStrategyType is the scoring strategy type of the NodeResourcesFit scheduler plugin.</p>
+</p>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.ServiceNodePortRange">ServiceNodePortRange
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.KubeAPIServerConfig">KubeAPIServerConfig</a>)
+</p>
+<p>
+<p>ServiceNodePortRange specifies the port range for NodePort services.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>minPort</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>MinPort is the first port of the range.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>maxPort</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>MaxPort is the last port of the range.</p>
 </td>
 </tr>
 </tbody>

@@ -135,6 +135,10 @@ func (s *Service) reconcileCluster(ctx context.Context) error {
 		return errors.Wrap(err, "failed reconciling logging")
 	}
 
+	if err := s.reconcileControlPlaneComponentConfig(ctx, cluster); err != nil {
+		return errors.Wrap(err, "failed reconciling control plane component config")
+	}
+
 	if err := s.reconcileEKSEncryptionConfig(ctx, cluster.EncryptionConfig); err != nil {
 		return errors.Wrap(err, "failed reconciling eks encryption config")
 	}
@@ -508,21 +512,27 @@ func (s *Service) createCluster(ctx context.Context, eksClusterName string) (*ek
 	}
 
 	controlPlaneScalingConfig := converters.ControlPlaneScalingConfigToSDK(s.scope.ControlPlane.Spec.ControlPlaneScalingConfig)
+	kubeSchedulerConfig := converters.KubeSchedulerConfigToSDK(s.scope.ControlPlane.Spec.KubeSchedulerConfig)
+	kubeAPIServerConfig := converters.KubeAPIServerConfigToSDK(s.scope.ControlPlane.Spec.KubeAPIServerConfig)
+	kubeControllerManagerConfig := converters.KubeControllerManagerConfigToSDK(s.scope.ControlPlane.Spec.KubeControllerManagerConfig)
 
 	bootstrapAddon := s.scope.BootstrapSelfManagedAddons()
 	input := &eks.CreateClusterInput{
-		Name:                       aws.String(eksClusterName),
-		Version:                    eksVersion,
-		Logging:                    logging,
-		AccessConfig:               accessConfig,
-		EncryptionConfig:           encryptionConfigs,
-		ResourcesVpcConfig:         vpcConfig,
-		RoleArn:                    role.Arn,
-		Tags:                       tags,
-		KubernetesNetworkConfig:    netConfig,
-		BootstrapSelfManagedAddons: bootstrapAddon,
-		UpgradePolicy:              upgradePolicy,
-		ControlPlaneScalingConfig:  controlPlaneScalingConfig,
+		Name:                        aws.String(eksClusterName),
+		Version:                     eksVersion,
+		Logging:                     logging,
+		AccessConfig:                accessConfig,
+		EncryptionConfig:            encryptionConfigs,
+		ResourcesVpcConfig:          vpcConfig,
+		RoleArn:                     role.Arn,
+		Tags:                        tags,
+		KubernetesNetworkConfig:     netConfig,
+		BootstrapSelfManagedAddons:  bootstrapAddon,
+		UpgradePolicy:               upgradePolicy,
+		ControlPlaneScalingConfig:   controlPlaneScalingConfig,
+		KubeSchedulerConfig:         kubeSchedulerConfig,
+		KubeApiServerConfig:         kubeAPIServerConfig,
+		KubeControllerManagerConfig: kubeControllerManagerConfig,
 	}
 
 	var out *eks.CreateClusterOutput
@@ -870,6 +880,153 @@ func (s *Service) reconcileScalingConfig(scalingConfig *ekstypes.ControlPlaneSca
 	}
 
 	return desiredConfig
+}
+
+// reconcileControlPlaneComponentConfig updates the scheduler, API server and controller manager configuration
+// of the EKS cluster when it differs from the spec. Only the parameters that are set in the spec are compared
+// and sent, because EKS merges updates with the current configuration.
+func (s *Service) reconcileControlPlaneComponentConfig(ctx context.Context, cluster *ekstypes.Cluster) error {
+	input := &eks.UpdateClusterConfigInput{
+		Name:                        aws.String(s.scope.KubernetesClusterName()),
+		KubeSchedulerConfig:         s.reconcileKubeSchedulerConfig(cluster.KubeSchedulerConfig),
+		KubeApiServerConfig:         s.reconcileKubeAPIServerConfig(cluster.KubeApiServerConfig),
+		KubeControllerManagerConfig: s.reconcileKubeControllerManagerConfig(cluster.KubeControllerManagerConfig),
+	}
+
+	if input.KubeSchedulerConfig == nil && input.KubeApiServerConfig == nil && input.KubeControllerManagerConfig == nil {
+		return nil
+	}
+
+	if err := wait.WaitForWithRetryable(wait.NewBackoff(), func() (bool, error) {
+		if _, err := s.EKSClient.UpdateClusterConfig(ctx, input); err != nil {
+			return false, err
+		}
+
+		// Wait until status transitions to UPDATING because there's a short
+		// window after UpdateClusterConfig returns where the cluster
+		// status is ACTIVE and the update would be tried again
+		if err := s.EKSClient.WaitUntilClusterUpdating(
+			ctx,
+			&eks.DescribeClusterInput{Name: aws.String(s.scope.KubernetesClusterName())},
+			s.scope.MaxWaitActiveUpdateDelete,
+		); err != nil {
+			return false, err
+		}
+
+		v1beta1conditions.MarkTrue(s.scope.ControlPlane, ekscontrolplanev1.EKSControlPlaneUpdatingCondition)
+		record.Eventf(s.scope.ControlPlane, "InitiatedUpdateEKSControlPlane", "Initiated control plane component config update for EKS control plane %s", s.scope.KubernetesClusterName())
+		return true, nil
+	}); err != nil {
+		record.Warnf(s.scope.ControlPlane, "FailedUpdateEKSControlPlane", "Failed to update EKS control plane component config: %v", err)
+		return errors.Wrapf(err, "failed to update EKS cluster")
+	}
+
+	return nil
+}
+
+func (s *Service) reconcileKubeSchedulerConfig(current *ekstypes.KubeSchedulerConfigResponse) *ekstypes.KubeSchedulerConfigRequest {
+	desired := converters.KubeSchedulerConfigToSDK(s.scope.ControlPlane.Spec.KubeSchedulerConfig)
+	if desired == nil {
+		return nil
+	}
+
+	if current != nil && current.NodeResourcesFit != nil && current.NodeResourcesFit.ScoringStrategy != nil &&
+		scoringStrategyMatches(desired.NodeResourcesFit.ScoringStrategy, current.NodeResourcesFit.ScoringStrategy) {
+		return nil
+	}
+
+	return desired
+}
+
+// scoringStrategyMatches compares the scoring strategy type and, when the desired strategy lists resources,
+// the resource weights. EKS reports default resource weights when none were set, so resources are only
+// compared when the spec sets them.
+func scoringStrategyMatches(desired, current *ekstypes.ScoringStrategy) bool {
+	if desired.Type != current.Type {
+		return false
+	}
+
+	if len(desired.Resources) == 0 {
+		return true
+	}
+
+	if len(desired.Resources) != len(current.Resources) {
+		return false
+	}
+
+	currentWeights := make(map[string]int32, len(current.Resources))
+	for _, resource := range current.Resources {
+		currentWeights[aws.ToString(resource.Name)] = aws.ToInt32(resource.Weight)
+	}
+	for _, resource := range desired.Resources {
+		weight, ok := currentWeights[aws.ToString(resource.Name)]
+		if !ok || weight != aws.ToInt32(resource.Weight) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (s *Service) reconcileKubeAPIServerConfig(current *ekstypes.KubeApiServerConfigResponse) *ekstypes.KubeApiServerConfigRequest {
+	desired := converters.KubeAPIServerConfigToSDK(s.scope.ControlPlane.Spec.KubeAPIServerConfig)
+	if desired == nil {
+		return nil
+	}
+
+	if current == nil {
+		return desired
+	}
+
+	if desired.EventTtl != nil && !durationsEqual(aws.ToString(desired.EventTtl), aws.ToString(current.EventTtl)) {
+		return desired
+	}
+
+	if desired.ServiceNodePortRange != nil && (current.ServiceNodePortRange == nil ||
+		desired.ServiceNodePortRange.MinPort != current.ServiceNodePortRange.MinPort ||
+		desired.ServiceNodePortRange.MaxPort != current.ServiceNodePortRange.MaxPort) {
+		return desired
+	}
+
+	return nil
+}
+
+func (s *Service) reconcileKubeControllerManagerConfig(current *ekstypes.KubeControllerManagerConfigResponse) *ekstypes.KubeControllerManagerConfigRequest {
+	desired := converters.KubeControllerManagerConfigToSDK(s.scope.ControlPlane.Spec.KubeControllerManagerConfig)
+	if desired == nil {
+		return nil
+	}
+
+	if current == nil {
+		return desired
+	}
+
+	if desired.HorizontalPodAutoscalerControllerConfig != nil {
+		var currentSyncPeriod string
+		if current.HorizontalPodAutoscalerControllerConfig != nil {
+			currentSyncPeriod = aws.ToString(current.HorizontalPodAutoscalerControllerConfig.HorizontalPodAutoscalerSyncPeriod)
+		}
+		if !durationsEqual(aws.ToString(desired.HorizontalPodAutoscalerControllerConfig.HorizontalPodAutoscalerSyncPeriod), currentSyncPeriod) {
+			return desired
+		}
+	}
+
+	if desired.PodGcControllerConfig != nil && (current.PodGcControllerConfig == nil ||
+		aws.ToInt32(desired.PodGcControllerConfig.TerminatedPodGcThreshold) != aws.ToInt32(current.PodGcControllerConfig.TerminatedPodGcThreshold)) {
+		return desired
+	}
+
+	return nil
+}
+
+// durationsEqual compares two duration strings by value, so that for example 60m and 1h are equal.
+func durationsEqual(a, b string) bool {
+	durationA, errA := time.ParseDuration(a)
+	durationB, errB := time.ParseDuration(b)
+	if errA != nil || errB != nil {
+		return a == b
+	}
+	return durationA == durationB
 }
 
 func (s *Service) describeEKSCluster(ctx context.Context, eksClusterName string) (*ekstypes.Cluster, error) {

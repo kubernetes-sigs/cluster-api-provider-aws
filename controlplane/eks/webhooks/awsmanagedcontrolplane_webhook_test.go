@@ -25,6 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -1615,6 +1616,51 @@ func TestWebhookUpdateWithPodIdentity(t *testing.T) {
 
 			// Clean up
 			_ = testEnv.Delete(ctx, oldMCP)
+		})
+	}
+}
+
+func TestValidateKubeAPIServerConfig(t *testing.T) {
+	tests := []struct {
+		name        string
+		config      *ekscontrolplanev1.KubeAPIServerConfig
+		expectError bool
+	}{
+		{
+			name:        "nil config",
+			config:      nil,
+			expectError: false,
+		},
+		{
+			name:        "event ttl only",
+			config:      &ekscontrolplanev1.KubeAPIServerConfig{EventTTL: "15m"},
+			expectError: false,
+		},
+		{
+			name: "valid service node port range",
+			config: &ekscontrolplanev1.KubeAPIServerConfig{
+				ServiceNodePortRange: &ekscontrolplanev1.ServiceNodePortRange{MinPort: 20000, MaxPort: 32767},
+			},
+			expectError: false,
+		},
+		{
+			name: "min port greater than max port",
+			config: &ekscontrolplanev1.KubeAPIServerConfig{
+				ServiceNodePortRange: &ekscontrolplanev1.ServiceNodePortRange{MinPort: 32767, MaxPort: 20000},
+			},
+			expectError: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			errs := validateKubeAPIServerConfig(tc.config, field.NewPath("spec", "kubeAPIServerConfig"))
+			if tc.expectError {
+				g.Expect(errs).ToNot(BeEmpty())
+			} else {
+				g.Expect(errs).To(BeEmpty())
+			}
 		})
 	}
 }

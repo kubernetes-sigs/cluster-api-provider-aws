@@ -112,6 +112,7 @@ func (w *AWSManagedControlPlane) ValidateCreate(_ context.Context, obj runtime.O
 	allErrs = append(allErrs, w.validateAccessConfigCreate(r)...)
 	allErrs = append(allErrs, w.validateAccessEntries(r)...)
 	allErrs = append(allErrs, w.validatePodIdentityAssociations(r)...)
+	allErrs = append(allErrs, w.validateKubeAPIServerConfig(r)...)
 
 	if len(allErrs) == 0 {
 		return nil, nil
@@ -156,6 +157,7 @@ func (w *AWSManagedControlPlane) ValidateUpdate(ctx context.Context, oldObj, new
 	allErrs = append(allErrs, w.validatePrivateDNSHostnameTypeOnLaunch(r)...)
 	allErrs = append(allErrs, w.validateAccessEntries(r)...)
 	allErrs = append(allErrs, w.validatePodIdentityAssociations(r)...)
+	allErrs = append(allErrs, w.validateKubeAPIServerConfig(r)...)
 
 	if r.Spec.Region != oldAWSManagedControlplane.Spec.Region {
 		allErrs = append(allErrs,
@@ -493,6 +495,26 @@ func validateSecondaryCIDR(secondaryCidrBlock *string, path *field.Path) field.E
 			allErrs = append(allErrs, field.Invalid(path, *secondaryCidrBlock, "must be within the 100.64.0.0/10 or 198.19.0.0/16 range"))
 		}
 	}
+	return allErrs
+}
+
+func (w *AWSManagedControlPlane) validateKubeAPIServerConfig(r *ekscontrolplanev1.AWSManagedControlPlane) field.ErrorList {
+	return validateKubeAPIServerConfig(r.Spec.KubeAPIServerConfig, field.NewPath("spec", "kubeAPIServerConfig"))
+}
+
+func validateKubeAPIServerConfig(cfg *ekscontrolplanev1.KubeAPIServerConfig, path *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	if cfg == nil || cfg.ServiceNodePortRange == nil {
+		return allErrs
+	}
+
+	if cfg.ServiceNodePortRange.MinPort > cfg.ServiceNodePortRange.MaxPort {
+		allErrs = append(allErrs,
+			field.Invalid(path.Child("serviceNodePortRange", "minPort"), cfg.ServiceNodePortRange.MinPort, "minPort must be less than or equal to maxPort"),
+		)
+	}
+
 	return allErrs
 }
 
