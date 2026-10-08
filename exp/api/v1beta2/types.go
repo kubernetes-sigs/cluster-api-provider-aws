@@ -60,6 +60,7 @@ type BlockDeviceMapping struct {
 }
 
 // AWSLaunchTemplate defines the desired state of AWSLaunchTemplate.
+// +kubebuilder:validation:XValidation:rule="!(has(self.ami) && has(self.ami.filters) && size(self.ami.filters) > 0) || (!has(self.imageLookupFormat) && !has(self.imageLookupOrg) && !has(self.imageLookupBaseOS))",message="ami.filters is mutually exclusive with imageLookupFormat, imageLookupOrg, and imageLookupBaseOS"
 type AWSLaunchTemplate struct {
 	// The name of the launch template.
 	Name string `json:"name,omitempty"`

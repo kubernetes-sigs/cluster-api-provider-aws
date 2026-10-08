@@ -20706,8 +20706,8 @@ Resource Types:
 (<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachineSpec">AWSMachineSpec</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta1.AWSLaunchTemplate">AWSLaunchTemplate</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSLaunchTemplate">AWSLaunchTemplate</a>)
 </p>
 <p>
-<p>AMIReference is a reference to a specific AWS resource by ID, ARN, or filters.
-Only one of ID, ARN or Filters may be specified. Specifying more than one will result in
+<p>AMIReference is a reference to a specific AWS resource by ID, EKS optimized lookup, or filters.
+Only one of ID, EKSOptimizedLookupType, or Filters may be specified. Specifying more than one will result in
 a validation error.</p>
 </p>
 <table>
@@ -20742,6 +20742,44 @@ EKSAMILookupType
 <td>
 <em>(Optional)</em>
 <p>EKSOptimizedLookupType If specified, will look up an EKS Optimized image in SSM Parameter store</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>filters</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.Filter">
+[]Filter
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Filters is a set of key/value pairs used to identify an AMI.
+They are applied according to the rules defined by the AWS API:
+<a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Filtering.html">https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Filtering.html</a></p>
+<p>When multiple AMIs match, the most recently created one (by CreationDate)
+is selected. The result is therefore not pinned and may change as new
+matching images are published; set ID instead when a stable, reproducible
+image is required.</p>
+<p>Filters is mutually exclusive with id, eksLookupType, imageLookupFormat,
+imageLookupOrg, and imageLookupBaseOS.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ownerIDs</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OwnerIDs is a list of AWS account IDs that own the AMI. When omitted,
+all AMIs visible to the caller&rsquo;s credentials are searched. Set to
+[&ldquo;self&rdquo;] to restrict the search to the current account, or list specific
+account IDs to search across accounts.
+Only used when Filters is non-empty; ignored when ID is set.</p>
 </td>
 </tr>
 </tbody>
@@ -25832,7 +25870,7 @@ bool
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.Filter">Filter
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSResourceReference">AWSResourceReference</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AMIReference">AMIReference</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSResourceReference">AWSResourceReference</a>)
 </p>
 <p>
 <p>Filter is a filter used to identify an AWS resource.</p>
