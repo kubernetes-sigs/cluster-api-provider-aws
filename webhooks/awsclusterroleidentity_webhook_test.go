@@ -57,6 +57,21 @@ func TestAWSClusterRoleValidateCreate(t *testing.T) {
 			},
 			wantError: false,
 		},
+		{
+			name: "do not allow sourceIdentityRef to reference itself",
+			identity: &infrav1.AWSClusterRoleIdentity{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "self-referencing-role",
+				},
+				Spec: infrav1.AWSClusterRoleIdentitySpec{
+					SourceIdentityRef: &infrav1.AWSIdentityReference{
+						Name: "self-referencing-role",
+						Kind: infrav1.ClusterRoleIdentityKind,
+					},
+				},
+			},
+			wantError: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -212,6 +227,15 @@ func TestAWSClusterRoleIdentityUpdateValidation(t *testing.T) {
 					},
 				},
 			},
+			wantError: true,
+		},
+		{
+			name: "should return error when sourceIdentityRef references itself",
+			identity: func() *infrav1.AWSClusterRoleIdentity {
+				identity := roleIdentity.DeepCopy()
+				identity.Spec.SourceIdentityRef.Name = identity.Name
+				return identity
+			}(),
 			wantError: true,
 		},
 	}
