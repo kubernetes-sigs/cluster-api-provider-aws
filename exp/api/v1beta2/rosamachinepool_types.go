@@ -132,6 +132,18 @@ type RosaMachinePoolSpec struct {
 	//
 	// +optional
 	CapacityReservationID string `json:"capacityReservationID,omitempty"`
+
+	// Ec2MetadataHTTPTokens configures the use of IMDSv2 for EC2 instances in the node pool.
+	// When set to "required", IMDSv2 is enforced and the older IMDSv1 is disabled.
+	// When set to "optional", both IMDSv1 and IMDSv2 are allowed.
+	// When omitted, the API default is used (currently "required").
+	// This field is immutable and cannot be changed after node pool creation.
+	//
+	// +immutable
+	// +kubebuilder:validation:Enum=optional;required
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="ec2MetadataHttpTokens is immutable"
+	// +optional
+	Ec2MetadataHTTPTokens rosacontrolplanev1.Ec2MetadataHTTPTokens `json:"ec2MetadataHttpTokens,omitempty"`
 }
 
 // RosaTaint represents a taint to be applied to a node.

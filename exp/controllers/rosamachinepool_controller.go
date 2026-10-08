@@ -446,6 +446,7 @@ func (r *ROSAMachinePoolReconciler) updateNodePool(machinePoolScope *scope.RosaM
 	desiredSpec.AdditionalSecurityGroups = nil
 	desiredSpec.AdditionalTags = nil
 	desiredSpec.VolumeSize = 0
+	desiredSpec.Ec2MetadataHTTPTokens = ""
 
 	npBuilder := nodePoolBuilder(desiredSpec, machinePoolScope.MachinePool.Spec, machinePoolScope.ControlPlane.Spec.ChannelGroup, machinePoolScope.ControlPlane.Spec.Channel)
 	nodePoolSpec, err := npBuilder.Build()
@@ -475,6 +476,7 @@ func computeSpecDiff(desiredSpec expinfrav1.RosaMachinePoolSpec, nodePool *cmv1.
 		"AdditionalTags",           // AdditionalTags day2 changes not supported.
 		"AdditionalSecurityGroups", // AdditionalSecurityGroups day2 changes not supported.
 		"VolumeSize",               // VolumeSize is immutable after creation.
+		"Ec2MetadataHTTPTokens",    // Ec2MetadataHTTPTokens is immutable after creation.
 	}
 
 	return cmp.Diff(desiredSpec, currentSpec,
@@ -559,6 +561,9 @@ func nodePoolBuilder(rosaMachinePoolSpec expinfrav1.RosaMachinePoolSpec, machine
 	if rosaMachinePoolSpec.CapacityReservationID != "" {
 		capacityReservation := cmv1.NewAWSCapacityReservation().Id(rosaMachinePoolSpec.CapacityReservationID)
 		awsNodePool = awsNodePool.CapacityReservation(capacityReservation)
+	}
+	if rosaMachinePoolSpec.Ec2MetadataHTTPTokens != "" {
+		awsNodePool = awsNodePool.Ec2MetadataHttpTokens(cmv1.Ec2MetadataHttpTokens(rosaMachinePoolSpec.Ec2MetadataHTTPTokens))
 	}
 	npBuilder.AWSNodePool(awsNodePool)
 
