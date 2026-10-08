@@ -53,6 +53,10 @@ type IAMService struct {
 	Client    *http.Client
 }
 
+type oidcProviderThumbprintUpdater interface {
+	UpdateOpenIDConnectProviderThumbprint(ctx context.Context, params *iam.UpdateOpenIDConnectProviderThumbprintInput, optFns ...func(*iam.Options)) (*iam.UpdateOpenIDConnectProviderThumbprintOutput, error)
+}
+
 // GetIAMRole will return the IAM role for the IAMService.
 func (s *IAMService) GetIAMRole(ctx context.Context, name string) (*iamtypes.Role, error) {
 	input := &iam.GetRoleInput{
@@ -432,6 +436,26 @@ func findStringInSlice(slice []string, toFind string) bool {
 
 const stsAWSAudience = "sts.amazonaws.com"
 
+// AWS documents the legacy and dual-stack EKS OIDC issuer hostnames at:
+// https://docs.aws.amazon.com/eks/latest/userguide/network-reqs.html
+func isEKSOIDCIssuerHost(host string) bool {
+	host = strings.ToLower(strings.TrimSuffix(host, "."))
+	return matchesRegionalHost(host, "oidc.eks.", ".amazonaws.com") ||
+		matchesRegionalHost(host, "oidc.eks.", ".amazonaws.com.cn") ||
+		matchesRegionalHost(host, "oidc-eks.", ".api.aws") ||
+		matchesRegionalHost(host, "oidc-eks.", ".api.amazonwebservices.com.cn")
+}
+
+func matchesRegionalHost(host, prefix, suffix string) bool {
+	region, ok := strings.CutPrefix(host, prefix)
+	if !ok {
+		return false
+	}
+
+	region, ok = strings.CutSuffix(region, suffix)
+	return ok && region != "" && !strings.Contains(region, ".")
+}
+
 // CreateOIDCProvider will create an OIDC provider.
 func (s *IAMService) CreateOIDCProvider(ctx context.Context, cluster *ekstypes.Cluster) (string, error) {
 	issuerURL, err := url.Parse(*cluster.Identity.Oidc.Issuer)
@@ -469,6 +493,8 @@ func (s *IAMService) FindAndVerifyOIDCProvider(ctx context.Context, cluster *eks
 		return "", errors.Errorf("invalid scheme for issuer URL %s", issuerURL.String())
 	}
 
+	isEKSDomain := isEKSOIDCIssuerHost(issuerURL.Hostname())
+
 	thumbprint, err := fetchRootCAThumbprint(ctx, issuerURL.String(), s.Client)
 	if err != nil {
 		return "", err
@@ -486,11 +512,25 @@ func (s *IAMService) FindAndVerifyOIDCProvider(ctx context.Context, cluster *eks
 		if *provider.Url != issuerURL.String() && *provider.Url != strings.Replace(issuerURL.String(), "https://", "", 1) {
 			continue
 		}
-		if len(provider.ThumbprintList) != 1 || provider.ThumbprintList[0] != thumbprint {
-			return "", errors.Wrap(err, "found provider with matching issuerURL but with non-matching thumbprint")
-		}
 		if len(provider.ClientIDList) != 1 || provider.ClientIDList[0] != stsAWSAudience {
-			return "", errors.Wrap(err, "found provider with matching issuerURL but with non-matching clientID")
+			return "", errors.Errorf("found provider with matching issuerURL but with non-matching clientID")
+		}
+		if len(provider.ThumbprintList) != 1 || provider.ThumbprintList[0] != thumbprint {
+			if !isEKSDomain {
+				return "", errors.Errorf("found provider with matching issuerURL but non-matching thumbprint")
+			}
+			updater, ok := s.IAMClient.(oidcProviderThumbprintUpdater)
+			if !ok {
+				return "", errors.New("IAM client does not support updating OIDC provider thumbprints")
+			}
+			s.Info("Updating OIDC provider thumbprint", "arn", *r.Arn, "old", provider.ThumbprintList, "new", thumbprint)
+			_, err := updater.UpdateOpenIDConnectProviderThumbprint(ctx, &iam.UpdateOpenIDConnectProviderThumbprintInput{
+				OpenIDConnectProviderArn: r.Arn,
+				ThumbprintList:           []string{thumbprint},
+			})
+			if err != nil {
+				return "", errors.Wrap(err, "failed to update OIDC provider thumbprint")
+			}
 		}
 		return *r.Arn, nil
 	}
