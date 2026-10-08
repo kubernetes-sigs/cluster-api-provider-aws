@@ -412,6 +412,24 @@ func TestReconcileClusterVersion(t *testing.T) {
 			expectError:           false,
 		},
 		{
+			// The reconciler does not guard multi-minor rollbacks; the webhook rejects
+			// them and, as a backstop, the request is passed through unchanged so the
+			// AWS EKS API can reject it.
+			name:                  "multi-minor rollback is passed through to the AWS API unchanged",
+			clusterVersion:        "1.16",
+			desiredVersion:        "1.14",
+			expectedUpdateVersion: "1.14",
+			expectError:           false,
+		},
+		{
+			name:                  "multi-minor rollback rejected by the AWS API returns an error",
+			clusterVersion:        "1.16",
+			desiredVersion:        "1.14",
+			expectedUpdateVersion: "1.14",
+			updateError:           errors.New("InvalidParameterException: unsupported Kubernetes version downgrade"),
+			expectError:           true,
+		},
+		{
 			name:                  "api error",
 			clusterVersion:        "1.14",
 			desiredVersion:        "1.16",
