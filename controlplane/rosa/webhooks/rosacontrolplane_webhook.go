@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/blang/semver"
 	kmsArnRegexpValidator "github.com/openshift-online/ocm-common/pkg/resource/validations"
@@ -91,6 +92,7 @@ func (w *ROSAControlPlane) ValidateCreate(_ context.Context, obj runtime.Object)
 	}
 
 	allErrs = append(allErrs, w.validateComponentRoutes(r)...)
+	allErrs = append(allErrs, w.validateNotificationContacts(r)...)
 
 	if len(allErrs) == 0 {
 		return nil, nil
@@ -152,6 +154,7 @@ func (w *ROSAControlPlane) ValidateUpdate(_ context.Context, oldObj, newObj runt
 	allErrs = append(allErrs, w.validateROSANetwork(r)...)
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 	allErrs = append(allErrs, w.validateComponentRoutes(r)...)
+	allErrs = append(allErrs, w.validateNotificationContacts(r)...)
 
 	if len(allErrs) == 0 {
 		return nil, nil
@@ -341,6 +344,25 @@ func (w *ROSAControlPlane) validateComponentRoutes(r *rosacontrolplanev1.ROSACon
 			))
 		}
 		routeNames[route.Name] = true
+	}
+	return errs
+}
+
+func (w *ROSAControlPlane) validateNotificationContacts(r *rosacontrolplanev1.ROSAControlPlane) field.ErrorList {
+	var errs field.ErrorList
+	if r.Spec.NotificationContacts == nil {
+		return errs
+	}
+
+	basePath := field.NewPath("spec.notificationContacts")
+	for i, contact := range r.Spec.NotificationContacts {
+		if strings.TrimSpace(contact) == "" {
+			errs = append(errs, field.Invalid(
+				basePath.Index(i),
+				contact,
+				"must not be blank",
+			))
+		}
 	}
 	return errs
 }
