@@ -22,6 +22,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,6 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
@@ -38,6 +40,7 @@ func TestAWSMachineTemplateReconciler(t *testing.T) {
 	setupScheme := func() *runtime.Scheme {
 		scheme := runtime.NewScheme()
 		_ = infrav1.AddToScheme(scheme)
+		_ = ekscontrolplanev1.AddToScheme(scheme)
 		_ = clusterv1.AddToScheme(scheme)
 		_ = corev1.AddToScheme(scheme)
 		return scheme
@@ -67,103 +70,60 @@ func TestAWSMachineTemplateReconciler(t *testing.T) {
 		}
 	}
 
-	t.Run("getRegion", func(t *testing.T) {
-		t.Run("should get region from AWSCluster", func(t *testing.T) {
+	t.Run("getEC2Client", func(t *testing.T) {
+		t.Run("should return nil when cluster type is not recognised", func(t *testing.T) {
 			g := NewWithT(t)
 			cluster := &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "default",
-				},
+				ObjectMeta: metav1.ObjectMeta{Name: "test-cluster", Namespace: "default"},
+			}
+			reconciler := &AWSMachineTemplateReconciler{Client: newFakeClient(cluster)}
+
+			ec2Client, err := reconciler.getEC2Client(context.Background(), nil, cluster)
+
+			g.Expect(err).To(BeNil())
+			g.Expect(ec2Client).To(BeNil())
+		})
+
+		t.Run("should return NotFound error when AWSCluster is not found", func(t *testing.T) {
+			g := NewWithT(t)
+			cluster := &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-cluster", Namespace: "default"},
 				Spec: clusterv1.ClusterSpec{
 					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-						Kind: "AWSCluster",
-						Name: "test-aws-cluster",
+						Kind: kindAWSCluster,
+						Name: "missing-aws-cluster",
 					},
 				},
 			}
-			awsCluster := &infrav1.AWSCluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-aws-cluster",
-					Namespace: "default",
-				},
-				Spec: infrav1.AWSClusterSpec{
-					Region: "us-west-2",
-				},
-			}
+			reconciler := &AWSMachineTemplateReconciler{Client: newFakeClient(cluster)}
 
-			reconciler := &AWSMachineTemplateReconciler{
-				Client: newFakeClient(cluster, awsCluster),
-			}
+			ec2Client, err := reconciler.getEC2Client(context.Background(), nil, cluster)
 
-			region, err := reconciler.getRegion(context.Background(), cluster)
-
-			g.Expect(err).To(BeNil())
-			g.Expect(region).To(Equal("us-west-2"))
+			g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+			g.Expect(ec2Client).To(BeNil())
 		})
 
-		t.Run("should return error when cluster is nil", func(t *testing.T) {
-			g := NewWithT(t)
-
-			reconciler := &AWSMachineTemplateReconciler{
-				Client: newFakeClient(),
-			}
-
-			region, err := reconciler.getRegion(context.Background(), nil)
-
-			g.Expect(err).ToNot(BeNil())
-			g.Expect(err.Error()).To(ContainSubstring("no owner cluster found"))
-			g.Expect(region).To(Equal(""))
-		})
-
-		t.Run("should return empty when cluster has no infrastructure ref", func(t *testing.T) {
+		t.Run("should return NotFound error when AWSManagedControlPlane is not found", func(t *testing.T) {
 			g := NewWithT(t)
 			cluster := &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "default",
-				},
-			}
-
-			reconciler := &AWSMachineTemplateReconciler{
-				Client: newFakeClient(cluster),
-			}
-
-			region, err := reconciler.getRegion(context.Background(), cluster)
-
-			g.Expect(err).To(BeNil())
-			g.Expect(region).To(Equal(""))
-		})
-
-		t.Run("should return empty when AWSCluster not found", func(t *testing.T) {
-			g := NewWithT(t)
-			cluster := &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "default",
-				},
+				ObjectMeta: metav1.ObjectMeta{Name: "test-cluster", Namespace: "default"},
 				Spec: clusterv1.ClusterSpec{
-					InfrastructureRef: clusterv1.ContractVersionedObjectReference{
-						Kind: "AWSCluster",
-						Name: "test-aws-cluster",
+					ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+						Kind: AWSManagedControlPlaneRefKind,
+						Name: "missing-managed-cp",
 					},
 				},
 			}
+			reconciler := &AWSMachineTemplateReconciler{Client: newFakeClient(cluster)}
 
-			reconciler := &AWSMachineTemplateReconciler{
-				Client: newFakeClient(cluster),
-			}
+			ec2Client, err := reconciler.getEC2Client(context.Background(), nil, cluster)
 
-			region, err := reconciler.getRegion(context.Background(), cluster)
-
-			g.Expect(err).To(BeNil())
-			g.Expect(region).To(Equal(""))
+			g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+			g.Expect(ec2Client).To(BeNil())
 		})
 	})
 
-	// Note: getInstanceTypeInfo tests are skipped as they require EC2 client injection
-	// which would need significant refactoring. The function is tested indirectly through
-	// integration tests.
+	// getInstanceTypeCapacity and getNodeInfo require a real EC2 client and are not unit tested here.
 
 	t.Run("Reconcile", func(t *testing.T) {
 		t.Run("should skip reconcile when capacity and nodeInfo are already populated", func(t *testing.T) {
@@ -363,7 +323,7 @@ func TestAWSMachineTemplateReconciler(t *testing.T) {
 			g.Expect(result.RequeueAfter).To(BeZero())
 		})
 
-		t.Run("should skip when region is empty", func(t *testing.T) {
+		t.Run("should skip when cluster type is not recognised", func(t *testing.T) {
 			g := NewWithT(t)
 			template := newAWSMachineTemplate("test-template")
 			template.OwnerReferences = []metav1.OwnerReference{
