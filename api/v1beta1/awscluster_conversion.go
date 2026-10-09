@@ -166,6 +166,8 @@ func (src *AWSCluster) ConvertTo(dstRaw conversion.Hub) error {
 		}
 	}
 
+	dst.Status.V1Beta2 = restored.Status.V1Beta2
+
 	return nil
 }
 
