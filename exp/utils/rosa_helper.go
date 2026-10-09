@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/rosa"
@@ -33,6 +34,12 @@ import (
 
 // NodePoolToRosaMachinePoolSpec convert ocm nodePool to rosaMachinePool spec.
 func NodePoolToRosaMachinePoolSpec(nodePool *cmv1.NodePool) expinfrav1.RosaMachinePoolSpec {
+	// Get AWS-specific node pool configuration with nil safety check
+	awsNodePool := nodePool.AWSNodePool()
+	if awsNodePool == nil {
+		return expinfrav1.RosaMachinePoolSpec{}
+	}
+
 	spec := expinfrav1.RosaMachinePoolSpec{
 		NodePoolName:             nodePool.ID(),
 		Version:                  rosa.RawVersionID(nodePool.Version()),
@@ -40,15 +47,15 @@ func NodePoolToRosaMachinePoolSpec(nodePool *cmv1.NodePool) expinfrav1.RosaMachi
 		Subnet:                   nodePool.Subnet(),
 		Labels:                   nodePool.Labels(),
 		AutoRepair:               nodePool.AutoRepair(),
-		InstanceType:             nodePool.AWSNodePool().InstanceType(),
+		InstanceType:             awsNodePool.InstanceType(),
 		TuningConfigs:            nodePool.TuningConfigs(),
-		AdditionalSecurityGroups: nodePool.AWSNodePool().AdditionalSecurityGroupIds(),
-		VolumeSize:               nodePool.AWSNodePool().RootVolume().Size(),
-		CapacityReservationID:    nodePool.AWSNodePool().CapacityReservation().Id(),
+		AdditionalSecurityGroups: awsNodePool.AdditionalSecurityGroupIds(),
+		VolumeSize:               awsNodePool.RootVolume().Size(),
+		CapacityReservationID:    awsNodePool.CapacityReservation().Id(),
 		ImageType:                string(nodePool.ImageType()),
-		// nodePool.AWSNodePool().Tags() returns all tags including "system" tags if "fetchUserTagsOnly" parameter is not specified.
+		// awsNodePool.Tags() returns all tags including "system" tags if "fetchUserTagsOnly" parameter is not specified.
 		// TODO: enable when AdditionalTags day2 changes is supported.
-		// AdditionalTags:           nodePool.AWSNodePool().Tags(),
+		// AdditionalTags:           awsNodePool.Tags(),
 	}
 
 	if nodePool.Autoscaling() != nil {
@@ -86,6 +93,14 @@ func NodePoolToRosaMachinePoolSpec(nodePool *cmv1.NodePool) expinfrav1.RosaMachi
 		if nodePool.ManagementUpgrade().MaxUnavailable() != "" {
 			spec.UpdateConfig.RollingUpdate.MaxUnavailable = ptr.To(intstr.Parse(nodePool.ManagementUpgrade().MaxUnavailable()))
 		}
+	}
+
+	if spotOpts := awsNodePool.SpotMarketOptions(); spotOpts != nil {
+		capaSpotOpts := &infrav1.SpotMarketOptions{}
+		if maxPrice, ok := spotOpts.GetMaxPrice(); ok {
+			capaSpotOpts.MaxPrice = &maxPrice
+		}
+		spec.SpotMarketOptions = capaSpotOpts
 	}
 
 	return spec

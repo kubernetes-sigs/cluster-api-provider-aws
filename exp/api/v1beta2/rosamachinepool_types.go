@@ -132,6 +132,22 @@ type RosaMachinePoolSpec struct {
 	//
 	// +optional
 	CapacityReservationID string `json:"capacityReservationID,omitempty"`
+
+	// SpotMarketOptions configures the node pool to use AWS Spot instances.
+	// The spotMarketOptions struct cannot be added or removed after MachinePool creation.
+	// The maxPrice field within an existing spotMarketOptions may be modifiable depending on
+	// OCM backend support. If maxPrice modifications are not supported, OCM will reject the PATCH
+	// and report an error in the MachinePool status.
+	//
+	// Omit this field to use on-demand instances (default).
+	// Provide an empty struct ({}) to request Spot instances with no maximum price.
+	// Provide maxPrice to cap the hourly bid for Spot instances.
+	//
+	// Setting both spotMarketOptions and capacityReservationID is not allowed
+	// and is rejected by the validating webhook.
+	//
+	// +optional
+	SpotMarketOptions *infrav1.SpotMarketOptions `json:"spotMarketOptions,omitempty"`
 }
 
 // RosaTaint represents a taint to be applied to a node.

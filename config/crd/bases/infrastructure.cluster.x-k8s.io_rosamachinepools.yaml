@@ -134,6 +134,25 @@ spec:
                 items:
                   type: string
                 type: array
+              spotMarketOptions:
+                description: |-
+                  SpotMarketOptions configures the node pool to use AWS Spot instances.
+                  This field is partially immutable after MachinePool creation — spotMarketOptions
+                  cannot be added or removed after creation, but maxPrice within an existing spotMarketOptions
+                  can be modified.
+
+                  Omit this field to use on-demand instances (default).
+                  Provide an empty struct ({}) to request Spot instances with no maximum price.
+                  Provide maxPrice to cap the hourly bid for Spot instances.
+
+                  Setting both spotMarketOptions and capacityReservationID is not allowed
+                  and is rejected by the validating webhook.
+                properties:
+                  maxPrice:
+                    description: MaxPrice defines the maximum price the user is willing
+                      to pay for Spot VM instances
+                    type: string
+                type: object
               subnet:
                 type: string
                 x-kubernetes-validations:
