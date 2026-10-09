@@ -222,6 +222,10 @@ const (
 	// ROSA control plane infrastructure to be ready before proceeding.
 	ROSAMachinePoolWaitingForROSAControlPlaneV1Beta2Reason = "WaitingForROSAControlPlane"
 
+	// ROSAMachinePoolWaitingForNodePoolReasonV1Beta2Reason used when the machine pool is waiting for
+	// the OCM node pool to become ready before proceeding.
+	ROSAMachinePoolWaitingForNodePoolReasonV1Beta2Reason = "WaitingForNodePool"
+
 	// ROSAMachinePoolReconciliationFailedV1Beta2Reason used to report failures while reconciling ROSAMachinePool.
 	ROSAMachinePoolReconciliationFailedV1Beta2Reason = "ReconciliationFailed"
 )
