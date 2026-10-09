@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 	"k8s.io/utils/ptr"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 )
 
@@ -43,7 +44,7 @@ func TestROSAMachinePoolValidateCreate(t *testing.T) {
 			name: "empty spotMarketOptions is accepted",
 			pool: &expinfrav1.ROSAMachinePool{
 				Spec: expinfrav1.RosaMachinePoolSpec{
-					SpotMarketOptions: &expinfrav1.SpotMarketOptions{},
+					SpotMarketOptions: &infrav1.SpotMarketOptions{},
 				},
 			},
 			wantErrToContain: nil,
@@ -52,7 +53,7 @@ func TestROSAMachinePoolValidateCreate(t *testing.T) {
 			name: "spotMarketOptions with maxPrice is accepted",
 			pool: &expinfrav1.ROSAMachinePool{
 				Spec: expinfrav1.RosaMachinePoolSpec{
-					SpotMarketOptions: &expinfrav1.SpotMarketOptions{MaxPrice: ptr.To("0.05")},
+					SpotMarketOptions: &infrav1.SpotMarketOptions{MaxPrice: ptr.To("0.05")},
 				},
 			},
 			wantErrToContain: nil,
@@ -61,7 +62,7 @@ func TestROSAMachinePoolValidateCreate(t *testing.T) {
 			name: "spotMarketOptions with capacityReservationID is rejected",
 			pool: &expinfrav1.ROSAMachinePool{
 				Spec: expinfrav1.RosaMachinePoolSpec{
-					SpotMarketOptions:     &expinfrav1.SpotMarketOptions{},
+					SpotMarketOptions:     &infrav1.SpotMarketOptions{},
 					CapacityReservationID: "cr-123",
 				},
 			},
@@ -107,12 +108,12 @@ func TestROSAMachinePoolValidateUpdate(t *testing.T) {
 			name: "unchanged spotMarketOptions with maxPrice is accepted",
 			old: &expinfrav1.ROSAMachinePool{
 				Spec: expinfrav1.RosaMachinePoolSpec{
-					SpotMarketOptions: &expinfrav1.SpotMarketOptions{MaxPrice: ptr.To("0.05")},
+					SpotMarketOptions: &infrav1.SpotMarketOptions{MaxPrice: ptr.To("0.05")},
 				},
 			},
 			new: &expinfrav1.ROSAMachinePool{
 				Spec: expinfrav1.RosaMachinePoolSpec{
-					SpotMarketOptions: &expinfrav1.SpotMarketOptions{MaxPrice: ptr.To("0.05")},
+					SpotMarketOptions: &infrav1.SpotMarketOptions{MaxPrice: ptr.To("0.05")},
 				},
 			},
 			wantErrToContain: nil,
@@ -121,56 +122,82 @@ func TestROSAMachinePoolValidateUpdate(t *testing.T) {
 			name: "unchanged empty spotMarketOptions is accepted",
 			old: &expinfrav1.ROSAMachinePool{
 				Spec: expinfrav1.RosaMachinePoolSpec{
-					SpotMarketOptions: &expinfrav1.SpotMarketOptions{},
+					SpotMarketOptions: &infrav1.SpotMarketOptions{},
 				},
 			},
 			new: &expinfrav1.ROSAMachinePool{
 				Spec: expinfrav1.RosaMachinePoolSpec{
-					SpotMarketOptions: &expinfrav1.SpotMarketOptions{},
+					SpotMarketOptions: &infrav1.SpotMarketOptions{},
 				},
 			},
 			wantErrToContain: nil,
 		},
 		{
-			name: "adding spotMarketOptions (nil -> set) is now allowed",
+			name: "adding spotMarketOptions (nil -> set) is rejected",
 			old: &expinfrav1.ROSAMachinePool{
 				Spec: expinfrav1.RosaMachinePoolSpec{},
 			},
 			new: &expinfrav1.ROSAMachinePool{
 				Spec: expinfrav1.RosaMachinePoolSpec{
-					SpotMarketOptions: &expinfrav1.SpotMarketOptions{},
+					SpotMarketOptions: &infrav1.SpotMarketOptions{},
 				},
 			},
-			wantErrToContain: nil,
+			wantErrToContain: ptr.To[string]("spec.spotMarketOptions"),
 		},
 		{
-			name: "removing spotMarketOptions (set -> nil) is now allowed",
+			name: "removing spotMarketOptions (set -> nil) is rejected",
 			old: &expinfrav1.ROSAMachinePool{
 				Spec: expinfrav1.RosaMachinePoolSpec{
-					SpotMarketOptions: &expinfrav1.SpotMarketOptions{},
+					SpotMarketOptions: &infrav1.SpotMarketOptions{},
 				},
 			},
 			new: &expinfrav1.ROSAMachinePool{
 				Spec: expinfrav1.RosaMachinePoolSpec{},
 			},
-			wantErrToContain: nil,
+			wantErrToContain: ptr.To[string]("spec.spotMarketOptions"),
+		},
+		{
+			name: "removing spotMarketOptions with maxPrice (set -> nil) is rejected",
+			old: &expinfrav1.ROSAMachinePool{
+				Spec: expinfrav1.RosaMachinePoolSpec{
+					SpotMarketOptions: &infrav1.SpotMarketOptions{MaxPrice: ptr.To("0.05")},
+				},
+			},
+			new: &expinfrav1.ROSAMachinePool{
+				Spec: expinfrav1.RosaMachinePoolSpec{},
+			},
+			wantErrToContain: ptr.To[string]("spec.spotMarketOptions"),
 		},
 		{
 			name: "changing spotMarketOptions maxPrice is now allowed",
 			old: &expinfrav1.ROSAMachinePool{
 				Spec: expinfrav1.RosaMachinePoolSpec{
-					SpotMarketOptions: &expinfrav1.SpotMarketOptions{MaxPrice: ptr.To("0.05")},
+					SpotMarketOptions: &infrav1.SpotMarketOptions{MaxPrice: ptr.To("0.05")},
 				},
 			},
 			new: &expinfrav1.ROSAMachinePool{
 				Spec: expinfrav1.RosaMachinePoolSpec{
-					SpotMarketOptions: &expinfrav1.SpotMarketOptions{MaxPrice: ptr.To("0.10")},
+					SpotMarketOptions: &infrav1.SpotMarketOptions{MaxPrice: ptr.To("0.10")},
 				},
 			},
 			wantErrToContain: nil,
 		},
 		{
-			name: "typed-nil vs empty struct is now allowed",
+			name: "removing maxPrice from spotMarketOptions (keeping struct) is allowed",
+			old: &expinfrav1.ROSAMachinePool{
+				Spec: expinfrav1.RosaMachinePoolSpec{
+					SpotMarketOptions: &infrav1.SpotMarketOptions{MaxPrice: ptr.To("0.05")},
+				},
+			},
+			new: &expinfrav1.ROSAMachinePool{
+				Spec: expinfrav1.RosaMachinePoolSpec{
+					SpotMarketOptions: &infrav1.SpotMarketOptions{},
+				},
+			},
+			wantErrToContain: nil,
+		},
+		{
+			name: "typed-nil vs empty struct is rejected",
 			old: &expinfrav1.ROSAMachinePool{
 				Spec: expinfrav1.RosaMachinePoolSpec{
 					SpotMarketOptions: nil,
@@ -178,10 +205,10 @@ func TestROSAMachinePoolValidateUpdate(t *testing.T) {
 			},
 			new: &expinfrav1.ROSAMachinePool{
 				Spec: expinfrav1.RosaMachinePoolSpec{
-					SpotMarketOptions: &expinfrav1.SpotMarketOptions{},
+					SpotMarketOptions: &infrav1.SpotMarketOptions{},
 				},
 			},
-			wantErrToContain: nil,
+			wantErrToContain: ptr.To[string]("spec.spotMarketOptions"),
 		},
 		{
 			name: "adding spotMarketOptions with capacityReservationID is rejected",
@@ -192,7 +219,7 @@ func TestROSAMachinePoolValidateUpdate(t *testing.T) {
 			},
 			new: &expinfrav1.ROSAMachinePool{
 				Spec: expinfrav1.RosaMachinePoolSpec{
-					SpotMarketOptions:     &expinfrav1.SpotMarketOptions{},
+					SpotMarketOptions:     &infrav1.SpotMarketOptions{},
 					CapacityReservationID: "cr-123",
 				},
 			},

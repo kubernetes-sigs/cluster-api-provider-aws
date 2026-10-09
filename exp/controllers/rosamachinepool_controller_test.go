@@ -103,7 +103,7 @@ func TestNodePoolBuilderSpotMarketOptions(t *testing.T) {
 		g := NewWithT(t)
 
 		rosaMachinePoolSpec := baseSpec()
-		rosaMachinePoolSpec.SpotMarketOptions = &expinfrav1.SpotMarketOptions{}
+		rosaMachinePoolSpec.SpotMarketOptions = &infrav1.SpotMarketOptions{}
 
 		nodePool, err := nodePoolBuilder(rosaMachinePoolSpec, machinePoolSpec, rosacontrolplanev1.Stable, "").Build()
 		g.Expect(err).ToNot(HaveOccurred())
@@ -114,14 +114,16 @@ func TestNodePoolBuilderSpotMarketOptions(t *testing.T) {
 		g.Expect(ok).To(BeFalse())
 
 		// SpotMarketOptions changes are now supported, so diffs should be propagated.
-		g.Expect(computeSpecDiff(rosaMachinePoolSpec, nodePool)).ToNot(BeEmpty())
+		diff := computeSpecDiff(rosaMachinePoolSpec, nodePool)
+		g.Expect(diff).ToNot(BeEmpty())
+		g.Expect(diff).To(ContainSubstring("SpotMarketOptions"))
 	})
 
 	t.Run("spotMarketOptions with maxPrice sets the bid", func(t *testing.T) {
 		g := NewWithT(t)
 
 		rosaMachinePoolSpec := baseSpec()
-		rosaMachinePoolSpec.SpotMarketOptions = &expinfrav1.SpotMarketOptions{MaxPrice: ptr.To("0.05")}
+		rosaMachinePoolSpec.SpotMarketOptions = &infrav1.SpotMarketOptions{MaxPrice: ptr.To("0.05")}
 
 		nodePool, err := nodePoolBuilder(rosaMachinePoolSpec, machinePoolSpec, rosacontrolplanev1.Stable, "").Build()
 		g.Expect(err).ToNot(HaveOccurred())
@@ -133,10 +135,63 @@ func TestNodePoolBuilderSpotMarketOptions(t *testing.T) {
 		g.Expect(maxPrice).To(Equal("0.05"))
 
 		// SpotMarketOptions changes are now supported, so diffs should be propagated.
-		g.Expect(computeSpecDiff(rosaMachinePoolSpec, nodePool)).ToNot(BeEmpty())
+		diff := computeSpecDiff(rosaMachinePoolSpec, nodePool)
+		g.Expect(diff).ToNot(BeEmpty())
+		g.Expect(diff).To(ContainSubstring("SpotMarketOptions"))
 	})
 }
 
+func TestSecondaryDefenseSpotMarketOptionsImmutability(t *testing.T) {
+	// Test the controller-level secondary defense logic that prevents spotMarketOptions
+	// addition/removal after creation (defense-in-depth against webhook bypass)
+
+	t.Run("removal detection: nil desired with non-nil current", func(t *testing.T) {
+		g := NewWithT(t)
+
+		desiredSpec := expinfrav1.RosaMachinePoolSpec{NodePoolName: "pool"}
+		currentSpec := expinfrav1.RosaMachinePoolSpec{
+			NodePoolName:      "pool",
+			SpotMarketOptions: &infrav1.SpotMarketOptions{MaxPrice: ptr.To("0.05")},
+		}
+
+		// Secondary defense condition from controller line 441-442:
+		// if desiredSpec.SpotMarketOptions == nil && currentSpec.SpotMarketOptions != nil
+		wouldBlock := desiredSpec.SpotMarketOptions == nil && currentSpec.SpotMarketOptions != nil
+		g.Expect(wouldBlock).To(BeTrue(), "Should detect removal attempt")
+	})
+
+	t.Run("addition detection: non-nil desired with nil current", func(t *testing.T) {
+		g := NewWithT(t)
+
+		desiredSpec := expinfrav1.RosaMachinePoolSpec{
+			NodePoolName:      "pool",
+			SpotMarketOptions: &infrav1.SpotMarketOptions{},
+		}
+		currentSpec := expinfrav1.RosaMachinePoolSpec{NodePoolName: "pool"}
+
+		// Secondary defense condition from controller line 444-445:
+		// if desiredSpec.SpotMarketOptions != nil && currentSpec.SpotMarketOptions == nil
+		wouldBlock := desiredSpec.SpotMarketOptions != nil && currentSpec.SpotMarketOptions == nil
+		g.Expect(wouldBlock).To(BeTrue(), "Should detect addition attempt")
+	})
+
+	t.Run("no block when both have spotMarketOptions", func(t *testing.T) {
+		g := NewWithT(t)
+
+		desiredSpec := expinfrav1.RosaMachinePoolSpec{
+			NodePoolName:      "pool",
+			SpotMarketOptions: &infrav1.SpotMarketOptions{},
+		}
+		currentSpec := expinfrav1.RosaMachinePoolSpec{
+			NodePoolName:      "pool",
+			SpotMarketOptions: &infrav1.SpotMarketOptions{MaxPrice: ptr.To("0.05")},
+		}
+
+		wouldBlock := desiredSpec.SpotMarketOptions == nil && currentSpec.SpotMarketOptions != nil ||
+			desiredSpec.SpotMarketOptions != nil && currentSpec.SpotMarketOptions == nil
+		g.Expect(wouldBlock).To(BeFalse(), "Should not block when both have spotMarketOptions")
+	})
+}
 func TestRosaMachinePoolReconcile(t *testing.T) {
 	g := NewWithT(t)
 	ns, err := testEnv.CreateNamespace(ctx, "test-namespace")

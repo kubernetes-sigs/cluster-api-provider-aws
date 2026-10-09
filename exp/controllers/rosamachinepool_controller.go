@@ -398,6 +398,19 @@ func (r *ROSAMachinePoolReconciler) updateNodePool(machinePoolScope *scope.RosaM
 	desiredSpec := machinePool.Spec
 
 	specDiff := computeSpecDiff(desiredSpec, nodePool)
+
+	// Secondary defense: reject spotMarketOptions addition/removal after creation.
+	// The webhook ValidateUpdate enforces this, but we also validate here to catch bypasses
+	// (e.g., direct etcd writes, webhook misconfiguration). MaxPrice changes are allowed
+	// through to OCM; if OCM doesn't support them, it will reject the PATCH with an error.
+	currentSpec := utils.NodePoolToRosaMachinePoolSpec(nodePool)
+	if desiredSpec.SpotMarketOptions == nil && currentSpec.SpotMarketOptions != nil {
+		return nil, fmt.Errorf("spotMarketOptions cannot be removed after creation")
+	}
+	if desiredSpec.SpotMarketOptions != nil && currentSpec.SpotMarketOptions == nil {
+		return nil, fmt.Errorf("spotMarketOptions cannot be added after creation")
+	}
+
 	// Replicas are not part of RosaMachinePoolSpec
 	if specDiff == "" && !r.shouldUpdateRosaReplicas(machinePoolScope, nodePool) {
 		// no changes detected.
@@ -515,13 +528,6 @@ func nodePoolBuilder(rosaMachinePoolSpec expinfrav1.RosaMachinePoolSpec, machine
 	if rosaMachinePoolSpec.CapacityReservationID != "" {
 		capacityReservation := cmv1.NewAWSCapacityReservation().Id(rosaMachinePoolSpec.CapacityReservationID)
 		awsNodePool = awsNodePool.CapacityReservation(capacityReservation)
-	}
-	if rosaMachinePoolSpec.SpotMarketOptions != nil {
-		spotOpts := cmv1.NewAwsNodePoolSpotMarketOptions()
-		if rosaMachinePoolSpec.SpotMarketOptions.MaxPrice != nil {
-			spotOpts = spotOpts.MaxPrice(*rosaMachinePoolSpec.SpotMarketOptions.MaxPrice)
-		}
-		awsNodePool = awsNodePool.SpotMarketOptions(spotOpts)
 	}
 	npBuilder.AWSNodePool(awsNodePool)
 
