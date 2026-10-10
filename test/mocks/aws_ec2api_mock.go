@@ -1231,26 +1231,6 @@ func (mr *MockEC2APIMockRecorder) DisassociateVpcCidrBlock(arg0, arg1 interface{
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DisassociateVpcCidrBlock", reflect.TypeOf((*MockEC2API)(nil).DisassociateVpcCidrBlock), varargs...)
 }
 
-// ModifyInstanceMetadataOptions mocks base method.
-func (m *MockEC2API) ModifyInstanceMetadataOptions(arg0 context.Context, arg1 *ec2.ModifyInstanceMetadataOptionsInput, arg2 ...func(*ec2.Options)) (*ec2.ModifyInstanceMetadataOptionsOutput, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "ModifyInstanceMetadataOptions", varargs...)
-	ret0, _ := ret[0].(*ec2.ModifyInstanceMetadataOptionsOutput)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ModifyInstanceMetadataOptions indicates an expected call of ModifyInstanceMetadataOptions.
-func (mr *MockEC2APIMockRecorder) ModifyInstanceMetadataOptions(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyInstanceMetadataOptions", reflect.TypeOf((*MockEC2API)(nil).ModifyInstanceMetadataOptions), varargs...)
-}
-
 // ModifyNetworkInterfaceAttribute mocks base method.
 func (m *MockEC2API) ModifyNetworkInterfaceAttribute(arg0 context.Context, arg1 *ec2.ModifyNetworkInterfaceAttributeInput, arg2 ...func(*ec2.Options)) (*ec2.ModifyNetworkInterfaceAttributeOutput, error) {
 	m.ctrl.T.Helper()
