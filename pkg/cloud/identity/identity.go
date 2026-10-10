@@ -22,6 +22,8 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/gob"
+	"errors"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -29,12 +31,19 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
+	"github.com/aws/smithy-go"
 	corev1 "k8s.io/api/core/v1"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	awsmetrics "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/metrics"
 	stsservice "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+)
+
+const (
+	// invalidClientTokenIDCode is the AWS error code returned when an access key
+	// has not yet propagated through IAM's eventual consistency.
+	invalidClientTokenIDCode = "InvalidClientTokenId"
 )
 
 // AWSPrincipalTypeProvider defines the interface for AWS Principal Type Provider.
@@ -180,5 +189,30 @@ func (p *AWSRolePrincipalTypeProvider) Retrieve(ctx context.Context) (aws.Creden
 		// Update credentials
 		p.credentials = creds
 	}
-	return p.credentials.Retrieve(ctx)
+	result, err := p.credentials.Retrieve(ctx)
+	if err != nil && IsInvalidClientTokenIDError(err) {
+		// Clear the cached credentials so the next reconcile creates a fresh
+		// cache and retries AssumeRole. This handles AWS IAM eventual
+		// consistency for freshly-created access keys, where the first
+		// AssumeRole call may fail with InvalidClientTokenId before the key
+		// has propagated. Without this, the CredentialsCache retains the
+		// failed result and subsequent reconciles never recover.
+		p.log.Info("Transient InvalidClientTokenId error from AssumeRole, clearing credential cache to allow retry on next reconcile")
+		p.credentials = nil
+	}
+	return result, err
+}
+
+// IsInvalidClientTokenIDError reports whether err is an AWS STS
+// InvalidClientTokenId error, which is raised when an access key has not yet
+// propagated through IAM's eventual consistency.
+func IsInvalidClientTokenIDError(err error) bool {
+	if err == nil {
+		return false
+	}
+	var apiErr smithy.APIError
+	if errors.As(err, &apiErr) && apiErr.ErrorCode() == invalidClientTokenIDCode {
+		return true
+	}
+	return strings.Contains(err.Error(), invalidClientTokenIDCode)
 }
