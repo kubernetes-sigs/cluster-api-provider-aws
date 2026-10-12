@@ -346,6 +346,26 @@ The CAPA controller requires service account credentials to provision ROSA HCP c
     kubectl apply -f rosa-machinepool-extra.yaml
     ```
 
+## Notification contacts
+
+`spec.notificationContacts` configures which OCM account usernames receive cluster notification emails.
+All contacts must belong to the same Red Hat organization as the cluster.
+Values must be OCM usernames; using other identifiers such as email addresses can cause errors during reconcile.
+
+When the field is omitted, the controller does not manage contacts (OCM defaults remain, such as the cluster creator).
+When set—including to an empty list—the controller reconciles the subscription to exactly that set.
+
+```yaml
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+kind: ROSAControlPlane
+metadata:
+  name: rosa-hcp-1-control-plane
+spec:
+  notificationContacts:
+    - my-ocm-username
+    - teammate
+```
+
 ## Deleting a ROSA HCP cluster
 
 When `spec.deleteProtection` is set to `Enabled` on the `ROSAControlPlane`, deleting the `ROSAControlPlane` CR will remove the Kubernetes resource but leave the ROSA cluster intact in OCM. No cascade deletion of NodePools or the cluster itself will occur. To fully delete a protected cluster:
