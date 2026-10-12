@@ -133,6 +133,17 @@ func (w *AWSManagedControlPlane) ValidateUpdate(ctx context.Context, oldObj, new
 
 	mcpLog.Info("AWSManagedControlPlane validate update", "control-plane", klog.KObj(r))
 
+	// Skip validation once the object is being deleted. CAPA's own deletion flow
+	// (e.g. network teardown) can patch the object with values discovered from AWS
+	// (such as the VPC's actual IPv6 configuration) that would otherwise trip the
+	// immutability/addon checks below. Rejecting that patch blocks the deletion
+	// reconciler from ever removing the finalizer, leaving the resource stuck in
+	// Deleting forever. Validation is not meaningful for a resource that is already
+	// terminating, so it is safe to skip it entirely here.
+	if !r.DeletionTimestamp.IsZero() {
+		return nil, nil
+	}
+
 	oldAWSManagedControlplane, ok := oldObj.(*ekscontrolplanev1.AWSManagedControlPlane)
 	if !ok {
 		return nil, apierrors.NewInvalid(ekscontrolplanev1.GroupVersion.WithKind("AWSManagedControlPlane").GroupKind(), r.Name, field.ErrorList{
