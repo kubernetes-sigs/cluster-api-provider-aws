@@ -25,6 +25,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/exp/utils"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/rosa"
@@ -83,6 +84,36 @@ func TestNodePoolToRosaMachinePoolSpec(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	g.Expect(computeSpecDiff(rosaMachinePoolSpec, nodePoolSpec)).To(BeEmpty())
+}
+
+func TestComputeSpecDiff_IgnoresPhantomSubnetDiff(t *testing.T) {
+	g := NewWithT(t)
+
+	// User didn't specify subnet, OCM auto-assigns it.
+	desiredSpec := expinfrav1.RosaMachinePoolSpec{
+		NodePoolName: "test-nodepool",
+		InstanceType: "m5.large",
+		AutoRepair:   true,
+	}
+
+	// Simulate OCM's response with auto-assigned subnet.
+	nodePoolSpec, err := cmv1.NewNodePool().
+		ID("test-nodepool").
+		AWSNodePool(cmv1.NewAWSNodePool().InstanceType("m5.large")).
+		AutoRepair(true).
+		Subnet("subnet-ocm-auto-assigned-12345").
+		Build()
+	g.Expect(err).ToNot(HaveOccurred())
+
+	currentSpec := utils.NodePoolToRosaMachinePoolSpec(nodePoolSpec)
+
+	// Verify production scenario: desired empty, current has OCM-assigned subnet.
+	g.Expect(desiredSpec.Subnet).To(Equal(""))
+	g.Expect(currentSpec.Subnet).To(Equal("subnet-ocm-auto-assigned-12345"))
+
+	// Diff should be empty (fix suppresses phantom subnet diff).
+	diff := computeSpecDiff(desiredSpec, nodePoolSpec)
+	g.Expect(diff).To(BeEmpty())
 }
 
 func TestRosaMachinePoolReconcile(t *testing.T) {
