@@ -477,6 +477,14 @@ func computeSpecDiff(desiredSpec expinfrav1.RosaMachinePoolSpec, nodePool *cmv1.
 		"VolumeSize",               // VolumeSize is immutable after creation.
 	}
 
+	// OCM PATCH semantics omit absent fields rather than clearing them, so a nil
+	// desired SpotMarketOptions cannot remove an existing Spot configuration from OCM.
+	// Copy current into desired for the diff so removal does not appear as a change;
+	// the webhook enforces that spotMarketOptions cannot be removed after creation.
+	if desiredSpec.SpotMarketOptions == nil && currentSpec.SpotMarketOptions != nil {
+		desiredSpec.SpotMarketOptions = currentSpec.SpotMarketOptions
+	}
+
 	return cmp.Diff(desiredSpec, currentSpec,
 		cmpopts.EquateEmpty(), // ensures empty non-nil slices and nil slices are considered equal.
 		cmpopts.IgnoreFields(currentSpec, ignoredFields...))
@@ -559,6 +567,13 @@ func nodePoolBuilder(rosaMachinePoolSpec expinfrav1.RosaMachinePoolSpec, machine
 	if rosaMachinePoolSpec.CapacityReservationID != "" {
 		capacityReservation := cmv1.NewAWSCapacityReservation().Id(rosaMachinePoolSpec.CapacityReservationID)
 		awsNodePool = awsNodePool.CapacityReservation(capacityReservation)
+	}
+	if rosaMachinePoolSpec.SpotMarketOptions != nil {
+		spotOpts := cmv1.NewAwsNodePoolSpotMarketOptions()
+		if rosaMachinePoolSpec.SpotMarketOptions.MaxPrice != nil {
+			spotOpts = spotOpts.MaxPrice(*rosaMachinePoolSpec.SpotMarketOptions.MaxPrice)
+		}
+		awsNodePool = awsNodePool.SpotMarketOptions(spotOpts)
 	}
 	npBuilder.AWSNodePool(awsNodePool)
 

@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 )
@@ -48,7 +49,8 @@ func TestNodePoolToRosaMachinePoolSpec(t *testing.T) {
 			cmv1.NewAWSNodePool().
 				InstanceType("m5.large").
 				AdditionalSecurityGroupIds("sg-123", "sg-456").
-				RootVolume(cmv1.NewAWSVolume().Size(120)),
+				RootVolume(cmv1.NewAWSVolume().Size(120)).
+				SpotMarketOptions(cmv1.NewAwsNodePoolSpotMarketOptions().MaxPrice("0.05")),
 		).
 		Autoscaling(
 			cmv1.NewNodePoolAutoscaling().
@@ -100,6 +102,7 @@ func TestNodePoolToRosaMachinePoolSpec(t *testing.T) {
 				MaxUnavailable: ptr.To(intstr.FromInt32(2)),
 			},
 		},
+		SpotMarketOptions: &infrav1.SpotMarketOptions{MaxPrice: ptr.To("0.05")},
 	}
 
 	g.Expect(expectedSpec).To(Equal(actualSpec))
@@ -309,4 +312,23 @@ func TestNodePoolToRosaMachinePoolSpec_NoPhantomDiff(t *testing.T) {
 			g.Expect(diff).To(BeEmpty(), "phantom diff detected between defaulted spec and OCM conversion: %s", diff)
 		})
 	}
+}
+
+func TestNodePoolToRosaMachinePoolSpecSpotMarketOptionsNoMaxPrice(t *testing.T) {
+	g := NewWithT(t)
+
+	// A Spot node pool with no max price exercises the GetMaxPrice() ok=false branch.
+	nodePool, err := cmv1.NewNodePool().
+		ID("test-nodepool").
+		AWSNodePool(
+			cmv1.NewAWSNodePool().
+				InstanceType("m5.large").
+				SpotMarketOptions(cmv1.NewAwsNodePoolSpotMarketOptions()),
+		).
+		Build()
+	g.Expect(err).ToNot(HaveOccurred())
+
+	actualSpec := NodePoolToRosaMachinePoolSpec(nodePool)
+	g.Expect(actualSpec.SpotMarketOptions).ToNot(BeNil())
+	g.Expect(actualSpec.SpotMarketOptions.MaxPrice).To(BeNil())
 }
