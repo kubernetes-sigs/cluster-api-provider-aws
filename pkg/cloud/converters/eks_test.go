@@ -182,3 +182,212 @@ func TestControlPlaneScalingConfigFromSDK(t *testing.T) {
 		})
 	}
 }
+
+var componentConfigIgnoreUnexported = cmpopts.IgnoreUnexported(
+	ekstypes.KubeSchedulerConfigRequest{},
+	ekstypes.NodeResourcesFitConfig{},
+	ekstypes.ScoringStrategy{},
+	ekstypes.ResourceWeight{},
+	ekstypes.KubeApiServerConfigRequest{},
+	ekstypes.ServiceNodePortRange{},
+	ekstypes.KubeControllerManagerConfigRequest{},
+	ekstypes.HorizontalPodAutoscalerControllerConfigRequest{},
+	ekstypes.PodGcControllerConfigRequest{},
+)
+
+func TestKubeSchedulerConfigToSDK(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    *ekscontrolplanev1.KubeSchedulerConfig
+		expected *ekstypes.KubeSchedulerConfigRequest
+	}{
+		{
+			name:     "nil input returns nil",
+			input:    nil,
+			expected: nil,
+		},
+		{
+			name:     "empty config returns nil",
+			input:    &ekscontrolplanev1.KubeSchedulerConfig{},
+			expected: nil,
+		},
+		{
+			name: "empty node resources fit returns nil",
+			input: &ekscontrolplanev1.KubeSchedulerConfig{
+				NodeResourcesFit: &ekscontrolplanev1.NodeResourcesFitConfig{},
+			},
+			expected: nil,
+		},
+		{
+			name: "scoring strategy type only",
+			input: &ekscontrolplanev1.KubeSchedulerConfig{
+				NodeResourcesFit: &ekscontrolplanev1.NodeResourcesFitConfig{
+					ScoringStrategy: &ekscontrolplanev1.ScoringStrategy{
+						Type: ekscontrolplanev1.ScoringStrategyTypeMostAllocated,
+					},
+				},
+			},
+			expected: &ekstypes.KubeSchedulerConfigRequest{
+				NodeResourcesFit: &ekstypes.NodeResourcesFitConfig{
+					ScoringStrategy: &ekstypes.ScoringStrategy{
+						Type: ekstypes.ScoringStrategyTypeMostAllocated,
+					},
+				},
+			},
+		},
+		{
+			name: "scoring strategy with resources",
+			input: &ekscontrolplanev1.KubeSchedulerConfig{
+				NodeResourcesFit: &ekscontrolplanev1.NodeResourcesFitConfig{
+					ScoringStrategy: &ekscontrolplanev1.ScoringStrategy{
+						Type: ekscontrolplanev1.ScoringStrategyTypeMostAllocated,
+						Resources: []ekscontrolplanev1.ResourceWeight{
+							{Name: "cpu", Weight: 2},
+							{Name: "memory", Weight: 1},
+						},
+					},
+				},
+			},
+			expected: &ekstypes.KubeSchedulerConfigRequest{
+				NodeResourcesFit: &ekstypes.NodeResourcesFitConfig{
+					ScoringStrategy: &ekstypes.ScoringStrategy{
+						Type: ekstypes.ScoringStrategyTypeMostAllocated,
+						Resources: []ekstypes.ResourceWeight{
+							{Name: aws.String("cpu"), Weight: aws.Int32(2)},
+							{Name: aws.String("memory"), Weight: aws.Int32(1)},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := KubeSchedulerConfigToSDK(tt.input)
+			if !cmp.Equal(result, tt.expected, componentConfigIgnoreUnexported) {
+				t.Errorf("KubeSchedulerConfigToSDK() diff (-want +got):\n%s", cmp.Diff(tt.expected, result, componentConfigIgnoreUnexported))
+			}
+		})
+	}
+}
+
+func TestKubeAPIServerConfigToSDK(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    *ekscontrolplanev1.KubeAPIServerConfig
+		expected *ekstypes.KubeApiServerConfigRequest
+	}{
+		{
+			name:     "nil input returns nil",
+			input:    nil,
+			expected: nil,
+		},
+		{
+			name:     "empty config returns nil",
+			input:    &ekscontrolplanev1.KubeAPIServerConfig{},
+			expected: nil,
+		},
+		{
+			name: "event ttl only",
+			input: &ekscontrolplanev1.KubeAPIServerConfig{
+				EventTTL: "15m",
+			},
+			expected: &ekstypes.KubeApiServerConfigRequest{
+				EventTtl: aws.String("15m"),
+			},
+		},
+		{
+			name: "service node port range only",
+			input: &ekscontrolplanev1.KubeAPIServerConfig{
+				ServiceNodePortRange: &ekscontrolplanev1.ServiceNodePortRange{MinPort: 20000, MaxPort: 32767},
+			},
+			expected: &ekstypes.KubeApiServerConfigRequest{
+				ServiceNodePortRange: &ekstypes.ServiceNodePortRange{MinPort: 20000, MaxPort: 32767},
+			},
+		},
+		{
+			name: "all parameters",
+			input: &ekscontrolplanev1.KubeAPIServerConfig{
+				EventTTL:             "30m",
+				ServiceNodePortRange: &ekscontrolplanev1.ServiceNodePortRange{MinPort: 20000, MaxPort: 32767},
+			},
+			expected: &ekstypes.KubeApiServerConfigRequest{
+				EventTtl:             aws.String("30m"),
+				ServiceNodePortRange: &ekstypes.ServiceNodePortRange{MinPort: 20000, MaxPort: 32767},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := KubeAPIServerConfigToSDK(tt.input)
+			if !cmp.Equal(result, tt.expected, componentConfigIgnoreUnexported) {
+				t.Errorf("KubeAPIServerConfigToSDK() diff (-want +got):\n%s", cmp.Diff(tt.expected, result, componentConfigIgnoreUnexported))
+			}
+		})
+	}
+}
+
+func TestKubeControllerManagerConfigToSDK(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    *ekscontrolplanev1.KubeControllerManagerConfig
+		expected *ekstypes.KubeControllerManagerConfigRequest
+	}{
+		{
+			name:     "nil input returns nil",
+			input:    nil,
+			expected: nil,
+		},
+		{
+			name: "empty nested configs return nil",
+			input: &ekscontrolplanev1.KubeControllerManagerConfig{
+				HorizontalPodAutoscalerControllerConfig: &ekscontrolplanev1.HorizontalPodAutoscalerControllerConfig{},
+				PodGCControllerConfig:                   &ekscontrolplanev1.PodGCControllerConfig{},
+			},
+			expected: nil,
+		},
+		{
+			name: "horizontal pod autoscaler sync period only",
+			input: &ekscontrolplanev1.KubeControllerManagerConfig{
+				HorizontalPodAutoscalerControllerConfig: &ekscontrolplanev1.HorizontalPodAutoscalerControllerConfig{
+					HorizontalPodAutoscalerSyncPeriod: "10s",
+				},
+			},
+			expected: &ekstypes.KubeControllerManagerConfigRequest{
+				HorizontalPodAutoscalerControllerConfig: &ekstypes.HorizontalPodAutoscalerControllerConfigRequest{
+					HorizontalPodAutoscalerSyncPeriod: aws.String("10s"),
+				},
+			},
+		},
+		{
+			name: "all parameters",
+			input: &ekscontrolplanev1.KubeControllerManagerConfig{
+				HorizontalPodAutoscalerControllerConfig: &ekscontrolplanev1.HorizontalPodAutoscalerControllerConfig{
+					HorizontalPodAutoscalerSyncPeriod: "10s",
+				},
+				PodGCControllerConfig: &ekscontrolplanev1.PodGCControllerConfig{
+					TerminatedPodGCThreshold: aws.Int32(10000),
+				},
+			},
+			expected: &ekstypes.KubeControllerManagerConfigRequest{
+				HorizontalPodAutoscalerControllerConfig: &ekstypes.HorizontalPodAutoscalerControllerConfigRequest{
+					HorizontalPodAutoscalerSyncPeriod: aws.String("10s"),
+				},
+				PodGcControllerConfig: &ekstypes.PodGcControllerConfigRequest{
+					TerminatedPodGcThreshold: aws.Int32(10000),
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := KubeControllerManagerConfigToSDK(tt.input)
+			if !cmp.Equal(result, tt.expected, componentConfigIgnoreUnexported) {
+				t.Errorf("KubeControllerManagerConfigToSDK() diff (-want +got):\n%s", cmp.Diff(tt.expected, result, componentConfigIgnoreUnexported))
+			}
+		})
+	}
+}

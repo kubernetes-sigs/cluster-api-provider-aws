@@ -322,3 +322,75 @@ func ControlPlaneScalingConfigFromSDK(config *ekstypes.ControlPlaneScalingConfig
 		Tier: ekscontrolplanev1.ControlPlaneScalingTier(config.Tier),
 	}
 }
+
+// KubeSchedulerConfigToSDK converts CAPA KubeSchedulerConfig to AWS SDK KubeSchedulerConfigRequest.
+// It returns nil when no scheduler parameter is set.
+func KubeSchedulerConfigToSDK(config *ekscontrolplanev1.KubeSchedulerConfig) *ekstypes.KubeSchedulerConfigRequest {
+	if config == nil || config.NodeResourcesFit == nil || config.NodeResourcesFit.ScoringStrategy == nil {
+		return nil
+	}
+
+	strategy := config.NodeResourcesFit.ScoringStrategy
+	sdkStrategy := &ekstypes.ScoringStrategy{
+		Type: ekstypes.ScoringStrategyType(strategy.Type),
+	}
+	for _, resource := range strategy.Resources {
+		sdkStrategy.Resources = append(sdkStrategy.Resources, ekstypes.ResourceWeight{
+			Name:   aws.String(resource.Name),
+			Weight: aws.Int32(resource.Weight),
+		})
+	}
+
+	return &ekstypes.KubeSchedulerConfigRequest{
+		NodeResourcesFit: &ekstypes.NodeResourcesFitConfig{
+			ScoringStrategy: sdkStrategy,
+		},
+	}
+}
+
+// KubeAPIServerConfigToSDK converts CAPA KubeAPIServerConfig to AWS SDK KubeApiServerConfigRequest.
+// It returns nil when no API server parameter is set.
+func KubeAPIServerConfigToSDK(config *ekscontrolplanev1.KubeAPIServerConfig) *ekstypes.KubeApiServerConfigRequest {
+	if config == nil || (config.EventTTL == "" && config.ServiceNodePortRange == nil) {
+		return nil
+	}
+
+	request := &ekstypes.KubeApiServerConfigRequest{}
+	if config.EventTTL != "" {
+		request.EventTtl = aws.String(config.EventTTL)
+	}
+	if config.ServiceNodePortRange != nil {
+		request.ServiceNodePortRange = &ekstypes.ServiceNodePortRange{
+			MinPort: config.ServiceNodePortRange.MinPort,
+			MaxPort: config.ServiceNodePortRange.MaxPort,
+		}
+	}
+
+	return request
+}
+
+// KubeControllerManagerConfigToSDK converts CAPA KubeControllerManagerConfig to AWS SDK KubeControllerManagerConfigRequest.
+// It returns nil when no controller manager parameter is set.
+func KubeControllerManagerConfigToSDK(config *ekscontrolplanev1.KubeControllerManagerConfig) *ekstypes.KubeControllerManagerConfigRequest {
+	if config == nil {
+		return nil
+	}
+
+	request := &ekstypes.KubeControllerManagerConfigRequest{}
+	if hpa := config.HorizontalPodAutoscalerControllerConfig; hpa != nil && hpa.HorizontalPodAutoscalerSyncPeriod != "" {
+		request.HorizontalPodAutoscalerControllerConfig = &ekstypes.HorizontalPodAutoscalerControllerConfigRequest{
+			HorizontalPodAutoscalerSyncPeriod: aws.String(hpa.HorizontalPodAutoscalerSyncPeriod),
+		}
+	}
+	if podGC := config.PodGCControllerConfig; podGC != nil && podGC.TerminatedPodGCThreshold != nil {
+		request.PodGcControllerConfig = &ekstypes.PodGcControllerConfigRequest{
+			TerminatedPodGcThreshold: aws.Int32(*podGC.TerminatedPodGCThreshold),
+		}
+	}
+
+	if request.HorizontalPodAutoscalerControllerConfig == nil && request.PodGcControllerConfig == nil {
+		return nil
+	}
+
+	return request
+}
