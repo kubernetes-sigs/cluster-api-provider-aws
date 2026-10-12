@@ -1,0 +1,66 @@
+name: verify-changelog
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+      - 'release-*'
+    paths:
+      - 'CHANGELOG/*.md'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify CHANGELOG PR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@22103cc46bda19c2b464ffe86db46df6922fd323 # tag=v47.0.5
+        with:
+          files: CHANGELOG/*.md
+
+      - name: Determine release version
+        id: version
+        run: |
+          if [[ "${{ steps.changed-files.outputs.added_files_count }}" != "1" ]]; then
+            echo "exactly 1 newly added CHANGELOG/*.md file is required, found ${{ steps.changed-files.outputs.added_files_count }} added"
+            exit 1
+          fi
+          if [[ "${{ steps.changed-files.outputs.all_changed_files_count }}" != "${{ steps.changed-files.outputs.added_files_count }}" ]]; then
+            echo "no other CHANGELOG/*.md files may be modified or renamed in this PR (found ${{ steps.changed-files.outputs.all_changed_files_count }} changed vs ${{ steps.changed-files.outputs.added_files_count }} added)"
+            exit 1
+          fi
+          changed_file="${{ steps.changed-files.outputs.added_files }}"
+          version="$(basename "${changed_file}" .md)"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: hack/tools/release-tools/go.sum
+
+      - name: Build release-tool
+        working-directory: hack/tools/release-tools
+        run: go build -o ../../../bin/release-tool .
+
+      - name: Validate version against target branch
+        id: validate
+        run: ./bin/release-tool changelog validate-trigger --branch "${{ github.event.pull_request.base.ref }}" --version "${{ steps.version.outputs.version }}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify metadata.yaml was updated
+        if: steps.validate.outputs.create_release_branch == 'true'
+        run: |
+          ./bin/release-tool changelog verify-metadata \
+            --changelog "CHANGELOG/${{ steps.version.outputs.version }}.md" \
+            --major "${{ steps.validate.outputs.major }}" \
+            --minor "${{ steps.validate.outputs.minor }}"
