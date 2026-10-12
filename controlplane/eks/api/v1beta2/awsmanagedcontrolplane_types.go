@@ -418,6 +418,21 @@ type AWSManagedControlPlaneStatus struct {
 	// ObservedGeneration is the latest generation observed by the controller.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	// v1beta2 groups all the fields that will be added or modified in AWSManagedControlPlane's status with the V1Beta2 version.
+	// +optional
+	V1Beta2 *AWSManagedControlPlaneV1Beta2Status `json:"v1beta2,omitempty"`
+}
+
+// AWSManagedControlPlaneV1Beta2Status groups all the fields that will be added or modified in AWSManagedControlPlane with the V1Beta2 version.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type AWSManagedControlPlaneV1Beta2Status struct {
+	// conditions represents the observations of an AWSManagedControlPlane's current state.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -456,6 +471,22 @@ func (r *AWSManagedControlPlane) GetConditions() clusterv1beta1.Conditions {
 // SetConditions sets the status conditions for the AWSManagedControlPlane.
 func (r *AWSManagedControlPlane) SetConditions(conditions clusterv1beta1.Conditions) {
 	r.Status.Conditions = conditions
+}
+
+// GetV1Beta2Conditions returns the set of conditions for this object.
+func (r *AWSManagedControlPlane) GetV1Beta2Conditions() []metav1.Condition {
+	if r.Status.V1Beta2 == nil {
+		return nil
+	}
+	return r.Status.V1Beta2.Conditions
+}
+
+// SetV1Beta2Conditions sets conditions for an API object.
+func (r *AWSManagedControlPlane) SetV1Beta2Conditions(conditions []metav1.Condition) {
+	if r.Status.V1Beta2 == nil {
+		r.Status.V1Beta2 = &AWSManagedControlPlaneV1Beta2Status{}
+	}
+	r.Status.V1Beta2.Conditions = conditions
 }
 
 func init() {

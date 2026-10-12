@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
@@ -49,4 +50,28 @@ func TestFuzzyConversion(t *testing.T) {
 		Hub:    &v1beta2.AWSFargateProfile{},
 		Spoke:  &AWSFargateProfile{},
 	}))
+}
+
+func TestAWSMachinePoolV1Beta2ConditionsRoundTrip(t *testing.T) {
+	g := NewWithT(t)
+	hub := &v1beta2.AWSMachinePool{}
+	hub.SetV1Beta2Conditions([]metav1.Condition{{Type: "Ready", Status: metav1.ConditionTrue, Reason: "Available"}})
+
+	spoke := &AWSMachinePool{}
+	g.Expect(spoke.ConvertFrom(hub)).To(Succeed())
+	restored := &v1beta2.AWSMachinePool{}
+	g.Expect(spoke.ConvertTo(restored)).To(Succeed())
+	g.Expect(restored.GetV1Beta2Conditions()).To(Equal(hub.GetV1Beta2Conditions()))
+}
+
+func TestAWSManagedMachinePoolV1Beta2ConditionsRoundTrip(t *testing.T) {
+	g := NewWithT(t)
+	hub := &v1beta2.AWSManagedMachinePool{}
+	hub.SetV1Beta2Conditions([]metav1.Condition{{Type: "Ready", Status: metav1.ConditionTrue, Reason: "Available"}})
+
+	spoke := &AWSManagedMachinePool{}
+	g.Expect(spoke.ConvertFrom(hub)).To(Succeed())
+	restored := &v1beta2.AWSManagedMachinePool{}
+	g.Expect(spoke.ConvertTo(restored)).To(Succeed())
+	g.Expect(restored.GetV1Beta2Conditions()).To(Equal(hub.GetV1Beta2Conditions()))
 }

@@ -82,6 +82,8 @@ func (src *AWSMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 
 	dst.Spec.DefaultInstanceWarmup = restored.Spec.DefaultInstanceWarmup
 	dst.Spec.AWSLaunchTemplate.NonRootVolumes = restored.Spec.AWSLaunchTemplate.NonRootVolumes
+	dst.Status.V1Beta2 = restored.Status.V1Beta2
+
 	return nil
 }
 
@@ -160,6 +162,8 @@ func (src *AWSManagedMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	if restored.Spec.NodeRepairConfig != nil {
 		dst.Spec.NodeRepairConfig = restored.Spec.NodeRepairConfig
 	}
+
+	dst.Status.V1Beta2 = restored.Status.V1Beta2
 
 	return nil
 }
@@ -264,4 +268,10 @@ func Convert_v1beta2_RefreshPreferences_To_v1beta1_RefreshPreferences(in *expinf
 
 func Convert_v1beta2_FargateProfileSpec_To_v1beta1_FargateProfileSpec(in *expinfrav1.FargateProfileSpec, out *FargateProfileSpec, s apiconversion.Scope) error {
 	return autoConvert_v1beta2_FargateProfileSpec_To_v1beta1_FargateProfileSpec(in, out, s)
+}
+
+// Convert_v1beta2_AWSManagedMachinePoolStatus_To_v1beta1_AWSManagedMachinePoolStatus converts v1beta2 AWSManagedMachinePoolStatus to v1beta1.
+func Convert_v1beta2_AWSManagedMachinePoolStatus_To_v1beta1_AWSManagedMachinePoolStatus(in *expinfrav1.AWSManagedMachinePoolStatus, out *AWSManagedMachinePoolStatus, s apiconversion.Scope) error {
+	// V1Beta2 field is not present in v1beta1, so it will be dropped during conversion
+	return autoConvert_v1beta2_AWSManagedMachinePoolStatus_To_v1beta1_AWSManagedMachinePoolStatus(in, out, s)
 }
