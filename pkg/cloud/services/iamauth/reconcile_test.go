@@ -232,6 +232,85 @@ func createMachineDeploymentForCluster(name, namespace, clusterName string, infr
 	return md
 }
 
+// TestDedupAndSortRoles pins two properties that keep ReconcileMappings
+// deterministic on repeated reconciles:
+//   - duplicate RoleARNs collapse to a single entry, with later entries
+//     (user-configured mappings) winning over earlier ones (node-role
+//     discovery), and
+//   - output is sorted by RoleARN so aws-auth ConfigMap key order and CRD
+//     backend Create/Delete order do not depend on nodeRoles map iteration.
+func TestDedupAndSortRoles(t *testing.T) {
+	g := NewWithT(t)
+
+	nodeRole := ekscontrolplanev1.RoleMapping{
+		RoleARN: "arn:aws:iam::000000000000:role/KubernetesNode",
+		KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+			UserName: "system:node:{{EC2PrivateDNSName}}",
+			Groups:   []string{"system:bootstrappers", "system:nodes"},
+		},
+	}
+	adminRole := ekscontrolplanev1.RoleMapping{
+		RoleARN: "arn:aws:iam::000000000000:role/KubernetesAdmin",
+		KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+			UserName: "admin:{{SessionName}}",
+			Groups:   []string{"system:masters"},
+		},
+	}
+	// nodeRoleOverride shares an ARN with nodeRole but sets a different
+	// UserName/Groups — simulates a user-configured mapping that collides with
+	// the discovered node role. The user-configured entry (appended later)
+	// must win.
+	nodeRoleOverride := ekscontrolplanev1.RoleMapping{
+		RoleARN: nodeRole.RoleARN,
+		KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+			UserName: "custom-node-user",
+			Groups:   []string{"system:masters"},
+		},
+	}
+
+	got := dedupAndSortRoles([]ekscontrolplanev1.RoleMapping{nodeRole, adminRole, nodeRoleOverride})
+
+	g.Expect(got).To(HaveLen(2))
+	g.Expect(got[0].RoleARN).To(Equal(adminRole.RoleARN), "output must be sorted by RoleARN ascending")
+	g.Expect(got[1].RoleARN).To(Equal(nodeRole.RoleARN))
+	g.Expect(got[1].UserName).To(Equal("custom-node-user"), "later duplicate entry (user-configured) must override earlier one (node-role discovery)")
+	g.Expect(got[1].Groups).To(Equal([]string{"system:masters"}))
+}
+
+// TestDedupAndSortUsers mirrors TestDedupAndSortRoles for UserMappings.
+func TestDedupAndSortUsers(t *testing.T) {
+	g := NewWithT(t)
+
+	alice := ekscontrolplanev1.UserMapping{
+		UserARN: "arn:aws:iam::000000000000:user/Alice",
+		KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+			UserName: "alice",
+			Groups:   []string{"system:masters"},
+		},
+	}
+	bob := ekscontrolplanev1.UserMapping{
+		UserARN: "arn:aws:iam::000000000000:user/Bob",
+		KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+			UserName: "bob",
+			Groups:   []string{"viewers"},
+		},
+	}
+	aliceUpdated := ekscontrolplanev1.UserMapping{
+		UserARN: alice.UserARN,
+		KubernetesMapping: ekscontrolplanev1.KubernetesMapping{
+			UserName: "alice-updated",
+			Groups:   []string{"editors"},
+		},
+	}
+
+	got := dedupAndSortUsers([]ekscontrolplanev1.UserMapping{bob, alice, aliceUpdated})
+
+	g.Expect(got).To(HaveLen(2))
+	g.Expect(got[0].UserARN).To(Equal(alice.UserARN), "output must be sorted by UserARN ascending")
+	g.Expect(got[0].UserName).To(Equal("alice-updated"), "later duplicate entry must override earlier one")
+	g.Expect(got[1].UserARN).To(Equal(bob.UserARN))
+}
+
 func createControllerIdentity() *infrav1.AWSClusterControllerIdentity {
 	controllerIdentity := &infrav1.AWSClusterControllerIdentity{
 		TypeMeta: metav1.TypeMeta{
