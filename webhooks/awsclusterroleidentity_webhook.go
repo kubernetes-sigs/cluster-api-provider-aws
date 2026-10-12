@@ -61,6 +61,10 @@ func (*AWSClusterRoleIdentity) ValidateCreate(_ context.Context, obj runtime.Obj
 			r.Spec.SourceIdentityRef, "field cannot be set to nil")
 	}
 
+	if err := validateSourceIdentityRefNotSelf(r); err != nil {
+		return nil, err
+	}
+
 	// Validate selector parses as Selector
 	if r.Spec.AllowedNamespaces != nil {
 		_, err := metav1.LabelSelectorAsSelector(&r.Spec.AllowedNamespaces.Selector)
@@ -70,6 +74,16 @@ func (*AWSClusterRoleIdentity) ValidateCreate(_ context.Context, obj runtime.Obj
 	}
 
 	return nil, nil
+}
+
+// validateSourceIdentityRefNotSelf rejects a sourceIdentityRef that names its own object.
+func validateSourceIdentityRefNotSelf(r *infrav1.AWSClusterRoleIdentity) error {
+	ref := r.Spec.SourceIdentityRef
+	if ref != nil && ref.Kind == infrav1.ClusterRoleIdentityKind && ref.Name == r.Name {
+		return field.Invalid(field.NewPath("spec", "sourceIdentityRef", "name"),
+			ref.Name, "an AWSClusterRoleIdentity cannot reference itself as its own source identity")
+	}
+	return nil
 }
 
 // ValidateDelete allows you to add any extra validation when deleting an AWSClusterRoleIdentity.
@@ -93,6 +107,10 @@ func (*AWSClusterRoleIdentity) ValidateUpdate(_ context.Context, oldObj, newObj 
 	if oldP.Spec.SourceIdentityRef != nil && r.Spec.SourceIdentityRef == nil {
 		return nil, field.Invalid(field.NewPath("spec", "sourceIdentityRef"),
 			r.Spec.SourceIdentityRef, "field cannot be set to nil")
+	}
+
+	if err := validateSourceIdentityRefNotSelf(r); err != nil {
+		return nil, err
 	}
 
 	// Validate selector parses as Selector
