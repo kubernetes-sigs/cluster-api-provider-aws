@@ -154,28 +154,13 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, err
 	}
 
-	// Find the region by checking ownerReferences
-	region, err := r.getRegion(ctx, cluster)
+	ec2Client, err := r.getEC2Client(ctx, log, cluster)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	if region == "" {
+	if ec2Client == nil {
 		return ctrl.Result{}, nil
 	}
-
-	// Create global scope for this region
-	// Reference: exp/instancestate/awsinstancestate_controller.go:68-76
-	globalScope, err := scope.NewGlobalScope(scope.GlobalScopeParams{
-		ControllerName: "awsmachinetemplate",
-		Region:         region,
-	})
-	if err != nil {
-		record.Warnf(awsMachineTemplate, "AWSSessionFailed", "Failed to create AWS session for region %q: %v", region, err)
-		return ctrl.Result{}, nil
-	}
-
-	// Create EC2 client from global scope
-	ec2Client := ec2.NewFromConfig(globalScope.Session())
 
 	// Query instance type capacity
 	capacity, err := r.getInstanceTypeCapacity(ctx, ec2Client, instanceType)
@@ -203,47 +188,57 @@ func (r *AWSMachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, errors.Wrap(err, "failed to update AWSMachineTemplate status")
 	}
 
-	log.Info("Successfully populated capacity and nodeInfo", "instanceType", instanceType, "region", region, "capacity", capacity, "nodeInfo", nodeInfo)
+	log.Info("Successfully populated capacity and nodeInfo", "instanceType", instanceType, "capacity", capacity, "nodeInfo", nodeInfo)
 	return ctrl.Result{}, nil
 }
 
-// getRegion finds the region by checking the template's owner cluster reference.
-func (r *AWSMachineTemplateReconciler) getRegion(ctx context.Context, cluster *clusterv1.Cluster) (string, error) {
-	if cluster == nil {
-		return "", errors.New("no owner cluster found")
-	}
-
-	// Get region from AWSCluster (standard EC2-based cluster)
+// getEC2Client returns an EC2 client scoped to the workload cluster's credentials.
+func (r *AWSMachineTemplateReconciler) getEC2Client(ctx context.Context, log *logger.Logger, cluster *clusterv1.Cluster) (*ec2.Client, error) {
 	if cluster.Spec.InfrastructureRef.IsDefined() && cluster.Spec.InfrastructureRef.Kind == kindAWSCluster {
 		awsCluster := &infrav1.AWSCluster{}
 		if err := r.Get(ctx, client.ObjectKey{
 			Namespace: cluster.Namespace,
 			Name:      cluster.Spec.InfrastructureRef.Name,
 		}, awsCluster); err != nil {
-			if !apierrors.IsNotFound(err) {
-				return "", errors.Wrapf(err, "failed to get AWSCluster %s/%s", cluster.Namespace, cluster.Spec.InfrastructureRef.Name)
-			}
-		} else if awsCluster.Spec.Region != "" {
-			return awsCluster.Spec.Region, nil
+			return nil, err
 		}
+		clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+			Client:         r.Client,
+			Logger:         log,
+			Cluster:        cluster,
+			AWSCluster:     awsCluster,
+			ControllerName: "awsmachinetemplate",
+		})
+		if err != nil {
+			return nil, err
+		}
+		log.Info("Using cluster-scoped credentials", "region", awsCluster.Spec.Region)
+		return ec2.NewFromConfig(clusterScope.Session()), nil
 	}
 
-	// Get region from AWSManagedControlPlane (EKS cluster)
 	if cluster.Spec.ControlPlaneRef.IsDefined() && cluster.Spec.ControlPlaneRef.Kind == AWSManagedControlPlaneRefKind {
 		awsManagedCP := &ekscontrolplanev1.AWSManagedControlPlane{}
 		if err := r.Get(ctx, client.ObjectKey{
 			Namespace: cluster.Namespace,
 			Name:      cluster.Spec.ControlPlaneRef.Name,
 		}, awsManagedCP); err != nil {
-			if !apierrors.IsNotFound(err) {
-				return "", errors.Wrapf(err, "failed to get AWSManagedControlPlane %s/%s", cluster.Namespace, cluster.Spec.ControlPlaneRef.Name)
-			}
-		} else if awsManagedCP.Spec.Region != "" {
-			return awsManagedCP.Spec.Region, nil
+			return nil, err
 		}
+		managedScope, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
+			Client:         r.Client,
+			Cluster:        cluster,
+			ControlPlane:   awsManagedCP,
+			ControllerName: "awsmachinetemplate-managedcontrolplane",
+			Logger:         log,
+		})
+		if err != nil {
+			return nil, err
+		}
+		log.Info("Using managed control plane-scoped credentials", "region", awsManagedCP.Spec.Region)
+		return ec2.NewFromConfig(managedScope.Session()), nil
 	}
 
-	return "", nil
+	return nil, nil
 }
 
 // getInstanceTypeCapacity queries AWS EC2 API for instance type capacity information.
