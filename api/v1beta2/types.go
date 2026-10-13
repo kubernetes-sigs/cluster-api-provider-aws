@@ -271,11 +271,15 @@ type Instance struct {
 	// +optional
 	CapacityReservationID *string `json:"capacityReservationId,omitempty"`
 
+	// CapacityReservationResourceGroupARN specifies the ARN of the target Capacity Reservation resource group in which to launch the instance.
+	// +optional
+	CapacityReservationResourceGroupARN *string `json:"capacityReservationResourceGroupARN,omitempty"`
+
 	// MarketType specifies the type of market for the EC2 instance. Valid values include:
 	// "OnDemand" (default): The instance runs as a standard OnDemand instance.
 	// "Spot": The instance runs as a Spot instance. When SpotMarketOptions is provided, the marketType defaults to "Spot".
 	// "CapacityBlock": The instance utilizes pre-purchased compute capacity (capacity blocks) with AWS Capacity Reservations.
-	//  If this value is selected, CapacityReservationID must be specified to identify the target reservation.
+	//  If this value is selected, either CapacityReservationID or CapacityReservationResourceGroupARN must be specified to identify the target reservation.
 	// If marketType is not specified and spotMarketOptions is provided, the marketType defaults to "Spot".
 	// +optional
 	MarketType MarketType `json:"marketType,omitempty"`
@@ -312,6 +316,16 @@ type Instance struct {
 	// When omitted, this means no opinion and the AWS platform is left to choose a reasonable default.
 	// +optional
 	CPUOptions CPUOptions `json:"cpuOptions,omitempty,omitzero"`
+}
+
+// HasCapacityReservationTarget returns true when either supported capacity reservation target is set.
+func HasCapacityReservationTarget(capacityReservationID, capacityReservationResourceGroupARN *string) bool {
+	return capacityReservationID != nil || capacityReservationResourceGroupARN != nil
+}
+
+// HasConflictingCapacityReservationTargets returns true when more than one capacity reservation target is set.
+func HasConflictingCapacityReservationTargets(capacityReservationID, capacityReservationResourceGroupARN *string) bool {
+	return capacityReservationID != nil && capacityReservationResourceGroupARN != nil
 }
 
 // CapacityReservationPreference describes the preferred use of capacity reservations
