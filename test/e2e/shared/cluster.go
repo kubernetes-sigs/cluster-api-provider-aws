@@ -76,8 +76,10 @@ type selfHostedManagementClusterProvider struct {
 	intervals           func(string, string) []interface{}
 }
 
-// Create is a no-op; the AWS cluster is provisioned in setupSelfHostedManagementCluster.
-func (p *selfHostedManagementClusterProvider) Create(context.Context) {}
+// Create must not be called; the AWS cluster is provisioned in setupSelfHostedManagementCluster.
+func (p *selfHostedManagementClusterProvider) Create(context.Context) {
+	Fail("selfHostedManagementClusterProvider.Create must not be called; use setupSelfHostedManagementCluster or loadSelfHostedManagementCluster")
+}
 
 func (p *selfHostedManagementClusterProvider) GetKubeconfigPath() string {
 	return p.managementProxy.GetKubeconfigPath()

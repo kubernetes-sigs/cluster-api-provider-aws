@@ -432,3 +432,23 @@ func FinishTestExecution(e2eCtx *E2EContext) {
 		DumpMachines(ctx, e2eCtx, k)
 	}
 }
+
+// Node1BeforeSuite is the common setup done on the first ginkgo node before the test suite runs.
+//
+// Deprecated: Use ProvisionTestEnvironment instead.
+func Node1BeforeSuite(e2eCtx *E2EContext) []byte { return ProvisionTestEnvironment(e2eCtx) }
+
+// AllNodesBeforeSuite is the common setup done on each ginkgo parallel node before the test suite runs.
+//
+// Deprecated: Use PrepareTestExecution instead.
+func AllNodesBeforeSuite(e2eCtx *E2EContext, data []byte) { PrepareTestExecution(e2eCtx, data) }
+
+// Node1AfterSuite is cleanup that runs on the first ginkgo node after the test suite finishes.
+//
+// Deprecated: Use TeardownTestEnvironment instead.
+func Node1AfterSuite(e2eCtx *E2EContext) { TeardownTestEnvironment(e2eCtx) }
+
+// AllNodesAfterSuite is cleanup that runs on all ginkgo parallel nodes after the test suite finishes.
+//
+// Deprecated: Use FinishTestExecution instead.
+func AllNodesAfterSuite(e2eCtx *E2EContext) { FinishTestExecution(e2eCtx) }
